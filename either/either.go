@@ -19,8 +19,8 @@ func FromIO[E, A any](f func() A) Either[E, A] {
 }
 
 func MonadAp[E, A, B any](fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-	return fold(fab, Left[E, B], func(ab func(A) B) Either[E, B] {
-		return fold(fa, Left[E, B], F.Flow2(ab, Right[E, B]))
+	return MonadFold(fab, Left[E, B], func(ab func(A) B) Either[E, B] {
+		return MonadFold(fa, Left[E, B], F.Flow2(ab, Right[E, B]))
 	})
 }
 
@@ -33,7 +33,7 @@ func MonadMap[E, A, B any](fa Either[E, A], f func(a A) B) Either[E, B] {
 }
 
 func MonadBiMap[E1, E2, A, B any](fa Either[E1, A], f func(E1) E2, g func(a A) B) Either[E2, B] {
-	return fold(fa, F.Flow2(f, Left[E2, B]), F.Flow2(g, Right[E2, B]))
+	return MonadFold(fa, F.Flow2(f, Left[E2, B]), F.Flow2(g, Right[E2, B]))
 }
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
@@ -50,7 +50,7 @@ func MapTo[E, A, B any](b B) func(Either[E, A]) Either[E, B] {
 }
 
 func MonadMapLeft[E, A, B any](fa Either[E, A], f func(E) B) Either[B, A] {
-	return fold(fa, F.Flow2(f, Left[B, A]), Right[B, A])
+	return MonadFold(fa, F.Flow2(f, Left[B, A]), Right[B, A])
 }
 
 func Map[E, A, B any](f func(a A) B) func(fa Either[E, A]) Either[E, B] {
@@ -62,7 +62,7 @@ func MapLeft[E, A, B any](f func(E) B) func(fa Either[E, A]) Either[B, A] {
 }
 
 func MonadChain[E, A, B any](fa Either[E, A], f func(a A) Either[E, B]) Either[E, B] {
-	return fold(fa, Left[E, B], f)
+	return MonadFold(fa, Left[E, B], f)
 }
 
 func MonadChainFirst[E, A, B any](ma Either[E, A], f func(a A) Either[E, B]) Either[E, A] {
@@ -147,7 +147,7 @@ func FromError[A any](f func(a A) error) func(A) Either[error, A] {
 }
 
 func ToError[A any](e Either[error, A]) error {
-	return fold(e, E.IdentityError, F.Constant1[A, error](nil))
+	return MonadFold(e, E.IdentityError, F.Constant1[A, error](nil))
 }
 
 func Eitherize0G[GA ~func() (R, error), GB ~func() Either[error, R], R any](f GA) GB {
@@ -256,13 +256,9 @@ func Uneitherize4[T1, T2, T3, T4, R any](f func(T1, T2, T3, T4) Either[error, R]
 	return Uneitherize4G[func(T1, T2, T3, T4) Either[error, R], func(T1, T2, T3, T4) (R, error)](f)
 }
 
-func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a A) B) B {
-	return fold(ma, onLeft, onRight)
-}
-
 func Fold[E, A, B any](onLeft func(E) B, onRight func(A) B) func(Either[E, A]) B {
 	return func(ma Either[E, A]) B {
-		return fold(ma, onLeft, onRight)
+		return MonadFold(ma, onLeft, onRight)
 	}
 }
 
@@ -321,17 +317,17 @@ func Memoize[E, A any](val Either[E, A]) Either[E, A] {
 }
 
 func MonadSequence2[E, T1, T2, R any](e1 Either[E, T1], e2 Either[E, T2], f func(T1, T2) Either[E, R]) Either[E, R] {
-	return fold(e1, Left[E, R], func(t1 T1) Either[E, R] {
-		return fold(e2, Left[E, R], func(t2 T2) Either[E, R] {
+	return MonadFold(e1, Left[E, R], func(t1 T1) Either[E, R] {
+		return MonadFold(e2, Left[E, R], func(t2 T2) Either[E, R] {
 			return f(t1, t2)
 		})
 	})
 }
 
 func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3 Either[E, T3], f func(T1, T2, T3) Either[E, R]) Either[E, R] {
-	return fold(e1, Left[E, R], func(t1 T1) Either[E, R] {
-		return fold(e2, Left[E, R], func(t2 T2) Either[E, R] {
-			return fold(e3, Left[E, R], func(t3 T3) Either[E, R] {
+	return MonadFold(e1, Left[E, R], func(t1 T1) Either[E, R] {
+		return MonadFold(e2, Left[E, R], func(t2 T2) Either[E, R] {
+			return MonadFold(e3, Left[E, R], func(t3 T3) Either[E, R] {
 				return f(t1, t2, t3)
 			})
 		})
@@ -340,5 +336,5 @@ func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3
 
 // Swap changes the order of type parameters
 func Swap[E, A any](val Either[E, A]) Either[A, E] {
-	return fold(val, Right[A, E], Left[A, E])
+	return MonadFold(val, Right[A, E], Left[A, E])
 }

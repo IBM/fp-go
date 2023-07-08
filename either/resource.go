@@ -14,7 +14,7 @@ func WithResource[E, R, A any](onCreate func() Either[E, R], onRelease func(R) E
 				res := f(r)
 				released := onRelease(r)
 				// handle the errors
-				return fold(
+				return MonadFold(
 					res,
 					Left[E, A],
 					func(a A) Either[E, A] {

@@ -21,7 +21,7 @@ func traverse[E, A, B, HKTA, HKTB, HKTRB any](
 	right := F.Bind2nd(_map, Right[E, B])
 
 	return func(ta Either[E, A], f func(A) HKTB) HKTRB {
-		return fold(ta,
+		return MonadFold(ta,
 			left,
 			F.Flow2(f, right),
 		)
