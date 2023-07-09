@@ -6,32 +6,22 @@ import (
 	"fmt"
 )
 
-type OptionTag string
-
-const (
-	noneTag = "None"
-	someTag = "Some"
-)
-
 var (
 	jsonNull = []byte("null")
 )
 
 // Option defines a data structure that logically holds a value or not
 type Option[A any] struct {
-	tag   OptionTag `default:"None"`
-	value A
+	isSome bool
+	some   A
 }
 
 // String prints some debug info for the object
 func (s Option[A]) String() string {
-	switch s.tag {
-	case noneTag:
-		return fmt.Sprintf("%s[%T]", s.tag, s.value)
-	case someTag:
-		return fmt.Sprintf("%s[%T](%v)", s.tag, s.value, s.value)
+	if s.isSome {
+		return fmt.Sprintf("Some[%T](%v)", s.some, s.some)
 	}
-	return "Invalid"
+	return fmt.Sprintf("None[%T]", s.some)
 }
 
 // Format prints some debug info for the object
@@ -45,28 +35,29 @@ func (s Option[A]) Format(f fmt.State, c rune) {
 }
 
 func (s Option[A]) MarshalJSON() ([]byte, error) {
-	if s.tag == noneTag {
-		return jsonNull, nil
+	if IsSome(s) {
+		return json.Marshal(s.some)
 	}
-	return json.Marshal(s.value)
+	return jsonNull, nil
 }
 
-func (s Option[A]) UnmarshalJSON(data []byte) error {
+func (s *Option[A]) UnmarshalJSON(data []byte) error {
 	// decode the value
 	if bytes.Equal(data, jsonNull) {
-		s.tag = noneTag
+		s.isSome = false
+		s.some = *new(A)
 		return nil
 	}
-	s.tag = someTag
-	return json.Unmarshal(data, &s.value)
+	s.isSome = true
+	return json.Unmarshal(data, &s.some)
 }
 
 func IsNone[T any](val Option[T]) bool {
-	return val.tag == noneTag
+	return !val.isSome
 }
 
 func Some[T any](value T) Option[T] {
-	return Option[T]{tag: someTag, value: value}
+	return Option[T]{isSome: true, some: value}
 }
 
 func Of[T any](value T) Option[T] {
@@ -74,20 +65,20 @@ func Of[T any](value T) Option[T] {
 }
 
 func None[T any]() Option[T] {
-	return Option[T]{tag: noneTag}
+	return Option[T]{isSome: false}
 }
 
 func IsSome[T any](val Option[T]) bool {
-	return val.tag == someTag
+	return val.isSome
 }
 
 func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
-	if IsNone(ma) {
-		return onNone()
+	if IsSome(ma) {
+		return onSome(ma.some)
 	}
-	return onSome(ma.value)
+	return onNone()
 }
 
 func Unwrap[A any](ma Option[A]) (A, bool) {
-	return ma.value, ma.tag == someTag
+	return ma.some, ma.isSome
 }

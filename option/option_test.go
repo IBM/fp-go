@@ -1,13 +1,58 @@
 package option
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	F "github.com/ibm/fp-go/function"
 	"github.com/ibm/fp-go/internal/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+type (
+	SampleData struct {
+		Value    string
+		OptValue Option[string]
+	}
+)
+
+func TestJson(t *testing.T) {
+
+	sample := SampleData{
+		Value:    "value",
+		OptValue: Of("optValue"),
+	}
+
+	data, err := json.Marshal(&sample)
+	require.NoError(t, err)
+
+	var deser SampleData
+	err = json.Unmarshal(data, &deser)
+	require.NoError(t, err)
+
+	assert.Equal(t, sample, deser)
+
+	sample = SampleData{
+		Value:    "value",
+		OptValue: None[string](),
+	}
+
+	data, err = json.Marshal(&sample)
+	require.NoError(t, err)
+
+	err = json.Unmarshal(data, &deser)
+	require.NoError(t, err)
+
+	assert.Equal(t, sample, deser)
+}
+
+func TestDefault(t *testing.T) {
+	var e Option[string]
+
+	assert.Equal(t, None[string](), e)
+}
 
 func TestReduce(t *testing.T) {
 
