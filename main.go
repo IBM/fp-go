@@ -1,25 +1,25 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 
-	O "github.com/ibm/fp-go/option"
+	"github.com/ibm/fp-go/cli"
+
+	C "github.com/urfave/cli/v2"
 )
-
-func isNonemptyString(val string) bool {
-	return val != ""
-}
-
-// var O = OptionModule{of: O_of, some: O_of, none: none, mp: OMap}
 
 func main() {
 
-	opt_string := O.FromPredicate(isNonemptyString)
+	app := &C.App{
+		Name:  "fp-go",
+		Usage: "Code generation for fp-go",
+		Commands: []*C.Command{
+			cli.PipeCommand(),
+		},
+	}
 
-	stringO1 := opt_string("Carsten")
-	stringO2 := opt_string("")
-
-	fmt.Println(stringO1)
-	fmt.Println(stringO2)
-
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 }
