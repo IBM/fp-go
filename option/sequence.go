@@ -1,8 +1,8 @@
 package option
 
 import (
-	Apply "github.com/ibm/fp-go/apply"
 	F "github.com/ibm/fp-go/function"
+	Apply "github.com/ibm/fp-go/internal/apply"
 	T "github.com/ibm/fp-go/tuple"
 )
 

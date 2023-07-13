@@ -311,7 +311,7 @@ func generatePipeHelpers(filename string, count int) error {
 		return err
 	}
 	pkg := filepath.Base(absDir)
-	f, err := os.Create(filename)
+	f, err := os.Create(filepath.Clean(filename))
 	if err != nil {
 		return err
 	}

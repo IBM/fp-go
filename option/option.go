@@ -123,5 +123,5 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 
 // Filter converts an optional onto itself if it is some and the predicate is true
 func Filter[A any](pred func(A) bool) func(Option[A]) Option[A] {
-	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1[A](None[A])))
+	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
 }

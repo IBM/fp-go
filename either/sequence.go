@@ -1,7 +1,7 @@
 package either
 
 import (
-	Apply "github.com/ibm/fp-go/apply"
+	Apply "github.com/ibm/fp-go/internal/apply"
 	T "github.com/ibm/fp-go/tuple"
 )
 

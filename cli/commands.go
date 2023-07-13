@@ -10,5 +10,7 @@ func Commands() []*C.Command {
 		OptionCommand(),
 		EitherCommand(),
 		TupleCommand(),
+		BindCommand(),
+		ApplyCommand(),
 	}
 }

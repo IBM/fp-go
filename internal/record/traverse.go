@@ -49,7 +49,7 @@ func MonadTraverse[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HK
 	_ap func(HKTAB, HKTB) HKTRB,
 
 	r MA, f func(A) HKTB) HKTRB {
-	return traverseWithIndex(_of, _map, _ap, r, F.Ignore1st[K](f))
+	return traverseWithIndex(_of, _map, _ap, r, F.Ignore1of2[K](f))
 }
 
 func TraverseWithIndex[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HKTRB any](

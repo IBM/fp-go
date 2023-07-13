@@ -131,7 +131,7 @@ func FromOption[E, A any](onNone func() E) func(O.Option[A]) Either[E, A] {
 }
 
 func ToOption[E, A any]() func(Either[E, A]) O.Option[A] {
-	return Fold(F.Ignore1[E](O.None[A]), O.Some[A])
+	return Fold(F.Ignore1of1[E](O.None[A]), O.Some[A])
 }
 
 func FromError[A any](f func(a A) error) func(A) Either[error, A] {
@@ -182,7 +182,7 @@ func Reduce[E, A, B any](f func(B, A) B, initial B) func(Either[E, A]) B {
 }
 
 func AltW[E, E1, A any](that func() Either[E1, A]) func(Either[E, A]) Either[E1, A] {
-	return Fold(F.Ignore1[E](that), Right[E1, A])
+	return Fold(F.Ignore1of1[E](that), Right[E1, A])
 }
 
 func Alt[E, A any](that func() Either[E, A]) func(Either[E, A]) Either[E, A] {

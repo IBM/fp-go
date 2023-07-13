@@ -1,4 +1,4 @@
-package Apply
+package apply
 
 import (
 	F "github.com/ibm/fp-go/function"
