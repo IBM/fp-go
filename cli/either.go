@@ -12,7 +12,7 @@ import (
 
 func generateUneitherize(f *os.File, i int) {
 	// Create the optionize version
-	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning an Either into a function with %d parameters returning a tuple\n", i, i, i)
+	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning an Either into a function with %d parameters returning a tuple\n// The inverse function is [Eitherize%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Uneitherize%d[F ~func(", i)
 	for j := 0; j < i; j++ {
 		if j > 0 {
@@ -54,7 +54,7 @@ func generateUneitherize(f *os.File, i int) {
 
 func generateEitherize(f *os.File, i int) {
 	// Create the optionize version
-	fmt.Fprintf(f, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning an Either\n", i, i, i)
+	fmt.Fprintf(f, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning an Either\n// The inverse function is [Uneitherize%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Eitherize%d[F ~func(", i)
 	for j := 0; j < i; j++ {
 		if j > 0 {

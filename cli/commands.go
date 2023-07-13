@@ -9,5 +9,6 @@ func Commands() []*C.Command {
 		PipeCommand(),
 		OptionCommand(),
 		EitherCommand(),
+		TupleCommand(),
 	}
 }
