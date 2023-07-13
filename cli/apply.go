@@ -86,23 +86,19 @@ func generateSequenceT(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") HKT_TUPLE%d {\n", i)
 
-	fmt.Fprintf(f, "  return ")
-
-	for j := i - 1; j >= 1; j-- {
-		fmt.Fprintf(f, "fap%d(", j)
-	}
-	fmt.Fprintf(f, "fmap(t1, tupleConstructor%d[", i)
+	fmt.Fprintf(f, "  r1 := fmap(t1, tupleConstructor%d[", i)
 	for j := 0; j < i; j++ {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
-	fmt.Fprintf(f, "]())")
+	fmt.Fprintf(f, "]())\n")
+
 	for j := 1; j < i; j++ {
-		fmt.Fprintf(f, ", t%d)", j+1)
+		fmt.Fprintf(f, "  r%d := fap%d(r%d, t%d)\n", j+1, j, j, j+1)
 	}
-	fmt.Fprintf(f, "\n")
+	fmt.Fprintf(f, "  return r%d\n", i)
 
 	fmt.Fprintf(f, "}\n")
 }
