@@ -12,11 +12,9 @@ import (
 func main() {
 
 	app := &C.App{
-		Name:  "fp-go",
-		Usage: "Code generation for fp-go",
-		Commands: []*C.Command{
-			cli.PipeCommand(),
-		},
+		Name:     "fp-go",
+		Usage:    "Code generation for fp-go",
+		Commands: cli.Commands(),
 	}
 
 	if err := app.Run(os.Args); err != nil {

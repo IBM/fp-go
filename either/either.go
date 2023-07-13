@@ -102,7 +102,7 @@ func Flatten[E, A any](mma Either[E, Either[E, A]]) Either[E, A] {
 	return MonadChain(mma, F.Identity[Either[E, A]])
 }
 
-func TryCatch[E, A any](f func() (A, error), onThrow func(error) E) Either[E, A] {
+func TryCatch[FA ~func() (A, error), FE func(error) E, E, A any](f FA, onThrow FE) Either[E, A] {
 	val, err := f()
 	if err != nil {
 		return F.Pipe2(err, onThrow, Left[E, A])
@@ -110,12 +110,8 @@ func TryCatch[E, A any](f func() (A, error), onThrow func(error) E) Either[E, A]
 	return F.Pipe1(val, Right[E, A])
 }
 
-func TryCatchErrorG[GA ~func() (A, error), A any](f GA) Either[error, A] {
+func TryCatchError[F ~func() (A, error), A any](f F) Either[error, A] {
 	return TryCatch(f, E.IdentityError)
-}
-
-func TryCatchError[A any](f func() (A, error)) Either[error, A] {
-	return TryCatchErrorG(f)
 }
 
 func Sequence2[E, T1, T2, R any](f func(T1, T2) Either[E, R]) func(Either[E, T1], Either[E, T2]) Either[E, R] {
@@ -150,118 +146,13 @@ func ToError[A any](e Either[error, A]) error {
 	return MonadFold(e, E.IdentityError, F.Constant1[A, error](nil))
 }
 
-func Eitherize0G[GA ~func() (R, error), GB ~func() Either[error, R], R any](f GA) GB {
-	return F.Bind1(TryCatchErrorG[GA, R], f)
-}
-
-func Eitherize0[R any](f func() (R, error)) func() Either[error, R] {
-	return Eitherize0G[func() (R, error), func() Either[error, R]](f)
-}
-
-func Uneitherize0G[GA ~func() Either[error, R], GB ~func() (R, error), R any](f GA) GB {
-	return func() (R, error) {
-		return UnwrapError(f())
-	}
-}
-
-func Uneitherize0[R any](f func() Either[error, R]) func() (R, error) {
-	return Uneitherize0G[func() Either[error, R], func() (R, error)](f)
-}
-
-func Eitherize1G[GA ~func(T1) (R, error), GB ~func(T1) Either[error, R], T1, R any](f GA) GB {
-	return func(t1 T1) Either[error, R] {
-		return TryCatchError(func() (R, error) {
-			return f(t1)
-		})
-	}
-}
-
-func Eitherize1[T1, R any](f func(T1) (R, error)) func(T1) Either[error, R] {
-	return Eitherize1G[func(T1) (R, error), func(T1) Either[error, R]](f)
-}
-
-func Uneitherize1G[GA ~func(T1) Either[error, R], GB ~func(T1) (R, error), T1, R any](f GA) GB {
-	return func(t1 T1) (R, error) {
-		return UnwrapError(f(t1))
-	}
-}
-
-func Uneitherize1[T1, R any](f func(T1) Either[error, R]) func(T1) (R, error) {
-	return Uneitherize1G[func(T1) Either[error, R], func(T1) (R, error)](f)
-}
-
-func Eitherize2G[GA ~func(t1 T1, t2 T2) (R, error), GB ~func(t1 T1, t2 T2) Either[error, R], T1, T2, R any](f GA) GB {
-	return func(t1 T1, t2 T2) Either[error, R] {
-		return TryCatchError(func() (R, error) {
-			return f(t1, t2)
-		})
-	}
-}
-
-func Eitherize2[T1, T2, R any](f func(t1 T1, t2 T2) (R, error)) func(t1 T1, t2 T2) Either[error, R] {
-	return Eitherize2G[func(t1 T1, t2 T2) (R, error), func(t1 T1, t2 T2) Either[error, R]](f)
-}
-
-func Uneitherize2G[GA ~func(T1, T2) Either[error, R], GB ~func(T1, T2) (R, error), T1, T2, R any](f GA) GB {
-	return func(t1 T1, t2 T2) (R, error) {
-		return UnwrapError(f(t1, t2))
-	}
-}
-
-func Uneitherize2[T1, T2, R any](f func(T1, T2) Either[error, R]) func(T1, T2) (R, error) {
-	return Uneitherize2G[func(T1, T2) Either[error, R], func(T1, T2) (R, error)](f)
-}
-
-func Eitherize3G[GA ~func(t1 T1, t2 T2, t3 T3) (R, error), GB ~func(t1 T1, t2 T2, t3 T3) Either[error, R], T1, T2, T3, R any](f GA) GB {
-	return func(t1 T1, t2 T2, t3 T3) Either[error, R] {
-		return TryCatchError(func() (R, error) {
-			return f(t1, t2, t3)
-		})
-	}
-}
-
-func Eitherize3[T1, T2, T3, R any](f func(t1 T1, t2 T2, t3 T3) (R, error)) func(t1 T1, t2 T2, t3 T3) Either[error, R] {
-	return Eitherize3G[func(t1 T1, t2 T2, t3 T3) (R, error), func(t1 T1, t2 T2, t3 T3) Either[error, R]](f)
-}
-
-func Uneitherize3G[GA ~func(T1, T2, T3) Either[error, R], GB ~func(T1, T2, T3) (R, error), T1, T2, T3, R any](f GA) GB {
-	return func(t1 T1, t2 T2, t3 T3) (R, error) {
-		return UnwrapError(f(t1, t2, t3))
-	}
-}
-
-func Uneitherize3[T1, T2, T3, R any](f func(T1, T2, T3) Either[error, R]) func(T1, T2, T3) (R, error) {
-	return Uneitherize3G[func(T1, T2, T3) Either[error, R], func(T1, T2, T3) (R, error)](f)
-}
-
-func Eitherize4G[GA ~func(t1 T1, t2 T2, t3 T3, t4 T4) (R, error), GB ~func(t1 T1, t2 T2, t3 T3, t4 T4) Either[error, R], T1, T2, T3, T4, R any](f GA) GB {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4) Either[error, R] {
-		return TryCatchError(func() (R, error) {
-			return f(t1, t2, t3, t4)
-		})
-	}
-}
-
-func Eitherize4[T1, T2, T3, T4, R any](f func(t1 T1, t2 T2, t3 T3, t4 T4) (R, error)) func(t1 T1, t2 T2, t3 T3, t4 T4) Either[error, R] {
-	return Eitherize4G[func(t1 T1, t2 T2, t3 T3, t4 T4) (R, error), func(t1 T1, t2 T2, t3 T3, t4 T4) Either[error, R]](f)
-}
-
-func Uneitherize4G[GA ~func(T1, T2, T3, T4) Either[error, R], GB ~func(T1, T2, T3, T4) (R, error), T1, T2, T3, T4, R any](f GA) GB {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4) (R, error) {
-		return UnwrapError(f(t1, t2, t3, t4))
-	}
-}
-
-func Uneitherize4[T1, T2, T3, T4, R any](f func(T1, T2, T3, T4) Either[error, R]) func(T1, T2, T3, T4) (R, error) {
-	return Uneitherize4G[func(T1, T2, T3, T4) Either[error, R], func(T1, T2, T3, T4) (R, error)](f)
-}
-
 func Fold[E, A, B any](onLeft func(E) B, onRight func(A) B) func(Either[E, A]) B {
 	return func(ma Either[E, A]) B {
 		return MonadFold(ma, onLeft, onRight)
 	}
 }
 
+// UnwrapError converts an Either into the idiomatic tuple
 func UnwrapError[A any](ma Either[error, A]) (A, error) {
 	return Unwrap[error](ma)
 }

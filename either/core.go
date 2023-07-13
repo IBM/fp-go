@@ -52,6 +52,7 @@ func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a 
 	return onRight(ma.right)
 }
 
+// Unwrap converts an Either into the idiomatic tuple
 func Unwrap[E, A any](ma Either[E, A]) (A, E) {
 	return ma.right, ma.left
 }

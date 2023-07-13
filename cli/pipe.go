@@ -10,23 +10,141 @@ import (
 	C "github.com/urfave/cli/v2"
 )
 
-const (
-	keyCount = "count"
-)
-
-func generateNullary(f *os.File, i int) {
+func generateVariadic(f *os.File, i int) {
 	// Create the nullary version
-	fmt.Fprintf(f, "\n// Nullary%d creates a parameter less function from a parameter less function and %d functions. When executed the first parameter less function gets executed and then the result is piped through the remaining functions\n", i, i-1)
-	fmt.Fprintf(f, "func Nullary%d[", i)
+	fmt.Fprintf(f, "\n// Variadic%d converts a function taking %d parameters and a final slice into a function with %d parameters but a final variadic argument\n", i, i, i)
+	fmt.Fprintf(f, "func Variadic%d[", i)
 	for j := 1; j <= i; j++ {
 		if j > 1 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j)
 	}
-	fmt.Fprintf(f, " any](f1 func() T1")
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "V, R any](f func(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "[]V) R) func(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "...V) R {\n")
+	fmt.Fprintf(f, "  return func(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d T%d", j, j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "v ...V) R {\n")
+	fmt.Fprintf(f, "    return f(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "v)\n")
+	fmt.Fprintf(f, "  }\n")
+
+	fmt.Fprintf(f, "}")
+}
+
+func generateUnvariadic(f *os.File, i int) {
+	// Create the nullary version
+	fmt.Fprintf(f, "\n// Unvariadic%d converts a function taking %d parameters and a final variadic argument into a function with %d parameters but a final slice argument\n", i, i, i)
+	fmt.Fprintf(f, "func Unvariadic%d[", i)
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "V, R any](f func(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "...V) R) func(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "[]V) R {\n")
+	fmt.Fprintf(f, "  return func(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d T%d", j, j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "v []V) R {\n")
+	fmt.Fprintf(f, "    return f(")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d", j)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	fmt.Fprintf(f, "v...)\n")
+	fmt.Fprintf(f, "  }\n")
+
+	fmt.Fprintf(f, "}")
+}
+
+func generateNullary(f *os.File, i int) {
+	// Create the nullary version
+	fmt.Fprintf(f, "\n// Nullary%d creates a parameter less function from a parameter less function and %d functions. When executed the first parameter less function gets executed and then the result is piped through the remaining functions\n", i, i-1)
+	fmt.Fprintf(f, "func Nullary%d[F1 ~func() T1", i)
 	for j := 2; j <= i; j++ {
-		fmt.Fprintf(f, ", f%d func(T%d) T%d", j, j-1, j)
+		fmt.Fprintf(f, ", F%d ~func(T%d) T%d", j, j-1, j)
+	}
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
+	}
+	fmt.Fprintf(f, " any](f1 F1")
+	for j := 2; j <= i; j++ {
+		fmt.Fprintf(f, ", f%d F%d", j, j)
 	}
 	fmt.Fprintf(f, ") func() T%d {\n", i)
 	fmt.Fprintf(f, "  return func() T%d {\n", i)
@@ -42,9 +160,15 @@ func generateNullary(f *os.File, i int) {
 
 func generateFlow(f *os.File, i int) {
 	// Create the flow version
-	fmt.Fprintf(f, "\n// Flow%d creates a function that takes an initial value t0 and sucessively applies %d functions where the input of a function is the return value of the previous function\n// The final return value is the result of the last function application\n", i, i)
-	fmt.Fprintf(f, "func Flow%d[T0", i)
+	fmt.Fprintf(f, "\n// Flow%d creates a function that takes an initial value t0 and successively applies %d functions where the input of a function is the return value of the previous function\n// The final return value is the result of the last function application\n", i, i)
+	fmt.Fprintf(f, "func Flow%d[", i)
 	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "F%d ~func(T%d) T%d", j, j-1, j)
+	}
+	for j := 0; j <= i; j++ {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, " any](")
@@ -52,7 +176,7 @@ func generateFlow(f *os.File, i int) {
 		if j > 1 {
 			fmt.Fprintf(f, ", ")
 		}
-		fmt.Fprintf(f, "f%d func(T%d) T%d", j, j-1, j)
+		fmt.Fprintf(f, "f%d F%d", j, j)
 	}
 	fmt.Fprintf(f, ") func(T0) T%d {\n", i)
 	fmt.Fprintf(f, "  return func(t0 T0) T%d {\n", i)
@@ -69,14 +193,27 @@ func generateFlow(f *os.File, i int) {
 
 func generatePipe(f *os.File, i int) {
 	// Create the pipe version
-	fmt.Fprintf(f, "\n// Pipe%d takes an initial value t0 and sucessively applies %d functions where the input of a function is the return value of the previous function\n// The final return value is the result of the last function application\n", i, i)
-	fmt.Fprintf(f, "func Pipe%d[T0", i)
+	fmt.Fprintf(f, "\n// Pipe%d takes an initial value t0 and successively applies %d functions where the input of a function is the return value of the previous function\n// The final return value is the result of the last function application\n", i, i)
+	fmt.Fprintf(f, "func Pipe%d[", i)
 	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, ", T%d", j)
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "F%d ~func(T%d) T%d", j, j-1, j)
 	}
+	if i > 0 {
+		fmt.Fprintf(f, ", ")
+	}
+	for j := 0; j <= i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+
 	fmt.Fprintf(f, " any](t0 T0")
 	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, ", f%d func(T%d) T%d", j, j-1, j)
+		fmt.Fprintf(f, ", f%d F%d", j, j)
 	}
 	fmt.Fprintf(f, ") T%d {\n", i)
 	for j := 1; j <= i; j++ {
@@ -164,7 +301,7 @@ func generateUncurry(f *os.File, i int) {
 	fmt.Fprintf(f, "}\n")
 }
 
-func generateHelpers(count int) error {
+func generatePipeHelpers(filename string, count int) error {
 	dir, err := os.Getwd()
 	if err != nil {
 		return err
@@ -174,13 +311,13 @@ func generateHelpers(count int) error {
 		return err
 	}
 	pkg := filepath.Base(absDir)
-	f, err := os.Create("gen.go")
+	f, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	// log
-	log.Printf("Generating code for package [%s] with [%d] repetitions ...", pkg, count)
+	log.Printf("Generating code in [%s] for package [%s] with [%d] repetitions ...", filename, pkg, count)
 
 	// some header
 	fmt.Fprintln(f, "// Code generated by go generate; DO NOT EDIT.")
@@ -188,6 +325,13 @@ func generateHelpers(count int) error {
 	fmt.Fprintf(f, "// %s\n", time.Now())
 
 	fmt.Fprintf(f, "package %s\n", pkg)
+
+	// pipe
+	generatePipe(f, 0)
+	// variadic
+	generateVariadic(f, 0)
+	// unvariadic
+	generateUnvariadic(f, 0)
 
 	for i := 1; i <= count; i++ {
 
@@ -201,6 +345,10 @@ func generateHelpers(count int) error {
 		generateCurry(f, i)
 		// uncurry
 		generateUncurry(f, i)
+		// variadic
+		generateVariadic(f, i)
+		// unvariadic
+		generateUnvariadic(f, i)
 	}
 
 	return nil
@@ -208,16 +356,18 @@ func generateHelpers(count int) error {
 
 func PipeCommand() *C.Command {
 	return &C.Command{
-		Name: "pipe",
+		Name:        "pipe",
+		Usage:       "generate code for pipe, flow, curry, etc",
+		Description: "Code generation for pipe, flow, curry, etc",
 		Flags: []C.Flag{
-			&C.IntFlag{
-				Name:  keyCount,
-				Value: 20,
-				Usage: "Number of variations to create",
-			},
+			flagCount,
+			flagFilename,
 		},
 		Action: func(ctx *C.Context) error {
-			return generateHelpers(ctx.Int(keyCount))
+			return generatePipeHelpers(
+				ctx.String(keyFilename),
+				ctx.Int(keyCount),
+			)
 		},
 	}
 }

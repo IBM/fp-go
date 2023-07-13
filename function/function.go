@@ -1,9 +1,5 @@
 package function
 
-func Pipe0[T0 any](t0 T0) T0 {
-	return t0
-}
-
 // Identity returns the value 'a'
 func Identity[A any](a A) A {
 	return a

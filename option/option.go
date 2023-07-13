@@ -20,24 +20,8 @@ func FromNillable[A any](a *A) Option[*A] {
 	return fromPredicate(a, F.IsNonNil[A])
 }
 
-func fromValidation[A, B any](a A, f func(A) (B, bool)) Option[B] {
-	b, ok := f(a)
-	if ok {
-		return Some(b)
-	}
-	return None[B]()
-}
-
-func fromValidation0[A any](f func() (A, bool)) Option[A] {
-	a, ok := f()
-	if ok {
-		return Some(a)
-	}
-	return None[A]()
-}
-
 func FromValidation[A, B any](f func(A) (B, bool)) func(A) Option[B] {
-	return F.Bind2nd(fromValidation[A, B], f)
+	return Optionize1(f)
 }
 
 // MonadAp is the applicative functor of Option
@@ -140,66 +124,4 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 // Filter converts an optional onto itself if it is some and the predicate is true
 func Filter[A any](pred func(A) bool) func(Option[A]) Option[A] {
 	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1[A](None[A])))
-}
-
-func Optionize0[R any](f func() (R, bool)) func() Option[R] {
-	return func() Option[R] {
-		return fromValidation0(f)
-	}
-}
-
-func Optionize1[T1, R any](f func(T1) (R, bool)) func(T1) Option[R] {
-	return func(t1 T1) Option[R] {
-		return fromValidation0(func() (R, bool) {
-			return f(t1)
-		})
-	}
-}
-
-func Unoptionize1[T1, R any](f func(T1) Option[R]) func(T1) (R, bool) {
-	return func(t1 T1) (R, bool) {
-		return Unwrap(f(t1))
-	}
-}
-
-func Optionize2[T1, T2, R any](f func(t1 T1, t2 T2) (R, bool)) func(t1 T1, t2 T2) Option[R] {
-	return func(t1 T1, t2 T2) Option[R] {
-		return fromValidation0(func() (R, bool) {
-			return f(t1, t2)
-		})
-	}
-}
-
-func Unoptionize2[T1, T2, R any](f func(T1, T2) Option[R]) func(T1, T2) (R, bool) {
-	return func(t1 T1, t2 T2) (R, bool) {
-		return Unwrap(f(t1, t2))
-	}
-}
-
-func Optionize3[T1, T2, T3, R any](f func(t1 T1, t2 T2, t3 T3) (R, bool)) func(t1 T1, t2 T2, t3 T3) Option[R] {
-	return func(t1 T1, t2 T2, t3 T3) Option[R] {
-		return fromValidation0(func() (R, bool) {
-			return f(t1, t2, t3)
-		})
-	}
-}
-
-func Unoptionize3[T1, T2, T3, R any](f func(T1, T2, T3) Option[R]) func(T1, T2, T3) (R, bool) {
-	return func(t1 T1, t2 T2, t3 T3) (R, bool) {
-		return Unwrap(f(t1, t2, t3))
-	}
-}
-
-func Optionize4[T1, T2, T3, T4, R any](f func(t1 T1, t2 T2, t3 T3, t4 T4) (R, bool)) func(t1 T1, t2 T2, t3 T3, t4 T4) Option[R] {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4) Option[R] {
-		return fromValidation0(func() (R, bool) {
-			return f(t1, t2, t3, t4)
-		})
-	}
-}
-
-func Unoptionize4[T1, T2, T3, T4, R any](f func(T1, T2, T3, T4) Option[R]) func(T1, T2, T3, T4) (R, bool) {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4) (R, bool) {
-		return Unwrap(f(t1, t2, t3, t4))
-	}
 }
