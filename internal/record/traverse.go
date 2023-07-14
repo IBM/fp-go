@@ -27,40 +27,41 @@ HKTB = HKT<B>
 HKTAB = HKT<func(A)B>
 */
 func traverseWithIndex[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HKTRB any](
-	_of func(MB) HKTRB,
-	_map func(HKTRB, func(MB) func(B) MB) HKTAB,
-	_ap func(HKTAB, HKTB) HKTRB,
+	fof func(MB) HKTRB,
+	fmap func(func(MB) func(B) MB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
 
 	ta MA, f func(K, A) HKTB) HKTRB {
 	// this function inserts a value into a map with a given key
-	cb := F.Curry3(addKey[MB, K, B])
+	mmap := F.Flow2(F.Curry3(addKey[MB, K, B]), fmap)
 
 	return ReduceWithIndex(ta, func(k K, r HKTRB, a A) HKTRB {
-		return _ap(
-			_map(r, cb(k)),
-			f(k, a),
+		return F.Pipe2(
+			r,
+			mmap(k),
+			fap(f(k, a)),
 		)
-	}, _of(createEmpty[MB]()))
+	}, fof(createEmpty[MB]()))
 }
 
 func MonadTraverse[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HKTRB any](
-	_of func(MB) HKTRB,
-	_map func(HKTRB, func(MB) func(B) MB) HKTAB,
-	_ap func(HKTAB, HKTB) HKTRB,
+	fof func(MB) HKTRB,
+	fmap func(func(MB) func(B) MB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
 
 	r MA, f func(A) HKTB) HKTRB {
-	return traverseWithIndex(_of, _map, _ap, r, F.Ignore1of2[K](f))
+	return traverseWithIndex(fof, fmap, fap, r, F.Ignore1of2[K](f))
 }
 
 func TraverseWithIndex[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HKTRB any](
-	_of func(MB) HKTRB,
-	_map func(HKTRB, func(MB) func(B) MB) HKTAB,
-	_ap func(HKTAB, HKTB) HKTRB,
+	fof func(MB) HKTRB,
+	fmap func(func(MB) func(B) MB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
 
 	f func(K, A) HKTB) func(MA) HKTRB {
 
 	return func(ma MA) HKTRB {
-		return traverseWithIndex(_of, _map, _ap, ma, f)
+		return traverseWithIndex(fof, fmap, fap, ma, f)
 	}
 }
 
@@ -69,14 +70,14 @@ func TraverseWithIndex[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB
 // HKTAB = HKT<func(A)B>
 // HKTRB = HKT<MB>
 func Traverse[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HKTRB any](
-	_of func(MB) HKTRB,
-	_map func(HKTRB, func(MB) func(B) MB) HKTAB,
-	_ap func(HKTAB, HKTB) HKTRB,
+	fof func(MB) HKTRB,
+	fmap func(func(MB) func(B) MB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
 
 	f func(A) HKTB) func(MA) HKTRB {
 
 	return func(ma MA) HKTRB {
-		return MonadTraverse(_of, _map, _ap, ma, f)
+		return MonadTraverse(fof, fmap, fap, ma, f)
 	}
 }
 
@@ -84,10 +85,10 @@ func Traverse[MA ~map[K]A, MB ~map[K]B, K comparable, A, B, HKTB, HKTAB, HKTRB a
 // HKTAA = HKT[func(A)MA]
 // HKTRA = HKT[MA]
 func Sequence[MA ~map[K]A, MKTA ~map[K]HKTA, K comparable, A, HKTA, HKTAA, HKTRA any](
-	_of func(MA) HKTRA,
-	_map func(HKTRA, func(MA) func(A) MA) HKTAA,
-	_ap func(HKTAA, HKTA) HKTRA,
+	fof func(MA) HKTRA,
+	fmap func(func(MA) func(A) MA) func(HKTRA) HKTAA,
+	fap func(HKTA) func(HKTAA) HKTRA,
 
 	ma MKTA) HKTRA {
-	return MonadTraverse(_of, _map, _ap, ma, F.Identity[HKTA])
+	return MonadTraverse(fof, fmap, fap, ma, F.Identity[HKTA])
 }

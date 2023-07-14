@@ -9,8 +9,8 @@ import (
 func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(A) Either[E, B]) func(GA) Either[E, GB] {
 	return RR.Traverse[GA](
 		Of[E, GB],
-		MonadMap[E, GB, func(B) GB],
-		MonadAp[GB, E, B],
+		Map[E, GB, func(B) GB],
+		Ap[GB, E, B],
 		f,
 	)
 }

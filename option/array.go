@@ -9,8 +9,8 @@ import (
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f func(A) Option[B]) func(GA) Option[GB] {
 	return RA.Traverse[GA](
 		Of[GB],
-		MonadMap[GB, func(B) GB],
-		MonadAp[GB, B],
+		Map[GB, func(B) GB],
+		Ap[GB, B],
 
 		f,
 	)

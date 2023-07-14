@@ -3,7 +3,6 @@
 // 2023-07-14 13:19:44.2638147 +0200 CEST m=+0.009515201
 package apply
 
-
 import (
 	F "github.com/ibm/fp-go/function"
 	T "github.com/ibm/fp-go/tuple"
@@ -11,535 +10,535 @@ import (
 
 // tupleConstructor1 returns a curried version of [T.MakeTuple1]
 func tupleConstructor1[T1 any]() func(T1) T.Tuple1[T1] {
-  return F.Curry1(T.MakeTuple1[T1])
+	return F.Curry1(T.MakeTuple1[T1])
 }
 
 // SequenceT1 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 1 higher higher kinded types and returns a higher kinded type of a [Tuple1] with the resolved values.
 func SequenceT1[
-  MAP ~func(func(T1) T.Tuple1[T1]) func(HKT_T1) HKT_TUPLE1,
-  T1,
-  HKT_T1, // HKT[T1]
-  HKT_TUPLE1 any, // HKT[Tuple1[T1]]
+	MAP ~func(func(T1) T.Tuple1[T1]) func(HKT_T1) HKT_TUPLE1,
+	T1,
+	HKT_T1, // HKT[T1]
+	HKT_TUPLE1 any, // HKT[Tuple1[T1]]
 ](
-  fmap MAP,
-  t1 HKT_T1,
+	fmap MAP,
+	t1 HKT_T1,
 ) HKT_TUPLE1 {
-  return F.Pipe1(
-    t1,
-    fmap(tupleConstructor1[T1]()),
-)
+	return F.Pipe1(
+		t1,
+		fmap(tupleConstructor1[T1]()),
+	)
 }
 
 // tupleConstructor2 returns a curried version of [T.MakeTuple2]
 func tupleConstructor2[T1, T2 any]() func(T1) func(T2) T.Tuple2[T1, T2] {
-  return F.Curry2(T.MakeTuple2[T1, T2])
+	return F.Curry2(T.MakeTuple2[T1, T2])
 }
 
 // SequenceT2 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 2 higher higher kinded types and returns a higher kinded type of a [Tuple2] with the resolved values.
 func SequenceT2[
-  MAP ~func(func(T1) func(T2) T.Tuple2[T1, T2]) func(HKT_T1) HKT_F_T2,
-  AP1 ~func(HKT_T2) func(HKT_F_T2) HKT_TUPLE2,
-  T1,
-  T2,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_F_T2, // HKT[func(T2) T.Tuple2[T1, T2]]
-  HKT_TUPLE2 any, // HKT[Tuple2[T1, T2]]
+	MAP ~func(func(T1) func(T2) T.Tuple2[T1, T2]) func(HKT_T1) HKT_F_T2,
+	AP1 ~func(HKT_T2) func(HKT_F_T2) HKT_TUPLE2,
+	T1,
+	T2,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_F_T2, // HKT[func(T2) T.Tuple2[T1, T2]]
+	HKT_TUPLE2 any, // HKT[Tuple2[T1, T2]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  t1 HKT_T1,
-  t2 HKT_T2,
+	fmap MAP,
+	fap1 AP1,
+	t1 HKT_T1,
+	t2 HKT_T2,
 ) HKT_TUPLE2 {
-  return F.Pipe2(
-    t1,
-    fmap(tupleConstructor2[T1, T2]()),
-    fap1(t2),
-)
+	return F.Pipe2(
+		t1,
+		fmap(tupleConstructor2[T1, T2]()),
+		fap1(t2),
+	)
 }
 
 // tupleConstructor3 returns a curried version of [T.MakeTuple3]
 func tupleConstructor3[T1, T2, T3 any]() func(T1) func(T2) func(T3) T.Tuple3[T1, T2, T3] {
-  return F.Curry3(T.MakeTuple3[T1, T2, T3])
+	return F.Curry3(T.MakeTuple3[T1, T2, T3])
 }
 
 // SequenceT3 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 3 higher higher kinded types and returns a higher kinded type of a [Tuple3] with the resolved values.
 func SequenceT3[
-  MAP ~func(func(T1) func(T2) func(T3) T.Tuple3[T1, T2, T3]) func(HKT_T1) HKT_F_T2_T3,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3) HKT_F_T3,
-  AP2 ~func(HKT_T3) func(HKT_F_T3) HKT_TUPLE3,
-  T1,
-  T2,
-  T3,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_F_T2_T3, // HKT[func(T2) func(T3) T.Tuple3[T1, T2, T3]]
-  HKT_F_T3, // HKT[func(T3) T.Tuple3[T1, T2, T3]]
-  HKT_TUPLE3 any, // HKT[Tuple3[T1, T2, T3]]
+	MAP ~func(func(T1) func(T2) func(T3) T.Tuple3[T1, T2, T3]) func(HKT_T1) HKT_F_T2_T3,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3) HKT_F_T3,
+	AP2 ~func(HKT_T3) func(HKT_F_T3) HKT_TUPLE3,
+	T1,
+	T2,
+	T3,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_F_T2_T3, // HKT[func(T2) func(T3) T.Tuple3[T1, T2, T3]]
+	HKT_F_T3, // HKT[func(T3) T.Tuple3[T1, T2, T3]]
+	HKT_TUPLE3 any, // HKT[Tuple3[T1, T2, T3]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
 ) HKT_TUPLE3 {
-  return F.Pipe3(
-    t1,
-    fmap(tupleConstructor3[T1, T2, T3]()),
-    fap1(t2),
-    fap2(t3),
-)
+	return F.Pipe3(
+		t1,
+		fmap(tupleConstructor3[T1, T2, T3]()),
+		fap1(t2),
+		fap2(t3),
+	)
 }
 
 // tupleConstructor4 returns a curried version of [T.MakeTuple4]
 func tupleConstructor4[T1, T2, T3, T4 any]() func(T1) func(T2) func(T3) func(T4) T.Tuple4[T1, T2, T3, T4] {
-  return F.Curry4(T.MakeTuple4[T1, T2, T3, T4])
+	return F.Curry4(T.MakeTuple4[T1, T2, T3, T4])
 }
 
 // SequenceT4 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 4 higher higher kinded types and returns a higher kinded type of a [Tuple4] with the resolved values.
 func SequenceT4[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) T.Tuple4[T1, T2, T3, T4]) func(HKT_T1) HKT_F_T2_T3_T4,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4) HKT_F_T3_T4,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4) HKT_F_T4,
-  AP3 ~func(HKT_T4) func(HKT_F_T4) HKT_TUPLE4,
-  T1,
-  T2,
-  T3,
-  T4,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_F_T2_T3_T4, // HKT[func(T2) func(T3) func(T4) T.Tuple4[T1, T2, T3, T4]]
-  HKT_F_T3_T4, // HKT[func(T3) func(T4) T.Tuple4[T1, T2, T3, T4]]
-  HKT_F_T4, // HKT[func(T4) T.Tuple4[T1, T2, T3, T4]]
-  HKT_TUPLE4 any, // HKT[Tuple4[T1, T2, T3, T4]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) T.Tuple4[T1, T2, T3, T4]) func(HKT_T1) HKT_F_T2_T3_T4,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4) HKT_F_T3_T4,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4) HKT_F_T4,
+	AP3 ~func(HKT_T4) func(HKT_F_T4) HKT_TUPLE4,
+	T1,
+	T2,
+	T3,
+	T4,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_F_T2_T3_T4, // HKT[func(T2) func(T3) func(T4) T.Tuple4[T1, T2, T3, T4]]
+	HKT_F_T3_T4, // HKT[func(T3) func(T4) T.Tuple4[T1, T2, T3, T4]]
+	HKT_F_T4, // HKT[func(T4) T.Tuple4[T1, T2, T3, T4]]
+	HKT_TUPLE4 any, // HKT[Tuple4[T1, T2, T3, T4]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
 ) HKT_TUPLE4 {
-  return F.Pipe4(
-    t1,
-    fmap(tupleConstructor4[T1, T2, T3, T4]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-)
+	return F.Pipe4(
+		t1,
+		fmap(tupleConstructor4[T1, T2, T3, T4]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+	)
 }
 
 // tupleConstructor5 returns a curried version of [T.MakeTuple5]
 func tupleConstructor5[T1, T2, T3, T4, T5 any]() func(T1) func(T2) func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5] {
-  return F.Curry5(T.MakeTuple5[T1, T2, T3, T4, T5])
+	return F.Curry5(T.MakeTuple5[T1, T2, T3, T4, T5])
 }
 
 // SequenceT5 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 5 higher higher kinded types and returns a higher kinded type of a [Tuple5] with the resolved values.
 func SequenceT5[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]) func(HKT_T1) HKT_F_T2_T3_T4_T5,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5) HKT_F_T3_T4_T5,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5) HKT_F_T4_T5,
-  AP3 ~func(HKT_T4) func(HKT_F_T4_T5) HKT_F_T5,
-  AP4 ~func(HKT_T5) func(HKT_F_T5) HKT_TUPLE5,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_T5, // HKT[T5]
-  HKT_F_T2_T3_T4_T5, // HKT[func(T2) func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
-  HKT_F_T3_T4_T5, // HKT[func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
-  HKT_F_T4_T5, // HKT[func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
-  HKT_F_T5, // HKT[func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
-  HKT_TUPLE5 any, // HKT[Tuple5[T1, T2, T3, T4, T5]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]) func(HKT_T1) HKT_F_T2_T3_T4_T5,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5) HKT_F_T3_T4_T5,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5) HKT_F_T4_T5,
+	AP3 ~func(HKT_T4) func(HKT_F_T4_T5) HKT_F_T5,
+	AP4 ~func(HKT_T5) func(HKT_F_T5) HKT_TUPLE5,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_T5, // HKT[T5]
+	HKT_F_T2_T3_T4_T5, // HKT[func(T2) func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
+	HKT_F_T3_T4_T5, // HKT[func(T3) func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
+	HKT_F_T4_T5, // HKT[func(T4) func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
+	HKT_F_T5, // HKT[func(T5) T.Tuple5[T1, T2, T3, T4, T5]]
+	HKT_TUPLE5 any, // HKT[Tuple5[T1, T2, T3, T4, T5]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  fap4 AP4,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
-  t5 HKT_T5,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	fap4 AP4,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
+	t5 HKT_T5,
 ) HKT_TUPLE5 {
-  return F.Pipe5(
-    t1,
-    fmap(tupleConstructor5[T1, T2, T3, T4, T5]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-    fap4(t5),
-)
+	return F.Pipe5(
+		t1,
+		fmap(tupleConstructor5[T1, T2, T3, T4, T5]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+		fap4(t5),
+	)
 }
 
 // tupleConstructor6 returns a curried version of [T.MakeTuple6]
 func tupleConstructor6[T1, T2, T3, T4, T5, T6 any]() func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6] {
-  return F.Curry6(T.MakeTuple6[T1, T2, T3, T4, T5, T6])
+	return F.Curry6(T.MakeTuple6[T1, T2, T3, T4, T5, T6])
 }
 
 // SequenceT6 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 6 higher higher kinded types and returns a higher kinded type of a [Tuple6] with the resolved values.
 func SequenceT6[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6) HKT_F_T3_T4_T5_T6,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6) HKT_F_T4_T5_T6,
-  AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6) HKT_F_T5_T6,
-  AP4 ~func(HKT_T5) func(HKT_F_T5_T6) HKT_F_T6,
-  AP5 ~func(HKT_T6) func(HKT_F_T6) HKT_TUPLE6,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_T5, // HKT[T5]
-  HKT_T6, // HKT[T6]
-  HKT_F_T2_T3_T4_T5_T6, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
-  HKT_F_T3_T4_T5_T6, // HKT[func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
-  HKT_F_T4_T5_T6, // HKT[func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
-  HKT_F_T5_T6, // HKT[func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
-  HKT_F_T6, // HKT[func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
-  HKT_TUPLE6 any, // HKT[Tuple6[T1, T2, T3, T4, T5, T6]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6) HKT_F_T3_T4_T5_T6,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6) HKT_F_T4_T5_T6,
+	AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6) HKT_F_T5_T6,
+	AP4 ~func(HKT_T5) func(HKT_F_T5_T6) HKT_F_T6,
+	AP5 ~func(HKT_T6) func(HKT_F_T6) HKT_TUPLE6,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_T5, // HKT[T5]
+	HKT_T6, // HKT[T6]
+	HKT_F_T2_T3_T4_T5_T6, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
+	HKT_F_T3_T4_T5_T6, // HKT[func(T3) func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
+	HKT_F_T4_T5_T6, // HKT[func(T4) func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
+	HKT_F_T5_T6, // HKT[func(T5) func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
+	HKT_F_T6, // HKT[func(T6) T.Tuple6[T1, T2, T3, T4, T5, T6]]
+	HKT_TUPLE6 any, // HKT[Tuple6[T1, T2, T3, T4, T5, T6]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  fap4 AP4,
-  fap5 AP5,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
-  t5 HKT_T5,
-  t6 HKT_T6,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	fap4 AP4,
+	fap5 AP5,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
+	t5 HKT_T5,
+	t6 HKT_T6,
 ) HKT_TUPLE6 {
-  return F.Pipe6(
-    t1,
-    fmap(tupleConstructor6[T1, T2, T3, T4, T5, T6]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-    fap4(t5),
-    fap5(t6),
-)
+	return F.Pipe6(
+		t1,
+		fmap(tupleConstructor6[T1, T2, T3, T4, T5, T6]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+		fap4(t5),
+		fap5(t6),
+	)
 }
 
 // tupleConstructor7 returns a curried version of [T.MakeTuple7]
 func tupleConstructor7[T1, T2, T3, T4, T5, T6, T7 any]() func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7] {
-  return F.Curry7(T.MakeTuple7[T1, T2, T3, T4, T5, T6, T7])
+	return F.Curry7(T.MakeTuple7[T1, T2, T3, T4, T5, T6, T7])
 }
 
 // SequenceT7 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 7 higher higher kinded types and returns a higher kinded type of a [Tuple7] with the resolved values.
 func SequenceT7[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7) HKT_F_T3_T4_T5_T6_T7,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7) HKT_F_T4_T5_T6_T7,
-  AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7) HKT_F_T5_T6_T7,
-  AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7) HKT_F_T6_T7,
-  AP5 ~func(HKT_T6) func(HKT_F_T6_T7) HKT_F_T7,
-  AP6 ~func(HKT_T7) func(HKT_F_T7) HKT_TUPLE7,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_T5, // HKT[T5]
-  HKT_T6, // HKT[T6]
-  HKT_T7, // HKT[T7]
-  HKT_F_T2_T3_T4_T5_T6_T7, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
-  HKT_F_T3_T4_T5_T6_T7, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
-  HKT_F_T4_T5_T6_T7, // HKT[func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
-  HKT_F_T5_T6_T7, // HKT[func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
-  HKT_F_T6_T7, // HKT[func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
-  HKT_F_T7, // HKT[func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
-  HKT_TUPLE7 any, // HKT[Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7) HKT_F_T3_T4_T5_T6_T7,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7) HKT_F_T4_T5_T6_T7,
+	AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7) HKT_F_T5_T6_T7,
+	AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7) HKT_F_T6_T7,
+	AP5 ~func(HKT_T6) func(HKT_F_T6_T7) HKT_F_T7,
+	AP6 ~func(HKT_T7) func(HKT_F_T7) HKT_TUPLE7,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_T5, // HKT[T5]
+	HKT_T6, // HKT[T6]
+	HKT_T7, // HKT[T7]
+	HKT_F_T2_T3_T4_T5_T6_T7, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	HKT_F_T3_T4_T5_T6_T7, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	HKT_F_T4_T5_T6_T7, // HKT[func(T4) func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	HKT_F_T5_T6_T7, // HKT[func(T5) func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	HKT_F_T6_T7, // HKT[func(T6) func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	HKT_F_T7, // HKT[func(T7) T.Tuple7[T1, T2, T3, T4, T5, T6, T7]]
+	HKT_TUPLE7 any, // HKT[Tuple7[T1, T2, T3, T4, T5, T6, T7]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  fap4 AP4,
-  fap5 AP5,
-  fap6 AP6,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
-  t5 HKT_T5,
-  t6 HKT_T6,
-  t7 HKT_T7,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	fap4 AP4,
+	fap5 AP5,
+	fap6 AP6,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
+	t5 HKT_T5,
+	t6 HKT_T6,
+	t7 HKT_T7,
 ) HKT_TUPLE7 {
-  return F.Pipe7(
-    t1,
-    fmap(tupleConstructor7[T1, T2, T3, T4, T5, T6, T7]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-    fap4(t5),
-    fap5(t6),
-    fap6(t7),
-)
+	return F.Pipe7(
+		t1,
+		fmap(tupleConstructor7[T1, T2, T3, T4, T5, T6, T7]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+		fap4(t5),
+		fap5(t6),
+		fap6(t7),
+	)
 }
 
 // tupleConstructor8 returns a curried version of [T.MakeTuple8]
 func tupleConstructor8[T1, T2, T3, T4, T5, T6, T7, T8 any]() func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8] {
-  return F.Curry8(T.MakeTuple8[T1, T2, T3, T4, T5, T6, T7, T8])
+	return F.Curry8(T.MakeTuple8[T1, T2, T3, T4, T5, T6, T7, T8])
 }
 
 // SequenceT8 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 8 higher higher kinded types and returns a higher kinded type of a [Tuple8] with the resolved values.
 func SequenceT8[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7_T8,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7_T8) HKT_F_T3_T4_T5_T6_T7_T8,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7_T8) HKT_F_T4_T5_T6_T7_T8,
-  AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7_T8) HKT_F_T5_T6_T7_T8,
-  AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7_T8) HKT_F_T6_T7_T8,
-  AP5 ~func(HKT_T6) func(HKT_F_T6_T7_T8) HKT_F_T7_T8,
-  AP6 ~func(HKT_T7) func(HKT_F_T7_T8) HKT_F_T8,
-  AP7 ~func(HKT_T8) func(HKT_F_T8) HKT_TUPLE8,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_T5, // HKT[T5]
-  HKT_T6, // HKT[T6]
-  HKT_T7, // HKT[T7]
-  HKT_T8, // HKT[T8]
-  HKT_F_T2_T3_T4_T5_T6_T7_T8, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_F_T3_T4_T5_T6_T7_T8, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_F_T4_T5_T6_T7_T8, // HKT[func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_F_T5_T6_T7_T8, // HKT[func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_F_T6_T7_T8, // HKT[func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_F_T7_T8, // HKT[func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_F_T8, // HKT[func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
-  HKT_TUPLE8 any, // HKT[Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7_T8,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7_T8) HKT_F_T3_T4_T5_T6_T7_T8,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7_T8) HKT_F_T4_T5_T6_T7_T8,
+	AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7_T8) HKT_F_T5_T6_T7_T8,
+	AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7_T8) HKT_F_T6_T7_T8,
+	AP5 ~func(HKT_T6) func(HKT_F_T6_T7_T8) HKT_F_T7_T8,
+	AP6 ~func(HKT_T7) func(HKT_F_T7_T8) HKT_F_T8,
+	AP7 ~func(HKT_T8) func(HKT_F_T8) HKT_TUPLE8,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_T5, // HKT[T5]
+	HKT_T6, // HKT[T6]
+	HKT_T7, // HKT[T7]
+	HKT_T8, // HKT[T8]
+	HKT_F_T2_T3_T4_T5_T6_T7_T8, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_F_T3_T4_T5_T6_T7_T8, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_F_T4_T5_T6_T7_T8, // HKT[func(T4) func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_F_T5_T6_T7_T8, // HKT[func(T5) func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_F_T6_T7_T8, // HKT[func(T6) func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_F_T7_T8, // HKT[func(T7) func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_F_T8, // HKT[func(T8) T.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
+	HKT_TUPLE8 any, // HKT[Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  fap4 AP4,
-  fap5 AP5,
-  fap6 AP6,
-  fap7 AP7,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
-  t5 HKT_T5,
-  t6 HKT_T6,
-  t7 HKT_T7,
-  t8 HKT_T8,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	fap4 AP4,
+	fap5 AP5,
+	fap6 AP6,
+	fap7 AP7,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
+	t5 HKT_T5,
+	t6 HKT_T6,
+	t7 HKT_T7,
+	t8 HKT_T8,
 ) HKT_TUPLE8 {
-  return F.Pipe8(
-    t1,
-    fmap(tupleConstructor8[T1, T2, T3, T4, T5, T6, T7, T8]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-    fap4(t5),
-    fap5(t6),
-    fap6(t7),
-    fap7(t8),
-)
+	return F.Pipe8(
+		t1,
+		fmap(tupleConstructor8[T1, T2, T3, T4, T5, T6, T7, T8]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+		fap4(t5),
+		fap5(t6),
+		fap6(t7),
+		fap7(t8),
+	)
 }
 
 // tupleConstructor9 returns a curried version of [T.MakeTuple9]
 func tupleConstructor9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any]() func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9] {
-  return F.Curry9(T.MakeTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9])
+	return F.Curry9(T.MakeTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9])
 }
 
 // SequenceT9 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 9 higher higher kinded types and returns a higher kinded type of a [Tuple9] with the resolved values.
 func SequenceT9[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7_T8_T9,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7_T8_T9) HKT_F_T3_T4_T5_T6_T7_T8_T9,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7_T8_T9) HKT_F_T4_T5_T6_T7_T8_T9,
-  AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7_T8_T9) HKT_F_T5_T6_T7_T8_T9,
-  AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7_T8_T9) HKT_F_T6_T7_T8_T9,
-  AP5 ~func(HKT_T6) func(HKT_F_T6_T7_T8_T9) HKT_F_T7_T8_T9,
-  AP6 ~func(HKT_T7) func(HKT_F_T7_T8_T9) HKT_F_T8_T9,
-  AP7 ~func(HKT_T8) func(HKT_F_T8_T9) HKT_F_T9,
-  AP8 ~func(HKT_T9) func(HKT_F_T9) HKT_TUPLE9,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_T5, // HKT[T5]
-  HKT_T6, // HKT[T6]
-  HKT_T7, // HKT[T7]
-  HKT_T8, // HKT[T8]
-  HKT_T9, // HKT[T9]
-  HKT_F_T2_T3_T4_T5_T6_T7_T8_T9, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T3_T4_T5_T6_T7_T8_T9, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T4_T5_T6_T7_T8_T9, // HKT[func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T5_T6_T7_T8_T9, // HKT[func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T6_T7_T8_T9, // HKT[func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T7_T8_T9, // HKT[func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T8_T9, // HKT[func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_F_T9, // HKT[func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
-  HKT_TUPLE9 any, // HKT[Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7_T8_T9,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7_T8_T9) HKT_F_T3_T4_T5_T6_T7_T8_T9,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7_T8_T9) HKT_F_T4_T5_T6_T7_T8_T9,
+	AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7_T8_T9) HKT_F_T5_T6_T7_T8_T9,
+	AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7_T8_T9) HKT_F_T6_T7_T8_T9,
+	AP5 ~func(HKT_T6) func(HKT_F_T6_T7_T8_T9) HKT_F_T7_T8_T9,
+	AP6 ~func(HKT_T7) func(HKT_F_T7_T8_T9) HKT_F_T8_T9,
+	AP7 ~func(HKT_T8) func(HKT_F_T8_T9) HKT_F_T9,
+	AP8 ~func(HKT_T9) func(HKT_F_T9) HKT_TUPLE9,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_T5, // HKT[T5]
+	HKT_T6, // HKT[T6]
+	HKT_T7, // HKT[T7]
+	HKT_T8, // HKT[T8]
+	HKT_T9, // HKT[T9]
+	HKT_F_T2_T3_T4_T5_T6_T7_T8_T9, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T3_T4_T5_T6_T7_T8_T9, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T4_T5_T6_T7_T8_T9, // HKT[func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T5_T6_T7_T8_T9, // HKT[func(T5) func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T6_T7_T8_T9, // HKT[func(T6) func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T7_T8_T9, // HKT[func(T7) func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T8_T9, // HKT[func(T8) func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_F_T9, // HKT[func(T9) T.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
+	HKT_TUPLE9 any, // HKT[Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  fap4 AP4,
-  fap5 AP5,
-  fap6 AP6,
-  fap7 AP7,
-  fap8 AP8,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
-  t5 HKT_T5,
-  t6 HKT_T6,
-  t7 HKT_T7,
-  t8 HKT_T8,
-  t9 HKT_T9,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	fap4 AP4,
+	fap5 AP5,
+	fap6 AP6,
+	fap7 AP7,
+	fap8 AP8,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
+	t5 HKT_T5,
+	t6 HKT_T6,
+	t7 HKT_T7,
+	t8 HKT_T8,
+	t9 HKT_T9,
 ) HKT_TUPLE9 {
-  return F.Pipe9(
-    t1,
-    fmap(tupleConstructor9[T1, T2, T3, T4, T5, T6, T7, T8, T9]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-    fap4(t5),
-    fap5(t6),
-    fap6(t7),
-    fap7(t8),
-    fap8(t9),
-)
+	return F.Pipe9(
+		t1,
+		fmap(tupleConstructor9[T1, T2, T3, T4, T5, T6, T7, T8, T9]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+		fap4(t5),
+		fap5(t6),
+		fap6(t7),
+		fap7(t8),
+		fap8(t9),
+	)
 }
 
 // tupleConstructor10 returns a curried version of [T.MakeTuple10]
 func tupleConstructor10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any]() func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10] {
-  return F.Curry10(T.MakeTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10])
+	return F.Curry10(T.MakeTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10])
 }
 
 // SequenceT10 is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.
 // The function takes 10 higher higher kinded types and returns a higher kinded type of a [Tuple10] with the resolved values.
 func SequenceT10[
-  MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7_T8_T9_T10,
-  AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7_T8_T9_T10) HKT_F_T3_T4_T5_T6_T7_T8_T9_T10,
-  AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7_T8_T9_T10) HKT_F_T4_T5_T6_T7_T8_T9_T10,
-  AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7_T8_T9_T10) HKT_F_T5_T6_T7_T8_T9_T10,
-  AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7_T8_T9_T10) HKT_F_T6_T7_T8_T9_T10,
-  AP5 ~func(HKT_T6) func(HKT_F_T6_T7_T8_T9_T10) HKT_F_T7_T8_T9_T10,
-  AP6 ~func(HKT_T7) func(HKT_F_T7_T8_T9_T10) HKT_F_T8_T9_T10,
-  AP7 ~func(HKT_T8) func(HKT_F_T8_T9_T10) HKT_F_T9_T10,
-  AP8 ~func(HKT_T9) func(HKT_F_T9_T10) HKT_F_T10,
-  AP9 ~func(HKT_T10) func(HKT_F_T10) HKT_TUPLE10,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-  HKT_T1, // HKT[T1]
-  HKT_T2, // HKT[T2]
-  HKT_T3, // HKT[T3]
-  HKT_T4, // HKT[T4]
-  HKT_T5, // HKT[T5]
-  HKT_T6, // HKT[T6]
-  HKT_T7, // HKT[T7]
-  HKT_T8, // HKT[T8]
-  HKT_T9, // HKT[T9]
-  HKT_T10, // HKT[T10]
-  HKT_F_T2_T3_T4_T5_T6_T7_T8_T9_T10, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T3_T4_T5_T6_T7_T8_T9_T10, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T4_T5_T6_T7_T8_T9_T10, // HKT[func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T5_T6_T7_T8_T9_T10, // HKT[func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T6_T7_T8_T9_T10, // HKT[func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T7_T8_T9_T10, // HKT[func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T8_T9_T10, // HKT[func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T9_T10, // HKT[func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_F_T10, // HKT[func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
-  HKT_TUPLE10 any, // HKT[Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	MAP ~func(func(T1) func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) func(HKT_T1) HKT_F_T2_T3_T4_T5_T6_T7_T8_T9_T10,
+	AP1 ~func(HKT_T2) func(HKT_F_T2_T3_T4_T5_T6_T7_T8_T9_T10) HKT_F_T3_T4_T5_T6_T7_T8_T9_T10,
+	AP2 ~func(HKT_T3) func(HKT_F_T3_T4_T5_T6_T7_T8_T9_T10) HKT_F_T4_T5_T6_T7_T8_T9_T10,
+	AP3 ~func(HKT_T4) func(HKT_F_T4_T5_T6_T7_T8_T9_T10) HKT_F_T5_T6_T7_T8_T9_T10,
+	AP4 ~func(HKT_T5) func(HKT_F_T5_T6_T7_T8_T9_T10) HKT_F_T6_T7_T8_T9_T10,
+	AP5 ~func(HKT_T6) func(HKT_F_T6_T7_T8_T9_T10) HKT_F_T7_T8_T9_T10,
+	AP6 ~func(HKT_T7) func(HKT_F_T7_T8_T9_T10) HKT_F_T8_T9_T10,
+	AP7 ~func(HKT_T8) func(HKT_F_T8_T9_T10) HKT_F_T9_T10,
+	AP8 ~func(HKT_T9) func(HKT_F_T9_T10) HKT_F_T10,
+	AP9 ~func(HKT_T10) func(HKT_F_T10) HKT_TUPLE10,
+	T1,
+	T2,
+	T3,
+	T4,
+	T5,
+	T6,
+	T7,
+	T8,
+	T9,
+	T10,
+	HKT_T1, // HKT[T1]
+	HKT_T2, // HKT[T2]
+	HKT_T3, // HKT[T3]
+	HKT_T4, // HKT[T4]
+	HKT_T5, // HKT[T5]
+	HKT_T6, // HKT[T6]
+	HKT_T7, // HKT[T7]
+	HKT_T8, // HKT[T8]
+	HKT_T9, // HKT[T9]
+	HKT_T10, // HKT[T10]
+	HKT_F_T2_T3_T4_T5_T6_T7_T8_T9_T10, // HKT[func(T2) func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T3_T4_T5_T6_T7_T8_T9_T10, // HKT[func(T3) func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T4_T5_T6_T7_T8_T9_T10, // HKT[func(T4) func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T5_T6_T7_T8_T9_T10, // HKT[func(T5) func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T6_T7_T8_T9_T10, // HKT[func(T6) func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T7_T8_T9_T10, // HKT[func(T7) func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T8_T9_T10, // HKT[func(T8) func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T9_T10, // HKT[func(T9) func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_F_T10, // HKT[func(T10) T.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
+	HKT_TUPLE10 any, // HKT[Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]
 ](
-  fmap MAP,
-  fap1 AP1,
-  fap2 AP2,
-  fap3 AP3,
-  fap4 AP4,
-  fap5 AP5,
-  fap6 AP6,
-  fap7 AP7,
-  fap8 AP8,
-  fap9 AP9,
-  t1 HKT_T1,
-  t2 HKT_T2,
-  t3 HKT_T3,
-  t4 HKT_T4,
-  t5 HKT_T5,
-  t6 HKT_T6,
-  t7 HKT_T7,
-  t8 HKT_T8,
-  t9 HKT_T9,
-  t10 HKT_T10,
+	fmap MAP,
+	fap1 AP1,
+	fap2 AP2,
+	fap3 AP3,
+	fap4 AP4,
+	fap5 AP5,
+	fap6 AP6,
+	fap7 AP7,
+	fap8 AP8,
+	fap9 AP9,
+	t1 HKT_T1,
+	t2 HKT_T2,
+	t3 HKT_T3,
+	t4 HKT_T4,
+	t5 HKT_T5,
+	t6 HKT_T6,
+	t7 HKT_T7,
+	t8 HKT_T8,
+	t9 HKT_T9,
+	t10 HKT_T10,
 ) HKT_TUPLE10 {
-  return F.Pipe10(
-    t1,
-    fmap(tupleConstructor10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]()),
-    fap1(t2),
-    fap2(t3),
-    fap3(t4),
-    fap4(t5),
-    fap5(t6),
-    fap6(t7),
-    fap7(t8),
-    fap8(t9),
-    fap9(t10),
-)
+	return F.Pipe10(
+		t1,
+		fmap(tupleConstructor10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]()),
+		fap1(t2),
+		fap2(t3),
+		fap3(t4),
+		fap4(t5),
+		fap5(t6),
+		fap6(t7),
+		fap7(t8),
+		fap8(t9),
+		fap9(t10),
+	)
 }
