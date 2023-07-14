@@ -45,7 +45,7 @@ func monadGenerateSequenceTNonGeneric(
 		}
 		fmt.Fprintf(f, ") %s {", hkt(tuple))
 		// the actual apply callback
-		fmt.Fprintf(f, "  return Apply.SequenceT%d(\n", i)
+		fmt.Fprintf(f, "  return apply.SequenceT%d(\n", i)
 		// map callback
 
 		curried := func(count int) string {
@@ -98,7 +98,7 @@ func monadGenerateSequenceTGeneric(
 		}
 		fmt.Fprintf(f, ") %s {", hkt(tuple))
 		// the actual apply callback
-		fmt.Fprintf(f, "  return Apply.SequenceT%d(\n", i)
+		fmt.Fprintf(f, "  return apply.SequenceT%d(\n", i)
 		// map callback
 
 		curried := func(count int) string {
