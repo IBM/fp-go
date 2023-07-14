@@ -168,12 +168,12 @@ func Chain[A, B any](f func(a A) []B) func([]A) []B {
 	return F.Bind2nd(MonadChain[A, B], f)
 }
 
-func MonadAp[A, B any](fab []func(A) B, fa []A) []B {
+func MonadAp[B, A any](fab []func(A) B, fa []A) []B {
 	return MonadChain(fab, F.Bind1st(MonadMap[A, B], fa))
 }
 
-func Ap[A, B any](fa []A) func([]func(A) B) []B {
-	return F.Bind2nd(MonadAp[A, B], fa)
+func Ap[B, A any](fa []A) func([]func(A) B) []B {
+	return F.Bind2nd(MonadAp[B, A], fa)
 }
 
 func Match[A, B any](onEmpty func() B, onNonEmpty func([]A) B) func([]A) B {

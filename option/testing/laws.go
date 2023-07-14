@@ -45,12 +45,12 @@ func AssertLaws[A, B, C any](t *testing.T,
 		O.MonadChain[B, C],
 
 		O.MonadAp[A, A],
-		O.MonadAp[A, B],
-		O.MonadAp[B, C],
-		O.MonadAp[A, C],
+		O.MonadAp[B, A],
+		O.MonadAp[C, B],
+		O.MonadAp[C, A],
 
-		O.MonadAp[func(A) B, B],
-		O.MonadAp[func(A) B, func(A) C],
+		O.MonadAp[B, func(A) B],
+		O.MonadAp[func(A) C, func(A) B],
 
 		ab,
 		bc,

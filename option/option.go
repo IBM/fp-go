@@ -25,14 +25,15 @@ func FromValidation[A, B any](f func(A) (B, bool)) func(A) Option[B] {
 }
 
 // MonadAp is the applicative functor of Option
-func MonadAp[A, B any](fab Option[func(A) B], fa Option[A]) Option[B] {
+func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
 	return MonadFold(fab, None[B], func(ab func(A) B) Option[B] {
 		return MonadFold(fa, None[B], F.Flow2(ab, Some[B]))
 	})
 }
 
-func Ap[A, B any](fa Option[A]) func(Option[func(A) B]) Option[B] {
-	return F.Bind2nd(MonadAp[A, B], fa)
+// Ap is the applicative functor of Option
+func Ap[B, A any](fa Option[A]) func(Option[func(A) B]) Option[B] {
+	return F.Bind2nd(MonadAp[B, A], fa)
 }
 
 func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {

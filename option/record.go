@@ -10,7 +10,7 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(A)
 	return RR.Traverse[GA](
 		Of[GB],
 		MonadMap[GB, func(B) GB],
-		MonadAp[B, GB],
+		MonadAp[GB, B],
 
 		f,
 	)

@@ -16,7 +16,7 @@ func WithResource[E, R, A any](onCreate func() Either[E, R], onRelease func(R) E
 				// handle the errors
 				return MonadFold(
 					res,
-					Left[E, A],
+					Left[A, E],
 					func(a A) Either[E, A] {
 						return F.Pipe1(
 							released,

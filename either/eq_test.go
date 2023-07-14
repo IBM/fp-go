@@ -12,9 +12,9 @@ func TestEq(t *testing.T) {
 	r2 := Of[string](1)
 	r3 := Of[string](2)
 
-	e1 := Left[string, int]("a")
-	e2 := Left[string, int]("a")
-	e3 := Left[string, int]("b")
+	e1 := Left[int]("a")
+	e2 := Left[int]("a")
+	e3 := Left[int]("b")
 
 	eq := FromStrictEquals[string, int]()
 

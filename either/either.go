@@ -10,22 +10,23 @@ import (
 	O "github.com/ibm/fp-go/option"
 )
 
+// Of is equivalent to [Right]
 func Of[E, A any](value A) Either[E, A] {
 	return F.Pipe1(value, Right[E, A])
 }
 
-func FromIO[E, A any](f func() A) Either[E, A] {
+func FromIO[E, IO ~func() A, A any](f IO) Either[E, A] {
 	return F.Pipe1(f(), Right[E, A])
 }
 
-func MonadAp[E, A, B any](fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-	return MonadFold(fab, Left[E, B], func(ab func(A) B) Either[E, B] {
-		return MonadFold(fa, Left[E, B], F.Flow2(ab, Right[E, B]))
+func MonadAp[B, E, A any](fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
+	return MonadFold(fab, Left[B, E], func(ab func(A) B) Either[E, B] {
+		return MonadFold(fa, Left[B, E], F.Flow2(ab, Right[E, B]))
 	})
 }
 
-func Ap[E, A, B any](fa Either[E, A]) func(fab Either[E, func(a A) B]) Either[E, B] {
-	return F.Bind2nd(MonadAp[E, A, B], fa)
+func Ap[B, E, A any](fa Either[E, A]) func(fab Either[E, func(a A) B]) Either[E, B] {
+	return F.Bind2nd(MonadAp[B, E, A], fa)
 }
 
 func MonadMap[E, A, B any](fa Either[E, A], f func(a A) B) Either[E, B] {
@@ -33,12 +34,12 @@ func MonadMap[E, A, B any](fa Either[E, A], f func(a A) B) Either[E, B] {
 }
 
 func MonadBiMap[E1, E2, A, B any](fa Either[E1, A], f func(E1) E2, g func(a A) B) Either[E2, B] {
-	return MonadFold(fa, F.Flow2(f, Left[E2, B]), F.Flow2(g, Right[E2, B]))
+	return MonadFold(fa, F.Flow2(f, Left[B, E2]), F.Flow2(g, Right[E2, B]))
 }
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
 func BiMap[E1, E2, A, B any](f func(E1) E2, g func(a A) B) func(Either[E1, A]) Either[E2, B] {
-	return Fold(F.Flow2(f, Left[E2, B]), F.Flow2(g, Right[E2, B]))
+	return Fold(F.Flow2(f, Left[B, E2]), F.Flow2(g, Right[E2, B]))
 }
 
 func MonadMapTo[E, A, B any](fa Either[E, A], b B) Either[E, B] {
@@ -50,7 +51,7 @@ func MapTo[E, A, B any](b B) func(Either[E, A]) Either[E, B] {
 }
 
 func MonadMapLeft[E, A, B any](fa Either[E, A], f func(E) B) Either[B, A] {
-	return MonadFold(fa, F.Flow2(f, Left[B, A]), Right[B, A])
+	return MonadFold(fa, F.Flow2(f, Left[A, B]), Right[B, A])
 }
 
 func Map[E, A, B any](f func(a A) B) func(fa Either[E, A]) Either[E, B] {
@@ -62,7 +63,7 @@ func MapLeft[E, A, B any](f func(E) B) func(fa Either[E, A]) Either[B, A] {
 }
 
 func MonadChain[E, A, B any](fa Either[E, A], f func(a A) Either[E, B]) Either[E, B] {
-	return MonadFold(fa, Left[E, B], f)
+	return MonadFold(fa, Left[B, E], f)
 }
 
 func MonadChainFirst[E, A, B any](ma Either[E, A], f func(a A) Either[E, B]) Either[E, A] {
@@ -105,7 +106,7 @@ func Flatten[E, A any](mma Either[E, Either[E, A]]) Either[E, A] {
 func TryCatch[FA ~func() (A, error), FE func(error) E, E, A any](f FA, onThrow FE) Either[E, A] {
 	val, err := f()
 	if err != nil {
-		return F.Pipe2(err, onThrow, Left[E, A])
+		return F.Pipe2(err, onThrow, Left[A, E])
 	}
 	return F.Pipe1(val, Right[E, A])
 }
@@ -127,7 +128,7 @@ func Sequence3[E, T1, T2, T3, R any](f func(T1, T2, T3) Either[E, R]) func(Eithe
 }
 
 func FromOption[E, A any](onNone func() E) func(O.Option[A]) Either[E, A] {
-	return O.Fold(F.Nullary2(onNone, Left[E, A]), Right[E, A])
+	return O.Fold(F.Nullary2(onNone, Left[A, E]), Right[E, A])
 }
 
 func ToOption[E, A any]() func(Either[E, A]) O.Option[A] {
@@ -162,7 +163,7 @@ func FromPredicate[E, A any](pred func(A) bool, onFalse func(A) E) func(A) Eithe
 		if pred(a) {
 			return Right[E](a)
 		}
-		return Left[E, A](onFalse(a))
+		return Left[A, E](onFalse(a))
 	}
 }
 
@@ -198,7 +199,7 @@ func ToType[E, A any](onError func(any) E) func(any) Either[E, A] {
 		return F.Pipe2(
 			value,
 			O.ToType[A],
-			O.Fold(F.Nullary3(F.Constant(value), onError, Left[E, A]), Right[E, A]),
+			O.Fold(F.Nullary3(F.Constant(value), onError, Left[A, E]), Right[E, A]),
 		)
 	}
 }
@@ -208,17 +209,17 @@ func Memoize[E, A any](val Either[E, A]) Either[E, A] {
 }
 
 func MonadSequence2[E, T1, T2, R any](e1 Either[E, T1], e2 Either[E, T2], f func(T1, T2) Either[E, R]) Either[E, R] {
-	return MonadFold(e1, Left[E, R], func(t1 T1) Either[E, R] {
-		return MonadFold(e2, Left[E, R], func(t2 T2) Either[E, R] {
+	return MonadFold(e1, Left[R, E], func(t1 T1) Either[E, R] {
+		return MonadFold(e2, Left[R, E], func(t2 T2) Either[E, R] {
 			return f(t1, t2)
 		})
 	})
 }
 
 func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3 Either[E, T3], f func(T1, T2, T3) Either[E, R]) Either[E, R] {
-	return MonadFold(e1, Left[E, R], func(t1 T1) Either[E, R] {
-		return MonadFold(e2, Left[E, R], func(t2 T2) Either[E, R] {
-			return MonadFold(e3, Left[E, R], func(t3 T3) Either[E, R] {
+	return MonadFold(e1, Left[R, E], func(t1 T1) Either[E, R] {
+		return MonadFold(e2, Left[R, E], func(t2 T2) Either[E, R] {
+			return MonadFold(e3, Left[R, E], func(t3 T3) Either[E, R] {
 				return f(t1, t2, t3)
 			})
 		})
@@ -227,5 +228,5 @@ func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3
 
 // Swap changes the order of type parameters
 func Swap[E, A any](val Either[E, A]) Either[A, E] {
-	return MonadFold(val, Right[A, E], Left[A, E])
+	return MonadFold(val, Right[A, E], Left[E, A])
 }

@@ -12,8 +12,8 @@ func TestApplySemigroup(t *testing.T) {
 
 	sg := ApplySemigroup[string](N.SemigroupSum[int]())
 
-	la := Left[string, int]("a")
-	lb := Left[string, int]("b")
+	la := Left[int]("a")
+	lb := Left[int]("b")
 	r1 := Right[string](1)
 	r2 := Right[string](2)
 	r3 := Right[string](3)
@@ -29,8 +29,8 @@ func TestApplicativeMonoid(t *testing.T) {
 
 	m := ApplicativeMonoid[string](N.MonoidSum[int]())
 
-	la := Left[string, int]("a")
-	lb := Left[string, int]("b")
+	la := Left[int]("a")
+	lb := Left[int]("b")
 	r1 := Right[string](1)
 	r2 := Right[string](2)
 	r3 := Right[string](3)
@@ -44,5 +44,5 @@ func TestApplicativeMonoid(t *testing.T) {
 
 func TestApplicativeMonoidLaws(t *testing.T) {
 	m := ApplicativeMonoid[string](N.MonoidSum[int]())
-	M.AssertLaws(t, m)([]Either[string, int]{Left[string, int]("a"), Right[string](1)})
+	M.AssertLaws(t, m)([]Either[string, int]{Left[int]("a"), Right[string](1)})
 }

@@ -10,7 +10,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f func(A) Option[B]) func(GA) Op
 	return RA.Traverse[GA](
 		Of[GB],
 		MonadMap[GB, func(B) GB],
-		MonadAp[B, GB],
+		MonadAp[GB, B],
 
 		f,
 	)

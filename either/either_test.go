@@ -19,7 +19,7 @@ func TestDefault(t *testing.T) {
 
 func TestIsLeft(t *testing.T) {
 	err := errors.New("Some error")
-	withError := Left[error, string](err)
+	withError := Left[string](err)
 
 	assert.True(t, IsLeft(withError))
 	assert.False(t, IsRight(withError))
@@ -37,7 +37,7 @@ func TestMapEither(t *testing.T) {
 	assert.Equal(t, F.Pipe1(Right[error]("abc"), Map[error](utils.StringLen)), Right[error](3))
 
 	val2 := F.Pipe1(Left[string, string]("s"), Map[string](utils.StringLen))
-	exp2 := Left[string, int]("s")
+	exp2 := Left[int]("s")
 
 	assert.Equal(t, val2, exp2)
 }
@@ -45,7 +45,7 @@ func TestMapEither(t *testing.T) {
 func TestUnwrapError(t *testing.T) {
 	a := ""
 	err := errors.New("Some error")
-	withError := Left[error, string](err)
+	withError := Left[string](err)
 
 	res, extracted := UnwrapError(withError)
 	assert.Equal(t, a, res)
@@ -65,16 +65,16 @@ func TestReduce(t *testing.T) {
 func TestAp(t *testing.T) {
 	f := S.Size
 
-	assert.Equal(t, Right[string](3), F.Pipe1(Right[string](f), Ap[string, string, int](Right[string]("abc"))))
-	assert.Equal(t, Left[string, int]("maError"), F.Pipe1(Right[string](f), Ap[string, string, int](Left[string, string]("maError"))))
-	assert.Equal(t, Left[string, int]("mabError"), F.Pipe1(Left[string, func(string) int]("mabError"), Ap[string, string, int](Left[string, string]("maError"))))
+	assert.Equal(t, Right[string](3), F.Pipe1(Right[string](f), Ap[int, string, string](Right[string]("abc"))))
+	assert.Equal(t, Left[int]("maError"), F.Pipe1(Right[string](f), Ap[int, string, string](Left[string, string]("maError"))))
+	assert.Equal(t, Left[int]("mabError"), F.Pipe1(Left[func(string) int]("mabError"), Ap[int, string, string](Left[string, string]("maError"))))
 }
 
 func TestAlt(t *testing.T) {
 	assert.Equal(t, Right[string](1), F.Pipe1(Right[string](1), Alt(F.Constant(Right[string](2)))))
-	assert.Equal(t, Right[string](1), F.Pipe1(Right[string](1), Alt(F.Constant(Left[string, int]("a")))))
-	assert.Equal(t, Right[string](2), F.Pipe1(Left[string, int]("b"), Alt(F.Constant(Right[string](2)))))
-	assert.Equal(t, Left[string, int]("b"), F.Pipe1(Left[string, int]("a"), Alt(F.Constant(Left[string, int]("b")))))
+	assert.Equal(t, Right[string](1), F.Pipe1(Right[string](1), Alt(F.Constant(Left[int]("a")))))
+	assert.Equal(t, Right[string](2), F.Pipe1(Left[int]("b"), Alt(F.Constant(Right[string](2)))))
+	assert.Equal(t, Left[int]("b"), F.Pipe1(Left[int]("a"), Alt(F.Constant(Left[int]("b")))))
 }
 
 func TestChainFirst(t *testing.T) {
@@ -92,11 +92,11 @@ func TestChainOptionK(t *testing.T) {
 		return O.None[int]()
 	})
 	assert.Equal(t, Right[string](1), f(Right[string](1)))
-	assert.Equal(t, Left[string, int]("a"), f(Right[string](-1)))
-	assert.Equal(t, Left[string, int]("b"), f(Left[string, int]("b")))
+	assert.Equal(t, Left[int]("a"), f(Right[string](-1)))
+	assert.Equal(t, Left[int]("b"), f(Left[int]("b")))
 }
 
 func TestFromOption(t *testing.T) {
-	assert.Equal(t, Left[string, int]("none"), FromOption[string, int](F.Constant("none"))(O.None[int]()))
+	assert.Equal(t, Left[int]("none"), FromOption[string, int](F.Constant("none"))(O.None[int]()))
 	assert.Equal(t, Right[string](1), FromOption[string, int](F.Constant("none"))(O.Some(1)))
 }

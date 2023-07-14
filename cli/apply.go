@@ -15,14 +15,17 @@ func generateSequenceT(f *os.File, i int) {
 	fmt.Fprintf(f, "// The function takes %d higher higher kinded types and returns a higher kinded type of a [Tuple%d] with the resolved values.\n", i, i)
 	fmt.Fprintf(f, "func SequenceT%d[\n", i)
 	// map as the starting point
-	fmt.Fprintf(f, "  MAP ~func(HKT_T1,")
+	fmt.Fprintf(f, "  MAP ~func(")
 	for j := 0; j < i; j++ {
-		fmt.Fprintf(f, "  func(T%d)", j+1)
+		if j > 0 {
+			fmt.Fprintf(f, " ")
+		}
+		fmt.Fprintf(f, "func(T%d)", j+1)
 	}
 	fmt.Fprintf(f, " ")
 	fmt.Fprintf(f, "T.")
 	writeTupleType(f, i)
-	fmt.Fprintf(f, ")")
+	fmt.Fprintf(f, ") func(HKT_T1)")
 	if i > 1 {
 		fmt.Fprintf(f, " HKT_F")
 		for k := 1; k < i; k++ {
@@ -35,11 +38,12 @@ func generateSequenceT(f *os.File, i int) {
 	// the applicatives
 	for j := 1; j < i; j++ {
 		fmt.Fprintf(f, "  AP%d ~func(", j)
+		fmt.Fprintf(f, "HKT_T%d) func(", j+1)
 		fmt.Fprintf(f, "HKT_F")
 		for k := j; k < i; k++ {
 			fmt.Fprintf(f, "_T%d", k+1)
 		}
-		fmt.Fprintf(f, ", HKT_T%d)", j+1)
+		fmt.Fprintf(f, ")")
 		if j+1 < i {
 			fmt.Fprintf(f, " HKT_F")
 			for k := j + 1; k < i; k++ {
@@ -86,20 +90,20 @@ func generateSequenceT(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") HKT_TUPLE%d {\n", i)
 
-	fmt.Fprintf(f, "  r1 := fmap(t1, tupleConstructor%d[", i)
+	fmt.Fprintf(f, "  return F.Pipe%d(\n", i)
+	fmt.Fprintf(f, "    t1,\n")
+	fmt.Fprintf(f, "    fmap(tupleConstructor%d[", i)
 	for j := 0; j < i; j++ {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
-	fmt.Fprintf(f, "]())\n")
-
+	fmt.Fprintf(f, "]()),\n")
 	for j := 1; j < i; j++ {
-		fmt.Fprintf(f, "  r%d := fap%d(r%d, t%d)\n", j+1, j, j, j+1)
+		fmt.Fprintf(f, "    fap%d(t%d),\n", j, j+1)
 	}
-	fmt.Fprintf(f, "  return r%d\n", i)
-
+	fmt.Fprintf(f, ")\n")
 	fmt.Fprintf(f, "}\n")
 }
 

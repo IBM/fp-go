@@ -14,7 +14,7 @@ func TestTraverse(t *testing.T) {
 	traverse := Traverse(
 		O.Of[ArrayType],
 		O.MonadMap[ArrayType, func(int) ArrayType],
-		O.MonadAp[int, ArrayType],
+		O.MonadAp[ArrayType, int],
 
 		func(n int) O.Option[int] {
 			if n%2 == 0 {

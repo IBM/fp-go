@@ -38,6 +38,6 @@ func ArrayOption[A any]() func([]O.Option[A]) O.Option[[]A] {
 	return Sequence(
 		O.Of[[]A],
 		O.MonadMap[[]A, func(A) []A],
-		O.MonadAp[A, []A],
+		O.MonadAp[[]A, A],
 	)
 }

@@ -21,7 +21,7 @@ func Sequence[A, HKTA, HKTOA any](
 
 func SequenceT1[A any](a Option[A]) Option[T.Tuple1[A]] {
 	return Apply.SequenceT1(
-		MonadMap[A, T.Tuple1[A]],
+		Map[A, T.Tuple1[A]],
 
 		a,
 	)
@@ -29,8 +29,8 @@ func SequenceT1[A any](a Option[A]) Option[T.Tuple1[A]] {
 
 func SequenceT2[A, B any](a Option[A], b Option[B]) Option[T.Tuple2[A, B]] {
 	return Apply.SequenceT2(
-		MonadMap[A, func(B) T.Tuple2[A, B]],
-		MonadAp[B, T.Tuple2[A, B]],
+		Map[A, func(B) T.Tuple2[A, B]],
+		Ap[T.Tuple2[A, B], B],
 
 		a, b,
 	)
@@ -38,9 +38,9 @@ func SequenceT2[A, B any](a Option[A], b Option[B]) Option[T.Tuple2[A, B]] {
 
 func SequenceT3[A, B, C any](a Option[A], b Option[B], c Option[C]) Option[T.Tuple3[A, B, C]] {
 	return Apply.SequenceT3(
-		MonadMap[A, func(B) func(C) T.Tuple3[A, B, C]],
-		MonadAp[B, func(C) T.Tuple3[A, B, C]],
-		MonadAp[C, T.Tuple3[A, B, C]],
+		Map[A, func(B) func(C) T.Tuple3[A, B, C]],
+		Ap[func(C) T.Tuple3[A, B, C], B],
+		Ap[T.Tuple3[A, B, C], C],
 
 		a, b, c,
 	)
@@ -48,10 +48,10 @@ func SequenceT3[A, B, C any](a Option[A], b Option[B], c Option[C]) Option[T.Tup
 
 func SequenceT4[A, B, C, D any](a Option[A], b Option[B], c Option[C], d Option[D]) Option[T.Tuple4[A, B, C, D]] {
 	return Apply.SequenceT4(
-		MonadMap[A, func(B) func(C) func(D) T.Tuple4[A, B, C, D]],
-		MonadAp[B, func(C) func(D) T.Tuple4[A, B, C, D]],
-		MonadAp[C, func(D) T.Tuple4[A, B, C, D]],
-		MonadAp[D, T.Tuple4[A, B, C, D]],
+		Map[A, func(B) func(C) func(D) T.Tuple4[A, B, C, D]],
+		Ap[func(C) func(D) T.Tuple4[A, B, C, D], B],
+		Ap[func(D) T.Tuple4[A, B, C, D], C],
+		Ap[T.Tuple4[A, B, C, D], D],
 
 		a, b, c, d,
 	)

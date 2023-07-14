@@ -20,7 +20,7 @@ func TestTraverse(t *testing.T) {
 		O.MonadMap[int, Either[string, int]],
 	)(f)
 
-	assert.Equal(t, O.Of(Left[string, int]("a")), F.Pipe1(Left[string, int]("a"), trav))
+	assert.Equal(t, O.Of(Left[int]("a")), F.Pipe1(Left[int]("a"), trav))
 	assert.Equal(t, O.None[Either[string, int]](), F.Pipe1(Right[string](1), trav))
 	assert.Equal(t, O.Of(Right[string](3)), F.Pipe1(Right[string](3), trav))
 }
@@ -33,6 +33,6 @@ func TestSequence(t *testing.T) {
 	)
 
 	assert.Equal(t, O.Of(Right[string](1)), seq(Right[string](O.Of(1))))
-	assert.Equal(t, O.Of(Left[string, int]("a")), seq(Left[string, O.Option[int]]("a")))
+	assert.Equal(t, O.Of(Left[int]("a")), seq(Left[O.Option[int]]("a")))
 	assert.Equal(t, O.None[Either[string, int]](), seq(Right[string](O.None[int]())))
 }
