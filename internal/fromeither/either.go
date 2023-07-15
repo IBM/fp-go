@@ -3,6 +3,7 @@ package fromeither
 import (
 	ET "github.com/ibm/fp-go/either"
 	F "github.com/ibm/fp-go/function"
+	C "github.com/ibm/fp-go/internal/chain"
 	O "github.com/ibm/fp-go/option"
 )
 
@@ -50,4 +51,21 @@ func ChainOptionK[A, E, B, HKTEA, HKTEB any](
 	onNone func() E,
 ) func(f func(A) O.Option[B]) func(ma HKTEA) HKTEB {
 	return F.Flow2(FromOptionK[E, A](fromEither, onNone), F.Bind1st(F.Bind2nd[HKTEA, func(A) HKTEB, HKTEB], mchain))
+}
+
+func MonadChainFirstEitherK[A, E, B, HKTEA, HKTEB any](
+	mchain func(HKTEA, func(A) HKTEA) HKTEA,
+	mmap func(HKTEB, func(B) A) HKTEA,
+	fromEither func(ET.Either[E, B]) HKTEB,
+	ma HKTEA,
+	f func(A) ET.Either[E, B]) HKTEA {
+	return C.MonadChainFirst(mchain, mmap, ma, F.Flow2(f, fromEither))
+}
+
+func ChainFirstEitherK[A, E, B, HKTEA, HKTEB any](
+	mchain func(HKTEA, func(A) HKTEA) HKTEA,
+	mmap func(HKTEB, func(B) A) HKTEA,
+	fromEither func(ET.Either[E, B]) HKTEB,
+	f func(A) ET.Either[E, B]) func(HKTEA) HKTEA {
+	return C.ChainFirst(mchain, mmap, F.Flow2(f, fromEither))
 }

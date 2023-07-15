@@ -55,6 +55,14 @@ func Chain[A, B any](f func(A) ReaderIOEither[B]) func(ReaderIOEither[A]) Reader
 	return RIE.Chain[ReaderIOEither[A]](f)
 }
 
+func MonadChainFirst[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) ReaderIOEither[A] {
+	return RIE.MonadChainFirst(ma, f)
+}
+
+func ChainFirst[A, B any](f func(A) ReaderIOEither[B]) func(ReaderIOEither[A]) ReaderIOEither[A] {
+	return RIE.ChainFirst[ReaderIOEither[A]](f)
+}
+
 func Of[A any](a A) ReaderIOEither[A] {
 	return RIE.Of[ReaderIOEither[A]](a)
 }
@@ -145,6 +153,14 @@ func ChainEitherK[A, B any](f func(A) ET.Either[error, B]) func(ma ReaderIOEithe
 	return RIE.ChainEitherK[ReaderIOEither[A], ReaderIOEither[B]](f)
 }
 
+func MonadChainFirstEitherK[A, B any](ma ReaderIOEither[A], f func(A) ET.Either[error, B]) ReaderIOEither[A] {
+	return RIE.MonadChainFirstEitherK[ReaderIOEither[A]](ma, f)
+}
+
+func ChainFirstEitherK[A, B any](f func(A) ET.Either[error, B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
+	return RIE.ChainFirstEitherK[ReaderIOEither[A]](f)
+}
+
 func ChainOptionK[A, B any](onNone func() error) func(func(A) O.Option[B]) func(ReaderIOEither[A]) ReaderIOEither[B] {
 	return RIE.ChainOptionK[ReaderIOEither[A], ReaderIOEither[B]](onNone)
 }
@@ -173,6 +189,14 @@ func MonadChainIOK[A, B any](ma ReaderIOEither[A], f func(A) IO.IO[B]) ReaderIOE
 
 func ChainIOK[A, B any](f func(A) IO.IO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
 	return RIE.ChainIOK[ReaderIOEither[A], ReaderIOEither[B]](f)
+}
+
+func MonadChainFirstIOK[A, B any](ma ReaderIOEither[A], f func(A) IO.IO[B]) ReaderIOEither[A] {
+	return RIE.MonadChainFirstIOK[ReaderIOEither[A]](ma, f)
+}
+
+func ChainFirstIOK[A, B any](f func(A) IO.IO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
+	return RIE.ChainFirstIOK[ReaderIOEither[A]](f)
 }
 
 func ChainIOEitherK[A, B any](f func(A) IOE.IOEither[error, B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {

@@ -54,12 +54,24 @@ func MonadChain[R, E, A, B any](fa ReaderIOEither[R, E, A], f func(A) ReaderIOEi
 	return G.MonadChain(fa, f)
 }
 
+func MonadChainFirst[R, E, A, B any](fa ReaderIOEither[R, E, A], f func(A) ReaderIOEither[R, E, B]) ReaderIOEither[R, E, A] {
+	return G.MonadChainFirst(fa, f)
+}
+
 func MonadChainEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) ET.Either[E, B]) ReaderIOEither[R, E, B] {
 	return G.MonadChainEitherK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](ma, f)
 }
 
 func ChainEitherK[R, E, A, B any](f func(A) ET.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
 	return G.ChainEitherK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](f)
+}
+
+func MonadChainFirstEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) ET.Either[E, B]) ReaderIOEither[R, E, A] {
+	return G.MonadChainFirstEitherK[ReaderIOEither[R, E, A]](ma, f)
+}
+
+func ChainFirstEitherK[R, E, A, B any](f func(A) ET.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+	return G.ChainFirstEitherK[ReaderIOEither[R, E, A]](f)
 }
 
 func MonadChainReaderK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) RD.Reader[R, B]) ReaderIOEither[R, E, B] {
@@ -86,6 +98,14 @@ func ChainIOK[R, E, A, B any](f func(A) io.IO[B]) func(ma ReaderIOEither[R, E, A
 	return G.ChainIOK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](f)
 }
 
+func MonadChainFirstIOK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) io.IO[B]) ReaderIOEither[R, E, A] {
+	return G.MonadChainFirstIOK[ReaderIOEither[R, E, A]](ma, f)
+}
+
+func ChainFirstIOK[R, E, A, B any](f func(A) io.IO[B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+	return G.ChainFirstIOK[ReaderIOEither[R, E, A]](f)
+}
+
 func ChainOptionK[R, E, A, B any](onNone func() E) func(func(A) O.Option[B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
 	return G.ChainOptionK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](onNone)
 }
@@ -100,6 +120,10 @@ func Ap[R, E, A, B any](fa ReaderIOEither[R, E, A]) func(fab ReaderIOEither[R, E
 
 func Chain[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
 	return G.Chain[ReaderIOEither[R, E, A]](f)
+}
+
+func ChainFirst[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+	return G.ChainFirst[ReaderIOEither[R, E, A]](f)
 }
 
 func Right[R, E, A any](a A) ReaderIOEither[R, E, A] {

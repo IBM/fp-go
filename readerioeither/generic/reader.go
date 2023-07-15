@@ -3,12 +3,12 @@ package generic
 import (
 	ET "github.com/ibm/fp-go/either"
 	F "github.com/ibm/fp-go/function"
+	C "github.com/ibm/fp-go/internal/chain"
 	"github.com/ibm/fp-go/internal/eithert"
 	FE "github.com/ibm/fp-go/internal/fromeither"
 	FIO "github.com/ibm/fp-go/internal/fromio"
 	FIOE "github.com/ibm/fp-go/internal/fromioeither"
 	FR "github.com/ibm/fp-go/internal/fromreader"
-	GIO "github.com/ibm/fp-go/ioeither/generic"
 	IOE "github.com/ibm/fp-go/ioeither/generic"
 	O "github.com/ibm/fp-go/option"
 	RD "github.com/ibm/fp-go/reader/generic"
@@ -48,6 +48,18 @@ func Chain[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], G
 	return F.Bind2nd(MonadChain[GEA, GEB, GIOA, GIOB, R, E, A, B], f)
 }
 
+func MonadChainFirst[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], R, E, A, B any](fa GEA, f func(A) GEB) GEA {
+	return C.MonadChainFirst(
+		MonadChain[GEA, GEA, GIOA, GIOA, R, E, A, A],
+		MonadMap[GEB, GEA, GIOB, GIOA, R, E, B, A],
+		fa,
+		f)
+}
+
+func ChainFirst[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], R, E, A, B any](f func(A) GEB) func(fa GEA) GEA {
+	return F.Bind2nd(MonadChainFirst[GEA, GEB, GIOA, GIOB, R, E, A, B], f)
+}
+
 func MonadChainEitherK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], R, E, A, B any](ma GEA, f func(A) ET.Either[E, B]) GEB {
 	return FE.MonadChainEitherK(
 		MonadChain[GEA, GEB, GIOA, GIOB, R, E, A, B],
@@ -59,6 +71,34 @@ func MonadChainEitherK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Eit
 
 func ChainEitherK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], R, E, A, B any](f func(A) ET.Either[E, B]) func(ma GEA) GEB {
 	return F.Bind2nd(MonadChainEitherK[GEA, GEB, GIOA, GIOB, R, E, A, B], f)
+}
+
+func MonadChainFirstEitherK[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A, B any](ma GEA, f func(A) ET.Either[E, B]) GEA {
+	return FE.MonadChainFirstEitherK(
+		MonadChain[GEA, GEA, GIOA, GIOA, R, E, A, A],
+		MonadMap[func(R) func() ET.Either[E, B], GEA, func() ET.Either[E, B], GIOA, R, E, B, A],
+		FromEither[func(R) func() ET.Either[E, B], func() ET.Either[E, B], R, E, B],
+		ma,
+		f,
+	)
+}
+
+func ChainFirstEitherK[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A, B any](f func(A) ET.Either[E, B]) func(ma GEA) GEA {
+	return F.Bind2nd(MonadChainFirstEitherK[GEA, GIOA, R, E, A, B], f)
+}
+
+func MonadChainFirstIOK[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GIO ~func() B, R, E, A, B any](ma GEA, f func(A) GIO) GEA {
+	return FIO.MonadChainFirstIOK(
+		MonadChain[GEA, GEA, GIOA, GIOA, R, E, A, A],
+		MonadMap[func(R) func() ET.Either[E, B], GEA, func() ET.Either[E, B], GIOA, R, E, B, A],
+		FromIO[func(R) func() ET.Either[E, B], func() ET.Either[E, B], GIO, R, E, B],
+		ma,
+		f,
+	)
+}
+
+func ChainFirstIOK[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GIO ~func() B, R, E, A, B any](f func(A) GIO) func(GEA) GEA {
+	return F.Bind2nd(MonadChainFirstIOK[GEA, GIOA, GIO, R, E, A, B], f)
 }
 
 func MonadChainReaderK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], GB ~func(R) B, R, E, A, B any](ma GEA, f func(A) GB) GEB {
@@ -166,11 +206,11 @@ func FromEither[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](t 
 }
 
 func RightReader[GA ~func(R) A, GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](ma GA) GEA {
-	return F.Flow2(ma, GIO.Right[GIOA, E, A])
+	return F.Flow2(ma, IOE.Right[GIOA, E, A])
 }
 
 func LeftReader[GE ~func(R) E, GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](ma GE) GEA {
-	return F.Flow2(ma, GIO.Left[GIOA, E, A])
+	return F.Flow2(ma, IOE.Left[GIOA, E, A])
 }
 
 func FromReader[GA ~func(R) A, GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](ma GA) GEA {
@@ -204,11 +244,11 @@ func LeftReaderIO[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GRIO ~func(R)
 }
 
 func RightIO[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GR ~func() A, R, E, A any](ma GR) GEA {
-	return F.Pipe2(ma, GIO.RightIO[GIOA, GR, E, A], FromIOEither[GEA, GIOA, R, E, A])
+	return F.Pipe2(ma, IOE.RightIO[GIOA, GR, E, A], FromIOEither[GEA, GIOA, R, E, A])
 }
 
 func LeftIO[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GR ~func() E, R, E, A any](ma GR) GEA {
-	return F.Pipe2(ma, GIO.LeftIO[GIOA, GR, E, A], FromIOEither[GEA, GIOA, R, E, A])
+	return F.Pipe2(ma, IOE.LeftIO[GIOA, GR, E, A], FromIOEither[GEA, GIOA, R, E, A])
 }
 
 func FromIO[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GR ~func() A, R, E, A any](ma GR) GEA {
@@ -216,7 +256,7 @@ func FromIO[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], GR ~func() A, R, E,
 }
 
 func FromReaderEither[GA ~func(R) ET.Either[E, A], GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](ma GA) GEA {
-	return F.Flow2(ma, GIO.FromEither[GIOA, E, A])
+	return F.Flow2(ma, IOE.FromEither[GIOA, E, A])
 }
 
 func Ask[GER ~func(R) GIOR, GIOR ~func() ET.Either[E, R], R, E any]() GER {
@@ -267,7 +307,7 @@ func BiMap[GA ~func(R) GE1A, GB ~func(R) GE2B, GE1A ~func() ET.Either[E1, A], GE
 
 // Swap changes the order of type parameters
 func Swap[GREA ~func(R) GEA, GRAE ~func(R) GAE, GEA ~func() ET.Either[E, A], GAE ~func() ET.Either[A, E], R, E, A any](val GREA) GRAE {
-	return RD.MonadMap[GREA, GRAE, R, GEA, GAE](val, GIO.Swap[GEA, GAE])
+	return RD.MonadMap[GREA, GRAE, R, GEA, GAE](val, IOE.Swap[GEA, GAE])
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time

@@ -17,7 +17,7 @@ func TestLogger(t *testing.T) {
 
 func TestLogf(t *testing.T) {
 
-	l := Logf[int]()
+	l := Logf[int]
 
 	lio := l("Value is %d")
 
