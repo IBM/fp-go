@@ -30,7 +30,7 @@ func RightReaderIO[R, E, A any](ma RIO.ReaderIO[R, A]) ReaderIOEither[R, E, A] {
 	return G.RightReaderIO[ReaderIOEither[R, E, A]](ma)
 }
 
-func LeftReaderIO[R, E, A any](me RIO.ReaderIO[R, E]) ReaderIOEither[R, E, A] {
+func LeftReaderIO[A, R, E any](me RIO.ReaderIO[R, E]) ReaderIOEither[R, E, A] {
 	return G.LeftReaderIO[ReaderIOEither[R, E, A]](me)
 }
 
@@ -130,7 +130,7 @@ func Right[R, E, A any](a A) ReaderIOEither[R, E, A] {
 	return G.Right[ReaderIOEither[R, E, A]](a)
 }
 
-func Left[R, E, A any](e E) ReaderIOEither[R, E, A] {
+func Left[R, A, E any](e E) ReaderIOEither[R, E, A] {
 	return G.Left[ReaderIOEither[R, E, A]](e)
 }
 
@@ -155,7 +155,7 @@ func RightReader[R, E, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
 	return G.RightReader[RD.Reader[R, A], ReaderIOEither[R, E, A]](ma)
 }
 
-func LeftReader[R, E, A any](ma RD.Reader[R, E]) ReaderIOEither[R, E, A] {
+func LeftReader[A, R, E any](ma RD.Reader[R, E]) ReaderIOEither[R, E, A] {
 	return G.LeftReader[RD.Reader[R, E], ReaderIOEither[R, E, A]](ma)
 }
 
@@ -167,7 +167,7 @@ func RightIO[R, E, A any](ma io.IO[A]) ReaderIOEither[R, E, A] {
 	return G.RightIO[ReaderIOEither[R, E, A]](ma)
 }
 
-func LeftIO[R, E, A any](ma io.IO[E]) ReaderIOEither[R, E, A] {
+func LeftIO[R, A, E any](ma io.IO[E]) ReaderIOEither[R, E, A] {
 	return G.LeftIO[ReaderIOEither[R, E, A]](ma)
 }
 

@@ -1,16 +1,17 @@
 package http
 
 import (
-	"context"
 	"io"
 	"net/http"
 
 	B "github.com/ibm/fp-go/bytes"
 	RIOE "github.com/ibm/fp-go/context/readerioeither"
 	F "github.com/ibm/fp-go/function"
+	H "github.com/ibm/fp-go/http"
 	IOE "github.com/ibm/fp-go/ioeither"
 	IOEF "github.com/ibm/fp-go/ioeither/file"
 	J "github.com/ibm/fp-go/json"
+	T "github.com/ibm/fp-go/tuple"
 )
 
 type (
@@ -44,21 +45,33 @@ func MakeClient(httpClient *http.Client) Client {
 	return client{delegate: httpClient, doIOE: IOE.Eitherize1(httpClient.Do)}
 }
 
-// ReadAll sends a request and reads the response as a byte array
-func ReadAll(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
-	return func(req Requester) RIOE.ReaderIOEither[[]byte] {
-		doReq := client.Do(req)
-		return func(ctx context.Context) IOE.IOEither[error, []byte] {
-			return IOEF.ReadAll(F.Pipe2(
-				ctx,
-				doReq,
-				IOE.Map[error](func(resp *http.Response) io.ReadCloser {
-					return resp.Body
-				}),
-			),
-			)
-		}
+// ReadFullResponse sends a request,  reads the response as a byte array and represents the result as a tuple
+func ReadFullResponse(client Client) func(Requester) RIOE.ReaderIOEither[H.FullResponse] {
+	return func(req Requester) RIOE.ReaderIOEither[H.FullResponse] {
+		return F.Flow3(
+			client.Do(req),
+			IOE.ChainEitherK(H.ValidateResponse),
+			IOE.Chain(func(resp *http.Response) IOE.IOEither[error, H.FullResponse] {
+				return F.Pipe1(
+					F.Pipe3(
+						resp,
+						H.GetBody,
+						IOE.Of[error, io.ReadCloser],
+						IOEF.ReadAll[io.ReadCloser],
+					),
+					IOE.Map[error](F.Bind1st(T.MakeTuple2[*http.Response, []byte], resp)),
+				)
+			}),
+		)
 	}
+}
+
+// ReadAll sends a request and reads the response as bytes
+func ReadAll(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
+	return F.Flow2(
+		ReadFullResponse(client),
+		RIOE.Map(H.Body),
+	)
 }
 
 // ReadText sends a request, reads the response and represents the response as a text string
@@ -71,8 +84,15 @@ func ReadText(client Client) func(Requester) RIOE.ReaderIOEither[string] {
 
 // ReadJson sends a request, reads the response and parses the response as JSON
 func ReadJson[A any](client Client) func(Requester) RIOE.ReaderIOEither[A] {
-	return F.Flow2(
-		ReadAll(client),
-		RIOE.ChainEitherK(J.Unmarshal[A]),
+	return F.Flow3(
+		ReadFullResponse(client),
+		RIOE.ChainFirstEitherK(F.Flow2(
+			H.Response,
+			H.ValidateJsonResponse,
+		)),
+		RIOE.ChainEitherK(F.Flow2(
+			H.Body,
+			J.Unmarshal[A],
+		)),
 	)
 }

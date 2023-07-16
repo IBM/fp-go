@@ -21,11 +21,11 @@ func RightReader[E, L, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
 	return G.RightReader[R.Reader[E, A], ReaderEither[E, L, A]](r)
 }
 
-func LeftReader[E, L, A any](l R.Reader[E, L]) ReaderEither[E, L, A] {
+func LeftReader[A, E, L any](l R.Reader[E, L]) ReaderEither[E, L, A] {
 	return G.LeftReader[R.Reader[E, L], ReaderEither[E, L, A]](l)
 }
 
-func Left[E, L, A any](l L) ReaderEither[E, L, A] {
+func Left[E, A, L any](l L) ReaderEither[E, L, A] {
 	return G.Left[ReaderEither[E, L, A]](l)
 }
 

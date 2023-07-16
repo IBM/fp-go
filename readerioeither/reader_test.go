@@ -34,7 +34,7 @@ func TestOrLeft(t *testing.T) {
 	)
 
 	g2 := F.Pipe1(
-		Left[context.Context, string, int]("a"),
+		Left[context.Context, int]("a"),
 		f,
 	)
 
