@@ -7,6 +7,7 @@ import (
 func Commands() []*C.Command {
 	return []*C.Command{
 		PipeCommand(),
+		IdentityCommand(),
 		OptionCommand(),
 		EitherCommand(),
 		TupleCommand(),

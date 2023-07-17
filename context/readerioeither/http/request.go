@@ -30,7 +30,12 @@ type (
 )
 
 var (
-	NewRequest = RIOE.Eitherize3(http.NewRequestWithContext)
+	// MakeRequest is an eitherized version of [http.NewRequestWithContext]
+	MakeRequest = RIOE.Eitherize3(http.NewRequestWithContext)
+	makeRequest = F.Bind13of3(MakeRequest)
+
+	// specialize
+	MakeGetRequest = makeRequest("GET", nil)
 )
 
 func (client client) Do(req Requester) RIOE.ReaderIOEither[*http.Response] {
@@ -65,6 +70,21 @@ func ReadFullResponse(client Client) func(Requester) RIOE.ReaderIOEither[H.FullR
 		)
 	}
 }
+
+// func test(resp *http.Response) IOE.IOEither[error, H.FullResponse] {
+// 	x := F.Pipe3(
+// 		resp,
+// 		T.Replicate2[*http.Response],
+// 		T.Map2(
+// 			IOE.Of[error, *http.Response],
+// 			F.Flow3(
+// 				H.GetBody,
+// 				IOE.Of[error, io.ReadCloser],
+// 				IOEF.ReadAll[io.ReadCloser],
+// 			),
+// 		),
+// 	)
+// }
 
 // ReadAll sends a request and reads the response as bytes
 func ReadAll(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {

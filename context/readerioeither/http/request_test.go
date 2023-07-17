@@ -19,7 +19,7 @@ func TestSendSingleRequest(t *testing.T) {
 
 	client := MakeClient(H.DefaultClient)
 
-	req1 := NewRequest("GET", "https://jsonplaceholder.typicode.com/posts/1", nil)
+	req1 := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
 
 	readItem := ReadJson[PostItem](client)
 

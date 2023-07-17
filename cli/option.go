@@ -22,6 +22,10 @@ func generateOptionSequenceTuple(f *os.File, i int) {
 	generateSequenceTuple1(optionHKT, "")(f, i)
 }
 
+func generateOptionSequenceT(f *os.File, i int) {
+	generateSequenceT1(optionHKT, "")(f, i)
+}
+
 func generateOptionize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Optionize%d converts a function with %d parameters returning a tuple of a return value R and a boolean into a function with %d parameters returning an Option[R]\n", i, i, i)
@@ -162,6 +166,8 @@ func optionize[R any](f func() (R, bool)) Option[R] {
 		generateOptionize(f, i)
 		// unoptionize
 		generateUnoptionize(f, i)
+		// sequenceT
+		generateOptionSequenceT(f, i)
 		// sequenceTuple
 		generateOptionSequenceTuple(f, i)
 		// traverseTuple

@@ -35,6 +35,16 @@ var (
 			}),
 		)),
 	)
+	// ValidateJsonResponse checks if an HTTP response is a valid JSON response
+	ValidateJsonResponse = F.Flow2(
+		E.Of[error, *H.Response],
+		E.ChainFirst(F.Flow5(
+			GetHeader,
+			R.Lookup[H.Header](HeaderContentType),
+			O.Chain(A.First[string]),
+			E.FromOption[error, string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
+			E.ChainFirst(validateJsonContentTypeString),
+		)))
 )
 
 const (
@@ -63,17 +73,4 @@ func isValidStatus(resp *H.Response) bool {
 
 func StatusCodeError(resp *H.Response) error {
 	return fmt.Errorf("invalid status code [%d] when accessing URL [%s]", resp.StatusCode, resp.Request.URL)
-}
-
-// ValidateJsonResponse checks if an HTTP response is a valid JSON response
-func ValidateJsonResponse(resp *H.Response) E.Either[error, *H.Response] {
-	return F.Pipe6(
-		resp,
-		GetHeader,
-		R.Lookup[H.Header](HeaderContentType),
-		O.Chain(A.First[string]),
-		E.FromOption[error, string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
-		E.ChainFirst(validateJsonContentTypeString),
-		E.MapTo[error, string](resp),
-	)
 }
