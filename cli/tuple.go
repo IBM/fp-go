@@ -10,15 +10,82 @@ import (
 	C "github.com/urfave/cli/v2"
 )
 
-func writeTupleType(f *os.File, i int) {
+func writeTupleType(f *os.File, symbol string, i int) {
 	fmt.Fprintf(f, "Tuple%d[", i)
 	for j := 1; j <= i; j++ {
 		if j > 1 {
 			fmt.Fprintf(f, ", ")
 		}
-		fmt.Fprintf(f, "T%d", j)
+		fmt.Fprintf(f, "%s%d", symbol, j)
 	}
 	fmt.Fprintf(f, "]")
+}
+
+func generateReplicate(f *os.File, i int) {
+	// Create the optionize version
+	fmt.Fprintf(f, "\n// Replicate%d creates a [Tuple%d] with all fields set to the input value `t`\n", i, i)
+	fmt.Fprintf(f, "func Replicate%d[T any](t T) Tuple%d[", i, i)
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T")
+	}
+	fmt.Fprintf(f, "] {\n")
+	// execute the mapping
+	fmt.Fprintf(f, "  return MakeTuple%d(", i)
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t")
+	}
+	fmt.Fprintf(f, ")\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateMap(f *os.File, i int) {
+	// Create the optionize version
+	fmt.Fprintf(f, "\n// Map%d maps each value of a [Tuple%d] via a mapping function\n", i, i)
+	fmt.Fprintf(f, "func Map%d[", i)
+	// function prototypes
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "F%d ~func(T%d) R%d", j, j, j)
+	}
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, ", T%d, R%d", j, j)
+	}
+	fmt.Fprintf(f, " any](")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "f%d F%d", j, j)
+	}
+	fmt.Fprintf(f, ") func(")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") ")
+	writeTupleType(f, "R", i)
+	fmt.Fprintf(f, " {\n")
+
+	fmt.Fprintf(f, " return func(t ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") ")
+	writeTupleType(f, "R", i)
+	fmt.Fprintf(f, " {\n")
+
+	// execute the mapping
+	fmt.Fprintf(f, "    return MakeTuple%d(\n", i)
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, "      f%d(t.F%d),\n", j, j)
+	}
+	fmt.Fprintf(f, "    )\n")
+
+	fmt.Fprintf(f, " }\n")
+	fmt.Fprintf(f, "}\n")
 }
 
 func generateMonoid(f *os.File, i int) {
@@ -39,13 +106,13 @@ func generateMonoid(f *os.File, i int) {
 		fmt.Fprintf(f, "m%d M.Monoid[T%d]", j, j)
 	}
 	fmt.Fprintf(f, ") M.Monoid[")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, "] {\n")
 
 	fmt.Fprintf(f, "  return M.MakeMonoid(func(l, r ")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") ")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, "{\n")
 
 	fmt.Fprintf(f, "    return MakeTuple%d(", i)
@@ -86,11 +153,11 @@ func generateOrd(f *os.File, i int) {
 		fmt.Fprintf(f, "o%d O.Ord[T%d]", j, j)
 	}
 	fmt.Fprintf(f, ") O.Ord[")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, "] {\n")
 
 	fmt.Fprintf(f, "  return O.MakeOrd(func(l, r ")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") int {\n")
 
 	for j := 1; j <= i; j++ {
@@ -98,7 +165,7 @@ func generateOrd(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, "    return 0\n")
 	fmt.Fprintf(f, "  }, func(l, r ")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") bool {\n")
 	fmt.Fprintf(f, "    return ")
 	for j := 1; j <= i; j++ {
@@ -148,7 +215,7 @@ func generateMakeTupleType(f *os.File, i int) {
 		fmt.Fprintf(f, "t%d T%d", j, j)
 	}
 	fmt.Fprintf(f, ") ")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, " {\n")
 	fmt.Fprintf(f, "  return Tuple%d[", i)
 	for j := 1; j <= i; j++ {
@@ -300,6 +367,10 @@ import (
 		generateMonoid(f, i)
 		// generate order
 		generateOrd(f, i)
+		// generate map
+		generateMap(f, i)
+		// generate replicate
+		generateReplicate(f, i)
 	}
 
 	return nil

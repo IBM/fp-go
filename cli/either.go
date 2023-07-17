@@ -10,6 +10,65 @@ import (
 	C "github.com/urfave/cli/v2"
 )
 
+func eitherHKT(typeE string) func(typeA string) string {
+	return func(typeA string) string {
+		return fmt.Sprintf("Either[%s, %s]", typeE, typeA)
+	}
+}
+
+func generateEitherTraverseTuple(f *os.File, i int) {
+	generateTraverseTuple1(eitherHKT("E"), "E")(f, i)
+}
+
+func generateEitherSequenceTuple(f *os.File, i int) {
+	generateSequenceTuple1(eitherHKT("E"), "E")(f, i)
+}
+
+func generateEitherSequenceT(f *os.File, i int) {
+
+	tuple := tupleType(i)
+
+	fmt.Fprintf(f, "\n// SequenceT%d converts %d parameters of [Either[E, T]] into an [Either] of a [Tuple%d].\n", i, i, i)
+	fmt.Fprintf(f, "func SequenceT%d[E", i)
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, ", T%d", j+1)
+	}
+	fmt.Fprintf(f, " any](")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d Either[E, T%d]", j+1, j+1)
+	}
+	fmt.Fprintf(f, ") Either[E, %s] {\n", tuple)
+	fmt.Fprintf(f, "  return A.SequenceT%d(\n", i)
+	// map
+	fmt.Fprintf(f, "    Map[E, T1,")
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, " func(T%d)", j+1)
+	}
+	fmt.Fprintf(f, " %s],\n", tuple)
+	// applicatives
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "    Ap[")
+		for k := j + 1; k < i; k++ {
+			if k > j+1 {
+				fmt.Fprintf(f, " ")
+			}
+			fmt.Fprintf(f, "func(T%d)", k+1)
+		}
+		if j < i-1 {
+			fmt.Fprintf(f, " ")
+		}
+		fmt.Fprintf(f, "%s, E, T%d],\n", tuple, j+1)
+	}
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, "    t%d,\n", j+1)
+	}
+	fmt.Fprintf(f, "  )\n")
+	fmt.Fprintf(f, "}\n")
+}
+
 func generateUneitherize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning an Either into a function with %d parameters returning a tuple\n// The inverse function is [Eitherize%d]\n", i, i, i, i)
@@ -121,6 +180,13 @@ func generateEitherHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, "package %s\n\n", pkg)
 
+	fmt.Fprintf(f, `
+import (
+	A "github.com/ibm/fp-go/internal/apply"
+	T "github.com/ibm/fp-go/tuple"
+)
+`)
+
 	// zero level functions
 
 	// optionize
@@ -133,6 +199,12 @@ func generateEitherHelpers(filename string, count int) error {
 		generateEitherize(f, i)
 		// unoptionize
 		generateUneitherize(f, i)
+		// sequenceT
+		generateEitherSequenceT(f, i)
+		// sequenceTuple
+		generateEitherSequenceTuple(f, i)
+		// traverseTuple
+		generateEitherTraverseTuple(f, i)
 	}
 
 	return nil

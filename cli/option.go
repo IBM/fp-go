@@ -10,6 +10,18 @@ import (
 	C "github.com/urfave/cli/v2"
 )
 
+func optionHKT(typeA string) string {
+	return fmt.Sprintf("Option[%s]", typeA)
+}
+
+func generateOptionTraverseTuple(f *os.File, i int) {
+	generateTraverseTuple1(optionHKT, "")(f, i)
+}
+
+func generateOptionSequenceTuple(f *os.File, i int) {
+	generateSequenceTuple1(optionHKT, "")(f, i)
+}
+
 func generateOptionize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Optionize%d converts a function with %d parameters returning a tuple of a return value R and a boolean into a function with %d parameters returning an Option[R]\n", i, i, i)
@@ -121,6 +133,13 @@ func generateOptionHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, "package %s\n\n", pkg)
 
+	fmt.Fprintf(f, `
+import (
+	A "github.com/ibm/fp-go/internal/apply"
+	T "github.com/ibm/fp-go/tuple"
+)
+`)
+
 	// print out some helpers
 	fmt.Fprintf(f, `// optionize converts a nullary function to an option
 func optionize[R any](f func() (R, bool)) Option[R] {
@@ -143,6 +162,10 @@ func optionize[R any](f func() (R, bool)) Option[R] {
 		generateOptionize(f, i)
 		// unoptionize
 		generateUnoptionize(f, i)
+		// sequenceTuple
+		generateOptionSequenceTuple(f, i)
+		// traverseTuple
+		generateOptionTraverseTuple(f, i)
 	}
 
 	return nil

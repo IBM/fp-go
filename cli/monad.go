@@ -125,3 +125,152 @@ func monadGenerateSequenceTGeneric(
 
 	}
 }
+
+func generateTraverseTuple1(
+	hkt func(string) string,
+	infix string) func(f *os.File, i int) {
+
+	return func(f *os.File, i int) {
+		tuple := tupleType(i)
+
+		fmt.Fprintf(f, "\n// TraverseTuple%d converts a [Tuple%d] of [A] via transformation functions transforming [A] to [%s] into a [%s].\n", i, i, hkt("A"), hkt(fmt.Sprintf("Tuple%d", i)))
+		fmt.Fprintf(f, "func TraverseTuple%d[", i)
+		// functions
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "F%d ~func(A%d) %s", j+1, j+1, hkt(fmt.Sprintf("T%d", j+1)))
+		}
+		if infix != "" {
+			fmt.Fprintf(f, ", %s", infix)
+		}
+		// types
+		for j := 0; j < i; j++ {
+			fmt.Fprintf(f, ", A%d, T%d", j+1, j+1)
+		}
+		fmt.Fprintf(f, " any](")
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "f%d F%d", j+1, j+1)
+		}
+		fmt.Fprintf(f, ") func (T.Tuple%d[", i)
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "A%d", j+1)
+		}
+		fmt.Fprintf(f, "]) %s {\n", hkt(tuple))
+		fmt.Fprintf(f, "  return func(t T.Tuple%d[", i)
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "A%d", j+1)
+		}
+		fmt.Fprintf(f, "]) %s {\n", hkt(tuple))
+		fmt.Fprintf(f, "    return A.TraverseTuple%d(\n", i)
+		// map
+		fmt.Fprintf(f, "      Map[")
+		if infix != "" {
+			fmt.Fprintf(f, "%s, T1,", infix)
+		} else {
+			fmt.Fprintf(f, "T1,")
+		}
+		for j := 1; j < i; j++ {
+			fmt.Fprintf(f, " func(T%d)", j+1)
+		}
+		fmt.Fprintf(f, " %s],\n", tuple)
+		// applicatives
+		for j := 1; j < i; j++ {
+			fmt.Fprintf(f, "      Ap[")
+			for k := j + 1; k < i; k++ {
+				if k > j+1 {
+					fmt.Fprintf(f, " ")
+				}
+				fmt.Fprintf(f, "func(T%d)", k+1)
+			}
+			if j < i-1 {
+				fmt.Fprintf(f, " ")
+			}
+			fmt.Fprintf(f, "%s", tuple)
+			if infix != "" {
+				fmt.Fprintf(f, ", %s", infix)
+			}
+			fmt.Fprintf(f, ", T%d],\n", j+1)
+		}
+		for j := 0; j < i; j++ {
+			fmt.Fprintf(f, "      f%d,\n", j+1)
+		}
+		fmt.Fprintf(f, "      t,\n")
+		fmt.Fprintf(f, "    )\n")
+		fmt.Fprintf(f, "  }\n")
+		fmt.Fprintf(f, "}\n")
+	}
+}
+
+func generateSequenceTuple1(
+	hkt func(string) string,
+	infix string) func(f *os.File, i int) {
+
+	return func(f *os.File, i int) {
+
+		tuple := tupleType(i)
+
+		fmt.Fprintf(f, "\n// SequenceTuple%d converts a [Tuple%d] of [%s] into an [%s].\n", i, i, hkt("T"), hkt(fmt.Sprintf("Tuple%d", i)))
+		fmt.Fprintf(f, "func SequenceTuple%d[", i)
+		if infix != "" {
+			fmt.Fprintf(f, "%s", infix)
+		}
+		for j := 0; j < i; j++ {
+			if infix != "" || j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "T%d", j+1)
+		}
+		fmt.Fprintf(f, " any](t T.Tuple%d[", i)
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "%s", hkt(fmt.Sprintf("T%d", j+1)))
+		}
+		fmt.Fprintf(f, "]) %s {\n", hkt(tuple))
+		fmt.Fprintf(f, "  return A.SequenceTuple%d(\n", i)
+		// map
+		fmt.Fprintf(f, "    Map[")
+		if infix != "" {
+			fmt.Fprintf(f, "%s, T1,", infix)
+		} else {
+			fmt.Fprintf(f, "T1,")
+		}
+		for j := 1; j < i; j++ {
+			fmt.Fprintf(f, " func(T%d)", j+1)
+		}
+		fmt.Fprintf(f, " %s],\n", tuple)
+		// applicatives
+		for j := 1; j < i; j++ {
+			fmt.Fprintf(f, "    Ap[")
+			for k := j + 1; k < i; k++ {
+				if k > j+1 {
+					fmt.Fprintf(f, " ")
+				}
+				fmt.Fprintf(f, "func(T%d)", k+1)
+			}
+			if j < i-1 {
+				fmt.Fprintf(f, " ")
+			}
+			fmt.Fprintf(f, "%s", tuple)
+			if infix != "" {
+				fmt.Fprintf(f, ", %s", infix)
+			}
+			fmt.Fprintf(f, ", T%d],\n", j+1)
+		}
+		fmt.Fprintf(f, "    t,\n")
+		fmt.Fprintf(f, "  )\n")
+		fmt.Fprintf(f, "}\n")
+	}
+}

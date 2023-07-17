@@ -10,10 +10,10 @@ import (
 	C "github.com/urfave/cli/v2"
 )
 
-func generateSequenceT(f *os.File, i int) {
-	fmt.Fprintf(f, "\n// SequenceT%d is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.\n", i)
-	fmt.Fprintf(f, "// The function takes %d higher higher kinded types and returns a higher kinded type of a [Tuple%d] with the resolved values.\n", i, i)
-	fmt.Fprintf(f, "func SequenceT%d[\n", i)
+func generateTraverseTuple(f *os.File, i int) {
+	fmt.Fprintf(f, "\n// TraverseTuple%d is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.\n", i)
+	fmt.Fprintf(f, "// The function takes a [Tuple%d] of base types and %d functions that transform these based types into higher higher kinded types. It returns a higher kinded type of a [Tuple%d] with the resolved values.\n", i, i, i)
+	fmt.Fprintf(f, "func TraverseTuple%d[\n", i)
 	// map as the starting point
 	fmt.Fprintf(f, "  MAP ~func(")
 	for j := 0; j < i; j++ {
@@ -24,7 +24,115 @@ func generateSequenceT(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, " ")
 	fmt.Fprintf(f, "T.")
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") func(HKT_T1)")
+	if i > 1 {
+		fmt.Fprintf(f, " HKT_F")
+		for k := 1; k < i; k++ {
+			fmt.Fprintf(f, "_T%d", k+1)
+		}
+	} else {
+		fmt.Fprintf(f, " HKT_TUPLE%d", i)
+	}
+	fmt.Fprintf(f, ",\n")
+	// the applicatives
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "  AP%d ~func(", j)
+		fmt.Fprintf(f, "HKT_T%d) func(", j+1)
+		fmt.Fprintf(f, "HKT_F")
+		for k := j; k < i; k++ {
+			fmt.Fprintf(f, "_T%d", k+1)
+		}
+		fmt.Fprintf(f, ")")
+		if j+1 < i {
+			fmt.Fprintf(f, " HKT_F")
+			for k := j + 1; k < i; k++ {
+				fmt.Fprintf(f, "_T%d", k+1)
+			}
+		} else {
+			fmt.Fprintf(f, " HKT_TUPLE%d", i)
+		}
+		fmt.Fprintf(f, ",\n")
+	}
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, "  F%d ~func(A%d) HKT_T%d,\n", j+1, j+1, j+1)
+	}
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, "  A%d, T%d,\n", j+1, j+1)
+	}
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, "  HKT_T%d, // HKT[T%d]\n", j+1, j+1)
+	}
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "  HKT_F")
+		for k := j; k < i; k++ {
+			fmt.Fprintf(f, "_T%d", k+1)
+		}
+		fmt.Fprintf(f, ", // HKT[")
+		for k := j; k < i; k++ {
+			fmt.Fprintf(f, "func(T%d) ", k+1)
+		}
+		fmt.Fprintf(f, "T.")
+		writeTupleType(f, "T", i)
+		fmt.Fprintf(f, "]\n")
+	}
+	fmt.Fprintf(f, "  HKT_TUPLE%d any, // HKT[", i)
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, "]\n")
+	fmt.Fprintf(f, "](\n")
+
+	// the callbacks
+	fmt.Fprintf(f, "  fmap MAP,\n")
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "  fap%d AP%d,\n", j, j)
+	}
+	// the transformer functions
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, "  f%d F%d,\n", j, j)
+	}
+	// the parameters
+	fmt.Fprintf(f, "  t T.Tuple%d[", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "A%d", j+1)
+	}
+	fmt.Fprintf(f, "],\n")
+	fmt.Fprintf(f, ") HKT_TUPLE%d {\n", i)
+
+	fmt.Fprintf(f, "  return F.Pipe%d(\n", i)
+	fmt.Fprintf(f, "    f1(t.F1),\n")
+	fmt.Fprintf(f, "    fmap(tupleConstructor%d[", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j+1)
+	}
+	fmt.Fprintf(f, "]()),\n")
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "    fap%d(f%d(t.F%d)),\n", j, j+1, j+1)
+	}
+	fmt.Fprintf(f, ")\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateSequenceTuple(f *os.File, i int) {
+	fmt.Fprintf(f, "\n// SequenceTuple%d is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.\n", i)
+	fmt.Fprintf(f, "// The function takes a [Tuple%d] of higher higher kinded types and returns a higher kinded type of a [Tuple%d] with the resolved values.\n", i, i)
+	fmt.Fprintf(f, "func SequenceTuple%d[\n", i)
+	// map as the starting point
+	fmt.Fprintf(f, "  MAP ~func(")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, " ")
+		}
+		fmt.Fprintf(f, "func(T%d)", j+1)
+	}
+	fmt.Fprintf(f, " ")
+	fmt.Fprintf(f, "T.")
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") func(HKT_T1)")
 	if i > 1 {
 		fmt.Fprintf(f, " HKT_F")
@@ -71,11 +179,113 @@ func generateSequenceT(f *os.File, i int) {
 			fmt.Fprintf(f, "func(T%d) ", k+1)
 		}
 		fmt.Fprintf(f, "T.")
-		writeTupleType(f, i)
+		writeTupleType(f, "T", i)
 		fmt.Fprintf(f, "]\n")
 	}
 	fmt.Fprintf(f, "  HKT_TUPLE%d any, // HKT[", i)
-	writeTupleType(f, i)
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, "]\n")
+	fmt.Fprintf(f, "](\n")
+
+	// the callbacks
+	fmt.Fprintf(f, "  fmap MAP,\n")
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "  fap%d AP%d,\n", j, j)
+	}
+	// the parameters
+	fmt.Fprintf(f, "  t T.Tuple%d[", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "HKT_T%d", j+1)
+	}
+	fmt.Fprintf(f, "],\n")
+	fmt.Fprintf(f, ") HKT_TUPLE%d {\n", i)
+
+	fmt.Fprintf(f, "  return F.Pipe%d(\n", i)
+	fmt.Fprintf(f, "    t.F1,\n")
+	fmt.Fprintf(f, "    fmap(tupleConstructor%d[", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j+1)
+	}
+	fmt.Fprintf(f, "]()),\n")
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "    fap%d(t.F%d),\n", j, j+1)
+	}
+	fmt.Fprintf(f, ")\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateSequenceT(f *os.File, i int) {
+	fmt.Fprintf(f, "\n// SequenceT%d is a utility function used to implement the sequence operation for higher kinded types based only on map and ap.\n", i)
+	fmt.Fprintf(f, "// The function takes %d higher higher kinded types and returns a higher kinded type of a [Tuple%d] with the resolved values.\n", i, i)
+	fmt.Fprintf(f, "func SequenceT%d[\n", i)
+	// map as the starting point
+	fmt.Fprintf(f, "  MAP ~func(")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, " ")
+		}
+		fmt.Fprintf(f, "func(T%d)", j+1)
+	}
+	fmt.Fprintf(f, " ")
+	fmt.Fprintf(f, "T.")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") func(HKT_T1)")
+	if i > 1 {
+		fmt.Fprintf(f, " HKT_F")
+		for k := 1; k < i; k++ {
+			fmt.Fprintf(f, "_T%d", k+1)
+		}
+	} else {
+		fmt.Fprintf(f, " HKT_TUPLE%d", i)
+	}
+	fmt.Fprintf(f, ",\n")
+	// the applicatives
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "  AP%d ~func(", j)
+		fmt.Fprintf(f, "HKT_T%d) func(", j+1)
+		fmt.Fprintf(f, "HKT_F")
+		for k := j; k < i; k++ {
+			fmt.Fprintf(f, "_T%d", k+1)
+		}
+		fmt.Fprintf(f, ")")
+		if j+1 < i {
+			fmt.Fprintf(f, " HKT_F")
+			for k := j + 1; k < i; k++ {
+				fmt.Fprintf(f, "_T%d", k+1)
+			}
+		} else {
+			fmt.Fprintf(f, " HKT_TUPLE%d", i)
+		}
+		fmt.Fprintf(f, ",\n")
+	}
+
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, "  T%d,\n", j+1)
+	}
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, "  HKT_T%d, // HKT[T%d]\n", j+1, j+1)
+	}
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, "  HKT_F")
+		for k := j; k < i; k++ {
+			fmt.Fprintf(f, "_T%d", k+1)
+		}
+		fmt.Fprintf(f, ", // HKT[")
+		for k := j; k < i; k++ {
+			fmt.Fprintf(f, "func(T%d) ", k+1)
+		}
+		fmt.Fprintf(f, "T.")
+		writeTupleType(f, "T", i)
+		fmt.Fprintf(f, "]\n")
+	}
+	fmt.Fprintf(f, "  HKT_TUPLE%d any, // HKT[", i)
+	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, "]\n")
 	fmt.Fprintf(f, "](\n")
 
@@ -180,6 +390,10 @@ import (
 		generateTupleConstructor(f, i)
 		// sequenceT
 		generateSequenceT(f, i)
+		// sequenceTuple
+		generateSequenceTuple(f, i)
+		// traverseTuple
+		generateTraverseTuple(f, i)
 	}
 
 	return nil
