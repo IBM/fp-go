@@ -1,6 +1,6 @@
 # Functional programming library for golang
 
-**Work in progress!**
+**🚧 Work in progress! 🚧**
 
 ![logo](resources/images/logo.png)
 

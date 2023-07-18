@@ -7,7 +7,7 @@ import (
 // these functions From a golang function with the context as the firsr parameter into a either reader with the context as the last parameter
 // this goes back to the advice in https://pkg.go.dev/context to put the context as a first parameter as a convention
 
-func From0[GEA ~func(R) GIOA, GIOA ~func() A, R, A any](f func(R) GIOA) GEA {
+func From0[GEA ~func(R) GIOA, GIOA ~func() A, R, A any](f func(R) GIOA) func() GEA {
 	return G.From0[GEA](f)
 }
 

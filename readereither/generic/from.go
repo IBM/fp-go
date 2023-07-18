@@ -8,7 +8,7 @@ import (
 // these functions From a golang function with the context as the firsr parameter into a either reader with the context as the last parameter
 // this goes back to the advice in https://pkg.go.dev/context to put the context as a first parameter as a convention
 
-func From0[GEA ~func(R) ET.Either[error, A], R, A any](f func(R) (A, error)) GEA {
+func From0[GEA ~func(R) ET.Either[error, A], R, A any](f func(R) (A, error)) func() GEA {
 	return G.From0[GEA](ET.Eitherize1(f))
 }
 

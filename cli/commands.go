@@ -13,5 +13,8 @@ func Commands() []*C.Command {
 		TupleCommand(),
 		BindCommand(),
 		ApplyCommand(),
+		ContextReaderIOEitherCommand(),
+		ReaderIOEitherCommand(),
+		ReaderCommand(),
 	}
 }

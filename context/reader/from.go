@@ -9,7 +9,7 @@ import (
 // these functions curry a golang function with the context as the firsr parameter into a either reader with the context as the last parameter
 // this goes back to the advice in https://pkg.go.dev/context to put the context as a first parameter as a convention
 
-func From0[A any](f func(context.Context) A) Reader[A] {
+func From0[A any](f func(context.Context) A) func() Reader[A] {
 	return R.From0[Reader[A]](f)
 }
 
