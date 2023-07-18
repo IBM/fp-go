@@ -1,9 +1,9 @@
 package fromioeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 )
 
 func MonadChainFirstIOEitherK[GIOB ~func() ET.Either[E, B], E, A, B, HKTA, HKTB any](

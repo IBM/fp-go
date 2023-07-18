@@ -5,8 +5,8 @@ package either
 
 
 import (
-	A "github.com/ibm/fp-go/internal/apply"
-	T "github.com/ibm/fp-go/tuple"
+	A "github.com/IBM/fp-go/internal/apply"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // Eitherize0 converts a function with 0 parameters returning a tuple into a function with 0 parameters returning an Either

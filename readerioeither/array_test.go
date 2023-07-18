@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	A "github.com/ibm/fp-go/array"
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
+	A "github.com/IBM/fp-go/array"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
 	"github.com/stretchr/testify/assert"
 )
 

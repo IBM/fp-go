@@ -5,8 +5,8 @@ package identity
 
 
 import (
-	A "github.com/ibm/fp-go/internal/apply"
-	T "github.com/ibm/fp-go/tuple"
+	A "github.com/IBM/fp-go/internal/apply"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // SequenceT1 converts 1 parameters of [T] into a [Tuple1].

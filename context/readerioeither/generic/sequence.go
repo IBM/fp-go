@@ -3,9 +3,9 @@ package generic
 import (
 	"context"
 
-	E "github.com/ibm/fp-go/either"
-	RE "github.com/ibm/fp-go/readerioeither/generic"
-	T "github.com/ibm/fp-go/tuple"
+	E "github.com/IBM/fp-go/either"
+	RE "github.com/IBM/fp-go/readerioeither/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple

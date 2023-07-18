@@ -1,10 +1,10 @@
 package ord
 
 import (
-	C "github.com/ibm/fp-go/constraints"
-	E "github.com/ibm/fp-go/eq"
-	F "github.com/ibm/fp-go/function"
-	P "github.com/ibm/fp-go/predicate"
+	C "github.com/IBM/fp-go/constraints"
+	E "github.com/IBM/fp-go/eq"
+	F "github.com/IBM/fp-go/function"
+	P "github.com/IBM/fp-go/predicate"
 )
 
 type Ord[T any] interface {

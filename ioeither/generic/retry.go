@@ -1,9 +1,9 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	GIO "github.com/ibm/fp-go/io/generic"
-	R "github.com/ibm/fp-go/retry"
+	ET "github.com/IBM/fp-go/either"
+	GIO "github.com/IBM/fp-go/io/generic"
+	R "github.com/IBM/fp-go/retry"
 )
 
 // Retry combinator for actions that don't raise exceptions, but

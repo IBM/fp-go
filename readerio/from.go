@@ -1,8 +1,8 @@
 package readerio
 
 import (
-	IO "github.com/ibm/fp-go/io"
-	G "github.com/ibm/fp-go/readerio/generic"
+	IO "github.com/IBM/fp-go/io"
+	G "github.com/IBM/fp-go/readerio/generic"
 )
 
 // these functions From a golang function with the context as the firsr parameter into a either reader with the context as the last parameter

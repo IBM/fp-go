@@ -3,8 +3,8 @@ package testing
 import (
 	"testing"
 
-	AR "github.com/ibm/fp-go/internal/array"
-	M "github.com/ibm/fp-go/monoid"
+	AR "github.com/IBM/fp-go/internal/array"
+	M "github.com/IBM/fp-go/monoid"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	M "github.com/ibm/fp-go/magma"
+	M "github.com/IBM/fp-go/magma"
 )
 
 func TestSemigroupIsMagma(t *testing.T) {

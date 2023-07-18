@@ -1,8 +1,8 @@
 package array
 
 import (
-	"github.com/ibm/fp-go/internal/array"
-	M "github.com/ibm/fp-go/monoid"
+	"github.com/IBM/fp-go/internal/array"
+	M "github.com/IBM/fp-go/monoid"
 )
 
 func concat[T any](left, right []T) []T {

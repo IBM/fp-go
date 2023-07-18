@@ -3,11 +3,11 @@ package exec
 import (
 	"context"
 
-	RIOE "github.com/ibm/fp-go/context/readerioeither"
-	"github.com/ibm/fp-go/exec"
-	F "github.com/ibm/fp-go/function"
-	GE "github.com/ibm/fp-go/internal/exec"
-	IOE "github.com/ibm/fp-go/ioeither"
+	RIOE "github.com/IBM/fp-go/context/readerioeither"
+	"github.com/IBM/fp-go/exec"
+	F "github.com/IBM/fp-go/function"
+	GE "github.com/IBM/fp-go/internal/exec"
+	IOE "github.com/IBM/fp-go/ioeither"
 )
 
 var (

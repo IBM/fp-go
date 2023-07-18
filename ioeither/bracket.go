@@ -1,8 +1,8 @@
 package ioeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	G "github.com/ibm/fp-go/ioeither/generic"
+	ET "github.com/IBM/fp-go/either"
+	G "github.com/IBM/fp-go/ioeither/generic"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of

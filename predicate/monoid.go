@@ -1,9 +1,9 @@
 package predicate
 
 import (
-	F "github.com/ibm/fp-go/function"
-	M "github.com/ibm/fp-go/monoid"
-	S "github.com/ibm/fp-go/semigroup"
+	F "github.com/IBM/fp-go/function"
+	M "github.com/IBM/fp-go/monoid"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 // SemigroupAny combines predicates via ||

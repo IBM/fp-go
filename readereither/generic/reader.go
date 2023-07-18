@@ -1,14 +1,14 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/eithert"
-	FE "github.com/ibm/fp-go/internal/fromeither"
-	FR "github.com/ibm/fp-go/internal/fromreader"
-	"github.com/ibm/fp-go/internal/readert"
-	O "github.com/ibm/fp-go/option"
-	R "github.com/ibm/fp-go/reader/generic"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/eithert"
+	FE "github.com/IBM/fp-go/internal/fromeither"
+	FR "github.com/IBM/fp-go/internal/fromreader"
+	"github.com/IBM/fp-go/internal/readert"
+	O "github.com/IBM/fp-go/option"
+	R "github.com/IBM/fp-go/reader/generic"
 )
 
 func MakeReaderEither[GEA ~func(E) ET.Either[L, A], L, E, A any](f func(E) ET.Either[L, A]) GEA {

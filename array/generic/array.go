@@ -1,10 +1,10 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/array"
-	O "github.com/ibm/fp-go/option"
-	"github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/array"
+	O "github.com/IBM/fp-go/option"
+	"github.com/IBM/fp-go/tuple"
 )
 
 // Of constructs a single element array

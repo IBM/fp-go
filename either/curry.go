@@ -1,7 +1,7 @@
 package either
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // these function curry a golang function that returns an error into its curried version that returns an either

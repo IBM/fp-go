@@ -1,8 +1,8 @@
 package eq
 
 import (
-	EQ "github.com/ibm/fp-go/eq"
-	F "github.com/ibm/fp-go/function"
+	EQ "github.com/IBM/fp-go/eq"
+	F "github.com/IBM/fp-go/function"
 )
 
 // Eq implements an equals predicate on the basis of `map` and `ap`

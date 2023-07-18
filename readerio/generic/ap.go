@@ -1,7 +1,7 @@
 package generic
 
 import (
-	G "github.com/ibm/fp-go/internal/apply"
+	G "github.com/IBM/fp-go/internal/apply"
 )
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.

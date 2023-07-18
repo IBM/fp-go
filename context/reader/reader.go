@@ -3,7 +3,7 @@ package reader
 import (
 	"context"
 
-	R "github.com/ibm/fp-go/reader/generic"
+	R "github.com/IBM/fp-go/reader/generic"
 )
 
 func MonadMap[A, B any](fa Reader[A], f func(A) B) Reader[B] {

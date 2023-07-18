@@ -1,7 +1,7 @@
 package monoid
 
 import (
-	S "github.com/ibm/fp-go/semigroup"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 func ApplicativeMonoid[A, HKTA, HKTFA any](

@@ -7,7 +7,7 @@ package readerioeither
 import (
 	"context"
 
-	G "github.com/ibm/fp-go/context/readerioeither/generic"
+	G "github.com/IBM/fp-go/context/readerioeither/generic"
 )
 
 // Eitherize0 converts a function with 0 parameters returning a tuple into a function with 0 parameters returning a [ReaderIOEither[R]]

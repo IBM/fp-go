@@ -3,8 +3,8 @@ package generic
 import (
 	"context"
 
-	E "github.com/ibm/fp-go/either"
-	RE "github.com/ibm/fp-go/readerioeither/generic"
+	E "github.com/IBM/fp-go/either"
+	RE "github.com/IBM/fp-go/readerioeither/generic"
 )
 
 // TraverseArray transforms an array

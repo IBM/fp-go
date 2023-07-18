@@ -3,8 +3,8 @@ package ioeither
 import (
 	"context"
 
-	G "github.com/ibm/fp-go/context/ioeither/generic"
-	IOE "github.com/ibm/fp-go/ioeither"
+	G "github.com/IBM/fp-go/context/ioeither/generic"
+	IOE "github.com/IBM/fp-go/ioeither"
 )
 
 // withContext wraps an existing IOEither and performs a context check for cancellation before delegating

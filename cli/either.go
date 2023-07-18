@@ -141,8 +141,8 @@ func generateEitherHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, `
 import (
-	A "github.com/ibm/fp-go/internal/apply"
-	T "github.com/ibm/fp-go/tuple"
+	A "github.com/IBM/fp-go/internal/apply"
+	T "github.com/IBM/fp-go/tuple"
 )
 `)
 

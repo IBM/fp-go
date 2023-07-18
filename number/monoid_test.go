@@ -3,7 +3,7 @@ package number
 import (
 	"testing"
 
-	M "github.com/ibm/fp-go/monoid/testing"
+	M "github.com/IBM/fp-go/monoid/testing"
 )
 
 func TestMonoidSum(t *testing.T) {

@@ -346,8 +346,8 @@ func generateTupleHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, `
 import (
-	M "github.com/ibm/fp-go/monoid"
-	O "github.com/ibm/fp-go/ord"
+	M "github.com/IBM/fp-go/monoid"
+	O "github.com/IBM/fp-go/ord"
 )
 `)
 

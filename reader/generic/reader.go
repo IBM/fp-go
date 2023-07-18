@@ -1,9 +1,9 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	I "github.com/ibm/fp-go/identity/generic"
-	T "github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	I "github.com/IBM/fp-go/identity/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // Reader[R, A] = func(R) A

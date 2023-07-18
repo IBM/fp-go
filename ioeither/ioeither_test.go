@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	E "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/utils"
-	I "github.com/ibm/fp-go/io"
-	IG "github.com/ibm/fp-go/io/generic"
-	O "github.com/ibm/fp-go/option"
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/utils"
+	I "github.com/IBM/fp-go/io"
+	IG "github.com/IBM/fp-go/io/generic"
+	O "github.com/IBM/fp-go/option"
 	"github.com/stretchr/testify/assert"
 )
 

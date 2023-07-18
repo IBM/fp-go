@@ -3,7 +3,7 @@ package io
 import (
 	"log"
 
-	G "github.com/ibm/fp-go/io/generic"
+	G "github.com/IBM/fp-go/io/generic"
 )
 
 // Logger constructs a logger function that can be used with ChainXXXIOK

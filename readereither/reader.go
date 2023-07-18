@@ -1,10 +1,10 @@
 package readereither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	O "github.com/ibm/fp-go/option"
-	R "github.com/ibm/fp-go/reader"
-	G "github.com/ibm/fp-go/readereither/generic"
+	ET "github.com/IBM/fp-go/either"
+	O "github.com/IBM/fp-go/option"
+	R "github.com/IBM/fp-go/reader"
+	G "github.com/IBM/fp-go/readereither/generic"
 )
 
 type ReaderEither[E, L, A any] R.Reader[E, ET.Either[L, A]]

@@ -1,7 +1,7 @@
 package array
 
 import (
-	E "github.com/ibm/fp-go/eq"
+	E "github.com/IBM/fp-go/eq"
 )
 
 func equals[T any](left []T, right []T, eq func(T, T) bool) bool {

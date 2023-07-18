@@ -1,8 +1,8 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	G "github.com/ibm/fp-go/reader/generic"
+	ET "github.com/IBM/fp-go/either"
+	G "github.com/IBM/fp-go/reader/generic"
 )
 
 // these functions From a golang function with the context as the firsr parameter into a either reader with the context as the last parameter

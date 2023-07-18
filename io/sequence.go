@@ -1,8 +1,8 @@
 package io
 
 import (
-	G "github.com/ibm/fp-go/io/generic"
-	T "github.com/ibm/fp-go/tuple"
+	G "github.com/IBM/fp-go/io/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple

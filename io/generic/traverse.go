@@ -1,9 +1,9 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	RA "github.com/ibm/fp-go/internal/array"
-	RR "github.com/ibm/fp-go/internal/record"
+	F "github.com/IBM/fp-go/function"
+	RA "github.com/IBM/fp-go/internal/array"
+	RR "github.com/IBM/fp-go/internal/record"
 )
 
 func MonadTraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](tas AAS, f func(A) GB) GBS {

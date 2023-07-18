@@ -1,7 +1,7 @@
 package semigroup
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 /*

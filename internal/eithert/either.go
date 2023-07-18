@@ -1,10 +1,10 @@
 package eithert
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/apply"
-	FC "github.com/ibm/fp-go/internal/functor"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/apply"
+	FC "github.com/IBM/fp-go/internal/functor"
 )
 
 // HKTFA = HKT<F, Either<E, A>>

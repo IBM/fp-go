@@ -1,7 +1,7 @@
 package record
 
 import (
-	G "github.com/ibm/fp-go/internal/record"
+	G "github.com/IBM/fp-go/internal/record"
 )
 
 func TraverseWithIndex[K comparable, A, B, HKTB, HKTAB, HKTRB any](

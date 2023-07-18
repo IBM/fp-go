@@ -3,7 +3,7 @@ package file
 import (
 	"io"
 
-	IOE "github.com/ibm/fp-go/ioeither"
+	IOE "github.com/IBM/fp-go/ioeither"
 )
 
 func onWriteAll[W io.Writer](data []byte) func(w W) IOE.IOEither[error, []byte] {

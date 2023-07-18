@@ -1,9 +1,9 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	RA "github.com/ibm/fp-go/internal/array"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	RA "github.com/IBM/fp-go/internal/array"
 )
 
 // MonadTraverseArray transforms an array

@@ -1,8 +1,8 @@
 package either
 
 import (
-	F "github.com/ibm/fp-go/function"
-	RR "github.com/ibm/fp-go/internal/record"
+	F "github.com/IBM/fp-go/function"
+	RR "github.com/IBM/fp-go/internal/record"
 )
 
 // TraverseRecord transforms a record of options into an option of a record

@@ -1,7 +1,7 @@
 package file
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of

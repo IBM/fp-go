@@ -1,8 +1,8 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	RA "github.com/ibm/fp-go/internal/array"
+	F "github.com/IBM/fp-go/function"
+	RA "github.com/IBM/fp-go/internal/array"
 )
 
 // TraverseArray transforms an array

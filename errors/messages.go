@@ -3,7 +3,7 @@ package errors
 import (
 	"fmt"
 
-	A "github.com/ibm/fp-go/array"
+	A "github.com/IBM/fp-go/array"
 )
 
 // OnNone generates a nullary function that produces a formatted error

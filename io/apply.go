@@ -1,9 +1,9 @@
 package io
 
 import (
-	G "github.com/ibm/fp-go/io/generic"
-	M "github.com/ibm/fp-go/monoid"
-	S "github.com/ibm/fp-go/semigroup"
+	G "github.com/IBM/fp-go/io/generic"
+	M "github.com/IBM/fp-go/monoid"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[IO[A]] {

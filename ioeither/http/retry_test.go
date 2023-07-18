@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	AR "github.com/ibm/fp-go/array"
-	E "github.com/ibm/fp-go/either"
-	HE "github.com/ibm/fp-go/either/http"
-	"github.com/ibm/fp-go/errors"
-	F "github.com/ibm/fp-go/function"
-	IOE "github.com/ibm/fp-go/ioeither"
-	O "github.com/ibm/fp-go/option"
-	R "github.com/ibm/fp-go/retry"
+	AR "github.com/IBM/fp-go/array"
+	E "github.com/IBM/fp-go/either"
+	HE "github.com/IBM/fp-go/either/http"
+	"github.com/IBM/fp-go/errors"
+	F "github.com/IBM/fp-go/function"
+	IOE "github.com/IBM/fp-go/ioeither"
+	O "github.com/IBM/fp-go/option"
+	R "github.com/IBM/fp-go/retry"
 	"github.com/stretchr/testify/assert"
 )
 

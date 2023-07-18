@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"net/http"
 
-	E "github.com/ibm/fp-go/either"
+	E "github.com/IBM/fp-go/either"
 )
 
 var (

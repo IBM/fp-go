@@ -3,10 +3,10 @@ package readereither
 import (
 	"context"
 
-	R "github.com/ibm/fp-go/context/reader"
-	ET "github.com/ibm/fp-go/either"
-	O "github.com/ibm/fp-go/option"
-	RE "github.com/ibm/fp-go/readereither/generic"
+	R "github.com/IBM/fp-go/context/reader"
+	ET "github.com/IBM/fp-go/either"
+	O "github.com/IBM/fp-go/option"
+	RE "github.com/IBM/fp-go/readereither/generic"
 )
 
 func MakeReaderEither[A any](f func(context.Context) ET.Either[error, A]) ReaderEither[A] {

@@ -18,7 +18,7 @@ package record
 import (
 	"testing"
 
-	S "github.com/ibm/fp-go/string"
+	S "github.com/IBM/fp-go/string"
 	"github.com/stretchr/testify/assert"
 )
 

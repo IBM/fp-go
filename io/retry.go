@@ -1,8 +1,8 @@
 package io
 
 import (
-	G "github.com/ibm/fp-go/io/generic"
-	R "github.com/ibm/fp-go/retry"
+	G "github.com/IBM/fp-go/io/generic"
+	R "github.com/IBM/fp-go/retry"
 )
 
 // Retrying will retry the actions according to the check policy

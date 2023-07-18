@@ -1,8 +1,8 @@
 package either
 
 import (
-	M "github.com/ibm/fp-go/monoid"
-	S "github.com/ibm/fp-go/semigroup"
+	M "github.com/IBM/fp-go/monoid"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {

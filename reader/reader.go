@@ -1,8 +1,8 @@
 package reader
 
 import (
-	G "github.com/ibm/fp-go/reader/generic"
-	T "github.com/ibm/fp-go/tuple"
+	G "github.com/IBM/fp-go/reader/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // The purpose of the `Reader` monad is to avoid threading arguments through multiple functions in order to only get them where they are needed.

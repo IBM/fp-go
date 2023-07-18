@@ -3,8 +3,8 @@ package either
 import (
 	"log"
 
-	F "github.com/ibm/fp-go/function"
-	L "github.com/ibm/fp-go/logging"
+	F "github.com/IBM/fp-go/function"
+	L "github.com/IBM/fp-go/logging"
 )
 
 func _log[E, A any](left func(string, ...any), right func(string, ...any), prefix string) func(Either[E, A]) Either[E, A] {

@@ -1,7 +1,7 @@
 package file
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource

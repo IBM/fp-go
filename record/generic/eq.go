@@ -1,7 +1,7 @@
 package generic
 
 import (
-	E "github.com/ibm/fp-go/eq"
+	E "github.com/IBM/fp-go/eq"
 )
 
 func equals[M ~map[K]V, K comparable, V any](left, right M, eq func(V, V) bool) bool {

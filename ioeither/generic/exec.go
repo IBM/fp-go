@@ -3,9 +3,9 @@ package generic
 import (
 	"context"
 
-	ET "github.com/ibm/fp-go/either"
-	"github.com/ibm/fp-go/exec"
-	GE "github.com/ibm/fp-go/internal/exec"
+	ET "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/exec"
+	GE "github.com/IBM/fp-go/internal/exec"
 )
 
 // Command executes a command

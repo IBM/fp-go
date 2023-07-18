@@ -1,10 +1,10 @@
 package record
 
 import (
-	Mg "github.com/ibm/fp-go/magma"
-	O "github.com/ibm/fp-go/option"
-	G "github.com/ibm/fp-go/record/generic"
-	T "github.com/ibm/fp-go/tuple"
+	Mg "github.com/IBM/fp-go/magma"
+	O "github.com/IBM/fp-go/option"
+	G "github.com/IBM/fp-go/record/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 func IsEmpty[K comparable, V any](r map[K]V) bool {

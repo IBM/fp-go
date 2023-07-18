@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	R "github.com/ibm/fp-go/context/reader"
-	RIO "github.com/ibm/fp-go/context/readerio"
-	G "github.com/ibm/fp-go/context/readerioeither/generic"
-	ET "github.com/ibm/fp-go/either"
-	IO "github.com/ibm/fp-go/io"
-	IOE "github.com/ibm/fp-go/ioeither"
-	O "github.com/ibm/fp-go/option"
+	R "github.com/IBM/fp-go/context/reader"
+	RIO "github.com/IBM/fp-go/context/readerio"
+	G "github.com/IBM/fp-go/context/readerioeither/generic"
+	ET "github.com/IBM/fp-go/either"
+	IO "github.com/IBM/fp-go/io"
+	IOE "github.com/IBM/fp-go/ioeither"
+	O "github.com/IBM/fp-go/option"
 )
 
 func FromEither[A any](e ET.Either[error, A]) ReaderIOEither[A] {

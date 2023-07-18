@@ -1,8 +1,8 @@
 package readerio
 
 import (
-	IO "github.com/ibm/fp-go/io"
-	G "github.com/ibm/fp-go/readerio/generic"
+	IO "github.com/IBM/fp-go/io"
+	G "github.com/IBM/fp-go/readerio/generic"
 )
 
 // TraverseArray transforms an array

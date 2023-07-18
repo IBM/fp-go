@@ -3,9 +3,9 @@ package generic
 import (
 	"context"
 
-	CIOE "github.com/ibm/fp-go/context/ioeither/generic"
-	E "github.com/ibm/fp-go/either"
-	IOE "github.com/ibm/fp-go/ioeither/generic"
+	CIOE "github.com/IBM/fp-go/context/ioeither/generic"
+	E "github.com/IBM/fp-go/either"
+	IOE "github.com/IBM/fp-go/ioeither/generic"
 )
 
 // withContext wraps an existing ReaderIOEither and performs a context check for cancellation before delegating

@@ -1,10 +1,10 @@
 package ioeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	I "github.com/ibm/fp-go/io"
-	G "github.com/ibm/fp-go/ioeither/generic"
-	O "github.com/ibm/fp-go/option"
+	ET "github.com/IBM/fp-go/either"
+	I "github.com/IBM/fp-go/io"
+	G "github.com/IBM/fp-go/ioeither/generic"
+	O "github.com/IBM/fp-go/option"
 )
 
 // IO represents a synchronous computation that may fail

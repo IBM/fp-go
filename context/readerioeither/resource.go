@@ -1,7 +1,7 @@
 package readerioeither
 
 import (
-	G "github.com/ibm/fp-go/context/readerioeither/generic"
+	G "github.com/IBM/fp-go/context/readerioeither/generic"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource

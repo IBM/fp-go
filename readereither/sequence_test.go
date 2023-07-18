@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	E "github.com/ibm/fp-go/either"
-	T "github.com/ibm/fp-go/tuple"
+	E "github.com/IBM/fp-go/either"
+	T "github.com/IBM/fp-go/tuple"
 	"github.com/stretchr/testify/assert"
 )
 

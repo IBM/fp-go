@@ -1,8 +1,8 @@
 package readerio
 
 import (
-	EQ "github.com/ibm/fp-go/eq"
-	G "github.com/ibm/fp-go/readerio/generic"
+	EQ "github.com/IBM/fp-go/eq"
+	G "github.com/IBM/fp-go/readerio/generic"
 )
 
 // Eq implements the equals predicate for values contained in the IO monad

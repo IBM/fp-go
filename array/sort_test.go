@@ -3,7 +3,7 @@ package array
 import (
 	"testing"
 
-	O "github.com/ibm/fp-go/ord"
+	O "github.com/IBM/fp-go/ord"
 	"github.com/stretchr/testify/assert"
 )
 

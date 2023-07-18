@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	O "github.com/ibm/fp-go/option"
+	O "github.com/IBM/fp-go/option"
 )
 
 func TestSequenceOption(t *testing.T) {

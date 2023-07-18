@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ibm/fp-go/internal/utils"
-	O "github.com/ibm/fp-go/option"
+	"github.com/IBM/fp-go/internal/utils"
+	O "github.com/IBM/fp-go/option"
 	"github.com/stretchr/testify/assert"
 )
 

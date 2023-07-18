@@ -4,7 +4,7 @@ package readereither
 import (
 	"context"
 
-	RE "github.com/ibm/fp-go/readereither"
+	RE "github.com/IBM/fp-go/readereither"
 )
 
 // ReaderEither is a specialization of the Reader monad for the typical golang scenario

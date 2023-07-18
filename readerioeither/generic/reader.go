@@ -1,18 +1,18 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
-	"github.com/ibm/fp-go/internal/eithert"
-	FE "github.com/ibm/fp-go/internal/fromeither"
-	FIO "github.com/ibm/fp-go/internal/fromio"
-	FIOE "github.com/ibm/fp-go/internal/fromioeither"
-	FR "github.com/ibm/fp-go/internal/fromreader"
-	IOE "github.com/ibm/fp-go/ioeither/generic"
-	O "github.com/ibm/fp-go/option"
-	RD "github.com/ibm/fp-go/reader/generic"
-	G "github.com/ibm/fp-go/readerio/generic"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
+	"github.com/IBM/fp-go/internal/eithert"
+	FE "github.com/IBM/fp-go/internal/fromeither"
+	FIO "github.com/IBM/fp-go/internal/fromio"
+	FIOE "github.com/IBM/fp-go/internal/fromioeither"
+	FR "github.com/IBM/fp-go/internal/fromreader"
+	IOE "github.com/IBM/fp-go/ioeither/generic"
+	O "github.com/IBM/fp-go/option"
+	RD "github.com/IBM/fp-go/reader/generic"
+	G "github.com/IBM/fp-go/readerio/generic"
 )
 
 // MakeReader constructs an instance of a reader

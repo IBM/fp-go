@@ -1,8 +1,8 @@
 package identity
 
 import (
-	F "github.com/ibm/fp-go/function"
-	G "github.com/ibm/fp-go/identity/generic"
+	F "github.com/IBM/fp-go/function"
+	G "github.com/IBM/fp-go/identity/generic"
 )
 
 func MonadAp[B, A any](fab func(A) B, fa A) B {

@@ -5,7 +5,7 @@ package reader
 
 
 import (
-	G "github.com/ibm/fp-go/reader/generic"	
+	G "github.com/IBM/fp-go/reader/generic"	
 )
 
 // From0 converts a function with 1 parameters returning a [R] into a function with 0 parameters returning a [Reader[C, R]]

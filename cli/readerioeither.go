@@ -160,7 +160,7 @@ func generateReaderIOEitherHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, `
 import (
-	G "github.com/ibm/fp-go/%s/generic"	
+	G "github.com/IBM/fp-go/%s/generic"	
 )
 `, pkg)
 
@@ -173,8 +173,8 @@ import (
 
 	fmt.Fprintf(fg, `
 import (
-	E "github.com/ibm/fp-go/either"
-	RD "github.com/ibm/fp-go/reader/generic"
+	E "github.com/IBM/fp-go/either"
+	RD "github.com/IBM/fp-go/reader/generic"
 )
 `)
 

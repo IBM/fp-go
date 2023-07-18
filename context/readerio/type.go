@@ -4,7 +4,7 @@ package readerio
 import (
 	"context"
 
-	R "github.com/ibm/fp-go/readerio"
+	R "github.com/IBM/fp-go/readerio"
 )
 
 // ReaderIO is a specialization of the ReaderIO monad assuming a golang context as the context of the monad

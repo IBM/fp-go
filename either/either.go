@@ -5,9 +5,9 @@
 package either
 
 import (
-	E "github.com/ibm/fp-go/errors"
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/option"
+	E "github.com/IBM/fp-go/errors"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/option"
 )
 
 // Of is equivalent to [Right]

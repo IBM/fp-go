@@ -1,11 +1,11 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	FR "github.com/ibm/fp-go/internal/fromreader"
-	"github.com/ibm/fp-go/internal/readert"
-	IO "github.com/ibm/fp-go/io/generic"
-	R "github.com/ibm/fp-go/reader/generic"
+	F "github.com/IBM/fp-go/function"
+	FR "github.com/IBM/fp-go/internal/fromreader"
+	"github.com/IBM/fp-go/internal/readert"
+	IO "github.com/IBM/fp-go/io/generic"
+	R "github.com/IBM/fp-go/reader/generic"
 )
 
 func FromIO[GEA ~func(E) GIOA, GIOA ~func() A, E, A any](t GIOA) GEA {

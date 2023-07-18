@@ -1,4 +1,4 @@
-module github.com/ibm/fp-go
+module github.com/IBM/fp-go
 
 go 1.20
 

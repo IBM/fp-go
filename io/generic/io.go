@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 )
 
 // type IO[A any] = func() A

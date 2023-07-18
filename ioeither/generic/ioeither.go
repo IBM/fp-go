@@ -3,15 +3,15 @@ package generic
 import (
 	"time"
 
-	ET "github.com/ibm/fp-go/either"
-	"github.com/ibm/fp-go/errors"
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
-	"github.com/ibm/fp-go/internal/eithert"
-	FE "github.com/ibm/fp-go/internal/fromeither"
-	FI "github.com/ibm/fp-go/internal/fromio"
-	IO "github.com/ibm/fp-go/io/generic"
-	O "github.com/ibm/fp-go/option"
+	ET "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/errors"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
+	"github.com/IBM/fp-go/internal/eithert"
+	FE "github.com/IBM/fp-go/internal/fromeither"
+	FI "github.com/IBM/fp-go/internal/fromio"
+	IO "github.com/IBM/fp-go/io/generic"
+	O "github.com/IBM/fp-go/option"
 )
 
 // type IOEither[E, A any] = func() Either[E, A]

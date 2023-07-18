@@ -3,7 +3,7 @@ package readereither
 import (
 	"context"
 
-	RE "github.com/ibm/fp-go/readereither/generic"
+	RE "github.com/IBM/fp-go/readereither/generic"
 )
 
 // these functions curry a golang function with the context as the firsr parameter into a either reader with the context as the last parameter

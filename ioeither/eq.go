@@ -1,9 +1,9 @@
 package ioeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	EQ "github.com/ibm/fp-go/eq"
-	G "github.com/ibm/fp-go/ioeither/generic"
+	ET "github.com/IBM/fp-go/either"
+	EQ "github.com/IBM/fp-go/eq"
+	G "github.com/IBM/fp-go/ioeither/generic"
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad

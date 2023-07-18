@@ -1,8 +1,8 @@
 package fromio
 
 import (
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 )
 
 func MonadChainFirstIOK[A, B, HKTA, HKTB any, GIOB ~func() B](

@@ -1,9 +1,9 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	G "github.com/ibm/fp-go/internal/file"
-	I "github.com/ibm/fp-go/readerio/generic"
+	ET "github.com/IBM/fp-go/either"
+	G "github.com/IBM/fp-go/internal/file"
+	I "github.com/IBM/fp-go/readerio/generic"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of

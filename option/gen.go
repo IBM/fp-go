@@ -5,8 +5,8 @@ package option
 
 
 import (
-	A "github.com/ibm/fp-go/internal/apply"
-	T "github.com/ibm/fp-go/tuple"
+	A "github.com/IBM/fp-go/internal/apply"
+	T "github.com/IBM/fp-go/tuple"
 )
 // optionize converts a nullary function to an option
 func optionize[R any](f func() (R, bool)) Option[R] {

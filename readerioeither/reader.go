@@ -1,14 +1,14 @@
 package readerioeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	"github.com/ibm/fp-go/io"
-	IOE "github.com/ibm/fp-go/ioeither"
-	O "github.com/ibm/fp-go/option"
-	RD "github.com/ibm/fp-go/reader"
-	RE "github.com/ibm/fp-go/readereither"
-	RIO "github.com/ibm/fp-go/readerio"
-	G "github.com/ibm/fp-go/readerioeither/generic"
+	ET "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/io"
+	IOE "github.com/IBM/fp-go/ioeither"
+	O "github.com/IBM/fp-go/option"
+	RD "github.com/IBM/fp-go/reader"
+	RE "github.com/IBM/fp-go/readereither"
+	RIO "github.com/IBM/fp-go/readerio"
+	G "github.com/IBM/fp-go/readerioeither/generic"
 )
 
 type ReaderIOEither[R, E, A any] RD.Reader[R, IOE.IOEither[E, A]]

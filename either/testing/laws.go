@@ -3,9 +3,9 @@ package testing
 import (
 	"testing"
 
-	ET "github.com/ibm/fp-go/either"
-	EQ "github.com/ibm/fp-go/eq"
-	L "github.com/ibm/fp-go/internal/monad/testing"
+	ET "github.com/IBM/fp-go/either"
+	EQ "github.com/IBM/fp-go/eq"
+	L "github.com/IBM/fp-go/internal/monad/testing"
 )
 
 // AssertLaws asserts the apply monad laws for the `Either` monad

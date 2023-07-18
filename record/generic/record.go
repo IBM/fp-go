@@ -1,11 +1,11 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	G "github.com/ibm/fp-go/internal/record"
-	Mg "github.com/ibm/fp-go/magma"
-	O "github.com/ibm/fp-go/option"
-	T "github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	G "github.com/IBM/fp-go/internal/record"
+	Mg "github.com/IBM/fp-go/magma"
+	O "github.com/IBM/fp-go/option"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 func IsEmpty[M ~map[K]V, K comparable, V any](r M) bool {

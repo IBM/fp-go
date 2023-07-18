@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	EQ "github.com/ibm/fp-go/eq"
+	EQ "github.com/IBM/fp-go/eq"
 	"github.com/stretchr/testify/assert"
 )
 

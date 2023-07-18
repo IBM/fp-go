@@ -7,8 +7,8 @@ package generic
 import (
 	"context"
 
-	E "github.com/ibm/fp-go/either"
-	RE "github.com/ibm/fp-go/readerioeither/generic"
+	E "github.com/IBM/fp-go/either"
+	RE "github.com/IBM/fp-go/readerioeither/generic"
 )
 
 // Eitherize0 converts a function with 0 parameters returning a tuple into a function with 0 parameters returning a [GRA]

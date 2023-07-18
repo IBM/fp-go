@@ -3,7 +3,7 @@ package http
 import (
 	H "net/http"
 
-	T "github.com/ibm/fp-go/tuple"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 type (

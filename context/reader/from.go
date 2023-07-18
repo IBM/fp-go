@@ -3,7 +3,7 @@ package reader
 import (
 	"context"
 
-	R "github.com/ibm/fp-go/reader/generic"
+	R "github.com/IBM/fp-go/reader/generic"
 )
 
 // these functions curry a golang function with the context as the firsr parameter into a either reader with the context as the last parameter

@@ -380,8 +380,8 @@ func generateApplyHelpers(filename string, count int) error {
 	// print out some helpers
 	fmt.Fprintf(f, `
 import (
-	F "github.com/ibm/fp-go/function"
-	T "github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	T "github.com/IBM/fp-go/tuple"
 )
 `)
 

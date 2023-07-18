@@ -1,8 +1,8 @@
 package generic
 
 import (
-	R "github.com/ibm/fp-go/retry"
-	G "github.com/ibm/fp-go/retry/generic"
+	R "github.com/IBM/fp-go/retry"
+	G "github.com/IBM/fp-go/retry/generic"
 )
 
 type retryStatusIO = func() R.RetryStatus

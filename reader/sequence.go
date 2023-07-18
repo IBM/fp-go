@@ -1,8 +1,8 @@
 package reader
 
 import (
-	G "github.com/ibm/fp-go/reader/generic"
-	T "github.com/ibm/fp-go/tuple"
+	G "github.com/IBM/fp-go/reader/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple

@@ -3,9 +3,9 @@ package readereither
 import (
 	"testing"
 
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/utils"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 

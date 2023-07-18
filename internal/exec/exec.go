@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os/exec"
 
-	EX "github.com/ibm/fp-go/exec"
+	EX "github.com/IBM/fp-go/exec"
 
-	T "github.com/ibm/fp-go/tuple"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 func Exec(ctx context.Context, name string, args []string, in []byte) (EX.CommandOutput, error) {

@@ -5,7 +5,7 @@ package readerioeither
 
 
 import (
-	G "github.com/ibm/fp-go/readerioeither/generic"	
+	G "github.com/IBM/fp-go/readerioeither/generic"	
 )
 
 // From0 converts a function with 1 parameters returning a tuple into a function with 0 parameters returning a [ReaderIOEither[R]]

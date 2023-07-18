@@ -1,7 +1,7 @@
 package exec
 
 import (
-	T "github.com/ibm/fp-go/tuple"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 type (
