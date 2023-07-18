@@ -17,6 +17,8 @@ type RecordType struct {
 	Data string `json:"data"`
 }
 
+// TestReadSingleFile reads the content of a file from disk and parses it into
+// a struct
 func TestReadSingleFile(t *testing.T) {
 
 	data := F.Pipe2(
