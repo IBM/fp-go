@@ -1,8 +1,18 @@
 # Functional programming library for golang
 
-**🚧 Work in progress! 🚧**
+**🚧 Work in progress! 🚧** Despite major version 1 because of https://github.com/semantic-release/semantic-release/issues/1507. Trying to not make breaking changes, but devil is in the details. 
 
 ![logo](resources/images/logo.png)
+
+This library is strongly influenced by the awesome [fp-ts](https://github.com/gcanti/fp-ts).
+
+## Getting started
+
+```bash
+go get github.com/IBM/fp-go
+```
+
+Refer to the [samples](./samples/). 
 
 ## Design Goal
 
