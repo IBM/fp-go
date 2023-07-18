@@ -3,8 +3,8 @@ package bytes
 import (
 	"bytes"
 
-	A "github.com/ibm/fp-go/array"
-	O "github.com/ibm/fp-go/ord"
+	A "github.com/IBM/fp-go/array"
+	O "github.com/IBM/fp-go/ord"
 )
 
 var (

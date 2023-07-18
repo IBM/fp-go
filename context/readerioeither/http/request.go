@@ -4,14 +4,14 @@ import (
 	"io"
 	"net/http"
 
-	B "github.com/ibm/fp-go/bytes"
-	RIOE "github.com/ibm/fp-go/context/readerioeither"
-	F "github.com/ibm/fp-go/function"
-	H "github.com/ibm/fp-go/http"
-	IOE "github.com/ibm/fp-go/ioeither"
-	IOEF "github.com/ibm/fp-go/ioeither/file"
-	J "github.com/ibm/fp-go/json"
-	T "github.com/ibm/fp-go/tuple"
+	B "github.com/IBM/fp-go/bytes"
+	RIOE "github.com/IBM/fp-go/context/readerioeither"
+	F "github.com/IBM/fp-go/function"
+	H "github.com/IBM/fp-go/http"
+	IOE "github.com/IBM/fp-go/ioeither"
+	IOEF "github.com/IBM/fp-go/ioeither/file"
+	J "github.com/IBM/fp-go/json"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 type (

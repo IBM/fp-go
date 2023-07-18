@@ -16,7 +16,7 @@
 package reader
 
 import (
-	R "github.com/ibm/fp-go/reader/generic"
+	R "github.com/IBM/fp-go/reader/generic"
 )
 
 // TraverseArray transforms an array

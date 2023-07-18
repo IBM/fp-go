@@ -19,12 +19,12 @@ import (
 	"strings"
 	"testing"
 
-	RA "github.com/ibm/fp-go/array"
-	B "github.com/ibm/fp-go/bytes"
-	E "github.com/ibm/fp-go/either"
-	"github.com/ibm/fp-go/exec"
-	F "github.com/ibm/fp-go/function"
-	IOE "github.com/ibm/fp-go/ioeither"
+	RA "github.com/IBM/fp-go/array"
+	B "github.com/IBM/fp-go/bytes"
+	E "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/exec"
+	F "github.com/IBM/fp-go/function"
+	IOE "github.com/IBM/fp-go/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 
-	E "github.com/ibm/fp-go/either"
+	E "github.com/IBM/fp-go/either"
 )
 
 // Unmarshal parses a JSON data structure from bytes

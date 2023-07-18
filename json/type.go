@@ -1,9 +1,9 @@
 package json
 
 import (
-	E "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/option"
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/option"
 )
 
 func ToTypeE[A any](src any) E.Either[error, A] {

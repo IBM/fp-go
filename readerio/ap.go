@@ -1,7 +1,7 @@
 package readerio
 
 import (
-	G "github.com/ibm/fp-go/readerio/generic"
+	G "github.com/IBM/fp-go/readerio/generic"
 )
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.

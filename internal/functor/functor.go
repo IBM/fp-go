@@ -1,7 +1,7 @@
 package functor
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // HKTFGA = HKT[F, HKT[G, A]]

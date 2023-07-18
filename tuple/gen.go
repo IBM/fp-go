@@ -5,8 +5,8 @@ package tuple
 
 
 import (
-	M "github.com/ibm/fp-go/monoid"
-	O "github.com/ibm/fp-go/ord"
+	M "github.com/IBM/fp-go/monoid"
+	O "github.com/IBM/fp-go/ord"
 )
 
 // Tuple1 is a struct that carries 1 independently typed values

@@ -1,7 +1,7 @@
 package readerioeither
 
 import (
-	G "github.com/ibm/fp-go/context/readerioeither/generic"
+	G "github.com/IBM/fp-go/context/readerioeither/generic"
 )
 
 // WithContext wraps an existing ReaderIOEither and performs a context check for cancellation before delegating

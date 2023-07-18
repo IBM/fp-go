@@ -1,8 +1,8 @@
 package readereither
 
 import (
-	RE "github.com/ibm/fp-go/readereither/generic"
-	T "github.com/ibm/fp-go/tuple"
+	RE "github.com/IBM/fp-go/readereither/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple

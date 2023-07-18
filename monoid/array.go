@@ -1,7 +1,7 @@
 package monoid
 
 import (
-	S "github.com/ibm/fp-go/semigroup"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 func GenericConcatAll[GA ~[]A, A any](m Monoid[A]) func(GA) A {

@@ -3,9 +3,9 @@ package generic
 import (
 	"context"
 
-	E "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	RIE "github.com/ibm/fp-go/readerioeither/generic"
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	RIE "github.com/IBM/fp-go/readerioeither/generic"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource

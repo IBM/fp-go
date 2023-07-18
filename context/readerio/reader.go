@@ -3,7 +3,7 @@ package readerio
 import (
 	"context"
 
-	R "github.com/ibm/fp-go/readerio/generic"
+	R "github.com/IBM/fp-go/readerio/generic"
 )
 
 func MonadMap[A, B any](fa ReaderIO[A], f func(A) B) ReaderIO[B] {

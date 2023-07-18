@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/utils"
-	O "github.com/ibm/fp-go/option"
-	S "github.com/ibm/fp-go/string"
-	T "github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/utils"
+	O "github.com/IBM/fp-go/option"
+	S "github.com/IBM/fp-go/string"
+	T "github.com/IBM/fp-go/tuple"
 	"github.com/stretchr/testify/assert"
 )
 

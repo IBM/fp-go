@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	A "github.com/ibm/fp-go/array"
-	F "github.com/ibm/fp-go/function"
+	A "github.com/IBM/fp-go/array"
+	F "github.com/IBM/fp-go/function"
 	"github.com/stretchr/testify/assert"
 )
 

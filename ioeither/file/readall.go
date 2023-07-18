@@ -3,7 +3,7 @@ package file
 import (
 	"io"
 
-	IOE "github.com/ibm/fp-go/ioeither"
+	IOE "github.com/IBM/fp-go/ioeither"
 )
 
 func onReadAll[R io.Reader](r R) IOE.IOEither[error, []byte] {

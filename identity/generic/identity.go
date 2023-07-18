@@ -1,8 +1,8 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 )
 
 func MonadAp[GAB ~func(A) B, B, A any](fab GAB, fa A) B {

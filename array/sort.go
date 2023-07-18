@@ -1,8 +1,8 @@
 package array
 
 import (
-	G "github.com/ibm/fp-go/array/generic"
-	O "github.com/ibm/fp-go/ord"
+	G "github.com/IBM/fp-go/array/generic"
+	O "github.com/IBM/fp-go/ord"
 )
 
 // Sort implements a stable sort on the array given the provided ordering

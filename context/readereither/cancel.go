@@ -3,7 +3,7 @@ package readereither
 import (
 	"context"
 
-	E "github.com/ibm/fp-go/either"
+	E "github.com/IBM/fp-go/either"
 )
 
 // withContext wraps an existing ReaderEither and performs a context check for cancellation before deletating

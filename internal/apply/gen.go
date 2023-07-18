@@ -5,8 +5,8 @@ package apply
 
 
 import (
-	F "github.com/ibm/fp-go/function"
-	T "github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // tupleConstructor1 returns a curried version of [T.MakeTuple1]

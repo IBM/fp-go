@@ -1,8 +1,8 @@
 package io
 
 import (
-	EQ "github.com/ibm/fp-go/eq"
-	G "github.com/ibm/fp-go/io/generic"
+	EQ "github.com/IBM/fp-go/eq"
+	G "github.com/IBM/fp-go/io/generic"
 )
 
 // Eq implements the equals predicate for values contained in the IO monad

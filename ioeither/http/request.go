@@ -4,12 +4,12 @@ import (
 	"io"
 	"net/http"
 
-	B "github.com/ibm/fp-go/bytes"
-	ER "github.com/ibm/fp-go/errors"
-	F "github.com/ibm/fp-go/function"
-	IOE "github.com/ibm/fp-go/ioeither"
-	IOEF "github.com/ibm/fp-go/ioeither/file"
-	J "github.com/ibm/fp-go/json"
+	B "github.com/IBM/fp-go/bytes"
+	ER "github.com/IBM/fp-go/errors"
+	F "github.com/IBM/fp-go/function"
+	IOE "github.com/IBM/fp-go/ioeither"
+	IOEF "github.com/IBM/fp-go/ioeither/file"
+	J "github.com/IBM/fp-go/json"
 )
 
 type Client interface {

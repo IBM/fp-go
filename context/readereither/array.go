@@ -1,7 +1,7 @@
 package readereither
 
 import (
-	RE "github.com/ibm/fp-go/readereither/generic"
+	RE "github.com/IBM/fp-go/readereither/generic"
 )
 
 // TraverseArray transforms an array

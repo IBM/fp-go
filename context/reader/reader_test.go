@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	F "github.com/ibm/fp-go/function"
-	T "github.com/ibm/fp-go/tuple"
+	F "github.com/IBM/fp-go/function"
+	T "github.com/IBM/fp-go/tuple"
 	"github.com/stretchr/testify/assert"
 )
 

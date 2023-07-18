@@ -123,7 +123,7 @@ func generateReaderHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, `
 import (
-	G "github.com/ibm/fp-go/%s/generic"	
+	G "github.com/IBM/fp-go/%s/generic"	
 )
 `, pkg)
 

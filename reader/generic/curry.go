@@ -1,7 +1,7 @@
 package generic
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // these functions curry a golang function with the context as the firsr parameter into a reader with the context as the last parameter, which

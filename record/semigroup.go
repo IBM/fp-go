@@ -15,8 +15,8 @@
 package record
 
 import (
-	G "github.com/ibm/fp-go/record/generic"
-	S "github.com/ibm/fp-go/semigroup"
+	G "github.com/IBM/fp-go/record/generic"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 func UnionSemigroup[K comparable, V any](s S.Semigroup[V]) S.Semigroup[map[K]V] {

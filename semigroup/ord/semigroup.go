@@ -1,8 +1,8 @@
 package ord
 
 import (
-	O "github.com/ibm/fp-go/ord"
-	S "github.com/ibm/fp-go/semigroup"
+	O "github.com/IBM/fp-go/ord"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 // Max gets a semigroup where `concat` will return the maximum, based on the provided order.

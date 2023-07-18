@@ -1,7 +1,7 @@
 package semigroup
 
 import (
-	M "github.com/ibm/fp-go/magma"
+	M "github.com/IBM/fp-go/magma"
 )
 
 func GenericMonadConcatAll[GA ~[]A, A any](s Semigroup[A]) func(GA, A) A {

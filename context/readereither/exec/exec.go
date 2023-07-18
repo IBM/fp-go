@@ -3,11 +3,11 @@ package exec
 import (
 	"context"
 
-	RE "github.com/ibm/fp-go/context/readereither"
-	E "github.com/ibm/fp-go/either"
-	"github.com/ibm/fp-go/exec"
-	F "github.com/ibm/fp-go/function"
-	GE "github.com/ibm/fp-go/internal/exec"
+	RE "github.com/IBM/fp-go/context/readereither"
+	E "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/exec"
+	F "github.com/IBM/fp-go/function"
+	GE "github.com/IBM/fp-go/internal/exec"
 )
 
 var (

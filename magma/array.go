@@ -1,8 +1,8 @@
 package magma
 
 import (
-	F "github.com/ibm/fp-go/function"
-	AR "github.com/ibm/fp-go/internal/array"
+	F "github.com/IBM/fp-go/function"
+	AR "github.com/IBM/fp-go/internal/array"
 )
 
 func GenericMonadConcatAll[GA ~[]A, A any](m Magma[A]) func(GA, A) A {

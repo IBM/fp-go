@@ -1,8 +1,8 @@
 package monoid
 
 import (
-	F "github.com/ibm/fp-go/function"
-	S "github.com/ibm/fp-go/semigroup"
+	F "github.com/IBM/fp-go/function"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 // FunctionMonoid forms a monoid as long as you can provide a monoid for the codomain.

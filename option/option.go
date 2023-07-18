@@ -2,7 +2,7 @@
 package option
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 func fromPredicate[A any](a A, pred func(A) bool) Option[A] {

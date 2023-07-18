@@ -3,9 +3,9 @@ package generic
 import (
 	"time"
 
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/option"
-	R "github.com/ibm/fp-go/retry"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/option"
+	R "github.com/IBM/fp-go/retry"
 )
 
 // Apply policy and delay by its amount if it results in a R.

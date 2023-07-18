@@ -1,7 +1,7 @@
 package record
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // createEmpty creates a new empty, read-write map

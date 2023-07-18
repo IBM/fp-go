@@ -1,7 +1,7 @@
 package io
 
 import (
-	G "github.com/ibm/fp-go/io/generic"
+	G "github.com/IBM/fp-go/io/generic"
 )
 
 func MonadTraverseArray[A, B any](tas []A, f func(A) IO[B]) IO[[]B] {

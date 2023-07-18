@@ -1,8 +1,8 @@
 package array
 
 import (
-	F "github.com/ibm/fp-go/function"
-	M "github.com/ibm/fp-go/magma"
+	F "github.com/IBM/fp-go/function"
+	M "github.com/IBM/fp-go/magma"
 )
 
 func ConcatAll[A any](m M.Magma[A]) func(A) func([]A) A {

@@ -3,7 +3,7 @@ package option
 import (
 	"testing"
 
-	T "github.com/ibm/fp-go/tuple"
+	T "github.com/IBM/fp-go/tuple"
 	"github.com/stretchr/testify/assert"
 )
 

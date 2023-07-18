@@ -1,10 +1,10 @@
 package fromeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	C "github.com/ibm/fp-go/internal/chain"
-	O "github.com/ibm/fp-go/option"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
+	O "github.com/IBM/fp-go/option"
 )
 
 func FromOption[E, A, HKTEA any](fromEither func(ET.Either[E, A]) HKTEA, onNone func() E) func(ma O.Option[A]) HKTEA {

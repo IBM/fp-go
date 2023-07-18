@@ -3,10 +3,10 @@ package reader
 import (
 	"testing"
 
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ibm/fp-go/internal/utils"
+	"github.com/IBM/fp-go/internal/utils"
 )
 
 func TestMap(t *testing.T) {

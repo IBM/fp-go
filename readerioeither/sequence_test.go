@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	ET "github.com/ibm/fp-go/either"
-	T "github.com/ibm/fp-go/tuple"
+	ET "github.com/IBM/fp-go/either"
+	T "github.com/IBM/fp-go/tuple"
 	"github.com/stretchr/testify/assert"
 )
 

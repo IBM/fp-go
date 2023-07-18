@@ -1,9 +1,9 @@
 package ioeither
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	G "github.com/ibm/fp-go/ioeither/generic"
-	R "github.com/ibm/fp-go/retry"
+	ET "github.com/IBM/fp-go/either"
+	G "github.com/IBM/fp-go/ioeither/generic"
+	R "github.com/IBM/fp-go/retry"
 )
 
 // Retrying will retry the actions according to the check policy

@@ -1,8 +1,8 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	IOE "github.com/ibm/fp-go/ioeither/generic"
+	ET "github.com/IBM/fp-go/either"
+	IOE "github.com/IBM/fp-go/ioeither/generic"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource

@@ -3,8 +3,8 @@ package identity
 import (
 	"testing"
 
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/utils"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 

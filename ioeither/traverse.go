@@ -1,7 +1,7 @@
 package ioeither
 
 import (
-	G "github.com/ibm/fp-go/ioeither/generic"
+	G "github.com/IBM/fp-go/ioeither/generic"
 )
 
 // TraverseArray transforms an array

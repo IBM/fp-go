@@ -5,8 +5,8 @@ package generic
 
 
 import (
-	E "github.com/ibm/fp-go/either"
-	RD "github.com/ibm/fp-go/reader/generic"
+	E "github.com/IBM/fp-go/either"
+	RD "github.com/IBM/fp-go/reader/generic"
 )
 
 // From0 converts a function with 1 parameters returning a tuple into a function with 0 parameters returning a [GRA]

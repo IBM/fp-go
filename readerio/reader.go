@@ -1,9 +1,9 @@
 package readerio
 
 import (
-	IO "github.com/ibm/fp-go/io"
-	R "github.com/ibm/fp-go/reader"
-	G "github.com/ibm/fp-go/readerio/generic"
+	IO "github.com/IBM/fp-go/io"
+	R "github.com/IBM/fp-go/reader"
+	G "github.com/IBM/fp-go/readerio/generic"
 )
 
 type ReaderIO[E, A any] R.Reader[E, IO.IO[A]]

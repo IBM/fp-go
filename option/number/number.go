@@ -18,8 +18,8 @@ package number
 import (
 	"strconv"
 
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/option"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/option"
 )
 
 func atoi(value string) (int, bool) {

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	E "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/utils"
-	R "github.com/ibm/fp-go/reader"
-	RIO "github.com/ibm/fp-go/readerio"
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/utils"
+	R "github.com/IBM/fp-go/reader"
+	RIO "github.com/IBM/fp-go/readerio"
 	"github.com/stretchr/testify/assert"
 )
 

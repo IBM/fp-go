@@ -1,9 +1,9 @@
 package generic
 
 import (
-	ET "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	IF "github.com/ibm/fp-go/internal/file"
+	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	IF "github.com/IBM/fp-go/internal/file"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource

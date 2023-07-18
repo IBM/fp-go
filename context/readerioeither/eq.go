@@ -3,9 +3,9 @@ package readerioeither
 import (
 	"context"
 
-	G "github.com/ibm/fp-go/context/readerioeither/generic"
-	ET "github.com/ibm/fp-go/either"
-	EQ "github.com/ibm/fp-go/eq"
+	G "github.com/IBM/fp-go/context/readerioeither/generic"
+	ET "github.com/IBM/fp-go/either"
+	EQ "github.com/IBM/fp-go/eq"
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad

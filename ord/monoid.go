@@ -1,9 +1,9 @@
 package ord
 
 import (
-	F "github.com/ibm/fp-go/function"
-	M "github.com/ibm/fp-go/monoid"
-	S "github.com/ibm/fp-go/semigroup"
+	F "github.com/IBM/fp-go/function"
+	M "github.com/IBM/fp-go/monoid"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 // Semigroup implements a two level ordering

@@ -1,8 +1,8 @@
 package generic
 
 import (
-	"github.com/ibm/fp-go/internal/apply"
-	T "github.com/ibm/fp-go/tuple"
+	"github.com/IBM/fp-go/internal/apply"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple

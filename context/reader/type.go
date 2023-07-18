@@ -4,7 +4,7 @@ package reader
 import (
 	"context"
 
-	R "github.com/ibm/fp-go/reader"
+	R "github.com/IBM/fp-go/reader"
 )
 
 // Reader is a specialization of the Reader monad assuming a golang context as the context of the monad

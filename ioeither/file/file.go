@@ -3,7 +3,7 @@ package file
 import (
 	"os"
 
-	IOE "github.com/ibm/fp-go/ioeither"
+	IOE "github.com/IBM/fp-go/ioeither"
 )
 
 var (

@@ -3,8 +3,8 @@ package either
 import (
 	"testing"
 
-	M "github.com/ibm/fp-go/monoid/testing"
-	N "github.com/ibm/fp-go/number"
+	M "github.com/IBM/fp-go/monoid/testing"
+	N "github.com/IBM/fp-go/number"
 	"github.com/stretchr/testify/assert"
 )
 

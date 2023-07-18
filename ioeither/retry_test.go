@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	E "github.com/ibm/fp-go/either"
-	R "github.com/ibm/fp-go/retry"
+	E "github.com/IBM/fp-go/either"
+	R "github.com/IBM/fp-go/retry"
 	"github.com/stretchr/testify/assert"
 )
 

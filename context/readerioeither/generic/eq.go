@@ -3,10 +3,10 @@ package generic
 import (
 	"context"
 
-	E "github.com/ibm/fp-go/either"
-	ET "github.com/ibm/fp-go/either"
-	EQ "github.com/ibm/fp-go/eq"
-	G "github.com/ibm/fp-go/readerioeither/generic"
+	E "github.com/IBM/fp-go/either"
+	ET "github.com/IBM/fp-go/either"
+	EQ "github.com/IBM/fp-go/eq"
+	G "github.com/IBM/fp-go/readerioeither/generic"
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad

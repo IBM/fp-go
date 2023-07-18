@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	R "github.com/ibm/fp-go/retry"
+	R "github.com/IBM/fp-go/retry"
 	"github.com/stretchr/testify/assert"
 )
 

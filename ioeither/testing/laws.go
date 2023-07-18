@@ -3,10 +3,10 @@ package testing
 import (
 	"testing"
 
-	ET "github.com/ibm/fp-go/either"
-	EQ "github.com/ibm/fp-go/eq"
-	L "github.com/ibm/fp-go/internal/monad/testing"
-	IOE "github.com/ibm/fp-go/ioeither"
+	ET "github.com/IBM/fp-go/either"
+	EQ "github.com/IBM/fp-go/eq"
+	L "github.com/IBM/fp-go/internal/monad/testing"
+	IOE "github.com/IBM/fp-go/ioeither"
 )
 
 // AssertLaws asserts the apply monad laws for the `IOEither` monad

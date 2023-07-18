@@ -16,10 +16,10 @@
 package exec
 
 import (
-	"github.com/ibm/fp-go/exec"
-	F "github.com/ibm/fp-go/function"
-	IOE "github.com/ibm/fp-go/ioeither"
-	G "github.com/ibm/fp-go/ioeither/generic"
+	"github.com/IBM/fp-go/exec"
+	F "github.com/IBM/fp-go/function"
+	IOE "github.com/IBM/fp-go/ioeither"
+	G "github.com/IBM/fp-go/ioeither/generic"
 )
 
 var (

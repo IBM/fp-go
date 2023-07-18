@@ -3,7 +3,7 @@ package io
 import (
 	"time"
 
-	G "github.com/ibm/fp-go/io/generic"
+	G "github.com/IBM/fp-go/io/generic"
 )
 
 // IO represents a synchronous computation that cannot fail

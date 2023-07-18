@@ -7,13 +7,13 @@ import (
 	H "net/http"
 	"regexp"
 
-	A "github.com/ibm/fp-go/array"
-	E "github.com/ibm/fp-go/either"
-	"github.com/ibm/fp-go/errors"
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/option"
-	R "github.com/ibm/fp-go/record/generic"
-	T "github.com/ibm/fp-go/tuple"
+	A "github.com/IBM/fp-go/array"
+	E "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/errors"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/option"
+	R "github.com/IBM/fp-go/record/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 type (

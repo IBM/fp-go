@@ -1,7 +1,7 @@
 package predicate
 
 import (
-	F "github.com/ibm/fp-go/function"
+	F "github.com/IBM/fp-go/function"
 )
 
 // ContraMap creates a predicate from an existing predicate given a mapping function

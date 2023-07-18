@@ -1,8 +1,8 @@
 package readerioeither
 
 import (
-	IOE "github.com/ibm/fp-go/ioeither"
-	G "github.com/ibm/fp-go/readerioeither/generic"
+	IOE "github.com/IBM/fp-go/ioeither"
+	G "github.com/IBM/fp-go/readerioeither/generic"
 )
 
 // TraverseArray transforms an array

@@ -3,7 +3,7 @@ package generic
 import (
 	"log"
 
-	Logging "github.com/ibm/fp-go/logging"
+	Logging "github.com/IBM/fp-go/logging"
 )
 
 func Logger[GA ~func() any, A any](loggers ...*log.Logger) func(string) func(A) GA {

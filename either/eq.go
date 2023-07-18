@@ -1,8 +1,8 @@
 package either
 
 import (
-	EQ "github.com/ibm/fp-go/eq"
-	F "github.com/ibm/fp-go/function"
+	EQ "github.com/IBM/fp-go/eq"
+	F "github.com/IBM/fp-go/function"
 )
 
 // Constructs an equal predicate for an `Either`

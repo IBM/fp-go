@@ -1,7 +1,7 @@
 package readereither
 
 import (
-	G "github.com/ibm/fp-go/readereither/generic"
+	G "github.com/IBM/fp-go/readereither/generic"
 )
 
 // these functions curry a golang function with the context as the firsr parameter into a either reader with the context as the last parameter

@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	R "github.com/ibm/fp-go/context/readerioeither"
-	"github.com/ibm/fp-go/context/readerioeither/file"
-	E "github.com/ibm/fp-go/either"
-	F "github.com/ibm/fp-go/function"
-	IO "github.com/ibm/fp-go/io"
-	J "github.com/ibm/fp-go/json"
+	R "github.com/IBM/fp-go/context/readerioeither"
+	"github.com/IBM/fp-go/context/readerioeither/file"
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
+	IO "github.com/IBM/fp-go/io"
+	J "github.com/IBM/fp-go/json"
 	"github.com/stretchr/testify/assert"
 )
 

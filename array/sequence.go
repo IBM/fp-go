@@ -1,8 +1,8 @@
 package array
 
 import (
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/option"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/option"
 )
 
 // We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces

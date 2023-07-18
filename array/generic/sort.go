@@ -3,7 +3,7 @@ package generic
 import (
 	"sort"
 
-	O "github.com/ibm/fp-go/ord"
+	O "github.com/IBM/fp-go/ord"
 )
 
 // Sort implements a stable sort on the array given the provided ordering

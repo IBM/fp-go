@@ -4,10 +4,10 @@ import (
 	"math"
 	"time"
 
-	F "github.com/ibm/fp-go/function"
-	M "github.com/ibm/fp-go/monoid"
-	O "github.com/ibm/fp-go/option"
-	"github.com/ibm/fp-go/ord"
+	F "github.com/IBM/fp-go/function"
+	M "github.com/IBM/fp-go/monoid"
+	O "github.com/IBM/fp-go/option"
+	"github.com/IBM/fp-go/ord"
 )
 
 type RetryStatus struct {

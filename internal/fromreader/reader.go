@@ -1,8 +1,8 @@
 package fromreader
 
 import (
-	F "github.com/ibm/fp-go/function"
-	G "github.com/ibm/fp-go/reader/generic"
+	F "github.com/IBM/fp-go/function"
+	G "github.com/IBM/fp-go/reader/generic"
 )
 
 func Ask[GR ~func(R) R, R, HKTRA any](fromReader func(GR) HKTRA) func() HKTRA {

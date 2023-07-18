@@ -1,10 +1,11 @@
+// Package main
 package main
 
 import (
 	"log"
 	"os"
 
-	"github.com/ibm/fp-go/cli"
+	"github.com/IBM/fp-go/cli"
 
 	C "github.com/urfave/cli/v2"
 )

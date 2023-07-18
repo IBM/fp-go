@@ -1,12 +1,12 @@
 package array
 
 import (
-	G "github.com/ibm/fp-go/array/generic"
-	F "github.com/ibm/fp-go/function"
-	"github.com/ibm/fp-go/internal/array"
-	M "github.com/ibm/fp-go/monoid"
-	O "github.com/ibm/fp-go/option"
-	"github.com/ibm/fp-go/tuple"
+	G "github.com/IBM/fp-go/array/generic"
+	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/array"
+	M "github.com/IBM/fp-go/monoid"
+	O "github.com/IBM/fp-go/option"
+	"github.com/IBM/fp-go/tuple"
 )
 
 // From constructs an array from a set of variadic arguments

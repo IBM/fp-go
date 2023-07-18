@@ -3,8 +3,8 @@ package testing
 import (
 	"testing"
 
-	E "github.com/ibm/fp-go/eq"
-	F "github.com/ibm/fp-go/function"
+	E "github.com/IBM/fp-go/eq"
+	F "github.com/IBM/fp-go/function"
 	"github.com/stretchr/testify/assert"
 )
 

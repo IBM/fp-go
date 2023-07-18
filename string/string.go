@@ -3,8 +3,8 @@ package string
 import (
 	"strings"
 
-	F "github.com/ibm/fp-go/function"
-	O "github.com/ibm/fp-go/ord"
+	F "github.com/IBM/fp-go/function"
+	O "github.com/IBM/fp-go/ord"
 )
 
 var (

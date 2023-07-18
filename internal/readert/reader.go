@@ -1,8 +1,8 @@
 package readert
 
 import (
-	F "github.com/ibm/fp-go/function"
-	R "github.com/ibm/fp-go/reader/generic"
+	F "github.com/IBM/fp-go/function"
+	R "github.com/IBM/fp-go/reader/generic"
 )
 
 // here we implement the monadic operations using callbacks from
