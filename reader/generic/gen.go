@@ -3,113 +3,112 @@
 // 2023-07-19 16:18:52.5450262 +0200 CEST m=+0.272097701
 package generic
 
-
 // From0 converts a function with 1 parameters returning a [R] into a function with 0 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From0[GRA ~func(C) R, F ~func(C) R, C, R any](f F) func() GRA {
-  return func() GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r)
-    })
-  }
+	return func() GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r)
+		})
+	}
 }
 
 // From1 converts a function with 2 parameters returning a [R] into a function with 1 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From1[GRA ~func(C) R, F ~func(C, T0) R, T0, C, R any](f F) func(T0) GRA {
-  return func(t0 T0) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0)
-    })
-  }
+	return func(t0 T0) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0)
+		})
+	}
 }
 
 // From2 converts a function with 3 parameters returning a [R] into a function with 2 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From2[GRA ~func(C) R, F ~func(C, T0, T1) R, T0, T1, C, R any](f F) func(T0, T1) GRA {
-  return func(t0 T0, t1 T1) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1)
-    })
-  }
+	return func(t0 T0, t1 T1) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1)
+		})
+	}
 }
 
 // From3 converts a function with 4 parameters returning a [R] into a function with 3 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From3[GRA ~func(C) R, F ~func(C, T0, T1, T2) R, T0, T1, T2, C, R any](f F) func(T0, T1, T2) GRA {
-  return func(t0 T0, t1 T1, t2 T2) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2)
+		})
+	}
 }
 
 // From4 converts a function with 5 parameters returning a [R] into a function with 4 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From4[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3) R, T0, T1, T2, T3, C, R any](f F) func(T0, T1, T2, T3) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3)
+		})
+	}
 }
 
 // From5 converts a function with 6 parameters returning a [R] into a function with 5 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From5[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3, T4) R, T0, T1, T2, T3, T4, C, R any](f F) func(T0, T1, T2, T3, T4) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3, t4)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3, t4)
+		})
+	}
 }
 
 // From6 converts a function with 7 parameters returning a [R] into a function with 6 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From6[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3, T4, T5) R, T0, T1, T2, T3, T4, T5, C, R any](f F) func(T0, T1, T2, T3, T4, T5) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3, t4, t5)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3, t4, t5)
+		})
+	}
 }
 
 // From7 converts a function with 8 parameters returning a [R] into a function with 7 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From7[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3, T4, T5, T6) R, T0, T1, T2, T3, T4, T5, T6, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3, t4, t5, t6)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3, t4, t5, t6)
+		})
+	}
 }
 
 // From8 converts a function with 9 parameters returning a [R] into a function with 8 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From8[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7) R, T0, T1, T2, T3, T4, T5, T6, T7, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3, t4, t5, t6, t7)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3, t4, t5, t6, t7)
+		})
+	}
 }
 
 // From9 converts a function with 10 parameters returning a [R] into a function with 9 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From9[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8) R, T0, T1, T2, T3, T4, T5, T6, T7, T8, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8)
+		})
+	}
 }
 
 // From10 converts a function with 11 parameters returning a [R] into a function with 10 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func From10[GRA ~func(C) R, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) R, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) GRA {
-  return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) GRA {
-    return MakeReader[GRA](func(r C) R {
-      return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
-    })
-  }
+	return func(t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) GRA {
+		return MakeReader[GRA](func(r C) R {
+			return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
+		})
+	}
 }

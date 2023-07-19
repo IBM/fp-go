@@ -4,7 +4,7 @@ import (
 	G "github.com/IBM/fp-go/context/readerioeither/generic"
 )
 
-// TraverseArray transforms an array
+// TraverseArray uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
 func TraverseArray[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
 	return G.TraverseArray[[]A, ReaderIOEither[[]B]](f)
 }
@@ -14,7 +14,7 @@ func SequenceArray[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 	return G.SequenceArray[[]A, []ReaderIOEither[A], ReaderIOEither[[]A]](ma)
 }
 
-// TraverseRecord transforms a record
+// TraverseRecord uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
 func TraverseRecord[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
 	return G.TraverseRecord[K, map[K]A, ReaderIOEither[map[K]B]](f)
 }

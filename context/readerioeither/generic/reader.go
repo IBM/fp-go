@@ -194,9 +194,9 @@ func Ap[
 	GRAB ~func(context.Context) GIOAB,
 	GRA ~func(context.Context) GIOA,
 
-	GIOA ~func() E.Either[error, A],
 	GIOB ~func() E.Either[error, B],
 	GIOAB ~func() E.Either[error, func(A) B],
+	GIOA ~func() E.Either[error, A],
 
 	A, B any](fa GRA) func(GRAB) GRB {
 	return F.Bind2nd(MonadAp[GRB, GRA, GRAB], fa)
