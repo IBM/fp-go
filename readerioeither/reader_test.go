@@ -45,7 +45,7 @@ func TestOrLeft(t *testing.T) {
 func TestAp(t *testing.T) {
 	g := F.Pipe1(
 		Right[context.Context, error](utils.Double),
-		Ap[context.Context, error, int, int](Right[context.Context, error](1)),
+		Ap[int](Right[context.Context, error](1)),
 	)
 
 	assert.Equal(t, E.Right[error](2), g(context.Background())())
