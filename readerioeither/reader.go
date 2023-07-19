@@ -114,7 +114,7 @@ func MonadAp[R, E, A, B any](fab ReaderIOEither[R, E, func(A) B], fa ReaderIOEit
 	return G.MonadAp[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](fab, fa)
 }
 
-func Ap[R, E, A, B any](fa ReaderIOEither[R, E, A]) func(fab ReaderIOEither[R, E, func(A) B]) ReaderIOEither[R, E, B] {
+func Ap[B, R, E, A any](fa ReaderIOEither[R, E, A]) func(fab ReaderIOEither[R, E, func(A) B]) ReaderIOEither[R, E, B] {
 	return G.Ap[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B], ReaderIOEither[R, E, func(A) B]](fa)
 }
 
