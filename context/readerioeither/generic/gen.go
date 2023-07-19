@@ -14,65 +14,65 @@ import (
 // Eitherize0 converts a function with 0 parameters returning a tuple into a function with 0 parameters returning a [GRA]
 // The inverse function is [Uneitherize0]
 func Eitherize0[GRA ~func(context.Context) GIOA, F ~func(context.Context) (R, error), GIOA ~func() E.Either[error, R], R any](f F) func() GRA {
-  return RE.Eitherize0[GRA](f)
+	return RE.Eitherize0[GRA](f)
 }
 
 // Eitherize1 converts a function with 1 parameters returning a tuple into a function with 1 parameters returning a [GRA]
 // The inverse function is [Uneitherize1]
 func Eitherize1[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0) (R, error), GIOA ~func() E.Either[error, R], T0, R any](f F) func(T0) GRA {
-  return RE.Eitherize1[GRA](f)
+	return RE.Eitherize1[GRA](f)
 }
 
 // Eitherize2 converts a function with 2 parameters returning a tuple into a function with 2 parameters returning a [GRA]
 // The inverse function is [Uneitherize2]
 func Eitherize2[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1) (R, error), GIOA ~func() E.Either[error, R], T0, T1, R any](f F) func(T0, T1) GRA {
-  return RE.Eitherize2[GRA](f)
+	return RE.Eitherize2[GRA](f)
 }
 
 // Eitherize3 converts a function with 3 parameters returning a tuple into a function with 3 parameters returning a [GRA]
 // The inverse function is [Uneitherize3]
 func Eitherize3[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, R any](f F) func(T0, T1, T2) GRA {
-  return RE.Eitherize3[GRA](f)
+	return RE.Eitherize3[GRA](f)
 }
 
 // Eitherize4 converts a function with 4 parameters returning a tuple into a function with 4 parameters returning a [GRA]
 // The inverse function is [Uneitherize4]
 func Eitherize4[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, R any](f F) func(T0, T1, T2, T3) GRA {
-  return RE.Eitherize4[GRA](f)
+	return RE.Eitherize4[GRA](f)
 }
 
 // Eitherize5 converts a function with 5 parameters returning a tuple into a function with 5 parameters returning a [GRA]
 // The inverse function is [Uneitherize5]
 func Eitherize5[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3, T4) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, R any](f F) func(T0, T1, T2, T3, T4) GRA {
-  return RE.Eitherize5[GRA](f)
+	return RE.Eitherize5[GRA](f)
 }
 
 // Eitherize6 converts a function with 6 parameters returning a tuple into a function with 6 parameters returning a [GRA]
 // The inverse function is [Uneitherize6]
 func Eitherize6[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3, T4, T5) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, R any](f F) func(T0, T1, T2, T3, T4, T5) GRA {
-  return RE.Eitherize6[GRA](f)
+	return RE.Eitherize6[GRA](f)
 }
 
 // Eitherize7 converts a function with 7 parameters returning a tuple into a function with 7 parameters returning a [GRA]
 // The inverse function is [Uneitherize7]
 func Eitherize7[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3, T4, T5, T6) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, R any](f F) func(T0, T1, T2, T3, T4, T5, T6) GRA {
-  return RE.Eitherize7[GRA](f)
+	return RE.Eitherize7[GRA](f)
 }
 
 // Eitherize8 converts a function with 8 parameters returning a tuple into a function with 8 parameters returning a [GRA]
 // The inverse function is [Uneitherize8]
 func Eitherize8[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3, T4, T5, T6, T7) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7) GRA {
-  return RE.Eitherize8[GRA](f)
+	return RE.Eitherize8[GRA](f)
 }
 
 // Eitherize9 converts a function with 9 parameters returning a tuple into a function with 9 parameters returning a [GRA]
 // The inverse function is [Uneitherize9]
 func Eitherize9[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3, T4, T5, T6, T7, T8) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8) GRA {
-  return RE.Eitherize9[GRA](f)
+	return RE.Eitherize9[GRA](f)
 }
 
 // Eitherize10 converts a function with 10 parameters returning a tuple into a function with 10 parameters returning a [GRA]
 // The inverse function is [Uneitherize10]
 func Eitherize10[GRA ~func(context.Context) GIOA, F ~func(context.Context, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) GRA {
-  return RE.Eitherize10[GRA](f)
+	return RE.Eitherize10[GRA](f)
 }

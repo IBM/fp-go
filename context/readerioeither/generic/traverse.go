@@ -4,8 +4,29 @@ import (
 	"context"
 
 	E "github.com/IBM/fp-go/either"
-	RE "github.com/IBM/fp-go/readerioeither/generic"
+	F "github.com/IBM/fp-go/function"
+	RA "github.com/IBM/fp-go/internal/array"
+	RR "github.com/IBM/fp-go/internal/record"
 )
+
+// MonadTraverseArray transforms an array
+func MonadTraverseArray[
+	AS ~[]A,
+	GRBS ~func(context.Context) GIOBS,
+	GRB ~func(context.Context) GIOB,
+	GIOBS ~func() E.Either[error, BS],
+	GIOB ~func() E.Either[error, B],
+	BS ~[]B,
+	A, B any](as AS, f func(A) GRB) GRBS {
+
+	return RA.MonadTraverse[AS](
+		Of[GRBS, GIOBS, BS],
+		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
+		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],
+
+		as, f,
+	)
+}
 
 // TraverseArray transforms an array
 func TraverseArray[
@@ -16,7 +37,14 @@ func TraverseArray[
 	GIOB ~func() E.Either[error, B],
 	BS ~[]B,
 	A, B any](f func(A) GRB) func(AS) GRBS {
-	return RE.TraverseArray[GRB, GRBS, GIOB, GIOBS, AS](f)
+
+	return RA.Traverse[AS](
+		Of[GRBS, GIOBS, BS],
+		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
+		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],
+
+		f,
+	)
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
@@ -28,7 +56,28 @@ func SequenceArray[
 	GIOAS ~func() E.Either[error, AS],
 	GIOA ~func() E.Either[error, A],
 	A any](ma GAS) GRAS {
-	return RE.SequenceArray[GRA, GRAS](ma)
+
+	return MonadTraverseArray[GAS, GRAS](ma, F.Identity[GRA])
+}
+
+// MonadTraverseRecord transforms a record
+func MonadTraverseRecord[K comparable,
+	AS ~map[K]A,
+	GRBS ~func(context.Context) GIOBS,
+	GRB ~func(context.Context) GIOB,
+	GIOBS ~func() E.Either[error, BS],
+	GIOB ~func() E.Either[error, B],
+	BS ~map[K]B,
+
+	A, B any](ma AS, f func(A) GRB) GRBS {
+
+	return RR.MonadTraverse[AS](
+		Of[GRBS, GIOBS, BS],
+		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
+		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],
+
+		ma, f,
+	)
 }
 
 // TraverseRecord transforms a record
@@ -41,7 +90,14 @@ func TraverseRecord[K comparable,
 	BS ~map[K]B,
 
 	A, B any](f func(A) GRB) func(AS) GRBS {
-	return RE.TraverseRecord[GRB, GRBS, GIOB, GIOBS, AS](f)
+
+	return RR.Traverse[AS](
+		Of[GRBS, GIOBS, BS],
+		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
+		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],
+
+		f,
+	)
 }
 
 // SequenceRecord converts a homogeneous sequence of either into an either of sequence
@@ -53,5 +109,6 @@ func SequenceRecord[K comparable,
 	GIOAS ~func() E.Either[error, AS],
 	GIOA ~func() E.Either[error, A],
 	A any](ma GAS) GRAS {
-	return RE.SequenceRecord[GRA, GRAS](ma)
+
+	return MonadTraverseRecord[K, GAS, GRAS](ma, F.Identity[GRA])
 }
