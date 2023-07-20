@@ -5,9 +5,117 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	C "github.com/urfave/cli/v2"
 )
+
+func generateNestedCallbacks(i, total int) string {
+	var buf strings.Builder
+	for j := i; j < total; j++ {
+		if j > i {
+			buf.WriteString(" ")
+		}
+		buf.WriteString(fmt.Sprintf("func(T%d)", j+1))
+	}
+	if i > 0 {
+		buf.WriteString(" ")
+	}
+	buf.WriteString(tupleType(total))
+	return buf.String()
+}
+
+func generateContextReaderIOEitherSequenceT(f, fg *os.File, i int) {
+	// tuple type
+	tuple := tupleType(i)
+
+	// non-generic version
+	// generic version
+	fmt.Fprintf(f, "\n// SequenceT%d converts %d [ReaderIOEither] into a [ReaderIOEither] of a [T.Tuple%d].\n", i, i, i)
+	fmt.Fprintf(f, "func SequenceT%d[", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j+1)
+	}
+	fmt.Fprintf(f, " any](")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d ReaderIOEither[T%d]", j+1, j+1)
+	}
+	fmt.Fprintf(f, ") ReaderIOEither[%s] {\n", tuple)
+	fmt.Fprintf(f, "  return G.SequenceT%d[ReaderIOEither[%s]](", i, tuple)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d", j+1)
+	}
+	fmt.Fprintf(f, ")\n")
+	fmt.Fprintf(f, "}\n")
+
+	// generic version
+	fmt.Fprintf(fg, "\n// SequenceT%d converts %d readers into a reader of a [T.Tuple%d].\n", i, i, i)
+	fmt.Fprintf(fg, "func SequenceT%d[\n", i)
+
+	fmt.Fprintf(fg, "  GR_TUPLE%d ~func(context.Context) GIO_TUPLE%d,\n", i, i)
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, "  GR_T%d ~func(context.Context) GIO_T%d,\n", j+1, j+1)
+	}
+
+	fmt.Fprintf(fg, "  GIO_TUPLE%d ~func() E.Either[error, %s],\n", i, tuple)
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, "  GIO_T%d ~func() E.Either[error, T%d],\n", j+1, j+1)
+	}
+
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, "  T%d", j+1)
+		if j < i-1 {
+			fmt.Fprintf(fg, ",\n")
+		}
+	}
+	fmt.Fprintf(fg, " any](\n")
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, "  t%d GR_T%d,\n", j+1, j+1)
+	}
+	fmt.Fprintf(fg, ") GR_TUPLE%d {\n", i)
+	fmt.Fprintf(fg, "  return A.SequenceT%d(\n", i)
+	// map call
+	var cr string
+	if i > 1 {
+		cb := generateNestedCallbacks(1, i)
+		cio := fmt.Sprintf("func() E.Either[error, %s]", cb)
+		cr = fmt.Sprintf("func(context.Context) %s", cio)
+	} else {
+		cr = fmt.Sprintf("GR_TUPLE%d", i)
+	}
+	fmt.Fprintf(fg, "    Map[GR_T%d, %s, GIO_T%d],\n", 1, cr, 1)
+	// the apply calls
+	for j := 1; j < i; j++ {
+		if j < i-1 {
+			cb := generateNestedCallbacks(j+1, i)
+			cio := fmt.Sprintf("func() E.Either[error, %s]", cb)
+			cr = fmt.Sprintf("func(context.Context) %s", cio)
+		} else {
+			cr = fmt.Sprintf("GR_TUPLE%d", i)
+		}
+		fmt.Fprintf(fg, "    Ap[%s, func(context.Context) func() E.Either[error, %s], GR_T%d],\n", cr, generateNestedCallbacks(j, i), j+1)
+	}
+	// raw parameters
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, "    t%d,\n", j+1)
+	}
+	// // map
+	// 	Ap[GB, func(E) func() ET.Either[L, func(C) T.Tuple3[A, B, C]], func(E) func() ET.Either[L, func(B) func(C) T.Tuple3[A, B, C]], GIOB, func() ET.Either[L, func(C) T.Tuple3[A, B, C]], func() ET.Either[L, func(B) func(C) T.Tuple3[A, B, C]], E, L, B, func(C) T.Tuple3[A, B, C]],
+	// 	Ap[GC, GTABC, func(E) func() ET.Either[L, func(C) T.Tuple3[A, B, C]], GIOC, GIOTABC, func() ET.Either[L, func(C) T.Tuple3[A, B, C]], E, L, C, T.Tuple3[A, B, C]],
+
+	// 	a, b, c,
+	fmt.Fprintf(fg, " )\n")
+	fmt.Fprintf(fg, "}\n")
+}
 
 func generateContextReaderIOEitherEitherize(f, fg *os.File, i int) {
 	// non generic version
@@ -90,6 +198,7 @@ import (
 	"context"
 
 	G "github.com/IBM/fp-go/context/%s/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 `, pkg)
 
@@ -101,6 +210,8 @@ import (
 
 	E "github.com/IBM/fp-go/either"
 	RE "github.com/IBM/fp-go/readerioeither/generic"
+	A "github.com/IBM/fp-go/internal/apply"
+	T "github.com/IBM/fp-go/tuple"
 )
 `)
 
@@ -109,6 +220,8 @@ import (
 	for i := 1; i <= count; i++ {
 		// eitherize
 		generateContextReaderIOEitherEitherize(f, fg, i)
+		// sequenceT
+		generateContextReaderIOEitherSequenceT(f, fg, i)
 	}
 
 	return nil
