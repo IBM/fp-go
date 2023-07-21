@@ -1,0 +1,21 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:base",
+        ":dependencyDashboard"
+    ],
+    "rangeStrategy": "bump",
+    "packageRules": [
+        {
+            "matchUpdateTypes": [
+                "major",
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "automerge": true,
+            "groupName": "go dependencies"
+        }
+    ]
+}
