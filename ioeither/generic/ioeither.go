@@ -140,6 +140,28 @@ func Ap[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.E
 	return F.Bind2nd(MonadAp[GA, GB, GAB, E, A, B], ma)
 }
 
+func MonadApSeq[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](mab GAB, ma GA) GB {
+	return eithert.MonadAp(
+		IO.MonadApSeq[GA, GB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, A], ET.Either[E, B]],
+		IO.MonadMap[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		mab, ma)
+}
+
+func ApSeq[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadApSeq[GA, GB, GAB, E, A, B], ma)
+}
+
+func MonadApPar[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](mab GAB, ma GA) GB {
+	return eithert.MonadAp(
+		IO.MonadApPar[GA, GB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, A], ET.Either[E, B]],
+		IO.MonadMap[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		mab, ma)
+}
+
+func ApPar[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadApPar[GA, GB, GAB, E, A, B], ma)
+}
+
 func Flatten[GA ~func() ET.Either[E, A], GAA ~func() ET.Either[E, GA], E, A any](mma GAA) GA {
 	return MonadChain(mma, F.Identity[GA])
 }

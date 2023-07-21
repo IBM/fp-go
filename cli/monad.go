@@ -6,18 +6,20 @@ import (
 	"strings"
 )
 
-func tupleType(i int) string {
-	var buf strings.Builder
-	buf.WriteString(fmt.Sprintf("T.Tuple%d[", i))
-	for j := 0; j < i; j++ {
-		if j > 0 {
-			buf.WriteString(", ")
+func tupleType(name string) func(i int) string {
+	return func(i int) string {
+		var buf strings.Builder
+		buf.WriteString(fmt.Sprintf("T.Tuple%d[", i))
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(fmt.Sprintf("%s%d", name, j+1))
 		}
-		buf.WriteString(fmt.Sprintf("T%d", j+1))
-	}
-	buf.WriteString("]")
+		buf.WriteString("]")
 
-	return buf.String()
+		return buf.String()
+	}
 }
 
 func monadGenerateSequenceTNonGeneric(
@@ -27,7 +29,7 @@ func monadGenerateSequenceTNonGeneric(
 ) func(f *os.File, i int) {
 	return func(f *os.File, i int) {
 
-		tuple := tupleType(i)
+		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "SequenceT%d[", i)
 		for j := 0; j < i; j++ {
@@ -80,7 +82,7 @@ func monadGenerateSequenceTGeneric(
 ) func(f *os.File, i int) {
 	return func(f *os.File, i int) {
 
-		tuple := tupleType(i)
+		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "SequenceT%d[", i)
 		for j := 0; j < i; j++ {
@@ -131,7 +133,7 @@ func generateTraverseTuple1(
 	infix string) func(f *os.File, i int) {
 
 	return func(f *os.File, i int) {
-		tuple := tupleType(i)
+		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "\n// TraverseTuple%d converts a [Tuple%d] of [A] via transformation functions transforming [A] to [%s] into a [%s].\n", i, i, hkt("A"), hkt(fmt.Sprintf("Tuple%d", i)))
 		fmt.Fprintf(f, "func TraverseTuple%d[", i)
@@ -218,7 +220,7 @@ func generateSequenceTuple1(
 
 	return func(f *os.File, i int) {
 
-		tuple := tupleType(i)
+		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "\n// SequenceTuple%d converts a [Tuple%d] of [%s] into an [%s].\n", i, i, hkt("T"), hkt(fmt.Sprintf("Tuple%d", i)))
 		fmt.Fprintf(f, "func SequenceTuple%d[", i)
@@ -281,7 +283,7 @@ func generateSequenceT1(
 
 	return func(f *os.File, i int) {
 
-		tuple := tupleType(i)
+		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "\n// SequenceT%d converts %d parameters of [%s] into a [%s].\n", i, i, hkt("T"), hkt(fmt.Sprintf("Tuple%d", i)))
 		fmt.Fprintf(f, "func SequenceT%d[", i)

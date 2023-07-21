@@ -62,7 +62,7 @@ func MonadAp[B, A any](mab IO[func(A) B], ma IO[A]) IO[B] {
 }
 
 func Ap[B, A any](ma IO[A]) func(IO[func(A) B]) IO[B] {
-	return G.Ap[IO[A], IO[B], IO[func(A) B]](ma)
+	return G.Ap[IO[B], IO[func(A) B], IO[A]](ma)
 }
 
 func Flatten[A any](mma IO[IO[A]]) IO[A] {

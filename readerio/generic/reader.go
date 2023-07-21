@@ -44,6 +44,22 @@ func Ap[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GEFAB ~func(E) GIOFAB, GIOA ~func(
 	return F.Bind2nd(MonadAp[GEA, GEB, GEFAB, GIOA, GIOB, GIOFAB, E, A, B], fa)
 }
 
+func MonadApSeq[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GEFAB ~func(E) GIOFAB, GIOA ~func() A, GIOB ~func() B, GIOFAB ~func() func(A) B, E, A, B any](fab GEFAB, fa GEA) GEB {
+	return readert.MonadAp[GEA, GEB, GEFAB, E, A](IO.MonadApSeq[GIOA, GIOB, GIOFAB, A, B], fab, fa)
+}
+
+func ApSeq[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GEFAB ~func(E) GIOFAB, GIOA ~func() A, GIOB ~func() B, GIOFAB ~func() func(A) B, E, A, B any](fa GEA) func(GEFAB) GEB {
+	return F.Bind2nd(MonadApSeq[GEA, GEB, GEFAB, GIOA, GIOB, GIOFAB, E, A, B], fa)
+}
+
+func MonadApPar[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GEFAB ~func(E) GIOFAB, GIOA ~func() A, GIOB ~func() B, GIOFAB ~func() func(A) B, E, A, B any](fab GEFAB, fa GEA) GEB {
+	return readert.MonadAp[GEA, GEB, GEFAB, E, A](IO.MonadApPar[GIOA, GIOB, GIOFAB, A, B], fab, fa)
+}
+
+func ApPar[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GEFAB ~func(E) GIOFAB, GIOA ~func() A, GIOB ~func() B, GIOFAB ~func() func(A) B, E, A, B any](fa GEA) func(GEFAB) GEB {
+	return F.Bind2nd(MonadApPar[GEA, GEB, GEFAB, GIOA, GIOB, GIOFAB, E, A, B], fa)
+}
+
 func Ask[GEE ~func(E) GIOE, GIOE ~func() E, E any]() GEE {
 	return FR.Ask(FromReader[func(E) E, GEE, GIOE, E, E])()
 }
