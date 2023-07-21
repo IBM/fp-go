@@ -15,22 +15,13 @@ func From[A any](data ...A) []A {
 }
 
 // MakeBy returns a `Array` of length `n` with element `i` initialized with `f(i)`.
-func MakeBy[A any](n int, f func(int) A) []A {
-	// sanity check
-	if n <= 0 {
-		return Empty[A]()
-	}
-	// run the generator function across the input
-	as := make([]A, n)
-	for i := n - 1; i >= 0; i-- {
-		as[i] = f(i)
-	}
-	return as
+func MakeBy[F ~func(int) A, A any](n int, f F) []A {
+	return G.MakeBy[[]A](n, f)
 }
 
 // Replicate creates a `Array` containing a value repeated the specified number of times.
 func Replicate[A any](n int, a A) []A {
-	return MakeBy(n, F.Constant1[int](a))
+	return G.Replicate[[]A](n, a)
 }
 
 func MonadMap[A, B any](as []A, f func(a A) B) []B {
@@ -159,21 +150,19 @@ func Of[A any](a A) []A {
 }
 
 func MonadChain[A, B any](fa []A, f func(a A) []B) []B {
-	return array.Reduce(fa, func(bs []B, a A) []B {
-		return append(bs, f(a)...)
-	}, Zero[B]())
+	return G.MonadChain[[]A, []B](fa, f)
 }
 
-func Chain[A, B any](f func(a A) []B) func([]A) []B {
-	return F.Bind2nd(MonadChain[A, B], f)
+func Chain[A, B any](f func(A) []B) func([]A) []B {
+	return G.Chain[[]A, []B](f)
 }
 
 func MonadAp[B, A any](fab []func(A) B, fa []A) []B {
-	return MonadChain(fab, F.Bind1st(MonadMap[A, B], fa))
+	return G.MonadAp[[]B](fab, fa)
 }
 
 func Ap[B, A any](fa []A) func([]func(A) B) []B {
-	return F.Bind2nd(MonadAp[B, A], fa)
+	return G.Ap[[]B, []func(A) B](fa)
 }
 
 func Match[A, B any](onEmpty func() B, onNonEmpty func([]A) B) func([]A) B {

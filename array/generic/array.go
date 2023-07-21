@@ -17,6 +17,24 @@ func From[GA ~[]A, A any](data ...A) GA {
 	return data
 }
 
+// MakeBy returns a `Array` of length `n` with element `i` initialized with `f(i)`.
+func MakeBy[AS ~[]A, F ~func(int) A, A any](n int, f F) AS {
+	// sanity check
+	if n <= 0 {
+		return Empty[AS]()
+	}
+	// run the generator function across the input
+	as := make(AS, n)
+	for i := n - 1; i >= 0; i-- {
+		as[i] = f(i)
+	}
+	return as
+}
+
+func Replicate[AS ~[]A, A any](n int, a A) AS {
+	return MakeBy[AS](n, F.Constant1[int](a))
+}
+
 func Lookup[GA ~[]A, A any](idx int) func(GA) O.Option[A] {
 	none := O.None[A]()
 	if idx < 0 {
@@ -106,4 +124,22 @@ func MonadPartition[GA ~[]A, A any](as GA, pred func(A) bool) tuple.Tuple2[GA, G
 
 func Partition[GA ~[]A, A any](pred func(A) bool) func(GA) tuple.Tuple2[GA, GA] {
 	return F.Bind2nd(MonadPartition[GA, A], pred)
+}
+
+func MonadChain[AS ~[]A, BS ~[]B, A, B any](fa AS, f func(a A) BS) BS {
+	return array.Reduce(fa, func(bs BS, a A) BS {
+		return append(bs, f(a)...)
+	}, Empty[BS]())
+}
+
+func Chain[AS ~[]A, BS ~[]B, A, B any](f func(A) BS) func(AS) BS {
+	return F.Bind2nd(MonadChain[AS, BS, A, B], f)
+}
+
+func MonadAp[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fab ABS, fa AS) BS {
+	return MonadChain(fab, F.Bind1st(MonadMap[AS, BS, A, B], fa))
+}
+
+func Ap[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fa AS) func(ABS) BS {
+	return F.Bind2nd(MonadAp[BS, ABS, AS], fa)
 }

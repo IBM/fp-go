@@ -86,7 +86,15 @@ func ChainFirst[GA ~func() A, GB ~func() B, A, B any](f func(A) GB) func(GA) GA 
 	return C.ChainFirst(MonadChain[GA, GA, A, A], MonadMap[GB, GA, B, A], f)
 }
 
-func Ap[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](ma GA) func(GAB) GB {
+func ApSeq[GB ~func() B, GAB ~func() func(A) B, GA ~func() A, B, A any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadApSeq[GA, GB, GAB, A, B], ma)
+}
+
+func ApPar[GB ~func() B, GAB ~func() func(A) B, GA ~func() A, B, A any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadApPar[GA, GB, GAB, A, B], ma)
+}
+
+func Ap[GB ~func() B, GAB ~func() func(A) B, GA ~func() A, B, A any](ma GA) func(GAB) GB {
 	return F.Bind2nd(MonadAp[GA, GB, GAB, A, B], ma)
 }
 

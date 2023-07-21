@@ -21,3 +21,8 @@ func OnError(msg string, args ...any) func(error) error {
 		return fmt.Errorf(msg+", Caused By: %w", A.ArrayConcatAll(args, A.Of[any](err))...)
 	}
 }
+
+// ToString converts an error to a string
+func ToString(err error) string {
+	return err.Error()
+}

@@ -13,6 +13,11 @@ import (
 	RIE "github.com/IBM/fp-go/readerioeither/generic"
 )
 
+const (
+	// useParallel is the feature flag to control if we use the parallel or the sequential implementation of ap
+	useParallel = true
+)
+
 func FromEither[
 	GRA ~func(context.Context) GIOA,
 	GIOA ~func() E.Either[error, A],
@@ -149,9 +154,25 @@ func withCancelCauseFunc[
 	)
 }
 
+// MonadApSeq implements the `Ap` function for a reader with context. It creates a sub-context that will
+// be canceled if any of the input operations errors out or
+func MonadApSeq[
+	GRB ~func(context.Context) GIOB,
+	GRA ~func(context.Context) GIOA,
+	GRAB ~func(context.Context) GIOAB,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+	GIOAB ~func() E.Either[error, func(A) B],
+
+	A, B any](fab GRAB, fa GRA) GRB {
+
+	return RIE.MonadApSeq[GRA, GRB](fab, fa)
+}
+
 // MonadAp implements the `Ap` function for a reader with context. It creates a sub-context that will
 // be canceled if any of the input operations errors out or
-func MonadAp[
+func MonadApPar[
 	GRB ~func(context.Context) GIOB,
 	GRA ~func(context.Context) GIOA,
 	GRAB ~func(context.Context) GIOAB,
@@ -184,9 +205,28 @@ func MonadAp[
 			fabIOE := withCancelCauseFunc(cancelSub, cfab(ctxSub))
 			faIOE := withCancelCauseFunc(cancelSub, cfa(ctxSub))
 
-			return IOE.MonadAp[GIOA, GIOB, GIOAB](fabIOE, faIOE)()
+			return IOE.MonadApPar[GIOA, GIOB, GIOAB](fabIOE, faIOE)()
 		}
 	}
+}
+
+// MonadAp implements the `Ap` function for a reader with context. It creates a sub-context that will
+// be canceled if any of the input operations errors out or
+func MonadAp[
+	GRB ~func(context.Context) GIOB,
+	GRA ~func(context.Context) GIOA,
+	GRAB ~func(context.Context) GIOAB,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+	GIOAB ~func() E.Either[error, func(A) B],
+
+	A, B any](fab GRAB, fa GRA) GRB {
+	// dispatch to the configured version
+	if useParallel {
+		return MonadApPar[GRB](fab, fa)
+	}
+	return MonadApSeq[GRB](fab, fa)
 }
 
 func Ap[
@@ -200,6 +240,32 @@ func Ap[
 
 	A, B any](fa GRA) func(GRAB) GRB {
 	return F.Bind2nd(MonadAp[GRB, GRA, GRAB], fa)
+}
+
+func ApSeq[
+	GRB ~func(context.Context) GIOB,
+	GRAB ~func(context.Context) GIOAB,
+	GRA ~func(context.Context) GIOA,
+
+	GIOB ~func() E.Either[error, B],
+	GIOAB ~func() E.Either[error, func(A) B],
+	GIOA ~func() E.Either[error, A],
+
+	A, B any](fa GRA) func(GRAB) GRB {
+	return F.Bind2nd(MonadApSeq[GRB, GRA, GRAB], fa)
+}
+
+func ApPar[
+	GRB ~func(context.Context) GIOB,
+	GRAB ~func(context.Context) GIOAB,
+	GRA ~func(context.Context) GIOA,
+
+	GIOB ~func() E.Either[error, B],
+	GIOAB ~func() E.Either[error, func(A) B],
+	GIOA ~func() E.Either[error, A],
+
+	A, B any](fa GRA) func(GRAB) GRB {
+	return F.Bind2nd(MonadApPar[GRB, GRA, GRAB], fa)
 }
 
 func FromPredicate[

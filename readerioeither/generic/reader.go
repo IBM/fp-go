@@ -176,6 +176,62 @@ func Ap[
 	return F.Bind2nd(MonadAp[GEA, GEB, GEFAB, GIOA, GIOB, GIOFAB, R, E, A, B], fa)
 }
 
+func MonadApSeq[
+	GEA ~func(R) GIOA,
+	GEB ~func(R) GIOB,
+	GEFAB ~func(R) GIOFAB,
+	GIOA ~func() ET.Either[E, A],
+	GIOB ~func() ET.Either[E, B],
+	GIOFAB ~func() ET.Either[E, func(A) B],
+	R, E, A, B any](fab GEFAB, fa GEA) GEB {
+
+	return eithert.MonadAp(
+		G.MonadApSeq[GEA, GEB, func(R) func() func(ET.Either[E, A]) ET.Either[E, B], GIOA, GIOB, func() func(ET.Either[E, A]) ET.Either[E, B], R, ET.Either[E, A], ET.Either[E, B]],
+		G.MonadMap[GEFAB, func(R) func() func(ET.Either[E, A]) ET.Either[E, B], GIOFAB, func() func(ET.Either[E, A]) ET.Either[E, B], R, ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		fab,
+		fa,
+	)
+}
+
+func ApSeq[
+	GEA ~func(R) GIOA,
+	GEB ~func(R) GIOB,
+	GEFAB ~func(R) GIOFAB,
+	GIOA ~func() ET.Either[E, A],
+	GIOB ~func() ET.Either[E, B],
+	GIOFAB ~func() ET.Either[E, func(A) B],
+	R, E, A, B any](fa GEA) func(fab GEFAB) GEB {
+	return F.Bind2nd(MonadApSeq[GEA, GEB, GEFAB, GIOA, GIOB, GIOFAB, R, E, A, B], fa)
+}
+
+func MonadApPar[
+	GEA ~func(R) GIOA,
+	GEB ~func(R) GIOB,
+	GEFAB ~func(R) GIOFAB,
+	GIOA ~func() ET.Either[E, A],
+	GIOB ~func() ET.Either[E, B],
+	GIOFAB ~func() ET.Either[E, func(A) B],
+	R, E, A, B any](fab GEFAB, fa GEA) GEB {
+
+	return eithert.MonadAp(
+		G.MonadApPar[GEA, GEB, func(R) func() func(ET.Either[E, A]) ET.Either[E, B], GIOA, GIOB, func() func(ET.Either[E, A]) ET.Either[E, B], R, ET.Either[E, A], ET.Either[E, B]],
+		G.MonadMap[GEFAB, func(R) func() func(ET.Either[E, A]) ET.Either[E, B], GIOFAB, func() func(ET.Either[E, A]) ET.Either[E, B], R, ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		fab,
+		fa,
+	)
+}
+
+func ApPar[
+	GEA ~func(R) GIOA,
+	GEB ~func(R) GIOB,
+	GEFAB ~func(R) GIOFAB,
+	GIOA ~func() ET.Either[E, A],
+	GIOB ~func() ET.Either[E, B],
+	GIOFAB ~func() ET.Either[E, func(A) B],
+	R, E, A, B any](fa GEA) func(fab GEFAB) GEB {
+	return F.Bind2nd(MonadApPar[GEA, GEB, GEFAB, GIOA, GIOB, GIOFAB, R, E, A, B], fa)
+}
+
 func Right[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](a A) GEA {
 	return eithert.Right(G.Of[GEA, GIOA, R, ET.Either[E, A]], a)
 }

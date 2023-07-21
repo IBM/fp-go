@@ -9,16 +9,16 @@ const (
 	useParallel = true
 )
 
-// monadApSeq implements the applicative on a single thread by first executing mab and the ma
-func monadApSeq[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
+// MonadApSeq implements the applicative on a single thread by first executing mab and the ma
+func MonadApSeq[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	return MakeIO[GB](func() B {
 		return mab()(ma())
 	})
 }
 
-// monadApPar implements the applicative on two threads, the main thread executes mab and the actuall
+// MonadApPar implements the applicative on two threads, the main thread executes mab and the actuall
 // apply operation and the second thred computes ma. Communication between the threads happens via a channel
-func monadApPar[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
+func MonadApPar[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	return MakeIO[GB](func() B {
 		c := make(chan A)
 		go func() {
@@ -33,9 +33,9 @@ func monadApPar[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab
 // is parallel
 func MonadAp[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	if useParallel {
-		return monadApPar[GA, GB](mab, ma)
+		return MonadApPar[GA, GB](mab, ma)
 	}
-	return monadApSeq[GA, GB](mab, ma)
+	return MonadApSeq[GA, GB](mab, ma)
 }
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.

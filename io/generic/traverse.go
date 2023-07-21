@@ -10,7 +10,7 @@ func MonadTraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B 
 	return RA.MonadTraverse(
 		Of[GBS, BBS],
 		Map[GBS, func() func(B) BBS, BBS, func(B) BBS],
-		Ap[GB, GBS, func() func(B) BBS, B, BBS],
+		Ap[GBS, func() func(B) BBS, GB],
 
 		tas,
 		f,
@@ -21,7 +21,7 @@ func TraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](
 	return RA.Traverse[AAS](
 		Of[GBS, BBS],
 		Map[GBS, func() func(B) BBS, BBS, func(B) BBS],
-		Ap[GB, GBS, func() func(B) BBS, B, BBS],
+		Ap[GBS, func() func(B) BBS, GB],
 
 		f,
 	)
@@ -36,7 +36,7 @@ func MonadTraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B,
 	return RR.MonadTraverse[MA](
 		Of[GBS, MB],
 		Map[GBS, func() func(B) MB, MB, func(B) MB],
-		Ap[GB, GBS, func() func(B) MB, B, MB],
+		Ap[GBS, func() func(B) MB, GB],
 		ma, f,
 	)
 }
@@ -46,7 +46,7 @@ func TraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K co
 	return RR.Traverse[MA](
 		Of[GBS, MB],
 		Map[GBS, func() func(B) MB, MB, func(B) MB],
-		Ap[GB, GBS, func() func(B) MB, B, MB],
+		Ap[GBS, func() func(B) MB, GB],
 		f,
 	)
 }
