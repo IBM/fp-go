@@ -1,0 +1,65 @@
+package testing
+
+import (
+	"testing"
+
+	EQ "github.com/IBM/fp-go/eq"
+	L "github.com/IBM/fp-go/internal/monad/testing"
+	M "github.com/IBM/fp-go/monoid"
+	WRT "github.com/IBM/fp-go/writer"
+)
+
+// AssertLaws asserts the apply monad laws for the `Either` monad
+func AssertLaws[W, A, B, C any](t *testing.T,
+	m M.Monoid[W],
+
+	eqw EQ.Eq[W],
+	eqa EQ.Eq[A],
+	eqb EQ.Eq[B],
+	eqc EQ.Eq[C],
+
+	ab func(A) B,
+	bc func(B) C,
+) func(a A) bool {
+
+	s := M.ToSemigroup(m)
+
+	return L.AssertLaws(t,
+		WRT.Eq(eqw, eqa),
+		WRT.Eq(eqw, eqb),
+		WRT.Eq(eqw, eqc),
+
+		WRT.Of[A](m),
+		WRT.Of[B](m),
+		WRT.Of[C](m),
+
+		WRT.Of[func(A) A](m),
+		WRT.Of[func(A) B](m),
+		WRT.Of[func(B) C](m),
+		WRT.Of[func(func(A) B) B](m),
+
+		WRT.MonadMap[func(A) A, W, A, A],
+		WRT.MonadMap[func(A) B, W, A, B],
+		WRT.MonadMap[func(A) C, W, A, C],
+		WRT.MonadMap[func(B) C, W, B, C],
+
+		WRT.MonadMap[func(func(B) C) func(func(A) B) func(A) C, W, func(B) C, func(func(A) B) func(A) C],
+
+		WRT.MonadChain[func(A) WRT.Writer[W, A], W, A, A](m),
+		WRT.MonadChain[func(A) WRT.Writer[W, B], W, A, B](m),
+		WRT.MonadChain[func(A) WRT.Writer[W, C], W, A, C](m),
+		WRT.MonadChain[func(B) WRT.Writer[W, C], W, B, C](m),
+
+		WRT.MonadAp[A, A](s),
+		WRT.MonadAp[B, A](s),
+		WRT.MonadAp[C, B](s),
+		WRT.MonadAp[C, A](s),
+
+		WRT.MonadAp[B, func(A) B](s),
+		WRT.MonadAp[func(A) C, func(A) B](s),
+
+		ab,
+		bc,
+	)
+
+}

@@ -3,7 +3,6 @@
 // 2023-07-21 10:23:04.372044 +0200 CEST m=+0.068576501
 package generic
 
-
 import (
 	E "github.com/IBM/fp-go/either"
 	RD "github.com/IBM/fp-go/reader/generic"
@@ -12,186 +11,197 @@ import (
 // From0 converts a function with 1 parameters returning a tuple into a function with 0 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From0[GRA ~func(C) GIOA, F ~func(C) func() (R, error), GIOA ~func() E.Either[error, R], C, R any](f F) func() GRA {
-  return RD.From0[GRA](func(r C) GIOA {
-    return E.Eitherize0(f(r))
-  })
+	return RD.From0[GRA](func(r C) GIOA {
+		return E.Eitherize0(f(r))
+	})
 }
 
 // Eitherize0 converts a function with 0 parameters returning a tuple into a function with 0 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize0[GRA ~func(C) GIOA, F ~func(C) (R, error), GIOA ~func() E.Either[error, R], C, R any](f F) func() GRA {
-  return From0[GRA](func(r C) func() (R, error) {
-    return func() (R, error) {
-      return f(r)
-    }})
+	return From0[GRA](func(r C) func() (R, error) {
+		return func() (R, error) {
+			return f(r)
+		}
+	})
 }
 
 // From1 converts a function with 2 parameters returning a tuple into a function with 1 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From1[GRA ~func(C) GIOA, F ~func(C, T0) func() (R, error), GIOA ~func() E.Either[error, R], T0, C, R any](f F) func(T0) GRA {
-  return RD.From1[GRA](func(r C, t0 T0) GIOA {
-    return E.Eitherize0(f(r, t0))
-  })
+	return RD.From1[GRA](func(r C, t0 T0) GIOA {
+		return E.Eitherize0(f(r, t0))
+	})
 }
 
 // Eitherize1 converts a function with 1 parameters returning a tuple into a function with 1 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize1[GRA ~func(C) GIOA, F ~func(C, T0) (R, error), GIOA ~func() E.Either[error, R], T0, C, R any](f F) func(T0) GRA {
-  return From1[GRA](func(r C, t0 T0) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0)
-    }})
+	return From1[GRA](func(r C, t0 T0) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0)
+		}
+	})
 }
 
 // From2 converts a function with 3 parameters returning a tuple into a function with 2 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From2[GRA ~func(C) GIOA, F ~func(C, T0, T1) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, C, R any](f F) func(T0, T1) GRA {
-  return RD.From2[GRA](func(r C, t0 T0, t1 T1) GIOA {
-    return E.Eitherize0(f(r, t0, t1))
-  })
+	return RD.From2[GRA](func(r C, t0 T0, t1 T1) GIOA {
+		return E.Eitherize0(f(r, t0, t1))
+	})
 }
 
 // Eitherize2 converts a function with 2 parameters returning a tuple into a function with 2 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize2[GRA ~func(C) GIOA, F ~func(C, T0, T1) (R, error), GIOA ~func() E.Either[error, R], T0, T1, C, R any](f F) func(T0, T1) GRA {
-  return From2[GRA](func(r C, t0 T0, t1 T1) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1)
-    }})
+	return From2[GRA](func(r C, t0 T0, t1 T1) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1)
+		}
+	})
 }
 
 // From3 converts a function with 4 parameters returning a tuple into a function with 3 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From3[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, C, R any](f F) func(T0, T1, T2) GRA {
-  return RD.From3[GRA](func(r C, t0 T0, t1 T1, t2 T2) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2))
-  })
+	return RD.From3[GRA](func(r C, t0 T0, t1 T1, t2 T2) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2))
+	})
 }
 
 // Eitherize3 converts a function with 3 parameters returning a tuple into a function with 3 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize3[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, C, R any](f F) func(T0, T1, T2) GRA {
-  return From3[GRA](func(r C, t0 T0, t1 T1, t2 T2) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2)
-    }})
+	return From3[GRA](func(r C, t0 T0, t1 T1, t2 T2) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2)
+		}
+	})
 }
 
 // From4 converts a function with 5 parameters returning a tuple into a function with 4 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From4[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, C, R any](f F) func(T0, T1, T2, T3) GRA {
-  return RD.From4[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3))
-  })
+	return RD.From4[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3))
+	})
 }
 
 // Eitherize4 converts a function with 4 parameters returning a tuple into a function with 4 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize4[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, C, R any](f F) func(T0, T1, T2, T3) GRA {
-  return From4[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3)
-    }})
+	return From4[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3)
+		}
+	})
 }
 
 // From5 converts a function with 6 parameters returning a tuple into a function with 5 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From5[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, C, R any](f F) func(T0, T1, T2, T3, T4) GRA {
-  return RD.From5[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3, t4))
-  })
+	return RD.From5[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3, t4))
+	})
 }
 
 // Eitherize5 converts a function with 5 parameters returning a tuple into a function with 5 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize5[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, C, R any](f F) func(T0, T1, T2, T3, T4) GRA {
-  return From5[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3, t4)
-    }})
+	return From5[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3, t4)
+		}
+	})
 }
 
 // From6 converts a function with 7 parameters returning a tuple into a function with 6 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From6[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, C, R any](f F) func(T0, T1, T2, T3, T4, T5) GRA {
-  return RD.From6[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5))
-  })
+	return RD.From6[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5))
+	})
 }
 
 // Eitherize6 converts a function with 6 parameters returning a tuple into a function with 6 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize6[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, C, R any](f F) func(T0, T1, T2, T3, T4, T5) GRA {
-  return From6[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3, t4, t5)
-    }})
+	return From6[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3, t4, t5)
+		}
+	})
 }
 
 // From7 converts a function with 8 parameters returning a tuple into a function with 7 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From7[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6) GRA {
-  return RD.From7[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6))
-  })
+	return RD.From7[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6))
+	})
 }
 
 // Eitherize7 converts a function with 7 parameters returning a tuple into a function with 7 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize7[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6) GRA {
-  return From7[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3, t4, t5, t6)
-    }})
+	return From7[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3, t4, t5, t6)
+		}
+	})
 }
 
 // From8 converts a function with 9 parameters returning a tuple into a function with 8 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From8[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7) GRA {
-  return RD.From8[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7))
-  })
+	return RD.From8[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7))
+	})
 }
 
 // Eitherize8 converts a function with 8 parameters returning a tuple into a function with 8 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize8[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7) GRA {
-  return From8[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3, t4, t5, t6, t7)
-    }})
+	return From8[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3, t4, t5, t6, t7)
+		}
+	})
 }
 
 // From9 converts a function with 10 parameters returning a tuple into a function with 9 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From9[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8) GRA {
-  return RD.From9[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8))
-  })
+	return RD.From9[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8))
+	})
 }
 
 // Eitherize9 converts a function with 9 parameters returning a tuple into a function with 9 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize9[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8) GRA {
-  return From9[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8)
-    }})
+	return From9[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8)
+		}
+	})
 }
 
 // From10 converts a function with 11 parameters returning a tuple into a function with 10 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From10[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) GRA {
-  return RD.From10[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) GIOA {
-    return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9))
-  })
+	return RD.From10[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) GIOA {
+		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9))
+	})
 }
 
 // Eitherize10 converts a function with 10 parameters returning a tuple into a function with 10 parameters returning a [GRA]
 // The first parameter is considered to be the context [C].
 func Eitherize10[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) GRA {
-  return From10[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) func() (R, error) {
-    return func() (R, error) {
-      return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
-    }})
+	return From10[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) func() (R, error) {
+		return func() (R, error) {
+			return f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
+		}
+	})
 }

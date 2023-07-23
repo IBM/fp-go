@@ -31,3 +31,7 @@ func MakeMonoid[A any](c func(A, A) A, e A) Monoid[A] {
 func Reverse[A any](m Monoid[A]) Monoid[A] {
 	return MakeMonoid(S.Reverse[A](m).Concat, m.Empty())
 }
+
+func ToSemigroup[A any](m Monoid[A]) S.Semigroup[A] {
+	return S.Semigroup[A](m)
+}
