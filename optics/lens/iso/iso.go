@@ -1,0 +1,44 @@
+// Copyright (c) 2023 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package iso
+
+import (
+	F "github.com/IBM/fp-go/function"
+	I "github.com/IBM/fp-go/optics/iso"
+	IL "github.com/IBM/fp-go/optics/iso/lens"
+	L "github.com/IBM/fp-go/optics/lens"
+	O "github.com/IBM/fp-go/option"
+)
+
+// FromNillable converts a nillable value to an option and back
+func FromNillable[T any]() I.Iso[*T, O.Option[T]] {
+	return I.MakeIso(F.Flow2(
+		O.FromPredicate(F.IsNonNil[T]),
+		O.Map(F.Deref[T]),
+	),
+		O.Fold(F.Constant((*T)(nil)), F.Ref[T]),
+	)
+}
+
+// Compose converts a Lens to a property of `A` into a lens to a property of type `B`
+// the transformation is done via an ISO
+func Compose[S, A, B any](ab I.Iso[A, B]) func(sa L.Lens[S, A]) L.Lens[S, B] {
+	return F.Pipe2(
+		ab,
+		IL.IsoAsLens[A, B],
+		L.Compose[S, A, B],
+	)
+}
