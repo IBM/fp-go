@@ -22,6 +22,14 @@ import (
 
 var Upper = strings.ToUpper
 
+func Inc(i int) int {
+	return i + 1
+}
+
+func Dec(i int) int {
+	return i - 1
+}
+
 func Sum(left, right int) int {
 	return left + right
 }

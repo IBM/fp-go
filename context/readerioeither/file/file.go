@@ -48,7 +48,7 @@ func Close[C io.Closer](c C) RIOE.ReaderIOEither[any] {
 
 // ReadFile reads a file in the scope of a context
 func ReadFile(path string) RIOE.ReaderIOEither[[]byte] {
-	return RIOE.WithResource[*os.File, []byte](Open(path), Close[*os.File])(func(r *os.File) RIOE.ReaderIOEither[[]byte] {
+	return RIOE.WithResource[[]byte](Open(path), Close[*os.File])(func(r *os.File) RIOE.ReaderIOEither[[]byte] {
 		return func(ctx context.Context) IOE.IOEither[error, []byte] {
 			return IOE.MakeIO(func() ET.Either[error, []byte] {
 				return file.ReadAll(ctx, r)

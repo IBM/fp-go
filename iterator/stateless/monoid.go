@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package stateless
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	G "github.com/IBM/fp-go/iterator/stateless/generic"
+	M "github.com/IBM/fp-go/monoid"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+// Monoid contructs a [M.Monoid] that concatenates two [Iterator]s
+func Monoid[U any]() M.Monoid[Iterator[U]] {
+	return G.Monoid[Iterator[U]]()
 }

@@ -31,3 +31,9 @@ func Logger[A any](loggers ...*log.Logger) func(string) func(A) IO[any] {
 func Logf[A any](prefix string) func(A) IO[any] {
 	return G.Logf[IO[any], A](prefix)
 }
+
+// Printf constructs a printer function that can be used with ChainXXXIOK
+// the string prefix contains the format string for the log value
+func Printf[A any](prefix string) func(A) IO[any] {
+	return G.Printf[IO[any], A](prefix)
+}

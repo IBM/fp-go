@@ -18,3 +18,7 @@ package bytes
 func ToString(a []byte) string {
 	return string(a)
 }
+
+func Size(as []byte) int {
+	return len(as)
+}

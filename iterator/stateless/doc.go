@@ -13,13 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
-
-import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
-)
-
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
-}
+// Package stateless defines a stateless (pure) iterator, i.e. one that can be iterated over multiple times without
+// side effects, it is threadsafe
+package stateless

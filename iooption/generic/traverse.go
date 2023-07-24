@@ -13,13 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package generic
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	F "github.com/IBM/fp-go/function"
+	I "github.com/IBM/fp-go/io/generic"
+	O "github.com/IBM/fp-go/option"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+func TraverseArray[TB ~func() O.Option[B], TBS ~func() O.Option[GB], GA ~[]A, GB ~[]B, A, B any](f func(A) TB) func(GA) TBS {
+	return F.Flow2(
+		I.TraverseArray[TB, func() []O.Option[B], GA](f),
+		I.Map[func() []O.Option[B], TBS](O.SequenceArrayG[GB, []O.Option[B], B]),
+	)
+}
+
+func SequenceArray[TB ~func() O.Option[B], TBS ~func() O.Option[GB], GA ~[]TB, GB ~[]B, A, B any](ma GA) TBS {
+	return TraverseArray[TB, TBS, GA](F.Identity[TB])(ma)
 }

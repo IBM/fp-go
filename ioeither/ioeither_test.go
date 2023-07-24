@@ -119,7 +119,7 @@ func TestApFirst(t *testing.T) {
 
 	x := F.Pipe1(
 		Of[error]("a"),
-		ApFirst[error, string](Of[error]("b")),
+		ApFirst[string](Of[error]("b")),
 	)
 
 	assert.Equal(t, E.Of[error]("a"), x())
@@ -129,7 +129,7 @@ func TestApSecond(t *testing.T) {
 
 	x := F.Pipe1(
 		Of[error]("a"),
-		ApSecond[error, string](Of[error]("b")),
+		ApSecond[string](Of[error]("b")),
 	)
 
 	assert.Equal(t, E.Of[error]("b"), x())
