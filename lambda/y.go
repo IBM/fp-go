@@ -13,13 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package lambda
 
-import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+type (
+	// RecFct is the function called recursively
+	RecFct[T, R any] func(T) R
+
+	// transformer
+	Transformer[T, R any] func(RecFct[T, R]) RecFct[T, R]
+
+	internalCombinator[T, R any] func(internalCombinator[T, R]) RecFct[T, R]
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+// Y is the Y-combinator based on https://dreamsongs.com/Files/WhyOfY.pdf
+func Y[T, R any](f Transformer[T, R]) RecFct[T, R] {
+	g := func(h internalCombinator[T, R]) RecFct[T, R] {
+		return func(t T) R {
+			return f(h(h))(t)
+		}
+	}
+	return g(g)
 }

@@ -16,6 +16,7 @@
 package generic
 
 import (
+	"fmt"
 	"log"
 
 	Logging "github.com/IBM/fp-go/logging"
@@ -36,6 +37,14 @@ func Logf[GA ~func() any, A any](prefix string) func(A) GA {
 	return func(a A) GA {
 		return FromImpure[GA](func() {
 			log.Printf(prefix, a)
+		})
+	}
+}
+
+func Printf[GA ~func() any, A any](prefix string) func(A) GA {
+	return func(a A) GA {
+		return FromImpure[GA](func() {
+			fmt.Printf(prefix, a)
 		})
 	}
 }

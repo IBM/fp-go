@@ -158,3 +158,25 @@ func MonadAp[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fab ABS, fa AS) BS {
 func Ap[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fa AS) func(ABS) BS {
 	return F.Bind2nd(MonadAp[BS, ABS, AS], fa)
 }
+
+func IsEmpty[AS ~[]A, A any](as AS) bool {
+	return array.IsEmpty(as)
+}
+
+func Match[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(AS) B) func(AS) B {
+	return func(as AS) B {
+		if IsEmpty(as) {
+			return onEmpty()
+		}
+		return onNonEmpty(as)
+	}
+}
+
+func MatchLeft[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(A, AS) B) func(AS) B {
+	return func(as AS) B {
+		if IsEmpty(as) {
+			return onEmpty()
+		}
+		return onNonEmpty(as[0], as[1:])
+	}
+}

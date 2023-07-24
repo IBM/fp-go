@@ -13,13 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package testing
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	"fmt"
+	"testing"
+
+	EQ "github.com/IBM/fp-go/eq"
+	"github.com/stretchr/testify/assert"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+func TestMonadLaws(t *testing.T) {
+	// some comparison
+	eqa := EQ.FromStrictEquals[bool]()
+	eqb := EQ.FromStrictEquals[int]()
+	eqc := EQ.FromStrictEquals[string]()
+
+	ab := func(a bool) int {
+		if a {
+			return 1
+		}
+		return 0
+	}
+
+	bc := func(b int) string {
+		return fmt.Sprintf("value %d", b)
+	}
+
+	laws := AssertLaws(t, eqa, eqb, eqc, ab, bc)
+
+	assert.True(t, laws(true))
+	assert.True(t, laws(false))
 }

@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package iooption
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	G "github.com/IBM/fp-go/iooption/generic"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+// TraverseArray transforms an array
+func TraverseArray[A, B any](f func(A) IOOption[B]) func([]A) IOOption[[]B] {
+	return G.TraverseArray[IOOption[B], IOOption[[]B], []A](f)
+}
+
+// SequenceArray converts a homogeneous sequence of either into an either of sequence
+func SequenceArray[A any](ma []IOOption[A]) IOOption[[]A] {
+	return G.SequenceArray[IOOption[A], IOOption[[]A], []IOOption[A], []A, A](ma)
 }

@@ -13,13 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package lazy
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	R "github.com/IBM/fp-go/retry"
+	"github.com/stretchr/testify/assert"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+var expLogBackoff = R.ExponentialBackoff(10)
+
+// our retry policy with a 1s cap
+var testLogPolicy = R.CapDelay(
+	2*time.Second,
+	R.Monoid.Concat(expLogBackoff, R.LimitRetries(20)),
+)
+
+func TestRetry(t *testing.T) {
+	action := func(status R.RetryStatus) Lazy[string] {
+		return Of(fmt.Sprintf("Retrying %d", status.IterNumber))
+	}
+	check := func(value string) bool {
+		return !strings.Contains(value, "5")
+	}
+
+	r := Retrying(testLogPolicy, action, check)
+
+	assert.Equal(t, "Retrying 5", r())
 }

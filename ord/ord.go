@@ -170,7 +170,7 @@ func Geq[A any](O Ord[A]) func(A) func(A) bool {
 	}
 }
 
-// Test whether a value is between a minimum (inclusive) and a maximum (exclusive)
+// Between tests whether a value is between a minimum (inclusive) and a maximum (exclusive)
 func Between[A any](O Ord[A]) func(A, A) func(A) bool {
 	lt := Lt(O)
 	geq := Geq(O)

@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package generic
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	F "github.com/IBM/fp-go/function"
+	M "github.com/IBM/fp-go/monoid"
+	O "github.com/IBM/fp-go/option"
+	T "github.com/IBM/fp-go/tuple"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+func Monoid[GU ~func() O.Option[T.Tuple2[GU, U]], U any]() M.Monoid[GU] {
+	return M.MakeMonoid(
+		F.Swap(concat[GU]),
+		Empty[GU](),
+	)
 }

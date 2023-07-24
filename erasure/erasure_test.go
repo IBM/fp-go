@@ -13,13 +13,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package erasure
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	"fmt"
+	"strings"
+	"testing"
+
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+func TestEither(t *testing.T) {
+
+	e1 := F.Pipe3(
+		E.Of[error](Erase("Carsten")),
+		E.Map[error](Erase1(strings.ToUpper)),
+		E.GetOrElse(func(e error) any {
+			return Erase("Error")
+		}),
+		Unerase[string],
+	)
+
+	fmt.Println(e1)
 }

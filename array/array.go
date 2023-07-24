@@ -144,7 +144,7 @@ func Append[A any](as []A, a A) []A {
 }
 
 func IsEmpty[A any](as []A) bool {
-	return array.IsEmpty(as)
+	return G.IsEmpty(as)
 }
 
 func IsNonEmpty[A any](as []A) bool {
@@ -181,12 +181,11 @@ func Ap[B, A any](fa []A) func([]func(A) B) []B {
 }
 
 func Match[A, B any](onEmpty func() B, onNonEmpty func([]A) B) func([]A) B {
-	return func(as []A) B {
-		if IsEmpty(as) {
-			return onEmpty()
-		}
-		return onNonEmpty(as)
-	}
+	return G.Match[[]A](onEmpty, onNonEmpty)
+}
+
+func MatchLeft[A, B any](onEmpty func() B, onNonEmpty func(A, []A) B) func([]A) B {
+	return G.MatchLeft[[]A](onEmpty, onNonEmpty)
 }
 
 func Tail[A any](as []A) O.Option[[]A] {

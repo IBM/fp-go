@@ -13,13 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package iooption
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	G "github.com/IBM/fp-go/iooption/generic"
+	R "github.com/IBM/fp-go/retry"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+// Retrying will retry the actions according to the check policy
+func Retrying[A any](
+	policy R.RetryPolicy,
+	action func(R.RetryStatus) IOOption[A],
+	check func(A) bool,
+) IOOption[A] {
+	return G.Retrying(policy, action, check)
 }

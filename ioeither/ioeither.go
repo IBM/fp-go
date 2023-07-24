@@ -22,7 +22,7 @@ import (
 	O "github.com/IBM/fp-go/option"
 )
 
-// IO represents a synchronous computation that may fail
+// IOEither represents a synchronous computation that may fail
 // refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
 type IOEither[E, A any] I.IO[ET.Either[E, A]]
 

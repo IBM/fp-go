@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package lazy
 
 import (
-	G "github.com/IBM/fp-go/readerioeither/generic"
+	EQ "github.com/IBM/fp-go/eq"
+	G "github.com/IBM/fp-go/io/generic"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, L, E, R any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, any]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
-	return G.WithResource[ReaderIOEither[L, E, A]](onCreate, onRelease)
+// Eq implements the equals predicate for values contained in the IO monad
+func Eq[A any](e EQ.Eq[A]) EQ.Eq[Lazy[A]] {
+	return G.Eq[Lazy[A]](e)
 }
