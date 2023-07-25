@@ -68,7 +68,7 @@ func ToArray[GU ~func() O.Option[T.Tuple2[GU, U]], US ~[]U, U any](u GU) US {
 	return Reduce[GU](A.Append[US], A.Empty[US]())(u)
 }
 
-func Map[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](f func(U) V) func(ma GU) GV {
+func Map[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) V, U, V any](f FCT) func(ma GU) GV {
 	// pre-declare to avoid cyclic reference
 	var m func(O.Option[T.Tuple2[GU, U]]) O.Option[T.Tuple2[GV, V]]
 
@@ -160,10 +160,44 @@ func MakeBy[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(int) U, U any](n int
 		)),
 	)
 
+	// bootstrap
 	return recurse(0)
 }
 
 // Replicate creates an [Iterator] containing a value repeated the specified number of times.
 func Replicate[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int, a U) GU {
 	return MakeBy[GU](n, F.Constant1[int](a))
+}
+
+func FilterMap[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) O.Option[V], U, V any](f FCT) func(ma GU) GV {
+	// pre-declare to avoid cyclic reference
+	var m func(O.Option[T.Tuple2[GU, U]]) O.Option[T.Tuple2[GV, V]]
+
+	recurse := func(ma GU) GV {
+		return F.Nullary2(
+			ma,
+			m,
+		)
+	}
+
+	m = O.Fold(
+		Empty[GV](),
+		func(t T.Tuple2[GU, U]) O.Option[T.Tuple2[GV, V]] {
+			r := recurse(t.F1)
+			return O.MonadFold(f(t.F2), r, F.Flow2(
+				F.Bind1st(T.MakeTuple2[GV, V], r),
+				O.Some[T.Tuple2[GV, V]],
+			))
+		},
+	)
+
+	return recurse
+}
+
+func Filter[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) bool, U any](f FCT) func(ma GU) GU {
+	return FilterMap[GU, GU](O.FromPredicate(f))
+}
+
+func Ap[GUV ~func() O.Option[T.Tuple2[GUV, func(U) V]], GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](ma GU) func(fab GUV) GV {
+	return Chain[GV, GUV](F.Bind1st(MonadMap[GV, GU], ma))
 }

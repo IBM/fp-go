@@ -73,6 +73,11 @@ func Flatten[U any](ma Iterator[Iterator[U]]) Iterator[U] {
 	return G.Flatten[Iterator[Iterator[U]], Iterator[U]](ma)
 }
 
+// From constructs an [Iterator] from a set of variadic arguments
+func From[U any](data ...U) Iterator[U] {
+	return G.From[Iterator[U]](data...)
+}
+
 // MakeBy returns an [Iterator] with `n` elements initialized with `f(i)`
 func MakeBy[FCT ~func(int) U, U any](n int, f FCT) Iterator[U] {
 	return G.MakeBy[Iterator[U]](n, f)
@@ -81,4 +86,19 @@ func MakeBy[FCT ~func(int) U, U any](n int, f FCT) Iterator[U] {
 // Replicate creates an [Iterator] containing a value repeated the specified number of times.
 func Replicate[U any](n int, a U) Iterator[U] {
 	return G.Replicate[Iterator[U]](n, a)
+}
+
+// FilterMap filters and transforms the content of an iterator
+func FilterMap[U, V any](f func(U) O.Option[V]) func(ma Iterator[U]) Iterator[V] {
+	return G.FilterMap[Iterator[V], Iterator[U]](f)
+}
+
+// Filter filters the content of an iterator
+func Filter[U any](f func(U) bool) func(ma Iterator[U]) Iterator[U] {
+	return G.Filter[Iterator[U]](f)
+}
+
+// Ap is the applicative functor for iterators
+func Ap[U, V any](ma Iterator[U]) func(Iterator[func(U) V]) Iterator[V] {
+	return G.Ap[Iterator[func(U) V], Iterator[V]](ma)
 }
