@@ -31,5 +31,8 @@ func Commands() []*C.Command {
 		ContextReaderIOEitherCommand(),
 		ReaderIOEitherCommand(),
 		ReaderCommand(),
+		IOEitherCommand(),
+		IOCommand(),
+		IOOptionCommand(),
 	}
 }

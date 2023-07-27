@@ -17,11 +17,13 @@ package stateless
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
+	O "github.com/IBM/fp-go/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +40,7 @@ func TestIterator(t *testing.T) {
 
 func TestChain(t *testing.T) {
 
-	outer := FromArray[int](A.From(1, 2, 3))
+	outer := From(1, 2, 3)
 
 	inner := func(data int) Iterator[string] {
 		return F.Pipe2(
@@ -57,4 +59,45 @@ func TestChain(t *testing.T) {
 	)
 
 	assert.Equal(t, A.From("item[1][0]", "item[1][1]", "item[2][0]", "item[2][1]", "item[3][0]", "item[3][1]"), total)
+}
+
+func isPrimeNumber(num int) bool {
+	if num <= 2 {
+		return true
+	}
+	sq_root := int(math.Sqrt(float64(num)))
+	for i := 2; i <= sq_root; i++ {
+		if num%i == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func TestFilterMap(t *testing.T) {
+
+	it := F.Pipe2(
+		MakeBy(100, utils.Inc),
+		FilterMap(O.FromPredicate(isPrimeNumber)),
+		ToArray[int],
+	)
+
+	assert.Equal(t, A.From(1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97), it)
+}
+
+func TestAp(t *testing.T) {
+
+	f := F.Curry3(func(s1 string, n int, s2 string) string {
+		return fmt.Sprintf("%s-%d-%s", s1, n, s2)
+	})
+
+	it := F.Pipe4(
+		Of(f),
+		Ap[func(int) func(string) string](From("a", "b")),
+		Ap[func(string) string](From(1, 2)),
+		Ap[string](From("c", "d")),
+		ToArray[string],
+	)
+
+	assert.Equal(t, A.From("a-1-c", "a-1-d", "a-2-c", "a-2-d", "b-1-c", "b-1-d", "b-2-c", "b-2-d"), it)
 }

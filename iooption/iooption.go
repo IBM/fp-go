@@ -82,11 +82,11 @@ func Chain[A, B any](f func(A) IOOption[B]) func(IOOption[A]) IOOption[B] {
 }
 
 func MonadAp[B, A any](mab IOOption[func(A) B], ma IOOption[A]) IOOption[B] {
-	return G.MonadAp[IOOption[A], IOOption[B]](mab, ma)
+	return G.MonadAp[IOOption[B]](mab, ma)
 }
 
 func Ap[B, A any](ma IOOption[A]) func(IOOption[func(A) B]) IOOption[B] {
-	return G.Ap[IOOption[A], IOOption[B], IOOption[func(A) B]](ma)
+	return G.Ap[IOOption[B], IOOption[func(A) B]](ma)
 }
 
 func Flatten[A any](mma IOOption[IOOption[A]]) IOOption[A] {

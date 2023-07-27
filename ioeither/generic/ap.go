@@ -23,7 +23,7 @@ import (
 // MonadApFirst combines two effectful actions, keeping only the result of the first.
 func MonadApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~func() ET.Either[E, func(B) A], E, A, B any](first GA, second GB) GA {
 	return G.MonadApFirst(
-		MonadAp[GB, GA, GBA, E, B, A],
+		MonadAp[GA, GBA, GB],
 		MonadMap[GA, GBA, E, A, func(B) A],
 
 		first,
@@ -34,7 +34,7 @@ func MonadApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~f
 // ApFirst combines two effectful actions, keeping only the result of the first.
 func ApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~func() ET.Either[E, func(B) A], E, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
-		MonadAp[GB, GA, GBA, E, B, A],
+		MonadAp[GA, GBA, GB],
 		MonadMap[GA, GBA, E, A, func(B) A],
 
 		second,
@@ -44,7 +44,7 @@ func ApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~func()
 // MonadApSecond combines two effectful actions, keeping only the result of the second.
 func MonadApSecond[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBB ~func() ET.Either[E, func(B) B], E, A, B any](first GA, second GB) GB {
 	return G.MonadApSecond(
-		MonadAp[GB, GB, GBB, E, B, B],
+		MonadAp[GB, GBB, GB],
 		MonadMap[GA, GBB, E, A, func(B) B],
 
 		first,
@@ -55,7 +55,7 @@ func MonadApSecond[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBB ~
 // ApSecond combines two effectful actions, keeping only the result of the second.
 func ApSecond[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBB ~func() ET.Either[E, func(B) B], E, A, B any](second GB) func(GA) GB {
 	return G.ApSecond(
-		MonadAp[GB, GB, GBB, E, B, B],
+		MonadAp[GB, GBB, GB],
 		MonadMap[GA, GBB, E, A, func(B) B],
 
 		second,

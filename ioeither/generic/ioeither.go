@@ -144,37 +144,37 @@ func ChainEitherK[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, 
 	return F.Bind2nd(MonadChainEitherK[GA, GB, E, A, B], f)
 }
 
-func MonadAp[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](mab GAB, ma GA) GB {
+func MonadAp[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](mab GAB, ma GA) GB {
 	return eithert.MonadAp(
 		IO.MonadAp[GA, GB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, A], ET.Either[E, B]],
 		IO.MonadMap[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
 		mab, ma)
 }
 
-func Ap[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadAp[GA, GB, GAB, E, A, B], ma)
+func Ap[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadAp[GB, GAB, GA], ma)
 }
 
-func MonadApSeq[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](mab GAB, ma GA) GB {
+func MonadApSeq[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](mab GAB, ma GA) GB {
 	return eithert.MonadAp(
 		IO.MonadApSeq[GA, GB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, A], ET.Either[E, B]],
 		IO.MonadMap[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
 		mab, ma)
 }
 
-func ApSeq[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadApSeq[GA, GB, GAB, E, A, B], ma)
+func ApSeq[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadApSeq[GB, GAB, GA], ma)
 }
 
-func MonadApPar[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](mab GAB, ma GA) GB {
+func MonadApPar[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](mab GAB, ma GA) GB {
 	return eithert.MonadAp(
 		IO.MonadApPar[GA, GB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, A], ET.Either[E, B]],
 		IO.MonadMap[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
 		mab, ma)
 }
 
-func ApPar[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], E, A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadApPar[GA, GB, GAB, E, A, B], ma)
+func ApPar[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadApPar[GB, GAB, GA], ma)
 }
 
 func Flatten[GA ~func() ET.Either[E, A], GAA ~func() ET.Either[E, GA], E, A any](mma GAA) GA {
@@ -189,79 +189,6 @@ func TryCatch[GA ~func() ET.Either[E, A], E, A any](f func() (A, error), onThrow
 
 func TryCatchError[GA ~func() ET.Either[error, A], A any](f func() (A, error)) GA {
 	return TryCatch[GA](f, errors.IdentityError)
-}
-
-func Eitherize0[GEA ~func() ET.Either[error, A], GA ~func() (A, error), A any](f GA) func() GEA {
-	ef := ET.Eitherize0(f)
-	return func() GEA {
-		return MakeIO(ef)
-	}
-}
-
-func Uneitherize0[GEA ~func() ET.Either[error, A], GTA ~func() GEA, A any](f GTA) func() (A, error) {
-	return func() (A, error) {
-		return ET.Unwrap(f()())
-	}
-}
-
-func Eitherize1[GEA ~func() ET.Either[error, A], GA ~func(t1 T1) (A, error), T1, A any](f GA) func(T1) GEA {
-	ef := ET.Eitherize1(f)
-	return func(t1 T1) GEA {
-		return MakeIO[GEA](func() ET.Either[error, A] {
-			return ef(t1)
-		})
-	}
-}
-
-func Uneitherize1[GEA ~func() ET.Either[error, A], GTA ~func(t1 T1) GEA, T1, A any](f GTA) func(T1) (A, error) {
-	return func(t1 T1) (A, error) {
-		return ET.Unwrap(f(t1)())
-	}
-}
-
-func Eitherize2[GEA ~func() ET.Either[error, A], GA ~func(t1 T1, t2 T2) (A, error), T1, T2, A any](f GA) func(T1, T2) GEA {
-	ef := ET.Eitherize2(f)
-	return func(t1 T1, t2 T2) GEA {
-		return MakeIO[GEA](func() ET.Either[error, A] {
-			return ef(t1, t2)
-		})
-	}
-}
-
-func Uneitherize2[GEA ~func() ET.Either[error, A], GTA ~func(t1 T1, t2 T2) GEA, T1, T2, A any](f GTA) func(T1, T2) (A, error) {
-	return func(t1 T1, t2 T2) (A, error) {
-		return ET.Unwrap(f(t1, t2)())
-	}
-}
-
-func Eitherize3[GEA ~func() ET.Either[error, A], GA ~func(t1 T1, t2 T2, t3 T3) (A, error), T1, T2, T3, A any](f GA) func(T1, T2, T3) GEA {
-	ef := ET.Eitherize3(f)
-	return func(t1 T1, t2 T2, t3 T3) GEA {
-		return MakeIO[GEA](func() ET.Either[error, A] {
-			return ef(t1, t2, t3)
-		})
-	}
-}
-
-func Uneitherize3[GEA ~func() ET.Either[error, A], GTA ~func(t1 T1, t2 T2, t3 T3) GEA, T1, T2, T3, A any](f GTA) func(T1, T2, T3) (A, error) {
-	return func(t1 T1, t2 T2, t3 T3) (A, error) {
-		return ET.Unwrap(f(t1, t2, t3)())
-	}
-}
-
-func Eitherize4[GEA ~func() ET.Either[error, A], GA ~func(t1 T1, t2 T2, t3 T3, t4 T4) (A, error), T1, T2, T3, T4, A any](f GA) func(T1, T2, T3, T4) GEA {
-	ef := ET.Eitherize4(f)
-	return func(t1 T1, t2 T2, t3 T3, t4 T4) GEA {
-		return MakeIO[GEA](func() ET.Either[error, A] {
-			return ef(t1, t2, t3, t4)
-		})
-	}
-}
-
-func Uneitherize4[GEA ~func() ET.Either[error, A], GTA ~func(t1 T1, t2 T2, t3 T3, t4 T4) GEA, T1, T2, T3, T4, A any](f GTA) func(T1, T2, T3, T4) (A, error) {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4) (A, error) {
-		return ET.Unwrap(f(t1, t2, t3, t4)())
-	}
 }
 
 // Memoize computes the value of the provided IO monad lazily but exactly once

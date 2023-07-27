@@ -16,10 +16,9 @@
 package array
 
 import (
-	F "github.com/IBM/fp-go/function"
-	M "github.com/IBM/fp-go/magma"
+	M "github.com/IBM/fp-go/monoid"
 )
 
-func ConcatAll[A any](m M.Magma[A]) func(A) func([]A) A {
-	return F.Bind1st(Reduce[A, A], m.Concat)
+func ConcatAll[A any](m M.Monoid[A]) func([]A) A {
+	return Reduce(m.Concat, m.Empty())
 }

@@ -13,14 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package number
+package iooption
 
-import (
-	M "github.com/IBM/fp-go/magma"
-)
-
-func MagmaSub[A Number]() M.Magma[A] {
-	return M.MakeMagma(func(first A, second A) A {
-		return first - second
-	})
-}
+//go:generate go run .. iooption --count 10 --filename gen.go

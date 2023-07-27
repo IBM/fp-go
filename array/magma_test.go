@@ -20,16 +20,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	M "github.com/IBM/fp-go/magma"
+	M "github.com/IBM/fp-go/monoid"
 )
 
-var subInt = M.MakeMagma(func(first int, second int) int {
+var subInt = M.MakeMonoid(func(first int, second int) int {
 	return first - second
-})
+}, 0)
 
 func TestConcatAll(t *testing.T) {
 
-	var subAll = ConcatAll(subInt)(0)
+	var subAll = ConcatAll(subInt)
 
 	assert.Equal(t, subAll([]int{1, 2, 3}), -6)
 

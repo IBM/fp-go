@@ -73,6 +73,41 @@ This library aims to provide a set of data types and functions that make it easy
 
 The library itself also comprises many small functions, but it's admittedly harder to maintain than code that uses it. However this asymmetry is intended because it offloads complexity from users into a central component.
 
+## Comparation to Idiomatic Go
+
+In this section we discuss how the functional APIs differ from idiomatic go function signatures and how to convert back and forth.
+
+### Pure functions
+
+Pure functions are functions that take input parameters and that compute an output without changing any global state and without mutating the input parameters. They will always return the same output for the same input.
+
+#### Without Errors
+
+If your pure function does not return an error, the idiomatic signature is just fine and no changes are required.
+
+#### With Errors
+
+If your pure function can return an error, then it will have a `(T, error)` return value in idiomatic go. In functional style the return value is [Either[error, T]](./either/) because function composition is easier with such a return type. Use the `EitherizeXXX` methods in ["github.com/IBM/fp-go/either"](./either/) to convert from idiomatic to functional style and `UneitherizeXXX` to convert from functional to idiomatic style.
+
+### Effectful functions
+
+An effectful function (or function with a side effect) is one that changes data outside the scope of the function or that does not always produce the same output for the same input (because it depends on some external, mutable state). There is no special way in idiomatic go to identify such a function other than documentation. In functional style we represent them as functions that do not take an input but that produce an output. The base type for these functions is [IO[T]](./io) because in many cases such functions represent `I/O` operations. 
+
+#### Without Errors
+
+If your effectful function does not return an error, the functional signature is [IO[T]](./io)
+
+#### With Errors
+
+If your effectful function can return an error, the functional signature is [IOEither[error, T]](./ioeither). Use `EitherizeXXX` from ["github.com/IBM/fp-go/ioeither"](./ioeither/) to convert an idiomatic go function to functional style.
+
+### Go Context
+
+Functions that take a [context](https://pkg.go.dev/context) are per definition effectful because they depend on the context parameter that is designed to be mutable (it can e.g. be used to cancel a running operation). Furthermore in idiomatic go the parameter is typically passed as the first parameter to a function. 
+
+In functional style we isolate the [context](https://pkg.go.dev/context) and represent the nature of the effectful function as an [IOEither[error, T]](./ioeither). The resulting type is [ReaderIOEither[T]](./readerioeither), a function taking a [context](https://pkg.go.dev/context) that returns a function without parameters returning an [Either[error, T]](./either/). Use the `EitherizeXXX` methods from ["github.com/IBM/fp-go/context/readerioeither"](./context/readerioeither/) to convert an idiomatic go function with a [context](https://pkg.go.dev/context) to functional style. 
+
+
 ## Implementation Notes
 
 ### Generics

@@ -111,11 +111,11 @@ func ChainEitherK[E, A, B any](f func(A) ET.Either[E, B]) func(IOEither[E, A]) I
 }
 
 func MonadAp[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEither[E, B] {
-	return G.MonadAp[IOEither[E, A], IOEither[E, B]](mab, ma)
+	return G.MonadAp[IOEither[E, B]](mab, ma)
 }
 
 func Ap[B, E, A any](ma IOEither[E, A]) func(IOEither[E, func(A) B]) IOEither[E, B] {
-	return G.Ap[IOEither[E, A], IOEither[E, B], IOEither[E, func(A) B]](ma)
+	return G.Ap[IOEither[E, B], IOEither[E, func(A) B]](ma)
 }
 
 func Flatten[E, A any](mma IOEither[E, IOEither[E, A]]) IOEither[E, A] {
@@ -128,26 +128,6 @@ func TryCatch[E, A any](f func() (A, error), onThrow func(error) E) IOEither[E, 
 
 func TryCatchError[A any](f func() (A, error)) IOEither[error, A] {
 	return G.TryCatchError[IOEither[error, A]](f)
-}
-
-func Eitherize0[A any](f func() (A, error)) func() IOEither[error, A] {
-	return G.Eitherize0[IOEither[error, A]](f)
-}
-
-func Eitherize1[T1, A any](f func(t1 T1) (A, error)) func(T1) IOEither[error, A] {
-	return G.Eitherize1[IOEither[error, A]](f)
-}
-
-func Eitherize2[T1, T2, A any](f func(t1 T1, t2 T2) (A, error)) func(T1, T2) IOEither[error, A] {
-	return G.Eitherize2[IOEither[error, A]](f)
-}
-
-func Eitherize3[T1, T2, T3, A any](f func(t1 T1, t2 T2, t3 T3) (A, error)) func(T1, T2, T3) IOEither[error, A] {
-	return G.Eitherize3[IOEither[error, A]](f)
-}
-
-func Eitherize4[T1, T2, T3, T4, A any](f func(t1 T1, t2 T2, t3 T3, t4 T4) (A, error)) func(T1, T2, T3, T4) IOEither[error, A] {
-	return G.Eitherize4[IOEither[error, A]](f)
 }
 
 func Memoize[E, A any](ma IOEither[E, A]) IOEither[E, A] {

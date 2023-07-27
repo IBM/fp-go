@@ -34,3 +34,7 @@ type Integer interface {
 type Float interface {
 	~float32 | ~float64
 }
+
+type Complex interface {
+	~complex64 | ~complex128
+}
