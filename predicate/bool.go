@@ -17,7 +17,7 @@ package predicate
 
 func Not[A any](predicate func(A) bool) func(A) bool {
 	return func(a A) bool {
-		return !predicate((a))
+		return !predicate(a)
 	}
 }
 

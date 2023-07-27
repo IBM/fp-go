@@ -31,7 +31,7 @@ func Empty[U any]() Iterator[U] {
 }
 
 // Of returns an iterator with one single element
-func Of[GU ~func() O.Option[T.Tuple2[GU, U]], U any](a U) Iterator[U] {
+func Of[U any](a U) Iterator[U] {
 	return G.Of[Iterator[U]](a)
 }
 
@@ -99,6 +99,11 @@ func Filter[U any](f func(U) bool) func(ma Iterator[U]) Iterator[U] {
 }
 
 // Ap is the applicative functor for iterators
-func Ap[U, V any](ma Iterator[U]) func(Iterator[func(U) V]) Iterator[V] {
+func Ap[V, U any](ma Iterator[U]) func(Iterator[func(U) V]) Iterator[V] {
 	return G.Ap[Iterator[func(U) V], Iterator[V]](ma)
+}
+
+// MonadAp is the applicative functor for iterators
+func MonadAp[V, U any](fab Iterator[func(U) V], ma Iterator[U]) Iterator[V] {
+	return G.MonadAp[Iterator[func(U) V], Iterator[V]](fab, ma)
 }

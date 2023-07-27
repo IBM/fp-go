@@ -23,17 +23,17 @@ import (
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple
 
 func SequenceT1[A any](a Lazy[A]) Lazy[T.Tuple1[A]] {
-	return G.SequenceT1[Lazy[A], Lazy[T.Tuple1[A]]](a)
+	return G.SequenceT1[Lazy[T.Tuple1[A]]](a)
 }
 
 func SequenceT2[A, B any](a Lazy[A], b Lazy[B]) Lazy[T.Tuple2[A, B]] {
-	return G.SequenceT2[Lazy[A], Lazy[B], Lazy[T.Tuple2[A, B]]](a, b)
+	return G.SequenceT2[Lazy[T.Tuple2[A, B]]](a, b)
 }
 
 func SequenceT3[A, B, C any](a Lazy[A], b Lazy[B], c Lazy[C]) Lazy[T.Tuple3[A, B, C]] {
-	return G.SequenceT3[Lazy[A], Lazy[B], Lazy[C], Lazy[T.Tuple3[A, B, C]]](a, b, c)
+	return G.SequenceT3[Lazy[T.Tuple3[A, B, C]]](a, b, c)
 }
 
 func SequenceT4[A, B, C, D any](a Lazy[A], b Lazy[B], c Lazy[C], d Lazy[D]) Lazy[T.Tuple4[A, B, C, D]] {
-	return G.SequenceT4[Lazy[A], Lazy[B], Lazy[C], Lazy[D], Lazy[T.Tuple4[A, B, C, D]]](a, b, c, d)
+	return G.SequenceT4[Lazy[T.Tuple4[A, B, C, D]]](a, b, c, d)
 }

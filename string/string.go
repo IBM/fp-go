@@ -16,6 +16,7 @@
 package string
 
 import (
+	"fmt"
 	"strings"
 
 	F "github.com/IBM/fp-go/function"
@@ -61,4 +62,11 @@ func Includes(searchString string) func(string) bool {
 // Equals returns a predicate that tests if a string is equal
 func Equals(other string) func(string) bool {
 	return F.Bind2nd(Eq, other)
+}
+
+// Format applies a format string to an arbitrary value
+func Format[T any](format string) func(t T) string {
+	return func(t T) string {
+		return fmt.Sprintf(format, t)
+	}
 }

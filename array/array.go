@@ -230,7 +230,7 @@ func Intersperse[A any](middle A) func([]A) []A {
 }
 
 func Intercalate[A any](m M.Monoid[A]) func(A) func([]A) A {
-	concatAll := ConcatAll[A](m)(m.Empty())
+	concatAll := ConcatAll[A](m)
 	return func(middle A) func([]A) A {
 		return Match(m.Empty, F.Flow2(Intersperse(middle), concatAll))
 	}

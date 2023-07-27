@@ -27,7 +27,7 @@ func MonadTraverseArray[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS
 	return RA.MonadTraverse[AAS](
 		Of[GBS, E, BBS],
 		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
-		Ap[GB, GBS, func() ET.Either[E, func(B) BBS], E, B, BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
 
 		tas,
 		f,
@@ -39,7 +39,7 @@ func TraverseArray[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], AA
 	return RA.Traverse[AAS](
 		Of[GBS, E, BBS],
 		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
-		Ap[GB, GBS, func() ET.Either[E, func(B) BBS], E, B, BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
 
 		f,
 	)
@@ -55,7 +55,7 @@ func MonadTraverseRecord[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BB
 	return RR.MonadTraverse[AAS](
 		Of[GBS, E, BBS],
 		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
-		Ap[GB, GBS, func() ET.Either[E, func(B) BBS], E, B, BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
 
 		tas,
 		f,
@@ -67,7 +67,7 @@ func TraverseRecord[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], A
 	return RR.Traverse[AAS](
 		Of[GBS, E, BBS],
 		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
-		Ap[GB, GBS, func() ET.Either[E, func(B) BBS], E, B, BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
 
 		f,
 	)

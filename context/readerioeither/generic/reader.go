@@ -220,7 +220,7 @@ func MonadApPar[
 			fabIOE := withCancelCauseFunc(cancelSub, cfab(ctxSub))
 			faIOE := withCancelCauseFunc(cancelSub, cfa(ctxSub))
 
-			return IOE.MonadApPar[GIOA, GIOB, GIOAB](fabIOE, faIOE)()
+			return IOE.MonadApPar[GIOB, GIOAB](fabIOE, faIOE)()
 		}
 	}
 }

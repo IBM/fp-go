@@ -101,15 +101,15 @@ func ChainIOK[GA ~func() O.Option[A], GB ~func() O.Option[B], GR ~func() B, A, B
 	)
 }
 
-func MonadAp[GA ~func() O.Option[A], GB ~func() O.Option[B], GAB ~func() O.Option[func(A) B], A, B any](mab GAB, ma GA) GB {
+func MonadAp[GB ~func() O.Option[B], GAB ~func() O.Option[func(A) B], GA ~func() O.Option[A], A, B any](mab GAB, ma GA) GB {
 	return optiont.MonadAp(
 		IO.MonadAp[GA, GB, func() func(O.Option[A]) O.Option[B], O.Option[A], O.Option[B]],
 		IO.MonadMap[GAB, func() func(O.Option[A]) O.Option[B], O.Option[func(A) B], func(O.Option[A]) O.Option[B]],
 		mab, ma)
 }
 
-func Ap[GA ~func() O.Option[A], GB ~func() O.Option[B], GAB ~func() O.Option[func(A) B], A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadAp[GA, GB, GAB, A, B], ma)
+func Ap[GB ~func() O.Option[B], GAB ~func() O.Option[func(A) B], GA ~func() O.Option[A], A, B any](ma GA) func(GAB) GB {
+	return F.Bind2nd(MonadAp[GB, GAB, GA, A, B], ma)
 }
 
 func Flatten[GA ~func() O.Option[A], GAA ~func() O.Option[GA], A any](mma GAA) GA {

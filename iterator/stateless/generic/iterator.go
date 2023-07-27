@@ -201,3 +201,7 @@ func Filter[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) bool, U any](f FC
 func Ap[GUV ~func() O.Option[T.Tuple2[GUV, func(U) V]], GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](ma GU) func(fab GUV) GV {
 	return Chain[GV, GUV](F.Bind1st(MonadMap[GV, GU], ma))
 }
+
+func MonadAp[GUV ~func() O.Option[T.Tuple2[GUV, func(U) V]], GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](fab GUV, ma GU) GV {
+	return Ap[GUV, GV, GU](ma)(fab)
+}

@@ -16,11 +16,21 @@
 package number
 
 import (
-	M "github.com/IBM/fp-go/magma"
+	C "github.com/IBM/fp-go/constraints"
 )
 
-func MagmaSub[A Number]() M.Magma[A] {
-	return M.MakeMagma(func(first A, second A) A {
-		return first - second
-	})
+type Number interface {
+	C.Integer | C.Float | C.Complex
+}
+
+// Add is a curried function used to add two numbers
+func Add[T Number](left T) func(T) T {
+	return func(right T) T {
+		return left + right
+	}
+}
+
+// Inc is a function that increments a number
+func Inc[T Number](value T) T {
+	return value + 1
 }
