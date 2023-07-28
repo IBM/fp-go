@@ -280,3 +280,11 @@ func IsNonNil[A any](as []A) bool {
 func ConstNil[A any]() []A {
 	return array.ConstNil[[]A]()
 }
+
+func SliceRight[A any](start int) func([]A) []A {
+	return G.SliceRight[[]A](start)
+}
+
+func Copy[A any](b []A) []A {
+	return G.Copy(b)
+}

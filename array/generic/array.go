@@ -180,3 +180,21 @@ func MatchLeft[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(A, AS) B) fu
 		return onNonEmpty(as[0], as[1:])
 	}
 }
+
+func Slice[AS ~[]A, A any](start int, end int) func(AS) AS {
+	return func(a AS) AS {
+		return a[start:end]
+	}
+}
+
+func SliceRight[AS ~[]A, A any](start int) func(AS) AS {
+	return func(a AS) AS {
+		return a[start:]
+	}
+}
+
+func Copy[AS ~[]A, A any](b AS) AS {
+	buf := make(AS, len(b))
+	copy(buf, b)
+	return buf
+}
