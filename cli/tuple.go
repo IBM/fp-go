@@ -361,8 +361,10 @@ func generateTupleHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, `
 import (
+	"fmt"
+	"encoding/json"
 	M "github.com/IBM/fp-go/monoid"
-	O "github.com/IBM/fp-go/ord"
+	O "github.com/IBM/fp-go/ord"	
 )
 `)
 
@@ -386,10 +388,202 @@ import (
 		generateMap(f, i)
 		// generate replicate
 		generateReplicate(f, i)
+		// generate tuple functions such as string and fmt
+		generateTupleString(f, i)
+		// generate json support
+		generateTupleMarshal(f, i)
+		// generate json support
+		generateTupleUnmarshal(f, i)
+		// generate toArray
+		generateToArray(f, i)
+		// generate fromArray
+		generateFromArray(f, i)
 	}
 
 	return nil
 }
+
+func generateTupleMarshal(f *os.File, i int) {
+	// Create the stringify version
+	fmt.Fprintf(f, "\n// MarshalJSON marshals the [Tuple%d] into a JSON array\n", i)
+	fmt.Fprintf(f, "func (t ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") MarshalJSON() ([]byte, error) {\n")
+	fmt.Fprintf(f, "  return json.Marshal([]any{")
+	// function prototypes
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t.F%d", j)
+	}
+	fmt.Fprintf(f, "})\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateTupleUnmarshal(f *os.File, i int) {
+	// Create the stringify version
+	fmt.Fprintf(f, "\n// UnmarshalJSON unmarshals a JSON array into a [Tuple%d]\n", i)
+	fmt.Fprintf(f, "func (t *")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") UnmarshalJSON(data []byte) error {\n")
+	fmt.Fprintf(f, "  var tmp []json.RawMessage\n")
+	fmt.Fprintf(f, "  if err := json.Unmarshal(data, &tmp); err != nil {return err}\n")
+	fmt.Fprintf(f, "  l := len(tmp)\n")
+	// unmarshal fields
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, "  if l > %d {\n", j-1)
+		fmt.Fprintf(f, "  if err := json.Unmarshal(tmp[%d], &t.F%d); err != nil {return err}\n", j-1, j)
+	}
+	fmt.Fprintf(f, "  ")
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, "}")
+	}
+	fmt.Fprintf(f, "\n  return nil\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateToArray(f *os.File, i int) {
+	// Create the stringify version
+	fmt.Fprintf(f, "\n// ToArray converts the [Tuple%d] into an array of type [R] using %d transformation functions from [T] to [R]\n// The inverse function is [FromArray%d]\n", i, i, i)
+	fmt.Fprintf(f, "func ToArray%d[", i)
+	// function prototypes
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "F%d ~func(T%d) R", j, j)
+	}
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
+	}
+	fmt.Fprintf(f, ", R any](")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "f%d F%d", j, j)
+	}
+	fmt.Fprintf(f, ") func(t ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") []R {\n")
+	fmt.Fprintf(f, "  return func(t ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") []R {\n")
+	fmt.Fprintf(f, "    return []R{\n")
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, "      f%d(t.F%d),\n", j, j)
+	}
+	fmt.Fprintf(f, "    }\n")
+	fmt.Fprintf(f, "  }\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateFromArray(f *os.File, i int) {
+	// Create the stringify version
+	fmt.Fprintf(f, "\n// FromArray converts an array of [R] into a [Tuple%d] using %d functions from [R] to [T]\n// The inverse function is [ToArray%d]\n", i, i, i)
+	fmt.Fprintf(f, "func FromArray%d[", i)
+	// function prototypes
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "F%d ~func(R) T%d", j, j)
+	}
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
+	}
+	fmt.Fprintf(f, ", R any](")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "f%d F%d", j, j)
+	}
+	fmt.Fprintf(f, ") func(r []R) ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, " {\n")
+	fmt.Fprintf(f, "  return func(r []R) ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, " {\n")
+	fmt.Fprintf(f, "    return MakeTuple%d(\n", i)
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, "      f%d(r[%d]),\n", j, j-1)
+	}
+	fmt.Fprintf(f, "    )\n")
+	fmt.Fprintf(f, "  }\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+func generateTupleString(f *os.File, i int) {
+	// Create the stringify version
+	fmt.Fprintf(f, "\n// String prints some debug info for the [Tuple%d]\n", i)
+	fmt.Fprintf(f, "func (t ")
+	writeTupleType(f, "T", i)
+	fmt.Fprintf(f, ") String() string {\n")
+	// convert to string
+	fmt.Fprintf(f, "  return fmt.Sprintf(\"Tuple%d[", i)
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "%s", "%T")
+	}
+	fmt.Fprintf(f, "](")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "%s", "%v")
+	}
+	fmt.Fprintf(f, ")\", ")
+	for j := 1; j <= i; j++ {
+		if j > 1 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t.F%d", j)
+	}
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, ", t.F%d", j)
+	}
+	fmt.Fprintf(f, ")\n")
+	fmt.Fprintf(f, "}\n")
+}
+
+// func generateTupleJson(f *os.File, i int) {
+// 	// Create the stringify version
+// 	fmt.Fprintf(f, "\n// MarshalJSON converts the [Tuple%d] into a JSON byte stream\n", i)
+// 	fmt.Fprintf(f, "func (t ")
+// 	writeTupleType(f, "T", i)
+// 	fmt.Fprintf(f, ") MarshalJSON() ([]byte, error) {\n")
+// 	// convert to string
+// 	fmt.Fprintf(f, "  return fmt.Sprintf(\"Tuple%d[", i)
+// 	for j := 1; j <= i; j++ {
+// 		if j > 1 {
+// 			fmt.Fprintf(f, ", ")
+// 		}
+// 		fmt.Fprintf(f, "%s", "%T")
+// 	}
+// 	fmt.Fprintf(f, "](")
+// 	for j := 1; j <= i; j++ {
+// 		if j > 1 {
+// 			fmt.Fprintf(f, ", ")
+// 		}
+// 		fmt.Fprintf(f, "%s", "%v")
+// 	}
+// 	fmt.Fprintf(f, ")\", ")
+// 	for j := 1; j <= i; j++ {
+// 		if j > 1 {
+// 			fmt.Fprintf(f, ", ")
+// 		}
+// 		fmt.Fprintf(f, "t.F%d", j)
+// 	}
+// 	for j := 1; j <= i; j++ {
+// 		fmt.Fprintf(f, ", t.F%d", j)
+// 	}
+// 	fmt.Fprintf(f, ")\n")
+// 	fmt.Fprintf(f, "}\n")
+// }
 
 func TupleCommand() *C.Command {
 	return &C.Command{

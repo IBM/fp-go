@@ -1,6 +1,6 @@
 # Functional programming library for golang
 
-**🚧 Work in progress! 🚧** Despite major version 1 because of https://github.com/semantic-release/semantic-release/issues/1507. Trying to not make breaking changes, but devil is in the details. 
+**🚧 Work in progress! 🚧** Despite major version 1 because of <https://github.com/semantic-release/semantic-release/issues/1507>. Trying to not make breaking changes, but devil is in the details.
 
 ![logo](resources/images/logo.png)
 
@@ -12,7 +12,7 @@ This library is strongly influenced by the awesome [fp-ts](https://github.com/gc
 go get github.com/IBM/fp-go
 ```
 
-Refer to the [samples](./samples/). 
+Refer to the [samples](./samples/).
 
 ## Design Goal
 
@@ -65,7 +65,7 @@ This library aims to provide a set of data types and functions that make it easy
 
 #### 🧘🏽 Moderation is a virtue
 
-✔️ The library does not implement its own goroutines and also does not require any expensive synchronization primitives. Coordination of IO operations is implemented via atomic counters without additional primitives. 
+✔️ The library does not implement its own goroutines and also does not require any expensive synchronization primitives. Coordination of IO operations is implemented via atomic counters without additional primitives.
 
 #### 🧘🏽 Maintainability counts
 
@@ -87,26 +87,25 @@ If your pure function does not return an error, the idiomatic signature is just 
 
 #### With Errors
 
-If your pure function can return an error, then it will have a `(T, error)` return value in idiomatic go. In functional style the return value is [Either[error, T]](./either/) because function composition is easier with such a return type. Use the `EitherizeXXX` methods in ["github.com/IBM/fp-go/either"](./either/) to convert from idiomatic to functional style and `UneitherizeXXX` to convert from functional to idiomatic style.
+If your pure function can return an error, then it will have a `(T, error)` return value in idiomatic go. In functional style the return value is [Either[error, T]](https://pkg.go.dev/github.com/IBM/fp-go/either) because function composition is easier with such a return type. Use the `EitherizeXXX` methods in ["github.com/IBM/fp-go/either"](https://pkg.go.dev/github.com/IBM/fp-go/either) to convert from idiomatic to functional style and `UneitherizeXXX` to convert from functional to idiomatic style.
 
 ### Effectful functions
 
-An effectful function (or function with a side effect) is one that changes data outside the scope of the function or that does not always produce the same output for the same input (because it depends on some external, mutable state). There is no special way in idiomatic go to identify such a function other than documentation. In functional style we represent them as functions that do not take an input but that produce an output. The base type for these functions is [IO[T]](./io) because in many cases such functions represent `I/O` operations. 
+An effectful function (or function with a side effect) is one that changes data outside the scope of the function or that does not always produce the same output for the same input (because it depends on some external, mutable state). There is no special way in idiomatic go to identify such a function other than documentation. In functional style we represent them as functions that do not take an input but that produce an output. The base type for these functions is [IO[T]](https://pkg.go.dev/github.com/IBM/fp-go/io) because in many cases such functions represent `I/O` operations.
 
 #### Without Errors
 
-If your effectful function does not return an error, the functional signature is [IO[T]](./io)
+If your effectful function does not return an error, the functional signature is [IO[T]](https://pkg.go.dev/github.com/IBM/fp-go/io)
 
 #### With Errors
 
-If your effectful function can return an error, the functional signature is [IOEither[error, T]](./ioeither). Use `EitherizeXXX` from ["github.com/IBM/fp-go/ioeither"](./ioeither/) to convert an idiomatic go function to functional style.
+If your effectful function can return an error, the functional signature is [IOEither[error, T]](https://pkg.go.dev/github.com/IBM/fp-go/ioeither). Use `EitherizeXXX` from ["github.com/IBM/fp-go/ioeither"](https://pkg.go.dev/github.com/IBM/fp-go/ioeither) to convert an idiomatic go function to functional style.
 
 ### Go Context
 
-Functions that take a [context](https://pkg.go.dev/context) are per definition effectful because they depend on the context parameter that is designed to be mutable (it can e.g. be used to cancel a running operation). Furthermore in idiomatic go the parameter is typically passed as the first parameter to a function. 
+Functions that take a [context](https://pkg.go.dev/context) are per definition effectful because they depend on the context parameter that is designed to be mutable (it can e.g. be used to cancel a running operation). Furthermore in idiomatic go the parameter is typically passed as the first parameter to a function.
 
-In functional style we isolate the [context](https://pkg.go.dev/context) and represent the nature of the effectful function as an [IOEither[error, T]](./ioeither). The resulting type is [ReaderIOEither[T]](./readerioeither), a function taking a [context](https://pkg.go.dev/context) that returns a function without parameters returning an [Either[error, T]](./either/). Use the `EitherizeXXX` methods from ["github.com/IBM/fp-go/context/readerioeither"](./context/readerioeither/) to convert an idiomatic go function with a [context](https://pkg.go.dev/context) to functional style. 
-
+In functional style we isolate the [context](https://pkg.go.dev/context) and represent the nature of the effectful function as an [IOEither[error, T]](https://pkg.go.dev/github.com/IBM/fp-go/ioeither). The resulting type is [ReaderIOEither[T]](https://pkg.go.dev/github.com/IBM/fp-go/context/readerioeither), a function taking a [context](https://pkg.go.dev/context) that returns a function without parameters returning an [Either[error, T]](https://pkg.go.dev/github.com/IBM/fp-go/either). Use the `EitherizeXXX` methods from ["github.com/IBM/fp-go/context/readerioeither"](https://pkg.go.dev/github.com/IBM/fp-go/context/readerioeither) to convert an idiomatic go function with a [context](https://pkg.go.dev/context) to functional style.
 
 ## Implementation Notes
 
