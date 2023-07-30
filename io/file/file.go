@@ -17,21 +17,23 @@ package file
 
 import (
 	"io"
+	"os"
 
-	IOE "github.com/IBM/fp-go/ioeither"
+	IO "github.com/IBM/fp-go/io"
 )
 
-func onReadAll[R io.Reader](r R) IOE.IOEither[error, []byte] {
-	return IOE.TryCatchError(func() ([]byte, error) {
-		return io.ReadAll(r)
+// Close closes a closeable resource and ignores a potential error
+func Close[R io.Closer](r R) IO.IO[R] {
+	return IO.MakeIO[R](func() R {
+		r.Close() // #nosec: G104
+		return r
 	})
 }
 
-// ReadAll uses a generator function to create a stream, reads it and closes it
-func ReadAll[R io.ReadCloser](acquire IOE.IOEither[error, R]) IOE.IOEither[error, []byte] {
-	return IOE.WithResource[[]byte](
-		acquire,
-		onClose[R])(
-		onReadAll[R],
-	)
+// Remove removes a resource and ignores a potential error
+func Remove(name string) IO.IO[string] {
+	return IO.MakeIO[string](func() string {
+		os.Remove(name) // #nosec: G104
+		return name
+	})
 }

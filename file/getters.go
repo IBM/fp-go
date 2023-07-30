@@ -15,23 +15,9 @@
 
 package file
 
-import (
-	"io"
+import "os"
 
-	IOE "github.com/IBM/fp-go/ioeither"
-)
-
-func onReadAll[R io.Reader](r R) IOE.IOEither[error, []byte] {
-	return IOE.TryCatchError(func() ([]byte, error) {
-		return io.ReadAll(r)
-	})
-}
-
-// ReadAll uses a generator function to create a stream, reads it and closes it
-func ReadAll[R io.ReadCloser](acquire IOE.IOEither[error, R]) IOE.IOEither[error, []byte] {
-	return IOE.WithResource[[]byte](
-		acquire,
-		onClose[R])(
-		onReadAll[R],
-	)
+// GetName is the getter for the `Name` property of [os.File]
+func GetName(f *os.File) string {
+	return f.Name()
 }

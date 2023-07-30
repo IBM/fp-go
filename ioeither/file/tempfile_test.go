@@ -16,22 +16,31 @@
 package file
 
 import (
-	"io"
+	"os"
+	"testing"
 
+	E "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
 	IOE "github.com/IBM/fp-go/ioeither"
+	"github.com/stretchr/testify/assert"
 )
 
-func onReadAll[R io.Reader](r R) IOE.IOEither[error, []byte] {
-	return IOE.TryCatchError(func() ([]byte, error) {
-		return io.ReadAll(r)
-	})
+func TestWithTempFile(t *testing.T) {
+
+	res := WithTempFile(onWriteAll[*os.File]([]byte("Carsten")))
+
+	assert.Equal(t, E.Of[error]([]byte("Carsten")), res())
 }
 
-// ReadAll uses a generator function to create a stream, reads it and closes it
-func ReadAll[R io.ReadCloser](acquire IOE.IOEither[error, R]) IOE.IOEither[error, []byte] {
-	return IOE.WithResource[[]byte](
-		acquire,
-		onClose[R])(
-		onReadAll[R],
-	)
+func TestWithTempFileOnClosedFile(t *testing.T) {
+
+	res := WithTempFile(func(f *os.File) IOE.IOEither[error, []byte] {
+		return F.Pipe2(
+			f,
+			onWriteAll[*os.File]([]byte("Carsten")),
+			IOE.ChainFirst(F.Constant1[[]byte](onClose(f))),
+		)
+	})
+
+	assert.Equal(t, E.Of[error]([]byte("Carsten")), res())
 }

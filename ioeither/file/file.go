@@ -24,14 +24,24 @@ import (
 var (
 	// Open opens a file for reading
 	Open = IOE.Eitherize1(os.Open)
+	// Create opens a file for writing
+	Create = IOE.Eitherize1(os.Create)
 	// ReadFile reads the context of a file
 	ReadFile = IOE.Eitherize1(os.ReadFile)
-	// WriteFile writes a data blob to a file
-	WriteFile = func(dstName string, perm os.FileMode) func([]byte) IOE.IOEither[error, []byte] {
-		return func(data []byte) IOE.IOEither[error, []byte] {
-			return IOE.TryCatchError(func() ([]byte, error) {
-				return data, os.WriteFile(dstName, data, perm)
-			})
-		}
-	}
 )
+
+// WriteFile writes a data blob to a file
+func WriteFile(dstName string, perm os.FileMode) func([]byte) IOE.IOEither[error, []byte] {
+	return func(data []byte) IOE.IOEither[error, []byte] {
+		return IOE.TryCatchError(func() ([]byte, error) {
+			return data, os.WriteFile(dstName, data, perm)
+		})
+	}
+}
+
+// Remove removes a file by name
+func Remove(name string) IOE.IOEither[error, string] {
+	return IOE.TryCatchError(func() (string, error) {
+		return name, os.Remove(name)
+	})
+}

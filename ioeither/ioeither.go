@@ -192,7 +192,7 @@ func ChainFirstIOK[E, A, B any](f func(A) I.IO[B]) func(IOEither[E, A]) IOEither
 }
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[E, R, A, ANY any](onCreate IOEither[E, R], onRelease func(R) IOEither[E, ANY]) func(func(R) IOEither[E, A]) IOEither[E, A] {
+func WithResource[A, E, R, ANY any](onCreate IOEither[E, R], onRelease func(R) IOEither[E, ANY]) func(func(R) IOEither[E, A]) IOEither[E, A] {
 	return G.WithResource[IOEither[E, A]](onCreate, onRelease)
 }
 

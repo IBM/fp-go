@@ -34,7 +34,7 @@ func onWriteAll[W io.Writer](data []byte) func(w W) IOE.IOEither[error, []byte] 
 func WriteAll[W io.WriteCloser](data []byte) func(acquire IOE.IOEither[error, W]) IOE.IOEither[error, []byte] {
 	onWrite := onWriteAll[W](data)
 	return func(onCreate IOE.IOEither[error, W]) IOE.IOEither[error, []byte] {
-		return IOE.WithResource[error, W, []byte](
+		return IOE.WithResource[[]byte](
 			onCreate,
 			onClose[W])(
 			onWrite,
@@ -43,8 +43,8 @@ func WriteAll[W io.WriteCloser](data []byte) func(acquire IOE.IOEither[error, W]
 }
 
 // Write uses a generator function to create a stream, writes data to it and closes it
-func Write[W io.WriteCloser, R any](acquire IOE.IOEither[error, W]) func(use func(W) IOE.IOEither[error, R]) IOE.IOEither[error, R] {
-	return IOE.WithResource[error, W, R](
+func Write[R any, W io.WriteCloser](acquire IOE.IOEither[error, W]) func(use func(W) IOE.IOEither[error, R]) IOE.IOEither[error, R] {
+	return IOE.WithResource[R](
 		acquire,
 		onClose[W])
 }
