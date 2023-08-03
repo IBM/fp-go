@@ -13,21 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lambda
+package stateless
 
-type (
-	// RecFct is the function called recursively
-	RecFct[T, R any] func(T) R
+import (
+	"testing"
 
-	internalCombinator[T, R any] func(internalCombinator[T, R]) RecFct[T, R]
+	"github.com/stretchr/testify/assert"
 )
 
-// Y is the Y-combinator based on https://dreamsongs.com/Files/WhyOfY.pdf
-func Y[TRFRM ~func(RecFct[T, R]) RecFct[T, R], T, R any](f TRFRM) RecFct[T, R] {
-	g := func(h internalCombinator[T, R]) RecFct[T, R] {
-		return func(t T) R {
-			return f(h(h))(t)
-		}
-	}
-	return g(g)
+func TestUniq(t *testing.T) {
+	// iterator with duplicate items
+	dups := From(1, 2, 3, 1, 4, 5, 2)
+
+	u := StrictUniq(dups)
+
+	assert.Equal(t, ToArray(From(1, 2, 3, 4, 5)), ToArray(u))
 }
