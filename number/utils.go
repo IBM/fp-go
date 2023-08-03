@@ -34,3 +34,19 @@ func Add[T Number](left T) func(T) T {
 func Inc[T Number](value T) T {
 	return value + 1
 }
+
+// Min takes the minimum of two values. If they are considered equal, the first argument is chosen
+func Min[A C.Ordered](a, b A) A {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// Max takes the maximum of two values. If they are considered equal, the first argument is chosen
+func Max[A C.Ordered](a, b A) A {
+	if a > b {
+		return a
+	}
+	return b
+}
