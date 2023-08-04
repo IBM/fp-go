@@ -17,27 +17,27 @@ package generic
 
 import (
 	F "github.com/IBM/fp-go/function"
-	N "github.com/IBM/fp-go/number/integer"
 	O "github.com/IBM/fp-go/option"
 	T "github.com/IBM/fp-go/tuple"
 )
 
-func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
-	// pre-declare to avoid cyclic reference
-	var recurse func(ma GU, idx int) GU
+func Cycle[GU ~func() O.Option[T.Tuple2[GU, U]], U any](ma GU) GU {
+	// avoid cyclic references
+	var m func(O.Option[T.Tuple2[GU, U]]) O.Option[T.Tuple2[GU, U]]
 
-	fromPred := O.FromPredicate(N.Between(0, n))
-
-	recurse = func(ma GU, idx int) GU {
-		return F.Nullary3(
-			F.Constant(idx),
-			fromPred,
-			O.Chain(F.Ignore1of1[int](F.Nullary2(
-				ma,
-				O.Map(T.Map2(F.Bind2nd(recurse, idx+1), F.Identity[U])),
-			))),
+	recurse := func(mu GU) GU {
+		return F.Nullary2(
+			mu,
+			m,
 		)
 	}
 
-	return F.Bind2nd(recurse, 0)
+	m = O.Fold(func() O.Option[T.Tuple2[GU, U]] {
+		return recurse(ma)()
+	}, F.Flow2(
+		T.Map2(recurse, F.Identity[U]),
+		O.Of[T.Tuple2[GU, U]],
+	))
+
+	return recurse(ma)
 }

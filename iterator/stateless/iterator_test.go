@@ -76,8 +76,9 @@ func isPrimeNumber(num int) bool {
 
 func TestFilterMap(t *testing.T) {
 
-	it := F.Pipe2(
-		MakeBy(100, utils.Inc),
+	it := F.Pipe3(
+		MakeBy(utils.Inc),
+		Take[int](100),
 		FilterMap(O.FromPredicate(isPrimeNumber)),
 		ToArray[int],
 	)

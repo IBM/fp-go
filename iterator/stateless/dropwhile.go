@@ -13,31 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package stateless
 
 import (
-	F "github.com/IBM/fp-go/function"
-	N "github.com/IBM/fp-go/number/integer"
-	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	G "github.com/IBM/fp-go/iterator/stateless/generic"
 )
 
-func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
-	// pre-declare to avoid cyclic reference
-	var recurse func(ma GU, idx int) GU
-
-	fromPred := O.FromPredicate(N.Between(0, n))
-
-	recurse = func(ma GU, idx int) GU {
-		return F.Nullary3(
-			F.Constant(idx),
-			fromPred,
-			O.Chain(F.Ignore1of1[int](F.Nullary2(
-				ma,
-				O.Map(T.Map2(F.Bind2nd(recurse, idx+1), F.Identity[U])),
-			))),
-		)
-	}
-
-	return F.Bind2nd(recurse, 0)
+// DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
+// Note, the [Iterator] does not produce any output until the predicate first becomes false
+func DropWhile[U any](pred func(U) bool) func(Iterator[U]) Iterator[U] {
+	return G.DropWhile[Iterator[U]](pred)
 }

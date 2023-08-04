@@ -13,31 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package stateless
 
 import (
-	F "github.com/IBM/fp-go/function"
-	N "github.com/IBM/fp-go/number/integer"
-	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	"testing"
+
+	A "github.com/IBM/fp-go/array"
+	"github.com/stretchr/testify/assert"
 )
 
-func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
-	// pre-declare to avoid cyclic reference
-	var recurse func(ma GU, idx int) GU
+func TestCompress(t *testing.T) {
+	// sequence of 5 items
+	data := From(0, 1, 2, 3)
+	// select some of these items
+	selector := From(true, false, false, true)
+	// compressed result
+	compressed := Compress[int](selector)(data)
 
-	fromPred := O.FromPredicate(N.Between(0, n))
+	assert.Equal(t, A.From(0, 3), ToArray(compressed))
 
-	recurse = func(ma GU, idx int) GU {
-		return F.Nullary3(
-			F.Constant(idx),
-			fromPred,
-			O.Chain(F.Ignore1of1[int](F.Nullary2(
-				ma,
-				O.Map(T.Map2(F.Bind2nd(recurse, idx+1), F.Identity[U])),
-			))),
-		)
-	}
-
-	return F.Bind2nd(recurse, 0)
 }

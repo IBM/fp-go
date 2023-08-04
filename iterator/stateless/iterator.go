@@ -78,14 +78,14 @@ func From[U any](data ...U) Iterator[U] {
 	return G.From[Iterator[U]](data...)
 }
 
-// MakeBy returns an [Iterator] with `n` elements initialized with `f(i)`
-func MakeBy[FCT ~func(int) U, U any](n int, f FCT) Iterator[U] {
-	return G.MakeBy[Iterator[U]](n, f)
+// MakeBy returns an [Iterator] with an infinite number of elements initialized with `f(i)`
+func MakeBy[FCT ~func(int) U, U any](f FCT) Iterator[U] {
+	return G.MakeBy[Iterator[U]](f)
 }
 
-// Replicate creates an [Iterator] containing a value repeated the specified number of times.
-func Replicate[U any](n int, a U) Iterator[U] {
-	return G.Replicate[Iterator[U]](n, a)
+// Replicate creates an [Iterator] containing a value repeated an infinite number of times.
+func Replicate[U any](a U) Iterator[U] {
+	return G.Replicate[Iterator[U]](a)
 }
 
 // FilterMap filters and transforms the content of an iterator
@@ -106,4 +106,15 @@ func Ap[V, U any](ma Iterator[U]) func(Iterator[func(U) V]) Iterator[V] {
 // MonadAp is the applicative functor for iterators
 func MonadAp[V, U any](fab Iterator[func(U) V], ma Iterator[U]) Iterator[V] {
 	return G.MonadAp[Iterator[func(U) V], Iterator[V]](fab, ma)
+}
+
+// Repeat creates an [Iterator] containing a value repeated the specified number of times.
+// Alias of [Replicate]
+func Repeat[U any](n int, a U) Iterator[U] {
+	return G.Repeat[Iterator[U]](n, a)
+}
+
+// Count creates an [Iterator] containing a consecutive sequence of integers starting with the provided start value
+func Count(start int) Iterator[int] {
+	return G.Count[Iterator[int]](start)
 }
