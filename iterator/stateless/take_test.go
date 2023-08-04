@@ -18,19 +18,20 @@ package stateless
 import (
 	"testing"
 
+	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTake(t *testing.T) {
 
-	total := MakeBy(100, F.Identity[int])
+	total := MakeBy(F.Identity[int])
 
 	trimmed := F.Pipe1(
 		total,
 		Take[int](10),
 	)
 
-	assert.Equal(t, ToArray(MakeBy(10, F.Identity[int])), ToArray(trimmed))
+	assert.Equal(t, A.MakeBy(10, F.Identity[int]), ToArray(trimmed))
 
 }

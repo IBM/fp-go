@@ -20,7 +20,7 @@ import (
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
 	IO "github.com/IBM/fp-go/iooption/generic"
-	N "github.com/IBM/fp-go/number/integer"
+	N "github.com/IBM/fp-go/number"
 	O "github.com/IBM/fp-go/option"
 	T "github.com/IBM/fp-go/tuple"
 )
@@ -135,38 +135,49 @@ func Flatten[GV ~func() O.Option[T.Tuple2[GV, GU]], GU ~func() O.Option[T.Tuple2
 	return MonadChain(ma, F.Identity[GU])
 }
 
-// MakeBy returns an [Iterator] with `n` elements initialized with `f(i)`
-func MakeBy[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(int) U, U any](n int, f FCT) GU {
+// MakeBy returns an [Iterator] with an infinite number of elements initialized with `f(i)`
+func MakeBy[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(int) U, U any](f FCT) GU {
 
 	var m func(int) O.Option[T.Tuple2[GU, U]]
 
 	recurse := func(i int) GU {
-		return func() O.Option[T.Tuple2[GU, U]] {
-			return F.Pipe1(
-				i,
-				m,
-			)
-		}
+		return F.Nullary2(
+			F.Constant(i),
+			m,
+		)
 	}
 
-	m = F.Flow2(
-		O.FromPredicate(N.Between(0, n)),
-		O.Map(F.Flow2(
-			T.Replicate2[int],
-			T.Map2(F.Flow2(
-				utils.Inc,
-				recurse),
-				f),
-		)),
+	m = F.Flow3(
+		T.Replicate2[int],
+		T.Map2(F.Flow2(
+			utils.Inc,
+			recurse),
+			f),
+		O.Of[T.Tuple2[GU, U]],
 	)
 
 	// bootstrap
 	return recurse(0)
 }
 
-// Replicate creates an [Iterator] containing a value repeated the specified number of times.
-func Replicate[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int, a U) GU {
-	return MakeBy[GU](n, F.Constant1[int](a))
+// Replicate creates an infinite [Iterator] containing a value.
+func Replicate[GU ~func() O.Option[T.Tuple2[GU, U]], U any](a U) GU {
+	return MakeBy[GU](F.Constant1[int](a))
+}
+
+// Repeat creates an [Iterator] containing a value repeated the specified number of times.
+// Alias of [Replicate] combined with [Take]
+func Repeat[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int, a U) GU {
+	return F.Pipe2(
+		a,
+		Replicate[GU],
+		Take[GU](n),
+	)
+}
+
+// Count creates an [Iterator] containing a consecutive sequence of integers starting with the provided start value
+func Count[GU ~func() O.Option[T.Tuple2[GU, int]]](start int) GU {
+	return MakeBy[GU](N.Add(start))
 }
 
 func FilterMap[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) O.Option[V], U, V any](f FCT) func(ma GU) GV {

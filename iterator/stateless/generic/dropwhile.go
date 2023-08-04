@@ -17,27 +17,33 @@ package generic
 
 import (
 	F "github.com/IBM/fp-go/function"
-	N "github.com/IBM/fp-go/number/integer"
 	O "github.com/IBM/fp-go/option"
+	P "github.com/IBM/fp-go/predicate"
 	T "github.com/IBM/fp-go/tuple"
 )
 
-func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
-	// pre-declare to avoid cyclic reference
-	var recurse func(ma GU, idx int) GU
+// DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
+// Note, the [Iterator] does not produce any output until the predicate first becomes false
+func DropWhile[GU ~func() O.Option[T.Tuple2[GU, U]], U any](pred func(U) bool) func(GU) GU {
+	// avoid cyclic references
+	var m func(O.Option[T.Tuple2[GU, U]]) O.Option[T.Tuple2[GU, U]]
 
-	fromPred := O.FromPredicate(N.Between(0, n))
+	fromPred := O.FromPredicate(P.Not(P.ContraMap(T.Second[GU, U])(pred)))
 
-	recurse = func(ma GU, idx int) GU {
-		return F.Nullary3(
-			F.Constant(idx),
-			fromPred,
-			O.Chain(F.Ignore1of1[int](F.Nullary2(
-				ma,
-				O.Map(T.Map2(F.Bind2nd(recurse, idx+1), F.Identity[U])),
-			))),
+	recurse := func(mu GU) GU {
+		return F.Nullary2(
+			mu,
+			m,
 		)
 	}
 
-	return F.Bind2nd(recurse, 0)
+	m = O.Chain(func(t T.Tuple2[GU, U]) O.Option[T.Tuple2[GU, U]] {
+		return F.Pipe2(
+			t,
+			fromPred,
+			O.Fold(recurse(t.F1), O.Of[T.Tuple2[GU, U]]),
+		)
+	})
+
+	return recurse
 }

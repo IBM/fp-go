@@ -17,27 +17,18 @@ package generic
 
 import (
 	F "github.com/IBM/fp-go/function"
-	N "github.com/IBM/fp-go/number/integer"
 	O "github.com/IBM/fp-go/option"
 	T "github.com/IBM/fp-go/tuple"
 )
 
-func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
-	// pre-declare to avoid cyclic reference
-	var recurse func(ma GU, idx int) GU
-
-	fromPred := O.FromPredicate(N.Between(0, n))
-
-	recurse = func(ma GU, idx int) GU {
-		return F.Nullary3(
-			F.Constant(idx),
-			fromPred,
-			O.Chain(F.Ignore1of1[int](F.Nullary2(
-				ma,
-				O.Map(T.Map2(F.Bind2nd(recurse, idx+1), F.Identity[U])),
-			))),
-		)
-	}
-
-	return F.Bind2nd(recurse, 0)
+// Compress returns an [Iterator] that filters elements from a data [Iterator] returning only those that have a corresponding element in selector [Iterator] that evaluates to `true`.
+// Stops when either the data or selectors iterator has been exhausted.
+func Compress[GU ~func() O.Option[T.Tuple2[GU, U]], GB ~func() O.Option[T.Tuple2[GB, bool]], CS ~func() O.Option[T.Tuple2[CS, T.Tuple2[U, bool]]], U any](sel GB) func(GU) GU {
+	return F.Flow2(
+		Zip[GU, GB, CS](sel),
+		FilterMap[GU, CS](F.Flow2(
+			O.FromPredicate(T.Second[U, bool]),
+			O.Map(T.First[U, bool]),
+		)),
+	)
 }
