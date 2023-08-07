@@ -49,18 +49,21 @@ func FromArray[GU ~func() O.Option[T.Tuple2[GU, U]], US ~[]U, U any](as US) GU {
 	})(as)
 }
 
+// reduce applies a function for each value of the iterator with a floating result
+func reduce[GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](as GU, f func(V, U) V, initial V) V {
+	next, ok := O.Unwrap(as())
+	current := initial
+	for ok {
+		// next (with bad side effect)
+		current = f(current, next.F2)
+		next, ok = O.Unwrap(next.F1())
+	}
+	return current
+}
+
 // Reduce applies a function for each value of the iterator with a floating result
 func Reduce[GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](f func(V, U) V, initial V) func(GU) V {
-	return func(as GU) V {
-		next, ok := O.Unwrap(as())
-		current := initial
-		for ok {
-			// next (with bad side effect)
-			current = f(current, next.F2)
-			next, ok = O.Unwrap(next.F1())
-		}
-		return current
-	}
+	return F.Bind23of3(reduce[GU, U, V])(f, initial)
 }
 
 // ToArray converts the iterator to an array
