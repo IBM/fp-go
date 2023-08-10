@@ -18,12 +18,14 @@ package stateless
 import (
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
 	O "github.com/IBM/fp-go/option"
+	S "github.com/IBM/fp-go/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,4 +103,15 @@ func TestAp(t *testing.T) {
 	)
 
 	assert.Equal(t, A.From("a-1-c", "a-1-d", "a-2-c", "a-2-d", "b-1-c", "b-1-d", "b-2-c", "b-2-d"), it)
+}
+
+func ExampleFoldMap() {
+	src := From("a", "b", "c")
+
+	fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+
+	fmt.Println(fold(src))
+
+	// Output: ABC
+
 }

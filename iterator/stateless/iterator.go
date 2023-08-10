@@ -18,6 +18,7 @@ package stateless
 import (
 	G "github.com/IBM/fp-go/iterator/stateless/generic"
 	L "github.com/IBM/fp-go/lazy"
+	M "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
 	T "github.com/IBM/fp-go/tuple"
 )
@@ -122,4 +123,14 @@ func Count(start int) Iterator[int] {
 // FilterChain filters and transforms the content of an iterator
 func FilterChain[U, V any](f func(U) O.Option[Iterator[V]]) func(ma Iterator[U]) Iterator[V] {
 	return G.FilterChain[Iterator[Iterator[V]], Iterator[V], Iterator[U]](f)
+}
+
+// FoldMap maps and folds an iterator. Map the iterator passing each value to the iterating function. Then fold the results using the provided Monoid.
+func FoldMap[U, V any](m M.Monoid[V]) func(func(U) V) func(ma Iterator[U]) V {
+	return G.FoldMap[Iterator[U], func(U) V, U, V](m)
+}
+
+// Fold folds the iterator using the provided Monoid.
+func Fold[U any](m M.Monoid[U]) func(Iterator[U]) U {
+	return G.Fold[Iterator[U]](m)
 }

@@ -18,10 +18,12 @@ package record
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/IBM/fp-go/internal/utils"
 	O "github.com/IBM/fp-go/option"
+	S "github.com/IBM/fp-go/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -98,4 +100,34 @@ func TestFilterChain(t *testing.T) {
 		"a": "a1",
 		"c": "c3",
 	}, res)
+}
+
+func ExampleFoldMap() {
+	src := map[string]string{
+		"a": "a",
+		"b": "b",
+		"c": "c",
+	}
+
+	fold := FoldMap[string, string](S.Monoid)(strings.ToUpper)
+
+	fmt.Println(fold(src))
+
+	// Output: ABC
+
+}
+
+func ExampleValuesOrd() {
+	src := map[string]string{
+		"c": "a",
+		"b": "b",
+		"a": "c",
+	}
+
+	getValues := ValuesOrd[string](S.Ord)
+
+	fmt.Println(getValues(src))
+
+	// Output: [c b a]
+
 }

@@ -24,3 +24,8 @@ import (
 func Sort[T any](ord O.Ord[T]) func(ma []T) []T {
 	return G.Sort[[]T](ord)
 }
+
+// SortByKey implements a stable sort on the array given the provided ordering on an extracted key
+func SortByKey[K, T any](ord O.Ord[K], f func(T) K) func(ma []T) []T {
+	return G.SortByKey[[]T](ord, f)
+}

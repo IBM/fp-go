@@ -173,3 +173,22 @@ func TestFilterMap(t *testing.T) {
 
 	assert.Equal(t, From("a1", "a3"), res)
 }
+
+func TestFoldMap(t *testing.T) {
+	src := From("a", "b", "c")
+
+	fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+
+	assert.Equal(t, "ABC", fold(src))
+}
+
+func ExampleFoldMap() {
+	src := From("a", "b", "c")
+
+	fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+
+	fmt.Println(fold(src))
+
+	// Output: ABC
+
+}
