@@ -16,6 +16,7 @@
 package array
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -141,4 +142,34 @@ func TestPartition(t *testing.T) {
 
 	assert.Equal(t, T.MakeTuple2(Empty[int](), Empty[int]()), Partition(pred)(Empty[int]()))
 	assert.Equal(t, T.MakeTuple2(From(1), From(3)), Partition(pred)(From(1, 3)))
+}
+
+func TestFilterChain(t *testing.T) {
+	src := From(1, 2, 3)
+
+	f := func(i int) O.Option[[]string] {
+		if i%2 != 0 {
+			return O.Of(From(fmt.Sprintf("a%d", i), fmt.Sprintf("b%d", i)))
+		}
+		return O.None[[]string]()
+	}
+
+	res := FilterChain(f)(src)
+
+	assert.Equal(t, From("a1", "b1", "a3", "b3"), res)
+}
+
+func TestFilterMap(t *testing.T) {
+	src := From(1, 2, 3)
+
+	f := func(i int) O.Option[string] {
+		if i%2 != 0 {
+			return O.Of(fmt.Sprintf("a%d", i))
+		}
+		return O.None[string]()
+	}
+
+	res := FilterMap(f)(src)
+
+	assert.Equal(t, From("a1", "a3"), res)
 }

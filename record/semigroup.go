@@ -22,3 +22,11 @@ import (
 func UnionSemigroup[K comparable, V any](s S.Semigroup[V]) S.Semigroup[map[K]V] {
 	return G.UnionSemigroup[map[K]V](s)
 }
+
+func UnionLastSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
+	return G.UnionLastSemigroup[map[K]V]()
+}
+
+func UnionFirstSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
+	return G.UnionFirstSemigroup[map[K]V]()
+}

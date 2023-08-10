@@ -108,8 +108,14 @@ func MonadFilterMap[A, B any](fa []A, f func(a A) O.Option[B]) []B {
 	return G.MonadFilterMap[[]A, []B](fa, f)
 }
 
+// FilterChain maps an array with an iterating function that returns an [O.Option] and it keeps only the Some values discarding the Nones.
 func FilterMap[A, B any](f func(a A) O.Option[B]) func([]A) []B {
 	return G.FilterMap[[]A, []B](f)
+}
+
+// FilterChain maps an array with an iterating function that returns an [O.Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
+func FilterChain[A, B any](f func(A) O.Option[[]B]) func([]A) []B {
+	return G.FilterChain[[]A](f)
 }
 
 func FilterMapRef[A, B any](pred func(a *A) bool, f func(a *A) B) func([]A) []B {
@@ -237,7 +243,7 @@ func Intercalate[A any](m M.Monoid[A]) func(A) func([]A) A {
 }
 
 func Flatten[A any](mma [][]A) []A {
-	return MonadChain(mma, F.Identity[[]A])
+	return G.Flatten(mma)
 }
 
 func Slice[A any](low, high int) func(as []A) []A {

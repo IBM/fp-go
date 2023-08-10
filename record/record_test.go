@@ -16,6 +16,7 @@
 package record
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 
@@ -70,4 +71,31 @@ func TestLookup(t *testing.T) {
 	}
 	assert.Equal(t, O.Some("a"), Lookup[string, string]("a")(data))
 	assert.Equal(t, O.None[string](), Lookup[string, string]("a1")(data))
+}
+
+func TestFilterChain(t *testing.T) {
+	src := map[string]int{
+		"a": 1,
+		"b": 2,
+		"c": 3,
+	}
+
+	f := func(k string, value int) O.Option[map[string]string] {
+		if value%2 != 0 {
+			return O.Of(map[string]string{
+				k: fmt.Sprintf("%s%d", k, value),
+			})
+		}
+		return O.None[map[string]string]()
+	}
+
+	// monoid
+	monoid := MergeMonoid[string, string]()
+
+	res := FilterChainWithIndex[int](monoid)(f)(src)
+
+	assert.Equal(t, map[string]string{
+		"a": "a1",
+		"c": "c3",
+	}, res)
 }

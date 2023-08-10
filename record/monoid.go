@@ -21,6 +21,22 @@ import (
 	S "github.com/IBM/fp-go/semigroup"
 )
 
+// UnionMonoid computes the union of two maps of the same type
 func UnionMonoid[K comparable, V any](s S.Semigroup[V]) M.Monoid[map[K]V] {
 	return G.UnionMonoid[map[K]V](s)
+}
+
+// UnionLastMonoid computes the union of two maps of the same type giving the last map precedence
+func UnionLastMonoid[K comparable, V any]() M.Monoid[map[K]V] {
+	return G.UnionLastMonoid[map[K]V]()
+}
+
+// UnionFirstMonoid computes the union of two maps of the same type giving the first map precedence
+func UnionFirstMonoid[K comparable, V any]() M.Monoid[map[K]V] {
+	return G.UnionFirstMonoid[map[K]V]()
+}
+
+// MergeMonoid computes the union of two maps of the same type giving the last map precedence
+func MergeMonoid[K comparable, V any]() M.Monoid[map[K]V] {
+	return G.UnionLastMonoid[map[K]V]()
 }

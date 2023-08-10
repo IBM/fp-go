@@ -118,3 +118,8 @@ func Repeat[U any](n int, a U) Iterator[U] {
 func Count(start int) Iterator[int] {
 	return G.Count[Iterator[int]](start)
 }
+
+// FilterChain filters and transforms the content of an iterator
+func FilterChain[U, V any](f func(U) O.Option[Iterator[V]]) func(ma Iterator[U]) Iterator[V] {
+	return G.FilterChain[Iterator[Iterator[V]], Iterator[V], Iterator[U]](f)
+}
