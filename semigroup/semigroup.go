@@ -59,3 +59,8 @@ func First[A any]() Semigroup[A] {
 func Last[A any]() Semigroup[A] {
 	return MakeSemigroup(F.Second[A, A])
 }
+
+// ToMagma converts a semigroup to a magma
+func ToMagma[A any](s Semigroup[A]) M.Magma[A] {
+	return s
+}
