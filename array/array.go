@@ -294,3 +294,13 @@ func SliceRight[A any](start int) func([]A) []A {
 func Copy[A any](b []A) []A {
 	return G.Copy(b)
 }
+
+// FoldMap maps and folds an array. Map the Array passing each value to the iterating function. Then fold the results using the provided Monoid.
+func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func([]A) B {
+	return G.FoldMap[[]A](m)
+}
+
+// Fold folds the array using the provided Monoid.
+func Fold[A any](m M.Monoid[A]) func([]A) A {
+	return G.Fold[[]A](m)
+}

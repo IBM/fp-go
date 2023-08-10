@@ -16,11 +16,14 @@
 package generic
 
 import (
+	"sort"
+
 	F "github.com/IBM/fp-go/function"
 	G "github.com/IBM/fp-go/internal/record"
 	Mg "github.com/IBM/fp-go/magma"
 	Mo "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
+	"github.com/IBM/fp-go/ord"
 	T "github.com/IBM/fp-go/tuple"
 )
 
@@ -38,6 +41,46 @@ func Keys[M ~map[K]V, GK ~[]K, K comparable, V any](r M) GK {
 
 func Values[M ~map[K]V, GV ~[]V, K comparable, V any](r M) GV {
 	return collect[M, GV](r, F.Second[K, V])
+}
+
+func KeysOrd[M ~map[K]V, GK ~[]K, K comparable, V any](o ord.Ord[K]) func(r M) GK {
+	return func(r M) GK {
+		return collectOrd[M, GK](o, r, F.First[K, V])
+	}
+}
+
+func ValuesOrd[M ~map[K]V, GV ~[]V, K comparable, V any](o ord.Ord[K]) func(r M) GV {
+	return func(r M) GV {
+		return collectOrd[M, GV](o, r, F.Second[K, V])
+	}
+}
+
+func collectOrd[M ~map[K]V, GR ~[]R, K comparable, V, R any](o ord.Ord[K], r M, f func(K, V) R) GR {
+	// create the entries
+	entries := toEntriesOrd[M, []T.Tuple2[K, V]](o, r)
+	// collect this array
+	ft := T.Tupled2(f)
+	count := len(entries)
+	result := make(GR, count)
+	for i := count - 1; i >= 0; i-- {
+		result[i] = ft(entries[i])
+	}
+	// done
+	return result
+}
+
+func reduceOrd[M ~map[K]V, K comparable, V, R any](o ord.Ord[K], r M, f func(K, R, V) R, initial R) R {
+	// create the entries
+	entries := toEntriesOrd[M, []T.Tuple2[K, V]](o, r)
+	// collect this array
+	current := initial
+	count := len(entries)
+	for i := 0; i < count; i++ {
+		t := entries[i]
+		current = f(T.First(t), current, T.Second(t))
+	}
+	// done
+	return current
 }
 
 func collect[M ~map[K]V, GR ~[]R, K comparable, V, R any](r M, f func(K, V) R) GR {
@@ -250,6 +293,27 @@ func ToArray[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](r M) GT {
 	return collect[M, GT](r, T.MakeTuple2[K, V])
 }
 
+func toEntriesOrd[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](o ord.Ord[K], r M) GT {
+	// total number of elements
+	count := len(r)
+	// produce an array that we can sort by key
+	entries := make(GT, count)
+	idx := 0
+	for k, v := range r {
+		entries[idx] = T.MakeTuple2(k, v)
+		idx++
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return o.Compare(T.First(entries[i]), T.First(entries[j])) < 0
+	})
+	// final entries
+	return entries
+}
+
+func ToEntriesOrd[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](o ord.Ord[K]) func(r M) GT {
+	return F.Bind1st(toEntriesOrd[M, GT, K, V], o)
+}
+
 func ToEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](r M) GT {
 	return ToArray[M, GT](r)
 }
@@ -378,4 +442,68 @@ func IsNonNil[M ~map[K]V, K comparable, V any](m M) bool {
 // ConstNil return a nil map
 func ConstNil[M ~map[K]V, K comparable, V any]() M {
 	return (M)(nil)
+}
+
+func FoldMap[AS ~map[K]A, K comparable, A, B any](m Mo.Monoid[B]) func(func(A) B) func(AS) B {
+	return func(f func(A) B) func(AS) B {
+		return Reduce[AS](func(cur B, a A) B {
+			return m.Concat(cur, f(a))
+		}, m.Empty())
+	}
+}
+
+func Fold[AS ~map[K]A, K comparable, A any](m Mo.Monoid[A]) func(AS) A {
+	return Reduce[AS](m.Concat, m.Empty())
+}
+
+func FoldMapWithIndex[AS ~map[K]A, K comparable, A, B any](m Mo.Monoid[B]) func(func(K, A) B) func(AS) B {
+	return func(f func(K, A) B) func(AS) B {
+		return ReduceWithIndex[AS](func(k K, cur B, a A) B {
+			return m.Concat(cur, f(k, a))
+		}, m.Empty())
+	}
+}
+
+func ReduceOrdWithIndex[M ~map[K]V, K comparable, V, R any](o ord.Ord[K]) func(func(K, R, V) R, R) func(M) R {
+	return func(f func(K, R, V) R, initial R) func(M) R {
+		return func(m M) R {
+			return reduceOrd(o, m, f, initial)
+		}
+	}
+}
+
+func ReduceOrd[M ~map[K]V, K comparable, V, R any](o ord.Ord[K]) func(func(R, V) R, R) func(M) R {
+	ro := ReduceOrdWithIndex[M, K, V, R](o)
+	return func(f func(R, V) R, initial R) func(M) R {
+		return ro(F.Ignore1of3[K](f), initial)
+	}
+}
+
+func FoldMapOrd[AS ~map[K]A, K comparable, A, B any](o ord.Ord[K]) func(m Mo.Monoid[B]) func(func(A) B) func(AS) B {
+	red := ReduceOrd[AS, K, A, B](o)
+	return func(m Mo.Monoid[B]) func(func(A) B) func(AS) B {
+		return func(f func(A) B) func(AS) B {
+			return red(func(cur B, a A) B {
+				return m.Concat(cur, f(a))
+			}, m.Empty())
+		}
+	}
+}
+
+func FoldOrd[AS ~map[K]A, K comparable, A any](o ord.Ord[K]) func(m Mo.Monoid[A]) func(AS) A {
+	red := ReduceOrd[AS, K, A, A](o)
+	return func(m Mo.Monoid[A]) func(AS) A {
+		return red(m.Concat, m.Empty())
+	}
+}
+
+func FoldMapOrdWithIndex[AS ~map[K]A, K comparable, A, B any](o ord.Ord[K]) func(m Mo.Monoid[B]) func(func(K, A) B) func(AS) B {
+	red := ReduceOrdWithIndex[AS, K, A, B](o)
+	return func(m Mo.Monoid[B]) func(func(K, A) B) func(AS) B {
+		return func(f func(K, A) B) func(AS) B {
+			return red(func(k K, cur B, a A) B {
+				return m.Concat(cur, f(k, a))
+			}, m.Empty())
+		}
+	}
 }

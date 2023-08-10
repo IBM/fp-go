@@ -18,11 +18,17 @@ package generic
 import (
 	"sort"
 
+	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/ord"
 )
 
 // Sort implements a stable sort on the array given the provided ordering
 func Sort[GA ~[]T, T any](ord O.Ord[T]) func(ma GA) GA {
+	return SortByKey[GA](ord, F.Identity[T])
+}
+
+// SortByKey implements a stable sort on the array given the provided ordering on an extracted key
+func SortByKey[GA ~[]T, K, T any](ord O.Ord[K], f func(T) K) func(ma GA) GA {
 
 	return func(ma GA) GA {
 		// nothing to sort
@@ -34,7 +40,7 @@ func Sort[GA ~[]T, T any](ord O.Ord[T]) func(ma GA) GA {
 		cpy := make(GA, l)
 		copy(cpy, ma)
 		sort.Slice(cpy, func(i, j int) bool {
-			return ord.Compare(cpy[i], cpy[j]) < 0
+			return ord.Compare(f(cpy[i]), f(cpy[j])) < 0
 		})
 		return cpy
 	}

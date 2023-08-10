@@ -19,6 +19,7 @@ import (
 	Mg "github.com/IBM/fp-go/magma"
 	Mo "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
+	"github.com/IBM/fp-go/ord"
 	G "github.com/IBM/fp-go/record/generic"
 	T "github.com/IBM/fp-go/tuple"
 )
@@ -214,4 +215,54 @@ func FilterChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) f
 // FilterChain creates a new map with only the elements for which the transformation function creates a Some
 func FilterChain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) O.Option[map[K]V2]) func(map[K]V1) map[K]V2 {
 	return G.FilterChain[map[K]V1](m)
+}
+
+// FoldMap maps and folds a record. Map the record passing each value to the iterating function. Then fold the results using the provided Monoid.
+func FoldMap[K comparable, A, B any](m Mo.Monoid[B]) func(func(A) B) func(map[K]A) B {
+	return G.FoldMap[map[K]A](m)
+}
+
+// FoldMapWithIndex maps and folds a record. Map the record passing each value to the iterating function. Then fold the results using the provided Monoid.
+func FoldMapWithIndex[K comparable, A, B any](m Mo.Monoid[B]) func(func(K, A) B) func(map[K]A) B {
+	return G.FoldMapWithIndex[map[K]A](m)
+}
+
+// Fold folds the record using the provided Monoid.
+func Fold[K comparable, A any](m Mo.Monoid[A]) func(map[K]A) A {
+	return G.Fold[map[K]A](m)
+}
+
+// ReduceOrdWithIndex reduces a map into a single value via a reducer function making sure that the keys are passed to the reducer in the specified order
+func ReduceOrdWithIndex[V, R any, K comparable](o ord.Ord[K]) func(func(K, R, V) R, R) func(map[K]V) R {
+	return G.ReduceOrdWithIndex[map[K]V, K, V, R](o)
+}
+
+// ReduceOrd reduces a map into a single value via a reducer function making sure that the keys are passed to the reducer in the specified order
+func ReduceOrd[V, R any, K comparable](o ord.Ord[K]) func(func(R, V) R, R) func(map[K]V) R {
+	return G.ReduceOrd[map[K]V, K, V, R](o)
+}
+
+// FoldMap maps and folds a record. Map the record passing each value to the iterating function. Then fold the results using the provided Monoid and the items in the provided order
+func FoldMapOrd[A, B any, K comparable](o ord.Ord[K]) func(m Mo.Monoid[B]) func(func(A) B) func(map[K]A) B {
+	return G.FoldMapOrd[map[K]A, K, A, B](o)
+}
+
+// Fold folds the record using the provided Monoid with the items passed in the given order
+func FoldOrd[A any, K comparable](o ord.Ord[K]) func(m Mo.Monoid[A]) func(map[K]A) A {
+	return G.FoldOrd[map[K]A, K, A](o)
+}
+
+// FoldMapWithIndex maps and folds a record. Map the record passing each value to the iterating function. Then fold the results using the provided Monoid and the items in the provided order
+func FoldMapOrdWithIndex[K comparable, A, B any](o ord.Ord[K]) func(m Mo.Monoid[B]) func(func(K, A) B) func(map[K]A) B {
+	return G.FoldMapOrdWithIndex[map[K]A, K, A, B](o)
+}
+
+// KeysOrd returns the keys in the map in their given order
+func KeysOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []K {
+	return G.KeysOrd[map[K]V, []K, K, V](o)
+}
+
+// ValuesOrd returns the values in the map ordered by their keys in the given order
+func ValuesOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []V {
+	return G.ValuesOrd[map[K]V, []V, K, V](o)
 }

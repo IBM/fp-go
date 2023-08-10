@@ -20,6 +20,7 @@ import (
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
 	IO "github.com/IBM/fp-go/iooption/generic"
+	M "github.com/IBM/fp-go/monoid"
 	N "github.com/IBM/fp-go/number"
 	O "github.com/IBM/fp-go/option"
 	T "github.com/IBM/fp-go/tuple"
@@ -225,4 +226,16 @@ func FilterChain[GVV ~func() O.Option[T.Tuple2[GVV, GV]], GV ~func() O.Option[T.
 		FilterMap[GVV, GU](f),
 		Flatten[GVV],
 	)
+}
+
+func FoldMap[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) V, U, V any](m M.Monoid[V]) func(FCT) func(ma GU) V {
+	return func(f FCT) func(ma GU) V {
+		return Reduce[GU](func(cur V, a U) V {
+			return m.Concat(cur, f(a))
+		}, m.Empty())
+	}
+}
+
+func Fold[GU ~func() O.Option[T.Tuple2[GU, U]], U any](m M.Monoid[U]) func(ma GU) U {
+	return Reduce[GU](m.Concat, m.Empty())
 }

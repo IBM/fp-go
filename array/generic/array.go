@@ -18,6 +18,7 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/array"
+	M "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
 	"github.com/IBM/fp-go/tuple"
 )
@@ -208,4 +209,20 @@ func Copy[AS ~[]A, A any](b AS) AS {
 	buf := make(AS, len(b))
 	copy(buf, b)
 	return buf
+}
+
+func FoldMap[AS ~[]A, A, B any](m M.Monoid[B]) func(func(A) B) func(AS) B {
+	return func(f func(A) B) func(AS) B {
+		return func(as AS) B {
+			return array.Reduce(as, func(cur B, a A) B {
+				return m.Concat(cur, f(a))
+			}, m.Empty())
+		}
+	}
+}
+
+func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
+	return func(as AS) A {
+		return array.Reduce(as, m.Concat, m.Empty())
+	}
 }
