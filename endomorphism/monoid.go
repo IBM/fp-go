@@ -21,16 +21,12 @@ import (
 	S "github.com/IBM/fp-go/semigroup"
 )
 
-func concat[A any](first, second func(A) A) func(A) A {
-	return F.Flow2(first, second)
-}
-
 // Semigroup for the Endomorphism where the `concat` operation is the usual function composition.
 func Semigroup[A any]() S.Semigroup[func(A) A] {
-	return S.MakeSemigroup(concat[A])
+	return S.MakeSemigroup(F.Flow2[func(A) A, func(A) A])
 }
 
 // Monoid for the Endomorphism where the `concat` operation is the usual function composition.
 func Monoid[A any]() M.Monoid[func(A) A] {
-	return M.MakeMonoid(concat[A], F.Identity[A])
+	return M.MakeMonoid(F.Flow2[func(A) A, func(A) A], F.Identity[A])
 }

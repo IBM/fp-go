@@ -118,6 +118,17 @@ func MonadFilterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(a A) O.Option[B]) 
 	return filterMap[GA, GB](fa, f)
 }
 
+func FilterChain[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[GB]) func(GA) GB {
+	return F.Flow2(
+		FilterMap[GA, []GB](f),
+		Flatten[[]GB],
+	)
+}
+
+func Flatten[GAA ~[]GA, GA ~[]A, A any](mma GAA) GA {
+	return MonadChain(mma, F.Identity[GA])
+}
+
 func FilterMap[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[B]) func(GA) GB {
 	return F.Bind2nd(MonadFilterMap[GA, GB, A, B], f)
 }

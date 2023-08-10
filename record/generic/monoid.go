@@ -16,6 +16,7 @@
 package generic
 
 import (
+	F "github.com/IBM/fp-go/function"
 	M "github.com/IBM/fp-go/monoid"
 	S "github.com/IBM/fp-go/semigroup"
 )
@@ -23,6 +24,20 @@ import (
 func UnionMonoid[N ~map[K]V, K comparable, V any](s S.Semigroup[V]) M.Monoid[N] {
 	return M.MakeMonoid(
 		UnionSemigroup[N](s).Concat,
+		Empty[N](),
+	)
+}
+
+func UnionLastMonoid[N ~map[K]V, K comparable, V any]() M.Monoid[N] {
+	return M.MakeMonoid(
+		unionLast[N],
+		Empty[N](),
+	)
+}
+
+func UnionFirstMonoid[N ~map[K]V, K comparable, V any]() M.Monoid[N] {
+	return M.MakeMonoid(
+		F.Swap(unionLast[N]),
 		Empty[N](),
 	)
 }

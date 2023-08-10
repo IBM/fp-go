@@ -17,27 +17,33 @@ package record
 
 import (
 	Mg "github.com/IBM/fp-go/magma"
+	Mo "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
 	G "github.com/IBM/fp-go/record/generic"
 	T "github.com/IBM/fp-go/tuple"
 )
 
+// IsEmpty tests if a map is empty
 func IsEmpty[K comparable, V any](r map[K]V) bool {
 	return G.IsEmpty(r)
 }
 
+// IsNonEmpty tests if a map is not empty
 func IsNonEmpty[K comparable, V any](r map[K]V) bool {
 	return G.IsNonEmpty(r)
 }
 
+// Keys returns the key in a map
 func Keys[K comparable, V any](r map[K]V) []K {
 	return G.Keys[map[K]V, []K](r)
 }
 
+// Values returns the values in a map
 func Values[K comparable, V any](r map[K]V) []V {
 	return G.Values[map[K]V, []V](r)
 }
 
+// Collect applies a collector function to the key value pairs in a map and returns the result as an array
 func Collect[K comparable, V, R any](f func(K, V) R) func(map[K]V) []R {
 	return G.Collect[map[K]V, []R](f)
 }
@@ -90,10 +96,12 @@ func MapRefWithIndex[K comparable, V, R any](f func(K, *V) R) func(map[K]V) map[
 	return G.MapRefWithIndex[map[K]V, map[K]R](f)
 }
 
+// Lookup returns the entry for a key in a map if it exists
 func Lookup[K comparable, V any](k K) func(map[K]V) O.Option[V] {
 	return G.Lookup[map[K]V](k)
 }
 
+// Has tests if a key is contained in a map
 func Has[K comparable, V any](k K, r map[K]V) bool {
 	return G.Has(k, r)
 }
@@ -102,10 +110,17 @@ func Union[K comparable, V any](m Mg.Magma[V]) func(map[K]V) func(map[K]V) map[K
 	return G.Union[map[K]V](m)
 }
 
+// Merge combines two maps giving the values in the right one precedence. Also refer to [MergeMonoid]
+func Merge[K comparable, V any](right map[K]V) func(map[K]V) map[K]V {
+	return G.Merge[map[K]V](right)
+}
+
+// Empty creates an empty map
 func Empty[K comparable, V any]() map[K]V {
 	return G.Empty[map[K]V]()
 }
 
+// Size returns the number of elements in a map
 func Size[K comparable, V any](r map[K]V) int {
 	return G.Size(r)
 }
@@ -130,6 +145,7 @@ func DeleteAt[K comparable, V any](k K) func(map[K]V) map[K]V {
 	return G.DeleteAt[map[K]V](k)
 }
 
+// Singleton creates a new map with a single entry
 func Singleton[K comparable, V any](k K, v V) map[K]V {
 	return G.Singleton[map[K]V](k, v)
 }
@@ -167,4 +183,35 @@ func IsNonNil[K comparable, V any](m map[K]V) bool {
 // ConstNil return a nil map
 func ConstNil[K comparable, V any]() map[K]V {
 	return (map[K]V)(nil)
+}
+
+func MonadChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2], r map[K]V1, f func(K, V1) map[K]V2) map[K]V2 {
+	return G.MonadChainWithIndex(m, r, f)
+}
+
+func MonadChain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2], r map[K]V1, f func(V1) map[K]V2) map[K]V2 {
+	return G.MonadChain(m, r, f)
+}
+
+func ChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(K, V1) map[K]V2) func(map[K]V1) map[K]V2 {
+	return G.ChainWithIndex[map[K]V1](m)
+}
+
+func Chain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) map[K]V2) func(map[K]V1) map[K]V2 {
+	return G.Chain[map[K]V1](m)
+}
+
+// Flatten converts a nested map into a regular map
+func Flatten[K comparable, V any](m Mo.Monoid[map[K]V]) func(map[K]map[K]V) map[K]V {
+	return G.Flatten[map[K]map[K]V](m)
+}
+
+// FilterChainWithIndex creates a new map with only the elements for which the transformation function creates a Some
+func FilterChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(K, V1) O.Option[map[K]V2]) func(map[K]V1) map[K]V2 {
+	return G.FilterChainWithIndex[map[K]V1](m)
+}
+
+// FilterChain creates a new map with only the elements for which the transformation function creates a Some
+func FilterChain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) O.Option[map[K]V2]) func(map[K]V1) map[K]V2 {
+	return G.FilterChain[map[K]V1](m)
 }

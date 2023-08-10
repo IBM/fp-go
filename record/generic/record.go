@@ -19,6 +19,7 @@ import (
 	F "github.com/IBM/fp-go/function"
 	G "github.com/IBM/fp-go/internal/record"
 	Mg "github.com/IBM/fp-go/magma"
+	Mo "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
 	T "github.com/IBM/fp-go/tuple"
 )
@@ -82,6 +83,34 @@ func MonadMap[M ~map[K]V, N ~map[K]R, K comparable, V, R any](r M, f func(V) R) 
 	return MonadMapWithIndex[M, N](r, F.Ignore1of2[K](f))
 }
 
+func MonadChainWithIndex[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N], r M, f func(K, V1) N) N {
+	return G.ReduceWithIndex(r, func(k K, dst N, b V1) N {
+		return m.Concat(dst, f(k, b))
+	}, m.Empty())
+}
+
+func MonadChain[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N], r M, f func(V1) N) N {
+	return G.Reduce(r, func(dst N, b V1) N {
+		return m.Concat(dst, f(b))
+	}, m.Empty())
+}
+
+func ChainWithIndex[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N]) func(func(K, V1) N) func(M) N {
+	return func(f func(K, V1) N) func(M) N {
+		return func(ma M) N {
+			return MonadChainWithIndex(m, ma, f)
+		}
+	}
+}
+
+func Chain[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N]) func(func(V1) N) func(M) N {
+	return func(f func(V1) N) func(M) N {
+		return func(ma M) N {
+			return MonadChain(m, ma, f)
+		}
+	}
+}
+
 func MonadMapWithIndex[M ~map[K]V, N ~map[K]R, K comparable, V, R any](r M, f func(K, V) R) N {
 	return G.ReduceWithIndex(r, func(k K, dst N, v V) N {
 		return upsertAtReadWrite(dst, k, f(k, v))
@@ -114,15 +143,14 @@ func MapRefWithIndex[M ~map[K]V, N ~map[K]R, K comparable, V, R any](f func(K, *
 	return F.Bind2nd(MonadMapRefWithIndex[M, N, K, V, R], f)
 }
 
-func lookup[M ~map[K]V, K comparable, V any](r M, k K) O.Option[V] {
-	if val, ok := r[k]; ok {
-		return O.Some(val)
-	}
-	return O.None[V]()
-}
-
 func Lookup[M ~map[K]V, K comparable, V any](k K) func(M) O.Option[V] {
-	return F.Bind2nd(lookup[M, K, V], k)
+	n := O.None[V]()
+	return func(m M) O.Option[V] {
+		if val, ok := m[k]; ok {
+			return O.Some(val)
+		}
+		return n
+	}
 }
 
 func Has[M ~map[K]V, K comparable, V any](k K, r M) bool {
@@ -161,11 +189,52 @@ func union[M ~map[K]V, K comparable, V any](m Mg.Magma[V], left M, right M) M {
 	return result
 }
 
+func unionLast[M ~map[K]V, K comparable, V any](left M, right M) M {
+	lenLeft := len(left)
+
+	if lenLeft == 0 {
+		return right
+	}
+
+	lenRight := len(right)
+	if lenRight == 0 {
+		return left
+	}
+
+	result := make(M, lenLeft+lenRight)
+
+	for k, v := range left {
+		result[k] = v
+	}
+
+	for k, v := range right {
+		result[k] = v
+	}
+
+	return result
+}
+
 func Union[M ~map[K]V, K comparable, V any](m Mg.Magma[V]) func(M) func(M) M {
 	return func(right M) func(M) M {
 		return func(left M) M {
 			return union(m, left, right)
 		}
+	}
+}
+
+func UnionLast[M ~map[K]V, K comparable, V any](right M) func(M) M {
+	return func(left M) M {
+		return unionLast(left, right)
+	}
+}
+
+func Merge[M ~map[K]V, K comparable, V any](right M) func(M) M {
+	return UnionLast(right)
+}
+
+func UnionFirst[M ~map[K]V, K comparable, V any](right M) func(M) M {
+	return func(left M) M {
+		return unionLast(right, left)
 	}
 }
 
@@ -267,6 +336,33 @@ func FilterMapWithIndex[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](f fu
 // FilterMap creates a new map with only the elements for which the transformation function creates a Some
 func FilterMap[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](f func(V1) O.Option[V2]) func(M) N {
 	return F.Bind2nd(filterMapWithIndex[M, N, K, V1, V2], F.Ignore1of2[K](f))
+}
+
+// Flatten converts a nested map into a regular map
+func Flatten[M ~map[K]N, N ~map[K]V, K comparable, V any](m Mo.Monoid[N]) func(M) N {
+	return Chain[M, N](m)(F.Identity[N])
+}
+
+// FilterChainWithIndex creates a new map with only the elements for which the transformation function creates a Some
+func FilterChainWithIndex[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N]) func(func(K, V1) O.Option[N]) func(M) N {
+	flatten := Flatten[map[K]N, N](m)
+	return func(f func(K, V1) O.Option[N]) func(M) N {
+		return F.Flow2(
+			FilterMapWithIndex[M, map[K]N](f),
+			flatten,
+		)
+	}
+}
+
+// FilterChain creates a new map with only the elements for which the transformation function creates a Some
+func FilterChain[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N]) func(func(V1) O.Option[N]) func(M) N {
+	flatten := Flatten[map[K]N, N](m)
+	return func(f func(V1) O.Option[N]) func(M) N {
+		return F.Flow2(
+			FilterMap[M, map[K]N](f),
+			flatten,
+		)
+	}
 }
 
 // IsNil checks if the map is set to nil
