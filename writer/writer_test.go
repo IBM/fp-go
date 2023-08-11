@@ -31,7 +31,7 @@ func doubleAndLog(data int) Writer[[]string, int] {
 	}
 }
 
-func ExampleLoggingWriter() {
+func Example() {
 
 	m := A.Monoid[string]()
 	s := M.ToSemigroup(m)
