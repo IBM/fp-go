@@ -109,7 +109,7 @@ func ExampleFoldMap() {
 		"c": "c",
 	}
 
-	fold := FoldMap[string, string](S.Monoid)(strings.ToUpper)
+	fold := FoldMapOrd[string, string](S.Ord)(S.Monoid)(strings.ToUpper)
 
 	fmt.Println(fold(src))
 
