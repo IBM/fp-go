@@ -182,7 +182,7 @@ func FromPredicate[E, A any](pred func(A) bool, onFalse func(A) E) func(A) Eithe
 	}
 }
 
-func FromNillable[E, A any](e E) func(*A) Either[E, *A] {
+func FromNillable[A, E any](e E) func(*A) Either[E, *A] {
 	return FromPredicate(F.IsNonNil[A], F.Constant1[*A](e))
 }
 

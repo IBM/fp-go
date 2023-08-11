@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package option defines the [Either] datastructure and its monadic operations
 package either
 
 //go:generate go run .. either --count 10 --filename gen.go

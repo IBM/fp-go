@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package function implements function composition primitives, most prominently [Pipe2] and [Flow2]
 package function
 
 //go:generate go run .. pipe --count 20 --filename gen.go
