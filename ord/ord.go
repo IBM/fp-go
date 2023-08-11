@@ -40,6 +40,11 @@ func (self ord[T]) Compare(x, y T) int {
 	return self.c(x, y)
 }
 
+// ToEq converts an [Ord] to [E.Eq]
+func ToEq[T any](o Ord[T]) E.Eq[T] {
+	return o
+}
+
 // MakeOrd creates an instance of an Ord
 func MakeOrd[T any](c func(x, y T) int, e func(x, y T) bool) Ord[T] {
 	return ord[T]{c: c, e: e}
