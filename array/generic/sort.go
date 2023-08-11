@@ -45,3 +45,12 @@ func SortByKey[GA ~[]T, K, T any](ord O.Ord[K], f func(T) K) func(ma GA) GA {
 		return cpy
 	}
 }
+
+// SortBy implements a stable sort on the array given the provided ordering
+func SortBy[GA ~[]T, GO ~[]O.Ord[T], T any](ord GO) func(ma GA) GA {
+	return F.Pipe2(
+		ord,
+		Fold[GO](O.Monoid[T]()),
+		Sort[GA, T],
+	)
+}
