@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package option defines the [Option] datastructure and its monadic operations
 package option
 
 //go:generate go run .. option --count 10 --filename gen.go

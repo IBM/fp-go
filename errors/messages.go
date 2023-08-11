@@ -28,6 +28,22 @@ func OnNone(msg string, args ...any) func() error {
 	}
 }
 
+// OnSome generates a unary function that produces a formatted error
+func OnSome[T any](msg string, args ...any) func(T) error {
+	l := len(args)
+	if l == 0 {
+		return func(value T) error {
+			return fmt.Errorf(msg, value)
+		}
+	}
+	return func(value T) error {
+		data := make([]any, l)
+		copy(data[1:], args)
+		data[0] = value
+		return fmt.Errorf(msg, data...)
+	}
+}
+
 // OnError generates a unary function that produces a formatted error. The argument
 // to that function is the root cause of the error and the message will be augmented with
 // a format string containing %w

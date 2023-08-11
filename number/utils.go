@@ -30,6 +30,13 @@ func Add[T Number](left T) func(T) T {
 	}
 }
 
+// Mul is a curried function used to add two numbers
+func Mul[T Number](coeff T) func(T) T {
+	return func(value T) T {
+		return coeff * value
+	}
+}
+
 // Inc is a function that increments a number
 func Inc[T Number](value T) T {
 	return value + 1
