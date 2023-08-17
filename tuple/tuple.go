@@ -40,3 +40,8 @@ func BiMap[E, G, A, B any](mapSnd func(E) G, mapFst func(A) B) func(Tuple2[A, E]
 		return MakeTuple2(mapFst(First(t)), mapSnd(Second(t)))
 	}
 }
+
+// Ap implements the applicative for a tuple carrying the function in its first parameter and the value in its second
+func Ap[A, B any](t Tuple2[func(A) B, A]) B {
+	return t.F1(t.F2)
+}
