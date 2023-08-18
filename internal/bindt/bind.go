@@ -38,3 +38,24 @@ func Bind[SET ~func(B) func(S1) S2, FCT ~func(S1) HKTB, S1, S2, B, HKTS1, HKTS2,
 		T.Ap[HKTB, HKTS2],
 	))
 }
+
+func BindTo[SET ~func(B) S2, S2, B, HKTS2, HKTB any](
+	mmap func(func(B) S2) func(HKTB) HKTS2,
+	s SET,
+) func(HKTB) HKTS2 {
+	return mmap(s)
+}
+
+func ApS[
+	SET ~func(B) func(S1) S2,
+	S1, S2, B, HKTS1S2, HKTS1, HKTS2, HKTB any,
+](
+	ap func(HKTS1) func(HKTS1S2) HKTS2,
+	mmap func(func(B) func(S1) S2) func(HKTB) HKTS1S2,
+	s SET, fb HKTB) func(HKTS1) HKTS2 {
+
+	return F.Flow2(
+		ap,
+		I.Ap[HKTS2, HKTS1S2](mmap(s)(fb)),
+	)
+}

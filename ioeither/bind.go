@@ -20,6 +20,18 @@ import (
 )
 
 // Bind applies a function to an input state and merges the result into that state
-func Bind[S1, S2, E, A any](s func(A) func(S1) S2) func(func(S1) IOEither[E, A]) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.Bind[IOEither[E, S1], IOEither[E, S2], IOEither[E, A], func(S1) IOEither[E, A]](s)
+func Bind[E, A, S1, S2 any](s func(A) func(S1) S2, f func(S1) IOEither[E, A]) func(IOEither[E, S1]) IOEither[E, S2] {
+	return G.Bind[IOEither[E, S1], IOEither[E, S2], IOEither[E, A], func(S1) IOEither[E, A]](s, f)
+}
+
+// BindTo initializes some state based on a value
+func BindTo[
+	E, A, S2 any](s func(A) S2) func(IOEither[E, A]) IOEither[E, S2] {
+	return G.BindTo[IOEither[E, S2], IOEither[E, A]](s)
+}
+
+func ApS[
+	E, A, S1, S2 any,
+](s func(A) func(S1) S2, fa IOEither[E, A]) func(IOEither[E, S1]) IOEither[E, S2] {
+	return G.ApS[IOEither[E, S1], IOEither[E, S2], IOEither[E, A], IOEither[E, func(S1) S2]](s, fa)
 }

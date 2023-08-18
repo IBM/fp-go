@@ -28,13 +28,40 @@ func Bind[
 	FCT ~func(S1) GA,
 	E any,
 	SET ~func(A) func(S1) S2,
-	A, S1, S2 any](s SET) func(FCT) func(GS1) GS2 {
-	return func(f FCT) func(GS1) GS2 {
-		return G.Bind(
-			Chain[GS1, GS2, E, S1, S2],
-			Map[GA, GS2, E, A, S2],
-			s,
-			f,
-		)
-	}
+	A, S1, S2 any](s SET, f FCT) func(GS1) GS2 {
+	return G.Bind(
+		Chain[GS1, GS2, E, S1, S2],
+		Map[GA, GS2, E, A, S2],
+		s,
+		f,
+	)
+}
+
+// BindTo initializes some state based on a value
+func BindTo[
+	GS2 ~func() ET.Either[E, S2],
+	GA ~func() ET.Either[E, A],
+	E any,
+	SET ~func(A) S2,
+	A, S2 any](s SET) func(GA) GS2 {
+	return G.BindTo(
+		Map[GA, GS2, E, A, S2],
+		s,
+	)
+}
+
+func ApS[
+	GS1 ~func() ET.Either[E, S1],
+	GS2 ~func() ET.Either[E, S2],
+	GB ~func() ET.Either[E, B],
+	GS1S2 ~func() ET.Either[E, func(S1) S2],
+	SET ~func(B) func(S1) S2,
+	E, S1, S2, B any,
+](s SET, fb GB) func(GS1) GS2 {
+	return G.ApS[SET, S1, S2, B, GS1S2, GS1, GS2, GB](
+		Ap[GS2, GS1S2, GS1, E, S1, S2],
+		Map[GB, GS1S2, E, B, func(S1) S2],
+		s,
+		fb,
+	)
 }
