@@ -73,7 +73,7 @@ This library aims to provide a set of data types and functions that make it easy
 
 The library itself also comprises many small functions, but it's admittedly harder to maintain than code that uses it. However this asymmetry is intended because it offloads complexity from users into a central component.
 
-## Comparation to Idiomatic Go
+## Comparison to Idiomatic Go
 
 In this section we discuss how the functional APIs differ from idiomatic go function signatures and how to convert back and forth.
 
@@ -181,7 +181,7 @@ The `Map` operation for `ReaderIOEither` is defined as:
 func Map[R, E, A, B any](f func(A) B) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B]
 ```
 
-and in fact the equivalent operations for all other mondas follow the same pattern, we could try to introduce a new type for `ReaderIOEither` (without a parameter) as a HKT, e.g. like so (made-up syntax, does not work in go):
+and in fact the equivalent operations for all other monads follow the same pattern, we could try to introduce a new type for `ReaderIOEither` (without a parameter) as a HKT, e.g. like so (made-up syntax, does not work in go):
 
 ```go
 func Map[HKT, R, E, A, B any](f func(A) B) func(HKT[R, E, A]) HKT[R, E, B]
