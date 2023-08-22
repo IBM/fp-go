@@ -65,3 +65,15 @@ func ApS[
 		fb,
 	)
 }
+
+func Let[
+	GS1 ~func() ET.Either[E, S1],
+	GS2 ~func() ET.Either[E, S2],
+	SET ~func(B) func(S1) S2,
+	FCT ~func(S1) B,
+	E, S1, S2, B any](
+	s SET,
+	f FCT,
+) func(GS1) GS2 {
+	return G.Let[SET, FCT, S1, S2, B, GS1, GS2](Map[GS1, GS2, E, S1, S2], s, f)
+}

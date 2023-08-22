@@ -105,6 +105,10 @@ func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	return array.MonadMap[GA, GB](as, f)
 }
 
+func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
+	return F.Bind2nd(MonadMap[GA, GB, A, B], f)
+}
+
 func Size[GA ~[]A, A any](as GA) int {
 	return len(as)
 }

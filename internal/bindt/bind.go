@@ -35,7 +35,7 @@ func Bind[SET ~func(B) func(S1) S2, FCT ~func(S1) HKTB, S1, S2, B, HKTS1, HKTS2,
 				F.Bind1st(F.Flow2[SET, func(func(S1) S2) S2], s),
 				mmap,
 			)), f),
-		T.Ap[HKTB, HKTS2],
+		T.Tupled2(I.MonadAp[HKTS2, HKTB]),
 	))
 }
 
@@ -58,4 +58,18 @@ func ApS[
 		ap,
 		I.Ap[HKTS2, HKTS1S2](mmap(s)(fb)),
 	)
+}
+
+func Let[SET ~func(B) func(S1) S2, FCT ~func(S1) B, S1, S2, B, HKTS1, HKTS2 any](
+	mmap func(func(S1) S2) func(HKTS1) HKTS2,
+	s SET,
+	f FCT,
+) func(HKTS1) HKTS2 {
+	return mmap(F.Flow3(
+		T.Replicate2[S1],
+		T.Map2(F.Flow2(
+			I.Ap[S2, S1],
+			F.Bind1st(F.Flow2[SET, func(func(S1) S2) S2], s)), f),
+		T.Tupled2(I.MonadAp[S2, B]),
+	))
 }

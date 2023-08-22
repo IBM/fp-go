@@ -35,3 +35,10 @@ func ApS[
 ](s func(A) func(S1) S2, fa IOEither[E, A]) func(IOEither[E, S1]) IOEither[E, S2] {
 	return G.ApS[IOEither[E, S1], IOEither[E, S2], IOEither[E, A], IOEither[E, func(S1) S2]](s, fa)
 }
+
+func Let[E, A, S1, S2 any](
+	s func(A) func(S1) S2,
+	f func(S1) A,
+) func(IOEither[E, S1]) IOEither[E, S2] {
+	return G.Let[IOEither[E, S1], IOEither[E, S2]](s, f)
+}
