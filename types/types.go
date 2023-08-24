@@ -16,8 +16,6 @@
 package types
 
 import (
-	"fmt"
-
 	AR "github.com/IBM/fp-go/array/generic"
 	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
@@ -31,7 +29,8 @@ type (
 	}
 
 	ContextEntry struct {
-		Key string
+		Key   string
+		Value any
 	}
 
 	Errors []*ValidationError
@@ -47,10 +46,19 @@ type (
 		Decode(I) E.Either[Errors, A]
 	}
 
+	Codec[I, O, A any] interface {
+		Encoder[A, O]
+		Decoder[I, A]
+	}
+
+	Guard[I, A any] func(I) option.Option[A]
+
+	Validate[I, A any] func(I, Context) E.Either[Errors, A]
+
 	Type[A, O, I any] struct {
 		validate func(I, Context) E.Either[Errors, A]
 		encode   func(A) O
-		is       func(any) option.Option[A]
+		is       Guard[I, A]
 	}
 )
 
@@ -58,15 +66,19 @@ func (t *Type[A, O, I]) Validate(i I, c Context) E.Either[Errors, A] {
 	return t.validate(i, c)
 }
 
+func defaultContext(value any) Context {
+	return AR.Of[Context](&ContextEntry{Value: value})
+}
+
 func (t *Type[A, O, I]) Decode(i I) E.Either[Errors, A] {
-	return t.validate(i, AR.Of[Context](&ContextEntry{}))
+	return t.validate(i, defaultContext(i))
 }
 
 func (t *Type[A, O, I]) Encode(a A) O {
 	return t.encode(a)
 }
 
-func (t *Type[A, O, I]) Is(a any) option.Option[A] {
+func (t *Type[A, O, I]) Is(a I) option.Option[A] {
 	return t.is(a)
 }
 
@@ -85,7 +97,10 @@ func (val *ValidationError) Error() string {
 func Pipe[O, I, A, B any](ab Type[B, A, A]) func(a Type[A, O, I]) Type[B, O, I] {
 	return func(a Type[A, O, I]) Type[B, O, I] {
 		return Type[B, O, I]{
-			is: ab.Is,
+			is: F.Flow2(
+				a.is,
+				option.Chain(ab.Is),
+			),
 			validate: func(i I, c Context) E.Either[Errors, B] {
 				return F.Pipe1(
 					a.Validate(i, c),
@@ -112,27 +127,20 @@ func Failure[A any](c Context, message string) E.Either[Errors, A] {
 	return Failures[A](AR.Of[Errors](&ValidationError{Context: c, Message: message}))
 }
 
-func makeCanonicalType[A any]() Type[A, A, any] {
-	is := option.ToType[A]
-
-	return Type[A, A, any]{
-		is: is,
-		validate: func(u any, c Context) E.Either[Errors, A] {
-			return F.Pipe2(
-				u,
-				is,
-				option.Fold(
-					func() E.Either[Errors, A] {
-						return Failure[A](c, fmt.Sprintf("source is of type %T", u))
-					},
-					Success[A],
-				),
-			)
-		},
-		encode: F.Identity[A],
+func guardFromValidate[A, I any](validate func(I, Context) E.Either[Errors, A]) Guard[I, A] {
+	return func(i I) option.Option[A] {
+		return F.Pipe1(
+			validate(i, defaultContext(i)),
+			E.ToOption[Errors, A],
+		)
 	}
 }
 
-var String = makeCanonicalType[string]()
-var Int = makeCanonicalType[int]()
-var Bool = makeCanonicalType[bool]()
+// FromValidate constructs a Type instance from just the validation function
+func FromValidate[A, I any](validate Validate[I, A]) *Type[A, A, I] {
+	return &Type[A, A, I]{
+		validate,
+		F.Identity[A],
+		guardFromValidate[A, I](validate),
+	}
+}

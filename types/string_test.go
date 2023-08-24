@@ -13,25 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package json
+package types
 
 import (
+	"reflect"
+	"testing"
+
+	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
-	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
+	"github.com/stretchr/testify/assert"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
-		src,
-		Marshal[any],
-		E.Chain(Unmarshal[A]),
+func TestString(t *testing.T) {
+	s := "Carsten"
+	validData := A.From(
+		reflect.ValueOf("Carsten"),
+		reflect.ValueOf(s),
+		reflect.ValueOf(&s),
+		reflect.ValueOf(10),
+		reflect.ValueOf(true),
+		reflect.ValueOf(false),
 	)
-}
+	for i := 0; i < len(validData); i++ {
+		assert.True(t, E.IsRight(String.Decode(validData[i])))
+	}
 
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
-		ToTypeE[A](src),
-		E.ToOption[error, A],
+	invalidDataData := A.From(
+		reflect.ValueOf(nil),
 	)
+	for i := 0; i < len(invalidDataData); i++ {
+		assert.True(t, E.IsLeft(String.Decode(invalidDataData[i])))
+	}
 }
