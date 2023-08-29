@@ -13,25 +13,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package json
+package option
 
 import (
-	E "github.com/IBM/fp-go/either"
+	R "reflect"
+
 	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
+	G "github.com/IBM/fp-go/reflect/generic"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
-		src,
-		Marshal[any],
-		E.Chain(Unmarshal[A]),
-	)
+func ReduceWithIndex[A any](f func(int, A, R.Value) A, initial A) func(R.Value) A {
+	return func(val R.Value) A {
+		count := val.Len()
+		current := initial
+		for i := 0; i < count; i++ {
+			current = f(i, current, val.Index(i))
+		}
+		return current
+	}
 }
 
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
-		ToTypeE[A](src),
-		E.ToOption[error, A],
-	)
+func Reduce[A any](f func(A, R.Value) A, initial A) func(R.Value) A {
+	return ReduceWithIndex(F.Ignore1of3[int](f), initial)
+}
+
+func Map[A any](f func(R.Value) A) func(R.Value) []A {
+	return G.Map[[]A](f)
 }

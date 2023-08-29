@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	C "github.com/urfave/cli/v2"
@@ -36,8 +37,51 @@ func writeTupleType(f *os.File, symbol string, i int) {
 	fmt.Fprintf(f, "]")
 }
 
+func makeTupleType(name string) func(i int) string {
+	return func(i int) string {
+		var buf strings.Builder
+		buf.WriteString(fmt.Sprintf("Tuple%d[", i))
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(fmt.Sprintf("%s%d", name, j+1))
+		}
+		buf.WriteString("]")
+
+		return buf.String()
+	}
+}
+
+func generatePush(f *os.File, i int) {
+	tuple1 := makeTupleType("T")(i)
+	tuple2 := makeTupleType("T")(i + 1)
+	// Create the replicate version
+	fmt.Fprintf(f, "\n// Push%d creates a [Tuple%d] from a [Tuple%d] by appending a constant value\n", i, i+1, i)
+	fmt.Fprintf(f, "func Push%d[", i)
+	// function prototypes
+	for j := 0; j <= i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j+1)
+	}
+	fmt.Fprintf(f, " any](value T%d) func(%s) %s {\n", i+1, tuple1, tuple2)
+	fmt.Fprintf(f, "  return func(t %s) %s {\n", tuple1, tuple2)
+	fmt.Fprintf(f, "    return MakeTuple%d(", i+1)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t.F%d", j+1)
+	}
+	fmt.Fprintf(f, ", value)\n")
+	fmt.Fprintf(f, "  }\n")
+	fmt.Fprintf(f, "}\n")
+}
+
 func generateReplicate(f *os.File, i int) {
-	// Create the optionize version
+	// Create the replicate version
 	fmt.Fprintf(f, "\n// Replicate%d creates a [Tuple%d] with all fields set to the input value `t`\n", i, i)
 	fmt.Fprintf(f, "func Replicate%d[T any](t T) Tuple%d[", i, i)
 	for j := 1; j <= i; j++ {
@@ -398,6 +442,10 @@ import (
 		generateToArray(f, i)
 		// generate fromArray
 		generateFromArray(f, i)
+		// generate push
+		if i < count {
+			generatePush(f, i)
+		}
 	}
 
 	return nil

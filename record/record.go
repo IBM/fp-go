@@ -98,7 +98,7 @@ func MapRefWithIndex[K comparable, V, R any](f func(K, *V) R) func(map[K]V) map[
 }
 
 // Lookup returns the entry for a key in a map if it exists
-func Lookup[K comparable, V any](k K) func(map[K]V) O.Option[V] {
+func Lookup[V any, K comparable](k K) func(map[K]V) O.Option[V] {
 	return G.Lookup[map[K]V](k)
 }
 

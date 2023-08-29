@@ -13,25 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package json
+package stateless
 
 import (
-	E "github.com/IBM/fp-go/either"
+	"reflect"
+	"testing"
+
+	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
+	"github.com/stretchr/testify/assert"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
-		src,
-		Marshal[any],
-		E.Chain(Unmarshal[A]),
-	)
-}
+func TestReflect(t *testing.T) {
+	ar := A.From("a", "b", "c")
 
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
-		ToTypeE[A](src),
-		E.ToOption[error, A],
+	res := F.Pipe3(
+		reflect.ValueOf(ar),
+		FromReflect,
+		ToArray[reflect.Value],
+		A.Map(reflect.Value.String),
 	)
+
+	assert.Equal(t, ar, res)
 }

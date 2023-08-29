@@ -13,25 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package json
+package stateless
 
 import (
-	E "github.com/IBM/fp-go/either"
-	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
+	R "reflect"
+
+	G "github.com/IBM/fp-go/iterator/stateless/generic"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
-		src,
-		Marshal[any],
-		E.Chain(Unmarshal[A]),
-	)
-}
-
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
-		ToTypeE[A](src),
-		E.ToOption[error, A],
-	)
+// FromReflect creates an iterator that can iterate over types that define [R.Index] and [R.Len]
+func FromReflect(val R.Value) Iterator[R.Value] {
+	return G.FromReflect[Iterator[R.Value]](val)
 }

@@ -146,8 +146,8 @@ func FromOption[E, A any](onNone func() E) func(O.Option[A]) Either[E, A] {
 	return O.Fold(F.Nullary2(onNone, Left[A, E]), Right[E, A])
 }
 
-func ToOption[E, A any]() func(Either[E, A]) O.Option[A] {
-	return Fold(F.Ignore1of1[E](O.None[A]), O.Some[A])
+func ToOption[E, A any](ma Either[E, A]) O.Option[A] {
+	return MonadFold(ma, F.Ignore1of1[E](O.None[A]), O.Some[A])
 }
 
 func FromError[A any](f func(a A) error) func(A) Either[error, A] {

@@ -13,25 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package json
+package lazy
 
 import (
-	E "github.com/IBM/fp-go/either"
+	"fmt"
+	"strconv"
+
 	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
-		src,
-		Marshal[any],
-		E.Chain(Unmarshal[A]),
+func ExampleLazy_creation() {
+	// lazy function of a constant value
+	val := Of(42)
+	// create another function to transform this
+	valS := F.Pipe1(
+		val,
+		Map(strconv.Itoa),
 	)
-}
 
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
-		ToTypeE[A](src),
-		E.ToOption[error, A],
-	)
+	fmt.Println(valS())
+
+	// Output:
+	// 42
 }

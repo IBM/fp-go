@@ -13,25 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package json
+package generic
 
 import (
-	E "github.com/IBM/fp-go/either"
-	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
+	R "reflect"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
-		src,
-		Marshal[any],
-		E.Chain(Unmarshal[A]),
-	)
-}
-
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
-		ToTypeE[A](src),
-		E.ToOption[error, A],
-	)
+func Map[GA ~[]A, A any](f func(R.Value) A) func(R.Value) GA {
+	return func(val R.Value) GA {
+		l := val.Len()
+		res := make(GA, l)
+		for i := l - 1; i >= 0; i-- {
+			res[i] = f(val.Index(i))
+		}
+		return res
+	}
 }

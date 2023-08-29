@@ -64,10 +64,52 @@ func MonadApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](f
 	)
 }
 
+// MonadApFirstPar combines two effectful actions, keeping only the result of the first.
+func MonadApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](first GA, second GB) GA {
+	return G.MonadApFirst(
+		MonadApPar[GB, GA, GBA, B, A],
+		MonadMap[GA, GBA, A, func(B) A],
+
+		first,
+		second,
+	)
+}
+
+// MonadApFirstSeq combines two effectful actions, keeping only the result of the first.
+func MonadApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](first GA, second GB) GA {
+	return G.MonadApFirst(
+		MonadApSeq[GB, GA, GBA, B, A],
+		MonadMap[GA, GBA, A, func(B) A],
+
+		first,
+		second,
+	)
+}
+
 // ApFirst combines two effectful actions, keeping only the result of the first.
 func ApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
 		MonadAp[GB, GA, GBA, B, A],
+		MonadMap[GA, GBA, A, func(B) A],
+
+		second,
+	)
+}
+
+// ApFirstPar combines two effectful actions, keeping only the result of the first.
+func ApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
+	return G.ApFirst(
+		MonadApPar[GB, GA, GBA, B, A],
+		MonadMap[GA, GBA, A, func(B) A],
+
+		second,
+	)
+}
+
+// ApFirstSeq combines two effectful actions, keeping only the result of the first.
+func ApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
+	return G.ApFirst(
+		MonadApSeq[GB, GA, GBA, B, A],
 		MonadMap[GA, GBA, A, func(B) A],
 
 		second,

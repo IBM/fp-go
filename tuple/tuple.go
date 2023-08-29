@@ -17,6 +17,10 @@
 // consider to use arrays for simplicity
 package tuple
 
+func Of[T1 any](t T1) Tuple1[T1] {
+	return MakeTuple1(t)
+}
+
 func First[T1, T2 any](t Tuple2[T1, T2]) T1 {
 	return t.F1
 }
@@ -29,7 +33,7 @@ func Swap[T1, T2 any](t Tuple2[T1, T2]) Tuple2[T2, T1] {
 	return MakeTuple2(t.F2, t.F1)
 }
 
-func Of[T1, T2 any](e T2) func(T1) Tuple2[T1, T2] {
+func Of2[T1, T2 any](e T2) func(T1) Tuple2[T1, T2] {
 	return func(t T1) Tuple2[T1, T2] {
 		return MakeTuple2(t, e)
 	}

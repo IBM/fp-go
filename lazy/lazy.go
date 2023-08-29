@@ -72,11 +72,11 @@ func Chain[A, B any](f func(A) Lazy[B]) func(Lazy[A]) Lazy[B] {
 }
 
 func MonadAp[B, A any](mab Lazy[func(A) B], ma Lazy[A]) Lazy[B] {
-	return G.MonadAp[Lazy[A], Lazy[B]](mab, ma)
+	return G.MonadApSeq[Lazy[A], Lazy[B]](mab, ma)
 }
 
 func Ap[B, A any](ma Lazy[A]) func(Lazy[func(A) B]) Lazy[B] {
-	return G.Ap[Lazy[B], Lazy[func(A) B], Lazy[A]](ma)
+	return G.ApSeq[Lazy[B], Lazy[func(A) B], Lazy[A]](ma)
 }
 
 func Flatten[A any](mma Lazy[Lazy[A]]) Lazy[A] {
