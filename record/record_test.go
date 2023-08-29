@@ -71,8 +71,8 @@ func TestLookup(t *testing.T) {
 		"b": "b",
 		"c": "c",
 	}
-	assert.Equal(t, O.Some("a"), Lookup[string, string]("a")(data))
-	assert.Equal(t, O.None[string](), Lookup[string, string]("a1")(data))
+	assert.Equal(t, O.Some("a"), Lookup[string]("a")(data))
+	assert.Equal(t, O.None[string](), Lookup[string]("a1")(data))
 }
 
 func TestFilterChain(t *testing.T) {
