@@ -83,7 +83,7 @@ func Flatten[A any](mma Lazy[Lazy[A]]) Lazy[A] {
 	return G.Flatten(mma)
 }
 
-// Memoize computes the value of the provided IO monad lazily but exactly once
+// Memoize computes the value of the provided [Lazy] monad lazily but exactly once
 func Memoize[A any](ma Lazy[A]) Lazy[A] {
 	return G.Memoize(ma)
 }

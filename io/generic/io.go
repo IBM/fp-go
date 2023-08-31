@@ -16,11 +16,11 @@
 package generic
 
 import (
-	"sync"
 	"time"
 
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/internal/chain"
+	L "github.com/IBM/fp-go/internal/lazy"
 )
 
 // type IO[A any] = func() A
@@ -119,18 +119,7 @@ func Flatten[GA ~func() A, GAA ~func() GA, A any](mma GAA) GA {
 
 // Memoize computes the value of the provided IO monad lazily but exactly once
 func Memoize[GA ~func() A, A any](ma GA) GA {
-	// synchronization primitives
-	var once sync.Once
-	var result A
-	// callback
-	gen := func() {
-		result = ma()
-	}
-	// returns our memoized wrapper
-	return func() A {
-		once.Do(gen)
-		return result
-	}
+	return L.Memoize[GA, A](ma)
 }
 
 // Delay creates an operation that passes in the value after some delay
