@@ -24,16 +24,30 @@ type Number interface {
 }
 
 // Add is a curried function used to add two numbers
-func Add[T Number](left T) func(T) T {
-	return func(right T) T {
+func Add[T Number](right T) func(T) T {
+	return func(left T) T {
 		return left + right
 	}
 }
 
-// Mul is a curried function used to add two numbers
-func Mul[T Number](coeff T) func(T) T {
-	return func(value T) T {
-		return coeff * value
+// Sub is a curried function used to subtract two numbers
+func Sub[T Number](right T) func(T) T {
+	return func(left T) T {
+		return left - right
+	}
+}
+
+// Mul is a curried function used to multiply two numbers
+func Mul[T Number](right T) func(T) T {
+	return func(left T) T {
+		return left * right
+	}
+}
+
+// Div is a curried function used to divide two numbers
+func Div[T Number](right T) func(T) T {
+	return func(left T) T {
+		return left / right
 	}
 }
 
