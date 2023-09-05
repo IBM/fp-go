@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/ord"
+	"github.com/IBM/fp-go/ord"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 	ToLowerCase = strings.ToLower
 
 	// Ord implements the default ordering for strings
-	Ord = O.FromStrictCompare[string]()
+	Ord = ord.FromStrictCompare[string]()
 )
 
 func Eq(left string, right string) bool {
@@ -40,6 +40,10 @@ func Eq(left string, right string) bool {
 
 func ToBytes(s string) []byte {
 	return []byte(s)
+}
+
+func ToRunes(s string) []rune {
+	return []rune(s)
 }
 
 func IsEmpty(s string) bool {

@@ -131,7 +131,7 @@ func FromStrictCompare[A C.Ordered]() Ord[A] {
 	return MakeOrd(strictCompare[A], strictEq[A])
 }
 
-// Lt tests whether one value is _strictly less than_ another
+// Lt tests whether one value is strictly less than another
 func Lt[A any](O Ord[A]) func(A) func(A) bool {
 	return func(second A) func(A) bool {
 		return func(first A) bool {
@@ -140,7 +140,7 @@ func Lt[A any](O Ord[A]) func(A) func(A) bool {
 	}
 }
 
-// Leq Tests whether one value is less or equal than_ another
+// Leq Tests whether one value is less or equal than another
 func Leq[A any](O Ord[A]) func(A) func(A) bool {
 	return func(second A) func(A) bool {
 		return func(first A) bool {
@@ -150,9 +150,9 @@ func Leq[A any](O Ord[A]) func(A) func(A) bool {
 }
 
 /**
- * Test whether one value is _strictly greater than_ another
+ * Test whether one value is strictly greater than another
  */
-func cc[A any](O Ord[A]) func(A) func(A) bool {
+func Gt[A any](O Ord[A]) func(A) func(A) bool {
 	return func(second A) func(A) bool {
 		return func(first A) bool {
 			return O.Compare(first, second) > 0
@@ -160,7 +160,7 @@ func cc[A any](O Ord[A]) func(A) func(A) bool {
 	}
 }
 
-// Geq tests whether one value is greater or equal than_ another
+// Geq tests whether one value is greater or equal than another
 func Geq[A any](O Ord[A]) func(A) func(A) bool {
 	return func(second A) func(A) bool {
 		return func(first A) bool {
