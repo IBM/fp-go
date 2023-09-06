@@ -17,10 +17,13 @@ package mostlyadequate
 
 import (
 	"fmt"
+	"path"
 
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/io"
 	O "github.com/IBM/fp-go/option"
+	S "github.com/IBM/fp-go/string"
 )
 
 type (
@@ -37,20 +40,70 @@ type (
 	AddressBook struct {
 		Addresses []Address
 	}
+
+	Chapter09User struct {
+		Id      int
+		Name    string
+		Address Address
+	}
 )
 
-func getAddresses(ab AddressBook) []Address {
+var (
+	albert09 = Chapter09User{
+		Id:   1,
+		Name: "Albert",
+		Address: Address{
+			Street: Street{
+				Number: 22,
+				Name:   "Walnut St",
+			},
+		},
+	}
+
+	gary09 = Chapter09User{
+		Id:   2,
+		Name: "Gary",
+		Address: Address{
+			Street: Street{
+				Number: 14,
+			},
+		},
+	}
+
+	theresa09 = Chapter09User{
+		Id:   3,
+		Name: "Theresa",
+	}
+)
+
+func (ab AddressBook) getAddresses() []Address {
 	return ab.Addresses
 }
 
-func getStreet(s Address) Street {
+func (s Address) getStreet() Street {
 	return s.Street
 }
 
-var FirstAddressStreet = F.Flow3(
-	getAddresses,
-	A.Head[Address],
-	O.Map(getStreet),
+func (s Street) getName() string {
+	return s.Name
+}
+
+func (u Chapter09User) getAddress() Address {
+	return u.Address
+}
+
+var (
+	FirstAddressStreet = F.Flow3(
+		AddressBook.getAddresses,
+		A.Head[Address],
+		O.Map(Address.getStreet),
+	)
+
+	// getFile :: IO String
+	getFile = io.Of("/home/mostly-adequate/ch09.md")
+
+	// pureLog :: String -> IO ()
+	pureLog = io.Logf[string]("%s")
 )
 
 func Example_street() {
@@ -61,4 +114,36 @@ func Example_street() {
 
 	// Output:
 	// Some[mostlyadequate.Street]({Mulburry 8402})
+}
+
+func Example_solution09A() {
+	// // getStreetName :: User -> Maybe String
+	getStreetName := F.Flow4(
+		Chapter09User.getAddress,
+		Address.getStreet,
+		Street.getName,
+		O.FromPredicate(S.IsNonEmpty),
+	)
+
+	fmt.Println(getStreetName(albert09))
+	fmt.Println(getStreetName(gary09))
+	fmt.Println(getStreetName(theresa09))
+
+	// Output:
+	// Some[string](Walnut St)
+	// None[string]
+	// None[string]
+
+}
+
+func Example_solution09B() {
+	logFilename := F.Flow2(
+		io.Map(path.Base),
+		io.ChainFirst(pureLog),
+	)
+
+	fmt.Println(logFilename(getFile)())
+
+	// Output:
+	// ch09.md
 }

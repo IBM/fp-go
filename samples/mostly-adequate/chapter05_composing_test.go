@@ -21,6 +21,9 @@ import (
 
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
+	I "github.com/IBM/fp-go/number/integer"
+	O "github.com/IBM/fp-go/option"
+	"github.com/IBM/fp-go/ord"
 	S "github.com/IBM/fp-go/string"
 )
 
@@ -57,4 +60,51 @@ func Example_pipe() {
 	fmt.Println(output)
 
 	// Output: SEND IN THE CLOWNS!
+}
+
+func Example_solution05A() {
+	IsLastInStock := F.Flow2(
+		A.Last[Car],
+		O.Map(Car.getInStock),
+	)
+
+	fmt.Println(IsLastInStock(Cars[0:3]))
+	fmt.Println(IsLastInStock(Cars[3:]))
+
+	// Output:
+	// Some[bool](true)
+	// Some[bool](false)
+}
+
+func Example_solution05B() {
+	// averageDollarValue :: [Car] -> Int
+	averageDollarValue := F.Flow2(
+		A.Map(Car.getDollarValue),
+		average,
+	)
+
+	fmt.Println(averageDollarValue(Cars))
+
+	// Output:
+	// 790700
+}
+
+func Example_solution05C() {
+	// order by horsepower
+	ordByHorsepower := ord.Contramap(Car.getHorsepower)(I.Ord)
+
+	// fastestCar :: [Car] -> Option[String]
+	fastestCar := F.Flow3(
+		A.Sort(ordByHorsepower),
+		A.Last[Car],
+		O.Map(F.Flow2(
+			Car.getName,
+			S.Format[string]("%s is the fastest"),
+		)),
+	)
+
+	fmt.Println(fastestCar(Cars))
+
+	// Output:
+	// Some[string](Aston Martin One-77 is the fastest)
 }

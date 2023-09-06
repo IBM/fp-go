@@ -13,26 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package number
+package mostlyadequate
 
-import (
-	M "github.com/IBM/fp-go/monoid"
-)
+import "fmt"
 
-// MonoidSum is the [Monoid] that adds elements with a zero empty element
-func MonoidSum[A Number]() M.Monoid[A] {
-	s := SemigroupSum[A]()
-	return M.MakeMonoid(
-		s.Concat,
-		0,
-	)
+func Hi(name string) string {
+	return fmt.Sprintf("Hi %s", name)
 }
 
-// MonoidProduct is the [Monoid] that multiplies elements with a one empty element
-func MonoidProduct[A Number]() M.Monoid[A] {
-	s := SemigroupProduct[A]()
-	return M.MakeMonoid(
-		s.Concat,
-		1,
-	)
+func Greeting(name string) string {
+	return Hi(name)
+}
+
+func Example_greeting() {
+	// functions are first class objects
+	greet := Hi
+
+	fmt.Println(Greeting("times"))
+	fmt.Println(greet("times"))
+
+	// Output:
+	// Hi times
+	// Hi times
 }

@@ -24,3 +24,9 @@ func SemigroupSum[A Number]() S.Semigroup[A] {
 		return first + second
 	})
 }
+
+func SemigroupProduct[A Number]() S.Semigroup[A] {
+	return S.MakeSemigroup(func(first A, second A) A {
+		return first * second
+	})
+}
