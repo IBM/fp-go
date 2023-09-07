@@ -102,6 +102,11 @@ func Lookup[V any, K comparable](k K) func(map[K]V) O.Option[V] {
 	return G.Lookup[map[K]V](k)
 }
 
+// MonadLookup returns the entry for a key in a map if it exists
+func MonadLookup[V any, K comparable](m map[K]V, k K) O.Option[V] {
+	return G.MonadLookup[map[K]V](m, k)
+}
+
 // Has tests if a key is contained in a map
 func Has[K comparable, V any](k K, r map[K]V) bool {
 	return G.Has(k, r)

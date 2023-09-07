@@ -18,10 +18,14 @@ package mostlyadequate
 import (
 	"fmt"
 	"path"
+	"regexp"
 
 	A "github.com/IBM/fp-go/array"
+	E "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/io"
+	IOE "github.com/IBM/fp-go/ioeither"
 	O "github.com/IBM/fp-go/option"
 	S "github.com/IBM/fp-go/string"
 )
@@ -104,6 +108,21 @@ var (
 
 	// pureLog :: String -> IO ()
 	pureLog = io.Logf[string]("%s")
+
+	// addToMailingList :: Email -> IOEither([Email])
+	addToMailingList = F.Flow2(
+		A.Of[string],
+		IOE.Of[error, []string],
+	)
+
+	// validateEmail :: Email -> Either error Email
+	validateEmail = E.FromPredicate(Matches(regexp.MustCompile(`\S+@\S+\.\S+`)), errors.OnSome[string]("email %s is invalid"))
+
+	// emailBlast :: [Email] -> IO ()
+	emailBlast = F.Flow2(
+		A.Intercalate(S.Monoid)(","),
+		IOE.Of[error, string],
+	)
 )
 
 func Example_street() {
@@ -146,4 +165,22 @@ func Example_solution09B() {
 
 	// Output:
 	// ch09.md
+}
+
+func Example_solution09C() {
+
+	// // joinMailingList :: Email -> Either String (IO ())
+	joinMailingList := F.Flow4(
+		validateEmail,
+		IOE.FromEither[error, string],
+		IOE.Chain(addToMailingList),
+		IOE.Chain(emailBlast),
+	)
+
+	fmt.Println(joinMailingList("sleepy@grandpa.net")())
+	fmt.Println(joinMailingList("notanemail")())
+
+	// Output:
+	// Right[<nil>, string](sleepy@grandpa.net)
+	// Left[*errors.errorString, string](email notanemail is invalid)
 }
