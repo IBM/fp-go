@@ -19,13 +19,22 @@ import (
 	F "github.com/IBM/fp-go/function"
 )
 
-// HKTA = HKT<A>
-// HKTOA = HKT<Option<A>>
-//
-// Sequence converts an option of some higher kinded type into the higher kinded type of an option
+// Sequence converts an [Option] of some higher kinded type into the higher kinded type of an [Option]
 func Sequence[A, HKTA, HKTOA any](
-	_of func(Option[A]) HKTOA,
-	_map func(HKTA, func(A) Option[A]) HKTOA,
+	mof func(Option[A]) HKTOA,
+	mmap func(func(A) Option[A]) func(HKTA) HKTOA,
 ) func(Option[HKTA]) HKTOA {
-	return Fold(F.Nullary2(None[A], _of), F.Bind2nd(_map, Some[A]))
+	return Fold(F.Nullary2(None[A], mof), mmap(Some[A]))
+}
+
+// Traverse converts an [Option] of some higher kinded type into the higher kinded type of an [Option]
+func Traverse[A, B, HKTB, HKTOB any](
+	mof func(Option[B]) HKTOB,
+	mmap func(func(B) Option[B]) func(HKTB) HKTOB,
+) func(func(A) HKTB) func(Option[A]) HKTOB {
+	onNone := F.Nullary2(None[B], mof)
+	onSome := mmap(Some[B])
+	return func(f func(A) HKTB) func(Option[A]) HKTOB {
+		return Fold(onNone, F.Flow2(f, onSome))
+	}
 }
