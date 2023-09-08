@@ -30,9 +30,9 @@ func TestTraverse(t *testing.T) {
 		}
 		return O.None[int]()
 	}
-	trav := Traverse[string, int, int, O.Option[Either[string, int]]](
+	trav := Traverse[int](
 		O.Of[Either[string, int]],
-		O.MonadMap[int, Either[string, int]],
+		O.Map[int, Either[string, int]],
 	)(f)
 
 	assert.Equal(t, O.Of(Left[int]("a")), F.Pipe1(Left[int]("a"), trav))
@@ -44,7 +44,7 @@ func TestSequence(t *testing.T) {
 
 	seq := Sequence(
 		O.Of[Either[string, int]],
-		O.MonadMap[int, Either[string, int]],
+		O.Map[int, Either[string, int]],
 	)
 
 	assert.Equal(t, O.Of(Right[string](1)), seq(Right[string](O.Of(1))))
