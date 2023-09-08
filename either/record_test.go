@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package option
+package either
 
 import (
 	"testing"
@@ -21,21 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSequenceRecord(t *testing.T) {
-	assert.Equal(t, Of(map[string]string{
-		"a": "A",
-		"b": "B",
-	}), SequenceRecord(map[string]Option[string]{
-		"a": Of("A"),
-		"b": Of("B"),
-	}))
-}
-
 func TestCompactRecord(t *testing.T) {
 	// make the map
-	m := make(map[string]Option[int])
-	m["foo"] = None[int]()
-	m["bar"] = Some(1)
+	m := make(map[string]Either[string, int])
+	m["foo"] = Left[int]("error")
+	m["bar"] = Right[string](1)
 	// compact it
 	m1 := CompactRecord(m)
 	// check expected

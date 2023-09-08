@@ -43,3 +43,24 @@ func SequenceRecordG[GA ~map[K]A, GOA ~map[K]Either[E, A], K comparable, E, A an
 func SequenceRecord[K comparable, E, A any](ma map[K]Either[E, A]) Either[E, map[K]A] {
 	return SequenceRecordG[map[K]A](ma)
 }
+
+func upsertAtReadWrite[M ~map[K]V, K comparable, V any](r M, k K, v V) M {
+	r[k] = v
+	return r
+}
+
+// CompactRecordG discards the noe values and keeps the some values
+func CompactRecordG[M1 ~map[K]Either[E, A], M2 ~map[K]A, K comparable, E, A any](m M1) M2 {
+	out := make(M2)
+	onLeft := F.Constant1[E](out)
+	return RR.ReduceWithIndex(m, func(key K, _ M2, value Either[E, A]) M2 {
+		return MonadFold(value, onLeft, func(v A) M2 {
+			return upsertAtReadWrite(out, key, v)
+		})
+	}, out)
+}
+
+// CompactRecord discards all none values and keeps the somes
+func CompactRecord[K comparable, E, A any](m map[K]Either[E, A]) map[K]A {
+	return CompactRecordG[map[K]Either[E, A], map[K]A](m)
+}
