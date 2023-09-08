@@ -44,3 +44,15 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA
 func SequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
 	return SequenceArrayG[[]A](ma)
 }
+
+// CompactArrayG discards the none values and keeps the some values
+func CompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
+	return RA.Reduce(fa, func(out A2, value Either[E, A]) A2 {
+		return MonadFold(value, F.Constant1[E](out), F.Bind1st(RA.Append[A2, A], out))
+	}, make(A2, len(fa)))
+}
+
+// CompactArray discards the none values and keeps the some values
+func CompactArray[E, A any](fa []Either[E, A]) []A {
+	return CompactArrayG[[]Either[E, A], []A](fa)
+}
