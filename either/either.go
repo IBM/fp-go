@@ -91,11 +91,11 @@ func MonadChainTo[E, A, B any](ma Either[E, A], mb Either[E, B]) Either[E, B] {
 	return mb
 }
 
-func MonadChainOptionK[E, A, B any](onNone func() E, ma Either[E, A], f func(A) O.Option[B]) Either[E, B] {
+func MonadChainOptionK[A, B, E any](onNone func() E, ma Either[E, A], f func(A) O.Option[B]) Either[E, B] {
 	return MonadChain(ma, F.Flow2(f, FromOption[E, B](onNone)))
 }
 
-func ChainOptionK[E, A, B any](onNone func() E) func(func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
+func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
 	from := FromOption[E, B](onNone)
 	return func(f func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
 		return Chain(F.Flow2(f, from))

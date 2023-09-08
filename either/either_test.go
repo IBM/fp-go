@@ -100,7 +100,7 @@ func TestChainFirst(t *testing.T) {
 }
 
 func TestChainOptionK(t *testing.T) {
-	f := ChainOptionK[string, int, int](F.Constant("a"))(func(n int) O.Option[int] {
+	f := ChainOptionK[int, int](F.Constant("a"))(func(n int) O.Option[int] {
 		if n > 0 {
 			return O.Some(n)
 		}

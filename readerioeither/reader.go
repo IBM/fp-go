@@ -93,7 +93,7 @@ func MonadChainReaderK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) RD.
 	return G.MonadChainReaderK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](ma, f)
 }
 
-func ChainReaderK[R, E, A, B any](f func(A) RD.Reader[R, B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainReaderK[E, R, A, B any](f func(A) RD.Reader[R, B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
 	return G.ChainReaderK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](f)
 }
 
@@ -121,7 +121,7 @@ func ChainFirstIOK[R, E, A, B any](f func(A) io.IO[B]) func(ma ReaderIOEither[R,
 	return G.ChainFirstIOK[ReaderIOEither[R, E, A]](f)
 }
 
-func ChainOptionK[R, E, A, B any](onNone func() E) func(func(A) O.Option[B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainOptionK[R, A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
 	return G.ChainOptionK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](onNone)
 }
 
@@ -149,7 +149,7 @@ func Left[R, A, E any](e E) ReaderIOEither[R, E, A] {
 	return G.Left[ReaderIOEither[R, E, A]](e)
 }
 
-func ThrowError[R, E, A any](e E) ReaderIOEither[R, E, A] {
+func ThrowError[R, A, E any](e E) ReaderIOEither[R, E, A] {
 	return G.ThrowError[ReaderIOEither[R, E, A]](e)
 }
 
@@ -166,7 +166,7 @@ func FromEither[R, E, A any](t ET.Either[E, A]) ReaderIOEither[R, E, A] {
 	return G.FromEither[ReaderIOEither[R, E, A]](t)
 }
 
-func RightReader[R, E, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
+func RightReader[E, R, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
 	return G.RightReader[RD.Reader[R, A], ReaderIOEither[R, E, A]](ma)
 }
 
@@ -174,7 +174,7 @@ func LeftReader[A, R, E any](ma RD.Reader[R, E]) ReaderIOEither[R, E, A] {
 	return G.LeftReader[RD.Reader[R, E], ReaderIOEither[R, E, A]](ma)
 }
 
-func FromReader[R, E, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
+func FromReader[E, R, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
 	return G.FromReader[RD.Reader[R, A], ReaderIOEither[R, E, A]](ma)
 }
 
@@ -202,11 +202,11 @@ func Ask[R, E any]() ReaderIOEither[R, E, R] {
 	return G.Ask[ReaderIOEither[R, E, R]]()
 }
 
-func Asks[R, E, A any](r RD.Reader[R, A]) ReaderIOEither[R, E, A] {
+func Asks[E, R, A any](r RD.Reader[R, A]) ReaderIOEither[R, E, A] {
 	return G.Asks[RD.Reader[R, A], ReaderIOEither[R, E, A]](r)
 }
 
-func FromOption[R, E, A any](onNone func() E) func(O.Option[A]) ReaderIOEither[R, E, A] {
+func FromOption[R, A, E any](onNone func() E) func(O.Option[A]) ReaderIOEither[R, E, A] {
 	return G.FromOption[ReaderIOEither[R, E, A]](onNone)
 }
 
@@ -226,7 +226,7 @@ func OrElse[R, E1, A, E2 any](onLeft func(E1) ReaderIOEither[R, E2, A]) func(Rea
 	return G.OrElse[ReaderIOEither[R, E1, A]](onLeft)
 }
 
-func OrLeft[E1, R, E2, A any](onLeft func(E1) RIO.ReaderIO[R, E2]) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
+func OrLeft[A, E1, R, E2 any](onLeft func(E1) RIO.ReaderIO[R, E2]) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
 	return G.OrLeft[ReaderIOEither[R, E1, A], RIO.ReaderIO[R, E2], ReaderIOEither[R, E2, A]](onLeft)
 }
 
