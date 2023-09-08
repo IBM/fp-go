@@ -32,7 +32,7 @@ func FromEither[E, L, A any](e ET.Either[L, A]) ReaderEither[E, L, A] {
 	return G.FromEither[ReaderEither[E, L, A]](e)
 }
 
-func RightReader[E, L, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
+func RightReader[L, E, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
 	return G.RightReader[R.Reader[E, A], ReaderEither[E, L, A]](r)
 }
 
@@ -76,7 +76,7 @@ func MonadAp[E, L, A, B any](fab ReaderEither[E, L, func(A) B], fa ReaderEither[
 	return G.MonadAp[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B]](fab, fa)
 }
 
-func Ap[E, L, A, B any](fa ReaderEither[E, L, A]) func(ReaderEither[E, L, func(A) B]) ReaderEither[E, L, B] {
+func Ap[B, E, L, A any](fa ReaderEither[E, L, A]) func(ReaderEither[E, L, func(A) B]) ReaderEither[E, L, B] {
 	return G.Ap[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B]](fa)
 }
 
@@ -96,7 +96,7 @@ func OrElse[E, L1, A, L2 any](onLeft func(L1) ReaderEither[E, L2, A]) func(Reade
 	return G.OrElse[ReaderEither[E, L1, A]](onLeft)
 }
 
-func OrLeft[L1, E, L2, A any](onLeft func(L1) R.Reader[E, L2]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
+func OrLeft[A, L1, E, L2 any](onLeft func(L1) R.Reader[E, L2]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
 	return G.OrLeft[ReaderEither[E, L1, A], ReaderEither[E, L2, A]](onLeft)
 }
 
@@ -104,19 +104,19 @@ func Ask[E, L any]() ReaderEither[E, L, E] {
 	return G.Ask[ReaderEither[E, L, E]]()
 }
 
-func Asks[E, L, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
+func Asks[L, E, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
 	return G.Asks[R.Reader[E, A], ReaderEither[E, L, A]](r)
 }
 
-func MonadChainEitherK[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) ET.Either[L, B]) ReaderEither[E, L, B] {
+func MonadChainEitherK[A, B, L, E any](ma ReaderEither[E, L, A], f func(A) ET.Either[L, B]) ReaderEither[E, L, B] {
 	return G.MonadChainEitherK[ReaderEither[E, L, A], ReaderEither[E, L, B]](ma, f)
 }
 
-func ChainEitherK[E, L, A, B any](f func(A) ET.Either[L, B]) func(ma ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+func ChainEitherK[A, B, L, E any](f func(A) ET.Either[L, B]) func(ma ReaderEither[E, L, A]) ReaderEither[E, L, B] {
 	return G.ChainEitherK[ReaderEither[E, L, A], ReaderEither[E, L, B]](f)
 }
 
-func ChainOptionK[E, L, A, B any](onNone func() L) func(func(A) O.Option[B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+func ChainOptionK[E, A, B, L any](onNone func() L) func(func(A) O.Option[B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
 	return G.ChainOptionK[ReaderEither[E, L, A], ReaderEither[E, L, B]](onNone)
 }
 
@@ -135,11 +135,11 @@ func BiMap[E, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(ReaderEither[E,
 
 // Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s
 // `contramap`).
-func Local[R2, R1, E, A any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderEither[R2, E, A] {
+func Local[E, A, R2, R1 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderEither[R2, E, A] {
 	return G.Local[ReaderEither[R1, E, A], ReaderEither[R2, E, A]](f)
 }
 
 // Read applies a context to a reader to obtain its value
-func Read[E, E1, A any](e E) func(ReaderEither[E, E1, A]) ET.Either[E1, A] {
+func Read[E1, A, E any](e E) func(ReaderEither[E, E1, A]) ET.Either[E1, A] {
 	return G.Read[ReaderEither[E, E1, A]](e)
 }
