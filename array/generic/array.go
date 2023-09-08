@@ -28,6 +28,14 @@ func Of[GA ~[]A, A any](value A) GA {
 	return GA{value}
 }
 
+func Reduce[GA ~[]A, A, B any](fa GA, f func(B, A) B, initial B) B {
+	return array.Reduce(fa, f, initial)
+}
+
+func ReduceWithIndex[GA ~[]A, A, B any](fa GA, f func(int, B, A) B, initial B) B {
+	return array.ReduceWithIndex(fa, f, initial)
+}
+
 // From constructs an array from a set of variadic arguments
 func From[GA ~[]A, A any](data ...A) GA {
 	return data
@@ -103,6 +111,10 @@ func UpsertAt[GA ~[]A, A any](a A) func(GA) GA {
 
 func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	return array.MonadMap[GA, GB](as, f)
+}
+
+func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
+	return F.Bind2nd(MonadMap[GA, GB, A, B], f)
 }
 
 func Size[GA ~[]A, A any](as GA) int {
@@ -225,4 +237,8 @@ func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
 	return func(as AS) A {
 		return array.Reduce(as, m.Concat, m.Empty())
 	}
+}
+
+func Push[GA ~[]A, A any](a A) func(GA) GA {
+	return F.Bind2nd(array.Push[GA, A], a)
 }

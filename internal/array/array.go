@@ -42,8 +42,25 @@ func Reduce[GA ~[]A, A, B any](fa GA, f func(B, A) B, initial B) B {
 	return current
 }
 
+func ReduceWithIndex[GA ~[]A, A, B any](fa GA, f func(int, B, A) B, initial B) B {
+	current := initial
+	count := len(fa)
+	for i := 0; i < count; i++ {
+		current = f(i, current, fa[i])
+	}
+	return current
+}
+
 func Append[GA ~[]A, A any](as GA, a A) GA {
 	return append(as, a)
+}
+
+func Push[GA ~[]A, A any](as GA, a A) GA {
+	l := len(as)
+	cpy := make(GA, l+1)
+	copy(cpy, as)
+	cpy[l] = a
+	return cpy
 }
 
 func Empty[GA ~[]A, A any]() GA {

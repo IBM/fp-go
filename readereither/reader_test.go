@@ -42,7 +42,7 @@ func TestMap(t *testing.T) {
 func TestAp(t *testing.T) {
 	g := F.Pipe1(
 		Of[MyContext, error](utils.Double),
-		Ap[MyContext, error, int, int](Of[MyContext, error](1)),
+		Ap[int](Of[MyContext, error](1)),
 	)
 	assert.Equal(t, ET.Of[error](2), g(defaultContext))
 

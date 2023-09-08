@@ -24,3 +24,9 @@ func MagmaSub[A Number]() M.Magma[A] {
 		return first - second
 	})
 }
+
+func MagmaDiv[A Number]() M.Magma[A] {
+	return M.MakeMagma(func(first A, second A) A {
+		return first / second
+	})
+}

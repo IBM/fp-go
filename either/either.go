@@ -91,11 +91,11 @@ func MonadChainTo[E, A, B any](ma Either[E, A], mb Either[E, B]) Either[E, B] {
 	return mb
 }
 
-func MonadChainOptionK[E, A, B any](onNone func() E, ma Either[E, A], f func(A) O.Option[B]) Either[E, B] {
+func MonadChainOptionK[A, B, E any](onNone func() E, ma Either[E, A], f func(A) O.Option[B]) Either[E, B] {
 	return MonadChain(ma, F.Flow2(f, FromOption[E, B](onNone)))
 }
 
-func ChainOptionK[E, A, B any](onNone func() E) func(func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
+func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
 	from := FromOption[E, B](onNone)
 	return func(f func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
 		return Chain(F.Flow2(f, from))
@@ -146,8 +146,8 @@ func FromOption[E, A any](onNone func() E) func(O.Option[A]) Either[E, A] {
 	return O.Fold(F.Nullary2(onNone, Left[A, E]), Right[E, A])
 }
 
-func ToOption[E, A any]() func(Either[E, A]) O.Option[A] {
-	return Fold(F.Ignore1of1[E](O.None[A]), O.Some[A])
+func ToOption[E, A any](ma Either[E, A]) O.Option[A] {
+	return MonadFold(ma, F.Ignore1of1[E](O.None[A]), O.Some[A])
 }
 
 func FromError[A any](f func(a A) error) func(A) Either[error, A] {

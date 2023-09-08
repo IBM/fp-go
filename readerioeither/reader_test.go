@@ -39,7 +39,7 @@ func TestMap(t *testing.T) {
 }
 
 func TestOrLeft(t *testing.T) {
-	f := OrLeft[string, context.Context, string, int](func(s string) RIO.ReaderIO[context.Context, string] {
+	f := OrLeft[int](func(s string) RIO.ReaderIO[context.Context, string] {
 		return RIO.Of[context.Context](s + "!")
 	})
 
@@ -70,7 +70,7 @@ func TestChainReaderK(t *testing.T) {
 
 	g := F.Pipe1(
 		Of[context.Context, error](1),
-		ChainReaderK[context.Context, error](func(v int) R.Reader[context.Context, string] {
+		ChainReaderK[error](func(v int) R.Reader[context.Context, string] {
 			return R.Of[context.Context](fmt.Sprintf("%d", v))
 		}),
 	)

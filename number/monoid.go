@@ -19,10 +19,20 @@ import (
 	M "github.com/IBM/fp-go/monoid"
 )
 
+// MonoidSum is the [Monoid] that adds elements with a zero empty element
 func MonoidSum[A Number]() M.Monoid[A] {
 	s := SemigroupSum[A]()
 	return M.MakeMonoid(
 		s.Concat,
 		0,
+	)
+}
+
+// MonoidProduct is the [Monoid] that multiplies elements with a one empty element
+func MonoidProduct[A Number]() M.Monoid[A] {
+	s := SemigroupProduct[A]()
+	return M.MakeMonoid(
+		s.Concat,
+		1,
 	)
 }

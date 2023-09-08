@@ -27,13 +27,13 @@ HKTRB = HKT<Either[B]>
 HKTA = HKT<A>
 HKTB = HKT<B>
 */
-func traverse[E, A, B, HKTA, HKTB, HKTRB any](
-	_of func(Either[E, B]) HKTRB,
-	_map func(HKTB, func(B) Either[E, B]) HKTRB,
+func traverse[E, A, B, HKTB, HKTRB any](
+	mof func(Either[E, B]) HKTRB,
+	mmap func(func(B) Either[E, B]) func(HKTB) HKTRB,
 ) func(Either[E, A], func(A) HKTB) HKTRB {
 
-	left := F.Flow2(Left[B, E], _of)
-	right := F.Bind2nd(_map, Right[E, B])
+	left := F.Flow2(Left[B, E], mof)
+	right := mmap(Right[E, B])
 
 	return func(ta Either[E, A], f func(A) HKTB) HKTRB {
 		return MonadFold(ta,
@@ -43,27 +43,21 @@ func traverse[E, A, B, HKTA, HKTB, HKTRB any](
 	}
 }
 
-func Traverse[E, A, B, HKTA, HKTB, HKTRB any](
-	_of func(Either[E, B]) HKTRB,
-	_map func(HKTB, func(B) Either[E, B]) HKTRB,
+// Traverse converts an [Either] of some higher kinded type into the higher kinded type of an [Either]
+func Traverse[A, E, B, HKTB, HKTRB any](
+	mof func(Either[E, B]) HKTRB,
+	mmap func(func(B) Either[E, B]) func(HKTB) HKTRB,
 ) func(func(A) HKTB) func(Either[E, A]) HKTRB {
-	delegate := traverse[E, A, B, HKTA](_of, _map)
+	delegate := traverse[E, A, B](mof, mmap)
 	return func(f func(A) HKTB) func(Either[E, A]) HKTRB {
 		return F.Bind2nd(delegate, f)
 	}
 }
 
-/*
-*
-We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
-
-HKTRA = HKT<Either[A]>
-HKTA = HKT<A>
-HKTB = HKT<B>
-*/
+// Sequence converts an [Either] of some higher kinded type into the higher kinded type of an [Either]
 func Sequence[E, A, HKTA, HKTRA any](
-	_of func(Either[E, A]) HKTRA,
-	_map func(HKTA, func(A) Either[E, A]) HKTRA,
+	mof func(Either[E, A]) HKTRA,
+	mmap func(func(A) Either[E, A]) func(HKTA) HKTRA,
 ) func(Either[E, HKTA]) HKTRA {
-	return Fold(F.Flow2(Left[A, E], _of), F.Bind2nd(_map, Right[E, A]))
+	return Fold(F.Flow2(Left[A, E], mof), mmap(Right[E, A]))
 }

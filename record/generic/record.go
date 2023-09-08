@@ -186,6 +186,13 @@ func MapRefWithIndex[M ~map[K]V, N ~map[K]R, K comparable, V, R any](f func(K, *
 	return F.Bind2nd(MonadMapRefWithIndex[M, N, K, V, R], f)
 }
 
+func MonadLookup[M ~map[K]V, K comparable, V any](m M, k K) O.Option[V] {
+	if val, ok := m[k]; ok {
+		return O.Some(val)
+	}
+	return O.None[V]()
+}
+
 func Lookup[M ~map[K]V, K comparable, V any](k K) func(M) O.Option[V] {
 	n := O.None[V]()
 	return func(m M) O.Option[V] {

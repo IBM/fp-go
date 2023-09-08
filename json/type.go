@@ -32,6 +32,6 @@ func ToTypeE[A any](src any) E.Either[error, A] {
 func ToTypeO[A any](src any) O.Option[A] {
 	return F.Pipe1(
 		ToTypeE[A](src),
-		E.ToOption[error, A](),
+		E.ToOption[error, A],
 	)
 }

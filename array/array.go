@@ -304,3 +304,7 @@ func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func([]A) B {
 func Fold[A any](m M.Monoid[A]) func([]A) A {
 	return G.Fold[[]A](m)
 }
+
+func Push[A any](a A) func([]A) []A {
+	return G.Push[[]A](a)
+}
