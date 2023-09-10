@@ -29,7 +29,7 @@ func TestCache(t *testing.T) {
 		return n
 	}
 
-	cached := Cache(withSideEffect)
+	cached := Memoize(withSideEffect)
 
 	assert.Equal(t, 0, count)
 
