@@ -24,7 +24,7 @@ import (
 )
 
 // AtRecord returns a lens that focusses on a value in a record
-func AtRecord[M ~map[K]V, K comparable, V any](key K) L.Lens[M, O.Option[V]] {
+func AtRecord[M ~map[K]V, V any, K comparable](key K) L.Lens[M, O.Option[V]] {
 	addKey := F.Bind1of2(RR.UpsertAt[M, K, V])(key)
 	delKey := F.Bind1of1(RR.DeleteAt[M, K, V])(key)
 	fold := O.Fold(
@@ -44,6 +44,6 @@ func AtRecord[M ~map[K]V, K comparable, V any](key K) L.Lens[M, O.Option[V]] {
 }
 
 // AtKey returns a `Lens` focused on a required key of a `ReadonlyRecord`
-func AtKey[M ~map[K]V, S any, K comparable, V any](key K) func(sa L.Lens[S, M]) L.Lens[S, O.Option[V]] {
+func AtKey[M ~map[K]V, S any, V any, K comparable](key K) func(sa L.Lens[S, M]) L.Lens[S, O.Option[V]] {
 	return L.Compose[S](AtRecord[M](key))
 }

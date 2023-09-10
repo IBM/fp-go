@@ -31,7 +31,7 @@ type (
 func TestAtKey(t *testing.T) {
 	sa := F.Pipe1(
 		L.Id[S](),
-		AtKey[S, string, int]("a"),
+		AtKey[S, int]("a"),
 	)
 
 	assert.Equal(t, O.Some(1), sa.Get(S{"a": 1}))
