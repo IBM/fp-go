@@ -19,12 +19,12 @@ import (
 	G "github.com/IBM/fp-go/function/generic"
 )
 
-// Cache converts a unary function into a unary function that caches the value depending on the parameter
-func Cache[K comparable, T any](f func(K) T) func(K) T {
-	return G.Cache(f)
+// Memoize converts a unary function into a unary function that caches the value depending on the parameter
+func Memoize[K comparable, T any](f func(K) T) func(K) T {
+	return G.Memoize(f)
 }
 
-// ContramapCache converts a unary function into a unary function that caches the value depending on the parameter
-func ContramapCache[A any, K comparable, T any](kf func(A) K) func(func(A) T) func(A) T {
-	return G.ContramapCache[func(A) T](kf)
+// ContramapMemoize converts a unary function into a unary function that caches the value depending on the parameter
+func ContramapMemoize[A any, K comparable, T any](kf func(A) K) func(func(A) T) func(A) T {
+	return G.ContramapMemoize[func(A) T](kf)
 }
