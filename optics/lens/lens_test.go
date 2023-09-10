@@ -209,7 +209,7 @@ func TestComposeOption(t *testing.T) {
 	// compose lenses
 	lens := F.Pipe1(
 		inner,
-		ComposeOption[Outer, *Inner, int](defaultInner)(value),
+		ComposeOption[Outer, int](defaultInner)(value),
 	)
 	outer1 := Outer{inner: &Inner{Value: 1, Foo: "a"}}
 	// the checks
@@ -235,7 +235,7 @@ func TestComposeOptions(t *testing.T) {
 	// compose lenses
 	lens := F.Pipe1(
 		inner,
-		ComposeOptions[OuterOpt, *InnerOpt, *int](defaultInner)(value),
+		ComposeOptions[OuterOpt, *int](defaultInner)(value),
 	)
 	// additional settings
 	defaultValue2 := 2

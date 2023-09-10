@@ -198,7 +198,7 @@ func TestOuterLensLaws(t *testing.T) {
 	eqValue := EQT.Eq[int]()
 	eqOptValue := O.Eq(eqValue)
 	// lens to access a value from outer
-	valueFromOuter := L.ComposeOption[*Outer, *Inner, int](&defaultInner)(valueLens)(outerLens)
+	valueFromOuter := L.ComposeOption[*Outer, int](&defaultInner)(valueLens)(outerLens)
 	// try to access the value, this should get an option
 	assert.True(t, eqOptValue.Equals(valueFromOuter.Get(&emptyOuter), O.None[int]()))
 	// update the object
@@ -234,7 +234,7 @@ func TestOuterOptLensLaws(t *testing.T) {
 	valueFromOuter := F.Pipe3(
 		valueOptLens,
 		LI.Compose[*InnerOpt](intIso),
-		L.ComposeOptions[*OuterOpt, *InnerOpt, int](&defaultInnerOpt),
+		L.ComposeOptions[*OuterOpt, int](&defaultInnerOpt),
 		I.Ap[L.Lens[*OuterOpt, O.Option[int]]](outerOptLens),
 	)
 

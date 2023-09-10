@@ -121,7 +121,7 @@ func Compose[S, A, B any](ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
 // the getter returns an `Option[B]` because the container `A` could already be an option
 // if the setter is invoked with `Some[B]` then the value of `B` will be set, potentially on a default value of `A` if `A` did not exist
 // if the setter is invoked with `None[B]` then the container `A` is reset to `None[A]` because this is the only way to remove `B`
-func ComposeOption[S, A, B any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
+func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
 	defa := F.Constant(defaultA)
 	return func(ab Lens[A, B]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
 		foldab := O.Fold(O.None[B], F.Flow2(ab.Get, O.Some[B]))
@@ -172,7 +172,7 @@ func ComposeOption[S, A, B any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.O
 // if the setter is called with `Some[B]` and `A` does not exist, the default of 'A' is updated with `B`
 // if the setter is called with `None[B]` and `A` does not exist this is the identity operation on 'S'
 // if the setter is called with `None[B]` and `A` does exist, 'B' is removed from 'A'
-func ComposeOptions[S, A, B any](defaultA A) func(ab Lens[A, O.Option[B]]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
+func ComposeOptions[S, B, A any](defaultA A) func(ab Lens[A, O.Option[B]]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
 	defa := F.Constant(defaultA)
 	noops := F.Constant(F.Identity[S])
 	noneb := O.None[B]()
