@@ -36,6 +36,22 @@ func TraverseArray[A, B any](f func(A) Option[B]) func([]A) Option[[]B] {
 	return TraverseArrayG[[]A, []B](f)
 }
 
+// TraverseArrayWithIndexG transforms an array
+func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) func(GA) Option[GB] {
+	return RA.TraverseWithIndex[GA](
+		Of[GB],
+		Map[GB, func(B) GB],
+		Ap[GB, B],
+
+		f,
+	)
+}
+
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) func([]A) Option[[]B] {
+	return TraverseArrayWithIndexG[[]A, []B](f)
+}
+
 func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
 	return TraverseArrayG[GOA, GA](F.Identity[Option[A]])(ma)
 }

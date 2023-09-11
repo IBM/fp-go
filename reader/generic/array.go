@@ -40,6 +40,16 @@ func TraverseArray[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B 
 	)
 }
 
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B any](f func(int, A) GB) func(AAS) GBS {
+	return RA.TraverseWithIndex[AAS](
+		Of[GBS, R, BBS],
+		Map[GBS, func(R) func(B) BBS, R, BBS, func(B) BBS],
+		Ap[GB, GBS, func(R) func(B) BBS, R, B, BBS],
+		f,
+	)
+}
+
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[GA ~func(R) A, GAS ~func(R) AAS, AAS ~[]A, GAAS ~[]GA, R, A any](ma GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](ma, F.Identity[GA])

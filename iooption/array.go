@@ -24,6 +24,11 @@ func TraverseArray[A, B any](f func(A) IOOption[B]) func([]A) IOOption[[]B] {
 	return G.TraverseArray[IOOption[B], IOOption[[]B], []A](f)
 }
 
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[A, B any](f func(int, A) IOOption[B]) func([]A) IOOption[[]B] {
+	return G.TraverseArrayWithIndex[IOOption[B], IOOption[[]B], []A](f)
+}
+
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[A any](ma []IOOption[A]) IOOption[[]A] {
 	return G.SequenceArray[IOOption[A], IOOption[[]A], []IOOption[A], []A, A](ma)

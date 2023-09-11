@@ -20,7 +20,7 @@ import (
 	RR "github.com/IBM/fp-go/internal/record"
 )
 
-// TraverseRecord transforms a record of options into an option of a record
+// TraverseRecordG transforms a record of options into an option of a record
 func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(A) Option[B]) func(GA) Option[GB] {
 	return RR.Traverse[GA](
 		Of[GB],
@@ -34,6 +34,22 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(A)
 // TraverseRecord transforms a record of options into an option of a record
 func TraverseRecord[K comparable, A, B any](f func(A) Option[B]) func(map[K]A) Option[map[K]B] {
 	return TraverseRecordG[map[K]A, map[K]B](f)
+}
+
+// TraverseRecordWithIndexG transforms a record of options into an option of a record
+func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(K, A) Option[B]) func(GA) Option[GB] {
+	return RR.TraverseWithIndex[GA](
+		Of[GB],
+		Map[GB, func(B) GB],
+		Ap[GB, B],
+
+		f,
+	)
+}
+
+// TraverseRecordWithIndex transforms a record of options into an option of a record
+func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Option[B]) func(map[K]A) Option[map[K]B] {
+	return TraverseRecordWithIndexG[map[K]A, map[K]B](f)
 }
 
 func SequenceRecordG[GA ~map[K]A, GOA ~map[K]Option[A], K comparable, A any](ma GOA) Option[GA] {
