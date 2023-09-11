@@ -62,6 +62,25 @@ func TraverseArray[
 	)
 }
 
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[
+	AS ~[]A,
+	GRBS ~func(context.Context) GIOBS,
+	GRB ~func(context.Context) GIOB,
+	GIOBS ~func() E.Either[error, BS],
+	GIOB ~func() E.Either[error, B],
+	BS ~[]B,
+	A, B any](f func(int, A) GRB) func(AS) GRBS {
+
+	return RA.TraverseWithIndex[AS](
+		Of[GRBS, GIOBS, BS],
+		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
+		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],
+
+		f,
+	)
+}
+
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[
 	AS ~[]A,
@@ -107,6 +126,26 @@ func TraverseRecord[K comparable,
 	A, B any](f func(A) GRB) func(AS) GRBS {
 
 	return RR.Traverse[AS](
+		Of[GRBS, GIOBS, BS],
+		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
+		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],
+
+		f,
+	)
+}
+
+// TraverseRecordWithIndex transforms a record
+func TraverseRecordWithIndex[K comparable,
+	AS ~map[K]A,
+	GRBS ~func(context.Context) GIOBS,
+	GRB ~func(context.Context) GIOB,
+	GIOBS ~func() E.Either[error, BS],
+	GIOB ~func() E.Either[error, B],
+	BS ~map[K]B,
+
+	A, B any](f func(K, A) GRB) func(AS) GRBS {
+
+	return RR.TraverseWithIndex[AS](
 		Of[GRBS, GIOBS, BS],
 		Map[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GIOBS, func() E.Either[error, func(B) BS], BS, func(B) BS],
 		Ap[GRBS, func(context.Context) func() E.Either[error, func(B) BS], GRB],

@@ -45,6 +45,29 @@ func TraverseArray[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], AA
 	)
 }
 
+// MonadTraverseArrayWithIndex transforms an array
+func MonadTraverseArrayWithIndex[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], AAS ~[]A, BBS ~[]B, E, A, B any](tas AAS, f func(int, A) GB) GBS {
+	return RA.MonadTraverseWithIndex[AAS](
+		Of[GBS, E, BBS],
+		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
+
+		tas,
+		f,
+	)
+}
+
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], AAS ~[]A, BBS ~[]B, E, A, B any](f func(int, A) GB) func(AAS) GBS {
+	return RA.TraverseWithIndex[AAS](
+		Of[GBS, E, BBS],
+		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
+
+		f,
+	)
+}
+
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[GA ~func() ET.Either[E, A], GAS ~func() ET.Either[E, AAS], AAS ~[]A, GAAS ~[]GA, E, A any](tas GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](tas, F.Identity[GA])
@@ -65,6 +88,17 @@ func MonadTraverseRecord[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BB
 // TraverseRecord transforms an array
 func TraverseRecord[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], AAS ~map[K]A, BBS ~map[K]B, K comparable, E, A, B any](f func(A) GB) func(AAS) GBS {
 	return RR.Traverse[AAS](
+		Of[GBS, E, BBS],
+		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
+		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],
+
+		f,
+	)
+}
+
+// TraverseRecordWithIndex transforms an array
+func TraverseRecordWithIndex[GB ~func() ET.Either[E, B], GBS ~func() ET.Either[E, BBS], AAS ~map[K]A, BBS ~map[K]B, K comparable, E, A, B any](f func(K, A) GB) func(AAS) GBS {
+	return RR.TraverseWithIndex[AAS](
 		Of[GBS, E, BBS],
 		Map[GBS, func() ET.Either[E, func(B) BBS], E, BBS, func(B) BBS],
 		Ap[GBS, func() ET.Either[E, func(B) BBS], GB],

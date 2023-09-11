@@ -25,6 +25,11 @@ func TraverseArray[R, A, B any](f func(A) ReaderIO[R, B]) func([]A) ReaderIO[R, 
 	return G.TraverseArray[ReaderIO[R, B], ReaderIO[R, []B], IO.IO[B], IO.IO[[]B], []A](f)
 }
 
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIO[R, B]) func([]A) ReaderIO[R, []B] {
+	return G.TraverseArrayWithIndex[ReaderIO[R, B], ReaderIO[R, []B], IO.IO[B], IO.IO[[]B], []A](f)
+}
+
 // SequenceArray converts a homogeneous sequence of Readers into a Reader of sequence
 func SequenceArray[R, A any](ma []ReaderIO[R, A]) ReaderIO[R, []A] {
 	return G.SequenceArray[ReaderIO[R, A], ReaderIO[R, []A]](ma)

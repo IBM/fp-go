@@ -20,7 +20,7 @@ import (
 	RA "github.com/IBM/fp-go/internal/array"
 )
 
-// TraverseArray transforms an array
+// TraverseArrayG transforms an array
 func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f func(A) Either[E, B]) func(GA) Either[E, GB] {
 	return RA.Traverse[GA](
 		Of[E, GB],
@@ -34,6 +34,22 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f func(A) Either[E, B]) func(
 // TraverseArray transforms an array
 func TraverseArray[E, A, B any](f func(A) Either[E, B]) func([]A) Either[E, []B] {
 	return TraverseArrayG[[]A, []B](f)
+}
+
+// TraverseArrayWithIndexG transforms an array
+func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) func(GA) Either[E, GB] {
+	return RA.TraverseWithIndex[GA](
+		Of[E, GB],
+		Map[E, GB, func(B) GB],
+		Ap[GB, E, B],
+
+		f,
+	)
+}
+
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) func([]A) Either[E, []B] {
+	return TraverseArrayWithIndexG[[]A, []B](f)
 }
 
 func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA] {

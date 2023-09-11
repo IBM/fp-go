@@ -24,6 +24,11 @@ func TraverseArray[R, A, B any](f func(A) Reader[R, B]) func([]A) Reader[R, []B]
 	return G.TraverseArray[Reader[R, B], Reader[R, []B], []A](f)
 }
 
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) func([]A) Reader[R, []B] {
+	return G.TraverseArrayWithIndex[Reader[R, B], Reader[R, []B], []A](f)
+}
+
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[R, A any](ma []Reader[R, A]) Reader[R, []A] {
 	return G.SequenceArray[Reader[R, A], Reader[R, []A]](ma)
