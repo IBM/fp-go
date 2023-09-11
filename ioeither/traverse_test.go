@@ -13,29 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package record
+package ioeither
 
 import (
+	"fmt"
 	"testing"
 
-	F "github.com/IBM/fp-go/function"
-	L "github.com/IBM/fp-go/optics/lens"
-	O "github.com/IBM/fp-go/option"
+	A "github.com/IBM/fp-go/array"
+	E "github.com/IBM/fp-go/either"
 	"github.com/stretchr/testify/assert"
 )
 
-type (
-	S = map[string]int
-)
+func TestTraverseArray(t *testing.T) {
 
-func TestAtKey(t *testing.T) {
-	sa := F.Pipe1(
-		L.Id[S](),
-		AtKey[S, int]("a"),
-	)
+	src := A.From("A", "B")
 
-	assert.Equal(t, O.Some(1), sa.Get(S{"a": 1}))
-	assert.Equal(t, S{"a": 2, "b": 2}, sa.Set(O.Some(2))(S{"a": 1, "b": 2}))
-	assert.Equal(t, S{"a": 1, "b": 2}, sa.Set(O.Some(1))(S{"b": 2}))
-	assert.Equal(t, S{"b": 2}, sa.Set(O.None[int]())(S{"a": 1, "b": 2}))
+	trfrm := TraverseArrayWithIndex(func(idx int, data string) IOEither[error, string] {
+		return Of[error](fmt.Sprintf("idx: %d, data: %s", idx, data))
+	})
+
+	assert.Equal(t, E.Of[error](A.From("idx: 0, data: A", "idx: 1, data: B")), trfrm(src)())
+
 }

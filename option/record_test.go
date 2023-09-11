@@ -30,3 +30,18 @@ func TestSequenceRecord(t *testing.T) {
 		"b": Of("B"),
 	}))
 }
+
+func TestCompactRecord(t *testing.T) {
+	// make the map
+	m := make(map[string]Option[int])
+	m["foo"] = None[int]()
+	m["bar"] = Some(1)
+	// compact it
+	m1 := CompactRecord(m)
+	// check expected
+	exp := map[string]int{
+		"bar": 1,
+	}
+
+	assert.Equal(t, exp, m1)
+}

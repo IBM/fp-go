@@ -42,6 +42,16 @@ func TraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](
 	)
 }
 
+func TraverseArrayWithIndex[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(int, A) GB) func(AAS) GBS {
+	return RA.TraverseWithIndex[AAS](
+		Of[GBS, BBS],
+		Map[GBS, func() func(B) BBS, BBS, func(B) BBS],
+		Ap[GBS, func() func(B) BBS, GB],
+
+		f,
+	)
+}
+
 func SequenceArray[GA ~func() A, GAS ~func() AAS, AAS ~[]A, GAAS ~[]GA, A any](tas GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](tas, F.Identity[GA])
 }
@@ -59,6 +69,16 @@ func MonadTraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B,
 // TraverseRecord transforms a record using an IO transform an IO of a record
 func TraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](f func(A) GB) func(MA) GBS {
 	return RR.Traverse[MA](
+		Of[GBS, MB],
+		Map[GBS, func() func(B) MB, MB, func(B) MB],
+		Ap[GBS, func() func(B) MB, GB],
+		f,
+	)
+}
+
+// TraverseRecordWithIndex transforms a record using an IO transform an IO of a record
+func TraverseRecordWithIndex[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](f func(K, A) GB) func(MA) GBS {
+	return RR.TraverseWithIndex[MA](
 		Of[GBS, MB],
 		Map[GBS, func() func(B) MB, MB, func(B) MB],
 		Ap[GBS, func() func(B) MB, GB],

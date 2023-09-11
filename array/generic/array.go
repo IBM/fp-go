@@ -187,6 +187,14 @@ func IsEmpty[AS ~[]A, A any](as AS) bool {
 	return array.IsEmpty(as)
 }
 
+func IsNil[GA ~[]A, A any](as GA) bool {
+	return array.IsNil(as)
+}
+
+func IsNonNil[GA ~[]A, A any](as GA) bool {
+	return array.IsNonNil(as)
+}
+
 func Match[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(AS) B) func(AS) B {
 	return func(as AS) B {
 		if IsEmpty(as) {

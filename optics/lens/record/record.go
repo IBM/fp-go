@@ -22,11 +22,11 @@ import (
 )
 
 // AtRecord returns a lens that focusses on a value in a record
-func AtRecord[K comparable, V any](key K) L.Lens[map[K]V, O.Option[V]] {
+func AtRecord[V any, K comparable](key K) L.Lens[map[K]V, O.Option[V]] {
 	return G.AtRecord[map[K]V](key)
 }
 
 // AtKey returns a `Lens` focused on a required key of a `ReadonlyRecord`
-func AtKey[S any, K comparable, V any](key K) func(sa L.Lens[S, map[K]V]) L.Lens[S, O.Option[V]] {
+func AtKey[S any, V any, K comparable](key K) func(sa L.Lens[S, map[K]V]) L.Lens[S, O.Option[V]] {
 	return G.AtKey[map[K]V, S](key)
 }

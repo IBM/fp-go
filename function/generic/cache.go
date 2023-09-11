@@ -21,13 +21,13 @@ import (
 	L "github.com/IBM/fp-go/internal/lazy"
 )
 
-// Cache converts a unary function into a unary function that caches the value depending on the parameter
-func Cache[F ~func(K) T, K comparable, T any](f F) F {
-	return ContramapCache[F](func(k K) K { return k })(f)
+// Memoize converts a unary function into a unary function that caches the value depending on the parameter
+func Memoize[F ~func(K) T, K comparable, T any](f F) F {
+	return ContramapMemoize[F](func(k K) K { return k })(f)
 }
 
-// ContramapCache converts a unary function into a unary function that caches the value depending on the parameter
-func ContramapCache[F ~func(A) T, KF func(A) K, A any, K comparable, T any](kf KF) func(F) F {
+// ContramapMemoize converts a unary function into a unary function that caches the value depending on the parameter
+func ContramapMemoize[F ~func(A) T, KF func(A) K, A any, K comparable, T any](kf KF) func(F) F {
 	return CacheCallback[F](kf, getOrCreate[K, T]())
 }
 

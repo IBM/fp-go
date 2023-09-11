@@ -28,6 +28,13 @@ func TraverseArray[TB ~func() O.Option[B], TBS ~func() O.Option[GB], GA ~[]A, GB
 	)
 }
 
+func TraverseArrayWithIndex[TB ~func() O.Option[B], TBS ~func() O.Option[GB], GA ~[]A, GB ~[]B, A, B any](f func(int, A) TB) func(GA) TBS {
+	return F.Flow2(
+		I.TraverseArrayWithIndex[TB, func() []O.Option[B], GA](f),
+		I.Map[func() []O.Option[B], TBS](O.SequenceArrayG[GB, []O.Option[B], B]),
+	)
+}
+
 func SequenceArray[TB ~func() O.Option[B], TBS ~func() O.Option[GB], GA ~[]TB, GB ~[]B, A, B any](ma GA) TBS {
 	return TraverseArray[TB, TBS, GA](F.Identity[TB])(ma)
 }

@@ -24,6 +24,11 @@ func TraverseArray[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[E, 
 	return G.TraverseArray[IOEither[E, B], IOEither[E, []B], []A](f)
 }
 
+// TraverseArrayWithIndex transforms an array
+func TraverseArrayWithIndex[E, A, B any](f func(int, A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+	return G.TraverseArrayWithIndex[IOEither[E, B], IOEither[E, []B], []A](f)
+}
+
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 	return G.SequenceArray[IOEither[E, A], IOEither[E, []A]](ma)
@@ -32,6 +37,11 @@ func SequenceArray[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 // TraverseRecord transforms a record
 func TraverseRecord[K comparable, E, A, B any](f func(A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
 	return G.TraverseRecord[IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
+}
+
+// TraverseRecordWithIndex transforms a record
+func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+	return G.TraverseRecordWithIndex[IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
 }
 
 // SequenceRecord converts a homogeneous sequence of either into an either of sequence

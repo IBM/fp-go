@@ -209,7 +209,7 @@ func OrElse[E, A any](onLeft func(e E) Either[E, A]) func(Either[E, A]) Either[E
 	return Fold(onLeft, Of[E, A])
 }
 
-func ToType[E, A any](onError func(any) E) func(any) Either[E, A] {
+func ToType[A, E any](onError func(any) E) func(any) Either[E, A] {
 	return func(value any) Either[E, A] {
 		return F.Pipe2(
 			value,

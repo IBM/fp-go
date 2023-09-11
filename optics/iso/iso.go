@@ -67,7 +67,7 @@ func Modify[S, A any](f func(A) A) func(Iso[S, A]) func(S) S {
 }
 
 // Wrap wraps the value
-func Unwrap[S, A any](s S) func(Iso[S, A]) A {
+func Unwrap[A, S any](s S) func(Iso[S, A]) A {
 	return func(sa Iso[S, A]) A {
 		return sa.Get(s)
 	}
@@ -81,8 +81,8 @@ func Wrap[S, A any](a A) func(Iso[S, A]) S {
 }
 
 // From wraps the value
-func To[S, A any](s S) func(Iso[S, A]) A {
-	return Unwrap[S, A](s)
+func To[A, S any](s S) func(Iso[S, A]) A {
+	return Unwrap[A, S](s)
 }
 
 // To unwraps the value

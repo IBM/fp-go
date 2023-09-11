@@ -37,6 +37,24 @@ func MonadTraverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	return MonadTraverseReduce(fof, fmap, fap, ta, f, Append[GB, B], Empty[GB]())
 }
 
+/*
+*
+We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
+
+HKTRB = HKT<GB>
+HKTB = HKT<B>
+HKTAB = HKT<func(A)B>
+*/
+func MonadTraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
+	fof func(GB) HKTRB,
+	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+
+	ta GA,
+	f func(int, A) HKTB) HKTRB {
+	return MonadTraverseReduceWithIndex(fof, fmap, fap, ta, f, Append[GB, B], Empty[GB]())
+}
+
 func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -46,6 +64,18 @@ func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 
 	return func(ma GA) HKTRB {
 		return MonadTraverse(fof, fmap, fap, ma, f)
+	}
+}
+
+func TraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
+	fof func(GB) HKTRB,
+	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+
+	f func(int, A) HKTB) func(GA) HKTRB {
+
+	return func(ma GA) HKTRB {
+		return MonadTraverseWithIndex(fof, fmap, fap, ma, f)
 	}
 }
 
@@ -71,6 +101,28 @@ func MonadTraverseReduce[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
 	}, fof(initial))
 }
 
+func MonadTraverseReduceWithIndex[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
+	fof func(GB) HKTRB,
+	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+
+	ta GA,
+
+	transform func(int, A) HKTB,
+	reduce func(GB, B) GB,
+	initial GB,
+) HKTRB {
+	mmap := fmap(F.Curry2(reduce))
+
+	return ReduceWithIndex(ta, func(idx int, r HKTRB, a A) HKTRB {
+		return F.Pipe2(
+			r,
+			mmap,
+			fap(transform(idx, a)),
+		)
+	}, fof(initial))
+}
+
 func TraverseReduce[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -82,5 +134,19 @@ func TraverseReduce[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
 ) func(GA) HKTRB {
 	return func(ta GA) HKTRB {
 		return MonadTraverseReduce(fof, fmap, fap, ta, transform, reduce, initial)
+	}
+}
+
+func TraverseReduceWithIndex[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
+	fof func(GB) HKTRB,
+	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+
+	transform func(int, A) HKTB,
+	reduce func(GB, B) GB,
+	initial GB,
+) func(GA) HKTRB {
+	return func(ta GA) HKTRB {
+		return MonadTraverseReduceWithIndex(fof, fmap, fap, ta, transform, reduce, initial)
 	}
 }

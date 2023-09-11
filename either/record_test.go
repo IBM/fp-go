@@ -13,29 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package record
+package either
 
 import (
 	"testing"
 
-	F "github.com/IBM/fp-go/function"
-	L "github.com/IBM/fp-go/optics/lens"
-	O "github.com/IBM/fp-go/option"
 	"github.com/stretchr/testify/assert"
 )
 
-type (
-	S = map[string]int
-)
+func TestCompactRecord(t *testing.T) {
+	// make the map
+	m := make(map[string]Either[string, int])
+	m["foo"] = Left[int]("error")
+	m["bar"] = Right[string](1)
+	// compact it
+	m1 := CompactRecord(m)
+	// check expected
+	exp := map[string]int{
+		"bar": 1,
+	}
 
-func TestAtKey(t *testing.T) {
-	sa := F.Pipe1(
-		L.Id[S](),
-		AtKey[S, int]("a"),
-	)
-
-	assert.Equal(t, O.Some(1), sa.Get(S{"a": 1}))
-	assert.Equal(t, S{"a": 2, "b": 2}, sa.Set(O.Some(2))(S{"a": 1, "b": 2}))
-	assert.Equal(t, S{"a": 1, "b": 2}, sa.Set(O.Some(1))(S{"b": 2}))
-	assert.Equal(t, S{"b": 2}, sa.Set(O.None[int]())(S{"a": 1, "b": 2}))
+	assert.Equal(t, exp, m1)
 }

@@ -23,7 +23,7 @@ import (
 	O "github.com/IBM/fp-go/option"
 )
 
-// AssertLaws asserts the apply monad laws for the `Either` monad
+// AssertLaws asserts the apply monad laws for the [Option] monad
 func AssertLaws[A, B, C any](t *testing.T,
 	eqa EQ.Eq[A],
 	eqb EQ.Eq[B],
