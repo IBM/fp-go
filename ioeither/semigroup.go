@@ -13,18 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package ioeither
 
 import (
-	M "github.com/IBM/fp-go/monoid"
+	G "github.com/IBM/fp-go/ioeither/generic"
 	S "github.com/IBM/fp-go/semigroup"
 )
 
-func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
-	return S.ApplySemigroup(MonadMap[E, A, func(A) A], MonadAp[A, E, A], s)
-}
-
-// ApplicativeMonoid returns a [Monoid] that concatenates [Either] instances via their applicative
-func ApplicativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
-	return M.ApplicativeMonoid(Of[E, A], MonadMap[E, A, func(A) A], MonadAp[A, E, A], m)
+// AltSemigroup is a [Semigroup] that tries the first item and then the second one using an alternative
+func AltSemigroup[E, A any]() S.Semigroup[IOEither[E, A]] {
+	return G.AltSemigroup[IOEither[E, A]]()
 }

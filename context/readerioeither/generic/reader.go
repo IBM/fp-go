@@ -543,3 +543,11 @@ func TryCatch[
 	A any](f func(context.Context) func() (A, error)) GRA {
 	return RIE.TryCatch[GRA](f, ER.IdentityError)
 }
+
+func MonadAlt[LAZY ~func() GEA, GEA ~func(context.Context) GIOA, GIOA ~func() E.Either[error, A], A any](first GEA, second LAZY) GEA {
+	return RIE.MonadAlt(first, second)
+}
+
+func Alt[LAZY ~func() GEA, GEA ~func(context.Context) GIOA, GIOA ~func() E.Either[error, A], A any](second LAZY) func(GEA) GEA {
+	return RIE.Alt(second)
+}

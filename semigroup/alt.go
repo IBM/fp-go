@@ -13,18 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package semigroup
 
-import (
-	M "github.com/IBM/fp-go/monoid"
-	S "github.com/IBM/fp-go/semigroup"
-)
+func AltSemigroup[HKTA any](
+	falt func(HKTA, func() HKTA) HKTA,
 
-func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
-	return S.ApplySemigroup(MonadMap[E, A, func(A) A], MonadAp[A, E, A], s)
-}
+) Semigroup[HKTA] {
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [Either] instances via their applicative
-func ApplicativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
-	return M.ApplicativeMonoid(Of[E, A], MonadMap[E, A, func(A) A], MonadAp[A, E, A], m)
+	return MakeSemigroup(
+		func(first, second HKTA) HKTA {
+			return falt(first, func() HKTA { return second })
+		},
+	)
 }

@@ -35,6 +35,20 @@ func MakeReader[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](f 
 	return f
 }
 
+func MonadAlt[LAZY ~func() GEA, GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](first GEA, second LAZY) GEA {
+	return eithert.MonadAlt(
+		G.Of[GEA],
+		G.MonadChain[GEA, GEA],
+
+		first,
+		second,
+	)
+}
+
+func Alt[LAZY ~func() GEA, GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](second LAZY) func(GEA) GEA {
+	return F.Bind2nd(MonadAlt[LAZY], second)
+}
+
 func MonadMap[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], R, E, A, B any](fa GEA, f func(A) B) GEB {
 	return eithert.MonadMap(G.MonadMap[GEA, GEB, GIOA, GIOB, R, ET.Either[E, A], ET.Either[E, B]], fa, f)
 }

@@ -1,0 +1,3 @@
+@echo off
+mkdir build 2> NUL
+gotip test .\... && go1.20.1 test .\... && go test -v -coverprofile build/cover.out -coverpkg=./... -covermode=atomic .\...

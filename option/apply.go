@@ -24,6 +24,7 @@ func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[Option[A]] {
 	return S.ApplySemigroup(MonadMap[A, func(A) A], MonadAp[A, A], s)
 }
 
+// ApplicativeMonoid returns a [Monoid] that concatenates [Option] instances via their applicative
 func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
 	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
 }

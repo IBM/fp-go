@@ -13,18 +13,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package monoid
 
 import (
-	M "github.com/IBM/fp-go/monoid"
 	S "github.com/IBM/fp-go/semigroup"
 )
 
-func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
-	return S.ApplySemigroup(MonadMap[E, A, func(A) A], MonadAp[A, E, A], s)
+func AlternativeMonoid[A, HKTA, HKTFA any](
+	fof func(A) HKTA,
+
+	fmap func(HKTA, func(A) func(A) A) HKTFA,
+	fap func(HKTFA, HKTA) HKTA,
+
+	falt func(HKTA, func() HKTA) HKTA,
+
+	m Monoid[A],
+
+) Monoid[HKTA] {
+
+	sg := ApplicativeMonoid(fof, fmap, fap, m)
+
+	return MakeMonoid(
+		func(first, second HKTA) HKTA {
+			snd := func() HKTA { return second }
+
+			return falt(sg.Concat(first, second), func() HKTA {
+				return falt(first, snd)
+			})
+		},
+		sg.Empty(),
+	)
 }
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [Either] instances via their applicative
-func ApplicativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
-	return M.ApplicativeMonoid(Of[E, A], MonadMap[E, A, func(A) A], MonadAp[A, E, A], m)
+func AltMonoid[HKTA any](
+	fzero func() HKTA,
+	falt func(HKTA, func() HKTA) HKTA,
+
+) Monoid[HKTA] {
+
+	return MakeMonoid(
+		S.AltSemigroup(falt).Concat,
+		fzero(),
+	)
 }

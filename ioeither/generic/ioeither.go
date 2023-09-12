@@ -290,3 +290,17 @@ func FromImpure[GA ~func() ET.Either[E, any], IMP ~func(), E any](f IMP) GA {
 func Defer[GEA ~func() ET.Either[E, A], E, A any](gen func() GEA) GEA {
 	return IO.Defer[GEA](gen)
 }
+
+func MonadAlt[LAZY ~func() GIOA, GIOA ~func() ET.Either[E, A], E, A any](first GIOA, second LAZY) GIOA {
+	return eithert.MonadAlt(
+		IO.Of[GIOA],
+		IO.MonadChain[GIOA, GIOA],
+
+		first,
+		second,
+	)
+}
+
+func Alt[LAZY ~func() GIOA, GIOA ~func() ET.Either[E, A], E, A any](second LAZY) func(GIOA) GIOA {
+	return F.Bind2nd(MonadAlt[LAZY], second)
+}
