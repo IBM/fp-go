@@ -25,6 +25,40 @@ import (
 	C "github.com/urfave/cli/v2"
 )
 
+func generateUnsliced(f *os.File, i int) {
+	// Create the optionize version
+	fmt.Fprintf(f, "\n// Unsliced%d converts a function taking a slice parameter into a function with %d parameters\n", i, i)
+	fmt.Fprintf(f, "func Unsliced%d[F ~func([]T) R, T, R any](f F) func(", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T")
+	}
+	fmt.Fprintf(f, ") R {\n")
+	fmt.Fprintf(f, "  return func(")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d", j+1)
+	}
+	if i > 0 {
+		fmt.Fprintf(f, " T")
+	}
+	fmt.Fprintf(f, ") R {\n")
+	fmt.Fprintf(f, "    return f([]T{")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "t%d", j+1)
+	}
+	fmt.Fprintln(f, "})")
+	fmt.Fprintln(f, "  }")
+	fmt.Fprintln(f, "}")
+}
+
 func generateVariadic(f *os.File, i int) {
 	// Create the nullary version
 	fmt.Fprintf(f, "\n// Variadic%d converts a function taking %d parameters and a final slice into a function with %d parameters but a final variadic argument\n", i, i, i)
@@ -83,7 +117,7 @@ func generateVariadic(f *os.File, i int) {
 	fmt.Fprintf(f, "v)\n")
 	fmt.Fprintf(f, "  }\n")
 
-	fmt.Fprintf(f, "}")
+	fmt.Fprintf(f, "}\n")
 }
 
 func generateUnvariadic(f *os.File, i int) {
@@ -144,7 +178,7 @@ func generateUnvariadic(f *os.File, i int) {
 	fmt.Fprintf(f, "v...)\n")
 	fmt.Fprintf(f, "  }\n")
 
-	fmt.Fprintf(f, "}")
+	fmt.Fprintf(f, "}\n")
 }
 
 func generateNullary(f *os.File, i int) {
@@ -347,6 +381,8 @@ func generatePipeHelpers(filename string, count int) error {
 	generateVariadic(f, 0)
 	// unvariadic
 	generateUnvariadic(f, 0)
+	// unsliced
+	generateUnsliced(f, 0)
 
 	for i := 1; i <= count; i++ {
 
@@ -364,6 +400,8 @@ func generatePipeHelpers(filename string, count int) error {
 		generateVariadic(f, i)
 		// unvariadic
 		generateUnvariadic(f, i)
+		// unsliced
+		generateUnsliced(f, i)
 	}
 
 	return nil
