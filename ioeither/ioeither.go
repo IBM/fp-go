@@ -19,6 +19,7 @@ import (
 	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
 	G "github.com/IBM/fp-go/ioeither/generic"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -207,6 +208,16 @@ func FromImpure[E any](f func()) IOEither[E, any] {
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
-func Defer[E, A any](gen func() IOEither[E, A]) IOEither[E, A] {
+func Defer[E, A any](gen L.Lazy[IOEither[E, A]]) IOEither[E, A] {
 	return G.Defer[IOEither[E, A]](gen)
+}
+
+// MonadAlt identifies an associative operation on a type constructor
+func MonadAlt[E, A any](first IOEither[E, A], second L.Lazy[IOEither[E, A]]) IOEither[E, A] {
+	return G.MonadAlt(first, second)
+}
+
+// Alt identifies an associative operation on a type constructor
+func Alt[E, A any](second L.Lazy[IOEither[E, A]]) func(IOEither[E, A]) IOEither[E, A] {
+	return G.Alt(second)
 }

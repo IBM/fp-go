@@ -25,6 +25,7 @@ import (
 	ET "github.com/IBM/fp-go/either"
 	IO "github.com/IBM/fp-go/io"
 	IOE "github.com/IBM/fp-go/ioeither"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -182,11 +183,21 @@ func Timer(delay time.Duration) ReaderIOEither[time.Time] {
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
-func Defer[A any](gen func() ReaderIOEither[A]) ReaderIOEither[A] {
+func Defer[A any](gen L.Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return G.Defer[ReaderIOEither[A]](gen)
 }
 
 // TryCatch wraps a reader returning a tuple as an error into ReaderIOEither
 func TryCatch[A any](f func(context.Context) func() (A, error)) ReaderIOEither[A] {
 	return G.TryCatch[ReaderIOEither[A]](f)
+}
+
+// MonadAlt identifies an associative operation on a type constructor
+func MonadAlt[A any](first ReaderIOEither[A], second L.Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
+	return G.MonadAlt(first, second)
+}
+
+// Alt identifies an associative operation on a type constructor
+func Alt[A any](second L.Lazy[ReaderIOEither[A]]) func(ReaderIOEither[A]) ReaderIOEither[A] {
+	return G.Alt(second)
 }

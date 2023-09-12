@@ -19,6 +19,7 @@ import (
 	ET "github.com/IBM/fp-go/either"
 	"github.com/IBM/fp-go/io"
 	IOE "github.com/IBM/fp-go/ioeither"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 	RD "github.com/IBM/fp-go/reader"
 	RE "github.com/IBM/fp-go/readereither"
@@ -245,11 +246,21 @@ func Swap[R, E, A any](val ReaderIOEither[R, E, A]) ReaderIOEither[R, A, E] {
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
-func Defer[R, E, A any](gen func() ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func Defer[R, E, A any](gen L.Lazy[ReaderIOEither[R, E, A]]) ReaderIOEither[R, E, A] {
 	return G.Defer[ReaderIOEither[R, E, A]](gen)
 }
 
 // TryCatch wraps a reader returning a tuple as an error into ReaderIOEither
 func TryCatch[R, E, A any](f func(R) func() (A, error), onThrow func(error) E) ReaderIOEither[R, E, A] {
 	return G.TryCatch[ReaderIOEither[R, E, A]](f, onThrow)
+}
+
+// MonadAlt identifies an associative operation on a type constructor.
+func MonadAlt[R, E, A any](first ReaderIOEither[R, E, A], second L.Lazy[ReaderIOEither[R, E, A]]) ReaderIOEither[R, E, A] {
+	return G.MonadAlt(first, second)
+}
+
+// Alt identifies an associative operation on a type constructor.
+func Alt[R, E, A any](second L.Lazy[ReaderIOEither[R, E, A]]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+	return G.Alt(second)
 }
