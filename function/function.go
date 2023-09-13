@@ -62,6 +62,7 @@ func First[T1, T2 any](t1 T1, _ T2) T1 {
 }
 
 // Second returns the second out of two input values
+// Identical to [SK]
 func Second[T1, T2 any](_ T1, t2 T2) T2 {
 	return t2
 }
