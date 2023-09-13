@@ -26,6 +26,7 @@ func Bind2nd[T1, T2, R any](f func(T1, T2) R, t2 T2) func(T1) R {
 	}
 }
 
+// SK function (SKI combinator calculus).
 func SK[T1, T2 any](_ T1, t2 T2) T2 {
 	return t2
 }

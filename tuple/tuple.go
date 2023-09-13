@@ -21,10 +21,12 @@ func Of[T1 any](t T1) Tuple1[T1] {
 	return MakeTuple1(t)
 }
 
+// First returns the first element of a [Tuple2]
 func First[T1, T2 any](t Tuple2[T1, T2]) T1 {
 	return t.F1
 }
 
+// Second returns the second element of a [Tuple2]
 func Second[T1, T2 any](t Tuple2[T1, T2]) T2 {
 	return t.F2
 }
