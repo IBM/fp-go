@@ -16,7 +16,9 @@
 package iooption
 
 import (
+	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
+	IOE "github.com/IBM/fp-go/ioeither"
 	G "github.com/IBM/fp-go/iooption/generic"
 	O "github.com/IBM/fp-go/option"
 )
@@ -117,7 +119,7 @@ func Memoize[A any](ma IOOption[A]) IOOption[A] {
 	return G.Memoize(ma)
 }
 
-// Fold convers an IOOption into an IO
+// Fold convers an [IOOption] into an [IO]
 func Fold[A, B any](onNone func() I.IO[B], onSome func(A) I.IO[B]) func(IOOption[A]) I.IO[B] {
 	return G.Fold[IOOption[A]](onNone, onSome)
 }
@@ -125,4 +127,14 @@ func Fold[A, B any](onNone func() I.IO[B], onSome func(A) I.IO[B]) func(IOOption
 // Defer creates an IO by creating a brand new IO via a generator function, each time
 func Defer[A any](gen func() IOOption[A]) IOOption[A] {
 	return G.Defer[IOOption[A]](gen)
+}
+
+// FromIOEither converts an [IOEither] into an [IOOption]
+func FromIOEither[E, A any](ioe IOE.IOEither[E, A]) IOOption[A] {
+	return G.FromIOEither[IOOption[A]](ioe)
+}
+
+// FromEither converts an [Either] into an [IOOption]
+func FromEither[E, A any](e ET.Either[E, A]) IOOption[A] {
+	return G.FromEither[IOOption[A]](e)
 }

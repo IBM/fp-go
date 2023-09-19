@@ -18,6 +18,7 @@ package generic
 import (
 	"time"
 
+	ET "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
 	FI "github.com/IBM/fp-go/internal/fromio"
 	"github.com/IBM/fp-go/internal/optiont"
@@ -53,6 +54,21 @@ func FromIO[GA ~func() O.Option[A], GR ~func() A, A any](mr GR) GA {
 
 func FromOption[GA ~func() O.Option[A], A any](o O.Option[A]) GA {
 	return IO.Of[GA](o)
+}
+
+func FromEither[GA ~func() O.Option[A], E, A any](e ET.Either[E, A]) GA {
+	return F.Pipe2(
+		e,
+		ET.ToOption[E, A],
+		FromOption[GA],
+	)
+}
+
+func FromIOEither[GA ~func() O.Option[A], GEA ~func() ET.Either[E, A], E, A any](ioe GEA) GA {
+	return F.Pipe1(
+		ioe,
+		IO.Map[GEA, GA](ET.ToOption[E, A]),
+	)
 }
 
 func MonadMap[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](fa GA, f func(A) B) GB {
