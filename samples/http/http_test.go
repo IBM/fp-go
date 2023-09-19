@@ -74,9 +74,7 @@ func TestMultipleHttpRequests(t *testing.T) {
 	assert.Equal(t, E.Of[error](count), result())
 }
 
-// TestHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
-// the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
-func TestHeterogeneousHttpRequests(t *testing.T) {
+func heterogeneousHttpRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
@@ -84,7 +82,7 @@ func TestHeterogeneousHttpRequests(t *testing.T) {
 	// readSingleCatFact sends a GET request and parses the response as [CatFact]
 	readSingleCatFact := H.ReadJson[CatFact](client)
 
-	data := F.Pipe3(
+	return F.Pipe3(
 		T.MakeTuple2("https://jsonplaceholder.typicode.com/posts/1", "https://catfact.ninja/fact"),
 		T.Map2(H.MakeGetRequest, H.MakeGetRequest),
 		R.TraverseTuple2(
@@ -94,7 +92,21 @@ func TestHeterogeneousHttpRequests(t *testing.T) {
 		R.ChainFirstIOK(IO.Logf[T.Tuple2[PostItem, CatFact]]("Log Result: %v")),
 	)
 
+}
+
+// TestHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
+// the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
+func TestHeterogeneousHttpRequests(t *testing.T) {
+	data := heterogeneousHttpRequests()
+
 	result := data(context.Background())
 
 	fmt.Println(result())
+}
+
+// BenchmarkHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
+// the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
+func BenchmarkHeterogeneousHttpRequests(b *testing.B) {
+
+	heterogeneousHttpRequests()(context.Background())
 }

@@ -82,6 +82,7 @@ func Map[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, 
 			m,
 		)
 	}
+
 	m = O.Map(T.Map2(recurse, f))
 
 	return recurse
