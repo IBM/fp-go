@@ -16,6 +16,7 @@
 package file
 
 import (
+	"io"
 	"os"
 
 	IOE "github.com/IBM/fp-go/ioeither"
@@ -43,5 +44,12 @@ func WriteFile(dstName string, perm os.FileMode) func([]byte) IOE.IOEither[error
 func Remove(name string) IOE.IOEither[error, string] {
 	return IOE.TryCatchError(func() (string, error) {
 		return name, os.Remove(name)
+	})
+}
+
+// Close closes an object
+func Close[C io.Closer](c C) IOE.IOEither[error, any] {
+	return IOE.TryCatchError(func() (any, error) {
+		return c, c.Close()
 	})
 }

@@ -16,25 +16,32 @@
 package file
 
 import (
+	"context"
 	"io"
 
-	IOE "github.com/IBM/fp-go/ioeither"
+	RIOE "github.com/IBM/fp-go/context/readerioeither"
+	F "github.com/IBM/fp-go/function"
 )
 
-func onWriteAll[W io.Writer](data []byte) func(w W) IOE.IOEither[error, []byte] {
-	return func(w W) IOE.IOEither[error, []byte] {
-		return IOE.TryCatchError(func() ([]byte, error) {
-			_, err := w.Write(data)
-			return data, err
-		})
+func onWriteAll[W io.Writer](data []byte) func(w W) RIOE.ReaderIOEither[[]byte] {
+	return func(w W) RIOE.ReaderIOEither[[]byte] {
+		return F.Pipe1(
+			RIOE.TryCatch(func(ctx context.Context) func() ([]byte, error) {
+				return func() ([]byte, error) {
+					_, err := w.Write(data)
+					return data, err
+				}
+			}),
+			RIOE.WithContext[[]byte],
+		)
 	}
 }
 
 // WriteAll uses a generator function to create a stream, writes data to it and closes it
-func WriteAll[W io.WriteCloser](data []byte) func(acquire IOE.IOEither[error, W]) IOE.IOEither[error, []byte] {
+func WriteAll[W io.WriteCloser](data []byte) func(acquire RIOE.ReaderIOEither[W]) RIOE.ReaderIOEither[[]byte] {
 	onWrite := onWriteAll[W](data)
-	return func(onCreate IOE.IOEither[error, W]) IOE.IOEither[error, []byte] {
-		return IOE.WithResource[[]byte](
+	return func(onCreate RIOE.ReaderIOEither[W]) RIOE.ReaderIOEither[[]byte] {
+		return RIOE.WithResource[[]byte](
 			onCreate,
 			Close[W])(
 			onWrite,
@@ -43,8 +50,8 @@ func WriteAll[W io.WriteCloser](data []byte) func(acquire IOE.IOEither[error, W]
 }
 
 // Write uses a generator function to create a stream, writes data to it and closes it
-func Write[R any, W io.WriteCloser](acquire IOE.IOEither[error, W]) func(use func(W) IOE.IOEither[error, R]) IOE.IOEither[error, R] {
-	return IOE.WithResource[R](
+func Write[R any, W io.WriteCloser](acquire RIOE.ReaderIOEither[W]) func(use func(W) RIOE.ReaderIOEither[R]) RIOE.ReaderIOEither[R] {
+	return RIOE.WithResource[R](
 		acquire,
 		Close[W])
 }

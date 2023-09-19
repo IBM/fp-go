@@ -162,3 +162,125 @@ func TestRegularApply(t *testing.T) {
 	res := applied(context.Background())()
 	assert.Equal(t, E.Of[error]("CARSTEN"), res)
 }
+
+func TestWithResourceNoErrors(t *testing.T) {
+	var countAcquire, countBody, countRelease int
+
+	acquire := FromLazy(func() int {
+		countAcquire++
+		return countAcquire
+	})
+
+	release := func(int) ReaderIOEither[int] {
+		return FromLazy(func() int {
+			countRelease++
+			return countRelease
+		})
+	}
+
+	body := func(int) ReaderIOEither[int] {
+		return FromLazy(func() int {
+			countBody++
+			return countBody
+		})
+	}
+
+	resRIOE := WithResource[int](acquire, release)(body)
+
+	res := resRIOE(context.Background())()
+
+	assert.Equal(t, 1, countAcquire)
+	assert.Equal(t, 1, countBody)
+	assert.Equal(t, 1, countRelease)
+	assert.Equal(t, E.Of[error](1), res)
+}
+
+func TestWithResourceErrorInBody(t *testing.T) {
+	var countAcquire, countBody, countRelease int
+
+	acquire := FromLazy(func() int {
+		countAcquire++
+		return countAcquire
+	})
+
+	release := func(int) ReaderIOEither[int] {
+		return FromLazy(func() int {
+			countRelease++
+			return countRelease
+		})
+	}
+
+	err := fmt.Errorf("error in body")
+	body := func(int) ReaderIOEither[int] {
+		return Left[int](err)
+	}
+
+	resRIOE := WithResource[int](acquire, release)(body)
+
+	res := resRIOE(context.Background())()
+
+	assert.Equal(t, 1, countAcquire)
+	assert.Equal(t, 0, countBody)
+	assert.Equal(t, 1, countRelease)
+	assert.Equal(t, E.Left[int](err), res)
+}
+
+func TestWithResourceErrorInAcquire(t *testing.T) {
+	var countAcquire, countBody, countRelease int
+
+	err := fmt.Errorf("error in acquire")
+	acquire := Left[int](err)
+
+	release := func(int) ReaderIOEither[int] {
+		return FromLazy(func() int {
+			countRelease++
+			return countRelease
+		})
+	}
+
+	body := func(int) ReaderIOEither[int] {
+		return FromLazy(func() int {
+			countBody++
+			return countBody
+		})
+	}
+
+	resRIOE := WithResource[int](acquire, release)(body)
+
+	res := resRIOE(context.Background())()
+
+	assert.Equal(t, 0, countAcquire)
+	assert.Equal(t, 0, countBody)
+	assert.Equal(t, 0, countRelease)
+	assert.Equal(t, E.Left[int](err), res)
+}
+
+func TestWithResourceErrorInRelease(t *testing.T) {
+	var countAcquire, countBody, countRelease int
+
+	acquire := FromLazy(func() int {
+		countAcquire++
+		return countAcquire
+	})
+
+	err := fmt.Errorf("error in release")
+	release := func(int) ReaderIOEither[int] {
+		return Left[int](err)
+	}
+
+	body := func(int) ReaderIOEither[int] {
+		return FromLazy(func() int {
+			countBody++
+			return countBody
+		})
+	}
+
+	resRIOE := WithResource[int](acquire, release)(body)
+
+	res := resRIOE(context.Background())()
+
+	assert.Equal(t, 1, countAcquire)
+	assert.Equal(t, 1, countBody)
+	assert.Equal(t, 0, countRelease)
+	assert.Equal(t, E.Left[int](err), res)
+}

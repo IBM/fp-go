@@ -29,10 +29,9 @@ import (
 )
 
 var (
-	openIOE = IOE.Eitherize1(os.Open)
 	// Open opens a file for reading within the given context
 	Open = F.Flow3(
-		openIOE,
+		IOEF.Open,
 		RIOE.FromIOEither[*os.File],
 		RIOE.WithContext[*os.File],
 	)
@@ -46,11 +45,11 @@ var (
 
 // Close closes an object
 func Close[C io.Closer](c C) RIOE.ReaderIOEither[any] {
-	return RIOE.FromIOEither(func() ET.Either[error, any] {
-		return ET.TryCatchError(func() (any, error) {
-			return c, c.Close()
-		})
-	})
+	return F.Pipe2(
+		c,
+		IOEF.Close[C],
+		RIOE.FromIOEither[any],
+	)
 }
 
 // ReadFile reads a file in the scope of a context
