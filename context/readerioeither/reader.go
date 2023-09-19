@@ -61,6 +61,14 @@ func Map[A, B any](f func(A) B) func(ReaderIOEither[A]) ReaderIOEither[B] {
 	return G.Map[ReaderIOEither[A], ReaderIOEither[B]](f)
 }
 
+func MonadMapTo[A, B any](fa ReaderIOEither[A], b B) ReaderIOEither[B] {
+	return G.MonadMapTo[ReaderIOEither[A], ReaderIOEither[B]](fa, b)
+}
+
+func MapTo[A, B any](b B) func(ReaderIOEither[A]) ReaderIOEither[B] {
+	return G.MapTo[ReaderIOEither[A], ReaderIOEither[B]](b)
+}
+
 func MonadChain[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) ReaderIOEither[B] {
 	return G.MonadChain(ma, f)
 }

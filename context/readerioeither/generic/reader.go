@@ -100,6 +100,28 @@ func Map[
 	return RIE.Map[GRA, GRB](f)
 }
 
+func MonadMapTo[
+	GRA ~func(context.Context) GIOA,
+	GRB ~func(context.Context) GIOB,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+
+	A, B any](fa GRA, b B) GRB {
+	return RIE.MonadMapTo[GRA, GRB](fa, b)
+}
+
+func MapTo[
+	GRA ~func(context.Context) GIOA,
+	GRB ~func(context.Context) GIOB,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+
+	A, B any](b B) func(GRA) GRB {
+	return RIE.MapTo[GRA, GRB](b)
+}
+
 func MonadChain[
 	GRA ~func(context.Context) GIOA,
 	GRB ~func(context.Context) GIOB,
