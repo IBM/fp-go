@@ -75,7 +75,17 @@ func ChainIOK[E, A, B any](f func(A) I.IO[B]) func(IOEither[E, A]) IOEither[E, B
 	return G.ChainIOK[IOEither[E, A], IOEither[E, B]](f)
 }
 
+func ChainLazyK[E, A, B any](f func(A) L.Lazy[B]) func(IOEither[E, A]) IOEither[E, B] {
+	return G.ChainIOK[IOEither[E, A], IOEither[E, B]](f)
+}
+
+// FromIO creates an [IOEither] from an [IO] instance, invoking [IO] for each invocation of [IOEither]
 func FromIO[E, A any](mr I.IO[A]) IOEither[E, A] {
+	return G.FromIO[IOEither[E, A]](mr)
+}
+
+// FromLazy creates an [IOEither] from a [Lazy] instance, invoking [Lazy] for each invocation of [IOEither]
+func FromLazy[E, A any](mr L.Lazy[A]) IOEither[E, A] {
 	return G.FromIO[IOEither[E, A]](mr)
 }
 
@@ -167,27 +177,27 @@ func MonadChainTo[E, A, B any](fa IOEither[E, A], fb IOEither[E, B]) IOEither[E,
 	return G.MonadChainTo(fa, fb)
 }
 
-// ChainTo composes to the second monad ignoring the return value of the first
+// ChainTo composes to the second [IOEither] monad ignoring the return value of the first
 func ChainTo[E, A, B any](fb IOEither[E, B]) func(IOEither[E, A]) IOEither[E, B] {
 	return G.ChainTo[IOEither[E, A]](fb)
 }
 
-// MonadChainFirst runs the monad returned by the function but returns the result of the original monad
+// MonadChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
 func MonadChainFirst[E, A, B any](ma IOEither[E, A], f func(A) IOEither[E, B]) IOEither[E, A] {
 	return G.MonadChainFirst(ma, f)
 }
 
-// ChainFirst runs the monad returned by the function but returns the result of the original monad
+// ChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
 func ChainFirst[E, A, B any](f func(A) IOEither[E, B]) func(IOEither[E, A]) IOEither[E, A] {
 	return G.ChainFirst[IOEither[E, A]](f)
 }
 
-// MonadChainFirstIOK runs the monad returned by the function but returns the result of the original monad
+// MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
 func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) I.IO[B]) IOEither[E, A] {
 	return G.MonadChainFirstIOK(ma, f)
 }
 
-// ChainFirsIOK runs the monad returned by the function but returns the result of the original monad
+// ChainFirstIOK runs the [IO] monad returned by the function but returns the result of the original monad
 func ChainFirstIOK[E, A, B any](f func(A) I.IO[B]) func(IOEither[E, A]) IOEither[E, A] {
 	return G.ChainFirstIOK[IOEither[E, A]](f)
 }
