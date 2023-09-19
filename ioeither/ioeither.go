@@ -187,7 +187,7 @@ func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) I.IO[B]) IOEit
 	return G.MonadChainFirstIOK(ma, f)
 }
 
-// ChainFirsIOKt runs the monad returned by the function but returns the result of the original monad
+// ChainFirsIOK runs the monad returned by the function but returns the result of the original monad
 func ChainFirstIOK[E, A, B any](f func(A) I.IO[B]) func(IOEither[E, A]) IOEither[E, A] {
 	return G.ChainFirstIOK[IOEither[E, A]](f)
 }

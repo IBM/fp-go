@@ -338,7 +338,7 @@ func generateUntupled(f *os.File, i int) {
 
 func generateTupled(f *os.File, i int) {
 	// Create the optionize version
-	fmt.Fprintf(f, "\n// Tupled%d converts a function with %d parameters returning into a function taking a Tuple%d\n// The inverse function is [Untupled%d]\n", i, i, i, i)
+	fmt.Fprintf(f, "\n// Tupled%d converts a function with %d parameters into a function taking a Tuple%d\n// The inverse function is [Untupled%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Tupled%d[F ~func(", i)
 	for j := 0; j < i; j++ {
 		if j > 0 {

@@ -111,7 +111,7 @@ func MakeTuple1[T1 any](t1 T1) Tuple1[T1] {
 	return Tuple1[T1]{t1}
 }
 
-// Tupled1 converts a function with 1 parameters returning into a function taking a Tuple1
+// Tupled1 converts a function with 1 parameters into a function taking a Tuple1
 // The inverse function is [Untupled1]
 func Tupled1[F ~func(T1) R, T1, R any](f F) func(Tuple1[T1]) R {
 	return func(t Tuple1[T1]) R {
@@ -217,7 +217,7 @@ func MakeTuple2[T1, T2 any](t1 T1, t2 T2) Tuple2[T1, T2] {
 	return Tuple2[T1, T2]{t1, t2}
 }
 
-// Tupled2 converts a function with 2 parameters returning into a function taking a Tuple2
+// Tupled2 converts a function with 2 parameters into a function taking a Tuple2
 // The inverse function is [Untupled2]
 func Tupled2[F ~func(T1, T2) R, T1, T2, R any](f F) func(Tuple2[T1, T2]) R {
 	return func(t Tuple2[T1, T2]) R {
@@ -334,7 +334,7 @@ func MakeTuple3[T1, T2, T3 any](t1 T1, t2 T2, t3 T3) Tuple3[T1, T2, T3] {
 	return Tuple3[T1, T2, T3]{t1, t2, t3}
 }
 
-// Tupled3 converts a function with 3 parameters returning into a function taking a Tuple3
+// Tupled3 converts a function with 3 parameters into a function taking a Tuple3
 // The inverse function is [Untupled3]
 func Tupled3[F ~func(T1, T2, T3) R, T1, T2, T3, R any](f F) func(Tuple3[T1, T2, T3]) R {
 	return func(t Tuple3[T1, T2, T3]) R {
@@ -462,7 +462,7 @@ func MakeTuple4[T1, T2, T3, T4 any](t1 T1, t2 T2, t3 T3, t4 T4) Tuple4[T1, T2, T
 	return Tuple4[T1, T2, T3, T4]{t1, t2, t3, t4}
 }
 
-// Tupled4 converts a function with 4 parameters returning into a function taking a Tuple4
+// Tupled4 converts a function with 4 parameters into a function taking a Tuple4
 // The inverse function is [Untupled4]
 func Tupled4[F ~func(T1, T2, T3, T4) R, T1, T2, T3, T4, R any](f F) func(Tuple4[T1, T2, T3, T4]) R {
 	return func(t Tuple4[T1, T2, T3, T4]) R {
@@ -601,7 +601,7 @@ func MakeTuple5[T1, T2, T3, T4, T5 any](t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) Tuple
 	return Tuple5[T1, T2, T3, T4, T5]{t1, t2, t3, t4, t5}
 }
 
-// Tupled5 converts a function with 5 parameters returning into a function taking a Tuple5
+// Tupled5 converts a function with 5 parameters into a function taking a Tuple5
 // The inverse function is [Untupled5]
 func Tupled5[F ~func(T1, T2, T3, T4, T5) R, T1, T2, T3, T4, T5, R any](f F) func(Tuple5[T1, T2, T3, T4, T5]) R {
 	return func(t Tuple5[T1, T2, T3, T4, T5]) R {
@@ -751,7 +751,7 @@ func MakeTuple6[T1, T2, T3, T4, T5, T6 any](t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t
 	return Tuple6[T1, T2, T3, T4, T5, T6]{t1, t2, t3, t4, t5, t6}
 }
 
-// Tupled6 converts a function with 6 parameters returning into a function taking a Tuple6
+// Tupled6 converts a function with 6 parameters into a function taking a Tuple6
 // The inverse function is [Untupled6]
 func Tupled6[F ~func(T1, T2, T3, T4, T5, T6) R, T1, T2, T3, T4, T5, T6, R any](f F) func(Tuple6[T1, T2, T3, T4, T5, T6]) R {
 	return func(t Tuple6[T1, T2, T3, T4, T5, T6]) R {
@@ -912,7 +912,7 @@ func MakeTuple7[T1, T2, T3, T4, T5, T6, T7 any](t1 T1, t2 T2, t3 T3, t4 T4, t5 T
 	return Tuple7[T1, T2, T3, T4, T5, T6, T7]{t1, t2, t3, t4, t5, t6, t7}
 }
 
-// Tupled7 converts a function with 7 parameters returning into a function taking a Tuple7
+// Tupled7 converts a function with 7 parameters into a function taking a Tuple7
 // The inverse function is [Untupled7]
 func Tupled7[F ~func(T1, T2, T3, T4, T5, T6, T7) R, T1, T2, T3, T4, T5, T6, T7, R any](f F) func(Tuple7[T1, T2, T3, T4, T5, T6, T7]) R {
 	return func(t Tuple7[T1, T2, T3, T4, T5, T6, T7]) R {
@@ -1084,7 +1084,7 @@ func MakeTuple8[T1, T2, T3, T4, T5, T6, T7, T8 any](t1 T1, t2 T2, t3 T3, t4 T4, 
 	return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{t1, t2, t3, t4, t5, t6, t7, t8}
 }
 
-// Tupled8 converts a function with 8 parameters returning into a function taking a Tuple8
+// Tupled8 converts a function with 8 parameters into a function taking a Tuple8
 // The inverse function is [Untupled8]
 func Tupled8[F ~func(T1, T2, T3, T4, T5, T6, T7, T8) R, T1, T2, T3, T4, T5, T6, T7, T8, R any](f F) func(Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]) R {
 	return func(t Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]) R {
@@ -1267,7 +1267,7 @@ func MakeTuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9 any](t1 T1, t2 T2, t3 T3, t4 
 	return Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]{t1, t2, t3, t4, t5, t6, t7, t8, t9}
 }
 
-// Tupled9 converts a function with 9 parameters returning into a function taking a Tuple9
+// Tupled9 converts a function with 9 parameters into a function taking a Tuple9
 // The inverse function is [Untupled9]
 func Tupled9[F ~func(T1, T2, T3, T4, T5, T6, T7, T8, T9) R, T1, T2, T3, T4, T5, T6, T7, T8, T9, R any](f F) func(Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) R {
 	return func(t Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) R {
@@ -1461,7 +1461,7 @@ func MakeTuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](t1 T1, t2 T2, t3 T
 	return Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10}
 }
 
-// Tupled10 converts a function with 10 parameters returning into a function taking a Tuple10
+// Tupled10 converts a function with 10 parameters into a function taking a Tuple10
 // The inverse function is [Untupled10]
 func Tupled10[F ~func(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R any](f F) func(Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) R {
 	return func(t Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) R {
