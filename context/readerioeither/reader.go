@@ -155,6 +155,10 @@ func FromIO[A any](t IO.IO[A]) ReaderIOEither[A] {
 	return G.FromIO[ReaderIOEither[A]](t)
 }
 
+func FromLazy[A any](t L.Lazy[A]) ReaderIOEither[A] {
+	return G.FromIO[ReaderIOEither[A]](t)
+}
+
 // Never returns a 'ReaderIOEither' that never returns, except if its context gets canceled
 func Never[A any]() ReaderIOEither[A] {
 	return G.Never[ReaderIOEither[A]]()

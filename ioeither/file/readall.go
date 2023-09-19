@@ -31,7 +31,7 @@ func onReadAll[R io.Reader](r R) IOE.IOEither[error, []byte] {
 func ReadAll[R io.ReadCloser](acquire IOE.IOEither[error, R]) IOE.IOEither[error, []byte] {
 	return IOE.WithResource[[]byte](
 		acquire,
-		onClose[R])(
+		Close[R])(
 		onReadAll[R],
 	)
 }

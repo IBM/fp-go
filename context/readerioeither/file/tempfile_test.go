@@ -16,12 +16,13 @@
 package file
 
 import (
+	"context"
 	"os"
 	"testing"
 
+	RIOE "github.com/IBM/fp-go/context/readerioeither"
 	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
-	IOE "github.com/IBM/fp-go/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,18 +30,18 @@ func TestWithTempFile(t *testing.T) {
 
 	res := WithTempFile(onWriteAll[*os.File]([]byte("Carsten")))
 
-	assert.Equal(t, E.Of[error]([]byte("Carsten")), res())
+	assert.Equal(t, E.Of[error]([]byte("Carsten")), res(context.Background())())
 }
 
 func TestWithTempFileOnClosedFile(t *testing.T) {
 
-	res := WithTempFile(func(f *os.File) IOE.IOEither[error, []byte] {
+	res := WithTempFile(func(f *os.File) RIOE.ReaderIOEither[[]byte] {
 		return F.Pipe2(
 			f,
 			onWriteAll[*os.File]([]byte("Carsten")),
-			IOE.ChainFirst(F.Constant1[[]byte](Close(f))),
+			RIOE.ChainFirst(F.Constant1[[]byte](Close(f))),
 		)
 	})
 
-	assert.Equal(t, E.Of[error]([]byte("Carsten")), res())
+	assert.Equal(t, E.Of[error]([]byte("Carsten")), res(context.Background())())
 }
