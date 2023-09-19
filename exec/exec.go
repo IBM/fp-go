@@ -20,11 +20,14 @@ import (
 )
 
 type (
-	// command output
+	// CommandOutput represents the output of executing a command. The first field in the [Tuple2] is
+	// stdout, the second one is stderr. Use [StdOut] and [StdErr] to access these fields
 	CommandOutput = T.Tuple2[[]byte, []byte]
 )
 
 var (
+	// StdOut returns the field of a [CommandOutput] representing `stdout`
 	StdOut = T.First[[]byte, []byte]
+	// StdErr returns the field of a [CommandOutput] representing `stderr`
 	StdErr = T.Second[[]byte, []byte]
 )

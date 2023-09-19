@@ -27,7 +27,7 @@ import (
 var (
 	// Command executes a command
 	// use this version if the command does not produce any side effect, i.e. if the output is uniquely determined by by the input
-	// typically you'd rather use the IOEither version of the command
+	// typically you'd rather use the [IOEither] version of the command
 	Command = F.Curry3(command)
 )
 

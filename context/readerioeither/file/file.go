@@ -25,6 +25,7 @@ import (
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/file"
 	IOE "github.com/IBM/fp-go/ioeither"
+	IOEF "github.com/IBM/fp-go/ioeither/file"
 )
 
 var (
@@ -34,6 +35,12 @@ var (
 		openIOE,
 		RIOE.FromIOEither[*os.File],
 		RIOE.WithContext[*os.File],
+	)
+
+	// Remove removes a file by name
+	Remove = F.Flow2(
+		IOEF.Remove,
+		RIOE.FromIOEither[string],
 	)
 )
 
