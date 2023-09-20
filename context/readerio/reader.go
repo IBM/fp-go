@@ -65,3 +65,8 @@ func Defer[A any](gen L.Lazy[ReaderIO[A]]) ReaderIO[A] {
 func Memoize[A any](rdr ReaderIO[A]) ReaderIO[A] {
 	return R.Memoize[ReaderIO[A]](rdr)
 }
+
+// Flatten converts a nested [ReaderIO] into a [ReaderIO]
+func Flatten[A any](mma ReaderIO[ReaderIO[A]]) ReaderIO[A] {
+	return R.Flatten[ReaderIO[A]](mma)
+}
