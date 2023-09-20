@@ -82,3 +82,7 @@ func Defer[E, A any](gen func() ReaderIO[E, A]) ReaderIO[E, A] {
 func Memoize[E, A any](rdr ReaderIO[E, A]) ReaderIO[E, A] {
 	return G.Memoize[ReaderIO[E, A]](rdr)
 }
+
+func Flatten[E, A any](mma ReaderIO[E, ReaderIO[E, A]]) ReaderIO[E, A] {
+	return G.Flatten[ReaderIO[E, A], ReaderIO[E, ReaderIO[E, A]]](mma)
+}

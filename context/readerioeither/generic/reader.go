@@ -583,3 +583,12 @@ func Memoize[
 	A any](rdr GRA) GRA {
 	return RIE.Memoize[GRA](rdr)
 }
+
+func Flatten[
+	GGRA ~func(context.Context) GGIOA,
+	GGIOA ~func() E.Either[error, GRA],
+	GRA ~func(context.Context) GIOA,
+	GIOA ~func() E.Either[error, A],
+	A any](rdr GGRA) GRA {
+	return RIE.Flatten[GRA](rdr)
+}

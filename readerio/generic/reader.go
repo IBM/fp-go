@@ -124,3 +124,7 @@ func Memoize[GEA ~func(E) GA, GA ~func() A, E, A any](rdr GEA) GEA {
 		}
 	}
 }
+
+func Flatten[GEA ~func(R) GIOA, GGEA ~func(R) GIOEA, GIOA ~func() A, GIOEA ~func() GEA, R, A any](mma GGEA) GEA {
+	return MonadChain(mma, F.Identity[GEA])
+}

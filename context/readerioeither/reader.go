@@ -220,3 +220,9 @@ func Alt[A any](second L.Lazy[ReaderIOEither[A]]) func(ReaderIOEither[A]) Reader
 func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
 	return G.Memoize[ReaderIOEither[A]](rdr)
 }
+
+// Flatten converts a nested [ReaderIOEither] into a [ReaderIOEither]
+func Flatten[
+	A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
+	return G.Flatten[ReaderIOEither[ReaderIOEither[A]]](rdr)
+}
