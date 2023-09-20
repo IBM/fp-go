@@ -573,3 +573,13 @@ func MonadAlt[LAZY ~func() GEA, GEA ~func(context.Context) GIOA, GIOA ~func() E.
 func Alt[LAZY ~func() GEA, GEA ~func(context.Context) GIOA, GIOA ~func() E.Either[error, A], A any](second LAZY) func(GEA) GEA {
 	return RIE.Alt(second)
 }
+
+// Memoize computes the value of the provided monad lazily but exactly once
+// The context used to compute the value is the context of the first call, so do not use this
+// method if the value has a functional dependency on the content of the context
+func Memoize[
+	GRA ~func(context.Context) GIOA,
+	GIOA ~func() E.Either[error, A],
+	A any](rdr GRA) GRA {
+	return RIE.Memoize[GRA](rdr)
+}

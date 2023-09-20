@@ -18,6 +18,7 @@ package readerio
 import (
 	"context"
 
+	L "github.com/IBM/fp-go/lazy"
 	R "github.com/IBM/fp-go/readerio/generic"
 )
 
@@ -54,6 +55,13 @@ func Ask() ReaderIO[context.Context] {
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
-func Defer[A any](gen func() ReaderIO[A]) ReaderIO[A] {
+func Defer[A any](gen L.Lazy[ReaderIO[A]]) ReaderIO[A] {
 	return R.Defer[ReaderIO[A]](gen)
+}
+
+// Memoize computes the value of the provided [ReaderIO] monad lazily but exactly once
+// The context used to compute the value is the context of the first call, so do not use this
+// method if the value has a functional dependency on the content of the context
+func Memoize[A any](rdr ReaderIO[A]) ReaderIO[A] {
+	return R.Memoize[ReaderIO[A]](rdr)
 }

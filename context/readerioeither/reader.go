@@ -213,3 +213,10 @@ func MonadAlt[A any](first ReaderIOEither[A], second L.Lazy[ReaderIOEither[A]]) 
 func Alt[A any](second L.Lazy[ReaderIOEither[A]]) func(ReaderIOEither[A]) ReaderIOEither[A] {
 	return G.Alt(second)
 }
+
+// Memoize computes the value of the provided [ReaderIOEither] monad lazily but exactly once
+// The context used to compute the value is the context of the first call, so do not use this
+// method if the value has a functional dependency on the content of the context
+func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
+	return G.Memoize[ReaderIOEither[A]](rdr)
+}

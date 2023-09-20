@@ -75,3 +75,10 @@ func ChainIOK[E, A, B any](f func(A) IO.IO[B]) func(ReaderIO[E, A]) ReaderIO[E, 
 func Defer[E, A any](gen func() ReaderIO[E, A]) ReaderIO[E, A] {
 	return G.Defer[ReaderIO[E, A]](gen)
 }
+
+// Memoize computes the value of the provided [ReaderIO] monad lazily but exactly once
+// The context used to compute the value is the context of the first call, so do not use this
+// method if the value has a functional dependency on the content of the context
+func Memoize[E, A any](rdr ReaderIO[E, A]) ReaderIO[E, A] {
+	return G.Memoize[ReaderIO[E, A]](rdr)
+}
