@@ -16,6 +16,8 @@
 package generic
 
 import (
+	"sync"
+
 	F "github.com/IBM/fp-go/function"
 	FR "github.com/IBM/fp-go/internal/fromreader"
 	"github.com/IBM/fp-go/internal/readert"
@@ -96,6 +98,29 @@ func Defer[GEA ~func(E) GA, GA ~func() A, E, A any](gen func() GEA) GEA {
 	return func(e E) GA {
 		return func() A {
 			return gen()(e)()
+		}
+	}
+}
+
+// Memoize computes the value of the provided reader monad lazily but exactly once
+// The context used to compute the value is the context of the first call, so do not use this
+// method if the value has a functional dependency on the content of the context
+func Memoize[GEA ~func(E) GA, GA ~func() A, E, A any](rdr GEA) GEA {
+	// synchronization primitives
+	var once sync.Once
+	var result A
+	// callback
+	gen := func(e E) func() {
+		return func() {
+			result = rdr(e)()
+		}
+	}
+	// returns our memoized wrapper
+	return func(e E) GA {
+		io := gen(e)
+		return func() A {
+			once.Do(io)
+			return result
 		}
 	}
 }

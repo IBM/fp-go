@@ -406,3 +406,11 @@ func TryCatch[GEA ~func(R) GA, GA ~func() ET.Either[E, A], R, E, A any](f func(R
 		return IOE.TryCatch[GA](f(r), onThrow)
 	}
 }
+
+// Memoize computes the value of the provided monad lazily but exactly once
+// The context used to compute the value is the context of the first call, so do not use this
+// method if the value has a functional dependency on the content of the context
+func Memoize[
+	GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](rdr GEA) GEA {
+	return G.Memoize[GEA](rdr)
+}

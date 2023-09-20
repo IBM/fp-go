@@ -84,7 +84,7 @@ func Flatten[A any](mma IO[IO[A]]) IO[A] {
 	return G.Flatten(mma)
 }
 
-// Memoize computes the value of the provided IO monad lazily but exactly once
+// Memoize computes the value of the provided [IO] monad lazily but exactly once
 func Memoize[A any](ma IO[A]) IO[A] {
 	return G.Memoize(ma)
 }
