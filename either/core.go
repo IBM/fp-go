@@ -46,12 +46,12 @@ func (s Either[E, A]) Format(f fmt.State, c rune) {
 	}
 }
 
-// IsLeft tests if the either is a left value. Rather use [Fold] if you need to access the values. Inverse is [IsRight].
+// IsLeft tests if the [Either] is a left value. Rather use [Fold] if you need to access the values. Inverse is [IsRight].
 func IsLeft[E, A any](val Either[E, A]) bool {
 	return val.isLeft
 }
 
-// IsLeft tests if the either is a right value. Rather use [Fold] if you need to access the values. Inverse is [IsLeft].
+// IsLeft tests if the [Either] is a right value. Rather use [Fold] if you need to access the values. Inverse is [IsLeft].
 func IsRight[E, A any](val Either[E, A]) bool {
 	return !val.isLeft
 }
