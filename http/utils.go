@@ -57,7 +57,7 @@ var (
 			GetHeader,
 			R.Lookup[H.Header](HeaderContentType),
 			O.Chain(A.First[string]),
-			E.FromOption[error, string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
+			E.FromOption[string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
 			E.ChainFirst(validateJsonContentTypeString),
 		)))
 )

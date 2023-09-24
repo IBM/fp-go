@@ -112,6 +112,6 @@ func TestChainOptionK(t *testing.T) {
 }
 
 func TestFromOption(t *testing.T) {
-	assert.Equal(t, Left[int]("none"), FromOption[string, int](F.Constant("none"))(O.None[int]()))
-	assert.Equal(t, Right[string](1), FromOption[string, int](F.Constant("none"))(O.Some(1)))
+	assert.Equal(t, Left[int]("none"), FromOption[int](F.Constant("none"))(O.None[int]()))
+	assert.Equal(t, Right[string](1), FromOption[int](F.Constant("none"))(O.Some(1)))
 }
