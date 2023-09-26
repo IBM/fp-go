@@ -22,6 +22,7 @@ package either
 import (
 	E "github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
+	FC "github.com/IBM/fp-go/internal/functor"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -244,4 +245,12 @@ func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3
 // Swap changes the order of type parameters
 func Swap[E, A any](val Either[E, A]) Either[A, E] {
 	return MonadFold(val, Right[A, E], Left[E, A])
+}
+
+func MonadFlap[E, A, B any](fab Either[E, func(A) B], a A) Either[E, B] {
+	return FC.MonadFlap(MonadMap[E, func(A) B, B], fab, a)
+}
+
+func Flap[E, A, B any](a A) func(Either[E, func(A) B]) Either[E, B] {
+	return F.Bind2nd(MonadFlap[E, A, B], a)
 }

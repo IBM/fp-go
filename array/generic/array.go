@@ -18,6 +18,7 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/array"
+	FC "github.com/IBM/fp-go/internal/functor"
 	M "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
 	"github.com/IBM/fp-go/tuple"
@@ -249,4 +250,12 @@ func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
 
 func Push[GA ~[]A, A any](a A) func(GA) GA {
 	return F.Bind2nd(array.Push[GA, A], a)
+}
+
+func MonadFlap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](fab GFAB, a A) GB {
+	return FC.MonadFlap(MonadMap[GFAB, GB], fab, a)
+}
+
+func Flap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](a A) func(GFAB) GB {
+	return F.Bind2nd(MonadFlap[FAB, GFAB, GB, A, B], a)
 }
