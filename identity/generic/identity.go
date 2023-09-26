@@ -18,6 +18,7 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/internal/chain"
+	FC "github.com/IBM/fp-go/internal/functor"
 )
 
 func MonadAp[GAB ~func(A) B, B, A any](fab GAB, fa A) B {
@@ -50,4 +51,12 @@ func MonadChainFirst[GAB ~func(A) B, A, B any](fa A, f GAB) A {
 
 func ChainFirst[GAB ~func(A) B, A, B any](f GAB) func(A) A {
 	return C.ChainFirst(MonadChain[func(A) A, A, A], MonadMap[func(B) A, B, A], f)
+}
+
+func MonadFlap[GAB ~func(A) B, A, B any](fab GAB, a A) B {
+	return FC.MonadFlap(MonadMap[func(GAB) B, GAB, B], fab, a)
+}
+
+func Flap[GAB ~func(A) B, A, B any](a A) func(GAB) B {
+	return F.Bind2nd(MonadFlap[GAB, A, B], a)
 }

@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/internal/chain"
+	FC "github.com/IBM/fp-go/internal/functor"
 	L "github.com/IBM/fp-go/internal/lazy"
 )
 
@@ -142,4 +143,12 @@ func Defer[GA ~func() A, A any](gen func() GA) GA {
 	return MakeIO[GA](func() A {
 		return gen()()
 	})
+}
+
+func MonadFlap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](fab GFAB, a A) GB {
+	return FC.MonadFlap(MonadMap[GFAB, GB, FAB, B], fab, a)
+}
+
+func Flap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](a A) func(GFAB) GB {
+	return F.Bind2nd(MonadFlap[FAB, GFAB, GB, A, B], a)
 }
