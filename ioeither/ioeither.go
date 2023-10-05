@@ -125,8 +125,27 @@ func MonadAp[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEithe
 	return G.MonadAp[IOEither[E, B]](mab, ma)
 }
 
+// Ap is an alias of [ApPar]
 func Ap[B, E, A any](ma IOEither[E, A]) func(IOEither[E, func(A) B]) IOEither[E, B] {
 	return G.Ap[IOEither[E, B], IOEither[E, func(A) B]](ma)
+}
+
+func MonadApPar[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEither[E, B] {
+	return G.MonadApPar[IOEither[E, B]](mab, ma)
+}
+
+// ApPar applies function and value in parallel
+func ApPar[B, E, A any](ma IOEither[E, A]) func(IOEither[E, func(A) B]) IOEither[E, B] {
+	return G.ApPar[IOEither[E, B], IOEither[E, func(A) B]](ma)
+}
+
+func MonadApSeq[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEither[E, B] {
+	return G.MonadApSeq[IOEither[E, B]](mab, ma)
+}
+
+// ApSeq applies function and value sequentially
+func ApSeq[B, E, A any](ma IOEither[E, A]) func(IOEither[E, func(A) B]) IOEither[E, B] {
+	return G.ApSeq[IOEither[E, B], IOEither[E, func(A) B]](ma)
 }
 
 func Flatten[E, A any](mma IOEither[E, IOEither[E, A]]) IOEither[E, A] {
