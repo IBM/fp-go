@@ -13,16 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package semigroup
+package either
 
-func AltSemigroup[HKTA any, LAZYHKTA ~func() HKTA](
-	falt func(HKTA, LAZYHKTA) HKTA,
+import (
+	L "github.com/IBM/fp-go/lazy"
+	M "github.com/IBM/fp-go/monoid"
+)
 
-) Semigroup[HKTA] {
+// AlternativeMonoid is the alternative [Monoid] for an [Either]
+func AlternativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
+	return M.AlternativeMonoid(
+		Of[E, A],
+		MonadMap[E, A, func(A) A],
+		MonadAp[A, E, A],
+		MonadAlt[E, A],
+		m,
+	)
+}
 
-	return MakeSemigroup(
-		func(first, second HKTA) HKTA {
-			return falt(first, func() HKTA { return second })
-		},
+// AltMonoid is the alternative [Monoid] for an [Either]
+func AltMonoid[E, A any](zero L.Lazy[Either[E, A]]) M.Monoid[Either[E, A]] {
+	return M.AltMonoid(
+		zero,
+		MonadAlt[E, A],
 	)
 }

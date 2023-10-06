@@ -19,6 +19,7 @@ import (
 	G "github.com/IBM/fp-go/array/generic"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/array"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 // NonEmptyArray represents an array with at least one element
@@ -29,7 +30,7 @@ func Of[A any](first A) NonEmptyArray[A] {
 	return G.Of[NonEmptyArray[A]](first)
 }
 
-// From constructs an array from a set of variadic arguments
+// From constructs a [NonEmptyArray] from a set of variadic arguments
 func From[A any](first A, data ...A) NonEmptyArray[A] {
 	count := len(data)
 	if count == 0 {
@@ -102,4 +103,22 @@ func MonadAp[B, A any](fab NonEmptyArray[func(A) B], fa NonEmptyArray[A]) NonEmp
 
 func Ap[B, A any](fa NonEmptyArray[A]) func(NonEmptyArray[func(A) B]) NonEmptyArray[B] {
 	return G.Ap[NonEmptyArray[B], NonEmptyArray[func(A) B]](fa)
+}
+
+// FoldMap maps and folds a [NonEmptyArray]. Map the [NonEmptyArray] passing each value to the iterating function. Then fold the results using the provided [Semigroup].
+func FoldMap[A, B any](s S.Semigroup[B]) func(func(A) B) func(NonEmptyArray[A]) B {
+	return func(f func(A) B) func(NonEmptyArray[A]) B {
+		return func(as NonEmptyArray[A]) B {
+			return array.Reduce(Tail(as), func(cur B, a A) B {
+				return s.Concat(cur, f(a))
+			}, f(Head(as)))
+		}
+	}
+}
+
+// Fold folds the [NonEmptyArray] using the provided [Semigroup].
+func Fold[A any](s S.Semigroup[A]) func(NonEmptyArray[A]) A {
+	return func(as NonEmptyArray[A]) A {
+		return array.Reduce(Tail(as), s.Concat, Head(as))
+	}
 }

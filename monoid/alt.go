@@ -19,13 +19,13 @@ import (
 	S "github.com/IBM/fp-go/semigroup"
 )
 
-func AlternativeMonoid[A, HKTA, HKTFA any](
+func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 	fof func(A) HKTA,
 
 	fmap func(HKTA, func(A) func(A) A) HKTFA,
 	fap func(HKTFA, HKTA) HKTA,
 
-	falt func(HKTA, func() HKTA) HKTA,
+	falt func(HKTA, LAZYHKTA) HKTA,
 
 	m Monoid[A],
 
@@ -45,9 +45,9 @@ func AlternativeMonoid[A, HKTA, HKTFA any](
 	)
 }
 
-func AltMonoid[HKTA any](
-	fzero func() HKTA,
-	falt func(HKTA, func() HKTA) HKTA,
+func AltMonoid[HKTA any, LAZYHKTA ~func() HKTA](
+	fzero LAZYHKTA,
+	falt func(HKTA, LAZYHKTA) HKTA,
 
 ) Monoid[HKTA] {
 
