@@ -147,6 +147,23 @@ func ChainReaderK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E
 	)
 }
 
+func MonadChainReaderIOK[GEA ~func(R) GIOEA, GEB ~func(R) GIOEB, GIOEA ~func() ET.Either[E, A], GIOEB ~func() ET.Either[E, B], GIOB ~func() B, GB ~func(R) GIOB, R, E, A, B any](ma GEA, f func(A) GB) GEB {
+	return FR.MonadChainReaderK(
+		MonadChain[GEA, GEB, GIOEA, GIOEB, R, E, A, B],
+		RightReaderIO[GEB, GIOEB, GB, GIOB, R, E, B],
+		ma,
+		f,
+	)
+}
+
+func ChainReaderIOK[GEA ~func(R) GIOEA, GEB ~func(R) GIOEB, GIOEA ~func() ET.Either[E, A], GIOEB ~func() ET.Either[E, B], GIOB ~func() B, GB ~func(R) GIOB, R, E, A, B any](f func(A) GB) func(GEA) GEB {
+	return FR.ChainReaderK(
+		MonadChain[GEA, GEB, GIOEA, GIOEB, R, E, A, B],
+		RightReaderIO[GEB, GIOEB, GB, GIOB, R, E, B],
+		f,
+	)
+}
+
 func MonadChainIOEitherK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], R, E, A, B any](ma GEA, f func(A) GIOB) GEB {
 	return FIOE.MonadChainIOEitherK(
 		MonadChain[GEA, GEB, GIOA, GIOB, R, E, A, B],

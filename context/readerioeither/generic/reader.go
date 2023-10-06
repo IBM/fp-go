@@ -480,6 +480,34 @@ func ChainIOK[
 	return RIE.ChainIOK[GRA, GRB](f)
 }
 
+func MonadChainReaderIOK[
+	GRB ~func(context.Context) GIOB,
+	GRA ~func(context.Context) GIOA,
+	GRIO ~func(context.Context) GIO,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+
+	GIO ~func() B,
+
+	A, B any](ma GRA, f func(A) GRIO) GRB {
+	return RIE.MonadChainReaderIOK[GRA, GRB](ma, f)
+}
+
+func ChainReaderIOK[
+	GRB ~func(context.Context) GIOB,
+	GRA ~func(context.Context) GIOA,
+	GRIO ~func(context.Context) GIO,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+
+	GIO ~func() B,
+
+	A, B any](f func(A) GRIO) func(ma GRA) GRB {
+	return RIE.ChainReaderIOK[GRA, GRB](f)
+}
+
 func MonadChainFirstIOK[
 	GRA ~func(context.Context) GIOA,
 	GIOA ~func() E.Either[error, A],
