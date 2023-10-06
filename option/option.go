@@ -116,6 +116,10 @@ func Flatten[A any](mma Option[Option[A]]) Option[A] {
 	return MonadChain(mma, F.Identity[Option[A]])
 }
 
+func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
+	return MonadFold(fa, that, Of[A])
+}
+
 func Alt[A any](that func() Option[A]) func(Option[A]) Option[A] {
 	return Fold(that, Of[A])
 }

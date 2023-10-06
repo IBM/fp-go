@@ -13,16 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package semigroup
+package either
 
-func AltSemigroup[HKTA any, LAZYHKTA ~func() HKTA](
-	falt func(HKTA, LAZYHKTA) HKTA,
+import (
+	S "github.com/IBM/fp-go/semigroup"
+)
 
-) Semigroup[HKTA] {
-
-	return MakeSemigroup(
-		func(first, second HKTA) HKTA {
-			return falt(first, func() HKTA { return second })
-		},
+// AltSemigroup is the alternative [Semigroup] for an [Either]
+func AltSemigroup[E, A any]() S.Semigroup[Either[E, A]] {
+	return S.AltSemigroup(
+		MonadAlt[E, A],
 	)
 }

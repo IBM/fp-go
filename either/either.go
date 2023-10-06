@@ -23,6 +23,7 @@ import (
 	E "github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	FC "github.com/IBM/fp-go/internal/functor"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -198,11 +199,11 @@ func Reduce[E, A, B any](f func(B, A) B, initial B) func(Either[E, A]) B {
 	)
 }
 
-func AltW[E, E1, A any](that func() Either[E1, A]) func(Either[E, A]) Either[E1, A] {
+func AltW[E, E1, A any](that L.Lazy[Either[E1, A]]) func(Either[E, A]) Either[E1, A] {
 	return Fold(F.Ignore1of1[E](that), Right[E1, A])
 }
 
-func Alt[E, A any](that func() Either[E, A]) func(Either[E, A]) Either[E, A] {
+func Alt[E, A any](that L.Lazy[Either[E, A]]) func(Either[E, A]) Either[E, A] {
 	return AltW[E](that)
 }
 
@@ -253,4 +254,8 @@ func MonadFlap[E, A, B any](fab Either[E, func(A) B], a A) Either[E, B] {
 
 func Flap[E, A, B any](a A) func(Either[E, func(A) B]) Either[E, B] {
 	return F.Bind2nd(MonadFlap[E, A, B], a)
+}
+
+func MonadAlt[E, A any](fa Either[E, A], that L.Lazy[Either[E, A]]) Either[E, A] {
+	return MonadFold(fa, F.Ignore1of1[E](that), Of[E, A])
 }

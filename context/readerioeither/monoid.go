@@ -17,6 +17,7 @@ package readerioeither
 
 import (
 	G "github.com/IBM/fp-go/context/readerioeither/generic"
+	L "github.com/IBM/fp-go/lazy"
 	M "github.com/IBM/fp-go/monoid"
 )
 
@@ -33,4 +34,23 @@ func ApplicativeMonoidSeq[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
 // ApplicativeMonoidPar returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
 func ApplicativeMonoidPar[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
 	return G.ApplicativeMonoidPar[ReaderIOEither[A], ReaderIOEither[func(A) A]](m)
+}
+
+// AlternativeMonoid is the alternative [Monoid] for [ReaderIOEither]
+func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
+	return M.AlternativeMonoid(
+		Of[A],
+		MonadMap[A, func(A) A],
+		MonadAp[A, A],
+		MonadAlt[A],
+		m,
+	)
+}
+
+// AltMonoid is the alternative [Monoid] for an [ReaderIOEither]
+func AltMonoid[A any](zero L.Lazy[ReaderIOEither[A]]) M.Monoid[ReaderIOEither[A]] {
+	return M.AltMonoid(
+		zero,
+		MonadAlt[A],
+	)
 }
