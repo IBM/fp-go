@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	F "github.com/IBM/fp-go/function"
+	FIO "github.com/IBM/fp-go/internal/fromio"
 	FR "github.com/IBM/fp-go/internal/fromreader"
 	"github.com/IBM/fp-go/internal/readert"
 	IO "github.com/IBM/fp-go/io/generic"
@@ -86,11 +87,37 @@ func Asks[GA ~func(E) A, GEA ~func(E) GIOA, GIOA ~func() A, E, A any](r GA) GEA 
 }
 
 func MonadChainIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](ma GEA, f func(A) GIOB) GEB {
-	return MonadChain(ma, F.Flow2(f, FromIO[GEB]))
+	return FIO.MonadChainIOK(
+		MonadChain[GEA, GEB],
+		FromIO[GEB],
+		ma, f,
+	)
 }
 
 func ChainIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](f func(A) GIOB) func(GEA) GEB {
-	return F.Bind2nd(MonadChainIOK[GEA, GEB, GIOA, GIOB, E, A, B], f)
+	return FIO.ChainIOK(
+		MonadChain[GEA, GEB],
+		FromIO[GEB],
+		f,
+	)
+}
+
+func MonadChainFirstIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](ma GEA, f func(A) GIOB) GEA {
+	return FIO.MonadChainFirstIOK(
+		MonadChain[GEA, GEA],
+		MonadMap[GEB, GEA],
+		FromIO[GEB],
+		ma, f,
+	)
+}
+
+func ChainFirstIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](f func(A) GIOB) func(GEA) GEA {
+	return FIO.ChainFirstIOK(
+		MonadChain[GEA, GEA],
+		MonadMap[GEB, GEA],
+		FromIO[GEB],
+		f,
+	)
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
