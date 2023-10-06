@@ -18,6 +18,7 @@ package readerio
 import (
 	"context"
 
+	IO "github.com/IBM/fp-go/io"
 	L "github.com/IBM/fp-go/lazy"
 	R "github.com/IBM/fp-go/readerio/generic"
 )
@@ -36,6 +37,22 @@ func MonadChain[A, B any](ma ReaderIO[A], f func(A) ReaderIO[B]) ReaderIO[B] {
 
 func Chain[A, B any](f func(A) ReaderIO[B]) func(ReaderIO[A]) ReaderIO[B] {
 	return R.Chain[ReaderIO[A]](f)
+}
+
+func MonadChainIOK[A, B any](fa ReaderIO[A], f func(A) IO.IO[B]) ReaderIO[B] {
+	return R.MonadChainIOK[ReaderIO[A], ReaderIO[B]](fa, f)
+}
+
+func ChainIOK[A, B any](f func(A) IO.IO[B]) func(ReaderIO[A]) ReaderIO[B] {
+	return R.ChainIOK[ReaderIO[A], ReaderIO[B]](f)
+}
+
+func MonadChainFirstIOK[A, B any](fa ReaderIO[A], f func(A) IO.IO[B]) ReaderIO[A] {
+	return R.MonadChainFirstIOK[ReaderIO[A], ReaderIO[B]](fa, f)
+}
+
+func ChainFirstIOK[A, B any](f func(A) IO.IO[B]) func(ReaderIO[A]) ReaderIO[A] {
+	return R.ChainFirstIOK[ReaderIO[A], ReaderIO[B]](f)
 }
 
 func Of[A any](a A) ReaderIO[A] {
