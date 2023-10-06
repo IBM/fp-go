@@ -164,6 +164,14 @@ func Never[A any]() ReaderIOEither[A] {
 	return G.Never[ReaderIOEither[A]]()
 }
 
+func MonadChainReaderIOK[A, B any](ma ReaderIOEither[A], f func(A) RIO.ReaderIO[B]) ReaderIOEither[B] {
+	return G.MonadChainReaderIOK[ReaderIOEither[B], ReaderIOEither[A]](ma, f)
+}
+
+func ChainReaderIOK[A, B any](f func(A) RIO.ReaderIO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
+	return G.ChainReaderIOK[ReaderIOEither[B], ReaderIOEither[A]](f)
+}
+
 func MonadChainIOK[A, B any](ma ReaderIOEither[A], f func(A) IO.IO[B]) ReaderIOEither[B] {
 	return G.MonadChainIOK[ReaderIOEither[B], ReaderIOEither[A]](ma, f)
 }
