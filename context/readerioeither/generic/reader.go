@@ -620,3 +620,47 @@ func Flatten[
 	A any](rdr GGRA) GRA {
 	return RIE.Flatten[GRA](rdr)
 }
+
+func MonadFromReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOA ~func(context.Context) GIOA,
+	GIOA ~func() A,
+
+	A any](a A, f func(A) GRIOA) GRIOEA {
+	return RIE.MonadFromReaderIO[GRIOEA](a, f)
+}
+
+func FromReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOA ~func(context.Context) GIOA,
+	GIOA ~func() A,
+
+	A any](f func(A) GRIOA) func(A) GRIOEA {
+	return RIE.FromReaderIO[GRIOEA](f)
+}
+
+func RightReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOA ~func(context.Context) GIOA,
+	GIOA ~func() A,
+
+	A any](ma GRIOA) GRIOEA {
+	return RIE.RightReaderIO[GRIOEA](ma)
+}
+
+func LeftReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOE ~func(context.Context) GIOE,
+	GIOE ~func() error,
+
+	A any](ma GRIOE) GRIOEA {
+	return RIE.LeftReaderIO[GRIOEA](ma)
+}

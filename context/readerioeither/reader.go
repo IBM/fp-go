@@ -234,3 +234,19 @@ func Flatten[
 	A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return G.Flatten[ReaderIOEither[ReaderIOEither[A]]](rdr)
 }
+
+func MonadFromReaderIO[A any](a A, f func(A) RIO.ReaderIO[A]) ReaderIOEither[A] {
+	return G.MonadFromReaderIO[ReaderIOEither[A]](a, f)
+}
+
+func FromReaderIO[A any](f func(A) RIO.ReaderIO[A]) func(A) ReaderIOEither[A] {
+	return G.FromReaderIO[ReaderIOEither[A]](f)
+}
+
+func RightReaderIO[A any](ma RIO.ReaderIO[A]) ReaderIOEither[A] {
+	return G.RightReaderIO[ReaderIOEither[A]](ma)
+}
+
+func LeftReaderIO[A any](ma RIO.ReaderIO[error]) ReaderIOEither[A] {
+	return G.LeftReaderIO[ReaderIOEither[A]](ma)
+}
