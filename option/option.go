@@ -147,10 +147,10 @@ func Filter[A any](pred func(A) bool) func(Option[A]) Option[A] {
 	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
 }
 
-func MonadFlap[A, B any](fab Option[func(A) B], a A) Option[B] {
+func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 	return FC.MonadFlap(MonadMap[func(A) B, B], fab, a)
 }
 
-func Flap[A, B any](a A) func(Option[func(A) B]) Option[B] {
-	return F.Bind2nd(MonadFlap[A, B], a)
+func Flap[B, A any](a A) func(Option[func(A) B]) Option[B] {
+	return F.Bind2nd(MonadFlap[B, A], a)
 }
