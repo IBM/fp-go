@@ -309,10 +309,10 @@ func Push[A any](a A) func([]A) []A {
 	return G.Push[[]A](a)
 }
 
-func MonadFlap[A, B any](fab []func(A) B, a A) []B {
+func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 	return G.MonadFlap[func(A) B, []func(A) B, []B, A, B](fab, a)
 }
 
-func Flap[A, B any](a A) func([]func(A) B) []B {
+func Flap[B, A any](a A) func([]func(A) B) []B {
 	return G.Flap[func(A) B, []func(A) B, []B, A, B](a)
 }

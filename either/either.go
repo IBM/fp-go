@@ -248,12 +248,12 @@ func Swap[E, A any](val Either[E, A]) Either[A, E] {
 	return MonadFold(val, Right[A, E], Left[E, A])
 }
 
-func MonadFlap[E, A, B any](fab Either[E, func(A) B], a A) Either[E, B] {
+func MonadFlap[E, B, A any](fab Either[E, func(A) B], a A) Either[E, B] {
 	return FC.MonadFlap(MonadMap[E, func(A) B, B], fab, a)
 }
 
-func Flap[E, A, B any](a A) func(Either[E, func(A) B]) Either[E, B] {
-	return F.Bind2nd(MonadFlap[E, A, B], a)
+func Flap[E, B, A any](a A) func(Either[E, func(A) B]) Either[E, B] {
+	return F.Bind2nd(MonadFlap[E, B, A], a)
 }
 
 func MonadAlt[E, A any](fa Either[E, A], that L.Lazy[Either[E, A]]) Either[E, A] {
