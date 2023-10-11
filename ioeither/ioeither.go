@@ -231,3 +231,11 @@ func MonadAlt[E, A any](first IOEither[E, A], second L.Lazy[IOEither[E, A]]) IOE
 func Alt[E, A any](second L.Lazy[IOEither[E, A]]) func(IOEither[E, A]) IOEither[E, A] {
 	return G.Alt(second)
 }
+
+func MonadFlap[E, B, A any](fab IOEither[E, func(A) B], a A) IOEither[E, B] {
+	return G.MonadFlap[IOEither[E, func(A) B], IOEither[E, B]](fab, a)
+}
+
+func Flap[E, B, A any](a A) func(IOEither[E, func(A) B]) IOEither[E, B] {
+	return G.Flap[IOEither[E, func(A) B], IOEither[E, B]](a)
+}

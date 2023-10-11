@@ -25,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/internal/eithert"
 	FE "github.com/IBM/fp-go/internal/fromeither"
 	FI "github.com/IBM/fp-go/internal/fromio"
+	FC "github.com/IBM/fp-go/internal/functor"
 	IO "github.com/IBM/fp-go/io/generic"
 	O "github.com/IBM/fp-go/option"
 )
@@ -303,4 +304,12 @@ func MonadAlt[LAZY ~func() GIOA, GIOA ~func() ET.Either[E, A], E, A any](first G
 
 func Alt[LAZY ~func() GIOA, GIOA ~func() ET.Either[E, A], E, A any](second LAZY) func(GIOA) GIOA {
 	return F.Bind2nd(MonadAlt[LAZY], second)
+}
+
+func MonadFlap[GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], E, B, A any](fab GEAB, a A) GEB {
+	return FC.MonadFlap(MonadMap[GEAB, GEB], fab, a)
+}
+
+func Flap[GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], E, B, A any](a A) func(GEAB) GEB {
+	return FC.Flap(MonadMap[GEAB, GEB], a)
 }

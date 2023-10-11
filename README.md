@@ -14,6 +14,8 @@ go get github.com/IBM/fp-go
 
 Refer to the [samples](./samples/).
 
+Find API documentation [here](https://pkg.go.dev/github.com/IBM/fp-go)
+
 ## Design Goal
 
 This library aims to provide a set of data types and functions that make it easy and fun to write maintainable and testable code in golang. It encourages the following patterns:
@@ -192,3 +194,14 @@ this would be the completely generic method signature for all possible monads. I
 This FP library addresses this by introducing the HKTs as individual types, e.g. `HKT[A]` would be represented as a new generic type `HKTA`. This loses the correlation to the type `A` but allows to implement generic algorithms, at the price of readability.
 
 For that reason these implementations are kept in the `internal` package. These are meant to be used by the library itself or by extensions, not by end users.
+
+## Map/Ap/Flap
+
+The following table lists the relationship between some selected operators
+
+| Opertator | Parameter        | Monad           | Result   |
+| --------  | ---------------- | --------------- | -------- |
+| Map       | `func(A) B`      | `HKT[A]`        | `HKT[B]` |
+| Chain     | `func(A) HKT[B]` | `HKT[A]` | `HKT[B]` |
+| Ap        | `HKT[A]`         | `HKT[func(A)B]` | `HKT[B]` |
+| Flap      | `A`              | `HKT[func(A)B]` | `HKT[B]` |
