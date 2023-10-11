@@ -24,6 +24,7 @@ import (
 	FIO "github.com/IBM/fp-go/internal/fromio"
 	FIOE "github.com/IBM/fp-go/internal/fromioeither"
 	FR "github.com/IBM/fp-go/internal/fromreader"
+	FC "github.com/IBM/fp-go/internal/functor"
 	IOE "github.com/IBM/fp-go/ioeither/generic"
 	O "github.com/IBM/fp-go/option"
 	RD "github.com/IBM/fp-go/reader/generic"
@@ -430,4 +431,12 @@ func TryCatch[GEA ~func(R) GA, GA ~func() ET.Either[E, A], R, E, A any](f func(R
 func Memoize[
 	GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](rdr GEA) GEA {
 	return G.Memoize[GEA](rdr)
+}
+
+func MonadFlap[GREAB ~func(R) GEAB, GREB ~func(R) GEB, GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], R, E, B, A any](fab GREAB, a A) GREB {
+	return FC.MonadFlap(MonadMap[GREAB, GREB], fab, a)
+}
+
+func Flap[GREAB ~func(R) GEAB, GREB ~func(R) GEB, GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], R, E, B, A any](a A) func(GREAB) GREB {
+	return FC.Flap(MonadMap[GREAB, GREB], a)
 }

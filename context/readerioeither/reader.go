@@ -250,3 +250,11 @@ func RightReaderIO[A any](ma RIO.ReaderIO[A]) ReaderIOEither[A] {
 func LeftReaderIO[A any](ma RIO.ReaderIO[error]) ReaderIOEither[A] {
 	return G.LeftReaderIO[ReaderIOEither[A]](ma)
 }
+
+func MonadFlap[B, A any](fab ReaderIOEither[func(A) B], a A) ReaderIOEither[B] {
+	return G.MonadFlap[ReaderIOEither[func(A) B], ReaderIOEither[B]](fab, a)
+}
+
+func Flap[B, A any](a A) func(ReaderIOEither[func(A) B]) ReaderIOEither[B] {
+	return G.Flap[ReaderIOEither[func(A) B], ReaderIOEither[B]](a)
+}

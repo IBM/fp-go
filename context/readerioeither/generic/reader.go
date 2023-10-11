@@ -664,3 +664,11 @@ func LeftReaderIO[
 	A any](ma GRIOE) GRIOEA {
 	return RIE.LeftReaderIO[GRIOEA](ma)
 }
+
+func MonadFlap[GREAB ~func(context.Context) GEAB, GREB ~func(context.Context) GEB, GEAB ~func() E.Either[error, func(A) B], GEB ~func() E.Either[error, B], B, A any](fab GREAB, a A) GREB {
+	return RIE.MonadFlap[GREAB, GREB](fab, a)
+}
+
+func Flap[GREAB ~func(context.Context) GEAB, GREB ~func(context.Context) GEB, GEAB ~func() E.Either[error, func(A) B], GEB ~func() E.Either[error, B], B, A any](a A) func(GREAB) GREB {
+	return RIE.Flap[GREAB, GREB](a)
+}
