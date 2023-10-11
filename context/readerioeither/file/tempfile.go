@@ -19,7 +19,6 @@ import (
 	"os"
 
 	RIOE "github.com/IBM/fp-go/context/readerioeither"
-	FL "github.com/IBM/fp-go/file"
 	F "github.com/IBM/fp-go/function"
 	IO "github.com/IBM/fp-go/io"
 	IOF "github.com/IBM/fp-go/io/file"
@@ -32,7 +31,7 @@ var (
 	// destroy handler
 	onReleaseTempFile = F.Flow4(
 		IOF.Close[*os.File],
-		IO.Map(FL.GetName),
+		IO.Map((*os.File).Name),
 		RIOE.FromIO[string],
 		RIOE.Chain(Remove),
 	)

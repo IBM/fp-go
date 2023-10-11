@@ -15,9 +15,11 @@
 
 package file
 
-import "os"
+import "path/filepath"
 
-// GetName is the getter for the `Name` property of [os.File]
-func GetName(f *os.File) string {
-	return f.Name()
+// Join appends a filename to a root path
+func Join(name string) func(root string) string {
+	return func(root string) string {
+		return filepath.Join(root, name)
+	}
 }
