@@ -23,6 +23,11 @@ import (
 	R "github.com/IBM/fp-go/readerio/generic"
 )
 
+// FromIO converts an [IO.IO] to a [ReaderIO]
+func FromIO[A any](a IO.IO[A]) ReaderIO[A] {
+	return R.FromIO[ReaderIO[A]](a)
+}
+
 func MonadMap[A, B any](fa ReaderIO[A], f func(A) B) ReaderIO[B] {
 	return R.MonadMap[ReaderIO[A], ReaderIO[B]](fa, f)
 }
