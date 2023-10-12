@@ -87,3 +87,11 @@ func Memoize[A any](rdr ReaderIO[A]) ReaderIO[A] {
 func Flatten[A any](mma ReaderIO[ReaderIO[A]]) ReaderIO[A] {
 	return R.Flatten[ReaderIO[A]](mma)
 }
+
+func MonadFlap[B, A any](fab ReaderIO[func(A) B], a A) ReaderIO[B] {
+	return R.MonadFlap[ReaderIO[func(A) B], ReaderIO[B]](fab, a)
+}
+
+func Flap[B, A any](a A) func(ReaderIO[func(A) B]) ReaderIO[B] {
+	return R.Flap[ReaderIO[func(A) B], ReaderIO[B]](a)
+}

@@ -18,6 +18,7 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	I "github.com/IBM/fp-go/identity/generic"
+	FC "github.com/IBM/fp-go/internal/functor"
 	T "github.com/IBM/fp-go/tuple"
 )
 
@@ -119,4 +120,12 @@ func Local[GA1 ~func(R1) A, GA2 ~func(R2) A, R2, R1, A any](f func(R2) R1) func(
 // Read applies a context to a reader to obtain its value
 func Read[GA ~func(E) A, E, A any](e E) func(GA) A {
 	return I.Ap[GA](e)
+}
+
+func MonadFlap[GAB ~func(R) func(A) B, GB ~func(R) B, R, A, B any](fab GAB, a A) GB {
+	return FC.MonadFlap(MonadMap[GAB, GB], fab, a)
+}
+
+func Flap[GAB ~func(R) func(A) B, GB ~func(R) B, R, A, B any](a A) func(GAB) GB {
+	return FC.Flap(MonadMap[GAB, GB], a)
 }

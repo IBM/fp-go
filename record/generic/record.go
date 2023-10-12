@@ -19,6 +19,7 @@ import (
 	"sort"
 
 	F "github.com/IBM/fp-go/function"
+	FC "github.com/IBM/fp-go/internal/functor"
 	G "github.com/IBM/fp-go/internal/record"
 	Mg "github.com/IBM/fp-go/magma"
 	Mo "github.com/IBM/fp-go/monoid"
@@ -513,4 +514,12 @@ func FoldMapOrdWithIndex[AS ~map[K]A, K comparable, A, B any](o ord.Ord[K]) func
 			}, m.Empty())
 		}
 	}
+}
+
+func MonadFlap[GFAB ~map[K]func(A) B, GB ~map[K]B, K comparable, A, B any](fab GFAB, a A) GB {
+	return FC.MonadFlap(MonadMap[GFAB, GB], fab, a)
+}
+
+func Flap[GFAB ~map[K]func(A) B, GB ~map[K]B, K comparable, A, B any](a A) func(GFAB) GB {
+	return FC.Flap(MonadMap[GFAB, GB], a)
 }
