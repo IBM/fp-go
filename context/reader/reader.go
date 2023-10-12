@@ -56,3 +56,11 @@ func Ask() Reader[context.Context] {
 func Asks[A any](r Reader[A]) Reader[A] {
 	return R.Asks(r)
 }
+
+func MonadFlap[B, A any](fab Reader[func(A) B], a A) Reader[B] {
+	return R.MonadFlap[Reader[func(A) B], Reader[B]](fab, a)
+}
+
+func Flap[B, A any](a A) func(Reader[func(A) B]) Reader[B] {
+	return R.Flap[Reader[func(A) B], Reader[B]](a)
+}

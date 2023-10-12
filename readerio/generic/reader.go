@@ -21,6 +21,7 @@ import (
 	F "github.com/IBM/fp-go/function"
 	FIO "github.com/IBM/fp-go/internal/fromio"
 	FR "github.com/IBM/fp-go/internal/fromreader"
+	FC "github.com/IBM/fp-go/internal/functor"
 	"github.com/IBM/fp-go/internal/readert"
 	IO "github.com/IBM/fp-go/io/generic"
 	R "github.com/IBM/fp-go/reader/generic"
@@ -154,4 +155,12 @@ func Memoize[GEA ~func(E) GA, GA ~func() A, E, A any](rdr GEA) GEA {
 
 func Flatten[GEA ~func(R) GIOA, GGEA ~func(R) GIOEA, GIOA ~func() A, GIOEA ~func() GEA, R, A any](mma GGEA) GEA {
 	return MonadChain(mma, F.Identity[GEA])
+}
+
+func MonadFlap[GEFAB ~func(E) GIOFAB, GEB ~func(E) GIOB, GIOFAB ~func() func(A) B, GIOB ~func() B, E, A, B any](fab GEFAB, a A) GEB {
+	return FC.MonadFlap(MonadMap[GEFAB, GEB], fab, a)
+}
+
+func Flap[GEFAB ~func(E) GIOFAB, GEB ~func(E) GIOB, GIOFAB ~func() func(A) B, GIOB ~func() B, E, A, B any](a A) func(GEFAB) GEB {
+	return FC.Flap(MonadMap[GEFAB, GEB], a)
 }

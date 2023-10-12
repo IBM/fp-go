@@ -271,3 +271,11 @@ func KeysOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []K {
 func ValuesOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []V {
 	return G.ValuesOrd[map[K]V, []V, K, V](o)
 }
+
+func MonadFlap[B any, K comparable, A any](fab map[K]func(A) B, a A) map[K]B {
+	return G.MonadFlap[map[K]func(A) B, map[K]B](fab, a)
+}
+
+func Flap[B any, K comparable, A any](a A) func(map[K]func(A) B) map[K]B {
+	return G.Flap[map[K]func(A) B, map[K]B](a)
+}

@@ -119,3 +119,11 @@ func ChainEitherK[A, B any](f func(A) ET.Either[error, B]) func(ma ReaderEither[
 func ChainOptionK[A, B any](onNone func() error) func(func(A) O.Option[B]) func(ReaderEither[A]) ReaderEither[B] {
 	return RE.ChainOptionK[ReaderEither[A], ReaderEither[B]](onNone)
 }
+
+func MonadFlap[B, A any](fab ReaderEither[func(A) B], a A) ReaderEither[B] {
+	return RE.MonadFlap[ReaderEither[func(A) B], ReaderEither[B]](fab, a)
+}
+
+func Flap[B, A any](a A) func(ReaderEither[func(A) B]) ReaderEither[B] {
+	return RE.Flap[ReaderEither[func(A) B], ReaderEither[B]](a)
+}

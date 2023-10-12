@@ -143,3 +143,11 @@ func Local[E, A, R2, R1 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderE
 func Read[E1, A, E any](e E) func(ReaderEither[E, E1, A]) ET.Either[E1, A] {
 	return G.Read[ReaderEither[E, E1, A]](e)
 }
+
+func MonadFlap[L, E, A, B any](fab ReaderEither[L, E, func(A) B], a A) ReaderEither[L, E, B] {
+	return G.MonadFlap[ReaderEither[L, E, func(A) B], ReaderEither[L, E, B]](fab, a)
+}
+
+func Flap[L, E, B, A any](a A) func(ReaderEither[L, E, func(A) B]) ReaderEither[L, E, B] {
+	return G.Flap[ReaderEither[L, E, func(A) B], ReaderEither[L, E, B]](a)
+}
