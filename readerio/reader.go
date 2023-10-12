@@ -23,6 +23,7 @@ import (
 
 type ReaderIO[E, A any] R.Reader[E, IO.IO[A]]
 
+// FromIO converts an [IO.IO] to a [ReaderIO]
 func FromIO[E, A any](t IO.IO[A]) ReaderIO[E, A] {
 	return G.FromIO[ReaderIO[E, A]](t)
 }
