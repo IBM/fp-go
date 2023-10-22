@@ -17,7 +17,7 @@ package generic
 
 import (
 	ET "github.com/IBM/fp-go/either"
-	G "github.com/IBM/fp-go/internal/file"
+	G "github.com/IBM/fp-go/internal/bracket"
 	I "github.com/IBM/fp-go/readerio/generic"
 )
 
