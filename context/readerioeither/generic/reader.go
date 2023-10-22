@@ -432,9 +432,9 @@ func FromIOEither[
 
 func FromIO[
 	GRA ~func(context.Context) GIOA,
-	GIOA ~func() E.Either[error, A],
-
 	GIOB ~func() A,
+
+	GIOA ~func() E.Either[error, A],
 
 	A any](t GIOB) GRA {
 	return RIE.FromIO[GRA](t)
@@ -571,7 +571,7 @@ func Timer[
 ](delay time.Duration) GRA {
 	return F.Pipe2(
 		IO.Now[func() time.Time](),
-		FromIO[GRA, GIOA, func() time.Time],
+		FromIO[GRA, func() time.Time],
 		Delay[GRA](delay),
 	)
 }

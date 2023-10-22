@@ -16,28 +16,35 @@
 package generic
 
 import (
-	ET "github.com/IBM/fp-go/either"
+	"context"
+
+	E "github.com/IBM/fp-go/either"
 	G "github.com/IBM/fp-go/internal/bracket"
-	I "github.com/IBM/fp-go/io/generic"
+	I "github.com/IBM/fp-go/readerio/generic"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
 // whether the body action returns and error or not.
 func Bracket[
-	GA ~func() ET.Either[E, A],
-	GB ~func() ET.Either[E, B],
-	GANY ~func() ET.Either[E, ANY],
-	E, A, B, ANY any](
+	GA ~func(context.Context) TA,
+	GB ~func(context.Context) TB,
+	GANY ~func(context.Context) TANY,
+
+	TA ~func() E.Either[error, A],
+	TB ~func() E.Either[error, B],
+	TANY ~func() E.Either[error, ANY],
+
+	A, B, ANY any](
 
 	acquire GA,
 	use func(A) GB,
-	release func(A, ET.Either[E, B]) GANY,
+	release func(A, E.Either[error, B]) GANY,
 ) GB {
-	return G.Bracket[GA, GB, GANY, ET.Either[E, B], A, B](
-		I.Of[GB, ET.Either[E, B]],
-		MonadChain[GA, GB, E, A, B],
-		I.MonadChain[GB, GB, ET.Either[E, B], ET.Either[E, B]],
-		MonadChain[GANY, GB, E, ANY, B],
+	return G.Bracket[GA, GB, GANY, E.Either[error, B], A, B](
+		I.Of[GB, TB, context.Context, E.Either[error, B]],
+		MonadChain[GA, GB, TA, TB, A, B],
+		I.MonadChain[GB, GB, TB, TB, context.Context, E.Either[error, B], E.Either[error, B]],
+		MonadChain[GANY, GB, TANY, TB, ANY, B],
 
 		acquire,
 		use,
