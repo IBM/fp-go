@@ -19,10 +19,9 @@ import (
 	"context"
 
 	G "github.com/IBM/fp-go/io/generic"
-	L "github.com/IBM/fp-go/lazy"
 )
 
 // WithLock executes the provided [IO] operation in the scope of a lock
-func WithLock[A any](lock L.Lazy[context.CancelFunc]) func(fa IO[A]) IO[A] {
+func WithLock[A any](lock IO[context.CancelFunc]) func(fa IO[A]) IO[A] {
 	return G.WithLock[IO[A]](lock)
 }

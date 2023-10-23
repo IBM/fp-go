@@ -120,16 +120,15 @@ func Flatten[E, A any](mma Either[E, Either[E, A]]) Either[E, A] {
 	return MonadChain(mma, F.Identity[Either[E, A]])
 }
 
-func TryCatch[FA ~func() (A, error), FE func(error) E, E, A any](f FA, onThrow FE) Either[E, A] {
-	val, err := f()
+func TryCatch[FE func(error) E, E, A any](val A, err error, onThrow FE) Either[E, A] {
 	if err != nil {
 		return F.Pipe2(err, onThrow, Left[A, E])
 	}
 	return F.Pipe1(val, Right[E, A])
 }
 
-func TryCatchError[F ~func() (A, error), A any](f F) Either[error, A] {
-	return TryCatch(f, E.IdentityError)
+func TryCatchError[A any](val A, err error) Either[error, A] {
+	return TryCatch(val, err, E.IdentityError)
 }
 
 func Sequence2[E, T1, T2, R any](f func(T1, T2) Either[E, R]) func(Either[E, T1], Either[E, T2]) Either[E, R] {
@@ -154,9 +153,7 @@ func ToOption[E, A any](ma Either[E, A]) O.Option[A] {
 
 func FromError[A any](f func(a A) error) func(A) Either[error, A] {
 	return func(a A) Either[error, A] {
-		return TryCatchError(func() (A, error) {
-			return a, f(a)
-		})
+		return TryCatchError(a, f(a))
 	}
 }
 

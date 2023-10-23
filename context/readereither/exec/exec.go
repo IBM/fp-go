@@ -34,8 +34,6 @@ var (
 
 func command(name string, args []string, in []byte) RE.ReaderEither[exec.CommandOutput] {
 	return func(ctx context.Context) E.Either[error, exec.CommandOutput] {
-		return E.TryCatchError(func() (exec.CommandOutput, error) {
-			return GE.Exec(ctx, name, args, in)
-		})
+		return E.TryCatchError(GE.Exec(ctx, name, args, in))
 	}
 }

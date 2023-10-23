@@ -58,10 +58,8 @@ func TestSampleConvertDocx2(t *testing.T) {
 	// The disadvantage is that its input has to exist in memory which is probably not a good
 	// idea for large inputs
 	convertDocx := func(data []byte) E.Either[error, T.Tuple2[string, map[string]string]] {
-		return E.TryCatchError(func() (T.Tuple2[string, map[string]string], error) {
-			text, meta, err := sampleConvertDocx(bytes.NewReader(data))
-			return T.MakeTuple2(text, meta), err
-		})
+		text, meta, err := sampleConvertDocx(bytes.NewReader(data))
+		return E.TryCatchError(T.MakeTuple2(text, meta), err)
 	}
 
 	resE := convertDocx([]byte("abc"))

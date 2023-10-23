@@ -18,7 +18,6 @@ package readereither
 import (
 	"context"
 
-	R "github.com/IBM/fp-go/context/reader"
 	ET "github.com/IBM/fp-go/either"
 	O "github.com/IBM/fp-go/option"
 	RE "github.com/IBM/fp-go/readereither/generic"
@@ -32,24 +31,12 @@ func FromEither[A any](e ET.Either[error, A]) ReaderEither[A] {
 	return RE.FromEither[ReaderEither[A]](e)
 }
 
-func RightReader[A any](r R.Reader[A]) ReaderEither[A] {
-	return RE.RightReader[R.Reader[A], ReaderEither[A]](r)
-}
-
-func LeftReader[A any](l R.Reader[error]) ReaderEither[A] {
-	return RE.LeftReader[R.Reader[error], ReaderEither[A]](l)
-}
-
 func Left[A any](l error) ReaderEither[A] {
 	return RE.Left[ReaderEither[A]](l)
 }
 
 func Right[A any](r A) ReaderEither[A] {
 	return RE.Right[ReaderEither[A]](r)
-}
-
-func FromReader[A any](r R.Reader[A]) ReaderEither[A] {
-	return RE.FromReader[R.Reader[A], ReaderEither[A]](r)
 }
 
 func MonadMap[A, B any](fa ReaderEither[A], f func(A) B) ReaderEither[B] {
@@ -84,28 +71,12 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) Read
 	return RE.FromPredicate[ReaderEither[A]](pred, onFalse)
 }
 
-func Fold[A, B any](onLeft func(error) R.Reader[B], onRight func(A) R.Reader[B]) func(ReaderEither[A]) R.Reader[B] {
-	return RE.Fold[ReaderEither[A]](onLeft, onRight)
-}
-
-func GetOrElse[A any](onLeft func(error) R.Reader[A]) func(ReaderEither[A]) R.Reader[A] {
-	return RE.GetOrElse[ReaderEither[A]](onLeft)
-}
-
 func OrElse[A any](onLeft func(error) ReaderEither[A]) func(ReaderEither[A]) ReaderEither[A] {
 	return RE.OrElse[ReaderEither[A]](onLeft)
 }
 
-func OrLeft[A any](onLeft func(error) R.Reader[error]) func(ReaderEither[A]) ReaderEither[A] {
-	return RE.OrLeft[ReaderEither[A], ReaderEither[A]](onLeft)
-}
-
 func Ask() ReaderEither[context.Context] {
 	return RE.Ask[ReaderEither[context.Context]]()
-}
-
-func Asks[A any](r R.Reader[A]) ReaderEither[A] {
-	return RE.Asks[R.Reader[A], ReaderEither[A]](r)
 }
 
 func MonadChainEitherK[A, B any](ma ReaderEither[A], f func(A) ET.Either[error, B]) ReaderEither[B] {

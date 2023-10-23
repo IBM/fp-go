@@ -115,16 +115,14 @@ func generateEitherize(f *os.File, i int) {
 		fmt.Fprintf(f, "t%d T%d", j, j)
 	}
 	fmt.Fprintf(f, ") Either[error, R] {\n")
-	fmt.Fprintf(f, "    return TryCatchError(func() (R, error) {\n")
-	fmt.Fprintf(f, "      return f(")
+	fmt.Fprintf(f, "    return TryCatchError(f(")
 	for j := 0; j < i; j++ {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "t%d", j)
 	}
-	fmt.Fprintln(f, ")")
-	fmt.Fprintln(f, "    })")
+	fmt.Fprintln(f, "))")
 	fmt.Fprintln(f, "  }")
 	fmt.Fprintln(f, "}")
 }
