@@ -35,17 +35,13 @@ var (
 func bodyRequest(method string) func(string) func([]byte) E.Either[error, *http.Request] {
 	return func(url string) func([]byte) E.Either[error, *http.Request] {
 		return func(body []byte) E.Either[error, *http.Request] {
-			return E.TryCatchError(func() (*http.Request, error) {
-				return http.NewRequest(method, url, bytes.NewReader(body))
-			})
+			return E.TryCatchError(http.NewRequest(method, url, bytes.NewReader(body)))
 		}
 	}
 }
 
 func noBodyRequest(method string) func(string) E.Either[error, *http.Request] {
 	return func(url string) E.Either[error, *http.Request] {
-		return E.TryCatchError(func() (*http.Request, error) {
-			return http.NewRequest(method, url, nil)
-		})
+		return E.TryCatchError(http.NewRequest(method, url, nil))
 	}
 }

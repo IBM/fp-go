@@ -19,7 +19,6 @@ import (
 	"time"
 
 	ET "github.com/IBM/fp-go/either"
-	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/internal/chain"
 	"github.com/IBM/fp-go/internal/eithert"
@@ -184,12 +183,15 @@ func Flatten[GA ~func() ET.Either[E, A], GAA ~func() ET.Either[E, GA], E, A any]
 
 func TryCatch[GA ~func() ET.Either[E, A], E, A any](f func() (A, error), onThrow func(error) E) GA {
 	return MakeIO(func() ET.Either[E, A] {
-		return ET.TryCatch(f, onThrow)
+		a, err := f()
+		return ET.TryCatch(a, err, onThrow)
 	})
 }
 
 func TryCatchError[GA ~func() ET.Either[error, A], A any](f func() (A, error)) GA {
-	return TryCatch[GA](f, errors.IdentityError)
+	return MakeIO(func() ET.Either[error, A] {
+		return ET.TryCatchError(f())
+	})
 }
 
 // Memoize computes the value of the provided IO monad lazily but exactly once

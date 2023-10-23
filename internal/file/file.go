@@ -46,9 +46,7 @@ func MakeReader(ctx context.Context, rdr io.Reader) io.Reader {
 
 // ReadAll reads the content of a reader and allows it to be canceled
 func ReadAll(ctx context.Context, rdr io.Reader) E.Either[error, []byte] {
-	return E.TryCatchError(func() ([]byte, error) {
-		var buffer bytes.Buffer
-		_, err := io.Copy(&buffer, MakeReader(ctx, rdr))
-		return buffer.Bytes(), err
-	})
+	var buffer bytes.Buffer
+	_, err := io.Copy(&buffer, MakeReader(ctx, rdr))
+	return E.TryCatchError(buffer.Bytes(), err)
 }
