@@ -105,7 +105,7 @@ var (
 	)
 
 	// checkActive :: User -> Either error User
-	checkActive = E.FromPredicate(Chapter08User.isActive, F.Constant1[Chapter08User](fmt.Errorf("Your account is not active")))
+	checkActive = E.FromPredicate(Chapter08User.isActive, F.Constant1[Chapter08User](fmt.Errorf("your account is not active")))
 
 	// validateUser :: (User -> Either String ()) -> User -> Either String User
 	validateUser = F.Curry2(func(validate func(Chapter08User) E.Either[error, any], user Chapter08User) E.Either[error, Chapter08User] {
@@ -235,7 +235,7 @@ func Example_solution08C() {
 	fmt.Println(eitherWelcome(theresa08))
 
 	// Output:
-	// Left[*errors.errorString, string](Your account is not active)
+	// Left[*errors.errorString, string](your account is not active)
 	// Right[<nil>, string](Welcome Theresa)
 }
 

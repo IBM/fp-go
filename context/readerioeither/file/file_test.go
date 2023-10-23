@@ -19,9 +19,7 @@ import (
 	"context"
 	"fmt"
 
-	RIO "github.com/IBM/fp-go/context/readerio"
 	R "github.com/IBM/fp-go/context/readerioeither"
-	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	IO "github.com/IBM/fp-go/io"
 	J "github.com/IBM/fp-go/json"
@@ -37,20 +35,17 @@ func getData(r RecordType) string {
 
 func ExampleReadFile() {
 
-	data := F.Pipe4(
+	data := F.Pipe3(
 		ReadFile("./data/file.json"),
 		R.ChainEitherK(J.Unmarshal[RecordType]),
 		R.ChainFirstIOK(IO.Logf[RecordType]("Log: %v")),
 		R.Map(getData),
-		R.GetOrElse(F.Flow2(
-			errors.ToString,
-			RIO.Of[string],
-		)),
 	)
 
 	result := data(context.Background())
 
 	fmt.Println(result())
 
-	// Output: Carsten
+	// Output:
+	// Right[<nil>, string](Carsten)
 }
