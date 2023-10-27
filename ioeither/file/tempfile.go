@@ -18,7 +18,6 @@ package file
 import (
 	"os"
 
-	FL "github.com/IBM/fp-go/file"
 	F "github.com/IBM/fp-go/function"
 	IO "github.com/IBM/fp-go/io"
 	IOF "github.com/IBM/fp-go/io/file"
@@ -33,7 +32,7 @@ var (
 	// destroy handler
 	onReleaseTempFile = F.Flow4(
 		IOF.Close[*os.File],
-		IO.Map(FL.GetName),
+		IO.Map((*os.File).Name),
 		IOE.FromIO[error, string],
 		IOE.Chain(Remove),
 	)

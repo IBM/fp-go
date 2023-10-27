@@ -15,8 +15,8 @@
 
 package semigroup
 
-func AltSemigroup[HKTA any](
-	falt func(HKTA, func() HKTA) HKTA,
+func AltSemigroup[HKTA any, LAZYHKTA ~func() HKTA](
+	falt func(HKTA, LAZYHKTA) HKTA,
 
 ) Semigroup[HKTA] {
 

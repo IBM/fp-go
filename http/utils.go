@@ -57,7 +57,7 @@ var (
 			GetHeader,
 			R.Lookup[H.Header](HeaderContentType),
 			O.Chain(A.First[string]),
-			E.FromOption[error, string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
+			E.FromOption[string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
 			E.ChainFirst(validateJsonContentTypeString),
 		)))
 )
@@ -68,10 +68,8 @@ const (
 
 // ParseMediaType parses a media type into a tuple
 func ParseMediaType(mediaType string) E.Either[error, ParsedMediaType] {
-	return E.TryCatchError(func() (ParsedMediaType, error) {
-		m, p, err := mime.ParseMediaType(mediaType)
-		return T.MakeTuple2(m, p), err
-	})
+	m, p, err := mime.ParseMediaType(mediaType)
+	return E.TryCatchError(T.MakeTuple2(m, p), err)
 }
 
 func GetHeader(resp *H.Response) H.Header {

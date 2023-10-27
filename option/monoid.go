@@ -51,3 +51,22 @@ func Monoid[A any]() func(S.Semigroup[A]) M.Monoid[Option[A]] {
 		return M.MakeMonoid(sg(s).Concat, None[A]())
 	}
 }
+
+// AlternativeMonoid is the alternative [Monoid] for an [Option]
+func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
+	return M.AlternativeMonoid(
+		Of[A],
+		MonadMap[A, func(A) A],
+		MonadAp[A, A],
+		MonadAlt[A],
+		m,
+	)
+}
+
+// AltMonoid is the alternative [Monoid] for an [Option]
+func AltMonoid[A any]() M.Monoid[Option[A]] {
+	return M.AltMonoid(
+		None[A],
+		MonadAlt[A],
+	)
+}

@@ -105,3 +105,11 @@ func Local[R2, R1, A any](f func(R2) R1) func(Reader[R1, A]) Reader[R2, A] {
 func Read[E, A any](e E) func(Reader[E, A]) A {
 	return G.Read[Reader[E, A]](e)
 }
+
+func MonadFlap[R, A, B any](fab Reader[R, func(A) B], a A) Reader[R, B] {
+	return G.MonadFlap[Reader[R, func(A) B], Reader[R, B]](fab, a)
+}
+
+func Flap[R, A, B any](a A) func(Reader[R, func(A) B]) Reader[R, B] {
+	return G.Flap[Reader[R, func(A) B], Reader[R, B]](a)
+}

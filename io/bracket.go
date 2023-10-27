@@ -13,14 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package reader implements a specialization of the Reader monad assuming a golang context as the context of the monad
-package reader
+package io
 
 import (
-	"context"
-
-	R "github.com/IBM/fp-go/reader"
+	G "github.com/IBM/fp-go/io/generic"
 )
 
-// Reader is a specialization of the Reader monad assuming a golang context as the context of the monad
-type Reader[A any] R.Reader[context.Context, A]
+// Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
+// whether the body action returns and error or not.
+func Bracket[A, B, ANY any](
+	acquire IO[A],
+	use func(A) IO[B],
+	release func(A, B) IO[ANY],
+) IO[B] {
+	return G.Bracket(acquire, use, release)
+}

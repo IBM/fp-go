@@ -22,6 +22,8 @@ package either
 import (
 	E "github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
+	FC "github.com/IBM/fp-go/internal/functor"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -92,11 +94,11 @@ func MonadChainTo[E, A, B any](ma Either[E, A], mb Either[E, B]) Either[E, B] {
 }
 
 func MonadChainOptionK[A, B, E any](onNone func() E, ma Either[E, A], f func(A) O.Option[B]) Either[E, B] {
-	return MonadChain(ma, F.Flow2(f, FromOption[E, B](onNone)))
+	return MonadChain(ma, F.Flow2(f, FromOption[B](onNone)))
 }
 
 func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
-	from := FromOption[E, B](onNone)
+	from := FromOption[B](onNone)
 	return func(f func(A) O.Option[B]) func(Either[E, A]) Either[E, B] {
 		return Chain(F.Flow2(f, from))
 	}
@@ -118,16 +120,15 @@ func Flatten[E, A any](mma Either[E, Either[E, A]]) Either[E, A] {
 	return MonadChain(mma, F.Identity[Either[E, A]])
 }
 
-func TryCatch[FA ~func() (A, error), FE func(error) E, E, A any](f FA, onThrow FE) Either[E, A] {
-	val, err := f()
+func TryCatch[FE func(error) E, E, A any](val A, err error, onThrow FE) Either[E, A] {
 	if err != nil {
 		return F.Pipe2(err, onThrow, Left[A, E])
 	}
 	return F.Pipe1(val, Right[E, A])
 }
 
-func TryCatchError[F ~func() (A, error), A any](f F) Either[error, A] {
-	return TryCatch(f, E.IdentityError)
+func TryCatchError[A any](val A, err error) Either[error, A] {
+	return TryCatch(val, err, E.IdentityError)
 }
 
 func Sequence2[E, T1, T2, R any](f func(T1, T2) Either[E, R]) func(Either[E, T1], Either[E, T2]) Either[E, R] {
@@ -142,7 +143,7 @@ func Sequence3[E, T1, T2, T3, R any](f func(T1, T2, T3) Either[E, R]) func(Eithe
 	}
 }
 
-func FromOption[E, A any](onNone func() E) func(O.Option[A]) Either[E, A] {
+func FromOption[A, E any](onNone func() E) func(O.Option[A]) Either[E, A] {
 	return O.Fold(F.Nullary2(onNone, Left[A, E]), Right[E, A])
 }
 
@@ -152,9 +153,7 @@ func ToOption[E, A any](ma Either[E, A]) O.Option[A] {
 
 func FromError[A any](f func(a A) error) func(A) Either[error, A] {
 	return func(a A) Either[error, A] {
-		return TryCatchError(func() (A, error) {
-			return a, f(a)
-		})
+		return TryCatchError(a, f(a))
 	}
 }
 
@@ -197,11 +196,11 @@ func Reduce[E, A, B any](f func(B, A) B, initial B) func(Either[E, A]) B {
 	)
 }
 
-func AltW[E, E1, A any](that func() Either[E1, A]) func(Either[E, A]) Either[E1, A] {
+func AltW[E, E1, A any](that L.Lazy[Either[E1, A]]) func(Either[E, A]) Either[E1, A] {
 	return Fold(F.Ignore1of1[E](that), Right[E1, A])
 }
 
-func Alt[E, A any](that func() Either[E, A]) func(Either[E, A]) Either[E, A] {
+func Alt[E, A any](that L.Lazy[Either[E, A]]) func(Either[E, A]) Either[E, A] {
 	return AltW[E](that)
 }
 
@@ -244,4 +243,16 @@ func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3
 // Swap changes the order of type parameters
 func Swap[E, A any](val Either[E, A]) Either[A, E] {
 	return MonadFold(val, Right[A, E], Left[E, A])
+}
+
+func MonadFlap[E, B, A any](fab Either[E, func(A) B], a A) Either[E, B] {
+	return FC.MonadFlap(MonadMap[E, func(A) B, B], fab, a)
+}
+
+func Flap[E, B, A any](a A) func(Either[E, func(A) B]) Either[E, B] {
+	return F.Bind2nd(MonadFlap[E, B, A], a)
+}
+
+func MonadAlt[E, A any](fa Either[E, A], that L.Lazy[Either[E, A]]) Either[E, A] {
+	return MonadFold(fa, F.Ignore1of1[E](that), Of[E, A])
 }

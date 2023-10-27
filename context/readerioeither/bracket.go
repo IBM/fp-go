@@ -13,14 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package readerio implements a specialization of the ReaderIO monad assuming a golang context as the context of the monad
-package readerio
+package readerioeither
 
 import (
-	"context"
-
-	R "github.com/IBM/fp-go/readerio"
+	G "github.com/IBM/fp-go/context/readerioeither/generic"
+	E "github.com/IBM/fp-go/either"
 )
 
-// ReaderIO is a specialization of the ReaderIO monad assuming a golang context as the context of the monad
-type ReaderIO[A any] R.ReaderIO[context.Context, A]
+// Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
+// whether the body action returns and error or not.
+func Bracket[
+	A, B, ANY any](
+
+	acquire ReaderIOEither[A],
+	use func(A) ReaderIOEither[B],
+	release func(A, E.Either[error, B]) ReaderIOEither[ANY],
+) ReaderIOEither[B] {
+	return G.Bracket[ReaderIOEither[A], ReaderIOEither[B], ReaderIOEither[ANY]](
+		acquire,
+		use,
+		release,
+	)
+}

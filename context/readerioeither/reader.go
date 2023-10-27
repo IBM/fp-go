@@ -19,8 +19,6 @@ import (
 	"context"
 	"time"
 
-	R "github.com/IBM/fp-go/context/reader"
-	RIO "github.com/IBM/fp-go/context/readerio"
 	G "github.com/IBM/fp-go/context/readerioeither/generic"
 	ET "github.com/IBM/fp-go/either"
 	IO "github.com/IBM/fp-go/io"
@@ -33,24 +31,12 @@ func FromEither[A any](e ET.Either[error, A]) ReaderIOEither[A] {
 	return G.FromEither[ReaderIOEither[A]](e)
 }
 
-func RightReader[A any](r R.Reader[A]) ReaderIOEither[A] {
-	return G.RightReader[ReaderIOEither[A]](r)
-}
-
-func LeftReader[A any](l R.Reader[error]) ReaderIOEither[A] {
-	return G.LeftReader[ReaderIOEither[A]](l)
-}
-
 func Left[A any](l error) ReaderIOEither[A] {
 	return G.Left[ReaderIOEither[A]](l)
 }
 
 func Right[A any](r A) ReaderIOEither[A] {
 	return G.Right[ReaderIOEither[A]](r)
-}
-
-func FromReader[A any](r R.Reader[A]) ReaderIOEither[A] {
-	return G.FromReader[ReaderIOEither[A]](r)
 }
 
 func MonadMap[A, B any](fa ReaderIOEither[A], f func(A) B) ReaderIOEither[B] {
@@ -103,28 +89,12 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) Read
 	return G.FromPredicate[ReaderIOEither[A]](pred, onFalse)
 }
 
-func Fold[A, B any](onLeft func(error) RIO.ReaderIO[B], onRight func(A) RIO.ReaderIO[B]) func(ReaderIOEither[A]) RIO.ReaderIO[B] {
-	return G.Fold[RIO.ReaderIO[B], ReaderIOEither[A]](onLeft, onRight)
-}
-
-func GetOrElse[A any](onLeft func(error) RIO.ReaderIO[A]) func(ReaderIOEither[A]) RIO.ReaderIO[A] {
-	return G.GetOrElse[RIO.ReaderIO[A], ReaderIOEither[A]](onLeft)
-}
-
 func OrElse[A any](onLeft func(error) ReaderIOEither[A]) func(ReaderIOEither[A]) ReaderIOEither[A] {
 	return G.OrElse[ReaderIOEither[A]](onLeft)
 }
 
-func OrLeft[A any](onLeft func(error) RIO.ReaderIO[error]) func(ReaderIOEither[A]) ReaderIOEither[A] {
-	return G.OrLeft[ReaderIOEither[A], RIO.ReaderIO[error]](onLeft)
-}
-
 func Ask() ReaderIOEither[context.Context] {
 	return G.Ask[ReaderIOEither[context.Context]]()
-}
-
-func Asks[A any](r R.Reader[A]) ReaderIOEither[A] {
-	return G.Asks[ReaderIOEither[A]](r)
 }
 
 func MonadChainEitherK[A, B any](ma ReaderIOEither[A], f func(A) ET.Either[error, B]) ReaderIOEither[B] {
@@ -225,4 +195,12 @@ func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
 func Flatten[
 	A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return G.Flatten[ReaderIOEither[ReaderIOEither[A]]](rdr)
+}
+
+func MonadFlap[B, A any](fab ReaderIOEither[func(A) B], a A) ReaderIOEither[B] {
+	return G.MonadFlap[ReaderIOEither[func(A) B], ReaderIOEither[B]](fab, a)
+}
+
+func Flap[B, A any](a A) func(ReaderIOEither[func(A) B]) ReaderIOEither[B] {
+	return G.Flap[ReaderIOEither[func(A) B], ReaderIOEither[B]](a)
 }

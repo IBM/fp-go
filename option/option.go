@@ -18,6 +18,7 @@ package option
 
 import (
 	F "github.com/IBM/fp-go/function"
+	FC "github.com/IBM/fp-go/internal/functor"
 )
 
 func fromPredicate[A any](a A, pred func(A) bool) Option[A] {
@@ -115,6 +116,10 @@ func Flatten[A any](mma Option[Option[A]]) Option[A] {
 	return MonadChain(mma, F.Identity[Option[A]])
 }
 
+func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
+	return MonadFold(fa, that, Of[A])
+}
+
 func Alt[A any](that func() Option[A]) func(Option[A]) Option[A] {
 	return Fold(that, Of[A])
 }
@@ -140,4 +145,12 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 // Filter converts an optional onto itself if it is some and the predicate is true
 func Filter[A any](pred func(A) bool) func(Option[A]) Option[A] {
 	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
+}
+
+func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
+	return FC.MonadFlap(MonadMap[func(A) B, B], fab, a)
+}
+
+func Flap[B, A any](a A) func(Option[func(A) B]) Option[B] {
+	return F.Bind2nd(MonadFlap[B, A], a)
 }

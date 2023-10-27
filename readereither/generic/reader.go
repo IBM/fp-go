@@ -21,6 +21,7 @@ import (
 	"github.com/IBM/fp-go/internal/eithert"
 	FE "github.com/IBM/fp-go/internal/fromeither"
 	FR "github.com/IBM/fp-go/internal/fromreader"
+	FC "github.com/IBM/fp-go/internal/functor"
 	"github.com/IBM/fp-go/internal/readert"
 	O "github.com/IBM/fp-go/option"
 	R "github.com/IBM/fp-go/reader/generic"
@@ -154,4 +155,12 @@ func Local[GA1 ~func(R1) ET.Either[E, A], GA2 ~func(R2) ET.Either[E, A], R2, R1,
 // Read applies a context to a reader to obtain its value
 func Read[GA ~func(E) ET.Either[E1, A], E, E1, A any](e E) func(GA) ET.Either[E1, A] {
 	return R.Read[GA](e)
+}
+
+func MonadFlap[GEFAB ~func(E) ET.Either[L, func(A) B], GEB ~func(E) ET.Either[L, B], L, E, A, B any](fab GEFAB, a A) GEB {
+	return FC.MonadFlap(MonadMap[GEFAB, GEB], fab, a)
+}
+
+func Flap[GEFAB ~func(E) ET.Either[L, func(A) B], GEB ~func(E) ET.Either[L, B], L, E, A, B any](a A) func(GEFAB) GEB {
+	return FC.Flap(MonadMap[GEFAB, GEB], a)
 }

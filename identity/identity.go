@@ -63,3 +63,11 @@ func MonadChainFirst[A, B any](fa A, f func(A) B) A {
 func ChainFirst[A, B any](f func(A) B) func(A) A {
 	return G.ChainFirst(f)
 }
+
+func MonadFlap[B, A any](fab func(A) B, a A) B {
+	return G.MonadFlap[func(A) B](fab, a)
+}
+
+func Flap[B, A any](a A) func(func(A) B) B {
+	return G.Flap[func(A) B](a)
+}

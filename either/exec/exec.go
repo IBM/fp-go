@@ -32,7 +32,5 @@ var (
 )
 
 func command(name string, args []string, in []byte) E.Either[error, exec.CommandOutput] {
-	return E.TryCatchError(func() (exec.CommandOutput, error) {
-		return GE.Exec(context.Background(), name, args, in)
-	})
+	return E.TryCatchError(GE.Exec(context.Background(), name, args, in))
 }

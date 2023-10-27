@@ -432,9 +432,9 @@ func FromIOEither[
 
 func FromIO[
 	GRA ~func(context.Context) GIOA,
-	GIOA ~func() E.Either[error, A],
-
 	GIOB ~func() A,
+
+	GIOA ~func() E.Either[error, A],
 
 	A any](t GIOB) GRA {
 	return RIE.FromIO[GRA](t)
@@ -478,6 +478,34 @@ func ChainIOK[
 
 	A, B any](f func(A) GIO) func(ma GRA) GRB {
 	return RIE.ChainIOK[GRA, GRB](f)
+}
+
+func MonadChainReaderIOK[
+	GRB ~func(context.Context) GIOB,
+	GRA ~func(context.Context) GIOA,
+	GRIO ~func(context.Context) GIO,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+
+	GIO ~func() B,
+
+	A, B any](ma GRA, f func(A) GRIO) GRB {
+	return RIE.MonadChainReaderIOK[GRA, GRB](ma, f)
+}
+
+func ChainReaderIOK[
+	GRB ~func(context.Context) GIOB,
+	GRA ~func(context.Context) GIOA,
+	GRIO ~func(context.Context) GIO,
+
+	GIOA ~func() E.Either[error, A],
+	GIOB ~func() E.Either[error, B],
+
+	GIO ~func() B,
+
+	A, B any](f func(A) GRIO) func(ma GRA) GRB {
+	return RIE.ChainReaderIOK[GRA, GRB](f)
 }
 
 func MonadChainFirstIOK[
@@ -543,7 +571,7 @@ func Timer[
 ](delay time.Duration) GRA {
 	return F.Pipe2(
 		IO.Now[func() time.Time](),
-		FromIO[GRA, GIOA, func() time.Time],
+		FromIO[GRA, func() time.Time],
 		Delay[GRA](delay),
 	)
 }
@@ -591,4 +619,56 @@ func Flatten[
 	GIOA ~func() E.Either[error, A],
 	A any](rdr GGRA) GRA {
 	return RIE.Flatten[GRA](rdr)
+}
+
+func MonadFromReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOA ~func(context.Context) GIOA,
+	GIOA ~func() A,
+
+	A any](a A, f func(A) GRIOA) GRIOEA {
+	return RIE.MonadFromReaderIO[GRIOEA](a, f)
+}
+
+func FromReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOA ~func(context.Context) GIOA,
+	GIOA ~func() A,
+
+	A any](f func(A) GRIOA) func(A) GRIOEA {
+	return RIE.FromReaderIO[GRIOEA](f)
+}
+
+func RightReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOA ~func(context.Context) GIOA,
+	GIOA ~func() A,
+
+	A any](ma GRIOA) GRIOEA {
+	return RIE.RightReaderIO[GRIOEA](ma)
+}
+
+func LeftReaderIO[
+	GRIOEA ~func(context.Context) GIOEA,
+	GIOEA ~func() E.Either[error, A],
+
+	GRIOE ~func(context.Context) GIOE,
+	GIOE ~func() error,
+
+	A any](ma GRIOE) GRIOEA {
+	return RIE.LeftReaderIO[GRIOEA](ma)
+}
+
+func MonadFlap[GREAB ~func(context.Context) GEAB, GREB ~func(context.Context) GEB, GEAB ~func() E.Either[error, func(A) B], GEB ~func() E.Either[error, B], B, A any](fab GREAB, a A) GREB {
+	return RIE.MonadFlap[GREAB, GREB](fab, a)
+}
+
+func Flap[GREAB ~func(context.Context) GEAB, GREB ~func(context.Context) GEB, GEAB ~func() E.Either[error, func(A) B], GEB ~func() E.Either[error, B], B, A any](a A) func(GREAB) GREB {
+	return RIE.Flap[GREAB, GREB](a)
 }

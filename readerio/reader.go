@@ -23,6 +23,7 @@ import (
 
 type ReaderIO[E, A any] R.Reader[E, IO.IO[A]]
 
+// FromIO converts an [IO.IO] to a [ReaderIO]
 func FromIO[E, A any](t IO.IO[A]) ReaderIO[E, A] {
 	return G.FromIO[ReaderIO[E, A]](t)
 }
@@ -85,4 +86,12 @@ func Memoize[E, A any](rdr ReaderIO[E, A]) ReaderIO[E, A] {
 
 func Flatten[E, A any](mma ReaderIO[E, ReaderIO[E, A]]) ReaderIO[E, A] {
 	return G.Flatten[ReaderIO[E, A], ReaderIO[E, ReaderIO[E, A]]](mma)
+}
+
+func MonadFlap[E, A, B any](fab ReaderIO[E, func(A) B], a A) ReaderIO[E, B] {
+	return G.MonadFlap[ReaderIO[E, func(A) B], ReaderIO[E, B]](fab, a)
+}
+
+func Flap[E, A, B any](a A) func(ReaderIO[E, func(A) B]) ReaderIO[E, B] {
+	return G.Flap[ReaderIO[E, func(A) B], ReaderIO[E, B]](a)
 }

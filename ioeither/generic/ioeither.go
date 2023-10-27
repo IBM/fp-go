@@ -19,12 +19,12 @@ import (
 	"time"
 
 	ET "github.com/IBM/fp-go/either"
-	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/internal/chain"
 	"github.com/IBM/fp-go/internal/eithert"
 	FE "github.com/IBM/fp-go/internal/fromeither"
 	FI "github.com/IBM/fp-go/internal/fromio"
+	FC "github.com/IBM/fp-go/internal/functor"
 	IO "github.com/IBM/fp-go/io/generic"
 	O "github.com/IBM/fp-go/option"
 )
@@ -183,12 +183,15 @@ func Flatten[GA ~func() ET.Either[E, A], GAA ~func() ET.Either[E, GA], E, A any]
 
 func TryCatch[GA ~func() ET.Either[E, A], E, A any](f func() (A, error), onThrow func(error) E) GA {
 	return MakeIO(func() ET.Either[E, A] {
-		return ET.TryCatch(f, onThrow)
+		a, err := f()
+		return ET.TryCatch(a, err, onThrow)
 	})
 }
 
 func TryCatchError[GA ~func() ET.Either[error, A], A any](f func() (A, error)) GA {
-	return TryCatch[GA](f, errors.IdentityError)
+	return MakeIO(func() ET.Either[error, A] {
+		return ET.TryCatchError(f())
+	})
 }
 
 // Memoize computes the value of the provided IO monad lazily but exactly once
@@ -303,4 +306,12 @@ func MonadAlt[LAZY ~func() GIOA, GIOA ~func() ET.Either[E, A], E, A any](first G
 
 func Alt[LAZY ~func() GIOA, GIOA ~func() ET.Either[E, A], E, A any](second LAZY) func(GIOA) GIOA {
 	return F.Bind2nd(MonadAlt[LAZY], second)
+}
+
+func MonadFlap[GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], E, B, A any](fab GEAB, a A) GEB {
+	return FC.MonadFlap(MonadMap[GEAB, GEB], fab, a)
+}
+
+func Flap[GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], E, B, A any](a A) func(GEAB) GEB {
+	return FC.Flap(MonadMap[GEAB, GEB], a)
 }

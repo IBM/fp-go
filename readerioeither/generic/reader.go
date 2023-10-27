@@ -24,6 +24,7 @@ import (
 	FIO "github.com/IBM/fp-go/internal/fromio"
 	FIOE "github.com/IBM/fp-go/internal/fromioeither"
 	FR "github.com/IBM/fp-go/internal/fromreader"
+	FC "github.com/IBM/fp-go/internal/functor"
 	IOE "github.com/IBM/fp-go/ioeither/generic"
 	O "github.com/IBM/fp-go/option"
 	RD "github.com/IBM/fp-go/reader/generic"
@@ -143,6 +144,23 @@ func ChainReaderK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() ET.Either[E
 	return FR.ChainReaderK(
 		MonadChain[GEA, GEB, GIOA, GIOB, R, E, A, B],
 		FromReader[GB, GEB, GIOB, R, E, B],
+		f,
+	)
+}
+
+func MonadChainReaderIOK[GEA ~func(R) GIOEA, GEB ~func(R) GIOEB, GIOEA ~func() ET.Either[E, A], GIOEB ~func() ET.Either[E, B], GIOB ~func() B, GB ~func(R) GIOB, R, E, A, B any](ma GEA, f func(A) GB) GEB {
+	return FR.MonadChainReaderK(
+		MonadChain[GEA, GEB, GIOEA, GIOEB, R, E, A, B],
+		RightReaderIO[GEB, GIOEB, GB, GIOB, R, E, B],
+		ma,
+		f,
+	)
+}
+
+func ChainReaderIOK[GEA ~func(R) GIOEA, GEB ~func(R) GIOEB, GIOEA ~func() ET.Either[E, A], GIOEB ~func() ET.Either[E, B], GIOB ~func() B, GB ~func(R) GIOB, R, E, A, B any](f func(A) GB) func(GEA) GEB {
+	return FR.ChainReaderK(
+		MonadChain[GEA, GEB, GIOEA, GIOEB, R, E, A, B],
+		RightReaderIO[GEB, GIOEB, GB, GIOB, R, E, B],
 		f,
 	)
 }
@@ -413,4 +431,12 @@ func TryCatch[GEA ~func(R) GA, GA ~func() ET.Either[E, A], R, E, A any](f func(R
 func Memoize[
 	GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](rdr GEA) GEA {
 	return G.Memoize[GEA](rdr)
+}
+
+func MonadFlap[GREAB ~func(R) GEAB, GREB ~func(R) GEB, GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], R, E, B, A any](fab GREAB, a A) GREB {
+	return FC.MonadFlap(MonadMap[GREAB, GREB], fab, a)
+}
+
+func Flap[GREAB ~func(R) GEAB, GREB ~func(R) GEB, GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], R, E, B, A any](a A) func(GREAB) GREB {
+	return FC.Flap(MonadMap[GREAB, GREB], a)
 }

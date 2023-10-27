@@ -308,3 +308,11 @@ func Fold[A any](m M.Monoid[A]) func([]A) A {
 func Push[A any](a A) func([]A) []A {
 	return G.Push[[]A](a)
 }
+
+func MonadFlap[B, A any](fab []func(A) B, a A) []B {
+	return G.MonadFlap[func(A) B, []func(A) B, []B, A, B](fab, a)
+}
+
+func Flap[B, A any](a A) func([]func(A) B) []B {
+	return G.Flap[func(A) B, []func(A) B, []B, A, B](a)
+}

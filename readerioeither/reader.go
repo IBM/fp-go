@@ -272,3 +272,11 @@ func Memoize[
 	R, E, A any](rdr ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
 	return G.Memoize[ReaderIOEither[R, E, A]](rdr)
 }
+
+func MonadFlap[R, E, B, A any](fab ReaderIOEither[R, E, func(A) B], a A) ReaderIOEither[R, E, B] {
+	return G.MonadFlap[ReaderIOEither[R, E, func(A) B], ReaderIOEither[R, E, B]](fab, a)
+}
+
+func Flap[R, E, B, A any](a A) func(ReaderIOEither[R, E, func(A) B]) ReaderIOEither[R, E, B] {
+	return G.Flap[ReaderIOEither[R, E, func(A) B], ReaderIOEither[R, E, B]](a)
+}
