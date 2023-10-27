@@ -105,16 +105,19 @@ func heterogeneousHttpRequestsIdiomatic(count int) ([]T.Tuple2[PostItem, CatFact
 func BenchmarkHeterogeneousHttpRequests(b *testing.B) {
 
 	count := 100
+	var benchResults any
 
 	b.Run("functional", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			heterogeneousHttpRequests(count)(context.Background())()
+			benchResults = heterogeneousHttpRequests(count)(context.Background())()
 		}
 	})
 
 	b.Run("idiomatic", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			heterogeneousHttpRequestsIdiomatic(count)
+			benchResults, _ = heterogeneousHttpRequestsIdiomatic(count)
 		}
 	})
+
+	globalResult = benchResults
 }

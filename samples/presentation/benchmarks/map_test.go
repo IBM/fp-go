@@ -29,15 +29,19 @@ import (
 var (
 	createStringSet  = createRandom(createRandomString(256))(256)
 	createIntDataSet = createRandom(randInt(10000))(256)
+
+	globalResult any
 )
 
 func BenchmarkMap(b *testing.B) {
 
 	data := createStringSet()
 
+	var benchResult []string
+
 	b.Run("functional", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			F.Pipe1(
+			benchResult = F.Pipe1(
 				data,
 				A.Map(strings.ToUpper),
 			)
@@ -50,8 +54,11 @@ func BenchmarkMap(b *testing.B) {
 			for _, value := range data {
 				result = append(result, strings.ToUpper(value))
 			}
+			benchResult = result
 		}
 	})
+
+	globalResult = benchResult
 }
 
 func isEven(data int) bool {
@@ -65,10 +72,11 @@ func isPrime(data int) bool {
 func BenchmarkMapThenFilter(b *testing.B) {
 
 	data := createIntDataSet()
+	var benchResult []int
 
 	b.Run("functional isPrime", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			F.Pipe2(
+			benchResult = F.Pipe2(
 				data,
 				A.Filter(isPrime),
 				A.Map(N.Div[int](2)),
@@ -84,11 +92,12 @@ func BenchmarkMapThenFilter(b *testing.B) {
 					result = append(result, value/2)
 				}
 			}
+			benchResult = result
 		}
 	})
 	b.Run("functional isEven", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			F.Pipe2(
+			benchResult = F.Pipe2(
 				data,
 				A.Filter(isEven),
 				A.Map(N.Div[int](2)),
@@ -104,17 +113,21 @@ func BenchmarkMapThenFilter(b *testing.B) {
 					result = append(result, value/2)
 				}
 			}
+			benchResult = result
 		}
 	})
+
+	globalResult = benchResult
 }
 
 func BenchmarkFilterMap(b *testing.B) {
 
 	data := createIntDataSet()
+	var benchResult []int
 
 	b.Run("functional isPrime", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			F.Pipe1(
+			benchResult = F.Pipe1(
 				data,
 				A.FilterMap(F.Flow2(
 					O.FromPredicate(isPrime),
@@ -132,12 +145,13 @@ func BenchmarkFilterMap(b *testing.B) {
 					result = append(result, value/2)
 				}
 			}
+			benchResult = result
 		}
 	})
 
 	b.Run("functional isEven", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			F.Pipe1(
+			benchResult = F.Pipe1(
 				data,
 				A.FilterMap(F.Flow2(
 					O.FromPredicate(isEven),
@@ -155,6 +169,9 @@ func BenchmarkFilterMap(b *testing.B) {
 					result = append(result, value/2)
 				}
 			}
+			benchResult = result
 		}
 	})
+
+	globalResult = benchResult
 }
