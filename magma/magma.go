@@ -33,7 +33,7 @@ func MakeMagma[A any](c func(A, A) A) Magma[A] {
 
 func Reverse[A any](m Magma[A]) Magma[A] {
 	return MakeMagma(func(x A, y A) A {
-		return m.Concat(y, y)
+		return m.Concat(y, x)
 	})
 }
 
