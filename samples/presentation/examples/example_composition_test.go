@@ -22,10 +22,6 @@ import (
 	F "github.com/IBM/fp-go/function"
 )
 
-func main() {
-
-}
-
 func Example_composition_pipe() {
 
 	filter := func(i int) bool {
