@@ -118,6 +118,14 @@ func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
 	return F.Bind2nd(MonadMap[GA, GB, A, B], f)
 }
 
+func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(int, A) B) GB {
+	return array.MonadMapWithIndex[GA, GB](as, f)
+}
+
+func MapWithIndex[GA ~[]A, GB ~[]B, A, B any](f func(int, A) B) func(GA) GB {
+	return F.Bind2nd(MonadMapWithIndex[GA, GB, A, B], f)
+}
+
 func Size[GA ~[]A, A any](as GA) int {
 	return len(as)
 }
@@ -237,6 +245,16 @@ func FoldMap[AS ~[]A, A, B any](m M.Monoid[B]) func(func(A) B) func(AS) B {
 		return func(as AS) B {
 			return array.Reduce(as, func(cur B, a A) B {
 				return m.Concat(cur, f(a))
+			}, m.Empty())
+		}
+	}
+}
+
+func FoldMapWithIndex[AS ~[]A, A, B any](m M.Monoid[B]) func(func(int, A) B) func(AS) B {
+	return func(f func(int, A) B) func(AS) B {
+		return func(as AS) B {
+			return array.ReduceWithIndex(as, func(idx int, cur B, a A) B {
+				return m.Concat(cur, f(idx, a))
 			}, m.Empty())
 		}
 	}

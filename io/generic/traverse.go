@@ -57,7 +57,7 @@ func SequenceArray[GA ~func() A, GAS ~func() AAS, AAS ~[]A, GAAS ~[]GA, A any](t
 }
 
 // MonadTraverseRecord transforms a record using an IO transform an IO of a record
-func MonadTraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](ma MA, f func(A) GB) GBS {
+func MonadTraverseRecord[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](ma MA, f func(A) GB) GBS {
 	return RR.MonadTraverse[MA](
 		Of[GBS, MB],
 		Map[GBS, func() func(B) MB, MB, func(B) MB],
@@ -67,7 +67,7 @@ func MonadTraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B,
 }
 
 // TraverseRecord transforms a record using an IO transform an IO of a record
-func TraverseRecord[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](f func(A) GB) func(MA) GBS {
+func TraverseRecord[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](f func(A) GB) func(MA) GBS {
 	return RR.Traverse[MA](
 		Of[GBS, MB],
 		Map[GBS, func() func(B) MB, MB, func(B) MB],
@@ -87,5 +87,5 @@ func TraverseRecordWithIndex[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[
 }
 
 func SequenceRecord[GA ~func() A, GAS ~func() AAS, AAS ~map[K]A, GAAS ~map[K]GA, K comparable, A any](tas GAAS) GAS {
-	return MonadTraverseRecord[GA, GAS](tas, F.Identity[GA])
+	return MonadTraverseRecord[GAS](tas, F.Identity[GA])
 }

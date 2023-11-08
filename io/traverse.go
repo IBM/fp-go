@@ -41,13 +41,13 @@ func SequenceArray[A any](tas []IO[A]) IO[[]A] {
 }
 
 func MonadTraverseRecord[K comparable, A, B any](tas map[K]A, f func(A) IO[B]) IO[map[K]B] {
-	return G.MonadTraverseRecord[IO[B], IO[map[K]B]](tas, f)
+	return G.MonadTraverseRecord[IO[map[K]B]](tas, f)
 }
 
 // TraverseRecord applies a function returning an [IO] to all elements in a record and the
 // transforms this into an [IO] of that record
 func TraverseRecord[K comparable, A, B any](f func(A) IO[B]) func(map[K]A) IO[map[K]B] {
-	return G.TraverseRecord[IO[B], IO[map[K]B], map[K]A](f)
+	return G.TraverseRecord[IO[map[K]B], map[K]A, IO[B]](f)
 }
 
 // TraverseRecordWithIndex applies a function returning an [IO] to all elements in a record and the
