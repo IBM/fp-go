@@ -7,6 +7,15 @@
     "rangeStrategy": "bump",
     "packageRules": [
         {
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchDepTypes": [
+                "golang"
+            ],
+            "enabled": false
+        },
+        {
             "matchUpdateTypes": [
                 "major",
                 "minor",

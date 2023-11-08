@@ -13,11 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package http
+package benchmarks
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"io"
 	"testing"
 
 	HTTP "net/http"
@@ -25,11 +26,8 @@ import (
 	A "github.com/IBM/fp-go/array"
 	R "github.com/IBM/fp-go/context/readerioeither"
 	H "github.com/IBM/fp-go/context/readerioeither/http"
-	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
-	IO "github.com/IBM/fp-go/io"
 	T "github.com/IBM/fp-go/tuple"
-	"github.com/stretchr/testify/assert"
 )
 
 type PostItem struct {
@@ -43,38 +41,7 @@ type CatFact struct {
 	Fact string `json:"fact"`
 }
 
-func idxToUrl(idx int) string {
-	return fmt.Sprintf("https://jsonplaceholder.typicode.com/posts/%d", idx+1)
-}
-
-// TestMultipleHttpRequests shows how to execute multiple HTTP requests in parallel assuming
-// that the response structure of all requests is identical, which is why we can use [R.TraverseArray]
-func TestMultipleHttpRequests(t *testing.T) {
-	// prepare the http client
-	client := H.MakeClient(HTTP.DefaultClient)
-	// readSinglePost sends a GET request and parses the response as [PostItem]
-	readSinglePost := H.ReadJson[PostItem](client)
-
-	// total number of http requests
-	count := 10
-
-	data := F.Pipe3(
-		A.MakeBy(count, idxToUrl),
-		R.TraverseArray(F.Flow3(
-			H.MakeGetRequest,
-			readSinglePost,
-			R.ChainFirstIOK(IO.Logf[PostItem]("Log Single: %v")),
-		)),
-		R.ChainFirstIOK(IO.Logf[[]PostItem]("Log Result: %v")),
-		R.Map(A.Size[PostItem]),
-	)
-
-	result := data(context.Background())
-
-	assert.Equal(t, E.Of[error](count), result())
-}
-
-func heterogeneousHttpRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
+func heterogeneousHttpRequests(count int) R.ReaderIOEither[[]T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
@@ -82,32 +49,75 @@ func heterogeneousHttpRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
 	// readSingleCatFact sends a GET request and parses the response as [CatFact]
 	readSingleCatFact := H.ReadJson[CatFact](client)
 
-	return F.Pipe3(
+	single := F.Pipe2(
 		T.MakeTuple2("https://jsonplaceholder.typicode.com/posts/1", "https://catfact.ninja/fact"),
 		T.Map2(H.MakeGetRequest, H.MakeGetRequest),
 		R.TraverseTuple2(
 			readSinglePost,
 			readSingleCatFact,
 		),
-		R.ChainFirstIOK(IO.Logf[T.Tuple2[PostItem, CatFact]]("Log Result: %v")),
 	)
 
+	return F.Pipe1(
+		A.Replicate(count, single),
+		R.SequenceArray[T.Tuple2[PostItem, CatFact]],
+	)
 }
 
-// TestHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
-// the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
-func TestHeterogeneousHttpRequests(t *testing.T) {
-	data := heterogeneousHttpRequests()
+func heterogeneousHttpRequestsIdiomatic(count int) ([]T.Tuple2[PostItem, CatFact], error) {
+	// prepare the http client
+	var result []T.Tuple2[PostItem, CatFact]
 
-	result := data(context.Background())
-
-	fmt.Println(result())
+	for i := 0; i < count; i++ {
+		resp, err := HTTP.Get("https://jsonplaceholder.typicode.com/posts/1")
+		if err != nil {
+			return nil, err
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		var item PostItem
+		err = json.Unmarshal(body, &item)
+		if err != nil {
+			return nil, err
+		}
+		resp, err = HTTP.Get("https://catfact.ninja/fact")
+		if err != nil {
+			return nil, err
+		}
+		body, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		var fact CatFact
+		err = json.Unmarshal(body, &item)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, T.MakeTuple2(item, fact))
+	}
+	return result, nil
 }
 
 // BenchmarkHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
 // the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
 func BenchmarkHeterogeneousHttpRequests(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		heterogeneousHttpRequests()(context.Background())()
-	}
+
+	count := 100
+	var benchResults any
+
+	b.Run("functional", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			benchResults = heterogeneousHttpRequests(count)(context.Background())()
+		}
+	})
+
+	b.Run("idiomatic", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			benchResults, _ = heterogeneousHttpRequestsIdiomatic(count)
+		}
+	})
+
+	globalResult = benchResults
 }

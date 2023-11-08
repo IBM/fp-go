@@ -22,30 +22,28 @@ import (
 )
 
 type Const[E, A any] struct {
-	Value E
+	value E
 }
 
 func Make[E, A any](e E) Const[E, A] {
-	return Const[E, A]{Value: e}
+	return Const[E, A]{value: e}
 }
 
 func Unwrap[E, A any](c Const[E, A]) E {
-	return c.Value
+	return c.value
 }
 
 func Of[E, A any](m M.Monoid[E]) func(A) Const[E, A] {
-	return func(a A) Const[E, A] {
-		return Make[E, A](m.Empty())
-	}
+	return F.Constant1[A](Make[E, A](m.Empty()))
 }
 
 func MonadMap[E, A, B any](fa Const[E, A], f func(A) B) Const[E, B] {
-	return Make[E, B](fa.Value)
+	return Make[E, B](fa.value)
 }
 
 func MonadAp[E, A, B any](s S.Semigroup[E]) func(fab Const[E, func(A) B], fa Const[E, A]) Const[E, B] {
 	return func(fab Const[E, func(A) B], fa Const[E, A]) Const[E, B] {
-		return Make[E, B](s.Concat(fab.Value, fa.Value))
+		return Make[E, B](s.Concat(fab.value, fa.value))
 	}
 }
 

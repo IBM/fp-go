@@ -13,16 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package identity
+package examples
 
-import (
-	C "github.com/IBM/fp-go/constant"
-	M "github.com/IBM/fp-go/monoid"
-	AR "github.com/IBM/fp-go/optics/traversal/array/generic/const"
-	G "github.com/IBM/fp-go/optics/traversal/generic"
-)
+import "fmt"
 
-// FromArray returns a traversal from an array for the identity [Monoid]
-func FromArray[E, A any](m M.Monoid[E]) G.Traversal[[]A, A, C.Const[E, []A], C.Const[E, A]] {
-	return AR.FromArray[[]A, E, A](m)
+func captureValue[T any](captured T) func() string {
+	return func() string {
+		return fmt.Sprintf("Value: %v", captured)
+	}
+}
+
+func Example_closure() {
+
+	hof := captureValue("Carsten") // func() string
+
+	fmt.Println(hof())
+
+	// Output:
+	// Value: Carsten
 }

@@ -13,16 +13,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package identity
+package examples
 
 import (
-	C "github.com/IBM/fp-go/constant"
-	M "github.com/IBM/fp-go/monoid"
-	AR "github.com/IBM/fp-go/optics/traversal/array/generic/const"
-	G "github.com/IBM/fp-go/optics/traversal/generic"
+	"fmt"
+
+	N "github.com/IBM/fp-go/number"
 )
 
-// FromArray returns a traversal from an array for the identity [Monoid]
-func FromArray[E, A any](m M.Monoid[E]) G.Traversal[[]A, A, C.Const[E, []A], C.Const[E, A]] {
-	return AR.FromArray[[]A, E, A](m)
+// addInts adds two integers
+func addInts(left, right int) int {
+	return left + right
+}
+
+// addNumbers adds two numbers
+func addNumbers[T N.Number](left, right T) T {
+	return left + right
+}
+
+func Example_generics() {
+	// invoke the non generic version
+	fmt.Println(addInts(1, 2))
+
+	// invoke the generic version
+	fmt.Println(addNumbers(1, 2))
+	fmt.Println(addNumbers(1.0, 2.0))
+
+	// Output:
+	// 3
+	// 3
+	// 3
 }
