@@ -2,6 +2,10 @@
 
 This folder is meant to contain examples that illustrate how to use the library. I recommend the following reading to get an idea of the underlying concepts. These articles talk about [fp-ts](https://github.com/gcanti/fp-ts) but the concepts are very similar, only syntax differs.
 
+# Video Introduction
+
+[![introduction to fp-go](presentation/cover.jpg)](https://www.youtube.com/watch?v=Jif3jL6DRdw "introduction to fp-go")
+
 ### References
 
 - [Ryan's Blog](https://rlee.dev/practical-guide-to-fp-ts-part-1) - practical introduction into FP concepts
