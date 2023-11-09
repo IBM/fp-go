@@ -17,30 +17,48 @@
 package erasure
 
 import (
-	"fmt"
+	"log"
 
 	A "github.com/IBM/fp-go/array"
+	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	I "github.com/IBM/fp-go/identity"
+	IG "github.com/IBM/fp-go/identity/generic"
 	IOE "github.com/IBM/fp-go/ioeither"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
+	RIOE "github.com/IBM/fp-go/readerioeither"
 	R "github.com/IBM/fp-go/record"
 	T "github.com/IBM/fp-go/tuple"
+
+	"sync"
 )
 
 func providerToEntry(p Provider) T.Tuple2[string, ProviderFactory] {
 	return T.MakeTuple2(p.Provides().Id(), p.Factory())
 }
 
-func missingProviderError(name string) func() IOE.IOEither[error, any] {
-	return func() IOE.IOEither[error, any] {
-		return IOE.Left[any](fmt.Errorf("No provider for dependency [%s]", name))
+var missingProviderError = F.Flow3(
+	errors.OnSome[string]("no provider for dependency [%s]"),
+	RIOE.Left[InjectableFactory, any, error],
+	F.Constant[ProviderFactory],
+)
+
+func logEntryExit(name string, token Dependency) func() {
+	log.Printf("Entry: [%s] -> [%s]:[%s]", name, token.Id(), token.String())
+	return func() {
+		log.Printf("Exit:  [%s] -> [%s]:[%s]", name, token.Id(), token.String())
 	}
 }
 
 func MakeInjector(providers []Provider) InjectableFactory {
 
 	type Result = IOE.IOEither[error, any]
+	type LazyResult = L.Lazy[Result]
+
+	// resolved stores the values resolved so far, key is the string ID
+	// of the token, value is a lazy result
+	var resolved sync.Map
 
 	// provide a mapping for all providers
 	factoryById := F.Pipe2(
@@ -48,41 +66,48 @@ func MakeInjector(providers []Provider) InjectableFactory {
 		A.Map(providerToEntry),
 		R.FromEntries[string, ProviderFactory],
 	)
-	// the resolved map
-	var resolved = R.Empty[string, Result]()
-	// the callback
+
+	// the actual factory, we need lazy initialization
 	var injFct InjectableFactory
 
 	// lazy initialization, so we can cross reference it
-	injFct = func(token Token) Result {
+	injFct = func(token Dependency) Result {
 
-		hit := F.Pipe3(
-			token,
-			Token.Id,
-			R.Lookup[Result, string],
-			I.Ap[O.Option[Result]](resolved),
-		)
+		defer logEntryExit("inj", token)()
 
-		provFct := F.Pipe2(
-			token,
-			T.Replicate2[Token],
-			T.Map2(F.Flow3(
-				Token.Id,
-				R.Lookup[ProviderFactory, string],
-				I.Ap[O.Option[ProviderFactory]](factoryById),
-			), F.Flow2(
-				Token.String,
-				missingProviderError,
-			)),
-		)
+		key := token.Id()
 
-		x := F.Pipe4(
-			token,
-			Token.Id,
-			R.Lookup[Result, string],
-			I.Ap[O.Option[Result]](resolved),
-			O.GetOrElse(F.Flow2()),
-		)
+		// according to https://github.com/golang/go/issues/44159 this
+		// is the best way to use the sync map
+		actual, loaded := resolved.Load(key)
+		if !loaded {
+
+			computeResult := func() Result {
+				defer logEntryExit("computeResult", token)()
+				return F.Pipe5(
+					token,
+					T.Replicate2[Dependency],
+					T.Map2(F.Flow3(
+						Dependency.Id,
+						R.Lookup[ProviderFactory, string],
+						I.Ap[O.Option[ProviderFactory]](factoryById),
+					), F.Flow2(
+						Dependency.String,
+						missingProviderError,
+					)),
+					T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
+					IG.Ap[ProviderFactory](injFct),
+					IOE.Memoize[error, any],
+				)
+			}
+
+			actual, _ = resolved.LoadOrStore(key, F.Pipe1(
+				computeResult,
+				L.Memoize[Result],
+			))
+		}
+
+		return actual.(LazyResult)()
 	}
 
 	return injFct

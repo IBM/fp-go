@@ -35,7 +35,7 @@ func Unerase[T any](t any) T {
 func SafeUnerase[T any](t any) E.Either[error, T] {
 	return F.Pipe2(
 		t,
-		E.ToType[*T](errors.OnSome[any]("Value %T is not unerased")),
+		E.ToType[*T](errors.OnSome[any]("Value of type [%T] is not erased")),
 		E.Map[error](F.Deref[T]),
 	)
 }

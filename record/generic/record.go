@@ -99,6 +99,14 @@ func Collect[M ~map[K]V, GR ~[]R, K comparable, V, R any](f func(K, V) R) func(M
 	return F.Bind2nd(collect[M, GR, K, V, R], f)
 }
 
+func CollectOrd[M ~map[K]V, GR ~[]R, K comparable, V, R any](o ord.Ord[K]) func(f func(K, V) R) func(M) GR {
+	return func(f func(K, V) R) func(M) GR {
+		return func(r M) GR {
+			return collectOrd[M, GR](o, r, f)
+		}
+	}
+}
+
 func Reduce[M ~map[K]V, K comparable, V, R any](f func(R, V) R, initial R) func(M) R {
 	return func(r M) R {
 		return G.Reduce(r, f, initial)
