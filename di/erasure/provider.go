@@ -27,12 +27,12 @@ import (
 	IOO "github.com/IBM/fp-go/iooption"
 	Int "github.com/IBM/fp-go/number/integer"
 	O "github.com/IBM/fp-go/option"
-	RIOE "github.com/IBM/fp-go/readerioeither"
 	R "github.com/IBM/fp-go/record"
 )
 
-type InjectableFactory = RIOE.ReaderIOEither[Dependency, error, any]
-type ProviderFactory = RIOE.ReaderIOEither[InjectableFactory, error, any]
+type InjectableFactory = func(Dependency) IOE.IOEither[error, any]
+type ProviderFactory = func(InjectableFactory) IOE.IOEither[error, any]
+
 type paramIndex = map[int]int
 
 type Provider interface {

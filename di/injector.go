@@ -28,6 +28,6 @@ import (
 func Resolve[T any](token InjectionToken[T]) RIOE.ReaderIOEither[DIE.InjectableFactory, error, T] {
 	return F.Flow2(
 		IG.Ap[DIE.InjectableFactory](DIE.AsDependency(token)),
-		IOE.ChainEitherK(toType[T]()),
+		IOE.ChainEitherK(token.Unerase),
 	)
 }

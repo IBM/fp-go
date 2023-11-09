@@ -20,12 +20,17 @@ import "fmt"
 type TokenType int
 
 const (
-	Identity TokenType = iota
-	Option
-	IOEither
-	IOOption
+	Identity TokenType = iota // required dependency
+	Option                    // optional dependency
+	IOEither                  // lazy and required
+	IOOption                  // lazy and optional
+	Multi                     // array of implementations
+	Item                      // item of a multi token
+	IOMulti                   // lazy and multi
+	Unknown
 )
 
+// Dependency describes the relationship to a service
 type Dependency interface {
 	fmt.Stringer
 	// Id returns a unique identifier for a token that can be used as a cache key

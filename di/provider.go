@@ -116,3 +116,8 @@ func MakeProvider2[T1, T2, R any](
 		),
 	)
 }
+
+// ConstProvider simple implementation for a provider with a constant value
+func ConstProvider[R any](token InjectionToken[R], value R) DIE.Provider {
+	return MakeProvider0[R](token, F.Constant(IOE.Of[error](value)))
+}

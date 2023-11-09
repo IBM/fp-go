@@ -231,3 +231,48 @@ func TestEagerAndLazyProvider(t *testing.T) {
 	assert.Equal(t, 1, dynamicCount)
 	assert.Equal(t, 1, lazyEagerCount)
 }
+
+func TestItemProvider(t *testing.T) {
+	// define a multi token
+	injMulti := MakeMultiToken[string]("configs")
+
+	// provide some values
+	v1 := ConstProvider(injMulti.Item(), "Value1")
+	v2 := ConstProvider(injMulti.Item(), "Value2")
+	// mix in non-multi values
+	p1 := ConstProvider(INJ_KEY1, "Value3")
+	p2 := ConstProvider(INJ_KEY2, "Value4")
+
+	// populate the injector
+	inj := DIE.MakeInjector(A.From(p1, v1, p2, v2))
+
+	// access the multi value
+	multi := Resolve(injMulti.Container())
+
+	multiInj := multi(inj)
+
+	value := multiInj()
+
+	assert.Equal(t, E.Of[error](A.From("Value1", "Value2")), value)
+}
+
+func TestEmptyItemProvider(t *testing.T) {
+	// define a multi token
+	injMulti := MakeMultiToken[string]("configs")
+
+	// mix in non-multi values
+	p1 := ConstProvider(INJ_KEY1, "Value3")
+	p2 := ConstProvider(INJ_KEY2, "Value4")
+
+	// populate the injector
+	inj := DIE.MakeInjector(A.From(p1, p2))
+
+	// access the multi value
+	multi := Resolve(injMulti.Container())
+
+	multiInj := multi(inj)
+
+	value := multiInj()
+
+	assert.Equal(t, E.Of[error](A.Empty[string]()), value)
+}
