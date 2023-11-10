@@ -26,6 +26,16 @@ import (
 // Iterator represents a stateless, pure way to iterate over a sequence
 type Iterator[U any] L.Lazy[O.Option[T.Tuple2[Iterator[U], U]]]
 
+// Next returns the [Iterator] for the next element in an iterator `T.Tuple2`
+func Next[U any](m T.Tuple2[Iterator[U], U]) Iterator[U] {
+	return G.Next(m)
+}
+
+// Current returns the current element in an [Iterator] `T.Tuple2`
+func Current[U any](m T.Tuple2[Iterator[U], U]) U {
+	return G.Current(m)
+}
+
 // Empty returns the empty iterator
 func Empty[U any]() Iterator[U] {
 	return G.Empty[Iterator[U]]()

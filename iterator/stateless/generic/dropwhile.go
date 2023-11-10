@@ -41,7 +41,7 @@ func DropWhile[GU ~func() O.Option[T.Tuple2[GU, U]], U any](pred func(U) bool) f
 		return F.Pipe2(
 			t,
 			fromPred,
-			O.Fold(recurse(t.F1), O.Of[T.Tuple2[GU, U]]),
+			O.Fold(recurse(Next(t)), O.Of[T.Tuple2[GU, U]]),
 		)
 	})
 
