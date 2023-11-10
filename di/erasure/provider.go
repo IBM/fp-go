@@ -136,12 +136,11 @@ func getAt[T any](ar []T) func(idx int) T {
 }
 
 func handleMapping(mp Mapping) func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
-	preFct := F.Pipe2(
+	preFct := F.Pipe1(
 		mp,
-		R.MapWithIndex(func(idx int, p paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+		R.Collect(func(idx int, p paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
 			return handlers[idx](p)
 		}),
-		R.Collect[int](F.SK[int, func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue]]),
 	)
 	doFct := F.Flow2(
 		I.Flap[IOE.IOEither[error, paramValue], []IOE.IOEither[error, any]],
