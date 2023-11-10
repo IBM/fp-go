@@ -26,6 +26,16 @@ import (
 	T "github.com/IBM/fp-go/tuple"
 )
 
+// Next returns the iterator for the next element in an iterator `T.Tuple2`
+func Next[GU ~func() O.Option[T.Tuple2[GU, U]], U any](m T.Tuple2[GU, U]) GU {
+	return T.First(m)
+}
+
+// Current returns the current element in an iterator `T.Tuple2`
+func Current[GU ~func() O.Option[T.Tuple2[GU, U]], U any](m T.Tuple2[GU, U]) U {
+	return T.Second(m)
+}
+
 // From constructs an array from a set of variadic arguments
 func From[GU ~func() O.Option[T.Tuple2[GU, U]], U any](data ...U) GU {
 	return FromArray[GU](data)
@@ -56,8 +66,8 @@ func reduce[GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](as GU, f func(V, U) 
 	current := initial
 	for ok {
 		// next (with bad side effect)
-		current = f(current, next.F2)
-		next, ok = O.Unwrap(next.F1())
+		current = f(current, Current(next))
+		next, ok = O.Unwrap(Next(next)())
 	}
 	return current
 }
@@ -199,8 +209,8 @@ func FilterMap[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple
 	m = O.Fold(
 		Empty[GV](),
 		func(t T.Tuple2[GU, U]) O.Option[T.Tuple2[GV, V]] {
-			r := recurse(t.F1)
-			return O.MonadFold(f(t.F2), r, F.Flow2(
+			r := recurse(Next(t))
+			return O.MonadFold(f(Current(t)), r, F.Flow2(
 				F.Bind1st(T.MakeTuple2[GV, V], r),
 				O.Some[T.Tuple2[GV, V]],
 			))
