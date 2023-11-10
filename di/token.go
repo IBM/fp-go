@@ -77,7 +77,7 @@ var genId = makeId()
 type token[T any] struct {
 	name   string
 	id     string
-	typ    DIE.TokenType
+	flag   int
 	toType func(val any) E.Either[error, T]
 }
 
@@ -85,8 +85,8 @@ func (t *token[T]) Id() string {
 	return t.id
 }
 
-func (t *token[T]) Type() DIE.TokenType {
-	return t.typ
+func (t *token[T]) Flag() int {
+	return t.flag
 }
 
 func (t *token[T]) String() string {
@@ -97,7 +97,7 @@ func (t *token[T]) Unerase(val any) E.Either[error, T] {
 	return t.toType(val)
 }
 
-func makeToken[T any](name string, id string, typ DIE.TokenType, unerase func(val any) E.Either[error, T]) Dependency[T] {
+func makeToken[T any](name string, id string, typ int, unerase func(val any) E.Either[error, T]) Dependency[T] {
 	return &token[T]{name, id, typ, unerase}
 }
 
@@ -157,17 +157,17 @@ func MakeMultiToken[T any](name string) MultiInjectionToken[T] {
 	itemName := fmt.Sprintf("Item[%s]", name)
 	// container
 	container := &injectionToken[[]T]{
-		token[[]T]{containerName, id, DIE.Multi, toContainer},
-		makeToken[O.Option[[]T]](fmt.Sprintf("Option[%s]", containerName), id, DIE.Unknown, toOptionType(toContainer)),
-		makeToken[IOE.IOEither[error, []T]](fmt.Sprintf("IOEither[%s]", containerName), id, DIE.IOMulti, toIOEitherType(toContainer)),
-		makeToken[IOO.IOOption[[]T]](fmt.Sprintf("IOOption[%s]", containerName), id, DIE.Unknown, toIOOptionType(toContainer)),
+		token[[]T]{containerName, id, DIE.Multi | DIE.Identity, toContainer},
+		makeToken[O.Option[[]T]](fmt.Sprintf("Option[%s]", containerName), id, DIE.Multi|DIE.Option, toOptionType(toContainer)),
+		makeToken[IOE.IOEither[error, []T]](fmt.Sprintf("IOEither[%s]", containerName), id, DIE.Multi|DIE.IOEither, toIOEitherType(toContainer)),
+		makeToken[IOO.IOOption[[]T]](fmt.Sprintf("IOOption[%s]", containerName), id, DIE.Multi|DIE.IOOption, toIOOptionType(toContainer)),
 	}
 	// item
 	item := &injectionToken[T]{
-		token[T]{itemName, id, DIE.Item, toItem},
-		makeToken[O.Option[T]](fmt.Sprintf("Option[%s]", itemName), id, DIE.Unknown, toOptionType(toItem)),
-		makeToken[IOE.IOEither[error, T]](fmt.Sprintf("IOEither[%s]", itemName), id, DIE.Unknown, toIOEitherType(toItem)),
-		makeToken[IOO.IOOption[T]](fmt.Sprintf("IOOption[%s]", itemName), id, DIE.Unknown, toIOOptionType(toItem)),
+		token[T]{itemName, id, DIE.Item | DIE.Identity, toItem},
+		makeToken[O.Option[T]](fmt.Sprintf("Option[%s]", itemName), id, DIE.Item|DIE.Option, toOptionType(toItem)),
+		makeToken[IOE.IOEither[error, T]](fmt.Sprintf("IOEither[%s]", itemName), id, DIE.Item|DIE.IOEither, toIOEitherType(toItem)),
+		makeToken[IOO.IOOption[T]](fmt.Sprintf("IOOption[%s]", itemName), id, DIE.Item|DIE.IOOption, toIOOptionType(toItem)),
 	}
 	// returns the token
 	return &multiInjectionToken[T]{container, item}

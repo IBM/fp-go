@@ -21,6 +21,7 @@ import (
 	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
+	I "github.com/IBM/fp-go/identity"
 	IO "github.com/IBM/fp-go/io"
 	IOG "github.com/IBM/fp-go/io/generic"
 	IOE "github.com/IBM/fp-go/ioeither"
@@ -34,10 +35,14 @@ type InjectableFactory = func(Dependency) IOE.IOEither[error, any]
 type ProviderFactory = func(InjectableFactory) IOE.IOEither[error, any]
 
 type paramIndex = map[int]int
+type paramValue = map[int]any
+type handler = func(paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue]
 
 type Provider interface {
 	fmt.Stringer
+	// Provides returns the [Dependency] implemented by this provider
 	Provides() Dependency
+	// Factory returns s function that can create an instance of the dependency based on an [InjectableFactory]
 	Factory() ProviderFactory
 }
 
@@ -62,19 +67,67 @@ func MakeProvider(token Dependency, fct ProviderFactory) Provider {
 	return &provider{token, fct}
 }
 
-func mapFromToken(idx int, token Dependency) map[TokenType]paramIndex {
-	return R.Singleton(token.Type(), R.Singleton(idx, idx))
+func mapFromToken(idx int, token Dependency) map[int]paramIndex {
+	return R.Singleton(token.Flag()&BehaviourMask, R.Singleton(idx, idx))
 }
 
-var mergeTokenMaps = R.UnionMonoid[TokenType](R.UnionLastSemigroup[int, int]())
-var foldDeps = A.FoldMapWithIndex[Dependency](mergeTokenMaps)(mapFromToken)
+var (
+	mergeTokenMaps = R.UnionMonoid[int](R.UnionLastSemigroup[int, int]())
+	foldDeps       = A.FoldMapWithIndex[Dependency](mergeTokenMaps)(mapFromToken)
+	mergeMaps      = R.UnionLastMonoid[int, any]()
+	collectParams  = R.CollectOrd[any, any](Int.Ord)(F.SK[int, any])
 
-var lookupIdentity = R.Lookup[paramIndex](Identity)
-var lookupOption = R.Lookup[paramIndex](Option)
-var lookupIOEither = R.Lookup[paramIndex](IOEither)
-var lookupIOOption = R.Lookup[paramIndex](IOOption)
+	handlers = map[int]handler{
+		Identity: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+				return F.Pipe1(
+					mp,
+					IOE.TraverseRecord[int](getAt(res)),
+				)
+			}
+		},
+		Option: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+				return F.Pipe3(
+					mp,
+					IOG.TraverseRecord[IO.IO[map[int]E.Either[error, any]], paramIndex](getAt(res)),
+					IO.Map(R.Map[int](F.Flow2(
+						E.ToOption[error, any],
+						F.ToAny[O.Option[any]],
+					))),
+					IOE.FromIO[error, paramValue],
+				)
+			}
+		},
+		IOEither: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+				return F.Pipe2(
+					mp,
+					R.Map[int](F.Flow2(
+						getAt(res),
+						F.ToAny[IOE.IOEither[error, any]],
+					)),
+					IOE.Of[error, paramValue],
+				)
+			}
+		},
+		IOOption: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+				return F.Pipe2(
+					mp,
+					R.Map[int](F.Flow3(
+						getAt(res),
+						IOO.FromIOEither[error, any],
+						F.ToAny[IOO.IOOption[any]],
+					)),
+					IOE.Of[error, paramValue],
+				)
+			}
+		},
+	}
+)
 
-type Mapping = map[TokenType]paramIndex
+type Mapping = map[int]paramIndex
 
 func getAt[T any](ar []T) func(idx int) T {
 	return func(idx int) T {
@@ -82,158 +135,41 @@ func getAt[T any](ar []T) func(idx int) T {
 	}
 }
 
-type identityResult = IOE.IOEither[error, map[int]any]
-
-func handleIdentity(mp Mapping) func(res []IOE.IOEither[error, any]) identityResult {
-
-	onNone := F.Nullary2(R.Empty[int, any], IOE.Of[error, map[int]any])
-
-	return func(res []IOE.IOEither[error, any]) identityResult {
-		return F.Pipe2(
-			mp,
-			lookupIdentity,
-			O.Fold(
-				onNone,
-				IOE.TraverseRecord[int](getAt(res)),
-			),
-		)
-	}
-}
-
-type optionResult = IO.IO[map[int]O.Option[any]]
-
-func handleOption(mp Mapping) func(res []IOE.IOEither[error, any]) optionResult {
-
-	onNone := F.Nullary2(R.Empty[int, O.Option[any]], IO.Of[map[int]O.Option[any]])
-
-	return func(res []IOE.IOEither[error, any]) optionResult {
-
-		return F.Pipe2(
-			mp,
-			lookupOption,
-			O.Fold(
-				onNone,
-				F.Flow2(
-					IOG.TraverseRecord[IO.IO[map[int]E.Either[error, any]], paramIndex](getAt(res)),
-					IO.Map(R.Map[int](E.ToOption[error, any])),
-				),
-			),
-		)
-	}
-}
-
-type ioeitherResult = IO.IO[map[int]IOE.IOEither[error, any]]
-
-func handleIOEither(mp Mapping) func(res []IOE.IOEither[error, any]) ioeitherResult {
-
-	onNone := F.Nullary2(R.Empty[int, IOE.IOEither[error, any]], IO.Of[map[int]IOE.IOEither[error, any]])
-
-	return func(res []IOE.IOEither[error, any]) ioeitherResult {
-
-		return F.Pipe2(
-			mp,
-			lookupIOEither,
-			O.Fold(
-				onNone,
-				F.Flow2(
-					R.Map[int](getAt(res)),
-					IO.Of[map[int]IOE.IOEither[error, any]],
-				),
-			),
-		)
-	}
-}
-
-type iooptionResult = IO.IO[map[int]IOO.IOOption[any]]
-
-func handleIOOption(mp Mapping) func(res []IOE.IOEither[error, any]) iooptionResult {
-
-	onNone := F.Nullary2(R.Empty[int, IOO.IOOption[any]], IO.Of[map[int]IOO.IOOption[any]])
-
-	return func(res []IOE.IOEither[error, any]) iooptionResult {
-
-		return F.Pipe2(
-			mp,
-			lookupIOOption,
-			O.Fold(
-				onNone,
-				F.Flow2(
-					R.Map[int](F.Flow2(
-						getAt(res),
-						IOO.FromIOEither[error, any],
-					)),
-					IO.Of[map[int]IOO.IOOption[any]],
-				),
-			),
-		)
-	}
-}
-
-var optionMapToAny = R.Map[int](F.ToAny[O.Option[any]])
-var ioeitherMapToAny = R.Map[int](F.ToAny[IOE.IOEither[error, any]])
-var iooptionMapToAny = R.Map[int](F.ToAny[IOO.IOOption[any]])
-var mergeMaps = R.UnionLastMonoid[int, any]()
-var collectParams = R.CollectOrd[any, any](Int.Ord)(F.SK[int, any])
-
-func mergeArguments(
-	identity identityResult,
-	option optionResult,
-	ioeither ioeitherResult,
-	iooption iooptionResult,
-) IOE.IOEither[error, []any] {
-
-	return F.Pipe2(
-		A.From(
-			identity,
-			F.Pipe2(
-				option,
-				IO.Map(optionMapToAny),
-				IOE.FromIO[error, map[int]any],
-			),
-			F.Pipe2(
-				ioeither,
-				IO.Map(ioeitherMapToAny),
-				IOE.FromIO[error, map[int]any],
-			),
-			F.Pipe2(
-				iooption,
-				IO.Map(iooptionMapToAny),
-				IOE.FromIO[error, map[int]any],
-			),
-		),
-		IOE.SequenceArray[error, map[int]any],
-		IOE.Map[error](F.Flow2(
-			A.Fold(mergeMaps),
-			collectParams,
-		)),
+func handleMapping(mp Mapping) func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
+	preFct := F.Pipe2(
+		mp,
+		R.MapWithIndex(func(idx int, p paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+			return handlers[idx](p)
+		}),
+		R.Collect[int](F.SK[int, func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue]]),
 	)
+	doFct := F.Flow2(
+		I.Flap[IOE.IOEither[error, paramValue], []IOE.IOEither[error, any]],
+		IOE.TraverseArray[error, func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue], paramValue],
+	)
+	postFct := IOE.Map[error](F.Flow2(
+		A.Fold(mergeMaps),
+		collectParams,
+	))
+
+	return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
+		return F.Pipe2(
+			preFct,
+			doFct(res),
+			postFct,
+		)
+	}
 }
 
+// MakeProviderFactory constructs a [ProviderFactory] based on a set of [Dependency]s and
+// a function that accepts the resolved dependencies to return a result
 func MakeProviderFactory(
 	deps []Dependency,
 	fct func(param ...any) IOE.IOEither[error, any]) ProviderFactory {
 
-	mapping := foldDeps(deps)
-
-	identity := handleIdentity(mapping)
-	optional := handleOption(mapping)
-	ioeither := handleIOEither(mapping)
-	iooption := handleIOOption(mapping)
-
-	f := F.Unvariadic0(fct)
-
-	return func(inj InjectableFactory) IOE.IOEither[error, any] {
-		// resolve all dependencies
-		resolved := A.MonadMap(deps, inj)
-		// resolve dependencies
-		return F.Pipe1(
-			mergeArguments(
-				identity(resolved),
-				optional(resolved),
-				ioeither(resolved),
-				iooption(resolved),
-			),
-			IOE.Chain(f),
-		)
-	}
+	return F.Flow3(
+		F.Curry2(A.MonadMap[Dependency, IOE.IOEither[error, any]])(deps),
+		handleMapping(foldDeps(deps)),
+		IOE.Chain(F.Unvariadic0(fct)),
+	)
 }

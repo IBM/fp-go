@@ -17,17 +17,16 @@ package erasure
 
 import "fmt"
 
-type TokenType int
-
 const (
-	Identity TokenType = iota // required dependency
-	Option                    // optional dependency
-	IOEither                  // lazy and required
-	IOOption                  // lazy and optional
-	Multi                     // array of implementations
-	Item                      // item of a multi token
-	IOMulti                   // lazy and multi
-	Unknown
+	BehaviourMask = 0x0f
+	Identity      = 0 // required dependency
+	Option        = 1 // optional dependency
+	IOEither      = 2 // lazy and required
+	IOOption      = 3 // lazy and optional
+
+	TypeMask = 0xf0
+	Multi    = 1 << 4 // array of implementations
+	Item     = 2 << 4 // item of a multi token
 )
 
 // Dependency describes the relationship to a service
@@ -35,8 +34,8 @@ type Dependency interface {
 	fmt.Stringer
 	// Id returns a unique identifier for a token that can be used as a cache key
 	Id() string
-	// Type returns a tag that identifies the behaviour of the dependency
-	Type() TokenType
+	// Flag returns a tag that identifies the behaviour of the dependency
+	Flag() int
 }
 
 func AsDependency[T Dependency](t T) Dependency {

@@ -17,8 +17,6 @@
 package erasure
 
 import (
-	"log"
-
 	A "github.com/IBM/fp-go/array"
 	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
@@ -41,37 +39,61 @@ func itemProviderToMap(p Provider) map[string][]ProviderFactory {
 	return R.Singleton(p.Provides().Id(), A.Of(p.Factory()))
 }
 
-var missingProviderError = F.Flow4(
-	Dependency.String,
-	errors.OnSome[string]("no provider for dependency [%s]"),
-	IOE.Left[any, error],
-	F.Constant1[InjectableFactory, IOE.IOEither[error, any]],
+var (
+	// missingProviderError returns a ProviderFactory that fails due to a missing dependency
+	missingProviderError = F.Flow4(
+		Dependency.String,
+		errors.OnSome[string]("no provider for dependency [%s]"),
+		IOE.Left[any, error],
+		F.Constant1[InjectableFactory, IOE.IOEither[error, any]],
+	)
+
+	emptyMulti any = A.Empty[any]()
+
+	// emptyMultiDependency returns a ProviderFactory for an empty, multi dependency
+	emptyMultiDependency = F.Constant1[Dependency](F.Constant1[InjectableFactory](IOE.Of[error](emptyMulti)))
+
+	// handleMissingProvider covers the case of a missing provider. It either
+	// returns an error or an empty multi value provider
+	handleMissingProvider = F.Flow2(
+		F.Ternary(isMultiDependency, emptyMultiDependency, missingProviderError),
+		F.Constant[ProviderFactory],
+	)
+
+	// mergeItemProviders is a monoid for item provider factories
+	mergeItemProviders = R.UnionMonoid[string](A.Semigroup[ProviderFactory]())
+
+	// mergeProviders is a monoid for provider factories
+	mergeProviders = R.UnionLastMonoid[string, ProviderFactory]()
+
+	// collectItemProviders create a provider map for item providers
+	collectItemProviders = F.Flow2(
+		A.FoldMap[Provider](mergeItemProviders)(itemProviderToMap),
+		R.Map[string](itemProviderFactory),
+	)
+
+	// collectProviders collects non-item providers
+	collectProviders = F.Flow2(
+		A.Map(providerToEntry),
+		R.FromEntries[string, ProviderFactory],
+	)
+
+	// assembleProviders constructs the provider map for item and non-item providers
+	assembleProviders = F.Flow3(
+		A.Partition(isItemProvider),
+		T.Map2(collectProviders, collectItemProviders),
+		T.Tupled2(mergeProviders.Concat),
+	)
 )
-
-var emptyMulti any = A.Empty[any]()
-
-var emptyMultiDependency = F.Constant1[Dependency](F.Constant1[InjectableFactory](IOE.Of[error](emptyMulti)))
-
-func logEntryExit(name string, token Dependency) func() {
-	log.Printf("Entry: [%s] -> [%s]:[%s]", name, token.Id(), token.String())
-	return func() {
-		log.Printf("Exit:  [%s] -> [%s]:[%s]", name, token.Id(), token.String())
-	}
-}
 
 // isMultiDependency tests if a dependency is a container dependency
 func isMultiDependency(dep Dependency) bool {
-	return dep.Type() == Multi
+	return dep.Flag()&Multi == Multi
 }
-
-var handleMissingProvider = F.Flow2(
-	F.Ternary(isMultiDependency, emptyMultiDependency, missingProviderError),
-	F.Constant[ProviderFactory],
-)
 
 // isItemProvider tests if a provivder provides a single item
 func isItemProvider(provider Provider) bool {
-	return provider.Provides().Type() == Item
+	return provider.Provides().Flag()&Item == Item
 }
 
 // itemProviderFactory combines multiple factories into one, returning an array
@@ -85,29 +107,7 @@ func itemProviderFactory(fcts []ProviderFactory) ProviderFactory {
 	}
 }
 
-var mergeItemProviders = R.UnionMonoid[string](A.Semigroup[ProviderFactory]())
-
-// collectItemProviders create a provider map for item providers
-var collectItemProviders = F.Flow2(
-	A.FoldMap[Provider](mergeItemProviders)(itemProviderToMap),
-	R.Map[string](itemProviderFactory),
-)
-
-// collectProviders collects non-item providers
-var collectProviders = F.Flow2(
-	A.Map(providerToEntry),
-	R.FromEntries[string, ProviderFactory],
-)
-
-var mergeProviders = R.UnionLastMonoid[string, ProviderFactory]()
-
-// assembleProviders constructs the provider map for item and non-item providers
-var assembleProviders = F.Flow3(
-	A.Partition(isItemProvider),
-	T.Map2(collectProviders, collectItemProviders),
-	T.Tupled2(mergeProviders.Concat),
-)
-
+// MakeInjector creates an [InjectableFactory] based on a set of [Provider]s
 func MakeInjector(providers []Provider) InjectableFactory {
 
 	type Result = IOE.IOEither[error, any]
@@ -126,8 +126,6 @@ func MakeInjector(providers []Provider) InjectableFactory {
 	// lazy initialization, so we can cross reference it
 	injFct = func(token Dependency) Result {
 
-		defer logEntryExit("inj", token)()
-
 		key := token.Id()
 
 		// according to https://github.com/golang/go/issues/44159 this
@@ -135,8 +133,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 		actual, loaded := resolved.Load(key)
 		if !loaded {
 
-			computeResult := func() Result {
-				defer logEntryExit("computeResult", token)()
+			computeResult := L.MakeLazy(func() Result {
 				return F.Pipe5(
 					token,
 					T.Replicate2[Dependency],
@@ -149,7 +146,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 					IG.Ap[ProviderFactory](injFct),
 					IOE.Memoize[error, any],
 				)
-			}
+			})
 
 			actual, _ = resolved.LoadOrStore(key, F.Pipe1(
 				computeResult,

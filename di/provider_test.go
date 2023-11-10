@@ -276,3 +276,29 @@ func TestEmptyItemProvider(t *testing.T) {
 
 	assert.Equal(t, E.Of[error](A.Empty[string]()), value)
 }
+
+func TestDependencyOnMultiProvider(t *testing.T) {
+	// define a multi token
+	injMulti := MakeMultiToken[string]("configs")
+
+	// provide some values
+	v1 := ConstProvider(injMulti.Item(), "Value1")
+	v2 := ConstProvider(injMulti.Item(), "Value2")
+	// mix in non-multi values
+	p1 := ConstProvider(INJ_KEY1, "Value3")
+	p2 := ConstProvider(INJ_KEY2, "Value4")
+
+	fromMulti := func(val string, multi []string) IOE.IOEither[error, string] {
+		return IOE.Of[error](fmt.Sprintf("Val: %s, Multi: %s", val, multi))
+	}
+	p3 := MakeProvider2(INJ_KEY3, INJ_KEY1.Identity(), injMulti.Container().Identity(), fromMulti)
+
+	// populate the injector
+	inj := DIE.MakeInjector(A.From(p1, p2, v1, v2, p3))
+
+	r3 := Resolve(INJ_KEY3)
+
+	v := r3(inj)()
+
+	assert.Equal(t, E.Of[error]("Val: Value3, Multi: [Value1 Value2]"), v)
+}
