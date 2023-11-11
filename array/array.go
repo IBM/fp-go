@@ -60,18 +60,6 @@ func MapRef[A, B any](f func(a *A) B) func([]A) []B {
 	return F.Bind2nd(MonadMapRef[A, B], f)
 }
 
-func filter[A any](fa []A, pred func(A) bool) []A {
-	var result []A
-	count := len(fa)
-	for i := 0; i < count; i++ {
-		a := fa[i]
-		if pred(a) {
-			result = append(result, a)
-		}
-	}
-	return result
-}
-
 func filterRef[A any](fa []A, pred func(a *A) bool) []A {
 	var result []A
 	count := len(fa)
@@ -96,21 +84,36 @@ func filterMapRef[A, B any](fa []A, pred func(a *A) bool, f func(a *A) B) []B {
 	return result
 }
 
+// Filter returns a new array with all elements from the original array that match a predicate
 func Filter[A any](pred func(A) bool) func([]A) []A {
-	return F.Bind2nd(filter[A], pred)
+	return G.Filter[[]A](pred)
+}
+
+// FilterWithIndex returns a new array with all elements from the original array that match a predicate
+func FilterWithIndex[A any](pred func(int, A) bool) func([]A) []A {
+	return G.FilterWithIndex[[]A](pred)
 }
 
 func FilterRef[A any](pred func(*A) bool) func([]A) []A {
 	return F.Bind2nd(filterRef[A], pred)
 }
 
-func MonadFilterMap[A, B any](fa []A, f func(a A) O.Option[B]) []B {
+func MonadFilterMap[A, B any](fa []A, f func(A) O.Option[B]) []B {
 	return G.MonadFilterMap[[]A, []B](fa, f)
 }
 
-// FilterChain maps an array with an iterating function that returns an [O.Option] and it keeps only the Some values discarding the Nones.
-func FilterMap[A, B any](f func(a A) O.Option[B]) func([]A) []B {
+func MonadFilterMapWithIndex[A, B any](fa []A, f func(int, A) O.Option[B]) []B {
+	return G.MonadFilterMapWithIndex[[]A, []B](fa, f)
+}
+
+// FilterMap maps an array with an iterating function that returns an [O.Option] and it keeps only the Some values discarding the Nones.
+func FilterMap[A, B any](f func(A) O.Option[B]) func([]A) []B {
 	return G.FilterMap[[]A, []B](f)
+}
+
+// FilterMapWithIndex maps an array with an iterating function that returns an [O.Option] and it keeps only the Some values discarding the Nones.
+func FilterMapWithIndex[A, B any](f func(int, A) O.Option[B]) func([]A) []B {
+	return G.FilterMapWithIndex[[]A, []B](f)
 }
 
 // FilterChain maps an array with an iterating function that returns an [O.Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
@@ -134,9 +137,19 @@ func reduceRef[A, B any](fa []A, f func(B, *A) B, initial B) B {
 }
 
 func Reduce[A, B any](f func(B, A) B, initial B) func([]A) B {
-	return func(as []A) B {
-		return array.Reduce(as, f, initial)
-	}
+	return G.Reduce[[]A](f, initial)
+}
+
+func ReduceWithIndex[A, B any](f func(int, B, A) B, initial B) func([]A) B {
+	return G.ReduceWithIndex[[]A](f, initial)
+}
+
+func ReduceRight[A, B any](f func(A, B) B, initial B) func([]A) B {
+	return G.ReduceRight[[]A](f, initial)
+}
+
+func ReduceRightWithIndex[A, B any](f func(int, A, B) B, initial B) func([]A) B {
+	return G.ReduceRightWithIndex[[]A](f, initial)
 }
 
 func ReduceRef[A, B any](f func(B, *A) B, initial B) func([]A) B {

@@ -13,19 +13,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package array
 
 import (
+	"fmt"
+
 	F "github.com/IBM/fp-go/function"
-	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
 )
 
-// Any returns `true` if any element of the iterable is `true`. If the iterable is empty, return `false`
-func Any[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) bool, U any](pred FCT) func(ma GU) bool {
-	return F.Flow3(
-		Filter[GU](pred),
-		First[GU],
-		O.IsSome[U],
+func Example_find() {
+
+	pred := func(val int) bool {
+		return val&2 == 0
+	}
+
+	data1 := From(1, 2, 3)
+
+	fmt.Println(FindFirst(pred)(data1))
+
+	// Output:
+	// Some[int](1)
+}
+
+func Example_find_filter() {
+
+	pred := func(val int) bool {
+		return val&2 == 0
+	}
+
+	data1 := From(1, 2, 3)
+
+	Find := F.Flow2(
+		Filter(pred),
+		Head[int],
 	)
+
+	fmt.Println(Find(data1))
+
+	// Output:
+	// Some[int](1)
 }

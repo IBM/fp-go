@@ -29,12 +29,44 @@ func Of[GA ~[]A, A any](value A) GA {
 	return GA{value}
 }
 
-func Reduce[GA ~[]A, A, B any](fa GA, f func(B, A) B, initial B) B {
+func Reduce[GA ~[]A, A, B any](f func(B, A) B, initial B) func(GA) B {
+	return func(as GA) B {
+		return MonadReduce[GA](as, f, initial)
+	}
+}
+
+func ReduceWithIndex[GA ~[]A, A, B any](f func(int, B, A) B, initial B) func(GA) B {
+	return func(as GA) B {
+		return MonadReduceWithIndex[GA](as, f, initial)
+	}
+}
+
+func ReduceRight[GA ~[]A, A, B any](f func(A, B) B, initial B) func(GA) B {
+	return func(as GA) B {
+		return MonadReduceRight[GA](as, f, initial)
+	}
+}
+
+func ReduceRightWithIndex[GA ~[]A, A, B any](f func(int, A, B) B, initial B) func(GA) B {
+	return func(as GA) B {
+		return MonadReduceRightWithIndex[GA](as, f, initial)
+	}
+}
+
+func MonadReduce[GA ~[]A, A, B any](fa GA, f func(B, A) B, initial B) B {
 	return array.Reduce(fa, f, initial)
 }
 
-func ReduceWithIndex[GA ~[]A, A, B any](fa GA, f func(int, B, A) B, initial B) B {
+func MonadReduceWithIndex[GA ~[]A, A, B any](fa GA, f func(int, B, A) B, initial B) B {
 	return array.ReduceWithIndex(fa, f, initial)
+}
+
+func MonadReduceRight[GA ~[]A, A, B any](fa GA, f func(A, B) B, initial B) B {
+	return array.ReduceRight(fa, f, initial)
+}
+
+func MonadReduceRightWithIndex[GA ~[]A, A, B any](fa GA, f func(int, A, B) B, initial B) B {
+	return array.ReduceRightWithIndex(fa, f, initial)
 }
 
 // From constructs an array from a set of variadic arguments
@@ -122,14 +154,42 @@ func Size[GA ~[]A, A any](as GA) int {
 	return len(as)
 }
 
-func filterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(a A) O.Option[B]) GB {
+func filterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
 	return array.Reduce(fa, func(bs GB, a A) GB {
 		return O.MonadFold(f(a), F.Constant(bs), F.Bind1st(Append[GB, B], bs))
 	}, Empty[GB]())
 }
 
-func MonadFilterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(a A) O.Option[B]) GB {
+func filterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(int, A) O.Option[B]) GB {
+	return array.ReduceWithIndex(fa, func(idx int, bs GB, a A) GB {
+		return O.MonadFold(f(idx, a), F.Constant(bs), F.Bind1st(Append[GB, B], bs))
+	}, Empty[GB]())
+}
+
+func MonadFilterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
 	return filterMap[GA, GB](fa, f)
+}
+
+func MonadFilterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(int, A) O.Option[B]) GB {
+	return filterMapWithIndex[GA, GB](fa, f)
+}
+
+func filterWithIndex[AS ~[]A, PRED ~func(int, A) bool, A any](fa AS, pred PRED) AS {
+	result := make(AS, 0, len(fa))
+	for i, a := range fa {
+		if pred(i, a) {
+			result = append(result, a)
+		}
+	}
+	return result
+}
+
+func FilterWithIndex[AS ~[]A, PRED ~func(int, A) bool, A any](pred PRED) func(AS) AS {
+	return F.Bind2nd(filterWithIndex[AS, PRED, A], pred)
+}
+
+func Filter[AS ~[]A, PRED ~func(A) bool, A any](pred PRED) func(AS) AS {
+	return FilterWithIndex[AS](F.Ignore1of2[int](pred))
 }
 
 func FilterChain[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[GB]) func(GA) GB {
@@ -143,8 +203,12 @@ func Flatten[GAA ~[]GA, GA ~[]A, A any](mma GAA) GA {
 	return MonadChain(mma, F.Identity[GA])
 }
 
-func FilterMap[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[B]) func(GA) GB {
+func FilterMap[GA ~[]A, GB ~[]B, A, B any](f func(A) O.Option[B]) func(GA) GB {
 	return F.Bind2nd(MonadFilterMap[GA, GB, A, B], f)
+}
+
+func FilterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](f func(int, A) O.Option[B]) func(GA) GB {
+	return F.Bind2nd(MonadFilterMapWithIndex[GA, GB, A, B], f)
 }
 
 func MonadPartition[GA ~[]A, A any](as GA, pred func(A) bool) tuple.Tuple2[GA, GA] {

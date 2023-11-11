@@ -59,6 +59,17 @@ func TestMap(t *testing.T) {
 	assert.Equal(t, dst, []string{"A", "B", "C"})
 }
 
+func TestReduceRight(t *testing.T) {
+	values := From("a", "b", "c")
+	f := func(a, acc string) string {
+		return fmt.Sprintf("%s%s", acc, a)
+	}
+	b := ""
+
+	assert.Equal(t, "cba", ReduceRight(f, b)(values))
+	assert.Equal(t, "", ReduceRight(f, b)(Empty[string]()))
+}
+
 func TestReduce(t *testing.T) {
 
 	values := MakeBy(101, F.Identity[int])
