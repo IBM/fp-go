@@ -18,14 +18,17 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
 )
 
-// Any returns `true` if any element of the iterable is `true`. If the iterable is empty, return `false`
-func Any[GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(U) bool, U any](pred FCT) func(ma GU) bool {
-	return F.Flow3(
-		Filter[GU](pred),
-		First[GU],
-		O.IsSome[U],
+// AnyWithIndex tests if any of the elements in the array matches the predicate
+func AnyWithIndex[AS ~[]A, PRED ~func(int, A) bool, A any](pred PRED) func(AS) bool {
+	return F.Flow2(
+		FindFirstWithIndex[AS](pred),
+		O.IsSome[A],
 	)
+}
+
+// Any tests if any of the elements in the array matches the predicate
+func Any[AS ~[]A, PRED ~func(A) bool, A any](pred PRED) func(AS) bool {
+	return AnyWithIndex[AS](F.Ignore1of2[int](pred))
 }
