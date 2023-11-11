@@ -51,6 +51,24 @@ func ReduceWithIndex[GA ~[]A, A, B any](fa GA, f func(int, B, A) B, initial B) B
 	return current
 }
 
+func ReduceRight[GA ~[]A, A, B any](fa GA, f func(A, B) B, initial B) B {
+	current := initial
+	count := len(fa)
+	for i := count - 1; i >= 0; i-- {
+		current = f(fa[i], current)
+	}
+	return current
+}
+
+func ReduceRightWithIndex[GA ~[]A, A, B any](fa GA, f func(int, A, B) B, initial B) B {
+	current := initial
+	count := len(fa)
+	for i := count - 1; i >= 0; i-- {
+		current = f(i, fa[i], current)
+	}
+	return current
+}
+
 func Append[GA ~[]A, A any](as GA, a A) GA {
 	return append(as, a)
 }

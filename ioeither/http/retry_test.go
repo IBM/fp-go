@@ -63,7 +63,7 @@ func TestRetryHttp(t *testing.T) {
 	check := E.Fold(
 		F.Flow2(
 			errors.As[*net.DNSError](),
-			O.Fold(F.Constant(false), F.Constant1[*net.DNSError](true)),
+			O.IsSome[*net.DNSError],
 		),
 		F.Constant1[*PostItem](false),
 	)
