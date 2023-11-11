@@ -13,13 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package record
+package generic
 
-import (
-	G "github.com/IBM/fp-go/record/generic"
-)
-
-// Switch maps every value based on a lookup table of transformation functions
-func Switch[K comparable, V, R any](n map[K]func(V) R, d func(V) R) func(map[K]V) map[K]R {
-	return G.Switch[map[K]V, map[K]R](n, d)
+// Switch applies a handler to different cases. The handers are stored in a map. A key function
+// extracts the case from a value.
+func Switch[HF ~func(T) R, N ~map[K]HF, KF ~func(T) K, K comparable, T, R any](kf KF, n N, d HF) HF {
+	return func(t T) R {
+		f, ok := n[kf(t)]
+		if ok {
+			return f(t)
+		}
+		return d(t)
+	}
 }

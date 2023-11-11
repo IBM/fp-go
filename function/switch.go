@@ -13,21 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package function
 
 import (
-	F "github.com/IBM/fp-go/function"
-	IG "github.com/IBM/fp-go/identity/generic"
-	O "github.com/IBM/fp-go/option"
+	G "github.com/IBM/fp-go/function/generic"
 )
 
-func Switch[M1 ~map[K]V, M2 ~map[K]R, N ~map[K]FCT, FCT ~func(V) R, K comparable, V, R any](n N, d FCT) func(M1) M2 {
-	return MapWithIndex[M1, M2](func(idx K, val V) R {
-		return F.Pipe3(
-			n,
-			Lookup[N](idx),
-			O.GetOrElse(F.Constant(d)),
-			IG.Flap[FCT, R](val),
-		)
-	})
+// Switch applies a handler to different cases. The handers are stored in a map. A key function
+// extracts the case from a value.
+func Switch[K comparable, T, R any](kf func(T) K, n map[K]func(T) R, d func(T) R) func(T) R {
+	return G.Switch(kf, n, d)
 }
