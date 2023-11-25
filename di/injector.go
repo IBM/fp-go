@@ -27,7 +27,7 @@ import (
 // Resolve performs a type safe resolution of a dependency
 func Resolve[T any](token InjectionToken[T]) RIOE.ReaderIOEither[DIE.InjectableFactory, error, T] {
 	return F.Flow2(
-		IG.Ap[DIE.InjectableFactory](DIE.AsDependency(token)),
+		IG.Ap[DIE.InjectableFactory](asDependency(token)),
 		IOE.ChainEitherK(token.Unerase),
 	)
 }

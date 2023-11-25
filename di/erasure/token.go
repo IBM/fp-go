@@ -15,7 +15,11 @@
 
 package erasure
 
-import "fmt"
+import (
+	"fmt"
+
+	O "github.com/IBM/fp-go/option"
+)
 
 const (
 	BehaviourMask = 0x0f
@@ -36,8 +40,6 @@ type Dependency interface {
 	Id() string
 	// Flag returns a tag that identifies the behaviour of the dependency
 	Flag() int
-}
-
-func AsDependency[T Dependency](t T) Dependency {
-	return t
+	// ProviderFactory optionally returns an attached [ProviderFactory] that represents the default for this dependency
+	ProviderFactory() O.Option[ProviderFactory]
 }

@@ -55,7 +55,7 @@ type InjectionToken[T any] interface {
 	IOOption() Dependency[IOO.IOOption[T]]
 }
 
-// MultiInjectionToken uniquely identifies a dependency by giving it an Id, Type and name
+// MultiInjectionToken uniquely identifies a dependency by giving it an Id, Type and name.
 type MultiInjectionToken[T any] interface {
 	// Container returns the injection token used to request an array of all provided items
 	Container() InjectionToken[[]T]
@@ -75,10 +75,11 @@ func makeId() IO.IO[string] {
 var genId = makeId()
 
 type token[T any] struct {
-	name   string
-	id     string
-	flag   int
-	toType func(val any) E.Either[error, T]
+	name            string
+	id              string
+	flag            int
+	toType          func(val any) E.Either[error, T]
+	providerFactory O.Option[DIE.ProviderFactory]
 }
 
 func (t *token[T]) Id() string {
@@ -97,8 +98,12 @@ func (t *token[T]) Unerase(val any) E.Either[error, T] {
 	return t.toType(val)
 }
 
-func makeToken[T any](name string, id string, typ int, unerase func(val any) E.Either[error, T]) Dependency[T] {
-	return &token[T]{name, id, typ, unerase}
+func (t *token[T]) ProviderFactory() O.Option[DIE.ProviderFactory] {
+	return t.providerFactory
+}
+
+func makeToken[T any](name string, id string, typ int, unerase func(val any) E.Either[error, T], providerFactory O.Option[DIE.ProviderFactory]) Dependency[T] {
+	return &token[T]{name, id, typ, unerase, providerFactory}
 }
 
 type injectionToken[T any] struct {
@@ -129,6 +134,10 @@ func (i *injectionToken[T]) IOOption() Dependency[IOO.IOOption[T]] {
 	return i.iooption
 }
 
+func (i *injectionToken[T]) ProviderFactory() O.Option[DIE.ProviderFactory] {
+	return i.providerFactory
+}
+
 func (m *multiInjectionToken[T]) Container() InjectionToken[[]T] {
 	return m.container
 }
@@ -137,37 +146,50 @@ func (m *multiInjectionToken[T]) Item() InjectionToken[T] {
 	return m.item
 }
 
-// MakeToken create a unique `InjectionToken` for a specific type
-func MakeToken[T any](name string) InjectionToken[T] {
+// makeToken create a unique `InjectionToken` for a specific type
+func makeInjectionToken[T any](name string, providerFactory O.Option[DIE.ProviderFactory]) InjectionToken[T] {
 	id := genId()
 	toIdentity := toType[T]()
 	return &injectionToken[T]{
-		token[T]{name, id, DIE.Identity, toIdentity},
-		makeToken[O.Option[T]](fmt.Sprintf("Option[%s]", name), id, DIE.Option, toOptionType(toIdentity)),
-		makeToken[IOE.IOEither[error, T]](fmt.Sprintf("IOEither[%s]", name), id, DIE.IOEither, toIOEitherType(toIdentity)),
-		makeToken[IOO.IOOption[T]](fmt.Sprintf("IOOption[%s]", name), id, DIE.IOOption, toIOOptionType(toIdentity)),
+		token[T]{name, id, DIE.Identity, toIdentity, providerFactory},
+		makeToken[O.Option[T]](fmt.Sprintf("Option[%s]", name), id, DIE.Option, toOptionType(toIdentity), providerFactory),
+		makeToken[IOE.IOEither[error, T]](fmt.Sprintf("IOEither[%s]", name), id, DIE.IOEither, toIOEitherType(toIdentity), providerFactory),
+		makeToken[IOO.IOOption[T]](fmt.Sprintf("IOOption[%s]", name), id, DIE.IOOption, toIOOptionType(toIdentity), providerFactory),
 	}
 }
 
+// MakeToken create a unique `InjectionToken` for a specific type
+func MakeToken[T any](name string) InjectionToken[T] {
+	return makeInjectionToken[T](name, O.None[DIE.ProviderFactory]())
+}
+
+// MakeToken create a unique `InjectionToken` for a specific type
+func MakeTokenWithDefault[T any](name string, providerFactory DIE.ProviderFactory) InjectionToken[T] {
+	return makeInjectionToken[T](name, O.Of(providerFactory))
+}
+
+// MakeMultiToken creates a [MultiInjectionToken]
 func MakeMultiToken[T any](name string) MultiInjectionToken[T] {
 	id := genId()
 	toItem := toType[T]()
 	toContainer := toArrayType(toItem)
 	containerName := fmt.Sprintf("Container[%s]", name)
 	itemName := fmt.Sprintf("Item[%s]", name)
+	// empty factory
+	providerFactory := O.None[DIE.ProviderFactory]()
 	// container
 	container := &injectionToken[[]T]{
-		token[[]T]{containerName, id, DIE.Multi | DIE.Identity, toContainer},
-		makeToken[O.Option[[]T]](fmt.Sprintf("Option[%s]", containerName), id, DIE.Multi|DIE.Option, toOptionType(toContainer)),
-		makeToken[IOE.IOEither[error, []T]](fmt.Sprintf("IOEither[%s]", containerName), id, DIE.Multi|DIE.IOEither, toIOEitherType(toContainer)),
-		makeToken[IOO.IOOption[[]T]](fmt.Sprintf("IOOption[%s]", containerName), id, DIE.Multi|DIE.IOOption, toIOOptionType(toContainer)),
+		token[[]T]{containerName, id, DIE.Multi | DIE.Identity, toContainer, providerFactory},
+		makeToken[O.Option[[]T]](fmt.Sprintf("Option[%s]", containerName), id, DIE.Multi|DIE.Option, toOptionType(toContainer), providerFactory),
+		makeToken[IOE.IOEither[error, []T]](fmt.Sprintf("IOEither[%s]", containerName), id, DIE.Multi|DIE.IOEither, toIOEitherType(toContainer), providerFactory),
+		makeToken[IOO.IOOption[[]T]](fmt.Sprintf("IOOption[%s]", containerName), id, DIE.Multi|DIE.IOOption, toIOOptionType(toContainer), providerFactory),
 	}
 	// item
 	item := &injectionToken[T]{
-		token[T]{itemName, id, DIE.Item | DIE.Identity, toItem},
-		makeToken[O.Option[T]](fmt.Sprintf("Option[%s]", itemName), id, DIE.Item|DIE.Option, toOptionType(toItem)),
-		makeToken[IOE.IOEither[error, T]](fmt.Sprintf("IOEither[%s]", itemName), id, DIE.Item|DIE.IOEither, toIOEitherType(toItem)),
-		makeToken[IOO.IOOption[T]](fmt.Sprintf("IOOption[%s]", itemName), id, DIE.Item|DIE.IOOption, toIOOptionType(toItem)),
+		token[T]{itemName, id, DIE.Item | DIE.Identity, toItem, providerFactory},
+		makeToken[O.Option[T]](fmt.Sprintf("Option[%s]", itemName), id, DIE.Item|DIE.Option, toOptionType(toItem), providerFactory),
+		makeToken[IOE.IOEither[error, T]](fmt.Sprintf("IOEither[%s]", itemName), id, DIE.Item|DIE.IOEither, toIOEitherType(toItem), providerFactory),
+		makeToken[IOO.IOOption[T]](fmt.Sprintf("IOOption[%s]", itemName), id, DIE.Item|DIE.IOOption, toIOOptionType(toItem), providerFactory),
 	}
 	// returns the token
 	return &multiInjectionToken[T]{container, item}

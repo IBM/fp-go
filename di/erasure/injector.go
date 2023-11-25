@@ -40,7 +40,7 @@ func itemProviderToMap(p Provider) map[string][]ProviderFactory {
 }
 
 var (
-	// missingProviderError returns a ProviderFactory that fails due to a missing dependency
+	// missingProviderError returns a [ProviderFactory] that fails due to a missing dependency
 	missingProviderError = F.Flow4(
 		Dependency.String,
 		errors.OnSome[string]("no provider for dependency [%s]"),
@@ -48,15 +48,22 @@ var (
 		F.Constant1[InjectableFactory, IOE.IOEither[error, any]],
 	)
 
+	// missingProviderErrorOrDefault returns the default [ProviderFactory] or an error
+	missingProviderErrorOrDefault = F.Flow3(
+		T.Replicate2[Dependency],
+		T.Map2(Dependency.ProviderFactory, F.Flow2(missingProviderError, F.Constant[ProviderFactory])),
+		T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
+	)
+
 	emptyMulti any = A.Empty[any]()
 
-	// emptyMultiDependency returns a ProviderFactory for an empty, multi dependency
+	// emptyMultiDependency returns a [ProviderFactory] for an empty, multi dependency
 	emptyMultiDependency = F.Constant1[Dependency](F.Constant1[InjectableFactory](IOE.Of[error](emptyMulti)))
 
 	// handleMissingProvider covers the case of a missing provider. It either
 	// returns an error or an empty multi value provider
 	handleMissingProvider = F.Flow2(
-		F.Ternary(isMultiDependency, emptyMultiDependency, missingProviderError),
+		F.Ternary(isMultiDependency, emptyMultiDependency, missingProviderErrorOrDefault),
 		F.Constant[ProviderFactory],
 	)
 

@@ -15,6 +15,7 @@
 package di
 
 import (
+	DIE "github.com/IBM/fp-go/di/erasure"
 	E "github.com/IBM/fp-go/either"
 	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
@@ -22,6 +23,11 @@ import (
 	IOO "github.com/IBM/fp-go/iooption"
 	O "github.com/IBM/fp-go/option"
 )
+
+// asDependency converts a generic type to a [DIE.Dependency]
+func asDependency[T DIE.Dependency](t T) DIE.Dependency {
+	return t
+}
 
 // toType converts an any to a T
 func toType[T any]() func(t any) E.Either[error, T] {

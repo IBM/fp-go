@@ -302,3 +302,50 @@ func TestDependencyOnMultiProvider(t *testing.T) {
 
 	assert.Equal(t, E.Of[error]("Val: Value3, Multi: [Value1 Value2]"), v)
 }
+
+func TestTokenWithDefaultProvider(t *testing.T) {
+	// token without a default
+	injToken1 := MakeToken[string]("Token1")
+	// token with a default
+	injToken2 := MakeTokenWithDefault0("Token2", F.Constant(IOE.Of[error]("Carsten")))
+	// dependency
+	injToken3 := MakeToken[string]("Token3")
+
+	p3 := MakeProvider1(injToken3, injToken2.Identity(), func(data string) IOE.IOEither[error, string] {
+		return IOE.Of[error](fmt.Sprintf("Token: %s", data))
+	})
+
+	// populate the injector
+	inj := DIE.MakeInjector(A.From(p3))
+
+	// resolving injToken3 should work and use the default provider for injToken2
+	r1 := Resolve(injToken1)
+	r3 := Resolve(injToken3)
+
+	// inj1 should not be available
+	assert.True(t, E.IsLeft(r1(inj)()))
+	// r3 should work
+	assert.Equal(t, E.Of[error]("Token: Carsten"), r3(inj)())
+}
+
+func TestTokenWithDefaultProviderAndOverride(t *testing.T) {
+	// token with a default
+	injToken2 := MakeTokenWithDefault0("Token2", F.Constant(IOE.Of[error]("Carsten")))
+	// dependency
+	injToken3 := MakeToken[string]("Token3")
+
+	p2 := ConstProvider(injToken2, "Override")
+
+	p3 := MakeProvider1(injToken3, injToken2.Identity(), func(data string) IOE.IOEither[error, string] {
+		return IOE.Of[error](fmt.Sprintf("Token: %s", data))
+	})
+
+	// populate the injector
+	inj := DIE.MakeInjector(A.From(p2, p3))
+
+	// resolving injToken3 should work and use the default provider for injToken2
+	r3 := Resolve(injToken3)
+
+	// r3 should work
+	assert.Equal(t, E.Of[error]("Token: Override"), r3(inj)())
+}
