@@ -52,6 +52,10 @@ func MonadMapRef[A, B any](as []A, f func(a *A) B) []B {
 	return bs
 }
 
+func MapWithIndex[A, B any](f func(int, A) B) func([]A) []B {
+	return G.MapWithIndex[[]A, []B](f)
+}
+
 func Map[A, B any](f func(a A) B) func([]A) []B {
 	return F.Bind2nd(MonadMap[A, B], f)
 }
@@ -311,6 +315,11 @@ func Copy[A any](b []A) []A {
 // FoldMap maps and folds an array. Map the Array passing each value to the iterating function. Then fold the results using the provided Monoid.
 func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func([]A) B {
 	return G.FoldMap[[]A](m)
+}
+
+// FoldMapWithIndex maps and folds an array. Map the Array passing each value to the iterating function. Then fold the results using the provided Monoid.
+func FoldMapWithIndex[A, B any](m M.Monoid[B]) func(func(int, A) B) func([]A) B {
+	return G.FoldMapWithIndex[[]A](m)
 }
 
 // Fold folds the array using the provided Monoid.

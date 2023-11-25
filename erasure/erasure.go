@@ -16,6 +16,8 @@
 package erasure
 
 import (
+	E "github.com/IBM/fp-go/either"
+	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 )
 
@@ -27,6 +29,15 @@ func Erase[T any](t T) any {
 // Unerase converts an erased variable back to its original value
 func Unerase[T any](t any) T {
 	return *t.(*T)
+}
+
+// SafeUnerase converts an erased variable back to its original value
+func SafeUnerase[T any](t any) E.Either[error, T] {
+	return F.Pipe2(
+		t,
+		E.ToType[*T](errors.OnSome[any]("Value of type [%T] is not erased")),
+		E.Map[error](F.Deref[T]),
+	)
 }
 
 // Erase0 converts a type safe function into an erased function

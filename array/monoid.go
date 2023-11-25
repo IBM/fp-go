@@ -18,6 +18,7 @@ package array
 import (
 	"github.com/IBM/fp-go/internal/array"
 	M "github.com/IBM/fp-go/monoid"
+	S "github.com/IBM/fp-go/semigroup"
 )
 
 func concat[T any](left, right []T) []T {
@@ -38,6 +39,10 @@ func concat[T any](left, right []T) []T {
 
 func Monoid[T any]() M.Monoid[[]T] {
 	return M.MakeMonoid(concat[T], Empty[T]())
+}
+
+func Semigroup[T any]() S.Semigroup[[]T] {
+	return S.MakeSemigroup(concat[T])
 }
 
 func addLen[A any](count int, data []A) int {

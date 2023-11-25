@@ -49,6 +49,11 @@ func Collect[K comparable, V, R any](f func(K, V) R) func(map[K]V) []R {
 	return G.Collect[map[K]V, []R](f)
 }
 
+// CollectOrd applies a collector function to the key value pairs in a map and returns the result as an array
+func CollectOrd[V, R any, K comparable](o ord.Ord[K]) func(func(K, V) R) func(map[K]V) []R {
+	return G.CollectOrd[map[K]V, []R](o)
+}
+
 func Reduce[K comparable, V, R any](f func(R, V) R, initial R) func(map[K]V) R {
 	return G.Reduce[map[K]V](f, initial)
 }

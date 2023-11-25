@@ -82,6 +82,10 @@ func Fold[A, B any](onNone func() B, onSome func(a A) B) func(ma Option[A]) B {
 	}
 }
 
+func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
+	return MonadFold(fa, onNone, F.Identity[A])
+}
+
 func GetOrElse[A any](onNone func() A) func(Option[A]) A {
 	return Fold(onNone, F.Identity[A])
 }
