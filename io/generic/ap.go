@@ -16,6 +16,7 @@
 package generic
 
 import (
+	F "github.com/IBM/fp-go/function"
 	G "github.com/IBM/fp-go/internal/apply"
 )
 
@@ -27,7 +28,10 @@ const (
 // MonadApSeq implements the applicative on a single thread by first executing mab and the ma
 func MonadApSeq[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	return MakeIO[GB](func() B {
-		return mab()(ma())
+		return F.Pipe1(
+			ma(),
+			mab(),
+		)
 	})
 }
 
