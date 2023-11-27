@@ -19,6 +19,7 @@ import (
 	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
 	G "github.com/IBM/fp-go/ioeither/generic"
+	IOO "github.com/IBM/fp-go/iooption"
 	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 )
@@ -61,6 +62,10 @@ func FromEither[E, A any](e ET.Either[E, A]) IOEither[E, A] {
 
 func FromOption[A, E any](onNone func() E) func(o O.Option[A]) IOEither[E, A] {
 	return G.FromOption[IOEither[E, A]](onNone)
+}
+
+func FromIOOption[A, E any](onNone func() E) func(o IOO.IOOption[A]) IOEither[E, A] {
+	return G.FromIOOption[IOEither[E, A], IOO.IOOption[A]](onNone)
 }
 
 func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(IOEither[E, A]) IOEither[E, B] {
@@ -265,4 +270,9 @@ func MonadFlap[E, B, A any](fab IOEither[E, func(A) B], a A) IOEither[E, B] {
 
 func Flap[E, B, A any](a A) func(IOEither[E, func(A) B]) IOEither[E, B] {
 	return G.Flap[IOEither[E, func(A) B], IOEither[E, B]](a)
+}
+
+// ToIOOption converts an [IOEither] to an [IOO.IOOption]
+func ToIOOption[E, A any](ioe IOEither[E, A]) IOO.IOOption[A] {
+	return G.ToIOOption[IOO.IOOption[A]](ioe)
 }

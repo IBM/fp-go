@@ -117,7 +117,7 @@ var (
 					mp,
 					R.Map[int](F.Flow3(
 						getAt(res),
-						IOO.FromIOEither[error, any],
+						IOE.ToIOOption[error, any],
 						F.ToAny[IOO.IOOption[any]],
 					)),
 					IOE.Of[error, paramValue],
