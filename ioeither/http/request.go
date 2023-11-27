@@ -20,54 +20,94 @@ import (
 	"net/http"
 
 	B "github.com/IBM/fp-go/bytes"
-	ER "github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
+	H "github.com/IBM/fp-go/http"
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEF "github.com/IBM/fp-go/ioeither/file"
 	J "github.com/IBM/fp-go/json"
+	T "github.com/IBM/fp-go/tuple"
 )
 
-type Client interface {
-	Do(req *http.Request) IOE.IOEither[error, *http.Response]
-}
+type (
+	// Requester is a reader that constructs a request
+	Requester = IOE.IOEither[error, *http.Request]
 
-type client struct {
-	delegate *http.Client
-}
+	Client interface {
+		Do(Requester) IOE.IOEither[error, *http.Response]
+	}
 
-func (client client) Do(req *http.Request) IOE.IOEither[error, *http.Response] {
-	return IOE.TryCatch(func() (*http.Response, error) {
-		return client.delegate.Do(req)
-	}, ER.IdentityError)
+	client struct {
+		delegate *http.Client
+		doIOE    func(*http.Request) IOE.IOEither[error, *http.Response]
+	}
+)
+
+var (
+	// MakeRequest is an eitherized version of [http.NewRequest]
+	MakeRequest = IOE.Eitherize3(http.NewRequest)
+	makeRequest = F.Bind13of3(MakeRequest)
+
+	// specialize
+	MakeGetRequest = makeRequest("GET", nil)
+)
+
+func (client client) Do(req Requester) IOE.IOEither[error, *http.Response] {
+	return F.Pipe1(
+		req,
+		IOE.Chain(client.doIOE),
+	)
 }
 
 func MakeClient(httpClient *http.Client) Client {
-	return client{delegate: httpClient}
+	return client{delegate: httpClient, doIOE: IOE.Eitherize1(httpClient.Do)}
 }
 
-func ReadAll(client Client) func(*http.Request) IOE.IOEither[error, []byte] {
-	return func(req *http.Request) IOE.IOEither[error, []byte] {
-		return IOEF.ReadAll(F.Pipe2(
-			req,
-			client.Do,
-			IOE.Map[error](func(resp *http.Response) io.ReadCloser {
-				return resp.Body
-			}),
-		),
-		)
-	}
+// ReadFullResponse sends a request,  reads the response as a byte array and represents the result as a tuple
+func ReadFullResponse(client Client) func(Requester) IOE.IOEither[error, H.FullResponse] {
+	return F.Flow3(
+		client.Do,
+		IOE.ChainEitherK(H.ValidateResponse),
+		IOE.Chain(func(resp *http.Response) IOE.IOEither[error, H.FullResponse] {
+			return F.Pipe1(
+				F.Pipe3(
+					resp,
+					H.GetBody,
+					IOE.Of[error, io.ReadCloser],
+					IOEF.ReadAll[io.ReadCloser],
+				),
+				IOE.Map[error](F.Bind1st(T.MakeTuple2[*http.Response, []byte], resp)),
+			)
+		}),
+	)
 }
 
-func ReadText(client Client) func(*http.Request) IOE.IOEither[error, string] {
+// ReadAll sends a request and reads the response as bytes
+func ReadAll(client Client) func(Requester) IOE.IOEither[error, []byte] {
+	return F.Flow2(
+		ReadFullResponse(client),
+		IOE.Map[error](H.Body),
+	)
+}
+
+// ReadText sends a request, reads the response and represents the response as a text string
+func ReadText(client Client) func(Requester) IOE.IOEither[error, string] {
 	return F.Flow2(
 		ReadAll(client),
 		IOE.Map[error](B.ToString),
 	)
 }
 
-func ReadJson[A any](client Client) func(*http.Request) IOE.IOEither[error, A] {
-	return F.Flow2(
-		ReadAll(client),
-		IOE.ChainEitherK(J.Unmarshal[A]),
+// ReadJson sends a request, reads the response and parses the response as JSON
+func ReadJson[A any](client Client) func(Requester) IOE.IOEither[error, A] {
+	return F.Flow3(
+		ReadFullResponse(client),
+		IOE.ChainFirstEitherK(F.Flow2(
+			H.Response,
+			H.ValidateJsonResponse,
+		)),
+		IOE.ChainEitherK(F.Flow2(
+			H.Body,
+			J.Unmarshal[A],
+		)),
 	)
 }

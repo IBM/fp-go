@@ -23,7 +23,6 @@ import (
 
 	AR "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
-	HE "github.com/IBM/fp-go/either/http"
 	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	IOE "github.com/IBM/fp-go/ioeither"
@@ -53,10 +52,9 @@ func TestRetryHttp(t *testing.T) {
 	client := MakeClient(&http.Client{})
 
 	action := func(status R.RetryStatus) IOE.IOEither[error, *PostItem] {
-		return F.Pipe2(
-			HE.GetRequest(urls[status.IterNumber]),
-			IOE.FromEither[error, *http.Request],
-			IOE.Chain(ReadJson[*PostItem](client)),
+		return F.Pipe1(
+			MakeGetRequest(urls[status.IterNumber]),
+			ReadJson[*PostItem](client),
 		)
 	}
 

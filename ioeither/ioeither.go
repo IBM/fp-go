@@ -211,6 +211,14 @@ func ChainFirst[E, A, B any](f func(A) IOEither[E, B]) func(IOEither[E, A]) IOEi
 	return G.ChainFirst[IOEither[E, A]](f)
 }
 
+func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) ET.Either[E, B]) IOEither[E, A] {
+	return G.MonadChainFirstEitherK[IOEither[E, A]](ma, f)
+}
+
+func ChainFirstEitherK[A, E, B any](f func(A) ET.Either[E, B]) func(ma IOEither[E, A]) IOEither[E, A] {
+	return G.ChainFirstEitherK[IOEither[E, A]](f)
+}
+
 // MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
 func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) I.IO[B]) IOEither[E, A] {
 	return G.MonadChainFirstIOK(ma, f)

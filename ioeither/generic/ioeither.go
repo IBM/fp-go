@@ -275,6 +275,27 @@ func ChainFirstIOK[GA ~func() ET.Either[E, A], GIOB ~func() B, E, A, B any](f fu
 	)
 }
 
+// MonadChainFirstEitherK runs the monad returned by the function but returns the result of the original monad
+func MonadChainFirstEitherK[GA ~func() ET.Either[E, A], E, A, B any](first GA, f func(A) ET.Either[E, B]) GA {
+	return FE.MonadChainFirstEitherK(
+		MonadChain[GA, GA, E, A, A],
+		MonadMap[func() ET.Either[E, B], GA, E, B, A],
+		FromEither[func() ET.Either[E, B], E, B],
+		first,
+		f,
+	)
+}
+
+// ChainFirstEitherK runs the monad returned by the function but returns the result of the original monad
+func ChainFirstEitherK[GA ~func() ET.Either[E, A], E, A, B any](f func(A) ET.Either[E, B]) func(GA) GA {
+	return FE.ChainFirstEitherK(
+		MonadChain[GA, GA, E, A, A],
+		MonadMap[func() ET.Either[E, B], GA, E, B, A],
+		FromEither[func() ET.Either[E, B], E, B],
+		f,
+	)
+}
+
 // Swap changes the order of type parameters
 func Swap[GEA ~func() ET.Either[E, A], GAE ~func() ET.Either[A, E], E, A any](val GEA) GAE {
 	return MonadFold(val, Right[GAE], Left[GAE])
