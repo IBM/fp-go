@@ -64,13 +64,6 @@ func FromEither[GA ~func() O.Option[A], E, A any](e ET.Either[E, A]) GA {
 	)
 }
 
-func FromIOEither[GA ~func() O.Option[A], GEA ~func() ET.Either[E, A], E, A any](ioe GEA) GA {
-	return F.Pipe1(
-		ioe,
-		IO.Map[GEA, GA](ET.ToOption[E, A]),
-	)
-}
-
 func MonadMap[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](fa GA, f func(A) B) GB {
 	return optiont.MonadMap(IO.MonadMap[GA, GB, O.Option[A], O.Option[B]], fa, f)
 }

@@ -52,7 +52,7 @@ func TestIOEitherToOption2(t *testing.T) {
 		content,
 		IOEF.WriteFile(filepath.Join(tmpDir, "test.txt"), os.ModePerm),
 		IOE.Swap[error, []byte],
-		IOO.FromIOEither[[]byte, error],
+		IOE.ToIOOption[[]byte, error],
 	)
 
 	fmt.Println(resIOO())
