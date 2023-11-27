@@ -32,6 +32,17 @@ func MonadAlt[LAZY ~func() HKTFA, E, A, HKTFA any](
 	return fchain(first, ET.Fold(F.Ignore1of1[E](second), F.Flow2(ET.Of[E, A], fof)))
 }
 
+func Alt[LAZY ~func() HKTFA, E, A, HKTFA any](
+	fof func(ET.Either[E, A]) HKTFA,
+	fchain func(HKTFA, func(ET.Either[E, A]) HKTFA) HKTFA,
+
+	second LAZY) func(HKTFA) HKTFA {
+
+	return func(fa HKTFA) HKTFA {
+		return MonadAlt(fof, fchain, fa, second)
+	}
+}
+
 // HKTFA = HKT<F, Either<E, A>>
 // HKTFB = HKT<F, Either<E, B>>
 func MonadMap[E, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[E, A]) ET.Either[E, B]) HKTFB, fa HKTFA, f func(A) B) HKTFB {

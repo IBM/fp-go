@@ -187,3 +187,17 @@ func Fold[GA ~func() O.Option[A], GB ~func() B, A, B any](onNone func() GB, onSo
 func Defer[GA ~func() O.Option[A], A any](gen func() GA) GA {
 	return IO.Defer[GA](gen)
 }
+
+func MonadAlt[LAZY ~func() GIOA, GIOA ~func() O.Option[A], A any](first GIOA, second LAZY) GIOA {
+	return optiont.MonadAlt(
+		IO.Of[GIOA],
+		IO.MonadChain[GIOA, GIOA],
+
+		first,
+		second,
+	)
+}
+
+func Alt[LAZY ~func() GIOA, GIOA ~func() O.Option[A], A any](second LAZY) func(GIOA) GIOA {
+	return F.Bind2nd(MonadAlt[LAZY], second)
+}

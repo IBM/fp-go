@@ -78,3 +78,24 @@ func MonadChainOptionK[A, B, HKTA, HKTB any](
 ) HKTB {
 	return MonadChain(fchain, fof, ma, FromOptionK(fof, f))
 }
+
+func MonadAlt[LAZY ~func() HKTFA, A, HKTFA any](
+	fof func(O.Option[A]) HKTFA,
+	fchain func(HKTFA, func(O.Option[A]) HKTFA) HKTFA,
+
+	first HKTFA,
+	second LAZY) HKTFA {
+
+	return fchain(first, O.Fold(second, F.Flow2(O.Of[A], fof)))
+}
+
+func Alt[LAZY ~func() HKTFA, A, HKTFA any](
+	fof func(O.Option[A]) HKTFA,
+	fchain func(HKTFA, func(O.Option[A]) HKTFA) HKTFA,
+
+	second LAZY) func(HKTFA) HKTFA {
+
+	return func(fa HKTFA) HKTFA {
+		return MonadAlt(fof, fchain, fa, second)
+	}
+}

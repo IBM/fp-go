@@ -19,6 +19,7 @@ import (
 	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
 	G "github.com/IBM/fp-go/iooption/generic"
+	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -131,4 +132,14 @@ func Defer[A any](gen func() IOOption[A]) IOOption[A] {
 // FromEither converts an [Either] into an [IOOption]
 func FromEither[E, A any](e ET.Either[E, A]) IOOption[A] {
 	return G.FromEither[IOOption[A]](e)
+}
+
+// MonadAlt identifies an associative operation on a type constructor
+func MonadAlt[A any](first IOOption[A], second L.Lazy[IOOption[A]]) IOOption[A] {
+	return G.MonadAlt(first, second)
+}
+
+// Alt identifies an associative operation on a type constructor
+func Alt[A any](second L.Lazy[IOOption[A]]) func(IOOption[A]) IOOption[A] {
+	return G.Alt(second)
 }
