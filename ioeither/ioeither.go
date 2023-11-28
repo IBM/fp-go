@@ -197,12 +197,12 @@ func GetOrElse[E, A any](onLeft func(E) I.IO[A]) func(IOEither[E, A]) I.IO[A] {
 }
 
 // MonadChainTo composes to the second monad ignoring the return value of the first
-func MonadChainTo[E, A, B any](fa IOEither[E, A], fb IOEither[E, B]) IOEither[E, B] {
+func MonadChainTo[A, E, B any](fa IOEither[E, A], fb IOEither[E, B]) IOEither[E, B] {
 	return G.MonadChainTo(fa, fb)
 }
 
 // ChainTo composes to the second [IOEither] monad ignoring the return value of the first
-func ChainTo[E, A, B any](fb IOEither[E, B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainTo[A, E, B any](fb IOEither[E, B]) func(IOEither[E, A]) IOEither[E, B] {
 	return G.ChainTo[IOEither[E, A]](fb)
 }
 

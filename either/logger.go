@@ -41,7 +41,7 @@ func Logger[E, A any](loggers ...*log.Logger) func(string) func(Either[E, A]) Ei
 		return func(ma Either[E, A]) Either[E, A] {
 			return F.Pipe1(
 				delegate(ma),
-				ChainTo[E, A](ma),
+				ChainTo[A](ma),
 			)
 		}
 	}
