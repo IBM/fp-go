@@ -65,7 +65,7 @@ func SequenceArray[A any](ma []Option[A]) Option[[]A] {
 func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 	return RA.Reduce(fa, func(out A2, value Option[A]) A2 {
 		return MonadFold(value, F.Constant(out), F.Bind1st(RA.Append[A2, A], out))
-	}, make(A2, len(fa)))
+	}, make(A2, 0, len(fa)))
 }
 
 // CompactArray discards the none values and keeps the some values

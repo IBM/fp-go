@@ -34,3 +34,14 @@ func TestSequenceArray(t *testing.T) {
 
 	assert.Equal(t, res, Of([]int{1, 2}))
 }
+
+func TestCompactArray(t *testing.T) {
+	ar := []Option[string]{
+		Of("ok"),
+		None[string](),
+		Of("ok"),
+	}
+
+	res := CompactArray(ar)
+	assert.Equal(t, 2, len(res))
+}
