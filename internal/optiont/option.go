@@ -49,6 +49,16 @@ func MonadChain[A, B, HKTFA, HKTFB any](
 	return fchain(ma, O.Fold(F.Nullary2(O.None[B], fof), f))
 }
 
+func Chain[A, B, HKTFA, HKTFB any](
+	fchain func(HKTFA, func(O.Option[A]) HKTFB) HKTFB,
+	fof func(O.Option[B]) HKTFB,
+	f func(A) HKTFB) func(ma HKTFA) HKTFB {
+	// dispatch to the even more generic implementation
+	return func(ma HKTFA) HKTFB {
+		return MonadChain(fchain, fof, ma, f)
+	}
+}
+
 func MonadAp[A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
 	fap func(HKTFGAB, HKTFA) HKTFB,
 	fmap func(HKTFAB, func(O.Option[func(A) B]) func(O.Option[A]) O.Option[B]) HKTFGAB,
