@@ -20,6 +20,7 @@ import (
 
 	ET "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 	FI "github.com/IBM/fp-go/internal/fromio"
 	"github.com/IBM/fp-go/internal/optiont"
 	IO "github.com/IBM/fp-go/io/generic"
@@ -76,8 +77,48 @@ func MonadChain[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](fa GA,
 	return optiont.MonadChain(IO.MonadChain[GA, GB, O.Option[A], O.Option[B]], IO.MonadOf[GB, O.Option[B]], fa, f)
 }
 
+// MonadChainFirst runs the monad returned by the function but returns the result of the original monad
+func MonadChainFirst[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](ma GA, f func(A) GB) GA {
+	return C.MonadChainFirst(
+		MonadChain[GA, GA, A, A],
+		MonadMap[GB, GA, B, A],
+		ma,
+		f,
+	)
+}
+
+// ChainFirst runs the monad returned by the function but returns the result of the original monad
+func ChainFirst[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](f func(A) GB) func(GA) GA {
+	return C.ChainFirst(
+		MonadChain[GA, GA, A, A],
+		MonadMap[GB, GA, B, A],
+		f,
+	)
+}
+
+// MonadChainFirstIOK runs the monad returned by the function but returns the result of the original monad
+func MonadChainFirstIOK[GA ~func() O.Option[A], GIOB ~func() B, A, B any](first GA, f func(A) GIOB) GA {
+	return FI.MonadChainFirstIOK(
+		MonadChain[GA, GA, A, A],
+		MonadMap[func() O.Option[B], GA, B, A],
+		FromIO[func() O.Option[B], GIOB, B],
+		first,
+		f,
+	)
+}
+
+// ChainFirstIOK runs the monad returned by the function but returns the result of the original monad
+func ChainFirstIOK[GA ~func() O.Option[A], GIOB ~func() B, A, B any](f func(A) GIOB) func(GA) GA {
+	return FI.ChainFirstIOK(
+		MonadChain[GA, GA, A, A],
+		MonadMap[func() O.Option[B], GA, B, A],
+		FromIO[func() O.Option[B], GIOB, B],
+		f,
+	)
+}
+
 func Chain[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](f func(A) GB) func(GA) GB {
-	return F.Bind2nd(MonadChain[GA, GB, A, B], f)
+	return optiont.Chain(IO.MonadChain[GA, GB, O.Option[A], O.Option[B]], IO.MonadOf[GB, O.Option[B]], f)
 }
 
 func MonadChainOptionK[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](ma GA, f func(A) O.Option[B]) GB {

@@ -18,6 +18,7 @@ package iooption
 import (
 	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
+	IO "github.com/IBM/fp-go/io"
 	G "github.com/IBM/fp-go/iooption/generic"
 	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
@@ -142,4 +143,24 @@ func MonadAlt[A any](first IOOption[A], second L.Lazy[IOOption[A]]) IOOption[A] 
 // Alt identifies an associative operation on a type constructor
 func Alt[A any](second L.Lazy[IOOption[A]]) func(IOOption[A]) IOOption[A] {
 	return G.Alt(second)
+}
+
+// MonadChainFirst runs the monad returned by the function but returns the result of the original monad
+func MonadChainFirst[A, B any](ma IOOption[A], f func(A) IOOption[B]) IOOption[A] {
+	return G.MonadChainFirst[IOOption[A], IOOption[B]](ma, f)
+}
+
+// ChainFirst runs the monad returned by the function but returns the result of the original monad
+func ChainFirst[A, B any](f func(A) IOOption[B]) func(IOOption[A]) IOOption[A] {
+	return G.ChainFirst[IOOption[A], IOOption[B]](f)
+}
+
+// MonadChainFirstIOK runs the monad returned by the function but returns the result of the original monad
+func MonadChainFirstIOK[A, B any](first IOOption[A], f func(A) IO.IO[B]) IOOption[A] {
+	return G.MonadChainFirstIOK[IOOption[A], IO.IO[B]](first, f)
+}
+
+// ChainFirstIOK runs the monad returned by the function but returns the result of the original monad
+func ChainFirstIOK[A, B any](f func(A) IO.IO[B]) func(IOOption[A]) IOOption[A] {
+	return G.ChainFirstIOK[IOOption[A], IO.IO[B]](f)
 }
