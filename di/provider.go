@@ -73,6 +73,46 @@ func eraseProviderFactory2[T1, T2 any, R any](
 	}
 }
 
+func eraseProviderFactory3[T1, T2, T3 any, R any](
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	f func(T1, T2, T3) IOE.IOEither[error, R]) func(params ...any) IOE.IOEither[error, any] {
+	ft := T.Tupled3(f)
+	t1 := lookupAt[T1](0, d1)
+	t2 := lookupAt[T2](1, d2)
+	t3 := lookupAt[T3](2, d3)
+	return func(params ...any) IOE.IOEither[error, any] {
+		return F.Pipe3(
+			E.SequenceT3(t1(params), t2(params), t3(params)),
+			IOE.FromEither[error, T.Tuple3[T1, T2, T3]],
+			IOE.Chain(ft),
+			IOE.Map[error](F.ToAny[R]),
+		)
+	}
+}
+
+func eraseProviderFactory4[T1, T2, T3, T4 any, R any](
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	d4 Dependency[T4],
+	f func(T1, T2, T3, T4) IOE.IOEither[error, R]) func(params ...any) IOE.IOEither[error, any] {
+	ft := T.Tupled4(f)
+	t1 := lookupAt[T1](0, d1)
+	t2 := lookupAt[T2](1, d2)
+	t3 := lookupAt[T3](2, d3)
+	t4 := lookupAt[T4](3, d4)
+	return func(params ...any) IOE.IOEither[error, any] {
+		return F.Pipe3(
+			E.SequenceT4(t1(params), t2(params), t3(params), t4(params)),
+			IOE.FromEither[error, T.Tuple4[T1, T2, T3, T4]],
+			IOE.Chain(ft),
+			IOE.Map[error](F.ToAny[R]),
+		)
+	}
+}
+
 func MakeProviderFactory0[R any](
 	fct func() IOE.IOEither[error, R],
 ) DIE.ProviderFactory {
@@ -157,6 +197,81 @@ func MakeProvider2[T1, T2, R any](
 	return DIE.MakeProvider(
 		token,
 		MakeProviderFactory2(d1, d2, fct),
+	)
+}
+
+func MakeProviderFactory3[T1, T2, T3, R any](
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	fct func(T1, T2, T3) IOE.IOEither[error, R],
+) DIE.ProviderFactory {
+
+	return DIE.MakeProviderFactory(
+		A.From[DIE.Dependency](d1, d2, d3),
+		eraseProviderFactory3(d1, d2, d3, fct),
+	)
+}
+
+// MakeTokenWithDefault3 create a unique `InjectionToken` for a specific type with an attached default provider
+func MakeTokenWithDefault3[T1, T2, T3, R any](name string,
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	fct func(T1, T2, T3) IOE.IOEither[error, R]) InjectionToken[R] {
+	return MakeTokenWithDefault[R](name, MakeProviderFactory3(d1, d2, d3, fct))
+}
+
+func MakeProvider3[T1, T2, T3, R any](
+	token InjectionToken[R],
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	fct func(T1, T2, T3) IOE.IOEither[error, R],
+) DIE.Provider {
+
+	return DIE.MakeProvider(
+		token,
+		MakeProviderFactory3(d1, d2, d3, fct),
+	)
+}
+
+func MakeProviderFactory4[T1, T2, T3, T4, R any](
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	d4 Dependency[T4],
+	fct func(T1, T2, T3, T4) IOE.IOEither[error, R],
+) DIE.ProviderFactory {
+
+	return DIE.MakeProviderFactory(
+		A.From[DIE.Dependency](d1, d2, d3, d4),
+		eraseProviderFactory4(d1, d2, d3, d4, fct),
+	)
+}
+
+// MakeTokenWithDefault4 create a unique `InjectionToken` for a specific type with an attached default provider
+func MakeTokenWithDefault4[T1, T2, T3, T4, R any](name string,
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	d4 Dependency[T4],
+	fct func(T1, T2, T3, T4) IOE.IOEither[error, R]) InjectionToken[R] {
+	return MakeTokenWithDefault[R](name, MakeProviderFactory4(d1, d2, d3, d4, fct))
+}
+
+func MakeProvider4[T1, T2, T3, T4, R any](
+	token InjectionToken[R],
+	d1 Dependency[T1],
+	d2 Dependency[T2],
+	d3 Dependency[T3],
+	d4 Dependency[T4],
+	fct func(T1, T2, T3, T4) IOE.IOEither[error, R],
+) DIE.Provider {
+
+	return DIE.MakeProvider(
+		token,
+		MakeProviderFactory4(d1, d2, d3, d4, fct),
 	)
 }
 
