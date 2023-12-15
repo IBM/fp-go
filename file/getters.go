@@ -15,11 +15,24 @@
 
 package file
 
-import "path/filepath"
+import (
+	"io"
+	"path/filepath"
+)
 
 // Join appends a filename to a root path
 func Join(name string) func(root string) string {
 	return func(root string) string {
 		return filepath.Join(root, name)
 	}
+}
+
+// ToReader converts a [io.Reader]
+func ToReader[R io.Reader](r R) io.Reader {
+	return r
+}
+
+// ToCloser converts a [io.Closer]
+func ToCloser[C io.Closer](c C) io.Closer {
+	return c
 }

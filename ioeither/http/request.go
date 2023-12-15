@@ -16,10 +16,12 @@
 package http
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 
 	B "github.com/IBM/fp-go/bytes"
+	FL "github.com/IBM/fp-go/file"
 	F "github.com/IBM/fp-go/function"
 	H "github.com/IBM/fp-go/http"
 	IOE "github.com/IBM/fp-go/ioeither"
@@ -50,6 +52,24 @@ var (
 	// specialize
 	MakeGetRequest = makeRequest("GET", nil)
 )
+
+// MakeBodyRequest creates a request that carries a body
+func MakeBodyRequest(method string, body IOE.IOEither[error, []byte]) func(url string) IOE.IOEither[error, *http.Request] {
+	onBody := F.Pipe1(
+		body,
+		IOE.Map[error](F.Flow2(
+			bytes.NewReader,
+			FL.ToReader[*bytes.Reader],
+		)),
+	)
+	onRelease := IOE.Of[error, io.Reader]
+	withMethod := F.Bind1of3(MakeRequest)(method)
+
+	return F.Flow2(
+		F.Bind1of2(withMethod),
+		IOE.WithResource[*http.Request](onBody, onRelease),
+	)
+}
 
 func (client client) Do(req Requester) IOE.IOEither[error, *http.Response] {
 	return F.Pipe1(
