@@ -19,11 +19,13 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/url"
 
 	FL "github.com/IBM/fp-go/file"
 	F "github.com/IBM/fp-go/function"
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEH "github.com/IBM/fp-go/ioeither/http"
+	J "github.com/IBM/fp-go/json"
 	LZ "github.com/IBM/fp-go/lazy"
 	L "github.com/IBM/fp-go/optics/lens"
 	O "github.com/IBM/fp-go/option"
@@ -216,4 +218,31 @@ func WithHeader(name string) func(value string) BuilderBuilder {
 // WithoutHeader creates a [BuilderBuilder] to remove a certain header
 func WithoutHeader(name string) BuilderBuilder {
 	return Header(name).Set(noHeader)
+}
+
+// WithFormData creates a [BuilderBuilder] to send form data payload
+func WithFormData(value url.Values) BuilderBuilder {
+	return F.Flow2(
+		F.Pipe4(
+			value,
+			url.Values.Encode,
+			S.ToBytes,
+			IOE.Of[error, []byte],
+			WithBody,
+		),
+		WithContentType("application/x-www-form-urlencoded"),
+	)
+}
+
+// WithJson creates a [BuilderBuilder] to send JSON payload
+func WithJson[T any](data T) BuilderBuilder {
+	return F.Flow2(
+		F.Pipe3(
+			data,
+			J.Marshal[T],
+			IOE.FromEither[error, []byte],
+			WithBody,
+		),
+		WithContentType("application/json"),
+	)
 }
