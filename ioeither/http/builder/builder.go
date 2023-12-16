@@ -17,11 +17,10 @@ package builder
 
 import (
 	"bytes"
-	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
-	FL "github.com/IBM/fp-go/file"
 	F "github.com/IBM/fp-go/function"
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEH "github.com/IBM/fp-go/ioeither/http"
@@ -40,6 +39,7 @@ type (
 		body    O.Option[IOE.IOEither[error, []byte]]
 	}
 
+	// BuilderBuilder returns a function that transforms a builder
 	BuilderBuilder = func(*Builder) *Builder
 )
 
@@ -170,17 +170,17 @@ func (builder *Builder) AddHeaderHeader(name, value string) *Builder {
 func (builder *Builder) Requester() IOEH.Requester {
 	return F.Pipe3(
 		builder.GetBody(),
-		O.Map(IOE.Map[error](F.Flow2(
-			bytes.NewReader,
-			FL.ToReader[*bytes.Reader],
-		))),
-		O.GetOrElse(F.Constant(IOE.Of[error, io.Reader](nil))),
-		IOE.Chain(func(rdr io.Reader) IOE.IOEither[error, *http.Request] {
+		O.Map(IOE.Map[error](bytes.NewReader)),
+		O.GetOrElse(F.Constant(IOE.Of[error, *bytes.Reader](nil))),
+		IOE.Chain(func(rdr *bytes.Reader) IOE.IOEither[error, *http.Request] {
 			return IOE.TryCatchError(func() (*http.Request, error) {
 				req, err := http.NewRequest(builder.GetMethod(), builder.GetUrl(), rdr)
 				if err == nil {
 					for name, value := range builder.GetHeaders() {
 						req.Header[name] = value
+					}
+					if rdr != nil {
+						req.Header.Set("Content-Length", strconv.FormatInt(rdr.Size(), 10))
 					}
 				}
 				return req, err
