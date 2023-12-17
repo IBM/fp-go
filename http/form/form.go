@@ -28,8 +28,8 @@ import (
 )
 
 type (
-	// FormEndomorphism returns an [ENDO.Endomorphism] that transforms a form
-	FormEndomorphism = ENDO.Endomorphism[url.Values]
+	// Endomorphism returns an [ENDO.Endomorphism] that transforms a form
+	Endomorphism = ENDO.Endomorphism[url.Values]
 )
 
 var (
@@ -38,8 +38,8 @@ var (
 
 	noField = O.None[string]()
 
-	// FormMonoid is the [M.Monoid] for the [FormEndomorphism]
-	FormMonoid = ENDO.Monoid[url.Values]()
+	// FormMonoid is the [M.Monoid] for the [Endomorphism]
+	Monoid = ENDO.Monoid[url.Values]()
 
 	// AtValues is a [L.Lens] that focusses on the values of a form field
 	AtValues = LRG.AtRecord[url.Values, []string]
@@ -57,7 +57,7 @@ var (
 )
 
 // WithValue creates a [FormBuilder] for a certain field
-func WithValue(name string) func(value string) FormEndomorphism {
+func WithValue(name string) func(value string) Endomorphism {
 	return F.Flow3(
 		O.Of[string],
 		AtValue(name).Set,
@@ -66,6 +66,6 @@ func WithValue(name string) func(value string) FormEndomorphism {
 }
 
 // WithoutValue creates a [FormBuilder] that removes a field
-func WithoutValue(name string) FormEndomorphism {
+func WithoutValue(name string) Endomorphism {
 	return AtValue(name).Set(noField)
 }

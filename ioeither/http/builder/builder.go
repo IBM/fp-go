@@ -40,8 +40,8 @@ type (
 		body    O.Option[IOE.IOEither[error, []byte]]
 	}
 
-	// BuilderEndomorphism returns an [ENDO.Endomorphism] that transforms a builder
-	BuilderEndomorphism = ENDO.Endomorphism[*Builder]
+	// Endomorphism returns an [ENDO.Endomorphism] that transforms a builder
+	Endomorphism = ENDO.Endomorphism[*Builder]
 )
 
 var (
@@ -50,8 +50,8 @@ var (
 
 	defaultMethod = F.Constant(http.MethodGet)
 
-	// BuilderMonoid is the [M.Monoid] for the [BuilderEndomorphism]
-	BuilderMonoid = ENDO.Monoid[*Builder]()
+	// Monoid is the [M.Monoid] for the [Endomorphism]
+	Monoid = ENDO.Monoid[*Builder]()
 
 	// Url is a [L.Lens] for the URL
 	Url = L.MakeLensRef((*Builder).GetUrl, (*Builder).SetUrl)
@@ -226,7 +226,7 @@ func Header(name string) L.Lens[*Builder, O.Option[string]] {
 }
 
 // WithHeader creates a [BuilderBuilder] for a certain header
-func WithHeader(name string) func(value string) BuilderEndomorphism {
+func WithHeader(name string) func(value string) Endomorphism {
 	return F.Flow3(
 		O.Of[string],
 		Header(name).Set,
@@ -235,12 +235,12 @@ func WithHeader(name string) func(value string) BuilderEndomorphism {
 }
 
 // WithoutHeader creates a [BuilderBuilder] to remove a certain header
-func WithoutHeader(name string) BuilderEndomorphism {
+func WithoutHeader(name string) Endomorphism {
 	return Header(name).Set(noHeader)
 }
 
 // WithFormData creates a [BuilderBuilder] to send form data payload
-func WithFormData(value url.Values) BuilderEndomorphism {
+func WithFormData(value url.Values) Endomorphism {
 	return F.Flow2(
 		F.Pipe4(
 			value,
@@ -254,7 +254,7 @@ func WithFormData(value url.Values) BuilderEndomorphism {
 }
 
 // WithJson creates a [BuilderBuilder] to send JSON payload
-func WithJson[T any](data T) BuilderEndomorphism {
+func WithJson[T any](data T) Endomorphism {
 	return F.Flow2(
 		F.Pipe3(
 			data,
