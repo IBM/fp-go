@@ -29,15 +29,11 @@ func Of[ENDO ~func(A) A, F ~func(A) A, A any](f F) ENDO {
 }
 
 func Identity[ENDO ~func(A) A, A any]() ENDO {
-	return func(a A) A {
-		return a
-	}
+	return Of[ENDO](F.Identity[A])
 }
 
 func Compose[ENDO ~func(A) A, A any](f1, f2 ENDO) ENDO {
-	return func(a A) A {
-		return F.Pipe2(a, f1, f2)
-	}
+	return Of[ENDO](F.Flow2(f1, f2))
 }
 
 // Semigroup for the Endomorphism where the `concat` operation is the usual function composition.

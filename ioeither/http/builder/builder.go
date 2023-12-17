@@ -50,6 +50,9 @@ var (
 
 	defaultMethod = F.Constant(http.MethodGet)
 
+	// BuilderMonoid is the [M.Monoid] for the [BuilderEndomorphism]
+	BuilderMonoid = ENDO.Monoid[*Builder]()
+
 	// Url is a [L.Lens] for the URL
 	Url = L.MakeLensRef((*Builder).GetUrl, (*Builder).SetUrl)
 	// Method is a [L.Lens] for the HTTP method
@@ -67,15 +70,25 @@ var (
 	noBody   = O.None[IOE.IOEither[error, []byte]]()
 
 	// WithMethod creates a [BuilderBuilder] for a certain method
-	WithMethod = Method.Set
+	WithMethod = F.Flow2(
+		Method.Set,
+		ENDO.Of[func(*Builder) *Builder],
+	)
 	// WithUrl creates a [BuilderBuilder] for a certain method
-	WithUrl = Url.Set
+	WithUrl = F.Flow2(
+		Url.Set,
+		ENDO.Of[func(*Builder) *Builder],
+	)
 	// WithHeaders creates a [BuilderBuilder] for a set of headers
-	WithHeaders = Headers.Set
+	WithHeaders = F.Flow2(
+		Headers.Set,
+		ENDO.Of[func(*Builder) *Builder],
+	)
 	// WithBody creates a [BuilderBuilder] for a request body
-	WithBody = F.Flow2(
+	WithBody = F.Flow3(
 		O.Of[IOE.IOEither[error, []byte]],
 		Body.Set,
+		ENDO.Of[func(*Builder) *Builder],
 	)
 	// WithContentType adds the content type header
 	WithContentType = WithHeader("Content-Type")
@@ -93,7 +106,11 @@ var (
 	Requester = (*Builder).Requester
 
 	// WithoutBody creates a [BuilderBuilder] to remove the body
-	WithoutBody = Body.Set(noBody)
+	WithoutBody = F.Pipe2(
+		noBody,
+		Body.Set,
+		ENDO.Of[func(*Builder) *Builder],
+	)
 )
 
 func (builder *Builder) clone() *Builder {

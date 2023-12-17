@@ -38,6 +38,9 @@ var (
 
 	noField = O.None[string]()
 
+	// FormMonoid is the [M.Monoid] for the [FormEndomorphism]
+	FormMonoid = ENDO.Monoid[url.Values]()
+
 	// AtValues is a [L.Lens] that focusses on the values of a form field
 	AtValues = LRG.AtRecord[url.Values, []string]
 
