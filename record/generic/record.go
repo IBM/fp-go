@@ -531,3 +531,12 @@ func MonadFlap[GFAB ~map[K]func(A) B, GB ~map[K]B, K comparable, A, B any](fab G
 func Flap[GFAB ~map[K]func(A) B, GB ~map[K]B, K comparable, A, B any](a A) func(GFAB) GB {
 	return FC.Flap(MonadMap[GFAB, GB], a)
 }
+
+func Copy[M ~map[K]V, K comparable, V any](m M) M {
+	return duplicate(m)
+}
+
+func Clone[M ~map[K]V, K comparable, V any](f func(V) V) func(m M) M {
+	// impementation assumes that map does not optimize for the empty map
+	return Map[M, M](f)
+}

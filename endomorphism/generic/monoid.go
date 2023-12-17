@@ -13,33 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package endomorphism
+package generic
 
 import (
-	G "github.com/IBM/fp-go/endomorphism/generic"
+	F "github.com/IBM/fp-go/function"
 	M "github.com/IBM/fp-go/monoid"
 	S "github.com/IBM/fp-go/semigroup"
 )
 
-// Endomorphism is a function  that
-type Endomorphism[A any] func(A) A
-
 // Of converts any function to an [Endomorphism]
-func Of[F ~func(A) A, A any](f F) Endomorphism[A] {
-	return G.Of[Endomorphism[A]](f)
+func Of[ENDO ~func(A) A, F ~func(A) A, A any](f F) ENDO {
+	return func(a A) A {
+		return f(a)
+	}
 }
 
-// Identity returns the identity [Endomorphism]
-func Identity[A any]() Endomorphism[A] {
-	return G.Identity[Endomorphism[A]]()
+func Identity[ENDO ~func(A) A, A any]() ENDO {
+	return func(a A) A {
+		return a
+	}
+}
+
+func Compose[ENDO ~func(A) A, A any](f1, f2 ENDO) ENDO {
+	return func(a A) A {
+		return F.Pipe2(a, f1, f2)
+	}
 }
 
 // Semigroup for the Endomorphism where the `concat` operation is the usual function composition.
-func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
-	return G.Semigroup[Endomorphism[A]]()
+func Semigroup[ENDO ~func(A) A, A any]() S.Semigroup[ENDO] {
+	return S.MakeSemigroup(Compose[ENDO])
 }
 
 // Monoid for the Endomorphism where the `concat` operation is the usual function composition.
-func Monoid[A any]() M.Monoid[Endomorphism[A]] {
-	return G.Monoid[Endomorphism[A]]()
+func Monoid[ENDO ~func(A) A, A any]() M.Monoid[ENDO] {
+	return M.MakeMonoid(Compose[ENDO], Identity[ENDO]())
 }

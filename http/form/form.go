@@ -19,6 +19,7 @@ import (
 	"net/url"
 
 	A "github.com/IBM/fp-go/array"
+	ENDO "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 	L "github.com/IBM/fp-go/optics/lens"
 	LA "github.com/IBM/fp-go/optics/lens/array"
@@ -27,8 +28,8 @@ import (
 )
 
 type (
-	// FormBuilder returns a function that transforms a form
-	FormBuilder = func(url.Values) url.Values
+	// FormEndomorphism returns an [ENDO.Endomorphism] that transforms a form
+	FormEndomorphism = ENDO.Endomorphism[url.Values]
 )
 
 var (
@@ -53,14 +54,15 @@ var (
 )
 
 // WithValue creates a [FormBuilder] for a certain field
-func WithValue(name string) func(value string) FormBuilder {
-	return F.Flow2(
+func WithValue(name string) func(value string) FormEndomorphism {
+	return F.Flow3(
 		O.Of[string],
 		AtValue(name).Set,
+		ENDO.Of[func(url.Values) url.Values],
 	)
 }
 
 // WithoutValue creates a [FormBuilder] that removes a field
-func WithoutValue(name string) FormBuilder {
+func WithoutValue(name string) FormEndomorphism {
 	return AtValue(name).Set(noField)
 }

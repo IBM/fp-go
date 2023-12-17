@@ -308,8 +308,14 @@ func SliceRight[A any](start int) func([]A) []A {
 	return G.SliceRight[[]A](start)
 }
 
+// Copy creates a shallow copy of the array
 func Copy[A any](b []A) []A {
 	return G.Copy(b)
+}
+
+// Clone creates a deep copy of the array using the provided endomorphism to clone the values
+func Clone[A any](f func(A) A) func(as []A) []A {
+	return G.Clone[[]A](f)
 }
 
 // FoldMap maps and folds an array. Map the Array passing each value to the iterating function. Then fold the results using the provided Monoid.

@@ -284,3 +284,13 @@ func MonadFlap[B any, K comparable, A any](fab map[K]func(A) B, a A) map[K]B {
 func Flap[B any, K comparable, A any](a A) func(map[K]func(A) B) map[K]B {
 	return G.Flap[map[K]func(A) B, map[K]B](a)
 }
+
+// Copy creates a shallow copy of the map
+func Copy[K comparable, V any](m map[K]V) map[K]V {
+	return G.Copy[map[K]V](m)
+}
+
+// Clone creates a deep copy of the map using the provided endomorphism to clone the values
+func Clone[K comparable, V any](f func(V) V) func(m map[K]V) map[K]V {
+	return G.Clone[map[K]V](f)
+}

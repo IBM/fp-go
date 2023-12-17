@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	A "github.com/IBM/fp-go/array"
 	"github.com/IBM/fp-go/internal/utils"
 	O "github.com/IBM/fp-go/option"
 	S "github.com/IBM/fp-go/string"
@@ -130,4 +131,21 @@ func ExampleValuesOrd() {
 
 	// Output: [c b a]
 
+}
+
+func TestCopyVsClone(t *testing.T) {
+	slc := []string{"b", "c"}
+	src := map[string][]string{
+		"a": slc,
+	}
+	// make a shallow copy
+	cpy := Copy(src)
+	// make a deep copy
+	cln := Clone[string](A.Copy[string])(src)
+
+	assert.Equal(t, cpy, cln)
+	// make a modification to the original slice
+	slc[0] = "d"
+	assert.NotEqual(t, cpy, cln)
+	assert.Equal(t, src, cpy)
 }

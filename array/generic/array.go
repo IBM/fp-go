@@ -304,6 +304,11 @@ func Copy[AS ~[]A, A any](b AS) AS {
 	return buf
 }
 
+func Clone[AS ~[]A, A any](f func(A) A) func(as AS) AS {
+	// implementation assumes that map does not optimize for the empty array
+	return Map[AS, AS](f)
+}
+
 func FoldMap[AS ~[]A, A, B any](m M.Monoid[B]) func(func(A) B) func(AS) B {
 	return func(f func(A) B) func(AS) B {
 		return func(as AS) B {

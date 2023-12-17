@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"strconv"
 
+	ENDO "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEH "github.com/IBM/fp-go/ioeither/http"
@@ -39,8 +40,8 @@ type (
 		body    O.Option[IOE.IOEither[error, []byte]]
 	}
 
-	// BuilderBuilder returns a function that transforms a builder
-	BuilderBuilder = func(*Builder) *Builder
+	// BuilderEndomorphism returns an [ENDO.Endomorphism] that transforms a builder
+	BuilderEndomorphism = ENDO.Endomorphism[*Builder]
 )
 
 var (
@@ -208,20 +209,21 @@ func Header(name string) L.Lens[*Builder, O.Option[string]] {
 }
 
 // WithHeader creates a [BuilderBuilder] for a certain header
-func WithHeader(name string) func(value string) BuilderBuilder {
-	return F.Flow2(
+func WithHeader(name string) func(value string) BuilderEndomorphism {
+	return F.Flow3(
 		O.Of[string],
 		Header(name).Set,
+		ENDO.Of[func(*Builder) *Builder],
 	)
 }
 
 // WithoutHeader creates a [BuilderBuilder] to remove a certain header
-func WithoutHeader(name string) BuilderBuilder {
+func WithoutHeader(name string) BuilderEndomorphism {
 	return Header(name).Set(noHeader)
 }
 
 // WithFormData creates a [BuilderBuilder] to send form data payload
-func WithFormData(value url.Values) BuilderBuilder {
+func WithFormData(value url.Values) BuilderEndomorphism {
 	return F.Flow2(
 		F.Pipe4(
 			value,
@@ -235,7 +237,7 @@ func WithFormData(value url.Values) BuilderBuilder {
 }
 
 // WithJson creates a [BuilderBuilder] to send JSON payload
-func WithJson[T any](data T) BuilderBuilder {
+func WithJson[T any](data T) BuilderEndomorphism {
 	return F.Flow2(
 		F.Pipe3(
 			data,
