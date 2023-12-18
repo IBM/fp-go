@@ -7,33 +7,13 @@
 //
 // http://www.apache.org/licenses/LICENSE-2.0
 //
+
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cli
+package di
 
-import (
-	C "github.com/urfave/cli/v2"
-)
-
-func Commands() []*C.Command {
-	return []*C.Command{
-		PipeCommand(),
-		IdentityCommand(),
-		OptionCommand(),
-		EitherCommand(),
-		TupleCommand(),
-		BindCommand(),
-		ApplyCommand(),
-		ContextReaderIOEitherCommand(),
-		ReaderIOEitherCommand(),
-		ReaderCommand(),
-		IOEitherCommand(),
-		IOCommand(),
-		IOOptionCommand(),
-		DICommand(),
-	}
-}
+//go:generate go run .. di --count 10 --filename gen.go
