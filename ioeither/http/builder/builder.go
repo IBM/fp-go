@@ -70,25 +70,15 @@ var (
 	noBody   = O.None[IOE.IOEither[error, []byte]]()
 
 	// WithMethod creates a [BuilderBuilder] for a certain method
-	WithMethod = F.Flow2(
-		Method.Set,
-		ENDO.Of[func(*Builder) *Builder],
-	)
+	WithMethod = Method.Set
 	// WithUrl creates a [BuilderBuilder] for a certain method
-	WithUrl = F.Flow2(
-		Url.Set,
-		ENDO.Of[func(*Builder) *Builder],
-	)
+	WithUrl = Url.Set
 	// WithHeaders creates a [BuilderBuilder] for a set of headers
-	WithHeaders = F.Flow2(
-		Headers.Set,
-		ENDO.Of[func(*Builder) *Builder],
-	)
+	WithHeaders = Headers.Set
 	// WithBody creates a [BuilderBuilder] for a request body
-	WithBody = F.Flow3(
+	WithBody = F.Flow2(
 		O.Of[IOE.IOEither[error, []byte]],
 		Body.Set,
-		ENDO.Of[func(*Builder) *Builder],
 	)
 	// WithContentType adds the content type header
 	WithContentType = WithHeader("Content-Type")
@@ -106,10 +96,9 @@ var (
 	Requester = (*Builder).Requester
 
 	// WithoutBody creates a [BuilderBuilder] to remove the body
-	WithoutBody = F.Pipe2(
+	WithoutBody = F.Pipe1(
 		noBody,
 		Body.Set,
-		ENDO.Of[func(*Builder) *Builder],
 	)
 )
 
@@ -216,7 +205,7 @@ func Header(name string) L.Lens[*Builder, O.Option[string]] {
 		LZ.Map(delHeader(name)),
 	)
 
-	return L.MakeLens[*Builder, O.Option[string]](get, func(b *Builder, value O.Option[string]) *Builder {
+	return L.MakeLens(get, func(b *Builder, value O.Option[string]) *Builder {
 		cpy := b.clone()
 		return F.Pipe1(
 			value,
@@ -227,10 +216,9 @@ func Header(name string) L.Lens[*Builder, O.Option[string]] {
 
 // WithHeader creates a [BuilderBuilder] for a certain header
 func WithHeader(name string) func(value string) Endomorphism {
-	return F.Flow3(
+	return F.Flow2(
 		O.Of[string],
 		Header(name).Set,
-		ENDO.Of[func(*Builder) *Builder],
 	)
 }
 

@@ -13,21 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lens
+package endomorphism
 
 import (
-	EM "github.com/IBM/fp-go/endomorphism"
-	F "github.com/IBM/fp-go/function"
-	I "github.com/IBM/fp-go/optics/iso"
-	L "github.com/IBM/fp-go/optics/lens"
+	G "github.com/IBM/fp-go/endomorphism/generic"
 )
 
-// IsoAsLens converts an `Iso` to a `Lens`
-func IsoAsLens[S, A any](sa I.Iso[S, A]) L.Lens[S, A] {
-	return L.MakeLensCurried(sa.Get, F.Flow2(sa.ReverseGet, F.Flow2(F.Constant1[S, S], EM.Of[func(S) S])))
+// Curry2 curries a binary function
+func Curry2[FCT ~func(T0, T1) T1, T0, T1 any](f FCT) func(T0) Endomorphism[T1] {
+	return G.Curry2[Endomorphism[T1]](f)
 }
 
-// IsoAsLensRef converts an `Iso` to a `Lens`
-func IsoAsLensRef[S, A any](sa I.Iso[*S, A]) L.Lens[*S, A] {
-	return L.MakeLensRefCurried(sa.Get, F.Flow2(sa.ReverseGet, F.Flow2(F.Constant1[*S, *S], EM.Of[func(*S) *S])))
+// Curry3 curries a ternary function
+func Curry3[FCT ~func(T0, T1, T2) T2, T0, T1, T2 any](f FCT) func(T0) func(T1) Endomorphism[T2] {
+	return G.Curry3[Endomorphism[T2]](f)
 }

@@ -17,8 +17,8 @@
 package lens
 
 import (
+	EM "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
-	I "github.com/IBM/fp-go/identity"
 	O "github.com/IBM/fp-go/option"
 )
 
@@ -26,13 +26,13 @@ type (
 	// Lens is a reference to a subpart of a data type
 	Lens[S, A any] struct {
 		Get func(s S) A
-		Set func(a A) func(S) S
+		Set func(a A) EM.Endomorphism[S]
 	}
 )
 
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
-func setCopy[S, A any](setter func(*S, A) *S) func(s *S, a A) *S {
+func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 	return func(s *S, a A) *S {
 		copy := *s
 		return setter(&copy, a)
@@ -41,8 +41,8 @@ func setCopy[S, A any](setter func(*S, A) *S) func(s *S, a A) *S {
 
 // setCopyCurried wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
-func setCopyCurried[S, A any](setter func(A) func(*S) *S) func(a A) func(*S) *S {
-	return func(a A) func(*S) *S {
+func setCopyCurried[SET ~func(A) EM.Endomorphism[*S], S, A any](setter SET) func(a A) EM.Endomorphism[*S] {
+	return func(a A) EM.Endomorphism[*S] {
 		seta := setter(a)
 		return func(s *S) *S {
 			copy := *s
@@ -51,53 +51,53 @@ func setCopyCurried[S, A any](setter func(A) func(*S) *S) func(a A) func(*S) *S 
 	}
 }
 
-// MakeLens creates a lens based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
+// MakeLens creates a [Lens] based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeLensRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
-func MakeLens[S, A any](get func(S) A, set func(S, A) S) Lens[S, A] {
-	return MakeLensCurried(get, F.Curry2(F.Swap(set)))
+func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Lens[S, A] {
+	return MakeLensCurried(get, EM.Curry2(F.Swap(set)))
 }
 
-// MakeLensCurried creates a lens based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
+// MakeLensCurried creates a [Lens] based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeLensRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
-func MakeLensCurried[S, A any](get func(S) A, set func(A) func(S) S) Lens[S, A] {
+func MakeLensCurried[GET ~func(S) A, SET ~func(A) EM.Endomorphism[S], S, A any](get GET, set SET) Lens[S, A] {
 	return Lens[S, A]{Get: get, Set: set}
 }
 
-// MakeLensRef creates a lens based on a getter and a setter function. The setter passed in does not have to create a shallow
+// MakeLensRef creates a [Lens] based on a getter and a setter function. The setter passed in does not have to create a shallow
 // copy, the implementation wraps the setter into one that copies the pointer before modifying it
 //
-// Such a lens assumes that property A of S always exists
-func MakeLensRef[S, A any](get func(*S) A, set func(*S, A) *S) Lens[*S, A] {
+// Such a [Lens] assumes that property A of S always exists
+func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET) Lens[*S, A] {
 	return MakeLens(get, setCopy(set))
 }
 
-// MakeLensRefCurried creates a lens based on a getter and a setter function. The setter passed in does not have to create a shallow
+// MakeLensRefCurried creates a [Lens] based on a getter and a setter function. The setter passed in does not have to create a shallow
 // copy, the implementation wraps the setter into one that copies the pointer before modifying it
 //
-// Such a lens assumes that property A of S always exists
-func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) func(*S) *S) Lens[*S, A] {
+// Such a [Lens] assumes that property A of S always exists
+func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) EM.Endomorphism[*S]) Lens[*S, A] {
 	return MakeLensCurried(get, setCopyCurried(set))
 }
 
-// Id returns a lens implementing the identity operation
-func id[S any](creator func(get func(S) S, set func(S, S) S) Lens[S, S]) Lens[S, S] {
+// id returns a [Lens] implementing the identity operation
+func id[GET ~func(S) S, SET ~func(S, S) S, S any](creator func(get GET, set SET) Lens[S, S]) Lens[S, S] {
 	return creator(F.Identity[S], F.Second[S, S])
 }
 
-// Id returns a lens implementing the identity operation
+// Id returns a [Lens] implementing the identity operation
 func Id[S any]() Lens[S, S] {
-	return id(MakeLens[S, S])
+	return id(MakeLens[EM.Endomorphism[S], func(S, S) S])
 }
 
-// IdRef returns a lens implementing the identity operation
+// IdRef returns a [Lens] implementing the identity operation
 func IdRef[S any]() Lens[*S, *S] {
-	return id(MakeLensRef[S, *S])
+	return id(MakeLensRef[EM.Endomorphism[*S], func(*S, *S) *S])
 }
 
 // Compose combines two lenses and allows to narrow down the focus to a sub-lens
-func compose[S, A, B any](creator func(get func(S) B, set func(S, B) S) Lens[S, B], ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
+func compose[GET ~func(S) B, SET ~func(S, B) S, S, A, B any](creator func(get GET, set SET) Lens[S, B], ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
 	abget := ab.Get
 	abset := ab.Set
 	return func(sa Lens[S, A]) Lens[S, B] {
@@ -114,7 +114,7 @@ func compose[S, A, B any](creator func(get func(S) B, set func(S, B) S) Lens[S, 
 
 // Compose combines two lenses and allows to narrow down the focus to a sub-lens
 func Compose[S, A, B any](ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
-	return compose(MakeLens[S, B], ab)
+	return compose(MakeLens[func(S) B, func(S, B) S], ab)
 }
 
 // ComposeOption combines a `Lens` that returns an optional value with a `Lens` that returns a definite value
@@ -141,7 +141,7 @@ func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.O
 				func(s S, ob O.Option[B]) S {
 					return F.Pipe2(
 						ob,
-						O.Fold(unseta, func(b B) func(S) S {
+						O.Fold(unseta, func(b B) EM.Endomorphism[S] {
 							setbona := F.Flow2(
 								ab.Set(b),
 								seta,
@@ -158,7 +158,7 @@ func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.O
 								),
 							)
 						}),
-						I.Ap[S, S](s),
+						EM.Ap(s),
 					)
 				},
 			)
@@ -174,7 +174,7 @@ func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.O
 // if the setter is called with `None[B]` and `A` does exist, 'B' is removed from 'A'
 func ComposeOptions[S, B, A any](defaultA A) func(ab Lens[A, O.Option[B]]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
 	defa := F.Constant(defaultA)
-	noops := F.Constant(F.Identity[S])
+	noops := EM.Identity[S]
 	noneb := O.None[B]()
 	return func(ab Lens[A, O.Option[B]]) func(Lens[S, O.Option[A]]) Lens[S, O.Option[B]] {
 		unsetb := ab.Set(noneb)
@@ -189,15 +189,15 @@ func ComposeOptions[S, B, A any](defaultA A) func(ab Lens[A, O.Option[B]]) func(
 					sa.Get,
 					O.Chain(ab.Get),
 				),
-				func(b O.Option[B]) func(S) S {
+				func(b O.Option[B]) EM.Endomorphism[S] {
 					return func(s S) S {
-						return O.MonadFold(b, func() func(S) S {
+						return O.MonadFold(b, func() EM.Endomorphism[S] {
 							return F.Pipe2(
 								s,
 								sa.Get,
 								O.Fold(noops, F.Flow2(unsetb, seta)),
 							)
-						}, func(b B) func(S) S {
+						}, func(b B) EM.Endomorphism[S] {
 							// sets a B onto an A
 							setb := F.Flow2(
 								ab.Set(O.Some(b)),
@@ -218,20 +218,20 @@ func ComposeOptions[S, B, A any](defaultA A) func(ab Lens[A, O.Option[B]]) func(
 
 // Compose combines two lenses and allows to narrow down the focus to a sub-lens
 func ComposeRef[S, A, B any](ab Lens[A, B]) func(Lens[*S, A]) Lens[*S, B] {
-	return compose(MakeLensRef[S, B], ab)
+	return compose(MakeLensRef[func(*S) B, func(*S, B) *S], ab)
 }
 
-func modify[S, A any](f func(A) A, sa Lens[S, A], s S) S {
+func modify[FCT ~func(A) A, S, A any](f FCT, sa Lens[S, A], s S) S {
 	return sa.Set(f(sa.Get(s)))(s)
 }
 
-// Modify changes a property of a lens by invoking a transformation function
+// Modify changes a property of a [Lens] by invoking a transformation function
 // if the transformed property has not changes, the method returns the original state
-func Modify[S, A any](f func(A) A) func(Lens[S, A]) func(S) S {
-	return F.Curry3(modify[S, A])(f)
+func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) EM.Endomorphism[S] {
+	return EM.Curry3(modify[FCT, S, A])(f)
 }
 
-func IMap[E, A, B any](ab func(A) B, ba func(B) A) func(Lens[E, A]) Lens[E, B] {
+func IMap[E any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) func(Lens[E, A]) Lens[E, B] {
 	return func(ea Lens[E, A]) Lens[E, B] {
 		return Lens[E, B]{Get: F.Flow2(ea.Get, ab), Set: F.Flow2(ba, ea.Set)}
 	}
@@ -239,7 +239,7 @@ func IMap[E, A, B any](ab func(A) B, ba func(B) A) func(Lens[E, A]) Lens[E, B] {
 
 // fromPredicate returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the nil value will be set instead
-func fromPredicate[S, A any](creator func(get func(S) O.Option[A], set func(S, O.Option[A]) S) Lens[S, O.Option[A]], pred func(A) bool, nilValue A) func(sa Lens[S, A]) Lens[S, O.Option[A]] {
+func fromPredicate[GET ~func(S) O.Option[A], SET ~func(S, O.Option[A]) S, S, A any](creator func(get GET, set SET) Lens[S, O.Option[A]], pred func(A) bool, nilValue A) func(sa Lens[S, A]) Lens[S, O.Option[A]] {
 	fromPred := O.FromPredicate(pred)
 	return func(sa Lens[S, A]) Lens[S, O.Option[A]] {
 		fold := O.Fold(F.Bind1of1(sa.Set)(nilValue), sa.Set)
@@ -247,7 +247,7 @@ func fromPredicate[S, A any](creator func(get func(S) O.Option[A], set func(S, O
 			return F.Pipe2(
 				a,
 				fold,
-				I.Ap[S, S](s),
+				EM.Ap(s),
 			)
 		})
 	}
@@ -256,13 +256,13 @@ func fromPredicate[S, A any](creator func(get func(S) O.Option[A], set func(S, O
 // FromPredicate returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the nil value will be set instead
 func FromPredicate[S, A any](pred func(A) bool, nilValue A) func(sa Lens[S, A]) Lens[S, O.Option[A]] {
-	return fromPredicate(MakeLens[S, O.Option[A]], pred, nilValue)
+	return fromPredicate(MakeLens[func(S) O.Option[A], func(S, O.Option[A]) S], pred, nilValue)
 }
 
 // FromPredicateRef returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the nil value will be set instead
 func FromPredicateRef[S, A any](pred func(A) bool, nilValue A) func(sa Lens[*S, A]) Lens[*S, O.Option[A]] {
-	return fromPredicate(MakeLensRef[S, O.Option[A]], pred, nilValue)
+	return fromPredicate(MakeLensRef[func(*S) O.Option[A], func(*S, O.Option[A]) *S], pred, nilValue)
 }
 
 // FromPredicate returns a `Lens` for a property accessibly as a getter and setter that can be optional
@@ -278,7 +278,7 @@ func FromNillableRef[S, A any](sa Lens[*S, *A]) Lens[*S, O.Option[*A]] {
 }
 
 // fromNullableProp returns a `Lens` from a property that may be optional. The getter returns a default value for these items
-func fromNullableProp[S, A any](creator func(get func(S) A, set func(S, A) S) Lens[S, A], isNullable func(A) O.Option[A], defaultValue A) func(sa Lens[S, A]) Lens[S, A] {
+func fromNullableProp[GET ~func(S) A, SET ~func(S, A) S, S, A any](creator func(get GET, set SET) Lens[S, A], isNullable func(A) O.Option[A], defaultValue A) func(sa Lens[S, A]) Lens[S, A] {
 	return func(sa Lens[S, A]) Lens[S, A] {
 		return creator(F.Flow3(
 			sa.Get,
@@ -293,16 +293,16 @@ func fromNullableProp[S, A any](creator func(get func(S) A, set func(S, A) S) Le
 
 // FromNullableProp returns a `Lens` from a property that may be optional. The getter returns a default value for these items
 func FromNullableProp[S, A any](isNullable func(A) O.Option[A], defaultValue A) func(sa Lens[S, A]) Lens[S, A] {
-	return fromNullableProp(MakeLens[S, A], isNullable, defaultValue)
+	return fromNullableProp(MakeLens[func(S) A, func(S, A) S], isNullable, defaultValue)
 }
 
 // FromNullablePropRef returns a `Lens` from a property that may be optional. The getter returns a default value for these items
 func FromNullablePropRef[S, A any](isNullable func(A) O.Option[A], defaultValue A) func(sa Lens[*S, A]) Lens[*S, A] {
-	return fromNullableProp(MakeLensRef[S, A], isNullable, defaultValue)
+	return fromNullableProp(MakeLensRef[func(*S) A, func(*S, A) *S], isNullable, defaultValue)
 }
 
 // fromFromOption returns a `Lens` from an option property. The getter returns a default value the setter will always set the some option
-func fromOption[S, A any](creator func(get func(S) A, set func(S, A) S) Lens[S, A], defaultValue A) func(sa Lens[S, O.Option[A]]) Lens[S, A] {
+func fromOption[GET ~func(S) A, SET ~func(S, A) S, S, A any](creator func(get GET, set SET) Lens[S, A], defaultValue A) func(sa Lens[S, O.Option[A]]) Lens[S, A] {
 	return func(sa Lens[S, O.Option[A]]) Lens[S, A] {
 		return creator(F.Flow2(
 			sa.Get,
@@ -316,10 +316,10 @@ func fromOption[S, A any](creator func(get func(S) A, set func(S, A) S) Lens[S, 
 
 // FromFromOption returns a `Lens` from an option property. The getter returns a default value the setter will always set the some option
 func FromOption[S, A any](defaultValue A) func(sa Lens[S, O.Option[A]]) Lens[S, A] {
-	return fromOption(MakeLens[S, A], defaultValue)
+	return fromOption(MakeLens[func(S) A, func(S, A) S], defaultValue)
 }
 
 // FromFromOptionRef returns a `Lens` from an option property. The getter returns a default value the setter will always set the some option
 func FromOptionRef[S, A any](defaultValue A) func(sa Lens[*S, O.Option[A]]) Lens[*S, A] {
-	return fromOption(MakeLensRef[S, A], defaultValue)
+	return fromOption(MakeLensRef[func(*S) A, func(*S, A) *S], defaultValue)
 }

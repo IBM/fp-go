@@ -18,6 +18,7 @@
 package optional
 
 import (
+	EM "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
 )
@@ -25,12 +26,12 @@ import (
 // Optional is an optional reference to a subpart of a data type
 type Optional[S, A any] struct {
 	GetOption func(s S) O.Option[A]
-	Set       func(a A) func(S) S
+	Set       func(a A) EM.Endomorphism[S]
 }
 
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
-func setCopy[S, A any](setter func(*S, A) *S) func(s *S, a A) *S {
+func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 	return func(s *S, a A) *S {
 		copy := *s
 		return setter(&copy, a)
@@ -41,7 +42,7 @@ func setCopy[S, A any](setter func(*S, A) *S) func(s *S, a A) *S {
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeOptionalRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
 func MakeOptional[S, A any](get func(S) O.Option[A], set func(S, A) S) Optional[S, A] {
-	return Optional[S, A]{GetOption: get, Set: F.Curry2(F.Swap(set))}
+	return Optional[S, A]{GetOption: get, Set: EM.Curry2(F.Swap(set))}
 }
 
 // MakeOptionalRef creates an Optional based on a getter and a setter function. The setter passed in does not have to create a shallow
@@ -168,7 +169,7 @@ func ichain[S, A, B any](sa Optional[S, A], ab func(A) O.Option[B], ba func(B) O
 	return MakeOptional(
 		F.Flow2(sa.GetOption, O.Chain(ab)),
 		func(s S, b B) S {
-			return O.MonadFold(ba(b), F.Constant(F.Identity[S]), sa.Set)(s)
+			return O.MonadFold(ba(b), EM.Identity[S], sa.Set)(s)
 		},
 	)
 }

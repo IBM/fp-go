@@ -17,6 +17,7 @@
 package iso
 
 import (
+	EM "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 )
 
@@ -52,7 +53,7 @@ func Reverse[S, A any](sa Iso[S, A]) Iso[A, S] {
 	)
 }
 
-func modify[S, A any](f func(A) A, sa Iso[S, A], s S) S {
+func modify[FCT ~func(A) A, S, A any](f FCT, sa Iso[S, A], s S) S {
 	return F.Pipe3(
 		s,
 		sa.Get,
@@ -62,8 +63,8 @@ func modify[S, A any](f func(A) A, sa Iso[S, A], s S) S {
 }
 
 // Modify applies a transformation
-func Modify[S, A any](f func(A) A) func(Iso[S, A]) func(S) S {
-	return F.Curry3(modify[S, A])(f)
+func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Iso[S, A]) EM.Endomorphism[S] {
+	return EM.Curry3(modify[FCT, S, A])(f)
 }
 
 // Wrap wraps the value

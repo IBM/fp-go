@@ -17,6 +17,7 @@
 package prism
 
 import (
+	EM "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
 )
@@ -86,12 +87,12 @@ func prismModify[S, A any](f func(A) A, sa Prism[S, A], s S) S {
 	)
 }
 
-func prismSet[S, A any](a A) func(Prism[S, A]) func(S) S {
-	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
+func prismSet[S, A any](a A) func(Prism[S, A]) EM.Endomorphism[S] {
+	return EM.Curry3(prismModify[S, A])(F.Constant1[A](a))
 }
 
-func Set[S, A any](a A) func(Prism[S, A]) func(S) S {
-	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
+func Set[S, A any](a A) func(Prism[S, A]) EM.Endomorphism[S] {
+	return EM.Curry3(prismModify[S, A])(F.Constant1[A](a))
 }
 
 func prismSome[A any]() Prism[O.Option[A], A] {
@@ -103,14 +104,14 @@ func Some[S, A any](soa Prism[S, O.Option[A]]) Prism[S, A] {
 	return Compose[S](prismSome[A]())(soa)
 }
 
-func imap[S, A, B any](sa Prism[S, A], ab func(A) B, ba func(B) A) Prism[S, B] {
+func imap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](sa Prism[S, A], ab AB, ba BA) Prism[S, B] {
 	return MakePrism(
 		F.Flow2(sa.GetOption, O.Map(ab)),
 		F.Flow2(ba, sa.ReverseGet),
 	)
 }
 
-func IMap[S, A, B any](ab func(A) B, ba func(B) A) func(Prism[S, A]) Prism[S, B] {
+func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) func(Prism[S, A]) Prism[S, B] {
 	return func(sa Prism[S, A]) Prism[S, B] {
 		return imap(sa, ab, ba)
 	}

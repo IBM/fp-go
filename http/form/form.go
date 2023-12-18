@@ -58,10 +58,9 @@ var (
 
 // WithValue creates a [FormBuilder] for a certain field
 func WithValue(name string) func(value string) Endomorphism {
-	return F.Flow3(
+	return F.Flow2(
 		O.Of[string],
 		AtValue(name).Set,
-		ENDO.Of[func(url.Values) url.Values],
 	)
 }
 

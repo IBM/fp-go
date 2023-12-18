@@ -31,25 +31,28 @@ import (
 	R "github.com/IBM/fp-go/record"
 )
 
-type InjectableFactory = func(Dependency) IOE.IOEither[error, any]
-type ProviderFactory = func(InjectableFactory) IOE.IOEither[error, any]
+type (
+	InjectableFactory = func(Dependency) IOE.IOEither[error, any]
+	ProviderFactory   = func(InjectableFactory) IOE.IOEither[error, any]
 
-type paramIndex = map[int]int
-type paramValue = map[int]any
-type handler = func(paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue]
+	paramIndex = map[int]int
+	paramValue = map[int]any
+	handler    = func(paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue]
+	mapping    = map[int]paramIndex
 
-type Provider interface {
-	fmt.Stringer
-	// Provides returns the [Dependency] implemented by this provider
-	Provides() Dependency
-	// Factory returns s function that can create an instance of the dependency based on an [InjectableFactory]
-	Factory() ProviderFactory
-}
+	Provider interface {
+		fmt.Stringer
+		// Provides returns the [Dependency] implemented by this provider
+		Provides() Dependency
+		// Factory returns s function that can create an instance of the dependency based on an [InjectableFactory]
+		Factory() ProviderFactory
+	}
 
-type provider struct {
-	provides Dependency
-	factory  ProviderFactory
-}
+	provider struct {
+		provides Dependency
+		factory  ProviderFactory
+	}
+)
 
 func (p *provider) Provides() Dependency {
 	return p.provides
@@ -72,6 +75,9 @@ func mapFromToken(idx int, token Dependency) map[int]paramIndex {
 }
 
 var (
+	// Empty is the empty array of providers
+	Empty = A.Empty[Provider]()
+
 	mergeTokenMaps = R.UnionMonoid[int](R.UnionLastSemigroup[int, int]())
 	foldDeps       = A.FoldMapWithIndex[Dependency](mergeTokenMaps)(mapFromToken)
 	mergeMaps      = R.UnionLastMonoid[int, any]()
@@ -127,15 +133,13 @@ var (
 	}
 )
 
-type Mapping = map[int]paramIndex
-
 func getAt[T any](ar []T) func(idx int) T {
 	return func(idx int) T {
 		return ar[idx]
 	}
 }
 
-func handleMapping(mp Mapping) func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
+func handleMapping(mp mapping) func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
 	preFct := F.Pipe1(
 		mp,
 		R.Collect(func(idx int, p paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
