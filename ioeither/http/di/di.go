@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package http
+package di
 
 import (
 	"net/http"
 
 	DI "github.com/IBM/fp-go/di"
 	IOE "github.com/IBM/fp-go/ioeither"
+	IOEH "github.com/IBM/fp-go/ioeither/http"
 	L "github.com/IBM/fp-go/lazy"
 )
 
@@ -28,5 +29,5 @@ var (
 	InjHttpClient = DI.MakeTokenWithDefault0("HTTP_CLIENT", L.Of(IOE.Of[error](http.DefaultClient)))
 
 	// InjClient is the injection token for the default [Client]
-	InjClient = DI.MakeTokenWithDefault1("CLIENT", InjHttpClient.IOEither(), IOE.Map[error](MakeClient))
+	InjClient = DI.MakeTokenWithDefault1("CLIENT", InjHttpClient.IOEither(), IOE.Map[error](IOEH.MakeClient))
 )
