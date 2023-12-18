@@ -295,15 +295,16 @@ func recurseCurry(f *os.File, indent string, total, count int) {
 func generateCurry(f *os.File, i int) {
 	// Create the curry version
 	fmt.Fprintf(f, "\n// Curry%d takes a function with %d parameters and returns a cascade of functions each taking only one parameter.\n// The inverse function is [Uncurry%d]\n", i, i, i)
-	fmt.Fprintf(f, "func Curry%d[T0", i)
-	for j := 1; j <= i; j++ {
+	fmt.Fprintf(f, "func Curry%d[FCT ~func(T0", i)
+	for j := 1; j < i; j++ {
 		fmt.Fprintf(f, ", T%d", j)
 	}
-	fmt.Fprintf(f, " any](f func(T0")
-	for j := 2; j <= i; j++ {
-		fmt.Fprintf(f, ", T%d", j-1)
+	fmt.Fprintf(f, ") T%d", i)
+	// type arguments
+	for j := 0; j <= i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
 	}
-	fmt.Fprintf(f, ") T%d) func(T0)", i)
+	fmt.Fprintf(f, " any](f FCT) func(T0)")
 	for j := 2; j <= i; j++ {
 		fmt.Fprintf(f, " func(T%d)", j-1)
 	}
@@ -315,15 +316,16 @@ func generateCurry(f *os.File, i int) {
 func generateUncurry(f *os.File, i int) {
 	// Create the uncurry version
 	fmt.Fprintf(f, "\n// Uncurry%d takes a cascade of %d functions each taking only one parameter and returns a function with %d parameters .\n// The inverse function is [Curry%d]\n", i, i, i, i)
-	fmt.Fprintf(f, "func Uncurry%d[T0", i)
-	for j := 1; j <= i; j++ {
+	fmt.Fprintf(f, "func Uncurry%d[FCT ~func(T0)", i)
+	for j := 1; j < i; j++ {
+		fmt.Fprintf(f, " func(T%d)", j)
+	}
+	fmt.Fprintf(f, " T%d", i)
+	// the type parameters
+	for j := 0; j <= i; j++ {
 		fmt.Fprintf(f, ", T%d", j)
 	}
-	fmt.Fprintf(f, " any](f")
-	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, " func(T%d)", j-1)
-	}
-	fmt.Fprintf(f, " T%d) func(", i)
+	fmt.Fprintf(f, " any](f FCT) func(")
 	for j := 1; j <= i; j++ {
 		if j > 1 {
 			fmt.Fprintf(f, ", ")
