@@ -42,20 +42,21 @@ type InjectionToken[T any] interface {
 	// Identity idenifies this dependency as a mandatory, required dependency, it will be resolved eagerly and injected as `T`.
 	// If the dependency cannot be resolved, the resolution process fails
 	Identity() Dependency[T]
-	// Option identifies this dependency as optional, it will be resolved eagerly and injected as `O.Option[T]`.
-	// If the dependency cannot be resolved, the resolution process continues and the dependency is represented as `O.None[T]`
+	// Option identifies this dependency as optional, it will be resolved eagerly and injected as [O.Option[T]].
+	// If the dependency cannot be resolved, the resolution process continues and the dependency is represented as [O.None[T]]
 	Option() Dependency[O.Option[T]]
-	// IOEither identifies this dependency as mandatory but it will be resolved lazily as a `IOE.IOEither[error, T]`. This
+	// IOEither identifies this dependency as mandatory but it will be resolved lazily as a [IOE.IOEither[error, T]]. This
 	// value is memoized to make sure the dependency is a singleton.
 	// If the dependency cannot be resolved, the resolution process fails
 	IOEither() Dependency[IOE.IOEither[error, T]]
-	// IOOption identifies this dependency as optional but it will be resolved lazily as a `IOO.IOOption[T]`. This
+	// IOOption identifies this dependency as optional but it will be resolved lazily as a [IOO.IOOption[T]]. This
 	// value is memoized to make sure the dependency is a singleton.
 	// If the dependency cannot be resolved, the resolution process continues and the dependency is represented as the none value.
 	IOOption() Dependency[IOO.IOOption[T]]
 }
 
-// MultiInjectionToken uniquely identifies a dependency by giving it an Id, Type and name.
+// MultiInjectionToken uniquely identifies a dependency by giving it an Id, Type and name that can have multiple implementations.
+// Implementations are provided via the [MultiInjectionToken.Item] injection token.
 type MultiInjectionToken[T any] interface {
 	// Container returns the injection token used to request an array of all provided items
 	Container() InjectionToken[[]T]
@@ -146,7 +147,7 @@ func (m *multiInjectionToken[T]) Item() InjectionToken[T] {
 	return m.item
 }
 
-// makeToken create a unique `InjectionToken` for a specific type
+// makeToken create a unique [InjectionToken] for a specific type
 func makeInjectionToken[T any](name string, providerFactory O.Option[DIE.ProviderFactory]) InjectionToken[T] {
 	id := genId()
 	toIdentity := toType[T]()
@@ -158,12 +159,12 @@ func makeInjectionToken[T any](name string, providerFactory O.Option[DIE.Provide
 	}
 }
 
-// MakeToken create a unique `InjectionToken` for a specific type
+// MakeToken create a unique [InjectionToken] for a specific type
 func MakeToken[T any](name string) InjectionToken[T] {
 	return makeInjectionToken[T](name, O.None[DIE.ProviderFactory]())
 }
 
-// MakeToken create a unique `InjectionToken` for a specific type
+// MakeToken create a unique [InjectionToken] for a specific type
 func MakeTokenWithDefault[T any](name string, providerFactory DIE.ProviderFactory) InjectionToken[T] {
 	return makeInjectionToken[T](name, O.Of(providerFactory))
 }

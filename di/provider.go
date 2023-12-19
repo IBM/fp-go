@@ -39,17 +39,17 @@ func eraseTuple[A, R any](f func(A) IOE.IOEither[error, R]) func(E.Either[error,
 	)
 }
 
-func eraseProviderFactory0[R any](f func() IOE.IOEither[error, R]) func(params ...any) IOE.IOEither[error, any] {
+func eraseProviderFactory0[R any](f IOE.IOEither[error, R]) func(params ...any) IOE.IOEither[error, any] {
 	return func(params ...any) IOE.IOEither[error, any] {
 		return F.Pipe1(
-			f(),
+			f,
 			IOE.Map[error](F.ToAny[R]),
 		)
 	}
 }
 
 func MakeProviderFactory0[R any](
-	fct func() IOE.IOEither[error, R],
+	fct IOE.IOEither[error, R],
 ) DIE.ProviderFactory {
 	return DIE.MakeProviderFactory(
 		A.Empty[DIE.Dependency](),
@@ -57,14 +57,14 @@ func MakeProviderFactory0[R any](
 	)
 }
 
-// MakeTokenWithDefault0 create a unique `InjectionToken` for a specific type with an attached default provider
-func MakeTokenWithDefault0[R any](name string, fct func() IOE.IOEither[error, R]) InjectionToken[R] {
+// MakeTokenWithDefault0 creates a unique [InjectionToken] for a specific type with an attached default [DIE.Provider]
+func MakeTokenWithDefault0[R any](name string, fct IOE.IOEither[error, R]) InjectionToken[R] {
 	return MakeTokenWithDefault[R](name, MakeProviderFactory0(fct))
 }
 
 func MakeProvider0[R any](
 	token InjectionToken[R],
-	fct func() IOE.IOEither[error, R],
+	fct IOE.IOEither[error, R],
 ) DIE.Provider {
 	return DIE.MakeProvider(
 		token,
@@ -74,5 +74,5 @@ func MakeProvider0[R any](
 
 // ConstProvider simple implementation for a provider with a constant value
 func ConstProvider[R any](token InjectionToken[R], value R) DIE.Provider {
-	return MakeProvider0[R](token, F.Constant(IOE.Of[error](value)))
+	return MakeProvider0[R](token, IOE.Of[error](value))
 }

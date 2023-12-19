@@ -115,6 +115,9 @@ func itemProviderFactory(fcts []ProviderFactory) ProviderFactory {
 }
 
 // MakeInjector creates an [InjectableFactory] based on a set of [Provider]s
+//
+// The resulting [InjectableFactory] can then be used to retrieve service instances given their [Dependency]. The implementation
+// makes sure to transitively resolve the required dependencies.
 func MakeInjector(providers []Provider) InjectableFactory {
 
 	type Result = IOE.IOEither[error, any]

@@ -21,13 +21,12 @@ import (
 	DI "github.com/IBM/fp-go/di"
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEH "github.com/IBM/fp-go/ioeither/http"
-	L "github.com/IBM/fp-go/lazy"
 )
 
 var (
-	// InjHttpClient is the injection token for the default http client
-	InjHttpClient = DI.MakeTokenWithDefault0("HTTP_CLIENT", L.Of(IOE.Of[error](http.DefaultClient)))
+	// InjHttpClient is the [DI.InjectionToken] for the [http.DefaultClient]
+	InjHttpClient = DI.MakeTokenWithDefault0("HTTP_CLIENT", IOE.Of[error](http.DefaultClient))
 
-	// InjClient is the injection token for the default [Client]
+	// InjClient is the [DI.InjectionToken] for the default [IOEH.Client]
 	InjClient = DI.MakeTokenWithDefault1("CLIENT", InjHttpClient.IOEither(), IOE.Map[error](IOEH.MakeClient))
 )

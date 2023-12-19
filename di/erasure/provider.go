@@ -32,6 +32,7 @@ import (
 )
 
 type (
+	// InjectableFactory is a factory function that can create an untyped instance of a service based on its [Dependency] identifier
 	InjectableFactory = func(Dependency) IOE.IOEither[error, any]
 	ProviderFactory   = func(InjectableFactory) IOE.IOEither[error, any]
 
@@ -82,6 +83,8 @@ var (
 	foldDeps       = A.FoldMapWithIndex[Dependency](mergeTokenMaps)(mapFromToken)
 	mergeMaps      = R.UnionLastMonoid[int, any]()
 	collectParams  = R.CollectOrd[any, any](Int.Ord)(F.SK[int, any])
+
+	mapDeps = F.Curry2(A.MonadMap[Dependency, IOE.IOEither[error, any]])
 
 	handlers = map[int]handler{
 		Identity: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
@@ -171,7 +174,7 @@ func MakeProviderFactory(
 	fct func(param ...any) IOE.IOEither[error, any]) ProviderFactory {
 
 	return F.Flow3(
-		F.Curry2(A.MonadMap[Dependency, IOE.IOEither[error, any]])(deps),
+		mapDeps(deps),
 		handleMapping(foldDeps(deps)),
 		IOE.Chain(F.Unvariadic0(fct)),
 	)

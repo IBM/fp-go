@@ -38,12 +38,10 @@ func TestSimpleProvider(t *testing.T) {
 
 	var staticCount int
 
-	staticValue := func(value string) func() IOE.IOEither[error, string] {
-		return func() IOE.IOEither[error, string] {
-			return func() E.Either[error, string] {
-				staticCount++
-				return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
-			}
+	staticValue := func(value string) IOE.IOEither[error, string] {
+		return func() E.Either[error, string] {
+			staticCount++
+			return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
 		}
 	}
 
@@ -82,12 +80,10 @@ func TestOptionalProvider(t *testing.T) {
 
 	var staticCount int
 
-	staticValue := func(value string) func() IOE.IOEither[error, string] {
-		return func() IOE.IOEither[error, string] {
-			return func() E.Either[error, string] {
-				staticCount++
-				return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
-			}
+	staticValue := func(value string) IOE.IOEither[error, string] {
+		return func() E.Either[error, string] {
+			staticCount++
+			return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
 		}
 	}
 
@@ -182,12 +178,10 @@ func TestEagerAndLazyProvider(t *testing.T) {
 
 	var staticCount int
 
-	staticValue := func(value string) func() IOE.IOEither[error, string] {
-		return func() IOE.IOEither[error, string] {
-			return func() E.Either[error, string] {
-				staticCount++
-				return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
-			}
+	staticValue := func(value string) IOE.IOEither[error, string] {
+		return func() E.Either[error, string] {
+			staticCount++
+			return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
 		}
 	}
 
@@ -307,7 +301,7 @@ func TestTokenWithDefaultProvider(t *testing.T) {
 	// token without a default
 	injToken1 := MakeToken[string]("Token1")
 	// token with a default
-	injToken2 := MakeTokenWithDefault0("Token2", F.Constant(IOE.Of[error]("Carsten")))
+	injToken2 := MakeTokenWithDefault0("Token2", IOE.Of[error]("Carsten"))
 	// dependency
 	injToken3 := MakeToken[string]("Token3")
 
@@ -330,7 +324,7 @@ func TestTokenWithDefaultProvider(t *testing.T) {
 
 func TestTokenWithDefaultProviderAndOverride(t *testing.T) {
 	// token with a default
-	injToken2 := MakeTokenWithDefault0("Token2", F.Constant(IOE.Of[error]("Carsten")))
+	injToken2 := MakeTokenWithDefault0("Token2", IOE.Of[error]("Carsten"))
 	// dependency
 	injToken3 := MakeToken[string]("Token3")
 

@@ -62,7 +62,7 @@ func generateMakeProvider(f *os.File, i int) {
 
 func generateMakeTokenWithDefault(f *os.File, i int) {
 	// non generic version
-	fmt.Fprintf(f, "\n// MakeTokenWithDefault%d creates an [InjectionToken] with a default implementation with %d dependenciess\n", i, i)
+	fmt.Fprintf(f, "\n// MakeTokenWithDefault%d creates an [InjectionToken] with a default implementation with %d dependencies\n", i, i)
 	fmt.Fprintf(f, "func MakeTokenWithDefault%d[", i)
 	for j := 0; j < i; j++ {
 		if j > 0 {
