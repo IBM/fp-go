@@ -13,20 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package di
+package headers
 
-import (
-	DIE "github.com/IBM/fp-go/di/erasure"
-	F "github.com/IBM/fp-go/function"
-	IG "github.com/IBM/fp-go/identity/generic"
-	IOE "github.com/IBM/fp-go/ioeither"
-	RIOE "github.com/IBM/fp-go/readerioeither"
+// HTTP headers
+const (
+	Accept        = "Accept"
+	Authorization = "Authorization"
+	ContentType   = "Content-Type"
+	ContentLength = "Content-Length"
 )
-
-// Resolve performs a type safe resolution of a dependency
-func Resolve[T any](token InjectionToken[T]) RIOE.ReaderIOEither[DIE.InjectableFactory, error, T] {
-	return F.Flow2(
-		IG.Ap[DIE.InjectableFactory](asDependency(token)),
-		IOE.ChainEitherK(token.Unerase),
-	)
-}

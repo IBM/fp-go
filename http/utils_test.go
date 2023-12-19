@@ -20,6 +20,7 @@ import (
 
 	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/http/content"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +39,7 @@ func Error[A any](t *testing.T) func(E.Either[error, A]) bool {
 func TestValidateJsonContentTypeString(t *testing.T) {
 
 	res := F.Pipe1(
-		validateJsonContentTypeString("application/json"),
+		validateJsonContentTypeString(C.Json),
 		NoError[ParsedMediaType](t),
 	)
 

@@ -18,15 +18,21 @@ package di
 import (
 	DIE "github.com/IBM/fp-go/di/erasure"
 	F "github.com/IBM/fp-go/function"
-	IG "github.com/IBM/fp-go/identity/generic"
+	IO "github.com/IBM/fp-go/io"
 	IOE "github.com/IBM/fp-go/ioeither"
-	RIOE "github.com/IBM/fp-go/readerioeither"
 )
 
-// Resolve performs a type safe resolution of a dependency
-func Resolve[T any](token InjectionToken[T]) RIOE.ReaderIOEither[DIE.InjectableFactory, error, T] {
-	return F.Flow2(
-		IG.Ap[DIE.InjectableFactory](asDependency(token)),
-		IOE.ChainEitherK(token.Unerase),
-	)
-}
+var (
+	// InjMain is the [InjectionToken] for the main application
+	InjMain = MakeToken[any]("APP")
+
+	// Main is the resolver for the main application
+	Main = Resolve(InjMain)
+)
+
+// RunMain runs the main application from a set of [DIE.Provider]s
+var RunMain = F.Flow3(
+	DIE.MakeInjector,
+	Main,
+	IOE.Fold(IO.Of[error], F.Constant1[any](IO.Of[error](nil))),
+)

@@ -23,6 +23,8 @@ import (
 
 	ENDO "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/http/content"
+	H "github.com/IBM/fp-go/http/headers"
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEH "github.com/IBM/fp-go/ioeither/http"
 	J "github.com/IBM/fp-go/json"
@@ -80,8 +82,10 @@ var (
 		O.Of[IOE.IOEither[error, []byte]],
 		Body.Set,
 	)
-	// WithContentType adds the content type header
-	WithContentType = WithHeader("Content-Type")
+	// WithContentType adds the [H.ContentType] header
+	WithContentType = WithHeader(H.ContentType)
+	// WithAuthorization adds the [H.Authorization] header
+	WithAuthorization = WithHeader(H.Authorization)
 
 	// WithGet adds the [http.MethodGet] method
 	WithGet = WithMethod(http.MethodGet)
@@ -91,6 +95,12 @@ var (
 	WithPut = WithMethod(http.MethodPut)
 	// WithDelete adds the [http.MethodDelete] method
 	WithDelete = WithMethod(http.MethodDelete)
+
+	// WithBearer creates a [BuilderBuilder] to add a Bearer [H.Authorization] header
+	WithBearer = F.Flow2(
+		S.Format[string]("Bearer %s"),
+		WithAuthorization,
+	)
 
 	// Requester creates a requester from a builder
 	Requester = (*Builder).Requester
@@ -187,7 +197,7 @@ func (builder *Builder) Requester() IOEH.Requester {
 						req.Header[name] = value
 					}
 					if rdr != nil {
-						req.Header.Set("Content-Length", strconv.FormatInt(rdr.Size(), 10))
+						req.Header.Set(H.ContentLength, strconv.FormatInt(rdr.Size(), 10))
 					}
 				}
 				return req, err
@@ -237,7 +247,7 @@ func WithFormData(value url.Values) Endomorphism {
 			IOE.Of[error, []byte],
 			WithBody,
 		),
-		WithContentType("application/x-www-form-urlencoded"),
+		WithContentType(C.FormEncoded),
 	)
 }
 
@@ -250,6 +260,6 @@ func WithJson[T any](data T) Endomorphism {
 			IOE.FromEither[error, []byte],
 			WithBody,
 		),
-		WithContentType("application/json"),
+		WithContentType(C.Json),
 	)
 }

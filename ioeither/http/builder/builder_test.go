@@ -19,24 +19,26 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/http/content"
+	H "github.com/IBM/fp-go/http/headers"
 	O "github.com/IBM/fp-go/option"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBuiler(t *testing.T) {
 
-	name := "Content-type"
+	name := H.ContentType
 	withContentType := WithHeader(name)
 	withoutContentType := WithoutHeader(name)
 
 	b1 := F.Pipe1(
 		Default,
-		withContentType("application/json"),
+		withContentType(C.Json),
 	)
 
 	b2 := F.Pipe1(
 		b1,
-		withContentType("text/plain"),
+		withContentType(C.TextPlain),
 	)
 
 	b3 := F.Pipe1(
@@ -45,7 +47,7 @@ func TestBuiler(t *testing.T) {
 	)
 
 	assert.Equal(t, O.None[string](), Default.GetHeader(name))
-	assert.Equal(t, O.Of("application/json"), b1.GetHeader(name))
-	assert.Equal(t, O.Of("text/plain"), b2.GetHeader(name))
+	assert.Equal(t, O.Of(C.Json), b1.GetHeader(name))
+	assert.Equal(t, O.Of(C.TextPlain), b2.GetHeader(name))
 	assert.Equal(t, O.None[string](), b3.GetHeader(name))
 }
