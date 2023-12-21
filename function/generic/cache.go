@@ -28,7 +28,7 @@ func Memoize[F ~func(K) T, K comparable, T any](f F) F {
 
 // ContramapMemoize converts a unary function into a unary function that caches the value depending on the parameter
 func ContramapMemoize[F ~func(A) T, KF func(A) K, A any, K comparable, T any](kf KF) func(F) F {
-	return CacheCallback[F](kf, getOrCreate[K, T]())
+	return CacheCallback[func(F) F, func() func() T](kf, getOrCreate[K, T]())
 }
 
 // getOrCreate is a naive implementation of a cache, without bounds
@@ -50,13 +50,51 @@ func getOrCreate[K comparable, T any]() func(K, func() func() T) func() T {
 	}
 }
 
+// SingleElementCache is a cache with a capacity of a single element
+func SingleElementCache[
+	LLT ~func() LT, // generator of the generator
+	K comparable, // key into the cache
+	LT ~func() T, // generator of a value
+	T any, // the cached data type
+]() func(K, LLT) LT {
+	var l sync.Mutex
+
+	var key K
+	var value LT
+	hasKey := false
+
+	return func(k K, gen LLT) LT {
+		l.Lock()
+
+		existing := value
+		if !hasKey || key != k {
+			existing = gen()
+			// update state
+			key = k
+			value = existing
+			hasKey = true
+		}
+
+		l.Unlock()
+
+		return existing
+	}
+}
+
 // CacheCallback converts a unary function into a unary function that caches the value depending on the parameter
-func CacheCallback[F ~func(A) T, KF func(A) K, C ~func(K, func() func() T) func() T, A any, K comparable, T any](kf KF, getOrCreate C) func(F) F {
+func CacheCallback[
+	EM ~func(F) F, // endomorphism of the function
+	LLT ~func() LT, // generator of the generator
+	LT ~func() T, // generator of a value
+	F ~func(A) T, // function to actually cache
+	KF func(A) K, // extracts the cache key from the input
+	C ~func(K, LLT) LT, // the cache callback function
+	A any, K comparable, T any](kf KF, getOrCreate C) EM {
 	return func(f F) F {
 		return func(a A) T {
 			// cache entry
-			return getOrCreate(kf(a), func() func() T {
-				return L.Memoize[func() T](func() T {
+			return getOrCreate(kf(a), func() LT {
+				return L.Memoize[LT](func() T {
 					return f(a)
 				})
 			})()

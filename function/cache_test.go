@@ -16,6 +16,8 @@
 package function
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,4 +49,22 @@ func TestCache(t *testing.T) {
 
 	assert.Equal(t, 10, cached(10))
 	assert.Equal(t, 2, count)
+}
+
+func TestSingleElementCache(t *testing.T) {
+	f := func(key string) string {
+		return fmt.Sprintf("%s: %d", key, rand.Int())
+	}
+	cb := CacheCallback(func(s string) string { return s }, SingleElementCache[string, string]())
+	cf := cb(f)
+
+	v1 := cf("1")
+	v2 := cf("1")
+	v3 := cf("2")
+	v4 := cf("1")
+
+	assert.Equal(t, v1, v2)
+	assert.NotEqual(t, v2, v3)
+	assert.NotEqual(t, v3, v4)
+	assert.NotEqual(t, v1, v4)
 }

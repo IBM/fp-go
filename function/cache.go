@@ -28,3 +28,14 @@ func Memoize[K comparable, T any](f func(K) T) func(K) T {
 func ContramapMemoize[A any, K comparable, T any](kf func(A) K) func(func(A) T) func(A) T {
 	return G.ContramapMemoize[func(A) T](kf)
 }
+
+// CacheCallback converts a unary function into a unary function that caches the value depending on the parameter
+func CacheCallback[
+	A any, K comparable, T any](kf func(A) K, getOrCreate func(K, func() func() T) func() T) func(func(A) T) func(A) T {
+	return G.CacheCallback[func(func(A) T) func(A) T](kf, getOrCreate)
+}
+
+// SingleElementCache creates a cache function for use with the [CacheCallback] method that has a maximum capacity of one single item
+func SingleElementCache[K comparable, T any]() func(K, func() func() T) func() T {
+	return G.SingleElementCache[func() func() T, K]()
+}
