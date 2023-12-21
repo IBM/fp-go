@@ -17,6 +17,7 @@ package nonempty
 
 import (
 	G "github.com/IBM/fp-go/array/generic"
+	EM "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/array"
 	S "github.com/IBM/fp-go/semigroup"
@@ -121,4 +122,9 @@ func Fold[A any](s S.Semigroup[A]) func(NonEmptyArray[A]) A {
 	return func(as NonEmptyArray[A]) A {
 		return array.Reduce(Tail(as), s.Concat, Head(as))
 	}
+}
+
+// Prepend prepends a single value to an array
+func Prepend[A any](head A) EM.Endomorphism[NonEmptyArray[A]] {
+	return array.Prepend[EM.Endomorphism[NonEmptyArray[A]]](head)
 }

@@ -17,6 +17,7 @@ package array
 
 import (
 	G "github.com/IBM/fp-go/array/generic"
+	EM "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/array"
 	M "github.com/IBM/fp-go/monoid"
@@ -89,16 +90,16 @@ func filterMapRef[A, B any](fa []A, pred func(a *A) bool, f func(a *A) B) []B {
 }
 
 // Filter returns a new array with all elements from the original array that match a predicate
-func Filter[A any](pred func(A) bool) func([]A) []A {
+func Filter[A any](pred func(A) bool) EM.Endomorphism[[]A] {
 	return G.Filter[[]A](pred)
 }
 
 // FilterWithIndex returns a new array with all elements from the original array that match a predicate
-func FilterWithIndex[A any](pred func(int, A) bool) func([]A) []A {
+func FilterWithIndex[A any](pred func(int, A) bool) EM.Endomorphism[[]A] {
 	return G.FilterWithIndex[[]A](pred)
 }
 
-func FilterRef[A any](pred func(*A) bool) func([]A) []A {
+func FilterRef[A any](pred func(*A) bool) EM.Endomorphism[[]A] {
 	return F.Bind2nd(filterRef[A], pred)
 }
 
@@ -227,7 +228,7 @@ func Last[A any](as []A) O.Option[A] {
 	return G.Last(as)
 }
 
-func PrependAll[A any](middle A) func([]A) []A {
+func PrependAll[A any](middle A) EM.Endomorphism[[]A] {
 	return func(as []A) []A {
 		count := len(as)
 		dst := count * 2
@@ -242,7 +243,7 @@ func PrependAll[A any](middle A) func([]A) []A {
 	}
 }
 
-func Intersperse[A any](middle A) func([]A) []A {
+func Intersperse[A any](middle A) EM.Endomorphism[[]A] {
 	prepend := PrependAll(middle)
 	return func(as []A) []A {
 		if IsEmpty(as) {
@@ -271,7 +272,7 @@ func Lookup[A any](idx int) func([]A) O.Option[A] {
 	return G.Lookup[[]A](idx)
 }
 
-func UpsertAt[A any](a A) func([]A) []A {
+func UpsertAt[A any](a A) EM.Endomorphism[[]A] {
 	return G.UpsertAt[[]A](a)
 }
 
@@ -304,7 +305,7 @@ func ConstNil[A any]() []A {
 	return array.ConstNil[[]A]()
 }
 
-func SliceRight[A any](start int) func([]A) []A {
+func SliceRight[A any](start int) EM.Endomorphism[[]A] {
 	return G.SliceRight[[]A](start)
 }
 
@@ -333,8 +334,8 @@ func Fold[A any](m M.Monoid[A]) func([]A) A {
 	return G.Fold[[]A](m)
 }
 
-func Push[A any](a A) func([]A) []A {
-	return G.Push[[]A](a)
+func Push[A any](a A) EM.Endomorphism[[]A] {
+	return G.Push[EM.Endomorphism[[]A]](a)
 }
 
 func MonadFlap[B, A any](fab []func(A) B, a A) []B {
@@ -343,4 +344,8 @@ func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 
 func Flap[B, A any](a A) func([]func(A) B) []B {
 	return G.Flap[func(A) B, []func(A) B, []B, A, B](a)
+}
+
+func Prepend[A any](head A) EM.Endomorphism[[]A] {
+	return G.Prepend[EM.Endomorphism[[]A]](head)
 }

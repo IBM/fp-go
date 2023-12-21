@@ -335,7 +335,7 @@ func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
 	}
 }
 
-func Push[GA ~[]A, A any](a A) func(GA) GA {
+func Push[ENDO ~func(GA) GA, GA ~[]A, A any](a A) ENDO {
 	return F.Bind2nd(array.Push[GA, A], a)
 }
 
@@ -345,4 +345,8 @@ func MonadFlap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](fab GFAB, a A) GB
 
 func Flap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](a A) func(GFAB) GB {
 	return F.Bind2nd(MonadFlap[FAB, GFAB, GB, A, B], a)
+}
+
+func Prepend[ENDO ~func(AS) AS, AS []A, A any](head A) ENDO {
+	return array.Prepend[ENDO](head)
 }
