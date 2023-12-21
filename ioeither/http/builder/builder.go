@@ -82,6 +82,11 @@ var (
 		O.Of[IOE.IOEither[error, []byte]],
 		Body.Set,
 	)
+	// WithBytes creates a [BuilderBuilder] for a request body using bytes
+	WithBytes = F.Flow2(
+		IOE.Of[error, []byte],
+		WithBody,
+	)
 	// WithContentType adds the [H.ContentType] header
 	WithContentType = WithHeader(H.ContentType)
 	// WithAuthorization adds the [H.Authorization] header

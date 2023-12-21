@@ -16,12 +16,13 @@
 package lambda
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFactorial(t *testing.T) {
-	fct := Y(func(r RecFct[int, int]) RecFct[int, int] {
+	fct := Y(func(r func(int) int) func(int) int {
 		return func(n int) int {
 			if n <= 0 {
 				return 1
@@ -29,6 +30,5 @@ func TestFactorial(t *testing.T) {
 			return n * r(n-1)
 		}
 	})
-
-	fmt.Println(fct(10))
+	assert.Equal(t, 3628800, fct(10))
 }

@@ -15,16 +15,12 @@
 
 package lambda
 
-type (
-	// RecFct is the function called recursively
-	RecFct[T, R any] func(T) R
-
-	internalCombinator[T, R any] func(internalCombinator[T, R]) RecFct[T, R]
-)
-
 // Y is the Y-combinator based on https://dreamsongs.com/Files/WhyOfY.pdf
-func Y[TRFRM ~func(RecFct[T, R]) RecFct[T, R], T, R any](f TRFRM) RecFct[T, R] {
-	g := func(h internalCombinator[T, R]) RecFct[T, R] {
+func Y[TRFRM ~func(RecFct) RecFct, RecFct ~func(T) R, T, R any](f TRFRM) RecFct {
+
+	type internalCombinator[RecFct ~func(T) R, T, R any] func(internalCombinator[RecFct, T, R]) RecFct
+
+	g := func(h internalCombinator[RecFct, T, R]) RecFct {
 		return func(t T) R {
 			return f(h(h))(t)
 		}
