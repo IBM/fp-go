@@ -16,6 +16,7 @@
 package generic
 
 import (
+	F "github.com/IBM/fp-go/function"
 	I "github.com/IBM/fp-go/identity/generic"
 )
 
@@ -27,34 +28,10 @@ func Ap[GA ~func(A) A, A any](fa A) func(GA) A {
 	return I.Ap[GA, A, A](fa)
 }
 
-func MonadFlap[GA ~func(A) A, A any](fab GA, a A) A {
-	return I.MonadFlap[GA, A, A](fab, a)
+func MonadChain[GA ~func(A) A, A any](ma GA, f GA) GA {
+	return Compose(ma, f)
 }
 
-func Flap[GA ~func(A) A, A any](a A) func(GA) A {
-	return I.Flap[GA, A, A](a)
-}
-
-func MonadMap[GA ~func(A) A, A any](fa A, f GA) A {
-	return I.MonadMap[GA, A, A](fa, f)
-}
-
-func Map[GA ~func(A) A, A any](f GA) GA {
-	return I.Map[GA, A, A](f)
-}
-
-func MonadChain[GA ~func(A) A, A any](ma A, f GA) A {
-	return I.MonadChain[GA, A, A](ma, f)
-}
-
-func Chain[GA ~func(A) A, A any](f GA) GA {
-	return I.Chain[GA, A](f)
-}
-
-func MonadChainFirst[GA ~func(A) A, A any](fa A, f GA) A {
-	return I.MonadChainFirst[GA, A, A](fa, f)
-}
-
-func ChainFirst[GA ~func(A) A, A any](f GA) GA {
-	return I.ChainFirst[GA, A, A](f)
+func Chain[ENDO ~func(GA) GA, GA ~func(A) A, A any](f GA) ENDO {
+	return Of[ENDO](F.Bind2nd(Compose[GA], f))
 }

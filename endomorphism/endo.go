@@ -27,34 +27,10 @@ func Ap[A any](fa A) func(Endomorphism[A]) A {
 	return G.Ap[Endomorphism[A]](fa)
 }
 
-func MonadFlap[A any](fab Endomorphism[A], a A) A {
-	return G.MonadFlap[Endomorphism[A]](fab, a)
-}
-
-func Flap[A any](a A) func(Endomorphism[A]) A {
-	return G.Flap[Endomorphism[A]](a)
-}
-
-func MonadMap[A any](fa A, f Endomorphism[A]) A {
-	return G.MonadMap[Endomorphism[A]](fa, f)
-}
-
-func Map[A any](f Endomorphism[A]) Endomorphism[A] {
-	return G.Map[Endomorphism[A]](f)
-}
-
-func MonadChain[A any](ma A, f Endomorphism[A]) A {
+func MonadChain[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
 	return G.MonadChain[Endomorphism[A]](ma, f)
 }
 
-func Chain[A any](f Endomorphism[A]) Endomorphism[A] {
-	return G.Chain[Endomorphism[A], A](f)
-}
-
-func MonadChainFirst[A any](fa A, f Endomorphism[A]) A {
-	return G.MonadChainFirst[Endomorphism[A]](fa, f)
-}
-
-func ChainFirst[A any](f Endomorphism[A]) Endomorphism[A] {
-	return G.ChainFirst[Endomorphism[A]](f)
+func Chain[A any](f Endomorphism[A]) Endomorphism[Endomorphism[A]] {
+	return G.Chain[Endomorphism[Endomorphism[A]], Endomorphism[A], A](f)
 }
