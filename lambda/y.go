@@ -16,11 +16,11 @@
 package lambda
 
 // Y is the Y-combinator based on https://dreamsongs.com/Files/WhyOfY.pdf
-func Y[TRFRM ~func(RecFct) RecFct, RecFct ~func(T) R, T, R any](f TRFRM) RecFct {
+func Y[Endo ~func(RecFct) RecFct, RecFct ~func(T) R, T, R any](f Endo) RecFct {
 
-	type internalCombinator[RecFct ~func(T) R, T, R any] func(internalCombinator[RecFct, T, R]) RecFct
+	type internal[RecFct ~func(T) R, T, R any] func(internal[RecFct, T, R]) RecFct
 
-	g := func(h internalCombinator[RecFct, T, R]) RecFct {
+	g := func(h internal[RecFct, T, R]) RecFct {
 		return func(t T) R {
 			return f(h(h))(t)
 		}

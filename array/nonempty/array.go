@@ -66,6 +66,12 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(NonEmptyArray[A]) B {
 	}
 }
 
+func ReduceRight[A, B any](f func(A, B) B, initial B) func(NonEmptyArray[A]) B {
+	return func(as NonEmptyArray[A]) B {
+		return array.ReduceRight(as, f, initial)
+	}
+}
+
 func Tail[A any](as NonEmptyArray[A]) []A {
 	return as[1:]
 }
