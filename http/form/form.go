@@ -25,6 +25,7 @@ import (
 	LA "github.com/IBM/fp-go/optics/lens/array"
 	LRG "github.com/IBM/fp-go/optics/lens/record/generic"
 	O "github.com/IBM/fp-go/option"
+	RG "github.com/IBM/fp-go/record/generic"
 )
 
 type (
@@ -40,6 +41,9 @@ var (
 
 	// FormMonoid is the [M.Monoid] for the [Endomorphism]
 	Monoid = ENDO.Monoid[url.Values]()
+
+	// ValuesMonoid is a [M.Monoid] to concatenate [url.Values] maps
+	ValuesMonoid = RG.UnionMonoid[url.Values](A.Semigroup[string]())
 
 	// AtValues is a [L.Lens] that focusses on the values of a form field
 	AtValues = LRG.AtRecord[url.Values, []string]

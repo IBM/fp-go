@@ -15,10 +15,44 @@
 
 package headers
 
+import (
+	"net/http"
+	"net/textproto"
+
+	A "github.com/IBM/fp-go/array"
+	F "github.com/IBM/fp-go/function"
+	L "github.com/IBM/fp-go/optics/lens"
+	LA "github.com/IBM/fp-go/optics/lens/array"
+	LRG "github.com/IBM/fp-go/optics/lens/record/generic"
+	RG "github.com/IBM/fp-go/record/generic"
+)
+
 // HTTP headers
 const (
 	Accept        = "Accept"
 	Authorization = "Authorization"
 	ContentType   = "Content-Type"
 	ContentLength = "Content-Length"
+)
+
+var (
+	// Monoid is a [M.Monoid] to concatenate [http.Header] maps
+	Monoid = RG.UnionMonoid[http.Header](A.Semigroup[string]())
+
+	// AtValues is a [L.Lens] that focusses on the values of a header
+	AtValues = F.Flow2(
+		textproto.CanonicalMIMEHeaderKey,
+		LRG.AtRecord[http.Header, []string],
+	)
+
+	composeHead = F.Pipe1(
+		LA.AtHead[string](),
+		L.ComposeOptions[http.Header, string](A.Empty[string]()),
+	)
+
+	// AtValue is a [L.Lens] that focusses on first value of a header
+	AtValue = F.Flow2(
+		AtValues,
+		composeHead,
+	)
 )

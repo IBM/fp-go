@@ -16,16 +16,21 @@
 package builder
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 
+	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/http/content"
 	H "github.com/IBM/fp-go/http/headers"
+	IO "github.com/IBM/fp-go/io"
+	IOE "github.com/IBM/fp-go/ioeither"
 	O "github.com/IBM/fp-go/option"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBuiler(t *testing.T) {
+func TestBuilder(t *testing.T) {
 
 	name := H.ContentType
 	withContentType := WithHeader(name)
@@ -50,4 +55,32 @@ func TestBuiler(t *testing.T) {
 	assert.Equal(t, O.Of(C.Json), b1.GetHeader(name))
 	assert.Equal(t, O.Of(C.TextPlain), b2.GetHeader(name))
 	assert.Equal(t, O.None[string](), b3.GetHeader(name))
+}
+
+func TestBuilderWithQuery(t *testing.T) {
+	// add some query
+	withLimit := WithQueryArg("limit")("10")
+	withUrl := WithUrl("http://www.example.org?a=b")
+
+	b := F.Pipe2(
+		Default,
+		withLimit,
+		withUrl,
+	)
+
+	req := F.Pipe2(
+		b.Requester(),
+		IOE.Map[error](func(r *http.Request) *url.URL {
+			return r.URL
+		}),
+		IOE.ChainFirstIOK[error](func(u *url.URL) IO.IO[any] {
+			return IO.FromImpure(func() {
+				q := u.Query()
+				assert.Equal(t, "10", q.Get("limit"))
+				assert.Equal(t, "b", q.Get("a"))
+			})
+		}),
+	)
+
+	assert.True(t, E.IsRight(req()))
 }
