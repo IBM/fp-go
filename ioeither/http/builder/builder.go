@@ -266,13 +266,17 @@ func (builder *Builder) Requester() IOEH.Requester {
 		)),
 	)
 
-	return F.Pipe5(
+	return F.Pipe6(
 		builder,
 		Body.Get,
 		O.Fold(LZ.Of(IOE.Of[error](withoutBody)), IOE.Map[error](withBody)),
 		IOG.Map[IOE.IOEither[error, func(string) func(string) IOE.IOEither[error, *http.Request]], IOE.IOEither[error, func(string) IOE.IOEither[error, *http.Request]]](E.Ap[func(string) IOE.IOEither[error, *http.Request]](targetUrl)),
 		IOE.Flap[error, IOE.IOEither[error, *http.Request]](builder.GetMethod()),
 		IOE.Flatten[error, *http.Request],
+		IOE.Map[error](func(req *http.Request) *http.Request {
+			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())
+			return req
+		}),
 	)
 }
 
