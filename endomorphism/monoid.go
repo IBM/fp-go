@@ -29,6 +29,16 @@ func Of[F ~func(A) A, A any](f F) Endomorphism[A] {
 	return G.Of[Endomorphism[A]](f)
 }
 
+// Wrap converts any function to an [Endomorphism]
+func Wrap[F ~func(A) A, A any](f F) Endomorphism[A] {
+	return G.Wrap[Endomorphism[A]](f)
+}
+
+// Unwrap converts any [Endomorphism] to a function
+func Unwrap[F ~func(A) A, A any](f Endomorphism[A]) F {
+	return G.Unwrap[F](f)
+}
+
 // Identity returns the identity [Endomorphism]
 func Identity[A any]() Endomorphism[A] {
 	return G.Identity[Endomorphism[A]]()

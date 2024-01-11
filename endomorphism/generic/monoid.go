@@ -28,6 +28,16 @@ func Of[ENDO ~func(A) A, F ~func(A) A, A any](f F) ENDO {
 	}
 }
 
+// Wrap converts any function to an [Endomorphism]
+func Wrap[ENDO ~func(A) A, F ~func(A) A, A any](f F) ENDO {
+	return Of[ENDO](f)
+}
+
+// Unwrap converts any [Endomorphism] to a normal function
+func Unwrap[F ~func(A) A, ENDO ~func(A) A, A any](f ENDO) F {
+	return Of[F](f)
+}
+
 func Identity[ENDO ~func(A) A, A any]() ENDO {
 	return Of[ENDO](F.Identity[A])
 }
