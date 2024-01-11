@@ -16,15 +16,16 @@
 package builder
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"testing"
 
+	RIOE "github.com/IBM/fp-go/context/readerioeither"
 	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
 	R "github.com/IBM/fp-go/http/builder"
 	IO "github.com/IBM/fp-go/io"
-	IOE "github.com/IBM/fp-go/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,10 +43,10 @@ func TestBuilderWithQuery(t *testing.T) {
 	req := F.Pipe3(
 		b,
 		Requester,
-		IOE.Map[error](func(r *http.Request) *url.URL {
+		RIOE.Map(func(r *http.Request) *url.URL {
 			return r.URL
 		}),
-		IOE.ChainFirstIOK[error](func(u *url.URL) IO.IO[any] {
+		RIOE.ChainFirstIOK(func(u *url.URL) IO.IO[any] {
 			return IO.FromImpure(func() {
 				q := u.Query()
 				assert.Equal(t, "10", q.Get("limit"))
@@ -54,5 +55,5 @@ func TestBuilderWithQuery(t *testing.T) {
 		}),
 	)
 
-	assert.True(t, E.IsRight(req()))
+	assert.True(t, E.IsRight(req(context.Background())()))
 }
