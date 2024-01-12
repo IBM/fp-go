@@ -133,6 +133,29 @@ func Delay[GA ~func() A, A any](delay time.Duration) func(GA) GA {
 	}
 }
 
+func after(timestamp time.Time) func() {
+	return func() {
+		// check if we need to wait
+		current := time.Now()
+		if current.Before(timestamp) {
+			time.Sleep(timestamp.Sub(current))
+		}
+	}
+}
+
+// After creates an operation that passes after the given timestamp
+func After[GA ~func() A, A any](timestamp time.Time) func(GA) GA {
+	aft := after(timestamp)
+	return func(ga GA) GA {
+		return MakeIO[GA](func() A {
+			// wait as long as necessary
+			aft()
+			// execute after wait
+			return ga()
+		})
+	}
+}
+
 // Now returns the current timestamp
 func Now[GA ~func() time.Time]() GA {
 	return MakeIO[GA](time.Now)

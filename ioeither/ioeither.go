@@ -16,6 +16,8 @@
 package ioeither
 
 import (
+	"time"
+
 	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
 	G "github.com/IBM/fp-go/ioeither/generic"
@@ -275,4 +277,14 @@ func Flap[E, B, A any](a A) func(IOEither[E, func(A) B]) IOEither[E, B] {
 // ToIOOption converts an [IOEither] to an [IOO.IOOption]
 func ToIOOption[E, A any](ioe IOEither[E, A]) IOO.IOOption[A] {
 	return G.ToIOOption[IOO.IOOption[A]](ioe)
+}
+
+// Delay creates an operation that passes in the value after some delay
+func Delay[E, A any](delay time.Duration) func(IOEither[E, A]) IOEither[E, A] {
+	return G.Delay[IOEither[E, A]](delay)
+}
+
+// After creates an operation that passes after the given [time.Time]
+func After[E, A any](timestamp time.Time) func(IOEither[E, A]) IOEither[E, A] {
+	return G.After[IOEither[E, A]](timestamp)
 }

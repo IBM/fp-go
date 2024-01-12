@@ -16,6 +16,8 @@
 package iooption
 
 import (
+	"time"
+
 	ET "github.com/IBM/fp-go/either"
 	I "github.com/IBM/fp-go/io"
 	IO "github.com/IBM/fp-go/io"
@@ -163,4 +165,14 @@ func MonadChainFirstIOK[A, B any](first IOOption[A], f func(A) IO.IO[B]) IOOptio
 // ChainFirstIOK runs the monad returned by the function but returns the result of the original monad
 func ChainFirstIOK[A, B any](f func(A) IO.IO[B]) func(IOOption[A]) IOOption[A] {
 	return G.ChainFirstIOK[IOOption[A], IO.IO[B]](f)
+}
+
+// Delay creates an operation that passes in the value after some delay
+func Delay[A any](delay time.Duration) func(IOOption[A]) IOOption[A] {
+	return G.Delay[IOOption[A]](delay)
+}
+
+// After creates an operation that passes after the given [time.Time]
+func After[A any](timestamp time.Time) func(IOOption[A]) IOOption[A] {
+	return G.After[IOOption[A]](timestamp)
 }

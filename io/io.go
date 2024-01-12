@@ -146,3 +146,13 @@ func MonadFlap[B, A any](fab IO[func(A) B], a A) IO[B] {
 func Flap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](a A) func(IO[func(A) B]) IO[B] {
 	return G.Flap[func(A) B, IO[func(A) B], IO[B], A, B](a)
 }
+
+// Delay creates an operation that passes in the value after some delay
+func Delay[A any](delay time.Duration) func(IO[A]) IO[A] {
+	return G.Delay[IO[A]](delay)
+}
+
+// After creates an operation that passes after the given timestamp
+func After[A any](timestamp time.Time) func(IO[A]) IO[A] {
+	return G.After[IO[A]](timestamp)
+}

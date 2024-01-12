@@ -207,9 +207,14 @@ func MapLeft[GA1 ~func() ET.Either[E1, A], GA2 ~func() ET.Either[E2, A], E1, E2,
 	return F.Bind2nd(MonadMapLeft[GA1, GA2, E1, E2, A], f)
 }
 
-// Delay creates an operation that passes in the value after some delay
+// Delay creates an operation that passes in the value after some [time.Duration]
 func Delay[GA ~func() ET.Either[E, A], E, A any](delay time.Duration) func(GA) GA {
 	return IO.Delay[GA](delay)
+}
+
+// After creates an operation that passes after the given [time.Time]
+func After[GA ~func() ET.Either[E, A], E, A any](timestamp time.Time) func(GA) GA {
+	return IO.After[GA](timestamp)
 }
 
 func MonadBiMap[GA ~func() ET.Either[E1, A], GB ~func() ET.Either[E2, B], E1, E2, A, B any](fa GA, f func(E1) E2, g func(A) B) GB {

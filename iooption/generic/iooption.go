@@ -219,6 +219,11 @@ func Delay[GA ~func() O.Option[A], A any](delay time.Duration) func(GA) GA {
 	return IO.Delay[GA](delay)
 }
 
+// After creates an operation that passes after the given [time.Time]
+func After[GA ~func() O.Option[A], A any](timestamp time.Time) func(GA) GA {
+	return IO.After[GA](timestamp)
+}
+
 // Fold convers an IOOption into an IO
 func Fold[GA ~func() O.Option[A], GB ~func() B, A, B any](onNone func() GB, onSome func(A) GB) func(GA) GB {
 	return optiont.MatchE(IO.MonadChain[GA, GB, O.Option[A], B], onNone, onSome)
