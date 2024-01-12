@@ -16,6 +16,7 @@
 package record
 
 import (
+	EM "github.com/IBM/fp-go/endomorphism"
 	Mg "github.com/IBM/fp-go/magma"
 	Mo "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
@@ -291,6 +292,44 @@ func Copy[K comparable, V any](m map[K]V) map[K]V {
 }
 
 // Clone creates a deep copy of the map using the provided endomorphism to clone the values
-func Clone[K comparable, V any](f func(V) V) func(m map[K]V) map[K]V {
+func Clone[K comparable, V any](f EM.Endomorphism[V]) EM.Endomorphism[map[K]V] {
 	return G.Clone[map[K]V](f)
+}
+
+// FromFoldableMap converts from a reducer to a map
+// Duplicate keys are resolved by the provided [Mg.Magma]
+func FromFoldableMap[
+	FOLDABLE ~func(func(map[K]V, A) map[K]V, map[K]V) func(HKTA) map[K]V, // the reduce function
+	A any,
+	HKTA any,
+	K comparable,
+	V any](m Mg.Magma[V], red FOLDABLE) func(f func(A) T.Tuple2[K, V]) func(fa HKTA) map[K]V {
+	return G.FromFoldableMap[func(A) T.Tuple2[K, V]](m, red)
+}
+
+// FromArrayMap converts from an array to a map
+// Duplicate keys are resolved by the provided [Mg.Magma]
+func FromArrayMap[
+	A any,
+	K comparable,
+	V any](m Mg.Magma[V]) func(f func(A) T.Tuple2[K, V]) func(fa []A) map[K]V {
+	return G.FromArrayMap[func(A) T.Tuple2[K, V], []A, map[K]V](m)
+}
+
+// FromFoldable converts from a reducer to a map
+// Duplicate keys are resolved by the provided [Mg.Magma]
+func FromFoldable[
+	HKTA any,
+	FOLDABLE ~func(func(map[K]V, T.Tuple2[K, V]) map[K]V, map[K]V) func(HKTA) map[K]V, // the reduce function
+	K comparable,
+	V any](m Mg.Magma[V], red FOLDABLE) func(fa HKTA) map[K]V {
+	return G.FromFoldable[HKTA, FOLDABLE](m, red)
+}
+
+// FromArray converts from an array to a map
+// Duplicate keys are resolved by the provided [Mg.Magma]
+func FromArray[
+	K comparable,
+	V any](m Mg.Magma[V]) func(fa []T.Tuple2[K, V]) map[K]V {
+	return G.FromArray[[]T.Tuple2[K, V], map[K]V](m)
 }

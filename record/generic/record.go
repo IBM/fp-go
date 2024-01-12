@@ -19,6 +19,7 @@ import (
 	"sort"
 
 	F "github.com/IBM/fp-go/function"
+	RAG "github.com/IBM/fp-go/internal/array"
 	FC "github.com/IBM/fp-go/internal/functor"
 	G "github.com/IBM/fp-go/internal/record"
 	Mg "github.com/IBM/fp-go/magma"
@@ -332,6 +333,62 @@ func ToEntriesOrd[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](o ord.O
 
 func ToEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](r M) GT {
 	return ToArray[M, GT](r)
+}
+
+// FromFoldableMap uses the reduce method for a higher kinded type to transform
+// its values into a tuple. The key and value are then used to populate the map. Duplicate
+// values are resolved via the provided [Mg.Magma]
+func FromFoldableMap[
+	FCT ~func(A) T.Tuple2[K, V],
+	HKTA any,
+	FOLDABLE ~func(func(M, A) M, M) func(HKTA) M,
+	M ~map[K]V,
+	A any,
+	K comparable,
+	V any](m Mg.Magma[V], fld FOLDABLE) func(f FCT) func(fa HKTA) M {
+	return func(f FCT) func(fa HKTA) M {
+		return fld(func(dst M, a A) M {
+			if IsEmpty(dst) {
+				dst = make(M)
+			}
+			e := f(a)
+			k := T.First(e)
+			old, ok := dst[k]
+			if ok {
+				dst[k] = m.Concat(old, T.Second(e))
+			} else {
+				dst[k] = T.Second(e)
+			}
+			return dst
+		}, Empty[M]())
+	}
+}
+
+func FromFoldable[
+	HKTA any,
+	FOLDABLE ~func(func(M, T.Tuple2[K, V]) M, M) func(HKTA) M,
+	M ~map[K]V,
+	K comparable,
+	V any](m Mg.Magma[V], red FOLDABLE) func(fa HKTA) M {
+	return FromFoldableMap[func(T.Tuple2[K, V]) T.Tuple2[K, V], HKTA, FOLDABLE](m, red)(F.Identity[T.Tuple2[K, V]])
+}
+
+func FromArrayMap[
+	FCT ~func(A) T.Tuple2[K, V],
+	GA ~[]A,
+	M ~map[K]V,
+	A any,
+	K comparable,
+	V any](m Mg.Magma[V]) func(f FCT) func(fa GA) M {
+	return FromFoldableMap[FCT](m, F.Bind23of3(RAG.Reduce[GA, A, M]))
+}
+
+func FromArray[
+	GA ~[]T.Tuple2[K, V],
+	M ~map[K]V,
+	K comparable,
+	V any](m Mg.Magma[V]) func(fa GA) M {
+	return FromFoldable[GA](m, F.Bind23of3(RAG.Reduce[GA, T.Tuple2[K, V], M]))
 }
 
 func FromEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](fa GT) M {

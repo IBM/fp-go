@@ -1,5 +1,5 @@
-// Copyright (c) 2023 IBM Corp.
 // All rights reserved.
+// Copyright (c) 2023 IBM Corp.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ import (
 
 	A "github.com/IBM/fp-go/array"
 	"github.com/IBM/fp-go/internal/utils"
+	Mg "github.com/IBM/fp-go/magma"
 	O "github.com/IBM/fp-go/option"
 	S "github.com/IBM/fp-go/string"
+	T "github.com/IBM/fp-go/tuple"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -148,4 +150,29 @@ func TestCopyVsClone(t *testing.T) {
 	slc[0] = "d"
 	assert.NotEqual(t, cpy, cln)
 	assert.Equal(t, src, cpy)
+}
+
+func TestFromArrayMap(t *testing.T) {
+	src1 := A.From("a", "b", "c", "a")
+	frm := FromArrayMap[string, string](Mg.Second[string]())
+
+	f := frm(T.Replicate2[string])
+
+	res1 := f(src1)
+
+	assert.Equal(t, map[string]string{
+		"a": "a",
+		"b": "b",
+		"c": "c",
+	}, res1)
+
+	src2 := A.From("A", "B", "C", "A")
+
+	res2 := f(src2)
+
+	assert.Equal(t, map[string]string{
+		"A": "A",
+		"B": "B",
+		"C": "C",
+	}, res2)
 }
