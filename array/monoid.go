@@ -24,10 +24,10 @@ import (
 func concat[T any](left, right []T) []T {
 	// some performance checks
 	ll := len(left)
-	lr := len(right)
 	if ll == 0 {
 		return right
 	}
+	lr := len(right)
 	if lr == 0 {
 		return left
 	}
