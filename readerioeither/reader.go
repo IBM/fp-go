@@ -280,3 +280,12 @@ func MonadFlap[R, E, B, A any](fab ReaderIOEither[R, E, func(A) B], a A) ReaderI
 func Flap[R, E, B, A any](a A) func(ReaderIOEither[R, E, func(A) B]) ReaderIOEither[R, E, B] {
 	return G.Flap[ReaderIOEither[R, E, func(A) B], ReaderIOEither[R, E, B]](a)
 }
+
+func MonadMapLeft[R, E1, E2, A any](fa ReaderIOEither[R, E1, A], f func(E1) E2) ReaderIOEither[R, E2, A] {
+	return G.MonadMapLeft[ReaderIOEither[R, E1, A], ReaderIOEither[R, E2, A]](fa, f)
+}
+
+// MapLeft applies a mapping function to the error channel
+func MapLeft[R, A, E1, E2 any](f func(E1) E2) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
+	return G.MapLeft[ReaderIOEither[R, E1, A], ReaderIOEither[R, E2, A]](f)
+}

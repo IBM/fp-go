@@ -175,7 +175,7 @@ func MonadMapLeft[E1, E2, A any](fa IOEither[E1, A], f func(E1) E2) IOEither[E2,
 	return G.MonadMapLeft[IOEither[E1, A], IOEither[E2, A]](fa, f)
 }
 
-func MapLeft[E1, E2, A any](f func(E1) E2) func(IOEither[E1, A]) IOEither[E2, A] {
+func MapLeft[A, E1, E2 any](f func(E1) E2) func(IOEither[E1, A]) IOEither[E2, A] {
 	return G.MapLeft[IOEither[E1, A], IOEither[E2, A]](f)
 }
 

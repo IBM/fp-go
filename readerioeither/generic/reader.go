@@ -440,3 +440,12 @@ func MonadFlap[GREAB ~func(R) GEAB, GREB ~func(R) GEB, GEAB ~func() ET.Either[E,
 func Flap[GREAB ~func(R) GEAB, GREB ~func(R) GEB, GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], R, E, B, A any](a A) func(GREAB) GREB {
 	return FC.Flap(MonadMap[GREAB, GREB], a)
 }
+
+func MonadMapLeft[GREA1 ~func(R) GEA1, GREA2 ~func(R) GEA2, GEA1 ~func() ET.Either[E1, A], GEA2 ~func() ET.Either[E2, A], R, E1, E2, A any](fa GREA1, f func(E1) E2) GREA2 {
+	return eithert.MonadMapLeft(G.MonadMap[GREA1, GREA2], fa, f)
+}
+
+// MapLeft applies a mapping function to the error channel
+func MapLeft[GREA1 ~func(R) GEA1, GREA2 ~func(R) GEA2, GEA1 ~func() ET.Either[E1, A], GEA2 ~func() ET.Either[E2, A], R, E1, E2, A any](f func(E1) E2) func(GREA1) GREA2 {
+	return F.Bind2nd(MonadMapLeft[GREA1, GREA2], f)
+}
