@@ -18,10 +18,21 @@ package string
 import (
 	"testing"
 
+	A "github.com/IBM/fp-go/array"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEmpty(t *testing.T) {
 	assert.True(t, IsEmpty(""))
 	assert.False(t, IsEmpty("Carsten"))
+}
+
+func TestJoin(t *testing.T) {
+
+	x := Join(",")(A.From("a", "b", "c"))
+	assert.Equal(t, x, x)
+
+	assert.Equal(t, "a,b,c", Join(",")(A.From("a", "b", "c")))
+	assert.Equal(t, "a", Join(",")(A.From("a")))
+	assert.Equal(t, "", Join(",")(A.Empty[string]()))
 }

@@ -32,6 +32,9 @@ var (
 
 	// Ord implements the default ordering for strings
 	Ord = ord.FromStrictCompare[string]()
+
+	// Join joins strings
+	Join = F.Curry2(F.Bind2nd[[]string, string, string])(strings.Join)
 )
 
 func Eq(left string, right string) bool {
