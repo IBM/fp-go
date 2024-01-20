@@ -39,7 +39,7 @@ var (
 
 	noField = O.None[string]()
 
-	// FormMonoid is the [M.Monoid] for the [Endomorphism]
+	// Monoid is the [M.Monoid] for the [Endomorphism]
 	Monoid = ENDO.Monoid[url.Values]()
 
 	// ValuesMonoid is a [M.Monoid] to concatenate [url.Values] maps

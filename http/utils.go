@@ -20,6 +20,7 @@ import (
 	"io"
 	"mime"
 	H "net/http"
+	"net/url"
 	"regexp"
 
 	A "github.com/IBM/fp-go/array"
@@ -33,6 +34,13 @@ import (
 
 type (
 	ParsedMediaType = T.Tuple2[string, map[string]string]
+
+	HttpError struct {
+		statusCode int
+		headers    H.Header
+		body       []byte
+		url        *url.URL
+	}
 )
 
 var (
@@ -72,6 +80,31 @@ func ParseMediaType(mediaType string) E.Either[error, ParsedMediaType] {
 	return E.TryCatchError(T.MakeTuple2(m, p), err)
 }
 
+// Error fulfills the error interface
+func (r *HttpError) Error() string {
+	return fmt.Sprintf("invalid status code [%d] when accessing URL [%s]", r.statusCode, r.url)
+}
+
+func (r *HttpError) String() string {
+	return r.Error()
+}
+
+func (r *HttpError) StatusCode() int {
+	return r.statusCode
+}
+
+func (r *HttpError) Headers() H.Header {
+	return r.headers
+}
+
+func (r *HttpError) URL() *url.URL {
+	return r.url
+}
+
+func (r *HttpError) Body() []byte {
+	return r.body
+}
+
 func GetHeader(resp *H.Response) H.Header {
 	return resp.Header
 }
@@ -84,6 +117,13 @@ func isValidStatus(resp *H.Response) bool {
 	return resp.StatusCode >= H.StatusOK && resp.StatusCode < H.StatusMultipleChoices
 }
 
+// StatusCodeError creates an instance of [HttpError] filled with information from the response
 func StatusCodeError(resp *H.Response) error {
-	return fmt.Errorf("invalid status code [%d] when accessing URL [%s]", resp.StatusCode, resp.Request.URL)
+	// read the body
+	bodyRdr := GetBody(resp)
+	defer bodyRdr.Close()
+	// try to access body content
+	body, _ := io.ReadAll(bodyRdr)
+	// return an error with comprehensive information
+	return &HttpError{statusCode: resp.StatusCode, headers: GetHeader(resp).Clone(), body: body, url: resp.Request.URL}
 }
