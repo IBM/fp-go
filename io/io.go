@@ -19,6 +19,7 @@ import (
 	"time"
 
 	G "github.com/IBM/fp-go/io/generic"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // IO represents a synchronous computation that cannot fail
@@ -155,4 +156,14 @@ func Delay[A any](delay time.Duration) func(IO[A]) IO[A] {
 // After creates an operation that passes after the given timestamp
 func After[A any](timestamp time.Time) func(IO[A]) IO[A] {
 	return G.After[IO[A]](timestamp)
+}
+
+// WithTime returns an operation that measures the start and end [time.Time] of the operation
+func WithTime[A any](a IO[A]) IO[T.Tuple3[A, time.Time, time.Time]] {
+	return G.WithTime[IO[T.Tuple3[A, time.Time, time.Time]], IO[A]](a)
+}
+
+// WithDuration returns an operation that measures the [time.Duration]
+func WithDuration[A any](a IO[A]) IO[T.Tuple2[A, time.Duration]] {
+	return G.WithDuration[IO[T.Tuple2[A, time.Duration]], IO[A]](a)
 }

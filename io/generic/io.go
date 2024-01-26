@@ -22,6 +22,7 @@ import (
 	C "github.com/IBM/fp-go/internal/chain"
 	FC "github.com/IBM/fp-go/internal/functor"
 	L "github.com/IBM/fp-go/internal/lazy"
+	T "github.com/IBM/fp-go/tuple"
 )
 
 // type IO[A any] = func() A
@@ -174,4 +175,24 @@ func MonadFlap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](fab GFA
 
 func Flap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](a A) func(GFAB) GB {
 	return F.Bind2nd(MonadFlap[FAB, GFAB, GB, A, B], a)
+}
+
+// WithTime returns an operation that measures the start and end timestamp of the operation
+func WithTime[GTA ~func() T.Tuple3[A, time.Time, time.Time], GA ~func() A, A any](a GA) GTA {
+	return MakeIO[GTA](func() T.Tuple3[A, time.Time, time.Time] {
+		t0 := time.Now()
+		res := a()
+		t1 := time.Now()
+		return T.MakeTuple3(res, t0, t1)
+	})
+}
+
+// WithDuration returns an operation that measures the duration of the operation
+func WithDuration[GTA ~func() T.Tuple2[A, time.Duration], GA ~func() A, A any](a GA) GTA {
+	return MakeIO[GTA](func() T.Tuple2[A, time.Duration] {
+		t0 := time.Now()
+		res := a()
+		t1 := time.Now()
+		return T.MakeTuple2(res, t1.Sub(t0))
+	})
 }
