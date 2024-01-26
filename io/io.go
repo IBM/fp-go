@@ -143,7 +143,7 @@ func MonadFlap[B, A any](fab IO[func(A) B], a A) IO[B] {
 	return G.MonadFlap[func(A) B, IO[func(A) B], IO[B], A, B](fab, a)
 }
 
-func Flap[A, B any](a A) func(IO[func(A) B]) IO[B] {
+func Flap[B, A any](a A) func(IO[func(A) B]) IO[B] {
 	return G.Flap[func(A) B, IO[func(A) B], IO[B], A, B](a)
 }
 
