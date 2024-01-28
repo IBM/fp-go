@@ -333,3 +333,11 @@ func FromArray[
 	V any](m Mg.Magma[V]) func(fa []T.Tuple2[K, V]) map[K]V {
 	return G.FromArray[[]T.Tuple2[K, V], map[K]V](m)
 }
+
+func MonadAp[A any, K comparable, B any](m Mo.Monoid[map[K]B], fab map[K]func(A) B, fa map[K]A) map[K]B {
+	return G.MonadAp[map[K]B, map[K]func(A) B, map[K]A](m, fab, fa)
+}
+
+func Ap[A any, K comparable, B any](m Mo.Monoid[map[K]B]) func(fa map[K]A) func(map[K]func(A) B) map[K]B {
+	return G.Ap[map[K]B, map[K]func(A) B, map[K]A](m)
+}

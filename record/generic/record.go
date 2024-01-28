@@ -132,6 +132,18 @@ func ReduceRefWithIndex[M ~map[K]V, K comparable, V, R any](f func(K, R, *V) R, 
 	}
 }
 
+func MonadAp[BS ~map[K]B, ABS ~map[K]func(A) B, AS ~map[K]A, K comparable, B, A any](m Mo.Monoid[BS], fab ABS, fa AS) BS {
+	return MonadChain(m, fab, F.Bind1st(MonadMap[AS, BS, K, A, B], fa))
+}
+
+func Ap[BS ~map[K]B, ABS ~map[K]func(A) B, AS ~map[K]A, K comparable, B, A any](m Mo.Monoid[BS]) func(fa AS) func(ABS) BS {
+	return func(ma AS) func(ABS) BS {
+		return func(abs ABS) BS {
+			return MonadAp(m, abs, ma)
+		}
+	}
+}
+
 func MonadMap[M ~map[K]V, N ~map[K]R, K comparable, V, R any](r M, f func(V) R) N {
 	return MonadMapWithIndex[M, N](r, F.Ignore1of2[K](f))
 }
