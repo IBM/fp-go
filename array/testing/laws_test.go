@@ -13,44 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io
+package testing
 
 import (
+	"fmt"
 	"testing"
 
-	F "github.com/IBM/fp-go/function"
-	"github.com/IBM/fp-go/internal/utils"
+	EQ "github.com/IBM/fp-go/eq"
 	"github.com/stretchr/testify/assert"
 )
 
-func getLastName(s utils.Initial) IO[string] {
-	return Of("Doe")
-}
+func TestMonadLaws(t *testing.T) {
+	// some comparison
+	eqa := EQ.FromStrictEquals[bool]()
+	eqb := EQ.FromStrictEquals[int]()
+	eqc := EQ.FromStrictEquals[string]()
 
-func getGivenName(s utils.WithLastName) IO[string] {
-	return Of("John")
-}
+	ab := func(a bool) int {
+		if a {
+			return 1
+		}
+		return 0
+	}
 
-func TestBind(t *testing.T) {
+	bc := func(b int) string {
+		return fmt.Sprintf("value %d", b)
+	}
 
-	res := F.Pipe3(
-		Do(utils.Empty),
-		Bind(utils.SetLastName, getLastName),
-		Bind(utils.SetGivenName, getGivenName),
-		Map(utils.GetFullName),
-	)
+	laws := AssertLaws(t, eqa, eqb, eqc, ab, bc)
 
-	assert.Equal(t, res(), "John Doe")
-}
-
-func TestApS(t *testing.T) {
-
-	res := F.Pipe3(
-		Do(utils.Empty),
-		ApS(utils.SetLastName, Of("Doe")),
-		ApS(utils.SetGivenName, Of("John")),
-		Map(utils.GetFullName),
-	)
-
-	assert.Equal(t, res(), "John Doe")
+	assert.True(t, laws(true))
+	assert.True(t, laws(false))
 }

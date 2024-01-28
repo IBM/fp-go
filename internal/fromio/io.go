@@ -47,7 +47,7 @@ func MonadChainIOK[GR ~func() B, A, B, HKTA, HKTB any](
 }
 
 func ChainIOK[GR ~func() B, A, B, HKTA, HKTB any](
-	mchain func(HKTA, func(A) HKTB) HKTB,
+	mchain func(func(A) HKTB) func(HKTA) HKTB,
 	fromio func(GR) HKTB,
 	f func(A) GR) func(HKTA) HKTB {
 	// chain

@@ -13,21 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package ioeither
 
 import (
 	"testing"
 
+	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func getLastName(s utils.Initial) Either[error, string] {
+func getLastName(s utils.Initial) IOEither[error, string] {
 	return Of[error]("Doe")
 }
 
-func getGivenName(s utils.WithLastName) Either[error, string] {
+func getGivenName(s utils.WithLastName) IOEither[error, string] {
 	return Of[error]("John")
 }
 
@@ -40,7 +41,7 @@ func TestBind(t *testing.T) {
 		Map[error](utils.GetFullName),
 	)
 
-	assert.Equal(t, res, Of[error]("John Doe"))
+	assert.Equal(t, res(), E.Of[error]("John Doe"))
 }
 
 func TestApS(t *testing.T) {
@@ -52,5 +53,5 @@ func TestApS(t *testing.T) {
 		Map[error](utils.GetFullName),
 	)
 
-	assert.Equal(t, res, Of[error]("John Doe"))
+	assert.Equal(t, res(), E.Of[error]("John Doe"))
 }

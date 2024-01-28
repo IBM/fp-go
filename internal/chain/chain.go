@@ -52,12 +52,10 @@ func ChainFirst[A, B, HKTA, HKTB any](
 }
 
 func Chain[A, B, HKTA, HKTB any](
-	mchain func(HKTA, func(A) HKTB) HKTB,
+	mchain func(func(A) HKTB) func(HKTA) HKTB,
 	f func(A) HKTB,
 ) func(HKTA) HKTB {
-	return func(first HKTA) HKTB {
-		return MonadChain[A, B](mchain, first, f)
-	}
+	return mchain(f)
 }
 
 func MonadBind[S1, S2, B, HKTS1, HKTS2, HKTB any](
@@ -96,21 +94,17 @@ func Bind[S1, S2, B, HKTS1, HKTS2, HKTB any](
 	})
 }
 
-func BindTo[S1, S2, B, HKTS1, HKTS2, HKTB any](
-	mchain func(func(S1) HKTS2) func(HKTS1) HKTS2,
-	mmap func(func(B) S2) func(HKTB) HKTS2,
-	key func(B) func(S1) S2,
-	fa HKTB,
-) func(HKTS1) HKTS2 {
-	return Bind[S1, S2, B, HKTS1, HKTS2, HKTB](mchain, mmap, key, F.Constant1[S1](fa))
+func BindTo[S1, B, HKTS1, HKTB any](
+	mmap func(func(B) S1) func(HKTB) HKTS1,
+	key func(B) S1,
+) func(fa HKTB) HKTS1 {
+	return mmap(key)
 }
 
-func MonadBindTo[S1, S2, B, HKTS1, HKTS2, HKTB any](
-	mchain func(HKTS1, func(S1) HKTS2) HKTS2,
-	mmap func(HKTB, func(B) S2) HKTS2,
-	first HKTS1,
-	key func(B) func(S1) S2,
-	fa HKTB,
-) HKTS2 {
-	return MonadBind[S1, S2, B, HKTS1, HKTS2, HKTB](mchain, mmap, first, key, F.Constant1[S1](fa))
+func MonadBindTo[S1, B, HKTS1, HKTB any](
+	mmap func(HKTB, func(B) S1) HKTS1,
+	first HKTB,
+	key func(B) S1,
+) HKTS1 {
+	return mmap(first, key)
 }

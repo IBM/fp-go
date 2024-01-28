@@ -46,9 +46,9 @@ func LetTo[S1, T any, K comparable, S2 any](
 	return G.LetTo[map[K]S1, map[K]S2, K, S1, S2, T](setter, b)
 }
 
-// BindTo attaches a value to a context [S1] to produce a context [S2]
-func BindTo[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, fa map[K]T) func(map[K]S1) map[K]S2 {
-	return G.BindTo[map[K]S1, map[K]S2, map[K]T, K, S1, S2, T](m)
+// BindTo initializes a new state [S1] from a value [T]
+func BindTo[S1, T any, K comparable](setter func(T) S1) func(map[K]T) map[K]S1 {
+	return G.BindTo[map[K]S1, map[K]T, K, S1, T](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently

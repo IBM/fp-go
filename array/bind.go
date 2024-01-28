@@ -50,12 +50,11 @@ func LetTo[S1, S2, T any](
 	return G.LetTo[[]S1, []S2, S1, S2, T](setter, b)
 }
 
-// BindTo attaches a value to a context [S1] to produce a context [S2]
-func BindTo[S1, S2, T any](
-	setter func(T) func(S1) S2,
-	fa []T,
-) func([]S1) []S2 {
-	return G.BindTo[[]S1, []S2, []T, S1, S2, T](setter, fa)
+// BindTo initializes a new state [S1] from a value [T]
+func BindTo[S1, T any](
+	setter func(T) S1,
+) func([]T) []S1 {
+	return G.BindTo[[]S1, []T, S1, T](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently

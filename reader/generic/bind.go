@@ -13,54 +13,77 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io
+package generic
 
 import (
-	G "github.com/IBM/fp-go/io/generic"
+	A "github.com/IBM/fp-go/internal/apply"
+	C "github.com/IBM/fp-go/internal/chain"
+	F "github.com/IBM/fp-go/internal/functor"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
-func Do[S any](
+func Do[GS ~func(R) S, R, S any](
 	empty S,
-) IO[S] {
-	return G.Do[IO[S], S](empty)
+) GS {
+	return Of[GS, R, S](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
-func Bind[S1, S2, T any](
+func Bind[GS1 ~func(R) S1, GS2 ~func(R) S2, GT ~func(R) T, R, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) IO[T],
-) func(IO[S1]) IO[S2] {
-	return G.Bind[IO[S1], IO[S2], IO[T], S1, S2, T](setter, f)
+	f func(S1) GT,
+) func(GS1) GS2 {
+	return C.Bind(
+		Chain[GS1, GS2, R, S1, S2],
+		Map[GT, GS2, R, T, S2],
+		setter,
+		f,
+	)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
-func Let[S1, S2, T any](
-	setter func(T) func(S1) S2,
+func Let[GS1 ~func(R) S1, GS2 ~func(R) S2, R, S1, S2, T any](
+	key func(T) func(S1) S2,
 	f func(S1) T,
-) func(IO[S1]) IO[S2] {
-	return G.Let[IO[S1], IO[S2], S1, S2, T](setter, f)
+) func(GS1) GS2 {
+	return F.Let(
+		Map[GS1, GS2, R, S1, S2],
+		key,
+		f,
+	)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
-func LetTo[S1, S2, T any](
-	setter func(T) func(S1) S2,
-	b T,
-) func(IO[S1]) IO[S2] {
-	return G.LetTo[IO[S1], IO[S2], S1, S2, T](setter, b)
+func LetTo[GS1 ~func(R) S1, GS2 ~func(R) S2, R, S1, S2, B any](
+	key func(B) func(S1) S2,
+	b B,
+) func(GS1) GS2 {
+	return F.LetTo(
+		Map[GS1, GS2, R, S1, S2],
+		key,
+		b,
+	)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
-func BindTo[S1, T any](
+func BindTo[GS1 ~func(R) S1, GT ~func(R) T, R, S1, T any](
 	setter func(T) S1,
-) func(IO[T]) IO[S1] {
-	return G.BindTo[IO[S1], IO[T], S1, T](setter)
+) func(GT) GS1 {
+	return C.BindTo(
+		Map[GT, GS1, R, T, S1],
+		setter,
+	)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
-func ApS[S1, S2, T any](
+func ApS[GS1 ~func(R) S1, GS2 ~func(R) S2, GT ~func(R) T, R, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	fa IO[T],
-) func(IO[S1]) IO[S2] {
-	return G.ApS[IO[S1], IO[S2], IO[T], S1, S2, T](setter, fa)
+	fa GT,
+) func(GS1) GS2 {
+	return A.ApS(
+		Ap[GT, GS2, func(R) func(T) S2, R, T, S2],
+		Map[GS1, func(R) func(T) S2, R, S1, func(T) S2],
+		setter,
+		fa,
+	)
 }

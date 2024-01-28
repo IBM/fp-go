@@ -13,54 +13,54 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io
+package reader
 
 import (
-	G "github.com/IBM/fp-go/io/generic"
+	G "github.com/IBM/fp-go/reader/generic"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
-func Do[S any](
+func Do[R, S any](
 	empty S,
-) IO[S] {
-	return G.Do[IO[S], S](empty)
+) Reader[R, S] {
+	return G.Do[Reader[R, S], R, S](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
-func Bind[S1, S2, T any](
+func Bind[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) IO[T],
-) func(IO[S1]) IO[S2] {
-	return G.Bind[IO[S1], IO[S2], IO[T], S1, S2, T](setter, f)
+	f func(S1) Reader[R, T],
+) func(Reader[R, S1]) Reader[R, S2] {
+	return G.Bind[Reader[R, S1], Reader[R, S2], Reader[R, T], R, S1, S2, T](setter, f)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
-func Let[S1, S2, T any](
+func Let[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(IO[S1]) IO[S2] {
-	return G.Let[IO[S1], IO[S2], S1, S2, T](setter, f)
+) func(Reader[R, S1]) Reader[R, S2] {
+	return G.Let[Reader[R, S1], Reader[R, S2], R, S1, S2, T](setter, f)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
-func LetTo[S1, S2, T any](
+func LetTo[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(IO[S1]) IO[S2] {
-	return G.LetTo[IO[S1], IO[S2], S1, S2, T](setter, b)
+) func(Reader[R, S1]) Reader[R, S2] {
+	return G.LetTo[Reader[R, S1], Reader[R, S2], R, S1, S2, T](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
-func BindTo[S1, T any](
+func BindTo[R, S1, T any](
 	setter func(T) S1,
-) func(IO[T]) IO[S1] {
-	return G.BindTo[IO[S1], IO[T], S1, T](setter)
+) func(Reader[R, T]) Reader[R, S1] {
+	return G.BindTo[Reader[R, S1], Reader[R, T], R, S1, T](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
-func ApS[S1, S2, T any](
+func ApS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	fa IO[T],
-) func(IO[S1]) IO[S2] {
-	return G.ApS[IO[S1], IO[S2], IO[T], S1, S2, T](setter, fa)
+	fa Reader[R, T],
+) func(Reader[R, S1]) Reader[R, S2] {
+	return G.ApS[Reader[R, S1], Reader[R, S2], Reader[R, T], R, S1, S2, T](setter, fa)
 }

@@ -54,15 +54,3 @@ func TestApS(t *testing.T) {
 
 	assert.Equal(t, res, Of("John Doe"))
 }
-
-func TestBindToS(t *testing.T) {
-
-	res := F.Pipe3(
-		Do(utils.Empty),
-		BindTo(utils.SetLastName, Of("Doe")),
-		BindTo(utils.SetGivenName, Of("John")),
-		Map(utils.GetFullName),
-	)
-
-	assert.Equal(t, res, Of("John Doe"))
-}

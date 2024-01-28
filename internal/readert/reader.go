@@ -23,8 +23,23 @@ import (
 // here we implement the monadic operations using callbacks from
 // higher kinded types, as good a golang allows use to do this
 
-func MonadMap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, E, A, B, HKTA, HKTB any](fmap func(HKTA, func(A) B) HKTB, fa GEA, f func(A) B) GEB {
+func MonadMap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, E, A, B, HKTA, HKTB any](
+	fmap func(HKTA, func(A) B) HKTB,
+	fa GEA,
+	f func(A) B,
+) GEB {
 	return R.MonadMap[GEA, GEB](fa, F.Bind2nd(fmap, f))
+}
+
+func Map[GEA ~func(E) HKTA, GEB ~func(E) HKTB, E, A, B, HKTA, HKTB any](
+	fmap func(func(A) B) func(HKTA) HKTB,
+	f func(A) B,
+) func(GEA) GEB {
+	return F.Pipe2(
+		f,
+		fmap,
+		R.Map[GEA, GEB, E, HKTA, HKTB],
+	)
 }
 
 func MonadChain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](fchain func(HKTA, func(A) HKTB) HKTB, ma GEA, f func(A) GEB) GEB {

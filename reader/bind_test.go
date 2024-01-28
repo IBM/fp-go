@@ -13,9 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package reader
 
 import (
+	"context"
 	"testing"
 
 	F "github.com/IBM/fp-go/function"
@@ -23,34 +24,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getLastName(s utils.Initial) Either[error, string] {
-	return Of[error]("Doe")
+func getLastName(s utils.Initial) Reader[context.Context, string] {
+	return Of[context.Context]("Doe")
 }
 
-func getGivenName(s utils.WithLastName) Either[error, string] {
-	return Of[error]("John")
+func getGivenName(s utils.WithLastName) Reader[context.Context, string] {
+	return Of[context.Context]("John")
 }
 
 func TestBind(t *testing.T) {
 
 	res := F.Pipe3(
-		Do[error](utils.Empty),
+		Do[context.Context](utils.Empty),
 		Bind(utils.SetLastName, getLastName),
 		Bind(utils.SetGivenName, getGivenName),
-		Map[error](utils.GetFullName),
+		Map[context.Context](utils.GetFullName),
 	)
 
-	assert.Equal(t, res, Of[error]("John Doe"))
+	assert.Equal(t, res(context.Background()), "John Doe")
 }
 
 func TestApS(t *testing.T) {
 
 	res := F.Pipe3(
-		Do[error](utils.Empty),
-		ApS(utils.SetLastName, Of[error]("Doe")),
-		ApS(utils.SetGivenName, Of[error]("John")),
-		Map[error](utils.GetFullName),
+		Do[context.Context](utils.Empty),
+		ApS(utils.SetLastName, Of[context.Context]("Doe")),
+		ApS(utils.SetGivenName, Of[context.Context]("John")),
+		Map[context.Context](utils.GetFullName),
 	)
 
-	assert.Equal(t, res, Of[error]("John Doe"))
+	assert.Equal(t, res(context.Background()), "John Doe")
 }

@@ -60,7 +60,7 @@ func MonadMap[GEA ~func(E) ET.Either[L, A], GEB ~func(E) ET.Either[L, B], L, E, 
 }
 
 func Map[GEA ~func(E) ET.Either[L, A], GEB ~func(E) ET.Either[L, B], L, E, A, B any](f func(A) B) func(GEA) GEB {
-	return F.Bind2nd(MonadMap[GEA, GEB, L, E, A, B], f)
+	return readert.Map[GEA, GEB](ET.Map[L, A, B], f)
 }
 
 func MonadChain[GEA ~func(E) ET.Either[L, A], GEB ~func(E) ET.Either[L, B], L, E, A, B any](ma GEA, f func(A) GEB) GEB {

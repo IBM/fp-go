@@ -65,16 +65,13 @@ func LetTo[E, S1, S2, T any](
 	)
 }
 
-// BindTo attaches a value to a context [S1] to produce a context [S2]
-func BindTo[E, S1, S2, T any](
-	setter func(T) func(S1) S2,
-	fa Either[E, T],
-) func(Either[E, S1]) Either[E, S2] {
+// BindTo initializes a new state [S1] from a value [T]
+func BindTo[E, S1, T any](
+	setter func(T) S1,
+) func(Either[E, T]) Either[E, S1] {
 	return C.BindTo(
-		Chain[E, S1, S2],
-		Map[E, T, S2],
+		Map[E, T, S1],
 		setter,
-		fa,
 	)
 }
 
