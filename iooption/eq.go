@@ -13,19 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package writer
+package iooption
 
 import (
 	EQ "github.com/IBM/fp-go/eq"
-	G "github.com/IBM/fp-go/writer/generic"
+	G "github.com/IBM/fp-go/iooption/generic"
 )
 
-// Constructs an equal predicate for a [Writer]
-func Eq[W, A any](w EQ.Eq[W], a EQ.Eq[A]) EQ.Eq[Writer[W, A]] {
-	return G.Eq[Writer[W, A]](w, a)
+// Eq implements the equals predicate for values contained in the IO monad
+func Eq[A any](e EQ.Eq[A]) EQ.Eq[IOOption[A]] {
+	return G.Eq[IOOption[A]](e)
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[W, A comparable]() EQ.Eq[Writer[W, A]] {
-	return G.FromStrictEquals[Writer[W, A]]()
+func FromStrictEquals[A comparable]() EQ.Eq[IOOption[A]] {
+	return G.FromStrictEquals[IOOption[A]]()
 }

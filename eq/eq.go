@@ -35,12 +35,12 @@ func strictEq[A comparable](a, b A) bool {
 	return a == b
 }
 
-// FromStrictEquals constructs an `Eq` from the canonical comparison function
+// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[T comparable]() Eq[T] {
 	return FromEquals(strictEq[T])
 }
 
-// FromEquals constructs an `Eq` from the comparison function
+// FromEquals constructs an [EQ.Eq] from the comparison function
 func FromEquals[T any](c func(x, y T) bool) Eq[T] {
 	return eq[T]{c: c}
 }

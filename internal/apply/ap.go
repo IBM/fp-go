@@ -37,6 +37,16 @@ func MonadAp[HKTGA, HKTGB, HKTGAB, HKTFGAB, HKTFGGAB, HKTFGA, HKTFGB any](
 	return fap(fmap(fab, F.Bind1st(F.Bind1st[HKTGAB, HKTGA, HKTGB], gap)), fa)
 }
 
+// func Ap[HKTGA, HKTGB, HKTGAB, HKTFGAB, HKTFGGAB, HKTFGA, HKTFGB any](
+// 	fap func(HKTFGA) func(HKTFGGAB) HKTFGB,
+// 	fmap func(func(HKTGAB) func(HKTGA) HKTGB) func(HKTFGAB) HKTFGGAB,
+// 	gap func(HKTGA) func(HKTGAB) HKTGB,
+
+// 	fa HKTFGA) func(HKTFGAB) HKTFGB {
+
+// 	return fap(fmap(F.Bind1st(F.Bind1st[HKTGAB, HKTGA, HKTGB], gap)), fa)
+// }
+
 // export function ap<F, G>(
 // 	F: Apply<F>,
 // 	G: Apply<G>

@@ -64,9 +64,6 @@ func MonadAp[A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
 	fmap func(HKTFAB, func(O.Option[func(A) B]) func(O.Option[A]) O.Option[B]) HKTFGAB,
 	fab HKTFAB,
 	fa HKTFA) HKTFB {
-	// HKTGA  = O.Option[A]
-	// HKTGB  = O.Option[B]
-	// HKTGAB = O.Option[func(a A) B]
 	return apply.MonadAp(fap, fmap, O.MonadAp[B, A], fab, fa)
 }
 

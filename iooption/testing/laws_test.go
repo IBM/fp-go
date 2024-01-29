@@ -13,19 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package writer
+package testing
 
 import (
+	"fmt"
+	"testing"
+
 	EQ "github.com/IBM/fp-go/eq"
-	G "github.com/IBM/fp-go/writer/generic"
+	"github.com/stretchr/testify/assert"
 )
 
-// Constructs an equal predicate for a [Writer]
-func Eq[W, A any](w EQ.Eq[W], a EQ.Eq[A]) EQ.Eq[Writer[W, A]] {
-	return G.Eq[Writer[W, A]](w, a)
-}
+func TestMonadLaws(t *testing.T) {
+	// some comparison
+	eqa := EQ.FromStrictEquals[bool]()
+	eqb := EQ.FromStrictEquals[int]()
+	eqc := EQ.FromStrictEquals[string]()
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[W, A comparable]() EQ.Eq[Writer[W, A]] {
-	return G.FromStrictEquals[Writer[W, A]]()
+	ab := func(a bool) int {
+		if a {
+			return 1
+		}
+		return 0
+	}
+
+	bc := func(b int) string {
+		return fmt.Sprintf("value %d", b)
+	}
+
+	laws := AssertLaws(t, eqa, eqb, eqc, ab, bc)
+
+	assert.True(t, laws(true))
+	assert.True(t, laws(false))
 }

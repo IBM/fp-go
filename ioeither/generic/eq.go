@@ -26,7 +26,7 @@ func Eq[GA ~func() ET.Either[E, A], E, A any](eq EQ.Eq[ET.Either[E, A]]) EQ.Eq[G
 	return G.Eq[GA](eq)
 }
 
-// FromStrictEquals constructs an `Eq` from the canonical comparison function
+// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[GA ~func() ET.Either[E, A], E, A comparable]() EQ.Eq[GA] {
 	return Eq[GA](ET.FromStrictEquals[E, A]())
 }
