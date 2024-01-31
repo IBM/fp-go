@@ -16,23 +16,35 @@
 package writer
 
 import (
+	EM "github.com/IBM/fp-go/endomorphism"
+	IO "github.com/IBM/fp-go/io"
 	M "github.com/IBM/fp-go/monoid"
 	S "github.com/IBM/fp-go/semigroup"
 	T "github.com/IBM/fp-go/tuple"
 	G "github.com/IBM/fp-go/writer/generic"
 )
 
-type Writer[W, A any] func() T.Tuple2[A, W]
+type Writer[W, A any] IO.IO[T.Tuple2[A, W]]
 
 func Of[A, W any](m M.Monoid[W]) func(A) Writer[W, A] {
 	return G.Of[Writer[W, A]](m)
+}
+
+// Listen modifies the result to include the changes to the accumulator
+func Listen[W, A any](fa Writer[W, A]) Writer[W, T.Tuple2[A, W]] {
+	return G.Listen[Writer[W, A], Writer[W, T.Tuple2[A, W]], W, A](fa)
+}
+
+// Pass applies the returned function to the accumulator
+func Pass[W, A any](fa Writer[W, T.Tuple2[A, EM.Endomorphism[W]]]) Writer[W, A] {
+	return G.Pass[Writer[W, T.Tuple2[A, EM.Endomorphism[W]]], Writer[W, A]](fa)
 }
 
 func MonadMap[FCT ~func(A) B, W, A, B any](fa Writer[W, A], f FCT) Writer[W, B] {
 	return G.MonadMap[Writer[W, B], Writer[W, A]](fa, f)
 }
 
-func Map[FCT ~func(A) B, W, A, B any](f FCT) func(Writer[W, A]) Writer[W, B] {
+func Map[W any, FCT ~func(A) B, A, B any](f FCT) func(Writer[W, A]) Writer[W, B] {
 	return G.Map[Writer[W, B], Writer[W, A]](f)
 }
 
@@ -64,10 +76,12 @@ func Flatten[W, A any](s S.Semigroup[W]) func(Writer[W, Writer[W, A]]) Writer[W,
 	return G.Flatten[Writer[W, Writer[W, A]], Writer[W, A]](s)
 }
 
+// Execute extracts the accumulator
 func Execute[W, A any](fa Writer[W, A]) W {
 	return G.Execute(fa)
 }
 
+// Evaluate extracts the value
 func Evaluate[W, A any](fa Writer[W, A]) A {
 	return G.Evaluate(fa)
 }

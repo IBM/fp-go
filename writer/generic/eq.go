@@ -30,7 +30,7 @@ func Eq[GA ~func() T.Tuple2[A, W], W, A any](w EQ.Eq[W], a EQ.Eq[A]) EQ.Eq[GA] {
 	})
 }
 
-// FromStrictEquals constructs an `Eq` from the canonical comparison function
+// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[GA ~func() T.Tuple2[A, W], W, A comparable]() EQ.Eq[GA] {
 	return Eq[GA](EQ.FromStrictEquals[W](), EQ.FromStrictEquals[A]())
 }

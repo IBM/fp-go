@@ -134,7 +134,7 @@ func MonadChainIOK[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GR ~f
 
 func ChainIOK[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GR ~func() B, E, A, B any](f func(A) GR) func(GA) GB {
 	return FI.ChainIOK(
-		MonadChain[GA, GB, E, A, B],
+		Chain[GA, GB, E, A, B],
 		FromIO[GB, GR, E, B],
 		f,
 	)

@@ -40,7 +40,7 @@ func MonadMap[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func()
 }
 
 func Map[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](f func(A) B) func(GEA) GEB {
-	return F.Bind2nd(MonadMap[GEA, GEB, GIOA, GIOB, E, A, B], f)
+	return readert.Map[GEA, GEB](IO.Map[GIOA, GIOB, A, B], f)
 }
 
 func MonadChain[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](ma GEA, f func(A) GEB) GEB {
@@ -97,7 +97,7 @@ func MonadChainIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~f
 
 func ChainIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](f func(A) GIOB) func(GEA) GEB {
 	return FIO.ChainIOK(
-		MonadChain[GEA, GEB],
+		Chain[GEA, GEB],
 		FromIO[GEB],
 		f,
 	)

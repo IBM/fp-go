@@ -30,6 +30,22 @@ func Of[GA ~func() T.Tuple2[A, W], W, A any](m M.Monoid[W]) func(A) GA {
 	)
 }
 
+// Listen modifies the result to include the changes to the accumulator
+func Listen[GA ~func() T.Tuple2[A, W], GTA ~func() T.Tuple2[T.Tuple2[A, W], W], W, A any](fa GA) GTA {
+	return func() T.Tuple2[T.Tuple2[A, W], W] {
+		t := fa()
+		return T.MakeTuple2(T.MakeTuple2(t.F1, t.F2), t.F2)
+	}
+}
+
+// Pass applies the returned function to the accumulator
+func Pass[GFA ~func() T.Tuple2[T.Tuple2[A, FCT], W], GA ~func() T.Tuple2[A, W], FCT ~func(W) W, W, A any](fa GFA) GA {
+	return func() T.Tuple2[A, W] {
+		t := fa()
+		return T.MakeTuple2(t.F1.F1, t.F1.F2(t.F2))
+	}
+}
+
 func MonadMap[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) B, W, A, B any](fa GA, f FCT) GB {
 	return IO.MonadMap[GA, GB](fa, T.Map2(f, F.Identity[W]))
 }

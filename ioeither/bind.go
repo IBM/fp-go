@@ -19,26 +19,48 @@ import (
 	G "github.com/IBM/fp-go/ioeither/generic"
 )
 
-// Bind applies a function to an input state and merges the result into that state
-func Bind[E, A, S1, S2 any](s func(A) func(S1) S2, f func(S1) IOEither[E, A]) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.Bind[IOEither[E, S1], IOEither[E, S2], IOEither[E, A], func(S1) IOEither[E, A]](s, f)
+// Bind creates an empty context of type [S] to be used with the [Bind] operation
+func Do[E, S any](
+	empty S,
+) IOEither[E, S] {
+	return G.Do[IOEither[E, S], E, S](empty)
 }
 
-// BindTo initializes some state based on a value
-func BindTo[
-	E, A, S2 any](s func(A) S2) func(IOEither[E, A]) IOEither[E, S2] {
-	return G.BindTo[IOEither[E, S2], IOEither[E, A]](s)
-}
-
-func ApS[
-	E, A, S1, S2 any,
-](s func(A) func(S1) S2, fa IOEither[E, A]) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.ApS[IOEither[E, S1], IOEither[E, S2], IOEither[E, A], IOEither[E, func(S1) S2]](s, fa)
-}
-
-func Let[E, A, S1, S2 any](
-	s func(A) func(S1) S2,
-	f func(S1) A,
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+func Bind[E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) IOEither[E, T],
 ) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.Let[IOEither[E, S1], IOEither[E, S2]](s, f)
+	return G.Bind[IOEither[E, S1], IOEither[E, S2], IOEither[E, T], E, S1, S2, T](setter, f)
+}
+
+// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+func Let[E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) T,
+) func(IOEither[E, S1]) IOEither[E, S2] {
+	return G.Let[IOEither[E, S1], IOEither[E, S2], E, S1, S2, T](setter, f)
+}
+
+// LetTo attaches the a value to a context [S1] to produce a context [S2]
+func LetTo[E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	b T,
+) func(IOEither[E, S1]) IOEither[E, S2] {
+	return G.LetTo[IOEither[E, S1], IOEither[E, S2], E, S1, S2, T](setter, b)
+}
+
+// BindTo initializes a new state [S1] from a value [T]
+func BindTo[E, S1, T any](
+	setter func(T) S1,
+) func(IOEither[E, T]) IOEither[E, S1] {
+	return G.BindTo[IOEither[E, S1], IOEither[E, T], E, S1, T](setter)
+}
+
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+func ApS[E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa IOEither[E, T],
+) func(IOEither[E, S1]) IOEither[E, S2] {
+	return G.ApS[IOEither[E, S1], IOEither[E, S2], IOEither[E, T], E, S1, S2, T](setter, fa)
 }

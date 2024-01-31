@@ -145,7 +145,7 @@ func MonadChainIOK[GA ~func() O.Option[A], GB ~func() O.Option[B], GR ~func() B,
 
 func ChainIOK[GA ~func() O.Option[A], GB ~func() O.Option[B], GR ~func() B, A, B any](f func(A) GR) func(GA) GB {
 	return FI.ChainIOK(
-		MonadChain[GA, GB, A, B],
+		Chain[GA, GB, A, B],
 		FromIO[GB, GR, B],
 		f,
 	)

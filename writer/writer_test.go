@@ -46,5 +46,4 @@ func ExampleWriter_logging() {
 	fmt.Println(res())
 
 	// Output: Tuple2[int, []string](40, [Doubled 10 -> 20 Doubled 20 -> 40])
-
 }

@@ -17,63 +17,74 @@ package generic
 
 import (
 	ET "github.com/IBM/fp-go/either"
-	G "github.com/IBM/fp-go/internal/bindt"
+	A "github.com/IBM/fp-go/internal/apply"
+	C "github.com/IBM/fp-go/internal/chain"
+	F "github.com/IBM/fp-go/internal/functor"
 )
 
-// Bind applies a function to an input state and merges the result into that state
-func Bind[
-	GS1 ~func() ET.Either[E, S1],
-	GS2 ~func() ET.Either[E, S2],
-	GA ~func() ET.Either[E, A],
-	FCT ~func(S1) GA,
-	E any,
-	SET ~func(A) func(S1) S2,
-	A, S1, S2 any](s SET, f FCT) func(GS1) GS2 {
-	return G.Bind(
+// Bind creates an empty context of type [S] to be used with the [Bind] operation
+func Do[GS ~func() ET.Either[E, S], E, S any](
+	empty S,
+) GS {
+	return Of[GS, E, S](empty)
+}
+
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+func Bind[GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], GT ~func() ET.Either[E, T], E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) GT,
+) func(GS1) GS2 {
+	return C.Bind(
 		Chain[GS1, GS2, E, S1, S2],
-		Map[GA, GS2, E, A, S2],
-		s,
+		Map[GT, GS2, E, T, S2],
+		setter,
 		f,
 	)
 }
 
-// BindTo initializes some state based on a value
-func BindTo[
-	GS2 ~func() ET.Either[E, S2],
-	GA ~func() ET.Either[E, A],
-	E any,
-	SET ~func(A) S2,
-	A, S2 any](s SET) func(GA) GS2 {
-	return G.BindTo(
-		Map[GA, GS2, E, A, S2],
-		s,
-	)
-}
-
-func ApS[
-	GS1 ~func() ET.Either[E, S1],
-	GS2 ~func() ET.Either[E, S2],
-	GB ~func() ET.Either[E, B],
-	GS1S2 ~func() ET.Either[E, func(S1) S2],
-	SET ~func(B) func(S1) S2,
-	E, S1, S2, B any,
-](s SET, fb GB) func(GS1) GS2 {
-	return G.ApS[SET, S1, S2, B, GS1S2, GS1, GS2, GB](
-		Ap[GS2, GS1S2, GS1, E, S1, S2],
-		Map[GB, GS1S2, E, B, func(S1) S2],
-		s,
-		fb,
-	)
-}
-
-func Let[
-	GS1 ~func() ET.Either[E, S1],
-	GS2 ~func() ET.Either[E, S2],
-	SET ~func(B) func(S1) S2,
-	FCT ~func(S1) B,
-	E, S1, S2, B any](
-	s SET,
-	f FCT,
+// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+func Let[GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], E, S1, S2, T any](
+	key func(T) func(S1) S2,
+	f func(S1) T,
 ) func(GS1) GS2 {
-	return G.Let[SET, FCT, S1, S2, B, GS1, GS2](Map[GS1, GS2, E, S1, S2], s, f)
+	return F.Let(
+		Map[GS1, GS2, E, S1, S2],
+		key,
+		f,
+	)
+}
+
+// LetTo attaches the a value to a context [S1] to produce a context [S2]
+func LetTo[GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], E, S1, S2, B any](
+	key func(B) func(S1) S2,
+	b B,
+) func(GS1) GS2 {
+	return F.LetTo(
+		Map[GS1, GS2, E, S1, S2],
+		key,
+		b,
+	)
+}
+
+// BindTo initializes a new state [S1] from a value [T]
+func BindTo[GS1 ~func() ET.Either[E, S1], GT ~func() ET.Either[E, T], E, S1, S2, T any](
+	setter func(T) S1,
+) func(GT) GS1 {
+	return C.BindTo(
+		Map[GT, GS1, E, T, S1],
+		setter,
+	)
+}
+
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+func ApS[GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], GT ~func() ET.Either[E, T], E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa GT,
+) func(GS1) GS2 {
+	return A.ApS(
+		Ap[GS2, func() ET.Either[E, func(T) S2], GT, E, T, S2],
+		Map[GS1, func() ET.Either[E, func(T) S2], E, S1, func(T) S2],
+		setter,
+		fa,
+	)
 }

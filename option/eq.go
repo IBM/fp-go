@@ -31,7 +31,7 @@ func Eq[A any](a EQ.Eq[A]) EQ.Eq[Option[A]] {
 	return EQ.FromEquals(F.Uncurry2(fld))
 }
 
-// FromStrictEquals constructs an `Eq` from the canonical comparison function
+// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[A comparable]() EQ.Eq[Option[A]] {
 	return Eq(EQ.FromStrictEquals[A]())
 }
