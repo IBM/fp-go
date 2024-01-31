@@ -265,10 +265,15 @@ func generatePipe(f *os.File, i int) {
 		fmt.Fprintf(f, ", f%d F%d", j, j)
 	}
 	fmt.Fprintf(f, ") T%d {\n", i)
-	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, "  t%d := f%d(t%d)\n", j, j, j-1)
+	fmt.Fprintf(f, "  return ")
+	for j := i; j >= 1; j-- {
+		fmt.Fprintf(f, "f%d(", j)
 	}
-	fmt.Fprintf(f, "  return t%d\n", i)
+	fmt.Fprintf(f, "t0")
+	for j := 1; j <= i; j++ {
+		fmt.Fprintf(f, ")")
+	}
+	fmt.Fprintf(f, "\n")
 	fmt.Fprintln(f, "}")
 }
 
