@@ -13,37 +13,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package writer
+package lazy
 
 import (
-	"fmt"
+	"testing"
 
-	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
-	M "github.com/IBM/fp-go/monoid"
-	T "github.com/IBM/fp-go/tuple"
+	"github.com/IBM/fp-go/internal/utils"
+	"github.com/stretchr/testify/assert"
 )
 
-func doubleAndLog(data int) Writer[[]string, int] {
-	return func() T.Tuple2[int, []string] {
-		result := data * 2
-		return T.MakeTuple2(result, A.Of(fmt.Sprintf("Doubled %d -> %d", data, result)))
-	}
+func getLastName(s utils.Initial) Lazy[string] {
+	return Of("Doe")
 }
 
-func ExampleWriter_logging() {
+func getGivenName(s utils.WithLastName) Lazy[string] {
+	return Of("John")
+}
 
-	m := A.Monoid[string]()
-	s := M.ToSemigroup(m)
+func TestBind(t *testing.T) {
 
 	res := F.Pipe3(
-		10,
-		Of[int](m),
-		Chain[int, int](s)(doubleAndLog),
-		Chain[int, int](s)(doubleAndLog),
+		Do(utils.Empty),
+		Bind(utils.SetLastName, getLastName),
+		Bind(utils.SetGivenName, getGivenName),
+		Map(utils.GetFullName),
 	)
 
-	fmt.Println(res())
+	assert.Equal(t, res(), "John Doe")
+}
 
-	// Output: Tuple2[int, []string](40, [Doubled 10 -> 20 Doubled 20 -> 40])
+func TestApS(t *testing.T) {
+
+	res := F.Pipe3(
+		Do(utils.Empty),
+		ApS(utils.SetLastName, Of("Doe")),
+		ApS(utils.SetGivenName, Of("John")),
+		Map(utils.GetFullName),
+	)
+
+	assert.Equal(t, res(), "John Doe")
 }
