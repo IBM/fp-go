@@ -85,8 +85,8 @@ func MonadChainFirstEitherK[A, E, B, HKTEA, HKTEB any](
 }
 
 func ChainFirstEitherK[A, E, B, HKTEA, HKTEB any](
-	mchain func(HKTEA, func(A) HKTEA) HKTEA,
-	mmap func(HKTEB, func(B) A) HKTEA,
+	mchain func(func(A) HKTEA) func(HKTEA) HKTEA,
+	mmap func(func(B) A) func(HKTEB) HKTEA,
 	fromEither func(ET.Either[E, B]) HKTEB,
 	f func(A) ET.Either[E, B]) func(HKTEA) HKTEA {
 	return C.ChainFirst(mchain, mmap, F.Flow2(f, fromEither))

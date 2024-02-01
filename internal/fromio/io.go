@@ -30,8 +30,8 @@ func MonadChainFirstIOK[A, B, HKTA, HKTB any, GIOB ~func() B](
 }
 
 func ChainFirstIOK[A, B, HKTA, HKTB any, GIOB ~func() B](
-	mchain func(HKTA, func(A) HKTA) HKTA,
-	mmap func(HKTB, func(B) A) HKTA,
+	mchain func(func(A) HKTA) func(HKTA) HKTA,
+	mmap func(func(B) A) func(HKTB) HKTA,
 	fromio func(GIOB) HKTB,
 	f func(A) GIOB) func(HKTA) HKTA {
 	// chain

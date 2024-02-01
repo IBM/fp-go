@@ -17,121 +17,118 @@ package generic
 
 import (
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 	IO "github.com/IBM/fp-go/io/generic"
 	M "github.com/IBM/fp-go/monoid"
-	S "github.com/IBM/fp-go/semigroup"
+	SG "github.com/IBM/fp-go/semigroup"
 	T "github.com/IBM/fp-go/tuple"
 )
 
-func Of[GA ~func() T.Tuple2[A, W], W, A any](m M.Monoid[W]) func(A) GA {
+func Of[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A any](m M.Monoid[W]) func(A) GA {
 	return F.Flow2(
-		F.Bind2nd(T.MakeTuple2[A, W], m.Empty()),
+		F.Bind23of3(T.MakeTuple3[A, W, SG.Semigroup[W]])(m.Empty(), M.ToSemigroup(m)),
 		IO.Of[GA],
 	)
 }
 
 // Listen modifies the result to include the changes to the accumulator
-func Listen[GA ~func() T.Tuple2[A, W], GTA ~func() T.Tuple2[T.Tuple2[A, W], W], W, A any](fa GA) GTA {
-	return func() T.Tuple2[T.Tuple2[A, W], W] {
+func Listen[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], GTA ~func() T.Tuple3[T.Tuple2[A, W], W, SG.Semigroup[W]], W, A any](fa GA) GTA {
+	return func() T.Tuple3[T.Tuple2[A, W], W, SG.Semigroup[W]] {
 		t := fa()
-		return T.MakeTuple2(T.MakeTuple2(t.F1, t.F2), t.F2)
+		return T.MakeTuple3(T.MakeTuple2(t.F1, t.F2), t.F2, t.F3)
 	}
 }
 
 // Pass applies the returned function to the accumulator
-func Pass[GFA ~func() T.Tuple2[T.Tuple2[A, FCT], W], GA ~func() T.Tuple2[A, W], FCT ~func(W) W, W, A any](fa GFA) GA {
-	return func() T.Tuple2[A, W] {
+func Pass[GFA ~func() T.Tuple3[T.Tuple2[A, FCT], W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(W) W, W, A any](fa GFA) GA {
+	return func() T.Tuple3[A, W, SG.Semigroup[W]] {
 		t := fa()
-		return T.MakeTuple2(t.F1.F1, t.F1.F2(t.F2))
+		return T.MakeTuple3(t.F1.F1, t.F1.F2(t.F2), t.F3)
 	}
 }
 
-func MonadMap[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) B, W, A, B any](fa GA, f FCT) GB {
-	return IO.MonadMap[GA, GB](fa, T.Map2(f, F.Identity[W]))
+func MonadMap[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(A) B, W, A, B any](fa GA, f FCT) GB {
+	return IO.MonadMap[GA, GB](fa, T.Map3(f, F.Identity[W], F.Identity[SG.Semigroup[W]]))
 }
 
-func Map[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) B, W, A, B any](f FCT) func(GA) GB {
-	return IO.Map[GA, GB](T.Map2(f, F.Identity[W]))
+func Map[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(A) B, W, A, B any](f FCT) func(GA) GB {
+	return IO.Map[GA, GB](T.Map3(f, F.Identity[W], F.Identity[SG.Semigroup[W]]))
 }
 
-func MonadChain[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) GB, W, A, B any](s S.Semigroup[W]) func(GA, FCT) GB {
-	return func(fa GA, f FCT) GB {
+func MonadChain[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(A) GB, W, A, B any](fa GA, f FCT) GB {
+	return func() T.Tuple3[B, W, SG.Semigroup[W]] {
+		a := fa()
+		b := f(a.F1)()
 
-		return func() T.Tuple2[B, W] {
-			a := fa()
-			b := f(a.F1)()
-
-			return T.MakeTuple2(b.F1, s.Concat(a.F2, b.F2))
-		}
+		return T.MakeTuple3(b.F1, b.F3.Concat(a.F2, b.F2), b.F3)
 	}
 }
 
-func Chain[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) GB, W, A, B any](s S.Semigroup[W]) func(FCT) func(GA) GB {
-	return F.Curry2(F.Swap(MonadChain[GB, GA, FCT](s)))
+func Chain[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(A) GB, W, A, B any](f FCT) func(GA) GB {
+	return F.Bind2nd(MonadChain[GB, GA, FCT, W, A, B], f)
 }
 
-func MonadAp[GB ~func() T.Tuple2[B, W], GAB ~func() T.Tuple2[func(A) B, W], GA ~func() T.Tuple2[A, W], W, A, B any](s S.Semigroup[W]) func(GAB, GA) GB {
-	return func(fab GAB, fa GA) GB {
-		return func() T.Tuple2[B, W] {
-			f := fab()
-			a := fa()
+func MonadAp[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GAB ~func() T.Tuple3[func(A) B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A, B any](fab GAB, fa GA) GB {
+	return func() T.Tuple3[B, W, SG.Semigroup[W]] {
+		f := fab()
+		a := fa()
 
-			return T.MakeTuple2(f.F1(a.F1), s.Concat(f.F2, a.F2))
-		}
+		return T.MakeTuple3(f.F1(a.F1), f.F3.Concat(f.F2, a.F2), f.F3)
 	}
 }
 
-func Ap[GB ~func() T.Tuple2[B, W], GAB ~func() T.Tuple2[func(A) B, W], GA ~func() T.Tuple2[A, W], W, A, B any](s S.Semigroup[W]) func(GA) func(GAB) GB {
-	return F.Curry2(F.Swap(MonadAp[GB, GAB, GA](s)))
+func Ap[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GAB ~func() T.Tuple3[func(A) B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A, B any](ga GA) func(GAB) GB {
+	return F.Bind2nd(MonadAp[GB, GAB, GA], ga)
 }
 
-func MonadChainFirst[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) GB, W, A, B any](s S.Semigroup[W]) func(GA, FCT) GA {
-	chain := MonadChain[GA, GA, func(A) GA](s)
-	return func(ma GA, f FCT) GA {
-		return chain(ma, func(a A) GA {
-			return MonadMap[GA](f(a), F.Constant1[B](a))
-		})
-	}
+func MonadChainFirst[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(A) GB, W, A, B any](ma GA, f FCT) GA {
+	return C.MonadChainFirst(
+		MonadChain[GA, GA, func(A) GA],
+		MonadMap[GA, GB, func(B) A],
+		ma,
+		f,
+	)
 }
 
-func ChainFirst[GB ~func() T.Tuple2[B, W], GA ~func() T.Tuple2[A, W], FCT ~func(A) GB, W, A, B any](s S.Semigroup[W]) func(FCT) func(GA) GA {
-	return F.Curry2(F.Swap(MonadChainFirst[GB, GA, FCT](s)))
+func ChainFirst[GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(A) GB, W, A, B any](f FCT) func(GA) GA {
+	return C.ChainFirst(
+		Chain[GA, GA, func(A) GA],
+		Map[GA, GB, func(B) A],
+		f,
+	)
 }
 
-func Flatten[GAA ~func() T.Tuple2[GA, W], GA ~func() T.Tuple2[A, W], W, A any](s S.Semigroup[W]) func(GAA) GA {
-	chain := MonadChain[GA, GAA, func(GA) GA](s)
-	return func(mma GAA) GA {
-		return chain(mma, F.Identity[GA])
-	}
+func Flatten[GAA ~func() T.Tuple3[GA, W, SG.Semigroup[W]], GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A any](mma GAA) GA {
+	return MonadChain[GA, GAA, func(GA) GA](mma, F.Identity[GA])
 }
 
-func Execute[GA ~func() T.Tuple2[A, W], W, A any](fa GA) W {
-	return T.Second(fa())
+func Execute[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A any](fa GA) W {
+	return fa().F2
 }
 
-func Evaluate[GA ~func() T.Tuple2[A, W], W, A any](fa GA) A {
-	return T.First(fa())
+func Evaluate[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A any](fa GA) A {
+	return fa().F1
 }
 
 // MonadCensor modifies the final accumulator value by applying a function
-func MonadCensor[GA ~func() T.Tuple2[A, W], FCT ~func(W) W, W, A any](fa GA, f FCT) GA {
-	return IO.MonadMap[GA, GA](fa, T.Map2(F.Identity[A], f))
+func MonadCensor[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(W) W, W, A any](fa GA, f FCT) GA {
+	return IO.MonadMap[GA, GA](fa, T.Map3(F.Identity[A], f, F.Identity[SG.Semigroup[W]]))
 }
 
 // Censor modifies the final accumulator value by applying a function
-func Censor[GA ~func() T.Tuple2[A, W], FCT ~func(W) W, W, A any](f FCT) func(GA) GA {
-	return IO.Map[GA, GA](T.Map2(F.Identity[A], f))
+func Censor[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], FCT ~func(W) W, W, A any](f FCT) func(GA) GA {
+	return IO.Map[GA, GA](T.Map3(F.Identity[A], f, F.Identity[SG.Semigroup[W]]))
 }
 
 // MonadListens projects a value from modifications made to the accumulator during an action
-func MonadListens[GA ~func() T.Tuple2[A, W], GAB ~func() T.Tuple2[T.Tuple2[A, B], W], FCT ~func(W) B, W, A, B any](fa GA, f FCT) GAB {
-	return func() T.Tuple2[T.Tuple2[A, B], W] {
+func MonadListens[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], GAB ~func() T.Tuple3[T.Tuple2[A, B], W, SG.Semigroup[W]], FCT ~func(W) B, W, A, B any](fa GA, f FCT) GAB {
+	return func() T.Tuple3[T.Tuple2[A, B], W, SG.Semigroup[W]] {
 		a := fa()
-		return T.MakeTuple2(T.MakeTuple2(a.F1, f(a.F2)), a.F2)
+		return T.MakeTuple3(T.MakeTuple2(a.F1, f(a.F2)), a.F2, a.F3)
 	}
 }
 
 // Listens projects a value from modifications made to the accumulator during an action
-func Listens[GA ~func() T.Tuple2[A, W], GAB ~func() T.Tuple2[T.Tuple2[A, B], W], FCT ~func(W) B, W, A, B any](f FCT) func(GA) GAB {
+func Listens[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], GAB ~func() T.Tuple3[T.Tuple2[A, B], W, SG.Semigroup[W]], FCT ~func(W) B, W, A, B any](f FCT) func(GA) GAB {
 	return F.Bind2nd(MonadListens[GA, GAB, FCT], f)
 }

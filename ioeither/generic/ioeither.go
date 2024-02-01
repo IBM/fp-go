@@ -257,8 +257,8 @@ func MonadChainFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, 
 // ChainFirst runs the monad returned by the function but returns the result of the original monad
 func ChainFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](f func(A) GB) func(GA) GA {
 	return C.ChainFirst(
-		MonadChain[GA, GA, E, A, A],
-		MonadMap[GB, GA, E, B, A],
+		Chain[GA, GA, E, A, A],
+		Map[GB, GA, E, B, A],
 		f,
 	)
 }
@@ -277,8 +277,8 @@ func MonadChainFirstIOK[GA ~func() ET.Either[E, A], GIOB ~func() B, E, A, B any]
 // ChainFirstIOK runs the monad returned by the function but returns the result of the original monad
 func ChainFirstIOK[GA ~func() ET.Either[E, A], GIOB ~func() B, E, A, B any](f func(A) GIOB) func(GA) GA {
 	return FI.ChainFirstIOK(
-		MonadChain[GA, GA, E, A, A],
-		MonadMap[func() ET.Either[E, B], GA, E, B, A],
+		Chain[GA, GA, E, A, A],
+		Map[func() ET.Either[E, B], GA, E, B, A],
 		FromIO[func() ET.Either[E, B], GIOB, E, B],
 		f,
 	)
@@ -298,8 +298,8 @@ func MonadChainFirstEitherK[GA ~func() ET.Either[E, A], E, A, B any](first GA, f
 // ChainFirstEitherK runs the monad returned by the function but returns the result of the original monad
 func ChainFirstEitherK[GA ~func() ET.Either[E, A], E, A, B any](f func(A) ET.Either[E, B]) func(GA) GA {
 	return FE.ChainFirstEitherK(
-		MonadChain[GA, GA, E, A, A],
-		MonadMap[func() ET.Either[E, B], GA, E, B, A],
+		Chain[GA, GA, E, A, A],
+		Map[func() ET.Either[E, B], GA, E, B, A],
 		FromEither[func() ET.Either[E, B], E, B],
 		f,
 	)

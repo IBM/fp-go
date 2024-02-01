@@ -37,8 +37,6 @@ func AssertLaws[W, A, B, C any](t *testing.T,
 	bc func(B) C,
 ) func(a A) bool {
 
-	s := M.ToSemigroup(m)
-
 	return L.AssertLaws(t,
 		WRT.Eq(eqw, eqa),
 		WRT.Eq(eqw, eqb),
@@ -60,18 +58,18 @@ func AssertLaws[W, A, B, C any](t *testing.T,
 
 		WRT.MonadMap[func(func(B) C) func(func(A) B) func(A) C, W, func(B) C, func(func(A) B) func(A) C],
 
-		WRT.MonadChain[func(A) WRT.Writer[W, A], W, A, A](m),
-		WRT.MonadChain[func(A) WRT.Writer[W, B], W, A, B](m),
-		WRT.MonadChain[func(A) WRT.Writer[W, C], W, A, C](m),
-		WRT.MonadChain[func(B) WRT.Writer[W, C], W, B, C](m),
+		WRT.MonadChain[func(A) WRT.Writer[W, A], W, A, A],
+		WRT.MonadChain[func(A) WRT.Writer[W, B], W, A, B],
+		WRT.MonadChain[func(A) WRT.Writer[W, C], W, A, C],
+		WRT.MonadChain[func(B) WRT.Writer[W, C], W, B, C],
 
-		WRT.MonadAp[A, A](s),
-		WRT.MonadAp[B, A](s),
-		WRT.MonadAp[C, B](s),
-		WRT.MonadAp[C, A](s),
+		WRT.MonadAp[A, A, W],
+		WRT.MonadAp[B, A, W],
+		WRT.MonadAp[C, B, W],
+		WRT.MonadAp[C, A, W],
 
-		WRT.MonadAp[B, func(A) B](s),
-		WRT.MonadAp[func(A) C, func(A) B](s),
+		WRT.MonadAp[B, func(A) B, W],
+		WRT.MonadAp[func(A) C, func(A) B, W],
 
 		ab,
 		bc,

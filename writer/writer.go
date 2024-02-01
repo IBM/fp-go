@@ -24,7 +24,7 @@ import (
 	G "github.com/IBM/fp-go/writer/generic"
 )
 
-type Writer[W, A any] IO.IO[T.Tuple2[A, W]]
+type Writer[W, A any] IO.IO[T.Tuple3[A, W, S.Semigroup[W]]]
 
 func Of[A, W any](m M.Monoid[W]) func(A) Writer[W, A] {
 	return G.Of[Writer[W, A]](m)
@@ -48,32 +48,32 @@ func Map[W any, FCT ~func(A) B, A, B any](f FCT) func(Writer[W, A]) Writer[W, B]
 	return G.Map[Writer[W, B], Writer[W, A]](f)
 }
 
-func MonadChain[FCT ~func(A) Writer[W, B], W, A, B any](s S.Semigroup[W]) func(Writer[W, A], FCT) Writer[W, B] {
-	return G.MonadChain[Writer[W, B], Writer[W, A], FCT](s)
+func MonadChain[FCT ~func(A) Writer[W, B], W, A, B any](fa Writer[W, A], fct FCT) Writer[W, B] {
+	return G.MonadChain[Writer[W, B], Writer[W, A], FCT](fa, fct)
 }
 
-func Chain[A, B, W any](s S.Semigroup[W]) func(func(A) Writer[W, B]) func(Writer[W, A]) Writer[W, B] {
-	return G.Chain[Writer[W, B], Writer[W, A], func(A) Writer[W, B]](s)
+func Chain[A, B, W any](fa func(A) Writer[W, B]) func(Writer[W, A]) Writer[W, B] {
+	return G.Chain[Writer[W, B], Writer[W, A], func(A) Writer[W, B]](fa)
 }
 
-func MonadAp[B, A, W any](s S.Semigroup[W]) func(Writer[W, func(A) B], Writer[W, A]) Writer[W, B] {
-	return G.MonadAp[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](s)
+func MonadAp[B, A, W any](fab Writer[W, func(A) B], fa Writer[W, A]) Writer[W, B] {
+	return G.MonadAp[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](fab, fa)
 }
 
-func Ap[B, A, W any](s S.Semigroup[W]) func(Writer[W, A]) func(Writer[W, func(A) B]) Writer[W, B] {
-	return G.Ap[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](s)
+func Ap[B, A, W any](fa Writer[W, A]) func(Writer[W, func(A) B]) Writer[W, B] {
+	return G.Ap[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](fa)
 }
 
-func MonadChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](s S.Semigroup[W]) func(Writer[W, A], FCT) Writer[W, A] {
-	return G.MonadChainFirst[Writer[W, B], Writer[W, A], FCT](s)
+func MonadChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](fa Writer[W, A], fct FCT) Writer[W, A] {
+	return G.MonadChainFirst[Writer[W, B], Writer[W, A], FCT](fa, fct)
 }
 
-func ChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](s S.Semigroup[W]) func(FCT) func(Writer[W, A]) Writer[W, A] {
-	return G.ChainFirst[Writer[W, B], Writer[W, A], FCT](s)
+func ChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](fct FCT) func(Writer[W, A]) Writer[W, A] {
+	return G.ChainFirst[Writer[W, B], Writer[W, A], FCT](fct)
 }
 
-func Flatten[W, A any](s S.Semigroup[W]) func(Writer[W, Writer[W, A]]) Writer[W, A] {
-	return G.Flatten[Writer[W, Writer[W, A]], Writer[W, A]](s)
+func Flatten[W, A any](mma Writer[W, Writer[W, A]]) Writer[W, A] {
+	return G.Flatten[Writer[W, Writer[W, A]], Writer[W, A]](mma)
 }
 
 // Execute extracts the accumulator

@@ -17,11 +17,12 @@ package generic
 
 import (
 	EQ "github.com/IBM/fp-go/eq"
+	SG "github.com/IBM/fp-go/semigroup"
 	T "github.com/IBM/fp-go/tuple"
 )
 
 // Constructs an equal predicate for a [Writer]
-func Eq[GA ~func() T.Tuple2[A, W], W, A any](w EQ.Eq[W], a EQ.Eq[A]) EQ.Eq[GA] {
+func Eq[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A any](w EQ.Eq[W], a EQ.Eq[A]) EQ.Eq[GA] {
 	return EQ.FromEquals(func(l, r GA) bool {
 		ll := l()
 		rr := r()
@@ -31,6 +32,6 @@ func Eq[GA ~func() T.Tuple2[A, W], W, A any](w EQ.Eq[W], a EQ.Eq[A]) EQ.Eq[GA] {
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[GA ~func() T.Tuple2[A, W], W, A comparable]() EQ.Eq[GA] {
+func FromStrictEquals[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A comparable]() EQ.Eq[GA] {
 	return Eq[GA](EQ.FromStrictEquals[W](), EQ.FromStrictEquals[A]())
 }

@@ -17,7 +17,6 @@ package writer
 
 import (
 	M "github.com/IBM/fp-go/monoid"
-	S "github.com/IBM/fp-go/semigroup"
 	G "github.com/IBM/fp-go/writer/generic"
 )
 
@@ -27,11 +26,11 @@ func Do[S, W any](m M.Monoid[W]) func(S) Writer[W, S] {
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
-func Bind[S1, S2, T, W any](s S.Semigroup[W]) func(
+func Bind[S1, S2, T, W any](
 	setter func(T) func(S1) S2,
 	f func(S1) Writer[W, T],
 ) func(Writer[W, S1]) Writer[W, S2] {
-	return G.Bind[Writer[W, S1], Writer[W, S2], Writer[W, T], W, S1, S2, T](s)
+	return G.Bind[Writer[W, S1], Writer[W, S2], Writer[W, T], W, S1, S2, T](setter, f)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -58,9 +57,9 @@ func BindTo[W, S1, T any](
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
-func ApS[S1, S2, T, W any](s S.Semigroup[W]) func(
+func ApS[S1, S2, T, W any](
 	setter func(T) func(S1) S2,
 	fa Writer[W, T],
 ) func(Writer[W, S1]) Writer[W, S2] {
-	return G.ApS[Writer[W, S1], Writer[W, S2], Writer[W, T], W, S1, S2, T](s)
+	return G.ApS[Writer[W, S1], Writer[W, S2], Writer[W, T], W, S1, S2, T](setter, fa)
 }

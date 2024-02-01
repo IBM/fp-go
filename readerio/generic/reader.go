@@ -114,8 +114,8 @@ func MonadChainFirstIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GI
 
 func ChainFirstIOK[GEA ~func(E) GIOA, GEB ~func(E) GIOB, GIOA ~func() A, GIOB ~func() B, E, A, B any](f func(A) GIOB) func(GEA) GEA {
 	return FIO.ChainFirstIOK(
-		MonadChain[GEA, GEA],
-		MonadMap[GEB, GEA],
+		Chain[GEA, GEA],
+		Map[GEB, GEA],
 		FromIO[GEB],
 		f,
 	)

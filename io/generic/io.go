@@ -100,7 +100,11 @@ func MonadChainFirst[GA ~func() A, GB ~func() B, A, B any](fa GA, f func(A) GB) 
 // ChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
 func ChainFirst[GA ~func() A, GB ~func() B, A, B any](f func(A) GB) func(GA) GA {
-	return C.ChainFirst(MonadChain[GA, GA, A, A], MonadMap[GB, GA, B, A], f)
+	return C.ChainFirst(
+		Chain[GA, GA, A, A],
+		Map[GB, GA, B, A],
+		f,
+	)
 }
 
 func ApSeq[GB ~func() B, GAB ~func() func(A) B, GA ~func() A, B, A any](ma GA) func(GAB) GB {

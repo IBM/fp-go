@@ -43,11 +43,11 @@ func MonadChain[A, B, HKTA, HKTB any](
 // HKTA=HKT[A]
 // HKTB=HKT[B]
 func ChainFirst[A, B, HKTA, HKTB any](
-	mchain func(HKTA, func(A) HKTA) HKTA,
-	mmap func(HKTB, func(B) A) HKTA,
+	mchain func(func(A) HKTA) func(HKTA) HKTA,
+	mmap func(func(B) A) func(HKTB) HKTA,
 	f func(A) HKTB) func(HKTA) HKTA {
-	return F.Bind2nd(mchain, func(a A) HKTA {
-		return mmap(f(a), F.Constant1[B](a))
+	return mchain(func(a A) HKTA {
+		return mmap(F.Constant1[B](a))(f(a))
 	})
 }
 

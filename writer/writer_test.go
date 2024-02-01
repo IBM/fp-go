@@ -20,30 +20,28 @@ import (
 
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
-	M "github.com/IBM/fp-go/monoid"
+	S "github.com/IBM/fp-go/semigroup"
 	T "github.com/IBM/fp-go/tuple"
 )
 
 func doubleAndLog(data int) Writer[[]string, int] {
-	return func() T.Tuple2[int, []string] {
+	return func() T.Tuple3[int, []string, S.Semigroup[[]string]] {
 		result := data * 2
-		return T.MakeTuple2(result, A.Of(fmt.Sprintf("Doubled %d -> %d", data, result)))
+		return T.MakeTuple3(result, A.Of(fmt.Sprintf("Doubled %d -> %d", data, result)), sg)
 	}
 }
 
 func ExampleWriter_logging() {
 
-	m := A.Monoid[string]()
-	s := M.ToSemigroup(m)
-
-	res := F.Pipe3(
+	res := F.Pipe4(
 		10,
-		Of[int](m),
-		Chain[int, int](s)(doubleAndLog),
-		Chain[int, int](s)(doubleAndLog),
+		Of[int](monoid),
+		Chain(doubleAndLog),
+		Chain(doubleAndLog),
+		Execute[[]string, int],
 	)
 
-	fmt.Println(res())
+	fmt.Println(res)
 
-	// Output: Tuple2[int, []string](40, [Doubled 10 -> 20 Doubled 20 -> 40])
+	// Output: [Doubled 10 -> 20 Doubled 20 -> 40]
 }

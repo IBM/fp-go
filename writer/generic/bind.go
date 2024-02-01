@@ -20,36 +20,30 @@ import (
 	C "github.com/IBM/fp-go/internal/chain"
 	F "github.com/IBM/fp-go/internal/functor"
 	M "github.com/IBM/fp-go/monoid"
-	S "github.com/IBM/fp-go/semigroup"
+	SG "github.com/IBM/fp-go/semigroup"
 	T "github.com/IBM/fp-go/tuple"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
-func Do[GS ~func() T.Tuple2[S, W], W, S any](m M.Monoid[W]) func(S) GS {
+func Do[GS ~func() T.Tuple3[S, W, SG.Semigroup[W]], W, S any](m M.Monoid[W]) func(S) GS {
 	return Of[GS, W, S](m)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
-func Bind[GS1 ~func() T.Tuple2[S1, W], GS2 ~func() T.Tuple2[S2, W], GT ~func() T.Tuple2[A, W], W, S1, S2, A any](s S.Semigroup[W]) func(
+func Bind[GS1 ~func() T.Tuple3[S1, W, SG.Semigroup[W]], GS2 ~func() T.Tuple3[S2, W, SG.Semigroup[W]], GT ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, S1, S2, A any](
 	setter func(A) func(S1) S2,
 	f func(S1) GT,
 ) func(GS1) GS2 {
-	ch := Chain[GS2, GS1, func(S1) GS2, W, S1, S2](s)
-	return func(
-		setter func(A) func(S1) S2,
-		f func(S1) GT,
-	) func(GS1) GS2 {
-		return C.Bind(
-			ch,
-			Map[GS2, GT, func(A) S2, W, A, S2],
-			setter,
-			f,
-		)
-	}
+	return C.Bind(
+		Chain[GS2, GS1, func(S1) GS2, W, S1, S2],
+		Map[GS2, GT, func(A) S2, W, A, S2],
+		setter,
+		f,
+	)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
-func Let[GS1 ~func() T.Tuple2[S1, W], GS2 ~func() T.Tuple2[S2, W], W, S1, S2, A any](
+func Let[GS1 ~func() T.Tuple3[S1, W, SG.Semigroup[W]], GS2 ~func() T.Tuple3[S2, W, SG.Semigroup[W]], W, S1, S2, A any](
 	key func(A) func(S1) S2,
 	f func(S1) A,
 ) func(GS1) GS2 {
@@ -61,7 +55,7 @@ func Let[GS1 ~func() T.Tuple2[S1, W], GS2 ~func() T.Tuple2[S2, W], W, S1, S2, A 
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
-func LetTo[GS1 ~func() T.Tuple2[S1, W], GS2 ~func() T.Tuple2[S2, W], W, S1, S2, B any](
+func LetTo[GS1 ~func() T.Tuple3[S1, W, SG.Semigroup[W]], GS2 ~func() T.Tuple3[S2, W, SG.Semigroup[W]], W, S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
 ) func(GS1) GS2 {
@@ -73,7 +67,7 @@ func LetTo[GS1 ~func() T.Tuple2[S1, W], GS2 ~func() T.Tuple2[S2, W], W, S1, S2, 
 }
 
 // BindTo initializes a new state [S1] from a value [T]
-func BindTo[GS1 ~func() T.Tuple2[S1, W], GT ~func() T.Tuple2[A, W], W, S1, A any](
+func BindTo[GS1 ~func() T.Tuple3[S1, W, SG.Semigroup[W]], GT ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, S1, A any](
 	setter func(A) S1,
 ) func(GT) GS1 {
 	return C.BindTo(
@@ -83,20 +77,14 @@ func BindTo[GS1 ~func() T.Tuple2[S1, W], GT ~func() T.Tuple2[A, W], W, S1, A any
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
-func ApS[GS1 ~func() T.Tuple2[S1, W], GS2 ~func() T.Tuple2[S2, W], GT ~func() T.Tuple2[A, W], W, S1, S2, A any](s S.Semigroup[W]) func(
+func ApS[GS1 ~func() T.Tuple3[S1, W, SG.Semigroup[W]], GS2 ~func() T.Tuple3[S2, W, SG.Semigroup[W]], GT ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, S1, S2, A any](
 	setter func(A) func(S1) S2,
 	fa GT,
 ) func(GS1) GS2 {
-	ap := Ap[GS2, func() T.Tuple2[func(A) S2, W], GT, W, A, S2](s)
-	return func(
-		setter func(A) func(S1) S2,
-		fa GT,
-	) func(GS1) GS2 {
-		return apply.ApS(
-			ap,
-			Map[func() T.Tuple2[func(A) S2, W], GS1, func(S1) func(A) S2],
-			setter,
-			fa,
-		)
-	}
+	return apply.ApS(
+		Ap[GS2, func() T.Tuple3[func(A) S2, W, SG.Semigroup[W]], GT, W, A, S2],
+		Map[func() T.Tuple3[func(A) S2, W, SG.Semigroup[W]], GS1, func(S1) func(A) S2],
+		setter,
+		fa,
+	)
 }

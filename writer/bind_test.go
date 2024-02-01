@@ -42,8 +42,8 @@ func TestBind(t *testing.T) {
 
 	res := F.Pipe3(
 		Do[utils.Initial](monoid)(utils.Empty),
-		Bind[utils.Initial, utils.WithLastName, string](sg)(utils.SetLastName, getLastName),
-		Bind[utils.WithLastName, utils.WithGivenName, string](sg)(utils.SetGivenName, getGivenName),
+		Bind(utils.SetLastName, getLastName),
+		Bind(utils.SetGivenName, getGivenName),
 		Map[[]string](utils.GetFullName),
 	)
 
@@ -54,8 +54,8 @@ func TestApS(t *testing.T) {
 
 	res := F.Pipe3(
 		Do[utils.Initial](monoid)(utils.Empty),
-		ApS[utils.Initial, utils.WithLastName, string](sg)(utils.SetLastName, Of[string](monoid)("Doe")),
-		ApS[utils.WithLastName, utils.WithGivenName, string](sg)(utils.SetGivenName, Of[string](monoid)("John")),
+		ApS(utils.SetLastName, Of[string](monoid)("Doe")),
+		ApS(utils.SetGivenName, Of[string](monoid)("John")),
 		Map[[]string](utils.GetFullName),
 	)
 

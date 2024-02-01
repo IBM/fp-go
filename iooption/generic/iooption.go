@@ -90,8 +90,8 @@ func MonadChainFirst[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](m
 // ChainFirst runs the monad returned by the function but returns the result of the original monad
 func ChainFirst[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](f func(A) GB) func(GA) GA {
 	return C.ChainFirst(
-		MonadChain[GA, GA, A, A],
-		MonadMap[GB, GA, B, A],
+		Chain[GA, GA, A, A],
+		Map[GB, GA, B, A],
 		f,
 	)
 }
@@ -110,8 +110,8 @@ func MonadChainFirstIOK[GA ~func() O.Option[A], GIOB ~func() B, A, B any](first 
 // ChainFirstIOK runs the monad returned by the function but returns the result of the original monad
 func ChainFirstIOK[GA ~func() O.Option[A], GIOB ~func() B, A, B any](f func(A) GIOB) func(GA) GA {
 	return FI.ChainFirstIOK(
-		MonadChain[GA, GA, A, A],
-		MonadMap[func() O.Option[B], GA, B, A],
+		Chain[GA, GA, A, A],
+		Map[func() O.Option[B], GA, B, A],
 		FromIO[func() O.Option[B], GIOB, B],
 		f,
 	)

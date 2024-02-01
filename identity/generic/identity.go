@@ -50,7 +50,11 @@ func MonadChainFirst[GAB ~func(A) B, A, B any](fa A, f GAB) A {
 }
 
 func ChainFirst[GAB ~func(A) B, A, B any](f GAB) func(A) A {
-	return C.ChainFirst(MonadChain[func(A) A, A, A], MonadMap[func(B) A, B, A], f)
+	return C.ChainFirst(
+		Chain[func(A) A, A, A],
+		Map[func(B) A, B, A],
+		f,
+	)
 }
 
 func MonadFlap[GAB ~func(A) B, A, B any](fab GAB, a A) B {

@@ -31,8 +31,8 @@ func MonadChainFirstIOEitherK[GIOB ~func() ET.Either[E, B], E, A, B, HKTA, HKTB 
 }
 
 func ChainFirstIOEitherK[GIOB ~func() ET.Either[E, B], E, A, B, HKTA, HKTB any](
-	mchain func(HKTA, func(A) HKTA) HKTA,
-	mmap func(HKTB, func(B) A) HKTA,
+	mchain func(func(A) HKTA) func(HKTA) HKTA,
+	mmap func(func(B) A) func(HKTB) HKTA,
 	fromio func(GIOB) HKTB,
 	f func(A) GIOB) func(HKTA) HKTA {
 	// chain
