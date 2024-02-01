@@ -405,7 +405,7 @@ func MonadBiMap[GA ~func(R) GE1A, GB ~func(R) GE2B, GE1A ~func() ET.Either[E1, A
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
 func BiMap[GA ~func(R) GE1A, GB ~func(R) GE2B, GE1A ~func() ET.Either[E1, A], GE2B ~func() ET.Either[E2, B], R, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(GA) GB {
-	return eithert.BiMap(G.MonadMap[GA, GB, GE1A, GE2B, R, ET.Either[E1, A], ET.Either[E2, B]], f, g)
+	return eithert.BiMap(G.Map[GA, GB, GE1A, GE2B, R, ET.Either[E1, A], ET.Either[E2, B]], f, g)
 }
 
 // Swap changes the order of type parameters

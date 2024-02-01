@@ -87,7 +87,7 @@ func MonadMap[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B an
 }
 
 func Map[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](f func(A) B) func(GA) GB {
-	return F.Bind2nd(MonadMap[GA, GB, E, A, B], f)
+	return eithert.Map(IO.Map[GA, GB, ET.Either[E, A], ET.Either[E, B]], f)
 }
 
 func MonadMapTo[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](fa GA, b B) GB {
@@ -95,7 +95,7 @@ func MonadMapTo[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B 
 }
 
 func MapTo[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](b B) func(GA) GB {
-	return F.Bind2nd(MonadMapTo[GA, GB, E, A, B], b)
+	return Map[GA, GB](F.Constant1[A](b))
 }
 
 func MonadChain[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](fa GA, f func(A) GB) GB {
@@ -103,7 +103,7 @@ func MonadChain[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B 
 }
 
 func Chain[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](f func(A) GB) func(GA) GB {
-	return F.Bind2nd(MonadChain[GA, GB, E, A, B], f)
+	return eithert.Chain(IO.Chain[GA, GB, ET.Either[E, A], ET.Either[E, B]], IO.Of[GB, ET.Either[E, B]], f)
 }
 
 func MonadChainTo[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](fa GA, fb GB) GB {
@@ -111,7 +111,7 @@ func MonadChainTo[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, 
 }
 
 func ChainTo[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](fb GB) func(GA) GB {
-	return F.Bind2nd(MonadChainTo[GA, GB, E, A, B], fb)
+	return Chain[GA, GB, E, A, B](F.Constant1[A](fb))
 }
 
 func MonadChainEitherK[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](ma GA, f func(A) ET.Either[E, B]) GB {
@@ -141,7 +141,11 @@ func ChainIOK[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GR ~func()
 }
 
 func ChainEitherK[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], E, A, B any](f func(A) ET.Either[E, B]) func(GA) GB {
-	return F.Bind2nd(MonadChainEitherK[GA, GB, E, A, B], f)
+	return FE.ChainEitherK(
+		Chain[GA, GB, E, A, B],
+		FromEither[GB, E, B],
+		f,
+	)
 }
 
 func MonadAp[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](mab GAB, ma GA) GB {
@@ -223,7 +227,7 @@ func MonadBiMap[GA ~func() ET.Either[E1, A], GB ~func() ET.Either[E2, B], E1, E2
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
 func BiMap[GA ~func() ET.Either[E1, A], GB ~func() ET.Either[E2, B], E1, E2, A, B any](f func(E1) E2, g func(A) B) func(GA) GB {
-	return eithert.BiMap(IO.MonadMap[GA, GB, ET.Either[E1, A], ET.Either[E2, B]], f, g)
+	return eithert.BiMap(IO.Map[GA, GB, ET.Either[E1, A], ET.Either[E2, B]], f, g)
 }
 
 // Fold convers an IOEither into an IO

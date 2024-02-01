@@ -143,7 +143,7 @@ func MonadBiMap[GA ~func(E) ET.Either[E1, A], GB ~func(E) ET.Either[E2, B], E, E
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
 func BiMap[GA ~func(E) ET.Either[E1, A], GB ~func(E) ET.Either[E2, B], E, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(GA) GB {
-	return eithert.BiMap(R.MonadMap[GA, GB, E, ET.Either[E1, A], ET.Either[E2, B]], f, g)
+	return eithert.BiMap(R.Map[GA, GB, E, ET.Either[E1, A], ET.Either[E2, B]], f, g)
 }
 
 // Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s

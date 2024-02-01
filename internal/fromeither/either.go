@@ -60,6 +60,13 @@ func MonadChainEitherK[A, E, B, HKTEA, HKTEB any](
 	return mchain(ma, F.Flow2(f, fromEither))
 }
 
+func ChainEitherK[A, E, B, HKTEA, HKTEB any](
+	mchain func(func(A) HKTEB) func(HKTEA) HKTEB,
+	fromEither func(ET.Either[E, B]) HKTEB,
+	f func(A) ET.Either[E, B]) func(HKTEA) HKTEB {
+	return mchain(F.Flow2(f, fromEither))
+}
+
 func ChainOptionK[A, E, B, HKTEA, HKTEB any](
 	mchain func(HKTEA, func(A) HKTEB) HKTEB,
 	fromEither func(ET.Either[E, B]) HKTEB,

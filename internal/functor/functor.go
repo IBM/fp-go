@@ -62,9 +62,5 @@ func LetTo[S1, S2, B, HKTS1, HKTS2 any](
 	key func(B) func(S1) S2,
 	b B,
 ) func(HKTS1) HKTS2 {
-	return F.Pipe2(
-		b,
-		key,
-		mmap,
-	)
+	return mmap(key(b))
 }

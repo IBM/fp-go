@@ -51,6 +51,14 @@ func MonadMap[E, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[E, A]) 
 	return FC.MonadMap(fmap, ET.MonadMap[E, A, B], fa, f)
 }
 
+func Map[E, A, B, HKTFA, HKTFB any](
+	fmap func(func(ET.Either[E, A]) ET.Either[E, B]) func(HKTFA) HKTFB,
+	f func(A) B) func(HKTFA) HKTFB {
+	// HKTGA = Either[E, A]
+	// HKTGB = Either[E, B]
+	return FC.Map(fmap, ET.Map[E, A, B], f)
+}
+
 // HKTFA = HKT<F, Either<E, A>>
 // HKTFB = HKT<F, Either<E, B>>
 func MonadBiMap[E1, E2, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[E1, A]) ET.Either[E2, B]) HKTFB, fa HKTFA, f func(E1) E2, g func(A) B) HKTFB {
@@ -61,10 +69,12 @@ func MonadBiMap[E1, E2, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[
 
 // HKTFA = HKT<F, Either<E, A>>
 // HKTFB = HKT<F, Either<E, B>>
-func BiMap[E1, E2, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[E1, A]) ET.Either[E2, B]) HKTFB, f func(E1) E2, g func(A) B) func(HKTFA) HKTFB {
+func BiMap[E1, E2, A, B, HKTFA, HKTFB any](
+	fmap func(func(ET.Either[E1, A]) ET.Either[E2, B]) func(HKTFA) HKTFB,
+	f func(E1) E2, g func(A) B) func(HKTFA) HKTFB {
 	// HKTGA = Either[E, A]
 	// HKTGB = Either[E, B]
-	return F.Bind2nd(fmap, ET.BiMap(f, g))
+	return fmap(ET.BiMap(f, g))
 }
 
 // HKTFA = HKT<F, Either<E, A>>
@@ -76,6 +86,14 @@ func MonadChain[E, A, B, HKTFA, HKTFB any](
 	f func(A) HKTFB) HKTFB {
 	// dispatch to the even more generic implementation
 	return fchain(ma, ET.Fold(F.Flow2(ET.Left[B, E], fof), f))
+}
+
+func Chain[E, A, B, HKTFA, HKTFB any](
+	fchain func(func(ET.Either[E, A]) HKTFB) func(HKTFA) HKTFB,
+	fof func(ET.Either[E, B]) HKTFB,
+	f func(A) HKTFB) func(HKTFA) HKTFB {
+	// dispatch to the even more generic implementation
+	return fchain(ET.Fold(F.Flow2(ET.Left[B, E], fof), f))
 }
 
 func MonadAp[E, A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](

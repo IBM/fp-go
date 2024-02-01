@@ -77,7 +77,7 @@ func Map[E, A, B any](f func(a A) B) func(fa Either[E, A]) Either[E, B] {
 
 // MapLeft applies a mapping function to the error channel
 func MapLeft[A, E1, E2 any](f func(E1) E2) func(fa Either[E1, A]) Either[E2, A] {
-	return F.Bind2nd(MonadMapLeft[E1, A, E2], f)
+	return Fold(F.Flow2(f, Left[A, E2]), Right[E2, A])
 }
 
 func MonadChain[E, A, B any](fa Either[E, A], f func(a A) Either[E, B]) Either[E, B] {

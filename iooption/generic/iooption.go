@@ -118,7 +118,7 @@ func ChainFirstIOK[GA ~func() O.Option[A], GIOB ~func() B, A, B any](f func(A) G
 }
 
 func Chain[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](f func(A) GB) func(GA) GB {
-	return optiont.Chain(IO.MonadChain[GA, GB, O.Option[A], O.Option[B]], IO.MonadOf[GB, O.Option[B]], f)
+	return optiont.Chain(IO.Chain[GA, GB, O.Option[A], O.Option[B]], IO.Of[GB, O.Option[B]], f)
 }
 
 func MonadChainOptionK[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](ma GA, f func(A) O.Option[B]) GB {
@@ -131,7 +131,11 @@ func MonadChainOptionK[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any]
 }
 
 func ChainOptionK[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](f func(A) O.Option[B]) func(GA) GB {
-	return F.Bind2nd(MonadChainOptionK[GA, GB, A, B], f)
+	return optiont.ChainOptionK(
+		IO.Chain[GA, GB, O.Option[A], O.Option[B]],
+		FromOption[GB, B],
+		f,
+	)
 }
 
 func MonadChainIOK[GA ~func() O.Option[A], GB ~func() O.Option[B], GR ~func() B, A, B any](ma GA, f func(A) GR) GB {
@@ -239,7 +243,7 @@ func Defer[GA ~func() O.Option[A], A any](gen func() GA) GA {
 
 func MonadAlt[LAZY ~func() GIOA, GIOA ~func() O.Option[A], A any](first GIOA, second LAZY) GIOA {
 	return optiont.MonadAlt(
-		IO.Of[GIOA],
+		IO.MonadOf[GIOA],
 		IO.MonadChain[GIOA, GIOA],
 
 		first,
@@ -248,5 +252,10 @@ func MonadAlt[LAZY ~func() GIOA, GIOA ~func() O.Option[A], A any](first GIOA, se
 }
 
 func Alt[LAZY ~func() GIOA, GIOA ~func() O.Option[A], A any](second LAZY) func(GIOA) GIOA {
-	return F.Bind2nd(MonadAlt[LAZY], second)
+	return optiont.Alt(
+		IO.Of[GIOA],
+		IO.Chain[GIOA, GIOA],
+
+		second,
+	)
 }

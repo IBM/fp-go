@@ -50,13 +50,11 @@ func MonadChain[A, B, HKTFA, HKTFB any](
 }
 
 func Chain[A, B, HKTFA, HKTFB any](
-	fchain func(HKTFA, func(O.Option[A]) HKTFB) HKTFB,
+	fchain func(func(O.Option[A]) HKTFB) func(HKTFA) HKTFB,
 	fof func(O.Option[B]) HKTFB,
 	f func(A) HKTFB) func(ma HKTFA) HKTFB {
 	// dispatch to the even more generic implementation
-	return func(ma HKTFA) HKTFB {
-		return MonadChain(fchain, fof, ma, f)
-	}
+	return fchain(O.Fold(F.Nullary2(O.None[B], fof), f))
 }
 
 func MonadAp[A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
@@ -93,6 +91,14 @@ func MonadChainOptionK[A, B, HKTA, HKTB any](
 	return MonadChain(fchain, fof, ma, FromOptionK(fof, f))
 }
 
+func ChainOptionK[A, B, HKTA, HKTB any](
+	fchain func(func(O.Option[A]) HKTB) func(HKTA) HKTB,
+	fof func(O.Option[B]) HKTB,
+	f func(A) O.Option[B],
+) func(HKTA) HKTB {
+	return Chain(fchain, fof, FromOptionK(fof, f))
+}
+
 func MonadAlt[LAZY ~func() HKTFA, A, HKTFA any](
 	fof func(O.Option[A]) HKTFA,
 	fchain func(HKTFA, func(O.Option[A]) HKTFA) HKTFA,
@@ -105,11 +111,9 @@ func MonadAlt[LAZY ~func() HKTFA, A, HKTFA any](
 
 func Alt[LAZY ~func() HKTFA, A, HKTFA any](
 	fof func(O.Option[A]) HKTFA,
-	fchain func(HKTFA, func(O.Option[A]) HKTFA) HKTFA,
+	fchain func(func(O.Option[A]) HKTFA) func(HKTFA) HKTFA,
 
 	second LAZY) func(HKTFA) HKTFA {
 
-	return func(fa HKTFA) HKTFA {
-		return MonadAlt(fof, fchain, fa, second)
-	}
+	return fchain(O.Fold(second, F.Flow2(O.Of[A], fof)))
 }
