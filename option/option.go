@@ -156,5 +156,5 @@ func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 }
 
 func Flap[B, A any](a A) func(Option[func(A) B]) Option[B] {
-	return F.Bind2nd(MonadFlap[B, A], a)
+	return FC.Flap(Map[func(A) B, B], a)
 }

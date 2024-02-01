@@ -64,7 +64,7 @@ func MonadMapTo[E, A, B any](fa Either[E, A], b B) Either[E, B] {
 }
 
 func MapTo[E, A, B any](b B) func(Either[E, A]) Either[E, B] {
-	return F.Bind2nd(MonadMapTo[E, A, B], b)
+	return Map[E](F.Constant1[A](b))
 }
 
 func MonadMapLeft[E1, A, E2 any](fa Either[E1, A], f func(E1) E2) Either[E2, A] {
@@ -106,11 +106,11 @@ func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(E
 }
 
 func ChainTo[A, E, B any](mb Either[E, B]) func(Either[E, A]) Either[E, B] {
-	return F.Bind2nd(MonadChainTo[A, E, B], mb)
+	return F.Constant1[Either[E, A]](mb)
 }
 
 func Chain[E, A, B any](f func(a A) Either[E, B]) func(Either[E, A]) Either[E, B] {
-	return F.Bind2nd(MonadChain[E, A, B], f)
+	return Fold(Left[B, E], f)
 }
 
 func ChainFirst[E, A, B any](f func(a A) Either[E, B]) func(Either[E, A]) Either[E, A] {
@@ -251,7 +251,7 @@ func MonadFlap[E, B, A any](fab Either[E, func(A) B], a A) Either[E, B] {
 }
 
 func Flap[E, B, A any](a A) func(Either[E, func(A) B]) Either[E, B] {
-	return F.Bind2nd(MonadFlap[E, B, A], a)
+	return FC.Flap(Map[E, func(A) B, B], a)
 }
 
 func MonadAlt[E, A any](fa Either[E, A], that L.Lazy[Either[E, A]]) Either[E, A] {

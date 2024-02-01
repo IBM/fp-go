@@ -344,7 +344,7 @@ func MonadFlap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](fab GFAB, a A) GB
 }
 
 func Flap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](a A) func(GFAB) GB {
-	return F.Bind2nd(MonadFlap[FAB, GFAB, GB, A, B], a)
+	return FC.Flap(Map[GFAB, GB], a)
 }
 
 func Prepend[ENDO ~func(AS) AS, AS []A, A any](head A) ENDO {

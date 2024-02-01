@@ -339,7 +339,7 @@ func MonadFlap[GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B]
 }
 
 func Flap[GEAB ~func() ET.Either[E, func(A) B], GEB ~func() ET.Either[E, B], E, B, A any](a A) func(GEAB) GEB {
-	return FC.Flap(MonadMap[GEAB, GEB], a)
+	return FC.Flap(Map[GEAB, GEB], a)
 }
 
 func ToIOOption[GA ~func() O.Option[A], GEA ~func() ET.Either[E, A], E, A any](ioe GEA) GA {

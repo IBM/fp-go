@@ -19,13 +19,6 @@ import (
 	F "github.com/IBM/fp-go/function"
 )
 
-// HKTFGA  = HKT<F, HKT<G, A>>
-// HKTFGB  = HKT<F, HKT<G, B>>
-// HKTFGAB = HKT<F, HKT<G, (a: A) => B>>
-
-// HKTGA   = HKT<G, A>
-// HKTGB   = HKT<G, B>
-// HKTGAB  = HKT<G, (a: A) => B>
 func MonadAp[HKTGA, HKTGB, HKTGAB, HKTFGAB, HKTFGGAB, HKTFGA, HKTFGB any](
 	fap func(HKTFGGAB, HKTFGA) HKTFGB,
 	fmap func(HKTFGAB, func(HKTGAB) func(HKTGA) HKTGB) HKTFGGAB,
@@ -35,6 +28,19 @@ func MonadAp[HKTGA, HKTGB, HKTGAB, HKTFGAB, HKTFGGAB, HKTFGA, HKTFGB any](
 	fa HKTFGA) HKTFGB {
 
 	return fap(fmap(fab, F.Bind1st(F.Bind1st[HKTGAB, HKTGA, HKTGB], gap)), fa)
+}
+
+func Ap[HKTGA, HKTGB, HKTGAB, HKTFGAB, HKTFGGAB, HKTFGA, HKTFGB any](
+	fap func(HKTFGA) func(HKTFGGAB) HKTFGB,
+	fmap func(func(HKTGAB) func(HKTGA) HKTGB) func(HKTFGAB) HKTFGGAB,
+	gap func(HKTGA) func(HKTGAB) HKTGB,
+
+	fa HKTFGA) func(HKTFGAB) HKTFGB {
+
+	return F.Flow2(
+		fmap(F.Flip(gap)),
+		fap(fa),
+	)
 }
 
 // func Ap[HKTGA, HKTGB, HKTGAB, HKTFGAB, HKTFGGAB, HKTFGA, HKTFGB any](

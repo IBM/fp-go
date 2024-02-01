@@ -58,5 +58,5 @@ func MonadFlap[GAB ~func(A) B, A, B any](fab GAB, a A) B {
 }
 
 func Flap[GAB ~func(A) B, B, A any](a A) func(GAB) B {
-	return F.Bind2nd(MonadFlap[GAB, A, B], a)
+	return FC.Flap(Map[func(GAB) B, GAB, B], a)
 }

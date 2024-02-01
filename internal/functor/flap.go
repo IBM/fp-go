@@ -15,23 +15,24 @@
 
 package functor
 
+func flap[FAB ~func(A) B, A, B any](a A) func(FAB) B {
+	return func(f FAB) B {
+		return f(a)
+	}
+}
+
 func MonadFlap[FAB ~func(A) B, A, B, HKTFAB, HKTB any](
 	fmap func(HKTFAB, func(FAB) B) HKTB,
 
 	fab HKTFAB,
 	a A,
 ) HKTB {
-	return fmap(fab, func(f FAB) B {
-		return f(a)
-	})
+	return fmap(fab, flap[FAB, A, B](a))
 }
 
 func Flap[FAB ~func(A) B, A, B, HKTFAB, HKTB any](
-	fmap func(HKTFAB, func(FAB) B) HKTB,
-
+	fmap func(func(FAB) B) func(HKTFAB) HKTB,
 	a A,
 ) func(HKTFAB) HKTB {
-	return func(fab HKTFAB) HKTB {
-		return MonadFlap(fmap, fab, a)
-	}
+	return fmap(flap[FAB, A, B](a))
 }

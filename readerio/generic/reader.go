@@ -162,5 +162,5 @@ func MonadFlap[GEFAB ~func(E) GIOFAB, GEB ~func(E) GIOB, GIOFAB ~func() func(A) 
 }
 
 func Flap[GEFAB ~func(E) GIOFAB, GEB ~func(E) GIOB, GIOFAB ~func() func(A) B, GIOB ~func() B, E, A, B any](a A) func(GEFAB) GEB {
-	return FC.Flap(MonadMap[GEFAB, GEB], a)
+	return FC.Flap(Map[GEFAB, GEB], a)
 }

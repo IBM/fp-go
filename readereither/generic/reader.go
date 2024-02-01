@@ -162,7 +162,7 @@ func MonadFlap[GEFAB ~func(E) ET.Either[L, func(A) B], GEB ~func(E) ET.Either[L,
 }
 
 func Flap[GEFAB ~func(E) ET.Either[L, func(A) B], GEB ~func(E) ET.Either[L, B], L, E, A, B any](a A) func(GEFAB) GEB {
-	return FC.Flap(MonadMap[GEFAB, GEB], a)
+	return FC.Flap(Map[GEFAB, GEB], a)
 }
 
 func MonadMapLeft[GA1 ~func(C) ET.Either[E1, A], GA2 ~func(C) ET.Either[E2, A], C, E1, E2, A any](fa GA1, f func(E1) E2) GA2 {

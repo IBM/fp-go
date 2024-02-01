@@ -127,5 +127,5 @@ func MonadFlap[GAB ~func(R) func(A) B, GB ~func(R) B, R, A, B any](fab GAB, a A)
 }
 
 func Flap[GAB ~func(R) func(A) B, GB ~func(R) B, R, A, B any](a A) func(GAB) GB {
-	return FC.Flap(MonadMap[GAB, GB], a)
+	return FC.Flap(Map[GAB, GB], a)
 }

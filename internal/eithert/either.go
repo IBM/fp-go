@@ -78,20 +78,19 @@ func MonadChain[E, A, B, HKTFA, HKTFB any](
 	return fchain(ma, ET.Fold(F.Flow2(ET.Left[B, E], fof), f))
 }
 
-// func(fa func(R) T.Task[ET.Either[E, func(A) B]], f func(ET.Either[E, func(A) B]) func(ET.Either[E, A]) ET.Either[E, B]) GEFAB
-
-// HKTFA   = HKT[Either[E, A]]
-// HKTFB   = HKT[Either[E, B]]
-// HKTFAB  = HKT[Either[E, func(A)B]]
 func MonadAp[E, A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
 	fap func(HKTFGAB, HKTFA) HKTFB,
 	fmap func(HKTFAB, func(ET.Either[E, func(A) B]) func(ET.Either[E, A]) ET.Either[E, B]) HKTFGAB,
 	fab HKTFAB,
 	fa HKTFA) HKTFB {
-	// HKTGA  = ET.Either[E, A]
-	// HKTGB  = ET.Either[E, B]
-	// HKTGAB = ET.Either[E, func(a A) B]
 	return apply.MonadAp(fap, fmap, ET.MonadAp[B, E, A], fab, fa)
+}
+
+func Ap[E, A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
+	fap func(HKTFA) func(HKTFGAB) HKTFB,
+	fmap func(func(ET.Either[E, func(A) B]) func(ET.Either[E, A]) ET.Either[E, B]) func(HKTFAB) HKTFGAB,
+	fa HKTFA) func(HKTFAB) HKTFB {
+	return apply.Ap(fap, fmap, ET.Ap[B, E, A], fa)
 }
 
 func Right[E, A, HKTA any](fof func(ET.Either[E, A]) HKTA, a A) HKTA {

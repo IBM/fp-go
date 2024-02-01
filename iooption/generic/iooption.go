@@ -159,7 +159,10 @@ func MonadAp[GB ~func() O.Option[B], GAB ~func() O.Option[func(A) B], GA ~func()
 }
 
 func Ap[GB ~func() O.Option[B], GAB ~func() O.Option[func(A) B], GA ~func() O.Option[A], A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadAp[GB, GAB, GA, A, B], ma)
+	return optiont.Ap(
+		IO.Ap[GB, func() func(O.Option[A]) O.Option[B], GA, O.Option[B], O.Option[A]],
+		IO.Map[GAB, func() func(O.Option[A]) O.Option[B], O.Option[func(A) B], func(O.Option[A]) O.Option[B]],
+		ma)
 }
 
 func Flatten[GA ~func() O.Option[A], GAA ~func() O.Option[GA], A any](mma GAA) GA {

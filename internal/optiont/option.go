@@ -67,6 +67,13 @@ func MonadAp[A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
 	return apply.MonadAp(fap, fmap, O.MonadAp[B, A], fab, fa)
 }
 
+func Ap[A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
+	fap func(HKTFA) func(HKTFGAB) HKTFB,
+	fmap func(func(O.Option[func(A) B]) func(O.Option[A]) O.Option[B]) func(HKTFAB) HKTFGAB,
+	fa HKTFA) func(HKTFAB) HKTFB {
+	return apply.Ap(fap, fmap, O.Ap[B, A], fa)
+}
+
 func MatchE[A, HKTEA, HKTB any](mchain func(HKTEA, func(O.Option[A]) HKTB) HKTB, onNone func() HKTB, onSome func(A) HKTB) func(HKTEA) HKTB {
 	return F.Bind2nd(mchain, O.Fold(onNone, onSome))
 }

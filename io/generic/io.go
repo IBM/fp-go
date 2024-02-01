@@ -53,7 +53,7 @@ func MonadOf[GA ~func() A, A any](a A) GA {
 
 func MonadMap[GA ~func() A, GB ~func() B, A, B any](fa GA, f func(A) B) GB {
 	return MakeIO[GB](func() B {
-		return F.Pipe1(fa(), f)
+		return f(fa())
 	})
 }
 
@@ -66,13 +66,13 @@ func MonadMapTo[GA ~func() A, GB ~func() B, A, B any](fa GA, b B) GB {
 }
 
 func MapTo[GA ~func() A, GB ~func() B, A, B any](b B) func(GA) GB {
-	return F.Bind2nd(MonadMapTo[GA, GB, A, B], b)
+	return Map[GA, GB](F.Constant1[A](b))
 }
 
 // MonadChain composes computations in sequence, using the return value of one computation to determine the next computation.
 func MonadChain[GA ~func() A, GB ~func() B, A, B any](fa GA, f func(A) GB) GB {
 	return MakeIO[GB](func() B {
-		return F.Pipe1(fa(), f)()
+		return f(fa())()
 	})
 }
 
@@ -88,7 +88,7 @@ func MonadChainTo[GA ~func() A, GB ~func() B, A, B any](fa GA, fb GB) GB {
 
 // ChainTo composes computations in sequence, ignoring the return value of the first computation
 func ChainTo[GA ~func() A, GB ~func() B, A, B any](fb GB) func(GA) GB {
-	return F.Bind2nd(MonadChainTo[GA, GB, A, B], fb)
+	return Chain[GA, GB](F.Constant1[A](fb))
 }
 
 // MonadChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
@@ -174,7 +174,7 @@ func MonadFlap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](fab GFA
 }
 
 func Flap[FAB ~func(A) B, GFAB ~func() FAB, GB ~func() B, A, B any](a A) func(GFAB) GB {
-	return F.Bind2nd(MonadFlap[FAB, GFAB, GB, A, B], a)
+	return FC.Flap(Map[GFAB, GB, FAB, B], a)
 }
 
 // WithTime returns an operation that measures the start and end timestamp of the operation

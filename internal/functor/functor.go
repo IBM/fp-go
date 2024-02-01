@@ -33,11 +33,7 @@ func Map[A, B, HKTGA, HKTGB, HKTFGA, HKTFGB any](
 	fmap func(func(HKTGA) HKTGB) func(HKTFGA) HKTFGB,
 	gmap func(func(A) B) func(HKTGA) HKTGB,
 	f func(A) B) func(HKTFGA) HKTFGB {
-	return F.Pipe2(
-		f,
-		gmap,
-		fmap,
-	)
+	return fmap(gmap(f))
 }
 
 func MonadLet[S1, S2, B, HKTS1, HKTS2 any](
