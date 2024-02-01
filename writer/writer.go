@@ -26,6 +26,11 @@ import (
 
 type Writer[W, A any] IO.IO[T.Tuple3[A, W, S.Semigroup[W]]]
 
+// Tell appends a value to the accumulator
+func Tell[W any](s S.Semigroup[W]) func(W) Writer[W, any] {
+	return G.Tell[Writer[W, any]](s)
+}
+
 func Of[A, W any](m M.Monoid[W]) func(A) Writer[W, A] {
 	return G.Of[Writer[W, A]](m)
 }
@@ -87,21 +92,29 @@ func Evaluate[W, A any](fa Writer[W, A]) A {
 }
 
 // MonadCensor modifies the final accumulator value by applying a function
-func MonadCensor[FCT ~func(W) W, W, A any](fa Writer[W, A], f FCT) Writer[W, A] {
+func MonadCensor[A any, FCT ~func(W) W, W any](fa Writer[W, A], f FCT) Writer[W, A] {
 	return G.MonadCensor[Writer[W, A]](fa, f)
 }
 
 // Censor modifies the final accumulator value by applying a function
-func Censor[FCT ~func(W) W, W, A any](f FCT) func(Writer[W, A]) Writer[W, A] {
+func Censor[A any, FCT ~func(W) W, W any](f FCT) func(Writer[W, A]) Writer[W, A] {
 	return G.Censor[Writer[W, A]](f)
 }
 
 // MonadListens projects a value from modifications made to the accumulator during an action
-func MonadListens[FCT ~func(W) B, W, A, B any](fa Writer[W, A], f FCT) Writer[W, T.Tuple2[A, B]] {
+func MonadListens[A any, FCT ~func(W) B, W, B any](fa Writer[W, A], f FCT) Writer[W, T.Tuple2[A, B]] {
 	return G.MonadListens[Writer[W, A], Writer[W, T.Tuple2[A, B]]](fa, f)
 }
 
 // Listens projects a value from modifications made to the accumulator during an action
-func Listens[FCT ~func(W) B, W, A, B any](f FCT) func(Writer[W, A]) Writer[W, T.Tuple2[A, B]] {
+func Listens[A any, FCT ~func(W) B, W, B any](f FCT) func(Writer[W, A]) Writer[W, T.Tuple2[A, B]] {
 	return G.Listens[Writer[W, A], Writer[W, T.Tuple2[A, B]]](f)
+}
+
+func MonadFlap[W, B, A any](fab Writer[W, func(A) B], a A) Writer[W, B] {
+	return G.MonadFlap[func(A) B, Writer[W, func(A) B], Writer[W, B]](fab, a)
+}
+
+func Flap[W, B, A any](a A) func(Writer[W, func(A) B]) Writer[W, B] {
+	return G.Flap[func(A) B, Writer[W, func(A) B], Writer[W, B]](a)
 }

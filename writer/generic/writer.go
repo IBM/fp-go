@@ -18,11 +18,19 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	C "github.com/IBM/fp-go/internal/chain"
+	FC "github.com/IBM/fp-go/internal/functor"
 	IO "github.com/IBM/fp-go/io/generic"
 	M "github.com/IBM/fp-go/monoid"
 	SG "github.com/IBM/fp-go/semigroup"
 	T "github.com/IBM/fp-go/tuple"
 )
+
+func Tell[GA ~func() T.Tuple3[any, W, SG.Semigroup[W]], W any](s SG.Semigroup[W]) func(W) GA {
+	return F.Flow2(
+		F.Bind13of3(T.MakeTuple3[any, W, SG.Semigroup[W]])(nil, s),
+		IO.Of[GA],
+	)
+}
 
 func Of[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], W, A any](m M.Monoid[W]) func(A) GA {
 	return F.Flow2(
@@ -131,4 +139,15 @@ func MonadListens[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], GAB ~func() T.Tupl
 // Listens projects a value from modifications made to the accumulator during an action
 func Listens[GA ~func() T.Tuple3[A, W, SG.Semigroup[W]], GAB ~func() T.Tuple3[T.Tuple2[A, B], W, SG.Semigroup[W]], FCT ~func(W) B, W, A, B any](f FCT) func(GA) GAB {
 	return F.Bind2nd(MonadListens[GA, GAB, FCT], f)
+}
+
+func MonadFlap[FAB ~func(A) B, GFAB ~func() T.Tuple3[FAB, W, SG.Semigroup[W]], GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], W, A, B any](fab GFAB, a A) GB {
+	return FC.MonadFlap(
+		MonadMap[GB, GFAB, func(FAB) B],
+		fab,
+		a)
+}
+
+func Flap[FAB ~func(A) B, GFAB ~func() T.Tuple3[FAB, W, SG.Semigroup[W]], GB ~func() T.Tuple3[B, W, SG.Semigroup[W]], W, A, B any](a A) func(GFAB) GB {
+	return FC.Flap(Map[GB, GFAB, func(FAB) B], a)
 }

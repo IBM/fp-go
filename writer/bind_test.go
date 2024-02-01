@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	A "github.com/IBM/fp-go/array"
+	EQ "github.com/IBM/fp-go/eq"
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
 	M "github.com/IBM/fp-go/monoid"
@@ -28,6 +29,8 @@ import (
 var (
 	monoid = A.Monoid[string]()
 	sg     = M.ToSemigroup(monoid)
+
+	eq = Eq(A.Eq[string](EQ.FromStrictEquals[string]()), EQ.FromStrictEquals[string]())
 )
 
 func getLastName(s utils.Initial) Writer[[]string, string] {
@@ -47,7 +50,7 @@ func TestBind(t *testing.T) {
 		Map[[]string](utils.GetFullName),
 	)
 
-	assert.Equal(t, res(), Of[string](monoid)("John Doe")())
+	assert.True(t, eq.Equals(res, Of[string](monoid)("John Doe")))
 }
 
 func TestApS(t *testing.T) {
@@ -59,5 +62,5 @@ func TestApS(t *testing.T) {
 		Map[[]string](utils.GetFullName),
 	)
 
-	assert.Equal(t, res(), Of[string](monoid)("John Doe")())
+	assert.True(t, eq.Equals(res, Of[string](monoid)("John Doe")))
 }
