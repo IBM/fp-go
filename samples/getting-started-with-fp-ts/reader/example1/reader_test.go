@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package reader implements the example in [https://dev.to/gcanti/getting-started-with-fp-ts-reader-1ie5]
+// Package example1 implements the first example in [https://dev.to/gcanti/getting-started-with-fp-ts-reader-1ie5]
 package example1
 
 import (
