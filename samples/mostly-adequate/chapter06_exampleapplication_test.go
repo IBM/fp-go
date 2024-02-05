@@ -67,26 +67,26 @@ func Example_application() {
 		S.Format[string](fmt.Sprintf("https://%s%s%%s", host, path)),
 	)
 	// flick returns jsonP, we extract the JSON body, this is handled by jquery in the original code
-	sanitizeJsonP := Replace(regexp.MustCompile(`(?s)^\s*\((.*)\)\s*$`))("$1")
+	sanitizeJSONP := Replace(regexp.MustCompile(`(?s)^\s*\((.*)\)\s*$`))("$1")
 	// parse jsonP
-	parseJsonP := F.Flow3(
-		sanitizeJsonP,
+	parseJSONP := F.Flow3(
+		sanitizeJSONP,
 		S.ToBytes,
 		J.Unmarshal[FlickrFeed],
 	)
 	// markup
 	img := S.Format[string]("<img src='%s'/>")
 	// lenses
-	mediaUrl := F.Flow2(
+	mediaURL := F.Flow2(
 		FlickrItem.getMedia,
 		FlickrMedia.getLink,
 	)
-	mediaUrls := F.Flow2(
+	mediaURLs := F.Flow2(
 		FlickrFeed.getItems,
-		A.Map(mediaUrl),
+		A.Map(mediaURL),
 	)
 	images := F.Flow2(
-		mediaUrls,
+		mediaURLs,
 		A.Map(img),
 	)
 
@@ -97,7 +97,7 @@ func Example_application() {
 		url,
 		H.MakeGetRequest,
 		H.ReadText(client),
-		R.ChainEitherK(parseJsonP),
+		R.ChainEitherK(parseJSONP),
 		R.Map(images),
 	)
 

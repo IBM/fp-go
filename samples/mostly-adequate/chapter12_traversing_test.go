@@ -42,7 +42,7 @@ var (
 	}
 
 	// validate :: Player -> Either error Player
-	validatePlayer = E.FromPredicate(P.ContraMap(Player.getName)(S.IsNonEmpty), F.Flow2(Player.getId, errors.OnSome[int]("player %d must have a name")))
+	validatePlayer = E.FromPredicate(P.ContraMap(Player.getName)(S.IsNonEmpty), F.Flow2(Player.getID, errors.OnSome[int]("player %d must have a name")))
 
 	// readfile :: String -> String -> Task Error String
 	readfile = F.Curry2(func(encoding, file string) IOE.IOEither[error, string] {

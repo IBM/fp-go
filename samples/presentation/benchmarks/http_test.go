@@ -31,7 +31,7 @@ import (
 )
 
 type PostItem struct {
-	UserId uint   `json:"userId"`
+	UserID uint   `json:"userId"`
 	Id     uint   `json:"id"`
 	Title  string `json:"title"`
 	Body   string `json:"body"`
@@ -41,7 +41,7 @@ type CatFact struct {
 	Fact string `json:"fact"`
 }
 
-func heterogeneousHttpRequests(count int) R.ReaderIOEither[[]T.Tuple2[PostItem, CatFact]] {
+func heterogeneousHTTPRequests(count int) R.ReaderIOEither[[]T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
@@ -64,7 +64,7 @@ func heterogeneousHttpRequests(count int) R.ReaderIOEither[[]T.Tuple2[PostItem, 
 	)
 }
 
-func heterogeneousHttpRequestsIdiomatic(count int) ([]T.Tuple2[PostItem, CatFact], error) {
+func heterogeneousHTTPRequestsIdiomatic(count int) ([]T.Tuple2[PostItem, CatFact], error) {
 	// prepare the http client
 	var result []T.Tuple2[PostItem, CatFact]
 
@@ -109,13 +109,13 @@ func BenchmarkHeterogeneousHttpRequests(b *testing.B) {
 
 	b.Run("functional", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			benchResults = heterogeneousHttpRequests(count)(context.Background())()
+			benchResults = heterogeneousHTTPRequests(count)(context.Background())()
 		}
 	})
 
 	b.Run("idiomatic", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			benchResults, _ = heterogeneousHttpRequestsIdiomatic(count)
+			benchResults, _ = heterogeneousHTTPRequestsIdiomatic(count)
 		}
 	})
 

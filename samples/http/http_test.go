@@ -33,8 +33,8 @@ import (
 )
 
 type PostItem struct {
-	UserId uint   `json:"userId"`
-	Id     uint   `json:"id"`
+	UserID uint   `json:"userId"`
+	ID     uint   `json:"id"`
 	Title  string `json:"title"`
 	Body   string `json:"body"`
 }
@@ -43,7 +43,7 @@ type CatFact struct {
 	Fact string `json:"fact"`
 }
 
-func idxToUrl(idx int) string {
+func idxToURL(idx int) string {
 	return fmt.Sprintf("https://jsonplaceholder.typicode.com/posts/%d", idx+1)
 }
 
@@ -59,7 +59,7 @@ func TestMultipleHttpRequests(t *testing.T) {
 	count := 10
 
 	data := F.Pipe3(
-		A.MakeBy(count, idxToUrl),
+		A.MakeBy(count, idxToURL),
 		R.TraverseArray(F.Flow3(
 			H.MakeGetRequest,
 			readSinglePost,
@@ -74,7 +74,7 @@ func TestMultipleHttpRequests(t *testing.T) {
 	assert.Equal(t, E.Of[error](count), result())
 }
 
-func heterogeneousHttpRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
+func heterogeneousHTTPRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
@@ -97,7 +97,7 @@ func heterogeneousHttpRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
 // TestHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
 // the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
 func TestHeterogeneousHttpRequests(t *testing.T) {
-	data := heterogeneousHttpRequests()
+	data := heterogeneousHTTPRequests()
 
 	result := data(context.Background())
 
@@ -108,6 +108,6 @@ func TestHeterogeneousHttpRequests(t *testing.T) {
 // the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
 func BenchmarkHeterogeneousHttpRequests(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		heterogeneousHttpRequests()(context.Background())()
+		heterogeneousHTTPRequests()(context.Background())()
 	}
 }

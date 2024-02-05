@@ -32,7 +32,7 @@ import (
 
 type (
 	PostItem struct {
-		UserId uint   `json:"userId"`
+		UserID uint   `json:"userId"`
 		Id     uint   `json:"id"`
 		Title  string `json:"title"`
 		Body   string `json:"body"`
@@ -77,7 +77,7 @@ func (player Player) getName() string {
 	return player.Name
 }
 
-func (player Player) getId() int {
+func (player Player) getID() int {
 	return player.Id
 }
 
@@ -85,7 +85,7 @@ func (item PostItem) getTitle() string {
 	return item.Title
 }
 
-func idxToUrl(idx int) string {
+func idxToURL(idx int) string {
 	return fmt.Sprintf("https://jsonplaceholder.typicode.com/posts/%d", idx+1)
 }
 
@@ -101,7 +101,7 @@ func Example_renderPage() {
 
 	// get returns the title of the nth item from the REST service
 	get := F.Flow4(
-		idxToUrl,
+		idxToURL,
 		H.MakeGetRequest,
 		H.ReadJson[PostItem](client),
 		R.Map(PostItem.getTitle),

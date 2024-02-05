@@ -76,7 +76,7 @@ var (
 	noBody     = O.None[E.Either[error, []byte]]()
 	noQueryArg = O.None[string]()
 
-	parseUrl   = E.Eitherize1(url.Parse)
+	parseURL   = E.Eitherize1(url.Parse)
 	parseQuery = E.Eitherize1(url.ParseQuery)
 
 	// WithQuery creates a [Endomorphism] for a complete set of query parameters
@@ -153,7 +153,7 @@ func (builder *Builder) GetTargetUrl() E.Either[error, string] {
 	return F.Pipe3(
 		builder,
 		Url.Get,
-		parseUrl,
+		parseURL,
 		E.Chain(F.Flow4(
 			T.Replicate2[*url.URL],
 			T.Map2(

@@ -67,8 +67,8 @@ func isPrimeNumber(num int) bool {
 	if num <= 2 {
 		return true
 	}
-	sq_root := int(math.Sqrt(float64(num)))
-	for i := 2; i <= sq_root; i++ {
+	sqRoot := int(math.Sqrt(float64(num)))
+	for i := 2; i <= sqRoot; i++ {
 		if num%i == 0 {
 			return false
 		}

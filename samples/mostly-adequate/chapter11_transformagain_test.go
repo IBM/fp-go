@@ -26,7 +26,7 @@ import (
 	S "github.com/IBM/fp-go/string"
 )
 
-func findUserById(id int) IOE.IOEither[error, Chapter08User] {
+func findUserByID(id int) IOE.IOEither[error, Chapter08User] {
 	switch id {
 	case 1:
 		return IOE.Of[error](albert08)
@@ -52,15 +52,15 @@ func Example_solution11A() {
 }
 
 func Example_solution11B() {
-	findByNameId := F.Flow2(
-		findUserById,
+	findByNameID := F.Flow2(
+		findUserByID,
 		IOE.Map[error](Chapter08User.getName),
 	)
 
-	fmt.Println(findByNameId(1)())
-	fmt.Println(findByNameId(2)())
-	fmt.Println(findByNameId(3)())
-	fmt.Println(findByNameId(4)())
+	fmt.Println(findByNameID(1)())
+	fmt.Println(findByNameID(2)())
+	fmt.Println(findByNameID(3)())
+	fmt.Println(findByNameID(4)())
 
 	// Output:
 	// Right[<nil>, string](Albert)

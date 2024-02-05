@@ -31,7 +31,7 @@ import (
 )
 
 type PostItem struct {
-	UserId uint   `json:"userId"`
+	UserID uint   `json:"userId"`
 	Id     uint   `json:"id"`
 	Title  string `json:"title"`
 	Body   string `json:"body"`
