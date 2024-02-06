@@ -35,6 +35,12 @@ var (
 
 	// Join joins strings
 	Join = F.Curry2(F.Bind2nd[[]string, string, string])(strings.Join)
+
+	// Equals returns a predicate that tests if a string is equal
+	Equals = F.Curry2(Eq)
+
+	// Includes returns a predicate that tests for the existence of the search string
+	Includes = F.Curry2(F.Swap(strings.Contains))
 )
 
 func Eq(left string, right string) bool {
@@ -59,16 +65,6 @@ func IsNonEmpty(s string) bool {
 
 func Size(s string) int {
 	return len(s)
-}
-
-// Includes returns a predicate that tests for the existence of the search string
-func Includes(searchString string) func(string) bool {
-	return F.Bind2nd(strings.Contains, searchString)
-}
-
-// Equals returns a predicate that tests if a string is equal
-func Equals(other string) func(string) bool {
-	return F.Bind2nd(Eq, other)
 }
 
 // Format applies a format string to an arbitrary value

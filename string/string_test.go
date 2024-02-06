@@ -36,3 +36,15 @@ func TestJoin(t *testing.T) {
 	assert.Equal(t, "a", Join(",")(A.From("a")))
 	assert.Equal(t, "", Join(",")(A.Empty[string]()))
 }
+
+func TestEquals(t *testing.T) {
+	assert.True(t, Equals("a")("a"))
+	assert.False(t, Equals("a")("b"))
+	assert.False(t, Equals("b")("a"))
+}
+
+func TestIncludes(t *testing.T) {
+	assert.True(t, Includes("a")("bab"))
+	assert.False(t, Includes("bab")("a"))
+	assert.False(t, Includes("b")("a"))
+}
