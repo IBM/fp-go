@@ -25,6 +25,13 @@ import (
 	O "github.com/IBM/fp-go/option"
 )
 
+var (
+	toOptionAny   = toType[O.Option[any]]()
+	toIOEitherAny = toType[IOE.IOEither[error, any]]()
+	toIOOptionAny = toType[IOO.IOOption[any]]()
+	toArrayAny    = toType[[]any]()
+)
+
 // asDependency converts a generic type to a [DIE.Dependency]
 func asDependency[T DIE.Dependency](t T) DIE.Dependency {
 	return t
@@ -38,7 +45,7 @@ func toType[T any]() func(t any) E.Either[error, T] {
 // toOptionType converts an any to an Option[any] and then to an Option[T]
 func toOptionType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, O.Option[T]] {
 	return F.Flow2(
-		toType[O.Option[any]](),
+		toOptionAny,
 		E.Chain(O.Fold(
 			F.Nullary2(O.None[T], E.Of[error, O.Option[T]]),
 			F.Flow2(
@@ -52,7 +59,7 @@ func toOptionType[T any](item func(any) E.Either[error, T]) func(t any) E.Either
 // toIOEitherType converts an any to an IOEither[error, any] and then to an IOEither[error, T]
 func toIOEitherType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, IOE.IOEither[error, T]] {
 	return F.Flow2(
-		toType[IOE.IOEither[error, any]](),
+		toIOEitherAny,
 		E.Map[error](IOE.ChainEitherK(item)),
 	)
 }
@@ -60,7 +67,7 @@ func toIOEitherType[T any](item func(any) E.Either[error, T]) func(t any) E.Eith
 // toIOOptionType converts an any to an IOOption[any] and then to an IOOption[T]
 func toIOOptionType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, IOO.IOOption[T]] {
 	return F.Flow2(
-		toType[IOO.IOOption[any]](),
+		toIOOptionAny,
 		E.Map[error](IOO.ChainOptionK(F.Flow2(
 			item,
 			E.ToOption[error, T],
@@ -71,7 +78,7 @@ func toIOOptionType[T any](item func(any) E.Either[error, T]) func(t any) E.Eith
 // toArrayType converts an any to a []T
 func toArrayType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, []T] {
 	return F.Flow2(
-		toType[[]any](),
+		toArrayAny,
 		E.Chain(E.TraverseArray(item)),
 	)
 }
