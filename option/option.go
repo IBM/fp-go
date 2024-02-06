@@ -18,6 +18,7 @@ package option
 
 import (
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 	FC "github.com/IBM/fp-go/internal/functor"
 )
 
@@ -95,7 +96,7 @@ func MonadChain[A, B any](fa Option[A], f func(A) Option[B]) Option[B] {
 }
 
 func Chain[A, B any](f func(A) Option[B]) func(Option[A]) Option[B] {
-	return F.Bind2nd(MonadChain[A, B], f)
+	return Fold(None[B], f)
 }
 
 func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
@@ -107,13 +108,20 @@ func ChainTo[A, B any](mb Option[B]) func(Option[A]) Option[B] {
 }
 
 func MonadChainFirst[A, B any](ma Option[A], f func(A) Option[B]) Option[A] {
-	return MonadChain(ma, func(a A) Option[A] {
-		return MonadMap(f(a), F.Constant1[B](a))
-	})
+	return C.MonadChainFirst(
+		MonadChain[A, A],
+		MonadMap[B, A],
+		ma,
+		f,
+	)
 }
 
 func ChainFirst[A, B any](f func(A) Option[B]) func(Option[A]) Option[A] {
-	return F.Bind2nd(MonadChainFirst[A, B], f)
+	return C.ChainFirst(
+		Chain[A, A],
+		Map[B, A],
+		f,
+	)
 }
 
 func Flatten[A any](mma Option[Option[A]]) Option[A] {

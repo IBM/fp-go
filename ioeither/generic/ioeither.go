@@ -156,7 +156,10 @@ func MonadAp[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA
 }
 
 func Ap[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadAp[GB, GAB, GA], ma)
+	return eithert.Ap(
+		IO.Ap[GB, func() func(ET.Either[E, A]) ET.Either[E, B], GA, ET.Either[E, B], ET.Either[E, A]],
+		IO.Map[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		ma)
 }
 
 func MonadApSeq[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](mab GAB, ma GA) GB {
@@ -167,7 +170,10 @@ func MonadApSeq[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B],
 }
 
 func ApSeq[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadApSeq[GB, GAB, GA], ma)
+	return eithert.Ap(
+		IO.ApSeq[GB, func() func(ET.Either[E, A]) ET.Either[E, B], GA, ET.Either[E, B], ET.Either[E, A]],
+		IO.Map[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		ma)
 }
 
 func MonadApPar[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](mab GAB, ma GA) GB {
@@ -178,7 +184,10 @@ func MonadApPar[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B],
 }
 
 func ApPar[GB ~func() ET.Either[E, B], GAB ~func() ET.Either[E, func(A) B], GA ~func() ET.Either[E, A], E, A, B any](ma GA) func(GAB) GB {
-	return F.Bind2nd(MonadApPar[GB, GAB, GA], ma)
+	return eithert.Ap(
+		IO.ApPar[GB, func() func(ET.Either[E, A]) ET.Either[E, B], GA, ET.Either[E, B], ET.Either[E, A]],
+		IO.Map[GAB, func() func(ET.Either[E, A]) ET.Either[E, B], ET.Either[E, func(A) B], func(ET.Either[E, A]) ET.Either[E, B]],
+		ma)
 }
 
 func Flatten[GA ~func() ET.Either[E, A], GAA ~func() ET.Either[E, GA], E, A any](mma GAA) GA {
@@ -204,11 +213,18 @@ func Memoize[GA ~func() ET.Either[E, A], E, A any](ma GA) GA {
 }
 
 func MonadMapLeft[GA1 ~func() ET.Either[E1, A], GA2 ~func() ET.Either[E2, A], E1, E2, A any](fa GA1, f func(E1) E2) GA2 {
-	return eithert.MonadMapLeft(IO.MonadMap[GA1, GA2, ET.Either[E1, A], ET.Either[E2, A]], fa, f)
+	return eithert.MonadMapLeft(
+		IO.MonadMap[GA1, GA2, ET.Either[E1, A], ET.Either[E2, A]],
+		fa,
+		f,
+	)
 }
 
 func MapLeft[GA1 ~func() ET.Either[E1, A], GA2 ~func() ET.Either[E2, A], E1, E2, A any](f func(E1) E2) func(GA1) GA2 {
-	return F.Bind2nd(MonadMapLeft[GA1, GA2, E1, E2, A], f)
+	return eithert.MapLeft(
+		IO.Map[GA1, GA2, ET.Either[E1, A], ET.Either[E2, A]],
+		f,
+	)
 }
 
 // Delay creates an operation that passes in the value after some [time.Duration]

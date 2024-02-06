@@ -159,3 +159,7 @@ func OrLeft[E1, E2, A, HKTE1A, HKTE2, HKTE2A any](
 func MonadMapLeft[E, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[E, A]) ET.Either[B, A]) HKTFB, fa HKTFA, f func(E) B) HKTFB {
 	return FC.MonadMap(fmap, ET.MonadMapLeft[E, A, B], fa, f)
 }
+
+func MapLeft[E, A, B, HKTFA, HKTFB any](fmap func(func(ET.Either[E, A]) ET.Either[B, A]) func(HKTFA) HKTFB, f func(E) B) func(HKTFA) HKTFB {
+	return FC.Map(fmap, ET.MapLeft[A, E, B], f)
+}

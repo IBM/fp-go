@@ -144,3 +144,11 @@ func FoldMap[U, V any](m M.Monoid[V]) func(func(U) V) func(ma Iterator[U]) V {
 func Fold[U any](m M.Monoid[U]) func(Iterator[U]) U {
 	return G.Fold[Iterator[U]](m)
 }
+
+func MonadChainFirst[U, V any](ma Iterator[U], f func(U) Iterator[V]) Iterator[U] {
+	return G.MonadChainFirst[Iterator[V], Iterator[U], U, V](ma, f)
+}
+
+func ChainFirst[U, V any](f func(U) Iterator[V]) func(Iterator[U]) Iterator[U] {
+	return G.ChainFirst[Iterator[V], Iterator[U], U, V](f)
+}

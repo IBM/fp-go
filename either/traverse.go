@@ -19,38 +19,17 @@ import (
 	F "github.com/IBM/fp-go/function"
 )
 
-/*
-*
-We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
-
-HKTRB = HKT<Either[B]>
-HKTA = HKT<A>
-HKTB = HKT<B>
-*/
-func traverse[E, A, B, HKTB, HKTRB any](
-	mof func(Either[E, B]) HKTRB,
-	mmap func(func(B) Either[E, B]) func(HKTB) HKTRB,
-) func(Either[E, A], func(A) HKTB) HKTRB {
-
-	left := F.Flow2(Left[B, E], mof)
-	right := mmap(Right[E, B])
-
-	return func(ta Either[E, A], f func(A) HKTB) HKTRB {
-		return MonadFold(ta,
-			left,
-			F.Flow2(f, right),
-		)
-	}
-}
-
 // Traverse converts an [Either] of some higher kinded type into the higher kinded type of an [Either]
 func Traverse[A, E, B, HKTB, HKTRB any](
 	mof func(Either[E, B]) HKTRB,
 	mmap func(func(B) Either[E, B]) func(HKTB) HKTRB,
 ) func(func(A) HKTB) func(Either[E, A]) HKTRB {
-	delegate := traverse[E, A, B](mof, mmap)
+
+	left := F.Flow2(Left[B, E], mof)
+	right := mmap(Right[E, B])
+
 	return func(f func(A) HKTB) func(Either[E, A]) HKTRB {
-		return F.Bind2nd(delegate, f)
+		return Fold(left, F.Flow2(f, right))
 	}
 }
 

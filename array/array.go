@@ -58,7 +58,7 @@ func MapWithIndex[A, B any](f func(int, A) B) func([]A) []B {
 }
 
 func Map[A, B any](f func(a A) B) func([]A) []B {
-	return F.Bind2nd(MonadMap[A, B], f)
+	return G.Map[[]A, []B, A, B](f)
 }
 
 func MapRef[A, B any](f func(a *A) B) func([]A) []B {

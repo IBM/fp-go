@@ -22,6 +22,7 @@ package either
 import (
 	E "github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 	FC "github.com/IBM/fp-go/internal/functor"
 	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
@@ -85,9 +86,12 @@ func MonadChain[E, A, B any](fa Either[E, A], f func(a A) Either[E, B]) Either[E
 }
 
 func MonadChainFirst[E, A, B any](ma Either[E, A], f func(a A) Either[E, B]) Either[E, A] {
-	return MonadChain(ma, func(a A) Either[E, A] {
-		return MonadMap(f(a), F.Constant1[B](a))
-	})
+	return C.MonadChainFirst(
+		MonadChain[E, A, A],
+		MonadMap[E, B, A],
+		ma,
+		f,
+	)
 }
 
 func MonadChainTo[A, E, B any](ma Either[E, A], mb Either[E, B]) Either[E, B] {
@@ -114,7 +118,11 @@ func Chain[E, A, B any](f func(a A) Either[E, B]) func(Either[E, A]) Either[E, B
 }
 
 func ChainFirst[E, A, B any](f func(a A) Either[E, B]) func(Either[E, A]) Either[E, A] {
-	return F.Bind2nd(MonadChainFirst[E, A, B], f)
+	return C.ChainFirst(
+		Chain[E, A, A],
+		Map[E, B, A],
+		f,
+	)
 }
 
 func Flatten[E, A any](mma Either[E, Either[E, A]]) Either[E, A] {

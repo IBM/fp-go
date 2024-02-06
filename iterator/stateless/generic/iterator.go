@@ -18,6 +18,7 @@ package generic
 import (
 	A "github.com/IBM/fp-go/array/generic"
 	F "github.com/IBM/fp-go/function"
+	C "github.com/IBM/fp-go/internal/chain"
 	"github.com/IBM/fp-go/internal/utils"
 	IO "github.com/IBM/fp-go/iooption/generic"
 	M "github.com/IBM/fp-go/monoid"
@@ -144,6 +145,23 @@ func Chain[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU
 
 func MonadChain[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](ma GU, f func(U) GV) GV {
 	return Chain[GV, GU](f)(ma)
+}
+
+func MonadChainFirst[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](ma GU, f func(U) GV) GU {
+	return C.MonadChainFirst(
+		MonadChain[GU, GU, U, U],
+		MonadMap[GU, GV, V, U],
+		ma,
+		f,
+	)
+}
+
+func ChainFirst[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], U, V any](f func(U) GV) func(GU) GU {
+	return C.ChainFirst(
+		Chain[GU, GU, U, U],
+		Map[GU, GV, func(V) U, V, U],
+		f,
+	)
 }
 
 func Flatten[GV ~func() O.Option[T.Tuple2[GV, GU]], GU ~func() O.Option[T.Tuple2[GU, U]], U any](ma GV) GU {

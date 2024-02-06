@@ -70,7 +70,7 @@ func MonadMap[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](fa GA, f
 }
 
 func Map[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](f func(A) B) func(GA) GB {
-	return F.Bind2nd(MonadMap[GA, GB, A, B], f)
+	return optiont.Map(IO.Map[GA, GB, O.Option[A], O.Option[B]], f)
 }
 
 func MonadChain[GA ~func() O.Option[A], GB ~func() O.Option[B], A, B any](fa GA, f func(A) GB) GB {

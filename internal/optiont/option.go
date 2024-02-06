@@ -40,6 +40,12 @@ func MonadMap[A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(O.Option[A]) O.Optio
 	return FC.MonadMap(fmap, O.MonadMap[A, B], fa, f)
 }
 
+func Map[A, B, HKTFA, HKTFB any](fmap func(func(O.Option[A]) O.Option[B]) func(HKTFA) HKTFB, f func(A) B) func(HKTFA) HKTFB {
+	// HKTGA = Either[E, A]
+	// HKTGB = Either[E, B]
+	return FC.Map(fmap, O.Map[A, B], f)
+}
+
 func MonadChain[A, B, HKTFA, HKTFB any](
 	fchain func(HKTFA, func(O.Option[A]) HKTFB) HKTFB,
 	fof func(O.Option[B]) HKTFB,

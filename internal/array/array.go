@@ -106,6 +106,12 @@ func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	return bs
 }
 
+func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
+	return func(as GA) GB {
+		return MonadMap[GA, GB](as, f)
+	}
+}
+
 func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B) GB {
 	count := len(as)
 	bs := make(GB, count)
