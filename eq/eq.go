@@ -27,8 +27,8 @@ type eq[T any] struct {
 	c func(x, y T) bool
 }
 
-func (self eq[T]) Equals(x, y T) bool {
-	return self.c(x, y)
+func (e eq[T]) Equals(x, y T) bool {
+	return e.c(x, y)
 }
 
 func strictEq[A comparable](a, b A) bool {

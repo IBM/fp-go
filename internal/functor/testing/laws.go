@@ -27,6 +27,7 @@ import (
 //
 // F.map(fa, a => a) <-> fa
 func AssertIdentity[HKTA, A any](t *testing.T, eq E.Eq[HKTA], fmap func(HKTA, func(A) A) HKTA) func(fa HKTA) bool {
+	t.Helper()
 	return func(fa HKTA) bool {
 		return assert.True(t, eq.Equals(fa, fmap(fa, F.Identity[A])), "Functor identity law")
 	}
@@ -46,6 +47,7 @@ func AssertComposition[HKTA, HKTB, HKTC, A, B, C any](
 	ab func(A) B,
 	bc func(B) C,
 ) func(fa HKTA) bool {
+	t.Helper()
 	return func(fa HKTA) bool {
 		return assert.True(t, eq.Equals(fac(fa, F.Flow2(ab, bc)), fbc(fab(fa, ab), bc)), "Functor composition law")
 	}
@@ -63,6 +65,7 @@ func AssertLaws[HKTA, HKTB, HKTC, A, B, C any](t *testing.T,
 	ab func(A) B,
 	bc func(B) C,
 ) func(fa HKTA) bool {
+	t.Helper()
 	identity := AssertIdentity(t, eqa, faa)
 	composition := AssertComposition(t, eqc, fab, fac, fbc, ab, bc)
 

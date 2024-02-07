@@ -44,11 +44,11 @@ func From[A any](first A, data ...A) NonEmptyArray[A] {
 	return buffer
 }
 
-func IsEmpty[A any](as NonEmptyArray[A]) bool {
+func IsEmpty[A any](_ NonEmptyArray[A]) bool {
 	return false
 }
 
-func IsNonEmpty[A any](as NonEmptyArray[A]) bool {
+func IsNonEmpty[A any](_ NonEmptyArray[A]) bool {
 	return true
 }
 

@@ -21,9 +21,9 @@ import (
 )
 
 // FunctionMonoid forms a monoid as long as you can provide a monoid for the codomain.
-func FunctionMonoid[A, B any](M Monoid[B]) Monoid[func(A) B] {
+func FunctionMonoid[A, B any](m Monoid[B]) Monoid[func(A) B] {
 	return MakeMonoid(
-		S.FunctionSemigroup[A, B](M).Concat,
-		F.Constant1[A](M.Empty()),
+		S.FunctionSemigroup[A, B](m).Concat,
+		F.Constant1[A](m.Empty()),
 	)
 }

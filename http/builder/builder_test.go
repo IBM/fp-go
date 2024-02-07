@@ -34,7 +34,7 @@ func TestBuilder(t *testing.T) {
 
 	b1 := F.Pipe1(
 		Default,
-		withContentType(C.Json),
+		withContentType(C.JSON),
 	)
 
 	b2 := F.Pipe1(
@@ -48,7 +48,7 @@ func TestBuilder(t *testing.T) {
 	)
 
 	assert.Equal(t, O.None[string](), Default.GetHeader(name))
-	assert.Equal(t, O.Of(C.Json), b1.GetHeader(name))
+	assert.Equal(t, O.Of(C.JSON), b1.GetHeader(name))
 	assert.Equal(t, O.Of(C.TextPlain), b2.GetHeader(name))
 	assert.Equal(t, O.None[string](), b3.GetHeader(name))
 }

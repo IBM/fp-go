@@ -65,15 +65,15 @@ type MultiInjectionToken[T any] interface {
 }
 
 // makeID creates a generator of unique string IDs
-func makeId() IO.IO[string] {
+func makeID() IO.IO[string] {
 	var count atomic.Int64
 	return IO.MakeIO(func() string {
 		return strconv.FormatInt(count.Add(1), 16)
 	})
 }
 
-// genId is the common generator of unique string IDs
-var genId = makeId()
+// genID is the common generator of unique string IDs
+var genID = makeID()
 
 type tokenBase struct {
 	name            string
@@ -156,7 +156,7 @@ func (m *multiInjectionToken[T]) Item() InjectionToken[T] {
 
 // makeToken create a unique [InjectionToken] for a specific type
 func makeInjectionToken[T any](name string, providerFactory O.Option[DIE.ProviderFactory]) InjectionToken[T] {
-	id := genId()
+	id := genID()
 	toIdentity := toType[T]()
 	return &injectionToken[T]{
 		token[T]{makeTokenBase(name, id, DIE.Identity, providerFactory), toIdentity},
@@ -178,7 +178,7 @@ func MakeTokenWithDefault[T any](name string, providerFactory DIE.ProviderFactor
 
 // MakeMultiToken creates a [MultiInjectionToken]
 func MakeMultiToken[T any](name string) MultiInjectionToken[T] {
-	id := genId()
+	id := genID()
 	toItem := toType[T]()
 	toContainer := toArrayType(toItem)
 	containerName := fmt.Sprintf("Container[%s]", name)

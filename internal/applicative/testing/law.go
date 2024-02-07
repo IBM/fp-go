@@ -34,6 +34,9 @@ func AssertIdentity[HKTA, HKTAA, A any](t *testing.T,
 
 	fap func(HKTAA, HKTA) HKTA,
 ) func(fa HKTA) bool {
+	// mark as test helper
+	t.Helper()
+
 	return func(fa HKTA) bool {
 
 		left := fap(fof(F.Identity[A]), fa)
@@ -57,6 +60,9 @@ func AssertHomomorphism[HKTA, HKTB, HKTAB, A, B any](t *testing.T,
 
 	ab func(A) B,
 ) func(a A) bool {
+	// mark as test helper
+	t.Helper()
+
 	return func(a A) bool {
 
 		left := fap(fofab(ab), fofa(a))
@@ -73,7 +79,6 @@ func AssertInterchange[HKTA, HKTB, HKTAB, HKTABB, A, B any](t *testing.T,
 	eq E.Eq[HKTB],
 
 	fofa func(A) HKTA,
-	fofb func(B) HKTB,
 	fofab func(func(A) B) HKTAB,
 	fofabb func(func(func(A) B) B) HKTABB,
 
@@ -82,6 +87,9 @@ func AssertInterchange[HKTA, HKTB, HKTAB, HKTABB, A, B any](t *testing.T,
 
 	ab func(A) B,
 ) func(a A) bool {
+	// mark as test helper
+	t.Helper()
+
 	return func(a A) bool {
 
 		fab := fofab(ab)
@@ -127,12 +135,15 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAA, HKTAB, HKTBC, HKTAC, HKTABB, HKTABAC, A
 	ab func(A) B,
 	bc func(B) C,
 ) func(a A) bool {
+	// mark as test helper
+	t.Helper()
+
 	// apply laws
 	apply := L.AssertLaws(t, eqa, eqc, fofab, fofbc, faa, fab, fac, fbc, fmap, fapab, fapbc, fapac, fapabac, ab, bc)
 	// applicative laws
 	identity := AssertIdentity(t, eqa, fofaa, fapaa)
 	homomorphism := AssertHomomorphism(t, eqb, fofa, fofb, fofab, fapab, ab)
-	interchange := AssertInterchange(t, eqb, fofa, fofb, fofab, fofabb, fapab, fapabb, ab)
+	interchange := AssertInterchange(t, eqb, fofa, fofab, fofabb, fapab, fapabb, ab)
 
 	return func(a A) bool {
 		fa := fofa(a)

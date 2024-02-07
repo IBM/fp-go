@@ -94,7 +94,7 @@ func MonadChainFirst[E, A, B any](ma Either[E, A], f func(a A) Either[E, B]) Eit
 	)
 }
 
-func MonadChainTo[A, E, B any](ma Either[E, A], mb Either[E, B]) Either[E, B] {
+func MonadChainTo[A, E, B any](_ Either[E, A], mb Either[E, B]) Either[E, B] {
 	return mb
 }
 

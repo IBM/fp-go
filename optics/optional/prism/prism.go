@@ -22,8 +22,8 @@ import (
 	O "github.com/IBM/fp-go/option"
 )
 
-// PrismAsOptional converts a prism into an optional
-func PrismAsOptional[S, A any](sa P.Prism[S, A]) OPT.Optional[S, A] {
+// AsOptional converts a prism into an optional
+func AsOptional[S, A any](sa P.Prism[S, A]) OPT.Optional[S, A] {
 	return OPT.MakeOptional(
 		sa.GetOption,
 		func(s S, a A) S {
@@ -38,5 +38,5 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 
 // Some returns a `Optional` from a `Optional` focused on the `Some` of a `Option` type.
 func Some[S, A any](soa OPT.Optional[S, O.Option[A]]) OPT.Optional[S, A] {
-	return OPT.Compose[S](PrismAsOptional(PrismSome[A]()))(soa)
+	return OPT.Compose[S](AsOptional(PrismSome[A]()))(soa)
 }

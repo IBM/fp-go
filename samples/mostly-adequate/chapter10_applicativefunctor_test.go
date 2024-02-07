@@ -103,7 +103,7 @@ func Example_renderPage() {
 	get := F.Flow4(
 		idxToURL,
 		H.MakeGetRequest,
-		H.ReadJson[PostItem](client),
+		H.ReadJSON[PostItem](client),
 		R.Map(PostItem.getTitle),
 	)
 

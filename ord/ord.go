@@ -132,10 +132,10 @@ func FromStrictCompare[A C.Ordered]() Ord[A] {
 }
 
 // Lt tests whether one value is strictly less than another
-func Lt[A any](O Ord[A]) func(A) func(A) bool {
+func Lt[A any](o Ord[A]) func(A) func(A) bool {
 	return func(second A) func(A) bool {
 		return func(first A) bool {
-			return O.Compare(first, second) < 0
+			return o.Compare(first, second) < 0
 		}
 	}
 }

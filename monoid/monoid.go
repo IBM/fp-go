@@ -29,12 +29,12 @@ type monoid[A any] struct {
 	e A
 }
 
-func (self monoid[A]) Concat(x A, y A) A {
-	return self.c(x, y)
+func (m monoid[A]) Concat(x, y A) A {
+	return m.c(x, y)
 }
 
-func (self monoid[A]) Empty() A {
-	return self.e
+func (m monoid[A]) Empty() A {
+	return m.e
 }
 
 // MakeMonoid creates a monoid given a concat function and an empty element

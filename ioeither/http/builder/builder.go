@@ -56,7 +56,7 @@ func Requester(builder *R.Builder) IOEH.Requester {
 	return F.Pipe5(
 		builder.GetBody(),
 		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) IOE.IOEither[error, *http.Request]](builder.GetTargetUrl()),
+		E.Ap[func(string) IOE.IOEither[error, *http.Request]](builder.GetTargetURL()),
 		E.Flap[error, IOE.IOEither[error, *http.Request]](builder.GetMethod()),
 		E.GetOrElse(IOE.Left[*http.Request, error]),
 		IOE.Map[error](func(req *http.Request) *http.Request {

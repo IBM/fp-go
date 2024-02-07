@@ -45,29 +45,33 @@ type (
 
 var (
 	// mime type to check if a media type matches
-	reJsonMimeType = regexp.MustCompile(`application/(?:\w+\+)?json`)
+	reJSONMimeType = regexp.MustCompile(`application/(?:\w+\+)?json`)
 	// ValidateResponse validates an HTTP response and returns an [E.Either] if the response is not a success
 	ValidateResponse = E.FromPredicate(isValidStatus, StatusCodeError)
 	// alidateJsonContentTypeString parses a content type a validates that it is valid JSON
-	validateJsonContentTypeString = F.Flow2(
+	validateJSONContentTypeString = F.Flow2(
 		ParseMediaType,
 		E.ChainFirst(F.Flow2(
 			T.First[string, map[string]string],
-			E.FromPredicate(reJsonMimeType.MatchString, func(mimeType string) error {
+			E.FromPredicate(reJSONMimeType.MatchString, func(mimeType string) error {
 				return fmt.Errorf("mimetype [%s] is not a valid JSON content type", mimeType)
 			}),
 		)),
 	)
-	// ValidateJsonResponse checks if an HTTP response is a valid JSON response
-	ValidateJsonResponse = F.Flow2(
+	// ValidateJSONResponse checks if an HTTP response is a valid JSON response
+	ValidateJSONResponse = F.Flow2(
 		E.Of[error, *H.Response],
 		E.ChainFirst(F.Flow5(
 			GetHeader,
 			R.Lookup[H.Header](HeaderContentType),
 			O.Chain(A.First[string]),
 			E.FromOption[string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
-			E.ChainFirst(validateJsonContentTypeString),
+			E.ChainFirst(validateJSONContentTypeString),
 		)))
+	// ValidateJsonResponse checks if an HTTP response is a valid JSON response
+	//
+	// Deprecated: use [ValidateJSONResponse] instead
+	ValidateJsonResponse = ValidateJSONResponse
 )
 
 const (

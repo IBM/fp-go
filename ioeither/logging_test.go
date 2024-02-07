@@ -34,7 +34,7 @@ func TestLogging(t *testing.T) {
 
 	res := F.Pipe1(
 		Of[error](src),
-		ChainFirst(LogJson[*SomeData]("Data: \n%s")),
+		ChainFirst(LogJSON[*SomeData]("Data: \n%s")),
 	)
 
 	dst := res()

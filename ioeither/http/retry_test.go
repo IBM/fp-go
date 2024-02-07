@@ -54,7 +54,7 @@ func TestRetryHttp(t *testing.T) {
 	action := func(status R.RetryStatus) IOE.IOEither[error, *PostItem] {
 		return F.Pipe1(
 			MakeGetRequest(urls[status.IterNumber]),
-			ReadJson[*PostItem](client),
+			ReadJSON[*PostItem](client),
 		)
 	}
 

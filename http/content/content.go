@@ -17,6 +17,7 @@ package content
 
 const (
 	TextPlain   = "text/plain"
-	Json        = "application/json"
+	JSON        = "application/json"
+	Json        = JSON // Deprecated: use [JSON] instead
 	FormEncoded = "application/x-www-form-urlencoded"
 )

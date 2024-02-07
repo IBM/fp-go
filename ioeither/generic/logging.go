@@ -24,9 +24,9 @@ import (
 	F "github.com/IBM/fp-go/function"
 )
 
-// LogJson converts the argument to JSON and then logs it via the format string
+// LogJSON converts the argument to JSON and then logs it via the format string
 // Can be used with [ChainFirst]
-func LogJson[GA ~func() ET.Either[error, any], A any](prefix string) func(A) GA {
+func LogJSON[GA ~func() ET.Either[error, any], A any](prefix string) func(A) GA {
 	return func(a A) GA {
 		// log this
 		return F.Pipe3(
@@ -40,4 +40,12 @@ func LogJson[GA ~func() ET.Either[error, any], A any](prefix string) func(A) GA 
 			}),
 		)
 	}
+}
+
+// LogJson converts the argument to JSON and then logs it via the format string
+// Can be used with [ChainFirst]
+//
+// Deprecated: use [LogJSON] instead
+func LogJson[GA ~func() ET.Either[error, any], A any](prefix string) func(A) GA {
+	return LogJSON[GA, A](prefix)
 }

@@ -36,8 +36,8 @@ func (inner *Inner) getA() int {
 	return inner.A
 }
 
-func (inner *Inner) setA(A int) *Inner {
-	inner.A = A
+func (inner *Inner) setA(a int) *Inner {
+	inner.A = a
 	return inner
 }
 

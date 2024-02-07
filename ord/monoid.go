@@ -42,11 +42,11 @@ func Monoid[A any]() M.Monoid[Ord[A]] {
 }
 
 // MaxSemigroup returns a semigroup where `concat` will return the maximum, based on the provided order.
-func MaxSemigroup[A any](O Ord[A]) S.Semigroup[A] {
-	return S.MakeSemigroup(Max(O))
+func MaxSemigroup[A any](o Ord[A]) S.Semigroup[A] {
+	return S.MakeSemigroup(Max(o))
 }
 
 // MaxSemigroup returns a semigroup where `concat` will return the minimum, based on the provided order.
-func MinSemigroup[A any](O Ord[A]) S.Semigroup[A] {
-	return S.MakeSemigroup(Min(O))
+func MinSemigroup[A any](o Ord[A]) S.Semigroup[A] {
+	return S.MakeSemigroup(Min(o))
 }

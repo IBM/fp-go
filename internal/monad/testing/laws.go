@@ -110,7 +110,7 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAA, HKTAB, HKTBC, HKTAC, HKTABB, HKTABAC, A
 	// applicative laws
 	applicative := LA.AssertLaws(t, eqa, eqb, eqc, fofa, fofb, fofaa, fofab, fofbc, fofabb, faa, fab, fac, fbc, fmap, fapaa, fapab, fapbc, fapac, fapabb, fapabac, ab, bc)
 	// chain laws
-	chain := LC.AssertLaws(t, eqa, eqc, fofa, fofb, fofc, fofab, fofbc, faa, fab, fac, fbc, fmap, chainab, chainac, chainbc, fapab, fapbc, fapac, fapabac, ab, bc)
+	chain := LC.AssertLaws(t, eqa, eqc, fofb, fofc, fofab, fofbc, faa, fab, fac, fbc, fmap, chainab, chainac, chainbc, fapab, fapbc, fapac, fapabac, ab, bc)
 	// monad laws
 	leftIdentity := AssertLeftIdentity(t, eqb, fofa, fofb, chainab, ab)
 	rightIdentity := AssertRightIdentity(t, eqa, fofa, chainaa)

@@ -34,8 +34,8 @@ type (
 // modifying that copy
 func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 	return func(s *S, a A) *S {
-		copy := *s
-		return setter(&copy, a)
+		cpy := *s
+		return setter(&cpy, a)
 	}
 }
 
@@ -45,8 +45,8 @@ func setCopyCurried[SET ~func(A) EM.Endomorphism[*S], S, A any](setter SET) func
 	return func(a A) EM.Endomorphism[*S] {
 		seta := setter(a)
 		return func(s *S) *S {
-			copy := *s
-			return seta(&copy)
+			cpy := *s
+			return seta(&cpy)
 		}
 	}
 }

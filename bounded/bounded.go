@@ -32,20 +32,20 @@ type bounded[T any] struct {
 	b T
 }
 
-func (self bounded[T]) Equals(x, y T) bool {
-	return self.e(x, y)
+func (b bounded[T]) Equals(x, y T) bool {
+	return b.e(x, y)
 }
 
-func (self bounded[T]) Compare(x, y T) int {
-	return self.c(x, y)
+func (b bounded[T]) Compare(x, y T) int {
+	return b.c(x, y)
 }
 
-func (self bounded[T]) Top() T {
-	return self.t
+func (b bounded[T]) Top() T {
+	return b.t
 }
 
-func (self bounded[T]) Bottom() T {
-	return self.b
+func (b bounded[T]) Bottom() T {
+	return b.b
 }
 
 // MakeBounded creates an instance of a bounded type

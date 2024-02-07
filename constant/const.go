@@ -37,7 +37,7 @@ func Of[E, A any](m M.Monoid[E]) func(A) Const[E, A] {
 	return F.Constant1[A](Make[E, A](m.Empty()))
 }
 
-func MonadMap[E, A, B any](fa Const[E, A], f func(A) B) Const[E, B] {
+func MonadMap[E, A, B any](fa Const[E, A], _ func(A) B) Const[E, B] {
 	return Make[E, B](fa.value)
 }
 

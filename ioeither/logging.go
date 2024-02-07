@@ -21,6 +21,14 @@ import (
 
 // LogJson converts the argument to pretty printed JSON and then logs it via the format string
 // Can be used with [ChainFirst]
+//
+// Deprecated: use [LogJSON] instead
 func LogJson[A any](prefix string) func(A) IOEither[error, any] {
 	return G.LogJson[IOEither[error, any], A](prefix)
+}
+
+// LogJSON converts the argument to pretty printed JSON and then logs it via the format string
+// Can be used with [ChainFirst]
+func LogJSON[A any](prefix string) func(A) IOEither[error, any] {
+	return G.LogJSON[IOEither[error, any], A](prefix)
 }

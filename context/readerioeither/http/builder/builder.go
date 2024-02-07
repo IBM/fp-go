@@ -61,7 +61,7 @@ func Requester(builder *R.Builder) RIOEH.Requester {
 	return F.Pipe5(
 		builder.GetBody(),
 		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) RIOE.ReaderIOEither[*http.Request]](builder.GetTargetUrl()),
+		E.Ap[func(string) RIOE.ReaderIOEither[*http.Request]](builder.GetTargetURL()),
 		E.Flap[error, RIOE.ReaderIOEither[*http.Request]](builder.GetMethod()),
 		E.GetOrElse(RIOE.Left[*http.Request]),
 		RIOE.Map(func(req *http.Request) *http.Request {

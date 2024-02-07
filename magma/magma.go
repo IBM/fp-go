@@ -23,8 +23,8 @@ type magma[A any] struct {
 	c func(A, A) A
 }
 
-func (self magma[A]) Concat(x A, y A) A {
-	return self.c(x, y)
+func (m magma[A]) Concat(x A, y A) A {
+	return m.c(x, y)
 }
 
 func MakeMagma[A any](c func(A, A) A) Magma[A] {
@@ -63,17 +63,17 @@ func FilterFirst[A any](p func(A) bool) func(Magma[A]) Magma[A] {
 func FilterSecond[A any](p func(A) bool) func(Magma[A]) Magma[A] {
 	return func(m Magma[A]) Magma[A] {
 		c := m.Concat
-		return MakeMagma(func(x A, y A) A {
+		return MakeMagma(func(x, y A) A {
 			return filterSecond(p, c, x, y)
 		})
 	}
 }
 
-func first[A any](x A, y A) A {
+func first[A any](x, _ A) A {
 	return x
 }
 
-func second[A any](x A, y A) A {
+func second[A any](_, y A) A {
 	return y
 }
 
@@ -85,7 +85,7 @@ func Second[A any]() Magma[A] {
 	return MakeMagma(second[A])
 }
 
-func endo[A any](f func(A) A, c func(A, A) A, x A, y A) A {
+func endo[A any](f func(A) A, c func(A, A) A, x, y A) A {
 	return c(f(x), f(y))
 }
 

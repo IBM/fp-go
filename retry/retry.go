@@ -44,7 +44,7 @@ const emptyDuration = time.Duration(0)
 
 var ordDuration = ord.FromStrictCompare[time.Duration]()
 
-// 'RetryPolicy' is a 'Monoid'. You can collapse multiple strategies into one using 'concat'.
+// Monoid 'RetryPolicy' is a 'Monoid'. You can collapse multiple strategies into one using 'concat'.
 // The semantics of this combination are as follows:
 //
 // 1. If either policy returns 'None', the combined policy returns
@@ -98,10 +98,8 @@ func ExponentialBackoff(delay time.Duration) RetryPolicy {
 	}
 }
 
-/**
- * Initial, default retry status. Exported mostly to allow user code
- * to test their handlers and retry policies.
- */
+// DefaultRetryStatus is the default retry status. Exported mostly to allow user code
+// to test their handlers and retry policies.
 var DefaultRetryStatus = RetryStatus{
 	IterNumber:      0,
 	CumulativeDelay: 0,

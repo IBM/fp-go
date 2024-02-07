@@ -43,6 +43,7 @@ func AssertAssociativeComposition[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC
 	ab func(A) B,
 	bc func(B) C,
 ) func(fa HKTA) bool {
+	t.Helper()
 	return func(fa HKTA) bool {
 
 		fab := fofab(ab)
@@ -86,6 +87,8 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC, A, B, C any](t *
 	ab func(A) B,
 	bc func(B) C,
 ) func(fa HKTA) bool {
+	// mark as test helper
+	t.Helper()
 	// functor laws
 	functor := FCT.AssertLaws(t, eqa, eqc, faa, fab, fac, fbc, ab, bc)
 	// associative composition laws

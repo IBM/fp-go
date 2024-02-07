@@ -84,7 +84,7 @@ func TestSendSingleRequest(t *testing.T) {
 
 	req1 := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
 
-	readItem := ReadJson[PostItem](client)
+	readItem := ReadJSON[PostItem](client)
 
 	resp1 := readItem(req1)
 
@@ -112,7 +112,7 @@ func TestSendSingleRequestWithHeaderUnsafe(t *testing.T) {
 		R.Map(setHeaderUnsafe("Content-Type", "text/html")),
 	)
 
-	readItem := ReadJson[PostItem](client)
+	readItem := ReadJSON[PostItem](client)
 
 	resp1 := F.Pipe2(
 		req1,
@@ -140,7 +140,7 @@ func TestSendSingleRequestWithHeaderSafe(t *testing.T) {
 		WithHeader("Content-Type", "text/html").
 		Build()
 
-	readItem := ReadJson[PostItem](client)
+	readItem := ReadJSON[PostItem](client)
 
 	response := F.Pipe2(
 		request,

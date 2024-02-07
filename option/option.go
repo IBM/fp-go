@@ -99,7 +99,7 @@ func Chain[A, B any](f func(A) Option[B]) func(Option[A]) Option[B] {
 	return Fold(None[B], f)
 }
 
-func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
+func MonadChainTo[A, B any](_ Option[A], mb Option[B]) Option[B] {
 	return mb
 }
 

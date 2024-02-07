@@ -45,9 +45,9 @@ func heterogeneousHTTPRequests(count int) R.ReaderIOEither[[]T.Tuple2[PostItem, 
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
-	readSinglePost := H.ReadJson[PostItem](client)
+	readSinglePost := H.ReadJSON[PostItem](client)
 	// readSingleCatFact sends a GET request and parses the response as [CatFact]
-	readSingleCatFact := H.ReadJson[CatFact](client)
+	readSingleCatFact := H.ReadJSON[CatFact](client)
 
 	single := F.Pipe2(
 		T.MakeTuple2("https://jsonplaceholder.typicode.com/posts/1", "https://catfact.ninja/fact"),

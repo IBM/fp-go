@@ -56,7 +56,11 @@ var (
 	Monoid = ENDO.Monoid[*Builder]()
 
 	// Url is a [L.Lens] for the URL
-	Url = L.MakeLensRef((*Builder).GetUrl, (*Builder).SetUrl)
+	//
+	// Deprecated: use [URL] instead
+	Url = L.MakeLensRef((*Builder).GetURL, (*Builder).SetURL)
+	// URL is a [L.Lens] for the URL
+	URL = L.MakeLensRef((*Builder).GetURL, (*Builder).SetURL)
 	// Method is a [L.Lens] for the HTTP method
 	Method = L.MakeLensRef((*Builder).GetMethod, (*Builder).SetMethod)
 	// Body is a [L.Lens] for the request body
@@ -83,8 +87,12 @@ var (
 	WithQuery = Query.Set
 	// WithMethod creates a [Endomorphism] for a certain method
 	WithMethod = Method.Set
-	// WithUrl creates a [Endomorphism] for a certain method
-	WithUrl = Url.Set
+	// WithUrl creates a [Endomorphism] for the URL
+	//
+	// Deprecated: use [WithURL] instead
+	WithUrl = URL.Set
+	// WithURL creates a [Endomorphism] for the URL
+	WithURL = URL.Set
 	// WithHeaders creates a [Endomorphism] for a set of headers
 	WithHeaders = Headers.Set
 	// WithBody creates a [Endomorphism] for a request body
@@ -148,7 +156,14 @@ func (builder *Builder) clone() *Builder {
 }
 
 // GetTargetUrl constructs a full URL with query parameters on top of the provided URL string
+//
+// Deprecated: use [GetTargetURL] instead
 func (builder *Builder) GetTargetUrl() E.Either[error, string] {
+	return builder.GetTargetURL()
+}
+
+// GetTargetURL constructs a full URL with query parameters on top of the provided URL string
+func (builder *Builder) GetTargetURL() E.Either[error, string] {
 	// construct the final URL
 	return F.Pipe3(
 		builder,
@@ -176,7 +191,12 @@ func (builder *Builder) GetTargetUrl() E.Either[error, string] {
 	)
 }
 
+// Deprecated: use [GetURL] instead
 func (builder *Builder) GetUrl() string {
+	return builder.url
+}
+
+func (builder *Builder) GetURL() string {
 	return builder.url
 }
 
@@ -209,7 +229,13 @@ func (builder *Builder) SetMethod(method string) *Builder {
 	return builder
 }
 
+// Deprecated: use [SetURL] instead
 func (builder *Builder) SetUrl(url string) *Builder {
+	builder.url = url
+	return builder
+}
+
+func (builder *Builder) SetURL(url string) *Builder {
 	builder.url = url
 	return builder
 }
@@ -278,14 +304,21 @@ func WithoutHeader(name string) Endomorphism {
 }
 
 // WithJson creates a [Endomorphism] to send JSON payload
+//
+// Deprecated: use [WithJSON] instead
 func WithJson[T any](data T) Endomorphism {
+	return WithJSON[T](data)
+}
+
+// WithJSON creates a [Endomorphism] to send JSON payload
+func WithJSON[T any](data T) Endomorphism {
 	return Monoid.Concat(
 		F.Pipe2(
 			data,
 			J.Marshal[T],
 			WithBody,
 		),
-		WithContentType(C.Json),
+		WithContentType(C.JSON),
 	)
 }
 

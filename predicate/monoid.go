@@ -22,7 +22,7 @@ import (
 )
 
 // SemigroupAny combines predicates via ||
-func SemigroupAny[A any](predicate func(A) bool) S.Semigroup[func(A) bool] {
+func SemigroupAny[A any]() S.Semigroup[func(A) bool] {
 	return S.MakeSemigroup(func(first func(A) bool, second func(A) bool) func(A) bool {
 		return F.Pipe1(
 			first,
@@ -32,7 +32,7 @@ func SemigroupAny[A any](predicate func(A) bool) S.Semigroup[func(A) bool] {
 }
 
 // SemigroupAll combines predicates via &&
-func SemigroupAll[A any](predicate func(A) bool) S.Semigroup[func(A) bool] {
+func SemigroupAll[A any]() S.Semigroup[func(A) bool] {
 	return S.MakeSemigroup(func(first func(A) bool, second func(A) bool) func(A) bool {
 		return F.Pipe1(
 			first,
@@ -42,17 +42,17 @@ func SemigroupAll[A any](predicate func(A) bool) S.Semigroup[func(A) bool] {
 }
 
 // MonoidAny combines predicates via ||
-func MonoidAny[A any](predicate func(A) bool) S.Semigroup[func(A) bool] {
+func MonoidAny[A any]() S.Semigroup[func(A) bool] {
 	return M.MakeMonoid(
-		SemigroupAny(predicate).Concat,
+		SemigroupAny[A]().Concat,
 		F.Constant1[A](false),
 	)
 }
 
 // MonoidAll combines predicates via &&
-func MonoidAll[A any](predicate func(A) bool) S.Semigroup[func(A) bool] {
+func MonoidAll[A any]() S.Semigroup[func(A) bool] {
 	return M.MakeMonoid(
-		SemigroupAll(predicate).Concat,
+		SemigroupAll[A]().Concat,
 		F.Constant1[A](true),
 	)
 }

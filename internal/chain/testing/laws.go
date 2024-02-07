@@ -30,7 +30,6 @@ import (
 func AssertAssociativity[HKTA, HKTB, HKTC, A, B, C any](t *testing.T,
 	eq E.Eq[HKTC],
 
-	fofa func(A) HKTA,
 	fofb func(B) HKTB,
 	fofc func(C) HKTC,
 
@@ -61,7 +60,6 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC, A, B, C any](t *
 	eqa E.Eq[HKTA],
 	eqc E.Eq[HKTC],
 
-	fofa func(A) HKTA,
 	fofb func(B) HKTB,
 	fofc func(C) HKTC,
 
@@ -91,7 +89,7 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC, A, B, C any](t *
 	// apply laws
 	apply := L.AssertLaws(t, eqa, eqc, fofab, fofbc, faa, fab, fac, fbc, fmap, fapab, fapbc, fapac, fapabac, ab, bc)
 	// chain laws
-	associativity := AssertAssociativity(t, eqc, fofa, fofb, fofc, chainab, chainac, chainbc, ab, bc)
+	associativity := AssertAssociativity(t, eqc, fofb, fofc, chainab, chainac, chainbc, ab, bc)
 
 	return func(fa HKTA) bool {
 		return apply(fa) && associativity(fa)

@@ -42,10 +42,10 @@ func Reverse[A any](m Semigroup[A]) Semigroup[A] {
 }
 
 // FunctionSemigroup forms a semigroup as long as you can provide a semigroup for the codomain.
-func FunctionSemigroup[A, B any](S Semigroup[B]) Semigroup[func(A) B] {
+func FunctionSemigroup[A, B any](s Semigroup[B]) Semigroup[func(A) B] {
 	return MakeSemigroup(func(f func(A) B, g func(A) B) func(A) B {
 		return func(a A) B {
-			return S.Concat(f(a), g(a))
+			return s.Concat(f(a), g(a))
 		}
 	})
 }

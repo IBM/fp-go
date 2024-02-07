@@ -33,8 +33,8 @@ type Optional[S, A any] struct {
 // modifying that copy
 func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 	return func(s *S, a A) *S {
-		copy := *s
-		return setter(&copy, a)
+		cpy := *s
+		return setter(&cpy, a)
 	}
 }
 

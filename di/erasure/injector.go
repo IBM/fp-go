@@ -127,7 +127,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 	var resolved sync.Map
 
 	// provide a mapping for all providers
-	factoryById := assembleProviders(providers)
+	factoryByID := assembleProviders(providers)
 
 	// the actual factory, we need lazy initialization
 	var injFct InjectableFactory
@@ -149,7 +149,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 					T.Map2(F.Flow3(
 						Dependency.Id,
 						R.Lookup[ProviderFactory, string],
-						I.Ap[O.Option[ProviderFactory]](factoryById),
+						I.Ap[O.Option[ProviderFactory]](factoryByID),
 					), handleMissingProvider),
 					T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
 					IG.Ap[ProviderFactory](injFct),

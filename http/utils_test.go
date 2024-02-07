@@ -39,7 +39,7 @@ func Error[A any](t *testing.T) func(E.Either[error, A]) bool {
 func TestValidateJsonContentTypeString(t *testing.T) {
 
 	res := F.Pipe1(
-		validateJsonContentTypeString(C.Json),
+		validateJSONContentTypeString(C.JSON),
 		NoError[ParsedMediaType](t),
 	)
 
@@ -49,7 +49,7 @@ func TestValidateJsonContentTypeString(t *testing.T) {
 func TestValidateInvalidJsonContentTypeString(t *testing.T) {
 
 	res := F.Pipe1(
-		validateJsonContentTypeString("application/xml"),
+		validateJSONContentTypeString("application/xml"),
 		Error[ParsedMediaType](t),
 	)
 

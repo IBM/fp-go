@@ -53,7 +53,7 @@ func TestMultipleHttpRequests(t *testing.T) {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
-	readSinglePost := H.ReadJson[PostItem](client)
+	readSinglePost := H.ReadJSON[PostItem](client)
 
 	// total number of http requests
 	count := 10
@@ -78,9 +78,9 @@ func heterogeneousHTTPRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
-	readSinglePost := H.ReadJson[PostItem](client)
+	readSinglePost := H.ReadJSON[PostItem](client)
 	// readSingleCatFact sends a GET request and parses the response as [CatFact]
-	readSingleCatFact := H.ReadJson[CatFact](client)
+	readSingleCatFact := H.ReadJSON[CatFact](client)
 
 	return F.Pipe3(
 		T.MakeTuple2("https://jsonplaceholder.typicode.com/posts/1", "https://catfact.ninja/fact"),
