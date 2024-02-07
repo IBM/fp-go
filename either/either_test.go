@@ -17,6 +17,7 @@ package either
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	F "github.com/IBM/fp-go/function"
@@ -108,4 +109,14 @@ func TestChainOptionK(t *testing.T) {
 func TestFromOption(t *testing.T) {
 	assert.Equal(t, Left[int]("none"), FromOption[int](F.Constant("none"))(O.None[int]()))
 	assert.Equal(t, Right[string](1), FromOption[int](F.Constant("none"))(O.Some(1)))
+}
+
+func TestStringer(t *testing.T) {
+	e := Of[error]("foo")
+	exp := "Right[string](foo)"
+
+	assert.Equal(t, exp, e.String())
+
+	var s fmt.Stringer = e
+	assert.Equal(t, exp, s.String())
 }

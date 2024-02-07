@@ -20,15 +20,17 @@ import (
 )
 
 type (
-	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
-	Either[E, A any] struct {
+	either struct {
 		isLeft bool
 		value  any
 	}
+
+	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
+	Either[E, A any] either
 )
 
 // String prints some debug info for the object
-func (s Either[E, A]) String() string {
+func eitherString(s *either) string {
 	if s.isLeft {
 		return fmt.Sprintf("Left[%T](%v)", s.value, s.value)
 	}
@@ -36,13 +38,23 @@ func (s Either[E, A]) String() string {
 }
 
 // Format prints some debug info for the object
-func (s Either[E, A]) Format(f fmt.State, c rune) {
+func eitherFormat(e *either, f fmt.State, c rune) {
 	switch c {
 	case 's':
-		fmt.Fprint(f, s.String())
+		fmt.Fprint(f, eitherString(e))
 	default:
-		fmt.Fprint(f, s.String())
+		fmt.Fprint(f, eitherString(e))
 	}
+}
+
+// String prints some debug info for the object
+func (s Either[E, A]) String() string {
+	return eitherString((*either)(&s))
+}
+
+// Format prints some debug info for the object
+func (s Either[E, A]) Format(f fmt.State, c rune) {
+	eitherFormat((*either)(&s), f, c)
 }
 
 // IsLeft tests if the [Either] is a left value. Rather use [Fold] if you need to access the values. Inverse is [IsRight].

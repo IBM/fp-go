@@ -19,52 +19,72 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 var (
+	// jsonNull is the cached representation of the `null` serialization in JSON
 	jsonNull = []byte("null")
 )
 
 // Option defines a data structure that logically holds a value or not
 type Option[A any] struct {
 	isSome bool
-	some   A
+	value  A
+}
+
+// optString prints some debug info for the object
+func optString(isSome bool, value any) string {
+	if isSome {
+		return fmt.Sprintf("Some[%T](%v)", value, value)
+	}
+	return fmt.Sprintf("None[%T]", value)
+}
+
+// optFormat prints some debug info for the object
+func optFormat(isSome bool, value any, f fmt.State, c rune) {
+	switch c {
+	case 's':
+		fmt.Fprint(f, optString(isSome, value))
+	default:
+		fmt.Fprint(f, optString(isSome, value))
+	}
 }
 
 // String prints some debug info for the object
 func (s Option[A]) String() string {
-	if s.isSome {
-		return fmt.Sprintf("Some[%T](%v)", s.some, s.some)
-	}
-	return fmt.Sprintf("None[%T]", s.some)
+	return optString(s.isSome, s.value)
 }
 
 // Format prints some debug info for the object
 func (s Option[A]) Format(f fmt.State, c rune) {
-	switch c {
-	case 's':
-		fmt.Fprint(f, s.String())
-	default:
-		fmt.Fprint(f, s.String())
-	}
+	optFormat(s.isSome, s.value, f, c)
 }
 
-func (s Option[A]) MarshalJSON() ([]byte, error) {
-	if IsSome(s) {
-		return json.Marshal(s.some)
+func optMarshalJSON(isSome bool, value any) ([]byte, error) {
+	if isSome {
+		return json.Marshal(value)
 	}
 	return jsonNull, nil
 }
 
-func (s *Option[A]) UnmarshalJSON(data []byte) error {
+func (s Option[A]) MarshalJSON() ([]byte, error) {
+	return optMarshalJSON(s.isSome, s.value)
+}
+
+func optUnmarshalJSON(isSome *bool, value any, data []byte) error {
 	// decode the value
 	if bytes.Equal(data, jsonNull) {
-		s.isSome = false
-		s.some = *new(A)
+		*isSome = false
+		reflect.ValueOf(value).Elem().SetZero()
 		return nil
 	}
-	s.isSome = true
-	return json.Unmarshal(data, &s.some)
+	*isSome = true
+	return json.Unmarshal(data, value)
+}
+
+func (s *Option[A]) UnmarshalJSON(data []byte) error {
+	return optUnmarshalJSON(&s.isSome, &s.value, data)
 }
 
 func IsNone[T any](val Option[T]) bool {
@@ -72,7 +92,7 @@ func IsNone[T any](val Option[T]) bool {
 }
 
 func Some[T any](value T) Option[T] {
-	return Option[T]{isSome: true, some: value}
+	return Option[T]{isSome: true, value: value}
 }
 
 func Of[T any](value T) Option[T] {
@@ -89,11 +109,11 @@ func IsSome[T any](val Option[T]) bool {
 
 func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
 	if IsSome(ma) {
-		return onSome(ma.some)
+		return onSome(ma.value)
 	}
 	return onNone()
 }
 
 func Unwrap[A any](ma Option[A]) (A, bool) {
-	return ma.some, ma.isSome
+	return ma.value, ma.isSome
 }
