@@ -27,7 +27,7 @@ func TestLogger(t *testing.T) {
 
 	lio := l("out")
 
-	assert.Equal(t, nil, lio(10)())
+	assert.NotPanics(t, func() { lio(10)() })
 }
 
 func TestLogf(t *testing.T) {
@@ -36,5 +36,5 @@ func TestLogf(t *testing.T) {
 
 	lio := l("Value is %d")
 
-	assert.Equal(t, nil, lio(10)())
+	assert.NotPanics(t, func() { lio(10)() })
 }

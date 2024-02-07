@@ -25,6 +25,11 @@ import (
 	T "github.com/IBM/fp-go/tuple"
 )
 
+var (
+	// undefined represents an undefined value
+	undefined = struct{}{}
+)
+
 // type IO[A any] = func() A
 
 func MakeIO[GA ~func() A, A any](f func() A) GA {
@@ -43,7 +48,7 @@ func FromIO[GA ~func() A, A any](a GA) GA {
 func FromImpure[GA ~func() any, IMP ~func()](f IMP) GA {
 	return MakeIO[GA](func() any {
 		f()
-		return nil
+		return undefined
 	})
 }
 

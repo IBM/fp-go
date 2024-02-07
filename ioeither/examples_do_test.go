@@ -53,5 +53,5 @@ func ExampleIOEither_do() {
 	fmt.Println(b())
 
 	// Output:
-	// Right[<nil>, int](8)
+	// Right[int](8)
 }

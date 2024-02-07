@@ -117,7 +117,7 @@ func Example_renderPage() {
 	fmt.Println(res(context.TODO())())
 
 	// Output:
-	// Right[<nil>, string](<div>Destinations: [qui est esse], Events: [ea molestias quasi exercitationem repellat qui ipsa sit aut]</div>)
+	// Right[string](<div>Destinations: [qui est esse], Events: [ea molestias quasi exercitationem repellat qui ipsa sit aut]</div>)
 
 }
 

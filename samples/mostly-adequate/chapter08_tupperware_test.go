@@ -196,8 +196,8 @@ func Example_getAge() {
 	fmt.Println(zoltar(MakeUser("2005-12-12")))
 
 	// Output:
-	// Right[<nil>, float64](6472)
-	// Left[*time.ParseError, float64](parsing time "July 4, 2001" as "2006-01-02": cannot parse "July 4, 2001" as "2006")
+	// Right[float64](6472)
+	// Left[*time.ParseError](parsing time "July 4, 2001" as "2006-01-02": cannot parse "July 4, 2001" as "2006")
 	// If you survive, you will be 6837
 }
 
@@ -235,8 +235,8 @@ func Example_solution08C() {
 	fmt.Println(eitherWelcome(theresa08))
 
 	// Output:
-	// Left[*errors.errorString, string](your account is not active)
-	// Right[<nil>, string](Welcome Theresa)
+	// Left[*errors.errorString](your account is not active)
+	// Right[string](Welcome Theresa)
 }
 
 func Example_solution08D() {
@@ -269,8 +269,8 @@ func Example_solution08D() {
 	fmt.Println(register(yi08)())
 
 	// Output:
-	// Right[<nil>, string](Gary)
-	// Left[*errors.errorString, <nil>](Your name Yi is larger than 3 characters)
-	// Right[<nil>, string](Welcome Albert)
-	// Left[*errors.errorString, string](Your name Yi is larger than 3 characters)
+	// Right[string](Gary)
+	// Left[*errors.errorString](Your name Yi is larger than 3 characters)
+	// Right[string](Welcome Albert)
+	// Left[*errors.errorString](Your name Yi is larger than 3 characters)
 }

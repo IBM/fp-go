@@ -64,7 +64,7 @@ func Example_io_flow() {
 	fmt.Println(result())
 
 	// Output:
-	// Right[<nil>, string](Text: Some data, Number: 10)
+	// Right[string](Text: Some data, Number: 10)
 
 }
 

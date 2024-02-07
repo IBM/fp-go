@@ -60,7 +60,7 @@ func Example_solution12A() {
 	fmt.Println(getJsons(routes)())
 
 	// Output:
-	// Right[<nil>, map[string]string](map[/:json for / /about:json for /about])
+	// Right[map[string]string](map[/:json for / /about:json for /about])
 }
 
 func Example_solution12B() {
@@ -74,8 +74,8 @@ func Example_solution12B() {
 	fmt.Println(startGame(A.From(playerAlbert, Player{Id: 4})))
 
 	// Output:
-	// Right[<nil>, string](Game started)
-	// Left[*errors.errorString, string](player 4 must have a name)
+	// Right[string](Game started)
+	// Left[*errors.errorString](player 4 must have a name)
 }
 
 func Example_solution12C() {
@@ -94,5 +94,5 @@ func Example_solution12C() {
 	fmt.Println(readFirst())
 
 	// Output:
-	// Right[<nil>, option.Option[string]](Some[string](content of file1 (utf-8)))
+	// Right[option.Option[string]](Some[string](content of file1 (utf-8)))
 }

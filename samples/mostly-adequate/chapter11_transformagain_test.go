@@ -63,10 +63,10 @@ func Example_solution11B() {
 	fmt.Println(findByNameID(4)())
 
 	// Output:
-	// Right[<nil>, string](Albert)
-	// Right[<nil>, string](Gary)
-	// Right[<nil>, string](Theresa)
-	// Left[*errors.errorString, string](user 4 not found)
+	// Right[string](Albert)
+	// Right[string](Gary)
+	// Right[string](Theresa)
+	// Left[*errors.errorString](user 4 not found)
 }
 
 func Example_solution11C() {

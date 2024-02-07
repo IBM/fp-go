@@ -182,10 +182,7 @@ func withCancelCauseFunc[
 		ma,
 		IOE.Swap[GIOA, func() E.Either[A, error]],
 		IOE.ChainFirstIOK[func() E.Either[A, error], func() any](func(err error) func() any {
-			return IO.MakeIO[func() any](func() any {
-				cancel(err)
-				return nil
-			})
+			return IO.FromImpure[func() any](func() { cancel(err) })
 		}),
 		IOE.Swap[func() E.Either[A, error], GIOA],
 	)

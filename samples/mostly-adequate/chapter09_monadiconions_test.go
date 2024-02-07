@@ -181,6 +181,6 @@ func Example_solution09C() {
 	fmt.Println(joinMailingList("notanemail")())
 
 	// Output:
-	// Right[<nil>, string](sleepy@grandpa.net)
-	// Left[*errors.errorString, string](email notanemail is invalid)
+	// Right[string](sleepy@grandpa.net)
+	// Left[*errors.errorString](email notanemail is invalid)
 }
