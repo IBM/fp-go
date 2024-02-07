@@ -38,7 +38,7 @@ func ExampleIOEither_extraction() {
 	fmt.Println(valueFromIO)
 
 	// Output:
-	// Right[<nil>, int](42)
+	// Right[int](42)
 	// 42
 	// 42
 

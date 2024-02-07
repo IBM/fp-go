@@ -53,8 +53,8 @@ func ExampleEither_extraction() {
 	fmt.Println(doubleFromRightBis)
 
 	// Output:
-	// Left[*errors.errorString, int](Division by Zero!)
-	// Right[<nil>, int](10)
+	// Left[*errors.errorString](Division by Zero!)
+	// Right[int](10)
 	// 0
 	// 10
 	// 0

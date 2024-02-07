@@ -47,5 +47,5 @@ func ExampleReadFile() {
 	fmt.Println(result())
 
 	// Output:
-	// Right[<nil>, string](Carsten)
+	// Right[string](Carsten)
 }

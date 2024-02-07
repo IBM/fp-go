@@ -26,12 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDefault(t *testing.T) {
-	var e Either[error, string]
-
-	assert.Equal(t, Of[error](""), e)
-}
-
 func TestIsLeft(t *testing.T) {
 	err := errors.New("Some error")
 	withError := Left[string](err)

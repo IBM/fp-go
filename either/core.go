@@ -23,17 +23,16 @@ type (
 	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
 	Either[E, A any] struct {
 		isLeft bool
-		left   E
-		right  A
+		value  any
 	}
 )
 
 // String prints some debug info for the object
 func (s Either[E, A]) String() string {
 	if s.isLeft {
-		return fmt.Sprintf("Left[%T, %T](%v)", s.left, s.right, s.left)
+		return fmt.Sprintf("Left[%T](%v)", s.value, s.value)
 	}
-	return fmt.Sprintf("Right[%T, %T](%v)", s.left, s.right, s.right)
+	return fmt.Sprintf("Right[%T](%v)", s.value, s.value)
 }
 
 // Format prints some debug info for the object
@@ -58,23 +57,29 @@ func IsRight[E, A any](val Either[E, A]) bool {
 
 // Left creates a new instance of an [Either] representing the left value.
 func Left[A, E any](value E) Either[E, A] {
-	return Either[E, A]{isLeft: true, left: value}
+	return Either[E, A]{true, value}
 }
 
 // Right creates a new instance of an [Either] representing the right value.
 func Right[E, A any](value A) Either[E, A] {
-	return Either[E, A]{isLeft: false, right: value}
+	return Either[E, A]{false, value}
 }
 
 // MonadFold extracts the values from an [Either] by invoking the [onLeft] callback or the [onRight] callback depending on the case
 func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a A) B) B {
 	if ma.isLeft {
-		return onLeft(ma.left)
+		return onLeft(ma.value.(E))
 	}
-	return onRight(ma.right)
+	return onRight(ma.value.(A))
 }
 
 // Unwrap converts an [Either] into the idiomatic tuple
 func Unwrap[E, A any](ma Either[E, A]) (A, E) {
-	return ma.right, ma.left
+	if ma.isLeft {
+		var a A
+		return a, ma.value.(E)
+	} else {
+		var e E
+		return ma.value.(A), e
+	}
 }

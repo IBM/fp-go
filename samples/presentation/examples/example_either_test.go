@@ -48,7 +48,7 @@ func Example_either_monad() {
 	fmt.Println(makeUrl("8080"))
 
 	// Output:
-	// Right[<nil>, string](http://localhost:8080)
+	// Right[string](http://localhost:8080)
 }
 
 func Example_either_idiomatic() {

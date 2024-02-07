@@ -48,11 +48,11 @@ func ExampleEither_creation() {
 	fmt.Println(rightFromPred)
 
 	// Output:
-	// Left[*errors.errorString, string](some error)
-	// Right[<nil>, string](value)
-	// Left[*errors.errorString, *string](value was nil)
+	// Left[*errors.errorString](some error)
+	// Right[string](value)
+	// Left[*errors.errorString](value was nil)
 	// true
-	// Left[*errors.errorString, int](3 is an odd number)
-	// Right[<nil>, int](4)
+	// Left[*errors.errorString](3 is an odd number)
+	// Right[int](4)
 
 }
