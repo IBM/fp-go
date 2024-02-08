@@ -16,6 +16,7 @@
 package builder
 
 import (
+	"fmt"
 	"testing"
 
 	F "github.com/IBM/fp-go/function"
@@ -65,4 +66,28 @@ func TestWithFormData(t *testing.T) {
 	)
 
 	assert.Equal(t, C.FormEncoded, Headers.Get(res).Get(H.ContentType))
+}
+
+func TestHash(t *testing.T) {
+
+	b1 := F.Pipe4(
+		Default,
+		WithContentType(C.JSON),
+		WithHeader(H.Accept)(C.JSON),
+		WithURL("http://www.example.com"),
+		WithJSON(map[string]string{"a": "b"}),
+	)
+
+	b2 := F.Pipe4(
+		Default,
+		WithURL("http://www.example.com"),
+		WithHeader(H.Accept)(C.JSON),
+		WithContentType(C.JSON),
+		WithJSON(map[string]string{"a": "b"}),
+	)
+
+	assert.Equal(t, MakeHash(b1), MakeHash(b2))
+	assert.NotEqual(t, MakeHash(Default), MakeHash(b2))
+
+	fmt.Println(MakeHash(b1))
 }

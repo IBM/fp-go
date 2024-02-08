@@ -15,6 +15,10 @@
 
 package bytes
 
+func Empty() []byte {
+	return Monoid.Empty()
+}
+
 func ToString(a []byte) string {
 	return string(a)
 }

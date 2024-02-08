@@ -16,9 +16,14 @@
 package builder
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"net/url"
 
+	A "github.com/IBM/fp-go/array"
+	B "github.com/IBM/fp-go/bytes"
 	E "github.com/IBM/fp-go/either"
 	ENDO "github.com/IBM/fp-go/endomorphism"
 	F "github.com/IBM/fp-go/function"
@@ -29,6 +34,7 @@ import (
 	LZ "github.com/IBM/fp-go/lazy"
 	L "github.com/IBM/fp-go/optics/lens"
 	O "github.com/IBM/fp-go/option"
+	R "github.com/IBM/fp-go/record"
 	S "github.com/IBM/fp-go/string"
 	T "github.com/IBM/fp-go/tuple"
 )
@@ -138,6 +144,9 @@ var (
 		WithBytes,
 		ENDO.Chain(WithContentType(C.FormEncoded)),
 	)
+
+	// bodyAsBytes returns a []byte with a fallback to the empty array
+	bodyAsBytes = O.Fold(B.Empty, E.Fold(F.Ignore1of1[error](B.Empty), F.Identity[[]byte]))
 )
 
 func setRawQuery(u *url.URL, raw string) *url.URL {
@@ -272,6 +281,11 @@ func (builder *Builder) GetHeaderValues(name string) []string {
 	return builder.headers.Values(name)
 }
 
+// GetHash returns a hash value for the builder that can be used as a cache key
+func (builder *Builder) GetHash() string {
+	return MakeHash(builder)
+}
+
 // Header returns a [L.Lens] for a single header
 func Header(name string) L.Lens[*Builder, O.Option[string]] {
 	get := getHeader(name)
@@ -341,4 +355,33 @@ func WithQueryArg(name string) func(value string) Endomorphism {
 // WithoutQueryArg creates a [Endomorphism] that removes a query argument
 func WithoutQueryArg(name string) Endomorphism {
 	return QueryArg(name).Set(noQueryArg)
+}
+
+func hashWriteValue(buf *bytes.Buffer, value string) *bytes.Buffer {
+	buf.WriteString(value)
+	return buf
+}
+
+func hashWriteQuery(name string, buf *bytes.Buffer, values []string) *bytes.Buffer {
+	buf.WriteString(name)
+	return A.Reduce(hashWriteValue, buf)(values)
+}
+
+func makeBytes(b *Builder) []byte {
+	var buf bytes.Buffer
+
+	buf.WriteString(b.GetMethod())
+	buf.WriteString(b.GetURL())
+	b.GetHeaders().Write(&buf) // #nosec: G104
+
+	R.ReduceOrdWithIndex[[]string, *bytes.Buffer](S.Ord)(hashWriteQuery, &buf)(b.GetQuery())
+
+	buf.Write(bodyAsBytes(b.GetBody()))
+
+	return buf.Bytes()
+}
+
+// MakeHash converts a [Builder] into a hash string, convenient to use as a cache key
+func MakeHash(b *Builder) string {
+	return fmt.Sprintf("%x", sha256.Sum256(makeBytes(b)))
 }
