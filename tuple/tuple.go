@@ -17,6 +17,14 @@
 // consider to use arrays for simplicity
 package tuple
 
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	N "github.com/IBM/fp-go/number"
+)
+
 func Of[T1 any](t T1) Tuple1[T1] {
 	return MakeTuple1(t)
 }
@@ -45,4 +53,32 @@ func BiMap[E, G, A, B any](mapSnd func(E) G, mapFst func(A) B) func(Tuple2[A, E]
 	return func(t Tuple2[A, E]) Tuple2[B, G] {
 		return MakeTuple2(mapFst(First(t)), mapSnd(Second(t)))
 	}
+}
+
+// marshalJSON marshals the tuple into a JSON array
+func tupleMarshalJSON(src ...any) ([]byte, error) {
+	return json.Marshal(src)
+}
+
+// tupleUnmarshalJSON unmarshals a JSON array into a tuple
+func tupleUnmarshalJSON(data []byte, dst ...any) error {
+	var src []json.RawMessage
+	if err := json.Unmarshal(data, &src); err != nil {
+		return err
+	}
+	l := N.Min(len(src), len(dst))
+	// unmarshal
+	for i := 0; i < l; i++ {
+		if err := json.Unmarshal(src[i], dst[i]); err != nil {
+			return err
+		}
+	}
+	// successfully decoded the tuple
+	return nil
+}
+
+// tupleString converts a tuple to a string
+func tupleString(src ...any) string {
+	l := len(src)
+	return fmt.Sprintf("Tuple%d[%s](%s)", l, fmt.Sprintf(strings.Repeat(", %T", l)[2:], src...), fmt.Sprintf(strings.Repeat(", %v", l)[2:], src...))
 }

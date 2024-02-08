@@ -405,8 +405,6 @@ func generateTupleHelpers(filename string, count int) error {
 
 	fmt.Fprintf(f, `
 import (
-	"fmt"
-	"encoding/json"
 	M "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/ord"	
 )
@@ -457,7 +455,7 @@ func generateTupleMarshal(f *os.File, i int) {
 	fmt.Fprintf(f, "func (t ")
 	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") MarshalJSON() ([]byte, error) {\n")
-	fmt.Fprintf(f, "  return json.Marshal([]any{")
+	fmt.Fprintf(f, "  return tupleMarshalJSON(")
 	// function prototypes
 	for j := 1; j <= i; j++ {
 		if j > 1 {
@@ -465,7 +463,7 @@ func generateTupleMarshal(f *os.File, i int) {
 		}
 		fmt.Fprintf(f, "t.F%d", j)
 	}
-	fmt.Fprintf(f, "})\n")
+	fmt.Fprintf(f, ")\n")
 	fmt.Fprintf(f, "}\n")
 }
 
@@ -475,19 +473,12 @@ func generateTupleUnmarshal(f *os.File, i int) {
 	fmt.Fprintf(f, "func (t *")
 	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") UnmarshalJSON(data []byte) error {\n")
-	fmt.Fprintf(f, "  var tmp []json.RawMessage\n")
-	fmt.Fprintf(f, "  if err := json.Unmarshal(data, &tmp); err != nil {return err}\n")
-	fmt.Fprintf(f, "  l := len(tmp)\n")
-	// unmarshal fields
+	fmt.Fprintf(f, "  return tupleUnmarshalJSON(data")
+	// function prototypes
 	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, "  if l > %d {\n", j-1)
-		fmt.Fprintf(f, "  if err := json.Unmarshal(tmp[%d], &t.F%d); err != nil {return err}\n", j-1, j)
+		fmt.Fprintf(f, ", &t.F%d", j)
 	}
-	fmt.Fprintf(f, "  ")
-	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, "}")
-	}
-	fmt.Fprintf(f, "\n  return nil\n")
+	fmt.Fprintf(f, ")\n")
 	fmt.Fprintf(f, "}\n")
 }
 
@@ -570,29 +561,12 @@ func generateTupleString(f *os.File, i int) {
 	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") String() string {\n")
 	// convert to string
-	fmt.Fprintf(f, "  return fmt.Sprintf(\"Tuple%d[", i)
-	for j := 1; j <= i; j++ {
-		if j > 1 {
-			fmt.Fprintf(f, ", ")
-		}
-		fmt.Fprintf(f, "%s", "%T")
-	}
-	fmt.Fprintf(f, "](")
-	for j := 1; j <= i; j++ {
-		if j > 1 {
-			fmt.Fprintf(f, ", ")
-		}
-		fmt.Fprintf(f, "%s", "%v")
-	}
-	fmt.Fprintf(f, ")\", ")
+	fmt.Fprint(f, "  return tupleString(")
 	for j := 1; j <= i; j++ {
 		if j > 1 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "t.F%d", j)
-	}
-	for j := 1; j <= i; j++ {
-		fmt.Fprintf(f, ", t.F%d", j)
 	}
 	fmt.Fprintf(f, ")\n")
 	fmt.Fprintf(f, "}\n")
