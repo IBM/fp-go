@@ -25,13 +25,13 @@ func Memoize[K comparable, T any](f func(K) T) func(K) T {
 }
 
 // ContramapMemoize converts a unary function into a unary function that caches the value depending on the parameter
-func ContramapMemoize[A any, K comparable, T any](kf func(A) K) func(func(A) T) func(A) T {
+func ContramapMemoize[T, A any, K comparable](kf func(A) K) func(func(A) T) func(A) T {
 	return G.ContramapMemoize[func(A) T](kf)
 }
 
 // CacheCallback converts a unary function into a unary function that caches the value depending on the parameter
 func CacheCallback[
-	A any, K comparable, T any](kf func(A) K, getOrCreate func(K, func() func() T) func() T) func(func(A) T) func(A) T {
+	T, A any, K comparable](kf func(A) K, getOrCreate func(K, func() func() T) func() T) func(func(A) T) func(A) T {
 	return G.CacheCallback[func(func(A) T) func(A) T](kf, getOrCreate)
 }
 
