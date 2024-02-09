@@ -109,17 +109,21 @@ func ReadJson[A any](client Client) func(Requester) RIOE.ReaderIOEither[A] {
 	return ReadJSON[A](client)
 }
 
-// ReadJSON sends a request, reads the response and parses the response as JSON
-func ReadJSON[A any](client Client) func(Requester) RIOE.ReaderIOEither[A] {
+func readJSON(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
 	return F.Flow3(
 		ReadFullResponse(client),
 		RIOE.ChainFirstEitherK(F.Flow2(
 			H.Response,
 			H.ValidateJSONResponse,
 		)),
-		RIOE.ChainEitherK(F.Flow2(
-			H.Body,
-			J.Unmarshal[A],
-		)),
+		RIOE.Map(H.Body),
+	)
+}
+
+// ReadJSON sends a request, reads the response and parses the response as JSON
+func ReadJSON[A any](client Client) func(Requester) RIOE.ReaderIOEither[A] {
+	return F.Flow2(
+		readJSON(client),
+		RIOE.ChainEitherK(J.Unmarshal[A]),
 	)
 }

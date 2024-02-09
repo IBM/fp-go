@@ -17,9 +17,20 @@ package chain
 
 import (
 	"github.com/IBM/fp-go/internal/apply"
+	"github.com/IBM/fp-go/internal/functor"
 )
 
 type Chainable[A, B, HKTA, HKTB, HKTFAB any] interface {
 	apply.Apply[A, B, HKTA, HKTB, HKTFAB]
 	Chain(func(A) HKTB) func(HKTA) HKTB
+}
+
+// ToFunctor converts from [Chainable] to [functor.Functor]
+func ToFunctor[A, B, HKTA, HKTB, HKTFAB any](ap Chainable[A, B, HKTA, HKTB, HKTFAB]) functor.Functor[A, B, HKTA, HKTB] {
+	return ap
+}
+
+// ToApply converts from [Chainable] to [functor.Functor]
+func ToApply[A, B, HKTA, HKTB, HKTFAB any](ap Chainable[A, B, HKTA, HKTB, HKTFAB]) apply.Apply[A, B, HKTA, HKTB, HKTFAB] {
+	return ap
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,18 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package apply
+package pair
 
 import (
-	"github.com/IBM/fp-go/internal/functor"
+	EQ "github.com/IBM/fp-go/eq"
 )
 
-type Apply[A, B, HKTA, HKTB, HKTFAB any] interface {
-	functor.Functor[A, B, HKTA, HKTB]
-	Ap(HKTA) func(HKTFAB) HKTB
+// Constructs an equal predicate for an `Either`
+func Eq[A, B any](a EQ.Eq[A], b EQ.Eq[B]) EQ.Eq[Pair[A, B]] {
+	return EQ.FromEquals(func(l, r Pair[A, B]) bool {
+		return a.Equals(Head(l), Head(r)) && b.Equals(Tail(l), Tail(r))
+	})
+
 }
 
-// ToFunctor converts from [Apply] to [functor.Functor]
-func ToFunctor[A, B, HKTA, HKTB, HKTFAB any](ap Apply[A, B, HKTA, HKTB, HKTFAB]) functor.Functor[A, B, HKTA, HKTB] {
-	return ap
+// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+func FromStrictEquals[A, B comparable]() EQ.Eq[Pair[A, B]] {
+	return Eq(EQ.FromStrictEquals[A](), EQ.FromStrictEquals[B]())
 }

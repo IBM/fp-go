@@ -113,7 +113,7 @@ func fromPredicate[S, A any](creator func(get func(S) O.Option[A], set func(S, A
 	return func(get func(S) A, set func(S, A) S) Optional[S, A] {
 		return creator(
 			F.Flow2(get, fromPred),
-			func(s S, a A) S {
+			func(s S, _ A) S {
 				return F.Pipe3(
 					s,
 					get,

@@ -20,13 +20,19 @@ import (
 
 	E "github.com/IBM/fp-go/eq"
 	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/applicative"
+	"github.com/IBM/fp-go/internal/apply"
 	L "github.com/IBM/fp-go/internal/apply/testing"
+	"github.com/IBM/fp-go/internal/functor"
+	"github.com/IBM/fp-go/internal/pointed"
 	"github.com/stretchr/testify/assert"
 )
 
 // Applicative identity law
 //
 // A.ap(A.of(a => a), fa) <-> fa
+//
+// Deprecated: use [ApplicativeAssertIdentity]
 func AssertIdentity[HKTA, HKTAA, A any](t *testing.T,
 	eq E.Eq[HKTA],
 
@@ -46,9 +52,33 @@ func AssertIdentity[HKTA, HKTAA, A any](t *testing.T,
 	}
 }
 
+// Applicative identity law
+//
+// A.ap(A.of(a => a), fa) <-> fa
+func ApplicativeAssertIdentity[HKTA, HKTFAA, A any](t *testing.T,
+	eq E.Eq[HKTA],
+
+	ap applicative.Applicative[A, A, HKTA, HKTA, HKTFAA],
+	paa pointed.Pointed[func(A) A, HKTFAA],
+
+) func(fa HKTA) bool {
+	// mark as test helper
+	t.Helper()
+
+	return func(fa HKTA) bool {
+
+		left := ap.Ap(fa)(paa.Of(F.Identity[A]))
+		right := fa
+
+		return assert.True(t, eq.Equals(left, right), "Applicative identity")
+	}
+}
+
 // Applicative homomorphism law
 //
 // A.ap(A.of(ab), A.of(a)) <-> A.of(ab(a))
+//
+// Deprecated: use [ApplicativeAssertHomomorphism]
 func AssertHomomorphism[HKTA, HKTB, HKTAB, A, B any](t *testing.T,
 	eq E.Eq[HKTB],
 
@@ -72,9 +102,35 @@ func AssertHomomorphism[HKTA, HKTB, HKTAB, A, B any](t *testing.T,
 	}
 }
 
+// Applicative homomorphism law
+//
+// A.ap(A.of(ab), A.of(a)) <-> A.of(ab(a))
+func ApplicativeAssertHomomorphism[HKTA, HKTB, HKTFAB, A, B any](t *testing.T,
+	eq E.Eq[HKTB],
+
+	apab applicative.Applicative[A, B, HKTA, HKTB, HKTFAB],
+	pb pointed.Pointed[B, HKTB],
+	pfab pointed.Pointed[func(A) B, HKTFAB],
+
+	ab func(A) B,
+) func(a A) bool {
+	// mark as test helper
+	t.Helper()
+
+	return func(a A) bool {
+
+		left := apab.Ap(apab.Of(a))(pfab.Of(ab))
+		right := pb.Of(ab(a))
+
+		return assert.True(t, eq.Equals(left, right), "Applicative homomorphism")
+	}
+}
+
 // Applicative interchange law
 //
 // A.ap(fab, A.of(a)) <-> A.ap(A.of(ab => ab(a)), fab)
+//
+// Deprecated: use [ApplicativeAssertInterchange]
 func AssertInterchange[HKTA, HKTB, HKTAB, HKTABB, A, B any](t *testing.T,
 	eq E.Eq[HKTB],
 
@@ -103,7 +159,38 @@ func AssertInterchange[HKTA, HKTB, HKTAB, HKTABB, A, B any](t *testing.T,
 	}
 }
 
+// Applicative interchange law
+//
+// A.ap(fab, A.of(a)) <-> A.ap(A.of(ab => ab(a)), fab)
+func ApplicativeAssertInterchange[HKTA, HKTB, HKTFAB, HKTABB, A, B any](t *testing.T,
+	eq E.Eq[HKTB],
+
+	apab applicative.Applicative[A, B, HKTA, HKTB, HKTFAB],
+	apabb applicative.Applicative[func(A) B, B, HKTFAB, HKTB, HKTABB],
+	pabb pointed.Pointed[func(func(A) B) B, HKTABB],
+
+	ab func(A) B,
+) func(a A) bool {
+	// mark as test helper
+	t.Helper()
+
+	return func(a A) bool {
+
+		fab := apabb.Of(ab)
+
+		left := apab.Ap(apab.Of(a))(fab)
+
+		right := apabb.Ap(fab)(pabb.Of(func(ab func(A) B) B {
+			return ab(a)
+		}))
+
+		return assert.True(t, eq.Equals(left, right), "Applicative homomorphism")
+	}
+}
+
 // AssertLaws asserts the apply laws `identity`, `composition`, `associative composition`, 'applicative identity', 'homomorphism', 'interchange'
+//
+// Deprecated: use [ApplicativeAssertLaws] instead
 func AssertLaws[HKTA, HKTB, HKTC, HKTAA, HKTAB, HKTBC, HKTAC, HKTABB, HKTABAC, A, B, C any](t *testing.T,
 	eqa E.Eq[HKTA],
 	eqb E.Eq[HKTB],
@@ -147,6 +234,50 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAA, HKTAB, HKTBC, HKTAC, HKTABB, HKTABAC, A
 
 	return func(a A) bool {
 		fa := fofa(a)
+		return apply(fa) && identity(fa) && homomorphism(a) && interchange(a)
+	}
+}
+
+// ApplicativeAssertLaws asserts the apply laws `identity`, `composition`, `associative composition`, 'applicative identity', 'homomorphism', 'interchange'
+func ApplicativeAssertLaws[HKTA, HKTB, HKTC, HKTAA, HKTAB, HKTBC, HKTAC, HKTABB, HKTABAC, A, B, C any](t *testing.T,
+	eqa E.Eq[HKTA],
+	eqb E.Eq[HKTB],
+	eqc E.Eq[HKTC],
+
+	fofb pointed.Pointed[B, HKTB],
+
+	fofaa pointed.Pointed[func(A) A, HKTAA],
+	fofbc pointed.Pointed[func(B) C, HKTBC],
+
+	fofabb pointed.Pointed[func(func(A) B) B, HKTABB],
+
+	faa functor.Functor[A, A, HKTA, HKTA],
+
+	fmap functor.Functor[func(B) C, func(func(A) B) func(A) C, HKTBC, HKTABAC],
+
+	fapaa applicative.Applicative[A, A, HKTA, HKTA, HKTAA],
+	fapab applicative.Applicative[A, B, HKTA, HKTB, HKTAB],
+	fapbc apply.Apply[B, C, HKTB, HKTC, HKTBC],
+	fapac apply.Apply[A, C, HKTA, HKTC, HKTAC],
+
+	fapabb applicative.Applicative[func(A) B, B, HKTAB, HKTB, HKTABB],
+	fapabac applicative.Applicative[func(A) B, func(A) C, HKTAB, HKTAC, HKTABAC],
+
+	ab func(A) B,
+	bc func(B) C,
+) func(a A) bool {
+	// mark as test helper
+	t.Helper()
+
+	// apply laws
+	apply := L.ApplyAssertLaws(t, eqa, eqc, applicative.ToPointed(fapabac), fofbc, faa, fmap, applicative.ToApply(fapab), fapbc, fapac, applicative.ToApply(fapabac), ab, bc)
+	// applicative laws
+	identity := ApplicativeAssertIdentity(t, eqa, fapaa, fofaa)
+	homomorphism := ApplicativeAssertHomomorphism(t, eqb, fapab, fofb, applicative.ToPointed(fapabb), ab)
+	interchange := ApplicativeAssertInterchange(t, eqb, fapab, fapabb, fofabb, ab)
+
+	return func(a A) bool {
+		fa := fapaa.Of(a)
 		return apply(fa) && identity(fa) && homomorphism(a) && interchange(a)
 	}
 }

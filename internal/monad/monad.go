@@ -17,10 +17,38 @@ package monad
 
 import (
 	"github.com/IBM/fp-go/internal/applicative"
+	"github.com/IBM/fp-go/internal/apply"
 	"github.com/IBM/fp-go/internal/chain"
+	"github.com/IBM/fp-go/internal/functor"
+	"github.com/IBM/fp-go/internal/pointed"
 )
 
 type Monad[A, B, HKTA, HKTB, HKTFAB any] interface {
 	applicative.Applicative[A, B, HKTA, HKTB, HKTFAB]
 	chain.Chainable[A, B, HKTA, HKTB, HKTFAB]
+}
+
+// ToFunctor converts from [Monad] to [functor.Functor]
+func ToFunctor[A, B, HKTA, HKTB, HKTFAB any](ap Monad[A, B, HKTA, HKTB, HKTFAB]) functor.Functor[A, B, HKTA, HKTB] {
+	return ap
+}
+
+// ToApply converts from [Monad] to [apply.Apply]
+func ToApply[A, B, HKTA, HKTB, HKTFAB any](ap Monad[A, B, HKTA, HKTB, HKTFAB]) apply.Apply[A, B, HKTA, HKTB, HKTFAB] {
+	return ap
+}
+
+// ToPointed converts from [Monad] to [pointed.Pointed]
+func ToPointed[A, B, HKTA, HKTB, HKTFAB any](ap Monad[A, B, HKTA, HKTB, HKTFAB]) pointed.Pointed[A, HKTA] {
+	return ap
+}
+
+// ToApplicative converts from [Monad] to [applicative.Applicative]
+func ToApplicative[A, B, HKTA, HKTB, HKTFAB any](ap Monad[A, B, HKTA, HKTB, HKTFAB]) applicative.Applicative[A, B, HKTA, HKTB, HKTFAB] {
+	return ap
+}
+
+// ToChainable converts from [Monad] to [chain.Chainable]
+func ToChainable[A, B, HKTA, HKTB, HKTFAB any](ap Monad[A, B, HKTA, HKTB, HKTFAB]) chain.Chainable[A, B, HKTA, HKTB, HKTFAB] {
+	return ap
 }

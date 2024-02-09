@@ -36,7 +36,7 @@ func Map[A, B any](f func(A) B) func(A) B {
 	return G.Map(f)
 }
 
-func MonadMapTo[A, B any](fa A, b B) B {
+func MonadMapTo[A, B any](_ A, b B) B {
 	return b
 }
 

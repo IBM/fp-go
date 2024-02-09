@@ -124,17 +124,22 @@ func ReadJson[A any](client Client) func(Requester) IOE.IOEither[error, A] {
 	return ReadJSON[A](client)
 }
 
-// ReadJSON sends a request, reads the response and parses the response as JSON
-func ReadJSON[A any](client Client) func(Requester) IOE.IOEither[error, A] {
+// readJSON sends a request, reads the response and parses the response as a []byte
+func readJSON(client Client) func(Requester) IOE.IOEither[error, []byte] {
 	return F.Flow3(
 		ReadFullResponse(client),
 		IOE.ChainFirstEitherK(F.Flow2(
 			H.Response,
 			H.ValidateJSONResponse,
 		)),
-		IOE.ChainEitherK(F.Flow2(
-			H.Body,
-			J.Unmarshal[A],
-		)),
+		IOE.Map[error](H.Body),
+	)
+}
+
+// ReadJSON sends a request, reads the response and parses the response as JSON
+func ReadJSON[A any](client Client) func(Requester) IOE.IOEither[error, A] {
+	return F.Flow2(
+		readJSON(client),
+		IOE.ChainEitherK[error](J.Unmarshal[A]),
 	)
 }

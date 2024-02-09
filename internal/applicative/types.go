@@ -17,10 +17,26 @@ package applicative
 
 import (
 	"github.com/IBM/fp-go/internal/apply"
+	"github.com/IBM/fp-go/internal/functor"
 	"github.com/IBM/fp-go/internal/pointed"
 )
 
 type Applicative[A, B, HKTA, HKTB, HKTFAB any] interface {
 	apply.Apply[A, B, HKTA, HKTB, HKTFAB]
 	pointed.Pointed[A, HKTA]
+}
+
+// ToFunctor converts from [Applicative] to [functor.Functor]
+func ToFunctor[A, B, HKTA, HKTB, HKTFAB any](ap Applicative[A, B, HKTA, HKTB, HKTFAB]) functor.Functor[A, B, HKTA, HKTB] {
+	return ap
+}
+
+// ToApply converts from [Applicative] to [apply.Apply]
+func ToApply[A, B, HKTA, HKTB, HKTFAB any](ap Applicative[A, B, HKTA, HKTB, HKTFAB]) apply.Apply[A, B, HKTA, HKTB, HKTFAB] {
+	return ap
+}
+
+// ToPointed converts from [Applicative] to [pointed.Pointed]
+func ToPointed[A, B, HKTA, HKTB, HKTFAB any](ap Applicative[A, B, HKTA, HKTB, HKTFAB]) pointed.Pointed[A, HKTA] {
+	return ap
 }

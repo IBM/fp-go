@@ -20,13 +20,19 @@ import (
 
 	E "github.com/IBM/fp-go/eq"
 	F "github.com/IBM/fp-go/function"
+	"github.com/IBM/fp-go/internal/apply"
 	L "github.com/IBM/fp-go/internal/apply/testing"
+	"github.com/IBM/fp-go/internal/chain"
+	"github.com/IBM/fp-go/internal/functor"
+	"github.com/IBM/fp-go/internal/pointed"
 	"github.com/stretchr/testify/assert"
 )
 
 // Chain associativity law
 //
 // F.chain(F.chain(fa, afb), bfc) <-> F.chain(fa, a => F.chain(afb(a), bfc))
+//
+// Deprecated: use [ChainAssertAssociativity] instead
 func AssertAssociativity[HKTA, HKTB, HKTC, A, B, C any](t *testing.T,
 	eq E.Eq[HKTC],
 
@@ -55,7 +61,40 @@ func AssertAssociativity[HKTA, HKTB, HKTC, A, B, C any](t *testing.T,
 	}
 }
 
+// Chain associativity law
+//
+// F.chain(F.chain(fa, afb), bfc) <-> F.chain(fa, a => F.chain(afb(a), bfc))
+func ChainAssertAssociativity[HKTA, HKTB, HKTC, HKTAB, HKTAC, HKTBC, A, B, C any](t *testing.T,
+	eq E.Eq[HKTC],
+
+	fofb pointed.Pointed[B, HKTB],
+	fofc pointed.Pointed[C, HKTC],
+
+	chainab chain.Chainable[A, B, HKTA, HKTB, HKTAB],
+	chainac chain.Chainable[A, C, HKTA, HKTC, HKTAC],
+	chainbc chain.Chainable[B, C, HKTB, HKTC, HKTBC],
+
+	ab func(A) B,
+	bc func(B) C,
+) func(fa HKTA) bool {
+	return func(fa HKTA) bool {
+
+		afb := F.Flow2(ab, fofb.Of)
+		bfc := F.Flow2(bc, fofc.Of)
+
+		left := chainbc.Chain(bfc)(chainab.Chain(afb)(fa))
+
+		right := chainac.Chain(func(a A) HKTC {
+			return chainbc.Chain(bfc)(afb(a))
+		})(fa)
+
+		return assert.True(t, eq.Equals(left, right), "Chain associativity")
+	}
+}
+
 // AssertLaws asserts the apply laws `identity`, `composition`, `associative composition` and `associativity`
+//
+// Deprecated: use [ChainAssertLaws] instead
 func AssertLaws[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC, A, B, C any](t *testing.T,
 	eqa E.Eq[HKTA],
 	eqc E.Eq[HKTC],
@@ -90,6 +129,40 @@ func AssertLaws[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC, A, B, C any](t *
 	apply := L.AssertLaws(t, eqa, eqc, fofab, fofbc, faa, fab, fac, fbc, fmap, fapab, fapbc, fapac, fapabac, ab, bc)
 	// chain laws
 	associativity := AssertAssociativity(t, eqc, fofb, fofc, chainab, chainac, chainbc, ab, bc)
+
+	return func(fa HKTA) bool {
+		return apply(fa) && associativity(fa)
+	}
+}
+
+// ChainAssertLaws asserts the apply laws `identity`, `composition`, `associative composition` and `associativity`
+func ChainAssertLaws[HKTA, HKTB, HKTC, HKTAB, HKTBC, HKTAC, HKTABAC, A, B, C any](t *testing.T,
+	eqa E.Eq[HKTA],
+	eqc E.Eq[HKTC],
+
+	fofb pointed.Pointed[B, HKTB],
+	fofc pointed.Pointed[C, HKTC],
+
+	fofab pointed.Pointed[func(A) B, HKTAB],
+	fofbc pointed.Pointed[func(B) C, HKTBC],
+
+	faa functor.Functor[A, A, HKTA, HKTA],
+
+	fmap functor.Functor[func(B) C, func(func(A) B) func(A) C, HKTBC, HKTABAC],
+
+	chainab chain.Chainable[A, B, HKTA, HKTB, HKTAB],
+	chainac chain.Chainable[A, C, HKTA, HKTC, HKTAC],
+	chainbc chain.Chainable[B, C, HKTB, HKTC, HKTBC],
+
+	fapabac apply.Apply[func(A) B, func(A) C, HKTAB, HKTAC, HKTABAC],
+
+	ab func(A) B,
+	bc func(B) C,
+) func(fa HKTA) bool {
+	// apply laws
+	apply := L.ApplyAssertLaws(t, eqa, eqc, fofab, fofbc, faa, fmap, chain.ToApply(chainab), chain.ToApply(chainbc), chain.ToApply(chainac), fapabac, ab, bc)
+	// chain laws
+	associativity := ChainAssertAssociativity(t, eqc, fofb, fofc, chainab, chainac, chainbc, ab, bc)
 
 	return func(fa HKTA) bool {
 		return apply(fa) && associativity(fa)

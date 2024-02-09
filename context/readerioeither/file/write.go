@@ -26,7 +26,7 @@ import (
 func onWriteAll[W io.Writer](data []byte) func(w W) RIOE.ReaderIOEither[[]byte] {
 	return func(w W) RIOE.ReaderIOEither[[]byte] {
 		return F.Pipe1(
-			RIOE.TryCatch(func(ctx context.Context) func() ([]byte, error) {
+			RIOE.TryCatch(func(_ context.Context) func() ([]byte, error) {
 				return func() ([]byte, error) {
 					_, err := w.Write(data)
 					return data, err

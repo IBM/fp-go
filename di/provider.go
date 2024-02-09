@@ -41,7 +41,7 @@ func eraseTuple[A, R any](f func(A) IOE.IOEither[error, R]) func(E.Either[error,
 }
 
 func eraseProviderFactory0[R any](f IOE.IOEither[error, R]) func(params ...any) IOE.IOEither[error, any] {
-	return func(params ...any) IOE.IOEither[error, any] {
+	return func(_ ...any) IOE.IOEither[error, any] {
 		return F.Pipe1(
 			f,
 			IOE.Map[error](F.ToAny[R]),
