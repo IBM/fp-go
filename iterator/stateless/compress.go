@@ -17,11 +17,11 @@ package stateless
 
 import (
 	G "github.com/IBM/fp-go/iterator/stateless/generic"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // Compress returns an [Iterator] that filters elements from a data [Iterator] returning only those that have a corresponding element in selector [Iterator] that evaluates to `true`.
 // Stops when either the data or selectors iterator has been exhausted.
 func Compress[U any](sel Iterator[bool]) func(Iterator[U]) Iterator[U] {
-	return G.Compress[Iterator[U], Iterator[bool], Iterator[T.Tuple2[U, bool]]](sel)
+	return G.Compress[Iterator[U], Iterator[bool], Iterator[P.Pair[U, bool]]](sel)
 }

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,5 +40,5 @@ func TestZip(t *testing.T) {
 
 	res := Zip[string](left)(right)
 
-	assert.Equal(t, ToArray(From(T.MakeTuple2("a", 1), T.MakeTuple2("b", 2), T.MakeTuple2("c", 3))), ToArray(res))
+	assert.Equal(t, ToArray(From(P.MakePair("a", 1), P.MakePair("b", 2), P.MakePair("c", 3))), ToArray(res))
 }

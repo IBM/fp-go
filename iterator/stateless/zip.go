@@ -17,7 +17,7 @@ package stateless
 
 import (
 	G "github.com/IBM/fp-go/iterator/stateless/generic"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // ZipWith applies a function to pairs of elements at the same index in two iterators, collecting the results in a new iterator. If one
@@ -28,6 +28,6 @@ func ZipWith[FCT ~func(A, B) C, A, B, C any](fa Iterator[A], fb Iterator[B], f F
 
 // Zip takes two iterators and returns an iterators of corresponding pairs. If one input iterators is short, excess elements of the
 // longer iterator are discarded
-func Zip[A, B any](fb Iterator[B]) func(Iterator[A]) Iterator[T.Tuple2[A, B]] {
-	return G.Zip[Iterator[A], Iterator[B], Iterator[T.Tuple2[A, B]]](fb)
+func Zip[A, B any](fb Iterator[B]) func(Iterator[A]) Iterator[P.Pair[A, B]] {
+	return G.Zip[Iterator[A], Iterator[B], Iterator[P.Pair[A, B]]](fb)
 }

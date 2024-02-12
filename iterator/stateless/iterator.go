@@ -20,19 +20,19 @@ import (
 	L "github.com/IBM/fp-go/lazy"
 	M "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // Iterator represents a stateless, pure way to iterate over a sequence
-type Iterator[U any] L.Lazy[O.Option[T.Tuple2[Iterator[U], U]]]
+type Iterator[U any] L.Lazy[O.Option[P.Pair[Iterator[U], U]]]
 
-// Next returns the [Iterator] for the next element in an iterator `T.Tuple2`
-func Next[U any](m T.Tuple2[Iterator[U], U]) Iterator[U] {
+// Next returns the [Iterator] for the next element in an iterator `P.Pair`
+func Next[U any](m P.Pair[Iterator[U], U]) Iterator[U] {
 	return G.Next(m)
 }
 
-// Current returns the current element in an [Iterator] `T.Tuple2`
-func Current[U any](m T.Tuple2[Iterator[U], U]) U {
+// Current returns the current element in an [Iterator] `P.Pair`
+func Current[U any](m P.Pair[Iterator[U], U]) U {
 	return G.Current(m)
 }
 

@@ -23,7 +23,7 @@ import (
 
 	EX "github.com/IBM/fp-go/exec"
 
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 func Exec(ctx context.Context, name string, args []string, in []byte) (EX.CommandOutput, error) {
@@ -42,5 +42,5 @@ func Exec(ctx context.Context, name string, args []string, in []byte) (EX.Comman
 		err = fmt.Errorf("command execution of [%s][%s] failed, stdout [%s], stderr [%s], cause [%w]", name, args, stdOut.String(), stdErr.String(), err)
 	}
 	// return the outputs
-	return T.MakeTuple2(stdOut.Bytes(), stdErr.Bytes()), err
+	return P.MakePair(stdOut.Bytes(), stdErr.Bytes()), err
 }

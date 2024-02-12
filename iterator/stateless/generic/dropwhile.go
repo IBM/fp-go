@@ -18,17 +18,17 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	P "github.com/IBM/fp-go/predicate"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
+	PR "github.com/IBM/fp-go/predicate"
 )
 
 // DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
 // Note, the [Iterator] does not produce any output until the predicate first becomes false
-func DropWhile[GU ~func() O.Option[T.Tuple2[GU, U]], U any](pred func(U) bool) func(GU) GU {
+func DropWhile[GU ~func() O.Option[P.Pair[GU, U]], U any](pred func(U) bool) func(GU) GU {
 	// avoid cyclic references
-	var m func(O.Option[T.Tuple2[GU, U]]) O.Option[T.Tuple2[GU, U]]
+	var m func(O.Option[P.Pair[GU, U]]) O.Option[P.Pair[GU, U]]
 
-	fromPred := O.FromPredicate(P.Not(P.ContraMap(T.Second[GU, U])(pred)))
+	fromPred := O.FromPredicate(PR.Not(PR.ContraMap(P.Tail[GU, U])(pred)))
 
 	recurse := func(mu GU) GU {
 		return F.Nullary2(
@@ -37,11 +37,11 @@ func DropWhile[GU ~func() O.Option[T.Tuple2[GU, U]], U any](pred func(U) bool) f
 		)
 	}
 
-	m = O.Chain(func(t T.Tuple2[GU, U]) O.Option[T.Tuple2[GU, U]] {
+	m = O.Chain(func(t P.Pair[GU, U]) O.Option[P.Pair[GU, U]] {
 		return F.Pipe2(
 			t,
 			fromPred,
-			O.Fold(recurse(Next(t)), O.Of[T.Tuple2[GU, U]]),
+			O.Fold(recurse(Next(t)), O.Of[P.Pair[GU, U]]),
 		)
 	})
 

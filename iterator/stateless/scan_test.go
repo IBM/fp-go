@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/function"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,14 +29,14 @@ func TestScan(t *testing.T) {
 
 	dst := F.Pipe1(
 		src,
-		Scan(func(cur T.Tuple2[int, string], val string) T.Tuple2[int, string] {
-			return T.MakeTuple2(cur.F1+1, val)
-		}, T.MakeTuple2(0, "")),
+		Scan(func(cur P.Pair[int, string], val string) P.Pair[int, string] {
+			return P.MakePair(P.Head(cur)+1, val)
+		}, P.MakePair(0, "")),
 	)
 
 	assert.Equal(t, ToArray(From(
-		T.MakeTuple2(1, "a"),
-		T.MakeTuple2(2, "b"),
-		T.MakeTuple2(3, "c"),
+		P.MakePair(1, "a"),
+		P.MakePair(2, "b"),
+		P.MakePair(3, "c"),
 	)), ToArray(dst))
 }

@@ -18,10 +18,10 @@ package generic
 import (
 	"github.com/IBM/fp-go/internal/monad"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
-type iteratorMonad[A, B any, GA ~func() O.Option[T.Tuple2[GA, A]], GB ~func() O.Option[T.Tuple2[GB, B]], GAB ~func() O.Option[T.Tuple2[GAB, func(A) B]]] struct{}
+type iteratorMonad[A, B any, GA ~func() O.Option[P.Pair[GA, A]], GB ~func() O.Option[P.Pair[GB, B]], GAB ~func() O.Option[P.Pair[GAB, func(A) B]]] struct{}
 
 func (o *iteratorMonad[A, B, GA, GB, GAB]) Of(a A) GA {
 	return Of[GA, A](a)
@@ -40,6 +40,6 @@ func (o *iteratorMonad[A, B, GA, GB, GAB]) Ap(fa GA) func(GAB) GB {
 }
 
 // Monad implements the monadic operations for iterators
-func Monad[A, B any, GA ~func() O.Option[T.Tuple2[GA, A]], GB ~func() O.Option[T.Tuple2[GB, B]], GAB ~func() O.Option[T.Tuple2[GAB, func(A) B]]]() monad.Monad[A, B, GA, GB, GAB] {
+func Monad[A, B any, GA ~func() O.Option[P.Pair[GA, A]], GB ~func() O.Option[P.Pair[GB, B]], GAB ~func() O.Option[P.Pair[GAB, func(A) B]]]() monad.Monad[A, B, GA, GB, GAB] {
 	return &iteratorMonad[A, B, GA, GB, GAB]{}
 }

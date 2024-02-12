@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package exec
+package option
 
 import (
 	P "github.com/IBM/fp-go/pair"
+	PG "github.com/IBM/fp-go/pair/generic"
 )
 
-type (
-	// CommandOutput represents the output of executing a command. The first field in the [Tuple2] is
-	// stdout, the second one is stderr. Use [StdOut] and [StdErr] to access these fields
-	CommandOutput = P.Pair[[]byte, []byte]
-)
-
-var (
-	// StdOut returns the field of a [CommandOutput] representing `stdout`
-	StdOut = P.Head[[]byte, []byte]
-	// StdErr returns the field of a [CommandOutput] representing `stderr`
-	StdErr = P.Tail[[]byte, []byte]
-)
+// SequencePair converts a [Pair] of [Option[T]] into an [Option[Pair]].
+func SequencePair[T1, T2 any](t P.Pair[Option[T1], Option[T2]]) Option[P.Pair[T1, T2]] {
+	return PG.SequencePair(
+		Map[T1, func(T2) P.Pair[T1, T2]],
+		Ap[P.Pair[T1, T2], T2],
+		t,
+	)
+}

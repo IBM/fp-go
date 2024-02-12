@@ -28,12 +28,12 @@ import (
 	"github.com/IBM/fp-go/errors"
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
+	P "github.com/IBM/fp-go/pair"
 	R "github.com/IBM/fp-go/record/generic"
-	T "github.com/IBM/fp-go/tuple"
 )
 
 type (
-	ParsedMediaType = T.Tuple2[string, map[string]string]
+	ParsedMediaType = P.Pair[string, map[string]string]
 
 	HttpError struct {
 		statusCode int
@@ -45,17 +45,15 @@ type (
 
 var (
 	// mime type to check if a media type matches
-	reJSONMimeType = regexp.MustCompile(`application/(?:\w+\+)?json`)
+	isJSONMimeType = regexp.MustCompile(`application/(?:\w+\+)?json`).MatchString
 	// ValidateResponse validates an HTTP response and returns an [E.Either] if the response is not a success
 	ValidateResponse = E.FromPredicate(isValidStatus, StatusCodeError)
 	// alidateJsonContentTypeString parses a content type a validates that it is valid JSON
 	validateJSONContentTypeString = F.Flow2(
 		ParseMediaType,
 		E.ChainFirst(F.Flow2(
-			T.First[string, map[string]string],
-			E.FromPredicate(reJSONMimeType.MatchString, func(mimeType string) error {
-				return fmt.Errorf("mimetype [%s] is not a valid JSON content type", mimeType)
-			}),
+			P.Head[string, map[string]string],
+			E.FromPredicate(isJSONMimeType, errors.OnSome[string]("mimetype [%s] is not a valid JSON content type")),
 		)),
 	)
 	// ValidateJSONResponse checks if an HTTP response is a valid JSON response
@@ -81,7 +79,7 @@ const (
 // ParseMediaType parses a media type into a tuple
 func ParseMediaType(mediaType string) E.Either[error, ParsedMediaType] {
 	m, p, err := mime.ParseMediaType(mediaType)
-	return E.TryCatchError(T.MakeTuple2(m, p), err)
+	return E.TryCatchError(P.MakePair(m, p), err)
 }
 
 // Error fulfills the error interface

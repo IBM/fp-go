@@ -18,7 +18,7 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // addToMap makes a deep copy of a map and adds a value
@@ -31,23 +31,23 @@ func addToMap[A comparable](a A, m map[A]bool) map[A]bool {
 	return cpy
 }
 
-func Uniq[AS ~func() O.Option[T.Tuple2[AS, A]], K comparable, A any](f func(A) K) func(as AS) AS {
+func Uniq[AS ~func() O.Option[P.Pair[AS, A]], K comparable, A any](f func(A) K) func(as AS) AS {
 
 	var recurse func(as AS, mp map[K]bool) AS
 
 	recurse = func(as AS, mp map[K]bool) AS {
 		return F.Nullary2(
 			as,
-			O.Chain(func(a T.Tuple2[AS, A]) O.Option[T.Tuple2[AS, A]] {
+			O.Chain(func(a P.Pair[AS, A]) O.Option[P.Pair[AS, A]] {
 				return F.Pipe3(
-					a.F2,
+					P.Tail(a),
 					f,
 					O.FromPredicate(func(k K) bool {
 						_, ok := mp[k]
 						return !ok
 					}),
-					O.Fold(recurse(a.F1, mp), func(k K) O.Option[T.Tuple2[AS, A]] {
-						return O.Of(T.MakeTuple2(recurse(a.F1, addToMap(k, mp)), a.F2))
+					O.Fold(recurse(P.Head(a), mp), func(k K) O.Option[P.Pair[AS, A]] {
+						return O.Of(P.MakePair(recurse(P.Head(a), addToMap(k, mp)), P.Tail(a)))
 					}),
 				)
 			}),
@@ -57,6 +57,6 @@ func Uniq[AS ~func() O.Option[T.Tuple2[AS, A]], K comparable, A any](f func(A) K
 	return F.Bind2nd(recurse, make(map[K]bool, 0))
 }
 
-func StrictUniq[AS ~func() O.Option[T.Tuple2[AS, A]], A comparable](as AS) AS {
+func StrictUniq[AS ~func() O.Option[P.Pair[AS, A]], A comparable](as AS) AS {
 	return Uniq[AS](F.Identity[A])(as)
 }

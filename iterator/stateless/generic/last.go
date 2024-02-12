@@ -18,10 +18,10 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // Last returns the last item in an iterator if such an item exists
-func Last[GU ~func() O.Option[T.Tuple2[GU, U]], U any](mu GU) O.Option[U] {
+func Last[GU ~func() O.Option[P.Pair[GU, U]], U any](mu GU) O.Option[U] {
 	return reduce(mu, F.Ignore1of2[O.Option[U]](O.Of[U]), O.None[U]())
 }

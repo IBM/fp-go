@@ -18,13 +18,13 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // First returns the first item in an iterator if such an item exists
-func First[GU ~func() O.Option[T.Tuple2[GU, U]], U any](mu GU) O.Option[U] {
+func First[GU ~func() O.Option[P.Pair[GU, U]], U any](mu GU) O.Option[U] {
 	return F.Pipe1(
 		mu(),
-		O.Map(T.Second[GU, U]),
+		O.Map(P.Tail[GU, U]),
 	)
 }

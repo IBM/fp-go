@@ -25,7 +25,7 @@ import (
 
 type (
 	pair struct {
-		head, Tail any
+		h, t any
 	}
 
 	// Pair defines a data structure that holds two strongly typed values
@@ -36,7 +36,7 @@ type (
 //
 // go:noinline
 func pairString(s *pair) string {
-	return fmt.Sprintf("Pair[%T, %t](%v, %v)", s.head, s.Tail, s.head, s.Tail)
+	return fmt.Sprintf("Pair[%T, %t](%v, %v)", s.h, s.t, s.h, s.t)
 }
 
 // Format prints some debug info for the object
@@ -63,12 +63,12 @@ func (s Pair[A, B]) Format(f fmt.State, c rune) {
 
 // Of creates a [Pair] with the same value to to both fields
 func Of[A any](value A) Pair[A, A] {
-	return Pair[A, A]{head: value, Tail: value}
+	return Pair[A, A]{h: value, t: value}
 }
 
 // FromTuple creates a [Pair] from a [T.Tuple2]
 func FromTuple[A, B any](t T.Tuple2[A, B]) Pair[A, B] {
-	return Pair[A, B]{head: t.F1, Tail: t.F2}
+	return Pair[A, B]{h: t.F1, t: t.F2}
 }
 
 // ToTuple creates a [T.Tuple2] from a [Pair]
@@ -78,22 +78,22 @@ func ToTuple[A, B any](t Pair[A, B]) T.Tuple2[A, B] {
 
 // MakePair creates a [Pair] from two values
 func MakePair[A, B any](a A, b B) Pair[A, B] {
-	return Pair[A, B]{head: a, Tail: b}
+	return Pair[A, B]{h: a, t: b}
 }
 
 // Head returns the head value of the pair
 func Head[A, B any](fa Pair[A, B]) A {
-	return fa.head.(A)
+	return fa.h.(A)
 }
 
 // Tail returns the head value of the pair
 func Tail[A, B any](fa Pair[A, B]) B {
-	return fa.Tail.(B)
+	return fa.t.(B)
 }
 
 // MonadMapHead maps the head value
 func MonadMapHead[B, A, A1 any](fa Pair[A, B], f func(A) A1) Pair[A1, B] {
-	return Pair[A1, B]{f(Head(fa)), fa.Tail}
+	return Pair[A1, B]{f(Head(fa)), fa.t}
 }
 
 // MonadMap maps the head value
@@ -103,7 +103,7 @@ func MonadMap[B, A, A1 any](fa Pair[A, B], f func(A) A1) Pair[A1, B] {
 
 // MonadMapTail maps the Tail value
 func MonadMapTail[A, B, B1 any](fa Pair[A, B], f func(B) B1) Pair[A, B1] {
-	return Pair[A, B1]{fa.head, f(Tail(fa))}
+	return Pair[A, B1]{fa.h, f(Tail(fa))}
 }
 
 // MonadBiMap maps both values
@@ -136,13 +136,13 @@ func BiMap[A, B, A1, B1 any](f func(A) A1, g func(B) B1) func(Pair[A, B]) Pair[A
 // MonadChainHead chains on the head value
 func MonadChainHead[B, A, A1 any](sg Sg.Semigroup[B], fa Pair[A, B], f func(A) Pair[A1, B]) Pair[A1, B] {
 	fb := f(Head(fa))
-	return Pair[A1, B]{fb.head, sg.Concat(Tail(fa), Tail(fb))}
+	return Pair[A1, B]{fb.h, sg.Concat(Tail(fa), Tail(fb))}
 }
 
 // MonadChainTail chains on the Tail value
 func MonadChainTail[A, B, B1 any](sg Sg.Semigroup[A], fb Pair[A, B], f func(B) Pair[A, B1]) Pair[A, B1] {
 	fa := f(Tail(fb))
-	return Pair[A, B1]{sg.Concat(Head(fb), Head(fa)), fa.Tail}
+	return Pair[A, B1]{sg.Concat(Head(fb), Head(fa)), fa.t}
 }
 
 // MonadChain chains on the head value
@@ -201,4 +201,31 @@ func ApTail[A, B, B1 any](sg Sg.Semigroup[A], fb Pair[A, B]) func(Pair[A, func(B
 // Ap applies on the head value
 func Ap[B, A, A1 any](sg Sg.Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
 	return ApHead[B, A, A1](sg, fa)
+}
+
+// Swap swaps the two channels
+func Swap[A, B any](fa Pair[A, B]) Pair[B, A] {
+	return MakePair(Tail(fa), Head(fa))
+}
+
+// Paired converts a function with 2 parameters into a function taking a [Pair]
+// The inverse function is [Unpaired]
+func Paired[F ~func(T1, T2) R, T1, T2, R any](f F) func(Pair[T1, T2]) R {
+	return func(t Pair[T1, T2]) R {
+		return f(Head(t), Tail(t))
+	}
+}
+
+// Unpaired converts a function with a [Pair] parameter into a function with 2 parameters
+// The inverse function is [Paired]
+func Unpaired[F ~func(Pair[T1, T2]) R, T1, T2, R any](f F) func(T1, T2) R {
+	return func(t1 T1, t2 T2) R {
+		return f(MakePair(t1, t2))
+	}
+}
+
+func Merge[F ~func(B) func(A) R, A, B, R any](f F) func(Pair[A, B]) R {
+	return func(p Pair[A, B]) R {
+		return f(Tail(p))(Head(p))
+	}
 }

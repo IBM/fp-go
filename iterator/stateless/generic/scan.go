@@ -18,14 +18,14 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
-func apTuple[A, B any](t T.Tuple2[func(A) B, A]) T.Tuple2[B, A] {
-	return T.MakeTuple2(t.F1(t.F2), t.F2)
+func apTuple[A, B any](t P.Pair[func(A) B, A]) P.Pair[B, A] {
+	return P.MakePair(P.Head(t)(P.Tail(t)), P.Tail(t))
 }
 
-func Scan[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU, U]], FCT ~func(V, U) V, U, V any](f FCT, initial V) func(ma GU) GV {
+func Scan[GV ~func() O.Option[P.Pair[GV, V]], GU ~func() O.Option[P.Pair[GU, U]], FCT ~func(V, U) V, U, V any](f FCT, initial V) func(ma GU) GV {
 	// pre-declare to avoid cyclic reference
 	var m func(GU) func(V) GV
 
@@ -33,7 +33,7 @@ func Scan[GV ~func() O.Option[T.Tuple2[GV, V]], GU ~func() O.Option[T.Tuple2[GU,
 		return F.Nullary2(
 			ma,
 			O.Map(F.Flow2(
-				T.Map2(m, F.Bind1st(f, current)),
+				P.BiMap(m, F.Bind1st(f, current)),
 				apTuple[V, GV],
 			)),
 		)

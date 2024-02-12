@@ -18,12 +18,12 @@ package generic
 import (
 	F "github.com/IBM/fp-go/function"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
-func Cycle[GU ~func() O.Option[T.Tuple2[GU, U]], U any](ma GU) GU {
+func Cycle[GU ~func() O.Option[P.Pair[GU, U]], U any](ma GU) GU {
 	// avoid cyclic references
-	var m func(O.Option[T.Tuple2[GU, U]]) O.Option[T.Tuple2[GU, U]]
+	var m func(O.Option[P.Pair[GU, U]]) O.Option[P.Pair[GU, U]]
 
 	recurse := func(mu GU) GU {
 		return F.Nullary2(
@@ -32,11 +32,11 @@ func Cycle[GU ~func() O.Option[T.Tuple2[GU, U]], U any](ma GU) GU {
 		)
 	}
 
-	m = O.Fold(func() O.Option[T.Tuple2[GU, U]] {
+	m = O.Fold(func() O.Option[P.Pair[GU, U]] {
 		return recurse(ma)()
 	}, F.Flow2(
-		T.Map2(recurse, F.Identity[U]),
-		O.Of[T.Tuple2[GU, U]],
+		P.BiMap(recurse, F.Identity[U]),
+		O.Of[P.Pair[GU, U]],
 	))
 
 	return recurse(ma)

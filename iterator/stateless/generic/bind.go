@@ -20,18 +20,18 @@ import (
 	C "github.com/IBM/fp-go/internal/chain"
 	F "github.com/IBM/fp-go/internal/functor"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
-func Do[GS ~func() O.Option[T.Tuple2[GS, S]], S any](
+func Do[GS ~func() O.Option[P.Pair[GS, S]], S any](
 	empty S,
 ) GS {
 	return Of[GS](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
-func Bind[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple2[GS2, S2]], GA ~func() O.Option[T.Tuple2[GA, A]], S1, S2, A any](
+func Bind[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], GA ~func() O.Option[P.Pair[GA, A]], S1, S2, A any](
 	setter func(A) func(S1) S2,
 	f func(S1) GA,
 ) func(GS1) GS2 {
@@ -45,7 +45,7 @@ func Bind[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple2
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
-func Let[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple2[GS2, S2]], S1, S2, A any](
+func Let[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], S1, S2, A any](
 	key func(A) func(S1) S2,
 	f func(S1) A,
 ) func(GS1) GS2 {
@@ -57,7 +57,7 @@ func Let[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple2[
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
-func LetTo[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple2[GS2, S2]], S1, S2, B any](
+func LetTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
 ) func(GS1) GS2 {
@@ -69,7 +69,7 @@ func LetTo[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple
 }
 
 // BindTo initializes a new state [S1] from a value [T]
-func BindTo[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GA ~func() O.Option[T.Tuple2[GA, A]], S1, A any](
+func BindTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GA ~func() O.Option[P.Pair[GA, A]], S1, A any](
 	setter func(A) S1,
 ) func(GA) GS1 {
 	return C.BindTo(
@@ -79,7 +79,7 @@ func BindTo[GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GA ~func() O.Option[T.Tuple
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
-func ApS[GAS2 ~func() O.Option[T.Tuple2[GAS2, func(A) S2]], GS1 ~func() O.Option[T.Tuple2[GS1, S1]], GS2 ~func() O.Option[T.Tuple2[GS2, S2]], GA ~func() O.Option[T.Tuple2[GA, A]], S1, S2, A any](
+func ApS[GAS2 ~func() O.Option[P.Pair[GAS2, func(A) S2]], GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], GA ~func() O.Option[P.Pair[GA, A]], S1, S2, A any](
 	setter func(A) func(S1) S2,
 	fa GA,
 ) func(GS1) GS2 {

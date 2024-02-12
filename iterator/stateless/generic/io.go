@@ -19,16 +19,16 @@ import (
 	F "github.com/IBM/fp-go/function"
 	L "github.com/IBM/fp-go/io/generic"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 // FromLazy returns an iterator on top of a lazy function
-func FromLazy[GU ~func() O.Option[T.Tuple2[GU, U]], LZ ~func() U, U any](l LZ) GU {
+func FromLazy[GU ~func() O.Option[P.Pair[GU, U]], LZ ~func() U, U any](l LZ) GU {
 	return F.Pipe1(
 		l,
 		L.Map[LZ, GU](F.Flow2(
-			F.Bind1st(T.MakeTuple2[GU, U], Empty[GU]()),
-			O.Of[T.Tuple2[GU, U]],
+			F.Bind1st(P.MakePair[GU, U], Empty[GU]()),
+			O.Of[P.Pair[GU, U]],
 		)),
 	)
 }

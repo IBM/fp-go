@@ -19,10 +19,10 @@ import (
 	F "github.com/IBM/fp-go/function"
 	N "github.com/IBM/fp-go/number/integer"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
-func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
+func Take[GU ~func() O.Option[P.Pair[GU, U]], U any](n int) func(ma GU) GU {
 	// pre-declare to avoid cyclic reference
 	var recurse func(ma GU, idx int) GU
 
@@ -34,7 +34,7 @@ func Take[GU ~func() O.Option[T.Tuple2[GU, U]], U any](n int) func(ma GU) GU {
 			fromPred,
 			O.Chain(F.Ignore1of1[int](F.Nullary2(
 				ma,
-				O.Map(T.Map2(F.Bind2nd(recurse, idx+1), F.Identity[U])),
+				O.Map(P.BiMap(F.Bind2nd(recurse, idx+1), F.Identity[U])),
 			))),
 		)
 	}

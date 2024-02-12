@@ -18,15 +18,15 @@ package http
 import (
 	H "net/http"
 
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 type (
 	// FullResponse represents a full http response, including headers and body
-	FullResponse = T.Tuple2[*H.Response, []byte]
+	FullResponse = P.Pair[*H.Response, []byte]
 )
 
 var (
-	Response = T.First[*H.Response, []byte]
-	Body     = T.Second[*H.Response, []byte]
+	Response = P.Head[*H.Response, []byte]
+	Body     = P.Tail[*H.Response, []byte]
 )

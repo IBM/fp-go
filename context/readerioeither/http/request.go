@@ -26,7 +26,7 @@ import (
 	IOE "github.com/IBM/fp-go/ioeither"
 	IOEF "github.com/IBM/fp-go/ioeither/file"
 	J "github.com/IBM/fp-go/json"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 type (
@@ -79,7 +79,7 @@ func ReadFullResponse(client Client) func(Requester) RIOE.ReaderIOEither[H.FullR
 						IOE.Of[error, io.ReadCloser],
 						IOEF.ReadAll[io.ReadCloser],
 					),
-					IOE.Map[error](F.Bind1st(T.MakeTuple2[*http.Response, []byte], resp)),
+					IOE.Map[error](F.Bind1st(P.MakePair[*http.Response, []byte], resp)),
 				)
 			}),
 		)

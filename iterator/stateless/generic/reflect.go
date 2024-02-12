@@ -24,10 +24,10 @@ import (
 	N "github.com/IBM/fp-go/number"
 	I "github.com/IBM/fp-go/number/integer"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
-func FromReflect[GR ~func() O.Option[T.Tuple2[GR, R.Value]]](val R.Value) GR {
+func FromReflect[GR ~func() O.Option[P.Pair[GR, R.Value]]](val R.Value) GR {
 	// recursive callback
 	var recurse func(idx int) GR
 
@@ -41,8 +41,8 @@ func FromReflect[GR ~func() O.Option[T.Tuple2[GR, R.Value]]](val R.Value) GR {
 			L.Map(fromPred),
 			LG.Map[L.Lazy[O.Option[int]], GR](O.Map(
 				F.Flow2(
-					T.Replicate2[int],
-					T.Map2(F.Flow2(N.Add(1), recurse), val.Index),
+					P.Of[int],
+					P.BiMap(F.Flow2(N.Add(1), recurse), val.Index),
 				),
 			)),
 		)

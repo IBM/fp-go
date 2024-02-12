@@ -19,10 +19,10 @@ import (
 	F "github.com/IBM/fp-go/function"
 	M "github.com/IBM/fp-go/monoid"
 	O "github.com/IBM/fp-go/option"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
-func Monoid[GU ~func() O.Option[T.Tuple2[GU, U]], U any]() M.Monoid[GU] {
+func Monoid[GU ~func() O.Option[P.Pair[GU, U]], U any]() M.Monoid[GU] {
 	return M.MakeMonoid(
 		F.Swap(concat[GU]),
 		Empty[GU](),
