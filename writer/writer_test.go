@@ -20,24 +20,22 @@ import (
 
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
-	S "github.com/IBM/fp-go/semigroup"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
 )
 
 func doubleAndLog(data int) Writer[[]string, int] {
-	return func() T.Tuple3[int, []string, S.Semigroup[[]string]] {
+	return func() P.Pair[int, []string] {
 		result := data * 2
-		return T.MakeTuple3(result, A.Of(fmt.Sprintf("Doubled %d -> %d", data, result)), sg)
+		return P.MakePair(result, A.Of(fmt.Sprintf("Doubled %d -> %d", data, result)))
 	}
 }
 
 func ExampleWriter_logging() {
 
-	res := F.Pipe4(
-		10,
-		Of[int](monoid),
-		Chain(doubleAndLog),
-		Chain(doubleAndLog),
+	res := F.Pipe3(
+		Of[int](monoid, 10),
+		Chain(sg, doubleAndLog),
+		Chain(sg, doubleAndLog),
 		Execute[[]string, int],
 	)
 

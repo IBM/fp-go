@@ -37,39 +37,40 @@ func AssertLaws[W, A, B, C any](t *testing.T,
 	bc func(B) C,
 ) func(a A) bool {
 
-	return L.AssertLaws(t,
+	fofc := WRT.Pointed[W, C](m)
+	fofaa := WRT.Pointed[W, func(A) A](m)
+	fofbc := WRT.Pointed[W, func(B) C](m)
+	fofabb := WRT.Pointed[W, func(func(A) B) B](m)
+
+	fmap := WRT.Functor[W, func(B) C, func(func(A) B) func(A) C]()
+
+	fapabb := WRT.Applicative[W, func(A) B, B](m)
+	fapabac := WRT.Applicative[W, func(A) B, func(A) C](m)
+
+	maa := WRT.Monad[W, A, A](m)
+	mab := WRT.Monad[W, A, B](m)
+	mac := WRT.Monad[W, A, C](m)
+	mbc := WRT.Monad[W, B, C](m)
+
+	return L.MonadAssertLaws(t,
 		WRT.Eq(eqw, eqa),
 		WRT.Eq(eqw, eqb),
 		WRT.Eq(eqw, eqc),
 
-		WRT.Of[A](m),
-		WRT.Of[B](m),
-		WRT.Of[C](m),
+		fofc,
+		fofaa,
+		fofbc,
+		fofabb,
 
-		WRT.Of[func(A) A](m),
-		WRT.Of[func(A) B](m),
-		WRT.Of[func(B) C](m),
-		WRT.Of[func(func(A) B) B](m),
+		fmap,
 
-		WRT.MonadMap[func(A) A, W, A, A],
-		WRT.MonadMap[func(A) B, W, A, B],
-		WRT.MonadMap[func(A) C, W, A, C],
-		WRT.MonadMap[func(B) C, W, B, C],
+		fapabb,
+		fapabac,
 
-		WRT.MonadMap[func(func(B) C) func(func(A) B) func(A) C, W, func(B) C, func(func(A) B) func(A) C],
-
-		WRT.MonadChain[func(A) WRT.Writer[W, A], W, A, A],
-		WRT.MonadChain[func(A) WRT.Writer[W, B], W, A, B],
-		WRT.MonadChain[func(A) WRT.Writer[W, C], W, A, C],
-		WRT.MonadChain[func(B) WRT.Writer[W, C], W, B, C],
-
-		WRT.MonadAp[A, A, W],
-		WRT.MonadAp[B, A, W],
-		WRT.MonadAp[C, B, W],
-		WRT.MonadAp[C, A, W],
-
-		WRT.MonadAp[B, func(A) B, W],
-		WRT.MonadAp[func(A) C, func(A) B, W],
+		maa,
+		mab,
+		mac,
+		mbc,
 
 		ab,
 		bc,

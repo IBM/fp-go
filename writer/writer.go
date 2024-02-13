@@ -19,30 +19,30 @@ import (
 	EM "github.com/IBM/fp-go/endomorphism"
 	IO "github.com/IBM/fp-go/io"
 	M "github.com/IBM/fp-go/monoid"
-	S "github.com/IBM/fp-go/semigroup"
-	T "github.com/IBM/fp-go/tuple"
+	P "github.com/IBM/fp-go/pair"
+	SG "github.com/IBM/fp-go/semigroup"
 	G "github.com/IBM/fp-go/writer/generic"
 )
 
-type Writer[W, A any] IO.IO[T.Tuple3[A, W, S.Semigroup[W]]]
+type Writer[W, A any] IO.IO[P.Pair[A, W]]
 
 // Tell appends a value to the accumulator
-func Tell[W any](s S.Semigroup[W]) func(W) Writer[W, any] {
-	return G.Tell[Writer[W, any]](s)
+func Tell[W any](w W) Writer[W, any] {
+	return G.Tell[Writer[W, any]](w)
 }
 
-func Of[A, W any](m M.Monoid[W]) func(A) Writer[W, A] {
-	return G.Of[Writer[W, A]](m)
+func Of[A, W any](m M.Monoid[W], a A) Writer[W, A] {
+	return G.Of[Writer[W, A]](m, a)
 }
 
 // Listen modifies the result to include the changes to the accumulator
-func Listen[W, A any](fa Writer[W, A]) Writer[W, T.Tuple2[A, W]] {
-	return G.Listen[Writer[W, A], Writer[W, T.Tuple2[A, W]], W, A](fa)
+func Listen[W, A any](fa Writer[W, A]) Writer[W, P.Pair[A, W]] {
+	return G.Listen[Writer[W, A], Writer[W, P.Pair[A, W]], W, A](fa)
 }
 
 // Pass applies the returned function to the accumulator
-func Pass[W, A any](fa Writer[W, T.Tuple2[A, EM.Endomorphism[W]]]) Writer[W, A] {
-	return G.Pass[Writer[W, T.Tuple2[A, EM.Endomorphism[W]]], Writer[W, A]](fa)
+func Pass[W, A any](fa Writer[W, P.Pair[A, EM.Endomorphism[W]]]) Writer[W, A] {
+	return G.Pass[Writer[W, P.Pair[A, EM.Endomorphism[W]]], Writer[W, A]](fa)
 }
 
 func MonadMap[FCT ~func(A) B, W, A, B any](fa Writer[W, A], f FCT) Writer[W, B] {
@@ -53,32 +53,32 @@ func Map[W any, FCT ~func(A) B, A, B any](f FCT) func(Writer[W, A]) Writer[W, B]
 	return G.Map[Writer[W, B], Writer[W, A]](f)
 }
 
-func MonadChain[FCT ~func(A) Writer[W, B], W, A, B any](fa Writer[W, A], fct FCT) Writer[W, B] {
-	return G.MonadChain[Writer[W, B], Writer[W, A], FCT](fa, fct)
+func MonadChain[FCT ~func(A) Writer[W, B], W, A, B any](s SG.Semigroup[W], fa Writer[W, A], fct FCT) Writer[W, B] {
+	return G.MonadChain[Writer[W, B], Writer[W, A], FCT](s, fa, fct)
 }
 
-func Chain[A, B, W any](fa func(A) Writer[W, B]) func(Writer[W, A]) Writer[W, B] {
-	return G.Chain[Writer[W, B], Writer[W, A], func(A) Writer[W, B]](fa)
+func Chain[A, B, W any](s SG.Semigroup[W], fa func(A) Writer[W, B]) func(Writer[W, A]) Writer[W, B] {
+	return G.Chain[Writer[W, B], Writer[W, A], func(A) Writer[W, B]](s, fa)
 }
 
-func MonadAp[B, A, W any](fab Writer[W, func(A) B], fa Writer[W, A]) Writer[W, B] {
-	return G.MonadAp[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](fab, fa)
+func MonadAp[B, A, W any](s SG.Semigroup[W], fab Writer[W, func(A) B], fa Writer[W, A]) Writer[W, B] {
+	return G.MonadAp[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](s, fab, fa)
 }
 
-func Ap[B, A, W any](fa Writer[W, A]) func(Writer[W, func(A) B]) Writer[W, B] {
-	return G.Ap[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](fa)
+func Ap[B, A, W any](s SG.Semigroup[W], fa Writer[W, A]) func(Writer[W, func(A) B]) Writer[W, B] {
+	return G.Ap[Writer[W, B], Writer[W, func(A) B], Writer[W, A]](s, fa)
 }
 
-func MonadChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](fa Writer[W, A], fct FCT) Writer[W, A] {
-	return G.MonadChainFirst[Writer[W, B], Writer[W, A], FCT](fa, fct)
+func MonadChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](s SG.Semigroup[W], fa Writer[W, A], fct FCT) Writer[W, A] {
+	return G.MonadChainFirst[Writer[W, B], Writer[W, A], FCT](s, fa, fct)
 }
 
-func ChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](fct FCT) func(Writer[W, A]) Writer[W, A] {
-	return G.ChainFirst[Writer[W, B], Writer[W, A], FCT](fct)
+func ChainFirst[FCT ~func(A) Writer[W, B], W, A, B any](s SG.Semigroup[W], fct FCT) func(Writer[W, A]) Writer[W, A] {
+	return G.ChainFirst[Writer[W, B], Writer[W, A], FCT](s, fct)
 }
 
-func Flatten[W, A any](mma Writer[W, Writer[W, A]]) Writer[W, A] {
-	return G.Flatten[Writer[W, Writer[W, A]], Writer[W, A]](mma)
+func Flatten[W, A any](s SG.Semigroup[W], mma Writer[W, Writer[W, A]]) Writer[W, A] {
+	return G.Flatten[Writer[W, Writer[W, A]], Writer[W, A]](s, mma)
 }
 
 // Execute extracts the accumulator
@@ -102,13 +102,13 @@ func Censor[A any, FCT ~func(W) W, W any](f FCT) func(Writer[W, A]) Writer[W, A]
 }
 
 // MonadListens projects a value from modifications made to the accumulator during an action
-func MonadListens[A any, FCT ~func(W) B, W, B any](fa Writer[W, A], f FCT) Writer[W, T.Tuple2[A, B]] {
-	return G.MonadListens[Writer[W, A], Writer[W, T.Tuple2[A, B]]](fa, f)
+func MonadListens[A any, FCT ~func(W) B, W, B any](fa Writer[W, A], f FCT) Writer[W, P.Pair[A, B]] {
+	return G.MonadListens[Writer[W, A], Writer[W, P.Pair[A, B]]](fa, f)
 }
 
 // Listens projects a value from modifications made to the accumulator during an action
-func Listens[A any, FCT ~func(W) B, W, B any](f FCT) func(Writer[W, A]) Writer[W, T.Tuple2[A, B]] {
-	return G.Listens[Writer[W, A], Writer[W, T.Tuple2[A, B]]](f)
+func Listens[A any, FCT ~func(W) B, W, B any](f FCT) func(Writer[W, A]) Writer[W, P.Pair[A, B]] {
+	return G.Listens[Writer[W, A], Writer[W, P.Pair[A, B]]](f)
 }
 
 func MonadFlap[W, B, A any](fab Writer[W, func(A) B], a A) Writer[W, B] {

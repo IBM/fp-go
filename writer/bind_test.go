@@ -34,33 +34,33 @@ var (
 )
 
 func getLastName(s utils.Initial) Writer[[]string, string] {
-	return Of[string](monoid)("Doe")
+	return Of[string](monoid, "Doe")
 }
 
 func getGivenName(s utils.WithLastName) Writer[[]string, string] {
-	return Of[string](monoid)("John")
+	return Of[string](monoid, "John")
 }
 
 func TestBind(t *testing.T) {
 
 	res := F.Pipe3(
-		Do[utils.Initial](monoid)(utils.Empty),
-		Bind(utils.SetLastName, getLastName),
-		Bind(utils.SetGivenName, getGivenName),
+		Do[utils.Initial](monoid, utils.Empty),
+		Bind(sg, utils.SetLastName, getLastName),
+		Bind(sg, utils.SetGivenName, getGivenName),
 		Map[[]string](utils.GetFullName),
 	)
 
-	assert.True(t, eq.Equals(res, Of[string](monoid)("John Doe")))
+	assert.True(t, eq.Equals(res, Of[string](monoid, "John Doe")))
 }
 
 func TestApS(t *testing.T) {
 
 	res := F.Pipe3(
-		Do[utils.Initial](monoid)(utils.Empty),
-		ApS(utils.SetLastName, Of[string](monoid)("Doe")),
-		ApS(utils.SetGivenName, Of[string](monoid)("John")),
+		Do[utils.Initial](monoid, utils.Empty),
+		ApS(sg, utils.SetLastName, Of[string](monoid, "Doe")),
+		ApS(sg, utils.SetGivenName, Of[string](monoid, "John")),
 		Map[[]string](utils.GetFullName),
 	)
 
-	assert.True(t, eq.Equals(res, Of[string](monoid)("John Doe")))
+	assert.True(t, eq.Equals(res, Of[string](monoid, "John Doe")))
 }
