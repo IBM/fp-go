@@ -25,8 +25,12 @@ import (
 	SG "github.com/IBM/fp-go/semigroup"
 )
 
+var (
+	undefined any = struct{}{}
+)
+
 func Tell[GA ~func() P.Pair[any, W], W any](w W) GA {
-	return IO.Of[GA](P.MakePair[any](w, w))
+	return IO.Of[GA](P.MakePair[any](undefined, w))
 }
 
 func Of[GA ~func() P.Pair[A, W], W, A any](m M.Monoid[W], a A) GA {
