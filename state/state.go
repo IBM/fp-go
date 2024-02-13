@@ -21,6 +21,7 @@ import (
 	G "github.com/IBM/fp-go/state/generic"
 )
 
+// State represents an operation on top of a current [State] that produces a value and a new [State]
 type State[S, A any] R.Reader[S, P.Pair[A, S]]
 
 func Get[S any]() State[S, S] {
