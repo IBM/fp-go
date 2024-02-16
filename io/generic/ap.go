@@ -27,16 +27,11 @@ const (
 
 // MonadApSeq implements the applicative on a single thread by first executing mab and the ma
 func MonadApSeq[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
-	return MakeIO[GB](func() B {
-		return F.Pipe1(
-			ma(),
-			mab(),
-		)
-	})
+	return MonadChain(mab, F.Bind1st(MonadMap[GA, GB], ma))
 }
 
 // MonadApPar implements the applicative on two threads, the main thread executes mab and the actuall
-// apply operation and the second thred computes ma. Communication between the threads happens via a channel
+// apply operation and the second thread computes ma. Communication between the threads happens via a channel
 func MonadApPar[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	return MakeIO[GB](func() B {
 		c := make(chan A)
