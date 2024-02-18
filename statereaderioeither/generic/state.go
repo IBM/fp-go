@@ -104,3 +104,42 @@ func Chain[
 		f,
 	)
 }
+
+func MonadAp[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	SRIOEAB ~func(S) RIOEAB,
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	RIOEAB ~func(R) IOEAB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	IOEAB ~func() ET.Either[E, P.Pair[func(A) B, S]],
+	S, R, E, A, B any,
+](fab SRIOEAB, fa SRIOEA) SRIOEB {
+	return ST.MonadAp[SRIOEA, SRIOEB, SRIOEAB](
+		G.MonadMap[RIOEA, RIOEB],
+		G.MonadChain[RIOEAB, RIOEB],
+		fab,
+		fa,
+	)
+}
+
+func Ap[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	SRIOEAB ~func(S) RIOEAB,
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	RIOEAB ~func(R) IOEAB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	IOEAB ~func() ET.Either[E, P.Pair[func(A) B, S]],
+	S, R, E, A, B any,
+](fa SRIOEA) func(SRIOEAB) SRIOEB {
+	return ST.Ap[SRIOEA, SRIOEB, SRIOEAB](
+		G.Map[RIOEA, RIOEB],
+		G.Chain[RIOEAB, RIOEB],
+		fa,
+	)
+}

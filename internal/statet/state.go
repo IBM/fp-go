@@ -50,9 +50,7 @@ func MonadMap[
 
 	return F.Flow2(
 		fa,
-		F.Bind2nd(fmap, func(a P.Pair[A, S]) P.Pair[B, S] {
-			return P.MakePair(f(P.Head(a)), P.Tail(a))
-		}),
+		F.Bind2nd(fmap, P.Map[S](f)),
 	)
 }
 
@@ -67,9 +65,7 @@ func Map[
 
 	f func(A) B,
 ) func(HKTSA) HKTSB {
-	mp := fmap(func(a P.Pair[A, S]) P.Pair[B, S] {
-		return P.MakePair(f(P.Head(a)), P.Tail(a))
-	})
+	mp := fmap(P.Map[S](f))
 
 	return func(fa HKTSA) HKTSB {
 		return F.Flow2(
@@ -118,6 +114,54 @@ func Chain[
 		return F.Flow2(
 			fa,
 			mp,
+		)
+	}
+}
+
+func MonadAp[
+	HKTSA ~func(S) HKTA,
+	HKTSB ~func(S) HKTB,
+	HKTSAB ~func(S) HKTAB,
+	HKTA,
+	HKTB,
+	HKTAB,
+
+	S, A, B any,
+](
+	fmap func(HKTA, func(P.Pair[A, S]) P.Pair[B, S]) HKTB,
+	fchain func(HKTAB, func(P.Pair[func(A) B, S]) HKTB) HKTB,
+
+	fab HKTSAB,
+	fa HKTSA,
+) HKTSB {
+	return func(s S) HKTB {
+		return fchain(fab(s), func(ab P.Pair[func(A) B, S]) HKTB {
+			return fmap(fa(P.Tail(ab)), P.Map[S](P.Head(ab)))
+		})
+	}
+}
+
+func Ap[
+	HKTSA ~func(S) HKTA,
+	HKTSB ~func(S) HKTB,
+	HKTSAB ~func(S) HKTAB,
+	HKTA,
+	HKTB,
+	HKTAB,
+
+	S, A, B any,
+](
+	fmap func(func(P.Pair[A, S]) P.Pair[B, S]) func(HKTA) HKTB,
+	fchain func(func(P.Pair[func(A) B, S]) HKTB) func(HKTAB) HKTB,
+
+	fa HKTSA,
+) func(HKTSAB) HKTSB {
+	return func(fab HKTSAB) HKTSB {
+		return F.Flow2(
+			fab,
+			fchain(func(ab P.Pair[func(A) B, S]) HKTB {
+				return fmap(P.Map[S](P.Head(ab)))(fa(P.Tail(ab)))
+			}),
 		)
 	}
 }

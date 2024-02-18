@@ -42,3 +42,11 @@ func MonadChain[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A], f func(A)
 func Chain[S, R, E, A, B any](f func(A) StateReaderIOEither[S, R, E, B]) func(StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, B] {
 	return G.Chain[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](f)
 }
+
+func MonadAp[S, R, E, A, B any](fab StateReaderIOEither[S, R, E, func(A) B], fa StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, B] {
+	return G.MonadAp[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]](fab, fa)
+}
+
+func Ap[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A]) func(StateReaderIOEither[S, R, E, func(A) B]) StateReaderIOEither[S, R, E, B] {
+	return G.Ap[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]](fa)
+}
