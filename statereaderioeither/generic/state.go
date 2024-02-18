@@ -17,10 +17,20 @@ package generic
 
 import (
 	ET "github.com/IBM/fp-go/either"
+	F "github.com/IBM/fp-go/function"
 	ST "github.com/IBM/fp-go/internal/statet"
 	P "github.com/IBM/fp-go/pair"
 	G "github.com/IBM/fp-go/readerioeither/generic"
 )
+
+func Left[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA ~func(R) IOEA,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	S, R, E, A any,
+](e E) SRIOEA {
+	return F.Constant1[S](G.Left[RIOEA](e))
+}
 
 func Right[
 	SRIOEA ~func(S) RIOEA,
@@ -142,4 +152,105 @@ func Ap[
 		G.Chain[RIOEAB, RIOEB],
 		fa,
 	)
+}
+
+func FromReaderIOEither[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA ~func(R) IOEA,
+
+	RIOEA_IN ~func(R) IOEA_IN,
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEA_IN ~func() ET.Either[E, A],
+
+	S, R, E, A any,
+](fa RIOEA_IN) SRIOEA {
+	return ST.FromF[SRIOEA](
+		G.MonadMap[RIOEA_IN, RIOEA],
+		fa,
+	)
+}
+
+func FromReaderEither[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA_IN ~func(R) IOEA_IN,
+	RIOEA ~func(R) IOEA,
+
+	REA_IN ~func(R) ET.Either[E, A],
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEA_IN ~func() ET.Either[E, A],
+
+	S, R, E, A any,
+](fa REA_IN) SRIOEA {
+	return FromReaderIOEither[SRIOEA](G.FromReaderEither[REA_IN, RIOEA_IN](fa))
+}
+
+func FromIOEither[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA_IN ~func(R) IOEA_IN,
+	RIOEA ~func(R) IOEA,
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEA_IN ~func() ET.Either[E, A],
+
+	S, R, E, A any,
+](fa IOEA_IN) SRIOEA {
+	return FromReaderIOEither[SRIOEA](G.FromIOEither[RIOEA_IN](fa))
+}
+
+func FromIO[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA_IN ~func(R) IOEA_IN,
+
+	IO_IN ~func() A,
+
+	RIOEA ~func(R) IOEA,
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEA_IN ~func() ET.Either[E, A],
+
+	S, R, E, A any,
+](fa IO_IN) SRIOEA {
+	return FromReaderIOEither[SRIOEA](G.FromIO[RIOEA_IN](fa))
+}
+
+func FromReader[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA_IN ~func(R) IOEA_IN,
+
+	R_IN ~func(R) A,
+
+	RIOEA ~func(R) IOEA,
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEA_IN ~func() ET.Either[E, A],
+
+	S, R, E, A any,
+](fa R_IN) SRIOEA {
+	return FromReaderIOEither[SRIOEA](G.FromReader[R_IN, RIOEA_IN](fa))
+}
+
+func FromEither[
+	SRIOEA ~func(S) RIOEA,
+
+	RIOEA ~func(R) IOEA,
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+
+	S, R, E, A any,
+](ma ET.Either[E, A]) SRIOEA {
+	return ET.MonadFold(ma, Left[SRIOEA], Right[SRIOEA])
+}
+
+func FromState[
+	SRIOEA ~func(S) RIOEA,
+	STATE ~func(S) P.Pair[A, S],
+	RIOEA ~func(R) IOEA,
+
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+
+	S, R, E, A any,
+](fa STATE) SRIOEA {
+	return ST.FromState[SRIOEA](G.Of[RIOEA], fa)
 }

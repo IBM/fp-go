@@ -165,3 +165,34 @@ func Ap[
 		)
 	}
 }
+
+func FromF[
+	HKTSA ~func(S) HKTA,
+	HKTA,
+
+	HKTFA,
+
+	S, A any,
+](
+	fmap func(HKTFA, func(A) P.Pair[A, S]) HKTA,
+	ma HKTFA) HKTSA {
+
+	f1 := F.Bind1st(fmap, ma)
+
+	return func(s S) HKTA {
+		return f1(F.Bind2nd(P.MakePair[A, S], s))
+	}
+}
+
+func FromState[
+	HKTSA ~func(S) HKTA,
+	ST ~func(S) P.Pair[A, S],
+	HKTA,
+
+	S, A any,
+](
+	fof func(P.Pair[A, S]) HKTA,
+	sa ST,
+) HKTSA {
+	return F.Flow2(sa, fof)
+}

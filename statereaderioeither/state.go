@@ -16,8 +16,19 @@
 package statereaderioeither
 
 import (
+	ET "github.com/IBM/fp-go/either"
+	IO "github.com/IBM/fp-go/io"
+	IOE "github.com/IBM/fp-go/ioeither"
+	RD "github.com/IBM/fp-go/reader"
+	RE "github.com/IBM/fp-go/readereither"
+	RIOE "github.com/IBM/fp-go/readerioeither"
+	ST "github.com/IBM/fp-go/state"
 	G "github.com/IBM/fp-go/statereaderioeither/generic"
 )
+
+func Left[S, R, A, E any](e E) StateReaderIOEither[S, R, E, A] {
+	return G.Left[StateReaderIOEither[S, R, E, A]](e)
+}
 
 func Right[S, R, E, A any](a A) StateReaderIOEither[S, R, E, A] {
 	return G.Right[StateReaderIOEither[S, R, E, A]](a)
@@ -49,4 +60,32 @@ func MonadAp[S, R, E, A, B any](fab StateReaderIOEither[S, R, E, func(A) B], fa 
 
 func Ap[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A]) func(StateReaderIOEither[S, R, E, func(A) B]) StateReaderIOEither[S, R, E, B] {
 	return G.Ap[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]](fa)
+}
+
+func FromReaderIOEither[S, R, E, A any](fa RIOE.ReaderIOEither[R, E, A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromReaderIOEither[StateReaderIOEither[S, R, E, A]](fa)
+}
+
+func FromReaderEither[S, R, E, A any](fa RE.ReaderEither[R, E, A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromReaderEither[StateReaderIOEither[S, R, E, A], RIOE.ReaderIOEither[R, E, A]](fa)
+}
+
+func FromIOEither[S, R, E, A any](fa IOE.IOEither[E, A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromIOEither[StateReaderIOEither[S, R, E, A], RIOE.ReaderIOEither[R, E, A]](fa)
+}
+
+func FromState[S, R, E, A any](sa ST.State[S, A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromState[StateReaderIOEither[S, R, E, A]](sa)
+}
+
+func FromIO[S, R, E, A any](fa IO.IO[A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromIO[StateReaderIOEither[S, R, E, A], RIOE.ReaderIOEither[R, E, A]](fa)
+}
+
+func FromReader[S, R, E, A any](fa RD.Reader[R, A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromReader[StateReaderIOEither[S, R, E, A], RIOE.ReaderIOEither[R, E, A]](fa)
+}
+
+func FromEither[S, R, E, A any](ma ET.Either[E, A]) StateReaderIOEither[S, R, E, A] {
+	return G.FromEither[StateReaderIOEither[S, R, E, A]](ma)
 }
