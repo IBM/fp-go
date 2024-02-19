@@ -154,11 +154,13 @@ func Ap[
 	)
 }
 
+// Conversions
+
 func FromReaderIOEither[
 	SRIOEA ~func(S) RIOEA,
-	RIOEA ~func(R) IOEA,
-
 	RIOEA_IN ~func(R) IOEA_IN,
+
+	RIOEA ~func(R) IOEA,
 
 	IOEA ~func() ET.Either[E, P.Pair[A, S]],
 	IOEA_IN ~func() ET.Either[E, A],
@@ -189,10 +191,10 @@ func FromReaderEither[
 func FromIOEither[
 	SRIOEA ~func(S) RIOEA,
 	RIOEA_IN ~func(R) IOEA_IN,
+	IOEA_IN ~func() ET.Either[E, A],
 	RIOEA ~func(R) IOEA,
 
 	IOEA ~func() ET.Either[E, P.Pair[A, S]],
-	IOEA_IN ~func() ET.Either[E, A],
 
 	S, R, E, A any,
 ](fa IOEA_IN) SRIOEA {
@@ -253,4 +255,171 @@ func FromState[
 	S, R, E, A any,
 ](fa STATE) SRIOEA {
 	return ST.FromState[SRIOEA](G.Of[RIOEA], fa)
+}
+
+// Combinators
+
+func Local[
+	SR1IOEA ~func(S) R1IOEA,
+	SR2IOEA ~func(S) R2IOEA,
+	R1IOEA ~func(R1) IOEA,
+	R2IOEA ~func(R2) IOEA,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	S, R1, R2, E, A any,
+](f func(R2) R1) func(SR1IOEA) SR2IOEA {
+	return func(ma SR1IOEA) SR2IOEA {
+		return F.Flow2(ma, G.Local[R1IOEA, R2IOEA](f))
+	}
+}
+
+func Asks[
+	SRIOEA ~func(S) RIOEA,
+	RIOEA ~func(R) IOEA,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	S, R, E, A any,
+](f func(R) SRIOEA) SRIOEA {
+	return func(s S) RIOEA {
+		return func(r R) IOEA {
+			return f(r)(s)(r)
+		}
+	}
+}
+
+func FromIOEitherK[
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+	IOEB_IN ~func() ET.Either[E, B],
+	RIOEB ~func(R) IOEB,
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](f func(A) IOEB_IN) func(A) SRIOEB {
+	return F.Flow2(
+		f,
+		FromIOEither[SRIOEB, RIOEB_IN],
+	)
+}
+
+func FromEitherK[
+	SRIOEB ~func(S) RIOEB,
+	RIOEB ~func(R) IOEB,
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](f func(A) ET.Either[E, B]) func(A) SRIOEB {
+	return F.Flow2(
+		f,
+		FromEither[SRIOEB],
+	)
+}
+
+func FromIOK[
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+
+	IOB_IN ~func() B,
+
+	RIOEB ~func(R) IOEB,
+
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	IOEB_IN ~func() ET.Either[E, B],
+
+	S, R, E, A, B any,
+](f func(A) IOB_IN) func(A) SRIOEB {
+	return F.Flow2(
+		f,
+		FromIO[SRIOEB, RIOEB_IN, IOB_IN],
+	)
+}
+
+func FromReaderIOEitherK[
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+	IOEB_IN ~func() ET.Either[E, B],
+	RIOEB ~func(R) IOEB,
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](f func(A) RIOEB_IN) func(A) SRIOEB {
+	return F.Flow2(
+		f,
+		FromReaderIOEither[SRIOEB, RIOEB_IN],
+	)
+}
+
+func MonadChainReaderIOEitherK[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	IOEB_IN ~func() ET.Either[E, B],
+	S, R, E, A, B any,
+](ma SRIOEA, f func(A) RIOEB_IN) SRIOEB {
+	return MonadChain(ma, FromReaderIOEitherK[SRIOEB, RIOEB_IN](f))
+}
+
+func ChainReaderIOEitherK[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	IOEB_IN ~func() ET.Either[E, B],
+	S, R, E, A, B any,
+](f func(A) RIOEB_IN) func(SRIOEA) SRIOEB {
+	return Chain[SRIOEA](FromReaderIOEitherK[SRIOEB, RIOEB_IN](f))
+}
+
+func MonadChainIOEitherK[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+	IOEB_IN ~func() ET.Either[E, B],
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](ma SRIOEA, f func(A) IOEB_IN) SRIOEB {
+	return MonadChain(ma, FromIOEitherK[SRIOEB, RIOEB_IN](f))
+}
+
+func ChainIOEitherK[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	RIOEB_IN ~func(R) IOEB_IN,
+	IOEB_IN ~func() ET.Either[E, B],
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](f func(A) IOEB_IN) func(SRIOEA) SRIOEB {
+	return Chain[SRIOEA](FromIOEitherK[SRIOEB, RIOEB_IN](f))
+}
+
+func MonadChainEitherK[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](ma SRIOEA, f func(A) ET.Either[E, B]) SRIOEB {
+	return MonadChain(ma, FromEitherK[SRIOEB](f))
+}
+
+func ChainEitherK[
+	SRIOEA ~func(S) RIOEA,
+	SRIOEB ~func(S) RIOEB,
+	RIOEA ~func(R) IOEA,
+	RIOEB ~func(R) IOEB,
+	IOEA ~func() ET.Either[E, P.Pair[A, S]],
+	IOEB ~func() ET.Either[E, P.Pair[B, S]],
+	S, R, E, A, B any,
+](f func(A) ET.Either[E, B]) func(SRIOEA) SRIOEB {
+	return Chain[SRIOEA](FromEitherK[SRIOEB](f))
 }

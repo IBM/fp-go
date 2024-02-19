@@ -289,3 +289,9 @@ func MonadMapLeft[R, E1, E2, A any](fa ReaderIOEither[R, E1, A], f func(E1) E2) 
 func MapLeft[R, A, E1, E2 any](f func(E1) E2) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
 	return G.MapLeft[ReaderIOEither[R, E1, A], ReaderIOEither[R, E2, A]](f)
 }
+
+// Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s
+// `contramap`).
+func Local[R1, R2, E, A any](f func(R2) R1) func(ReaderIOEither[R1, E, A]) ReaderIOEither[R2, E, A] {
+	return G.Local[ReaderIOEither[R1, E, A], ReaderIOEither[R2, E, A]](f)
+}

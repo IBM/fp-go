@@ -449,3 +449,15 @@ func MonadMapLeft[GREA1 ~func(R) GEA1, GREA2 ~func(R) GEA2, GEA1 ~func() ET.Eith
 func MapLeft[GREA1 ~func(R) GEA1, GREA2 ~func(R) GEA2, GEA1 ~func() ET.Either[E1, A], GEA2 ~func() ET.Either[E2, A], R, E1, E2, A any](f func(E1) E2) func(GREA1) GREA2 {
 	return F.Bind2nd(MonadMapLeft[GREA1, GREA2], f)
 }
+
+// Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s
+// `contramap`).
+func Local[
+	GEA1 ~func(R1) GIOA,
+	GEA2 ~func(R2) GIOA,
+
+	GIOA ~func() ET.Either[E, A],
+	R1, R2, E, A any,
+](f func(R2) R1) func(GEA1) GEA2 {
+	return RD.Local[GEA1, GEA2](f)
+}

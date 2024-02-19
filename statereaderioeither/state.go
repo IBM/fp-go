@@ -89,3 +89,57 @@ func FromReader[S, R, E, A any](fa RD.Reader[R, A]) StateReaderIOEither[S, R, E,
 func FromEither[S, R, E, A any](ma ET.Either[E, A]) StateReaderIOEither[S, R, E, A] {
 	return G.FromEither[StateReaderIOEither[S, R, E, A]](ma)
 }
+
+// Combinators
+
+func Local[S, R1, R2, E, A, B any](f func(R2) R1) func(StateReaderIOEither[S, R1, E, A]) StateReaderIOEither[S, R2, E, A] {
+	return G.Local[StateReaderIOEither[S, R1, E, A], StateReaderIOEither[S, R2, E, A]](f)
+}
+
+func Asks[
+	S, R, E, A any,
+](f func(R) StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, A] {
+	return G.Asks[StateReaderIOEither[S, R, E, A]](f)
+}
+
+func FromEitherK[S, R, E, A, B any](f func(A) ET.Either[E, B]) func(A) StateReaderIOEither[S, R, E, B] {
+	return G.FromEitherK[StateReaderIOEither[S, R, E, B]](f)
+}
+
+func FromIOK[S, R, E, A, B any](f func(A) IO.IO[B]) func(A) StateReaderIOEither[S, R, E, B] {
+	return G.FromIOK[StateReaderIOEither[S, R, E, B], RIOE.ReaderIOEither[R, E, B]](f)
+}
+
+func FromIOEitherK[
+	S, R, E, A, B any,
+](f func(A) IOE.IOEither[E, B]) func(A) StateReaderIOEither[S, R, E, B] {
+	return G.FromIOEitherK[StateReaderIOEither[S, R, E, B], RIOE.ReaderIOEither[R, E, B]](f)
+}
+
+func FromReaderIOEitherK[S, R, E, A, B any](f func(A) RIOE.ReaderIOEither[R, E, B]) func(A) StateReaderIOEither[S, R, E, B] {
+	return G.FromReaderIOEitherK[StateReaderIOEither[S, R, E, B], RIOE.ReaderIOEither[R, E, B]](f)
+}
+
+func MonadChainReaderIOEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) RIOE.ReaderIOEither[R, E, B]) StateReaderIOEither[S, R, E, B] {
+	return G.MonadChainReaderIOEitherK[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](ma, f)
+}
+
+func ChainReaderIOEitherK[S, R, E, A, B any](f func(A) RIOE.ReaderIOEither[R, E, B]) func(StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, B] {
+	return G.ChainReaderIOEitherK[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](f)
+}
+
+func MonadChainIOEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) IOE.IOEither[E, B]) StateReaderIOEither[S, R, E, B] {
+	return G.MonadChainIOEitherK[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], RIOE.ReaderIOEither[R, E, B]](ma, f)
+}
+
+func ChainIOEitherK[S, R, E, A, B any](f func(A) IOE.IOEither[E, B]) func(StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, B] {
+	return G.ChainIOEitherK[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], RIOE.ReaderIOEither[R, E, B]](f)
+}
+
+func MonadChainEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) ET.Either[E, B]) StateReaderIOEither[S, R, E, B] {
+	return G.MonadChainEitherK[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](ma, f)
+}
+
+func ChainEitherK[S, R, E, A, B any](f func(A) ET.Either[E, B]) func(StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, B] {
+	return G.ChainEitherK[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](f)
+}
