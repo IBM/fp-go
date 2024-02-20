@@ -32,6 +32,11 @@ func ToReader[R io.Reader](r R) io.Reader {
 	return r
 }
 
+// ToWriter converts a [io.Writer]
+func ToWriter[W io.Writer](w W) io.Writer {
+	return w
+}
+
 // ToCloser converts a [io.Closer]
 func ToCloser[C io.Closer](c C) io.Closer {
 	return c
