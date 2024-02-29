@@ -16,4 +16,4 @@
 // Package option defines the [Either] datastructure and its monadic operations
 package either
 
-//go:generate go run .. either --count 10 --filename gen.go
+//go:generate go run .. either --count 15 --filename gen.go

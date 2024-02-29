@@ -40,4 +40,4 @@
 // [MakeInjector]: [github.com/IBM/fp-go/di/erasure.MakeInjector]
 package di
 
-//go:generate go run .. di --count 10 --filename gen.go
+//go:generate go run .. di --count 15 --filename gen.go
