@@ -33,7 +33,7 @@ func Of[E, A any](value A) Either[E, A] {
 	return F.Pipe1(value, Right[E, A])
 }
 
-func FromIO[E, IO ~func() A, A any](f IO) Either[E, A] {
+func FromIO[E any, IO ~func() A, A any](f IO) Either[E, A] {
 	return F.Pipe1(f(), Right[E, A])
 }
 

@@ -71,7 +71,6 @@ func TestReduce(t *testing.T) {
 	assert.Equal(t, "foo", F.Pipe1(Left[string, string]("bar"), Reduce[string](s.Concat, "foo")))
 
 }
-
 func TestAp(t *testing.T) {
 	f := S.Size
 
@@ -119,4 +118,11 @@ func TestStringer(t *testing.T) {
 
 	var s fmt.Stringer = e
 	assert.Equal(t, exp, s.String())
+}
+
+func TestFromIO(t *testing.T) {
+	f := func() string { return "abc" }
+	e := FromIO[error](f)
+
+	assert.Equal(t, Right[error]("abc"), e)
 }
