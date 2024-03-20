@@ -22,6 +22,7 @@ import (
 
 	F "github.com/IBM/fp-go/function"
 	"github.com/IBM/fp-go/internal/utils"
+	IO "github.com/IBM/fp-go/io"
 	O "github.com/IBM/fp-go/option"
 	S "github.com/IBM/fp-go/string"
 	"github.com/stretchr/testify/assert"
@@ -121,7 +122,7 @@ func TestStringer(t *testing.T) {
 }
 
 func TestFromIO(t *testing.T) {
-	f := func() string { return "abc" }
+	f := IO.Of("abc")
 	e := FromIO[error](f)
 
 	assert.Equal(t, Right[error]("abc"), e)
