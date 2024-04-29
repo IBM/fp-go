@@ -199,9 +199,9 @@ For that reason these implementations are kept in the `internal` package. These 
 
 The following table lists the relationship between some selected operators
 
-| Opertator | Parameter        | Monad           | Result   |
-| --------  | ---------------- | --------------- | -------- |
-| Map       | `func(A) B`      | `HKT[A]`        | `HKT[B]` |
-| Chain     | `func(A) HKT[B]` | `HKT[A]` | `HKT[B]` |
-| Ap        | `HKT[A]`         | `HKT[func(A)B]` | `HKT[B]` |
-| Flap      | `A`              | `HKT[func(A)B]` | `HKT[B]` |
+| Operator | Parameter        | Monad           | Result   |
+| -------- | ---------------- | --------------- | -------- |
+| Map      | `func(A) B`      | `HKT[A]`        | `HKT[B]` |
+| Chain    | `func(A) HKT[B]` | `HKT[A]`        | `HKT[B]` |
+| Ap       | `HKT[A]`         | `HKT[func(A)B]` | `HKT[B]` |
+| Flap     | `A`              | `HKT[func(A)B]` | `HKT[B]` |
