@@ -36,7 +36,7 @@ type (
 //
 // go:noinline
 func pairString(s *pair) string {
-	return fmt.Sprintf("Pair[%T, %t](%v, %v)", s.h, s.t, s.h, s.t)
+	return fmt.Sprintf("Pair[%T, %T](%v, %v)", s.h, s.t, s.h, s.t)
 }
 
 // Format prints some debug info for the object
