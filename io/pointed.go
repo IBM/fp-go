@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,11 @@
 package io
 
 import (
-	EQ "github.com/IBM/fp-go/eq"
+	"github.com/IBM/fp-go/internal/pointed"
 	G "github.com/IBM/fp-go/io/generic"
 )
 
-// Eq implements the equals predicate for values contained in the IO monad
-func Eq[A any](e EQ.Eq[A]) EQ.Eq[IO[A]] {
-	return G.Eq[IO[A]](e)
-}
-
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[A comparable]() EQ.Eq[IO[A]] {
-	return G.FromStrictEquals[IO[A]]()
+// Pointed returns the monadic operations for [IO]
+func Pointed[A any]() pointed.Pointed[A, IO[A]] {
+	return G.Pointed[A, IO[A]]()
 }

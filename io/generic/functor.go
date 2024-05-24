@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,38 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package option
+package generic
 
 import (
-	"fmt"
-	"testing"
-
-	TST "github.com/IBM/fp-go/internal/testing"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/internal/functor"
 )
 
-func TestCompactArray(t *testing.T) {
-	ar := []Option[string]{
-		Of("ok"),
-		None[string](),
-		Of("ok"),
-	}
+type ioFunctor[A, B any, GA ~func() A, GB ~func() B] struct{}
 
-	res := CompactArray(ar)
-	assert.Equal(t, 2, len(res))
+func (o *ioFunctor[A, B, GA, GB]) Map(f func(A) B) func(GA) GB {
+	return Map[GA, GB, A, B](f)
 }
 
-func TestSequenceArray(t *testing.T) {
-
-	s := TST.SequenceArrayTest(
-		FromStrictEquals[bool](),
-		Pointed[string](),
-		Pointed[bool](),
-		Functor[[]string, bool](),
-		SequenceArray[string],
-	)
-
-	for i := 0; i < 10; i++ {
-		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
-	}
+// Functor implements the functoric operations for [IO]
+func Functor[A, B any, GA ~func() A, GB ~func() B]() functor.Functor[A, B, GA, GB] {
+	return &ioFunctor[A, B, GA, GB]{}
 }

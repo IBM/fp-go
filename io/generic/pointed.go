@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,38 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package option
+package generic
 
 import (
-	"fmt"
-	"testing"
-
-	TST "github.com/IBM/fp-go/internal/testing"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/internal/pointed"
 )
 
-func TestCompactArray(t *testing.T) {
-	ar := []Option[string]{
-		Of("ok"),
-		None[string](),
-		Of("ok"),
-	}
+type ioPointed[A any, GA ~func() A] struct{}
 
-	res := CompactArray(ar)
-	assert.Equal(t, 2, len(res))
+func (o *ioPointed[A, GA]) Of(a A) GA {
+	return Of[GA, A](a)
 }
 
-func TestSequenceArray(t *testing.T) {
-
-	s := TST.SequenceArrayTest(
-		FromStrictEquals[bool](),
-		Pointed[string](),
-		Pointed[bool](),
-		Functor[[]string, bool](),
-		SequenceArray[string],
-	)
-
-	for i := 0; i < 10; i++ {
-		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
-	}
+// Pointed implements the pointedic operations for [IO]
+func Pointed[A any, GA ~func() A]() pointed.Pointed[A, GA] {
+	return &ioPointed[A, GA]{}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,35 +16,16 @@
 package option
 
 import (
-	"fmt"
-	"testing"
-
-	TST "github.com/IBM/fp-go/internal/testing"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/internal/pointed"
 )
 
-func TestCompactArray(t *testing.T) {
-	ar := []Option[string]{
-		Of("ok"),
-		None[string](),
-		Of("ok"),
-	}
+type optionPointed[A any] struct{}
 
-	res := CompactArray(ar)
-	assert.Equal(t, 2, len(res))
+func (o *optionPointed[A]) Of(a A) Option[A] {
+	return Of[A](a)
 }
 
-func TestSequenceArray(t *testing.T) {
-
-	s := TST.SequenceArrayTest(
-		FromStrictEquals[bool](),
-		Pointed[string](),
-		Pointed[bool](),
-		Functor[[]string, bool](),
-		SequenceArray[string],
-	)
-
-	for i := 0; i < 10; i++ {
-		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
-	}
+// Pointed implements the Pointed operations for [Option]
+func Pointed[A any]() pointed.Pointed[A, Option[A]] {
+	return &optionPointed[A]{}
 }

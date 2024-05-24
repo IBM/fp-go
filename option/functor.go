@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,35 +16,16 @@
 package option
 
 import (
-	"fmt"
-	"testing"
-
-	TST "github.com/IBM/fp-go/internal/testing"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/internal/functor"
 )
 
-func TestCompactArray(t *testing.T) {
-	ar := []Option[string]{
-		Of("ok"),
-		None[string](),
-		Of("ok"),
-	}
+type optionFunctor[A, B any] struct{}
 
-	res := CompactArray(ar)
-	assert.Equal(t, 2, len(res))
+func (o *optionFunctor[A, B]) Map(f func(A) B) func(Option[A]) Option[B] {
+	return Map[A, B](f)
 }
 
-func TestSequenceArray(t *testing.T) {
-
-	s := TST.SequenceArrayTest(
-		FromStrictEquals[bool](),
-		Pointed[string](),
-		Pointed[bool](),
-		Functor[[]string, bool](),
-		SequenceArray[string],
-	)
-
-	for i := 0; i < 10; i++ {
-		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
-	}
+// Functor implements the functoric operations for [Option]
+func Functor[A, B any]() functor.Functor[A, B, Option[A], Option[B]] {
+	return &optionFunctor[A, B]{}
 }

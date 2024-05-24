@@ -16,8 +16,11 @@
 package io
 
 import (
+	"fmt"
+
 	A "github.com/IBM/fp-go/array"
 	F "github.com/IBM/fp-go/function"
+	TST "github.com/IBM/fp-go/internal/testing"
 	"github.com/stretchr/testify/assert"
 
 	"testing"
@@ -44,4 +47,19 @@ func TestMapSeq(t *testing.T) {
 	)
 
 	assert.True(t, res())
+}
+
+func TestSequenceArray(t *testing.T) {
+
+	s := TST.SequenceArrayTest(
+		FromStrictEquals[bool](),
+		Pointed[string](),
+		Pointed[bool](),
+		Functor[[]string, bool](),
+		SequenceArray[string],
+	)
+
+	for i := 0; i < 10; i++ {
+		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
+	}
 }

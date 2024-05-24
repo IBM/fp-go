@@ -33,3 +33,8 @@ func Eq[GA ~func() A, A any](e EQ.Eq[A]) EQ.Eq[GA] {
 		return eq(l, r)()
 	})
 }
+
+// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+func FromStrictEquals[GA ~func() A, A comparable]() EQ.Eq[GA] {
+	return Eq[GA](EQ.FromStrictEquals[A]())
+}
