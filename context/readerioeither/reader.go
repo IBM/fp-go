@@ -25,6 +25,7 @@ import (
 	IOE "github.com/IBM/fp-go/ioeither"
 	L "github.com/IBM/fp-go/lazy"
 	O "github.com/IBM/fp-go/option"
+	RIO "github.com/IBM/fp-go/readerio"
 )
 
 func FromEither[A any](e ET.Either[error, A]) ReaderIOEither[A] {
@@ -192,8 +193,7 @@ func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
 }
 
 // Flatten converts a nested [ReaderIOEither] into a [ReaderIOEither]
-func Flatten[
-	A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
+func Flatten[A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return G.Flatten[ReaderIOEither[ReaderIOEither[A]]](rdr)
 }
 
@@ -203,4 +203,16 @@ func MonadFlap[B, A any](fab ReaderIOEither[func(A) B], a A) ReaderIOEither[B] {
 
 func Flap[B, A any](a A) func(ReaderIOEither[func(A) B]) ReaderIOEither[B] {
 	return G.Flap[ReaderIOEither[func(A) B], ReaderIOEither[B]](a)
+}
+
+func Fold[A, B any](onLeft func(error) ReaderIOEither[B], onRight func(A) ReaderIOEither[B]) func(ReaderIOEither[A]) ReaderIOEither[B] {
+	return G.Fold[ReaderIOEither[B], ReaderIOEither[A]](onLeft, onRight)
+}
+
+func GetOrElse[A any](onLeft func(error) RIO.ReaderIO[context.Context, A]) func(ReaderIOEither[A]) RIO.ReaderIO[context.Context, A] {
+	return G.GetOrElse[RIO.ReaderIO[context.Context, A], ReaderIOEither[A]](onLeft)
+}
+
+func OrLeft[A any](onLeft func(error) RIO.ReaderIO[context.Context, error]) func(ReaderIOEither[A]) ReaderIOEither[A] {
+	return G.OrLeft[ReaderIOEither[A]](onLeft)
 }
