@@ -136,6 +136,70 @@ func generateReaderIOEitherEitherize(f, fg *os.File, i int) {
 	fmt.Fprintf(fg, "}\n")
 }
 
+func generateReaderIOEitherUneitherize(f, fg *os.File, i int) {
+	// non generic version
+	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning a [ReaderIOEither[C, error, R]] into a function with %d parameters returning a tuple.\n// The first parameter is considered to be the context [C].\n", i, i+1, i)
+	fmt.Fprintf(f, "func Uneitherize%d[F ~func(", i)
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(f, ", ")
+		}
+		fmt.Fprintf(f, "T%d", j)
+	}
+	fmt.Fprintf(f, ") ReaderIOEither[C, error, R]")
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
+	}
+	fmt.Fprintf(f, ", C, R any](f F) func(C")
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
+	}
+	fmt.Fprintf(f, ") (R, error) {\n")
+	fmt.Fprintf(f, "  return G.Uneitherize%d[ReaderIOEither[C, error, R]", i)
+
+	fmt.Fprintf(f, ", func(C")
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(f, ", T%d", j)
+	}
+	fmt.Fprintf(f, ")(R, error)](f)\n")
+	fmt.Fprintln(f, "}")
+
+	// generic version
+	fmt.Fprintf(fg, "\n// Uneitherize%d converts a function with %d parameters returning a [GRA] into a function with %d parameters returning a tuple.\n// The first parameter is considered to be the context [C].\n", i, i, i)
+	fmt.Fprintf(fg, "func Uneitherize%d[GRA ~func(C) GIOA, F ~func(C", i)
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, ", T%d", j)
+	}
+	fmt.Fprintf(fg, ") (R, error), GIOA ~func() E.Either[error, R]")
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, ", T%d", j)
+	}
+	fmt.Fprintf(fg, ", C, R any](f func(")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(fg, ", ")
+		}
+		fmt.Fprintf(fg, "T%d", j)
+	}
+	fmt.Fprintf(fg, ") GRA) F {\n")
+
+	fmt.Fprintf(fg, "  return func(c C")
+	for j := 0; j < i; j++ {
+		fmt.Fprintf(fg, ", t%d T%d", j, j)
+	}
+	fmt.Fprintf(fg, ") (R, error) {\n")
+	fmt.Fprintf(fg, "    return E.UnwrapError(f(")
+	for j := 0; j < i; j++ {
+		if j > 0 {
+			fmt.Fprintf(fg, ", ")
+		}
+		fmt.Fprintf(fg, "t%d", j)
+	}
+	fmt.Fprintf(fg, ")(c)())\n")
+	fmt.Fprintf(fg, "  }\n")
+	fmt.Fprintf(fg, "}\n")
+}
+
 func generateReaderIOEitherHelpers(filename string, count int) error {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -197,12 +261,16 @@ import (
 	generateReaderIOEitherFrom(f, fg, 0)
 	// eitherize
 	generateReaderIOEitherEitherize(f, fg, 0)
+	// uneitherize
+	generateReaderIOEitherUneitherize(f, fg, 0)
 
 	for i := 1; i <= count; i++ {
 		// from
 		generateReaderIOEitherFrom(f, fg, i)
 		// eitherize
 		generateReaderIOEitherEitherize(f, fg, i)
+		// uneitherize
+		generateReaderIOEitherUneitherize(f, fg, i)
 	}
 
 	return nil

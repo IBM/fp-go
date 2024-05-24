@@ -25,6 +25,15 @@
             ],
             "automerge": true,
             "groupName": "go dependencies"
+        },
+        {
+            "matchPackageNames": [
+                "conventional-changelog-conventionalcommits"
+            ],
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "enabled": false
         }
     ]
 }
