@@ -17,11 +17,13 @@ package readerioeither
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	A "github.com/IBM/fp-go/array"
 	ET "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
+	TST "github.com/IBM/fp-go/internal/testing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,4 +38,34 @@ func TestTraverseArray(t *testing.T) {
 	assert.Equal(t, ET.Right[string](A.Empty[string]()), F.Pipe1(A.Empty[string](), f)(ctx)())
 	assert.Equal(t, ET.Right[string]([]string{"aa", "bb"}), F.Pipe1([]string{"a", "b"}, f)(ctx)())
 	assert.Equal(t, ET.Left[[]string]("e"), F.Pipe1([]string{"a", ""}, f)(ctx)())
+}
+
+func TestSequenceArray(t *testing.T) {
+
+	s := TST.SequenceArrayTest(
+		FromStrictEquals[context.Context, error, bool]()(context.Background()),
+		Pointed[context.Context, error, string](),
+		Pointed[context.Context, error, bool](),
+		Functor[context.Context, error, []string, bool](),
+		SequenceArray[context.Context, error, string],
+	)
+
+	for i := 0; i < 10; i++ {
+		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
+	}
+}
+
+func TestSequenceArrayError(t *testing.T) {
+
+	s := TST.SequenceArrayErrorTest(
+		FromStrictEquals[context.Context, error, bool]()(context.Background()),
+		Left[context.Context, string, error],
+		Left[context.Context, bool, error],
+		Pointed[context.Context, error, string](),
+		Pointed[context.Context, error, bool](),
+		Functor[context.Context, error, []string, bool](),
+		SequenceArray[context.Context, error, string],
+	)
+	// run across four bits
+	s(4)(t)
 }

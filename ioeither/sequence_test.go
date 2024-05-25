@@ -16,10 +16,14 @@
 package ioeither
 
 import (
+	"fmt"
+
 	A "github.com/IBM/fp-go/array"
 	E "github.com/IBM/fp-go/either"
 	F "github.com/IBM/fp-go/function"
 	"github.com/stretchr/testify/assert"
+
+	TST "github.com/IBM/fp-go/internal/testing"
 
 	"testing"
 )
@@ -45,4 +49,34 @@ func TestMapSeq(t *testing.T) {
 	)
 
 	assert.Equal(t, E.Of[error](true), res())
+}
+
+func TestSequenceArray(t *testing.T) {
+
+	s := TST.SequenceArrayTest(
+		FromStrictEquals[error, bool](),
+		Pointed[error, string](),
+		Pointed[error, bool](),
+		Functor[error, []string, bool](),
+		SequenceArray[error, string],
+	)
+
+	for i := 0; i < 10; i++ {
+		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
+	}
+}
+
+func TestSequenceArrayError(t *testing.T) {
+
+	s := TST.SequenceArrayErrorTest(
+		FromStrictEquals[error, bool](),
+		Left[string, error],
+		Left[bool, error],
+		Pointed[error, string](),
+		Pointed[error, bool](),
+		Functor[error, []string, bool](),
+		SequenceArray[error, string],
+	)
+	// run across four bits
+	s(4)(t)
 }

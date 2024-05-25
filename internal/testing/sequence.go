@@ -62,3 +62,84 @@ func SequenceArrayTest[
 		}
 	}
 }
+
+// SequenceArrayErrorTest tests if the sequence operation works in case the operation can error
+func SequenceArrayErrorTest[
+	HKTA,
+	HKTB,
+	HKTAA any, // HKT[[]A]
+](
+	eq EQ.Eq[HKTB],
+
+	left func(error) HKTA,
+	leftB func(error) HKTB,
+	pa pointed.Pointed[string, HKTA],
+	pb pointed.Pointed[bool, HKTB],
+	faa functor.Functor[[]string, bool, HKTAA, HKTB],
+	seq func([]HKTA) HKTAA,
+) func(count int) func(t *testing.T) {
+
+	return func(count int) func(t *testing.T) {
+
+		expGood := make([]string, count)
+		good := make([]HKTA, count)
+		expBad := make([]error, count)
+		bad := make([]HKTA, count)
+
+		for i := 0; i < count; i++ {
+			goodVal := fmt.Sprintf("TestData %d", i)
+			badVal := fmt.Errorf("ErrorData %d", i)
+			expGood[i] = goodVal
+			good[i] = pa.Of(goodVal)
+			expBad[i] = badVal
+			bad[i] = left(badVal)
+		}
+
+		total := 1 << count
+
+		return func(t *testing.T) {
+			// test the good case
+			res := F.Pipe2(
+				good,
+				seq,
+				faa.Map(func(act []string) bool {
+					return assert.Equal(t, expGood, act)
+				}),
+			)
+			assert.True(t, eq.Equals(res, pb.Of(true)))
+			// iterate and test the bad cases
+			for i := 1; i < total; i++ {
+				// run the test
+				t.Run(fmt.Sprintf("Bitmask test %d", i), func(t1 *testing.T) {
+					// the actual
+					act := make([]HKTA, count)
+					// the expected error
+					var exp error
+					// prepare the values bases on the bit mask
+					mask := 1
+					for j := 0; j < count; j++ {
+						if (i & mask) == 0 {
+							act[j] = good[j]
+						} else {
+							act[j] = bad[j]
+							if exp == nil {
+								exp = expBad[j]
+							}
+						}
+						mask <<= 1
+					}
+					// test the good case
+					res := F.Pipe2(
+						act,
+						seq,
+						faa.Map(func(act []string) bool {
+							return assert.Equal(t, expGood, act)
+						}),
+					)
+					// validate the error
+					assert.True(t, eq.Equals(res, leftB(exp)))
+				})
+			}
+		}
+	}
+}

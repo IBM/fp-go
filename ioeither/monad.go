@@ -16,6 +16,7 @@
 package ioeither
 
 import (
+	"github.com/IBM/fp-go/internal/functor"
 	"github.com/IBM/fp-go/internal/monad"
 	"github.com/IBM/fp-go/internal/pointed"
 	G "github.com/IBM/fp-go/ioeither/generic"
@@ -24,6 +25,11 @@ import (
 // Pointed returns the pointed operations for [IOEither]
 func Pointed[E, A any]() pointed.Pointed[A, IOEither[E, A]] {
 	return G.Pointed[E, A, IOEither[E, A]]()
+}
+
+// Functor returns the functor operations for [IOEither]
+func Functor[E, A, B any]() functor.Functor[A, B, IOEither[E, A], IOEither[E, B]] {
+	return G.Functor[E, A, B, IOEither[E, A], IOEither[E, B]]()
 }
 
 // Monad returns the monadic operations for [IOEither]
