@@ -143,3 +143,41 @@ func SequenceArrayErrorTest[
 		}
 	}
 }
+
+// SequenceRecordTest tests if the sequence operation works in case the operation cannot error
+func SequenceRecordTest[
+	HKTA,
+	HKTB,
+	HKTAA any, // HKT[map[string]string]
+](
+	eq EQ.Eq[HKTB],
+
+	pa pointed.Pointed[string, HKTA],
+	pb pointed.Pointed[bool, HKTB],
+	faa functor.Functor[map[string]string, bool, HKTAA, HKTB],
+	seq func(map[string]HKTA) HKTAA,
+) func(count int) func(t *testing.T) {
+
+	return func(count int) func(t *testing.T) {
+
+		exp := make(map[string]string)
+		good := make(map[string]HKTA)
+		for i := 0; i < count; i++ {
+			key := fmt.Sprintf("KeyData %d", i)
+			val := fmt.Sprintf("ValueData %d", i)
+			exp[key] = val
+			good[key] = pa.Of(val)
+		}
+
+		return func(t *testing.T) {
+			res := F.Pipe2(
+				good,
+				seq,
+				faa.Map(func(act map[string]string) bool {
+					return assert.Equal(t, exp, act)
+				}),
+			)
+			assert.True(t, eq.Equals(res, pb.Of(true)))
+		}
+	}
+}

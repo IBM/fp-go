@@ -16,20 +16,12 @@
 package option
 
 import (
+	"fmt"
 	"testing"
 
+	TST "github.com/IBM/fp-go/internal/testing"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestSequenceRecord(t *testing.T) {
-	assert.Equal(t, Of(map[string]string{
-		"a": "A",
-		"b": "B",
-	}), SequenceRecord(map[string]Option[string]{
-		"a": Of("A"),
-		"b": Of("B"),
-	}))
-}
 
 func TestCompactRecord(t *testing.T) {
 	// make the map
@@ -44,4 +36,19 @@ func TestCompactRecord(t *testing.T) {
 	}
 
 	assert.Equal(t, exp, m1)
+}
+
+func TestSequenceRecord(t *testing.T) {
+
+	s := TST.SequenceRecordTest(
+		FromStrictEquals[bool](),
+		Pointed[string](),
+		Pointed[bool](),
+		Functor[map[string]string, bool](),
+		SequenceRecord[string, string],
+	)
+
+	for i := 0; i < 10; i++ {
+		t.Run(fmt.Sprintf("TestSequenceRecord %d", i), s(i))
+	}
 }
