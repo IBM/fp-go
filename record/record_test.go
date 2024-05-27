@@ -176,3 +176,25 @@ func TestFromArrayMap(t *testing.T) {
 		"C": "C",
 	}, res2)
 }
+
+func TestEmpty(t *testing.T) {
+	nonEmpty := map[string]string{
+		"a": "A",
+		"b": "B",
+	}
+	empty := Empty[string, string]()
+
+	assert.True(t, IsEmpty(empty))
+	assert.False(t, IsEmpty(nonEmpty))
+	assert.False(t, IsNonEmpty(empty))
+	assert.True(t, IsNonEmpty(nonEmpty))
+}
+
+func TestHas(t *testing.T) {
+	nonEmpty := map[string]string{
+		"a": "A",
+		"b": "B",
+	}
+	assert.True(t, Has("a", nonEmpty))
+	assert.False(t, Has("c", nonEmpty))
+}

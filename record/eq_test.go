@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +16,33 @@
 package record
 
 import (
-	E "github.com/IBM/fp-go/eq"
-	G "github.com/IBM/fp-go/record/generic"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func Eq[K comparable, V any](e E.Eq[V]) E.Eq[map[K]V] {
-	return G.Eq[map[K]V, K, V](e)
-}
+func TestFromStrictEquals(t *testing.T) {
+	m1 := map[string]string{
+		"a": "A",
+		"b": "B",
+	}
+	m2 := map[string]string{
+		"a": "A",
+		"b": "C",
+	}
+	m3 := map[string]string{
+		"a": "A",
+		"b": "B",
+	}
+	m4 := map[string]string{
+		"a": "A",
+		"b": "B",
+		"c": "C",
+	}
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[K, V comparable]() E.Eq[map[K]V] {
-	return G.FromStrictEquals[map[K]V]()
+	e := FromStrictEquals[string, string]()
+	assert.True(t, e.Equals(m1, m1))
+	assert.True(t, e.Equals(m1, m3))
+	assert.False(t, e.Equals(m1, m2))
+	assert.False(t, e.Equals(m1, m4))
 }

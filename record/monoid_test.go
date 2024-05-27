@@ -54,3 +54,69 @@ func TestUnionMonoid(t *testing.T) {
 
 	assert.Equal(t, res, m.Concat(x, y))
 }
+
+func TestUnionFirstMonoid(t *testing.T) {
+	m := UnionFirstMonoid[string, string]()
+
+	e := Empty[string, string]()
+
+	x := map[string]string{
+		"a": "a1",
+		"b": "b1",
+		"c": "c1",
+	}
+
+	y := map[string]string{
+		"b": "b2",
+		"c": "c2",
+		"d": "d2",
+	}
+
+	res := map[string]string{
+		"a": "a1",
+		"b": "b1",
+		"c": "c1",
+		"d": "d2",
+	}
+
+	assert.Equal(t, x, m.Concat(x, m.Empty()))
+	assert.Equal(t, x, m.Concat(m.Empty(), x))
+
+	assert.Equal(t, x, m.Concat(x, e))
+	assert.Equal(t, x, m.Concat(e, x))
+
+	assert.Equal(t, res, m.Concat(x, y))
+}
+
+func TestUnionLastMonoid(t *testing.T) {
+	m := UnionLastMonoid[string, string]()
+
+	e := Empty[string, string]()
+
+	x := map[string]string{
+		"a": "a1",
+		"b": "b1",
+		"c": "c1",
+	}
+
+	y := map[string]string{
+		"b": "b2",
+		"c": "c2",
+		"d": "d2",
+	}
+
+	res := map[string]string{
+		"a": "a1",
+		"b": "b2",
+		"c": "c2",
+		"d": "d2",
+	}
+
+	assert.Equal(t, x, m.Concat(x, m.Empty()))
+	assert.Equal(t, x, m.Concat(m.Empty(), x))
+
+	assert.Equal(t, x, m.Concat(x, e))
+	assert.Equal(t, x, m.Concat(e, x))
+
+	assert.Equal(t, res, m.Concat(x, y))
+}
