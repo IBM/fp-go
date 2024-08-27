@@ -18,7 +18,7 @@ env:
   # Currently no way to detect automatically
   DEFAULT_BRANCH: main
   GO_VERSION: 1.21.6 # renovate: datasource=golang-version depName=golang
-  NODE_VERSION: 20
+  NODE_VERSION: 22
   DRY_RUN: true
 
 jobs:
@@ -82,7 +82,7 @@ jobs:
 
       - name: Semantic Release
         run: |
-          npx -p "conventional-changelog-conventionalcommits@<8" -p semantic-release semantic-release --dry-run ${{env.DRY_RUN}}
+          npx -p conventional-changelog-conventionalcommits semantic-release semantic-release --dry-run ${{env.DRY_RUN}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
