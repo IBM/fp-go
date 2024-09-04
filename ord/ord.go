@@ -64,7 +64,7 @@ func Reverse[T any](o Ord[T]) Ord[T] {
 	}, o.Equals)
 }
 
-// Contramap creates an odering under a transformation function
+// Contramap creates an ordering under a transformation function
 func Contramap[A, B any](f func(B) A) func(Ord[A]) Ord[B] {
 	return func(o Ord[A]) Ord[B] {
 		return MakeOrd(func(x, y B) int {
