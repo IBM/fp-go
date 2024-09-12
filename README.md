@@ -29,9 +29,9 @@ This library aims to provide a set of data types and functions that make it easy
 
 ### How does this play with the [🧘🏽 Zen Of Go](https://the-zen-of-go.netlify.app/)?
 
-#### 🧘🏽 Each package fulfils a single purpose
+#### 🧘🏽 Each package fulfills a single purpose
 
-✔️ Each of the top level packages (e.g. Option, Either, ReaderIOEither, ...) fulfils the purpose of defining the respective data type and implementing the set of common operations for this data type.
+✔️ Each of the top level packages (e.g. Option, Either, ReaderIOEither, ...) fulfills the purpose of defining the respective data type and implementing the set of common operations for this data type.
 
 #### 🧘🏽 Handle errors explicitly
 
