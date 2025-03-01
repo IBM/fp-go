@@ -1,0 +1,29 @@
+// Copyright (c) 2023 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package readerioeither
+
+import (
+	"context"
+
+	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
+	ET "github.com/IBM/fp-go/v2/either"
+	EQ "github.com/IBM/fp-go/v2/eq"
+)
+
+// Eq implements the equals predicate for values contained in the [ReaderIOEither] monad
+func Eq[A any](eq EQ.Eq[ET.Either[error, A]]) func(context.Context) EQ.Eq[ReaderIOEither[A]] {
+	return G.Eq[ReaderIOEither[A]](eq)
+}
