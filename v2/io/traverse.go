@@ -16,17 +16,31 @@
 package io
 
 import (
+	INTA "github.com/IBM/fp-go/v2/internal/array"
 	G "github.com/IBM/fp-go/v2/io/generic"
 )
 
 func MonadTraverseArray[A, B any](tas []A, f func(A) IO[B]) IO[[]B] {
-	return G.MonadTraverseArray[IO[B], IO[[]B]](tas, f)
+	return INTA.MonadTraverse(
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		Ap[[]B, B],
+
+		tas,
+		f,
+	)
 }
 
 // TraverseArray applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
 func TraverseArray[A, B any](f func(A) IO[B]) func([]A) IO[[]B] {
-	return G.TraverseArray[IO[B], IO[[]B], []A](f)
+	return INTA.Traverse[[]A](
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		Ap[[]B, B],
+
+		f,
+	)
 }
 
 // TraverseArrayWithIndex applies a function returning an [IO] to all elements in an array and the
