@@ -67,9 +67,9 @@ type MultiInjectionToken[T any] interface {
 // makeID creates a generator of unique string IDs
 func makeID() IO.IO[string] {
 	var count atomic.Int64
-	return IO.MakeIO(func() string {
+	return func() string {
 		return strconv.FormatInt(count.Add(1), 16)
-	})
+	}
 }
 
 // genID is the common generator of unique string IDs

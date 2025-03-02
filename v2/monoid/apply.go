@@ -28,7 +28,7 @@ func ApplicativeMonoid[A, HKTA, HKTFA any](
 ) Monoid[HKTA] {
 
 	return MakeMonoid(
-		S.ApplySemigroup[A](fmap, fap, m).Concat,
+		S.ApplySemigroup(fmap, fap, m).Concat,
 		fof(m.Empty()),
 	)
 }

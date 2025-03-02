@@ -17,15 +17,24 @@ package io
 
 import (
 	EQ "github.com/IBM/fp-go/v2/eq"
-	G "github.com/IBM/fp-go/v2/io/generic"
+	INTE "github.com/IBM/fp-go/v2/internal/eq"
 )
 
 // Eq implements the equals predicate for values contained in the IO monad
 func Eq[A any](e EQ.Eq[A]) EQ.Eq[IO[A]] {
-	return G.Eq[IO[A]](e)
+	// comparator for the monad
+	eq := INTE.Eq(
+		MonadMap[A, func(A) bool],
+		MonadAp[A, bool],
+		e,
+	)
+	// eagerly execute
+	return EQ.FromEquals(func(l, r IO[A]) bool {
+		return eq(l, r)()
+	})
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[A comparable]() EQ.Eq[IO[A]] {
-	return G.FromStrictEquals[IO[A]]()
+	return Eq(EQ.FromStrictEquals[A]())
 }

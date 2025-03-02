@@ -13,19 +13,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package io
 
 import (
-	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/applicative"
 )
 
-type ioFunctor[A, B any, GA ~func() A, GB ~func() B] struct{}
+type (
+	ioApplicative[A, B any] struct{}
+	IOApplicative[A, B any] = applicative.Applicative[A, B, IO[A], IO[B], IO[func(A) B]]
+)
 
-func (o *ioFunctor[A, B, GA, GB]) Map(f func(A) B) func(GA) GB {
-	return Map[GA, GB, A, B](f)
+func (o *ioApplicative[A, B]) Of(a A) IO[A] {
+	return Of(a)
 }
 
-// Functor implements the functoric operations for [IO]
-func Functor[A, B any, GA ~func() A, GB ~func() B]() functor.Functor[A, B, GA, GB] {
-	return &ioFunctor[A, B, GA, GB]{}
+func (o *ioApplicative[A, B]) Map(f func(A) B) func(IO[A]) IO[B] {
+	return Map(f)
+}
+
+func (o *ioApplicative[A, B]) Ap(fa IO[A]) func(IO[func(A) B]) IO[B] {
+	return Ap[B](fa)
+}
+
+// Applicative implements the applicativeic operations for [IO]
+func Applicative[A, B any]() IOApplicative[A, B] {
+	return &ioApplicative[A, B]{}
 }

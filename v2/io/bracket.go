@@ -16,7 +16,7 @@
 package io
 
 import (
-	G "github.com/IBM/fp-go/v2/io/generic"
+	INTB "github.com/IBM/fp-go/v2/internal/bracket"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
@@ -26,5 +26,14 @@ func Bracket[A, B, ANY any](
 	use func(A) IO[B],
 	release func(A, B) IO[ANY],
 ) IO[B] {
-	return G.Bracket(acquire, use, release)
+	return INTB.Bracket[IO[A], IO[B], IO[ANY], B, A, B](
+		Of[B],
+		MonadChain[A, B],
+		MonadChain[B, B],
+		MonadChain[ANY, B],
+
+		acquire,
+		use,
+		release,
+	)
 }

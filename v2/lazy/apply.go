@@ -16,15 +16,15 @@
 package lazy
 
 import (
-	G "github.com/IBM/fp-go/v2/io/generic"
+	IO "github.com/IBM/fp-go/v2/io"
 	M "github.com/IBM/fp-go/v2/monoid"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
 func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[Lazy[A]] {
-	return G.ApplySemigroup[Lazy[A]](s)
+	return IO.ApplySemigroup(s)
 }
 
 func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[Lazy[A]] {
-	return G.ApplicativeMonoid[Lazy[A]](m)
+	return IO.ApplicativeMonoid(m)
 }

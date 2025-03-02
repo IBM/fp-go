@@ -17,10 +17,30 @@ package io
 
 import (
 	"github.com/IBM/fp-go/v2/internal/monad"
-	G "github.com/IBM/fp-go/v2/io/generic"
 )
 
-// Monad returns the monadic operations for [IO]
-func Monad[A, B any]() monad.Monad[A, B, IO[A], IO[B], IO[func(A) B]] {
-	return G.Monad[A, B, IO[A], IO[B], IO[func(A) B]]()
+type (
+	ioMonad[A, B any] struct{}
+	IOMonad[A, B any] = monad.Monad[A, B, IO[A], IO[B], IO[func(A) B]]
+)
+
+func (o *ioMonad[A, B]) Of(a A) IO[A] {
+	return Of(a)
+}
+
+func (o *ioMonad[A, B]) Map(f func(A) B) func(IO[A]) IO[B] {
+	return Map(f)
+}
+
+func (o *ioMonad[A, B]) Chain(f func(A) IO[B]) func(IO[A]) IO[B] {
+	return Chain(f)
+}
+
+func (o *ioMonad[A, B]) Ap(fa IO[A]) func(IO[func(A) B]) IO[B] {
+	return Ap[B](fa)
+}
+
+// Monad implements the monadic operations for [IO]
+func Monad[A, B any]() IOMonad[A, B] {
+	return &ioMonad[A, B]{}
 }

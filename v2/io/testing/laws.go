@@ -33,39 +33,25 @@ func AssertLaws[A, B, C any](t *testing.T,
 	bc func(B) C,
 ) func(a A) bool {
 
-	return L.AssertLaws(t,
+	return L.MonadAssertLaws(t,
 		io.Eq(eqa),
 		io.Eq(eqb),
 		io.Eq(eqc),
 
-		io.Of[A],
-		io.Of[B],
-		io.Of[C],
+		io.Pointed[C](),
+		io.Pointed[func(A) A](),
+		io.Pointed[func(B) C](),
+		io.Pointed[func(func(A) B) B](),
 
-		io.Of[func(A) A],
-		io.Of[func(A) B],
-		io.Of[func(B) C],
-		io.Of[func(func(A) B) B],
+		io.Functor[func(B) C, func(func(A) B) func(A) C](),
 
-		io.MonadMap[A, A],
-		io.MonadMap[A, B],
-		io.MonadMap[A, C],
-		io.MonadMap[B, C],
+		io.Applicative[func(A) B, B](),
+		io.Applicative[func(A) B, func(A) C](),
 
-		io.MonadMap[func(B) C, func(func(A) B) func(A) C],
-
-		io.MonadChain[A, A],
-		io.MonadChain[A, B],
-		io.MonadChain[A, C],
-		io.MonadChain[B, C],
-
-		io.MonadAp[A, A],
-		io.MonadAp[B, A],
-		io.MonadAp[C, B],
-		io.MonadAp[C, A],
-
-		io.MonadAp[B, func(A) B],
-		io.MonadAp[func(A) C, func(A) B],
+		io.Monad[A, A](),
+		io.Monad[A, B](),
+		io.Monad[A, C](),
+		io.Monad[B, C](),
 
 		ab,
 		bc,

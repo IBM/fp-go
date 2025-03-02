@@ -17,10 +17,19 @@ package io
 
 import (
 	"github.com/IBM/fp-go/v2/internal/functor"
-	G "github.com/IBM/fp-go/v2/io/generic"
 )
 
-// Functor returns the monadic operations for [IO]
-func Functor[A, B any]() functor.Functor[A, B, IO[A], IO[B]] {
-	return G.Functor[A, B, IO[A], IO[B]]()
+type (
+	ioFunctor[A, B any] struct{}
+
+	IOFunctor[A, B any] = functor.Functor[A, B, IO[A], IO[B]]
+)
+
+func (o *ioFunctor[A, B]) Map(f func(A) B) func(IO[A]) IO[B] {
+	return Map(f)
+}
+
+// Functor implements the functoric operations for [IO]
+func Functor[A, B any]() IOFunctor[A, B] {
+	return &ioFunctor[A, B]{}
 }

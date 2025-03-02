@@ -17,15 +17,16 @@ package iooption
 
 import (
 	EQ "github.com/IBM/fp-go/v2/eq"
-	G "github.com/IBM/fp-go/v2/iooption/generic"
+	IO "github.com/IBM/fp-go/v2/io"
+	O "github.com/IBM/fp-go/v2/option"
 )
 
 // Eq implements the equals predicate for values contained in the IO monad
-func Eq[A any](e EQ.Eq[A]) EQ.Eq[IOOption[A]] {
-	return G.Eq[IOOption[A]](e)
+func Eq[A any](eq EQ.Eq[A]) EQ.Eq[IOOption[A]] {
+	return IO.Eq(O.Eq(eq))
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[A comparable]() EQ.Eq[IOOption[A]] {
-	return G.FromStrictEquals[IOOption[A]]()
+	return Eq(EQ.FromStrictEquals[A]())
 }

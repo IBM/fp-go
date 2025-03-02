@@ -16,15 +16,14 @@
 package io
 
 import (
-	G "github.com/IBM/fp-go/v2/io/generic"
 	M "github.com/IBM/fp-go/v2/monoid"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
 func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[IO[A]] {
-	return G.ApplySemigroup[IO[A]](s)
+	return S.ApplySemigroup(MonadMap[A, func(A) A], MonadAp[A, A], s)
 }
 
 func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[IO[A]] {
-	return G.ApplicativeMonoid[IO[A]](m)
+	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
 }

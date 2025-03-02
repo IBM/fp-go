@@ -28,7 +28,7 @@ import (
 
 // IO represents a synchronous computation that may fail
 // refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
-type IOOption[A any] I.IO[O.Option[A]]
+type IOOption[A any] = I.IO[O.Option[A]]
 
 func MakeIO[A any](f IOOption[A]) IOOption[A] {
 	return G.MakeIO(f)

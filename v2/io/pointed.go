@@ -17,10 +17,18 @@ package io
 
 import (
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	G "github.com/IBM/fp-go/v2/io/generic"
 )
 
-// Pointed returns the monadic operations for [IO]
-func Pointed[A any]() pointed.Pointed[A, IO[A]] {
-	return G.Pointed[A, IO[A]]()
+type (
+	ioPointed[A any] struct{}
+	IOPointed[A any] = pointed.Pointed[A, IO[A]]
+)
+
+func (o *ioPointed[A]) Of(a A) IO[A] {
+	return Of(a)
+}
+
+// Pointed implements the pointedic operations for [IO]
+func Pointed[A any]() IOPointed[A] {
+	return &ioPointed[A]{}
 }

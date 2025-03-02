@@ -22,7 +22,7 @@ import (
 )
 
 // Lazy represents a synchronous computation without side effects
-type Lazy[A any] func() A
+type Lazy[A any] = func() A
 
 func MakeLazy[A any](f func() A) Lazy[A] {
 	return G.MakeIO[Lazy[A]](f)

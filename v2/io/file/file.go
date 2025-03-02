@@ -24,16 +24,16 @@ import (
 
 // Close closes a closeable resource and ignores a potential error
 func Close[R io.Closer](r R) IO.IO[R] {
-	return IO.MakeIO[R](func() R {
+	return func() R {
 		r.Close() // #nosec: G104
 		return r
-	})
+	}
 }
 
 // Remove removes a resource and ignores a potential error
 func Remove(name string) IO.IO[string] {
-	return IO.MakeIO[string](func() string {
+	return func() string {
 		os.Remove(name) // #nosec: G104
 		return name
-	})
+	}
 }

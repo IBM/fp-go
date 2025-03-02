@@ -19,7 +19,9 @@ import (
 	"time"
 
 	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/internal/eithert"
 	I "github.com/IBM/fp-go/v2/io"
+	IOG "github.com/IBM/fp-go/v2/io/generic"
 	G "github.com/IBM/fp-go/v2/ioeither/generic"
 	IOO "github.com/IBM/fp-go/v2/iooption"
 	L "github.com/IBM/fp-go/v2/lazy"
@@ -28,26 +30,26 @@ import (
 
 // IOEither represents a synchronous computation that may fail
 // refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
-type IOEither[E, A any] I.IO[ET.Either[E, A]]
+type IOEither[E, A any] = I.IO[ET.Either[E, A]]
 
 func MakeIO[E, A any](f IOEither[E, A]) IOEither[E, A] {
-	return G.MakeIO(f)
+	return f
 }
 
 func Left[A, E any](l E) IOEither[E, A] {
-	return G.Left[IOEither[E, A]](l)
+	return eithert.Left(IOG.MonadOf[IOEither[E, A], ET.Either[E, A]], l)
 }
 
 func Right[E, A any](r A) IOEither[E, A] {
-	return G.Right[IOEither[E, A]](r)
+	return eithert.Right(IOG.MonadOf[IOEither[E, A], ET.Either[E, A]], r)
 }
 
 func Of[E, A any](r A) IOEither[E, A] {
-	return G.Of[IOEither[E, A]](r)
+	return Right[E, A](r)
 }
 
 func MonadOf[E, A any](r A) IOEither[E, A] {
-	return G.MonadOf[IOEither[E, A]](r)
+	return Of[E, A](r)
 }
 
 func LeftIO[A, E any](ml I.IO[E]) IOEither[E, A] {

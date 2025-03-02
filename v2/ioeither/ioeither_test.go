@@ -70,9 +70,9 @@ func TestFromOption(t *testing.T) {
 
 func TestChainIOK(t *testing.T) {
 	f := ChainIOK[string](func(n int) I.IO[string] {
-		return I.MakeIO(func() string {
+		return func() string {
 			return fmt.Sprintf("%d", n)
-		})
+		}
 	})
 
 	assert.Equal(t, E.Right[string]("1"), f(Right[string](1))())

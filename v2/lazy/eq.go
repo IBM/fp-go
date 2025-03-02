@@ -17,10 +17,10 @@ package lazy
 
 import (
 	EQ "github.com/IBM/fp-go/v2/eq"
-	G "github.com/IBM/fp-go/v2/io/generic"
+	IO "github.com/IBM/fp-go/v2/io"
 )
 
 // Eq implements the equals predicate for values contained in the IO monad
 func Eq[A any](e EQ.Eq[A]) EQ.Eq[Lazy[A]] {
-	return G.Eq[Lazy[A]](e)
+	return IO.Eq(e)
 }
