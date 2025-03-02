@@ -36,7 +36,7 @@ func TestChain(t *testing.T) {
 }
 
 func TestAp(t *testing.T) {
-	assert.Equal(t, 2, F.Pipe1(Of(utils.Double), Ap[int, int](Of(1)))())
+	assert.Equal(t, 2, F.Pipe1(Of(utils.Double), Ap[int](Of(1)))())
 }
 
 func TestFlatten(t *testing.T) {

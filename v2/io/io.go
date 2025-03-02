@@ -121,6 +121,10 @@ func Ap[B, A any](ma IO[A]) func(IO[func(A) B]) IO[B] {
 	return F.Bind2nd(MonadAp[A, B], ma)
 }
 
+func ApSeq[B, A any](ma IO[A]) func(IO[func(A) B]) IO[B] {
+	return Chain(F.Bind1st(MonadMap[A, B], ma))
+}
+
 func Flatten[A any](mma IO[IO[A]]) IO[A] {
 	return MonadChain(mma, F.Identity)
 }
