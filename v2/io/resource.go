@@ -16,12 +16,12 @@
 package io
 
 import (
-	G "github.com/IBM/fp-go/v2/io/generic"
+	F "github.com/IBM/fp-go/v2/function"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource
 func WithResource[
 	R, A, ANY any](onCreate IO[R], onRelease func(R) IO[ANY]) func(func(R) IO[A]) IO[A] {
-	// just dispatch
-	return G.WithResource[IO[A], IO[R], IO[ANY]](onCreate, onRelease)
+	// simply map to implementation of bracket
+	return F.Bind13of3(Bracket[R, A, ANY])(onCreate, F.Ignore2of2[A](onRelease))
 }

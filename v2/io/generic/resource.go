@@ -20,6 +20,8 @@ import (
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource
+//
+//go:deprecate
 func WithResource[
 	GA ~func() A,
 	GR ~func() R,

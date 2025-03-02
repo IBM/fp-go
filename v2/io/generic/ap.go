@@ -25,13 +25,15 @@ const (
 	useParallel = true
 )
 
-// MonadApSeq implements the applicative on a single thread by first executing mab and the ma
+//go:deprecate MonadApSeq implements the applicative on a single thread by first executing mab and the ma
 func MonadApSeq[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	return MonadChain(mab, F.Bind1st(MonadMap[GA, GB], ma))
 }
 
 // MonadApPar implements the applicative on two threads, the main thread executes mab and the actuall
 // apply operation and the second thread computes ma. Communication between the threads happens via a channel
+//
+//go:deprecate
 func MonadApPar[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	return MakeIO[GB](func() B {
 		c := make(chan A)
@@ -45,6 +47,8 @@ func MonadApPar[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab
 
 // MonadAp implements the `ap` operation. Depending on a feature flag this will be sequential or parallel, the preferred implementation
 // is parallel
+//
+//go:deprecate
 func MonadAp[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GAB, ma GA) GB {
 	if useParallel {
 		return MonadApPar[GA, GB](mab, ma)
@@ -53,6 +57,8 @@ func MonadAp[GA ~func() A, GB ~func() B, GAB ~func() func(A) B, A, B any](mab GA
 }
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.
+//
+//go:deprecate
 func MonadApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](first GA, second GB) GA {
 	return G.MonadApFirst(
 		MonadAp[GB, GA, GBA, B, A],
@@ -64,6 +70,8 @@ func MonadApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](f
 }
 
 // MonadApFirstPar combines two effectful actions, keeping only the result of the first.
+//
+//go:deprecate
 func MonadApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](first GA, second GB) GA {
 	return G.MonadApFirst(
 		MonadApPar[GB, GA, GBA, B, A],
@@ -75,6 +83,8 @@ func MonadApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any
 }
 
 // MonadApFirstSeq combines two effectful actions, keeping only the result of the first.
+//
+//go:deprecate
 func MonadApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](first GA, second GB) GA {
 	return G.MonadApFirst(
 		MonadApSeq[GB, GA, GBA, B, A],
@@ -86,6 +96,8 @@ func MonadApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any
 }
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
+//
+//go:deprecate
 func ApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
 		MonadAp[GB, GA, GBA, B, A],
@@ -96,6 +108,8 @@ func ApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second
 }
 
 // ApFirstPar combines two effectful actions, keeping only the result of the first.
+//
+//go:deprecate
 func ApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
 		MonadApPar[GB, GA, GBA, B, A],
@@ -106,6 +120,8 @@ func ApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](sec
 }
 
 // ApFirstSeq combines two effectful actions, keeping only the result of the first.
+//
+//go:deprecate
 func ApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
 		MonadApSeq[GB, GA, GBA, B, A],
@@ -116,6 +132,8 @@ func ApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](sec
 }
 
 // MonadApSecond combines two effectful actions, keeping only the result of the second.
+//
+//go:deprecate
 func MonadApSecond[GA ~func() A, GB ~func() B, GBB ~func() func(B) B, A, B any](first GA, second GB) GB {
 	return G.MonadApSecond(
 		MonadAp[GB, GB, GBB, B, B],
@@ -127,6 +145,8 @@ func MonadApSecond[GA ~func() A, GB ~func() B, GBB ~func() func(B) B, A, B any](
 }
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
+//
+//go:deprecate
 func ApSecond[GA ~func() A, GB ~func() B, GBB ~func() func(B) B, A, B any](second GB) func(GA) GB {
 	return G.ApSecond(
 		MonadAp[GB, GB, GBB, B, B],

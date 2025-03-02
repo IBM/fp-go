@@ -29,6 +29,8 @@ type retryStatusIO = func() R.RetryStatus
 // policy - refers to the retry policy
 // action - converts a status into an operation to be executed
 // check  - checks if the result of the action needs to be retried
+//go:deprecate
+
 func Retrying[GA ~func() A, A any](
 	policy R.RetryPolicy,
 	action func(R.RetryStatus) GA,

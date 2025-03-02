@@ -25,7 +25,7 @@ type (
 	IOFunctor[A, B any] = functor.Functor[A, B, IO[A], IO[B]]
 )
 
-func (o *ioFunctor[A, B]) Map(f func(A) B) func(IO[A]) IO[B] {
+func (o *ioFunctor[A, B]) Map(f func(A) B) Mapper[A, B] {
 	return Map(f)
 }
 

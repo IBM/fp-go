@@ -23,6 +23,9 @@ import (
 	INTC "github.com/IBM/fp-go/v2/internal/chain"
 	INTF "github.com/IBM/fp-go/v2/internal/functor"
 	INTL "github.com/IBM/fp-go/v2/internal/lazy"
+	M "github.com/IBM/fp-go/v2/monoid"
+	R "github.com/IBM/fp-go/v2/reader"
+	S "github.com/IBM/fp-go/v2/semigroup"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
 
@@ -36,9 +39,15 @@ var (
 	undefined = struct{}{}
 )
 
-// IO represents a synchronous computation that cannot fail
-// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioltagt] for more details
-type IO[A any] = func() A
+type (
+	// IO represents a synchronous computation that cannot fail
+	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioltagt] for more details
+	IO[A any] = func() A
+
+	Mapper[A, B any] = R.Reader[IO[A], IO[B]]
+	Monoid[A any]    = M.Monoid[IO[A]]
+	Semigroup[A any] = S.Semigroup[IO[A]]
+)
 
 func Of[A any](a A) IO[A] {
 	return F.Constant(a)
@@ -66,7 +75,7 @@ func MonadMap[A, B any](fa IO[A], f func(A) B) IO[B] {
 	}
 }
 
-func Map[A, B any](f func(A) B) func(fa IO[A]) IO[B] {
+func Map[A, B any](f func(A) B) Mapper[A, B] {
 	return F.Bind2nd(MonadMap[A, B], f)
 }
 
@@ -74,7 +83,7 @@ func MonadMapTo[A, B any](fa IO[A], b B) IO[B] {
 	return MonadMap(fa, F.Constant1[A](b))
 }
 
-func MapTo[A, B any](b B) func(IO[A]) IO[B] {
+func MapTo[A, B any](b B) Mapper[A, B] {
 	return Map(F.Constant1[A](b))
 }
 
@@ -86,7 +95,7 @@ func MonadChain[A, B any](fa IO[A], f func(A) IO[B]) IO[B] {
 }
 
 // Chain composes computations in sequence, using the return value of one computation to determine the next computation.
-func Chain[A, B any](f func(A) IO[B]) func(IO[A]) IO[B] {
+func Chain[A, B any](f func(A) IO[B]) Mapper[A, B] {
 	return F.Bind2nd(MonadChain[A, B], f)
 }
 
@@ -117,11 +126,11 @@ func MonadAp[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 	return MonadApSeq(mab, ma)
 }
 
-func Ap[B, A any](ma IO[A]) func(IO[func(A) B]) IO[B] {
+func Ap[B, A any](ma IO[A]) Mapper[func(A) B, B] {
 	return F.Bind2nd(MonadAp[A, B], ma)
 }
 
-func ApSeq[B, A any](ma IO[A]) func(IO[func(A) B]) IO[B] {
+func ApSeq[B, A any](ma IO[A]) Mapper[func(A) B, B] {
 	return Chain(F.Bind1st(MonadMap[A, B], ma))
 }
 
@@ -142,7 +151,7 @@ func MonadChainFirst[A, B any](fa IO[A], f func(A) IO[B]) IO[A] {
 
 // ChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
-func ChainFirst[A, B any](f func(A) IO[B]) func(IO[A]) IO[A] {
+func ChainFirst[A, B any](f func(A) IO[B]) Mapper[A, A] {
 	return INTC.ChainFirst(
 		Chain[A, A],
 		Map[B, A],
@@ -162,7 +171,7 @@ func MonadApFirst[A, B any](first IO[A], second IO[B]) IO[A] {
 }
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
-func ApFirst[A, B any](second IO[B]) func(IO[A]) IO[A] {
+func ApFirst[A, B any](second IO[B]) Mapper[A, A] {
 	return INTA.ApFirst(
 		MonadAp[B, A],
 		MonadMap[A, func(B) A],
@@ -183,7 +192,7 @@ func MonadApSecond[A, B any](first IO[A], second IO[B]) IO[B] {
 }
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
-func ApSecond[A, B any](second IO[B]) func(IO[A]) IO[B] {
+func ApSecond[A, B any](second IO[B]) Mapper[A, B] {
 	return INTA.ApSecond(
 		MonadAp[B, B],
 		MonadMap[A, func(B) B],
@@ -198,7 +207,7 @@ func MonadChainTo[A, B any](fa IO[A], fb IO[B]) IO[B] {
 }
 
 // ChainTo composes computations in sequence, ignoring the return value of the first computation
-func ChainTo[A, B any](fb IO[B]) func(IO[A]) IO[B] {
+func ChainTo[A, B any](fb IO[B]) Mapper[A, B] {
 	return Chain(F.Constant1[A](fb))
 }
 
@@ -216,12 +225,12 @@ func MonadFlap[B, A any](fab IO[func(A) B], a A) IO[B] {
 	return INTF.MonadFlap(MonadMap[func(A) B, B], fab, a)
 }
 
-func Flap[B, A any](a A) func(IO[func(A) B]) IO[B] {
+func Flap[B, A any](a A) Mapper[func(A) B, B] {
 	return INTF.Flap(Map[func(A) B, B], a)
 }
 
 // Delay creates an operation that passes in the value after some delay
-func Delay[A any](delay time.Duration) func(IO[A]) IO[A] {
+func Delay[A any](delay time.Duration) Mapper[A, A] {
 	return func(ga IO[A]) IO[A] {
 		return func() A {
 			time.Sleep(delay)
@@ -241,7 +250,7 @@ func after(timestamp time.Time) func() {
 }
 
 // After creates an operation that passes after the given timestamp
-func After[A any](timestamp time.Time) func(IO[A]) IO[A] {
+func After[A any](timestamp time.Time) Mapper[A, A] {
 	aft := after(timestamp)
 	return func(ga IO[A]) IO[A] {
 		return func() A {

@@ -20,10 +20,10 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
-func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[IO[A]] {
+func ApplySemigroup[A any](s S.Semigroup[A]) Semigroup[A] {
 	return S.ApplySemigroup(MonadMap[A, func(A) A], MonadAp[A, A], s)
 }
 
-func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[IO[A]] {
+func ApplicativeMonoid[A any](m M.Monoid[A]) Monoid[A] {
 	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
 }

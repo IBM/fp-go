@@ -28,15 +28,15 @@ func (o *ioMonad[A, B]) Of(a A) IO[A] {
 	return Of(a)
 }
 
-func (o *ioMonad[A, B]) Map(f func(A) B) func(IO[A]) IO[B] {
+func (o *ioMonad[A, B]) Map(f func(A) B) Mapper[A, B] {
 	return Map(f)
 }
 
-func (o *ioMonad[A, B]) Chain(f func(A) IO[B]) func(IO[A]) IO[B] {
+func (o *ioMonad[A, B]) Chain(f func(A) IO[B]) Mapper[A, B] {
 	return Chain(f)
 }
 
-func (o *ioMonad[A, B]) Ap(fa IO[A]) func(IO[func(A) B]) IO[B] {
+func (o *ioMonad[A, B]) Ap(fa IO[A]) Mapper[func(A) B, B] {
 	return Ap[B](fa)
 }
 

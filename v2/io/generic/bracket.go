@@ -21,6 +21,8 @@ import (
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
 // whether the body action returns and error or not.
+//
+//go:deprecate
 func Bracket[
 	GA ~func() A,
 	GB ~func() B,

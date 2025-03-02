@@ -16,24 +16,40 @@
 package io
 
 import (
+	"fmt"
 	"log"
 
-	G "github.com/IBM/fp-go/v2/io/generic"
+	L "github.com/IBM/fp-go/v2/logging"
 )
 
 // Logger constructs a logger function that can be used with ChainXXXIOK
 func Logger[A any](loggers ...*log.Logger) func(string) func(A) IO[any] {
-	return G.Logger[IO[any], A](loggers...)
+	_, right := L.LoggingCallbacks(loggers...)
+	return func(prefix string) func(A) IO[any] {
+		return func(a A) IO[any] {
+			return FromImpure(func() {
+				right("%s: %v", prefix, a)
+			})
+		}
+	}
 }
 
 // Logf constructs a logger function that can be used with ChainXXXIOK
 // the string prefix contains the format string for the log value
 func Logf[A any](prefix string) func(A) IO[any] {
-	return G.Logf[IO[any], A](prefix)
+	return func(a A) IO[any] {
+		return FromImpure(func() {
+			log.Printf(prefix, a)
+		})
+	}
 }
 
 // Printf constructs a printer function that can be used with ChainXXXIOK
 // the string prefix contains the format string for the log value
 func Printf[A any](prefix string) func(A) IO[any] {
-	return G.Printf[IO[any], A](prefix)
+	return func(a A) IO[any] {
+		return FromImpure(func() {
+			fmt.Printf(prefix, a)
+		})
+	}
 }
