@@ -16,17 +16,17 @@
 package ioeither
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	IO "github.com/IBM/fp-go/v2/io"
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad
-func Eq[E, A any](eq EQ.Eq[ET.Either[E, A]]) EQ.Eq[IOEither[E, A]] {
+func Eq[E, A any](eq EQ.Eq[either.Either[E, A]]) EQ.Eq[IOEither[E, A]] {
 	return IO.Eq(eq)
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
 func FromStrictEquals[E, A comparable]() EQ.Eq[IOEither[E, A]] {
-	return Eq(ET.FromStrictEquals[E, A]())
+	return Eq(either.FromStrictEquals[E, A]())
 }

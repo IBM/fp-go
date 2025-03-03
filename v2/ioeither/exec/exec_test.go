@@ -24,7 +24,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/exec"
 	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func TestOpenSSL(t *testing.T) {
 	// execute the openSSL binary
 	version := F.Pipe1(
 		Command("openssl")(RA.From("version"))(B.Monoid.Empty()),
-		IOE.Map[error](F.Flow3(
+		ioeither.Map[error](F.Flow3(
 			exec.StdOut,
 			B.ToString,
 			strings.TrimSpace,

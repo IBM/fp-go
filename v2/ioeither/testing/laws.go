@@ -18,10 +18,10 @@ package testing
 import (
 	"testing"
 
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	L "github.com/IBM/fp-go/v2/internal/monad/testing"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 // AssertLaws asserts the apply monad laws for the `IOEither` monad
@@ -36,38 +36,38 @@ func AssertLaws[E, A, B, C any](t *testing.T,
 ) func(a A) bool {
 
 	return L.AssertLaws(t,
-		IOE.Eq(ET.Eq(eqe, eqa)),
-		IOE.Eq(ET.Eq(eqe, eqb)),
-		IOE.Eq(ET.Eq(eqe, eqc)),
+		ioeither.Eq(either.Eq(eqe, eqa)),
+		ioeither.Eq(either.Eq(eqe, eqb)),
+		ioeither.Eq(either.Eq(eqe, eqc)),
 
-		IOE.Of[E, A],
-		IOE.Of[E, B],
-		IOE.Of[E, C],
+		ioeither.Of[E, A],
+		ioeither.Of[E, B],
+		ioeither.Of[E, C],
 
-		IOE.Of[E, func(A) A],
-		IOE.Of[E, func(A) B],
-		IOE.Of[E, func(B) C],
-		IOE.Of[E, func(func(A) B) B],
+		ioeither.Of[E, func(A) A],
+		ioeither.Of[E, func(A) B],
+		ioeither.Of[E, func(B) C],
+		ioeither.Of[E, func(func(A) B) B],
 
-		IOE.MonadMap[E, A, A],
-		IOE.MonadMap[E, A, B],
-		IOE.MonadMap[E, A, C],
-		IOE.MonadMap[E, B, C],
+		ioeither.MonadMap[E, A, A],
+		ioeither.MonadMap[E, A, B],
+		ioeither.MonadMap[E, A, C],
+		ioeither.MonadMap[E, B, C],
 
-		IOE.MonadMap[E, func(B) C, func(func(A) B) func(A) C],
+		ioeither.MonadMap[E, func(B) C, func(func(A) B) func(A) C],
 
-		IOE.MonadChain[E, A, A],
-		IOE.MonadChain[E, A, B],
-		IOE.MonadChain[E, A, C],
-		IOE.MonadChain[E, B, C],
+		ioeither.MonadChain[E, A, A],
+		ioeither.MonadChain[E, A, B],
+		ioeither.MonadChain[E, A, C],
+		ioeither.MonadChain[E, B, C],
 
-		IOE.MonadAp[A, E, A],
-		IOE.MonadAp[B, E, A],
-		IOE.MonadAp[C, E, B],
-		IOE.MonadAp[C, E, A],
+		ioeither.MonadAp[A, E, A],
+		ioeither.MonadAp[B, E, A],
+		ioeither.MonadAp[C, E, B],
+		ioeither.MonadAp[C, E, A],
 
-		IOE.MonadAp[B, E, func(A) B],
-		IOE.MonadAp[func(A) C, E, func(A) B],
+		ioeither.MonadAp[B, E, func(A) B],
+		ioeither.MonadAp[func(A) C, E, func(A) B],
 
 		ab,
 		bc,

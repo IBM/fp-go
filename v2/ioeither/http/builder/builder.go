@@ -24,7 +24,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
 	H "github.com/IBM/fp-go/v2/http/headers"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 	IOEH "github.com/IBM/fp-go/v2/ioeither/http"
 	LZ "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
@@ -32,8 +32,8 @@ import (
 
 func Requester(builder *R.Builder) IOEH.Requester {
 
-	withBody := F.Curry3(func(data []byte, url string, method string) IOE.IOEither[error, *http.Request] {
-		return IOE.TryCatchError(func() (*http.Request, error) {
+	withBody := F.Curry3(func(data []byte, url string, method string) ioeither.IOEither[error, *http.Request] {
+		return ioeither.TryCatchError(func() (*http.Request, error) {
 			req, err := http.NewRequest(method, url, bytes.NewReader(data))
 			if err == nil {
 				req.Header.Set(H.ContentLength, strconv.Itoa(len(data)))
@@ -43,8 +43,8 @@ func Requester(builder *R.Builder) IOEH.Requester {
 		})
 	})
 
-	withoutBody := F.Curry2(func(url string, method string) IOE.IOEither[error, *http.Request] {
-		return IOE.TryCatchError(func() (*http.Request, error) {
+	withoutBody := F.Curry2(func(url string, method string) ioeither.IOEither[error, *http.Request] {
+		return ioeither.TryCatchError(func() (*http.Request, error) {
 			req, err := http.NewRequest(method, url, nil)
 			if err == nil {
 				H.Monoid.Concat(req.Header, builder.GetHeaders())
@@ -56,10 +56,10 @@ func Requester(builder *R.Builder) IOEH.Requester {
 	return F.Pipe5(
 		builder.GetBody(),
 		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) IOE.IOEither[error, *http.Request]](builder.GetTargetURL()),
-		E.Flap[error, IOE.IOEither[error, *http.Request]](builder.GetMethod()),
-		E.GetOrElse(IOE.Left[*http.Request, error]),
-		IOE.Map[error](func(req *http.Request) *http.Request {
+		E.Ap[func(string) ioeither.IOEither[error, *http.Request]](builder.GetTargetURL()),
+		E.Flap[error, ioeither.IOEither[error, *http.Request]](builder.GetMethod()),
+		E.GetOrElse(ioeither.Left[*http.Request, error]),
+		ioeither.Map[error](func(req *http.Request) *http.Request {
 			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())
 			return req
 		}),

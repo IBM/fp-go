@@ -24,7 +24,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
 	IO "github.com/IBM/fp-go/v2/io"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,10 +42,10 @@ func TestBuilderWithQuery(t *testing.T) {
 	req := F.Pipe3(
 		b,
 		Requester,
-		IOE.Map[error](func(r *http.Request) *url.URL {
+		ioeither.Map[error](func(r *http.Request) *url.URL {
 			return r.URL
 		}),
-		IOE.ChainFirstIOK[error](func(u *url.URL) IO.IO[any] {
+		ioeither.ChainFirstIOK[error](func(u *url.URL) IO.IO[any] {
 			return IO.FromImpure(func() {
 				q := u.Query()
 				assert.Equal(t, "10", q.Get("limit"))

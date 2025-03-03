@@ -16,8 +16,9 @@
 package ioeither
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
+	"github.com/IBM/fp-go/v2/either"
+	BR "github.com/IBM/fp-go/v2/internal/bracket"
+	"github.com/IBM/fp-go/v2/io"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
@@ -25,7 +26,16 @@ import (
 func Bracket[E, A, B, ANY any](
 	acquire IOEither[E, A],
 	use func(A) IOEither[E, B],
-	release func(A, ET.Either[E, B]) IOEither[E, ANY],
+	release func(A, either.Either[E, B]) IOEither[E, ANY],
 ) IOEither[E, B] {
-	return G.Bracket(acquire, use, release)
+	return BR.Bracket[IOEither[E, A], IOEither[E, B], IOEither[E, ANY], either.Either[E, B], A, B](
+		io.Of[either.Either[E, B]],
+		MonadChain[E, A, B],
+		io.MonadChain[either.Either[E, B], either.Either[E, B]],
+		MonadChain[E, ANY, B],
+
+		acquire,
+		use,
+		release,
+	)
 }

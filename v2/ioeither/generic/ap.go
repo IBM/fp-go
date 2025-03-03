@@ -16,12 +16,12 @@
 package generic
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	G "github.com/IBM/fp-go/v2/internal/apply"
 )
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.
-func MonadApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~func() ET.Either[E, func(B) A], E, A, B any](first GA, second GB) GA {
+func MonadApFirst[GA ~func() either.Either[E, A], GB ~func() either.Either[E, B], GBA ~func() either.Either[E, func(B) A], E, A, B any](first GA, second GB) GA {
 	return G.MonadApFirst(
 		MonadAp[GA, GBA, GB],
 		MonadMap[GA, GBA, E, A, func(B) A],
@@ -32,7 +32,7 @@ func MonadApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~f
 }
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
-func ApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~func() ET.Either[E, func(B) A], E, A, B any](second GB) func(GA) GA {
+func ApFirst[GA ~func() either.Either[E, A], GB ~func() either.Either[E, B], GBA ~func() either.Either[E, func(B) A], E, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
 		MonadAp[GA, GBA, GB],
 		MonadMap[GA, GBA, E, A, func(B) A],
@@ -42,7 +42,7 @@ func ApFirst[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBA ~func()
 }
 
 // MonadApSecond combines two effectful actions, keeping only the result of the second.
-func MonadApSecond[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBB ~func() ET.Either[E, func(B) B], E, A, B any](first GA, second GB) GB {
+func MonadApSecond[GA ~func() either.Either[E, A], GB ~func() either.Either[E, B], GBB ~func() either.Either[E, func(B) B], E, A, B any](first GA, second GB) GB {
 	return G.MonadApSecond(
 		MonadAp[GB, GBB, GB],
 		MonadMap[GA, GBB, E, A, func(B) B],
@@ -53,7 +53,7 @@ func MonadApSecond[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBB ~
 }
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
-func ApSecond[GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GBB ~func() ET.Either[E, func(B) B], E, A, B any](second GB) func(GA) GB {
+func ApSecond[GA ~func() either.Either[E, A], GB ~func() either.Either[E, B], GBB ~func() either.Either[E, func(B) B], E, A, B any](second GB) func(GA) GB {
 	return G.ApSecond(
 		MonadAp[GB, GBB, GB],
 		MonadMap[GA, GBB, E, A, func(B) B],

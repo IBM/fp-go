@@ -16,13 +16,21 @@
 package exec
 
 import (
+	"context"
+
 	"github.com/IBM/fp-go/v2/exec"
 	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
+	INTE "github.com/IBM/fp-go/v2/internal/exec"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 var (
 	// Command executes a command
-	Command = F.Curry3(G.Command[IOE.IOEither[error, exec.CommandOutput]])
+	Command = F.Curry3(command)
 )
+
+func command(name string, args []string, in []byte) ioeither.IOEither[error, exec.CommandOutput] {
+	return ioeither.TryCatchError(func() (exec.CommandOutput, error) {
+		return INTE.Exec(context.Background(), name, args, in)
+	})
+}

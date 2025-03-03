@@ -19,14 +19,14 @@ import (
 	"net/http"
 
 	DI "github.com/IBM/fp-go/v2/di"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 	IOEH "github.com/IBM/fp-go/v2/ioeither/http"
 )
 
 var (
 	// InjHttpClient is the [DI.InjectionToken] for the [http.DefaultClient]
-	InjHttpClient = DI.MakeTokenWithDefault0("HTTP_CLIENT", IOE.Of[error](http.DefaultClient))
+	InjHttpClient = DI.MakeTokenWithDefault0("HTTP_CLIENT", ioeither.Of[error](http.DefaultClient))
 
 	// InjClient is the [DI.InjectionToken] for the default [IOEH.Client]
-	InjClient = DI.MakeTokenWithDefault1("CLIENT", InjHttpClient.IOEither(), IOE.Map[error](IOEH.MakeClient))
+	InjClient = DI.MakeTokenWithDefault1("CLIENT", InjHttpClient.IOEither(), ioeither.Map[error](IOEH.MakeClient))
 )
