@@ -21,7 +21,7 @@ import (
 	RR "github.com/IBM/fp-go/v2/internal/record"
 )
 
-//go:deprecate
+// Deprecated:
 func MonadTraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](tas AAS, f func(A) GB) GBS {
 	return RA.MonadTraverse(
 		Of[GBS, BBS],
@@ -33,7 +33,7 @@ func MonadTraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B 
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func MonadTraverseArraySeq[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](tas AAS, f func(A) GB) GBS {
 	return RA.MonadTraverse(
 		Of[GBS, BBS],
@@ -45,7 +45,7 @@ func MonadTraverseArraySeq[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A,
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func MonadTraverseArrayPar[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](tas AAS, f func(A) GB) GBS {
 	return RA.MonadTraverse(
 		Of[GBS, BBS],
@@ -57,7 +57,7 @@ func MonadTraverseArrayPar[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A,
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func TraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(A) GB) func(AAS) GBS {
 	return RA.Traverse[AAS](
 		Of[GBS, BBS],
@@ -68,7 +68,7 @@ func TraverseArray[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func TraverseArraySeq[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(A) GB) func(AAS) GBS {
 	return RA.Traverse[AAS](
 		Of[GBS, BBS],
@@ -79,7 +79,7 @@ func TraverseArraySeq[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B an
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func TraverseArrayPar[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(A) GB) func(AAS) GBS {
 	return RA.Traverse[AAS](
 		Of[GBS, BBS],
@@ -90,7 +90,7 @@ func TraverseArrayPar[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B an
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func TraverseArrayWithIndex[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(int, A) GB) func(AAS) GBS {
 	return RA.TraverseWithIndex[AAS](
 		Of[GBS, BBS],
@@ -101,7 +101,7 @@ func TraverseArrayWithIndex[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func TraverseArrayWithIndexSeq[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(int, A) GB) func(AAS) GBS {
 	return RA.TraverseWithIndex[AAS](
 		Of[GBS, BBS],
@@ -112,7 +112,7 @@ func TraverseArrayWithIndexSeq[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func TraverseArrayWithIndexPar[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B, A, B any](f func(int, A) GB) func(AAS) GBS {
 	return RA.TraverseWithIndex[AAS](
 		Of[GBS, BBS],
@@ -123,22 +123,22 @@ func TraverseArrayWithIndexPar[GB ~func() B, GBS ~func() BBS, AAS ~[]A, BBS ~[]B
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func SequenceArray[GA ~func() A, GAS ~func() AAS, AAS ~[]A, GAAS ~[]GA, A any](tas GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](tas, F.Identity[GA])
 }
 
-//go:deprecate
+// Deprecated:
 func SequenceArraySeq[GA ~func() A, GAS ~func() AAS, AAS ~[]A, GAAS ~[]GA, A any](tas GAAS) GAS {
 	return MonadTraverseArraySeq[GA, GAS](tas, F.Identity[GA])
 }
 
-//go:deprecate
+// Deprecated:
 func SequenceArrayPar[GA ~func() A, GAS ~func() AAS, AAS ~[]A, GAAS ~[]GA, A any](tas GAAS) GAS {
 	return MonadTraverseArrayPar[GA, GAS](tas, F.Identity[GA])
 }
 
-//go:deprecate  MonadTraverseRecord transforms a record using an IO transform an IO of a record
+// Deprecated:   MonadTraverseRecord transforms a record using an IO transform an IO of a record
 func MonadTraverseRecord[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](ma MA, f func(A) GB) GBS {
 	return RR.MonadTraverse[MA](
 		Of[GBS, MB],
@@ -148,7 +148,7 @@ func MonadTraverseRecord[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B,
 	)
 }
 
-//go:deprecate TraverseRecord transforms a record using an IO transform an IO of a record
+// Deprecated:  TraverseRecord transforms a record using an IO transform an IO of a record
 func TraverseRecord[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](f func(A) GB) func(MA) GBS {
 	return RR.Traverse[MA](
 		Of[GBS, MB],
@@ -158,7 +158,7 @@ func TraverseRecord[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K co
 	)
 }
 
-//go:deprecate TraverseRecordWithIndex transforms a record using an IO transform an IO of a record
+// Deprecated:  TraverseRecordWithIndex transforms a record using an IO transform an IO of a record
 func TraverseRecordWithIndex[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](f func(K, A) GB) func(MA) GBS {
 	return RR.TraverseWithIndex[MA](
 		Of[GBS, MB],
@@ -168,12 +168,12 @@ func TraverseRecordWithIndex[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func SequenceRecord[GA ~func() A, GAS ~func() AAS, AAS ~map[K]A, GAAS ~map[K]GA, K comparable, A any](tas GAAS) GAS {
 	return MonadTraverseRecord[GAS](tas, F.Identity[GA])
 }
 
-//go:deprecate  MonadTraverseRecordSeq transforms a record using an IO transform an IO of a record
+// Deprecated:   MonadTraverseRecordSeq transforms a record using an IO transform an IO of a record
 func MonadTraverseRecordSeq[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](ma MA, f func(A) GB) GBS {
 	return RR.MonadTraverse[MA](
 		Of[GBS, MB],
@@ -183,7 +183,7 @@ func MonadTraverseRecordSeq[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K
 	)
 }
 
-//go:deprecate TraverseRecordSeq transforms a record using an IO transform an IO of a record
+// Deprecated:  TraverseRecordSeq transforms a record using an IO transform an IO of a record
 func TraverseRecordSeq[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](f func(A) GB) func(MA) GBS {
 	return RR.Traverse[MA](
 		Of[GBS, MB],
@@ -193,7 +193,7 @@ func TraverseRecordSeq[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K
 	)
 }
 
-//go:deprecate TraverseRecordWithIndexSeq transforms a record using an IO transform an IO of a record
+// Deprecated:  TraverseRecordWithIndexSeq transforms a record using an IO transform an IO of a record
 func TraverseRecordWithIndexSeq[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](f func(K, A) GB) func(MA) GBS {
 	return RR.TraverseWithIndex[MA](
 		Of[GBS, MB],
@@ -203,12 +203,12 @@ func TraverseRecordWithIndexSeq[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~m
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func SequenceRecordSeq[GA ~func() A, GAS ~func() AAS, AAS ~map[K]A, GAAS ~map[K]GA, K comparable, A any](tas GAAS) GAS {
 	return MonadTraverseRecordSeq[GAS](tas, F.Identity[GA])
 }
 
-//go:deprecate MonadTraverseRecordPar transforms a record using an IO transform an IO of a record
+// Deprecated:  MonadTraverseRecordPar transforms a record using an IO transform an IO of a record
 func MonadTraverseRecordPar[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](ma MA, f func(A) GB) GBS {
 	return RR.MonadTraverse[MA](
 		Of[GBS, MB],
@@ -218,7 +218,7 @@ func MonadTraverseRecordPar[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K
 	)
 }
 
-//go:deprecate TraverseRecordPar transforms a record using an IO transform an IO of a record
+// Deprecated:  TraverseRecordPar transforms a record using an IO transform an IO of a record
 func TraverseRecordPar[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K comparable, A, B any](f func(A) GB) func(MA) GBS {
 	return RR.Traverse[MA](
 		Of[GBS, MB],
@@ -228,7 +228,7 @@ func TraverseRecordPar[GBS ~func() MB, MA ~map[K]A, GB ~func() B, MB ~map[K]B, K
 	)
 }
 
-//go:deprecate TraverseRecordWithIndexPar transforms a record using an IO transform an IO of a record
+// Deprecated:  TraverseRecordWithIndexPar transforms a record using an IO transform an IO of a record
 func TraverseRecordWithIndexPar[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~map[K]B, K comparable, A, B any](f func(K, A) GB) func(MA) GBS {
 	return RR.TraverseWithIndex[MA](
 		Of[GBS, MB],
@@ -238,7 +238,7 @@ func TraverseRecordWithIndexPar[GB ~func() B, GBS ~func() MB, MA ~map[K]A, MB ~m
 	)
 }
 
-//go:deprecate
+// Deprecated:
 func SequenceRecordPar[GA ~func() A, GAS ~func() AAS, AAS ~map[K]A, GAAS ~map[K]GA, K comparable, A any](tas GAAS) GAS {
 	return MonadTraverseRecordPar[GAS](tas, F.Identity[GA])
 }

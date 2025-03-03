@@ -16,27 +16,45 @@
 package ioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
-	M "github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/monoid"
+)
+
+type (
+	Monoid[E, A any] = monoid.Monoid[IOEither[E, A]]
 )
 
 // ApplicativeMonoid returns a [Monoid] that concatenates [IOEither] instances via their applicative
 func ApplicativeMonoid[E, A any](
-	m M.Monoid[A],
-) M.Monoid[IOEither[E, A]] {
-	return G.ApplicativeMonoid[IOEither[E, A], IOEither[E, func(A) A]](m)
+	m monoid.Monoid[A],
+) Monoid[E, A] {
+	return monoid.ApplicativeMonoid(
+		MonadOf[E, A],
+		MonadMap[E, A, func(A) A],
+		MonadAp[A, E, A],
+		m,
+	)
 }
 
 // ApplicativeMonoid returns a [Monoid] that concatenates [IOEither] instances via their applicative
 func ApplicativeMonoidSeq[E, A any](
-	m M.Monoid[A],
-) M.Monoid[IOEither[E, A]] {
-	return G.ApplicativeMonoidSeq[IOEither[E, A], IOEither[E, func(A) A]](m)
+	m monoid.Monoid[A],
+) Monoid[E, A] {
+	return monoid.ApplicativeMonoid(
+		MonadOf[E, A],
+		MonadMap[E, A, func(A) A],
+		MonadApSeq[A, E, A],
+		m,
+	)
 }
 
 // ApplicativeMonoid returns a [Monoid] that concatenates [IOEither] instances via their applicative
 func ApplicativeMonoidPar[E, A any](
-	m M.Monoid[A],
-) M.Monoid[IOEither[E, A]] {
-	return G.ApplicativeMonoid[IOEither[E, A], IOEither[E, func(A) A]](m)
+	m monoid.Monoid[A],
+) Monoid[E, A] {
+	return monoid.ApplicativeMonoid(
+		MonadOf[E, A],
+		MonadMap[E, A, func(A) A],
+		MonadApPar[A, E, A],
+		m,
+	)
 }

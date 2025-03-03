@@ -21,24 +21,24 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
 	IOF "github.com/IBM/fp-go/v2/io/file"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 var (
 	// CreateTemp created a temp file with proper parametrization
-	CreateTemp = IOE.Eitherize2(os.CreateTemp)
+	CreateTemp = ioeither.Eitherize2(os.CreateTemp)
 	// onCreateTempFile creates a temp file with sensible defaults
 	onCreateTempFile = CreateTemp("", "*")
 	// destroy handler
 	onReleaseTempFile = F.Flow4(
 		IOF.Close[*os.File],
 		IO.Map((*os.File).Name),
-		IOE.FromIO[error, string],
-		IOE.Chain(Remove),
+		ioeither.FromIO[error, string],
+		ioeither.Chain(Remove),
 	)
 )
 
 // WithTempFile creates a temporary file, then invokes a callback to create a resource based on the file, then close and remove the temp file
-func WithTempFile[A any](f func(*os.File) IOE.IOEither[error, A]) IOE.IOEither[error, A] {
-	return IOE.WithResource[A](onCreateTempFile, onReleaseTempFile)(f)
+func WithTempFile[A any](f func(*os.File) ioeither.IOEither[error, A]) ioeither.IOEither[error, A] {
+	return ioeither.WithResource[A](onCreateTempFile, onReleaseTempFile)(f)
 }

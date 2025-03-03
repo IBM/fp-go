@@ -16,19 +16,28 @@
 package ioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
-)
+	"encoding/json"
+	"log"
 
-// LogJson converts the argument to pretty printed JSON and then logs it via the format string
-// Can be used with [ChainFirst]
-//
-// Deprecated: use [LogJSON] instead
-func LogJson[A any](prefix string) func(A) IOEither[error, any] {
-	return G.LogJson[IOEither[error, any], A](prefix)
-}
+	"github.com/IBM/fp-go/v2/bytes"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
+)
 
 // LogJSON converts the argument to pretty printed JSON and then logs it via the format string
 // Can be used with [ChainFirst]
 func LogJSON[A any](prefix string) func(A) IOEither[error, any] {
-	return G.LogJSON[IOEither[error, any], A](prefix)
+	return func(a A) IOEither[error, any] {
+		// log this
+		return function.Pipe3(
+			either.TryCatchError(json.MarshalIndent(a, "", "  ")),
+			either.Map[error](bytes.ToString),
+			FromEither[error, string],
+			Chain(func(data string) IOEither[error, any] {
+				return FromImpure[error](func() {
+					log.Printf(prefix, data)
+				})
+			}),
+		)
+	}
 }

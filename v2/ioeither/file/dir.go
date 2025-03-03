@@ -18,19 +18,19 @@ package file
 import (
 	"os"
 
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 // MkdirAll create a sequence of directories, see [os.MkdirAll]
-func MkdirAll(path string, perm os.FileMode) IOE.IOEither[error, string] {
-	return IOE.TryCatchError(func() (string, error) {
+func MkdirAll(path string, perm os.FileMode) ioeither.IOEither[error, string] {
+	return ioeither.TryCatchError(func() (string, error) {
 		return path, os.MkdirAll(path, perm)
 	})
 }
 
 // Mkdir create a directory, see [os.Mkdir]
-func Mkdir(path string, perm os.FileMode) IOE.IOEither[error, string] {
-	return IOE.TryCatchError(func() (string, error) {
+func Mkdir(path string, perm os.FileMode) ioeither.IOEither[error, string] {
+	return ioeither.TryCatchError(func() (string, error) {
 		return path, os.Mkdir(path, perm)
 	})
 }

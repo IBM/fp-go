@@ -16,11 +16,16 @@
 package ioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
-	S "github.com/IBM/fp-go/v2/semigroup"
+	"github.com/IBM/fp-go/v2/semigroup"
+)
+
+type (
+	Semigroup[E, A any] = semigroup.Semigroup[IOEither[E, A]]
 )
 
 // AltSemigroup is a [Semigroup] that tries the first item and then the second one using an alternative
-func AltSemigroup[E, A any]() S.Semigroup[IOEither[E, A]] {
-	return G.AltSemigroup[IOEither[E, A]]()
+func AltSemigroup[E, A any]() semigroup.Semigroup[IOEither[E, A]] {
+	return semigroup.AltSemigroup(
+		MonadAlt[E, A],
+	)
 }

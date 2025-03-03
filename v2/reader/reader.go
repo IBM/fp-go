@@ -28,7 +28,7 @@ type Reader[R, A any] = func(R) A
 
 // MakeReader creates a reader, i.e. a method that accepts a context and that returns a value
 //
-//go:deprecate
+// Deprecated:
 func MakeReader[R, A any](r Reader[R, A]) Reader[R, A] {
 	return r
 }

@@ -18,12 +18,12 @@ package file
 import (
 	"io"
 
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
-func onWriteAll[W io.Writer](data []byte) func(w W) IOE.IOEither[error, []byte] {
-	return func(w W) IOE.IOEither[error, []byte] {
-		return IOE.TryCatchError(func() ([]byte, error) {
+func onWriteAll[W io.Writer](data []byte) func(w W) ioeither.IOEither[error, []byte] {
+	return func(w W) ioeither.IOEither[error, []byte] {
+		return ioeither.TryCatchError(func() ([]byte, error) {
 			_, err := w.Write(data)
 			return data, err
 		})
@@ -31,10 +31,10 @@ func onWriteAll[W io.Writer](data []byte) func(w W) IOE.IOEither[error, []byte] 
 }
 
 // WriteAll uses a generator function to create a stream, writes data to it and closes it
-func WriteAll[W io.WriteCloser](data []byte) func(acquire IOE.IOEither[error, W]) IOE.IOEither[error, []byte] {
+func WriteAll[W io.WriteCloser](data []byte) func(acquire ioeither.IOEither[error, W]) ioeither.IOEither[error, []byte] {
 	onWrite := onWriteAll[W](data)
-	return func(onCreate IOE.IOEither[error, W]) IOE.IOEither[error, []byte] {
-		return IOE.WithResource[[]byte](
+	return func(onCreate ioeither.IOEither[error, W]) ioeither.IOEither[error, []byte] {
+		return ioeither.WithResource[[]byte](
 			onCreate,
 			Close[W])(
 			onWrite,
@@ -43,8 +43,8 @@ func WriteAll[W io.WriteCloser](data []byte) func(acquire IOE.IOEither[error, W]
 }
 
 // Write uses a generator function to create a stream, writes data to it and closes it
-func Write[R any, W io.WriteCloser](acquire IOE.IOEither[error, W]) func(use func(W) IOE.IOEither[error, R]) IOE.IOEither[error, R] {
-	return IOE.WithResource[R](
+func Write[R any, W io.WriteCloser](acquire ioeither.IOEither[error, W]) func(use func(W) ioeither.IOEither[error, R]) ioeither.IOEither[error, R] {
+	return ioeither.WithResource[R](
 		acquire,
 		Close[W])
 }

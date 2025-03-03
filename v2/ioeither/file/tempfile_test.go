@@ -21,7 +21,7 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,11 +34,11 @@ func TestWithTempFile(t *testing.T) {
 
 func TestWithTempFileOnClosedFile(t *testing.T) {
 
-	res := WithTempFile(func(f *os.File) IOE.IOEither[error, []byte] {
+	res := WithTempFile(func(f *os.File) ioeither.IOEither[error, []byte] {
 		return F.Pipe2(
 			f,
 			onWriteAll[*os.File]([]byte("Carsten")),
-			IOE.ChainFirst(F.Constant1[[]byte](Close(f))),
+			ioeither.ChainFirst(F.Constant1[[]byte](Close(f))),
 		)
 	})
 

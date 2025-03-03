@@ -20,21 +20,21 @@ import (
 
 	FL "github.com/IBM/fp-go/v2/file"
 	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 var (
 	// readAll is the adapted version of [io.ReadAll]
-	readAll = IOE.Eitherize1(io.ReadAll)
+	readAll = ioeither.Eitherize1(io.ReadAll)
 )
 
 // ReadAll uses a generator function to create a stream, reads it and closes it
-func ReadAll[R io.ReadCloser](acquire IOE.IOEither[error, R]) IOE.IOEither[error, []byte] {
+func ReadAll[R io.ReadCloser](acquire ioeither.IOEither[error, R]) ioeither.IOEither[error, []byte] {
 	return F.Pipe1(
 		F.Flow2(
 			FL.ToReader[R],
 			readAll,
 		),
-		IOE.WithResource[[]byte](acquire, Close[R]),
+		ioeither.WithResource[[]byte](acquire, Close[R]),
 	)
 }

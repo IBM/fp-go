@@ -19,37 +19,37 @@ import (
 	"io"
 	"os"
 
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 var (
 	// Open opens a file for reading
-	Open = IOE.Eitherize1(os.Open)
+	Open = ioeither.Eitherize1(os.Open)
 	// Create opens a file for writing
-	Create = IOE.Eitherize1(os.Create)
+	Create = ioeither.Eitherize1(os.Create)
 	// ReadFile reads the context of a file
-	ReadFile = IOE.Eitherize1(os.ReadFile)
+	ReadFile = ioeither.Eitherize1(os.ReadFile)
 )
 
 // WriteFile writes a data blob to a file
-func WriteFile(dstName string, perm os.FileMode) func([]byte) IOE.IOEither[error, []byte] {
-	return func(data []byte) IOE.IOEither[error, []byte] {
-		return IOE.TryCatchError(func() ([]byte, error) {
+func WriteFile(dstName string, perm os.FileMode) func([]byte) ioeither.IOEither[error, []byte] {
+	return func(data []byte) ioeither.IOEither[error, []byte] {
+		return ioeither.TryCatchError(func() ([]byte, error) {
 			return data, os.WriteFile(dstName, data, perm)
 		})
 	}
 }
 
 // Remove removes a file by name
-func Remove(name string) IOE.IOEither[error, string] {
-	return IOE.TryCatchError(func() (string, error) {
+func Remove(name string) ioeither.IOEither[error, string] {
+	return ioeither.TryCatchError(func() (string, error) {
 		return name, os.Remove(name)
 	})
 }
 
 // Close closes an object
-func Close[C io.Closer](c C) IOE.IOEither[error, any] {
-	return IOE.TryCatchError(func() (any, error) {
+func Close[C io.Closer](c C) ioeither.IOEither[error, any] {
+	return ioeither.TryCatchError(func() (any, error) {
 		return c, c.Close()
 	})
 }

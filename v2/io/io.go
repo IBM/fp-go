@@ -134,6 +134,10 @@ func ApSeq[B, A any](ma IO[A]) Mapper[func(A) B, B] {
 	return Chain(F.Bind1st(MonadMap[A, B], ma))
 }
 
+func ApPar[B, A any](ma IO[A]) Mapper[func(A) B, B] {
+	return F.Bind2nd(MonadApPar[A, B], ma)
+}
+
 func Flatten[A any](mma IO[IO[A]]) IO[A] {
 	return MonadChain(mma, F.Identity)
 }

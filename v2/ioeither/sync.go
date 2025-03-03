@@ -18,11 +18,11 @@ package ioeither
 import (
 	"context"
 
-	IO "github.com/IBM/fp-go/v2/io"
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/io"
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
-func WithLock[E, A any](lock IO.IO[context.CancelFunc]) func(fa IOEither[E, A]) IOEither[E, A] {
-	return G.WithLock[IOEither[E, A]](lock)
+func WithLock[E, A any](lock io.IO[context.CancelFunc]) func(fa IOEither[E, A]) IOEither[E, A] {
+	return io.WithLock[either.Either[E, A]](lock)
 }

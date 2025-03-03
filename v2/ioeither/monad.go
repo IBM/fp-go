@@ -19,20 +19,51 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/monad"
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
 )
 
-// Pointed returns the pointed operations for [IOEither]
+type (
+	ioEitherPointed[E, A any] struct{}
+
+	ioEitherMonad[E, A, B any] struct{}
+
+	ioEitherFunctor[E, A, B any] struct{}
+)
+
+func (o *ioEitherPointed[E, A]) Of(a A) IOEither[E, A] {
+	return Of[E, A](a)
+}
+
+func (o *ioEitherMonad[E, A, B]) Of(a A) IOEither[E, A] {
+	return Of[E, A](a)
+}
+
+func (o *ioEitherMonad[E, A, B]) Map(f func(A) B) Mapper[E, A, B] {
+	return Map[E, A, B](f)
+}
+
+func (o *ioEitherMonad[E, A, B]) Chain(f func(A) IOEither[E, B]) Mapper[E, A, B] {
+	return Chain[E, A, B](f)
+}
+
+func (o *ioEitherMonad[E, A, B]) Ap(fa IOEither[E, A]) Mapper[E, func(A) B, B] {
+	return Ap[B, E, A](fa)
+}
+
+func (o *ioEitherFunctor[E, A, B]) Map(f func(A) B) Mapper[E, A, B] {
+	return Map[E, A, B](f)
+}
+
+// Pointed implements the pointed operations for [IOEither]
 func Pointed[E, A any]() pointed.Pointed[A, IOEither[E, A]] {
-	return G.Pointed[E, A, IOEither[E, A]]()
+	return &ioEitherPointed[E, A]{}
 }
 
-// Functor returns the functor operations for [IOEither]
+// Functor implements the monadic operations for [IOEither]
 func Functor[E, A, B any]() functor.Functor[A, B, IOEither[E, A], IOEither[E, B]] {
-	return G.Functor[E, A, B, IOEither[E, A], IOEither[E, B]]()
+	return &ioEitherFunctor[E, A, B]{}
 }
 
-// Monad returns the monadic operations for [IOEither]
+// Monad implements the monadic operations for [IOEither]
 func Monad[E, A, B any]() monad.Monad[A, B, IOEither[E, A], IOEither[E, B], IOEither[E, func(A) B]] {
-	return G.Monad[E, A, B, IOEither[E, A], IOEither[E, B], IOEither[E, func(A) B]]()
+	return &ioEitherMonad[E, A, B]{}
 }
