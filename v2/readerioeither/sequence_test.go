@@ -19,7 +19,7 @@ import (
 	"context"
 	"testing"
 
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,5 +34,5 @@ func TestSequence2(t *testing.T) {
 	res := s2(first, second)
 
 	ctx := context.Background()
-	assert.Equal(t, ET.Right[error](T.MakeTuple2("a", 1)), res(ctx)())
+	assert.Equal(t, either.Right[error](T.MakeTuple2("a", 1)), res(ctx)())
 }

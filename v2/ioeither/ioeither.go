@@ -34,19 +34,22 @@ import (
 )
 
 type (
+	IO[A any]        = io.IO[A]
+	Either[E, A any] = either.Either[E, A]
+
 	// IOEither represents a synchronous computation that may fail
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
-	IOEither[E, A any] = io.IO[either.Either[E, A]]
+	IOEither[E, A any] = IO[Either[E, A]]
 
 	Mapper[E, A, B any] = R.Reader[IOEither[E, A], IOEither[E, B]]
 )
 
 func Left[A, E any](l E) IOEither[E, A] {
-	return eithert.Left(io.MonadOf[either.Either[E, A]], l)
+	return eithert.Left(io.MonadOf[Either[E, A]], l)
 }
 
 func Right[E, A any](r A) IOEither[E, A] {
-	return eithert.Right(io.MonadOf[either.Either[E, A]], r)
+	return eithert.Right(io.MonadOf[Either[E, A]], r)
 }
 
 func Of[E, A any](r A) IOEither[E, A] {
@@ -57,15 +60,15 @@ func MonadOf[E, A any](r A) IOEither[E, A] {
 	return Of[E](r)
 }
 
-func LeftIO[A, E any](ml io.IO[E]) IOEither[E, A] {
-	return eithert.LeftF(io.MonadMap[E, either.Either[E, A]], ml)
+func LeftIO[A, E any](ml IO[E]) IOEither[E, A] {
+	return eithert.LeftF(io.MonadMap[E, Either[E, A]], ml)
 }
 
-func RightIO[E, A any](mr io.IO[A]) IOEither[E, A] {
-	return eithert.RightF(io.MonadMap[A, either.Either[E, A]], mr)
+func RightIO[E, A any](mr IO[A]) IOEither[E, A] {
+	return eithert.RightF(io.MonadMap[A, Either[E, A]], mr)
 }
 
-func FromEither[E, A any](e either.Either[E, A]) IOEither[E, A] {
+func FromEither[E, A any](e Either[E, A]) IOEither[E, A] {
 	return io.Of(e)
 }
 
@@ -88,7 +91,7 @@ func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(I
 	)
 }
 
-func MonadChainIOK[E, A, B any](ma IOEither[E, A], f func(A) io.IO[B]) IOEither[E, B] {
+func MonadChainIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEither[E, B] {
 	return fromio.MonadChainIOK(
 		MonadChain[E, A, B],
 		FromIO[E, B],
@@ -97,7 +100,7 @@ func MonadChainIOK[E, A, B any](ma IOEither[E, A], f func(A) io.IO[B]) IOEither[
 	)
 }
 
-func ChainIOK[E, A, B any](f func(A) io.IO[B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainIOK[E, A, B any](f func(A) IO[B]) func(IOEither[E, A]) IOEither[E, B] {
 	return fromio.ChainIOK(
 		Chain[E, A, B],
 		FromIO[E, B],
@@ -110,7 +113,7 @@ func ChainLazyK[E, A, B any](f func(A) lazy.Lazy[B]) func(IOEither[E, A]) IOEith
 }
 
 // FromIO creates an [IOEither] from an [IO] instance, invoking [IO] for each invocation of [IOEither]
-func FromIO[E, A any](mr io.IO[A]) IOEither[E, A] {
+func FromIO[E, A any](mr IO[A]) IOEither[E, A] {
 	return RightIO[E](mr)
 }
 
@@ -120,11 +123,11 @@ func FromLazy[E, A any](mr lazy.Lazy[A]) IOEither[E, A] {
 }
 
 func MonadMap[E, A, B any](fa IOEither[E, A], f func(A) B) IOEither[E, B] {
-	return eithert.MonadMap(io.MonadMap[either.Either[E, A], either.Either[E, B]], fa, f)
+	return eithert.MonadMap(io.MonadMap[Either[E, A], Either[E, B]], fa, f)
 }
 
 func Map[E, A, B any](f func(A) B) Mapper[E, A, B] {
-	return eithert.Map(io.Map[either.Either[E, A], either.Either[E, B]], f)
+	return eithert.Map(io.Map[Either[E, A], Either[E, B]], f)
 }
 
 func MonadMapTo[E, A, B any](fa IOEither[E, A], b B) IOEither[E, B] {
@@ -136,14 +139,14 @@ func MapTo[E, A, B any](b B) Mapper[E, A, B] {
 }
 
 func MonadChain[E, A, B any](fa IOEither[E, A], f func(A) IOEither[E, B]) IOEither[E, B] {
-	return eithert.MonadChain(io.MonadChain[either.Either[E, A], either.Either[E, B]], io.MonadOf[either.Either[E, B]], fa, f)
+	return eithert.MonadChain(io.MonadChain[Either[E, A], Either[E, B]], io.MonadOf[Either[E, B]], fa, f)
 }
 
 func Chain[E, A, B any](f func(A) IOEither[E, B]) Mapper[E, A, B] {
-	return eithert.Chain(io.Chain[either.Either[E, A], either.Either[E, B]], io.Of[either.Either[E, B]], f)
+	return eithert.Chain(io.Chain[Either[E, A], Either[E, B]], io.Of[Either[E, B]], f)
 }
 
-func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f func(A) either.Either[E, B]) IOEither[E, B] {
+func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f func(A) Either[E, B]) IOEither[E, B] {
 	return fromeither.MonadChainEitherK(
 		MonadChain[E, A, B],
 		FromEither[E, B],
@@ -152,7 +155,7 @@ func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f func(A) either.Either[E
 	)
 }
 
-func ChainEitherK[E, A, B any](f func(A) either.Either[E, B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainEitherK[E, A, B any](f func(A) Either[E, B]) func(IOEither[E, A]) IOEither[E, B] {
 	return fromeither.ChainEitherK(
 		Chain[E, A, B],
 		FromEither[E, B],
@@ -162,46 +165,46 @@ func ChainEitherK[E, A, B any](f func(A) either.Either[E, B]) func(IOEither[E, A
 
 func MonadAp[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEither[E, B] {
 	return eithert.MonadAp(
-		io.MonadAp[either.Either[E, A], either.Either[E, B]],
-		io.MonadMap[either.Either[E, func(A) B], func(either.Either[E, A]) either.Either[E, B]],
+		io.MonadAp[Either[E, A], Either[E, B]],
+		io.MonadMap[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
 		mab, ma)
 }
 
 // Ap is an alias of [ApPar]
 func Ap[B, E, A any](ma IOEither[E, A]) Mapper[E, func(A) B, B] {
 	return eithert.Ap(
-		io.Ap[either.Either[E, B], either.Either[E, A]],
-		io.Map[either.Either[E, func(A) B], func(either.Either[E, A]) either.Either[E, B]],
+		io.Ap[Either[E, B], Either[E, A]],
+		io.Map[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
 		ma)
 }
 
 func MonadApPar[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEither[E, B] {
 	return eithert.MonadAp(
-		io.MonadApPar[either.Either[E, A], either.Either[E, B]],
-		io.MonadMap[either.Either[E, func(A) B], func(either.Either[E, A]) either.Either[E, B]],
+		io.MonadApPar[Either[E, A], Either[E, B]],
+		io.MonadMap[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
 		mab, ma)
 }
 
 // ApPar applies function and value in parallel
 func ApPar[B, E, A any](ma IOEither[E, A]) Mapper[E, func(A) B, B] {
 	return eithert.Ap(
-		io.ApPar[either.Either[E, B], either.Either[E, A]],
-		io.Map[either.Either[E, func(A) B], func(either.Either[E, A]) either.Either[E, B]],
+		io.ApPar[Either[E, B], Either[E, A]],
+		io.Map[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
 		ma)
 }
 
 func MonadApSeq[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEither[E, B] {
 	return eithert.MonadAp(
-		io.MonadApSeq[either.Either[E, A], either.Either[E, B]],
-		io.MonadMap[either.Either[E, func(A) B], func(either.Either[E, A]) either.Either[E, B]],
+		io.MonadApSeq[Either[E, A], Either[E, B]],
+		io.MonadMap[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
 		mab, ma)
 }
 
 // ApSeq applies function and value sequentially
 func ApSeq[B, E, A any](ma IOEither[E, A]) func(IOEither[E, func(A) B]) IOEither[E, B] {
 	return eithert.Ap(
-		io.ApSeq[either.Either[E, B], either.Either[E, A]],
-		io.Map[either.Either[E, func(A) B], func(either.Either[E, A]) either.Either[E, B]],
+		io.ApSeq[Either[E, B], Either[E, A]],
+		io.Map[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
 		ma)
 }
 
@@ -210,14 +213,14 @@ func Flatten[E, A any](mma IOEither[E, IOEither[E, A]]) IOEither[E, A] {
 }
 
 func TryCatch[E, A any](f func() (A, error), onThrow func(error) E) IOEither[E, A] {
-	return func() either.Either[E, A] {
+	return func() Either[E, A] {
 		a, err := f()
 		return either.TryCatch(a, err, onThrow)
 	}
 }
 
 func TryCatchError[A any](f func() (A, error)) IOEither[error, A] {
-	return func() either.Either[error, A] {
+	return func() Either[error, A] {
 		return either.TryCatchError(f())
 	}
 }
@@ -228,7 +231,7 @@ func Memoize[E, A any](ma IOEither[E, A]) IOEither[E, A] {
 
 func MonadMapLeft[E1, E2, A any](fa IOEither[E1, A], f func(E1) E2) IOEither[E2, A] {
 	return eithert.MonadMapLeft(
-		io.MonadMap[either.Either[E1, A], either.Either[E2, A]],
+		io.MonadMap[Either[E1, A], Either[E2, A]],
 		fa,
 		f,
 	)
@@ -236,28 +239,28 @@ func MonadMapLeft[E1, E2, A any](fa IOEither[E1, A], f func(E1) E2) IOEither[E2,
 
 func MapLeft[A, E1, E2 any](f func(E1) E2) func(IOEither[E1, A]) IOEither[E2, A] {
 	return eithert.MapLeft(
-		io.Map[either.Either[E1, A], either.Either[E2, A]],
+		io.Map[Either[E1, A], Either[E2, A]],
 		f,
 	)
 }
 
 func MonadBiMap[E1, E2, A, B any](fa IOEither[E1, A], f func(E1) E2, g func(A) B) IOEither[E2, B] {
-	return eithert.MonadBiMap(io.MonadMap[either.Either[E1, A], either.Either[E2, B]], fa, f, g)
+	return eithert.MonadBiMap(io.MonadMap[Either[E1, A], Either[E2, B]], fa, f, g)
 }
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
 func BiMap[E1, E2, A, B any](f func(E1) E2, g func(A) B) func(IOEither[E1, A]) IOEither[E2, B] {
-	return eithert.BiMap(io.Map[either.Either[E1, A], either.Either[E2, B]], f, g)
+	return eithert.BiMap(io.Map[Either[E1, A], Either[E2, B]], f, g)
 }
 
 // Fold converts an IOEither into an IO
-func Fold[E, A, B any](onLeft func(E) io.IO[B], onRight func(A) io.IO[B]) func(IOEither[E, A]) io.IO[B] {
-	return eithert.MatchE(io.MonadChain[either.Either[E, A], B], onLeft, onRight)
+func Fold[E, A, B any](onLeft func(E) IO[B], onRight func(A) IO[B]) func(IOEither[E, A]) IO[B] {
+	return eithert.MatchE(io.MonadChain[Either[E, A], B], onLeft, onRight)
 }
 
 // GetOrElse extracts the value or maps the error
-func GetOrElse[E, A any](onLeft func(E) io.IO[A]) func(IOEither[E, A]) io.IO[A] {
-	return eithert.GetOrElse(io.MonadChain[either.Either[E, A], A], io.MonadOf[A], onLeft)
+func GetOrElse[E, A any](onLeft func(E) IO[A]) func(IOEither[E, A]) IO[A] {
+	return eithert.GetOrElse(io.MonadChain[Either[E, A], A], io.MonadOf[A], onLeft)
 }
 
 // MonadChainTo composes to the second monad ignoring the return value of the first
@@ -289,7 +292,7 @@ func ChainFirst[E, A, B any](f func(A) IOEither[E, B]) Mapper[E, A, A] {
 	)
 }
 
-func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) either.Either[E, B]) IOEither[E, A] {
+func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) Either[E, B]) IOEither[E, A] {
 	return fromeither.MonadChainFirstEitherK(
 		MonadChain[E, A, A],
 		MonadMap[E, B, A],
@@ -299,7 +302,7 @@ func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) either.Eit
 	)
 }
 
-func ChainFirstEitherK[A, E, B any](f func(A) either.Either[E, B]) Mapper[E, A, A] {
+func ChainFirstEitherK[A, E, B any](f func(A) Either[E, B]) Mapper[E, A, A] {
 	return fromeither.ChainFirstEitherK(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -309,7 +312,7 @@ func ChainFirstEitherK[A, E, B any](f func(A) either.Either[E, B]) Mapper[E, A, 
 }
 
 // MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
-func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) io.IO[B]) IOEither[E, A] {
+func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEither[E, A] {
 	return fromio.MonadChainFirstIOK(
 		MonadChain[E, A, A],
 		MonadMap[E, B, A],
@@ -320,7 +323,7 @@ func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) io.IO[B]) IOEi
 }
 
 // ChainFirstIOK runs the [IO] monad returned by the function but returns the result of the original monad
-func ChainFirstIOK[E, A, B any](f func(A) io.IO[B]) func(IOEither[E, A]) IOEither[E, A] {
+func ChainFirstIOK[E, A, B any](f func(A) IO[B]) func(IOEither[E, A]) IOEither[E, A] {
 	return fromio.ChainFirstIOK(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -329,16 +332,16 @@ func ChainFirstIOK[E, A, B any](f func(A) io.IO[B]) func(IOEither[E, A]) IOEithe
 	)
 }
 
-func MonadFold[E, A, B any](ma IOEither[E, A], onLeft func(E) io.IO[B], onRight func(A) io.IO[B]) io.IO[B] {
-	return eithert.FoldE(io.MonadChain[either.Either[E, A], B], ma, onLeft, onRight)
+func MonadFold[E, A, B any](ma IOEither[E, A], onLeft func(E) IO[B], onRight func(A) IO[B]) IO[B] {
+	return eithert.FoldE(io.MonadChain[Either[E, A], B], ma, onLeft, onRight)
 }
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource
 func WithResource[A, E, R, ANY any](onCreate IOEither[E, R], onRelease func(R) IOEither[E, ANY]) func(func(R) IOEither[E, A]) IOEither[E, A] {
 	return file.WithResource(
 		MonadChain[E, R, A],
-		MonadFold[E, A, either.Either[E, A]],
-		MonadFold[E, ANY, either.Either[E, A]],
+		MonadFold[E, A, Either[E, A]],
+		MonadFold[E, ANY, Either[E, A]],
 		MonadMap[E, ANY, A],
 		Left[A, E],
 	)(function.Constant(onCreate), onRelease)
@@ -366,8 +369,8 @@ func Defer[E, A any](gen lazy.Lazy[IOEither[E, A]]) IOEither[E, A] {
 // MonadAlt identifies an associative operation on a type constructor
 func MonadAlt[E, A any](first IOEither[E, A], second lazy.Lazy[IOEither[E, A]]) IOEither[E, A] {
 	return eithert.MonadAlt(
-		io.Of[either.Either[E, A]],
-		io.MonadChain[either.Either[E, A], either.Either[E, A]],
+		io.Of[Either[E, A]],
+		io.MonadChain[Either[E, A], Either[E, A]],
 
 		first,
 		second,
@@ -397,10 +400,10 @@ func ToIOOption[E, A any](ioe IOEither[E, A]) IOO.IOOption[A] {
 
 // Delay creates an operation that passes in the value after some delay
 func Delay[E, A any](delay time.Duration) Mapper[E, A, A] {
-	return io.Delay[either.Either[E, A]](delay)
+	return io.Delay[Either[E, A]](delay)
 }
 
 // After creates an operation that passes after the given [time.Time]
 func After[E, A any](timestamp time.Time) Mapper[E, A, A] {
-	return io.After[either.Either[E, A]](timestamp)
+	return io.After[Either[E, A]](timestamp)
 }

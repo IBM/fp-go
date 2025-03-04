@@ -32,7 +32,7 @@ import (
 
 func Requester(builder *R.Builder) IOEH.Requester {
 
-	withBody := F.Curry3(func(data []byte, url string, method string) ioeither.IOEither[error, *http.Request] {
+	withBody := F.Curry3(func(data []byte, url string, method string) IOEither[*http.Request] {
 		return ioeither.TryCatchError(func() (*http.Request, error) {
 			req, err := http.NewRequest(method, url, bytes.NewReader(data))
 			if err == nil {
@@ -43,7 +43,7 @@ func Requester(builder *R.Builder) IOEH.Requester {
 		})
 	})
 
-	withoutBody := F.Curry2(func(url string, method string) ioeither.IOEither[error, *http.Request] {
+	withoutBody := F.Curry2(func(url string, method string) IOEither[*http.Request] {
 		return ioeither.TryCatchError(func() (*http.Request, error) {
 			req, err := http.NewRequest(method, url, nil)
 			if err == nil {
@@ -56,8 +56,8 @@ func Requester(builder *R.Builder) IOEH.Requester {
 	return F.Pipe5(
 		builder.GetBody(),
 		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) ioeither.IOEither[error, *http.Request]](builder.GetTargetURL()),
-		E.Flap[error, ioeither.IOEither[error, *http.Request]](builder.GetMethod()),
+		E.Ap[func(string) IOEither[*http.Request]](builder.GetTargetURL()),
+		E.Flap[error, IOEither[*http.Request]](builder.GetMethod()),
 		E.GetOrElse(ioeither.Left[*http.Request, error]),
 		ioeither.Map[error](func(req *http.Request) *http.Request {
 			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())

@@ -16,7 +16,6 @@
 package ioeither
 
 import (
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	R "github.com/IBM/fp-go/v2/retry"
 )
@@ -29,7 +28,7 @@ import (
 func Retrying[E, A any](
 	policy R.RetryPolicy,
 	action func(R.RetryStatus) IOEither[E, A],
-	check func(either.Either[E, A]) bool,
+	check func(Either[E, A]) bool,
 ) IOEither[E, A] {
 	return io.Retrying(policy, action, check)
 }

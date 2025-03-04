@@ -16,25 +16,47 @@
 package ioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
+	"github.com/IBM/fp-go/v2/internal/apply"
 )
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.
 func MonadApFirst[A, E, B any](first IOEither[E, A], second IOEither[E, B]) IOEither[E, A] {
-	return G.MonadApFirst[IOEither[E, A], IOEither[E, B], IOEither[E, func(B) A]](first, second)
+	return apply.MonadApFirst(
+		MonadAp[A, E, B],
+		MonadMap[E, A, func(B) A],
+
+		first,
+		second,
+	)
 }
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
-func ApFirst[A, E, B any](second IOEither[E, B]) func(IOEither[E, A]) IOEither[E, A] {
-	return G.ApFirst[IOEither[E, A], IOEither[E, B], IOEither[E, func(B) A]](second)
+func ApFirst[A, E, B any](second IOEither[E, B]) Mapper[E, A, A] {
+	return apply.ApFirst(
+		MonadAp[A, E, B],
+		MonadMap[E, A, func(B) A],
+
+		second,
+	)
 }
 
 // MonadApSecond combines two effectful actions, keeping only the result of the second.
 func MonadApSecond[A, E, B any](first IOEither[E, A], second IOEither[E, B]) IOEither[E, B] {
-	return G.MonadApSecond[IOEither[E, A], IOEither[E, B], IOEither[E, func(B) B]](first, second)
+	return apply.MonadApSecond(
+		MonadAp[B, E, B],
+		MonadMap[E, A, func(B) B],
+
+		first,
+		second,
+	)
 }
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
-func ApSecond[A, E, B any](second IOEither[E, B]) func(IOEither[E, A]) IOEither[E, B] {
-	return G.ApSecond[IOEither[E, A], IOEither[E, B], IOEither[E, func(B) B]](second)
+func ApSecond[A, E, B any](second IOEither[E, B]) Mapper[E, A, B] {
+	return apply.ApSecond(
+		MonadAp[B, E, B],
+		MonadMap[E, A, func(B) B],
+
+		second,
+	)
 }

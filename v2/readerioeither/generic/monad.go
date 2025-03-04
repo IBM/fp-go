@@ -16,17 +16,17 @@
 package generic
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/monad"
 	"github.com/IBM/fp-go/v2/internal/pointed"
 )
 
-type readerIOEitherPointed[R, E, A any, GRA ~func(R) GIOA, GIOA ~func() ET.Either[E, A]] struct{}
+type readerIOEitherPointed[R, E, A any, GRA ~func(R) GIOA, GIOA ~func() either.Either[E, A]] struct{}
 
-type readerIOEitherMonad[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GRAB ~func(R) GIOAB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], GIOAB ~func() ET.Either[E, func(A) B]] struct{}
+type readerIOEitherMonad[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GRAB ~func(R) GIOAB, GIOA ~func() either.Either[E, A], GIOB ~func() either.Either[E, B], GIOAB ~func() either.Either[E, func(A) B]] struct{}
 
-type readerIOEitherFunctor[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B]] struct{}
+type readerIOEitherFunctor[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GIOA ~func() either.Either[E, A], GIOB ~func() either.Either[E, B]] struct{}
 
 func (o *readerIOEitherPointed[R, E, A, GRA, GIOA]) Of(a A) GRA {
 	return Of[GRA, GIOA, R, E, A](a)
@@ -53,16 +53,16 @@ func (o *readerIOEitherFunctor[R, E, A, B, GRA, GRB, GIOA, GIOB]) Map(f func(A) 
 }
 
 // Pointed implements the pointed operations for [ReaderIOEither]
-func Pointed[R, E, A any, GRA ~func(R) GIOA, GIOA ~func() ET.Either[E, A]]() pointed.Pointed[A, GRA] {
+func Pointed[R, E, A any, GRA ~func(R) GIOA, GIOA ~func() either.Either[E, A]]() pointed.Pointed[A, GRA] {
 	return &readerIOEitherPointed[R, E, A, GRA, GIOA]{}
 }
 
 // Functor implements the monadic operations for [ReaderIOEither]
-func Functor[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B]]() functor.Functor[A, B, GRA, GRB] {
+func Functor[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GIOA ~func() either.Either[E, A], GIOB ~func() either.Either[E, B]]() functor.Functor[A, B, GRA, GRB] {
 	return &readerIOEitherFunctor[R, E, A, B, GRA, GRB, GIOA, GIOB]{}
 }
 
 // Monad implements the monadic operations for [ReaderIOEither]
-func Monad[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GRAB ~func(R) GIOAB, GIOA ~func() ET.Either[E, A], GIOB ~func() ET.Either[E, B], GIOAB ~func() ET.Either[E, func(A) B]]() monad.Monad[A, B, GRA, GRB, GRAB] {
+func Monad[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GRAB ~func(R) GIOAB, GIOA ~func() either.Either[E, A], GIOB ~func() either.Either[E, B], GIOAB ~func() either.Either[E, func(A) B]]() monad.Monad[A, B, GRA, GRB, GRAB] {
 	return &readerIOEitherMonad[R, E, A, B, GRA, GRB, GRAB, GIOA, GIOB, GIOAB]{}
 }

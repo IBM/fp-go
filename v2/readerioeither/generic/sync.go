@@ -18,11 +18,11 @@ package generic
 import (
 	"context"
 
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	G "github.com/IBM/fp-go/v2/readerio/generic"
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
-func WithLock[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](lock func() context.CancelFunc) func(fa GEA) GEA {
+func WithLock[GEA ~func(R) GIOA, GIOA ~func() either.Either[E, A], R, E, A any](lock func() context.CancelFunc) func(fa GEA) GEA {
 	return G.WithLock[GEA](lock)
 }

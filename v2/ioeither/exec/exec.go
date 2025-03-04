@@ -19,14 +19,14 @@ import (
 	"context"
 
 	"github.com/IBM/fp-go/v2/exec"
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/function"
 	INTE "github.com/IBM/fp-go/v2/internal/exec"
 	"github.com/IBM/fp-go/v2/ioeither"
 )
 
 var (
 	// Command executes a command
-	Command = F.Curry3(command)
+	Command = function.Curry3(command)
 )
 
 func command(name string, args []string, in []byte) ioeither.IOEither[error, exec.CommandOutput] {

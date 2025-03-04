@@ -58,7 +58,7 @@ func FromIO[A any](a IO[A]) IO[A] {
 }
 
 // FromImpure converts a side effect without a return value into a side effect that returns any
-func FromImpure(f func()) IO[any] {
+func FromImpure[ANY ~func()](f ANY) IO[any] {
 	return func() any {
 		f()
 		return undefined

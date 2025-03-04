@@ -16,7 +16,7 @@
 package generic
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	G "github.com/IBM/fp-go/v2/internal/bracket"
 	I "github.com/IBM/fp-go/v2/readerio/generic"
 )
@@ -28,20 +28,20 @@ func Bracket[
 	GB ~func(R) TB,
 	GANY ~func(R) TANY,
 
-	TA ~func() ET.Either[E, A],
-	TB ~func() ET.Either[E, B],
-	TANY ~func() ET.Either[E, ANY],
+	TA ~func() either.Either[E, A],
+	TB ~func() either.Either[E, B],
+	TANY ~func() either.Either[E, ANY],
 
 	R, E, A, B, ANY any](
 
 	acquire GA,
 	use func(A) GB,
-	release func(A, ET.Either[E, B]) GANY,
+	release func(A, either.Either[E, B]) GANY,
 ) GB {
-	return G.Bracket[GA, GB, GANY, ET.Either[E, B], A, B](
-		I.Of[GB, TB, R, ET.Either[E, B]],
+	return G.Bracket[GA, GB, GANY, either.Either[E, B], A, B](
+		I.Of[GB, TB, R, either.Either[E, B]],
 		MonadChain[GA, GB, TA, TB, R, E, A, B],
-		I.MonadChain[GB, GB, TB, TB, R, ET.Either[E, B], ET.Either[E, B]],
+		I.MonadChain[GB, GB, TB, TB, R, either.Either[E, B], either.Either[E, B]],
 		MonadChain[GANY, GB, TANY, TB, R, E, ANY, B],
 
 		acquire,

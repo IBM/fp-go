@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	TST "github.com/IBM/fp-go/v2/internal/testing"
 	"github.com/stretchr/testify/assert"
@@ -35,9 +35,9 @@ func TestTraverseArray(t *testing.T) {
 		return Left[context.Context, string, string]("e")
 	})
 	ctx := context.Background()
-	assert.Equal(t, ET.Right[string](A.Empty[string]()), F.Pipe1(A.Empty[string](), f)(ctx)())
-	assert.Equal(t, ET.Right[string]([]string{"aa", "bb"}), F.Pipe1([]string{"a", "b"}, f)(ctx)())
-	assert.Equal(t, ET.Left[[]string]("e"), F.Pipe1([]string{"a", ""}, f)(ctx)())
+	assert.Equal(t, either.Right[string](A.Empty[string]()), F.Pipe1(A.Empty[string](), f)(ctx)())
+	assert.Equal(t, either.Right[string]([]string{"aa", "bb"}), F.Pipe1([]string{"a", "b"}, f)(ctx)())
+	assert.Equal(t, either.Left[[]string]("e"), F.Pipe1([]string{"a", ""}, f)(ctx)())
 }
 
 func TestSequenceArray(t *testing.T) {

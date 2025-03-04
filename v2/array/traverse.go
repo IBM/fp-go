@@ -15,7 +15,9 @@
 
 package array
 
-import "github.com/IBM/fp-go/v2/internal/array"
+import (
+	"github.com/IBM/fp-go/v2/internal/array"
+)
 
 func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof func([]B) HKTRB,

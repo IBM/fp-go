@@ -24,7 +24,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	R "github.com/IBM/fp-go/v2/reader"
-	RIO "github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,8 +39,8 @@ func TestMap(t *testing.T) {
 }
 
 func TestOrLeft(t *testing.T) {
-	f := OrLeft[int](func(s string) RIO.ReaderIO[context.Context, string] {
-		return RIO.Of[context.Context](s + "!")
+	f := OrLeft[int](func(s string) readerio.ReaderIO[context.Context, string] {
+		return readerio.Of[context.Context](s + "!")
 	})
 
 	g1 := F.Pipe1(

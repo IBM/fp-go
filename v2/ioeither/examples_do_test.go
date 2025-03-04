@@ -20,7 +20,7 @@ import (
 	"log"
 
 	F "github.com/IBM/fp-go/v2/function"
-	IO "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/io"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
 
@@ -29,8 +29,8 @@ func ExampleIOEither_do() {
 	bar := Of[error](1)
 
 	// quux consumes the state of three bindings and returns an [IO] instead of an [IOEither]
-	quux := func(t T.Tuple3[string, int, string]) IO.IO[any] {
-		return IO.FromImpure(func() {
+	quux := func(t T.Tuple3[string, int, string]) IO[any] {
+		return io.FromImpure(func() {
 			log.Printf("t1: %s, t2: %d, t3: %s", t.F1, t.F2, t.F3)
 		})
 	}

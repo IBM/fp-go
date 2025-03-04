@@ -19,7 +19,7 @@ import (
 	"os"
 
 	F "github.com/IBM/fp-go/v2/function"
-	IO "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/io"
 	IOF "github.com/IBM/fp-go/v2/io/file"
 	"github.com/IBM/fp-go/v2/ioeither"
 )
@@ -32,7 +32,7 @@ var (
 	// destroy handler
 	onReleaseTempFile = F.Flow4(
 		IOF.Close[*os.File],
-		IO.Map((*os.File).Name),
+		io.Map((*os.File).Name),
 		ioeither.FromIO[error, string],
 		ioeither.Chain(Remove),
 	)

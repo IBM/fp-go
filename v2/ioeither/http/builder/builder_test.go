@@ -23,7 +23,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
-	IO "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,8 +45,8 @@ func TestBuilderWithQuery(t *testing.T) {
 		ioeither.Map[error](func(r *http.Request) *url.URL {
 			return r.URL
 		}),
-		ioeither.ChainFirstIOK[error](func(u *url.URL) IO.IO[any] {
-			return IO.FromImpure(func() {
+		ioeither.ChainFirstIOK[error](func(u *url.URL) io.IO[any] {
+			return io.FromImpure(func() {
 				q := u.Query()
 				assert.Equal(t, "10", q.Get("limit"))
 				assert.Equal(t, "b", q.Get("a"))

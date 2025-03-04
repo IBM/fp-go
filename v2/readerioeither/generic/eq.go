@@ -16,17 +16,17 @@
 package generic
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	G "github.com/IBM/fp-go/v2/readerio/generic"
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad
-func Eq[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R, E, A any](eq EQ.Eq[ET.Either[E, A]]) func(R) EQ.Eq[GEA] {
+func Eq[GEA ~func(R) GIOA, GIOA ~func() either.Either[E, A], R, E, A any](eq EQ.Eq[either.Either[E, A]]) func(R) EQ.Eq[GEA] {
 	return G.Eq[GEA](eq)
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[GEA ~func(R) GIOA, GIOA ~func() ET.Either[E, A], R any, E, A comparable]() func(R) EQ.Eq[GEA] {
-	return Eq[GEA](ET.FromStrictEquals[E, A]())
+func FromStrictEquals[GEA ~func(R) GIOA, GIOA ~func() either.Either[E, A], R any, E, A comparable]() func(R) EQ.Eq[GEA] {
+	return Eq[GEA](either.FromStrictEquals[E, A]())
 }

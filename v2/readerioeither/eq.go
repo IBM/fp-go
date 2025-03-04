@@ -16,13 +16,13 @@
 package readerioeither
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	G "github.com/IBM/fp-go/v2/readerioeither/generic"
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad
-func Eq[R, E, A any](eq EQ.Eq[ET.Either[E, A]]) func(R) EQ.Eq[ReaderIOEither[R, E, A]] {
+func Eq[R, E, A any](eq EQ.Eq[either.Either[E, A]]) func(R) EQ.Eq[ReaderIOEither[R, E, A]] {
 	return G.Eq[ReaderIOEither[R, E, A]](eq)
 }
 

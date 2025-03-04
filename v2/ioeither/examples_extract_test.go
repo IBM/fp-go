@@ -20,7 +20,7 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	IO "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/io"
 )
 
 func ExampleIOEither_extraction() {
@@ -30,7 +30,7 @@ func ExampleIOEither_extraction() {
 	value := E.GetOrElse(F.Constant1[error](0))(eitherValue) // 42
 
 	// Or more directly
-	infaillibleIO := GetOrElse(F.Constant1[error](IO.Of(0)))(someIOEither) // => IO.Right(42)
+	infaillibleIO := GetOrElse(F.Constant1[error](io.Of(0)))(someIOEither) // => io.Right(42)
 	valueFromIO := infaillibleIO()                                         // => 42
 
 	fmt.Println(eitherValue)

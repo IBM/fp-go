@@ -21,7 +21,7 @@ import (
 	G "github.com/IBM/fp-go/v2/readerio/generic"
 )
 
-type ReaderIO[E, A any] R.Reader[E, IO.IO[A]]
+type ReaderIO[E, A any] = R.Reader[E, IO.IO[A]]
 
 // FromIO converts an [IO.IO] to a [ReaderIO]
 func FromIO[E, A any](t IO.IO[A]) ReaderIO[E, A] {

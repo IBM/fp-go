@@ -16,51 +16,74 @@
 package ioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/ioeither/generic"
+	"github.com/IBM/fp-go/v2/internal/apply"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
 func Do[E, S any](
 	empty S,
 ) IOEither[E, S] {
-	return G.Do[IOEither[E, S], E, S](empty)
+	return Of[E](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
 func Bind[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) IOEither[E, T],
-) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.Bind[IOEither[E, S1], IOEither[E, S2], IOEither[E, T], E, S1, S2, T](setter, f)
+) Mapper[E, S1, S2] {
+	return chain.Bind(
+		Chain[E, S1, S2],
+		Map[E, T, S2],
+		setter,
+		f,
+	)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
 func Let[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.Let[IOEither[E, S1], IOEither[E, S2], E, S1, S2, T](setter, f)
+) Mapper[E, S1, S2] {
+	return functor.Let(
+		Map[E, S1, S2],
+		setter,
+		f,
+	)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
 func LetTo[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.LetTo[IOEither[E, S1], IOEither[E, S2], E, S1, S2, T](setter, b)
+) Mapper[E, S1, S2] {
+	return functor.LetTo(
+		Map[E, S1, S2],
+		setter,
+		b,
+	)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[E, S1, T any](
 	setter func(T) S1,
-) func(IOEither[E, T]) IOEither[E, S1] {
-	return G.BindTo[IOEither[E, S1], IOEither[E, T], E, S1, T](setter)
+) Mapper[E, T, S1] {
+	return chain.BindTo(
+		Map[E, T, S1],
+		setter,
+	)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
 func ApS[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOEither[E, T],
-) func(IOEither[E, S1]) IOEither[E, S2] {
-	return G.ApS[IOEither[E, S1], IOEither[E, S2], IOEither[E, T], E, S1, S2, T](setter, fa)
+) Mapper[E, S1, S2] {
+	return apply.ApS(
+		Ap[S2, E, T],
+		Map[E, S1, func(T) S2],
+		setter,
+		fa,
+	)
 }

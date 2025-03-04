@@ -16,11 +16,16 @@
 package readerioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
+	"context"
+
+	"github.com/IBM/fp-go/v2/function"
+	RIE "github.com/IBM/fp-go/v2/readerioeither"
 )
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource
 func WithResource[A, R, ANY any](onCreate ReaderIOEither[R], onRelease func(R) ReaderIOEither[ANY]) func(func(R) ReaderIOEither[A]) ReaderIOEither[A] {
-	// wraps the callback functions with a context check
-	return G.WithResource[ReaderIOEither[A]](onCreate, onRelease)
+	return function.Flow2(
+		function.Bind2nd(function.Flow2[func(R) ReaderIOEither[A], func(ReaderIOEither[A]) ReaderIOEither[A], R, ReaderIOEither[A], ReaderIOEither[A]], WithContext[A]),
+		RIE.WithResource[A, context.Context, error, R](WithContext(onCreate), onRelease),
+	)
 }

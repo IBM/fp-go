@@ -16,85 +16,115 @@
 package readerioeither
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/eithert"
+	"github.com/IBM/fp-go/v2/internal/fromeither"
 	"github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	L "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
-	RD "github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
-	RIO "github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/readerio"
 	G "github.com/IBM/fp-go/v2/readerioeither/generic"
 )
 
-type ReaderIOEither[R, E, A any] RD.Reader[R, IOE.IOEither[E, A]]
+type (
+	ReaderIOEither[R, E, A any] = reader.Reader[R, IOE.IOEither[E, A]]
 
-// MakeReader constructs an instance of a reader
-func MakeReader[R, E, A any](f func(R) IOE.IOEither[E, A]) ReaderIOEither[R, E, A] {
-	return G.MakeReader[ReaderIOEither[R, E, A]](f)
+	Mapper[R, E, A, B any] = reader.Reader[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]]
+)
+
+func MonadFromReaderIO[R, E, A any](a A, f func(A) readerio.ReaderIO[R, A]) ReaderIOEither[R, E, A] {
+	return function.Pipe2(
+		a,
+		f,
+		RightReaderIO[R, E, A],
+	)
 }
 
-func MonadFromReaderIO[R, E, A any](a A, f func(A) RIO.ReaderIO[R, A]) ReaderIOEither[R, E, A] {
-	return G.MonadFromReaderIO[ReaderIOEither[R, E, A]](a, f)
+func FromReaderIO[R, E, A any](f func(A) readerio.ReaderIO[R, A]) func(A) ReaderIOEither[R, E, A] {
+	return function.Bind2nd(MonadFromReaderIO[R, E, A], f)
 }
 
-func FromReaderIO[R, E, A any](f func(A) RIO.ReaderIO[R, A]) func(A) ReaderIOEither[R, E, A] {
-	return G.FromReaderIO[ReaderIOEither[R, E, A]](f)
+func RightReaderIO[R, E, A any](ma readerio.ReaderIO[R, A]) ReaderIOEither[R, E, A] {
+	return eithert.RightF(
+		readerio.MonadMap[R, A, either.Either[E, A]],
+		ma,
+	)
 }
 
-func RightReaderIO[R, E, A any](ma RIO.ReaderIO[R, A]) ReaderIOEither[R, E, A] {
-	return G.RightReaderIO[ReaderIOEither[R, E, A]](ma)
-}
-
-func LeftReaderIO[A, R, E any](me RIO.ReaderIO[R, E]) ReaderIOEither[R, E, A] {
-	return G.LeftReaderIO[ReaderIOEither[R, E, A]](me)
+func LeftReaderIO[A, R, E any](me readerio.ReaderIO[R, E]) ReaderIOEither[R, E, A] {
+	return eithert.LeftF(
+		readerio.MonadMap[R, E, either.Either[E, A]],
+		me,
+	)
 }
 
 func MonadMap[R, E, A, B any](fa ReaderIOEither[R, E, A], f func(A) B) ReaderIOEither[R, E, B] {
-	return G.MonadMap[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](fa, f)
+	return eithert.MonadMap(readerio.MonadMap[R, either.Either[E, A], either.Either[E, B]], fa, f)
 }
 
 func Map[R, E, A, B any](f func(A) B) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
-	return G.Map[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](f)
+	return eithert.Map(readerio.Map[R, either.Either[E, A], either.Either[E, B]], f)
 }
 
 func MonadMapTo[R, E, A, B any](fa ReaderIOEither[R, E, A], b B) ReaderIOEither[R, E, B] {
-	return G.MonadMapTo[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](fa, b)
+	return MonadMap(fa, function.Constant1[A](b))
 }
 
 func MapTo[R, E, A, B any](b B) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
-	return G.MapTo[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](b)
+	return Map[R, E](function.Constant1[A](b))
 }
 
 func MonadChain[R, E, A, B any](fa ReaderIOEither[R, E, A], f func(A) ReaderIOEither[R, E, B]) ReaderIOEither[R, E, B] {
-	return G.MonadChain(fa, f)
+	return eithert.MonadChain(
+		readerio.MonadChain[R, either.Either[E, A], either.Either[E, B]],
+		readerio.Of[R, either.Either[E, B]],
+		fa,
+		f)
 }
 
 func MonadChainFirst[R, E, A, B any](fa ReaderIOEither[R, E, A], f func(A) ReaderIOEither[R, E, B]) ReaderIOEither[R, E, A] {
-	return G.MonadChainFirst(fa, f)
+	return chain.MonadChainFirst(
+		MonadChain[R, E, A, A],
+		MonadMap[R, E, B, A],
+		fa,
+		f)
 }
 
-func MonadChainEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) ET.Either[E, B]) ReaderIOEither[R, E, B] {
-	return G.MonadChainEitherK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](ma, f)
+func MonadChainEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) either.Either[E, B]) ReaderIOEither[R, E, B] {
+	return fromeither.MonadChainEitherK(
+		MonadChain[R, E, A, B],
+		FromEither[R, E, B],
+		ma,
+		f,
+	)
 }
 
-func ChainEitherK[R, E, A, B any](f func(A) ET.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
-	return G.ChainEitherK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](f)
+func ChainEitherK[R, E, A, B any](f func(A) either.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+	return fromeither.ChainEitherK(
+		Chain[R, E, A, B],
+		FromEither[R, E, B],
+		f,
+	)
 }
 
-func MonadChainFirstEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) ET.Either[E, B]) ReaderIOEither[R, E, A] {
+func MonadChainFirstEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) either.Either[E, B]) ReaderIOEither[R, E, A] {
 	return G.MonadChainFirstEitherK[ReaderIOEither[R, E, A]](ma, f)
 }
 
-func ChainFirstEitherK[R, E, A, B any](f func(A) ET.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func ChainFirstEitherK[R, E, A, B any](f func(A) either.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
 	return G.ChainFirstEitherK[ReaderIOEither[R, E, A]](f)
 }
 
-func MonadChainReaderK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) RD.Reader[R, B]) ReaderIOEither[R, E, B] {
+func MonadChainReaderK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) reader.Reader[R, B]) ReaderIOEither[R, E, B] {
 	return G.MonadChainReaderK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](ma, f)
 }
 
-func ChainReaderK[E, R, A, B any](f func(A) RD.Reader[R, B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainReaderK[E, R, A, B any](f func(A) reader.Reader[R, B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
 	return G.ChainReaderK[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]](f)
 }
 
@@ -163,20 +193,20 @@ func Flatten[R, E, A any](mma ReaderIOEither[R, E, ReaderIOEither[R, E, A]]) Rea
 	return G.Flatten(mma)
 }
 
-func FromEither[R, E, A any](t ET.Either[E, A]) ReaderIOEither[R, E, A] {
+func FromEither[R, E, A any](t either.Either[E, A]) ReaderIOEither[R, E, A] {
 	return G.FromEither[ReaderIOEither[R, E, A]](t)
 }
 
-func RightReader[E, R, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
-	return G.RightReader[RD.Reader[R, A], ReaderIOEither[R, E, A]](ma)
+func RightReader[E, R, A any](ma reader.Reader[R, A]) ReaderIOEither[R, E, A] {
+	return G.RightReader[reader.Reader[R, A], ReaderIOEither[R, E, A]](ma)
 }
 
-func LeftReader[A, R, E any](ma RD.Reader[R, E]) ReaderIOEither[R, E, A] {
-	return G.LeftReader[RD.Reader[R, E], ReaderIOEither[R, E, A]](ma)
+func LeftReader[A, R, E any](ma reader.Reader[R, E]) ReaderIOEither[R, E, A] {
+	return G.LeftReader[reader.Reader[R, E], ReaderIOEither[R, E, A]](ma)
 }
 
-func FromReader[E, R, A any](ma RD.Reader[R, A]) ReaderIOEither[R, E, A] {
-	return G.FromReader[RD.Reader[R, A], ReaderIOEither[R, E, A]](ma)
+func FromReader[E, R, A any](ma reader.Reader[R, A]) ReaderIOEither[R, E, A] {
+	return G.FromReader[reader.Reader[R, A], ReaderIOEither[R, E, A]](ma)
 }
 
 func RightIO[R, E, A any](ma io.IO[A]) ReaderIOEither[R, E, A] {
@@ -203,8 +233,8 @@ func Ask[R, E any]() ReaderIOEither[R, E, R] {
 	return G.Ask[ReaderIOEither[R, E, R]]()
 }
 
-func Asks[E, R, A any](r RD.Reader[R, A]) ReaderIOEither[R, E, A] {
-	return G.Asks[RD.Reader[R, A], ReaderIOEither[R, E, A]](r)
+func Asks[E, R, A any](r reader.Reader[R, A]) ReaderIOEither[R, E, A] {
+	return G.Asks[reader.Reader[R, A], ReaderIOEither[R, E, A]](r)
 }
 
 func FromOption[R, A, E any](onNone func() E) func(O.Option[A]) ReaderIOEither[R, E, A] {
@@ -215,20 +245,20 @@ func FromPredicate[R, E, A any](pred func(A) bool, onFalse func(A) E) func(A) Re
 	return G.FromPredicate[ReaderIOEither[R, E, A]](pred, onFalse)
 }
 
-func Fold[R, E, A, B any](onLeft func(E) RIO.ReaderIO[R, B], onRight func(A) RIO.ReaderIO[R, B]) func(ReaderIOEither[R, E, A]) RIO.ReaderIO[R, B] {
-	return G.Fold[RIO.ReaderIO[R, B], ReaderIOEither[R, E, A]](onLeft, onRight)
+func Fold[R, E, A, B any](onLeft func(E) readerio.ReaderIO[R, B], onRight func(A) readerio.ReaderIO[R, B]) func(ReaderIOEither[R, E, A]) readerio.ReaderIO[R, B] {
+	return G.Fold[readerio.ReaderIO[R, B], ReaderIOEither[R, E, A]](onLeft, onRight)
 }
 
-func GetOrElse[R, E, A any](onLeft func(E) RIO.ReaderIO[R, A]) func(ReaderIOEither[R, E, A]) RIO.ReaderIO[R, A] {
-	return G.GetOrElse[RIO.ReaderIO[R, A], ReaderIOEither[R, E, A]](onLeft)
+func GetOrElse[R, E, A any](onLeft func(E) readerio.ReaderIO[R, A]) func(ReaderIOEither[R, E, A]) readerio.ReaderIO[R, A] {
+	return G.GetOrElse[readerio.ReaderIO[R, A], ReaderIOEither[R, E, A]](onLeft)
 }
 
 func OrElse[R, E1, A, E2 any](onLeft func(E1) ReaderIOEither[R, E2, A]) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
 	return G.OrElse[ReaderIOEither[R, E1, A]](onLeft)
 }
 
-func OrLeft[A, E1, R, E2 any](onLeft func(E1) RIO.ReaderIO[R, E2]) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
-	return G.OrLeft[ReaderIOEither[R, E1, A], RIO.ReaderIO[R, E2], ReaderIOEither[R, E2, A]](onLeft)
+func OrLeft[A, E1, R, E2 any](onLeft func(E1) readerio.ReaderIO[R, E2]) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
+	return G.OrLeft[ReaderIOEither[R, E1, A], readerio.ReaderIO[R, E2], ReaderIOEither[R, E2, A]](onLeft)
 }
 
 func MonadBiMap[R, E1, E2, A, B any](fa ReaderIOEither[R, E1, A], f func(E1) E2, g func(A) B) ReaderIOEither[R, E2, B] {

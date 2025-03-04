@@ -16,21 +16,21 @@
 package generic
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
 	A "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
-func Do[GRS ~func(R) GS, GS ~func() ET.Either[E, S], R, E, S any](
+func Do[GRS ~func(R) GS, GS ~func() either.Either[E, S], R, E, S any](
 	empty S,
 ) GRS {
 	return Of[GRS, GS, R, E, S](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
-func Bind[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], GT ~func() ET.Either[E, T], R, E, S1, S2, T any](
+func Bind[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GS1 ~func() either.Either[E, S1], GS2 ~func() either.Either[E, S2], GT ~func() either.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) GRT,
 ) func(GRS1) GRS2 {
@@ -43,7 +43,7 @@ func Bind[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GS1 ~func() ET.
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
-func Let[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], R, E, S1, S2, T any](
+func Let[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GS1 ~func() either.Either[E, S1], GS2 ~func() either.Either[E, S2], R, E, S1, S2, T any](
 	key func(T) func(S1) S2,
 	f func(S1) T,
 ) func(GRS1) GRS2 {
@@ -55,7 +55,7 @@ func Let[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GS1 ~func() ET.Either[E, S1], GS2
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
-func LetTo[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], R, E, S1, S2, B any](
+func LetTo[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GS1 ~func() either.Either[E, S1], GS2 ~func() either.Either[E, S2], R, E, S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
 ) func(GRS1) GRS2 {
@@ -67,7 +67,7 @@ func LetTo[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GS1 ~func() ET.Either[E, S1], G
 }
 
 // BindTo initializes a new state [S1] from a value [T]
-func BindTo[GRS1 ~func(R) GS1, GRT ~func(R) GT, GS1 ~func() ET.Either[E, S1], GT ~func() ET.Either[E, T], R, E, S1, T any](
+func BindTo[GRS1 ~func(R) GS1, GRT ~func(R) GT, GS1 ~func() either.Either[E, S1], GT ~func() either.Either[E, T], R, E, S1, T any](
 	setter func(T) S1,
 ) func(GRT) GRS1 {
 	return C.BindTo(
@@ -77,7 +77,7 @@ func BindTo[GRS1 ~func(R) GS1, GRT ~func(R) GT, GS1 ~func() ET.Either[E, S1], GT
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
-func ApS[GRTS1 ~func(R) GTS1, GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GTS1 ~func() ET.Either[E, func(T) S2], GS1 ~func() ET.Either[E, S1], GS2 ~func() ET.Either[E, S2], GT ~func() ET.Either[E, T], R, E, S1, S2, T any](
+func ApS[GRTS1 ~func(R) GTS1, GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GTS1 ~func() either.Either[E, func(T) S2], GS1 ~func() either.Either[E, S1], GS2 ~func() either.Either[E, S2], GT ~func() either.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa GRT,
 ) func(GRS1) GRS2 {

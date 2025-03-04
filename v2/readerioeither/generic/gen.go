@@ -5,13 +5,13 @@ package generic
 
 import (
 	E "github.com/IBM/fp-go/v2/either"
-	RD "github.com/IBM/fp-go/v2/reader/generic"
+	reader "github.com/IBM/fp-go/v2/reader/generic"
 )
 
 // From0 converts a function with 1 parameters returning a tuple into a function with 0 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From0[GRA ~func(C) GIOA, F ~func(C) func() (R, error), GIOA ~func() E.Either[error, R], C, R any](f F) func() GRA {
-	return RD.From0[GRA](func(r C) GIOA {
+	return reader.From0[GRA](func(r C) GIOA {
 		return E.Eitherize0(f(r))
 	})
 }
@@ -37,7 +37,7 @@ func Uneitherize0[GRA ~func(C) GIOA, F ~func(C) (R, error), GIOA ~func() E.Eithe
 // From1 converts a function with 2 parameters returning a tuple into a function with 1 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From1[GRA ~func(C) GIOA, F ~func(C, T0) func() (R, error), GIOA ~func() E.Either[error, R], T0, C, R any](f F) func(T0) GRA {
-	return RD.From1[GRA](func(r C, t0 T0) GIOA {
+	return reader.From1[GRA](func(r C, t0 T0) GIOA {
 		return E.Eitherize0(f(r, t0))
 	})
 }
@@ -63,7 +63,7 @@ func Uneitherize1[GRA ~func(C) GIOA, F ~func(C, T0) (R, error), GIOA ~func() E.E
 // From2 converts a function with 3 parameters returning a tuple into a function with 2 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From2[GRA ~func(C) GIOA, F ~func(C, T0, T1) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, C, R any](f F) func(T0, T1) GRA {
-	return RD.From2[GRA](func(r C, t0 T0, t1 T1) GIOA {
+	return reader.From2[GRA](func(r C, t0 T0, t1 T1) GIOA {
 		return E.Eitherize0(f(r, t0, t1))
 	})
 }
@@ -89,7 +89,7 @@ func Uneitherize2[GRA ~func(C) GIOA, F ~func(C, T0, T1) (R, error), GIOA ~func()
 // From3 converts a function with 4 parameters returning a tuple into a function with 3 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From3[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, C, R any](f F) func(T0, T1, T2) GRA {
-	return RD.From3[GRA](func(r C, t0 T0, t1 T1, t2 T2) GIOA {
+	return reader.From3[GRA](func(r C, t0 T0, t1 T1, t2 T2) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2))
 	})
 }
@@ -115,7 +115,7 @@ func Uneitherize3[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2) (R, error), GIOA ~fu
 // From4 converts a function with 5 parameters returning a tuple into a function with 4 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From4[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, C, R any](f F) func(T0, T1, T2, T3) GRA {
-	return RD.From4[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3) GIOA {
+	return reader.From4[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3))
 	})
 }
@@ -141,7 +141,7 @@ func Uneitherize4[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3) (R, error), GIOA
 // From5 converts a function with 6 parameters returning a tuple into a function with 5 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From5[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, C, R any](f F) func(T0, T1, T2, T3, T4) GRA {
-	return RD.From5[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) GIOA {
+	return reader.From5[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3, t4))
 	})
 }
@@ -167,7 +167,7 @@ func Uneitherize5[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4) (R, error), 
 // From6 converts a function with 7 parameters returning a tuple into a function with 6 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From6[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, C, R any](f F) func(T0, T1, T2, T3, T4, T5) GRA {
-	return RD.From6[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) GIOA {
+	return reader.From6[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5))
 	})
 }
@@ -193,7 +193,7 @@ func Uneitherize6[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5) (R, erro
 // From7 converts a function with 8 parameters returning a tuple into a function with 7 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From7[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6) GRA {
-	return RD.From7[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) GIOA {
+	return reader.From7[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6))
 	})
 }
@@ -219,7 +219,7 @@ func Uneitherize7[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6) (R, 
 // From8 converts a function with 9 parameters returning a tuple into a function with 8 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From8[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7) GRA {
-	return RD.From8[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) GIOA {
+	return reader.From8[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7))
 	})
 }
@@ -245,7 +245,7 @@ func Uneitherize8[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7) 
 // From9 converts a function with 10 parameters returning a tuple into a function with 9 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From9[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8) GRA {
-	return RD.From9[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) GIOA {
+	return reader.From9[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8))
 	})
 }
@@ -271,7 +271,7 @@ func Uneitherize9[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, 
 // From10 converts a function with 11 parameters returning a tuple into a function with 10 parameters returning a [GRA]
 // The first parameter is considerd to be the context [C].
 func From10[GRA ~func(C) GIOA, F ~func(C, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) func() (R, error), GIOA ~func() E.Either[error, R], T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, C, R any](f F) func(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) GRA {
-	return RD.From10[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) GIOA {
+	return reader.From10[GRA](func(r C, t0 T0, t1 T1, t2 T2, t3 T3, t4 T4, t5 T5, t6 T6, t7 T7, t8 T8, t9 T9) GIOA {
 		return E.Eitherize0(f(r, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9))
 	})
 }
