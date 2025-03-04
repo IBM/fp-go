@@ -16,24 +16,24 @@
 package lazy
 
 import (
-	G "github.com/IBM/fp-go/v2/io/generic"
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple
 
-func SequenceT1[A any](a Lazy[A]) Lazy[T.Tuple1[A]] {
-	return G.SequenceT1[Lazy[T.Tuple1[A]]](a)
+func SequenceT1[A any](a Lazy[A]) Lazy[tuple.Tuple1[A]] {
+	return io.SequenceT1(a)
 }
 
-func SequenceT2[A, B any](a Lazy[A], b Lazy[B]) Lazy[T.Tuple2[A, B]] {
-	return G.SequenceT2[Lazy[T.Tuple2[A, B]]](a, b)
+func SequenceT2[A, B any](a Lazy[A], b Lazy[B]) Lazy[tuple.Tuple2[A, B]] {
+	return io.SequenceT2(a, b)
 }
 
-func SequenceT3[A, B, C any](a Lazy[A], b Lazy[B], c Lazy[C]) Lazy[T.Tuple3[A, B, C]] {
-	return G.SequenceT3[Lazy[T.Tuple3[A, B, C]]](a, b, c)
+func SequenceT3[A, B, C any](a Lazy[A], b Lazy[B], c Lazy[C]) Lazy[tuple.Tuple3[A, B, C]] {
+	return io.SequenceT3(a, b, c)
 }
 
-func SequenceT4[A, B, C, D any](a Lazy[A], b Lazy[B], c Lazy[C], d Lazy[D]) Lazy[T.Tuple4[A, B, C, D]] {
-	return G.SequenceT4[Lazy[T.Tuple4[A, B, C, D]]](a, b, c, d)
+func SequenceT4[A, B, C, D any](a Lazy[A], b Lazy[B], c Lazy[C], d Lazy[D]) Lazy[tuple.Tuple4[A, B, C, D]] {
+	return io.SequenceT4(a, b, c, d)
 }

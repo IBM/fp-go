@@ -37,15 +37,15 @@ func genericIOOption(param string) string {
 var extrasIOOption = A.Empty[string]()
 
 func generateIOOptionSequenceT(f, fg *os.File, i int) {
-	generateGenericSequenceT(nonGenericIOOption, genericIOOption, extrasIOOption)(f, fg, i)
+	deprecatedGenerateGenericSequenceT(nonGenericIOOption, genericIOOption, extrasIOOption)(f, fg, i)
 }
 
 func generateIOOptionSequenceTuple(f, fg *os.File, i int) {
-	generateGenericSequenceTuple(nonGenericIOOption, genericIOOption, extrasIOOption)(f, fg, i)
+	deprecatedGenerateGenericSequenceTuple(nonGenericIOOption, genericIOOption, extrasIOOption)(f, fg, i)
 }
 
 func generateIOOptionTraverseTuple(f, fg *os.File, i int) {
-	generateGenericTraverseTuple(nonGenericIOOption, genericIOOption, extrasIOOption)(f, fg, i)
+	deprecatedGenerateGenericTraverseTuple(nonGenericIOOption, genericIOOption, extrasIOOption)(f, fg, i)
 }
 
 func generateIOOptionHelpers(filename string, count int) error {

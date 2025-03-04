@@ -38,7 +38,8 @@ func joinAll(middle string) func(all ...[]string) string {
 	}
 }
 
-func generateGenericSequenceT(
+// Deprecated:
+func deprecatedGenerateGenericSequenceT(
 	nonGenericType func(string) string,
 	genericType func(string) string,
 	extra []string,
@@ -115,7 +116,8 @@ func generateGenericSequenceT(
 	}
 }
 
-func generateGenericSequenceTuple(
+// Deprecated:
+func deprecatedGenerateGenericSequenceTuple(
 	nonGenericType func(string) string,
 	genericType func(string) string,
 	extra []string,
@@ -187,7 +189,8 @@ func generateGenericSequenceTuple(
 	}
 }
 
-func generateGenericTraverseTuple(
+// Deprecated:
+func deprecatedGenerateGenericTraverseTuple(
 	nonGenericType func(string) string,
 	genericType func(string) string,
 	extra []string,
@@ -280,5 +283,128 @@ func generateGenericTraverseTuple(
 		fmt.Fprintf(fg, "    t)\n")
 		fmt.Fprintf(fg, "   }\n")
 		fmt.Fprintf(fg, "}\n")
+	}
+}
+
+func generateGenericSequenceT(
+	nonGenericType func(string) string,
+	extra []string,
+) func(f *os.File, i int) {
+	return func(f *os.File, i int) {
+		// tuple
+		tuple := tupleTypePlain("T")(i)
+		// all types T
+		typesT := A.MakeBy(i, F.Flow2(
+			N.Inc[int],
+			S.Format[int]("T%d"),
+		))
+		// non generic version
+		fmt.Fprintf(f, "\n// SequenceT%d converts %d [%s] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tuple))
+		fmt.Fprintf(f, "func SequenceT%d[%s any](\n", i, joinAll(", ")(extra, typesT))
+		for j := 0; j < i; j++ {
+			fmt.Fprintf(f, "  t%d %s,\n", j+1, nonGenericType(fmt.Sprintf("T%d", j+1)))
+		}
+		fmt.Fprintf(f, ") %s {\n", nonGenericType(tuple))
+		fmt.Fprintf(f, "  return apply.SequenceT%d(\n", i)
+		fmt.Fprintf(f, "    Map[%s, %s],\n", "T1", generateNestedCallbacksPlain(1, i))
+
+		// the apply calls
+		for j := 2; j <= i; j++ {
+			fmt.Fprintf(f, "    Ap[%s, T%d],\n", generateNestedCallbacksPlain(j, i), j)
+		}
+		// function parameters
+		for j := 1; j <= i; j++ {
+			fmt.Fprintf(f, "    t%d,\n", j)
+		}
+
+		fmt.Fprintf(f, "  )\n")
+		fmt.Fprintf(f, "}\n")
+	}
+}
+
+func generateGenericSequenceTuple(
+	nonGenericType func(string) string,
+	extra []string,
+) func(f *os.File, i int) {
+	return func(f *os.File, i int) {
+		// tuple
+		tuple := tupleTypePlain("T")(i)
+		// all types T
+		typesT := A.MakeBy(i, F.Flow2(
+			N.Inc[int],
+			S.Format[int]("T%d"),
+		))
+		// non generic version
+		fmt.Fprintf(f, "\n// SequenceTuple%d converts a [tuple.Tuple%d[%s]] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tuple))
+		fmt.Fprintf(f, "func SequenceTuple%d[%s any](t tuple.Tuple%d[", i, joinAll(", ")(extra, typesT), i)
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				fmt.Fprintf(f, ", ")
+			}
+			fmt.Fprintf(f, "%s", nonGenericType(fmt.Sprintf("T%d", j+1)))
+		}
+		fmt.Fprintf(f, "]) %s {\n", nonGenericType(tuple))
+		fmt.Fprintf(f, "  return apply.SequenceTuple%d(\n", i)
+		fmt.Fprintf(f, "    Map[%s, %s],\n", "T1", generateNestedCallbacksPlain(1, i))
+
+		// the apply calls
+		for j := 2; j <= i; j++ {
+			fmt.Fprintf(f, "    Ap[%s, T%d],\n", generateNestedCallbacksPlain(j, i), j)
+		}
+
+		// function parameters
+		fmt.Fprintf(f, "    t,\n")
+		// function parameters
+		fmt.Fprintf(f, "  )\n")
+		fmt.Fprintf(f, "}\n")
+	}
+}
+
+func generateGenericTraverseTuple(
+	nonGenericType func(string) string,
+	extra []string,
+) func(f *os.File, i int) {
+	return func(f *os.File, i int) {
+		// all types T
+		typesT := A.MakeBy(i, F.Flow2(
+			N.Inc[int],
+			S.Format[int]("T%d"),
+		))
+		// all types A
+		typesA := A.MakeBy(i, F.Flow2(
+			N.Inc[int],
+			S.Format[int]("A%d"),
+		))
+		// function types
+		typesF := A.MakeBy(i, func(j int) string {
+			return fmt.Sprintf("F%d ~func(A%d) %s", j+1, j+1, nonGenericType(fmt.Sprintf("T%d", j+1)))
+		})
+		paramF := A.MakeBy(i, func(j int) string {
+			return fmt.Sprintf("f%d F%d", j+1, j+1)
+		})
+		// return type
+		paramType := fmt.Sprintf("tuple.Tuple%d[%s]", i, joinAll(", ")(extra, typesA))
+		returnType := nonGenericType(fmt.Sprintf("tuple.Tuple%d[%s]", i, joinAll(", ")(extra, typesT)))
+		// non generic version
+		fmt.Fprintf(f, "\n// TraverseTuple%d converts a [%s] into a [%s]\n", i, paramType, returnType)
+		fmt.Fprintf(f, "func TraverseTuple%d[%s any](%s) func(%s) %s {\n", i, joinAll(", ")(extra, typesF, typesT, typesA), joinAll(", ")(paramF), paramType, returnType)
+		fmt.Fprintf(f, "  return func(t %s) %s {\n", paramType, returnType)
+		fmt.Fprintf(f, "    return apply.TraverseTuple%d(\n", i)
+		fmt.Fprintf(f, "      Map[%s, %s],\n", "T1", generateNestedCallbacksPlain(1, i))
+
+		// the apply calls
+		for j := 2; j <= i; j++ {
+			fmt.Fprintf(f, "      Ap[%s, T%d],\n", generateNestedCallbacksPlain(j, i), j)
+		}
+		// the function parameters
+		for j := 1; j <= i; j++ {
+			fmt.Fprintf(f, "      f%d,\n", j)
+		}
+		// function parameters
+		fmt.Fprintf(f, "      t,\n")
+		// function parameters
+		fmt.Fprintf(f, "    )\n")
+		fmt.Fprintf(f, "  }\n")
+		fmt.Fprintf(f, "}\n")
 	}
 }

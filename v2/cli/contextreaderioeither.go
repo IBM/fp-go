@@ -22,9 +22,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	A "github.com/IBM/fp-go/v2/array"
 	C "github.com/urfave/cli/v2"
 )
 
+// Deprecated:
 func generateNestedCallbacks(i, total int) string {
 	var buf strings.Builder
 	for j := i; j < total; j++ {
@@ -38,6 +40,14 @@ func generateNestedCallbacks(i, total int) string {
 	}
 	buf.WriteString(tupleType("T")(total))
 	return buf.String()
+}
+
+func generateNestedCallbacksPlain(i, total int) string {
+	fs := A.MakeBy(total-i, func(j int) string {
+		return fmt.Sprintf("func(T%d)", j+i+1)
+	})
+	ts := A.Of(tupleTypePlain("T")(total))
+	return joinAll(" ")(fs, ts)
 }
 
 func generateContextReaderIOEitherTraverseTuple(suffix string) func(f, fg *os.File, i int) {

@@ -39,15 +39,15 @@ func genericIOEither(param string) string {
 var extrasIOEither = A.From("E")
 
 func generateIOEitherSequenceT(f, fg *os.File, i int) {
-	generateGenericSequenceT(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
+	deprecatedGenerateGenericSequenceT(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
 }
 
 func generateIOEitherSequenceTuple(f, fg *os.File, i int) {
-	generateGenericSequenceTuple(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
+	deprecatedGenerateGenericSequenceTuple(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
 }
 
 func generateIOEitherTraverseTuple(f, fg *os.File, i int) {
-	generateGenericTraverseTuple(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
+	deprecatedGenerateGenericTraverseTuple(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
 }
 
 func generateIOEitherUneitherize(f, fg *os.File, i int) {

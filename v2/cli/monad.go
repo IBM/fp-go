@@ -21,10 +21,27 @@ import (
 	"strings"
 )
 
+// Deprecated:
 func tupleType(name string) func(i int) string {
 	return func(i int) string {
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf("T.Tuple%d[", i))
+		for j := 0; j < i; j++ {
+			if j > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(fmt.Sprintf("%s%d", name, j+1))
+		}
+		buf.WriteString("]")
+
+		return buf.String()
+	}
+}
+
+func tupleTypePlain(name string) func(i int) string {
+	return func(i int) string {
+		var buf strings.Builder
+		buf.WriteString(fmt.Sprintf("tuple.Tuple%d[", i))
 		for j := 0; j < i; j++ {
 			if j > 0 {
 				buf.WriteString(", ")
