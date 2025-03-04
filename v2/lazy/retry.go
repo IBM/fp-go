@@ -16,7 +16,7 @@
 package lazy
 
 import (
-	G "github.com/IBM/fp-go/v2/io/generic"
+	"github.com/IBM/fp-go/v2/io"
 	R "github.com/IBM/fp-go/v2/retry"
 )
 
@@ -30,5 +30,5 @@ func Retrying[A any](
 	action func(R.RetryStatus) Lazy[A],
 	check func(A) bool,
 ) Lazy[A] {
-	return G.Retrying(policy, action, check)
+	return io.Retrying(policy, action, check)
 }

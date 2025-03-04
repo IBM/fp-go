@@ -17,11 +17,14 @@ package io
 
 import (
 	"context"
-
-	G "github.com/IBM/fp-go/v2/io/generic"
 )
 
 // WithLock executes the provided [IO] operation in the scope of a lock
 func WithLock[A any](lock IO[context.CancelFunc]) func(fa IO[A]) IO[A] {
-	return G.WithLock[IO[A]](lock)
+	return func(fa IO[A]) IO[A] {
+		return func() A {
+			defer lock()()
+			return fa()
+		}
+	}
 }

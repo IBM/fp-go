@@ -15,48 +15,46 @@
 
 package lazy
 
-import (
-	G "github.com/IBM/fp-go/v2/io/generic"
-)
+import "github.com/IBM/fp-go/v2/io"
 
 func MonadTraverseArray[A, B any](tas []A, f func(A) Lazy[B]) Lazy[[]B] {
-	return G.MonadTraverseArray[Lazy[B], Lazy[[]B]](tas, f)
+	return io.MonadTraverseArray(tas, f)
 }
 
 // TraverseArray applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
 func TraverseArray[A, B any](f func(A) Lazy[B]) func([]A) Lazy[[]B] {
-	return G.TraverseArray[Lazy[B], Lazy[[]B], []A](f)
+	return io.TraverseArray(f)
 }
 
 // TraverseArrayWithIndex applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
 func TraverseArrayWithIndex[A, B any](f func(int, A) Lazy[B]) func([]A) Lazy[[]B] {
-	return G.TraverseArrayWithIndex[Lazy[B], Lazy[[]B], []A](f)
+	return io.TraverseArrayWithIndex(f)
 }
 
 // SequenceArray converts an array of [IO] to an [IO] of an array
 func SequenceArray[A any](tas []Lazy[A]) Lazy[[]A] {
-	return G.SequenceArray[Lazy[A], Lazy[[]A]](tas)
+	return io.SequenceArray(tas)
 }
 
 func MonadTraverseRecord[K comparable, A, B any](tas map[K]A, f func(A) Lazy[B]) Lazy[map[K]B] {
-	return G.MonadTraverseRecord[Lazy[map[K]B]](tas, f)
+	return io.MonadTraverseRecord(tas, f)
 }
 
 // TraverseRecord applies a function returning an [IO] to all elements in a record and the
 // transforms this into an [IO] of that record
 func TraverseRecord[K comparable, A, B any](f func(A) Lazy[B]) func(map[K]A) Lazy[map[K]B] {
-	return G.TraverseRecord[Lazy[map[K]B], map[K]A, Lazy[B]](f)
+	return io.TraverseRecord[K](f)
 }
 
 // TraverseRecord applies a function returning an [IO] to all elements in a record and the
 // transforms this into an [IO] of that record
 func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Lazy[B]) func(map[K]A) Lazy[map[K]B] {
-	return G.TraverseRecordWithIndex[Lazy[B], Lazy[map[K]B], map[K]A](f)
+	return io.TraverseRecordWithIndex[K](f)
 }
 
 // SequenceRecord converts a record of [IO] to an [IO] of a record
 func SequenceRecord[K comparable, A any](tas map[K]Lazy[A]) Lazy[map[K]A] {
-	return G.SequenceRecord[Lazy[A], Lazy[map[K]A]](tas)
+	return io.SequenceRecord(tas)
 }

@@ -23,7 +23,6 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
 	IO "github.com/IBM/fp-go/v2/io"
-	IOG "github.com/IBM/fp-go/v2/io/generic"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	IOO "github.com/IBM/fp-go/v2/iooption"
 	Int "github.com/IBM/fp-go/v2/number/integer"
@@ -99,7 +98,7 @@ var (
 			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
 				return F.Pipe3(
 					mp,
-					IOG.TraverseRecord[IO.IO[map[int]E.Either[error, any]], paramIndex](getAt(res)),
+					IO.TraverseRecord[int](getAt(res)),
 					IO.Map(R.Map[int](F.Flow2(
 						E.ToOption[error, any],
 						F.ToAny[O.Option[any]],

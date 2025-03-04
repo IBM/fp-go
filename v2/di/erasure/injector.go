@@ -142,7 +142,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 		actual, loaded := resolved.Load(key)
 		if !loaded {
 
-			computeResult := L.MakeLazy(func() Result {
+			computeResult := func() Result {
 				return F.Pipe5(
 					token,
 					T.Replicate2[Dependency],
@@ -155,7 +155,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 					IG.Ap[ProviderFactory](injFct),
 					IOE.Memoize[error, any],
 				)
-			})
+			}
 
 			actual, _ = resolved.LoadOrStore(key, F.Pipe1(
 				computeResult,

@@ -16,20 +16,28 @@
 package iooption
 
 import (
-	G "github.com/IBM/fp-go/v2/iooption/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/option"
 )
 
 // TraverseArray transforms an array
 func TraverseArray[A, B any](f func(A) IOOption[B]) func([]A) IOOption[[]B] {
-	return G.TraverseArray[IOOption[B], IOOption[[]B], []A](f)
+	return function.Flow2(
+		io.TraverseArray(f),
+		io.Map(option.SequenceArray[B]),
+	)
 }
 
 // TraverseArrayWithIndex transforms an array
 func TraverseArrayWithIndex[A, B any](f func(int, A) IOOption[B]) func([]A) IOOption[[]B] {
-	return G.TraverseArrayWithIndex[IOOption[B], IOOption[[]B], []A](f)
+	return function.Flow2(
+		io.TraverseArrayWithIndex(f),
+		io.Map(option.SequenceArray[B]),
+	)
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[A any](ma []IOOption[A]) IOOption[[]A] {
-	return G.SequenceArray[IOOption[A], IOOption[[]A], []IOOption[A], []A, A](ma)
+	return TraverseArray(function.Identity[IOOption[A]])(ma)
 }

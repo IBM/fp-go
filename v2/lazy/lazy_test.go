@@ -44,7 +44,7 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestMemoize(t *testing.T) {
-	data := Memoize(MakeLazy(rand.Int))
+	data := Memoize(rand.Int)
 
 	value1 := data()
 	value2 := data()
