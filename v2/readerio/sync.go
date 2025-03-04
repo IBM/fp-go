@@ -18,10 +18,17 @@ package readerio
 import (
 	"context"
 
-	G "github.com/IBM/fp-go/v2/readerio/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
 func WithLock[R, A any](lock func() context.CancelFunc) func(fa ReaderIO[R, A]) ReaderIO[R, A] {
-	return G.WithLock[ReaderIO[R, A]](lock)
+	l := io.WithLock[A](lock)
+	return func(fa ReaderIO[R, A]) ReaderIO[R, A] {
+		return function.Flow2(
+			fa,
+			l,
+		)
+	}
 }

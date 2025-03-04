@@ -39,15 +39,15 @@ func genericIOEither(param string) string {
 var extrasIOEither = A.From("E")
 
 func generateIOEitherSequenceT(f, fg *os.File, i int) {
-	deprecatedGenerateGenericSequenceT(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
+	generateGenericSequenceT(nonGenericIOEither, extrasIOEither)(f, i)
 }
 
 func generateIOEitherSequenceTuple(f, fg *os.File, i int) {
-	deprecatedGenerateGenericSequenceTuple(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
+	generateGenericSequenceTuple(nonGenericIOEither, extrasIOEither)(f, i)
 }
 
 func generateIOEitherTraverseTuple(f, fg *os.File, i int) {
-	deprecatedGenerateGenericTraverseTuple(nonGenericIOEither, genericIOEither, extrasIOEither)(f, fg, i)
+	generateGenericTraverseTuple(nonGenericIOEither, extrasIOEither)(f, i)
 }
 
 func generateIOEitherUneitherize(f, fg *os.File, i int) {
@@ -224,7 +224,8 @@ func generateIOEitherHelpers(filename string, count int) error {
 	fmt.Fprintf(f, `
 import (
 	G "github.com/IBM/fp-go/v2/%s/generic"	
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/internal/apply"
+	"github.com/IBM/fp-go/v2/tuple"
 )
 `, pkg)
 
@@ -238,8 +239,6 @@ import (
 	fmt.Fprintf(fg, `
 import (
 	ET "github.com/IBM/fp-go/v2/either"
-	T "github.com/IBM/fp-go/v2/tuple"
-	A "github.com/IBM/fp-go/v2/internal/apply"
 )
 `)
 

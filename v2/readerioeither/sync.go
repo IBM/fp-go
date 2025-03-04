@@ -18,10 +18,11 @@ package readerioeither
 import (
 	"context"
 
-	G "github.com/IBM/fp-go/v2/readerioeither/generic"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/readerio"
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
 func WithLock[R, E, A any](lock func() context.CancelFunc) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
-	return G.WithLock[ReaderIOEither[R, E, A]](lock)
+	return readerio.WithLock[R, either.Either[E, A]](lock)
 }
