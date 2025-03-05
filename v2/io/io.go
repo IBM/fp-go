@@ -108,7 +108,7 @@ func MonadApSeq[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 // apply operation and the second thread computes ma. Communication between the threads happens via a channel
 func MonadApPar[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 	return func() B {
-		c := make(chan A)
+		c := make(chan A, 1)
 		go func() {
 			c <- ma()
 			close(c)

@@ -23,6 +23,6 @@ import (
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
-func WithLock[E, A any](lock io.IO[context.CancelFunc]) func(fa IOOption[A]) IOOption[A] {
+func WithLock[E, A any](lock IO[context.CancelFunc]) func(fa IOOption[A]) IOOption[A] {
 	return io.WithLock[option.Option[A]](lock)
 }

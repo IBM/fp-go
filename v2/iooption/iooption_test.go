@@ -36,7 +36,7 @@ func TestMap(t *testing.T) {
 }
 
 func TestChainOptionK(t *testing.T) {
-	f := ChainOptionK(func(n int) O.Option[int] {
+	f := ChainOptionK(func(n int) Option[int] {
 		if n > 0 {
 			return O.Of(n)
 		}

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package iooption
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/io"
+	I "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/option"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[
-	GA ~func() O.Option[A],
-	GR ~func() O.Option[R],
-	GANY ~func() O.Option[ANY],
-	R, A, ANY any](onCreate GR, onRelease func(R) GANY) func(func(R) GA) GA {
-	// simply map to implementation of bracket
-	return F.Bind13of3(Bracket[GR, GA, GANY, R, A, ANY])(onCreate, F.Ignore2of2[O.Option[A]](onRelease))
-}
+type (
+	Option[A any] = option.Option[A]
+	IO[A any]     = io.IO[A]
+	Lazy[A any]   = lazy.Lazy[A]
+
+	// IOOption represents a synchronous computation that may fail
+	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
+	IOOption[A any] = I.IO[Option[A]]
+)

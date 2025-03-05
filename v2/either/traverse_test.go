@@ -24,7 +24,7 @@ import (
 )
 
 func TestTraverse(t *testing.T) {
-	f := func(n int) O.Option[int] {
+	f := func(n int) Option[int] {
 		if n >= 2 {
 			return O.Of(n)
 		}
@@ -48,6 +48,6 @@ func TestSequence(t *testing.T) {
 	)
 
 	assert.Equal(t, O.Of(Right[string](1)), seq(Right[string](O.Of(1))))
-	assert.Equal(t, O.Of(Left[int]("a")), seq(Left[O.Option[int]]("a")))
+	assert.Equal(t, O.Of(Left[int]("a")), seq(Left[Option[int]]("a")))
 	assert.Equal(t, O.None[Either[string, int]](), seq(Right[string](O.None[int]())))
 }

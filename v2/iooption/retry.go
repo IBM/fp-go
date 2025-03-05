@@ -16,8 +16,8 @@
 package iooption
 
 import (
-	G "github.com/IBM/fp-go/v2/iooption/generic"
 	R "github.com/IBM/fp-go/v2/retry"
+	G "github.com/IBM/fp-go/v2/retry/generic"
 )
 
 // Retrying will retry the actions according to the check policy
@@ -26,5 +26,13 @@ func Retrying[A any](
 	action func(R.RetryStatus) IOOption[A],
 	check func(A) bool,
 ) IOOption[A] {
-	return G.Retrying(policy, action, check)
+	// get an implementation for the types
+	return G.Retrying(
+		Chain[A, A],
+		Chain[R.RetryStatus, A],
+		Of[A],
+		Of[R.RetryStatus],
+		Delay[R.RetryStatus],
+
+		policy, action, check)
 }

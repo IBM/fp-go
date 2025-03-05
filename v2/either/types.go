@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,20 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iooption
+package either
 
-import (
-	EQ "github.com/IBM/fp-go/v2/eq"
-	"github.com/IBM/fp-go/v2/io"
-	O "github.com/IBM/fp-go/v2/option"
+import "github.com/IBM/fp-go/v2/option"
+
+type (
+	Option[A any] = option.Option[A]
 )
-
-// Eq implements the equals predicate for values contained in the IO monad
-func Eq[A any](eq EQ.Eq[A]) EQ.Eq[IOOption[A]] {
-	return io.Eq(O.Eq(eq))
-}
-
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[A comparable]() EQ.Eq[IOOption[A]] {
-	return Eq(EQ.FromStrictEquals[A]())
-}
