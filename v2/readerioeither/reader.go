@@ -34,7 +34,7 @@ import (
 type (
 	ReaderIOEither[R, E, A any] = reader.Reader[R, IOE.IOEither[E, A]]
 
-	Mapper[R, E, A, B any] = reader.Reader[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]]
+	Operator[R, E, A, B any] = reader.Reader[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]]
 )
 
 func MonadFromReaderIO[R, E, A any](a A, f func(A) readerio.ReaderIO[R, A]) ReaderIOEither[R, E, A] {

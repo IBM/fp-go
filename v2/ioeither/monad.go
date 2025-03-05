@@ -37,19 +37,19 @@ func (o *ioEitherMonad[E, A, B]) Of(a A) IOEither[E, A] {
 	return Of[E, A](a)
 }
 
-func (o *ioEitherMonad[E, A, B]) Map(f func(A) B) Mapper[E, A, B] {
+func (o *ioEitherMonad[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
 	return Map[E, A, B](f)
 }
 
-func (o *ioEitherMonad[E, A, B]) Chain(f func(A) IOEither[E, B]) Mapper[E, A, B] {
+func (o *ioEitherMonad[E, A, B]) Chain(f func(A) IOEither[E, B]) Operator[E, A, B] {
 	return Chain[E, A, B](f)
 }
 
-func (o *ioEitherMonad[E, A, B]) Ap(fa IOEither[E, A]) Mapper[E, func(A) B, B] {
+func (o *ioEitherMonad[E, A, B]) Ap(fa IOEither[E, A]) Operator[E, func(A) B, B] {
 	return Ap[B, E, A](fa)
 }
 
-func (o *ioEitherFunctor[E, A, B]) Map(f func(A) B) Mapper[E, A, B] {
+func (o *ioEitherFunctor[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
 	return Map[E, A, B](f)
 }
 

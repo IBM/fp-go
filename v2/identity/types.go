@@ -1,4 +1,4 @@
-// Copyright (c) 2024 IBM Corp.
+// Copyright (c) 2023 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io
-
-import (
-	"github.com/IBM/fp-go/v2/internal/functor"
-)
+package identity
 
 type (
-	ioFunctor[A, B any] struct{}
-
-	IOFunctor[A, B any] = functor.Functor[A, B, IO[A], IO[B]]
+	Operator[A, B any] = func(A) B
 )
-
-func (o *ioFunctor[A, B]) Map(f func(A) B) Operator[A, B] {
-	return Map(f)
-}
-
-// Functor implements the functoric operations for [IO]
-func Functor[A, B any]() IOFunctor[A, B] {
-	return &ioFunctor[A, B]{}
-}

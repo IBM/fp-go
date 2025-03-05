@@ -17,13 +17,18 @@ package predicate
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	M "github.com/IBM/fp-go/v2/monoid"
-	S "github.com/IBM/fp-go/v2/semigroup"
+	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/semigroup"
+)
+
+type (
+	Semigroup[A any] = semigroup.Semigroup[Predicate[A]]
+	Monoid[A any]    = monoid.Monoid[Predicate[A]]
 )
 
 // SemigroupAny combines predicates via ||
-func SemigroupAny[A any]() S.Semigroup[func(A) bool] {
-	return S.MakeSemigroup(func(first func(A) bool, second func(A) bool) func(A) bool {
+func SemigroupAny[A any]() Semigroup[A] {
+	return semigroup.MakeSemigroup(func(first Predicate[A], second Predicate[A]) Predicate[A] {
 		return F.Pipe1(
 			first,
 			Or(second),
@@ -32,8 +37,8 @@ func SemigroupAny[A any]() S.Semigroup[func(A) bool] {
 }
 
 // SemigroupAll combines predicates via &&
-func SemigroupAll[A any]() S.Semigroup[func(A) bool] {
-	return S.MakeSemigroup(func(first func(A) bool, second func(A) bool) func(A) bool {
+func SemigroupAll[A any]() Semigroup[A] {
+	return semigroup.MakeSemigroup(func(first Predicate[A], second Predicate[A]) Predicate[A] {
 		return F.Pipe1(
 			first,
 			And(second),
@@ -42,16 +47,16 @@ func SemigroupAll[A any]() S.Semigroup[func(A) bool] {
 }
 
 // MonoidAny combines predicates via ||
-func MonoidAny[A any]() S.Semigroup[func(A) bool] {
-	return M.MakeMonoid(
+func MonoidAny[A any]() Monoid[A] {
+	return monoid.MakeMonoid(
 		SemigroupAny[A]().Concat,
 		F.Constant1[A](false),
 	)
 }
 
 // MonoidAll combines predicates via &&
-func MonoidAll[A any]() S.Semigroup[func(A) bool] {
-	return M.MakeMonoid(
+func MonoidAll[A any]() Monoid[A] {
+	return monoid.MakeMonoid(
 		SemigroupAll[A]().Concat,
 		F.Constant1[A](true),
 	)

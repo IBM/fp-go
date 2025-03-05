@@ -16,18 +16,17 @@
 package readerio
 
 import (
-	IO "github.com/IBM/fp-go/v2/io"
 	G "github.com/IBM/fp-go/v2/readerio/generic"
 )
 
 // TraverseArray transforms an array
 func TraverseArray[R, A, B any](f func(A) ReaderIO[R, B]) func([]A) ReaderIO[R, []B] {
-	return G.TraverseArray[ReaderIO[R, B], ReaderIO[R, []B], IO.IO[B], IO.IO[[]B], []A](f)
+	return G.TraverseArray[ReaderIO[R, B], ReaderIO[R, []B], IO[B], IO[[]B], []A](f)
 }
 
 // TraverseArrayWithIndex transforms an array
 func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIO[R, B]) func([]A) ReaderIO[R, []B] {
-	return G.TraverseArrayWithIndex[ReaderIO[R, B], ReaderIO[R, []B], IO.IO[B], IO.IO[[]B], []A](f)
+	return G.TraverseArrayWithIndex[ReaderIO[R, B], ReaderIO[R, []B], IO[B], IO[[]B], []A](f)
 }
 
 // SequenceArray converts a homogeneous sequence of Readers into a Reader of sequence

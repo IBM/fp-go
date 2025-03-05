@@ -20,5 +20,5 @@ type (
 	// The first template argument `R` is the the context to read from, the second argument `A` is the return value of the monad
 	Reader[R, A any] = func(R) A
 
-	Mapper[R, A, B any] = func(Reader[R, A]) Reader[R, B]
+	Operator[R, A, B any] = func(Reader[R, A]) Reader[R, B]
 )

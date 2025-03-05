@@ -22,7 +22,7 @@ import (
 )
 
 // Endomorphism is a function  that
-type Endomorphism[A any] func(A) A
+type Endomorphism[A any] = func(A) A
 
 // Of converts any function to an [Endomorphism]
 func Of[F ~func(A) A, A any](f F) Endomorphism[A] {

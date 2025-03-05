@@ -21,6 +21,8 @@ import (
 	RE "github.com/IBM/fp-go/v2/readerioeither"
 )
 
-// ReaderIOEither is a specialization of the [RE.ReaderIOEither] monad for the typical golang scenario in which the
-// left value is an [error] and the context is a [context.Context]
-type ReaderIOEither[A any] = RE.ReaderIOEither[context.Context, error, A]
+type (
+	// ReaderIOEither is a specialization of the [RE.ReaderIOEither] monad for the typical golang scenario in which the
+	// left value is an [error] and the context is a [context.Context]
+	ReaderIOEither[A any] = RE.ReaderIOEither[context.Context, error, A]
+)

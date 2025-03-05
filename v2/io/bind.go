@@ -32,7 +32,7 @@ func Do[S any](
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) IO[T],
-) Mapper[S1, S2] {
+) Operator[S1, S2] {
 	return INTC.Bind(
 		Chain[S1, S2],
 		Map[T, S2],
@@ -45,7 +45,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) Mapper[S1, S2] {
+) Operator[S1, S2] {
 	return INTF.Let(
 		Map[S1, S2],
 		setter,
@@ -57,7 +57,7 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) Mapper[S1, S2] {
+) Operator[S1, S2] {
 	return INTF.LetTo(
 		Map[S1, S2],
 		setter,
@@ -68,7 +68,7 @@ func LetTo[S1, S2, T any](
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) Mapper[T, S1] {
+) Operator[T, S1] {
 	return INTC.BindTo(
 		Map[T, S1],
 		setter,
@@ -79,7 +79,7 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IO[T],
-) Mapper[S1, S2] {
+) Operator[S1, S2] {
 	return INTA.ApS(
 		Ap[S2, T],
 		Map[S1, func(T) S2],

@@ -15,19 +15,17 @@
 
 package pair
 
-import (
-	EQ "github.com/IBM/fp-go/v2/eq"
-)
+import "github.com/IBM/fp-go/v2/eq"
 
 // Constructs an equal predicate for an `Either`
-func Eq[A, B any](a EQ.Eq[A], b EQ.Eq[B]) EQ.Eq[Pair[A, B]] {
-	return EQ.FromEquals(func(l, r Pair[A, B]) bool {
+func Eq[A, B any](a eq.Eq[A], b eq.Eq[B]) eq.Eq[Pair[A, B]] {
+	return eq.FromEquals(func(l, r Pair[A, B]) bool {
 		return a.Equals(Head(l), Head(r)) && b.Equals(Tail(l), Tail(r))
 	})
 
 }
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[A, B comparable]() EQ.Eq[Pair[A, B]] {
-	return Eq(EQ.FromStrictEquals[A](), EQ.FromStrictEquals[B]())
+// FromStrictEquals constructs an [eq.Eq] from the canonical comparison function
+func FromStrictEquals[A, B comparable]() eq.Eq[Pair[A, B]] {
+	return Eq(eq.FromStrictEquals[A](), eq.FromStrictEquals[B]())
 }

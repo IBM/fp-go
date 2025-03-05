@@ -16,82 +16,118 @@
 package readerio
 
 import (
-	IO "github.com/IBM/fp-go/v2/io"
-	R "github.com/IBM/fp-go/v2/reader"
-	G "github.com/IBM/fp-go/v2/readerio/generic"
+	"sync"
+
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/fromio"
+	"github.com/IBM/fp-go/v2/internal/fromreader"
+	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/readert"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
-type ReaderIO[E, A any] = R.Reader[E, IO.IO[A]]
-
-// FromIO converts an [IO.IO] to a [ReaderIO]
-func FromIO[E, A any](t IO.IO[A]) ReaderIO[E, A] {
-	return G.FromIO[ReaderIO[E, A]](t)
+// FromIO converts an [IO] to a [ReaderIO]
+func FromIO[R, A any](t IO[A]) ReaderIO[R, A] {
+	return reader.Of[R](t)
 }
 
-func MonadMap[E, A, B any](fa ReaderIO[E, A], f func(A) B) ReaderIO[E, B] {
-	return G.MonadMap[ReaderIO[E, A], ReaderIO[E, B]](fa, f)
+func FromReader[R, A any](r Reader[R, A]) ReaderIO[R, A] {
+	return readert.MonadFromReader[Reader[R, A], ReaderIO[R, A]](io.Of[A], r)
 }
 
-func Map[E, A, B any](f func(A) B) func(ReaderIO[E, A]) ReaderIO[E, B] {
-	return G.Map[ReaderIO[E, A], ReaderIO[E, B]](f)
+func MonadMap[R, A, B any](fa ReaderIO[R, A], f func(A) B) ReaderIO[R, B] {
+	return readert.MonadMap[ReaderIO[R, A], ReaderIO[R, B]](io.MonadMap[A, B], fa, f)
 }
 
-func MonadChain[E, A, B any](ma ReaderIO[E, A], f func(A) ReaderIO[E, B]) ReaderIO[E, B] {
-	return G.MonadChain(ma, f)
+func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
+	return readert.Map[ReaderIO[R, A], ReaderIO[R, B]](io.Map[A, B], f)
 }
 
-func Chain[E, A, B any](f func(A) ReaderIO[E, B]) func(ReaderIO[E, A]) ReaderIO[E, B] {
-	return G.Chain[ReaderIO[E, A]](f)
+func MonadChain[R, A, B any](ma ReaderIO[R, A], f func(A) ReaderIO[R, B]) ReaderIO[R, B] {
+	return readert.MonadChain(io.MonadChain[A, B], ma, f)
 }
 
-func Of[E, A any](a A) ReaderIO[E, A] {
-	return G.Of[ReaderIO[E, A]](a)
+func Chain[R, A, B any](f func(A) ReaderIO[R, B]) Operator[R, A, B] {
+	return readert.Chain[ReaderIO[R, A]](io.Chain[A, B], f)
 }
 
-func MonadAp[B, E, A any](fab ReaderIO[E, func(A) B], fa ReaderIO[E, A]) ReaderIO[E, B] {
-	return G.MonadAp[ReaderIO[E, A], ReaderIO[E, B]](fab, fa)
+func Of[R, A any](a A) ReaderIO[R, A] {
+	return readert.MonadOf[ReaderIO[R, A]](io.Of[A], a)
 }
 
-func Ap[B, E, A any](fa ReaderIO[E, A]) func(ReaderIO[E, func(A) B]) ReaderIO[E, B] {
-	return G.Ap[ReaderIO[E, A], ReaderIO[E, B], ReaderIO[E, func(A) B]](fa)
+func MonadAp[B, R, A any](fab ReaderIO[R, func(A) B], fa ReaderIO[R, A]) ReaderIO[R, B] {
+	return readert.MonadAp[ReaderIO[R, A], ReaderIO[R, B], ReaderIO[R, func(A) B], R, A](io.MonadAp[A, B], fab, fa)
 }
 
-func Ask[E any]() ReaderIO[E, E] {
-	return G.Ask[ReaderIO[E, E]]()
+func Ap[B, R, A any](fa ReaderIO[R, A]) Operator[R, func(A) B, B] {
+	return function.Bind2nd(MonadAp[B, R, A], fa)
 }
 
-func Asks[E, A any](r R.Reader[E, A]) ReaderIO[E, A] {
-	return G.Asks[R.Reader[E, A], ReaderIO[E, A]](r)
+func Ask[R any]() ReaderIO[R, R] {
+	return fromreader.Ask(FromReader[R, R])()
 }
 
-func MonadChainIOK[E, A, B any](ma ReaderIO[E, A], f func(A) IO.IO[B]) ReaderIO[E, B] {
-	return G.MonadChainIOK[ReaderIO[E, A], ReaderIO[E, B]](ma, f)
+func Asks[R, A any](r Reader[R, A]) ReaderIO[R, A] {
+	return fromreader.Asks(FromReader[R, A])(r)
 }
 
-func ChainIOK[E, A, B any](f func(A) IO.IO[B]) func(ReaderIO[E, A]) ReaderIO[E, B] {
-	return G.ChainIOK[ReaderIO[E, A], ReaderIO[E, B]](f)
+func MonadChainIOK[R, A, B any](ma ReaderIO[R, A], f func(A) IO[B]) ReaderIO[R, B] {
+	return fromio.MonadChainIOK(
+		MonadChain[R, A, B],
+		FromIO[R, B],
+		ma, f,
+	)
+}
+
+func ChainIOK[R, A, B any](f func(A) IO[B]) Operator[R, A, B] {
+	return fromio.ChainIOK(
+		Chain[R, A, B],
+		FromIO[R, B],
+		f,
+	)
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
-func Defer[E, A any](gen func() ReaderIO[E, A]) ReaderIO[E, A] {
-	return G.Defer[ReaderIO[E, A]](gen)
+func Defer[R, A any](gen func() ReaderIO[R, A]) ReaderIO[R, A] {
+	return func(r R) IO[A] {
+		return func() A {
+			return gen()(r)()
+		}
+	}
 }
 
 // Memoize computes the value of the provided [ReaderIO] monad lazily but exactly once
 // The context used to compute the value is the context of the first call, so do not use this
 // method if the value has a functional dependency on the content of the context
-func Memoize[E, A any](rdr ReaderIO[E, A]) ReaderIO[E, A] {
-	return G.Memoize[ReaderIO[E, A]](rdr)
+func Memoize[R, A any](rdr ReaderIO[R, A]) ReaderIO[R, A] {
+	// synchronization primitives
+	var once sync.Once
+	var result A
+	// callback
+	gen := func(r R) func() {
+		return func() {
+			result = rdr(r)()
+		}
+	}
+	// returns our memoized wrapper
+	return func(r R) IO[A] {
+		io := gen(r)
+		return func() A {
+			once.Do(io)
+			return result
+		}
+	}
 }
 
-func Flatten[E, A any](mma ReaderIO[E, ReaderIO[E, A]]) ReaderIO[E, A] {
-	return G.Flatten[ReaderIO[E, A], ReaderIO[E, ReaderIO[E, A]]](mma)
+func Flatten[R, A any](mma ReaderIO[R, ReaderIO[R, A]]) ReaderIO[R, A] {
+	return MonadChain(mma, function.Identity[ReaderIO[R, A]])
 }
 
-func MonadFlap[E, A, B any](fab ReaderIO[E, func(A) B], a A) ReaderIO[E, B] {
-	return G.MonadFlap[ReaderIO[E, func(A) B], ReaderIO[E, B]](fab, a)
+func MonadFlap[R, A, B any](fab ReaderIO[R, func(A) B], a A) ReaderIO[R, B] {
+	return functor.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
 }
 
-func Flap[E, A, B any](a A) func(ReaderIO[E, func(A) B]) ReaderIO[E, B] {
-	return G.Flap[ReaderIO[E, func(A) B], ReaderIO[E, B]](a)
+func Flap[R, A, B any](a A) Operator[R, func(A) B, B] {
+	return functor.Flap(Map[R, func(A) B, B], a)
 }

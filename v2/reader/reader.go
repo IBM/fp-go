@@ -44,7 +44,7 @@ func MonadMap[E, A, B any](fa Reader[E, A], f func(A) B) Reader[E, B] {
 
 // Map can be used to turn functions `func(A)B` into functions `(fa F[A])F[B]` whose argument and return types
 // use the type constructor `F` to represent some computational context.
-func Map[E, A, B any](f func(A) B) Mapper[E, A, B] {
+func Map[E, A, B any](f func(A) B) Operator[E, A, B] {
 	return function.Bind2nd(MonadMap[E, A, B], f)
 }
 
@@ -55,7 +55,7 @@ func MonadAp[B, R, A any](fab Reader[R, func(A) B], fa Reader[R, A]) Reader[R, B
 }
 
 // Ap applies a function to an argument under a type constructor.
-func Ap[B, R, A any](fa Reader[R, A]) Mapper[R, func(A) B, B] {
+func Ap[B, R, A any](fa Reader[R, A]) Operator[R, func(A) B, B] {
 	return function.Bind2nd(MonadAp[B, R, A], fa)
 }
 
@@ -70,7 +70,7 @@ func MonadChain[R, A, B any](ma Reader[R, A], f func(A) Reader[R, B]) Reader[R, 
 }
 
 // Chain composes computations in sequence, using the return value of one computation to determine the next computation.
-func Chain[R, A, B any](f func(A) Reader[R, B]) Mapper[R, A, B] {
+func Chain[R, A, B any](f func(A) Reader[R, B]) Operator[R, A, B] {
 	return function.Bind2nd(MonadChain[R, A, B], f)
 }
 

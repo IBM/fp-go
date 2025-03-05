@@ -41,7 +41,7 @@ type (
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
 	IOEither[E, A any] = IO[Either[E, A]]
 
-	Mapper[E, A, B any] = R.Reader[IOEither[E, A], IOEither[E, B]]
+	Operator[E, A, B any] = R.Reader[IOEither[E, A], IOEither[E, B]]
 )
 
 func Left[A, E any](l E) IOEither[E, A] {
@@ -126,7 +126,7 @@ func MonadMap[E, A, B any](fa IOEither[E, A], f func(A) B) IOEither[E, B] {
 	return eithert.MonadMap(io.MonadMap[Either[E, A], Either[E, B]], fa, f)
 }
 
-func Map[E, A, B any](f func(A) B) Mapper[E, A, B] {
+func Map[E, A, B any](f func(A) B) Operator[E, A, B] {
 	return eithert.Map(io.Map[Either[E, A], Either[E, B]], f)
 }
 
@@ -134,7 +134,7 @@ func MonadMapTo[E, A, B any](fa IOEither[E, A], b B) IOEither[E, B] {
 	return MonadMap(fa, function.Constant1[A](b))
 }
 
-func MapTo[E, A, B any](b B) Mapper[E, A, B] {
+func MapTo[E, A, B any](b B) Operator[E, A, B] {
 	return Map[E](function.Constant1[A](b))
 }
 
@@ -142,7 +142,7 @@ func MonadChain[E, A, B any](fa IOEither[E, A], f func(A) IOEither[E, B]) IOEith
 	return eithert.MonadChain(io.MonadChain[Either[E, A], Either[E, B]], io.MonadOf[Either[E, B]], fa, f)
 }
 
-func Chain[E, A, B any](f func(A) IOEither[E, B]) Mapper[E, A, B] {
+func Chain[E, A, B any](f func(A) IOEither[E, B]) Operator[E, A, B] {
 	return eithert.Chain(io.Chain[Either[E, A], Either[E, B]], io.Of[Either[E, B]], f)
 }
 
@@ -171,7 +171,7 @@ func MonadAp[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEithe
 }
 
 // Ap is an alias of [ApPar]
-func Ap[B, E, A any](ma IOEither[E, A]) Mapper[E, func(A) B, B] {
+func Ap[B, E, A any](ma IOEither[E, A]) Operator[E, func(A) B, B] {
 	return eithert.Ap(
 		io.Ap[Either[E, B], Either[E, A]],
 		io.Map[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
@@ -186,7 +186,7 @@ func MonadApPar[B, E, A any](mab IOEither[E, func(A) B], ma IOEither[E, A]) IOEi
 }
 
 // ApPar applies function and value in parallel
-func ApPar[B, E, A any](ma IOEither[E, A]) Mapper[E, func(A) B, B] {
+func ApPar[B, E, A any](ma IOEither[E, A]) Operator[E, func(A) B, B] {
 	return eithert.Ap(
 		io.ApPar[Either[E, B], Either[E, A]],
 		io.Map[Either[E, func(A) B], func(Either[E, A]) Either[E, B]],
@@ -269,7 +269,7 @@ func MonadChainTo[A, E, B any](fa IOEither[E, A], fb IOEither[E, B]) IOEither[E,
 }
 
 // ChainTo composes to the second [IOEither] monad ignoring the return value of the first
-func ChainTo[A, E, B any](fb IOEither[E, B]) Mapper[E, A, B] {
+func ChainTo[A, E, B any](fb IOEither[E, B]) Operator[E, A, B] {
 	return Chain(function.Constant1[A](fb))
 }
 
@@ -284,7 +284,7 @@ func MonadChainFirst[E, A, B any](ma IOEither[E, A], f func(A) IOEither[E, B]) I
 }
 
 // ChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
-func ChainFirst[E, A, B any](f func(A) IOEither[E, B]) Mapper[E, A, A] {
+func ChainFirst[E, A, B any](f func(A) IOEither[E, B]) Operator[E, A, A] {
 	return chain.ChainFirst(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -302,7 +302,7 @@ func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) Either[E, 
 	)
 }
 
-func ChainFirstEitherK[A, E, B any](f func(A) Either[E, B]) Mapper[E, A, A] {
+func ChainFirstEitherK[A, E, B any](f func(A) Either[E, B]) Operator[E, A, A] {
 	return fromeither.ChainFirstEitherK(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -378,7 +378,7 @@ func MonadAlt[E, A any](first IOEither[E, A], second lazy.Lazy[IOEither[E, A]]) 
 }
 
 // Alt identifies an associative operation on a type constructor
-func Alt[E, A any](second lazy.Lazy[IOEither[E, A]]) Mapper[E, A, A] {
+func Alt[E, A any](second lazy.Lazy[IOEither[E, A]]) Operator[E, A, A] {
 	return function.Bind2nd(MonadAlt[E, A], second)
 }
 
@@ -386,7 +386,7 @@ func MonadFlap[E, B, A any](fab IOEither[E, func(A) B], a A) IOEither[E, B] {
 	return functor.MonadFlap(MonadMap[E, func(A) B, B], fab, a)
 }
 
-func Flap[E, B, A any](a A) Mapper[E, func(A) B, B] {
+func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 	return functor.Flap(Map[E, func(A) B, B], a)
 }
 
@@ -399,11 +399,11 @@ func ToIOOption[E, A any](ioe IOEither[E, A]) IOO.IOOption[A] {
 }
 
 // Delay creates an operation that passes in the value after some delay
-func Delay[E, A any](delay time.Duration) Mapper[E, A, A] {
+func Delay[E, A any](delay time.Duration) Operator[E, A, A] {
 	return io.Delay[Either[E, A]](delay)
 }
 
 // After creates an operation that passes after the given [time.Time]
-func After[E, A any](timestamp time.Time) Mapper[E, A, A] {
+func After[E, A any](timestamp time.Time) Operator[E, A, A] {
 	return io.After[Either[E, A]](timestamp)
 }

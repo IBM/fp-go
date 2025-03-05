@@ -31,7 +31,7 @@ func MonadApFirst[A, E, B any](first IOEither[E, A], second IOEither[E, B]) IOEi
 }
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
-func ApFirst[A, E, B any](second IOEither[E, B]) Mapper[E, A, A] {
+func ApFirst[A, E, B any](second IOEither[E, B]) Operator[E, A, A] {
 	return apply.ApFirst(
 		MonadAp[A, E, B],
 		MonadMap[E, A, func(B) A],
@@ -52,7 +52,7 @@ func MonadApSecond[A, E, B any](first IOEither[E, A], second IOEither[E, B]) IOE
 }
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
-func ApSecond[A, E, B any](second IOEither[E, B]) Mapper[E, A, B] {
+func ApSecond[A, E, B any](second IOEither[E, B]) Operator[E, A, B] {
 	return apply.ApSecond(
 		MonadAp[B, E, B],
 		MonadMap[E, A, func(B) B],

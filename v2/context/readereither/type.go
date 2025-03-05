@@ -22,5 +22,7 @@ import (
 	RE "github.com/IBM/fp-go/v2/readereither"
 )
 
-// ReaderEither is a specialization of the Reader monad for the typical golang scenario
-type ReaderEither[A any] RE.ReaderEither[context.Context, error, A]
+type (
+	// ReaderEither is a specialization of the Reader monad for the typical golang scenario
+	ReaderEither[A any] = RE.ReaderEither[context.Context, error, A]
+)

@@ -28,11 +28,11 @@ func (o *ioApplicative[A, B]) Of(a A) IO[A] {
 	return Of(a)
 }
 
-func (o *ioApplicative[A, B]) Map(f func(A) B) Mapper[A, B] {
+func (o *ioApplicative[A, B]) Map(f func(A) B) Operator[A, B] {
 	return Map(f)
 }
 
-func (o *ioApplicative[A, B]) Ap(fa IO[A]) Mapper[func(A) B, B] {
+func (o *ioApplicative[A, B]) Ap(fa IO[A]) Operator[func(A) B, B] {
 	return Ap[B](fa)
 }
 

@@ -23,7 +23,7 @@ import (
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
-func WithLock[R, A any](lock func() context.CancelFunc) func(fa ReaderIO[R, A]) ReaderIO[R, A] {
+func WithLock[R, A any](lock func() context.CancelFunc) Operator[R, A, A] {
 	l := io.WithLock[A](lock)
 	return func(fa ReaderIO[R, A]) ReaderIO[R, A] {
 		return function.Flow2(

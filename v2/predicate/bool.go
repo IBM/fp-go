@@ -15,15 +15,15 @@
 
 package predicate
 
-func Not[A any](predicate func(A) bool) func(A) bool {
+func Not[A any](predicate Predicate[A]) Predicate[A] {
 	return func(a A) bool {
 		return !predicate(a)
 	}
 }
 
 // And creates a predicate that combines other predicates via &&
-func And[A any](second func(A) bool) func(func(A) bool) func(A) bool {
-	return func(first func(A) bool) func(A) bool {
+func And[A any](second Predicate[A]) Operator[A, A] {
+	return func(first Predicate[A]) Predicate[A] {
 		return func(a A) bool {
 			return first(a) && second(a)
 		}
@@ -31,8 +31,8 @@ func And[A any](second func(A) bool) func(func(A) bool) func(A) bool {
 }
 
 // Or creates a predicate that combines other predicates via ||
-func Or[A any](second func(A) bool) func(func(A) bool) func(A) bool {
-	return func(first func(A) bool) func(A) bool {
+func Or[A any](second Predicate[A]) Operator[A, A] {
+	return func(first Predicate[A]) Predicate[A] {
 		return func(a A) bool {
 			return first(a) || second(a)
 		}

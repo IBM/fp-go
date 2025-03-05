@@ -1,4 +1,4 @@
-// Copyright (c) 2024 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io
+package readerio
 
 import (
-	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
-	ioFunctor[A, B any] struct{}
+	IO[A any]          = io.IO[A]
+	Reader[R, A any]   = reader.Reader[R, A]
+	ReaderIO[R, A any] = Reader[R, IO[A]]
 
-	IOFunctor[A, B any] = functor.Functor[A, B, IO[A], IO[B]]
+	Operator[R, A, B any] = Reader[ReaderIO[R, A], ReaderIO[R, B]]
 )
-
-func (o *ioFunctor[A, B]) Map(f func(A) B) Operator[A, B] {
-	return Map(f)
-}
-
-// Functor implements the functoric operations for [IO]
-func Functor[A, B any]() IOFunctor[A, B] {
-	return &ioFunctor[A, B]{}
-}

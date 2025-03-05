@@ -20,8 +20,8 @@ import (
 )
 
 // ContraMap creates a predicate from an existing predicate given a mapping function
-func ContraMap[A, B any](f func(B) A) func(func(A) bool) func(B) bool {
-	return func(pred func(A) bool) func(B) bool {
+func ContraMap[A, B any](f func(B) A) Operator[A, B] {
+	return func(pred Predicate[A]) Predicate[B] {
 		return F.Flow2(
 			f,
 			pred,

@@ -16,22 +16,22 @@
 package boolean
 
 import (
-	EQ "github.com/IBM/fp-go/v2/eq"
-	M "github.com/IBM/fp-go/v2/monoid"
-	O "github.com/IBM/fp-go/v2/ord"
+	"github.com/IBM/fp-go/v2/eq"
+	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/ord"
 )
 
 var (
-	// MonoidAny is the boolean [M.Monoid] under disjunction
-	MonoidAny = M.MakeMonoid(
+	// MonoidAny is the boolean [monoid.Monoid] under disjunction
+	MonoidAny = monoid.MakeMonoid(
 		func(l, r bool) bool {
 			return l || r
 		},
 		false,
 	)
 
-	// MonoidAll is the boolean [M.Monoid] under conjuction
-	MonoidAll = M.MakeMonoid(
+	// MonoidAll is the boolean [monoid.Monoid] under conjuction
+	MonoidAll = monoid.MakeMonoid(
 		func(l, r bool) bool {
 			return l && r
 		},
@@ -39,10 +39,10 @@ var (
 	)
 
 	// Eq is the equals predicate for boolean
-	Eq = EQ.FromStrictEquals[bool]()
+	Eq = eq.FromStrictEquals[bool]()
 
 	// Ord is the strict ordering for boolean
-	Ord = O.MakeOrd(func(l, r bool) int {
+	Ord = ord.MakeOrd(func(l, r bool) int {
 		if l {
 			if r {
 				return 0

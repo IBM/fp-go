@@ -32,7 +32,7 @@ func Do[E, S any](
 func Bind[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) IOEither[E, T],
-) Mapper[E, S1, S2] {
+) Operator[E, S1, S2] {
 	return chain.Bind(
 		Chain[E, S1, S2],
 		Map[E, T, S2],
@@ -45,7 +45,7 @@ func Bind[E, S1, S2, T any](
 func Let[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) Mapper[E, S1, S2] {
+) Operator[E, S1, S2] {
 	return functor.Let(
 		Map[E, S1, S2],
 		setter,
@@ -57,7 +57,7 @@ func Let[E, S1, S2, T any](
 func LetTo[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) Mapper[E, S1, S2] {
+) Operator[E, S1, S2] {
 	return functor.LetTo(
 		Map[E, S1, S2],
 		setter,
@@ -68,7 +68,7 @@ func LetTo[E, S1, S2, T any](
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[E, S1, T any](
 	setter func(T) S1,
-) Mapper[E, T, S1] {
+) Operator[E, T, S1] {
 	return chain.BindTo(
 		Map[E, T, S1],
 		setter,
@@ -79,7 +79,7 @@ func BindTo[E, S1, T any](
 func ApS[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOEither[E, T],
-) Mapper[E, S1, S2] {
+) Operator[E, S1, S2] {
 	return apply.ApS(
 		Ap[S2, E, T],
 		Map[E, S1, func(T) S2],

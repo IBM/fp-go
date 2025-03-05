@@ -24,7 +24,7 @@ func MonadAp[B, A any](fab func(A) B, fa A) B {
 	return G.MonadAp(fab, fa)
 }
 
-func Ap[B, A any](fa A) func(func(A) B) B {
+func Ap[B, A any](fa A) Operator[func(A) B, B] {
 	return G.Ap[func(A) B](fa)
 }
 
@@ -32,7 +32,7 @@ func MonadMap[A, B any](fa A, f func(A) B) B {
 	return G.MonadMap(fa, f)
 }
 
-func Map[A, B any](f func(A) B) func(A) B {
+func Map[A, B any](f func(A) B) Operator[A, B] {
 	return G.Map(f)
 }
 

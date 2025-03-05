@@ -18,7 +18,7 @@ package testing
 import (
 	"testing"
 
-	EQ "github.com/IBM/fp-go/v2/eq"
+	"github.com/IBM/fp-go/v2/eq"
 	L "github.com/IBM/fp-go/v2/internal/monad/testing"
 	P "github.com/IBM/fp-go/v2/pair"
 
@@ -29,10 +29,10 @@ import (
 func assertLawsHead[E, A, B, C any](t *testing.T,
 	m M.Monoid[E],
 
-	eqe EQ.Eq[E],
-	eqa EQ.Eq[A],
-	eqb EQ.Eq[B],
-	eqc EQ.Eq[C],
+	eqe eq.Eq[E],
+	eqa eq.Eq[A],
+	eqb eq.Eq[B],
+	eqc eq.Eq[C],
 
 	ab func(A) B,
 	bc func(B) C,
@@ -83,10 +83,10 @@ func assertLawsHead[E, A, B, C any](t *testing.T,
 func assertLawsTail[E, A, B, C any](t *testing.T,
 	m M.Monoid[E],
 
-	eqe EQ.Eq[E],
-	eqa EQ.Eq[A],
-	eqb EQ.Eq[B],
-	eqc EQ.Eq[C],
+	eqe eq.Eq[E],
+	eqa eq.Eq[A],
+	eqb eq.Eq[B],
+	eqc eq.Eq[C],
 
 	ab func(A) B,
 	bc func(B) C,
@@ -137,10 +137,10 @@ func assertLawsTail[E, A, B, C any](t *testing.T,
 func AssertLaws[E, A, B, C any](t *testing.T,
 	m M.Monoid[E],
 
-	eqe EQ.Eq[E],
-	eqa EQ.Eq[A],
-	eqb EQ.Eq[B],
-	eqc EQ.Eq[C],
+	eqe eq.Eq[E],
+	eqa eq.Eq[A],
+	eqb eq.Eq[B],
+	eqc eq.Eq[C],
 
 	ab func(A) B,
 	bc func(B) C,

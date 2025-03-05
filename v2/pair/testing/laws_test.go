@@ -19,17 +19,17 @@ import (
 	"fmt"
 	"testing"
 
-	EQ "github.com/IBM/fp-go/v2/eq"
+	"github.com/IBM/fp-go/v2/eq"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMonadLaws(t *testing.T) {
 	// some comparison
-	eqe := EQ.FromStrictEquals[string]()
-	eqa := EQ.FromStrictEquals[bool]()
-	eqb := EQ.FromStrictEquals[int]()
-	eqc := EQ.FromStrictEquals[string]()
+	eqe := eq.FromStrictEquals[string]()
+	eqa := eq.FromStrictEquals[bool]()
+	eqb := eq.FromStrictEquals[int]()
+	eqc := eq.FromStrictEquals[string]()
 
 	m := S.Monoid
 
