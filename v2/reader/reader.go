@@ -16,26 +16,15 @@
 package reader
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	INTF "github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/functor"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
 
-// The purpose of the `Reader` monad is to avoid threading arguments through multiple functions in order to only get them where they are needed.
-// The first template argument `R` is the the context to read from, the second argument `A` is the return value of the monad
-type Reader[R, A any] = func(R) A
-
-// MakeReader creates a reader, i.e. a method that accepts a context and that returns a value
-//
-// Deprecated:
-func MakeReader[R, A any](r Reader[R, A]) Reader[R, A] {
-	return r
-}
-
 // Ask reads the current context
 func Ask[R any]() Reader[R, R] {
-	return F.Identity[R]
+	return function.Identity[R]
 }
 
 // Asks projects a value from the global context in a Reader
@@ -50,13 +39,13 @@ func AsksReader[R, A any](f func(R) Reader[R, A]) Reader[R, A] {
 }
 
 func MonadMap[E, A, B any](fa Reader[E, A], f func(A) B) Reader[E, B] {
-	return F.Flow2(fa, f)
+	return function.Flow2(fa, f)
 }
 
 // Map can be used to turn functions `func(A)B` into functions `(fa F[A])F[B]` whose argument and return types
 // use the type constructor `F` to represent some computational context.
-func Map[E, A, B any](f func(A) B) func(Reader[E, A]) Reader[E, B] {
-	return F.Bind2nd(MonadMap[E, A, B], f)
+func Map[E, A, B any](f func(A) B) Mapper[E, A, B] {
+	return function.Bind2nd(MonadMap[E, A, B], f)
 }
 
 func MonadAp[B, R, A any](fab Reader[R, func(A) B], fa Reader[R, A]) Reader[R, B] {
@@ -66,12 +55,12 @@ func MonadAp[B, R, A any](fab Reader[R, func(A) B], fa Reader[R, A]) Reader[R, B
 }
 
 // Ap applies a function to an argument under a type constructor.
-func Ap[B, R, A any](fa Reader[R, A]) func(Reader[R, func(A) B]) Reader[R, B] {
-	return F.Bind2nd(MonadAp[B, R, A], fa)
+func Ap[B, R, A any](fa Reader[R, A]) Mapper[R, func(A) B, B] {
+	return function.Bind2nd(MonadAp[B, R, A], fa)
 }
 
 func Of[R, A any](a A) Reader[R, A] {
-	return F.Constant1[R](a)
+	return function.Constant1[R](a)
 }
 
 func MonadChain[R, A, B any](ma Reader[R, A], f func(A) Reader[R, B]) Reader[R, B] {
@@ -81,17 +70,17 @@ func MonadChain[R, A, B any](ma Reader[R, A], f func(A) Reader[R, B]) Reader[R, 
 }
 
 // Chain composes computations in sequence, using the return value of one computation to determine the next computation.
-func Chain[R, A, B any](f func(A) Reader[R, B]) func(Reader[R, A]) Reader[R, B] {
-	return F.Bind2nd(MonadChain[R, A, B], f)
+func Chain[R, A, B any](f func(A) Reader[R, B]) Mapper[R, A, B] {
+	return function.Bind2nd(MonadChain[R, A, B], f)
 }
 
 func Flatten[R, A any](mma func(R) Reader[R, A]) Reader[R, A] {
-	return MonadChain(mma, F.Identity[Reader[R, A]])
+	return MonadChain(mma, function.Identity[Reader[R, A]])
 }
 
 func Compose[R, B, C any](ab Reader[R, B]) func(Reader[B, C]) Reader[R, C] {
 	return func(bc Reader[B, C]) Reader[R, C] {
-		return F.Flow2(ab, bc)
+		return function.Flow2(ab, bc)
 	}
 }
 
@@ -109,7 +98,7 @@ func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]
 
 func Promap[E, A, D, B any](f func(D) E, g func(A) B) func(Reader[E, A]) Reader[D, B] {
 	return func(fea Reader[E, A]) Reader[D, B] {
-		return F.Flow3(f, fea, g)
+		return function.Flow3(f, fea, g)
 	}
 }
 
@@ -125,9 +114,9 @@ func Read[E, A any](e E) func(Reader[E, A]) A {
 }
 
 func MonadFlap[R, A, B any](fab Reader[R, func(A) B], a A) Reader[R, B] {
-	return INTF.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
+	return functor.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
 }
 
 func Flap[R, A, B any](a A) func(Reader[R, func(A) B]) Reader[R, B] {
-	return INTF.Flap(Map[R, func(A) B, B], a)
+	return functor.Flap(Map[R, func(A) B, B], a)
 }

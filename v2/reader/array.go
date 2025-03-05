@@ -16,20 +16,41 @@
 package reader
 
 import (
-	G "github.com/IBM/fp-go/v2/reader/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/array"
 )
+
+func MonadTraverseArray[R, A, B any](ma []A, f func(A) Reader[R, B]) Reader[R, []B] {
+	return array.MonadTraverse[[]A](
+		Of[R, []B],
+		Map[R, []B, func(B) []B],
+		Ap[[]B, R, B],
+		ma,
+		f,
+	)
+}
 
 // TraverseArray transforms an array
 func TraverseArray[R, A, B any](f func(A) Reader[R, B]) func([]A) Reader[R, []B] {
-	return G.TraverseArray[Reader[R, B], Reader[R, []B], []A](f)
+	return array.Traverse[[]A](
+		Of[R, []B],
+		Map[R, []B, func(B) []B],
+		Ap[[]B, R, B],
+		f,
+	)
 }
 
 // TraverseArrayWithIndex transforms an array
 func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) func([]A) Reader[R, []B] {
-	return G.TraverseArrayWithIndex[Reader[R, B], Reader[R, []B], []A](f)
+	return array.TraverseWithIndex[[]A](
+		Of[R, []B],
+		Map[R, []B, func(B) []B],
+		Ap[[]B, R, B],
+		f,
+	)
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 func SequenceArray[R, A any](ma []Reader[R, A]) Reader[R, []A] {
-	return G.SequenceArray[Reader[R, A], Reader[R, []A]](ma)
+	return MonadTraverseArray(ma, function.Identity[Reader[R, A]])
 }
