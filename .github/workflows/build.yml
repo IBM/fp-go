@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-
   pull_request:
-
   workflow_dispatch:
     inputs:
       dryRun:
@@ -15,52 +13,56 @@ on:
         required: false
 
 env:
-  # Currently no way to detect automatically
   DEFAULT_BRANCH: main
-  GO_VERSION: 1.21.6 # renovate: datasource=golang-version depName=golang
+  LATEST_GO_VERSION: 1.21.6 # renovate: datasource=golang-version depName=golang
   NODE_VERSION: 22
   DRY_RUN: true
 
 jobs:
   build-v1:
+    name: Build v1 (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.20.x', '1.21.x', '1.22.x', '1.23.x']
+        go-version: ['1.20.x', '1.21.x', '1.22.x', '1.23.x']
+      fail-fast: false  # Continue with other versions if one fails
     steps:
-      # full checkout for semantic-release
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - name: Set up go ${{ matrix.go-version }}
+      - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      - name: Tests
+          cache: true  # Enable Go module caching
+      - name: Run tests
         run: |
           go mod tidy
           go test -v ./...
+
   build-v2:
+    name: Build v2 (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.24.x']
+        go-version: ['1.24.x']
     steps:
-      # full checkout for semantic-release
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - name: Set up go ${{ matrix.go-version }}
+      - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      - name: Tests
+          cache: true  # Enable Go module caching
+      - name: Run tests
         run: |
           cd v2
           go mod tidy
           go test -v ./...
 
   release:
+    name: Release
     needs: 
       - build-v1
       - build-v2
@@ -71,38 +73,37 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-
     steps:
-      # full checkout for semantic-release
-      - name: Full checkout
+      - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
+      - name: Set up Node.js
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'  # Enable npm caching
 
-      - name: Set up go ${{env.GO_VERSION}}
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{env.GO_VERSION}}
+          go-version: ${{ env.LATEST_GO_VERSION }}
+          cache: true  # Enable Go module caching
 
-      # The dry-run evaluation is only made for non PR events. Manual trigger w/dryRun true, main branch and any tagged branches will set DRY run to false
-      - name: Check dry run
+      - name: Determine release mode
+        id: release-mode
         run: |
-          if [[ "${{github.event_name}}" == "workflow_dispatch" && "${{ github.event.inputs.dryRun }}" != "true"  ]]; then
-              echo "DRY_RUN=false" >> $GITHUB_ENV
-          elif [[ "${{github.ref}}" == "refs/heads/${{env.DEFAULT_BRANCH}}" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.dryRun }}" != "true" ]]; then
             echo "DRY_RUN=false" >> $GITHUB_ENV
-          elif [[ "${{github.ref}}" =~ ^refs/heads/v[0-9]+(\.[0-9]+)?$ ]]; then
+          elif [[ "${{ github.ref }}" == "refs/heads/${{ env.DEFAULT_BRANCH }}" ]]; then
+            echo "DRY_RUN=false" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" =~ ^refs/heads/v[0-9]+(\.[0-9]+)?$ ]]; then
             echo "DRY_RUN=false" >> $GITHUB_ENV
           fi
 
-      - name: Semantic Release
+      - name: Run semantic release
         run: |
-          npx -p conventional-changelog-conventionalcommits -p semantic-release semantic-release --dry-run ${{env.DRY_RUN}}
+          npx -p conventional-changelog-conventionalcommits -p semantic-release semantic-release --dry-run ${{ env.DRY_RUN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
