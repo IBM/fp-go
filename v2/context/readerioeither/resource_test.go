@@ -22,7 +22,7 @@ import (
 
 	B "github.com/IBM/fp-go/v2/bytes"
 	F "github.com/IBM/fp-go/v2/function"
-	IO "github.com/IBM/fp-go/v2/io"
+	I "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 )
 
@@ -32,7 +32,7 @@ var (
 		FromIOEither[*os.File],
 		ChainFirstIOK(F.Flow2(
 			(*os.File).Name,
-			IO.Logf[string]("Opened file [%s]"),
+			I.Logf[string]("Opened file [%s]"),
 		)),
 	)
 )
@@ -44,7 +44,7 @@ func closeFile(f *os.File) ReaderIOEither[string] {
 				return f.Name(), f.Close()
 			}
 		}),
-		ChainFirstIOK(IO.Logf[string]("Closed file [%s]")),
+		ChainFirstIOK(I.Logf[string]("Closed file [%s]")),
 	)
 }
 
@@ -61,7 +61,7 @@ func ExampleWithResource() {
 			}),
 			ChainFirstIOK(F.Flow2(
 				B.Size,
-				IO.Logf[int]("Read content of length [%d]"),
+				I.Logf[int]("Read content of length [%d]"),
 			)),
 			Map(B.ToString),
 		)
@@ -70,7 +70,7 @@ func ExampleWithResource() {
 	contentIOE := F.Pipe2(
 		context.Background(),
 		rdr,
-		IOE.ChainFirstIOK[error](IO.Printf[string]("Content: %s")),
+		IOE.ChainFirstIOK[error](I.Printf[string]("Content: %s")),
 	)
 
 	contentIOE()

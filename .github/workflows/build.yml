@@ -22,7 +22,7 @@ env:
   DRY_RUN: true
 
 jobs:
-  build:
+  build-v1:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,14 +36,34 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      -
-        name: Tests
+      - name: Tests
         run: |
+          go mod tidy
+          go test -v ./...
+  build-v2:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.24.x']
+    steps:
+      # full checkout for semantic-release
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Tests
+        run: |
+          cd v2
           go mod tidy
           go test -v ./...
 
   release:
-    needs: [build]
+    needs: 
+      - build-v1
+      - build-v2
     if: github.repository == 'IBM/fp-go' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15

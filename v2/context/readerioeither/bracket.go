@@ -16,8 +16,10 @@
 package readerioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
-	E "github.com/IBM/fp-go/v2/either"
+	"context"
+
+	"github.com/IBM/fp-go/v2/internal/bracket"
+	"github.com/IBM/fp-go/v2/readerio"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
@@ -27,9 +29,14 @@ func Bracket[
 
 	acquire ReaderIOEither[A],
 	use func(A) ReaderIOEither[B],
-	release func(A, E.Either[error, B]) ReaderIOEither[ANY],
+	release func(A, Either[B]) ReaderIOEither[ANY],
 ) ReaderIOEither[B] {
-	return G.Bracket[ReaderIOEither[A], ReaderIOEither[B], ReaderIOEither[ANY]](
+	return bracket.Bracket[ReaderIOEither[A], ReaderIOEither[B], ReaderIOEither[ANY], Either[B], A, B](
+		readerio.Of[context.Context, Either[B]],
+		MonadChain[A, B],
+		readerio.MonadChain[context.Context, Either[B], Either[B]],
+		MonadChain[ANY, B],
+
 		acquire,
 		use,
 		release,

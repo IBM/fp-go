@@ -13,22 +13,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
-
-import (
-	"context"
-
-	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/io"
-)
-
-// WithLock executes the provided IO operation in the scope of a lock
-func WithLock[A any](lock ReaderIOEither[context.CancelFunc]) Operator[A, A] {
-	return function.Flow2(
-		function.Constant1[context.CancelFunc, ReaderIOEither[A]],
-		WithResource[A](lock, function.Flow2(
-			io.FromImpure[context.CancelFunc],
-			FromIO[any],
-		)),
-	)
-}
+package mostlyadequate

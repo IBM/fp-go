@@ -16,19 +16,18 @@
 package readerioeither
 
 import (
-	"context"
-
-	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 )
 
-// WithLock executes the provided IO operation in the scope of a lock
-func WithLock[A any](lock ReaderIOEither[context.CancelFunc]) Operator[A, A] {
-	return function.Flow2(
-		function.Constant1[context.CancelFunc, ReaderIOEither[A]],
-		WithResource[A](lock, function.Flow2(
-			io.FromImpure[context.CancelFunc],
-			FromIO[any],
-		)),
-	)
-}
+type (
+	Either[E, A any]            = either.Either[E, A]
+	Reader[R, A any]            = reader.Reader[R, A]
+	ReaderIO[R, A any]          = readerio.ReaderIO[R, A]
+	IOEither[E, A any]          = ioeither.IOEither[E, A]
+	ReaderIOEither[R, E, A any] = Reader[R, IOEither[E, A]]
+
+	Operator[R, E, A, B any] = reader.Reader[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]]
+)

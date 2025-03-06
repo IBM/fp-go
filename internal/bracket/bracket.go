@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package file
+package bracket
 
 import (
 	F "github.com/IBM/fp-go/function"

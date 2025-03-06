@@ -21,7 +21,7 @@ import (
 
 	R "github.com/IBM/fp-go/v2/context/readerioeither"
 	F "github.com/IBM/fp-go/v2/function"
-	IO "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/io"
 	J "github.com/IBM/fp-go/v2/json"
 )
 
@@ -38,7 +38,7 @@ func ExampleReadFile() {
 	data := F.Pipe3(
 		ReadFile("./data/file.json"),
 		R.ChainEitherK(J.Unmarshal[RecordType]),
-		R.ChainFirstIOK(IO.Logf[RecordType]("Log: %v")),
+		R.ChainFirstIOK(io.Logf[RecordType]("Log: %v")),
 		R.Map(getData),
 	)
 

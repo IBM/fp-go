@@ -18,27 +18,41 @@ package readerioeither
 import (
 	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
 	L "github.com/IBM/fp-go/v2/lazy"
-	M "github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/monoid"
+)
+
+type (
+	Monoid[A any] = monoid.Monoid[ReaderIOEither[A]]
 )
 
 // ApplicativeMonoid returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
-func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
-	return G.ApplicativeMonoid[ReaderIOEither[A], ReaderIOEither[func(A) A]](m)
+func ApplicativeMonoid[A any](m monoid.Monoid[A]) monoid.Monoid[ReaderIOEither[A]] {
+	return monoid.ApplicativeMonoid(
+		Of[A],
+		MonadMap[A, func(A) A],
+		MonadAp[A, A],
+		m,
+	)
 }
 
 // ApplicativeMonoidSeq returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
-func ApplicativeMonoidSeq[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
-	return G.ApplicativeMonoidSeq[ReaderIOEither[A], ReaderIOEither[func(A) A]](m)
+func ApplicativeMonoidSeq[A any](m monoid.Monoid[A]) monoid.Monoid[ReaderIOEither[A]] {
+	return monoid.ApplicativeMonoid(
+		Of[A],
+		MonadMap[A, func(A) A],
+		MonadApSeq[A, A],
+		m,
+	)
 }
 
 // ApplicativeMonoidPar returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
-func ApplicativeMonoidPar[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
+func ApplicativeMonoidPar[A any](m monoid.Monoid[A]) monoid.Monoid[ReaderIOEither[A]] {
 	return G.ApplicativeMonoidPar[ReaderIOEither[A], ReaderIOEither[func(A) A]](m)
 }
 
 // AlternativeMonoid is the alternative [Monoid] for [ReaderIOEither]
-func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
-	return M.AlternativeMonoid(
+func AlternativeMonoid[A any](m monoid.Monoid[A]) monoid.Monoid[ReaderIOEither[A]] {
+	return monoid.AlternativeMonoid(
 		Of[A],
 		MonadMap[A, func(A) A],
 		MonadAp[A, A],
@@ -48,8 +62,8 @@ func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[ReaderIOEither[A]] {
 }
 
 // AltMonoid is the alternative [Monoid] for an [ReaderIOEither]
-func AltMonoid[A any](zero L.Lazy[ReaderIOEither[A]]) M.Monoid[ReaderIOEither[A]] {
-	return M.AltMonoid(
+func AltMonoid[A any](zero L.Lazy[ReaderIOEither[A]]) monoid.Monoid[ReaderIOEither[A]] {
+	return monoid.AltMonoid(
 		zero,
 		MonadAlt[A],
 	)

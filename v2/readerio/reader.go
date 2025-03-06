@@ -60,6 +60,14 @@ func MonadAp[B, R, A any](fab ReaderIO[R, func(A) B], fa ReaderIO[R, A]) ReaderI
 	return readert.MonadAp[ReaderIO[R, A], ReaderIO[R, B], ReaderIO[R, func(A) B], R, A](io.MonadAp[A, B], fab, fa)
 }
 
+func MonadApSeq[B, R, A any](fab ReaderIO[R, func(A) B], fa ReaderIO[R, A]) ReaderIO[R, B] {
+	return readert.MonadAp[ReaderIO[R, A], ReaderIO[R, B], ReaderIO[R, func(A) B], R, A](io.MonadApSeq[A, B], fab, fa)
+}
+
+func MonadApPar[B, R, A any](fab ReaderIO[R, func(A) B], fa ReaderIO[R, A]) ReaderIO[R, B] {
+	return readert.MonadAp[ReaderIO[R, A], ReaderIO[R, B], ReaderIO[R, func(A) B], R, A](io.MonadApPar[A, B], fab, fa)
+}
+
 func Ap[B, R, A any](fa ReaderIO[R, A]) Operator[R, func(A) B, B] {
 	return function.Bind2nd(MonadAp[B, R, A], fa)
 }
