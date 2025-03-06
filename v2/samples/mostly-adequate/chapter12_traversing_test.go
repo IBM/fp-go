@@ -45,7 +45,7 @@ var (
 	validatePlayer = E.FromPredicate(P.ContraMap(Player.getName)(S.IsNonEmpty), F.Flow2(Player.getID, errors.OnSome[int]("player %d must have a name")))
 
 	// readfile :: String -> String -> Task Error String
-	readfile = F.Curry2(func(encoding, file string) IOE.IOEither[error, string] {
+	readfile = F.Curry2(func(encoding, file string) IOEither[string] {
 		return IOE.Of[error](fmt.Sprintf("content of %s (%s)", file, encoding))
 	})
 
@@ -80,8 +80,8 @@ func Example_solution12B() {
 
 func Example_solution12C() {
 	traverseO := O.Traverse[string](
-		IOE.Of[error, O.Option[string]],
-		IOE.Map[error, string, O.Option[string]],
+		IOE.Of[error, Option[string]],
+		IOE.Map[error, string, Option[string]],
 	)
 
 	// readFirst :: String -> Task Error (Maybe String)

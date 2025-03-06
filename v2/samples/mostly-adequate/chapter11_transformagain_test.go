@@ -26,7 +26,7 @@ import (
 	S "github.com/IBM/fp-go/v2/string"
 )
 
-func findUserByID(id int) IOE.IOEither[error, Chapter08User] {
+func findUserByID(id int) IOEither[Chapter08User] {
 	switch id {
 	case 1:
 		return IOE.Of[error](albert08)

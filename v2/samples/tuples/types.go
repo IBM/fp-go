@@ -13,18 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mostlyadequate
+package tuples
 
-import (
-	"github.com/IBM/fp-go/v2/either"
-	"github.com/IBM/fp-go/v2/ioeither"
-	"github.com/IBM/fp-go/v2/iooption"
-	"github.com/IBM/fp-go/v2/option"
-)
+import "github.com/IBM/fp-go/v2/either"
 
 type (
-	Either[A any]   = either.Either[error, A]
-	IOEither[A any] = ioeither.IOEither[error, A]
-	IOOption[A any] = iooption.IOOption[A]
-	Option[A any]   = option.Option[A]
+	Either[A any] = either.Either[error, A]
 )

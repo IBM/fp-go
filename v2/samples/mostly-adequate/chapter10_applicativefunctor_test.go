@@ -61,8 +61,8 @@ var (
 	}
 
 	// getFromCache :: String -> IO User
-	getFromCache = func(name string) IOO.IOOption[Player] {
-		return func() O.Option[Player] {
+	getFromCache = func(name string) IOOption[Player] {
+		return func() Option[Player] {
 			return M.MonadLookup(localStorage, name)
 		}
 	}
@@ -122,7 +122,7 @@ func Example_renderPage() {
 }
 
 func Example_solution10A() {
-	safeAdd := F.Curry2(func(a, b O.Option[int]) O.Option[int] {
+	safeAdd := F.Curry2(func(a, b Option[int]) Option[int] {
 		return F.Pipe3(
 			N.Add[int],
 			O.Of[func(int) func(int) int],

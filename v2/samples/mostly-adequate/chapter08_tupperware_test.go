@@ -108,7 +108,7 @@ var (
 	checkActive = E.FromPredicate(Chapter08User.isActive, F.Constant1[Chapter08User](fmt.Errorf("your account is not active")))
 
 	// validateUser :: (User -> Either String ()) -> User -> Either String User
-	validateUser = F.Curry2(func(validate func(Chapter08User) E.Either[error, any], user Chapter08User) E.Either[error, Chapter08User] {
+	validateUser = F.Curry2(func(validate func(Chapter08User) Either[any], user Chapter08User) Either[Chapter08User] {
 		return F.Pipe2(
 			user,
 			validate,
@@ -117,7 +117,7 @@ var (
 	})
 
 	// save :: User -> IOEither error User
-	save = func(user Chapter08User) IOE.IOEither[error, Chapter08User] {
+	save = func(user Chapter08User) IOEither[Chapter08User] {
 		return IOE.FromIO[error](func() Chapter08User {
 			var u = user
 			u.Saved = true
@@ -126,7 +126,7 @@ var (
 	}
 )
 
-func Withdraw(amount float32) func(account Account) O.Option[Account] {
+func Withdraw(amount float32) func(account Account) Option[Account] {
 
 	return F.Flow3(
 		getBalance,
@@ -151,7 +151,7 @@ func MakeUser(d string) User {
 
 var parseDate = F.Bind1of2(E.Eitherize2(time.Parse))(time.DateOnly)
 
-func GetAge(now time.Time) func(User) E.Either[error, float64] {
+func GetAge(now time.Time) func(User) Either[float64] {
 	return F.Flow3(
 		getBirthDate,
 		parseDate,

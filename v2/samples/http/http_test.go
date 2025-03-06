@@ -74,7 +74,7 @@ func TestMultipleHttpRequests(t *testing.T) {
 	assert.Equal(t, E.Of[error](count), result())
 }
 
-func heterogeneousHTTPRequests() R.ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
+func heterogeneousHTTPRequests() ReaderIOEither[T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]
