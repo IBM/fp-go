@@ -22,21 +22,23 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
-	RE "github.com/IBM/fp-go/v2/readerioeither"
+	"github.com/IBM/fp-go/v2/readerioeither"
 )
 
 type (
-	// ReaderIOEither is a specialization of the [RE.ReaderIOEither] monad for the typical golang scenario in which the
+	// ReaderIOEither is a specialization of the [readereither.ReaderIOEither] monad for the typical golang scenario in which the
 	// left value is an [error] and the context is a [context.Context]
+	Option[A any]         = option.Option[A]
 	Either[A any]         = either.Either[error, A]
 	Lazy[A any]           = lazy.Lazy[A]
 	IO[A any]             = io.IO[A]
 	IOEither[A any]       = ioeither.IOEither[error, A]
 	Reader[R, A any]      = reader.Reader[R, A]
-	ReaderIO[R, A any]    = readerio.ReaderIO[R, A]
-	ReaderIOEither[A any] = RE.ReaderIOEither[context.Context, error, A]
+	ReaderIO[A any]       = readerio.ReaderIO[context.Context, A]
+	ReaderIOEither[A any] = readerioeither.ReaderIOEither[context.Context, error, A]
 
 	Operator[A, B any] = Reader[ReaderIOEither[A], ReaderIOEither[B]]
 )

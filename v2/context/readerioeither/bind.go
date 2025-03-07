@@ -16,15 +16,16 @@
 package readerioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/internal/apply"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // Bind creates an empty context of type [S] to be used with the [Bind] operation
 func Do[S any](
 	empty S,
 ) ReaderIOEither[S] {
-	return G.Do[ReaderIOEither[S], IOE.IOEither[error, S], S](empty)
+	return Of(empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -32,7 +33,12 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderIOEither[T],
 ) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
-	return G.Bind[ReaderIOEither[S1], ReaderIOEither[S2], ReaderIOEither[T], IOE.IOEither[error, S1], IOE.IOEither[error, S2], IOE.IOEither[error, T], S1, S2, T](setter, f)
+	return chain.Bind(
+		Chain[S1, S2],
+		Map[T, S2],
+		setter,
+		f,
+	)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -40,7 +46,11 @@ func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
 ) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
-	return G.Let[ReaderIOEither[S1], ReaderIOEither[S2], IOE.IOEither[error, S1], IOE.IOEither[error, S2], S1, S2, T](setter, f)
+	return functor.Let(
+		Map[S1, S2],
+		setter,
+		f,
+	)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
@@ -48,14 +58,21 @@ func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
 ) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
-	return G.LetTo[ReaderIOEither[S1], ReaderIOEither[S2], IOE.IOEither[error, S1], IOE.IOEither[error, S2], S1, S2, T](setter, b)
+	return functor.LetTo(
+		Map[S1, S2],
+		setter,
+		b,
+	)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) func(ReaderIOEither[T]) ReaderIOEither[S1] {
-	return G.BindTo[ReaderIOEither[S1], ReaderIOEither[T], IOE.IOEither[error, S1], IOE.IOEither[error, T], S1, T](setter)
+	return chain.BindTo(
+		Map[T, S1],
+		setter,
+	)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
@@ -63,5 +80,10 @@ func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIOEither[T],
 ) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
-	return G.ApS[ReaderIOEither[func(T) S2], ReaderIOEither[S1], ReaderIOEither[S2], ReaderIOEither[T], IOE.IOEither[error, func(T) S2], IOE.IOEither[error, S1], IOE.IOEither[error, S2], IOE.IOEither[error, T], S1, S2, T](setter, fa)
+	return apply.ApS(
+		Ap[S2, T],
+		Map[S1, func(T) S2],
+		setter,
+		fa,
+	)
 }

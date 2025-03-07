@@ -16,15 +16,17 @@
 package endomorphism
 
 import (
-	G "github.com/IBM/fp-go/v2/endomorphism/generic"
+	"github.com/IBM/fp-go/v2/function"
 )
 
 // Curry2 curries a binary function
+// Deprecated: not needed any more
 func Curry2[FCT ~func(T0, T1) T1, T0, T1 any](f FCT) func(T0) Endomorphism[T1] {
-	return G.Curry2[Endomorphism[T1]](f)
+	return function.Curry2(f)
 }
 
 // Curry3 curries a ternary function
+// Deprecated: not needed any more
 func Curry3[FCT ~func(T0, T1, T2) T2, T0, T1, T2 any](f FCT) func(T0) func(T1) Endomorphism[T2] {
-	return G.Curry3[Endomorphism[T2]](f)
+	return function.Curry3(f)
 }

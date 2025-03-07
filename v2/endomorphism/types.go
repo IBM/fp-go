@@ -13,25 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package endomorphism
 
-import (
-	F "github.com/IBM/fp-go/v2/function"
-	I "github.com/IBM/fp-go/v2/identity/generic"
+type (
+	// Endomorphism is a function  that
+	Endomorphism[A any] = func(A) A
+
+	Operator[A, B any] = func(Endomorphism[A]) Endomorphism[B]
 )
-
-func MonadAp[GA ~func(A) A, A any](fab GA, fa A) A {
-	return I.MonadAp[GA, A, A](fab, fa)
-}
-
-func Ap[GA ~func(A) A, A any](fa A) func(GA) A {
-	return I.Ap[GA, A, A](fa)
-}
-
-func MonadChain[GA ~func(A) A, A any](ma GA, f GA) GA {
-	return Compose(ma, f)
-}
-
-func Chain[ENDO ~func(GA) GA, GA ~func(A) A, A any](f GA) ENDO {
-	return Of[ENDO](F.Bind2nd(Compose[GA], f))
-}

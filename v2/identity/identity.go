@@ -16,24 +16,25 @@
 package identity
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
-	G "github.com/IBM/fp-go/v2/identity/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
 func MonadAp[B, A any](fab func(A) B, fa A) B {
-	return G.MonadAp(fab, fa)
+	return fab(fa)
 }
 
 func Ap[B, A any](fa A) Operator[func(A) B, B] {
-	return G.Ap[func(A) B](fa)
+	return function.Bind2nd(MonadAp[B, A], fa)
 }
 
 func MonadMap[A, B any](fa A, f func(A) B) B {
-	return G.MonadMap(fa, f)
+	return f(fa)
 }
 
 func Map[A, B any](f func(A) B) Operator[A, B] {
-	return G.Map(f)
+	return f
 }
 
 func MonadMapTo[A, B any](_ A, b B) B {
@@ -41,7 +42,7 @@ func MonadMapTo[A, B any](_ A, b B) B {
 }
 
 func MapTo[A, B any](b B) func(A) B {
-	return F.Constant1[A](b)
+	return function.Constant1[A](b)
 }
 
 func Of[A any](a A) A {
@@ -49,25 +50,25 @@ func Of[A any](a A) A {
 }
 
 func MonadChain[A, B any](ma A, f func(A) B) B {
-	return G.MonadChain(ma, f)
+	return f(ma)
 }
 
-func Chain[A, B any](f func(A) B) func(A) B {
-	return G.Chain(f)
+func Chain[A, B any](f func(A) B) Operator[A, B] {
+	return f
 }
 
 func MonadChainFirst[A, B any](fa A, f func(A) B) A {
-	return G.MonadChainFirst(fa, f)
+	return chain.MonadChainFirst(MonadChain[A, A], MonadMap[B, A], fa, f)
 }
 
-func ChainFirst[A, B any](f func(A) B) func(A) A {
-	return G.ChainFirst(f)
+func ChainFirst[A, B any](f func(A) B) Operator[A, A] {
+	return chain.ChainFirst(Chain[A, A], Map[B, A], f)
 }
 
 func MonadFlap[B, A any](fab func(A) B, a A) B {
-	return G.MonadFlap[func(A) B](fab, a)
+	return functor.MonadFlap(MonadMap[func(A) B, B], fab, a)
 }
 
-func Flap[B, A any](a A) func(func(A) B) B {
-	return G.Flap[func(A) B](a)
+func Flap[B, A any](a A) Operator[func(A) B, B] {
+	return functor.Flap(Map[func(A) B, B], a)
 }

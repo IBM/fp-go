@@ -73,6 +73,14 @@ func MonadAp[GEA ~func(E) HKTA, GEB ~func(E) HKTB, GEFAB ~func(E) HKTFAB, E, A, 
 	})
 }
 
+func Ap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, GEFAB ~func(E) HKTFAB, E, A, HKTA, HKTB, HKTFAB any](fap func(HKTA) func(HKTFAB) HKTB, fa GEA) func(GEFAB) GEB {
+	return func(fab GEFAB) GEB {
+		return func(r E) HKTB {
+			return fap(fa(r))(fab(r))
+		}
+	}
+}
+
 func MonadFromReader[GA ~func(E) A, GEA ~func(E) HKTA, E, A, HKTA any](
 	fof func(A) HKTA, ma GA) GEA {
 	return R.MakeReader(F.Flow2(ma, fof))

@@ -16,11 +16,16 @@
 package readerioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
-	S "github.com/IBM/fp-go/v2/semigroup"
+	"github.com/IBM/fp-go/v2/semigroup"
+)
+
+type (
+	Semigroup[A any] = semigroup.Semigroup[ReaderIOEither[A]]
 )
 
 // AltSemigroup is a [Semigroup] that tries the first item and then the second one using an alternative
-func AltSemigroup[A any]() S.Semigroup[ReaderIOEither[A]] {
-	return G.AltSemigroup[ReaderIOEither[A]]()
+func AltSemigroup[A any]() Semigroup[A] {
+	return semigroup.AltSemigroup(
+		MonadAlt[A],
+	)
 }

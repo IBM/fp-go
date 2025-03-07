@@ -33,15 +33,21 @@ func nonGenericIO(param string) string {
 var extrasIO = A.Empty[string]()
 
 func generateIOSequenceT(f *os.File, i int) {
-	generateGenericSequenceT(nonGenericIO, extrasIO)(f, i)
+	generateGenericSequenceT("", nonGenericIO, extrasIO)(f, i)
+	generateGenericSequenceT("Seq", nonGenericIO, extrasIO)(f, i)
+	generateGenericSequenceT("Par", nonGenericIO, extrasIO)(f, i)
 }
 
 func generateIOSequenceTuple(f *os.File, i int) {
-	generateGenericSequenceTuple(nonGenericIO, extrasIO)(f, i)
+	generateGenericSequenceTuple("", nonGenericIO, extrasIO)(f, i)
+	generateGenericSequenceTuple("Seq", nonGenericIO, extrasIO)(f, i)
+	generateGenericSequenceTuple("Par", nonGenericIO, extrasIO)(f, i)
 }
 
 func generateIOTraverseTuple(f *os.File, i int) {
-	generateGenericTraverseTuple(nonGenericIO, extrasIO)(f, i)
+	generateGenericTraverseTuple("", nonGenericIO, extrasIO)(f, i)
+	generateGenericTraverseTuple("Seq", nonGenericIO, extrasIO)(f, i)
+	generateGenericTraverseTuple("Par", nonGenericIO, extrasIO)(f, i)
 }
 
 func generateIOHelpers(filename string, count int) error {

@@ -287,6 +287,7 @@ func deprecatedGenerateGenericTraverseTuple(
 }
 
 func generateGenericSequenceT(
+	suffix string,
 	nonGenericType func(string) string,
 	extra []string,
 ) func(f *os.File, i int) {
@@ -299,8 +300,8 @@ func generateGenericSequenceT(
 			S.Format[int]("T%d"),
 		))
 		// non generic version
-		fmt.Fprintf(f, "\n// SequenceT%d converts %d [%s] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tuple))
-		fmt.Fprintf(f, "func SequenceT%d[%s any](\n", i, joinAll(", ")(extra, typesT))
+		fmt.Fprintf(f, "\n// Sequence%sT%d converts %d [%s] into a [%s]\n", suffix, i, i, nonGenericType("T"), nonGenericType(tuple))
+		fmt.Fprintf(f, "func Sequence%sT%d[%s any](\n", suffix, i, joinAll(", ")(extra, typesT))
 		for j := 0; j < i; j++ {
 			fmt.Fprintf(f, "  t%d %s,\n", j+1, nonGenericType(fmt.Sprintf("T%d", j+1)))
 		}
@@ -310,7 +311,7 @@ func generateGenericSequenceT(
 
 		// the apply calls
 		for j := 2; j <= i; j++ {
-			fmt.Fprintf(f, "    Ap[%s],\n", joinAll(", ")(A.Of(generateNestedCallbacksPlain(j, i)), extra, A.Of(fmt.Sprintf("T%d", j))))
+			fmt.Fprintf(f, "    Ap%s[%s],\n", suffix, joinAll(", ")(A.Of(generateNestedCallbacksPlain(j, i)), extra, A.Of(fmt.Sprintf("T%d", j))))
 		}
 		// function parameters
 		for j := 1; j <= i; j++ {
@@ -323,6 +324,7 @@ func generateGenericSequenceT(
 }
 
 func generateGenericSequenceTuple(
+	suffix string,
 	nonGenericType func(string) string,
 	extra []string,
 ) func(f *os.File, i int) {
@@ -335,8 +337,8 @@ func generateGenericSequenceTuple(
 			S.Format[int]("T%d"),
 		))
 		// non generic version
-		fmt.Fprintf(f, "\n// SequenceTuple%d converts a [tuple.Tuple%d[%s]] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tuple))
-		fmt.Fprintf(f, "func SequenceTuple%d[%s any](t tuple.Tuple%d[", i, joinAll(", ")(extra, typesT), i)
+		fmt.Fprintf(f, "\n// Sequence%sTuple%d converts a [tuple.Tuple%d[%s]] into a [%s]\n", suffix, i, i, nonGenericType("T"), nonGenericType(tuple))
+		fmt.Fprintf(f, "func Sequence%sTuple%d[%s any](t tuple.Tuple%d[", suffix, i, joinAll(", ")(extra, typesT), i)
 		for j := 0; j < i; j++ {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
@@ -349,7 +351,7 @@ func generateGenericSequenceTuple(
 
 		// the apply calls
 		for j := 2; j <= i; j++ {
-			fmt.Fprintf(f, "    Ap[%s],\n", joinAll(", ")(A.Of(generateNestedCallbacksPlain(j, i)), extra, A.Of(fmt.Sprintf("T%d", j))))
+			fmt.Fprintf(f, "    Ap%s[%s],\n", suffix, joinAll(", ")(A.Of(generateNestedCallbacksPlain(j, i)), extra, A.Of(fmt.Sprintf("T%d", j))))
 		}
 
 		// function parameters
@@ -361,6 +363,7 @@ func generateGenericSequenceTuple(
 }
 
 func generateGenericTraverseTuple(
+	suffix string,
 	nonGenericType func(string) string,
 	extra []string,
 ) func(f *os.File, i int) {
@@ -386,15 +389,15 @@ func generateGenericTraverseTuple(
 		paramType := fmt.Sprintf("tuple.Tuple%d[%s]", i, joinAll(", ")(typesA))
 		returnType := nonGenericType(fmt.Sprintf("tuple.Tuple%d[%s]", i, joinAll(", ")(typesT)))
 		// non generic version
-		fmt.Fprintf(f, "\n// TraverseTuple%d converts a [%s] into a [%s]\n", i, paramType, returnType)
-		fmt.Fprintf(f, "func TraverseTuple%d[%s any](%s) func(%s) %s {\n", i, joinAll(", ")(extra, typesF, typesT, typesA), joinAll(", ")(paramF), paramType, returnType)
+		fmt.Fprintf(f, "\n// Traverse%sTuple%d converts a [%s] into a [%s]\n", suffix, i, paramType, returnType)
+		fmt.Fprintf(f, "func Traverse%sTuple%d[%s any](%s) func(%s) %s {\n", suffix, i, joinAll(", ")(extra, typesF, typesT, typesA), joinAll(", ")(paramF), paramType, returnType)
 		fmt.Fprintf(f, "  return func(t %s) %s {\n", paramType, returnType)
 		fmt.Fprintf(f, "    return apply.TraverseTuple%d(\n", i)
 		fmt.Fprintf(f, "      Map[%s],\n", joinAll(", ")(extra, A.From("T1", generateNestedCallbacksPlain(1, i))))
 
 		// the apply calls
 		for j := 2; j <= i; j++ {
-			fmt.Fprintf(f, "      Ap[%s],\n", joinAll(", ")(A.Of(generateNestedCallbacksPlain(j, i)), extra, A.Of(fmt.Sprintf("T%d", j))))
+			fmt.Fprintf(f, "      Ap%s[%s],\n", suffix, joinAll(", ")(A.Of(generateNestedCallbacksPlain(j, i)), extra, A.Of(fmt.Sprintf("T%d", j))))
 		}
 		// the function parameters
 		for j := 1; j <= i; j++ {

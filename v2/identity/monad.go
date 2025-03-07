@@ -22,19 +22,19 @@ import (
 type identityMonad[A, B any] struct{}
 
 func (o *identityMonad[A, B]) Of(a A) A {
-	return Of[A](a)
+	return Of(a)
 }
 
 func (o *identityMonad[A, B]) Map(f func(A) B) func(A) B {
-	return Map[A, B](f)
+	return Map(f)
 }
 
 func (o *identityMonad[A, B]) Chain(f func(A) B) func(A) B {
-	return Chain[A, B](f)
+	return Chain(f)
 }
 
 func (o *identityMonad[A, B]) Ap(fa A) func(func(A) B) B {
-	return Ap[B, A](fa)
+	return Ap[B](fa)
 }
 
 // Monad implements the monadic operations for [Option]

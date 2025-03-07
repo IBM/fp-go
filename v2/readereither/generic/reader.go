@@ -152,11 +152,6 @@ func Local[GA1 ~func(R1) ET.Either[E, A], GA2 ~func(R2) ET.Either[E, A], R2, R1,
 	return R.Local[GA1, GA2](f)
 }
 
-// Read applies a context to a reader to obtain its value
-func Read[GA ~func(E) ET.Either[E1, A], E, E1, A any](e E) func(GA) ET.Either[E1, A] {
-	return R.Read[GA](e)
-}
-
 func MonadFlap[GEFAB ~func(E) ET.Either[L, func(A) B], GEB ~func(E) ET.Either[L, B], L, E, A, B any](fab GEFAB, a A) GEB {
 	return FC.MonadFlap(MonadMap[GEFAB, GEB], fab, a)
 }

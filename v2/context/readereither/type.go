@@ -19,10 +19,17 @@ package readereither
 import (
 	"context"
 
-	RE "github.com/IBM/fp-go/v2/readereither"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readereither"
 )
 
 type (
+	Option[A any] = option.Option[A]
+	Either[A any] = either.Either[error, A]
 	// ReaderEither is a specialization of the Reader monad for the typical golang scenario
-	ReaderEither[A any] = RE.ReaderEither[context.Context, error, A]
+	ReaderEither[A any] = readereither.ReaderEither[context.Context, error, A]
+
+	Operator[A, B any] = reader.Reader[ReaderEither[A], ReaderEither[B]]
 )

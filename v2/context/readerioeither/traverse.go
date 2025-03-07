@@ -16,7 +16,6 @@
 package readerioeither
 
 import (
-	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/array"
 	"github.com/IBM/fp-go/v2/internal/record"
@@ -76,6 +75,17 @@ func SequenceRecord[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIOEit
 	return TraverseRecord[K](function.Identity[ReaderIOEither[A]])(ma)
 }
 
+// MonadTraverseArraySeq uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+func MonadTraverseArraySeq[A, B any](as []A, f func(A) ReaderIOEither[B]) ReaderIOEither[[]B] {
+	return array.MonadTraverse[[]A](
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		ApSeq[[]B, B],
+		as,
+		f,
+	)
+}
+
 // TraverseArraySeq uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
 func TraverseArraySeq[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
 	return array.Traverse[[]A](
@@ -89,55 +99,130 @@ func TraverseArraySeq[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOE
 
 // TraverseArrayWithIndexSeq uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
 func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
-	return G.TraverseArrayWithIndexSeq[[]A, ReaderIOEither[[]B]](f)
+	return array.TraverseWithIndex[[]A](
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		ApSeq[[]B, B],
+
+		f,
+	)
 }
 
 // SequenceArraySeq converts a homogeneous sequence of either into an either of sequence
 func SequenceArraySeq[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
-	return G.SequenceArraySeq[[]A, []ReaderIOEither[A], ReaderIOEither[[]A]](ma)
+	return MonadTraverseArraySeq(ma, function.Identity[ReaderIOEither[A]])
+}
+
+// MonadTraverseRecordSeq uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
+func MonadTraverseRecordSeq[K comparable, A, B any](as map[K]A, f func(A) ReaderIOEither[B]) ReaderIOEither[map[K]B] {
+	return record.MonadTraverse[map[K]A](
+		Of[map[K]B],
+		Map[map[K]B, func(B) map[K]B],
+		ApSeq[map[K]B, B],
+		as,
+		f,
+	)
 }
 
 // TraverseRecordSeq uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
 func TraverseRecordSeq[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
-	return G.TraverseRecordSeq[K, map[K]A, ReaderIOEither[map[K]B]](f)
+	return record.Traverse[map[K]A](
+		Of[map[K]B],
+		Map[map[K]B, func(B) map[K]B],
+		ApSeq[map[K]B, B],
+
+		f,
+	)
 }
 
 // TraverseRecordWithIndexSeq uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
 func TraverseRecordWithIndexSeq[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
-	return G.TraverseRecordWithIndexSeq[K, map[K]A, ReaderIOEither[map[K]B]](f)
+	return record.TraverseWithIndex[map[K]A](
+		Of[map[K]B],
+		Map[map[K]B, func(B) map[K]B],
+		ApSeq[map[K]B, B],
+
+		f,
+	)
 }
 
 // SequenceRecordSeq converts a homogeneous sequence of either into an either of sequence
 func SequenceRecordSeq[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIOEither[map[K]A] {
-	return G.SequenceRecordSeq[K, map[K]A, map[K]ReaderIOEither[A], ReaderIOEither[map[K]A]](ma)
+	return MonadTraverseRecordSeq(ma, function.Identity[ReaderIOEither[A]])
+}
+
+// MonadTraverseArrayPar uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+func MonadTraverseArrayPar[A, B any](as []A, f func(A) ReaderIOEither[B]) ReaderIOEither[[]B] {
+	return array.MonadTraverse[[]A](
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		ApPar[[]B, B],
+		as,
+		f,
+	)
 }
 
 // TraverseArrayPar uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
 func TraverseArrayPar[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
-	return G.TraverseArrayPar[[]A, ReaderIOEither[[]B]](f)
+	return array.Traverse[[]A](
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		ApPar[[]B, B],
+
+		f,
+	)
 }
 
 // TraverseArrayWithIndexPar uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
 func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
-	return G.TraverseArrayWithIndexPar[[]A, ReaderIOEither[[]B]](f)
+	return array.TraverseWithIndex[[]A](
+		Of[[]B],
+		Map[[]B, func(B) []B],
+		ApPar[[]B, B],
+
+		f,
+	)
 }
 
 // SequenceArrayPar converts a homogeneous sequence of either into an either of sequence
 func SequenceArrayPar[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
-	return G.SequenceArrayPar[[]A, []ReaderIOEither[A], ReaderIOEither[[]A]](ma)
+	return MonadTraverseArrayPar(ma, function.Identity[ReaderIOEither[A]])
 }
 
 // TraverseRecordPar uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
 func TraverseRecordPar[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
-	return G.TraverseRecordPar[K, map[K]A, ReaderIOEither[map[K]B]](f)
+	return record.Traverse[map[K]A](
+		Of[map[K]B],
+		Map[map[K]B, func(B) map[K]B],
+		ApPar[map[K]B, B],
+
+		f,
+	)
 }
 
 // TraverseRecordWithIndexPar uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
 func TraverseRecordWithIndexPar[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
-	return G.TraverseRecordWithIndexPar[K, map[K]A, ReaderIOEither[map[K]B]](f)
+	return record.TraverseWithIndex[map[K]A](
+		Of[map[K]B],
+		Map[map[K]B, func(B) map[K]B],
+		ApPar[map[K]B, B],
+
+		f,
+	)
+}
+
+// MonadTraverseRecordPar uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
+func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f func(A) ReaderIOEither[B]) ReaderIOEither[map[K]B] {
+	return record.MonadTraverse[map[K]A](
+		Of[map[K]B],
+		Map[map[K]B, func(B) map[K]B],
+		ApPar[map[K]B, B],
+		as,
+		f,
+	)
 }
 
 // SequenceRecordPar converts a homogeneous sequence of either into an either of sequence
 func SequenceRecordPar[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIOEither[map[K]A] {
-	return G.SequenceRecordPar[K, map[K]A, map[K]ReaderIOEither[A], ReaderIOEither[map[K]A]](ma)
+	return MonadTraverseRecordPar(ma, function.Identity[ReaderIOEither[A]])
 }

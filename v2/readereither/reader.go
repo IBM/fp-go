@@ -17,146 +17,158 @@ package readereither
 
 import (
 	ET "github.com/IBM/fp-go/v2/either"
-	O "github.com/IBM/fp-go/v2/option"
-	R "github.com/IBM/fp-go/v2/reader"
-	G "github.com/IBM/fp-go/v2/readereither/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/eithert"
+	"github.com/IBM/fp-go/v2/internal/fromeither"
+	"github.com/IBM/fp-go/v2/internal/fromreader"
+	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/readert"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
-type ReaderEither[E, L, A any] R.Reader[E, ET.Either[L, A]]
-
-func MakeReaderEither[L, E, A any](f func(E) ET.Either[L, A]) ReaderEither[E, L, A] {
-	return G.MakeReaderEither[ReaderEither[E, L, A]](f)
+func FromEither[E, L, A any](e Either[L, A]) ReaderEither[E, L, A] {
+	return reader.Of[E](e)
 }
 
-func FromEither[E, L, A any](e ET.Either[L, A]) ReaderEither[E, L, A] {
-	return G.FromEither[ReaderEither[E, L, A]](e)
+func RightReader[L, E, A any](r Reader[E, A]) ReaderEither[E, L, A] {
+	return eithert.RightF(reader.MonadMap[E, A, Either[L, A]], r)
 }
 
-func RightReader[L, E, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
-	return G.RightReader[R.Reader[E, A], ReaderEither[E, L, A]](r)
-}
-
-func LeftReader[A, E, L any](l R.Reader[E, L]) ReaderEither[E, L, A] {
-	return G.LeftReader[R.Reader[E, L], ReaderEither[E, L, A]](l)
+func LeftReader[A, E, L any](l Reader[E, L]) ReaderEither[E, L, A] {
+	return eithert.LeftF(reader.MonadMap[E, L, Either[L, A]], l)
 }
 
 func Left[E, A, L any](l L) ReaderEither[E, L, A] {
-	return G.Left[ReaderEither[E, L, A]](l)
+	return eithert.Left(reader.Of[E, Either[L, A]], l)
 }
 
 func Right[E, L, A any](r A) ReaderEither[E, L, A] {
-	return G.Right[ReaderEither[E, L, A]](r)
+	return eithert.Right(reader.Of[E, Either[L, A]], r)
 }
 
-func FromReader[E, L, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
-	return G.FromReader[R.Reader[E, A], ReaderEither[E, L, A]](r)
+func FromReader[E, L, A any](r Reader[E, A]) ReaderEither[E, L, A] {
+	return RightReader[L](r)
 }
 
 func MonadMap[E, L, A, B any](fa ReaderEither[E, L, A], f func(A) B) ReaderEither[E, L, B] {
-	return G.MonadMap[ReaderEither[E, L, A], ReaderEither[E, L, B]](fa, f)
+	return readert.MonadMap[ReaderEither[E, L, A], ReaderEither[E, L, B]](ET.MonadMap[L, A, B], fa, f)
 }
 
 func Map[E, L, A, B any](f func(A) B) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return G.Map[ReaderEither[E, L, A], ReaderEither[E, L, B]](f)
+	return readert.Map[ReaderEither[E, L, A], ReaderEither[E, L, B]](ET.Map[L, A, B], f)
 }
 
 func MonadChain[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) ReaderEither[E, L, B]) ReaderEither[E, L, B] {
-	return G.MonadChain[ReaderEither[E, L, A], ReaderEither[E, L, B]](ma, f)
+	return readert.MonadChain[ReaderEither[E, L, A], ReaderEither[E, L, B]](ET.MonadChain[L, A, B], ma, f)
 }
 
 func Chain[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return G.Chain[ReaderEither[E, L, A], ReaderEither[E, L, B]](f)
+	return readert.Chain[ReaderEither[E, L, A], ReaderEither[E, L, B]](ET.Chain[L, A, B], f)
 }
 
 func Of[E, L, A any](a A) ReaderEither[E, L, A] {
-	return G.Of[ReaderEither[E, L, A]](a)
+	return readert.MonadOf[ReaderEither[E, L, A]](ET.Of[L, A], a)
 }
 
 func MonadAp[E, L, A, B any](fab ReaderEither[E, L, func(A) B], fa ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return G.MonadAp[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B]](fab, fa)
+	return readert.MonadAp[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B], E, A](ET.MonadAp[B, L, A], fab, fa)
 }
 
 func Ap[B, E, L, A any](fa ReaderEither[E, L, A]) func(ReaderEither[E, L, func(A) B]) ReaderEither[E, L, B] {
-	return G.Ap[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B]](fa)
+	return readert.Ap[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B], E, A](ET.Ap[B, L, A], fa)
 }
 
 func FromPredicate[E, L, A any](pred func(A) bool, onFalse func(A) L) func(A) ReaderEither[E, L, A] {
-	return G.FromPredicate[ReaderEither[E, L, A]](pred, onFalse)
+	return fromeither.FromPredicate(FromEither[E, L, A], pred, onFalse)
 }
 
-func Fold[E, L, A, B any](onLeft func(L) R.Reader[E, B], onRight func(A) R.Reader[E, B]) func(ReaderEither[E, L, A]) R.Reader[E, B] {
-	return G.Fold[ReaderEither[E, L, A]](onLeft, onRight)
+func Fold[E, L, A, B any](onLeft func(L) Reader[E, B], onRight func(A) Reader[E, B]) func(ReaderEither[E, L, A]) Reader[E, B] {
+	return eithert.MatchE(reader.MonadChain[E, Either[L, A], B], onLeft, onRight)
 }
 
-func GetOrElse[E, L, A any](onLeft func(L) R.Reader[E, A]) func(ReaderEither[E, L, A]) R.Reader[E, A] {
-	return G.GetOrElse[ReaderEither[E, L, A]](onLeft)
+func GetOrElse[E, L, A any](onLeft func(L) Reader[E, A]) func(ReaderEither[E, L, A]) Reader[E, A] {
+	return eithert.GetOrElse(reader.MonadChain[E, Either[L, A], A], reader.Of[E, A], onLeft)
 }
 
 func OrElse[E, L1, A, L2 any](onLeft func(L1) ReaderEither[E, L2, A]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
-	return G.OrElse[ReaderEither[E, L1, A]](onLeft)
+	return eithert.OrElse(reader.MonadChain[E, Either[L1, A], Either[L2, A]], reader.Of[E, Either[L2, A]], onLeft)
 }
 
-func OrLeft[A, L1, E, L2 any](onLeft func(L1) R.Reader[E, L2]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
-	return G.OrLeft[ReaderEither[E, L1, A], ReaderEither[E, L2, A]](onLeft)
+func OrLeft[A, L1, E, L2 any](onLeft func(L1) Reader[E, L2]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
+	return eithert.OrLeft(
+		reader.MonadChain[E, Either[L1, A], Either[L2, A]],
+		reader.MonadMap[E, L2, Either[L2, A]],
+		reader.Of[E, Either[L2, A]],
+		onLeft,
+	)
 }
 
 func Ask[E, L any]() ReaderEither[E, L, E] {
-	return G.Ask[ReaderEither[E, L, E]]()
+	return fromreader.Ask(FromReader[E, L, E])()
 }
 
-func Asks[L, E, A any](r R.Reader[E, A]) ReaderEither[E, L, A] {
-	return G.Asks[R.Reader[E, A], ReaderEither[E, L, A]](r)
+func Asks[L, E, A any](r Reader[E, A]) ReaderEither[E, L, A] {
+	return fromreader.Asks(FromReader[E, L, A])(r)
 }
 
-func MonadChainEitherK[A, B, L, E any](ma ReaderEither[E, L, A], f func(A) ET.Either[L, B]) ReaderEither[E, L, B] {
-	return G.MonadChainEitherK[ReaderEither[E, L, A], ReaderEither[E, L, B]](ma, f)
+func MonadChainEitherK[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) Either[L, B]) ReaderEither[E, L, B] {
+	return fromeither.MonadChainEitherK(
+		MonadChain[E, L, A, B],
+		FromEither[E, L, B],
+		ma,
+		f,
+	)
 }
 
-func ChainEitherK[A, B, L, E any](f func(A) ET.Either[L, B]) func(ma ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return G.ChainEitherK[ReaderEither[E, L, A], ReaderEither[E, L, B]](f)
+func ChainEitherK[E, L, A, B any](f func(A) Either[L, B]) func(ma ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+	return fromeither.ChainEitherK(
+		Chain[E, L, A, B],
+		FromEither[E, L, B],
+		f,
+	)
 }
 
-func ChainOptionK[E, A, B, L any](onNone func() L) func(func(A) O.Option[B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return G.ChainOptionK[ReaderEither[E, L, A], ReaderEither[E, L, B]](onNone)
+func ChainOptionK[E, A, B, L any](onNone func() L) func(func(A) Option[B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+	return fromeither.ChainOptionK(MonadChain[E, L, A, B], FromEither[E, L, B], onNone)
 }
 
 func Flatten[E, L, A any](mma ReaderEither[E, L, ReaderEither[E, L, A]]) ReaderEither[E, L, A] {
-	return G.Flatten(mma)
+	return MonadChain(mma, function.Identity[ReaderEither[E, L, A]])
 }
 
 func MonadBiMap[E, E1, E2, A, B any](fa ReaderEither[E, E1, A], f func(E1) E2, g func(A) B) ReaderEither[E, E2, B] {
-	return G.MonadBiMap[ReaderEither[E, E1, A], ReaderEither[E, E2, B]](fa, f, g)
+	return eithert.MonadBiMap(reader.MonadMap[E, Either[E1, A], Either[E2, B]], fa, f, g)
 }
 
 // BiMap maps a pair of functions over the two type arguments of the bifunctor.
 func BiMap[E, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(ReaderEither[E, E1, A]) ReaderEither[E, E2, B] {
-	return G.BiMap[ReaderEither[E, E1, A], ReaderEither[E, E2, B]](f, g)
+	return eithert.BiMap(reader.Map[E, Either[E1, A], Either[E2, B]], f, g)
 }
 
 // Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s
 // `contramap`).
 func Local[E, A, R2, R1 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderEither[R2, E, A] {
-	return G.Local[ReaderEither[R1, E, A], ReaderEither[R2, E, A]](f)
+	return reader.Local[R2, R1, Either[E, A]](f)
 }
 
 // Read applies a context to a reader to obtain its value
-func Read[E1, A, E any](e E) func(ReaderEither[E, E1, A]) ET.Either[E1, A] {
-	return G.Read[ReaderEither[E, E1, A]](e)
+func Read[E1, A, E any](e E) func(ReaderEither[E, E1, A]) Either[E1, A] {
+	return reader.Read[E, Either[E1, A]](e)
 }
 
 func MonadFlap[L, E, A, B any](fab ReaderEither[L, E, func(A) B], a A) ReaderEither[L, E, B] {
-	return G.MonadFlap[ReaderEither[L, E, func(A) B], ReaderEither[L, E, B]](fab, a)
+	return functor.MonadFlap(MonadMap[L, E, func(A) B, B], fab, a)
 }
 
 func Flap[L, E, B, A any](a A) func(ReaderEither[L, E, func(A) B]) ReaderEither[L, E, B] {
-	return G.Flap[ReaderEither[L, E, func(A) B], ReaderEither[L, E, B]](a)
+	return functor.Flap(Map[L, E, func(A) B, B], a)
 }
 
 func MonadMapLeft[C, E1, E2, A any](fa ReaderEither[C, E1, A], f func(E1) E2) ReaderEither[C, E2, A] {
-	return G.MonadMapLeft[ReaderEither[C, E1, A], ReaderEither[C, E2, A]](fa, f)
+	return eithert.MonadMapLeft(reader.MonadMap[C, Either[E1, A], Either[E2, A]], fa, f)
 }
 
 // MapLeft applies a mapping function to the error channel
 func MapLeft[C, E1, E2, A any](f func(E1) E2) func(ReaderEither[C, E1, A]) ReaderEither[C, E2, A] {
-	return G.MapLeft[ReaderEither[C, E1, A], ReaderEither[C, E2, A]](f)
+	return eithert.MapLeft(reader.Map[C, Either[E1, A], Either[E2, A]], f)
 }

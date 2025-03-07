@@ -18,83 +18,77 @@ package readereither
 import (
 	"context"
 
-	ET "github.com/IBM/fp-go/v2/either"
-	O "github.com/IBM/fp-go/v2/option"
-	RE "github.com/IBM/fp-go/v2/readereither/generic"
+	"github.com/IBM/fp-go/v2/readereither"
 )
 
-func MakeReaderEither[A any](f func(context.Context) ET.Either[error, A]) ReaderEither[A] {
-	return RE.MakeReaderEither[ReaderEither[A]](f)
-}
-
-func FromEither[A any](e ET.Either[error, A]) ReaderEither[A] {
-	return RE.FromEither[ReaderEither[A]](e)
+func FromEither[A any](e Either[A]) ReaderEither[A] {
+	return readereither.FromEither[context.Context](e)
 }
 
 func Left[A any](l error) ReaderEither[A] {
-	return RE.Left[ReaderEither[A]](l)
+	return readereither.Left[context.Context, A](l)
 }
 
 func Right[A any](r A) ReaderEither[A] {
-	return RE.Right[ReaderEither[A]](r)
+	return readereither.Right[context.Context, error](r)
 }
 
 func MonadMap[A, B any](fa ReaderEither[A], f func(A) B) ReaderEither[B] {
-	return RE.MonadMap[ReaderEither[A], ReaderEither[B]](fa, f)
+	return readereither.MonadMap(fa, f)
 }
 
-func Map[A, B any](f func(A) B) func(ReaderEither[A]) ReaderEither[B] {
-	return RE.Map[ReaderEither[A], ReaderEither[B]](f)
+func Map[A, B any](f func(A) B) Operator[A, B] {
+	return readereither.Map[context.Context, error](f)
 }
 
 func MonadChain[A, B any](ma ReaderEither[A], f func(A) ReaderEither[B]) ReaderEither[B] {
-	return RE.MonadChain(ma, f)
+	return readereither.MonadChain(ma, f)
 }
 
-func Chain[A, B any](f func(A) ReaderEither[B]) func(ReaderEither[A]) ReaderEither[B] {
-	return RE.Chain[ReaderEither[A]](f)
+func Chain[A, B any](f func(A) ReaderEither[B]) Operator[A, B] {
+	return readereither.Chain(f)
 }
 
 func Of[A any](a A) ReaderEither[A] {
-	return RE.Of[ReaderEither[A]](a)
+	return readereither.Of[context.Context, error](a)
 }
 
 func MonadAp[A, B any](fab ReaderEither[func(A) B], fa ReaderEither[A]) ReaderEither[B] {
-	return RE.MonadAp[ReaderEither[A], ReaderEither[B]](fab, fa)
+	return readereither.MonadAp(fab, fa)
 }
 
 func Ap[A, B any](fa ReaderEither[A]) func(ReaderEither[func(A) B]) ReaderEither[B] {
-	return RE.Ap[ReaderEither[A], ReaderEither[B], ReaderEither[func(A) B]](fa)
+	return readereither.Ap[B](fa)
 }
 
 func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) ReaderEither[A] {
-	return RE.FromPredicate[ReaderEither[A]](pred, onFalse)
+	return readereither.FromPredicate[context.Context](pred, onFalse)
 }
 
 func OrElse[A any](onLeft func(error) ReaderEither[A]) func(ReaderEither[A]) ReaderEither[A] {
-	return RE.OrElse[ReaderEither[A]](onLeft)
+	return readereither.OrElse(onLeft)
 }
 
 func Ask() ReaderEither[context.Context] {
-	return RE.Ask[ReaderEither[context.Context]]()
+	return readereither.Ask[context.Context, error]()
 }
 
-func MonadChainEitherK[A, B any](ma ReaderEither[A], f func(A) ET.Either[error, B]) ReaderEither[B] {
-	return RE.MonadChainEitherK[ReaderEither[A], ReaderEither[B]](ma, f)
+func MonadChainEitherK[A, B any](ma ReaderEither[A], f func(A) Either[B]) ReaderEither[B] {
+	return readereither.MonadChainEitherK(ma, f)
 }
 
-func ChainEitherK[A, B any](f func(A) ET.Either[error, B]) func(ma ReaderEither[A]) ReaderEither[B] {
-	return RE.ChainEitherK[ReaderEither[A], ReaderEither[B]](f)
+func ChainEitherK[A, B any](f func(A) Either[B]) func(ma ReaderEither[A]) ReaderEither[B] {
+	return readereither.ChainEitherK[context.Context](f)
 }
 
-func ChainOptionK[A, B any](onNone func() error) func(func(A) O.Option[B]) func(ReaderEither[A]) ReaderEither[B] {
-	return RE.ChainOptionK[ReaderEither[A], ReaderEither[B]](onNone)
+func ChainOptionK[A, B any](onNone func() error) func(func(A) Option[B]) Operator[A, B] {
+	return readereither.ChainOptionK[context.Context, A, B](onNone)
 }
 
 func MonadFlap[B, A any](fab ReaderEither[func(A) B], a A) ReaderEither[B] {
-	return RE.MonadFlap[ReaderEither[func(A) B], ReaderEither[B]](fab, a)
+	return readereither.MonadFlap(fab, a)
 }
 
-func Flap[B, A any](a A) func(ReaderEither[func(A) B]) ReaderEither[B] {
-	return RE.Flap[ReaderEither[func(A) B], ReaderEither[B]](a)
+func Flap[B, A any](a A) Operator[func(A) B, B] {
+	return readereither.Flap[context.Context, error, B](a)
 }

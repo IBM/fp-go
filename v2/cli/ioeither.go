@@ -32,22 +32,24 @@ func nonGenericIOEither(param string) string {
 	return fmt.Sprintf("IOEither[E, %s]", param)
 }
 
-func genericIOEither(param string) string {
-	return fmt.Sprintf("func() ET.Either[E, %s]", param)
-}
-
 var extrasIOEither = A.From("E")
 
 func generateIOEitherSequenceT(f, fg *os.File, i int) {
-	generateGenericSequenceT(nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericSequenceT("", nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericSequenceT("Seq", nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericSequenceT("Par", nonGenericIOEither, extrasIOEither)(f, i)
 }
 
 func generateIOEitherSequenceTuple(f, fg *os.File, i int) {
-	generateGenericSequenceTuple(nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericSequenceTuple("", nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericSequenceTuple("Seq", nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericSequenceTuple("Par", nonGenericIOEither, extrasIOEither)(f, i)
 }
 
 func generateIOEitherTraverseTuple(f, fg *os.File, i int) {
-	generateGenericTraverseTuple(nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericTraverseTuple("", nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericTraverseTuple("Seq", nonGenericIOEither, extrasIOEither)(f, i)
+	generateGenericTraverseTuple("Par", nonGenericIOEither, extrasIOEither)(f, i)
 }
 
 func generateIOEitherUneitherize(f, fg *os.File, i int) {

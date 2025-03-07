@@ -17,7 +17,6 @@ package iooption
 
 import (
 	"github.com/IBM/fp-go/v2/io"
-	I "github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 )
@@ -29,5 +28,5 @@ type (
 
 	// IOOption represents a synchronous computation that may fail
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
-	IOOption[A any] = I.IO[Option[A]]
+	IOOption[A any] = io.IO[Option[A]]
 )

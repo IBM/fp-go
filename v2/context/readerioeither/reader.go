@@ -19,16 +19,12 @@ import (
 	"context"
 	"time"
 
-	G "github.com/IBM/fp-go/v2/context/readerioeither/generic"
 	"github.com/IBM/fp-go/v2/either"
-	ET "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
-	O "github.com/IBM/fp-go/v2/option"
-	RIO "github.com/IBM/fp-go/v2/readerio"
-	RE "github.com/IBM/fp-go/v2/readerioeither"
+	"github.com/IBM/fp-go/v2/readerioeither"
 )
 
 const (
@@ -36,52 +32,52 @@ const (
 	useParallel = true
 )
 
-func FromEither[A any](e ET.Either[error, A]) ReaderIOEither[A] {
-	return G.FromEither[ReaderIOEither[A]](e)
+func FromEither[A any](e Either[A]) ReaderIOEither[A] {
+	return readerioeither.FromEither[context.Context](e)
 }
 
 func Left[A any](l error) ReaderIOEither[A] {
-	return G.Left[ReaderIOEither[A]](l)
+	return readerioeither.Left[context.Context, A](l)
 }
 
 func Right[A any](r A) ReaderIOEither[A] {
-	return G.Right[ReaderIOEither[A]](r)
+	return readerioeither.Right[context.Context, error](r)
 }
 
 func MonadMap[A, B any](fa ReaderIOEither[A], f func(A) B) ReaderIOEither[B] {
-	return G.MonadMap[ReaderIOEither[A], ReaderIOEither[B]](fa, f)
+	return readerioeither.MonadMap(fa, f)
 }
 
 func Map[A, B any](f func(A) B) func(ReaderIOEither[A]) ReaderIOEither[B] {
-	return G.Map[ReaderIOEither[A], ReaderIOEither[B]](f)
+	return readerioeither.Map[context.Context, error](f)
 }
 
 func MonadMapTo[A, B any](fa ReaderIOEither[A], b B) ReaderIOEither[B] {
-	return G.MonadMapTo[ReaderIOEither[A], ReaderIOEither[B]](fa, b)
+	return readerioeither.MonadMapTo(fa, b)
 }
 
 func MapTo[A, B any](b B) func(ReaderIOEither[A]) ReaderIOEither[B] {
-	return G.MapTo[ReaderIOEither[A], ReaderIOEither[B]](b)
+	return readerioeither.MapTo[context.Context, error, A](b)
 }
 
 func MonadChain[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) ReaderIOEither[B] {
-	return G.MonadChain(ma, f)
+	return readerioeither.MonadChain(ma, f)
 }
 
 func Chain[A, B any](f func(A) ReaderIOEither[B]) func(ReaderIOEither[A]) ReaderIOEither[B] {
-	return G.Chain[ReaderIOEither[A]](f)
+	return readerioeither.Chain(f)
 }
 
 func MonadChainFirst[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) ReaderIOEither[A] {
-	return G.MonadChainFirst(ma, f)
+	return readerioeither.MonadChainFirst(ma, f)
 }
 
-func ChainFirst[A, B any](f func(A) ReaderIOEither[B]) func(ReaderIOEither[A]) ReaderIOEither[A] {
-	return G.ChainFirst[ReaderIOEither[A]](f)
+func ChainFirst[A, B any](f func(A) ReaderIOEither[B]) Operator[A, A] {
+	return readerioeither.ChainFirst(f)
 }
 
 func Of[A any](a A) ReaderIOEither[A] {
-	return G.Of[ReaderIOEither[A]](a)
+	return readerioeither.Of[context.Context, error](a)
 }
 
 func withCancelCauseFunc[A any](cancel context.CancelCauseFunc, ma IOEither[A]) IOEither[A] {
@@ -137,7 +133,7 @@ func MonadAp[B, A any](fab ReaderIOEither[func(A) B], fa ReaderIOEither[A]) Read
 }
 
 func MonadApSeq[B, A any](fab ReaderIOEither[func(A) B], fa ReaderIOEither[A]) ReaderIOEither[B] {
-	return RE.MonadApSeq(fab, fa)
+	return readerioeither.MonadApSeq(fab, fa)
 }
 
 func Ap[B, A any](fa ReaderIOEither[A]) func(ReaderIOEither[func(A) B]) ReaderIOEither[B] {
@@ -153,47 +149,47 @@ func ApPar[B, A any](fa ReaderIOEither[A]) func(ReaderIOEither[func(A) B]) Reade
 }
 
 func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) ReaderIOEither[A] {
-	return RE.FromPredicate[context.Context](pred, onFalse)
+	return readerioeither.FromPredicate[context.Context](pred, onFalse)
 }
 
-func OrElse[A any](onLeft func(error) ReaderIOEither[A]) func(ReaderIOEither[A]) ReaderIOEither[A] {
-	return RE.OrElse[context.Context](onLeft)
+func OrElse[A any](onLeft func(error) ReaderIOEither[A]) Operator[A, A] {
+	return readerioeither.OrElse[context.Context](onLeft)
 }
 
 func Ask() ReaderIOEither[context.Context] {
-	return RE.Ask[context.Context, error]()
+	return readerioeither.Ask[context.Context, error]()
 }
 
-func MonadChainEitherK[A, B any](ma ReaderIOEither[A], f func(A) ET.Either[error, B]) ReaderIOEither[B] {
-	return RE.MonadChainEitherK[context.Context](ma, f)
+func MonadChainEitherK[A, B any](ma ReaderIOEither[A], f func(A) Either[B]) ReaderIOEither[B] {
+	return readerioeither.MonadChainEitherK[context.Context](ma, f)
 }
 
-func ChainEitherK[A, B any](f func(A) ET.Either[error, B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
-	return RE.ChainEitherK[context.Context](f)
+func ChainEitherK[A, B any](f func(A) Either[B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
+	return readerioeither.ChainEitherK[context.Context](f)
 }
 
-func MonadChainFirstEitherK[A, B any](ma ReaderIOEither[A], f func(A) ET.Either[error, B]) ReaderIOEither[A] {
-	return RE.MonadChainFirstEitherK[context.Context](ma, f)
+func MonadChainFirstEitherK[A, B any](ma ReaderIOEither[A], f func(A) Either[B]) ReaderIOEither[A] {
+	return readerioeither.MonadChainFirstEitherK[context.Context](ma, f)
 }
 
-func ChainFirstEitherK[A, B any](f func(A) ET.Either[error, B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
-	return RE.ChainFirstEitherK[context.Context](f)
+func ChainFirstEitherK[A, B any](f func(A) Either[B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
+	return readerioeither.ChainFirstEitherK[context.Context](f)
 }
 
-func ChainOptionK[A, B any](onNone func() error) func(func(A) O.Option[B]) func(ReaderIOEither[A]) ReaderIOEither[B] {
-	return RE.ChainOptionK[context.Context, A, B](onNone)
+func ChainOptionK[A, B any](onNone func() error) func(func(A) Option[B]) func(ReaderIOEither[A]) ReaderIOEither[B] {
+	return readerioeither.ChainOptionK[context.Context, A, B](onNone)
 }
 
 func FromIOEither[A any](t ioeither.IOEither[error, A]) ReaderIOEither[A] {
-	return RE.FromIOEither[context.Context](t)
+	return readerioeither.FromIOEither[context.Context](t)
 }
 
 func FromIO[A any](t IO[A]) ReaderIOEither[A] {
-	return RE.FromIO[context.Context, error](t)
+	return readerioeither.FromIO[context.Context, error](t)
 }
 
 func FromLazy[A any](t Lazy[A]) ReaderIOEither[A] {
-	return RE.FromIO[context.Context, error](t)
+	return readerioeither.FromIO[context.Context, error](t)
 }
 
 // Never returns a 'ReaderIOEither' that never returns, except if its context gets canceled
@@ -207,23 +203,23 @@ func Never[A any]() ReaderIOEither[A] {
 }
 
 func MonadChainIOK[A, B any](ma ReaderIOEither[A], f func(A) IO[B]) ReaderIOEither[B] {
-	return RE.MonadChainIOK(ma, f)
+	return readerioeither.MonadChainIOK(ma, f)
 }
 
 func ChainIOK[A, B any](f func(A) IO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
-	return RE.ChainIOK[context.Context, error](f)
+	return readerioeither.ChainIOK[context.Context, error](f)
 }
 
 func MonadChainFirstIOK[A, B any](ma ReaderIOEither[A], f func(A) IO[B]) ReaderIOEither[A] {
-	return RE.MonadChainFirstIOK(ma, f)
+	return readerioeither.MonadChainFirstIOK(ma, f)
 }
 
 func ChainFirstIOK[A, B any](f func(A) IO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
-	return RE.ChainFirstIOK[context.Context, error](f)
+	return readerioeither.ChainFirstIOK[context.Context, error](f)
 }
 
 func ChainIOEitherK[A, B any](f func(A) ioeither.IOEither[error, B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
-	return RE.ChainIOEitherK[context.Context](f)
+	return readerioeither.ChainIOEitherK[context.Context](f)
 }
 
 // Delay creates an operation that passes in the value after some delay
@@ -257,52 +253,52 @@ func Timer(delay time.Duration) ReaderIOEither[time.Time] {
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
 func Defer[A any](gen Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
-	return RE.Defer(gen)
+	return readerioeither.Defer(gen)
 }
 
 // TryCatch wraps a reader returning a tuple as an error into ReaderIOEither
 func TryCatch[A any](f func(context.Context) func() (A, error)) ReaderIOEither[A] {
-	return RE.TryCatch(f, errors.IdentityError)
+	return readerioeither.TryCatch(f, errors.IdentityError)
 }
 
 // MonadAlt identifies an associative operation on a type constructor
 func MonadAlt[A any](first ReaderIOEither[A], second Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
-	return RE.MonadAlt(first, second)
+	return readerioeither.MonadAlt(first, second)
 }
 
 // Alt identifies an associative operation on a type constructor
-func Alt[A any](second Lazy[ReaderIOEither[A]]) func(ReaderIOEither[A]) ReaderIOEither[A] {
-	return RE.Alt(second)
+func Alt[A any](second Lazy[ReaderIOEither[A]]) Operator[A, A] {
+	return readerioeither.Alt(second)
 }
 
 // Memoize computes the value of the provided [ReaderIOEither] monad lazily but exactly once
 // The context used to compute the value is the context of the first call, so do not use this
 // method if the value has a functional dependency on the content of the context
 func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
-	return RE.Memoize(rdr)
+	return readerioeither.Memoize(rdr)
 }
 
 // Flatten converts a nested [ReaderIOEither] into a [ReaderIOEither]
 func Flatten[A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
-	return RE.Flatten(rdr)
+	return readerioeither.Flatten(rdr)
 }
 
 func MonadFlap[B, A any](fab ReaderIOEither[func(A) B], a A) ReaderIOEither[B] {
-	return RE.MonadFlap(fab, a)
+	return readerioeither.MonadFlap(fab, a)
 }
 
 func Flap[B, A any](a A) func(ReaderIOEither[func(A) B]) ReaderIOEither[B] {
-	return RE.Flap[context.Context, error, B](a)
+	return readerioeither.Flap[context.Context, error, B](a)
 }
 
 func Fold[A, B any](onLeft func(error) ReaderIOEither[B], onRight func(A) ReaderIOEither[B]) func(ReaderIOEither[A]) ReaderIOEither[B] {
-	return RE.Fold(onLeft, onRight)
+	return readerioeither.Fold(onLeft, onRight)
 }
 
-func GetOrElse[A any](onLeft func(error) RIO.ReaderIO[context.Context, A]) func(ReaderIOEither[A]) RIO.ReaderIO[context.Context, A] {
-	return RE.GetOrElse(onLeft)
+func GetOrElse[A any](onLeft func(error) ReaderIO[A]) func(ReaderIOEither[A]) ReaderIO[A] {
+	return readerioeither.GetOrElse(onLeft)
 }
 
-func OrLeft[A any](onLeft func(error) RIO.ReaderIO[context.Context, error]) func(ReaderIOEither[A]) ReaderIOEither[A] {
-	return RE.OrLeft[A](onLeft)
+func OrLeft[A any](onLeft func(error) ReaderIO[error]) Operator[A, A] {
+	return readerioeither.OrLeft[A](onLeft)
 }

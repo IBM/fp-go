@@ -20,7 +20,6 @@ import (
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	IG "github.com/IBM/fp-go/v2/identity/generic"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	L "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
@@ -152,7 +151,7 @@ func MakeInjector(providers []Provider) InjectableFactory {
 						I.Ap[O.Option[ProviderFactory]](factoryByID),
 					), handleMissingProvider),
 					T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
-					IG.Ap[ProviderFactory](injFct),
+					I.Ap[IOE.IOEither[error, any]](injFct),
 					IOE.Memoize[error, any],
 				)
 			}

@@ -106,6 +106,20 @@ func Ap[B, A any](ma IOOption[A]) func(IOOption[func(A) B]) IOOption[B] {
 		ma)
 }
 
+func ApSeq[B, A any](ma IOOption[A]) func(IOOption[func(A) B]) IOOption[B] {
+	return optiont.Ap(
+		io.ApSeq[Option[B], Option[A]],
+		io.Map[Option[func(A) B], func(Option[A]) Option[B]],
+		ma)
+}
+
+func ApPar[B, A any](ma IOOption[A]) func(IOOption[func(A) B]) IOOption[B] {
+	return optiont.Ap(
+		io.ApPar[Option[B], Option[A]],
+		io.Map[Option[func(A) B], func(Option[A]) Option[B]],
+		ma)
+}
+
 func Flatten[A any](mma IOOption[IOOption[A]]) IOOption[A] {
 	return MonadChain(mma, function.Identity[IOOption[A]])
 }

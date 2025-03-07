@@ -16,21 +16,26 @@
 package endomorphism
 
 import (
-	G "github.com/IBM/fp-go/v2/endomorphism/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/identity"
 )
 
 func MonadAp[A any](fab Endomorphism[A], fa A) A {
-	return G.MonadAp[Endomorphism[A]](fab, fa)
+	return identity.MonadAp(fab, fa)
 }
 
 func Ap[A any](fa A) func(Endomorphism[A]) A {
-	return G.Ap[Endomorphism[A]](fa)
+	return identity.Ap[A](fa)
+}
+
+func Compose[A any](f1, f2 Endomorphism[A]) Endomorphism[A] {
+	return function.Flow2(f1, f2)
 }
 
 func MonadChain[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
-	return G.MonadChain[Endomorphism[A]](ma, f)
+	return Compose(ma, f)
 }
 
 func Chain[A any](f Endomorphism[A]) Endomorphism[Endomorphism[A]] {
-	return G.Chain[Endomorphism[Endomorphism[A]], Endomorphism[A], A](f)
+	return function.Bind2nd(MonadChain, f)
 }

@@ -16,42 +16,24 @@
 package readereither
 
 import (
-	RE "github.com/IBM/fp-go/v2/readereither/generic"
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/readereither"
+	"github.com/IBM/fp-go/v2/tuple"
 )
 
 // SequenceT converts n inputs of higher kinded types into a higher kinded types of n strongly typed values, represented as a tuple
 
-func SequenceT1[A any](a ReaderEither[A]) ReaderEither[T.Tuple1[A]] {
-	return RE.SequenceT1[
-		ReaderEither[A],
-		ReaderEither[T.Tuple1[A]],
-	](a)
+func SequenceT1[A any](a ReaderEither[A]) ReaderEither[tuple.Tuple1[A]] {
+	return readereither.SequenceT1(a)
 }
 
-func SequenceT2[A, B any](a ReaderEither[A], b ReaderEither[B]) ReaderEither[T.Tuple2[A, B]] {
-	return RE.SequenceT2[
-		ReaderEither[A],
-		ReaderEither[B],
-		ReaderEither[T.Tuple2[A, B]],
-	](a, b)
+func SequenceT2[A, B any](a ReaderEither[A], b ReaderEither[B]) ReaderEither[tuple.Tuple2[A, B]] {
+	return readereither.SequenceT2(a, b)
 }
 
-func SequenceT3[A, B, C any](a ReaderEither[A], b ReaderEither[B], c ReaderEither[C]) ReaderEither[T.Tuple3[A, B, C]] {
-	return RE.SequenceT3[
-		ReaderEither[A],
-		ReaderEither[B],
-		ReaderEither[C],
-		ReaderEither[T.Tuple3[A, B, C]],
-	](a, b, c)
+func SequenceT3[A, B, C any](a ReaderEither[A], b ReaderEither[B], c ReaderEither[C]) ReaderEither[tuple.Tuple3[A, B, C]] {
+	return readereither.SequenceT3(a, b, c)
 }
 
-func SequenceT4[A, B, C, D any](a ReaderEither[A], b ReaderEither[B], c ReaderEither[C], d ReaderEither[D]) ReaderEither[T.Tuple4[A, B, C, D]] {
-	return RE.SequenceT4[
-		ReaderEither[A],
-		ReaderEither[B],
-		ReaderEither[C],
-		ReaderEither[D],
-		ReaderEither[T.Tuple4[A, B, C, D]],
-	](a, b, c, d)
+func SequenceT4[A, B, C, D any](a ReaderEither[A], b ReaderEither[B], c ReaderEither[C], d ReaderEither[D]) ReaderEither[tuple.Tuple4[A, B, C, D]] {
+	return readereither.SequenceT4(a, b, c, d)
 }

@@ -13,17 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package readereither
 
 import (
-	"context"
-
-	E "github.com/IBM/fp-go/v2/either"
-	EQ "github.com/IBM/fp-go/v2/eq"
-	G "github.com/IBM/fp-go/v2/readerioeither/generic"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
-// Eq implements the equals predicate for values contained in the IOEither monad
-func Eq[GRA ~func(context.Context) GIOA, GIOA ~func() E.Either[error, A], A any](eq EQ.Eq[E.Either[error, A]]) func(context.Context) EQ.Eq[GRA] {
-	return G.Eq[GRA](eq)
-}
+type (
+	Option[A any]             = option.Option[A]
+	Either[E, A any]          = either.Either[E, A]
+	Reader[R, A any]          = reader.Reader[R, A]
+	ReaderEither[R, E, A any] = Reader[R, Either[E, A]]
+)

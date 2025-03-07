@@ -17,7 +17,6 @@ package generic
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	I "github.com/IBM/fp-go/v2/identity/generic"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
@@ -139,13 +138,6 @@ func Local[GA1 ~func(R1) A, GA2 ~func(R2) A, R2, R1, A any](f func(R2) R1) func(
 	return func(r1 GA1) GA2 {
 		return F.Flow2(f, r1)
 	}
-}
-
-// Read applies a context to a reader to obtain its value
-//
-// Deprecated:
-func Read[GA ~func(E) A, E, A any](e E) func(GA) A {
-	return I.Ap[GA](e)
 }
 
 // Deprecated:
