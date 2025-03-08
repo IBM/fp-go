@@ -16,82 +16,118 @@
 package state
 
 import (
-	P "github.com/IBM/fp-go/v2/pair"
-	R "github.com/IBM/fp-go/v2/reader"
-	G "github.com/IBM/fp-go/v2/state/generic"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
-// State represents an operation on top of a current [State] that produces a value and a new [State]
-type State[S, A any] R.Reader[S, P.Pair[A, S]]
+var (
+	undefined any = struct{}{}
+)
 
 func Get[S any]() State[S, S] {
-	return G.Get[State[S, S]]()
+	return pair.Of[S]
 }
 
 func Gets[FCT ~func(S) A, A, S any](f FCT) State[S, A] {
-	return G.Gets[State[S, A]](f)
+	return func(s S) Pair[A, S] {
+		return pair.MakePair(f(s), s)
+	}
 }
 
 func Put[S any]() State[S, any] {
-	return G.Put[State[S, any]]()
+	return function.Bind1st(pair.MakePair[any, S], undefined)
 }
 
 func Modify[FCT ~func(S) S, S any](f FCT) State[S, any] {
-	return G.Modify[State[S, any]](f)
+	return function.Flow2(
+		f,
+		function.Bind1st(pair.MakePair[any, S], undefined),
+	)
 }
 
 func Of[S, A any](a A) State[S, A] {
-	return G.Of[State[S, A]](a)
+	return function.Bind1st(pair.MakePair[A, S], a)
 }
 
 func MonadMap[S any, FCT ~func(A) B, A, B any](fa State[S, A], f FCT) State[S, B] {
-	return G.MonadMap[State[S, B], State[S, A]](fa, f)
+	return func(s S) Pair[B, S] {
+		p2 := fa(s)
+		return pair.MakePair(f(pair.Head(p2)), pair.Tail(p2))
+	}
 }
 
-func Map[S any, FCT ~func(A) B, A, B any](f FCT) func(State[S, A]) State[S, B] {
-	return G.Map[State[S, B], State[S, A]](f)
+func Map[S any, FCT ~func(A) B, A, B any](f FCT) Operator[S, A, B] {
+	return function.Bind2nd(MonadMap[S, FCT, A, B], f)
 }
 
 func MonadChain[S any, FCT ~func(A) State[S, B], A, B any](fa State[S, A], f FCT) State[S, B] {
-	return G.MonadChain[State[S, B], State[S, A]](fa, f)
+	return func(s S) Pair[B, S] {
+		a := fa(s)
+		return f(pair.Head(a))(pair.Tail(a))
+	}
 }
 
-func Chain[S any, FCT ~func(A) State[S, B], A, B any](f FCT) func(State[S, A]) State[S, B] {
-	return G.Chain[State[S, B], State[S, A]](f)
+func Chain[S any, FCT ~func(A) State[S, B], A, B any](f FCT) Operator[S, A, B] {
+	return function.Bind2nd(MonadChain[S, FCT, A, B], f)
 }
 
 func MonadAp[S, A, B any](fab State[S, func(A) B], fa State[S, A]) State[S, B] {
-	return G.MonadAp[State[S, B], State[S, func(A) B], State[S, A]](fab, fa)
+	return func(s S) Pair[B, S] {
+		f := fab(s)
+		a := fa(pair.Tail(f))
+
+		return pair.MakePair(pair.Head(f)(pair.Head(a)), pair.Tail(a))
+	}
 }
 
-func Ap[S, A, B any](ga State[S, A]) func(State[S, func(A) B]) State[S, B] {
-	return G.Ap[State[S, B], State[S, func(A) B], State[S, A]](ga)
+func Ap[S, A, B any](ga State[S, A]) Operator[S, func(A) B, B] {
+	return function.Bind2nd(MonadAp[S, A, B], ga)
 }
 
 func MonadChainFirst[S any, FCT ~func(A) State[S, B], A, B any](ma State[S, A], f FCT) State[S, A] {
-	return G.MonadChainFirst[State[S, B], State[S, A]](ma, f)
+	return chain.MonadChainFirst(
+		MonadChain[S, func(A) State[S, A], A, A],
+		MonadMap[S, func(B) A],
+		ma,
+		f,
+	)
 }
 
-func ChainFirst[S any, FCT ~func(A) State[S, B], A, B any](f FCT) func(State[S, A]) State[S, A] {
-	return G.ChainFirst[State[S, B], State[S, A]](f)
+func ChainFirst[S any, FCT ~func(A) State[S, B], A, B any](f FCT) Operator[S, A, A] {
+	return chain.ChainFirst(
+		Chain[S, func(A) State[S, A], A, A],
+		Map[S, func(B) A],
+		f,
+	)
 }
 
 func Flatten[S, A any](mma State[S, State[S, A]]) State[S, A] {
-	return G.Flatten[State[S, State[S, A]], State[S, A]](mma)
+	return MonadChain(mma, function.Identity[State[S, A]])
 }
 
 func Execute[A, S any](s S) func(State[S, A]) S {
-	return G.Execute[State[S, A]](s)
+	return func(fa State[S, A]) S {
+		return pair.Tail(fa(s))
+	}
 }
 
 func Evaluate[A, S any](s S) func(State[S, A]) A {
-	return G.Evaluate[State[S, A]](s)
+	return func(fa State[S, A]) A {
+		return pair.Head(fa(s))
+	}
 }
 
 func MonadFlap[FAB ~func(A) B, S, A, B any](fab State[S, FAB], a A) State[S, B] {
-	return G.MonadFlap[FAB, State[S, FAB], State[S, B], S, A, B](fab, a)
+	return functor.MonadFlap(
+		MonadMap[S, func(FAB) B],
+		fab,
+		a)
 }
 
-func Flap[S, A, B any](a A) func(State[S, func(A) B]) State[S, B] {
-	return G.Flap[func(A) B, State[S, func(A) B], State[S, B]](a)
+func Flap[S, A, B any](a A) Operator[S, func(A) B, B] {
+	return functor.Flap(
+		Map[S, func(func(A) B) B],
+		a)
 }

@@ -22,14 +22,6 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-type (
-	// Lens is a reference to a subpart of a data type
-	Lens[S, A any] struct {
-		Get func(s S) A
-		Set func(a A) EM.Endomorphism[S]
-	}
-)
-
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
 func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
@@ -41,8 +33,8 @@ func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 
 // setCopyCurried wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
-func setCopyCurried[SET ~func(A) EM.Endomorphism[*S], S, A any](setter SET) func(a A) EM.Endomorphism[*S] {
-	return func(a A) EM.Endomorphism[*S] {
+func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(a A) Endomorphism[*S] {
+	return func(a A) Endomorphism[*S] {
 		seta := setter(a)
 		return func(s *S) *S {
 			cpy := *s
@@ -61,7 +53,7 @@ func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Len
 // MakeLensCurried creates a [Lens] based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeLensRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
-func MakeLensCurried[GET ~func(S) A, SET ~func(A) EM.Endomorphism[S], S, A any](get GET, set SET) Lens[S, A] {
+func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET) Lens[S, A] {
 	return Lens[S, A]{Get: get, Set: set}
 }
 
@@ -77,7 +69,7 @@ func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET
 // copy, the implementation wraps the setter into one that copies the pointer before modifying it
 //
 // Such a [Lens] assumes that property A of S always exists
-func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) EM.Endomorphism[*S]) Lens[*S, A] {
+func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) Endomorphism[*S]) Lens[*S, A] {
 	return MakeLensCurried(get, setCopyCurried(set))
 }
 
@@ -88,12 +80,12 @@ func id[GET ~func(S) S, SET ~func(S, S) S, S any](creator func(get GET, set SET)
 
 // Id returns a [Lens] implementing the identity operation
 func Id[S any]() Lens[S, S] {
-	return id(MakeLens[EM.Endomorphism[S], func(S, S) S])
+	return id(MakeLens[Endomorphism[S], func(S, S) S])
 }
 
 // IdRef returns a [Lens] implementing the identity operation
 func IdRef[S any]() Lens[*S, *S] {
-	return id(MakeLensRef[EM.Endomorphism[*S], func(*S, *S) *S])
+	return id(MakeLensRef[Endomorphism[*S], func(*S, *S) *S])
 }
 
 // Compose combines two lenses and allows to narrow down the focus to a sub-lens
@@ -141,7 +133,7 @@ func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(Lens[S, O.O
 				func(s S, ob O.Option[B]) S {
 					return F.Pipe2(
 						ob,
-						O.Fold(unseta, func(b B) EM.Endomorphism[S] {
+						O.Fold(unseta, func(b B) Endomorphism[S] {
 							setbona := F.Flow2(
 								ab.Set(b),
 								seta,
@@ -189,15 +181,15 @@ func ComposeOptions[S, B, A any](defaultA A) func(ab Lens[A, O.Option[B]]) func(
 					sa.Get,
 					O.Chain(ab.Get),
 				),
-				func(b O.Option[B]) EM.Endomorphism[S] {
+				func(b O.Option[B]) Endomorphism[S] {
 					return func(s S) S {
-						return O.MonadFold(b, func() EM.Endomorphism[S] {
+						return O.MonadFold(b, func() Endomorphism[S] {
 							return F.Pipe2(
 								s,
 								sa.Get,
 								O.Fold(noops, F.Flow2(unsetb, seta)),
 							)
-						}, func(b B) EM.Endomorphism[S] {
+						}, func(b B) Endomorphism[S] {
 							// sets a B onto an A
 							setb := F.Flow2(
 								ab.Set(O.Some(b)),
@@ -227,7 +219,7 @@ func modify[FCT ~func(A) A, S, A any](f FCT, sa Lens[S, A], s S) S {
 
 // Modify changes a property of a [Lens] by invoking a transformation function
 // if the transformed property has not changes, the method returns the original state
-func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) EM.Endomorphism[S] {
+func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S] {
 	return EM.Curry3(modify[FCT, S, A])(f)
 }
 

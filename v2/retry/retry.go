@@ -31,14 +31,14 @@ type RetryStatus struct {
 	// Delay incurred so far from retries
 	CumulativeDelay time.Duration
 	// Latest attempt's delay. Will always be `none` on first run.
-	PreviousDelay O.Option[time.Duration]
+	PreviousDelay Option[time.Duration]
 }
 
 // RetryPolicy is a function that takes an `RetryStatus` and
 // possibly returns a delay in milliseconds. Iteration numbers start
 // at zero and increase by one on each retry. A //None// return value from
 // the function implies we have reached the retry limit.
-type RetryPolicy = func(RetryStatus) O.Option[time.Duration]
+type RetryPolicy = func(RetryStatus) Option[time.Duration]
 
 const emptyDuration = time.Duration(0)
 
@@ -63,7 +63,7 @@ func LimitRetries(i uint) RetryPolicy {
 		return value < i
 	}
 	empty := F.Constant1[uint](emptyDuration)
-	return func(status RetryStatus) O.Option[time.Duration] {
+	return func(status RetryStatus) Option[time.Duration] {
 		return F.Pipe2(
 			status.IterNumber,
 			O.FromPredicate(pred),
@@ -93,7 +93,7 @@ func CapDelay(maxDelay time.Duration, policy RetryPolicy) RetryPolicy {
 // ExponentialBackoff grows delay exponentially each iteration.
 // Each delay will increase by a factor of two.
 func ExponentialBackoff(delay time.Duration) RetryPolicy {
-	return func(status RetryStatus) O.Option[time.Duration] {
+	return func(status RetryStatus) Option[time.Duration] {
 		return O.Some(delay * time.Duration(math.Pow(2, float64(status.IterNumber))))
 	}
 }

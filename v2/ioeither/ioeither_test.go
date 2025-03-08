@@ -22,8 +22,8 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	"github.com/IBM/fp-go/v2/io"
 	I "github.com/IBM/fp-go/v2/io"
-	IG "github.com/IBM/fp-go/v2/io/generic"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -84,7 +84,7 @@ func TestChainWithIO(t *testing.T) {
 	r := F.Pipe1(
 		Of[error]("test"),
 		// sad, we need the generics version ...
-		IG.Map[IOEither[error, string], I.IO[bool]](E.IsRight[error, string]),
+		io.Map(E.IsRight[error, string]),
 	)
 
 	assert.True(t, r())

@@ -13,21 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ioeither
+// Lens is an optic used to zoom inside a product.
+package lens
 
 import (
-	"context"
-
-	"github.com/IBM/fp-go/v2/either"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/endomorphism"
 )
 
-// withContext wraps an existing IOEither and performs a context check for cancellation before delegating
-func WithContext[A any](ctx context.Context, ma IOE.IOEither[error, A]) IOE.IOEither[error, A] {
-	return func() either.Either[error, A] {
-		if err := context.Cause(ctx); err != nil {
-			return either.Left[A](err)
-		}
-		return ma()
+type (
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	// Lens is a reference to a subpart of a data type
+	Lens[S, A any] struct {
+		Get func(s S) A
+		Set func(a A) Endomorphism[S]
 	}
-}
+)

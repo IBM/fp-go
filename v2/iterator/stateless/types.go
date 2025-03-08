@@ -1,4 +1,4 @@
-// Copyright (c) 2025 IBM Corp.
+// Copyright (c) 2023 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package generic
+package stateless
 
 import "github.com/IBM/fp-go/v2/option"
 

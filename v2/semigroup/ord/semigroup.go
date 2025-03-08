@@ -16,16 +16,16 @@
 package ord
 
 import (
-	O "github.com/IBM/fp-go/v2/ord"
+	"github.com/IBM/fp-go/v2/ord"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
 // Max gets a semigroup where `concat` will return the maximum, based on the provided order.
-func Max[A any](o O.Ord[A]) S.Semigroup[A] {
-	return S.MakeSemigroup(O.Max(o))
+func Max[A any](o ord.Ord[A]) S.Semigroup[A] {
+	return S.MakeSemigroup(ord.Max(o))
 }
 
 // Min gets a semigroup where `concat` will return the minimum, based on the provided order.
-func Min[A any](o O.Ord[A]) S.Semigroup[A] {
-	return S.MakeSemigroup(O.Min(o))
+func Min[A any](o ord.Ord[A]) S.Semigroup[A] {
+	return S.MakeSemigroup(ord.Min(o))
 }

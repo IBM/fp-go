@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ioeither
+package state
 
 import (
-	"context"
-
-	"github.com/IBM/fp-go/v2/either"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
-// withContext wraps an existing IOEither and performs a context check for cancellation before delegating
-func WithContext[A any](ctx context.Context, ma IOE.IOEither[error, A]) IOE.IOEither[error, A] {
-	return func() either.Either[error, A] {
-		if err := context.Cause(ctx); err != nil {
-			return either.Left[A](err)
-		}
-		return ma()
-	}
-}
+type (
+	// some type aliases
+	Reader[R, A any] = reader.Reader[R, A]
+	Pair[L, R any]   = pair.Pair[L, R]
+
+	// State represents an operation on top of a current [State] that produces a value and a new [State]
+	State[S, A any] = Reader[S, pair.Pair[A, S]]
+
+	Operator[S, A, B any] = Reader[State[S, A], State[S, B]]
+)

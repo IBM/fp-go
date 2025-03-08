@@ -19,9 +19,9 @@ import (
 	"time"
 
 	F "github.com/IBM/fp-go/v2/function"
-	INTA "github.com/IBM/fp-go/v2/internal/apply"
-	INTC "github.com/IBM/fp-go/v2/internal/chain"
-	INTF "github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/apply"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/functor"
 	INTL "github.com/IBM/fp-go/v2/internal/lazy"
 	M "github.com/IBM/fp-go/v2/monoid"
 	R "github.com/IBM/fp-go/v2/reader"
@@ -150,13 +150,13 @@ func Memoize[A any](ma IO[A]) IO[A] {
 // MonadChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
 func MonadChainFirst[A, B any](fa IO[A], f func(A) IO[B]) IO[A] {
-	return INTC.MonadChainFirst(MonadChain[A, A], MonadMap[B, A], fa, f)
+	return chain.MonadChainFirst(MonadChain[A, A], MonadMap[B, A], fa, f)
 }
 
 // ChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
 func ChainFirst[A, B any](f func(A) IO[B]) Operator[A, A] {
-	return INTC.ChainFirst(
+	return chain.ChainFirst(
 		Chain[A, A],
 		Map[B, A],
 		f,
@@ -165,7 +165,7 @@ func ChainFirst[A, B any](f func(A) IO[B]) Operator[A, A] {
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.
 func MonadApFirst[A, B any](first IO[A], second IO[B]) IO[A] {
-	return INTA.MonadApFirst(
+	return apply.MonadApFirst(
 		MonadAp[B, A],
 		MonadMap[A, func(B) A],
 
@@ -176,7 +176,7 @@ func MonadApFirst[A, B any](first IO[A], second IO[B]) IO[A] {
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
 func ApFirst[A, B any](second IO[B]) Operator[A, A] {
-	return INTA.ApFirst(
+	return apply.ApFirst(
 		MonadAp[B, A],
 		MonadMap[A, func(B) A],
 
@@ -186,7 +186,7 @@ func ApFirst[A, B any](second IO[B]) Operator[A, A] {
 
 // MonadApSecond combines two effectful actions, keeping only the result of the second.
 func MonadApSecond[A, B any](first IO[A], second IO[B]) IO[B] {
-	return INTA.MonadApSecond(
+	return apply.MonadApSecond(
 		MonadAp[B, B],
 		MonadMap[A, func(B) B],
 
@@ -197,7 +197,7 @@ func MonadApSecond[A, B any](first IO[A], second IO[B]) IO[B] {
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
 func ApSecond[A, B any](second IO[B]) Operator[A, B] {
-	return INTA.ApSecond(
+	return apply.ApSecond(
 		MonadAp[B, B],
 		MonadMap[A, func(B) B],
 
@@ -226,11 +226,11 @@ func Defer[A any](gen func() IO[A]) IO[A] {
 }
 
 func MonadFlap[B, A any](fab IO[func(A) B], a A) IO[B] {
-	return INTF.MonadFlap(MonadMap[func(A) B, B], fab, a)
+	return functor.MonadFlap(MonadMap[func(A) B, B], fab, a)
 }
 
 func Flap[B, A any](a A) Operator[func(A) B, B] {
-	return INTF.Flap(Map[func(A) B, B], a)
+	return functor.Flap(Map[func(A) B, B], a)
 }
 
 // Delay creates an operation that passes in the value after some delay

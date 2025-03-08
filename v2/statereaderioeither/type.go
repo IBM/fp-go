@@ -21,4 +21,4 @@ import (
 	RIOE "github.com/IBM/fp-go/v2/readerioeither"
 )
 
-type StateReaderIOEither[S, R, E, A any] RD.Reader[S, RIOE.ReaderIOEither[R, E, P.Pair[A, S]]]
+type StateReaderIOEither[S, R, E, A any] = RD.Reader[S, RIOE.ReaderIOEither[R, E, P.Pair[A, S]]]
