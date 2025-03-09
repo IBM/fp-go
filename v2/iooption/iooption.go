@@ -182,7 +182,7 @@ func Defer[A any](gen func() IOOption[A]) IOOption[A] {
 }
 
 // FromEither converts an [Either] into an [IOOption]
-func FromEither[E, A any](e ET.Either[E, A]) IOOption[A] {
+func FromEither[E, A any](e Either[E, A]) IOOption[A] {
 	return function.Pipe2(
 		e,
 		ET.ToOption[E, A],

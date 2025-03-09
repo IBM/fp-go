@@ -16,34 +16,35 @@
 package stateless
 
 import (
+	"github.com/IBM/fp-go/v2/iooption"
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
 	L "github.com/IBM/fp-go/v2/lazy"
 	M "github.com/IBM/fp-go/v2/monoid"
 	O "github.com/IBM/fp-go/v2/option"
-	P "github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // Iterator represents a stateless, pure way to iterate over a sequence
-type Iterator[U any] L.Lazy[O.Option[P.Pair[Iterator[U], U]]]
+type Iterator[U any] L.Lazy[O.Option[pair.Pair[Iterator[U], U]]]
 
-// Next returns the [Iterator] for the next element in an iterator `P.Pair`
-func Next[U any](m P.Pair[Iterator[U], U]) Iterator[U] {
-	return G.Next(m)
+// Next returns the [Iterator] for the next element in an iterator [pair.Pair]
+func Next[U any](m pair.Pair[Iterator[U], U]) Iterator[U] {
+	return pair.Head(m)
 }
 
-// Current returns the current element in an [Iterator] `P.Pair`
-func Current[U any](m P.Pair[Iterator[U], U]) U {
-	return G.Current(m)
+// Current returns the current element in an [Iterator] [pair.Pair]
+func Current[U any](m pair.Pair[Iterator[U], U]) U {
+	return pair.Tail(m)
 }
 
 // Empty returns the empty iterator
 func Empty[U any]() Iterator[U] {
-	return G.Empty[Iterator[U]]()
+	return iooption.None[pair.Pair[Iterator[U], U]]()
 }
 
 // Of returns an iterator with one single element
 func Of[U any](a U) Iterator[U] {
-	return G.Of[Iterator[U]](a)
+	return iooption.Of(pair.MakePair(Empty[U](), a))
 }
 
 // FromArray returns an iterator from multiple elements

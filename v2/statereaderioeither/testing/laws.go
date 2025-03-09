@@ -41,9 +41,9 @@ func AssertLaws[S, E, R, A, B, C any](t *testing.T,
 	r R,
 ) func(a A) bool {
 
-	eqra := RIOE.Eq[R](ET.Eq(eqe, P.Eq(eqa, eqs)))(r)
-	eqrb := RIOE.Eq[R](ET.Eq(eqe, P.Eq(eqb, eqs)))(r)
-	eqrc := RIOE.Eq[R](ET.Eq(eqe, P.Eq(eqc, eqs)))(r)
+	eqra := RIOE.Eq[R](ET.Eq(eqe, P.Eq(eqs, eqa)))(r)
+	eqrb := RIOE.Eq[R](ET.Eq(eqe, P.Eq(eqs, eqb)))(r)
+	eqrc := RIOE.Eq[R](ET.Eq(eqe, P.Eq(eqs, eqc)))(r)
 
 	fofc := ST.Pointed[S, R, E, C]()
 	fofaa := ST.Pointed[S, R, E, func(A) A]()

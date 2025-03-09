@@ -31,30 +31,30 @@ func Get[S any]() State[S, S] {
 }
 
 func Gets[FCT ~func(S) A, A, S any](f FCT) State[S, A] {
-	return func(s S) Pair[A, S] {
-		return pair.MakePair(f(s), s)
+	return func(s S) Pair[S, A] {
+		return pair.MakePair(s, f(s))
 	}
 }
 
 func Put[S any]() State[S, any] {
-	return function.Bind1st(pair.MakePair[any, S], undefined)
+	return function.Bind2nd(pair.MakePair[S, any], undefined)
 }
 
 func Modify[FCT ~func(S) S, S any](f FCT) State[S, any] {
 	return function.Flow2(
 		f,
-		function.Bind1st(pair.MakePair[any, S], undefined),
+		function.Bind2nd(pair.MakePair[S, any], undefined),
 	)
 }
 
 func Of[S, A any](a A) State[S, A] {
-	return function.Bind1st(pair.MakePair[A, S], a)
+	return function.Bind2nd(pair.MakePair[S, A], a)
 }
 
 func MonadMap[S any, FCT ~func(A) B, A, B any](fa State[S, A], f FCT) State[S, B] {
-	return func(s S) Pair[B, S] {
+	return func(s S) Pair[S, B] {
 		p2 := fa(s)
-		return pair.MakePair(f(pair.Head(p2)), pair.Tail(p2))
+		return pair.MakePair(pair.Head(p2), f(pair.Tail(p2)))
 	}
 }
 
@@ -63,9 +63,9 @@ func Map[S any, FCT ~func(A) B, A, B any](f FCT) Operator[S, A, B] {
 }
 
 func MonadChain[S any, FCT ~func(A) State[S, B], A, B any](fa State[S, A], f FCT) State[S, B] {
-	return func(s S) Pair[B, S] {
+	return func(s S) Pair[S, B] {
 		a := fa(s)
-		return f(pair.Head(a))(pair.Tail(a))
+		return f(pair.Tail(a))(pair.Head(a))
 	}
 }
 
@@ -73,17 +73,17 @@ func Chain[S any, FCT ~func(A) State[S, B], A, B any](f FCT) Operator[S, A, B] {
 	return function.Bind2nd(MonadChain[S, FCT, A, B], f)
 }
 
-func MonadAp[S, A, B any](fab State[S, func(A) B], fa State[S, A]) State[S, B] {
-	return func(s S) Pair[B, S] {
+func MonadAp[B, S, A any](fab State[S, func(A) B], fa State[S, A]) State[S, B] {
+	return func(s S) Pair[S, B] {
 		f := fab(s)
-		a := fa(pair.Tail(f))
+		a := fa(pair.Head(f))
 
-		return pair.MakePair(pair.Head(f)(pair.Head(a)), pair.Tail(a))
+		return pair.MakePair(pair.Head(a), pair.Tail(f)(pair.Tail(a)))
 	}
 }
 
-func Ap[S, A, B any](ga State[S, A]) Operator[S, func(A) B, B] {
-	return function.Bind2nd(MonadAp[S, A, B], ga)
+func Ap[B, S, A any](ga State[S, A]) Operator[S, func(A) B, B] {
+	return function.Bind2nd(MonadAp[B, S, A], ga)
 }
 
 func MonadChainFirst[S any, FCT ~func(A) State[S, B], A, B any](ma State[S, A], f FCT) State[S, A] {
@@ -109,13 +109,13 @@ func Flatten[S, A any](mma State[S, State[S, A]]) State[S, A] {
 
 func Execute[A, S any](s S) func(State[S, A]) S {
 	return func(fa State[S, A]) S {
-		return pair.Tail(fa(s))
+		return pair.Head(fa(s))
 	}
 }
 
 func Evaluate[A, S any](s S) func(State[S, A]) A {
 	return func(fa State[S, A]) A {
-		return pair.Head(fa(s))
+		return pair.Tail(fa(s))
 	}
 }
 

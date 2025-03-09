@@ -17,20 +17,25 @@ package json
 
 import (
 	E "github.com/IBM/fp-go/v2/either"
-	F "github.com/IBM/fp-go/v2/function"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/option"
 )
 
-func ToTypeE[A any](src any) E.Either[error, A] {
-	return F.Pipe2(
+type (
+	Either[A any] = E.Either[error, A]
+	Option[A any] = option.Option[A]
+)
+
+func ToTypeE[A any](src any) Either[A] {
+	return function.Pipe2(
 		src,
 		Marshal[any],
 		E.Chain(Unmarshal[A]),
 	)
 }
 
-func ToTypeO[A any](src any) O.Option[A] {
-	return F.Pipe1(
+func ToTypeO[A any](src any) Option[A] {
+	return function.Pipe1(
 		ToTypeE[A](src),
 		E.ToOption[error, A],
 	)

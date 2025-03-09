@@ -65,15 +65,15 @@ func (o *pairMonadHead[A, B, A1]) Of(a A) Pair[A, B] {
 }
 
 func (o *pairMonadHead[A, B, A1]) Map(f func(A) A1) func(Pair[A, B]) Pair[A1, B] {
-	return Map[B](f)
+	return MapHead[B](f)
 }
 
 func (o *pairMonadHead[A, B, A1]) Chain(f func(A) Pair[A1, B]) func(Pair[A, B]) Pair[A1, B] {
-	return Chain(o.s, f)
+	return ChainHead(o.s, f)
 }
 
 func (o *pairMonadHead[A, B, A1]) Ap(fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
-	return Ap[B, A, A1](o.s, fa)
+	return ApHead[B, A, A1](o.s, fa)
 }
 
 func (o *pairPointedHead[A, B]) Of(a A) Pair[A, B] {
@@ -81,59 +81,39 @@ func (o *pairPointedHead[A, B]) Of(a A) Pair[A, B] {
 }
 
 func (o *pairFunctorHead[A, B, A1]) Map(f func(A) A1) func(Pair[A, B]) Pair[A1, B] {
-	return Map[B, A, A1](f)
+	return MapHead[B](f)
 }
 
 func (o *pairApplicativeHead[A, B, A1]) Map(f func(A) A1) func(Pair[A, B]) Pair[A1, B] {
-	return Map[B, A, A1](f)
+	return MapHead[B](f)
 }
 
 func (o *pairApplicativeHead[A, B, A1]) Ap(fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
-	return Ap[B, A, A1](o.s, fa)
+	return ApHead[B, A, A1](o.s, fa)
 }
 
 func (o *pairApplicativeHead[A, B, A1]) Of(a A) Pair[A, B] {
 	return MakePair(a, o.m.Empty())
 }
 
-// Monad implements the monadic operations for [Pair]
-func Monad[A, B, A1 any](m monoid.Monoid[B]) monad.Monad[A, A1, Pair[A, B], Pair[A1, B], Pair[func(A) A1, B]] {
-	return &pairMonadHead[A, B, A1]{s: monoid.ToSemigroup(m), m: m}
-}
-
-// Pointed implements the pointed operations for [Pair]
-func Pointed[A, B any](m monoid.Monoid[B]) pointed.Pointed[A, Pair[A, B]] {
-	return &pairPointedHead[A, B]{m: m}
-}
-
-// Functor implements the functor operations for [Pair]
-func Functor[A, B, A1 any]() functor.Functor[A, A1, Pair[A, B], Pair[A1, B]] {
-	return &pairFunctorHead[A, B, A1]{}
-}
-
-// Applicative implements the applicative operations for [Pair]
-func Applicative[A, B, A1 any](m monoid.Monoid[B]) applicative.Applicative[A, A1, Pair[A, B], Pair[A1, B], Pair[func(A) A1, B]] {
-	return &pairApplicativeHead[A, B, A1]{s: monoid.ToSemigroup(m), m: m}
-}
-
 // MonadHead implements the monadic operations for [Pair]
 func MonadHead[A, B, A1 any](m monoid.Monoid[B]) monad.Monad[A, A1, Pair[A, B], Pair[A1, B], Pair[func(A) A1, B]] {
-	return Monad[A, B, A1](m)
+	return &pairMonadHead[A, B, A1]{s: monoid.ToSemigroup(m), m: m}
 }
 
 // PointedHead implements the pointed operations for [Pair]
 func PointedHead[A, B any](m monoid.Monoid[B]) pointed.Pointed[A, Pair[A, B]] {
-	return PointedHead[A, B](m)
+	return &pairPointedHead[A, B]{m: m}
 }
 
 // FunctorHead implements the functor operations for [Pair]
 func FunctorHead[A, B, A1 any]() functor.Functor[A, A1, Pair[A, B], Pair[A1, B]] {
-	return Functor[A, B, A1]()
+	return &pairFunctorHead[A, B, A1]{}
 }
 
 // ApplicativeHead implements the applicative operations for [Pair]
 func ApplicativeHead[A, B, A1 any](m monoid.Monoid[B]) applicative.Applicative[A, A1, Pair[A, B], Pair[A1, B], Pair[func(A) A1, B]] {
-	return Applicative[A, B, A1](m)
+	return &pairApplicativeHead[A, B, A1]{s: monoid.ToSemigroup(m), m: m}
 }
 
 func (o *pairMonadTail[A, B, B1]) Of(b B) Pair[A, B] {
@@ -141,11 +121,11 @@ func (o *pairMonadTail[A, B, B1]) Of(b B) Pair[A, B] {
 }
 
 func (o *pairMonadTail[A, B, B1]) Map(f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
-	return MapTail[A, B, B1](f)
+	return MapTail[A](f)
 }
 
 func (o *pairMonadTail[A, B, B1]) Chain(f func(B) Pair[A, B1]) func(Pair[A, B]) Pair[A, B1] {
-	return ChainTail[A, B, B1](o.s, f)
+	return ChainTail(o.s, f)
 }
 
 func (o *pairMonadTail[A, B, B1]) Ap(fa Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
@@ -157,11 +137,11 @@ func (o *pairPointedTail[A, B]) Of(b B) Pair[A, B] {
 }
 
 func (o *pairFunctorTail[A, B, B1]) Map(f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
-	return MapTail[A, B, B1](f)
+	return MapTail[A](f)
 }
 
 func (o *pairApplicativeTail[A, B, B1]) Map(f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
-	return MapTail[A, B, B1](f)
+	return MapTail[A](f)
 }
 
 func (o *pairApplicativeTail[A, B, B1]) Ap(fa Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
@@ -190,4 +170,24 @@ func FunctorTail[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]]
 // ApplicativeTail implements the applicative operations for [Pair]
 func ApplicativeTail[B, A, B1 any](m monoid.Monoid[A]) applicative.Applicative[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {
 	return &pairApplicativeTail[A, B, B1]{s: monoid.ToSemigroup(m), m: m}
+}
+
+// Monad implements the monadic operations for [Pair]
+func Monad[B, A, B1 any](m monoid.Monoid[A]) monad.Monad[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {
+	return MonadTail[B, A, B1](m)
+}
+
+// Pointed implements the pointed operations for [Pair]
+func Pointed[B, A any](m monoid.Monoid[A]) pointed.Pointed[B, Pair[A, B]] {
+	return PointedTail[B](m)
+}
+
+// Functor implements the functor operations for [Pair]
+func Functor[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]] {
+	return FunctorTail[B, A, B1]()
+}
+
+// Applicative implements the applicative operations for [Pair]
+func Applicative[B, A, B1 any](m monoid.Monoid[A]) applicative.Applicative[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {
+	return ApplicativeTail[B, A, B1](m)
 }

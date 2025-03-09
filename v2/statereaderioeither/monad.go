@@ -20,25 +20,84 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/monad"
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	G "github.com/IBM/fp-go/v2/statereaderioeither/generic"
 )
 
-// Pointed returns the pointed operations for [StateReaderIOEither]
-func Pointed[S, R, E, A any]() pointed.Pointed[A, StateReaderIOEither[S, R, E, A]] {
-	return G.Pointed[StateReaderIOEither[S, R, E, A]]()
+type stateReaderIOEitherPointed[
+	S, R, E, A any,
+] struct{}
+
+type stateReaderIOEitherFunctor[
+	S, R, E, A, B any,
+] struct{}
+
+type stateReaderIOEitherApplicative[
+	S, R, E, A, B any,
+] struct{}
+
+type stateReaderIOEitherMonad[
+	S, R, E, A, B any,
+] struct{}
+
+func (o *stateReaderIOEitherPointed[S, R, E, A]) Of(a A) StateReaderIOEither[S, R, E, A] {
+	return Of[S, R, E](a)
 }
 
-// Functor returns the functor operations for [StateReaderIOEither]
-func Functor[S, R, E, A, B any]() functor.Functor[A, B, StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]] {
-	return G.Functor[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]]()
+func (o *stateReaderIOEitherMonad[S, R, E, A, B]) Of(a A) StateReaderIOEither[S, R, E, A] {
+	return Of[S, R, E](a)
 }
 
-// Applicative returns the applicative operations for [StateReaderIOEither]
-func Applicative[S, R, E, A, B any]() applicative.Applicative[A, B, StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]] {
-	return G.Applicative[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]]()
+func (o *stateReaderIOEitherApplicative[S, R, E, A, B]) Of(a A) StateReaderIOEither[S, R, E, A] {
+	return Of[S, R, E](a)
 }
 
-// Monad returns the monadic operations for [StateReaderIOEither]
-func Monad[S, R, E, A, B any]() monad.Monad[A, B, StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]] {
-	return G.Monad[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]]()
+func (o *stateReaderIOEitherMonad[S, R, E, A, B]) Map(f func(A) B) Operator[S, R, E, A, B] {
+	return Map[S, R, E](f)
+}
+
+func (o *stateReaderIOEitherApplicative[S, R, E, A, B]) Map(f func(A) B) Operator[S, R, E, A, B] {
+	return Map[S, R, E](f)
+}
+
+func (o *stateReaderIOEitherFunctor[S, R, E, A, B]) Map(f func(A) B) Operator[S, R, E, A, B] {
+	return Map[S, R, E](f)
+}
+
+func (o *stateReaderIOEitherMonad[S, R, E, A, B]) Chain(f func(A) StateReaderIOEither[S, R, E, B]) Operator[S, R, E, A, B] {
+	return Chain(f)
+}
+
+func (o *stateReaderIOEitherMonad[S, R, E, A, B]) Ap(fa StateReaderIOEither[S, R, E, A]) Operator[S, R, E, func(A) B, B] {
+	return Ap[B](fa)
+}
+
+func (o *stateReaderIOEitherApplicative[S, R, E, A, B]) Ap(fa StateReaderIOEither[S, R, E, A]) Operator[S, R, E, func(A) B, B] {
+	return Ap[B](fa)
+}
+
+// Pointed implements the [pointed.Pointed] operations for [StateReaderIOEither]
+func Pointed[
+	S, R, E, A any,
+]() pointed.Pointed[A, StateReaderIOEither[S, R, E, A]] {
+	return &stateReaderIOEitherPointed[S, R, E, A]{}
+}
+
+// Functor implements the [functor.Functor] operations for [StateReaderIOEither]
+func Functor[
+	S, R, E, A, B any,
+]() functor.Functor[A, B, StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]] {
+	return &stateReaderIOEitherFunctor[S, R, E, A, B]{}
+}
+
+// Applicative implements the [applicative.Applicative] operations for [StateReaderIOEither]
+func Applicative[
+	S, R, E, A, B any,
+]() applicative.Applicative[A, B, StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]] {
+	return &stateReaderIOEitherApplicative[S, R, E, A, B]{}
+}
+
+// Monad implements the [monad.Monad] operations for [StateReaderIOEither]
+func Monad[
+	S, R, E, A, B any,
+]() monad.Monad[A, B, StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B], StateReaderIOEither[S, R, E, func(A) B]] {
+	return &stateReaderIOEitherMonad[S, R, E, A, B]{}
 }

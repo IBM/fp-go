@@ -20,25 +20,68 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/monad"
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	G "github.com/IBM/fp-go/v2/state/generic"
 )
+
+type statePointed[S, A any] struct{}
+
+type stateFunctor[S, A, B any] struct{}
+
+type stateApplicative[S, A, B any] struct{}
+
+type stateMonad[S, A, B any] struct{}
+
+func (o *statePointed[S, A]) Of(a A) State[S, A] {
+	return Of[S](a)
+}
+
+func (o *stateApplicative[S, A, B]) Of(a A) State[S, A] {
+	return Of[S](a)
+}
+
+func (o *stateMonad[S, A, B]) Of(a A) State[S, A] {
+	return Of[S](a)
+}
+
+func (o *stateFunctor[S, A, B]) Map(f func(A) B) func(State[S, A]) State[S, B] {
+	return Map[S](f)
+}
+
+func (o *stateApplicative[S, A, B]) Map(f func(A) B) func(State[S, A]) State[S, B] {
+	return Map[S](f)
+}
+
+func (o *stateMonad[S, A, B]) Map(f func(A) B) func(State[S, A]) State[S, B] {
+	return Map[S](f)
+}
+
+func (o *stateMonad[S, A, B]) Chain(f func(A) State[S, B]) func(State[S, A]) State[S, B] {
+	return Chain(f)
+}
+
+func (o *stateApplicative[S, A, B]) Ap(fa State[S, A]) func(State[S, func(A) B]) State[S, B] {
+	return Ap[B](fa)
+}
+
+func (o *stateMonad[S, A, B]) Ap(fa State[S, A]) func(State[S, func(A) B]) State[S, B] {
+	return Ap[B](fa)
+}
 
 // Pointed implements the pointed operations for [State]
 func Pointed[S, A any]() pointed.Pointed[A, State[S, A]] {
-	return G.Pointed[State[S, A], S, A]()
+	return &statePointed[S, A]{}
 }
 
-// Functor implements the pointed operations for [State]
+// Functor implements the functor operations for [State]
 func Functor[S, A, B any]() functor.Functor[A, B, State[S, A], State[S, B]] {
-	return G.Functor[State[S, B], State[S, A], S, A, B]()
+	return &stateFunctor[S, A, B]{}
 }
 
 // Applicative implements the applicative operations for [State]
 func Applicative[S, A, B any]() applicative.Applicative[A, B, State[S, A], State[S, B], State[S, func(A) B]] {
-	return G.Applicative[State[S, B], State[S, func(A) B], State[S, A]]()
+	return &stateApplicative[S, A, B]{}
 }
 
 // Monad implements the monadic operations for [State]
 func Monad[S, A, B any]() monad.Monad[A, B, State[S, A], State[S, B], State[S, func(A) B]] {
-	return G.Monad[State[S, B], State[S, func(A) B], State[S, A]]()
+	return &stateMonad[S, A, B]{}
 }

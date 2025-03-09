@@ -16,20 +16,26 @@
 package statereaderioeither
 
 import (
-	EQ "github.com/IBM/fp-go/v2/eq"
-	P "github.com/IBM/fp-go/v2/pair"
-	RIOE "github.com/IBM/fp-go/v2/readerioeither"
-	G "github.com/IBM/fp-go/v2/statereaderioeither/generic"
+	"github.com/IBM/fp-go/v2/eq"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/readerioeither"
 )
 
 // Eq implements the equals predicate for values contained in the [StateReaderIOEither] monad
 func Eq[
-	S, R, E, A any](eqr EQ.Eq[RIOE.ReaderIOEither[R, E, P.Pair[A, S]]]) func(S) EQ.Eq[StateReaderIOEither[S, R, E, A]] {
-	return G.Eq[StateReaderIOEither[S, R, E, A]](eqr)
+	S, R, E, A any](eqr eq.Eq[ReaderIOEither[R, E, Pair[S, A]]]) func(S) eq.Eq[StateReaderIOEither[S, R, E, A]] {
+	return func(s S) eq.Eq[StateReaderIOEither[S, R, E, A]] {
+		return eq.FromEquals(func(l, r StateReaderIOEither[S, R, E, A]) bool {
+			return eqr.Equals(l(s), r(s))
+		})
+	}
 }
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+// FromStrictEquals constructs an [eq.Eq] from the canonical comparison function
 func FromStrictEquals[
-	S, R any, E, A comparable]() func(R) func(S) EQ.Eq[StateReaderIOEither[S, R, E, A]] {
-	return G.FromStrictEquals[StateReaderIOEither[S, R, E, A]]()
+	S, R any, E, A comparable]() func(R) func(S) eq.Eq[StateReaderIOEither[S, R, E, A]] {
+	return function.Flow2(
+		readerioeither.FromStrictEquals[R, E, Pair[S, A]](),
+		Eq[S, R, E, A],
+	)
 }

@@ -23,7 +23,7 @@ import (
 func Do[S any](
 	empty S,
 ) Iterator[S] {
-	return G.Do[Iterator[S], S](empty)
+	return G.Do[Iterator[S]](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2]

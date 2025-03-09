@@ -19,8 +19,8 @@ import (
 	"fmt"
 
 	F "github.com/IBM/fp-go/v2/function"
-	Sg "github.com/IBM/fp-go/v2/semigroup"
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/semigroup"
+	"github.com/IBM/fp-go/v2/tuple"
 )
 
 // String prints some debug info for the object
@@ -57,14 +57,14 @@ func Of[A any](value A) Pair[A, A] {
 	return Pair[A, A]{h: value, t: value}
 }
 
-// FromTuple creates a [Pair] from a [T.Tuple2]
-func FromTuple[A, B any](t T.Tuple2[A, B]) Pair[A, B] {
+// FromTuple creates a [Pair] from a [tuple.Tuple2]
+func FromTuple[A, B any](t tuple.Tuple2[A, B]) Pair[A, B] {
 	return Pair[A, B]{h: t.F1, t: t.F2}
 }
 
-// ToTuple creates a [T.Tuple2] from a [Pair]
-func ToTuple[A, B any](t Pair[A, B]) T.Tuple2[A, B] {
-	return T.MakeTuple2(Head(t), Tail(t))
+// ToTuple creates a [tuple.Tuple2] from a [Pair]
+func ToTuple[A, B any](t Pair[A, B]) tuple.Tuple2[A, B] {
+	return tuple.MakeTuple2(Head(t), Tail(t))
 }
 
 // MakePair creates a [Pair] from two values
@@ -79,6 +79,16 @@ func Head[A, B any](fa Pair[A, B]) A {
 
 // Tail returns the head value of the pair
 func Tail[A, B any](fa Pair[A, B]) B {
+	return fa.t.(B)
+}
+
+// First returns the left value of the pair
+func First[A, B any](fa Pair[A, B]) A {
+	return fa.h.(A)
+}
+
+// Second returns the right value of the pair
+func Second[A, B any](fa Pair[A, B]) B {
 	return fa.t.(B)
 }
 
@@ -102,9 +112,9 @@ func MonadBiMap[A, B, A1, B1 any](fa Pair[A, B], f func(A) A1, g func(B) B1) Pai
 	return Pair[A1, B1]{f(Head(fa)), g(Tail(fa))}
 }
 
-// Map maps the head value
-func Map[B, A, A1 any](f func(A) A1) func(Pair[A, B]) Pair[A1, B] {
-	return MapHead[B, A, A1](f)
+// Map maps the tail value
+func Map[A, B, B1 any](f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
+	return MapTail[A](f)
 }
 
 // MapHead maps the head value
@@ -112,7 +122,7 @@ func MapHead[B, A, A1 any](f func(A) A1) func(Pair[A, B]) Pair[A1, B] {
 	return F.Bind2nd(MonadMapHead[B, A, A1], f)
 }
 
-// MapTail maps the Tail value
+// MapTail maps the tail value
 func MapTail[A, B, B1 any](f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
 	return F.Bind2nd(MonadMapTail[A, B, B1], f)
 }
@@ -125,73 +135,73 @@ func BiMap[A, B, A1, B1 any](f func(A) A1, g func(B) B1) func(Pair[A, B]) Pair[A
 }
 
 // MonadChainHead chains on the head value
-func MonadChainHead[B, A, A1 any](sg Sg.Semigroup[B], fa Pair[A, B], f func(A) Pair[A1, B]) Pair[A1, B] {
+func MonadChainHead[B, A, A1 any](sg semigroup.Semigroup[B], fa Pair[A, B], f func(A) Pair[A1, B]) Pair[A1, B] {
 	fb := f(Head(fa))
 	return Pair[A1, B]{fb.h, sg.Concat(Tail(fa), Tail(fb))}
 }
 
 // MonadChainTail chains on the Tail value
-func MonadChainTail[A, B, B1 any](sg Sg.Semigroup[A], fb Pair[A, B], f func(B) Pair[A, B1]) Pair[A, B1] {
+func MonadChainTail[A, B, B1 any](sg semigroup.Semigroup[A], fb Pair[A, B], f func(B) Pair[A, B1]) Pair[A, B1] {
 	fa := f(Tail(fb))
 	return Pair[A, B1]{sg.Concat(Head(fb), Head(fa)), fa.t}
 }
 
-// MonadChain chains on the head value
-func MonadChain[B, A, A1 any](sg Sg.Semigroup[B], fa Pair[A, B], f func(A) Pair[A1, B]) Pair[A1, B] {
-	return MonadChainHead(sg, fa, f)
+// MonadChain chains on the tail value
+func MonadChain[A, B, B1 any](sg semigroup.Semigroup[A], fa Pair[A, B], f func(B) Pair[A, B1]) Pair[A, B1] {
+	return MonadChainTail(sg, fa, f)
 }
 
 // ChainHead chains on the head value
-func ChainHead[B, A, A1 any](sg Sg.Semigroup[B], f func(A) Pair[A1, B]) func(Pair[A, B]) Pair[A1, B] {
+func ChainHead[B, A, A1 any](sg semigroup.Semigroup[B], f func(A) Pair[A1, B]) func(Pair[A, B]) Pair[A1, B] {
 	return func(fa Pair[A, B]) Pair[A1, B] {
 		return MonadChainHead(sg, fa, f)
 	}
 }
 
-// ChainTail chains on the Tail value
-func ChainTail[A, B, B1 any](sg Sg.Semigroup[A], f func(B) Pair[A, B1]) func(Pair[A, B]) Pair[A, B1] {
+// ChainTail chains on the tail value
+func ChainTail[A, B, B1 any](sg semigroup.Semigroup[A], f func(B) Pair[A, B1]) func(Pair[A, B]) Pair[A, B1] {
 	return func(fa Pair[A, B]) Pair[A, B1] {
 		return MonadChainTail(sg, fa, f)
 	}
 }
 
-// Chain chains on the head value
-func Chain[B, A, A1 any](sg Sg.Semigroup[B], f func(A) Pair[A1, B]) func(Pair[A, B]) Pair[A1, B] {
-	return ChainHead[B, A, A1](sg, f)
+// Chain chains on the tail value
+func Chain[A, B, B1 any](sg semigroup.Semigroup[A], f func(B) Pair[A, B1]) func(Pair[A, B]) Pair[A, B1] {
+	return ChainTail(sg, f)
 }
 
 // MonadApHead applies on the head value
-func MonadApHead[B, A, A1 any](sg Sg.Semigroup[B], faa Pair[func(A) A1, B], fa Pair[A, B]) Pair[A1, B] {
+func MonadApHead[B, A, A1 any](sg semigroup.Semigroup[B], faa Pair[func(A) A1, B], fa Pair[A, B]) Pair[A1, B] {
 	return Pair[A1, B]{Head(faa)(Head(fa)), sg.Concat(Tail(fa), Tail(faa))}
 }
 
 // MonadApTail applies on the Tail value
-func MonadApTail[A, B, B1 any](sg Sg.Semigroup[A], fbb Pair[A, func(B) B1], fb Pair[A, B]) Pair[A, B1] {
+func MonadApTail[A, B, B1 any](sg semigroup.Semigroup[A], fbb Pair[A, func(B) B1], fb Pair[A, B]) Pair[A, B1] {
 	return Pair[A, B1]{sg.Concat(Head(fb), Head(fbb)), Tail(fbb)(Tail(fb))}
 }
 
-// MonadAp applies on the head value
-func MonadAp[B, A, A1 any](sg Sg.Semigroup[B], faa Pair[func(A) A1, B], fa Pair[A, B]) Pair[A1, B] {
-	return MonadApHead(sg, faa, fa)
+// MonadAp applies on the tail value
+func MonadAp[A, B, B1 any](sg semigroup.Semigroup[A], faa Pair[A, func(B) B1], fa Pair[A, B]) Pair[A, B1] {
+	return MonadApTail(sg, faa, fa)
 }
 
 // ApHead applies on the head value
-func ApHead[B, A, A1 any](sg Sg.Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
+func ApHead[B, A, A1 any](sg semigroup.Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
 	return func(faa Pair[func(A) A1, B]) Pair[A1, B] {
 		return MonadApHead(sg, faa, fa)
 	}
 }
 
 // ApTail applies on the Tail value
-func ApTail[A, B, B1 any](sg Sg.Semigroup[A], fb Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
+func ApTail[A, B, B1 any](sg semigroup.Semigroup[A], fb Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
 	return func(fbb Pair[A, func(B) B1]) Pair[A, B1] {
 		return MonadApTail(sg, fbb, fb)
 	}
 }
 
-// Ap applies on the head value
-func Ap[B, A, A1 any](sg Sg.Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
-	return ApHead[B, A, A1](sg, fa)
+// Ap applies on the tail value
+func Ap[A, B, B1 any](sg semigroup.Semigroup[A], fa Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
+	return ApTail[A, B, B1](sg, fa)
 }
 
 // Swap swaps the two channels

@@ -16,16 +16,21 @@
 package state
 
 import (
-	EQ "github.com/IBM/fp-go/v2/eq"
-	G "github.com/IBM/fp-go/v2/state/generic"
+	"github.com/IBM/fp-go/v2/eq"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // Constructs an equal predicate for a [State]
-func Eq[S, A any](w EQ.Eq[S], a EQ.Eq[A]) func(S) EQ.Eq[State[S, A]] {
-	return G.Eq[State[S, A]](w, a)
+func Eq[S, A any](w eq.Eq[S], a eq.Eq[A]) func(S) eq.Eq[State[S, A]] {
+	eqp := pair.Eq(w, a)
+	return func(s S) eq.Eq[State[S, A]] {
+		return eq.FromEquals(func(l, r State[S, A]) bool {
+			return eqp.Equals(l(s), r(s))
+		})
+	}
 }
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
-func FromStrictEquals[S, A comparable]() func(S) EQ.Eq[State[S, A]] {
-	return G.FromStrictEquals[State[S, A]]()
+// FromStrictEquals constructs an [eq.Eq] from the canonical comparison function
+func FromStrictEquals[S, A comparable]() func(S) eq.Eq[State[S, A]] {
+	return Eq(eq.FromStrictEquals[S](), eq.FromStrictEquals[A]())
 }

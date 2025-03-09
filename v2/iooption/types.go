@@ -16,15 +16,17 @@
 package iooption
 
 import (
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 )
 
 type (
-	Option[A any] = option.Option[A]
-	IO[A any]     = io.IO[A]
-	Lazy[A any]   = lazy.Lazy[A]
+	Either[E, A any] = either.Either[E, A]
+	Option[A any]    = option.Option[A]
+	IO[A any]        = io.IO[A]
+	Lazy[A any]      = lazy.Lazy[A]
 
 	// IOOption represents a synchronous computation that may fail
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details

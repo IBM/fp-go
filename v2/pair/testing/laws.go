@@ -38,20 +38,20 @@ func assertLawsHead[E, A, B, C any](t *testing.T,
 	bc func(B) C,
 ) func(a A) bool {
 
-	fofc := P.Pointed[C](m)
-	fofaa := P.Pointed[func(A) A](m)
-	fofbc := P.Pointed[func(B) C](m)
-	fofabb := P.Pointed[func(func(A) B) B](m)
+	fofc := P.PointedHead[C](m)
+	fofaa := P.PointedHead[func(A) A](m)
+	fofbc := P.PointedHead[func(B) C](m)
+	fofabb := P.PointedHead[func(func(A) B) B](m)
 
-	fmap := P.Functor[func(B) C, E, func(func(A) B) func(A) C]()
+	fmap := P.FunctorHead[func(B) C, E, func(func(A) B) func(A) C]()
 
-	fapabb := P.Applicative[func(A) B, E, B](m)
-	fapabac := P.Applicative[func(A) B, E, func(A) C](m)
+	fapabb := P.ApplicativeHead[func(A) B, E, B](m)
+	fapabac := P.ApplicativeHead[func(A) B, E, func(A) C](m)
 
-	maa := P.Monad[A, E, A](m)
-	mab := P.Monad[A, E, B](m)
-	mac := P.Monad[A, E, C](m)
-	mbc := P.Monad[B, E, C](m)
+	maa := P.MonadHead[A, E, A](m)
+	mab := P.MonadHead[A, E, B](m)
+	mac := P.MonadHead[A, E, C](m)
+	mbc := P.MonadHead[B, E, C](m)
 
 	return L.MonadAssertLaws(t,
 		P.Eq(eqa, eqe),
@@ -147,7 +147,7 @@ func AssertLaws[E, A, B, C any](t *testing.T,
 ) func(A) bool {
 
 	head := assertLawsHead(t, m, eqe, eqa, eqb, eqc, ab, bc)
-	tail := assertLawsHead(t, m, eqe, eqa, eqb, eqc, ab, bc)
+	tail := assertLawsTail(t, m, eqe, eqa, eqb, eqc, ab, bc)
 
 	return func(a A) bool {
 		return head(a) && tail(a)

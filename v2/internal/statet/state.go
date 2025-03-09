@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package state
+package statet
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
-	P "github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 func Of[
@@ -25,12 +25,12 @@ func Of[
 	HKTA,
 	S, A any,
 ](
-	fof func(P.Pair[A, S]) HKTA,
+	fof func(pair.Pair[S, A]) HKTA,
 
 	a A) HKTSA {
 
-	return F.Flow2(
-		F.Bind1st(P.MakePair[A, S], a),
+	return function.Flow2(
+		function.Bind2nd(pair.MakePair[S, A], a),
 		fof,
 	)
 }
@@ -42,15 +42,15 @@ func MonadMap[
 	HKTB,
 	S, A, B any,
 ](
-	fmap func(HKTA, func(P.Pair[A, S]) P.Pair[B, S]) HKTB,
+	fmap func(HKTA, func(pair.Pair[S, A]) pair.Pair[S, B]) HKTB,
 
 	fa HKTSA,
 	f func(A) B,
 ) HKTSB {
 
-	return F.Flow2(
+	return function.Flow2(
 		fa,
-		F.Bind2nd(fmap, P.Map[S](f)),
+		function.Bind2nd(fmap, pair.Map[S](f)),
 	)
 }
 
@@ -61,14 +61,14 @@ func Map[
 	HKTB,
 	S, A, B any,
 ](
-	fmap func(func(P.Pair[A, S]) P.Pair[B, S]) func(HKTA) HKTB,
+	fmap func(func(pair.Pair[S, A]) pair.Pair[S, B]) func(HKTA) HKTB,
 
 	f func(A) B,
 ) func(HKTSA) HKTSB {
-	mp := fmap(P.Map[S](f))
+	mp := fmap(pair.Map[S](f))
 
 	return func(fa HKTSA) HKTSB {
-		return F.Flow2(
+		return function.Flow2(
 			fa,
 			mp,
 		)
@@ -82,15 +82,15 @@ func MonadChain[
 	HKTB,
 	S, A any,
 ](
-	fchain func(HKTA, func(P.Pair[A, S]) HKTB) HKTB,
+	fchain func(HKTA, func(pair.Pair[S, A]) HKTB) HKTB,
 
 	fa HKTSA,
 	f func(A) HKTSB,
 ) HKTSB {
-	return F.Flow2(
+	return function.Flow2(
 		fa,
-		F.Bind2nd(fchain, func(a P.Pair[A, S]) HKTB {
-			return f(P.Head(a))(P.Tail(a))
+		function.Bind2nd(fchain, func(a pair.Pair[S, A]) HKTB {
+			return f(pair.Tail(a))(pair.Head(a))
 		}),
 	)
 }
@@ -102,16 +102,16 @@ func Chain[
 	HKTB,
 	S, A any,
 ](
-	fchain func(func(P.Pair[A, S]) HKTB) func(HKTA) HKTB,
+	fchain func(func(pair.Pair[S, A]) HKTB) func(HKTA) HKTB,
 
 	f func(A) HKTSB,
 ) func(HKTSA) HKTSB {
-	mp := fchain(func(a P.Pair[A, S]) HKTB {
-		return f(P.Head(a))(P.Tail(a))
+	mp := fchain(func(a pair.Pair[S, A]) HKTB {
+		return f(pair.Tail(a))(pair.Head(a))
 	})
 
 	return func(fa HKTSA) HKTSB {
-		return F.Flow2(
+		return function.Flow2(
 			fa,
 			mp,
 		)
@@ -128,15 +128,15 @@ func MonadAp[
 
 	S, A, B any,
 ](
-	fmap func(HKTA, func(P.Pair[A, S]) P.Pair[B, S]) HKTB,
-	fchain func(HKTAB, func(P.Pair[func(A) B, S]) HKTB) HKTB,
+	fmap func(HKTA, func(pair.Pair[S, A]) pair.Pair[S, B]) HKTB,
+	fchain func(HKTAB, func(pair.Pair[S, func(A) B]) HKTB) HKTB,
 
 	fab HKTSAB,
 	fa HKTSA,
 ) HKTSB {
 	return func(s S) HKTB {
-		return fchain(fab(s), func(ab P.Pair[func(A) B, S]) HKTB {
-			return fmap(fa(P.Tail(ab)), P.Map[S](P.Head(ab)))
+		return fchain(fab(s), func(ab pair.Pair[S, func(A) B]) HKTB {
+			return fmap(fa(pair.Head(ab)), pair.Map[S](pair.Tail(ab)))
 		})
 	}
 }
@@ -151,16 +151,16 @@ func Ap[
 
 	S, A, B any,
 ](
-	fmap func(func(P.Pair[A, S]) P.Pair[B, S]) func(HKTA) HKTB,
-	fchain func(func(P.Pair[func(A) B, S]) HKTB) func(HKTAB) HKTB,
+	fmap func(func(pair.Pair[S, A]) pair.Pair[S, B]) func(HKTA) HKTB,
+	fchain func(func(pair.Pair[S, func(A) B]) HKTB) func(HKTAB) HKTB,
 
 	fa HKTSA,
 ) func(HKTSAB) HKTSB {
 	return func(fab HKTSAB) HKTSB {
-		return F.Flow2(
+		return function.Flow2(
 			fab,
-			fchain(func(ab P.Pair[func(A) B, S]) HKTB {
-				return fmap(P.Map[S](P.Head(ab)))(fa(P.Tail(ab)))
+			fchain(func(ab pair.Pair[S, func(A) B]) HKTB {
+				return fmap(pair.Map[S](pair.Tail(ab)))(fa(pair.Head(ab)))
 			}),
 		)
 	}
@@ -174,25 +174,25 @@ func FromF[
 
 	S, A any,
 ](
-	fmap func(HKTFA, func(A) P.Pair[A, S]) HKTA,
+	fmap func(HKTFA, func(A) pair.Pair[S, A]) HKTA,
 	ma HKTFA) HKTSA {
 
-	f1 := F.Bind1st(fmap, ma)
+	f1 := function.Bind1st(fmap, ma)
 
 	return func(s S) HKTA {
-		return f1(F.Bind2nd(P.MakePair[A, S], s))
+		return f1(function.Bind1st(pair.MakePair[S, A], s))
 	}
 }
 
 func FromState[
 	HKTSA ~func(S) HKTA,
-	ST ~func(S) P.Pair[A, S],
+	ST ~func(S) pair.Pair[S, A],
 	HKTA,
 
 	S, A any,
 ](
-	fof func(P.Pair[A, S]) HKTA,
+	fof func(pair.Pair[S, A]) HKTA,
 	sa ST,
 ) HKTSA {
-	return F.Flow2(sa, fof)
+	return function.Flow2(sa, fof)
 }

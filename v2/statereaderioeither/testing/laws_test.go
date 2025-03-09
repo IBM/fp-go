@@ -27,7 +27,7 @@ import (
 
 func TestMonadLaws(t *testing.T) {
 	// some comparison
-	eqs := A.Eq[string](EQ.FromStrictEquals[string]())
+	eqs := A.Eq(EQ.FromStrictEquals[string]())
 	eqe := EQ.FromStrictEquals[error]()
 	eqa := EQ.FromStrictEquals[bool]()
 	eqb := EQ.FromStrictEquals[int]()

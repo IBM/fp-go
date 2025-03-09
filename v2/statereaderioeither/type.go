@@ -16,9 +16,25 @@
 package statereaderioeither
 
 import (
-	P "github.com/IBM/fp-go/v2/pair"
-	RD "github.com/IBM/fp-go/v2/reader"
-	RIOE "github.com/IBM/fp-go/v2/readerioeither"
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readereither"
+	"github.com/IBM/fp-go/v2/readerioeither"
+	"github.com/IBM/fp-go/v2/state"
 )
 
-type StateReaderIOEither[S, R, E, A any] = RD.Reader[S, RIOE.ReaderIOEither[R, E, P.Pair[A, S]]]
+type (
+	State[S, A any]                     = state.State[S, A]
+	Pair[L, R any]                      = pair.Pair[L, R]
+	Reader[R, A any]                    = reader.Reader[R, A]
+	Either[E, A any]                    = either.Either[E, A]
+	IO[A any]                           = io.IO[A]
+	IOEither[E, A any]                  = ioeither.IOEither[E, A]
+	ReaderIOEither[R, E, A any]         = readerioeither.ReaderIOEither[R, E, A]
+	ReaderEither[R, E, A any]           = readereither.ReaderEither[R, E, A]
+	StateReaderIOEither[S, R, E, A any] = Reader[S, ReaderIOEither[R, E, Pair[S, A]]]
+	Operator[S, R, E, A, B any]         = Reader[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]]
+)

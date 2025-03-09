@@ -26,7 +26,7 @@ type (
 	Pair[L, R any]   = pair.Pair[L, R]
 
 	// State represents an operation on top of a current [State] that produces a value and a new [State]
-	State[S, A any] = Reader[S, pair.Pair[A, S]]
+	State[S, A any] = Reader[S, pair.Pair[S, A]]
 
 	Operator[S, A, B any] = Reader[State[S, A], State[S, B]]
 )

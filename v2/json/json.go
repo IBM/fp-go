@@ -22,13 +22,13 @@ import (
 )
 
 // Unmarshal parses a JSON data structure from bytes
-func Unmarshal[A any](data []byte) E.Either[error, A] {
+func Unmarshal[A any](data []byte) Either[A] {
 	var result A
 	err := json.Unmarshal(data, &result)
 	return E.TryCatchError(result, err)
 }
 
 // Marshal converts a data structure to json
-func Marshal[A any](a A) E.Either[error, []byte] {
+func Marshal[A any](a A) Either[[]byte] {
 	return E.TryCatchError(json.Marshal(a))
 }
