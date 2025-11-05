@@ -18,9 +18,45 @@ package number
 import (
 	"testing"
 
-	M "github.com/IBM/fp-go/v2/monoid/testing"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMonoidSum(t *testing.T) {
-	M.AssertLaws(t, MonoidSum[int]())([]int{0, 1, 1000, -1})
+// Test monoid laws for MonoidSum
+func TestMonoidSumLaws(t *testing.T) {
+	sumMonoid := MonoidSum[int]()
+	testData := []int{0, 1, 1000, -1, -100, 42}
+
+	// Test identity laws manually
+	for _, x := range testData {
+		assert.Equal(t, x, sumMonoid.Concat(sumMonoid.Empty(), x),
+			"Left identity failed for %d", x)
+		assert.Equal(t, x, sumMonoid.Concat(x, sumMonoid.Empty()),
+			"Right identity failed for %d", x)
+	}
+
+	// Test associativity
+	assert.Equal(t,
+		sumMonoid.Concat(sumMonoid.Concat(1, 2), 3),
+		sumMonoid.Concat(1, sumMonoid.Concat(2, 3)),
+	)
+}
+
+// Test monoid laws for MonoidProduct
+func TestMonoidProductLaws(t *testing.T) {
+	prodMonoid := MonoidProduct[int]()
+	testData := []int{1, 2, 10, -1, -5, 42}
+
+	// Test identity laws
+	for _, x := range testData {
+		assert.Equal(t, x, prodMonoid.Concat(prodMonoid.Empty(), x),
+			"Left identity failed for %d", x)
+		assert.Equal(t, x, prodMonoid.Concat(x, prodMonoid.Empty()),
+			"Right identity failed for %d", x)
+	}
+
+	// Test associativity
+	assert.Equal(t,
+		prodMonoid.Concat(prodMonoid.Concat(2, 3), 4),
+		prodMonoid.Concat(2, prodMonoid.Concat(3, 4)),
+	)
 }

@@ -76,5 +76,3 @@ func TestBindTo(t *testing.T) {
 	expected := []TestState1{{X: 1}, {X: 2}, {X: 3}}
 	assert.Equal(t, expected, result)
 }
-
-// Made with Bob

@@ -554,5 +554,3 @@ func TestFromStrictCompare(t *testing.T) {
 	assert.Equal(t, -1, optOrd.Compare(None[int](), Some(5)))
 	assert.Equal(t, 1, optOrd.Compare(Some(5), None[int]()))
 }
-
-// Made with Bob

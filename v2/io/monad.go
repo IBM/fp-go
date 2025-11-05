@@ -21,6 +21,9 @@ import (
 
 type (
 	ioMonad[A, B any] struct{}
+	// IOMonad represents the monad type class for IO.
+	// A monad combines the capabilities of Functor, Applicative, and Pointed
+	// with the ability to chain computations (Chain/FlatMap).
 	IOMonad[A, B any] = monad.Monad[A, B, IO[A], IO[B], IO[func(A) B]]
 )
 
@@ -40,7 +43,16 @@ func (o *ioMonad[A, B]) Ap(fa IO[A]) Operator[func(A) B, B] {
 	return Ap[B](fa)
 }
 
-// Monad implements the monadic operations for [IO]
+// Monad returns an instance of the Monad type class for IO.
+// This provides a structured way to access monadic operations (Of, Map, Chain, Ap)
+// for IO computations.
+//
+// Example:
+//
+//	m := io.Monad[int, string]()
+//	result := m.Chain(func(n int) io.IO[string] {
+//	    return io.Of(strconv.Itoa(n))
+//	})(m.Of(42))
 func Monad[A, B any]() IOMonad[A, B] {
 	return &ioMonad[A, B]{}
 }

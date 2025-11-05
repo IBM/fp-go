@@ -42,5 +42,3 @@ func TestEq(t *testing.T) {
 	assert.True(t, stringEq.Equals([]string{"a", "b"}, []string{"a", "b"}))
 	assert.False(t, stringEq.Equals([]string{"a", "b"}, []string{"a", "c"}))
 }
-
-// Made with Bob

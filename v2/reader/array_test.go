@@ -38,3 +38,58 @@ func TestSequenceArray(t *testing.T) {
 
 	assert.Equal(t, exp, g(context.Background()))
 }
+
+func TestTraverseArray(t *testing.T) {
+	type Config struct{ Multiplier int }
+	config := Config{Multiplier: 10}
+
+	multiply := func(n int) Reader[Config, int] {
+		return Asks(func(c Config) int { return n * c.Multiplier })
+	}
+
+	transform := TraverseArray(multiply)
+	r := transform([]int{1, 2, 3})
+	result := r(config)
+
+	assert.Equal(t, []int{10, 20, 30}, result)
+}
+
+func TestTraverseArrayWithIndex(t *testing.T) {
+	type Config struct{ Prefix string }
+	config := Config{Prefix: "item"}
+
+	addIndexPrefix := func(i int, s string) Reader[Config, string] {
+		return Asks(func(c Config) string {
+			// Simple string formatting
+			idx := string(rune('0' + i))
+			return c.Prefix + "[" + idx + "]:" + s
+		})
+	}
+
+	transform := TraverseArrayWithIndex(addIndexPrefix)
+	r := transform([]string{"a", "b", "c"})
+	result := r(config)
+
+	assert.Equal(t, 3, len(result))
+	assert.Equal(t, "item[0]:a", result[0])
+	assert.Equal(t, "item[1]:b", result[1])
+	assert.Equal(t, "item[2]:c", result[2])
+}
+
+func TestMonadTraverseArray(t *testing.T) {
+	type Config struct{ Prefix string }
+	config := Config{Prefix: "num"}
+
+	numbers := []int{1, 2, 3}
+	addPrefix := func(n int) Reader[Config, string] {
+		return Asks(func(c Config) string {
+			return c.Prefix + string(rune('0'+n))
+		})
+	}
+
+	r := MonadTraverseArray(numbers, addPrefix)
+	result := r(config)
+
+	assert.Equal(t, 3, len(result))
+	assert.Contains(t, result[0], "num")
+}

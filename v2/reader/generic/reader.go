@@ -13,6 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package generic provides generic implementations of Reader operations that work with
+// custom reader types. These functions use Go's type constraints to work with any type
+// that matches the Reader pattern (func(R) A).
+//
+// Most functions in this package are deprecated in favor of the non-generic versions
+// in the parent reader package, which provide better type inference and simpler usage.
+//
+// Use this package when you need to work with custom reader types or when you need
+// explicit control over type parameters.
 package generic
 
 import (

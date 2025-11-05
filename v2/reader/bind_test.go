@@ -55,3 +55,61 @@ func TestApS(t *testing.T) {
 
 	assert.Equal(t, res(context.Background()), "John Doe")
 }
+
+func TestLet(t *testing.T) {
+	type State struct {
+		FirstName string
+		LastName  string
+		FullName  string
+	}
+
+	res := F.Pipe2(
+		Do[context.Context](State{FirstName: "John", LastName: "Doe"}),
+		Let[context.Context, State, State, string](
+			func(full string) func(State) State {
+				return func(s State) State { s.FullName = full; return s }
+			},
+			func(s State) string {
+				return s.FirstName + " " + s.LastName
+			},
+		),
+		Map[context.Context](func(s State) string { return s.FullName }),
+	)
+
+	assert.Equal(t, "John Doe", res(context.Background()))
+}
+
+func TestLetTo(t *testing.T) {
+	type State struct {
+		Name    string
+		Version string
+	}
+
+	res := F.Pipe2(
+		Do[context.Context](State{Name: "MyApp"}),
+		LetTo[context.Context, State, State, string](
+			func(v string) func(State) State {
+				return func(s State) State { s.Version = v; return s }
+			},
+			"1.0.0",
+		),
+		Map[context.Context](func(s State) State { return s }),
+	)
+
+	result := res(context.Background())
+	assert.Equal(t, "MyApp", result.Name)
+	assert.Equal(t, "1.0.0", result.Version)
+}
+
+func TestBindTo(t *testing.T) {
+	type State struct{ Name string }
+
+	getName := Asks(func(c context.Context) string { return "TestName" })
+	initState := BindTo[context.Context, State, string](func(name string) State {
+		return State{Name: name}
+	})
+	result := initState(getName)
+
+	state := result(context.Background())
+	assert.Equal(t, "TestName", state.Name)
+}

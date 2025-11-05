@@ -13,31 +13,313 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package di implements functions and data types supporting dependency injection patterns
-//
-// The fundamental building block is the concept of a [Dependency]. This describes the abstract concept of a function, service or value together with its type.
-// Examples for dependencies can be as simple as configuration values such as the API URL for a service, the current username, a [Dependency] could be the map
-// of the configuration environment, an http client or as complex as a service interface. Important is that a [Dependency] only defines the concept but
-// not the implementation.
-//
-// The implementation of a [Dependency] is called a [Provider], the dependency of an `API URL` could e.g. be realized by a provider that consults the environment to read the information
-// or a config file or simply hardcode it.
-// In many cases the implementation of a [Provider] depends in turn on other [Dependency] (but never directly on other [Provider]s), a provider for an `API URL` that reads
-// the information from the environment would e.g. depend on a [Dependency] that represents this environment.
-//
-// It is the resposibility of the [InjectableFactory] to create an instance of a [Dependency]. All instances are considered singletons. Create an [InjectableFactory] via the [MakeInjector] method. Use [Resolve] to create a strongly typed
-// factory for a particular [InjectionToken].
-//
-// In most cases it is not required to use [InjectableFactory] directly, instead you would create a [Provider] via the [MakeProvider2] method (suffix indicates the number of dependencies). In this call
-// you give a number of (strongly typed) [Dependency] identifiers and a (strongly typed) factory function for the implementation. The dependency injection framework makes
-// sure to resolve the dependencies before calling the factory method.
-//
-// For convenience purposes it can be helpful to attach a default implementation of a [Dependency]. In this case use the [MakeTokenWithDefault2] method (suffix indicates the number of dependencies)
-// to define the [InjectionToken].
-//
-// [Provider]: [github.com/IBM/fp-go/v2/di/erasure.Provider]
-// [InjectableFactory]: [github.com/IBM/fp-go/v2/di/erasure.InjectableFactory]
-// [MakeInjector]: [github.com/IBM/fp-go/v2/di/erasure.MakeInjector]
+/*
+Package di implements functions and data types supporting dependency injection patterns.
+
+# Overview
+
+The dependency injection (DI) framework provides a type-safe way to manage dependencies
+between components in your application. It ensures that all dependencies are resolved
+correctly and that instances are created as singletons.
+
+# Core Concepts
+
+Dependency - An abstract concept representing a service, function, or value with a specific type.
+Dependencies can be:
+  - Simple values (API URLs, configuration strings, numbers)
+  - Complex objects (HTTP clients, database connections)
+  - Service interfaces
+  - Functions
+
+InjectionToken - A unique identifier for a dependency that includes type information.
+Created using MakeToken[T](name).
+
+Provider - The implementation of a dependency. Providers specify:
+  - Which dependency they provide (via an InjectionToken)
+  - What other dependencies they need
+  - How to create the instance
+
+InjectableFactory - The container that manages all providers and resolves dependencies.
+All resolved instances are singletons.
+
+# Basic Usage
+
+Creating and using dependencies:
+
+	import (
+		"github.com/IBM/fp-go/v2/di"
+		IOE "github.com/IBM/fp-go/v2/ioeither"
+	)
+
+	// Define injection tokens
+	var (
+		ConfigToken = di.MakeToken[Config]("Config")
+		DBToken     = di.MakeToken[Database]("Database")
+		APIToken    = di.MakeToken[APIService]("APIService")
+	)
+
+	// Create providers
+	configProvider := di.ConstProvider(ConfigToken, Config{Port: 8080})
+
+	dbProvider := di.MakeProvider1(
+		DBToken,
+		ConfigToken.Identity(),
+		func(cfg Config) IOE.IOEither[error, Database] {
+			return IOE.Of[error](NewDatabase(cfg))
+		},
+	)
+
+	apiProvider := di.MakeProvider2(
+		APIToken,
+		ConfigToken.Identity(),
+		DBToken.Identity(),
+		func(cfg Config, db Database) IOE.IOEither[error, APIService] {
+			return IOE.Of[error](NewAPIService(cfg, db))
+		},
+	)
+
+	// Create injector and resolve
+	injector := DIE.MakeInjector([]DIE.Provider{
+		configProvider,
+		dbProvider,
+		apiProvider,
+	})
+
+	// Resolve the API service
+	resolver := di.Resolve(APIToken)
+	result := resolver(injector)()
+
+# Dependency Types
+
+Identity (Required) - The dependency must be resolved, or the injection fails:
+
+	token.Identity() // Returns Dependency[T]
+
+Option (Optional) - The dependency is optional, returns Option[T]:
+
+	token.Option() // Returns Dependency[Option[T]]
+
+IOEither (Lazy Required) - Lazy evaluation, memoized singleton:
+
+	token.IOEither() // Returns Dependency[IOEither[error, T]]
+
+IOOption (Lazy Optional) - Lazy optional evaluation:
+
+	token.IOOption() // Returns Dependency[IOOption[T]]
+
+# Provider Creation
+
+Providers are created using MakeProvider functions with suffixes indicating
+the number of dependencies (0-15):
+
+MakeProvider0 - No dependencies:
+
+	provider := di.MakeProvider0(
+		token,
+		IOE.Of[error](value),
+	)
+
+MakeProvider1 - One dependency:
+
+	provider := di.MakeProvider1(
+		resultToken,
+		dep1Token.Identity(),
+		func(dep1 Dep1Type) IOE.IOEither[error, ResultType] {
+			return IOE.Of[error](createResult(dep1))
+		},
+	)
+
+MakeProvider2 - Two dependencies:
+
+	provider := di.MakeProvider2(
+		resultToken,
+		dep1Token.Identity(),
+		dep2Token.Identity(),
+		func(dep1 Dep1Type, dep2 Dep2Type) IOE.IOEither[error, ResultType] {
+			return IOE.Of[error](createResult(dep1, dep2))
+		},
+	)
+
+# Constant Providers
+
+For simple constant values:
+
+	provider := di.ConstProvider(token, value)
+
+# Default Implementations
+
+Tokens can have default implementations that are used when no explicit
+provider is registered:
+
+	token := di.MakeTokenWithDefault0(
+		"ServiceName",
+		IOE.Of[error](defaultImplementation),
+	)
+
+	// Or with dependencies
+	token := di.MakeTokenWithDefault2(
+		"ServiceName",
+		dep1Token.Identity(),
+		dep2Token.Identity(),
+		func(dep1 Dep1Type, dep2 Dep2Type) IOE.IOEither[error, ResultType] {
+			return IOE.Of[error](createDefault(dep1, dep2))
+		},
+	)
+
+# Multi-Value Dependencies
+
+For dependencies that can have multiple implementations:
+
+	// Create a multi-token
+	loggersToken := di.MakeMultiToken[Logger]("Loggers")
+
+	// Provide multiple items
+	consoleLogger := di.ConstProvider(loggersToken.Item(), ConsoleLogger{})
+	fileLogger := di.ConstProvider(loggersToken.Item(), FileLogger{})
+
+	// Resolve all items as an array
+	resolver := di.Resolve(loggersToken.Container())
+	loggers := resolver(injector)() // Returns []Logger
+
+# Lazy vs Eager Resolution
+
+Eager (Identity/Option) - Resolved immediately when the injector is created:
+
+	dep1Token.Identity() // Resolved eagerly
+	dep2Token.Option()   // Resolved eagerly
+
+Lazy (IOEither/IOOption) - Resolved only when accessed:
+
+	dep3Token.IOEither() // Resolved lazily
+	dep4Token.IOOption() // Resolved lazily
+
+Lazy dependencies are memoized, so they're only created once.
+
+# Main Application Pattern
+
+The framework provides a convenient pattern for running applications:
+
+	import (
+		"github.com/IBM/fp-go/v2/di"
+		IOE "github.com/IBM/fp-go/v2/ioeither"
+	)
+
+	// Define your main application logic
+	mainProvider := di.MakeProvider1(
+		di.InjMain,
+		APIToken.Identity(),
+		func(api APIService) IOE.IOEither[error, any] {
+			return IOE.Of[error](api.Start())
+		},
+	)
+
+	// Run the application
+	err := di.RunMain([]DIE.Provider{
+		configProvider,
+		dbProvider,
+		apiProvider,
+		mainProvider,
+	})()
+
+# Practical Examples
+
+Example 1: Configuration-based Service
+
+	type Config struct {
+		APIKey string
+		Timeout int
+	}
+
+	type HTTPClient struct {
+		config Config
+	}
+
+	var (
+		ConfigToken = di.MakeToken[Config]("Config")
+		ClientToken = di.MakeToken[HTTPClient]("HTTPClient")
+	)
+
+	configProvider := di.ConstProvider(ConfigToken, Config{
+		APIKey: "secret",
+		Timeout: 30,
+	})
+
+	clientProvider := di.MakeProvider1(
+		ClientToken,
+		ConfigToken.Identity(),
+		func(cfg Config) IOE.IOEither[error, HTTPClient] {
+			return IOE.Of[error](HTTPClient{config: cfg})
+		},
+	)
+
+Example 2: Optional Dependencies
+
+	var (
+		CacheToken  = di.MakeToken[Cache]("Cache")
+		ServiceToken = di.MakeToken[Service]("Service")
+	)
+
+	// Service works with or without cache
+	serviceProvider := di.MakeProvider1(
+		ServiceToken,
+		CacheToken.Option(), // Optional dependency
+		func(cache O.Option[Cache]) IOE.IOEither[error, Service] {
+			return IOE.Of[error](NewService(cache))
+		},
+	)
+
+Example 3: Lazy Dependencies
+
+	var (
+		DBToken      = di.MakeToken[Database]("Database")
+		ReporterToken = di.MakeToken[Reporter]("Reporter")
+	)
+
+	// Reporter only connects to DB when needed
+	reporterProvider := di.MakeProvider1(
+		ReporterToken,
+		DBToken.IOEither(), // Lazy dependency
+		func(dbIO IOE.IOEither[error, Database]) IOE.IOEither[error, Reporter] {
+			return IOE.Of[error](NewReporter(dbIO))
+		},
+	)
+
+# Function Reference
+
+Token Creation:
+  - MakeToken[T](name) InjectionToken[T] - Creates a unique injection token
+  - MakeTokenWithDefault[T](name, factory) InjectionToken[T] - Token with default implementation
+  - MakeTokenWithDefault0-15 - Token with default and N dependencies
+  - MakeMultiToken[T](name) MultiInjectionToken[T] - Token for multiple implementations
+
+Provider Creation:
+  - ConstProvider[T](token, value) Provider - Simple constant provider
+  - MakeProvider0[R](token, factory) Provider - Provider with no dependencies
+  - MakeProvider1-15 - Providers with 1-15 dependencies
+  - MakeProviderFactory0-15 - Lower-level factory creation
+
+Resolution:
+  - Resolve[T](token) ReaderIOEither[InjectableFactory, error, T] - Resolves a dependency
+
+Application:
+  - InjMain - Injection token for main application
+  - Main - Resolver for main application
+  - RunMain(providers) IO[error] - Runs the main application
+
+Utility:
+  - asDependency[T](t) Dependency - Converts to dependency interface
+
+# Related Packages
+
+  - github.com/IBM/fp-go/v2/di/erasure - Type-erased DI implementation
+  - github.com/IBM/fp-go/v2/ioeither - IO operations with error handling
+  - github.com/IBM/fp-go/v2/option - Optional values
+  - github.com/IBM/fp-go/v2/either - Either monad for error handling
+
+[Provider]: [github.com/IBM/fp-go/v2/di/erasure.Provider]
+[InjectableFactory]: [github.com/IBM/fp-go/v2/di/erasure.InjectableFactory]
+[MakeInjector]: [github.com/IBM/fp-go/v2/di/erasure.MakeInjector]
+*/
 package di
 
 //go:generate go run .. di --count 15 --filename gen.go

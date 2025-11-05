@@ -49,10 +49,19 @@ type (
 	Semigroup[A any]   = S.Semigroup[IO[A]]
 )
 
+// Of wraps a pure value in an IO context, creating a computation that returns that value.
+// This is the monadic return operation for IO.
+//
+// Example:
+//
+//	greeting := io.Of("Hello, World!")
+//	result := greeting() // returns "Hello, World!"
 func Of[A any](a A) IO[A] {
 	return F.Constant(a)
 }
 
+// FromIO is an identity function that returns the IO value unchanged.
+// Useful for type conversions and maintaining consistency with other monad packages.
 func FromIO[A any](a IO[A]) IO[A] {
 	return a
 }
@@ -65,24 +74,48 @@ func FromImpure[ANY ~func()](f ANY) IO[any] {
 	}
 }
 
+// MonadOf wraps a pure value in an IO context.
+// This is an alias for Of, following the monadic naming convention.
 func MonadOf[A any](a A) IO[A] {
 	return F.Constant(a)
 }
 
+// MonadMap transforms the result of an IO computation by applying a function to it.
+// The function is only applied when the IO is executed.
+//
+// Example:
+//
+//	doubled := io.MonadMap(io.Of(21), func(n int) int { return n * 2 })
+//	result := doubled() // returns 42
 func MonadMap[A, B any](fa IO[A], f func(A) B) IO[B] {
 	return func() B {
 		return f(fa())
 	}
 }
 
+// Map returns an operator that transforms the result of an IO computation.
+// This is the curried version of MonadMap.
+//
+// Example:
+//
+//	double := io.Map(func(n int) int { return n * 2 })
+//	doubled := double(io.Of(21))
 func Map[A, B any](f func(A) B) Operator[A, B] {
 	return F.Bind2nd(MonadMap[A, B], f)
 }
 
+// MonadMapTo replaces the result of an IO computation with a constant value.
+// The original computation is still executed, but its result is discarded.
+//
+// Example:
+//
+//	always42 := io.MonadMapTo(sideEffect, 42)
 func MonadMapTo[A, B any](fa IO[A], b B) IO[B] {
 	return MonadMap(fa, F.Constant1[A](b))
 }
 
+// MapTo returns an operator that replaces the result with a constant value.
+// This is the curried version of MonadMapTo.
 func MapTo[A, B any](b B) Operator[A, B] {
 	return Map(F.Constant1[A](b))
 }
@@ -126,18 +159,37 @@ func MonadAp[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 	return MonadApSeq(mab, ma)
 }
 
+// Ap returns an operator that applies a function wrapped in IO to a value wrapped in IO.
+// This is the curried version of MonadAp and uses parallel execution by default.
+//
+// Example:
+//
+//	add := func(a int) func(int) int { return func(b int) int { return a + b } }
+//	result := io.Ap(io.Of(2))(io.Of(add(3))) // parallel execution
 func Ap[B, A any](ma IO[A]) Operator[func(A) B, B] {
 	return F.Bind2nd(MonadAp[A, B], ma)
 }
 
+// ApSeq returns an operator that applies a function wrapped in IO to a value wrapped in IO sequentially.
+// Unlike Ap, this executes the function and value computations in sequence.
 func ApSeq[B, A any](ma IO[A]) Operator[func(A) B, B] {
 	return Chain(F.Bind1st(MonadMap[A, B], ma))
 }
 
+// ApPar returns an operator that applies a function wrapped in IO to a value wrapped in IO in parallel.
+// This explicitly uses parallel execution (same as Ap when useParallel is true).
 func ApPar[B, A any](ma IO[A]) Operator[func(A) B, B] {
 	return F.Bind2nd(MonadApPar[A, B], ma)
 }
 
+// Flatten removes one level of nesting from a nested IO computation.
+// Converts IO[IO[A]] to IO[A].
+//
+// Example:
+//
+//	nested := io.Of(io.Of(42))
+//	flattened := io.Flatten(nested)
+//	result := flattened() // returns 42
 func Flatten[A any](mma IO[IO[A]]) IO[A] {
 	return MonadChain(mma, F.Identity)
 }
@@ -215,25 +267,56 @@ func ChainTo[A, B any](fb IO[B]) Operator[A, B] {
 	return Chain(F.Constant1[A](fb))
 }
 
-// Now returns the current timestamp
+// Now is an IO computation that returns the current timestamp when executed.
+// Each execution returns the current time at that moment.
+//
+// Example:
+//
+//	timestamp := io.Now()
 var Now IO[time.Time] = time.Now
 
-// Defer creates an IO by creating a brand new IO via a generator function, each time
+// Defer creates an IO by creating a brand new IO via a generator function each time.
+// This allows for dynamic creation of IO computations based on runtime conditions.
+//
+// Example:
+//
+//	deferred := io.Defer(func() io.IO[int] {
+//	    if someCondition() {
+//	        return io.Of(1)
+//	    }
+//	    return io.Of(2)
+//	})
 func Defer[A any](gen func() IO[A]) IO[A] {
 	return func() A {
 		return gen()()
 	}
 }
 
+// MonadFlap applies a value to a function wrapped in IO.
+// This is the reverse of Ap - instead of applying IO[func] to IO[value],
+// it applies a pure value to IO[func].
+//
+// Example:
+//
+//	addFive := io.Of(func(n int) int { return n + 5 })
+//	result := io.MonadFlap(addFive, 10) // returns IO[15]
 func MonadFlap[B, A any](fab IO[func(A) B], a A) IO[B] {
 	return functor.MonadFlap(MonadMap[func(A) B, B], fab, a)
 }
 
+// Flap returns an operator that applies a pure value to a function wrapped in IO.
+// This is the curried version of MonadFlap.
 func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return functor.Flap(Map[func(A) B, B], a)
 }
 
-// Delay creates an operation that passes in the value after some delay
+// Delay creates an operator that delays execution by the specified duration.
+// The delay occurs before executing the wrapped computation.
+//
+// Example:
+//
+//	delayed := io.Delay(time.Second)(io.Of(42))
+//	result := delayed() // waits 1 second, then returns 42
 func Delay[A any](delay time.Duration) Operator[A, A] {
 	return func(ga IO[A]) IO[A] {
 		return func() A {
@@ -253,7 +336,14 @@ func after(timestamp time.Time) func() {
 	}
 }
 
-// After creates an operation that passes after the given timestamp
+// After creates an operator that delays execution until after the given timestamp.
+// If the timestamp is in the past, the computation executes immediately.
+//
+// Example:
+//
+//	future := time.Now().Add(5 * time.Second)
+//	scheduled := io.After(future)(io.Of(42))
+//	result := scheduled() // waits until future time, then returns 42
 func After[A any](timestamp time.Time) Operator[A, A] {
 	aft := after(timestamp)
 	return func(ga IO[A]) IO[A] {
@@ -266,7 +356,13 @@ func After[A any](timestamp time.Time) Operator[A, A] {
 	}
 }
 
-// WithTime returns an operation that measures the start and end [time.Time] of the operation
+// WithTime returns an IO that measures the start and end time.Time of the operation.
+// Returns a tuple containing the result, start time, and end time.
+//
+// Example:
+//
+//	timed := io.WithTime(expensiveComputation)
+//	result, start, end := timed()
 func WithTime[A any](a IO[A]) IO[T.Tuple3[A, time.Time, time.Time]] {
 	return func() T.Tuple3[A, time.Time, time.Time] {
 		t0 := time.Now()
@@ -276,7 +372,14 @@ func WithTime[A any](a IO[A]) IO[T.Tuple3[A, time.Time, time.Time]] {
 	}
 }
 
-// WithDuration returns an operation that measures the [time.Duration]
+// WithDuration returns an IO that measures the execution time.Duration of the operation.
+// Returns a tuple containing the result and the duration.
+//
+// Example:
+//
+//	timed := io.WithDuration(expensiveComputation)
+//	result, duration := timed()
+//	fmt.Printf("Took %v\n", duration)
 func WithDuration[A any](a IO[A]) IO[T.Tuple2[A, time.Duration]] {
 	return func() T.Tuple2[A, time.Duration] {
 		t0 := time.Now()

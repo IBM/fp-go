@@ -65,7 +65,7 @@ func MonadMap[R, E, A, B any](fa ReaderIOEither[R, E, A], f func(A) B) ReaderIOE
 	return eithert.MonadMap(readerio.MonadMap[R, either.Either[E, A], either.Either[E, B]], fa, f)
 }
 
-func Map[R, E, A, B any](f func(A) B) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func Map[R, E, A, B any](f func(A) B) Operator[R, E, A, B] {
 	return eithert.Map(readerio.Map[R, either.Either[E, A], either.Either[E, B]], f)
 }
 
@@ -73,7 +73,7 @@ func MonadMapTo[R, E, A, B any](fa ReaderIOEither[R, E, A], b B) ReaderIOEither[
 	return MonadMap(fa, function.Constant1[A](b))
 }
 
-func MapTo[R, E, A, B any](b B) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func MapTo[R, E, A, B any](b B) Operator[R, E, A, B] {
 	return Map[R, E](function.Constant1[A](b))
 }
 
@@ -102,7 +102,7 @@ func MonadChainEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) eit
 	)
 }
 
-func ChainEitherK[R, E, A, B any](f func(A) either.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainEitherK[R, E, A, B any](f func(A) either.Either[E, B]) Operator[R, E, A, B] {
 	return fromeither.ChainEitherK(
 		Chain[R, E, A, B],
 		FromEither[R, E, B],
@@ -120,7 +120,7 @@ func MonadChainFirstEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A
 	)
 }
 
-func ChainFirstEitherK[R, E, A, B any](f func(A) either.Either[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func ChainFirstEitherK[R, E, A, B any](f func(A) either.Either[E, B]) Operator[R, E, A, A] {
 	return fromeither.ChainFirstEitherK(
 		Chain[R, E, A, A],
 		Map[R, E, B, A],
@@ -138,7 +138,7 @@ func MonadChainReaderK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) Rea
 	)
 }
 
-func ChainReaderK[E, R, A, B any](f func(A) Reader[R, B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainReaderK[E, R, A, B any](f func(A) Reader[R, B]) Operator[R, E, A, B] {
 	return fromreader.ChainReaderK(
 		MonadChain[R, E, A, B],
 		FromReader[E, R, B],
@@ -155,7 +155,7 @@ func MonadChainIOEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) I
 	)
 }
 
-func ChainIOEitherK[R, E, A, B any](f func(A) IOE.IOEither[E, B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainIOEitherK[R, E, A, B any](f func(A) IOE.IOEither[E, B]) Operator[R, E, A, B] {
 	return fromioeither.ChainIOEitherK(
 		Chain[R, E, A, B],
 		FromIOEither[R, E, B],
@@ -172,7 +172,7 @@ func MonadChainIOK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) io.IO[B
 	)
 }
 
-func ChainIOK[R, E, A, B any](f func(A) io.IO[B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainIOK[R, E, A, B any](f func(A) io.IO[B]) Operator[R, E, A, B] {
 	return fromio.ChainIOK(
 		Chain[R, E, A, B],
 		FromIO[R, E, B],
@@ -190,7 +190,7 @@ func MonadChainFirstIOK[R, E, A, B any](ma ReaderIOEither[R, E, A], f func(A) io
 	)
 }
 
-func ChainFirstIOK[R, E, A, B any](f func(A) io.IO[B]) func(ma ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func ChainFirstIOK[R, E, A, B any](f func(A) io.IO[B]) Operator[R, E, A, A] {
 	return fromio.ChainFirstIOK(
 		Chain[R, E, A, A],
 		Map[R, E, B, A],
@@ -199,7 +199,7 @@ func ChainFirstIOK[R, E, A, B any](f func(A) io.IO[B]) func(ma ReaderIOEither[R,
 	)
 }
 
-func ChainOptionK[R, A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func ChainOptionK[R, A, B, E any](onNone func() E) func(func(A) O.Option[B]) Operator[R, E, A, B] {
 	return fromeither.ChainOptionK(
 		MonadChain[R, E, A, B],
 		FromEither[R, E, B],
@@ -238,14 +238,14 @@ func Ap[B, R, E, A any](fa ReaderIOEither[R, E, A]) func(fab ReaderIOEither[R, E
 	return function.Bind2nd(MonadAp[R, E, A, B], fa)
 }
 
-func Chain[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, B] {
+func Chain[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) Operator[R, E, A, B] {
 	return eithert.Chain(
 		readerio.Chain[R, either.Either[E, A], either.Either[E, B]],
 		readerio.Of[R, either.Either[E, B]],
 		f)
 }
 
-func ChainFirst[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func ChainFirst[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) Operator[R, E, A, A] {
 	return chain.ChainFirst(
 		Chain[R, E, A, A],
 		Map[R, E, B, A],
@@ -387,7 +387,7 @@ func MonadAlt[R, E, A any](first ReaderIOEither[R, E, A], second L.Lazy[ReaderIO
 }
 
 // Alt identifies an associative operation on a type constructor.
-func Alt[R, E, A any](second L.Lazy[ReaderIOEither[R, E, A]]) func(ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func Alt[R, E, A any](second L.Lazy[ReaderIOEither[R, E, A]]) Operator[R, E, A, A] {
 	return eithert.Alt(
 		readerio.Of[R, Either[E, A]],
 		readerio.MonadChain[R, Either[E, A], Either[E, A]],

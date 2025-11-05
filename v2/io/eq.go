@@ -20,7 +20,15 @@ import (
 	INTE "github.com/IBM/fp-go/v2/internal/eq"
 )
 
-// Eq implements the equals predicate for values contained in the IO monad
+// Eq implements the equals predicate for values contained in the IO monad.
+// It lifts an Eq[A] into an Eq[IO[A]] by executing both IO computations
+// and comparing their results.
+//
+// Example:
+//
+//	intEq := eq.FromStrictEquals[int]()
+//	ioEq := io.Eq(intEq)
+//	result := ioEq.Equals(io.Of(42), io.Of(42)) // true
 func Eq[A any](e EQ.Eq[A]) EQ.Eq[IO[A]] {
 	// comparator for the monad
 	eq := INTE.Eq(
@@ -34,7 +42,14 @@ func Eq[A any](e EQ.Eq[A]) EQ.Eq[IO[A]] {
 	})
 }
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+// FromStrictEquals constructs an Eq[IO[A]] from the canonical comparison function
+// for comparable types. This is a convenience function that combines Eq with
+// the standard equality operator.
+//
+// Example:
+//
+//	ioEq := io.FromStrictEquals[int]()
+//	result := ioEq.Equals(io.Of(42), io.Of(42)) // true
 func FromStrictEquals[A comparable]() EQ.Eq[IO[A]] {
 	return Eq(EQ.FromStrictEquals[A]())
 }

@@ -31,7 +31,7 @@ func Do[R, E, S any](
 func Bind[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderIOEither[R, E, T],
-) func(ReaderIOEither[R, E, S1]) ReaderIOEither[R, E, S2] {
+) Operator[R, E, S1, S2] {
 	return G.Bind[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, S2], ReaderIOEither[R, E, T], IOE.IOEither[E, S1], IOE.IOEither[E, S2], IOE.IOEither[E, T], R, E, S1, S2, T](setter, f)
 }
 
@@ -39,7 +39,7 @@ func Bind[R, E, S1, S2, T any](
 func Let[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(ReaderIOEither[R, E, S1]) ReaderIOEither[R, E, S2] {
+) Operator[R, E, S1, S2] {
 	return G.Let[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, S2], IOE.IOEither[E, S1], IOE.IOEither[E, S2], R, E, S1, S2, T](setter, f)
 }
 
@@ -47,14 +47,14 @@ func Let[R, E, S1, S2, T any](
 func LetTo[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(ReaderIOEither[R, E, S1]) ReaderIOEither[R, E, S2] {
+) Operator[R, E, S1, S2] {
 	return G.LetTo[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, S2], IOE.IOEither[E, S1], IOE.IOEither[E, S2], R, E, S1, S2, T](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[R, E, S1, T any](
 	setter func(T) S1,
-) func(ReaderIOEither[R, E, T]) ReaderIOEither[R, E, S1] {
+) Operator[R, E, T, S1] {
 	return G.BindTo[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, T], IOE.IOEither[E, S1], IOE.IOEither[E, T], R, E, S1, T](setter)
 }
 
@@ -62,6 +62,6 @@ func BindTo[R, E, S1, T any](
 func ApS[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIOEither[R, E, T],
-) func(ReaderIOEither[R, E, S1]) ReaderIOEither[R, E, S2] {
+) Operator[R, E, S1, S2] {
 	return G.ApS[ReaderIOEither[R, E, func(T) S2], ReaderIOEither[R, E, S1], ReaderIOEither[R, E, S2], ReaderIOEither[R, E, T], IOE.IOEither[E, func(T) S2], IOE.IOEither[E, S1], IOE.IOEither[E, S2], IOE.IOEither[E, T], R, E, S1, S2, T](setter, fa)
 }

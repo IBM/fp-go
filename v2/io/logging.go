@@ -22,7 +22,16 @@ import (
 	L "github.com/IBM/fp-go/v2/logging"
 )
 
-// Logger constructs a logger function that can be used with ChainXXXIOK
+// Logger constructs a logger function that can be used with ChainFirst or similar operations.
+// It logs values using the provided loggers (or the default logger if none provided).
+//
+// Example:
+//
+//	result := pipe.Pipe2(
+//	    fetchUser(),
+//	    io.ChainFirst(io.Logger[User]()("Fetched user")),
+//	    processUser,
+//	)
 func Logger[A any](loggers ...*log.Logger) func(string) func(A) IO[any] {
 	_, right := L.LoggingCallbacks(loggers...)
 	return func(prefix string) func(A) IO[any] {
@@ -34,8 +43,16 @@ func Logger[A any](loggers ...*log.Logger) func(string) func(A) IO[any] {
 	}
 }
 
-// Logf constructs a logger function that can be used with ChainXXXIOK
-// the string prefix contains the format string for the log value
+// Logf constructs a logger function that can be used with ChainFirst or similar operations.
+// The prefix string contains the format string for the log value.
+//
+// Example:
+//
+//	result := pipe.Pipe2(
+//	    fetchUser(),
+//	    io.ChainFirst(io.Logf[User]("User: %+v")),
+//	    processUser,
+//	)
 func Logf[A any](prefix string) func(A) IO[any] {
 	return func(a A) IO[any] {
 		return FromImpure(func() {
@@ -44,8 +61,17 @@ func Logf[A any](prefix string) func(A) IO[any] {
 	}
 }
 
-// Printf constructs a printer function that can be used with ChainXXXIOK
-// the string prefix contains the format string for the log value
+// Printf constructs a printer function that can be used with ChainFirst or similar operations.
+// The prefix string contains the format string for the printed value.
+// Unlike Logf, this prints to stdout without log prefixes.
+//
+// Example:
+//
+//	result := pipe.Pipe2(
+//	    fetchUser(),
+//	    io.ChainFirst(io.Printf[User]("User: %+v\n")),
+//	    processUser,
+//	)
 func Printf[A any](prefix string) func(A) IO[any] {
 	return func(a A) IO[any] {
 		return FromImpure(func() {

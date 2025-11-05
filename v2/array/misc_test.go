@@ -159,5 +159,3 @@ func TestUniqByKey(t *testing.T) {
 	assert.Equal(t, "Bob", result[1].Name)
 	assert.Equal(t, "Charlie", result[2].Name)
 }
-
-// Made with Bob

@@ -23,6 +23,6 @@ import (
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
-func WithLock[R, E, A any](lock func() context.CancelFunc) func(fa ReaderIOEither[R, E, A]) ReaderIOEither[R, E, A] {
+func WithLock[R, E, A any](lock func() context.CancelFunc) Operator[R, E, A, A] {
 	return readerio.WithLock[R, either.Either[E, A]](lock)
 }

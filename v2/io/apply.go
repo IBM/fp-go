@@ -20,10 +20,28 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
+// ApplySemigroup lifts a Semigroup[A] into a Semigroup[IO[A]].
+// This allows combining IO computations using the semigroup operation on their results.
+//
+// Example:
+//
+//	intAdd := semigroup.MakeSemigroup(func(a, b int) int { return a + b })
+//	ioAdd := io.ApplySemigroup(intAdd)
+//	result := ioAdd.Concat(io.Of(1), io.Of(2)) // IO[3]
 func ApplySemigroup[A any](s S.Semigroup[A]) Semigroup[A] {
 	return S.ApplySemigroup(MonadMap[A, func(A) A], MonadAp[A, A], s)
 }
 
+// ApplicativeMonoid lifts a Monoid[A] into a Monoid[IO[A]].
+// This allows combining IO computations using the monoid operation on their results,
+// including an empty/identity element.
+//
+// Example:
+//
+//	intAdd := monoid.MakeMonoid(func(a, b int) int { return a + b }, 0)
+//	ioAdd := io.ApplicativeMonoid(intAdd)
+//	result := ioAdd.Concat(io.Of(1), io.Of(2)) // IO[3]
+//	empty := ioAdd.Empty() // IO[0]
 func ApplicativeMonoid[A any](m M.Monoid[A]) Monoid[A] {
 	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
 }

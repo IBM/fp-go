@@ -397,5 +397,3 @@ func BenchmarkChain(b *testing.B) {
 		_ = chained(5)
 	}
 }
-
-// Made with Bob

@@ -21,14 +21,30 @@ import (
 )
 
 type (
+	// RetryStatus is an IO computation that returns retry status information.
 	RetryStatus = IO[R.RetryStatus]
 )
 
-// Retrying will retry the actions according to the check policy
+// Retrying retries an IO action according to a retry policy until it succeeds or the policy gives up.
 //
-// policy - refers to the retry policy
-// action - converts a status into an operation to be executed
-// check  - checks if the result of the action needs to be retried
+// Parameters:
+//   - policy: The retry policy that determines delays and maximum attempts
+//   - action: A function that takes retry status and returns an IO computation
+//   - check: A predicate that determines if the result should trigger a retry (true = retry)
+//
+// The action receives retry status information (attempt number, cumulative delay, etc.)
+// which can be used for logging or conditional behavior.
+//
+// Example:
+//
+//	result := io.Retrying(
+//	    retry.ExponentialBackoff(time.Second, 5),
+//	    func(status retry.RetryStatus) io.IO[Response] {
+//	        log.Printf("Attempt %d", status.IterNumber)
+//	        return fetchData()
+//	    },
+//	    func(r Response) bool { return r.StatusCode >= 500 },
+//	)
 func Retrying[A any](
 	policy R.RetryPolicy,
 	action func(R.RetryStatus) IO[A],

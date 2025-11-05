@@ -249,5 +249,3 @@
 //   - array/nonempty: Operations for non-empty arrays with compile-time guarantees
 //   - array/testing: Testing utilities for array laws and properties
 package array
-
-// Made with Bob

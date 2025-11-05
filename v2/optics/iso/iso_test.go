@@ -16,6 +16,7 @@
 package iso
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,4 +77,56 @@ func TestCompose(t *testing.T) {
 
 	assert.InDelta(t, 0.93, comp.Get(1500), 0.01)
 	assert.InDelta(t, 1609.34, comp.ReverseGet(1), 0.01)
+}
+
+func TestId(t *testing.T) {
+	idIso := Id[int]()
+
+	assert.Equal(t, 42, idIso.Get(42))
+	assert.Equal(t, 42, idIso.ReverseGet(42))
+}
+
+func TestIMap(t *testing.T) {
+	// Start with meters to kilometers
+	localMToKm := MakeIso(
+		func(m float32) float32 { return m / 1000 },
+		func(km float32) float32 { return km * 1000 },
+	)
+
+	// Map to a different representation (string)
+	kmToString := IMap[float32, float32, string](
+		func(km float32) string { return fmt.Sprintf("%.2f km", km) },
+		func(s string) float32 {
+			var km float32
+			fmt.Sscanf(s, "%f km", &km)
+			return km
+		},
+	)(localMToKm)
+
+	assert.Equal(t, "1.50 km", kmToString.Get(1500))
+	assert.InDelta(t, 2000, kmToString.ReverseGet("2.00 km"), 0.01)
+}
+
+func TestRoundTripLaws(t *testing.T) {
+	// Test that isomorphisms satisfy round-trip laws
+
+	// Law 1: ReverseGet(Get(s)) == s
+	meters := float32(1500)
+	assert.InDelta(t, meters, mToKm.ReverseGet(mToKm.Get(meters)), 0.001)
+
+	// Law 2: Get(ReverseGet(a)) == a
+	km := float32(1.5)
+	assert.InDelta(t, km, mToKm.Get(mToKm.ReverseGet(km)), 0.001)
+}
+
+func TestComposeAssociativity(t *testing.T) {
+	// Test that composition is associative
+	// Compose left-to-right: (mToKm . kmToMile)
+	leftCompose := Compose[float32](kmToMile)(mToKm)
+
+	// Compose right-to-left should give same result
+	rightCompose := Compose[float32](Compose[float32](kmToMile)(mToKm))(Id[float32]())
+
+	meters := float32(1609.34)
+	assert.InDelta(t, leftCompose.Get(meters), rightCompose.Get(meters), 0.01)
 }

@@ -248,3 +248,151 @@ func TestComposeOptions(t *testing.T) {
 	assert.Equal(t, O.Some(&defaultValue1), lens.Get(OuterOpt{inner: &InnerOpt{Value: &defaultValue1, Foo: &defaultFoo1}}))
 	assert.Equal(t, outer1, Modify[OuterOpt](F.Identity[O.Option[*int]])(lens)(outer1))
 }
+
+func TestIdRef(t *testing.T) {
+	idLens := IdRef[Street]()
+	street := &Street{num: 1, name: "Main"}
+
+	assert.Equal(t, street, idLens.Get(street))
+
+	newStreet := &Street{num: 2, name: "Oak"}
+	result := idLens.Set(newStreet)(street)
+	assert.Equal(t, newStreet, result)
+	assert.Equal(t, 1, street.num) // Original unchanged
+}
+
+func TestComposeRef(t *testing.T) {
+	composedLens := ComposeRef[Address, *Street](streetLens)(addrLens)
+
+	assert.Equal(t, sampleStreet.name, composedLens.Get(&sampleAddress))
+
+	newName := "NewStreet"
+	updated := composedLens.Set(newName)(&sampleAddress)
+	assert.Equal(t, newName, composedLens.Get(updated))
+	assert.Equal(t, sampleStreet.name, sampleAddress.street.name) // Original unchanged
+}
+
+func TestFromPredicateRef(t *testing.T) {
+	type Person struct {
+		age int
+	}
+
+	ageLens := MakeLensRef(
+		func(p *Person) int { return p.age },
+		func(p *Person, age int) *Person {
+			p.age = age
+			return p
+		},
+	)
+
+	adultLens := FromPredicateRef[Person](func(age int) bool { return age >= 18 }, 0)(ageLens)
+
+	adult := &Person{age: 25}
+	assert.Equal(t, O.Some(25), adultLens.Get(adult))
+
+	minor := &Person{age: 15}
+	assert.Equal(t, O.None[int](), adultLens.Get(minor))
+}
+
+func TestFromNillableRef(t *testing.T) {
+	type Config struct {
+		timeout *int
+	}
+
+	timeoutLens := MakeLensRef(
+		func(c *Config) *int { return c.timeout },
+		func(c *Config, t *int) *Config {
+			c.timeout = t
+			return c
+		},
+	)
+
+	optLens := FromNillableRef(timeoutLens)
+
+	config := &Config{timeout: nil}
+	assert.Equal(t, O.None[*int](), optLens.Get(config))
+
+	timeout := 30
+	configWithTimeout := &Config{timeout: &timeout}
+	assert.True(t, O.IsSome(optLens.Get(configWithTimeout)))
+}
+
+func TestFromNullablePropRef(t *testing.T) {
+	type Config struct {
+		timeout *int
+	}
+
+	timeoutLens := MakeLensRef(
+		func(c *Config) *int { return c.timeout },
+		func(c *Config, t *int) *Config {
+			c.timeout = t
+			return c
+		},
+	)
+
+	defaultTimeout := 30
+	safeLens := FromNullablePropRef[Config](O.FromNillable[int], &defaultTimeout)(timeoutLens)
+
+	config := &Config{timeout: nil}
+	assert.Equal(t, &defaultTimeout, safeLens.Get(config))
+}
+
+func TestFromOptionRef(t *testing.T) {
+	type Settings struct {
+		retries O.Option[int]
+	}
+
+	retriesLens := MakeLensRef(
+		func(s *Settings) O.Option[int] { return s.retries },
+		func(s *Settings, r O.Option[int]) *Settings {
+			s.retries = r
+			return s
+		},
+	)
+
+	safeLens := FromOptionRef[Settings](3)(retriesLens)
+
+	settings := &Settings{retries: O.None[int]()}
+	assert.Equal(t, 3, safeLens.Get(settings))
+
+	settingsWithRetries := &Settings{retries: O.Some(5)}
+	assert.Equal(t, 5, safeLens.Get(settingsWithRetries))
+}
+
+func TestMakeLensCurried(t *testing.T) {
+	nameLens := MakeLensCurried(
+		func(s Street) string { return s.name },
+		func(name string) func(Street) Street {
+			return func(s Street) Street {
+				s.name = name
+				return s
+			}
+		},
+	)
+
+	street := Street{num: 1, name: "Main"}
+	assert.Equal(t, "Main", nameLens.Get(street))
+
+	updated := nameLens.Set("Oak")(street)
+	assert.Equal(t, "Oak", updated.name)
+	assert.Equal(t, "Main", street.name)
+}
+
+func TestMakeLensRefCurried(t *testing.T) {
+	nameLens := MakeLensRefCurried(
+		func(s *Street) string { return s.name },
+		func(name string) func(*Street) *Street {
+			return func(s *Street) *Street {
+				s.name = name
+				return s
+			}
+		},
+	)
+
+	street := &Street{num: 1, name: "Main"}
+	assert.Equal(t, "Main", nameLens.Get(street))
+
+	updated := nameLens.Set("Oak")(street)
+	assert.Equal(t, "Oak", updated.name)
+	assert.Equal(t, "Main", street.name)
+}

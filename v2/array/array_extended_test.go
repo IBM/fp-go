@@ -321,5 +321,3 @@ func TestPrepend(t *testing.T) {
 	result := prepender(src)
 	assert.Equal(t, []int{1, 2, 3, 4}, result)
 }
-
-// Made with Bob

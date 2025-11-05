@@ -103,5 +103,3 @@ func TestFindLastMapWithIndex(t *testing.T) {
 	result := finder(src)
 	assert.Equal(t, O.Some("2:c"), result)
 }
-
-// Made with Bob

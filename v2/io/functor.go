@@ -22,6 +22,9 @@ import (
 type (
 	ioFunctor[A, B any] struct{}
 
+	// IOFunctor represents the functor type class for IO.
+	// A functor allows mapping a function over a wrapped value without
+	// unwrapping it, preserving the structure.
 	IOFunctor[A, B any] = functor.Functor[A, B, IO[A], IO[B]]
 )
 
@@ -29,7 +32,14 @@ func (o *ioFunctor[A, B]) Map(f func(A) B) Operator[A, B] {
 	return Map(f)
 }
 
-// Functor implements the functoric operations for [IO]
+// Functor returns an instance of the Functor type class for IO.
+// This provides a structured way to access functor operations (Map)
+// for IO computations.
+//
+// Example:
+//
+//	f := io.Functor[int, string]()
+//	result := f.Map(strconv.Itoa)(io.Of(42))
 func Functor[A, B any]() IOFunctor[A, B] {
 	return &ioFunctor[A, B]{}
 }

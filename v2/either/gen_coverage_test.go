@@ -556,5 +556,3 @@ func TestUneitherize15(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 120, result)
 }
-
-// Made with Bob

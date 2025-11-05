@@ -21,14 +21,60 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 )
 
-// Unmarshal parses a JSON data structure from bytes
+// Unmarshal parses JSON-encoded data and returns an Either containing the decoded value or an error.
+//
+// This function wraps the standard json.Unmarshal in an Either monad, converting the traditional
+// (value, error) tuple into a functional Either type. If unmarshaling succeeds, it returns Right[A].
+// If it fails, it returns Left[error].
+//
+// Type parameter A specifies the target type for unmarshaling. The type must be compatible with
+// the JSON structure in the input data.
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string `json:"name"`
+//	    Age  int    `json:"age"`
+//	}
+//
+//	data := []byte(`{"name":"Alice","age":30}`)
+//	result := json.Unmarshal[Person](data)
+//	// result is Either[error, Person]
+//
+//	either.Fold(
+//	    func(err error) { fmt.Println("Error:", err) },
+//	    func(p Person) { fmt.Printf("Success: %s, %d\n", p.Name, p.Age) },
+//	)(result)
 func Unmarshal[A any](data []byte) Either[A] {
 	var result A
 	err := json.Unmarshal(data, &result)
 	return E.TryCatchError(result, err)
 }
 
-// Marshal converts a data structure to json
+// Marshal converts a Go value to JSON-encoded bytes and returns an Either containing the result or an error.
+//
+// This function wraps the standard json.Marshal in an Either monad, converting the traditional
+// (value, error) tuple into a functional Either type. If marshaling succeeds, it returns Right[[]byte].
+// If it fails, it returns Left[error].
+//
+// The function uses the same encoding rules as the standard library's json.Marshal, including
+// support for struct tags, custom MarshalJSON methods, and standard type conversions.
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string `json:"name"`
+//	    Age  int    `json:"age"`
+//	}
+//
+//	person := Person{Name: "Bob", Age: 25}
+//	result := json.Marshal(person)
+//	// result is Either[error, []byte]
+//
+//	either.Map(func(data []byte) string {
+//	    return string(data)
+//	})(result)
+//	// Returns Either[error, string] with JSON string
 func Marshal[A any](a A) Either[[]byte] {
 	return E.TryCatchError(json.Marshal(a))
 }

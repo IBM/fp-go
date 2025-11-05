@@ -21,6 +21,9 @@ import (
 
 type (
 	ioApplicative[A, B any] struct{}
+	// IOApplicative represents the applicative functor type class for IO.
+	// It combines the capabilities of Functor (Map) and Pointed (Of) with
+	// the ability to apply wrapped functions to wrapped values (Ap).
 	IOApplicative[A, B any] = applicative.Applicative[A, B, IO[A], IO[B], IO[func(A) B]]
 )
 
@@ -36,7 +39,14 @@ func (o *ioApplicative[A, B]) Ap(fa IO[A]) Operator[func(A) B, B] {
 	return Ap[B](fa)
 }
 
-// Applicative implements the applicativeic operations for [IO]
+// Applicative returns an instance of the Applicative type class for IO.
+// This provides a structured way to access applicative operations (Of, Map, Ap)
+// for IO computations.
+//
+// Example:
+//
+//	app := io.Applicative[int, string]()
+//	result := app.Map(strconv.Itoa)(app.Of(42))
 func Applicative[A, B any]() IOApplicative[A, B] {
 	return &ioApplicative[A, B]{}
 }

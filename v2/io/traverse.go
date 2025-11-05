@@ -21,6 +21,14 @@ import (
 	INTR "github.com/IBM/fp-go/v2/internal/record"
 )
 
+// MonadTraverseArray applies an IO-returning function to each element of an array
+// and collects the results into an IO of an array. Executes in parallel by default.
+//
+// Example:
+//
+//	fetchUsers := func(id int) io.IO[User] { return fetchUser(id) }
+//	users := io.MonadTraverseArray([]int{1, 2, 3}, fetchUsers)
+//	result := users() // []User with all fetched users
 func MonadTraverseArray[A, B any](tas []A, f func(A) IO[B]) IO[[]B] {
 	return INTA.MonadTraverse(
 		Of[[]B],
@@ -32,8 +40,16 @@ func MonadTraverseArray[A, B any](tas []A, f func(A) IO[B]) IO[[]B] {
 	)
 }
 
-// TraverseArray applies a function returning an [IO] to all elements in an array and the
-// transforms this into an [IO] of that array
+// TraverseArray returns a function that applies an IO-returning function to each element
+// of an array and collects the results. This is the curried version of MonadTraverseArray.
+// Executes in parallel by default.
+//
+// Example:
+//
+//	fetchUsers := io.TraverseArray(func(id int) io.IO[User] {
+//	    return fetchUser(id)
+//	})
+//	users := fetchUsers([]int{1, 2, 3})
 func TraverseArray[A, B any](f func(A) IO[B]) func([]A) IO[[]B] {
 	return INTA.Traverse[[]A](
 		Of[[]B],
@@ -44,8 +60,14 @@ func TraverseArray[A, B any](f func(A) IO[B]) func([]A) IO[[]B] {
 	)
 }
 
-// TraverseArrayWithIndex applies a function returning an [IO] to all elements in an array and the
-// transforms this into an [IO] of that array
+// TraverseArrayWithIndex is like TraverseArray but the function also receives the index.
+// Executes in parallel by default.
+//
+// Example:
+//
+//	numbered := io.TraverseArrayWithIndex(func(i int, s string) io.IO[string] {
+//	    return io.Of(fmt.Sprintf("%d: %s", i, s))
+//	})
 func TraverseArrayWithIndex[A, B any](f func(int, A) IO[B]) func([]A) IO[[]B] {
 	return INTA.TraverseWithIndex[[]A](
 		Of[[]B],
@@ -56,11 +78,26 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) IO[B]) func([]A) IO[[]B] {
 	)
 }
 
-// SequenceArray converts an array of [IO] to an [IO] of an array
+// SequenceArray converts an array of IO computations into an IO of an array of results.
+// All computations are executed in parallel by default.
+//
+// Example:
+//
+//	operations := []io.IO[int]{fetchA(), fetchB(), fetchC()}
+//	results := io.SequenceArray(operations)
+//	values := results() // []int with all results
 func SequenceArray[A any](tas []IO[A]) IO[[]A] {
 	return MonadTraverseArray(tas, F.Identity[IO[A]])
 }
 
+// MonadTraverseRecord applies an IO-returning function to each value in a map
+// and collects the results into an IO of a map. Executes in parallel by default.
+//
+// Example:
+//
+//	fetchData := func(url string) io.IO[Data] { return fetch(url) }
+//	urls := map[string]string{"a": "http://a.com", "b": "http://b.com"}
+//	data := io.MonadTraverseRecord(urls, fetchData)
 func MonadTraverseRecord[K comparable, A, B any](tas map[K]A, f func(A) IO[B]) IO[map[K]B] {
 	return INTR.MonadTraverse(
 		Of[map[K]B],
@@ -72,8 +109,9 @@ func MonadTraverseRecord[K comparable, A, B any](tas map[K]A, f func(A) IO[B]) I
 	)
 }
 
-// TraverseRecord applies a function returning an [IO] to all elements in a record and the
-// transforms this into an [IO] of that record
+// TraverseRecord returns a function that applies an IO-returning function to each value
+// in a map and collects the results. This is the curried version of MonadTraverseRecord.
+// Executes in parallel by default.
 func TraverseRecord[K comparable, A, B any](f func(A) IO[B]) func(map[K]A) IO[map[K]B] {
 	return INTR.Traverse[map[K]A](
 		Of[map[K]B],
@@ -84,8 +122,8 @@ func TraverseRecord[K comparable, A, B any](f func(A) IO[B]) func(map[K]A) IO[ma
 	)
 }
 
-// TraverseRecordWithIndex applies a function returning an [IO] to all elements in a record and the
-// transforms this into an [IO] of that record
+// TraverseRecordWithIndex is like TraverseRecord but the function also receives the key.
+// Executes in parallel by default.
 func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) IO[B]) func(map[K]A) IO[map[K]B] {
 	return INTR.TraverseWithIndex[map[K]A](
 		Of[map[K]B],
@@ -96,11 +134,25 @@ func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) IO[B]) func(ma
 	)
 }
 
-// SequenceRecord converts a record of [IO] to an [IO] of a record
+// SequenceRecord converts a map of IO computations into an IO of a map of results.
+// All computations are executed in parallel by default.
+//
+// Example:
+//
+//	operations := map[string]io.IO[int]{"a": fetchA(), "b": fetchB()}
+//	results := io.SequenceRecord(operations)
+//	values := results() // map[string]int with all results
 func SequenceRecord[K comparable, A any](tas map[K]IO[A]) IO[map[K]A] {
 	return MonadTraverseRecord(tas, F.Identity[IO[A]])
 }
 
+// MonadTraverseArraySeq applies an IO-returning function to each element of an array
+// and collects the results into an IO of an array. Executes sequentially (one after another).
+//
+// Example:
+//
+//	fetchUsers := func(id int) io.IO[User] { return fetchUser(id) }
+//	users := io.MonadTraverseArraySeq([]int{1, 2, 3}, fetchUsers)
 func MonadTraverseArraySeq[A, B any](tas []A, f func(A) IO[B]) IO[[]B] {
 	return INTA.MonadTraverse(
 		Of[[]B],
@@ -112,8 +164,9 @@ func MonadTraverseArraySeq[A, B any](tas []A, f func(A) IO[B]) IO[[]B] {
 	)
 }
 
-// TraverseArraySeq applies a function returning an [IO] to all elements in an array and the
-// transforms this into an [IO] of that array
+// TraverseArraySeq returns a function that applies an IO-returning function to each element
+// of an array and collects the results. Executes sequentially (one after another).
+// Use this when operations must be performed in order or when parallel execution is not desired.
 func TraverseArraySeq[A, B any](f func(A) IO[B]) func([]A) IO[[]B] {
 	return INTA.Traverse[[]A](
 		Of[[]B],
@@ -124,8 +177,8 @@ func TraverseArraySeq[A, B any](f func(A) IO[B]) func([]A) IO[[]B] {
 	)
 }
 
-// TraverseArrayWithIndexSeq applies a function returning an [IO] to all elements in an array and the
-// transforms this into an [IO] of that array
+// TraverseArrayWithIndexSeq is like TraverseArraySeq but the function also receives the index.
+// Executes sequentially (one after another).
 func TraverseArrayWithIndexSeq[A, B any](f func(int, A) IO[B]) func([]A) IO[[]B] {
 	return INTA.TraverseWithIndex[[]A](
 		Of[[]B],
@@ -136,11 +189,14 @@ func TraverseArrayWithIndexSeq[A, B any](f func(int, A) IO[B]) func([]A) IO[[]B]
 	)
 }
 
-// SequenceArraySeq converts an array of [IO] to an [IO] of an array
+// SequenceArraySeq converts an array of IO computations into an IO of an array of results.
+// All computations are executed sequentially (one after another).
 func SequenceArraySeq[A any](tas []IO[A]) IO[[]A] {
 	return MonadTraverseArraySeq(tas, F.Identity[IO[A]])
 }
 
+// MonadTraverseRecordSeq applies an IO-returning function to each value in a map
+// and collects the results into an IO of a map. Executes sequentially.
 func MonadTraverseRecordSeq[K comparable, A, B any](tas map[K]A, f func(A) IO[B]) IO[map[K]B] {
 	return INTR.MonadTraverse(
 		Of[map[K]B],
@@ -152,8 +208,8 @@ func MonadTraverseRecordSeq[K comparable, A, B any](tas map[K]A, f func(A) IO[B]
 	)
 }
 
-// TraverseRecord applies a function returning an [IO] to all elements in a record and the
-// transforms this into an [IO] of that record
+// TraverseRecordSeq returns a function that applies an IO-returning function to each value
+// in a map and collects the results. Executes sequentially (one after another).
 func TraverseRecordSeq[K comparable, A, B any](f func(A) IO[B]) func(map[K]A) IO[map[K]B] {
 	return INTR.Traverse[map[K]A](
 		Of[map[K]B],
@@ -164,8 +220,9 @@ func TraverseRecordSeq[K comparable, A, B any](f func(A) IO[B]) func(map[K]A) IO
 	)
 }
 
-// TraverseRecordWithIndexSeq applies a function returning an [IO] to all elements in a record and the
-// transforms this into an [IO] of that record
+// TraverseRecordWithIndeSeq is like TraverseRecordSeq but the function also receives the key.
+// Executes sequentially (one after another).
+// Note: There's a typo in the function name (Inde instead of Index) for backward compatibility.
 func TraverseRecordWithIndeSeq[K comparable, A, B any](f func(K, A) IO[B]) func(map[K]A) IO[map[K]B] {
 	return INTR.TraverseWithIndex[map[K]A](
 		Of[map[K]B],
@@ -176,7 +233,8 @@ func TraverseRecordWithIndeSeq[K comparable, A, B any](f func(K, A) IO[B]) func(
 	)
 }
 
-// SequenceRecordSeq converts a record of [IO] to an [IO] of a record
+// SequenceRecordSeq converts a map of IO computations into an IO of a map of results.
+// All computations are executed sequentially (one after another).
 func SequenceRecordSeq[K comparable, A any](tas map[K]IO[A]) IO[map[K]A] {
 	return MonadTraverseRecordSeq(tas, F.Identity[IO[A]])
 }

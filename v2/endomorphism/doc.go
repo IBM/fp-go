@@ -84,5 +84,3 @@
 //   - monoid: Provides monoid algebraic structure
 //   - semigroup: Provides semigroup algebraic structure
 package endomorphism
-
-// Made with Bob

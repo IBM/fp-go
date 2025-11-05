@@ -700,5 +700,3 @@ func TestEitherFormatDifferentRune(t *testing.T) {
 	formatted := fmt.Sprintf("%v", e)
 	assert.Contains(t, formatted, "Right")
 }
-
-// Made with Bob

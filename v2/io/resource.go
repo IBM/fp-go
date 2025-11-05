@@ -19,7 +19,22 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 )
 
-// WithResource constructs a function that creates a resource, then operates on it and then releases the resource
+// WithResource constructs a function that creates a resource, operates on it, and then releases it.
+// This is a higher-level abstraction over Bracket that simplifies resource management patterns.
+//
+// The resource is guaranteed to be released even if the operation fails or panics.
+//
+// Example:
+//
+//	withFile := io.WithResource(
+//	    io.Of(openFile("data.txt")),
+//	    func(f *os.File) io.IO[any] {
+//	        return io.FromImpure(func() { f.Close() })
+//	    },
+//	)
+//	result := withFile(func(f *os.File) io.IO[Data] {
+//	    return readData(f)
+//	})
 func WithResource[
 	R, A, ANY any](onCreate IO[R], onRelease func(R) IO[ANY]) func(func(R) IO[A]) IO[A] {
 	// simply map to implementation of bracket
