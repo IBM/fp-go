@@ -23,7 +23,35 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-// AssertLaws asserts the apply monad laws for the [Option] monad
+// AssertLaws asserts the monad laws for the Option monad.
+// This function verifies that Option satisfies the functor, applicative, and monad laws.
+//
+// The laws tested include:
+//   - Functor laws: identity and composition
+//   - Applicative laws: identity, composition, homomorphism, and interchange
+//   - Monad laws: left identity, right identity, and associativity
+//
+// Parameters:
+//   - t: testing instance
+//   - eqa, eqb, eqc: equality predicates for types A, B, and C
+//   - ab: a function from A to B for testing
+//   - bc: a function from B to C for testing
+//
+// Returns a function that takes a value of type A and returns true if all laws hold.
+//
+// Example:
+//
+//	func TestOptionLaws(t *testing.T) {
+//	    eqInt := eq.FromStrictEquals[int]()
+//	    eqString := eq.FromStrictEquals[string]()
+//	    eqBool := eq.FromStrictEquals[bool]()
+//
+//	    ab := func(x int) string { return fmt.Sprintf("%d", x) }
+//	    bc := func(s string) bool { return len(s) > 0 }
+//
+//	    assert := AssertLaws(t, eqInt, eqString, eqBool, ab, bc)
+//	    assert(42) // verifies laws hold for value 42
+//	}
 func AssertLaws[A, B, C any](t *testing.T,
 	eqa EQ.Eq[A],
 	eqb EQ.Eq[B],

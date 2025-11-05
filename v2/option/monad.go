@@ -37,7 +37,23 @@ func (o *optionMonad[A, B]) Ap(fa Option[A]) func(Option[func(A) B]) Option[B] {
 	return Ap[B, A](fa)
 }
 
-// Monad implements the monadic operations for [Option]
+// Monad implements the monadic operations for Option.
+// A monad provides a way to chain computations that may fail, handling the
+// None case automatically.
+//
+// The monad interface includes:
+//   - Of: wraps a value in an Option
+//   - Map: transforms the contained value
+//   - Chain: sequences Option-returning operations
+//   - Ap: applies an Option-wrapped function to an Option-wrapped value
+//
+// Example:
+//
+//	m := Monad[int, string]()
+//	result := m.Chain(func(x int) Option[string] {
+//	    if x > 0 { return Some(fmt.Sprintf("%d", x)) }
+//	    return None[string]()
+//	})(Some(42)) // Some("42")
 func Monad[A, B any]() monad.Monad[A, B, Option[A], Option[B], Option[func(A) B]] {
 	return &optionMonad[A, B]{}
 }

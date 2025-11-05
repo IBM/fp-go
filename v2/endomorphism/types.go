@@ -16,8 +16,41 @@
 package endomorphism
 
 type (
-	// Endomorphism is a function  that
+	// Endomorphism represents a function from a type to itself.
+	//
+	// An endomorphism is a unary function that takes a value of type A and returns
+	// a value of the same type A. Mathematically, it's a function A → A.
+	//
+	// Endomorphisms have several important properties:
+	//   - They can be composed: if f and g are endomorphisms, then f ∘ g is also an endomorphism
+	//   - The identity function is an endomorphism
+	//   - They form a monoid under composition
+	//
+	// Example:
+	//
+	//	// Simple endomorphisms on integers
+	//	double := func(x int) int { return x * 2 }
+	//	increment := func(x int) int { return x + 1 }
+	//
+	//	// Both are endomorphisms of type Endomorphism[int]
+	//	var f endomorphism.Endomorphism[int] = double
+	//	var g endomorphism.Endomorphism[int] = increment
 	Endomorphism[A any] = func(A) A
 
+	// Operator represents a transformation from one endomorphism to another.
+	//
+	// An Operator takes an endomorphism on type A and produces an endomorphism on type B.
+	// This is useful for lifting operations or transforming endomorphisms in a generic way.
+	//
+	// Example:
+	//
+	//	// An operator that converts an int endomorphism to a string endomorphism
+	//	intToString := func(f endomorphism.Endomorphism[int]) endomorphism.Endomorphism[string] {
+	//		return func(s string) string {
+	//			n, _ := strconv.Atoi(s)
+	//			result := f(n)
+	//			return strconv.Itoa(result)
+	//		}
+	//	}
 	Operator[A, B any] = func(Endomorphism[A]) Endomorphism[B]
 )

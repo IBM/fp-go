@@ -19,7 +19,16 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
-// AltSemigroup is the alternative [Semigroup] for an [Either]
+// AltSemigroup creates a semigroup for Either that uses the Alt operation for combining values.
+// When combining two Either values, it returns the first Right value, or the second value if the first is Left.
+//
+// Example:
+//
+//	sg := either.AltSemigroup[error, int]()
+//	result := sg.Concat(either.Left[int](errors.New("error")), either.Right[error](42))
+//	// result is Right(42)
+//	result2 := sg.Concat(either.Right[error](1), either.Right[error](2))
+//	// result2 is Right(1) - first Right wins
 func AltSemigroup[E, A any]() S.Semigroup[Either[E, A]] {
 	return S.AltSemigroup(
 		MonadAlt[E, A],

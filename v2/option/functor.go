@@ -25,7 +25,15 @@ func (o *optionFunctor[A, B]) Map(f func(A) B) func(Option[A]) Option[B] {
 	return Map[A, B](f)
 }
 
-// Functor implements the functoric operations for [Option]
+// Functor implements the functoric operations for Option.
+// A functor is a type that can be mapped over, transforming the contained value
+// while preserving the structure.
+//
+// Example:
+//
+//	f := Functor[int, string]()
+//	mapper := f.Map(func(x int) string { return fmt.Sprintf("%d", x) })
+//	result := mapper(Some(42)) // Some("42")
 func Functor[A, B any]() functor.Functor[A, B, Option[A], Option[B]] {
 	return &optionFunctor[A, B]{}
 }

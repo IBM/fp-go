@@ -20,7 +20,17 @@ import (
 	M "github.com/IBM/fp-go/v2/monoid"
 )
 
-// AlternativeMonoid is the alternative [Monoid] for an [Either]
+// AlternativeMonoid creates a monoid for Either using applicative semantics.
+// The empty value is Right with the monoid's empty value.
+// Combines values using applicative operations.
+//
+// Example:
+//
+//	import "github.com/IBM/fp-go/v2/monoid"
+//	intAdd := monoid.MakeMonoid(0, func(a, b int) int { return a + b })
+//	m := either.AlternativeMonoid[error](intAdd)
+//	result := m.Concat(either.Right[error](1), either.Right[error](2))
+//	// result is Right(3)
 func AlternativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
 	return M.AlternativeMonoid(
 		Of[E, A],
@@ -31,7 +41,16 @@ func AlternativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
 	)
 }
 
-// AltMonoid is the alternative [Monoid] for an [Either]
+// AltMonoid creates a monoid for Either using the Alt operation.
+// The empty value is provided as a lazy computation.
+// When combining, returns the first Right value, or the second if the first is Left.
+//
+// Example:
+//
+//	zero := func() either.Either[error, int] { return either.Left[int](errors.New("empty")) }
+//	m := either.AltMonoid[error, int](zero)
+//	result := m.Concat(either.Left[int](errors.New("err1")), either.Right[error](42))
+//	// result is Right(42)
 func AltMonoid[E, A any](zero L.Lazy[Either[E, A]]) M.Monoid[Either[E, A]] {
 	return M.AltMonoid(
 		zero,

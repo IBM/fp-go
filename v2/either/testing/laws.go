@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package testing provides utilities for testing Either monad laws.
+// This is useful for verifying that custom Either implementations satisfy the monad laws.
 package testing
 
 import (
@@ -23,7 +25,33 @@ import (
 	L "github.com/IBM/fp-go/v2/internal/monad/testing"
 )
 
-// AssertLaws asserts the apply monad laws for the `Either` monad
+// AssertLaws asserts that the Either monad satisfies the monad laws.
+// This includes testing:
+//   - Identity laws (left and right identity)
+//   - Associativity law
+//   - Functor laws
+//   - Applicative laws
+//
+// Parameters:
+//   - t: Testing context
+//   - eqe, eqa, eqb, eqc: Equality predicates for the types
+//   - ab: Function from A to B for testing
+//   - bc: Function from B to C for testing
+//
+// Returns a function that takes a value of type A and returns true if all laws hold.
+//
+// Example:
+//
+//	func TestEitherLaws(t *testing.T) {
+//	    eqInt := eq.FromStrictEquals[int]()
+//	    eqString := eq.FromStrictEquals[string]()
+//	    eqError := eq.FromStrictEquals[error]()
+//
+//	    ab := func(x int) string { return strconv.Itoa(x) }
+//	    bc := func(s string) bool { return len(s) > 0 }
+//
+//	    testing.AssertLaws(t, eqError, eqInt, eqString, eq.FromStrictEquals[bool](), ab, bc)(42)
+//	}
 func AssertLaws[E, A, B, C any](t *testing.T,
 	eqe EQ.Eq[E],
 	eqa EQ.Eq[A],

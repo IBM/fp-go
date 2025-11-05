@@ -34,6 +34,27 @@ func _log[A any](left func(string, ...any), right func(string, ...any), prefix s
 		})
 }
 
+// Logger creates a logging function for Options that logs the state (None or Some with value)
+// and returns the original Option unchanged. This is useful for debugging pipelines.
+//
+// Parameters:
+//   - loggers: optional log.Logger instances to use for logging (defaults to standard logger)
+//
+// Returns a function that takes a prefix string and returns a function that logs and passes through an Option.
+//
+// Example:
+//
+//	logger := Logger[int]()
+//	result := F.Pipe2(
+//	    Some(42),
+//	    logger("step1"), // logs "step1: 42"
+//	    Map(func(x int) int { return x * 2 }),
+//	) // Some(84)
+//
+//	result := F.Pipe1(
+//	    None[int](),
+//	    logger("step1"), // logs "step1"
+//	) // None
 func Logger[A any](loggers ...*log.Logger) func(string) func(Option[A]) Option[A] {
 	left, right := L.LoggingCallbacks(loggers...)
 	return func(prefix string) func(Option[A]) Option[A] {

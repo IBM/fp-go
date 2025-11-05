@@ -20,11 +20,27 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
+// ApplySemigroup lifts a Semigroup over the Right values of Either.
+// Combines two Right values using the provided Semigroup.
+// If either value is Left, returns the first Left encountered.
+//
+// Example:
+//
+//	intAdd := semigroup.MakeSemigroup(func(a, b int) int { return a + b })
+//	eitherSemi := either.ApplySemigroup[error](intAdd)
+//	result := eitherSemi.Concat(either.Right[error](2), either.Right[error](3)) // Right(5)
 func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
 	return S.ApplySemigroup(MonadMap[E, A, func(A) A], MonadAp[A, E, A], s)
 }
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [Either] instances via their applicative
+// ApplicativeMonoid returns a Monoid that concatenates Either instances via their applicative.
+// Provides an empty Either (Right with monoid's empty value) and combines Right values using the monoid.
+//
+// Example:
+//
+//	intAddMonoid := monoid.MakeMonoid(0, func(a, b int) int { return a + b })
+//	eitherMon := either.ApplicativeMonoid[error](intAddMonoid)
+//	empty := eitherMon.Empty() // Right(0)
 func ApplicativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
 	return M.ApplicativeMonoid(Of[E, A], MonadMap[E, A, func(A) A], MonadAp[A, E, A], m)
 }

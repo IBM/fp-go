@@ -20,7 +20,19 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// Constructs an equal predicate for an `Option`
+// Eq constructs an equality predicate for Option[A] given an equality predicate for A.
+// Two Options are equal if:
+//   - Both are None, or
+//   - Both are Some and their contained values are equal according to the provided Eq
+//
+// Example:
+//
+//	intEq := eq.FromStrictEquals[int]()
+//	optEq := Eq(intEq)
+//	optEq.Equals(Some(42), Some(42)) // true
+//	optEq.Equals(Some(42), Some(43)) // false
+//	optEq.Equals(None[int](), None[int]()) // true
+//	optEq.Equals(Some(42), None[int]()) // false
 func Eq[A any](a EQ.Eq[A]) EQ.Eq[Option[A]] {
 	// some convenient shortcuts
 	fld := Fold(
@@ -31,7 +43,14 @@ func Eq[A any](a EQ.Eq[A]) EQ.Eq[Option[A]] {
 	return EQ.FromEquals(F.Uncurry2(fld))
 }
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+// FromStrictEquals constructs an Eq for Option[A] using Go's built-in equality (==) for type A.
+// This is a convenience function for comparable types.
+//
+// Example:
+//
+//	optEq := FromStrictEquals[int]()
+//	optEq.Equals(Some(42), Some(42)) // true
+//	optEq.Equals(None[int](), None[int]()) // true
 func FromStrictEquals[A comparable]() EQ.Eq[Option[A]] {
 	return Eq(EQ.FromStrictEquals[A]())
 }

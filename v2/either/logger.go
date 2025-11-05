@@ -34,6 +34,22 @@ func _log[E, A any](left func(string, ...any), right func(string, ...any), prefi
 		})
 }
 
+// Logger creates a logging function for Either values that logs both Left and Right cases.
+// The function logs the value and then returns the original Either unchanged.
+//
+// Parameters:
+//   - loggers: Optional log.Logger instances. If none provided, uses default logger.
+//
+// Example:
+//
+//	logger := either.Logger[error, int]()
+//	result := F.Pipe2(
+//	    either.Right[error](42),
+//	    logger("Processing"),
+//	    either.Map(func(x int) int { return x * 2 }),
+//	)
+//	// Logs: "Processing: 42"
+//	// result is Right(84)
 func Logger[E, A any](loggers ...*log.Logger) func(string) func(Either[E, A]) Either[E, A] {
 	left, right := L.LoggingCallbacks(loggers...)
 	return func(prefix string) func(Either[E, A]) Either[E, A] {

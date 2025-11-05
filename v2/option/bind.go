@@ -21,14 +21,34 @@ import (
 	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type S to be used with the Bind operation.
+// This is the starting point for building up a context using do-notation style.
+//
+// Example:
+//
+//	type Result struct {
+//	    x int
+//	    y string
+//	}
+//	result := Do(Result{})
 func Do[S any](
 	empty S,
 ) Option[S] {
 	return Of(empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context S1 to produce a context S2.
+// This is used in do-notation style to sequentially build up a context.
+//
+// Example:
+//
+//	type State struct { x int; y int }
+//	result := F.Pipe2(
+//	    Do(State{}),
+//	    Bind(func(x int) func(State) State {
+//	        return func(s State) State { s.x = x; return s }
+//	    }, func(s State) Option[int] { return Some(42) }),
+//	)
 func Bind[S1, S2, A any](
 	setter func(A) func(S1) S2,
 	f func(S1) Option[A],
@@ -41,7 +61,18 @@ func Bind[S1, S2, A any](
 	)
 }
 
-// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+// Let attaches the result of a pure computation to a context S1 to produce a context S2.
+// Unlike Bind, the computation function returns a plain value, not an Option.
+//
+// Example:
+//
+//	type State struct { x int; computed int }
+//	result := F.Pipe2(
+//	    Do(State{x: 5}),
+//	    Let(func(c int) func(State) State {
+//	        return func(s State) State { s.computed = c; return s }
+//	    }, func(s State) int { return s.x * 2 }),
+//	)
 func Let[S1, S2, B any](
 	key func(B) func(S1) S2,
 	f func(S1) B,
@@ -53,7 +84,17 @@ func Let[S1, S2, B any](
 	)
 }
 
-// LetTo attaches the a value to a context [S1] to produce a context [S2]
+// LetTo attaches a constant value to a context S1 to produce a context S2.
+//
+// Example:
+//
+//	type State struct { x int; name string }
+//	result := F.Pipe2(
+//	    Do(State{x: 5}),
+//	    LetTo(func(n string) func(State) State {
+//	        return func(s State) State { s.name = n; return s }
+//	    }, "example"),
+//	)
 func LetTo[S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
@@ -65,7 +106,16 @@ func LetTo[S1, S2, B any](
 	)
 }
 
-// BindTo initializes a new state [S1] from a value [T]
+// BindTo initializes a new state S1 from a value T.
+// This is typically used as the first operation after creating an Option value.
+//
+// Example:
+//
+//	type State struct { value int }
+//	result := F.Pipe1(
+//	    Some(42),
+//	    BindTo(func(x int) State { return State{value: x} }),
+//	)
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) func(Option[T]) Option[S1] {
@@ -75,7 +125,18 @@ func BindTo[S1, T any](
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context S1 to produce a context S2 by considering the context and the value concurrently.
+// This uses the applicative functor pattern, allowing parallel composition.
+//
+// Example:
+//
+//	type State struct { x int; y int }
+//	result := F.Pipe2(
+//	    Do(State{}),
+//	    ApS(func(x int) func(State) State {
+//	        return func(s State) State { s.x = x; return s }
+//	    }, Some(42)),
+//	)
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Option[T],

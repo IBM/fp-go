@@ -21,14 +21,36 @@ import (
 	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type S to be used with the Bind operation.
+// This is the starting point for do-notation style computations.
+//
+// Example:
+//
+//	type State struct { x, y int }
+//	result := either.Do[error](State{})
 func Do[E, S any](
 	empty S,
 ) Either[E, S] {
 	return Of[E](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context S1 to produce a context S2.
+// This enables building up complex computations in a pipeline.
+//
+// Example:
+//
+//	type State struct { value int }
+//	result := F.Pipe2(
+//	    either.Do[error](State{}),
+//	    either.Bind(
+//	        func(v int) func(State) State {
+//	            return func(s State) State { return State{value: v} }
+//	        },
+//	        func(s State) either.Either[error, int] {
+//	            return either.Right[error](42)
+//	        },
+//	    ),
+//	)
 func Bind[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) Either[E, T],
@@ -41,7 +63,21 @@ func Bind[E, S1, S2, T any](
 	)
 }
 
-// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+// Let attaches the result of a pure computation to a context S1 to produce a context S2.
+// Similar to Bind but for pure (non-Either) computations.
+//
+// Example:
+//
+//	type State struct { value int }
+//	result := F.Pipe2(
+//	    either.Right[error](State{value: 10}),
+//	    either.Let(
+//	        func(v int) func(State) State {
+//	            return func(s State) State { return State{value: s.value + v} }
+//	        },
+//	        func(s State) int { return 32 },
+//	    ),
+//	) // Right(State{value: 42})
 func Let[E, S1, S2, T any](
 	key func(T) func(S1) S2,
 	f func(S1) T,
@@ -53,7 +89,20 @@ func Let[E, S1, S2, T any](
 	)
 }
 
-// LetTo attaches the a value to a context [S1] to produce a context [S2]
+// LetTo attaches a constant value to a context S1 to produce a context S2.
+//
+// Example:
+//
+//	type State struct { name string }
+//	result := F.Pipe2(
+//	    either.Right[error](State{}),
+//	    either.LetTo(
+//	        func(n string) func(State) State {
+//	            return func(s State) State { return State{name: n} }
+//	        },
+//	        "Alice",
+//	    ),
+//	) // Right(State{name: "Alice"})
 func LetTo[E, S1, S2, T any](
 	key func(T) func(S1) S2,
 	b T,
@@ -65,7 +114,16 @@ func LetTo[E, S1, S2, T any](
 	)
 }
 
-// BindTo initializes a new state [S1] from a value [T]
+// BindTo initializes a new state S1 from a value T.
+// This is typically used to start a bind chain.
+//
+// Example:
+//
+//	type State struct { value int }
+//	result := F.Pipe2(
+//	    either.Right[error](42),
+//	    either.BindTo(func(v int) State { return State{value: v} }),
+//	) // Right(State{value: 42})
 func BindTo[E, S1, T any](
 	setter func(T) S1,
 ) func(Either[E, T]) Either[E, S1] {
@@ -75,7 +133,21 @@ func BindTo[E, S1, T any](
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context S1 to produce a context S2 by considering the context and the value concurrently.
+// Uses applicative semantics rather than monadic sequencing.
+//
+// Example:
+//
+//	type State struct { x, y int }
+//	result := F.Pipe2(
+//	    either.Right[error](State{x: 10}),
+//	    either.ApS(
+//	        func(y int) func(State) State {
+//	            return func(s State) State { return State{x: s.x, y: y} }
+//	        },
+//	        either.Right[error](32),
+//	    ),
+//	) // Right(State{x: 10, y: 32})
 func ApS[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Either[E, T],

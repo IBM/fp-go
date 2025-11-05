@@ -24,6 +24,16 @@ func toType[T any](a any) (T, bool) {
 	return b, ok
 }
 
+// ToType attempts to convert a value of type any to a specific type T using type assertion.
+// Returns Some(value) if the type assertion succeeds, None if it fails.
+//
+// Example:
+//
+//	var x any = 42
+//	result := ToType[int](x) // Some(42)
+//
+//	var y any = "hello"
+//	result := ToType[int](y) // None (wrong type)
 func ToType[T any](src any) Option[T] {
 	return F.Pipe1(
 		src,
@@ -31,6 +41,13 @@ func ToType[T any](src any) Option[T] {
 	)
 }
 
+// ToAny converts a value of any type to Option[any].
+// This always succeeds and returns Some containing the value as any.
+//
+// Example:
+//
+//	result := ToAny(42) // Some(any(42))
+//	result := ToAny("hello") // Some(any("hello"))
 func ToAny[T any](src T) Option[any] {
 	return Of(any(src))
 }

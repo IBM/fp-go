@@ -37,7 +37,20 @@ func (o *eitherMonad[E, A, B]) Ap(fa Either[E, A]) func(Either[E, func(A) B]) Ei
 	return Ap[B, E, A](fa)
 }
 
-// Monad implements the monadic operations for [Either]
+// Monad implements the monadic operations for Either.
+// A monad combines the capabilities of Functor (Map), Applicative (Ap), and Chain (flatMap/bind).
+// This allows for sequential composition of computations that may fail.
+//
+// Example:
+//
+//	m := either.Monad[error, int, string]()
+//	result := m.Chain(func(x int) either.Either[error, string] {
+//	    if x > 0 {
+//	        return either.Right[error](strconv.Itoa(x))
+//	    }
+//	    return either.Left[string](errors.New("negative"))
+//	})(either.Right[error](42))
+//	// result is Right("42")
 func Monad[E, A, B any]() monad.Monad[A, B, Either[E, A], Either[E, B], Either[E, func(A) B]] {
 	return &eitherMonad[E, A, B]{}
 }

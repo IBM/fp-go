@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+// Package number provides Option-based utilities for number conversions.
 package number
 
 import (
@@ -28,8 +29,21 @@ func atoi(value string) (int, bool) {
 }
 
 var (
-	// Atoi converts a string to an integer
+	// Atoi converts a string to an integer, returning Some(int) on success or None on failure.
+	//
+	// Example:
+	//
+	//	result := Atoi("42") // Some(42)
+	//	result := Atoi("abc") // None
+	//	result := Atoi("") // None
 	Atoi = O.Optionize1(atoi)
-	// Itoa converts an integer to a string
+
+	// Itoa converts an integer to a string, always returning Some(string).
+	//
+	// Example:
+	//
+	//	result := Itoa(42) // Some("42")
+	//	result := Itoa(-10) // Some("-10")
+	//	result := Itoa(0) // Some("0")
 	Itoa = F.Flow2(strconv.Itoa, O.Of[string])
 )

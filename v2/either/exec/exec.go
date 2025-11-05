@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package exec provides utilities for executing system commands with Either-based error handling.
 package exec
 
 import (
@@ -25,9 +26,22 @@ import (
 )
 
 var (
-	// Command executes a command
-	// use this version if the command does not produce any side effect, i.e. if the output is uniquely determined by by the input
-	// typically you'd rather use the [IOEither] version of the command
+	// Command executes a system command and returns the result as an Either.
+	// Use this version if the command does not produce any side effects,
+	// i.e., if the output is uniquely determined by the input.
+	// For commands with side effects, typically you'd use the IOEither version instead.
+	//
+	// Parameters (curried):
+	//   - name: The command name/path
+	//   - args: Command arguments
+	//   - in: Input bytes to send to the command's stdin
+	//
+	// Returns Either[error, CommandOutput] containing the command's output or an error.
+	//
+	// Example:
+	//
+	//	result := exec.Command("echo")( []string{"hello"})([]byte{})
+	//	// result is Right(CommandOutput{Stdout: "hello\n", ...})
 	Command = F.Curry3(command)
 )
 

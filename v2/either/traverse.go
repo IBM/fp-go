@@ -19,7 +19,20 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// Traverse converts an [Either] of some higher kinded type into the higher kinded type of an [Either]
+// Traverse converts an Either of some higher kinded type into the higher kinded type of an Either.
+// This is a generic traversal operation that works with any applicative functor.
+//
+// Parameters:
+//   - mof: Lifts an Either into the target higher-kinded type
+//   - mmap: Maps over the target higher-kinded type
+//
+// Example (conceptual - requires understanding of higher-kinded types):
+//
+//	// Traverse an Either[error, Option[int]] to Option[Either[error, int]]
+//	result := either.Traverse[int, error, int, option.Option[int], option.Option[either.Either[error, int]]](
+//	    option.Of[either.Either[error, int]],
+//	    option.Map[int, either.Either[error, int]],
+//	)(f)(eitherOfOption)
 func Traverse[A, E, B, HKTB, HKTRB any](
 	mof func(Either[E, B]) HKTRB,
 	mmap func(func(B) Either[E, B]) func(HKTB) HKTRB,
@@ -33,7 +46,20 @@ func Traverse[A, E, B, HKTB, HKTRB any](
 	}
 }
 
-// Sequence converts an [Either] of some higher kinded type into the higher kinded type of an [Either]
+// Sequence converts an Either of some higher kinded type into the higher kinded type of an Either.
+// This is the identity version of Traverse - it doesn't transform the values, just swaps the type constructors.
+//
+// Parameters:
+//   - mof: Lifts an Either into the target higher-kinded type
+//   - mmap: Maps over the target higher-kinded type
+//
+// Example (conceptual - requires understanding of higher-kinded types):
+//
+//	// Sequence an Either[error, Option[int]] to Option[Either[error, int]]
+//	result := either.Sequence[error, int, option.Option[int], option.Option[either.Either[error, int]]](
+//	    option.Of[either.Either[error, int]],
+//	    option.Map[int, either.Either[error, int]],
+//	)(eitherOfOption)
 func Sequence[E, A, HKTA, HKTRA any](
 	mof func(Either[E, A]) HKTRA,
 	mmap func(func(A) Either[E, A]) func(HKTA) HKTRA,

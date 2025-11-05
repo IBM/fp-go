@@ -19,7 +19,30 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// constructs a function that creates a resource, then operates on it and then releases the resource
+// WithResource constructs a function that creates a resource, operates on it, and then releases it.
+// This ensures proper resource cleanup even if operations fail.
+// The resource is released immediately after the operation completes.
+//
+// Parameters:
+//   - onCreate: Function to create/acquire the resource
+//   - onRelease: Function to release/cleanup the resource
+//
+// Returns a function that takes an operation to perform on the resource.
+//
+// Example:
+//
+//	withFile := either.WithResource(
+//	    func() either.Either[error, *os.File] {
+//	        return either.TryCatchError(os.Open("file.txt"))
+//	    },
+//	    func(f *os.File) either.Either[error, any] {
+//	        return either.TryCatchError(f.Close())
+//	    },
+//	)
+//	result := withFile(func(f *os.File) either.Either[error, string] {
+//	    // Use file here
+//	    return either.Right[error]("data")
+//	})
 func WithResource[E, R, A any](onCreate func() Either[E, R], onRelease func(R) Either[E, any]) func(func(R) Either[E, A]) Either[E, A] {
 
 	return func(f func(R) Either[E, A]) Either[E, A] {

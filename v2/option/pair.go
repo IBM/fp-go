@@ -20,7 +20,16 @@ import (
 	PG "github.com/IBM/fp-go/v2/pair/generic"
 )
 
-// SequencePair converts a [Pair] of [Option[T]] into an [Option[Pair]].
+// SequencePair converts a Pair of Options into an Option of a Pair.
+// Returns Some containing the pair of values if both Options are Some, None if either is None.
+//
+// Example:
+//
+//	pair := P.MakePair(Some(1), Some("hello"))
+//	result := SequencePair(pair) // Some(Pair(1, "hello"))
+//
+//	pair := P.MakePair(Some(1), None[string]())
+//	result := SequencePair(pair) // None
 func SequencePair[T1, T2 any](t P.Pair[Option[T1], Option[T2]]) Option[P.Pair[T1, T2]] {
 	return PG.SequencePair(
 		Map[T1, func(T2) P.Pair[T1, T2]],

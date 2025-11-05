@@ -19,7 +19,20 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// Sequence converts an [Option] of some higher kinded type into the higher kinded type of an [Option]
+// Sequence converts an Option of some higher kinded type into the higher kinded type of an Option.
+// This is a generic sequencing operation that works with any applicative functor.
+//
+// Parameters:
+//   - mof: wraps an Option in the target higher kinded type
+//   - mmap: maps a function over the higher kinded type
+//
+// Example (conceptual - typically used with other monadic types):
+//
+//	// Sequencing Option[IO[A]] to IO[Option[A]]
+//	result := Sequence[int, IO[int], IO[Option[int]]](
+//	    func(opt Option[int]) IO[Option[int]] { return IO.Of(opt) },
+//	    func(f func(int) Option[int]) func(IO[int]) IO[Option[int]] { ... },
+//	)
 func Sequence[A, HKTA, HKTOA any](
 	mof func(Option[A]) HKTOA,
 	mmap func(func(A) Option[A]) func(HKTA) HKTOA,
@@ -27,7 +40,23 @@ func Sequence[A, HKTA, HKTOA any](
 	return Fold(F.Nullary2(None[A], mof), mmap(Some[A]))
 }
 
-// Traverse converts an [Option] of some higher kinded type into the higher kinded type of an [Option]
+// Traverse converts an Option by applying a function that produces a higher kinded type,
+// then sequences the result. This combines mapping and sequencing in one operation.
+//
+// Parameters:
+//   - mof: wraps an Option in the target higher kinded type
+//   - mmap: maps a function over the higher kinded type
+//
+// Returns a function that takes a transformation function and an Option, producing
+// the higher kinded type containing an Option.
+//
+// Example (conceptual - typically used with other monadic types):
+//
+//	// Traversing Option[A] with a function A -> IO[B] to get IO[Option[B]]
+//	result := Traverse[int, string, IO[string], IO[Option[string]]](
+//	    func(opt Option[string]) IO[Option[string]] { return IO.Of(opt) },
+//	    func(f func(string) Option[string]) func(IO[string]) IO[Option[string]] { ... },
+//	)
 func Traverse[A, B, HKTB, HKTOB any](
 	mof func(Option[B]) HKTOB,
 	mmap func(func(B) Option[B]) func(HKTB) HKTOB,

@@ -17,6 +17,8 @@ package either
 
 import "github.com/IBM/fp-go/v2/option"
 
+// Option is a type alias for option.Option, provided for convenience
+// when working with Either and Option together.
 type (
 	Option[A any] = option.Option[A]
 )

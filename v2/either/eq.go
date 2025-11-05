@@ -20,7 +20,19 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// Constructs an equal predicate for an `Either`
+// Eq constructs an equality predicate for Either values.
+// Two Either values are equal if they are both Left with equal error values,
+// or both Right with equal success values.
+//
+// Parameters:
+//   - e: Equality predicate for the Left (error) type
+//   - a: Equality predicate for the Right (success) type
+//
+// Example:
+//
+//	eq := either.Eq(eq.FromStrictEquals[error](), eq.FromStrictEquals[int]())
+//	result := eq.Equals(either.Right[error](42), either.Right[error](42)) // true
+//	result2 := eq.Equals(either.Right[error](42), either.Right[error](43)) // false
 func Eq[E, A any](e EQ.Eq[E], a EQ.Eq[A]) EQ.Eq[Either[E, A]] {
 	// some convenient shortcuts
 	eqa := F.Curry2(a.Equals)
@@ -34,7 +46,13 @@ func Eq[E, A any](e EQ.Eq[E], a EQ.Eq[A]) EQ.Eq[Either[E, A]] {
 	return EQ.FromEquals(F.Uncurry2(fld))
 }
 
-// FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+// FromStrictEquals constructs an equality predicate using Go's == operator.
+// Both the Left and Right types must be comparable.
+//
+// Example:
+//
+//	eq := either.FromStrictEquals[error, int]()
+//	result := eq.Equals(either.Right[error](42), either.Right[error](42)) // true
 func FromStrictEquals[E, A comparable]() EQ.Eq[Either[E, A]] {
 	return Eq(EQ.FromStrictEquals[E](), EQ.FromStrictEquals[A]())
 }
