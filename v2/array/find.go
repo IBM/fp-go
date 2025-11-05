@@ -20,42 +20,80 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-// FindFirst finds the first element which satisfies a predicate (or a refinement) function
+// FindFirst finds the first element which satisfies a predicate function.
+// Returns Some(element) if found, None if no element matches.
+//
+// Example:
+//
+//	findGreaterThan3 := array.FindFirst(func(x int) bool { return x > 3 })
+//	result := findGreaterThan3([]int{1, 2, 4, 5}) // Some(4)
+//	result2 := findGreaterThan3([]int{1, 2, 3}) // None
 func FindFirst[A any](pred func(A) bool) func([]A) O.Option[A] {
 	return G.FindFirst[[]A](pred)
 }
 
-// FindFirstWithIndex finds the first element which satisfies a predicate (or a refinement) function
+// FindFirstWithIndex finds the first element which satisfies a predicate function that also receives the index.
+// Returns Some(element) if found, None if no element matches.
+//
+// Example:
+//
+//	findEvenAtEvenIndex := array.FindFirstWithIndex(func(i, x int) bool {
+//	    return i%2 == 0 && x%2 == 0
+//	})
+//	result := findEvenAtEvenIndex([]int{1, 3, 4, 5}) // Some(4)
 func FindFirstWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 	return G.FindFirstWithIndex[[]A](pred)
 }
 
-// FindFirstMap finds the first element returned by an [O.Option] based selector function
+// FindFirstMap finds the first element for which the selector function returns Some.
+// This combines finding and mapping in a single operation.
+//
+// Example:
+//
+//	import "strconv"
+//
+//	parseFirst := array.FindFirstMap(func(s string) option.Option[int] {
+//	    if n, err := strconv.Atoi(s); err == nil {
+//	        return option.Some(n)
+//	    }
+//	    return option.None[int]()
+//	})
+//	result := parseFirst([]string{"a", "42", "b"}) // Some(42)
 func FindFirstMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindFirstMap[[]A](sel)
 }
 
-// FindFirstMapWithIndex finds the first element returned by an [O.Option] based selector function
+// FindFirstMapWithIndex finds the first element for which the selector function returns Some.
+// The selector receives both the index and the element.
 func FindFirstMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindFirstMapWithIndex[[]A](sel)
 }
 
-// FindLast finds the Last element which satisfies a predicate (or a refinement) function
+// FindLast finds the last element which satisfies a predicate function.
+// Returns Some(element) if found, None if no element matches.
+//
+// Example:
+//
+//	findGreaterThan3 := array.FindLast(func(x int) bool { return x > 3 })
+//	result := findGreaterThan3([]int{1, 4, 2, 5}) // Some(5)
 func FindLast[A any](pred func(A) bool) func([]A) O.Option[A] {
 	return G.FindLast[[]A](pred)
 }
 
-// FindLastWithIndex finds the Last element which satisfies a predicate (or a refinement) function
+// FindLastWithIndex finds the last element which satisfies a predicate function that also receives the index.
+// Returns Some(element) if found, None if no element matches.
 func FindLastWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 	return G.FindLastWithIndex[[]A](pred)
 }
 
-// FindLastMap finds the Last element returned by an [O.Option] based selector function
+// FindLastMap finds the last element for which the selector function returns Some.
+// This combines finding and mapping in a single operation, searching from the end.
 func FindLastMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindLastMap[[]A](sel)
 }
 
-// FindLastMapWithIndex finds the Last element returned by an [O.Option] based selector function
+// FindLastMapWithIndex finds the last element for which the selector function returns Some.
+// The selector receives both the index and the element, searching from the end.
 func FindLastMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindLastMapWithIndex[[]A](sel)
 }

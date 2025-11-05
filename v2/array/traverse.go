@@ -19,6 +19,39 @@ import (
 	"github.com/IBM/fp-go/v2/internal/array"
 )
 
+// Traverse maps each element of an array to an effect (HKT), then collects the results
+// into an effect of an array. This is like a combination of Map and Sequence.
+//
+// Unlike Sequence which works with []HKT<A> -> HKT<[]A>, Traverse works with
+// []A -> (A -> HKT<B>) -> HKT<[]B>, allowing you to transform elements while sequencing effects.
+//
+// Type parameters:
+//   - HKTB = HKT<B> (e.g., Option[B], Either[E, B])
+//   - HKTAB = HKT<func(B)[]B> (intermediate type for applicative)
+//   - HKTRB = HKT<[]B> (e.g., Option[[]B], Either[E, []B])
+//
+// Example:
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/option"
+//	    "strconv"
+//	)
+//
+//	// Parse strings to ints, returning None if any parse fails
+//	parseAll := array.Traverse(
+//	    option.Of[[]int],
+//	    option.Map[[]int, func(int) []int],
+//	    option.Ap[[]int, int],
+//	    func(s string) option.Option[int] {
+//	        if n, err := strconv.Atoi(s); err == nil {
+//	            return option.Some(n)
+//	        }
+//	        return option.None[int]()
+//	    },
+//	)
+//
+//	result := parseAll([]string{"1", "2", "3"}) // Some([1, 2, 3])
+//	result2 := parseAll([]string{"1", "x", "3"}) // None
 func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof func([]B) HKTRB,
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
@@ -28,6 +61,11 @@ func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 	return array.Traverse[[]A](fof, fmap, fap, f)
 }
 
+// MonadTraverse is the monadic version of Traverse that takes the array as a parameter.
+// It maps each element of an array to an effect (HKT), then collects the results
+// into an effect of an array.
+//
+// This is useful when you want to apply the traverse operation directly without currying.
 func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof func([]B) HKTRB,
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,

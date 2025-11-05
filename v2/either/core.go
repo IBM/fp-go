@@ -69,6 +69,8 @@ func (s Either[E, A]) Format(f fmt.State, c rune) {
 //
 //	either.IsLeft(either.Left[int](errors.New("err"))) // true
 //	either.IsLeft(either.Right[error](42)) // false
+//
+//go:inline
 func IsLeft[E, A any](val Either[E, A]) bool {
 	return val.isLeft
 }
@@ -81,6 +83,8 @@ func IsLeft[E, A any](val Either[E, A]) bool {
 //
 //	either.IsRight(either.Right[error](42)) // true
 //	either.IsRight(either.Left[int](errors.New("err"))) // false
+//
+//go:inline
 func IsRight[E, A any](val Either[E, A]) bool {
 	return !val.isLeft
 }
@@ -91,6 +95,8 @@ func IsRight[E, A any](val Either[E, A]) bool {
 // Example:
 //
 //	result := either.Left[int](errors.New("something went wrong"))
+//
+//go:inline
 func Left[A, E any](value E) Either[E, A] {
 	return Either[E, A]{true, value}
 }
@@ -101,6 +107,8 @@ func Left[A, E any](value E) Either[E, A] {
 // Example:
 //
 //	result := either.Right[error](42)
+//
+//go:inline
 func Right[E, A any](value A) Either[E, A] {
 	return Either[E, A]{false, value}
 }
@@ -115,6 +123,8 @@ func Right[E, A any](value A) Either[E, A] {
 //	    func(err error) string { return "Error: " + err.Error() },
 //	    func(n int) string { return fmt.Sprintf("Value: %d", n) },
 //	) // "Value: 42"
+//
+//go:inline
 func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a A) B) B {
 	if ma.isLeft {
 		return onLeft(ma.value.(E))
@@ -130,6 +140,8 @@ func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a 
 //
 //	val, err := either.Unwrap(either.Right[error](42)) // 42, nil
 //	val, err := either.Unwrap(either.Left[int](errors.New("fail"))) // 0, error
+//
+//go:inline
 func Unwrap[E, A any](ma Either[E, A]) (A, E) {
 	if ma.isLeft {
 		var a A

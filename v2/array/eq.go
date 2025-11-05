@@ -32,6 +32,17 @@ func equals[T any](left []T, right []T, eq func(T, T) bool) bool {
 	return true
 }
 
+// Eq creates an equality checker for arrays given an equality checker for elements.
+// Two arrays are considered equal if they have the same length and all corresponding
+// elements are equal according to the provided Eq instance.
+//
+// Example:
+//
+//	import "github.com/IBM/fp-go/v2/eq"
+//
+//	intArrayEq := array.Eq(eq.FromStrictEquals[int]())
+//	result := intArrayEq.Equals([]int{1, 2, 3}, []int{1, 2, 3}) // true
+//	result2 := intArrayEq.Equals([]int{1, 2, 3}, []int{1, 2, 4}) // false
 func Eq[T any](e E.Eq[T]) E.Eq[[]T] {
 	eq := e.Equals
 	return E.FromEquals(func(left, right []T) bool {

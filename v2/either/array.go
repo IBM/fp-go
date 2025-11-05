@@ -102,6 +102,7 @@ func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) func([]A) 
 	return TraverseArrayWithIndexG[[]A, []B](f)
 }
 
+//go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA] {
 	return TraverseArrayG[GOA, GA](F.Identity[Either[E, A]])(ma)
 }
@@ -119,6 +120,8 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA
 //	}
 //	result := either.SequenceArray(eithers)
 //	// result is Right([]int{1, 2, 3})
+//
+//go:inline
 func SequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
 	return SequenceArrayG[[]A](ma)
 }
@@ -135,6 +138,8 @@ func SequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
 //	}
 //	result := either.CompactArrayG[[]either.Either[error, int], []int](eithers)
 //	// result is []int{1, 3}
+//
+//go:inline
 func CompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
 	return RA.Reduce(fa, func(out A2, value Either[E, A]) A2 {
 		return MonadFold(value, F.Constant1[E](out), F.Bind1st(RA.Append[A2, A], out))
@@ -152,6 +157,8 @@ func CompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
 //	}
 //	result := either.CompactArray(eithers)
 //	// result is []int{1, 3}
+//
+//go:inline
 func CompactArray[E, A any](fa []Either[E, A]) []A {
 	return CompactArrayG[[]Either[E, A], []A](fa)
 }

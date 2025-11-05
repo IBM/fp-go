@@ -113,6 +113,17 @@ func TestIntercalate(t *testing.T) {
 	assert.Equal(t, "a-b-c-d", is([]string{"a", "b", "c", "d"}))
 }
 
+func TestIntersperse(t *testing.T) {
+	// Test with empty array
+	assert.Equal(t, []int{}, Intersperse(0)([]int{}))
+
+	// Test with single element
+	assert.Equal(t, []int{1}, Intersperse(0)([]int{1}))
+
+	// Test with multiple elements
+	assert.Equal(t, []int{1, 0, 2, 0, 3}, Intersperse(0)([]int{1, 2, 3}))
+}
+
 func TestPrependAll(t *testing.T) {
 	empty := Empty[int]()
 	prep := PrependAll(0)

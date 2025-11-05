@@ -19,12 +19,28 @@ import (
 	G "github.com/IBM/fp-go/v2/array/generic"
 )
 
-// AnyWithIndex tests if any of the elements in the array matches the predicate
+// AnyWithIndex tests if any of the elements in the array matches the predicate.
+// The predicate receives both the index and the element.
+// Returns true if at least one element satisfies the predicate, false otherwise.
+//
+// Example:
+//
+//	hasEvenAtEvenIndex := array.AnyWithIndex(func(i, x int) bool {
+//	    return i%2 == 0 && x%2 == 0
+//	})
+//	result := hasEvenAtEvenIndex([]int{1, 3, 4, 5}) // true (4 is at index 2)
 func AnyWithIndex[A any](pred func(int, A) bool) func([]A) bool {
 	return G.AnyWithIndex[[]A](pred)
 }
 
-// Any tests if any of the elements in the array matches the predicate
+// Any tests if any of the elements in the array matches the predicate.
+// Returns true if at least one element satisfies the predicate, false otherwise.
+// Returns false for an empty array.
+//
+// Example:
+//
+//	hasEven := array.Any(func(x int) bool { return x%2 == 0 })
+//	result := hasEven([]int{1, 3, 4, 5}) // true
 func Any[A any](pred func(A) bool) func([]A) bool {
 	return G.Any[[]A](pred)
 }

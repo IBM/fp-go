@@ -163,15 +163,25 @@ func Size[GA ~[]A, A any](as GA) int {
 }
 
 func filterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
-	return array.Reduce(fa, func(bs GB, a A) GB {
-		return O.MonadFold(f(a), F.Constant(bs), F.Bind1st(Append[GB, B], bs))
-	}, Empty[GB]())
+	result := make(GB, 0, len(fa))
+	for _, a := range fa {
+		O.Map(func(b B) B {
+			result = append(result, b)
+			return b
+		})(f(a))
+	}
+	return result
 }
 
 func filterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(int, A) O.Option[B]) GB {
-	return array.ReduceWithIndex(fa, func(idx int, bs GB, a A) GB {
-		return O.MonadFold(f(idx, a), F.Constant(bs), F.Bind1st(Append[GB, B], bs))
-	}, Empty[GB]())
+	result := make(GB, 0, len(fa))
+	for i, a := range fa {
+		O.Map(func(b B) B {
+			result = append(result, b)
+			return b
+		})(f(i, a))
+	}
+	return result
 }
 
 func MonadFilterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
@@ -310,28 +320,34 @@ func Clone[AS ~[]A, A any](f func(A) A) func(as AS) AS {
 }
 
 func FoldMap[AS ~[]A, A, B any](m M.Monoid[B]) func(func(A) B) func(AS) B {
+	empty := m.Empty()
+	concat := m.Concat
 	return func(f func(A) B) func(AS) B {
 		return func(as AS) B {
 			return array.Reduce(as, func(cur B, a A) B {
-				return m.Concat(cur, f(a))
-			}, m.Empty())
+				return concat(cur, f(a))
+			}, empty)
 		}
 	}
 }
 
 func FoldMapWithIndex[AS ~[]A, A, B any](m M.Monoid[B]) func(func(int, A) B) func(AS) B {
+	empty := m.Empty()
+	concat := m.Concat
 	return func(f func(int, A) B) func(AS) B {
 		return func(as AS) B {
 			return array.ReduceWithIndex(as, func(idx int, cur B, a A) B {
-				return m.Concat(cur, f(idx, a))
-			}, m.Empty())
+				return concat(cur, f(idx, a))
+			}, empty)
 		}
 	}
 }
 
 func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
+	empty := m.Empty()
+	concat := m.Concat
 	return func(as AS) A {
-		return array.Reduce(as, m.Concat, m.Empty())
+		return array.Reduce(as, concat, empty)
 	}
 }
 

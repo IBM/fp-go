@@ -35,6 +35,8 @@ import (
 // Example:
 //
 //	result := either.Of[error](42) // Right(42)
+//
+//go:inline
 func Of[E, A any](value A) Either[E, A] {
 	return F.Pipe1(value, Right[E, A])
 }
@@ -81,6 +83,8 @@ func Ap[B, E, A any](fa Either[E, A]) func(fab Either[E, func(a A) B]) Either[E,
 //	    either.Right[error](21),
 //	    func(x int) int { return x * 2 },
 //	) // Right(42)
+//
+//go:inline
 func MonadMap[E, A, B any](fa Either[E, A], f func(a A) B) Either[E, B] {
 	return MonadChain(fa, F.Flow2(f, Right[E, B]))
 }
@@ -157,6 +161,8 @@ func MapLeft[A, E1, E2 any](f func(E1) E2) func(fa Either[E1, A]) Either[E2, A] 
 //	        return either.Right[error](x * 2)
 //	    },
 //	) // Right(42)
+//
+//go:inline
 func MonadChain[E, A, B any](fa Either[E, A], f func(a A) Either[E, B]) Either[E, B] {
 	return MonadFold(fa, Left[B, E], f)
 }
@@ -300,6 +306,8 @@ func FromOption[A, E any](onNone func() E) func(Option[A]) Either[E, A] {
 //
 //	result := either.ToOption(either.Right[error](42)) // Some(42)
 //	result := either.ToOption(either.Left[int](errors.New("err"))) // None
+//
+//go:inline
 func ToOption[E, A any](ma Either[E, A]) Option[A] {
 	return MonadFold(ma, F.Ignore1of1[E](O.None[A]), O.Some[A])
 }
@@ -351,6 +359,8 @@ func Fold[E, A, B any](onLeft func(E) B, onRight func(A) B) func(Either[E, A]) B
 //
 //	val, err := either.UnwrapError(either.Right[error](42)) // 42, nil
 //	val, err := either.UnwrapError(either.Left[int](errors.New("fail"))) // zero, error
+//
+//go:inline
 func UnwrapError[A any](ma Either[error, A]) (A, error) {
 	return Unwrap[error](ma)
 }
@@ -495,6 +505,8 @@ func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3
 //
 //	result := either.Swap(either.Right[error](42)) // Left(42)
 //	result := either.Swap(either.Left[int](errors.New("err"))) // Right(error)
+//
+//go:inline
 func Swap[E, A any](val Either[E, A]) Either[A, E] {
 	return MonadFold(val, Right[A, E], Left[E, A])
 }
