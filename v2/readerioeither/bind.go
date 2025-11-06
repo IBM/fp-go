@@ -20,14 +20,68 @@ import (
 	G "github.com/IBM/fp-go/v2/readerioeither/generic"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Posts  []Post
+//	}
+//	type Env struct {
+//	    UserRepo UserRepository
+//	    PostRepo PostRepository
+//	}
+//	result := readerioeither.Do[Env, error](State{})
 func Do[R, E, S any](
 	empty S,
 ) ReaderIOEither[R, E, S] {
 	return G.Do[ReaderIOEither[R, E, S], IOE.IOEither[E, S], R, E, S](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps
+// and access the shared environment.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Posts  []Post
+//	}
+//	type Env struct {
+//	    UserRepo UserRepository
+//	    PostRepo PostRepository
+//	}
+//
+//	result := F.Pipe2(
+//	    readerioeither.Do[Env, error](State{}),
+//	    readerioeither.Bind(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        func(s State) readerioeither.ReaderIOEither[Env, error, User] {
+//	            return readerioeither.Asks(func(env Env) ioeither.IOEither[error, User] {
+//	                return env.UserRepo.FindUser()
+//	            })
+//	        },
+//	    ),
+//	    readerioeither.Bind(
+//	        func(posts []Post) func(State) State {
+//	            return func(s State) State { s.Posts = posts; return s }
+//	        },
+//	        func(s State) readerioeither.ReaderIOEither[Env, error, []Post] {
+//	            // This can access s.User from the previous step
+//	            return readerioeither.Asks(func(env Env) ioeither.IOEither[error, []Post] {
+//	                return env.PostRepo.FindPostsByUser(s.User.ID)
+//	            })
+//	        },
+//	    ),
+//	)
 func Bind[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderIOEither[R, E, T],

@@ -23,14 +23,56 @@ import (
 	P "github.com/IBM/fp-go/v2/pair"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	}
+//	result := generic.Do[Iterator[State]](State{})
 func Do[GS ~func() O.Option[P.Pair[GS, S]], S any](
 	empty S,
 ) GS {
 	return Of[GS](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+// For iterators, this produces the cartesian product where later steps can use values from earlier steps.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	}
+//
+//	result := F.Pipe2(
+//	    generic.Do[Iterator[State]](State{}),
+//	    generic.Bind[Iterator[State], Iterator[State], Iterator[int], State, State, int](
+//	        func(x int) func(State) State {
+//	            return func(s State) State { s.X = x; return s }
+//	        },
+//	        func(s State) Iterator[int] {
+//	            return generic.Of[Iterator[int]](1, 2, 3)
+//	        },
+//	    ),
+//	    generic.Bind[Iterator[State], Iterator[State], Iterator[int], State, State, int](
+//	        func(y int) func(State) State {
+//	            return func(s State) State { s.Y = y; return s }
+//	        },
+//	        func(s State) Iterator[int] {
+//	            // This can access s.X from the previous step
+//	            return generic.Of[Iterator[int]](s.X * 10, s.X * 20)
+//	        },
+//	    ),
+//	) // Produces: {1,10}, {1,20}, {2,20}, {2,40}, {3,30}, {3,60}
 func Bind[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], GA ~func() O.Option[P.Pair[GA, A]], S1, S2, A any](
 	setter func(A) func(S1) S2,
 	f func(S1) GA,

@@ -21,14 +21,63 @@ import (
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    UserID   string
+//	    TenantID string
+//	}
+//	result := readereither.Do(State{})
 func Do[S any](
 	empty S,
 ) ReaderEither[S] {
 	return G.Do[ReaderEither[S], context.Context, error, S](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps
+// and access the context.Context from the environment.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    UserID   string
+//	    TenantID string
+//	}
+//
+//	result := F.Pipe2(
+//	    readereither.Do(State{}),
+//	    readereither.Bind(
+//	        func(uid string) func(State) State {
+//	            return func(s State) State { s.UserID = uid; return s }
+//	        },
+//	        func(s State) readereither.ReaderEither[string] {
+//	            return func(ctx context.Context) either.Either[error, string] {
+//	                if uid, ok := ctx.Value("userID").(string); ok {
+//	                    return either.Right[error](uid)
+//	                }
+//	                return either.Left[string](errors.New("no userID"))
+//	            }
+//	        },
+//	    ),
+//	    readereither.Bind(
+//	        func(tid string) func(State) State {
+//	            return func(s State) State { s.TenantID = tid; return s }
+//	        },
+//	        func(s State) readereither.ReaderEither[string] {
+//	            // This can access s.UserID from the previous step
+//	            return func(ctx context.Context) either.Either[error, string] {
+//	                return either.Right[error]("tenant-" + s.UserID)
+//	            }
+//	        },
+//	    ),
+//	)
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderEither[T],

@@ -21,14 +21,59 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    User  User
+//	    Posts []Post
+//	}
+//	result := ioeither.Do[error](State{})
 func Do[E, S any](
 	empty S,
 ) IOEither[E, S] {
 	return Of[E](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    User  User
+//	    Posts []Post
+//	}
+//
+//	result := F.Pipe2(
+//	    ioeither.Do[error](State{}),
+//	    ioeither.Bind(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        func(s State) ioeither.IOEither[error, User] {
+//	            return ioeither.TryCatch(func() (User, error) {
+//	                return fetchUser()
+//	            })
+//	        },
+//	    ),
+//	    ioeither.Bind(
+//	        func(posts []Post) func(State) State {
+//	            return func(s State) State { s.Posts = posts; return s }
+//	        },
+//	        func(s State) ioeither.IOEither[error, []Post] {
+//	            // This can access s.User from the previous step
+//	            return ioeither.TryCatch(func() ([]Post, error) {
+//	                return fetchPostsForUser(s.User.ID)
+//	            })
+//	        },
+//	    ),
+//	)
 func Bind[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) IOEither[E, T],

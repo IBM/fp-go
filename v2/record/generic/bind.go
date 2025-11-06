@@ -22,12 +22,58 @@ import (
 	Mo "github.com/IBM/fp-go/v2/monoid"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Count int
+//	}
+//	result := generic.Do[map[string]State, string, State]()
 func Do[GS ~map[K]S, K comparable, S any]() GS {
 	return Empty[GS, K, S]()
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+// For records, this merges values by key where later steps can use values from earlier steps.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Count int
+//	}
+//
+//	result := F.Pipe2(
+//	    generic.Do[map[string]State, string, State](),
+//	    generic.Bind[map[string]State, map[string]State, map[string]string, string, State, State, string](
+//	        monoid.Record[string, State](),
+//	    )(
+//	        func(name string) func(State) State {
+//	            return func(s State) State { s.Name = name; return s }
+//	        },
+//	        func(s State) map[string]string {
+//	            return map[string]string{"a": "Alice", "b": "Bob"}
+//	        },
+//	    ),
+//	    generic.Bind[map[string]State, map[string]State, map[string]int, string, State, State, int](
+//	        monoid.Record[string, State](),
+//	    )(
+//	        func(count int) func(State) State {
+//	            return func(s State) State { s.Count = count; return s }
+//	        },
+//	        func(s State) map[string]int {
+//	            // This can access s.Name from the previous step
+//	            return map[string]int{"a": len(s.Name), "b": len(s.Name) * 2}
+//	        },
+//	    ),
+//	)
 func Bind[GS1 ~map[K]S1, GS2 ~map[K]S2, GT ~map[K]T, K comparable, S1, S2, T any](m Mo.Monoid[GS2]) func(setter func(T) func(S1) S2, f func(S1) GT) func(GS1) GS2 {
 	c := Chain[GS1, GS2, K, S1, S2](m)
 	return func(setter func(T) func(S1) S2, f func(S1) GT) func(GS1) GS2 {

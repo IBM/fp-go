@@ -20,12 +20,54 @@ import (
 	G "github.com/IBM/fp-go/v2/record/generic"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Count int
+//	}
+//	result := record.Do[string, State]()
 func Do[K comparable, S any]() map[K]S {
 	return G.Do[map[K]S, K, S]()
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+// For records, this merges values by key.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Count int
+//	}
+//
+//	result := F.Pipe2(
+//	    record.Do[string, State](),
+//	    record.Bind(monoid.Record[string, State]())(
+//	        func(name string) func(State) State {
+//	            return func(s State) State { s.Name = name; return s }
+//	        },
+//	        func(s State) map[string]string {
+//	            return map[string]string{"a": "Alice", "b": "Bob"}
+//	        },
+//	    ),
+//	    record.Bind(monoid.Record[string, State]())(
+//	        func(count int) func(State) State {
+//	            return func(s State) State { s.Count = count; return s }
+//	        },
+//	        func(s State) map[string]int {
+//	            // This can access s.Name from the previous step
+//	            return map[string]int{"a": len(s.Name), "b": len(s.Name) * 2}
+//	        },
+//	    ),
+//	)
 func Bind[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, f func(S1) map[K]T) func(map[K]S1) map[K]S2 {
 	return G.Bind[map[K]S1, map[K]S2, map[K]T, K, S1, S2, T](m)
 }

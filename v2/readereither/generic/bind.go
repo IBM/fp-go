@@ -22,14 +22,68 @@ import (
 	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    Config Config
+//	    User   User
+//	}
+//	type Env struct {
+//	    ConfigService ConfigService
+//	    UserService   UserService
+//	}
+//	result := generic.Do[ReaderEither[Env, error, State], Env, error, State](State{})
 func Do[GS ~func(R) ET.Either[E, S], R, E, S any](
 	empty S,
 ) GS {
 	return Of[GS, E, R, S](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps
+// and access the shared environment.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    Config Config
+//	    User   User
+//	}
+//	type Env struct {
+//	    ConfigService ConfigService
+//	    UserService   UserService
+//	}
+//
+//	result := F.Pipe2(
+//	    generic.Do[ReaderEither[Env, error, State], Env, error, State](State{}),
+//	    generic.Bind[ReaderEither[Env, error, State], ReaderEither[Env, error, State], ReaderEither[Env, error, Config], Env, error, State, State, Config](
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        func(s State) ReaderEither[Env, error, Config] {
+//	            return func(env Env) either.Either[error, Config] {
+//	                return env.ConfigService.Load()
+//	            }
+//	        },
+//	    ),
+//	    generic.Bind[ReaderEither[Env, error, State], ReaderEither[Env, error, State], ReaderEither[Env, error, User], Env, error, State, State, User](
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        func(s State) ReaderEither[Env, error, User] {
+//	            // This can access s.Config from the previous step
+//	            return func(env Env) either.Either[error, User] {
+//	                return env.UserService.GetUserForConfig(s.Config)
+//	            }
+//	        },
+//	    ),
+//	)
 func Bind[GS1 ~func(R) ET.Either[E, S1], GS2 ~func(R) ET.Either[E, S2], GT ~func(R) ET.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) GT,

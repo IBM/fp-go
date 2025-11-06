@@ -22,14 +22,68 @@ import (
 	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserRepo   UserRepository
+//	    ConfigRepo ConfigRepository
+//	}
+//	result := generic.Do[ReaderIOEither[Env, error, State], IOEither[error, State], Env, error, State](State{})
 func Do[GRS ~func(R) GS, GS ~func() either.Either[E, S], R, E, S any](
 	empty S,
 ) GRS {
 	return Of[GRS, GS, R, E, S](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps
+// and access the shared environment.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserRepo   UserRepository
+//	    ConfigRepo ConfigRepository
+//	}
+//
+//	result := F.Pipe2(
+//	    generic.Do[ReaderIOEither[Env, error, State], IOEither[error, State], Env, error, State](State{}),
+//	    generic.Bind[ReaderIOEither[Env, error, State], ReaderIOEither[Env, error, State], ReaderIOEither[Env, error, User], IOEither[error, State], IOEither[error, State], IOEither[error, User], Env, error, State, State, User](
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        func(s State) ReaderIOEither[Env, error, User] {
+//	            return func(env Env) ioeither.IOEither[error, User] {
+//	                return env.UserRepo.FindUser()
+//	            }
+//	        },
+//	    ),
+//	    generic.Bind[ReaderIOEither[Env, error, State], ReaderIOEither[Env, error, State], ReaderIOEither[Env, error, Config], IOEither[error, State], IOEither[error, State], IOEither[error, Config], Env, error, State, State, Config](
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        func(s State) ReaderIOEither[Env, error, Config] {
+//	            // This can access s.User from the previous step
+//	            return func(env Env) ioeither.IOEither[error, Config] {
+//	                return env.ConfigRepo.LoadConfigForUser(s.User.ID)
+//	            }
+//	        },
+//	    ),
+//	)
 func Bind[GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GS1 ~func() either.Either[E, S1], GS2 ~func() either.Either[E, S2], GT ~func() either.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) GRT,

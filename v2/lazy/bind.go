@@ -19,14 +19,55 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    Config Config
+//	    Data   Data
+//	}
+//	result := lazy.Do(State{})
 func Do[S any](
 	empty S,
 ) Lazy[S] {
 	return io.Do(empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    Config Config
+//	    Data   Data
+//	}
+//
+//	result := F.Pipe2(
+//	    lazy.Do(State{}),
+//	    lazy.Bind(
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        func(s State) lazy.Lazy[Config] {
+//	            return lazy.MakeLazy(func() Config { return loadConfig() })
+//	        },
+//	    ),
+//	    lazy.Bind(
+//	        func(data Data) func(State) State {
+//	            return func(s State) State { s.Data = data; return s }
+//	        },
+//	        func(s State) lazy.Lazy[Data] {
+//	            // This can access s.Config from the previous step
+//	            return lazy.MakeLazy(func() Data { return loadData(s.Config) })
+//	        },
+//	    ),
+//	)
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) Lazy[T],

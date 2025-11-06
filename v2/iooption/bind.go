@@ -21,14 +21,55 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Age   int
+//	}
+//	result := iooption.Do(State{})
 func Do[S any](
 	empty S,
 ) IOOption[S] {
 	return Of(empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Age   int
+//	}
+//
+//	result := F.Pipe2(
+//	    iooption.Do(State{}),
+//	    iooption.Bind(
+//	        func(name string) func(State) State {
+//	            return func(s State) State { s.Name = name; return s }
+//	        },
+//	        func(s State) iooption.IOOption[string] {
+//	            return iooption.FromIO(io.Of("Alice"))
+//	        },
+//	    ),
+//	    iooption.Bind(
+//	        func(age int) func(State) State {
+//	            return func(s State) State { s.Age = age; return s }
+//	        },
+//	        func(s State) iooption.IOOption[int] {
+//	            // This can access s.Name from the previous step
+//	            return iooption.FromIO(io.Of(len(s.Name) * 10))
+//	        },
+//	    ),
+//	)
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) IOOption[T],

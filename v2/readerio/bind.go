@@ -21,14 +21,68 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Config struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//	result := readerio.Do[Config](State{})
 func Do[R, S any](
 	empty S,
 ) ReaderIO[R, S] {
 	return Of[R](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps
+// and access the shared environment.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Config struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//
+//	result := F.Pipe2(
+//	    readerio.Do[Config](State{}),
+//	    readerio.Bind(
+//	        func(host string) func(State) State {
+//	            return func(s State) State { s.Host = host; return s }
+//	        },
+//	        func(s State) readerio.ReaderIO[Config, string] {
+//	            return readerio.Asks(func(c Config) io.IO[string] {
+//	                return io.Of(c.DefaultHost)
+//	            })
+//	        },
+//	    ),
+//	    readerio.Bind(
+//	        func(port int) func(State) State {
+//	            return func(s State) State { s.Port = port; return s }
+//	        },
+//	        func(s State) readerio.ReaderIO[Config, int] {
+//	            // This can access s.Host from the previous step
+//	            return readerio.Asks(func(c Config) io.IO[int] {
+//	                return io.Of(c.DefaultPort)
+//	            })
+//	        },
+//	    ),
+//	)
 func Bind[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderIO[R, T],

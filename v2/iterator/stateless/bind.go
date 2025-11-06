@@ -19,14 +19,56 @@ import (
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
 )
 
-// Bind creates an empty context of type [S] to be used with the [Bind] operation
+// Do creates an empty context of type [S] to be used with the [Bind] operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	}
+//	result := stateless.Do(State{})
 func Do[S any](
 	empty S,
 ) Iterator[S] {
 	return G.Do[Iterator[S]](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2]
+// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// This enables sequential composition where each step can depend on the results of previous steps.
+// For iterators, this produces the cartesian product of all values.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	}
+//
+//	result := F.Pipe2(
+//	    stateless.Do(State{}),
+//	    stateless.Bind(
+//	        func(x int) func(State) State {
+//	            return func(s State) State { s.X = x; return s }
+//	        },
+//	        func(s State) stateless.Iterator[int] {
+//	            return stateless.Of(1, 2, 3)
+//	        },
+//	    ),
+//	    stateless.Bind(
+//	        func(y int) func(State) State {
+//	            return func(s State) State { s.Y = y; return s }
+//	        },
+//	        func(s State) stateless.Iterator[int] {
+//	            // This can access s.X from the previous step
+//	            return stateless.Of(s.X * 10, s.X * 20)
+//	        },
+//	    ),
+//	) // Produces: {1,10}, {1,20}, {2,20}, {2,40}, {3,30}, {3,60}
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) Iterator[T],
