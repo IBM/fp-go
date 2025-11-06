@@ -141,6 +141,10 @@ func reduceRef[A, B any](fa []A, f func(B, *A) B, initial B) B {
 	return current
 }
 
+func MonadReduce[A, B any](fa []A, f func(B, A) B, initial B) B {
+	return G.MonadReduce(fa, f, initial)
+}
+
 func Reduce[A, B any](f func(B, A) B, initial B) func([]A) B {
 	return G.Reduce[[]A](f, initial)
 }
