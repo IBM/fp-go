@@ -57,7 +57,47 @@ func BindTo[R, E, S1, T any](
 	return G.BindTo[ReaderEither[R, E, S1], ReaderEither[R, E, T], R, E, S1, T](setter)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserService   UserService
+//	    ConfigService ConfigService
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getUser := readereither.Asks(func(env Env) either.Either[error, User] {
+//	    return env.UserService.GetUser()
+//	})
+//	getConfig := readereither.Asks(func(env Env) either.Either[error, Config] {
+//	    return env.ConfigService.GetConfig()
+//	})
+//
+//	result := F.Pipe2(
+//	    readereither.Do[Env, error](State{}),
+//	    readereither.ApS(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	    readereither.ApS(
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        getConfig,
+//	    ),
+//	)
 func ApS[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderEither[R, E, T],

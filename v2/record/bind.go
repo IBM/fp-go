@@ -51,7 +51,39 @@ func BindTo[S1, T any, K comparable](setter func(T) S1) func(map[K]T) map[K]S1 {
 	return G.BindTo[map[K]S1, map[K]T, K, S1, T](setter)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Count int
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	names := map[string]string{"a": "Alice", "b": "Bob"}
+//	counts := map[string]int{"a": 10, "b": 20}
+//
+//	result := F.Pipe2(
+//	    record.Do[string, State](),
+//	    record.ApS(monoid.Record[string, State]())(
+//	        func(name string) func(State) State {
+//	            return func(s State) State { s.Name = name; return s }
+//	        },
+//	        names,
+//	    ),
+//	    record.ApS(monoid.Record[string, State]())(
+//	        func(count int) func(State) State {
+//	            return func(s State) State { s.Count = count; return s }
+//	        },
+//	        counts,
+//	    ),
+//	) // map[string]State{"a": {Name: "Alice", Count: 10}, "b": {Name: "Bob", Count: 20}}
 func ApS[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, fa map[K]T) func(map[K]S1) map[K]S2 {
 	return G.ApS[map[K]S1, map[K]S2, map[K]T, K, S1, S2, T](m)
 }

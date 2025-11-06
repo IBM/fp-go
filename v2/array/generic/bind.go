@@ -75,7 +75,39 @@ func BindTo[GS1 ~[]S1, GT ~[]T, S1, T any](
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel. For arrays, this produces the cartesian product.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y string
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	xValues := []int{1, 2}
+//	yValues := []string{"a", "b"}
+//
+//	result := F.Pipe2(
+//	    generic.Do[[]State, State](State{}),
+//	    generic.ApS[[]State, []State, []int, State, State, int](
+//	        func(x int) func(State) State {
+//	            return func(s State) State { s.X = x; return s }
+//	        },
+//	        xValues,
+//	    ),
+//	    generic.ApS[[]State, []State, []string, State, State, string](
+//	        func(y string) func(State) State {
+//	            return func(s State) State { s.Y = y; return s }
+//	        },
+//	        yValues,
+//	    ),
+//	) // [{1,"a"}, {1,"b"}, {2,"a"}, {2,"b"}]
 func ApS[GS1 ~[]S1, GS2 ~[]S2, GT ~[]T, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa GT,

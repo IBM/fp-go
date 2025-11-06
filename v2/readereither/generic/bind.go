@@ -76,7 +76,47 @@ func BindTo[GS1 ~func(R) ET.Either[E, S1], GT ~func(R) ET.Either[E, T], R, E, S1
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    Config Config
+//	    User   User
+//	}
+//	type Env struct {
+//	    ConfigService ConfigService
+//	    UserService   UserService
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getConfig := func(env Env) either.Either[error, Config] {
+//	    return env.ConfigService.Load()
+//	}
+//	getUser := func(env Env) either.Either[error, User] {
+//	    return env.UserService.GetCurrent()
+//	}
+//
+//	result := F.Pipe2(
+//	    generic.Do[ReaderEither[Env, error, State], Env, error, State](State{}),
+//	    generic.ApS[...](
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        getConfig,
+//	    ),
+//	    generic.ApS[...](
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	)
 func ApS[GS1 ~func(R) ET.Either[E, S1], GS2 ~func(R) ET.Either[E, S2], GT ~func(R) ET.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa GT,

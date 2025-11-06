@@ -72,7 +72,43 @@ func BindTo[GS1 ~map[K]S1, GT ~map[K]T, K comparable, S1, T any](setter func(T) 
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel. For records, this merges values by key.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Score int
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	names := map[string]string{"player1": "Alice", "player2": "Bob"}
+//	scores := map[string]int{"player1": 100, "player2": 200}
+//
+//	result := F.Pipe2(
+//	    generic.Do[map[string]State, string, State](),
+//	    generic.ApS[map[string]State, map[string]State, map[string]string, string, State, State, string](
+//	        monoid.Record[string, State](),
+//	    )(
+//	        func(name string) func(State) State {
+//	            return func(s State) State { s.Name = name; return s }
+//	        },
+//	        names,
+//	    ),
+//	    generic.ApS[map[string]State, map[string]State, map[string]int, string, State, State, int](
+//	        monoid.Record[string, State](),
+//	    )(
+//	        func(score int) func(State) State {
+//	            return func(s State) State { s.Score = score; return s }
+//	        },
+//	        scores,
+//	    ),
+//	) // map[string]State{"player1": {Name: "Alice", Score: 100}, "player2": {Name: "Bob", Score: 200}}
 func ApS[GS1 ~map[K]S1, GS2 ~map[K]S2, GT ~map[K]T, K comparable, S1, S2, T any](m Mo.Monoid[GS2]) func(setter func(T) func(S1) S2, fa GT) func(GS1) GS2 {
 	a := Ap[GS2, map[K]func(T) S2, GT, K, S2, T](m)
 	return func(setter func(T) func(S1) S2, fa GT) func(GS1) GS2 {

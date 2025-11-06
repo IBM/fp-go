@@ -75,7 +75,47 @@ func BindTo[R, S1, T any](
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Config struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getHost := readerio.Asks(func(c Config) io.IO[string] {
+//	    return io.Of(c.DefaultHost)
+//	})
+//	getPort := readerio.Asks(func(c Config) io.IO[int] {
+//	    return io.Of(c.DefaultPort)
+//	})
+//
+//	result := F.Pipe2(
+//	    readerio.Do[Config](State{}),
+//	    readerio.ApS(
+//	        func(host string) func(State) State {
+//	            return func(s State) State { s.Host = host; return s }
+//	        },
+//	        getHost,
+//	    ),
+//	    readerio.ApS(
+//	        func(port int) func(State) State {
+//	            return func(s State) State { s.Port = port; return s }
+//	        },
+//	        getPort,
+//	    ),
+//	)
 func ApS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIO[R, T],

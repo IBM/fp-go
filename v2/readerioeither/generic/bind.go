@@ -76,7 +76,47 @@ func BindTo[GRS1 ~func(R) GS1, GRT ~func(R) GT, GS1 ~func() either.Either[E, S1]
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserRepo   UserRepository
+//	    ConfigRepo ConfigRepository
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getUser := func(env Env) ioeither.IOEither[error, User] {
+//	    return env.UserRepo.FindUser()
+//	}
+//	getConfig := func(env Env) ioeither.IOEither[error, Config] {
+//	    return env.ConfigRepo.LoadConfig()
+//	}
+//
+//	result := F.Pipe2(
+//	    generic.Do[ReaderIOEither[Env, error, State], IOEither[error, State], Env, error, State](State{}),
+//	    generic.ApS[...](
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	    generic.ApS[...](
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        getConfig,
+//	    ),
+//	)
 func ApS[GRTS1 ~func(R) GTS1, GRS1 ~func(R) GS1, GRS2 ~func(R) GS2, GRT ~func(R) GT, GTS1 ~func() either.Either[E, func(T) S2], GS1 ~func() either.Either[E, S1], GS2 ~func() either.Either[E, S2], GT ~func() either.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa GRT,

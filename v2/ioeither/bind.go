@@ -75,7 +75,39 @@ func BindTo[E, S1, T any](
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    User  User
+//	    Posts []Post
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getUser := ioeither.Right[error](User{ID: 1, Name: "Alice"})
+//	getPosts := ioeither.Right[error]([]Post{{ID: 1, Title: "Hello"}})
+//
+//	result := F.Pipe2(
+//	    ioeither.Do[error](State{}),
+//	    ioeither.ApS(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	    ioeither.ApS(
+//	        func(posts []Post) func(State) State {
+//	            return func(s State) State { s.Posts = posts; return s }
+//	        },
+//	        getPosts,
+//	    ),
+//	)
 func ApS[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOEither[E, T],

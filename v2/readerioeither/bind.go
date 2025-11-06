@@ -58,7 +58,47 @@ func BindTo[R, E, S1, T any](
 	return G.BindTo[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, T], IOE.IOEither[E, S1], IOE.IOEither[E, T], R, E, S1, T](setter)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Posts  []Post
+//	}
+//	type Env struct {
+//	    UserRepo UserRepository
+//	    PostRepo PostRepository
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getUser := readerioeither.Asks(func(env Env) ioeither.IOEither[error, User] {
+//	    return env.UserRepo.FindUser()
+//	})
+//	getPosts := readerioeither.Asks(func(env Env) ioeither.IOEither[error, []Post] {
+//	    return env.PostRepo.FindPosts()
+//	})
+//
+//	result := F.Pipe2(
+//	    readerioeither.Do[Env, error](State{}),
+//	    readerioeither.ApS(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	    readerioeither.ApS(
+//	        func(posts []Post) func(State) State {
+//	            return func(s State) State { s.Posts = posts; return s }
+//	        },
+//	        getPosts,
+//	    ),
+//	)
 func ApS[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIOEither[R, E, T],

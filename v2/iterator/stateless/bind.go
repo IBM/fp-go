@@ -57,7 +57,39 @@ func BindTo[S1, T any](
 	return G.BindTo[Iterator[S1], Iterator[T], S1, T](setter)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	xValues := stateless.Of(1, 2, 3)
+//	yValues := stateless.Of(10, 20)
+//
+//	result := F.Pipe2(
+//	    stateless.Do(State{}),
+//	    stateless.ApS(
+//	        func(x int) func(State) State {
+//	            return func(s State) State { s.X = x; return s }
+//	        },
+//	        xValues,
+//	    ),
+//	    stateless.ApS(
+//	        func(y int) func(State) State {
+//	            return func(s State) State { s.Y = y; return s }
+//	        },
+//	        yValues,
+//	    ),
+//	) // Produces all combinations: {1,10}, {1,20}, {2,10}, {2,20}, {3,10}, {3,20}
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Iterator[T],

@@ -78,7 +78,39 @@ func BindTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GA ~func() O.Option[P.Pair[GA
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel. For iterators, this produces the cartesian product.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y string
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	xIter := generic.Of[Iterator[int]](1, 2, 3)
+//	yIter := generic.Of[Iterator[string]]("a", "b")
+//
+//	result := F.Pipe2(
+//	    generic.Do[Iterator[State]](State{}),
+//	    generic.ApS[Iterator[func(int) State], Iterator[State], Iterator[State], Iterator[int], State, State, int](
+//	        func(x int) func(State) State {
+//	            return func(s State) State { s.X = x; return s }
+//	        },
+//	        xIter,
+//	    ),
+//	    generic.ApS[Iterator[func(string) State], Iterator[State], Iterator[State], Iterator[string], State, State, string](
+//	        func(y string) func(State) State {
+//	            return func(s State) State { s.Y = y; return s }
+//	        },
+//	        yIter,
+//	    ),
+//	) // Produces: {1,"a"}, {1,"b"}, {2,"a"}, {2,"b"}, {3,"a"}, {3,"b"}
 func ApS[GAS2 ~func() O.Option[P.Pair[GAS2, func(A) S2]], GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], GA ~func() O.Option[P.Pair[GA, A]], S1, S2, A any](
 	setter func(A) func(S1) S2,
 	fa GA,

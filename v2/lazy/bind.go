@@ -57,7 +57,39 @@ func BindTo[S1, T any](
 	return io.BindTo(setter)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    Config  Config
+//	    Data    Data
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getConfig := lazy.MakeLazy(func() Config { return loadConfig() })
+//	getData := lazy.MakeLazy(func() Data { return loadData() })
+//
+//	result := F.Pipe2(
+//	    lazy.Do(State{}),
+//	    lazy.ApS(
+//	        func(cfg Config) func(State) State {
+//	            return func(s State) State { s.Config = cfg; return s }
+//	        },
+//	        getConfig,
+//	    ),
+//	    lazy.ApS(
+//	        func(data Data) func(State) State {
+//	            return func(s State) State { s.Data = data; return s }
+//	        },
+//	        getData,
+//	    ),
+//	)
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Lazy[T],

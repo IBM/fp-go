@@ -75,7 +75,39 @@ func BindTo[S1, T any](
 	)
 }
 
-// ApS attaches a value to a context [S1] to produce a context [S2] by considering the context and the value concurrently
+// ApS attaches a value to a context [S1] to produce a context [S2] by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Age   int
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getName := iooption.Some("Alice")
+//	getAge := iooption.Some(30)
+//
+//	result := F.Pipe2(
+//	    iooption.Do(State{}),
+//	    iooption.ApS(
+//	        func(name string) func(State) State {
+//	            return func(s State) State { s.Name = name; return s }
+//	        },
+//	        getName,
+//	    ),
+//	    iooption.ApS(
+//	        func(age int) func(State) State {
+//	            return func(s State) State { s.Age = age; return s }
+//	        },
+//	        getAge,
+//	    ),
+//	)
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOOption[T],
