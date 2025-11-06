@@ -1,0 +1,154 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package io
+
+import (
+	INTA "github.com/IBM/fp-go/v2/internal/apply"
+	INTC "github.com/IBM/fp-go/v2/internal/chain"
+	INTF "github.com/IBM/fp-go/v2/internal/functor"
+)
+
+// Do creates an empty context of type S to be used with the Bind operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    user User
+//	    posts []Post
+//	}
+//	result := pipe.Pipe2(
+//	    io.Do(State{}),
+//	    io.Bind("user", fetchUser),
+//	    io.Bind("posts", func(s State) io.IO[[]Post] {
+//	        return fetchPosts(s.user.Id)
+//	    }),
+//	)
+func Do[S any](
+	empty S,
+) IO[S] {
+	return Of(empty)
+}
+
+// Bind attaches the result of an IO computation to a context S1 to produce a context S2.
+// This is used in do-notation style composition to build up state incrementally.
+//
+// The setter function takes the result T and returns a function that updates S1 to S2.
+//
+// Example:
+//
+//	io.Bind(func(user User) func(s State) State {
+//	    return func(s State) State {
+//	        s.user = user
+//	        return s
+//	    }
+//	}, fetchUser)
+func Bind[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) IO[T],
+) Operator[S1, S2] {
+	return INTC.Bind(
+		Chain[S1, S2],
+		Map[T, S2],
+		setter,
+		f,
+	)
+}
+
+// Let attaches the result of a pure computation to a context S1 to produce a context S2.
+// Similar to Bind, but for pure (non-IO) computations.
+//
+// Example:
+//
+//	io.Let(func(count int) func(s State) State {
+//	    return func(s State) State {
+//	        s.count = count
+//	        return s
+//	    }
+//	}, func(s State) int { return len(s.items) })
+func Let[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) T,
+) Operator[S1, S2] {
+	return INTF.Let(
+		Map[S1, S2],
+		setter,
+		f,
+	)
+}
+
+// LetTo attaches a constant value to a context S1 to produce a context S2.
+// Similar to Let, but with a constant value instead of a computation.
+//
+// Example:
+//
+//	io.LetTo(func(status string) func(s State) State {
+//	    return func(s State) State {
+//	        s.status = status
+//	        return s
+//	    }
+//	}, "ready")
+func LetTo[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	b T,
+) Operator[S1, S2] {
+	return INTF.LetTo(
+		Map[S1, S2],
+		setter,
+		b,
+	)
+}
+
+// BindTo initializes a new state S1 from a value T.
+// This is typically used to start a do-notation chain from a single value.
+//
+// Example:
+//
+//	io.BindTo(func(user User) State {
+//	    return State{user: user}
+//	})
+func BindTo[S1, T any](
+	setter func(T) S1,
+) Operator[T, S1] {
+	return INTC.BindTo(
+		Map[T, S1],
+		setter,
+	)
+}
+
+// ApS attaches a value to a context S1 to produce a context S2 by considering
+// the context and the value concurrently (using applicative operations).
+// This allows parallel execution of independent computations.
+//
+// Example:
+//
+//	io.ApS(func(posts []Post) func(s State) State {
+//	    return func(s State) State {
+//	        s.posts = posts
+//	        return s
+//	    }
+//	}, fetchPosts())
+func ApS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa IO[T],
+) Operator[S1, S2] {
+	return INTA.ApS(
+		Ap[S2, T],
+		Map[S1, func(T) S2],
+		setter,
+		fa,
+	)
+}

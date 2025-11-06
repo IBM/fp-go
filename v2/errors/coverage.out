@@ -1,0 +1,13 @@
+mode: set
+github.com/IBM/fp-go/v2/errors/conv.go:48.44,49.52 1 1
+github.com/IBM/fp-go/v2/errors/conv.go:49.52,53.3 3 1
+github.com/IBM/fp-go/v2/errors/messages.go:35.51,36.22 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:36.22,38.3 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:58.59,60.12 2 1
+github.com/IBM/fp-go/v2/errors/messages.go:60.12,61.30 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:61.30,63.4 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:65.2,65.29 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:65.29,70.3 4 1
+github.com/IBM/fp-go/v2/errors/messages.go:87.57,88.31 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:88.31,90.3 1 1
+github.com/IBM/fp-go/v2/errors/messages.go:100.33,102.2 1 1

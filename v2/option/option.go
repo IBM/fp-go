@@ -1,0 +1,388 @@
+// Copyright (c) 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// package option implements the Option monad, a data type that can have a defined value or none
+package option
+
+import (
+	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/internal/chain"
+	FC "github.com/IBM/fp-go/v2/internal/functor"
+)
+
+// fromPredicate creates an Option based on a predicate function.
+// If the predicate returns true for the value, it returns Some(a), otherwise None.
+func fromPredicate[A any](a A, pred func(A) bool) Option[A] {
+	if pred(a) {
+		return Some(a)
+	}
+	return None[A]()
+}
+
+// FromPredicate returns a function that creates an Option based on a predicate.
+// The returned function will wrap a value in Some if the predicate is satisfied, otherwise None.
+//
+// Example:
+//
+//	isPositive := FromPredicate(func(n int) bool { return n > 0 })
+//	result := isPositive(5)  // Some(5)
+//	result := isPositive(-1) // None
+func FromPredicate[A any](pred func(A) bool) func(A) Option[A] {
+	return F.Bind2nd(fromPredicate[A], pred)
+}
+
+// FromNillable converts a pointer to an Option.
+// Returns Some if the pointer is non-nil, None otherwise.
+//
+// Example:
+//
+//	var ptr *int = nil
+//	result := FromNillable(ptr) // None
+//	val := 42
+//	result := FromNillable(&val) // Some(&val)
+func FromNillable[A any](a *A) Option[*A] {
+	return fromPredicate(a, F.IsNonNil[A])
+}
+
+// FromValidation converts a validation function (returning value and bool) to an Option-returning function.
+// This is an alias for Optionize1.
+//
+// Example:
+//
+//	parseNum := FromValidation(func(s string) (int, bool) {
+//	    n, err := strconv.Atoi(s)
+//	    return n, err == nil
+//	})
+//	result := parseNum("42") // Some(42)
+func FromValidation[A, B any](f func(A) (B, bool)) func(A) Option[B] {
+	return Optionize1(f)
+}
+
+// MonadAp applies a function wrapped in an Option to a value wrapped in an Option.
+// If either the function or the value is None, returns None.
+// This is the monadic form of the applicative functor.
+//
+// Example:
+//
+//	fab := Some(func(x int) int { return x * 2 })
+//	fa := Some(5)
+//	result := MonadAp(fab, fa) // Some(10)
+func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
+	return MonadFold(fab, None[B], func(ab func(A) B) Option[B] {
+		return MonadFold(fa, None[B], F.Flow2(ab, Some[B]))
+	})
+}
+
+// Ap is the curried applicative functor for Option.
+// Returns a function that applies an Option-wrapped function to the given Option value.
+//
+// Example:
+//
+//	fa := Some(5)
+//	applyTo5 := Ap[int](fa)
+//	fab := Some(func(x int) int { return x * 2 })
+//	result := applyTo5(fab) // Some(10)
+func Ap[B, A any](fa Option[A]) func(Option[func(A) B]) Option[B] {
+	return F.Bind2nd(MonadAp[B, A], fa)
+}
+
+// MonadMap applies a function to the value inside an Option.
+// If the Option is None, returns None. This is the monadic form of Map.
+//
+// Example:
+//
+//	fa := Some(5)
+//	result := MonadMap(fa, func(x int) int { return x * 2 }) // Some(10)
+func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
+	return MonadChain(fa, F.Flow2(f, Some[B]))
+}
+
+// Map returns a function that applies a transformation to the value inside an Option.
+// If the Option is None, returns None.
+//
+// Example:
+//
+//	double := Map(func(x int) int { return x * 2 })
+//	result := double(Some(5)) // Some(10)
+//	result := double(None[int]()) // None
+func Map[A, B any](f func(a A) B) func(Option[A]) Option[B] {
+	return Chain(F.Flow2(f, Some[B]))
+}
+
+// MonadMapTo replaces the value inside an Option with a constant value.
+// If the Option is None, returns None. This is the monadic form of MapTo.
+//
+// Example:
+//
+//	fa := Some(5)
+//	result := MonadMapTo(fa, "hello") // Some("hello")
+func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
+	return MonadMap(fa, F.Constant1[A](b))
+}
+
+// MapTo returns a function that replaces the value inside an Option with a constant.
+//
+// Example:
+//
+//	replaceWith42 := MapTo[string, int](42)
+//	result := replaceWith42(Some("hello")) // Some(42)
+func MapTo[A, B any](b B) func(Option[A]) Option[B] {
+	return F.Bind2nd(MonadMapTo[A, B], b)
+}
+
+// TryCatch executes a function that may return an error and converts the result to an Option.
+// Returns Some(value) if no error occurred, None if an error occurred.
+//
+// Example:
+//
+//	result := TryCatch(func() (int, error) {
+//	    return strconv.Atoi("42")
+//	}) // Some(42)
+func TryCatch[A any](f func() (A, error)) Option[A] {
+	val, err := f()
+	if err != nil {
+		return None[A]()
+	}
+	return Some(val)
+}
+
+// Fold provides a way to handle both Some and None cases of an Option.
+// Returns a function that applies onNone if the Option is None, or onSome if it's Some.
+//
+// Example:
+//
+//	handler := Fold(
+//	    func() string { return "no value" },
+//	    func(x int) string { return fmt.Sprintf("value: %d", x) },
+//	)
+//	result := handler(Some(42)) // "value: 42"
+//	result := handler(None[int]()) // "no value"
+func Fold[A, B any](onNone func() B, onSome func(a A) B) func(ma Option[A]) B {
+	return func(ma Option[A]) B {
+		return MonadFold(ma, onNone, onSome)
+	}
+}
+
+// MonadGetOrElse extracts the value from an Option or returns a default value.
+// This is the monadic form of GetOrElse.
+//
+// Example:
+//
+//	result := MonadGetOrElse(Some(42), func() int { return 0 }) // 42
+//	result := MonadGetOrElse(None[int](), func() int { return 0 }) // 0
+func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
+	return MonadFold(fa, onNone, F.Identity[A])
+}
+
+// GetOrElse returns a function that extracts the value from an Option or returns a default.
+//
+// Example:
+//
+//	getOrZero := GetOrElse(func() int { return 0 })
+//	result := getOrZero(Some(42)) // 42
+//	result := getOrZero(None[int]()) // 0
+func GetOrElse[A any](onNone func() A) func(Option[A]) A {
+	return Fold(onNone, F.Identity[A])
+}
+
+// MonadChain applies a function that returns an Option to the value inside an Option.
+// This is the monadic bind operation. If the input is None, returns None.
+//
+// Example:
+//
+//	fa := Some(5)
+//	result := MonadChain(fa, func(x int) Option[int] {
+//	    if x > 0 { return Some(x * 2) }
+//	    return None[int]()
+//	}) // Some(10)
+func MonadChain[A, B any](fa Option[A], f func(A) Option[B]) Option[B] {
+	return MonadFold(fa, None[B], f)
+}
+
+// Chain returns a function that applies an Option-returning function to an Option value.
+// This is the curried form of the monadic bind operation.
+//
+// Example:
+//
+//	validate := Chain(func(x int) Option[int] {
+//	    if x > 0 { return Some(x * 2) }
+//	    return None[int]()
+//	})
+//	result := validate(Some(5)) // Some(10)
+func Chain[A, B any](f func(A) Option[B]) func(Option[A]) Option[B] {
+	return Fold(None[B], f)
+}
+
+// MonadChainTo ignores the first Option and returns the second Option.
+// Useful for sequencing operations where the first result is not needed.
+//
+// Example:
+//
+//	result := MonadChainTo(Some(5), Some("hello")) // Some("hello")
+func MonadChainTo[A, B any](_ Option[A], mb Option[B]) Option[B] {
+	return mb
+}
+
+// ChainTo returns a function that ignores its input Option and returns a fixed Option.
+//
+// Example:
+//
+//	replaceWith := ChainTo(Some("hello"))
+//	result := replaceWith(Some(42)) // Some("hello")
+func ChainTo[A, B any](mb Option[B]) func(Option[A]) Option[B] {
+	return F.Bind2nd(MonadChainTo[A, B], mb)
+}
+
+// MonadChainFirst applies a function that returns an Option but keeps the original value.
+// If either operation results in None, returns None.
+//
+// Example:
+//
+//	result := MonadChainFirst(Some(5), func(x int) Option[string] {
+//	    return Some(fmt.Sprintf("%d", x))
+//	}) // Some(5) - original value is kept
+func MonadChainFirst[A, B any](ma Option[A], f func(A) Option[B]) Option[A] {
+	return C.MonadChainFirst(
+		MonadChain[A, A],
+		MonadMap[B, A],
+		ma,
+		f,
+	)
+}
+
+// ChainFirst returns a function that applies an Option-returning function but keeps the original value.
+//
+// Example:
+//
+//	logAndKeep := ChainFirst(func(x int) Option[string] {
+//	    fmt.Println(x)
+//	    return Some("logged")
+//	})
+//	result := logAndKeep(Some(5)) // Some(5)
+func ChainFirst[A, B any](f func(A) Option[B]) func(Option[A]) Option[A] {
+	return C.ChainFirst(
+		Chain[A, A],
+		Map[B, A],
+		f,
+	)
+}
+
+// Flatten removes one level of nesting from a nested Option.
+//
+// Example:
+//
+//	nested := Some(Some(42))
+//	result := Flatten(nested) // Some(42)
+//	nested := Some(None[int]())
+//	result := Flatten(nested) // None
+func Flatten[A any](mma Option[Option[A]]) Option[A] {
+	return MonadChain(mma, F.Identity[Option[A]])
+}
+
+// MonadAlt returns the first Option if it's Some, otherwise returns the alternative.
+// This is the monadic form of the Alt operation.
+//
+// Example:
+//
+//	result := MonadAlt(Some(5), func() Option[int] { return Some(10) }) // Some(5)
+//	result := MonadAlt(None[int](), func() Option[int] { return Some(10) }) // Some(10)
+func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
+	return MonadFold(fa, that, Of[A])
+}
+
+// Alt returns a function that provides an alternative Option if the input is None.
+//
+// Example:
+//
+//	withDefault := Alt(func() Option[int] { return Some(0) })
+//	result := withDefault(Some(5)) // Some(5)
+//	result := withDefault(None[int]()) // Some(0)
+func Alt[A any](that func() Option[A]) func(Option[A]) Option[A] {
+	return Fold(that, Of[A])
+}
+
+// MonadSequence2 sequences two Options and applies a function to their values.
+// Returns None if either Option is None.
+//
+// Example:
+//
+//	result := MonadSequence2(Some(2), Some(3), func(a, b int) Option[int] {
+//	    return Some(a + b)
+//	}) // Some(5)
+func MonadSequence2[T1, T2, R any](o1 Option[T1], o2 Option[T2], f func(T1, T2) Option[R]) Option[R] {
+	return MonadFold(o1, None[R], func(t1 T1) Option[R] {
+		return MonadFold(o2, None[R], func(t2 T2) Option[R] {
+			return f(t1, t2)
+		})
+	})
+}
+
+// Sequence2 returns a function that sequences two Options with a combining function.
+//
+// Example:
+//
+//	add := Sequence2(func(a, b int) Option[int] { return Some(a + b) })
+//	result := add(Some(2), Some(3)) // Some(5)
+func Sequence2[T1, T2, R any](f func(T1, T2) Option[R]) func(Option[T1], Option[T2]) Option[R] {
+	return func(o1 Option[T1], o2 Option[T2]) Option[R] {
+		return MonadSequence2(o1, o2, f)
+	}
+}
+
+// Reduce folds an Option into a single value using a reducer function.
+// If the Option is None, returns the initial value.
+//
+// Example:
+//
+//	sum := Reduce(func(acc, val int) int { return acc + val }, 0)
+//	result := sum(Some(5)) // 5
+//	result := sum(None[int]()) // 0
+func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
+	return Fold(F.Constant(initial), F.Bind1st(f, initial))
+}
+
+// Filter keeps the Option if it's Some and the predicate is satisfied, otherwise returns None.
+//
+// Example:
+//
+//	isPositive := Filter(func(x int) bool { return x > 0 })
+//	result := isPositive(Some(5)) // Some(5)
+//	result := isPositive(Some(-1)) // None
+//	result := isPositive(None[int]()) // None
+func Filter[A any](pred func(A) bool) func(Option[A]) Option[A] {
+	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
+}
+
+// MonadFlap applies a value to a function wrapped in an Option.
+// This is the monadic form of Flap.
+//
+// Example:
+//
+//	fab := Some(func(x int) int { return x * 2 })
+//	result := MonadFlap(fab, 5) // Some(10)
+func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
+	return FC.MonadFlap(MonadMap[func(A) B, B], fab, a)
+}
+
+// Flap returns a function that applies a value to an Option-wrapped function.
+//
+// Example:
+//
+//	applyFive := Flap[int](5)
+//	fab := Some(func(x int) int { return x * 2 })
+//	result := applyFive(fab) // Some(10)
+func Flap[B, A any](a A) func(Option[func(A) B]) Option[B] {
+	return FC.Flap(Map[func(A) B, B], a)
+}
