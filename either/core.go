@@ -31,7 +31,7 @@ type (
 
 // String prints some debug info for the object
 //
-// go:noinline
+//go:noinline
 func eitherString(s *either) string {
 	if s.isLeft {
 		return fmt.Sprintf("Left[%T](%v)", s.value, s.value)
@@ -41,7 +41,7 @@ func eitherString(s *either) string {
 
 // Format prints some debug info for the object
 //
-// go:noinline
+//go:noinline
 func eitherFormat(e *either, f fmt.State, c rune) {
 	switch c {
 	case 's':

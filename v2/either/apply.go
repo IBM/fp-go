@@ -29,6 +29,8 @@ import (
 //	intAdd := semigroup.MakeSemigroup(func(a, b int) int { return a + b })
 //	eitherSemi := either.ApplySemigroup[error](intAdd)
 //	result := eitherSemi.Concat(either.Right[error](2), either.Right[error](3)) // Right(5)
+//
+//go:inline
 func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
 	return S.ApplySemigroup(MonadMap[E, A, func(A) A], MonadAp[A, E, A], s)
 }
@@ -41,6 +43,8 @@ func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
 //	intAddMonoid := monoid.MakeMonoid(0, func(a, b int) int { return a + b })
 //	eitherMon := either.ApplicativeMonoid[error](intAddMonoid)
 //	empty := eitherMon.Empty() // Right(0)
+//
+//go:inline
 func ApplicativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
 	return M.ApplicativeMonoid(Of[E, A], MonadMap[E, A, func(A) A], MonadAp[A, E, A], m)
 }

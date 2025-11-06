@@ -35,7 +35,7 @@ type Option[A any] struct {
 
 // optString prints some debug info for the object
 //
-// go:noinline
+//go:noinline
 func optString(isSome bool, value any) string {
 	if isSome {
 		return fmt.Sprintf("Some[%T](%v)", value, value)
@@ -45,7 +45,7 @@ func optString(isSome bool, value any) string {
 
 // optFormat prints some debug info for the object
 //
-// go:noinline
+//go:noinline
 func optFormat(isSome bool, value any, f fmt.State, c rune) {
 	switch c {
 	case 's':
@@ -78,7 +78,7 @@ func (s Option[A]) MarshalJSON() ([]byte, error) {
 
 // optUnmarshalJSON unmarshals the [Option] from a JSON string
 //
-// go:noinline
+//go:noinline
 func optUnmarshalJSON(isSome *bool, value any, data []byte) error {
 	// decode the value
 	if bytes.Equal(data, jsonNull) {

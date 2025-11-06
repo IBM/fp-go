@@ -29,6 +29,8 @@ import (
 //	    Y int
 //	}
 //	result := array.Do(State{})
+//
+//go:inline
 func Do[S any](
 	empty S,
 ) []S {
@@ -50,6 +52,8 @@ func Do[S any](
 //	        func(s struct{}) []int { return []int{1, 2} },
 //	    ),
 //	)
+//
+//go:inline
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) []T,
@@ -70,6 +74,8 @@ func Bind[S1, S2, T any](
 //	    },
 //	    func(s struct{ X int }) int { return s.X * 2 },
 //	)
+//
+//go:inline
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
@@ -90,6 +96,8 @@ func Let[S1, S2, T any](
 //	    },
 //	    "constant",
 //	)
+//
+//go:inline
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
@@ -108,6 +116,8 @@ func LetTo[S1, S2, T any](
 //	        return struct{ X int }{x}
 //	    }),
 //	)
+//
+//go:inline
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) func([]T) []S1 {
@@ -128,6 +138,8 @@ func BindTo[S1, T any](
 //	    },
 //	    []int{10, 20},
 //	)
+//
+//go:inline
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa []T,

@@ -29,6 +29,8 @@ import (
 //	// result is Right(42)
 //	result2 := sg.Concat(either.Right[error](1), either.Right[error](2))
 //	// result2 is Right(1) - first Right wins
+//
+//go:inline
 func AltSemigroup[E, A any]() S.Semigroup[Either[E, A]] {
 	return S.AltSemigroup(
 		MonadAlt[E, A],

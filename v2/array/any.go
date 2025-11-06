@@ -29,6 +29,8 @@ import (
 //	    return i%2 == 0 && x%2 == 0
 //	})
 //	result := hasEvenAtEvenIndex([]int{1, 3, 4, 5}) // true (4 is at index 2)
+//
+//go:inline
 func AnyWithIndex[A any](pred func(int, A) bool) func([]A) bool {
 	return G.AnyWithIndex[[]A](pred)
 }
@@ -41,6 +43,8 @@ func AnyWithIndex[A any](pred func(int, A) bool) func([]A) bool {
 //
 //	hasEven := array.Any(func(x int) bool { return x%2 == 0 })
 //	result := hasEven([]int{1, 3, 4, 5}) // true
+//
+//go:inline
 func Any[A any](pred func(A) bool) func([]A) bool {
 	return G.Any[[]A](pred)
 }

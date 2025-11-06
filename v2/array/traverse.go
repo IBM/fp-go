@@ -52,6 +52,8 @@ import (
 //
 //	result := parseAll([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result2 := parseAll([]string{"1", "x", "3"}) // None
+//
+//go:inline
 func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof func([]B) HKTRB,
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
@@ -66,6 +68,8 @@ func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 // into an effect of an array.
 //
 // This is useful when you want to apply the traverse operation directly without currying.
+//
+//go:inline
 func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof func([]B) HKTRB,
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,

@@ -15,6 +15,8 @@ import (
 //
 //	strings := []string{"a", "b", "a", "c", "b"}
 //	unique2 := array.StrictUniq(strings) // ["a", "b", "c"]
+//
+//go:inline
 func StrictUniq[A comparable](as []A) []A {
 	return G.StrictUniq[[]A](as)
 }
@@ -42,6 +44,8 @@ func StrictUniq[A comparable](as []A) []A {
 //	uniqueByName := array.Uniq(func(p Person) string { return p.Name })
 //	result := uniqueByName(people)
 //	// Result: [{"Alice", 30}, {"Bob", 25}, {"Charlie", 30}]
+//
+//go:inline
 func Uniq[A any, K comparable](f func(A) K) func(as []A) []A {
 	return G.Uniq[[]A](f)
 }

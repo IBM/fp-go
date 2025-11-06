@@ -28,6 +28,8 @@ import (
 //	findGreaterThan3 := array.FindFirst(func(x int) bool { return x > 3 })
 //	result := findGreaterThan3([]int{1, 2, 4, 5}) // Some(4)
 //	result2 := findGreaterThan3([]int{1, 2, 3}) // None
+//
+//go:inline
 func FindFirst[A any](pred func(A) bool) func([]A) O.Option[A] {
 	return G.FindFirst[[]A](pred)
 }
@@ -41,6 +43,8 @@ func FindFirst[A any](pred func(A) bool) func([]A) O.Option[A] {
 //	    return i%2 == 0 && x%2 == 0
 //	})
 //	result := findEvenAtEvenIndex([]int{1, 3, 4, 5}) // Some(4)
+//
+//go:inline
 func FindFirstWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 	return G.FindFirstWithIndex[[]A](pred)
 }
@@ -59,12 +63,16 @@ func FindFirstWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 //	    return option.None[int]()
 //	})
 //	result := parseFirst([]string{"a", "42", "b"}) // Some(42)
+//
+//go:inline
 func FindFirstMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindFirstMap[[]A](sel)
 }
 
 // FindFirstMapWithIndex finds the first element for which the selector function returns Some.
 // The selector receives both the index and the element.
+//
+//go:inline
 func FindFirstMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindFirstMapWithIndex[[]A](sel)
 }
@@ -76,24 +84,32 @@ func FindFirstMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.O
 //
 //	findGreaterThan3 := array.FindLast(func(x int) bool { return x > 3 })
 //	result := findGreaterThan3([]int{1, 4, 2, 5}) // Some(5)
+//
+//go:inline
 func FindLast[A any](pred func(A) bool) func([]A) O.Option[A] {
 	return G.FindLast[[]A](pred)
 }
 
 // FindLastWithIndex finds the last element which satisfies a predicate function that also receives the index.
 // Returns Some(element) if found, None if no element matches.
+//
+//go:inline
 func FindLastWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 	return G.FindLastWithIndex[[]A](pred)
 }
 
 // FindLastMap finds the last element for which the selector function returns Some.
 // This combines finding and mapping in a single operation, searching from the end.
+//
+//go:inline
 func FindLastMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindLastMap[[]A](sel)
 }
 
 // FindLastMapWithIndex finds the last element for which the selector function returns Some.
 // The selector receives both the index and the element, searching from the end.
+//
+//go:inline
 func FindLastMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.Option[B] {
 	return G.FindLastMapWithIndex[[]A](sel)
 }

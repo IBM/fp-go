@@ -33,6 +33,8 @@ import (
 //	    return fmt.Sprintf("%s is %d years old", name, age)
 //	})
 //	// Result: ["Alice is 30 years old", "Bob is 25 years old", "Charlie is 35 years old"]
+//
+//go:inline
 func ZipWith[FCT ~func(A, B) C, A, B, C any](fa []A, fb []B, f FCT) []C {
 	return G.ZipWith[[]A, []B, []C, FCT](fa, fb, f)
 }
@@ -51,6 +53,8 @@ func ZipWith[FCT ~func(A, B) C, A, B, C any](fa []A, fb []B, f FCT) []C {
 //	// With different lengths
 //	pairs2 := array.Zip([]int{1, 2})([]string{"a", "b", "c"})
 //	// Result: [(a, 1), (b, 2)]
+//
+//go:inline
 func Zip[A, B any](fb []B) func([]A) []T.Tuple2[A, B] {
 	return G.Zip[[]A, []B, []T.Tuple2[A, B]](fb)
 }
@@ -72,6 +76,8 @@ func Zip[A, B any](fb []B) func([]A) []T.Tuple2[A, B] {
 //	// Result: (["Alice", "Bob", "Charlie"], [30, 25, 35])
 //	names := result.Head  // ["Alice", "Bob", "Charlie"]
 //	ages := result.Tail   // [30, 25, 35]
+//
+//go:inline
 func Unzip[A, B any](cs []T.Tuple2[A, B]) T.Tuple2[[]A, []B] {
 	return G.Unzip[[]A, []B, []T.Tuple2[A, B]](cs)
 }

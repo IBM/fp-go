@@ -296,16 +296,14 @@ func MatchLeft[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(A, AS) B) fu
 	}
 }
 
+//go:inline
 func Slice[AS ~[]A, A any](start int, end int) func(AS) AS {
-	return func(a AS) AS {
-		return a[start:end]
-	}
+	return array.Slice[AS](start, end)
 }
 
+//go:inline
 func SliceRight[AS ~[]A, A any](start int) func(AS) AS {
-	return func(a AS) AS {
-		return a[start:]
-	}
+	return array.SliceRight[AS](start)
 }
 
 func Copy[AS ~[]A, A any](b AS) AS {

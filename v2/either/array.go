@@ -33,6 +33,8 @@ import (
 //	}
 //	result := either.TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"})
 //	// result is Right([]int{1, 2, 3})
+//
+//go:inline
 func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f func(A) Either[E, B]) func(GA) Either[E, GB] {
 	return RA.Traverse[GA](
 		Of[E, GB],
@@ -55,6 +57,8 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f func(A) Either[E, B]) func(
 //	}
 //	result := either.TraverseArray(parse)([]string{"1", "2", "3"})
 //	// result is Right([]int{1, 2, 3})
+//
+//go:inline
 func TraverseArray[E, A, B any](f func(A) Either[E, B]) func([]A) Either[E, []B] {
 	return TraverseArrayG[[]A, []B](f)
 }
@@ -74,6 +78,8 @@ func TraverseArray[E, A, B any](f func(A) Either[E, B]) func([]A) Either[E, []B]
 //	}
 //	result := either.TraverseArrayWithIndexG[[]string, []string](validate)([]string{"a", "b"})
 //	// result is Right([]string{"0:a", "1:b"})
+//
+//go:inline
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) func(GA) Either[E, GB] {
 	return RA.TraverseWithIndex[GA](
 		Of[E, GB],
@@ -98,6 +104,8 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Eithe
 //	}
 //	result := either.TraverseArrayWithIndex(validate)([]string{"a", "b"})
 //	// result is Right([]string{"0:a", "1:b"})
+//
+//go:inline
 func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) func([]A) Either[E, []B] {
 	return TraverseArrayWithIndexG[[]A, []B](f)
 }

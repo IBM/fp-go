@@ -28,6 +28,8 @@ import (
 //
 //	type State struct { x, y int }
 //	result := either.Do[error](State{})
+//
+//go:inline
 func Do[E, S any](
 	empty S,
 ) Either[E, S] {
@@ -51,6 +53,8 @@ func Do[E, S any](
 //	        },
 //	    ),
 //	)
+//
+//go:inline
 func Bind[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) Either[E, T],
@@ -78,6 +82,8 @@ func Bind[E, S1, S2, T any](
 //	        func(s State) int { return 32 },
 //	    ),
 //	) // Right(State{value: 42})
+//
+//go:inline
 func Let[E, S1, S2, T any](
 	key func(T) func(S1) S2,
 	f func(S1) T,
@@ -103,6 +109,8 @@ func Let[E, S1, S2, T any](
 //	        "Alice",
 //	    ),
 //	) // Right(State{name: "Alice"})
+//
+//go:inline
 func LetTo[E, S1, S2, T any](
 	key func(T) func(S1) S2,
 	b T,
@@ -124,6 +132,8 @@ func LetTo[E, S1, S2, T any](
 //	    either.Right[error](42),
 //	    either.BindTo(func(v int) State { return State{value: v} }),
 //	) // Right(State{value: 42})
+//
+//go:inline
 func BindTo[E, S1, T any](
 	setter func(T) S1,
 ) func(Either[E, T]) Either[E, S1] {
@@ -148,6 +158,8 @@ func BindTo[E, S1, T any](
 //	        either.Right[error](32),
 //	    ),
 //	) // Right(State{x: 10, y: 32})
+//
+//go:inline
 func ApS[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Either[E, T],

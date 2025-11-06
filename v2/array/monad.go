@@ -34,6 +34,8 @@ import (
 //	    return []string{fmt.Sprintf("%d", x), fmt.Sprintf("%d!", x)}
 //	})
 //	// Result: ["1", "1!", "2", "2!", "3", "3!"]
+//
+//go:inline
 func Monad[A, B any]() monad.Monad[A, B, []A, []B, []func(A) B] {
 	return G.Monad[A, B, []A, []B, []func(A) B]()
 }

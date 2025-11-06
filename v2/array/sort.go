@@ -30,6 +30,8 @@ import (
 //	numbers := []int{3, 1, 4, 1, 5, 9, 2, 6}
 //	sorted := array.Sort(ord.FromStrictCompare[int]())(numbers)
 //	// Result: [1, 1, 2, 3, 4, 5, 6, 9]
+//
+//go:inline
 func Sort[T any](ord O.Ord[T]) func(ma []T) []T {
 	return G.Sort[[]T](ord)
 }
@@ -58,6 +60,8 @@ func Sort[T any](ord O.Ord[T]) func(ma []T) []T {
 //	)
 //	sorted := sortByAge(people)
 //	// Result: [{"Bob", 25}, {"Alice", 30}, {"Charlie", 35}]
+//
+//go:inline
 func SortByKey[K, T any](ord O.Ord[K], f func(T) K) func(ma []T) []T {
 	return G.SortByKey[[]T](ord, f)
 }
@@ -87,6 +91,8 @@ func SortByKey[K, T any](ord O.Ord[K], f func(T) K) func(ma []T) []T {
 //	})
 //	sorted := sortByName(people)
 //	// Result: [{"Jones", "Bob"}, {"Smith", "Alice"}, {"Smith", "John"}]
+//
+//go:inline
 func SortBy[T any](ord []O.Ord[T]) func(ma []T) []T {
 	return G.SortBy[[]T, []O.Ord[T]](ord)
 }

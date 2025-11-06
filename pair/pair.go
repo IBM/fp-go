@@ -34,14 +34,14 @@ type (
 
 // String prints some debug info for the object
 //
-// go:noinline
+//go:noinline
 func pairString(s *pair) string {
 	return fmt.Sprintf("Pair[%T, %T](%v, %v)", s.h, s.t, s.h, s.t)
 }
 
 // Format prints some debug info for the object
 //
-// go:noinline
+//go:noinline
 func pairFormat(e *pair, f fmt.State, c rune) {
 	switch c {
 	case 's':

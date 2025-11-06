@@ -33,6 +33,8 @@ import (
 //	// Concatenate all strings
 //	concatStrings := array.ConcatAll(monoid.MonoidString())
 //	result2 := concatStrings([]string{"Hello", " ", "World"}) // "Hello World"
+//
+//go:inline
 func ConcatAll[A any](m M.Monoid[A]) func([]A) A {
 	return Reduce(m.Concat, m.Empty())
 }

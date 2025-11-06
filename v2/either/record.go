@@ -33,6 +33,8 @@ import (
 //	}
 //	result := either.TraverseRecordG[map[string]string, map[string]int](parse)(map[string]string{"a": "1", "b": "2"})
 //	// result is Right(map[string]int{"a": 1, "b": 2})
+//
+//go:inline
 func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(A) Either[E, B]) func(GA) Either[E, GB] {
 	return RR.Traverse[GA](
 		Of[E, GB],
@@ -54,6 +56,8 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func
 //	}
 //	result := either.TraverseRecord[string](parse)(map[string]string{"a": "1", "b": "2"})
 //	// result is Right(map[string]int{"a": 1, "b": 2})
+//
+//go:inline
 func TraverseRecord[K comparable, E, A, B any](f func(A) Either[E, B]) func(map[K]A) Either[E, map[K]B] {
 	return TraverseRecordG[map[K]A, map[K]B](f)
 }
@@ -73,6 +77,8 @@ func TraverseRecord[K comparable, E, A, B any](f func(A) Either[E, B]) func(map[
 //	}
 //	result := either.TraverseRecordWithIndexG[map[string]string, map[string]string](validate)(map[string]string{"a": "1"})
 //	// result is Right(map[string]string{"a": "a:1"})
+//
+//go:inline
 func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(K, A) Either[E, B]) func(GA) Either[E, GB] {
 	return RR.TraverseWithIndex[GA](
 		Of[E, GB],
@@ -96,10 +102,13 @@ func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B an
 //	}
 //	result := either.TraverseRecordWithIndex[string](validate)(map[string]string{"a": "1"})
 //	// result is Right(map[string]string{"a": "a:1"})
+//
+//go:inline
 func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) Either[E, B]) func(map[K]A) Either[E, map[K]B] {
 	return TraverseRecordWithIndexG[map[K]A, map[K]B](f)
 }
 
+//go:inline
 func SequenceRecordG[GA ~map[K]A, GOA ~map[K]Either[E, A], K comparable, E, A any](ma GOA) Either[E, GA] {
 	return TraverseRecordG[GOA, GA](F.Identity[Either[E, A]])(ma)
 }
@@ -116,6 +125,8 @@ func SequenceRecordG[GA ~map[K]A, GOA ~map[K]Either[E, A], K comparable, E, A an
 //	}
 //	result := either.SequenceRecord(eithers)
 //	// result is Right(map[string]int{"a": 1, "b": 2})
+//
+//go:inline
 func SequenceRecord[K comparable, E, A any](ma map[K]Either[E, A]) Either[E, map[K]A] {
 	return SequenceRecordG[map[K]A](ma)
 }
@@ -158,6 +169,8 @@ func CompactRecordG[M1 ~map[K]Either[E, A], M2 ~map[K]A, K comparable, E, A any]
 //	}
 //	result := either.CompactRecord(eithers)
 //	// result is map[string]int{"a": 1, "c": 3}
+//
+//go:inline
 func CompactRecord[K comparable, E, A any](m map[K]Either[E, A]) map[K]A {
 	return CompactRecordG[map[K]Either[E, A], map[K]A](m)
 }

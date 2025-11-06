@@ -17,7 +17,49 @@ package array
 
 func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 	return func(as GA) GA {
+		length := len(as)
+
+		// Handle negative indices - count backward from the end
+		if low < 0 {
+			low = max(length+low, 0)
+		}
+		if high < 0 {
+			high = max(length+high, 0)
+		}
+
+		if low > length {
+			return Empty[GA, A]()
+		}
+
+		// End index > array length: slice to the end
+		if high > length {
+			high = length
+		}
+
+		// Start >= end: return empty array
+		if low >= high {
+			return Empty[GA, A]()
+		}
+
 		return as[low:high]
+	}
+}
+
+func SliceRight[GA ~[]A, A any](start int) func(as GA) GA {
+	return func(as GA) GA {
+		length := len(as)
+
+		// Handle negative indices - count backward from the end
+		if start < 0 {
+			start = max(length+start, 0)
+		}
+
+		// Start index > array length: return empty array
+		if start > length {
+			return Empty[GA, A]()
+		}
+
+		return as[start:]
 	}
 }
 
