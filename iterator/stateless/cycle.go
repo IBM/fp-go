@@ -19,8 +19,7 @@ import (
 	G "github.com/IBM/fp-go/iterator/stateless/generic"
 )
 
-// DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
-// Note, the [Iterator] does not produce any output until the predicate first becomes false
+// Cycle creates an [Iterator] containing an [Iterator] repeated an infinite number of times.
 func Cycle[U any](ma Iterator[U]) Iterator[U] {
 	return G.Cycle[Iterator[U]](ma)
 }
