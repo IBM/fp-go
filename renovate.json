@@ -7,6 +7,15 @@
     "rangeStrategy": "bump",
     "packageRules": [
         {
+            "matchDatasources": [
+                "golang-version"
+            ],
+            "matchPackageNames": [
+                "go"
+            ],
+            "enabled": false
+        },
+        {
             "matchManagers": [
                 "gomod"
             ],
@@ -25,15 +34,6 @@
             ],
             "automerge": true,
             "groupName": "go dependencies"
-        },
-        {
-            "matchPackageNames": [
-                "conventional-changelog-conventionalcommits"
-            ],
-            "matchUpdateTypes": [
-                "major"
-            ],
-            "enabled": false
         }
     ]
 }
