@@ -14,8 +14,8 @@ on:
 
 env:
   DEFAULT_BRANCH: main
-  LATEST_GO_VERSION: 1.21.6 # renovate: datasource=golang-version depName=golang
-  NODE_VERSION: 22
+  LATEST_GO_VERSION: 1.25.2 # renovate: datasource=golang-version depName=golang
+  NODE_VERSION: 24
   DRY_RUN: true
 
 jobs:
