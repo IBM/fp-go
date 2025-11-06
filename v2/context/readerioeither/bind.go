@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,7 +68,7 @@ func LetTo[S1, S2, T any](
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) func(ReaderIOEither[T]) ReaderIOEither[S1] {
+) Operator[T, S1] {
 	return chain.BindTo(
 		Map[T, S1],
 		setter,

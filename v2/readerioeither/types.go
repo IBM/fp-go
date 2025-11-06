@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,60 @@ import (
 )
 
 type (
-	Either[E, A any]            = either.Either[E, A]
-	Reader[R, A any]            = reader.Reader[R, A]
-	ReaderIO[R, A any]          = readerio.ReaderIO[R, A]
-	IOEither[E, A any]          = ioeither.IOEither[E, A]
+	// Either represents a value of one of two possible types (a disjoint union).
+	// An instance of Either is either Left (representing an error) or Right (representing a success).
+	Either[E, A any] = either.Either[E, A]
+
+	// Reader represents a computation that depends on some context/environment of type R
+	// and produces a value of type A. It's useful for dependency injection patterns.
+	Reader[R, A any] = reader.Reader[R, A]
+
+	// ReaderIO represents a computation that depends on some context R and performs
+	// side effects to produce a value of type A.
+	ReaderIO[R, A any] = readerio.ReaderIO[R, A]
+
+	// IOEither represents a computation that performs side effects and can either
+	// fail with an error of type E or succeed with a value of type A.
+	IOEither[E, A any] = ioeither.IOEither[E, A]
+
+	// ReaderIOEither represents a computation that:
+	//   - Depends on some context/environment of type R (Reader)
+	//   - Performs side effects (IO)
+	//   - Can fail with an error of type E or succeed with a value of type A (Either)
+	//
+	// It combines three powerful functional programming concepts:
+	//   1. Reader monad for dependency injection
+	//   2. IO monad for side effects
+	//   3. Either monad for error handling
+	//
+	// Type parameters:
+	//   - R: The type of the context/environment (e.g., configuration, dependencies)
+	//   - E: The type of errors that can occur
+	//   - A: The type of the success value
+	//
+	// Example:
+	//   type Config struct { BaseURL string }
+	//   func fetchUser(id int) ReaderIOEither[Config, error, User] {
+	//       return func(cfg Config) IOEither[error, User] {
+	//           return func() Either[error, User] {
+	//               // Use cfg.BaseURL to fetch user
+	//               // Return either.Right(user) or either.Left(err)
+	//           }
+	//       }
+	//   }
 	ReaderIOEither[R, E, A any] = Reader[R, IOEither[E, A]]
 
+	// Operator represents a transformation from one ReaderIOEither to another.
+	// It's a Reader that takes a ReaderIOEither[R, E, A] and produces a ReaderIOEither[R, E, B].
+	// This type is commonly used for composing operations in a point-free style.
+	//
+	// Type parameters:
+	//   - R: The context type
+	//   - E: The error type
+	//   - A: The input value type
+	//   - B: The output value type
+	//
+	// Example:
+	//   var doubleOp Operator[Config, error, int, int] = Map(func(x int) int { return x * 2 })
 	Operator[R, E, A, B any] = reader.Reader[ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]]
 )

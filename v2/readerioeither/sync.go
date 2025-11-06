@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,35 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 )
 
-// WithLock executes the provided IO operation in the scope of a lock
+// WithLock executes a ReaderIOEither operation within the scope of a lock.
+// The lock is acquired before the operation executes and released after it completes,
+// regardless of whether the operation succeeds or fails.
+//
+// This is useful for ensuring thread-safe access to shared resources or for
+// implementing critical sections in concurrent code.
+//
+// Type parameters:
+//   - R: The context type
+//   - E: The error type
+//   - A: The value type
+//
+// Parameters:
+//   - lock: A function that acquires a lock and returns a CancelFunc to release it
+//
+// Returns:
+//
+//	An Operator that wraps the computation with lock acquisition and release
+//
+// Example:
+//
+//	var mu sync.Mutex
+//	safeFetch := F.Pipe1(
+//	    fetchData(),
+//	    WithLock[Config, error, Data](func() context.CancelFunc {
+//	        mu.Lock()
+//	        return func() { mu.Unlock() }
+//	    }),
+//	)
 func WithLock[R, E, A any](lock func() context.CancelFunc) Operator[R, E, A, A] {
 	return readerio.WithLock[R, either.Either[E, A]](lock)
 }

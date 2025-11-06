@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,16 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 )
 
-// WithContext wraps an existing [ReaderIOEither] and performs a context check for cancellation before delegating
+// WithContext wraps an existing [ReaderIOEither] and performs a context check for cancellation before delegating.
+// This ensures that if the context is already canceled, the computation short-circuits immediately
+// without executing the wrapped computation.
+//
+// This is useful for adding cancellation awareness to computations that might not check the context themselves.
+//
+// Parameters:
+//   - ma: The ReaderIOEither to wrap with context checking
+//
+// Returns a ReaderIOEither that checks for cancellation before executing.
 func WithContext[A any](ma ReaderIOEither[A]) ReaderIOEither[A] {
 	return func(ctx context.Context) IOEither[A] {
 		if err := context.Cause(ctx); err != nil {

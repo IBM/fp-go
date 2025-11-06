@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,13 @@ import (
 	"github.com/IBM/fp-go/v2/internal/record"
 )
 
-// TraverseArray uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+// TraverseArray transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]].
+// This uses the default applicative behavior (parallel or sequential based on useParallel flag).
+//
+// Parameters:
+//   - f: Function that transforms each element into a ReaderIOEither
+//
+// Returns a function that transforms an array into a ReaderIOEither of an array.
 func TraverseArray[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
 	return array.Traverse[[]A](
 		Of[[]B],
@@ -32,7 +38,13 @@ func TraverseArray[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEith
 	)
 }
 
-// TraverseArrayWithIndex uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+// TraverseArrayWithIndex transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]].
+// The transformation function receives both the index and the element.
+//
+// Parameters:
+//   - f: Function that transforms each element with its index into a ReaderIOEither
+//
+// Returns a function that transforms an array into a ReaderIOEither of an array.
 func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
 	return array.TraverseWithIndex[[]A](
 		Of[[]B],
@@ -43,12 +55,23 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOEither[B]) func([]A
 	)
 }
 
-// SequenceArray converts a homogeneous sequence of either into an either of sequence
+// SequenceArray converts a homogeneous sequence of ReaderIOEither into a ReaderIOEither of sequence.
+// This is equivalent to TraverseArray with the identity function.
+//
+// Parameters:
+//   - ma: Array of ReaderIOEither values
+//
+// Returns a ReaderIOEither containing an array of values.
 func SequenceArray[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 	return TraverseArray(function.Identity[ReaderIOEither[A]])(ma)
 }
 
-// TraverseRecord uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
+// TraverseRecord transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]].
+//
+// Parameters:
+//   - f: Function that transforms each value into a ReaderIOEither
+//
+// Returns a function that transforms a map into a ReaderIOEither of a map.
 func TraverseRecord[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[map[K]B],
@@ -59,7 +82,13 @@ func TraverseRecord[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(ma
 	)
 }
 
-// TraverseRecordWithIndex uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
+// TraverseRecordWithIndex transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]].
+// The transformation function receives both the key and the value.
+//
+// Parameters:
+//   - f: Function that transforms each key-value pair into a ReaderIOEither
+//
+// Returns a function that transforms a map into a ReaderIOEither of a map.
 func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[map[K]B],
@@ -70,12 +99,24 @@ func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) ReaderIOEither
 	)
 }
 
-// SequenceRecord converts a homogeneous sequence of either into an either of sequence
+// SequenceRecord converts a homogeneous map of ReaderIOEither into a ReaderIOEither of map.
+//
+// Parameters:
+//   - ma: Map of ReaderIOEither values
+//
+// Returns a ReaderIOEither containing a map of values.
 func SequenceRecord[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIOEither[map[K]A] {
 	return TraverseRecord[K](function.Identity[ReaderIOEither[A]])(ma)
 }
 
-// MonadTraverseArraySeq uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+// MonadTraverseArraySeq transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]].
+// This explicitly uses sequential execution.
+//
+// Parameters:
+//   - as: The array to traverse
+//   - f: Function that transforms each element into a ReaderIOEither
+//
+// Returns a ReaderIOEither containing an array of transformed values.
 func MonadTraverseArraySeq[A, B any](as []A, f func(A) ReaderIOEither[B]) ReaderIOEither[[]B] {
 	return array.MonadTraverse[[]A](
 		Of[[]B],
@@ -86,7 +127,13 @@ func MonadTraverseArraySeq[A, B any](as []A, f func(A) ReaderIOEither[B]) Reader
 	)
 }
 
-// TraverseArraySeq uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+// TraverseArraySeq transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]].
+// This is the curried version of [MonadTraverseArraySeq] with sequential execution.
+//
+// Parameters:
+//   - f: Function that transforms each element into a ReaderIOEither
+//
+// Returns a function that transforms an array into a ReaderIOEither of an array.
 func TraverseArraySeq[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
 	return array.Traverse[[]A](
 		Of[[]B],
@@ -108,7 +155,13 @@ func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOEither[B]) func(
 	)
 }
 
-// SequenceArraySeq converts a homogeneous sequence of either into an either of sequence
+// SequenceArraySeq converts a homogeneous sequence of ReaderIOEither into a ReaderIOEither of sequence.
+// This explicitly uses sequential execution.
+//
+// Parameters:
+//   - ma: Array of ReaderIOEither values
+//
+// Returns a ReaderIOEither containing an array of values.
 func SequenceArraySeq[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 	return MonadTraverseArraySeq(ma, function.Identity[ReaderIOEither[A]])
 }
@@ -151,7 +204,14 @@ func SequenceRecordSeq[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIO
 	return MonadTraverseRecordSeq(ma, function.Identity[ReaderIOEither[A]])
 }
 
-// MonadTraverseArrayPar uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+// MonadTraverseArrayPar transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]].
+// This explicitly uses parallel execution.
+//
+// Parameters:
+//   - as: The array to traverse
+//   - f: Function that transforms each element into a ReaderIOEither
+//
+// Returns a ReaderIOEither containing an array of transformed values.
 func MonadTraverseArrayPar[A, B any](as []A, f func(A) ReaderIOEither[B]) ReaderIOEither[[]B] {
 	return array.MonadTraverse[[]A](
 		Of[[]B],
@@ -162,7 +222,13 @@ func MonadTraverseArrayPar[A, B any](as []A, f func(A) ReaderIOEither[B]) Reader
 	)
 }
 
-// TraverseArrayPar uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
+// TraverseArrayPar transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]].
+// This is the curried version of [MonadTraverseArrayPar] with parallel execution.
+//
+// Parameters:
+//   - f: Function that transforms each element into a ReaderIOEither
+//
+// Returns a function that transforms an array into a ReaderIOEither of an array.
 func TraverseArrayPar[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
 	return array.Traverse[[]A](
 		Of[[]B],
@@ -184,7 +250,13 @@ func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOEither[B]) func(
 	)
 }
 
-// SequenceArrayPar converts a homogeneous sequence of either into an either of sequence
+// SequenceArrayPar converts a homogeneous sequence of ReaderIOEither into a ReaderIOEither of sequence.
+// This explicitly uses parallel execution.
+//
+// Parameters:
+//   - ma: Array of ReaderIOEither values
+//
+// Returns a ReaderIOEither containing an array of values.
 func SequenceArrayPar[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 	return MonadTraverseArrayPar(ma, function.Identity[ReaderIOEither[A]])
 }
@@ -222,7 +294,13 @@ func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f func(A) Reader
 	)
 }
 
-// SequenceRecordPar converts a homogeneous sequence of either into an either of sequence
+// SequenceRecordPar converts a homogeneous map of ReaderIOEither into a ReaderIOEither of map.
+// This explicitly uses parallel execution.
+//
+// Parameters:
+//   - ma: Map of ReaderIOEither values
+//
+// Returns a ReaderIOEither containing a map of values.
 func SequenceRecordPar[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIOEither[map[K]A] {
 	return MonadTraverseRecordPar(ma, function.Identity[ReaderIOEither[A]])
 }

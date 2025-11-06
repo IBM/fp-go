@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package errors provides functional utilities for working with Go errors.
+// It includes functions for error creation, transformation, and type conversion
+// that integrate well with functional programming patterns.
 package errors
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
+// IdentityError is the identity function specialized for error types.
+// It returns the error unchanged, useful in functional composition where
+// an error needs to be passed through without modification.
+//
+// Example:
+//
+//	err := errors.New("something went wrong")
+//	same := IdentityError(err) // returns the same error
 var IdentityError = F.Identity[error]

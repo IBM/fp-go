@@ -23,7 +23,16 @@ type (
 	Monoid[A any] = monoid.Monoid[ReaderIOEither[A]]
 )
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
+// ApplicativeMonoid returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative.
+// This uses the default applicative behavior (parallel or sequential based on useParallel flag).
+//
+// The monoid combines two ReaderIOEither values by applying the underlying monoid's combine operation
+// to their success values using applicative application.
+//
+// Parameters:
+//   - m: The underlying monoid for type A
+//
+// Returns a Monoid for ReaderIOEither[A].
 func ApplicativeMonoid[A any](m monoid.Monoid[A]) Monoid[A] {
 	return monoid.ApplicativeMonoid(
 		Of[A],
@@ -33,7 +42,13 @@ func ApplicativeMonoid[A any](m monoid.Monoid[A]) Monoid[A] {
 	)
 }
 
-// ApplicativeMonoidSeq returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
+// ApplicativeMonoidSeq returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative.
+// This explicitly uses sequential execution for combining values.
+//
+// Parameters:
+//   - m: The underlying monoid for type A
+//
+// Returns a Monoid for ReaderIOEither[A] with sequential execution.
 func ApplicativeMonoidSeq[A any](m monoid.Monoid[A]) Monoid[A] {
 	return monoid.ApplicativeMonoid(
 		Of[A],
@@ -43,7 +58,13 @@ func ApplicativeMonoidSeq[A any](m monoid.Monoid[A]) Monoid[A] {
 	)
 }
 
-// ApplicativeMonoidPar returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative
+// ApplicativeMonoidPar returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative.
+// This explicitly uses parallel execution for combining values.
+//
+// Parameters:
+//   - m: The underlying monoid for type A
+//
+// Returns a Monoid for ReaderIOEither[A] with parallel execution.
 func ApplicativeMonoidPar[A any](m monoid.Monoid[A]) Monoid[A] {
 	return monoid.ApplicativeMonoid(
 		Of[A],
@@ -53,7 +74,14 @@ func ApplicativeMonoidPar[A any](m monoid.Monoid[A]) Monoid[A] {
 	)
 }
 
-// AlternativeMonoid is the alternative [Monoid] for [ReaderIOEither]
+// AlternativeMonoid is the alternative [Monoid] for [ReaderIOEither].
+// This combines ReaderIOEither values using the alternative semantics,
+// where the second value is only evaluated if the first fails.
+//
+// Parameters:
+//   - m: The underlying monoid for type A
+//
+// Returns a Monoid for ReaderIOEither[A] with alternative semantics.
 func AlternativeMonoid[A any](m monoid.Monoid[A]) Monoid[A] {
 	return monoid.AlternativeMonoid(
 		Of[A],
@@ -64,7 +92,14 @@ func AlternativeMonoid[A any](m monoid.Monoid[A]) Monoid[A] {
 	)
 }
 
-// AltMonoid is the alternative [Monoid] for an [ReaderIOEither]
+// AltMonoid is the alternative [Monoid] for a [ReaderIOEither].
+// This creates a monoid where the empty value is provided lazily,
+// and combination uses the Alt operation (try first, fallback to second on failure).
+//
+// Parameters:
+//   - zero: Lazy computation that provides the empty/identity value
+//
+// Returns a Monoid for ReaderIOEither[A] with Alt-based combination.
 func AltMonoid[A any](zero Lazy[ReaderIOEither[A]]) Monoid[A] {
 	return monoid.AltMonoid(
 		zero,

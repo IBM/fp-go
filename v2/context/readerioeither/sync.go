@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,27 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 )
 
-// WithLock executes the provided IO operation in the scope of a lock
+// WithLock executes the provided IO operation in the scope of a lock.
+// This ensures that the operation is executed with mutual exclusion, preventing concurrent access.
+//
+// The lock is acquired before the operation and released after it completes (or fails).
+// The lock parameter should return a CancelFunc that releases the lock when called.
+//
+// Parameters:
+//   - lock: ReaderIOEither that acquires a lock and returns a CancelFunc to release it
+//
+// Returns a function that wraps a ReaderIOEither with lock protection.
+//
+// Example:
+//
+//	mutex := &sync.Mutex{}
+//	lock := TryCatch(func(ctx context.Context) func() (context.CancelFunc, error) {
+//	    return func() (context.CancelFunc, error) {
+//	        mutex.Lock()
+//	        return func() { mutex.Unlock() }, nil
+//	    }
+//	})
+//	protectedOp := WithLock(lock)(myOperation)
 func WithLock[A any](lock ReaderIOEither[context.CancelFunc]) Operator[A, A] {
 	return function.Flow2(
 		function.Constant1[context.CancelFunc, ReaderIOEither[A]],

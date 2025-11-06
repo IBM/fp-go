@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,30 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-// As tries to extract the error of desired type from the given error
+// As tries to extract an error of the desired type from the given error.
+// It returns an Option containing the extracted error if successful, or None if the
+// error cannot be converted to the target type.
+//
+// This function wraps Go's standard errors.As in a functional style, making it
+// composable with other functional operations.
+//
+// Example:
+//
+//	type MyError struct{ msg string }
+//	func (e *MyError) Error() string { return e.msg }
+//
+//	rootErr := &MyError{msg: "custom error"}
+//	wrappedErr := fmt.Errorf("wrapped: %w", rootErr)
+//
+//	// Extract MyError from the wrapped error
+//	extractMyError := As[*MyError]()
+//	result := extractMyError(wrappedErr)
+//	// result is Some(*MyError) containing the original error
+//
+//	// Try to extract a different error type
+//	extractOther := As[*os.PathError]()
+//	result2 := extractOther(wrappedErr)
+//	// result2 is None since wrappedErr doesn't contain *os.PathError
 func As[A error]() func(error) O.Option[A] {
 	return O.FromValidation(func(err error) (A, bool) {
 		var a A

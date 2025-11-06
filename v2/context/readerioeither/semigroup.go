@@ -23,7 +23,19 @@ type (
 	Semigroup[A any] = semigroup.Semigroup[ReaderIOEither[A]]
 )
 
-// AltSemigroup is a [Semigroup] that tries the first item and then the second one using an alternative
+// AltSemigroup is a [Semigroup] that tries the first item and then the second one using an alternative.
+// This creates a semigroup where combining two ReaderIOEither values means trying the first one,
+// and if it fails, trying the second one. This is useful for implementing fallback behavior.
+//
+// Returns a Semigroup for ReaderIOEither[A] with Alt-based combination.
+//
+// Example:
+//
+//	sg := AltSemigroup[int]()
+//	result := sg.Concat(
+//	    Left[int](errors.New("first failed")),
+//	    Right[int](42),
+//	) // Returns Right(42)
 func AltSemigroup[A any]() Semigroup[A] {
 	return semigroup.AltSemigroup(
 		MonadAlt[A],

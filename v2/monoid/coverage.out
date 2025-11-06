@@ -1,0 +1,17 @@
+mode: set
+github.com/IBM/fp-go/v2/monoid/alt.go:77.16,82.33 2 1
+github.com/IBM/fp-go/v2/monoid/alt.go:82.33,83.23 1 1
+github.com/IBM/fp-go/v2/monoid/alt.go:83.23,83.40 1 1
+github.com/IBM/fp-go/v2/monoid/alt.go:85.4,85.54 1 1
+github.com/IBM/fp-go/v2/monoid/alt.go:85.54,87.5 1 1
+github.com/IBM/fp-go/v2/monoid/alt.go:135.16,141.2 1 1
+github.com/IBM/fp-go/v2/monoid/apply.go:70.16,76.2 1 1
+github.com/IBM/fp-go/v2/monoid/array.go:50.63,52.2 1 1
+github.com/IBM/fp-go/v2/monoid/array.go:85.48,87.2 1 1
+github.com/IBM/fp-go/v2/monoid/array.go:111.43,113.2 1 1
+github.com/IBM/fp-go/v2/monoid/function.go:66.62,71.2 1 1
+github.com/IBM/fp-go/v2/monoid/monoid.go:48.37,50.2 1 1
+github.com/IBM/fp-go/v2/monoid/monoid.go:52.30,54.2 1 1
+github.com/IBM/fp-go/v2/monoid/monoid.go:84.55,86.2 1 1
+github.com/IBM/fp-go/v2/monoid/monoid.go:119.44,121.2 1 1
+github.com/IBM/fp-go/v2/monoid/monoid.go:142.53,144.2 1 1

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@ package lens
 
 import (
 	EM "github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -47,7 +48,7 @@ func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(a 
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeLensRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
 func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Lens[S, A] {
-	return MakeLensCurried(get, EM.Curry2(F.Swap(set)))
+	return MakeLensCurried(get, function.Curry2(F.Swap(set)))
 }
 
 // MakeLensCurried creates a [Lens] based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
@@ -220,7 +221,7 @@ func modify[FCT ~func(A) A, S, A any](f FCT, sa Lens[S, A], s S) S {
 // Modify changes a property of a [Lens] by invoking a transformation function
 // if the transformed property has not changes, the method returns the original state
 func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S] {
-	return EM.Curry3(modify[FCT, S, A])(f)
+	return function.Curry3(modify[FCT, S, A])(f)
 }
 
 func IMap[E any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) func(Lens[E, A]) Lens[E, B] {

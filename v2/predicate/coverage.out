@@ -1,0 +1,17 @@
+mode: set
+github.com/IBM/fp-go/v2/predicate/bool.go:29.54,30.24 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:30.24,32.3 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:49.53,50.47 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:50.47,51.25 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:51.25,53.4 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:72.52,73.47 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:73.47,74.25 1 1
+github.com/IBM/fp-go/v2/predicate/bool.go:74.25,76.4 1 1
+github.com/IBM/fp-go/v2/predicate/contramap.go:45.54,46.46 1 1
+github.com/IBM/fp-go/v2/predicate/contramap.go:46.46,51.3 1 1
+github.com/IBM/fp-go/v2/predicate/monoid.go:53.41,54.92 1 1
+github.com/IBM/fp-go/v2/predicate/monoid.go:54.92,59.3 1 1
+github.com/IBM/fp-go/v2/predicate/monoid.go:81.41,82.92 1 1
+github.com/IBM/fp-go/v2/predicate/monoid.go:82.92,87.3 1 1
+github.com/IBM/fp-go/v2/predicate/monoid.go:111.35,116.2 1 1
+github.com/IBM/fp-go/v2/predicate/monoid.go:139.35,144.2 1 1
