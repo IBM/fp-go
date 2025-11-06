@@ -1,6 +1,7 @@
 # fp-go: Functional Programming Library for Go
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/IBM/fp-go.svg)](https://pkg.go.dev/github.com/IBM/fp-go)
+[![Coverage Status](https://coveralls.io/repos/github/IBM/fp-go/badge.svg?branch=main)](https://coveralls.io/github/IBM/fp-go?branch=main)
 
 **🚧 Work in progress! 🚧** Despite major version 1 (due to [semantic-release limitations](https://github.com/semantic-release/semantic-release/issues/1507)), we're working to minimize breaking changes.
 

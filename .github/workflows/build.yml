@@ -41,6 +41,14 @@ jobs:
           go mod tidy
           go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
       
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./coverage.txt
+          flag-name: v1-go-${{ matrix.go-version }}
+          parallel: true
+      
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v5
       #   with:
@@ -72,6 +80,14 @@ jobs:
           go mod tidy
           go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
       
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./v2/coverage.txt
+          flag-name: v2-go-${{ matrix.go-version }}
+          parallel: true
+      
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v5
       #   with:
@@ -82,9 +98,22 @@ jobs:
       #   env:
       #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  coveralls-finish:
+    name: Finish Coveralls
+    needs:
+      - build-v1
+      - build-v2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
+
   release:
     name: Release
-    needs: 
+    needs:
       - build-v1
       - build-v2
     if: github.repository == 'IBM/fp-go' && github.event_name != 'pull_request'
