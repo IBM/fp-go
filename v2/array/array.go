@@ -161,6 +161,10 @@ func reduceRef[A, B any](fa []A, f func(B, *A) B, initial B) B {
 	return current
 }
 
+func MonadReduce[A, B any](fa []A, f func(B, A) B, initial B) B {
+	return G.MonadReduce(fa, f, initial)
+}
+
 // Reduce folds an array from left to right, applying a function to accumulate a result.
 //
 // Example:
