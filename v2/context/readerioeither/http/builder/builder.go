@@ -13,6 +13,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package builder provides utilities for building HTTP requests in a functional way
+// using the ReaderIOEither monad. It integrates with the http/builder package to
+// create composable, type-safe HTTP request builders with proper error handling
+// and context support.
+//
+// The main function, Requester, converts a Builder from the http/builder package
+// into a ReaderIOEither that produces HTTP requests. This allows for:
+//   - Immutable request building with method chaining
+//   - Automatic header management including Content-Length
+//   - Support for requests with and without bodies
+//   - Proper error handling wrapped in Either
+//   - Context propagation for cancellation and timeouts
+//
+// Example usage:
+//
+//	import (
+//	    "context"
+//	    B "github.com/IBM/fp-go/v2/http/builder"
+//	    RB "github.com/IBM/fp-go/v2/context/readerioeither/http/builder"
+//	)
+//
+//	builder := F.Pipe3(
+//	    B.Default,
+//	    B.WithURL("https://api.example.com/users"),
+//	    B.WithMethod("POST"),
+//	    B.WithJSONBody(userData),
+//	)
+//
+//	requester := RB.Requester(builder)
+//	result := requester(context.Background())()
 package builder
 
 import (
@@ -31,6 +61,59 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
+// Requester converts an http/builder.Builder into a ReaderIOEither that produces HTTP requests.
+// It handles both requests with and without bodies, automatically managing headers including
+// Content-Length for requests with bodies.
+//
+// The function performs the following operations:
+//  1. Extracts the request body (if present) from the builder
+//  2. Creates appropriate request constructor (with or without body)
+//  3. Applies the target URL from the builder
+//  4. Applies the HTTP method from the builder
+//  5. Merges headers from the builder into the request
+//  6. Handles any errors that occur during request construction
+//
+// For requests with a body:
+//   - Sets the Content-Length header automatically
+//   - Uses bytes.NewReader to create the request body
+//   - Merges builder headers into the request
+//
+// For requests without a body:
+//   - Creates a request with nil body
+//   - Merges builder headers into the request
+//
+// Parameters:
+//   - builder: A pointer to an http/builder.Builder containing request configuration
+//
+// Returns:
+//   - A Requester (ReaderIOEither[*http.Request]) that, when executed with a context,
+//     produces either an error or a configured *http.Request
+//
+// Example with body:
+//
+//	import (
+//	    B "github.com/IBM/fp-go/v2/http/builder"
+//	    RB "github.com/IBM/fp-go/v2/context/readerioeither/http/builder"
+//	)
+//
+//	builder := F.Pipe3(
+//	    B.Default,
+//	    B.WithURL("https://api.example.com/users"),
+//	    B.WithMethod("POST"),
+//	    B.WithJSONBody(map[string]string{"name": "John"}),
+//	)
+//	requester := RB.Requester(builder)
+//	result := requester(context.Background())()
+//
+// Example without body:
+//
+//	builder := F.Pipe2(
+//	    B.Default,
+//	    B.WithURL("https://api.example.com/users"),
+//	    B.WithMethod("GET"),
+//	)
+//	requester := RB.Requester(builder)
+//	result := requester(context.Background())()
 func Requester(builder *R.Builder) RIOEH.Requester {
 
 	withBody := F.Curry3(func(data []byte, url string, method string) RIOE.ReaderIOEither[*http.Request] {

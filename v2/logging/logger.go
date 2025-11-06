@@ -13,12 +13,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package logging provides utilities for creating logging callbacks from standard log.Logger instances.
+// It offers a convenient way to configure logging for functional programming patterns where separate
+// loggers for success and error cases are needed.
 package logging
 
 import (
 	"log"
 )
 
+// LoggingCallbacks creates a pair of logging callback functions from the provided loggers.
+// It returns two functions that can be used for logging messages, typically one for success
+// cases and one for error cases.
+//
+// The behavior depends on the number of loggers provided:
+//   - 0 loggers: Returns two callbacks using log.Default() for both success and error logging
+//   - 1 logger: Returns two callbacks both using the provided logger
+//   - 2+ loggers: Returns callbacks using the first logger for success and second for errors
+//
+// Parameters:
+//   - loggers: Variable number of *log.Logger instances (0, 1, or more)
+//
+// Returns:
+//   - First function: Callback for success/info logging (signature: func(string, ...any))
+//   - Second function: Callback for error logging (signature: func(string, ...any))
+//
+// Example:
+//
+//	// Using default logger for both
+//	infoLog, errLog := LoggingCallbacks()
+//
+//	// Using custom logger for both
+//	customLogger := log.New(os.Stdout, "APP: ", log.LstdFlags)
+//	infoLog, errLog := LoggingCallbacks(customLogger)
+//
+//	// Using separate loggers for info and errors
+//	infoLogger := log.New(os.Stdout, "INFO: ", log.LstdFlags)
+//	errorLogger := log.New(os.Stderr, "ERROR: ", log.LstdFlags)
+//	infoLog, errLog := LoggingCallbacks(infoLogger, errorLogger)
 func LoggingCallbacks(loggers ...*log.Logger) (func(string, ...any), func(string, ...any)) {
 	switch len(loggers) {
 	case 0:

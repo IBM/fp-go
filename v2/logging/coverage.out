@@ -1,0 +1,5 @@
+mode: set
+github.com/IBM/fp-go/v2/logging/logger.go:54.92,55.22 1 1
+github.com/IBM/fp-go/v2/logging/logger.go:56.9,58.32 2 1
+github.com/IBM/fp-go/v2/logging/logger.go:59.9,61.34 2 1
+github.com/IBM/fp-go/v2/logging/logger.go:62.10,63.46 1 1

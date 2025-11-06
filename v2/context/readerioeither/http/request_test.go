@@ -88,7 +88,7 @@ func TestSendSingleRequest(t *testing.T) {
 
 	resp1 := readItem(req1)
 
-	resE := resp1(context.TODO())()
+	resE := resp1(t.Context())()
 
 	fmt.Println(resE)
 }
@@ -121,7 +121,7 @@ func TestSendSingleRequestWithHeaderUnsafe(t *testing.T) {
 	)
 
 	res := F.Pipe1(
-		resp1(context.TODO())(),
+		resp1(t.Context())(),
 		E.GetOrElse(errors.ToString),
 	)
 
@@ -149,9 +149,167 @@ func TestSendSingleRequestWithHeaderSafe(t *testing.T) {
 	)
 
 	res := F.Pipe1(
-		response(context.TODO())(),
+		response(t.Context())(),
 		E.GetOrElse(errors.ToString),
 	)
 
 	assert.Equal(t, "sunt aut facere repellat provident occaecati excepturi optio reprehenderit", res)
+}
+
+// TestReadAll tests the ReadAll function which reads response as bytes
+func TestReadAll(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
+	readBytes := ReadAll(client)
+
+	result := readBytes(request)(t.Context())()
+
+	assert.True(t, E.IsRight(result), "Expected Right result")
+
+	bytes := E.GetOrElse(func(error) []byte { return nil })(result)
+	assert.NotNil(t, bytes, "Expected non-nil bytes")
+	assert.Greater(t, len(bytes), 0, "Expected non-empty byte array")
+
+	// Verify it contains expected JSON content
+	content := string(bytes)
+	assert.Contains(t, content, "userId")
+	assert.Contains(t, content, "title")
+}
+
+// TestReadText tests the ReadText function which reads response as string
+func TestReadText(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
+	readText := ReadText(client)
+
+	result := readText(request)(t.Context())()
+
+	assert.True(t, E.IsRight(result), "Expected Right result")
+
+	text := E.GetOrElse(func(error) string { return "" })(result)
+	assert.NotEmpty(t, text, "Expected non-empty text")
+
+	// Verify it contains expected JSON content as text
+	assert.Contains(t, text, "userId")
+	assert.Contains(t, text, "title")
+	assert.Contains(t, text, "sunt aut facere")
+}
+
+// TestReadJson tests the deprecated ReadJson function
+func TestReadJson(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
+	readItem := ReadJson[PostItem](client)
+
+	result := readItem(request)(t.Context())()
+
+	assert.True(t, E.IsRight(result), "Expected Right result")
+
+	item := E.GetOrElse(func(error) PostItem { return PostItem{} })(result)
+	assert.Equal(t, uint(1), item.UserID, "Expected UserID to be 1")
+	assert.Equal(t, uint(1), item.Id, "Expected Id to be 1")
+	assert.NotEmpty(t, item.Title, "Expected non-empty title")
+	assert.NotEmpty(t, item.Body, "Expected non-empty body")
+}
+
+// TestReadAllWithInvalidURL tests ReadAll with an invalid URL
+func TestReadAllWithInvalidURL(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("http://invalid-domain-that-does-not-exist-12345.com")
+	readBytes := ReadAll(client)
+
+	result := readBytes(request)(t.Context())()
+
+	assert.True(t, E.IsLeft(result), "Expected Left result for invalid URL")
+}
+
+// TestReadTextWithInvalidURL tests ReadText with an invalid URL
+func TestReadTextWithInvalidURL(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("http://invalid-domain-that-does-not-exist-12345.com")
+	readText := ReadText(client)
+
+	result := readText(request)(t.Context())()
+
+	assert.True(t, E.IsLeft(result), "Expected Left result for invalid URL")
+}
+
+// TestReadJSONWithInvalidURL tests ReadJSON with an invalid URL
+func TestReadJSONWithInvalidURL(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("http://invalid-domain-that-does-not-exist-12345.com")
+	readItem := ReadJSON[PostItem](client)
+
+	result := readItem(request)(t.Context())()
+
+	assert.True(t, E.IsLeft(result), "Expected Left result for invalid URL")
+}
+
+// TestReadJSONWithInvalidJSON tests ReadJSON with non-JSON response
+func TestReadJSONWithInvalidJSON(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	// This URL returns HTML, not JSON
+	request := MakeGetRequest("https://www.google.com")
+	readItem := ReadJSON[PostItem](client)
+
+	result := readItem(request)(t.Context())()
+
+	// Should fail because content-type is not application/json
+	assert.True(t, E.IsLeft(result), "Expected Left result for non-JSON response")
+}
+
+// TestMakeClientWithCustomClient tests MakeClient with a custom http.Client
+func TestMakeClientWithCustomClient(t *testing.T) {
+	customClient := H.DefaultClient
+
+	client := MakeClient(customClient)
+	assert.NotNil(t, client, "Expected non-nil client")
+
+	// Verify it works
+	request := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
+	readItem := ReadJSON[PostItem](client)
+	result := readItem(request)(t.Context())()
+
+	assert.True(t, E.IsRight(result), "Expected Right result")
+}
+
+// TestReadAllComposition tests composing ReadAll with other operations
+func TestReadAllComposition(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
+
+	// Compose ReadAll with a map operation to get byte length
+	readBytes := ReadAll(client)(request)
+	readLength := R.Map(func(bytes []byte) int { return len(bytes) })(readBytes)
+
+	result := readLength(t.Context())()
+
+	assert.True(t, E.IsRight(result), "Expected Right result")
+	length := E.GetOrElse(func(error) int { return 0 })(result)
+	assert.Greater(t, length, 0, "Expected positive byte length")
+}
+
+// TestReadTextComposition tests composing ReadText with other operations
+func TestReadTextComposition(t *testing.T) {
+	client := MakeClient(H.DefaultClient)
+
+	request := MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
+
+	// Compose ReadText with a map operation to get string length
+	readText := ReadText(client)(request)
+	readLength := R.Map(func(text string) int { return len(text) })(readText)
+
+	result := readLength(t.Context())()
+
+	assert.True(t, E.IsRight(result), "Expected Right result")
+	length := E.GetOrElse(func(error) int { return 0 })(result)
+	assert.Greater(t, length, 0, "Expected positive string length")
 }

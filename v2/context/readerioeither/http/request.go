@@ -13,6 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package http provides functional HTTP client utilities built on top of ReaderIOEither monad.
+// It offers a composable way to make HTTP requests with context support, error handling,
+// and response parsing capabilities. The package follows functional programming principles
+// to ensure type-safe, testable, and maintainable HTTP operations.
+//
+// The main abstractions include:
+//   - Requester: A reader that constructs HTTP requests with context
+//   - Client: An interface for executing HTTP requests
+//   - Response readers: Functions to parse responses as bytes, text, or JSON
+//
+// Example usage:
+//
+//	client := MakeClient(http.DefaultClient)
+//	request := MakeGetRequest("https://api.example.com/data")
+//	result := ReadJSON[MyType](client)(request)
+//	response := result(context.Background())()
 package http
 
 import (
@@ -30,14 +46,31 @@ import (
 )
 
 type (
-	// Requester is a reader that constructs a request
+	// Requester is a reader that constructs an HTTP request with context support.
+	// It represents a computation that, given a context, produces either an error
+	// or an HTTP request. This allows for composable request building with proper
+	// error handling and context propagation.
 	Requester = RIOE.ReaderIOEither[*http.Request]
 
+	// Client is an interface for executing HTTP requests in a functional way.
+	// It wraps the standard http.Client and provides a Do method that works
+	// with the ReaderIOEither monad for composable, type-safe HTTP operations.
 	Client interface {
-		// Do can send an HTTP request considering a context
+		// Do executes an HTTP request and returns the response wrapped in a ReaderIOEither.
+		// It takes a Requester (which builds the request) and returns a computation that,
+		// when executed with a context, performs the HTTP request and returns either
+		// an error or the HTTP response.
+		//
+		// Parameters:
+		//   - req: A Requester that builds the HTTP request
+		//
+		// Returns:
+		//   - A ReaderIOEither that produces either an error or an *http.Response
 		Do(Requester) RIOE.ReaderIOEither[*http.Response]
 	}
 
+	// client is the internal implementation of the Client interface.
+	// It wraps a standard http.Client and provides functional HTTP operations.
 	client struct {
 		delegate *http.Client
 		doIOE    func(*http.Request) IOE.IOEither[error, *http.Response]
@@ -45,11 +78,33 @@ type (
 )
 
 var (
-	// MakeRequest is an eitherized version of [http.NewRequestWithContext]
+	// MakeRequest is an eitherized version of http.NewRequestWithContext.
+	// It creates a Requester that builds an HTTP request with the given method, URL, and body.
+	// This function properly handles errors and wraps them in the Either monad.
+	//
+	// Parameters:
+	//   - method: HTTP method (GET, POST, PUT, DELETE, etc.)
+	//   - url: The target URL for the request
+	//   - body: Optional request body (can be nil)
+	//
+	// Returns:
+	//   - A Requester that produces either an error or an *http.Request
 	MakeRequest = RIOE.Eitherize3(http.NewRequestWithContext)
+
+	// makeRequest is a partially applied version of MakeRequest with the context parameter bound.
 	makeRequest = F.Bind13of3(MakeRequest)
 
-	// specialize
+	// MakeGetRequest creates a GET request for the specified URL.
+	// It's a convenience function that specializes MakeRequest for GET requests with no body.
+	//
+	// Parameters:
+	//   - url: The target URL for the GET request
+	//
+	// Returns:
+	//   - A Requester that produces either an error or an *http.Request
+	//
+	// Example:
+	//   req := MakeGetRequest("https://api.example.com/users")
 	MakeGetRequest = makeRequest("GET", nil)
 )
 
@@ -60,12 +115,49 @@ func (client client) Do(req Requester) RIOE.ReaderIOEither[*http.Response] {
 	)
 }
 
-// MakeClient creates an HTTP client proxy
+// MakeClient creates a functional HTTP client wrapper around a standard http.Client.
+// The returned Client provides methods for executing HTTP requests in a functional,
+// composable way using the ReaderIOEither monad.
+//
+// Parameters:
+//   - httpClient: A standard *http.Client to wrap (e.g., http.DefaultClient)
+//
+// Returns:
+//   - A Client that can execute HTTP requests functionally
+//
+// Example:
+//
+//	client := MakeClient(http.DefaultClient)
+//	// or with custom client
+//	customClient := &http.Client{Timeout: 10 * time.Second}
+//	client := MakeClient(customClient)
 func MakeClient(httpClient *http.Client) Client {
 	return client{delegate: httpClient, doIOE: IOE.Eitherize1(httpClient.Do)}
 }
 
-// ReadFullResponse sends a request,  reads the response as a byte array and represents the result as a tuple
+// ReadFullResponse sends an HTTP request, reads the complete response body as a byte array,
+// and returns both the response and body as a tuple (FullResponse).
+// It validates the HTTP status code and handles errors appropriately.
+//
+// The function performs the following steps:
+//  1. Executes the HTTP request using the provided client
+//  2. Validates the response status code (checks for HTTP errors)
+//  3. Reads the entire response body into a byte array
+//  4. Returns a tuple containing the response and body
+//
+// Parameters:
+//   - client: The HTTP client to use for executing the request
+//
+// Returns:
+//   - A function that takes a Requester and returns a ReaderIOEither[FullResponse]
+//     where FullResponse is a tuple of (*http.Response, []byte)
+//
+// Example:
+//
+//	client := MakeClient(http.DefaultClient)
+//	request := MakeGetRequest("https://api.example.com/data")
+//	fullResp := ReadFullResponse(client)(request)
+//	result := fullResp(context.Background())()
 func ReadFullResponse(client Client) func(Requester) RIOE.ReaderIOEither[H.FullResponse] {
 	return func(req Requester) RIOE.ReaderIOEither[H.FullResponse] {
 		return F.Flow3(
@@ -86,7 +178,23 @@ func ReadFullResponse(client Client) func(Requester) RIOE.ReaderIOEither[H.FullR
 	}
 }
 
-// ReadAll sends a request and reads the response as bytes
+// ReadAll sends an HTTP request and reads the complete response body as a byte array.
+// It validates the HTTP status code and returns the raw response body bytes.
+// This is useful when you need to process the response body in a custom way.
+//
+// Parameters:
+//   - client: The HTTP client to use for executing the request
+//
+// Returns:
+//   - A function that takes a Requester and returns a ReaderIOEither[[]byte]
+//     containing the response body as bytes
+//
+// Example:
+//
+//	client := MakeClient(http.DefaultClient)
+//	request := MakeGetRequest("https://api.example.com/data")
+//	readBytes := ReadAll(client)
+//	result := readBytes(request)(context.Background())()
 func ReadAll(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
 	return F.Flow2(
 		ReadFullResponse(client),
@@ -94,7 +202,23 @@ func ReadAll(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
 	)
 }
 
-// ReadText sends a request, reads the response and represents the response as a text string
+// ReadText sends an HTTP request, reads the response body, and converts it to a string.
+// It validates the HTTP status code and returns the response body as a UTF-8 string.
+// This is convenient for APIs that return plain text responses.
+//
+// Parameters:
+//   - client: The HTTP client to use for executing the request
+//
+// Returns:
+//   - A function that takes a Requester and returns a ReaderIOEither[string]
+//     containing the response body as a string
+//
+// Example:
+//
+//	client := MakeClient(http.DefaultClient)
+//	request := MakeGetRequest("https://api.example.com/text")
+//	readText := ReadText(client)
+//	result := readText(request)(context.Background())()
 func ReadText(client Client) func(Requester) RIOE.ReaderIOEither[string] {
 	return F.Flow2(
 		ReadAll(client),
@@ -102,13 +226,22 @@ func ReadText(client Client) func(Requester) RIOE.ReaderIOEither[string] {
 	)
 }
 
-// ReadJson sends a request, reads the response and parses the response as JSON
+// ReadJson sends an HTTP request, reads the response, and parses it as JSON.
 //
-// Deprecated: use [ReadJSON] instead
+// Deprecated: Use [ReadJSON] instead. This function is kept for backward compatibility
+// but will be removed in a future version. The capitalized version follows Go naming
+// conventions for acronyms.
 func ReadJson[A any](client Client) func(Requester) RIOE.ReaderIOEither[A] {
 	return ReadJSON[A](client)
 }
 
+// readJSON is an internal helper that reads the response body and validates JSON content type.
+// It performs the following validations:
+//  1. Validates HTTP status code
+//  2. Validates that the response Content-Type is application/json
+//  3. Reads the response body as bytes
+//
+// This function is used internally by ReadJSON to ensure proper JSON response handling.
 func readJSON(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
 	return F.Flow3(
 		ReadFullResponse(client),
@@ -120,7 +253,31 @@ func readJSON(client Client) func(Requester) RIOE.ReaderIOEither[[]byte] {
 	)
 }
 
-// ReadJSON sends a request, reads the response and parses the response as JSON
+// ReadJSON sends an HTTP request, reads the response, and parses it as JSON into type A.
+// It validates both the HTTP status code and the Content-Type header to ensure the
+// response is valid JSON before attempting to unmarshal.
+//
+// Type Parameters:
+//   - A: The target type to unmarshal the JSON response into
+//
+// Parameters:
+//   - client: The HTTP client to use for executing the request
+//
+// Returns:
+//   - A function that takes a Requester and returns a ReaderIOEither[A]
+//     containing the parsed JSON data
+//
+// Example:
+//
+//	type User struct {
+//	    ID   int    `json:"id"`
+//	    Name string `json:"name"`
+//	}
+//
+//	client := MakeClient(http.DefaultClient)
+//	request := MakeGetRequest("https://api.example.com/user/1")
+//	readUser := ReadJSON[User](client)
+//	result := readUser(request)(context.Background())()
 func ReadJSON[A any](client Client) func(Requester) RIOE.ReaderIOEither[A] {
 	return F.Flow2(
 		readJSON(client),

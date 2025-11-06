@@ -13,6 +13,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package builder provides a functional, immutable HTTP request builder with composable operations.
+// It follows functional programming principles to construct HTTP requests in a type-safe,
+// testable, and maintainable way.
+//
+// The Builder type is immutable - all operations return a new builder instance rather than
+// modifying the existing one. This ensures thread-safety and makes the code easier to reason about.
+//
+// Key Features:
+//   - Immutable builder pattern with method chaining
+//   - Lens-based access to builder properties
+//   - Support for headers, query parameters, request body, and HTTP methods
+//   - JSON and form data encoding
+//   - URL construction with query parameter merging
+//   - Hash generation for caching
+//   - Bearer token authentication helpers
+//
+// Basic Usage:
+//
+//	import (
+//	    B "github.com/IBM/fp-go/v2/http/builder"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Build a simple GET request
+//	builder := F.Pipe2(
+//	    B.Default,
+//	    B.WithURL("https://api.example.com/users"),
+//	    B.WithHeader("Accept")("application/json"),
+//	)
+//
+//	// Build a POST request with JSON body
+//	builder := F.Pipe3(
+//	    B.Default,
+//	    B.WithURL("https://api.example.com/users"),
+//	    B.WithMethod("POST"),
+//	    B.WithJSON(map[string]string{"name": "John"}),
+//	)
+//
+//	// Build a request with query parameters
+//	builder := F.Pipe3(
+//	    B.Default,
+//	    B.WithURL("https://api.example.com/search"),
+//	    B.WithQueryArg("q")("golang"),
+//	    B.WithQueryArg("limit")("10"),
+//	)
+//
+// The package provides several convenience functions for common HTTP methods:
+//   - WithGet, WithPost, WithPut, WithDelete for setting HTTP methods
+//   - WithBearer for adding Bearer token authentication
+//   - WithJSON for JSON payloads
+//   - WithFormData for form-encoded payloads
+//
+// Lenses are provided for advanced use cases:
+//   - URL, Method, Body, Headers, Query for accessing builder properties
+//   - Header(name) for accessing individual headers
+//   - QueryArg(name) for accessing individual query parameters
 package builder
 
 import (
