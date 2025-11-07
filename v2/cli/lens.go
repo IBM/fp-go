@@ -63,7 +63,7 @@ type fieldInfo struct {
 	Name       string
 	TypeName   string
 	BaseType   string // TypeName without leading * for pointer types
-	IsOptional bool   // true if json tag has omitempty or field is a pointer
+	IsOptional bool   // true if field is a pointer or has json omitempty tag
 }
 
 // templateData holds data for template rendering
@@ -93,15 +93,15 @@ const lensConstructorTemplate = `
 func Make{{.Name}}Lenses() {{.Name}}Lenses {
 {{- range .Fields}}
 {{- if .IsOptional}}
-	getOrElse{{.Name}} := O.GetOrElse(F.ConstNil[{{.BaseType}}])
+	iso{{.Name}} := I.FromZero[{{.TypeName}}]()
 {{- end}}
 {{- end}}
 	return {{.Name}}Lenses{
 {{- range .Fields}}
 {{- if .IsOptional}}
 		{{.Name}}: L.MakeLens(
-			func(s {{$.Name}}) O.Option[{{.TypeName}}] { return O.FromNillable(s.{{.Name}}) },
-			func(s {{$.Name}}, v O.Option[{{.TypeName}}]) {{$.Name}} { s.{{.Name}} = getOrElse{{.Name}}(v); return s },
+			func(s {{$.Name}}) O.Option[{{.TypeName}}] { return iso{{.Name}}.Get(s.{{.Name}}) },
+			func(s {{$.Name}}, v O.Option[{{.TypeName}}]) {{$.Name}} { s.{{.Name}} = iso{{.Name}}.ReverseGet(v); return s },
 		),
 {{- else}}
 		{{.Name}}: L.MakeLens(
@@ -117,15 +117,15 @@ func Make{{.Name}}Lenses() {{.Name}}Lenses {
 func Make{{.Name}}RefLenses() {{.Name}}RefLenses {
 {{- range .Fields}}
 {{- if .IsOptional}}
-	getOrElse{{.Name}} := O.GetOrElse(F.ConstNil[{{.BaseType}}])
+	iso{{.Name}} := I.FromZero[{{.TypeName}}]()
 {{- end}}
 {{- end}}
 	return {{.Name}}RefLenses{
 {{- range .Fields}}
 {{- if .IsOptional}}
 		{{.Name}}: L.MakeLensRef(
-			func(s *{{$.Name}}) O.Option[{{.TypeName}}] { return O.FromNillable(s.{{.Name}}) },
-			func(s *{{$.Name}}, v O.Option[{{.TypeName}}]) *{{$.Name}} { s.{{.Name}} = getOrElse{{.Name}}(v); return s },
+			func(s *{{$.Name}}) O.Option[{{.TypeName}}] { return iso{{.Name}}.Get(s.{{.Name}}) },
+			func(s *{{$.Name}}, v O.Option[{{.TypeName}}]) *{{$.Name}} { s.{{.Name}} = iso{{.Name}}.ReverseGet(v); return s },
 		),
 {{- else}}
 		{{.Name}}: L.MakeLensRef(
@@ -332,11 +332,16 @@ func parseFile(filename string) ([]structInfo, string, error) {
 					isOptional := false
 					baseType := typeName
 
-					// Only pointer types can be optional
+					// Check if field is optional:
+					// 1. Pointer types are always optional
+					// 2. Non-pointer types with json omitempty tag are optional
 					if isPointerType(field.Type) {
 						isOptional = true
 						// Strip leading * for base type
 						baseType = strings.TrimPrefix(typeName, "*")
+					} else if hasOmitEmpty(field.Tag) {
+						// Non-pointer type with omitempty is also optional
+						isOptional = true
 					}
 
 					// Extract imports from this field's type
@@ -462,10 +467,10 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 	// Write imports
 	f.WriteString("import (\n")
 	// Standard fp-go imports always needed
-	f.WriteString("\tF \"github.com/IBM/fp-go/v2/function\"\n")
 	f.WriteString("\tL \"github.com/IBM/fp-go/v2/optics/lens\"\n")
 	f.WriteString("\tLO \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
 	f.WriteString("\tO \"github.com/IBM/fp-go/v2/option\"\n")
+	f.WriteString("\tI \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
 
 	// Add additional imports collected from field types
 	for importPath, alias := range allImports {
@@ -502,7 +507,7 @@ func LensCommand() *C.Command {
 	return &C.Command{
 		Name:        "lens",
 		Usage:       "generate lens code for annotated structs",
-		Description: "Scans Go files for structs annotated with 'fp-go:Lens' and generates lens types. Fields with json omitempty tag or pointer types generate LensO (optional lens).",
+		Description: "Scans Go files for structs annotated with 'fp-go:Lens' and generates lens types. Pointer types and non-pointer types with json omitempty tag generate LensO (optional lens).",
 		Flags: []C.Flag{
 			flagLensDir,
 			flagFilename,
@@ -517,5 +522,3 @@ func LensCommand() *C.Command {
 		},
 	}
 }
-
-// Made with Bob

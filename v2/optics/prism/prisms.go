@@ -18,6 +18,7 @@ package prism
 import (
 	"encoding/base64"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/IBM/fp-go/v2/either"
@@ -309,4 +310,350 @@ func Deref[T any]() Prism[*T, *T] {
 //   - Composing with other prisms for complex error handling
 func FromEither[E, T any]() Prism[Either[E, T], T] {
 	return MakePrism(either.ToOption[E, T], either.Of[E, T])
+}
+
+// FromZero creates a prism that matches zero values of comparable types.
+// It provides a safe way to work with zero values, handling non-zero values
+// gracefully through the Option type.
+//
+// The prism's GetOption returns Some(t) if the value equals the zero value
+// of type T; otherwise, it returns None.
+//
+// The prism's ReverseGet is the identity function, returning the value unchanged.
+//
+// Type Parameters:
+//   - T: A comparable type (must support == and != operators)
+//
+// Returns:
+//   - A Prism[T, T] that matches zero values
+//
+// Example:
+//
+//	// Create a prism for zero integers
+//	zeroPrism := FromZero[int]()
+//
+//	// Match zero value
+//	result := zeroPrism.GetOption(0)  // Some(0)
+//
+//	// Non-zero returns None
+//	result = zeroPrism.GetOption(42)  // None[int]()
+//
+//	// ReverseGet is identity
+//	value := zeroPrism.ReverseGet(0)  // 0
+//
+//	// Use with Set to update zero values
+//	setter := Set[int, int](100)
+//	result := setter(zeroPrism)(0)   // 100
+//	result = setter(zeroPrism)(42)   // 42 (unchanged)
+//
+// Common use cases:
+//   - Validating that values are zero/default
+//   - Filtering zero values in data pipelines
+//   - Working with optional fields that use zero as "not set"
+//   - Replacing zero values with defaults
+func FromZero[T comparable]() Prism[T, T] {
+	var zero T
+	return MakePrism(option.FromPredicate(func(t T) bool { return t == zero }), F.Identity[T])
+}
+
+// Match represents a regex match result with full reconstruction capability.
+// It contains everything needed to reconstruct the original string, making it
+// suitable for use in a prism that maintains bidirectionality.
+//
+// Fields:
+//   - Before: Text before the match
+//   - Groups: Capture groups (index 0 is the full match, 1+ are capture groups)
+//   - After: Text after the match
+//
+// Example:
+//
+//	// For string "hello world 123" with regex `\d+`:
+//	// Match{
+//	//     Before: "hello world ",
+//	//     Groups: []string{"123"},
+//	//     After: "",
+//	// }
+type Match struct {
+	Before string   // Text before the match
+	Groups []string // Capture groups (index 0 is full match)
+	After  string   // Text after the match
+}
+
+// Reconstruct builds the original string from a Match.
+// This is the inverse operation of regex matching, allowing full round-trip conversion.
+//
+// Returns:
+//   - The original string that was matched
+//
+// Example:
+//
+//	match := Match{
+//	    Before: "hello ",
+//	    Groups: []string{"world"},
+//	    After: "!",
+//	}
+//	original := match.Reconstruct()  // "hello world!"
+func (m Match) Reconstruct() string {
+	return m.Before + m.Groups[0] + m.After
+}
+
+// FullMatch returns the complete matched text (the entire regex match).
+// This is equivalent to Groups[0] and represents what the regex matched.
+//
+// Returns:
+//   - The full matched text
+//
+// Example:
+//
+//	match := Match{
+//	    Before: "price: ",
+//	    Groups: []string{"$99.99", "99.99"},
+//	    After: " USD",
+//	}
+//	full := match.FullMatch()  // "$99.99"
+func (m Match) FullMatch() string {
+	return m.Groups[0]
+}
+
+// Group returns the nth capture group from the match (1-indexed).
+// Capture group 0 is the full match, groups 1+ are the parenthesized captures.
+// Returns an empty string if the group index is out of bounds.
+//
+// Parameters:
+//   - n: The capture group index (1-indexed)
+//
+// Returns:
+//   - The captured text, or empty string if index is invalid
+//
+// Example:
+//
+//	// Regex: `(\w+)@(\w+\.\w+)` matching "user@example.com"
+//	match := Match{
+//	    Groups: []string{"user@example.com", "user", "example.com"},
+//	}
+//	username := match.Group(1)  // "user"
+//	domain := match.Group(2)    // "example.com"
+//	invalid := match.Group(5)   // ""
+func (m Match) Group(n int) string {
+	if n < len(m.Groups) {
+		return m.Groups[n]
+	}
+	return ""
+}
+
+// RegexMatcher creates a prism for regex pattern matching with full reconstruction.
+// It provides a safe way to match strings against a regex pattern, extracting
+// match information while maintaining the ability to reconstruct the original string.
+//
+// The prism's GetOption attempts to match the regex against the string.
+// If a match is found, it returns Some(Match) with all capture groups and context;
+// if no match is found, it returns None.
+//
+// The prism's ReverseGet reconstructs the original string from a Match.
+//
+// Parameters:
+//   - re: A compiled regular expression
+//
+// Returns:
+//   - A Prism[string, Match] that safely handles regex matching
+//
+// Example:
+//
+//	// Create a prism for matching numbers
+//	numRegex := regexp.MustCompile(`\d+`)
+//	numPrism := RegexMatcher(numRegex)
+//
+//	// Match a string
+//	match := numPrism.GetOption("price: 42 dollars")
+//	// Some(Match{Before: "price: ", Groups: ["42"], After: " dollars"})
+//
+//	// No match returns None
+//	noMatch := numPrism.GetOption("no numbers here")  // None[Match]()
+//
+//	// Reconstruct original string
+//	if m, ok := option.IsSome(match); ok {
+//	    original := numPrism.ReverseGet(m)  // "price: 42 dollars"
+//	}
+//
+//	// Extract capture groups
+//	emailRegex := regexp.MustCompile(`(\w+)@(\w+\.\w+)`)
+//	emailPrism := RegexMatcher(emailRegex)
+//	match = emailPrism.GetOption("contact: user@example.com")
+//	// Match.Group(1) = "user", Match.Group(2) = "example.com"
+//
+// Common use cases:
+//   - Parsing structured text with regex patterns
+//   - Extracting and validating data from strings
+//   - Text transformation pipelines
+//   - Pattern-based string manipulation with reconstruction
+//
+// Note: This prism is bijective - you can always reconstruct the original
+// string from a Match, making it suitable for round-trip transformations.
+func RegexMatcher(re *regexp.Regexp) Prism[string, Match] {
+	noMatch := option.None[Match]()
+
+	return MakePrism(
+		// String -> Option[Match]
+		func(s string) Option[Match] {
+			loc := re.FindStringSubmatchIndex(s)
+			if loc == nil {
+				return noMatch
+			}
+
+			// Extract all capture groups
+			groups := make([]string, 0)
+			for i := 0; i < len(loc); i += 2 {
+				if loc[i] >= 0 {
+					groups = append(groups, s[loc[i]:loc[i+1]])
+				} else {
+					groups = append(groups, "")
+				}
+			}
+
+			match := Match{
+				Before: s[:loc[0]],
+				Groups: groups,
+				After:  s[loc[1]:],
+			}
+
+			return option.Some(match)
+		},
+		Match.Reconstruct,
+	)
+}
+
+// NamedMatch represents a regex match result with named capture groups.
+// It provides access to captured text by name rather than by index, making
+// regex patterns more readable and maintainable.
+//
+// Fields:
+//   - Before: Text before the match
+//   - Groups: Map of capture group names to their matched text
+//   - Full: The complete matched text
+//   - After: Text after the match
+//
+// Example:
+//
+//	// For regex `(?P<user>\w+)@(?P<domain>\w+\.\w+)` matching "user@example.com":
+//	// NamedMatch{
+//	//     Before: "",
+//	//     Groups: map[string]string{"user": "user", "domain": "example.com"},
+//	//     Full: "user@example.com",
+//	//     After: "",
+//	// }
+type NamedMatch struct {
+	Before string
+	Groups map[string]string
+	Full   string // The full matched text
+	After  string
+}
+
+// Reconstruct builds the original string from a NamedMatch.
+// This is the inverse operation of regex matching, allowing full round-trip conversion.
+//
+// Returns:
+//   - The original string that was matched
+//
+// Example:
+//
+//	match := NamedMatch{
+//	    Before: "email: ",
+//	    Full: "user@example.com",
+//	    Groups: map[string]string{"user": "user", "domain": "example.com"},
+//	    After: "",
+//	}
+//	original := match.Reconstruct()  // "email: user@example.com"
+func (nm NamedMatch) Reconstruct() string {
+	return nm.Before + nm.Full + nm.After
+}
+
+// RegexNamedMatcher creates a prism for regex pattern matching with named capture groups.
+// It provides a safe way to match strings against a regex pattern with named groups,
+// making it easier to extract specific parts of the match by name rather than index.
+//
+// The prism's GetOption attempts to match the regex against the string.
+// If a match is found, it returns Some(NamedMatch) with all named capture groups;
+// if no match is found, it returns None.
+//
+// The prism's ReverseGet reconstructs the original string from a NamedMatch.
+//
+// Parameters:
+//   - re: A compiled regular expression with named capture groups
+//
+// Returns:
+//   - A Prism[string, NamedMatch] that safely handles regex matching with named groups
+//
+// Example:
+//
+//	// Create a prism for matching email addresses with named groups
+//	emailRegex := regexp.MustCompile(`(?P<user>\w+)@(?P<domain>\w+\.\w+)`)
+//	emailPrism := RegexNamedMatcher(emailRegex)
+//
+//	// Match a string
+//	match := emailPrism.GetOption("contact: user@example.com")
+//	// Some(NamedMatch{
+//	//     Before: "contact: ",
+//	//     Groups: {"user": "user", "domain": "example.com"},
+//	//     Full: "user@example.com",
+//	//     After: "",
+//	// })
+//
+//	// Access named groups
+//	if m, ok := option.IsSome(match); ok {
+//	    username := m.Groups["user"]      // "user"
+//	    domain := m.Groups["domain"]      // "example.com"
+//	}
+//
+//	// No match returns None
+//	noMatch := emailPrism.GetOption("invalid-email")  // None[NamedMatch]()
+//
+//	// Reconstruct original string
+//	if m, ok := option.IsSome(match); ok {
+//	    original := emailPrism.ReverseGet(m)  // "contact: user@example.com"
+//	}
+//
+//	// More complex example with date parsing
+//	dateRegex := regexp.MustCompile(`(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})`)
+//	datePrism := RegexNamedMatcher(dateRegex)
+//	match = datePrism.GetOption("Date: 2024-03-15")
+//	// Access: match.Groups["year"], match.Groups["month"], match.Groups["day"]
+//
+// Common use cases:
+//   - Parsing structured text with meaningful field names
+//   - Extracting and validating data from formatted strings
+//   - Log parsing with named fields
+//   - Configuration file parsing
+//   - URL route parameter extraction
+//
+// Note: Only named capture groups appear in the Groups map. Unnamed groups
+// are not included. The Full field always contains the complete matched text.
+func RegexNamedMatcher(re *regexp.Regexp) Prism[string, NamedMatch] {
+	names := re.SubexpNames()
+	noMatch := option.None[NamedMatch]()
+
+	return MakePrism(
+		func(s string) Option[NamedMatch] {
+			loc := re.FindStringSubmatchIndex(s)
+			if loc == nil {
+				return noMatch
+			}
+
+			groups := make(map[string]string)
+			for i := 1; i < len(loc)/2; i++ {
+				if names[i] != "" && loc[2*i] >= 0 {
+					groups[names[i]] = s[loc[2*i]:loc[2*i+1]]
+				}
+			}
+
+			match := NamedMatch{
+				Before: s[:loc[0]],
+				Groups: groups,
+				Full:   s[loc[0]:loc[1]],
+				After:  s[loc[1]:],
+			}
+
+			return option.Some(match)
+		},
+		NamedMatch.Reconstruct,
+	)
 }

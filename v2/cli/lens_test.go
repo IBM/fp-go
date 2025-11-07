@@ -278,6 +278,65 @@ type Other struct {
 	assert.Equal(t, "City", address.Fields[1].Name)
 }
 
+func TestParseFileWithOmitEmpty(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type Config struct {
+	Name     string
+	Value    string  ` + "`json:\"value,omitempty\"`" + `
+	Count    int     ` + "`json:\",omitempty\"`" + `
+	Optional *string ` + "`json:\"optional,omitempty\"`" + `
+	Required int     ` + "`json:\"required\"`" + `
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check Config struct
+	config := structs[0]
+	assert.Equal(t, "Config", config.Name)
+	assert.Len(t, config.Fields, 5)
+
+	// Name - no tag, not optional
+	assert.Equal(t, "Name", config.Fields[0].Name)
+	assert.Equal(t, "string", config.Fields[0].TypeName)
+	assert.False(t, config.Fields[0].IsOptional)
+
+	// Value - has omitempty, should be optional
+	assert.Equal(t, "Value", config.Fields[1].Name)
+	assert.Equal(t, "string", config.Fields[1].TypeName)
+	assert.True(t, config.Fields[1].IsOptional, "Value field with omitempty should be optional")
+
+	// Count - has omitempty (no field name in tag), should be optional
+	assert.Equal(t, "Count", config.Fields[2].Name)
+	assert.Equal(t, "int", config.Fields[2].TypeName)
+	assert.True(t, config.Fields[2].IsOptional, "Count field with omitempty should be optional")
+
+	// Optional - pointer with omitempty, should be optional
+	assert.Equal(t, "Optional", config.Fields[3].Name)
+	assert.Equal(t, "*string", config.Fields[3].TypeName)
+	assert.True(t, config.Fields[3].IsOptional)
+
+	// Required - has json tag but no omitempty, not optional
+	assert.Equal(t, "Required", config.Fields[4].Name)
+	assert.Equal(t, "int", config.Fields[4].TypeName)
+	assert.False(t, config.Fields[4].IsOptional, "Required field without omitempty should not be optional")
+}
+
 func TestGenerateLensHelpers(t *testing.T) {
 	// Create a temporary directory with test files
 	tmpDir := t.TempDir()
@@ -318,8 +377,7 @@ type TestStruct struct {
 	assert.Contains(t, contentStr, "MakeTestStructLens")
 	assert.Contains(t, contentStr, "L.Lens[TestStruct, string]")
 	assert.Contains(t, contentStr, "LO.LensO[TestStruct, *int]")
-	assert.Contains(t, contentStr, "O.FromNillable")
-	assert.Contains(t, contentStr, "O.GetOrElse")
+	assert.Contains(t, contentStr, "I.FromZero")
 }
 
 func TestGenerateLensHelpersNoAnnotations(t *testing.T) {
@@ -378,8 +436,42 @@ func TestLensTemplates(t *testing.T) {
 	assert.Contains(t, constructorStr, "return TestStructLenses{")
 	assert.Contains(t, constructorStr, "Name: L.MakeLens(")
 	assert.Contains(t, constructorStr, "Value: L.MakeLens(")
-	assert.Contains(t, constructorStr, "O.FromNillable")
-	assert.Contains(t, constructorStr, "O.GetOrElse")
+	assert.Contains(t, constructorStr, "I.FromZero")
+}
+
+func TestLensTemplatesWithOmitEmpty(t *testing.T) {
+	s := structInfo{
+		Name: "ConfigStruct",
+		Fields: []fieldInfo{
+			{Name: "Name", TypeName: "string", IsOptional: false},
+			{Name: "Value", TypeName: "string", IsOptional: true},    // non-pointer with omitempty
+			{Name: "Count", TypeName: "int", IsOptional: true},       // non-pointer with omitempty
+			{Name: "Pointer", TypeName: "*string", IsOptional: true}, // pointer
+		},
+	}
+
+	// Test struct template
+	var structBuf bytes.Buffer
+	err := structTmpl.Execute(&structBuf, s)
+	require.NoError(t, err)
+
+	structStr := structBuf.String()
+	assert.Contains(t, structStr, "type ConfigStructLenses struct")
+	assert.Contains(t, structStr, "Name L.Lens[ConfigStruct, string]")
+	assert.Contains(t, structStr, "Value LO.LensO[ConfigStruct, string]", "non-pointer with omitempty should use LensO")
+	assert.Contains(t, structStr, "Count LO.LensO[ConfigStruct, int]", "non-pointer with omitempty should use LensO")
+	assert.Contains(t, structStr, "Pointer LO.LensO[ConfigStruct, *string]")
+
+	// Test constructor template
+	var constructorBuf bytes.Buffer
+	err = constructorTmpl.Execute(&constructorBuf, s)
+	require.NoError(t, err)
+
+	constructorStr := constructorBuf.String()
+	assert.Contains(t, constructorStr, "func MakeConfigStructLenses() ConfigStructLenses")
+	assert.Contains(t, constructorStr, "isoValue := I.FromZero[string]()")
+	assert.Contains(t, constructorStr, "isoCount := I.FromZero[int]()")
+	assert.Contains(t, constructorStr, "isoPointer := I.FromZero[*string]()")
 }
 
 func TestLensCommandFlags(t *testing.T) {
