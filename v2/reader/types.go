@@ -47,6 +47,8 @@ type (
 	//	apiKey := getAPIKey(config)      // "secret"
 	Reader[R, A any] = func(R) A
 
+	Kleisli[R, A, B any] = func(A) Reader[R, B]
+
 	// Operator represents a transformation from one Reader to another.
 	// It takes a Reader[R, A] and produces a Reader[R, B], where both readers
 	// share the same environment type R.
@@ -69,5 +71,5 @@ type (
 	//	getNumber := reader.Asks(func(c Config) int { return c.Multiplier })
 	//	getString := intToString(getNumber)
 	//	result := getString(Config{Multiplier: 42}) // "42"
-	Operator[R, A, B any] = func(Reader[R, A]) Reader[R, B]
+	Operator[R, A, B any] = Kleisli[R, Reader[R, A], B]
 )

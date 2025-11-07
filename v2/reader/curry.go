@@ -48,7 +48,7 @@ func Curry0[R, A any](f func(R) A) Reader[R, A] {
 //	curried := reader.Curry1(addPrefix)
 //	r := curried("hello")
 //	result := r(Config{Prefix: ">> "}) // ">> hello"
-func Curry1[R, T1, A any](f func(R, T1) A) func(T1) Reader[R, A] {
+func Curry1[R, T1, A any](f func(R, T1) A) Kleisli[R, T1, A] {
 	return G.Curry1[Reader[R, A]](f)
 }
 
@@ -121,7 +121,7 @@ func Uncurry0[R, A any](f Reader[R, A]) func(R) A {
 //	}
 //	f := reader.Uncurry1(curried)
 //	result := f(Config{Prefix: ">> "}, "hello") // ">> hello"
-func Uncurry1[R, T1, A any](f func(T1) Reader[R, A]) func(R, T1) A {
+func Uncurry1[R, T1, A any](f Kleisli[R, T1, A]) func(R, T1) A {
 	return G.Uncurry1(f)
 }
 

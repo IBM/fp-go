@@ -83,7 +83,7 @@ func Do[R, S any](
 //	)
 func Bind[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) Reader[R, T],
+	f Kleisli[R, S1, T],
 ) Operator[R, S1, S2] {
 	return chain.Bind(
 		Chain[R, S1, S2],
@@ -283,7 +283,7 @@ func ApSL[R, S, T any](
 //	)
 func BindL[R, S, T any](
 	lens L.Lens[S, T],
-	f func(T) Reader[R, T],
+	f Kleisli[R, T, T],
 ) Operator[R, S, S] {
 	return Bind[R, S, S, T](lens.Set, func(s S) Reader[R, T] {
 		return f(lens.Get(s))

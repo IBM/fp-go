@@ -154,7 +154,7 @@ func Of[R, A any](a A) Reader[R, A] {
 //	}
 //	r := reader.MonadChain(getUser, getUserName)
 //	name := r(Config{UserId: 42}) // "User42"
-func MonadChain[R, A, B any](ma Reader[R, A], f func(A) Reader[R, B]) Reader[R, B] {
+func MonadChain[R, A, B any](ma Reader[R, A], f Kleisli[R, A, B]) Reader[R, B] {
 	return func(r R) B {
 		return f(ma(r))(r)
 	}
@@ -172,7 +172,7 @@ func MonadChain[R, A, B any](ma Reader[R, A], f func(A) Reader[R, B]) Reader[R, 
 //	}
 //	r := reader.Chain(getUserName)(getUser)
 //	name := r(Config{UserId: 42}) // "User42"
-func Chain[R, A, B any](f func(A) Reader[R, B]) Operator[R, A, B] {
+func Chain[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, B] {
 	return function.Bind2nd(MonadChain[R, A, B], f)
 }
 
@@ -187,7 +187,7 @@ func Chain[R, A, B any](f func(A) Reader[R, B]) Operator[R, A, B] {
 //	}
 //	flat := reader.Flatten(nested)
 //	result := flat(Config{Value: 5}) // 10 (5 + 5)
-func Flatten[R, A any](mma func(R) Reader[R, A]) Reader[R, A] {
+func Flatten[R, A any](mma Reader[R, Reader[R, A]]) Reader[R, A] {
 	return MonadChain(mma, function.Identity[Reader[R, A]])
 }
 

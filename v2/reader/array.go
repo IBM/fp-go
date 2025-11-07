@@ -37,7 +37,7 @@ import (
 //	}
 //	r := reader.MonadTraverseArray(numbers, addPrefix)
 //	result := r(Config{Prefix: "num"}) // ["num1", "num2", "num3"]
-func MonadTraverseArray[R, A, B any](ma []A, f func(A) Reader[R, B]) Reader[R, []B] {
+func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] {
 	return array.MonadTraverse[[]A](
 		Of[R, []B],
 		Map[R, []B, func(B) []B],
@@ -62,7 +62,7 @@ func MonadTraverseArray[R, A, B any](ma []A, f func(A) Reader[R, B]) Reader[R, [
 //	transform := reader.TraverseArray(multiply)
 //	r := transform([]int{1, 2, 3})
 //	result := r(Config{Multiplier: 10}) // [10, 20, 30]
-func TraverseArray[R, A, B any](f func(A) Reader[R, B]) func([]A) Reader[R, []B] {
+func TraverseArray[R, A, B any](f Kleisli[R, A, B]) func([]A) Reader[R, []B] {
 	return array.Traverse[[]A](
 		Of[R, []B],
 		Map[R, []B, func(B) []B],
