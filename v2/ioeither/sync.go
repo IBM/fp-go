@@ -22,6 +22,6 @@ import (
 )
 
 // WithLock executes the provided IO operation in the scope of a lock
-func WithLock[E, A any](lock IO[context.CancelFunc]) func(fa IOEither[E, A]) IOEither[E, A] {
+func WithLock[E, A any](lock IO[context.CancelFunc]) Operator[E, A, A] {
 	return io.WithLock[Either[E, A]](lock)
 }

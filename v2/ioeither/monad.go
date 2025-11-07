@@ -41,7 +41,7 @@ func (o *ioEitherMonad[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
 	return Map[E, A, B](f)
 }
 
-func (o *ioEitherMonad[E, A, B]) Chain(f func(A) IOEither[E, B]) Operator[E, A, B] {
+func (o *ioEitherMonad[E, A, B]) Chain(f Kleisli[E, A, B]) Operator[E, A, B] {
 	return Chain[E, A, B](f)
 }
 

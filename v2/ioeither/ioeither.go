@@ -41,7 +41,8 @@ type (
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
 	IOEither[E, A any] = IO[Either[E, A]]
 
-	Operator[E, A, B any] = R.Reader[IOEither[E, A], IOEither[E, B]]
+	Kleisli[E, A, B any]  = R.Reader[A, IOEither[E, B]]
+	Operator[E, A, B any] = Kleisli[E, IOEither[E, A], B]
 )
 
 func Left[A, E any](l E) IOEither[E, A] {
@@ -83,7 +84,7 @@ func FromIOOption[A, E any](onNone func() E) func(o IOO.IOOption[A]) IOEither[E,
 	return io.Map(either.FromOption[A](onNone))
 }
 
-func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) Operator[E, A, B] {
 	return fromeither.ChainOptionK(
 		MonadChain[E, A, B],
 		FromEither[E, B],
@@ -100,7 +101,7 @@ func MonadChainIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEither[E, 
 	)
 }
 
-func ChainIOK[E, A, B any](f func(A) IO[B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainIOK[E, A, B any](f func(A) IO[B]) Operator[E, A, B] {
 	return fromio.ChainIOK(
 		Chain[E, A, B],
 		FromIO[E, B],
@@ -108,7 +109,7 @@ func ChainIOK[E, A, B any](f func(A) IO[B]) func(IOEither[E, A]) IOEither[E, B] 
 	)
 }
 
-func ChainLazyK[E, A, B any](f func(A) lazy.Lazy[B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainLazyK[E, A, B any](f func(A) lazy.Lazy[B]) Operator[E, A, B] {
 	return ChainIOK[E](f)
 }
 
@@ -138,11 +139,11 @@ func MapTo[E, A, B any](b B) Operator[E, A, B] {
 	return Map[E](function.Constant1[A](b))
 }
 
-func MonadChain[E, A, B any](fa IOEither[E, A], f func(A) IOEither[E, B]) IOEither[E, B] {
+func MonadChain[E, A, B any](fa IOEither[E, A], f Kleisli[E, A, B]) IOEither[E, B] {
 	return eithert.MonadChain(io.MonadChain[Either[E, A], Either[E, B]], io.MonadOf[Either[E, B]], fa, f)
 }
 
-func Chain[E, A, B any](f func(A) IOEither[E, B]) Operator[E, A, B] {
+func Chain[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, B] {
 	return eithert.Chain(io.Chain[Either[E, A], Either[E, B]], io.Of[Either[E, B]], f)
 }
 
@@ -155,7 +156,7 @@ func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f func(A) Either[E, B]) I
 	)
 }
 
-func ChainEitherK[E, A, B any](f func(A) Either[E, B]) func(IOEither[E, A]) IOEither[E, B] {
+func ChainEitherK[E, A, B any](f func(A) Either[E, B]) Operator[E, A, B] {
 	return fromeither.ChainEitherK(
 		Chain[E, A, B],
 		FromEither[E, B],
@@ -274,7 +275,7 @@ func ChainTo[A, E, B any](fb IOEither[E, B]) Operator[E, A, B] {
 }
 
 // MonadChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
-func MonadChainFirst[E, A, B any](ma IOEither[E, A], f func(A) IOEither[E, B]) IOEither[E, A] {
+func MonadChainFirst[E, A, B any](ma IOEither[E, A], f Kleisli[E, A, B]) IOEither[E, A] {
 	return chain.MonadChainFirst(
 		MonadChain[E, A, A],
 		MonadMap[E, B, A],
@@ -284,7 +285,7 @@ func MonadChainFirst[E, A, B any](ma IOEither[E, A], f func(A) IOEither[E, B]) I
 }
 
 // ChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
-func ChainFirst[E, A, B any](f func(A) IOEither[E, B]) Operator[E, A, A] {
+func ChainFirst[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, A] {
 	return chain.ChainFirst(
 		Chain[E, A, A],
 		Map[E, B, A],

@@ -27,7 +27,7 @@ import (
 // check  - checks if the result of the action needs to be retried
 func Retrying[E, A any](
 	policy R.RetryPolicy,
-	action func(R.RetryStatus) IOEither[E, A],
+	action Kleisli[E, R.RetryStatus, A],
 	check func(Either[E, A]) bool,
 ) IOEither[E, A] {
 	return io.Retrying(policy, action, check)

@@ -24,7 +24,7 @@ import (
 // whether the body action returns and error or not.
 func Bracket[E, A, B, ANY any](
 	acquire IOEither[E, A],
-	use func(A) IOEither[E, B],
+	use Kleisli[E, A, B],
 	release func(A, Either[E, B]) IOEither[E, ANY],
 ) IOEither[E, B] {
 	return BR.Bracket[IOEither[E, A], IOEither[E, B], IOEither[E, ANY], Either[E, B], A, B](

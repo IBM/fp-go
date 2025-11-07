@@ -77,7 +77,7 @@ func Do[E, S any](
 //	)
 func Bind[E, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) IOEither[E, T],
+	f Kleisli[E, S1, T],
 ) Operator[E, S1, S2] {
 	return chain.Bind(
 		Chain[E, S1, S2],
@@ -230,7 +230,7 @@ func ApSL[E, S, T any](
 //	)
 func BindL[E, S, T any](
 	lens L.Lens[S, T],
-	f func(T) IOEither[E, T],
+	f Kleisli[E, T, T],
 ) Operator[E, S, S] {
 	return Bind[E, S, S, T](lens.Set, func(s S) IOEither[E, T] {
 		return f(lens.Get(s))

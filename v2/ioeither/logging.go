@@ -26,7 +26,7 @@ import (
 
 // LogJSON converts the argument to pretty printed JSON and then logs it via the format string
 // Can be used with [ChainFirst]
-func LogJSON[A any](prefix string) func(A) IOEither[error, any] {
+func LogJSON[A any](prefix string) Kleisli[error, A, any] {
 	return func(a A) IOEither[error, any] {
 		// log this
 		return function.Pipe3(

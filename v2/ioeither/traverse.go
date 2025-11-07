@@ -22,7 +22,7 @@ import (
 )
 
 // TraverseArray transforms an array
-func TraverseArray[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
 		Map[E, []B, func(B) []B],
@@ -33,7 +33,7 @@ func TraverseArray[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[E, 
 }
 
 // TraverseArrayWithIndex transforms an array
-func TraverseArrayWithIndex[E, A, B any](f func(int, A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+func TraverseArrayWithIndex[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
 		Map[E, []B, func(B) []B],
@@ -49,7 +49,7 @@ func SequenceArray[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 }
 
 // TraverseRecord transforms a record
-func TraverseRecord[K comparable, E, A, B any](f func(A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+func TraverseRecord[K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, map[K]A, map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
@@ -60,7 +60,7 @@ func TraverseRecord[K comparable, E, A, B any](f func(A) IOEither[E, B]) func(ma
 }
 
 // TraverseRecordWithIndex transforms a record
-func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) Kleisli[E, map[K]A, map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
@@ -76,7 +76,7 @@ func SequenceRecord[K comparable, E, A any](ma map[K]IOEither[E, A]) IOEither[E,
 }
 
 // TraverseArraySeq transforms an array
-func TraverseArraySeq[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+func TraverseArraySeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
 		Map[E, []B, func(B) []B],
@@ -87,7 +87,7 @@ func TraverseArraySeq[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[
 }
 
 // TraverseArrayWithIndexSeq transforms an array
-func TraverseArrayWithIndexSeq[E, A, B any](f func(int, A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+func TraverseArrayWithIndexSeq[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
 		Map[E, []B, func(B) []B],
@@ -103,7 +103,7 @@ func SequenceArraySeq[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 }
 
 // TraverseRecordSeq transforms a record
-func TraverseRecordSeq[K comparable, E, A, B any](f func(A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+func TraverseRecordSeq[K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, map[K]A, map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
@@ -114,7 +114,7 @@ func TraverseRecordSeq[K comparable, E, A, B any](f func(A) IOEither[E, B]) func
 }
 
 // TraverseRecordWithIndexSeq transforms a record
-func TraverseRecordWithIndexSeq[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+func TraverseRecordWithIndexSeq[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) Kleisli[E, map[K]A, map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
@@ -130,7 +130,7 @@ func SequenceRecordSeq[K comparable, E, A any](ma map[K]IOEither[E, A]) IOEither
 }
 
 // TraverseArrayPar transforms an array
-func TraverseArrayPar[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+func TraverseArrayPar[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
 		Map[E, []B, func(B) []B],
@@ -141,7 +141,7 @@ func TraverseArrayPar[E, A, B any](f func(A) IOEither[E, B]) func([]A) IOEither[
 }
 
 // TraverseArrayWithIndexPar transforms an array
-func TraverseArrayWithIndexPar[E, A, B any](f func(int, A) IOEither[E, B]) func([]A) IOEither[E, []B] {
+func TraverseArrayWithIndexPar[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
 		Map[E, []B, func(B) []B],
@@ -157,7 +157,7 @@ func SequenceArrayPar[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 }
 
 // TraverseRecordPar transforms a record
-func TraverseRecordPar[K comparable, E, A, B any](f func(A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+func TraverseRecordPar[K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, map[K]A, map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
@@ -168,7 +168,7 @@ func TraverseRecordPar[K comparable, E, A, B any](f func(A) IOEither[E, B]) func
 }
 
 // TraverseRecordWithIndexPar transforms a record
-func TraverseRecordWithIndexPar[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) func(map[K]A) IOEither[E, map[K]B] {
+func TraverseRecordWithIndexPar[K comparable, E, A, B any](f func(K, A) IOEither[E, B]) Kleisli[E, map[K]A, map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
