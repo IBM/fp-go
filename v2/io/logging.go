@@ -32,9 +32,9 @@ import (
 //	    io.ChainFirst(io.Logger[User]()("Fetched user")),
 //	    processUser,
 //	)
-func Logger[A any](loggers ...*log.Logger) func(string) func(A) IO[any] {
+func Logger[A any](loggers ...*log.Logger) func(string) Kleisli[A, any] {
 	_, right := L.LoggingCallbacks(loggers...)
-	return func(prefix string) func(A) IO[any] {
+	return func(prefix string) Kleisli[A, any] {
 		return func(a A) IO[any] {
 			return FromImpure(func() {
 				right("%s: %v", prefix, a)
@@ -53,7 +53,7 @@ func Logger[A any](loggers ...*log.Logger) func(string) func(A) IO[any] {
 //	    io.ChainFirst(io.Logf[User]("User: %+v")),
 //	    processUser,
 //	)
-func Logf[A any](prefix string) func(A) IO[any] {
+func Logf[A any](prefix string) Kleisli[A, any] {
 	return func(a A) IO[any] {
 		return FromImpure(func() {
 			log.Printf(prefix, a)
@@ -72,7 +72,7 @@ func Logf[A any](prefix string) func(A) IO[any] {
 //	    io.ChainFirst(io.Printf[User]("User: %+v\n")),
 //	    processUser,
 //	)
-func Printf[A any](prefix string) func(A) IO[any] {
+func Printf[A any](prefix string) Kleisli[A, any] {
 	return func(a A) IO[any] {
 		return FromImpure(func() {
 			fmt.Printf(prefix, a)

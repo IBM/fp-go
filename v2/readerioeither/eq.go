@@ -22,11 +22,15 @@ import (
 )
 
 // Eq implements the equals predicate for values contained in the IOEither monad
+//
+//go:inline
 func Eq[R, E, A any](eq EQ.Eq[either.Either[E, A]]) func(R) EQ.Eq[ReaderIOEither[R, E, A]] {
 	return readerio.Eq[R](eq)
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function
+//
+//go:inline
 func FromStrictEquals[R any, E, A comparable]() func(R) EQ.Eq[ReaderIOEither[R, E, A]] {
 	return Eq[R](either.FromStrictEquals[E, A]())
 }

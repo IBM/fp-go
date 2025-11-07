@@ -23,7 +23,7 @@ import (
 // Retrying will retry the actions according to the check policy
 func Retrying[A any](
 	policy R.RetryPolicy,
-	action func(R.RetryStatus) IOOption[A],
+	action Kleisli[R.RetryStatus, A],
 	check func(A) bool,
 ) IOOption[A] {
 	// get an implementation for the types

@@ -28,7 +28,7 @@ import (
 //   - f: Function that transforms each element into a ReaderIOEither
 //
 // Returns a function that transforms an array into a ReaderIOEither of an array.
-func TraverseArray[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
+func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -45,7 +45,7 @@ func TraverseArray[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEith
 //   - f: Function that transforms each element with its index into a ReaderIOEither
 //
 // Returns a function that transforms an array into a ReaderIOEither of an array.
-func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
+func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOEither[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -72,7 +72,7 @@ func SequenceArray[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 //   - f: Function that transforms each value into a ReaderIOEither
 //
 // Returns a function that transforms a map into a ReaderIOEither of a map.
-func TraverseRecord[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
+func TraverseRecord[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -89,7 +89,7 @@ func TraverseRecord[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(ma
 //   - f: Function that transforms each key-value pair into a ReaderIOEither
 //
 // Returns a function that transforms a map into a ReaderIOEither of a map.
-func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
+func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) Kleisli[map[K]A, map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -117,7 +117,7 @@ func SequenceRecord[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIOEit
 //   - f: Function that transforms each element into a ReaderIOEither
 //
 // Returns a ReaderIOEither containing an array of transformed values.
-func MonadTraverseArraySeq[A, B any](as []A, f func(A) ReaderIOEither[B]) ReaderIOEither[[]B] {
+func MonadTraverseArraySeq[A, B any](as []A, f Kleisli[A, B]) ReaderIOEither[[]B] {
 	return array.MonadTraverse[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -134,7 +134,7 @@ func MonadTraverseArraySeq[A, B any](as []A, f func(A) ReaderIOEither[B]) Reader
 //   - f: Function that transforms each element into a ReaderIOEither
 //
 // Returns a function that transforms an array into a ReaderIOEither of an array.
-func TraverseArraySeq[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
+func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -145,7 +145,7 @@ func TraverseArraySeq[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOE
 }
 
 // TraverseArrayWithIndexSeq uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
-func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
+func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOEither[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -167,7 +167,7 @@ func SequenceArraySeq[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 }
 
 // MonadTraverseRecordSeq uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
-func MonadTraverseRecordSeq[K comparable, A, B any](as map[K]A, f func(A) ReaderIOEither[B]) ReaderIOEither[map[K]B] {
+func MonadTraverseRecordSeq[K comparable, A, B any](as map[K]A, f Kleisli[A, B]) ReaderIOEither[map[K]B] {
 	return record.MonadTraverse[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -178,7 +178,7 @@ func MonadTraverseRecordSeq[K comparable, A, B any](as map[K]A, f func(A) Reader
 }
 
 // TraverseRecordSeq uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
-func TraverseRecordSeq[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
+func TraverseRecordSeq[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -189,7 +189,7 @@ func TraverseRecordSeq[K comparable, A, B any](f func(A) ReaderIOEither[B]) func
 }
 
 // TraverseRecordWithIndexSeq uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
-func TraverseRecordWithIndexSeq[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
+func TraverseRecordWithIndexSeq[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) Kleisli[map[K]A, map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -212,7 +212,7 @@ func SequenceRecordSeq[K comparable, A any](ma map[K]ReaderIOEither[A]) ReaderIO
 //   - f: Function that transforms each element into a ReaderIOEither
 //
 // Returns a ReaderIOEither containing an array of transformed values.
-func MonadTraverseArrayPar[A, B any](as []A, f func(A) ReaderIOEither[B]) ReaderIOEither[[]B] {
+func MonadTraverseArrayPar[A, B any](as []A, f Kleisli[A, B]) ReaderIOEither[[]B] {
 	return array.MonadTraverse[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -229,7 +229,7 @@ func MonadTraverseArrayPar[A, B any](as []A, f func(A) ReaderIOEither[B]) Reader
 //   - f: Function that transforms each element into a ReaderIOEither
 //
 // Returns a function that transforms an array into a ReaderIOEither of an array.
-func TraverseArrayPar[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
+func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -240,7 +240,7 @@ func TraverseArrayPar[A, B any](f func(A) ReaderIOEither[B]) func([]A) ReaderIOE
 }
 
 // TraverseArrayWithIndexPar uses transforms an array [[]A] into [[]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[[]B]]
-func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOEither[B]) func([]A) ReaderIOEither[[]B] {
+func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOEither[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[[]B],
 		Map[[]B, func(B) []B],
@@ -262,7 +262,7 @@ func SequenceArrayPar[A any](ma []ReaderIOEither[A]) ReaderIOEither[[]A] {
 }
 
 // TraverseRecordPar uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
-func TraverseRecordPar[K comparable, A, B any](f func(A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
+func TraverseRecordPar[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, map[K]B] {
 	return record.Traverse[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -273,7 +273,7 @@ func TraverseRecordPar[K comparable, A, B any](f func(A) ReaderIOEither[B]) func
 }
 
 // TraverseRecordWithIndexPar uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
-func TraverseRecordWithIndexPar[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) func(map[K]A) ReaderIOEither[map[K]B] {
+func TraverseRecordWithIndexPar[K comparable, A, B any](f func(K, A) ReaderIOEither[B]) Kleisli[map[K]A, map[K]B] {
 	return record.TraverseWithIndex[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
@@ -284,7 +284,7 @@ func TraverseRecordWithIndexPar[K comparable, A, B any](f func(K, A) ReaderIOEit
 }
 
 // MonadTraverseRecordPar uses transforms a record [map[K]A] into [map[K]ReaderIOEither[B]] and then resolves that into a [ReaderIOEither[map[K]B]]
-func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f func(A) ReaderIOEither[B]) ReaderIOEither[map[K]B] {
+func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f Kleisli[A, B]) ReaderIOEither[map[K]B] {
 	return record.MonadTraverse[map[K]A](
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],

@@ -22,7 +22,7 @@ import (
 )
 
 // TraverseArray transforms an array
-func TraverseArray[A, B any](f func(A) IOOption[B]) func([]A) IOOption[[]B] {
+func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return function.Flow2(
 		io.TraverseArray(f),
 		io.Map(option.SequenceArray[B]),
@@ -30,7 +30,7 @@ func TraverseArray[A, B any](f func(A) IOOption[B]) func([]A) IOOption[[]B] {
 }
 
 // TraverseArrayWithIndex transforms an array
-func TraverseArrayWithIndex[A, B any](f func(int, A) IOOption[B]) func([]A) IOOption[[]B] {
+func TraverseArrayWithIndex[A, B any](f func(int, A) IOOption[B]) Kleisli[[]A, []B] {
 	return function.Flow2(
 		io.TraverseArrayWithIndex(f),
 		io.Map(option.SequenceArray[B]),

@@ -23,7 +23,7 @@ import (
 // whether the body action returns and error or not.
 func Bracket[A, B, ANY any](
 	acquire IO[A],
-	use func(A) IO[B],
+	use Kleisli[A, B],
 	release func(A, B) IO[ANY],
 ) IO[B] {
 	return INTB.Bracket[IO[A], IO[B], IO[ANY], B, A, B](

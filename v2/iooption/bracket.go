@@ -24,7 +24,7 @@ import (
 // whether the body action returns and error or not.
 func Bracket[A, B, ANY any](
 	acquire IOOption[A],
-	use func(A) IOOption[B],
+	use Kleisli[A, B],
 	release func(A, Option[B]) IOOption[ANY],
 ) IOOption[B] {
 	return G.Bracket[IOOption[A], IOOption[B], IOOption[ANY], Option[B], A, B](

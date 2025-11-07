@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -72,8 +73,8 @@ func Do[S any](
 //	)
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) IOOption[T],
-) func(IOOption[S1]) IOOption[S2] {
+	f Kleisli[S1, T],
+) Kleisli[IOOption[S1], S2] {
 	return chain.Bind(
 		Chain[S1, S2],
 		Map[T, S2],
@@ -86,7 +87,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(IOOption[S1]) IOOption[S2] {
+) Kleisli[IOOption[S1], S2] {
 	return functor.Let(
 		Map[S1, S2],
 		setter,
@@ -98,7 +99,7 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(IOOption[S1]) IOOption[S2] {
+) Kleisli[IOOption[S1], S2] {
 	return functor.LetTo(
 		Map[S1, S2],
 		setter,
@@ -109,7 +110,7 @@ func LetTo[S1, S2, T any](
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) func(IOOption[T]) IOOption[S1] {
+) Kleisli[IOOption[T], S1] {
 	return chain.BindTo(
 		Map[T, S1],
 		setter,
@@ -152,11 +153,144 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOOption[T],
-) func(IOOption[S1]) IOOption[S2] {
+) Kleisli[IOOption[S1], S2] {
 	return apply.ApS(
 		Ap[S2, T],
 		Map[S1, func(T) S2],
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type State struct {
+//	    Name  string
+//	    Age   int
+//	}
+//
+//	ageLens := lens.MakeLens(
+//	    func(s State) int { return s.Age },
+//	    func(s State, a int) State { s.Age = a; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    iooption.Of(State{Name: "Alice"}),
+//	    iooption.ApSL(ageLens, iooption.Some(30)),
+//	)
+func ApSL[S, T any](
+	lens L.Lens[S, T],
+	fa IOOption[T],
+) Kleisli[IOOption[S], S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL attaches the result of a computation to a context using a lens-based setter.
+// This is a convenience function that combines Bind with a lens, allowing you to use
+// optics to update nested structures based on their current values.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// The computation function f receives the current value of the focused field and returns
+// an IOOption that produces the new value.
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	// Increment the counter, but return None if it would exceed 100
+//	increment := func(v int) iooption.IOOption[int] {
+//	    return iooption.FromIO(io.Of(v + 1))
+//	}
+//
+//	result := F.Pipe1(
+//	    iooption.Of(Counter{Value: 42}),
+//	    iooption.BindL(valueLens, increment),
+//	) // IOOption[Counter{Value: 43}]
+func BindL[S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[T, T],
+) Kleisli[IOOption[S], S] {
+	return Bind[S, S, T](lens.Set, func(s S) IOOption[T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL attaches the result of a pure computation to a context using a lens-based setter.
+// This is a convenience function that combines Let with a lens, allowing you to use
+// optics to update nested structures with pure transformations.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// The transformation function f receives the current value of the focused field and returns
+// the new value directly (not wrapped in IOOption).
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	// Double the counter value
+//	double := func(v int) int { return v * 2 }
+//
+//	result := F.Pipe1(
+//	    iooption.Of(Counter{Value: 21}),
+//	    iooption.LetL(valueLens, double),
+//	) // IOOption[Counter{Value: 42}]
+func LetL[S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Kleisli[IOOption[S], S] {
+	return Let[S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL attaches a constant value to a context using a lens-based setter.
+// This is a convenience function that combines LetTo with a lens, allowing you to use
+// optics to set nested fields to specific values.
+//
+// The lens parameter provides the setter for a field within the structure S.
+// Unlike LetL which transforms the current value, LetToL simply replaces it with
+// the provided constant value b.
+//
+// Example:
+//
+//	type Config struct {
+//	    Debug   bool
+//	    Timeout int
+//	}
+//
+//	debugLens := lens.MakeLens(
+//	    func(c Config) bool { return c.Debug },
+//	    func(c Config, d bool) Config { c.Debug = d; return c },
+//	)
+//
+//	result := F.Pipe1(
+//	    iooption.Of(Config{Debug: true, Timeout: 30}),
+//	    iooption.LetToL(debugLens, false),
+//	) // IOOption[Config{Debug: false, Timeout: 30}]
+func LetToL[S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Kleisli[IOOption[S], S] {
+	return LetTo[S, S, T](lens.Set, b)
 }

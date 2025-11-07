@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -163,4 +164,140 @@ func ApS[E, S1, S2, T any](
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type Config struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(c Config) int { return c.Port },
+//	    func(c Config, p int) Config { c.Port = p; return c },
+//	)
+//
+//	result := F.Pipe2(
+//	    ioeither.Of[error](Config{Host: "localhost"}),
+//	    ioeither.ApSL(portLens, ioeither.Of[error](8080)),
+//	)
+func ApSL[E, S, T any](
+	lens L.Lens[S, T],
+	fa IOEither[E, T],
+) Operator[E, S, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL attaches the result of a computation to a context using a lens-based setter.
+// This is a convenience function that combines Bind with a lens, allowing you to use
+// optics to update nested structures based on their current values.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// The computation function f receives the current value of the focused field and returns
+// an IOEither that produces the new value.
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	increment := func(v int) ioeither.IOEither[error, int] {
+//	    return ioeither.TryCatch(func() (int, error) {
+//	        if v >= 100 {
+//	            return 0, errors.New("overflow")
+//	        }
+//	        return v + 1, nil
+//	    })
+//	}
+//
+//	result := F.Pipe1(
+//	    ioeither.Of[error](Counter{Value: 42}),
+//	    ioeither.BindL(valueLens, increment),
+//	)
+func BindL[E, S, T any](
+	lens L.Lens[S, T],
+	f func(T) IOEither[E, T],
+) Operator[E, S, S] {
+	return Bind[E, S, S, T](lens.Set, func(s S) IOEither[E, T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL attaches the result of a pure computation to a context using a lens-based setter.
+// This is a convenience function that combines Let with a lens, allowing you to use
+// optics to update nested structures with pure transformations.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// The transformation function f receives the current value of the focused field and returns
+// the new value directly (not wrapped in IOEither).
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	double := func(v int) int { return v * 2 }
+//
+//	result := F.Pipe1(
+//	    ioeither.Of[error](Counter{Value: 21}),
+//	    ioeither.LetL(valueLens, double),
+//	)
+func LetL[E, S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Operator[E, S, S] {
+	return Let[E, S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL attaches a constant value to a context using a lens-based setter.
+// This is a convenience function that combines LetTo with a lens, allowing you to use
+// optics to set nested fields to specific values.
+//
+// The lens parameter provides the setter for a field within the structure S.
+// Unlike LetL which transforms the current value, LetToL simply replaces it with
+// the provided constant value b.
+//
+// Example:
+//
+//	type Config struct {
+//	    Debug   bool
+//	    Timeout int
+//	}
+//
+//	debugLens := lens.MakeLens(
+//	    func(c Config) bool { return c.Debug },
+//	    func(c Config, d bool) Config { c.Debug = d; return c },
+//	)
+//
+//	result := F.Pipe1(
+//	    ioeither.Of[error](Config{Debug: true, Timeout: 30}),
+//	    ioeither.LetToL(debugLens, false),
+//	)
+func LetToL[E, S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Operator[E, S, S] {
+	return LetTo[E, S, S, T](lens.Set, b)
 }

@@ -39,7 +39,7 @@ func fromPredicate[A any](a A, pred func(A) bool) Option[A] {
 //	isPositive := FromPredicate(func(n int) bool { return n > 0 })
 //	result := isPositive(5)  // Some(5)
 //	result := isPositive(-1) // None
-func FromPredicate[A any](pred func(A) bool) func(A) Option[A] {
+func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {
 	return F.Bind2nd(fromPredicate[A], pred)
 }
 
@@ -66,7 +66,7 @@ func FromNillable[A any](a *A) Option[*A] {
 //	    return n, err == nil
 //	})
 //	result := parseNum("42") // Some(42)
-func FromValidation[A, B any](f func(A) (B, bool)) func(A) Option[B] {
+func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
 	return Optionize1(f)
 }
 
@@ -94,7 +94,7 @@ func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
 //	applyTo5 := Ap[int](fa)
 //	fab := Some(func(x int) int { return x * 2 })
 //	result := applyTo5(fab) // Some(10)
-func Ap[B, A any](fa Option[A]) func(Option[func(A) B]) Option[B] {
+func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
 	return F.Bind2nd(MonadAp[B, A], fa)
 }
 
@@ -117,7 +117,7 @@ func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
 //	double := Map(func(x int) int { return x * 2 })
 //	result := double(Some(5)) // Some(10)
 //	result := double(None[int]()) // None
-func Map[A, B any](f func(a A) B) func(Option[A]) Option[B] {
+func Map[A, B any](f func(a A) B) Operator[A, B] {
 	return Chain(F.Flow2(f, Some[B]))
 }
 
@@ -138,7 +138,7 @@ func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
 //
 //	replaceWith42 := MapTo[string, int](42)
 //	result := replaceWith42(Some("hello")) // Some(42)
-func MapTo[A, B any](b B) func(Option[A]) Option[B] {
+func MapTo[A, B any](b B) Operator[A, B] {
 	return F.Bind2nd(MonadMapTo[A, B], b)
 }
 
@@ -207,7 +207,7 @@ func GetOrElse[A any](onNone func() A) func(Option[A]) A {
 //	    if x > 0 { return Some(x * 2) }
 //	    return None[int]()
 //	}) // Some(10)
-func MonadChain[A, B any](fa Option[A], f func(A) Option[B]) Option[B] {
+func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
 	return MonadFold(fa, None[B], f)
 }
 
@@ -221,7 +221,7 @@ func MonadChain[A, B any](fa Option[A], f func(A) Option[B]) Option[B] {
 //	    return None[int]()
 //	})
 //	result := validate(Some(5)) // Some(10)
-func Chain[A, B any](f func(A) Option[B]) func(Option[A]) Option[B] {
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return Fold(None[B], f)
 }
 
@@ -241,7 +241,7 @@ func MonadChainTo[A, B any](_ Option[A], mb Option[B]) Option[B] {
 //
 //	replaceWith := ChainTo(Some("hello"))
 //	result := replaceWith(Some(42)) // Some("hello")
-func ChainTo[A, B any](mb Option[B]) func(Option[A]) Option[B] {
+func ChainTo[A, B any](mb Option[B]) Operator[A, B] {
 	return F.Bind2nd(MonadChainTo[A, B], mb)
 }
 
@@ -253,7 +253,7 @@ func ChainTo[A, B any](mb Option[B]) func(Option[A]) Option[B] {
 //	result := MonadChainFirst(Some(5), func(x int) Option[string] {
 //	    return Some(fmt.Sprintf("%d", x))
 //	}) // Some(5) - original value is kept
-func MonadChainFirst[A, B any](ma Option[A], f func(A) Option[B]) Option[A] {
+func MonadChainFirst[A, B any](ma Option[A], f Kleisli[A, B]) Option[A] {
 	return C.MonadChainFirst(
 		MonadChain[A, A],
 		MonadMap[B, A],
@@ -271,7 +271,7 @@ func MonadChainFirst[A, B any](ma Option[A], f func(A) Option[B]) Option[A] {
 //	    return Some("logged")
 //	})
 //	result := logAndKeep(Some(5)) // Some(5)
-func ChainFirst[A, B any](f func(A) Option[B]) func(Option[A]) Option[A] {
+func ChainFirst[A, B any](f Kleisli[A, B]) Kleisli[Option[A], A] {
 	return C.ChainFirst(
 		Chain[A, A],
 		Map[B, A],
@@ -309,7 +309,7 @@ func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
 //	withDefault := Alt(func() Option[int] { return Some(0) })
 //	result := withDefault(Some(5)) // Some(5)
 //	result := withDefault(None[int]()) // Some(0)
-func Alt[A any](that func() Option[A]) func(Option[A]) Option[A] {
+func Alt[A any](that func() Option[A]) Kleisli[Option[A], A] {
 	return Fold(that, Of[A])
 }
 
@@ -361,7 +361,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //	result := isPositive(Some(5)) // Some(5)
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None
-func Filter[A any](pred func(A) bool) func(Option[A]) Option[A] {
+func Filter[A any](pred func(A) bool) Kleisli[Option[A], A] {
 	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
 }
 
@@ -383,6 +383,6 @@ func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 //	applyFive := Flap[int](5)
 //	fab := Some(func(x int) int { return x * 2 })
 //	result := applyFive(fab) // Some(10)
-func Flap[B, A any](a A) func(Option[func(A) B]) Option[B] {
+func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return FC.Flap(Map[func(A) B, B], a)
 }

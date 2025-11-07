@@ -21,6 +21,6 @@ import (
 
 // DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
 // Note, the [Iterator] does not produce any output until the predicate first becomes false
-func DropWhile[U any](pred func(U) bool) func(Iterator[U]) Iterator[U] {
+func DropWhile[U any](pred func(U) bool) Kleisli[Iterator[U], U] {
 	return G.DropWhile[Iterator[U]](pred)
 }

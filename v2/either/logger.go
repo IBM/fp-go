@@ -22,7 +22,7 @@ import (
 	L "github.com/IBM/fp-go/v2/logging"
 )
 
-func _log[E, A any](left func(string, ...any), right func(string, ...any), prefix string) func(Either[E, A]) Either[E, A] {
+func _log[E, A any](left func(string, ...any), right func(string, ...any), prefix string) Operator[E, A, A] {
 	return Fold(
 		func(e E) Either[E, A] {
 			left("%s: %v", prefix, e)
@@ -50,9 +50,9 @@ func _log[E, A any](left func(string, ...any), right func(string, ...any), prefi
 //	)
 //	// Logs: "Processing: 42"
 //	// result is Right(84)
-func Logger[E, A any](loggers ...*log.Logger) func(string) func(Either[E, A]) Either[E, A] {
+func Logger[E, A any](loggers ...*log.Logger) func(string) Operator[E, A, A] {
 	left, right := L.LoggingCallbacks(loggers...)
-	return func(prefix string) func(Either[E, A]) Either[E, A] {
+	return func(prefix string) Operator[E, A, A] {
 		delegate := _log[E, A](left, right, prefix)
 		return func(ma Either[E, A]) Either[E, A] {
 			return F.Pipe1(

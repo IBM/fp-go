@@ -27,7 +27,7 @@ import (
 // check  - checks if the result of the action needs to be retried
 func Retrying[A any](
 	policy R.RetryPolicy,
-	action func(R.RetryStatus) Lazy[A],
+	action Kleisli[R.RetryStatus, A],
 	check func(A) bool,
 ) Lazy[A] {
 	return io.Retrying(policy, action, check)

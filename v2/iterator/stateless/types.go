@@ -15,8 +15,19 @@
 
 package stateless
 
-import "github.com/IBM/fp-go/v2/option"
+import (
+	L "github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/reader"
+)
 
 type (
 	Option[A any] = option.Option[A]
+
+	// Iterator represents a stateless, pure way to iterate over a sequence
+	Iterator[U any] L.Lazy[Option[pair.Pair[Iterator[U], U]]]
+
+	Kleisli[A, B any]  = reader.Reader[A, Iterator[B]]
+	Operator[A, B any] = Kleisli[Iterator[A], B]
 )

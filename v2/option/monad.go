@@ -25,11 +25,11 @@ func (o *optionMonad[A, B]) Of(a A) Option[A] {
 	return Of[A](a)
 }
 
-func (o *optionMonad[A, B]) Map(f func(A) B) func(Option[A]) Option[B] {
+func (o *optionMonad[A, B]) Map(f func(A) B) Operator[A, B] {
 	return Map[A, B](f)
 }
 
-func (o *optionMonad[A, B]) Chain(f func(A) Option[B]) func(Option[A]) Option[B] {
+func (o *optionMonad[A, B]) Chain(f Kleisli[A, B]) Operator[A, B] {
 	return Chain[A, B](f)
 }
 

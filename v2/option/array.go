@@ -33,7 +33,7 @@ import (
 //	}
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
-func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f func(A) Option[B]) func(GA) Option[GB] {
+func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
 	return RA.Traverse[GA](
 		Of[GB],
 		Map[GB, func(B) GB],
@@ -54,7 +54,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f func(A) Option[B]) func(GA) Op
 //	}
 //	result := TraverseArray(validate)([]int{1, 2, 3}) // Some([2, 4, 6])
 //	result := TraverseArray(validate)([]int{1, -1, 3}) // None
-func TraverseArray[A, B any](f func(A) Option[B]) func([]A) Option[[]B] {
+func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return TraverseArrayG[[]A, []B](f)
 }
 
@@ -68,7 +68,7 @@ func TraverseArray[A, B any](f func(A) Option[B]) func([]A) Option[[]B] {
 //	    return Some(fmt.Sprintf("%d:%s", i, s))
 //	}
 //	result := TraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // Some(["0:a", "1:b"])
-func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) func(GA) Option[GB] {
+func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) Kleisli[GA, GB] {
 	return RA.TraverseWithIndex[GA](
 		Of[GB],
 		Map[GB, func(B) GB],
@@ -88,7 +88,7 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B
 //	    return None[int]()
 //	}
 //	result := TraverseArrayWithIndex(f)([]int{1, 2, 3}) // Some([1, 2, 3])
-func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) func([]A) Option[[]B] {
+func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B] {
 	return TraverseArrayWithIndexG[[]A, []B](f)
 }
 

@@ -31,5 +31,6 @@ type (
 	// ReaderEither is a specialization of the Reader monad for the typical golang scenario
 	ReaderEither[A any] = readereither.ReaderEither[context.Context, error, A]
 
-	Operator[A, B any] = reader.Reader[ReaderEither[A], ReaderEither[B]]
+	Kleisli[A, B any]  = reader.Reader[A, ReaderEither[B]]
+	Operator[A, B any] = Kleisli[ReaderEither[A], B]
 )

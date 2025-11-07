@@ -28,7 +28,7 @@ import (
 )
 
 func TestFromEither(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	rightVal := E.Right[error](42)
@@ -43,7 +43,7 @@ func TestFromEither(t *testing.T) {
 }
 
 func TestLeftRight(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test Left
 	err := errors.New("test error")
@@ -58,13 +58,13 @@ func TestLeftRight(t *testing.T) {
 }
 
 func TestOf(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	result := Of(42)(ctx)()
 	assert.Equal(t, E.Right[error](42), result)
 }
 
 func TestMonadMap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadMap(Right(42), func(x int) int { return x * 2 })(ctx)()
@@ -77,7 +77,7 @@ func TestMonadMap(t *testing.T) {
 }
 
 func TestMonadMapTo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadMapTo(Right(42), "hello")(ctx)()
@@ -90,7 +90,7 @@ func TestMonadMapTo(t *testing.T) {
 }
 
 func TestMonadChain(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadChain(Right(42), func(x int) ReaderIOEither[int] {
@@ -113,7 +113,7 @@ func TestMonadChain(t *testing.T) {
 }
 
 func TestMonadChainFirst(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadChainFirst(Right(42), func(x int) ReaderIOEither[string] {
@@ -136,7 +136,7 @@ func TestMonadChainFirst(t *testing.T) {
 }
 
 func TestMonadApSeq(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with both Right
 	fct := Right(func(x int) int { return x * 2 })
@@ -159,7 +159,7 @@ func TestMonadApSeq(t *testing.T) {
 }
 
 func TestMonadApPar(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with both Right
 	fct := Right(func(x int) int { return x * 2 })
@@ -169,7 +169,7 @@ func TestMonadApPar(t *testing.T) {
 }
 
 func TestFromPredicate(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	pred := func(x int) bool { return x > 0 }
 	onFalse := func(x int) error { return fmt.Errorf("value %d is not positive", x) }
@@ -184,7 +184,7 @@ func TestFromPredicate(t *testing.T) {
 }
 
 func TestAsk(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "key", "value")
+	ctx := context.WithValue(t.Context(), "key", "value")
 	result := Ask()(ctx)()
 	assert.True(t, E.IsRight(result))
 	retrievedCtx, _ := E.Unwrap(result)
@@ -192,7 +192,7 @@ func TestAsk(t *testing.T) {
 }
 
 func TestMonadChainEitherK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadChainEitherK(Right(42), func(x int) E.Either[error, int] {
@@ -208,7 +208,7 @@ func TestMonadChainEitherK(t *testing.T) {
 }
 
 func TestMonadChainFirstEitherK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadChainFirstEitherK(Right(42), func(x int) E.Either[error, string] {
@@ -224,7 +224,7 @@ func TestMonadChainFirstEitherK(t *testing.T) {
 }
 
 func TestChainOptionKFunc(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	onNone := func() error { return errors.New("none error") }
 
@@ -243,7 +243,7 @@ func TestChainOptionKFunc(t *testing.T) {
 }
 
 func TestFromIOEither(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	ioe := func() E.Either[error, int] {
@@ -262,7 +262,7 @@ func TestFromIOEither(t *testing.T) {
 }
 
 func TestFromIO(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	io := func() int { return 42 }
 	result := FromIO(io)(ctx)()
@@ -270,7 +270,7 @@ func TestFromIO(t *testing.T) {
 }
 
 func TestFromLazy(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	lazy := func() int { return 42 }
 	result := FromLazy(lazy)(ctx)()
@@ -278,7 +278,7 @@ func TestFromLazy(t *testing.T) {
 }
 
 func TestNeverWithCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 
 	// Start Never in a goroutine
 	done := make(chan E.Either[error, int])
@@ -295,7 +295,7 @@ func TestNeverWithCancel(t *testing.T) {
 }
 
 func TestMonadChainIOK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadChainIOK(Right(42), func(x int) func() int {
@@ -305,7 +305,7 @@ func TestMonadChainIOK(t *testing.T) {
 }
 
 func TestMonadChainFirstIOK(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right
 	result := MonadChainFirstIOK(Right(42), func(x int) func() string {
@@ -315,7 +315,7 @@ func TestMonadChainFirstIOK(t *testing.T) {
 }
 
 func TestDelayFunc(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	delay := 100 * time.Millisecond
 
 	start := time.Now()
@@ -328,7 +328,7 @@ func TestDelayFunc(t *testing.T) {
 }
 
 func TestDefer(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	count := 0
 
 	gen := func() ReaderIOEither[int] {
@@ -348,7 +348,7 @@ func TestDefer(t *testing.T) {
 }
 
 func TestTryCatch(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test success
 	result := TryCatch(func(ctx context.Context) func() (int, error) {
@@ -369,7 +369,7 @@ func TestTryCatch(t *testing.T) {
 }
 
 func TestMonadAlt(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Right (alternative not called)
 	result := MonadAlt(Right(42), func() ReaderIOEither[int] {
@@ -386,7 +386,7 @@ func TestMonadAlt(t *testing.T) {
 }
 
 func TestMemoize(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	count := 0
 
 	rdr := Memoize(FromLazy(func() int {
@@ -404,7 +404,7 @@ func TestMemoize(t *testing.T) {
 }
 
 func TestFlatten(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	nested := Right(Right(42))
 	result := Flatten(nested)(ctx)()
@@ -412,7 +412,7 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestMonadFlap(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	fab := Right(func(x int) int { return x * 2 })
 	result := MonadFlap(fab, 42)(ctx)()
 	assert.Equal(t, E.Right[error](84), result)
@@ -420,19 +420,19 @@ func TestMonadFlap(t *testing.T) {
 
 func TestWithContext(t *testing.T) {
 	// Test with non-canceled context
-	ctx := context.Background()
+	ctx := t.Context()
 	result := WithContext(Right(42))(ctx)()
 	assert.Equal(t, E.Right[error](42), result)
 
 	// Test with canceled context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	result = WithContext(Right(42))(ctx)()
 	assert.True(t, E.IsLeft(result))
 }
 
 func TestMonadAp(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with both Right
 	fct := Right(func(x int) int { return x * 2 })
@@ -443,7 +443,7 @@ func TestMonadAp(t *testing.T) {
 
 // Test traverse functions
 func TestSequenceArray(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with all Right
 	arr := []ReaderIOEither[int]{Right(1), Right(2), Right(3)}
@@ -460,7 +460,7 @@ func TestSequenceArray(t *testing.T) {
 }
 
 func TestTraverseArray(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test transformation
 	arr := []int{1, 2, 3}
@@ -473,7 +473,7 @@ func TestTraverseArray(t *testing.T) {
 }
 
 func TestSequenceRecord(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with all Right
 	rec := map[string]ReaderIOEither[int]{
@@ -488,7 +488,7 @@ func TestSequenceRecord(t *testing.T) {
 }
 
 func TestTraverseRecord(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test transformation
 	rec := map[string]int{"a": 1, "b": 2}
@@ -503,7 +503,7 @@ func TestTraverseRecord(t *testing.T) {
 
 // Test monoid functions
 func TestAltSemigroup(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	sg := AltSemigroup[int]()
 
@@ -519,7 +519,7 @@ func TestAltSemigroup(t *testing.T) {
 
 // Test Do notation
 func TestDo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	type State struct {
 		Value int

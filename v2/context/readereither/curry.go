@@ -28,26 +28,26 @@ func Curry0[A any](f func(context.Context) (A, error)) ReaderEither[A] {
 	return readereither.Curry0(f)
 }
 
-func Curry1[T1, A any](f func(context.Context, T1) (A, error)) func(T1) ReaderEither[A] {
+func Curry1[T1, A any](f func(context.Context, T1) (A, error)) Kleisli[T1, A] {
 	return readereither.Curry1(f)
 }
 
-func Curry2[T1, T2, A any](f func(context.Context, T1, T2) (A, error)) func(T1) func(T2) ReaderEither[A] {
+func Curry2[T1, T2, A any](f func(context.Context, T1, T2) (A, error)) func(T1) Kleisli[T2, A] {
 	return readereither.Curry2(f)
 }
 
-func Curry3[T1, T2, T3, A any](f func(context.Context, T1, T2, T3) (A, error)) func(T1) func(T2) func(T3) ReaderEither[A] {
+func Curry3[T1, T2, T3, A any](f func(context.Context, T1, T2, T3) (A, error)) func(T1) func(T2) Kleisli[T3, A] {
 	return readereither.Curry3(f)
 }
 
-func Uncurry1[T1, A any](f func(T1) ReaderEither[A]) func(context.Context, T1) (A, error) {
+func Uncurry1[T1, A any](f Kleisli[T1, A]) func(context.Context, T1) (A, error) {
 	return readereither.Uncurry1(f)
 }
 
-func Uncurry2[T1, T2, A any](f func(T1) func(T2) ReaderEither[A]) func(context.Context, T1, T2) (A, error) {
+func Uncurry2[T1, T2, A any](f func(T1) Kleisli[T2, A]) func(context.Context, T1, T2) (A, error) {
 	return readereither.Uncurry2(f)
 }
 
-func Uncurry3[T1, T2, T3, A any](f func(T1) func(T2) func(T3) ReaderEither[A]) func(context.Context, T1, T2, T3) (A, error) {
+func Uncurry3[T1, T2, T3, A any](f func(T1) func(T2) Kleisli[T3, A]) func(context.Context, T1, T2, T3) (A, error) {
 	return readereither.Uncurry3(f)
 }

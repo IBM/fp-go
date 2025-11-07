@@ -15,10 +15,22 @@
 
 package either
 
-import "github.com/IBM/fp-go/v2/option"
+import (
+	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
+)
 
 // Option is a type alias for option.Option, provided for convenience
 // when working with Either and Option together.
 type (
-	Option[A any] = option.Option[A]
+	Option[A any]       = option.Option[A]
+	Lens[S, T any]      = lens.Lens[S, T]
+	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
+	Kleisli[E, A, B any]  = reader.Reader[A, Either[E, B]]
+	Operator[E, A, B any] = Kleisli[E, Either[E, A], B]
+	Monoid[E, A any]      = monoid.Monoid[Either[E, A]]
 )

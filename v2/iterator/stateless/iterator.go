@@ -18,14 +18,10 @@ package stateless
 import (
 	"github.com/IBM/fp-go/v2/iooption"
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
-	L "github.com/IBM/fp-go/v2/lazy"
 	M "github.com/IBM/fp-go/v2/monoid"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 )
-
-// Iterator represents a stateless, pure way to iterate over a sequence
-type Iterator[U any] L.Lazy[O.Option[pair.Pair[Iterator[U], U]]]
 
 // Next returns the [Iterator] for the next element in an iterator [pair.Pair]
 func Next[U any](m pair.Pair[Iterator[U], U]) Iterator[U] {
@@ -68,15 +64,15 @@ func MonadMap[U, V any](ma Iterator[U], f func(U) V) Iterator[V] {
 }
 
 // Map transforms an [Iterator] of type [U] into an [Iterator] of type [V] via a mapping function
-func Map[U, V any](f func(U) V) func(ma Iterator[U]) Iterator[V] {
+func Map[U, V any](f func(U) V) Operator[U, V] {
 	return G.Map[Iterator[V], Iterator[U]](f)
 }
 
-func MonadChain[U, V any](ma Iterator[U], f func(U) Iterator[V]) Iterator[V] {
+func MonadChain[U, V any](ma Iterator[U], f Kleisli[U, V]) Iterator[V] {
 	return G.MonadChain[Iterator[V], Iterator[U]](ma, f)
 }
 
-func Chain[U, V any](f func(U) Iterator[V]) func(Iterator[U]) Iterator[V] {
+func Chain[U, V any](f Kleisli[U, V]) Kleisli[Iterator[U], V] {
 	return G.Chain[Iterator[V], Iterator[U]](f)
 }
 
@@ -101,17 +97,17 @@ func Replicate[U any](a U) Iterator[U] {
 }
 
 // FilterMap filters and transforms the content of an iterator
-func FilterMap[U, V any](f func(U) O.Option[V]) func(ma Iterator[U]) Iterator[V] {
+func FilterMap[U, V any](f func(U) O.Option[V]) Operator[U, V] {
 	return G.FilterMap[Iterator[V], Iterator[U]](f)
 }
 
 // Filter filters the content of an iterator
-func Filter[U any](f func(U) bool) func(ma Iterator[U]) Iterator[U] {
+func Filter[U any](f func(U) bool) Operator[U, U] {
 	return G.Filter[Iterator[U]](f)
 }
 
 // Ap is the applicative functor for iterators
-func Ap[V, U any](ma Iterator[U]) func(Iterator[func(U) V]) Iterator[V] {
+func Ap[V, U any](ma Iterator[U]) Operator[func(U) V, V] {
 	return G.Ap[Iterator[func(U) V], Iterator[V]](ma)
 }
 
@@ -132,7 +128,7 @@ func Count(start int) Iterator[int] {
 }
 
 // FilterChain filters and transforms the content of an iterator
-func FilterChain[U, V any](f func(U) O.Option[Iterator[V]]) func(ma Iterator[U]) Iterator[V] {
+func FilterChain[U, V any](f func(U) O.Option[Iterator[V]]) Operator[U, V] {
 	return G.FilterChain[Iterator[Iterator[V]], Iterator[V], Iterator[U]](f)
 }
 
@@ -146,10 +142,10 @@ func Fold[U any](m M.Monoid[U]) func(Iterator[U]) U {
 	return G.Fold[Iterator[U]](m)
 }
 
-func MonadChainFirst[U, V any](ma Iterator[U], f func(U) Iterator[V]) Iterator[U] {
+func MonadChainFirst[U, V any](ma Iterator[U], f Kleisli[U, V]) Iterator[U] {
 	return G.MonadChainFirst[Iterator[V], Iterator[U], U, V](ma, f)
 }
 
-func ChainFirst[U, V any](f func(U) Iterator[V]) func(Iterator[U]) Iterator[U] {
+func ChainFirst[U, V any](f Kleisli[U, V]) Operator[U, U] {
 	return G.ChainFirst[Iterator[V], Iterator[U], U, V](f)
 }

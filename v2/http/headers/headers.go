@@ -71,8 +71,8 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
 	LA "github.com/IBM/fp-go/v2/optics/lens/array"
+	LO "github.com/IBM/fp-go/v2/optics/lens/option"
 	LRG "github.com/IBM/fp-go/v2/optics/lens/record/generic"
 	RG "github.com/IBM/fp-go/v2/record/generic"
 )
@@ -136,7 +136,7 @@ var (
 	// element of a string array, returning an Option[string].
 	composeHead = F.Pipe1(
 		LA.AtHead[string](),
-		L.ComposeOptions[http.Header, string](A.Empty[string]()),
+		LO.Compose[http.Header, string](A.Empty[string]()),
 	)
 
 	// AtValue is a Lens that focuses on the first value of a specific header.

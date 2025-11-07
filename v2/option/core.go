@@ -43,6 +43,11 @@ type Option[A any] struct {
 	value  A
 }
 
+type (
+	Kleisli[A, B any]  = func(A) Option[B]
+	Operator[A, B any] = Kleisli[Option[A], B]
+)
+
 // optString prints some debug info for the object
 //
 //go:noinline

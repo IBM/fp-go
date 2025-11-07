@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
@@ -31,4 +32,7 @@ type (
 	// IOOption represents a synchronous computation that may fail
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
 	IOOption[A any] = io.IO[Option[A]]
+
+	Kleisli[A, B any]  = reader.Reader[A, IOOption[B]]
+	Operator[A, B any] = Kleisli[IOOption[A], B]
 )

@@ -16,6 +16,8 @@
 package lazy
 
 import (
+	L "github.com/IBM/fp-go/v2/optics/lens"
+
 	"github.com/IBM/fp-go/v2/io"
 )
 
@@ -70,8 +72,8 @@ func Do[S any](
 //	)
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) Lazy[T],
-) func(Lazy[S1]) Lazy[S2] {
+	f Kleisli[S1, T],
+) Kleisli[Lazy[S1], S2] {
 	return io.Bind(setter, f)
 }
 
@@ -79,7 +81,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(Lazy[S1]) Lazy[S2] {
+) Kleisli[Lazy[S1], S2] {
 	return io.Let(setter, f)
 }
 
@@ -87,14 +89,14 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(Lazy[S1]) Lazy[S2] {
+) Kleisli[Lazy[S1], S2] {
 	return io.LetTo(setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) func(Lazy[T]) Lazy[S1] {
+) Kleisli[Lazy[T], S1] {
 	return io.BindTo(setter)
 }
 
@@ -134,6 +136,143 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Lazy[T],
-) func(Lazy[S1]) Lazy[S2] {
+) Kleisli[Lazy[S1], S2] {
 	return io.ApS(setter, fa)
+}
+
+// ApSL is a variant of ApS that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. This allows you to work with nested fields without manually managing
+// the update logic.
+//
+// Example:
+//
+//	type Config struct {
+//	    Host string
+//	    Port int
+//	}
+//	type State struct {
+//	    Config Config
+//	    Data   string
+//	}
+//
+//	configLens := L.Prop[State, Config]("Config")
+//	getConfig := lazy.MakeLazy(func() Config { return Config{Host: "localhost", Port: 8080} })
+//
+//	result := F.Pipe2(
+//	    lazy.Do(State{}),
+//	    lazy.ApSL(configLens, getConfig),
+//	)
+func ApSL[S, T any](
+	lens L.Lens[S, T],
+	fa Lazy[T],
+) Kleisli[Lazy[S], S] {
+	return io.ApSL(lens, fa)
+}
+
+// BindL is a variant of Bind that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a new computation that produces an updated value.
+//
+// Example:
+//
+//	type Config struct {
+//	    Host string
+//	    Port int
+//	}
+//	type State struct {
+//	    Config Config
+//	    Data   string
+//	}
+//
+//	configLens := L.Prop[State, Config]("Config")
+//
+//	result := F.Pipe2(
+//	    lazy.Do(State{Config: Config{Host: "localhost"}}),
+//	    lazy.BindL(configLens, func(cfg Config) lazy.Lazy[Config] {
+//	        return lazy.MakeLazy(func() Config {
+//	            cfg.Port = 8080
+//	            return cfg
+//	        })
+//	    }),
+//	)
+func BindL[S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[T, T],
+) Kleisli[Lazy[S], S] {
+	return io.BindL(lens, f)
+}
+
+// LetL is a variant of Let that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a new value (without wrapping in a monad).
+//
+// Example:
+//
+//	type Config struct {
+//	    Host string
+//	    Port int
+//	}
+//	type State struct {
+//	    Config Config
+//	    Data   string
+//	}
+//
+//	configLens := L.Prop[State, Config]("Config")
+//
+//	result := F.Pipe2(
+//	    lazy.Do(State{Config: Config{Host: "localhost"}}),
+//	    lazy.LetL(configLens, func(cfg Config) Config {
+//	        cfg.Port = 8080
+//	        return cfg
+//	    }),
+//	)
+func LetL[S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Kleisli[Lazy[S], S] {
+	return io.LetL(lens, f)
+}
+
+// LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The value b is set directly to the focused field.
+//
+// Example:
+//
+//	type Config struct {
+//	    Host string
+//	    Port int
+//	}
+//	type State struct {
+//	    Config Config
+//	    Data   string
+//	}
+//
+//	configLens := L.Prop[State, Config]("Config")
+//	newConfig := Config{Host: "localhost", Port: 8080}
+//
+//	result := F.Pipe2(
+//	    lazy.Do(State{}),
+//	    lazy.LetToL(configLens, newConfig),
+//	)
+func LetToL[S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Kleisli[Lazy[S], S] {
+	return io.LetToL(lens, b)
 }

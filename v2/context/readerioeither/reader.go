@@ -39,6 +39,8 @@ const (
 //   - e: The Either value to lift into ReaderIOEither
 //
 // Returns a ReaderIOEither that produces the given Either value.
+//
+//go:inline
 func FromEither[A any](e Either[A]) ReaderIOEither[A] {
 	return readerioeither.FromEither[context.Context](e)
 }
@@ -59,6 +61,8 @@ func Left[A any](l error) ReaderIOEither[A] {
 //   - r: The success value
 //
 // Returns a ReaderIOEither that always succeeds with the given value.
+//
+//go:inline
 func Right[A any](r A) ReaderIOEither[A] {
 	return readerioeither.Right[context.Context, error](r)
 }
@@ -71,6 +75,8 @@ func Right[A any](r A) ReaderIOEither[A] {
 //   - f: The transformation function
 //
 // Returns a new ReaderIOEither with the transformed value.
+//
+//go:inline
 func MonadMap[A, B any](fa ReaderIOEither[A], f func(A) B) ReaderIOEither[B] {
 	return readerioeither.MonadMap(fa, f)
 }
@@ -82,6 +88,8 @@ func MonadMap[A, B any](fa ReaderIOEither[A], f func(A) B) ReaderIOEither[B] {
 //   - f: The transformation function
 //
 // Returns a function that transforms a ReaderIOEither.
+//
+//go:inline
 func Map[A, B any](f func(A) B) Operator[A, B] {
 	return readerioeither.Map[context.Context, error](f)
 }
@@ -94,6 +102,8 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 //   - b: The constant value to use
 //
 // Returns a new ReaderIOEither with the constant value.
+//
+//go:inline
 func MonadMapTo[A, B any](fa ReaderIOEither[A], b B) ReaderIOEither[B] {
 	return readerioeither.MonadMapTo(fa, b)
 }
@@ -105,6 +115,8 @@ func MonadMapTo[A, B any](fa ReaderIOEither[A], b B) ReaderIOEither[B] {
 //   - b: The constant value to use
 //
 // Returns a function that transforms a ReaderIOEither.
+//
+//go:inline
 func MapTo[A, B any](b B) Operator[A, B] {
 	return readerioeither.MapTo[context.Context, error, A](b)
 }
@@ -117,7 +129,9 @@ func MapTo[A, B any](b B) Operator[A, B] {
 //   - f: Function that produces the second ReaderIOEither based on the first's result
 //
 // Returns a new ReaderIOEither representing the sequenced computation.
-func MonadChain[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) ReaderIOEither[B] {
+//
+//go:inline
+func MonadChain[A, B any](ma ReaderIOEither[A], f Kleisli[A, B]) ReaderIOEither[B] {
 	return readerioeither.MonadChain(ma, f)
 }
 
@@ -128,7 +142,9 @@ func MonadChain[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) Rea
 //   - f: Function that produces the second ReaderIOEither based on the first's result
 //
 // Returns a function that sequences ReaderIOEither computations.
-func Chain[A, B any](f func(A) ReaderIOEither[B]) Operator[A, B] {
+//
+//go:inline
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return readerioeither.Chain(f)
 }
 
@@ -140,7 +156,9 @@ func Chain[A, B any](f func(A) ReaderIOEither[B]) Operator[A, B] {
 //   - f: Function that produces the second ReaderIOEither
 //
 // Returns a ReaderIOEither with the result of the first computation.
-func MonadChainFirst[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]) ReaderIOEither[A] {
+//
+//go:inline
+func MonadChainFirst[A, B any](ma ReaderIOEither[A], f Kleisli[A, B]) ReaderIOEither[A] {
 	return readerioeither.MonadChainFirst(ma, f)
 }
 
@@ -151,7 +169,9 @@ func MonadChainFirst[A, B any](ma ReaderIOEither[A], f func(A) ReaderIOEither[B]
 //   - f: Function that produces the second ReaderIOEither
 //
 // Returns a function that sequences ReaderIOEither computations.
-func ChainFirst[A, B any](f func(A) ReaderIOEither[B]) Operator[A, A] {
+//
+//go:inline
+func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return readerioeither.ChainFirst(f)
 }
 
@@ -162,6 +182,8 @@ func ChainFirst[A, B any](f func(A) ReaderIOEither[B]) Operator[A, A] {
 //   - a: The value to wrap
 //
 // Returns a ReaderIOEither that always succeeds with the given value.
+//
+//go:inline
 func Of[A any](a A) ReaderIOEither[A] {
 	return readerioeither.Of[context.Context, error](a)
 }
@@ -240,6 +262,8 @@ func MonadAp[B, A any](fab ReaderIOEither[func(A) B], fa ReaderIOEither[A]) Read
 //   - fa: ReaderIOEither containing a value
 //
 // Returns a ReaderIOEither with the function applied to the value.
+//
+//go:inline
 func MonadApSeq[B, A any](fab ReaderIOEither[func(A) B], fa ReaderIOEither[A]) ReaderIOEither[B] {
 	return readerioeither.MonadApSeq(fab, fa)
 }
@@ -251,6 +275,8 @@ func MonadApSeq[B, A any](fab ReaderIOEither[func(A) B], fa ReaderIOEither[A]) R
 //   - fa: ReaderIOEither containing a value
 //
 // Returns a function that applies a ReaderIOEither function to the value.
+//
+//go:inline
 func Ap[B, A any](fa ReaderIOEither[A]) Operator[func(A) B, B] {
 	return function.Bind2nd(MonadAp[B, A], fa)
 }
@@ -262,6 +288,8 @@ func Ap[B, A any](fa ReaderIOEither[A]) Operator[func(A) B, B] {
 //   - fa: ReaderIOEither containing a value
 //
 // Returns a function that applies a ReaderIOEither function to the value sequentially.
+//
+//go:inline
 func ApSeq[B, A any](fa ReaderIOEither[A]) Operator[func(A) B, B] {
 	return function.Bind2nd(MonadApSeq[B, A], fa)
 }
@@ -273,6 +301,8 @@ func ApSeq[B, A any](fa ReaderIOEither[A]) Operator[func(A) B, B] {
 //   - fa: ReaderIOEither containing a value
 //
 // Returns a function that applies a ReaderIOEither function to the value in parallel.
+//
+//go:inline
 func ApPar[B, A any](fa ReaderIOEither[A]) Operator[func(A) B, B] {
 	return function.Bind2nd(MonadApPar[B, A], fa)
 }
@@ -285,7 +315,9 @@ func ApPar[B, A any](fa ReaderIOEither[A]) Operator[func(A) B, B] {
 //   - onFalse: Function to generate an error when predicate fails
 //
 // Returns a function that converts a value to ReaderIOEither based on the predicate.
-func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) ReaderIOEither[A] {
+//
+//go:inline
+func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A] {
 	return readerioeither.FromPredicate[context.Context](pred, onFalse)
 }
 
@@ -296,7 +328,9 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) Read
 //   - onLeft: Function that produces an alternative ReaderIOEither from the error
 //
 // Returns a function that provides fallback behavior for failed computations.
-func OrElse[A any](onLeft func(error) ReaderIOEither[A]) Operator[A, A] {
+//
+//go:inline
+func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
 	return readerioeither.OrElse[context.Context](onLeft)
 }
 
@@ -304,6 +338,8 @@ func OrElse[A any](onLeft func(error) ReaderIOEither[A]) Operator[A, A] {
 // This is useful for accessing the [context.Context] within a computation.
 //
 // Returns a ReaderIOEither that produces the context.
+//
+//go:inline
 func Ask() ReaderIOEither[context.Context] {
 	return readerioeither.Ask[context.Context, error]()
 }
@@ -316,6 +352,8 @@ func Ask() ReaderIOEither[context.Context] {
 //   - f: Function that produces an Either
 //
 // Returns a new ReaderIOEither with the chained computation.
+//
+//go:inline
 func MonadChainEitherK[A, B any](ma ReaderIOEither[A], f func(A) Either[B]) ReaderIOEither[B] {
 	return readerioeither.MonadChainEitherK[context.Context](ma, f)
 }
@@ -327,7 +365,9 @@ func MonadChainEitherK[A, B any](ma ReaderIOEither[A], f func(A) Either[B]) Read
 //   - f: Function that produces an Either
 //
 // Returns a function that chains the Either-returning function.
-func ChainEitherK[A, B any](f func(A) Either[B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
+//
+//go:inline
+func ChainEitherK[A, B any](f func(A) Either[B]) Operator[A, B] {
 	return readerioeither.ChainEitherK[context.Context](f)
 }
 
@@ -339,6 +379,8 @@ func ChainEitherK[A, B any](f func(A) Either[B]) func(ma ReaderIOEither[A]) Read
 //   - f: Function that produces an Either
 //
 // Returns a ReaderIOEither with the original value if both computations succeed.
+//
+//go:inline
 func MonadChainFirstEitherK[A, B any](ma ReaderIOEither[A], f func(A) Either[B]) ReaderIOEither[A] {
 	return readerioeither.MonadChainFirstEitherK[context.Context](ma, f)
 }
@@ -350,7 +392,9 @@ func MonadChainFirstEitherK[A, B any](ma ReaderIOEither[A], f func(A) Either[B])
 //   - f: Function that produces an Either
 //
 // Returns a function that chains the Either-returning function.
-func ChainFirstEitherK[A, B any](f func(A) Either[B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
+//
+//go:inline
+func ChainFirstEitherK[A, B any](f func(A) Either[B]) Operator[A, A] {
 	return readerioeither.ChainFirstEitherK[context.Context](f)
 }
 
@@ -361,6 +405,8 @@ func ChainFirstEitherK[A, B any](f func(A) Either[B]) func(ma ReaderIOEither[A])
 //   - onNone: Function to generate an error when Option is None
 //
 // Returns a function that chains Option-returning functions into ReaderIOEither.
+//
+//go:inline
 func ChainOptionK[A, B any](onNone func() error) func(func(A) Option[B]) Operator[A, B] {
 	return readerioeither.ChainOptionK[context.Context, A, B](onNone)
 }
@@ -372,6 +418,8 @@ func ChainOptionK[A, B any](onNone func() error) func(func(A) Option[B]) Operato
 //   - t: The IOEither to convert
 //
 // Returns a ReaderIOEither that executes the IOEither.
+//
+//go:inline
 func FromIOEither[A any](t ioeither.IOEither[error, A]) ReaderIOEither[A] {
 	return readerioeither.FromIOEither[context.Context](t)
 }
@@ -383,6 +431,8 @@ func FromIOEither[A any](t ioeither.IOEither[error, A]) ReaderIOEither[A] {
 //   - t: The IO to convert
 //
 // Returns a ReaderIOEither that executes the IO and wraps the result in Right.
+//
+//go:inline
 func FromIO[A any](t IO[A]) ReaderIOEither[A] {
 	return readerioeither.FromIO[context.Context, error](t)
 }
@@ -395,6 +445,8 @@ func FromIO[A any](t IO[A]) ReaderIOEither[A] {
 //   - t: The Lazy computation to convert
 //
 // Returns a ReaderIOEither that executes the Lazy computation and wraps the result in Right.
+//
+//go:inline
 func FromLazy[A any](t Lazy[A]) ReaderIOEither[A] {
 	return readerioeither.FromIO[context.Context, error](t)
 }
@@ -420,6 +472,8 @@ func Never[A any]() ReaderIOEither[A] {
 //   - f: Function that produces an IO
 //
 // Returns a new ReaderIOEither with the chained IO computation.
+//
+//go:inline
 func MonadChainIOK[A, B any](ma ReaderIOEither[A], f func(A) IO[B]) ReaderIOEither[B] {
 	return readerioeither.MonadChainIOK(ma, f)
 }
@@ -431,7 +485,9 @@ func MonadChainIOK[A, B any](ma ReaderIOEither[A], f func(A) IO[B]) ReaderIOEith
 //   - f: Function that produces an IO
 //
 // Returns a function that chains the IO-returning function.
-func ChainIOK[A, B any](f func(A) IO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
+//
+//go:inline
+func ChainIOK[A, B any](f func(A) IO[B]) Operator[A, B] {
 	return readerioeither.ChainIOK[context.Context, error](f)
 }
 
@@ -443,6 +499,8 @@ func ChainIOK[A, B any](f func(A) IO[B]) func(ma ReaderIOEither[A]) ReaderIOEith
 //   - f: Function that produces an IO
 //
 // Returns a ReaderIOEither with the original value after executing the IO.
+//
+//go:inline
 func MonadChainFirstIOK[A, B any](ma ReaderIOEither[A], f func(A) IO[B]) ReaderIOEither[A] {
 	return readerioeither.MonadChainFirstIOK(ma, f)
 }
@@ -454,7 +512,9 @@ func MonadChainFirstIOK[A, B any](ma ReaderIOEither[A], f func(A) IO[B]) ReaderI
 //   - f: Function that produces an IO
 //
 // Returns a function that chains the IO-returning function.
-func ChainFirstIOK[A, B any](f func(A) IO[B]) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
+//
+//go:inline
+func ChainFirstIOK[A, B any](f func(A) IO[B]) Operator[A, A] {
 	return readerioeither.ChainFirstIOK[context.Context, error](f)
 }
 
@@ -465,7 +525,9 @@ func ChainFirstIOK[A, B any](f func(A) IO[B]) func(ma ReaderIOEither[A]) ReaderI
 //   - f: Function that produces an IOEither
 //
 // Returns a function that chains the IOEither-returning function.
-func ChainIOEitherK[A, B any](f func(A) ioeither.IOEither[error, B]) func(ma ReaderIOEither[A]) ReaderIOEither[B] {
+//
+//go:inline
+func ChainIOEitherK[A, B any](f func(A) ioeither.IOEither[error, B]) Operator[A, B] {
 	return readerioeither.ChainIOEitherK[context.Context](f)
 }
 
@@ -476,7 +538,7 @@ func ChainIOEitherK[A, B any](f func(A) ioeither.IOEither[error, B]) func(ma Rea
 //   - delay: The duration to wait before executing the computation
 //
 // Returns a function that delays a ReaderIOEither computation.
-func Delay[A any](delay time.Duration) func(ma ReaderIOEither[A]) ReaderIOEither[A] {
+func Delay[A any](delay time.Duration) Operator[A, A] {
 	return func(ma ReaderIOEither[A]) ReaderIOEither[A] {
 		return func(ctx context.Context) IOEither[A] {
 			return func() Either[A] {
@@ -517,6 +579,8 @@ func Timer(delay time.Duration) ReaderIOEither[time.Time] {
 //   - gen: Lazy generator function that produces a ReaderIOEither
 //
 // Returns a ReaderIOEither that generates a fresh computation on each execution.
+//
+//go:inline
 func Defer[A any](gen Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return readerioeither.Defer(gen)
 }
@@ -528,6 +592,8 @@ func Defer[A any](gen Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
 //   - f: Function that takes a context and returns a function producing (value, error)
 //
 // Returns a ReaderIOEither that wraps the error-returning function.
+//
+//go:inline
 func TryCatch[A any](f func(context.Context) func() (A, error)) ReaderIOEither[A] {
 	return readerioeither.TryCatch(f, errors.IdentityError)
 }
@@ -540,6 +606,8 @@ func TryCatch[A any](f func(context.Context) func() (A, error)) ReaderIOEither[A
 //   - second: Lazy alternative ReaderIOEither to use if first fails
 //
 // Returns a ReaderIOEither that tries the first, then the second if first fails.
+//
+//go:inline
 func MonadAlt[A any](first ReaderIOEither[A], second Lazy[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return readerioeither.MonadAlt(first, second)
 }
@@ -551,6 +619,8 @@ func MonadAlt[A any](first ReaderIOEither[A], second Lazy[ReaderIOEither[A]]) Re
 //   - second: Lazy alternative ReaderIOEither to use if first fails
 //
 // Returns a function that provides fallback behavior.
+//
+//go:inline
 func Alt[A any](second Lazy[ReaderIOEither[A]]) Operator[A, A] {
 	return readerioeither.Alt(second)
 }
@@ -563,6 +633,8 @@ func Alt[A any](second Lazy[ReaderIOEither[A]]) Operator[A, A] {
 //   - rdr: The ReaderIOEither to memoize
 //
 // Returns a ReaderIOEither that caches its result after the first execution.
+//
+//go:inline
 func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
 	return readerioeither.Memoize(rdr)
 }
@@ -574,6 +646,8 @@ func Memoize[A any](rdr ReaderIOEither[A]) ReaderIOEither[A] {
 //   - rdr: The nested ReaderIOEither to flatten
 //
 // Returns a flattened ReaderIOEither.
+//
+//go:inline
 func Flatten[A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
 	return readerioeither.Flatten(rdr)
 }
@@ -586,6 +660,8 @@ func Flatten[A any](rdr ReaderIOEither[ReaderIOEither[A]]) ReaderIOEither[A] {
 //   - a: The value to apply to the function
 //
 // Returns a ReaderIOEither with the function applied to the value.
+//
+//go:inline
 func MonadFlap[B, A any](fab ReaderIOEither[func(A) B], a A) ReaderIOEither[B] {
 	return readerioeither.MonadFlap(fab, a)
 }
@@ -597,6 +673,8 @@ func MonadFlap[B, A any](fab ReaderIOEither[func(A) B], a A) ReaderIOEither[B] {
 //   - a: The value to apply to the function
 //
 // Returns a function that applies the value to a ReaderIOEither function.
+//
+//go:inline
 func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return readerioeither.Flap[context.Context, error, B](a)
 }
@@ -609,7 +687,9 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 //   - onRight: Handler for success case
 //
 // Returns a function that folds a ReaderIOEither into a new ReaderIOEither.
-func Fold[A, B any](onLeft func(error) ReaderIOEither[B], onRight func(A) ReaderIOEither[B]) Operator[A, B] {
+//
+//go:inline
+func Fold[A, B any](onLeft Kleisli[error, B], onRight Kleisli[A, B]) Operator[A, B] {
 	return readerioeither.Fold(onLeft, onRight)
 }
 
@@ -620,6 +700,8 @@ func Fold[A, B any](onLeft func(error) ReaderIOEither[B], onRight func(A) Reader
 //   - onLeft: Function to provide a default value from the error
 //
 // Returns a function that converts a ReaderIOEither to a ReaderIO.
+//
+//go:inline
 func GetOrElse[A any](onLeft func(error) ReaderIO[A]) func(ReaderIOEither[A]) ReaderIO[A] {
 	return readerioeither.GetOrElse(onLeft)
 }
@@ -631,6 +713,8 @@ func GetOrElse[A any](onLeft func(error) ReaderIO[A]) func(ReaderIOEither[A]) Re
 //   - onLeft: Function to transform the error
 //
 // Returns a function that transforms the error of a ReaderIOEither.
+//
+//go:inline
 func OrLeft[A any](onLeft func(error) ReaderIO[error]) Operator[A, A] {
 	return readerioeither.OrLeft[A](onLeft)
 }

@@ -99,10 +99,12 @@ type (
 	//   result := fetchUser("123")(ctx)()
 	ReaderIOEither[A any] = readerioeither.ReaderIOEither[context.Context, error, A]
 
+	Kleisli[A, B any] = reader.Reader[A, ReaderIOEither[B]]
+
 	// Operator represents a transformation from one ReaderIOEither to another.
 	// This is useful for point-free style composition and building reusable transformations.
 	//
-	// Operator[A, B] is equivalent to func(ReaderIOEither[A]) ReaderIOEither[B]
+	// Operator[A, B] is equivalent to Kleisli[ReaderIOEither[A], B]
 	//
 	// Example usage:
 	//   // Define a reusable transformation
@@ -110,5 +112,5 @@ type (
 	//
 	//   // Apply the transformation
 	//   result := toUpper(computation)
-	Operator[A, B any] = Reader[ReaderIOEither[A], ReaderIOEither[B]]
+	Operator[A, B any] = Kleisli[ReaderIOEither[A], B]
 )

@@ -16,6 +16,7 @@
 package readereither
 
 import (
+	L "github.com/IBM/fp-go/v2/optics/lens"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 )
 
@@ -157,4 +158,149 @@ func ApS[R, E, S1, S2, T any](
 	fa ReaderEither[R, E, T],
 ) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
 	return G.ApS[ReaderEither[R, E, S1], ReaderEither[R, E, S2], ReaderEither[R, E, T], R, E, S1, S2, T](setter, fa)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserService   UserService
+//	    ConfigService ConfigService
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) Config { return s.Config },
+//	    func(s State, c Config) State { s.Config = c; return s },
+//	)
+//
+//	getConfig := readereither.Asks(func(env Env) either.Either[error, Config] {
+//	    return env.ConfigService.GetConfig()
+//	})
+//	result := F.Pipe2(
+//	    readereither.Of[Env, error](State{}),
+//	    readereither.ApSL(configLens, getConfig),
+//	)
+func ApSL[R, E, S, T any](
+	lens L.Lens[S, T],
+	fa ReaderEither[R, E, T],
+) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL is a variant of Bind that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a ReaderEither computation that produces an updated value.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserService   UserService
+//	    ConfigService ConfigService
+//	}
+//
+//	userLens := lens.MakeLens(
+//	    func(s State) User { return s.User },
+//	    func(s State, u User) State { s.User = u; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readereither.Do[Env, error](State{}),
+//	    readereither.BindL(userLens, func(user User) readereither.ReaderEither[Env, error, User] {
+//	        return readereither.Asks(func(env Env) either.Either[error, User] {
+//	            return env.UserService.GetUser()
+//	        })
+//	    }),
+//	)
+func BindL[R, E, S, T any](
+	lens L.Lens[S, T],
+	f func(T) ReaderEither[R, E, T],
+) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
+	return Bind[R, E, S, S, T](lens.Set, func(s S) ReaderEither[R, E, T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL is a variant of Let that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a new value (without wrapping in a ReaderEither).
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) Config { return s.Config },
+//	    func(s State, c Config) State { s.Config = c; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readereither.Do[any, error](State{Config: Config{Host: "localhost"}}),
+//	    readereither.LetL(configLens, func(cfg Config) Config {
+//	        cfg.Port = 8080
+//	        return cfg
+//	    }),
+//	)
+func LetL[R, E, S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
+	return Let[R, E, S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The value b is set directly to the focused field.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) Config { return s.Config },
+//	    func(s State, c Config) State { s.Config = c; return s },
+//	)
+//
+//	newConfig := Config{Host: "localhost", Port: 8080}
+//	result := F.Pipe2(
+//	    readereither.Do[any, error](State{}),
+//	    readereither.LetToL(configLens, newConfig),
+//	)
+func LetToL[R, E, S, T any](
+	lens L.Lens[S, T],
+	b T,
+) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
+	return LetTo[R, E, S, S, T](lens.Set, b)
 }

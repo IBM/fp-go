@@ -41,11 +41,11 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 	return readereither.Map[context.Context, error](f)
 }
 
-func MonadChain[A, B any](ma ReaderEither[A], f func(A) ReaderEither[B]) ReaderEither[B] {
+func MonadChain[A, B any](ma ReaderEither[A], f Kleisli[A, B]) ReaderEither[B] {
 	return readereither.MonadChain(ma, f)
 }
 
-func Chain[A, B any](f func(A) ReaderEither[B]) Operator[A, B] {
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return readereither.Chain(f)
 }
 
@@ -61,11 +61,11 @@ func Ap[A, B any](fa ReaderEither[A]) func(ReaderEither[func(A) B]) ReaderEither
 	return readereither.Ap[B](fa)
 }
 
-func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) func(A) ReaderEither[A] {
+func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A] {
 	return readereither.FromPredicate[context.Context](pred, onFalse)
 }
 
-func OrElse[A any](onLeft func(error) ReaderEither[A]) func(ReaderEither[A]) ReaderEither[A] {
+func OrElse[A any](onLeft Kleisli[error, A]) Kleisli[ReaderEither[A], A] {
 	return readereither.OrElse(onLeft)
 }
 

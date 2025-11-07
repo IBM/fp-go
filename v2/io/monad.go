@@ -35,7 +35,7 @@ func (o *ioMonad[A, B]) Map(f func(A) B) Operator[A, B] {
 	return Map(f)
 }
 
-func (o *ioMonad[A, B]) Chain(f func(A) IO[B]) Operator[A, B] {
+func (o *ioMonad[A, B]) Chain(f Kleisli[A, B]) Operator[A, B] {
 	return Chain(f)
 }
 

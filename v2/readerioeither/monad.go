@@ -23,16 +23,22 @@ import (
 )
 
 // Pointed returns the pointed operations for [ReaderIOEither]
+//
+//go:inline
 func Pointed[R, E, A any]() pointed.Pointed[A, ReaderIOEither[R, E, A]] {
 	return G.Pointed[R, E, A, ReaderIOEither[R, E, A]]()
 }
 
 // Functor returns the functor operations for [ReaderIOEither]
+//
+//go:inline
 func Functor[R, E, A, B any]() functor.Functor[A, B, ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]] {
 	return G.Functor[R, E, A, B, ReaderIOEither[R, E, A], ReaderIOEither[R, E, B]]()
 }
 
 // Monad returns the monadic operations for [ReaderIOEither]
+//
+//go:inline
 func Monad[R, E, A, B any]() monad.Monad[A, B, ReaderIOEither[R, E, A], ReaderIOEither[R, E, B], ReaderIOEither[R, E, func(A) B]] {
 	return G.Monad[R, E, A, B, ReaderIOEither[R, E, A], ReaderIOEither[R, E, B], ReaderIOEither[R, E, func(A) B]]()
 }

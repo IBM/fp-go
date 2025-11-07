@@ -18,12 +18,12 @@ package readereither
 import "github.com/IBM/fp-go/v2/readereither"
 
 // TraverseArray transforms an array
-func TraverseArray[A, B any](f func(A) ReaderEither[B]) func([]A) ReaderEither[[]B] {
+func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return readereither.TraverseArray(f)
 }
 
 // TraverseArrayWithIndex transforms an array
-func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderEither[B]) func([]A) ReaderEither[[]B] {
+func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderEither[B]) Kleisli[[]A, []B] {
 	return readereither.TraverseArrayWithIndex(f)
 }
 

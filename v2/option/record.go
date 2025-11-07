@@ -32,7 +32,7 @@ import (
 //	}
 //	input := map[string]int{"a": 1, "b": 2}
 //	result := TraverseRecordG[map[string]int, map[string]int](validate)(input) // Some(map[a:2 b:4])
-func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(A) Option[B]) func(GA) Option[GB] {
+func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
 	return RR.Traverse[GA](
 		Of[GB],
 		Map[GB, func(B) GB],
@@ -53,7 +53,7 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(A)
 //	}
 //	input := map[string]int{"a": 1, "b": 2}
 //	result := TraverseRecord(validate)(input) // Some(map[a:"1" b:"2"])
-func TraverseRecord[K comparable, A, B any](f func(A) Option[B]) func(map[K]A) Option[map[K]B] {
+func TraverseRecord[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, map[K]B] {
 	return TraverseRecordG[map[K]A, map[K]B](f)
 }
 
@@ -68,7 +68,7 @@ func TraverseRecord[K comparable, A, B any](f func(A) Option[B]) func(map[K]A) O
 //	}
 //	input := map[string]int{"a": 1, "b": 2}
 //	result := TraverseRecordWithIndexG[map[string]int, map[string]string](f)(input) // Some(map[a:"a:1" b:"b:2"])
-func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(K, A) Option[B]) func(GA) Option[GB] {
+func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f func(K, A) Option[B]) Kleisli[GA, GB] {
 	return RR.TraverseWithIndex[GA](
 		Of[GB],
 		Map[GB, func(B) GB],
@@ -89,7 +89,7 @@ func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](
 //	}
 //	input := map[string]int{"a": 1, "b": 2}
 //	result := TraverseRecordWithIndex(f)(input) // Some(map[a:1 b:2])
-func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Option[B]) func(map[K]A) Option[map[K]B] {
+func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Option[B]) Kleisli[map[K]A, map[K]B] {
 	return TraverseRecordWithIndexG[map[K]A, map[K]B](f)
 }
 

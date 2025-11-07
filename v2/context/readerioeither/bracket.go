@@ -28,7 +28,7 @@ func Bracket[
 	A, B, ANY any](
 
 	acquire ReaderIOEither[A],
-	use func(A) ReaderIOEither[B],
+	use Kleisli[A, B],
 	release func(A, Either[B]) ReaderIOEither[ANY],
 ) ReaderIOEither[B] {
 	return bracket.Bracket[ReaderIOEither[A], ReaderIOEither[B], ReaderIOEither[ANY], Either[B], A, B](

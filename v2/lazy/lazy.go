@@ -21,9 +21,6 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 )
 
-// Lazy represents a synchronous computation without side effects
-type Lazy[A any] = func() A
-
 func Of[A any](a A) Lazy[A] {
 	return io.Of(a)
 }
@@ -53,17 +50,17 @@ func MonadMapTo[A, B any](fa Lazy[A], b B) Lazy[B] {
 	return io.MonadMapTo(fa, b)
 }
 
-func MapTo[A, B any](b B) func(Lazy[A]) Lazy[B] {
+func MapTo[A, B any](b B) Kleisli[Lazy[A], B] {
 	return io.MapTo[A](b)
 }
 
 // MonadChain composes computations in sequence, using the return value of one computation to determine the next computation.
-func MonadChain[A, B any](fa Lazy[A], f func(A) Lazy[B]) Lazy[B] {
+func MonadChain[A, B any](fa Lazy[A], f Kleisli[A, B]) Lazy[B] {
 	return io.MonadChain(fa, f)
 }
 
 // Chain composes computations in sequence, using the return value of one computation to determine the next computation.
-func Chain[A, B any](f func(A) Lazy[B]) func(Lazy[A]) Lazy[B] {
+func Chain[A, B any](f Kleisli[A, B]) Kleisli[Lazy[A], B] {
 	return io.Chain(f)
 }
 
@@ -86,13 +83,13 @@ func Memoize[A any](ma Lazy[A]) Lazy[A] {
 
 // MonadChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
-func MonadChainFirst[A, B any](fa Lazy[A], f func(A) Lazy[B]) Lazy[A] {
+func MonadChainFirst[A, B any](fa Lazy[A], f Kleisli[A, B]) Lazy[A] {
 	return io.MonadChainFirst(fa, f)
 }
 
 // ChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
-func ChainFirst[A, B any](f func(A) Lazy[B]) func(Lazy[A]) Lazy[A] {
+func ChainFirst[A, B any](f Kleisli[A, B]) Kleisli[Lazy[A], A] {
 	return io.ChainFirst(f)
 }
 
@@ -102,7 +99,7 @@ func MonadApFirst[A, B any](first Lazy[A], second Lazy[B]) Lazy[A] {
 }
 
 // ApFirst combines two effectful actions, keeping only the result of the first.
-func ApFirst[A, B any](second Lazy[B]) func(Lazy[A]) Lazy[A] {
+func ApFirst[A, B any](second Lazy[B]) Kleisli[Lazy[A], A] {
 	return io.ApFirst[A](second)
 }
 
@@ -112,7 +109,7 @@ func MonadApSecond[A, B any](first Lazy[A], second Lazy[B]) Lazy[B] {
 }
 
 // ApSecond combines two effectful actions, keeping only the result of the second.
-func ApSecond[A, B any](second Lazy[B]) func(Lazy[A]) Lazy[B] {
+func ApSecond[A, B any](second Lazy[B]) Kleisli[Lazy[A], B] {
 	return io.ApSecond[A](second)
 }
 
@@ -122,7 +119,7 @@ func MonadChainTo[A, B any](fa Lazy[A], fb Lazy[B]) Lazy[B] {
 }
 
 // ChainTo composes computations in sequence, ignoring the return value of the first computation
-func ChainTo[A, B any](fb Lazy[B]) func(Lazy[A]) Lazy[B] {
+func ChainTo[A, B any](fb Lazy[B]) Kleisli[Lazy[A], B] {
 	return io.ChainTo[A](fb)
 }
 

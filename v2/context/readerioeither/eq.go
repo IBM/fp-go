@@ -39,6 +39,8 @@ import (
 //	eqRIE := Eq(eqInt)
 //	ctx := context.Background()
 //	equal := eqRIE(ctx).Equals(Right[int](42), Right[int](42)) // true
+//
+//go:inline
 func Eq[A any](eq eq.Eq[Either[A]]) func(context.Context) eq.Eq[ReaderIOEither[A]] {
 	return RIOE.Eq[context.Context](eq)
 }

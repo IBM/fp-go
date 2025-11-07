@@ -49,19 +49,19 @@ func Of[A any](a A) A {
 	return a
 }
 
-func MonadChain[A, B any](ma A, f func(A) B) B {
+func MonadChain[A, B any](ma A, f Kleisli[A, B]) B {
 	return f(ma)
 }
 
-func Chain[A, B any](f func(A) B) Operator[A, B] {
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return f
 }
 
-func MonadChainFirst[A, B any](fa A, f func(A) B) A {
+func MonadChainFirst[A, B any](fa A, f Kleisli[A, B]) A {
 	return chain.MonadChainFirst(MonadChain[A, A], MonadMap[B, A], fa, f)
 }
 
-func ChainFirst[A, B any](f func(A) B) Operator[A, A] {
+func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return chain.ChainFirst(Chain[A, A], Map[B, A], f)
 }
 

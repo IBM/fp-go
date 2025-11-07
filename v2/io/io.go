@@ -44,7 +44,8 @@ type (
 	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioltagt] for more details
 	IO[A any] = func() A
 
-	Operator[A, B any] = R.Reader[IO[A], IO[B]]
+	Kleisli[A, B any]  = R.Reader[A, IO[B]]
+	Operator[A, B any] = Kleisli[IO[A], B]
 	Monoid[A any]      = M.Monoid[IO[A]]
 	Semigroup[A any]   = S.Semigroup[IO[A]]
 )
@@ -121,14 +122,14 @@ func MapTo[A, B any](b B) Operator[A, B] {
 }
 
 // MonadChain composes computations in sequence, using the return value of one computation to determine the next computation.
-func MonadChain[A, B any](fa IO[A], f func(A) IO[B]) IO[B] {
+func MonadChain[A, B any](fa IO[A], f Kleisli[A, B]) IO[B] {
 	return func() B {
 		return f(fa())()
 	}
 }
 
 // Chain composes computations in sequence, using the return value of one computation to determine the next computation.
-func Chain[A, B any](f func(A) IO[B]) Operator[A, B] {
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return F.Bind2nd(MonadChain[A, B], f)
 }
 
@@ -201,13 +202,13 @@ func Memoize[A any](ma IO[A]) IO[A] {
 
 // MonadChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
-func MonadChainFirst[A, B any](fa IO[A], f func(A) IO[B]) IO[A] {
+func MonadChainFirst[A, B any](fa IO[A], f Kleisli[A, B]) IO[A] {
 	return chain.MonadChainFirst(MonadChain[A, A], MonadMap[B, A], fa, f)
 }
 
 // ChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
 // keeping only the result of the first.
-func ChainFirst[A, B any](f func(A) IO[B]) Operator[A, A] {
+func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return chain.ChainFirst(
 		Chain[A, A],
 		Map[B, A],

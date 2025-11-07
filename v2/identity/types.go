@@ -16,5 +16,6 @@
 package identity
 
 type (
-	Operator[A, B any] = func(A) B
+	Kleisli[A, B any]  = func(A) B
+	Operator[A, B any] = Kleisli[A, B]
 )

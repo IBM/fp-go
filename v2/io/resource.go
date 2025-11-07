@@ -36,7 +36,7 @@ import (
 //	    return readData(f)
 //	})
 func WithResource[
-	R, A, ANY any](onCreate IO[R], onRelease func(R) IO[ANY]) func(func(R) IO[A]) IO[A] {
+	R, A, ANY any](onCreate IO[R], onRelease func(R) IO[ANY]) Kleisli[Kleisli[R, A], A] {
 	// simply map to implementation of bracket
 	return function.Bind13of3(Bracket[R, A, ANY])(onCreate, function.Ignore2of2[A](onRelease))
 }

@@ -28,7 +28,7 @@ func From0[A any](f func(context.Context) (A, error)) func() ReaderEither[A] {
 	return readereither.From0(f)
 }
 
-func From1[T1, A any](f func(context.Context, T1) (A, error)) func(T1) ReaderEither[A] {
+func From1[T1, A any](f func(context.Context, T1) (A, error)) Kleisli[T1, A] {
 	return readereither.From1(f)
 }
 

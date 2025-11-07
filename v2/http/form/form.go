@@ -21,8 +21,8 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	ENDO "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
 	LA "github.com/IBM/fp-go/v2/optics/lens/array"
+	LO "github.com/IBM/fp-go/v2/optics/lens/option"
 	LRG "github.com/IBM/fp-go/v2/optics/lens/record/generic"
 	O "github.com/IBM/fp-go/v2/option"
 	RG "github.com/IBM/fp-go/v2/record/generic"
@@ -50,7 +50,7 @@ var (
 
 	composeHead = F.Pipe1(
 		LA.AtHead[string](),
-		L.ComposeOptions[url.Values, string](A.Empty[string]()),
+		LO.Compose[url.Values, string](A.Empty[string]()),
 	)
 
 	// AtValue is a [L.Lens] that focusses on first value in form fields

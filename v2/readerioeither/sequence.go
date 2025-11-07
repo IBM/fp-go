@@ -30,6 +30,8 @@ import (
 //
 //	result := SequenceT1(Of[Config, error](42))
 //	// result(cfg)() returns Right(Tuple1{42})
+//
+//go:inline
 func SequenceT1[R, E, A any](a ReaderIOEither[R, E, A]) ReaderIOEither[R, E, T.Tuple1[A]] {
 	return G.SequenceT1[
 		ReaderIOEither[R, E, A],
@@ -50,6 +52,8 @@ func SequenceT1[R, E, A any](a ReaderIOEither[R, E, A]) ReaderIOEither[R, E, T.T
 //	    fetchProfile(123),
 //	)
 //	// result(cfg)() returns Right(Tuple2{user, profile}) or Left(error)
+//
+//go:inline
 func SequenceT2[R, E, A, B any](a ReaderIOEither[R, E, A], b ReaderIOEither[R, E, B]) ReaderIOEither[R, E, T.Tuple2[A, B]] {
 	return G.SequenceT2[
 		ReaderIOEither[R, E, A],
@@ -70,6 +74,8 @@ func SequenceT2[R, E, A, B any](a ReaderIOEither[R, E, A], b ReaderIOEither[R, E
 //	    fetchSettings(123),
 //	)
 //	// result(cfg)() returns Right(Tuple3{user, profile, settings}) or Left(error)
+//
+//go:inline
 func SequenceT3[R, E, A, B, C any](a ReaderIOEither[R, E, A], b ReaderIOEither[R, E, B], c ReaderIOEither[R, E, C]) ReaderIOEither[R, E, T.Tuple3[A, B, C]] {
 	return G.SequenceT3[
 		ReaderIOEither[R, E, A],
@@ -92,6 +98,8 @@ func SequenceT3[R, E, A, B, C any](a ReaderIOEither[R, E, A], b ReaderIOEither[R
 //	    fetchPreferences(123),
 //	)
 //	// result(cfg)() returns Right(Tuple4{user, profile, settings, prefs}) or Left(error)
+//
+//go:inline
 func SequenceT4[R, E, A, B, C, D any](a ReaderIOEither[R, E, A], b ReaderIOEither[R, E, B], c ReaderIOEither[R, E, C], d ReaderIOEither[R, E, D]) ReaderIOEither[R, E, T.Tuple4[A, B, C, D]] {
 	return G.SequenceT4[
 		ReaderIOEither[R, E, A],

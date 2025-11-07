@@ -18,6 +18,7 @@ package readereither
 import (
 	"context"
 
+	L "github.com/IBM/fp-go/v2/optics/lens"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 )
 
@@ -80,8 +81,8 @@ func Do[S any](
 //	)
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) ReaderEither[T],
-) func(ReaderEither[S1]) ReaderEither[S2] {
+	f Kleisli[S1, T],
+) Kleisli[ReaderEither[S1], S2] {
 	return G.Bind[ReaderEither[S1], ReaderEither[S2], ReaderEither[T], context.Context, error, S1, S2, T](setter, f)
 }
 
@@ -89,7 +90,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(ReaderEither[S1]) ReaderEither[S2] {
+) Kleisli[ReaderEither[S1], S2] {
 	return G.Let[ReaderEither[S1], ReaderEither[S2], context.Context, error, S1, S2, T](setter, f)
 }
 
@@ -97,14 +98,14 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(ReaderEither[S1]) ReaderEither[S2] {
+) Kleisli[ReaderEither[S1], S2] {
 	return G.LetTo[ReaderEither[S1], ReaderEither[S2], context.Context, error, S1, S2, T](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) func(ReaderEither[T]) ReaderEither[S1] {
+) Kleisli[ReaderEither[T], S1] {
 	return G.BindTo[ReaderEither[S1], ReaderEither[T], context.Context, error, S1, T](setter)
 }
 
@@ -148,6 +149,161 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderEither[T],
-) func(ReaderEither[S1]) ReaderEither[S2] {
+) Kleisli[ReaderEither[S1], S2] {
 	return G.ApS[ReaderEither[S1], ReaderEither[S2], ReaderEither[T], context.Context, error, S1, S2, T](setter, fa)
+}
+
+// ApSL is a variant of ApS that uses a lens to focus on a specific field in the state.
+// Instead of providing a setter function, you provide a lens that knows how to get and set
+// the field. This is more convenient when working with nested structures.
+//
+// Parameters:
+//   - lens: A lens that focuses on a field of type T within state S
+//   - fa: A ReaderEither computation that produces a value of type T
+//
+// Returns:
+//   - A function that transforms ReaderEither[S] to ReaderEither[S] by setting the focused field
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	ageLens := lens.MakeLens(
+//	    func(p Person) int { return p.Age },
+//	    func(p Person, a int) Person { p.Age = a; return p },
+//	)
+//
+//	getAge := func(ctx context.Context) either.Either[error, int] {
+//	    return either.Right[error](30)
+//	}
+//
+//	result := F.Pipe1(
+//	    readereither.Do(Person{Name: "Alice", Age: 25}),
+//	    readereither.ApSL(ageLens, getAge),
+//	)
+func ApSL[S, T any](
+	lens L.Lens[S, T],
+	fa ReaderEither[T],
+) Kleisli[ReaderEither[S], S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL is a variant of Bind that uses a lens to focus on a specific field in the state.
+// It combines the lens-based field access with monadic composition, allowing you to:
+// 1. Extract a field value using the lens
+// 2. Use that value in a computation that may fail
+// 3. Update the field with the result
+//
+// Parameters:
+//   - lens: A lens that focuses on a field of type T within state S
+//   - f: A function that takes the current field value and returns a ReaderEither computation
+//
+// Returns:
+//   - A function that transforms ReaderEither[S] to ReaderEither[S]
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	increment := func(v int) readereither.ReaderEither[int] {
+//	    return func(ctx context.Context) either.Either[error, int] {
+//	        if v >= 100 {
+//	            return either.Left[int](errors.New("value too large"))
+//	        }
+//	        return either.Right[error](v + 1)
+//	    }
+//	}
+//
+//	result := F.Pipe1(
+//	    readereither.Of[error](Counter{Value: 42}),
+//	    readereither.BindL(valueLens, increment),
+//	)
+func BindL[S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[T, T],
+) Kleisli[ReaderEither[S], S] {
+	return Bind[S, S, T](lens.Set, func(s S) ReaderEither[T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL is a variant of Let that uses a lens to focus on a specific field in the state.
+// It applies a pure transformation to the focused field without any effects.
+//
+// Parameters:
+//   - lens: A lens that focuses on a field of type T within state S
+//   - f: A pure function that transforms the field value
+//
+// Returns:
+//   - A function that transforms ReaderEither[S] to ReaderEither[S]
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	double := func(v int) int { return v * 2 }
+//
+//	result := F.Pipe1(
+//	    readereither.Of[error](Counter{Value: 21}),
+//	    readereither.LetL(valueLens, double),
+//	)
+//	// result when executed will be Right(Counter{Value: 42})
+func LetL[S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Kleisli[ReaderEither[S], S] {
+	return Let[S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL is a variant of LetTo that uses a lens to focus on a specific field in the state.
+// It sets the focused field to a constant value.
+//
+// Parameters:
+//   - lens: A lens that focuses on a field of type T within state S
+//   - b: The constant value to set
+//
+// Returns:
+//   - A function that transforms ReaderEither[S] to ReaderEither[S]
+//
+// Example:
+//
+//	type Config struct {
+//	    Debug   bool
+//	    Timeout int
+//	}
+//
+//	debugLens := lens.MakeLens(
+//	    func(c Config) bool { return c.Debug },
+//	    func(c Config, d bool) Config { c.Debug = d; return c },
+//	)
+//
+//	result := F.Pipe1(
+//	    readereither.Of[error](Config{Debug: true, Timeout: 30}),
+//	    readereither.LetToL(debugLens, false),
+//	)
+//	// result when executed will be Right(Config{Debug: false, Timeout: 30})
+func LetToL[S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Kleisli[ReaderEither[S], S] {
+	return LetTo[S, S, T](lens.Set, b)
 }

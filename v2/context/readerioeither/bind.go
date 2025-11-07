@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -31,6 +32,8 @@ import (
 //	    Config Config
 //	}
 //	result := readerioeither.Do(State{})
+//
+//go:inline
 func Do[S any](
 	empty S,
 ) ReaderIOEither[S] {
@@ -79,10 +82,12 @@ func Do[S any](
 //	        },
 //	    ),
 //	)
+//
+//go:inline
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) ReaderIOEither[T],
-) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
+	f Kleisli[S1, T],
+) Operator[S1, S2] {
 	return chain.Bind(
 		Chain[S1, S2],
 		Map[T, S2],
@@ -92,10 +97,12 @@ func Bind[S1, S2, T any](
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
+//
+//go:inline
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
+) Operator[S1, S2] {
 	return functor.Let(
 		Map[S1, S2],
 		setter,
@@ -104,10 +111,12 @@ func Let[S1, S2, T any](
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
+//
+//go:inline
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
+) Operator[S1, S2] {
 	return functor.LetTo(
 		Map[S1, S2],
 		setter,
@@ -116,6 +125,8 @@ func LetTo[S1, S2, T any](
 }
 
 // BindTo initializes a new state [S1] from a value [T]
+//
+//go:inline
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) Operator[T, S1] {
@@ -166,14 +177,165 @@ func BindTo[S1, T any](
 //	        getConfig,
 //	    ),
 //	)
+//
+//go:inline
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIOEither[T],
-) func(ReaderIOEither[S1]) ReaderIOEither[S2] {
+) Operator[S1, S2] {
 	return apply.ApS(
 		Ap[S2, T],
 		Map[S1, func(T) S2],
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//
+//	userLens := lens.MakeLens(
+//	    func(s State) User { return s.User },
+//	    func(s State, u User) State { s.User = u; return s },
+//	)
+//
+//	getUser := func(ctx context.Context) ioeither.IOEither[error, User] {
+//	    return ioeither.TryCatch(func() (User, error) {
+//	        return fetchUser(ctx)
+//	    })
+//	}
+//	result := F.Pipe2(
+//	    readerioeither.Of(State{}),
+//	    readerioeither.ApSL(userLens, getUser),
+//	)
+//
+//go:inline
+func ApSL[S, T any](
+	lens L.Lens[S, T],
+	fa ReaderIOEither[T],
+) Operator[S, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL is a variant of Bind that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a ReaderIOEither computation that produces an updated value.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//
+//	userLens := lens.MakeLens(
+//	    func(s State) User { return s.User },
+//	    func(s State, u User) State { s.User = u; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readerioeither.Do(State{}),
+//	    readerioeither.BindL(userLens, func(user User) readerioeither.ReaderIOEither[User] {
+//	        return func(ctx context.Context) ioeither.IOEither[error, User] {
+//	            return ioeither.TryCatch(func() (User, error) {
+//	                return fetchUser(ctx)
+//	            })
+//	        }
+//	    }),
+//	)
+//
+//go:inline
+func BindL[S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[T, T],
+) Operator[S, S] {
+	return Bind[S, S, T](lens.Set, func(s S) ReaderIOEither[T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL is a variant of Let that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a new value (without wrapping in a ReaderIOEither).
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//
+//	userLens := lens.MakeLens(
+//	    func(s State) User { return s.User },
+//	    func(s State, u User) State { s.User = u; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readerioeither.Do(State{User: User{Name: "Alice"}}),
+//	    readerioeither.LetL(userLens, func(user User) User {
+//	        user.Name = "Bob"
+//	        return user
+//	    }),
+//	)
+//
+//go:inline
+func LetL[S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Operator[S, S] {
+	return Let[S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The value b is set directly to the focused field.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//
+//	userLens := lens.MakeLens(
+//	    func(s State) User { return s.User },
+//	    func(s State, u User) State { s.User = u; return s },
+//	)
+//
+//	newUser := User{Name: "Bob", ID: 123}
+//	result := F.Pipe2(
+//	    readerioeither.Do(State{}),
+//	    readerioeither.LetToL(userLens, newUser),
+//	)
+//
+//go:inline
+func LetToL[S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Operator[S, S] {
+	return LetTo[S, S, T](lens.Set, b)
 }

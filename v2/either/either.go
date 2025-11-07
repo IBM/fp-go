@@ -69,7 +69,7 @@ func MonadAp[B, E, A any](fab Either[E, func(a A) B], fa Either[E, A]) Either[E,
 
 // Ap is the curried version of [MonadAp].
 // Returns a function that applies a wrapped function to the given wrapped value.
-func Ap[B, E, A any](fa Either[E, A]) func(fab Either[E, func(a A) B]) Either[E, B] {
+func Ap[B, E, A any](fa Either[E, A]) Operator[E, func(A) B, B] {
 	return F.Bind2nd(MonadAp[B, E, A], fa)
 }
 
@@ -120,7 +120,7 @@ func MonadMapTo[E, A, B any](fa Either[E, A], b B) Either[E, B] {
 }
 
 // MapTo is the curried version of [MonadMapTo].
-func MapTo[E, A, B any](b B) func(Either[E, A]) Either[E, B] {
+func MapTo[E, A, B any](b B) Operator[E, A, B] {
 	return Map[E](F.Constant1[A](b))
 }
 
@@ -211,26 +211,26 @@ func MonadChainOptionK[A, B, E any](onNone func() E, ma Either[E, A], f func(A) 
 }
 
 // ChainOptionK is the curried version of [MonadChainOptionK].
-func ChainOptionK[A, B, E any](onNone func() E) func(func(A) Option[B]) func(Either[E, A]) Either[E, B] {
+func ChainOptionK[A, B, E any](onNone func() E) func(func(A) Option[B]) Operator[E, A, B] {
 	from := FromOption[B](onNone)
-	return func(f func(A) Option[B]) func(Either[E, A]) Either[E, B] {
+	return func(f func(A) Option[B]) Operator[E, A, B] {
 		return Chain(F.Flow2(f, from))
 	}
 }
 
 // ChainTo is the curried version of [MonadChainTo].
-func ChainTo[A, E, B any](mb Either[E, B]) func(Either[E, A]) Either[E, B] {
+func ChainTo[A, E, B any](mb Either[E, B]) Operator[E, A, B] {
 	return F.Constant1[Either[E, A]](mb)
 }
 
 // Chain is the curried version of [MonadChain].
 // Sequences two computations where the second depends on the first.
-func Chain[E, A, B any](f func(a A) Either[E, B]) func(Either[E, A]) Either[E, B] {
+func Chain[E, A, B any](f func(a A) Either[E, B]) Operator[E, A, B] {
 	return Fold(Left[B, E], f)
 }
 
 // ChainFirst is the curried version of [MonadChainFirst].
-func ChainFirst[E, A, B any](f func(a A) Either[E, B]) func(Either[E, A]) Either[E, A] {
+func ChainFirst[E, A, B any](f func(a A) Either[E, B]) Operator[E, A, A] {
 	return C.ChainFirst(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -437,7 +437,7 @@ func AltW[E, E1, A any](that L.Lazy[Either[E1, A]]) func(Either[E, A]) Either[E1
 //	    return either.Right[error](99)
 //	})
 //	result := alternative(either.Left[int](errors.New("fail"))) // Right(99)
-func Alt[E, A any](that L.Lazy[Either[E, A]]) func(Either[E, A]) Either[E, A] {
+func Alt[E, A any](that L.Lazy[Either[E, A]]) Operator[E, A, A] {
 	return AltW[E](that)
 }
 
@@ -449,7 +449,7 @@ func Alt[E, A any](that L.Lazy[Either[E, A]]) func(Either[E, A]) Either[E, A] {
 //	    return either.Right[error](0) // default value
 //	})
 //	result := recover(either.Left[int](errors.New("fail"))) // Right(0)
-func OrElse[E, A any](onLeft func(e E) Either[E, A]) func(Either[E, A]) Either[E, A] {
+func OrElse[E, A any](onLeft func(e E) Either[E, A]) Operator[E, A, A] {
 	return Fold(onLeft, Of[E, A])
 }
 
@@ -518,7 +518,7 @@ func MonadFlap[E, B, A any](fab Either[E, func(A) B], a A) Either[E, B] {
 }
 
 // Flap is the curried version of [MonadFlap].
-func Flap[E, B, A any](a A) func(Either[E, func(A) B]) Either[E, B] {
+func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 	return FC.Flap(Map[E, func(A) B, B], a)
 }
 

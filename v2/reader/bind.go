@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -207,4 +208,159 @@ func ApS[R, S1, S2, T any](
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Config struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(s State) int { return s.Port },
+//	    func(s State, p int) State { s.Port = p; return s },
+//	)
+//
+//	getPort := reader.Asks(func(c Config) int { return c.DefaultPort })
+//	result := F.Pipe2(
+//	    reader.Of[Config](State{Host: "localhost"}),
+//	    reader.ApSL(portLens, getPort),
+//	)
+func ApSL[R, S, T any](
+	lens L.Lens[S, T],
+	fa Reader[R, T],
+) Operator[R, S, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL is a variant of Bind that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a Reader computation that produces an updated value.
+//
+// Example:
+//
+//	type State struct {
+//	    Config ConfigData
+//	    Status string
+//	}
+//	type ConfigData struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Env struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) ConfigData { return s.Config },
+//	    func(s State, c ConfigData) State { s.Config = c; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    reader.Do[Env](State{}),
+//	    reader.BindL(configLens, func(cfg ConfigData) reader.Reader[Env, ConfigData] {
+//	        return reader.Asks(func(e Env) ConfigData {
+//	            return ConfigData{Host: e.DefaultHost, Port: e.DefaultPort}
+//	        })
+//	    }),
+//	)
+func BindL[R, S, T any](
+	lens L.Lens[S, T],
+	f func(T) Reader[R, T],
+) Operator[R, S, S] {
+	return Bind[R, S, S, T](lens.Set, func(s S) Reader[R, T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL is a variant of Let that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a new value (without wrapping in a Reader).
+//
+// Example:
+//
+//	type State struct {
+//	    Config ConfigData
+//	    Status string
+//	}
+//	type ConfigData struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) ConfigData { return s.Config },
+//	    func(s State, c ConfigData) State { s.Config = c; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    reader.Do[any](State{Config: ConfigData{Host: "localhost"}}),
+//	    reader.LetL(configLens, func(cfg ConfigData) ConfigData {
+//	        cfg.Port = 8080
+//	        return cfg
+//	    }),
+//	)
+func LetL[R, S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Operator[R, S, S] {
+	return Let[R, S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The value b is set directly to the focused field.
+//
+// Example:
+//
+//	type State struct {
+//	    Config ConfigData
+//	    Status string
+//	}
+//	type ConfigData struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) ConfigData { return s.Config },
+//	    func(s State, c ConfigData) State { s.Config = c; return s },
+//	)
+//
+//	newConfig := ConfigData{Host: "localhost", Port: 8080}
+//	result := F.Pipe2(
+//	    reader.Do[any](State{}),
+//	    reader.LetToL(configLens, newConfig),
+//	)
+func LetToL[R, S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Operator[R, S, S] {
+	return LetTo[R, S, S, T](lens.Set, b)
 }

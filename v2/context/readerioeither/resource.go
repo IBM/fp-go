@@ -55,7 +55,7 @@ import (
 //	        }
 //	    })
 //	})
-func WithResource[A, R, ANY any](onCreate ReaderIOEither[R], onRelease func(R) ReaderIOEither[ANY]) func(func(R) ReaderIOEither[A]) ReaderIOEither[A] {
+func WithResource[A, R, ANY any](onCreate ReaderIOEither[R], onRelease func(R) ReaderIOEither[ANY]) Kleisli[Kleisli[R, A], A] {
 	return function.Flow2(
 		function.Bind2nd(function.Flow2[func(R) ReaderIOEither[A], Operator[A, A], R, ReaderIOEither[A], ReaderIOEither[A]], WithContext[A]),
 		RIE.WithResource[A, context.Context, error, R](WithContext(onCreate), onRelease),

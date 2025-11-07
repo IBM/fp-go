@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -180,4 +181,147 @@ func ApS[R, S1, S2, T any](
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Config struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(s State) int { return s.Port },
+//	    func(s State, p int) State { s.Port = p; return s },
+//	)
+//
+//	getPort := readerio.Asks(func(c Config) io.IO[int] {
+//	    return io.Of(c.DefaultPort)
+//	})
+//	result := F.Pipe2(
+//	    readerio.Of[Config](State{Host: "localhost"}),
+//	    readerio.ApSL(portLens, getPort),
+//	)
+func ApSL[R, S, T any](
+	lens L.Lens[S, T],
+	fa ReaderIO[R, T],
+) func(ReaderIO[R, S]) ReaderIO[R, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL is a variant of Bind that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a ReaderIO computation that produces an updated value.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//	type Config struct {
+//	    DefaultHost string
+//	    DefaultPort int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(s State) int { return s.Port },
+//	    func(s State, p int) State { s.Port = p; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readerio.Do[Config](State{Host: "localhost"}),
+//	    readerio.BindL(portLens, func(port int) readerio.ReaderIO[Config, int] {
+//	        return readerio.Asks(func(c Config) io.IO[int] {
+//	            return io.Of(c.DefaultPort)
+//	        })
+//	    }),
+//	)
+func BindL[R, S, T any](
+	lens L.Lens[S, T],
+	f func(T) ReaderIO[R, T],
+) func(ReaderIO[R, S]) ReaderIO[R, S] {
+	return Bind[R, S, S, T](lens.Set, func(s S) ReaderIO[R, T] {
+		return f(lens.Get(s))
+	})
+}
+
+// LetL is a variant of Let that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The function f receives the current value of the focused field and
+// returns a new value (without wrapping in a ReaderIO).
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(s State) int { return s.Port },
+//	    func(s State, p int) State { s.Port = p; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readerio.Do[any](State{Host: "localhost", Port: 8080}),
+//	    readerio.LetL(portLens, func(port int) int {
+//	        return port + 1
+//	    }),
+//	)
+func LetL[R, S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) func(ReaderIO[R, S]) ReaderIO[R, S] {
+	return Let[R, S, S, T](lens.Set, func(s S) T {
+		return f(lens.Get(s))
+	})
+}
+
+// LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
+// This provides a more ergonomic API when working with nested structures, eliminating
+// the need to manually write setter functions.
+//
+// The lens parameter provides both a getter and setter for a field of type T within
+// the context S. The value b is set directly to the focused field.
+//
+// Example:
+//
+//	type State struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(s State) int { return s.Port },
+//	    func(s State, p int) State { s.Port = p; return s },
+//	)
+//
+//	result := F.Pipe2(
+//	    readerio.Do[any](State{Host: "localhost"}),
+//	    readerio.LetToL(portLens, 8080),
+//	)
+func LetToL[R, S, T any](
+	lens L.Lens[S, T],
+	b T,
+) func(ReaderIO[R, S]) ReaderIO[R, S] {
+	return LetTo[R, S, S, T](lens.Set, b)
 }

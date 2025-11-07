@@ -22,6 +22,6 @@ import (
 
 // Compress returns an [Iterator] that filters elements from a data [Iterator] returning only those that have a corresponding element in selector [Iterator] that evaluates to `true`.
 // Stops when either the data or selectors iterator has been exhausted.
-func Compress[U any](sel Iterator[bool]) func(Iterator[U]) Iterator[U] {
+func Compress[U any](sel Iterator[bool]) Kleisli[Iterator[U], U] {
 	return G.Compress[Iterator[U], Iterator[bool], Iterator[P.Pair[U, bool]]](sel)
 }

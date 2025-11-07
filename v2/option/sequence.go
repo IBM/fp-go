@@ -35,7 +35,7 @@ import (
 //	)
 func Sequence[A, HKTA, HKTOA any](
 	mof func(Option[A]) HKTOA,
-	mmap func(func(A) Option[A]) func(HKTA) HKTOA,
+	mmap func(Kleisli[A, A]) func(HKTA) HKTOA,
 ) func(Option[HKTA]) HKTOA {
 	return Fold(F.Nullary2(None[A], mof), mmap(Some[A]))
 }
@@ -59,7 +59,7 @@ func Sequence[A, HKTA, HKTOA any](
 //	)
 func Traverse[A, B, HKTB, HKTOB any](
 	mof func(Option[B]) HKTOB,
-	mmap func(func(B) Option[B]) func(HKTB) HKTOB,
+	mmap func(Kleisli[B, B]) func(HKTB) HKTOB,
 ) func(func(A) HKTB) func(Option[A]) HKTOB {
 	onNone := F.Nullary2(None[B], mof)
 	onSome := mmap(Some[B])

@@ -22,6 +22,44 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
+// AsTraversal converts a Lens[S, A] to a Traversal[S, A] for optional values.
+//
+// A traversal is a generalization of a lens that can focus on zero or more values.
+// This function converts a lens (which focuses on exactly one value) into a traversal,
+// allowing it to be used with traversal operations like mapping over multiple values.
+//
+// This is particularly useful when you want to:
+//   - Use lens operations in a traversal context
+//   - Compose lenses with traversals
+//   - Apply operations that work on collections of optional values
+//
+// The conversion uses the Option monad's map operation to handle the optional nature
+// of the values being traversed.
+//
+// Type Parameters:
+//   - S: The structure type containing the field
+//   - A: The type of the field being focused on
+//
+// Returns:
+//   - A function that takes a Lens[S, A] and returns a Traversal[S, A]
+//
+// Example:
+//
+//	type Config struct {
+//	    Timeout Option[int]
+//	}
+//
+//	timeoutLens := lens.MakeLens(
+//	    func(c Config) Option[int] { return c.Timeout },
+//	    func(c Config, t Option[int]) Config { c.Timeout = t; return c },
+//	)
+//
+//	// Convert to traversal for use with traversal operations
+//	timeoutTraversal := lens.AsTraversal[Config, int]()(timeoutLens)
+//
+//	// Now can use traversal operations
+//	configs := []Config{{Timeout: O.Some(30)}, {Timeout: O.None[int]()}}
+//	// Apply operations across all configs using the traversal
 func AsTraversal[S, A any]() func(L.Lens[S, A]) T.Traversal[S, A] {
 	return LG.AsTraversal[T.Traversal[S, A]](O.MonadMap[A, S])
 }

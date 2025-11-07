@@ -31,7 +31,7 @@ import (
 //	m := either.AlternativeMonoid[error](intAdd)
 //	result := m.Concat(either.Right[error](1), either.Right[error](2))
 //	// result is Right(3)
-func AlternativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
+func AlternativeMonoid[E, A any](m M.Monoid[A]) Monoid[E, A] {
 	return M.AlternativeMonoid(
 		Of[E, A],
 		MonadMap[E, A, func(A) A],
@@ -51,7 +51,7 @@ func AlternativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
 //	m := either.AltMonoid[error, int](zero)
 //	result := m.Concat(either.Left[int](errors.New("err1")), either.Right[error](42))
 //	// result is Right(42)
-func AltMonoid[E, A any](zero L.Lazy[Either[E, A]]) M.Monoid[Either[E, A]] {
+func AltMonoid[E, A any](zero L.Lazy[Either[E, A]]) Monoid[E, A] {
 	return M.AltMonoid(
 		zero,
 		MonadAlt[E, A],

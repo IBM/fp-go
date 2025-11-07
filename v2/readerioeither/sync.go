@@ -51,6 +51,8 @@ import (
 //	        return func() { mu.Unlock() }
 //	    }),
 //	)
+//
+//go:inline
 func WithLock[R, E, A any](lock func() context.CancelFunc) Operator[R, E, A, A] {
 	return readerio.WithLock[R, either.Either[E, A]](lock)
 }

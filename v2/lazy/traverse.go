@@ -17,19 +17,19 @@ package lazy
 
 import "github.com/IBM/fp-go/v2/io"
 
-func MonadTraverseArray[A, B any](tas []A, f func(A) Lazy[B]) Lazy[[]B] {
+func MonadTraverseArray[A, B any](tas []A, f Kleisli[A, B]) Lazy[[]B] {
 	return io.MonadTraverseArray(tas, f)
 }
 
 // TraverseArray applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
-func TraverseArray[A, B any](f func(A) Lazy[B]) func([]A) Lazy[[]B] {
+func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return io.TraverseArray(f)
 }
 
 // TraverseArrayWithIndex applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
-func TraverseArrayWithIndex[A, B any](f func(int, A) Lazy[B]) func([]A) Lazy[[]B] {
+func TraverseArrayWithIndex[A, B any](f func(int, A) Lazy[B]) Kleisli[[]A, []B] {
 	return io.TraverseArrayWithIndex(f)
 }
 
@@ -38,19 +38,19 @@ func SequenceArray[A any](tas []Lazy[A]) Lazy[[]A] {
 	return io.SequenceArray(tas)
 }
 
-func MonadTraverseRecord[K comparable, A, B any](tas map[K]A, f func(A) Lazy[B]) Lazy[map[K]B] {
+func MonadTraverseRecord[K comparable, A, B any](tas map[K]A, f Kleisli[A, B]) Lazy[map[K]B] {
 	return io.MonadTraverseRecord(tas, f)
 }
 
 // TraverseRecord applies a function returning an [IO] to all elements in a record and the
 // transforms this into an [IO] of that record
-func TraverseRecord[K comparable, A, B any](f func(A) Lazy[B]) func(map[K]A) Lazy[map[K]B] {
+func TraverseRecord[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, map[K]B] {
 	return io.TraverseRecord[K](f)
 }
 
 // TraverseRecord applies a function returning an [IO] to all elements in a record and the
 // transforms this into an [IO] of that record
-func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Lazy[B]) func(map[K]A) Lazy[map[K]B] {
+func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Lazy[B]) Kleisli[map[K]A, map[K]B] {
 	return io.TraverseRecordWithIndex[K](f)
 }
 

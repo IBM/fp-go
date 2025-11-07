@@ -21,11 +21,63 @@ import (
 )
 
 type (
+	// Endomorphism is a function from a type to itself (A → A).
+	// It represents transformations that preserve the type.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
-	// Lens is a reference to a subpart of a data type
+	// Lens is a functional reference to a subpart of a data structure.
+	//
+	// A Lens[S, A] provides a composable way to focus on a field of type A within
+	// a structure of type S. It consists of two operations:
+	//   - Get: Extracts the focused value from the structure (S → A)
+	//   - Set: Updates the focused value in the structure, returning a new structure (A → S → S)
+	//
+	// Lenses maintain immutability by always returning new copies of the structure
+	// when setting values, never modifying the original.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type (the whole)
+	//   - A: The focus/field type (the part)
+	//
+	// Lens Laws:
+	//
+	// A well-behaved lens must satisfy three laws:
+	//
+	// 1. GetSet (You get what you set):
+	//    lens.Set(lens.Get(s))(s) == s
+	//
+	// 2. SetGet (You set what you get):
+	//    lens.Get(lens.Set(a)(s)) == a
+	//
+	// 3. SetSet (Setting twice is the same as setting once):
+	//    lens.Set(a2)(lens.Set(a1)(s)) == lens.Set(a2)(s)
+	//
+	// Example:
+	//
+	//	type Person struct {
+	//	    Name string
+	//	    Age  int
+	//	}
+	//
+	//	nameLens := lens.MakeLens(
+	//	    func(p Person) string { return p.Name },
+	//	    func(p Person, name string) Person {
+	//	        p.Name = name
+	//	        return p
+	//	    },
+	//	)
+	//
+	//	person := Person{Name: "Alice", Age: 30}
+	//	name := nameLens.Get(person)           // "Alice"
+	//	updated := nameLens.Set("Bob")(person) // Person{Name: "Bob", Age: 30}
+	//	// person is unchanged, updated is a new value
 	Lens[S, A any] struct {
+		// Get extracts the focused value of type A from structure S.
 		Get func(s S) A
+
+		// Set returns a function that updates the focused value in structure S.
+		// The returned function takes a structure S and returns a new structure S
+		// with the focused value updated to a. The original structure is never modified.
 		Set func(a A) Endomorphism[S]
 	}
 )

@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -172,83 +171,6 @@ func TestPassByValue(t *testing.T) {
 	assert.Equal(t, "value2", s2.name)
 }
 
-func TestFromNullableProp(t *testing.T) {
-	// default inner object
-	defaultInner := &Inner{
-		Value: 0,
-		Foo:   "foo",
-	}
-	// access to the value
-	value := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
-	// access to inner
-	inner := FromNullableProp[Outer](O.FromNillable[Inner], defaultInner)(MakeLens(Outer.GetInner, Outer.SetInner))
-	// compose
-	lens := F.Pipe1(
-		inner,
-		Compose[Outer](value),
-	)
-	outer1 := Outer{inner: &Inner{Value: 1, Foo: "a"}}
-	// the checks
-	assert.Equal(t, Outer{inner: &Inner{Value: 1, Foo: "foo"}}, lens.Set(1)(Outer{}))
-	assert.Equal(t, 0, lens.Get(Outer{}))
-	assert.Equal(t, Outer{inner: &Inner{Value: 1, Foo: "foo"}}, lens.Set(1)(Outer{inner: &Inner{Value: 2, Foo: "foo"}}))
-	assert.Equal(t, 1, lens.Get(Outer{inner: &Inner{Value: 1, Foo: "foo"}}))
-	assert.Equal(t, outer1, Modify[Outer](F.Identity[int])(lens)(outer1))
-}
-
-func TestComposeOption(t *testing.T) {
-	// default inner object
-	defaultInner := &Inner{
-		Value: 0,
-		Foo:   "foo",
-	}
-	// access to the value
-	value := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
-	// access to inner
-	inner := FromNillable(MakeLens(Outer.GetInner, Outer.SetInner))
-	// compose lenses
-	lens := F.Pipe1(
-		inner,
-		ComposeOption[Outer, int](defaultInner)(value),
-	)
-	outer1 := Outer{inner: &Inner{Value: 1, Foo: "a"}}
-	// the checks
-	assert.Equal(t, Outer{inner: &Inner{Value: 1, Foo: "foo"}}, lens.Set(O.Some(1))(Outer{}))
-	assert.Equal(t, O.None[int](), lens.Get(Outer{}))
-	assert.Equal(t, Outer{inner: &Inner{Value: 1, Foo: "foo"}}, lens.Set(O.Some(1))(Outer{inner: &Inner{Value: 2, Foo: "foo"}}))
-	assert.Equal(t, O.Some(1), lens.Get(Outer{inner: &Inner{Value: 1, Foo: "foo"}}))
-	assert.Equal(t, outer1, Modify[Outer](F.Identity[O.Option[int]])(lens)(outer1))
-}
-
-func TestComposeOptions(t *testing.T) {
-	// default inner object
-	defaultValue1 := 1
-	defaultFoo1 := "foo1"
-	defaultInner := &InnerOpt{
-		Value: &defaultValue1,
-		Foo:   &defaultFoo1,
-	}
-	// access to the value
-	value := FromNillable(MakeLensRef((*InnerOpt).GetValue, (*InnerOpt).SetValue))
-	// access to inner
-	inner := FromNillable(MakeLens(OuterOpt.GetInnerOpt, OuterOpt.SetInnerOpt))
-	// compose lenses
-	lens := F.Pipe1(
-		inner,
-		ComposeOptions[OuterOpt, *int](defaultInner)(value),
-	)
-	// additional settings
-	defaultValue2 := 2
-	defaultFoo2 := "foo2"
-	outer1 := OuterOpt{inner: &InnerOpt{Value: &defaultValue2, Foo: &defaultFoo2}}
-	// the checks
-	assert.Equal(t, OuterOpt{inner: &InnerOpt{Value: &defaultValue1, Foo: &defaultFoo1}}, lens.Set(O.Some(&defaultValue1))(OuterOpt{}))
-	assert.Equal(t, O.None[*int](), lens.Get(OuterOpt{}))
-	assert.Equal(t, OuterOpt{inner: &InnerOpt{Value: &defaultValue1, Foo: &defaultFoo2}}, lens.Set(O.Some(&defaultValue1))(OuterOpt{inner: &InnerOpt{Value: &defaultValue2, Foo: &defaultFoo2}}))
-	assert.Equal(t, O.Some(&defaultValue1), lens.Get(OuterOpt{inner: &InnerOpt{Value: &defaultValue1, Foo: &defaultFoo1}}))
-	assert.Equal(t, outer1, Modify[OuterOpt](F.Identity[O.Option[*int]])(lens)(outer1))
-}
-
 func TestIdRef(t *testing.T) {
 	idLens := IdRef[Street]()
 	street := &Street{num: 1, name: "Main"}
@@ -270,93 +192,6 @@ func TestComposeRef(t *testing.T) {
 	updated := composedLens.Set(newName)(&sampleAddress)
 	assert.Equal(t, newName, composedLens.Get(updated))
 	assert.Equal(t, sampleStreet.name, sampleAddress.street.name) // Original unchanged
-}
-
-func TestFromPredicateRef(t *testing.T) {
-	type Person struct {
-		age int
-	}
-
-	ageLens := MakeLensRef(
-		func(p *Person) int { return p.age },
-		func(p *Person, age int) *Person {
-			p.age = age
-			return p
-		},
-	)
-
-	adultLens := FromPredicateRef[Person](func(age int) bool { return age >= 18 }, 0)(ageLens)
-
-	adult := &Person{age: 25}
-	assert.Equal(t, O.Some(25), adultLens.Get(adult))
-
-	minor := &Person{age: 15}
-	assert.Equal(t, O.None[int](), adultLens.Get(minor))
-}
-
-func TestFromNillableRef(t *testing.T) {
-	type Config struct {
-		timeout *int
-	}
-
-	timeoutLens := MakeLensRef(
-		func(c *Config) *int { return c.timeout },
-		func(c *Config, t *int) *Config {
-			c.timeout = t
-			return c
-		},
-	)
-
-	optLens := FromNillableRef(timeoutLens)
-
-	config := &Config{timeout: nil}
-	assert.Equal(t, O.None[*int](), optLens.Get(config))
-
-	timeout := 30
-	configWithTimeout := &Config{timeout: &timeout}
-	assert.True(t, O.IsSome(optLens.Get(configWithTimeout)))
-}
-
-func TestFromNullablePropRef(t *testing.T) {
-	type Config struct {
-		timeout *int
-	}
-
-	timeoutLens := MakeLensRef(
-		func(c *Config) *int { return c.timeout },
-		func(c *Config, t *int) *Config {
-			c.timeout = t
-			return c
-		},
-	)
-
-	defaultTimeout := 30
-	safeLens := FromNullablePropRef[Config](O.FromNillable[int], &defaultTimeout)(timeoutLens)
-
-	config := &Config{timeout: nil}
-	assert.Equal(t, &defaultTimeout, safeLens.Get(config))
-}
-
-func TestFromOptionRef(t *testing.T) {
-	type Settings struct {
-		retries O.Option[int]
-	}
-
-	retriesLens := MakeLensRef(
-		func(s *Settings) O.Option[int] { return s.retries },
-		func(s *Settings, r O.Option[int]) *Settings {
-			s.retries = r
-			return s
-		},
-	)
-
-	safeLens := FromOptionRef[Settings](3)(retriesLens)
-
-	settings := &Settings{retries: O.None[int]()}
-	assert.Equal(t, 3, safeLens.Get(settings))
-
-	settingsWithRetries := &Settings{retries: O.Some(5)}
-	assert.Equal(t, 5, safeLens.Get(settingsWithRetries))
 }
 
 func TestMakeLensCurried(t *testing.T) {

@@ -47,7 +47,7 @@ type (
 //	)
 func Retrying[A any](
 	policy R.RetryPolicy,
-	action func(R.RetryStatus) IO[A],
+	action Kleisli[R.RetryStatus, A],
 	check func(A) bool,
 ) IO[A] {
 	// get an implementation for the types

@@ -45,6 +45,8 @@ import (
 //	})
 //	result := fetchUsers([]int{1, 2, 3})
 //	// result(cfg)() returns Right([user1, user2, user3]) or Left(error)
+//
+//go:inline
 func TraverseArray[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func([]A) ReaderIOEither[R, E, []B] {
 	return G.TraverseArray[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
 }
@@ -71,6 +73,8 @@ func TraverseArray[R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func([]A) 
 //	processWithIndex := TraverseArrayWithIndex(func(i int, val string) ReaderIOEither[Config, error, string] {
 //	    return Of[Config, error](fmt.Sprintf("%d: %s", i, val))
 //	})
+//
+//go:inline
 func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, B]) func([]A) ReaderIOEither[R, E, []B] {
 	return G.TraverseArrayWithIndex[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
 }
@@ -101,6 +105,8 @@ func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, 
 //	}
 //	result := SequenceArray(computations)
 //	// result(cfg)() returns Right([userCount, postCount, commentCount]) or Left(error)
+//
+//go:inline
 func SequenceArray[R, E, A any](ma []ReaderIOEither[R, E, A]) ReaderIOEither[R, E, []A] {
 	return G.SequenceArray[ReaderIOEither[R, E, A], ReaderIOEither[R, E, []A]](ma)
 }
@@ -131,6 +137,8 @@ func SequenceArray[R, E, A any](ma []ReaderIOEither[R, E, A]) ReaderIOEither[R, 
 //	    return enrichUser(user)
 //	})
 //	result := enrichUsers(map[string]User{"alice": user1, "bob": user2})
+//
+//go:inline
 func TraverseRecord[R any, K comparable, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(map[K]A) ReaderIOEither[R, E, map[K]B] {
 	return G.TraverseRecord[ReaderIOEither[R, E, B], ReaderIOEither[R, E, map[K]B], IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
 }
@@ -158,6 +166,8 @@ func TraverseRecord[R any, K comparable, E, A, B any](f func(A) ReaderIOEither[R
 //	processWithKey := TraverseRecordWithIndex(func(key string, val int) ReaderIOEither[Config, error, string] {
 //	    return Of[Config, error](fmt.Sprintf("%s: %d", key, val))
 //	})
+//
+//go:inline
 func TraverseRecordWithIndex[R any, K comparable, E, A, B any](f func(K, A) ReaderIOEither[R, E, B]) func(map[K]A) ReaderIOEither[R, E, map[K]B] {
 	return G.TraverseRecordWithIndex[ReaderIOEither[R, E, B], ReaderIOEither[R, E, map[K]B], IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
 }
@@ -189,6 +199,8 @@ func TraverseRecordWithIndex[R any, K comparable, E, A, B any](f func(K, A) Read
 //	}
 //	result := SequenceRecord(computations)
 //	// result(cfg)() returns Right(map[string]int{"users": 100, "posts": 50}) or Left(error)
+//
+//go:inline
 func SequenceRecord[R any, K comparable, E, A any](ma map[K]ReaderIOEither[R, E, A]) ReaderIOEither[R, E, map[K]A] {
 	return G.SequenceRecord[ReaderIOEither[R, E, A], ReaderIOEither[R, E, map[K]A]](ma)
 }
