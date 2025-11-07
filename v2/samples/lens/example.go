@@ -13,28 +13,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cli
+package lens
 
-import (
-	C "github.com/urfave/cli/v2"
-)
+import "github.com/IBM/fp-go/v2/optics/lens/option"
 
-func Commands() []*C.Command {
-	return []*C.Command{
-		PipeCommand(),
-		IdentityCommand(),
-		OptionCommand(),
-		EitherCommand(),
-		TupleCommand(),
-		BindCommand(),
-		ApplyCommand(),
-		ContextReaderIOEitherCommand(),
-		ReaderIOEitherCommand(),
-		ReaderCommand(),
-		IOEitherCommand(),
-		IOCommand(),
-		IOOptionCommand(),
-		DICommand(),
-		LensCommand(),
-	}
+// fp-go:Lens
+type Person struct {
+	Name  string
+	Age   int
+	Email string
+	// Optional field with pointer
+	Phone *string
+}
+
+// fp-go:Lens
+type Address struct {
+	Street  string
+	City    string
+	ZipCode string
+	Country string
+	// Optional field
+	State *string `json:"state,omitempty"`
+}
+
+// fp-go:Lens
+type Company struct {
+	Name    string
+	Address Address
+	CEO     Person
+	// Optional field
+	Website *string
+}
+
+// fp-go:Lens
+type CheckOption struct {
+	Name  option.Option[string]
+	Value string `json:",omitempty"`
 }
