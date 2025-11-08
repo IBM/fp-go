@@ -3,3 +3,4 @@ fp-go
 main.exe
 build/
 .idea
+*.exe

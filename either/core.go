@@ -21,8 +21,8 @@ import (
 
 type (
 	either struct {
-		isLeft bool
 		value  any
+		isLeft bool
 	}
 
 	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
@@ -73,12 +73,12 @@ func IsRight[E, A any](val Either[E, A]) bool {
 
 // Left creates a new instance of an [Either] representing the left value.
 func Left[A, E any](value E) Either[E, A] {
-	return Either[E, A]{true, value}
+	return Either[E, A]{value, true}
 }
 
 // Right creates a new instance of an [Either] representing the right value.
 func Right[E, A any](value A) Either[E, A] {
-	return Either[E, A]{false, value}
+	return Either[E, A]{value, false}
 }
 
 // MonadFold extracts the values from an [Either] by invoking the [onLeft] callback or the [onRight] callback depending on the case
@@ -94,8 +94,7 @@ func Unwrap[E, A any](ma Either[E, A]) (A, E) {
 	if ma.isLeft {
 		var a A
 		return a, ma.value.(E)
-	} else {
-		var e E
-		return ma.value.(A), e
 	}
+	var e E
+	return ma.value.(A), e
 }

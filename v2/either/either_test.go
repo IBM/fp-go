@@ -117,7 +117,7 @@ func TestStringer(t *testing.T) {
 
 	assert.Equal(t, exp, e.String())
 
-	var s fmt.Stringer = e
+	var s fmt.Stringer = &e
 	assert.Equal(t, exp, s.String())
 }
 

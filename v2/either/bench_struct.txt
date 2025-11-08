@@ -1,0 +1,66 @@
+2025/11/08 09:04:15 out: test
+goos: windows
+goarch: amd64
+pkg: github.com/IBM/fp-go/v2/either
+cpu: AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics  
+BenchmarkLeft-16                              	1000000000	         0.8335 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRight-16                             	1000000000	         0.4256 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOf-16                                	1000000000	         0.4370 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsLeft-16                            	1000000000	         0.2199 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIsRight-16                           	1000000000	         0.2181 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadFold_Right-16                   	1000000000	         0.3209 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadFold_Left-16                    	289017271	         4.176 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFold_Right-16                        	1000000000	         0.4687 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFold_Left-16                         	274668618	         4.669 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUnwrap_Right-16                      	1000000000	         0.3520 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUnwrap_Left-16                       	273187717	         4.226 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUnwrapError_Right-16                 	1000000000	         0.4503 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUnwrapError_Left-16                  	279699219	         4.285 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadMap_Right-16                    	152084527	         7.855 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadMap_Left-16                     	181258614	         6.711 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMap_Right-16                         	146735268	         8.328 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMap_Left-16                          	136155859	         8.829 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMapLeft_Right-16                     	254870900	         4.687 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMapLeft_Left-16                      	44555998	        27.87 ns/op	      16 B/op	       1 allocs/op
+BenchmarkBiMap_Right-16                       	53596072	        22.82 ns/op	      16 B/op	       1 allocs/op
+BenchmarkBiMap_Left-16                        	44864508	        26.88 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMonadChain_Right-16                  	350417858	         3.456 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadChain_Left-16                   	228175792	         5.328 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Right-16                       	681885982	         1.558 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Left-16                        	273064258	         4.305 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainFirst_Right-16                  	11384614	       107.1 ns/op	     120 B/op	       5 allocs/op
+BenchmarkChainFirst_Left-16                   	145602547	         8.177 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFlatten_Right-16                     	333052550	         3.563 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFlatten_Left-16                      	178190731	         6.822 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadAp_RightRight-16                	153308394	         7.690 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadAp_RightLeft-16                 	187848016	         6.593 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadAp_LeftRight-16                 	226528400	         5.175 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAp_RightRight-16                     	163718392	         7.422 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAlt_RightRight-16                    	773928914	         1.603 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAlt_LeftRight-16                     	296220595	         4.034 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOrElse_Right-16                      	772122764	         1.587 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOrElse_Left-16                       	295411228	         4.018 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTryCatch_Success-16                  	446405984	         2.691 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTryCatch_Error-16                    	445387840	         2.750 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTryCatchError_Success-16             	442356684	         2.682 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTryCatchError_Error-16               	441426070	         2.801 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSwap_Right-16                        	448856370	         2.819 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSwap_Left-16                         	213215637	         5.602 ns/op	       0 B/op	       0 allocs/op
+BenchmarkGetOrElse_Right-16                   	1000000000	         0.2997 ns/op	       0 B/op	       0 allocs/op
+BenchmarkGetOrElse_Left-16                    	270844960	         4.397 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPipeline_Map_Right-16                	13732585	        83.72 ns/op	      96 B/op	       4 allocs/op
+BenchmarkPipeline_Map_Left-16                 	15044474	        84.31 ns/op	      96 B/op	       4 allocs/op
+BenchmarkPipeline_Chain_Right-16              	763123821	         1.638 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPipeline_Chain_Left-16               	265623768	         4.513 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPipeline_Complex_Right-16            	 6963698	       173.9 ns/op	     192 B/op	       8 allocs/op
+BenchmarkPipeline_Complex_Left-16             	 6829795	       178.2 ns/op	     192 B/op	       8 allocs/op
+BenchmarkMonadSequence2_RightRight-16         	188600779	         6.451 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadSequence2_LeftRight-16          	203297380	         5.912 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMonadSequence3_RightRightRight-16    	127004353	         9.377 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDo-16                                	1000000000	         0.2096 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBind_Right-16                        	 9656920	       124.5 ns/op	     144 B/op	       6 allocs/op
+BenchmarkLet_Right-16                         	49086178	        22.46 ns/op	      16 B/op	       1 allocs/op
+BenchmarkString_Right-16                      	16014156	        71.13 ns/op	      16 B/op	       1 allocs/op
+BenchmarkString_Left-16                       	11845627	        94.86 ns/op	      48 B/op	       1 allocs/op
+PASS
+ok  	github.com/IBM/fp-go/v2/either	82.686s
