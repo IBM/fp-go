@@ -17,6 +17,7 @@
 package lens
 
 import (
+	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 )
 
@@ -24,6 +25,17 @@ import (
 // modifying that copy
 func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 	return func(s *S, a A) *S {
+		cpy := *s
+		return setter(&cpy, a)
+	}
+}
+
+func setCopyWithEq[GET ~func(*S) A, SET ~func(*S, A) *S, S, A any](pred EQ.Eq[A], getter GET, setter SET) func(s *S, a A) *S {
+	return func(s *S, a A) *S {
+		if pred.Equals(getter(s), a) {
+			return s
+		}
+		// we need to make a copy
 		cpy := *s
 		return setter(&cpy, a)
 	}
@@ -159,6 +171,115 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 //	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
 func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET) Lens[*S, A] {
 	return MakeLens(get, setCopy(set))
+}
+
+// MakeLensWithEq creates a [Lens] for pointer-based structures with equality optimization.
+//
+// This is similar to [MakeLensRef] but includes an optimization: if the new value equals
+// the current value (according to the provided Eq predicate), the original pointer is returned
+// unchanged instead of creating a copy. This can improve performance and reduce allocations
+// when setting values that don't actually change the structure.
+//
+// The setter does not need to create a copy manually; this function automatically wraps it
+// to ensure immutability when changes are made.
+//
+// This lens assumes that property A always exists in structure S (i.e., it's not optional).
+//
+// Type Parameters:
+//   - GET: Getter function type (*S → A)
+//   - SET: Setter function type (*S, A → *S)
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type
+//
+// Parameters:
+//   - pred: Equality predicate to compare values of type A
+//   - get: Function to extract value A from pointer *S
+//   - set: Function to update value A in pointer *S (copying handled automatically)
+//
+// Returns:
+//   - A Lens[*S, A] that can get and set values immutably on pointers with equality optimization
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLensWithEq(
+//	    eq.FromStrictEquals[string](),
+//	    func(p *Person) string { return p.Name },
+//	    func(p *Person, name string) *Person {
+//	        p.Name = name  // No manual copy needed
+//	        return p
+//	    },
+//	)
+//
+//	person := &Person{Name: "Alice", Age: 30}
+//
+//	// Setting the same value returns the original pointer (no copy)
+//	same := nameLens.Set("Alice")(person)
+//	// same == person (same pointer)
+//
+//	// Setting a different value creates a new copy
+//	updated := nameLens.Set("Bob")(person)
+//	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+func MakeLensWithEq[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A], get GET, set SET) Lens[*S, A] {
+	return MakeLens(get, setCopyWithEq(pred, get, set))
+}
+
+// MakeLensStrict creates a [Lens] for pointer-based structures with strict equality optimization.
+//
+// This is a convenience function that combines [MakeLensWithEq] with strict equality comparison (==).
+// It's suitable for comparable types (primitives, strings, pointers, etc.) and provides the same
+// optimization as MakeLensWithEq: if the new value equals the current value, the original pointer
+// is returned unchanged instead of creating a copy.
+//
+// The setter does not need to create a copy manually; this function automatically wraps it
+// to ensure immutability when changes are made.
+//
+// This lens assumes that property A always exists in structure S (i.e., it's not optional).
+//
+// Type Parameters:
+//   - GET: Getter function type (*S → A)
+//   - SET: Setter function type (*S, A → *S)
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type (must be comparable)
+//
+// Parameters:
+//   - get: Function to extract value A from pointer *S
+//   - set: Function to update value A in pointer *S (copying handled automatically)
+//
+// Returns:
+//   - A Lens[*S, A] that can get and set values immutably on pointers with strict equality optimization
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	// Using MakeLensStrict for a string field (comparable type)
+//	nameLens := lens.MakeLensStrict(
+//	    func(p *Person) string { return p.Name },
+//	    func(p *Person, name string) *Person {
+//	        p.Name = name  // No manual copy needed
+//	        return p
+//	    },
+//	)
+//
+//	person := &Person{Name: "Alice", Age: 30}
+//
+//	// Setting the same value returns the original pointer (no copy)
+//	same := nameLens.Set("Alice")(person)
+//	// same == person (same pointer)
+//
+//	// Setting a different value creates a new copy
+//	updated := nameLens.Set("Bob")(person)
+//	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+func MakeLensStrict[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](get GET, set SET) Lens[*S, A] {
+	return MakeLensWithEq(EQ.FromStrictEquals[A](), get, set)
 }
 
 // MakeLensRefCurried creates a [Lens] for pointer-based structures with a curried setter.

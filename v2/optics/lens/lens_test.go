@@ -18,6 +18,7 @@ package lens
 import (
 	"testing"
 
+	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/stretchr/testify/assert"
 )
@@ -230,4 +231,316 @@ func TestMakeLensRefCurried(t *testing.T) {
 	updated := nameLens.Set("Oak")(street)
 	assert.Equal(t, "Oak", updated.name)
 	assert.Equal(t, "Main", street.name)
+}
+
+func TestMakeLensWithEq(t *testing.T) {
+	// Create a lens with equality check for string
+	nameLens := MakeLensWithEq(
+		EQ.FromStrictEquals[string](),
+		func(s *Street) string { return s.name },
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	street := &Street{num: 1, name: "Main"}
+
+	// Test getting value
+	assert.Equal(t, "Main", nameLens.Get(street))
+
+	// Test setting a different value - should create a new copy
+	updated := nameLens.Set("Oak")(street)
+	assert.Equal(t, "Oak", updated.name)
+	assert.Equal(t, "Main", street.name) // Original unchanged
+	assert.NotSame(t, street, updated)   // Different pointers
+
+	// Test setting the same value - should return original pointer (optimization)
+	same := nameLens.Set("Main")(street)
+	assert.Equal(t, "Main", same.name)
+	assert.Same(t, street, same) // Same pointer (no copy made)
+}
+
+func TestMakeLensWithEq_IntField(t *testing.T) {
+	// Create a lens with equality check for int
+	numLens := MakeLensWithEq(
+		EQ.FromStrictEquals[int](),
+		func(s *Street) int { return s.num },
+		func(s *Street, num int) *Street {
+			s.num = num
+			return s
+		},
+	)
+
+	street := &Street{num: 42, name: "Main"}
+
+	// Test getting value
+	assert.Equal(t, 42, numLens.Get(street))
+
+	// Test setting a different value
+	updated := numLens.Set(100)(street)
+	assert.Equal(t, 100, updated.num)
+	assert.Equal(t, 42, street.num)
+	assert.NotSame(t, street, updated)
+
+	// Test setting the same value - should return original pointer
+	same := numLens.Set(42)(street)
+	assert.Equal(t, 42, same.num)
+	assert.Same(t, street, same)
+}
+
+func TestMakeLensWithEq_CustomEq(t *testing.T) {
+	// Create a custom equality that ignores case
+	caseInsensitiveEq := EQ.FromEquals(func(a, b string) bool {
+		return len(a) == len(b) && a == b // Simple equality for this test
+	})
+
+	nameLens := MakeLensWithEq(
+		caseInsensitiveEq,
+		func(s *Street) string { return s.name },
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	street := &Street{num: 1, name: "Main"}
+
+	// Setting the exact same value should return original pointer
+	same := nameLens.Set("Main")(street)
+	assert.Same(t, street, same)
+
+	// Setting a different value should create a copy
+	updated := nameLens.Set("Oak")(street)
+	assert.NotSame(t, street, updated)
+	assert.Equal(t, "Main", street.name)
+	assert.Equal(t, "Oak", updated.name)
+}
+
+func TestMakeLensWithEq_ComposedLens(t *testing.T) {
+	// Create lenses with equality optimization
+	streetLensEq := MakeLensWithEq(
+		EQ.FromStrictEquals[string](),
+		(*Street).GetName,
+		(*Street).SetName,
+	)
+
+	addrLensEq := MakeLensWithEq(
+		EQ.FromStrictEquals[*Street](),
+		(*Address).GetStreet,
+		(*Address).SetStreet,
+	)
+
+	// Compose the lenses
+	streetName := Compose[*Address](streetLensEq)(addrLensEq)
+
+	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
+	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
+
+	// Test getting value
+	assert.Equal(t, sampleStreet.name, streetName.Get(&sampleAddress))
+
+	// Test setting a different value
+	newName := "Böblingerstr"
+	updated := streetName.Set(newName)(&sampleAddress)
+	assert.Equal(t, newName, streetName.Get(updated))
+	assert.Equal(t, sampleStreet.name, sampleAddress.street.name) // Original unchanged
+}
+
+func TestMakeLensWithEq_MultipleUpdates(t *testing.T) {
+	nameLens := MakeLensWithEq(
+		EQ.FromStrictEquals[string](),
+		func(s *Street) string { return s.name },
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	street := &Street{num: 1, name: "Main"}
+
+	// First update - creates a copy
+	updated1 := nameLens.Set("Oak")(street)
+	assert.NotSame(t, street, updated1)
+	assert.Equal(t, "Oak", updated1.name)
+
+	// Second update with same value - returns same pointer
+	updated2 := nameLens.Set("Oak")(updated1)
+	assert.Same(t, updated1, updated2)
+
+	// Third update with different value - creates new copy
+	updated3 := nameLens.Set("Elm")(updated2)
+	assert.NotSame(t, updated2, updated3)
+	assert.Equal(t, "Elm", updated3.name)
+	assert.Equal(t, "Oak", updated2.name)
+}
+
+func TestMakeLensStrict(t *testing.T) {
+	// Create a lens with strict equality for string
+	nameLens := MakeLensStrict(
+		func(s *Street) string { return s.name },
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	street := &Street{num: 1, name: "Main"}
+
+	// Test getting value
+	assert.Equal(t, "Main", nameLens.Get(street))
+
+	// Test setting a different value - should create a new copy
+	updated := nameLens.Set("Oak")(street)
+	assert.Equal(t, "Oak", updated.name)
+	assert.Equal(t, "Main", street.name) // Original unchanged
+	assert.NotSame(t, street, updated)   // Different pointers
+
+	// Test setting the same value - should return original pointer (optimization)
+	same := nameLens.Set("Main")(street)
+	assert.Equal(t, "Main", same.name)
+	assert.Same(t, street, same) // Same pointer (no copy made)
+}
+
+func TestMakeLensStrict_IntField(t *testing.T) {
+	// Create a lens with strict equality for int
+	numLens := MakeLensStrict(
+		func(s *Street) int { return s.num },
+		func(s *Street, num int) *Street {
+			s.num = num
+			return s
+		},
+	)
+
+	street := &Street{num: 42, name: "Main"}
+
+	// Test getting value
+	assert.Equal(t, 42, numLens.Get(street))
+
+	// Test setting a different value
+	updated := numLens.Set(100)(street)
+	assert.Equal(t, 100, updated.num)
+	assert.Equal(t, 42, street.num)
+	assert.NotSame(t, street, updated)
+
+	// Test setting the same value - should return original pointer
+	same := numLens.Set(42)(street)
+	assert.Equal(t, 42, same.num)
+	assert.Same(t, street, same)
+}
+
+func TestMakeLensStrict_PointerField(t *testing.T) {
+	// Test with pointer field (comparable type)
+	type Container struct {
+		ptr *int
+	}
+
+	ptrLens := MakeLensStrict(
+		func(c *Container) *int { return c.ptr },
+		func(c *Container, ptr *int) *Container {
+			c.ptr = ptr
+			return c
+		},
+	)
+
+	value1 := 42
+	value2 := 100
+	container := &Container{ptr: &value1}
+
+	// Test getting value
+	assert.Equal(t, &value1, ptrLens.Get(container))
+
+	// Test setting a different pointer
+	updated := ptrLens.Set(&value2)(container)
+	assert.Equal(t, &value2, updated.ptr)
+	assert.Equal(t, &value1, container.ptr)
+	assert.NotSame(t, container, updated)
+
+	// Test setting the same pointer - should return original
+	same := ptrLens.Set(&value1)(container)
+	assert.Same(t, container, same)
+}
+
+func TestMakeLensStrict_ComposedLens(t *testing.T) {
+	// Create lenses with strict equality optimization
+	streetLensStrict := MakeLensStrict(
+		(*Street).GetName,
+		(*Street).SetName,
+	)
+
+	addrLensStrict := MakeLensStrict(
+		(*Address).GetStreet,
+		(*Address).SetStreet,
+	)
+
+	// Compose the lenses
+	streetName := Compose[*Address](streetLensStrict)(addrLensStrict)
+
+	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
+	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
+
+	// Test getting value
+	assert.Equal(t, sampleStreet.name, streetName.Get(&sampleAddress))
+
+	// Test setting a different value
+	newName := "Böblingerstr"
+	updated := streetName.Set(newName)(&sampleAddress)
+	assert.Equal(t, newName, streetName.Get(updated))
+	assert.Equal(t, sampleStreet.name, sampleAddress.street.name) // Original unchanged
+}
+
+func TestMakeLensStrict_MultipleUpdates(t *testing.T) {
+	nameLens := MakeLensStrict(
+		func(s *Street) string { return s.name },
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	street := &Street{num: 1, name: "Main"}
+
+	// First update - creates a copy
+	updated1 := nameLens.Set("Oak")(street)
+	assert.NotSame(t, street, updated1)
+	assert.Equal(t, "Oak", updated1.name)
+
+	// Second update with same value - returns same pointer
+	updated2 := nameLens.Set("Oak")(updated1)
+	assert.Same(t, updated1, updated2)
+
+	// Third update with different value - creates new copy
+	updated3 := nameLens.Set("Elm")(updated2)
+	assert.NotSame(t, updated2, updated3)
+	assert.Equal(t, "Elm", updated3.name)
+	assert.Equal(t, "Oak", updated2.name)
+}
+
+func TestMakeLensStrict_BoolField(t *testing.T) {
+	type Config struct {
+		enabled bool
+	}
+
+	enabledLens := MakeLensStrict(
+		func(c *Config) bool { return c.enabled },
+		func(c *Config, enabled bool) *Config {
+			c.enabled = enabled
+			return c
+		},
+	)
+
+	config := &Config{enabled: true}
+
+	// Test getting value
+	assert.True(t, enabledLens.Get(config))
+
+	// Test setting a different value
+	updated := enabledLens.Set(false)(config)
+	assert.False(t, updated.enabled)
+	assert.True(t, config.enabled)
+	assert.NotSame(t, config, updated)
+
+	// Test setting the same value - should return original pointer
+	same := enabledLens.Set(true)(config)
+	assert.Same(t, config, same)
 }

@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//go:build either_any
 
 package either
 
@@ -20,34 +21,45 @@ import (
 )
 
 type (
-	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
-	Either[E, A any] struct {
-		r   A
-		l   E
-		isL bool
+	either struct {
+		value   any
+		isRight bool
 	}
+
+	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
+	Either[E, A any] either
 )
 
 // String prints some debug info for the object
 //
 //go:noinline
-func (s Either[E, A]) String() string {
-	if !s.isL {
-		return fmt.Sprintf("Right[%T](%v)", s.r, s.r)
+func eitherString(s *either) string {
+	if s.isRight {
+		return fmt.Sprintf("Right[%T](%v)", s.value, s.value)
 	}
-	return fmt.Sprintf("Left[%T](%v)", s.l, s.l)
+	return fmt.Sprintf("Left[%T](%v)", s.value, s.value)
 }
 
 // Format prints some debug info for the object
 //
 //go:noinline
-func (s Either[E, A]) Format(f fmt.State, c rune) {
+func eitherFormat(e *either, f fmt.State, c rune) {
 	switch c {
 	case 's':
-		fmt.Fprint(f, s.String())
+		fmt.Fprint(f, eitherString(e))
 	default:
-		fmt.Fprint(f, s.String())
+		fmt.Fprint(f, eitherString(e))
 	}
+}
+
+// String prints some debug info for the object
+func (s Either[E, A]) String() string {
+	return eitherString((*either)(&s))
+}
+
+// Format prints some debug info for the object
+func (s Either[E, A]) Format(f fmt.State, c rune) {
+	eitherFormat((*either)(&s), f, c)
 }
 
 // IsLeft tests if the Either is a Left value.
@@ -61,7 +73,7 @@ func (s Either[E, A]) Format(f fmt.State, c rune) {
 //
 //go:inline
 func IsLeft[E, A any](val Either[E, A]) bool {
-	return val.isL
+	return !val.isRight
 }
 
 // IsRight tests if the Either is a Right value.
@@ -75,7 +87,7 @@ func IsLeft[E, A any](val Either[E, A]) bool {
 //
 //go:inline
 func IsRight[E, A any](val Either[E, A]) bool {
-	return !val.isL
+	return val.isRight
 }
 
 // Left creates a new Either representing a Left (error/failure) value.
@@ -87,7 +99,7 @@ func IsRight[E, A any](val Either[E, A]) bool {
 //
 //go:inline
 func Left[A, E any](value E) Either[E, A] {
-	return Either[E, A]{l: value, isL: true}
+	return Either[E, A]{value, false}
 }
 
 // Right creates a new Either representing a Right (success) value.
@@ -99,7 +111,7 @@ func Left[A, E any](value E) Either[E, A] {
 //
 //go:inline
 func Right[E, A any](value A) Either[E, A] {
-	return Either[E, A]{r: value}
+	return Either[E, A]{value, true}
 }
 
 // MonadFold extracts the value from an Either by providing handlers for both cases.
@@ -115,10 +127,10 @@ func Right[E, A any](value A) Either[E, A] {
 //
 //go:inline
 func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a A) B) B {
-	if !ma.isL {
-		return onRight(ma.r)
+	if ma.isRight {
+		return onRight(ma.value.(A))
 	}
-	return onLeft(ma.l)
+	return onLeft(ma.value.(E))
 }
 
 // Unwrap converts an Either into the idiomatic Go tuple (value, error).
@@ -132,5 +144,11 @@ func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a 
 //
 //go:inline
 func Unwrap[E, A any](ma Either[E, A]) (A, E) {
-	return ma.r, ma.l
+	if ma.isRight {
+		var e E
+		return ma.value.(A), e
+	} else {
+		var a A
+		return a, ma.value.(E)
+	}
 }
