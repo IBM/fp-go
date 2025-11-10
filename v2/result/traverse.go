@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package result
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/either"
 )
 
 // Traverse converts an Either of some higher kinded type into the higher kinded type of an Either.
@@ -28,22 +28,18 @@ import (
 //
 // Example (conceptual - requires understanding of higher-kinded types):
 //
-//	// Traverse an Either[error, Option[int]] to Option[Either[error, int]]
-//	result := either.Traverse[int, error, int, option.Option[int], option.Option[either.Either[error, int]]](
-//	    option.Of[either.Either[error, int]],
-//	    option.Map[int, either.Either[error, int]],
+//	// Traverse an Result[Option[int]] to Option[Result[int]]
+//	result := either.Traverse[int, error, int, option.Option[int], option.Option[either.Result[int]]](
+//	    option.Of[either.Result[int]],
+//	    option.Map[int, either.Result[int]],
 //	)(f)(eitherOfOption)
-func Traverse[A, E, B, HKTB, HKTRB any](
-	mof func(Either[E, B]) HKTRB,
-	mmap func(Kleisli[E, B, B]) func(HKTB) HKTRB,
-) func(func(A) HKTB) func(Either[E, A]) HKTRB {
-
-	left := F.Flow2(Left[B, E], mof)
-	right := mmap(Right[E, B])
-
-	return func(f func(A) HKTB) func(Either[E, A]) HKTRB {
-		return Fold(left, F.Flow2(f, right))
-	}
+//
+//go:inline
+func Traverse[A, B, HKTB, HKTRB any](
+	mof func(Result[B]) HKTRB,
+	mmap func(Kleisli[B, B]) func(HKTB) HKTRB,
+) func(func(A) HKTB) func(Result[A]) HKTRB {
+	return either.Traverse[A, error, B](mof, mmap)
 }
 
 // Sequence converts an Either of some higher kinded type into the higher kinded type of an Either.
@@ -55,14 +51,16 @@ func Traverse[A, E, B, HKTB, HKTRB any](
 //
 // Example (conceptual - requires understanding of higher-kinded types):
 //
-//	// Sequence an Either[error, Option[int]] to Option[Either[error, int]]
-//	result := either.Sequence[error, int, option.Option[int], option.Option[either.Either[error, int]]](
-//	    option.Of[either.Either[error, int]],
-//	    option.Map[int, either.Either[error, int]],
+//	// Sequence an Result[Option[int]] to Option[Result[int]]
+//	result := either.Sequence[error, int, option.Option[int], option.Option[either.Result[int]]](
+//	    option.Of[either.Result[int]],
+//	    option.Map[int, either.Result[int]],
 //	)(eitherOfOption)
-func Sequence[E, A, HKTA, HKTRA any](
-	mof func(Either[E, A]) HKTRA,
-	mmap func(Kleisli[E, A, A]) func(HKTA) HKTRA,
-) func(Either[E, HKTA]) HKTRA {
-	return Fold(F.Flow2(Left[A, E], mof), mmap(Right[E, A]))
+//
+//go:inline
+func Sequence[A, HKTA, HKTRA any](
+	mof func(Result[A]) HKTRA,
+	mmap func(Kleisli[A, A]) func(HKTA) HKTRA,
+) func(Result[HKTA]) HKTRA {
+	return either.Sequence[error, A, HKTA, HKTRA](mof, mmap)
 }

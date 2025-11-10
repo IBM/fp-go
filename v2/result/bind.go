@@ -13,13 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package result
 
 import (
-	"github.com/IBM/fp-go/v2/function"
-	A "github.com/IBM/fp-go/v2/internal/apply"
-	C "github.com/IBM/fp-go/v2/internal/chain"
-	F "github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/either"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.
@@ -31,10 +28,10 @@ import (
 //	result := either.Do[error](State{})
 //
 //go:inline
-func Do[E, S any](
+func Do[S any](
 	empty S,
-) Either[E, S] {
-	return Of[E](empty)
+) Result[S] {
+	return either.Do[error, S](empty)
 }
 
 // Bind attaches the result of a computation to a context S1 to produce a context S2.
@@ -49,23 +46,18 @@ func Do[E, S any](
 //	        func(v int) func(State) State {
 //	            return func(s State) State { return State{value: v} }
 //	        },
-//	        func(s State) either.Either[error, int] {
+//	        func(s State) either.Result[int] {
 //	            return either.Right[error](42)
 //	        },
 //	    ),
 //	)
 //
 //go:inline
-func Bind[E, S1, S2, T any](
+func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f Kleisli[E, S1, T],
-) Operator[E, S1, S2] {
-	return C.Bind(
-		Chain[E, S1, S2],
-		Map[E, T, S2],
-		setter,
-		f,
-	)
+	f Kleisli[S1, T],
+) Operator[S1, S2] {
+	return either.Bind[error](setter, f)
 }
 
 // Let attaches the result of a pure computation to a context S1 to produce a context S2.
@@ -85,15 +77,11 @@ func Bind[E, S1, S2, T any](
 //	) // Right(State{value: 42})
 //
 //go:inline
-func Let[E, S1, S2, T any](
+func Let[S1, S2, T any](
 	key func(T) func(S1) S2,
 	f func(S1) T,
-) Operator[E, S1, S2] {
-	return F.Let(
-		Map[E, S1, S2],
-		key,
-		f,
-	)
+) Operator[S1, S2] {
+	return either.Let[error](key, f)
 }
 
 // LetTo attaches a constant value to a context S1 to produce a context S2.
@@ -112,15 +100,11 @@ func Let[E, S1, S2, T any](
 //	) // Right(State{name: "Alice"})
 //
 //go:inline
-func LetTo[E, S1, S2, T any](
+func LetTo[S1, S2, T any](
 	key func(T) func(S1) S2,
 	b T,
-) Operator[E, S1, S2] {
-	return F.LetTo(
-		Map[E, S1, S2],
-		key,
-		b,
-	)
+) Operator[S1, S2] {
+	return either.LetTo[error](key, b)
 }
 
 // BindTo initializes a new state S1 from a value T.
@@ -135,13 +119,10 @@ func LetTo[E, S1, S2, T any](
 //	) // Right(State{value: 42})
 //
 //go:inline
-func BindTo[E, S1, T any](
+func BindTo[S1, T any](
 	setter func(T) S1,
-) Operator[E, T, S1] {
-	return C.BindTo(
-		Map[E, T, S1],
-		setter,
-	)
+) Operator[T, S1] {
+	return either.BindTo[error](setter)
 }
 
 // ApS attaches a value to a context S1 to produce a context S2 by considering the context and the value concurrently.
@@ -161,16 +142,11 @@ func BindTo[E, S1, T any](
 //	) // Right(State{x: 10, y: 32})
 //
 //go:inline
-func ApS[E, S1, S2, T any](
+func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	fa Either[E, T],
-) Operator[E, S1, S2] {
-	return A.ApS(
-		Ap[S2, E, T],
-		Map[E, S1, func(T) S2],
-		setter,
-		fa,
-	)
+	fa Result[T],
+) Operator[S1, S2] {
+	return either.ApS[error](setter, fa)
 }
 
 // ApSL attaches a value to a context using a lens-based setter.
@@ -191,7 +167,7 @@ func ApS[E, S1, S2, T any](
 //
 // Parameters:
 //   - lens: A Lens[S, T] that focuses on a field of type T within structure S
-//   - fa: An Either[E, T] computation that produces the value to set
+//   - fa: An Result[T] computation that produces the value to set
 //
 // Returns:
 //   - An endomorphism that updates the focused field in the Either context
@@ -214,11 +190,11 @@ func ApS[E, S1, S2, T any](
 //	) // Right(Person{Name: "Alice", Age: 30})
 //
 //go:inline
-func ApSL[E, S, T any](
+func ApSL[S, T any](
 	lens Lens[S, T],
-	fa Either[E, T],
-) Endomorphism[Either[E, S]] {
-	return ApS(lens.Set, fa)
+	fa Result[T],
+) Operator[S, S] {
+	return either.ApSL[error](lens, fa)
 }
 
 // BindL attaches the result of a computation to a context using a lens-based setter.
@@ -239,7 +215,7 @@ func ApSL[E, S, T any](
 //
 // Parameters:
 //   - lens: A Lens[S, T] that focuses on a field of type T within structure S
-//   - f: A function that takes the current field value and returns an Either[E, T]
+//   - f: A function that takes the current field value and returns an Result[T]
 //
 // Returns:
 //   - An endomorphism that updates the focused field based on its current value
@@ -256,7 +232,7 @@ func ApSL[E, S, T any](
 //	)
 //
 //	// Increment the counter, but fail if it would exceed 100
-//	increment := func(v int) either.Either[error, int] {
+//	increment := func(v int) either.Result[int] {
 //	    if v >= 100 {
 //	        return either.Left[int](errors.New("counter overflow"))
 //	    }
@@ -269,11 +245,11 @@ func ApSL[E, S, T any](
 //	) // Right(Counter{Value: 43})
 //
 //go:inline
-func BindL[E, S, T any](
+func BindL[S, T any](
 	lens Lens[S, T],
-	f Kleisli[E, T, T],
-) Endomorphism[Either[E, S]] {
-	return Bind[E, S, S, T](lens.Set, function.Flow2(lens.Get, f))
+	f Kleisli[T, T],
+) Operator[S, S] {
+	return either.BindL[error](lens, f)
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.
@@ -319,11 +295,11 @@ func BindL[E, S, T any](
 //	) // Right(Counter{Value: 42})
 //
 //go:inline
-func LetL[E, S, T any](
+func LetL[S, T any](
 	lens Lens[S, T],
 	f Endomorphism[T],
-) Endomorphism[Either[E, S]] {
-	return Let[E, S, S, T](lens.Set, function.Flow2(lens.Get, f))
+) Operator[S, S] {
+	return either.LetL[error](lens, f)
 }
 
 // LetToL attaches a constant value to a context using a lens-based setter.
@@ -367,9 +343,9 @@ func LetL[E, S, T any](
 //	) // Right(Config{Debug: false, Timeout: 30})
 //
 //go:inline
-func LetToL[E, S, T any](
+func LetToL[S, T any](
 	lens Lens[S, T],
 	b T,
-) Endomorphism[Either[E, S]] {
-	return LetTo[E, S, S, T](lens.Set, b)
+) Operator[S, S] {
+	return either.LetToL[error](lens, b)
 }
