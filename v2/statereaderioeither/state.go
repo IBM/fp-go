@@ -116,7 +116,7 @@ func FromEither[S, R, E, A any](ma Either[E, A]) StateReaderIOEither[S, R, E, A]
 
 func Local[S, E, A, B, R1, R2 any](f func(R2) R1) func(StateReaderIOEither[S, R1, E, A]) StateReaderIOEither[S, R2, E, A] {
 	return func(ma StateReaderIOEither[S, R1, E, A]) StateReaderIOEither[S, R2, E, A] {
-		return function.Flow2(ma, readerioeither.Local[R1, R2, E, Pair[S, A]](f))
+		return function.Flow2(ma, readerioeither.Local[E, Pair[S, A]](f))
 	}
 }
 

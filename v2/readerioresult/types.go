@@ -13,19 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package readerioresult
 
 import (
-	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
+	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
 	// Either represents a value of one of two possible types (a disjoint union).
 	// An instance of Either is either Left (representing an error) or Right (representing a success).
-	Either[E, A any] = either.Either[E, A]
+	Either[E, A any] = Result[A]
+
+	Result[A any] = result.Result[A]
 
 	// Reader represents a computation that depends on some context/environment of type R
 	// and produces a value of type A. It's useful for dependency injection patterns.
@@ -39,7 +46,17 @@ type (
 	// fail with an error of type E or succeed with a value of type A.
 	IOEither[E, A any] = ioeither.IOEither[E, A]
 
-	// ReaderIOEither represents a computation that:
+	IOResult[A any] = ioresult.IOResult[A]
+
+	IO[A any] = io.IO[A]
+
+	Lazy[A any] = lazy.Lazy[A]
+
+	Option[A any] = option.Option[A]
+
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	// ReaderIOResult represents a computation that:
 	//   - Depends on some context/environment of type R (Reader)
 	//   - Performs side effects (IO)
 	//   - Can fail with an error of type E or succeed with a value of type A (Either)
@@ -56,7 +73,7 @@ type (
 	//
 	// Example:
 	//   type Config struct { BaseURL string }
-	//   func fetchUser(id int) ReaderIOEither[Config, error, User] {
+	//   func fetchUser(id int) ReaderIOResult[Config, error, User] {
 	//       return func(cfg Config) IOEither[error, User] {
 	//           return func() Either[error, User] {
 	//               // Use cfg.BaseURL to fetch user
@@ -64,21 +81,20 @@ type (
 	//           }
 	//       }
 	//   }
-	ReaderIOEither[R, E, A any] = Reader[R, IOEither[E, A]]
+	ReaderIOResult[R, A any] = Reader[R, IOResult[A]]
 
-	Kleisli[R, E, A, B any] = reader.Reader[A, ReaderIOEither[R, E, B]]
+	Kleisli[R, A, B any] = reader.Reader[A, ReaderIOResult[R, B]]
 
-	// Operator represents a transformation from one ReaderIOEither to another.
-	// It's a Reader that takes a ReaderIOEither[R, E, A] and produces a ReaderIOEither[R, E, B].
+	// Operator represents a transformation from one ReaderIOResult to another.
+	// It's a Reader that takes a ReaderIOResult[R, A] and produces a ReaderIOResult[R, B].
 	// This type is commonly used for composing operations in a point-free style.
 	//
 	// Type parameters:
 	//   - R: The context type
-	//   - E: The error type
 	//   - A: The input value type
 	//   - B: The output value type
 	//
 	// Example:
 	//   var doubleOp Operator[Config, error, int, int] = Map(func(x int) int { return x * 2 })
-	Operator[R, E, A, B any] = Kleisli[R, E, ReaderIOEither[R, E, A], B]
+	Operator[R, A, B any] = Kleisli[R, ReaderIOResult[R, A], B]
 )

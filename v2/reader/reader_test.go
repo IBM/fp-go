@@ -128,7 +128,7 @@ func TestCompose(t *testing.T) {
 	env := Env{Config: Config{Port: 8080}}
 	getConfig := func(e Env) Config { return e.Config }
 	getPort := func(c Config) int { return c.Port }
-	getPortFromEnv := Compose[Env, Config, int](getConfig)(getPort)
+	getPortFromEnv := Compose[int](getConfig)(getPort)
 	result := getPortFromEnv(env)
 	assert.Equal(t, 8080, result)
 }
@@ -167,7 +167,7 @@ func TestLocal(t *testing.T) {
 	detailed := DetailedConfig{Host: "localhost", Port: 8080}
 	getHost := func(c SimpleConfig) string { return c.Host }
 	simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
-	r := Local[DetailedConfig, SimpleConfig, string](simplify)(getHost)
+	r := Local[string](simplify)(getHost)
 	result := r(detailed)
 	assert.Equal(t, "localhost", result)
 }

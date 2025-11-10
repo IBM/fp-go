@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioeither
+package readerioresult
 
 import (
-	G "github.com/IBM/fp-go/v2/readerioeither/generic"
+	RIOE "github.com/IBM/fp-go/v2/readerioeither"
 )
 
-// TraverseArray transforms each element of an array using a function that returns a ReaderIOEither,
-// then collects the results into a single ReaderIOEither containing an array.
+// TraverseArray transforms each element of an array using a function that returns a ReaderIOResult,
+// then collects the results into a single ReaderIOResult containing an array.
 //
 // If any transformation fails, the entire operation fails with the first error encountered.
 // All transformations are executed sequentially.
@@ -32,23 +32,23 @@ import (
 //   - B: The output element type
 //
 // Parameters:
-//   - f: A function that transforms each element into a ReaderIOEither
+//   - f: A function that transforms each element into a ReaderIOResult
 //
 // Returns:
 //
-//	A function that takes an array and returns a ReaderIOEither of an array
+//	A function that takes an array and returns a ReaderIOResult of an array
 //
 // Example:
 //
-//	fetchUsers := TraverseArray(func(id int) ReaderIOEither[Config, error, User] {
+//	fetchUsers := TraverseArray(func(id int) ReaderIOResult[Config, error, User] {
 //	    return fetchUser(id)
 //	})
 //	result := fetchUsers([]int{1, 2, 3})
 //	// result(cfg)() returns Right([user1, user2, user3]) or Left(error)
 //
 //go:inline
-func TraverseArray[R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, []A, []B] {
-	return G.TraverseArray[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
+func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
+	return RIOE.TraverseArray(f)
 }
 
 // TraverseArrayWithIndex is like TraverseArray but the transformation function also receives the index.
@@ -62,24 +62,24 @@ func TraverseArray[R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, []A, []B
 //   - B: The output element type
 //
 // Parameters:
-//   - f: A function that transforms each element and its index into a ReaderIOEither
+//   - f: A function that transforms each element and its index into a ReaderIOResult
 //
 // Returns:
 //
-//	A function that takes an array and returns a ReaderIOEither of an array
+//	A function that takes an array and returns a ReaderIOResult of an array
 //
 // Example:
 //
-//	processWithIndex := TraverseArrayWithIndex(func(i int, val string) ReaderIOEither[Config, error, string] {
+//	processWithIndex := TraverseArrayWithIndex(func(i int, val string) ReaderIOResult[Config, error, string] {
 //	    return Of[Config, error](fmt.Sprintf("%d: %s", i, val))
 //	})
 //
 //go:inline
-func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, B]) func([]A) ReaderIOEither[R, E, []B] {
-	return G.TraverseArrayWithIndex[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
+func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIOResult[R, B]) Kleisli[R, []A, []B] {
+	return RIOE.TraverseArrayWithIndex(f)
 }
 
-// SequenceArray converts an array of ReaderIOEither into a ReaderIOEither of an array.
+// SequenceArray converts an array of ReaderIOResult into a ReaderIOResult of an array.
 //
 // This is useful when you have multiple independent computations and want to execute them all
 // and collect their results. If any computation fails, the entire operation fails with the first error.
@@ -90,15 +90,15 @@ func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, 
 //   - A: The element type
 //
 // Parameters:
-//   - ma: An array of ReaderIOEither computations
+//   - ma: An array of ReaderIOResult computations
 //
 // Returns:
 //
-//	A ReaderIOEither that produces an array of results
+//	A ReaderIOResult that produces an array of results
 //
 // Example:
 //
-//	computations := []ReaderIOEither[Config, error, int]{
+//	computations := []ReaderIOResult[Config, error, int]{
 //	    fetchCount("users"),
 //	    fetchCount("posts"),
 //	    fetchCount("comments"),
@@ -107,12 +107,12 @@ func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, 
 //	// result(cfg)() returns Right([userCount, postCount, commentCount]) or Left(error)
 //
 //go:inline
-func SequenceArray[R, E, A any](ma []ReaderIOEither[R, E, A]) ReaderIOEither[R, E, []A] {
-	return G.SequenceArray[ReaderIOEither[R, E, A], ReaderIOEither[R, E, []A]](ma)
+func SequenceArray[R, A any](ma []ReaderIOResult[R, A]) ReaderIOResult[R, []A] {
+	return RIOE.SequenceArray(ma)
 }
 
-// TraverseRecord transforms each value in a map using a function that returns a ReaderIOEither,
-// then collects the results into a single ReaderIOEither containing a map.
+// TraverseRecord transforms each value in a map using a function that returns a ReaderIOResult,
+// then collects the results into a single ReaderIOResult containing a map.
 //
 // If any transformation fails, the entire operation fails with the first error encountered.
 // The keys are preserved in the output map.
@@ -125,22 +125,22 @@ func SequenceArray[R, E, A any](ma []ReaderIOEither[R, E, A]) ReaderIOEither[R, 
 //   - B: The output value type
 //
 // Parameters:
-//   - f: A function that transforms each value into a ReaderIOEither
+//   - f: A function that transforms each value into a ReaderIOResult
 //
 // Returns:
 //
-//	A function that takes a map and returns a ReaderIOEither of a map
+//	A function that takes a map and returns a ReaderIOResult of a map
 //
 // Example:
 //
-//	enrichUsers := TraverseRecord(func(user User) ReaderIOEither[Config, error, EnrichedUser] {
+//	enrichUsers := TraverseRecord(func(user User) ReaderIOResult[Config, error, EnrichedUser] {
 //	    return enrichUser(user)
 //	})
 //	result := enrichUsers(map[string]User{"alice": user1, "bob": user2})
 //
 //go:inline
-func TraverseRecord[K comparable, R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(map[K]A) ReaderIOEither[R, E, map[K]B] {
-	return G.TraverseRecord[ReaderIOEither[R, E, B], ReaderIOEither[R, E, map[K]B], IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
+func TraverseRecord[K comparable, R, A, B any](f Kleisli[R, A, B]) Kleisli[R, map[K]A, map[K]B] {
+	return RIOE.TraverseRecord[K](f)
 }
 
 // TraverseRecordWithIndex is like TraverseRecord but the transformation function also receives the key.
@@ -155,24 +155,24 @@ func TraverseRecord[K comparable, R, E, A, B any](f func(A) ReaderIOEither[R, E,
 //   - B: The output value type
 //
 // Parameters:
-//   - f: A function that transforms each key-value pair into a ReaderIOEither
+//   - f: A function that transforms each key-value pair into a ReaderIOResult
 //
 // Returns:
 //
-//	A function that takes a map and returns a ReaderIOEither of a map
+//	A function that takes a map and returns a ReaderIOResult of a map
 //
 // Example:
 //
-//	processWithKey := TraverseRecordWithIndex(func(key string, val int) ReaderIOEither[Config, error, string] {
+//	processWithKey := TraverseRecordWithIndex(func(key string, val int) ReaderIOResult[Config, error, string] {
 //	    return Of[Config, error](fmt.Sprintf("%s: %d", key, val))
 //	})
 //
 //go:inline
-func TraverseRecordWithIndex[K comparable, R, E, A, B any](f func(K, A) ReaderIOEither[R, E, B]) func(map[K]A) ReaderIOEither[R, E, map[K]B] {
-	return G.TraverseRecordWithIndex[ReaderIOEither[R, E, B], ReaderIOEither[R, E, map[K]B], IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
+func TraverseRecordWithIndex[K comparable, R, A, B any](f func(K, A) ReaderIOResult[R, B]) Kleisli[R, map[K]A, map[K]B] {
+	return RIOE.TraverseRecordWithIndex[K](f)
 }
 
-// SequenceRecord converts a map of ReaderIOEither into a ReaderIOEither of a map.
+// SequenceRecord converts a map of ReaderIOResult into a ReaderIOResult of a map.
 //
 // This is useful when you have multiple independent computations keyed by some identifier
 // and want to execute them all and collect their results. If any computation fails,
@@ -185,15 +185,15 @@ func TraverseRecordWithIndex[K comparable, R, E, A, B any](f func(K, A) ReaderIO
 //   - A: The value type
 //
 // Parameters:
-//   - ma: A map of ReaderIOEither computations
+//   - ma: A map of ReaderIOResult computations
 //
 // Returns:
 //
-//	A ReaderIOEither that produces a map of results
+//	A ReaderIOResult that produces a map of results
 //
 // Example:
 //
-//	computations := map[string]ReaderIOEither[Config, error, int]{
+//	computations := map[string]ReaderIOResult[Config, error, int]{
 //	    "users": fetchCount("users"),
 //	    "posts": fetchCount("posts"),
 //	}
@@ -201,6 +201,6 @@ func TraverseRecordWithIndex[K comparable, R, E, A, B any](f func(K, A) ReaderIO
 //	// result(cfg)() returns Right(map[string]int{"users": 100, "posts": 50}) or Left(error)
 //
 //go:inline
-func SequenceRecord[K comparable, R, E, A any](ma map[K]ReaderIOEither[R, E, A]) ReaderIOEither[R, E, map[K]A] {
-	return G.SequenceRecord[ReaderIOEither[R, E, A], ReaderIOEither[R, E, map[K]A]](ma)
+func SequenceRecord[K comparable, R, A any](ma map[K]ReaderIOResult[R, A]) ReaderIOResult[R, map[K]A] {
+	return RIOE.SequenceRecord(ma)
 }

@@ -201,7 +201,7 @@ func Flatten[R, A any](mma Reader[R, Reader[R, A]]) Reader[R, A] {
 //	getConfig := func(e Env) Config { return e.Config }
 //	getPort := func(c Config) int { return c.Port }
 //	getPortFromEnv := reader.Compose(getConfig)(getPort)
-func Compose[R, B, C any](ab Reader[R, B]) func(Reader[B, C]) Reader[R, C] {
+func Compose[C, R, B any](ab Reader[R, B]) func(Reader[B, C]) Reader[R, C] {
 	return func(bc Reader[B, C]) Reader[R, C] {
 		return function.Flow2(ab, bc)
 	}
@@ -265,8 +265,8 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) func(Reader[E, A]) Reader[
 //	simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
 //	r := reader.Local(simplify)(getHost)
 //	result := r(DetailedConfig{Host: "localhost", Port: 8080}) // "localhost"
-func Local[R2, R1, A any](f func(R2) R1) func(Reader[R1, A]) Reader[R2, A] {
-	return Compose[R2, R1, A](f)
+func Local[A, R2, R1 any](f func(R2) R1) func(Reader[R1, A]) Reader[R2, A] {
+	return Compose[A, R2, R1](f)
 }
 
 // Read applies a context to a Reader to obtain its value.

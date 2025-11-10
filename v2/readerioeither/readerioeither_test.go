@@ -603,7 +603,7 @@ func TestLocal(t *testing.T) {
 	ctx2 := testContext{value: 20}
 
 	rdr := Asks[error](func(c testContext) int { return c.value })
-	result := Local[testContext, testContext, error, int](func(c testContext) testContext {
+	result := Local[error, int](func(c testContext) testContext {
 		return testContext{value: c.value * 2}
 	})(rdr)
 
@@ -755,7 +755,7 @@ func TestTraverseArrayWithIndex(t *testing.T) {
 
 func TestTraverseRecord(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := TraverseRecord[testContext, string, error](func(x int) ReaderIOEither[testContext, error, int] {
+	result := TraverseRecord[string, testContext, error](func(x int) ReaderIOEither[testContext, error, int] {
 		return Of[testContext, error](x * 2)
 	})(map[string]int{"a": 1, "b": 2})
 
@@ -765,7 +765,7 @@ func TestTraverseRecord(t *testing.T) {
 
 func TestTraverseRecordWithIndex(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := TraverseRecordWithIndex[testContext, string, error](func(k string, x int) ReaderIOEither[testContext, error, string] {
+	result := TraverseRecordWithIndex[string, testContext, error](func(k string, x int) ReaderIOEither[testContext, error, string] {
 		return Of[testContext, error](fmt.Sprintf("%s:%d", k, x))
 	})(map[string]int{"a": 1, "b": 2})
 
@@ -775,7 +775,7 @@ func TestTraverseRecordWithIndex(t *testing.T) {
 
 func TestSequenceRecord(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := SequenceRecord[testContext, string, error](map[string]ReaderIOEither[testContext, error, int]{
+	result := SequenceRecord[string, testContext, error](map[string]ReaderIOEither[testContext, error, int]{
 		"a": Of[testContext, error](1),
 		"b": Of[testContext, error](2),
 	})

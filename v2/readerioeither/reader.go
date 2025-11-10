@@ -626,6 +626,6 @@ func MapLeft[R, A, E1, E2 any](f func(E1) E2) func(ReaderIOEither[R, E1, A]) Rea
 // This is similar to Contravariant's contramap operation.
 //
 //go:inline
-func Local[R1, R2, E, A any](f func(R2) R1) func(ReaderIOEither[R1, E, A]) ReaderIOEither[R2, E, A] {
-	return reader.Local[R2, R1, IOEither[E, A]](f)
+func Local[E, A, R1, R2 any](f func(R2) R1) func(ReaderIOEither[R1, E, A]) ReaderIOEither[R2, E, A] {
+	return reader.Local[IOEither[E, A], R2, R1](f)
 }
