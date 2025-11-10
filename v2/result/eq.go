@@ -18,7 +18,6 @@ package result
 import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/eq"
-	EQ "github.com/IBM/fp-go/v2/eq"
 )
 
 // Eq constructs an equality predicate for Either values.
@@ -34,8 +33,8 @@ import (
 //	eq := either.Eq(eq.FromStrictEquals[error](), eq.FromStrictEquals[int]())
 //	result := eq.Equals(either.Right[error](42), either.Right[error](42)) // true
 //	result2 := eq.Equals(either.Right[error](42), either.Right[error](43)) // false
-func Eq[A any](a EQ.Eq[A]) EQ.Eq[Result[A]] {
-	return either.Eq[error, A](eq.FromStrictEquals[error](), a)
+func Eq[A any](a eq.Eq[A]) eq.Eq[Result[A]] {
+	return either.Eq(eq.FromStrictEquals[error](), a)
 }
 
 // FromStrictEquals constructs an equality predicate using Go's == operator.
@@ -45,6 +44,6 @@ func Eq[A any](a EQ.Eq[A]) EQ.Eq[Result[A]] {
 //
 //	eq := either.FromStrictEquals[error, int]()
 //	result := eq.Equals(either.Right[error](42), either.Right[error](42)) // true
-func FromStrictEquals[A comparable]() EQ.Eq[Result[A]] {
+func FromStrictEquals[A comparable]() eq.Eq[Result[A]] {
 	return either.FromStrictEquals[error, A]()
 }

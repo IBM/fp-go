@@ -35,7 +35,7 @@ import (
 //
 //go:inline
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
-	return either.TraverseArrayG[GA, GB, error, A, B](f)
+	return either.TraverseArrayG[GA, GB](f)
 }
 
 // TraverseArray transforms an array by applying a function that returns an Either to each element.
@@ -53,7 +53,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //
 //go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
-	return either.TraverseArray[error](f)
+	return either.TraverseArray(f)
 }
 
 // TraverseArrayWithIndexG transforms an array by applying an indexed function that returns an Either.
@@ -74,7 +74,7 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //
 //go:inline
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Result[B]) Kleisli[GA, GB] {
-	return either.TraverseArrayWithIndexG[GA, GB, error, A, B](f)
+	return either.TraverseArrayWithIndexG[GA, GB](f)
 }
 
 // TraverseArrayWithIndex transforms an array by applying an indexed function that returns an Either.
@@ -94,12 +94,12 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Result[B
 //
 //go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) Result[B]) Kleisli[[]A, []B] {
-	return either.TraverseArrayWithIndex[error, A, B](f)
+	return either.TraverseArrayWithIndex(f)
 }
 
 //go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Result[A], A any](ma GOA) Result[GA] {
-	return either.SequenceArrayG[GA, GOA, error, A](ma)
+	return either.SequenceArrayG[GA](ma)
 }
 
 // SequenceArray converts a homogeneous sequence of Either into an Either of sequence.
@@ -118,7 +118,7 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Result[A], A any](ma GOA) Result[GA] {
 //
 //go:inline
 func SequenceArray[A any](ma []Result[A]) Result[[]A] {
-	return either.SequenceArray[error, A](ma)
+	return either.SequenceArray(ma)
 }
 
 // CompactArrayG discards all Left values and keeps only the Right values.
@@ -136,7 +136,7 @@ func SequenceArray[A any](ma []Result[A]) Result[[]A] {
 //
 //go:inline
 func CompactArrayG[A1 ~[]Result[A], A2 ~[]A, A any](fa A1) A2 {
-	return either.CompactArrayG[A1, A2, error, A](fa)
+	return either.CompactArrayG[A1, A2](fa)
 }
 
 // CompactArray discards all Left values and keeps only the Right values.
@@ -153,5 +153,5 @@ func CompactArrayG[A1 ~[]Result[A], A2 ~[]A, A any](fa A1) A2 {
 //
 //go:inline
 func CompactArray[A any](fa []Result[A]) []A {
-	return either.CompactArray[error, A](fa)
+	return either.CompactArray(fa)
 }

@@ -20,31 +20,31 @@ import (
 	"regexp"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
+	R "github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 )
 
-func findUserByID(id int) IOEither[Chapter08User] {
+func findUserByID(id int) IOResult[Chapter08User] {
 	switch id {
 	case 1:
-		return IOE.Of[error](albert08)
+		return ioresult.Of(albert08)
 	case 2:
-		return IOE.Of[error](gary08)
+		return ioresult.Of(gary08)
 	case 3:
-		return IOE.Of[error](theresa08)
+		return ioresult.Of(theresa08)
 	default:
-		return IOE.Left[Chapter08User](fmt.Errorf("user %d not found", id))
+		return ioresult.Left[Chapter08User](fmt.Errorf("user %d not found", id))
 	}
 }
 
 func Example_solution11A() {
 	// eitherToMaybe :: Either b a -> Maybe a
-	eitherToMaybe := E.ToOption[error, string]
+	eitherToMaybe := R.ToOption[string]
 
-	fmt.Println(eitherToMaybe(E.Of[error]("one eyed willy")))
-	fmt.Println(eitherToMaybe(E.Left[string](fmt.Errorf("some error"))))
+	fmt.Println(eitherToMaybe(R.Of("one eyed willy")))
+	fmt.Println(eitherToMaybe(R.Left[string](fmt.Errorf("some error"))))
 
 	// Output:
 	// Some[string](one eyed willy)
@@ -54,7 +54,7 @@ func Example_solution11A() {
 func Example_solution11B() {
 	findByNameID := F.Flow2(
 		findUserByID,
-		IOE.Map[error](Chapter08User.getName),
+		ioresult.Map(Chapter08User.getName),
 	)
 
 	fmt.Println(findByNameID(1)())

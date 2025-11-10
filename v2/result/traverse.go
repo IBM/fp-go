@@ -39,7 +39,7 @@ func Traverse[A, B, HKTB, HKTRB any](
 	mof func(Result[B]) HKTRB,
 	mmap func(Kleisli[B, B]) func(HKTB) HKTRB,
 ) func(func(A) HKTB) func(Result[A]) HKTRB {
-	return either.Traverse[A, error, B](mof, mmap)
+	return either.Traverse[A](mof, mmap)
 }
 
 // Sequence converts an Either of some higher kinded type into the higher kinded type of an Either.
@@ -62,5 +62,5 @@ func Sequence[A, HKTA, HKTRA any](
 	mof func(Result[A]) HKTRA,
 	mmap func(Kleisli[A, A]) func(HKTA) HKTRA,
 ) func(Result[HKTA]) HKTRA {
-	return either.Sequence[error, A, HKTA, HKTRA](mof, mmap)
+	return either.Sequence(mof, mmap)
 }

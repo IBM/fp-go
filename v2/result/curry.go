@@ -27,7 +27,7 @@ import (
 //	curried := either.Curry0(getConfig)
 //	result := curried() // Right("config")
 func Curry0[R any](f func() (R, error)) func() Result[R] {
-	return either.Curry0[R](f)
+	return either.Curry0(f)
 }
 
 // Curry1 converts a Go function that returns (R, error) into a curried version that returns Result[R].
@@ -38,7 +38,7 @@ func Curry0[R any](f func() (R, error)) func() Result[R] {
 //	curried := either.Curry1(parse)
 //	result := curried("42") // Right(42)
 func Curry1[T1, R any](f func(T1) (R, error)) func(T1) Result[R] {
-	return either.Curry1[T1, R](f)
+	return either.Curry1(f)
 }
 
 // Curry2 converts a 2-argument Go function that returns (R, error) into a curried version.
@@ -52,17 +52,17 @@ func Curry1[T1, R any](f func(T1) (R, error)) func(T1) Result[R] {
 //	curried := either.Curry2(divide)
 //	result := curried(10)(2) // Right(5)
 func Curry2[T1, T2, R any](f func(T1, T2) (R, error)) func(T1) func(T2) Result[R] {
-	return either.Curry2[T1, T2, R](f)
+	return either.Curry2(f)
 }
 
 // Curry3 converts a 3-argument Go function that returns (R, error) into a curried version.
 func Curry3[T1, T2, T3, R any](f func(T1, T2, T3) (R, error)) func(T1) func(T2) func(T3) Result[R] {
-	return either.Curry3[T1, T2, T3, R](f)
+	return either.Curry3(f)
 }
 
 // Curry4 converts a 4-argument Go function that returns (R, error) into a curried version.
 func Curry4[T1, T2, T3, T4, R any](f func(T1, T2, T3, T4) (R, error)) func(T1) func(T2) func(T3) func(T4) Result[R] {
-	return either.Curry4[T1, T2, T3, T4, R](f)
+	return either.Curry4(f)
 }
 
 // Uncurry0 converts a function returning Result[R] back to Go's (R, error) style.
@@ -73,7 +73,7 @@ func Curry4[T1, T2, T3, T4, R any](f func(T1, T2, T3, T4) (R, error)) func(T1) f
 //	uncurried := either.Uncurry0(curried)
 //	result, err := uncurried() // "value", nil
 func Uncurry0[R any](f func() Result[R]) func() (R, error) {
-	return either.Uncurry0[R](f)
+	return either.Uncurry0(f)
 }
 
 // Uncurry1 converts a function returning Result[R] back to Go's (R, error) style.
@@ -84,20 +84,20 @@ func Uncurry0[R any](f func() Result[R]) func() (R, error) {
 //	uncurried := either.Uncurry1(curried)
 //	result, err := uncurried(42) // "42", nil
 func Uncurry1[T1, R any](f func(T1) Result[R]) func(T1) (R, error) {
-	return either.Uncurry1[T1, R](f)
+	return either.Uncurry1(f)
 }
 
 // Uncurry2 converts a curried function returning Result[R] back to Go's (R, error) style.
 func Uncurry2[T1, T2, R any](f func(T1) func(T2) Result[R]) func(T1, T2) (R, error) {
-	return either.Uncurry2[T1, T2, R](f)
+	return either.Uncurry2(f)
 }
 
 // Uncurry3 converts a curried function returning Result[R] back to Go's (R, error) style.
 func Uncurry3[T1, T2, T3, R any](f func(T1) func(T2) func(T3) Result[R]) func(T1, T2, T3) (R, error) {
-	return either.Uncurry3[T1, T2, T3, R](f)
+	return either.Uncurry3(f)
 }
 
 // Uncurry4 converts a curried function returning Result[R] back to Go's (R, error) style.
 func Uncurry4[T1, T2, T3, T4, R any](f func(T1) func(T2) func(T3) func(T4) Result[R]) func(T1, T2, T3, T4) (R, error) {
-	return either.Uncurry4[T1, T2, T3, T4, R](f)
+	return either.Uncurry4(f)
 }

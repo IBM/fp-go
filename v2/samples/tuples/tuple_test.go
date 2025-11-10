@@ -21,10 +21,10 @@ import (
 	"strings"
 	"testing"
 
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	IOEF "github.com/IBM/fp-go/v2/ioeither/file"
+	R "github.com/IBM/fp-go/v2/result"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,7 +49,7 @@ func TestSampleConvertDocx1(t *testing.T) {
 
 	resE := resIOE()
 
-	assert.True(t, E.IsRight(resE))
+	assert.True(t, R.IsRight(resE))
 }
 
 func TestSampleConvertDocx2(t *testing.T) {
@@ -59,12 +59,12 @@ func TestSampleConvertDocx2(t *testing.T) {
 	// idea for large inputs
 	convertDocx := func(data []byte) Either[T.Tuple2[string, map[string]string]] {
 		text, meta, err := sampleConvertDocx(bytes.NewReader(data))
-		return E.TryCatchError(T.MakeTuple2(text, meta), err)
+		return R.TryCatchError(T.MakeTuple2(text, meta), err)
 	}
 
 	resE := convertDocx([]byte("abc"))
 
-	assert.True(t, E.IsRight(resE))
+	assert.True(t, R.IsRight(resE))
 }
 
 // onClose closes a closeable resource
@@ -112,7 +112,7 @@ func TestSampleConvertDocx3(t *testing.T) {
 	resIOE := convertDocx3(acquire)
 	resE := resIOE()
 
-	assert.True(t, E.IsRight(resE))
+	assert.True(t, R.IsRight(resE))
 }
 
 func TestSampleConvertDocx4(t *testing.T) {
@@ -124,5 +124,5 @@ func TestSampleConvertDocx4(t *testing.T) {
 	resIOE := convertDocx4(acquire)
 	resE := resIOE()
 
-	assert.True(t, E.IsRight(resE))
+	assert.True(t, R.IsRight(resE))
 }

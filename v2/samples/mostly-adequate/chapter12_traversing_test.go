@@ -22,7 +22,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
 	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/predicate"
 	S "github.com/IBM/fp-go/v2/string"
@@ -32,7 +32,7 @@ var (
 	// httpGet :: Route -> Task Error JSON
 	httpGet = F.Flow2(
 		S.Format[string]("json for %s"),
-		IOE.Of[error, string],
+		ioresult.Of[string],
 	)
 
 	// routes :: Map Route Route
@@ -45,17 +45,17 @@ var (
 	validatePlayer = E.FromPredicate(P.ContraMap(Player.getName)(S.IsNonEmpty), F.Flow2(Player.getID, errors.OnSome[int]("player %d must have a name")))
 
 	// readfile :: String -> String -> Task Error String
-	readfile = F.Curry2(func(encoding, file string) IOEither[string] {
-		return IOE.Of[error](fmt.Sprintf("content of %s (%s)", file, encoding))
+	readfile = F.Curry2(func(encoding, file string) IOResult[string] {
+		return ioresult.Of(fmt.Sprintf("content of %s (%s)", file, encoding))
 	})
 
 	//   readdir :: String -> Task Error [String]
-	readdir = IOE.Of[error](A.From("file1", "file2", "file3"))
+	readdir = ioresult.Of(A.From("file1", "file2", "file3"))
 )
 
 func Example_solution12A() {
 	// getJsons :: Map Route Route -> Task Error (Map Route JSON)
-	getJsons := IOE.TraverseRecord[string](httpGet)
+	getJsons := ioresult.TraverseRecord[string](httpGet)
 
 	fmt.Println(getJsons(routes)())
 
@@ -80,15 +80,15 @@ func Example_solution12B() {
 
 func Example_solution12C() {
 	traverseO := O.Traverse[string](
-		IOE.Of[error, Option[string]],
-		IOE.Map[error, string, Option[string]],
+		ioresult.Of[Option[string]],
+		ioresult.Map[string, Option[string]],
 	)
 
 	// readFirst :: String -> Task Error (Maybe String)
 	readFirst := F.Pipe2(
 		readdir,
-		IOE.Map[error](A.Head[string]),
-		IOE.Chain(traverseO(readfile("utf-8"))),
+		ioresult.Map(A.Head[string]),
+		ioresult.Chain(traverseO(readfile("utf-8"))),
 	)
 
 	fmt.Println(readFirst())

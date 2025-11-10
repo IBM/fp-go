@@ -47,7 +47,7 @@ func TestMapEither(t *testing.T) {
 	e := errors.New("s")
 	assert.Equal(t, F.Pipe1(Right("abc"), Map(utils.StringLen)), Right(3))
 
-	val2 := F.Pipe1(Left[string](e), Map[string](utils.StringLen))
+	val2 := F.Pipe1(Left[string](e), Map(utils.StringLen))
 	exp2 := Left[int](e)
 
 	assert.Equal(t, val2, exp2)
@@ -68,8 +68,8 @@ func TestReduce(t *testing.T) {
 
 	s := S.Semigroup()
 
-	assert.Equal(t, "foobar", F.Pipe1(Right("bar"), Reduce[string](s.Concat, "foo")))
-	assert.Equal(t, "foo", F.Pipe1(Left[string](errors.New("bar")), Reduce[string](s.Concat, "foo")))
+	assert.Equal(t, "foobar", F.Pipe1(Right("bar"), Reduce(s.Concat, "foo")))
+	assert.Equal(t, "foo", F.Pipe1(Left[string](errors.New("bar")), Reduce(s.Concat, "foo")))
 
 }
 func TestAp(t *testing.T) {
@@ -78,9 +78,9 @@ func TestAp(t *testing.T) {
 	maError := errors.New("maError")
 	mabError := errors.New("mabError")
 
-	assert.Equal(t, Right(3), F.Pipe1(Right(f), Ap[int, string](Right("abc"))))
-	assert.Equal(t, Left[int](maError), F.Pipe1(Right(f), Ap[int, string](Left[string](maError))))
-	assert.Equal(t, Left[int](mabError), F.Pipe1(Left[func(string) int](mabError), Ap[int, string](Left[string](maError))))
+	assert.Equal(t, Right(3), F.Pipe1(Right(f), Ap[int](Right("abc"))))
+	assert.Equal(t, Left[int](maError), F.Pipe1(Right(f), Ap[int](Left[string](maError))))
+	assert.Equal(t, Left[int](mabError), F.Pipe1(Left[func(string) int](mabError), Ap[int](Left[string](maError))))
 }
 
 func TestAlt(t *testing.T) {

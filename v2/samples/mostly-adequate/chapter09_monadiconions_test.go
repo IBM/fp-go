@@ -25,7 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 )
@@ -112,7 +112,7 @@ var (
 	// addToMailingList :: Email -> IOEither([Email])
 	addToMailingList = F.Flow2(
 		A.Of[string],
-		IOE.Of[error, []string],
+		ioresult.Of[[]string],
 	)
 
 	// validateEmail :: Email -> Either error Email
@@ -121,7 +121,7 @@ var (
 	// emailBlast :: [Email] -> IO ()
 	emailBlast = F.Flow2(
 		A.Intercalate(S.Monoid)(","),
-		IOE.Of[error, string],
+		ioresult.Of[string],
 	)
 )
 
@@ -172,9 +172,9 @@ func Example_solution09C() {
 	// // joinMailingList :: Email -> Either String (IO ())
 	joinMailingList := F.Flow4(
 		validateEmail,
-		IOE.FromEither[error, string],
-		IOE.Chain(addToMailingList),
-		IOE.Chain(emailBlast),
+		ioresult.FromEither[string],
+		ioresult.Chain(addToMailingList),
+		ioresult.Chain(emailBlast),
 	)
 
 	fmt.Println(joinMailingList("sleepy@grandpa.net")())

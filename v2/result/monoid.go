@@ -34,7 +34,7 @@ import (
 //
 //go:inline
 func AlternativeMonoid[A any](m M.Monoid[A]) Monoid[A] {
-	return either.AlternativeMonoid[error, A](m)
+	return either.AlternativeMonoid[error](m)
 }
 
 // AltMonoid creates a monoid for Either using the Alt operation.
@@ -50,5 +50,5 @@ func AlternativeMonoid[A any](m M.Monoid[A]) Monoid[A] {
 //
 //go:inline
 func AltMonoid[A any](zero Lazy[Result[A]]) Monoid[A] {
-	return either.AltMonoid[error, A](zero)
+	return either.AltMonoid(zero)
 }

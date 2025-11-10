@@ -21,8 +21,8 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 )
 
-func onWriteAll[W io.Writer](data []byte) func(w W) ioeither.IOEither[error, []byte] {
-	return func(w W) ioeither.IOEither[error, []byte] {
+func onWriteAll[W io.Writer](data []byte) Kleisli[error, W, []byte] {
+	return func(w W) IOEither[error, []byte] {
 		return ioeither.TryCatchError(func() ([]byte, error) {
 			_, err := w.Write(data)
 			return data, err
@@ -31,9 +31,9 @@ func onWriteAll[W io.Writer](data []byte) func(w W) ioeither.IOEither[error, []b
 }
 
 // WriteAll uses a generator function to create a stream, writes data to it and closes it
-func WriteAll[W io.WriteCloser](data []byte) func(acquire ioeither.IOEither[error, W]) ioeither.IOEither[error, []byte] {
+func WriteAll[W io.WriteCloser](data []byte) Operator[error, W, []byte] {
 	onWrite := onWriteAll[W](data)
-	return func(onCreate ioeither.IOEither[error, W]) ioeither.IOEither[error, []byte] {
+	return func(onCreate IOEither[error, W]) IOEither[error, []byte] {
 		return ioeither.WithResource[[]byte](
 			onCreate,
 			Close[W])(
@@ -43,7 +43,7 @@ func WriteAll[W io.WriteCloser](data []byte) func(acquire ioeither.IOEither[erro
 }
 
 // Write uses a generator function to create a stream, writes data to it and closes it
-func Write[R any, W io.WriteCloser](acquire ioeither.IOEither[error, W]) func(use func(W) ioeither.IOEither[error, R]) ioeither.IOEither[error, R] {
+func Write[R any, W io.WriteCloser](acquire IOEither[error, W]) Kleisli[error, Kleisli[error, W, R], R] {
 	return ioeither.WithResource[R](
 		acquire,
 		Close[W])

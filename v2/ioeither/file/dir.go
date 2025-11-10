@@ -22,14 +22,14 @@ import (
 )
 
 // MkdirAll create a sequence of directories, see [os.MkdirAll]
-func MkdirAll(path string, perm os.FileMode) ioeither.IOEither[error, string] {
+func MkdirAll(path string, perm os.FileMode) IOEither[error, string] {
 	return ioeither.TryCatchError(func() (string, error) {
 		return path, os.MkdirAll(path, perm)
 	})
 }
 
 // Mkdir create a directory, see [os.Mkdir]
-func Mkdir(path string, perm os.FileMode) ioeither.IOEither[error, string] {
+func Mkdir(path string, perm os.FileMode) IOEither[error, string] {
 	return ioeither.TryCatchError(func() (string, error) {
 		return path, os.Mkdir(path, perm)
 	})

@@ -230,7 +230,7 @@ func Memoize[E, A any](ma IOEither[E, A]) IOEither[E, A] {
 	return io.Memoize(ma)
 }
 
-func MonadMapLeft[E1, E2, A any](fa IOEither[E1, A], f func(E1) E2) IOEither[E2, A] {
+func MonadMapLeft[A, E1, E2 any](fa IOEither[E1, A], f func(E1) E2) IOEither[E2, A] {
 	return eithert.MonadMapLeft(
 		io.MonadMap[Either[E1, A], Either[E2, A]],
 		fa,

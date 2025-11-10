@@ -29,7 +29,7 @@ var (
 )
 
 // ReadAll uses a generator function to create a stream, reads it and closes it
-func ReadAll[R io.ReadCloser](acquire ioeither.IOEither[error, R]) ioeither.IOEither[error, []byte] {
+func ReadAll[R io.ReadCloser](acquire IOEither[error, R]) IOEither[error, []byte] {
 	return F.Pipe1(
 		F.Flow2(
 			FL.ToReader[R],

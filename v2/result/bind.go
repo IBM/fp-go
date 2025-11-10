@@ -31,7 +31,7 @@ import (
 func Do[S any](
 	empty S,
 ) Result[S] {
-	return either.Do[error, S](empty)
+	return either.Do[error](empty)
 }
 
 // Bind attaches the result of a computation to a context S1 to produce a context S2.
@@ -57,7 +57,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
 ) Operator[S1, S2] {
-	return either.Bind[error](setter, f)
+	return either.Bind(setter, f)
 }
 
 // Let attaches the result of a pure computation to a context S1 to produce a context S2.
@@ -146,7 +146,7 @@ func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
 ) Operator[S1, S2] {
-	return either.ApS[error](setter, fa)
+	return either.ApS(setter, fa)
 }
 
 // ApSL attaches a value to a context using a lens-based setter.
@@ -194,7 +194,7 @@ func ApSL[S, T any](
 	lens Lens[S, T],
 	fa Result[T],
 ) Operator[S, S] {
-	return either.ApSL[error](lens, fa)
+	return either.ApSL(lens, fa)
 }
 
 // BindL attaches the result of a computation to a context using a lens-based setter.
@@ -249,7 +249,7 @@ func BindL[S, T any](
 	lens Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return either.BindL[error](lens, f)
+	return either.BindL(lens, f)
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.

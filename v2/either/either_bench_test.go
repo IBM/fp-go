@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	benchErr    = errors.New("benchmark error")
+	errBench    = errors.New("benchmark error")
 	benchResult Either[error, int]
 	benchBool   bool
 	benchInt    int
@@ -34,7 +34,7 @@ var (
 func BenchmarkLeft(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		benchResult = Left[int](benchErr)
+		benchResult = Left[int](errBench)
 	}
 }
 
@@ -54,7 +54,7 @@ func BenchmarkOf(b *testing.B) {
 
 // Benchmark predicates
 func BenchmarkIsLeft(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -84,7 +84,7 @@ func BenchmarkMonadFold_Right(b *testing.B) {
 }
 
 func BenchmarkMonadFold_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	onLeft := func(e error) int { return 0 }
 	onRight := func(a int) int { return a * 2 }
 	b.ResetTimer()
@@ -108,7 +108,7 @@ func BenchmarkFold_Right(b *testing.B) {
 }
 
 func BenchmarkFold_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	folder := Fold(
 		func(e error) int { return 0 },
 		func(a int) int { return a * 2 },
@@ -131,7 +131,7 @@ func BenchmarkUnwrap_Right(b *testing.B) {
 }
 
 func BenchmarkUnwrap_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -149,7 +149,7 @@ func BenchmarkUnwrapError_Right(b *testing.B) {
 }
 
 func BenchmarkUnwrapError_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -169,7 +169,7 @@ func BenchmarkMonadMap_Right(b *testing.B) {
 }
 
 func BenchmarkMonadMap_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	mapper := func(a int) int { return a * 2 }
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -189,7 +189,7 @@ func BenchmarkMap_Right(b *testing.B) {
 }
 
 func BenchmarkMap_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	mapper := Map[error](func(a int) int { return a * 2 })
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -209,7 +209,7 @@ func BenchmarkMapLeft_Right(b *testing.B) {
 }
 
 func BenchmarkMapLeft_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	mapper := MapLeft[int](func(e error) string { return e.Error() })
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -232,7 +232,7 @@ func BenchmarkBiMap_Right(b *testing.B) {
 }
 
 func BenchmarkBiMap_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	mapper := BiMap(
 		func(e error) string { return e.Error() },
 		func(a int) string { return "value" },
@@ -256,7 +256,7 @@ func BenchmarkMonadChain_Right(b *testing.B) {
 }
 
 func BenchmarkMonadChain_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	chainer := func(a int) Either[error, int] { return Right[error](a * 2) }
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -276,7 +276,7 @@ func BenchmarkChain_Right(b *testing.B) {
 }
 
 func BenchmarkChain_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	chainer := Chain[error](func(a int) Either[error, int] { return Right[error](a * 2) })
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -287,7 +287,7 @@ func BenchmarkChain_Left(b *testing.B) {
 
 func BenchmarkChainFirst_Right(b *testing.B) {
 	right := Right[error](42)
-	chainer := ChainFirst[error](func(a int) Either[error, string] { return Right[error]("logged") })
+	chainer := ChainFirst(func(a int) Either[error, string] { return Right[error]("logged") })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -296,7 +296,7 @@ func BenchmarkChainFirst_Right(b *testing.B) {
 }
 
 func BenchmarkChainFirst_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	chainer := ChainFirst[error](func(a int) Either[error, string] { return Right[error]("logged") })
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -315,7 +315,7 @@ func BenchmarkFlatten_Right(b *testing.B) {
 }
 
 func BenchmarkFlatten_Left(b *testing.B) {
-	nested := Left[Either[error, int]](benchErr)
+	nested := Left[Either[error, int]](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -336,7 +336,7 @@ func BenchmarkMonadAp_RightRight(b *testing.B) {
 
 func BenchmarkMonadAp_RightLeft(b *testing.B) {
 	fab := Right[error](func(a int) int { return a * 2 })
-	fa := Left[int](benchErr)
+	fa := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -345,7 +345,7 @@ func BenchmarkMonadAp_RightLeft(b *testing.B) {
 }
 
 func BenchmarkMonadAp_LeftRight(b *testing.B) {
-	fab := Left[func(int) int](benchErr)
+	fab := Left[func(int) int](errBench)
 	fa := Right[error](42)
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -368,7 +368,7 @@ func BenchmarkAp_RightRight(b *testing.B) {
 // Benchmark alternative operations
 func BenchmarkAlt_RightRight(b *testing.B) {
 	right := Right[error](42)
-	alternative := Alt[error](func() Either[error, int] { return Right[error](99) })
+	alternative := Alt(func() Either[error, int] { return Right[error](99) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -377,7 +377,7 @@ func BenchmarkAlt_RightRight(b *testing.B) {
 }
 
 func BenchmarkAlt_LeftRight(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	alternative := Alt[error](func() Either[error, int] { return Right[error](99) })
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -397,8 +397,8 @@ func BenchmarkOrElse_Right(b *testing.B) {
 }
 
 func BenchmarkOrElse_Left(b *testing.B) {
-	left := Left[int](benchErr)
-	recover := OrElse[error](func(e error) Either[error, int] { return Right[error](0) })
+	left := Left[int](errBench)
+	recover := OrElse(func(e error) Either[error, int] { return Right[error](0) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -419,7 +419,7 @@ func BenchmarkTryCatch_Error(b *testing.B) {
 	onThrow := func(err error) error { return err }
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		benchResult = TryCatch(0, benchErr, onThrow)
+		benchResult = TryCatch(0, errBench, onThrow)
 	}
 }
 
@@ -433,7 +433,7 @@ func BenchmarkTryCatchError_Success(b *testing.B) {
 func BenchmarkTryCatchError_Error(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		benchResult = TryCatchError(0, benchErr)
+		benchResult = TryCatchError(0, errBench)
 	}
 }
 
@@ -447,7 +447,7 @@ func BenchmarkSwap_Right(b *testing.B) {
 }
 
 func BenchmarkSwap_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -466,7 +466,7 @@ func BenchmarkGetOrElse_Right(b *testing.B) {
 }
 
 func BenchmarkGetOrElse_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	getter := GetOrElse[error](func(e error) int { return 0 })
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -489,7 +489,7 @@ func BenchmarkPipeline_Map_Right(b *testing.B) {
 }
 
 func BenchmarkPipeline_Map_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -513,7 +513,7 @@ func BenchmarkPipeline_Chain_Right(b *testing.B) {
 }
 
 func BenchmarkPipeline_Chain_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -539,7 +539,7 @@ func BenchmarkPipeline_Complex_Right(b *testing.B) {
 }
 
 func BenchmarkPipeline_Complex_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -565,7 +565,7 @@ func BenchmarkMonadSequence2_RightRight(b *testing.B) {
 }
 
 func BenchmarkMonadSequence2_LeftRight(b *testing.B) {
-	e1 := Left[int](benchErr)
+	e1 := Left[int](errBench)
 	e2 := Right[error](20)
 	f := func(a, b int) Either[error, int] { return Right[error](a + b) }
 	b.ResetTimer()
@@ -641,7 +641,7 @@ func BenchmarkString_Right(b *testing.B) {
 }
 
 func BenchmarkString_Left(b *testing.B) {
-	left := Left[int](benchErr)
+	left := Left[int](errBench)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {

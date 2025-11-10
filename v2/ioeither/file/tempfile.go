@@ -39,6 +39,6 @@ var (
 )
 
 // WithTempFile creates a temporary file, then invokes a callback to create a resource based on the file, then close and remove the temp file
-func WithTempFile[A any](f func(*os.File) ioeither.IOEither[error, A]) ioeither.IOEither[error, A] {
+func WithTempFile[A any](f Kleisli[error, *os.File, A]) IOEither[error, A] {
 	return ioeither.WithResource[A](onCreateTempFile, onReleaseTempFile)(f)
 }

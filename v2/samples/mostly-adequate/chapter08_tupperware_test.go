@@ -24,10 +24,11 @@ import (
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
+	R "github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 )
 
@@ -108,7 +109,7 @@ var (
 	checkActive = E.FromPredicate(Chapter08User.isActive, F.Constant1[Chapter08User](fmt.Errorf("your account is not active")))
 
 	// validateUser :: (User -> Either String ()) -> User -> Either String User
-	validateUser = F.Curry2(func(validate func(Chapter08User) Either[any], user Chapter08User) Either[Chapter08User] {
+	validateUser = F.Curry2(func(validate func(Chapter08User) Result[any], user Chapter08User) Result[Chapter08User] {
 		return F.Pipe2(
 			user,
 			validate,
@@ -117,8 +118,8 @@ var (
 	})
 
 	// save :: User -> IOEither error User
-	save = func(user Chapter08User) IOEither[Chapter08User] {
-		return IOE.FromIO[error](func() Chapter08User {
+	save = func(user Chapter08User) IOResult[Chapter08User] {
+		return ioresult.FromIO(func() Chapter08User {
 			var u = user
 			u.Saved = true
 			return u
@@ -151,11 +152,11 @@ func MakeUser(d string) User {
 
 var parseDate = F.Bind1of2(E.Eitherize2(time.Parse))(time.DateOnly)
 
-func GetAge(now time.Time) func(User) Either[float64] {
+func GetAge(now time.Time) func(User) Result[float64] {
 	return F.Flow3(
 		getBirthDate,
 		parseDate,
-		E.Map[error](F.Flow3(
+		R.Map(F.Flow3(
 			now.Sub,
 			time.Duration.Hours,
 			N.Mul(1/24.0),
@@ -189,7 +190,7 @@ func Example_getAge() {
 
 	zoltar := F.Flow3(
 		GetAge(now),
-		E.Map[error](fortune),
+		R.Map(fortune),
 		E.GetOrElse(errors.ToString),
 	)
 
@@ -228,7 +229,7 @@ func Example_solution08C() {
 	// eitherWelcome :: User -> Either String String
 	eitherWelcome := F.Flow2(
 		checkActive,
-		E.Map[error](showWelcome),
+		R.Map(showWelcome),
 	)
 
 	fmt.Println(eitherWelcome(gary08))
@@ -248,18 +249,18 @@ func Example_solution08D() {
 			S.Size,
 			ord.Gt(ord.FromStrictCompare[int]())(3),
 		), errors.OnSome[string]("Your name %s is larger than 3 characters")),
-		E.Map[error](F.ToAny[string]),
+		R.Map(F.ToAny[string]),
 	)
 
 	saveAndWelcome := F.Flow2(
 		save,
-		IOE.Map[error](showWelcome),
+		ioresult.Map(showWelcome),
 	)
 
 	register := F.Flow3(
 		validateUser(validateName),
-		IOE.FromEither[error, Chapter08User],
-		IOE.Chain(saveAndWelcome),
+		ioresult.FromEither[Chapter08User],
+		ioresult.Chain(saveAndWelcome),
 	)
 
 	fmt.Println(validateName(gary08))

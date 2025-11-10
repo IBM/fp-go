@@ -15,6 +15,8 @@
 
 package result
 
+import "github.com/IBM/fp-go/v2/either"
+
 // Variadic0 converts a function taking a slice and returning (R, error) into a variadic function returning Either.
 //
 // Example:
@@ -26,71 +28,61 @@ package result
 //	}
 //	variadicSum := either.Variadic0(sum)
 //	result := variadicSum(1, 2, 3) // Right(6)
+//go:inline
 func Variadic0[V, R any](f func([]V) (R, error)) func(...V) Result[R] {
-	return func(v ...V) Result[R] {
-		return TryCatchError(f(v))
-	}
+	return either.Variadic0(f)
 }
 
 // Variadic1 converts a function with 1 fixed parameter and a slice into a variadic function returning Either.
+//go:inline
 func Variadic1[T1, V, R any](f func(T1, []V) (R, error)) func(T1, ...V) Result[R] {
-	return func(t1 T1, v ...V) Result[R] {
-		return TryCatchError(f(t1, v))
-	}
+	return either.Variadic1(f)
 }
 
 // Variadic2 converts a function with 2 fixed parameters and a slice into a variadic function returning Either.
+//go:inline
 func Variadic2[T1, T2, V, R any](f func(T1, T2, []V) (R, error)) func(T1, T2, ...V) Result[R] {
-	return func(t1 T1, t2 T2, v ...V) Result[R] {
-		return TryCatchError(f(t1, t2, v))
-	}
+	return either.Variadic2(f)
 }
 
 // Variadic3 converts a function with 3 fixed parameters and a slice into a variadic function returning Either.
+//go:inline
 func Variadic3[T1, T2, T3, V, R any](f func(T1, T2, T3, []V) (R, error)) func(T1, T2, T3, ...V) Result[R] {
-	return func(t1 T1, t2 T2, t3 T3, v ...V) Result[R] {
-		return TryCatchError(f(t1, t2, t3, v))
-	}
+	return either.Variadic3(f)
 }
 
 // Variadic4 converts a function with 4 fixed parameters and a slice into a variadic function returning Either.
+//go:inline
 func Variadic4[T1, T2, T3, T4, V, R any](f func(T1, T2, T3, T4, []V) (R, error)) func(T1, T2, T3, T4, ...V) Result[R] {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4, v ...V) Result[R] {
-		return TryCatchError(f(t1, t2, t3, t4, v))
-	}
+	return either.Variadic4(f)
 }
 
 // Unvariadic0 converts a variadic function returning (R, error) into a function taking a slice and returning Either.
+//go:inline
 func Unvariadic0[V, R any](f func(...V) (R, error)) func([]V) Result[R] {
-	return func(v []V) Result[R] {
-		return TryCatchError(f(v...))
-	}
+	return either.Unvariadic0(f)
 }
 
 // Unvariadic1 converts a variadic function with 1 fixed parameter into a function taking a slice and returning Either.
+//go:inline
 func Unvariadic1[T1, V, R any](f func(T1, ...V) (R, error)) func(T1, []V) Result[R] {
-	return func(t1 T1, v []V) Result[R] {
-		return TryCatchError(f(t1, v...))
-	}
+	return either.Unvariadic1(f)
 }
 
 // Unvariadic2 converts a variadic function with 2 fixed parameters into a function taking a slice and returning Either.
+//go:inline
 func Unvariadic2[T1, T2, V, R any](f func(T1, T2, ...V) (R, error)) func(T1, T2, []V) Result[R] {
-	return func(t1 T1, t2 T2, v []V) Result[R] {
-		return TryCatchError(f(t1, t2, v...))
-	}
+	return either.Unvariadic2(f)
 }
 
 // Unvariadic3 converts a variadic function with 3 fixed parameters into a function taking a slice and returning Either.
+//go:inline
 func Unvariadic3[T1, T2, T3, V, R any](f func(T1, T2, T3, ...V) (R, error)) func(T1, T2, T3, []V) Result[R] {
-	return func(t1 T1, t2 T2, t3 T3, v []V) Result[R] {
-		return TryCatchError(f(t1, t2, t3, v...))
-	}
+	return either.Unvariadic3(f)
 }
 
 // Unvariadic4 converts a variadic function with 4 fixed parameters into a function taking a slice and returning Either.
+//go:inline
 func Unvariadic4[T1, T2, T3, T4, V, R any](f func(T1, T2, T3, T4, ...V) (R, error)) func(T1, T2, T3, T4, []V) Result[R] {
-	return func(t1 T1, t2 T2, t3 T3, t4 T4, v []V) Result[R] {
-		return TryCatchError(f(t1, t2, t3, t4, v...))
-	}
+	return either.Unvariadic4(f)
 }

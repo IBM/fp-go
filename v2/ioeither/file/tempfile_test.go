@@ -34,7 +34,7 @@ func TestWithTempFile(t *testing.T) {
 
 func TestWithTempFileOnClosedFile(t *testing.T) {
 
-	res := WithTempFile(func(f *os.File) ioeither.IOEither[error, []byte] {
+	res := WithTempFile(func(f *os.File) IOEither[error, []byte] {
 		return F.Pipe2(
 			f,
 			onWriteAll[*os.File]([]byte("Carsten")),

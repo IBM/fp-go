@@ -22,7 +22,7 @@ import (
 type eitherPointed[A any] struct{}
 
 func (o *eitherPointed[A]) Of(a A) Result[A] {
-	return Of[A](a)
+	return Of(a)
 }
 
 // Pointed implements the pointed functor operations for Either.

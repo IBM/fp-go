@@ -16,15 +16,15 @@
 package mostlyadequate
 
 import (
-	"github.com/IBM/fp-go/v2/either"
-	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/iooption"
+	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
-	Either[A any]   = either.Either[error, A]
-	IOEither[A any] = ioeither.IOEither[error, A]
+	Result[A any]   = result.Result[A]
 	IOOption[A any] = iooption.IOOption[A]
 	Option[A any]   = option.Option[A]
+	IOResult[A any] = ioresult.IOResult[A]
 )

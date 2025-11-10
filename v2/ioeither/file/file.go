@@ -32,8 +32,8 @@ var (
 )
 
 // WriteFile writes a data blob to a file
-func WriteFile(dstName string, perm os.FileMode) func([]byte) ioeither.IOEither[error, []byte] {
-	return func(data []byte) ioeither.IOEither[error, []byte] {
+func WriteFile(dstName string, perm os.FileMode) Kleisli[error, []byte, []byte] {
+	return func(data []byte) IOEither[error, []byte] {
 		return ioeither.TryCatchError(func() ([]byte, error) {
 			return data, os.WriteFile(dstName, data, perm)
 		})
@@ -41,14 +41,14 @@ func WriteFile(dstName string, perm os.FileMode) func([]byte) ioeither.IOEither[
 }
 
 // Remove removes a file by name
-func Remove(name string) ioeither.IOEither[error, string] {
+func Remove(name string) IOEither[error, string] {
 	return ioeither.TryCatchError(func() (string, error) {
 		return name, os.Remove(name)
 	})
 }
 
 // Close closes an object
-func Close[C io.Closer](c C) ioeither.IOEither[error, any] {
+func Close[C io.Closer](c C) IOEither[error, any] {
 	return ioeither.TryCatchError(func() (any, error) {
 		return c, c.Close()
 	})

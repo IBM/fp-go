@@ -59,7 +59,7 @@ func TestUneitherize1(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "positive", result)
 
-	result, err = uneitherized(-1)
+	_, err = uneitherized(-1)
 	assert.Error(t, err)
 }
 
@@ -77,7 +77,7 @@ func TestUneitherize2(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 8, result)
 
-	result, err = uneitherized(-1, 3)
+	_, err = uneitherized(-1, 3)
 	assert.Error(t, err)
 }
 

@@ -34,7 +34,7 @@ import (
 //
 //go:inline
 func Of[A any](value A) Result[A] {
-	return either.Of[error, A](value)
+	return either.Of[error](value)
 }
 
 // FromIO executes an IO operation and wraps the result in a Right value.
@@ -47,7 +47,7 @@ func Of[A any](value A) Result[A] {
 //
 //go:inline
 func FromIO[IO ~func() A, A any](f IO) Result[A] {
-	return either.FromIO[error, IO, A](f)
+	return either.FromIO[error](f)
 }
 
 // MonadAp applies a function wrapped in Either to a value wrapped in Either.
@@ -62,7 +62,7 @@ func FromIO[IO ~func() A, A any](f IO) Result[A] {
 //
 //go:inline
 func MonadAp[B, A any](fab Result[func(a A) B], fa Result[A]) Result[B] {
-	return either.MonadAp[B, error, A](fab, fa)
+	return either.MonadAp(fab, fa)
 }
 
 // Ap is the curried version of [MonadAp].
@@ -70,7 +70,7 @@ func MonadAp[B, A any](fab Result[func(a A) B], fa Result[A]) Result[B] {
 //
 //go:inline
 func Ap[B, A any](fa Result[A]) Operator[func(A) B, B] {
-	return either.Ap[B, error, A](fa)
+	return either.Ap[B](fa)
 }
 
 // MonadMap transforms the Right value using the provided function.
@@ -86,7 +86,7 @@ func Ap[B, A any](fa Result[A]) Operator[func(A) B, B] {
 //
 //go:inline
 func MonadMap[A, B any](fa Result[A], f func(a A) B) Result[B] {
-	return either.MonadMap[error, A, B](fa, f)
+	return either.MonadMap(fa, f)
 }
 
 // MonadBiMap applies two functions: one to transform a Left value, another to transform a Right value.
@@ -102,7 +102,7 @@ func MonadMap[A, B any](fa Result[A], f func(a A) B) Result[B] {
 //
 //go:inline
 func MonadBiMap[E, A, B any](fa Result[A], f func(error) E, g func(a A) B) Either[E, B] {
-	return either.MonadBiMap[error, E, A, B](fa, f, g)
+	return either.MonadBiMap(fa, f, g)
 }
 
 // BiMap is the curried version of [MonadBiMap].
@@ -110,7 +110,7 @@ func MonadBiMap[E, A, B any](fa Result[A], f func(error) E, g func(a A) B) Eithe
 //
 //go:inline
 func BiMap[E, A, B any](f func(error) E, g func(a A) B) func(Result[A]) Either[E, B] {
-	return either.BiMap[error, E, A, B](f, g)
+	return either.BiMap(f, g)
 }
 
 // MonadMapTo replaces the Right value with a constant value.
@@ -122,14 +122,14 @@ func BiMap[E, A, B any](f func(error) E, g func(a A) B) func(Result[A]) Either[E
 //
 //go:inline
 func MonadMapTo[A, B any](fa Result[A], b B) Result[B] {
-	return either.MonadMapTo[error, A, B](fa, b)
+	return either.MonadMapTo(fa, b)
 }
 
 // MapTo is the curried version of [MonadMapTo].
 //
 //go:inline
 func MapTo[A, B any](b B) Operator[A, B] {
-	return either.MapTo[error, A, B](b)
+	return either.MapTo[error, A](b)
 }
 
 // MonadMapLeft applies a transformation function to the Left (error) value.
@@ -144,7 +144,7 @@ func MapTo[A, B any](b B) Operator[A, B] {
 //
 //go:inline
 func MonadMapLeft[A, E any](fa Result[A], f func(error) E) Either[E, A] {
-	return either.MonadMapLeft[error, A, E](fa, f)
+	return either.MonadMapLeft(fa, f)
 }
 
 // Map is the curried version of [MonadMap].
@@ -152,7 +152,7 @@ func MonadMapLeft[A, E any](fa Result[A], f func(error) E) Either[E, A] {
 //
 //go:inline
 func Map[A, B any](f func(a A) B) Operator[A, B] {
-	return either.Map[error, A, B](f)
+	return either.Map[error](f)
 }
 
 // MapLeft is the curried version of [MonadMapLeft].
@@ -160,7 +160,7 @@ func Map[A, B any](f func(a A) B) Operator[A, B] {
 //
 //go:inline
 func MapLeft[A, E any](f func(error) E) func(fa Result[A]) Either[E, A] {
-	return either.MapLeft[A, error, E](f)
+	return either.MapLeft[A](f)
 }
 
 // MonadChain sequences two computations, where the second depends on the result of the first.
@@ -178,7 +178,7 @@ func MapLeft[A, E any](f func(error) E) func(fa Result[A]) Either[E, A] {
 //
 //go:inline
 func MonadChain[A, B any](fa Result[A], f Kleisli[A, B]) Result[B] {
-	return either.MonadChain[error, A, B](fa, f)
+	return either.MonadChain(fa, f)
 }
 
 // MonadChainFirst executes a side-effect computation but returns the original value.
@@ -196,7 +196,7 @@ func MonadChain[A, B any](fa Result[A], f Kleisli[A, B]) Result[B] {
 //
 //go:inline
 func MonadChainFirst[A, B any](ma Result[A], f Kleisli[A, B]) Result[A] {
-	return either.MonadChainFirst[error, A, B](ma, f)
+	return either.MonadChainFirst(ma, f)
 }
 
 // MonadChainTo ignores the first Either and returns the second.
@@ -204,7 +204,7 @@ func MonadChainFirst[A, B any](ma Result[A], f Kleisli[A, B]) Result[A] {
 //
 //go:inline
 func MonadChainTo[A, B any](ma Result[A], mb Result[B]) Result[B] {
-	return either.MonadChainTo[A, error, B](ma, mb)
+	return either.MonadChainTo(ma, mb)
 }
 
 // MonadChainOptionK chains a function that returns an Option, converting None to Left.
@@ -222,21 +222,21 @@ func MonadChainTo[A, B any](ma Result[A], mb Result[B]) Result[B] {
 //
 //go:inline
 func MonadChainOptionK[A, B any](onNone func() error, ma Result[A], f option.Kleisli[A, B]) Result[B] {
-	return either.MonadChainOptionK[A, B, error](onNone, ma, f)
+	return either.MonadChainOptionK(onNone, ma, f)
 }
 
 // ChainOptionK is the curried version of [MonadChainOptionK].
 //
 //go:inline
 func ChainOptionK[A, B any](onNone func() error) func(option.Kleisli[A, B]) Operator[A, B] {
-	return either.ChainOptionK[A, B, error](onNone)
+	return either.ChainOptionK[A, B](onNone)
 }
 
 // ChainTo is the curried version of [MonadChainTo].
 //
 //go:inline
 func ChainTo[A, B any](mb Result[B]) Operator[A, B] {
-	return either.ChainTo[A, error, B](mb)
+	return either.ChainTo[A](mb)
 }
 
 // Chain is the curried version of [MonadChain].
@@ -244,14 +244,14 @@ func ChainTo[A, B any](mb Result[B]) Operator[A, B] {
 //
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
-	return either.Chain[error, A, B](f)
+	return either.Chain(f)
 }
 
 // ChainFirst is the curried version of [MonadChainFirst].
 //
 //go:inline
 func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
-	return either.ChainFirst[error, A, B](f)
+	return either.ChainFirst(f)
 }
 
 // Flatten removes one level of nesting from a nested Either.
@@ -263,7 +263,7 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 //
 //go:inline
 func Flatten[A any](mma Result[Result[A]]) Result[A] {
-	return either.Flatten[error, A](mma)
+	return either.Flatten(mma)
 }
 
 // TryCatch converts a (value, error) tuple into an Either, applying a transformation to the error.
@@ -277,7 +277,7 @@ func Flatten[A any](mma Result[Result[A]]) Result[A] {
 //
 //go:inline
 func TryCatch[FE Endomorphism[error], A any](val A, err error, onThrow FE) Result[A] {
-	return either.TryCatch[FE, error, A](val, err, onThrow)
+	return either.TryCatch(val, err, onThrow)
 }
 
 // TryCatchError is a specialized version of [TryCatch] for error types.
@@ -290,7 +290,7 @@ func TryCatch[FE Endomorphism[error], A any](val A, err error, onThrow FE) Resul
 //
 //go:inline
 func TryCatchError[A any](val A, err error) Result[A] {
-	return either.TryCatchError[A](val, err)
+	return either.TryCatchError(val, err)
 }
 
 // Sequence2 sequences two Either values using a combining function.
@@ -298,7 +298,7 @@ func TryCatchError[A any](val A, err error) Result[A] {
 //
 //go:inline
 func Sequence2[T1, T2, R any](f func(T1, T2) Result[R]) func(Result[T1], Result[T2]) Result[R] {
-	return either.Sequence2[error, T1, T2, R](f)
+	return either.Sequence2(f)
 }
 
 // Sequence3 sequences three Either values using a combining function.
@@ -306,7 +306,7 @@ func Sequence2[T1, T2, R any](f func(T1, T2) Result[R]) func(Result[T1], Result[
 //
 //go:inline
 func Sequence3[T1, T2, T3, R any](f func(T1, T2, T3) Result[R]) func(Result[T1], Result[T2], Result[T3]) Result[R] {
-	return either.Sequence3[error, T1, T2, T3, R](f)
+	return either.Sequence3(f)
 }
 
 // FromOption converts an Option to an Either, using the provided function to generate a Left value for None.
@@ -318,7 +318,7 @@ func Sequence3[T1, T2, T3, R any](f func(T1, T2, T3) Result[R]) func(Result[T1],
 //
 //go:inline
 func FromOption[A any](onNone func() error) func(Option[A]) Result[A] {
-	return either.FromOption[A, error](onNone)
+	return either.FromOption[A](onNone)
 }
 
 // ToOption converts an Either to an Option, discarding the Left value.
@@ -330,7 +330,7 @@ func FromOption[A any](onNone func() error) func(Option[A]) Result[A] {
 //
 //go:inline
 func ToOption[A any](ma Result[A]) Option[A] {
-	return either.ToOption[error, A](ma)
+	return either.ToOption(ma)
 }
 
 // FromError creates an Either from a function that may return an error.
@@ -346,7 +346,7 @@ func ToOption[A any](ma Result[A]) Option[A] {
 //
 //go:inline
 func FromError[A any](f func(a A) error) Kleisli[A, A] {
-	return either.FromError[A](f)
+	return either.FromError(f)
 }
 
 // ToError converts an Result[A] to an error, returning nil for Right values.
@@ -358,7 +358,7 @@ func FromError[A any](f func(a A) error) Kleisli[A, A] {
 //
 //go:inline
 func ToError[A any](e Result[A]) error {
-	return either.ToError[A](e)
+	return either.ToError(e)
 }
 
 // Fold is the curried version of [MonadFold].
@@ -373,7 +373,7 @@ func ToError[A any](e Result[A]) error {
 //
 //go:inline
 func Fold[A, B any](onLeft func(error) B, onRight func(A) B) func(Result[A]) B {
-	return either.Fold[error, A, B](onLeft, onRight)
+	return either.Fold(onLeft, onRight)
 }
 
 // UnwrapError converts an Result[A] into the idiomatic Go tuple (A, error).
@@ -385,7 +385,7 @@ func Fold[A, B any](onLeft func(error) B, onRight func(A) B) func(Result[A]) B {
 //
 //go:inline
 func UnwrapError[A any](ma Result[A]) (A, error) {
-	return either.UnwrapError[A](ma)
+	return either.UnwrapError(ma)
 }
 
 // FromPredicate creates an Either based on a predicate.
@@ -402,7 +402,7 @@ func UnwrapError[A any](ma Result[A]) (A, error) {
 //
 //go:inline
 func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A] {
-	return either.FromPredicate[error, A](pred, onFalse)
+	return either.FromPredicate(pred, onFalse)
 }
 
 // FromNillable creates an Either from a pointer, using the provided error for nil pointers.
@@ -416,7 +416,7 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A
 //
 //go:inline
 func FromNillable[A any](e error) func(*A) Result[*A] {
-	return either.FromNillable[A, error](e)
+	return either.FromNillable[A](e)
 }
 
 // GetOrElse extracts the Right value or computes a default from the Left value.
@@ -428,7 +428,7 @@ func FromNillable[A any](e error) func(*A) Result[*A] {
 //
 //go:inline
 func GetOrElse[A any](onLeft func(error) A) func(Result[A]) A {
-	return either.GetOrElse[error, A](onLeft)
+	return either.GetOrElse(onLeft)
 }
 
 // Reduce folds an Either into a single value using a reducer function.
@@ -451,7 +451,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Result[A]) B {
 //
 //go:inline
 func AltW[E1, A any](that Lazy[Either[E1, A]]) func(Result[A]) Either[E1, A] {
-	return either.AltW[error, E1, A](that)
+	return either.AltW[error](that)
 }
 
 // Alt provides an alternative Either if the first is Left.
@@ -465,7 +465,7 @@ func AltW[E1, A any](that Lazy[Either[E1, A]]) func(Result[A]) Either[E1, A] {
 //
 //go:inline
 func Alt[A any](that Lazy[Result[A]]) Operator[A, A] {
-	return either.Alt[error](that)
+	return either.Alt(that)
 }
 
 // OrElse recovers from a Left by providing an alternative computation.
@@ -479,7 +479,7 @@ func Alt[A any](that Lazy[Result[A]]) Operator[A, A] {
 //
 //go:inline
 func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
-	return either.OrElse[error, A](onLeft)
+	return either.OrElse(onLeft)
 }
 
 // ToType attempts to convert an any value to a specific type, returning Either.
@@ -494,14 +494,14 @@ func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
 //
 //go:inline
 func ToType[A any](onError func(any) error) Kleisli[any, A] {
-	return either.ToType[A, error](onError)
+	return either.ToType[A](onError)
 }
 
 // Memoize returns the Either unchanged (Either values are already memoized).
 //
 //go:inline
 func Memoize[A any](val Result[A]) Result[A] {
-	return either.Memoize[error, A](val)
+	return either.Memoize(val)
 }
 
 // MonadSequence2 sequences two Either values using a combining function.
@@ -509,7 +509,7 @@ func Memoize[A any](val Result[A]) Result[A] {
 //
 //go:inline
 func MonadSequence2[T1, T2, R any](e1 Result[T1], e2 Result[T2], f func(T1, T2) Result[R]) Result[R] {
-	return either.MonadSequence2[error, T1, T2, R](e1, e2, f)
+	return either.MonadSequence2(e1, e2, f)
 }
 
 // MonadSequence3 sequences three Either values using a combining function.
@@ -517,7 +517,7 @@ func MonadSequence2[T1, T2, R any](e1 Result[T1], e2 Result[T2], f func(T1, T2) 
 //
 //go:inline
 func MonadSequence3[T1, T2, T3, R any](e1 Result[T1], e2 Result[T2], e3 Result[T3], f func(T1, T2, T3) Result[R]) Result[R] {
-	return either.MonadSequence3[error, T1, T2, T3, R](e1, e2, e3, f)
+	return either.MonadSequence3(e1, e2, e3, f)
 }
 
 // Swap exchanges the Left and Right type parameters.
@@ -529,7 +529,7 @@ func MonadSequence3[T1, T2, T3, R any](e1 Result[T1], e2 Result[T2], e3 Result[T
 //
 //go:inline
 func Swap[A any](val Result[A]) Either[A, error] {
-	return either.Swap[error, A](val)
+	return either.Swap(val)
 }
 
 // MonadFlap applies a value to a function wrapped in Either.
@@ -537,14 +537,14 @@ func Swap[A any](val Result[A]) Either[A, error] {
 //
 //go:inline
 func MonadFlap[B, A any](fab Result[func(A) B], a A) Result[B] {
-	return either.MonadFlap[error, B, A](fab, a)
+	return either.MonadFlap(fab, a)
 }
 
 // Flap is the curried version of [MonadFlap].
 //
 //go:inline
 func Flap[B, A any](a A) Operator[func(A) B, B] {
-	return either.Flap[error, B, A](a)
+	return either.Flap[error, B](a)
 }
 
 // MonadAlt provides an alternative Either if the first is Left.
@@ -552,5 +552,5 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 //
 //go:inline
 func MonadAlt[A any](fa Result[A], that Lazy[Result[A]]) Result[A] {
-	return either.MonadAlt[error, A](fa, that)
+	return either.MonadAlt(fa, that)
 }
