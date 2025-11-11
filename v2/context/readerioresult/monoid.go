@@ -83,5 +83,5 @@ func AlternativeMonoid[A any](m monoid.Monoid[A]) Monoid[A] {
 //
 // Returns a Monoid for ReaderIOResult[A] with Alt-based combination.
 func AltMonoid[A any](zero Lazy[ReaderIOResult[A]]) Monoid[A] {
-	return RIOR.AltMonoid[context.Context](zero)
+	return RIOR.AltMonoid(zero)
 }

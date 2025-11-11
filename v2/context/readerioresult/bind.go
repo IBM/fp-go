@@ -96,7 +96,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
 ) Operator[S1, S2] {
-	return RIOR.Bind[context.Context](setter, f)
+	return RIOR.Bind(setter, f)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -256,7 +256,7 @@ func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return RIOR.BindL[context.Context](lens, f)
+	return RIOR.BindL(lens, f)
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -570,7 +570,7 @@ func ApReaderS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Reader[context.Context, T],
 ) Operator[S1, S2] {
-	return ApS(setter, FromReader[T](fa))
+	return ApS(setter, FromReader(fa))
 }
 
 // ApReaderIOS is an applicative variant that works with ReaderIO values.
@@ -585,7 +585,7 @@ func ApReaderIOS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIO[T],
 ) Operator[S1, S2] {
-	return ApS(setter, FromReaderIO[T](fa))
+	return ApS(setter, FromReaderIO(fa))
 }
 
 // ApEitherS is an applicative variant that works with Either (Result) values.
@@ -600,7 +600,7 @@ func ApEitherS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
 ) Operator[S1, S2] {
-	return ApS(setter, FromEither[T](fa))
+	return ApS(setter, FromEither(fa))
 }
 
 // ApResultS is an applicative variant that works with Result values.
@@ -615,7 +615,7 @@ func ApResultS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
 ) Operator[S1, S2] {
-	return ApS(setter, FromResult[T](fa))
+	return ApS(setter, FromResult(fa))
 }
 
 // ApIOEitherSL is a lens-based variant of ApIOEitherS.
@@ -675,7 +675,7 @@ func ApReaderSL[S, T any](
 	lens L.Lens[S, T],
 	fa Reader[context.Context, T],
 ) Operator[S, S] {
-	return ApSL(lens, FromReader[T](fa))
+	return ApSL(lens, FromReader(fa))
 }
 
 // ApReaderIOSL is a lens-based variant of ApReaderIOS.
@@ -690,7 +690,7 @@ func ApReaderIOSL[S, T any](
 	lens L.Lens[S, T],
 	fa ReaderIO[T],
 ) Operator[S, S] {
-	return ApSL(lens, FromReaderIO[T](fa))
+	return ApSL(lens, FromReaderIO(fa))
 }
 
 // ApEitherSL is a lens-based variant of ApEitherS.
@@ -705,7 +705,7 @@ func ApEitherSL[S, T any](
 	lens L.Lens[S, T],
 	fa Result[T],
 ) Operator[S, S] {
-	return ApSL(lens, FromEither[T](fa))
+	return ApSL(lens, FromEither(fa))
 }
 
 // ApResultSL is a lens-based variant of ApResultS.
@@ -720,5 +720,5 @@ func ApResultSL[S, T any](
 	lens L.Lens[S, T],
 	fa Result[T],
 ) Operator[S, S] {
-	return ApSL(lens, FromResult[T](fa))
+	return ApSL(lens, FromResult(fa))
 }

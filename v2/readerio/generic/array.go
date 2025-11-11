@@ -22,7 +22,7 @@ import (
 
 // MonadTraverseArray transforms an array
 func MonadTraverseArray[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() B, GIOBS ~func() BBS, AAS ~[]A, BBS ~[]B, E, A, B any](ma AAS, f func(A) GB) GBS {
-	return RA.MonadTraverse[AAS](
+	return RA.MonadTraverse(
 		Of[GBS, GIOBS, E, BBS],
 		Map[GBS, func(E) func() func(B) BBS, GIOBS, func() func(B) BBS, E, BBS, func(B) BBS],
 		Ap[GB, GBS, func(E) func() func(B) BBS, GIOB, GIOBS, func() func(B) BBS, E, B, BBS],

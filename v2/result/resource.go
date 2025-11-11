@@ -44,5 +44,5 @@ import (
 //	    return either.Right[error]("data")
 //	})
 func WithResource[R, A, ANY any](onCreate func() Result[R], onRelease Kleisli[R, ANY]) Kleisli[Kleisli[R, A], A] {
-	return either.WithResource[error, R, A, ANY](onCreate, onRelease)
+	return either.WithResource[error, R, A](onCreate, onRelease)
 }

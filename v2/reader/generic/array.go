@@ -36,7 +36,7 @@ import (
 //   - A: The input element type
 //   - B: The output element type
 func MonadTraverseArray[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B any](tas AAS, f func(A) GB) GBS {
-	return RA.MonadTraverse[AAS](
+	return RA.MonadTraverse(
 		Of[GBS, R, BBS],
 		Map[GBS, func(R) func(B) BBS, R, BBS, func(B) BBS],
 		Ap[GB, GBS, func(R) func(B) BBS, R, B, BBS],

@@ -318,7 +318,7 @@ func Wrap[S, A any](a A) func(Iso[S, A]) S {
 //	email := To[Email](ValidatedEmail{value: "user@example.com"})(emailIso)
 //	// "user@example.com"
 func To[A, S any](s S) func(Iso[S, A]) A {
-	return Unwrap[A, S](s)
+	return Unwrap[A](s)
 }
 
 // From wraps a target value into a source value using an isomorphism.

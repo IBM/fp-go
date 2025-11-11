@@ -247,7 +247,7 @@ func Ap[GUV ~func() O.Option[P.Pair[GUV, func(U) V]], GV ~func() O.Option[P.Pair
 }
 
 func MonadAp[GUV ~func() O.Option[P.Pair[GUV, func(U) V]], GV ~func() O.Option[P.Pair[GV, V]], GU ~func() O.Option[P.Pair[GU, U]], U, V any](fab GUV, ma GU) GV {
-	return Ap[GUV, GV, GU](ma)(fab)
+	return Ap[GUV, GV](ma)(fab)
 }
 
 func FilterChain[GVV ~func() O.Option[P.Pair[GVV, GV]], GV ~func() O.Option[P.Pair[GV, V]], GU ~func() O.Option[P.Pair[GU, U]], FCT ~func(U) O.Option[GV], U, V any](f FCT) func(ma GU) GV {

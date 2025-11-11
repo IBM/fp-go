@@ -28,7 +28,7 @@ func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 		}
 
 		if low > length {
-			return Empty[GA, A]()
+			return Empty[GA]()
 		}
 
 		// End index > array length: slice to the end
@@ -38,7 +38,7 @@ func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 
 		// Start >= end: return empty array
 		if low >= high {
-			return Empty[GA, A]()
+			return Empty[GA]()
 		}
 
 		return as[low:high]
@@ -56,7 +56,7 @@ func SliceRight[GA ~[]A, A any](start int) func(as GA) GA {
 
 		// Start index > array length: return empty array
 		if start > length {
-			return Empty[GA, A]()
+			return Empty[GA]()
 		}
 
 		return as[start:]

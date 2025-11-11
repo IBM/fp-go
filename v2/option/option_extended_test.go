@@ -82,7 +82,7 @@ func TestMonadMapTo(t *testing.T) {
 
 // Test MapTo
 func TestMapTo(t *testing.T) {
-	replaceWith42 := MapTo[string, int](42)
+	replaceWith42 := MapTo[string](42)
 	assert.Equal(t, Some(42), replaceWith42(Some("hello")))
 	assert.Equal(t, None[int](), replaceWith42(None[string]()))
 }
@@ -126,7 +126,7 @@ func TestMonadChainTo(t *testing.T) {
 
 // Test ChainTo
 func TestChainTo(t *testing.T) {
-	replaceWith := ChainTo[int, string](Some("hello"))
+	replaceWith := ChainTo[int](Some("hello"))
 	assert.Equal(t, Some("hello"), replaceWith(Some(42)))
 	assert.Equal(t, Some("hello"), replaceWith(None[int]()))
 }

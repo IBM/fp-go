@@ -79,7 +79,7 @@ func BenchmarkMapThenFilter(b *testing.B) {
 			benchResult = F.Pipe2(
 				data,
 				A.Filter(isPrime),
-				A.Map(N.Div[int](2)),
+				A.Map(N.Div(2)),
 			)
 		}
 	})
@@ -100,7 +100,7 @@ func BenchmarkMapThenFilter(b *testing.B) {
 			benchResult = F.Pipe2(
 				data,
 				A.Filter(isEven),
-				A.Map(N.Div[int](2)),
+				A.Map(N.Div(2)),
 			)
 		}
 	})
@@ -131,7 +131,7 @@ func BenchmarkFilterMap(b *testing.B) {
 				data,
 				A.FilterMap(F.Flow2(
 					O.FromPredicate(isPrime),
-					O.Map(N.Div[int](2)),
+					O.Map(N.Div(2)),
 				)),
 			)
 		}
@@ -155,7 +155,7 @@ func BenchmarkFilterMap(b *testing.B) {
 				data,
 				A.FilterMap(F.Flow2(
 					O.FromPredicate(isEven),
-					O.Map(N.Div[int](2)),
+					O.Map(N.Div(2)),
 				)),
 			)
 		}

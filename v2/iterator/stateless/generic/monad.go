@@ -24,19 +24,19 @@ import (
 type iteratorMonad[A, B any, GA ~func() O.Option[P.Pair[GA, A]], GB ~func() O.Option[P.Pair[GB, B]], GAB ~func() O.Option[P.Pair[GAB, func(A) B]]] struct{}
 
 func (o *iteratorMonad[A, B, GA, GB, GAB]) Of(a A) GA {
-	return Of[GA, A](a)
+	return Of[GA](a)
 }
 
 func (o *iteratorMonad[A, B, GA, GB, GAB]) Map(f func(A) B) func(GA) GB {
-	return Map[GB, GA, func(A) B, A, B](f)
+	return Map[GB, GA](f)
 }
 
 func (o *iteratorMonad[A, B, GA, GB, GAB]) Chain(f func(A) GB) func(GA) GB {
-	return Chain[GB, GA, A, B](f)
+	return Chain[GB, GA](f)
 }
 
 func (o *iteratorMonad[A, B, GA, GB, GAB]) Ap(fa GA) func(GAB) GB {
-	return Ap[GAB, GB, GA, A, B](fa)
+	return Ap[GAB, GB](fa)
 }
 
 // Monad implements the monadic operations for iterators

@@ -78,7 +78,7 @@ func Left[A any](l error) ReaderIOResult[A] {
 //
 //go:inline
 func Right[A any](r A) ReaderIOResult[A] {
-	return RIOR.Right[context.Context, A](r)
+	return RIOR.Right[context.Context](r)
 }
 
 // MonadMap transforms the success value of a [ReaderIOResult] using the provided function.
@@ -458,12 +458,12 @@ func FromIO[A any](t IO[A]) ReaderIOResult[A] {
 
 //go:inline
 func FromReader[A any](t Reader[context.Context, A]) ReaderIOResult[A] {
-	return RIOR.FromReader[context.Context](t)
+	return RIOR.FromReader(t)
 }
 
 //go:inline
 func FromReaderIO[A any](t ReaderIO[A]) ReaderIOResult[A] {
-	return RIOR.FromReaderIO[context.Context](t)
+	return RIOR.FromReaderIO(t)
 }
 
 // FromLazy converts a [Lazy] computation into a [ReaderIOResult].

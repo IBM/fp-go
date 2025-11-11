@@ -23,5 +23,5 @@ import (
 // Last returns the last item in an iterator if such an item exists
 // Note that the function will consume the [Iterator] in this call completely, to identify the last element. Do not use this for infinite iterators
 func Last[U any](mu Iterator[U]) O.Option[U] {
-	return G.Last[Iterator[U]](mu)
+	return G.Last(mu)
 }

@@ -23,10 +23,10 @@ import (
 
 // FromLazy returns an [Iterator] on top of a lazy function
 func FromLazy[U any](l L.Lazy[U]) Iterator[U] {
-	return G.FromLazy[Iterator[U], L.Lazy[U]](l)
+	return G.FromLazy[Iterator[U]](l)
 }
 
 // FromIO returns an [Iterator] on top of an IO function
 func FromIO[U any](io IO.IO[U]) Iterator[U] {
-	return G.FromLazy[Iterator[U], IO.IO[U]](io)
+	return G.FromLazy[Iterator[U]](io)
 }

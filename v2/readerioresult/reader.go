@@ -23,14 +23,14 @@ import (
 // FromReaderIO creates a function that lifts a ReaderIO-producing function into ReaderIOResult.
 // The ReaderIO result is placed in the Right side of the Either.
 func FromReaderIO[R, A any](ma ReaderIO[R, A]) ReaderIOResult[R, A] {
-	return RIOE.FromReaderIO[error, R](ma)
+	return RIOE.FromReaderIO[error](ma)
 }
 
 // RightReaderIO lifts a ReaderIO into a ReaderIOResult, placing the result in the Right side.
 //
 //go:inline
 func RightReaderIO[R, A any](ma ReaderIO[R, A]) ReaderIOResult[R, A] {
-	return RIOE.RightReaderIO[error, R](ma)
+	return RIOE.RightReaderIO[error](ma)
 }
 
 // LeftReaderIO lifts a ReaderIO into a ReaderIOResult, placing the result in the Left (error) side.

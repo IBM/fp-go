@@ -44,8 +44,8 @@ var (
 
 func TestGet(t *testing.T) {
 	assert.Equal(t, mToKm.Get(100), float32(0.1))
-	assert.Equal(t, Unwrap[float32, float32](float32(100))(mToKm), float32(0.1))
-	assert.Equal(t, To[float32, float32](float32(100))(mToKm), float32(0.1))
+	assert.Equal(t, Unwrap[float32](float32(100))(mToKm), float32(0.1))
+	assert.Equal(t, To[float32](float32(100))(mToKm), float32(0.1))
 }
 
 func TestReverseGet(t *testing.T) {
@@ -94,7 +94,7 @@ func TestIMap(t *testing.T) {
 	)
 
 	// Map to a different representation (string)
-	kmToString := IMap[float32, float32, string](
+	kmToString := IMap[float32](
 		func(km float32) string { return fmt.Sprintf("%.2f km", km) },
 		func(s string) float32 {
 			var km float32

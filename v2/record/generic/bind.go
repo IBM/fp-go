@@ -33,7 +33,7 @@ import (
 //	}
 //	result := generic.Do[map[string]State, string, State]()
 func Do[GS ~map[K]S, K comparable, S any]() GS {
-	return Empty[GS, K, S]()
+	return Empty[GS]()
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].
@@ -75,7 +75,7 @@ func Do[GS ~map[K]S, K comparable, S any]() GS {
 //	    ),
 //	)
 func Bind[GS1 ~map[K]S1, GS2 ~map[K]S2, GT ~map[K]T, K comparable, S1, S2, T any](m Mo.Monoid[GS2]) func(setter func(T) func(S1) S2, f func(S1) GT) func(GS1) GS2 {
-	c := Chain[GS1, GS2, K, S1, S2](m)
+	c := Chain[GS1](m)
 	return func(setter func(T) func(S1) S2, f func(S1) GT) func(GS1) GS2 {
 		return C.Bind(
 			c,
@@ -156,7 +156,7 @@ func BindTo[GS1 ~map[K]S1, GT ~map[K]T, K comparable, S1, T any](setter func(T) 
 //	    ),
 //	) // map[string]State{"player1": {Name: "Alice", Score: 100}, "player2": {Name: "Bob", Score: 200}}
 func ApS[GS1 ~map[K]S1, GS2 ~map[K]S2, GT ~map[K]T, K comparable, S1, S2, T any](m Mo.Monoid[GS2]) func(setter func(T) func(S1) S2, fa GT) func(GS1) GS2 {
-	a := Ap[GS2, map[K]func(T) S2, GT, K, S2, T](m)
+	a := Ap[GS2, map[K]func(T) S2, GT](m)
 	return func(setter func(T) func(S1) S2, fa GT) func(GS1) GS2 {
 		return A.ApS(
 			a,

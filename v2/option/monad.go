@@ -22,19 +22,19 @@ import (
 type optionMonad[A, B any] struct{}
 
 func (o *optionMonad[A, B]) Of(a A) Option[A] {
-	return Of[A](a)
+	return Of(a)
 }
 
 func (o *optionMonad[A, B]) Map(f func(A) B) Operator[A, B] {
-	return Map[A, B](f)
+	return Map(f)
 }
 
 func (o *optionMonad[A, B]) Chain(f Kleisli[A, B]) Operator[A, B] {
-	return Chain[A, B](f)
+	return Chain(f)
 }
 
 func (o *optionMonad[A, B]) Ap(fa Option[A]) func(Option[func(A) B]) Option[B] {
-	return Ap[B, A](fa)
+	return Ap[B](fa)
 }
 
 // Monad implements the monadic operations for Option.

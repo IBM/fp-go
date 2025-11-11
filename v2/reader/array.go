@@ -38,7 +38,7 @@ import (
 //	r := reader.MonadTraverseArray(numbers, addPrefix)
 //	result := r(Config{Prefix: "num"}) // ["num1", "num2", "num3"]
 func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] {
-	return array.MonadTraverse[[]A](
+	return array.MonadTraverse(
 		Of[R, []B],
 		Map[R, []B, func(B) []B],
 		Ap[[]B, R, B],

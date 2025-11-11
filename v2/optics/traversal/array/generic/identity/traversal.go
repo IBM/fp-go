@@ -23,7 +23,7 @@ import (
 
 // FromArray returns a traversal from an array for the identity monad
 func FromArray[GA ~[]A, A any]() G.Traversal[GA, A, GA, A] {
-	return AR.FromArray[GA, GA, A, A, A, func(A) GA, GA](
+	return AR.FromArray[GA](
 		I.Of[GA],
 		I.Map[GA, func(A) GA],
 		I.Ap[GA, A],

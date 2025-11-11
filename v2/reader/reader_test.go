@@ -73,7 +73,7 @@ func TestMonadMap(t *testing.T) {
 }
 
 func TestAp(t *testing.T) {
-	assert.Equal(t, 2, F.Pipe1(Of[int](utils.Double), Ap[int, int, int](Of[int](1)))(0))
+	assert.Equal(t, 2, F.Pipe1(Of[int](utils.Double), Ap[int](Of[int](1)))(0))
 }
 
 func TestMonadAp(t *testing.T) {
@@ -142,7 +142,7 @@ func TestFirst(t *testing.T) {
 
 func TestSecond(t *testing.T) {
 	double := func(x int) int { return x * 2 }
-	r := Second[string, int, int](double)
+	r := Second[string](double)
 	result := r(T.MakeTuple2("hello", 5))
 	assert.Equal(t, T.MakeTuple2("hello", 10), result)
 }

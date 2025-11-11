@@ -76,7 +76,7 @@ func TestChainIOK(t *testing.T) {
 	})
 
 	assert.Equal(t, E.Right[string]("1"), f(Right[string](1))())
-	assert.Equal(t, E.Left[string, string]("b"), f(Left[int]("b"))())
+	assert.Equal(t, E.Left[string]("b"), f(Left[int]("b"))())
 }
 
 func TestChainWithIO(t *testing.T) {
@@ -102,7 +102,7 @@ func TestChainFirst(t *testing.T) {
 	ch := ChainFirst(f)
 
 	assert.Equal(t, E.Of[string]("foo"), F.Pipe1(good, ch)())
-	assert.Equal(t, E.Left[string, string]("foo"), F.Pipe1(bad, ch)())
+	assert.Equal(t, E.Left[string]("foo"), F.Pipe1(bad, ch)())
 }
 
 func TestChainFirstIOK(t *testing.T) {

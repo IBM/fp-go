@@ -49,7 +49,7 @@ func TestMonadMapTo(t *testing.T) {
 
 // Test MapTo
 func TestMapTo(t *testing.T) {
-	result := F.Pipe1(Of(1), MapTo[int, string]("hello"))
+	result := F.Pipe1(Of(1), MapTo[int]("hello"))
 	assert.Equal(t, "hello", result())
 }
 
@@ -276,7 +276,7 @@ func TestWithResource(t *testing.T) {
 		})
 	}
 
-	withRes := WithResource[int, int, any](Of(onCreate()), onRelease)
+	withRes := WithResource[int, int](Of(onCreate()), onRelease)
 
 	result := withRes(func(x int) IO[int] {
 		return Of(x * 2)
@@ -604,7 +604,7 @@ func TestSequenceSeqTuple2(t *testing.T) {
 	io1 := func() int { order = append(order, 1); return 10 }
 	io2 := func() int { order = append(order, 2); return 20 }
 
-	tup := T.MakeTuple2[IO[int], IO[int]](io1, io2)
+	tup := T.MakeTuple2(io1, io2)
 	result := SequenceSeqTuple2(tup)
 	tuple := result()
 
@@ -804,7 +804,7 @@ func TestSequenceSeqTuple3(t *testing.T) {
 	io2 := func() int { order = append(order, 2); return 20 }
 	io3 := func() int { order = append(order, 3); return 30 }
 
-	tup := T.MakeTuple3[IO[int], IO[int], IO[int]](io1, io2, io3)
+	tup := T.MakeTuple3(io1, io2, io3)
 	result := SequenceSeqTuple3(tup)
 	tuple := result()
 
@@ -862,7 +862,7 @@ func TestSequenceSeqTuple4(t *testing.T) {
 	io3 := func() int { order = append(order, 3); return 3 }
 	io4 := func() int { order = append(order, 4); return 4 }
 
-	tup := T.MakeTuple4[IO[int], IO[int], IO[int], IO[int]](io1, io2, io3, io4)
+	tup := T.MakeTuple4(io1, io2, io3, io4)
 	result := SequenceSeqTuple4(tup)
 	tuple := result()
 
@@ -939,7 +939,7 @@ func TestSequenceSeqTuple1(t *testing.T) {
 	var executed bool
 	io1 := func() int { executed = true; return 42 }
 
-	tup := T.MakeTuple1[IO[int]](io1)
+	tup := T.MakeTuple1(io1)
 	result := SequenceSeqTuple1(tup)
 	tuple := result()
 
@@ -1013,7 +1013,7 @@ func TestSequenceSeqTuple5(t *testing.T) {
 	io4 := func() int { order = append(order, 4); return 4 }
 	io5 := func() int { order = append(order, 5); return 5 }
 
-	tup := T.MakeTuple5[IO[int], IO[int], IO[int], IO[int], IO[int]](io1, io2, io3, io4, io5)
+	tup := T.MakeTuple5(io1, io2, io3, io4, io5)
 	result := SequenceSeqTuple5(tup)
 	tuple := result()
 
@@ -1231,7 +1231,7 @@ func TestSequenceSeqTuple6(t *testing.T) {
 	io5 := func() int { order = append(order, 5); return 5 }
 	io6 := func() int { order = append(order, 6); return 6 }
 
-	tup := T.MakeTuple6[IO[int], IO[int], IO[int], IO[int], IO[int], IO[int]](io1, io2, io3, io4, io5, io6)
+	tup := T.MakeTuple6(io1, io2, io3, io4, io5, io6)
 	result := SequenceSeqTuple6(tup)
 	tuple := result()
 

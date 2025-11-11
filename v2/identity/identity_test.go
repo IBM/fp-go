@@ -83,12 +83,12 @@ func TestMonadMap(t *testing.T) {
 
 func TestMapTo(t *testing.T) {
 	t.Run("replaces with constant int", func(t *testing.T) {
-		result := F.Pipe1("ignored", MapTo[string, int](100))
+		result := F.Pipe1("ignored", MapTo[string](100))
 		assert.Equal(t, 100, result)
 	})
 
 	t.Run("replaces with constant string", func(t *testing.T) {
-		result := F.Pipe1(42, MapTo[int, string]("constant"))
+		result := F.Pipe1(42, MapTo[int]("constant"))
 		assert.Equal(t, "constant", result)
 	})
 }
@@ -165,7 +165,7 @@ func TestMonadChainFirst(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	t.Run("applies function", func(t *testing.T) {
-		result := F.Pipe1(utils.Double, Ap[int, int](1))
+		result := F.Pipe1(utils.Double, Ap[int](1))
 		assert.Equal(t, 2, result)
 	})
 
@@ -173,7 +173,7 @@ func TestAp(t *testing.T) {
 		add := func(a int) func(int) int {
 			return func(b int) int { return a + b }
 		}
-		result := F.Pipe1(add(10), Ap[int, int](5))
+		result := F.Pipe1(add(10), Ap[int](5))
 		assert.Equal(t, 15, result)
 	})
 
@@ -181,7 +181,7 @@ func TestAp(t *testing.T) {
 		toString := func(n int) string {
 			return fmt.Sprintf("Number: %d", n)
 		}
-		result := F.Pipe1(toString, Ap[string, int](42))
+		result := F.Pipe1(toString, Ap[string](42))
 		assert.Equal(t, "Number: 42", result)
 	})
 }
@@ -196,7 +196,7 @@ func TestMonadAp(t *testing.T) {
 func TestFlap(t *testing.T) {
 	t.Run("flips application", func(t *testing.T) {
 		double := func(n int) int { return n * 2 }
-		result := F.Pipe1(double, Flap[int, int](5))
+		result := F.Pipe1(double, Flap[int](5))
 		assert.Equal(t, 10, result)
 	})
 
@@ -209,7 +209,7 @@ func TestFlap(t *testing.T) {
 
 		results := make([]int, len(funcs))
 		for i, f := range funcs {
-			results[i] = Flap[int, int](5)(f)
+			results[i] = Flap[int](5)(f)
 		}
 
 		assert.Equal(t, []int{10, 15, 25}, results)

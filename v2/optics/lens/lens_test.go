@@ -185,7 +185,7 @@ func TestIdRef(t *testing.T) {
 }
 
 func TestComposeRef(t *testing.T) {
-	composedLens := ComposeRef[Address, *Street](streetLens)(addrLens)
+	composedLens := ComposeRef[Address](streetLens)(addrLens)
 
 	assert.Equal(t, sampleStreet.name, composedLens.Get(&sampleAddress))
 

@@ -382,7 +382,7 @@ func FromFoldable[
 	M ~map[K]V,
 	K comparable,
 	V any](m Mg.Magma[V], red FOLDABLE) func(fa HKTA) M {
-	return FromFoldableMap[func(T.Tuple2[K, V]) T.Tuple2[K, V], HKTA, FOLDABLE](m, red)(F.Identity[T.Tuple2[K, V]])
+	return FromFoldableMap[func(T.Tuple2[K, V]) T.Tuple2[K, V]](m, red)(F.Identity[T.Tuple2[K, V]])
 }
 
 func FromArrayMap[
@@ -400,7 +400,7 @@ func FromArray[
 	M ~map[K]V,
 	K comparable,
 	V any](m Mg.Magma[V]) func(fa GA) M {
-	return FromFoldable[GA](m, F.Bind23of3(RAG.Reduce[GA, T.Tuple2[K, V], M]))
+	return FromFoldable(m, F.Bind23of3(RAG.Reduce[GA, T.Tuple2[K, V], M]))
 }
 
 func FromEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](fa GT) M {
@@ -489,12 +489,12 @@ func FilterMap[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](f func(V1) O.
 
 // Flatten converts a nested map into a regular map
 func Flatten[M ~map[K]N, N ~map[K]V, K comparable, V any](m Mo.Monoid[N]) func(M) N {
-	return Chain[M, N](m)(F.Identity[N])
+	return Chain[M](m)(F.Identity[N])
 }
 
 // FilterChainWithIndex creates a new map with only the elements for which the transformation function creates a Some
 func FilterChainWithIndex[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N]) func(func(K, V1) O.Option[N]) func(M) N {
-	flatten := Flatten[map[K]N, N](m)
+	flatten := Flatten[map[K]N](m)
 	return func(f func(K, V1) O.Option[N]) func(M) N {
 		return F.Flow2(
 			FilterMapWithIndex[M, map[K]N](f),
@@ -505,7 +505,7 @@ func FilterChainWithIndex[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m 
 
 // FilterChain creates a new map with only the elements for which the transformation function creates a Some
 func FilterChain[M ~map[K]V1, N ~map[K]V2, K comparable, V1, V2 any](m Mo.Monoid[N]) func(func(V1) O.Option[N]) func(M) N {
-	flatten := Flatten[map[K]N, N](m)
+	flatten := Flatten[map[K]N](m)
 	return func(f func(V1) O.Option[N]) func(M) N {
 		return F.Flow2(
 			FilterMap[M, map[K]N](f),

@@ -93,7 +93,7 @@ func MonadChainTo[GA ~func() A, GB ~func() B, A, B any](fa GA, fb GB) GB {
 
 // ChainTo composes computations in sequence, ignoring the return value of the first computation
 func ChainTo[GA ~func() A, GB ~func() B, A, B any](fb GB) func(GA) GB {
-	return Chain[GA, GB](F.Constant1[A](fb))
+	return Chain[GA](F.Constant1[A](fb))
 }
 
 // MonadChainFirst composes computations in sequence, using the return value of one computation to determine the next computation and
@@ -130,7 +130,7 @@ func Flatten[GA ~func() A, GAA ~func() GA, A any](mma GAA) GA {
 
 // Memoize computes the value of the provided IO monad lazily but exactly once
 func Memoize[GA ~func() A, A any](ma GA) GA {
-	return L.Memoize[GA, A](ma)
+	return L.Memoize(ma)
 }
 
 // Delay creates an operation that passes in the value after some delay

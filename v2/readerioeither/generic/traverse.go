@@ -24,7 +24,7 @@ import (
 
 // MonadTraverseArray transforms an array
 func MonadTraverseArray[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() either.Either[L, B], GIOBS ~func() either.Either[L, BBS], AAS ~[]A, BBS ~[]B, E, L, A, B any](ma AAS, f func(A) GB) GBS {
-	return RA.MonadTraverse[AAS](
+	return RA.MonadTraverse(
 		Of[GBS, GIOBS, E, L, BBS],
 		Map[GBS, func(E) func() either.Either[L, func(B) BBS], GIOBS, func() either.Either[L, func(B) BBS], E, L, BBS, func(B) BBS],
 		Ap[GB, GBS, func(E) func() either.Either[L, func(B) BBS], GIOB, GIOBS, func() either.Either[L, func(B) BBS], E, L, B, BBS],
@@ -62,7 +62,7 @@ func SequenceArray[GA ~func(E) GIOA, GAS ~func(E) GIOAS, GIOA ~func() either.Eit
 
 // MonadTraverseRecord transforms an array
 func MonadTraverseRecord[GB ~func(C) GIOB, GBS ~func(C) GIOBS, GIOB ~func() either.Either[E, B], GIOBS ~func() either.Either[E, BBS], AAS ~map[K]A, BBS ~map[K]B, K comparable, C, E, A, B any](tas AAS, f func(A) GB) GBS {
-	return RR.MonadTraverse[AAS](
+	return RR.MonadTraverse(
 		Of[GBS, GIOBS, C, E, BBS],
 		Map[GBS, func(C) func() either.Either[E, func(B) BBS], GIOBS, func() either.Either[E, func(B) BBS], C, E, BBS, func(B) BBS],
 		Ap[GB, GBS, func(C) func() either.Either[E, func(B) BBS], GIOB, GIOBS, func() either.Either[E, func(B) BBS], C, E, B, BBS],

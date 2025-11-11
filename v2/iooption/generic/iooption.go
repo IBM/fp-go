@@ -238,7 +238,7 @@ func Fold[GA ~func() O.Option[A], GB ~func() B, A, B any](onNone func() GB, onSo
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
 func Defer[GA ~func() O.Option[A], A any](gen func() GA) GA {
-	return IO.Defer[GA](gen)
+	return IO.Defer(gen)
 }
 
 func MonadAlt[LAZY ~func() GIOA, GIOA ~func() O.Option[A], A any](first GIOA, second LAZY) GIOA {

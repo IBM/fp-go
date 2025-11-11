@@ -28,7 +28,7 @@ func Memoize[F ~func(K) T, K comparable, T any](f F) F {
 
 // ContramapMemoize converts a unary function into a unary function that caches the value depending on the parameter
 func ContramapMemoize[F ~func(A) T, KF func(A) K, A any, K comparable, T any](kf KF) func(F) F {
-	return CacheCallback[func(F) F, func() func() T](kf, getOrCreate[K, T]())
+	return CacheCallback[func(F) F](kf, getOrCreate[K, T]())
 }
 
 // getOrCreate is a naive implementation of a cache, without bounds

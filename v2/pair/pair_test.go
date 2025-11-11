@@ -376,7 +376,7 @@ func TestPointedHead(t *testing.T) {
 		func(a, b string) string { return a + b },
 		"",
 	)
-	pointed := PointedHead[int, string](stringMonoid)
+	pointed := PointedHead[int](stringMonoid)
 	p := pointed.Of(42)
 	assert.Equal(t, 42, Head(p))
 	assert.Equal(t, "", Tail(p))
@@ -452,7 +452,7 @@ func TestMonadTail(t *testing.T) {
 
 func TestPointedTail(t *testing.T) {
 	intSum := N.MonoidSum[int]()
-	pointed := PointedTail[string, int](intSum)
+	pointed := PointedTail[string](intSum)
 	p := pointed.Of("test")
 	assert.Equal(t, 0, Head(p))
 	assert.Equal(t, "test", Tail(p))
@@ -502,7 +502,7 @@ func TestMonad(t *testing.T) {
 
 func TestPointed(t *testing.T) {
 	intSum := N.MonoidSum[int]()
-	pointed := Pointed[string, int](intSum)
+	pointed := Pointed[string](intSum)
 
 	p := pointed.Of("hello")
 	assert.Equal(t, 0, Head(p))

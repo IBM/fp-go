@@ -35,22 +35,22 @@ func Modify[S, A any](f func(A) A) func(sa G.Traversal[S, A, S, A]) func(S) S {
 
 // Set sets a constant value for all values of the traversal
 func Set[S, A any](a A) func(sa G.Traversal[S, A, S, A]) func(S) S {
-	return Modify[S, A](F.Constant1[A](a))
+	return Modify[S](F.Constant1[A](a))
 }
 
 // FoldMap maps each target to a `Monoid` and combines the result
 func FoldMap[M, S, A any](f func(A) M) func(sa G.Traversal[S, A, C.Const[M, S], C.Const[M, A]]) func(S) M {
-	return G.FoldMap[M, S, A](f)
+	return G.FoldMap[M, S](f)
 }
 
 // Fold maps each target to a `Monoid` and combines the result
 func Fold[S, A any](sa G.Traversal[S, A, C.Const[A, S], C.Const[A, A]]) func(S) A {
-	return G.Fold[S, A](sa)
+	return G.Fold(sa)
 }
 
 // GetAll gets all the targets of a traversal
 func GetAll[S, A any](s S) func(sa G.Traversal[S, A, C.Const[[]A, S], C.Const[[]A, A]]) []A {
-	return G.GetAll[[]A, S, A](s)
+	return G.GetAll[[]A](s)
 }
 
 // Compose composes two traversables

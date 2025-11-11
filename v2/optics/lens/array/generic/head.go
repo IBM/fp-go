@@ -29,7 +29,7 @@ func AtHead[AS []A, A any]() L.Lens[AS, O.Option[A]] {
 	return L.MakeLens(AA.Head[AS, A], func(as AS, a O.Option[A]) AS {
 		return O.MonadFold(a, AA.Empty[AS], func(v A) AS {
 			if AA.IsEmpty(as) {
-				return AA.Of[AS, A](v)
+				return AA.Of[AS](v)
 			}
 			cpy := AA.Copy(as)
 			cpy[0] = v

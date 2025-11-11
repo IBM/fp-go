@@ -21,7 +21,7 @@ import (
 )
 
 func Eq[K comparable, V any](e E.Eq[V]) E.Eq[map[K]V] {
-	return G.Eq[map[K]V, K, V](e)
+	return G.Eq[map[K]V](e)
 }
 
 // FromStrictEquals constructs an [EQ.Eq] from the canonical comparison function

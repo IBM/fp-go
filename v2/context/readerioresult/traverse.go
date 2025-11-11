@@ -118,7 +118,7 @@ func SequenceRecord[K comparable, A any](ma map[K]ReaderIOResult[A]) ReaderIORes
 //
 // Returns a ReaderIOResult containing an array of transformed values.
 func MonadTraverseArraySeq[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B] {
-	return array.MonadTraverse[[]A](
+	return array.MonadTraverse(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApSeq[[]B, B],
@@ -168,7 +168,7 @@ func SequenceArraySeq[A any](ma []ReaderIOResult[A]) ReaderIOResult[[]A] {
 
 // MonadTraverseRecordSeq uses transforms a record [map[K]A] into [map[K]ReaderIOResult[B]] and then resolves that into a [ReaderIOResult[map[K]B]]
 func MonadTraverseRecordSeq[K comparable, A, B any](as map[K]A, f Kleisli[A, B]) ReaderIOResult[map[K]B] {
-	return record.MonadTraverse[map[K]A](
+	return record.MonadTraverse(
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
 		ApSeq[map[K]B, B],
@@ -213,7 +213,7 @@ func SequenceRecordSeq[K comparable, A any](ma map[K]ReaderIOResult[A]) ReaderIO
 //
 // Returns a ReaderIOResult containing an array of transformed values.
 func MonadTraverseArrayPar[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B] {
-	return array.MonadTraverse[[]A](
+	return array.MonadTraverse(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApPar[[]B, B],
@@ -285,7 +285,7 @@ func TraverseRecordWithIndexPar[K comparable, A, B any](f func(K, A) ReaderIORes
 
 // MonadTraverseRecordPar uses transforms a record [map[K]A] into [map[K]ReaderIOResult[B]] and then resolves that into a [ReaderIOResult[map[K]B]]
 func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f Kleisli[A, B]) ReaderIOResult[map[K]B] {
-	return record.MonadTraverse[map[K]A](
+	return record.MonadTraverse(
 		Of[map[K]B],
 		Map[map[K]B, func(B) map[K]B],
 		ApPar[map[K]B, B],

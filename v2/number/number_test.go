@@ -393,7 +393,7 @@ func TestDiv(t *testing.T) {
 
 // Test Div with floats
 func TestDiv_Float(t *testing.T) {
-	half := Div[float64](2.0)
+	half := Div(2.0)
 
 	assert.Equal(t, 5.0, half(10.0))
 	assert.Equal(t, 2.5, half(5.0))

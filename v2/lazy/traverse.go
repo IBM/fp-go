@@ -51,7 +51,7 @@ func TraverseRecord[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, ma
 // TraverseRecord applies a function returning an [IO] to all elements in a record and the
 // transforms this into an [IO] of that record
 func TraverseRecordWithIndex[K comparable, A, B any](f func(K, A) Lazy[B]) Kleisli[map[K]A, map[K]B] {
-	return io.TraverseRecordWithIndex[K](f)
+	return io.TraverseRecordWithIndex(f)
 }
 
 // SequenceRecord converts a record of [IO] to an [IO] of a record

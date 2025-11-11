@@ -22,19 +22,19 @@ import (
 type eitherMonad[E, A, B any] struct{}
 
 func (o *eitherMonad[E, A, B]) Of(a A) Either[E, A] {
-	return Of[E, A](a)
+	return Of[E](a)
 }
 
 func (o *eitherMonad[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
-	return Map[E, A, B](f)
+	return Map[E](f)
 }
 
 func (o *eitherMonad[E, A, B]) Chain(f func(A) Either[E, B]) Operator[E, A, B] {
-	return Chain[E, A, B](f)
+	return Chain(f)
 }
 
 func (o *eitherMonad[E, A, B]) Ap(fa Either[E, A]) Operator[E, func(A) B, B] {
-	return Ap[B, E, A](fa)
+	return Ap[B](fa)
 }
 
 // Monad implements the monadic operations for Either.

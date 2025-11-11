@@ -362,7 +362,7 @@ func Fold[E, A, B any](onLeft func(E) B, onRight func(A) B) func(Either[E, A]) B
 //
 //go:inline
 func UnwrapError[A any](ma Either[error, A]) (A, error) {
-	return Unwrap[error](ma)
+	return Unwrap(ma)
 }
 
 // FromPredicate creates an Either based on a predicate.
@@ -381,7 +381,7 @@ func FromPredicate[E, A any](pred func(A) bool, onFalse func(A) E) func(A) Eithe
 		if pred(a) {
 			return Right[E](a)
 		}
-		return Left[A, E](onFalse(a))
+		return Left[A](onFalse(a))
 	}
 }
 

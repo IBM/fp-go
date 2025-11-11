@@ -24,7 +24,7 @@ import (
 
 // FromRecord returns a traversal from an array for the const monad
 func FromRecord[MA ~map[K]A, E, K comparable, A any](m M.Monoid[E]) G.Traversal[MA, A, C.Const[E, MA], C.Const[E, A]] {
-	return RR.FromRecord[MA, MA, K, A, A, C.Const[E, A], C.Const[E, func(A) MA], C.Const[E, MA]](
+	return RR.FromRecord[MA](
 		C.Of[E, MA](m),
 		C.Map[E, MA, func(A) MA],
 		C.Ap[E, A, MA](m),

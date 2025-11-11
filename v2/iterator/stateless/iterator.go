@@ -60,7 +60,7 @@ func Reduce[U, V any](f func(V, U) V, initial V) func(Iterator[U]) V {
 
 // MonadMap transforms an [Iterator] of type [U] into an [Iterator] of type [V] via a mapping function
 func MonadMap[U, V any](ma Iterator[U], f func(U) V) Iterator[V] {
-	return G.MonadMap[Iterator[V], Iterator[U]](ma, f)
+	return G.MonadMap[Iterator[V]](ma, f)
 }
 
 // Map transforms an [Iterator] of type [U] into an [Iterator] of type [V] via a mapping function
@@ -69,7 +69,7 @@ func Map[U, V any](f func(U) V) Operator[U, V] {
 }
 
 func MonadChain[U, V any](ma Iterator[U], f Kleisli[U, V]) Iterator[V] {
-	return G.MonadChain[Iterator[V], Iterator[U]](ma, f)
+	return G.MonadChain(ma, f)
 }
 
 func Chain[U, V any](f Kleisli[U, V]) Kleisli[Iterator[U], V] {
@@ -78,7 +78,7 @@ func Chain[U, V any](f Kleisli[U, V]) Kleisli[Iterator[U], V] {
 
 // Flatten converts an [Iterator] of [Iterator] into a simple [Iterator]
 func Flatten[U any](ma Iterator[Iterator[U]]) Iterator[U] {
-	return G.Flatten[Iterator[Iterator[U]], Iterator[U]](ma)
+	return G.Flatten(ma)
 }
 
 // From constructs an [Iterator] from a set of variadic arguments
@@ -134,7 +134,7 @@ func FilterChain[U, V any](f func(U) O.Option[Iterator[V]]) Operator[U, V] {
 
 // FoldMap maps and folds an iterator. Map the iterator passing each value to the iterating function. Then fold the results using the provided Monoid.
 func FoldMap[U, V any](m M.Monoid[V]) func(func(U) V) func(ma Iterator[U]) V {
-	return G.FoldMap[Iterator[U], func(U) V, U, V](m)
+	return G.FoldMap[Iterator[U], func(U) V](m)
 }
 
 // Fold folds the iterator using the provided Monoid.
@@ -143,9 +143,9 @@ func Fold[U any](m M.Monoid[U]) func(Iterator[U]) U {
 }
 
 func MonadChainFirst[U, V any](ma Iterator[U], f Kleisli[U, V]) Iterator[U] {
-	return G.MonadChainFirst[Iterator[V], Iterator[U], U, V](ma, f)
+	return G.MonadChainFirst(ma, f)
 }
 
 func ChainFirst[U, V any](f Kleisli[U, V]) Operator[U, U] {
-	return G.ChainFirst[Iterator[V], Iterator[U], U, V](f)
+	return G.ChainFirst[Iterator[V], Iterator[U]](f)
 }

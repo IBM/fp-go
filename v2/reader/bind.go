@@ -286,7 +286,7 @@ func BindL[R, S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[R, T, T],
 ) Operator[R, S, S] {
-	return Bind[R, S, S, T](lens.Set, F.Flow2(lens.Get, f))
+	return Bind(lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -324,7 +324,7 @@ func LetL[R, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) Operator[R, S, S] {
-	return Let[R, S, S, T](lens.Set, F.Flow2(lens.Get, f))
+	return Let[R](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
@@ -359,5 +359,5 @@ func LetToL[R, S, T any](
 	lens L.Lens[S, T],
 	b T,
 ) Operator[R, S, S] {
-	return LetTo[R, S, S, T](lens.Set, b)
+	return LetTo[R](lens.Set, b)
 }

@@ -117,7 +117,7 @@ func MakeMonoid[A any](c func(A, A) A, e A) Monoid[A] {
 //	reversed := Reverse(stringMonoid)
 //	result := reversed.Concat("Hello", "World")  // "WorldHello"
 func Reverse[A any](m Monoid[A]) Monoid[A] {
-	return MakeMonoid(S.Reverse[A](m).Concat, m.Empty())
+	return MakeMonoid(S.Reverse(m).Concat, m.Empty())
 }
 
 // ToSemigroup converts a Monoid to a Semigroup by discarding the identity element.

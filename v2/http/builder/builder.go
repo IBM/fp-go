@@ -377,7 +377,7 @@ func WithoutHeader(name string) Endomorphism {
 //
 // Deprecated: use [WithJSON] instead
 func WithJson[T any](data T) Endomorphism {
-	return WithJSON[T](data)
+	return WithJSON(data)
 }
 
 // WithJSON creates a [Endomorphism] to send JSON payload

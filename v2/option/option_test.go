@@ -102,22 +102,22 @@ func TestTryCachOption(t *testing.T) {
 func TestAp(t *testing.T) {
 	assert.Equal(t, Some(4), F.Pipe1(
 		Some(utils.Double),
-		Ap[int, int](Some(2)),
+		Ap[int](Some(2)),
 	))
 
 	assert.Equal(t, None[int](), F.Pipe1(
 		Some(utils.Double),
-		Ap[int, int](None[int]()),
+		Ap[int](None[int]()),
 	))
 
 	assert.Equal(t, None[int](), F.Pipe1(
 		None[func(int) int](),
-		Ap[int, int](Some(2)),
+		Ap[int](Some(2)),
 	))
 
 	assert.Equal(t, None[int](), F.Pipe1(
 		None[func(int) int](),
-		Ap[int, int](None[int]()),
+		Ap[int](None[int]()),
 	))
 }
 

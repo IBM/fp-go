@@ -4,13 +4,12 @@
 
 package di
 
-
 import (
+	A "github.com/IBM/fp-go/v2/array"
+	DIE "github.com/IBM/fp-go/v2/di/erasure"
 	E "github.com/IBM/fp-go/v2/either"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	T "github.com/IBM/fp-go/v2/tuple"
-	A "github.com/IBM/fp-go/v2/array"
-	DIE "github.com/IBM/fp-go/v2/di/erasure"
 )
 
 // eraseProviderFactory1 creates a function that takes a variadic number of untyped arguments and from a function of 1 strongly typed arguments and 1 dependencies

@@ -115,7 +115,7 @@ func TestFromZeroWithSet(t *testing.T) {
 	t.Run("set on zero value", func(t *testing.T) {
 		prism := FromZero[int]()
 
-		setter := Set[int, int](100)
+		setter := Set[int](100)
 		result := setter(prism)(0)
 
 		assert.Equal(t, 100, result)
@@ -124,7 +124,7 @@ func TestFromZeroWithSet(t *testing.T) {
 	t.Run("set on non-zero returns original", func(t *testing.T) {
 		prism := FromZero[int]()
 
-		setter := Set[int, int](100)
+		setter := Set[int](100)
 		result := setter(prism)(42)
 
 		assert.Equal(t, 42, result)
@@ -467,7 +467,7 @@ func TestRegexMatcherWithSet(t *testing.T) {
 			After:  " dollars",
 		}
 
-		setter := Set[string, Match](newMatch)
+		setter := Set[string](newMatch)
 		result := setter(prism)(original)
 
 		assert.Equal(t, "price: 100 dollars", result)
@@ -482,7 +482,7 @@ func TestRegexMatcherWithSet(t *testing.T) {
 			After:  "",
 		}
 
-		setter := Set[string, Match](newMatch)
+		setter := Set[string](newMatch)
 		result := setter(prism)(original)
 
 		assert.Equal(t, original, result)
@@ -507,7 +507,7 @@ func TestRegexNamedMatcherWithSet(t *testing.T) {
 			After: "",
 		}
 
-		setter := Set[string, NamedMatch](newMatch)
+		setter := Set[string](newMatch)
 		result := setter(prism)(original)
 
 		assert.Equal(t, "email: admin@newsite.com", result)
@@ -526,7 +526,7 @@ func TestRegexNamedMatcherWithSet(t *testing.T) {
 			After: "",
 		}
 
-		setter := Set[string, NamedMatch](newMatch)
+		setter := Set[string](newMatch)
 		result := setter(prism)(original)
 
 		assert.Equal(t, original, result)

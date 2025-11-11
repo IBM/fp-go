@@ -125,7 +125,7 @@ func MonadChainTo[GA ~func() either.Either[E, A], GB ~func() either.Either[E, B]
 }
 
 func ChainTo[GA ~func() either.Either[E, A], GB ~func() either.Either[E, B], E, A, B any](fb GB) func(GA) GB {
-	return Chain[GA, GB, E, A, B](F.Constant1[A](fb))
+	return Chain[GA](F.Constant1[A](fb))
 }
 
 // Deprecated:
@@ -394,7 +394,7 @@ func FromImpure[GA ~func() either.Either[E, any], IMP ~func(), E any](f IMP) GA 
 //
 // Deprecated:
 func Defer[GEA ~func() either.Either[E, A], E, A any](gen func() GEA) GEA {
-	return IO.Defer[GEA](gen)
+	return IO.Defer(gen)
 }
 
 // Deprecated:

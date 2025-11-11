@@ -31,7 +31,7 @@ import (
 //	}
 //	result := record.Do[string, State]()
 func Do[K comparable, S any]() map[K]S {
-	return G.Do[map[K]S, K, S]()
+	return G.Do[map[K]S]()
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].
@@ -69,7 +69,7 @@ func Do[K comparable, S any]() map[K]S {
 //	    ),
 //	)
 func Bind[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, f func(S1) map[K]T) func(map[K]S1) map[K]S2 {
-	return G.Bind[map[K]S1, map[K]S2, map[K]T, K, S1, S2, T](m)
+	return G.Bind[map[K]S1, map[K]S2, map[K]T](m)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -77,7 +77,7 @@ func Let[S1, T any, K comparable, S2 any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
 ) func(map[K]S1) map[K]S2 {
-	return G.Let[map[K]S1, map[K]S2, K, S1, S2, T](setter, f)
+	return G.Let[map[K]S1, map[K]S2](setter, f)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
@@ -85,12 +85,12 @@ func LetTo[S1, T any, K comparable, S2 any](
 	setter func(T) func(S1) S2,
 	b T,
 ) func(map[K]S1) map[K]S2 {
-	return G.LetTo[map[K]S1, map[K]S2, K, S1, S2, T](setter, b)
+	return G.LetTo[map[K]S1, map[K]S2](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any, K comparable](setter func(T) S1) func(map[K]T) map[K]S1 {
-	return G.BindTo[map[K]S1, map[K]T, K, S1, T](setter)
+	return G.BindTo[map[K]S1, map[K]T](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
@@ -127,5 +127,5 @@ func BindTo[S1, T any, K comparable](setter func(T) S1) func(map[K]T) map[K]S1 {
 //	    ),
 //	) // map[string]State{"a": {Name: "Alice", Count: 10}, "b": {Name: "Bob", Count: 20}}
 func ApS[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, fa map[K]T) func(map[K]S1) map[K]S2 {
-	return G.ApS[map[K]S1, map[K]S2, map[K]T, K, S1, S2, T](m)
+	return G.ApS[map[K]S1, map[K]S2, map[K]T](m)
 }

@@ -37,7 +37,7 @@ func AtRecord[M ~map[K]V, V any, K comparable](key K) L.Lens[M, O.Option[V]] {
 			return F.Pipe2(
 				v,
 				fold,
-				I.Ap[M, M](m),
+				I.Ap[M](m),
 			)
 		},
 	)

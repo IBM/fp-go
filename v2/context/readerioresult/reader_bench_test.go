@@ -561,7 +561,7 @@ func BenchmarkPipeline_Chain_Right(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchRIOE = F.Pipe1(
 			rioe,
-			Chain(func(x int) ReaderIOResult[int] { return Right[int](x * 2) }),
+			Chain(func(x int) ReaderIOResult[int] { return Right(x * 2) }),
 		)
 	}
 }
@@ -573,7 +573,7 @@ func BenchmarkPipeline_Chain_Left(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchRIOE = F.Pipe1(
 			rioe,
-			Chain(func(x int) ReaderIOResult[int] { return Right[int](x * 2) }),
+			Chain(func(x int) ReaderIOResult[int] { return Right(x * 2) }),
 		)
 	}
 }
@@ -586,7 +586,7 @@ func BenchmarkPipeline_Complex_Right(b *testing.B) {
 		benchRIOE = F.Pipe3(
 			rioe,
 			Map(func(x int) int { return x * 2 }),
-			Chain(func(x int) ReaderIOResult[int] { return Right[int](x + 1) }),
+			Chain(func(x int) ReaderIOResult[int] { return Right(x + 1) }),
 			Map(func(x int) int { return x * 2 }),
 		)
 	}
@@ -600,7 +600,7 @@ func BenchmarkPipeline_Complex_Left(b *testing.B) {
 		benchRIOE = F.Pipe3(
 			rioe,
 			Map(func(x int) int { return x * 2 }),
-			Chain(func(x int) ReaderIOResult[int] { return Right[int](x + 1) }),
+			Chain(func(x int) ReaderIOResult[int] { return Right(x + 1) }),
 			Map(func(x int) int { return x * 2 }),
 		)
 	}
@@ -610,7 +610,7 @@ func BenchmarkExecutePipeline_Complex_Right(b *testing.B) {
 	rioe := F.Pipe3(
 		Right(10),
 		Map(func(x int) int { return x * 2 }),
-		Chain(func(x int) ReaderIOResult[int] { return Right[int](x + 1) }),
+		Chain(func(x int) ReaderIOResult[int] { return Right(x + 1) }),
 		Map(func(x int) int { return x * 2 }),
 	)
 	b.ResetTimer()

@@ -23,7 +23,7 @@ import (
 
 // MonadTraverseArray transforms an array
 func MonadTraverseArray[GB ~func(E) ET.Either[L, B], GBS ~func(E) ET.Either[L, BBS], AAS ~[]A, BBS ~[]B, L, E, A, B any](ma AAS, f func(A) GB) GBS {
-	return RA.MonadTraverse[AAS](
+	return RA.MonadTraverse(
 		Of[GBS, L, E, BBS],
 		Map[GBS, func(E) ET.Either[L, func(B) BBS], L, E, BBS, func(B) BBS],
 		Ap[GB, GBS, func(E) ET.Either[L, func(B) BBS], L, E, B, BBS],

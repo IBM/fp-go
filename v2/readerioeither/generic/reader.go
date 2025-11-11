@@ -471,13 +471,13 @@ func BiMap[GA ~func(R) GE1A, GB ~func(R) GE2B, GE1A ~func() either.Either[E1, A]
 // Swap changes the order of type parameters
 // Deprecated:
 func Swap[GREA ~func(R) GEA, GRAE ~func(R) GAE, GEA ~func() either.Either[E, A], GAE ~func() either.Either[A, E], R, E, A any](val GREA) GRAE {
-	return RD.MonadMap[GREA, GRAE, R, GEA, GAE](val, IOE.Swap[GEA, GAE])
+	return RD.MonadMap[GREA, GRAE](val, IOE.Swap[GEA, GAE])
 }
 
 // Defer creates an IO by creating a brand new IO via a generator function, each time
 // Deprecated:
 func Defer[GEA ~func(R) GA, GA ~func() either.Either[E, A], R, E, A any](gen func() GEA) GEA {
-	return G.Defer[GEA](gen)
+	return G.Defer(gen)
 }
 
 // TryCatch wraps a reader returning a tuple as an error into ReaderIOEither
@@ -494,7 +494,7 @@ func TryCatch[GEA ~func(R) GA, GA ~func() either.Either[E, A], R, E, A any](f fu
 // Deprecated:
 func Memoize[
 	GEA ~func(R) GIOA, GIOA ~func() either.Either[E, A], R, E, A any](rdr GEA) GEA {
-	return G.Memoize[GEA](rdr)
+	return G.Memoize(rdr)
 }
 
 // Deprecated:

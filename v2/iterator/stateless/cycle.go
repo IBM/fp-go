@@ -22,5 +22,5 @@ import (
 // DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
 // Note, the [Iterator] does not produce any output until the predicate first becomes false
 func Cycle[U any](ma Iterator[U]) Iterator[U] {
-	return G.Cycle[Iterator[U]](ma)
+	return G.Cycle(ma)
 }

@@ -215,7 +215,7 @@ func TestApplySemigroup(t *testing.T) {
 		return result
 	}
 
-	applySG := ApplySemigroup[int, HKT, []func(int) int](fmap, fap, add)
+	applySG := ApplySemigroup(fmap, fap, add)
 
 	hkt1 := HKT{1, 2}
 	hkt2 := HKT{3, 4}
@@ -240,7 +240,7 @@ func TestAltSemigroup(t *testing.T) {
 		return second()
 	}
 
-	altSG := AltSemigroup[Option[int], func() Option[int]](falt)
+	altSG := AltSemigroup(falt)
 
 	some := Option[int]{value: 42, hasValue: true}
 	none := Option[int]{hasValue: false}

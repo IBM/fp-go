@@ -22,5 +22,5 @@ import (
 
 // FromArray returns a traversal from an array for the identity monad
 func FromArray[A any]() G.Traversal[[]A, A, []A, A] {
-	return AR.FromArray[[]A, A]()
+	return AR.FromArray[[]A]()
 }

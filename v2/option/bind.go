@@ -229,7 +229,7 @@ func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
 ) Kleisli[Option[S], S] {
-	return Bind[S, S, T](lens.Set, function.Flow2(lens.Get, f))
+	return Bind(lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.
@@ -265,7 +265,7 @@ func LetL[S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) Kleisli[Option[S], S] {
-	return Let[S, S, T](lens.Set, function.Flow2(lens.Get, f))
+	return Let(lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetToL attaches a constant value to a context using a lens-based setter.
@@ -299,5 +299,5 @@ func LetToL[S, T any](
 	lens L.Lens[S, T],
 	b T,
 ) Kleisli[Option[S], S] {
-	return LetTo[S, S, T](lens.Set, b)
+	return LetTo(lens.Set, b)
 }

@@ -273,7 +273,7 @@ func BindL[E, S, T any](
 	lens Lens[S, T],
 	f Kleisli[E, T, T],
 ) Endomorphism[Either[E, S]] {
-	return Bind[E, S, S, T](lens.Set, function.Flow2(lens.Get, f))
+	return Bind(lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.
@@ -323,7 +323,7 @@ func LetL[E, S, T any](
 	lens Lens[S, T],
 	f Endomorphism[T],
 ) Endomorphism[Either[E, S]] {
-	return Let[E, S, S, T](lens.Set, function.Flow2(lens.Get, f))
+	return Let[E](lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetToL attaches a constant value to a context using a lens-based setter.
@@ -371,5 +371,5 @@ func LetToL[E, S, T any](
 	lens Lens[S, T],
 	b T,
 ) Endomorphism[Either[E, S]] {
-	return LetTo[E, S, S, T](lens.Set, b)
+	return LetTo[E](lens.Set, b)
 }

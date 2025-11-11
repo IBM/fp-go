@@ -22,5 +22,5 @@ import (
 
 // First returns the first item in an iterator if such an item exists
 func First[U any](mu Iterator[U]) O.Option[U] {
-	return G.First[Iterator[U]](mu)
+	return G.First(mu)
 }

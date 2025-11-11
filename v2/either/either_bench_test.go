@@ -267,7 +267,7 @@ func BenchmarkMonadChain_Left(b *testing.B) {
 
 func BenchmarkChain_Right(b *testing.B) {
 	right := Right[error](42)
-	chainer := Chain[error](func(a int) Either[error, int] { return Right[error](a * 2) })
+	chainer := Chain(func(a int) Either[error, int] { return Right[error](a * 2) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -277,7 +277,7 @@ func BenchmarkChain_Right(b *testing.B) {
 
 func BenchmarkChain_Left(b *testing.B) {
 	left := Left[int](errBench)
-	chainer := Chain[error](func(a int) Either[error, int] { return Right[error](a * 2) })
+	chainer := Chain(func(a int) Either[error, int] { return Right[error](a * 2) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -297,7 +297,7 @@ func BenchmarkChainFirst_Right(b *testing.B) {
 
 func BenchmarkChainFirst_Left(b *testing.B) {
 	left := Left[int](errBench)
-	chainer := ChainFirst[error](func(a int) Either[error, string] { return Right[error]("logged") })
+	chainer := ChainFirst(func(a int) Either[error, string] { return Right[error]("logged") })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -357,7 +357,7 @@ func BenchmarkMonadAp_LeftRight(b *testing.B) {
 func BenchmarkAp_RightRight(b *testing.B) {
 	fab := Right[error](func(a int) int { return a * 2 })
 	fa := Right[error](42)
-	ap := Ap[int, error, int](fa)
+	ap := Ap[int](fa)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -378,7 +378,7 @@ func BenchmarkAlt_RightRight(b *testing.B) {
 
 func BenchmarkAlt_LeftRight(b *testing.B) {
 	left := Left[int](errBench)
-	alternative := Alt[error](func() Either[error, int] { return Right[error](99) })
+	alternative := Alt(func() Either[error, int] { return Right[error](99) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -388,7 +388,7 @@ func BenchmarkAlt_LeftRight(b *testing.B) {
 
 func BenchmarkOrElse_Right(b *testing.B) {
 	right := Right[error](42)
-	recover := OrElse[error](func(e error) Either[error, int] { return Right[error](0) })
+	recover := OrElse(func(e error) Either[error, int] { return Right[error](0) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -457,7 +457,7 @@ func BenchmarkSwap_Left(b *testing.B) {
 
 func BenchmarkGetOrElse_Right(b *testing.B) {
 	right := Right[error](42)
-	getter := GetOrElse[error](func(e error) int { return 0 })
+	getter := GetOrElse(func(e error) int { return 0 })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -467,7 +467,7 @@ func BenchmarkGetOrElse_Right(b *testing.B) {
 
 func BenchmarkGetOrElse_Left(b *testing.B) {
 	left := Left[int](errBench)
-	getter := GetOrElse[error](func(e error) int { return 0 })
+	getter := GetOrElse(func(e error) int { return 0 })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -507,7 +507,7 @@ func BenchmarkPipeline_Chain_Right(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchResult = F.Pipe1(
 			right,
-			Chain[error](func(x int) Either[error, int] { return Right[error](x * 2) }),
+			Chain(func(x int) Either[error, int] { return Right[error](x * 2) }),
 		)
 	}
 }
@@ -519,7 +519,7 @@ func BenchmarkPipeline_Chain_Left(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchResult = F.Pipe1(
 			left,
-			Chain[error](func(x int) Either[error, int] { return Right[error](x * 2) }),
+			Chain(func(x int) Either[error, int] { return Right[error](x * 2) }),
 		)
 	}
 }
@@ -532,7 +532,7 @@ func BenchmarkPipeline_Complex_Right(b *testing.B) {
 		benchResult = F.Pipe3(
 			right,
 			Map[error](func(x int) int { return x * 2 }),
-			Chain[error](func(x int) Either[error, int] { return Right[error](x + 1) }),
+			Chain(func(x int) Either[error, int] { return Right[error](x + 1) }),
 			Map[error](func(x int) int { return x * 2 }),
 		)
 	}
@@ -546,7 +546,7 @@ func BenchmarkPipeline_Complex_Left(b *testing.B) {
 		benchResult = F.Pipe3(
 			left,
 			Map[error](func(x int) int { return x * 2 }),
-			Chain[error](func(x int) Either[error, int] { return Right[error](x + 1) }),
+			Chain(func(x int) Either[error, int] { return Right[error](x + 1) }),
 			Map[error](func(x int) int { return x * 2 }),
 		)
 	}
@@ -599,7 +599,7 @@ func BenchmarkDo(b *testing.B) {
 func BenchmarkBind_Right(b *testing.B) {
 	type State struct{ value int }
 	initial := Do[error](State{})
-	binder := Bind[error, State, State](
+	binder := Bind(
 		func(v int) func(State) State {
 			return func(s State) State { return State{value: v} }
 		},
@@ -617,7 +617,7 @@ func BenchmarkBind_Right(b *testing.B) {
 func BenchmarkLet_Right(b *testing.B) {
 	type State struct{ value int }
 	initial := Right[error](State{value: 10})
-	letter := Let[error, State, State](
+	letter := Let[error](
 		func(v int) func(State) State {
 			return func(s State) State { return State{value: s.value + v} }
 		},

@@ -219,21 +219,21 @@ func TestToArray3FromArray3(t *testing.T) {
 // Test Push functions
 func TestPush1(t *testing.T) {
 	t1 := MakeTuple1(42)
-	push := Push1[int, string]("hello")
+	push := Push1[int]("hello")
 	result := push(t1)
 	assert.Equal(t, MakeTuple2(42, "hello"), result)
 }
 
 func TestPush2(t *testing.T) {
 	t2 := MakeTuple2(1, 2)
-	push := Push2[int, int, int](3)
+	push := Push2[int, int](3)
 	result := push(t2)
 	assert.Equal(t, MakeTuple3(1, 2, 3), result)
 }
 
 func TestPush3(t *testing.T) {
 	t3 := MakeTuple3(1, 2, 3)
-	push := Push3[int, int, int, int](4)
+	push := Push3[int, int, int](4)
 	result := push(t3)
 	assert.Equal(t, MakeTuple4(1, 2, 3, 4), result)
 }
@@ -511,14 +511,14 @@ func TestToArray5FromArray5(t *testing.T) {
 // Test Push for larger tuples
 func TestPush4(t *testing.T) {
 	t4 := MakeTuple4(1, 2, 3, 4)
-	push := Push4[int, int, int, int, int](5)
+	push := Push4[int, int, int, int](5)
 	result := push(t4)
 	assert.Equal(t, MakeTuple5(1, 2, 3, 4, 5), result)
 }
 
 func TestPush5(t *testing.T) {
 	t5 := MakeTuple5(1, 2, 3, 4, 5)
-	push := Push5[int, int, int, int, int, int](6)
+	push := Push5[int, int, int, int, int](6)
 	result := push(t5)
 	assert.Equal(t, MakeTuple6(1, 2, 3, 4, 5, 6), result)
 }
@@ -927,28 +927,28 @@ func TestToArray10FromArray10(t *testing.T) {
 // Test Push for sizes 6-10
 func TestPush6(t *testing.T) {
 	t6 := MakeTuple6(1, 2, 3, 4, 5, 6)
-	push := Push6[int, int, int, int, int, int, int](7)
+	push := Push6[int, int, int, int, int, int](7)
 	result := push(t6)
 	assert.Equal(t, MakeTuple7(1, 2, 3, 4, 5, 6, 7), result)
 }
 
 func TestPush7(t *testing.T) {
 	t7 := MakeTuple7(1, 2, 3, 4, 5, 6, 7)
-	push := Push7[int, int, int, int, int, int, int, int](8)
+	push := Push7[int, int, int, int, int, int, int](8)
 	result := push(t7)
 	assert.Equal(t, MakeTuple8(1, 2, 3, 4, 5, 6, 7, 8), result)
 }
 
 func TestPush8(t *testing.T) {
 	t8 := MakeTuple8(1, 2, 3, 4, 5, 6, 7, 8)
-	push := Push8[int, int, int, int, int, int, int, int, int](9)
+	push := Push8[int, int, int, int, int, int, int, int](9)
 	result := push(t8)
 	assert.Equal(t, MakeTuple9(1, 2, 3, 4, 5, 6, 7, 8, 9), result)
 }
 
 func TestPush9(t *testing.T) {
 	t9 := MakeTuple9(1, 2, 3, 4, 5, 6, 7, 8, 9)
-	push := Push9[int, int, int, int, int, int, int, int, int, int](10)
+	push := Push9[int, int, int, int, int, int, int, int, int](10)
 	result := push(t9)
 	assert.Equal(t, MakeTuple10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), result)
 }
@@ -1660,35 +1660,35 @@ func TestToArray15FromArray15(t *testing.T) {
 // Test Push for sizes 10-14
 func TestPush10(t *testing.T) {
 	t10 := MakeTuple10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-	push := Push10[int, int, int, int, int, int, int, int, int, int, int](11)
+	push := Push10[int, int, int, int, int, int, int, int, int, int](11)
 	result := push(t10)
 	assert.Equal(t, MakeTuple11(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), result)
 }
 
 func TestPush11(t *testing.T) {
 	t11 := MakeTuple11(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-	push := Push11[int, int, int, int, int, int, int, int, int, int, int, int](12)
+	push := Push11[int, int, int, int, int, int, int, int, int, int, int](12)
 	result := push(t11)
 	assert.Equal(t, MakeTuple12(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), result)
 }
 
 func TestPush12(t *testing.T) {
 	t12 := MakeTuple12(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-	push := Push12[int, int, int, int, int, int, int, int, int, int, int, int, int](13)
+	push := Push12[int, int, int, int, int, int, int, int, int, int, int, int](13)
 	result := push(t12)
 	assert.Equal(t, MakeTuple13(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13), result)
 }
 
 func TestPush13(t *testing.T) {
 	t13 := MakeTuple13(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
-	push := Push13[int, int, int, int, int, int, int, int, int, int, int, int, int, int](14)
+	push := Push13[int, int, int, int, int, int, int, int, int, int, int, int, int](14)
 	result := push(t13)
 	assert.Equal(t, MakeTuple14(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14), result)
 }
 
 func TestPush14(t *testing.T) {
 	t14 := MakeTuple14(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
-	push := Push14[int, int, int, int, int, int, int, int, int, int, int, int, int, int, int](15)
+	push := Push14[int, int, int, int, int, int, int, int, int, int, int, int, int, int](15)
 	result := push(t14)
 	assert.Equal(t, MakeTuple15(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15), result)
 }

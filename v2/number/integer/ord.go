@@ -23,4 +23,4 @@ import (
 var Ord = O.FromStrictCompare[int]()
 
 // Between checks if an integer is between two values
-var Between = O.Between[int](Ord)
+var Between = O.Between(Ord)

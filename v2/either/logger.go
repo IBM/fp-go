@@ -26,7 +26,7 @@ func _log[E, A any](left func(string, ...any), right func(string, ...any), prefi
 	return Fold(
 		func(e E) Either[E, A] {
 			left("%s: %v", prefix, e)
-			return Left[A, E](e)
+			return Left[A](e)
 		},
 		func(a A) Either[E, A] {
 			right("%s: %v", prefix, a)

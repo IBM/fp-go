@@ -65,7 +65,7 @@ func TestLet(t *testing.T) {
 
 	res := F.Pipe2(
 		Do[context.Context](State{FirstName: "John", LastName: "Doe"}),
-		Let[context.Context, State, State, string](
+		Let[context.Context](
 			func(full string) func(State) State {
 				return func(s State) State { s.FullName = full; return s }
 			},
@@ -87,7 +87,7 @@ func TestLetTo(t *testing.T) {
 
 	res := F.Pipe2(
 		Do[context.Context](State{Name: "MyApp"}),
-		LetTo[context.Context, State, State, string](
+		LetTo[context.Context](
 			func(v string) func(State) State {
 				return func(s State) State { s.Version = v; return s }
 			},
@@ -105,7 +105,7 @@ func TestBindTo(t *testing.T) {
 	type State struct{ Name string }
 
 	getName := Asks(func(c context.Context) string { return "TestName" })
-	initState := BindTo[context.Context, State, string](func(name string) State {
+	initState := BindTo[context.Context](func(name string) State {
 		return State{Name: name}
 	})
 	result := initState(getName)

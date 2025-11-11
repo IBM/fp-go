@@ -22,7 +22,7 @@ import (
 type optionPointed[A any] struct{}
 
 func (o *optionPointed[A]) Of(a A) Option[A] {
-	return Of[A](a)
+	return Of(a)
 }
 
 // Pointed implements the Pointed operations for Option.

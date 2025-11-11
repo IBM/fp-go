@@ -38,7 +38,7 @@ import (
 func Do[R, E, S any](
 	empty S,
 ) ReaderEither[R, E, S] {
-	return G.Do[ReaderEither[R, E, S], R, E, S](empty)
+	return G.Do[ReaderEither[R, E, S]](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].
@@ -87,7 +87,7 @@ func Bind[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderEither[R, E, T],
 ) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
-	return G.Bind[ReaderEither[R, E, S1], ReaderEither[R, E, S2], ReaderEither[R, E, T], R, E, S1, S2, T](setter, f)
+	return G.Bind[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, f)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -95,7 +95,7 @@ func Let[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
 ) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
-	return G.Let[ReaderEither[R, E, S1], ReaderEither[R, E, S2], R, E, S1, S2, T](setter, f)
+	return G.Let[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, f)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
@@ -103,14 +103,14 @@ func LetTo[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
 ) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
-	return G.LetTo[ReaderEither[R, E, S1], ReaderEither[R, E, S2], R, E, S1, S2, T](setter, b)
+	return G.LetTo[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[R, E, S1, T any](
 	setter func(T) S1,
 ) func(ReaderEither[R, E, T]) ReaderEither[R, E, S1] {
-	return G.BindTo[ReaderEither[R, E, S1], ReaderEither[R, E, T], R, E, S1, T](setter)
+	return G.BindTo[ReaderEither[R, E, S1], ReaderEither[R, E, T]](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
@@ -158,7 +158,7 @@ func ApS[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderEither[R, E, T],
 ) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
-	return G.ApS[ReaderEither[R, E, S1], ReaderEither[R, E, S2], ReaderEither[R, E, T], R, E, S1, S2, T](setter, fa)
+	return G.ApS[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, fa)
 }
 
 // ApSL attaches a value to a context using a lens-based setter.
@@ -234,7 +234,7 @@ func BindL[R, E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) ReaderEither[R, E, T],
 ) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
-	return Bind[R, E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
+	return Bind(lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -268,7 +268,7 @@ func LetL[R, E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
-	return Let[R, E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
+	return Let[R, E](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
@@ -299,5 +299,5 @@ func LetToL[R, E, S, T any](
 	lens L.Lens[S, T],
 	b T,
 ) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
-	return LetTo[R, E, S, S, T](lens.Set, b)
+	return LetTo[R, E](lens.Set, b)
 }

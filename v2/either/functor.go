@@ -22,7 +22,7 @@ import (
 type eitherFunctor[E, A, B any] struct{}
 
 func (o *eitherFunctor[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
-	return Map[E, A, B](f)
+	return Map[E](f)
 }
 
 // Functor implements the functoric operations for Either.

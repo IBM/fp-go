@@ -39,7 +39,7 @@ import (
 func Do[GRS ~func(R) GS, GS ~func() either.Either[E, S], R, E, S any](
 	empty S,
 ) GRS {
-	return Of[GRS, GS, R, E, S](empty)
+	return Of[GRS](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].

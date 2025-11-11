@@ -371,7 +371,7 @@ func TestFunctionMonoid(t *testing.T) {
 		0,
 	)
 
-	funcMonoid := FunctionMonoid[string, int](intAddMonoid)
+	funcMonoid := FunctionMonoid[string](intAddMonoid)
 
 	// Create some functions
 	f1 := func(s string) int { return len(s) }
@@ -408,7 +408,7 @@ func TestFunctionMonoid_DifferentTypes(t *testing.T) {
 		false,
 	)
 
-	funcMonoid := FunctionMonoid[int, bool](boolOrMonoid)
+	funcMonoid := FunctionMonoid[int](boolOrMonoid)
 
 	isEven := func(n int) bool { return n%2 == 0 }
 	isPositive := func(n int) bool { return n > 0 }
@@ -702,7 +702,7 @@ func BenchmarkFunctionMonoid(b *testing.B) {
 		0,
 	)
 
-	funcMonoid := FunctionMonoid[string, int](intAddMonoid)
+	funcMonoid := FunctionMonoid[string](intAddMonoid)
 
 	f1 := func(s string) int { return len(s) }
 	f2 := func(s string) int { return len(s) * 2 }

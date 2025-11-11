@@ -23,5 +23,5 @@ import (
 // of the new [Iterator] are the result of the application of `f` to the value of the
 // source iterator with the previously accumulated value
 func Scan[FCT ~func(V, U) V, U, V any](f FCT, initial V) func(ma Iterator[U]) Iterator[V] {
-	return G.Scan[Iterator[V], Iterator[U], FCT](f, initial)
+	return G.Scan[Iterator[V], Iterator[U]](f, initial)
 }

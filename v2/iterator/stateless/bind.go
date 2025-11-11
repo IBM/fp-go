@@ -73,7 +73,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
 ) Kleisli[Iterator[S1], S2] {
-	return G.Bind[Iterator[S1], Iterator[S2], Iterator[T], S1, S2, T](setter, f)
+	return G.Bind[Iterator[S1], Iterator[S2]](setter, f)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -81,7 +81,7 @@ func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
 ) Kleisli[Iterator[S1], S2] {
-	return G.Let[Iterator[S1], Iterator[S2], S1, S2, T](setter, f)
+	return G.Let[Iterator[S1], Iterator[S2]](setter, f)
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
@@ -89,14 +89,14 @@ func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
 ) Kleisli[Iterator[S1], S2] {
-	return G.LetTo[Iterator[S1], Iterator[S2], S1, S2, T](setter, b)
+	return G.LetTo[Iterator[S1], Iterator[S2]](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) Kleisli[Iterator[T], S1] {
-	return G.BindTo[Iterator[S1], Iterator[T], S1, T](setter)
+	return G.BindTo[Iterator[S1], Iterator[T]](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
@@ -136,5 +136,5 @@ func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Iterator[T],
 ) Kleisli[Iterator[S1], S2] {
-	return G.ApS[Iterator[func(T) S2], Iterator[S1], Iterator[S2], Iterator[T], S1, S2, T](setter, fa)
+	return G.ApS[Iterator[func(T) S2], Iterator[S1], Iterator[S2]](setter, fa)
 }

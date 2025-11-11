@@ -71,14 +71,14 @@ func TestConstant(t *testing.T) {
 // TestConstant1 tests the Constant1 function
 func TestConstant1(t *testing.T) {
 	t.Run("ignores input and returns constant", func(t *testing.T) {
-		alwaysZero := Constant1[string, int](0)
+		alwaysZero := Constant1[string](0)
 		assert.Equal(t, 0, alwaysZero("anything"))
 		assert.Equal(t, 0, alwaysZero("something else"))
 		assert.Equal(t, 0, alwaysZero(""))
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
-		defaultName := Constant1[int, string]("Unknown")
+		defaultName := Constant1[int]("Unknown")
 		assert.Equal(t, "Unknown", defaultName(42))
 		assert.Equal(t, "Unknown", defaultName(0))
 	})
@@ -87,13 +87,13 @@ func TestConstant1(t *testing.T) {
 // TestConstant2 tests the Constant2 function
 func TestConstant2(t *testing.T) {
 	t.Run("ignores both inputs and returns constant", func(t *testing.T) {
-		alwaysTrue := Constant2[int, string, bool](true)
+		alwaysTrue := Constant2[int, string](true)
 		assert.True(t, alwaysTrue(42, "test"))
 		assert.True(t, alwaysTrue(0, ""))
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
-		alwaysPi := Constant2[string, bool, float64](3.14)
+		alwaysPi := Constant2[string, bool](3.14)
 		assert.Equal(t, 3.14, alwaysPi("test", true))
 	})
 }
@@ -296,8 +296,8 @@ func TestTernary(t *testing.T) {
 		isPositive := func(n int) bool { return n > 0 }
 		classify := Ternary(
 			isPositive,
-			Constant1[int, string]("positive"),
-			Constant1[int, string]("non-positive"),
+			Constant1[int]("positive"),
+			Constant1[int]("non-positive"),
 		)
 
 		assert.Equal(t, "positive", classify(5))

@@ -61,12 +61,12 @@ func FoldMap[M, S, A any](f func(A) M) func(sa Traversal[S, A, C.Const[M, S], C.
 
 // Fold maps each target to a `Monoid` and combines the result
 func Fold[S, A any](sa Traversal[S, A, C.Const[A, S], C.Const[A, A]]) func(S) A {
-	return FoldMap[A, S, A](F.Identity[A])(sa)
+	return FoldMap[A, S](F.Identity[A])(sa)
 }
 
 // GetAll gets all the targets of a traversal
 func GetAll[GA ~[]A, S, A any](s S) func(sa Traversal[S, A, C.Const[GA, S], C.Const[GA, A]]) GA {
-	fmap := FoldMap[GA, S, A](AR.Of[GA, A])
+	fmap := FoldMap[GA, S](AR.Of[GA, A])
 	return func(sa Traversal[S, A, C.Const[GA, S], C.Const[GA, A]]) GA {
 		return fmap(sa)(s)
 	}

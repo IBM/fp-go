@@ -28,7 +28,7 @@ import (
 )
 
 func FromIO[GEA ~func(E) GIOA, GIOA ~func() A, E, A any](t GIOA) GEA {
-	return R.Of[GEA, E](t)
+	return R.Of[GEA](t)
 }
 
 func FromReader[GA ~func(E) A, GEA ~func(E) GIOA, GIOA ~func() A, E, A any](r GA) GEA {

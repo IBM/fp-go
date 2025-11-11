@@ -38,7 +38,7 @@ func MakeSemigroup[A any](c func(A, A) A) Semigroup[A] {
 
 // Reverse returns The dual of a `Semigroup`, obtained by swapping the arguments of `concat`.
 func Reverse[A any](m Semigroup[A]) Semigroup[A] {
-	return MakeSemigroup(M.Reverse[A](m).Concat)
+	return MakeSemigroup(M.Reverse(m).Concat)
 }
 
 // FunctionSemigroup forms a semigroup as long as you can provide a semigroup for the codomain.

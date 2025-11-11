@@ -36,7 +36,7 @@ var (
 
 func TestLaws(t *testing.T) {
 	name := "Content-Type"
-	fieldLaws := LT.AssertLaws[http.Header, O.Option[string]](t, O.Eq(sEq), valuesEq)(AtValue(name))
+	fieldLaws := LT.AssertLaws(t, O.Eq(sEq), valuesEq)(AtValue(name))
 
 	n := O.None[string]()
 	s1 := O.Some("s1")

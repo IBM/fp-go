@@ -29,27 +29,27 @@ type readerIOEitherMonad[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, G
 type readerIOEitherFunctor[R, E, A, B any, GRA ~func(R) GIOA, GRB ~func(R) GIOB, GIOA ~func() either.Either[E, A], GIOB ~func() either.Either[E, B]] struct{}
 
 func (o *readerIOEitherPointed[R, E, A, GRA, GIOA]) Of(a A) GRA {
-	return Of[GRA, GIOA, R, E, A](a)
+	return Of[GRA](a)
 }
 
 func (o *readerIOEitherMonad[R, E, A, B, GRA, GRB, GRAB, GIOA, GIOB, GIOAB]) Of(a A) GRA {
-	return Of[GRA, GIOA, R, E, A](a)
+	return Of[GRA](a)
 }
 
 func (o *readerIOEitherMonad[R, E, A, B, GRA, GRB, GRAB, GIOA, GIOB, GIOAB]) Map(f func(A) B) func(GRA) GRB {
-	return Map[GRA, GRB, GIOA, GIOB, R, E, A, B](f)
+	return Map[GRA, GRB](f)
 }
 
 func (o *readerIOEitherMonad[R, E, A, B, GRA, GRB, GRAB, GIOA, GIOB, GIOAB]) Chain(f func(A) GRB) func(GRA) GRB {
-	return Chain[GRA, GRB, GIOA, GIOB, R, E, A, B](f)
+	return Chain[GRA](f)
 }
 
 func (o *readerIOEitherMonad[R, E, A, B, GRA, GRB, GRAB, GIOA, GIOB, GIOAB]) Ap(fa GRA) func(GRAB) GRB {
-	return Ap[GRA, GRB, GRAB, GIOA, GIOB, GIOAB, R, E, A, B](fa)
+	return Ap[GRA, GRB, GRAB](fa)
 }
 
 func (o *readerIOEitherFunctor[R, E, A, B, GRA, GRB, GIOA, GIOB]) Map(f func(A) B) func(GRA) GRB {
-	return Map[GRA, GRB, GIOA, GIOB, R, E, A, B](f)
+	return Map[GRA, GRB](f)
 }
 
 // Pointed implements the pointed operations for [ReaderIOEither]

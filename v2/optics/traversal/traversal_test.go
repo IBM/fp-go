@@ -57,7 +57,7 @@ func TestFold(t *testing.T) {
 		Compose[[]int, []int, int, C.Const[int, []int]](tr),
 	)
 
-	folded := Fold[[]int, int](sa)(as)
+	folded := Fold(sa)(as)
 
 	assert.Equal(t, 6, folded)
 }
@@ -70,7 +70,7 @@ func TestTraverse(t *testing.T) {
 
 	sa := F.Pipe1(
 		Id[[]int, []int](),
-		Compose[[]int, []int, int, []int, []int, int](tr),
+		Compose[[]int, []int, int, []int](tr),
 	)
 
 	res := sa(utils.Double)(as)

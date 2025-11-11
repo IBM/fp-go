@@ -341,7 +341,7 @@ func TestTraverseRecordWithIndex(t *testing.T) {
 	}
 
 	input := map[string]string{"a": "1"}
-	result := TraverseRecordWithIndex[string](validate)(input)
+	result := TraverseRecordWithIndex(validate)(input)
 	expected := Right[error](map[string]string{"a": "a:1"})
 	assert.Equal(t, expected, result)
 }
@@ -658,7 +658,7 @@ func TestAlternativeMonoid(t *testing.T) {
 // Test AltMonoid
 func TestAltMonoid(t *testing.T) {
 	zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-	m := AltMonoid[error, int](zero)
+	m := AltMonoid(zero)
 
 	result := m.Concat(Left[int](errors.New("err1")), Right[error](42))
 	assert.Equal(t, Right[error](42), result)

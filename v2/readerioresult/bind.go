@@ -654,7 +654,7 @@ func ApReaderS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Reader[R, T],
 ) Operator[R, S1, S2] {
-	return ApS(setter, FromReader[R, T](fa))
+	return ApS(setter, FromReader(fa))
 }
 
 // ApReaderIOS is an applicative variant that works with ReaderIO values.
@@ -667,7 +667,7 @@ func ApReaderIOS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIO[R, T],
 ) Operator[R, S1, S2] {
-	return ApS(setter, FromReaderIO[R, T](fa))
+	return ApS(setter, FromReaderIO(fa))
 }
 
 // ApEitherS is an applicative variant that works with Either (Result) values.
@@ -686,7 +686,7 @@ func ApEitherS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
 ) Operator[R, S1, S2] {
-	return ApS(setter, FromEither[R, T](fa))
+	return ApS(setter, FromEither[R](fa))
 }
 
 // ApResultS is an applicative variant that works with Result values.
@@ -699,7 +699,7 @@ func ApResultS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
 ) Operator[R, S1, S2] {
-	return ApS(setter, FromResult[R, T](fa))
+	return ApS(setter, FromResult[R](fa))
 }
 
 // ApIOEitherSL is a lens-based variant of ApIOEitherS.
@@ -777,7 +777,7 @@ func ApReaderSL[R, S, T any](
 	lens L.Lens[S, T],
 	fa Reader[R, T],
 ) Operator[R, S, S] {
-	return ApSL(lens, FromReader[R, T](fa))
+	return ApSL(lens, FromReader(fa))
 }
 
 // ApReaderIOSL is a lens-based variant of ApReaderIOS.
@@ -803,7 +803,7 @@ func ApReaderIOSL[R, S, T any](
 	lens L.Lens[S, T],
 	fa ReaderIO[R, T],
 ) Operator[R, S, S] {
-	return ApSL(lens, FromReaderIO[R, T](fa))
+	return ApSL(lens, FromReaderIO(fa))
 }
 
 // ApEitherSL is a lens-based variant of ApEitherS.
@@ -826,7 +826,7 @@ func ApEitherSL[R, S, T any](
 	lens L.Lens[S, T],
 	fa Result[T],
 ) Operator[R, S, S] {
-	return ApSL(lens, FromEither[R, T](fa))
+	return ApSL(lens, FromEither[R](fa))
 }
 
 // ApResultSL is a lens-based variant of ApResultS.
@@ -839,5 +839,5 @@ func ApResultSL[R, S, T any](
 	lens L.Lens[S, T],
 	fa Result[T],
 ) Operator[R, S, S] {
-	return ApSL(lens, FromResult[R, T](fa))
+	return ApSL(lens, FromResult[R](fa))
 }

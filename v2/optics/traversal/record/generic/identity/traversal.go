@@ -23,7 +23,7 @@ import (
 
 // FromRecord returns a traversal from a record for the identity monad
 func FromRecord[MA ~map[K]A, K comparable, A any]() G.Traversal[MA, A, MA, A] {
-	return RR.FromRecord[MA, MA, K, A, A, A, func(A) MA, MA](
+	return RR.FromRecord[MA](
 		I.Of[MA],
 		I.Map[MA, func(A) MA],
 		I.Ap[MA, A],

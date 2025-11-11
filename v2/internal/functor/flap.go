@@ -27,12 +27,12 @@ func MonadFlap[FAB ~func(A) B, A, B, HKTFAB, HKTB any](
 	fab HKTFAB,
 	a A,
 ) HKTB {
-	return fmap(fab, flap[FAB, A, B](a))
+	return fmap(fab, flap[FAB](a))
 }
 
 func Flap[FAB ~func(A) B, A, B, HKTFAB, HKTB any](
 	fmap func(func(FAB) B) func(HKTFAB) HKTB,
 	a A,
 ) func(HKTFAB) HKTB {
-	return fmap(flap[FAB, A, B](a))
+	return fmap(flap[FAB](a))
 }

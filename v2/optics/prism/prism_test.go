@@ -102,11 +102,11 @@ func TestSet(t *testing.T) {
 	)
 
 	// Set value when it matches
-	result := Set[Option[int], int](100)(somePrism)(O.Some(42))
+	result := Set[Option[int]](100)(somePrism)(O.Some(42))
 	assert.Equal(t, O.Some(100), result)
 
 	// No change when it doesn't match
-	result = Set[Option[int], int](100)(somePrism)(O.None[int]())
+	result = Set[Option[int]](100)(somePrism)(O.None[int]())
 	assert.Equal(t, O.None[int](), result)
 }
 
@@ -211,7 +211,7 @@ func TestPrismModifyOption(t *testing.T) {
 	)
 
 	// Modify when match
-	setFn := Set[Option[int], int](100)
+	setFn := Set[Option[int]](100)
 	result := setFn(somePrism)(O.Some(42))
 	assert.Equal(t, O.Some(100), result)
 
@@ -255,7 +255,7 @@ func TestPrismWithCustomType(t *testing.T) {
 	assert.Equal(t, testSuccess{Value: 100}, result)
 
 	// Test Set with Success
-	setFn := Set[testResult, int](200)
+	setFn := Set[testResult](200)
 	updated := setFn(successPrism)(success)
 	assert.Equal(t, testSuccess{Value: 200}, updated)
 
@@ -272,11 +272,11 @@ func TestPrismModify(t *testing.T) {
 	)
 
 	// Test modify with matching value
-	result := Set[Option[int], int](84)(somePrism)(O.Some(42))
+	result := Set[Option[int]](84)(somePrism)(O.Some(42))
 	assert.Equal(t, O.Some(84), result)
 
 	// Test that original is returned when no match
-	result = Set[Option[int], int](100)(somePrism)(O.None[int]())
+	result = Set[Option[int]](100)(somePrism)(O.None[int]())
 	assert.Equal(t, O.None[int](), result)
 }
 
@@ -286,7 +286,7 @@ func TestPrismModifyWithTransform(t *testing.T) {
 	positivePrism := FromPredicate(func(n int) bool { return n > 0 })
 
 	// Modify positive number
-	setter := Set[int, int](100)
+	setter := Set[int](100)
 	result := setter(positivePrism)(42)
 	assert.Equal(t, 100, result)
 
@@ -395,9 +395,9 @@ func TestPrismSetMultipleTimes(t *testing.T) {
 	// Chain multiple sets
 	result := F.Pipe3(
 		O.Some(10),
-		Set[Option[int], int](20)(somePrism),
-		Set[Option[int], int](30)(somePrism),
-		Set[Option[int], int](40)(somePrism),
+		Set[Option[int]](20)(somePrism),
+		Set[Option[int]](30)(somePrism),
+		Set[Option[int]](40)(somePrism),
 	)
 
 	assert.Equal(t, O.Some(40), result)
@@ -686,7 +686,7 @@ func TestFromEncodingWithSet(t *testing.T) {
 
 		// New data to set
 		newData := []byte("New Data")
-		setter := Set[string, []byte](newData)
+		setter := Set[string](newData)
 
 		// Apply the setter
 		result := setter(prism)(original)
@@ -707,7 +707,7 @@ func TestFromEncodingWithSet(t *testing.T) {
 
 		// Try to set new data
 		newData := []byte("New Data")
-		setter := Set[string, []byte](newData)
+		setter := Set[string](newData)
 
 		// Should return original unchanged
 		result := setter(prism)(invalid)
@@ -900,7 +900,7 @@ func TestParseURLWithSet(t *testing.T) {
 		original := "https://oldsite.com/path"
 		newURL, _ := url.Parse("https://newsite.com/newpath")
 
-		setter := Set[string, *url.URL](newURL)
+		setter := Set[string](newURL)
 		result := setter(urlPrism)(original)
 
 		assert.Equal(t, "https://newsite.com/newpath", result)
@@ -1027,7 +1027,7 @@ func TestInstanceOfWithSet(t *testing.T) {
 		intPrism := InstanceOf[int]()
 		var original any = 42
 
-		setter := Set[any, int](100)
+		setter := Set[any](100)
 		result := setter(intPrism)(original)
 
 		assert.Equal(t, any(100), result)
@@ -1037,7 +1037,7 @@ func TestInstanceOfWithSet(t *testing.T) {
 		intPrism := InstanceOf[int]()
 		var original any = "not an int"
 
-		setter := Set[any, int](100)
+		setter := Set[any](100)
 		result := setter(intPrism)(original)
 
 		assert.Equal(t, original, result)
@@ -1166,7 +1166,7 @@ func TestParseDateWithSet(t *testing.T) {
 		original := "2024-03-15"
 		newDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
-		setter := Set[string, time.Time](newDate)
+		setter := Set[string](newDate)
 		result := setter(datePrism)(original)
 
 		assert.Equal(t, "2025-01-01", result)
@@ -1176,7 +1176,7 @@ func TestParseDateWithSet(t *testing.T) {
 		invalid := "not-a-date"
 		newDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
-		setter := Set[string, time.Time](newDate)
+		setter := Set[string](newDate)
 		result := setter(datePrism)(invalid)
 
 		assert.Equal(t, invalid, result)
@@ -1317,7 +1317,7 @@ func TestDerefWithSet(t *testing.T) {
 		newValue := 100
 		newPtr := &newValue
 
-		setter := Set[*int, *int](newPtr)
+		setter := Set[*int](newPtr)
 		result := setter(derefPrism)(ptr)
 
 		assert.NotNil(t, result)
@@ -1330,7 +1330,7 @@ func TestDerefWithSet(t *testing.T) {
 		newValue := 100
 		newPtr := &newValue
 
-		setter := Set[*int, *int](newPtr)
+		setter := Set[*int](newPtr)
 		result := setter(derefPrism)(nilPtr)
 
 		assert.Nil(t, result)
@@ -1439,7 +1439,7 @@ func TestFromEitherWithSet(t *testing.T) {
 	t.Run("set on Right value", func(t *testing.T) {
 		success := E.Right[error](42)
 
-		setter := Set[E.Either[error, int], int](100)
+		setter := Set[E.Either[error, int]](100)
 		result := setter(prism)(success)
 
 		assert.True(t, E.IsRight(result))
@@ -1450,7 +1450,7 @@ func TestFromEitherWithSet(t *testing.T) {
 	t.Run("set on Left value returns original", func(t *testing.T) {
 		failure := E.Left[int](errors.New("failed"))
 
-		setter := Set[E.Either[error, int], int](100)
+		setter := Set[E.Either[error, int]](100)
 		result := setter(prism)(failure)
 
 		assert.True(t, E.IsLeft(result))

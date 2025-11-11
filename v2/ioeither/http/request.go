@@ -140,6 +140,6 @@ func readJSON(client Client) func(Requester) ioeither.IOEither[error, []byte] {
 func ReadJSON[A any](client Client) func(Requester) ioeither.IOEither[error, A] {
 	return F.Flow2(
 		readJSON(client),
-		ioeither.ChainEitherK[error](J.Unmarshal[A]),
+		ioeither.ChainEitherK(J.Unmarshal[A]),
 	)
 }

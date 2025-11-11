@@ -21,18 +21,18 @@ import (
 
 func UnionSemigroup[N ~map[K]V, K comparable, V any](s S.Semigroup[V]) S.Semigroup[N] {
 	return S.MakeSemigroup(func(first N, second N) N {
-		return union[N, K, V](S.ToMagma(s), first, second)
+		return union(S.ToMagma(s), first, second)
 	})
 }
 
 func UnionLastSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {
 	return S.MakeSemigroup(func(first N, second N) N {
-		return unionLast[N, K, V](first, second)
+		return unionLast(first, second)
 	})
 }
 
 func UnionFirstSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {
 	return S.MakeSemigroup(func(first N, second N) N {
-		return unionLast[N, K, V](second, first)
+		return unionLast(second, first)
 	})
 }

@@ -193,7 +193,7 @@ func TestChainOptionK(t *testing.T) {
 	// Test with Some
 	resultSome := F.Pipe1(
 		Of[testContext, error](5),
-		ChainOptionK[testContext, int, int, error](func() error {
+		ChainOptionK[testContext, int, int](func() error {
 			return errors.New("none")
 		})(func(x int) O.Option[int] {
 			return O.Some(x * 2)
@@ -204,7 +204,7 @@ func TestChainOptionK(t *testing.T) {
 	// Test with None
 	resultNone := F.Pipe1(
 		Of[testContext, error](5),
-		ChainOptionK[testContext, int, int, error](func() error {
+		ChainOptionK[testContext, int, int](func() error {
 			return errors.New("none")
 		})(func(x int) O.Option[int] {
 			return O.None[int]()
@@ -233,7 +233,7 @@ func TestChain(t *testing.T) {
 	ctx := testContext{value: 10}
 	result := F.Pipe1(
 		Of[testContext, error](5),
-		Chain[testContext, error](func(x int) ReaderIOEither[testContext, error, int] {
+		Chain(func(x int) ReaderIOEither[testContext, error, int] {
 			return Of[testContext, error](x * 2)
 		}),
 	)
@@ -340,14 +340,14 @@ func TestFromPredicate(t *testing.T) {
 	ctx := testContext{value: 10}
 
 	// Test predicate true
-	resultTrue := FromPredicate[testContext, error](
+	resultTrue := FromPredicate[testContext](
 		func(x int) bool { return x > 0 },
 		func(x int) error { return errors.New("negative") },
 	)(5)
 	assert.Equal(t, E.Right[error](5), resultTrue(ctx)())
 
 	// Test predicate false
-	resultFalse := FromPredicate[testContext, error](
+	resultFalse := FromPredicate[testContext](
 		func(x int) bool { return x > 0 },
 		func(x int) error { return errors.New("negative") },
 	)(-5)
@@ -369,7 +369,7 @@ func TestFold(t *testing.T) {
 	assert.Equal(t, "value: 42", resultRight(ctx)())
 
 	// Test Left case
-	resultLeft := Fold[testContext, error, int, string](
+	resultLeft := Fold(
 		func(e error) RIO.ReaderIO[testContext, string] {
 			return RIO.Of[testContext]("error: " + e.Error())
 		},
@@ -384,13 +384,13 @@ func TestGetOrElse(t *testing.T) {
 	ctx := testContext{value: 10}
 
 	// Test Right case
-	resultRight := GetOrElse[testContext, error](func(e error) RIO.ReaderIO[testContext, int] {
+	resultRight := GetOrElse(func(e error) RIO.ReaderIO[testContext, int] {
 		return RIO.Of[testContext](0)
 	})(Of[testContext, error](42))
 	assert.Equal(t, 42, resultRight(ctx)())
 
 	// Test Left case
-	resultLeft := GetOrElse[testContext, error](func(e error) RIO.ReaderIO[testContext, int] {
+	resultLeft := GetOrElse(func(e error) RIO.ReaderIO[testContext, int] {
 		return RIO.Of[testContext](0)
 	})(Left[testContext, int](errors.New("test")))
 	assert.Equal(t, 0, resultLeft(ctx)())
@@ -400,13 +400,13 @@ func TestOrElse(t *testing.T) {
 	ctx := testContext{value: 10}
 
 	// Test Right case
-	resultRight := OrElse[testContext, error, int, string](func(e error) ReaderIOEither[testContext, string, int] {
+	resultRight := OrElse(func(e error) ReaderIOEither[testContext, string, int] {
 		return Left[testContext, int]("alternative")
 	})(Of[testContext, error](42))
 	assert.Equal(t, E.Right[string](42), resultRight(ctx)())
 
 	// Test Left case
-	resultLeft := OrElse[testContext, error, int, string](func(e error) ReaderIOEither[testContext, string, int] {
+	resultLeft := OrElse(func(e error) ReaderIOEither[testContext, string, int] {
 		return Of[testContext, string](99)
 	})(Left[testContext, int](errors.New("test")))
 	assert.Equal(t, E.Right[string](99), resultLeft(ctx)())
@@ -436,7 +436,7 @@ func TestBiMap(t *testing.T) {
 	ctx := testContext{value: 10}
 	result := F.Pipe1(
 		Of[testContext, error](5),
-		BiMap[testContext, error, string](
+		BiMap[testContext](
 			error.Error,
 			strconv.Itoa,
 		),
@@ -522,7 +522,7 @@ func TestAlt(t *testing.T) {
 	ctx := testContext{value: 10}
 	result := F.Pipe1(
 		Left[testContext, int](errors.New("first")),
-		Alt[testContext, error](func() ReaderIOEither[testContext, error, int] {
+		Alt(func() ReaderIOEither[testContext, error, int] {
 			return Of[testContext, error](99)
 		}),
 	)
@@ -616,7 +616,7 @@ func TestRightReaderIO(t *testing.T) {
 	rio := func(c testContext) io.IO[int] {
 		return func() int { return c.value * 2 }
 	}
-	result := RightReaderIO[error, testContext](rio)
+	result := RightReaderIO[error](rio)
 	assert.Equal(t, E.Right[error](20), result(ctx)())
 }
 
@@ -703,7 +703,7 @@ func TestWithResource(t *testing.T) {
 	ctx := testContext{value: 10}
 	released := false
 
-	result := WithResource[string, testContext, error, int, int](
+	result := WithResource[string](
 		Of[testContext, error](42),
 		func(x int) ReaderIOEither[testContext, error, int] {
 			released = true
@@ -724,7 +724,7 @@ func TestMonad(t *testing.T) {
 
 func TestTraverseArrayWithIndex(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := TraverseArrayWithIndex[testContext, error](func(i int, x int) ReaderIOEither[testContext, error, int] {
+	result := TraverseArrayWithIndex(func(i int, x int) ReaderIOEither[testContext, error, int] {
 		return Of[testContext, error](x + i)
 	})([]int{1, 2, 3})
 
@@ -733,7 +733,7 @@ func TestTraverseArrayWithIndex(t *testing.T) {
 
 func TestTraverseRecord(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := TraverseRecord[string, testContext, error](func(x int) ReaderIOEither[testContext, error, int] {
+	result := TraverseRecord[string](func(x int) ReaderIOEither[testContext, error, int] {
 		return Of[testContext, error](x * 2)
 	})(map[string]int{"a": 1, "b": 2})
 

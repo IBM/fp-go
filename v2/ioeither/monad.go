@@ -30,27 +30,27 @@ type (
 )
 
 func (o *ioEitherPointed[E, A]) Of(a A) IOEither[E, A] {
-	return Of[E, A](a)
+	return Of[E](a)
 }
 
 func (o *ioEitherMonad[E, A, B]) Of(a A) IOEither[E, A] {
-	return Of[E, A](a)
+	return Of[E](a)
 }
 
 func (o *ioEitherMonad[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
-	return Map[E, A, B](f)
+	return Map[E](f)
 }
 
 func (o *ioEitherMonad[E, A, B]) Chain(f Kleisli[E, A, B]) Operator[E, A, B] {
-	return Chain[E, A, B](f)
+	return Chain(f)
 }
 
 func (o *ioEitherMonad[E, A, B]) Ap(fa IOEither[E, A]) Operator[E, func(A) B, B] {
-	return Ap[B, E, A](fa)
+	return Ap[B](fa)
 }
 
 func (o *ioEitherFunctor[E, A, B]) Map(f func(A) B) Operator[E, A, B] {
-	return Map[E, A, B](f)
+	return Map[E](f)
 }
 
 // Pointed implements the pointed operations for [IOEither]

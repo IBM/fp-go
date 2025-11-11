@@ -59,11 +59,11 @@ func Map[E, L, A, B any](f func(A) B) func(ReaderEither[E, L, A]) ReaderEither[E
 }
 
 func MonadChain[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) ReaderEither[E, L, B]) ReaderEither[E, L, B] {
-	return readert.MonadChain[ReaderEither[E, L, A], ReaderEither[E, L, B]](ET.MonadChain[L, A, B], ma, f)
+	return readert.MonadChain(ET.MonadChain[L, A, B], ma, f)
 }
 
 func Chain[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return readert.Chain[ReaderEither[E, L, A], ReaderEither[E, L, B]](ET.Chain[L, A, B], f)
+	return readert.Chain[ReaderEither[E, L, A]](ET.Chain[L, A, B], f)
 }
 
 func Of[E, L, A any](a A) ReaderEither[E, L, A] {
@@ -148,7 +148,7 @@ func BiMap[E, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(ReaderEither[E,
 // Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s
 // `contramap`).
 func Local[E, A, R2, R1 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderEither[R2, E, A] {
-	return reader.Local[Either[E, A], R2, R1](f)
+	return reader.Local[Either[E, A]](f)
 }
 
 // Read applies a context to a reader to obtain its value

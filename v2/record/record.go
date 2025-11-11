@@ -110,7 +110,7 @@ func Lookup[V any, K comparable](k K) func(map[K]V) O.Option[V] {
 
 // MonadLookup returns the entry for a key in a map if it exists
 func MonadLookup[V any, K comparable](m map[K]V, k K) O.Option[V] {
-	return G.MonadLookup[map[K]V](m, k)
+	return G.MonadLookup(m, k)
 }
 
 // Has tests if a key is contained in a map
@@ -124,7 +124,7 @@ func Union[K comparable, V any](m Mg.Magma[V]) func(map[K]V) func(map[K]V) map[K
 
 // Merge combines two maps giving the values in the right one precedence. Also refer to [MergeMonoid]
 func Merge[K comparable, V any](right map[K]V) func(map[K]V) map[K]V {
-	return G.Merge[map[K]V](right)
+	return G.Merge(right)
 }
 
 // Empty creates an empty map
@@ -260,7 +260,7 @@ func FoldMapOrd[A, B any, K comparable](o ord.Ord[K]) func(m Mo.Monoid[B]) func(
 
 // Fold folds the record using the provided Monoid with the items passed in the given order
 func FoldOrd[A any, K comparable](o ord.Ord[K]) func(m Mo.Monoid[A]) func(map[K]A) A {
-	return G.FoldOrd[map[K]A, K, A](o)
+	return G.FoldOrd[map[K]A](o)
 }
 
 // FoldMapWithIndex maps and folds a record. Map the record passing each value to the iterating function. Then fold the results using the provided Monoid and the items in the provided order
@@ -270,12 +270,12 @@ func FoldMapOrdWithIndex[K comparable, A, B any](o ord.Ord[K]) func(m Mo.Monoid[
 
 // KeysOrd returns the keys in the map in their given order
 func KeysOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []K {
-	return G.KeysOrd[map[K]V, []K, K, V](o)
+	return G.KeysOrd[map[K]V, []K](o)
 }
 
 // ValuesOrd returns the values in the map ordered by their keys in the given order
 func ValuesOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []V {
-	return G.ValuesOrd[map[K]V, []V, K, V](o)
+	return G.ValuesOrd[map[K]V, []V](o)
 }
 
 func MonadFlap[B any, K comparable, A any](fab map[K]func(A) B, a A) map[K]B {
@@ -288,7 +288,7 @@ func Flap[B any, K comparable, A any](a A) func(map[K]func(A) B) map[K]B {
 
 // Copy creates a shallow copy of the map
 func Copy[K comparable, V any](m map[K]V) map[K]V {
-	return G.Copy[map[K]V](m)
+	return G.Copy(m)
 }
 
 // Clone creates a deep copy of the map using the provided endomorphism to clone the values
@@ -323,7 +323,7 @@ func FromFoldable[
 	FOLDABLE ~func(func(map[K]V, T.Tuple2[K, V]) map[K]V, map[K]V) func(HKTA) map[K]V, // the reduce function
 	K comparable,
 	V any](m Mg.Magma[V], red FOLDABLE) func(fa HKTA) map[K]V {
-	return G.FromFoldable[HKTA, FOLDABLE](m, red)
+	return G.FromFoldable(m, red)
 }
 
 // FromArray converts from an array to a map
@@ -335,7 +335,7 @@ func FromArray[
 }
 
 func MonadAp[A any, K comparable, B any](m Mo.Monoid[map[K]B], fab map[K]func(A) B, fa map[K]A) map[K]B {
-	return G.MonadAp[map[K]B, map[K]func(A) B, map[K]A](m, fab, fa)
+	return G.MonadAp(m, fab, fa)
 }
 
 func Ap[A any, K comparable, B any](m Mo.Monoid[map[K]B]) func(fa map[K]A) func(map[K]func(A) B) map[K]B {

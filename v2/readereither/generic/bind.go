@@ -39,7 +39,7 @@ import (
 func Do[GS ~func(R) ET.Either[E, S], R, E, S any](
 	empty S,
 ) GS {
-	return Of[GS, E, R, S](empty)
+	return Of[GS](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].

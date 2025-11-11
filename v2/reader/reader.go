@@ -266,7 +266,7 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) func(Reader[E, A]) Reader[
 //	r := reader.Local(simplify)(getHost)
 //	result := r(DetailedConfig{Host: "localhost", Port: 8080}) // "localhost"
 func Local[A, R2, R1 any](f func(R2) R1) func(Reader[R1, A]) Reader[R2, A] {
-	return Compose[A, R2, R1](f)
+	return Compose[A](f)
 }
 
 // Read applies a context to a Reader to obtain its value.

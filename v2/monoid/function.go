@@ -65,7 +65,7 @@ import (
 //	assert.Equal(t, f1("test"), funcMonoid.Concat(f1, funcMonoid.Empty())("test"))
 func FunctionMonoid[A, B any](m Monoid[B]) Monoid[func(A) B] {
 	return MakeMonoid(
-		S.FunctionSemigroup[A, B](m).Concat,
+		S.FunctionSemigroup[A](m).Concat,
 		F.Constant1[A](m.Empty()),
 	)
 }
