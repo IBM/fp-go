@@ -334,6 +334,8 @@ func LetToL[S, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: An IOEither Kleisli arrow (S1 -> IOEither[error, T])
+//
+//go:inline
 func BindIOEitherK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f ioresult.Kleisli[S1, T],
@@ -347,6 +349,8 @@ func BindIOEitherK[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: An IOResult Kleisli arrow (S1 -> IOResult[T])
+//
+//go:inline
 func BindIOResultK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f ioresult.Kleisli[S1, T],
@@ -360,6 +364,8 @@ func BindIOResultK[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: An IO Kleisli arrow (S1 -> IO[T])
+//
+//go:inline
 func BindIOK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f io.Kleisli[S1, T],
@@ -373,6 +379,8 @@ func BindIOK[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: A Reader Kleisli arrow (S1 -> Reader[context.Context, T])
+//
+//go:inline
 func BindReaderK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f reader.Kleisli[context.Context, S1, T],
@@ -386,6 +394,8 @@ func BindReaderK[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: A ReaderIO Kleisli arrow (S1 -> ReaderIO[context.Context, T])
+//
+//go:inline
 func BindReaderIOK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f readerio.Kleisli[context.Context, S1, T],
@@ -399,6 +409,8 @@ func BindReaderIOK[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: An Either Kleisli arrow (S1 -> Either[error, T])
+//
+//go:inline
 func BindEitherK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f result.Kleisli[S1, T],
@@ -412,6 +424,8 @@ func BindEitherK[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - f: A Result Kleisli arrow (S1 -> Result[T])
+//
+//go:inline
 func BindResultK[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f result.Kleisli[S1, T],
@@ -426,6 +440,8 @@ func BindResultK[S1, S2, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - f: An IOEither Kleisli arrow (T -> IOEither[error, T])
+//
+//go:inline
 func BindIOEitherKL[S, T any](
 	lens L.Lens[S, T],
 	f ioresult.Kleisli[T, T],
@@ -439,6 +455,8 @@ func BindIOEitherKL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - f: An IOResult Kleisli arrow (T -> IOResult[T])
+//
+//go:inline
 func BindIOResultKL[S, T any](
 	lens L.Lens[S, T],
 	f ioresult.Kleisli[T, T],
@@ -453,6 +471,8 @@ func BindIOResultKL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - f: An IO Kleisli arrow (T -> IO[T])
+//
+//go:inline
 func BindIOKL[S, T any](
 	lens L.Lens[S, T],
 	f io.Kleisli[T, T],
@@ -467,6 +487,8 @@ func BindIOKL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - f: A Reader Kleisli arrow (T -> Reader[context.Context, T])
+//
+//go:inline
 func BindReaderKL[S, T any](
 	lens L.Lens[S, T],
 	f reader.Kleisli[context.Context, T, T],
@@ -481,6 +503,8 @@ func BindReaderKL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - f: A ReaderIO Kleisli arrow (T -> ReaderIO[context.Context, T])
+//
+//go:inline
 func BindReaderIOKL[S, T any](
 	lens L.Lens[S, T],
 	f readerio.Kleisli[context.Context, T, T],
@@ -495,6 +519,8 @@ func BindReaderIOKL[S, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: An IOEither value
+//
+//go:inline
 func ApIOEitherS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOResult[T],
@@ -508,6 +534,8 @@ func ApIOEitherS[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: An IOResult value
+//
+//go:inline
 func ApIOResultS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOResult[T],
@@ -521,6 +549,8 @@ func ApIOResultS[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: An IO value
+//
+//go:inline
 func ApIOS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IO[T],
@@ -534,6 +564,8 @@ func ApIOS[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: A Reader value
+//
+//go:inline
 func ApReaderS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Reader[context.Context, T],
@@ -547,6 +579,8 @@ func ApReaderS[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: A ReaderIO value
+//
+//go:inline
 func ApReaderIOS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIO[T],
@@ -560,6 +594,8 @@ func ApReaderIOS[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: An Either value
+//
+//go:inline
 func ApEitherS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
@@ -573,6 +609,8 @@ func ApEitherS[S1, S2, T any](
 // Parameters:
 //   - setter: Updates state from S1 to S2 using result T
 //   - fa: A Result value
+//
+//go:inline
 func ApResultS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Result[T],
@@ -586,6 +624,8 @@ func ApResultS[S1, S2, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: An IOEither value
+//
+//go:inline
 func ApIOEitherSL[S, T any](
 	lens L.Lens[S, T],
 	fa IOResult[T],
@@ -599,6 +639,8 @@ func ApIOEitherSL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: An IOResult value
+//
+//go:inline
 func ApIOResultSL[S, T any](
 	lens L.Lens[S, T],
 	fa IOResult[T],
@@ -612,6 +654,8 @@ func ApIOResultSL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: An IO value
+//
+//go:inline
 func ApIOSL[S, T any](
 	lens L.Lens[S, T],
 	fa IO[T],
@@ -625,6 +669,8 @@ func ApIOSL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: A Reader value
+//
+//go:inline
 func ApReaderSL[S, T any](
 	lens L.Lens[S, T],
 	fa Reader[context.Context, T],
@@ -638,6 +684,8 @@ func ApReaderSL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: A ReaderIO value
+//
+//go:inline
 func ApReaderIOSL[S, T any](
 	lens L.Lens[S, T],
 	fa ReaderIO[T],
@@ -651,6 +699,8 @@ func ApReaderIOSL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: An Either value
+//
+//go:inline
 func ApEitherSL[S, T any](
 	lens L.Lens[S, T],
 	fa Result[T],
@@ -664,6 +714,8 @@ func ApEitherSL[S, T any](
 // Parameters:
 //   - lens: A lens focusing on field T within state S
 //   - fa: A Result value
+//
+//go:inline
 func ApResultSL[S, T any](
 	lens L.Lens[S, T],
 	fa Result[T],
