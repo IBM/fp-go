@@ -25,5 +25,6 @@ type (
 	Reader[R, A any]   = reader.Reader[R, A]
 	ReaderIO[R, A any] = Reader[R, IO[A]]
 
-	Operator[R, A, B any] = Reader[ReaderIO[R, A], ReaderIO[R, B]]
+	Kleisli[R, A, B any]  = Reader[A, ReaderIO[R, B]]
+	Operator[R, A, B any] = Kleisli[R, ReaderIO[R, A], B]
 )

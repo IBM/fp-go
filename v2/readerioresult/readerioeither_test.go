@@ -573,29 +573,6 @@ func TestLocal(t *testing.T) {
 	assert.Equal(t, result.Of(40), res(ctx2)())
 }
 
-func TestMonadFromReaderIO(t *testing.T) {
-	ctx := testContext{value: 10}
-	res := MonadFromReaderIO(
-		5,
-		func(x int) RIO.ReaderIO[testContext, int] {
-			return func(c testContext) IO[int] {
-				return func() int { return x + c.value }
-			}
-		},
-	)
-	assert.Equal(t, result.Of(15), res(ctx)())
-}
-
-func TestFromReaderIO(t *testing.T) {
-	ctx := testContext{value: 10}
-	res := FromReaderIO(func(x int) RIO.ReaderIO[testContext, int] {
-		return func(c testContext) IO[int] {
-			return func() int { return x + c.value }
-		}
-	})(5)
-	assert.Equal(t, result.Of(15), res(ctx)())
-}
-
 func TestRightReaderIO(t *testing.T) {
 	ctx := testContext{value: 10}
 	rio := func(c testContext) IO[int] {

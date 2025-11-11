@@ -438,6 +438,11 @@ func FromIOEither[A any](t IOResult[A]) ReaderIOResult[A] {
 	return RIOR.FromIOEither[context.Context](t)
 }
 
+//go:inline
+func FromIOResult[A any](t IOResult[A]) ReaderIOResult[A] {
+	return RIOR.FromIOResult[context.Context](t)
+}
+
 // FromIO converts an [IO] into a [ReaderIOResult].
 // The IO computation always succeeds, so it's wrapped in Right.
 //
@@ -449,6 +454,16 @@ func FromIOEither[A any](t IOResult[A]) ReaderIOResult[A] {
 //go:inline
 func FromIO[A any](t IO[A]) ReaderIOResult[A] {
 	return RIOR.FromIO[context.Context](t)
+}
+
+//go:inline
+func FromReader[A any](t Reader[context.Context, A]) ReaderIOResult[A] {
+	return RIOR.FromReader[context.Context](t)
+}
+
+//go:inline
+func FromReaderIO[A any](t ReaderIO[A]) ReaderIOResult[A] {
+	return RIOR.FromReaderIO[context.Context](t)
 }
 
 // FromLazy converts a [Lazy] computation into a [ReaderIOResult].

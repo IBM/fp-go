@@ -34,26 +34,14 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 )
 
-// MonadFromReaderIO creates a ReaderIOEither from a value and a function that produces a ReaderIO.
-// The ReaderIO result is lifted into the Right side of the Either.
-func MonadFromReaderIO[R, E, A any](a A, f func(A) ReaderIO[R, A]) ReaderIOEither[R, E, A] {
-	return function.Pipe2(
-		a,
-		f,
-		RightReaderIO[R, E, A],
-	)
-}
-
-// FromReaderIO creates a function that lifts a ReaderIO-producing function into ReaderIOEither.
-// The ReaderIO result is placed in the Right side of the Either.
-func FromReaderIO[R, E, A any](f func(A) ReaderIO[R, A]) func(A) ReaderIOEither[R, E, A] {
-	return function.Bind2nd(MonadFromReaderIO[R, E, A], f)
+func FromReaderIO[E, R, A any](ma ReaderIO[R, A]) ReaderIOEither[R, E, A] {
+	return RightReaderIO[E](ma)
 }
 
 // RightReaderIO lifts a ReaderIO into a ReaderIOEither, placing the result in the Right side.
 //
 //go:inline
-func RightReaderIO[R, E, A any](ma ReaderIO[R, A]) ReaderIOEither[R, E, A] {
+func RightReaderIO[E, R, A any](ma ReaderIO[R, A]) ReaderIOEither[R, E, A] {
 	return eithert.RightF(
 		readerio.MonadMap[R, A, either.Either[E, A]],
 		ma,

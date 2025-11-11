@@ -18,9 +18,16 @@ package readerioresult
 import (
 	"context"
 
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/apply"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
 	L "github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -319,4 +326,347 @@ func LetToL[S, T any](
 	b T,
 ) Operator[S, S] {
 	return RIOR.LetToL[context.Context](lens, b)
+}
+
+// BindIOEitherK is a variant of Bind that works with IOEither computations.
+// It lifts an IOEither Kleisli arrow into the ReaderIOResult context (with context.Context as environment).
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: An IOEither Kleisli arrow (S1 -> IOEither[error, T])
+func BindIOEitherK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f ioresult.Kleisli[S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromIOEither[T]))
+}
+
+// BindIOResultK is a variant of Bind that works with IOResult computations.
+// This is an alias for BindIOEitherK for consistency with the Result naming convention.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: An IOResult Kleisli arrow (S1 -> IOResult[T])
+func BindIOResultK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f ioresult.Kleisli[S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromIOResult[T]))
+}
+
+// BindIOK is a variant of Bind that works with IO computations.
+// It lifts an IO Kleisli arrow into the ReaderIOResult context.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: An IO Kleisli arrow (S1 -> IO[T])
+func BindIOK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f io.Kleisli[S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromIO[T]))
+}
+
+// BindReaderK is a variant of Bind that works with Reader computations.
+// It lifts a Reader Kleisli arrow (with context.Context) into the ReaderIOResult context.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: A Reader Kleisli arrow (S1 -> Reader[context.Context, T])
+func BindReaderK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f reader.Kleisli[context.Context, S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromReader[T]))
+}
+
+// BindReaderIOK is a variant of Bind that works with ReaderIO computations.
+// It lifts a ReaderIO Kleisli arrow (with context.Context) into the ReaderIOResult context.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: A ReaderIO Kleisli arrow (S1 -> ReaderIO[context.Context, T])
+func BindReaderIOK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f readerio.Kleisli[context.Context, S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromReaderIO[T]))
+}
+
+// BindEitherK is a variant of Bind that works with Either (Result) computations.
+// It lifts an Either Kleisli arrow into the ReaderIOResult context.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: An Either Kleisli arrow (S1 -> Either[error, T])
+func BindEitherK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f result.Kleisli[S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromEither[T]))
+}
+
+// BindResultK is a variant of Bind that works with Result computations.
+// This is an alias for BindEitherK for consistency with the Result naming convention.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - f: A Result Kleisli arrow (S1 -> Result[T])
+func BindResultK[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f result.Kleisli[S1, T],
+) Operator[S1, S2] {
+	return Bind(setter, F.Flow2(f, FromResult[T]))
+}
+
+// BindIOEitherKL is a lens-based variant of BindIOEitherK.
+// It combines a lens with an IOEither Kleisli arrow, focusing on a specific field
+// within the state structure.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - f: An IOEither Kleisli arrow (T -> IOEither[error, T])
+func BindIOEitherKL[S, T any](
+	lens L.Lens[S, T],
+	f ioresult.Kleisli[T, T],
+) Operator[S, S] {
+	return BindL(lens, F.Flow2(f, FromIOEither[T]))
+}
+
+// BindIOResultKL is a lens-based variant of BindIOResultK.
+// This is an alias for BindIOEitherKL for consistency with the Result naming convention.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - f: An IOResult Kleisli arrow (T -> IOResult[T])
+func BindIOResultKL[S, T any](
+	lens L.Lens[S, T],
+	f ioresult.Kleisli[T, T],
+) Operator[S, S] {
+	return BindL(lens, F.Flow2(f, FromIOEither[T]))
+}
+
+// BindIOKL is a lens-based variant of BindIOK.
+// It combines a lens with an IO Kleisli arrow, focusing on a specific field
+// within the state structure.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - f: An IO Kleisli arrow (T -> IO[T])
+func BindIOKL[S, T any](
+	lens L.Lens[S, T],
+	f io.Kleisli[T, T],
+) Operator[S, S] {
+	return BindL(lens, F.Flow2(f, FromIO[T]))
+}
+
+// BindReaderKL is a lens-based variant of BindReaderK.
+// It combines a lens with a Reader Kleisli arrow (with context.Context), focusing on a specific field
+// within the state structure.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - f: A Reader Kleisli arrow (T -> Reader[context.Context, T])
+func BindReaderKL[S, T any](
+	lens L.Lens[S, T],
+	f reader.Kleisli[context.Context, T, T],
+) Operator[S, S] {
+	return BindL(lens, F.Flow2(f, FromReader[T]))
+}
+
+// BindReaderIOKL is a lens-based variant of BindReaderIOK.
+// It combines a lens with a ReaderIO Kleisli arrow (with context.Context), focusing on a specific field
+// within the state structure.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - f: A ReaderIO Kleisli arrow (T -> ReaderIO[context.Context, T])
+func BindReaderIOKL[S, T any](
+	lens L.Lens[S, T],
+	f readerio.Kleisli[context.Context, T, T],
+) Operator[S, S] {
+	return BindL(lens, F.Flow2(f, FromReaderIO[T]))
+}
+
+// ApIOEitherS is an applicative variant that works with IOEither values.
+// Unlike BindIOEitherK, this uses applicative composition (ApS) instead of monadic
+// composition (Bind), allowing independent computations to be combined.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: An IOEither value
+func ApIOEitherS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa IOResult[T],
+) Operator[S1, S2] {
+	return F.Bind2nd(F.Flow2[ReaderIOResult[S1], ioresult.Operator[S1, S2]], ioeither.ApS(setter, fa))
+}
+
+// ApIOResultS is an applicative variant that works with IOResult values.
+// This is an alias for ApIOEitherS for consistency with the Result naming convention.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: An IOResult value
+func ApIOResultS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa IOResult[T],
+) Operator[S1, S2] {
+	return F.Bind2nd(F.Flow2[ReaderIOResult[S1], ioresult.Operator[S1, S2]], ioeither.ApS(setter, fa))
+}
+
+// ApIOS is an applicative variant that works with IO values.
+// It lifts an IO value into the ReaderIOResult context using applicative composition.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: An IO value
+func ApIOS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa IO[T],
+) Operator[S1, S2] {
+	return ApS(setter, FromIO(fa))
+}
+
+// ApReaderS is an applicative variant that works with Reader values.
+// It lifts a Reader value (with context.Context) into the ReaderIOResult context using applicative composition.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: A Reader value
+func ApReaderS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Reader[context.Context, T],
+) Operator[S1, S2] {
+	return ApS(setter, FromReader[T](fa))
+}
+
+// ApReaderIOS is an applicative variant that works with ReaderIO values.
+// It lifts a ReaderIO value (with context.Context) into the ReaderIOResult context using applicative composition.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: A ReaderIO value
+func ApReaderIOS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa ReaderIO[T],
+) Operator[S1, S2] {
+	return ApS(setter, FromReaderIO[T](fa))
+}
+
+// ApEitherS is an applicative variant that works with Either (Result) values.
+// It lifts an Either value into the ReaderIOResult context using applicative composition.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: An Either value
+func ApEitherS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Result[T],
+) Operator[S1, S2] {
+	return ApS(setter, FromEither[T](fa))
+}
+
+// ApResultS is an applicative variant that works with Result values.
+// This is an alias for ApEitherS for consistency with the Result naming convention.
+//
+// Parameters:
+//   - setter: Updates state from S1 to S2 using result T
+//   - fa: A Result value
+func ApResultS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Result[T],
+) Operator[S1, S2] {
+	return ApS(setter, FromResult[T](fa))
+}
+
+// ApIOEitherSL is a lens-based variant of ApIOEitherS.
+// It combines a lens with an IOEither value using applicative composition.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: An IOEither value
+func ApIOEitherSL[S, T any](
+	lens L.Lens[S, T],
+	fa IOResult[T],
+) Operator[S, S] {
+	return F.Bind2nd(F.Flow2[ReaderIOResult[S], ioresult.Operator[S, S]], ioresult.ApSL(lens, fa))
+}
+
+// ApIOResultSL is a lens-based variant of ApIOResultS.
+// This is an alias for ApIOEitherSL for consistency with the Result naming convention.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: An IOResult value
+func ApIOResultSL[S, T any](
+	lens L.Lens[S, T],
+	fa IOResult[T],
+) Operator[S, S] {
+	return F.Bind2nd(F.Flow2[ReaderIOResult[S], ioresult.Operator[S, S]], ioresult.ApSL(lens, fa))
+}
+
+// ApIOSL is a lens-based variant of ApIOS.
+// It combines a lens with an IO value using applicative composition.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: An IO value
+func ApIOSL[S, T any](
+	lens L.Lens[S, T],
+	fa IO[T],
+) Operator[S, S] {
+	return ApSL(lens, FromIO(fa))
+}
+
+// ApReaderSL is a lens-based variant of ApReaderS.
+// It combines a lens with a Reader value (with context.Context) using applicative composition.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: A Reader value
+func ApReaderSL[S, T any](
+	lens L.Lens[S, T],
+	fa Reader[context.Context, T],
+) Operator[S, S] {
+	return ApSL(lens, FromReader[T](fa))
+}
+
+// ApReaderIOSL is a lens-based variant of ApReaderIOS.
+// It combines a lens with a ReaderIO value (with context.Context) using applicative composition.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: A ReaderIO value
+func ApReaderIOSL[S, T any](
+	lens L.Lens[S, T],
+	fa ReaderIO[T],
+) Operator[S, S] {
+	return ApSL(lens, FromReaderIO[T](fa))
+}
+
+// ApEitherSL is a lens-based variant of ApEitherS.
+// It combines a lens with an Either value using applicative composition.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: An Either value
+func ApEitherSL[S, T any](
+	lens L.Lens[S, T],
+	fa Result[T],
+) Operator[S, S] {
+	return ApSL(lens, FromEither[T](fa))
+}
+
+// ApResultSL is a lens-based variant of ApResultS.
+// This is an alias for ApEitherSL for consistency with the Result naming convention.
+//
+// Parameters:
+//   - lens: A lens focusing on field T within state S
+//   - fa: A Result value
+func ApResultSL[S, T any](
+	lens L.Lens[S, T],
+	fa Result[T],
+) Operator[S, S] {
+	return ApSL(lens, FromResult[T](fa))
 }

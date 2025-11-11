@@ -17,6 +17,7 @@ package readerioeither
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -30,6 +31,8 @@ type (
 	// Reader represents a computation that depends on some context/environment of type R
 	// and produces a value of type A. It's useful for dependency injection patterns.
 	Reader[R, A any] = reader.Reader[R, A]
+
+	IO[T any] = io.IO[T]
 
 	// ReaderIO represents a computation that depends on some context R and performs
 	// side effects to produce a value of type A.
