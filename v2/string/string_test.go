@@ -48,3 +48,9 @@ func TestIncludes(t *testing.T) {
 	assert.False(t, Includes("bab")("a"))
 	assert.False(t, Includes("b")("a"))
 }
+
+func TestHasPrefix(t *testing.T) {
+	assert.True(t, HasPrefix("prefix")("prefixbab"))
+	assert.False(t, HasPrefix("bab")("a"))
+	assert.False(t, HasPrefix("b")("a"))
+}

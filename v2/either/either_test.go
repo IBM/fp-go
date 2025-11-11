@@ -76,8 +76,8 @@ func TestAp(t *testing.T) {
 	f := S.Size
 
 	assert.Equal(t, Right[string](3), F.Pipe1(Right[string](f), Ap[int](Right[string]("abc"))))
-	assert.Equal(t, Left[int]("maError"), F.Pipe1(Right[string](f), Ap[int](Left[string, string]("maError"))))
-	assert.Equal(t, Left[int]("mabError"), F.Pipe1(Left[func(string) int]("mabError"), Ap[int](Left[string, string]("maError"))))
+	assert.Equal(t, Left[int]("maError"), F.Pipe1(Right[string](f), Ap[int](Left[string]("maError"))))
+	assert.Equal(t, Left[int]("mabError"), F.Pipe1(Left[func(string) int]("mabError"), Ap[int](Left[string]("maError"))))
 }
 
 func TestAlt(t *testing.T) {

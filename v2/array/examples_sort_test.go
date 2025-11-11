@@ -87,6 +87,6 @@ func Example_sort() {
 	// [abc klm zyx]
 	// [zyx klm abc]
 	// [None[int] Some[int](42) Some[int](1337)]
-	// [{c {false 0}} {b {true 10}} {d {true 10}} {a {true 30}}]
+	// [{c {0 false}} {b {10 true}} {d {10 true}} {a {30 true}}]
 
 }

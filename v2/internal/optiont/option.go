@@ -82,6 +82,11 @@ func MatchE[A, HKTEA, HKTB any](mchain func(HKTEA, func(O.Option[A]) HKTB) HKTB,
 	return F.Bind2nd(mchain, O.Fold(onNone, onSome))
 }
 
+//go:inline
+func GetOrElse[A, HKTEA, HKTB any](mchain func(HKTEA, func(O.Option[A]) HKTB) HKTB, onNone func() HKTB, onSome func(A) HKTB) func(HKTEA) HKTB {
+	return MatchE(mchain, onNone, onSome)
+}
+
 func FromOptionK[A, B, HKTB any](
 	fof func(O.Option[B]) HKTB,
 	f func(A) O.Option[B]) func(A) HKTB {
@@ -122,4 +127,8 @@ func Alt[LAZY ~func() HKTFA, A, HKTFA any](
 	second LAZY) func(HKTFA) HKTFA {
 
 	return fchain(O.Fold(second, F.Flow2(O.Of[A], fof)))
+}
+
+func SomeF[A, HKTA, HKTEA any](fmap func(HKTA, func(A) O.Option[A]) HKTEA, fa HKTA) HKTEA {
+	return fmap(fa, O.Some[A])
 }

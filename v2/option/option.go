@@ -43,6 +43,11 @@ func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {
 	return F.Bind2nd(fromPredicate[A], pred)
 }
 
+func FromZero[A comparable]() Kleisli[A, A] {
+	var zero A
+	return FromPredicate(func(a A) bool { return zero == a })
+}
+
 // FromNillable converts a pointer to an Option.
 // Returns Some if the pointer is non-nil, None otherwise.
 //

@@ -39,8 +39,8 @@ var (
 //	var opt Option[int] = Some(42)  // Contains a value
 //	var opt Option[int] = None[int]() // Contains no value
 type Option[A any] struct {
-	isSome bool
 	value  A
+	isSome bool
 }
 
 type (
