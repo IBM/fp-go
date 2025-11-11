@@ -96,7 +96,7 @@ func MonadMap[A, B any](fa Result[A], f func(a A) B) Result[B] {
 //
 //	result := either.MonadBiMap(
 //	    either.Left[int](errors.New("error")),
-//	    func(e error) string { return e.Error() },
+//	    error.Error,
 //	    func(n int) string { return fmt.Sprint(n) },
 //	) // Left("error")
 //
@@ -139,7 +139,7 @@ func MapTo[A, B any](b B) Operator[A, B] {
 //
 //	result := either.MonadMapLeft(
 //	    either.Left[int](errors.New("error")),
-//	    func(e error) string { return e.Error() },
+//	    error.Error,
 //	) // Left("error")
 //
 //go:inline

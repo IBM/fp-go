@@ -27,8 +27,8 @@ import (
 	J "github.com/IBM/fp-go/v2/json"
 	S "github.com/IBM/fp-go/v2/string"
 
-	R "github.com/IBM/fp-go/v2/context/readerioeither"
-	H "github.com/IBM/fp-go/v2/context/readerioeither/http"
+	R "github.com/IBM/fp-go/v2/context/readerioresult"
+	H "github.com/IBM/fp-go/v2/context/readerioresult/http"
 )
 
 type (

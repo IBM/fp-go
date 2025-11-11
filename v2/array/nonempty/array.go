@@ -97,11 +97,11 @@ func Flatten[A any](mma NonEmptyArray[NonEmptyArray[A]]) NonEmptyArray[A] {
 }
 
 func MonadChain[A, B any](fa NonEmptyArray[A], f func(a A) NonEmptyArray[B]) NonEmptyArray[B] {
-	return G.MonadChain[NonEmptyArray[A], NonEmptyArray[B]](fa, f)
+	return G.MonadChain(fa, f)
 }
 
 func Chain[A, B any](f func(A) NonEmptyArray[B]) func(NonEmptyArray[A]) NonEmptyArray[B] {
-	return G.Chain[NonEmptyArray[A], NonEmptyArray[B]](f)
+	return G.Chain[NonEmptyArray[A]](f)
 }
 
 func MonadAp[B, A any](fab NonEmptyArray[func(A) B], fa NonEmptyArray[A]) NonEmptyArray[B] {

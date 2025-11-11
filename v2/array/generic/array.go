@@ -31,25 +31,25 @@ func Of[GA ~[]A, A any](value A) GA {
 
 func Reduce[GA ~[]A, A, B any](f func(B, A) B, initial B) func(GA) B {
 	return func(as GA) B {
-		return MonadReduce[GA](as, f, initial)
+		return MonadReduce(as, f, initial)
 	}
 }
 
 func ReduceWithIndex[GA ~[]A, A, B any](f func(int, B, A) B, initial B) func(GA) B {
 	return func(as GA) B {
-		return MonadReduceWithIndex[GA](as, f, initial)
+		return MonadReduceWithIndex(as, f, initial)
 	}
 }
 
 func ReduceRight[GA ~[]A, A, B any](f func(A, B) B, initial B) func(GA) B {
 	return func(as GA) B {
-		return MonadReduceRight[GA](as, f, initial)
+		return MonadReduceRight(as, f, initial)
 	}
 }
 
 func ReduceRightWithIndex[GA ~[]A, A, B any](f func(int, A, B) B, initial B) func(GA) B {
 	return func(as GA) B {
-		return MonadReduceRightWithIndex[GA](as, f, initial)
+		return MonadReduceRightWithIndex(as, f, initial)
 	}
 }
 

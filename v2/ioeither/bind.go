@@ -16,6 +16,7 @@
 package ioeither
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
@@ -232,9 +233,7 @@ func BindL[E, S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[E, T, T],
 ) Operator[E, S, S] {
-	return Bind[E, S, S, T](lens.Set, func(s S) IOEither[E, T] {
-		return f(lens.Get(s))
-	})
+	return Bind[E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.
@@ -266,9 +265,7 @@ func LetL[E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) Operator[E, S, S] {
-	return Let[E, S, S, T](lens.Set, func(s S) T {
-		return f(lens.Get(s))
-	})
+	return Let[E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL attaches a constant value to a context using a lens-based setter.

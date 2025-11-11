@@ -16,6 +16,7 @@
 package readerioeither
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	G "github.com/IBM/fp-go/v2/readerioeither/generic"
@@ -40,7 +41,7 @@ import (
 func Do[R, E, S any](
 	empty S,
 ) ReaderIOEither[R, E, S] {
-	return G.Do[ReaderIOEither[R, E, S], IOE.IOEither[E, S], R, E, S](empty)
+	return G.Do[ReaderIOEither[R, E, S]](empty)
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].
@@ -91,7 +92,7 @@ func Bind[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderIOEither[R, E, T],
 ) Operator[R, E, S1, S2] {
-	return G.Bind[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, S2], ReaderIOEither[R, E, T], IOE.IOEither[E, S1], IOE.IOEither[E, S2], IOE.IOEither[E, T], R, E, S1, S2, T](setter, f)
+	return G.Bind[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, S2]](setter, f)
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -250,9 +251,7 @@ func BindL[R, E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) ReaderIOEither[R, E, T],
 ) Operator[R, E, S, S] {
-	return Bind[R, E, S, S, T](lens.Set, func(s S) ReaderIOEither[R, E, T] {
-		return f(lens.Get(s))
-	})
+	return Bind[R, E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -288,9 +287,7 @@ func LetL[R, E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) Operator[R, E, S, S] {
-	return Let[R, E, S, S, T](lens.Set, func(s S) T {
-		return f(lens.Get(s))
-	})
+	return Let[R, E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.

@@ -46,7 +46,7 @@ import (
 //	    eqString := eq.FromStrictEquals[string]()
 //	    eqBool := eq.FromStrictEquals[bool]()
 //
-//	    ab := func(x int) string { return fmt.Sprintf("%d", x) }
+//	    ab := strconv.Itoa
 //	    bc := func(s string) bool { return len(s) > 0 }
 //
 //	    assert := AssertLaws(t, eqInt, eqString, eqBool, ab, bc)

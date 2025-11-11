@@ -27,7 +27,7 @@ import (
 
 func TestMap(t *testing.T) {
 	fa := Make[string, int]("foo")
-	assert.Equal(t, fa, F.Pipe1(fa, Map[string, int](utils.Double)))
+	assert.Equal(t, fa, F.Pipe1(fa, Map[string](utils.Double)))
 }
 
 func TestOf(t *testing.T) {

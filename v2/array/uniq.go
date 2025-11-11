@@ -18,7 +18,7 @@ import (
 //
 //go:inline
 func StrictUniq[A comparable](as []A) []A {
-	return G.StrictUniq[[]A](as)
+	return G.StrictUniq(as)
 }
 
 // Uniq converts an array of arbitrary items into an array of unique items

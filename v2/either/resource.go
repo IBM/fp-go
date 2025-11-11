@@ -43,7 +43,7 @@ import (
 //	    // Use file here
 //	    return either.Right[error]("data")
 //	})
-func WithResource[E, R, A any](onCreate func() Either[E, R], onRelease func(R) Either[E, any]) func(func(R) Either[E, A]) Either[E, A] {
+func WithResource[E, R, A, ANY any](onCreate func() Either[E, R], onRelease Kleisli[E, R, ANY]) func(func(R) Either[E, A]) Either[E, A] {
 
 	return func(f func(R) Either[E, A]) Either[E, A] {
 		return MonadChain(
@@ -58,7 +58,7 @@ func WithResource[E, R, A any](onCreate func() Either[E, R], onRelease func(R) E
 					func(a A) Either[E, A] {
 						return F.Pipe1(
 							released,
-							MapTo[E, any](a),
+							MapTo[E, ANY](a),
 						)
 					})
 			},

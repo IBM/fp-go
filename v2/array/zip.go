@@ -36,7 +36,7 @@ import (
 //
 //go:inline
 func ZipWith[FCT ~func(A, B) C, A, B, C any](fa []A, fb []B, f FCT) []C {
-	return G.ZipWith[[]A, []B, []C, FCT](fa, fb, f)
+	return G.ZipWith[[]A, []B, []C](fa, fb, f)
 }
 
 // Zip takes two arrays and returns an array of corresponding pairs (tuples).
@@ -79,5 +79,5 @@ func Zip[A, B any](fb []B) func([]A) []T.Tuple2[A, B] {
 //
 //go:inline
 func Unzip[A, B any](cs []T.Tuple2[A, B]) T.Tuple2[[]A, []B] {
-	return G.Unzip[[]A, []B, []T.Tuple2[A, B]](cs)
+	return G.Unzip[[]A, []B](cs)
 }

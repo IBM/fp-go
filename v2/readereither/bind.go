@@ -16,6 +16,7 @@
 package readereither
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 )
@@ -233,9 +234,7 @@ func BindL[R, E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) ReaderEither[R, E, T],
 ) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
-	return Bind[R, E, S, S, T](lens.Set, func(s S) ReaderEither[R, E, T] {
-		return f(lens.Get(s))
-	})
+	return Bind[R, E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -269,9 +268,7 @@ func LetL[R, E, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) func(ReaderEither[R, E, S]) ReaderEither[R, E, S] {
-	return Let[R, E, S, S, T](lens.Set, func(s S) T {
-		return f(lens.Get(s))
-	})
+	return Let[R, E, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.

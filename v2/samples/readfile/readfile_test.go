@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
-	R "github.com/IBM/fp-go/v2/context/readerioeither"
-	"github.com/IBM/fp-go/v2/context/readerioeither/file"
+	R "github.com/IBM/fp-go/v2/context/readerioresult"
+	"github.com/IBM/fp-go/v2/context/readerioresult/file"
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"

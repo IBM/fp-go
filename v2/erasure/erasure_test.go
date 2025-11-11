@@ -17,6 +17,7 @@ package erasure
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -166,7 +167,7 @@ func TestErase0(t *testing.T) {
 
 func TestErase1(t *testing.T) {
 	t.Run("erases unary function int to string", func(t *testing.T) {
-		typedFunc := func(x int) string { return fmt.Sprintf("%d", x) }
+		typedFunc := strconv.Itoa
 		erasedFunc := Erase1(typedFunc)
 		result := erasedFunc(Erase(42))
 		assert.NotNil(t, result)

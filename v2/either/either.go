@@ -96,7 +96,7 @@ func MonadMap[E, A, B any](fa Either[E, A], f func(a A) B) Either[E, B] {
 //
 //	result := either.MonadBiMap(
 //	    either.Left[int](errors.New("error")),
-//	    func(e error) string { return e.Error() },
+//	    error.Error,
 //	    func(n int) string { return fmt.Sprint(n) },
 //	) // Left("error")
 func MonadBiMap[E1, E2, A, B any](fa Either[E1, A], f func(E1) E2, g func(a A) B) Either[E2, B] {
@@ -131,7 +131,7 @@ func MapTo[E, A, B any](b B) Operator[E, A, B] {
 //
 //	result := either.MonadMapLeft(
 //	    either.Left[int](errors.New("error")),
-//	    func(e error) string { return e.Error() },
+//	    error.Error,
 //	) // Left("error")
 func MonadMapLeft[E1, A, E2 any](fa Either[E1, A], f func(E1) E2) Either[E2, A] {
 	return MonadFold(fa, F.Flow2(f, Left[A, E2]), Right[E2, A])

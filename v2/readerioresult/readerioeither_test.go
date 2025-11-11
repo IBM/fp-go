@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
@@ -401,16 +402,16 @@ func TestMonadBiMap(t *testing.T) {
 	// Test Right case
 	resultRight := MonadBiMap(
 		Of[testContext](5),
-		func(e error) string { return e.Error() },
-		func(x int) string { return fmt.Sprintf("%d", x) },
+		error.Error,
+		strconv.Itoa,
 	)
 	assert.Equal(t, E.Of[string]("5"), resultRight(ctx)())
 
 	// Test Left case
 	resultLeft := MonadBiMap(
 		Left[testContext, int](errors.New("test")),
-		func(e error) string { return e.Error() },
-		func(x int) string { return fmt.Sprintf("%d", x) },
+		error.Error,
+		strconv.Itoa,
 	)
 	assert.Equal(t, E.Left[string]("test"), resultLeft(ctx)())
 }
@@ -420,8 +421,8 @@ func TestBiMap(t *testing.T) {
 	res := F.Pipe1(
 		Of[testContext](5),
 		BiMap[testContext](
-			func(e error) string { return e.Error() },
-			func(x int) string { return fmt.Sprintf("%d", x) },
+			error.Error,
+			strconv.Itoa,
 		),
 	)
 	assert.Equal(t, E.Of[string]("5"), res(ctx)())

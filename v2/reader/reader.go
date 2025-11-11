@@ -244,7 +244,7 @@ func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]
 //	type Env struct { Config Config }
 //	getPort := func(c Config) int { return c.Port }
 //	extractConfig := func(e Env) Config { return e.Config }
-//	toString := func(i int) string { return strconv.Itoa(i) }
+//	toString := strconv.Itoa
 //	r := reader.Promap(extractConfig, toString)(getPort)
 //	result := r(Env{Config: Config{Port: 8080}}) // "8080"
 func Promap[E, A, D, B any](f func(D) E, g func(A) B) func(Reader[E, A]) Reader[D, B] {

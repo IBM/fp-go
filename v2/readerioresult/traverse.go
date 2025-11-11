@@ -169,7 +169,7 @@ func TraverseRecord[K comparable, R, A, B any](f Kleisli[R, A, B]) Kleisli[R, ma
 //
 //go:inline
 func TraverseRecordWithIndex[K comparable, R, A, B any](f func(K, A) ReaderIOResult[R, B]) Kleisli[R, map[K]A, map[K]B] {
-	return RIOE.TraverseRecordWithIndex[K](f)
+	return RIOE.TraverseRecordWithIndex(f)
 }
 
 // SequenceRecord converts a map of ReaderIOResult into a ReaderIOResult of a map.

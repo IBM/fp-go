@@ -29,8 +29,8 @@ import (
 
 // Test BiMap
 func TestBiMap(t *testing.T) {
-	errToStr := func(e error) string { return e.Error() }
-	intToStr := func(i int) string { return strconv.Itoa(i) }
+	errToStr := error.Error
+	intToStr := strconv.Itoa
 
 	// Test Right case
 	result := BiMap(errToStr, intToStr)(Right[error](42))
@@ -43,8 +43,8 @@ func TestBiMap(t *testing.T) {
 
 // Test MonadBiMap
 func TestMonadBiMap(t *testing.T) {
-	errToStr := func(e error) string { return e.Error() }
-	intToStr := func(i int) string { return strconv.Itoa(i) }
+	errToStr := error.Error
+	intToStr := strconv.Itoa
 
 	result := MonadBiMap(Right[error](42), errToStr, intToStr)
 	assert.Equal(t, Right[string]("42"), result)
@@ -55,7 +55,7 @@ func TestMonadBiMap(t *testing.T) {
 
 // Test MapLeft
 func TestMapLeft(t *testing.T) {
-	errToStr := func(e error) string { return e.Error() }
+	errToStr := error.Error
 
 	result := MapLeft[int](errToStr)(Left[int](errors.New("error")))
 	assert.Equal(t, Left[int]("error"), result)
@@ -66,7 +66,7 @@ func TestMapLeft(t *testing.T) {
 
 // Test MonadMapLeft
 func TestMonadMapLeft(t *testing.T) {
-	errToStr := func(e error) string { return e.Error() }
+	errToStr := error.Error
 
 	result := MonadMapLeft(Left[int](errors.New("error")), errToStr)
 	assert.Equal(t, Left[int]("error"), result)

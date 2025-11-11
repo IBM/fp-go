@@ -17,6 +17,7 @@ package option
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -332,7 +333,7 @@ func TestBindToFunction(t *testing.T) {
 // Test Functor
 func TestFunctor(t *testing.T) {
 	f := Functor[int, string]()
-	mapper := f.Map(func(x int) string { return fmt.Sprintf("%d", x) })
+	mapper := f.Map(strconv.Itoa)
 
 	assert.Equal(t, Some("42"), mapper(Some(42)))
 	assert.Equal(t, None[string](), mapper(None[int]()))
@@ -346,7 +347,7 @@ func TestMonad(t *testing.T) {
 	assert.Equal(t, Some(42), m.Of(42))
 
 	// Test Map
-	mapper := m.Map(func(x int) string { return fmt.Sprintf("%d", x) })
+	mapper := m.Map(strconv.Itoa)
 	assert.Equal(t, Some("42"), mapper(Some(42)))
 
 	// Test Chain

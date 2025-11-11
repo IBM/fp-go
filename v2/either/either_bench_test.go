@@ -200,7 +200,7 @@ func BenchmarkMap_Left(b *testing.B) {
 
 func BenchmarkMapLeft_Right(b *testing.B) {
 	right := Right[error](42)
-	mapper := MapLeft[int](func(e error) string { return e.Error() })
+	mapper := MapLeft[int](error.Error)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -210,7 +210,7 @@ func BenchmarkMapLeft_Right(b *testing.B) {
 
 func BenchmarkMapLeft_Left(b *testing.B) {
 	left := Left[int](errBench)
-	mapper := MapLeft[int](func(e error) string { return e.Error() })
+	mapper := MapLeft[int](error.Error)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
@@ -221,7 +221,7 @@ func BenchmarkMapLeft_Left(b *testing.B) {
 func BenchmarkBiMap_Right(b *testing.B) {
 	right := Right[error](42)
 	mapper := BiMap(
-		func(e error) string { return e.Error() },
+		error.Error,
 		func(a int) string { return "value" },
 	)
 	b.ResetTimer()
@@ -234,7 +234,7 @@ func BenchmarkBiMap_Right(b *testing.B) {
 func BenchmarkBiMap_Left(b *testing.B) {
 	left := Left[int](errBench)
 	mapper := BiMap(
-		func(e error) string { return e.Error() },
+		error.Error,
 		func(a int) string { return "value" },
 	)
 	b.ResetTimer()

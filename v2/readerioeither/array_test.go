@@ -32,7 +32,7 @@ func TestTraverseArray(t *testing.T) {
 		if len(a) > 0 {
 			return Right[context.Context, string](a + a)
 		}
-		return Left[context.Context, string, string]("e")
+		return Left[context.Context, string]("e")
 	})
 	ctx := context.Background()
 	assert.Equal(t, either.Right[string](A.Empty[string]()), F.Pipe1(A.Empty[string](), f)(ctx)())

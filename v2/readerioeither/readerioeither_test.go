@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
@@ -69,7 +70,7 @@ func TestChainFirst(t *testing.T) {
 	ctx := testContext{value: 10}
 	result := F.Pipe1(
 		Of[testContext, error](5),
-		ChainFirst[testContext, error](func(x int) ReaderIOEither[testContext, error, string] {
+		ChainFirst(func(x int) ReaderIOEither[testContext, error, string] {
 			return Of[testContext, error](fmt.Sprintf("%d", x))
 		}),
 	)
@@ -102,7 +103,7 @@ func TestChainFirstEitherK(t *testing.T) {
 	ctx := testContext{value: 10}
 	result := F.Pipe1(
 		Of[testContext, error](5),
-		ChainFirstEitherK[testContext, error](func(x int) E.Either[error, string] {
+		ChainFirstEitherK[testContext](func(x int) E.Either[error, string] {
 			return E.Right[error](fmt.Sprintf("%d", x))
 		}),
 	)
@@ -135,7 +136,7 @@ func TestChainIOEitherK(t *testing.T) {
 	ctx := testContext{value: 10}
 	result := F.Pipe1(
 		Of[testContext, error](5),
-		ChainIOEitherK[testContext, error](func(x int) IOE.IOEither[error, int] {
+		ChainIOEitherK[testContext](func(x int) IOE.IOEither[error, int] {
 			return IOE.Right[error](x * 2)
 		}),
 	)
@@ -357,7 +358,7 @@ func TestFold(t *testing.T) {
 	ctx := testContext{value: 10}
 
 	// Test Right case
-	resultRight := Fold[testContext, error, int, string](
+	resultRight := Fold(
 		func(e error) RIO.ReaderIO[testContext, string] {
 			return RIO.Of[testContext]("error: " + e.Error())
 		},
@@ -417,16 +418,16 @@ func TestMonadBiMap(t *testing.T) {
 	// Test Right case
 	resultRight := MonadBiMap(
 		Of[testContext, error](5),
-		func(e error) string { return e.Error() },
-		func(x int) string { return fmt.Sprintf("%d", x) },
+		error.Error,
+		strconv.Itoa,
 	)
 	assert.Equal(t, E.Right[string]("5"), resultRight(ctx)())
 
 	// Test Left case
 	resultLeft := MonadBiMap(
 		Left[testContext, int](errors.New("test")),
-		func(e error) string { return e.Error() },
-		func(x int) string { return fmt.Sprintf("%d", x) },
+		error.Error,
+		strconv.Itoa,
 	)
 	assert.Equal(t, E.Left[string]("test"), resultLeft(ctx)())
 }
@@ -436,8 +437,8 @@ func TestBiMap(t *testing.T) {
 	result := F.Pipe1(
 		Of[testContext, error](5),
 		BiMap[testContext, error, string](
-			func(e error) string { return e.Error() },
-			func(x int) string { return fmt.Sprintf("%d", x) },
+			error.Error,
+			strconv.Itoa,
 		),
 	)
 	assert.Equal(t, E.Right[string]("5"), result(ctx)())
@@ -765,7 +766,7 @@ func TestTraverseRecord(t *testing.T) {
 
 func TestTraverseRecordWithIndex(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := TraverseRecordWithIndex[string, testContext, error](func(k string, x int) ReaderIOEither[testContext, error, string] {
+	result := TraverseRecordWithIndex(func(k string, x int) ReaderIOEither[testContext, error, string] {
 		return Of[testContext, error](fmt.Sprintf("%s:%d", k, x))
 	})(map[string]int{"a": 1, "b": 2})
 
@@ -775,7 +776,7 @@ func TestTraverseRecordWithIndex(t *testing.T) {
 
 func TestSequenceRecord(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := SequenceRecord[string, testContext, error](map[string]ReaderIOEither[testContext, error, int]{
+	result := SequenceRecord(map[string]ReaderIOEither[testContext, error, int]{
 		"a": Of[testContext, error](1),
 		"b": Of[testContext, error](2),
 	})

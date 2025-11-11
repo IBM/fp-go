@@ -26,7 +26,6 @@ import (
 	"github.com/IBM/fp-go/v2/internal/fromreader"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/io"
-	"github.com/IBM/fp-go/v2/ioeither"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	L "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
@@ -398,12 +397,12 @@ func FromEither[R, E, A any](t either.Either[E, A]) ReaderIOEither[R, E, A] {
 
 // RightReader lifts a Reader into a ReaderIOEither, placing the result in the Right side.
 func RightReader[E, R, A any](ma Reader[R, A]) ReaderIOEither[R, E, A] {
-	return function.Flow2(ma, ioeither.Right[E, A])
+	return function.Flow2(ma, IOE.Right[E, A])
 }
 
 // LeftReader lifts a Reader into a ReaderIOEither, placing the result in the Left (error) side.
 func LeftReader[A, R, E any](ma Reader[R, E]) ReaderIOEither[R, E, A] {
-	return function.Flow2(ma, ioeither.Left[A, E])
+	return function.Flow2(ma, IOE.Left[A, E])
 }
 
 // FromReader lifts a Reader into a ReaderIOEither context.
@@ -414,12 +413,12 @@ func FromReader[E, R, A any](ma Reader[R, A]) ReaderIOEither[R, E, A] {
 
 // RightIO lifts an IO into a ReaderIOEither, placing the result in the Right side.
 func RightIO[R, E, A any](ma io.IO[A]) ReaderIOEither[R, E, A] {
-	return function.Pipe2(ma, ioeither.RightIO[E, A], FromIOEither[R, E, A])
+	return function.Pipe2(ma, IOE.RightIO[E, A], FromIOEither[R, E, A])
 }
 
 // LeftIO lifts an IO into a ReaderIOEither, placing the result in the Left (error) side.
 func LeftIO[R, A, E any](ma io.IO[E]) ReaderIOEither[R, E, A] {
-	return function.Pipe2(ma, ioeither.LeftIO[A, E], FromIOEither[R, E, A])
+	return function.Pipe2(ma, IOE.LeftIO[A, E], FromIOEither[R, E, A])
 }
 
 // FromIO lifts an IO into a ReaderIOEither context.
@@ -439,7 +438,7 @@ func FromIOEither[R, E, A any](ma IOE.IOEither[E, A]) ReaderIOEither[R, E, A] {
 // FromReaderEither lifts a ReaderEither into a ReaderIOEither context.
 // The Either result is lifted into an IO effect.
 func FromReaderEither[R, E, A any](ma RE.ReaderEither[R, E, A]) ReaderIOEither[R, E, A] {
-	return function.Flow2(ma, ioeither.FromEither[E, A])
+	return function.Flow2(ma, IOE.FromEither[E, A])
 }
 
 // Ask returns a ReaderIOEither that retrieves the current context.
@@ -535,7 +534,7 @@ func BiMap[R, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(ReaderIOEither[
 //
 //go:inline
 func Swap[R, E, A any](val ReaderIOEither[R, E, A]) ReaderIOEither[R, A, E] {
-	return reader.MonadMap(val, ioeither.Swap[E, A])
+	return reader.MonadMap(val, IOE.Swap[E, A])
 }
 
 // Defer creates a ReaderIOEither lazily via a generator function.
@@ -550,7 +549,7 @@ func Defer[R, E, A any](gen L.Lazy[ReaderIOEither[R, E, A]]) ReaderIOEither[R, E
 // The onThrow function converts the error into the desired error type.
 func TryCatch[R, E, A any](f func(R) func() (A, error), onThrow func(error) E) ReaderIOEither[R, E, A] {
 	return func(r R) IOEither[E, A] {
-		return ioeither.TryCatch(f(r), onThrow)
+		return IOE.TryCatch(f(r), onThrow)
 	}
 }
 

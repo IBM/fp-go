@@ -97,7 +97,7 @@ func TestAp(t *testing.T) {
 				utils.Double,
 				utils.Triple,
 			},
-			Ap[int, int]([]int{1, 2, 3}),
+			Ap[int]([]int{1, 2, 3}),
 		),
 	)
 }

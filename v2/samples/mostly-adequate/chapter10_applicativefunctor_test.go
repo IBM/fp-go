@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
-	R "github.com/IBM/fp-go/v2/context/readerioeither"
-	H "github.com/IBM/fp-go/v2/context/readerioeither/http"
+	R "github.com/IBM/fp-go/v2/context/readerioresult"
+	H "github.com/IBM/fp-go/v2/context/readerioresult/http"
 	F "github.com/IBM/fp-go/v2/function"
 	IOO "github.com/IBM/fp-go/v2/iooption"
 	N "github.com/IBM/fp-go/v2/number"

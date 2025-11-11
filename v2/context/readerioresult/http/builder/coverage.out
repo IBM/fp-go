@@ -1,0 +1,15 @@
+mode: set
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:117.52,119.103 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:119.103,120.80 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:120.80,121.41 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:121.41,123.19 2 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:123.19,126.6 2 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:127.5,127.20 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:132.2,132.93 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:132.93,133.80 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:133.80,134.41 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:134.41,136.19 2 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:136.19,138.6 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:139.5,139.20 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:144.2,150.50 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/builder/builder.go:150.50,153.4 2 1

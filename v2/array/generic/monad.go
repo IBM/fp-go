@@ -22,19 +22,19 @@ import (
 type arrayMonad[A, B any, GA ~[]A, GB ~[]B, GAB ~[]func(A) B] struct{}
 
 func (o *arrayMonad[A, B, GA, GB, GAB]) Of(a A) GA {
-	return Of[GA, A](a)
+	return Of[GA](a)
 }
 
 func (o *arrayMonad[A, B, GA, GB, GAB]) Map(f func(A) B) func(GA) GB {
-	return Map[GA, GB, A, B](f)
+	return Map[GA, GB](f)
 }
 
 func (o *arrayMonad[A, B, GA, GB, GAB]) Chain(f func(A) GB) func(GA) GB {
-	return Chain[GA, GB, A, B](f)
+	return Chain[GA](f)
 }
 
 func (o *arrayMonad[A, B, GA, GB, GAB]) Ap(fa GA) func(GAB) GB {
-	return Ap[GB, GAB, GA, B, A](fa)
+	return Ap[GB, GAB](fa)
 }
 
 // Monad implements the monadic operations for an array

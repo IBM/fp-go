@@ -32,7 +32,7 @@ func (o *optionFunctor[A, B]) Map(f func(A) B) Operator[A, B] {
 // Example:
 //
 //	f := Functor[int, string]()
-//	mapper := f.Map(func(x int) string { return fmt.Sprintf("%d", x) })
+//	mapper := f.Map(strconv.Itoa)
 //	result := mapper(Some(42)) // Some("42")
 func Functor[A, B any]() functor.Functor[A, B, Option[A], Option[B]] {
 	return &optionFunctor[A, B]{}

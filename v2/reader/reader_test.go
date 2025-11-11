@@ -152,7 +152,7 @@ func TestPromap(t *testing.T) {
 	env := Env{Config: Config{Port: 8080}}
 	getPort := func(c Config) int { return c.Port }
 	extractConfig := func(e Env) Config { return e.Config }
-	toString := func(i int) string { return strconv.Itoa(i) }
+	toString := strconv.Itoa
 	r := Promap(extractConfig, toString)(getPort)
 	result := r(env)
 	assert.Equal(t, "8080", result)

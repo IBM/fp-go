@@ -51,7 +51,7 @@ import "github.com/IBM/fp-go/v2/ioeither"
 //	result := withFile(func(f *File) ReaderIOEither[Config, error, string] {
 //	    return readContent(f)
 //	})
-func WithResource[A, L, E, R, ANY any](onCreate ReaderIOEither[L, E, R], onRelease func(R) ReaderIOEither[L, E, ANY]) func(func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
+func WithResource[A, L, E, R, ANY any](onCreate ReaderIOEither[L, E, R], onRelease Kleisli[L, E, R, ANY]) Kleisli[L, E, Kleisli[L, E, R, A], A] {
 	return func(f func(R) ReaderIOEither[L, E, A]) ReaderIOEither[L, E, A] {
 		return func(l L) ioeither.IOEither[E, A] {
 			// dispatch to the generic implementation

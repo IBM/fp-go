@@ -269,7 +269,7 @@ import (
 
 func process() IOET.IOEither[error, string] {
     return IOEG.Map[error, int, string](
-        func(x int) string { return fmt.Sprintf("%d", x) },
+        strconv.Itoa,
     )(fetchData())
 }
 ```
@@ -285,7 +285,7 @@ type IOEither[A any] = ioeither.IOEither[error, A]
 
 func process() IOEither[string] {
     return ioeither.Map(
-        func(x int) string { return fmt.Sprintf("%d", x) },
+        strconv.Itoa,
     )(fetchData())
 }
 ```

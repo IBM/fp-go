@@ -34,7 +34,7 @@
 //	// result is Either[error, int]
 //
 //	// Function erasure
-//	typedFunc := func(x int) string { return fmt.Sprintf("%d", x) }
+//	typedFunc := strconv.Itoa
 //	erasedFunc := erasure.Erase1(typedFunc)
 //	result := erasedFunc(erasure.Erase(42)) // returns erased "42"
 package erasure
@@ -112,7 +112,7 @@ func Erase0[T1 any](f func() T1) func() any {
 //
 // Example:
 //
-//	typedFunc := func(x int) string { return fmt.Sprintf("%d", x) }
+//	typedFunc := strconv.Itoa
 //	erasedFunc := Erase1(typedFunc)
 //	result := erasedFunc(Erase(42)) // returns erased "42"
 func Erase1[T1, T2 any](f func(T1) T2) func(any) any {

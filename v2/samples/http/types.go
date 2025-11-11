@@ -15,10 +15,8 @@
 
 package http
 
-import (
-	"github.com/IBM/fp-go/v2/context/readerioeither"
-)
+import "github.com/IBM/fp-go/v2/context/readerioresult"
 
 type (
-	ReaderIOEither[A any] = readerioeither.ReaderIOEither[A]
+	ReaderIOResult[A any] = readerioresult.ReaderIOResult[A]
 )

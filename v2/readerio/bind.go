@@ -16,6 +16,7 @@
 package readerio
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
@@ -256,9 +257,7 @@ func BindL[R, S, T any](
 	lens L.Lens[S, T],
 	f func(T) ReaderIO[R, T],
 ) func(ReaderIO[R, S]) ReaderIO[R, S] {
-	return Bind[R, S, S, T](lens.Set, func(s S) ReaderIO[R, T] {
-		return f(lens.Get(s))
-	})
+	return Bind[R, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -291,9 +290,7 @@ func LetL[R, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
 ) func(ReaderIO[R, S]) ReaderIO[R, S] {
-	return Let[R, S, S, T](lens.Set, func(s S) T {
-		return f(lens.Get(s))
-	})
+	return Let[R, S, S, T](lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.

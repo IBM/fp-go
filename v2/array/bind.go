@@ -34,7 +34,7 @@ import (
 func Do[S any](
 	empty S,
 ) []S {
-	return G.Do[[]S, S](empty)
+	return G.Do[[]S](empty)
 }
 
 // Bind attaches the result of a computation to a context S1 to produce a context S2.
@@ -58,7 +58,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) []T,
 ) func([]S1) []S2 {
-	return G.Bind[[]S1, []S2, []T, S1, S2, T](setter, f)
+	return G.Bind[[]S1, []S2](setter, f)
 }
 
 // Let attaches the result of a pure computation to a context S1 to produce a context S2.
@@ -80,7 +80,7 @@ func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
 ) func([]S1) []S2 {
-	return G.Let[[]S1, []S2, S1, S2, T](setter, f)
+	return G.Let[[]S1, []S2](setter, f)
 }
 
 // LetTo attaches a constant value to a context S1 to produce a context S2.
@@ -102,7 +102,7 @@ func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
 ) func([]S1) []S2 {
-	return G.LetTo[[]S1, []S2, S1, S2, T](setter, b)
+	return G.LetTo[[]S1, []S2](setter, b)
 }
 
 // BindTo initializes a new state S1 from a value T.
@@ -121,7 +121,7 @@ func LetTo[S1, S2, T any](
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) func([]T) []S1 {
-	return G.BindTo[[]S1, []T, S1, T](setter)
+	return G.BindTo[[]S1, []T](setter)
 }
 
 // ApS attaches a value to a context S1 to produce a context S2 by considering
@@ -144,5 +144,5 @@ func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa []T,
 ) func([]S1) []S2 {
-	return G.ApS[[]S1, []S2, []T, S1, S2, T](setter, fa)
+	return G.ApS[[]S1, []S2](setter, fa)
 }

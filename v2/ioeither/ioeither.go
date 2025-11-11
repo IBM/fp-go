@@ -338,7 +338,7 @@ func MonadFold[E, A, B any](ma IOEither[E, A], onLeft func(E) IO[B], onRight fun
 }
 
 // WithResource constructs a function that creates a resource, then operates on it and then releases the resource
-func WithResource[A, E, R, ANY any](onCreate IOEither[E, R], onRelease func(R) IOEither[E, ANY]) func(func(R) IOEither[E, A]) IOEither[E, A] {
+func WithResource[A, E, R, ANY any](onCreate IOEither[E, R], onRelease Kleisli[E, R, ANY]) Kleisli[E, Kleisli[E, R, A], A] {
 	return file.WithResource(
 		MonadChain[E, R, A],
 		MonadFold[E, A, Either[E, A]],

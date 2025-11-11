@@ -53,7 +53,7 @@ func MakeBounded[T any](o ord.Ord[T], t, b T) Bounded[T] {
 
 // Clamp returns a function that clamps against the bounds defined in the bounded type
 func Clamp[T any](b Bounded[T]) func(T) T {
-	return ord.Clamp[T](b)(b.Bottom(), b.Top())
+	return ord.Clamp(b)(b.Bottom(), b.Top())
 }
 
 // Reverse reverses the ordering and swaps the bounds

@@ -82,7 +82,7 @@ func MapWithIndex[A, B any](f func(int, A) B) func([]A) []B {
 //
 //go:inline
 func Map[A, B any](f func(a A) B) func([]A) []B {
-	return G.Map[[]A, []B, A, B](f)
+	return G.Map[[]A, []B](f)
 }
 
 // MapRef applies a function to a pointer to each element of an array, returning a new array with the results.
@@ -278,7 +278,7 @@ func Of[A any](a A) []A {
 //
 //go:inline
 func MonadChain[A, B any](fa []A, f func(a A) []B) []B {
-	return G.MonadChain[[]A, []B](fa, f)
+	return G.MonadChain(fa, f)
 }
 
 // Chain applies a function that returns an array to each element and flattens the results.
@@ -291,7 +291,7 @@ func MonadChain[A, B any](fa []A, f func(a A) []B) []B {
 //
 //go:inline
 func Chain[A, B any](f func(A) []B) func([]A) []B {
-	return G.Chain[[]A, []B](f)
+	return G.Chain[[]A](f)
 }
 
 // MonadAp applies an array of functions to an array of values, producing all combinations.
@@ -314,14 +314,14 @@ func Ap[B, A any](fa []A) func([]func(A) B) []B {
 //
 //go:inline
 func Match[A, B any](onEmpty func() B, onNonEmpty func([]A) B) func([]A) B {
-	return G.Match[[]A](onEmpty, onNonEmpty)
+	return G.Match(onEmpty, onNonEmpty)
 }
 
 // MatchLeft performs pattern matching on an array, calling onEmpty if empty or onNonEmpty with head and tail if not.
 //
 //go:inline
 func MatchLeft[A, B any](onEmpty func() B, onNonEmpty func(A, []A) B) func([]A) B {
-	return G.MatchLeft[[]A](onEmpty, onNonEmpty)
+	return G.MatchLeft(onEmpty, onNonEmpty)
 }
 
 // Tail returns all elements except the first, wrapped in an Option.
@@ -390,7 +390,7 @@ func Intersperse[A any](middle A) EM.Endomorphism[[]A] {
 // Intercalate inserts a separator between elements and concatenates them using a Monoid.
 func Intercalate[A any](m M.Monoid[A]) func(A) func([]A) A {
 	return func(middle A) func([]A) A {
-		return Match(m.Empty, F.Flow2(Intersperse(middle), ConcatAll[A](m)))
+		return Match(m.Empty, F.Flow2(Intersperse(middle), ConcatAll(m)))
 	}
 }
 
@@ -519,7 +519,7 @@ func Push[A any](a A) EM.Endomorphism[[]A] {
 //
 //go:inline
 func MonadFlap[B, A any](fab []func(A) B, a A) []B {
-	return G.MonadFlap[func(A) B, []func(A) B, []B, A, B](fab, a)
+	return G.MonadFlap[func(A) B, []func(A) B, []B](fab, a)
 }
 
 // Flap applies a value to an array of functions, producing an array of results.
@@ -527,7 +527,7 @@ func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 //
 //go:inline
 func Flap[B, A any](a A) func([]func(A) B) []B {
-	return G.Flap[func(A) B, []func(A) B, []B, A, B](a)
+	return G.Flap[func(A) B, []func(A) B, []B](a)
 }
 
 // Prepend adds an element to the beginning of an array, returning a new array.

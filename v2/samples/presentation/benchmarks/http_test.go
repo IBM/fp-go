@@ -24,8 +24,8 @@ import (
 	HTTP "net/http"
 
 	A "github.com/IBM/fp-go/v2/array"
-	R "github.com/IBM/fp-go/v2/context/readerioeither"
-	H "github.com/IBM/fp-go/v2/context/readerioeither/http"
+	R "github.com/IBM/fp-go/v2/context/readerioresult"
+	H "github.com/IBM/fp-go/v2/context/readerioresult/http"
 	F "github.com/IBM/fp-go/v2/function"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
@@ -41,7 +41,7 @@ type CatFact struct {
 	Fact string `json:"fact"`
 }
 
-func heterogeneousHTTPRequests(count int) R.ReaderIOEither[[]T.Tuple2[PostItem, CatFact]] {
+func heterogeneousHTTPRequests(count int) R.ReaderIOResult[[]T.Tuple2[PostItem, CatFact]] {
 	// prepare the http client
 	client := H.MakeClient(HTTP.DefaultClient)
 	// readSinglePost sends a GET request and parses the response as [PostItem]

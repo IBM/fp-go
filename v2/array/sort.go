@@ -94,5 +94,5 @@ func SortByKey[K, T any](ord O.Ord[K], f func(T) K) func(ma []T) []T {
 //
 //go:inline
 func SortBy[T any](ord []O.Ord[T]) func(ma []T) []T {
-	return G.SortBy[[]T, []O.Ord[T]](ord)
+	return G.SortBy[[]T](ord)
 }
