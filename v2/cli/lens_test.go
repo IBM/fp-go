@@ -472,7 +472,6 @@ type TypeTest struct {
 	assert.Equal(t, "Pointer", typeTest.Fields[2].Name)
 	assert.Equal(t, "*string", typeTest.Fields[2].TypeName)
 	assert.True(t, typeTest.Fields[2].IsOptional)
-	assert.False(t, typeTest.Fields[2].IsComparable, "IsComparable not set for optional fields")
 
 	// Slice - not comparable
 	assert.Equal(t, "Slice", typeTest.Fields[3].Name)
@@ -526,9 +525,6 @@ func TestLensRefTemplatesWithComparable(t *testing.T) {
 	assert.Contains(t, constructorStr, "Data: L.MakeLensRef(",
 		"non-comparable field Data should use MakeLensRef in RefLenses")
 
-	// Pointer field - optional, should use MakeLensRef
-	assert.Contains(t, constructorStr, "Pointer: L.MakeLensRef(",
-		"optional field Pointer should use MakeLensRef in RefLenses")
 }
 
 func TestGenerateLensHelpersWithComparable(t *testing.T) {

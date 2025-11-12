@@ -17,6 +17,7 @@ package option
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
 )
@@ -91,4 +92,6 @@ type (
 	//   optLens := lens.FromNillableRef(timeoutLens)
 	//   // optLens is a LensO[*Config, *int]
 	LensO[S, A any] = Lens[S, Option[A]]
+
+	Iso[S, A any] = iso.Iso[S, A]
 )

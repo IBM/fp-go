@@ -116,18 +116,20 @@ func Make{{.Name}}Lenses() {{.Name}}Lenses {
 
 // Make{{.Name}}RefLenses creates a new {{.Name}}RefLenses with lenses for all fields
 func Make{{.Name}}RefLenses() {{.Name}}RefLenses {
-{{- range .Fields}}
-{{- if .IsOptional}}
-	iso{{.Name}} := I.FromZero[{{.TypeName}}]()
-{{- end}}
-{{- end}}
 	return {{.Name}}RefLenses{
 {{- range .Fields}}
 {{- if .IsOptional}}
-		{{.Name}}: L.MakeLensRef(
-			func(s *{{$.Name}}) O.Option[{{.TypeName}}] { return iso{{.Name}}.Get(s.{{.Name}}) },
-			func(s *{{$.Name}}, v O.Option[{{.TypeName}}]) *{{$.Name}} { s.{{.Name}} = iso{{.Name}}.ReverseGet(v); return s },
-		),
+{{- if .IsComparable}}
+		{{.Name}}: LO.FromIso[*{{$.Name}}](I.FromZero[{{.TypeName}}]())(L.MakeLensStrict(
+			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
+			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+		)),
+{{- else}}
+		{{.Name}}: LO.FromIso[*{{$.Name}}](I.FromZero[{{.TypeName}}]())(L.MakeLensRef(
+			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
+			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+		)),
+{{- end}}
 {{- else}}
 {{- if .IsComparable}}
 		{{.Name}}: L.MakeLensStrict(
@@ -460,9 +462,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 
 					// Check if the type is comparable (for non-optional fields)
 					// For optional fields, we don't need to check since they use LensO
-					if !isOptional {
-						isComparable = isComparableType(field.Type)
-					}
+					isComparable = isComparableType(field.Type)
 
 					// Extract imports from this field's type
 					fieldImports := make(map[string]string)

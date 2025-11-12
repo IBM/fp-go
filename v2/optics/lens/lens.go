@@ -435,7 +435,7 @@ func compose[GET ~func(S) B, SET ~func(S, B) S, S, A, B any](creator func(get GE
 //	person := Person{Name: "Alice", Address: Address{Street: "Main St"}}
 //	street := personStreetLens.Get(person)  // "Main St"
 //	updated := personStreetLens.Set("Oak Ave")(person)
-func Compose[S, A, B any](ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
+func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 	return compose(MakeLens[func(S) B, func(S, B) S], ab)
 }
 
@@ -477,7 +477,7 @@ func Compose[S, A, B any](ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
 //	)
 //
 //	personStreetLens := F.Pipe1(addressLens, lens.ComposeRef[Person](streetLens))
-func ComposeRef[S, A, B any](ab Lens[A, B]) func(Lens[*S, A]) Lens[*S, B] {
+func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 	return compose(MakeLensRef[func(*S) B, func(*S, B) *S], ab)
 }
 

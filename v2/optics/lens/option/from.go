@@ -3,6 +3,7 @@ package option
 import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	LI "github.com/IBM/fp-go/v2/optics/lens/iso"
 	O "github.com/IBM/fp-go/v2/option"
 )
 
@@ -94,4 +95,70 @@ func FromOption[S, A any](defaultValue A) func(sa LensO[S, A]) Lens[S, A] {
 //   - A function that takes a Lens[*S, Option[A]] and returns a Lens[*S, A]
 func FromOptionRef[S, A any](defaultValue A) func(sa Lens[*S, Option[A]]) Lens[*S, A] {
 	return fromOption(lens.MakeLensRefCurried[S, A], defaultValue)
+}
+
+// FromIso converts a Lens[S, A] to a LensO[S, A] using an isomorphism.
+//
+// This function takes an isomorphism between A and Option[A] and uses it to
+// transform a regular lens into an optional lens. It's particularly useful when
+// you have a custom isomorphism that defines how to convert between a value
+// and its optional representation.
+//
+// The isomorphism must satisfy the round-trip laws:
+//  1. iso.ReverseGet(iso.Get(a)) == a for all a: A
+//  2. iso.Get(iso.ReverseGet(opt)) == opt for all opt: Option[A]
+//
+// Type Parameters:
+//   - S: The structure type containing the field
+//   - A: The type of the field being focused on
+//
+// Parameters:
+//   - iso: An isomorphism between A and Option[A] that defines the conversion
+//
+// Returns:
+//   - A function that takes a Lens[S, A] and returns a LensO[S, A]
+//
+// Example:
+//
+//	type Config struct {
+//	    timeout int
+//	}
+//
+//	// Create a lens to the timeout field
+//	timeoutLens := lens.MakeLens(
+//	    func(c Config) int { return c.timeout },
+//	    func(c Config, t int) Config { c.timeout = t; return c },
+//	)
+//
+//	// Create an isomorphism that treats 0 as None
+//	zeroAsNone := iso.MakeIso(
+//	    func(t int) option.Option[int] {
+//	        if t == 0 {
+//	            return option.None[int]()
+//	        }
+//	        return option.Some(t)
+//	    },
+//	    func(opt option.Option[int]) int {
+//	        return option.GetOrElse(func() int { return 0 })(opt)
+//	    },
+//	)
+//
+//	// Convert to optional lens
+//	optTimeoutLens := FromIso[Config, int](zeroAsNone)(timeoutLens)
+//
+//	config := Config{timeout: 0}
+//	opt := optTimeoutLens.Get(config)        // None[int]()
+//	updated := optTimeoutLens.Set(option.Some(30))(config) // Config{timeout: 30}
+//
+// Common Use Cases:
+//   - Converting between sentinel values (like 0, -1, "") and Option
+//   - Applying custom validation logic when converting to/from Option
+//   - Integrating with existing isomorphisms like FromNillable
+//
+// See also:
+//   - FromPredicate: For predicate-based optional conversion
+//   - FromNillable: For pointer-based optional conversion
+//   - FromOption: For converting from optional to non-optional with defaults
+func FromIso[S, A any](iso Iso[A, Option[A]]) func(Lens[S, A]) LensO[S, A] {
+	return LI.Compose[S](iso)
 }

@@ -80,4 +80,7 @@ type (
 		// with the focused value updated to a. The original structure is never modified.
 		Set func(a A) Endomorphism[S]
 	}
+
+	Kleisli[S, A, B any]  = func(A) Lens[S, B]
+	Operator[S, A, B any] = Kleisli[S, Lens[S, A], B]
 )
