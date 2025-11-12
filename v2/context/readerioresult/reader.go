@@ -836,3 +836,8 @@ func ChainReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli
 func ChainFirstReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
 	return RIOR.ChainFirstReaderOptionK[context.Context, A, B](onNone)
 }
+
+//go:inline
+func Read[A any](r context.Context) func(ReaderIOResult[A]) IOResult[A] {
+	return RIOR.Read[A](r)
+}

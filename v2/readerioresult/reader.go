@@ -677,3 +677,8 @@ func MapLeft[R, A, E any](f func(error) E) func(ReaderIOResult[R, A]) RIOE.Reade
 func Local[A, R1, R2 any](f func(R2) R1) func(ReaderIOResult[R1, A]) ReaderIOResult[R2, A] {
 	return RIOE.Local[error, A](f)
 }
+
+//go:inline
+func Read[A, R any](r R) func(ReaderIOResult[R, A]) IOResult[A] {
+	return RIOE.Read[error, A](r)
+}

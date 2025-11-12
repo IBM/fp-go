@@ -36,6 +36,8 @@ func FromOption[E, A any](e Option[A]) ReaderOption[E, A] {
 
 // Some wraps a value in a ReaderOption, representing a successful computation.
 // This is equivalent to Of but more explicit about the Option semantics.
+//
+//go:inline
 func Some[E, A any](r A) ReaderOption[E, A] {
 	return optiont.Of(reader.Of[E, Option[A]], r)
 }
@@ -50,6 +52,8 @@ func FromReader[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 
 // SomeReader lifts a Reader[E, A] into a ReaderOption[E, A].
 // The resulting computation always succeeds (returns Some).
+//
+//go:inline
 func SomeReader[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 	return optiont.SomeF(reader.MonadMap[E, A, Option[A]], r)
 }
@@ -61,6 +65,8 @@ func SomeReader[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 //
 //	ro := readeroption.Of[Config](42)
 //	doubled := readeroption.MonadMap(ro, func(x int) int { return x * 2 })
+//
+//go:inline
 func MonadMap[E, A, B any](fa ReaderOption[E, A], f func(A) B) ReaderOption[E, B] {
 	return readert.MonadMap[ReaderOption[E, A], ReaderOption[E, B]](O.MonadMap[A, B], fa, f)
 }
@@ -74,6 +80,8 @@ func MonadMap[E, A, B any](fa ReaderOption[E, A], f func(A) B) ReaderOption[E, B
 //	    readeroption.Of[Config](42),
 //	    readeroption.Map[Config](func(x int) int { return x * 2 }),
 //	)
+//
+//go:inline
 func Map[E, A, B any](f func(A) B) Operator[E, A, B] {
 	return readert.Map[ReaderOption[E, A], ReaderOption[E, B]](O.Map[A, B], f)
 }
@@ -86,6 +94,8 @@ func Map[E, A, B any](f func(A) B) Operator[E, A, B] {
 //	findUser := func(id int) readeroption.ReaderOption[DB, User] { ... }
 //	loadProfile := func(user User) readeroption.ReaderOption[DB, Profile] { ... }
 //	result := readeroption.MonadChain(findUser(123), loadProfile)
+//
+//go:inline
 func MonadChain[E, A, B any](ma ReaderOption[E, A], f Kleisli[E, A, B]) ReaderOption[E, B] {
 	return readert.MonadChain(O.MonadChain[A, B], ma, f)
 }
@@ -99,6 +109,8 @@ func MonadChain[E, A, B any](ma ReaderOption[E, A], f Kleisli[E, A, B]) ReaderOp
 //	    findUser(123),
 //	    readeroption.Chain(loadProfile),
 //	)
+//
+//go:inline
 func Chain[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, B] {
 	return readert.Chain[ReaderOption[E, A]](O.Chain[A, B], f)
 }
@@ -110,6 +122,8 @@ func Chain[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, B] {
 //
 //	ro := readeroption.Of[Config](42)
 //	result := ro(config) // Returns option.Some(42)
+//
+//go:inline
 func Of[E, A any](a A) ReaderOption[E, A] {
 	return readert.MonadOf[ReaderOption[E, A]](O.Of[A], a)
 }
@@ -121,6 +135,8 @@ func Of[E, A any](a A) ReaderOption[E, A] {
 //
 //	ro := readeroption.None[Config, int]()
 //	result := ro(config) // Returns option.None[int]()
+//
+//go:inline
 func None[E, A any]() ReaderOption[E, A] {
 	return reader.Of[E](O.None[A]())
 }
@@ -128,12 +144,16 @@ func None[E, A any]() ReaderOption[E, A] {
 // MonadAp applies a function wrapped in a ReaderOption to a value wrapped in a ReaderOption.
 // Both computations are executed with the same environment.
 // If either computation returns None, the result is None.
+//
+//go:inline
 func MonadAp[E, A, B any](fab ReaderOption[E, func(A) B], fa ReaderOption[E, A]) ReaderOption[E, B] {
 	return readert.MonadAp[ReaderOption[E, A], ReaderOption[E, B], ReaderOption[E, func(A) B], E, A](O.MonadAp[B, A], fab, fa)
 }
 
 // Ap returns a function that applies a function wrapped in a ReaderOption to a value.
 // This is the curried version of MonadAp.
+//
+//go:inline
 func Ap[B, E, A any](fa ReaderOption[E, A]) Operator[E, func(A) B, B] {
 	return readert.Ap[ReaderOption[E, A], ReaderOption[E, B], ReaderOption[E, func(A) B], E, A](O.Ap[B, A], fa)
 }
@@ -148,6 +168,8 @@ func Ap[B, E, A any](fa ReaderOption[E, A]) Operator[E, func(A) B, B] {
 //	    readeroption.Of[Config](42),
 //	    readeroption.Chain(isPositive),
 //	)
+//
+//go:inline
 func FromPredicate[E, A any](pred func(A) bool) Kleisli[E, A, A] {
 	return fromoption.FromPredicate(FromOption[E, A], pred)
 }
@@ -162,8 +184,14 @@ func FromPredicate[E, A any](pred func(A) bool) Kleisli[E, A, A] {
 //	    func() reader.Reader[Config, string] { return reader.Of[Config]("not found") },
 //	    func(user User) reader.Reader[Config, string] { return reader.Of[Config](user.Name) },
 //	)(findUser(123))
-func Fold[E, A, B any](onNone func() Reader[E, B], onRight func(A) Reader[E, B]) func(ReaderOption[E, A]) Reader[E, B] {
-	return optiont.MatchE(reader.MonadChain[E, Option[A], B], onNone, onRight)
+//
+//go:inline
+func Fold[E, A, B any](onNone Reader[E, B], onRight func(A) Reader[E, B]) func(ReaderOption[E, A]) Reader[E, B] {
+	return optiont.MatchE(reader.Chain[E, Option[A], B], function.Constant(onNone), onRight)
+}
+
+func MonadFold[E, A, B any](fa ReaderOption[E, A], onNone Reader[E, B], onRight func(A) Reader[E, B]) Reader[E, B] {
+	return optiont.MonadMatchE(fa, reader.MonadChain[E, Option[A], B], function.Constant(onNone), onRight)
 }
 
 // GetOrElse returns the value from a ReaderOption, or a default value if it's None.
@@ -173,8 +201,10 @@ func Fold[E, A, B any](onNone func() Reader[E, B], onRight func(A) Reader[E, B])
 //	result := readeroption.GetOrElse(
 //	    func() reader.Reader[Config, User] { return reader.Of[Config](defaultUser) },
 //	)(findUser(123))
-func GetOrElse[E, A any](onNone func() Reader[E, A]) func(ReaderOption[E, A]) Reader[E, A] {
-	return optiont.GetOrElse(reader.MonadChain[E, Option[A], A], onNone, reader.Of[E, A])
+//
+//go:inline
+func GetOrElse[E, A any](onNone Reader[E, A]) func(ReaderOption[E, A]) Reader[E, A] {
+	return optiont.GetOrElse(reader.Chain[E, Option[A], A], function.Constant(onNone), reader.Of[E, A])
 }
 
 // Ask retrieves the current environment as a ReaderOption.
@@ -184,6 +214,8 @@ func GetOrElse[E, A any](onNone func() Reader[E, A]) func(ReaderOption[E, A]) Re
 //
 //	getConfig := readeroption.Ask[Config, any]()
 //	result := getConfig(myConfig) // Returns option.Some(myConfig)
+//
+//go:inline
 func Ask[E, L any]() ReaderOption[E, E] {
 	return fromreader.Ask(FromReader[E, E])()
 }
@@ -195,6 +227,8 @@ func Ask[E, L any]() ReaderOption[E, E] {
 //
 //	getTimeout := readeroption.Asks(func(cfg Config) int { return cfg.Timeout })
 //	result := getTimeout(myConfig) // Returns option.Some(myConfig.Timeout)
+//
+//go:inline
 func Asks[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 	return fromreader.Asks(FromReader[E, A])(r)
 }
@@ -209,6 +243,8 @@ func Asks[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 //	    readeroption.Of[Config]("25"),
 //	    parseAge,
 //	)
+//
+//go:inline
 func MonadChainOptionK[E, A, B any](ma ReaderOption[E, A], f func(A) Option[B]) ReaderOption[E, B] {
 	return fromoption.MonadChainOptionK(
 		MonadChain[E, A, B],
@@ -228,6 +264,8 @@ func MonadChainOptionK[E, A, B any](ma ReaderOption[E, A], f func(A) Option[B]) 
 //	    readeroption.Of[Config]("25"),
 //	    readeroption.ChainOptionK[Config](parseAge),
 //	)
+//
+//go:inline
 func ChainOptionK[E, A, B any](f func(A) Option[B]) Operator[E, A, B] {
 	return fromoption.ChainOptionK(
 		Chain[E, A, B],
@@ -243,6 +281,8 @@ func ChainOptionK[E, A, B any](f func(A) Option[B]) Operator[E, A, B] {
 //
 //	nested := readeroption.Of[Config](readeroption.Of[Config](42))
 //	flattened := readeroption.Flatten(nested)
+//
+//go:inline
 func Flatten[E, A any](mma ReaderOption[E, ReaderOption[E, A]]) ReaderOption[E, A] {
 	return MonadChain(mma, function.Identity[ReaderOption[E, A]])
 }
@@ -264,6 +304,8 @@ func Flatten[E, A any](mma ReaderOption[E, ReaderOption[E, A]]) ReaderOption[E, 
 //	result := readeroption.Local(func(g GlobalConfig) DBConfig { return g.DB })(
 //	    readeroption.Asks(query),
 //	)
+//
+//go:inline
 func Local[A, R2, R1 any](f func(R2) R1) func(ReaderOption[R1, A]) ReaderOption[R2, A] {
 	return reader.Local[Option[A]](f)
 }
@@ -275,18 +317,34 @@ func Local[A, R2, R1 any](f func(R2) R1) func(ReaderOption[R1, A]) ReaderOption[
 //
 //	ro := readeroption.Of[Config](42)
 //	result := readeroption.Read[int](myConfig)(ro) // Returns option.Some(42)
+//
+//go:inline
 func Read[A, E any](e E) func(ReaderOption[E, A]) Option[A] {
-	return reader.Read[E, Option[A]](e)
+	return reader.Read[Option[A]](e)
 }
 
 // MonadFlap applies a value to a function wrapped in a ReaderOption.
 // This is the reverse of MonadAp.
+//
+//go:inline
 func MonadFlap[E, A, B any](fab ReaderOption[E, func(A) B], a A) ReaderOption[E, B] {
 	return functor.MonadFlap(MonadMap[E, func(A) B, B], fab, a)
 }
 
 // Flap returns a function that applies a value to a function wrapped in a ReaderOption.
 // This is the curried version of MonadFlap.
+//
+//go:inline
 func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 	return functor.Flap(Map[E, func(A) B, B], a)
+}
+
+//go:inline
+func MonadAlt[E, A any](fa ReaderOption[E, A], that ReaderOption[E, A]) ReaderOption[E, A] {
+	return MonadFold(fa, that, Of[E, A])
+}
+
+//go:inline
+func Alt[E, A any](that ReaderOption[E, A]) Operator[E, A, A] {
+	return Fold(that, Of[E, A])
 }

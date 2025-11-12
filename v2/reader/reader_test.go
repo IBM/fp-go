@@ -175,7 +175,7 @@ func TestLocal(t *testing.T) {
 func TestRead(t *testing.T) {
 	config := Config{Port: 8080}
 	getPort := Asks(func(c Config) int { return c.Port })
-	run := Read[Config, int](config)
+	run := Read[int](config)
 	port := run(getPort)
 	assert.Equal(t, 8080, port)
 }

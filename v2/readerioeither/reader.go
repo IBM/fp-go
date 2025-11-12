@@ -750,3 +750,8 @@ func MapLeft[R, A, E1, E2 any](f func(E1) E2) func(ReaderIOEither[R, E1, A]) Rea
 func Local[E, A, R1, R2 any](f func(R2) R1) func(ReaderIOEither[R1, E, A]) ReaderIOEither[R2, E, A] {
 	return reader.Local[IOEither[E, A]](f)
 }
+
+//go:inline
+func Read[E, A, R any](r R) func(ReaderIOEither[R, E, A]) IOEither[E, A] {
+	return reader.Read[IOEither[E, A]](r)
+}

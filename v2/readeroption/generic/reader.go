@@ -82,11 +82,11 @@ func FromPredicate[GEA ~func(E) O.Option[A], E, A any](pred func(A) bool) func(A
 }
 
 func Fold[GEA ~func(E) O.Option[A], GB ~func(E) B, E, A, B any](onNone func() GB, onRight func(A) GB) func(GEA) GB {
-	return optiont.MatchE(R.MonadChain[GEA, GB, E, O.Option[A], B], onNone, onRight)
+	return optiont.MatchE(R.Chain[GEA, GB, E, O.Option[A], B], onNone, onRight)
 }
 
 func GetOrElse[GEA ~func(E) O.Option[A], GA ~func(E) A, E, A any](onNone func() GA) func(GEA) GA {
-	return optiont.GetOrElse(R.MonadChain[GEA, GA, E, O.Option[A], A], onNone, R.Of[GA, E, A])
+	return optiont.GetOrElse(R.Chain[GEA, GA, E, O.Option[A], A], onNone, R.Of[GA, E, A])
 }
 
 func Ask[GEE ~func(E) O.Option[E], E, L any]() GEE {

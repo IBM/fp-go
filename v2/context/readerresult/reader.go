@@ -92,3 +92,8 @@ func MonadFlap[B, A any](fab ReaderResult[func(A) B], a A) ReaderResult[B] {
 func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return readereither.Flap[context.Context, error, B](a)
 }
+
+//go:inline
+func Read[A any](r context.Context) func(ReaderResult[A]) Result[A] {
+	return readereither.Read[error, A](r)
+}

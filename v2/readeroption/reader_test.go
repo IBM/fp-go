@@ -22,6 +22,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,15 +136,9 @@ func TestFromPredicate(t *testing.T) {
 }
 
 func TestFold(t *testing.T) {
-	onNone := func() Reader[MyContext, string] {
-		return func(ctx MyContext) string {
-			return "none"
-		}
-	}
+	onNone := reader.Of[MyContext]("none")
 	onSome := func(x int) Reader[MyContext, string] {
-		return func(ctx MyContext) string {
-			return fmt.Sprintf("%d", x)
-		}
+		return reader.Of[MyContext](fmt.Sprintf("%d", x))
 	}
 
 	// Test with Some
@@ -156,11 +151,7 @@ func TestFold(t *testing.T) {
 }
 
 func TestGetOrElse(t *testing.T) {
-	defaultValue := func() Reader[MyContext, int] {
-		return func(ctx MyContext) int {
-			return 0
-		}
-	}
+	defaultValue := reader.Of[MyContext](0)
 
 	// Test with Some
 	g1 := GetOrElse(defaultValue)(Of[MyContext](42))

@@ -153,7 +153,7 @@ func Local[E, A, R2, R1 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderE
 
 // Read applies a context to a reader to obtain its value
 func Read[E1, A, E any](e E) func(ReaderEither[E, E1, A]) Either[E1, A] {
-	return reader.Read[E, Either[E1, A]](e)
+	return reader.Read[Either[E1, A]](e)
 }
 
 func MonadFlap[L, E, A, B any](fab ReaderEither[L, E, func(A) B], a A) ReaderEither[L, E, B] {

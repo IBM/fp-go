@@ -278,7 +278,7 @@ func Local[A, R2, R1 any](f func(R2) R1) func(Reader[R1, A]) Reader[R2, A] {
 //	getPort := reader.Asks(func(c Config) int { return c.Port })
 //	run := reader.Read(Config{Port: 8080})
 //	port := run(getPort) // 8080
-func Read[E, A any](e E) func(Reader[E, A]) A {
+func Read[A, E any](e E) func(Reader[E, A]) A {
 	return I.Ap[A](e)
 }
 

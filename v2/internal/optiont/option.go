@@ -78,12 +78,26 @@ func Ap[A, B, HKTFAB, HKTFGAB, HKTFA, HKTFB any](
 	return apply.Ap(fap, fmap, O.Ap[B, A], fa)
 }
 
-func MatchE[A, HKTEA, HKTB any](mchain func(HKTEA, func(O.Option[A]) HKTB) HKTB, onNone func() HKTB, onSome func(A) HKTB) func(HKTEA) HKTB {
-	return F.Bind2nd(mchain, O.Fold(onNone, onSome))
+func MonadMatchE[A, HKTEA, HKTB any](
+	fa HKTEA,
+	mchain func(HKTEA, func(O.Option[A]) HKTB) HKTB,
+	onNone func() HKTB,
+	onSome func(A) HKTB) HKTB {
+	return mchain(fa, O.Fold(onNone, onSome))
+}
+
+func MatchE[A, HKTEA, HKTB any](
+	mchain func(func(O.Option[A]) HKTB) func(HKTEA) HKTB,
+	onNone func() HKTB,
+	onSome func(A) HKTB) func(HKTEA) HKTB {
+	return mchain(O.Fold(onNone, onSome))
 }
 
 //go:inline
-func GetOrElse[A, HKTEA, HKTB any](mchain func(HKTEA, func(O.Option[A]) HKTB) HKTB, onNone func() HKTB, onSome func(A) HKTB) func(HKTEA) HKTB {
+func GetOrElse[A, HKTEA, HKTB any](
+	mchain func(func(O.Option[A]) HKTB) func(HKTEA) HKTB,
+	onNone func() HKTB,
+	onSome func(A) HKTB) func(HKTEA) HKTB {
 	return MatchE(mchain, onNone, onSome)
 }
 
