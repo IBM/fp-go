@@ -197,6 +197,36 @@ pair := MakePair(1, "hello")
 result := Map(func(s string) string { return s + "!" })(pair) // Pair(1, "hello!")
 ```
 
+#### 4. Endomorphism Compose Semantics
+
+The `Compose` function for endomorphisms now follows **mathematical function composition** (right-to-left execution), aligning with standard functional programming conventions.
+
+**V1:**
+```go
+// Compose executed left-to-right
+double := func(x int) int { return x * 2 }
+increment := func(x int) int { return x + 1 }
+composed := Compose(double, increment)
+result := composed(5) // (5 * 2) + 1 = 11
+```
+
+**V2:**
+```go
+// Compose executes RIGHT-TO-LEFT (mathematical composition)
+double := func(x int) int { return x * 2 }
+increment := func(x int) int { return x + 1 }
+composed := Compose(double, increment)
+result := composed(5) // (5 + 1) * 2 = 12
+
+// Use MonadChain for LEFT-TO-RIGHT execution
+chained := MonadChain(double, increment)
+result2 := chained(5) // (5 * 2) + 1 = 11
+```
+
+**Key Difference:**
+- `Compose(f, g)` now means `f ∘ g`, which applies `g` first, then `f` (right-to-left)
+- `MonadChain(f, g)` applies `f` first, then `g` (left-to-right)
+
 ## ✨ Key Improvements
 
 ### 1. Simplified Type Declarations

@@ -101,59 +101,113 @@ func TestAp(t *testing.T) {
 	assert.Equal(t, 100, result3, "Ap should work with different values")
 }
 
-// TestCompose tests the Compose function
-func TestCompose(t *testing.T) {
-	// Test basic composition: (5 * 2) + 1 = 11
-	doubleAndIncrement := Compose(double, increment)
-	result := doubleAndIncrement(5)
-	assert.Equal(t, 11, result, "Compose should compose endomorphisms correctly")
+// TestMonadCompose tests the MonadCompose function
+func TestMonadCompose(t *testing.T) {
+	// Test basic composition: RIGHT-TO-LEFT execution
+	// MonadCompose(double, increment) means: increment first, then double
+	composed := MonadCompose(double, increment)
+	result := composed(5)
+	assert.Equal(t, 12, result, "MonadCompose should execute right-to-left: (5 + 1) * 2 = 12")
 
-	// Test composition order: (5 + 1) * 2 = 12
-	incrementAndDouble := Compose(increment, double)
-	result2 := incrementAndDouble(5)
-	assert.Equal(t, 12, result2, "Compose should respect order of composition")
+	// Test composition order: RIGHT-TO-LEFT execution
+	// MonadCompose(increment, double) means: double first, then increment
+	composed2 := MonadCompose(increment, double)
+	result2 := composed2(5)
+	assert.Equal(t, 11, result2, "MonadCompose should execute right-to-left: (5 * 2) + 1 = 11")
 
-	// Test with three compositions: ((5 * 2) + 1) * ((5 * 2) + 1) = 121
-	complex := Compose(Compose(double, increment), square)
+	// Test with three compositions: RIGHT-TO-LEFT execution
+	// MonadCompose(MonadCompose(double, increment), square) means: square, then increment, then double
+	complex := MonadCompose(MonadCompose(double, increment), square)
 	result3 := complex(5)
-	assert.Equal(t, 121, result3, "Compose should work with nested compositions")
+	// 5 -> square -> 25 -> increment -> 26 -> double -> 52
+	assert.Equal(t, 52, result3, "MonadCompose should work with nested compositions: square(5)=25, +1=26, *2=52")
 }
 
 // TestMonadChain tests the MonadChain function
 func TestMonadChain(t *testing.T) {
-	// MonadChain should behave like Compose
+	// MonadChain executes LEFT-TO-RIGHT (first arg first, second arg second)
 	chained := MonadChain(double, increment)
 	result := chained(5)
-	assert.Equal(t, 11, result, "MonadChain should chain endomorphisms correctly")
+	assert.Equal(t, 11, result, "MonadChain should execute left-to-right: (5 * 2) + 1 = 11")
 
 	chained2 := MonadChain(increment, double)
 	result2 := chained2(5)
-	assert.Equal(t, 12, result2, "MonadChain should respect order")
+	assert.Equal(t, 12, result2, "MonadChain should execute left-to-right: (5 + 1) * 2 = 12")
 
 	// Test with negative values
 	chained3 := MonadChain(negate, increment)
 	result3 := chained3(5)
-	assert.Equal(t, -4, result3, "MonadChain should work with negative values")
+	assert.Equal(t, -4, result3, "MonadChain should execute left-to-right: -(5) + 1 = -4")
 }
 
 // TestChain tests the Chain function
 func TestChain(t *testing.T) {
+	// Chain(f) returns a function that applies its argument first, then f
 	chainWithIncrement := Chain(increment)
 
+	// chainWithIncrement(double) means: double first, then increment
 	chained := chainWithIncrement(double)
 	result := chained(5)
-	assert.Equal(t, 11, result, "Chain should create chaining function correctly")
+	assert.Equal(t, 11, result, "Chain should execute left-to-right: (5 * 2) + 1 = 11")
 
 	chainWithDouble := Chain(double)
+	// chainWithDouble(increment) means: increment first, then double
 	chained2 := chainWithDouble(increment)
 	result2 := chained2(5)
-	assert.Equal(t, 12, result2, "Chain should work with different endomorphisms")
+	assert.Equal(t, 12, result2, "Chain should execute left-to-right: (5 + 1) * 2 = 12")
 
 	// Test chaining with square
 	chainWithSquare := Chain(square)
+	// chainWithSquare(double) means: double first, then square
 	chained3 := chainWithSquare(double)
 	result3 := chained3(3)
-	assert.Equal(t, 36, result3, "Chain should work with square function")
+	assert.Equal(t, 36, result3, "Chain should execute left-to-right: (3 * 2) ^ 2 = 36")
+}
+
+// TestCompose tests the curried Compose function
+func TestCompose(t *testing.T) {
+	// Compose(g) returns a function that applies g first, then its argument
+	composeWithIncrement := Compose(increment)
+
+	// composeWithIncrement(double) means: increment first, then double
+	composed := composeWithIncrement(double)
+	result := composed(5)
+	assert.Equal(t, 12, result, "Compose should execute right-to-left: (5 + 1) * 2 = 12")
+
+	composeWithDouble := Compose(double)
+	// composeWithDouble(increment) means: double first, then increment
+	composed2 := composeWithDouble(increment)
+	result2 := composed2(5)
+	assert.Equal(t, 11, result2, "Compose should execute right-to-left: (5 * 2) + 1 = 11")
+
+	// Test composing with square
+	composeWithSquare := Compose(square)
+	// composeWithSquare(double) means: square first, then double
+	composed3 := composeWithSquare(double)
+	result3 := composed3(3)
+	assert.Equal(t, 18, result3, "Compose should execute right-to-left: (3 ^ 2) * 2 = 18")
+}
+
+// TestMonadComposeVsCompose demonstrates the relationship between MonadCompose and Compose
+func TestMonadComposeVsCompose(t *testing.T) {
+	double := func(x int) int { return x * 2 }
+	increment := func(x int) int { return x + 1 }
+
+	// MonadCompose takes both functions at once
+	monadComposed := MonadCompose(double, increment)
+	result1 := monadComposed(5) // (5 + 1) * 2 = 12
+
+	// Compose is the curried version - takes one function, returns a function
+	curriedCompose := Compose(increment)
+	composed := curriedCompose(double)
+	result2 := composed(5) // (5 + 1) * 2 = 12
+
+	assert.Equal(t, result1, result2, "MonadCompose and Compose should produce the same result")
+	assert.Equal(t, 12, result1, "Both should execute right-to-left: (5 + 1) * 2 = 12")
+
+	// Demonstrate that Compose(g)(f) is equivalent to MonadCompose(f, g)
+	assert.Equal(t, MonadCompose(double, increment)(5), Compose(increment)(double)(5),
+		"Compose(g)(f) should equal MonadCompose(f, g)")
 }
 
 // TestOf tests the Of function
@@ -191,12 +245,14 @@ func TestIdentity(t *testing.T) {
 	assert.Equal(t, 0, id(0), "Identity should work with zero")
 	assert.Equal(t, -10, id(-10), "Identity should work with negative values")
 
-	// Identity should be neutral for composition
-	composed1 := Compose(id, double)
-	assert.Equal(t, 10, composed1(5), "Identity should be right neutral for composition")
+	// Identity should be neutral for composition (RIGHT-TO-LEFT)
+	// Compose(id, double) means: double first, then id
+	composed1 := MonadCompose(id, double)
+	assert.Equal(t, 10, composed1(5), "Identity should be left neutral: double(5) = 10")
 
-	composed2 := Compose(double, id)
-	assert.Equal(t, 10, composed2(5), "Identity should be left neutral for composition")
+	// Compose(double, id) means: id first, then double
+	composed2 := MonadCompose(double, id)
+	assert.Equal(t, 10, composed2(5), "Identity should be right neutral: id(5) then double = 10")
 
 	// Test with strings
 	idStr := Identity[string]()
@@ -207,10 +263,11 @@ func TestIdentity(t *testing.T) {
 func TestSemigroup(t *testing.T) {
 	sg := Semigroup[int]()
 
-	// Test basic concat
+	// Test basic concat (RIGHT-TO-LEFT execution via Compose)
+	// Concat(double, increment) means: increment first, then double
 	combined := sg.Concat(double, increment)
 	result := combined(5)
-	assert.Equal(t, 11, result, "Semigroup concat should compose endomorphisms")
+	assert.Equal(t, 12, result, "Semigroup concat should execute right-to-left: (5 + 1) * 2 = 12")
 
 	// Test associativity: (f . g) . h = f . (g . h)
 	f := double
@@ -223,10 +280,12 @@ func TestSemigroup(t *testing.T) {
 	testValue := 3
 	assert.Equal(t, left(testValue), right(testValue), "Semigroup should be associative")
 
-	// Test with ConcatAll from semigroup package
+	// Test with ConcatAll from semigroup package (RIGHT-TO-LEFT)
+	// ConcatAll(double)(increment, square) means: square, then increment, then double
 	combined2 := S.ConcatAll(sg)(double)([]Endomorphism[int]{increment, square})
 	result2 := combined2(5)
-	assert.Equal(t, 121, result2, "Semigroup should work with ConcatAll")
+	// 5 -> square -> 25 -> increment -> 26 -> double -> 52
+	assert.Equal(t, 52, result2, "Semigroup ConcatAll should execute right-to-left: square(5)=25, +1=26, *2=52")
 }
 
 // TestMonoid tests the Monoid function
@@ -237,19 +296,21 @@ func TestMonoid(t *testing.T) {
 	empty := monoid.Empty()
 	assert.Equal(t, 42, empty(42), "Monoid empty should be identity")
 
-	// Test right identity: x . empty = x
+	// Test right identity: x . empty = x (RIGHT-TO-LEFT: empty first, then x)
+	// Concat(double, empty) means: empty first, then double
 	rightIdentity := monoid.Concat(double, empty)
-	assert.Equal(t, 10, rightIdentity(5), "Monoid should satisfy right identity")
+	assert.Equal(t, 10, rightIdentity(5), "Monoid should satisfy right identity: empty(5) then double = 10")
 
-	// Test left identity: empty . x = x
+	// Test left identity: empty . x = x (RIGHT-TO-LEFT: x first, then empty)
+	// Concat(empty, double) means: double first, then empty
 	leftIdentity := monoid.Concat(empty, double)
-	assert.Equal(t, 10, leftIdentity(5), "Monoid should satisfy left identity")
+	assert.Equal(t, 10, leftIdentity(5), "Monoid should satisfy left identity: double(5) then empty = 10")
 
-	// Test ConcatAll with multiple endomorphisms
+	// Test ConcatAll with multiple endomorphisms (RIGHT-TO-LEFT execution)
 	combined := M.ConcatAll(monoid)([]Endomorphism[int]{double, increment, square})
 	result := combined(5)
-	// (5 * 2) = 10, (10 + 1) = 11, (11 * 11) = 121
-	assert.Equal(t, 121, result, "Monoid should work with ConcatAll")
+	// RIGHT-TO-LEFT: square(5) = 25, increment(25) = 26, double(26) = 52
+	assert.Equal(t, 52, result, "Monoid ConcatAll should execute right-to-left: square(5)=25, +1=26, *2=52")
 
 	// Test ConcatAll with empty list should return identity
 	emptyResult := M.ConcatAll(monoid)([]Endomorphism[int]{})
@@ -294,19 +355,20 @@ func TestMonoidLaws(t *testing.T) {
 
 // TestEndomorphismWithDifferentTypes tests endomorphisms with different types
 func TestEndomorphismWithDifferentTypes(t *testing.T) {
-	// Test with strings
-	toUpper := func(s string) string {
+	// Test with strings (RIGHT-TO-LEFT execution)
+	addExclamation := func(s string) string {
 		return s + "!"
 	}
 	addPrefix := func(s string) string {
 		return "Hello, " + s
 	}
 
-	strComposed := Compose(toUpper, addPrefix)
+	// Compose(addExclamation, addPrefix) means: addPrefix first, then addExclamation
+	strComposed := MonadCompose(addExclamation, addPrefix)
 	result := strComposed("World")
-	assert.Equal(t, "Hello, World!", result, "Endomorphism should work with strings")
+	assert.Equal(t, "Hello, World!", result, "Compose should execute right-to-left with strings")
 
-	// Test with float64
+	// Test with float64 (RIGHT-TO-LEFT execution)
 	doubleFloat := func(x float64) float64 {
 		return x * 2.0
 	}
@@ -314,31 +376,35 @@ func TestEndomorphismWithDifferentTypes(t *testing.T) {
 		return x + 1.0
 	}
 
-	floatComposed := Compose(doubleFloat, addOne)
+	// Compose(doubleFloat, addOne) means: addOne first, then doubleFloat
+	floatComposed := MonadCompose(doubleFloat, addOne)
 	resultFloat := floatComposed(5.5)
-	assert.Equal(t, 12.0, resultFloat, "Endomorphism should work with float64")
+	// 5.5 + 1.0 = 6.5, 6.5 * 2.0 = 13.0
+	assert.Equal(t, 13.0, resultFloat, "Compose should execute right-to-left: (5.5 + 1.0) * 2.0 = 13.0")
 }
 
 // TestComplexCompositions tests more complex composition scenarios
 func TestComplexCompositions(t *testing.T) {
-	// Create a pipeline of transformations
-	pipeline := Compose(
-		Compose(
-			Compose(double, increment),
+	// Create a pipeline of transformations (RIGHT-TO-LEFT execution)
+	// Innermost Compose is evaluated first in the composition chain
+	pipeline := MonadCompose(
+		MonadCompose(
+			MonadCompose(double, increment),
 			square,
 		),
 		negate,
 	)
 
-	// (5 * 2) = 10, (10 + 1) = 11, (11 * 11) = 121, -(121) = -121
+	// RIGHT-TO-LEFT: negate(5) = -5, square(-5) = 25, increment(25) = 26, double(26) = 52
 	result := pipeline(5)
-	assert.Equal(t, -121, result, "Complex composition should work correctly")
+	assert.Equal(t, 52, result, "Complex composition should execute right-to-left")
 
-	// Test using monoid to build the same pipeline
+	// Test using monoid to build the same pipeline (RIGHT-TO-LEFT)
 	monoid := Monoid[int]()
 	pipelineMonoid := M.ConcatAll(monoid)([]Endomorphism[int]{double, increment, square, negate})
 	resultMonoid := pipelineMonoid(5)
-	assert.Equal(t, -121, resultMonoid, "Monoid-based pipeline should match composition")
+	// RIGHT-TO-LEFT: negate(5) = -5, square(-5) = 25, increment(25) = 26, double(26) = 52
+	assert.Equal(t, 52, resultMonoid, "Monoid-based pipeline should match composition (right-to-left)")
 }
 
 // TestOperatorType tests the Operator type
@@ -371,7 +437,7 @@ func TestOperatorType(t *testing.T) {
 
 // BenchmarkCompose benchmarks the Compose function
 func BenchmarkCompose(b *testing.B) {
-	composed := Compose(double, increment)
+	composed := MonadCompose(double, increment)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = composed(5)
@@ -379,6 +445,47 @@ func BenchmarkCompose(b *testing.B) {
 }
 
 // BenchmarkMonoidConcatAll benchmarks ConcatAll with monoid
+// TestComposeVsChain demonstrates the key difference between Compose and Chain
+func TestComposeVsChain(t *testing.T) {
+	double := func(x int) int { return x * 2 }
+	increment := func(x int) int { return x + 1 }
+
+	// Compose executes RIGHT-TO-LEFT
+	// Compose(double, increment) means: increment first, then double
+	composed := MonadCompose(double, increment)
+	composedResult := composed(5) // (5 + 1) * 2 = 12
+
+	// MonadChain executes LEFT-TO-RIGHT
+	// MonadChain(double, increment) means: double first, then increment
+	chained := MonadChain(double, increment)
+	chainedResult := chained(5) // (5 * 2) + 1 = 11
+
+	assert.Equal(t, 12, composedResult, "Compose should execute right-to-left")
+	assert.Equal(t, 11, chainedResult, "MonadChain should execute left-to-right")
+	assert.NotEqual(t, composedResult, chainedResult, "Compose and Chain should produce different results with non-commutative operations")
+
+	// To get the same result with Compose, we need to reverse the order
+	composedReversed := MonadCompose(increment, double)
+	assert.Equal(t, chainedResult, composedReversed(5), "Compose with reversed args should match Chain")
+
+	// Demonstrate with a more complex example
+	square := func(x int) int { return x * x }
+
+	// Compose: RIGHT-TO-LEFT
+	composed3 := MonadCompose(MonadCompose(square, increment), double)
+	// double(5) = 10, increment(10) = 11, square(11) = 121
+	result1 := composed3(5)
+
+	// MonadChain: LEFT-TO-RIGHT
+	chained3 := MonadChain(MonadChain(double, increment), square)
+	// double(5) = 10, increment(10) = 11, square(11) = 121
+	result2 := chained3(5)
+
+	assert.Equal(t, 121, result1, "Compose should execute right-to-left")
+	assert.Equal(t, 121, result2, "MonadChain should execute left-to-right")
+	assert.Equal(t, result1, result2, "Both should produce same result when operations are in correct order")
+}
+
 func BenchmarkMonoidConcatAll(b *testing.B) {
 	monoid := Monoid[int]()
 	combined := M.ConcatAll(monoid)([]Endomorphism[int]{double, increment, square})

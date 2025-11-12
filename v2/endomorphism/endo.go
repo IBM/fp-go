@@ -60,70 +60,133 @@ func Ap[A any](fa A) func(Endomorphism[A]) A {
 	return identity.Ap[A](fa)
 }
 
-// Compose composes two endomorphisms into a single endomorphism.
+// MonadCompose composes two endomorphisms, executing them from right to left.
 //
-// Given two endomorphisms f1 and f2, Compose returns a new endomorphism that
-// applies f1 first, then applies f2 to the result. This is function composition:
-// Compose(f1, f2)(x) = f2(f1(x))
+// MonadCompose creates a new endomorphism that applies f2 first, then f1.
+// This follows the mathematical notation of function composition: (f1 ∘ f2)(x) = f1(f2(x))
 //
-// Composition is associative: Compose(Compose(f, g), h) = Compose(f, Compose(g, h))
+// IMPORTANT: The execution order is RIGHT-TO-LEFT:
+//   - f2 is applied first to the input
+//   - f1 is applied to the result of f2
+//
+// This is different from Chain/MonadChain which executes LEFT-TO-RIGHT.
 //
 // Parameters:
-//   - f1: The first endomorphism to apply
-//   - f2: The second endomorphism to apply
+//   - f1: The second function to apply (outer function)
+//   - f2: The first function to apply (inner function)
 //
 // Returns:
-//   - A new endomorphism that is the composition of f1 and f2
+//   - A new endomorphism that applies f2, then f1
 //
 // Example:
 //
 //	double := func(x int) int { return x * 2 }
 //	increment := func(x int) int { return x + 1 }
-//	doubleAndIncrement := endomorphism.Compose(double, increment)
-//	result := doubleAndIncrement(5) // (5 * 2) + 1 = 11
-func Compose[A any](f1, f2 Endomorphism[A]) Endomorphism[A] {
-	return function.Flow2(f1, f2)
+//
+//	// MonadCompose executes RIGHT-TO-LEFT: increment first, then double
+//	composed := endomorphism.MonadCompose(double, increment)
+//	result := composed(5) // (5 + 1) * 2 = 12
+//
+//	// Compare with Chain which executes LEFT-TO-RIGHT:
+//	chained := endomorphism.MonadChain(double, increment)
+//	result2 := chained(5) // (5 * 2) + 1 = 11
+func MonadCompose[A any](f, g Endomorphism[A]) Endomorphism[A] {
+	return function.Flow2(g, f)
 }
 
-// MonadChain chains two endomorphisms together.
+// Compose returns a function that composes an endomorphism with another, executing right to left.
+//
+// This is the curried version of MonadCompose. It takes an endomorphism g and returns
+// a function that composes any endomorphism with g, applying g first (inner function),
+// then the input endomorphism (outer function).
+//
+// IMPORTANT: Execution order is RIGHT-TO-LEFT (mathematical composition):
+//   - g is applied first to the input
+//   - The endomorphism passed to the returned function is applied to the result of g
+//
+// This follows the mathematical composition notation where Compose(g)(f) = f ∘ g
+//
+// Parameters:
+//   - g: The first endomorphism to apply (inner function)
+//
+// Returns:
+//   - A function that takes an endomorphism f and composes it with g (right-to-left)
+//
+// Example:
+//
+//	increment := func(x int) int { return x + 1 }
+//	composeWithIncrement := endomorphism.Compose(increment)
+//	double := func(x int) int { return x * 2 }
+//
+//	// Composes double with increment (RIGHT-TO-LEFT: increment first, then double)
+//	composed := composeWithIncrement(double)
+//	result := composed(5) // (5 + 1) * 2 = 12
+//
+//	// Compare with Chain which executes LEFT-TO-RIGHT:
+//	chainWithIncrement := endomorphism.Chain(increment)
+//	chained := chainWithIncrement(double)
+//	result2 := chained(5) // (5 * 2) + 1 = 11
+func Compose[A any](g Endomorphism[A]) Endomorphism[Endomorphism[A]] {
+	return function.Bind2nd(MonadCompose, g)
+}
+
+// MonadChain chains two endomorphisms together, executing them from left to right.
 //
 // This is the monadic bind operation for endomorphisms. It composes two endomorphisms
 // ma and f, returning a new endomorphism that applies ma first, then f.
-// MonadChain is equivalent to Compose.
+//
+// IMPORTANT: The execution order is LEFT-TO-RIGHT:
+//   - f is applied first to the input
+//   - g is applied to the result of ma
+//
+// This is different from Compose which executes RIGHT-TO-LEFT.
 //
 // Parameters:
-//   - ma: The first endomorphism in the chain
-//   - f: The second endomorphism in the chain
+//   - f: The first endomorphism to apply
+//   - g: The second endomorphism to apply
 //
 // Returns:
-//   - A new endomorphism that chains ma and f
+//   - A new endomorphism that applies ma, then f
 //
 // Example:
 //
 //	double := func(x int) int { return x * 2 }
 //	increment := func(x int) int { return x + 1 }
+//
+//	// MonadChain executes LEFT-TO-RIGHT: double first, then increment
 //	chained := endomorphism.MonadChain(double, increment)
 //	result := chained(5) // (5 * 2) + 1 = 11
-func MonadChain[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
-	return Compose(ma, f)
+//
+//	// Compare with Compose which executes RIGHT-TO-LEFT:
+//	composed := endomorphism.Compose(increment, double)
+//	result2 := composed(5) // (5 * 2) + 1 = 11 (same result, different parameter order)
+func MonadChain[A any](f Endomorphism[A], g Endomorphism[A]) Endomorphism[A] {
+	return function.Flow2(f, g)
 }
 
-// Chain returns a function that chains an endomorphism with another.
+// Chain returns a function that chains an endomorphism with another, executing left to right.
 //
 // This is the curried version of MonadChain. It takes an endomorphism f and returns
-// a function that chains any endomorphism with f.
+// a function that chains any endomorphism with f, applying the input endomorphism first,
+// then f.
+//
+// IMPORTANT: Execution order is LEFT-TO-RIGHT:
+//   - The endomorphism passed to the returned function is applied first
+//   - f is applied to the result
 //
 // Parameters:
-//   - f: The endomorphism to chain with
+//   - f: The second endomorphism to apply
 //
 // Returns:
-//   - A function that takes an endomorphism and chains it with f
+//   - A function that takes an endomorphism and chains it with f (left-to-right)
 //
 // Example:
 //
 //	increment := func(x int) int { return x + 1 }
 //	chainWithIncrement := endomorphism.Chain(increment)
 //	double := func(x int) int { return x * 2 }
+//
+//	// Chains double (first) with increment (second)
 //	chained := chainWithIncrement(double)
 //	result := chained(5) // (5 * 2) + 1 = 11
 func Chain[A any](f Endomorphism[A]) Endomorphism[Endomorphism[A]] {

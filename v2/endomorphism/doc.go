@@ -39,13 +39,18 @@
 //	double := func(x int) int { return x * 2 }
 //	increment := func(x int) int { return x + 1 }
 //
-//	// Compose them
-//	doubleAndIncrement := endomorphism.Compose(double, increment)
-//	result := doubleAndIncrement(5) // (5 * 2) + 1 = 11
+//	// Compose them (RIGHT-TO-LEFT execution)
+//	composed := endomorphism.Compose(double, increment)
+//	result := composed(5) // increment(5) then double: (5 + 1) * 2 = 12
+//
+//	// Chain them (LEFT-TO-RIGHT execution)
+//	chained := endomorphism.MonadChain(double, increment)
+//	result2 := chained(5) // double(5) then increment: (5 * 2) + 1 = 11
 //
 // # Monoid Operations
 //
-// Endomorphisms form a monoid, which means you can combine multiple endomorphisms:
+// Endomorphisms form a monoid, which means you can combine multiple endomorphisms.
+// The monoid uses Compose, which executes RIGHT-TO-LEFT:
 //
 //	import (
 //		"github.com/IBM/fp-go/v2/endomorphism"
@@ -55,22 +60,39 @@
 //	// Get the monoid for int endomorphisms
 //	monoid := endomorphism.Monoid[int]()
 //
-//	// Combine multiple endomorphisms
+//	// Combine multiple endomorphisms (RIGHT-TO-LEFT execution)
 //	combined := M.ConcatAll(monoid)(
-//		func(x int) int { return x * 2 },
-//		func(x int) int { return x + 1 },
-//		func(x int) int { return x * 3 },
+//		func(x int) int { return x * 2 },  // applied third
+//		func(x int) int { return x + 1 },  // applied second
+//		func(x int) int { return x * 3 },  // applied first
 //	)
-//	result := combined(5) // ((5 * 2) + 1) * 3 = 33
+//	result := combined(5) // (5 * 3) = 15, (15 + 1) = 16, (16 * 2) = 32
 //
 // # Monad Operations
 //
-// The package also provides monadic operations for endomorphisms:
+// The package also provides monadic operations for endomorphisms.
+// MonadChain executes LEFT-TO-RIGHT, unlike Compose:
 //
-//	// Chain allows sequencing of endomorphisms
+//	// Chain allows sequencing of endomorphisms (LEFT-TO-RIGHT)
 //	f := func(x int) int { return x * 2 }
 //	g := func(x int) int { return x + 1 }
-//	chained := endomorphism.MonadChain(f, g)
+//	chained := endomorphism.MonadChain(f, g)  // f first, then g
+//	result := chained(5) // (5 * 2) + 1 = 11
+//
+// # Compose vs Chain
+//
+// The key difference between Compose and Chain/MonadChain is execution order:
+//
+//	double := func(x int) int { return x * 2 }
+//	increment := func(x int) int { return x + 1 }
+//
+//	// Compose: RIGHT-TO-LEFT (mathematical composition)
+//	composed := endomorphism.Compose(double, increment)
+//	result1 := composed(5) // increment(5) * 2 = (5 + 1) * 2 = 12
+//
+//	// MonadChain: LEFT-TO-RIGHT (sequential application)
+//	chained := endomorphism.MonadChain(double, increment)
+//	result2 := chained(5) // double(5) + 1 = (5 * 2) + 1 = 11
 //
 // # Type Safety
 //

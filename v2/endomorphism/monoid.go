@@ -88,11 +88,15 @@ func Identity[A any]() Endomorphism[A] {
 // For endomorphisms, this operation is composition (Compose). This means:
 //   - Concat(f, Concat(g, h)) = Concat(Concat(f, g), h)
 //
+// IMPORTANT: Concat uses Compose, which executes RIGHT-TO-LEFT:
+//   - Concat(f, g) applies g first, then f
+//   - This is equivalent to Compose(f, g)
+//
 // The returned semigroup can be used with semigroup operations to combine
 // multiple endomorphisms.
 //
 // Returns:
-//   - A Semigroup[Endomorphism[A]] where concat is composition
+//   - A Semigroup[Endomorphism[A]] where concat is composition (right-to-left)
 //
 // Example:
 //
@@ -102,11 +106,11 @@ func Identity[A any]() Endomorphism[A] {
 //	double := func(x int) int { return x * 2 }
 //	increment := func(x int) int { return x + 1 }
 //
-//	// Combine using the semigroup
+//	// Combine using the semigroup (RIGHT-TO-LEFT execution)
 //	combined := sg.Concat(double, increment)
-//	result := combined(5) // (5 * 2) + 1 = 11
+//	result := combined(5) // (5 + 1) * 2 = 12 (increment first, then double)
 func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
-	return S.MakeSemigroup(Compose[A])
+	return S.MakeSemigroup(MonadCompose[A])
 }
 
 // Monoid returns a Monoid for endomorphisms where concat is composition and empty is identity.
@@ -114,6 +118,10 @@ func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
 // A monoid is a semigroup with an identity element. For endomorphisms:
 //   - The binary operation is composition (Compose)
 //   - The identity element is the identity function (Identity)
+//
+// IMPORTANT: Concat uses Compose, which executes RIGHT-TO-LEFT:
+//   - Concat(f, g) applies g first, then f
+//   - ConcatAll applies functions from right to left
 //
 // This satisfies the monoid laws:
 //   - Right identity: Concat(x, Empty) = x
@@ -124,7 +132,7 @@ func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
 // combine multiple endomorphisms.
 //
 // Returns:
-//   - A Monoid[Endomorphism[A]] with composition and identity
+//   - A Monoid[Endomorphism[A]] with composition (right-to-left) and identity
 //
 // Example:
 //
@@ -135,9 +143,9 @@ func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
 //	increment := func(x int) int { return x + 1 }
 //	square := func(x int) int { return x * x }
 //
-//	// Combine multiple endomorphisms
+//	// Combine multiple endomorphisms (RIGHT-TO-LEFT execution)
 //	combined := M.ConcatAll(monoid)(double, increment, square)
-//	result := combined(5) // ((5 * 2) + 1) * ((5 * 2) + 1) = 121
+//	result := combined(5) // square(increment(double(5))) = square(increment(10)) = square(11) = 121
 func Monoid[A any]() M.Monoid[Endomorphism[A]] {
-	return M.MakeMonoid(Compose[A], Identity[A]())
+	return M.MakeMonoid(MonadCompose[A], Identity[A]())
 }
