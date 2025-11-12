@@ -168,6 +168,91 @@ func TestIsPointerType(t *testing.T) {
 	}
 }
 
+func TestIsComparableType(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		expected bool
+	}{
+		{
+			name:     "basic type - string",
+			code:     "type T struct { F string }",
+			expected: true,
+		},
+		{
+			name:     "basic type - int",
+			code:     "type T struct { F int }",
+			expected: true,
+		},
+		{
+			name:     "basic type - bool",
+			code:     "type T struct { F bool }",
+			expected: true,
+		},
+		{
+			name:     "pointer type",
+			code:     "type T struct { F *string }",
+			expected: true,
+		},
+		{
+			name:     "slice type - not comparable",
+			code:     "type T struct { F []string }",
+			expected: false,
+		},
+		{
+			name:     "map type - not comparable",
+			code:     "type T struct { F map[string]int }",
+			expected: false,
+		},
+		{
+			name:     "array type - comparable if element is",
+			code:     "type T struct { F [5]int }",
+			expected: true,
+		},
+		{
+			name:     "interface type",
+			code:     "type T struct { F interface{} }",
+			expected: true,
+		},
+		{
+			name:     "channel type",
+			code:     "type T struct { F chan int }",
+			expected: true,
+		},
+		{
+			name:     "function type - not comparable",
+			code:     "type T struct { F func() }",
+			expected: false,
+		},
+		{
+			name:     "struct literal - conservatively not comparable",
+			code:     "type T struct { F struct{ X int } }",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
+			require.NoError(t, err)
+
+			var fieldType ast.Expr
+			ast.Inspect(file, func(n ast.Node) bool {
+				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
+					fieldType = field.Type
+					return false
+				}
+				return true
+			})
+
+			require.NotNil(t, fieldType)
+			result := isComparableType(fieldType)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestHasOmitEmpty(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -335,6 +420,171 @@ type Config struct {
 	assert.Equal(t, "Required", config.Fields[4].Name)
 	assert.Equal(t, "int", config.Fields[4].TypeName)
 	assert.False(t, config.Fields[4].IsOptional, "Required field without omitempty should not be optional")
+}
+
+func TestParseFileWithComparableTypes(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type TypeTest struct {
+	Name      string
+	Age       int
+	Pointer   *string
+	Slice     []string
+	Map       map[string]int
+	Channel   chan int
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check TypeTest struct
+	typeTest := structs[0]
+	assert.Equal(t, "TypeTest", typeTest.Name)
+	assert.Len(t, typeTest.Fields, 6)
+
+	// Name - string is comparable
+	assert.Equal(t, "Name", typeTest.Fields[0].Name)
+	assert.Equal(t, "string", typeTest.Fields[0].TypeName)
+	assert.False(t, typeTest.Fields[0].IsOptional)
+	assert.True(t, typeTest.Fields[0].IsComparable, "string should be comparable")
+
+	// Age - int is comparable
+	assert.Equal(t, "Age", typeTest.Fields[1].Name)
+	assert.Equal(t, "int", typeTest.Fields[1].TypeName)
+	assert.False(t, typeTest.Fields[1].IsOptional)
+	assert.True(t, typeTest.Fields[1].IsComparable, "int should be comparable")
+
+	// Pointer - pointer is optional, IsComparable not checked for optional fields
+	assert.Equal(t, "Pointer", typeTest.Fields[2].Name)
+	assert.Equal(t, "*string", typeTest.Fields[2].TypeName)
+	assert.True(t, typeTest.Fields[2].IsOptional)
+	assert.False(t, typeTest.Fields[2].IsComparable, "IsComparable not set for optional fields")
+
+	// Slice - not comparable
+	assert.Equal(t, "Slice", typeTest.Fields[3].Name)
+	assert.Equal(t, "[]string", typeTest.Fields[3].TypeName)
+	assert.False(t, typeTest.Fields[3].IsOptional)
+	assert.False(t, typeTest.Fields[3].IsComparable, "slice should not be comparable")
+
+	// Map - not comparable
+	assert.Equal(t, "Map", typeTest.Fields[4].Name)
+	assert.Equal(t, "map[string]int", typeTest.Fields[4].TypeName)
+	assert.False(t, typeTest.Fields[4].IsOptional)
+	assert.False(t, typeTest.Fields[4].IsComparable, "map should not be comparable")
+
+	// Channel - comparable (note: getTypeName returns "any" for channel types, but isComparableType correctly identifies them)
+	assert.Equal(t, "Channel", typeTest.Fields[5].Name)
+	assert.Equal(t, "any", typeTest.Fields[5].TypeName) // getTypeName doesn't handle chan types specifically
+	assert.False(t, typeTest.Fields[5].IsOptional)
+	assert.True(t, typeTest.Fields[5].IsComparable, "channel should be comparable")
+}
+
+func TestLensRefTemplatesWithComparable(t *testing.T) {
+	s := structInfo{
+		Name: "TestStruct",
+		Fields: []fieldInfo{
+			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
+			{Name: "Age", TypeName: "int", IsOptional: false, IsComparable: true},
+			{Name: "Data", TypeName: "[]byte", IsOptional: false, IsComparable: false},
+			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: false},
+		},
+	}
+
+	// Test constructor template for RefLenses
+	var constructorBuf bytes.Buffer
+	err := constructorTmpl.Execute(&constructorBuf, s)
+	require.NoError(t, err)
+
+	constructorStr := constructorBuf.String()
+
+	// Check that MakeLensStrict is used for comparable types in RefLenses
+	assert.Contains(t, constructorStr, "func MakeTestStructRefLenses() TestStructRefLenses")
+
+	// Name field - comparable, should use MakeLensStrict
+	assert.Contains(t, constructorStr, "Name: L.MakeLensStrict(",
+		"comparable field Name should use MakeLensStrict in RefLenses")
+
+	// Age field - comparable, should use MakeLensStrict
+	assert.Contains(t, constructorStr, "Age: L.MakeLensStrict(",
+		"comparable field Age should use MakeLensStrict in RefLenses")
+
+	// Data field - not comparable, should use MakeLensRef
+	assert.Contains(t, constructorStr, "Data: L.MakeLensRef(",
+		"non-comparable field Data should use MakeLensRef in RefLenses")
+
+	// Pointer field - optional, should use MakeLensRef
+	assert.Contains(t, constructorStr, "Pointer: L.MakeLensRef(",
+		"optional field Pointer should use MakeLensRef in RefLenses")
+}
+
+func TestGenerateLensHelpersWithComparable(t *testing.T) {
+	// Create a temporary directory with test files
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type TestStruct struct {
+	Name  string
+	Count int
+	Data  []byte
+}
+`
+
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Generate lens code
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false)
+	require.NoError(t, err)
+
+	// Verify the generated file exists
+	genPath := filepath.Join(tmpDir, outputFile)
+	_, err = os.Stat(genPath)
+	require.NoError(t, err)
+
+	// Read and verify the generated content
+	content, err := os.ReadFile(genPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+
+	// Check for expected content in RefLenses
+	assert.Contains(t, contentStr, "MakeTestStructRefLenses")
+
+	// Name and Count are comparable, should use MakeLensStrict
+	assert.Contains(t, contentStr, "L.MakeLensStrict",
+		"comparable fields should use MakeLensStrict in RefLenses")
+
+	// Data is not comparable (slice), should use MakeLensRef
+	assert.Contains(t, contentStr, "L.MakeLensRef",
+		"non-comparable fields should use MakeLensRef in RefLenses")
+
+	// Verify the pattern appears for Name field (comparable)
+	namePattern := "Name: L.MakeLensStrict("
+	assert.Contains(t, contentStr, namePattern,
+		"Name field should use MakeLensStrict")
+
+	// Verify the pattern appears for Data field (not comparable)
+	dataPattern := "Data: L.MakeLensRef("
+	assert.Contains(t, contentStr, dataPattern,
+		"Data field should use MakeLensRef")
 }
 
 func TestGenerateLensHelpers(t *testing.T) {

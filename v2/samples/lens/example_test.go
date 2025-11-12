@@ -153,3 +153,46 @@ func TestLensComposition(t *testing.T) {
 	assert.Equal(t, 55, olderCEO.CEO.Age)
 	assert.Equal(t, 50, company.CEO.Age) // Original unchanged
 }
+
+func TestPersonRefLensesIdempotent(t *testing.T) {
+	// Create a person pointer
+	person := &Person{
+		Name:  "Alice",
+		Age:   30,
+		Email: "alice@example.com",
+	}
+
+	// Create ref lenses
+	refLenses := MakePersonRefLenses()
+
+	// Test that setting the same value returns the identical pointer (idempotent)
+	// This works because Name, Age, and Email use MakeLensStrict which has equality optimization
+
+	// Test Name field - setting same value should return same pointer
+	sameName := refLenses.Name.Set("Alice")(person)
+	assert.Same(t, person, sameName, "Setting Name to same value should return identical pointer")
+
+	// Test Age field - setting same value should return same pointer
+	sameAge := refLenses.Age.Set(30)(person)
+	assert.Same(t, person, sameAge, "Setting Age to same value should return identical pointer")
+
+	// Test Email field - setting same value should return same pointer
+	sameEmail := refLenses.Email.Set("alice@example.com")(person)
+	assert.Same(t, person, sameEmail, "Setting Email to same value should return identical pointer")
+
+	// Test that setting a different value creates a new pointer
+	differentName := refLenses.Name.Set("Bob")(person)
+	assert.NotSame(t, person, differentName, "Setting Name to different value should return new pointer")
+	assert.Equal(t, "Bob", differentName.Name)
+	assert.Equal(t, "Alice", person.Name, "Original should be unchanged")
+
+	differentAge := refLenses.Age.Set(31)(person)
+	assert.NotSame(t, person, differentAge, "Setting Age to different value should return new pointer")
+	assert.Equal(t, 31, differentAge.Age)
+	assert.Equal(t, 30, person.Age, "Original should be unchanged")
+
+	differentEmail := refLenses.Email.Set("bob@example.com")(person)
+	assert.NotSame(t, person, differentEmail, "Setting Email to different value should return new pointer")
+	assert.Equal(t, "bob@example.com", differentEmail.Email)
+	assert.Equal(t, "alice@example.com", person.Email, "Original should be unchanged")
+}

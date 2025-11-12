@@ -60,10 +60,11 @@ type structInfo struct {
 
 // fieldInfo holds information about a struct field
 type fieldInfo struct {
-	Name       string
-	TypeName   string
-	BaseType   string // TypeName without leading * for pointer types
-	IsOptional bool   // true if field is a pointer or has json omitempty tag
+	Name         string
+	TypeName     string
+	BaseType     string // TypeName without leading * for pointer types
+	IsOptional   bool   // true if field is a pointer or has json omitempty tag
+	IsComparable bool   // true if the type is comparable (can use ==)
 }
 
 // templateData holds data for template rendering
@@ -128,10 +129,17 @@ func Make{{.Name}}RefLenses() {{.Name}}RefLenses {
 			func(s *{{$.Name}}, v O.Option[{{.TypeName}}]) *{{$.Name}} { s.{{.Name}} = iso{{.Name}}.ReverseGet(v); return s },
 		),
 {{- else}}
+{{- if .IsComparable}}
+		{{.Name}}: L.MakeLensStrict(
+			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
+			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+		),
+{{- else}}
 		{{.Name}}: L.MakeLensRef(
 			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
 			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
 		),
+{{- end}}
 {{- end}}
 {{- end}}
 	}
@@ -257,6 +265,111 @@ func isPointerType(expr ast.Expr) bool {
 	return ok
 }
 
+// isComparableType checks if a type expression represents a comparable type.
+// Comparable types in Go include:
+// - Basic types (bool, numeric types, string)
+// - Pointer types
+// - Channel types
+// - Interface types
+// - Structs where all fields are comparable
+// - Arrays where the element type is comparable
+//
+// Non-comparable types include:
+// - Slices
+// - Maps
+// - Functions
+func isComparableType(expr ast.Expr) bool {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		// Basic types and named types
+		// We assume named types are comparable unless they're known non-comparable types
+		name := t.Name
+		// Known non-comparable built-in types
+		if name == "error" {
+			// error is an interface, which is comparable
+			return true
+		}
+		// Most basic types and named types are comparable
+		// We can't determine if a custom type is comparable without type checking,
+		// so we assume it is (conservative approach)
+		return true
+	case *ast.StarExpr:
+		// Pointer types are always comparable
+		return true
+	case *ast.ArrayType:
+		// Arrays are comparable if their element type is comparable
+		if t.Len == nil {
+			// This is a slice (no length), slices are not comparable
+			return false
+		}
+		// Fixed-size array, check element type
+		return isComparableType(t.Elt)
+	case *ast.MapType:
+		// Maps are not comparable
+		return false
+	case *ast.FuncType:
+		// Functions are not comparable
+		return false
+	case *ast.InterfaceType:
+		// Interface types are comparable
+		return true
+	case *ast.StructType:
+		// Structs are comparable if all fields are comparable
+		// We can't easily determine this without full type information,
+		// so we conservatively return false for struct literals
+		return false
+	case *ast.SelectorExpr:
+		// Qualified identifier (e.g., pkg.Type)
+		// We can't determine comparability without type information
+		// Check for known non-comparable types from standard library
+		if ident, ok := t.X.(*ast.Ident); ok {
+			pkgName := ident.Name
+			typeName := t.Sel.Name
+			// Check for known non-comparable types
+			if pkgName == "context" && typeName == "Context" {
+				// context.Context is an interface, which is comparable
+				return true
+			}
+			// For other qualified types, we assume they're comparable
+			// This is a conservative approach
+		}
+		return true
+	case *ast.IndexExpr, *ast.IndexListExpr:
+		// Generic types - we can't determine comparability without type information
+		// For common generic types, we can make educated guesses
+		var baseExpr ast.Expr
+		if idx, ok := t.(*ast.IndexExpr); ok {
+			baseExpr = idx.X
+		} else if idxList, ok := t.(*ast.IndexListExpr); ok {
+			baseExpr = idxList.X
+		}
+
+		if sel, ok := baseExpr.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok {
+				pkgName := ident.Name
+				typeName := sel.Sel.Name
+				// Check for known non-comparable generic types
+				if pkgName == "option" && typeName == "Option" {
+					// Option types are not comparable (they contain a slice internally)
+					return false
+				}
+				if pkgName == "either" && typeName == "Either" {
+					// Either types are not comparable
+					return false
+				}
+			}
+		}
+		// For other generic types, conservatively assume not comparable
+		return false
+	case *ast.ChanType:
+		// Channel types are comparable
+		return true
+	default:
+		// Unknown type, conservatively assume not comparable
+		return false
+	}
+}
+
 // parseFile parses a Go file and extracts structs with lens annotations
 func parseFile(filename string) ([]structInfo, string, error) {
 	fset := token.NewFileSet()
@@ -331,6 +444,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 					typeName := getTypeName(field.Type)
 					isOptional := false
 					baseType := typeName
+					isComparable := false
 
 					// Check if field is optional:
 					// 1. Pointer types are always optional
@@ -342,6 +456,12 @@ func parseFile(filename string) ([]structInfo, string, error) {
 					} else if hasOmitEmpty(field.Tag) {
 						// Non-pointer type with omitempty is also optional
 						isOptional = true
+					}
+
+					// Check if the type is comparable (for non-optional fields)
+					// For optional fields, we don't need to check since they use LensO
+					if !isOptional {
+						isComparable = isComparableType(field.Type)
 					}
 
 					// Extract imports from this field's type
@@ -356,10 +476,11 @@ func parseFile(filename string) ([]structInfo, string, error) {
 					}
 
 					fields = append(fields, fieldInfo{
-						Name:       name.Name,
-						TypeName:   typeName,
-						BaseType:   baseType,
-						IsOptional: isOptional,
+						Name:         name.Name,
+						TypeName:     typeName,
+						BaseType:     baseType,
+						IsOptional:   isOptional,
+						IsComparable: isComparable,
 					})
 				}
 			}
