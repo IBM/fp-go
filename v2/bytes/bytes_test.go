@@ -187,6 +187,299 @@ func TestOrd(t *testing.T) {
 	})
 }
 
+// TestOrdProperties tests mathematical properties of Ord
+func TestOrdProperties(t *testing.T) {
+	t.Run("reflexivity: x == x", func(t *testing.T) {
+		testCases := [][]byte{
+			[]byte{},
+			[]byte("a"),
+			[]byte("test"),
+			[]byte{0x01, 0x02, 0x03},
+		}
+
+		for _, tc := range testCases {
+			assert.Equal(t, 0, Ord.Compare(tc, tc),
+				"Compare(%v, %v) should be 0", tc, tc)
+			assert.True(t, Ord.Equals(tc, tc),
+				"Equals(%v, %v) should be true", tc, tc)
+		}
+	})
+
+	t.Run("antisymmetry: if x <= y and y <= x then x == y", func(t *testing.T) {
+		testCases := []struct {
+			a, b []byte
+		}{
+			{[]byte("abc"), []byte("abc")},
+			{[]byte{}, []byte{}},
+			{[]byte{0x01}, []byte{0x01}},
+		}
+
+		for _, tc := range testCases {
+			cmp1 := Ord.Compare(tc.a, tc.b)
+			cmp2 := Ord.Compare(tc.b, tc.a)
+
+			if cmp1 <= 0 && cmp2 <= 0 {
+				assert.True(t, Ord.Equals(tc.a, tc.b),
+					"If %v <= %v and %v <= %v, they should be equal", tc.a, tc.b, tc.b, tc.a)
+			}
+		}
+	})
+
+	t.Run("transitivity: if x <= y and y <= z then x <= z", func(t *testing.T) {
+		x := []byte("a")
+		y := []byte("b")
+		z := []byte("c")
+
+		cmpXY := Ord.Compare(x, y)
+		cmpYZ := Ord.Compare(y, z)
+		cmpXZ := Ord.Compare(x, z)
+
+		if cmpXY <= 0 && cmpYZ <= 0 {
+			assert.True(t, cmpXZ <= 0,
+				"If %v <= %v and %v <= %v, then %v <= %v", x, y, y, z, x, z)
+		}
+	})
+
+	t.Run("totality: either x <= y or y <= x", func(t *testing.T) {
+		testCases := []struct {
+			a, b []byte
+		}{
+			{[]byte("abc"), []byte("abd")},
+			{[]byte("xyz"), []byte("abc")},
+			{[]byte{}, []byte("a")},
+			{[]byte{0x01}, []byte{0x02}},
+		}
+
+		for _, tc := range testCases {
+			cmp1 := Ord.Compare(tc.a, tc.b)
+			cmp2 := Ord.Compare(tc.b, tc.a)
+
+			assert.True(t, cmp1 <= 0 || cmp2 <= 0,
+				"Either %v <= %v or %v <= %v must be true", tc.a, tc.b, tc.b, tc.a)
+		}
+	})
+}
+
+// TestEdgeCases tests edge cases and boundary conditions
+func TestEdgeCases(t *testing.T) {
+	t.Run("very large byte slices", func(t *testing.T) {
+		large := make([]byte, 1000000)
+		for i := range large {
+			large[i] = byte(i % 256)
+		}
+
+		size := Size(large)
+		assert.Equal(t, 1000000, size)
+
+		str := ToString(large)
+		assert.Equal(t, 1000000, len(str))
+	})
+
+	t.Run("concatenating many slices", func(t *testing.T) {
+		slices := make([][]byte, 100)
+		for i := range slices {
+			slices[i] = []byte{byte(i)}
+		}
+
+		result := ConcatAll(slices...)
+		assert.Equal(t, 100, Size(result))
+	})
+
+	t.Run("null bytes in slice", func(t *testing.T) {
+		data := []byte{0x00, 0x01, 0x00, 0x02}
+		size := Size(data)
+		assert.Equal(t, 4, size)
+
+		str := ToString(data)
+		assert.Equal(t, 4, len(str))
+	})
+
+	t.Run("comparing slices with null bytes", func(t *testing.T) {
+		a := []byte{0x00, 0x01}
+		b := []byte{0x00, 0x02}
+		assert.Equal(t, -1, Ord.Compare(a, b))
+	})
+}
+
+// TestMonoidConcatPerformance tests concatenation performance characteristics
+func TestMonoidConcatPerformance(t *testing.T) {
+	t.Run("ConcatAll vs repeated Concat", func(t *testing.T) {
+		slices := [][]byte{
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+			[]byte("d"),
+			[]byte("e"),
+		}
+
+		// Using ConcatAll
+		result1 := ConcatAll(slices...)
+
+		// Using repeated Concat
+		result2 := Monoid.Empty()
+		for _, s := range slices {
+			result2 = Monoid.Concat(result2, s)
+		}
+
+		assert.Equal(t, result1, result2)
+		assert.Equal(t, []byte("abcde"), result1)
+	})
+}
+
+// TestRoundTrip tests round-trip conversions
+func TestRoundTrip(t *testing.T) {
+	t.Run("string to bytes to string", func(t *testing.T) {
+		original := "Hello, World! 世界"
+		bytes := []byte(original)
+		result := ToString(bytes)
+		assert.Equal(t, original, result)
+	})
+
+	t.Run("bytes to string to bytes", func(t *testing.T) {
+		original := []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f}
+		str := ToString(original)
+		result := []byte(str)
+		assert.Equal(t, original, result)
+	})
+}
+
+// TestConcatAllVariadic tests ConcatAll with various argument counts
+func TestConcatAllVariadic(t *testing.T) {
+	t.Run("zero arguments", func(t *testing.T) {
+		result := ConcatAll()
+		assert.Equal(t, []byte{}, result)
+	})
+
+	t.Run("one argument", func(t *testing.T) {
+		result := ConcatAll([]byte("test"))
+		assert.Equal(t, []byte("test"), result)
+	})
+
+	t.Run("two arguments", func(t *testing.T) {
+		result := ConcatAll([]byte("hello"), []byte("world"))
+		assert.Equal(t, []byte("helloworld"), result)
+	})
+
+	t.Run("many arguments", func(t *testing.T) {
+		result := ConcatAll(
+			[]byte("a"),
+			[]byte("b"),
+			[]byte("c"),
+			[]byte("d"),
+			[]byte("e"),
+			[]byte("f"),
+			[]byte("g"),
+			[]byte("h"),
+			[]byte("i"),
+			[]byte("j"),
+		)
+		assert.Equal(t, []byte("abcdefghij"), result)
+	})
+}
+
+// Benchmark tests
+func BenchmarkToString(b *testing.B) {
+	data := []byte("Hello, World!")
+
+	b.Run("small", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = ToString(data)
+		}
+	})
+
+	b.Run("large", func(b *testing.B) {
+		large := make([]byte, 10000)
+		for i := range large {
+			large[i] = byte(i % 256)
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = ToString(large)
+		}
+	})
+}
+
+func BenchmarkSize(b *testing.B) {
+	data := []byte("Hello, World!")
+
+	for i := 0; i < b.N; i++ {
+		_ = Size(data)
+	}
+}
+
+func BenchmarkMonoidConcat(b *testing.B) {
+	a := []byte("Hello")
+	c := []byte(" World")
+
+	b.Run("small slices", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = Monoid.Concat(a, c)
+		}
+	})
+
+	b.Run("large slices", func(b *testing.B) {
+		large1 := make([]byte, 10000)
+		large2 := make([]byte, 10000)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = Monoid.Concat(large1, large2)
+		}
+	})
+}
+
+func BenchmarkConcatAll(b *testing.B) {
+	slices := [][]byte{
+		[]byte("Hello"),
+		[]byte(" "),
+		[]byte("World"),
+		[]byte("!"),
+	}
+
+	b.Run("few slices", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = ConcatAll(slices...)
+		}
+	})
+
+	b.Run("many slices", func(b *testing.B) {
+		many := make([][]byte, 100)
+		for i := range many {
+			many[i] = []byte{byte(i)}
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = ConcatAll(many...)
+		}
+	})
+}
+
+func BenchmarkOrdCompare(b *testing.B) {
+	a := []byte("abc")
+	c := []byte("abd")
+
+	b.Run("equal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = Ord.Compare(a, a)
+		}
+	})
+
+	b.Run("different", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = Ord.Compare(a, c)
+		}
+	})
+
+	b.Run("large slices", func(b *testing.B) {
+		large1 := make([]byte, 10000)
+		large2 := make([]byte, 10000)
+		large2[9999] = 1
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = Ord.Compare(large1, large2)
+		}
+	})
+}
+
 // Example tests
 func ExampleEmpty() {
 	empty := Empty()
@@ -216,6 +509,20 @@ func ExampleConcatAll() {
 		[]byte("World"),
 	)
 	println(string(result)) // Hello World
+
+	// Output:
+}
+
+func ExampleMonoid_concat() {
+	result := Monoid.Concat([]byte("Hello"), []byte(" World"))
+	println(string(result)) // Hello World
+
+	// Output:
+}
+
+func ExampleOrd_compare() {
+	cmp := Ord.Compare([]byte("abc"), []byte("abd"))
+	println(cmp) // -1 (abc < abd)
 
 	// Output:
 }

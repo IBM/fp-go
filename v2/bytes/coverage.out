@@ -1,0 +1,4 @@
+mode: set
+github.com/IBM/fp-go/v2/bytes/bytes.go:55.21,57.2 1 1
+github.com/IBM/fp-go/v2/bytes/bytes.go:111.32,113.2 1 1
+github.com/IBM/fp-go/v2/bytes/bytes.go:175.26,177.2 1 1
