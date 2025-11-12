@@ -17,47 +17,58 @@ package endomorphism
 
 import (
 	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/identity"
 )
 
-// MonadAp applies an endomorphism to a value in a monadic context.
+// MonadAp applies an endomorphism in a function to an endomorphism value.
 //
-// This function applies the endomorphism fab to the value fa, returning the result.
-// It's the monadic application operation for endomorphisms.
+// For endomorphisms, Ap composes two endomorphisms using RIGHT-TO-LEFT composition.
+// This is the applicative functor operation for endomorphisms.
+//
+// IMPORTANT: Execution order is RIGHT-TO-LEFT (same as MonadCompose):
+//   - fa is applied first to the input
+//   - fab is applied to the result
 //
 // Parameters:
-//   - fab: An endomorphism to apply
-//   - fa: The value to apply the endomorphism to
+//   - fab: An endomorphism to apply (outer function)
+//   - fa: An endomorphism to apply first (inner function)
 //
 // Returns:
-//   - The result of applying fab to fa
+//   - A new endomorphism that applies fa, then fab
 //
 // Example:
 //
 //	double := func(x int) int { return x * 2 }
-//	result := endomorphism.MonadAp(double, 5) // Returns: 10
-func MonadAp[A any](fab Endomorphism[A], fa A) A {
-	return identity.MonadAp(fab, fa)
+//	increment := func(x int) int { return x + 1 }
+//	result := endomorphism.MonadAp(double, increment) // Composes: double ∘ increment
+//	// result(5) = double(increment(5)) = double(6) = 12
+func MonadAp[A any](fab Endomorphism[A], fa Endomorphism[A]) Endomorphism[A] {
+	return MonadCompose(fab, fa)
 }
 
-// Ap returns a function that applies a value to an endomorphism.
+// Ap returns a function that applies an endomorphism to another endomorphism.
 //
-// This is the curried version of MonadAp. It takes a value and returns a function
-// that applies that value to any endomorphism.
+// This is the curried version of MonadAp. It takes an endomorphism fa and returns
+// a function that composes any endomorphism with fa using RIGHT-TO-LEFT composition.
+//
+// IMPORTANT: Execution order is RIGHT-TO-LEFT:
+//   - fa is applied first to the input
+//   - The endomorphism passed to the returned function is applied to the result
 //
 // Parameters:
-//   - fa: The value to be applied
+//   - fa: The first endomorphism to apply (inner function)
 //
 // Returns:
-//   - A function that takes an endomorphism and applies fa to it
+//   - A function that takes an endomorphism and composes it with fa (right-to-left)
 //
 // Example:
 //
-//	applyFive := endomorphism.Ap(5)
+//	increment := func(x int) int { return x + 1 }
+//	applyIncrement := endomorphism.Ap(increment)
 //	double := func(x int) int { return x * 2 }
-//	result := applyFive(double) // Returns: 10
-func Ap[A any](fa A) func(Endomorphism[A]) A {
-	return identity.Ap[A](fa)
+//	composed := applyIncrement(double) // double ∘ increment
+//	// composed(5) = double(increment(5)) = double(6) = 12
+func Ap[A any](fa Endomorphism[A]) Operator[A] {
+	return Compose(fa)
 }
 
 // MonadCompose composes two endomorphisms, executing them from right to left.
@@ -94,6 +105,32 @@ func MonadCompose[A any](f, g Endomorphism[A]) Endomorphism[A] {
 	return function.Flow2(g, f)
 }
 
+// MonadMap maps an endomorphism over another endomorphism using function composition.
+//
+// For endomorphisms, Map is equivalent to Compose (RIGHT-TO-LEFT composition).
+// This is the functor map operation for endomorphisms.
+//
+// IMPORTANT: Execution order is RIGHT-TO-LEFT:
+//   - g is applied first to the input
+//   - f is applied to the result
+//
+// Parameters:
+//   - f: The function to map (outer function)
+//   - g: The endomorphism to map over (inner function)
+//
+// Returns:
+//   - A new endomorphism that applies g, then f
+//
+// Example:
+//
+//	double := func(x int) int { return x * 2 }
+//	increment := func(x int) int { return x + 1 }
+//	mapped := endomorphism.MonadMap(double, increment)
+//	// mapped(5) = double(increment(5)) = double(6) = 12
+func MonadMap[A any](f, g Endomorphism[A]) Endomorphism[A] {
+	return MonadCompose(f, g)
+}
+
 // Compose returns a function that composes an endomorphism with another, executing right to left.
 //
 // This is the curried version of MonadCompose. It takes an endomorphism g and returns
@@ -126,24 +163,52 @@ func MonadCompose[A any](f, g Endomorphism[A]) Endomorphism[A] {
 //	chainWithIncrement := endomorphism.Chain(increment)
 //	chained := chainWithIncrement(double)
 //	result2 := chained(5) // (5 * 2) + 1 = 11
-func Compose[A any](g Endomorphism[A]) Endomorphism[Endomorphism[A]] {
+func Compose[A any](g Endomorphism[A]) Operator[A] {
 	return function.Bind2nd(MonadCompose, g)
+}
+
+// Map returns a function that maps an endomorphism over another endomorphism.
+//
+// This is the curried version of MonadMap. It takes an endomorphism f and returns
+// a function that maps f over any endomorphism using RIGHT-TO-LEFT composition.
+//
+// IMPORTANT: Execution order is RIGHT-TO-LEFT (same as Compose):
+//   - The endomorphism passed to the returned function is applied first
+//   - f is applied to the result
+//
+// For endomorphisms, Map is equivalent to Compose.
+//
+// Parameters:
+//   - f: The function to map (outer function)
+//
+// Returns:
+//   - A function that takes an endomorphism and maps f over it (right-to-left)
+//
+// Example:
+//
+//	double := func(x int) int { return x * 2 }
+//	mapDouble := endomorphism.Map(double)
+//	increment := func(x int) int { return x + 1 }
+//	mapped := mapDouble(increment)
+//	// mapped(5) = double(increment(5)) = double(6) = 12
+func Map[A any](f Endomorphism[A]) Operator[A] {
+	return Compose(f)
 }
 
 // MonadChain chains two endomorphisms together, executing them from left to right.
 //
-// This is the monadic bind operation for endomorphisms. It composes two endomorphisms
-// ma and f, returning a new endomorphism that applies ma first, then f.
+// This is the monadic bind operation for endomorphisms. For endomorphisms, bind is
+// simply left-to-right function composition: ma is applied first, then f.
 //
 // IMPORTANT: The execution order is LEFT-TO-RIGHT:
-//   - f is applied first to the input
-//   - g is applied to the result of ma
+//   - ma is applied first to the input
+//   - f is applied to the result of ma
 //
-// This is different from Compose which executes RIGHT-TO-LEFT.
+// This is different from MonadCompose which executes RIGHT-TO-LEFT.
 //
 // Parameters:
-//   - f: The first endomorphism to apply
-//   - g: The second endomorphism to apply
+//   - ma: The first endomorphism to apply
+//   - f: The second endomorphism to apply
 //
 // Returns:
 //   - A new endomorphism that applies ma, then f
@@ -157,11 +222,58 @@ func Compose[A any](g Endomorphism[A]) Endomorphism[Endomorphism[A]] {
 //	chained := endomorphism.MonadChain(double, increment)
 //	result := chained(5) // (5 * 2) + 1 = 11
 //
-//	// Compare with Compose which executes RIGHT-TO-LEFT:
-//	composed := endomorphism.Compose(increment, double)
+//	// Compare with MonadCompose which executes RIGHT-TO-LEFT:
+//	composed := endomorphism.MonadCompose(increment, double)
 //	result2 := composed(5) // (5 * 2) + 1 = 11 (same result, different parameter order)
-func MonadChain[A any](f Endomorphism[A], g Endomorphism[A]) Endomorphism[A] {
-	return function.Flow2(f, g)
+func MonadChain[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
+	return function.Flow2(ma, f)
+}
+
+// MonadChainFirst chains two endomorphisms but returns the result of the first.
+//
+// This applies ma first, then f, but discards the result of f and returns the result of ma.
+// Useful for performing side-effects while preserving the original value.
+//
+// Parameters:
+//   - ma: The endomorphism whose result to keep
+//   - f: The endomorphism to apply for its effect
+//
+// Returns:
+//   - A new endomorphism that applies both but returns ma's result
+//
+// Example:
+//
+//	double := func(x int) int { return x * 2 }
+//	log := func(x int) int { fmt.Println(x); return x }
+//	chained := endomorphism.MonadChainFirst(double, log)
+//	result := chained(5) // Prints 10, returns 10
+func MonadChainFirst[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
+	return func(a A) A {
+		result := ma(a)
+		f(result)     // Apply f for its effect
+		return result // But return ma's result
+	}
+}
+
+// ChainFirst returns a function that chains for effect but preserves the original result.
+//
+// This is the curried version of MonadChainFirst.
+//
+// Parameters:
+//   - f: The endomorphism to apply for its effect
+//
+// Returns:
+//   - A function that takes an endomorphism and chains it with f, keeping the first result
+//
+// Example:
+//
+//	log := func(x int) int { fmt.Println(x); return x }
+//	chainLog := endomorphism.ChainFirst(log)
+//	double := func(x int) int { return x * 2 }
+//	chained := chainLog(double)
+//	result := chained(5) // Prints 10, returns 10
+func ChainFirst[A any](f Endomorphism[A]) Operator[A] {
+	return function.Bind2nd(MonadChainFirst, f)
 }
 
 // Chain returns a function that chains an endomorphism with another, executing left to right.
@@ -189,6 +301,6 @@ func MonadChain[A any](f Endomorphism[A], g Endomorphism[A]) Endomorphism[A] {
 //	// Chains double (first) with increment (second)
 //	chained := chainWithIncrement(double)
 //	result := chained(5) // (5 * 2) + 1 = 11
-func Chain[A any](f Endomorphism[A]) Endomorphism[Endomorphism[A]] {
+func Chain[A any](f Endomorphism[A]) Operator[A] {
 	return function.Bind2nd(MonadChain, f)
 }

@@ -37,7 +37,7 @@ type (
 	//	var g endomorphism.Endomorphism[int] = increment
 	Endomorphism[A any] = func(A) A
 
-	Kleisli[A, B any] = func(A) Endomorphism[B]
+	Kleisli[A any] = func(A) Endomorphism[A]
 
 	// Operator represents a transformation from one endomorphism to another.
 	//
@@ -54,5 +54,5 @@ type (
 	//			return strconv.Itoa(result)
 	//		}
 	//	}
-	Operator[A, B any] = Kleisli[Endomorphism[A], B]
+	Operator[A any] = Endomorphism[Endomorphism[A]]
 )

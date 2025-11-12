@@ -76,29 +76,43 @@ func TestCurry3(t *testing.T) {
 
 // TestMonadAp tests the MonadAp function
 func TestMonadAp(t *testing.T) {
-	result := MonadAp(double, 5)
-	assert.Equal(t, 10, result, "MonadAp should apply endomorphism to value")
+	// MonadAp composes two endomorphisms (RIGHT-TO-LEFT)
+	// MonadAp(double, increment) means: increment first, then double
+	composed := MonadAp(double, increment)
+	result := composed(5)
+	assert.Equal(t, 12, result, "MonadAp should compose right-to-left: (5 + 1) * 2 = 12")
 
-	result2 := MonadAp(increment, 10)
-	assert.Equal(t, 11, result2, "MonadAp should work with different endomorphisms")
+	// Test with different order
+	composed2 := MonadAp(increment, double)
+	result2 := composed2(5)
+	assert.Equal(t, 11, result2, "MonadAp should compose right-to-left: (5 * 2) + 1 = 11")
 
-	result3 := MonadAp(square, 4)
-	assert.Equal(t, 16, result3, "MonadAp should work with square function")
+	// Test with square
+	composed3 := MonadAp(square, increment)
+	result3 := composed3(5)
+	assert.Equal(t, 36, result3, "MonadAp should compose right-to-left: (5 + 1) ^ 2 = 36")
 }
 
 // TestAp tests the Ap function
 func TestAp(t *testing.T) {
-	applyFive := Ap(5)
+	// Ap is the curried version of MonadAp
+	// Ap(increment) returns a function that composes with increment (RIGHT-TO-LEFT)
+	applyIncrement := Ap(increment)
 
-	result := applyFive(double)
-	assert.Equal(t, 10, result, "Ap should apply value to endomorphism")
+	composed := applyIncrement(double)
+	result := composed(5)
+	assert.Equal(t, 12, result, "Ap should compose right-to-left: (5 + 1) * 2 = 12")
 
-	result2 := applyFive(increment)
-	assert.Equal(t, 6, result2, "Ap should work with different endomorphisms")
+	// Test with different endomorphism
+	composed2 := applyIncrement(square)
+	result2 := composed2(5)
+	assert.Equal(t, 36, result2, "Ap should compose right-to-left: (5 + 1) ^ 2 = 36")
 
-	applyTen := Ap(10)
-	result3 := applyTen(square)
-	assert.Equal(t, 100, result3, "Ap should work with different values")
+	// Test with different base endomorphism
+	applyDouble := Ap(double)
+	composed3 := applyDouble(increment)
+	result3 := composed3(5)
+	assert.Equal(t, 11, result3, "Ap should compose right-to-left: (5 * 2) + 1 = 11")
 }
 
 // TestMonadCompose tests the MonadCompose function
@@ -409,30 +423,25 @@ func TestComplexCompositions(t *testing.T) {
 
 // TestOperatorType tests the Operator type
 func TestOperatorType(t *testing.T) {
-	// Create an operator that lifts an int endomorphism to work on the length of strings
-	lengthOperator := func(f Endomorphism[int]) Endomorphism[string] {
-		return func(s string) string {
-			newLen := f(len(s))
-			if newLen > len(s) {
-				// Pad with spaces
-				for i := len(s); i < newLen; i++ {
-					s += " "
-				}
-			} else if newLen < len(s) {
-				// Truncate
-				s = s[:newLen]
-			}
-			return s
+	// Create an operator that transforms int endomorphisms
+	// This operator takes an endomorphism and returns a new one that applies it twice
+	applyTwice := func(f Endomorphism[int]) Endomorphism[int] {
+		return func(x int) int {
+			return f(f(x))
 		}
 	}
 
 	// Use the operator
-	var op Operator[int, string] = lengthOperator
-	doubleLength := op(double)
+	var op Operator[int] = applyTwice
+	doubleDouble := op(double)
 
-	result := doubleLength("hello") // len("hello") = 5, 5 * 2 = 10
-	assert.Equal(t, 10, len(result), "Operator should transform endomorphisms correctly")
-	assert.Equal(t, "hello     ", result, "Operator should pad string correctly")
+	result := doubleDouble(5) // double(double(5)) = double(10) = 20
+	assert.Equal(t, 20, result, "Operator should transform endomorphisms correctly")
+
+	// Test with increment
+	incrementTwice := op(increment)
+	result2 := incrementTwice(5) // increment(increment(5)) = increment(6) = 7
+	assert.Equal(t, 7, result2, "Operator should work with different endomorphisms")
 }
 
 // BenchmarkCompose benchmarks the Compose function
@@ -503,4 +512,212 @@ func BenchmarkChain(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = chained(5)
 	}
+}
+
+// TestFunctorLaws tests that endomorphisms satisfy the functor laws
+func TestFunctorLaws(t *testing.T) {
+	// Functor Law 1: Identity
+	// map(id) = id
+	t.Run("Identity", func(t *testing.T) {
+		id := Identity[int]()
+		endo := double
+
+		// map(id)(endo) should equal endo
+		mapped := MonadMap(id, endo)
+		testValue := 5
+		assert.Equal(t, endo(testValue), mapped(testValue), "map(id) should equal id")
+	})
+
+	// Functor Law 2: Composition
+	// map(f . g) = map(f) . map(g)
+	t.Run("Composition", func(t *testing.T) {
+		f := double
+		g := increment
+		endo := square
+
+		// Left side: map(f . g)(endo)
+		composed := MonadCompose(f, g)
+		left := MonadMap(composed, endo)
+
+		// Right side: map(f)(map(g)(endo))
+		mappedG := MonadMap(g, endo)
+		right := MonadMap(f, mappedG)
+
+		testValue := 3
+		assert.Equal(t, left(testValue), right(testValue), "map(f . g) should equal map(f) . map(g)")
+	})
+}
+
+// TestApplicativeLaws tests that endomorphisms satisfy the applicative functor laws
+func TestApplicativeLaws(t *testing.T) {
+	// Applicative Law 1: Identity
+	// ap(id, v) = v
+	t.Run("Identity", func(t *testing.T) {
+		id := Identity[int]()
+		v := double
+
+		applied := MonadAp(id, v)
+		testValue := 5
+		assert.Equal(t, v(testValue), applied(testValue), "ap(id, v) should equal v")
+	})
+
+	// Applicative Law 2: Composition
+	// ap(ap(ap(compose, u), v), w) = ap(u, ap(v, w))
+	t.Run("Composition", func(t *testing.T) {
+		u := double
+		v := increment
+		w := square
+
+		// For endomorphisms, ap is just composition
+		// Left side: ap(ap(ap(compose, u), v), w) = compose(compose(u, v), w)
+		left := MonadCompose(MonadCompose(u, v), w)
+
+		// Right side: ap(u, ap(v, w)) = compose(u, compose(v, w))
+		right := MonadCompose(u, MonadCompose(v, w))
+
+		testValue := 3
+		assert.Equal(t, left(testValue), right(testValue), "Applicative composition law")
+	})
+
+	// Applicative Law 3: Homomorphism
+	// ap(pure(f), pure(x)) = pure(f(x))
+	t.Run("Homomorphism", func(t *testing.T) {
+		// For endomorphisms, "pure" is just the identity function that returns a constant
+		// This law is trivially satisfied for endomorphisms
+		f := double
+		x := 5
+
+		// ap(f, id) applied to x should equal f(x)
+		id := Identity[int]()
+		applied := MonadAp(f, id)
+		assert.Equal(t, f(x), applied(x), "Homomorphism law")
+	})
+}
+
+// TestMonadLaws tests that endomorphisms satisfy the monad laws
+func TestMonadLaws(t *testing.T) {
+	// Monad Law 1: Left Identity
+	// chain(pure(a), f) = f(a)
+	t.Run("LeftIdentity", func(t *testing.T) {
+		// For endomorphisms, "pure" is the identity function
+		// chain(id, f) = f
+		id := Identity[int]()
+		f := double
+
+		chained := MonadChain(id, f)
+		testValue := 5
+		assert.Equal(t, f(testValue), chained(testValue), "chain(id, f) should equal f")
+	})
+
+	// Monad Law 2: Right Identity
+	// chain(m, pure) = m
+	t.Run("RightIdentity", func(t *testing.T) {
+		m := double
+		id := Identity[int]()
+
+		chained := MonadChain(m, id)
+		testValue := 5
+		assert.Equal(t, m(testValue), chained(testValue), "chain(m, id) should equal m")
+	})
+
+	// Monad Law 3: Associativity
+	// chain(chain(m, f), g) = chain(m, x => chain(f(x), g))
+	t.Run("Associativity", func(t *testing.T) {
+		m := square
+		f := double
+		g := increment
+
+		// Left side: chain(chain(m, f), g)
+		left := MonadChain(MonadChain(m, f), g)
+
+		// Right side: chain(m, chain(f, g))
+		// For simple endomorphisms (not Kleisli arrows), this simplifies to:
+		right := MonadChain(m, MonadChain(f, g))
+
+		testValue := 3
+		assert.Equal(t, left(testValue), right(testValue), "Monad associativity law")
+	})
+}
+
+// TestMonadComposeVsMonadChain verifies the relationship between Compose and Chain
+func TestMonadComposeVsMonadChain(t *testing.T) {
+	f := double
+	g := increment
+
+	// MonadCompose(f, g) should equal MonadChain(g, f)
+	// Because Compose is right-to-left and Chain is left-to-right
+	composed := MonadCompose(f, g)
+	chained := MonadChain(g, f)
+
+	testValue := 5
+	assert.Equal(t, composed(testValue), chained(testValue),
+		"MonadCompose(f, g) should equal MonadChain(g, f)")
+}
+
+// TestMapEqualsCompose verifies that Map is equivalent to Compose for endomorphisms
+func TestMapEqualsCompose(t *testing.T) {
+	f := double
+	g := increment
+
+	// MonadMap(f, g) should equal MonadCompose(f, g)
+	mapped := MonadMap(f, g)
+	composed := MonadCompose(f, g)
+
+	testValue := 5
+	assert.Equal(t, composed(testValue), mapped(testValue),
+		"MonadMap should equal MonadCompose for endomorphisms")
+
+	// Curried versions
+	mapF := Map(f)
+	composeF := Compose(f)
+
+	mappedG := mapF(g)
+	composedG := composeF(g)
+
+	assert.Equal(t, composedG(testValue), mappedG(testValue),
+		"Map should equal Compose for endomorphisms (curried)")
+}
+
+// TestApEqualsCompose verifies that Ap is equivalent to Compose for endomorphisms
+func TestApEqualsCompose(t *testing.T) {
+	f := double
+	g := increment
+
+	// MonadAp(f, g) should equal MonadCompose(f, g)
+	applied := MonadAp(f, g)
+	composed := MonadCompose(f, g)
+
+	testValue := 5
+	assert.Equal(t, composed(testValue), applied(testValue),
+		"MonadAp should equal MonadCompose for endomorphisms")
+
+	// Curried versions
+	apG := Ap(g)
+	composeG := Compose(g)
+
+	appliedF := apG(f)
+	composedF := composeG(f)
+
+	assert.Equal(t, composedF(testValue), appliedF(testValue),
+		"Ap should equal Compose for endomorphisms (curried)")
+}
+
+// TestChainFirst tests the ChainFirst operation
+func TestChainFirst(t *testing.T) {
+	double := func(x int) int { return x * 2 }
+
+	// Track side effect
+	var sideEffect int
+	logEffect := func(x int) int {
+		sideEffect = x
+		return x + 100 // This result should be discarded
+	}
+
+	chained := MonadChainFirst(double, logEffect)
+	result := chained(5)
+
+	// Should return double's result (10), not logEffect's result
+	assert.Equal(t, 10, result, "ChainFirst should return first result")
+	// But side effect should have been executed with double's result
+	assert.Equal(t, 10, sideEffect, "ChainFirst should execute second function for effect")
 }

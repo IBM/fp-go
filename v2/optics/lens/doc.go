@@ -453,6 +453,8 @@ Core Lens Creation:
   - MakeLensCurried: Create a lens with curried setter
   - MakeLensRef: Create a lens for pointer-based structures
   - MakeLensRefCurried: Create a lens for pointers with curried setter
+  - MakeLensWithEq: Create a lens with equality optimization for pointer structures
+  - MakeLensStrict: Create a lens with strict equality optimization for pointer structures
   - Id: Create an identity lens
   - IdRef: Create an identity lens for pointers
 
