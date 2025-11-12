@@ -110,5 +110,3 @@ func TestFrom3(t *testing.T) {
 	result2 := roFunc("test", 5, false)(ctx1)
 	assert.Equal(t, O.None[string](), result2)
 }
-
-// Made with Bob

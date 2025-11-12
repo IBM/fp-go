@@ -875,5 +875,3 @@ func TestBracket(t *testing.T) {
 		assert.Equal(t, E.Left[int](err), res)
 	})
 }
-
-// Made with Bob

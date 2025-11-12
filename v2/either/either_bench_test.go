@@ -648,5 +648,3 @@ func BenchmarkString_Left(b *testing.B) {
 		benchString = left.String()
 	}
 }
-
-// Made with Bob

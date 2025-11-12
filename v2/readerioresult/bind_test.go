@@ -56,5 +56,3 @@ func TestApS(t *testing.T) {
 
 	assert.Equal(t, res(context.Background())(), result.Of("John Doe"))
 }
-
-// Made with Bob

@@ -265,5 +265,3 @@
 // In practice, they are the same type, but the lazy package provides a more focused
 // API for pure computations.
 package lazy
-
-// Made with Bob

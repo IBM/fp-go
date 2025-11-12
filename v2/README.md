@@ -2,25 +2,152 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/IBM/fp-go/v2.svg)](https://pkg.go.dev/github.com/IBM/fp-go/v2)
 [![Coverage Status](https://coveralls.io/repos/github/IBM/fp-go/badge.svg?branch=main&flag=v2)](https://coveralls.io/github/IBM/fp-go?branch=main)
+[![Go Report Card](https://goreportcard.com/badge/github.com/IBM/fp-go/v2)](https://goreportcard.com/report/github.com/IBM/fp-go/v2)
 
-Version 2 of fp-go leverages [generic type aliases](https://github.com/golang/go/issues/46477) introduced in Go 1.24, providing a more ergonomic and streamlined API.
+**fp-go** is a comprehensive functional programming library for Go, bringing type-safe functional patterns inspired by [fp-ts](https://gcanti.github.io/fp-ts/) to the Go ecosystem. Version 2 leverages [generic type aliases](https://github.com/golang/go/issues/46477) introduced in Go 1.24, providing a more ergonomic and streamlined API.
 
 ## 📚 Table of Contents
 
+- [Overview](#-overview)
+- [Features](#-features)
 - [Requirements](#-requirements)
-- [Breaking Changes](#-breaking-changes)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Breaking Changes](#️-breaking-changes)
 - [Key Improvements](#-key-improvements)
 - [Migration Guide](#-migration-guide)
-- [Installation](#-installation)
 - [What's New](#-whats-new)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+## 🎯 Overview
+
+fp-go brings the power of functional programming to Go with:
+
+- **Type-safe abstractions** - Monads, Functors, Applicatives, and more
+- **Composable operations** - Build complex logic from simple, reusable functions
+- **Error handling** - Elegant error management with `Either`, `Result`, and `IOEither`
+- **Lazy evaluation** - Control when and how computations execute
+- **Optics** - Powerful lens, prism, and traversal operations for immutable data manipulation
+
+## ✨ Features
+
+- 🔒 **Type Safety** - Leverage Go's generics for compile-time guarantees
+- 🧩 **Composability** - Chain operations naturally with functional composition
+- 📦 **Rich Type System** - `Option`, `Either`, `Result`, `IO`, `Reader`, and more
+- 🎯 **Practical** - Designed for real-world Go applications
+- 🚀 **Performance** - Zero-cost abstractions where possible
+- 📖 **Well-documented** - Comprehensive API documentation and examples
+- 🧪 **Battle-tested** - Extensive test coverage
 
 ## 🔧 Requirements
 
 - **Go 1.24 or later** (for generic type alias support)
 
-## ⚠️ Breaking Changes
+## 📦 Installation
 
-### 1. Generic Type Aliases
+```bash
+go get github.com/IBM/fp-go/v2
+```
+
+## 🚀 Quick Start
+
+### Working with Option
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/IBM/fp-go/v2/option"
+)
+
+func main() {
+    // Create an Option
+    some := option.Some(42)
+    none := option.None[int]()
+    
+    // Map over values
+    doubled := option.Map(func(x int) int { return x * 2 })(some)
+    fmt.Println(option.GetOrElse(0)(doubled)) // Output: 84
+    
+    // Chain operations
+    result := option.Chain(func(x int) option.Option[string] {
+        if x > 0 {
+            return option.Some(fmt.Sprintf("Positive: %d", x))
+        }
+        return option.None[string]()
+    })(some)
+    
+    fmt.Println(option.GetOrElse("No value")(result)) // Output: Positive: 42
+}
+```
+
+### Error Handling with Result
+
+```go
+package main
+
+import (
+    "errors"
+    "fmt"
+    "github.com/IBM/fp-go/v2/result"
+)
+
+func divide(a, b int) result.Result[int] {
+    if b == 0 {
+        return result.Error[int](errors.New("division by zero"))
+    }
+    return result.Ok(a / b)
+}
+
+func main() {
+    res := divide(10, 2)
+    
+    // Pattern match on the result
+    result.Fold(
+        func(err error) { fmt.Println("Error:", err) },
+        func(val int) { fmt.Println("Result:", val) },
+    )(res)
+    // Output: Result: 5
+    
+    // Or use GetOrElse for a default value
+    value := result.GetOrElse(0)(divide(10, 0))
+    fmt.Println("Value:", value) // Output: Value: 0
+}
+```
+
+### Composing IO Operations
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/IBM/fp-go/v2/io"
+)
+
+func main() {
+    // Define pure IO operations
+    readInput := io.MakeIO(func() string {
+        return "Hello, fp-go!"
+    })
+    
+    // Transform the result
+    uppercase := io.Map(func(s string) string {
+        return fmt.Sprintf(">>> %s <<<", s)
+    })(readInput)
+    
+    // Execute the IO operation
+    result := uppercase()
+    fmt.Println(result) // Output: >>> Hello, fp-go! <<<
+}
+```
+
+### From V1 to V2
+
+#### 1. Generic Type Aliases
 
 V2 uses [generic type aliases](https://github.com/golang/go/issues/46477) which require Go 1.24+. This is the most significant change and enables cleaner type definitions.
 
@@ -34,7 +161,7 @@ type ReaderIOEither[R, E, A any] RD.Reader[R, IOE.IOEither[E, A]]
 type ReaderIOEither[R, E, A any] = RD.Reader[R, IOE.IOEither[E, A]]
 ```
 
-### 2. Generic Type Parameter Ordering
+#### 2. Generic Type Parameter Ordering
 
 Type parameters that **cannot** be inferred from function arguments now come first, improving type inference.
 
@@ -52,7 +179,7 @@ func Ap[B, R, E, A any](fa ReaderIOEither[R, E, A]) func(ReaderIOEither[R, E, fu
 
 This change allows the Go compiler to infer more types automatically, reducing the need for explicit type parameters.
 
-### 3. Pair Monad Semantics
+#### 3. Pair Monad Semantics
 
 Monadic operations for `Pair` now operate on the **second argument** to align with the [Haskell definition](https://hackage.haskell.org/package/TypeCompose-0.9.14/docs/Data-Pair.html).
 
@@ -91,16 +218,16 @@ func processData(input string) ET.Either[error, OPT.Option[int]] {
 **V2 Approach:**
 ```go
 import (
-    "github.com/IBM/fp-go/v2/either"
+    "github.com/IBM/fp-go/v2/result"
     "github.com/IBM/fp-go/v2/option"
 )
 
 // Define type aliases once
-type Either[A any] = either.Either[error, A]
+type Result[A any] = result.Result[A]
 type Option[A any] = option.Option[A]
 
 // Use them throughout your codebase
-func processData(input string) Either[Option[int]] {
+func processData(input string) Result[Option[int]] {
     // implementation
 }
 ```
@@ -230,20 +357,14 @@ Create project-wide type aliases for common patterns:
 package myapp
 
 import (
-    "github.com/IBM/fp-go/v2/either"
+    "github.com/IBM/fp-go/v2/result"
     "github.com/IBM/fp-go/v2/option"
-    "github.com/IBM/fp-go/v2/ioeither"
+    "github.com/IBM/fp-go/v2/ioresult"
 )
 
-type Either[A any] = either.Either[error, A]
+type Result[A any] = result.Result[A]
 type Option[A any] = option.Option[A]
-type IOEither[A any] = ioeither.IOEither[error, A]
-```
-
-## 📦 Installation
-
-```bash
-go get github.com/IBM/fp-go/v2
+type IOResult[A any] = ioresult.IOResult[A]
 ```
 
 ## 🆕 What's New
@@ -277,25 +398,37 @@ func process() IOET.IOEither[error, string] {
 **V2 Simplified Example:**
 ```go
 import (
-    "github.com/IBM/fp-go/v2/either"
-    "github.com/IBM/fp-go/v2/ioeither"
+    "strconv"
+    "github.com/IBM/fp-go/v2/ioresult"
 )
 
-type IOEither[A any] = ioeither.IOEither[error, A]
+type IOResult[A any] = ioresult.IOResult[A]
 
-func process() IOEither[string] {
-    return ioeither.Map(
+func process() IOResult[string] {
+    return ioresult.Map(
         strconv.Itoa,
     )(fetchData())
 }
 ```
 
-## 📚 Additional Resources
+## 📚 Documentation
 
-- [Main README](../README.md) - Core concepts and design philosophy
-- [API Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2)
-- [Code Samples](../samples/)
-- [Go 1.24 Release Notes](https://tip.golang.org/doc/go1.24)
+- **[API Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2)** - Complete API reference
+- **[Code Samples](./samples/)** - Practical examples and use cases
+- **[Go 1.24 Release Notes](https://tip.golang.org/doc/go1.24)** - Information about generic type aliases
+
+### Core Modules
+
+- **Option** - Represent optional values without nil
+- **Either** - Type-safe error handling with left/right values
+- **Result** - Simplified Either with error as left type
+- **IO** - Lazy evaluation and side effect management
+- **IOEither** - Combine IO with error handling
+- **Reader** - Dependency injection pattern
+- **ReaderIOEither** - Combine Reader, IO, and Either for complex workflows
+- **Array** - Functional array operations
+- **Record** - Functional record/map operations
+- **Optics** - Lens, Prism, Optional, and Traversal for immutable updates
 
 ## 🤔 Should I Migrate?
 
@@ -310,10 +443,25 @@ func process() IOEither[string] {
 - ⚠️ Migration effort outweighs benefits for your project
 - ⚠️ You need stability in production (V2 is newer)
 
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+1. **Report bugs** - Open an issue with a clear description and reproduction steps
+2. **Suggest features** - Share your ideas for improvements
+3. **Submit PRs** - Fix bugs or add features (please discuss major changes first)
+4. **Improve docs** - Help make the documentation clearer and more comprehensive
+
+Please read our contribution guidelines before submitting pull requests.
+
 ## 🐛 Issues and Feedback
 
 Found a bug or have a suggestion? Please [open an issue](https://github.com/IBM/fp-go/issues) on GitHub.
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+This project is licensed under the Apache License 2.0. See the [LICENSE](https://github.com/IBM/fp-go/blob/main/LICENSE) file for details.
+
+---
+
+**Made with ❤️ by IBM**

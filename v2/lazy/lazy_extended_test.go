@@ -501,5 +501,3 @@ func TestMapComposition(t *testing.T) {
 
 	assert.Equal(t, 20, result())
 }
-
-// Made with Bob

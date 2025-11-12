@@ -160,5 +160,3 @@ func TestUncurry3(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, 42, result)
 }
-
-// Made with Bob

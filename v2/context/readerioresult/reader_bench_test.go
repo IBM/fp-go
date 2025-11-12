@@ -883,5 +883,3 @@ func BenchmarkExecuteApPar_CanceledContext(b *testing.B) {
 		benchResult = rioe(ctx)()
 	}
 }
-
-// Made with Bob
