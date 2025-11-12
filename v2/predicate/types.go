@@ -45,7 +45,9 @@ type (
 	// It is commonly used for filtering, validation, and conditional logic.
 	Predicate[A any] = func(A) bool
 
+	Kleisli[A, B any] = func(A) Predicate[B]
+
 	// Operator represents a function that transforms a Predicate[A] into a Predicate[B].
 	// This is useful for composing and transforming predicates.
-	Operator[A, B any] = func(Predicate[A]) Predicate[B]
+	Operator[A, B any] = Kleisli[Predicate[A], B]
 )

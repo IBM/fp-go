@@ -23,7 +23,9 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	IOO "github.com/IBM/fp-go/v2/iooption"
+	"github.com/IBM/fp-go/v2/ioresult"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,9 +77,9 @@ func TestTokenUnerase(t *testing.T) {
 	token := MakeToken[int]("IntToken")
 
 	// Test successful unerase
-	result := token.Unerase(42)
-	assert.True(t, E.IsRight(result))
-	assert.Equal(t, E.Of[error](42), result)
+	res := token.Unerase(42)
+	assert.True(t, E.IsRight(res))
+	assert.Equal(t, result.Of(42), res)
 
 	// Test failed unerase (wrong type)
 	result2 := token.Unerase("not an int")
@@ -104,7 +106,7 @@ func TestTokenProviderFactory(t *testing.T) {
 	assert.True(t, O.IsNone(token1.ProviderFactory()))
 
 	// Token with default
-	token2 := MakeTokenWithDefault0("Token2", IOE.Of[error](42))
+	token2 := MakeTokenWithDefault0("Token2", ioresult.Of(42))
 	assert.True(t, O.IsSome(token2.ProviderFactory()))
 }
 
@@ -148,13 +150,13 @@ func TestOptionTokenUnerase(t *testing.T) {
 	optionToken := token.Option()
 
 	// Test successful unerase with Some
-	result := optionToken.Unerase(O.Of[any](42))
-	assert.True(t, E.IsRight(result))
+	res := optionToken.Unerase(O.Of[any](42))
+	assert.True(t, E.IsRight(res))
 
 	// Test successful unerase with None
 	noneResult := optionToken.Unerase(O.None[any]())
 	assert.True(t, E.IsRight(noneResult))
-	assert.Equal(t, E.Of[error](O.None[int]()), noneResult)
+	assert.Equal(t, result.Of(O.None[int]()), noneResult)
 
 	// Test failed unerase (wrong type)
 	badResult := optionToken.Unerase(42) // Not an Option
@@ -166,7 +168,7 @@ func TestIOEitherTokenUnerase(t *testing.T) {
 	ioeitherToken := token.IOEither()
 
 	// Test successful unerase
-	ioValue := IOE.Of[error](any(42))
+	ioValue := ioresult.Of(any(42))
 	result := ioeitherToken.Unerase(ioValue)
 	assert.True(t, E.IsRight(result))
 
@@ -222,7 +224,7 @@ func TestMultiTokenContainerUnerase(t *testing.T) {
 }
 
 func TestMakeTokenWithDefault(t *testing.T) {
-	factory := MakeProviderFactory0(IOE.Of[error](42))
+	factory := MakeProviderFactory0(ioresult.Of(42))
 	token := MakeTokenWithDefault[int]("TokenWithDefault", factory)
 
 	assert.NotNil(t, token)

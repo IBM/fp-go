@@ -19,14 +19,14 @@ import (
 	DIE "github.com/IBM/fp-go/v2/di/erasure"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/identity"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
-	RIOE "github.com/IBM/fp-go/v2/readerioeither"
+	IOR "github.com/IBM/fp-go/v2/ioresult"
+	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 )
 
 // Resolve performs a type safe resolution of a dependency
-func Resolve[T any](token InjectionToken[T]) RIOE.ReaderIOEither[DIE.InjectableFactory, error, T] {
+func Resolve[T any](token InjectionToken[T]) RIOR.ReaderIOResult[DIE.InjectableFactory, T] {
 	return F.Flow2(
-		identity.Ap[IOE.IOEither[error, any]](asDependency(token)),
-		IOE.ChainEitherK(token.Unerase),
+		identity.Ap[IOResult[any]](asDependency(token)),
+		IOR.ChainResultK(token.Unerase),
 	)
 }

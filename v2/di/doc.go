@@ -64,8 +64,8 @@ Creating and using dependencies:
 	dbProvider := di.MakeProvider1(
 		DBToken,
 		ConfigToken.Identity(),
-		func(cfg Config) IOE.IOEither[error, Database] {
-			return IOE.Of[error](NewDatabase(cfg))
+		func(cfg Config) IOResult[Database] {
+			return ioresult.Of(NewDatabase(cfg))
 		},
 	)
 
@@ -73,8 +73,8 @@ Creating and using dependencies:
 		APIToken,
 		ConfigToken.Identity(),
 		DBToken.Identity(),
-		func(cfg Config, db Database) IOE.IOEither[error, APIService] {
-			return IOE.Of[error](NewAPIService(cfg, db))
+		func(cfg Config, db Database) IOResult[APIService] {
+			return ioresult.Of(NewAPIService(cfg, db))
 		},
 	)
 
@@ -116,7 +116,7 @@ MakeProvider0 - No dependencies:
 
 	provider := di.MakeProvider0(
 		token,
-		IOE.Of[error](value),
+		ioresult.Of(value),
 	)
 
 MakeProvider1 - One dependency:
@@ -124,8 +124,8 @@ MakeProvider1 - One dependency:
 	provider := di.MakeProvider1(
 		resultToken,
 		dep1Token.Identity(),
-		func(dep1 Dep1Type) IOE.IOEither[error, ResultType] {
-			return IOE.Of[error](createResult(dep1))
+		func(dep1 Dep1Type) IOResult[ResultType] {
+			return ioresult.Of(createResult(dep1))
 		},
 	)
 
@@ -135,8 +135,8 @@ MakeProvider2 - Two dependencies:
 		resultToken,
 		dep1Token.Identity(),
 		dep2Token.Identity(),
-		func(dep1 Dep1Type, dep2 Dep2Type) IOE.IOEither[error, ResultType] {
-			return IOE.Of[error](createResult(dep1, dep2))
+		func(dep1 Dep1Type, dep2 Dep2Type) IOResult[ResultType] {
+			return ioresult.Of(createResult(dep1, dep2))
 		},
 	)
 
@@ -153,7 +153,7 @@ provider is registered:
 
 	token := di.MakeTokenWithDefault0(
 		"ServiceName",
-		IOE.Of[error](defaultImplementation),
+		ioresult.Of(defaultImplementation),
 	)
 
 	// Or with dependencies
@@ -161,8 +161,8 @@ provider is registered:
 		"ServiceName",
 		dep1Token.Identity(),
 		dep2Token.Identity(),
-		func(dep1 Dep1Type, dep2 Dep2Type) IOE.IOEither[error, ResultType] {
-			return IOE.Of[error](createDefault(dep1, dep2))
+		func(dep1 Dep1Type, dep2 Dep2Type) IOResult[ResultType] {
+			return ioresult.Of(createDefault(dep1, dep2))
 		},
 	)
 
@@ -208,8 +208,8 @@ The framework provides a convenient pattern for running applications:
 	mainProvider := di.MakeProvider1(
 		di.InjMain,
 		APIToken.Identity(),
-		func(api APIService) IOE.IOEither[error, any] {
-			return IOE.Of[error](api.Start())
+		func(api APIService) IOResult[any] {
+			return ioresult.Of(api.Start())
 		},
 	)
 
@@ -247,8 +247,8 @@ Example 1: Configuration-based Service
 	clientProvider := di.MakeProvider1(
 		ClientToken,
 		ConfigToken.Identity(),
-		func(cfg Config) IOE.IOEither[error, HTTPClient] {
-			return IOE.Of[error](HTTPClient{config: cfg})
+		func(cfg Config) IOResult[HTTPClient] {
+			return ioresult.Of(HTTPClient{config: cfg})
 		},
 	)
 
@@ -263,8 +263,8 @@ Example 2: Optional Dependencies
 	serviceProvider := di.MakeProvider1(
 		ServiceToken,
 		CacheToken.Option(), // Optional dependency
-		func(cache O.Option[Cache]) IOE.IOEither[error, Service] {
-			return IOE.Of[error](NewService(cache))
+		func(cache Option[Cache]) IOResult[Service] {
+			return ioresult.Of(NewService(cache))
 		},
 	)
 
@@ -279,8 +279,8 @@ Example 3: Lazy Dependencies
 	reporterProvider := di.MakeProvider1(
 		ReporterToken,
 		DBToken.IOEither(), // Lazy dependency
-		func(dbIO IOE.IOEither[error, Database]) IOE.IOEither[error, Reporter] {
-			return IOE.Of[error](NewReporter(dbIO))
+		func(dbIO IOResult[Database]) IOResult[Reporter] {
+			return ioresult.Of(NewReporter(dbIO))
 		},
 	)
 

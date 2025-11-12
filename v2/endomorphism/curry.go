@@ -41,7 +41,7 @@ import (
 //	curriedAdd := endomorphism.Curry2(add)
 //	addFive := curriedAdd(5) // Returns an endomorphism that adds 5
 //	result := addFive(10)    // Returns: 15
-func Curry2[FCT ~func(T0, T1) T1, T0, T1 any](f FCT) func(T0) Endomorphism[T1] {
+func Curry2[FCT ~func(T0, T1) T1, T0, T1 any](f FCT) Kleisli[T0, T1] {
 	return function.Curry2(f)
 }
 
@@ -68,6 +68,6 @@ func Curry2[FCT ~func(T0, T1) T1, T0, T1 any](f FCT) func(T0) Endomorphism[T1] {
 //	curriedCombine := endomorphism.Curry3(combine)
 //	addTen := curriedCombine(5)(5) // Returns an endomorphism that adds 10
 //	result := addTen(20)           // Returns: 30
-func Curry3[FCT ~func(T0, T1, T2) T2, T0, T1, T2 any](f FCT) func(T0) func(T1) Endomorphism[T2] {
+func Curry3[FCT ~func(T0, T1, T2) T2, T0, T1, T2 any](f FCT) func(T0) Kleisli[T1, T2] {
 	return function.Curry3(f)
 }

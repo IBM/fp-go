@@ -17,9 +17,11 @@
 package option
 
 import (
+	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
+	P "github.com/IBM/fp-go/v2/predicate"
 )
 
 // fromPredicate creates an Option based on a predicate function.
@@ -43,9 +45,19 @@ func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {
 	return F.Bind2nd(fromPredicate[A], pred)
 }
 
+//go:inline
 func FromZero[A comparable]() Kleisli[A, A] {
-	var zero A
-	return FromPredicate(func(a A) bool { return zero == a })
+	return FromPredicate(P.IsZero[A]())
+}
+
+//go:inline
+func FromNonZero[A comparable]() Kleisli[A, A] {
+	return FromPredicate(P.IsNonZero[A]())
+}
+
+//go:inline
+func FromEq[A any](pred eq.Eq[A]) func(A) Kleisli[A, A] {
+	return F.Flow2(P.IsEqual(pred), FromPredicate[A])
 }
 
 // FromNillable converts a pointer to an Option.

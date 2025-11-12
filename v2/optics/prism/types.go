@@ -18,6 +18,7 @@ package prism
 import (
 	"github.com/IBM/fp-go/v2/either"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
@@ -93,4 +94,6 @@ type (
 	//   - FromEither for creating prisms that work with Either types
 	//   - Prism composition for building complex error-handling pipelines
 	Either[E, T any] = either.Either[E, T]
+
+	Reader[R, T any] = reader.Reader[R, T]
 )

@@ -161,7 +161,7 @@ func MonadChainReaderK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() either
 // Deprecated:
 func ChainReaderK[GEA ~func(R) GIOA, GEB ~func(R) GIOB, GIOA ~func() either.Either[E, A], GIOB ~func() either.Either[E, B], GB ~func(R) B, R, E, A, B any](f func(A) GB) func(GEA) GEB {
 	return FR.ChainReaderK(
-		MonadChain[GEA, GEB, GIOA, GIOB, R, E, A, B],
+		Chain[GEA, GEB, GIOA, GIOB, R, E, A, B],
 		FromReader[GB, GEB, GIOB, R, E, B],
 		f,
 	)
@@ -180,7 +180,7 @@ func MonadChainReaderIOK[GEA ~func(R) GIOEA, GEB ~func(R) GIOEB, GIOEA ~func() e
 // Deprecated:
 func ChainReaderIOK[GEA ~func(R) GIOEA, GEB ~func(R) GIOEB, GIOEA ~func() either.Either[E, A], GIOEB ~func() either.Either[E, B], GIOB ~func() B, GB ~func(R) GIOB, R, E, A, B any](f func(A) GB) func(GEA) GEB {
 	return FR.ChainReaderK(
-		MonadChain[GEA, GEB, GIOEA, GIOEB, R, E, A, B],
+		Chain[GEA, GEB, GIOEA, GIOEB, R, E, A, B],
 		RightReaderIO[GEB, GIOEB, GB, GIOB, R, E, B],
 		f,
 	)

@@ -46,9 +46,26 @@ func MonadChainReaderK[GB ~func(R) B, R, A, B, HKTRA, HKTRB any](
 }
 
 func ChainReaderK[GB ~func(R) B, R, A, B, HKTRA, HKTRB any](
-	mchain func(HKTRA, func(A) HKTRB) HKTRB,
+	mchain func(func(A) HKTRB) func(HKTRA) HKTRB,
 	fromReader func(GB) HKTRB,
 	f func(A) GB,
 ) func(HKTRA) HKTRB {
-	return F.Bind2nd(mchain, FromReaderK(fromReader, f))
+	return mchain(FromReaderK(fromReader, f))
+}
+
+func MonadChainFirstReaderK[GB ~func(R) B, R, A, B, HKTRA, HKTRB any](
+	mchain func(HKTRA, func(A) HKTRB) HKTRA,
+	fromReader func(GB) HKTRB,
+	ma HKTRA,
+	f func(A) GB,
+) HKTRA {
+	return mchain(ma, FromReaderK(fromReader, f))
+}
+
+func ChainFirstReaderK[GB ~func(R) B, R, A, B, HKTRA, HKTRB any](
+	mchain func(func(A) HKTRB) func(HKTRA) HKTRA,
+	fromReader func(GB) HKTRB,
+	f func(A) GB,
+) func(HKTRA) HKTRA {
+	return mchain(FromReaderK(fromReader, f))
 }

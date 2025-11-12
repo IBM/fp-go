@@ -19,7 +19,7 @@ import (
 	DIE "github.com/IBM/fp-go/v2/di/erasure"
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	IOR "github.com/IBM/fp-go/v2/ioresult"
 )
 
 var (
@@ -34,5 +34,5 @@ var (
 var RunMain = F.Flow3(
 	DIE.MakeInjector,
 	Main,
-	IOE.Fold(IO.Of[error], F.Constant1[any](IO.Of[error](nil))),
+	IOR.Fold(IO.Of[error], F.Constant1[any](IO.Of[error](nil))),
 )

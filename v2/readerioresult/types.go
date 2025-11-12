@@ -24,6 +24,7 @@ import (
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -41,6 +42,8 @@ type (
 	// ReaderIO represents a computation that depends on some context R and performs
 	// side effects to produce a value of type A.
 	ReaderIO[R, A any] = readerio.ReaderIO[R, A]
+
+	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]
 
 	// IOEither represents a computation that performs side effects and can either
 	// fail with an error of type E or succeed with a value of type A.

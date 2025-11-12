@@ -19,25 +19,23 @@ import (
 	"fmt"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
 	IO "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
-	IOO "github.com/IBM/fp-go/v2/iooption"
 	Int "github.com/IBM/fp-go/v2/number/integer"
-	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/record"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
 	// InjectableFactory is a factory function that can create an untyped instance of a service based on its [Dependency] identifier
-	InjectableFactory = func(Dependency) IOE.IOEither[error, any]
-	ProviderFactory   = func(InjectableFactory) IOE.IOEither[error, any]
+	InjectableFactory = func(Dependency) IOResult[any]
+	ProviderFactory   = func(InjectableFactory) IOResult[any]
 
 	paramIndex = map[int]int
 	paramValue = map[int]any
-	handler    = func(paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue]
+	handler    = func(paramIndex) func([]IOResult[any]) IOResult[paramValue]
 	mapping    = map[int]paramIndex
 
 	Provider interface {
@@ -83,50 +81,50 @@ var (
 	mergeMaps      = R.UnionLastMonoid[int, any]()
 	collectParams  = R.CollectOrd[any, any](Int.Ord)(F.SK[int, any])
 
-	mapDeps = F.Curry2(A.MonadMap[Dependency, IOE.IOEither[error, any]])
+	mapDeps = F.Curry2(A.MonadMap[Dependency, IOResult[any]])
 
 	handlers = map[int]handler{
-		Identity: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
-			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+		IDENTITY: func(mp paramIndex) func([]IOResult[any]) IOResult[paramValue] {
+			return func(res []IOResult[any]) IOResult[paramValue] {
 				return F.Pipe1(
 					mp,
 					IOE.TraverseRecord[int](getAt(res)),
 				)
 			}
 		},
-		Option: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
-			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+		OPTION: func(mp paramIndex) func([]IOResult[any]) IOResult[paramValue] {
+			return func(res []IOResult[any]) IOResult[paramValue] {
 				return F.Pipe3(
 					mp,
 					IO.TraverseRecord[int](getAt(res)),
 					IO.Map(R.Map[int](F.Flow2(
-						E.ToOption[error, any],
-						F.ToAny[O.Option[any]],
+						result.ToOption[any],
+						F.ToAny[Option[any]],
 					))),
 					IOE.FromIO[error, paramValue],
 				)
 			}
 		},
-		IOEither: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
-			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+		IOEITHER: func(mp paramIndex) func([]IOResult[any]) IOResult[paramValue] {
+			return func(res []IOResult[any]) IOResult[paramValue] {
 				return F.Pipe2(
 					mp,
 					R.Map[int](F.Flow2(
 						getAt(res),
-						F.ToAny[IOE.IOEither[error, any]],
+						F.ToAny[IOResult[any]],
 					)),
 					IOE.Of[error, paramValue],
 				)
 			}
 		},
-		IOOption: func(mp paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
-			return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+		IOOPTION: func(mp paramIndex) func([]IOResult[any]) IOResult[paramValue] {
+			return func(res []IOResult[any]) IOResult[paramValue] {
 				return F.Pipe2(
 					mp,
 					R.Map[int](F.Flow3(
 						getAt(res),
 						IOE.ToIOOption[error, any],
-						F.ToAny[IOO.IOOption[any]],
+						F.ToAny[IOOption[any]],
 					)),
 					IOE.Of[error, paramValue],
 				)
@@ -141,23 +139,23 @@ func getAt[T any](ar []T) func(idx int) T {
 	}
 }
 
-func handleMapping(mp mapping) func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
+func handleMapping(mp mapping) func(res []IOResult[any]) IOResult[[]any] {
 	preFct := F.Pipe1(
 		mp,
-		R.Collect(func(idx int, p paramIndex) func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue] {
+		R.Collect(func(idx int, p paramIndex) func([]IOResult[any]) IOResult[paramValue] {
 			return handlers[idx](p)
 		}),
 	)
 	doFct := F.Flow2(
-		I.Flap[IOE.IOEither[error, paramValue], []IOE.IOEither[error, any]],
-		IOE.TraverseArray[error, func([]IOE.IOEither[error, any]) IOE.IOEither[error, paramValue], paramValue],
+		I.Flap[IOResult[paramValue], []IOResult[any]],
+		IOE.TraverseArray[error, func([]IOResult[any]) IOResult[paramValue], paramValue],
 	)
 	postFct := IOE.Map[error](F.Flow2(
 		A.Fold(mergeMaps),
 		collectParams,
 	))
 
-	return func(res []IOE.IOEither[error, any]) IOE.IOEither[error, []any] {
+	return func(res []IOResult[any]) IOResult[[]any] {
 		return F.Pipe2(
 			preFct,
 			doFct(res),
@@ -170,7 +168,7 @@ func handleMapping(mp mapping) func(res []IOE.IOEither[error, any]) IOE.IOEither
 // a function that accepts the resolved dependencies to return a result
 func MakeProviderFactory(
 	deps []Dependency,
-	fct func(param ...any) IOE.IOEither[error, any]) ProviderFactory {
+	fct func(param ...any) IOResult[any]) ProviderFactory {
 
 	return F.Flow3(
 		mapDeps(deps),

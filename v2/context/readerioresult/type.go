@@ -19,14 +19,17 @@ import (
 	"context"
 
 	"github.com/IBM/fp-go/v2/context/ioresult"
+	"github.com/IBM/fp-go/v2/context/readerresult"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerio"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
+	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -119,4 +122,8 @@ type (
 	//   // Apply the transformation
 	//   result := toUpper(computation)
 	Operator[A, B any] = Kleisli[ReaderIOResult[A], B]
+
+	ReaderResult[A any]       = readerresult.ReaderResult[A]
+	ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
+	ReaderOption[R, A any]    = readeroption.ReaderOption[R, A]
 )

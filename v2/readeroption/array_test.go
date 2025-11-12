@@ -53,7 +53,7 @@ func TestTraverseArray(t *testing.T) {
 	input1 := []int{1, 2, 3}
 	g1 := F.Pipe1(
 		Of[context.Context](input1),
-		Chain(TraverseArray[context.Context](doubleIfPositive)),
+		Chain(TraverseArray(doubleIfPositive)),
 	)
 	assert.Equal(t, O.Of([]int{2, 4, 6}), g1(context.Background()))
 
@@ -61,7 +61,7 @@ func TestTraverseArray(t *testing.T) {
 	input2 := []int{1, -2, 3}
 	g2 := F.Pipe1(
 		Of[context.Context](input2),
-		Chain(TraverseArray[context.Context](doubleIfPositive)),
+		Chain(TraverseArray(doubleIfPositive)),
 	)
 	assert.Equal(t, O.None[[]int](), g2(context.Background()))
 
@@ -69,7 +69,7 @@ func TestTraverseArray(t *testing.T) {
 	input3 := []int{}
 	g3 := F.Pipe1(
 		Of[context.Context](input3),
-		Chain(TraverseArray[context.Context](doubleIfPositive)),
+		Chain(TraverseArray(doubleIfPositive)),
 	)
 	assert.Equal(t, O.Of([]int{}), g3(context.Background()))
 }
@@ -84,7 +84,7 @@ func TestTraverseArrayWithIndex(t *testing.T) {
 	}
 
 	input := []int{10, 20, 30, 40}
-	g := TraverseArrayWithIndex[context.Context](multiplyByIndexIfEven)(input)
+	g := TraverseArrayWithIndex(multiplyByIndexIfEven)(input)
 
 	// Expected: [10*0, 20, 30*2, 40] = [0, 20, 60, 40]
 	assert.Equal(t, O.Of([]int{0, 20, 60, 40}), g(context.Background()))
@@ -100,7 +100,7 @@ func TestTraverseArrayWithIndexNone(t *testing.T) {
 	}
 
 	input := []int{10, 20, 30}
-	g := TraverseArrayWithIndex[context.Context](noneForOdd)(input)
+	g := TraverseArrayWithIndex(noneForOdd)(input)
 
 	// Should return None because index 1 returns None
 	assert.Equal(t, O.None[[]int](), g(context.Background()))

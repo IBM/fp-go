@@ -22,8 +22,12 @@ import (
 )
 
 type (
-	Option[A any]             = option.Option[A]
-	Either[E, A any]          = either.Either[E, A]
-	Reader[R, A any]          = reader.Reader[R, A]
+	Option[A any]    = option.Option[A]
+	Either[E, A any] = either.Either[E, A]
+	Reader[R, A any] = reader.Reader[R, A]
+
 	ReaderEither[R, E, A any] = Reader[R, Either[E, A]]
+
+	Kleisli[R, E, A, B any]  = Reader[A, ReaderEither[R, E, B]]
+	Operator[R, E, A, B any] = Kleisli[R, E, ReaderEither[R, E, A], B]
 )

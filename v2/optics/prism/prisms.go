@@ -352,8 +352,11 @@ func FromEither[E, T any]() Prism[Either[E, T], T] {
 //   - Working with optional fields that use zero as "not set"
 //   - Replacing zero values with defaults
 func FromZero[T comparable]() Prism[T, T] {
-	var zero T
-	return MakePrism(option.FromPredicate(func(t T) bool { return t == zero }), F.Identity[T])
+	return MakePrism(option.FromZero[T](), F.Identity[T])
+}
+
+func FromNonZero[T comparable]() Prism[T, T] {
+	return MakePrism(option.FromNonZero[T](), F.Identity[T])
 }
 
 // Match represents a regex match result with full reconstruction capability.

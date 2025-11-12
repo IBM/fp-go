@@ -17,20 +17,18 @@ package erasure
 
 import (
 	"fmt"
-
-	O "github.com/IBM/fp-go/v2/option"
 )
 
 const (
 	BehaviourMask = 0x0f
-	Identity      = 0 // required dependency
-	Option        = 1 // optional dependency
-	IOEither      = 2 // lazy and required
-	IOOption      = 3 // lazy and optional
+	IDENTITY      = 0 // required dependency
+	OPTION        = 1 // optional dependency
+	IOEITHER      = 2 // lazy and required
+	IOOPTION      = 3 // lazy and optional
 
 	TypeMask = 0xf0
-	Multi    = 1 << 4 // array of implementations
-	Item     = 2 << 4 // item of a multi token
+	MULTI    = 1 << 4 // array of implementations
+	ITEM     = 2 << 4 // item of a multi token
 )
 
 // Dependency describes the relationship to a service
@@ -41,5 +39,5 @@ type Dependency interface {
 	// Flag returns a tag that identifies the behaviour of the dependency
 	Flag() int
 	// ProviderFactory optionally returns an attached [ProviderFactory] that represents the default for this dependency
-	ProviderFactory() O.Option[ProviderFactory]
+	ProviderFactory() Option[ProviderFactory]
 }

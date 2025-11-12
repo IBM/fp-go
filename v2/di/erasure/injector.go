@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	IOR "github.com/IBM/fp-go/v2/ioresult"
 	L "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/record"
@@ -42,8 +42,8 @@ var (
 	missingProviderError = F.Flow4(
 		Dependency.String,
 		errors.OnSome[string]("no provider for dependency [%s]"),
-		IOE.Left[any, error],
-		F.Constant1[InjectableFactory, IOE.IOEither[error, any]],
+		IOR.Left[any],
+		F.Constant1[InjectableFactory, IOResult[any]],
 	)
 
 	// missingProviderErrorOrDefault returns the default [ProviderFactory] or an error
@@ -56,7 +56,7 @@ var (
 	emptyMulti any = A.Empty[any]()
 
 	// emptyMultiDependency returns a [ProviderFactory] for an empty, multi dependency
-	emptyMultiDependency = F.Constant1[Dependency](F.Constant1[InjectableFactory](IOE.Of[error](emptyMulti)))
+	emptyMultiDependency = F.Constant1[Dependency](F.Constant1[InjectableFactory](IOR.Of(emptyMulti)))
 
 	// handleMissingProvider covers the case of a missing provider. It either
 	// returns an error or an empty multi value provider
@@ -93,21 +93,21 @@ var (
 
 // isMultiDependency tests if a dependency is a container dependency
 func isMultiDependency(dep Dependency) bool {
-	return dep.Flag()&Multi == Multi
+	return dep.Flag()&MULTI == MULTI
 }
 
 // isItemProvider tests if a provivder provides a single item
 func isItemProvider(provider Provider) bool {
-	return provider.Provides().Flag()&Item == Item
+	return provider.Provides().Flag()&ITEM == ITEM
 }
 
 // itemProviderFactory combines multiple factories into one, returning an array
 func itemProviderFactory(fcts []ProviderFactory) ProviderFactory {
-	return func(inj InjectableFactory) IOE.IOEither[error, any] {
+	return func(inj InjectableFactory) IOResult[any] {
 		return F.Pipe2(
 			fcts,
-			IOE.TraverseArray(I.Flap[IOE.IOEither[error, any]](inj)),
-			IOE.Map[error](F.ToAny[[]any]),
+			IOR.TraverseArray(I.Flap[IOResult[any]](inj)),
+			IOR.Map(F.ToAny[[]any]),
 		)
 	}
 }
@@ -118,7 +118,7 @@ func itemProviderFactory(fcts []ProviderFactory) ProviderFactory {
 // makes sure to transitively resolve the required dependencies.
 func MakeInjector(providers []Provider) InjectableFactory {
 
-	type Result = IOE.IOEither[error, any]
+	type Result = IOResult[any]
 	type LazyResult = L.Lazy[Result]
 
 	// resolved stores the values resolved so far, key is the string ID
@@ -148,11 +148,11 @@ func MakeInjector(providers []Provider) InjectableFactory {
 					T.Map2(F.Flow3(
 						Dependency.Id,
 						R.Lookup[ProviderFactory, string],
-						I.Ap[O.Option[ProviderFactory]](factoryByID),
+						I.Ap[Option[ProviderFactory]](factoryByID),
 					), handleMissingProvider),
 					T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
-					I.Ap[IOE.IOEither[error, any]](injFct),
-					IOE.Memoize[error, any],
+					I.Ap[IOResult[any]](injFct),
+					IOR.Memoize[any],
 				)
 			}
 

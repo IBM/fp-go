@@ -16,12 +16,22 @@
 package readerioresult
 
 import (
+	"github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
+	"github.com/IBM/fp-go/v2/readerio"
 	RIOE "github.com/IBM/fp-go/v2/readerioeither"
+	"github.com/IBM/fp-go/v2/readeroption"
 )
+
+//go:inline
+func FromReaderOption[R, A any](onNone func() error) Kleisli[R, ReaderOption[R, A], A] {
+	return RIOE.FromReaderOption[R, A](onNone)
+}
 
 // FromReaderIO creates a function that lifts a ReaderIO-producing function into ReaderIOResult.
 // The ReaderIO result is placed in the Right side of the Either.
+//
+//go:inline
 func FromReaderIO[R, A any](ma ReaderIO[R, A]) ReaderIOResult[R, A] {
 	return RIOE.FromReaderIO[error](ma)
 }
@@ -158,7 +168,7 @@ func ChainFirstResultK[R, A, B any](f func(A) Result[B]) Operator[R, A, A] {
 // The Reader is automatically lifted into the ReaderIOResult context.
 //
 //go:inline
-func MonadChainReaderK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Reader[R, B]) ReaderIOResult[R, B] {
+func MonadChainReaderK[R, A, B any](ma ReaderIOResult[R, A], f reader.Kleisli[R, A, B]) ReaderIOResult[R, B] {
 	return RIOE.MonadChainReaderK(ma, f)
 }
 
@@ -166,8 +176,97 @@ func MonadChainReaderK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Reader[R,
 // This is the curried version of MonadChainReaderK.
 //
 //go:inline
-func ChainReaderK[R, A, B any](f func(A) Reader[R, B]) Operator[R, A, B] {
+func ChainReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, B] {
 	return RIOE.ChainReaderK[error](f)
+}
+
+//go:inline
+func MonadChainFirstReaderK[R, A, B any](ma ReaderIOResult[R, A], f reader.Kleisli[R, A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadChainFirstReaderK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstReaderK[error](f)
+}
+
+//go:inline
+func ChainReaderOptionK[R, A, B any](onNone func() error) func(readeroption.Kleisli[R, A, B]) Operator[R, A, B] {
+	return RIOE.ChainReaderOptionK[R, A, B](onNone)
+}
+
+//go:inline
+func ChainFirstReaderOptionK[R, A, B any](onNone func() error) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstReaderOptionK[R, A, B](onNone)
+}
+
+// MonadChainReaderK chains a Reader-returning computation into a ReaderIOResult.
+// The Reader is automatically lifted into the ReaderIOResult context.
+//
+//go:inline
+func MonadChainReaderEitherK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, B] {
+	return RIOE.MonadChainReaderEitherK(ma, f)
+}
+
+// ChainReaderK returns a function that chains a Reader-returning function into ReaderIOResult.
+// This is the curried version of MonadChainReaderK.
+//
+//go:inline
+func ChainReaderEitherK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, B] {
+	return RIOE.ChainReaderEitherK(f)
+}
+
+//go:inline
+func MonadChainFirstReaderEitherK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadChainFirstReaderEitherK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderEitherK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstReaderEitherK(f)
+}
+
+//go:inline
+func MonadChainReaderResultK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, B] {
+	return RIOE.MonadChainReaderEitherK(ma, f)
+}
+
+// ChainReaderK returns a function that chains a Reader-returning function into ReaderIOResult.
+// This is the curried version of MonadChainReaderK.
+//
+//go:inline
+func ChainReaderResultK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, B] {
+	return RIOE.ChainReaderEitherK(f)
+}
+
+//go:inline
+func MonadChainFirstReaderResultK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadChainFirstReaderEitherK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderResultK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstReaderEitherK(f)
+}
+
+//go:inline
+func MonadChainReaderIOK[R, A, B any](ma ReaderIOResult[R, A], f readerio.Kleisli[R, A, B]) ReaderIOResult[R, B] {
+	return RIOE.MonadChainReaderIOK(ma, f)
+}
+
+//go:inline
+func ChainReaderIOK[R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, A, B] {
+	return RIOE.ChainReaderIOK[error](f)
+}
+
+//go:inline
+func MonadChainFirstReaderIOK[R, A, B any](ma ReaderIOResult[R, A], f readerio.Kleisli[R, A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadChainFirstReaderIOK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderIOK[R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstReaderIOK[error](f)
 }
 
 // MonadChainIOEitherK chains an IOEither-returning computation into a ReaderIOResult.

@@ -19,13 +19,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/IBM/fp-go/v2/context/readerresult"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
+	"github.com/IBM/fp-go/v2/readeroption"
 )
 
 const (
@@ -746,4 +750,89 @@ func GetOrElse[A any](onLeft func(error) ReaderIO[A]) func(ReaderIOResult[A]) Re
 //go:inline
 func OrLeft[A any](onLeft func(error) ReaderIO[error]) Operator[A, A] {
 	return RIOR.OrLeft[A](onLeft)
+}
+
+//go:inline
+func FromReaderEither[A any](ma ReaderEither[context.Context, error, A]) ReaderIOResult[A] {
+	return RIOR.FromReaderEither(ma)
+}
+
+//go:inline
+func FromReaderResult[A any](ma ReaderResult[A]) ReaderIOResult[A] {
+	return RIOR.FromReaderEither(ma)
+}
+
+//go:inline
+func FromReaderOption[A any](onNone func() error) Kleisli[ReaderOption[context.Context, A], A] {
+	return RIOR.FromReaderOption[context.Context, A](onNone)
+}
+
+//go:inline
+func MonadChainReaderK[A, B any](ma ReaderIOResult[A], f reader.Kleisli[context.Context, A, B]) ReaderIOResult[B] {
+	return RIOR.MonadChainReaderK(ma, f)
+}
+
+//go:inline
+func ChainReaderK[A, B any](f reader.Kleisli[context.Context, A, B]) Operator[A, B] {
+	return RIOR.ChainReaderK(f)
+}
+
+//go:inline
+func MonadChainFirstReaderK[A, B any](ma ReaderIOResult[A], f reader.Kleisli[context.Context, A, B]) ReaderIOResult[A] {
+	return RIOR.MonadChainFirstReaderK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderK[A, B any](f reader.Kleisli[context.Context, A, B]) Operator[A, A] {
+	return RIOR.ChainFirstReaderK(f)
+}
+
+//go:inline
+func MonadChainReaderResultK[A, B any](ma ReaderIOResult[A], f readerresult.Kleisli[A, B]) ReaderIOResult[B] {
+	return RIOR.MonadChainReaderResultK(ma, f)
+}
+
+//go:inline
+func ChainReaderResultK[A, B any](f readerresult.Kleisli[A, B]) Operator[A, B] {
+	return RIOR.ChainReaderResultK(f)
+}
+
+//go:inline
+func MonadChainFirstReaderResultK[A, B any](ma ReaderIOResult[A], f readerresult.Kleisli[A, B]) ReaderIOResult[A] {
+	return RIOR.MonadChainFirstReaderResultK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderResultK[A, B any](f readerresult.Kleisli[A, B]) Operator[A, A] {
+	return RIOR.ChainFirstReaderResultK(f)
+}
+
+//go:inline
+func MonadChainReaderIOK[A, B any](ma ReaderIOResult[A], f readerio.Kleisli[context.Context, A, B]) ReaderIOResult[B] {
+	return RIOR.MonadChainReaderIOK(ma, f)
+}
+
+//go:inline
+func ChainReaderIOK[A, B any](f readerio.Kleisli[context.Context, A, B]) Operator[A, B] {
+	return RIOR.ChainReaderIOK(f)
+}
+
+//go:inline
+func MonadChainFirstReaderIOK[A, B any](ma ReaderIOResult[A], f readerio.Kleisli[context.Context, A, B]) ReaderIOResult[A] {
+	return RIOR.MonadChainFirstReaderIOK(ma, f)
+}
+
+//go:inline
+func ChainFirstReaderIOK[A, B any](f readerio.Kleisli[context.Context, A, B]) Operator[A, A] {
+	return RIOR.ChainFirstReaderIOK(f)
+}
+
+//go:inline
+func ChainReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, B] {
+	return RIOR.ChainReaderOptionK[context.Context, A, B](onNone)
+}
+
+//go:inline
+func ChainFirstReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
+	return RIOR.ChainFirstReaderOptionK[context.Context, A, B](onNone)
 }

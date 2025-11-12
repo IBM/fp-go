@@ -19,8 +19,10 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/optics/lens/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/readeroption"
 )
 
 type (
@@ -84,4 +86,7 @@ type (
 	// Example:
 	//   var doubleOp Operator[Config, error, int, int] = Map(func(x int) int { return x * 2 })
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderIOEither[R, E, A], B]
+
+	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]
+	Option[A any]          = option.Option[A]
 )

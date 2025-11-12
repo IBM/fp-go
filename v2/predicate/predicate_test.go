@@ -18,6 +18,7 @@ package predicate
 import (
 	"testing"
 
+	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/stretchr/testify/assert"
 )
@@ -406,5 +407,274 @@ func TestComplexScenarios(t *testing.T) {
 		assert.False(t, canBuy(Item{Price: 150, Stock: 10}))
 		assert.False(t, canBuy(Item{Price: 50, Stock: 0}))
 		assert.False(t, canBuy(Item{Price: 150, Stock: 0}))
+	})
+}
+
+// TestIsEqual tests the IsEqual function
+func TestIsEqual(t *testing.T) {
+	t.Run("works with custom equality", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+
+		// Custom equality that only compares names
+		nameEq := eq.FromEquals(func(a, b Person) bool {
+			return a.Name == b.Name
+		})
+
+		isEqualToPerson := IsEqual(nameEq)
+		alice := Person{Name: "Alice", Age: 30}
+		isAlice := isEqualToPerson(alice)
+
+		assert.True(t, isAlice(Person{Name: "Alice", Age: 30}))
+		assert.True(t, isAlice(Person{Name: "Alice", Age: 25})) // Different age, same name
+		assert.False(t, isAlice(Person{Name: "Bob", Age: 30}))
+	})
+
+	t.Run("works with struct equality", func(t *testing.T) {
+		type Point struct {
+			X, Y int
+		}
+
+		pointEq := eq.FromStrictEquals[Point]()
+		isEqualToPoint := IsEqual(pointEq)
+		origin := Point{X: 0, Y: 0}
+		isOrigin := isEqualToPoint(origin)
+
+		assert.True(t, isOrigin(Point{X: 0, Y: 0}))
+		assert.False(t, isOrigin(Point{X: 1, Y: 0}))
+		assert.False(t, isOrigin(Point{X: 0, Y: 1}))
+	})
+
+	t.Run("can be used with And/Or", func(t *testing.T) {
+		intEq := eq.FromStrictEquals[int]()
+		isEqualTo5 := IsEqual(intEq)(5)
+		isEqualTo10 := IsEqual(intEq)(10)
+
+		is5Or10 := F.Pipe1(isEqualTo5, Or(isEqualTo10))
+		assert.True(t, is5Or10(5))
+		assert.True(t, is5Or10(10))
+		assert.False(t, is5Or10(7))
+	})
+}
+
+// TestIsStrictEqual tests the IsStrictEqual function
+func TestIsStrictEqual(t *testing.T) {
+	t.Run("works with integers", func(t *testing.T) {
+		isEqualTo42 := IsStrictEqual[int]()(42)
+		assert.True(t, isEqualTo42(42))
+		assert.False(t, isEqualTo42(0))
+		assert.False(t, isEqualTo42(-42))
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		isEqualToHello := IsStrictEqual[string]()("hello")
+		assert.True(t, isEqualToHello("hello"))
+		assert.False(t, isEqualToHello("Hello"))
+		assert.False(t, isEqualToHello("world"))
+		assert.False(t, isEqualToHello(""))
+	})
+
+	t.Run("works with booleans", func(t *testing.T) {
+		isEqualToTrue := IsStrictEqual[bool]()(true)
+		assert.True(t, isEqualToTrue(true))
+		assert.False(t, isEqualToTrue(false))
+
+		isEqualToFalse := IsStrictEqual[bool]()(false)
+		assert.True(t, isEqualToFalse(false))
+		assert.False(t, isEqualToFalse(true))
+	})
+
+	t.Run("works with floats", func(t *testing.T) {
+		isEqualTo3Point14 := IsStrictEqual[float64]()(3.14)
+		assert.True(t, isEqualTo3Point14(3.14))
+		assert.False(t, isEqualTo3Point14(3.15))
+		assert.False(t, isEqualTo3Point14(0.0))
+	})
+
+	t.Run("can be combined with other predicates", func(t *testing.T) {
+		isEqualTo5 := IsStrictEqual[int]()(5)
+		isNotEqualTo5 := Not(isEqualTo5)
+
+		assert.False(t, isNotEqualTo5(5))
+		assert.True(t, isNotEqualTo5(10))
+		assert.True(t, isNotEqualTo5(0))
+	})
+}
+
+// TestIsZero tests the IsZero function
+func TestIsZero(t *testing.T) {
+	t.Run("works with integers", func(t *testing.T) {
+		isZeroInt := IsZero[int]()
+		assert.True(t, isZeroInt(0))
+		assert.False(t, isZeroInt(1))
+		assert.False(t, isZeroInt(-1))
+		assert.False(t, isZeroInt(100))
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		isZeroString := IsZero[string]()
+		assert.True(t, isZeroString(""))
+		assert.False(t, isZeroString("hello"))
+		assert.False(t, isZeroString(" "))
+		assert.False(t, isZeroString("0"))
+	})
+
+	t.Run("works with booleans", func(t *testing.T) {
+		isZeroBool := IsZero[bool]()
+		assert.True(t, isZeroBool(false))
+		assert.False(t, isZeroBool(true))
+	})
+
+	t.Run("works with floats", func(t *testing.T) {
+		isZeroFloat := IsZero[float64]()
+		assert.True(t, isZeroFloat(0.0))
+		assert.False(t, isZeroFloat(0.1))
+		assert.False(t, isZeroFloat(-0.1))
+	})
+
+	t.Run("works with pointers", func(t *testing.T) {
+		isZeroPtr := IsZero[*int]()
+		assert.True(t, isZeroPtr(nil))
+
+		x := 42
+		assert.False(t, isZeroPtr(&x))
+	})
+
+	t.Run("works with structs", func(t *testing.T) {
+		type Point struct {
+			X, Y int
+		}
+		isZeroPoint := IsZero[Point]()
+		assert.True(t, isZeroPoint(Point{X: 0, Y: 0}))
+		assert.False(t, isZeroPoint(Point{X: 1, Y: 0}))
+		assert.False(t, isZeroPoint(Point{X: 0, Y: 1}))
+	})
+
+	t.Run("can be combined with other predicates", func(t *testing.T) {
+		isZeroInt := IsZero[int]()
+		isPositiveOrZero := F.Pipe1(isPositive, Or(isZeroInt))
+
+		assert.True(t, isPositiveOrZero(5))
+		assert.True(t, isPositiveOrZero(0))
+		assert.False(t, isPositiveOrZero(-5))
+	})
+}
+
+// TestIsNonZero tests the IsNonZero function
+func TestIsNonZero(t *testing.T) {
+	t.Run("works with integers", func(t *testing.T) {
+		isNonZeroInt := IsNonZero[int]()
+		assert.False(t, isNonZeroInt(0))
+		assert.True(t, isNonZeroInt(1))
+		assert.True(t, isNonZeroInt(-1))
+		assert.True(t, isNonZeroInt(100))
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		isNonZeroString := IsNonZero[string]()
+		assert.False(t, isNonZeroString(""))
+		assert.True(t, isNonZeroString("hello"))
+		assert.True(t, isNonZeroString(" "))
+		assert.True(t, isNonZeroString("0"))
+	})
+
+	t.Run("works with booleans", func(t *testing.T) {
+		isNonZeroBool := IsNonZero[bool]()
+		assert.False(t, isNonZeroBool(false))
+		assert.True(t, isNonZeroBool(true))
+	})
+
+	t.Run("works with floats", func(t *testing.T) {
+		isNonZeroFloat := IsNonZero[float64]()
+		assert.False(t, isNonZeroFloat(0.0))
+		assert.True(t, isNonZeroFloat(0.1))
+		assert.True(t, isNonZeroFloat(-0.1))
+	})
+
+	t.Run("works with pointers", func(t *testing.T) {
+		isNonZeroPtr := IsNonZero[*int]()
+		assert.False(t, isNonZeroPtr(nil))
+
+		x := 42
+		assert.True(t, isNonZeroPtr(&x))
+
+		y := 0
+		assert.True(t, isNonZeroPtr(&y)) // Pointer itself is non-nil
+	})
+
+	t.Run("is opposite of IsZero", func(t *testing.T) {
+		isZeroInt := IsZero[int]()
+		isNonZeroInt := IsNonZero[int]()
+
+		testValues := []int{-100, -1, 0, 1, 100}
+		for _, v := range testValues {
+			assert.Equal(t, !isZeroInt(v), isNonZeroInt(v), "IsNonZero should be opposite of IsZero for value %d", v)
+		}
+	})
+
+	t.Run("can be combined with other predicates", func(t *testing.T) {
+		isNonZeroInt := IsNonZero[int]()
+		isNonZeroAndPositive := F.Pipe1(isNonZeroInt, And(isPositive))
+
+		assert.True(t, isNonZeroAndPositive(5))
+		assert.False(t, isNonZeroAndPositive(0))
+		assert.False(t, isNonZeroAndPositive(-5))
+	})
+}
+
+// TestPredicatesIntegration tests integration of predicates.go functions with other predicate operations
+func TestPredicatesIntegration(t *testing.T) {
+	t.Run("filter with IsZero", func(t *testing.T) {
+		numbers := []int{0, 1, 0, 2, 0, 3}
+		isZeroInt := IsZero[int]()
+
+		var nonZeros []int
+		for _, n := range numbers {
+			if !isZeroInt(n) {
+				nonZeros = append(nonZeros, n)
+			}
+		}
+
+		assert.Equal(t, []int{1, 2, 3}, nonZeros)
+	})
+
+	t.Run("validation with IsNonZero", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		isNonZeroString := IsNonZero[string]()
+		isNonZeroInt := IsNonZero[int]()
+
+		getHost := func(c Config) string { return c.Host }
+		getPort := func(c Config) int { return c.Port }
+
+		hasHost := F.Pipe1(isNonZeroString, ContraMap(getHost))
+		hasPort := F.Pipe1(isNonZeroInt, ContraMap(getPort))
+		isValid := F.Pipe1(hasHost, And(hasPort))
+
+		assert.True(t, isValid(Config{Host: "localhost", Port: 8080}))
+		assert.False(t, isValid(Config{Host: "", Port: 8080}))
+		assert.False(t, isValid(Config{Host: "localhost", Port: 0}))
+		assert.False(t, isValid(Config{Host: "", Port: 0}))
+	})
+
+	t.Run("equality with monoid", func(t *testing.T) {
+		m := MonoidAny[int]()
+
+		isEqualTo1 := IsStrictEqual[int]()(1)
+		isEqualTo2 := IsStrictEqual[int]()(2)
+		isEqualTo3 := IsStrictEqual[int]()(3)
+
+		is1Or2Or3 := m.Concat(m.Concat(isEqualTo1, isEqualTo2), isEqualTo3)
+
+		assert.True(t, is1Or2Or3(1))
+		assert.True(t, is1Or2Or3(2))
+		assert.True(t, is1Or2Or3(3))
+		assert.False(t, is1Or2Or3(4))
+		assert.False(t, is1Or2Or3(0))
 	})
 }

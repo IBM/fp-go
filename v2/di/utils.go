@@ -23,12 +23,13 @@ import (
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	IOO "github.com/IBM/fp-go/v2/iooption"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 var (
-	toOptionAny   = toType[O.Option[any]]()
-	toIOEitherAny = toType[IOE.IOEither[error, any]]()
-	toIOOptionAny = toType[IOO.IOOption[any]]()
+	toOptionAny   = toType[Option[any]]()
+	toIOEitherAny = toType[IOResult[any]]()
+	toIOOptionAny = toType[IOOption[any]]()
 	toArrayAny    = toType[[]any]()
 )
 
@@ -38,45 +39,45 @@ func asDependency[T DIE.Dependency](t T) DIE.Dependency {
 }
 
 // toType converts an any to a T
-func toType[T any]() func(t any) E.Either[error, T] {
+func toType[T any]() result.Kleisli[any, T] {
 	return E.ToType[T](errors.OnSome[any]("Value of type [%T] cannot be converted."))
 }
 
 // toOptionType converts an any to an Option[any] and then to an Option[T]
-func toOptionType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, O.Option[T]] {
+func toOptionType[T any](item result.Kleisli[any, T]) result.Kleisli[any, Option[T]] {
 	return F.Flow2(
 		toOptionAny,
 		E.Chain(O.Fold(
-			F.Nullary2(O.None[T], E.Of[error, O.Option[T]]),
+			F.Nullary2(O.None[T], E.Of[error, Option[T]]),
 			F.Flow2(
 				item,
-				E.Map[error](O.Of[T]),
+				result.Map(O.Of[T]),
 			),
 		)),
 	)
 }
 
 // toIOEitherType converts an any to an IOEither[error, any] and then to an IOEither[error, T]
-func toIOEitherType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, IOE.IOEither[error, T]] {
+func toIOEitherType[T any](item result.Kleisli[any, T]) result.Kleisli[any, IOResult[T]] {
 	return F.Flow2(
 		toIOEitherAny,
-		E.Map[error](IOE.ChainEitherK(item)),
+		result.Map(IOE.ChainEitherK(item)),
 	)
 }
 
 // toIOOptionType converts an any to an IOOption[any] and then to an IOOption[T]
-func toIOOptionType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, IOO.IOOption[T]] {
+func toIOOptionType[T any](item result.Kleisli[any, T]) result.Kleisli[any, IOOption[T]] {
 	return F.Flow2(
 		toIOOptionAny,
-		E.Map[error](IOO.ChainOptionK(F.Flow2(
+		result.Map(IOO.ChainOptionK(F.Flow2(
 			item,
-			E.ToOption[error, T],
+			result.ToOption[T],
 		))),
 	)
 }
 
 // toArrayType converts an any to a []T
-func toArrayType[T any](item func(any) E.Either[error, T]) func(t any) E.Either[error, []T] {
+func toArrayType[T any](item result.Kleisli[any, T]) result.Kleisli[any, []T] {
 	return F.Flow2(
 		toArrayAny,
 		E.Chain(E.TraverseArray(item)),

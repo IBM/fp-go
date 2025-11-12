@@ -25,7 +25,8 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/ioresult"
+	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,19 +40,19 @@ func TestSimpleProvider(t *testing.T) {
 
 	var staticCount int
 
-	staticValue := func(value string) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	staticValue := func(value string) IOResult[string] {
+		return func() Result[string] {
 			staticCount++
-			return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
 		}
 	}
 
 	var dynamicCount int
 
-	dynamicValue := func(value string) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	dynamicValue := func(value string) IOResult[string] {
+		return func() Result[string] {
 			dynamicCount++
-			return E.Of[error](fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
 		}
 	}
 
@@ -81,19 +82,19 @@ func TestOptionalProvider(t *testing.T) {
 
 	var staticCount int
 
-	staticValue := func(value string) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	staticValue := func(value string) IOResult[string] {
+		return func() Result[string] {
 			staticCount++
-			return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
 		}
 	}
 
 	var dynamicCount int
 
-	dynamicValue := func(value O.Option[string]) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	dynamicValue := func(value Option[string]) IOResult[string] {
+		return func() Result[string] {
 			dynamicCount++
-			return E.Of[error](fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
 		}
 	}
 
@@ -123,10 +124,10 @@ func TestOptionalProviderMissingDependency(t *testing.T) {
 
 	var dynamicCount int
 
-	dynamicValue := func(value O.Option[string]) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	dynamicValue := func(value Option[string]) IOResult[string] {
+		return func() Result[string] {
 			dynamicCount++
-			return E.Of[error](fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
 		}
 	}
 
@@ -151,10 +152,10 @@ func TestProviderMissingDependency(t *testing.T) {
 
 	var dynamicCount int
 
-	dynamicValue := func(value string) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	dynamicValue := func(value string) IOResult[string] {
+		return func() Result[string] {
 			dynamicCount++
-			return E.Of[error](fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
 		}
 	}
 
@@ -179,31 +180,31 @@ func TestEagerAndLazyProvider(t *testing.T) {
 
 	var staticCount int
 
-	staticValue := func(value string) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	staticValue := func(value string) IOResult[string] {
+		return func() Result[string] {
 			staticCount++
-			return E.Of[error](fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Static based on [%s], at [%s]", value, time.Now()))
 		}
 	}
 
 	var dynamicCount int
 
-	dynamicValue := func(value string) IOE.IOEither[error, string] {
-		return func() E.Either[error, string] {
+	dynamicValue := func(value string) IOResult[string] {
+		return func() Result[string] {
 			dynamicCount++
-			return E.Of[error](fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
+			return result.Of(fmt.Sprintf("Dynamic based on [%s] at [%s]", value, time.Now()))
 		}
 	}
 
 	var lazyEagerCount int
 
-	lazyEager := func(laz IOE.IOEither[error, string], eager string) IOE.IOEither[error, string] {
+	lazyEager := func(laz IOResult[string], eager string) IOResult[string] {
 		return F.Pipe1(
 			laz,
-			IOE.Chain(func(lazValue string) IOE.IOEither[error, string] {
-				return func() E.Either[error, string] {
+			IOE.Chain(func(lazValue string) IOResult[string] {
+				return func() Result[string] {
 					lazyEagerCount++
-					return E.Of[error](fmt.Sprintf("Dynamic based on [%s], [%s] at [%s]", lazValue, eager, time.Now()))
+					return result.Of(fmt.Sprintf("Dynamic based on [%s], [%s] at [%s]", lazValue, eager, time.Now()))
 				}
 			}),
 		)
@@ -248,7 +249,7 @@ func TestItemProvider(t *testing.T) {
 
 	value := multiInj()
 
-	assert.Equal(t, E.Of[error](A.From("Value1", "Value2")), value)
+	assert.Equal(t, result.Of(A.From("Value1", "Value2")), value)
 }
 
 func TestEmptyItemProvider(t *testing.T) {
@@ -269,7 +270,7 @@ func TestEmptyItemProvider(t *testing.T) {
 
 	value := multiInj()
 
-	assert.Equal(t, E.Of[error](A.Empty[string]()), value)
+	assert.Equal(t, result.Of(A.Empty[string]()), value)
 }
 
 func TestDependencyOnMultiProvider(t *testing.T) {
@@ -283,8 +284,8 @@ func TestDependencyOnMultiProvider(t *testing.T) {
 	p1 := ConstProvider(INJ_KEY1, "Value3")
 	p2 := ConstProvider(INJ_KEY2, "Value4")
 
-	fromMulti := func(val string, multi []string) IOE.IOEither[error, string] {
-		return IOE.Of[error](fmt.Sprintf("Val: %s, Multi: %s", val, multi))
+	fromMulti := func(val string, multi []string) IOResult[string] {
+		return ioresult.Of(fmt.Sprintf("Val: %s, Multi: %s", val, multi))
 	}
 	p3 := MakeProvider2(INJ_KEY3, INJ_KEY1.Identity(), injMulti.Container().Identity(), fromMulti)
 
@@ -295,19 +296,19 @@ func TestDependencyOnMultiProvider(t *testing.T) {
 
 	v := r3(inj)()
 
-	assert.Equal(t, E.Of[error]("Val: Value3, Multi: [Value1 Value2]"), v)
+	assert.Equal(t, result.Of("Val: Value3, Multi: [Value1 Value2]"), v)
 }
 
 func TestTokenWithDefaultProvider(t *testing.T) {
 	// token without a default
 	injToken1 := MakeToken[string]("Token1")
 	// token with a default
-	injToken2 := MakeTokenWithDefault0("Token2", IOE.Of[error]("Carsten"))
+	injToken2 := MakeTokenWithDefault0("Token2", ioresult.Of("Carsten"))
 	// dependency
 	injToken3 := MakeToken[string]("Token3")
 
-	p3 := MakeProvider1(injToken3, injToken2.Identity(), func(data string) IOE.IOEither[error, string] {
-		return IOE.Of[error](fmt.Sprintf("Token: %s", data))
+	p3 := MakeProvider1(injToken3, injToken2.Identity(), func(data string) IOResult[string] {
+		return ioresult.Of(fmt.Sprintf("Token: %s", data))
 	})
 
 	// populate the injector
@@ -320,19 +321,19 @@ func TestTokenWithDefaultProvider(t *testing.T) {
 	// inj1 should not be available
 	assert.True(t, E.IsLeft(r1(inj)()))
 	// r3 should work
-	assert.Equal(t, E.Of[error]("Token: Carsten"), r3(inj)())
+	assert.Equal(t, result.Of("Token: Carsten"), r3(inj)())
 }
 
 func TestTokenWithDefaultProviderAndOverride(t *testing.T) {
 	// token with a default
-	injToken2 := MakeTokenWithDefault0("Token2", IOE.Of[error]("Carsten"))
+	injToken2 := MakeTokenWithDefault0("Token2", ioresult.Of("Carsten"))
 	// dependency
 	injToken3 := MakeToken[string]("Token3")
 
 	p2 := ConstProvider(injToken2, "Override")
 
-	p3 := MakeProvider1(injToken3, injToken2.Identity(), func(data string) IOE.IOEither[error, string] {
-		return IOE.Of[error](fmt.Sprintf("Token: %s", data))
+	p3 := MakeProvider1(injToken3, injToken2.Identity(), func(data string) IOResult[string] {
+		return ioresult.Of(fmt.Sprintf("Token: %s", data))
 	})
 
 	// populate the injector
@@ -342,5 +343,5 @@ func TestTokenWithDefaultProviderAndOverride(t *testing.T) {
 	r3 := Resolve(injToken3)
 
 	// r3 should work
-	assert.Equal(t, E.Of[error]("Token: Override"), r3(inj)())
+	assert.Equal(t, result.Of("Token: Override"), r3(inj)())
 }
