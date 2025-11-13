@@ -76,15 +76,25 @@ type templateData struct {
 const lensStructTemplate = `
 // {{.Name}}Lenses provides lenses for accessing fields of {{.Name}}
 type {{.Name}}Lenses struct {
+	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} {{if .IsOptional}}LO.LensO[{{$.Name}}, {{.TypeName}}]{{else}}L.Lens[{{$.Name}}, {{.TypeName}}]{{end}}
+	{{.Name}} L.Lens[{{$.Name}}, {{.TypeName}}]
+{{- end}}
+	// optional fields
+{{- range .Fields}}
+	{{.Name}}O LO.LensO[{{$.Name}}, {{.TypeName}}]
 {{- end}}
 }
 
 // {{.Name}}RefLenses provides lenses for accessing fields of {{.Name}} via a reference to {{.Name}}
 type {{.Name}}RefLenses struct {
+	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} {{if .IsOptional}}LO.LensO[*{{$.Name}}, {{.TypeName}}]{{else}}L.Lens[*{{$.Name}}, {{.TypeName}}]{{end}}
+	{{.Name}} L.Lens[*{{$.Name}}, {{.TypeName}}]
+{{- end}}
+	// optional fields
+{{- range .Fields}}
+	{{.Name}}O LO.LensO[*{{$.Name}}, {{.TypeName}}]
 {{- end}}
 }
 `
@@ -92,57 +102,57 @@ type {{.Name}}RefLenses struct {
 const lensConstructorTemplate = `
 // Make{{.Name}}Lenses creates a new {{.Name}}Lenses with lenses for all fields
 func Make{{.Name}}Lenses() {{.Name}}Lenses {
+	// mandatory lenses
 {{- range .Fields}}
-{{- if .IsOptional}}
-	iso{{.Name}} := I.FromZero[{{.TypeName}}]()
+	lens{{.Name}} := L.MakeLens(
+		func(s {{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s {{$.Name}}, v {{.TypeName}}) {{$.Name}} { s.{{.Name}} = v; return s },
+	)
 {{- end}}
+	// optional lenses
+{{- range .Fields}}
+	lens{{.Name}}O := LO.FromIso[{{$.Name}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 	return {{.Name}}Lenses{
+		// mandatory lenses
 {{- range .Fields}}
-{{- if .IsOptional}}
-		{{.Name}}: L.MakeLens(
-			func(s {{$.Name}}) O.Option[{{.TypeName}}] { return iso{{.Name}}.Get(s.{{.Name}}) },
-			func(s {{$.Name}}, v O.Option[{{.TypeName}}]) {{$.Name}} { s.{{.Name}} = iso{{.Name}}.ReverseGet(v); return s },
-		),
-{{- else}}
-		{{.Name}}: L.MakeLens(
-			func(s {{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-			func(s {{$.Name}}, v {{.TypeName}}) {{$.Name}} { s.{{.Name}} = v; return s },
-		),
+		{{.Name}}: lens{{.Name}},
 {{- end}}
+		// optional lenses
+{{- range .Fields}}
+		{{.Name}}O: lens{{.Name}}O,
 {{- end}}
 	}
 }
 
 // Make{{.Name}}RefLenses creates a new {{.Name}}RefLenses with lenses for all fields
 func Make{{.Name}}RefLenses() {{.Name}}RefLenses {
-	return {{.Name}}RefLenses{
+	// mandatory lenses
 {{- range .Fields}}
-{{- if .IsOptional}}
 {{- if .IsComparable}}
-		{{.Name}}: LO.FromIso[*{{$.Name}}](I.FromZero[{{.TypeName}}]())(L.MakeLensStrict(
-			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
-		)),
+	lens{{.Name}} := L.MakeLensStrict(
+		func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+	)
 {{- else}}
-		{{.Name}}: LO.FromIso[*{{$.Name}}](I.FromZero[{{.TypeName}}]())(L.MakeLensRef(
-			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
-		)),
-{{- end}}
-{{- else}}
-{{- if .IsComparable}}
-		{{.Name}}: L.MakeLensStrict(
-			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
-		),
-{{- else}}
-		{{.Name}}: L.MakeLensRef(
-			func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-			func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
-		),
+	lens{{.Name}} := L.MakeLensRef(
+		func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+	)
 {{- end}}
 {{- end}}
+	// optional lenses
+{{- range .Fields}}
+	lens{{.Name}}O := LO.FromIso[*{{$.Name}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
+{{- end}}
+	return {{.Name}}RefLenses{
+		// mandatory lenses
+{{- range .Fields}}
+		{{.Name}}: lens{{.Name}},
+{{- end}}
+		// optional lenses
+{{- range .Fields}}
+		{{.Name}}O: lens{{.Name}}O,
 {{- end}}
 	}
 }
@@ -362,6 +372,7 @@ func isComparableType(expr ast.Expr) bool {
 			}
 		}
 		// For other generic types, conservatively assume not comparable
+		log.Printf("Not comparable type: %v\n", t)
 		return false
 	case *ast.ChanType:
 		// Channel types are comparable
@@ -463,6 +474,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 					// Check if the type is comparable (for non-optional fields)
 					// For optional fields, we don't need to check since they use LensO
 					isComparable = isComparableType(field.Type)
+					// log.Printf("field %s, type: %v, isComparable: %b\n", name, field.Type, isComparable)
 
 					// Extract imports from this field's type
 					fieldImports := make(map[string]string)
@@ -590,8 +602,8 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 	// Standard fp-go imports always needed
 	f.WriteString("\tL \"github.com/IBM/fp-go/v2/optics/lens\"\n")
 	f.WriteString("\tLO \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
-	f.WriteString("\tO \"github.com/IBM/fp-go/v2/option\"\n")
-	f.WriteString("\tI \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
+	//	f.WriteString("\tO \"github.com/IBM/fp-go/v2/option\"\n")
+	f.WriteString("\tIO \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
 
 	// Add additional imports collected from field types
 	for importPath, alias := range allImports {

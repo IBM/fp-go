@@ -214,7 +214,7 @@ func TestPersonRefLensesOptionalIdempotent(t *testing.T) {
 	refLenses := MakePersonRefLenses()
 
 	// Test that setting Phone to the same value returns the same pointer
-	samePhone := refLenses.Phone.Set(O.Some(&phoneValue))(person)
+	samePhone := refLenses.PhoneO.Set(O.Some(&phoneValue))(person)
 	assert.Same(t, person, samePhone, "Setting Phone to same value should return identical pointer")
 
 	// Test with Phone field set to nil
@@ -226,24 +226,24 @@ func TestPersonRefLensesOptionalIdempotent(t *testing.T) {
 	}
 
 	// Setting Phone to None when it's already nil should return same pointer
-	sameNilPhone := refLenses.Phone.Set(O.None[*string]())(personNoPhone)
+	sameNilPhone := refLenses.PhoneO.Set(O.None[*string]())(personNoPhone)
 	assert.Same(t, personNoPhone, sameNilPhone, "Setting Phone to None when already nil should return identical pointer")
 
 	// Test that setting to a different value creates a new pointer
 	newPhoneValue := "555-5678"
-	differentPhone := refLenses.Phone.Set(O.Some(&newPhoneValue))(person)
+	differentPhone := refLenses.PhoneO.Set(O.Some(&newPhoneValue))(person)
 	assert.NotSame(t, person, differentPhone, "Setting Phone to different value should return new pointer")
 	assert.Equal(t, &newPhoneValue, differentPhone.Phone)
 	assert.Equal(t, &phoneValue, person.Phone, "Original should be unchanged")
 
 	// Test setting from nil to Some creates new pointer
-	somePhone := refLenses.Phone.Set(O.Some(&phoneValue))(personNoPhone)
+	somePhone := refLenses.PhoneO.Set(O.Some(&phoneValue))(personNoPhone)
 	assert.NotSame(t, personNoPhone, somePhone, "Setting Phone from nil to Some should return new pointer")
 	assert.Equal(t, &phoneValue, somePhone.Phone)
 	assert.Nil(t, personNoPhone.Phone, "Original should be unchanged")
 
 	// Test setting from Some to None creates new pointer
-	nonePhone := refLenses.Phone.Set(O.None[*string]())(person)
+	nonePhone := refLenses.PhoneO.Set(O.None[*string]())(person)
 	assert.NotSame(t, person, nonePhone, "Setting Phone from Some to None should return new pointer")
 	assert.Nil(t, nonePhone.Phone)
 	assert.Equal(t, &phoneValue, person.Phone, "Original should be unchanged")
@@ -264,7 +264,7 @@ func TestAddressRefLensesOptionalIdempotent(t *testing.T) {
 	refLenses := MakeAddressRefLenses()
 
 	// Test that setting State to the same value returns the same pointer
-	sameState := refLenses.State.Set(O.Some(&stateValue))(address)
+	sameState := refLenses.StateO.Set(O.Some(&stateValue))(address)
 	assert.Same(t, address, sameState, "Setting State to same value should return identical pointer")
 
 	// Test with State field set to nil
@@ -277,12 +277,12 @@ func TestAddressRefLensesOptionalIdempotent(t *testing.T) {
 	}
 
 	// Setting State to None when it's already nil should return same pointer
-	sameNilState := refLenses.State.Set(O.None[*string]())(addressNoState)
+	sameNilState := refLenses.StateO.Set(O.None[*string]())(addressNoState)
 	assert.Same(t, addressNoState, sameNilState, "Setting State to None when already nil should return identical pointer")
 
 	// Test that setting to a different value creates a new pointer
 	newStateValue := "New York"
-	differentState := refLenses.State.Set(O.Some(&newStateValue))(address)
+	differentState := refLenses.StateO.Set(O.Some(&newStateValue))(address)
 	assert.NotSame(t, address, differentState, "Setting State to different value should return new pointer")
 	assert.Equal(t, &newStateValue, differentState.State)
 	assert.Equal(t, &stateValue, address.State, "Original should be unchanged")
@@ -311,7 +311,7 @@ func TestCompanyRefLensesOptionalIdempotent(t *testing.T) {
 	refLenses := MakeCompanyRefLenses()
 
 	// Test that setting Website to the same value returns the same pointer
-	sameWebsite := refLenses.Website.Set(O.Some(&websiteValue))(company)
+	sameWebsite := refLenses.WebsiteO.Set(O.Some(&websiteValue))(company)
 	assert.Same(t, company, sameWebsite, "Setting Website to same value should return identical pointer")
 
 	// Test with Website field set to nil
@@ -331,12 +331,12 @@ func TestCompanyRefLensesOptionalIdempotent(t *testing.T) {
 	}
 
 	// Setting Website to None when it's already nil should return same pointer
-	sameNilWebsite := refLenses.Website.Set(O.None[*string]())(companyNoWebsite)
+	sameNilWebsite := refLenses.WebsiteO.Set(O.None[*string]())(companyNoWebsite)
 	assert.Same(t, companyNoWebsite, sameNilWebsite, "Setting Website to None when already nil should return identical pointer")
 
 	// Test that setting to a different value creates a new pointer
 	newWebsiteValue := "https://newsite.com"
-	differentWebsite := refLenses.Website.Set(O.Some(&newWebsiteValue))(company)
+	differentWebsite := refLenses.WebsiteO.Set(O.Some(&newWebsiteValue))(company)
 	assert.NotSame(t, company, differentWebsite, "Setting Website to different value should return new pointer")
 	assert.Equal(t, &newWebsiteValue, differentWebsite.Website)
 	assert.Equal(t, &websiteValue, company.Website, "Original should be unchanged")

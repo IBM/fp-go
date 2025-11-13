@@ -48,6 +48,12 @@ type Company struct {
 }
 
 // fp-go:Lens
+type CompanyExtended struct {
+	Company
+	Extended string
+}
+
+// fp-go:Lens
 type CheckOption struct {
 	Name  option.Option[string]
 	Value string `json:",omitempty"`
