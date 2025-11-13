@@ -657,8 +657,8 @@ func TestLensTemplates(t *testing.T) {
 	s := structInfo{
 		Name: "TestStruct",
 		Fields: []fieldInfo{
-			{Name: "Name", TypeName: "string", IsOptional: false},
-			{Name: "Value", TypeName: "*int", IsOptional: true},
+			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
+			{Name: "Value", TypeName: "*int", IsOptional: true, IsComparable: true},
 		},
 	}
 
@@ -693,10 +693,10 @@ func TestLensTemplatesWithOmitEmpty(t *testing.T) {
 	s := structInfo{
 		Name: "ConfigStruct",
 		Fields: []fieldInfo{
-			{Name: "Name", TypeName: "string", IsOptional: false},
-			{Name: "Value", TypeName: "string", IsOptional: true},    // non-pointer with omitempty
-			{Name: "Count", TypeName: "int", IsOptional: true},       // non-pointer with omitempty
-			{Name: "Pointer", TypeName: "*string", IsOptional: true}, // pointer
+			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
+			{Name: "Value", TypeName: "string", IsOptional: true, IsComparable: true},    // non-pointer with omitempty
+			{Name: "Count", TypeName: "int", IsOptional: true, IsComparable: true},       // non-pointer with omitempty
+			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: true}, // pointer
 		},
 	}
 
@@ -710,9 +710,9 @@ func TestLensTemplatesWithOmitEmpty(t *testing.T) {
 	assert.Contains(t, structStr, "Name L.Lens[ConfigStruct, string]")
 	assert.Contains(t, structStr, "NameO LO.LensO[ConfigStruct, string]")
 	assert.Contains(t, structStr, "Value L.Lens[ConfigStruct, string]")
-	assert.Contains(t, structStr, "ValueO LO.LensO[ConfigStruct, string]", "non-pointer with omitempty should have optional lens")
+	assert.Contains(t, structStr, "ValueO LO.LensO[ConfigStruct, string]", "comparable non-pointer with omitempty should have optional lens")
 	assert.Contains(t, structStr, "Count L.Lens[ConfigStruct, int]")
-	assert.Contains(t, structStr, "CountO LO.LensO[ConfigStruct, int]", "non-pointer with omitempty should have optional lens")
+	assert.Contains(t, structStr, "CountO LO.LensO[ConfigStruct, int]", "comparable non-pointer with omitempty should have optional lens")
 	assert.Contains(t, structStr, "Pointer L.Lens[ConfigStruct, *string]")
 	assert.Contains(t, structStr, "PointerO LO.LensO[ConfigStruct, *string]")
 
@@ -1028,9 +1028,11 @@ type Box[T any] struct {
 	assert.Contains(t, contentStr, "Content L.Lens[Box[T], T]", "Should have lens for generic Content field")
 	assert.Contains(t, contentStr, "Label L.Lens[Box[T], string]", "Should have lens for Label field")
 
-	// Check optional lenses
-	assert.Contains(t, contentStr, "ContentO LO.LensO[Box[T], T]")
-	assert.Contains(t, contentStr, "LabelO LO.LensO[Box[T], string]")
+	// Check optional lenses - only for comparable types
+	// T any is not comparable, so ContentO should NOT be generated
+	assert.NotContains(t, contentStr, "ContentO LO.LensO[Box[T], T]", "T any is not comparable, should not have optional lens")
+	// string is comparable, so LabelO should be generated
+	assert.Contains(t, contentStr, "LabelO LO.LensO[Box[T], string]", "string is comparable, should have optional lens")
 }
 
 func TestGenerateLensHelpersWithComparableTypeParam(t *testing.T) {
