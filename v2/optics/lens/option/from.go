@@ -18,30 +18,38 @@ func fromPredicate[GET ~func(S) Option[A], SET ~func(Option[A]) Endomorphism[S],
 
 // FromPredicate returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the nil value will be set instead
+//
+//go:inline
 func FromPredicate[S, A any](pred func(A) bool, nilValue A) func(sa Lens[S, A]) LensO[S, A] {
 	return fromPredicate(lens.MakeLensCurried[func(S) Option[A], func(Option[A]) Endomorphism[S]], pred, nilValue)
 }
 
 // FromPredicateRef returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the nil value will be set instead
-func FromPredicateRef[S, A any](pred func(A) bool, nilValue A) func(sa Lens[*S, A]) Lens[*S, Option[A]] {
+//
+//go:inline
+func FromPredicateRef[S, A any](pred func(A) bool, nilValue A) func(sa Lens[*S, A]) LensO[*S, A] {
 	return fromPredicate(lens.MakeLensRefCurried[S, Option[A]], pred, nilValue)
 }
 
 // FromPredicate returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the `nil` value will be set instead
-func FromNillable[S, A any](sa Lens[S, *A]) Lens[S, Option[*A]] {
+//
+//go:inline
+func FromNillable[S, A any](sa Lens[S, *A]) LensO[S, *A] {
 	return FromPredicate[S](F.IsNonNil[A], nil)(sa)
 }
 
 // FromNillableRef returns a `Lens` for a property accessibly as a getter and setter that can be optional
 // if the optional value is set then the `nil` value will be set instead
-func FromNillableRef[S, A any](sa Lens[*S, *A]) Lens[*S, Option[*A]] {
+//
+//go:inline
+func FromNillableRef[S, A any](sa Lens[*S, *A]) LensO[*S, *A] {
 	return FromPredicateRef[S](F.IsNonNil[A], nil)(sa)
 }
 
 // fromNullableProp returns a `Lens` from a property that may be optional. The getter returns a default value for these items
-func fromNullableProp[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](creator func(get GET, set SET) Lens[S, A], isNullable func(A) Option[A], defaultValue A) func(sa Lens[S, A]) Lens[S, A] {
+func fromNullableProp[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](creator func(get GET, set SET) Lens[S, A], isNullable O.Kleisli[A, A], defaultValue A) func(sa Lens[S, A]) Lens[S, A] {
 	orElse := O.GetOrElse(F.Constant(defaultValue))
 	return func(sa Lens[S, A]) Lens[S, A] {
 		return creator(F.Flow3(
@@ -53,17 +61,21 @@ func fromNullableProp[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](cr
 }
 
 // FromNullableProp returns a `Lens` from a property that may be optional. The getter returns a default value for these items
-func FromNullableProp[S, A any](isNullable func(A) Option[A], defaultValue A) func(sa Lens[S, A]) Lens[S, A] {
+//
+//go:inline
+func FromNullableProp[S, A any](isNullable O.Kleisli[A, A], defaultValue A) lens.Operator[S, A, A] {
 	return fromNullableProp(lens.MakeLensCurried[func(S) A, func(A) Endomorphism[S]], isNullable, defaultValue)
 }
 
 // FromNullablePropRef returns a `Lens` from a property that may be optional. The getter returns a default value for these items
-func FromNullablePropRef[S, A any](isNullable func(A) Option[A], defaultValue A) func(sa Lens[*S, A]) Lens[*S, A] {
+//
+//go:inline
+func FromNullablePropRef[S, A any](isNullable O.Kleisli[A, A], defaultValue A) lens.Operator[*S, A, A] {
 	return fromNullableProp(lens.MakeLensRefCurried[S, A], isNullable, defaultValue)
 }
 
 // fromOption returns a `Lens` from an option property. The getter returns a default value the setter will always set the some option
-func fromOption[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](creator func(get GET, set SET) Lens[S, A], defaultValue A) func(sa LensO[S, A]) Lens[S, A] {
+func fromOption[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](creator func(get GET, set SET) Lens[S, A], defaultValue A) func(LensO[S, A]) Lens[S, A] {
 	orElse := O.GetOrElse(F.Constant(defaultValue))
 	return func(sa LensO[S, A]) Lens[S, A] {
 		return creator(F.Flow2(
@@ -74,7 +86,9 @@ func fromOption[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](creator 
 }
 
 // FromOption returns a `Lens` from an option property. The getter returns a default value the setter will always set the some option
-func FromOption[S, A any](defaultValue A) func(sa LensO[S, A]) Lens[S, A] {
+//
+//go:inline
+func FromOption[S, A any](defaultValue A) func(LensO[S, A]) Lens[S, A] {
 	return fromOption(lens.MakeLensCurried[func(S) A, func(A) Endomorphism[S]], defaultValue)
 }
 
@@ -93,7 +107,9 @@ func FromOption[S, A any](defaultValue A) func(sa LensO[S, A]) Lens[S, A] {
 //
 // Returns:
 //   - A function that takes a Lens[*S, Option[A]] and returns a Lens[*S, A]
-func FromOptionRef[S, A any](defaultValue A) func(sa Lens[*S, Option[A]]) Lens[*S, A] {
+//
+//go:inline
+func FromOptionRef[S, A any](defaultValue A) func(LensO[*S, A]) Lens[*S, A] {
 	return fromOption(lens.MakeLensRefCurried[S, A], defaultValue)
 }
 
@@ -159,6 +175,8 @@ func FromOptionRef[S, A any](defaultValue A) func(sa Lens[*S, Option[A]]) Lens[*
 //   - FromPredicate: For predicate-based optional conversion
 //   - FromNillable: For pointer-based optional conversion
 //   - FromOption: For converting from optional to non-optional with defaults
+//
+//go:inline
 func FromIso[S, A any](iso Iso[A, Option[A]]) func(Lens[S, A]) LensO[S, A] {
 	return LI.Compose[S](iso)
 }

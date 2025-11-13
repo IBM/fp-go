@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
@@ -92,6 +93,9 @@ type (
 	//   optLens := lens.FromNillableRef(timeoutLens)
 	//   // optLens is a LensO[*Config, *int]
 	LensO[S, A any] = Lens[S, Option[A]]
+
+	Kleisli[S, A, B any]  = reader.Reader[A, LensO[S, B]]
+	Operator[S, A, B any] = Kleisli[S, LensO[S, A], B]
 
 	Iso[S, A any] = iso.Iso[S, A]
 )

@@ -362,5 +362,3 @@ For more information on lenses and isomorphisms:
   - optics package overview
 */
 package iso
-
-// Made with Bob

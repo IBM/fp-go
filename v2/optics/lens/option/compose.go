@@ -1,7 +1,9 @@
 package option
 
 import (
+	"github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/lens"
 
 	O "github.com/IBM/fp-go/v2/option"
@@ -51,9 +53,9 @@ import (
 //	defaultSettings := &Settings{}
 //	configRetriesLens := F.Pipe1(settingsLens,
 //	    lens.Compose[Config, *int](defaultSettings)(retriesLens))
-func Compose[S, B, A any](defaultA A) func(ab LensO[A, B]) func(LensO[S, A]) LensO[S, B] {
+func Compose[S, B, A any](defaultA A) func(LensO[A, B]) Operator[S, A, B] {
 	noneb := O.None[B]()
-	return func(ab LensO[A, B]) func(LensO[S, A]) LensO[S, B] {
+	return func(ab LensO[A, B]) Operator[S, A, B] {
 		abGet := ab.Get
 		abSetNone := ab.Set(noneb)
 		return func(sa LensO[S, A]) LensO[S, B] {
@@ -62,41 +64,24 @@ func Compose[S, B, A any](defaultA A) func(ab LensO[A, B]) func(LensO[S, A]) Len
 			setSomeA := F.Flow2(O.Some[A], sa.Set)
 			return lens.MakeLensCurried(
 				F.Flow2(saGet, O.Chain(abGet)),
-				func(optB Option[B]) Endomorphism[S] {
-					return func(s S) S {
-						optA := saGet(s)
-						return O.MonadFold(
-							optB,
-							// optB is None
-							func() S {
-								return O.MonadFold(
-									optA,
-									// optA is None - no-op
-									F.Constant(s),
-									// optA is Some - unset B in A
-									func(a A) S {
-										return setSomeA(abSetNone(a))(s)
-									},
-								)
-							},
-							// optB is Some
-							func(b B) S {
-								setB := ab.Set(O.Some(b))
-								return O.MonadFold(
-									optA,
-									// optA is None - create with defaultA
-									func() S {
-										return setSomeA(setB(defaultA))(s)
-									},
-									// optA is Some - update B in A
-									func(a A) S {
-										return setSomeA(setB(a))(s)
-									},
-								)
-							},
-						)
-					}
-				},
+				F.Flow2(
+					O.Fold(
+						// optB is None
+						lazy.Of(F.Flow2(
+							saGet,
+							O.Fold(endomorphism.Identity[S], F.Flow2(abSetNone, setSomeA)),
+						)),
+						// optB is Some
+						func(b B) func(S) Endomorphism[S] {
+							setB := ab.Set(O.Some(b))
+							return F.Flow2(
+								saGet,
+								O.Fold(lazy.Of(setSomeA(setB(defaultA))), F.Flow2(setB, setSomeA)),
+							)
+						},
+					),
+					endomorphism.Join[S],
+				),
 			)
 		}
 	}
@@ -150,8 +135,8 @@ func Compose[S, B, A any](defaultA A) func(ab LensO[A, B]) func(LensO[S, A]) Len
 //	port := configPortLens.Get(config)  // None[int]
 //	updated := configPortLens.Set(O.Some(3306))(config)
 //	// updated.Database.Port == 3306, Host == "localhost" (from default)
-func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(LensO[S, A]) LensO[S, B] {
-	return func(ab Lens[A, B]) func(LensO[S, A]) LensO[S, B] {
+func ComposeOption[S, B, A any](defaultA A) func(Lens[A, B]) Operator[S, A, B] {
+	return func(ab Lens[A, B]) Operator[S, A, B] {
 		abGet := ab.Get
 		abSet := ab.Set
 		return func(sa LensO[S, A]) LensO[S, B] {
@@ -159,33 +144,23 @@ func ComposeOption[S, B, A any](defaultA A) func(ab Lens[A, B]) func(LensO[S, A]
 			saSet := sa.Set
 			// Pre-compute setters
 			setNoneA := saSet(O.None[A]())
-			setSomeA := func(a A) Endomorphism[S] {
-				return saSet(O.Some(a))
-			}
-			return lens.MakeLens(
-				func(s S) Option[B] {
-					return O.Map(abGet)(saGet(s))
-				},
-				func(s S, optB Option[B]) S {
-					return O.Fold(
-						// optB is None - remove A entirely
-						F.Constant(setNoneA(s)),
-						// optB is Some - set B
-						func(b B) S {
-							optA := saGet(s)
-							return O.Fold(
-								// optA is None - create with defaultA
-								func() S {
-									return setSomeA(abSet(b)(defaultA))(s)
-								},
-								// optA is Some - update B in A
-								func(a A) S {
-									return setSomeA(abSet(b)(a))(s)
-								},
-							)(optA)
-						},
-					)(optB)
-				},
+			setSomeA := F.Flow2(O.Some[A], saSet)
+			return lens.MakeLensCurried(
+				F.Flow2(saGet, O.Map(abGet)),
+				O.Fold(
+					// optB is None - remove A entirely
+					lazy.Of(setNoneA),
+					// optB is Some - set B
+					func(b B) Endomorphism[S] {
+						absetB := abSet(b)
+						abSetA := absetB(defaultA)
+						return endomorphism.Join(F.Flow3(
+							saGet,
+							O.Fold(lazy.Of(abSetA), absetB),
+							setSomeA,
+						))
+					},
+				),
 			)
 		}
 	}

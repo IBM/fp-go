@@ -477,5 +477,3 @@ func TestFromIsoMultipleFields(t *testing.T) {
 		assert.Equal(t, 3, updated.retries)
 	})
 }
-
-// Made with Bob

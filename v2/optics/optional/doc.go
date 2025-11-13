@@ -475,5 +475,3 @@ Predicate-Based:
   - github.com/IBM/fp-go/v2/endomorphism: Endomorphisms (A → A functions)
 */
 package optional
-
-// Made with Bob

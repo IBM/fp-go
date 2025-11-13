@@ -229,5 +229,3 @@ via ReverseGet, so other fields may be reset to default values. For partial
 updates, use regular lenses instead.
 */
 package lens
-
-// Made with Bob

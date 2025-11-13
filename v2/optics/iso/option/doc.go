@@ -301,5 +301,3 @@ For more information on isomorphisms and optics:
   - option package documentation
 */
 package option
-
-// Made with Bob

@@ -636,5 +636,3 @@ func TestComposeAssociativity(t *testing.T) {
 	assert.Equal(t, composed1.Get(l1), composed2.Get(l1))
 	assert.Equal(t, composed1.Set("new")(l1), composed2.Set("new")(l1))
 }
-
-// Made with Bob

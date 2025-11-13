@@ -397,5 +397,3 @@ func TestIsoAsLensTypeConversion(t *testing.T) {
 		assert.Equal(t, 3, len(updated))
 	})
 }
-
-// Made with Bob

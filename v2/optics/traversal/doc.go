@@ -491,5 +491,3 @@ Each specialized package provides optimized implementations for its data type.
   - github.com/IBM/fp-go/v2/monoid: Monoid type class
 */
 package traversal
-
-// Made with Bob

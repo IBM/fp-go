@@ -16,7 +16,6 @@
 package option
 
 import (
-	L "github.com/IBM/fp-go/v2/optics/lens"
 	LG "github.com/IBM/fp-go/v2/optics/lens/generic"
 	T "github.com/IBM/fp-go/v2/optics/traversal/option"
 	O "github.com/IBM/fp-go/v2/option"
@@ -60,6 +59,6 @@ import (
 //	// Now can use traversal operations
 //	configs := []Config{{Timeout: O.Some(30)}, {Timeout: O.None[int]()}}
 //	// Apply operations across all configs using the traversal
-func AsTraversal[S, A any]() func(L.Lens[S, A]) T.Traversal[S, A] {
+func AsTraversal[S, A any]() func(Lens[S, A]) T.Traversal[S, A] {
 	return LG.AsTraversal[T.Traversal[S, A]](O.MonadMap[A, S])
 }

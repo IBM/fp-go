@@ -304,3 +304,85 @@ func ChainFirst[A any](f Endomorphism[A]) Operator[A] {
 func Chain[A any](f Endomorphism[A]) Operator[A] {
 	return function.Bind2nd(MonadChain, f)
 }
+
+// Flatten collapses a nested endomorphism into a single endomorphism.
+//
+// Given an endomorphism that transforms endomorphisms (Endomorphism[Endomorphism[A]]),
+// Flatten produces a simple endomorphism by applying the outer transformation to the
+// identity function. This is the monadic join operation for the Endomorphism monad.
+//
+// The function applies the nested endomorphism to Identity[A] to extract the inner
+// endomorphism, effectively "flattening" the two layers into one.
+//
+// Type Parameters:
+//   - A: The type being transformed by the endomorphisms
+//
+// Parameters:
+//   - mma: A nested endomorphism that transforms endomorphisms
+//
+// Returns:
+//   - An endomorphism that applies the transformation directly to values of type A
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	// An endomorphism that wraps another endomorphism
+//	addThenDouble := func(endo Endomorphism[Counter]) Endomorphism[Counter] {
+//	    return func(c Counter) Counter {
+//	        c = endo(c)        // Apply the input endomorphism
+//	        c.Value = c.Value * 2  // Then double
+//	        return c
+//	    }
+//	}
+//
+//	flattened := Flatten(addThenDouble)
+//	result := flattened(Counter{Value: 5})  // Counter{Value: 10}
+func Flatten[A any](mma Endomorphism[Endomorphism[A]]) Endomorphism[A] {
+	return mma(function.Identity[A])
+}
+
+// Join performs self-application of a function that produces endomorphisms.
+//
+// Given a function that takes a value and returns an endomorphism of that same type,
+// Join creates an endomorphism that applies the value to itself through the function.
+// This operation is also known as the W combinator (warbler) in combinatory logic,
+// or diagonal application.
+//
+// The resulting endomorphism evaluates f(a)(a), applying the same value a to both
+// the function f and the resulting endomorphism.
+//
+// Type Parameters:
+//   - A: The type being transformed
+//
+// Parameters:
+//   - f: A function that takes a value and returns an endomorphism of that type
+//
+// Returns:
+//   - An endomorphism that performs self-application: f(a)(a)
+//
+// Example:
+//
+//	type Point struct {
+//	    X, Y int
+//	}
+//
+//	// Create an endomorphism based on the input point
+//	scaleBy := func(p Point) Endomorphism[Point] {
+//	    return func(p2 Point) Point {
+//	        return Point{
+//	            X: p2.X * p.X,
+//	            Y: p2.Y * p.Y,
+//	        }
+//	    }
+//	}
+//
+//	selfScale := Join(scaleBy)
+//	result := selfScale(Point{X: 3, Y: 4})  // Point{X: 9, Y: 16}
+func Join[A any](f Kleisli[A]) Endomorphism[A] {
+	return func(a A) A {
+		return f(a)(a)
+	}
+}

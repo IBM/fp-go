@@ -17,6 +17,7 @@
 package lens
 
 import (
+	"github.com/IBM/fp-go/v2/endomorphism"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 )
@@ -43,7 +44,7 @@ func setCopyWithEq[GET ~func(*S) A, SET ~func(*S, A) *S, S, A any](pred EQ.Eq[A]
 
 // setCopyCurried wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
-func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(a A) Endomorphism[*S] {
+func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(A) Endomorphism[*S] {
 	return func(a A) Endomorphism[*S] {
 		seta := setter(a)
 		return func(s *S) *S {
@@ -374,7 +375,7 @@ func IdRef[S any]() Lens[*S, *S] {
 }
 
 // Compose combines two lenses and allows to narrow down the focus to a sub-lens
-func compose[GET ~func(S) B, SET ~func(S, B) S, S, A, B any](creator func(get GET, set SET) Lens[S, B], ab Lens[A, B]) func(Lens[S, A]) Lens[S, B] {
+func compose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](creator func(get GET, set SET) Lens[S, B], ab Lens[A, B]) Operator[S, A, B] {
 	abget := ab.Get
 	abset := ab.Set
 	return func(sa Lens[S, A]) Lens[S, B] {
@@ -382,8 +383,12 @@ func compose[GET ~func(S) B, SET ~func(S, B) S, S, A, B any](creator func(get GE
 		saset := sa.Set
 		return creator(
 			F.Flow2(saget, abget),
-			func(s S, b B) S {
-				return saset(abset(b)(saget(s)))(s)
+			func(b B) func(S) S {
+				return endomorphism.Join(F.Flow3(
+					saget,
+					abset(b),
+					saset,
+				))
 			},
 		)
 	}
@@ -436,7 +441,7 @@ func compose[GET ~func(S) B, SET ~func(S, B) S, S, A, B any](creator func(get GE
 //	street := personStreetLens.Get(person)  // "Main St"
 //	updated := personStreetLens.Set("Oak Ave")(person)
 func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
-	return compose(MakeLens[func(S) B, func(S, B) S], ab)
+	return compose(MakeLensCurried[func(S) B, func(B) func(S) S], ab)
 }
 
 // ComposeRef combines two lenses for pointer-based structures.
@@ -478,11 +483,7 @@ func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 //
 //	personStreetLens := F.Pipe1(addressLens, lens.ComposeRef[Person](streetLens))
 func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
-	return compose(MakeLensRef[func(*S) B, func(*S, B) *S], ab)
-}
-
-func modify[FCT ~func(A) A, S, A any](f FCT, sa Lens[S, A], s S) S {
-	return sa.Set(f(sa.Get(s)))(s)
+	return compose(MakeLensRefCurried[S, B], ab)
 }
 
 // Modify transforms a value through a lens using a transformation F.
@@ -531,7 +532,13 @@ func modify[FCT ~func(A) A, S, A any](f FCT, sa Lens[S, A], s S) S {
 //	)
 //	// doubled.Value == 10
 func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S] {
-	return F.Curry3(modify[FCT, S, A])(f)
+	return func(la Lens[S, A]) Endomorphism[S] {
+		return endomorphism.Join(F.Flow3(
+			la.Get,
+			f,
+			la.Set,
+		))
+	}
 }
 
 // IMap transforms the focus type of a lens using an isomorphism.
@@ -585,8 +592,8 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S
 //	weather := Weather{Temperature: 20} // 20°C
 //	tempF := tempFahrenheitLens.Get(weather)  // 68°F
 //	updated := tempFahrenheitLens.Set(86)(weather)  // Set to 86°F (30°C)
-func IMap[E any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) func(Lens[E, A]) Lens[E, B] {
-	return func(ea Lens[E, A]) Lens[E, B] {
-		return Lens[E, B]{Get: F.Flow2(ea.Get, ab), Set: F.Flow2(ba, ea.Set)}
+func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[S, A, B] {
+	return func(ea Lens[S, A]) Lens[S, B] {
+		return MakeLensCurried(F.Flow2(ea.Get, ab), F.Flow2(ba, ea.Set))
 	}
 }
