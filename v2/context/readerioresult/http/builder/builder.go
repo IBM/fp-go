@@ -53,12 +53,12 @@ import (
 
 	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
 	RIOEH "github.com/IBM/fp-go/v2/context/readerioresult/http"
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
 	H "github.com/IBM/fp-go/v2/http/headers"
 	LZ "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // Requester converts an http/builder.Builder into a ReaderIOResult that produces HTTP requests.
@@ -143,10 +143,10 @@ func Requester(builder *R.Builder) RIOEH.Requester {
 
 	return F.Pipe5(
 		builder.GetBody(),
-		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) RIOE.ReaderIOResult[*http.Request]](builder.GetTargetURL()),
-		E.Flap[error, RIOE.ReaderIOResult[*http.Request]](builder.GetMethod()),
-		E.GetOrElse(RIOE.Left[*http.Request]),
+		O.Fold(LZ.Of(result.Of(withoutBody)), result.Map(withBody)),
+		result.Ap[RIOE.Kleisli[string, *http.Request]](builder.GetTargetURL()),
+		result.Flap[RIOE.ReaderIOResult[*http.Request]](builder.GetMethod()),
+		result.GetOrElse(RIOE.Left[*http.Request]),
 		RIOE.Map(func(req *http.Request) *http.Request {
 			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())
 			return req

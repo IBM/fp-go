@@ -80,7 +80,6 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	B "github.com/IBM/fp-go/v2/bytes"
-	E "github.com/IBM/fp-go/v2/either"
 	ENDO "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	C "github.com/IBM/fp-go/v2/http/content"
@@ -91,16 +90,17 @@ import (
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/record"
+	"github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
 
 type (
 	Builder struct {
-		method  O.Option[string]
+		method  Option[string]
 		url     string
 		headers http.Header
-		body    O.Option[E.Either[error, []byte]]
+		body    Option[Result[[]byte]]
 		query   url.Values
 	}
 
@@ -117,19 +117,19 @@ var (
 	// Monoid is the [M.Monoid] for the [Endomorphism]
 	Monoid = ENDO.Monoid[*Builder]()
 
-	// Url is a [L.Lens] for the URL
+	// Url is a [Lens] for the URL
 	//
 	// Deprecated: use [URL] instead
 	Url = L.MakeLensRef((*Builder).GetURL, (*Builder).SetURL)
-	// URL is a [L.Lens] for the URL
+	// URL is a [Lens] for the URL
 	URL = L.MakeLensRef((*Builder).GetURL, (*Builder).SetURL)
-	// Method is a [L.Lens] for the HTTP method
+	// Method is a [Lens] for the HTTP method
 	Method = L.MakeLensRef((*Builder).GetMethod, (*Builder).SetMethod)
-	// Body is a [L.Lens] for the request body
+	// Body is a [Lens] for the request body
 	Body = L.MakeLensRef((*Builder).GetBody, (*Builder).SetBody)
-	// Headers is a [L.Lens] for the complete set of request headers
+	// Headers is a [Lens] for the complete set of request headers
 	Headers = L.MakeLensRef((*Builder).GetHeaders, (*Builder).SetHeaders)
-	// Query is a [L.Lens] for the set of query parameters
+	// Query is a [Lens] for the set of query parameters
 	Query = L.MakeLensRef((*Builder).GetQuery, (*Builder).SetQuery)
 
 	rawQuery = L.MakeLensRef(getRawQuery, setRawQuery)
@@ -139,11 +139,11 @@ var (
 	setHeader = F.Bind2of3((*Builder).SetHeader)
 
 	noHeader   = O.None[string]()
-	noBody     = O.None[E.Either[error, []byte]]()
+	noBody     = O.None[Result[[]byte]]()
 	noQueryArg = O.None[string]()
 
-	parseURL   = E.Eitherize1(url.Parse)
-	parseQuery = E.Eitherize1(url.ParseQuery)
+	parseURL   = result.Eitherize1(url.Parse)
+	parseQuery = result.Eitherize1(url.ParseQuery)
 
 	// WithQuery creates a [Endomorphism] for a complete set of query parameters
 	WithQuery = Query.Set
@@ -159,12 +159,12 @@ var (
 	WithHeaders = Headers.Set
 	// WithBody creates a [Endomorphism] for a request body
 	WithBody = F.Flow2(
-		O.Of[E.Either[error, []byte]],
+		O.Of[Result[[]byte]],
 		Body.Set,
 	)
 	// WithBytes creates a [Endomorphism] for a request body using bytes
 	WithBytes = F.Flow2(
-		E.Of[error, []byte],
+		result.Of[[]byte],
 		WithBody,
 	)
 	// WithContentType adds the [H.ContentType] header
@@ -202,7 +202,7 @@ var (
 	)
 
 	// bodyAsBytes returns a []byte with a fallback to the empty array
-	bodyAsBytes = O.Fold(B.Empty, E.Fold(F.Ignore1of1[error](B.Empty), F.Identity[[]byte]))
+	bodyAsBytes = O.Fold(B.Empty, result.Fold(F.Ignore1of1[error](B.Empty), F.Identity[[]byte]))
 )
 
 func setRawQuery(u *url.URL, raw string) *url.URL {
@@ -223,35 +223,35 @@ func (builder *Builder) clone() *Builder {
 // GetTargetUrl constructs a full URL with query parameters on top of the provided URL string
 //
 // Deprecated: use [GetTargetURL] instead
-func (builder *Builder) GetTargetUrl() E.Either[error, string] {
+func (builder *Builder) GetTargetUrl() Result[string] {
 	return builder.GetTargetURL()
 }
 
 // GetTargetURL constructs a full URL with query parameters on top of the provided URL string
-func (builder *Builder) GetTargetURL() E.Either[error, string] {
+func (builder *Builder) GetTargetURL() Result[string] {
 	// construct the final URL
 	return F.Pipe3(
 		builder,
 		Url.Get,
 		parseURL,
-		E.Chain(F.Flow4(
+		result.Chain(F.Flow4(
 			T.Replicate2[*url.URL],
 			T.Map2(
 				F.Flow2(
 					F.Curry2(setRawQuery),
-					E.Of[error, func(string) *url.URL],
+					result.Of[func(string) *url.URL],
 				),
 				F.Flow3(
 					rawQuery.Get,
 					parseQuery,
-					E.Map[error](F.Flow2(
+					result.Map(F.Flow2(
 						F.Curry2(FM.ValuesMonoid.Concat)(builder.GetQuery()),
 						(url.Values).Encode,
 					)),
 				),
 			),
-			T.Tupled2(E.MonadAp[*url.URL, error, string]),
-			E.Map[error]((*url.URL).String),
+			T.Tupled2(result.MonadAp[*url.URL, string]),
+			result.Map((*url.URL).String),
 		)),
 	)
 }
@@ -285,7 +285,7 @@ func (builder *Builder) SetQuery(query url.Values) *Builder {
 	return builder
 }
 
-func (builder *Builder) GetBody() O.Option[E.Either[error, []byte]] {
+func (builder *Builder) GetBody() Option[Result[[]byte]] {
 	return builder.body
 }
 
@@ -310,7 +310,7 @@ func (builder *Builder) SetHeaders(headers http.Header) *Builder {
 	return builder
 }
 
-func (builder *Builder) SetBody(body O.Option[E.Either[error, []byte]]) *Builder {
+func (builder *Builder) SetBody(body Option[Result[[]byte]]) *Builder {
 	builder.body = body
 	return builder
 }
@@ -325,7 +325,7 @@ func (builder *Builder) DelHeader(name string) *Builder {
 	return builder
 }
 
-func (builder *Builder) GetHeader(name string) O.Option[string] {
+func (builder *Builder) GetHeader(name string) Option[string] {
 	return F.Pipe2(
 		name,
 		builder.headers.Get,
@@ -342,8 +342,8 @@ func (builder *Builder) GetHash() string {
 	return MakeHash(builder)
 }
 
-// Header returns a [L.Lens] for a single header
-func Header(name string) L.Lens[*Builder, O.Option[string]] {
+// Header returns a [Lens] for a single header
+func Header(name string) Lens[*Builder, Option[string]] {
 	get := getHeader(name)
 	set := F.Bind1of2(setHeader(name))
 	del := F.Flow2(
@@ -351,7 +351,7 @@ func Header(name string) L.Lens[*Builder, O.Option[string]] {
 		LZ.Map(delHeader(name)),
 	)
 
-	return L.MakeLens(get, func(b *Builder, value O.Option[string]) *Builder {
+	return L.MakeLens(get, func(b *Builder, value Option[string]) *Builder {
 		cpy := b.clone()
 		return F.Pipe1(
 			value,
@@ -392,8 +392,8 @@ func WithJSON[T any](data T) Endomorphism {
 	)
 }
 
-// QueryArg is a [L.Lens] for the first value of a query argument
-func QueryArg(name string) L.Lens[*Builder, O.Option[string]] {
+// QueryArg is a [Lens] for the first value of a query argument
+func QueryArg(name string) Lens[*Builder, Option[string]] {
 	return F.Pipe1(
 		Query,
 		L.Compose[*Builder](FM.AtValue(name)),
