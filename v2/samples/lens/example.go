@@ -58,3 +58,9 @@ type CheckOption struct {
 	Name  option.Option[string]
 	Value string `json:",omitempty"`
 }
+
+// fp-go:Lens
+type WithGeneric[T any] struct {
+	Name  string
+	Value T
+}

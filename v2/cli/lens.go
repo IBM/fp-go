@@ -53,9 +53,11 @@ var (
 
 // structInfo holds information about a struct that needs lens generation
 type structInfo struct {
-	Name    string
-	Fields  []fieldInfo
-	Imports map[string]string // package path -> alias
+	Name           string
+	TypeParams     string // e.g., "[T any]" or "[K comparable, V any]" - for type declarations
+	TypeParamNames string // e.g., "[T]" or "[K, V]" - for type usage in function signatures
+	Fields         []fieldInfo
+	Imports        map[string]string // package path -> alias
 }
 
 // fieldInfo holds information about a struct field
@@ -75,84 +77,96 @@ type templateData struct {
 
 const lensStructTemplate = `
 // {{.Name}}Lenses provides lenses for accessing fields of {{.Name}}
-type {{.Name}}Lenses struct {
+type {{.Name}}Lenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} L.Lens[{{$.Name}}, {{.TypeName}}]
+	{{.Name}} L.Lens[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
-	{{.Name}}O LO.LensO[{{$.Name}}, {{.TypeName}}]
+{{- if .IsComparable}}
+	{{.Name}}O LO.LensO[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+{{- end}}
 {{- end}}
 }
 
 // {{.Name}}RefLenses provides lenses for accessing fields of {{.Name}} via a reference to {{.Name}}
-type {{.Name}}RefLenses struct {
+type {{.Name}}RefLenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} L.Lens[*{{$.Name}}, {{.TypeName}}]
+	{{.Name}} L.Lens[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
-	{{.Name}}O LO.LensO[*{{$.Name}}, {{.TypeName}}]
+{{- if .IsComparable}}
+	{{.Name}}O LO.LensO[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+{{- end}}
 {{- end}}
 }
 `
 
 const lensConstructorTemplate = `
 // Make{{.Name}}Lenses creates a new {{.Name}}Lenses with lenses for all fields
-func Make{{.Name}}Lenses() {{.Name}}Lenses {
+func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
 	lens{{.Name}} := L.MakeLens(
-		func(s {{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-		func(s {{$.Name}}, v {{.TypeName}}) {{$.Name}} { s.{{.Name}} = v; return s },
+		func(s {{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s {{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
 	)
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
-	lens{{.Name}}O := LO.FromIso[{{$.Name}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
+{{- if .IsComparable}}
+	lens{{.Name}}O := LO.FromIso[{{$.Name}}{{$.TypeParamNames}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
-	return {{.Name}}Lenses{
+{{- end}}
+	return {{.Name}}Lenses{{.TypeParamNames}}{
 		// mandatory lenses
 {{- range .Fields}}
 		{{.Name}}: lens{{.Name}},
 {{- end}}
 		// optional lenses
 {{- range .Fields}}
+{{- if .IsComparable}}
 		{{.Name}}O: lens{{.Name}}O,
+{{- end}}
 {{- end}}
 	}
 }
 
 // Make{{.Name}}RefLenses creates a new {{.Name}}RefLenses with lenses for all fields
-func Make{{.Name}}RefLenses() {{.Name}}RefLenses {
+func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
 {{- if .IsComparable}}
 	lens{{.Name}} := L.MakeLensStrict(
-		func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-		func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
 	)
 {{- else}}
 	lens{{.Name}} := L.MakeLensRef(
-		func(s *{{$.Name}}) {{.TypeName}} { return s.{{.Name}} },
-		func(s *{{$.Name}}, v {{.TypeName}}) *{{$.Name}} { s.{{.Name}} = v; return s },
+		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
 	)
 {{- end}}
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
-	lens{{.Name}}O := LO.FromIso[*{{$.Name}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
+{{- if .IsComparable}}
+	lens{{.Name}}O := LO.FromIso[*{{$.Name}}{{$.TypeParamNames}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
-	return {{.Name}}RefLenses{
+{{- end}}
+	return {{.Name}}RefLenses{{.TypeParamNames}}{
 		// mandatory lenses
 {{- range .Fields}}
 		{{.Name}}: lens{{.Name}},
 {{- end}}
 		// optional lenses
 {{- range .Fields}}
+{{- if .IsComparable}}
 		{{.Name}}O: lens{{.Name}}O,
+{{- end}}
 {{- end}}
 	}
 }
@@ -290,9 +304,17 @@ func isPointerType(expr ast.Expr) bool {
 // - Slices
 // - Maps
 // - Functions
-func isComparableType(expr ast.Expr) bool {
+//
+// typeParams is a map of type parameter names to their constraints (e.g., "T" -> "any", "K" -> "comparable")
+func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 	switch t := expr.(type) {
 	case *ast.Ident:
+		// Check if this is a type parameter
+		if constraint, isTypeParam := typeParams[t.Name]; isTypeParam {
+			// Type parameter - check its constraint
+			return constraint == "comparable"
+		}
+
 		// Basic types and named types
 		// We assume named types are comparable unless they're known non-comparable types
 		name := t.Name
@@ -315,7 +337,7 @@ func isComparableType(expr ast.Expr) bool {
 			return false
 		}
 		// Fixed-size array, check element type
-		return isComparableType(t.Elt)
+		return isComparableType(t.Elt, typeParams)
 	case *ast.MapType:
 		// Maps are not comparable
 		return false
@@ -383,6 +405,145 @@ func isComparableType(expr ast.Expr) bool {
 	}
 }
 
+// embeddedFieldResult holds both the field info and its AST type for import extraction
+type embeddedFieldResult struct {
+	fieldInfo fieldInfo
+	fieldType ast.Expr
+}
+
+// extractEmbeddedFields extracts fields from an embedded struct type
+// It returns a slice of embeddedFieldResult for all exported fields in the embedded struct
+// typeParamsMap contains the type parameters of the parent struct (for checking comparability)
+func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string) []embeddedFieldResult {
+	var results []embeddedFieldResult
+
+	// Get the type name of the embedded field
+	var typeName string
+	var typeIdent *ast.Ident
+
+	switch t := embedType.(type) {
+	case *ast.Ident:
+		// Direct embedded type: type MyStruct struct { EmbeddedType }
+		typeName = t.Name
+		typeIdent = t
+	case *ast.StarExpr:
+		// Pointer embedded type: type MyStruct struct { *EmbeddedType }
+		if ident, ok := t.X.(*ast.Ident); ok {
+			typeName = ident.Name
+			typeIdent = ident
+		}
+	case *ast.SelectorExpr:
+		// Qualified embedded type: type MyStruct struct { pkg.EmbeddedType }
+		// We can't easily resolve this without full type information
+		// For now, skip these
+		return results
+	}
+
+	if typeName == "" || typeIdent == nil {
+		return results
+	}
+
+	// Find the struct definition in the same file
+	var embeddedStructType *ast.StructType
+	ast.Inspect(file, func(n ast.Node) bool {
+		if ts, ok := n.(*ast.TypeSpec); ok {
+			if ts.Name.Name == typeName {
+				if st, ok := ts.Type.(*ast.StructType); ok {
+					embeddedStructType = st
+					return false
+				}
+			}
+		}
+		return true
+	})
+
+	if embeddedStructType == nil {
+		// Struct not found in this file, might be from another package
+		return results
+	}
+
+	// Extract fields from the embedded struct
+	for _, field := range embeddedStructType.Fields.List {
+		// Skip embedded fields within embedded structs (for now, to avoid infinite recursion)
+		if len(field.Names) == 0 {
+			continue
+		}
+
+		for _, name := range field.Names {
+			// Only export lenses for exported fields
+			if name.IsExported() {
+				fieldTypeName := getTypeName(field.Type)
+				isOptional := false
+				baseType := fieldTypeName
+
+				// Check if field is optional
+				if isPointerType(field.Type) {
+					isOptional = true
+					baseType = strings.TrimPrefix(fieldTypeName, "*")
+				} else if hasOmitEmpty(field.Tag) {
+					isOptional = true
+				}
+
+				// Check if the type is comparable
+				isComparable := isComparableType(field.Type, typeParamsMap)
+
+				results = append(results, embeddedFieldResult{
+					fieldInfo: fieldInfo{
+						Name:         name.Name,
+						TypeName:     fieldTypeName,
+						BaseType:     baseType,
+						IsOptional:   isOptional,
+						IsComparable: isComparable,
+					},
+					fieldType: field.Type,
+				})
+			}
+		}
+	}
+
+	return results
+}
+
+// extractTypeParams extracts type parameters from a type spec
+// Returns two strings: full params like "[T any]" and names only like "[T]"
+func extractTypeParams(typeSpec *ast.TypeSpec) (string, string) {
+	if typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
+		return "", ""
+	}
+
+	var params []string
+	var names []string
+	for _, field := range typeSpec.TypeParams.List {
+		for _, name := range field.Names {
+			constraint := getTypeName(field.Type)
+			params = append(params, name.Name+" "+constraint)
+			names = append(names, name.Name)
+		}
+	}
+
+	fullParams := "[" + strings.Join(params, ", ") + "]"
+	nameParams := "[" + strings.Join(names, ", ") + "]"
+	return fullParams, nameParams
+}
+
+// buildTypeParamsMap creates a map of type parameter names to their constraints
+// e.g., for "type Box[T any, K comparable]", returns {"T": "any", "K": "comparable"}
+func buildTypeParamsMap(typeSpec *ast.TypeSpec) map[string]string {
+	typeParamsMap := make(map[string]string)
+	if typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
+		return typeParamsMap
+	}
+
+	for _, field := range typeSpec.TypeParams.List {
+		constraint := getTypeName(field.Type)
+		for _, name := range field.Names {
+			typeParamsMap[name.Name] = constraint
+		}
+	}
+
+	return typeParamsMap
+}
+
 // parseFile parses a Go file and extracts structs with lens annotations
 func parseFile(filename string) ([]structInfo, string, error) {
 	fset := token.NewFileSet()
@@ -446,9 +607,27 @@ func parseFile(filename string) ([]structInfo, string, error) {
 		var fields []fieldInfo
 		structImports := make(map[string]string)
 
+		// Build type parameters map for this struct
+		typeParamsMap := buildTypeParamsMap(typeSpec)
+
 		for _, field := range structType.Fields.List {
 			if len(field.Names) == 0 {
-				// Embedded field, skip for now
+				// Embedded field - promote its fields
+				embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap)
+				for _, embResult := range embeddedResults {
+					// Extract imports from embedded field's type
+					fieldImports := make(map[string]string)
+					extractImports(embResult.fieldType, fieldImports)
+
+					// Resolve package names to full import paths
+					for pkgName := range fieldImports {
+						if importPath, ok := fileImports[pkgName]; ok {
+							structImports[importPath] = pkgName
+						}
+					}
+
+					fields = append(fields, embResult.fieldInfo)
+				}
 				continue
 			}
 			for _, name := range field.Names {
@@ -473,7 +652,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 
 					// Check if the type is comparable (for non-optional fields)
 					// For optional fields, we don't need to check since they use LensO
-					isComparable = isComparableType(field.Type)
+					isComparable = isComparableType(field.Type, typeParamsMap)
 					// log.Printf("field %s, type: %v, isComparable: %b\n", name, field.Type, isComparable)
 
 					// Extract imports from this field's type
@@ -499,10 +678,13 @@ func parseFile(filename string) ([]structInfo, string, error) {
 		}
 
 		if len(fields) > 0 {
+			typeParams, typeParamNames := extractTypeParams(typeSpec)
 			structs = append(structs, structInfo{
-				Name:    typeSpec.Name.Name,
-				Fields:  fields,
-				Imports: structImports,
+				Name:           typeSpec.Name.Name,
+				TypeParams:     typeParams,
+				TypeParamNames: typeParamNames,
+				Fields:         fields,
+				Imports:        structImports,
 			})
 		}
 

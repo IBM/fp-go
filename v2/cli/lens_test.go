@@ -247,7 +247,7 @@ func TestIsComparableType(t *testing.T) {
 			})
 
 			require.NotNil(t, fieldType)
-			result := isComparableType(fieldType)
+			result := isComparableType(fieldType, map[string]string{})
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -754,4 +754,329 @@ func TestLensCommandFlags(t *testing.T) {
 	assert.True(t, hasDir, "should have dir flag")
 	assert.True(t, hasFilename, "should have filename flag")
 	assert.True(t, hasVerbose, "should have verbose flag")
+}
+
+func TestParseFileWithEmbeddedStruct(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// Base struct to be embedded
+type Base struct {
+	ID   int
+	Name string
+}
+
+// fp-go:Lens
+type Extended struct {
+	Base
+	Extra string
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check Extended struct
+	extended := structs[0]
+	assert.Equal(t, "Extended", extended.Name)
+	assert.Len(t, extended.Fields, 3, "Should have 3 fields: ID, Name (from Base), and Extra")
+
+	// Check that embedded fields are promoted
+	fieldNames := make(map[string]bool)
+	for _, field := range extended.Fields {
+		fieldNames[field.Name] = true
+	}
+
+	assert.True(t, fieldNames["ID"], "Should have promoted ID field from Base")
+	assert.True(t, fieldNames["Name"], "Should have promoted Name field from Base")
+	assert.True(t, fieldNames["Extra"], "Should have Extra field")
+}
+
+func TestGenerateLensHelpersWithEmbeddedStruct(t *testing.T) {
+	// Create a temporary directory with test files
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+// Base struct to be embedded
+type Address struct {
+	Street string
+	City   string
+}
+
+// fp-go:Lens
+type Person struct {
+	Address
+	Name string
+	Age  int
+}
+`
+
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Generate lens code
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false)
+	require.NoError(t, err)
+
+	// Verify the generated file exists
+	genPath := filepath.Join(tmpDir, outputFile)
+	_, err = os.Stat(genPath)
+	require.NoError(t, err)
+
+	// Read and verify the generated content
+	content, err := os.ReadFile(genPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+
+	// Check for expected content
+	assert.Contains(t, contentStr, "package testpkg")
+	assert.Contains(t, contentStr, "PersonLenses")
+	assert.Contains(t, contentStr, "MakePersonLenses")
+
+	// Check that embedded fields are included
+	assert.Contains(t, contentStr, "Street L.Lens[Person, string]", "Should have lens for embedded Street field")
+	assert.Contains(t, contentStr, "City L.Lens[Person, string]", "Should have lens for embedded City field")
+	assert.Contains(t, contentStr, "Name L.Lens[Person, string]", "Should have lens for Name field")
+	assert.Contains(t, contentStr, "Age L.Lens[Person, int]", "Should have lens for Age field")
+
+	// Check that optional lenses are also generated for embedded fields
+	assert.Contains(t, contentStr, "StreetO LO.LensO[Person, string]")
+	assert.Contains(t, contentStr, "CityO LO.LensO[Person, string]")
+}
+
+func TestParseFileWithPointerEmbeddedStruct(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// Base struct to be embedded
+type Metadata struct {
+	CreatedAt string
+	UpdatedAt string
+}
+
+// fp-go:Lens
+type Document struct {
+	*Metadata
+	Title   string
+	Content string
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check Document struct
+	doc := structs[0]
+	assert.Equal(t, "Document", doc.Name)
+	assert.Len(t, doc.Fields, 4, "Should have 4 fields: CreatedAt, UpdatedAt (from *Metadata), Title, and Content")
+
+	// Check that embedded fields are promoted
+	fieldNames := make(map[string]bool)
+	for _, field := range doc.Fields {
+		fieldNames[field.Name] = true
+	}
+
+	assert.True(t, fieldNames["CreatedAt"], "Should have promoted CreatedAt field from *Metadata")
+	assert.True(t, fieldNames["UpdatedAt"], "Should have promoted UpdatedAt field from *Metadata")
+	assert.True(t, fieldNames["Title"], "Should have Title field")
+	assert.True(t, fieldNames["Content"], "Should have Content field")
+}
+
+func TestParseFileWithGenericStruct(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type Container[T any] struct {
+	Value T
+	Count int
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check Container struct
+	container := structs[0]
+	assert.Equal(t, "Container", container.Name)
+	assert.Equal(t, "[T any]", container.TypeParams, "Should have type parameter [T any]")
+	assert.Len(t, container.Fields, 2)
+
+	assert.Equal(t, "Value", container.Fields[0].Name)
+	assert.Equal(t, "T", container.Fields[0].TypeName)
+
+	assert.Equal(t, "Count", container.Fields[1].Name)
+	assert.Equal(t, "int", container.Fields[1].TypeName)
+}
+
+func TestParseFileWithMultipleTypeParams(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type Pair[K comparable, V any] struct {
+	Key   K
+	Value V
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check Pair struct
+	pair := structs[0]
+	assert.Equal(t, "Pair", pair.Name)
+	assert.Equal(t, "[K comparable, V any]", pair.TypeParams, "Should have type parameters [K comparable, V any]")
+	assert.Len(t, pair.Fields, 2)
+
+	assert.Equal(t, "Key", pair.Fields[0].Name)
+	assert.Equal(t, "K", pair.Fields[0].TypeName)
+
+	assert.Equal(t, "Value", pair.Fields[1].Name)
+	assert.Equal(t, "V", pair.Fields[1].TypeName)
+}
+
+func TestGenerateLensHelpersWithGenericStruct(t *testing.T) {
+	// Create a temporary directory with test files
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type Box[T any] struct {
+	Content T
+	Label   string
+}
+`
+
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Generate lens code
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false)
+	require.NoError(t, err)
+
+	// Verify the generated file exists
+	genPath := filepath.Join(tmpDir, outputFile)
+	_, err = os.Stat(genPath)
+	require.NoError(t, err)
+
+	// Read and verify the generated content
+	content, err := os.ReadFile(genPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+
+	// Check for expected content with type parameters
+	assert.Contains(t, contentStr, "package testpkg")
+	assert.Contains(t, contentStr, "type BoxLenses[T any] struct", "Should have generic BoxLenses type")
+	assert.Contains(t, contentStr, "type BoxRefLenses[T any] struct", "Should have generic BoxRefLenses type")
+	assert.Contains(t, contentStr, "func MakeBoxLenses[T any]() BoxLenses[T]", "Should have generic constructor")
+	assert.Contains(t, contentStr, "func MakeBoxRefLenses[T any]() BoxRefLenses[T]", "Should have generic ref constructor")
+
+	// Check that fields use the generic type parameter
+	assert.Contains(t, contentStr, "Content L.Lens[Box[T], T]", "Should have lens for generic Content field")
+	assert.Contains(t, contentStr, "Label L.Lens[Box[T], string]", "Should have lens for Label field")
+
+	// Check optional lenses
+	assert.Contains(t, contentStr, "ContentO LO.LensO[Box[T], T]")
+	assert.Contains(t, contentStr, "LabelO LO.LensO[Box[T], string]")
+}
+
+func TestGenerateLensHelpersWithComparableTypeParam(t *testing.T) {
+	// Create a temporary directory with test files
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type ComparableBox[T comparable] struct {
+	Key   T
+	Value string
+}
+`
+
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	require.NoError(t, err)
+
+	// Generate lens code
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false)
+	require.NoError(t, err)
+
+	// Verify the generated file exists
+	genPath := filepath.Join(tmpDir, outputFile)
+	_, err = os.Stat(genPath)
+	require.NoError(t, err)
+
+	// Read and verify the generated content
+	content, err := os.ReadFile(genPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+
+	// Check for expected content with type parameters
+	assert.Contains(t, contentStr, "package testpkg")
+	assert.Contains(t, contentStr, "type ComparableBoxLenses[T comparable] struct", "Should have generic ComparableBoxLenses type")
+	assert.Contains(t, contentStr, "type ComparableBoxRefLenses[T comparable] struct", "Should have generic ComparableBoxRefLenses type")
+
+	// Check that Key field (with comparable constraint) uses MakeLensStrict in RefLenses
+	assert.Contains(t, contentStr, "lensKey := L.MakeLensStrict(", "Key field with comparable constraint should use MakeLensStrict")
+
+	// Check that Value field (string, always comparable) also uses MakeLensStrict
+	assert.Contains(t, contentStr, "lensValue := L.MakeLensStrict(", "Value field (string) should use MakeLensStrict")
+
+	// Verify that MakeLensRef is NOT used (since both fields are comparable)
+	assert.NotContains(t, contentStr, "L.MakeLensRef(", "Should not use MakeLensRef when all fields are comparable")
 }
