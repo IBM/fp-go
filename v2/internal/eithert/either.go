@@ -163,3 +163,18 @@ func MonadMapLeft[E, A, B, HKTFA, HKTFB any](fmap func(HKTFA, func(ET.Either[E, 
 func MapLeft[E, A, B, HKTFA, HKTFB any](fmap func(func(ET.Either[E, A]) ET.Either[B, A]) func(HKTFA) HKTFB, f func(E) B) func(HKTFA) HKTFB {
 	return FC.Map(fmap, ET.MapLeft[A, E, B], f)
 }
+
+func MonadChainLeft[EA, A, EB, HKTFA, HKTFB any](
+	fchain func(HKTFA, func(ET.Either[EA, A]) HKTFB) HKTFB,
+	fof func(ET.Either[EB, A]) HKTFB,
+	fa HKTFA,
+	f func(EA) HKTFB) HKTFB {
+	return fchain(fa, ET.Fold(f, F.Flow2(ET.Right[EB, A], fof)))
+}
+
+func ChainLeft[EA, A, EB, HKTFA, HKTFB any](
+	fchain func(func(ET.Either[EA, A]) HKTFB) func(HKTFA) HKTFB,
+	fof func(ET.Either[EB, A]) HKTFB,
+	f func(EA) HKTFB) func(HKTFA) HKTFB {
+	return fchain(ET.Fold(f, F.Flow2(ET.Right[EB, A], fof)))
+}

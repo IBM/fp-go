@@ -284,3 +284,160 @@ func TestWithResourceErrorInRelease(t *testing.T) {
 	assert.Equal(t, 0, countRelease)
 	assert.Equal(t, E.Left[int](err), res)
 }
+
+func TestMonadChainFirstLeft(t *testing.T) {
+	ctx := context.Background()
+
+	// Test with Left value - function returns Left, always preserves original error
+	t.Run("Left value with function returning Left preserves original error", func(t *testing.T) {
+		sideEffectCalled := false
+		originalErr := fmt.Errorf("original error")
+		result := MonadChainFirstLeft(
+			Left[int](originalErr),
+			func(e error) ReaderIOResult[int] {
+				sideEffectCalled = true
+				return Left[int](fmt.Errorf("new error")) // This error is ignored
+			},
+		)
+		actualResult := result(ctx)()
+		assert.True(t, sideEffectCalled)
+		assert.Equal(t, E.Left[int](originalErr), actualResult)
+	})
+
+	// Test with Left value - function returns Right, still returns original Left
+	t.Run("Left value with function returning Right still returns original Left", func(t *testing.T) {
+		var capturedError error
+		originalErr := fmt.Errorf("validation failed")
+		result := MonadChainFirstLeft(
+			Left[int](originalErr),
+			func(e error) ReaderIOResult[int] {
+				capturedError = e
+				return Right[int](999) // This Right value is ignored
+			},
+		)
+		actualResult := result(ctx)()
+		assert.Equal(t, originalErr, capturedError)
+		assert.Equal(t, E.Left[int](originalErr), actualResult)
+	})
+
+	// Test with Right value - should pass through without calling function
+	t.Run("Right value passes through", func(t *testing.T) {
+		sideEffectCalled := false
+		result := MonadChainFirstLeft(
+			Right[int](42),
+			func(e error) ReaderIOResult[int] {
+				sideEffectCalled = true
+				return Left[int](fmt.Errorf("should not be called"))
+			},
+		)
+		assert.False(t, sideEffectCalled)
+		assert.Equal(t, E.Right[error](42), result(ctx)())
+	})
+
+	// Test that side effects are executed but original error is always preserved
+	t.Run("Side effects executed but original error preserved", func(t *testing.T) {
+		effectCount := 0
+		originalErr := fmt.Errorf("original error")
+		result := MonadChainFirstLeft(
+			Left[int](originalErr),
+			func(e error) ReaderIOResult[int] {
+				effectCount++
+				// Try to return Right, but original Left should still be returned
+				return Right[int](999)
+			},
+		)
+		actualResult := result(ctx)()
+		assert.Equal(t, 1, effectCount)
+		assert.Equal(t, E.Left[int](originalErr), actualResult)
+	})
+}
+
+func TestChainFirstLeft(t *testing.T) {
+	ctx := context.Background()
+
+	// Test with Left value - function returns Left, always preserves original error
+	t.Run("Left value with function returning Left preserves error", func(t *testing.T) {
+		var captured error
+		originalErr := fmt.Errorf("test error")
+		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
+			captured = e
+			return Left[int](fmt.Errorf("ignored error"))
+		})
+		result := F.Pipe1(
+			Left[int](originalErr),
+			chainFn,
+		)
+		actualResult := result(ctx)()
+		assert.Equal(t, originalErr, captured)
+		assert.Equal(t, E.Left[int](originalErr), actualResult)
+	})
+
+	// Test with Left value - function returns Right, still returns original Left
+	t.Run("Left value with function returning Right still returns original Left", func(t *testing.T) {
+		var captured error
+		originalErr := fmt.Errorf("test error")
+		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
+			captured = e
+			return Right[int](42) // This Right is ignored
+		})
+		result := F.Pipe1(
+			Left[int](originalErr),
+			chainFn,
+		)
+		actualResult := result(ctx)()
+		assert.Equal(t, originalErr, captured)
+		assert.Equal(t, E.Left[int](originalErr), actualResult)
+	})
+
+	// Test with Right value - should pass through without calling function
+	t.Run("Right value passes through", func(t *testing.T) {
+		called := false
+		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
+			called = true
+			return Right[int](0)
+		})
+		result := F.Pipe1(
+			Right[int](100),
+			chainFn,
+		)
+		assert.False(t, called)
+		assert.Equal(t, E.Right[error](100), result(ctx)())
+	})
+
+	// Test that original error is always preserved regardless of what f returns
+	t.Run("Original error always preserved", func(t *testing.T) {
+		originalErr := fmt.Errorf("original")
+		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
+			// Try to return Right, but original Left should still be returned
+			return Right[int](999)
+		})
+
+		result := F.Pipe1(
+			Left[int](originalErr),
+			chainFn,
+		)
+		assert.Equal(t, E.Left[int](originalErr), result(ctx)())
+	})
+
+	// Test logging with Left preservation
+	t.Run("Logging with Left preservation", func(t *testing.T) {
+		errorLog := []string{}
+		originalErr := fmt.Errorf("step1")
+		logError := ChainFirstLeft[string](func(e error) ReaderIOResult[string] {
+			errorLog = append(errorLog, "Logged: "+e.Error())
+			return Left[string](fmt.Errorf("log entry")) // This is ignored
+		})
+
+		result := F.Pipe2(
+			Left[string](originalErr),
+			logError,
+			ChainLeft(func(e error) ReaderIOResult[string] {
+				return Left[string](fmt.Errorf("step2"))
+			}),
+		)
+
+		actualResult := result(ctx)()
+		assert.Equal(t, []string{"Logged: step1"}, errorLog)
+		assert.Equal(t, E.Left[string](fmt.Errorf("step2")), actualResult)
+	})
+}

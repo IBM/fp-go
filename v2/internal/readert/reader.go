@@ -50,7 +50,10 @@ func MonadChain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](fcha
 	})
 }
 
-func Chain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](fchain func(func(A) HKTB) func(HKTA) HKTB, f func(A) GEB) func(GEA) GEB {
+func Chain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
+	fchain func(func(A) HKTB) func(HKTA) HKTB,
+	f func(A) GEB,
+) func(GEA) GEB {
 	return func(ma GEA) GEB {
 		return R.MakeReader(func(r E) HKTB {
 			return fchain(func(a A) HKTB {

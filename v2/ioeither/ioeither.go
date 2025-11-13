@@ -92,7 +92,7 @@ func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) Operat
 	)
 }
 
-func MonadChainIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEither[E, B] {
+func MonadChainIOK[E, A, B any](ma IOEither[E, A], f io.Kleisli[A, B]) IOEither[E, B] {
 	return fromio.MonadChainIOK(
 		MonadChain[E, A, B],
 		FromIO[E, B],
@@ -101,7 +101,7 @@ func MonadChainIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEither[E, 
 	)
 }
 
-func ChainIOK[E, A, B any](f func(A) IO[B]) Operator[E, A, B] {
+func ChainIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, B] {
 	return fromio.ChainIOK(
 		Chain[E, A, B],
 		FromIO[E, B],
@@ -147,7 +147,7 @@ func Chain[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, B] {
 	return eithert.Chain(io.Chain[Either[E, A], Either[E, B]], io.Of[Either[E, B]], f)
 }
 
-func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f func(A) Either[E, B]) IOEither[E, B] {
+func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f either.Kleisli[E, A, B]) IOEither[E, B] {
 	return fromeither.MonadChainEitherK(
 		MonadChain[E, A, B],
 		FromEither[E, B],
@@ -156,7 +156,7 @@ func MonadChainEitherK[E, A, B any](ma IOEither[E, A], f func(A) Either[E, B]) I
 	)
 }
 
-func ChainEitherK[E, A, B any](f func(A) Either[E, B]) Operator[E, A, B] {
+func ChainEitherK[E, A, B any](f either.Kleisli[E, A, B]) Operator[E, A, B] {
 	return fromeither.ChainEitherK(
 		Chain[E, A, B],
 		FromEither[E, B],
@@ -255,7 +255,7 @@ func BiMap[E1, E2, A, B any](f func(E1) E2, g func(A) B) func(IOEither[E1, A]) I
 }
 
 // Fold converts an IOEither into an IO
-func Fold[E, A, B any](onLeft func(E) IO[B], onRight func(A) IO[B]) func(IOEither[E, A]) IO[B] {
+func Fold[E, A, B any](onLeft func(E) IO[B], onRight io.Kleisli[A, B]) func(IOEither[E, A]) IO[B] {
 	return eithert.MatchE(io.MonadChain[Either[E, A], B], onLeft, onRight)
 }
 
@@ -284,7 +284,12 @@ func MonadChainFirst[E, A, B any](ma IOEither[E, A], f Kleisli[E, A, B]) IOEithe
 	)
 }
 
-// ChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
+//go:inline
+func MonadTap[E, A, B any](ma IOEither[E, A], f Kleisli[E, A, B]) IOEither[E, A] {
+	return MonadChainFirst(ma, f)
+}
+
+//go:inline
 func ChainFirst[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, A] {
 	return chain.ChainFirst(
 		Chain[E, A, A],
@@ -293,7 +298,12 @@ func ChainFirst[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, A] {
 	)
 }
 
-func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) Either[E, B]) IOEither[E, A] {
+//go:inline
+func Tap[E, A, B any](f Kleisli[E, A, B]) Operator[E, A, A] {
+	return ChainFirst(f)
+}
+
+func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f either.Kleisli[E, A, B]) IOEither[E, A] {
 	return fromeither.MonadChainFirstEitherK(
 		MonadChain[E, A, A],
 		MonadMap[E, B, A],
@@ -303,7 +313,7 @@ func MonadChainFirstEitherK[A, E, B any](ma IOEither[E, A], f func(A) Either[E, 
 	)
 }
 
-func ChainFirstEitherK[A, E, B any](f func(A) Either[E, B]) Operator[E, A, A] {
+func ChainFirstEitherK[A, E, B any](f either.Kleisli[E, A, B]) Operator[E, A, A] {
 	return fromeither.ChainFirstEitherK(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -313,7 +323,7 @@ func ChainFirstEitherK[A, E, B any](f func(A) Either[E, B]) Operator[E, A, A] {
 }
 
 // MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
-func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEither[E, A] {
+func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f io.Kleisli[A, B]) IOEither[E, A] {
 	return fromio.MonadChainFirstIOK(
 		MonadChain[E, A, A],
 		MonadMap[E, B, A],
@@ -324,7 +334,7 @@ func MonadChainFirstIOK[E, A, B any](ma IOEither[E, A], f func(A) IO[B]) IOEithe
 }
 
 // ChainFirstIOK runs the [IO] monad returned by the function but returns the result of the original monad
-func ChainFirstIOK[E, A, B any](f func(A) IO[B]) func(IOEither[E, A]) IOEither[E, A] {
+func ChainFirstIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, A] {
 	return fromio.ChainFirstIOK(
 		Chain[E, A, A],
 		Map[E, B, A],
@@ -333,7 +343,27 @@ func ChainFirstIOK[E, A, B any](f func(A) IO[B]) func(IOEither[E, A]) IOEither[E
 	)
 }
 
-func MonadFold[E, A, B any](ma IOEither[E, A], onLeft func(E) IO[B], onRight func(A) IO[B]) IO[B] {
+//go:inline
+func MonadTapEitherK[A, E, B any](ma IOEither[E, A], f either.Kleisli[E, A, B]) IOEither[E, A] {
+	return MonadChainFirstEitherK(ma, f)
+}
+
+//go:inline
+func TapEitherK[A, E, B any](f either.Kleisli[E, A, B]) Operator[E, A, A] {
+	return ChainFirstEitherK(f)
+}
+
+// MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
+func MonadTapIOK[E, A, B any](ma IOEither[E, A], f io.Kleisli[A, B]) IOEither[E, A] {
+	return MonadChainFirstIOK(ma, f)
+}
+
+// ChainFirstIOK runs the [IO] monad returned by the function but returns the result of the original monad
+func TapIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, A] {
+	return ChainFirstIOK[E](f)
+}
+
+func MonadFold[E, A, B any](ma IOEither[E, A], onLeft func(E) IO[B], onRight io.Kleisli[A, B]) IO[B] {
 	return eithert.FoldE(io.MonadChain[Either[E, A], B], ma, onLeft, onRight)
 }
 
@@ -407,4 +437,150 @@ func Delay[E, A any](delay time.Duration) Operator[E, A, A] {
 // After creates an operation that passes after the given [time.Time]
 func After[E, A any](timestamp time.Time) Operator[E, A, A] {
 	return io.After[Either[E, A]](timestamp)
+}
+
+// MonadChainLeft chains a computation on the left (error) side of an [IOEither].
+// If the input is a Left value, it applies the function f to transform the error and potentially
+// change the error type from EA to EB. If the input is a Right value, it passes through unchanged.
+//
+// This is useful for error recovery or error transformation scenarios where you want to handle
+// errors by performing another computation that may also fail.
+//
+// Parameters:
+//   - fa: The input [IOEither] that may contain an error of type EA
+//   - f: A function that takes an error of type EA and returns an [IOEither] with error type EB
+//
+// Returns:
+//   - An [IOEither] with the potentially transformed error type EB
+//
+// Example:
+//
+//	// Recover from a specific error by trying an alternative computation
+//	result := MonadChainLeft(
+//	    Left[int]("network error"),
+//	    func(err string) IOEither[string, int] {
+//	        if err == "network error" {
+//	            return Right[string](42) // recover with default value
+//	        }
+//	        return Left[int]("unrecoverable: " + err)
+//	    },
+//	)
+func MonadChainLeft[EA, EB, A any](fa IOEither[EA, A], f Kleisli[EB, EA, A]) IOEither[EB, A] {
+	return eithert.MonadChainLeft(
+		io.MonadChain[Either[EA, A], Either[EB, A]],
+		io.MonadOf[Either[EB, A]],
+		fa,
+		f,
+	)
+}
+
+// ChainLeft is the curried version of [MonadChainLeft].
+// It returns a function that chains a computation on the left (error) side of an [IOEither].
+//
+// This is particularly useful in functional composition pipelines where you want to handle
+// errors by performing another computation that may also fail.
+//
+// Parameters:
+//   - f: A function that takes an error of type EA and returns an [IOEither] with error type EB
+//
+// Returns:
+//   - A function that transforms an [IOEither] with error type EA to one with error type EB
+//
+// Example:
+//
+//	// Create a reusable error handler
+//	recoverFromNetworkError := ChainLeft(func(err string) IOEither[string, int] {
+//	    if strings.Contains(err, "network") {
+//	        return Right[string](0) // return default value
+//	    }
+//	    return Left[int](err) // propagate other errors
+//	})
+//
+//	result := F.Pipe1(
+//	    Left[int]("network timeout"),
+//	    recoverFromNetworkError,
+//	)
+func ChainLeft[EA, EB, A any](f Kleisli[EB, EA, A]) func(IOEither[EA, A]) IOEither[EB, A] {
+	return eithert.ChainLeft(
+		io.Chain[Either[EA, A], Either[EB, A]],
+		io.Of[Either[EB, A]],
+		f,
+	)
+}
+
+// MonadChainFirstLeft chains a computation on the left (error) side but always returns the original error.
+// If the input is a Left value, it applies the function f to the error and executes the resulting computation,
+// but always returns the original Left error regardless of what f returns (Left or Right).
+// If the input is a Right value, it passes through unchanged without calling f.
+//
+// This is useful for side effects on errors (like logging or metrics) where you want to perform an action
+// when an error occurs but always propagate the original error, ensuring the error path is preserved.
+//
+// Parameters:
+//   - ma: The input [IOEither] that may contain an error of type EA
+//   - f: A function that takes an error of type EA and returns an [IOEither] (typically for side effects)
+//
+// Returns:
+//   - An [IOEither] with the original error preserved if input was Left, or the original Right value
+//
+// Example:
+//
+//	// Log errors but always preserve the original error
+//	result := MonadChainFirstLeft(
+//	    Left[int]("database error"),
+//	    func(err string) IOEither[string, int] {
+//	        return FromIO[string](func() int {
+//	            log.Printf("Error occurred: %s", err)
+//	            return 0
+//	        })
+//	    },
+//	)
+//	// result will always be Left("database error"), even though f returns Right
+func MonadChainFirstLeft[A, EA, EB, B any](ma IOEither[EA, A], f Kleisli[EB, EA, B]) IOEither[EA, A] {
+	return MonadChainLeft(ma, function.Flow2(f, Fold(function.Constant1[EB](ma), function.Constant1[B](ma))))
+}
+
+//go:inline
+func MonadTapLeft[A, EA, EB, B any](ma IOEither[EA, A], f Kleisli[EB, EA, B]) IOEither[EA, A] {
+	return MonadChainFirstLeft(ma, f)
+}
+
+// ChainFirstLeft is the curried version of [MonadChainFirstLeft].
+// It returns a function that chains a computation on the left (error) side while always preserving the original error.
+//
+// This is particularly useful for adding error handling side effects (like logging, metrics, or notifications)
+// in a functional pipeline. The original error is always returned regardless of what f returns (Left or Right),
+// ensuring the error path is preserved.
+//
+// Parameters:
+//   - f: A function that takes an error of type EA and returns an [IOEither] (typically for side effects)
+//
+// Returns:
+//   - An [Operator] that performs the side effect but always returns the original error if input was Left
+//
+// Example:
+//
+//	// Create a reusable error logger
+//	logError := ChainFirstLeft(func(err string) IOEither[any, int] {
+//	    return FromIO[any](func() int {
+//	        log.Printf("Error: %s", err)
+//	        return 0
+//	    })
+//	})
+//
+//	result := F.Pipe1(
+//	    Left[int]("validation failed"),
+//	    logError, // logs the error
+//	)
+//	// result is always Left("validation failed"), even though f returns Right
+func ChainFirstLeft[A, EA, EB, B any](f Kleisli[EB, EA, B]) Operator[EA, A, A] {
+	return ChainLeft(func(e EA) IOEither[EA, A] {
+		ma := Left[A](e)
+		return MonadFold(f(e), function.Constant1[EB](ma), function.Constant1[B](ma))
+	})
+}
+
+//go:inline
+func TapLeft[A, EA, EB, B any](f Kleisli[EB, EA, B]) Operator[EA, A, A] {
+	return ChainFirstLeft[A](f)
 }

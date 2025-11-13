@@ -180,6 +180,11 @@ func MonadChainFirst[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIORe
 	return RIOR.MonadChainFirst(ma, f)
 }
 
+//go:inline
+func MonadTap[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIOResult[A] {
+	return RIOR.MonadTap(ma, f)
+}
+
 // ChainFirst sequences two [ReaderIOResult] computations but returns the result of the first.
 // This is the curried version of [MonadChainFirst].
 //
@@ -191,6 +196,11 @@ func MonadChainFirst[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIORe
 //go:inline
 func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return RIOR.ChainFirst(f)
+}
+
+//go:inline
+func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return RIOR.Tap(f)
 }
 
 // Of creates a [ReaderIOResult] that always succeeds with the given value.
@@ -403,6 +413,11 @@ func MonadChainFirstEitherK[A, B any](ma ReaderIOResult[A], f func(A) Either[B])
 	return RIOR.MonadChainFirstEitherK(ma, f)
 }
 
+//go:inline
+func MonadTapEitherK[A, B any](ma ReaderIOResult[A], f func(A) Either[B]) ReaderIOResult[A] {
+	return RIOR.MonadTapEitherK(ma, f)
+}
+
 // ChainFirstEitherK chains a function that returns an [Either] but keeps the original value.
 // This is the curried version of [MonadChainFirstEitherK].
 //
@@ -414,6 +429,11 @@ func MonadChainFirstEitherK[A, B any](ma ReaderIOResult[A], f func(A) Either[B])
 //go:inline
 func ChainFirstEitherK[A, B any](f func(A) Either[B]) Operator[A, A] {
 	return RIOR.ChainFirstEitherK[context.Context](f)
+}
+
+//go:inline
+func TapEitherK[A, B any](f func(A) Either[B]) Operator[A, A] {
+	return RIOR.TapEitherK[context.Context](f)
 }
 
 // ChainOptionK chains a function that returns an [Option] into a [ReaderIOResult] computation.
@@ -538,6 +558,11 @@ func MonadChainFirstIOK[A, B any](ma ReaderIOResult[A], f func(A) IO[B]) ReaderI
 	return RIOR.MonadChainFirstIOK(ma, f)
 }
 
+//go:inline
+func MonadTapIOK[A, B any](ma ReaderIOResult[A], f func(A) IO[B]) ReaderIOResult[A] {
+	return RIOR.MonadTapIOK(ma, f)
+}
+
 // ChainFirstIOK chains a function that returns an [IO] but keeps the original value.
 // This is the curried version of [MonadChainFirstIOK].
 //
@@ -549,6 +574,11 @@ func MonadChainFirstIOK[A, B any](ma ReaderIOResult[A], f func(A) IO[B]) ReaderI
 //go:inline
 func ChainFirstIOK[A, B any](f func(A) IO[B]) Operator[A, A] {
 	return RIOR.ChainFirstIOK[context.Context](f)
+}
+
+//go:inline
+func TapIOK[A, B any](f func(A) IO[B]) Operator[A, A] {
+	return RIOR.TapIOK[context.Context](f)
 }
 
 // ChainIOEitherK chains a function that returns an [IOResult] into a [ReaderIOResult] computation.
@@ -783,8 +813,18 @@ func MonadChainFirstReaderK[A, B any](ma ReaderIOResult[A], f reader.Kleisli[con
 }
 
 //go:inline
+func MonadTapReaderK[A, B any](ma ReaderIOResult[A], f reader.Kleisli[context.Context, A, B]) ReaderIOResult[A] {
+	return RIOR.MonadTapReaderK(ma, f)
+}
+
+//go:inline
 func ChainFirstReaderK[A, B any](f reader.Kleisli[context.Context, A, B]) Operator[A, A] {
 	return RIOR.ChainFirstReaderK(f)
+}
+
+//go:inline
+func TapReaderK[A, B any](f reader.Kleisli[context.Context, A, B]) Operator[A, A] {
+	return RIOR.TapReaderK(f)
 }
 
 //go:inline
@@ -803,8 +843,18 @@ func MonadChainFirstReaderResultK[A, B any](ma ReaderIOResult[A], f readerresult
 }
 
 //go:inline
+func MonadTapReaderResultK[A, B any](ma ReaderIOResult[A], f readerresult.Kleisli[A, B]) ReaderIOResult[A] {
+	return RIOR.MonadTapReaderResultK(ma, f)
+}
+
+//go:inline
 func ChainFirstReaderResultK[A, B any](f readerresult.Kleisli[A, B]) Operator[A, A] {
 	return RIOR.ChainFirstReaderResultK(f)
+}
+
+//go:inline
+func TapReaderResultK[A, B any](f readerresult.Kleisli[A, B]) Operator[A, A] {
+	return RIOR.TapReaderResultK(f)
 }
 
 //go:inline
@@ -823,8 +873,18 @@ func MonadChainFirstReaderIOK[A, B any](ma ReaderIOResult[A], f readerio.Kleisli
 }
 
 //go:inline
+func MonadTapReaderIOK[A, B any](ma ReaderIOResult[A], f readerio.Kleisli[context.Context, A, B]) ReaderIOResult[A] {
+	return RIOR.MonadTapReaderIOK(ma, f)
+}
+
+//go:inline
 func ChainFirstReaderIOK[A, B any](f readerio.Kleisli[context.Context, A, B]) Operator[A, A] {
 	return RIOR.ChainFirstReaderIOK(f)
+}
+
+//go:inline
+func TapReaderIOK[A, B any](f readerio.Kleisli[context.Context, A, B]) Operator[A, A] {
+	return RIOR.TapReaderIOK(f)
 }
 
 //go:inline
@@ -838,6 +898,63 @@ func ChainFirstReaderOptionK[A, B any](onNone func() error) func(readeroption.Kl
 }
 
 //go:inline
+func TapReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
+	return RIOR.TapReaderOptionK[context.Context, A, B](onNone)
+}
+
+//go:inline
 func Read[A any](r context.Context) func(ReaderIOResult[A]) IOResult[A] {
 	return RIOR.Read[A](r)
+}
+
+// MonadChainLeft chains a computation on the left (error) side of a [ReaderIOResult].
+// If the input is a Left value, it applies the function f to transform the error and potentially
+// change the error type. If the input is a Right value, it passes through unchanged.
+//
+//go:inline
+func MonadChainLeft[A any](fa ReaderIOResult[A], f Kleisli[error, A]) ReaderIOResult[A] {
+	return RIOR.MonadChainLeft(fa, f)
+}
+
+// ChainLeft is the curried version of [MonadChainLeft].
+// It returns a function that chains a computation on the left (error) side of a [ReaderIOResult].
+//
+//go:inline
+func ChainLeft[A any](f Kleisli[error, A]) func(ReaderIOResult[A]) ReaderIOResult[A] {
+	return RIOR.ChainLeft(f)
+}
+
+// MonadChainFirstLeft chains a computation on the left (error) side but always returns the original error.
+// If the input is a Left value, it applies the function f to the error and executes the resulting computation,
+// but always returns the original Left error regardless of what f returns (Left or Right).
+// If the input is a Right value, it passes through unchanged without calling f.
+//
+// This is useful for side effects on errors (like logging or metrics) where you want to perform an action
+// when an error occurs but always propagate the original error, ensuring the error path is preserved.
+//
+//go:inline
+func MonadChainFirstLeft[A, B any](ma ReaderIOResult[A], f Kleisli[error, B]) ReaderIOResult[A] {
+	return RIOR.MonadChainFirstLeft(ma, f)
+}
+
+//go:inline
+func MonadTapLeft[A, B any](ma ReaderIOResult[A], f Kleisli[error, B]) ReaderIOResult[A] {
+	return RIOR.MonadTapLeft(ma, f)
+}
+
+// ChainFirstLeft is the curried version of [MonadChainFirstLeft].
+// It returns a function that chains a computation on the left (error) side while always preserving the original error.
+//
+// This is particularly useful for adding error handling side effects (like logging, metrics, or notifications)
+// in a functional pipeline. The original error is always returned regardless of what f returns (Left or Right),
+// ensuring the error path is preserved.
+//
+//go:inline
+func ChainFirstLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
+	return RIOR.ChainFirstLeft[A](f)
+}
+
+//go:inline
+func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
+	return RIOR.TapLeft[A](f)
 }

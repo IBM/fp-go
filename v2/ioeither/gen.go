@@ -17,7 +17,7 @@ func Eitherize0[F ~func() (R, error), R any](f F) func() IOEither[error, R] {
 
 // Uneitherize0 converts a function with 1 parameters returning a tuple into a function with 0 parameters returning a [IOEither[error, R]]
 func Uneitherize0[F ~func() IOEither[error, R], R any](f F) func() (R, error) {
-	return G.Uneitherize0[IOEither[error, R]](f)
+	return G.Uneitherize0(f)
 }
 
 // Eitherize1 converts a function with 2 parameters returning a tuple into a function with 1 parameters returning a [IOEither[error, R]]
@@ -27,7 +27,7 @@ func Eitherize1[F ~func(T1) (R, error), T1, R any](f F) func(T1) IOEither[error,
 
 // Uneitherize1 converts a function with 2 parameters returning a tuple into a function with 1 parameters returning a [IOEither[error, R]]
 func Uneitherize1[F ~func(T1) IOEither[error, R], T1, R any](f F) func(T1) (R, error) {
-	return G.Uneitherize1[IOEither[error, R]](f)
+	return G.Uneitherize1(f)
 }
 
 // SequenceT1 converts 1 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple1[T1]]]
@@ -124,7 +124,7 @@ func Eitherize2[F ~func(T1, T2) (R, error), T1, T2, R any](f F) func(T1, T2) IOE
 
 // Uneitherize2 converts a function with 3 parameters returning a tuple into a function with 2 parameters returning a [IOEither[error, R]]
 func Uneitherize2[F ~func(T1, T2) IOEither[error, R], T1, T2, R any](f F) func(T1, T2) (R, error) {
-	return G.Uneitherize2[IOEither[error, R]](f)
+	return G.Uneitherize2(f)
 }
 
 // SequenceT2 converts 2 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple2[T1, T2]]]
@@ -239,7 +239,7 @@ func Eitherize3[F ~func(T1, T2, T3) (R, error), T1, T2, T3, R any](f F) func(T1,
 
 // Uneitherize3 converts a function with 4 parameters returning a tuple into a function with 3 parameters returning a [IOEither[error, R]]
 func Uneitherize3[F ~func(T1, T2, T3) IOEither[error, R], T1, T2, T3, R any](f F) func(T1, T2, T3) (R, error) {
-	return G.Uneitherize3[IOEither[error, R]](f)
+	return G.Uneitherize3(f)
 }
 
 // SequenceT3 converts 3 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple3[T1, T2, T3]]]
@@ -372,7 +372,7 @@ func Eitherize4[F ~func(T1, T2, T3, T4) (R, error), T1, T2, T3, T4, R any](f F) 
 
 // Uneitherize4 converts a function with 5 parameters returning a tuple into a function with 4 parameters returning a [IOEither[error, R]]
 func Uneitherize4[F ~func(T1, T2, T3, T4) IOEither[error, R], T1, T2, T3, T4, R any](f F) func(T1, T2, T3, T4) (R, error) {
-	return G.Uneitherize4[IOEither[error, R]](f)
+	return G.Uneitherize4(f)
 }
 
 // SequenceT4 converts 4 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple4[T1, T2, T3, T4]]]
@@ -523,7 +523,7 @@ func Eitherize5[F ~func(T1, T2, T3, T4, T5) (R, error), T1, T2, T3, T4, T5, R an
 
 // Uneitherize5 converts a function with 6 parameters returning a tuple into a function with 5 parameters returning a [IOEither[error, R]]
 func Uneitherize5[F ~func(T1, T2, T3, T4, T5) IOEither[error, R], T1, T2, T3, T4, T5, R any](f F) func(T1, T2, T3, T4, T5) (R, error) {
-	return G.Uneitherize5[IOEither[error, R]](f)
+	return G.Uneitherize5(f)
 }
 
 // SequenceT5 converts 5 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple5[T1, T2, T3, T4, T5]]]
@@ -692,7 +692,7 @@ func Eitherize6[F ~func(T1, T2, T3, T4, T5, T6) (R, error), T1, T2, T3, T4, T5, 
 
 // Uneitherize6 converts a function with 7 parameters returning a tuple into a function with 6 parameters returning a [IOEither[error, R]]
 func Uneitherize6[F ~func(T1, T2, T3, T4, T5, T6) IOEither[error, R], T1, T2, T3, T4, T5, T6, R any](f F) func(T1, T2, T3, T4, T5, T6) (R, error) {
-	return G.Uneitherize6[IOEither[error, R]](f)
+	return G.Uneitherize6(f)
 }
 
 // SequenceT6 converts 6 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple6[T1, T2, T3, T4, T5, T6]]]
@@ -1084,7 +1084,7 @@ func Eitherize8[F ~func(T1, T2, T3, T4, T5, T6, T7, T8) (R, error), T1, T2, T3, 
 
 // Uneitherize8 converts a function with 9 parameters returning a tuple into a function with 8 parameters returning a [IOEither[error, R]]
 func Uneitherize8[F ~func(T1, T2, T3, T4, T5, T6, T7, T8) IOEither[error, R], T1, T2, T3, T4, T5, T6, T7, T8, R any](f F) func(T1, T2, T3, T4, T5, T6, T7, T8) (R, error) {
-	return G.Uneitherize8[IOEither[error, R]](f)
+	return G.Uneitherize8(f)
 }
 
 // SequenceT8 converts 8 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]]]
@@ -1307,7 +1307,7 @@ func Eitherize9[F ~func(T1, T2, T3, T4, T5, T6, T7, T8, T9) (R, error), T1, T2, 
 
 // Uneitherize9 converts a function with 10 parameters returning a tuple into a function with 9 parameters returning a [IOEither[error, R]]
 func Uneitherize9[F ~func(T1, T2, T3, T4, T5, T6, T7, T8, T9) IOEither[error, R], T1, T2, T3, T4, T5, T6, T7, T8, T9, R any](f F) func(T1, T2, T3, T4, T5, T6, T7, T8, T9) (R, error) {
-	return G.Uneitherize9[IOEither[error, R]](f)
+	return G.Uneitherize9(f)
 }
 
 // SequenceT9 converts 9 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]]]
@@ -1548,7 +1548,7 @@ func Eitherize10[F ~func(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) (R, error), T1
 
 // Uneitherize10 converts a function with 11 parameters returning a tuple into a function with 10 parameters returning a [IOEither[error, R]]
 func Uneitherize10[F ~func(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) IOEither[error, R], T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R any](f F) func(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) (R, error) {
-	return G.Uneitherize10[IOEither[error, R]](f)
+	return G.Uneitherize10(f)
 }
 
 // SequenceT10 converts 10 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]]]

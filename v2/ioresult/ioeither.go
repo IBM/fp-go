@@ -18,9 +18,11 @@ package ioresult
 import (
 	"time"
 
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	IOO "github.com/IBM/fp-go/v2/iooption"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 //go:inline
@@ -79,12 +81,12 @@ func ChainOptionK[A, B any](onNone func() error) func(func(A) O.Option[B]) Opera
 }
 
 //go:inline
-func MonadChainIOK[A, B any](ma IOResult[A], f func(A) IO[B]) IOResult[B] {
+func MonadChainIOK[A, B any](ma IOResult[A], f io.Kleisli[A, B]) IOResult[B] {
 	return ioeither.MonadChainIOK(ma, f)
 }
 
 //go:inline
-func ChainIOK[A, B any](f func(A) IO[B]) Operator[A, B] {
+func ChainIOK[A, B any](f io.Kleisli[A, B]) Operator[A, B] {
 	return ioeither.ChainIOK[error](f)
 }
 
@@ -138,22 +140,22 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 }
 
 //go:inline
-func MonadChainEitherK[A, B any](ma IOResult[A], f func(A) Result[B]) IOResult[B] {
+func MonadChainEitherK[A, B any](ma IOResult[A], f result.Kleisli[A, B]) IOResult[B] {
 	return ioeither.MonadChainEitherK(ma, f)
 }
 
 //go:inline
-func MonadChainResultK[A, B any](ma IOResult[A], f func(A) Result[B]) IOResult[B] {
+func MonadChainResultK[A, B any](ma IOResult[A], f result.Kleisli[A, B]) IOResult[B] {
 	return ioeither.MonadChainEitherK(ma, f)
 }
 
 //go:inline
-func ChainEitherK[A, B any](f func(A) Result[B]) Operator[A, B] {
+func ChainEitherK[A, B any](f result.Kleisli[A, B]) Operator[A, B] {
 	return ioeither.ChainEitherK(f)
 }
 
 //go:inline
-func ChainResultK[A, B any](f func(A) Result[B]) Operator[A, B] {
+func ChainResultK[A, B any](f result.Kleisli[A, B]) Operator[A, B] {
 	return ioeither.ChainEitherK(f)
 }
 
@@ -238,7 +240,7 @@ func BiMap[E, A, B any](f func(error) E, g func(A) B) func(IOResult[A]) ioeither
 // Fold converts an IOResult into an IO
 //
 //go:inline
-func Fold[A, B any](onLeft func(error) IO[B], onRight func(A) IO[B]) func(IOResult[A]) IO[B] {
+func Fold[A, B any](onLeft func(error) IO[B], onRight io.Kleisli[A, B]) func(IOResult[A]) IO[B] {
 	return ioeither.Fold(onLeft, onRight)
 }
 
@@ -270,6 +272,11 @@ func MonadChainFirst[A, B any](ma IOResult[A], f Kleisli[A, B]) IOResult[A] {
 	return ioeither.MonadChainFirst(ma, f)
 }
 
+//go:inline
+func MonadTap[A, B any](ma IOResult[A], f Kleisli[A, B]) IOResult[A] {
+	return ioeither.MonadTap(ma, f)
+}
+
 // ChainFirst runs the [IOResult] monad returned by the function but returns the result of the original monad
 //
 //go:inline
@@ -278,36 +285,65 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 }
 
 //go:inline
-func MonadChainFirstEitherK[A, B any](ma IOResult[A], f func(A) Result[B]) IOResult[A] {
+func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return ioeither.Tap(f)
+}
+
+//go:inline
+func MonadChainFirstEitherK[A, B any](ma IOResult[A], f result.Kleisli[A, B]) IOResult[A] {
 	return ioeither.MonadChainFirstEitherK(ma, f)
 }
 
 //go:inline
-func MonadChainFirstResultK[A, B any](ma IOResult[A], f func(A) Result[B]) IOResult[A] {
+func MonadTapEitherK[A, B any](ma IOResult[A], f result.Kleisli[A, B]) IOResult[A] {
+	return ioeither.MonadTapEitherK(ma, f)
+}
+
+//go:inline
+func MonadChainFirstResultK[A, B any](ma IOResult[A], f result.Kleisli[A, B]) IOResult[A] {
 	return ioeither.MonadChainFirstEitherK(ma, f)
 }
 
 //go:inline
-func ChainFirstEitherK[A, B any](f func(A) Result[B]) Operator[A, A] {
+func MonadTapResultK[A, B any](ma IOResult[A], f result.Kleisli[A, B]) IOResult[A] {
+	return ioeither.MonadTapEitherK(ma, f)
+}
+
+//go:inline
+func ChainFirstEitherK[A, B any](f result.Kleisli[A, B]) Operator[A, A] {
 	return ioeither.ChainFirstEitherK(f)
+}
+
+//go:inline
+func TapEitherK[A, B any](f result.Kleisli[A, B]) Operator[A, A] {
+	return ioeither.TapEitherK(f)
 }
 
 // MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
 //
 //go:inline
-func MonadChainFirstIOK[A, B any](ma IOResult[A], f func(A) IO[B]) IOResult[A] {
+func MonadChainFirstIOK[A, B any](ma IOResult[A], f io.Kleisli[A, B]) IOResult[A] {
 	return ioeither.MonadChainFirstIOK(ma, f)
+}
+
+//go:inline
+func MonadTapIOK[A, B any](ma IOResult[A], f io.Kleisli[A, B]) IOResult[A] {
+	return ioeither.MonadTapIOK(ma, f)
 }
 
 // ChainFirstIOK runs the [IO] monad returned by the function but returns the result of the original monad
 //
 //go:inline
-func ChainFirstIOK[A, B any](f func(A) IO[B]) Operator[A, A] {
+func ChainFirstIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
 	return ioeither.ChainFirstIOK[error](f)
 }
 
+func TapIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
+	return ioeither.TapIOK[error](f)
+}
+
 //go:inline
-func MonadFold[A, B any](ma IOResult[A], onLeft func(error) IO[B], onRight func(A) IO[B]) IO[B] {
+func MonadFold[A, B any](ma IOResult[A], onLeft func(error) IO[B], onRight io.Kleisli[A, B]) IO[B] {
 	return ioeither.MonadFold(ma, onLeft, onRight)
 }
 
@@ -382,4 +418,34 @@ func Delay[A any](delay time.Duration) Operator[A, A] {
 //go:inline
 func After[A any](timestamp time.Time) Operator[A, A] {
 	return ioeither.After[error, A](timestamp)
+}
+
+//go:inline
+func MonadChainLeft[A any](fa IOResult[A], f Kleisli[error, A]) IOResult[A] {
+	return ioeither.MonadChainLeft(fa, f)
+}
+
+//go:inline
+func ChainLeft[A any](f Kleisli[error, A]) Operator[A, A] {
+	return ioeither.ChainLeft(f)
+}
+
+//go:inline
+func MonadChainFirstLeft[A, B any](fa IOResult[A], f Kleisli[error, B]) IOResult[A] {
+	return ioeither.MonadChainFirstLeft(fa, f)
+}
+
+//go:inline
+func MonadTapLeft[A, B any](fa IOResult[A], f Kleisli[error, B]) IOResult[A] {
+	return ioeither.MonadTapLeft(fa, f)
+}
+
+//go:inline
+func ChainFirstLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
+	return ioeither.ChainFirstLeft[A](f)
+}
+
+//go:inline
+func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
+	return ioeither.TapLeft[A](f)
 }
