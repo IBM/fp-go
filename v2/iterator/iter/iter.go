@@ -48,6 +48,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	G "github.com/IBM/fp-go/v2/internal/iter"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
 )
@@ -58,10 +59,10 @@ import (
 //
 //	seq := Of(42)
 //	// yields: 42
+//
+//go:inline
 func Of[A any](a A) Seq[A] {
-	return func(yield Predicate[A]) {
-		yield(a)
-	}
+	return G.Of[Seq[A]](a)
 }
 
 // Of2 creates a key-value sequence containing a single key-value pair.
@@ -521,7 +522,7 @@ func From[A any](data ...A) Seq[A] {
 //
 //go:inline
 func Empty[A any]() Seq[A] {
-	return func(_ Predicate[A]) {}
+	return G.Empty[Seq[A]]()
 }
 
 // MakeBy creates a sequence of n elements by applying a function to each index.
@@ -566,12 +567,10 @@ func Replicate[A any](n int, a A) Seq[A] {
 //	seq := From(1, 2, 3, 4, 5)
 //	sum := MonadReduce(seq, func(acc, x int) int { return acc + x }, 0)
 //	// returns: 15
+//
+//go:inline
 func MonadReduce[A, B any](fa Seq[A], f func(B, A) B, initial B) B {
-	current := initial
-	for a := range fa {
-		current = f(current, a)
-	}
-	return current
+	return G.MonadReduce(fa, f, initial)
 }
 
 // Reduce returns a function that reduces a sequence to a single value.
@@ -598,14 +597,10 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Seq[A]) B {
 //	    return acc + (i * x)
 //	}, 0)
 //	// returns: 0*10 + 1*20 + 2*30 = 80
+//
+//go:inline
 func MonadReduceWithIndex[A, B any](fa Seq[A], f func(int, B, A) B, initial B) B {
-	current := initial
-	var i int
-	for a := range fa {
-		current = f(i, current, a)
-		i += 1
-	}
-	return current
+	return G.MonadReduceWithIndex(fa, f, initial)
 }
 
 // ReduceWithIndex returns a function that reduces with index.
@@ -831,7 +826,7 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 //
 //go:inline
 func Prepend[A any](head A) Operator[A, A] {
-	return F.Bind1st(concat[A], Of(head))
+	return G.Prepend[Seq[A]](head)
 }
 
 // Append returns a function that adds an element to the end of a sequence.
@@ -844,7 +839,7 @@ func Prepend[A any](head A) Operator[A, A] {
 //
 //go:inline
 func Append[A any](tail A) Operator[A, A] {
-	return F.Bind2nd(concat[A], Of(tail))
+	return G.Append[Seq[A]](tail)
 }
 
 // MonadZip combines two sequences into a sequence of pairs.

@@ -22,7 +22,7 @@ import (
 )
 
 type (
-	Traversal[S, A, HKTS, HKTA any] func(func(A) HKTA) func(S) HKTS
+	Traversal[S, A, HKTS, HKTA any] = func(func(A) HKTA) func(S) HKTS
 )
 
 func Compose[

@@ -21,7 +21,7 @@ import (
 )
 
 type (
-	Traversal[E, S, A any] T.Traversal[S, A, ET.Either[E, S], ET.Either[E, A]]
+	Traversal[E, S, A any] = T.Traversal[S, A, ET.Either[E, S], ET.Either[E, A]]
 )
 
 func Compose[

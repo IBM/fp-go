@@ -18,6 +18,7 @@ package io
 import (
 	F "github.com/IBM/fp-go/v2/function"
 	INTA "github.com/IBM/fp-go/v2/internal/array"
+	INTI "github.com/IBM/fp-go/v2/internal/iter"
 	INTR "github.com/IBM/fp-go/v2/internal/record"
 )
 
@@ -55,6 +56,16 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		Ap[[]B, B],
+
+		f,
+	)
+}
+
+func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
+	return INTI.Traverse[Seq[A]](
+		Of[Seq[B]],
+		Map[Seq[B], func(B) Seq[B]],
+		Ap[Seq[B], B],
 
 		f,
 	)

@@ -77,8 +77,7 @@ func IsNonNil[GA ~[]A, A any](as GA) bool {
 
 func Reduce[GA ~[]A, A, B any](fa GA, f func(B, A) B, initial B) B {
 	current := initial
-	count := len(fa)
-	for i := 0; i < count; i++ {
+	for i := range len(fa) {
 		current = f(current, fa[i])
 	}
 	return current
@@ -86,8 +85,7 @@ func Reduce[GA ~[]A, A, B any](fa GA, f func(B, A) B, initial B) B {
 
 func ReduceWithIndex[GA ~[]A, A, B any](fa GA, f func(int, B, A) B, initial B) B {
 	current := initial
-	count := len(fa)
-	for i := 0; i < count; i++ {
+	for i := range len(fa) {
 		current = f(i, current, fa[i])
 	}
 	return current

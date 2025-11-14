@@ -13,25 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iter
+package result
 
 import (
-	G "github.com/IBM/fp-go/v2/internal/iter"
-	M "github.com/IBM/fp-go/v2/monoid"
+	T "github.com/IBM/fp-go/v2/optics/traversal/generic"
 )
 
-// Monoid returns a Monoid instance for Seq[T].
-// The monoid's concat operation concatenates sequences, and the empty value is an empty sequence.
-//
-// Example:
-//
-//	m := Monoid[int]()
-//	seq1 := From(1, 2)
-//	seq2 := From(3, 4)
-//	result := m.Concat(seq1, seq2)
-//	// yields: 1, 2, 3, 4
-//
-//go:inline
-func Monoid[T any]() M.Monoid[Seq[T]] {
-	return M.MakeMonoid(G.Concat[Seq[T]], Empty[T]())
+func Compose[
+	S, A, B any](ab Traversal[A, B]) Operator[S, A, B] {
+	return T.Compose[
+		Traversal[A, B],
+		Traversal[S, A],
+		Traversal[S, B],
+	](ab)
 }
