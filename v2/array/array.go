@@ -17,11 +17,10 @@ package array
 
 import (
 	G "github.com/IBM/fp-go/v2/array/generic"
-	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/array"
 	M "github.com/IBM/fp-go/v2/monoid"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/tuple"
 )
 
@@ -50,16 +49,16 @@ func Replicate[A any](n int, a A) []A {
 // This is the monadic version of Map that takes the array as the first parameter.
 //
 //go:inline
-func MonadMap[A, B any](as []A, f func(a A) B) []B {
+func MonadMap[A, B any](as []A, f func(A) B) []B {
 	return G.MonadMap[[]A, []B](as, f)
 }
 
 // MonadMapRef applies a function to a pointer to each element of an array, returning a new array with the results.
 // This is useful when you need to access elements by reference without copying.
-func MonadMapRef[A, B any](as []A, f func(a *A) B) []B {
+func MonadMapRef[A, B any](as []A, f func(*A) B) []B {
 	count := len(as)
 	bs := make([]B, count)
-	for i := count - 1; i >= 0; i-- {
+	for i := range count {
 		bs[i] = f(&as[i])
 	}
 	return bs
@@ -68,7 +67,7 @@ func MonadMapRef[A, B any](as []A, f func(a *A) B) []B {
 // MapWithIndex applies a function to each element and its index in an array, returning a new array with the results.
 //
 //go:inline
-func MapWithIndex[A, B any](f func(int, A) B) func([]A) []B {
+func MapWithIndex[A, B any](f func(int, A) B) Operator[A, B] {
 	return G.MapWithIndex[[]A, []B](f)
 }
 
@@ -81,35 +80,35 @@ func MapWithIndex[A, B any](f func(int, A) B) func([]A) []B {
 //	result := double([]int{1, 2, 3}) // [2, 4, 6]
 //
 //go:inline
-func Map[A, B any](f func(a A) B) func([]A) []B {
+func Map[A, B any](f func(A) B) Operator[A, B] {
 	return G.Map[[]A, []B](f)
 }
 
 // MapRef applies a function to a pointer to each element of an array, returning a new array with the results.
 // This is the curried version that returns a function.
-func MapRef[A, B any](f func(a *A) B) func([]A) []B {
+func MapRef[A, B any](f func(*A) B) Operator[A, B] {
 	return F.Bind2nd(MonadMapRef[A, B], f)
 }
 
-func filterRef[A any](fa []A, pred func(a *A) bool) []A {
-	var result []A
+func filterRef[A any](fa []A, pred func(*A) bool) []A {
 	count := len(fa)
-	for i := 0; i < count; i++ {
-		a := fa[i]
-		if pred(&a) {
-			result = append(result, a)
+	var result []A = make([]A, 0, count)
+	for i := range count {
+		a := &fa[i]
+		if pred(a) {
+			result = append(result, *a)
 		}
 	}
 	return result
 }
 
-func filterMapRef[A, B any](fa []A, pred func(a *A) bool, f func(a *A) B) []B {
-	var result []B
+func filterMapRef[A, B any](fa []A, pred func(*A) bool, f func(*A) B) []B {
 	count := len(fa)
-	for i := 0; i < count; i++ {
-		a := fa[i]
-		if pred(&a) {
-			result = append(result, f(&a))
+	var result []B = make([]B, 0, count)
+	for i := range count {
+		a := &fa[i]
+		if pred(a) {
+			result = append(result, f(a))
 		}
 	}
 	return result
@@ -118,19 +117,19 @@ func filterMapRef[A, B any](fa []A, pred func(a *A) bool, f func(a *A) B) []B {
 // Filter returns a new array with all elements from the original array that match a predicate
 //
 //go:inline
-func Filter[A any](pred func(A) bool) EM.Endomorphism[[]A] {
+func Filter[A any](pred func(A) bool) Operator[A, A] {
 	return G.Filter[[]A](pred)
 }
 
 // FilterWithIndex returns a new array with all elements from the original array that match a predicate
 //
 //go:inline
-func FilterWithIndex[A any](pred func(int, A) bool) EM.Endomorphism[[]A] {
+func FilterWithIndex[A any](pred func(int, A) bool) Operator[A, A] {
 	return G.FilterWithIndex[[]A](pred)
 }
 
 // FilterRef returns a new array with all elements from the original array that match a predicate operating on pointers.
-func FilterRef[A any](pred func(*A) bool) EM.Endomorphism[[]A] {
+func FilterRef[A any](pred func(*A) bool) Operator[A, A] {
 	return F.Bind2nd(filterRef[A], pred)
 }
 
@@ -138,7 +137,7 @@ func FilterRef[A any](pred func(*A) bool) EM.Endomorphism[[]A] {
 // This is the monadic version that takes the array as the first parameter.
 //
 //go:inline
-func MonadFilterMap[A, B any](fa []A, f func(A) O.Option[B]) []B {
+func MonadFilterMap[A, B any](fa []A, f option.Kleisli[A, B]) []B {
 	return G.MonadFilterMap[[]A, []B](fa, f)
 }
 
@@ -146,33 +145,33 @@ func MonadFilterMap[A, B any](fa []A, f func(A) O.Option[B]) []B {
 // keeping only the Some values. This is the monadic version that takes the array as the first parameter.
 //
 //go:inline
-func MonadFilterMapWithIndex[A, B any](fa []A, f func(int, A) O.Option[B]) []B {
+func MonadFilterMapWithIndex[A, B any](fa []A, f func(int, A) Option[B]) []B {
 	return G.MonadFilterMapWithIndex[[]A, []B](fa, f)
 }
 
-// FilterMap maps an array with an iterating function that returns an [O.Option] and it keeps only the Some values discarding the Nones.
+// FilterMap maps an array with an iterating function that returns an [Option] and it keeps only the Some values discarding the Nones.
 //
 //go:inline
-func FilterMap[A, B any](f func(A) O.Option[B]) func([]A) []B {
+func FilterMap[A, B any](f option.Kleisli[A, B]) Operator[A, B] {
 	return G.FilterMap[[]A, []B](f)
 }
 
-// FilterMapWithIndex maps an array with an iterating function that returns an [O.Option] and it keeps only the Some values discarding the Nones.
+// FilterMapWithIndex maps an array with an iterating function that returns an [Option] and it keeps only the Some values discarding the Nones.
 //
 //go:inline
-func FilterMapWithIndex[A, B any](f func(int, A) O.Option[B]) func([]A) []B {
+func FilterMapWithIndex[A, B any](f func(int, A) Option[B]) Operator[A, B] {
 	return G.FilterMapWithIndex[[]A, []B](f)
 }
 
-// FilterChain maps an array with an iterating function that returns an [O.Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
+// FilterChain maps an array with an iterating function that returns an [Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
 //
 //go:inline
-func FilterChain[A, B any](f func(A) O.Option[[]B]) func([]A) []B {
+func FilterChain[A, B any](f option.Kleisli[A, []B]) Operator[A, B] {
 	return G.FilterChain[[]A](f)
 }
 
 // FilterMapRef filters an array using a predicate on pointers and maps the matching elements using a function on pointers.
-func FilterMapRef[A, B any](pred func(a *A) bool, f func(a *A) B) func([]A) []B {
+func FilterMapRef[A, B any](pred func(a *A) bool, f func(*A) B) Operator[A, B] {
 	return func(fa []A) []B {
 		return filterMapRef(fa, pred, f)
 	}
@@ -180,8 +179,7 @@ func FilterMapRef[A, B any](pred func(a *A) bool, f func(a *A) B) func([]A) []B 
 
 func reduceRef[A, B any](fa []A, f func(B, *A) B, initial B) B {
 	current := initial
-	count := len(fa)
-	for i := 0; i < count; i++ {
+	for i := range len(fa) {
 		current = f(current, &fa[i])
 	}
 	return current
@@ -277,7 +275,7 @@ func Of[A any](a A) []A {
 // This is the monadic version that takes the array as the first parameter (also known as FlatMap).
 //
 //go:inline
-func MonadChain[A, B any](fa []A, f func(a A) []B) []B {
+func MonadChain[A, B any](fa []A, f Kleisli[A, B]) []B {
 	return G.MonadChain(fa, f)
 }
 
@@ -290,7 +288,7 @@ func MonadChain[A, B any](fa []A, f func(a A) []B) []B {
 //	result := duplicate([]int{1, 2, 3}) // [1, 1, 2, 2, 3, 3]
 //
 //go:inline
-func Chain[A, B any](f func(A) []B) func([]A) []B {
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return G.Chain[[]A](f)
 }
 
@@ -306,7 +304,7 @@ func MonadAp[B, A any](fab []func(A) B, fa []A) []B {
 // This is the curried version.
 //
 //go:inline
-func Ap[B, A any](fa []A) func([]func(A) B) []B {
+func Ap[B, A any](fa []A) Operator[func(A) B, B] {
 	return G.Ap[[]B, []func(A) B](fa)
 }
 
@@ -328,7 +326,7 @@ func MatchLeft[A, B any](onEmpty func() B, onNonEmpty func(A, []A) B) func([]A) 
 // Returns None if the array is empty.
 //
 //go:inline
-func Tail[A any](as []A) O.Option[[]A] {
+func Tail[A any](as []A) Option[[]A] {
 	return G.Tail(as)
 }
 
@@ -336,7 +334,7 @@ func Tail[A any](as []A) O.Option[[]A] {
 // Returns None if the array is empty.
 //
 //go:inline
-func Head[A any](as []A) O.Option[A] {
+func Head[A any](as []A) Option[A] {
 	return G.Head(as)
 }
 
@@ -344,7 +342,7 @@ func Head[A any](as []A) O.Option[A] {
 // Returns None if the array is empty.
 //
 //go:inline
-func First[A any](as []A) O.Option[A] {
+func First[A any](as []A) Option[A] {
 	return G.First(as)
 }
 
@@ -352,12 +350,12 @@ func First[A any](as []A) O.Option[A] {
 // Returns None if the array is empty.
 //
 //go:inline
-func Last[A any](as []A) O.Option[A] {
+func Last[A any](as []A) Option[A] {
 	return G.Last(as)
 }
 
 // PrependAll inserts a separator before each element of an array.
-func PrependAll[A any](middle A) EM.Endomorphism[[]A] {
+func PrependAll[A any](middle A) Operator[A, A] {
 	return func(as []A) []A {
 		count := len(as)
 		dst := count * 2
@@ -377,7 +375,7 @@ func PrependAll[A any](middle A) EM.Endomorphism[[]A] {
 // Example:
 //
 //	result := array.Intersperse(0)([]int{1, 2, 3}) // [1, 0, 2, 0, 3]
-func Intersperse[A any](middle A) EM.Endomorphism[[]A] {
+func Intersperse[A any](middle A) Operator[A, A] {
 	prepend := PrependAll(middle)
 	return func(as []A) []A {
 		if IsEmpty(as) {
@@ -406,7 +404,7 @@ func Flatten[A any](mma [][]A) []A {
 }
 
 // Slice extracts a subarray from index low (inclusive) to high (exclusive).
-func Slice[A any](low, high int) func(as []A) []A {
+func Slice[A any](low, high int) Operator[A, A] {
 	return array.Slice[[]A](low, high)
 }
 
@@ -414,7 +412,7 @@ func Slice[A any](low, high int) func(as []A) []A {
 // Returns None if the index is out of bounds.
 //
 //go:inline
-func Lookup[A any](idx int) func([]A) O.Option[A] {
+func Lookup[A any](idx int) func([]A) Option[A] {
 	return G.Lookup[[]A](idx)
 }
 
@@ -422,7 +420,7 @@ func Lookup[A any](idx int) func([]A) O.Option[A] {
 // If the index is out of bounds, the element is appended.
 //
 //go:inline
-func UpsertAt[A any](a A) EM.Endomorphism[[]A] {
+func UpsertAt[A any](a A) Operator[A, A] {
 	return G.UpsertAt[[]A](a)
 }
 
@@ -468,7 +466,7 @@ func ConstNil[A any]() []A {
 // SliceRight extracts a subarray from the specified start index to the end.
 //
 //go:inline
-func SliceRight[A any](start int) EM.Endomorphism[[]A] {
+func SliceRight[A any](start int) Operator[A, A] {
 	return G.SliceRight[[]A](start)
 }
 
@@ -482,7 +480,7 @@ func Copy[A any](b []A) []A {
 // Clone creates a deep copy of the array using the provided endomorphism to clone the values
 //
 //go:inline
-func Clone[A any](f func(A) A) func(as []A) []A {
+func Clone[A any](f func(A) A) Operator[A, A] {
 	return G.Clone[[]A](f)
 }
 
@@ -510,8 +508,8 @@ func Fold[A any](m M.Monoid[A]) func([]A) A {
 // Push adds an element to the end of an array (alias for Append).
 //
 //go:inline
-func Push[A any](a A) EM.Endomorphism[[]A] {
-	return G.Push[EM.Endomorphism[[]A]](a)
+func Push[A any](a A) Operator[A, A] {
+	return G.Push[Operator[A, A]](a)
 }
 
 // MonadFlap applies a value to an array of functions, producing an array of results.
@@ -526,13 +524,13 @@ func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 // This is the curried version.
 //
 //go:inline
-func Flap[B, A any](a A) func([]func(A) B) []B {
+func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return G.Flap[func(A) B, []func(A) B, []B](a)
 }
 
 // Prepend adds an element to the beginning of an array, returning a new array.
 //
 //go:inline
-func Prepend[A any](head A) EM.Endomorphism[[]A] {
-	return G.Prepend[EM.Endomorphism[[]A]](head)
+func Prepend[A any](head A) Operator[A, A] {
+	return G.Prepend[Operator[A, A]](head)
 }

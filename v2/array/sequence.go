@@ -86,7 +86,7 @@ func Sequence[A, HKTA, HKTRA, HKTFRA any](
 //	    option.Some(3),
 //	}
 //	result2 := array.ArrayOption[int]()(opts2) // None
-func ArrayOption[A any]() func([]O.Option[A]) O.Option[[]A] {
+func ArrayOption[A any]() func([]Option[A]) Option[[]A] {
 	return Sequence(
 		O.Of[[]A],
 		O.MonadMap[[]A, func(A) []A],

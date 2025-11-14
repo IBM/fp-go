@@ -19,23 +19,22 @@ import (
 	"github.com/IBM/fp-go/v2/iooption"
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
 	M "github.com/IBM/fp-go/v2/monoid"
-	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 )
 
-// Next returns the [Iterator] for the next element in an iterator [pair.Pair]
-func Next[U any](m pair.Pair[Iterator[U], U]) Iterator[U] {
+// Next returns the [Iterator] for the next element in an iterator [Pair]
+func Next[U any](m Pair[Iterator[U], U]) Iterator[U] {
 	return pair.Head(m)
 }
 
-// Current returns the current element in an [Iterator] [pair.Pair]
-func Current[U any](m pair.Pair[Iterator[U], U]) U {
+// Current returns the current element in an [Iterator] [Pair]
+func Current[U any](m Pair[Iterator[U], U]) U {
 	return pair.Tail(m)
 }
 
 // Empty returns the empty iterator
 func Empty[U any]() Iterator[U] {
-	return iooption.None[pair.Pair[Iterator[U], U]]()
+	return iooption.None[Pair[Iterator[U], U]]()
 }
 
 // Of returns an iterator with one single element
@@ -97,12 +96,12 @@ func Replicate[U any](a U) Iterator[U] {
 }
 
 // FilterMap filters and transforms the content of an iterator
-func FilterMap[U, V any](f func(U) O.Option[V]) Operator[U, V] {
+func FilterMap[U, V any](f func(U) Option[V]) Operator[U, V] {
 	return G.FilterMap[Iterator[V], Iterator[U]](f)
 }
 
 // Filter filters the content of an iterator
-func Filter[U any](f func(U) bool) Operator[U, U] {
+func Filter[U any](f Predicate[U]) Operator[U, U] {
 	return G.Filter[Iterator[U]](f)
 }
 
@@ -128,7 +127,7 @@ func Count(start int) Iterator[int] {
 }
 
 // FilterChain filters and transforms the content of an iterator
-func FilterChain[U, V any](f func(U) O.Option[Iterator[V]]) Operator[U, V] {
+func FilterChain[U, V any](f func(U) Option[Iterator[V]]) Operator[U, V] {
 	return G.FilterChain[Iterator[Iterator[V]], Iterator[V], Iterator[U]](f)
 }
 

@@ -17,7 +17,7 @@ package array
 
 import (
 	G "github.com/IBM/fp-go/v2/array/generic"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/option"
 )
 
 // FindFirst finds the first element which satisfies a predicate function.
@@ -30,7 +30,7 @@ import (
 //	result2 := findGreaterThan3([]int{1, 2, 3}) // None
 //
 //go:inline
-func FindFirst[A any](pred func(A) bool) func([]A) O.Option[A] {
+func FindFirst[A any](pred func(A) bool) option.Kleisli[[]A, A] {
 	return G.FindFirst[[]A](pred)
 }
 
@@ -45,7 +45,7 @@ func FindFirst[A any](pred func(A) bool) func([]A) O.Option[A] {
 //	result := findEvenAtEvenIndex([]int{1, 3, 4, 5}) // Some(4)
 //
 //go:inline
-func FindFirstWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
+func FindFirstWithIndex[A any](pred func(int, A) bool) option.Kleisli[[]A, A] {
 	return G.FindFirstWithIndex[[]A](pred)
 }
 
@@ -65,7 +65,7 @@ func FindFirstWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 //	result := parseFirst([]string{"a", "42", "b"}) // Some(42)
 //
 //go:inline
-func FindFirstMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
+func FindFirstMap[A, B any](sel option.Kleisli[A, B]) option.Kleisli[[]A, B] {
 	return G.FindFirstMap[[]A](sel)
 }
 
@@ -73,7 +73,7 @@ func FindFirstMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
 // The selector receives both the index and the element.
 //
 //go:inline
-func FindFirstMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.Option[B] {
+func FindFirstMapWithIndex[A, B any](sel func(int, A) Option[B]) option.Kleisli[[]A, B] {
 	return G.FindFirstMapWithIndex[[]A](sel)
 }
 
@@ -86,7 +86,7 @@ func FindFirstMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.O
 //	result := findGreaterThan3([]int{1, 4, 2, 5}) // Some(5)
 //
 //go:inline
-func FindLast[A any](pred func(A) bool) func([]A) O.Option[A] {
+func FindLast[A any](pred func(A) bool) option.Kleisli[[]A, A] {
 	return G.FindLast[[]A](pred)
 }
 
@@ -94,7 +94,7 @@ func FindLast[A any](pred func(A) bool) func([]A) O.Option[A] {
 // Returns Some(element) if found, None if no element matches.
 //
 //go:inline
-func FindLastWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
+func FindLastWithIndex[A any](pred func(int, A) bool) option.Kleisli[[]A, A] {
 	return G.FindLastWithIndex[[]A](pred)
 }
 
@@ -102,7 +102,7 @@ func FindLastWithIndex[A any](pred func(int, A) bool) func([]A) O.Option[A] {
 // This combines finding and mapping in a single operation, searching from the end.
 //
 //go:inline
-func FindLastMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
+func FindLastMap[A, B any](sel option.Kleisli[A, B]) option.Kleisli[[]A, B] {
 	return G.FindLastMap[[]A](sel)
 }
 
@@ -110,6 +110,6 @@ func FindLastMap[A, B any](sel func(A) O.Option[B]) func([]A) O.Option[B] {
 // The selector receives both the index and the element, searching from the end.
 //
 //go:inline
-func FindLastMapWithIndex[A, B any](sel func(int, A) O.Option[B]) func([]A) O.Option[B] {
+func FindLastMapWithIndex[A, B any](sel func(int, A) Option[B]) option.Kleisli[[]A, B] {
 	return G.FindLastMapWithIndex[[]A](sel)
 }

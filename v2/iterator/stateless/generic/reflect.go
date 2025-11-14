@@ -27,7 +27,7 @@ import (
 	P "github.com/IBM/fp-go/v2/pair"
 )
 
-func FromReflect[GR ~func() O.Option[P.Pair[GR, R.Value]]](val R.Value) GR {
+func FromReflect[GR ~func() Option[Pair[GR, R.Value]]](val R.Value) GR {
 	// recursive callback
 	var recurse func(idx int) GR
 
@@ -39,7 +39,7 @@ func FromReflect[GR ~func() O.Option[P.Pair[GR, R.Value]]](val R.Value) GR {
 			idx,
 			L.Of[int],
 			L.Map(fromPred),
-			LG.Map[L.Lazy[O.Option[int]], GR](O.Map(
+			LG.Map[Lazy[Option[int]], GR](O.Map(
 				F.Flow2(
 					P.Of[int],
 					P.BiMap(F.Flow2(N.Add(1), recurse), val.Index),

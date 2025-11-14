@@ -31,14 +31,14 @@ func addToMap[A comparable](a A, m map[A]bool) map[A]bool {
 	return cpy
 }
 
-func Uniq[AS ~func() O.Option[P.Pair[AS, A]], K comparable, A any](f func(A) K) func(as AS) AS {
+func Uniq[AS ~func() Option[Pair[AS, A]], K comparable, A any](f func(A) K) func(as AS) AS {
 
 	var recurse func(as AS, mp map[K]bool) AS
 
 	recurse = func(as AS, mp map[K]bool) AS {
 		return F.Nullary2(
 			as,
-			O.Chain(func(a P.Pair[AS, A]) O.Option[P.Pair[AS, A]] {
+			O.Chain(func(a Pair[AS, A]) Option[Pair[AS, A]] {
 				return F.Pipe3(
 					P.Tail(a),
 					f,
@@ -46,7 +46,7 @@ func Uniq[AS ~func() O.Option[P.Pair[AS, A]], K comparable, A any](f func(A) K) 
 						_, ok := mp[k]
 						return !ok
 					}),
-					O.Fold(recurse(P.Head(a), mp), func(k K) O.Option[P.Pair[AS, A]] {
+					O.Fold(recurse(P.Head(a), mp), func(k K) Option[Pair[AS, A]] {
 						return O.Of(P.MakePair(recurse(P.Head(a), addToMap(k, mp)), P.Tail(a)))
 					}),
 				)
@@ -57,6 +57,6 @@ func Uniq[AS ~func() O.Option[P.Pair[AS, A]], K comparable, A any](f func(A) K) 
 	return F.Bind2nd(recurse, make(map[K]bool, 0))
 }
 
-func StrictUniq[AS ~func() O.Option[P.Pair[AS, A]], A comparable](as AS) AS {
+func StrictUniq[AS ~func() Option[Pair[AS, A]], A comparable](as AS) AS {
 	return Uniq[AS](F.Identity[A])(as)
 }

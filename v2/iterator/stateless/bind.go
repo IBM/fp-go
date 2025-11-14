@@ -72,7 +72,7 @@ func Do[S any](
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
-) Kleisli[Iterator[S1], S2] {
+) Operator[S1, S2] {
 	return G.Bind[Iterator[S1], Iterator[S2]](setter, f)
 }
 
@@ -80,7 +80,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) Kleisli[Iterator[S1], S2] {
+) Operator[S1, S2] {
 	return G.Let[Iterator[S1], Iterator[S2]](setter, f)
 }
 
@@ -88,14 +88,14 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) Kleisli[Iterator[S1], S2] {
+) Operator[S1, S2] {
 	return G.LetTo[Iterator[S1], Iterator[S2]](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) Kleisli[Iterator[T], S1] {
+) Operator[T, S1] {
 	return G.BindTo[Iterator[S1], Iterator[T]](setter)
 }
 
@@ -135,6 +135,6 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Iterator[T],
-) Kleisli[Iterator[S1], S2] {
+) Operator[S1, S2] {
 	return G.ApS[Iterator[func(T) S2], Iterator[S1], Iterator[S2]](setter, fa)
 }

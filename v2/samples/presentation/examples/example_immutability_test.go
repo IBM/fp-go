@@ -95,7 +95,7 @@ func Example_immutability_struct() {
 	p1 := MakePerson("Carsten", 53)
 
 	// func(int) func(Person) Person
-	setAge := F.Curry2(F.Swap(Person.SetAge))
+	setAge := F.Bind2of2(Person.SetAge)
 
 	p2 := F.Pipe1(
 		p1,

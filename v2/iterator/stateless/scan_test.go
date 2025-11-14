@@ -29,7 +29,7 @@ func TestScan(t *testing.T) {
 
 	dst := F.Pipe1(
 		src,
-		Scan(func(cur P.Pair[int, string], val string) P.Pair[int, string] {
+		Scan(func(cur Pair[int, string], val string) Pair[int, string] {
 			return P.MakePair(P.Head(cur)+1, val)
 		}, P.MakePair(0, "")),
 	)

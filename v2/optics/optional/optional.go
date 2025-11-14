@@ -42,7 +42,7 @@ func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeOptionalRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
 func MakeOptional[S, A any](get func(S) O.Option[A], set func(S, A) S) Optional[S, A] {
-	return Optional[S, A]{GetOption: get, Set: EM.Curry2(F.Swap(set))}
+	return Optional[S, A]{GetOption: get, Set: F.Bind2of2(set)}
 }
 
 // MakeOptionalRef creates an Optional based on a getter and a setter function. The setter passed in does not have to create a shallow

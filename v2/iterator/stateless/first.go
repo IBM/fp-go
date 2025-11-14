@@ -17,10 +17,9 @@ package stateless
 
 import (
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
-	O "github.com/IBM/fp-go/v2/option"
 )
 
 // First returns the first item in an iterator if such an item exists
-func First[U any](mu Iterator[U]) O.Option[U] {
+func First[U any](mu Iterator[U]) Option[U] {
 	return G.First(mu)
 }

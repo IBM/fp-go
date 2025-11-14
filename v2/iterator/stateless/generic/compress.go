@@ -23,7 +23,7 @@ import (
 
 // Compress returns an [Iterator] that filters elements from a data [Iterator] returning only those that have a corresponding element in selector [Iterator] that evaluates to `true`.
 // Stops when either the data or selectors iterator has been exhausted.
-func Compress[GU ~func() O.Option[P.Pair[GU, U]], GB ~func() O.Option[P.Pair[GB, bool]], CS ~func() O.Option[P.Pair[CS, P.Pair[U, bool]]], U any](sel GB) func(GU) GU {
+func Compress[GU ~func() Option[Pair[GU, U]], GB ~func() Option[Pair[GB, bool]], CS ~func() Option[Pair[CS, Pair[U, bool]]], U any](sel GB) func(GU) GU {
 	return F.Flow2(
 		Zip[GU, GB, CS](sel),
 		FilterMap[GU, CS](F.Flow2(

@@ -82,7 +82,7 @@ func MakeBy[AS ~[]A, F ~func(int) A, A any](n int, f F) AS {
 	}
 	// run the generator function across the input
 	as := make(AS, n)
-	for i := n - 1; i >= 0; i-- {
+	for i := range n {
 		as[i] = f(i)
 	}
 	return as
@@ -165,10 +165,9 @@ func Size[GA ~[]A, A any](as GA) int {
 func filterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
 	result := make(GB, 0, len(fa))
 	for _, a := range fa {
-		O.Map(func(b B) B {
+		if b, ok := O.Unwrap(f(a)); ok {
 			result = append(result, b)
-			return b
-		})(f(a))
+		}
 	}
 	return result
 }
@@ -176,10 +175,9 @@ func filterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
 func filterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(int, A) O.Option[B]) GB {
 	result := make(GB, 0, len(fa))
 	for i, a := range fa {
-		O.Map(func(b B) B {
+		if b, ok := O.Unwrap(f(i, a)); ok {
 			result = append(result, b)
-			return b
-		})(f(i, a))
+		}
 	}
 	return result
 }

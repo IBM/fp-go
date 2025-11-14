@@ -19,8 +19,6 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	F "github.com/IBM/fp-go/v2/internal/functor"
-	O "github.com/IBM/fp-go/v2/option"
-	P "github.com/IBM/fp-go/v2/pair"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -33,7 +31,7 @@ import (
 //	    Y int
 //	}
 //	result := generic.Do[Iterator[State]](State{})
-func Do[GS ~func() O.Option[P.Pair[GS, S]], S any](
+func Do[GS ~func() Option[Pair[GS, S]], S any](
 	empty S,
 ) GS {
 	return Of[GS](empty)
@@ -73,7 +71,7 @@ func Do[GS ~func() O.Option[P.Pair[GS, S]], S any](
 //	        },
 //	    ),
 //	) // Produces: {1,10}, {1,20}, {2,20}, {2,40}, {3,30}, {3,60}
-func Bind[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], GA ~func() O.Option[P.Pair[GA, A]], S1, S2, A any](
+func Bind[GS1 ~func() Option[Pair[GS1, S1]], GS2 ~func() Option[Pair[GS2, S2]], GA ~func() Option[Pair[GA, A]], S1, S2, A any](
 	setter func(A) func(S1) S2,
 	f func(S1) GA,
 ) func(GS1) GS2 {
@@ -87,7 +85,7 @@ func Bind[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
-func Let[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], S1, S2, A any](
+func Let[GS1 ~func() Option[Pair[GS1, S1]], GS2 ~func() Option[Pair[GS2, S2]], S1, S2, A any](
 	key func(A) func(S1) S2,
 	f func(S1) A,
 ) func(GS1) GS2 {
@@ -99,7 +97,7 @@ func Let[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2,
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
-func LetTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], S1, S2, B any](
+func LetTo[GS1 ~func() Option[Pair[GS1, S1]], GS2 ~func() Option[Pair[GS2, S2]], S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
 ) func(GS1) GS2 {
@@ -111,7 +109,7 @@ func LetTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS
 }
 
 // BindTo initializes a new state [S1] from a value [T]
-func BindTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GA ~func() O.Option[P.Pair[GA, A]], S1, A any](
+func BindTo[GS1 ~func() Option[Pair[GS1, S1]], GA ~func() Option[Pair[GA, A]], S1, A any](
 	setter func(A) S1,
 ) func(GA) GS1 {
 	return C.BindTo(
@@ -153,7 +151,7 @@ func BindTo[GS1 ~func() O.Option[P.Pair[GS1, S1]], GA ~func() O.Option[P.Pair[GA
 //	        yIter,
 //	    ),
 //	) // Produces: {1,"a"}, {1,"b"}, {2,"a"}, {2,"b"}, {3,"a"}, {3,"b"}
-func ApS[GAS2 ~func() O.Option[P.Pair[GAS2, func(A) S2]], GS1 ~func() O.Option[P.Pair[GS1, S1]], GS2 ~func() O.Option[P.Pair[GS2, S2]], GA ~func() O.Option[P.Pair[GA, A]], S1, S2, A any](
+func ApS[GAS2 ~func() Option[Pair[GAS2, func(A) S2]], GS1 ~func() Option[Pair[GS1, S1]], GS2 ~func() Option[Pair[GS2, S2]], GA ~func() Option[Pair[GA, A]], S1, S2, A any](
 	setter func(A) func(S1) S2,
 	fa GA,
 ) func(GS1) GS2 {

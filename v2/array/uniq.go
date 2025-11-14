@@ -46,6 +46,6 @@ func StrictUniq[A comparable](as []A) []A {
 //	// Result: [{"Alice", 30}, {"Bob", 25}, {"Charlie", 30}]
 //
 //go:inline
-func Uniq[A any, K comparable](f func(A) K) func(as []A) []A {
+func Uniq[A any, K comparable](f func(A) K) Operator[A, A] {
 	return G.Uniq[[]A](f)
 }

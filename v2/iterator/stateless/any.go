@@ -21,6 +21,6 @@ import (
 
 // Any returns `true` if any element of the iterable is `true`. If the iterable is empty, return `false`
 // Similar to the [https://docs.python.org/3/library/functions.html#any] function
-func Any[U any](pred func(U) bool) func(ma Iterator[U]) bool {
+func Any[U any](pred Predicate[U]) Predicate[Iterator[U]] {
 	return G.Any[Iterator[U]](pred)
 }

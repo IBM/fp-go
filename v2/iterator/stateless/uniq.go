@@ -27,6 +27,6 @@ func StrictUniq[A comparable](as Iterator[A]) Iterator[A] {
 
 // Uniq converts an [Iterator] of arbitrary items into an [Iterator] or unique items
 // where uniqueness is determined based on a key extractor function
-func Uniq[A any, K comparable](f func(A) K) func(as Iterator[A]) Iterator[A] {
+func Uniq[A any, K comparable](f func(A) K) Operator[A, A] {
 	return G.Uniq[Iterator[A]](f)
 }

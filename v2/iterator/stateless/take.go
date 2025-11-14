@@ -20,6 +20,6 @@ import (
 )
 
 // Take limits the number of values in the [Iterator] to a maximum number
-func Take[U any](n int) func(ma Iterator[U]) Iterator[U] {
+func Take[U any](n int) Operator[U, U] {
 	return G.Take[Iterator[U]](n)
 }

@@ -42,8 +42,7 @@ func FindFirst[AS ~[]A, PRED ~func(A) bool, A any](pred PRED) func(AS) O.Option[
 func FindFirstMapWithIndex[AS ~[]A, PRED ~func(int, A) O.Option[B], A, B any](pred PRED) func(AS) O.Option[B] {
 	none := O.None[B]()
 	return func(as AS) O.Option[B] {
-		count := len(as)
-		for i := 0; i < count; i++ {
+		for i := range len(as) {
 			out := pred(i, as[i])
 			if O.IsSome(out) {
 				return out

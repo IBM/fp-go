@@ -24,9 +24,9 @@ import (
 
 // DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
 // Note, the [Iterator] does not produce any output until the predicate first becomes false
-func DropWhile[GU ~func() O.Option[P.Pair[GU, U]], U any](pred func(U) bool) func(GU) GU {
+func DropWhile[GU ~func() Option[Pair[GU, U]], U any](pred Predicate[U]) func(GU) GU {
 	// avoid cyclic references
-	var m func(O.Option[P.Pair[GU, U]]) O.Option[P.Pair[GU, U]]
+	var m func(Option[Pair[GU, U]]) Option[Pair[GU, U]]
 
 	fromPred := O.FromPredicate(PR.Not(PR.ContraMap(P.Tail[GU, U])(pred)))
 
@@ -37,11 +37,11 @@ func DropWhile[GU ~func() O.Option[P.Pair[GU, U]], U any](pred func(U) bool) fun
 		)
 	}
 
-	m = O.Chain(func(t P.Pair[GU, U]) O.Option[P.Pair[GU, U]] {
+	m = O.Chain(func(t Pair[GU, U]) Option[Pair[GU, U]] {
 		return F.Pipe2(
 			t,
 			fromPred,
-			O.Fold(recurse(Next(t)), O.Of[P.Pair[GU, U]]),
+			O.Fold(recurse(Next(t)), O.Of[Pair[GU, U]]),
 		)
 	})
 

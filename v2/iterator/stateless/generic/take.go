@@ -22,7 +22,7 @@ import (
 	P "github.com/IBM/fp-go/v2/pair"
 )
 
-func Take[GU ~func() O.Option[P.Pair[GU, U]], U any](n int) func(ma GU) GU {
+func Take[GU ~func() Option[Pair[GU, U]], U any](n int) func(ma GU) GU {
 	// pre-declare to avoid cyclic reference
 	var recurse func(ma GU, idx int) GU
 

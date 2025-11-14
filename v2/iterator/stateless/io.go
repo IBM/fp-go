@@ -16,17 +16,15 @@
 package stateless
 
 import (
-	IO "github.com/IBM/fp-go/v2/io"
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
-	L "github.com/IBM/fp-go/v2/lazy"
 )
 
 // FromLazy returns an [Iterator] on top of a lazy function
-func FromLazy[U any](l L.Lazy[U]) Iterator[U] {
+func FromLazy[U any](l Lazy[U]) Iterator[U] {
 	return G.FromLazy[Iterator[U]](l)
 }
 
 // FromIO returns an [Iterator] on top of an IO function
-func FromIO[U any](io IO.IO[U]) Iterator[U] {
+func FromIO[U any](io IO[U]) Iterator[U] {
 	return G.FromLazy[Iterator[U]](io)
 }

@@ -18,11 +18,10 @@ package generic
 import (
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
-	P "github.com/IBM/fp-go/v2/pair"
 )
 
 // Any returns `true` if any element of the iterable is `true`. If the iterable is empty, return `false`
-func Any[GU ~func() O.Option[P.Pair[GU, U]], FCT ~func(U) bool, U any](pred FCT) func(ma GU) bool {
+func Any[GU ~func() Option[Pair[GU, U]], FCT ~Predicate[U], U any](pred FCT) func(ma GU) bool {
 	return F.Flow3(
 		Filter[GU](pred),
 		First[GU],

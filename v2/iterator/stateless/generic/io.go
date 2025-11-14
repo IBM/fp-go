@@ -23,12 +23,12 @@ import (
 )
 
 // FromLazy returns an iterator on top of a lazy function
-func FromLazy[GU ~func() O.Option[P.Pair[GU, U]], LZ ~func() U, U any](l LZ) GU {
+func FromLazy[GU ~func() Option[Pair[GU, U]], LZ ~func() U, U any](l LZ) GU {
 	return F.Pipe1(
 		l,
 		L.Map[LZ, GU](F.Flow2(
 			F.Bind1st(P.MakePair[GU, U], Empty[GU]()),
-			O.Of[P.Pair[GU, U]],
+			O.Of[Pair[GU, U]],
 		)),
 	)
 }

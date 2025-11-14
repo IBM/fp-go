@@ -26,7 +26,7 @@ import (
 func ZipWith[AS ~[]A, BS ~[]B, CS ~[]C, FCT ~func(A, B) C, A, B, C any](fa AS, fb BS, f FCT) CS {
 	l := N.Min(len(fa), len(fb))
 	res := make(CS, l)
-	for i := l - 1; i >= 0; i-- {
+	for i := range l {
 		res[i] = f(fa[i], fb[i])
 	}
 	return res
@@ -43,7 +43,7 @@ func Unzip[AS ~[]A, BS ~[]B, CS ~[]T.Tuple2[A, B], A, B any](cs CS) T.Tuple2[AS,
 	l := len(cs)
 	as := make(AS, l)
 	bs := make(BS, l)
-	for i := l - 1; i >= 0; i-- {
+	for i := range l {
 		t := cs[i]
 		as[i] = t.F1
 		bs[i] = t.F2

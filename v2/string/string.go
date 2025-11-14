@@ -40,10 +40,10 @@ var (
 	Equals = F.Curry2(Eq)
 
 	// Includes returns a predicate that tests for the existence of the search string
-	Includes = F.Curry2(F.Swap(strings.Contains))
+	Includes = F.Bind2of2(strings.Contains)
 
 	// HasPrefix returns a predicate that checks if the prefis is included in the string
-	HasPrefix = F.Curry2(F.Swap(strings.HasPrefix))
+	HasPrefix = F.Bind2of2(strings.HasPrefix)
 )
 
 func Eq(left string, right string) bool {

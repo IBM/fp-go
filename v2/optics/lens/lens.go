@@ -92,7 +92,7 @@ func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(A)
 //	name := nameLens.Get(person)           // "Alice"
 //	updated := nameLens.Set("Bob")(person) // Person{Name: "Bob", Age: 30}
 func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Lens[S, A] {
-	return MakeLensCurried(get, F.Curry2(F.Swap(set)))
+	return MakeLensCurried(get, F.Bind2of2(set))
 }
 
 // MakeLensCurried creates a [Lens] with a curried setter F.

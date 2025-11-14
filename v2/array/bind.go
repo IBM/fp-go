@@ -56,8 +56,8 @@ func Do[S any](
 //go:inline
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f func(S1) []T,
-) func([]S1) []S2 {
+	f Kleisli[S1, T],
+) Operator[S1, S2] {
 	return G.Bind[[]S1, []S2](setter, f)
 }
 
@@ -79,7 +79,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func([]S1) []S2 {
+) Operator[S1, S2] {
 	return G.Let[[]S1, []S2](setter, f)
 }
 
@@ -101,7 +101,7 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func([]S1) []S2 {
+) Operator[S1, S2] {
 	return G.LetTo[[]S1, []S2](setter, b)
 }
 
@@ -120,7 +120,7 @@ func LetTo[S1, S2, T any](
 //go:inline
 func BindTo[S1, T any](
 	setter func(T) S1,
-) func([]T) []S1 {
+) Operator[T, S1] {
 	return G.BindTo[[]S1, []T](setter)
 }
 
@@ -143,6 +143,6 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa []T,
-) func([]S1) []S2 {
+) Operator[S1, S2] {
 	return G.ApS[[]S1, []S2](setter, fa)
 }

@@ -21,11 +21,11 @@ import (
 	P "github.com/IBM/fp-go/v2/pair"
 )
 
-func apTuple[A, B any](t P.Pair[func(A) B, A]) P.Pair[B, A] {
+func apTuple[A, B any](t Pair[func(A) B, A]) Pair[B, A] {
 	return P.MakePair(P.Head(t)(P.Tail(t)), P.Tail(t))
 }
 
-func Scan[GV ~func() O.Option[P.Pair[GV, V]], GU ~func() O.Option[P.Pair[GU, U]], FCT ~func(V, U) V, U, V any](f FCT, initial V) func(ma GU) GV {
+func Scan[GV ~func() Option[Pair[GV, V]], GU ~func() Option[Pair[GU, U]], FCT ~func(V, U) V, U, V any](f FCT, initial V) func(ma GU) GV {
 	// pre-declare to avoid cyclic reference
 	var m func(GU) func(V) GV
 

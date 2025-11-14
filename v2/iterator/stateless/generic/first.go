@@ -22,7 +22,7 @@ import (
 )
 
 // First returns the first item in an iterator if such an item exists
-func First[GU ~func() O.Option[P.Pair[GU, U]], U any](mu GU) O.Option[U] {
+func First[GU ~func() Option[Pair[GU, U]], U any](mu GU) Option[U] {
 	return F.Pipe1(
 		mu(),
 		O.Map(P.Tail[GU, U]),

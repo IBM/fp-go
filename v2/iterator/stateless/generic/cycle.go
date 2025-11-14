@@ -21,9 +21,9 @@ import (
 	P "github.com/IBM/fp-go/v2/pair"
 )
 
-func Cycle[GU ~func() O.Option[P.Pair[GU, U]], U any](ma GU) GU {
+func Cycle[GU ~func() Option[Pair[GU, U]], U any](ma GU) GU {
 	// avoid cyclic references
-	var m func(O.Option[P.Pair[GU, U]]) O.Option[P.Pair[GU, U]]
+	var m func(Option[Pair[GU, U]]) Option[Pair[GU, U]]
 
 	recurse := func(mu GU) GU {
 		return F.Nullary2(
@@ -32,11 +32,11 @@ func Cycle[GU ~func() O.Option[P.Pair[GU, U]], U any](ma GU) GU {
 		)
 	}
 
-	m = O.Fold(func() O.Option[P.Pair[GU, U]] {
+	m = O.Fold(func() Option[Pair[GU, U]] {
 		return recurse(ma)()
 	}, F.Flow2(
 		P.BiMap(recurse, F.Identity[U]),
-		O.Of[P.Pair[GU, U]],
+		O.Of[Pair[GU, U]],
 	))
 
 	return recurse(ma)
