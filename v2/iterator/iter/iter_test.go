@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -64,14 +65,14 @@ func TestEmpty(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	seq := From(1, 2, 3)
-	doubled := MonadMap(seq, func(x int) int { return x * 2 })
+	doubled := MonadMap(seq, N.Mul(2))
 	result := toSlice(doubled)
 	assert.Equal(t, []int{2, 4, 6}, result)
 }
 
 func TestMap(t *testing.T) {
 	seq := From(1, 2, 3)
-	double := Map(func(x int) int { return x * 2 })
+	double := Map(N.Mul(2))
 	result := toSlice(double(seq))
 	assert.Equal(t, []int{2, 4, 6}, result)
 }
@@ -249,7 +250,7 @@ func TestFlatten(t *testing.T) {
 
 func TestMonadAp(t *testing.T) {
 	fns := From(
-		func(x int) int { return x * 2 },
+		N.Mul(2),
 		func(x int) int { return x + 10 },
 	)
 	vals := From(1, 2)
@@ -259,7 +260,7 @@ func TestMonadAp(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	fns := From(
-		func(x int) int { return x * 2 },
+		N.Mul(2),
 		func(x int) int { return x + 10 },
 	)
 	vals := From(1, 2)
@@ -423,7 +424,7 @@ func TestFoldMapWithKey(t *testing.T) {
 
 func TestMonadFlap(t *testing.T) {
 	fns := From(
-		func(x int) int { return x * 2 },
+		N.Mul(2),
 		func(x int) int { return x + 10 },
 	)
 	result := MonadFlap(fns, 5)
@@ -432,7 +433,7 @@ func TestMonadFlap(t *testing.T) {
 
 func TestFlap(t *testing.T) {
 	fns := From(
-		func(x int) int { return x * 2 },
+		N.Mul(2),
 		func(x int) int { return x + 10 },
 	)
 	flapper := Flap[int](5)

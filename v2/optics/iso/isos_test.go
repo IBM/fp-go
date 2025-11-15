@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	A "github.com/IBM/fp-go/v2/array"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -93,31 +94,31 @@ func TestLines(t *testing.T) {
 	iso := Lines()
 
 	t.Run("Get joins lines with newline", func(t *testing.T) {
-		lines := []string{"line1", "line2", "line3"}
+		lines := A.From("line1", "line2", "line3")
 		result := iso.Get(lines)
 		assert.Equal(t, "line1\nline2\nline3", result)
 	})
 
 	t.Run("Get handles single line", func(t *testing.T) {
-		lines := []string{"single line"}
+		lines := A.Of("single line")
 		result := iso.Get(lines)
 		assert.Equal(t, "single line", result)
 	})
 
 	t.Run("Get handles empty slice", func(t *testing.T) {
-		lines := []string{}
+		lines := A.Empty[string]()
 		result := iso.Get(lines)
 		assert.Equal(t, "", result)
 	})
 
 	t.Run("Get handles empty strings in slice", func(t *testing.T) {
-		lines := []string{"a", "", "b"}
+		lines := A.From("a", "", "b")
 		result := iso.Get(lines)
 		assert.Equal(t, "a\n\nb", result)
 	})
 
 	t.Run("Get handles slice with only empty strings", func(t *testing.T) {
-		lines := []string{"", "", ""}
+		lines := A.From("", "", "")
 		result := iso.Get(lines)
 		assert.Equal(t, "\n\n", result)
 	})
@@ -340,20 +341,20 @@ func TestLinesRoundTripLaws(t *testing.T) {
 	t.Run("Law 1: Empty slice special case", func(t *testing.T) {
 		// Empty slice becomes "" which splits to [""]
 		// This is expected behavior of strings.Split
-		original := []string{}
+		original := A.Empty[string]()
 		text := iso.Get(original)      // ""
 		result := iso.ReverseGet(text) // [""]
 		assert.Equal(t, []string{""}, result)
 	})
 
 	t.Run("Law 2: Get(ReverseGet(str)) == str", func(t *testing.T) {
-		testCases := []string{
+		testCases := A.From(
 			"line1\nline2",
 			"single",
 			"",
 			"a\n\nb",
 			"\n\n",
-		}
+		)
 
 		for _, original := range testCases {
 			result := iso.Get(iso.ReverseGet(original))
@@ -367,13 +368,13 @@ func TestUnixMilliRoundTripLaws(t *testing.T) {
 	iso := UnixMilli()
 
 	t.Run("Law 1: ReverseGet(Get(millis)) == millis", func(t *testing.T) {
-		testCases := []int64{
+		testCases := A.From(
 			0,
 			1609459200000,
 			-86400000,
 			1234567890000,
 			time.Now().UnixMilli(),
-		}
+		)
 
 		for _, original := range testCases {
 			result := iso.ReverseGet(iso.Get(original))
@@ -382,12 +383,12 @@ func TestUnixMilliRoundTripLaws(t *testing.T) {
 	})
 
 	t.Run("Law 2: Get(ReverseGet(time)) == time (with millisecond precision)", func(t *testing.T) {
-		testCases := []time.Time{
+		testCases := A.From(
 			time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			time.Unix(0, 0).UTC(),
 			time.Date(1969, 12, 31, 0, 0, 0, 0, time.UTC),
 			time.Now().Truncate(time.Millisecond),
-		}
+		)
 
 		for _, original := range testCases {
 			result := iso.Get(iso.ReverseGet(original))
@@ -410,7 +411,7 @@ func TestIsosComposition(t *testing.T) {
 		assert.Equal(t, []string{"line1", "line2", "line3"}, lines)
 
 		// Reverse: lines to string to bytes
-		originalLines := []string{"a", "b", "c"}
+		originalLines := A.From("a", "b", "c")
 		text := linesIso.Get(originalLines)
 		resultBytes := utf8Iso.ReverseGet(text)
 		assert.Equal(t, []byte("a\nb\nc"), resultBytes)

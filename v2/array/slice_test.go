@@ -18,6 +18,7 @@ package array
 import (
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -243,7 +244,7 @@ func TestSliceComposition(t *testing.T) {
 
 	t.Run("slice then map", func(t *testing.T) {
 		sliced := Slice[int](2, 5)(data)
-		mapped := Map(func(x int) int { return x * 2 })(sliced)
+		mapped := Map(N.Mul(2))(sliced)
 		assert.Equal(t, []int{4, 6, 8}, mapped)
 	})
 

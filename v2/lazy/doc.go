@@ -58,7 +58,7 @@
 //	// Transform it
 //	doubled := F.Pipe1(
 //	    computation,
-//	    lazy.Map(func(x int) int { return x * 2 }),
+//	    lazy.Map(N.Mul(2)),
 //	)
 //
 //	// Evaluate when needed

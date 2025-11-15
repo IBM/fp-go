@@ -23,6 +23,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
@@ -55,14 +56,14 @@ func TestMapTo(t *testing.T) {
 
 // Test MonadApSeq
 func TestMonadApSeq(t *testing.T) {
-	f := Of(func(x int) int { return x * 2 })
+	f := Of(N.Mul(2))
 	result := MonadApSeq(f, Of(21))
 	assert.Equal(t, 42, result())
 }
 
 // Test ApPar
 func TestApPar(t *testing.T) {
-	f := Of(func(x int) int { return x * 2 })
+	f := Of(N.Mul(2))
 	result := F.Pipe1(f, ApPar[int](Of(21)))
 	assert.Equal(t, 42, result())
 }
@@ -128,14 +129,14 @@ func TestDefer(t *testing.T) {
 
 // Test MonadFlap
 func TestMonadFlap(t *testing.T) {
-	f := Of(func(x int) int { return x * 2 })
+	f := Of(N.Mul(2))
 	result := MonadFlap(f, 21)
 	assert.Equal(t, 42, result())
 }
 
 // Test Flap
 func TestFlap(t *testing.T) {
-	f := Of(func(x int) int { return x * 2 })
+	f := Of(N.Mul(2))
 	result := F.Pipe1(f, Flap[int](21))
 	assert.Equal(t, 42, result())
 }
@@ -355,7 +356,7 @@ func TestApplicativeTypeClass(t *testing.T) {
 	assert.Equal(t, 21, io1())
 
 	// Test Map
-	io2 := app.Map(func(x int) int { return x * 2 })(io1)
+	io2 := app.Map(N.Mul(2))(io1)
 	assert.Equal(t, 42, io2())
 }
 

@@ -393,21 +393,21 @@ func TestMapSemigroup(t *testing.T) {
 // Benchmark tests
 func BenchmarkFirst(b *testing.B) {
 	first := First[int]()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		first.Concat(1, 2)
 	}
 }
 
 func BenchmarkLast(b *testing.B) {
 	last := Last[int]()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		last.Concat(1, 2)
 	}
 }
 
 func BenchmarkMakeSemigroupAdd(b *testing.B) {
 	add := MakeSemigroup(func(a, b int) int { return a + b })
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		add.Concat(1, 2)
 	}
 }
@@ -415,7 +415,7 @@ func BenchmarkMakeSemigroupAdd(b *testing.B) {
 func BenchmarkReverse(b *testing.B) {
 	sub := MakeSemigroup(func(a, b int) int { return a - b })
 	reversed := Reverse(sub)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		reversed.Concat(10, 3)
 	}
 }
@@ -426,7 +426,7 @@ func BenchmarkConcatAll(b *testing.B) {
 	arr := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		concatAll(0)(arr)
 	}
 }
@@ -440,7 +440,7 @@ func BenchmarkFunctionSemigroup(b *testing.B) {
 	combined := funcSG.Concat(f, g)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		combined("hello")
 	}
 }

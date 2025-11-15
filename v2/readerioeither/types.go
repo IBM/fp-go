@@ -84,7 +84,7 @@ type (
 	//   - B: The output value type
 	//
 	// Example:
-	//   var doubleOp Operator[Config, error, int, int] = Map(func(x int) int { return x * 2 })
+	//   var doubleOp Operator[Config, error, int, int] = Map(N.Mul(2))
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderIOEither[R, E, A], B]
 
 	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]

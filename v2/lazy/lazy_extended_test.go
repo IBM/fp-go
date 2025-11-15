@@ -23,6 +23,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +55,7 @@ func TestMonadOf(t *testing.T) {
 }
 
 func TestMonadMap(t *testing.T) {
-	result := MonadMap(Of(5), func(x int) int { return x * 2 })
+	result := MonadMap(Of(5), N.Mul(2))
 	assert.Equal(t, 10, result())
 }
 
@@ -103,7 +104,7 @@ func TestChainTo(t *testing.T) {
 }
 
 func TestMonadAp(t *testing.T) {
-	lazyFunc := Of(func(x int) int { return x * 2 })
+	lazyFunc := Of(N.Mul(2))
 	lazyValue := Of(5)
 	result := MonadAp(lazyFunc, lazyValue)
 	assert.Equal(t, 10, result())
@@ -494,7 +495,7 @@ func TestMapComposition(t *testing.T) {
 	// Test mapping multiple transformations
 	result := F.Pipe3(
 		Of(5),
-		Map(func(x int) int { return x * 2 }),
+		Map(N.Mul(2)),
 		Map(func(x int) int { return x + 10 }),
 		Map(func(x int) int { return x }),
 	)

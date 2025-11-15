@@ -33,7 +33,7 @@
 //
 //	// Create a sequence and transform it
 //	seq := From(1, 2, 3, 4, 5)
-//	doubled := Map(func(x int) int { return x * 2 })(seq)
+//	doubled := Map(N.Mul(2))(seq)
 //
 //	// Filter and reduce
 //	evens := Filter(func(x int) bool { return x%2 == 0 })(doubled)
@@ -83,7 +83,7 @@ func Of2[K, A any](k K, a A) Seq2[K, A] {
 // Example:
 //
 //	seq := From(1, 2, 3)
-//	result := MonadMap(seq, func(x int) int { return x * 2 })
+//	result := MonadMap(seq, N.Mul(2))
 //	// yields: 2, 4, 6
 func MonadMap[A, B any](as Seq[A], f func(A) B) Seq[B] {
 	return func(yield Predicate[B]) {
@@ -100,7 +100,7 @@ func MonadMap[A, B any](as Seq[A], f func(A) B) Seq[B] {
 //
 // Example:
 //
-//	double := Map(func(x int) int { return x * 2 })
+//	double := Map(N.Mul(2))
 //	seq := From(1, 2, 3)
 //	result := double(seq)
 //	// yields: 2, 4, 6
@@ -476,7 +476,7 @@ func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
 //
 // Example:
 //
-//	fns := From(func(x int) int { return x * 2 }, func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
 //	vals := From(5, 3)
 //	result := MonadAp(fns, vals)
 //	// yields: 10, 6, 15, 13 (each function applied to each value)
@@ -492,7 +492,7 @@ func MonadAp[B, A any](fab Seq[func(A) B], fa Seq[A]) Seq[B] {
 // Example:
 //
 //	applyTo5 := Ap(From(5))
-//	fns := From(func(x int) int { return x * 2 }, func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
 //	result := applyTo5(fns)
 //	// yields: 10, 15
 //
@@ -799,7 +799,7 @@ func FoldMapWithKey[K, A, B any](m M.Monoid[B]) func(func(K, A) B) func(Seq2[K, 
 //
 // Example:
 //
-//	fns := From(func(x int) int { return x * 2 }, func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
 //	result := MonadFlap(fns, 5)
 //	// yields: 10, 15
 //

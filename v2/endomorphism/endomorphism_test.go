@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	"github.com/stretchr/testify/assert"
 )
@@ -204,7 +205,7 @@ func TestCompose(t *testing.T) {
 
 // TestMonadComposeVsCompose demonstrates the relationship between MonadCompose and Compose
 func TestMonadComposeVsCompose(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	increment := func(x int) int { return x + 1 }
 
 	// MonadCompose takes both functions at once
@@ -448,7 +449,7 @@ func TestOperatorType(t *testing.T) {
 func BenchmarkCompose(b *testing.B) {
 	composed := MonadCompose(double, increment)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = composed(5)
 	}
 }
@@ -456,7 +457,7 @@ func BenchmarkCompose(b *testing.B) {
 // BenchmarkMonoidConcatAll benchmarks ConcatAll with monoid
 // TestComposeVsChain demonstrates the key difference between Compose and Chain
 func TestComposeVsChain(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	increment := func(x int) int { return x + 1 }
 
 	// Compose executes RIGHT-TO-LEFT
@@ -499,7 +500,7 @@ func BenchmarkMonoidConcatAll(b *testing.B) {
 	monoid := Monoid[int]()
 	combined := M.ConcatAll(monoid)([]Endomorphism[int]{double, increment, square})
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = combined(5)
 	}
 }
@@ -509,7 +510,7 @@ func BenchmarkChain(b *testing.B) {
 	chainWithIncrement := Chain(increment)
 	chained := chainWithIncrement(double)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = chained(5)
 	}
 }
@@ -704,7 +705,7 @@ func TestApEqualsCompose(t *testing.T) {
 
 // TestChainFirst tests the ChainFirst operation
 func TestChainFirst(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	// Track side effect
 	var sideEffect int

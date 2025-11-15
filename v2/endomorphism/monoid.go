@@ -35,7 +35,7 @@ import (
 //
 // Example:
 //
-//	myFunc := func(x int) int { return x * 2 }
+//	myFunc := N.Mul(2)
 //	endo := endomorphism.Of(myFunc)
 func Of[F ~func(A) A, A any](f F) Endomorphism[A] {
 	return f
@@ -75,7 +75,7 @@ func Unwrap[F ~func(A) A, A any](f Endomorphism[A]) F {
 //	result := id(42) // Returns: 42
 //
 //	// Identity is neutral for composition
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	composed := endomorphism.Compose(id, double)
 //	// composed behaves exactly like double
 func Identity[A any]() Endomorphism[A] {
@@ -103,7 +103,7 @@ func Identity[A any]() Endomorphism[A] {
 //	import S "github.com/IBM/fp-go/v2/semigroup"
 //
 //	sg := endomorphism.Semigroup[int]()
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	increment := func(x int) int { return x + 1 }
 //
 //	// Combine using the semigroup (RIGHT-TO-LEFT execution)
@@ -139,7 +139,7 @@ func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
 //	import M "github.com/IBM/fp-go/v2/monoid"
 //
 //	monoid := endomorphism.Monoid[int]()
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	increment := func(x int) int { return x + 1 }
 //	square := func(x int) int { return x * x }
 //

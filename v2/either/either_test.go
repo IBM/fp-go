@@ -66,7 +66,7 @@ func TestUnwrapError(t *testing.T) {
 
 func TestReduce(t *testing.T) {
 
-	s := S.Semigroup()
+	s := S.Semigroup
 
 	assert.Equal(t, "foobar", F.Pipe1(Right[string]("bar"), Reduce[string](s.Concat, "foo")))
 	assert.Equal(t, "foo", F.Pipe1(Left[string]("bar"), Reduce[string](s.Concat, "foo")))

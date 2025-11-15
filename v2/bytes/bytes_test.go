@@ -382,7 +382,7 @@ func BenchmarkToString(b *testing.B) {
 	data := []byte("Hello, World!")
 
 	b.Run("small", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = ToString(data)
 		}
 	})
@@ -393,7 +393,7 @@ func BenchmarkToString(b *testing.B) {
 			large[i] = byte(i % 256)
 		}
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = ToString(large)
 		}
 	})
@@ -402,7 +402,7 @@ func BenchmarkToString(b *testing.B) {
 func BenchmarkSize(b *testing.B) {
 	data := []byte("Hello, World!")
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = Size(data)
 	}
 }
@@ -412,7 +412,7 @@ func BenchmarkMonoidConcat(b *testing.B) {
 	c := []byte(" World")
 
 	b.Run("small slices", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Monoid.Concat(a, c)
 		}
 	})
@@ -421,7 +421,7 @@ func BenchmarkMonoidConcat(b *testing.B) {
 		large1 := make([]byte, 10000)
 		large2 := make([]byte, 10000)
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Monoid.Concat(large1, large2)
 		}
 	})
@@ -436,7 +436,7 @@ func BenchmarkConcatAll(b *testing.B) {
 	}
 
 	b.Run("few slices", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = ConcatAll(slices...)
 		}
 	})
@@ -447,7 +447,7 @@ func BenchmarkConcatAll(b *testing.B) {
 			many[i] = []byte{byte(i)}
 		}
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = ConcatAll(many...)
 		}
 	})
@@ -458,13 +458,13 @@ func BenchmarkOrdCompare(b *testing.B) {
 	c := []byte("abd")
 
 	b.Run("equal", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Ord.Compare(a, a)
 		}
 	})
 
 	b.Run("different", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Ord.Compare(a, c)
 		}
 	})
@@ -474,7 +474,7 @@ func BenchmarkOrdCompare(b *testing.B) {
 		large2 := make([]byte, 10000)
 		large2[9999] = 1
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Ord.Compare(large1, large2)
 		}
 	})

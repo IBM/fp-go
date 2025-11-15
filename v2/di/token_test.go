@@ -249,7 +249,7 @@ func TestMultiTokenStringRepresentation(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkMakeToken(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		MakeToken[int]("BenchToken")
 	}
 }
@@ -259,13 +259,13 @@ func BenchmarkTokenUnerase(b *testing.B) {
 	value := any(42)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		token.Unerase(value)
 	}
 }
 
 func BenchmarkMakeMultiToken(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		MakeMultiToken[int]("BenchMulti")
 	}
 }

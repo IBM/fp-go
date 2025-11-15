@@ -20,6 +20,7 @@ import (
 
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	ISO "github.com/IBM/fp-go/v2/optics/iso"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
@@ -281,7 +282,7 @@ func TestFromIsoModify(t *testing.T) {
 	t.Run("ModifySomeValue", func(t *testing.T) {
 		config := Config{timeout: 30, retries: 3}
 		// Double the timeout value
-		modified := L.Modify[Config](O.Map(func(x int) int { return x * 2 }))(optTimeoutLens)(config)
+		modified := L.Modify[Config](O.Map(N.Mul(2)))(optTimeoutLens)(config)
 		assert.Equal(t, 60, modified.timeout)
 	})
 

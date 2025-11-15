@@ -71,7 +71,7 @@ func MonadOf[A any](a A) Lazy[A] {
 // Example:
 //
 //	computation := lazy.Of(5)
-//	doubled := lazy.MonadMap(computation, func(x int) int { return x * 2 })
+//	doubled := lazy.MonadMap(computation, N.Mul(2))
 //	result := doubled() // 10
 func MonadMap[A, B any](fa Lazy[A], f func(A) B) Lazy[B] {
 	return io.MonadMap(fa, f)
@@ -84,7 +84,7 @@ func MonadMap[A, B any](fa Lazy[A], f func(A) B) Lazy[B] {
 //
 // Example:
 //
-//	double := lazy.Map(func(x int) int { return x * 2 })
+//	double := lazy.Map(N.Mul(2))
 //	computation := lazy.Of(5)
 //	result := double(computation)() // 10
 //
@@ -141,7 +141,7 @@ func Chain[A, B any](f Kleisli[A, B]) Kleisli[Lazy[A], B] {
 //
 // Example:
 //
-//	lazyFunc := lazy.Of(func(x int) int { return x * 2 })
+//	lazyFunc := lazy.Of(N.Mul(2))
 //	lazyValue := lazy.Of(5)
 //	result := lazy.MonadAp(lazyFunc, lazyValue)() // 10
 func MonadAp[B, A any](mab Lazy[func(A) B], ma Lazy[A]) Lazy[B] {
@@ -157,7 +157,7 @@ func MonadAp[B, A any](mab Lazy[func(A) B], ma Lazy[A]) Lazy[B] {
 //
 //	lazyValue := lazy.Of(5)
 //	applyTo5 := lazy.Ap[int](lazyValue)
-//	lazyFunc := lazy.Of(func(x int) int { return x * 2 })
+//	lazyFunc := lazy.Of(N.Mul(2))
 //	result := applyTo5(lazyFunc)() // 10
 func Ap[B, A any](ma Lazy[A]) func(Lazy[func(A) B]) Lazy[B] {
 	return io.ApSeq[B](ma)

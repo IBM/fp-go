@@ -690,7 +690,7 @@ func BenchmarkConcatAll(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = concatAll(numbers)
 	}
 }
@@ -710,7 +710,7 @@ func BenchmarkFunctionMonoid(b *testing.B) {
 	combined := funcMonoid.Concat(f1, f2)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = combined("benchmark")
 	}
 }

@@ -64,7 +64,7 @@ func SomeReader[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 // Example:
 //
 //	ro := readeroption.Of[Config](42)
-//	doubled := readeroption.MonadMap(ro, func(x int) int { return x * 2 })
+//	doubled := readeroption.MonadMap(ro, N.Mul(2))
 //
 //go:inline
 func MonadMap[E, A, B any](fa ReaderOption[E, A], f func(A) B) ReaderOption[E, B] {
@@ -78,7 +78,7 @@ func MonadMap[E, A, B any](fa ReaderOption[E, A], f func(A) B) ReaderOption[E, B
 //
 //	doubled := F.Pipe1(
 //	    readeroption.Of[Config](42),
-//	    readeroption.Map[Config](func(x int) int { return x * 2 }),
+//	    readeroption.Map[Config](N.Mul(2)),
 //	)
 //
 //go:inline

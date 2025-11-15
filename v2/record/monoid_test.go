@@ -23,7 +23,7 @@ import (
 )
 
 func TestUnionMonoid(t *testing.T) {
-	m := UnionMonoid[string](S.Semigroup())
+	m := UnionMonoid[string](S.Semigroup)
 
 	e := Empty[string, string]()
 

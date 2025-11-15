@@ -247,7 +247,7 @@ func TestLoggingCallbacks_ConsecutiveCalls(t *testing.T) {
 
 // BenchmarkLoggingCallbacks_NoLoggers benchmarks the no-logger case.
 func BenchmarkLoggingCallbacks_NoLoggers(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		LoggingCallbacks()
 	}
 }
@@ -258,7 +258,7 @@ func BenchmarkLoggingCallbacks_OneLogger(b *testing.B) {
 	logger := log.New(&buf, "", 0)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		LoggingCallbacks(logger)
 	}
 }
@@ -270,7 +270,7 @@ func BenchmarkLoggingCallbacks_TwoLoggers(b *testing.B) {
 	logger2 := log.New(&buf2, "", 0)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		LoggingCallbacks(logger1, logger2)
 	}
 }

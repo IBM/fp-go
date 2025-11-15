@@ -212,7 +212,7 @@ func Compose[C, R, B any](ab Reader[R, B]) func(Reader[B, C]) Reader[R, C] {
 //
 // Example:
 //
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	r := reader.First[int, int, string](double)
 //	result := r(tuple.MakeTuple2(5, "hello")) // (10, "hello")
 func First[A, B, C any](pab Reader[A, B]) Reader[T.Tuple2[A, C], T.Tuple2[B, C]] {
@@ -226,7 +226,7 @@ func First[A, B, C any](pab Reader[A, B]) Reader[T.Tuple2[A, C], T.Tuple2[B, C]]
 //
 // Example:
 //
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	r := reader.Second[string, int, int](double)
 //	result := r(tuple.MakeTuple2("hello", 5)) // ("hello", 10)
 func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]] {

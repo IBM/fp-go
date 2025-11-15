@@ -23,6 +23,7 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -266,7 +267,7 @@ func TestEither(t *testing.T) {
 		erased := Erase(42)
 		result := F.Pipe1(
 			SafeUnerase[int](erased),
-			E.Map[error](func(x int) int { return x * 2 }),
+			E.Map[error](N.Mul(2)),
 		)
 
 		assert.True(t, E.IsRight(result))

@@ -69,7 +69,7 @@ func main() {
     none := option.None[int]()
     
     // Map over values
-    doubled := option.Map(func(x int) int { return x * 2 })(some)
+    doubled := option.Map(N.Mul(2))(some)
     fmt.Println(option.GetOrElse(0)(doubled)) // Output: 84
     
     // Chain operations
@@ -187,7 +187,7 @@ Monadic operations for `Pair` now operate on the **second argument** to align wi
 ```go
 // Operations on first element
 pair := MakePair(1, "hello")
-result := Map(func(x int) int { return x * 2 })(pair) // Pair(2, "hello")
+result := Map(N.Mul(2))(pair) // Pair(2, "hello")
 ```
 
 **V2:**
@@ -204,7 +204,7 @@ The `Compose` function for endomorphisms now follows **mathematical function com
 **V1:**
 ```go
 // Compose executed left-to-right
-double := func(x int) int { return x * 2 }
+double := N.Mul(2)
 increment := func(x int) int { return x + 1 }
 composed := Compose(double, increment)
 result := composed(5) // (5 * 2) + 1 = 11
@@ -213,7 +213,7 @@ result := composed(5) // (5 * 2) + 1 = 11
 **V2:**
 ```go
 // Compose executes RIGHT-TO-LEFT (mathematical composition)
-double := func(x int) int { return x * 2 }
+double := N.Mul(2)
 increment := func(x int) int { return x + 1 }
 composed := Compose(double, increment)
 result := composed(5) // (5 + 1) * 2 = 12
@@ -368,7 +368,7 @@ If you're using `Pair`, update operations to work on the second element:
 ```go
 pair := MakePair(42, "data")
 // Map operates on first element
-result := Map(func(x int) int { return x * 2 })(pair)
+result := Map(N.Mul(2))(pair)
 ```
 
 **After (V2):**

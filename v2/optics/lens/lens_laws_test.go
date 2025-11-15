@@ -20,6 +20,7 @@ import (
 
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -555,7 +556,7 @@ func TestModifyLaws(t *testing.T) {
 
 	// Modify composition: Modify(f ∘ g) = Modify(f) ∘ Modify(g)
 	t.Run("ModifyComposition", func(t *testing.T) {
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		g := func(x int) int { return x + 3 }
 
 		// Modify(f ∘ g)

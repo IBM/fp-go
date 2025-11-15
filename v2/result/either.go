@@ -56,7 +56,7 @@ func FromIO[IO ~func() A, A any](f IO) Result[A] {
 //
 // Example:
 //
-//	fab := either.Right[error](func(x int) int { return x * 2 })
+//	fab := either.Right[error](N.Mul(2))
 //	fa := either.Right[error](21)
 //	result := either.MonadAp(fab, fa) // Right(42)
 //
@@ -81,7 +81,7 @@ func Ap[B, A any](fa Result[A]) Operator[func(A) B, B] {
 //
 //	result := either.MonadMap(
 //	    either.Right[error](21),
-//	    func(x int) int { return x * 2 },
+//	    N.Mul(2),
 //	) // Right(42)
 //
 //go:inline

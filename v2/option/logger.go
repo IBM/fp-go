@@ -48,7 +48,7 @@ func _log[A any](left func(string, ...any), right func(string, ...any), prefix s
 //	result := F.Pipe2(
 //	    Some(42),
 //	    logger("step1"), // logs "step1: 42"
-//	    Map(func(x int) int { return x * 2 }),
+//	    Map(N.Mul(2)),
 //	) // Some(84)
 //
 //	result := F.Pipe1(

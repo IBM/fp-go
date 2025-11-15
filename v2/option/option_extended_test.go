@@ -22,6 +22,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	P "github.com/IBM/fp-go/v2/pair"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	T "github.com/IBM/fp-go/v2/tuple"
@@ -58,7 +59,7 @@ func TestFromValidation(t *testing.T) {
 
 // Test MonadAp
 func TestMonadAp(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	assert.Equal(t, Some(10), MonadAp(Some(double), Some(5)))
 	assert.Equal(t, None[int](), MonadAp(Some(double), None[int]()))
@@ -68,7 +69,7 @@ func TestMonadAp(t *testing.T) {
 
 // Test MonadMap
 func TestMonadMap(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	assert.Equal(t, Some(10), MonadMap(Some(5), double))
 	assert.Equal(t, None[int](), MonadMap(None[int](), double))
@@ -190,7 +191,7 @@ func TestFilter(t *testing.T) {
 
 // Test MonadFlap
 func TestMonadFlap(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	assert.Equal(t, Some(10), MonadFlap(Some(double), 5))
 	assert.Equal(t, None[int](), MonadFlap(None[func(int) int](), 5))
@@ -199,7 +200,7 @@ func TestMonadFlap(t *testing.T) {
 // Test Flap
 func TestFlap(t *testing.T) {
 	applyFive := Flap[int](5)
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	assert.Equal(t, Some(10), applyFive(Some(double)))
 	assert.Equal(t, None[int](), applyFive(None[func(int) int]()))

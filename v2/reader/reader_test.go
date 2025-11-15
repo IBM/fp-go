@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 
@@ -134,14 +135,14 @@ func TestCompose(t *testing.T) {
 }
 
 func TestFirst(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	r := First[int, int, string](double)
 	result := r(T.MakeTuple2(5, "hello"))
 	assert.Equal(t, T.MakeTuple2(10, "hello"), result)
 }
 
 func TestSecond(t *testing.T) {
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	r := Second[string](double)
 	result := r(T.MakeTuple2("hello", 5))
 	assert.Equal(t, T.MakeTuple2("hello", 10), result)

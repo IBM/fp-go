@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	TST "github.com/IBM/fp-go/v2/internal/testing"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCompactArray(t *testing.T) {
-	ar := []Either[string, string]{
+	ar := A.From(
 		Of[string]("ok"),
 		Left[string]("err"),
 		Of[string]("ok"),
-	}
+	)
 
 	res := CompactArray(ar)
 	assert.Equal(t, 2, len(res))

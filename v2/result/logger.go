@@ -33,7 +33,7 @@ import (
 //	result := F.Pipe2(
 //	    either.Right[error](42),
 //	    logger("Processing"),
-//	    either.Map(func(x int) int { return x * 2 }),
+//	    either.Map(N.Mul(2)),
 //	)
 //	// Logs: "Processing: 42"
 //	// result is Right(84)

@@ -17,12 +17,12 @@ package pair
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	EQ "github.com/IBM/fp-go/v2/eq"
-	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
-	SG "github.com/IBM/fp-go/v2/semigroup"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,9 +67,7 @@ func TestFirstAndSecond(t *testing.T) {
 
 func TestMonadMapHead(t *testing.T) {
 	p := MakePair(5, "hello")
-	p2 := MonadMapHead(p, func(n int) string {
-		return fmt.Sprintf("%d", n)
-	})
+	p2 := MonadMapHead(p, strconv.Itoa)
 	assert.Equal(t, "5", Head(p2))
 	assert.Equal(t, "hello", Tail(p2))
 }
@@ -85,9 +83,7 @@ func TestMonadMapTail(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	p := MakePair(10, "test")
-	p2 := MonadMap(p, func(n int) string {
-		return fmt.Sprintf("value: %d", n)
-	})
+	p2 := MonadMap(p, S.Format[int]("value: %d"))
 	assert.Equal(t, "value: 10", Head(p2))
 	assert.Equal(t, "test", Tail(p2))
 }
@@ -95,17 +91,15 @@ func TestMonadMap(t *testing.T) {
 func TestMonadBiMap(t *testing.T) {
 	p := MakePair(5, "hello")
 	p2 := MonadBiMap(p,
-		func(n int) string { return fmt.Sprintf("%d", n) },
-		func(s string) int { return len(s) },
+		strconv.Itoa,
+		S.Size,
 	)
 	assert.Equal(t, "5", Head(p2))
 	assert.Equal(t, 5, Tail(p2))
 }
 
 func TestMapHead(t *testing.T) {
-	mapper := MapHead[string](func(n int) string {
-		return fmt.Sprintf("%d", n)
-	})
+	mapper := MapHead[string](strconv.Itoa)
 	p := MakePair(42, "world")
 	p2 := mapper(p)
 	assert.Equal(t, "42", Head(p2))
@@ -134,8 +128,8 @@ func TestMap(t *testing.T) {
 
 func TestBiMap(t *testing.T) {
 	mapper := BiMap(
-		func(n int) string { return fmt.Sprintf("n=%d", n) },
-		func(s string) int { return len(s) },
+		S.Format[int]("n=%d"),
+		S.Size,
 	)
 	p := MakePair(7, "hello")
 	p2 := mapper(p)
@@ -151,7 +145,7 @@ func TestSwap(t *testing.T) {
 }
 
 func TestMonadChainHead(t *testing.T) {
-	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
+	strConcat := S.Semigroup
 	p := MakePair(5, "hello")
 	p2 := MonadChainHead(strConcat, p, func(n int) Pair[string, string] {
 		return MakePair(fmt.Sprintf("%d", n), "!")
@@ -181,7 +175,7 @@ func TestMonadChain(t *testing.T) {
 }
 
 func TestChainHead(t *testing.T) {
-	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
+	strConcat := S.Semigroup
 	chain := ChainHead(strConcat, func(n int) Pair[string, string] {
 		return MakePair(fmt.Sprintf("%d", n), "!")
 	})
@@ -214,8 +208,8 @@ func TestChain(t *testing.T) {
 }
 
 func TestMonadApHead(t *testing.T) {
-	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
-	pf := MakePair(func(n int) string { return fmt.Sprintf("%d", n) }, "!")
+	strConcat := S.Semigroup
+	pf := MakePair(strconv.Itoa, "!")
 	pv := MakePair(42, "hello")
 	result := MonadApHead(strConcat, pf, pv)
 	assert.Equal(t, "42", Head(result))
@@ -224,7 +218,7 @@ func TestMonadApHead(t *testing.T) {
 
 func TestMonadApTail(t *testing.T) {
 	intSum := N.SemigroupSum[int]()
-	pf := MakePair(10, func(s string) int { return len(s) })
+	pf := MakePair(10, S.Size)
 	pv := MakePair(5, "hello")
 	result := MonadApTail(intSum, pf, pv)
 	assert.Equal(t, 15, Head(result)) // 5 + 10
@@ -241,7 +235,7 @@ func TestMonadAp(t *testing.T) {
 }
 
 func TestApHead(t *testing.T) {
-	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
+	strConcat := S.Semigroup
 	pv := MakePair(100, "world")
 	ap := ApHead[string, int, string](strConcat, pv)
 	pf := MakePair(func(n int) string { return fmt.Sprintf("num=%d", n) }, "!")
@@ -254,7 +248,7 @@ func TestApTail(t *testing.T) {
 	intSum := N.SemigroupSum[int]()
 	pv := MakePair(20, "hello")
 	ap := ApTail[int, string, int](intSum, pv)
-	pf := MakePair(5, func(s string) int { return len(s) })
+	pf := MakePair(5, S.Size)
 	result := ap(pf)
 	assert.Equal(t, 25, Head(result)) // 20 + 5
 	assert.Equal(t, 5, Tail(result))
@@ -287,9 +281,7 @@ func TestUnpaired(t *testing.T) {
 }
 
 func TestMerge(t *testing.T) {
-	add := func(b int) func(a int) int {
-		return func(a int) int { return a + b }
-	}
+	add := N.Add[int]
 	merge := Merge(add)
 	result := merge(MakePair(3, 4))
 	assert.Equal(t, 7, result)
@@ -337,10 +329,7 @@ func TestFormat(t *testing.T) {
 }
 
 func TestMonadHead(t *testing.T) {
-	stringMonoid := M.MakeMonoid(
-		func(a, b string) string { return a + b },
-		"",
-	)
+	stringMonoid := S.Monoid
 	monad := MonadHead[int, string, string](stringMonoid)
 
 	// Test Of
@@ -349,7 +338,7 @@ func TestMonadHead(t *testing.T) {
 	assert.Equal(t, "", Tail(p))
 
 	// Test Map
-	mapper := monad.Map(func(n int) string { return fmt.Sprintf("%d", n) })
+	mapper := monad.Map(strconv.Itoa)
 	p2 := mapper(MakePair(100, "!"))
 	assert.Equal(t, "100", Head(p2))
 	assert.Equal(t, "!", Tail(p2))
@@ -372,10 +361,7 @@ func TestMonadHead(t *testing.T) {
 }
 
 func TestPointedHead(t *testing.T) {
-	stringMonoid := M.MakeMonoid(
-		func(a, b string) string { return a + b },
-		"",
-	)
+	stringMonoid := S.Monoid
 	pointed := PointedHead[int](stringMonoid)
 	p := pointed.Of(42)
 	assert.Equal(t, 42, Head(p))
@@ -392,10 +378,7 @@ func TestFunctorHead(t *testing.T) {
 }
 
 func TestApplicativeHead(t *testing.T) {
-	stringMonoid := M.MakeMonoid(
-		func(a, b string) string { return a + b },
-		"",
-	)
+	stringMonoid := S.Monoid
 	applicative := ApplicativeHead[int, string, string](stringMonoid)
 
 	// Test Of
@@ -404,7 +387,7 @@ func TestApplicativeHead(t *testing.T) {
 	assert.Equal(t, "", Tail(p))
 
 	// Test Map
-	mapper := applicative.Map(func(n int) string { return fmt.Sprintf("%d", n) })
+	mapper := applicative.Map(strconv.Itoa)
 	p2 := mapper(MakePair(42, "!"))
 	assert.Equal(t, "42", Head(p2))
 	assert.Equal(t, "!", Tail(p2))
@@ -428,7 +411,7 @@ func TestMonadTail(t *testing.T) {
 	assert.Equal(t, "hello", Tail(p))
 
 	// Test Map
-	mapper := monad.Map(func(s string) int { return len(s) })
+	mapper := monad.Map(S.Size)
 	p2 := mapper(MakePair(5, "world"))
 	assert.Equal(t, 5, Head(p2))
 	assert.Equal(t, 5, Tail(p2))
@@ -444,7 +427,7 @@ func TestMonadTail(t *testing.T) {
 	// Test Ap
 	pv := MakePair(5, "hello")
 	ap := monad.Ap(pv)
-	pf := MakePair(10, func(s string) int { return len(s) })
+	pf := MakePair(10, S.Size)
 	p4 := ap(pf)
 	assert.Equal(t, 15, Head(p4)) // 5 + 10
 	assert.Equal(t, 5, Tail(p4))
@@ -477,7 +460,7 @@ func TestApplicativeTail(t *testing.T) {
 	assert.Equal(t, "world", Tail(p))
 
 	// Test Map
-	mapper := applicative.Map(func(s string) int { return len(s) })
+	mapper := applicative.Map(S.Size)
 	p2 := mapper(MakePair(5, "test"))
 	assert.Equal(t, 5, Head(p2))
 	assert.Equal(t, 4, Tail(p2))
@@ -511,7 +494,7 @@ func TestPointed(t *testing.T) {
 
 func TestFunctor(t *testing.T) {
 	functor := Functor[string, int, int]()
-	mapper := functor.Map(func(s string) int { return len(s) })
+	mapper := functor.Map(S.Size)
 	p := MakePair(7, "world")
 	p2 := mapper(p)
 	assert.Equal(t, 7, Head(p2))

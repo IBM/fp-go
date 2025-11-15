@@ -36,7 +36,7 @@
 //	generated := array.MakeBy(5, func(i int) int { return i * 2 })
 //
 //	// Transforming arrays
-//	doubled := array.Map(func(x int) int { return x * 2 })(arr)
+//	doubled := array.Map(N.Mul(2))(arr)
 //	filtered := array.Filter(func(x int) bool { return x > 2 })(arr)
 //
 //	// Combining arrays
@@ -50,7 +50,7 @@
 //	numbers := []int{1, 2, 3, 4, 5}
 //
 //	// Map transforms each element
-//	doubled := array.Map(func(x int) int { return x * 2 })(numbers)
+//	doubled := array.Map(N.Mul(2))(numbers)
 //	// Result: [2, 4, 6, 8, 10]
 //
 //	// Filter keeps elements matching a predicate

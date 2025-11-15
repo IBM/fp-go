@@ -93,7 +93,7 @@ func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
 //
 // Example:
 //
-//	fab := Some(func(x int) int { return x * 2 })
+//	fab := Some(N.Mul(2))
 //	fa := Some(5)
 //	result := MonadAp(fab, fa) // Some(10)
 func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
@@ -109,7 +109,7 @@ func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
 //
 //	fa := Some(5)
 //	applyTo5 := Ap[int](fa)
-//	fab := Some(func(x int) int { return x * 2 })
+//	fab := Some(N.Mul(2))
 //	result := applyTo5(fab) // Some(10)
 func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
 	return F.Bind2nd(MonadAp[B, A], fa)
@@ -121,7 +121,7 @@ func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
 // Example:
 //
 //	fa := Some(5)
-//	result := MonadMap(fa, func(x int) int { return x * 2 }) // Some(10)
+//	result := MonadMap(fa, N.Mul(2)) // Some(10)
 func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
 	return MonadChain(fa, F.Flow2(f, Some[B]))
 }
@@ -131,7 +131,7 @@ func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
 //
 // Example:
 //
-//	double := Map(func(x int) int { return x * 2 })
+//	double := Map(N.Mul(2))
 //	result := double(Some(5)) // Some(10)
 //	result := double(None[int]()) // None
 func Map[A, B any](f func(a A) B) Operator[A, B] {
@@ -387,7 +387,7 @@ func Filter[A any](pred func(A) bool) Kleisli[Option[A], A] {
 //
 // Example:
 //
-//	fab := Some(func(x int) int { return x * 2 })
+//	fab := Some(N.Mul(2))
 //	result := MonadFlap(fab, 5) // Some(10)
 func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 	return FC.MonadFlap(MonadMap[func(A) B, B], fab, a)
@@ -398,7 +398,7 @@ func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 // Example:
 //
 //	applyFive := Flap[int](5)
-//	fab := Some(func(x int) int { return x * 2 })
+//	fab := Some(N.Mul(2))
 //	result := applyFive(fab) // Some(10)
 func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return FC.Flap(Map[func(A) B, B], a)

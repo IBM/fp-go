@@ -17,7 +17,7 @@ type (
 	//	computation := lazy.Of(42)
 	//
 	//	// Transform it (not evaluated yet)
-	//	doubled := lazy.Map(func(x int) int { return x * 2 })(computation)
+	//	doubled := lazy.Map(N.Mul(2))(computation)
 	//
 	//	// Evaluate when needed
 	//	result := doubled() // 84
@@ -52,7 +52,7 @@ type (
 	// Example:
 	//
 	//	// An operator that doubles the value in a lazy computation
-	//	doubleOp := lazy.Map(func(x int) int { return x * 2 })
+	//	doubleOp := lazy.Map(N.Mul(2))
 	//
 	//	// Apply it to a lazy computation
 	//	result := doubleOp(lazy.Of(5))() // 10

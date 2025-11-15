@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/iso"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
@@ -211,7 +212,7 @@ func TestFromZeroWithModify(t *testing.T) {
 
 	t.Run("Modify applies transformation to non-zero value", func(t *testing.T) {
 		double := func(opt O.Option[int]) O.Option[int] {
-			return O.MonadMap(opt, func(x int) int { return x * 2 })
+			return O.MonadMap(opt, N.Mul(2))
 		}
 
 		result := iso.Modify[int](double)(isoInt)(5)
@@ -220,7 +221,7 @@ func TestFromZeroWithModify(t *testing.T) {
 
 	t.Run("Modify preserves zero value", func(t *testing.T) {
 		double := func(opt O.Option[int]) O.Option[int] {
-			return O.MonadMap(opt, func(x int) int { return x * 2 })
+			return O.MonadMap(opt, N.Mul(2))
 		}
 
 		result := iso.Modify[int](double)(isoInt)(0)
@@ -235,7 +236,7 @@ func TestFromZeroWithCompose(t *testing.T) {
 	// Create an isomorphism that doubles/halves values
 	doubleIso := iso.MakeIso(
 		func(opt O.Option[int]) O.Option[int] {
-			return O.MonadMap(opt, func(x int) int { return x * 2 })
+			return O.MonadMap(opt, N.Mul(2))
 		},
 		func(opt O.Option[int]) O.Option[int] {
 			return O.MonadMap(opt, func(x int) int { return x / 2 })

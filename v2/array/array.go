@@ -76,7 +76,7 @@ func MapWithIndex[A, B any](f func(int, A) B) Operator[A, B] {
 //
 // Example:
 //
-//	double := array.Map(func(x int) int { return x * 2 })
+//	double := array.Map(N.Mul(2))
 //	result := double([]int{1, 2, 3}) // [2, 4, 6]
 //
 //go:inline

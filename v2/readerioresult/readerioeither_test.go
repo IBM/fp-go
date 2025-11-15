@@ -25,6 +25,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/ioresult"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
@@ -39,7 +40,7 @@ type testContext struct {
 
 func TestMonadMap(t *testing.T) {
 	ctx := testContext{value: 10}
-	res := MonadMap(Of[testContext](5), func(x int) int { return x * 2 })
+	res := MonadMap(Of[testContext](5), N.Mul(2))
 	assert.Equal(t, result.Of(10), res(ctx)())
 }
 
@@ -215,7 +216,7 @@ func TestChainOptionK(t *testing.T) {
 
 func TestMonadApSeq(t *testing.T) {
 	ctx := testContext{value: 10}
-	fab := Of[testContext](func(x int) int { return x * 2 })
+	fab := Of[testContext](N.Mul(2))
 	fa := Of[testContext](5)
 	res := MonadApSeq(fab, fa)
 	assert.Equal(t, result.Of(10), res(ctx)())
@@ -223,7 +224,7 @@ func TestMonadApSeq(t *testing.T) {
 
 func TestMonadApPar(t *testing.T) {
 	ctx := testContext{value: 10}
-	fab := Of[testContext](func(x int) int { return x * 2 })
+	fab := Of[testContext](N.Mul(2))
 	fa := Of[testContext](5)
 	res := MonadApPar(fab, fa)
 	assert.Equal(t, result.Of(10), res(ctx)())
@@ -512,7 +513,7 @@ func TestMemoize(t *testing.T) {
 
 func TestMonadFlap(t *testing.T) {
 	ctx := testContext{value: 10}
-	fab := Of[testContext](func(x int) int { return x * 2 })
+	fab := Of[testContext](N.Mul(2))
 	res := MonadFlap(fab, 5)
 	assert.Equal(t, result.Of(10), res(ctx)())
 }
@@ -520,7 +521,7 @@ func TestMonadFlap(t *testing.T) {
 func TestFlap(t *testing.T) {
 	ctx := testContext{value: 10}
 	res := F.Pipe1(
-		Of[testContext](func(x int) int { return x * 2 }),
+		Of[testContext](N.Mul(2)),
 		Flap[testContext, int](5),
 	)
 	assert.Equal(t, result.Of(10), res(ctx)())

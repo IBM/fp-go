@@ -26,6 +26,7 @@ import (
 	IOG "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
@@ -77,27 +78,27 @@ func TestOf(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	t.Run("Map over Right", func(t *testing.T) {
-		result := MonadMap(Of(5), func(x int) int { return x * 2 })
+		result := MonadMap(Of(5), N.Mul(2))
 		assert.Equal(t, E.Right[error](10), result(context.Background())())
 	})
 
 	t.Run("Map over Left", func(t *testing.T) {
 		err := errors.New("test error")
-		result := MonadMap(Left[int](err), func(x int) int { return x * 2 })
+		result := MonadMap(Left[int](err), N.Mul(2))
 		assert.Equal(t, E.Left[int](err), result(context.Background())())
 	})
 }
 
 func TestMap(t *testing.T) {
 	t.Run("Map with success", func(t *testing.T) {
-		mapper := Map(func(x int) int { return x * 2 })
+		mapper := Map(N.Mul(2))
 		result := mapper(Of(5))
 		assert.Equal(t, E.Right[error](10), result(context.Background())())
 	})
 
 	t.Run("Map with error", func(t *testing.T) {
 		err := errors.New("test error")
-		mapper := Map(func(x int) int { return x * 2 })
+		mapper := Map(N.Mul(2))
 		result := mapper(Left[int](err))
 		assert.Equal(t, E.Left[int](err), result(context.Background())())
 	})
@@ -182,7 +183,7 @@ func TestChainFirst(t *testing.T) {
 
 func TestMonadApSeq(t *testing.T) {
 	t.Run("ApSeq with success", func(t *testing.T) {
-		fab := Of(func(x int) int { return x * 2 })
+		fab := Of(N.Mul(2))
 		fa := Of(5)
 		result := MonadApSeq(fab, fa)
 		assert.Equal(t, E.Right[error](10), result(context.Background())())
@@ -198,7 +199,7 @@ func TestMonadApSeq(t *testing.T) {
 
 	t.Run("ApSeq with error in value", func(t *testing.T) {
 		err := errors.New("test error")
-		fab := Of(func(x int) int { return x * 2 })
+		fab := Of(N.Mul(2))
 		fa := Left[int](err)
 		result := MonadApSeq(fab, fa)
 		assert.Equal(t, E.Left[int](err), result(context.Background())())
@@ -207,7 +208,7 @@ func TestMonadApSeq(t *testing.T) {
 
 func TestApSeq(t *testing.T) {
 	fa := Of(5)
-	fab := Of(func(x int) int { return x * 2 })
+	fab := Of(N.Mul(2))
 	result := MonadApSeq(fab, fa)
 	assert.Equal(t, E.Right[error](10), result(context.Background())())
 }
@@ -215,7 +216,7 @@ func TestApSeq(t *testing.T) {
 func TestApPar(t *testing.T) {
 	t.Run("ApPar with success", func(t *testing.T) {
 		fa := Of(5)
-		fab := Of(func(x int) int { return x * 2 })
+		fab := Of(N.Mul(2))
 		result := MonadApPar(fab, fa)
 		assert.Equal(t, E.Right[error](10), result(context.Background())())
 	})
@@ -224,7 +225,7 @@ func TestApPar(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		fa := Of(5)
-		fab := Of(func(x int) int { return x * 2 })
+		fab := Of(N.Mul(2))
 		result := MonadApPar(fab, fa)
 		res := result(ctx)()
 		assert.True(t, E.IsLeft(res))
@@ -587,14 +588,14 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestMonadFlap(t *testing.T) {
-	fab := Of(func(x int) int { return x * 2 })
+	fab := Of(N.Mul(2))
 	result := MonadFlap(fab, 5)
 	assert.Equal(t, E.Right[error](10), result(context.Background())())
 }
 
 func TestFlap(t *testing.T) {
 	flapper := Flap[int](5)
-	result := flapper(Of(func(x int) int { return x * 2 }))
+	result := flapper(Of(N.Mul(2)))
 	assert.Equal(t, E.Right[error](10), result(context.Background())())
 }
 
