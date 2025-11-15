@@ -63,9 +63,11 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 
 func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
 	return INTI.Traverse[Seq[A]](
+		Map[B],
+
 		Of[Seq[B]],
-		Map[Seq[B], func(B) Seq[B]],
-		Ap[Seq[B], B],
+		Map[Seq[B]],
+		MonadAp[Seq[B]],
 
 		f,
 	)

@@ -16,26 +16,11 @@
 package array
 
 import (
+	G "github.com/IBM/fp-go/v2/array/generic"
 	"github.com/IBM/fp-go/v2/internal/array"
 	M "github.com/IBM/fp-go/v2/monoid"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
-
-func concat[T any](left, right []T) []T {
-	// some performance checks
-	ll := len(left)
-	if ll == 0 {
-		return right
-	}
-	lr := len(right)
-	if lr == 0 {
-		return left
-	}
-	// need to copy
-	buf := make([]T, ll+lr)
-	copy(buf[copy(buf, left):], right)
-	return buf
-}
 
 // Monoid returns a Monoid instance for arrays.
 // The Monoid combines arrays through concatenation, with an empty array as the identity element.
@@ -45,8 +30,10 @@ func concat[T any](left, right []T) []T {
 //	m := array.Monoid[int]()
 //	result := m.Concat([]int{1, 2}, []int{3, 4}) // [1, 2, 3, 4]
 //	empty := m.Empty() // []
+//
+//go:inline
 func Monoid[T any]() M.Monoid[[]T] {
-	return M.MakeMonoid(concat[T], Empty[T]())
+	return G.Monoid[[]T]()
 }
 
 // Semigroup returns a Semigroup instance for arrays.
@@ -56,8 +43,10 @@ func Monoid[T any]() M.Monoid[[]T] {
 //
 //	s := array.Semigroup[int]()
 //	result := s.Concat([]int{1, 2}, []int{3, 4}) // [1, 2, 3, 4]
+//
+//go:inline
 func Semigroup[T any]() S.Semigroup[[]T] {
-	return S.MakeSemigroup(concat[T])
+	return G.Semigroup[[]T]()
 }
 
 func addLen[A any](count int, data []A) int {

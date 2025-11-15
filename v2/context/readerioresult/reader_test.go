@@ -312,7 +312,7 @@ func TestMonadChainFirstLeft(t *testing.T) {
 			Left[int](originalErr),
 			func(e error) ReaderIOResult[int] {
 				capturedError = e
-				return Right[int](999) // This Right value is ignored
+				return Right(999) // This Right value is ignored
 			},
 		)
 		actualResult := result(ctx)()
@@ -324,7 +324,7 @@ func TestMonadChainFirstLeft(t *testing.T) {
 	t.Run("Right value passes through", func(t *testing.T) {
 		sideEffectCalled := false
 		result := MonadChainFirstLeft(
-			Right[int](42),
+			Right(42),
 			func(e error) ReaderIOResult[int] {
 				sideEffectCalled = true
 				return Left[int](fmt.Errorf("should not be called"))
@@ -343,7 +343,7 @@ func TestMonadChainFirstLeft(t *testing.T) {
 			func(e error) ReaderIOResult[int] {
 				effectCount++
 				// Try to return Right, but original Left should still be returned
-				return Right[int](999)
+				return Right(999)
 			},
 		)
 		actualResult := result(ctx)()
@@ -378,7 +378,7 @@ func TestChainFirstLeft(t *testing.T) {
 		originalErr := fmt.Errorf("test error")
 		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
 			captured = e
-			return Right[int](42) // This Right is ignored
+			return Right(42) // This Right is ignored
 		})
 		result := F.Pipe1(
 			Left[int](originalErr),
@@ -394,10 +394,10 @@ func TestChainFirstLeft(t *testing.T) {
 		called := false
 		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
 			called = true
-			return Right[int](0)
+			return Right(0)
 		})
 		result := F.Pipe1(
-			Right[int](100),
+			Right(100),
 			chainFn,
 		)
 		assert.False(t, called)
@@ -409,7 +409,7 @@ func TestChainFirstLeft(t *testing.T) {
 		originalErr := fmt.Errorf("original")
 		chainFn := ChainFirstLeft[int](func(e error) ReaderIOResult[int] {
 			// Try to return Right, but original Left should still be returned
-			return Right[int](999)
+			return Right(999)
 		})
 
 		result := F.Pipe1(

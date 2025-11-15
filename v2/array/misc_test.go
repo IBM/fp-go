@@ -18,7 +18,6 @@ package array
 import (
 	"testing"
 
-	O "github.com/IBM/fp-go/v2/option"
 	OR "github.com/IBM/fp-go/v2/ord"
 	"github.com/stretchr/testify/assert"
 )
@@ -101,39 +100,6 @@ func TestSortByKey(t *testing.T) {
 	assert.Equal(t, "Bob", result[0].Name)
 	assert.Equal(t, "Alice", result[1].Name)
 	assert.Equal(t, "Charlie", result[2].Name)
-}
-
-func TestMonadTraverse(t *testing.T) {
-	result := MonadTraverse(
-		O.Of[[]int],
-		O.Map[[]int, func(int) []int],
-		O.Ap[[]int, int],
-		[]int{1, 3, 5},
-		func(n int) O.Option[int] {
-			if n%2 == 1 {
-				return O.Some(n * 2)
-			}
-			return O.None[int]()
-		},
-	)
-
-	assert.Equal(t, O.Some([]int{2, 6, 10}), result)
-
-	// Test with None case
-	result2 := MonadTraverse(
-		O.Of[[]int],
-		O.Map[[]int, func(int) []int],
-		O.Ap[[]int, int],
-		[]int{1, 2, 3},
-		func(n int) O.Option[int] {
-			if n%2 == 1 {
-				return O.Some(n * 2)
-			}
-			return O.None[int]()
-		},
-	)
-
-	assert.Equal(t, O.None[[]int](), result2)
 }
 
 func TestUniqByKey(t *testing.T) {

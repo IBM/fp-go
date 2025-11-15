@@ -15,6 +15,10 @@
 
 package array
 
+func Of[GA ~[]A, A any](a A) GA {
+	return GA{a}
+}
+
 func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 	return func(as GA) GA {
 		length := len(as)
@@ -140,7 +144,7 @@ func UpsertAt[GA ~[]A, A any](a A) func(GA) GA {
 func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	count := len(as)
 	bs := make(GB, count)
-	for i := count - 1; i >= 0; i-- {
+	for i := range count {
 		bs[i] = f(as[i])
 	}
 	return bs
@@ -155,7 +159,7 @@ func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
 func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B) GB {
 	count := len(as)
 	bs := make(GB, count)
-	for i := count - 1; i >= 0; i-- {
+	for i := range count {
 		bs[i] = f(i, as[i])
 	}
 	return bs
@@ -163,4 +167,20 @@ func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B
 
 func ConstNil[GA ~[]A, A any]() GA {
 	return (GA)(nil)
+}
+
+func Concat[GT ~[]T, T any](left, right GT) GT {
+	// some performance checks
+	ll := len(left)
+	if ll == 0 {
+		return right
+	}
+	lr := len(right)
+	if lr == 0 {
+		return left
+	}
+	// need to copy
+	buf := make(GT, ll+lr)
+	copy(buf[copy(buf, left):], right)
+	return buf
 }

@@ -16,8 +16,8 @@
 package readerioresult
 
 import (
+	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/array"
 	"github.com/IBM/fp-go/v2/internal/record"
 )
 
@@ -29,7 +29,7 @@ import (
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
-	return array.Traverse[[]A](
+	return array.Traverse(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		Ap[[]B, B],
@@ -46,7 +46,7 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
 func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[[]A, []B] {
-	return array.TraverseWithIndex[[]A](
+	return array.TraverseWithIndex(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		Ap[[]B, B],
@@ -135,22 +135,20 @@ func MonadTraverseArraySeq[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
 func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
-	return array.Traverse[[]A](
+	return array.Traverse(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApSeq[[]B, B],
-
 		f,
 	)
 }
 
 // TraverseArrayWithIndexSeq uses transforms an array [[]A] into [[]ReaderIOResult[B]] and then resolves that into a [ReaderIOResult[[]B]]
 func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[[]A, []B] {
-	return array.TraverseWithIndex[[]A](
+	return array.TraverseWithIndex(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApSeq[[]B, B],
-
 		f,
 	)
 }
@@ -230,22 +228,20 @@ func MonadTraverseArrayPar[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
 func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
-	return array.Traverse[[]A](
+	return array.Traverse(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApPar[[]B, B],
-
 		f,
 	)
 }
 
 // TraverseArrayWithIndexPar uses transforms an array [[]A] into [[]ReaderIOResult[B]] and then resolves that into a [ReaderIOResult[[]B]]
 func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[[]A, []B] {
-	return array.TraverseWithIndex[[]A](
+	return array.TraverseWithIndex(
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApPar[[]B, B],
-
 		f,
 	)
 }

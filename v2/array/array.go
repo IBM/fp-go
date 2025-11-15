@@ -260,6 +260,8 @@ func Empty[A any]() []A {
 }
 
 // Zero returns an empty array of type A (alias for Empty).
+//
+//go:inline
 func Zero[A any]() []A {
 	return Empty[A]()
 }

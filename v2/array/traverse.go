@@ -80,3 +80,25 @@ func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
 
 	return array.MonadTraverse(fof, fmap, fap, ta, f)
 }
+
+//go:inline
+func TraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
+	fof func([]B) HKTRB,
+	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+
+	f func(int, A) HKTB) func([]A) HKTRB {
+	return array.TraverseWithIndex[[]A](fof, fmap, fap, f)
+}
+
+//go:inline
+func MonadTraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
+	fof func([]B) HKTRB,
+	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+
+	ta []A,
+	f func(int, A) HKTB) HKTRB {
+
+	return array.MonadTraverseWithIndex(fof, fmap, fap, ta, f)
+}

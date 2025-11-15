@@ -33,5 +33,5 @@ import (
 //
 //go:inline
 func Monoid[T any]() M.Monoid[Seq[T]] {
-	return M.MakeMonoid(G.Concat[Seq[T]], Empty[T]())
+	return G.Monoid[Seq[T]]()
 }

@@ -19,6 +19,72 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
+func MonadSequenceSegment[HKTB, HKTRB any](
+	fof func(HKTB) HKTRB,
+	empty HKTRB,
+	concat func(HKTRB, HKTRB) HKTRB,
+	fbs []HKTB,
+	start, end int,
+) HKTRB {
+
+	switch end - start {
+	case 0:
+		return empty
+	case 1:
+		return fof(fbs[start])
+	default:
+		mid := (start + end) / 2
+		return concat(
+			MonadSequenceSegment(fof, empty, concat, fbs, start, mid),
+			MonadSequenceSegment(fof, empty, concat, fbs, mid, end),
+		)
+	}
+}
+
+func SequenceSegment[HKTB, HKTRB any](
+	fof func(HKTB) HKTRB,
+	empty HKTRB,
+	concat func(HKTRB, HKTRB) HKTRB,
+) func([]HKTB) HKTRB {
+
+	concat_f := func(left, right func([]HKTB) HKTRB) func([]HKTB) HKTRB {
+		return func(fbs []HKTB) HKTRB {
+			return concat(left(fbs), right(fbs))
+		}
+	}
+	empty_f := F.Constant1[[]HKTB](empty)
+	at := func(idx int) func([]HKTB) HKTRB {
+		return func(fbs []HKTB) HKTRB {
+			return fof(fbs[idx])
+		}
+	}
+
+	var divide func(start, end int) func([]HKTB) HKTRB
+	divide = func(start, end int) func([]HKTB) HKTRB {
+		switch end - start {
+		case 0:
+			return empty_f
+		case 1:
+			return at(start)
+		default:
+			mid := (start + end) / 2
+			left := divide(start, mid)
+			right := divide(mid, end)
+
+			return concat_f(left, right)
+		}
+	}
+
+	// TODO this could be cached by length
+	get_divide := func(len int) func([]HKTB) HKTRB {
+		return divide(0, len)
+	}
+
+	return func(fbs []HKTB) HKTRB {
+		return get_divide(len(fbs))(fbs)
+	}
+}
+
 /*
 *
 We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
@@ -76,6 +142,34 @@ func TraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 
 	return func(ma GA) HKTRB {
 		return MonadTraverseWithIndex(fof, fmap, fap, ma, f)
+	}
+}
+
+/*
+*
+We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
+
+HKTRB = HKT<GB>
+HKTB = HKT<B>
+HKTAB = HKT<func(A)B>
+*/
+func MonadSequence[GA ~[]HKTA, HKTA, HKTRA any](
+	fof func(HKTA) HKTRA,
+	empty HKTRA,
+	concat func(HKTRA, HKTRA) HKTRA,
+
+	ta GA) HKTRA {
+	return MonadSequenceSegment(fof, empty, concat, ta, 0, len(ta))
+}
+
+func Sequence[GA ~[]HKTA, HKTA, HKTRA any](
+	fof func(HKTA) HKTRA,
+	empty HKTRA,
+	concat func(HKTRA, HKTRA) HKTRA,
+) func(GA) HKTRA {
+
+	return func(ma GA) HKTRA {
+		return MonadSequence(fof, empty, concat, ma)
 	}
 }
 

@@ -42,6 +42,8 @@ func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[Option[A]] {
 //	optMonoid := ApplicativeMonoid(intMonoid)
 //	result := optMonoid.Concat(Some(2), Some(3)) // Some(5)
 //	result := optMonoid.Empty() // Some(0)
+//
+//go:inline
 func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
 	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
 }

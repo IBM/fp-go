@@ -885,3 +885,13 @@ func MonadZip[A, B any](fb Seq[B], fa Seq[A]) Seq2[A, B] {
 func Zip[A, B any](fa Seq[A]) func(Seq[B]) Seq2[A, B] {
 	return F.Bind2nd(MonadZip[A, B], fa)
 }
+
+//go:inline
+func MonadMapToArray[A, B any](fa Seq[A], f func(A) B) []B {
+	return G.MonadMapToArray[Seq[A], []B](fa, f)
+}
+
+//go:inline
+func MapToArray[A, B any](f func(A) B) func(Seq[A]) []B {
+	return G.MapToArray[Seq[A], []B](f)
+}

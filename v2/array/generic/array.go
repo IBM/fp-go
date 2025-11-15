@@ -25,8 +25,10 @@ import (
 )
 
 // Of constructs a single element array
+//
+//go:inline
 func Of[GA ~[]A, A any](value A) GA {
-	return GA{value}
+	return array.Of[GA](value)
 }
 
 func Reduce[GA ~[]A, A, B any](f func(B, A) B, initial B) func(GA) B {

@@ -17,7 +17,7 @@ package reader
 
 import (
 	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/array"
+	G "github.com/IBM/fp-go/v2/reader/generic"
 )
 
 // MonadTraverseArray transforms each element of an array using a function that returns a Reader,
@@ -38,13 +38,7 @@ import (
 //	r := reader.MonadTraverseArray(numbers, addPrefix)
 //	result := r(Config{Prefix: "num"}) // ["num1", "num2", "num3"]
 func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] {
-	return array.MonadTraverse(
-		Of[R, []B],
-		Map[R, []B, func(B) []B],
-		Ap[[]B, R, B],
-		ma,
-		f,
-	)
+	return G.MonadTraverseArray[Reader[R, B], Reader[R, []B], []A](ma, f)
 }
 
 // TraverseArray transforms each element of an array using a function that returns a Reader,
@@ -63,12 +57,7 @@ func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] 
 //	r := transform([]int{1, 2, 3})
 //	result := r(Config{Multiplier: 10}) // [10, 20, 30]
 func TraverseArray[R, A, B any](f Kleisli[R, A, B]) func([]A) Reader[R, []B] {
-	return array.Traverse[[]A](
-		Of[R, []B],
-		Map[R, []B, func(B) []B],
-		Ap[[]B, R, B],
-		f,
-	)
+	return G.TraverseArray[Reader[R, B], Reader[R, []B], []A](f)
 }
 
 // TraverseArrayWithIndex transforms each element of an array using a function that takes
@@ -89,12 +78,7 @@ func TraverseArray[R, A, B any](f Kleisli[R, A, B]) func([]A) Reader[R, []B] {
 //	r := transform([]string{"a", "b", "c"})
 //	result := r(Config{Prefix: "item"}) // ["item[0]:a", "item[1]:b", "item[2]:c"]
 func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) func([]A) Reader[R, []B] {
-	return array.TraverseWithIndex[[]A](
-		Of[R, []B],
-		Map[R, []B, func(B) []B],
-		Ap[[]B, R, B],
-		f,
-	)
+	return G.TraverseArrayWithIndex[Reader[R, B], Reader[R, []B], []A](f)
 }
 
 // SequenceArray converts an array of Readers into a single Reader containing an array.

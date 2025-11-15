@@ -55,11 +55,22 @@ import (
 //	result := TraverseIter(parse)(invalidStrings)
 //	// result is None because "invalid" cannot be parsed
 func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
+
 	return INTI.Traverse[Seq[A]](
+		Map[B],
+
 		Of[Seq[B]],
-		Map[Seq[B], func(B) Seq[B]],
-		Ap[Seq[B]],
+		Map[Seq[B]],
+		MonadAp[Seq[B]],
 
 		f,
+	)
+}
+
+func SequenceIter[A any](as Seq[Option[A]]) Option[Seq[A]] {
+	return INTI.MonadSequence(
+		Map(INTI.Of[Seq[A]]),
+		ApplicativeMonoid(INTI.Monoid[Seq[A]]()),
+		as,
 	)
 }

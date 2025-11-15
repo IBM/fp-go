@@ -2,6 +2,7 @@ package iter
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	M "github.com/IBM/fp-go/v2/monoid"
 )
 
 func MonadReduceWithIndex[GA ~func(yield func(A) bool), A, B any](fa GA, f func(int, B, A) B, initial B) B {
@@ -58,4 +59,42 @@ func Prepend[GA ~func(yield func(A) bool), A any](head A) func(GA) GA {
 
 func Empty[GA ~func(yield func(A) bool), A any]() GA {
 	return func(_ func(A) bool) {}
+}
+
+func ToArray[GA ~func(yield func(A) bool), GB ~[]A, A any](fa GA) GB {
+	bs := make(GB, 0)
+	for a := range fa {
+		bs = append(bs, a)
+	}
+	return bs
+}
+
+func MonadMapToArray[GA ~func(yield func(A) bool), GB ~[]B, A, B any](fa GA, f func(A) B) GB {
+	bs := make(GB, 0)
+	for a := range fa {
+		bs = append(bs, f(a))
+	}
+	return bs
+}
+
+func MapToArray[GA ~func(yield func(A) bool), GB ~[]B, A, B any](f func(A) B) func(GA) GB {
+	return F.Bind2nd(MonadMapToArray[GA, GB], f)
+}
+
+func MonadMapToArrayWithIndex[GA ~func(yield func(A) bool), GB ~[]B, A, B any](fa GA, f func(int, A) B) GB {
+	bs := make(GB, 0)
+	var i int
+	for a := range fa {
+		bs = append(bs, f(i, a))
+		i += 1
+	}
+	return bs
+}
+
+func MapToArrayWithIndex[GA ~func(yield func(A) bool), GB ~[]B, A, B any](f func(int, A) B) func(GA) GB {
+	return F.Bind2nd(MonadMapToArrayWithIndex[GA, GB], f)
+}
+
+func Monoid[GA ~func(yield func(A) bool), A any]() M.Monoid[GA] {
+	return M.MakeMonoid(Concat[GA], Empty[GA]())
 }

@@ -16,9 +16,17 @@
 package array
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/array"
+	M "github.com/IBM/fp-go/v2/monoid"
 	O "github.com/IBM/fp-go/v2/option"
 )
+
+func MonadSequence[HKTA, HKTRA any](
+	fof func(HKTA) HKTRA,
+	m M.Monoid[HKTRA],
+	ma []HKTA) HKTRA {
+	return array.MonadSequence(fof, m.Empty(), m.Concat, ma)
+}
 
 // Sequence takes an array where elements are HKT<A> (higher kinded type) and,
 // using an applicative of that HKT, returns an HKT of []A.
@@ -55,16 +63,11 @@ import (
 //	    option.MonadAp[[]int, int],
 //	)
 //	result := seq(opts) // Some([1, 2, 3])
-func Sequence[A, HKTA, HKTRA, HKTFRA any](
-	_of func([]A) HKTRA,
-	_map func(HKTRA, func([]A) func(A) []A) HKTFRA,
-	_ap func(HKTFRA, HKTA) HKTRA,
+func Sequence[HKTA, HKTRA any](
+	fof func(HKTA) HKTRA,
+	m M.Monoid[HKTRA],
 ) func([]HKTA) HKTRA {
-	ca := F.Curry2(Append[A])
-	empty := _of(Empty[A]())
-	return Reduce(func(fas HKTRA, fa HKTA) HKTRA {
-		return _ap(_map(fas, ca), fa)
-	}, empty)
+	return array.Sequence[[]HKTA](fof, m.Empty(), m.Concat)
 }
 
 // ArrayOption returns a function to convert a sequence of options into an option of a sequence.
@@ -86,10 +89,10 @@ func Sequence[A, HKTA, HKTRA, HKTFRA any](
 //	    option.Some(3),
 //	}
 //	result2 := array.ArrayOption[int]()(opts2) // None
-func ArrayOption[A any]() func([]Option[A]) Option[[]A] {
-	return Sequence(
-		O.Of[[]A],
-		O.MonadMap[[]A, func(A) []A],
-		O.MonadAp[[]A, A],
+func ArrayOption[A any](ma []Option[A]) Option[[]A] {
+	return MonadSequence(
+		O.Map(Of[A]),
+		O.ApplicativeMonoid(Monoid[A]()),
+		ma,
 	)
 }
