@@ -61,7 +61,7 @@ func TestFromIsoBasic(t *testing.T) {
 	)
 
 	// Convert to optional lens using FromIso
-	optTimeoutLens := FromIso[Config, int](zeroAsNone)(timeoutLens)
+	optTimeoutLens := FromIso[Config](zeroAsNone)(timeoutLens)
 
 	t.Run("GetNone", func(t *testing.T) {
 		config := Config{timeout: 0, retries: 3}
@@ -119,7 +119,7 @@ func TestFromIsoWithNegativeSentinel(t *testing.T) {
 		func(c Config, r int) Config { c.retries = r; return c },
 	)
 
-	optRetriesLens := FromIso[Config, int](negativeOneAsNone)(retriesLens)
+	optRetriesLens := FromIso[Config](negativeOneAsNone)(retriesLens)
 
 	t.Run("GetNoneForNegativeOne", func(t *testing.T) {
 		config := Config{timeout: 30, retries: -1}
@@ -161,7 +161,7 @@ func TestFromIsoLaws(t *testing.T) {
 		func(c Config, t int) Config { c.timeout = t; return c },
 	)
 
-	optTimeoutLens := FromIso[Config, int](zeroAsNone)(timeoutLens)
+	optTimeoutLens := FromIso[Config](zeroAsNone)(timeoutLens)
 
 	eqOptInt := O.Eq(EQT.Eq[int]())
 	eqConfig := EQT.Eq[Config]()
@@ -230,7 +230,7 @@ func TestFromIsoComposition(t *testing.T) {
 	)
 
 	// Compose: Application -> Config -> timeout (as Option)
-	optTimeoutFromConfig := FromIso[Config, int](zeroAsNone)(timeoutLens)
+	optTimeoutFromConfig := FromIso[Config](zeroAsNone)(timeoutLens)
 	optTimeoutFromApp := F.Pipe1(
 		configLens,
 		L.Compose[Application](optTimeoutFromConfig),
@@ -269,7 +269,7 @@ func TestFromIsoModify(t *testing.T) {
 		func(c Config, t int) Config { c.timeout = t; return c },
 	)
 
-	optTimeoutLens := FromIso[Config, int](zeroAsNone)(timeoutLens)
+	optTimeoutLens := FromIso[Config](zeroAsNone)(timeoutLens)
 
 	t.Run("ModifyNoneToSome", func(t *testing.T) {
 		config := Config{timeout: 0, retries: 3}
@@ -321,7 +321,7 @@ func TestFromIsoWithStringEmpty(t *testing.T) {
 		func(u User, e string) User { u.email = e; return u },
 	)
 
-	optEmailLens := FromIso[User, string](emptyAsNone)(emailLens)
+	optEmailLens := FromIso[User](emptyAsNone)(emailLens)
 
 	t.Run("EmptyStringAsNone", func(t *testing.T) {
 		user := User{name: "Alice", email: ""}
@@ -362,7 +362,7 @@ func TestFromIsoRoundTrip(t *testing.T) {
 		func(s Settings, m int) Settings { s.maxConnections = m; return s },
 	)
 
-	optMaxConnectionsLens := FromIso[Settings, int](zeroAsNone)(maxConnectionsLens)
+	optMaxConnectionsLens := FromIso[Settings](zeroAsNone)(maxConnectionsLens)
 
 	t.Run("RoundTripThroughGet", func(t *testing.T) {
 		settings := Settings{maxConnections: 100, bufferSize: 1024}
@@ -410,7 +410,7 @@ func TestFromIsoChaining(t *testing.T) {
 		func(c Config, t int) Config { c.timeout = t; return c },
 	)
 
-	optTimeoutLens := FromIso[Config, int](zeroAsNone)(timeoutLens)
+	optTimeoutLens := FromIso[Config](zeroAsNone)(timeoutLens)
 
 	config := Config{timeout: 30, retries: 3}
 
@@ -449,8 +449,8 @@ func TestFromIsoMultipleFields(t *testing.T) {
 		func(c Config, r int) Config { c.retries = r; return c },
 	)
 
-	optTimeoutLens := FromIso[Config, int](zeroAsNone)(timeoutLens)
-	optRetriesLens := FromIso[Config, int](zeroAsNone)(retriesLens)
+	optTimeoutLens := FromIso[Config](zeroAsNone)(timeoutLens)
+	optRetriesLens := FromIso[Config](zeroAsNone)(retriesLens)
 
 	t.Run("IndependentFields", func(t *testing.T) {
 		config := Config{timeout: 0, retries: 5}

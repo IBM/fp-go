@@ -288,7 +288,7 @@ func MonadChainFirst[A, B any](ma Option[A], f Kleisli[A, B]) Option[A] {
 //	    return Some("logged")
 //	})
 //	result := logAndKeep(Some(5)) // Some(5)
-func ChainFirst[A, B any](f Kleisli[A, B]) Kleisli[Option[A], A] {
+func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return C.ChainFirst(
 		Chain[A, A],
 		Map[B, A],
@@ -326,7 +326,7 @@ func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
 //	withDefault := Alt(func() Option[int] { return Some(0) })
 //	result := withDefault(Some(5)) // Some(5)
 //	result := withDefault(None[int]()) // Some(0)
-func Alt[A any](that func() Option[A]) Kleisli[Option[A], A] {
+func Alt[A any](that func() Option[A]) Operator[A, A] {
 	return Fold(that, Of[A])
 }
 
@@ -378,7 +378,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //	result := isPositive(Some(5)) // Some(5)
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None
-func Filter[A any](pred func(A) bool) Kleisli[Option[A], A] {
+func Filter[A any](pred func(A) bool) Operator[A, A] {
 	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
 }
 

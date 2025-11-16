@@ -17,9 +17,6 @@ package option
 
 import (
 	"github.com/IBM/fp-go/v2/function"
-	A "github.com/IBM/fp-go/v2/internal/apply"
-	C "github.com/IBM/fp-go/v2/internal/chain"
-	F "github.com/IBM/fp-go/v2/internal/functor"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
@@ -35,7 +32,7 @@ import (
 //	result := Do(Result{})
 func Do[S any](
 	empty S,
-) Option[S] {
+) (S, bool) {
 	return Of(empty)
 }
 
@@ -55,12 +52,15 @@ func Bind[S1, S2, A any](
 	setter func(A) func(S1) S2,
 	f Kleisli[S1, A],
 ) Operator[S1, S2] {
-	return C.Bind(
-		Chain[S1, S2],
-		Map[A, S2],
-		setter,
-		f,
-	)
+	return func(s1 S1, s1ok bool) (s2 S2, s2ok bool) {
+		if s1ok {
+			a, aok := f(s1)
+			if aok {
+				return Of(setter(a)(s1))
+			}
+		}
+		return
+	}
 }
 
 // Let attaches the result of a pure computation to a context S1 to produce a context S2.
@@ -79,11 +79,12 @@ func Let[S1, S2, B any](
 	key func(B) func(S1) S2,
 	f func(S1) B,
 ) Operator[S1, S2] {
-	return F.Let(
-		Map[S1, S2],
-		key,
-		f,
-	)
+	return func(s1 S1, s1ok bool) (s2 S2, s2ok bool) {
+		if s1ok {
+			return Of(key(f(s1))(s1))
+		}
+		return
+	}
 }
 
 // LetTo attaches a constant value to a context S1 to produce a context S2.
@@ -101,11 +102,13 @@ func LetTo[S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
 ) Operator[S1, S2] {
-	return F.LetTo(
-		Map[S1, S2],
-		key,
-		b,
-	)
+	kb := key(b)
+	return func(s1 S1, s1ok bool) (s2 S2, s2ok bool) {
+		if s1ok {
+			return Of(kb(s1))
+		}
+		return
+	}
 }
 
 // BindTo initializes a new state S1 from a value T.
@@ -121,10 +124,12 @@ func LetTo[S1, S2, B any](
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) Operator[T, S1] {
-	return C.BindTo(
-		Map[T, S1],
-		setter,
-	)
+	return func(t T, tok bool) (s1 S1, s1ok bool) {
+		if tok {
+			return Of(setter(t))
+		}
+		return
+	}
 }
 
 // ApS attaches a value to a context S1 to produce a context S2 by considering the context and the value concurrently.
@@ -141,14 +146,21 @@ func BindTo[S1, T any](
 //	)
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	fa Option[T],
-) Operator[S1, S2] {
-	return A.ApS(
-		Ap[S2, T],
-		Map[S1, func(T) S2],
-		setter,
-		fa,
-	)
+) func(T, bool) Operator[S1, S2] {
+	return func(t T, tok bool) Operator[S1, S2] {
+		if tok {
+			st := setter(t)
+			return func(s1 S1, s1ok bool) (s2 S2, s2ok bool) {
+				if s1ok {
+					return Of(st(s1))
+				}
+				return
+			}
+		}
+		return func(_ S1, _ bool) (s2 S2, s2ok bool) {
+			return
+		}
+	}
 }
 
 // ApSL attaches a value to a context using a lens-based setter.
@@ -186,9 +198,8 @@ func ApS[S1, S2, T any](
 //	)
 func ApSL[S, T any](
 	lens L.Lens[S, T],
-	fa Option[T],
-) Operator[S, S] {
-	return ApS(lens.Set, fa)
+) func(T, bool) Operator[S, S] {
+	return ApS(lens.Set)
 }
 
 // BindL attaches the result of a computation to a context using a lens-based setter.
@@ -229,7 +240,9 @@ func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return Bind(lens.Set, function.Flow2(lens.Get, f))
+	return Bind(lens.Set, func(s S) (T, bool) {
+		return f(lens.Get(s))
+	})
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.

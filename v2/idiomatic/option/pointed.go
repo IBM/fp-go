@@ -1,0 +1,39 @@
+// Copyright (c) 2024 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package option
+
+type (
+	optionPointed[A any] struct{}
+
+	Pointed[A any] interface {
+		Of(A) (A, bool)
+	}
+)
+
+func (o optionPointed[A]) Of(a A) (A, bool) {
+	return Of(a)
+}
+
+// Pointed implements the Pointed operations for Option.
+// A pointed functor is a functor with an Of operation that wraps a value.
+//
+// Example:
+//
+//	p := Pointed[int]()
+//	result := p.Of(42) // Some(42)
+func MakePointed[A any]() Pointed[A] {
+	return optionPointed[A]{}
+}

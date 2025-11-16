@@ -38,7 +38,7 @@ import (
 //	r := reader.MonadTraverseArray(numbers, addPrefix)
 //	result := r(Config{Prefix: "num"}) // ["num1", "num2", "num3"]
 func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] {
-	return G.MonadTraverseArray[Reader[R, B], Reader[R, []B], []A](ma, f)
+	return G.MonadTraverseArray[Reader[R, B], Reader[R, []B]](ma, f)
 }
 
 // TraverseArray transforms each element of an array using a function that returns a Reader,
