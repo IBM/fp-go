@@ -4,7 +4,9 @@
       "Bash(go test:*)",
       "Bash(go tool cover:*)",
       "Bash(sort:*)",
-      "Bash(timeout 30 go test:*)"
+      "Bash(timeout 30 go test:*)",
+      "Bash(cut:*)",
+      "Bash(go build:*)"
     ],
     "deny": [],
     "ask": []

@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/stretchr/testify/assert"
 )
@@ -203,7 +204,7 @@ func TestLetL(t *testing.T) {
 	)
 
 	t.Run("LetL with pure transformation", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 
 		result := F.Pipe1(
 			Right[error](Counter{Value: 21}),
@@ -215,7 +216,7 @@ func TestLetL(t *testing.T) {
 	})
 
 	t.Run("LetL with Left input", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 
 		result := F.Pipe1(
 			Left[Counter](assert.AnError),
@@ -227,8 +228,8 @@ func TestLetL(t *testing.T) {
 	})
 
 	t.Run("LetL with multiple transformations", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
-		addTen := func(v int) int { return v + 10 }
+		double := N.Mul(2)
+		addTen := N.Add(10)
 
 		result := F.Pipe2(
 			Right[error](Counter{Value: 5}),
@@ -241,7 +242,7 @@ func TestLetL(t *testing.T) {
 	})
 
 	t.Run("LetL with identity transformation", func(t *testing.T) {
-		identity := func(v int) int { return v }
+		identity := F.Identity[int]
 
 		result := F.Pipe1(
 			Right[error](Counter{Value: 42}),
@@ -315,7 +316,7 @@ func TestLensOperationsCombined(t *testing.T) {
 	)
 
 	t.Run("Combine LetToL and LetL", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 
 		result := F.Pipe2(
 			Right[error](Counter{Value: 100}),
@@ -328,7 +329,7 @@ func TestLensOperationsCombined(t *testing.T) {
 	})
 
 	t.Run("Combine LetL and BindL", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 		validate := func(v int) Either[error, int] {
 			if v > 100 {
 				return Left[int](assert.AnError)
