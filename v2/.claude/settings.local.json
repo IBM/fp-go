@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test:*)",
+      "Bash(go tool cover:*)",
+      "Bash(sort:*)",
+      "Bash(timeout 30 go test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

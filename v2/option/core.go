@@ -117,6 +117,8 @@ func (s *Option[A]) UnmarshalJSON(data []byte) error {
 //	IsNone(opt) // true
 //	opt := Some(42)
 //	IsNone(opt) // false
+//
+//go:inline
 func IsNone[T any](val Option[T]) bool {
 	return !val.isSome
 }
@@ -127,6 +129,8 @@ func IsNone[T any](val Option[T]) bool {
 //
 //	opt := Some(42) // Option containing 42
 //	opt := Some("hello") // Option containing "hello"
+//
+//go:inline
 func Some[T any](value T) Option[T] {
 	return Option[T]{isSome: true, value: value}
 }
@@ -137,6 +141,8 @@ func Some[T any](value T) Option[T] {
 // Example:
 //
 //	opt := Of(42) // Option containing 42
+//
+//go:inline
 func Of[T any](value T) Option[T] {
 	return Some(value)
 }
@@ -147,6 +153,8 @@ func Of[T any](value T) Option[T] {
 //
 //	opt := None[int]() // Empty Option of type int
 //	opt := None[string]() // Empty Option of type string
+//
+//go:inline
 func None[T any]() Option[T] {
 	return Option[T]{isSome: false}
 }
@@ -159,6 +167,8 @@ func None[T any]() Option[T] {
 //	IsSome(opt) // true
 //	opt := None[int]()
 //	IsSome(opt) // false
+//
+//go:inline
 func IsSome[T any](val Option[T]) bool {
 	return val.isSome
 }
@@ -190,6 +200,8 @@ func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
 //	val, ok := Unwrap(opt) // val = 42, ok = true
 //	opt := None[int]()
 //	val, ok := Unwrap(opt) // val = 0, ok = false
+//
+//go:inline
 func Unwrap[A any](ma Option[A]) (A, bool) {
 	return ma.value, ma.isSome
 }

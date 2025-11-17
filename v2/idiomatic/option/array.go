@@ -30,13 +30,13 @@ package option
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
 	return func(g GA) (GB, bool) {
-		var bs GB
-		for _, a := range g {
+		bs := make(GB, len(g))
+		for i, a := range g {
 			b, bok := f(a)
 			if !bok {
 				return bs, false
 			}
-			bs = append(bs, b)
+			bs[i] = b
 		}
 		return bs, true
 	}
@@ -69,13 +69,13 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //	result := TraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // Some(["0:a", "1:b"])
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) (B, bool)) Kleisli[GA, GB] {
 	return func(g GA) (GB, bool) {
-		var bs GB
+		bs := make(GB, len(g))
 		for i, a := range g {
 			b, bok := f(i, a)
 			if !bok {
 				return bs, false
 			}
-			bs = append(bs, b)
+			bs[i] = b
 		}
 		return bs, true
 	}

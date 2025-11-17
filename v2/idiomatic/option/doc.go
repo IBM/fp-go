@@ -79,7 +79,7 @@
 //
 // # Working with Collections
 //
-// Transform arrays:
+// Transform arrays using TraverseArray:
 //
 //	doublePositive := func(x int) (int, bool) {
 //	    if x > 0 { return x * 2, true }
@@ -88,18 +88,19 @@
 //	result := TraverseArray(doublePositive)([]int{1, 2, 3})  // ([2, 4, 6], true)
 //	result := TraverseArray(doublePositive)([]int{1, -2, 3})  // ([], false)
 //
-// Sequence arrays of Options:
+// Transform with indexes:
 //
-//	opts := []Option[int]{Some(1), Some(2), Some(3)}
-//	result := SequenceArray(opts)  // ([1, 2, 3], true)
+//	f := func(i int, x int) (int, bool) {
+//	    if x > i { return x, true }
+//	    return 0, false
+//	}
+//	result := TraverseArrayWithIndex(f)([]int{1, 2, 3})  // ([1, 2, 3], true)
 //
-//	opts := []Option[int]{Some(1), None[int](), Some(3)}
-//	result := SequenceArray(opts)  // ([], false)
+// Transform records (maps):
 //
-// Compact arrays (remove None values):
-//
-//	opts := []Option[int]{Some(1), None[int](), Some(3)}
-//	result := CompactArray(opts)  // [1, 3]
+//	double := func(x int) (int, bool) { return x * 2, true }
+//	result := TraverseRecord(double)(map[string]int{"a": 1, "b": 2})
+//	// (map[string]int{"a": 2, "b": 4}, true)
 //
 // # Algebraic Operations
 //
@@ -122,39 +123,34 @@
 //	result := withDefault(Some(42))  // (42, true)
 //	result := withDefault(None[int]())  // (100, true)
 //
-// # Error Handling
+// # Conversion Functions
 //
-// Convert error-returning functions:
-//
-//	result := TryCatch(func() (int, error) {
-//	    return strconv.Atoi("42")
-//	})  // (42, true)
-//
-//	result := TryCatch(func() (int, error) {
-//	    return strconv.Atoi("invalid")
-//	})  // (0, false)
-//
-// Convert validation functions:
-//
-//	parse := FromValidation(func(s string) (int, bool) {
-//	    n, err := strconv.Atoi(s)
-//	    return n, err == nil
-//	})
-//	result := parse("42")  // (42, true)
-//	result := parse("invalid")  // (0, false)
-//
-// Convert predicates:
+// Convert predicates to Options:
 //
 //	isPositive := FromPredicate(func(n int) bool { return n > 0 })
 //	result := isPositive(5)  // (5, true)
-//	result := isPositive(-1)  // (-1, false)
+//	result := isPositive(-1)  // (0, false)
 //
-// Convert nullable pointers:
+// Convert nullable pointers to Options:
 //
 //	var ptr *int = nil
 //	result := FromNillable(ptr)  // (nil, false)
 //	val := 42
 //	result := FromNillable(&val)  // (&val, true)
+//
+// Convert zero/non-zero values to Options:
+//
+//	result := FromZero[int]()(0)  // (0, true)
+//	result := FromZero[int]()(5)  // (0, false)
+//	result := FromNonZero[int]()(5)  // (5, true)
+//	result := FromNonZero[int]()(0)  // (0, false)
+//
+// Use equality-based conversion:
+//
+//	import "github.com/IBM/fp-go/v2/eq"
+//	equals42 := FromEq(eq.FromStrictEquals[int]())(42)
+//	result := equals42(42)  // (42, true)
+//	result := equals42(10)  // (0, false)
 //
 // # Do-Notation Style
 //
@@ -232,8 +228,7 @@
 //
 // # Subpackages
 //
-//   - option/number: Number conversion utilities (Atoi, Itoa)
-//   - option/testing: Testing utilities for verifying monad laws
+//   - option/number: Number conversion utilities for working with Options
 package option
 
 //go:generate go run .. option --count 10 --filename gen.go

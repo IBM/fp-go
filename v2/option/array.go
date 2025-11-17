@@ -17,7 +17,6 @@ package option
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	RA "github.com/IBM/fp-go/v2/internal/array"
 )
 
 // TraverseArrayG transforms an array by applying a function that returns an Option to each element.
@@ -34,13 +33,17 @@ import (
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
-	return RA.Traverse[GA](
-		Of[GB],
-		Map[GB, func(B) GB],
-		Ap[GB, B],
-
-		f,
-	)
+	return func(g GA) Option[GB] {
+		bs := make(GB, len(g))
+		for i, a := range g {
+			b := f(a)
+			if !b.isSome {
+				return None[GB]()
+			}
+			bs[i] = b.value
+		}
+		return Some(bs)
+	}
 }
 
 // TraverseArray transforms an array by applying a function that returns an Option to each element.
@@ -54,6 +57,8 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //	}
 //	result := TraverseArray(validate)([]int{1, 2, 3}) // Some([2, 4, 6])
 //	result := TraverseArray(validate)([]int{1, -1, 3}) // None
+//
+//go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return TraverseArrayG[[]A, []B](f)
 }
@@ -69,13 +74,17 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //	}
 //	result := TraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // Some(["0:a", "1:b"])
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) Kleisli[GA, GB] {
-	return RA.TraverseWithIndex[GA](
-		Of[GB],
-		Map[GB, func(B) GB],
-		Ap[GB, B],
-
-		f,
-	)
+	return func(g GA) Option[GB] {
+		bs := make(GB, len(g))
+		for i, a := range g {
+			b := f(i, a)
+			if !b.isSome {
+				return None[GB]()
+			}
+			bs[i] = b.value
+		}
+		return Some(bs)
+	}
 }
 
 // TraverseArrayWithIndex transforms an array by applying an indexed function that returns an Option.
@@ -88,6 +97,8 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B
 //	    return None[int]()
 //	}
 //	result := TraverseArrayWithIndex(f)([]int{1, 2, 3}) // Some([1, 2, 3])
+//
+//go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B] {
 	return TraverseArrayWithIndexG[[]A, []B](f)
 }
@@ -101,6 +112,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B
 //	type MySlice []int
 //	result := SequenceArrayG[MySlice]([]Option[int]{Some(1), Some(2)}) // Some(MySlice{1, 2})
 //	result := SequenceArrayG[MySlice]([]Option[int]{Some(1), None[int]()}) // None
+//
+//go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
 	return TraverseArrayG[GOA, GA](F.Identity[Option[A]])(ma)
 }
@@ -125,9 +138,13 @@ func SequenceArray[A any](ma []Option[A]) Option[[]A] {
 //	input := []Option[int]{Some(1), None[int](), Some(3)}
 //	result := CompactArrayG[[]Option[int], MySlice](input) // MySlice{1, 3}
 func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
-	return RA.Reduce(fa, func(out A2, value Option[A]) A2 {
-		return MonadFold(value, F.Constant(out), F.Bind1st(RA.Append[A2, A], out))
-	}, make(A2, 0, len(fa)))
+	as := make(A2, 0, len(fa))
+	for _, oa := range fa {
+		if oa.isSome {
+			as = append(as, oa.value)
+		}
+	}
+	return as
 }
 
 // CompactArray filters an array of Options, keeping only the Some values and discarding None values.
@@ -136,6 +153,8 @@ func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 //
 //	input := []Option[int]{Some(1), None[int](), Some(3), Some(5), None[int]()}
 //	result := CompactArray(input) // [1, 3, 5]
+//
+//go:inline
 func CompactArray[A any](fa []Option[A]) []A {
 	return CompactArrayG[[]Option[A], []A](fa)
 }

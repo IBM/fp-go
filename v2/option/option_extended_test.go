@@ -122,14 +122,14 @@ func TestMonadChain(t *testing.T) {
 func TestMonadChainTo(t *testing.T) {
 	assert.Equal(t, Some("hello"), MonadChainTo(Some(42), Some("hello")))
 	assert.Equal(t, None[string](), MonadChainTo(Some(42), None[string]()))
-	assert.Equal(t, Some("hello"), MonadChainTo(None[int](), Some("hello")))
+	assert.Equal(t, None[string](), MonadChainTo(None[int](), Some("hello")))
 }
 
 // Test ChainTo
 func TestChainTo(t *testing.T) {
 	replaceWith := ChainTo[int](Some("hello"))
 	assert.Equal(t, Some("hello"), replaceWith(Some(42)))
-	assert.Equal(t, Some("hello"), replaceWith(None[int]()))
+	assert.Equal(t, None[string](), replaceWith(None[int]()))
 }
 
 // Test MonadChainFirst

@@ -20,7 +20,6 @@ import (
 	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	C "github.com/IBM/fp-go/v2/internal/chain"
-	FC "github.com/IBM/fp-go/v2/internal/functor"
 	P "github.com/IBM/fp-go/v2/predicate"
 )
 
@@ -69,6 +68,8 @@ func FromEq[A any](pred eq.Eq[A]) func(A) Kleisli[A, A] {
 //	result := FromNillable(ptr) // None
 //	val := 42
 //	result := FromNillable(&val) // Some(&val)
+//
+//go:inline
 func FromNillable[A any](a *A) Option[*A] {
 	return fromPredicate(a, F.IsNonNil[A])
 }
@@ -83,6 +84,8 @@ func FromNillable[A any](a *A) Option[*A] {
 //	    return n, err == nil
 //	})
 //	result := parseNum("42") // Some(42)
+//
+//go:inline
 func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
 	return Optionize1(f)
 }
@@ -97,9 +100,10 @@ func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
 //	fa := Some(5)
 //	result := MonadAp(fab, fa) // Some(10)
 func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
-	return MonadFold(fab, None[B], func(ab func(A) B) Option[B] {
-		return MonadFold(fa, None[B], F.Flow2(ab, Some[B]))
-	})
+	if fab.isSome && fa.isSome {
+		return Some(fab.value(fa.value))
+	}
+	return None[B]()
 }
 
 // Ap is the curried applicative functor for Option.
@@ -112,7 +116,16 @@ func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
 //	fab := Some(N.Mul(2))
 //	result := applyTo5(fab) // Some(10)
 func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
-	return F.Bind2nd(MonadAp[B, A], fa)
+	if fa.isSome {
+		return func(fab Option[func(A) B]) Option[B] {
+			if fab.isSome {
+				return Some(fab.value(fa.value))
+			}
+			return None[B]()
+		}
+	}
+	// shortcut
+	return F.Constant1[Option[func(A) B]](None[B]())
 }
 
 // MonadMap applies a function to the value inside an Option.
@@ -123,7 +136,10 @@ func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
 //	fa := Some(5)
 //	result := MonadMap(fa, N.Mul(2)) // Some(10)
 func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
-	return MonadChain(fa, F.Flow2(f, Some[B]))
+	if fa.isSome {
+		return Some(f(fa.value))
+	}
+	return None[B]()
 }
 
 // Map returns a function that applies a transformation to the value inside an Option.
@@ -135,7 +151,12 @@ func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
 //	result := double(Some(5)) // Some(10)
 //	result := double(None[int]()) // None
 func Map[A, B any](f func(a A) B) Operator[A, B] {
-	return Chain(F.Flow2(f, Some[B]))
+	return func(fa Option[A]) Option[B] {
+		if fa.isSome {
+			return Some(f(fa.value))
+		}
+		return None[B]()
+	}
 }
 
 // MonadMapTo replaces the value inside an Option with a constant value.
@@ -146,7 +167,10 @@ func Map[A, B any](f func(a A) B) Operator[A, B] {
 //	fa := Some(5)
 //	result := MonadMapTo(fa, "hello") // Some("hello")
 func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
-	return MonadMap(fa, F.Constant1[A](b))
+	if fa.isSome {
+		return Some(b)
+	}
+	return None[B]()
 }
 
 // MapTo returns a function that replaces the value inside an Option with a constant.
@@ -156,7 +180,12 @@ func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
 //	replaceWith42 := MapTo[string, int](42)
 //	result := replaceWith42(Some("hello")) // Some(42)
 func MapTo[A, B any](b B) Operator[A, B] {
-	return F.Bind2nd(MonadMapTo[A, B], b)
+	return func(fa Option[A]) Option[B] {
+		if fa.isSome {
+			return Some(b)
+		}
+		return None[B]()
+	}
 }
 
 // TryCatch executes a function that may return an error and converts the result to an Option.
@@ -186,9 +215,11 @@ func TryCatch[A any](f func() (A, error)) Option[A] {
 //	)
 //	result := handler(Some(42)) // "value: 42"
 //	result := handler(None[int]()) // "no value"
+//
+//go:inline
 func Fold[A, B any](onNone func() B, onSome func(a A) B) func(ma Option[A]) B {
-	return func(ma Option[A]) B {
-		return MonadFold(ma, onNone, onSome)
+	return func(fa Option[A]) B {
+		return MonadFold(fa, onNone, onSome)
 	}
 }
 
@@ -199,6 +230,8 @@ func Fold[A, B any](onNone func() B, onSome func(a A) B) func(ma Option[A]) B {
 //
 //	result := MonadGetOrElse(Some(42), func() int { return 0 }) // 42
 //	result := MonadGetOrElse(None[int](), func() int { return 0 }) // 0
+//
+//go:inline
 func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
 	return MonadFold(fa, onNone, F.Identity[A])
 }
@@ -210,6 +243,8 @@ func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
 //	getOrZero := GetOrElse(func() int { return 0 })
 //	result := getOrZero(Some(42)) // 42
 //	result := getOrZero(None[int]()) // 0
+//
+//go:inline
 func GetOrElse[A any](onNone func() A) func(Option[A]) A {
 	return Fold(onNone, F.Identity[A])
 }
@@ -224,6 +259,8 @@ func GetOrElse[A any](onNone func() A) func(Option[A]) A {
 //	    if x > 0 { return Some(x * 2) }
 //	    return None[int]()
 //	}) // Some(10)
+//
+//go:inline
 func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
 	return MonadFold(fa, None[B], f)
 }
@@ -238,6 +275,8 @@ func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
 //	    return None[int]()
 //	})
 //	result := validate(Some(5)) // Some(10)
+//
+//go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return Fold(None[B], f)
 }
@@ -248,8 +287,11 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 // Example:
 //
 //	result := MonadChainTo(Some(5), Some("hello")) // Some("hello")
-func MonadChainTo[A, B any](_ Option[A], mb Option[B]) Option[B] {
-	return mb
+func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
+	if ma.isSome {
+		return mb
+	}
+	return None[B]()
 }
 
 // ChainTo returns a function that ignores its input Option and returns a fixed Option.
@@ -259,7 +301,15 @@ func MonadChainTo[A, B any](_ Option[A], mb Option[B]) Option[B] {
 //	replaceWith := ChainTo(Some("hello"))
 //	result := replaceWith(Some(42)) // Some("hello")
 func ChainTo[A, B any](mb Option[B]) Operator[A, B] {
-	return F.Bind2nd(MonadChainTo[A, B], mb)
+	if mb.isSome {
+		return func(ma Option[A]) Option[B] {
+			if ma.isSome {
+				return mb
+			}
+			return None[B]()
+		}
+	}
+	return F.Constant1[Option[A]](None[B]())
 }
 
 // MonadChainFirst applies a function that returns an Option but keeps the original value.
@@ -339,11 +389,10 @@ func Alt[A any](that func() Option[A]) Operator[A, A] {
 //	    return Some(a + b)
 //	}) // Some(5)
 func MonadSequence2[T1, T2, R any](o1 Option[T1], o2 Option[T2], f func(T1, T2) Option[R]) Option[R] {
-	return MonadFold(o1, None[R], func(t1 T1) Option[R] {
-		return MonadFold(o2, None[R], func(t2 T2) Option[R] {
-			return f(t1, t2)
-		})
-	})
+	if o1.isSome && o2.isSome {
+		return f(o1.value, o2.value)
+	}
+	return None[R]()
 }
 
 // Sequence2 returns a function that sequences two Options with a combining function.
@@ -367,7 +416,12 @@ func Sequence2[T1, T2, R any](f func(T1, T2) Option[R]) func(Option[T1], Option[
 //	result := sum(Some(5)) // 5
 //	result := sum(None[int]()) // 0
 func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
-	return Fold(F.Constant(initial), F.Bind1st(f, initial))
+	return func(ma Option[A]) B {
+		if ma.isSome {
+			return f(initial, ma.value)
+		}
+		return initial
+	}
 }
 
 // Filter keeps the Option if it's Some and the predicate is satisfied, otherwise returns None.
@@ -379,7 +433,12 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None
 func Filter[A any](pred func(A) bool) Operator[A, A] {
-	return Fold(None[A], F.Ternary(pred, Of[A], F.Ignore1of1[A](None[A])))
+	return func(ma Option[A]) Option[A] {
+		if ma.isSome && pred(ma.value) {
+			return ma
+		}
+		return None[A]()
+	}
 }
 
 // MonadFlap applies a value to a function wrapped in an Option.
@@ -390,7 +449,10 @@ func Filter[A any](pred func(A) bool) Operator[A, A] {
 //	fab := Some(N.Mul(2))
 //	result := MonadFlap(fab, 5) // Some(10)
 func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
-	return FC.MonadFlap(MonadMap[func(A) B, B], fab, a)
+	if fab.isSome {
+		return Some(fab.value(a))
+	}
+	return None[B]()
 }
 
 // Flap returns a function that applies a value to an Option-wrapped function.
@@ -401,5 +463,10 @@ func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 //	fab := Some(N.Mul(2))
 //	result := applyFive(fab) // Some(10)
 func Flap[B, A any](a A) Operator[func(A) B, B] {
-	return FC.Flap(Map[func(A) B, B], a)
+	return func(fab Option[func(A) B]) Option[B] {
+		if fab.isSome {
+			return Some(fab.value(a))
+		}
+		return None[B]()
+	}
 }
