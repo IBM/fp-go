@@ -13,86 +13,114 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package option defines the Option data structure and its monadic operations.
+// Package option implements the Option monad using idiomatic Go tuple signatures.
 //
-// Option represents an optional value: every Option is either Some and contains a value,
-// or None, and does not contain a value. This is a type-safe alternative to using nil
-// pointers or special sentinel values to represent the absence of a value.
+// Unlike the standard option package which uses wrapper structs, this package represents
+// Options as tuples (value, bool) where the boolean indicates presence (true) or absence (false).
+// This approach is more idiomatic in Go and has better performance characteristics.
+//
+// # Type Signatures
+//
+// The core types used in this package are:
+//
+//	Operator[A, B any] = func(A, bool) (B, bool)  // Transforms an Option[A] to Option[B]
+//	Kleisli[A, B any]  = func(A) (B, bool)        // Monadic function from A to Option[B]
 //
 // # Basic Usage
 //
 // Create an Option with Some or None:
 //
-//	opt := Some(42)           // Option containing 42
-//	opt := None[int]()        // Empty Option
-//	opt := Of(42)             // Alternative to Some
+//	some := Some(42)           // (42, true)
+//	none := None[int]()        // (0, false)
+//	opt := Of(42)              // Alternative to Some: (42, true)
 //
 // Check if an Option contains a value:
 //
-//	if IsSome(opt) {
-//	    // opt contains a value
+//	value, ok := Some(42)
+//	if ok {
+//	    // value == 42
 //	}
-//	if IsNone(opt) {
-//	    // opt is empty
+//
+//	if IsSome(Some(42)) {
+//	    // Option contains a value
+//	}
+//	if IsNone(None[int]()) {
+//	    // Option is empty
 //	}
 //
 // Extract values:
 //
-//	value, ok := Unwrap(opt)  // Returns (value, true) or (zero, false)
-//	value := GetOrElse(func() int { return 0 })(opt)  // Returns value or default
+//	value, ok := Some(42)      // Direct tuple unpacking: value == 42, ok == true
+//	value := GetOrElse(func() int { return 0 })(Some(42))  // Returns 42
+//	value := GetOrElse(func() int { return 0 })(None[int]())  // Returns 0
 //
 // # Transformations
 //
 // Map transforms the contained value:
 //
-//	result := Map(func(x int) string {
-//	    return fmt.Sprintf("%d", x)
-//	})(Some(42))  // Some("42")
+//	double := Map(func(x int) int { return x * 2 })
+//	result := double(Some(21))  // (42, true)
+//	result := double(None[int]())  // (0, false)
 //
 // Chain sequences operations that may fail:
 //
-//	result := Chain(func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	})(Some(5))  // Some(10)
+//	validate := Chain(func(x int) (int, bool) {
+//	    if x > 0 { return x * 2, true }
+//	    return 0, false
+//	})
+//	result := validate(Some(5))  // (10, true)
+//	result := validate(Some(-1))  // (0, false)
 //
 // Filter keeps values that satisfy a predicate:
 //
-//	result := Filter(func(x int) bool {
-//	    return x > 0
-//	})(Some(5))  // Some(5)
+//	isPositive := Filter(func(x int) bool { return x > 0 })
+//	result := isPositive(Some(5))  // (5, true)
+//	result := isPositive(Some(-1))  // (0, false)
 //
 // # Working with Collections
 //
 // Transform arrays:
 //
-//	result := TraverseArray(func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	})([]int{1, 2, 3})  // Some([2, 4, 6])
+//	doublePositive := func(x int) (int, bool) {
+//	    if x > 0 { return x * 2, true }
+//	    return 0, false
+//	}
+//	result := TraverseArray(doublePositive)([]int{1, 2, 3})  // ([2, 4, 6], true)
+//	result := TraverseArray(doublePositive)([]int{1, -2, 3})  // ([], false)
 //
 // Sequence arrays of Options:
 //
-//	result := SequenceArray([]Option[int]{
-//	    Some(1), Some(2), Some(3),
-//	})  // Some([1, 2, 3])
+//	opts := []Option[int]{Some(1), Some(2), Some(3)}
+//	result := SequenceArray(opts)  // ([1, 2, 3], true)
+//
+//	opts := []Option[int]{Some(1), None[int](), Some(3)}
+//	result := SequenceArray(opts)  // ([], false)
 //
 // Compact arrays (remove None values):
 //
-//	result := CompactArray([]Option[int]{
-//	    Some(1), None[int](), Some(3),
-//	})  // [1, 3]
+//	opts := []Option[int]{Some(1), None[int](), Some(3)}
+//	result := CompactArray(opts)  // [1, 3]
 //
 // # Algebraic Operations
 //
 // Option supports various algebraic structures:
 //
-//   - Functor: Map operations
+//   - Functor: Map operations for transforming values
 //   - Applicative: Ap operations for applying wrapped functions
 //   - Monad: Chain operations for sequencing computations
-//   - Eq: Equality comparison
-//   - Ord: Ordering comparison
-//   - Semigroup/Monoid: Combining Options
+//   - Alternative: Alt operations for providing fallbacks
+//
+// Applicative example:
+//
+//	fab := Some(func(x int) int { return x * 2 })
+//	fa := Some(21)
+//	result := Ap[int](fa)(fab)  // (42, true)
+//
+// Alternative example:
+//
+//	withDefault := Alt(func() (int, bool) { return 100, true })
+//	result := withDefault(Some(42))  // (42, true)
+//	result := withDefault(None[int]())  // (100, true)
 //
 // # Error Handling
 //
@@ -100,7 +128,11 @@
 //
 //	result := TryCatch(func() (int, error) {
 //	    return strconv.Atoi("42")
-//	})  // Some(42)
+//	})  // (42, true)
+//
+//	result := TryCatch(func() (int, error) {
+//	    return strconv.Atoi("invalid")
+//	})  // (0, false)
 //
 // Convert validation functions:
 //
@@ -108,7 +140,95 @@
 //	    n, err := strconv.Atoi(s)
 //	    return n, err == nil
 //	})
-//	result := parse("42")  // Some(42)
+//	result := parse("42")  // (42, true)
+//	result := parse("invalid")  // (0, false)
+//
+// Convert predicates:
+//
+//	isPositive := FromPredicate(func(n int) bool { return n > 0 })
+//	result := isPositive(5)  // (5, true)
+//	result := isPositive(-1)  // (-1, false)
+//
+// Convert nullable pointers:
+//
+//	var ptr *int = nil
+//	result := FromNillable(ptr)  // (nil, false)
+//	val := 42
+//	result := FromNillable(&val)  // (&val, true)
+//
+// # Do-Notation Style
+//
+// Build complex computations using do-notation:
+//
+//	type Result struct {
+//	    x int
+//	    y int
+//	    sum int
+//	}
+//
+//	result := F.Pipe3(
+//	    Do(Result{}),
+//	    Bind(func(x int) func(Result) Result {
+//	        return func(r Result) Result { r.x = x; return r }
+//	    }, func(r Result) (int, bool) { return Some(10) }),
+//	    Bind(func(y int) func(Result) Result {
+//	        return func(r Result) Result { r.y = y; return r }
+//	    }, func(r Result) (int, bool) { return Some(20) }),
+//	    Let(func(sum int) func(Result) Result {
+//	        return func(r Result) Result { r.sum = sum; return r }
+//	    }, func(r Result) int { return r.x + r.y }),
+//	)  // (Result{x: 10, y: 20, sum: 30}, true)
+//
+// # Lens-Based Operations
+//
+// Use lenses for cleaner field updates:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	ageLens := lens.MakeLens(
+//	    func(p Person) int { return p.Age },
+//	    func(p Person, age int) Person { p.Age = age; return p },
+//	)
+//
+//	// Update using a lens
+//	incrementAge := BindL(ageLens, func(age int) (int, bool) {
+//	    if age < 120 { return age + 1, true }
+//	    return 0, false
+//	})
+//	result := incrementAge(Some(Person{Name: "Alice", Age: 30}))
+//	// (Person{Name: "Alice", Age: 31}, true)
+//
+//	// Set using a lens
+//	setAge := LetToL(ageLens, 25)
+//	result := setAge(Some(Person{Name: "Bob", Age: 30}))
+//	// (Person{Name: "Bob", Age: 25}, true)
+//
+// # Folding and Reducing
+//
+// Fold provides a way to handle both Some and None cases:
+//
+//	handler := Fold(
+//	    func() string { return "no value" },
+//	    func(x int) string { return fmt.Sprintf("value: %d", x) },
+//	)
+//	result := handler(Some(42))  // "value: 42"
+//	result := handler(None[int]())  // "no value"
+//
+// Reduce folds an Option into a single value:
+//
+//	sum := Reduce(func(acc, val int) int { return acc + val }, 0)
+//	result := sum(Some(5))  // 5
+//	result := sum(None[int]())  // 0
+//
+// # Debugging
+//
+// Convert Options to strings for debugging:
+//
+//	str := ToString(Some(42))  // "Some[int](42)"
+//	str := ToString(None[int]())  // "None[int]"
 //
 // # Subpackages
 //
@@ -117,3 +237,5 @@
 package option
 
 //go:generate go run .. option --count 10 --filename gen.go
+
+// Made with Bob

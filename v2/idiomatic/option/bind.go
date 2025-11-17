@@ -23,6 +23,9 @@ import (
 // Do creates an empty context of type S to be used with the Bind operation.
 // This is the starting point for building up a context using do-notation style.
 //
+// Parameters:
+//   - empty: The initial empty context value
+//
 // Example:
 //
 //	type Result struct {
@@ -39,6 +42,10 @@ func Do[S any](
 // Bind attaches the result of a computation to a context S1 to produce a context S2.
 // This is used in do-notation style to sequentially build up a context.
 //
+// Parameters:
+//   - setter: A function that takes a value and returns a function to update the context
+//   - f: A function that computes an Option value from the current context
+//
 // Example:
 //
 //	type State struct { x int; y int }
@@ -46,7 +53,7 @@ func Do[S any](
 //	    Do(State{}),
 //	    Bind(func(x int) func(State) State {
 //	        return func(s State) State { s.x = x; return s }
-//	    }, func(s State) Option[int] { return Some(42) }),
+//	    }, func(s State) (int, bool) { return 42, true }),
 //	)
 func Bind[S1, S2, A any](
 	setter func(A) func(S1) S2,
@@ -65,6 +72,10 @@ func Bind[S1, S2, A any](
 
 // Let attaches the result of a pure computation to a context S1 to produce a context S2.
 // Unlike Bind, the computation function returns a plain value, not an Option.
+//
+// Parameters:
+//   - key: A function that takes a value and returns a function to update the context
+//   - f: A pure function that computes a value from the current context
 //
 // Example:
 //
@@ -88,6 +99,10 @@ func Let[S1, S2, B any](
 }
 
 // LetTo attaches a constant value to a context S1 to produce a context S2.
+//
+// Parameters:
+//   - key: A function that takes a value and returns a function to update the context
+//   - b: The constant value to attach to the context
 //
 // Example:
 //
@@ -114,6 +129,9 @@ func LetTo[S1, S2, B any](
 // BindTo initializes a new state S1 from a value T.
 // This is typically used as the first operation after creating an Option value.
 //
+// Parameters:
+//   - setter: A function that creates the initial context from a value
+//
 // Example:
 //
 //	type State struct { value int }
@@ -134,6 +152,11 @@ func BindTo[S1, T any](
 
 // ApS attaches a value to a context S1 to produce a context S2 by considering the context and the value concurrently.
 // This uses the applicative functor pattern, allowing parallel composition.
+//
+// Parameters:
+//   - setter: A function that takes a value and returns a function to update the context
+//
+// Returns a function that takes an Option (value, bool) and returns an Operator.
 //
 // Example:
 //
@@ -196,6 +219,11 @@ func ApS[S1, S2, T any](
 //	        option.Some(Address{Street: "Main St", City: "NYC"}),
 //	    ),
 //	)
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//
+// Returns a function that takes an Option (value, bool) and returns an Operator.
 func ApSL[S, T any](
 	lens L.Lens[S, T],
 ) func(T, bool) Operator[S, S] {
@@ -236,6 +264,10 @@ func ApSL[S, T any](
 //	    option.Some(Counter{Value: 42}),
 //	    option.BindL(valueLens, increment),
 //	) // Some(Counter{Value: 43})
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - f: A function that computes an Option value from the current field value
 func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
@@ -274,6 +306,10 @@ func BindL[S, T any](
 //	    option.Some(Counter{Value: 21}),
 //	    option.LetL(valueLens, double),
 //	) // Some(Counter{Value: 42})
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - f: A pure transformation function for the field value
 func LetL[S, T any](
 	lens L.Lens[S, T],
 	f Endomorphism[T],
@@ -308,6 +344,10 @@ func LetL[S, T any](
 //	    option.Some(Config{Debug: true, Timeout: 30}),
 //	    option.LetToL(debugLens, false),
 //	) // Some(Config{Debug: false, Timeout: 30})
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - b: The constant value to set the field to
 func LetToL[S, T any](
 	lens L.Lens[S, T],
 	b T,

@@ -13,7 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// package option implements the Option monad, a data type that can have a defined value or none
+// Package option implements the Option monad using idiomatic Go data types.
+//
+// Unlike the standard option package which uses wrapper structs, this package represents
+// Options as tuples (value, bool) where the boolean indicates presence (true) or absence (false).
+// This approach is more idiomatic in Go and has better performance characteristics.
+//
+// Example:
+//
+//	// Creating Options
+//	some := Some(42)           // (42, true)
+//	none := None[int]()        // (0, false)
+//
+//	// Using Options
+//	result, ok := some         // ok == true, result == 42
+//	result, ok := none         // ok == false, result == 0
+//
+//	// Transforming Options
+//	doubled := Map(func(x int) int { return x * 2 })(some)  // (84, true)
 package option
 
 import (
@@ -24,6 +41,9 @@ import (
 
 // FromPredicate returns a function that creates an Option based on a predicate.
 // The returned function will wrap a value in Some if the predicate is satisfied, otherwise None.
+//
+// Parameters:
+//   - pred: A predicate function that determines if a value should be wrapped in Some
 //
 // Example:
 //
@@ -54,6 +74,9 @@ func FromEq[A any](pred eq.Eq[A]) func(A) Kleisli[A, A] {
 // FromNillable converts a pointer to an Option.
 // Returns Some if the pointer is non-nil, None otherwise.
 //
+// Parameters:
+//   - a: A pointer that may be nil
+//
 // Example:
 //
 //	var ptr *int = nil
@@ -66,6 +89,10 @@ func FromNillable[A any](a *A) (*A, bool) {
 
 // Ap is the curried applicative functor for Option.
 // Returns a function that applies an Option-wrapped function to the given Option value.
+//
+// Parameters:
+//   - fa: The value of the Option
+//   - faok: Whether the Option contains a value (true for Some, false for None)
 //
 // Example:
 //
@@ -90,6 +117,9 @@ func Ap[B, A any](fa A, faok bool) Operator[func(A) B, B] {
 // Map returns a function that applies a transformation to the value inside an Option.
 // If the Option is None, returns None.
 //
+// Parameters:
+//   - f: A transformation function to apply to the Option value
+//
 // Example:
 //
 //	double := Map(N.Mul(2))
@@ -106,6 +136,9 @@ func Map[A, B any](f func(a A) B) Operator[A, B] {
 
 // MapTo returns a function that replaces the value inside an Option with a constant.
 //
+// Parameters:
+//   - b: The constant value to replace with
+//
 // Example:
 //
 //	replaceWith42 := MapTo[string, int](42)
@@ -118,6 +151,10 @@ func MapTo[A, B any](b B) Operator[A, B] {
 
 // Fold provides a way to handle both Some and None cases of an Option.
 // Returns a function that applies onNone if the Option is None, or onSome if it's Some.
+//
+// Parameters:
+//   - onNone: Function to call when the Option is None
+//   - onSome: Function to call when the Option is Some, receives the wrapped value
 //
 // Example:
 //
@@ -138,6 +175,9 @@ func Fold[A, B any](onNone func() B, onSome func(A) B) func(A, bool) B {
 
 // GetOrElse returns a function that extracts the value from an Option or returns a default.
 //
+// Parameters:
+//   - onNone: Function that provides the default value when the Option is None
+//
 // Example:
 //
 //	getOrZero := GetOrElse(func() int { return 0 })
@@ -155,11 +195,14 @@ func GetOrElse[A any](onNone func() A) func(A, bool) A {
 // Chain returns a function that applies an Option-returning function to an Option value.
 // This is the curried form of the monadic bind operation.
 //
+// Parameters:
+//   - f: A function that takes a value and returns an Option
+//
 // Example:
 //
-//	validate := Chain(func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
+//	validate := Chain(func(x int) (int, bool) {
+//	    if x > 0 { return x * 2, true }
+//	    return 0, false
 //	})
 //	result := validate(Some(5)) // Some(10)
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
@@ -173,23 +216,30 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 
 // ChainTo returns a function that ignores its input Option and returns a fixed Option.
 //
+// Parameters:
+//   - b: The value of the replacement Option
+//   - bok: Whether the replacement Option contains a value
+//
 // Example:
 //
 //	replaceWith := ChainTo(Some("hello"))
 //	result := replaceWith(Some(42)) // Some("hello")
 func ChainTo[A, B any](b B, bok bool) Operator[A, B] {
-	return func(_ A, _ bool) (B, bool) {
-		return b, bok
+	return func(_ A, aok bool) (B, bool) {
+		return b, bok && aok
 	}
 }
 
 // ChainFirst returns a function that applies an Option-returning function but keeps the original value.
 //
+// Parameters:
+//   - f: A function that takes a value and returns an Option (result is used only for success/failure)
+//
 // Example:
 //
-//	logAndKeep := ChainFirst(func(x int) Option[string] {
+//	logAndKeep := ChainFirst(func(x int) (string, bool) {
 //	    fmt.Println(x)
-//	    return Some("logged")
+//	    return "logged", true
 //	})
 //	result := logAndKeep(Some(5)) // Some(5)
 func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
@@ -204,9 +254,12 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 
 // Alt returns a function that provides an alternative Option if the input is None.
 //
+// Parameters:
+//   - that: A function that provides an alternative Option
+//
 // Example:
 //
-//	withDefault := Alt(func() Option[int] { return Some(0) })
+//	withDefault := Alt(func() (int, bool) { return 0, true })
 //	result := withDefault(Some(5)) // Some(5)
 //	result := withDefault(None[int]()) // Some(0)
 func Alt[A any](that func() (A, bool)) Operator[A, A] {
@@ -220,6 +273,10 @@ func Alt[A any](that func() (A, bool)) Operator[A, A] {
 
 // Reduce folds an Option into a single value using a reducer function.
 // If the Option is None, returns the initial value.
+//
+// Parameters:
+//   - f: A reducer function that combines the accumulator with the Option value
+//   - initial: The initial/default value to use
 //
 // Example:
 //
@@ -237,6 +294,9 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(A, bool) B {
 
 // Filter keeps the Option if it's Some and the predicate is satisfied, otherwise returns None.
 //
+// Parameters:
+//   - pred: A predicate function to test the Option value
+//
 // Example:
 //
 //	isPositive := Filter(func(x int) bool { return x > 0 })
@@ -250,6 +310,9 @@ func Filter[A any](pred func(A) bool) Operator[A, A] {
 }
 
 // Flap returns a function that applies a value to an Option-wrapped function.
+//
+// Parameters:
+//   - a: The value to apply to the function
 //
 // Example:
 //

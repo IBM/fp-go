@@ -46,30 +46,62 @@ func TestAp(t *testing.T) {
 	AssertEq(None[int]())(Ap[int](None[int]())(None[func(int) int]()))(t)
 }
 
-// func TestChain(t *testing.T) {
-// 	f := func(n int) Option[int] { return Some(n * 2) }
-// 	g := func(_ int) Option[int] { return None[int]() }
+func TestChain(t *testing.T) {
+	f := func(n int) (int, bool) { return Some(n * 2) }
+	g := func(_ int) (int, bool) { return None[int]() }
 
-// 	assert.Equal(t, Some(2), F.Pipe1(
-// 		Some(1),
-// 		Chain(f),
-// 	))
+	AssertEq(Some(2))(Chain(f)(Some(1)))(t)
+	AssertEq(None[int]())(Chain(f)(None[int]()))(t)
+	AssertEq(None[int]())(Chain(g)(Some(1)))(t)
+	AssertEq(None[int]())(Chain(g)(None[int]()))(t)
+}
 
-// 	assert.Equal(t, None[int](), F.Pipe1(
-// 		None[int](),
-// 		Chain(f),
-// 	))
+func TestChainToUnit(t *testing.T) {
+	t.Run("positive case - replace Some input with Some value", func(t *testing.T) {
+		replaceWith := ChainTo[int](Some("hello"))
+		// Should replace Some(42) with Some("hello")
+		AssertEq(Some("hello"))(replaceWith(Some(42)))(t)
+	})
 
-// 	assert.Equal(t, None[int](), F.Pipe1(
-// 		Some(1),
-// 		Chain(g),
-// 	))
+	t.Run("positive case - replace None input with Some value", func(t *testing.T) {
+		replaceWith := ChainTo[int](Some("hello"))
+		// Should replace None with Some("hello")
+		AssertEq(None[string]())(replaceWith(None[int]()))(t)
+	})
 
-// 	assert.Equal(t, None[int](), F.Pipe1(
-// 		None[int](),
-// 		Chain(g),
-// 	))
-// }
+	t.Run("positive case - replace with different types", func(t *testing.T) {
+		replaceWithNumber := ChainTo[string](Some(100))
+		// Should work with type conversion
+		AssertEq(Some(100))(replaceWithNumber(Some("test")))(t)
+		AssertEq(None[int]())(replaceWithNumber(None[string]()))(t)
+	})
+
+	t.Run("negative case - replace Some input with None", func(t *testing.T) {
+		replaceWithNone := ChainTo[int](None[string]())
+		// Should replace Some(42) with None
+		AssertEq(None[string]())(replaceWithNone(Some(42)))(t)
+	})
+
+	t.Run("negative case - replace None input with None", func(t *testing.T) {
+		replaceWithNone := ChainTo[int](None[string]())
+		// Should replace None with None
+		AssertEq(None[string]())(replaceWithNone(None[int]()))(t)
+	})
+
+	t.Run("negative case - chaining multiple ChainTo operations", func(t *testing.T) {
+		// Chain multiple ChainTo operations - each ChainTo ignores input and returns fixed value
+		step1 := ChainTo[int](Some("first"))
+		step2 := ChainTo[string](Some(2.5))
+		step3 := ChainTo[float64](None[bool]())
+
+		result1, result1ok := step1(Some(1))
+		result2, result2ok := step2(result1, result1ok)
+		result3, result3ok := step3(result2, result2ok)
+
+		// Final result should be None
+		AssertEq(None[bool]())(result3, result3ok)(t)
+	})
+}
 
 // func TestFlatten(t *testing.T) {
 // 	assert.Equal(t, Of(1), F.Pipe1(Of(Of(1)), Flatten[int]))

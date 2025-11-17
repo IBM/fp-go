@@ -18,11 +18,15 @@ package option
 import "fmt"
 
 type (
-	Kleisli[A, B any]  = func(A) (B, bool)
 	Operator[A, B any] = func(A, bool) (B, bool)
+	Kleisli[A, B any]  = func(A) (B, bool)
 )
 
 // IsSome checks if an Option contains a value.
+//
+// Parameters:
+//   - t: The value of the Option
+//   - tok: Whether the Option contains a value (true for Some, false for None)
 //
 // Example:
 //
@@ -38,6 +42,10 @@ func IsSome[T any](t T, tok bool) bool {
 
 // IsNone checks if an Option is None (contains no value).
 //
+// Parameters:
+//   - t: The value of the Option
+//   - tok: Whether the Option contains a value (true for Some, false for None)
+//
 // Example:
 //
 //	opt := None[int]()
@@ -52,6 +60,9 @@ func IsNone[T any](t T, tok bool) bool {
 
 // Some creates an Option that contains a value.
 //
+// Parameters:
+//   - value: The value to wrap in Some
+//
 // Example:
 //
 //	opt := Some(42) // Option containing 42
@@ -64,6 +75,9 @@ func Some[T any](value T) (T, bool) {
 
 // Of creates an Option that contains a value.
 // This is an alias for Some and is used in monadic contexts.
+//
+// Parameters:
+//   - value: The value to wrap in Some
 //
 // Example:
 //
@@ -86,6 +100,11 @@ func None[T any]() (t T, tok bool) {
 	return
 }
 
+// ToString converts an Option to a string representation for debugging.
+//
+// Parameters:
+//   - t: The value of the Option
+//   - tok: Whether the Option contains a value (true for Some, false for None)
 func ToString[T any](t T, tok bool) string {
 	if tok {
 		return fmt.Sprintf("Some[%T](%v)", t, t)

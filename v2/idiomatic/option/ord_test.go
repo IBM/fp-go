@@ -36,11 +36,11 @@ func TestOrd(t *testing.T) {
 
 	os := Ord(S.Ord)
 
-	assert.Equal(t, 0, os.Compare(None[string](), None[string]()))
-	assert.Equal(t, 1, os.Compare(Some("a"), None[string]()))
-	assert.Equal(t, -1, os.Compare(None[string](), Some("a")))
-	assert.Equal(t, 0, os.Compare(Some("a"), Some("a")))
-	assert.Equal(t, -1, os.Compare(Some("a"), Some("b")))
-	assert.Equal(t, 1, os.Compare(Some("b"), Some("a")))
+	assert.Equal(t, 0, os((None[string]()))(None[string]()))
+	assert.Equal(t, +1, os(Some("a"))(None[string]()))
+	assert.Equal(t, -1, os(None[string]())(Some("a")))
+	assert.Equal(t, 0, os(Some("a"))(Some("a")))
+	assert.Equal(t, -1, os(Some("a"))(Some("b")))
+	assert.Equal(t, +1, os(Some("b"))(Some("a")))
 
 }
