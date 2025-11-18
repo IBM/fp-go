@@ -40,7 +40,7 @@ func TestWithResource(t *testing.T) {
 		return Of[error](f.Name())
 	}
 
-	tempFile := WithResource[error, *os.File, string](onCreate, onDelete)
+	tempFile := WithResource[string](onCreate, onDelete)
 
 	resE := tempFile(onHandler)
 

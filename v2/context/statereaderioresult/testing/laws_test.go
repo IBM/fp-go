@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2024 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,36 +13,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package result
+package testing
 
 import (
-	"os"
+	"context"
+	"fmt"
 	"testing"
 
-	F "github.com/IBM/fp-go/v2/function"
+	A "github.com/IBM/fp-go/v2/array"
+	EQ "github.com/IBM/fp-go/v2/eq"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWithResource(t *testing.T) {
-	onCreate := func() Result[*os.File] {
-		return TryCatchError(os.CreateTemp("", "*"))
-	}
-	onDelete := F.Flow2(
-		func(f *os.File) Result[string] {
-			return TryCatchError(f.Name(), f.Close())
-		},
-		Chain(func(name string) Result[any] {
-			return TryCatchError(any(name), os.Remove(name))
-		}),
-	)
+func TestMonadLaws(t *testing.T) {
+	// some comparison
+	eqs := A.Eq(EQ.FromStrictEquals[string]())
+	eqa := EQ.FromStrictEquals[bool]()
+	eqb := EQ.FromStrictEquals[int]()
+	eqc := EQ.FromStrictEquals[string]()
 
-	onHandler := func(f *os.File) Result[string] {
-		return Of(f.Name())
+	ab := func(a bool) int {
+		if a {
+			return 1
+		}
+		return 0
 	}
 
-	tempFile := WithResource[string](onCreate, onDelete)
+	bc := func(b int) string {
+		return fmt.Sprintf("value %d", b)
+	}
 
-	resE := tempFile(onHandler)
+	laws := AssertLaws(t, eqs, eqa, eqb, eqc, ab, bc, A.Empty[string](), context.Background())
 
-	assert.True(t, IsRight(resE))
+	assert.True(t, laws(true))
+	assert.True(t, laws(false))
 }

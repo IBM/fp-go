@@ -39,7 +39,10 @@ package either
 //	    // Use file here
 //	    return either.Right[error]("data")
 //	})
-func WithResource[E, R, A, ANY any](onCreate func() Either[E, R], onRelease Kleisli[E, R, ANY]) Kleisli[E, Kleisli[E, R, A], A] {
+func WithResource[A, E, R, ANY any](
+	onCreate func() Either[E, R],
+	onRelease Kleisli[E, R, ANY],
+) Kleisli[E, Kleisli[E, R, A], A] {
 	return func(f func(R) Either[E, A]) Either[E, A] {
 		r := onCreate()
 		if r.isLeft {
