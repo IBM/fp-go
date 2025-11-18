@@ -71,8 +71,14 @@ func Size(s string) int {
 }
 
 // Format applies a format string to an arbitrary value
-func Format[T any](format string) func(t T) string {
+func Format[T any](format string) func(T) string {
 	return func(t T) string {
 		return fmt.Sprintf(format, t)
+	}
+}
+
+func Intersperse(middle string) func(string, string) string {
+	return func(l, r string) string {
+		return l + middle + r
 	}
 }

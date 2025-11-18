@@ -20,8 +20,45 @@ import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
+// Chainable represents a type that supports sequential composition of computations,
+// where each computation depends on the result of the previous one.
+//
+// Chainable extends Apply by adding the Chain method (also known as flatMap or bind),
+// which allows for dependent sequencing of computations. Unlike Ap, which combines
+// independent computations, Chain allows the structure of the second computation to
+// depend on the value produced by the first.
+//
+// A Chainable must satisfy the following laws:
+//
+// Associativity:
+//   Chain(f)(Chain(g)(m)) == Chain(x => Chain(f)(g(x)))(m)
+//
+// Type Parameters:
+//   - A: The input value type
+//   - B: The output value type after chaining
+//   - HKTA: The higher-kinded type containing A
+//   - HKTB: The higher-kinded type containing B
+//   - HKTFAB: The higher-kinded type containing a function from A to B
+//
+// Example:
+//   // Given a Chainable for Option
+//   var c Chainable[int, string, Option[int], Option[string], Option[func(int) string]]
+//   chainFn := c.Chain(func(x int) Option[string] {
+//     if x > 0 {
+//       return Some(strconv.Itoa(x))
+//     }
+//     return None[string]()
+//   })
+//   result := chainFn(Some(42)) // Returns Some("42")
 type Chainable[A, B, HKTA, HKTB, HKTFAB any] interface {
 	apply.Apply[A, B, HKTA, HKTB, HKTFAB]
+
+	// Chain sequences computations where the second computation depends on the
+	// value produced by the first.
+	//
+	// Takes a function that produces a new context-wrapped value based on the
+	// unwrapped input, and returns a function that applies this to a context-wrapped
+	// input, flattening the nested context.
 	Chain(func(A) HKTB) func(HKTA) HKTB
 }
 

@@ -35,14 +35,18 @@ import (
 //	// result is Right([]int{1, 2, 3})
 //
 //go:inline
-func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f func(A) Either[E, B]) func(GA) Either[E, GB] {
-	return RA.Traverse[GA](
-		Of[E, GB],
-		Map[E, GB, func(B) GB],
-		Ap[GB, E, B],
-
-		f,
-	)
+func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, GA, GB] {
+	return func(ga GA) Either[E, GB] {
+		bs := make(GB, len(ga))
+		for i, a := range ga {
+			b := f(a)
+			if b.isLeft {
+				return Left[GB](b.l)
+			}
+			bs[i] = b.r
+		}
+		return Of[E](bs)
+	}
 }
 
 // TraverseArray transforms an array by applying a function that returns an Either to each element.
@@ -59,7 +63,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f func(A) Either[E, B]) func(
 //	// result is Right([]int{1, 2, 3})
 //
 //go:inline
-func TraverseArray[E, A, B any](f func(A) Either[E, B]) func([]A) Either[E, []B] {
+func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return TraverseArrayG[[]A, []B](f)
 }
 
@@ -80,14 +84,18 @@ func TraverseArray[E, A, B any](f func(A) Either[E, B]) func([]A) Either[E, []B]
 //	// result is Right([]string{"0:a", "1:b"})
 //
 //go:inline
-func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) func(GA) Either[E, GB] {
-	return RA.TraverseWithIndex[GA](
-		Of[E, GB],
-		Map[E, GB, func(B) GB],
-		Ap[GB, E, B],
-
-		f,
-	)
+func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) Kleisli[E, GA, GB] {
+	return func(ga GA) Either[E, GB] {
+		bs := make(GB, len(ga))
+		for i, a := range ga {
+			b := f(i, a)
+			if b.isLeft {
+				return Left[GB](b.l)
+			}
+			bs[i] = b.r
+		}
+		return Of[E](bs)
+	}
 }
 
 // TraverseArrayWithIndex transforms an array by applying an indexed function that returns an Either.
@@ -106,7 +114,7 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Eithe
 //	// result is Right([]string{"0:a", "1:b"})
 //
 //go:inline
-func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) func([]A) Either[E, []B] {
+func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) Kleisli[E, []A, []B] {
 	return TraverseArrayWithIndexG[[]A, []B](f)
 }
 

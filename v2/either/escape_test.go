@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,20 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package string
+package either
 
-import (
-	"fmt"
+// Test functions to analyze escape behavior
 
-	S "github.com/IBM/fp-go/v2/semigroup"
-)
-
-func concat(left string, right string) string {
-	return fmt.Sprintf("%s%s", left, right)
+//go:noinline
+func testOf(x int) Either[error, int] {
+	return Of[error](x)
 }
 
-var Semigroup = S.MakeSemigroup(concat)
+//go:noinline
+func testRight(x int) Either[error, int] {
+	return Right[error](x)
+}
 
-func IntersperseSemigroup(middle string) S.Semigroup[string] {
-	return S.MakeSemigroup(Intersperse(middle))
+//go:noinline
+func testLeft(x int) Either[int, string] {
+	return Left[string](x)
 }

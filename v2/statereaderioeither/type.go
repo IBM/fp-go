@@ -17,8 +17,10 @@ package statereaderioeither
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/optics/iso/lens"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
@@ -27,6 +29,8 @@ import (
 )
 
 type (
+	Endomorphism[A any]                 = endomorphism.Endomorphism[A]
+	Lens[S, A any]                      = lens.Lens[S, A]
 	State[S, A any]                     = state.State[S, A]
 	Pair[L, R any]                      = pair.Pair[L, R]
 	Reader[R, A any]                    = reader.Reader[R, A]
@@ -36,5 +40,6 @@ type (
 	ReaderIOEither[R, E, A any]         = readerioeither.ReaderIOEither[R, E, A]
 	ReaderEither[R, E, A any]           = readereither.ReaderEither[R, E, A]
 	StateReaderIOEither[S, R, E, A any] = Reader[S, ReaderIOEither[R, E, Pair[S, A]]]
+	Kleisli[S, R, E, A, B any]          = Reader[A, StateReaderIOEither[S, R, E, B]]
 	Operator[S, R, E, A, B any]         = Reader[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]]
 )

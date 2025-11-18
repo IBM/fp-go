@@ -22,9 +22,9 @@ import (
 type (
 	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
 	Either[E, A any] struct {
-		r   A
-		l   E
-		isL bool
+		r      A
+		l      E
+		isLeft bool
 	}
 )
 
@@ -32,7 +32,7 @@ type (
 //
 //go:noinline
 func (s Either[E, A]) String() string {
-	if !s.isL {
+	if !s.isLeft {
 		return fmt.Sprintf("Right[%T](%v)", s.r, s.r)
 	}
 	return fmt.Sprintf("Left[%T](%v)", s.l, s.l)
@@ -61,7 +61,7 @@ func (s Either[E, A]) Format(f fmt.State, c rune) {
 //
 //go:inline
 func IsLeft[E, A any](val Either[E, A]) bool {
-	return val.isL
+	return val.isLeft
 }
 
 // IsRight tests if the Either is a Right value.
@@ -75,7 +75,7 @@ func IsLeft[E, A any](val Either[E, A]) bool {
 //
 //go:inline
 func IsRight[E, A any](val Either[E, A]) bool {
-	return !val.isL
+	return !val.isLeft
 }
 
 // Left creates a new Either representing a Left (error/failure) value.
@@ -87,7 +87,7 @@ func IsRight[E, A any](val Either[E, A]) bool {
 //
 //go:inline
 func Left[A, E any](value E) Either[E, A] {
-	return Either[E, A]{l: value, isL: true}
+	return Either[E, A]{l: value, isLeft: true}
 }
 
 // Right creates a new Either representing a Right (success) value.
@@ -115,7 +115,7 @@ func Right[E, A any](value A) Either[E, A] {
 //
 //go:inline
 func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a A) B) B {
-	if !ma.isL {
+	if !ma.isLeft {
 		return onRight(ma.r)
 	}
 	return onLeft(ma.l)

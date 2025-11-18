@@ -42,7 +42,10 @@ package function
 //	divide := func(a, b float64) float64 { return a / b }
 //	divideBy10 := Bind1st(divide, 10.0)
 //	result := divideBy10(2.0)  // 5.0 (10 / 2)
+//
+//go:inline
 func Bind1st[T1, T2, R any](f func(T1, T2) R, t1 T1) func(T2) R {
+	//go:inline
 	return func(t2 T2) R {
 		return f(t1, t2)
 	}
@@ -75,7 +78,10 @@ func Bind1st[T1, T2, R any](f func(T1, T2) R, t1 T1) func(T2) R {
 //	divide := func(a, b float64) float64 { return a / b }
 //	halve := Bind2nd(divide, 2.0)
 //	result := halve(10.0)  // 5.0 (10 / 2)
+//
+//go:inline
 func Bind2nd[T1, T2, R any](f func(T1, T2) R, t2 T2) func(T1) R {
+	//go:inline
 	return func(t1 T1) R {
 		return f(t1, t2)
 	}
@@ -104,6 +110,8 @@ func Bind2nd[T1, T2, R any](f func(T1, T2) R, t2 T2) func(T1) R {
 //
 //	result := SK(42, "hello")  // "hello"
 //	result := SK(true, 100)    // 100
+//
+//go:inline
 func SK[T1, T2 any](_ T1, t2 T2) T2 {
 	return t2
 }

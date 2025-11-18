@@ -15,11 +15,17 @@
 
 package pair
 
+import "github.com/IBM/fp-go/v2/semigroup"
+
 type (
-	pair struct {
-		h, t any
-	}
+	Semigroup[A any] = semigroup.Semigroup[A]
 
 	// Pair defines a data structure that holds two strongly typed values
-	Pair[L, R any] pair
+	Pair[L, R any] struct {
+		r R
+		l L
+	}
+
+	Kleisli[L, R1, R2 any]  = func(R1) Pair[L, R2]
+	Operator[L, R1, R2 any] = func(Pair[L, R1]) Pair[L, R2]
 )

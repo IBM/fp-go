@@ -33,12 +33,12 @@ type (
 	}
 
 	pairApplicativeHead[A, B, A1 any] struct {
-		s semigroup.Semigroup[B]
+		s Semigroup[B]
 		m monoid.Monoid[B]
 	}
 
 	pairMonadHead[A, B, A1 any] struct {
-		s semigroup.Semigroup[B]
+		s Semigroup[B]
 		m monoid.Monoid[B]
 	}
 

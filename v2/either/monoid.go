@@ -16,7 +16,6 @@
 package either
 
 import (
-	L "github.com/IBM/fp-go/v2/lazy"
 	M "github.com/IBM/fp-go/v2/monoid"
 )
 
@@ -51,7 +50,7 @@ func AlternativeMonoid[E, A any](m M.Monoid[A]) Monoid[E, A] {
 //	m := either.AltMonoid[error, int](zero)
 //	result := m.Concat(either.Left[int](errors.New("err1")), either.Right[error](42))
 //	// result is Right(42)
-func AltMonoid[E, A any](zero L.Lazy[Either[E, A]]) Monoid[E, A] {
+func AltMonoid[E, A any](zero Lazy[Either[E, A]]) Monoid[E, A] {
 	return M.AltMonoid(
 		zero,
 		MonadAlt[E, A],

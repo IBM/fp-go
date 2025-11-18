@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/statet"
+	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/readerioeither"
 )
 
@@ -49,7 +50,7 @@ func Map[S, R, E, A, B any](f func(A) B) Operator[S, R, E, A, B] {
 	)
 }
 
-func MonadChain[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A], f func(A) StateReaderIOEither[S, R, E, B]) StateReaderIOEither[S, R, E, B] {
+func MonadChain[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A], f Kleisli[S, R, E, A, B]) StateReaderIOEither[S, R, E, B] {
 	return statet.MonadChain(
 		readerioeither.MonadChain[R, E, Pair[S, A], Pair[S, B]],
 		fa,
@@ -57,7 +58,7 @@ func MonadChain[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A], f func(A)
 	)
 }
 
-func Chain[S, R, E, A, B any](f func(A) StateReaderIOEither[S, R, E, B]) Operator[S, R, E, A, B] {
+func Chain[S, R, E, A, B any](f Kleisli[S, R, E, A, B]) Operator[S, R, E, A, B] {
 	return statet.Chain[StateReaderIOEither[S, R, E, A]](
 		readerioeither.Chain[R, E, Pair[S, A], Pair[S, B]],
 		f,
@@ -81,7 +82,7 @@ func Ap[B, S, R, E, A any](fa StateReaderIOEither[S, R, E, A]) Operator[S, R, E,
 	)
 }
 
-func FromReaderIOEither[S, R, E, A any](fa readerioeither.ReaderIOEither[R, E, A]) StateReaderIOEither[S, R, E, A] {
+func FromReaderIOEither[S, R, E, A any](fa ReaderIOEither[R, E, A]) StateReaderIOEither[S, R, E, A] {
 	return statet.FromF[StateReaderIOEither[S, R, E, A]](
 		readerioeither.MonadMap[R, E, A],
 		fa,
@@ -130,14 +131,14 @@ func Asks[
 	}
 }
 
-func FromEitherK[S, R, E, A, B any](f func(A) Either[E, B]) func(A) StateReaderIOEither[S, R, E, B] {
+func FromEitherK[S, R, E, A, B any](f either.Kleisli[E, A, B]) Kleisli[S, R, E, A, B] {
 	return function.Flow2(
 		f,
 		FromEither[S, R, E, B],
 	)
 }
 
-func FromIOK[S, R, E, A, B any](f func(A) IO[B]) func(A) StateReaderIOEither[S, R, E, B] {
+func FromIOK[S, R, E, A, B any](f func(A) IO[B]) Kleisli[S, R, E, A, B] {
 	return function.Flow2(
 		f,
 		FromIO[S, R, E, B],
@@ -146,40 +147,40 @@ func FromIOK[S, R, E, A, B any](f func(A) IO[B]) func(A) StateReaderIOEither[S, 
 
 func FromIOEitherK[
 	S, R, E, A, B any,
-](f func(A) IOEither[E, B]) func(A) StateReaderIOEither[S, R, E, B] {
+](f ioeither.Kleisli[E, A, B]) Kleisli[S, R, E, A, B] {
 	return function.Flow2(
 		f,
 		FromIOEither[S, R, E, B],
 	)
 }
 
-func FromReaderIOEitherK[S, R, E, A, B any](f func(A) readerioeither.ReaderIOEither[R, E, B]) func(A) StateReaderIOEither[S, R, E, B] {
+func FromReaderIOEitherK[S, R, E, A, B any](f readerioeither.Kleisli[R, E, A, B]) Kleisli[S, R, E, A, B] {
 	return function.Flow2(
 		f,
 		FromReaderIOEither[S, R, E, B],
 	)
 }
 
-func MonadChainReaderIOEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) readerioeither.ReaderIOEither[R, E, B]) StateReaderIOEither[S, R, E, B] {
+func MonadChainReaderIOEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f readerioeither.Kleisli[R, E, A, B]) StateReaderIOEither[S, R, E, B] {
 	return MonadChain(ma, FromReaderIOEitherK[S](f))
 }
 
-func ChainReaderIOEitherK[S, R, E, A, B any](f func(A) readerioeither.ReaderIOEither[R, E, B]) Operator[S, R, E, A, B] {
+func ChainReaderIOEitherK[S, R, E, A, B any](f readerioeither.Kleisli[R, E, A, B]) Operator[S, R, E, A, B] {
 	return Chain(FromReaderIOEitherK[S](f))
 }
 
-func MonadChainIOEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) IOEither[E, B]) StateReaderIOEither[S, R, E, B] {
+func MonadChainIOEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f ioeither.Kleisli[E, A, B]) StateReaderIOEither[S, R, E, B] {
 	return MonadChain(ma, FromIOEitherK[S, R](f))
 }
 
-func ChainIOEitherK[S, R, E, A, B any](f func(A) IOEither[E, B]) Operator[S, R, E, A, B] {
+func ChainIOEitherK[S, R, E, A, B any](f ioeither.Kleisli[E, A, B]) Operator[S, R, E, A, B] {
 	return Chain(FromIOEitherK[S, R](f))
 }
 
-func MonadChainEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) Either[E, B]) StateReaderIOEither[S, R, E, B] {
+func MonadChainEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f either.Kleisli[E, A, B]) StateReaderIOEither[S, R, E, B] {
 	return MonadChain(ma, FromEitherK[S, R](f))
 }
 
-func ChainEitherK[S, R, E, A, B any](f func(A) Either[E, B]) Operator[S, R, E, A, B] {
+func ChainEitherK[S, R, E, A, B any](f either.Kleisli[E, A, B]) Operator[S, R, E, A, B] {
 	return Chain(FromEitherK[S, R](f))
 }

@@ -15,10 +15,6 @@
 
 package either
 
-import (
-	F "github.com/IBM/fp-go/v2/function"
-)
-
 // WithResource constructs a function that creates a resource, operates on it, and then releases it.
 // This ensures proper resource cleanup even if operations fail.
 // The resource is released immediately after the operation completes.
@@ -43,25 +39,21 @@ import (
 //	    // Use file here
 //	    return either.Right[error]("data")
 //	})
-func WithResource[E, R, A, ANY any](onCreate func() Either[E, R], onRelease Kleisli[E, R, ANY]) func(func(R) Either[E, A]) Either[E, A] {
-
+func WithResource[E, R, A, ANY any](onCreate func() Either[E, R], onRelease Kleisli[E, R, ANY]) Kleisli[E, Kleisli[E, R, A], A] {
 	return func(f func(R) Either[E, A]) Either[E, A] {
-		return MonadChain(
-			onCreate(), func(r R) Either[E, A] {
-				// run the code and make sure to release as quickly as possible
-				res := f(r)
-				released := onRelease(r)
-				// handle the errors
-				return MonadFold(
-					res,
-					Left[A, E],
-					func(a A) Either[E, A] {
-						return F.Pipe1(
-							released,
-							MapTo[E, ANY](a),
-						)
-					})
-			},
-		)
+		r := onCreate()
+		if r.isLeft {
+			return Left[A](r.l)
+		}
+		a := f(r.r)
+		n := onRelease(r.r)
+		if a.isLeft {
+			return Left[A](a.l)
+		}
+		if n.isLeft {
+			return Left[A](n.l)
+
+		}
+		return Of[E](a.r)
 	}
 }

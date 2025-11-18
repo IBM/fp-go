@@ -62,7 +62,7 @@ func (o *stateReaderIOEitherFunctor[S, R, E, A, B]) Map(f func(A) B) Operator[S,
 	return Map[S, R, E](f)
 }
 
-func (o *stateReaderIOEitherMonad[S, R, E, A, B]) Chain(f func(A) StateReaderIOEither[S, R, E, B]) Operator[S, R, E, A, B] {
+func (o *stateReaderIOEitherMonad[S, R, E, A, B]) Chain(f Kleisli[S, R, E, A, B]) Operator[S, R, E, A, B] {
 	return Chain(f)
 }
 

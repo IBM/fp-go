@@ -13,6 +13,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package testing provides law-based testing utilities for applicatives.
+//
+// This package implements property-based tests for the four fundamental applicative laws:
+//   - Identity: Ap(Of(identity))(v) == v
+//   - Homomorphism: Ap(Of(f))(Of(x)) == Of(f(x))
+//   - Interchange: Ap(Of(f))(u) == Ap(Map(f => f(y))(u))(Of(y))
+//   - Composition: Ap(Ap(Map(compose)(f))(g))(x) == Ap(f)(Ap(g)(x))
+//
+// Additionally, it validates that applicatives satisfy all prerequisite laws from:
+//   - Functor (identity, composition)
+//   - Apply (composition)
+//
+// Usage:
+//
+//	func TestMyApplicative(t *testing.T) {
+//	    // Set up equality checkers
+//	    eqa := eq.FromEquals[Option[int]](...)
+//	    eqb := eq.FromEquals[Option[string]](...)
+//	    eqc := eq.FromEquals[Option[float64]](...)
+//
+//	    // Set up applicative instances
+//	    app := applicative.Applicative[int, string, Option[int], Option[string], Option[func(int) string]]()
+//
+//	    // Run the law tests
+//	    lawTest := ApplicativeAssertLaws(t, eqa, eqb, eqc, ...)
+//	    assert.True(t, lawTest(42))
+//	}
 package testing
 
 import (

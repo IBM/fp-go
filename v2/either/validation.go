@@ -72,14 +72,18 @@ import (
 //	fab3 := either.Right[string](N.Mul(2))
 //	fa3 := either.Right[string](21)
 //	result3 := applyV(fab3, fa3) // Right(42)
-func MonadApV[B, E, A any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-	c := F.Bind2of2(sg.Concat)
+func MonadApV[B, A, E any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
 	return func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-		return MonadFold(fab, func(eab E) Either[E, B] {
-			return MonadFold(fa, F.Flow2(c(eab), Left[B]), F.Constant1[A](Left[B](eab)))
-		}, func(ab func(A) B) Either[E, B] {
-			return MonadFold(fa, Left[B, E], F.Flow2(ab, Right[E, B]))
-		})
+		if fab.isLeft {
+			if fa.isLeft {
+				return Left[B](sg.Concat(fab.l, fa.l))
+			}
+			return Left[B](fab.l)
+		}
+		if fa.isLeft {
+			return Left[B](fa.l)
+		}
+		return Of[E](fab.r(fa.r))
 	}
 }
 
@@ -130,13 +134,11 @@ func MonadApV[B, E, A any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], f
 //
 //	result := applyValidation(value)(validator)
 //	// Left(ValidationError{Errors: []string{"invalid validator", "invalid input"}})
-func ApV[B, E, A any](sg S.Semigroup[E]) func(fa Either[E, A]) Operator[E, func(A) B, B] {
-	c := F.Bind2of2(sg.Concat)
-	return func(fa Either[E, A]) Operator[E, func(A) B, B] {
-		return Fold(func(eab E) Either[E, B] {
-			return MonadFold(fa, F.Flow2(c(eab), Left[B]), F.Constant1[A](Left[B](eab)))
-		}, func(ab func(A) B) Either[E, B] {
-			return MonadFold(fa, Left[B, E], F.Flow2(ab, Right[E, B]))
-		})
+//
+//go:inline
+func ApV[B, A, E any](sg S.Semigroup[E]) func(Either[E, A]) Operator[E, func(A) B, B] {
+	apv := MonadApV[B, A, E](sg)
+	return func(e Either[E, A]) Operator[E, func(A) B, B] {
+		return F.Bind2nd(apv, e)
 	}
 }

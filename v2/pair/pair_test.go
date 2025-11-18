@@ -81,13 +81,6 @@ func TestMonadMapTail(t *testing.T) {
 	assert.Equal(t, 5, Tail(p2))
 }
 
-func TestMonadMap(t *testing.T) {
-	p := MakePair(10, "test")
-	p2 := MonadMap(p, S.Format[int]("value: %d"))
-	assert.Equal(t, "value: 10", Head(p2))
-	assert.Equal(t, "test", Tail(p2))
-}
-
 func TestMonadBiMap(t *testing.T) {
 	p := MakePair(5, "hello")
 	p2 := MonadBiMap(p,

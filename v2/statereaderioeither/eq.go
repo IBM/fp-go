@@ -33,7 +33,7 @@ func Eq[
 
 // FromStrictEquals constructs an [eq.Eq] from the canonical comparison function
 func FromStrictEquals[
-	S, R any, E, A comparable]() func(R) func(S) eq.Eq[StateReaderIOEither[S, R, E, A]] {
+	S comparable, R any, E, A comparable]() func(R) func(S) eq.Eq[StateReaderIOEither[S, R, E, A]] {
 	return function.Flow2(
 		readerioeither.FromStrictEquals[R, E, Pair[S, A]](),
 		Eq[S, R, E, A],

@@ -1,11 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go test:*)",
-      "Bash(go tool cover:*)",
-      "Bash(sort:*)",
-      "Bash(timeout 30 go test:*)",
-      "Bash(cut:*)",
+      "Bash(ls -la \"c:\\d\\fp-go\\v2\\internal\\monad\"\" && ls -la \"c:dfp-gov2internalapplicative\"\")",
+      "Bash(ls -la \"c:\\d\\fp-go\\v2\\internal\\chain\"\" && ls -la \"c:dfp-gov2internalfunctor\"\")",
       "Bash(go build:*)"
     ],
     "deny": [],

@@ -658,7 +658,7 @@ func Defer[A any](gen Lazy[ReaderIOResult[A]]) ReaderIOResult[A] {
 //
 //go:inline
 func TryCatch[A any](f func(context.Context) func() (A, error)) ReaderIOResult[A] {
-	return RIOR.TryCatch(f, errors.IdentityError)
+	return RIOR.TryCatch(f, errors.Identity)
 }
 
 // MonadAlt provides an alternative [ReaderIOResult] if the first one fails.

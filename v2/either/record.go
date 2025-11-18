@@ -35,13 +35,18 @@ import (
 //	// result is Right(map[string]int{"a": 1, "b": 2})
 //
 //go:inline
-func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(A) Either[E, B]) func(GA) Either[E, GB] {
-	return RR.Traverse[GA](
-		Of[E, GB],
-		Map[E, GB, func(B) GB],
-		Ap[GB, E, B],
-		f,
-	)
+func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, GA, GB] {
+	return func(ga GA) Either[E, GB] {
+		bs := make(GB, len(ga))
+		for i, a := range ga {
+			b := f(a)
+			if b.isLeft {
+				return Left[GB](b.l)
+			}
+			bs[i] = b.r
+		}
+		return Of[E](bs)
+	}
 }
 
 // TraverseRecord transforms a map by applying a function that returns an Either to each value.
@@ -58,7 +63,7 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func
 //	// result is Right(map[string]int{"a": 1, "b": 2})
 //
 //go:inline
-func TraverseRecord[K comparable, E, A, B any](f func(A) Either[E, B]) func(map[K]A) Either[E, map[K]B] {
+func TraverseRecord[K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, map[K]A, map[K]B] {
 	return TraverseRecordG[map[K]A, map[K]B](f)
 }
 
@@ -79,13 +84,18 @@ func TraverseRecord[K comparable, E, A, B any](f func(A) Either[E, B]) func(map[
 //	// result is Right(map[string]string{"a": "a:1"})
 //
 //go:inline
-func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(K, A) Either[E, B]) func(GA) Either[E, GB] {
-	return RR.TraverseWithIndex[GA](
-		Of[E, GB],
-		Map[E, GB, func(B) GB],
-		Ap[GB, E, B],
-		f,
-	)
+func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(K, A) Either[E, B]) Kleisli[E, GA, GB] {
+	return func(ga GA) Either[E, GB] {
+		bs := make(GB, len(ga))
+		for i, a := range ga {
+			b := f(i, a)
+			if b.isLeft {
+				return Left[GB](b.l)
+			}
+			bs[i] = b.r
+		}
+		return Of[E](bs)
+	}
 }
 
 // TraverseRecordWithIndex transforms a map by applying an indexed function that returns an Either.
@@ -104,7 +114,7 @@ func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B an
 //	// result is Right(map[string]string{"a": "a:1"})
 //
 //go:inline
-func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) Either[E, B]) func(map[K]A) Either[E, map[K]B] {
+func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) Either[E, B]) Kleisli[E, map[K]A, map[K]B] {
 	return TraverseRecordWithIndexG[map[K]A, map[K]B](f)
 }
 

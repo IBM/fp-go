@@ -21,3 +21,7 @@ import (
 
 // Monoid is the monoid implementing string concatenation
 var Monoid = M.MakeMonoid(concat, "")
+
+func IntersperseMonoid(middle string) M.Monoid[string] {
+	return M.MakeMonoid(Intersperse(middle), "")
+}

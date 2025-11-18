@@ -201,7 +201,7 @@ func TestSwap(t *testing.T) {
 
 // Test MonadFlap and Flap
 func TestFlap(t *testing.T) {
-	fab := Right[error](func(x int) string { return strconv.Itoa(x) })
+	fab := Right[error](strconv.Itoa)
 	result := MonadFlap(fab, 42)
 	assert.Equal(t, Right[error]("42"), result)
 
@@ -615,7 +615,7 @@ func TestMonad(t *testing.T) {
 	assert.Equal(t, Right[error](42), result)
 
 	// Test Map
-	mapFn := m.Map(func(x int) string { return strconv.Itoa(x) })
+	mapFn := m.Map(strconv.Itoa)
 	result2 := mapFn(Right[error](42))
 	assert.Equal(t, Right[error]("42"), result2)
 
@@ -628,7 +628,7 @@ func TestMonad(t *testing.T) {
 
 	// Test Ap
 	apFn := m.Ap(Right[error](42))
-	result4 := apFn(Right[error](func(x int) string { return strconv.Itoa(x) }))
+	result4 := apFn(Right[error](strconv.Itoa))
 	assert.Equal(t, Right[error]("42"), result4)
 }
 

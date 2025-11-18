@@ -22,12 +22,12 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// IdentityError is the identity function specialized for error types.
+// Identity is the identity function specialized for error types.
 // It returns the error unchanged, useful in functional composition where
 // an error needs to be passed through without modification.
 //
 // Example:
 //
 //	err := errors.New("something went wrong")
-//	same := IdentityError(err) // returns the same error
-var IdentityError = F.Identity[error]
+//	same := Identity(err) // returns the same error
+var Identity = F.Identity[error]

@@ -42,19 +42,19 @@ func (o *stateMonad[S, A, B]) Of(a A) State[S, A] {
 	return Of[S](a)
 }
 
-func (o *stateFunctor[S, A, B]) Map(f func(A) B) func(State[S, A]) State[S, B] {
+func (o *stateFunctor[S, A, B]) Map(f func(A) B) Operator[S, A, B] {
 	return Map[S](f)
 }
 
-func (o *stateApplicative[S, A, B]) Map(f func(A) B) func(State[S, A]) State[S, B] {
+func (o *stateApplicative[S, A, B]) Map(f func(A) B) Operator[S, A, B] {
 	return Map[S](f)
 }
 
-func (o *stateMonad[S, A, B]) Map(f func(A) B) func(State[S, A]) State[S, B] {
+func (o *stateMonad[S, A, B]) Map(f func(A) B) Operator[S, A, B] {
 	return Map[S](f)
 }
 
-func (o *stateMonad[S, A, B]) Chain(f func(A) State[S, B]) func(State[S, A]) State[S, B] {
+func (o *stateMonad[S, A, B]) Chain(f Kleisli[S, A, B]) Operator[S, A, B] {
 	return Chain(f)
 }
 

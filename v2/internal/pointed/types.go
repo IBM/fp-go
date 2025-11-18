@@ -15,7 +15,24 @@
 
 package pointed
 
+// Pointed represents a type that can lift a pure value into a computational context.
+//
+// Pointed is the minimal extension of a Functor that adds the ability to create
+// a context-wrapped value from a bare value. It provides the canonical way to
+// construct values of a higher-kinded type.
+//
+// Type Parameters:
+//   - A: The value type to be lifted into the context
+//   - HKTA: The higher-kinded type containing A (e.g., Option[A], Either[E, A])
+//
+// Example:
+//   // Given a pointed functor for Option[int]
+//   var p Pointed[int, Option[int]]
+//   result := p.Of(42) // Returns Some(42)
 type Pointed[A, HKTA any] interface {
-	// Of lifts a value into its higher kinded type
+	// Of lifts a pure value into its higher-kinded type context.
+	//
+	// This operation wraps a value A in the minimal context required by the type HKTA,
+	// creating a valid instance of the higher-kinded type.
 	Of(A) HKTA
 }

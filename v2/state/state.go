@@ -26,6 +26,7 @@ var (
 	undefined any = struct{}{}
 )
 
+//go:inline
 func Get[S any]() State[S, S] {
 	return pair.Of[S]
 }
@@ -36,6 +37,7 @@ func Gets[FCT ~func(S) A, A, S any](f FCT) State[S, A] {
 	}
 }
 
+//go:inline
 func Put[S any]() State[S, any] {
 	return function.Bind2nd(pair.MakePair[S, any], undefined)
 }
@@ -47,6 +49,7 @@ func Modify[FCT ~func(S) S, S any](f FCT) State[S, any] {
 	)
 }
 
+//go:inline
 func Of[S, A any](a A) State[S, A] {
 	return function.Bind2nd(pair.MakePair[S, A], a)
 }
@@ -58,6 +61,7 @@ func MonadMap[S any, FCT ~func(A) B, A, B any](fa State[S, A], f FCT) State[S, B
 	}
 }
 
+//go:inline
 func Map[S any, FCT ~func(A) B, A, B any](f FCT) Operator[S, A, B] {
 	return function.Bind2nd(MonadMap[S, FCT, A, B], f)
 }
@@ -69,6 +73,7 @@ func MonadChain[S any, FCT ~func(A) State[S, B], A, B any](fa State[S, A], f FCT
 	}
 }
 
+//go:inline
 func Chain[S any, FCT ~func(A) State[S, B], A, B any](f FCT) Operator[S, A, B] {
 	return function.Bind2nd(MonadChain[S, FCT, A, B], f)
 }
@@ -82,6 +87,7 @@ func MonadAp[B, S, A any](fab State[S, func(A) B], fa State[S, A]) State[S, B] {
 	}
 }
 
+//go:inline
 func Ap[B, S, A any](ga State[S, A]) Operator[S, func(A) B, B] {
 	return function.Bind2nd(MonadAp[B, S, A], ga)
 }
@@ -103,6 +109,7 @@ func ChainFirst[S any, FCT ~func(A) State[S, B], A, B any](f FCT) Operator[S, A,
 	)
 }
 
+//go:inline
 func Flatten[S, A any](mma State[S, State[S, A]]) State[S, A] {
 	return MonadChain(mma, function.Identity[State[S, A]])
 }

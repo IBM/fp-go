@@ -17,6 +17,7 @@ package either
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
@@ -29,6 +30,7 @@ type (
 	Option[A any]       = option.Option[A]
 	Lens[S, T any]      = lens.Lens[S, T]
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
+	Lazy[T any]         = lazy.Lazy[T]
 
 	Kleisli[E, A, B any]  = reader.Reader[A, Either[E, B]]
 	Operator[E, A, B any] = Kleisli[E, Either[E, A], B]
