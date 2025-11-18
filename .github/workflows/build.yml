@@ -28,7 +28,7 @@ jobs:
       fail-fast: false  # Continue with other versions if one fails
     steps:
       # full checkout for semantic-release
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
       - name: Set up Go ${{ matrix.go-version }}
@@ -66,7 +66,7 @@ jobs:
       matrix:
         go-version: ['1.24.x', '1.25.x']
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
       - name: Set up Go ${{ matrix.go-version }}
@@ -126,7 +126,7 @@ jobs:
     steps:
       # full checkout for semantic-release
       - name: Full checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
