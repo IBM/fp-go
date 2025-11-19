@@ -20,18 +20,18 @@ import (
 	"net/url"
 	"testing"
 
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
+	"github.com/IBM/fp-go/v2/idiomatic/ioresult"
+	E "github.com/IBM/fp-go/v2/idiomatic/result"
 	"github.com/IBM/fp-go/v2/io"
-	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBuilderWithQuery(t *testing.T) {
 	// add some query
 	withLimit := R.WithQueryArg("limit")("10")
-	withURL := R.WithUrl("http://www.example.org?a=b")
+	withURL := R.WithURL("http://www.example.org?a=b")
 
 	b := F.Pipe2(
 		R.Default,
@@ -42,10 +42,10 @@ func TestBuilderWithQuery(t *testing.T) {
 	req := F.Pipe3(
 		b,
 		Requester,
-		ioeither.Map[error](func(r *http.Request) *url.URL {
+		ioresult.Map(func(r *http.Request) *url.URL {
 			return r.URL
 		}),
-		ioeither.ChainFirstIOK[error](func(u *url.URL) io.IO[any] {
+		ioresult.ChainFirstIOK(func(u *url.URL) io.IO[any] {
 			return io.FromImpure(func() {
 				q := u.Query()
 				assert.Equal(t, "10", q.Get("limit"))

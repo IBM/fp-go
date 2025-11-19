@@ -22,10 +22,10 @@ import (
 	"time"
 
 	AR "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/idiomatic/ioresult"
+	E "github.com/IBM/fp-go/v2/idiomatic/result"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/retry"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +51,7 @@ func TestRetryHttp(t *testing.T) {
 	urls := AR.From("https://jsonplaceholder1.typicode.com/posts/1", "https://jsonplaceholder2.typicode.com/posts/1", "https://jsonplaceholder3.typicode.com/posts/1", "https://jsonplaceholder4.typicode.com/posts/1", "https://jsonplaceholder.typicode.com/posts/1")
 	client := MakeClient(&http.Client{})
 
-	action := func(status R.RetryStatus) ioeither.IOEither[error, *PostItem] {
+	action := func(status R.RetryStatus) IOResult[*PostItem] {
 		return F.Pipe1(
 			MakeGetRequest(urls[status.IterNumber]),
 			ReadJSON[*PostItem](client),
@@ -66,6 +66,6 @@ func TestRetryHttp(t *testing.T) {
 		F.Constant1[*PostItem](false),
 	)
 
-	item := ioeither.Retrying(testLogPolicy, action, check)()
-	assert.True(t, E.IsRight(item))
+	_, err := ioresult.Retrying(testLogPolicy, action, check)()
+	assert.NoError(t, err)
 }

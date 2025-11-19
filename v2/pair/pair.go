@@ -59,6 +59,16 @@ func FromTuple[A, B any](t tuple.Tuple2[A, B]) Pair[A, B] {
 	return Pair[A, B]{t.F2, t.F1}
 }
 
+//go:inline
+func FromHead[B, A any](a A) Kleisli[A, B, B] {
+	return F.Bind1st(MakePair[A, B], a)
+}
+
+//go:inline
+func FromTail[A, B any](b B) Kleisli[A, A, B] {
+	return F.Bind2nd(MakePair[A, B], b)
+}
+
 // ToTuple creates a [tuple.Tuple2] from a [Pair].
 // The head becomes the first element, and the tail becomes the second element.
 //

@@ -103,4 +103,7 @@ var (
 	//   body := Body(fullResp)
 	//   content := string(body)
 	Body = P.Tail[*H.Response, []byte]
+
+	FromResponse = P.FromHead[[]byte, *H.Response]
+	FromBody     = P.FromTail[*H.Response, []byte]
 )

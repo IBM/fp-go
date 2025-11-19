@@ -20,46 +20,46 @@ import (
 	"net/http"
 	"strconv"
 
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
 	H "github.com/IBM/fp-go/v2/http/headers"
-	"github.com/IBM/fp-go/v2/ioeither"
-	IOEH "github.com/IBM/fp-go/v2/ioeither/http"
-	LZ "github.com/IBM/fp-go/v2/lazy"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/idiomatic/ioresult"
+	IOEH "github.com/IBM/fp-go/v2/idiomatic/ioresult/http"
+	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 func Requester(builder *R.Builder) IOEH.Requester {
 
-	withBody := F.Curry3(func(data []byte, url string, method string) IOEither[*http.Request] {
-		return ioeither.TryCatchError(func() (*http.Request, error) {
+	withBody := F.Curry3(func(data []byte, url string, method string) IOResult[*http.Request] {
+		return func() (*http.Request, error) {
 			req, err := http.NewRequest(method, url, bytes.NewReader(data))
 			if err == nil {
 				req.Header.Set(H.ContentLength, strconv.Itoa(len(data)))
 				H.Monoid.Concat(req.Header, builder.GetHeaders())
 			}
 			return req, err
-		})
+		}
 	})
 
-	withoutBody := F.Curry2(func(url string, method string) IOEither[*http.Request] {
-		return ioeither.TryCatchError(func() (*http.Request, error) {
+	withoutBody := F.Curry2(func(url string, method string) IOResult[*http.Request] {
+		return func() (*http.Request, error) {
 			req, err := http.NewRequest(method, url, nil)
 			if err == nil {
 				H.Monoid.Concat(req.Header, builder.GetHeaders())
 			}
 			return req, err
-		})
+		}
 	})
 
 	return F.Pipe5(
 		builder.GetBody(),
-		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) IOEither[*http.Request]](builder.GetTargetURL()),
-		E.Flap[error, IOEither[*http.Request]](builder.GetMethod()),
-		E.GetOrElse(ioeither.Left[*http.Request, error]),
-		ioeither.Map[error](func(req *http.Request) *http.Request {
+		option.Fold(lazy.Of(result.Of(withoutBody)), result.Map(withBody)),
+		result.Ap[func(string) IOResult[*http.Request]](builder.GetTargetURL()),
+		result.Flap[IOResult[*http.Request]](builder.GetMethod()),
+		result.GetOrElse(ioresult.Left[*http.Request]),
+		ioresult.Map(func(req *http.Request) *http.Request {
 			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())
 			return req
 		}),

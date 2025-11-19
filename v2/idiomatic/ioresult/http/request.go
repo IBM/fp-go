@@ -24,29 +24,22 @@ import (
 	FL "github.com/IBM/fp-go/v2/file"
 	F "github.com/IBM/fp-go/v2/function"
 	H "github.com/IBM/fp-go/v2/http"
-	"github.com/IBM/fp-go/v2/ioeither"
-	IOEF "github.com/IBM/fp-go/v2/ioeither/file"
+	"github.com/IBM/fp-go/v2/idiomatic/ioresult"
+	IOEF "github.com/IBM/fp-go/v2/idiomatic/ioresult/file"
 	J "github.com/IBM/fp-go/v2/json"
 	P "github.com/IBM/fp-go/v2/pair"
 )
 
 type (
-	// Requester is a reader that constructs a request
-	Requester = ioeither.IOEither[error, *http.Request]
-
-	Client interface {
-		Do(Requester) ioeither.IOEither[error, *http.Response]
-	}
-
 	client struct {
 		delegate *http.Client
-		doIOE    func(*http.Request) ioeither.IOEither[error, *http.Response]
+		doIOE    Kleisli[*http.Request, *http.Response]
 	}
 )
 
 var (
 	// MakeRequest is an eitherized version of [http.NewRequest]
-	MakeRequest = ioeither.Eitherize3(http.NewRequest)
+	MakeRequest = ioresult.Eitherize3(http.NewRequest)
 	makeRequest = F.Bind13of3(MakeRequest)
 
 	// specialize
@@ -54,92 +47,91 @@ var (
 )
 
 // MakeBodyRequest creates a request that carries a body
-func MakeBodyRequest(method string, body ioeither.IOEither[error, []byte]) func(url string) ioeither.IOEither[error, *http.Request] {
+func MakeBodyRequest(method string, body IOResult[[]byte]) Kleisli[string, *http.Request] {
 	onBody := F.Pipe1(
 		body,
-		ioeither.Map[error](F.Flow2(
+		ioresult.Map(F.Flow2(
 			bytes.NewReader,
 			FL.ToReader[*bytes.Reader],
 		)),
 	)
-	onRelease := ioeither.Of[error, io.Reader]
+	onRelease := ioresult.Of[io.Reader]
 	withMethod := F.Bind1of3(MakeRequest)(method)
 
 	return F.Flow2(
 		F.Bind1of2(withMethod),
-		ioeither.WithResource[*http.Request](onBody, onRelease),
+		ioresult.WithResource[*http.Request](onBody, onRelease),
 	)
 }
 
-func (client client) Do(req Requester) ioeither.IOEither[error, *http.Response] {
+func (client client) Do(req Requester) IOResult[*http.Response] {
 	return F.Pipe1(
 		req,
-		ioeither.Chain(client.doIOE),
+		ioresult.Chain(client.doIOE),
 	)
 }
 
 func MakeClient(httpClient *http.Client) Client {
-	return client{delegate: httpClient, doIOE: ioeither.Eitherize1(httpClient.Do)}
+	return client{delegate: httpClient, doIOE: ioresult.Eitherize1(httpClient.Do)}
 }
 
 // ReadFullResponse sends a request,  reads the response as a byte array and represents the result as a tuple
-func ReadFullResponse(client Client) func(Requester) ioeither.IOEither[error, H.FullResponse] {
+func ReadFullResponse(client Client) Kleisli[Requester, H.FullResponse] {
 	return F.Flow3(
 		client.Do,
-		ioeither.ChainEitherK(H.ValidateResponse),
-		ioeither.Chain(func(resp *http.Response) ioeither.IOEither[error, H.FullResponse] {
+		ioresult.ChainEitherK(H.ValidateResponse),
+		ioresult.Chain(func(resp *http.Response) IOResult[H.FullResponse] {
+			// var x R.Reader[*http.Response, IOResult[[]byte]] = F.Flow3(
+			// 	H.GetBody,
+			// 	ioresult.Of,
+			// 	IOEF.ReadAll,
+			// )
+
 			return F.Pipe1(
 				F.Pipe3(
 					resp,
 					H.GetBody,
-					ioeither.Of[error, io.ReadCloser],
-					IOEF.ReadAll[io.ReadCloser],
+					ioresult.Of,
+					IOEF.ReadAll,
 				),
-				ioeither.Map[error](F.Bind1st(P.MakePair[*http.Response, []byte], resp)),
+				ioresult.Map(F.Bind1st(P.MakePair[*http.Response, []byte], resp)),
 			)
 		}),
 	)
 }
 
 // ReadAll sends a request and reads the response as bytes
-func ReadAll(client Client) func(Requester) ioeither.IOEither[error, []byte] {
+func ReadAll(client Client) Kleisli[Requester, []byte] {
 	return F.Flow2(
 		ReadFullResponse(client),
-		ioeither.Map[error](H.Body),
+		ioresult.Map(H.Body),
 	)
 }
 
 // ReadText sends a request, reads the response and represents the response as a text string
-func ReadText(client Client) func(Requester) ioeither.IOEither[error, string] {
+func ReadText(client Client) Kleisli[Requester, string] {
 	return F.Flow2(
 		ReadAll(client),
-		ioeither.Map[error](B.ToString),
+		ioresult.Map(B.ToString),
 	)
 }
 
-// ReadJson sends a request, reads the response and parses the response as JSON
-//
-// Deprecated: use [ReadJSON] instead
-func ReadJson[A any](client Client) func(Requester) ioeither.IOEither[error, A] {
-	return ReadJSON[A](client)
-}
-
 // readJSON sends a request, reads the response and parses the response as a []byte
-func readJSON(client Client) func(Requester) ioeither.IOEither[error, []byte] {
+func readJSON(client Client) Kleisli[Requester, []byte] {
 	return F.Flow3(
 		ReadFullResponse(client),
-		ioeither.ChainFirstEitherK(F.Flow2(
+		ioresult.ChainFirstEitherK(F.Flow2(
 			H.Response,
 			H.ValidateJSONResponse,
 		)),
-		ioeither.Map[error](H.Body),
+		ioresult.Map(H.Body),
 	)
 }
 
 // ReadJSON sends a request, reads the response and parses the response as JSON
-func ReadJSON[A any](client Client) func(Requester) ioeither.IOEither[error, A] {
+func ReadJSON[A any](client Client) Kleisli[Requester, A] {
 	return F.Flow2(
 		readJSON(client),
-		ioeither.ChainEitherK(J.Unmarshal[A]),
+		ioresult.ChainEitherK(J.Unmarshal[A]),
 	)
 }

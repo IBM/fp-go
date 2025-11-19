@@ -15,8 +15,8 @@
 
 package builder
 
-import "github.com/IBM/fp-go/v2/ioeither"
+import "github.com/IBM/fp-go/v2/idiomatic/ioresult"
 
 type (
-	IOEither[A any] = ioeither.IOEither[error, A]
+	IOResult[A any] = ioresult.IOResult[A]
 )
