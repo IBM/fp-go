@@ -323,7 +323,7 @@ func BenchmarkToString_Left(b *testing.B) {
 func BenchmarkBiMap_Right(b *testing.B) {
 	val, err := Right(42)
 	wrapErr := func(e error) error { return e }
-	mapper := BiMap[int, int](wrapErr, N.Mul(2))
+	mapper := BiMap(wrapErr, N.Mul(2))
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -334,7 +334,7 @@ func BenchmarkBiMap_Right(b *testing.B) {
 func BenchmarkBiMap_Left(b *testing.B) {
 	val, err := Left[int](errBench)
 	wrapErr := func(e error) error { return e }
-	mapper := BiMap[int, int](wrapErr, N.Mul(2))
+	mapper := BiMap(wrapErr, N.Mul(2))
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -345,7 +345,7 @@ func BenchmarkBiMap_Left(b *testing.B) {
 // Benchmark MapTo
 func BenchmarkMapTo_Right(b *testing.B) {
 	val, err := Right(42)
-	mapper := MapTo[int, int](99)
+	mapper := MapTo[int](99)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -355,7 +355,7 @@ func BenchmarkMapTo_Right(b *testing.B) {
 
 func BenchmarkMapTo_Left(b *testing.B) {
 	val, err := Left[int](errBench)
-	mapper := MapTo[int, int](99)
+	mapper := MapTo[int](99)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -387,7 +387,7 @@ func BenchmarkMapLeft_Left(b *testing.B) {
 // Benchmark ChainTo
 func BenchmarkChainTo_Right(b *testing.B) {
 	val, err := Right(42)
-	chainer := ChainTo[int, int](99, nil)
+	chainer := ChainTo[int](99, nil)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -397,7 +397,7 @@ func BenchmarkChainTo_Right(b *testing.B) {
 
 func BenchmarkChainTo_Left(b *testing.B) {
 	val, err := Left[int](errBench)
-	chainer := ChainTo[int, int](99, nil)
+	chainer := ChainTo[int](99, nil)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -454,7 +454,7 @@ func BenchmarkFromPredicate_Fail(b *testing.B) {
 // Benchmark Flap
 func BenchmarkFlap_Right(b *testing.B) {
 	fn, ferr := Right(N.Mul(2))
-	flapper := Flap[int, int](21)
+	flapper := Flap[int](21)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -464,7 +464,7 @@ func BenchmarkFlap_Right(b *testing.B) {
 
 func BenchmarkFlap_Left(b *testing.B) {
 	fn, ferr := Left[func(int) int](errBench)
-	flapper := Flap[int, int](21)
+	flapper := Flap[int](21)
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {

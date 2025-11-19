@@ -43,7 +43,7 @@ func TestWithResource_SuccessCase(t *testing.T) {
 	released := false
 
 	// Create a resource (increments open count)
-	onCreate := FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, testResource] {
+	onCreate := FromState[testContext, error](func(s resourceState) P.Pair[resourceState, testResource] {
 		newState := resourceState{openResources: s.openResources + 1}
 		resource := testResource{id: 42, data: "test"}
 		return P.MakePair(newState, resource)
@@ -51,7 +51,7 @@ func TestWithResource_SuccessCase(t *testing.T) {
 
 	// Release the resource (decrements open count)
 	onRelease := func(res testResource) StateReaderIOEither[resourceState, testContext, error, int] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, int] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, int] {
 			released = true
 			newState := resourceState{openResources: s.openResources - 1}
 			return P.MakePair(newState, 0)
@@ -59,7 +59,7 @@ func TestWithResource_SuccessCase(t *testing.T) {
 	}
 
 	// Use the resource
-	result := WithResource[string, resourceState, testContext, error, testResource](
+	result := WithResource[string](
 		onCreate,
 		onRelease,
 	)(func(res testResource) StateReaderIOEither[resourceState, testContext, error, string] {
@@ -86,7 +86,7 @@ func TestWithResource_ErrorInUse(t *testing.T) {
 	released := false
 
 	// Create a resource
-	onCreate := FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, testResource] {
+	onCreate := FromState[testContext, error](func(s resourceState) P.Pair[resourceState, testResource] {
 		newState := resourceState{openResources: s.openResources + 1}
 		resource := testResource{id: 99, data: "data"}
 		return P.MakePair(newState, resource)
@@ -94,7 +94,7 @@ func TestWithResource_ErrorInUse(t *testing.T) {
 
 	// Release the resource
 	onRelease := func(res testResource) StateReaderIOEither[resourceState, testContext, error, int] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, int] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, int] {
 			released = true
 			newState := resourceState{openResources: s.openResources - 1}
 			return P.MakePair(newState, 0)
@@ -103,7 +103,7 @@ func TestWithResource_ErrorInUse(t *testing.T) {
 
 	// Use the resource with an error
 	testErr := errors.New("processing error")
-	result := WithResource[string, resourceState, testContext, error, testResource](
+	result := WithResource[string](
 		onCreate,
 		onRelease,
 	)(func(res testResource) StateReaderIOEither[resourceState, testContext, error, string] {
@@ -128,14 +128,14 @@ func TestWithResource_ErrorInCreate(t *testing.T) {
 
 	// Release function
 	onRelease := func(res testResource) StateReaderIOEither[resourceState, testContext, error, int] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, int] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, int] {
 			released = true
 			return P.MakePair(s, 0)
 		})
 	}
 
 	// Try to use the resource
-	result := WithResource[string, resourceState, testContext, error, testResource](
+	result := WithResource[string](
 		onCreate,
 		onRelease,
 	)(func(res testResource) StateReaderIOEither[resourceState, testContext, error, string] {
@@ -157,7 +157,7 @@ func TestWithResource_StateThreading(t *testing.T) {
 	var statesObserved []int
 
 	// Create a resource (state: 0 -> 1)
-	onCreate := FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, testResource] {
+	onCreate := FromState[testContext, error](func(s resourceState) P.Pair[resourceState, testResource] {
 		statesObserved = append(statesObserved, s.openResources)
 		newState := resourceState{openResources: s.openResources + 1}
 		resource := testResource{id: 1, data: "file"}
@@ -166,7 +166,7 @@ func TestWithResource_StateThreading(t *testing.T) {
 
 	// Use the resource (state: 1 -> 2)
 	useResource := func(res testResource) StateReaderIOEither[resourceState, testContext, error, string] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, string] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, string] {
 			statesObserved = append(statesObserved, s.openResources)
 			newState := resourceState{openResources: s.openResources + 1}
 			return P.MakePair(newState, fmt.Sprintf("used-%d", res.id))
@@ -175,14 +175,14 @@ func TestWithResource_StateThreading(t *testing.T) {
 
 	// Release the resource (state: 2 -> 1)
 	onRelease := func(res testResource) StateReaderIOEither[resourceState, testContext, error, int] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, int] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, int] {
 			statesObserved = append(statesObserved, s.openResources)
 			newState := resourceState{openResources: s.openResources - 1}
 			return P.MakePair(newState, 0)
 		})
 	}
 
-	result := WithResource[string, resourceState, testContext, error, testResource](
+	result := WithResource[string](
 		onCreate,
 		onRelease,
 	)(useResource)
@@ -207,37 +207,37 @@ func TestWithResource_MultipleResources(t *testing.T) {
 	ctx := testContext{multiplier: 1}
 
 	// Create first resource
-	createResource1 := FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, testResource] {
+	createResource1 := FromState[testContext, error](func(s resourceState) P.Pair[resourceState, testResource] {
 		newState := resourceState{openResources: s.openResources + 1}
 		return P.MakePair(newState, testResource{id: 1, data: "res1"})
 	})
 
 	releaseResource1 := func(res testResource) StateReaderIOEither[resourceState, testContext, error, int] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, int] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, int] {
 			newState := resourceState{openResources: s.openResources - 1}
 			return P.MakePair(newState, 0)
 		})
 	}
 
 	// Second resource creator
-	createResource2 := FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, testResource] {
+	createResource2 := FromState[testContext, error](func(s resourceState) P.Pair[resourceState, testResource] {
 		newState := resourceState{openResources: s.openResources + 1}
 		return P.MakePair(newState, testResource{id: 2, data: "res2"})
 	})
 
 	releaseResource2 := func(res testResource) StateReaderIOEither[resourceState, testContext, error, int] {
-		return FromState[testContext, error, resourceState](func(s resourceState) P.Pair[resourceState, int] {
+		return FromState[testContext, error](func(s resourceState) P.Pair[resourceState, int] {
 			newState := resourceState{openResources: s.openResources - 1}
 			return P.MakePair(newState, 0)
 		})
 	}
 
 	// Nest resources
-	result := WithResource[string, resourceState, testContext, error, testResource](
+	result := WithResource[string](
 		createResource1,
 		releaseResource1,
 	)(func(res1 testResource) StateReaderIOEither[resourceState, testContext, error, string] {
-		return WithResource[string, resourceState, testContext, error, testResource](
+		return WithResource[string](
 			createResource2,
 			releaseResource2,
 		)(func(res2 testResource) StateReaderIOEither[resourceState, testContext, error, string] {

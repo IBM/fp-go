@@ -310,12 +310,12 @@ func TestLocal(t *testing.T) {
 	ctx := testContext{multiplier: 2}
 
 	// Create a computation that uses the context
-	comp := Asks[testState, testContext, error, int](func(c testContext) StateReaderIOEither[testState, testContext, error, int] {
+	comp := Asks(func(c testContext) StateReaderIOEither[testState, testContext, error, int] {
 		return Of[testState, testContext, error](c.multiplier * 10)
 	})
 
 	// Modify context before running computation
-	result := Local[testState, error, int, int, testContext, testContext](
+	result := Local[testState, error, int, int](
 		func(c testContext) testContext {
 			return testContext{multiplier: c.multiplier * 2}
 		},
@@ -333,7 +333,7 @@ func TestAsks(t *testing.T) {
 	state := testState{counter: 0}
 	ctx := testContext{multiplier: 7}
 
-	result := Asks[testState, testContext, error, int](func(c testContext) StateReaderIOEither[testState, testContext, error, int] {
+	result := Asks(func(c testContext) StateReaderIOEither[testState, testContext, error, int] {
 		return Of[testState, testContext, error](c.multiplier * 5)
 	})
 

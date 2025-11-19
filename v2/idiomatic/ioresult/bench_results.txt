@@ -1,0 +1,50 @@
+2025/11/19 15:31:45 Data: 
+{
+  "key": "key",
+  "value": "value"
+}
+2025/11/19 15:31:45 t1: foo, t2: 1, t3: foo1
+goos: windows
+goarch: amd64
+pkg: github.com/IBM/fp-go/v2/idiomatic/ioresult
+cpu: AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics  
+BenchmarkOf-16                 	1000000000	         0.2241 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMap-16                	1000000000	         0.2151 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain-16              	1000000000	         0.2100 ns/op	       0 B/op	       0 allocs/op
+BenchmarkBind-16               	 7764834	       167.4 ns/op	     184 B/op	       7 allocs/op
+BenchmarkPipeline-16           	1000000000	         0.8716 ns/op	       0 B/op	       0 allocs/op
+BenchmarkExecute-16            	1000000000	         0.2231 ns/op	       0 B/op	       0 allocs/op
+BenchmarkExecutePipeline-16    	231766047	         5.671 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainSequence-16      	1000000000	         0.9532 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLeft-16               	1000000000	         0.2233 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMapWithError-16       	1000000000	         0.2172 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainWithError-16     	1000000000	         0.2151 ns/op	       0 B/op	       0 allocs/op
+BenchmarkApFirst-16            	31478382	        41.02 ns/op	      48 B/op	       2 allocs/op
+BenchmarkApSecond-16           	13940001	        92.43 ns/op	     104 B/op	       4 allocs/op
+BenchmarkMonadApFirst-16       	18065812	        96.61 ns/op	      80 B/op	       3 allocs/op
+BenchmarkMonadApSecond-16      	 8618354	       216.5 ns/op	     104 B/op	       4 allocs/op
+BenchmarkFunctor-16            	 9963952	       133.3 ns/op	      80 B/op	       3 allocs/op
+BenchmarkMonad-16              	 7325534	       317.7 ns/op	     104 B/op	       4 allocs/op
+BenchmarkPointed-16            	30711267	        35.32 ns/op	      24 B/op	       1 allocs/op
+BenchmarkTraverseArray-16      	  652627	      1883 ns/op	    1592 B/op	      59 allocs/op
+BenchmarkSequenceArray-16      	 1000000	      1051 ns/op	     808 B/op	      30 allocs/op
+BenchmarkAlt-16                	1000000000	         0.5538 ns/op	       0 B/op	       0 allocs/op
+BenchmarkGetOrElse-16          	1000000000	         0.6245 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFold-16               	 7670691	       168.2 ns/op	     128 B/op	       4 allocs/op
+BenchmarkFromIO-16             	1000000000	         0.4832 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainIOK-16           	 5704785	       215.3 ns/op	     128 B/op	       5 allocs/op
+BenchmarkChainFirst-16         	 4841002	       239.9 ns/op	     128 B/op	       5 allocs/op
+BenchmarkBindAllocations/Bind-16         	 1988592	       616.1 ns/op	     336 B/op	      13 allocs/op
+BenchmarkBindAllocations/DirectChainMap-16         	14671629	        82.42 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMapPatterns/SimpleFunction-16             	1000000000	         0.5509 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMapPatterns/InlinedLambda-16              	1000000000	         0.6880 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMapPatterns/NestedMaps-16                 	100000000	        10.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOfPatterns/IntValue-16                    	1000000000	         0.4405 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOfPatterns/StructValue-16                 	1000000000	         0.4252 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOfPatterns/PointerValue-16                	1000000000	         0.4587 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainPatterns/SimpleChain-16              	1000000000	         0.4593 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainPatterns/ChainSequence-16            	25868368	        47.75 ns/op	      24 B/op	       1 allocs/op
+BenchmarkErrorPaths/SuccessPath-16                 	1000000000	         0.9135 ns/op	       0 B/op	       0 allocs/op
+BenchmarkErrorPaths/ErrorPath-16                   	787269846	         1.438 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/IBM/fp-go/v2/idiomatic/ioresult	44.835s

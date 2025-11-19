@@ -58,7 +58,7 @@
 //
 // # Subpackages
 //
-// The idiomatic package includes two main subpackages:
+// The idiomatic package includes three main subpackages:
 //
 // ## idiomatic/option
 //
@@ -126,6 +126,61 @@
 //	    // handle error
 //	}
 //
+// ## idiomatic/ioresult
+//
+// Implements the IOResult monad using func() (value, error) for IO operations that can fail.
+// This combines IO effects (side-effectful operations) with Go's standard error handling pattern.
+// It's the idiomatic version of IOEither, representing computations that perform side effects
+// and may fail.
+//
+// Example usage:
+//
+//	import "github.com/IBM/fp-go/v2/idiomatic/ioresult"
+//
+//	// Creating IOResult values
+//	success := ioresult.Of(42)                          // func() (int, error) returning (42, nil)
+//	failure := ioresult.Left[int](errors.New("oops"))   // func() (int, error) returning (0, error)
+//
+//	// Reading a file with IOResult
+//	readConfig := ioresult.FromIO(func() string {
+//	    return "config.json"
+//	})
+//
+//	// Transforming IO operations
+//	processFile := F.Pipe2(
+//	    readConfig,
+//	    ioresult.Map(strings.ToUpper),
+//	    ioresult.Chain(func(path string) ioresult.IOResult[[]byte] {
+//	        return func() ([]byte, error) {
+//	            return os.ReadFile(path)
+//	        }
+//	    }),
+//	)
+//
+//	// Execute the IO operation
+//	content, err := processFile()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+//	// Resource management with Bracket
+//	result, err := ioresult.Bracket(
+//	    func() (*os.File, error) { return os.Open("data.txt") },
+//	    func(f *os.File, err error) ioresult.IOResult[any] {
+//	        return func() (any, error) { return nil, f.Close() }
+//	    },
+//	    func(f *os.File) ioresult.IOResult[[]byte] {
+//	        return func() ([]byte, error) { return io.ReadAll(f) }
+//	    },
+//	)()
+//
+// Key features:
+//  - Lazy evaluation: Operations are not executed until the IOResult is called
+//  - Composable: Chain IO operations that may fail
+//  - Error handling: Automatic error propagation and recovery
+//  - Resource safety: Bracket ensures proper resource cleanup
+//  - Parallel execution: ApPar and TraverseArrayPar for concurrent operations
+//
 // # Type Signatures
 //
 // The idiomatic packages use function types that work naturally with Go tuples:
@@ -140,6 +195,12 @@
 //	Operator[A, B any] = func(A, error) (B, error) // Transform Result[A] to Result[B]
 //	Kleisli[A, B any]  = func(A) (B, error)        // Monadic function from A to Result[B]
 //
+// For ioresult package:
+//
+//	IOResult[A any]    = func() (A, error)             // IO operation returning A or error
+//	Operator[A, B any] = func(IOResult[A]) IOResult[B] // Transform IOResult[A] to IOResult[B]
+//	Kleisli[A, B any]  = func(A) IOResult[B]           // Monadic function from A to IOResult[B]
+//
 // # When to Use Idiomatic vs Standard Packages
 //
 // Use idiomatic packages when:
@@ -148,6 +209,7 @@
 //  - You prefer Go's native error handling style
 //  - You're integrating with existing Go code that uses tuples
 //  - Memory efficiency matters (embedded systems, high-scale services)
+//  - You need IO operations with error handling (use ioresult)
 //
 // Use standard packages when:
 //  - You need full algebraic data type semantics
@@ -155,6 +217,20 @@
 //  - You want explicit Either[E, A] with custom error types
 //  - You need the complete suite of FP abstractions
 //  - Code clarity outweighs performance concerns
+//
+// # Choosing Between result and ioresult
+//
+// Use result when:
+//  - Operations are pure (same input always produces same output)
+//  - No side effects are involved (no IO, no state mutation)
+//  - You want to represent success/failure without execution delay
+//
+// Use ioresult when:
+//  - Operations perform IO (file system, network, database)
+//  - Side effects are part of the computation
+//  - You need lazy evaluation (defer execution until needed)
+//  - You want to compose IO operations that may fail
+//  - Resource management is required (files, connections, locks)
 //
 // # Performance Comparison
 //
@@ -226,6 +302,43 @@
 //	    result.Map(format),
 //	)
 //
+// ## IO Pipeline with IOResult
+//
+// Compose IO operations that may fail:
+//
+//	import (
+//	    F "github.com/IBM/fp-go/v2/function"
+//	    "github.com/IBM/fp-go/v2/idiomatic/ioresult"
+//	)
+//
+//	// Define IO operations
+//	readFile := func(path string) ioresult.IOResult[[]byte] {
+//	    return func() ([]byte, error) {
+//	        return os.ReadFile(path)
+//	    }
+//	}
+//
+//	parseJSON := func(data []byte) ioresult.IOResult[Config] {
+//	    return func() (Config, error) {
+//	        var cfg Config
+//	        err := json.Unmarshal(data, &cfg)
+//	        return cfg, err
+//	    }
+//	}
+//
+//	// Compose operations (not executed yet)
+//	loadConfig := F.Pipe1(
+//	    readFile("config.json"),
+//	    ioresult.Chain(parseJSON),
+//	    ioresult.Map(validateConfig),
+//	)
+//
+//	// Execute the IO pipeline
+//	config, err := loadConfig()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
 // ## Error Accumulation with Validation
 //
 // The idiomatic/result package supports validation patterns for accumulating multiple errors:
@@ -283,6 +396,41 @@
 //	    }
 //	    return user, true
 //	}
+//
+//	// File operations with IOResult and resource safety
+//	import "github.com/IBM/fp-go/v2/idiomatic/ioresult"
+//
+//	processFile := ioresult.Bracket(
+//	    // Acquire resource
+//	    func() (*os.File, error) {
+//	        return os.Open("data.txt")
+//	    },
+//	    // Release resource (always called)
+//	    func(f *os.File, err error) ioresult.IOResult[any] {
+//	        return func() (any, error) {
+//	            return nil, f.Close()
+//	        }
+//	    },
+//	    // Use resource
+//	    func(f *os.File) ioresult.IOResult[string] {
+//	        return func() (string, error) {
+//	            data, err := io.ReadAll(f)
+//	            return string(data), err
+//	        }
+//	    },
+//	)
+//	content, err := processFile()
+//
+//	// System command execution with IOResult
+//	import ioexec "github.com/IBM/fp-go/v2/idiomatic/ioresult/exec"
+//
+//	version := F.Pipe1(
+//	    ioexec.Command("git")([]string{"version"})([]byte{}),
+//	    ioresult.Map(func(output exec.CommandOutput) string {
+//	        return string(exec.StdOut(output))
+//	    }),
+//	)
+//	result, err := version()
 //
 // # Best Practices
 //
@@ -348,8 +496,10 @@
 //   - Standard option package: github.com/IBM/fp-go/v2/option
 //   - Standard either package: github.com/IBM/fp-go/v2/either
 //   - Standard result package: github.com/IBM/fp-go/v2/result
+//   - Standard ioeither package: github.com/IBM/fp-go/v2/ioeither
 //
 // See the subpackage documentation for detailed API references:
 //   - idiomatic/option: Option monad using (value, bool) tuples
 //   - idiomatic/result: Result/Either monad using (value, error) tuples
+//   - idiomatic/ioresult: IOResult monad using func() (value, error) for IO operations
 package idiomatic

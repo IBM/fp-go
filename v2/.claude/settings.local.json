@@ -4,7 +4,12 @@
       "Bash(ls -la \"c:\\d\\fp-go\\v2\\internal\\monad\"\" && ls -la \"c:dfp-gov2internalapplicative\"\")",
       "Bash(ls -la \"c:\\d\\fp-go\\v2\\internal\\chain\"\" && ls -la \"c:dfp-gov2internalfunctor\"\")",
       "Bash(go build:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(go doc:*)",
+      "Bash(go tool cover:*)",
+      "Bash(sort:*)",
+      "Bash(tee:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

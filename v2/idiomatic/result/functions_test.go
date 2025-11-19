@@ -32,13 +32,13 @@ func TestBiMap(t *testing.T) {
 	double := N.Mul(2)
 
 	t.Run("BiMap on Right", func(t *testing.T) {
-		val, err := BiMap[int, int](wrapError, double)(Right(21))
+		val, err := BiMap(wrapError, double)(Right(21))
 		AssertEq(Right(42))(val, err)(t)
 	})
 
 	t.Run("BiMap on Left", func(t *testing.T) {
 		originalErr := errors.New("original")
-		val, err := BiMap[int, int](wrapError, double)(Left[int](originalErr))
+		val, err := BiMap(wrapError, double)(Left[int](originalErr))
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "wrapped")
 		assert.Contains(t, err.Error(), "original")
@@ -49,13 +49,13 @@ func TestBiMap(t *testing.T) {
 // TestMapTo tests mapping to a constant value
 func TestMapTo(t *testing.T) {
 	t.Run("MapTo on Right", func(t *testing.T) {
-		val, err := MapTo[int, string]("constant")(Right(42))
+		val, err := MapTo[int]("constant")(Right(42))
 		AssertEq(Right("constant"))(val, err)(t)
 	})
 
 	t.Run("MapTo on Left", func(t *testing.T) {
 		originalErr := errors.New("error")
-		val, err := MapTo[int, string]("constant")(Left[int](originalErr))
+		val, err := MapTo[int]("constant")(Left[int](originalErr))
 		assert.Error(t, err)
 		assert.Equal(t, originalErr, err)
 		// MapTo still applies the constant value even for Left
@@ -66,13 +66,13 @@ func TestMapTo(t *testing.T) {
 // TestChainTo tests chaining to a constant value
 func TestChainTo(t *testing.T) {
 	t.Run("ChainTo Right to Right", func(t *testing.T) {
-		val, err := ChainTo[int, string]("success", nil)(Right(42))
+		val, err := ChainTo[int]("success", nil)(Right(42))
 		AssertEq(Right("success"))(val, err)(t)
 	})
 
 	t.Run("ChainTo Right to Left", func(t *testing.T) {
 		targetErr := errors.New("target error")
-		val, err := ChainTo[int, string]("", targetErr)(Right(42))
+		val, err := ChainTo[int]("", targetErr)(Right(42))
 		assert.Error(t, err)
 		assert.Equal(t, targetErr, err)
 		assert.Equal(t, "", val)
@@ -80,7 +80,7 @@ func TestChainTo(t *testing.T) {
 
 	t.Run("ChainTo Left", func(t *testing.T) {
 		sourceErr := errors.New("source error")
-		val, err := ChainTo[int, string]("success", nil)(Left[int](sourceErr))
+		val, err := ChainTo[int]("success", nil)(Left[int](sourceErr))
 		assert.Error(t, err)
 		assert.Equal(t, sourceErr, err)
 		assert.Equal(t, "", val)
@@ -197,13 +197,13 @@ func TestMemoize(t *testing.T) {
 func TestFlap(t *testing.T) {
 	t.Run("Flap with Right function", func(t *testing.T) {
 		double := N.Mul(2)
-		val, err := Flap[int, int](21)(Right(double))
+		val, err := Flap[int](21)(Right(double))
 		AssertEq(Right(42))(val, err)(t)
 	})
 
 	t.Run("Flap with Left function", func(t *testing.T) {
 		fnErr := errors.New("function error")
-		val, err := Flap[int, int](21)(Left[func(int) int](fnErr))
+		val, err := Flap[int](21)(Left[func(int) int](fnErr))
 		assert.Error(t, err)
 		assert.Equal(t, fnErr, err)
 		assert.Equal(t, 0, val)

@@ -97,7 +97,7 @@ func TestTraverseRecord_Success(t *testing.T) {
 	}
 
 	input := map[string]string{"a": "1", "b": "2"}
-	result, err := TraverseRecord[string, string, int](validate)(input)
+	result, err := TraverseRecord[string](validate)(input)
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, result["a"])
@@ -118,7 +118,7 @@ func TestTraverseRecord_ValidationError(t *testing.T) {
 	}
 
 	input := map[string]string{"a": "1", "b": "-5"}
-	result, err := TraverseRecord[string, string, int](validate)(input)
+	result, err := TraverseRecord[string](validate)(input)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "negative")
@@ -183,7 +183,7 @@ func TestTraverseRecordWithIndex_Success(t *testing.T) {
 	}
 
 	input := map[string]int{"a": 1, "b": 2}
-	result, err := TraverseRecordWithIndex[string, int, string](check)(input)
+	result, err := TraverseRecordWithIndex(check)(input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "a:2", result["a"])
@@ -200,7 +200,7 @@ func TestTraverseRecordWithIndex_Error(t *testing.T) {
 	}
 
 	input := map[string]int{"ok": 1, "bad": -5}
-	result, err := TraverseRecordWithIndex[string, int, int](check)(input)
+	result, err := TraverseRecordWithIndex(check)(input)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "key bad")
@@ -214,7 +214,7 @@ func TestTraverseRecordWithIndex_TypeTransformation(t *testing.T) {
 	}
 
 	input := map[string]string{"prefix": "value", "another": "test"}
-	result, err := TraverseRecordWithIndex[string, string, string](prefixKey)(input)
+	result, err := TraverseRecordWithIndex(prefixKey)(input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "prefix_value", result["prefix"])
@@ -228,7 +228,7 @@ func TestTraverseRecord_IntKeys(t *testing.T) {
 	}
 
 	input := map[int]int{1: 10, 2: 20, 3: 30}
-	result, err := TraverseRecord[int, int, int](double)(input)
+	result, err := TraverseRecord[int](double)(input)
 
 	require.NoError(t, err)
 	assert.Equal(t, 20, result[1])

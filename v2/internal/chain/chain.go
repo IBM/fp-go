@@ -22,10 +22,10 @@ import (
 // HKTA=HKT[A]
 // HKTB=HKT[B]
 func MonadChainFirst[A, B, HKTA, HKTB any](
-	mchain func(HKTA, func(A) HKTA) HKTA,
+	mchain func(HKTA, Kleisli[A, HKTA]) HKTA,
 	mmap func(HKTB, func(B) A) HKTA,
 	first HKTA,
-	f func(A) HKTB,
+	f Kleisli[A, HKTB],
 ) HKTA {
 	return mchain(first, func(a A) HKTA {
 		return mmap(f(a), F.Constant1[B](a))
@@ -33,9 +33,9 @@ func MonadChainFirst[A, B, HKTA, HKTB any](
 }
 
 func MonadChain[A, B, HKTA, HKTB any](
-	mchain func(HKTA, func(A) HKTB) HKTB,
+	mchain func(HKTA, Kleisli[A, HKTB]) HKTB,
 	first HKTA,
-	f func(A) HKTB,
+	f Kleisli[A, HKTB],
 ) HKTB {
 	return mchain(first, f)
 }
@@ -43,18 +43,19 @@ func MonadChain[A, B, HKTA, HKTB any](
 // HKTA=HKT[A]
 // HKTB=HKT[B]
 func ChainFirst[A, B, HKTA, HKTB any](
-	mchain func(func(A) HKTA) func(HKTA) HKTA,
+	mchain func(Kleisli[A, HKTA]) Operator[HKTA, HKTA],
 	mmap func(func(B) A) func(HKTB) HKTA,
-	f func(A) HKTB) func(HKTA) HKTA {
+	f Kleisli[A, HKTB]) Operator[HKTA, HKTA] {
+
 	return mchain(func(a A) HKTA {
 		return mmap(F.Constant1[B](a))(f(a))
 	})
 }
 
 func Chain[A, B, HKTA, HKTB any](
-	mchain func(func(A) HKTB) func(HKTA) HKTB,
-	f func(A) HKTB,
-) func(HKTA) HKTB {
+	mchain func(Kleisli[A, HKTB]) Operator[HKTA, HKTB],
+	f Kleisli[A, HKTB],
+) Operator[HKTA, HKTB] {
 	return mchain(f)
 }
 

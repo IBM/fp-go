@@ -31,7 +31,8 @@ import (
 // A Chainable must satisfy the following laws:
 //
 // Associativity:
-//   Chain(f)(Chain(g)(m)) == Chain(x => Chain(f)(g(x)))(m)
+//
+//	Chain(f)(Chain(g)(m)) == Chain(x => Chain(f)(g(x)))(m)
 //
 // Type Parameters:
 //   - A: The input value type
@@ -41,15 +42,16 @@ import (
 //   - HKTFAB: The higher-kinded type containing a function from A to B
 //
 // Example:
-//   // Given a Chainable for Option
-//   var c Chainable[int, string, Option[int], Option[string], Option[func(int) string]]
-//   chainFn := c.Chain(func(x int) Option[string] {
-//     if x > 0 {
-//       return Some(strconv.Itoa(x))
-//     }
-//     return None[string]()
-//   })
-//   result := chainFn(Some(42)) // Returns Some("42")
+//
+//	// Given a Chainable for Option
+//	var c Chainable[int, string, Option[int], Option[string], Option[func(int) string]]
+//	chainFn := c.Chain(func(x int) Option[string] {
+//	  if x > 0 {
+//	    return Some(strconv.Itoa(x))
+//	  }
+//	  return None[string]()
+//	})
+//	result := chainFn(Some(42)) // Returns Some("42")
 type Chainable[A, B, HKTA, HKTB, HKTFAB any] interface {
 	apply.Apply[A, B, HKTA, HKTB, HKTFAB]
 
@@ -71,3 +73,8 @@ func ToFunctor[A, B, HKTA, HKTB, HKTFAB any](ap Chainable[A, B, HKTA, HKTB, HKTF
 func ToApply[A, B, HKTA, HKTB, HKTFAB any](ap Chainable[A, B, HKTA, HKTB, HKTFAB]) apply.Apply[A, B, HKTA, HKTB, HKTFAB] {
 	return ap
 }
+
+type (
+	Kleisli[A, HKTB any]     = func(A) HKTB
+	Operator[HKTA, HKTB any] = func(HKTA) HKTB
+)

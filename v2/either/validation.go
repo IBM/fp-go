@@ -137,7 +137,7 @@ func MonadApV[B, A, E any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], f
 //
 //go:inline
 func ApV[B, A, E any](sg S.Semigroup[E]) func(Either[E, A]) Operator[E, func(A) B, B] {
-	apv := MonadApV[B, A, E](sg)
+	apv := MonadApV[B, A](sg)
 	return func(e Either[E, A]) Operator[E, func(A) B, B] {
 		return F.Bind2nd(apv, e)
 	}

@@ -137,7 +137,7 @@ func TestChain(t *testing.T) {
 
 	result := F.Pipe1(
 		Of[testState](5),
-		Chain[testState](func(x int) StateReaderIOResult[testState, string] {
+		Chain(func(x int) StateReaderIOResult[testState, string] {
 			return Of[testState](fmt.Sprintf("value: %d", x))
 		}),
 	)
@@ -210,7 +210,7 @@ func TestFromState(t *testing.T) {
 		return P.MakePair(newState, newState.counter)
 	}
 
-	result := FromState[testState](stateComp)
+	result := FromState(stateComp)
 	res := result(initialState)(ctx)()
 
 	assert.True(t, RES.IsRight(res))
@@ -257,7 +257,7 @@ func TestLocal(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "key", "value1")
 
 	// Create a computation that uses the context
-	comp := Asks[testState, string](func(c context.Context) StateReaderIOResult[testState, string] {
+	comp := Asks(func(c context.Context) StateReaderIOResult[testState, string] {
 		val := c.Value("key").(string)
 		return Of[testState](val)
 	})
@@ -281,7 +281,7 @@ func TestAsks(t *testing.T) {
 	state := testState{counter: 0}
 	ctx := context.WithValue(context.Background(), "multiplier", 7)
 
-	result := Asks[testState, int](func(c context.Context) StateReaderIOResult[testState, int] {
+	result := Asks(func(c context.Context) StateReaderIOResult[testState, int] {
 		mult := c.Value("multiplier").(int)
 		return Of[testState](mult * 5)
 	})
@@ -461,12 +461,12 @@ func TestStatefulComputation(t *testing.T) {
 
 	// Chain multiple stateful operations
 	result := F.Pipe2(
-		FromState[testState](incrementAndGet),
-		Chain[testState](func(v1 int) StateReaderIOResult[testState, int] {
-			return FromState[testState](incrementAndGet)
+		FromState(incrementAndGet),
+		Chain(func(v1 int) StateReaderIOResult[testState, int] {
+			return FromState(incrementAndGet)
 		}),
-		Chain[testState](func(v2 int) StateReaderIOResult[testState, int] {
-			return FromState[testState](incrementAndGet)
+		Chain(func(v2 int) StateReaderIOResult[testState, int] {
+			return FromState(incrementAndGet)
 		}),
 	)
 
@@ -488,7 +488,7 @@ func TestErrorPropagation(t *testing.T) {
 	// Chain operations where the second one fails
 	result := F.Pipe1(
 		Of[testState](42),
-		Chain[testState](func(x int) StateReaderIOResult[testState, int] {
+		Chain(func(x int) StateReaderIOResult[testState, int] {
 			return Left[testState, int](testErr)
 		}),
 	)
