@@ -167,15 +167,15 @@ func (o *pairMonadTail[A, B, B1]) Of(b B) Pair[A, B] {
 	return MakePair(o.m.Empty(), b)
 }
 
-func (o *pairMonadTail[A, B, B1]) Map(f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
+func (o *pairMonadTail[A, B, B1]) Map(f func(B) B1) Operator[A, B, B1] {
 	return MapTail[A](f)
 }
 
-func (o *pairMonadTail[A, B, B1]) Chain(f func(B) Pair[A, B1]) func(Pair[A, B]) Pair[A, B1] {
+func (o *pairMonadTail[A, B, B1]) Chain(f Kleisli[A, B, B1]) Operator[A, B, B1] {
 	return ChainTail(o.s, f)
 }
 
-func (o *pairMonadTail[A, B, B1]) Ap(fa Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
+func (o *pairMonadTail[A, B, B1]) Ap(fa Pair[A, B]) Operator[A, func(B) B1, B1] {
 	return ApTail[A, B, B1](o.s, fa)
 }
 
@@ -183,15 +183,15 @@ func (o *pairPointedTail[A, B]) Of(b B) Pair[A, B] {
 	return MakePair(o.m.Empty(), b)
 }
 
-func (o *pairFunctorTail[A, B, B1]) Map(f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
+func (o *pairFunctorTail[A, B, B1]) Map(f func(B) B1) Operator[A, B, B1] {
 	return MapTail[A](f)
 }
 
-func (o *pairApplicativeTail[A, B, B1]) Map(f func(B) B1) func(Pair[A, B]) Pair[A, B1] {
+func (o *pairApplicativeTail[A, B, B1]) Map(f func(B) B1) Operator[A, B, B1] {
 	return MapTail[A](f)
 }
 
-func (o *pairApplicativeTail[A, B, B1]) Ap(fa Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
+func (o *pairApplicativeTail[A, B, B1]) Ap(fa Pair[A, B]) Operator[A, func(B) B1, B1] {
 	return ApTail[A, B, B1](o.s, fa)
 }
 

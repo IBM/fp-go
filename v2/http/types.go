@@ -104,6 +104,27 @@ var (
 	//   content := string(body)
 	Body = P.Tail[*H.Response, []byte]
 
+	// FromResponse creates a function that constructs a FullResponse from
+	// a given *http.Response. It returns a function that takes a body byte
+	// slice and combines it with the response to create a FullResponse.
+	//
+	// This is useful for functional composition where you want to partially
+	// apply the response and later provide the body.
+	//
+	// Example:
+	//   makeFullResp := FromResponse(response)
+	//   fullResp := makeFullResp(bodyBytes)
 	FromResponse = P.FromHead[[]byte, *H.Response]
-	FromBody     = P.FromTail[*H.Response, []byte]
+
+	// FromBody creates a function that constructs a FullResponse from
+	// a given body byte slice. It returns a function that takes an
+	// *http.Response and combines it with the body to create a FullResponse.
+	//
+	// This is useful for functional composition where you want to partially
+	// apply the body and later provide the response.
+	//
+	// Example:
+	//   makeFullResp := FromBody(bodyBytes)
+	//   fullResp := makeFullResp(response)
+	FromBody = P.FromTail[*H.Response, []byte]
 )

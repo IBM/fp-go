@@ -228,7 +228,7 @@ Convert between Pair and Tuple2:
 
 	// Pair to Tuple
 	p := pair.MakePair("hello", 42)
-	t := pair.ToTuple(p)  // tuple.Tuple2[string, int]
+	t := pair.ToTuple(p)  // Tuple2[string, int]
 
 	// Tuple to Pair
 	t := tuple.MakeTuple2("world", 100)
@@ -381,8 +381,8 @@ Example 3: Writer Monad Pattern
 Creation:
   - MakePair[A, B any](A, B) Pair[A, B] - Create a pair from two values
   - Of[A any](A) Pair[A, A] - Create a pair with same value in both positions
-  - FromTuple[A, B any](tuple.Tuple2[A, B]) Pair[A, B] - Convert tuple to pair
-  - ToTuple[A, B any](Pair[A, B]) tuple.Tuple2[A, B] - Convert pair to tuple
+  - FromTuple[A, B any](Tuple2[A, B]) Pair[A, B] - Convert tuple to pair
+  - ToTuple[A, B any](Pair[A, B]) Tuple2[A, B] - Convert pair to tuple
 
 Access:
   - Head[A, B any](Pair[A, B]) A - Get the head (first) value

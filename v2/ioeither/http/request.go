@@ -27,6 +27,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 	IOEF "github.com/IBM/fp-go/v2/ioeither/file"
 	J "github.com/IBM/fp-go/v2/json"
+	R "github.com/IBM/fp-go/v2/reader"
 	RIOE "github.com/IBM/fp-go/v2/readerioeither"
 )
 
@@ -87,12 +88,10 @@ func ReadFullResponse(client Client) Kleisli[error, Requester, H.FullResponse] {
 	return F.Flow3(
 		client.Do,
 		ioeither.ChainEitherK(H.ValidateResponse),
-		ioeither.Chain(F.Pipe1(
-			F.Flow3(
-				H.GetBody,
-				ioeither.Of[error, io.ReadCloser],
-				IOEF.ReadAll[io.ReadCloser],
-			),
+		ioeither.Chain(F.Pipe3(
+			H.GetBody,
+			RIOE.FromReader[error],
+			R.Map[*http.Response](IOEF.ReadAll[io.ReadCloser]),
 			RIOE.ChainReaderK[error](H.FromBody),
 		)),
 	)

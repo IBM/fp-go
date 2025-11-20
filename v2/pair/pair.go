@@ -46,7 +46,7 @@ func Of[A any](value A) Pair[A, A] {
 	return Pair[A, A]{value, value}
 }
 
-// FromTuple creates a [Pair] from a [tuple.Tuple2].
+// FromTuple creates a [Pair] from a [Tuple2].
 // The first element of the tuple becomes the head, and the second becomes the tail.
 //
 // Example:
@@ -55,30 +55,54 @@ func Of[A any](value A) Pair[A, A] {
 //	p := pair.FromTuple(t)  // Pair[string, int]{"hello", 42}
 //
 //go:inline
-func FromTuple[A, B any](t tuple.Tuple2[A, B]) Pair[A, B] {
+func FromTuple[A, B any](t Tuple2[A, B]) Pair[A, B] {
 	return Pair[A, B]{t.F2, t.F1}
 }
 
+// FromHead creates a function that constructs a [Pair] from a given head value.
+// It returns a function that takes a tail value and combines it with the head
+// to create a Pair.
+//
+// This is useful for functional composition where you want to partially apply
+// the head value and later provide the tail value.
+//
+// Example:
+//
+//	makePair := pair.FromHead[int]("hello")
+//	p := makePair(42)  // Pair[string, int]{"hello", 42}
+//
 //go:inline
 func FromHead[B, A any](a A) Kleisli[A, B, B] {
 	return F.Bind1st(MakePair[A, B], a)
 }
 
+// FromTail creates a function that constructs a [Pair] from a given tail value.
+// It returns a function that takes a head value and combines it with the tail
+// to create a Pair.
+//
+// This is useful for functional composition where you want to partially apply
+// the tail value and later provide the head value.
+//
+// Example:
+//
+//	makePair := pair.FromTail[string](42)
+//	p := makePair("hello")  // Pair[string, int]{"hello", 42}
+//
 //go:inline
 func FromTail[A, B any](b B) Kleisli[A, A, B] {
 	return F.Bind2nd(MakePair[A, B], b)
 }
 
-// ToTuple creates a [tuple.Tuple2] from a [Pair].
+// ToTuple creates a [Tuple2] from a [Pair].
 // The head becomes the first element, and the tail becomes the second element.
 //
 // Example:
 //
 //	p := pair.MakePair("hello", 42)
-//	t := pair.ToTuple(p)  // tuple.Tuple2[string, int]{"hello", 42}
+//	t := pair.ToTuple(p)  // Tuple2[string, int]{"hello", 42}
 //
 //go:inline
-func ToTuple[A, B any](t Pair[A, B]) tuple.Tuple2[A, B] {
+func ToTuple[A, B any](t Pair[A, B]) Tuple2[A, B] {
 	return tuple.MakeTuple2(Head(t), Tail(t))
 }
 
@@ -449,7 +473,7 @@ func ApHead[B, A, A1 any](sg Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, 
 //	ap := pair.ApTail(intSum, pv)
 //	pf := pair.MakePair(10, func(s string) int { return len(s) })
 //	result := ap(pf)  // Pair[int, int]{15, 5}
-func ApTail[A, B, B1 any](sg Semigroup[A], fb Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
+func ApTail[A, B, B1 any](sg Semigroup[A], fb Pair[A, B]) Operator[A, func(B) B1, B1] {
 	return func(fbb Pair[A, func(B) B1]) Pair[A, B1] {
 		return MonadApTail(sg, fbb, fb)
 	}
@@ -469,7 +493,7 @@ func ApTail[A, B, B1 any](sg Semigroup[A], fb Pair[A, B]) func(Pair[A, func(B) B
 //	result := ap(pf)  // Pair[int, int]{15, 5}
 //
 //go:inline
-func Ap[A, B, B1 any](sg Semigroup[A], fa Pair[A, B]) func(Pair[A, func(B) B1]) Pair[A, B1] {
+func Ap[A, B, B1 any](sg Semigroup[A], fa Pair[A, B]) Operator[A, func(B) B1, B1] {
 	return ApTail[A, B, B1](sg, fa)
 }
 

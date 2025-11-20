@@ -46,6 +46,68 @@ func TestFromTuple(t *testing.T) {
 	assert.Equal(t, 100, Tail(p))
 }
 
+func TestFromHead(t *testing.T) {
+	// Test basic usage
+	makePair := FromHead[int]("hello")
+	p := makePair(42)
+	assert.Equal(t, "hello", Head(p))
+	assert.Equal(t, 42, Tail(p))
+
+	// Test with different types
+	makePair2 := FromHead[string](100)
+	p2 := makePair2("world")
+	assert.Equal(t, 100, Head(p2))
+	assert.Equal(t, "world", Tail(p2))
+
+	// Test with same type for head and tail
+	makePair3 := FromHead[int](1)
+	p3 := makePair3(2)
+	assert.Equal(t, 1, Head(p3))
+	assert.Equal(t, 2, Tail(p3))
+}
+
+func TestFromTail(t *testing.T) {
+	// Test basic usage
+	makePair := FromTail[string](42)
+	p := makePair("hello")
+	assert.Equal(t, "hello", Head(p))
+	assert.Equal(t, 42, Tail(p))
+
+	// Test with different types
+	makePair2 := FromTail[int]("world")
+	p2 := makePair2(100)
+	assert.Equal(t, 100, Head(p2))
+	assert.Equal(t, "world", Tail(p2))
+
+	// Test with same type for head and tail
+	makePair3 := FromTail[int](2)
+	p3 := makePair3(1)
+	assert.Equal(t, 1, Head(p3))
+	assert.Equal(t, 2, Tail(p3))
+}
+
+func TestFromHeadFromTailComposition(t *testing.T) {
+	// Test that FromHead and FromTail can be composed
+	// and produce the same result as MakePair
+
+	// Using FromHead
+	fromHeadMaker := FromHead[int]("test")
+	p1 := fromHeadMaker(123)
+
+	// Using FromTail
+	fromTailMaker := FromTail[string](123)
+	p2 := fromTailMaker("test")
+
+	// Using MakePair directly
+	p3 := MakePair("test", 123)
+
+	// All three should produce the same result
+	assert.Equal(t, Head(p1), Head(p2))
+	assert.Equal(t, Tail(p1), Tail(p2))
+	assert.Equal(t, Head(p1), Head(p3))
+	assert.Equal(t, Tail(p1), Tail(p3))
+}
+
 func TestToTuple(t *testing.T) {
 	p := MakePair("hello", 42)
 	tup := ToTuple(p)
