@@ -100,8 +100,8 @@ func MonadApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any
 // Deprecated:
 func ApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
-		MonadAp[GB, GA, GBA, B, A],
-		MonadMap[GA, GBA, A, func(B) A],
+		Ap[GA, GBA, GB, A, B],
+		Map[GA, GBA, A, func(B) A],
 
 		second,
 	)
@@ -112,8 +112,8 @@ func ApFirst[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second
 // Deprecated:
 func ApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
-		MonadApPar[GB, GA, GBA, B, A],
-		MonadMap[GA, GBA, A, func(B) A],
+		ApPar[GA, GBA, GB, A, B],
+		Map[GA, GBA, A, func(B) A],
 
 		second,
 	)
@@ -124,8 +124,8 @@ func ApFirstPar[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](sec
 // Deprecated:
 func ApFirstSeq[GA ~func() A, GB ~func() B, GBA ~func() func(B) A, A, B any](second GB) func(GA) GA {
 	return G.ApFirst(
-		MonadApSeq[GB, GA, GBA, B, A],
-		MonadMap[GA, GBA, A, func(B) A],
+		ApSeq[GA, GBA, GB, A, B],
+		Map[GA, GBA, A, func(B) A],
 
 		second,
 	)
@@ -149,8 +149,8 @@ func MonadApSecond[GA ~func() A, GB ~func() B, GBB ~func() func(B) B, A, B any](
 // Deprecated:
 func ApSecond[GA ~func() A, GB ~func() B, GBB ~func() func(B) B, A, B any](second GB) func(GA) GB {
 	return G.ApSecond(
-		MonadAp[GB, GB, GBB, B, B],
-		MonadMap[GA, GBB, A, func(B) B],
+		ApSeq[GB, GBB, GB, B, B],
+		Map[GA, GBB, A, func(B) B],
 
 		second,
 	)

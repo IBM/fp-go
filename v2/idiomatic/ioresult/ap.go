@@ -37,8 +37,8 @@ func MonadApFirst[A, B any](first IOResult[A], second IOResult[B]) IOResult[A] {
 //go:inline
 func ApFirst[A, B any](second IOResult[B]) Operator[A, A] {
 	return apply.ApFirst(
-		MonadAp[A, B],
-		MonadMap[A, func(B) A],
+		Ap[A, B],
+		Map[A, func(B) A],
 
 		second,
 	)
@@ -62,8 +62,8 @@ func MonadApSecond[A, B any](first IOResult[A], second IOResult[B]) IOResult[B] 
 //go:inline
 func ApSecond[A, B any](second IOResult[B]) Operator[A, B] {
 	return apply.ApSecond(
-		MonadAp[B, B],
-		MonadMap[A, func(B) B],
+		Ap[B, B],
+		Map[A, func(B) B],
 
 		second,
 	)

@@ -90,14 +90,15 @@ func MonadApFirst[HKTGA, HKTGB, HKTGBA, A, B any](
 }
 
 func ApFirst[HKTGA, HKTGB, HKTGBA, A, B any](
-	fap func(HKTGBA, HKTGB) HKTGA,
-	fmap func(HKTGA, func(A) func(B) A) HKTGBA,
+	fap func(HKTGB) func(HKTGBA) HKTGA,
+	fmap func(func(A) func(B) A) func(HKTGA) HKTGBA,
 
 	second HKTGB,
 ) func(HKTGA) HKTGA {
-	return func(first HKTGA) HKTGA {
-		return MonadApFirst(fap, fmap, first, second)
-	}
+	return F.Flow2(
+		fmap(F.Constant1[B, A]),
+		fap(second),
+	)
 }
 
 func MonadApSecond[HKTGA, HKTGB, HKTGBB, A, B any](
@@ -114,14 +115,15 @@ func MonadApSecond[HKTGA, HKTGB, HKTGBB, A, B any](
 }
 
 func ApSecond[HKTGA, HKTGB, HKTGBB, A, B any](
-	fap func(HKTGBB, HKTGB) HKTGB,
-	fmap func(HKTGA, func(A) func(B) B) HKTGBB,
+	fap func(HKTGB) func(HKTGBB) HKTGB,
+	fmap func(func(A) func(B) B) func(HKTGA) HKTGBB,
 
 	second HKTGB,
 ) func(HKTGA) HKTGB {
-	return func(first HKTGA) HKTGB {
-		return MonadApSecond(fap, fmap, first, second)
-	}
+	return F.Flow2(
+		fmap(F.Constant1[A](F.Identity[B])),
+		fap(second),
+	)
 }
 
 func MonadApS[S1, S2, B, HKTBGBS2, HKTS1, HKTS2, HKTB any](

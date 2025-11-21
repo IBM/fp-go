@@ -367,14 +367,14 @@ func TestApFirstApSecondInteraction(t *testing.T) {
 
 func TestApSequencingBehavior(t *testing.T) {
 	t.Run("MonadApFirst executes both operations", func(t *testing.T) {
-		var executionOrder []string
+		executionOrder := make([]string, 2)
 
 		first := func() (int, error) {
-			executionOrder = append(executionOrder, "first")
+			executionOrder[0] = "first"
 			return 1, nil
 		}
 		second := func() (string, error) {
-			executionOrder = append(executionOrder, "second")
+			executionOrder[1] = "second"
 			return "test", nil
 		}
 
@@ -389,14 +389,14 @@ func TestApSequencingBehavior(t *testing.T) {
 	})
 
 	t.Run("MonadApSecond executes both operations", func(t *testing.T) {
-		var executionOrder []string
+		executionOrder := make([]string, 2)
 
 		first := func() (int, error) {
-			executionOrder = append(executionOrder, "first")
+			executionOrder[0] = "first"
 			return 1, nil
 		}
 		second := func() (string, error) {
-			executionOrder = append(executionOrder, "second")
+			executionOrder[1] = "second"
 			return "test", nil
 		}
 

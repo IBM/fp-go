@@ -230,8 +230,8 @@ func MonadApFirst[A, B any](first IO[A], second IO[B]) IO[A] {
 // ApFirst combines two effectful actions, keeping only the result of the first.
 func ApFirst[A, B any](second IO[B]) Operator[A, A] {
 	return apply.ApFirst(
-		MonadAp[B, A],
-		MonadMap[A, func(B) A],
+		Ap[A, B],
+		Map[A, func(B) A],
 
 		second,
 	)
@@ -251,8 +251,8 @@ func MonadApSecond[A, B any](first IO[A], second IO[B]) IO[B] {
 // ApSecond combines two effectful actions, keeping only the result of the second.
 func ApSecond[A, B any](second IO[B]) Operator[A, B] {
 	return apply.ApSecond(
-		MonadAp[B, B],
-		MonadMap[A, func(B) B],
+		Ap[B, B],
+		Map[A, func(B) B],
 
 		second,
 	)
