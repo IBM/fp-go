@@ -16,6 +16,7 @@
 package readereither
 
 import (
+	ET "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
@@ -35,6 +36,8 @@ import (
 //	    ConfigService ConfigService
 //	}
 //	result := readereither.Do[Env, error](State{})
+//
+//go:inline
 func Do[R, E, S any](
 	empty S,
 ) ReaderEither[R, E, S] {
@@ -83,6 +86,8 @@ func Do[R, E, S any](
 //	        },
 //	    ),
 //	)
+//
+//go:inline
 func Bind[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) ReaderEither[R, E, T],
@@ -90,7 +95,59 @@ func Bind[R, E, S1, S2, T any](
 	return G.Bind[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, f)
 }
 
+//go:inline
+func BindReaderK[R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) Reader[R, T],
+) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
+	return G.BindReaderK[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, f)
+}
+
+//go:inline
+func BindEitherK[R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) Either[E, T],
+) func(ReaderEither[R, E, S1]) ReaderEither[R, E, S2] {
+	return G.BindEitherK[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, f)
+}
+
+//go:inline
+func BindToReader[
+	R, E, S1, T any](
+	setter func(T) S1,
+) func(Reader[R, T]) ReaderEither[R, E, S1] {
+	return G.BindToReader[ReaderEither[R, E, S1], Reader[R, T]](setter)
+}
+
+//go:inline
+func BindToEither[
+	R, E, S1, T any](
+	setter func(T) S1,
+) func(ET.Either[E, T]) ReaderEither[R, E, S1] {
+	return G.BindToEither[ReaderEither[R, E, S1]](setter)
+}
+
+//go:inline
+func ApReaderS[
+	R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Reader[R, T],
+) Operator[R, E, S1, S2] {
+	return G.ApReaderS[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, fa)
+}
+
+//go:inline
+func ApEitherS[
+	R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa ET.Either[E, T],
+) Operator[R, E, S1, S2] {
+	return G.ApEitherS[ReaderEither[R, E, S1], ReaderEither[R, E, S2]](setter, fa)
+}
+
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
+//
+//go:inline
 func Let[R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,

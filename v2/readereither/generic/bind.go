@@ -17,8 +17,11 @@ package generic
 
 import (
 	ET "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
 	A "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
+	FE "github.com/IBM/fp-go/v2/internal/fromeither"
+	FR "github.com/IBM/fp-go/v2/internal/fromreader"
 	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
@@ -36,6 +39,8 @@ import (
 //	    UserService   UserService
 //	}
 //	result := generic.Do[ReaderEither[Env, error, State], Env, error, State](State{})
+//
+//go:inline
 func Do[GS ~func(R) ET.Either[E, S], R, E, S any](
 	empty S,
 ) GS {
@@ -84,13 +89,53 @@ func Do[GS ~func(R) ET.Either[E, S], R, E, S any](
 //	        },
 //	    ),
 //	)
-func Bind[GS1 ~func(R) ET.Either[E, S1], GS2 ~func(R) ET.Either[E, S2], GT ~func(R) ET.Either[E, T], R, E, S1, S2, T any](
+//
+//go:inline
+func Bind[
+	GS1 ~func(R) ET.Either[E, S1],
+	GS2 ~func(R) ET.Either[E, S2],
+	GT ~func(R) ET.Either[E, T], R, E, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) GT,
 ) func(GS1) GS2 {
 	return C.Bind(
 		Chain[GS1, GS2, E, R, S1, S2],
 		Map[GT, GS2, E, R, T, S2],
+		setter,
+		f,
+	)
+}
+
+//go:inline
+func BindReaderK[
+	GS1 ~func(R) ET.Either[E, S1],
+	GS2 ~func(R) ET.Either[E, S2],
+	GRT ~func(R) T,
+	R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) GRT,
+) func(GS1) GS2 {
+	return FR.BindReaderK(
+		Chain[GS1, GS2, E, R, S1, S2],
+		Map[func(R) ET.Either[E, T], GS2, E, R, T, S2],
+		FromReader[GRT, func(R) ET.Either[E, T]],
+		setter,
+		f,
+	)
+}
+
+//go:inline
+func BindEitherK[
+	GS1 ~func(R) ET.Either[E, S1],
+	GS2 ~func(R) ET.Either[E, S2],
+	R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) ET.Either[E, T],
+) func(GS1) GS2 {
+	return FE.BindEitherK(
+		Chain[GS1, GS2, E, R, S1, S2],
+		Map[func(R) ET.Either[E, T], GS2, E, R, T, S2],
+		FromEither[func(R) ET.Either[E, T]],
 		setter,
 		f,
 	)
@@ -127,6 +172,31 @@ func BindTo[GS1 ~func(R) ET.Either[E, S1], GT ~func(R) ET.Either[E, T], R, E, S1
 	return C.BindTo(
 		Map[GT, GS1, E, R, T, S1],
 		setter,
+	)
+}
+
+//go:inline
+func BindToReader[
+	GS1 ~func(R) ET.Either[E, S1],
+	GT ~func(R) T,
+	R, E, S1, T any](
+	setter func(T) S1,
+) func(GT) GS1 {
+	return function.Flow2(
+		FromReader[GT, func(R) ET.Either[E, T]],
+		BindTo[GS1, func(R) ET.Either[E, T]](setter),
+	)
+}
+
+//go:inline
+func BindToEither[
+	GS1 ~func(R) ET.Either[E, S1],
+	R, E, S1, T any](
+	setter func(T) S1,
+) func(ET.Either[E, T]) GS1 {
+	return function.Flow2(
+		FromEither[func(R) ET.Either[E, T]],
+		BindTo[GS1, func(R) ET.Either[E, T]](setter),
 	)
 }
 
@@ -180,5 +250,34 @@ func ApS[GS1 ~func(R) ET.Either[E, S1], GS2 ~func(R) ET.Either[E, S2], GT ~func(
 		Map[GS1, func(R) ET.Either[E, func(T) S2], E, R, S1, func(T) S2],
 		setter,
 		fa,
+	)
+}
+
+//go:inline
+func ApReaderS[
+	GS1 ~func(R) ET.Either[E, S1],
+	GS2 ~func(R) ET.Either[E, S2],
+	GT ~func(R) T,
+	R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa GT,
+) func(GS1) GS2 {
+	return ApS[GS1, GS2](
+		setter,
+		FromReader[GT, func(R) ET.Either[E, T]](fa),
+	)
+}
+
+//go:inline
+func ApEitherS[
+	GS1 ~func(R) ET.Either[E, S1],
+	GS2 ~func(R) ET.Either[E, S2],
+	R, E, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa ET.Either[E, T],
+) func(GS1) GS2 {
+	return ApS[GS1, GS2](
+		setter,
+		FromEither[func(R) ET.Either[E, T]](fa),
 	)
 }

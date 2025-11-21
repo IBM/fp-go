@@ -71,6 +71,23 @@ func Chain[GEA ~func(E) ET.Either[L, A], GEB ~func(E) ET.Either[L, B], L, E, A, 
 	return F.Bind2nd(MonadChain[GEA, GEB, L, E, A, B], f)
 }
 
+func MonadChainReaderK[
+	GEA ~func(E) ET.Either[L, A],
+	GEB ~func(E) ET.Either[L, B],
+	GB ~func(E) B,
+	L, E, A, B any](ma GEA, f func(A) GB) GEB {
+
+	return MonadChain(ma, F.Flow2(f, FromReader[GB, GEB, L, E, B]))
+}
+
+func ChainReaderK[
+	GEA ~func(E) ET.Either[L, A],
+	GEB ~func(E) ET.Either[L, B],
+	GB ~func(E) B,
+	L, E, A, B any](f func(A) GB) func(GEA) GEB {
+	return Chain[GEA, GEB, L, E, A, B](F.Flow2(f, FromReader[GB, GEB, L, E, B]))
+}
+
 func Of[GEA ~func(E) ET.Either[L, A], L, E, A any](a A) GEA {
 	return readert.MonadOf[GEA](ET.Of[L, A], a)
 }

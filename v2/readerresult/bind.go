@@ -18,7 +18,9 @@ package readerresult
 import (
 	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/reader"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -320,4 +322,278 @@ func LetToL[R, S, T any](
 	b T,
 ) Operator[R, S, S] {
 	return LetTo[R](lens.Set, b)
+}
+
+// BindReaderK lifts a Reader Kleisli arrow into a ReaderResult context and binds it to the state.
+// This allows you to integrate pure Reader computations (that don't have error handling)
+// into a ReaderResult computation chain.
+//
+// The function f takes the current state S1 and returns a Reader[R, T] computation.
+// The result T is then attached to the state using the setter to produce state S2.
+//
+// Example:
+//
+//	type Env struct {
+//	    ConfigPath string
+//	}
+//	type State struct {
+//	    Config string
+//	}
+//
+//	// A pure Reader computation that reads from environment
+//	getConfigPath := func(s State) reader.Reader[Env, string] {
+//	    return func(env Env) string {
+//	        return env.ConfigPath
+//	    }
+//	}
+//
+//	result := F.Pipe2(
+//	    readerresult.Do[Env](State{}),
+//	    readerresult.BindReaderK(
+//	        func(path string) func(State) State {
+//	            return func(s State) State { s.Config = path; return s }
+//	        },
+//	        getConfigPath,
+//	    ),
+//	)
+//
+//go:inline
+func BindReaderK[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f reader.Kleisli[R, S1, T],
+) Operator[R, S1, S2] {
+	return G.BindReaderK[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
+}
+
+//go:inline
+func BindEitherK[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f result.Kleisli[S1, T],
+) Operator[R, S1, S2] {
+	return G.BindEitherK[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
+}
+
+// BindResultK lifts a Result Kleisli arrow into a ReaderResult context and binds it to the state.
+// This allows you to integrate Result computations (that may fail with an error but don't need
+// environment access) into a ReaderResult computation chain.
+//
+// The function f takes the current state S1 and returns a Result[T] computation.
+// If the Result is successful, the value T is attached to the state using the setter to produce state S2.
+// If the Result is an error, the entire computation short-circuits with that error.
+//
+// Example:
+//
+//	type State struct {
+//	    Value int
+//	    ParsedValue int
+//	}
+//
+//	// A Result computation that may fail
+//	parseValue := func(s State) result.Result[int] {
+//	    if s.Value < 0 {
+//	        return result.Error[int](errors.New("negative value"))
+//	    }
+//	    return result.Of(s.Value * 2)
+//	}
+//
+//	result := F.Pipe2(
+//	    readerresult.Do[any](State{Value: 5}),
+//	    readerresult.BindResultK(
+//	        func(parsed int) func(State) State {
+//	            return func(s State) State { s.ParsedValue = parsed; return s }
+//	        },
+//	        parseValue,
+//	    ),
+//	)
+//
+//go:inline
+func BindResultK[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f result.Kleisli[S1, T],
+) Operator[R, S1, S2] {
+	return G.BindEitherK[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
+}
+
+// BindToReader initializes a new state S1 from a Reader[R, T] computation.
+// This is used to start a ReaderResult computation chain from a pure Reader value.
+//
+// The setter function takes the result T from the Reader and initializes the state S1.
+// This is useful when you want to begin a do-notation chain with a Reader computation
+// that doesn't involve error handling.
+//
+// Example:
+//
+//	type Env struct {
+//	    ConfigPath string
+//	}
+//	type State struct {
+//	    Config string
+//	}
+//
+//	// A Reader that just reads from the environment
+//	getConfigPath := func(env Env) string {
+//	    return env.ConfigPath
+//	}
+//
+//	result := F.Pipe1(
+//	    reader.Of[Env](getConfigPath),
+//	    readerresult.BindToReader(func(path string) State {
+//	        return State{Config: path}
+//	    }),
+//	)
+//
+//go:inline
+func BindToReader[
+	R, S1, T any](
+	setter func(T) S1,
+) func(Reader[R, T]) ReaderResult[R, S1] {
+	return G.BindToReader[ReaderResult[R, S1], Reader[R, T]](setter)
+}
+
+//go:inline
+func BindToEither[
+	R, S1, T any](
+	setter func(T) S1,
+) func(Result[T]) ReaderResult[R, S1] {
+	return G.BindToEither[ReaderResult[R, S1]](setter)
+}
+
+// BindToResult initializes a new state S1 from a Result[T] value.
+// This is used to start a ReaderResult computation chain from a Result that may contain an error.
+//
+// The setter function takes the successful result T and initializes the state S1.
+// If the Result is an error, the entire computation will carry that error forward.
+// This is useful when you want to begin a do-notation chain with a Result computation
+// that doesn't need environment access.
+//
+// Example:
+//
+//	type State struct {
+//	    Value int
+//	}
+//
+//	// A Result that might contain an error
+//	parseResult := result.TryCatch(func() int {
+//	    // some parsing logic that might fail
+//	    return 42
+//	})
+//
+//	computation := F.Pipe1(
+//	    parseResult,
+//	    readerresult.BindToResult[any](func(value int) State {
+//	        return State{Value: value}
+//	    }),
+//	)
+//
+//go:inline
+func BindToResult[
+	R, S1, T any](
+	setter func(T) S1,
+) func(Result[T]) ReaderResult[R, S1] {
+	return G.BindToEither[ReaderResult[R, S1]](setter)
+}
+
+// ApReaderS attaches a value from a pure Reader computation to a context [S1] to produce a context [S2]
+// using Applicative semantics (independent, non-sequential composition).
+//
+// Unlike BindReaderK which uses monadic bind (sequential), ApReaderS uses applicative apply,
+// meaning the Reader computation fa is independent of the current state and can conceptually
+// execute in parallel.
+//
+// This is useful when you want to combine a Reader computation with your ReaderResult state
+// without creating a dependency between them.
+//
+// Example:
+//
+//	type Env struct {
+//	    DefaultPort int
+//	    DefaultHost string
+//	}
+//	type State struct {
+//	    Port int
+//	    Host string
+//	}
+//
+//	getDefaultPort := func(env Env) int { return env.DefaultPort }
+//	getDefaultHost := func(env Env) string { return env.DefaultHost }
+//
+//	result := F.Pipe2(
+//	    readerresult.Do[Env](State{}),
+//	    readerresult.ApReaderS(
+//	        func(port int) func(State) State {
+//	            return func(s State) State { s.Port = port; return s }
+//	        },
+//	        getDefaultPort,
+//	    ),
+//	    readerresult.ApReaderS(
+//	        func(host string) func(State) State {
+//	            return func(s State) State { s.Host = host; return s }
+//	        },
+//	        getDefaultHost,
+//	    ),
+//	)
+//
+//go:inline
+func ApReaderS[
+	R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Reader[R, T],
+) Operator[R, S1, S2] {
+	return G.ApReaderS[ReaderResult[R, S1], ReaderResult[R, S2]](setter, fa)
+}
+
+//go:inline
+func ApEitherS[
+	R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Result[T],
+) Operator[R, S1, S2] {
+	return G.ApEitherS[ReaderResult[R, S1], ReaderResult[R, S2]](setter, fa)
+}
+
+// ApResultS attaches a value from a Result to a context [S1] to produce a context [S2]
+// using Applicative semantics (independent, non-sequential composition).
+//
+// Unlike BindResultK which uses monadic bind (sequential), ApResultS uses applicative apply,
+// meaning the Result computation fa is independent of the current state and can conceptually
+// execute in parallel.
+//
+// If the Result fa contains an error, the entire computation short-circuits with that error.
+// This is useful when you want to combine a Result value with your ReaderResult state
+// without creating a dependency between them.
+//
+// Example:
+//
+//	type State struct {
+//	    Value1 int
+//	    Value2 int
+//	}
+//
+//	// Independent Result computations
+//	parseValue1 := result.TryCatch(func() int { return 42 })
+//	parseValue2 := result.TryCatch(func() int { return 100 })
+//
+//	computation := F.Pipe2(
+//	    readerresult.Do[any](State{}),
+//	    readerresult.ApResultS(
+//	        func(v int) func(State) State {
+//	            return func(s State) State { s.Value1 = v; return s }
+//	        },
+//	        parseValue1,
+//	    ),
+//	    readerresult.ApResultS(
+//	        func(v int) func(State) State {
+//	            return func(s State) State { s.Value2 = v; return s }
+//	        },
+//	        parseValue2,
+//	    ),
+//	)
+//
+//go:inline
+func ApResultS[
+	R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa Result[T],
+) Operator[R, S1, S2] {
+	return G.ApEitherS[ReaderResult[R, S1], ReaderResult[R, S2]](setter, fa)
 }

@@ -17,6 +17,7 @@ package fromreader
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/internal/chain"
 	G "github.com/IBM/fp-go/v2/reader/generic"
 )
 
@@ -68,4 +69,25 @@ func ChainFirstReaderK[GB ~func(R) B, R, A, B, HKTRA, HKTRB any](
 	f func(A) GB,
 ) func(HKTRA) HKTRA {
 	return mchain(FromReaderK(fromReader, f))
+}
+
+//go:inline
+func BindReaderK[
+	GT ~func(R) T,
+	R, S1, S2, T,
+	HKTET,
+	HKTES1,
+	HKTES2 any](
+	mchain func(func(S1) HKTES2) func(HKTES1) HKTES2,
+	mmap func(func(T) S2) func(HKTET) HKTES2,
+	fromReader func(GT) HKTET,
+	setter func(T) func(S1) S2,
+	f func(S1) GT,
+) func(HKTES1) HKTES2 {
+	return C.Bind(
+		mchain,
+		mmap,
+		setter,
+		FromReaderK(fromReader, f),
+	)
 }
