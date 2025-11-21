@@ -23,6 +23,9 @@ github.com/IBM/fp-go/v2/readerresult/from.go:33.70,35.2 1 1
 github.com/IBM/fp-go/v2/readerresult/from.go:45.80,47.2 1 1
 github.com/IBM/fp-go/v2/readerresult/from.go:57.92,59.2 1 1
 github.com/IBM/fp-go/v2/readerresult/from.go:69.104,71.2 1 1
+github.com/IBM/fp-go/v2/readerresult/monoid.go:37.62,45.2 1 1
+github.com/IBM/fp-go/v2/readerresult/monoid.go:64.70,69.2 1 1
+github.com/IBM/fp-go/v2/readerresult/monoid.go:91.62,98.2 1 1
 github.com/IBM/fp-go/v2/readerresult/reader.go:41.59,43.2 1 1
 github.com/IBM/fp-go/v2/readerresult/reader.go:49.59,51.2 1 1
 github.com/IBM/fp-go/v2/readerresult/reader.go:61.63,63.2 1 1
@@ -56,6 +59,8 @@ github.com/IBM/fp-go/v2/readerresult/reader.go:453.85,455.2 1 1
 github.com/IBM/fp-go/v2/readerresult/reader.go:460.55,462.2 1 0
 github.com/IBM/fp-go/v2/readerresult/reader.go:473.94,475.2 1 0
 github.com/IBM/fp-go/v2/readerresult/reader.go:486.65,488.2 1 1
+github.com/IBM/fp-go/v2/readerresult/reader.go:494.103,502.2 1 1
+github.com/IBM/fp-go/v2/readerresult/reader.go:508.71,515.2 1 0
 github.com/IBM/fp-go/v2/readerresult/sequence.go:35.78,40.2 1 1
 github.com/IBM/fp-go/v2/readerresult/sequence.go:54.35,60.2 1 1
 github.com/IBM/fp-go/v2/readerresult/sequence.go:75.38,82.2 1 1

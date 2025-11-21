@@ -767,7 +767,7 @@ func MonadAlt[R, E, A any](first ReaderIOEither[R, E, A], second L.Lazy[ReaderIO
 func Alt[R, E, A any](second L.Lazy[ReaderIOEither[R, E, A]]) Operator[R, E, A, A] {
 	return eithert.Alt(
 		readerio.Of[R, Either[E, A]],
-		readerio.MonadChain[R, Either[E, A], Either[E, A]],
+		readerio.Chain[R, Either[E, A], Either[E, A]],
 
 		second,
 	)

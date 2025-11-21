@@ -486,3 +486,30 @@ func MonadMapLeft[R, A any](fa ReaderResult[R, A], f Endomorphism[error]) Reader
 func MapLeft[R, A any](f Endomorphism[error]) Operator[R, A, A] {
 	return eithert.MapLeft(reader.Map[R, Result[A], Result[A]], f)
 }
+
+// MonadAlt tries the first computation, and if it fails, tries the second.
+// This implements the Alternative pattern for error recovery.
+//
+//go:inline
+func MonadAlt[R, A any](first ReaderResult[R, A], second Lazy[ReaderResult[R, A]]) ReaderResult[R, A] {
+	return eithert.MonadAlt(
+		reader.Of[R, Result[A]],
+		reader.MonadChain[R, Result[A], Result[A]],
+
+		first,
+		second,
+	)
+}
+
+// Alt tries the first computation, and if it fails, tries the second.
+// This implements the Alternative pattern for error recovery.
+//
+//go:inline
+func Alt[R, A any](second Lazy[ReaderResult[R, A]]) Operator[R, A, A] {
+	return eithert.Alt(
+		reader.Of[R, Result[A]],
+		reader.Chain[R, Result[A], Result[A]],
+
+		second,
+	)
+}

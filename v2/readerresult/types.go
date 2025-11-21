@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
@@ -33,6 +34,7 @@ type (
 	Reader[R, A any]    = reader.Reader[R, A]
 
 	ReaderResult[R, A any] = Reader[R, Result[A]]
+	Monoid[R, A any]       = monoid.Monoid[ReaderResult[R, A]]
 
 	Kleisli[R, A, B any]  = Reader[A, ReaderResult[R, B]]
 	Operator[R, A, B any] = Kleisli[R, ReaderResult[R, A], B]
