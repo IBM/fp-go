@@ -84,6 +84,74 @@
 //	    ),
 //	)
 //
+// # Object-Oriented Patterns with Curry Functions
+//
+// The Curry functions enable an interesting pattern where you can treat the Reader context (R)
+// as an object instance, effectively creating method-like functions that compose functionally.
+//
+// When you curry a function like func(R, T1, T2) (A, error), the context R becomes the last
+// argument to be applied, even though it appears first in the original function signature.
+// This is intentional and follows Go's context-first convention while enabling functional
+// composition patterns.
+//
+// Why R is the last curried argument:
+//
+//   - In Go, context conventionally comes first: func(ctx Context, params...) (Result, error)
+//   - In curried form: Curry2(f)(param1)(param2) returns ReaderResult[R, A]
+//   - The ReaderResult is then applied to R: Curry2(f)(param1)(param2)(ctx)
+//   - This allows partial application of business parameters before providing the context/object
+//
+// Object-Oriented Example:
+//
+//	// A service struct that acts as the Reader context
+//	type UserService struct {
+//	    db *sql.DB
+//	    cache Cache
+//	}
+//
+//	// A method-like function following Go conventions (context first)
+//	func (s *UserService) GetUserByID(ctx context.Context, id int) (User, error) {
+//	    // Use s.db and s.cache...
+//	}
+//
+//	func (s *UserService) UpdateUser(ctx context.Context, id int, name string) (User, error) {
+//	    // Use s.db and s.cache...
+//	}
+//
+//	// Curry these into composable operations
+//	getUser := readerresult.Curry1((*UserService).GetUserByID)
+//	updateUser := readerresult.Curry2((*UserService).UpdateUser)
+//
+//	// Now compose operations that will be bound to a UserService instance
+//	type Context struct {
+//	    Svc *UserService
+//	}
+//
+//	pipeline := F.Pipe2(
+//	    getUser(42),  // ReaderResult[Context, User]
+//	    readerresult.Chain(func(user User) readerresult.ReaderResult[Context, User] {
+//	        newName := user.Name + " (updated)"
+//	        return updateUser(user.ID)(newName)
+//	    }),
+//	)
+//
+//	// Execute by providing the service instance as context
+//	svc := &UserService{db: db, cache: cache}
+//	ctx := Context{Svc: svc}
+//	updatedUser, err := pipeline(ctx)
+//
+// The key insight is that currying creates a chain where:
+//  1. Business parameters are applied first: getUser(42)
+//  2. This returns a ReaderResult that waits for the context
+//  3. Multiple operations can be composed before providing the context
+//  4. Finally, the context/object is provided to execute everything: pipeline(ctx)
+//
+// This pattern is particularly useful for:
+//   - Creating reusable operation pipelines independent of service instances
+//   - Testing with mock service instances
+//   - Dependency injection in a functional style
+//   - Composing operations that share the same service context
+//
 // # Error Handling
 //
 // ReaderResult provides several functions for error handling:
