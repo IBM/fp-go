@@ -365,13 +365,13 @@ func Asks[R, A any](r Reader[R, A]) ReaderResult[R, A] {
 //
 //	parseUser := func(data string) result.Result[User] { ... }
 //	result := readerresult.MonadChainEitherK(getUserDataRR, parseUser)
-func MonadChainEitherK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, B] {
+func MonadChainEitherK[R, A, B any](ma ReaderResult[R, A], f RES.Kleisli[A, B]) ReaderResult[R, B] {
 	return func(r R) (B, error) {
 		a, err := ma(r)
 		if err != nil {
 			return result.Left[B](err)
 		}
-		return f(a)
+		return RES.Unwrap(f(a))
 	}
 }
 
@@ -384,8 +384,38 @@ func MonadChainEitherK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B
 //	result := F.Pipe1(getUserDataRR, readerresult.ChainEitherK[Config](parseUser))
 //
 //go:inline
-func ChainEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
+func ChainEitherK[R, A, B any](f RES.Kleisli[A, B]) Operator[R, A, B] {
 	return function.Bind2nd(MonadChainEitherK[R, A, B], f)
+}
+
+// MonadChainReaderK chains a ReaderResult with a function that returns a plain Result.
+// This is useful for integrating functions that don't need environment access.
+//
+// Example:
+//
+//	parseUser := func(data string) result.Result[User] { ... }
+//	result := readerresult.MonadChainReaderK(getUserDataRR, parseUser)
+func MonadChainReaderK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, B] {
+	return func(r R) (B, error) {
+		a, err := ma(r)
+		if err != nil {
+			return result.Left[B](err)
+		}
+		return f(a)
+	}
+}
+
+// ChainReaderK is the curried version of MonadChainEitherK.
+// It lifts a Result-returning function into a ReaderResult operator.
+//
+// Example:
+//
+//	parseUser := func(data string) result.Result[User] { ... }
+//	result := F.Pipe1(getUserDataRR, readerresult.ChainReaderK[Config](parseUser))
+//
+//go:inline
+func ChainReaderK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
+	return function.Bind2nd(MonadChainReaderK[R, A, B], f)
 }
 
 // ChainOptionK chains with a function that returns an Option, converting None to an error.

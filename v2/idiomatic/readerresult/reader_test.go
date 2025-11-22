@@ -24,6 +24,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/utils"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
+	RES "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -271,12 +272,30 @@ func TestAsks(t *testing.T) {
 	assert.Equal(t, 7, v)
 }
 
-func TestChainEitherK(t *testing.T) {
+func TestChainReaderK(t *testing.T) {
 	parseInt := func(s string) (int, error) {
 		if s == "42" {
 			return 42, nil
 		}
 		return 0, errors.New("parse error")
+	}
+
+	chain := ChainReaderK[MyContext](parseInt)
+
+	v, err := F.Pipe1(Of[MyContext]("42"), chain)(defaultContext)
+	assert.NoError(t, err)
+	assert.Equal(t, 42, v)
+
+	_, err = F.Pipe1(Of[MyContext]("invalid"), chain)(defaultContext)
+	assert.Error(t, err)
+}
+
+func TestChainEitherK(t *testing.T) {
+	parseInt := func(s string) RES.Result[int] {
+		if s == "42" {
+			return RES.Of(42)
+		}
+		return RES.Left[int](errors.New("parse error"))
 	}
 
 	chain := ChainEitherK[MyContext](parseInt)
