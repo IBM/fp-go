@@ -286,6 +286,11 @@ func GetOrElse[A any](onLeft func(error) IO[A]) func(IOResult[A]) IO[A] {
 	return ioeither.GetOrElse(onLeft)
 }
 
+//go:inline
+func GetOrElseOf[A any](onLeft func(error) A) func(IOResult[A]) IO[A] {
+	return ioeither.GetOrElseOf(onLeft)
+}
+
 // MonadChainTo composes to the second monad ignoring the return value of the first
 //
 //go:inline

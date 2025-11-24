@@ -19,6 +19,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -603,6 +604,88 @@ func TestFromOptional(t *testing.T) {
 		result := hasAdvanced(settings)(t)
 		if !result {
 			t.Error("Expected FromOptional to pass for nested optional")
+		}
+	})
+}
+
+// Helper types for Prism testing
+type PrismTestResult interface {
+	isPrismTestResult()
+}
+
+type PrismTestSuccess struct {
+	Value int
+}
+
+type PrismTestFailure struct {
+	Error string
+}
+
+func (PrismTestSuccess) isPrismTestResult() {}
+func (PrismTestFailure) isPrismTestResult() {}
+
+func TestFromPrism(t *testing.T) {
+	// Create a Prism that focuses on Success variant using prism.MakePrism
+	successPrism := prism.MakePrism(
+		func(r PrismTestResult) option.Option[int] {
+			if s, ok := r.(PrismTestSuccess); ok {
+				return option.Of(s.Value)
+			}
+			return option.None[int]()
+		},
+		func(v int) PrismTestResult {
+			return PrismTestSuccess{Value: v}
+		},
+	)
+
+	// Create a Prism that focuses on Failure variant
+	failurePrism := prism.MakePrism(
+		func(r PrismTestResult) option.Option[string] {
+			if f, ok := r.(PrismTestFailure); ok {
+				return option.Of(f.Error)
+			}
+			return option.None[string]()
+		},
+		func(err string) PrismTestResult {
+			return PrismTestFailure{Error: err}
+		},
+	)
+
+	t.Run("should pass when prism successfully extracts", func(t *testing.T) {
+		result := PrismTestSuccess{Value: 42}
+		isSuccess := FromPrism(successPrism)
+		testResult := isSuccess(result)(t)
+		if !testResult {
+			t.Error("Expected FromPrism to pass when prism extracts successfully")
+		}
+	})
+
+	t.Run("should fail when prism cannot extract", func(t *testing.T) {
+		mockT := &testing.T{}
+		result := PrismTestFailure{Error: "something went wrong"}
+		isSuccess := FromPrism(successPrism)
+		testResult := isSuccess(result)(mockT)
+		if testResult {
+			t.Error("Expected FromPrism to fail when prism cannot extract")
+		}
+	})
+
+	t.Run("should work with failure prism", func(t *testing.T) {
+		result := PrismTestFailure{Error: "test error"}
+		isFailure := FromPrism(failurePrism)
+		testResult := isFailure(result)(t)
+		if !testResult {
+			t.Error("Expected FromPrism to pass for failure prism on failure result")
+		}
+	})
+
+	t.Run("should fail with failure prism on success result", func(t *testing.T) {
+		mockT := &testing.T{}
+		result := PrismTestSuccess{Value: 100}
+		isFailure := FromPrism(failurePrism)
+		testResult := isFailure(result)(mockT)
+		if testResult {
+			t.Error("Expected FromPrism to fail for failure prism on success result")
 		}
 	})
 }

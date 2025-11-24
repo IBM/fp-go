@@ -264,6 +264,11 @@ func GetOrElse[E, A any](onLeft func(E) IO[A]) func(IOEither[E, A]) IO[A] {
 	return eithert.GetOrElse(io.MonadChain[Either[E, A], A], io.MonadOf[A], onLeft)
 }
 
+// GetOrElseOf extracts the value or maps the error
+func GetOrElseOf[E, A any](onLeft func(E) A) func(IOEither[E, A]) IO[A] {
+	return eithert.GetOrElseOf(io.MonadChain[Either[E, A], A], io.MonadOf[A], onLeft)
+}
+
 // MonadChainTo composes to the second monad ignoring the return value of the first
 func MonadChainTo[A, E, B any](fa IOEither[E, A], fb IOEither[E, B]) IOEither[E, B] {
 	return MonadChain(fa, function.Constant1[A](fb))

@@ -141,6 +141,10 @@ func GetOrElse[E, A, HKTEA, HKTA any](mchain func(HKTEA, func(ET.Either[E, A]) H
 	return MatchE(mchain, onLeft, mof)
 }
 
+func GetOrElseOf[E, A, HKTEA, HKTA any](mchain func(HKTEA, func(ET.Either[E, A]) HKTA) HKTA, mof func(A) HKTA, onLeft func(E) A) func(HKTEA) HKTA {
+	return MatchE(mchain, F.Flow2(onLeft, mof), mof)
+}
+
 func OrElse[E1, E2, A, HKTE1A, HKTE2A any](mchain func(HKTE1A, func(ET.Either[E1, A]) HKTE2A) HKTE2A, mof func(ET.Either[E2, A]) HKTE2A, onLeft func(E1) HKTE2A) func(HKTE1A) HKTE2A {
 	return MatchE(mchain, onLeft, F.Flow2(ET.Right[E2, A], mof))
 }

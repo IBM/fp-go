@@ -107,6 +107,13 @@ func RecordNotEmpty[K comparable, T any](mp map[K]T) Reader {
 	}
 }
 
+// StringNotEmpty checks if a string is not empty
+func StringNotEmpty(s string) Reader {
+	return func(t *testing.T) bool {
+		return assert.NotEmpty(t, s)
+	}
+}
+
 // ArrayLength tests if an array has the expected length
 func ArrayLength[T any](expected int) Kleisli[[]T] {
 	return func(actual []T) Reader {
