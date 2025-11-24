@@ -808,6 +808,168 @@ func TestApResultIS(t *testing.T) {
 	})
 }
 
+// TestMonadApResult tests the MonadApResult function
+func TestMonadApResult(t *testing.T) {
+	t.Run("success case - both succeed", func(t *testing.T) {
+		add := func(x int) func(int) int {
+			return func(y int) int { return x + y }
+		}
+		fabr := Of[MyContext](add(5))
+		fa := result.Of(3)
+		res := MonadApResult(fabr, fa)
+		assert.Equal(t, result.Of(8), res(defaultContext))
+	})
+
+	t.Run("function is error", func(t *testing.T) {
+		fabr := Left[MyContext, func(int) int](idiomaticTestError)
+		fa := result.Of(3)
+		res := MonadApResult(fabr, fa)
+		assert.Equal(t, result.Left[int](idiomaticTestError), res(defaultContext))
+	})
+
+	t.Run("value is error", func(t *testing.T) {
+		double := func(x int) int { return x * 2 }
+		fabr := Of[MyContext](double)
+		fa := result.Left[int](idiomaticTestError)
+		res := MonadApResult(fabr, fa)
+		assert.Equal(t, result.Left[int](idiomaticTestError), res(defaultContext))
+	})
+
+	t.Run("both are errors", func(t *testing.T) {
+		funcError := errors.New("function error")
+		valueError := errors.New("value error")
+		fabr := Left[MyContext, func(int) int](funcError)
+		fa := result.Left[int](valueError)
+		res := MonadApResult(fabr, fa)
+		// When both fail, the function error takes precedence in Applicative semantics
+		assert.True(t, result.IsLeft(res(defaultContext)))
+	})
+}
+
+// TestApResult tests the ApResult function
+func TestApResult(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		fa := result.Of(10)
+		res := F.Pipe1(
+			Of[MyContext](utils.Double),
+			ApResult[int, MyContext](fa),
+		)
+		assert.Equal(t, result.Of(20), res(defaultContext))
+	})
+
+	t.Run("function error", func(t *testing.T) {
+		fa := result.Of(10)
+		res := F.Pipe1(
+			Left[MyContext, func(int) int](idiomaticTestError),
+			ApResult[int, MyContext](fa),
+		)
+		assert.Equal(t, result.Left[int](idiomaticTestError), res(defaultContext))
+	})
+
+	t.Run("value error", func(t *testing.T) {
+		fa := result.Left[int](idiomaticTestError)
+		res := F.Pipe1(
+			Of[MyContext](utils.Double),
+			ApResult[int, MyContext](fa),
+		)
+		assert.Equal(t, result.Left[int](idiomaticTestError), res(defaultContext))
+	})
+
+	t.Run("with triple composition", func(t *testing.T) {
+		triple := func(x int) int { return x * 3 }
+		fa := result.Of(7)
+		res := F.Pipe1(
+			Of[MyContext](triple),
+			ApResult[int, MyContext](fa),
+		)
+		assert.Equal(t, result.Of(21), res(defaultContext))
+	})
+}
+
+// TestApResultI tests the ApResultI function
+func TestApResultI(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		value := 10
+		var err error = nil
+		res := F.Pipe1(
+			Of[MyContext](utils.Double),
+			ApResultI[int, MyContext](value, err),
+		)
+		assert.Equal(t, result.Of(20), res(defaultContext))
+	})
+
+	t.Run("function error", func(t *testing.T) {
+		value := 10
+		var err error = nil
+		res := F.Pipe1(
+			Left[MyContext, func(int) int](idiomaticTestError),
+			ApResultI[int, MyContext](value, err),
+		)
+		assert.Equal(t, result.Left[int](idiomaticTestError), res(defaultContext))
+	})
+
+	t.Run("value error", func(t *testing.T) {
+		value := 0
+		err := idiomaticTestError
+		res := F.Pipe1(
+			Of[MyContext](utils.Double),
+			ApResultI[int, MyContext](value, err),
+		)
+		assert.Equal(t, result.Left[int](idiomaticTestError), res(defaultContext))
+	})
+
+	t.Run("realistic example with strconv", func(t *testing.T) {
+		// Simulate parsing a string to int
+		parseValue := func(s string) (int, error) {
+			if s == "42" {
+				return 42, nil
+			}
+			return 0, errors.New("parse error")
+		}
+
+		addTen := func(x int) int { return x + 10 }
+
+		t.Run("parse success", func(t *testing.T) {
+			value, err := parseValue("42")
+			res := F.Pipe1(
+				Of[MyContext](addTen),
+				ApResultI[int, MyContext](value, err),
+			)
+			assert.Equal(t, result.Of(52), res(defaultContext))
+		})
+
+		t.Run("parse error", func(t *testing.T) {
+			value, err := parseValue("invalid")
+			res := F.Pipe1(
+				Of[MyContext](addTen),
+				ApResultI[int, MyContext](value, err),
+			)
+			assert.True(t, result.IsLeft(res(defaultContext)))
+		})
+	})
+
+	t.Run("with curried function", func(t *testing.T) {
+		// Test with a curried addition function
+		add := func(x int) func(int) int {
+			return func(y int) int { return x + y }
+		}
+
+		// First apply 5, get a function (int -> int)
+		partialAdd := F.Pipe1(
+			Of[MyContext](add),
+			ApResultI[func(int) int, MyContext](5, nil),
+		)
+
+		// Then apply 3 to the result
+		finalResult := F.Pipe1(
+			partialAdd,
+			ApResultI[int, MyContext](3, nil),
+		)
+
+		assert.Equal(t, result.Of(8), finalResult(defaultContext))
+	})
+}
+
 // Test a complex scenario combining multiple idiomatic functions
 func TestComplexIdiomaticScenario(t *testing.T) {
 	type Env struct {

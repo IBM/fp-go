@@ -204,6 +204,11 @@ func MonadChain[R, A, B any](ma ReaderResult[R, A], f Kleisli[R, A, B]) ReaderRe
 	return readert.MonadChain(ET.MonadChain[error, A, B], ma, f)
 }
 
+//go:inline
+func MonadChainReaderK[R, A, B any](ma ReaderResult[R, A], f reader.Kleisli[R, A, B]) ReaderResult[R, B] {
+	return readert.MonadChain(ET.MonadChain[error, A, B], ma, function.Flow2(f, FromReader[R, B]))
+}
+
 // Chain is the curried version of MonadChain.
 // It returns an Operator that can be used in function composition pipelines.
 //
@@ -215,6 +220,11 @@ func MonadChain[R, A, B any](ma ReaderResult[R, A], f Kleisli[R, A, B]) ReaderRe
 //go:inline
 func Chain[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, B] {
 	return readert.Chain[ReaderResult[R, A]](ET.Chain[error, A, B], f)
+}
+
+//go:inline
+func ChainReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, B] {
+	return readert.Chain[ReaderResult[R, A]](ET.Chain[error, A, B], function.Flow2(f, FromReader[R, B]))
 }
 
 // MonadChainI sequences two ReaderResult computations, where the second is an idiomatic Kleisli arrow.
@@ -285,12 +295,74 @@ func MonadAp[B, R, A any](fab ReaderResult[R, func(A) B], fa ReaderResult[R, A])
 	return readert.MonadAp[ReaderResult[R, A], ReaderResult[R, B], ReaderResult[R, func(A) B], R, A](ET.MonadAp[B, error, A], fab, fa)
 }
 
+//go:inline
+func MonadApReader[B, R, A any](fab ReaderResult[R, func(A) B], fa Reader[R, A]) ReaderResult[R, B] {
+	return MonadAp(fab, FromReader(fa))
+}
+
 // Ap is the curried version of MonadAp.
 // It returns an Operator that can be used in function composition pipelines.
 //
 //go:inline
 func Ap[B, R, A any](fa ReaderResult[R, A]) Operator[R, func(A) B, B] {
 	return readert.Ap[ReaderResult[R, A], ReaderResult[R, B], ReaderResult[R, func(A) B], R, A](ET.Ap[B, error, A], fa)
+}
+
+//go:inline
+func ApReader[B, R, A any](fa Reader[R, A]) Operator[R, func(A) B, B] {
+	return Ap[B](FromReader(fa))
+}
+
+// MonadApResult applies a function wrapped in a ReaderResult to a value wrapped in a plain Result.
+// The Result value is independent of the environment, while the function may depend on it.
+// This is useful when you have a pre-computed Result value that you want to apply a context-dependent function to.
+//
+// Example:
+//
+//	add := func(x int) func(int) int { return func(y int) int { return x + y } }
+//	fabr := readerresult.Of[Config](add(5))
+//	fa := result.Of(3)  // Pre-computed Result, independent of environment
+//	result := readerresult.MonadApResult(fabr, fa)  // Returns Of(8)
+//
+//go:inline
+func MonadApResult[B, R, A any](fab ReaderResult[R, func(A) B], fa result.Result[A]) ReaderResult[R, B] {
+	return readert.MonadAp[ReaderResult[R, A], ReaderResult[R, B], ReaderResult[R, func(A) B], R, A](ET.MonadAp[B, error, A], fab, FromResult[R](fa))
+}
+
+// ApResult is the curried version of MonadApResult.
+// It returns an Operator that applies a pre-computed Result value to a function in a ReaderResult context.
+// This is useful in function composition pipelines when you have a static Result value.
+//
+// Example:
+//
+//	fa := result.Of(10)
+//	result := F.Pipe1(
+//	    readerresult.Of[Config](utils.Double),
+//	    readerresult.ApResult[int, Config](fa),
+//	)
+//	// result(cfg) returns result.Of(20)
+//
+//go:inline
+func ApResult[B, R, A any](fa Result[A]) Operator[R, func(A) B, B] {
+	return readert.Ap[ReaderResult[R, A], ReaderResult[R, B], ReaderResult[R, func(A) B], R, A](ET.Ap[B, error, A], FromResult[R](fa))
+}
+
+// ApResultI is the curried idiomatic version of ApResult.
+// It accepts a (value, error) pair directly and applies it to a function in a ReaderResult context.
+// This bridges Go's idiomatic error handling with the functional ApResult operation.
+//
+// Example:
+//
+//	value, err := strconv.Atoi("10")  // Returns (10, nil)
+//	result := F.Pipe1(
+//	    readerresult.Of[Config](utils.Double),
+//	    readerresult.ApResultI[int, Config](value, err),
+//	)
+//	// result(cfg) returns result.Of(20)
+//
+//go:inline
+func ApResultI[B, R, A any](a A, err error) Operator[R, func(A) B, B] {
+	return Ap[B](FromResultI[R](a, err))
 }
 
 // MonadApI applies a function wrapped in a ReaderResult to a value wrapped in an idiomatic ReaderResult.

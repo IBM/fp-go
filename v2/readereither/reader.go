@@ -66,6 +66,14 @@ func Chain[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func(ReaderEither[E,
 	return readert.Chain[ReaderEither[E, L, A]](ET.Chain[L, A, B], f)
 }
 
+func MonadChainReaderK[E, L, A, B any](ma ReaderEither[E, L, A], f reader.Kleisli[E, A, B]) ReaderEither[E, L, B] {
+	return MonadChain(ma, function.Flow2(f, FromReader[E, L, B]))
+}
+
+func ChainReaderK[E, L, A, B any](f reader.Kleisli[E, A, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+	return Chain(function.Flow2(f, FromReader[E, L, B]))
+}
+
 func Of[E, L, A any](a A) ReaderEither[E, L, A] {
 	return readert.MonadOf[ReaderEither[E, L, A]](ET.Of[L, A], a)
 }
