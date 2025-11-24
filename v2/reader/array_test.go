@@ -21,6 +21,7 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
+	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,4 +93,143 @@ func TestMonadTraverseArray(t *testing.T) {
 
 	assert.Equal(t, 3, len(result))
 	assert.Contains(t, result[0], "num")
+}
+
+func TestMonadReduceArray(t *testing.T) {
+	type Config struct{ Base int }
+	config := Config{Base: 10}
+
+	readers := []Reader[Config, int]{
+		Asks(func(c Config) int { return c.Base + 1 }),
+		Asks(func(c Config) int { return c.Base + 2 }),
+		Asks(func(c Config) int { return c.Base + 3 }),
+	}
+
+	sum := func(acc, val int) int { return acc + val }
+	r := MonadReduceArray(readers, sum, 0)
+	result := r(config)
+
+	assert.Equal(t, 36, result) // 11 + 12 + 13
+}
+
+func TestReduceArray(t *testing.T) {
+	type Config struct{ Multiplier int }
+	config := Config{Multiplier: 5}
+
+	product := func(acc, val int) int { return acc * val }
+	reducer := ReduceArray[Config](product, 1)
+
+	readers := []Reader[Config, int]{
+		Asks(func(c Config) int { return c.Multiplier * 2 }),
+		Asks(func(c Config) int { return c.Multiplier * 3 }),
+	}
+
+	r := reducer(readers)
+	result := r(config)
+
+	assert.Equal(t, 150, result) // 10 * 15
+}
+
+func TestMonadReduceArrayM(t *testing.T) {
+	type Config struct{ Factor int }
+	config := Config{Factor: 5}
+
+	readers := []Reader[Config, int]{
+		Asks(func(c Config) int { return c.Factor }),
+		Asks(func(c Config) int { return c.Factor * 2 }),
+		Asks(func(c Config) int { return c.Factor * 3 }),
+	}
+
+	intAddMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+
+	r := MonadReduceArrayM(readers, intAddMonoid)
+	result := r(config)
+
+	assert.Equal(t, 30, result) // 5 + 10 + 15
+}
+
+func TestReduceArrayM(t *testing.T) {
+	type Config struct{ Scale int }
+	config := Config{Scale: 3}
+
+	intMultMonoid := M.MakeMonoid(func(a, b int) int { return a * b }, 1)
+
+	reducer := ReduceArrayM[Config](intMultMonoid)
+
+	readers := []Reader[Config, int]{
+		Asks(func(c Config) int { return c.Scale }),
+		Asks(func(c Config) int { return c.Scale * 2 }),
+	}
+
+	r := reducer(readers)
+	result := r(config)
+
+	assert.Equal(t, 18, result) // 3 * 6
+}
+
+func TestMonadTraverseReduceArray(t *testing.T) {
+	type Config struct{ Multiplier int }
+	config := Config{Multiplier: 10}
+
+	numbers := []int{1, 2, 3, 4}
+	multiply := func(n int) Reader[Config, int] {
+		return Asks(func(c Config) int { return n * c.Multiplier })
+	}
+
+	sum := func(acc, val int) int { return acc + val }
+	r := MonadTraverseReduceArray(numbers, multiply, sum, 0)
+	result := r(config)
+
+	assert.Equal(t, 100, result) // 10 + 20 + 30 + 40
+}
+
+func TestTraverseReduceArray(t *testing.T) {
+	type Config struct{ Base int }
+	config := Config{Base: 10}
+
+	addBase := func(n int) Reader[Config, int] {
+		return Asks(func(c Config) int { return n + c.Base })
+	}
+
+	product := func(acc, val int) int { return acc * val }
+	transformer := TraverseReduceArray(addBase, product, 1)
+
+	r := transformer([]int{2, 3, 4})
+	result := r(config)
+
+	assert.Equal(t, 2184, result) // 12 * 13 * 14
+}
+
+func TestMonadTraverseReduceArrayM(t *testing.T) {
+	type Config struct{ Offset int }
+	config := Config{Offset: 100}
+
+	numbers := []int{1, 2, 3}
+	addOffset := func(n int) Reader[Config, int] {
+		return Asks(func(c Config) int { return n + c.Offset })
+	}
+
+	intSumMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+
+	r := MonadTraverseReduceArrayM(numbers, addOffset, intSumMonoid)
+	result := r(config)
+
+	assert.Equal(t, 306, result) // 101 + 102 + 103
+}
+
+func TestTraverseReduceArrayM(t *testing.T) {
+	type Config struct{ Factor int }
+	config := Config{Factor: 5}
+
+	scale := func(n int) Reader[Config, int] {
+		return Asks(func(c Config) int { return n * c.Factor })
+	}
+
+	intProdMonoid := M.MakeMonoid(func(a, b int) int { return a * b }, 1)
+
+	transformer := TraverseReduceArrayM(scale, intProdMonoid)
+	r := transformer([]int{2, 3, 4})
+	result := r(config)
+
+	assert.Equal(t, 3000, result) // 10 * 15 * 20
 }
