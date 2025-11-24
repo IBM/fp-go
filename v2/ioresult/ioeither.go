@@ -18,12 +18,27 @@ package ioresult
 import (
 	"time"
 
+	IOI "github.com/IBM/fp-go/v2/idiomatic/ioresult"
+	RI "github.com/IBM/fp-go/v2/idiomatic/result"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	IOO "github.com/IBM/fp-go/v2/iooption"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/result"
 )
+
+func fromIOResultKleisliI[A, B any](f IOI.Kleisli[A, B]) Kleisli[A, B] {
+	return func(a A) IOResult[B] {
+		r := f(a)
+		return func() Result[B] {
+			return result.TryCatchError(r())
+		}
+	}
+}
+
+func fromResultKleisliI[A, B any](f RI.Kleisli[A, B]) result.Kleisli[A, B] {
+	return result.Eitherize1(f)
+}
 
 //go:inline
 func Left[A any](l error) IOResult[A] {
@@ -66,6 +81,16 @@ func FromResult[A any](e Result[A]) IOResult[A] {
 }
 
 //go:inline
+func FromEitherI[A any](a A, err error) IOResult[A] {
+	return FromEither(result.TryCatchError(a, err))
+}
+
+//go:inline
+func FromResultI[A any](a A, err error) IOResult[A] {
+	return FromEitherI(a, err)
+}
+
+//go:inline
 func FromOption[A any](onNone func() error) func(o O.Option[A]) IOResult[A] {
 	return ioeither.FromOption[A](onNone)
 }
@@ -76,7 +101,7 @@ func FromIOOption[A any](onNone func() error) func(o IOO.IOOption[A]) IOResult[A
 }
 
 //go:inline
-func ChainOptionK[A, B any](onNone func() error) func(func(A) O.Option[B]) Operator[A, B] {
+func ChainOptionK[A, B any](onNone func() error) func(O.Kleisli[A, B]) Operator[A, B] {
 	return ioeither.ChainOptionK[A, B](onNone)
 }
 
@@ -137,6 +162,16 @@ func MonadChain[A, B any](fa IOResult[A], f Kleisli[A, B]) IOResult[B] {
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return ioeither.Chain(f)
+}
+
+//go:inline
+func MonadChainI[A, B any](fa IOResult[A], f IOI.Kleisli[A, B]) IOResult[B] {
+	return ioeither.MonadChain(fa, fromIOResultKleisliI(f))
+}
+
+//go:inline
+func ChainI[A, B any](f IOI.Kleisli[A, B]) Operator[A, B] {
+	return ioeither.Chain(fromIOResultKleisliI(f))
 }
 
 //go:inline

@@ -18,15 +18,31 @@ package readerresult
 import (
 	ET "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
+	OI "github.com/IBM/fp-go/v2/idiomatic/option"
+	RRI "github.com/IBM/fp-go/v2/idiomatic/readerresult"
+	RI "github.com/IBM/fp-go/v2/idiomatic/result"
 	"github.com/IBM/fp-go/v2/internal/eithert"
 	"github.com/IBM/fp-go/v2/internal/fromeither"
 	"github.com/IBM/fp-go/v2/internal/fromreader"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/readert"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
+
+func fromReaderResultKleisliI[R, A, B any](f RRI.Kleisli[R, A, B]) Kleisli[R, A, B] {
+	return function.Flow2(f, FromReaderResultI[R, B])
+}
+
+func fromResultKleisliI[A, B any](f RI.Kleisli[A, B]) result.Kleisli[A, B] {
+	return result.Eitherize1(f)
+}
+
+func fromOptionKleisliI[A, B any](f OI.Kleisli[A, B]) option.Kleisli[A, B] {
+	return option.Optionize1(f)
+}
 
 // FromEither lifts a Result[A] into a ReaderResult[R, A] that ignores the environment.
 // The resulting computation will always produce the same result regardless of the environment provided.
@@ -48,6 +64,46 @@ func FromEither[R, A any](e Result[A]) ReaderResult[R, A] {
 //go:inline
 func FromResult[R, A any](e Result[A]) ReaderResult[R, A] {
 	return reader.Of[R](e)
+}
+
+// FromResultI lifts an idiomatic Go (value, error) pair into a ReaderResult[R, A] that ignores the environment.
+// This is the idiomatic version of FromResult, accepting Go's native error handling pattern.
+// If err is non-nil, the resulting computation will always fail with that error.
+// If err is nil, the resulting computation will always succeed with the value a.
+//
+// Example:
+//
+//	value, err := strconv.Atoi("42")
+//	rr := readerresult.FromResultI[Config](value, err)
+//	// rr(anyConfig) will return result.Of(42) if err is nil
+//
+//go:inline
+func FromResultI[R, A any](a A, err error) ReaderResult[R, A] {
+	return reader.Of[R](result.TryCatchError(a, err))
+}
+
+// FromReaderResultI converts an idiomatic ReaderResult (that returns (A, error)) into a functional ReaderResult (that returns Result[A]).
+// This bridges the gap between Go's idiomatic error handling and functional programming style.
+// The idiomatic RRI.ReaderResult[R, A] is a function R -> (A, error).
+// The functional ReaderResult[R, A] is a function R -> Result[A].
+//
+// Example:
+//
+//	// Idiomatic ReaderResult
+//	getUserID := func(cfg Config) (int, error) {
+//	    if cfg.Valid {
+//	        return 42, nil
+//	    }
+//	    return 0, errors.New("invalid config")
+//	}
+//	rr := readerresult.FromReaderResultI(getUserID)
+//	// rr is now a functional ReaderResult[Config, int]
+//
+//go:inline
+func FromReaderResultI[R, A any](rr RRI.ReaderResult[R, A]) ReaderResult[R, A] {
+	return func(r R) Result[A] {
+		return result.TryCatchError(rr(r))
+	}
 }
 
 // RightReader lifts a Reader[R, A] into a ReaderResult[R, A] that always succeeds.
@@ -161,6 +217,45 @@ func Chain[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, B] {
 	return readert.Chain[ReaderResult[R, A]](ET.Chain[error, A, B], f)
 }
 
+// MonadChainI sequences two ReaderResult computations, where the second is an idiomatic Kleisli arrow.
+// This is the idiomatic version of MonadChain, allowing you to chain with functions that return (B, error).
+// The idiomatic Kleisli arrow RRI.Kleisli[R, A, B] is a function A -> R -> (B, error).
+// If the first computation fails, the second is not executed.
+//
+// Example:
+//
+//	getUserID := readerresult.Of[DB](42)
+//	// Idiomatic function that returns (User, error)
+//	fetchUser := func(id int) func(db DB) (User, error) {
+//	    return func(db DB) (User, error) {
+//	        return db.GetUser(id)  // returns (User, error)
+//	    }
+//	}
+//	result := readerresult.MonadChainI(getUserID, fetchUser)
+//
+//go:inline
+func MonadChainI[R, A, B any](ma ReaderResult[R, A], f RRI.Kleisli[R, A, B]) ReaderResult[R, B] {
+	return MonadChain(ma, fromReaderResultKleisliI(f))
+}
+
+// ChainI is the curried version of MonadChainI.
+// It allows chaining with idiomatic Kleisli arrows that return (B, error).
+//
+// Example:
+//
+//	// Idiomatic function that returns (User, error)
+//	fetchUser := func(id int) func(db DB) (User, error) {
+//	    return func(db DB) (User, error) {
+//	        return db.GetUser(id)  // returns (User, error)
+//	    }
+//	}
+//	result := F.Pipe1(getUserIDRR, readerresult.ChainI[DB](fetchUser))
+//
+//go:inline
+func ChainI[R, A, B any](f RRI.Kleisli[R, A, B]) Operator[R, A, B] {
+	return Chain(fromReaderResultKleisliI(f))
+}
+
 // Of creates a ReaderResult that always succeeds with the given value.
 // This is an alias for Right and is the "pure" or "return" operation for the ReaderResult monad.
 //
@@ -196,6 +291,37 @@ func MonadAp[B, R, A any](fab ReaderResult[R, func(A) B], fa ReaderResult[R, A])
 //go:inline
 func Ap[B, R, A any](fa ReaderResult[R, A]) Operator[R, func(A) B, B] {
 	return readert.Ap[ReaderResult[R, A], ReaderResult[R, B], ReaderResult[R, func(A) B], R, A](ET.Ap[B, error, A], fa)
+}
+
+// MonadApI applies a function wrapped in a ReaderResult to a value wrapped in an idiomatic ReaderResult.
+// This is the idiomatic version of MonadAp, where the second parameter returns (A, error) instead of Result[A].
+// Both computations share the same environment.
+//
+// Example:
+//
+//	add := func(x int) func(int) int { return func(y int) int { return x + y } }
+//	fabr := readerresult.Of[Config](add(5))
+//	// Idiomatic computation returning (int, error)
+//	fa := func(cfg Config) (int, error) { return cfg.Port, nil }
+//	result := readerresult.MonadApI(fabr, fa)
+//
+//go:inline
+func MonadApI[B, R, A any](fab ReaderResult[R, func(A) B], fa RRI.ReaderResult[R, A]) ReaderResult[R, B] {
+	return MonadAp(fab, FromReaderResultI(fa))
+}
+
+// ApI is the curried version of MonadApI.
+// It allows applying to idiomatic ReaderResult values that return (A, error).
+//
+// Example:
+//
+//	// Idiomatic computation returning (int, error)
+//	fa := func(cfg Config) (int, error) { return cfg.Port, nil }
+//	result := F.Pipe1(fabr, readerresult.ApI[int, Config](fa))
+//
+//go:inline
+func ApI[B, R, A any](fa RRI.ReaderResult[R, A]) Operator[R, func(A) B, B] {
+	return Ap[B](FromReaderResultI(fa))
 }
 
 // FromPredicate creates a Kleisli arrow that tests a predicate and returns either the input value
@@ -264,6 +390,26 @@ func GetOrElse[R, A any](onLeft reader.Kleisli[R, error, A]) func(ReaderResult[R
 //go:inline
 func OrElse[R, A any](onLeft Kleisli[R, error, A]) Operator[R, A, A] {
 	return eithert.OrElse(reader.MonadChain[R, Result[A], Result[A]], reader.Of[R, Result[A]], onLeft)
+}
+
+// OrElseI provides an alternative ReaderResult computation using an idiomatic Kleisli arrow if the first one fails.
+// This is the idiomatic version of OrElse, where the fallback function returns (A, error) instead of Result[A].
+// This is useful for fallback logic or retry scenarios with idiomatic Go functions.
+//
+// Example:
+//
+//	getPrimaryUser := func(id int) readerresult.ReaderResult[DB, User] { ... }
+//	// Idiomatic fallback returning (User, error)
+//	getBackupUser := func(err error) func(db DB) (User, error) {
+//	    return func(db DB) (User, error) {
+//	        return User{Name: "Guest"}, nil
+//	    }
+//	}
+//	result := F.Pipe1(getPrimaryUser(42), readerresult.OrElseI[DB](getBackupUser))
+//
+//go:inline
+func OrElseI[R, A any](onLeft RRI.Kleisli[R, error, A]) Operator[R, A, A] {
+	return OrElse(fromReaderResultKleisliI(onLeft))
 }
 
 // OrLeft transforms the error value if the computation fails, leaving successful values unchanged.
@@ -336,6 +482,24 @@ func MonadChainEitherK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B
 	)
 }
 
+// MonadChainEitherIK chains a ReaderResult with an idiomatic function that returns (B, error).
+// This is the idiomatic version of MonadChainEitherK, accepting functions in Go's native error handling pattern.
+// The function f doesn't need environment access and returns a (value, error) pair.
+//
+// Example:
+//
+//	getUserDataRR := readerresult.Of[DB]("user_data")
+//	// Idiomatic parser returning (User, error)
+//	parseUser := func(data string) (User, error) {
+//	    return json.Unmarshal([]byte(data), &User{})
+//	}
+//	result := readerresult.MonadChainEitherIK(getUserDataRR, parseUser)
+//
+//go:inline
+func MonadChainEitherIK[R, A, B any](ma ReaderResult[R, A], f RI.Kleisli[A, B]) ReaderResult[R, B] {
+	return MonadChainEitherK(ma, fromResultKleisliI(f))
+}
+
 // ChainEitherK is the curried version of MonadChainEitherK.
 // It lifts a Result-returning function into a ReaderResult operator.
 //
@@ -353,6 +517,22 @@ func ChainEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
 	)
 }
 
+// ChainEitherIK is the curried version of MonadChainEitherIK.
+// It lifts an idiomatic function returning (B, error) into a ReaderResult operator.
+//
+// Example:
+//
+//	// Idiomatic parser returning (User, error)
+//	parseUser := func(data string) (User, error) {
+//	    return json.Unmarshal([]byte(data), &User{})
+//	}
+//	result := F.Pipe1(getUserDataRR, readerresult.ChainEitherIK[DB](parseUser))
+//
+//go:inline
+func ChainEitherIK[R, A, B any](f RI.Kleisli[A, B]) Operator[R, A, B] {
+	return ChainEitherK[R](fromResultKleisliI(f))
+}
+
 // ChainOptionK chains with a function that returns an Option, converting None to an error.
 // This is useful for integrating functions that return optional values.
 //
@@ -368,6 +548,32 @@ func ChainOptionK[R, A, B any](onNone Lazy[error]) func(option.Kleisli[A, B]) Op
 	return fromeither.ChainOptionK(MonadChain[R, A, B], FromEither[R, B], onNone)
 }
 
+// ChainOptionIK chains with an idiomatic function that returns (Option[B], error), converting None to an error.
+// This is the idiomatic version of ChainOptionK, accepting functions in Go's native error handling pattern.
+// The onNone function is called when the Option is None to generate an error.
+//
+// Example:
+//
+//	// Idiomatic function returning (Option[User], error)
+//	findUser := func(id int) (option.Option[User], error) {
+//	    user, err := db.Query(id)
+//	    if err != nil {
+//	        return option.None[User](), err
+//	    }
+//	    if user == nil {
+//	        return option.None[User](), nil
+//	    }
+//	    return option.Some(*user), nil
+//	}
+//	notFound := func() error { return errors.New("user not found") }
+//	chain := readerresult.ChainOptionIK[Config, int, User](notFound)
+//	result := F.Pipe1(readerresult.Of[Config](42), chain(findUser))
+//
+//go:inline
+func ChainOptionIK[R, A, B any](onNone Lazy[error]) func(OI.Kleisli[A, B]) Operator[R, A, B] {
+	return function.Flow2(fromOptionKleisliI[A, B], ChainOptionK[R, A, B](onNone))
+}
+
 // Flatten removes one level of nesting from a nested ReaderResult.
 // This converts ReaderResult[R, ReaderResult[R, A]] into ReaderResult[R, A].
 //
@@ -380,6 +586,24 @@ func ChainOptionK[R, A, B any](onNone Lazy[error]) func(option.Kleisli[A, B]) Op
 //go:inline
 func Flatten[R, A any](mma ReaderResult[R, ReaderResult[R, A]]) ReaderResult[R, A] {
 	return MonadChain(mma, function.Identity[ReaderResult[R, A]])
+}
+
+// FlattenI removes one level of nesting from a ReaderResult containing an idiomatic ReaderResult.
+// This converts ReaderResult[R, RRI.ReaderResult[R, A]] into ReaderResult[R, A].
+// The inner computation returns (A, error) in Go's idiomatic style.
+//
+// Example:
+//
+//	// Nested computation where inner returns (A, error)
+//	nested := readerresult.Of[Config](func(cfg Config) (int, error) {
+//	    return 42, nil
+//	})
+//	flat := readerresult.FlattenI(nested)
+//	// flat(cfg) returns result.Of(42)
+//
+//go:inline
+func FlattenI[R, A any](mma ReaderResult[R, RRI.ReaderResult[R, A]]) ReaderResult[R, A] {
+	return MonadChain(mma, FromReaderResultI[R, A])
 }
 
 // MonadBiMap maps functions over both the error and success channels simultaneously.
@@ -501,6 +725,26 @@ func MonadAlt[R, A any](first ReaderResult[R, A], second Lazy[ReaderResult[R, A]
 	)
 }
 
+// MonadAltI tries the first computation, and if it fails, tries the second idiomatic computation.
+// This is the idiomatic version of MonadAlt, where the alternative computation returns (A, error).
+// The second computation is lazy-evaluated and only executed if the first fails.
+//
+// Example:
+//
+//	primary := readerresult.Left[Config, int](errors.New("primary failed"))
+//	// Idiomatic alternative returning (int, error)
+//	alternative := func() func(cfg Config) (int, error) {
+//	    return func(cfg Config) (int, error) {
+//	        return 42, nil
+//	    }
+//	}
+//	result := readerresult.MonadAltI(primary, alternative)
+//
+//go:inline
+func MonadAltI[R, A any](first ReaderResult[R, A], second Lazy[RRI.ReaderResult[R, A]]) ReaderResult[R, A] {
+	return MonadAlt(first, function.Pipe1(second, lazy.Map(FromReaderResultI[R, A])))
+}
+
 // Alt tries the first computation, and if it fails, tries the second.
 // This implements the Alternative pattern for error recovery.
 //
@@ -512,4 +756,22 @@ func Alt[R, A any](second Lazy[ReaderResult[R, A]]) Operator[R, A, A] {
 
 		second,
 	)
+}
+
+// AltI is the curried version of MonadAltI.
+// It tries the first computation, and if it fails, tries the idiomatic alternative that returns (A, error).
+//
+// Example:
+//
+//	// Idiomatic alternative returning (int, error)
+//	alternative := func() func(cfg Config) (int, error) {
+//	    return func(cfg Config) (int, error) {
+//	        return 42, nil
+//	    }
+//	}
+//	result := F.Pipe1(primary, readerresult.AltI[Config](alternative))
+//
+//go:inline
+func AltI[R, A any](second Lazy[RRI.ReaderResult[R, A]]) Operator[R, A, A] {
+	return Alt(function.Pipe1(second, lazy.Map(FromReaderResultI[R, A])))
 }

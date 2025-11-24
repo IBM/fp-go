@@ -17,6 +17,8 @@ package readerresult
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	RRI "github.com/IBM/fp-go/v2/idiomatic/readerresult"
+	RI "github.com/IBM/fp-go/v2/idiomatic/result"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/reader"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
@@ -92,8 +94,48 @@ func Do[R, S any](
 func Bind[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[R, S1, T],
-) func(ReaderResult[R, S1]) ReaderResult[R, S2] {
+) Operator[R, S1, S2] {
 	return G.Bind[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
+}
+
+// BindI attaches the result of an idiomatic computation to a context [S1] to produce a context [S2].
+// This is the idiomatic version of Bind, where the computation returns (T, error) instead of Result[T].
+// This enables sequential composition with Go's native error handling style where each step can depend
+// on the results of previous steps and access the shared environment.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserService UserService
+//	}
+//
+//	// Idiomatic function returning (User, error)
+//	getUser := func(s State) func(env Env) (User, error) {
+//	    return func(env Env) (User, error) {
+//	        return env.UserService.GetUser()
+//	    }
+//	}
+//
+//	result := F.Pipe1(
+//	    readerresult.Do[Env](State{}),
+//	    readerresult.BindI(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	)
+//
+//go:inline
+func BindI[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f RRI.Kleisli[R, S1, T],
+) Operator[R, S1, S2] {
+	return Bind(setter, fromReaderResultKleisliI(f))
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -102,7 +144,7 @@ func Bind[R, S1, S2, T any](
 func Let[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(ReaderResult[R, S1]) ReaderResult[R, S2] {
+) Operator[R, S1, S2] {
 	return G.Let[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
 }
 
@@ -112,7 +154,7 @@ func Let[R, S1, S2, T any](
 func LetTo[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(ReaderResult[R, S1]) ReaderResult[R, S2] {
+) Operator[R, S1, S2] {
 	return G.LetTo[ReaderResult[R, S1], ReaderResult[R, S2]](setter, b)
 }
 
@@ -171,8 +213,46 @@ func BindTo[R, S1, T any](
 func ApS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderResult[R, T],
-) func(ReaderResult[R, S1]) ReaderResult[R, S2] {
+) Operator[R, S1, S2] {
 	return G.ApS[ReaderResult[R, S1], ReaderResult[R, S2]](setter, fa)
+}
+
+// ApIS attaches a value from an idiomatic ReaderResult to a context [S1] to produce a context [S2].
+// This is the idiomatic version of ApS, where the computation returns (T, error) instead of Result[T].
+// Unlike BindI which sequences operations, ApIS uses applicative semantics, meaning the computation
+// is independent of the current state and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserService UserService
+//	}
+//
+//	// Idiomatic independent computation returning (User, error)
+//	getUser := func(env Env) (User, error) {
+//	    return env.UserService.GetUser()
+//	}
+//
+//	result := F.Pipe1(
+//	    readerresult.Do[Env](State{}),
+//	    readerresult.ApIS(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	)
+//
+//go:inline
+func ApIS[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa RRI.ReaderResult[R, T],
+) Operator[R, S1, S2] {
+	return ApS(setter, FromReaderResultI(fa))
 }
 
 // ApSL attaches a value to a context using a lens-based setter.
@@ -214,6 +294,43 @@ func ApSL[R, S, T any](
 	return ApS(lens.Set, fa)
 }
 
+// ApISL attaches a value from an idiomatic ReaderResult to a context using a lens-based setter.
+// This is the idiomatic version of ApSL, where the computation returns (T, error) instead of Result[T].
+// It combines ApIS with a lens, allowing you to use optics to update nested structures in a more composable way.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    ConfigService ConfigService
+//	}
+//
+//	configLens := lens.MakeLens(
+//	    func(s State) Config { return s.Config },
+//	    func(s State, c Config) State { s.Config = c; return s },
+//	)
+//
+//	// Idiomatic computation returning (Config, error)
+//	getConfig := func(env Env) (Config, error) {
+//	    return env.ConfigService.GetConfig()
+//	}
+//
+//	result := F.Pipe1(
+//	    readerresult.Of[Env](State{}),
+//	    readerresult.ApISL(configLens, getConfig),
+//	)
+//
+//go:inline
+func ApISL[R, S, T any](
+	lens L.Lens[S, T],
+	fa RRI.ReaderResult[R, T],
+) Operator[R, S, S] {
+	return ApS(lens.Set, FromReaderResultI(fa))
+}
+
 // BindL is a variant of Bind that uses a lens to focus on a specific part of the context.
 // This provides a more ergonomic API when working with nested structures, eliminating
 // the need to manually write setter functions.
@@ -253,6 +370,46 @@ func BindL[R, S, T any](
 	f Kleisli[R, T, T],
 ) Operator[R, S, S] {
 	return Bind(lens.Set, F.Flow2(lens.Get, f))
+}
+
+// BindIL is a variant of BindI that uses a lens to focus on a specific part of the context.
+// This is the idiomatic version of BindL, where the computation returns (T, error) instead of Result[T].
+// It provides a more ergonomic API when working with nested structures, eliminating the need to manually
+// write setter functions while supporting Go's native error handling pattern.
+//
+// Example:
+//
+//	type State struct {
+//	    User   User
+//	    Config Config
+//	}
+//	type Env struct {
+//	    UserService UserService
+//	}
+//
+//	userLens := lens.MakeLens(
+//	    func(s State) User { return s.User },
+//	    func(s State, u User) State { s.User = u; return s },
+//	)
+//
+//	// Idiomatic function returning (User, error)
+//	updateUser := func(user User) func(env Env) (User, error) {
+//	    return func(env Env) (User, error) {
+//	        return env.UserService.UpdateUser(user)
+//	    }
+//	}
+//
+//	result := F.Pipe1(
+//	    readerresult.Do[Env](State{}),
+//	    readerresult.BindIL(userLens, updateUser),
+//	)
+//
+//go:inline
+func BindIL[R, S, T any](
+	lens L.Lens[S, T],
+	f RRI.Kleisli[R, T, T],
+) Operator[R, S, S] {
+	return Bind(lens.Set, F.Flow3(lens.Get, f, FromReaderResultI[R, T]))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -373,6 +530,44 @@ func BindEitherK[R, S1, S2, T any](
 	return G.BindEitherK[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
 }
 
+// BindEitherIK lifts an idiomatic Result Kleisli arrow into a ReaderResult context and binds it to the state.
+// This is the idiomatic version of BindEitherK, where the function returns (T, error) instead of Result[T].
+// It allows you to integrate idiomatic Result computations (that may fail but don't need environment access)
+// into a ReaderResult computation chain.
+//
+// Example:
+//
+//	type State struct {
+//	    Value       int
+//	    ParsedValue int
+//	}
+//
+//	// Idiomatic function returning (int, error)
+//	parseValue := func(s State) (int, error) {
+//	    if s.Value < 0 {
+//	        return 0, errors.New("negative value")
+//	    }
+//	    return s.Value * 2, nil
+//	}
+//
+//	result := F.Pipe1(
+//	    readerresult.Do[context.Context](State{Value: 5}),
+//	    readerresult.BindEitherIK[context.Context](
+//	        func(parsed int) func(State) State {
+//	            return func(s State) State { s.ParsedValue = parsed; return s }
+//	        },
+//	        parseValue,
+//	    ),
+//	)
+//
+//go:inline
+func BindEitherIK[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f RI.Kleisli[S1, T],
+) Operator[R, S1, S2] {
+	return BindEitherK[R](setter, fromResultKleisliI(f))
+}
+
 // BindResultK lifts a Result Kleisli arrow into a ReaderResult context and binds it to the state.
 // This allows you to integrate Result computations (that may fail with an error but don't need
 // environment access) into a ReaderResult computation chain.
@@ -412,6 +607,18 @@ func BindResultK[R, S1, S2, T any](
 	f result.Kleisli[S1, T],
 ) Operator[R, S1, S2] {
 	return G.BindEitherK[ReaderResult[R, S1], ReaderResult[R, S2]](setter, f)
+}
+
+// BindResultIK is an alias for BindEitherIK.
+// It lifts an idiomatic Result Kleisli arrow into a ReaderResult context and binds it to the state.
+// The function f returns (T, error) in Go's idiomatic style.
+//
+//go:inline
+func BindResultIK[R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f RI.Kleisli[S1, T],
+) Operator[R, S1, S2] {
+	return BindResultK[R](setter, fromResultKleisliI(f))
 }
 
 // BindToReader initializes a new state S1 from a Reader[R, T] computation.
@@ -458,6 +665,36 @@ func BindToEither[
 	return G.BindToEither[ReaderResult[R, S1]](setter)
 }
 
+// BindToEitherI initializes a new state S1 from an idiomatic (value, error) pair.
+// This is the idiomatic version of BindToEither, accepting Go's native error handling pattern.
+// It's used to start a ReaderResult computation chain from an idiomatic Result that may contain an error.
+//
+// Example:
+//
+//	type State struct {
+//	    Value int
+//	}
+//
+//	// Idiomatic result from parsing
+//	value, err := strconv.Atoi("42")
+//
+//	computation := readerresult.BindToEitherI[context.Context](
+//	    func(value int) State {
+//	        return State{Value: value}
+//	    },
+//	)(value, err)
+//
+//go:inline
+func BindToEitherI[
+	R, S1, T any](
+	setter func(T) S1,
+) func(T, error) ReaderResult[R, S1] {
+	bte := BindToEither[R](setter)
+	return func(t T, err error) ReaderResult[R, S1] {
+		return bte(result.TryCatchError(t, err))
+	}
+}
+
 // BindToResult initializes a new state S1 from a Result[T] value.
 // This is used to start a ReaderResult computation chain from a Result that may contain an error.
 //
@@ -491,6 +728,17 @@ func BindToResult[
 	setter func(T) S1,
 ) func(Result[T]) ReaderResult[R, S1] {
 	return G.BindToEither[ReaderResult[R, S1]](setter)
+}
+
+// BindToResultI is an alias for BindToEitherI.
+// It initializes a new state S1 from an idiomatic (value, error) pair.
+//
+//go:inline
+func BindToResultI[
+	R, S1, T any](
+	setter func(T) S1,
+) func(T, error) ReaderResult[R, S1] {
+	return BindToEitherI[R](setter)
 }
 
 // ApReaderS attaches a value from a pure Reader computation to a context [S1] to produce a context [S2]
@@ -551,6 +799,39 @@ func ApEitherS[
 	return G.ApEitherS[ReaderResult[R, S1], ReaderResult[R, S2]](setter, fa)
 }
 
+// ApEitherIS attaches a value from an idiomatic (value, error) pair to a context [S1] to produce a context [S2].
+// This is the idiomatic version of ApEitherS, accepting Go's native error handling pattern.
+// It uses Applicative semantics (independent, non-sequential composition).
+//
+// Example:
+//
+//	type State struct {
+//	    Value1 int
+//	    Value2 int
+//	}
+//
+//	// Idiomatic parsing result
+//	value, err := strconv.Atoi("42")
+//
+//	computation := F.Pipe1(
+//	    readerresult.Do[context.Context](State{}),
+//	    readerresult.ApEitherIS[context.Context](
+//	        func(v int) func(State) State {
+//	            return func(s State) State { s.Value1 = v; return s }
+//	        },
+//	    )(value, err),
+//	)
+//
+//go:inline
+func ApEitherIS[
+	R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+) func(T, error) Operator[R, S1, S2] {
+	return func(t T, err error) Operator[R, S1, S2] {
+		return ApEitherS[R](setter, result.TryCatchError(t, err))
+	}
+}
+
 // ApResultS attaches a value from a Result to a context [S1] to produce a context [S2]
 // using Applicative semantics (independent, non-sequential composition).
 //
@@ -596,4 +877,15 @@ func ApResultS[
 	fa Result[T],
 ) Operator[R, S1, S2] {
 	return G.ApEitherS[ReaderResult[R, S1], ReaderResult[R, S2]](setter, fa)
+}
+
+// ApResultIS is an alias for ApEitherIS.
+// It attaches a value from an idiomatic (value, error) pair to a context [S1] to produce a context [S2].
+//
+//go:inline
+func ApResultIS[
+	R, S1, S2, T any](
+	setter func(T) func(S1) S2,
+) func(T, error) Operator[R, S1, S2] {
+	return ApEitherIS[R](setter)
 }
