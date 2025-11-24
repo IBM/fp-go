@@ -18,6 +18,8 @@
 package optional
 
 import (
+	"fmt"
+
 	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
@@ -27,6 +29,7 @@ import (
 type Optional[S, A any] struct {
 	GetOption func(s S) O.Option[A]
 	Set       func(a A) EM.Endomorphism[S]
+	name      string
 }
 
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
@@ -41,29 +44,42 @@ func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 // MakeOptional creates an Optional based on a getter and a setter function. Make sure that the setter creates a (shallow) copy of the
 // data. This happens automatically if the data is passed by value. For pointers consider to use `MakeOptionalRef`
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
+//
+//go:inline
 func MakeOptional[S, A any](get func(S) O.Option[A], set func(S, A) S) Optional[S, A] {
-	return Optional[S, A]{GetOption: get, Set: F.Bind2of2(set)}
+	return MakeOptionalWithName(get, set, "GenericOptional")
+}
+
+func MakeOptionalWithName[S, A any](get func(S) O.Option[A], set func(S, A) S, name string) Optional[S, A] {
+	return Optional[S, A]{GetOption: get, Set: F.Bind2of2(set), name: name}
 }
 
 // MakeOptionalRef creates an Optional based on a getter and a setter function. The setter passed in does not have to create a shallow
 // copy, the implementation wraps the setter into one that copies the pointer before modifying it
+//
+//go:inline
 func MakeOptionalRef[S, A any](get func(*S) O.Option[A], set func(*S, A) *S) Optional[*S, A] {
 	return MakeOptional(get, setCopy(set))
 }
 
+//go:inline
+func MakeOptionalRefWithName[S, A any](get func(*S) O.Option[A], set func(*S, A) *S, name string) Optional[*S, A] {
+	return MakeOptionalWithName(get, setCopy(set), name)
+}
+
 // Id returns am optional implementing the identity operation
-func id[S any](creator func(get func(S) O.Option[S], set func(S, S) S) Optional[S, S]) Optional[S, S] {
-	return creator(O.Some[S], F.Second[S, S])
+func idWithName[S any](creator func(get func(S) O.Option[S], set func(S, S) S, name string) Optional[S, S], name string) Optional[S, S] {
+	return creator(O.Some[S], F.Second[S, S], name)
 }
 
 // Id returns am optional implementing the identity operation
 func Id[S any]() Optional[S, S] {
-	return id(MakeOptional[S, S])
+	return idWithName(MakeOptionalWithName[S, S], "Identity")
 }
 
 // Id returns am optional implementing the identity operation
 func IdRef[S any]() Optional[*S, *S] {
-	return id(MakeOptionalRef[S, *S])
+	return idWithName(MakeOptionalRefWithName[S, *S], "Identity")
 }
 
 func optionalModifyOption[S, A any](f func(A) A, optional Optional[S, A], s S) O.Option[S] {
@@ -188,4 +204,12 @@ func IChainAny[S, A any]() func(Optional[S, any]) Optional[S, A] {
 	return func(sa Optional[S, any]) Optional[S, A] {
 		return ichain(sa, fromAny, toAny)
 	}
+}
+
+func (l Optional[S, T]) String() string {
+	return l.name
+}
+
+func (l Optional[S, T]) Format(f fmt.State, c rune) {
+	fmt.Fprint(f, l.String())
 }

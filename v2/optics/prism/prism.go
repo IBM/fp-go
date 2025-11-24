@@ -16,6 +16,8 @@
 package prism
 
 import (
+	"fmt"
+
 	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
@@ -48,32 +50,18 @@ type (
 	//       },
 	//       func(v int) Result { return Success{Value: v} },
 	//   )
-	Prism[S, A any] interface {
+	Prism[S, A any] struct {
 		// GetOption attempts to extract a value of type A from S.
 		// Returns Some(a) if the extraction succeeds, None otherwise.
-		GetOption(s S) Option[A]
+		GetOption O.Kleisli[S, A]
 
 		// ReverseGet constructs an S from an A.
 		// This operation always succeeds.
-		ReverseGet(a A) S
-	}
+		ReverseGet func(A) S
 
-	// prismImpl is the internal implementation of the Prism interface.
-	prismImpl[S, A any] struct {
-		get func(S) Option[A]
-		rev func(A) S
+		name string
 	}
 )
-
-// GetOption implements the Prism interface for prismImpl.
-func (prism prismImpl[S, A]) GetOption(s S) Option[A] {
-	return prism.get(s)
-}
-
-// ReverseGet implements the Prism interface for prismImpl.
-func (prism prismImpl[S, A]) ReverseGet(a A) S {
-	return prism.rev(a)
-}
 
 // MakePrism constructs a Prism from GetOption and ReverseGet functions.
 //
@@ -91,7 +79,7 @@ func (prism prismImpl[S, A]) ReverseGet(a A) S {
 //	    func(n int) Option[int] { return Some(n) },
 //	)
 func MakePrism[S, A any](get func(S) Option[A], rev func(A) S) Prism[S, A] {
-	return prismImpl[S, A]{get, rev}
+	return Prism[S, A]{get, rev, "GenericPrism"}
 }
 
 // Id returns an identity prism that focuses on the entire value.
@@ -277,4 +265,12 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) func(Pris
 	return func(sa Prism[S, A]) Prism[S, B] {
 		return imap(sa, ab, ba)
 	}
+}
+
+func (l Prism[S, T]) String() string {
+	return "Prism"
+}
+
+func (l Prism[S, T]) Format(f fmt.State, c rune) {
+	fmt.Fprint(f, l.String())
 }

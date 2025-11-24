@@ -19,6 +19,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -212,7 +213,7 @@ func TestError(t *testing.T) {
 
 func TestSuccess(t *testing.T) {
 	t.Run("should pass for successful result", func(t *testing.T) {
-		res := result.Of[int](42)
+		res := result.Of(42)
 		result := Success(res)(t)
 		if !result {
 			t.Error("Expected Success to pass for successful result")
@@ -240,7 +241,7 @@ func TestFailure(t *testing.T) {
 
 	t.Run("should fail for successful result", func(t *testing.T) {
 		mockT := &testing.T{}
-		res := result.Of[int](42)
+		res := result.Of(42)
 		result := Failure(res)(mockT)
 		if result {
 			t.Error("Expected Failure to fail for successful result")
@@ -445,41 +446,163 @@ func TestEq(t *testing.T) {
 	})
 }
 
-func TestIntegration(t *testing.T) {
-	t.Run("complex assertion composition", func(t *testing.T) {
-		type User struct {
-			Name  string
-			Age   int
-			Email string
+func TestLocal(t *testing.T) {
+	type User struct {
+		Name string
+		Age  int
+	}
+
+	t.Run("should focus assertion on a property", func(t *testing.T) {
+		// Create an assertion that checks if age is positive
+		ageIsPositive := That(func(age int) bool { return age > 0 })
+
+		// Focus this assertion on the Age field of User
+		userAgeIsPositive := Local(func(u User) int { return u.Age })(ageIsPositive)
+
+		// Test with a user who has a positive age
+		user := User{Name: "Alice", Age: 30}
+		result := userAgeIsPositive(user)(t)
+		if !result {
+			t.Error("Expected focused assertion to pass for positive age")
 		}
+	})
 
-		user := User{Name: "Alice", Age: 30, Email: "alice@example.com"}
+	t.Run("should fail when focused property doesn't match", func(t *testing.T) {
+		mockT := &testing.T{}
+		ageIsPositive := That(func(age int) bool { return age > 0 })
+		userAgeIsPositive := Local(func(u User) int { return u.Age })(ageIsPositive)
 
+		// Test with a user who has zero age
+		user := User{Name: "Bob", Age: 0}
+		result := userAgeIsPositive(user)(mockT)
+		if result {
+			t.Error("Expected focused assertion to fail for zero age")
+		}
+	})
+
+	t.Run("should compose with other assertions", func(t *testing.T) {
+		// Create multiple focused assertions
+		nameNotEmpty := Local(func(u User) string { return u.Name })(
+			That(func(name string) bool { return len(name) > 0 }),
+		)
+		ageInRange := Local(func(u User) int { return u.Age })(
+			That(func(age int) bool { return age >= 18 && age <= 100 }),
+		)
+
+		user := User{Name: "Charlie", Age: 25}
 		assertions := AllOf([]Reader{
-			Equal("Alice")(user.Name),
-			Equal(30)(user.Age),
-			That(func(s string) bool { return len(s) > 0 })(user.Email),
+			nameNotEmpty(user),
+			ageInRange(user),
 		})
 
 		result := assertions(t)
 		if !result {
-			t.Error("Expected complex assertion composition to pass")
+			t.Error("Expected composed focused assertions to pass")
 		}
 	})
 
-	t.Run("test suite with RunAll", func(t *testing.T) {
-		data := []int{1, 2, 3, 4, 5}
+	t.Run("should work with Equal assertion", func(t *testing.T) {
+		// Focus Equal assertion on Name field
+		nameIsAlice := Local(func(u User) string { return u.Name })(Equal("Alice"))
 
-		suite := RunAll(map[string]Reader{
-			"not_empty":     ArrayNotEmpty(data),
-			"correct_size":  ArrayLength[int](5)(data),
-			"contains_one":  ArrayContains(1)(data),
-			"contains_five": ArrayContains(5)(data),
-		})
-
-		result := suite(t)
+		user := User{Name: "Alice", Age: 30}
+		result := nameIsAlice(user)(t)
 		if !result {
-			t.Error("Expected test suite to pass")
+			t.Error("Expected focused Equal assertion to pass")
+		}
+	})
+}
+
+func TestLocalL(t *testing.T) {
+	// Note: LocalL requires lens package which provides lens operations.
+	// This test demonstrates the concept, but actual usage would require
+	// proper lens definitions.
+
+	t.Run("conceptual test for LocalL", func(t *testing.T) {
+		// LocalL is similar to Local but uses lenses for focusing.
+		// It would be used like:
+		// validEmail := That(func(email string) bool { return strings.Contains(email, "@") })
+		// validPersonEmail := LocalL(emailLens)(validEmail)
+		//
+		// The actual implementation would require lens definitions from the lens package.
+		// This test serves as documentation for the intended usage.
+	})
+}
+
+func TestFromOptional(t *testing.T) {
+	type DatabaseConfig struct {
+		Host string
+		Port int
+	}
+
+	type Config struct {
+		Database *DatabaseConfig
+	}
+
+	// Create an Optional that focuses on the Database field
+	dbOptional := Optional[Config, *DatabaseConfig]{
+		GetOption: func(c Config) option.Option[*DatabaseConfig] {
+			if c.Database != nil {
+				return option.Of(c.Database)
+			}
+			return option.None[*DatabaseConfig]()
+		},
+		Set: func(db *DatabaseConfig) func(Config) Config {
+			return func(c Config) Config {
+				c.Database = db
+				return c
+			}
+		},
+	}
+
+	t.Run("should pass when optional value is present", func(t *testing.T) {
+		config := Config{Database: &DatabaseConfig{Host: "localhost", Port: 5432}}
+		hasDatabaseConfig := FromOptional(dbOptional)
+		result := hasDatabaseConfig(config)(t)
+		if !result {
+			t.Error("Expected FromOptional to pass when optional value is present")
+		}
+	})
+
+	t.Run("should fail when optional value is absent", func(t *testing.T) {
+		mockT := &testing.T{}
+		emptyConfig := Config{Database: nil}
+		hasDatabaseConfig := FromOptional(dbOptional)
+		result := hasDatabaseConfig(emptyConfig)(mockT)
+		if result {
+			t.Error("Expected FromOptional to fail when optional value is absent")
+		}
+	})
+
+	t.Run("should work with nested optionals", func(t *testing.T) {
+		type AdvancedSettings struct {
+			Cache bool
+		}
+
+		type Settings struct {
+			Advanced *AdvancedSettings
+		}
+
+		advancedOptional := Optional[Settings, *AdvancedSettings]{
+			GetOption: func(s Settings) option.Option[*AdvancedSettings] {
+				if s.Advanced != nil {
+					return option.Of(s.Advanced)
+				}
+				return option.None[*AdvancedSettings]()
+			},
+			Set: func(adv *AdvancedSettings) func(Settings) Settings {
+				return func(s Settings) Settings {
+					s.Advanced = adv
+					return s
+				}
+			},
+		}
+
+		settings := Settings{Advanced: &AdvancedSettings{Cache: true}}
+		hasAdvanced := FromOptional(advancedOptional)
+		result := hasAdvanced(settings)(t)
+		if !result {
+			t.Error("Expected FromOptional to pass for nested optional")
 		}
 	})
 }

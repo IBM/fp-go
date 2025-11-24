@@ -17,6 +17,8 @@
 package lens
 
 import (
+	"fmt"
+
 	"github.com/IBM/fp-go/v2/endomorphism"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
@@ -596,4 +598,12 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[
 	return func(ea Lens[S, A]) Lens[S, B] {
 		return MakeLensCurried(F.Flow2(ea.Get, ab), F.Flow2(ba, ea.Set))
 	}
+}
+
+func (l Lens[S, T]) String() string {
+	return "Lens"
+}
+
+func (l Lens[S, T]) Format(f fmt.State, c rune) {
+	fmt.Fprint(f, l.String())
 }

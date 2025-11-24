@@ -50,6 +50,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/boolean"
 	"github.com/IBM/fp-go/v2/eq"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -265,4 +266,198 @@ func RunAll(testcases map[string]Reader) Reader {
 		}
 		return current
 	}
+}
+
+// Local transforms a Reader that works on type R1 into a Reader that works on type R2,
+// by providing a function that converts R2 to R1. This allows you to focus a test on a
+// specific property or subset of a larger data structure.
+//
+// This is particularly useful when you have an assertion that operates on a specific field
+// or property, and you want to apply it to a complete object. Instead of extracting the
+// property and then asserting on it, you can transform the assertion to work directly
+// on the whole object.
+//
+// Parameters:
+//   - f: A function that extracts or transforms R2 into R1
+//
+// Returns:
+//   - A function that transforms a Reader[R1, Reader] into a Reader[R2, Reader]
+//
+// Example:
+//
+//	type User struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	// Create an assertion that checks if age is positive
+//	ageIsPositive := assert.That(func(age int) bool { return age > 0 })
+//
+//	// Focus this assertion on the Age field of User
+//	userAgeIsPositive := assert.Local(func(u User) int { return u.Age })(ageIsPositive)
+//
+//	// Now we can test the whole User object
+//	user := User{Name: "Alice", Age: 30}
+//	userAgeIsPositive(user)(t)
+//
+//go:inline
+func Local[R1, R2 any](f func(R2) R1) func(Kleisli[R1]) Kleisli[R2] {
+	return reader.Local[Reader](f)
+}
+
+// LocalL is similar to Local but uses a Lens to focus on a specific property.
+// A Lens is a functional programming construct that provides a composable way to
+// focus on a part of a data structure.
+//
+// This function is particularly useful when you want to focus a test on a specific
+// field of a struct using a lens, making the code more declarative and composable.
+// Lenses are often code-generated or predefined for common data structures.
+//
+// Parameters:
+//   - l: A Lens that focuses from type S to type T
+//
+// Returns:
+//   - A function that transforms a Reader[T, Reader] into a Reader[S, Reader]
+//
+// Example:
+//
+//	type Person struct {
+//	    Name  string
+//	    Email string
+//	}
+//
+//	// Assume we have a lens that focuses on the Email field
+//	var emailLens = lens.Prop[Person, string]("Email")
+//
+//	// Create an assertion for email format
+//	validEmail := assert.That(func(email string) bool {
+//	    return strings.Contains(email, "@")
+//	})
+//
+//	// Focus this assertion on the Email property using a lens
+//	validPersonEmail := assert.LocalL(emailLens)(validEmail)
+//
+//	// Test a Person object
+//	person := Person{Name: "Bob", Email: "bob@example.com"}
+//	validPersonEmail(person)(t)
+//
+//go:inline
+func LocalL[S, T any](l Lens[S, T]) func(Kleisli[T]) Kleisli[S] {
+	return reader.Local[Reader](l.Get)
+}
+
+// fromOptionalGetter is an internal helper that creates an assertion Reader from
+// an optional getter function. It asserts that the optional value is present (Some).
+func fromOptionalGetter[S, T any](getter func(S) option.Option[T], msgAndArgs ...any) Kleisli[S] {
+	return func(s S) Reader {
+		return func(t *testing.T) bool {
+			return assert.True(t, option.IsSome(getter(s)), msgAndArgs...)
+		}
+	}
+}
+
+// FromOptional creates an assertion that checks if an Optional can successfully extract a value.
+// An Optional is an optic that represents an optional reference to a subpart of a data structure.
+//
+// This function is useful when you have an Optional optic and want to assert that the optional
+// value is present (Some) rather than absent (None). The assertion passes if the Optional's
+// GetOption returns Some, and fails if it returns None.
+//
+// This enables property-focused testing where you verify that a particular optional field or
+// sub-structure exists and is accessible.
+//
+// Parameters:
+//   - opt: An Optional optic that focuses from type S to type T
+//
+// Returns:
+//   - A Reader that asserts the optional value is present when applied to a value of type S
+//
+// Example:
+//
+//	type Config struct {
+//	    Database *DatabaseConfig  // Optional field
+//	}
+//
+//	type DatabaseConfig struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	// Create an Optional that focuses on the Database field
+//	dbOptional := optional.MakeOptional(
+//	    func(c Config) option.Option[*DatabaseConfig] {
+//	        if c.Database != nil {
+//	            return option.Some(c.Database)
+//	        }
+//	        return option.None[*DatabaseConfig]()
+//	    },
+//	    func(c Config, db *DatabaseConfig) Config {
+//	        c.Database = db
+//	        return c
+//	    },
+//	)
+//
+//	// Assert that the database config is present
+//	hasDatabaseConfig := assert.FromOptional(dbOptional)
+//
+//	config := Config{Database: &DatabaseConfig{Host: "localhost", Port: 5432}}
+//	hasDatabaseConfig(config)(t)  // Passes
+//
+//	emptyConfig := Config{Database: nil}
+//	hasDatabaseConfig(emptyConfig)(t)  // Fails
+//
+//go:inline
+func FromOptional[S, T any](opt Optional[S, T]) reader.Reader[S, Reader] {
+	return fromOptionalGetter(opt.GetOption, "Optional: %s", opt)
+}
+
+// FromPrism creates an assertion that checks if a Prism can successfully extract a value.
+// A Prism is an optic used to select part of a sum type (tagged union or variant).
+//
+// This function is useful when you have a Prism optic and want to assert that a value
+// matches a specific variant of a sum type. The assertion passes if the Prism's GetOption
+// returns Some (meaning the value is of the expected variant), and fails if it returns None
+// (meaning the value is a different variant).
+//
+// This enables variant-focused testing where you verify that a value is of a particular
+// type or matches a specific condition within a sum type.
+//
+// Parameters:
+//   - p: A Prism optic that focuses from type S to type T
+//
+// Returns:
+//   - A Reader that asserts the prism successfully extracts when applied to a value of type S
+//
+// Example:
+//
+//	type Result interface{ isResult() }
+//	type Success struct{ Value int }
+//	type Failure struct{ Error string }
+//
+//	func (Success) isResult() {}
+//	func (Failure) isResult() {}
+//
+//	// Create a Prism that focuses on Success variant
+//	successPrism := prism.MakePrism(
+//	    func(r Result) option.Option[int] {
+//	        if s, ok := r.(Success); ok {
+//	            return option.Some(s.Value)
+//	        }
+//	        return option.None[int]()
+//	    },
+//	    func(v int) Result { return Success{Value: v} },
+//	)
+//
+//	// Assert that the result is a Success
+//	isSuccess := assert.FromPrism(successPrism)
+//
+//	result1 := Success{Value: 42}
+//	isSuccess(result1)(t)  // Passes
+//
+//	result2 := Failure{Error: "something went wrong"}
+//	isSuccess(result2)(t)  // Fails
+//
+//go:inline
+func FromPrism[S, T any](p Prism[S, T]) reader.Reader[S, Reader] {
+	return fromOptionalGetter(p.GetOption, "Prism: %s", p)
 }
