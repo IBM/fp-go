@@ -17,6 +17,8 @@ package option
 
 import (
 	"testing"
+
+	N "github.com/IBM/fp-go/v2/number"
 )
 
 // Benchmark shallow chain (1 step)
@@ -121,11 +123,11 @@ func BenchmarkMap_5Steps(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Map(func(x int) int { return x - 10 })(
-			Map(func(x int) int { return x / 2 })(
-				Map(func(x int) int { return x + 20 })(
-					Map(func(x int) int { return x * 3 })(
-						Map(func(x int) int { return x + 1 })(opt),
+		_ = Map(N.Sub(10))(
+			Map(N.Div(2))(
+				Map(N.Add(20))(
+					Map(N.Mul(3))(
+						Map(N.Add(1))(opt),
 					),
 				),
 			),

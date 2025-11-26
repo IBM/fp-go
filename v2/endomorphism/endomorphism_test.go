@@ -206,7 +206,7 @@ func TestCompose(t *testing.T) {
 // TestMonadComposeVsCompose demonstrates the relationship between MonadCompose and Compose
 func TestMonadComposeVsCompose(t *testing.T) {
 	double := N.Mul(2)
-	increment := func(x int) int { return x + 1 }
+	increment := N.Add(1)
 
 	// MonadCompose takes both functions at once
 	monadComposed := MonadCompose(double, increment)
@@ -458,7 +458,7 @@ func BenchmarkCompose(b *testing.B) {
 // TestComposeVsChain demonstrates the key difference between Compose and Chain
 func TestComposeVsChain(t *testing.T) {
 	double := N.Mul(2)
-	increment := func(x int) int { return x + 1 }
+	increment := N.Add(1)
 
 	// Compose executes RIGHT-TO-LEFT
 	// Compose(double, increment) means: increment first, then double
@@ -721,4 +721,353 @@ func TestChainFirst(t *testing.T) {
 	assert.Equal(t, 10, result, "ChainFirst should return first result")
 	// But side effect should have been executed with double's result
 	assert.Equal(t, 10, sideEffect, "ChainFirst should execute second function for effect")
+}
+
+// TestBuild tests the Build function
+func TestBuild(t *testing.T) {
+	t.Run("build with single transformation", func(t *testing.T) {
+		// Build applies endomorphism to zero value
+		result := Build(double)
+		assert.Equal(t, 0, result, "Build(double) on zero value should be 0")
+	})
+
+	t.Run("build with composed transformations", func(t *testing.T) {
+		// Create a builder that starts from zero and applies transformations
+		builder := M.ConcatAll(Monoid[int]())([]Endomorphism[int]{
+			N.Add(10),
+			N.Mul(2),
+			N.Add(5),
+		})
+
+		result := Build(builder)
+		// RIGHT-TO-LEFT: 0 + 5 = 5, 5 * 2 = 10, 10 + 10 = 20
+		assert.Equal(t, 20, result, "Build should apply composed transformations to zero value")
+	})
+
+	t.Run("build with identity", func(t *testing.T) {
+		result := Build(Identity[int]())
+		assert.Equal(t, 0, result, "Build(identity) should return zero value")
+	})
+
+	t.Run("build string from empty", func(t *testing.T) {
+		builder := M.ConcatAll(Monoid[string]())([]Endomorphism[string]{
+			func(s string) string { return s + "Hello" },
+			func(s string) string { return s + " " },
+			func(s string) string { return s + "World" },
+		})
+
+		result := Build(builder)
+		// RIGHT-TO-LEFT: "" + "World" = "World", "World" + " " = "World ", "World " + "Hello" = "World Hello"
+		assert.Equal(t, "World Hello", result, "Build should work with strings")
+	})
+
+	t.Run("build struct with builder pattern", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		withHost := func(host string) Endomorphism[Config] {
+			return func(c Config) Config {
+				c.Host = host
+				return c
+			}
+		}
+
+		withPort := func(port int) Endomorphism[Config] {
+			return func(c Config) Config {
+				c.Port = port
+				return c
+			}
+		}
+
+		builder := M.ConcatAll(Monoid[Config]())([]Endomorphism[Config]{
+			withHost("localhost"),
+			withPort(8080),
+		})
+
+		result := Build(builder)
+		assert.Equal(t, "localhost", result.Host, "Build should set Host")
+		assert.Equal(t, 8080, result.Port, "Build should set Port")
+	})
+
+	t.Run("build slice with operations", func(t *testing.T) {
+		type IntSlice []int
+
+		appendValue := func(v int) Endomorphism[IntSlice] {
+			return func(s IntSlice) IntSlice {
+				return append(s, v)
+			}
+		}
+
+		builder := M.ConcatAll(Monoid[IntSlice]())([]Endomorphism[IntSlice]{
+			appendValue(1),
+			appendValue(2),
+			appendValue(3),
+		})
+
+		result := Build(builder)
+		// RIGHT-TO-LEFT: append 3, append 2, append 1
+		assert.Equal(t, IntSlice{3, 2, 1}, result, "Build should construct slice")
+	})
+}
+
+// TestBuildAsBuilderPattern demonstrates using Build as a builder pattern
+func TestBuildAsBuilderPattern(t *testing.T) {
+	type Person struct {
+		Name   string
+		Age    int
+		Email  string
+		Active bool
+	}
+
+	// Define builder functions
+	withName := func(name string) Endomorphism[Person] {
+		return func(p Person) Person {
+			p.Name = name
+			return p
+		}
+	}
+
+	withAge := func(age int) Endomorphism[Person] {
+		return func(p Person) Person {
+			p.Age = age
+			return p
+		}
+	}
+
+	withEmail := func(email string) Endomorphism[Person] {
+		return func(p Person) Person {
+			p.Email = email
+			return p
+		}
+	}
+
+	withActive := func(active bool) Endomorphism[Person] {
+		return func(p Person) Person {
+			p.Active = active
+			return p
+		}
+	}
+
+	// Build a person using the builder pattern
+	personBuilder := M.ConcatAll(Monoid[Person]())([]Endomorphism[Person]{
+		withName("Alice"),
+		withAge(30),
+		withEmail("alice@example.com"),
+		withActive(true),
+	})
+
+	person := Build(personBuilder)
+
+	assert.Equal(t, "Alice", person.Name)
+	assert.Equal(t, 30, person.Age)
+	assert.Equal(t, "alice@example.com", person.Email)
+	assert.True(t, person.Active)
+}
+
+// TestConcatAll tests the ConcatAll function
+func TestConcatAll(t *testing.T) {
+	t.Run("concat all with multiple endomorphisms", func(t *testing.T) {
+		// ConcatAll executes RIGHT-TO-LEFT
+		combined := ConcatAll([]Endomorphism[int]{double, increment, square})
+		result := combined(5)
+		// RIGHT-TO-LEFT: square(5) = 25, increment(25) = 26, double(26) = 52
+		assert.Equal(t, 52, result, "ConcatAll should execute right-to-left")
+	})
+
+	t.Run("concat all with empty slice", func(t *testing.T) {
+		// Empty slice should return identity
+		identity := ConcatAll([]Endomorphism[int]{})
+		result := identity(42)
+		assert.Equal(t, 42, result, "ConcatAll with empty slice should return identity")
+	})
+
+	t.Run("concat all with single endomorphism", func(t *testing.T) {
+		combined := ConcatAll([]Endomorphism[int]{double})
+		result := combined(5)
+		assert.Equal(t, 10, result, "ConcatAll with single endomorphism should apply it")
+	})
+
+	t.Run("concat all with two endomorphisms", func(t *testing.T) {
+		// RIGHT-TO-LEFT: increment first, then double
+		combined := ConcatAll([]Endomorphism[int]{double, increment})
+		result := combined(5)
+		assert.Equal(t, 12, result, "ConcatAll should execute right-to-left: (5 + 1) * 2 = 12")
+	})
+
+	t.Run("concat all with strings", func(t *testing.T) {
+		appendHello := func(s string) string { return s + "Hello" }
+		appendSpace := func(s string) string { return s + " " }
+		appendWorld := func(s string) string { return s + "World" }
+
+		// RIGHT-TO-LEFT execution
+		combined := ConcatAll([]Endomorphism[string]{appendHello, appendSpace, appendWorld})
+		result := combined("")
+		// RIGHT-TO-LEFT: "" + "World" = "World", "World" + " " = "World ", "World " + "Hello" = "World Hello"
+		assert.Equal(t, "World Hello", result, "ConcatAll should work with strings")
+	})
+
+	t.Run("concat all for building structs", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		withHost := func(host string) Endomorphism[Config] {
+			return func(c Config) Config {
+				c.Host = host
+				return c
+			}
+		}
+
+		withPort := func(port int) Endomorphism[Config] {
+			return func(c Config) Config {
+				c.Port = port
+				return c
+			}
+		}
+
+		combined := ConcatAll([]Endomorphism[Config]{
+			withHost("localhost"),
+			withPort(8080),
+		})
+
+		result := combined(Config{})
+		assert.Equal(t, "localhost", result.Host)
+		assert.Equal(t, 8080, result.Port)
+	})
+
+	t.Run("concat all is equivalent to monoid ConcatAll", func(t *testing.T) {
+		endos := []Endomorphism[int]{double, increment, square}
+
+		result1 := ConcatAll(endos)(5)
+		result2 := M.ConcatAll(Monoid[int]())(endos)(5)
+
+		assert.Equal(t, result1, result2, "ConcatAll should be equivalent to M.ConcatAll(Monoid())")
+	})
+}
+
+// TestReduce tests the Reduce function
+func TestReduce(t *testing.T) {
+	t.Run("reduce with multiple endomorphisms", func(t *testing.T) {
+		// Reduce executes LEFT-TO-RIGHT starting from zero value
+		result := Reduce([]Endomorphism[int]{double, increment, square})
+		// LEFT-TO-RIGHT: 0 -> double(0) = 0 -> increment(0) = 1 -> square(1) = 1
+		assert.Equal(t, 1, result, "Reduce should execute left-to-right from zero value")
+	})
+
+	t.Run("reduce with empty slice", func(t *testing.T) {
+		// Empty slice should return zero value
+		result := Reduce([]Endomorphism[int]{})
+		assert.Equal(t, 0, result, "Reduce with empty slice should return zero value")
+	})
+
+	t.Run("reduce with single endomorphism", func(t *testing.T) {
+		addTen := N.Add(10)
+		result := Reduce([]Endomorphism[int]{addTen})
+		// 0 + 10 = 10
+		assert.Equal(t, 10, result, "Reduce with single endomorphism should apply it to zero")
+	})
+
+	t.Run("reduce with sequential transformations", func(t *testing.T) {
+		addTen := N.Add(10)
+		// LEFT-TO-RIGHT: 0 -> addTen(0) = 10 -> double(10) = 20 -> increment(20) = 21
+		result := Reduce([]Endomorphism[int]{addTen, double, increment})
+		assert.Equal(t, 21, result, "Reduce should apply transformations left-to-right")
+	})
+
+	t.Run("reduce with strings", func(t *testing.T) {
+		appendHello := func(s string) string { return s + "Hello" }
+		appendSpace := func(s string) string { return s + " " }
+		appendWorld := func(s string) string { return s + "World" }
+
+		// LEFT-TO-RIGHT execution
+		result := Reduce([]Endomorphism[string]{appendHello, appendSpace, appendWorld})
+		// "" -> "Hello" -> "Hello " -> "Hello World"
+		assert.Equal(t, "Hello World", result, "Reduce should work with strings left-to-right")
+	})
+
+	t.Run("reduce for building structs", func(t *testing.T) {
+		type Settings struct {
+			Theme    string
+			FontSize int
+		}
+
+		withTheme := func(theme string) Endomorphism[Settings] {
+			return func(s Settings) Settings {
+				s.Theme = theme
+				return s
+			}
+		}
+
+		withFontSize := func(size int) Endomorphism[Settings] {
+			return func(s Settings) Settings {
+				s.FontSize = size
+				return s
+			}
+		}
+
+		// LEFT-TO-RIGHT application
+		result := Reduce([]Endomorphism[Settings]{
+			withTheme("dark"),
+			withFontSize(14),
+		})
+
+		assert.Equal(t, "dark", result.Theme)
+		assert.Equal(t, 14, result.FontSize)
+	})
+
+	t.Run("reduce is equivalent to Build(ConcatAll(reverse))", func(t *testing.T) {
+		addTen := N.Add(10)
+		endos := []Endomorphism[int]{addTen, double, increment}
+
+		// Reduce applies left-to-right
+		result1 := Reduce(endos)
+
+		// Reverse and use ConcatAll (which is right-to-left)
+		reversed := []Endomorphism[int]{increment, double, addTen}
+		result2 := Build(ConcatAll(reversed))
+
+		assert.Equal(t, result1, result2, "Reduce should be equivalent to Build(ConcatAll(reverse))")
+	})
+}
+
+// TestConcatAllVsReduce demonstrates the difference between ConcatAll and Reduce
+func TestConcatAllVsReduce(t *testing.T) {
+	addTen := N.Add(10)
+
+	endos := []Endomorphism[int]{addTen, double, increment}
+
+	// ConcatAll: RIGHT-TO-LEFT composition, returns endomorphism
+	concatResult := ConcatAll(endos)(5)
+	// 5 -> increment(5) = 6 -> double(6) = 12 -> addTen(12) = 22
+
+	// Reduce: LEFT-TO-RIGHT application, returns value from zero
+	reduceResult := Reduce(endos)
+	// 0 -> addTen(0) = 10 -> double(10) = 20 -> increment(20) = 21
+
+	assert.NotEqual(t, concatResult, reduceResult, "ConcatAll and Reduce should produce different results")
+	assert.Equal(t, 22, concatResult, "ConcatAll should execute right-to-left on input value")
+	assert.Equal(t, 21, reduceResult, "Reduce should execute left-to-right from zero value")
+}
+
+// TestReduceWithBuild demonstrates using Reduce vs Build with ConcatAll
+func TestReduceWithBuild(t *testing.T) {
+	addFive := N.Add(5)
+	multiplyByThree := N.Mul(3)
+
+	endos := []Endomorphism[int]{addFive, multiplyByThree}
+
+	// Reduce: LEFT-TO-RIGHT from zero
+	reduceResult := Reduce(endos)
+	// 0 -> addFive(0) = 5 -> multiplyByThree(5) = 15
+	assert.Equal(t, 15, reduceResult)
+
+	// Build with ConcatAll: RIGHT-TO-LEFT from zero
+	buildResult := Build(ConcatAll(endos))
+	// 0 -> multiplyByThree(0) = 0 -> addFive(0) = 5
+	assert.Equal(t, 5, buildResult)
+
+	assert.NotEqual(t, reduceResult, buildResult, "Reduce and Build(ConcatAll) produce different results due to execution order")
 }

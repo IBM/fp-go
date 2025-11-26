@@ -19,12 +19,12 @@ import (
 	"context"
 	"testing"
 
+	RIORES "github.com/IBM/fp-go/v2/context/readerioresult"
+	ST "github.com/IBM/fp-go/v2/context/statereaderioresult"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	L "github.com/IBM/fp-go/v2/internal/monad/testing"
 	P "github.com/IBM/fp-go/v2/pair"
 	RES "github.com/IBM/fp-go/v2/result"
-	RIORES "github.com/IBM/fp-go/v2/context/readerioresult"
-	ST "github.com/IBM/fp-go/v2/context/statereaderioresult"
 )
 
 // AssertLaws asserts the monad laws for the StateReaderIOResult monad

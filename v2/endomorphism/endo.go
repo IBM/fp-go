@@ -38,7 +38,7 @@ import (
 // Example:
 //
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	result := endomorphism.MonadAp(double, increment) // Composes: double ∘ increment
 //	// result(5) = double(increment(5)) = double(6) = 12
 func MonadAp[A any](fab Endomorphism[A], fa Endomorphism[A]) Endomorphism[A] {
@@ -62,7 +62,7 @@ func MonadAp[A any](fab Endomorphism[A], fa Endomorphism[A]) Endomorphism[A] {
 //
 // Example:
 //
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	applyIncrement := endomorphism.Ap(increment)
 //	double := N.Mul(2)
 //	composed := applyIncrement(double) // double ∘ increment
@@ -92,7 +92,7 @@ func Ap[A any](fa Endomorphism[A]) Operator[A] {
 // Example:
 //
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //
 //	// MonadCompose executes RIGHT-TO-LEFT: increment first, then double
 //	composed := endomorphism.MonadCompose(double, increment)
@@ -124,7 +124,7 @@ func MonadCompose[A any](f, g Endomorphism[A]) Endomorphism[A] {
 // Example:
 //
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	mapped := endomorphism.MonadMap(double, increment)
 //	// mapped(5) = double(increment(5)) = double(6) = 12
 func MonadMap[A any](f, g Endomorphism[A]) Endomorphism[A] {
@@ -151,7 +151,7 @@ func MonadMap[A any](f, g Endomorphism[A]) Endomorphism[A] {
 //
 // Example:
 //
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	composeWithIncrement := endomorphism.Compose(increment)
 //	double := N.Mul(2)
 //
@@ -188,7 +188,7 @@ func Compose[A any](g Endomorphism[A]) Operator[A] {
 //
 //	double := N.Mul(2)
 //	mapDouble := endomorphism.Map(double)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	mapped := mapDouble(increment)
 //	// mapped(5) = double(increment(5)) = double(6) = 12
 func Map[A any](f Endomorphism[A]) Operator[A] {
@@ -216,7 +216,7 @@ func Map[A any](f Endomorphism[A]) Operator[A] {
 // Example:
 //
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //
 //	// MonadChain executes LEFT-TO-RIGHT: double first, then increment
 //	chained := endomorphism.MonadChain(double, increment)
@@ -294,7 +294,7 @@ func ChainFirst[A any](f Endomorphism[A]) Operator[A] {
 //
 // Example:
 //
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	chainWithIncrement := endomorphism.Chain(increment)
 //	double := N.Mul(2)
 //

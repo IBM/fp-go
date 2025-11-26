@@ -104,7 +104,7 @@ func Identity[A any]() Endomorphism[A] {
 //
 //	sg := endomorphism.Semigroup[int]()
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //
 //	// Combine using the semigroup (RIGHT-TO-LEFT execution)
 //	combined := sg.Concat(double, increment)
@@ -140,7 +140,7 @@ func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
 //
 //	monoid := endomorphism.Monoid[int]()
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //	square := func(x int) int { return x * x }
 //
 //	// Combine multiple endomorphisms (RIGHT-TO-LEFT execution)

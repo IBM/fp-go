@@ -289,7 +289,7 @@ func Read[A, E any](e E) func(Reader[E, A]) A {
 //
 //	type Config struct { Multiplier int }
 //	getMultiplier := func(c Config) func(int) int {
-//	    return func(x int) int { return x * c.Multiplier }
+//	    return N.Mul(c.Multiplier)
 //	}
 //	r := reader.MonadFlap(getMultiplier, 5)
 //	result := r(Config{Multiplier: 3}) // 15
@@ -304,7 +304,7 @@ func MonadFlap[R, A, B any](fab Reader[R, func(A) B], a A) Reader[R, B] {
 //
 //	type Config struct { Multiplier int }
 //	getMultiplier := reader.Asks(func(c Config) func(int) int {
-//	    return func(x int) int { return x * c.Multiplier }
+//	    return N.Mul(c.Multiplier)
 //	})
 //	applyTo5 := reader.Flap[Config](5)
 //	r := applyTo5(getMultiplier)

@@ -30,7 +30,7 @@ type (
 	//
 	//	// Simple endomorphisms on integers
 	//	double := N.Mul(2)
-	//	increment := func(x int) int { return x + 1 }
+	//	increment := N.Add(1)
 	//
 	//	// Both are endomorphisms of type Endomorphism[int]
 	//	var f endomorphism.Endomorphism[int] = double

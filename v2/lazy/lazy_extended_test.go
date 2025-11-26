@@ -496,7 +496,7 @@ func TestMapComposition(t *testing.T) {
 	result := F.Pipe3(
 		Of(5),
 		Map(N.Mul(2)),
-		Map(func(x int) int { return x + 10 }),
+		Map(N.Add(10)),
 		Map(func(x int) int { return x }),
 	)
 

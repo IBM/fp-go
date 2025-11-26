@@ -27,7 +27,7 @@ func Example_extraction() {
 	rightValue, rightErr := Right(10)
 
 	// Convert Either[A] to A with a default value
-	leftWithDefault := GetOrElse(F.Constant1[error](0))(leftValue, leftErr)   // 0
+	leftWithDefault := GetOrElse(F.Constant1[error](0))(leftValue, leftErr)    // 0
 	rightWithDefault := GetOrElse(F.Constant1[error](0))(rightValue, rightErr) // 10
 
 	// Apply a different function on Left(...)/Right(...)

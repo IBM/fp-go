@@ -58,7 +58,7 @@
 //
 // Map transforms the contained value:
 //
-//	double := Map(func(x int) int { return x * 2 })
+//	double := Map(N.Mul(2))
 //	result := double(Some(21))  // (42, true)
 //	result := double(None[int]())  // (0, false)
 //
@@ -113,7 +113,7 @@
 //
 // Applicative example:
 //
-//	fab := Some(func(x int) int { return x * 2 })
+//	fab := Some(N.Mul(2))
 //	fa := Some(21)
 //	result := Ap[int](fa)(fab)  // (42, true)
 //

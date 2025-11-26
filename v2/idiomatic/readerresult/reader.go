@@ -116,7 +116,7 @@ func FromReader[R, A any](r Reader[R, A]) ReaderResult[R, A] {
 // Example:
 //
 //	rr := readerresult.Of[Config](5)
-//	doubled := readerresult.MonadMap(rr, func(x int) int { return x * 2 })
+//	doubled := readerresult.MonadMap(rr, N.Mul(2))
 //	// doubled(cfg) returns (10, nil)
 func MonadMap[R, A, B any](fa ReaderResult[R, A], f func(A) B) ReaderResult[R, B] {
 	mp := result.Map(f)
@@ -130,7 +130,7 @@ func MonadMap[R, A, B any](fa ReaderResult[R, A], f func(A) B) ReaderResult[R, B
 //
 // Example:
 //
-//	double := readerresult.Map[Config](func(x int) int { return x * 2 })
+//	double := readerresult.Map[Config](N.Mul(2))
 //	result := F.Pipe1(readerresult.Of[Config](5), double)
 func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
 	mp := result.Map(f)
@@ -462,7 +462,7 @@ func Flatten[R, A any](mma ReaderResult[R, ReaderResult[R, A]]) ReaderResult[R, 
 // Example:
 //
 //	enrichErr := func(e error) error { return fmt.Errorf("enriched: %w", e) }
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	result := readerresult.MonadBiMap(rr, enrichErr, double)
 //
 //go:inline
@@ -482,7 +482,7 @@ func MonadBiMap[R, A, B any](fa ReaderResult[R, A], f Endomorphism[error], g fun
 // Example:
 //
 //	enrichErr := func(e error) error { return fmt.Errorf("enriched: %w", e) }
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	result := F.Pipe1(rr, readerresult.BiMap[Config](enrichErr, double))
 func BiMap[R, A, B any](f Endomorphism[error], g func(A) B) Operator[R, A, B] {
 	return func(fa ReaderResult[R, A]) ReaderResult[R, B] {
@@ -530,7 +530,7 @@ func Read[A, R any](r R) func(ReaderResult[R, A]) (A, error) {
 //
 // Example:
 //
-//	fabr := readerresult.Of[Config](func(x int) int { return x * 2 })
+//	fabr := readerresult.Of[Config](N.Mul(2))
 //	result := readerresult.MonadFlap(fabr, 5)  // Returns (10, nil)
 //
 //go:inline

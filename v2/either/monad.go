@@ -95,11 +95,11 @@ func (o *eitherMonad[E, A, B]) Chain(f Kleisli[E, A, B]) Operator[E, A, B] {
 //	m := either.Monad[error, int, int]()
 //
 //	// Map transforms the value
-//	value := m.Map(func(x int) int { return x * 2 })(either.Right[error](21))
+//	value := m.Map(N.Mul(2))(either.Right[error](21))
 //	// value is Right(42)
 //
 //	// Ap applies wrapped functions (also fails fast)
-//	fn := either.Right[error](func(x int) int { return x + 1 })
+//	fn := either.Right[error](N.Add(1))
 //	result := m.Ap(value)(fn)
 //	// result is Right(43)
 //

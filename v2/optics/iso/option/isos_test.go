@@ -239,7 +239,7 @@ func TestFromZeroWithCompose(t *testing.T) {
 			return O.MonadMap(opt, N.Mul(2))
 		},
 		func(opt O.Option[int]) O.Option[int] {
-			return O.MonadMap(opt, func(x int) int { return x / 2 })
+			return O.MonadMap(opt, N.Div(2))
 		},
 	)
 

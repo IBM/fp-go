@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -147,7 +148,7 @@ func TestApFirst(t *testing.T) {
 		result := F.Pipe2(
 			Of(5),
 			ApFirst[int](Of("ignored")),
-			Map(func(x int) int { return x * 2 }),
+			Map(N.Mul(2)),
 		)
 
 		val, err := result()
@@ -298,7 +299,7 @@ func TestApSecond(t *testing.T) {
 		result := F.Pipe2(
 			Of(1),
 			ApSecond[int](Of(5)),
-			Map(func(x int) int { return x * 2 }),
+			Map(N.Mul(2)),
 		)
 
 		val, err := result()

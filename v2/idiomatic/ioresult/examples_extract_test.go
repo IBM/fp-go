@@ -33,7 +33,7 @@ func ExampleIOResult_extraction() {
 
 	// Or more directly using GetOrElse
 	infallibleIO := GetOrElse(F.Constant1[error](io.Of(0)))(someIOResult) // => io returns 42
-	valueFromIO := infallibleIO()                                          // => 42
+	valueFromIO := infallibleIO()                                         // => 42
 
 	fmt.Println(value)
 	fmt.Println(valueFromIO)

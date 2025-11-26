@@ -32,7 +32,6 @@ func TestCreateTemp(t *testing.T) {
 
 		assert.NoError(t, err)
 
-
 		assert.NotNil(t, file)
 
 		tmpPath := file.Name()
@@ -48,7 +47,6 @@ func TestCreateTemp(t *testing.T) {
 		file, err := E.UnwrapError(result)
 
 		assert.NoError(t, err)
-
 
 		assert.NotNil(t, file)
 
@@ -67,7 +65,6 @@ func TestCreateTemp(t *testing.T) {
 		file, err := E.UnwrapError(result)
 
 		assert.NoError(t, err)
-
 
 		assert.NotNil(t, file)
 
@@ -95,7 +92,6 @@ func TestWithTempFile(t *testing.T) {
 
 		assert.NoError(t, err)
 
-
 		assert.Equal(t, testData, returnedData)
 	})
 
@@ -114,7 +110,6 @@ func TestWithTempFile(t *testing.T) {
 		path, err := E.UnwrapError(result)
 
 		assert.NoError(t, err)
-
 
 		assert.Equal(t, tmpPath, path)
 
@@ -165,7 +160,6 @@ func TestWithTempFile(t *testing.T) {
 
 		assert.NoError(t, err)
 
-
 		assert.Equal(t, testContent, content)
 	})
 
@@ -182,9 +176,8 @@ func TestWithTempFile(t *testing.T) {
 			result := WithTempFile(useFile)()
 			path, err := E.UnwrapError(result)
 
-		assert.NoError(t, err)
+			assert.NoError(t, err)
 
-	
 			paths = append(paths, path)
 		}
 
@@ -238,7 +231,6 @@ func TestWithTempFile(t *testing.T) {
 		returnedData, err := E.UnwrapError(result)
 
 		assert.NoError(t, err)
-
 
 		assert.Equal(t, testData, returnedData)
 	})

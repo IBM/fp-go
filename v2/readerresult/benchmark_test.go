@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 )
 
 type BenchContext struct {
@@ -53,7 +54,7 @@ func BenchmarkLeft(b *testing.B) {
 func BenchmarkMap(b *testing.B) {
 	ctx := BenchContext{Value: 42}
 	rr := Of[BenchContext](10)
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mapped := F.Pipe1(rr, Map[BenchContext](double))
@@ -64,7 +65,7 @@ func BenchmarkMap(b *testing.B) {
 func BenchmarkMapChain(b *testing.B) {
 	ctx := BenchContext{Value: 42}
 	rr := Of[BenchContext](1)
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		result := F.Pipe3(
@@ -112,7 +113,7 @@ func BenchmarkChainDeep(b *testing.B) {
 
 func BenchmarkAp(b *testing.B) {
 	ctx := BenchContext{Value: 42}
-	fab := Of[BenchContext](func(x int) int { return x * 2 })
+	fab := Of[BenchContext](N.Mul(2))
 	fa := Of[BenchContext](21)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -191,7 +192,7 @@ func BenchmarkErrorPropagation(b *testing.B) {
 	ctx := BenchContext{Value: 42}
 	err := benchError
 	rr := Left[BenchContext, int](err)
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -476,7 +476,7 @@ func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
 //
 // Example:
 //
-//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), N.Add(10))
 //	vals := From(5, 3)
 //	result := MonadAp(fns, vals)
 //	// yields: 10, 6, 15, 13 (each function applied to each value)
@@ -492,7 +492,7 @@ func MonadAp[B, A any](fab Seq[func(A) B], fa Seq[A]) Seq[B] {
 // Example:
 //
 //	applyTo5 := Ap(From(5))
-//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), N.Add(10))
 //	result := applyTo5(fns)
 //	// yields: 10, 15
 //
@@ -799,7 +799,7 @@ func FoldMapWithKey[K, A, B any](m M.Monoid[B]) func(func(K, A) B) func(Seq2[K, 
 //
 // Example:
 //
-//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), N.Add(10))
 //	result := MonadFlap(fns, 5)
 //	// yields: 10, 15
 //

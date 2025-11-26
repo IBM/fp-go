@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,7 +68,7 @@ func TestApV_BothRight(t *testing.T) {
 	sg := makeErrorConcatSemigroup()
 	apv := ApV[int, int](sg)
 
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	value, verr := Right(5)
 	fn, ferr := Right(double)
@@ -83,7 +84,7 @@ func TestApV_ValueLeft_FunctionRight(t *testing.T) {
 	sg := makeErrorConcatSemigroup()
 	apv := ApV[int, int](sg)
 
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	valueError := errors.New("invalid value")
 	value, verr := Left[int](valueError)
@@ -345,7 +346,7 @@ func BenchmarkApV_BothRight(b *testing.B) {
 	sg := makeErrorConcatSemigroup()
 	apv := ApV[int, int](sg)
 
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 	value, verr := Right(5)
 	fn, ferr := Right(double)
 

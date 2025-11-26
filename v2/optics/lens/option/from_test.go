@@ -274,7 +274,7 @@ func TestFromIsoModify(t *testing.T) {
 	t.Run("ModifyNoneToSome", func(t *testing.T) {
 		config := Config{timeout: 0, retries: 3}
 		// Map None to Some(10)
-		modified := L.Modify[Config](O.Map(func(x int) int { return x + 10 }))(optTimeoutLens)(config)
+		modified := L.Modify[Config](O.Map(N.Add(10)))(optTimeoutLens)(config)
 		// Since it was None, Map doesn't apply, stays None (0)
 		assert.Equal(t, 0, modified.timeout)
 	})

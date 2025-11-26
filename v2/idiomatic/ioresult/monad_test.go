@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,7 +79,7 @@ func TestFunctorMap(t *testing.T) {
 	t.Run("Maps over successful value", func(t *testing.T) {
 		functor := Functor[int, int]()
 		io := Of(5)
-		mapped := functor.Map(func(x int) int { return x * 2 })(io)
+		mapped := functor.Map(N.Mul(2))(io)
 
 		val, err := mapped()
 		assert.NoError(t, err)
@@ -88,7 +89,7 @@ func TestFunctorMap(t *testing.T) {
 	t.Run("Maps over error preserves error", func(t *testing.T) {
 		functor := Functor[int, int]()
 		io := Left[int](errors.New("test error"))
-		mapped := functor.Map(func(x int) int { return x * 2 })(io)
+		mapped := functor.Map(N.Mul(2))(io)
 
 		_, err := mapped()
 		assert.Error(t, err)
@@ -161,7 +162,7 @@ func TestMonadChain(t *testing.T) {
 func TestMonadAp(t *testing.T) {
 	t.Run("Applies function to value", func(t *testing.T) {
 		monad := Monad[int, int]()
-		fn := Of(func(x int) int { return x * 2 })
+		fn := Of(N.Mul(2))
 		val := monad.Of(5)
 		result := monad.Ap(val)(fn)
 
@@ -183,7 +184,7 @@ func TestMonadAp(t *testing.T) {
 
 	t.Run("Error in value", func(t *testing.T) {
 		monad := Monad[int, int]()
-		fn := Of(func(x int) int { return x * 2 })
+		fn := Of(N.Mul(2))
 		val := Left[int](errors.New("value error"))
 		result := monad.Ap(val)(fn)
 
@@ -423,7 +424,7 @@ func TestFunctorComposition(t *testing.T) {
 		functor2 := Functor[int, string]()
 
 		m := Of(5)
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		g := func(x int) string { return fmt.Sprintf("value: %d", x) }
 
 		// Map(g . f)
@@ -444,7 +445,7 @@ func TestFunctorComposition(t *testing.T) {
 		functor2 := Functor[int, string]()
 
 		m := Left[int](errors.New("test error"))
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		g := func(x int) string { return fmt.Sprintf("value: %d", x) }
 
 		composed := functor2.Map(F.Flow2(f, g))(m)
@@ -497,7 +498,7 @@ func TestMonadParVsSeq(t *testing.T) {
 		monadSeq := MonadSeq[int, int]()
 
 		io := Of(5)
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 
 		par := monadPar.Map(f)(io)
 		seq := monadSeq.Map(f)(io)
@@ -533,7 +534,7 @@ func TestMonadParVsSeq(t *testing.T) {
 		monadPar := MonadPar[int, int]()
 
 		io := Of(5)
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 
 		def := monadDefault.Map(f)(io)
 		par := monadPar.Map(f)(io)
@@ -555,7 +556,7 @@ func TestMonadIntegration(t *testing.T) {
 		// Build a pipeline: multiply by 2, add 3, then format
 		result := F.Pipe2(
 			monad1.Of(5),
-			monad1.Map(func(x int) int { return x * 2 }),
+			monad1.Map(N.Mul(2)),
 			monad1.Chain(func(x int) IOResult[int] {
 				return Of(x + 3)
 			}),
@@ -577,7 +578,7 @@ func TestMonadIntegration(t *testing.T) {
 
 		result := F.Pipe2(
 			monad1.Of(5),
-			monad1.Map(func(x int) int { return x * 2 }),
+			monad1.Map(N.Mul(2)),
 			monad1.Chain(func(x int) IOResult[int] {
 				if x > 5 {
 					return Left[int](errors.New("value too large"))

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 )
 
 func BenchmarkOf(b *testing.B) {
@@ -29,7 +30,7 @@ func BenchmarkOf(b *testing.B) {
 
 func BenchmarkMap(b *testing.B) {
 	io := Of(42)
-	f := func(x int) int { return x * 2 }
+	f := N.Mul(2)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -68,9 +69,9 @@ func BenchmarkBind(b *testing.B) {
 }
 
 func BenchmarkPipeline(b *testing.B) {
-	f1 := func(x int) int { return x + 1 }
-	f2 := func(x int) int { return x * 2 }
-	f3 := func(x int) int { return x - 3 }
+	f1 := N.Add(1)
+	f2 := N.Mul(2)
+	f3 := N.Sub(3)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -93,9 +94,9 @@ func BenchmarkExecute(b *testing.B) {
 }
 
 func BenchmarkExecutePipeline(b *testing.B) {
-	f1 := func(x int) int { return x + 1 }
-	f2 := func(x int) int { return x * 2 }
-	f3 := func(x int) int { return x - 3 }
+	f1 := N.Add(1)
+	f2 := N.Mul(2)
+	f3 := N.Sub(3)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -133,7 +134,7 @@ func BenchmarkLeft(b *testing.B) {
 
 func BenchmarkMapWithError(b *testing.B) {
 	io := Left[int](F.Constant[error](nil)())
-	f := func(x int) int { return x * 2 }
+	f := N.Mul(2)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -194,7 +195,7 @@ func BenchmarkMonadApSecond(b *testing.B) {
 func BenchmarkFunctor(b *testing.B) {
 	functor := Functor[int, int]()
 	io := Of(42)
-	f := func(x int) int { return x * 2 }
+	f := N.Mul(2)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

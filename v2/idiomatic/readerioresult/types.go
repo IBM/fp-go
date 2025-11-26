@@ -27,18 +27,40 @@ import (
 )
 
 type (
+	// Endomorphism represents a function from type A to type A.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
-	Lazy[A any]         = lazy.Lazy[A]
-	Option[A any]       = option.Option[A]
-	Result[A any]       = result.Result[A]
-	Reader[R, A any]    = reader.Reader[R, A]
-	IO[A any]           = io.IO[A]
-	IOResult[A any]     = ioresult.IOResult[A]
 
+	// Lazy represents a deferred computation that produces a value of type A when evaluated.
+	Lazy[A any] = lazy.Lazy[A]
+
+	// Option represents an optional value that may or may not be present.
+	Option[A any] = option.Option[A]
+
+	// Result represents an Either with error as the left type, compatible with Go's (value, error) tuple.
+	Result[A any] = result.Result[A]
+
+	// Reader represents a computation that depends on a read-only environment of type R and produces a value of type A.
+	Reader[R, A any] = reader.Reader[R, A]
+
+	// IO represents a computation that performs side effects and returns a value of type A.
+	IO[A any] = io.IO[A]
+
+	// IOResult represents a computation that performs IO and may fail with an error.
+	IOResult[A any] = ioresult.IOResult[A]
+
+	// ReaderIOResult represents a computation that depends on an environment R,
+	// performs IO operations, and may fail with an error.
+	// It is equivalent to Reader[R, IOResult[A]] or func(R) func() (A, error).
 	ReaderIOResult[R, A any] = Reader[R, IOResult[A]]
 
+	// Monoid represents a monoid structure for ReaderIOResult values.
 	Monoid[R, A any] = monoid.Monoid[ReaderIOResult[R, A]]
 
-	Kleisli[R, A, B any]  = Reader[A, ReaderIOResult[R, B]]
+	// Kleisli represents a function from A to a ReaderIOResult of B.
+	// It is used for chaining computations that depend on environment, perform IO, and may fail.
+	Kleisli[R, A, B any] = Reader[A, ReaderIOResult[R, B]]
+
+	// Operator represents a transformation from ReaderIOResult[R, A] to ReaderIOResult[R, B].
+	// It is commonly used in function composition pipelines.
 	Operator[R, A, B any] = Kleisli[R, ReaderIOResult[R, A], B]
 )

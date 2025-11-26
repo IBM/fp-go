@@ -31,7 +31,7 @@ type (
 	// by applying a function that takes and returns the same type.
 	//
 	// Example:
-	//   increment := func(x int) int { return x + 1 }
+	//   increment := N.Add(1)
 	//   // increment is an Endomorphism[int]
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 

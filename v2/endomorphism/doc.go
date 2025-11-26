@@ -37,7 +37,7 @@
 //
 //	// Define some endomorphisms
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //
 //	// Compose them (RIGHT-TO-LEFT execution)
 //	composed := endomorphism.Compose(double, increment)
@@ -63,8 +63,8 @@
 //	// Combine multiple endomorphisms (RIGHT-TO-LEFT execution)
 //	combined := M.ConcatAll(monoid)(
 //		N.Mul(2),  // applied third
-//		func(x int) int { return x + 1 },  // applied second
-//		func(x int) int { return x * 3 },  // applied first
+//		N.Add(1),  // applied second
+//		N.Mul(3),  // applied first
 //	)
 //	result := combined(5) // (5 * 3) = 15, (15 + 1) = 16, (16 * 2) = 32
 //
@@ -75,7 +75,7 @@
 //
 //	// Chain allows sequencing of endomorphisms (LEFT-TO-RIGHT)
 //	f := N.Mul(2)
-//	g := func(x int) int { return x + 1 }
+//	g := N.Add(1)
 //	chained := endomorphism.MonadChain(f, g)  // f first, then g
 //	result := chained(5) // (5 * 2) + 1 = 11
 //
@@ -84,7 +84,7 @@
 // The key difference between Compose and Chain/MonadChain is execution order:
 //
 //	double := N.Mul(2)
-//	increment := func(x int) int { return x + 1 }
+//	increment := N.Add(1)
 //
 //	// Compose: RIGHT-TO-LEFT (mathematical composition)
 //	composed := endomorphism.Compose(double, increment)

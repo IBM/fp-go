@@ -67,7 +67,7 @@ import (
 //	})
 //
 //	// ApV with both function and value having errors
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	apv := result.ApV[int, int](errorSemigroup)
 //
 //	value := result.Left[int](errors.New("invalid value"))

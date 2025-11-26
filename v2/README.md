@@ -205,7 +205,7 @@ The `Compose` function for endomorphisms now follows **mathematical function com
 ```go
 // Compose executed left-to-right
 double := N.Mul(2)
-increment := func(x int) int { return x + 1 }
+increment := N.Add(1)
 composed := Compose(double, increment)
 result := composed(5) // (5 * 2) + 1 = 11
 ```
@@ -214,7 +214,7 @@ result := composed(5) // (5 * 2) + 1 = 11
 ```go
 // Compose executes RIGHT-TO-LEFT (mathematical composition)
 double := N.Mul(2)
-increment := func(x int) int { return x + 1 }
+increment := N.Add(1)
 composed := Compose(double, increment)
 result := composed(5) // (5 + 1) * 2 = 12
 

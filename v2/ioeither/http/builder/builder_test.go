@@ -31,7 +31,7 @@ import (
 func TestBuilderWithQuery(t *testing.T) {
 	// add some query
 	withLimit := R.WithQueryArg("limit")("10")
-	withURL := R.WithUrl("http://www.example.org?a=b")
+	withURL := R.WithURL("http://www.example.org?a=b")
 
 	b := F.Pipe2(
 		R.Default,

@@ -34,13 +34,16 @@ import (
 // Monads must satisfy the monad laws:
 //
 // Left Identity:
-//   Chain(f)(Of(a)) == f(a)
+//
+//	Chain(f)(Of(a)) == f(a)
 //
 // Right Identity:
-//   Chain(Of)(m) == m
+//
+//	Chain(Of)(m) == m
 //
 // Associativity:
-//   Chain(g)(Chain(f)(m)) == Chain(x => Chain(g)(f(x)))(m)
+//
+//	Chain(g)(Chain(f)(m)) == Chain(x => Chain(g)(f(x)))(m)
 //
 // Type Parameters:
 //   - A: The input value type
@@ -50,20 +53,21 @@ import (
 //   - HKTFAB: The higher-kinded type containing a function from A to B
 //
 // Example:
-//   // Given a Monad for Option
-//   var m Monad[int, string, Option[int], Option[string], Option[func(int) string]]
 //
-//   // Use Of to create a value
-//   value := m.Of(42) // Some(42)
+//	// Given a Monad for Option
+//	var m Monad[int, string, Option[int], Option[string], Option[func(int) string]]
 //
-//   // Use Chain for dependent operations
-//   chainFn := m.Chain(func(x int) Option[string] {
-//     if x > 0 {
-//       return Some(strconv.Itoa(x))
-//     }
-//     return None[string]()
-//   })
-//   result := chainFn(value) // Some("42")
+//	// Use Of to create a value
+//	value := m.Of(42) // Some(42)
+//
+//	// Use Chain for dependent operations
+//	chainFn := m.Chain(func(x int) Option[string] {
+//	  if x > 0 {
+//	    return Some(strconv.Itoa(x))
+//	  }
+//	  return None[string]()
+//	})
+//	result := chainFn(value) // Some("42")
 type Monad[A, B, HKTA, HKTB, HKTFAB any] interface {
 	applicative.Applicative[A, B, HKTA, HKTB, HKTFAB]
 	chain.Chainable[A, B, HKTA, HKTB, HKTFAB]

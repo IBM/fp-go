@@ -27,21 +27,21 @@
 // Unlike the standard fp-go packages (option, either, result) which use struct wrappers,
 // the idiomatic package uses Go's native tuple patterns:
 //
-//   Standard either:  Either[E, A]              (struct wrapper)
-//   Idiomatic result: (A, error)                (native Go tuple)
+//	Standard either:  Either[E, A]              (struct wrapper)
+//	Idiomatic result: (A, error)                (native Go tuple)
 //
-//   Standard option:  Option[A]                 (struct wrapper)
-//   Idiomatic option: (A, bool)                 (native Go tuple)
+//	Standard option:  Option[A]                 (struct wrapper)
+//	Idiomatic option: (A, bool)                 (native Go tuple)
 //
 // # Performance Benefits
 //
 // The idiomatic approach offers several performance advantages:
 //
-//  - Zero allocation for creating values (no heap allocations)
-//  - Better CPU cache locality (no pointer indirection)
-//  - Native Go compiler optimizations for tuples
-//  - Reduced garbage collection pressure
-//  - Smaller memory footprint
+//   - Zero allocation for creating values (no heap allocations)
+//   - Better CPU cache locality (no pointer indirection)
+//   - Native Go compiler optimizations for tuples
+//   - Reduced garbage collection pressure
+//   - Smaller memory footprint
 //
 // Benchmarks show 2-10x performance improvements for common operations compared to struct-based
 // implementations, especially for simple operations like Map, Chain, and Fold.
@@ -74,7 +74,7 @@
 //	none := option.None[int]()     // (0, false)
 //
 //	// Transforming values
-//	double := option.Map(func(x int) int { return x * 2 })
+//	double := option.Map(N.Mul(2))
 //	result := double(some)         // (84, true)
 //	result = double(none)          // (0, false)
 //
@@ -103,7 +103,7 @@
 //	failure := result.Left[int](errors.New("oops"))    // (0, error)
 //
 //	// Transforming values
-//	double := result.Map(func(x int) int { return x * 2 })
+//	double := result.Map(N.Mul(2))
 //	res := double(success)                             // (84, nil)
 //	res = double(failure)                              // (0, error)
 //
@@ -175,11 +175,11 @@
 //	)()
 //
 // Key features:
-//  - Lazy evaluation: Operations are not executed until the IOResult is called
-//  - Composable: Chain IO operations that may fail
-//  - Error handling: Automatic error propagation and recovery
-//  - Resource safety: Bracket ensures proper resource cleanup
-//  - Parallel execution: ApPar and TraverseArrayPar for concurrent operations
+//   - Lazy evaluation: Operations are not executed until the IOResult is called
+//   - Composable: Chain IO operations that may fail
+//   - Error handling: Automatic error propagation and recovery
+//   - Resource safety: Bracket ensures proper resource cleanup
+//   - Parallel execution: ApPar and TraverseArrayPar for concurrent operations
 //
 // # Type Signatures
 //
@@ -204,33 +204,33 @@
 // # When to Use Idiomatic vs Standard Packages
 //
 // Use idiomatic packages when:
-//  - Performance is critical (hot paths, tight loops)
-//  - You want zero-allocation functional patterns
-//  - You prefer Go's native error handling style
-//  - You're integrating with existing Go code that uses tuples
-//  - Memory efficiency matters (embedded systems, high-scale services)
-//  - You need IO operations with error handling (use ioresult)
+//   - Performance is critical (hot paths, tight loops)
+//   - You want zero-allocation functional patterns
+//   - You prefer Go's native error handling style
+//   - You're integrating with existing Go code that uses tuples
+//   - Memory efficiency matters (embedded systems, high-scale services)
+//   - You need IO operations with error handling (use ioresult)
 //
 // Use standard packages when:
-//  - You need full algebraic data type semantics
-//  - You're porting code from other FP languages
-//  - You want explicit Either[E, A] with custom error types
-//  - You need the complete suite of FP abstractions
-//  - Code clarity outweighs performance concerns
+//   - You need full algebraic data type semantics
+//   - You're porting code from other FP languages
+//   - You want explicit Either[E, A] with custom error types
+//   - You need the complete suite of FP abstractions
+//   - Code clarity outweighs performance concerns
 //
 // # Choosing Between result and ioresult
 //
 // Use result when:
-//  - Operations are pure (same input always produces same output)
-//  - No side effects are involved (no IO, no state mutation)
-//  - You want to represent success/failure without execution delay
+//   - Operations are pure (same input always produces same output)
+//   - No side effects are involved (no IO, no state mutation)
+//   - You want to represent success/failure without execution delay
 //
 // Use ioresult when:
-//  - Operations perform IO (file system, network, database)
-//  - Side effects are part of the computation
-//  - You need lazy evaluation (defer execution until needed)
-//  - You want to compose IO operations that may fail
-//  - Resource management is required (files, connections, locks)
+//   - Operations perform IO (file system, network, database)
+//   - Side effects are part of the computation
+//   - You need lazy evaluation (defer execution until needed)
+//   - You want to compose IO operations that may fail
+//   - Resource management is required (files, connections, locks)
 //
 // # Performance Comparison
 //
@@ -473,7 +473,7 @@
 //	    result, err := F.Pipe2(
 //	        input,
 //	        result.Right[int],
-//	        result.Map(func(x int) int { return x * 2 }),
+//	        result.Map(N.Mul(2)),
 //	    )
 //	    assert.NoError(t, err)
 //	    assert.Equal(t, 42, result)
@@ -483,7 +483,7 @@
 //	    value, ok := F.Pipe2(
 //	        42,
 //	        option.Some[int],
-//	        option.Map(func(x int) int { return x * 2 }),
+//	        option.Map(N.Mul(2)),
 //	    )
 //	    assert.True(t, ok)
 //	    assert.Equal(t, 84, value)

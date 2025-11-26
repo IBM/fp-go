@@ -557,7 +557,7 @@ func TestModifyLaws(t *testing.T) {
 	// Modify composition: Modify(f ∘ g) = Modify(f) ∘ Modify(g)
 	t.Run("ModifyComposition", func(t *testing.T) {
 		f := N.Mul(2)
-		g := func(x int) int { return x + 3 }
+		g := N.Add(3)
 
 		// Modify(f ∘ g)
 		composed := F.Flow2(g, f)

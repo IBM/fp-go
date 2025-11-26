@@ -27,9 +27,9 @@ import (
 
 // resourceState tracks the lifecycle of resources for testing
 type resourceState struct {
-	resourcesCreated int
+	resourcesCreated  int
 	resourcesReleased int
-	lastError        error
+	lastError         error
 }
 
 // mockResource represents a test resource

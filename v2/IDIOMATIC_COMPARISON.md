@@ -314,7 +314,7 @@ if err != nil {
 
 ```go
 // Map transforms the success value
-double := result.Map(func(x int) int { return x * 2 })
+double := result.Map(N.Mul(2))
 result := double(result.Right[error](21))  // Right(42)
 
 // Chain sequences operations
@@ -330,7 +330,7 @@ validate := result.Chain(func(x int) result.Result[int] {
 
 ```go
 // Map transforms the success value
-double := result.Map(func(x int) int { return x * 2 })
+double := result.Map(N.Mul(2))
 value, err := double(21, nil)  // (42, nil)
 
 // Chain sequences operations

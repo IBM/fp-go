@@ -30,7 +30,7 @@
 //	result, ok := none         // ok == false, result == 0
 //
 //	// Transforming Options
-//	doubled := Map(func(x int) int { return x * 2 })(some)  // (84, true)
+//	doubled := Map(N.Mul(2))(some)  // (84, true)
 package option
 
 import (
@@ -56,16 +56,47 @@ func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {
 	}
 }
 
+// FromZero returns a function that creates an Option based on whether a value is the zero value.
+// Returns Some if the value is the zero value, None otherwise.
+//
+// Example:
+//
+//	checkZero := FromZero[int]()
+//	result := checkZero(0)  // Some(0)
+//	result := checkZero(5)  // None
+//
 //go:inline
 func FromZero[A comparable]() Kleisli[A, A] {
 	return FromPredicate(P.IsZero[A]())
 }
 
+// FromNonZero returns a function that creates an Option based on whether a value is non-zero.
+// Returns Some if the value is non-zero, None otherwise.
+//
+// Example:
+//
+//	checkNonZero := FromNonZero[int]()
+//	result := checkNonZero(5)  // Some(5)
+//	result := checkNonZero(0)  // None
+//
 //go:inline
 func FromNonZero[A comparable]() Kleisli[A, A] {
 	return FromPredicate(P.IsNonZero[A]())
 }
 
+// FromEq returns a function that creates an Option based on equality with a given value.
+// The returned function takes a value to compare against and returns a Kleisli function.
+//
+// Parameters:
+//   - pred: An equality predicate
+//
+// Example:
+//
+//	import "github.com/IBM/fp-go/v2/eq"
+//	equals42 := FromEq(eq.FromStrictEquals[int]())(42)
+//	result := equals42(42)  // Some(42)
+//	result := equals42(10)  // None
+//
 //go:inline
 func FromEq[A any](pred eq.Eq[A]) func(A) Kleisli[A, A] {
 	return F.Flow2(P.IsEqual(pred), FromPredicate[A])

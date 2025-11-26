@@ -26,9 +26,10 @@ package pointed
 //   - HKTA: The higher-kinded type containing A (e.g., Option[A], Either[E, A])
 //
 // Example:
-//   // Given a pointed functor for Option[int]
-//   var p Pointed[int, Option[int]]
-//   result := p.Of(42) // Returns Some(42)
+//
+//	// Given a pointed functor for Option[int]
+//	var p Pointed[int, Option[int]]
+//	result := p.Of(42) // Returns Some(42)
 type Pointed[A, HKTA any] interface {
 	// Of lifts a pure value into its higher-kinded type context.
 	//

@@ -35,7 +35,7 @@ func TestReplicate(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	src := []int{1, 2, 3}
-	result := MonadMap(src, func(x int) int { return x * 2 })
+	result := MonadMap(src, N.Mul(2))
 	assert.Equal(t, []int{2, 4, 6}, result)
 }
 
@@ -173,8 +173,8 @@ func TestChain(t *testing.T) {
 
 func TestMonadAp(t *testing.T) {
 	fns := []func(int) int{
-		func(x int) int { return x * 2 },
-		func(x int) int { return x + 10 },
+		N.Mul(2),
+		N.Add(10),
 	}
 	values := []int{1, 2}
 	result := MonadAp(fns, values)
@@ -268,7 +268,7 @@ func TestCopy(t *testing.T) {
 
 func TestClone(t *testing.T) {
 	src := []int{1, 2, 3}
-	cloner := Clone(func(x int) int { return x * 2 })
+	cloner := Clone(N.Mul(2))
 	result := cloner(src)
 	assert.Equal(t, []int{2, 4, 6}, result)
 }

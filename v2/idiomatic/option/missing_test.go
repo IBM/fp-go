@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/eq"
+	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/stretchr/testify/assert"
 )
@@ -206,13 +207,13 @@ func TestFlow5(t *testing.T) {
 func TestMakeFunctor(t *testing.T) {
 	t.Run("Map with functor", func(t *testing.T) {
 		f := MakeFunctor[int, int]()
-		double := f.Map(func(x int) int { return x * 2 })
+		double := f.Map(N.Mul(2))
 		AssertEq(Some(42))(double(Some(21)))(t)
 	})
 
 	t.Run("Map with None", func(t *testing.T) {
 		f := MakeFunctor[int, int]()
-		double := f.Map(func(x int) int { return x * 2 })
+		double := f.Map(N.Mul(2))
 		AssertEq(None[int]())(double(None[int]()))(t)
 	})
 }

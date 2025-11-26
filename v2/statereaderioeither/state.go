@@ -66,7 +66,7 @@ func Of[S, R, E, A any](a A) StateReaderIOEither[S, R, E, A] {
 //
 //	result := statereaderioeither.MonadMap(
 //	    statereaderioeither.Of[AppState, Config, error](21),
-//	    func(x int) int { return x * 2 },
+//	    N.Mul(2),
 //	) // Result contains 42
 func MonadMap[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A], f func(A) B) StateReaderIOEither[S, R, E, B] {
 	return statet.MonadMap[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](
@@ -81,7 +81,7 @@ func MonadMap[S, R, E, A, B any](fa StateReaderIOEither[S, R, E, A], f func(A) B
 //
 // Example:
 //
-//	double := statereaderioeither.Map[AppState, Config, error](func(x int) int { return x * 2 })
+//	double := statereaderioeither.Map[AppState, Config, error](N.Mul(2))
 //	result := function.Pipe1(statereaderioeither.Of[AppState, Config, error](21), double)
 func Map[S, R, E, A, B any](f func(A) B) Operator[S, R, E, A, B] {
 	return statet.Map[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]](
@@ -133,7 +133,7 @@ func Chain[S, R, E, A, B any](f Kleisli[S, R, E, A, B]) Operator[S, R, E, A, B] 
 //
 // Example:
 //
-//	fab := statereaderioeither.Of[AppState, Config, error](func(x int) int { return x * 2 })
+//	fab := statereaderioeither.Of[AppState, Config, error](N.Mul(2))
 //	fa := statereaderioeither.Of[AppState, Config, error](21)
 //	result := statereaderioeither.MonadAp(fab, fa) // Result contains 42
 func MonadAp[B, S, R, E, A any](fab StateReaderIOEither[S, R, E, func(A) B], fa StateReaderIOEither[S, R, E, A]) StateReaderIOEither[S, R, E, B] {

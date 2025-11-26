@@ -23,6 +23,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	RRI "github.com/IBM/fp-go/v2/idiomatic/readerresult"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -828,7 +829,7 @@ func TestMonadApResult(t *testing.T) {
 	})
 
 	t.Run("value is error", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		fabr := Of[MyContext](double)
 		fa := result.Left[int](idiomaticTestError)
 		res := MonadApResult(fabr, fa)
@@ -876,7 +877,7 @@ func TestApResult(t *testing.T) {
 	})
 
 	t.Run("with triple composition", func(t *testing.T) {
-		triple := func(x int) int { return x * 3 }
+		triple := N.Mul(3)
 		fa := result.Of(7)
 		res := F.Pipe1(
 			Of[MyContext](triple),
@@ -927,7 +928,7 @@ func TestApResultI(t *testing.T) {
 			return 0, errors.New("parse error")
 		}
 
-		addTen := func(x int) int { return x + 10 }
+		addTen := N.Add(10)
 
 		t.Run("parse success", func(t *testing.T) {
 			value, err := parseValue("42")

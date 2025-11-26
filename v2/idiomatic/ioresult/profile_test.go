@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 )
 
 // Benchmark the closure allocations in Bind
@@ -69,7 +70,7 @@ func BenchmarkBindAllocations(b *testing.B) {
 func BenchmarkMapPatterns(b *testing.B) {
 	b.Run("SimpleFunction", func(b *testing.B) {
 		io := Of(42)
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 
 		b.ResetTimer()
 		b.ReportAllocs()
@@ -85,7 +86,7 @@ func BenchmarkMapPatterns(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			result := Map(func(x int) int { return x * 2 })(io)
+			result := Map(N.Mul(2))(io)
 			_, _ = result()
 		}
 	})
@@ -98,9 +99,9 @@ func BenchmarkMapPatterns(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			result := F.Pipe3(
 				io,
-				Map(func(x int) int { return x + 1 }),
-				Map(func(x int) int { return x * 2 }),
-				Map(func(x int) int { return x - 3 }),
+				Map(N.Add(1)),
+				Map(N.Mul(2)),
+				Map(N.Sub(3)),
 			)
 			_, _ = result()
 		}
@@ -188,7 +189,7 @@ func BenchmarkErrorPaths(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			result := F.Pipe2(
 				Of(42),
-				Map(func(x int) int { return x * 2 }),
+				Map(N.Mul(2)),
 				Chain(func(x int) IOResult[int] { return Of(x + 1) }),
 			)
 			_, _ = result()
@@ -201,7 +202,7 @@ func BenchmarkErrorPaths(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			result := F.Pipe2(
 				Left[int](errors.New("error")),
-				Map(func(x int) int { return x * 2 }),
+				Map(N.Mul(2)),
 				Chain(func(x int) IOResult[int] { return Of(x + 1) }),
 			)
 			_, _ = result()

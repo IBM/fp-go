@@ -251,7 +251,7 @@ func TestFlatten(t *testing.T) {
 func TestMonadAp(t *testing.T) {
 	fns := From(
 		N.Mul(2),
-		func(x int) int { return x + 10 },
+		N.Add(10),
 	)
 	vals := From(1, 2)
 	result := MonadAp(fns, vals)
@@ -261,7 +261,7 @@ func TestMonadAp(t *testing.T) {
 func TestAp(t *testing.T) {
 	fns := From(
 		N.Mul(2),
-		func(x int) int { return x + 10 },
+		N.Add(10),
 	)
 	vals := From(1, 2)
 	applier := Ap[int](vals)
@@ -425,7 +425,7 @@ func TestFoldMapWithKey(t *testing.T) {
 func TestMonadFlap(t *testing.T) {
 	fns := From(
 		N.Mul(2),
-		func(x int) int { return x + 10 },
+		N.Add(10),
 	)
 	result := MonadFlap(fns, 5)
 	assert.Equal(t, []int{10, 15}, toSlice(result))
@@ -434,7 +434,7 @@ func TestMonadFlap(t *testing.T) {
 func TestFlap(t *testing.T) {
 	fns := From(
 		N.Mul(2),
-		func(x int) int { return x + 10 },
+		N.Add(10),
 	)
 	flapper := Flap[int](5)
 	result := toSlice(flapper(fns))
@@ -525,7 +525,7 @@ func TestPipelineComposition(t *testing.T) {
 	result := F.Pipe4(
 		From(1, 2, 3, 4, 5, 6),
 		Filter(func(x int) bool { return x%2 == 0 }),
-		Map(func(x int) int { return x * 10 }),
+		Map(N.Mul(10)),
 		Prepend(0),
 		toSlice[int],
 	)

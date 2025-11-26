@@ -252,7 +252,7 @@ func TestFromState(t *testing.T) {
 
 	assert.True(t, E.IsRight(res))
 	E.Map[error](func(p P.Pair[testState, int]) P.Pair[testState, int] {
-		assert.Equal(t, 11, P.Tail(p)) // Incremented value
+		assert.Equal(t, 11, P.Tail(p))         // Incremented value
 		assert.Equal(t, 11, P.Head(p).counter) // State updated
 		return p
 	})(res)
@@ -568,7 +568,7 @@ func TestStatefulComputation(t *testing.T) {
 	res := result(initialState)(ctx)()
 	assert.True(t, E.IsRight(res))
 	E.Map[error](func(p P.Pair[testState, int]) P.Pair[testState, int] {
-		assert.Equal(t, 3, P.Tail(p)) // Last incremented value
+		assert.Equal(t, 3, P.Tail(p))         // Last incremented value
 		assert.Equal(t, 3, P.Head(p).counter) // State updated three times
 		return p
 	})(res)

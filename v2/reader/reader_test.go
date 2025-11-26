@@ -184,7 +184,7 @@ func TestRead(t *testing.T) {
 func TestMonadFlap(t *testing.T) {
 	config := Config{Multiplier: 3}
 	getMultiplier := func(c Config) func(int) int {
-		return func(x int) int { return x * c.Multiplier }
+		return N.Mul(c.Multiplier)
 	}
 	r := MonadFlap(getMultiplier, 5)
 	result := r(config)
@@ -194,7 +194,7 @@ func TestMonadFlap(t *testing.T) {
 func TestFlap(t *testing.T) {
 	config := Config{Multiplier: 3}
 	getMultiplier := Asks(func(c Config) func(int) int {
-		return func(x int) int { return x * c.Multiplier }
+		return N.Mul(c.Multiplier)
 	})
 	applyTo5 := Flap[Config, int, int](5)
 	r := applyTo5(getMultiplier)

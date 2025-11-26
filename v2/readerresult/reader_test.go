@@ -22,6 +22,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
@@ -99,7 +100,7 @@ func TestMap(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	rr := Of[MyContext](5)
-	doubled := MonadMap(rr, func(x int) int { return x * 2 })
+	doubled := MonadMap(rr, N.Mul(2))
 	assert.Equal(t, result.Of(10), doubled(defaultContext))
 }
 
@@ -278,7 +279,7 @@ func TestFlatten(t *testing.T) {
 
 func TestBiMap(t *testing.T) {
 	enrichErr := func(e error) error { return fmt.Errorf("enriched: %w", e) }
-	double := func(x int) int { return x * 2 }
+	double := N.Mul(2)
 
 	res1 := F.Pipe1(Of[MyContext](5), BiMap[MyContext](enrichErr, double))(defaultContext)
 	assert.Equal(t, result.Of(10), res1)
@@ -308,7 +309,7 @@ func TestRead(t *testing.T) {
 }
 
 func TestFlap(t *testing.T) {
-	fabr := Of[MyContext](func(x int) int { return x * 2 })
+	fabr := Of[MyContext](N.Mul(2))
 	flapped := MonadFlap(fabr, 5)
 	assert.Equal(t, result.Of(10), flapped(defaultContext))
 }

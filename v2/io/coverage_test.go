@@ -369,7 +369,7 @@ func TestMonadTypeClass(t *testing.T) {
 		m.Chain(func(x int) IO[int] {
 			return m.Of(x * 2)
 		}),
-		m.Map(func(x int) int { return x + 1 }),
+		m.Map(N.Add(1)),
 	)
 
 	assert.Equal(t, 43, result())

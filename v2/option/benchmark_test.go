@@ -17,6 +17,8 @@ package option
 
 import (
 	"testing"
+
+	N "github.com/IBM/fp-go/v2/number"
 )
 
 // Benchmark basic construction
@@ -46,7 +48,7 @@ func BenchmarkIsSome(b *testing.B) {
 
 func BenchmarkMap(b *testing.B) {
 	opt := Some(21)
-	mapper := Map(func(x int) int { return x * 2 })
+	mapper := Map(N.Mul(2))
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

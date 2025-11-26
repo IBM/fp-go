@@ -68,7 +68,7 @@ func Of[S, A any](a A) StateReaderIOResult[S, A] {
 //
 //	result := statereaderioresult.MonadMap(
 //	    statereaderioresult.Of[AppState](21),
-//	    func(x int) int { return x * 2 },
+//	    N.Mul(2),
 //	) // Result contains 42
 func MonadMap[S, A, B any](fa StateReaderIOResult[S, A], f func(A) B) StateReaderIOResult[S, B] {
 	return statet.MonadMap[StateReaderIOResult[S, A], StateReaderIOResult[S, B]](
@@ -83,7 +83,7 @@ func MonadMap[S, A, B any](fa StateReaderIOResult[S, A], f func(A) B) StateReade
 //
 // Example:
 //
-//	double := statereaderioresult.Map[AppState](func(x int) int { return x * 2 })
+//	double := statereaderioresult.Map[AppState](N.Mul(2))
 //	result := function.Pipe1(statereaderioresult.Of[AppState](21), double)
 func Map[S, A, B any](f func(A) B) Operator[S, A, B] {
 	return statet.Map[StateReaderIOResult[S, A], StateReaderIOResult[S, B]](
@@ -135,7 +135,7 @@ func Chain[S, A, B any](f Kleisli[S, A, B]) Operator[S, A, B] {
 //
 // Example:
 //
-//	fab := statereaderioresult.Of[AppState](func(x int) int { return x * 2 })
+//	fab := statereaderioresult.Of[AppState](N.Mul(2))
 //	fa := statereaderioresult.Of[AppState](21)
 //	result := statereaderioresult.MonadAp(fab, fa) // Result contains 42
 func MonadAp[B, S, A any](fab StateReaderIOResult[S, func(A) B], fa StateReaderIOResult[S, A]) StateReaderIOResult[S, B] {

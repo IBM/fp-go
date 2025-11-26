@@ -17,7 +17,6 @@ package readerresult
 
 import (
 	"github.com/IBM/fp-go/v2/function"
-	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/idiomatic/result"
 	AP "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
@@ -69,7 +68,7 @@ func Do[R, S any](
 //	    ConfigService ConfigService
 //	}
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readereither.Do[Env, error](State{}),
 //	    readereither.Bind(
 //	        func(user User) func(State) State {
@@ -173,7 +172,7 @@ func BindTo[R, S1, T any](
 //	    return env.ConfigService.GetConfig()
 //	})
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readereither.Do[Env, error](State{}),
 //	    readereither.ApS(
 //	        func(user User) func(State) State {
@@ -228,7 +227,7 @@ func ApS[R, S1, S2, T any](
 //	getConfig := readereither.Asks(func(env Env) either.Either[error, Config] {
 //	    return env.ConfigService.GetConfig()
 //	})
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readereither.Of[Env, error](State{}),
 //	    readereither.ApSL(configLens, getConfig),
 //	)
@@ -265,7 +264,7 @@ func ApSL[R, S, T any](
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readereither.Do[Env, error](State{}),
 //	    readereither.BindL(userLens, func(user User) readereither.ReaderResult[Env, error, User] {
 //	        return readereither.Asks(func(env Env) either.Either[error, User] {
@@ -279,7 +278,7 @@ func BindL[R, S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[R, T, T],
 ) Operator[R, S, S] {
-	return Bind(lens.Set, F.Flow2(lens.Get, f))
+	return Bind(lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -302,7 +301,7 @@ func BindL[R, S, T any](
 //	    func(s State, c Config) State { s.Config = c; return s },
 //	)
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readereither.Do[any, error](State{Config: Config{Host: "localhost"}}),
 //	    readereither.LetL(configLens, func(cfg Config) Config {
 //	        cfg.Port = 8080
@@ -315,7 +314,7 @@ func LetL[R, S, T any](
 	lens L.Lens[S, T],
 	f Endomorphism[T],
 ) Operator[R, S, S] {
-	return Let[R](lens.Set, F.Flow2(lens.Get, f))
+	return Let[R](lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific part of the context.
@@ -338,7 +337,7 @@ func LetL[R, S, T any](
 //	)
 //
 //	newConfig := Config{Host: "localhost", Port: 8080}
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readereither.Do[any, error](State{}),
 //	    readereither.LetToL(configLens, newConfig),
 //	)
@@ -374,7 +373,7 @@ func LetToL[R, S, T any](
 //	    }
 //	}
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readerresult.Do[Env](State{}),
 //	    readerresult.BindReaderK(
 //	        func(path string) func(State) State {
@@ -435,7 +434,7 @@ func BindEitherK[R, S1, S2, T any](
 //	    return result.Of(s.Value * 2)
 //	}
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readerresult.Do[any](State{Value: 5}),
 //	    readerresult.BindResultK(
 //	        func(parsed int) func(State) State {
@@ -481,7 +480,7 @@ func BindResultK[R, S1, S2, T any](
 //	    return env.ConfigPath
 //	}
 //
-//	result := F.Pipe1(
+//	result := function.Pipe1(
 //	    reader.Of[Env](getConfigPath),
 //	    readerresult.BindToReader(func(path string) State {
 //	        return State{Config: path}
@@ -530,7 +529,7 @@ func BindToEither[
 //	    return 42
 //	})
 //
-//	computation := F.Pipe1(
+//	computation := function.Pipe1(
 //	    parseResult,
 //	    readerresult.BindToResult[any](func(value int) State {
 //	        return State{Value: value}
@@ -572,7 +571,7 @@ func BindToResult[
 //	getDefaultPort := func(env Env) int { return env.DefaultPort }
 //	getDefaultHost := func(env Env) string { return env.DefaultHost }
 //
-//	result := F.Pipe2(
+//	result := function.Pipe2(
 //	    readerresult.Do[Env](State{}),
 //	    readerresult.ApReaderS(
 //	        func(port int) func(State) State {
@@ -635,7 +634,7 @@ func ApResultS[
 //	parseValue1 := result.TryCatch(func() int { return 42 })
 //	parseValue2 := result.TryCatch(func() int { return 100 })
 //
-//	computation := F.Pipe2(
+//	computation := function.Pipe2(
 //	    readerresult.Do[any](State{}),
 //	    readerresult.ApResultS(
 //	        func(v int) func(State) State {
