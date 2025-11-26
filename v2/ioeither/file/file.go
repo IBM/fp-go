@@ -29,6 +29,48 @@ var (
 	Create = ioeither.Eitherize1(os.Create)
 	// ReadFile reads the context of a file
 	ReadFile = ioeither.Eitherize1(os.ReadFile)
+	// Stat returns [FileInfo] object
+	Stat = ioeither.Eitherize1(os.Stat)
+
+	// UserCacheDir returns an [IOEither] that resolves to the default root directory
+	// to use for user-specific cached data. Users should create their own application-specific
+	// subdirectory within this one and use that.
+	//
+	// On Unix systems, it returns $XDG_CACHE_HOME as specified by
+	// https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html if
+	// non-empty, else $HOME/.cache.
+	// On Darwin, it returns $HOME/Library/Caches.
+	// On Windows, it returns %LocalAppData%.
+	// On Plan 9, it returns $home/lib/cache.
+	//
+	// If the location cannot be determined (for example, $HOME is not defined),
+	// then it will return an error wrapped in [E.Left].
+	UserCacheDir = ioeither.Eitherize0(os.UserCacheDir)()
+
+	// UserConfigDir returns an [IOEither] that resolves to the default root directory
+	// to use for user-specific configuration data. Users should create their own
+	// application-specific subdirectory within this one and use that.
+	//
+	// On Unix systems, it returns $XDG_CONFIG_HOME as specified by
+	// https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html if
+	// non-empty, else $HOME/.config.
+	// On Darwin, it returns $HOME/Library/Application Support.
+	// On Windows, it returns %AppData%.
+	// On Plan 9, it returns $home/lib.
+	//
+	// If the location cannot be determined (for example, $HOME is not defined),
+	// then it will return an error wrapped in [E.Left].
+	UserConfigDir = ioeither.Eitherize0(os.UserConfigDir)()
+
+	// UserHomeDir returns an [IOEither] that resolves to the current user's home directory.
+	//
+	// On Unix, including macOS, it returns the $HOME environment variable.
+	// On Windows, it returns %USERPROFILE%.
+	// On Plan 9, it returns the $home environment variable.
+	//
+	// If the location cannot be determined (for example, $HOME is not defined),
+	// then it will return an error wrapped in [E.Left].
+	UserHomeDir = ioeither.Eitherize0(os.UserHomeDir)()
 )
 
 // WriteFile writes a data blob to a file
