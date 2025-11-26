@@ -252,5 +252,3 @@ func Example_build_conditionalBuilder() {
 	// AutoSave: true
 	// Animations: false
 }
-
-// Made with Bob
