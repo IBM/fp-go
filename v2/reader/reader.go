@@ -293,7 +293,7 @@ func Read[A, E any](e E) func(Reader[E, A]) A {
 //	}
 //	r := reader.MonadFlap(getMultiplier, 5)
 //	result := r(Config{Multiplier: 3}) // 15
-func MonadFlap[R, A, B any](fab Reader[R, func(A) B], a A) Reader[R, B] {
+func MonadFlap[R, B, A any](fab Reader[R, func(A) B], a A) Reader[R, B] {
 	return functor.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
 }
 
@@ -309,6 +309,6 @@ func MonadFlap[R, A, B any](fab Reader[R, func(A) B], a A) Reader[R, B] {
 //	applyTo5 := reader.Flap[Config](5)
 //	r := applyTo5(getMultiplier)
 //	result := r(Config{Multiplier: 3}) // 15
-func Flap[R, A, B any](a A) Operator[R, func(A) B, B] {
+func Flap[R, B, A any](a A) Operator[R, func(A) B, B] {
 	return functor.Flap(Map[R, func(A) B, B], a)
 }

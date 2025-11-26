@@ -196,7 +196,7 @@ func TestFlap(t *testing.T) {
 	getMultiplier := Asks(func(c Config) func(int) int {
 		return N.Mul(c.Multiplier)
 	})
-	applyTo5 := Flap[Config, int, int](5)
+	applyTo5 := Flap[Config, int](5)
 	r := applyTo5(getMultiplier)
 	result := r(config)
 	assert.Equal(t, 15, result)
