@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/IBM/fp-go/v2/either"
@@ -355,6 +356,45 @@ func FromZero[T comparable]() Prism[T, T] {
 	return MakePrism(option.FromZero[T](), F.Identity[T])
 }
 
+// FromNonZero creates a prism that matches non-zero values of comparable types.
+// It provides a safe way to work with non-zero values, handling zero values
+// gracefully through the Option type.
+//
+// The prism's GetOption returns Some(t) if the value is not equal to the zero value
+// of type T; otherwise, it returns None.
+//
+// The prism's ReverseGet is the identity function, returning the value unchanged.
+//
+// Type Parameters:
+//   - T: A comparable type (must support == and != operators)
+//
+// Returns:
+//   - A Prism[T, T] that matches non-zero values
+//
+// Example:
+//
+//	// Create a prism for non-zero integers
+//	nonZeroPrism := FromNonZero[int]()
+//
+//	// Match non-zero value
+//	result := nonZeroPrism.GetOption(42)  // Some(42)
+//
+//	// Zero returns None
+//	result = nonZeroPrism.GetOption(0)  // None[int]()
+//
+//	// ReverseGet is identity
+//	value := nonZeroPrism.ReverseGet(42)  // 42
+//
+//	// Use with Set to update non-zero values
+//	setter := Set[int, int](100)
+//	result := setter(nonZeroPrism)(42)   // 100
+//	result = setter(nonZeroPrism)(0)     // 0 (unchanged)
+//
+// Common use cases:
+//   - Validating that values are non-zero/non-default
+//   - Filtering non-zero values in data pipelines
+//   - Working with required fields that shouldn't be zero
+//   - Replacing non-zero values with new values
 func FromNonZero[T comparable]() Prism[T, T] {
 	return MakePrism(option.FromNonZero[T](), F.Identity[T])
 }
@@ -659,4 +699,260 @@ func RegexNamedMatcher(re *regexp.Regexp) Prism[string, NamedMatch] {
 		},
 		NamedMatch.Reconstruct,
 	)
+}
+
+func getFromEither[A, B any](f func(A) (B, error)) func(A) Option[B] {
+	return func(a A) Option[B] {
+		b, err := f(a)
+		if err != nil {
+			return option.None[B]()
+		}
+		return option.Of(b)
+	}
+}
+
+func atoi64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
+}
+
+func itoa64(i int64) string {
+	return strconv.FormatInt(i, 10)
+}
+
+// ParseInt creates a prism for parsing and formatting integers.
+// It provides a safe way to convert between string and int, handling
+// parsing errors gracefully through the Option type.
+//
+// The prism's GetOption attempts to parse a string into an int.
+// If parsing succeeds, it returns Some(int); if it fails (e.g., invalid
+// number format), it returns None.
+//
+// The prism's ReverseGet always succeeds, converting an int to its string representation.
+//
+// Returns:
+//   - A Prism[string, int] that safely handles int parsing/formatting
+//
+// Example:
+//
+//	// Create an int parsing prism
+//	intPrism := ParseInt()
+//
+//	// Parse valid integer
+//	parsed := intPrism.GetOption("42")  // Some(42)
+//
+//	// Parse invalid integer
+//	invalid := intPrism.GetOption("not-a-number")  // None[int]()
+//
+//	// Format int to string
+//	str := intPrism.ReverseGet(42)  // "42"
+//
+//	// Use with Set to update integer values
+//	setter := Set[string, int](100)
+//	result := setter(intPrism)("42")  // "100"
+//
+// Common use cases:
+//   - Parsing integer configuration values
+//   - Validating numeric user input
+//   - Converting between string and int in data pipelines
+//   - Working with numeric API parameters
+//
+//go:inline
+func ParseInt() Prism[string, int] {
+	return MakePrism(getFromEither(strconv.Atoi), strconv.Itoa)
+}
+
+// ParseInt64 creates a prism for parsing and formatting 64-bit integers.
+// It provides a safe way to convert between string and int64, handling
+// parsing errors gracefully through the Option type.
+//
+// The prism's GetOption attempts to parse a string into an int64.
+// If parsing succeeds, it returns Some(int64); if it fails (e.g., invalid
+// number format or overflow), it returns None.
+//
+// The prism's ReverseGet always succeeds, converting an int64 to its string representation.
+//
+// Returns:
+//   - A Prism[string, int64] that safely handles int64 parsing/formatting
+//
+// Example:
+//
+//	// Create an int64 parsing prism
+//	int64Prism := ParseInt64()
+//
+//	// Parse valid 64-bit integer
+//	parsed := int64Prism.GetOption("9223372036854775807")  // Some(9223372036854775807)
+//
+//	// Parse invalid integer
+//	invalid := int64Prism.GetOption("not-a-number")  // None[int64]()
+//
+//	// Format int64 to string
+//	str := int64Prism.ReverseGet(int64(42))  // "42"
+//
+//	// Use with Set to update int64 values
+//	setter := Set[string, int64](int64(100))
+//	result := setter(int64Prism)("42")  // "100"
+//
+// Common use cases:
+//   - Parsing large integer values (timestamps, IDs)
+//   - Working with database integer columns
+//   - Handling 64-bit numeric API parameters
+//   - Converting between string and int64 in data pipelines
+//
+//go:inline
+func ParseInt64() Prism[string, int64] {
+	return MakePrism(getFromEither(atoi64), itoa64)
+}
+
+// ParseBool creates a prism for parsing and formatting boolean values.
+// It provides a safe way to convert between string and bool, handling
+// parsing errors gracefully through the Option type.
+//
+// The prism's GetOption attempts to parse a string into a bool.
+// It accepts "1", "t", "T", "TRUE", "true", "True", "0", "f", "F", "FALSE", "false", "False".
+// If parsing succeeds, it returns Some(bool); if it fails, it returns None.
+//
+// The prism's ReverseGet always succeeds, converting a bool to "true" or "false".
+//
+// Returns:
+//   - A Prism[string, bool] that safely handles bool parsing/formatting
+//
+// Example:
+//
+//	// Create a bool parsing prism
+//	boolPrism := ParseBool()
+//
+//	// Parse valid boolean strings
+//	parsed := boolPrism.GetOption("true")   // Some(true)
+//	parsed = boolPrism.GetOption("1")       // Some(true)
+//	parsed = boolPrism.GetOption("false")   // Some(false)
+//	parsed = boolPrism.GetOption("0")       // Some(false)
+//
+//	// Parse invalid boolean
+//	invalid := boolPrism.GetOption("maybe")  // None[bool]()
+//
+//	// Format bool to string
+//	str := boolPrism.ReverseGet(true)   // "true"
+//	str = boolPrism.ReverseGet(false)   // "false"
+//
+//	// Use with Set to update boolean values
+//	setter := Set[string, bool](true)
+//	result := setter(boolPrism)("false")  // "true"
+//
+// Common use cases:
+//   - Parsing boolean configuration values
+//   - Validating boolean user input
+//   - Converting between string and bool in data pipelines
+//   - Working with boolean API parameters or flags
+//
+//go:inline
+func ParseBool() Prism[string, bool] {
+	return MakePrism(getFromEither(strconv.ParseBool), strconv.FormatBool)
+}
+
+func atof64(s string) (float64, error) {
+	return strconv.ParseFloat(s, 64)
+}
+
+func atof32(s string) (float32, error) {
+	f32, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return 0, err
+	}
+	return float32(f32), nil
+}
+
+func f32toa(f float32) string {
+	return strconv.FormatFloat(float64(f), 'g', -1, 32)
+}
+
+func f64toa(f float64) string {
+	return strconv.FormatFloat(f, 'g', -1, 64)
+}
+
+// ParseFloat32 creates a prism for parsing and formatting 32-bit floating-point numbers.
+// It provides a safe way to convert between string and float32, handling
+// parsing errors gracefully through the Option type.
+//
+// The prism's GetOption attempts to parse a string into a float32.
+// If parsing succeeds, it returns Some(float32); if it fails (e.g., invalid
+// number format or overflow), it returns None.
+//
+// The prism's ReverseGet always succeeds, converting a float32 to its string representation
+// using the 'g' format (shortest representation).
+//
+// Returns:
+//   - A Prism[string, float32] that safely handles float32 parsing/formatting
+//
+// Example:
+//
+//	// Create a float32 parsing prism
+//	float32Prism := ParseFloat32()
+//
+//	// Parse valid float
+//	parsed := float32Prism.GetOption("3.14")  // Some(3.14)
+//	parsed = float32Prism.GetOption("1.5e10") // Some(1.5e10)
+//
+//	// Parse invalid float
+//	invalid := float32Prism.GetOption("not-a-number")  // None[float32]()
+//
+//	// Format float32 to string
+//	str := float32Prism.ReverseGet(float32(3.14))  // "3.14"
+//
+//	// Use with Set to update float32 values
+//	setter := Set[string, float32](float32(2.71))
+//	result := setter(float32Prism)("3.14")  // "2.71"
+//
+// Common use cases:
+//   - Parsing floating-point configuration values
+//   - Working with scientific notation
+//   - Converting between string and float32 in data pipelines
+//   - Handling numeric API parameters with decimal precision
+//
+//go:inline
+func ParseFloat32() Prism[string, float32] {
+	return MakePrism(getFromEither(atof32), f32toa)
+}
+
+// ParseFloat64 creates a prism for parsing and formatting 64-bit floating-point numbers.
+// It provides a safe way to convert between string and float64, handling
+// parsing errors gracefully through the Option type.
+//
+// The prism's GetOption attempts to parse a string into a float64.
+// If parsing succeeds, it returns Some(float64); if it fails (e.g., invalid
+// number format or overflow), it returns None.
+//
+// The prism's ReverseGet always succeeds, converting a float64 to its string representation
+// using the 'g' format (shortest representation).
+//
+// Returns:
+//   - A Prism[string, float64] that safely handles float64 parsing/formatting
+//
+// Example:
+//
+//	// Create a float64 parsing prism
+//	float64Prism := ParseFloat64()
+//
+//	// Parse valid float
+//	parsed := float64Prism.GetOption("3.141592653589793")  // Some(3.141592653589793)
+//	parsed = float64Prism.GetOption("1.5e100")             // Some(1.5e100)
+//
+//	// Parse invalid float
+//	invalid := float64Prism.GetOption("not-a-number")  // None[float64]()
+//
+//	// Format float64 to string
+//	str := float64Prism.ReverseGet(3.141592653589793)  // "3.141592653589793"
+//
+//	// Use with Set to update float64 values
+//	setter := Set[string, float64](2.718281828459045)
+//	result := setter(float64Prism)("3.14")  // "2.718281828459045"
+//
+// Common use cases:
+//   - Parsing high-precision floating-point values
+//   - Working with scientific notation and large numbers
+//   - Converting between string and float64 in data pipelines
+//   - Handling precise numeric API parameters
+//
+//go:inline
+func ParseFloat64() Prism[string, float64] {
+	return MakePrism(getFromEither(atof64), f64toa)
 }

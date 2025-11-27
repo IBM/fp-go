@@ -532,3 +532,411 @@ func TestRegexNamedMatcherWithSet(t *testing.T) {
 		assert.Equal(t, original, result)
 	})
 }
+
+// TestFromNonZero tests the FromNonZero prism with various comparable types
+func TestFromNonZero(t *testing.T) {
+	t.Run("int - match non-zero", func(t *testing.T) {
+		prism := FromNonZero[int]()
+
+		result := prism.GetOption(42)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(result))
+	})
+
+	t.Run("int - zero returns None", func(t *testing.T) {
+		prism := FromNonZero[int]()
+
+		result := prism.GetOption(0)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("string - match non-empty string", func(t *testing.T) {
+		prism := FromNonZero[string]()
+
+		result := prism.GetOption("hello")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "hello", O.GetOrElse(F.Constant("default"))(result))
+	})
+
+	t.Run("string - empty returns None", func(t *testing.T) {
+		prism := FromNonZero[string]()
+
+		result := prism.GetOption("")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("bool - match true", func(t *testing.T) {
+		prism := FromNonZero[bool]()
+
+		result := prism.GetOption(true)
+		assert.True(t, O.IsSome(result))
+		assert.True(t, O.GetOrElse(F.Constant(false))(result))
+	})
+
+	t.Run("bool - false returns None", func(t *testing.T) {
+		prism := FromNonZero[bool]()
+
+		result := prism.GetOption(false)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("float64 - match non-zero", func(t *testing.T) {
+		prism := FromNonZero[float64]()
+
+		result := prism.GetOption(3.14)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 3.14, O.GetOrElse(F.Constant(-1.0))(result))
+	})
+
+	t.Run("float64 - zero returns None", func(t *testing.T) {
+		prism := FromNonZero[float64]()
+
+		result := prism.GetOption(0.0)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("pointer - match non-nil", func(t *testing.T) {
+		prism := FromNonZero[*int]()
+
+		value := 42
+		result := prism.GetOption(&value)
+		assert.True(t, O.IsSome(result))
+	})
+
+	t.Run("pointer - nil returns None", func(t *testing.T) {
+		prism := FromNonZero[*int]()
+
+		var nilPtr *int
+		result := prism.GetOption(nilPtr)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("reverse get is identity", func(t *testing.T) {
+		prism := FromNonZero[int]()
+
+		assert.Equal(t, 0, prism.ReverseGet(0))
+		assert.Equal(t, 42, prism.ReverseGet(42))
+	})
+}
+
+// TestFromNonZeroWithSet tests using Set with FromNonZero prism
+func TestFromNonZeroWithSet(t *testing.T) {
+	t.Run("set on non-zero value", func(t *testing.T) {
+		prism := FromNonZero[int]()
+
+		setter := Set[int](100)
+		result := setter(prism)(42)
+
+		assert.Equal(t, 100, result)
+	})
+
+	t.Run("set on zero returns original", func(t *testing.T) {
+		prism := FromNonZero[int]()
+
+		setter := Set[int](100)
+		result := setter(prism)(0)
+
+		assert.Equal(t, 0, result)
+	})
+}
+
+// TestParseInt tests the ParseInt prism
+func TestParseInt(t *testing.T) {
+	prism := ParseInt()
+
+	t.Run("parse valid positive integer", func(t *testing.T) {
+		result := prism.GetOption("42")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(result))
+	})
+
+	t.Run("parse valid negative integer", func(t *testing.T) {
+		result := prism.GetOption("-123")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, -123, O.GetOrElse(F.Constant(0))(result))
+	})
+
+	t.Run("parse zero", func(t *testing.T) {
+		result := prism.GetOption("0")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 0, O.GetOrElse(F.Constant(-1))(result))
+	})
+
+	t.Run("parse invalid integer", func(t *testing.T) {
+		result := prism.GetOption("not-a-number")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("parse float as integer fails", func(t *testing.T) {
+		result := prism.GetOption("3.14")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("parse empty string fails", func(t *testing.T) {
+		result := prism.GetOption("")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("reverse get formats integer", func(t *testing.T) {
+		assert.Equal(t, "42", prism.ReverseGet(42))
+		assert.Equal(t, "-123", prism.ReverseGet(-123))
+		assert.Equal(t, "0", prism.ReverseGet(0))
+	})
+
+	t.Run("round trip", func(t *testing.T) {
+		original := "12345"
+		result := prism.GetOption(original)
+		if O.IsSome(result) {
+			value := O.GetOrElse(F.Constant(0))(result)
+			reconstructed := prism.ReverseGet(value)
+			assert.Equal(t, original, reconstructed)
+		}
+	})
+}
+
+// TestParseInt64 tests the ParseInt64 prism
+func TestParseInt64(t *testing.T) {
+	prism := ParseInt64()
+
+	t.Run("parse valid int64", func(t *testing.T) {
+		result := prism.GetOption("9223372036854775807")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, int64(9223372036854775807), O.GetOrElse(F.Constant(int64(-1)))(result))
+	})
+
+	t.Run("parse negative int64", func(t *testing.T) {
+		result := prism.GetOption("-9223372036854775808")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, int64(-9223372036854775808), O.GetOrElse(F.Constant(int64(0)))(result))
+	})
+
+	t.Run("parse invalid int64", func(t *testing.T) {
+		result := prism.GetOption("not-a-number")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("reverse get formats int64", func(t *testing.T) {
+		assert.Equal(t, "42", prism.ReverseGet(int64(42)))
+		assert.Equal(t, "9223372036854775807", prism.ReverseGet(int64(9223372036854775807)))
+	})
+
+	t.Run("round trip", func(t *testing.T) {
+		original := "1234567890123456789"
+		result := prism.GetOption(original)
+		if O.IsSome(result) {
+			value := O.GetOrElse(F.Constant(int64(0)))(result)
+			reconstructed := prism.ReverseGet(value)
+			assert.Equal(t, original, reconstructed)
+		}
+	})
+}
+
+// TestParseBool tests the ParseBool prism
+func TestParseBool(t *testing.T) {
+	prism := ParseBool()
+
+	t.Run("parse true variations", func(t *testing.T) {
+		trueValues := []string{"true", "True", "TRUE", "t", "T", "1"}
+		for _, val := range trueValues {
+			result := prism.GetOption(val)
+			assert.True(t, O.IsSome(result), "Should parse: %s", val)
+			assert.True(t, O.GetOrElse(F.Constant(false))(result), "Should be true: %s", val)
+		}
+	})
+
+	t.Run("parse false variations", func(t *testing.T) {
+		falseValues := []string{"false", "False", "FALSE", "f", "F", "0"}
+		for _, val := range falseValues {
+			result := prism.GetOption(val)
+			assert.True(t, O.IsSome(result), "Should parse: %s", val)
+			assert.False(t, O.GetOrElse(F.Constant(true))(result), "Should be false: %s", val)
+		}
+	})
+
+	t.Run("parse invalid bool", func(t *testing.T) {
+		invalidValues := []string{"maybe", "yes", "no", "2", ""}
+		for _, val := range invalidValues {
+			result := prism.GetOption(val)
+			assert.True(t, O.IsNone(result), "Should not parse: %s", val)
+		}
+	})
+
+	t.Run("reverse get formats bool", func(t *testing.T) {
+		assert.Equal(t, "true", prism.ReverseGet(true))
+		assert.Equal(t, "false", prism.ReverseGet(false))
+	})
+
+	t.Run("round trip with true", func(t *testing.T) {
+		result := prism.GetOption("true")
+		if O.IsSome(result) {
+			value := O.GetOrElse(F.Constant(false))(result)
+			reconstructed := prism.ReverseGet(value)
+			assert.Equal(t, "true", reconstructed)
+		}
+	})
+
+	t.Run("round trip with false", func(t *testing.T) {
+		result := prism.GetOption("false")
+		if O.IsSome(result) {
+			value := O.GetOrElse(F.Constant(true))(result)
+			reconstructed := prism.ReverseGet(value)
+			assert.Equal(t, "false", reconstructed)
+		}
+	})
+}
+
+// TestParseFloat32 tests the ParseFloat32 prism
+func TestParseFloat32(t *testing.T) {
+	prism := ParseFloat32()
+
+	t.Run("parse valid float32", func(t *testing.T) {
+		result := prism.GetOption("3.14")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(float32(0)))(result)
+		assert.InDelta(t, float32(3.14), value, 0.0001)
+	})
+
+	t.Run("parse negative float32", func(t *testing.T) {
+		result := prism.GetOption("-2.71")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(float32(0)))(result)
+		assert.InDelta(t, float32(-2.71), value, 0.0001)
+	})
+
+	t.Run("parse scientific notation", func(t *testing.T) {
+		result := prism.GetOption("1.5e10")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(float32(0)))(result)
+		assert.InDelta(t, float32(1.5e10), value, 1e6)
+	})
+
+	t.Run("parse integer as float", func(t *testing.T) {
+		result := prism.GetOption("42")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(float32(0)))(result)
+		assert.Equal(t, float32(42), value)
+	})
+
+	t.Run("parse invalid float", func(t *testing.T) {
+		result := prism.GetOption("not-a-number")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("reverse get formats float32", func(t *testing.T) {
+		str := prism.ReverseGet(float32(3.14))
+		assert.Contains(t, str, "3.14")
+	})
+
+	t.Run("round trip", func(t *testing.T) {
+		original := "3.14159"
+		result := prism.GetOption(original)
+		if O.IsSome(result) {
+			value := O.GetOrElse(F.Constant(float32(0)))(result)
+			reconstructed := prism.ReverseGet(value)
+			// Parse both to compare as floats due to precision
+			origFloat := F.Pipe1(original, prism.GetOption)
+			reconFloat := F.Pipe1(reconstructed, prism.GetOption)
+			if O.IsSome(origFloat) && O.IsSome(reconFloat) {
+				assert.InDelta(t,
+					O.GetOrElse(F.Constant(float32(0)))(origFloat),
+					O.GetOrElse(F.Constant(float32(0)))(reconFloat),
+					0.0001)
+			}
+		}
+	})
+}
+
+// TestParseFloat64 tests the ParseFloat64 prism
+func TestParseFloat64(t *testing.T) {
+	prism := ParseFloat64()
+
+	t.Run("parse valid float64", func(t *testing.T) {
+		result := prism.GetOption("3.141592653589793")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(0.0))(result)
+		assert.InDelta(t, 3.141592653589793, value, 1e-15)
+	})
+
+	t.Run("parse negative float64", func(t *testing.T) {
+		result := prism.GetOption("-2.718281828459045")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(0.0))(result)
+		assert.InDelta(t, -2.718281828459045, value, 1e-15)
+	})
+
+	t.Run("parse scientific notation", func(t *testing.T) {
+		result := prism.GetOption("1.5e100")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(0.0))(result)
+		assert.InDelta(t, 1.5e100, value, 1e85)
+	})
+
+	t.Run("parse integer as float", func(t *testing.T) {
+		result := prism.GetOption("42")
+		assert.True(t, O.IsSome(result))
+		value := O.GetOrElse(F.Constant(0.0))(result)
+		assert.Equal(t, 42.0, value)
+	})
+
+	t.Run("parse invalid float", func(t *testing.T) {
+		result := prism.GetOption("not-a-number")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("reverse get formats float64", func(t *testing.T) {
+		str := prism.ReverseGet(3.141592653589793)
+		assert.Contains(t, str, "3.14159")
+	})
+
+	t.Run("round trip", func(t *testing.T) {
+		original := "3.141592653589793"
+		result := prism.GetOption(original)
+		if O.IsSome(result) {
+			value := O.GetOrElse(F.Constant(0.0))(result)
+			reconstructed := prism.ReverseGet(value)
+			// Parse both to compare as floats
+			origFloat := F.Pipe1(original, prism.GetOption)
+			reconFloat := F.Pipe1(reconstructed, prism.GetOption)
+			if O.IsSome(origFloat) && O.IsSome(reconFloat) {
+				assert.InDelta(t,
+					O.GetOrElse(F.Constant(0.0))(origFloat),
+					O.GetOrElse(F.Constant(0.0))(reconFloat),
+					1e-15)
+			}
+		}
+	})
+}
+
+// TestParseIntWithSet tests using Set with ParseInt prism
+func TestParseIntWithSet(t *testing.T) {
+	prism := ParseInt()
+
+	t.Run("set on valid integer string", func(t *testing.T) {
+		setter := Set[string](100)
+		result := setter(prism)("42")
+		assert.Equal(t, "100", result)
+	})
+
+	t.Run("set on invalid string returns original", func(t *testing.T) {
+		setter := Set[string](100)
+		result := setter(prism)("not-a-number")
+		assert.Equal(t, "not-a-number", result)
+	})
+}
+
+// TestParseBoolWithSet tests using Set with ParseBool prism
+func TestParseBoolWithSet(t *testing.T) {
+	prism := ParseBool()
+
+	t.Run("set on valid bool string", func(t *testing.T) {
+		setter := Set[string](true)
+		result := setter(prism)("false")
+		assert.Equal(t, "true", result)
+	})
+
+	t.Run("set on invalid string returns original", func(t *testing.T) {
+		setter := Set[string](true)
+		result := setter(prism)("maybe")
+		assert.Equal(t, "maybe", result)
+	})
+}
