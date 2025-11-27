@@ -33,7 +33,7 @@ func AsOptional[S, A any](sa P.Prism[S, A]) OPT.Optional[S, A] {
 }
 
 func PrismSome[A any]() P.Prism[O.Option[A], A] {
-	return P.MakePrism(F.Identity[O.Option[A]], O.Some[A])
+	return P.MakePrismWithName(F.Identity[O.Option[A]], O.Some[A], "PrismSome")
 }
 
 // Some returns a `Optional` from a `Optional` focused on the `Some` of a `Option` type.

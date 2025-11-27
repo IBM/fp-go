@@ -8,5 +8,5 @@ import (
 
 // BuilderPrism createa a [Prism] that converts between a builder and its type
 func BuilderPrism[T any, B Builder[T]](creator func(T) B) Prism[B, T] {
-	return prism.MakePrism(F.Flow2(B.Build, result.ToOption[T]), creator)
+	return prism.MakePrismWithName(F.Flow2(B.Build, result.ToOption[T]), creator, "BuilderPrism")
 }

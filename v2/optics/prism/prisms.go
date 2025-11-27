@@ -17,6 +17,7 @@ package prism
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -68,10 +69,12 @@ import (
 //   - Validating and transforming base64 data in pipelines
 //   - Using different encodings (Standard, URL-safe, RawStd, RawURL)
 func FromEncoding(enc *base64.Encoding) Prism[string, []byte] {
-	return MakePrism(F.Flow2(
+	return MakePrismWithName(F.Flow2(
 		either.Eitherize1(enc.DecodeString),
 		either.Fold(F.Ignore1of1[error](option.None[[]byte]), option.Some),
-	), enc.EncodeToString)
+	), enc.EncodeToString,
+		"PrismFromEncoding",
+	)
 }
 
 // ParseURL creates a prism for parsing and formatting URLs.
@@ -115,10 +118,12 @@ func FromEncoding(enc *base64.Encoding) Prism[string, []byte] {
 //   - Transforming URL strings in data pipelines
 //   - Extracting and modifying URL components safely
 func ParseURL() Prism[string, *url.URL] {
-	return MakePrism(F.Flow2(
+	return MakePrismWithName(F.Flow2(
 		either.Eitherize1(url.Parse),
 		either.Fold(F.Ignore1of1[error](option.None[*url.URL]), option.Some),
-	), (*url.URL).String)
+	), (*url.URL).String,
+		"PrismParseURL",
+	)
 }
 
 // InstanceOf creates a prism for type assertions on interface{}/any values.
@@ -162,7 +167,8 @@ func ParseURL() Prism[string, *url.URL] {
 //   - Type-safe deserialization and validation
 //   - Pattern matching on interface{} values
 func InstanceOf[T any]() Prism[any, T] {
-	return MakePrism(option.ToType[T], F.ToAny[T])
+	var t T
+	return MakePrismWithName(option.ToType[T], F.ToAny[T], fmt.Sprintf("PrismInstanceOf[%T]", t))
 }
 
 // ParseDate creates a prism for parsing and formatting dates with a specific layout.
@@ -213,10 +219,12 @@ func InstanceOf[T any]() Prism[any, T] {
 //   - Converting between date formats
 //   - Safely handling user-provided date inputs
 func ParseDate(layout string) Prism[string, time.Time] {
-	return MakePrism(F.Flow2(
+	return MakePrismWithName(F.Flow2(
 		F.Bind1st(either.Eitherize2(time.Parse), layout),
 		either.Fold(F.Ignore1of1[error](option.None[time.Time]), option.Some),
-	), F.Bind2nd(time.Time.Format, layout))
+	), F.Bind2nd(time.Time.Format, layout),
+		"PrismParseDate",
+	)
 }
 
 // Deref creates a prism for safely dereferencing pointers.
@@ -264,7 +272,7 @@ func ParseDate(layout string) Prism[string, time.Time] {
 //   - Filtering out nil values in data pipelines
 //   - Working with database nullable columns
 func Deref[T any]() Prism[*T, *T] {
-	return MakePrism(option.FromNillable[T], F.Identity[*T])
+	return MakePrismWithName(option.FromNillable[T], F.Identity[*T], "PrismDeref")
 }
 
 // FromEither creates a prism for extracting Right values from Either types.
@@ -310,7 +318,7 @@ func Deref[T any]() Prism[*T, *T] {
 //   - Working with fallible operations
 //   - Composing with other prisms for complex error handling
 func FromEither[E, T any]() Prism[Either[E, T], T] {
-	return MakePrism(either.ToOption[E, T], either.Of[E, T])
+	return MakePrismWithName(either.ToOption[E, T], either.Of[E, T], "PrismFromEither")
 }
 
 // FromZero creates a prism that matches zero values of comparable types.
@@ -353,7 +361,7 @@ func FromEither[E, T any]() Prism[Either[E, T], T] {
 //   - Working with optional fields that use zero as "not set"
 //   - Replacing zero values with defaults
 func FromZero[T comparable]() Prism[T, T] {
-	return MakePrism(option.FromZero[T](), F.Identity[T])
+	return MakePrismWithName(option.FromZero[T](), F.Identity[T], "PrismFromZero")
 }
 
 // FromNonZero creates a prism that matches non-zero values of comparable types.
@@ -396,7 +404,7 @@ func FromZero[T comparable]() Prism[T, T] {
 //   - Working with required fields that shouldn't be zero
 //   - Replacing non-zero values with new values
 func FromNonZero[T comparable]() Prism[T, T] {
-	return MakePrism(option.FromNonZero[T](), F.Identity[T])
+	return MakePrismWithName(option.FromNonZero[T](), F.Identity[T], "PrismFromNonZero")
 }
 
 // Match represents a regex match result with full reconstruction capability.
@@ -535,7 +543,7 @@ func (m Match) Group(n int) string {
 func RegexMatcher(re *regexp.Regexp) Prism[string, Match] {
 	noMatch := option.None[Match]()
 
-	return MakePrism(
+	return MakePrismWithName(
 		// String -> Option[Match]
 		func(s string) Option[Match] {
 			loc := re.FindStringSubmatchIndex(s)
@@ -562,6 +570,7 @@ func RegexMatcher(re *regexp.Regexp) Prism[string, Match] {
 			return option.Some(match)
 		},
 		Match.Reconstruct,
+		fmt.Sprintf("PrismRegex[%s]", re),
 	)
 }
 
@@ -758,7 +767,7 @@ func itoa64(i int64) string {
 //
 //go:inline
 func ParseInt() Prism[string, int] {
-	return MakePrism(getFromEither(strconv.Atoi), strconv.Itoa)
+	return MakePrismWithName(getFromEither(strconv.Atoi), strconv.Itoa, "PrismParseInt")
 }
 
 // ParseInt64 creates a prism for parsing and formatting 64-bit integers.
@@ -800,7 +809,7 @@ func ParseInt() Prism[string, int] {
 //
 //go:inline
 func ParseInt64() Prism[string, int64] {
-	return MakePrism(getFromEither(atoi64), itoa64)
+	return MakePrismWithName(getFromEither(atoi64), itoa64, "PrismParseInt64")
 }
 
 // ParseBool creates a prism for parsing and formatting boolean values.
@@ -846,7 +855,7 @@ func ParseInt64() Prism[string, int64] {
 //
 //go:inline
 func ParseBool() Prism[string, bool] {
-	return MakePrism(getFromEither(strconv.ParseBool), strconv.FormatBool)
+	return MakePrismWithName(getFromEither(strconv.ParseBool), strconv.FormatBool, "PrismParseBool")
 }
 
 func atof64(s string) (float64, error) {
@@ -910,7 +919,7 @@ func f64toa(f float64) string {
 //
 //go:inline
 func ParseFloat32() Prism[string, float32] {
-	return MakePrism(getFromEither(atof32), f32toa)
+	return MakePrismWithName(getFromEither(atof32), f32toa, "ParseFloat32")
 }
 
 // ParseFloat64 creates a prism for parsing and formatting 64-bit floating-point numbers.
@@ -954,5 +963,5 @@ func ParseFloat32() Prism[string, float32] {
 //
 //go:inline
 func ParseFloat64() Prism[string, float64] {
-	return MakePrism(getFromEither(atof64), f64toa)
+	return MakePrismWithName(getFromEither(atof64), f64toa, "PrismParseFloat64")
 }

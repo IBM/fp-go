@@ -78,8 +78,15 @@ type (
 //	    func(opt Option[int]) Option[int] { return opt },
 //	    func(n int) Option[int] { return Some(n) },
 //	)
+//
+//go:inline
 func MakePrism[S, A any](get func(S) Option[A], rev func(A) S) Prism[S, A] {
-	return Prism[S, A]{get, rev, "GenericPrism"}
+	return MakePrismWithName(get, rev, "GenericPrism")
+}
+
+//go:inline
+func MakePrismWithName[S, A any](get func(S) Option[A], rev func(A) S, name string) Prism[S, A] {
+	return Prism[S, A]{get, rev, name}
 }
 
 // Id returns an identity prism that focuses on the entire value.
@@ -94,7 +101,7 @@ func MakePrism[S, A any](get func(S) Option[A], rev func(A) S) Prism[S, A] {
 //	value := idPrism.GetOption(42)    // Some(42)
 //	result := idPrism.ReverseGet(42)  // 42
 func Id[S any]() Prism[S, S] {
-	return MakePrism(O.Some[S], F.Identity[S])
+	return MakePrismWithName(O.Some[S], F.Identity[S], "PrismIdentity")
 }
 
 // FromPredicate creates a prism that matches values satisfying a predicate.
@@ -113,7 +120,7 @@ func Id[S any]() Prism[S, S] {
 //	value := positivePrism.GetOption(42)  // Some(42)
 //	value = positivePrism.GetOption(-5)   // None[int]
 func FromPredicate[S any](pred func(S) bool) Prism[S, S] {
-	return MakePrism(O.FromPredicate(pred), F.Identity[S])
+	return MakePrismWithName(O.FromPredicate(pred), F.Identity[S], "PrismWithPredicate")
 }
 
 // Compose composes two prisms to create a prism that focuses deeper into a structure.
@@ -137,13 +144,15 @@ func FromPredicate[S any](pred func(S) bool) Prism[S, S] {
 //	composed := Compose[Outer](innerPrism)(outerPrism)  // Prism[Outer, Value]
 func Compose[S, A, B any](ab Prism[A, B]) func(Prism[S, A]) Prism[S, B] {
 	return func(sa Prism[S, A]) Prism[S, B] {
-		return MakePrism(F.Flow2(
+		return MakePrismWithName(F.Flow2(
 			sa.GetOption,
 			O.Chain(ab.GetOption),
 		), F.Flow2(
 			ab.ReverseGet,
 			sa.ReverseGet,
-		))
+		),
+			fmt.Sprintf("PrismCompose[%s x %s]", ab, sa),
+		)
 	}
 }
 
@@ -201,7 +210,7 @@ func Set[S, A any](a A) func(Prism[S, A]) EM.Endomorphism[S] {
 // prismSome creates a prism that focuses on the Some variant of an Option.
 // This is an internal helper used by the Some function.
 func prismSome[A any]() Prism[Option[A], A] {
-	return MakePrism(F.Identity[Option[A]], O.Some[A])
+	return MakePrismWithName(F.Identity[Option[A]], O.Some[A], "PrismSome")
 }
 
 // Some creates a prism that focuses on the Some variant of an Option within a structure.
@@ -230,9 +239,10 @@ func Some[S, A any](soa Prism[S, Option[A]]) Prism[S, A] {
 
 // imap is an internal helper that bidirectionally maps a prism's focus type.
 func imap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](sa Prism[S, A], ab AB, ba BA) Prism[S, B] {
-	return MakePrism(
+	return MakePrismWithName(
 		F.Flow2(sa.GetOption, O.Map(ab)),
 		F.Flow2(ba, sa.ReverseGet),
+		fmt.Sprintf("PrismIMap[%s]", sa),
 	)
 }
 
