@@ -544,3 +544,396 @@ func TestMakeLensStrict_BoolField(t *testing.T) {
 	same := enabledLens.Set(true)(config)
 	assert.Same(t, config, same)
 }
+
+func TestMakeLensRef_WithNilState(t *testing.T) {
+	// Test that MakeLensRef creates a total lens that works with nil pointers
+	nameLens := MakeLensRef(
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	// Test Get with nil - should handle gracefully
+	var nilStreet *Street = nil
+	name := nameLens.Get(nilStreet)
+	assert.Equal(t, "", name)
+
+	// Test Set with nil - should create a new object with zero values except the set field
+	updated := nameLens.Set("NewStreet")(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, "NewStreet", updated.name)
+	assert.Equal(t, 0, updated.num) // Zero value for int
+
+	// Verify original nil pointer is unchanged
+	assert.Nil(t, nilStreet)
+}
+
+func TestMakeLensRef_WithNilState_IntField(t *testing.T) {
+	// Test with an int field lens
+	numLens := MakeLensRef(
+		func(s *Street) int {
+			if s == nil {
+				return 0
+			}
+			return s.num
+		},
+		func(s *Street, num int) *Street {
+			s.num = num
+			return s
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// Get from nil should return zero value
+	num := numLens.Get(nilStreet)
+	assert.Equal(t, 0, num)
+
+	// Set on nil should create new object
+	updated := numLens.Set(42)(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, 42, updated.num)
+	assert.Equal(t, "", updated.name) // Zero value for string
+}
+
+func TestMakeLensRef_WithNilState_Composed(t *testing.T) {
+	// Test composed lenses with nil state
+	streetLens := MakeLensRef(
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		(*Street).SetName,
+	)
+
+	addrLens := MakeLensRef(
+		func(a *Address) *Street {
+			if a == nil {
+				return nil
+			}
+			return a.street
+		},
+		(*Address).SetStreet,
+	)
+
+	// Compose the lenses
+	streetName := ComposeRef[Address](streetLens)(addrLens)
+
+	var nilAddress *Address = nil
+
+	// Get from nil should handle gracefully
+	name := streetName.Get(nilAddress)
+	assert.Equal(t, "", name)
+
+	// Set on nil should create new nested structure
+	updated := streetName.Set("TestStreet")(nilAddress)
+	assert.NotNil(t, updated)
+	assert.NotNil(t, updated.street)
+	assert.Equal(t, "TestStreet", updated.street.name)
+	assert.Equal(t, "", updated.city) // Zero value for city
+}
+
+func TestMakeLensRefCurried_WithNilState(t *testing.T) {
+	// Test that MakeLensRefCurried creates a total lens that works with nil pointers
+	nameLens := MakeLensRefCurried(
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(name string) func(*Street) *Street {
+			return func(s *Street) *Street {
+				s.name = name
+				return s
+			}
+		},
+	)
+
+	// Test Get with nil
+	var nilStreet *Street = nil
+	name := nameLens.Get(nilStreet)
+	assert.Equal(t, "", name)
+
+	// Test Set with nil - should create a new object
+	updated := nameLens.Set("CurriedStreet")(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, "CurriedStreet", updated.name)
+	assert.Equal(t, 0, updated.num) // Zero value for int
+
+	// Verify original nil pointer is unchanged
+	assert.Nil(t, nilStreet)
+}
+
+func TestMakeLensRefCurried_WithNilState_IntField(t *testing.T) {
+	// Test with an int field lens using curried setter
+	numLens := MakeLensRefCurried(
+		func(s *Street) int {
+			if s == nil {
+				return 0
+			}
+			return s.num
+		},
+		func(num int) func(*Street) *Street {
+			return func(s *Street) *Street {
+				s.num = num
+				return s
+			}
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// Get from nil should return zero value
+	num := numLens.Get(nilStreet)
+	assert.Equal(t, 0, num)
+
+	// Set on nil should create new object
+	updated := numLens.Set(99)(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, 99, updated.num)
+	assert.Equal(t, "", updated.name) // Zero value for string
+}
+
+func TestMakeLensRefCurried_WithNilState_MultipleOperations(t *testing.T) {
+	// Test multiple operations on nil and non-nil states
+	nameLens := MakeLensRefCurried(
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(name string) func(*Street) *Street {
+			return func(s *Street) *Street {
+				s.name = name
+				return s
+			}
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// First operation on nil
+	street1 := nameLens.Set("First")(nilStreet)
+	assert.NotNil(t, street1)
+	assert.Equal(t, "First", street1.name)
+
+	// Second operation on non-nil result
+	street2 := nameLens.Set("Second")(street1)
+	assert.NotNil(t, street2)
+	assert.Equal(t, "Second", street2.name)
+	assert.Equal(t, "First", street1.name) // Original unchanged
+
+	// Third operation back to nil (edge case)
+	street3 := nameLens.Set("Third")(nilStreet)
+	assert.NotNil(t, street3)
+	assert.Equal(t, "Third", street3.name)
+}
+
+func TestMakeLensRef_WithNilState_NestedStructure(t *testing.T) {
+	// Test with nested structure where inner can be nil
+	innerLens := MakeLensRef(
+		func(o *Outer) *Inner {
+			if o == nil {
+				return nil
+			}
+			return o.inner
+		},
+		func(o *Outer, i *Inner) *Outer {
+			o.inner = i
+			return o
+		},
+	)
+
+	var nilOuter *Outer = nil
+
+	// Get from nil outer
+	inner := innerLens.Get(nilOuter)
+	assert.Nil(t, inner)
+
+	// Set on nil outer
+	newInner := &Inner{Value: 42, Foo: "test"}
+	updated := innerLens.Set(newInner)(nilOuter)
+	assert.NotNil(t, updated)
+	assert.Equal(t, newInner, updated.inner)
+}
+
+func TestMakeLensWithEq_WithNilState(t *testing.T) {
+	// Test that MakeLensWithEq creates a total lens that works with nil pointers
+	nameLens := MakeLensWithEq(
+		EQ.FromStrictEquals[string](),
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	// Test Get with nil - should handle gracefully
+	var nilStreet *Street = nil
+	name := nameLens.Get(nilStreet)
+	assert.Equal(t, "", name)
+
+	// Test Set with nil - should create a new object with zero values except the set field
+	updated := nameLens.Set("NewStreet")(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, "NewStreet", updated.name)
+	assert.Equal(t, 0, updated.num) // Zero value for int
+
+	// Verify original nil pointer is unchanged
+	assert.Nil(t, nilStreet)
+}
+
+func TestMakeLensWithEq_WithNilState_IntField(t *testing.T) {
+	// Test with an int field lens with equality optimization
+	numLens := MakeLensWithEq(
+		EQ.FromStrictEquals[int](),
+		func(s *Street) int {
+			if s == nil {
+				return 0
+			}
+			return s.num
+		},
+		func(s *Street, num int) *Street {
+			s.num = num
+			return s
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// Get from nil should return zero value
+	num := numLens.Get(nilStreet)
+	assert.Equal(t, 0, num)
+
+	// Set on nil should create new object
+	updated := numLens.Set(42)(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, 42, updated.num)
+	assert.Equal(t, "", updated.name) // Zero value for string
+}
+
+func TestMakeLensWithEq_WithNilState_EqualityOptimization(t *testing.T) {
+	// Test that equality optimization works with nil state
+	nameLens := MakeLensWithEq(
+		EQ.FromStrictEquals[string](),
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// Setting empty string on nil should return a new object with empty string
+	// (since the zero value equals the set value)
+	updated1 := nameLens.Set("")(nilStreet)
+	assert.NotNil(t, updated1)
+	assert.Equal(t, "", updated1.name)
+
+	// Setting the same empty string again should return the same pointer (optimization)
+	updated2 := nameLens.Set("")(updated1)
+	assert.Same(t, updated1, updated2)
+
+	// Setting a different value should create a new copy
+	updated3 := nameLens.Set("Different")(updated1)
+	assert.NotSame(t, updated1, updated3)
+	assert.Equal(t, "Different", updated3.name)
+	assert.Equal(t, "", updated1.name)
+}
+
+func TestMakeLensWithEq_WithNilState_CustomEq(t *testing.T) {
+	// Test with custom equality predicate on nil state
+	customEq := EQ.FromEquals(func(a, b string) bool {
+		return len(a) == len(b) && a == b
+	})
+
+	nameLens := MakeLensWithEq(
+		customEq,
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// Get from nil
+	name := nameLens.Get(nilStreet)
+	assert.Equal(t, "", name)
+
+	// Set on nil with non-empty string
+	updated := nameLens.Set("Test")(nilStreet)
+	assert.NotNil(t, updated)
+	assert.Equal(t, "Test", updated.name)
+
+	// Set same value should return same pointer
+	same := nameLens.Set("Test")(updated)
+	assert.Same(t, updated, same)
+}
+
+func TestMakeLensWithEq_WithNilState_MultipleOperations(t *testing.T) {
+	// Test multiple operations on nil and non-nil states with equality optimization
+	nameLens := MakeLensWithEq(
+		EQ.FromStrictEquals[string](),
+		func(s *Street) string {
+			if s == nil {
+				return ""
+			}
+			return s.name
+		},
+		func(s *Street, name string) *Street {
+			s.name = name
+			return s
+		},
+	)
+
+	var nilStreet *Street = nil
+
+	// First operation on nil
+	street1 := nameLens.Set("First")(nilStreet)
+	assert.NotNil(t, street1)
+	assert.Equal(t, "First", street1.name)
+
+	// Second operation with same value - should return same pointer
+	street2 := nameLens.Set("First")(street1)
+	assert.Same(t, street1, street2)
+
+	// Third operation with different value - should create new copy
+	street3 := nameLens.Set("Second")(street2)
+	assert.NotSame(t, street2, street3)
+	assert.Equal(t, "Second", street3.name)
+	assert.Equal(t, "First", street2.name)
+
+	// Fourth operation back to nil with zero value
+	street4 := nameLens.Set("")(nilStreet)
+	assert.NotNil(t, street4)
+	assert.Equal(t, "", street4.name)
+}

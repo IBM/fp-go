@@ -23,6 +23,7 @@ import (
 	"sync"
 	"text/template"
 
+	"github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/logging"
 )
 
@@ -99,7 +100,7 @@ func Printf[A any](prefix string) Kleisli[A, A] {
 // The template is compiled lazily using sync.Once to ensure it's only parsed once.
 // The function always returns the original value unchanged, making it suitable for
 // use with ChainFirst or similar operations.
-func handleLogging[A any](onSuccess func(string), onError func(error), prefix string) Kleisli[A, A] {
+func handleLoggingG(onSuccess func(string), onError func(error), prefix string) Kleisli[any, any] {
 	var tmp *template.Template
 	var err error
 	var once sync.Once
@@ -108,8 +109,8 @@ func handleLogging[A any](onSuccess func(string), onError func(error), prefix st
 		tmp, err = template.New("").Parse(prefix)
 	}
 
-	return func(a A) IO[A] {
-		return func() A {
+	return func(a any) IO[any] {
+		return func() any {
 			// make sure to compile lazily
 			once.Do(init)
 			if err == nil {
@@ -128,6 +129,28 @@ func handleLogging[A any](onSuccess func(string), onError func(error), prefix st
 			// in any case return the original value
 			return a
 		}
+	}
+}
+
+// handleLogging is a helper function that creates a Kleisli arrow for logging/printing
+// values using Go template syntax. It lazily compiles the template on first use and
+// executes it with the provided value as data.
+//
+// Parameters:
+//   - onSuccess: callback function to handle successfully formatted output
+//   - onError: callback function to handle template parsing or execution errors
+//   - prefix: Go template string to format the value
+//
+// The template is compiled lazily using sync.Once to ensure it's only parsed once.
+// The function always returns the original value unchanged, making it suitable for
+// use with ChainFirst or similar operations.
+func handleLogging[A any](onSuccess func(string), onError func(error), prefix string) Kleisli[A, A] {
+	generic := handleLoggingG(onSuccess, onError, prefix)
+	return func(a A) IO[A] {
+		return function.Pipe1(
+			generic(a),
+			MapTo[any](a),
+		)
 	}
 }
 

@@ -18,6 +18,7 @@ package readerioresult
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -56,4 +57,23 @@ func TestChainReaderK(t *testing.T) {
 	)
 
 	assert.Equal(t, result.Of("1"), g(context.Background())())
+}
+
+func TestTapReaderIOK(t *testing.T) {
+
+	rdr := Of[int]("TestTapReaderIOK")
+
+	x := F.Pipe1(
+		rdr,
+		TapReaderIOK(func(a string) ReaderIO[int, any] {
+			return func(ctx int) IO[any] {
+				return func() any {
+					log.Printf("Context: %d, Value: %s", ctx, a)
+					return nil
+				}
+			}
+		}),
+	)
+
+	x(10)()
 }

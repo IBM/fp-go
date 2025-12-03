@@ -27,14 +27,28 @@ import (
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
 func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
-	return func(s *S, a A) *S {
+
+	var empty S
+	safeSet := func(s *S, a A) *S {
+		// make sure we have a total implementation
 		cpy := *s
 		return setter(&cpy, a)
+	}
+
+	return func(s *S, a A) *S {
+		// make sure we have a total implementation
+		if s != nil {
+			return safeSet(s, a)
+		}
+		// fallback to the empty object
+		return safeSet(&empty, a)
 	}
 }
 
 func setCopyWithEq[GET ~func(*S) A, SET ~func(*S, A) *S, S, A any](pred EQ.Eq[A], getter GET, setter SET) func(s *S, a A) *S {
-	return func(s *S, a A) *S {
+
+	var empty S
+	safeSet := func(s *S, a A) *S {
 		if pred.Equals(getter(s), a) {
 			return s
 		}
@@ -42,16 +56,38 @@ func setCopyWithEq[GET ~func(*S) A, SET ~func(*S, A) *S, S, A any](pred EQ.Eq[A]
 		cpy := *s
 		return setter(&cpy, a)
 	}
+
+	return func(s *S, a A) *S {
+		// make sure we have a total implementation
+		if s != nil {
+			return safeSet(s, a)
+		}
+		// fallback to the empty object
+		return safeSet(&empty, a)
+	}
 }
 
 // setCopyCurried wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
 func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(A) Endomorphism[*S] {
+	var empty S
+
 	return func(a A) Endomorphism[*S] {
 		seta := setter(a)
-		return func(s *S) *S {
+
+		safeSet := func(s *S) *S {
+			// make sure we have a total implementation
 			cpy := *s
 			return seta(&cpy)
+		}
+
+		return func(s *S) *S {
+			// make sure we have a total implementation
+			if s != nil {
+				return safeSet(s)
+			}
+			// fallback to the empty object
+			return safeSet(&empty)
 		}
 	}
 }
@@ -442,6 +478,8 @@ func compose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](creator func(g
 //	person := Person{Name: "Alice", Address: Address{Street: "Main St"}}
 //	street := personStreetLens.Get(person)  // "Main St"
 //	updated := personStreetLens.Set("Oak Ave")(person)
+//
+//go:inline
 func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 	return compose(MakeLensCurried[func(S) B, func(B) func(S) S], ab)
 }
