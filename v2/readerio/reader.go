@@ -13,6 +13,82 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package readerio provides the ReaderIO monad, which combines the Reader and IO monads.
+//
+// ReaderIO[R, A] represents a computation that:
+//   - Requires an environment of type R (Reader aspect)
+//   - Performs side effects (IO aspect)
+//   - Produces a value of type A
+//
+// This monad is particularly useful for dependency injection patterns and logging scenarios,
+// where you need to:
+//   - Access configuration or context throughout your application
+//   - Perform side effects like logging, file I/O, or network calls
+//   - Maintain functional composition and testability
+//
+// # Logging Use Case
+//
+// ReaderIO is especially well-suited for logging because it allows you to:
+//   - Pass a logger through your computation chain without explicit parameter threading
+//   - Compose logging operations with other side effects
+//   - Test logging behavior by providing mock loggers in the environment
+//
+// Key functions for logging scenarios:
+//   - [Ask]: Retrieve the entire environment (e.g., a logger instance)
+//   - [Asks]: Extract a specific value from the environment (e.g., logger.Info method)
+//   - [ChainIOK]: Chain logging operations that return IO effects
+//   - [MonadChain]: Sequence multiple logging and computation steps
+//
+// Example logging usage:
+//
+//	type Env struct {
+//	    Logger *log.Logger
+//	}
+//
+//	// Log a message using the environment's logger
+//	logInfo := func(msg string) readerio.ReaderIO[Env, func()] {
+//	    return readerio.Asks(func(env Env) io.IO[func()] {
+//	        return io.Of(func() { env.Logger.Println(msg) })
+//	    })
+//	}
+//
+//	// Compose logging with computation
+//	computation := F.Pipe3(
+//	    readerio.Of[Env](42),
+//	    readerio.Chain(func(n int) readerio.ReaderIO[Env, int] {
+//	        return F.Pipe1(
+//	            logInfo(fmt.Sprintf("Processing: %d", n)),
+//	            readerio.Map[Env](func(func()) int { return n * 2 }),
+//	        )
+//	    }),
+//	    readerio.ChainIOK(func(result int) io.IO[int] {
+//	        return io.Of(result)
+//	    }),
+//	)
+//
+//	// Execute with environment
+//	env := Env{Logger: log.New(os.Stdout, "APP: ", log.LstdFlags)}
+//	result := computation(env)() // Logs "Processing: 42" and returns 84
+//
+// # Core Operations
+//
+// The package provides standard monadic operations:
+//   - [Of]: Lift a pure value into ReaderIO
+//   - [Map]: Transform the result value
+//   - [Chain]: Sequence dependent computations
+//   - [Ap]: Apply a function in ReaderIO context
+//
+// # Integration
+//
+// Convert between different contexts:
+//   - [FromIO]: Lift an IO action into ReaderIO
+//   - [FromReader]: Lift a Reader into ReaderIO
+//   - [ChainIOK]: Chain with IO-returning functions
+//
+// # Performance
+//
+//   - [Memoize]: Cache computation results (use with caution for context-dependent values)
+//   - [Defer]: Ensure fresh computation on each execution
 package readerio
 
 import (
