@@ -15,7 +15,9 @@
 
 package retry
 
-import "github.com/IBM/fp-go/v2/option"
+import (
+	"github.com/IBM/fp-go/v2/option"
+)
 
 type (
 	Option[A any] = option.Option[A]

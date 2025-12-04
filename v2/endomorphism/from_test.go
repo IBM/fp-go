@@ -437,5 +437,3 @@ func BenchmarkFromSemigroupComposition(b *testing.B) {
 		_ = composed(3)
 	}
 }
-
-// Made with Bob

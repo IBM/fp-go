@@ -233,5 +233,3 @@ func doSomethingSuccessful() error {
 func doSomethingThatFails() error {
 	return errors.New("operation failed")
 }
-
-// Made with Bob

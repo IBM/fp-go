@@ -89,7 +89,7 @@ func GetOrElse[GEA ~func(E) O.Option[A], GA ~func(E) A, E, A any](onNone func() 
 	return optiont.GetOrElse(R.Chain[GEA, GA, E, O.Option[A], A], onNone, R.Of[GA, E, A])
 }
 
-func Ask[GEE ~func(E) O.Option[E], E, L any]() GEE {
+func Ask[GEE ~func(E) O.Option[E], E any]() GEE {
 	return FR.Ask(FromReader[func(E) E, GEE, E, E])()
 }
 
