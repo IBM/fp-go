@@ -363,5 +363,3 @@ func TestPrintGoWithEmptyTemplate(t *testing.T) {
 
 	assert.Equal(t, "test", result)
 }
-
-// Made with Bob

@@ -24,6 +24,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/pair"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
@@ -158,8 +159,9 @@ func TestWithTime(t *testing.T) {
 	result := WithTime(Of(42))
 	tuple := result()
 
-	assert.Equal(t, 42, tuple.F1)
-	assert.True(t, tuple.F2.Before(tuple.F3) || tuple.F2.Equal(tuple.F3))
+	assert.Equal(t, 42, pair.Tail(tuple))
+	rg := pair.Head(tuple)
+	assert.True(t, pair.Head(rg).Before(pair.Tail(rg)) || pair.Head(rg).Equal(pair.Tail(rg)))
 }
 
 // Test WithDuration
@@ -170,8 +172,8 @@ func TestWithDuration(t *testing.T) {
 	})
 	tuple := result()
 
-	assert.Equal(t, 42, tuple.F1)
-	assert.True(t, tuple.F2 >= 10*time.Millisecond)
+	assert.Equal(t, 42, pair.Tail(tuple))
+	assert.True(t, pair.Head(tuple) >= 10*time.Millisecond)
 }
 
 // Test Let

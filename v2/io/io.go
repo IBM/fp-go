@@ -23,10 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	INTL "github.com/IBM/fp-go/v2/internal/lazy"
-	M "github.com/IBM/fp-go/v2/monoid"
-	R "github.com/IBM/fp-go/v2/reader"
-	S "github.com/IBM/fp-go/v2/semigroup"
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 const (
@@ -37,17 +34,6 @@ const (
 var (
 	// undefined represents an undefined value
 	undefined = struct{}{}
-)
-
-type (
-	// IO represents a synchronous computation that cannot fail
-	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioltagt] for more details
-	IO[A any] = func() A
-
-	Kleisli[A, B any]  = R.Reader[A, IO[B]]
-	Operator[A, B any] = Kleisli[IO[A], B]
-	Monoid[A any]      = M.Monoid[IO[A]]
-	Semigroup[A any]   = S.Semigroup[IO[A]]
 )
 
 // Of wraps a pure value in an IO context, creating a computation that returns that value.
@@ -358,34 +344,45 @@ func After[A any](timestamp time.Time) Operator[A, A] {
 }
 
 // WithTime returns an IO that measures the start and end time.Time of the operation.
-// Returns a tuple containing the result, start time, and end time.
+// Returns a Pair[Pair[time.Time, time.Time], A] where the head contains a nested pair of
+// (start time, end time) and the tail contains the result. The result is placed in the tail
+// position because that is the value that the pair monad operates on, allowing monadic
+// operations to transform the result while preserving the timing information.
 //
 // Example:
 //
 //	timed := io.WithTime(expensiveComputation)
-//	result, start, end := timed()
-func WithTime[A any](a IO[A]) IO[T.Tuple3[A, time.Time, time.Time]] {
-	return func() T.Tuple3[A, time.Time, time.Time] {
+//	p := timed()
+//	times := pair.Head(p)      // Pair[time.Time, time.Time]
+//	result := pair.Tail(p)     // A
+//	start := pair.Head(times)  // time.Time
+//	end := pair.Tail(times)    // time.Time
+func WithTime[A any](a IO[A]) IO[Pair[Pair[time.Time, time.Time], A]] {
+	return func() Pair[Pair[time.Time, time.Time], A] {
 		t0 := time.Now()
 		res := a()
 		t1 := time.Now()
-		return T.MakeTuple3(res, t0, t1)
+		return pair.MakePair(pair.MakePair(t0, t1), res)
 	}
 }
 
 // WithDuration returns an IO that measures the execution time.Duration of the operation.
-// Returns a tuple containing the result and the duration.
+// Returns a Pair with the duration as the head and the result as the tail.
+// The result is placed in the tail position because that is the value that the pair monad
+// operates on, allowing monadic operations to transform the result while preserving the duration.
 //
 // Example:
 //
 //	timed := io.WithDuration(expensiveComputation)
-//	result, duration := timed()
+//	p := timed()
+//	duration := pair.Head(p)
+//	result := pair.Tail(p)
 //	fmt.Printf("Took %v\n", duration)
-func WithDuration[A any](a IO[A]) IO[T.Tuple2[A, time.Duration]] {
-	return func() T.Tuple2[A, time.Duration] {
+func WithDuration[A any](a IO[A]) IO[Pair[time.Duration, A]] {
+	return func() Pair[time.Duration, A] {
 		t0 := time.Now()
 		res := a()
 		t1 := time.Now()
-		return T.MakeTuple2(res, t1.Sub(t0))
+		return pair.MakePair(t1.Sub(t0), res)
 	}
 }

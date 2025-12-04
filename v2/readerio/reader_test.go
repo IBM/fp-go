@@ -302,4 +302,264 @@ func TestFromReaderWithMap(t *testing.T) {
 	assert.Equal(t, "original modified", result(config)())
 }
 
-// Made with Bob
+func TestMonadMapTo(t *testing.T) {
+	rio := Of[ReaderTestConfig](42)
+	replaced := MonadMapTo(rio, "constant")
+
+	config := ReaderTestConfig{Value: 10, Name: "test"}
+	result := replaced(config)()
+
+	assert.Equal(t, "constant", result)
+}
+
+func TestMapTo(t *testing.T) {
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		MapTo[ReaderTestConfig, int]("constant"),
+	)
+
+	config := ReaderTestConfig{Value: 10, Name: "test"}
+	assert.Equal(t, "constant", result(config)())
+}
+
+func TestMonadChainFirst(t *testing.T) {
+	sideEffect := 0
+	rio := Of[ReaderTestConfig](42)
+	result := MonadChainFirst(rio, func(n int) ReaderIO[ReaderTestConfig, string] {
+		sideEffect = n
+		return Of[ReaderTestConfig]("side effect")
+	})
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirst(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		ChainFirst(func(n int) ReaderIO[ReaderTestConfig, string] {
+			sideEffect = n
+			return Of[ReaderTestConfig]("side effect")
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTap(t *testing.T) {
+	sideEffect := 0
+	rio := Of[ReaderTestConfig](42)
+	result := MonadTap(rio, func(n int) ReaderIO[ReaderTestConfig, func()] {
+		sideEffect = n
+		return Of[ReaderTestConfig](func() {})
+	})
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestTap(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		Tap(func(n int) ReaderIO[ReaderTestConfig, func()] {
+			sideEffect = n
+			return Of[ReaderTestConfig](func() {})
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainFirstIOK(t *testing.T) {
+	sideEffect := 0
+	rio := Of[ReaderTestConfig](42)
+	result := MonadChainFirstIOK(rio, func(n int) G.IO[string] {
+		sideEffect = n
+		return G.Of("side effect")
+	})
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirstIOK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		ChainFirstIOK[ReaderTestConfig, int, string](func(n int) G.IO[string] {
+			sideEffect = n
+			return G.Of("side effect")
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapIOK(t *testing.T) {
+	sideEffect := 0
+	rio := Of[ReaderTestConfig](42)
+	result := MonadTapIOK(rio, func(n int) G.IO[func()] {
+		sideEffect = n
+		return G.Of(func() {})
+	})
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestTapIOK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		TapIOK[ReaderTestConfig, int, func()](func(n int) G.IO[func()] {
+			sideEffect = n
+			return G.Of(func() {})
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainReaderK(t *testing.T) {
+	rio := Of[ReaderTestConfig](5)
+	result := MonadChainReaderK(rio, func(n int) func(ReaderTestConfig) int {
+		return func(c ReaderTestConfig) int { return n + c.Value }
+	})
+
+	config := ReaderTestConfig{Value: 10, Name: "test"}
+	assert.Equal(t, 15, result(config)())
+}
+
+func TestChainReaderK(t *testing.T) {
+	result := F.Pipe1(
+		Of[ReaderTestConfig](5),
+		ChainReaderK(func(n int) func(ReaderTestConfig) int {
+			return func(c ReaderTestConfig) int { return n + c.Value }
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 10, Name: "test"}
+	assert.Equal(t, 15, result(config)())
+}
+
+func TestMonadChainFirstReaderK(t *testing.T) {
+	sideEffect := 0
+	rio := Of[ReaderTestConfig](42)
+	result := MonadChainFirstReaderK(rio, func(n int) func(ReaderTestConfig) string {
+		return func(c ReaderTestConfig) string {
+			sideEffect = n
+			return "side effect"
+		}
+	})
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirstReaderK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		ChainFirstReaderK(func(n int) func(ReaderTestConfig) string {
+			return func(c ReaderTestConfig) string {
+				sideEffect = n
+				return "side effect"
+			}
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapReaderK(t *testing.T) {
+	sideEffect := 0
+	rio := Of[ReaderTestConfig](42)
+	result := MonadTapReaderK(rio, func(n int) func(ReaderTestConfig) func() {
+		return func(c ReaderTestConfig) func() {
+			sideEffect = n
+			return func() {}
+		}
+	})
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestTapReaderK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of[ReaderTestConfig](42),
+		TapReaderK(func(n int) func(ReaderTestConfig) func() {
+			return func(c ReaderTestConfig) func() {
+				sideEffect = n
+				return func() {}
+			}
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestRead(t *testing.T) {
+	rio := Of[ReaderTestConfig](42)
+	config := ReaderTestConfig{Value: 10, Name: "test"}
+	ioAction := Read[int](config)(rio)
+	result := ioAction()
+
+	assert.Equal(t, 42, result)
+}
+
+func TestTapWithLogging(t *testing.T) {
+	// Simulate logging scenario
+	logged := []int{}
+
+	result := F.Pipe3(
+		Of[ReaderTestConfig](42),
+		Tap(func(n int) ReaderIO[ReaderTestConfig, func()] {
+			logged = append(logged, n)
+			return Of[ReaderTestConfig](func() {})
+		}),
+		Map[ReaderTestConfig](func(n int) int { return n * 2 }),
+		Tap(func(n int) ReaderIO[ReaderTestConfig, func()] {
+			logged = append(logged, n)
+			return Of[ReaderTestConfig](func() {})
+		}),
+	)
+
+	config := ReaderTestConfig{Value: 1, Name: "test"}
+	value := result(config)()
+	assert.Equal(t, 84, value)
+	assert.Equal(t, []int{42, 84}, logged)
+}

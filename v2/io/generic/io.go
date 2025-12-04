@@ -22,6 +22,7 @@ import (
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
 	L "github.com/IBM/fp-go/v2/internal/lazy"
+	P "github.com/IBM/fp-go/v2/pair"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
 
@@ -197,11 +198,11 @@ func WithTime[GTA ~func() T.Tuple3[A, time.Time, time.Time], GA ~func() A, A any
 }
 
 // WithDuration returns an operation that measures the duration of the operation
-func WithDuration[GTA ~func() T.Tuple2[A, time.Duration], GA ~func() A, A any](a GA) GTA {
-	return MakeIO[GTA](func() T.Tuple2[A, time.Duration] {
+func WithDuration[GTA ~func() P.Pair[time.Duration, A], GA ~func() A, A any](a GA) GTA {
+	return MakeIO[GTA](func() P.Pair[time.Duration, A] {
 		t0 := time.Now()
 		res := a()
 		t1 := time.Now()
-		return T.MakeTuple2(res, t1.Sub(t0))
+		return P.MakePair(t1.Sub(t0), res)
 	})
 }

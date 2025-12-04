@@ -95,6 +95,7 @@ import (
 	"sync"
 
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/fromio"
 	"github.com/IBM/fp-go/v2/internal/fromreader"
 	"github.com/IBM/fp-go/v2/internal/functor"
@@ -171,6 +172,30 @@ func MonadMap[R, A, B any](fa ReaderIO[R, A], f func(A) B) ReaderIO[R, B] {
 	return readert.MonadMap[ReaderIO[R, A], ReaderIO[R, B]](io.MonadMap[A, B], fa, f)
 }
 
+// MonadMapTo replaces the value inside a ReaderIO with a constant value.
+// This is useful when you want to discard the result of a computation but keep its effects.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input value type (discarded)
+//   - B: Output value type
+//
+// Parameters:
+//   - fa: The ReaderIO whose value will be replaced
+//   - b: The constant value to use
+//
+// Returns:
+//   - A new ReaderIO with the constant value
+//
+// Example:
+//
+//	rio := readerio.Of[Config](42)
+//	replaced := readerio.MonadMapTo(rio, "constant")
+//	result := replaced(config)() // Returns "constant"
+func MonadMapTo[R, A, B any](fa ReaderIO[R, A], b B) ReaderIO[R, B] {
+	return MonadMap(fa, function.Constant1[A](b))
+}
+
 // Map creates a function that applies a transformation to a ReaderIO value.
 // This is the curried version suitable for use in pipelines.
 //
@@ -195,6 +220,30 @@ func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
 	return readert.Map[ReaderIO[R, A], ReaderIO[R, B]](io.Map[A, B], f)
 }
 
+// MapTo creates a function that replaces a ReaderIO value with a constant.
+// This is the curried version of [MonadMapTo], suitable for use in pipelines.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input value type (discarded)
+//   - B: Output value type
+//
+// Parameters:
+//   - b: The constant value to use
+//
+// Returns:
+//   - An Operator that replaces ReaderIO values with the constant
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.MapTo[Config, int]("constant"),
+//	)(config)() // Returns "constant"
+func MapTo[R, A, B any](b B) Operator[R, A, B] {
+	return Map[R](function.Constant1[A](b))
+}
+
 // MonadChain sequences two ReaderIO computations, where the second depends on the result of the first.
 // This is the monadic bind operation for ReaderIO.
 //
@@ -216,8 +265,68 @@ func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
 //	result := readerio.MonadChain(rio1, func(n int) readerio.ReaderIO[Config, int] {
 //	    return readerio.Of[Config](n * 2)
 //	})
-func MonadChain[R, A, B any](ma ReaderIO[R, A], f func(A) ReaderIO[R, B]) ReaderIO[R, B] {
+func MonadChain[R, A, B any](ma ReaderIO[R, A], f Kleisli[R, A, B]) ReaderIO[R, B] {
 	return readert.MonadChain(io.MonadChain[A, B], ma, f)
+}
+
+// MonadChainFirst sequences two ReaderIO computations but returns the result of the first.
+// The second computation is executed for its side effects only (e.g., logging, validation).
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Intermediate value type (discarded)
+//
+// Parameters:
+//   - ma: The first ReaderIO computation
+//   - f: Function that produces the second ReaderIO (for side effects)
+//
+// Returns:
+//   - A ReaderIO with the result of the first computation
+//
+// Example:
+//
+//	rio := readerio.Of[Config](42)
+//	result := readerio.MonadChainFirst(rio, func(n int) readerio.ReaderIO[Config, string] {
+//	    // Log the value but don't change the result
+//	    return readerio.Of[Config](fmt.Sprintf("Logged: %d", n))
+//	})
+//	value := result(config)() // Returns 42, but logging happened
+func MonadChainFirst[R, A, B any](ma ReaderIO[R, A], f Kleisli[R, A, B]) ReaderIO[R, A] {
+	return chain.MonadChainFirst(
+		MonadChain,
+		MonadMap,
+		ma,
+		f,
+	)
+}
+
+// MonadTap executes a side-effect computation but returns the original value.
+// This is an alias for [MonadChainFirst] and is useful for operations like logging
+// or validation that should not affect the main computation flow.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Side effect value type (discarded)
+//
+// Parameters:
+//   - ma: The ReaderIO to tap
+//   - f: Function that produces a side-effect ReaderIO
+//
+// Returns:
+//   - A ReaderIO with the original value after executing the side effect
+//
+// Example:
+//
+//	result := readerio.MonadTap(
+//	    readerio.Of[Config](42),
+//	    func(n int) readerio.ReaderIO[Config, func()] {
+//	        return readerio.FromIO[Config](io.Of(func() { fmt.Println(n) }))
+//	    },
+//	)
+func MonadTap[R, A, B any](ma ReaderIO[R, A], f Kleisli[R, A, B]) ReaderIO[R, A] {
+	return MonadChainFirst(ma, f)
 }
 
 // Chain creates a function that sequences ReaderIO computations.
@@ -242,8 +351,64 @@ func MonadChain[R, A, B any](ma ReaderIO[R, A], f func(A) ReaderIO[R, B]) Reader
 //	        return readerio.Of[Config](n * 2)
 //	    }),
 //	)(config)() // Returns 10
-func Chain[R, A, B any](f func(A) ReaderIO[R, B]) Operator[R, A, B] {
+func Chain[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, B] {
 	return readert.Chain[ReaderIO[R, A]](io.Chain[A, B], f)
+}
+
+// ChainFirst creates a function that sequences ReaderIO computations but returns the first result.
+// This is the curried version of [MonadChainFirst], suitable for use in pipelines.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Intermediate value type (discarded)
+//
+// Parameters:
+//   - f: Function that produces a side-effect ReaderIO
+//
+// Returns:
+//   - An Operator that sequences computations while preserving the original value
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.ChainFirst(func(n int) readerio.ReaderIO[Config, string] {
+//	        return readerio.Of[Config](fmt.Sprintf("Logged: %d", n))
+//	    }),
+//	)(config)() // Returns 42
+func ChainFirst[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, A] {
+	return chain.ChainFirst(
+		Chain[R, A, A],
+		Map[R, B, A],
+		f,
+	)
+}
+
+// Tap creates a function that executes a side-effect computation but returns the original value.
+// This is the curried version of [MonadTap], an alias for [ChainFirst].
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Side effect value type (discarded)
+//
+// Parameters:
+//   - f: Function that produces a side-effect ReaderIO
+//
+// Returns:
+//   - An Operator that taps ReaderIO computations
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.Tap(func(n int) readerio.ReaderIO[Config, func()] {
+//	        return readerio.FromIO[Config](io.Of(func() { fmt.Println(n) }))
+//	    }),
+//	)(config)() // Returns 42, prints 42
+func Tap[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, A] {
+	return ChainFirst(f)
 }
 
 // Of creates a ReaderIO that returns a pure value, ignoring the environment.
@@ -285,6 +450,7 @@ func Of[R, A any](a A) ReaderIO[R, A] {
 // Example:
 //
 //	fabIO := readerio.Of[Config](func(n int) int { return n * 2 })
+//
 //	faIO := readerio.Of[Config](5)
 //	result := readerio.MonadAp(fabIO, faIO)(config)() // Returns 10
 func MonadAp[B, R, A any](fab ReaderIO[R, func(A) B], fa ReaderIO[R, A]) ReaderIO[R, B] {
@@ -413,12 +579,70 @@ func Asks[R, A any](r Reader[R, A]) ReaderIO[R, A] {
 //	result := readerio.MonadChainIOK(rio, func(n int) io.IO[int] {
 //	    return io.Of(n * 2)
 //	})
-func MonadChainIOK[R, A, B any](ma ReaderIO[R, A], f func(A) IO[B]) ReaderIO[R, B] {
+func MonadChainIOK[R, A, B any](ma ReaderIO[R, A], f io.Kleisli[A, B]) ReaderIO[R, B] {
 	return fromio.MonadChainIOK(
 		MonadChain[R, A, B],
 		FromIO[R, B],
 		ma, f,
 	)
+}
+
+// MonadChainFirstIOK chains a ReaderIO with an IO-returning function but keeps the original value.
+// The IO computation is executed for its side effects only.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: IO result type (discarded)
+//
+// Parameters:
+//   - ma: The ReaderIO computation
+//   - f: Function that takes a value and returns an IO
+//
+// Returns:
+//   - A ReaderIO with the original value after executing the IO
+//
+// Example:
+//
+//	rio := readerio.Of[Config](42)
+//	result := readerio.MonadChainFirstIOK(rio, func(n int) io.IO[string] {
+//	    return io.Of(fmt.Sprintf("Logged: %d", n))
+//	})
+//	value := result(config)() // Returns 42
+func MonadChainFirstIOK[R, A, B any](ma ReaderIO[R, A], f io.Kleisli[A, B]) ReaderIO[R, A] {
+	return fromio.MonadChainFirstIOK(
+		MonadChain[R, A, A],
+		MonadMap[R, B, A],
+		FromIO[R, B],
+		ma, f,
+	)
+}
+
+// MonadTapIOK chains a ReaderIO with an IO-returning function but keeps the original value.
+// This is an alias for [MonadChainFirstIOK] and is useful for side effects like logging.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: IO result type (discarded)
+//
+// Parameters:
+//   - ma: The ReaderIO to tap
+//   - f: Function that takes a value and returns an IO for side effects
+//
+// Returns:
+//   - A ReaderIO with the original value after executing the IO
+//
+// Example:
+//
+//	result := readerio.MonadTapIOK(
+//	    readerio.Of[Config](42),
+//	    func(n int) io.IO[func()] {
+//	        return io.Of(func() { fmt.Println(n) })
+//	    },
+//	)
+func MonadTapIOK[R, A, B any](ma ReaderIO[R, A], f io.Kleisli[A, B]) ReaderIO[R, A] {
+	return MonadChainFirstIOK(ma, f)
 }
 
 // ChainIOK creates a function that chains a ReaderIO with an IO operation.
@@ -443,12 +667,69 @@ func MonadChainIOK[R, A, B any](ma ReaderIO[R, A], f func(A) IO[B]) ReaderIO[R, 
 //	        return io.Of(n * 2)
 //	    }),
 //	)(config)() // Returns 10
-func ChainIOK[R, A, B any](f func(A) IO[B]) Operator[R, A, B] {
+func ChainIOK[R, A, B any](f io.Kleisli[A, B]) Operator[R, A, B] {
 	return fromio.ChainIOK(
 		Chain[R, A, B],
 		FromIO[R, B],
 		f,
 	)
+}
+
+// ChainFirstIOK creates a function that chains a ReaderIO with an IO operation but keeps the original value.
+// This is the curried version of [MonadChainFirstIOK], suitable for use in pipelines.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: IO result type (discarded)
+//
+// Parameters:
+//   - f: Function that takes a value and returns an IO
+//
+// Returns:
+//   - An Operator that chains with IO while preserving the original value
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.ChainFirstIOK(func(n int) io.IO[string] {
+//	        return io.Of(fmt.Sprintf("Logged: %d", n))
+//	    }),
+//	)(config)() // Returns 42
+func ChainFirstIOK[R, A, B any](f io.Kleisli[A, B]) Operator[R, A, A] {
+	return fromio.ChainFirstIOK(
+		Chain[R, A, A],
+		Map[R, B, A],
+		FromIO[R, B],
+		f,
+	)
+}
+
+// TapIOK creates a function that chains a ReaderIO with an IO operation but keeps the original value.
+// This is the curried version of [MonadTapIOK], an alias for [ChainFirstIOK].
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: IO result type (discarded)
+//
+// Parameters:
+//   - f: Function that takes a value and returns an IO for side effects
+//
+// Returns:
+//   - An Operator that taps with IO-returning functions
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.TapIOK(func(n int) io.IO[func()] {
+//	        return io.Of(func() { fmt.Println(n) })
+//	    }),
+//	)(config)() // Returns 42, prints 42
+func TapIOK[R, A, B any](f io.Kleisli[A, B]) Operator[R, A, A] {
+	return ChainFirstIOK[R](f)
 }
 
 // Defer creates a ReaderIO by calling a generator function each time it's executed.
@@ -567,7 +848,7 @@ func Flatten[R, A any](mma ReaderIO[R, ReaderIO[R, A]]) ReaderIO[R, A] {
 //
 //	fabIO := readerio.Of[Config](func(n int) int { return n * 2 })
 //	result := readerio.MonadFlap(fabIO, 5)(config)() // Returns 10
-func MonadFlap[R, A, B any](fab ReaderIO[R, func(A) B], a A) ReaderIO[R, B] {
+func MonadFlap[R, B, A any](fab ReaderIO[R, func(A) B], a A) ReaderIO[R, B] {
 	return functor.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
 }
 
@@ -591,6 +872,221 @@ func MonadFlap[R, A, B any](fab ReaderIO[R, func(A) B], a A) ReaderIO[R, B] {
 //	    readerio.Of[Config](func(n int) int { return n * 2 }),
 //	    readerio.Flap[Config](5),
 //	)(config)() // Returns 10
-func Flap[R, A, B any](a A) Operator[R, func(A) B, B] {
+//
+//go:inline
+func Flap[R, B, A any](a A) Operator[R, func(A) B, B] {
 	return functor.Flap(Map[R, func(A) B, B], a)
+}
+
+// MonadChainReaderK chains a ReaderIO with a function that returns a Reader.
+// The Reader is lifted into the ReaderIO context, allowing composition of
+// Reader and ReaderIO operations.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input value type
+//   - B: Output value type
+//
+// Parameters:
+//   - ma: The ReaderIO to chain from
+//   - f: Function that produces a Reader
+//
+// Returns:
+//   - A new ReaderIO with the chained Reader computation
+//
+// Example:
+//
+//	rio := readerio.Of[Config](5)
+//	result := readerio.MonadChainReaderK(rio, func(n int) reader.Reader[Config, int] {
+//	    return func(c Config) int { return n + c.Value }
+//	})
+//
+//go:inline
+func MonadChainReaderK[R, A, B any](ma ReaderIO[R, A], f reader.Kleisli[R, A, B]) ReaderIO[R, B] {
+	return fromreader.MonadChainReaderK(
+		MonadChain,
+		FromReader,
+		ma,
+		f,
+	)
+}
+
+// ChainReaderK creates a function that chains a ReaderIO with a Reader-returning function.
+// This is the curried version of [MonadChainReaderK], suitable for use in pipelines.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input value type
+//   - B: Output value type
+//
+// Parameters:
+//   - f: Function that produces a Reader
+//
+// Returns:
+//   - An Operator that chains Reader-returning functions
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](5),
+//	    readerio.ChainReaderK(func(n int) reader.Reader[Config, int] {
+//	        return func(c Config) int { return n + c.Value }
+//	    }),
+//	)(config)()
+//
+//go:inline
+func ChainReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, B] {
+	return fromreader.ChainReaderK(
+		Chain,
+		FromReader,
+		f,
+	)
+}
+
+// MonadChainFirstReaderK chains a function that returns a Reader but keeps the original value.
+// The Reader computation is executed for its side effects only.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Reader result type (discarded)
+//
+// Parameters:
+//   - ma: The ReaderIO to chain from
+//   - f: Function that produces a Reader
+//
+// Returns:
+//   - A ReaderIO with the original value after executing the Reader
+//
+// Example:
+//
+//	rio := readerio.Of[Config](42)
+//	result := readerio.MonadChainFirstReaderK(rio, func(n int) reader.Reader[Config, string] {
+//	    return func(c Config) string { return fmt.Sprintf("Logged: %d", n) }
+//	})
+//	value := result(config)() // Returns 42
+//
+//go:inline
+func MonadChainFirstReaderK[R, A, B any](ma ReaderIO[R, A], f reader.Kleisli[R, A, B]) ReaderIO[R, A] {
+	return fromreader.MonadChainFirstReaderK(
+		MonadChainFirst[R, A, B],
+		FromReader[R, B],
+		ma,
+		f,
+	)
+}
+
+// ChainFirstReaderK creates a function that chains a Reader but keeps the original value.
+// This is the curried version of [MonadChainFirstReaderK], suitable for use in pipelines.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Reader result type (discarded)
+//
+// Parameters:
+//   - f: Function that produces a Reader
+//
+// Returns:
+//   - An Operator that chains Reader-returning functions while preserving the original value
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.ChainFirstReaderK(func(n int) reader.Reader[Config, string] {
+//	        return func(c Config) string { return fmt.Sprintf("Logged: %d", n) }
+//	    }),
+//	)(config)() // Returns 42
+//
+//go:inline
+func ChainFirstReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
+	return fromreader.ChainFirstReaderK(
+		ChainFirst[R, A, B],
+		FromReader[R, B],
+		f,
+	)
+}
+
+// MonadTapReaderK chains a function that returns a Reader but keeps the original value.
+// This is an alias for [MonadChainFirstReaderK] and is useful for side effects.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Reader result type (discarded)
+//
+// Parameters:
+//   - ma: The ReaderIO to tap
+//   - f: Function that produces a Reader for side effects
+//
+// Returns:
+//   - A ReaderIO with the original value after executing the Reader
+//
+// Example:
+//
+//	result := readerio.MonadTapReaderK(
+//	    readerio.Of[Config](42),
+//	    func(n int) reader.Reader[Config, func()] {
+//	        return func(c Config) func() { return func() { fmt.Println(n) } }
+//	    },
+//	)
+//
+//go:inline
+func MonadTapReaderK[R, A, B any](ma ReaderIO[R, A], f reader.Kleisli[R, A, B]) ReaderIO[R, A] {
+	return MonadChainFirstReaderK(ma, f)
+}
+
+// TapReaderK creates a function that chains a Reader but keeps the original value.
+// This is the curried version of [MonadTapReaderK], an alias for [ChainFirstReaderK].
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Input and output value type
+//   - B: Reader result type (discarded)
+//
+// Parameters:
+//   - f: Function that produces a Reader for side effects
+//
+// Returns:
+//   - An Operator that taps with Reader-returning functions
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    readerio.Of[Config](42),
+//	    readerio.TapReaderK(func(n int) reader.Reader[Config, func()] {
+//	        return func(c Config) func() { return func() { fmt.Println(n) } }
+//	    }),
+//	)(config)() // Returns 42, prints 42
+//
+//go:inline
+func TapReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
+	return ChainFirstReaderK(f)
+}
+
+// Read executes a ReaderIO with a given environment, returning the resulting IO.
+// This is useful for providing the environment dependency and obtaining an IO action
+// that can be executed later.
+//
+// Type Parameters:
+//   - A: Result type
+//   - R: Reader environment type
+//
+// Parameters:
+//   - r: The environment to provide to the ReaderIO
+//
+// Returns:
+//   - A function that converts a ReaderIO into an IO by applying the environment
+//
+// Example:
+//
+//	rio := readerio.Of[Config](42)
+//	config := Config{Value: 10, Name: "test"}
+//	ioAction := readerio.Read[int](config)(rio)
+//	result := ioAction() // Returns 42
+//
+//go:inline
+func Read[A, R any](r R) func(ReaderIO[R, A]) IO[A] {
+	return reader.Read[IO[A]](r)
 }

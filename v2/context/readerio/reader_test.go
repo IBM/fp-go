@@ -1,0 +1,501 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package readerio
+
+import (
+	"context"
+	"testing"
+
+	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/utils"
+	G "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestMonadMap(t *testing.T) {
+	rio := Of(5)
+	doubled := MonadMap(rio, func(n int) int { return n * 2 })
+
+	result := doubled(context.Background())()
+	assert.Equal(t, 10, result)
+}
+
+func TestMap(t *testing.T) {
+	g := F.Pipe1(
+		Of(1),
+		Map(utils.Double),
+	)
+
+	assert.Equal(t, 2, g(context.Background())())
+}
+
+func TestMonadMapTo(t *testing.T) {
+	rio := Of(42)
+	replaced := MonadMapTo(rio, "constant")
+
+	result := replaced(context.Background())()
+	assert.Equal(t, "constant", result)
+}
+
+func TestMapTo(t *testing.T) {
+	result := F.Pipe1(
+		Of(42),
+		MapTo[int]("constant"),
+	)
+
+	assert.Equal(t, "constant", result(context.Background())())
+}
+
+func TestMonadChain(t *testing.T) {
+	rio1 := Of(5)
+	result := MonadChain(rio1, func(n int) ReaderIO[int] {
+		return Of(n * 3)
+	})
+
+	assert.Equal(t, 15, result(context.Background())())
+}
+
+func TestChain(t *testing.T) {
+	result := F.Pipe1(
+		Of(5),
+		Chain(func(n int) ReaderIO[int] {
+			return Of(n * 3)
+		}),
+	)
+
+	assert.Equal(t, 15, result(context.Background())())
+}
+
+func TestMonadChainFirst(t *testing.T) {
+	sideEffect := 0
+	rio := Of(42)
+	result := MonadChainFirst(rio, func(n int) ReaderIO[string] {
+		sideEffect = n
+		return Of("side effect")
+	})
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirst(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of(42),
+		ChainFirst(func(n int) ReaderIO[string] {
+			sideEffect = n
+			return Of("side effect")
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTap(t *testing.T) {
+	sideEffect := 0
+	rio := Of(42)
+	result := MonadTap(rio, func(n int) ReaderIO[func()] {
+		sideEffect = n
+		return Of(func() {})
+	})
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestTap(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of(42),
+		Tap(func(n int) ReaderIO[func()] {
+			sideEffect = n
+			return Of(func() {})
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestOf(t *testing.T) {
+	rio := Of(100)
+	result := rio(context.Background())()
+
+	assert.Equal(t, 100, result)
+}
+
+func TestMonadAp(t *testing.T) {
+	fabIO := Of(func(n int) int { return n * 2 })
+	faIO := Of(5)
+	result := MonadAp(fabIO, faIO)
+
+	assert.Equal(t, 10, result(context.Background())())
+}
+
+func TestAp(t *testing.T) {
+	g := F.Pipe1(
+		Of(utils.Double),
+		Ap[int](Of(1)),
+	)
+
+	assert.Equal(t, 2, g(context.Background())())
+}
+
+func TestMonadApSeq(t *testing.T) {
+	fabIO := Of(func(n int) int { return n + 10 })
+	faIO := Of(5)
+	result := MonadApSeq(fabIO, faIO)
+
+	assert.Equal(t, 15, result(context.Background())())
+}
+
+func TestApSeq(t *testing.T) {
+	g := F.Pipe1(
+		Of(func(n int) int { return n + 10 }),
+		ApSeq[int](Of(5)),
+	)
+
+	assert.Equal(t, 15, g(context.Background())())
+}
+
+func TestMonadApPar(t *testing.T) {
+	fabIO := Of(func(n int) int { return n + 10 })
+	faIO := Of(5)
+	result := MonadApPar(fabIO, faIO)
+
+	assert.Equal(t, 15, result(context.Background())())
+}
+
+func TestApPar(t *testing.T) {
+	g := F.Pipe1(
+		Of(func(n int) int { return n + 10 }),
+		ApPar[int](Of(5)),
+	)
+
+	assert.Equal(t, 15, g(context.Background())())
+}
+
+func TestAsk(t *testing.T) {
+	rio := Ask()
+	ctx := context.WithValue(context.Background(), "key", "value")
+	result := rio(ctx)()
+
+	assert.Equal(t, ctx, result)
+}
+
+func TestFromIO(t *testing.T) {
+	ioAction := G.Of(42)
+	rio := FromIO(ioAction)
+
+	result := rio(context.Background())()
+	assert.Equal(t, 42, result)
+}
+
+func TestFromReader(t *testing.T) {
+	rdr := func(ctx context.Context) int {
+		return 42
+	}
+
+	rio := FromReader(rdr)
+	result := rio(context.Background())()
+
+	assert.Equal(t, 42, result)
+}
+
+func TestFromLazy(t *testing.T) {
+	lazy := func() int { return 42 }
+	rio := FromLazy(lazy)
+
+	result := rio(context.Background())()
+	assert.Equal(t, 42, result)
+}
+
+func TestMonadChainIOK(t *testing.T) {
+	rio := Of(5)
+	result := MonadChainIOK(rio, func(n int) G.IO[int] {
+		return G.Of(n * 4)
+	})
+
+	assert.Equal(t, 20, result(context.Background())())
+}
+
+func TestChainIOK(t *testing.T) {
+	result := F.Pipe1(
+		Of(5),
+		ChainIOK(func(n int) G.IO[int] {
+			return G.Of(n * 4)
+		}),
+	)
+
+	assert.Equal(t, 20, result(context.Background())())
+}
+
+func TestMonadChainFirstIOK(t *testing.T) {
+	sideEffect := 0
+	rio := Of(42)
+	result := MonadChainFirstIOK(rio, func(n int) G.IO[string] {
+		sideEffect = n
+		return G.Of("side effect")
+	})
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirstIOK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of(42),
+		ChainFirstIOK(func(n int) G.IO[string] {
+			sideEffect = n
+			return G.Of("side effect")
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapIOK(t *testing.T) {
+	sideEffect := 0
+	rio := Of(42)
+	result := MonadTapIOK(rio, func(n int) G.IO[func()] {
+		sideEffect = n
+		return G.Of(func() {})
+	})
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestTapIOK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of(42),
+		TapIOK(func(n int) G.IO[func()] {
+			sideEffect = n
+			return G.Of(func() {})
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestDefer(t *testing.T) {
+	counter := 0
+	rio := Defer(func() ReaderIO[int] {
+		counter++
+		return Of(counter)
+	})
+
+	result1 := rio(context.Background())()
+	result2 := rio(context.Background())()
+
+	assert.Equal(t, 1, result1)
+	assert.Equal(t, 2, result2)
+}
+
+func TestMemoize(t *testing.T) {
+	counter := 0
+	rio := Of(0)
+	memoized := Memoize(MonadMap(rio, func(int) int {
+		counter++
+		return counter
+	}))
+
+	result1 := memoized(context.Background())()
+	result2 := memoized(context.Background())()
+
+	assert.Equal(t, 1, result1)
+	assert.Equal(t, 1, result2) // Same value, memoized
+}
+
+func TestFlatten(t *testing.T) {
+	nested := Of(Of(42))
+	flattened := Flatten(nested)
+
+	result := flattened(context.Background())()
+	assert.Equal(t, 42, result)
+}
+
+func TestMonadFlap(t *testing.T) {
+	fabIO := Of(func(n int) int { return n * 3 })
+	result := MonadFlap(fabIO, 7)
+
+	assert.Equal(t, 21, result(context.Background())())
+}
+
+func TestFlap(t *testing.T) {
+	result := F.Pipe1(
+		Of(func(n int) int { return n * 3 }),
+		Flap[int](7),
+	)
+
+	assert.Equal(t, 21, result(context.Background())())
+}
+
+func TestMonadChainReaderK(t *testing.T) {
+	rio := Of(5)
+	result := MonadChainReaderK(rio, func(n int) reader.Reader[context.Context, int] {
+		return func(ctx context.Context) int { return n * 2 }
+	})
+
+	assert.Equal(t, 10, result(context.Background())())
+}
+
+func TestChainReaderK(t *testing.T) {
+	result := F.Pipe1(
+		Of(5),
+		ChainReaderK(func(n int) reader.Reader[context.Context, int] {
+			return func(ctx context.Context) int { return n * 2 }
+		}),
+	)
+
+	assert.Equal(t, 10, result(context.Background())())
+}
+
+func TestMonadChainFirstReaderK(t *testing.T) {
+	sideEffect := 0
+	rio := Of(42)
+	result := MonadChainFirstReaderK(rio, func(n int) reader.Reader[context.Context, string] {
+		return func(ctx context.Context) string {
+			sideEffect = n
+			return "side effect"
+		}
+	})
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirstReaderK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of(42),
+		ChainFirstReaderK(func(n int) reader.Reader[context.Context, string] {
+			return func(ctx context.Context) string {
+				sideEffect = n
+				return "side effect"
+			}
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapReaderK(t *testing.T) {
+	sideEffect := 0
+	rio := Of(42)
+	result := MonadTapReaderK(rio, func(n int) reader.Reader[context.Context, func()] {
+		return func(ctx context.Context) func() {
+			sideEffect = n
+			return func() {}
+		}
+	})
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestTapReaderK(t *testing.T) {
+	sideEffect := 0
+	result := F.Pipe1(
+		Of(42),
+		TapReaderK(func(n int) reader.Reader[context.Context, func()] {
+			return func(ctx context.Context) func() {
+				sideEffect = n
+				return func() {}
+			}
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 42, value)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestRead(t *testing.T) {
+	rio := Of(42)
+	ctx := context.Background()
+	ioAction := Read[int](ctx)(rio)
+	result := ioAction()
+
+	assert.Equal(t, 42, result)
+}
+
+func TestComplexPipeline(t *testing.T) {
+	// Test a complex pipeline combining multiple operations
+	result := F.Pipe3(
+		Ask(),
+		Map(func(ctx context.Context) int { return 5 }),
+		Chain(func(n int) ReaderIO[int] {
+			return Of(n * 2)
+		}),
+		Map(func(n int) int { return n + 10 }),
+	)
+
+	assert.Equal(t, 20, result(context.Background())()) // (5 * 2) + 10 = 20
+}
+
+func TestFromIOWithChain(t *testing.T) {
+	ioAction := G.Of(10)
+
+	result := F.Pipe1(
+		FromIO(ioAction),
+		Chain(func(n int) ReaderIO[int] {
+			return Of(n + 5)
+		}),
+	)
+
+	assert.Equal(t, 15, result(context.Background())())
+}
+
+func TestTapWithLogging(t *testing.T) {
+	// Simulate logging scenario
+	logged := []int{}
+
+	result := F.Pipe3(
+		Of(42),
+		Tap(func(n int) ReaderIO[func()] {
+			logged = append(logged, n)
+			return Of(func() {})
+		}),
+		Map(func(n int) int { return n * 2 }),
+		Tap(func(n int) ReaderIO[func()] {
+			logged = append(logged, n)
+			return Of(func() {})
+		}),
+	)
+
+	value := result(context.Background())()
+	assert.Equal(t, 84, value)
+	assert.Equal(t, []int{42, 84}, logged)
+}
