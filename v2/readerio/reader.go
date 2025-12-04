@@ -166,7 +166,7 @@ func FromReader[R, A any](r Reader[R, A]) ReaderIO[R, A] {
 // Example:
 //
 //	rio := readerio.Of[Config](5)
-//	doubled := readerio.MonadMap(rio, func(n int) int { return n * 2 })
+//	doubled := readerio.MonadMap(rio, N.Mul(2))
 //	result := doubled(config)() // Returns 10
 func MonadMap[R, A, B any](fa ReaderIO[R, A], f func(A) B) ReaderIO[R, B] {
 	return readert.MonadMap[ReaderIO[R, A], ReaderIO[R, B]](io.MonadMap[A, B], fa, f)
@@ -214,7 +214,7 @@ func MonadMapTo[R, A, B any](fa ReaderIO[R, A], b B) ReaderIO[R, B] {
 //
 //	result := F.Pipe1(
 //	    readerio.Of[Config](5),
-//	    readerio.Map[Config](func(n int) int { return n * 2 }),
+//	    readerio.Map[Config](N.Mul(2)),
 //	)(config)() // Returns 10
 func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
 	return readert.Map[ReaderIO[R, A], ReaderIO[R, B]](io.Map[A, B], f)
@@ -449,7 +449,7 @@ func Of[R, A any](a A) ReaderIO[R, A] {
 //
 // Example:
 //
-//	fabIO := readerio.Of[Config](func(n int) int { return n * 2 })
+//	fabIO := readerio.Of[Config](N.Mul(2))
 //
 //	faIO := readerio.Of[Config](5)
 //	result := readerio.MonadAp(fabIO, faIO)(config)() // Returns 10
@@ -508,7 +508,7 @@ func MonadApPar[B, R, A any](fab ReaderIO[R, func(A) B], fa ReaderIO[R, A]) Read
 // Example:
 //
 //	result := F.Pipe1(
-//	    readerio.Of[Config](func(n int) int { return n * 2 }),
+//	    readerio.Of[Config](N.Mul(2)),
 //	    readerio.Ap[int](readerio.Of[Config](5)),
 //	)(config)() // Returns 10
 func Ap[B, R, A any](fa ReaderIO[R, A]) Operator[R, func(A) B, B] {
@@ -846,7 +846,7 @@ func Flatten[R, A any](mma ReaderIO[R, ReaderIO[R, A]]) ReaderIO[R, A] {
 //
 // Example:
 //
-//	fabIO := readerio.Of[Config](func(n int) int { return n * 2 })
+//	fabIO := readerio.Of[Config](N.Mul(2))
 //	result := readerio.MonadFlap(fabIO, 5)(config)() // Returns 10
 func MonadFlap[R, B, A any](fab ReaderIO[R, func(A) B], a A) ReaderIO[R, B] {
 	return functor.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
@@ -869,7 +869,7 @@ func MonadFlap[R, B, A any](fab ReaderIO[R, func(A) B], a A) ReaderIO[R, B] {
 // Example:
 //
 //	result := F.Pipe1(
-//	    readerio.Of[Config](func(n int) int { return n * 2 }),
+//	    readerio.Of[Config](N.Mul(2)),
 //	    readerio.Flap[Config](5),
 //	)(config)() // Returns 10
 //

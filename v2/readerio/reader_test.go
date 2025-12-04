@@ -22,6 +22,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	G "github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,7 +63,7 @@ func TestOf(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	rio := Of[ReaderTestConfig](5)
-	doubled := MonadMap(rio, func(n int) int { return n * 2 })
+	doubled := MonadMap(rio, N.Mul(2))
 
 	config := ReaderTestConfig{Value: 1, Name: "test"}
 	result := doubled(config)()
@@ -102,7 +103,7 @@ func TestChain(t *testing.T) {
 }
 
 func TestMonadAp(t *testing.T) {
-	fabIO := Of[ReaderTestConfig](func(n int) int { return n * 2 })
+	fabIO := Of[ReaderTestConfig](N.Mul(2))
 	faIO := Of[ReaderTestConfig](5)
 	result := MonadAp(fabIO, faIO)
 
@@ -120,7 +121,7 @@ func TestAp(t *testing.T) {
 }
 
 func TestMonadApSeq(t *testing.T) {
-	fabIO := Of[ReaderTestConfig](func(n int) int { return n + 10 })
+	fabIO := Of[ReaderTestConfig](N.Add(10))
 	faIO := Of[ReaderTestConfig](5)
 	result := MonadApSeq(fabIO, faIO)
 
@@ -129,7 +130,7 @@ func TestMonadApSeq(t *testing.T) {
 }
 
 func TestMonadApPar(t *testing.T) {
-	fabIO := Of[ReaderTestConfig](func(n int) int { return n + 10 })
+	fabIO := Of[ReaderTestConfig](N.Add(10))
 	faIO := Of[ReaderTestConfig](5)
 	result := MonadApPar(fabIO, faIO)
 
@@ -238,7 +239,7 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestMonadFlap(t *testing.T) {
-	fabIO := Of[ReaderTestConfig](func(n int) int { return n * 3 })
+	fabIO := Of[ReaderTestConfig](N.Mul(3))
 	result := MonadFlap(fabIO, 7)
 
 	config := ReaderTestConfig{Value: 1, Name: "test"}
@@ -247,7 +248,7 @@ func TestMonadFlap(t *testing.T) {
 
 func TestFlap(t *testing.T) {
 	result := F.Pipe1(
-		Of[ReaderTestConfig](func(n int) int { return n * 3 }),
+		Of[ReaderTestConfig](N.Mul(3)),
 		Flap[ReaderTestConfig, int, int](7),
 	)
 
@@ -263,7 +264,7 @@ func TestComplexPipeline(t *testing.T) {
 		Chain(func(n int) ReaderIO[ReaderTestConfig, int] {
 			return Of[ReaderTestConfig](n * 2)
 		}),
-		Map[ReaderTestConfig](func(n int) int { return n + 10 }),
+		Map[ReaderTestConfig](N.Add(10)),
 	)
 
 	config := ReaderTestConfig{Value: 5, Name: "test"}
@@ -551,7 +552,7 @@ func TestTapWithLogging(t *testing.T) {
 			logged = append(logged, n)
 			return Of[ReaderTestConfig](func() {})
 		}),
-		Map[ReaderTestConfig](func(n int) int { return n * 2 }),
+		Map[ReaderTestConfig](N.Mul(2)),
 		Tap(func(n int) ReaderIO[ReaderTestConfig, func()] {
 			logged = append(logged, n)
 			return Of[ReaderTestConfig](func() {})

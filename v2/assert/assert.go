@@ -19,6 +19,58 @@
 // allowing for composable and functional test assertions. Each assertion
 // returns a Reader that takes a *testing.T and performs the assertion.
 //
+// # Data Last Principle
+//
+// This package follows the "data last" functional programming principle, where
+// the data being operated on comes as the last parameter in a chain of function
+// applications. This design enables several powerful functional programming patterns:
+//
+//  1. **Partial Application**: You can create reusable assertion functions by providing
+//     configuration parameters first, leaving the data and testing context for later.
+//
+//  2. **Function Composition**: Assertions can be composed and combined before being
+//     applied to actual data.
+//
+//  3. **Point-Free Style**: You can pass assertion functions around without immediately
+//     providing the data they operate on.
+//
+// The general pattern is:
+//
+//	assert.Function(config)(data)(testingContext)
+//	               ↑        ↑     ↑
+//	            expected  actual  *testing.T (always last)
+//
+// For single-parameter assertions:
+//
+//	assert.Function(data)(testingContext)
+//	                ↑     ↑
+//	              actual  *testing.T (always last)
+//
+// Examples of "data last" in action:
+//
+//	// Multi-parameter: expected value → actual value → testing context
+//	assert.Equal(42)(result)(t)
+//	assert.ArrayContains(3)(numbers)(t)
+//
+//	// Single-parameter: data → testing context
+//	assert.NoError(err)(t)
+//	assert.ArrayNotEmpty(arr)(t)
+//
+//	// Partial application - create reusable assertions
+//	isPositive := assert.That(func(n int) bool { return n > 0 })
+//	// Later, apply to different values:
+//	isPositive(42)(t)   // Passes
+//	isPositive(-5)(t)   // Fails
+//
+//	// Composition - combine assertions before applying data
+//	validateUser := func(u User) assert.Reader {
+//	    return assert.AllOf([]assert.Reader{
+//	        assert.Equal("Alice")(u.Name),
+//	        assert.That(func(age int) bool { return age >= 18 })(u.Age),
+//	    })
+//	}
+//	validateUser(user)(t)
+//
 // The package supports:
 //   - Equality and inequality assertions
 //   - Collection assertions (arrays, maps, strings)
@@ -83,38 +135,108 @@ func wrap1[T any](wrapped func(t assert.TestingT, expected, actual any, msgAndAr
 	}
 }
 
-// NotEqual tests if the expected and the actual values are not equal
+// NotEqual tests if the expected and the actual values are not equal.
+//
+// This function follows the "data last" principle - you provide the expected value first,
+// then the actual value, and finally the testing.T context.
+//
+// Example:
+//
+//	func TestNotEqual(t *testing.T) {
+//	    value := 42
+//	    assert.NotEqual(10)(value)(t)  // Passes: 42 != 10
+//	    assert.NotEqual(42)(value)(t)  // Fails: 42 == 42
+//	}
 func NotEqual[T any](expected T) Kleisli[T] {
 	return wrap1(assert.NotEqual, expected)
 }
 
-// Equal tests if the expected and the actual values are equal
+// Equal tests if the expected and the actual values are equal.
+//
+// This is one of the most commonly used assertions. It follows the "data last" principle -
+// you provide the expected value first, then the actual value, and finally the testing.T context.
+//
+// Example:
+//
+//	func TestEqual(t *testing.T) {
+//	    result := 2 + 2
+//	    assert.Equal(4)(result)(t)  // Passes
+//
+//	    name := "Alice"
+//	    assert.Equal("Alice")(name)(t)  // Passes
+//
+//	    // Can be composed with other assertions
+//	    user := User{Name: "Bob", Age: 30}
+//	    assertions := assert.AllOf([]assert.Reader{
+//	        assert.Equal("Bob")(user.Name),
+//	        assert.Equal(30)(user.Age),
+//	    })
+//	    assertions(t)
+//	}
 func Equal[T any](expected T) Kleisli[T] {
 	return wrap1(assert.Equal, expected)
 }
 
-// ArrayNotEmpty checks if an array is not empty
+// ArrayNotEmpty checks if an array is not empty.
+//
+// Example:
+//
+//	func TestArrayNotEmpty(t *testing.T) {
+//	    numbers := []int{1, 2, 3}
+//	    assert.ArrayNotEmpty(numbers)(t)  // Passes
+//
+//	    empty := []int{}
+//	    assert.ArrayNotEmpty(empty)(t)  // Fails
+//	}
 func ArrayNotEmpty[T any](arr []T) Reader {
 	return func(t *testing.T) bool {
 		return assert.NotEmpty(t, arr)
 	}
 }
 
-// RecordNotEmpty checks if an map is not empty
+// RecordNotEmpty checks if a map is not empty.
+//
+// Example:
+//
+//	func TestRecordNotEmpty(t *testing.T) {
+//	    config := map[string]int{"timeout": 30, "retries": 3}
+//	    assert.RecordNotEmpty(config)(t)  // Passes
+//
+//	    empty := map[string]int{}
+//	    assert.RecordNotEmpty(empty)(t)  // Fails
+//	}
 func RecordNotEmpty[K comparable, T any](mp map[K]T) Reader {
 	return func(t *testing.T) bool {
 		return assert.NotEmpty(t, mp)
 	}
 }
 
-// StringNotEmpty checks if a string is not empty
+// StringNotEmpty checks if a string is not empty.
+//
+// Example:
+//
+//	func TestStringNotEmpty(t *testing.T) {
+//	    message := "Hello, World!"
+//	    assert.StringNotEmpty(message)(t)  // Passes
+//
+//	    empty := ""
+//	    assert.StringNotEmpty(empty)(t)  // Fails
+//	}
 func StringNotEmpty(s string) Reader {
 	return func(t *testing.T) bool {
 		return assert.NotEmpty(t, s)
 	}
 }
 
-// ArrayLength tests if an array has the expected length
+// ArrayLength tests if an array has the expected length.
+//
+// Example:
+//
+//	func TestArrayLength(t *testing.T) {
+//	    numbers := []int{1, 2, 3, 4, 5}
+//	    assert.ArrayLength[int](5)(numbers)(t)  // Passes
+//	    assert.ArrayLength[int](3)(numbers)(t)  // Fails
+//	}
 func ArrayLength[T any](expected int) Kleisli[[]T] {
 	return func(actual []T) Reader {
 		return func(t *testing.T) bool {
@@ -123,7 +245,15 @@ func ArrayLength[T any](expected int) Kleisli[[]T] {
 	}
 }
 
-// RecordLength tests if a map has the expected length
+// RecordLength tests if a map has the expected length.
+//
+// Example:
+//
+//	func TestRecordLength(t *testing.T) {
+//	    config := map[string]string{"host": "localhost", "port": "8080"}
+//	    assert.RecordLength[string, string](2)(config)(t)  // Passes
+//	    assert.RecordLength[string, string](3)(config)(t)  // Fails
+//	}
 func RecordLength[K comparable, T any](expected int) Kleisli[map[K]T] {
 	return func(actual map[K]T) Reader {
 		return func(t *testing.T) bool {
@@ -132,7 +262,15 @@ func RecordLength[K comparable, T any](expected int) Kleisli[map[K]T] {
 	}
 }
 
-// StringLength tests if a string has the expected length
+// StringLength tests if a string has the expected length.
+//
+// Example:
+//
+//	func TestStringLength(t *testing.T) {
+//	    message := "Hello"
+//	    assert.StringLength[any, any](5)(message)(t)  // Passes
+//	    assert.StringLength[any, any](10)(message)(t)  // Fails
+//	}
 func StringLength[K comparable, T any](expected int) Kleisli[string] {
 	return func(actual string) Reader {
 		return func(t *testing.T) bool {
@@ -141,31 +279,93 @@ func StringLength[K comparable, T any](expected int) Kleisli[string] {
 	}
 }
 
-// NoError validates that there is no error
+// NoError validates that there is no error.
+//
+// This is commonly used to assert that operations complete successfully.
+//
+// Example:
+//
+//	func TestNoError(t *testing.T) {
+//	    err := doSomething()
+//	    assert.NoError(err)(t)  // Passes if err is nil
+//
+//	    // Can be used with result types
+//	    result := result.TryCatch(func() (int, error) {
+//	        return 42, nil
+//	    })
+//	    assert.Success(result)(t)  // Uses NoError internally
+//	}
 func NoError(err error) Reader {
 	return func(t *testing.T) bool {
 		return assert.NoError(t, err)
 	}
 }
 
-// Error validates that there is an error
+// Error validates that there is an error.
+//
+// This is used to assert that operations fail as expected.
+//
+// Example:
+//
+//	func TestError(t *testing.T) {
+//	    err := validateInput("")
+//	    assert.Error(err)(t)  // Passes if err is not nil
+//
+//	    err2 := validateInput("valid")
+//	    assert.Error(err2)(t)  // Fails if err2 is nil
+//	}
 func Error(err error) Reader {
 	return func(t *testing.T) bool {
 		return assert.Error(t, err)
 	}
 }
 
-// Success checks if a [Result] represents success
+// Success checks if a [Result] represents success.
+//
+// This is a convenience function for testing Result types from the fp-go library.
+//
+// Example:
+//
+//	func TestSuccess(t *testing.T) {
+//	    res := result.Of[int](42)
+//	    assert.Success(res)(t)  // Passes
+//
+//	    failedRes := result.Error[int](errors.New("failed"))
+//	    assert.Success(failedRes)(t)  // Fails
+//	}
 func Success[T any](res Result[T]) Reader {
 	return NoError(result.ToError(res))
 }
 
-// Failure checks if a [Result] represents failure
+// Failure checks if a [Result] represents failure.
+//
+// This is a convenience function for testing Result types from the fp-go library.
+//
+// Example:
+//
+//	func TestFailure(t *testing.T) {
+//	    res := result.Error[int](errors.New("something went wrong"))
+//	    assert.Failure(res)(t)  // Passes
+//
+//	    successRes := result.Of[int](42)
+//	    assert.Failure(successRes)(t)  // Fails
+//	}
 func Failure[T any](res Result[T]) Reader {
 	return Error(result.ToError(res))
 }
 
-// ArrayContains tests if a value is contained in an array
+// ArrayContains tests if a value is contained in an array.
+//
+// Example:
+//
+//	func TestArrayContains(t *testing.T) {
+//	    numbers := []int{1, 2, 3, 4, 5}
+//	    assert.ArrayContains(3)(numbers)(t)  // Passes
+//	    assert.ArrayContains(10)(numbers)(t)  // Fails
+//
+//	    names := []string{"Alice", "Bob", "Charlie"}
+//	    assert.ArrayContains("Bob")(names)(t)  // Passes
+//	}
 func ArrayContains[T any](expected T) Kleisli[[]T] {
 	return func(actual []T) Reader {
 		return func(t *testing.T) bool {
@@ -174,7 +374,15 @@ func ArrayContains[T any](expected T) Kleisli[[]T] {
 	}
 }
 
-// ContainsKey tests if a key is contained in a map
+// ContainsKey tests if a key is contained in a map.
+//
+// Example:
+//
+//	func TestContainsKey(t *testing.T) {
+//	    config := map[string]int{"timeout": 30, "retries": 3}
+//	    assert.ContainsKey[int]("timeout")(config)(t)  // Passes
+//	    assert.ContainsKey[int]("maxSize")(config)(t)  // Fails
+//	}
 func ContainsKey[T any, K comparable](expected K) Kleisli[map[K]T] {
 	return func(actual map[K]T) Reader {
 		return func(t *testing.T) bool {
@@ -183,7 +391,15 @@ func ContainsKey[T any, K comparable](expected K) Kleisli[map[K]T] {
 	}
 }
 
-// NotContainsKey tests if a key is not contained in a map
+// NotContainsKey tests if a key is not contained in a map.
+//
+// Example:
+//
+//	func TestNotContainsKey(t *testing.T) {
+//	    config := map[string]int{"timeout": 30, "retries": 3}
+//	    assert.NotContainsKey[int]("maxSize")(config)(t)  // Passes
+//	    assert.NotContainsKey[int]("timeout")(config)(t)  // Fails
+//	}
 func NotContainsKey[T any, K comparable](expected K) Kleisli[map[K]T] {
 	return func(actual map[K]T) Reader {
 		return func(t *testing.T) bool {
@@ -192,7 +408,31 @@ func NotContainsKey[T any, K comparable](expected K) Kleisli[map[K]T] {
 	}
 }
 
-// That asserts that a particular predicate matches
+// That asserts that a particular predicate matches.
+//
+// This is a powerful function that allows you to create custom assertions using predicates.
+//
+// Example:
+//
+//	func TestThat(t *testing.T) {
+//	    // Test if a number is positive
+//	    isPositive := func(n int) bool { return n > 0 }
+//	    assert.That(isPositive)(42)(t)  // Passes
+//	    assert.That(isPositive)(-5)(t)  // Fails
+//
+//	    // Test if a string is uppercase
+//	    isUppercase := func(s string) bool { return s == strings.ToUpper(s) }
+//	    assert.That(isUppercase)("HELLO")(t)  // Passes
+//	    assert.That(isUppercase)("Hello")(t)  // Fails
+//
+//	    // Can be combined with Local for property testing
+//	    type User struct { Age int }
+//	    ageIsAdult := assert.Local(func(u User) int { return u.Age })(
+//	        assert.That(func(age int) bool { return age >= 18 }),
+//	    )
+//	    user := User{Age: 25}
+//	    ageIsAdult(user)(t)  // Passes
+//	}
 func That[T any](pred Predicate[T]) Kleisli[T] {
 	return func(a T) Reader {
 		return func(t *testing.T) bool {

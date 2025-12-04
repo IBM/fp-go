@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/number"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/ord"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -144,9 +145,9 @@ func TestMap2(t *testing.T) {
 func TestMap3(t *testing.T) {
 	t3 := MakeTuple3(1, 2, 3)
 	mapper := Map3(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 3 },
-		func(n int) int { return n * 4 },
+		N.Mul(2),
+		N.Mul(3),
+		N.Mul(4),
 	)
 	result := mapper(t3)
 	assert.Equal(t, MakeTuple3(2, 6, 12), result)
@@ -430,10 +431,10 @@ func TestTupled5Untupled5(t *testing.T) {
 func TestMap4(t *testing.T) {
 	t4 := MakeTuple4(1, 2, 3, 4)
 	mapper := Map4(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 3 },
-		func(n int) int { return n * 4 },
-		func(n int) int { return n * 5 },
+		N.Mul(2),
+		N.Mul(3),
+		N.Mul(4),
+		N.Mul(5),
 	)
 	result := mapper(t4)
 	assert.Equal(t, MakeTuple4(2, 6, 12, 20), result)
@@ -442,11 +443,11 @@ func TestMap4(t *testing.T) {
 func TestMap5(t *testing.T) {
 	t5 := MakeTuple5(1, 2, 3, 4, 5)
 	mapper := Map5(
-		func(n int) int { return n + 1 },
+		N.Add(1),
 		func(n int) int { return n + 2 },
 		func(n int) int { return n + 3 },
 		func(n int) int { return n + 4 },
-		func(n int) int { return n + 5 },
+		N.Add(5),
 	)
 	result := mapper(t5)
 	assert.Equal(t, MakeTuple5(2, 4, 6, 8, 10), result)
@@ -679,7 +680,7 @@ func TestMap6(t *testing.T) {
 		func(n int) int { return n + 2 },
 		func(n int) int { return n + 3 },
 		func(n int) int { return n + 4 },
-		func(n int) int { return n + 5 },
+		N.Add(5),
 		func(n int) int { return n + 6 },
 	)
 	result := mapper(t6)
@@ -689,13 +690,13 @@ func TestMap6(t *testing.T) {
 func TestMap7(t *testing.T) {
 	t7 := MakeTuple7(1, 2, 3, 4, 5, 6, 7)
 	mapper := Map7(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t7)
 	assert.Equal(t, MakeTuple7(2, 4, 6, 8, 10, 12, 14), result)
@@ -704,14 +705,14 @@ func TestMap7(t *testing.T) {
 func TestMap8(t *testing.T) {
 	t8 := MakeTuple8(1, 2, 3, 4, 5, 6, 7, 8)
 	mapper := Map8(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t8)
 	assert.Equal(t, MakeTuple8(2, 4, 6, 8, 10, 12, 14, 16), result)
@@ -720,15 +721,15 @@ func TestMap8(t *testing.T) {
 func TestMap9(t *testing.T) {
 	t9 := MakeTuple9(1, 2, 3, 4, 5, 6, 7, 8, 9)
 	mapper := Map9(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t9)
 	assert.Equal(t, MakeTuple9(2, 4, 6, 8, 10, 12, 14, 16, 18), result)
@@ -737,16 +738,16 @@ func TestMap9(t *testing.T) {
 func TestMap10(t *testing.T) {
 	t10 := MakeTuple10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	mapper := Map10(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t10)
 	assert.Equal(t, MakeTuple10(2, 4, 6, 8, 10, 12, 14, 16, 18, 20), result)
@@ -1333,17 +1334,17 @@ func TestTupled15Untupled15(t *testing.T) {
 func TestMap11(t *testing.T) {
 	t11 := MakeTuple11(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 	mapper := Map11(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t11)
 	assert.Equal(t, MakeTuple11(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22), result)
@@ -1352,18 +1353,18 @@ func TestMap11(t *testing.T) {
 func TestMap12(t *testing.T) {
 	t12 := MakeTuple12(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
 	mapper := Map12(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t12)
 	assert.Equal(t, MakeTuple12(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24), result)
@@ -1372,19 +1373,19 @@ func TestMap12(t *testing.T) {
 func TestMap13(t *testing.T) {
 	t13 := MakeTuple13(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
 	mapper := Map13(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t13)
 	assert.Equal(t, MakeTuple13(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26), result)
@@ -1393,20 +1394,20 @@ func TestMap13(t *testing.T) {
 func TestMap14(t *testing.T) {
 	t14 := MakeTuple14(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
 	mapper := Map14(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t14)
 	assert.Equal(t, MakeTuple14(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28), result)
@@ -1415,21 +1416,21 @@ func TestMap14(t *testing.T) {
 func TestMap15(t *testing.T) {
 	t15 := MakeTuple15(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
 	mapper := Map15(
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
-		func(n int) int { return n * 2 },
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
+		N.Mul(2),
 	)
 	result := mapper(t15)
 	assert.Equal(t, MakeTuple15(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30), result)

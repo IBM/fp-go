@@ -107,8 +107,8 @@ Chain for sequential composition:
 	// Chain multiple operations
 	result := F.Pipe2(
 	    10,
-	    identity.Chain(func(n int) int { return n * 2 }),
-	    identity.Chain(func(n int) int { return n + 5 }),
+	    identity.Chain(N.Mul(2)),
+	    identity.Chain(N.Add(5)),
 	)
 	// result is 25
 
@@ -177,8 +177,8 @@ Convert tuples of Identity values:
 	// Traverse with transformation
 	tuple := T.MakeTuple2(1, 2)
 	result := identity.TraverseTuple2(
-	    func(n int) int { return n * 2 },
-	    func(n int) int { return n * 3 },
+	    N.Mul(2),
+	    N.Mul(3),
 	)(tuple)
 	// result is T.Tuple2[int, int]{2, 6}
 
@@ -211,7 +211,7 @@ Example of generic code:
 	) M {
 	    return F.Pipe2(
 	        monad.Of(value),
-	        monad.Map(func(n int) int { return n * 2 }),
+	        monad.Map(N.Mul(2)),
 	        monad.Map(func(n int) string { return fmt.Sprintf("%d", n) }),
 	    )
 	}

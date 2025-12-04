@@ -86,7 +86,7 @@ func Do[R, S any](
 func Bind[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[R, S1, T],
-) func(ReaderOption[R, S1]) ReaderOption[R, S2] {
+) Operator[R, S1, S2] {
 	return G.Bind[ReaderOption[R, S1], ReaderOption[R, S2]](setter, f)
 }
 
@@ -94,7 +94,7 @@ func Bind[R, S1, S2, T any](
 func Let[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(ReaderOption[R, S1]) ReaderOption[R, S2] {
+) Operator[R, S1, S2] {
 	return G.Let[ReaderOption[R, S1], ReaderOption[R, S2]](setter, f)
 }
 
@@ -102,14 +102,14 @@ func Let[R, S1, S2, T any](
 func LetTo[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(ReaderOption[R, S1]) ReaderOption[R, S2] {
+) Operator[R, S1, S2] {
 	return G.LetTo[ReaderOption[R, S1], ReaderOption[R, S2]](setter, b)
 }
 
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[R, S1, T any](
 	setter func(T) S1,
-) func(ReaderOption[R, T]) ReaderOption[R, S1] {
+) Operator[R, T, S1] {
 	return G.BindTo[ReaderOption[R, S1], ReaderOption[R, T]](setter)
 }
 
@@ -157,7 +157,7 @@ func BindTo[R, S1, T any](
 func ApS[R, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderOption[R, T],
-) func(ReaderOption[R, S1]) ReaderOption[R, S2] {
+) Operator[R, S1, S2] {
 	return G.ApS[ReaderOption[R, S1], ReaderOption[R, S2]](setter, fa)
 }
 
@@ -194,7 +194,7 @@ func ApS[R, S1, S2, T any](
 func ApSL[R, S, T any](
 	lens L.Lens[S, T],
 	fa ReaderOption[R, T],
-) func(ReaderOption[R, S]) ReaderOption[R, S] {
+) Operator[R, S, S] {
 	return ApS(lens.Set, fa)
 }
 
@@ -233,7 +233,7 @@ func ApSL[R, S, T any](
 func BindL[R, S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[R, T, T],
-) func(ReaderOption[R, S]) ReaderOption[R, S] {
+) Operator[R, S, S] {
 	return Bind(lens.Set, F.Flow2(lens.Get, f))
 }
 
@@ -267,7 +267,7 @@ func BindL[R, S, T any](
 func LetL[R, S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
-) func(ReaderOption[R, S]) ReaderOption[R, S] {
+) Operator[R, S, S] {
 	return Let[R](lens.Set, F.Flow2(lens.Get, f))
 }
 
@@ -298,6 +298,6 @@ func LetL[R, S, T any](
 func LetToL[R, S, T any](
 	lens L.Lens[S, T],
 	b T,
-) func(ReaderOption[R, S]) ReaderOption[R, S] {
+) Operator[R, S, S] {
 	return LetTo[R](lens.Set, b)
 }

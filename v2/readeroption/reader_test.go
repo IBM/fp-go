@@ -163,7 +163,7 @@ func TestGetOrElse(t *testing.T) {
 }
 
 func TestAsk(t *testing.T) {
-	ro := Ask[MyContext, any]()
+	ro := Ask[MyContext]()
 	result := ro(defaultContext)
 	assert.Equal(t, O.Of(defaultContext), result)
 }

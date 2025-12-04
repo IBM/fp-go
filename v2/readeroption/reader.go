@@ -170,7 +170,7 @@ func Ap[B, E, A any](fa ReaderOption[E, A]) Operator[E, func(A) B, B] {
 //	)
 //
 //go:inline
-func FromPredicate[E, A any](pred func(A) bool) Kleisli[E, A, A] {
+func FromPredicate[E, A any](pred Predicate[A]) Kleisli[E, A, A] {
 	return fromoption.FromPredicate(FromOption[E, A], pred)
 }
 
@@ -186,11 +186,25 @@ func FromPredicate[E, A any](pred func(A) bool) Kleisli[E, A, A] {
 //	)(findUser(123))
 //
 //go:inline
-func Fold[E, A, B any](onNone Reader[E, B], onRight func(A) Reader[E, B]) func(ReaderOption[E, A]) Reader[E, B] {
+func Fold[E, A, B any](onNone Reader[E, B], onRight reader.Kleisli[E, A, B]) reader.Operator[E, Option[A], B] {
 	return optiont.MatchE(reader.Chain[E, Option[A], B], function.Constant(onNone), onRight)
 }
 
-func MonadFold[E, A, B any](fa ReaderOption[E, A], onNone Reader[E, B], onRight func(A) Reader[E, B]) Reader[E, B] {
+// MonadFold extracts the value from a ReaderOption by providing handlers for both cases.
+// This is the non-curried version of Fold.
+// The onNone handler is called if the computation returns None.
+// The onRight handler is called if the computation returns Some(a).
+//
+// Example:
+//
+//	result := readeroption.MonadFold(
+//	    findUser(123),
+//	    reader.Of[Config]("not found"),
+//	    func(user User) reader.Reader[Config, string] { return reader.Of[Config](user.Name) },
+//	)
+//
+//go:inline
+func MonadFold[E, A, B any](fa ReaderOption[E, A], onNone Reader[E, B], onRight reader.Kleisli[E, A, B]) Reader[E, B] {
 	return optiont.MonadMatchE(fa, reader.MonadChain[E, Option[A], B], function.Constant(onNone), onRight)
 }
 
@@ -203,7 +217,7 @@ func MonadFold[E, A, B any](fa ReaderOption[E, A], onNone Reader[E, B], onRight 
 //	)(findUser(123))
 //
 //go:inline
-func GetOrElse[E, A any](onNone Reader[E, A]) func(ReaderOption[E, A]) Reader[E, A] {
+func GetOrElse[E, A any](onNone Reader[E, A]) reader.Operator[E, Option[A], A] {
 	return optiont.GetOrElse(reader.Chain[E, Option[A], A], function.Constant(onNone), reader.Of[E, A])
 }
 
@@ -212,11 +226,11 @@ func GetOrElse[E, A any](onNone Reader[E, A]) func(ReaderOption[E, A]) Reader[E,
 //
 // Example:
 //
-//	getConfig := readeroption.Ask[Config, any]()
+//	getConfig := readeroption.Ask[Config]()
 //	result := getConfig(myConfig) // Returns option.Some(myConfig)
 //
 //go:inline
-func Ask[E, L any]() ReaderOption[E, E] {
+func Ask[E any]() ReaderOption[E, E] {
 	return fromreader.Ask(FromReader[E, E])()
 }
 
@@ -245,7 +259,7 @@ func Asks[E, A any](r Reader[E, A]) ReaderOption[E, A] {
 //	)
 //
 //go:inline
-func MonadChainOptionK[E, A, B any](ma ReaderOption[E, A], f func(A) Option[B]) ReaderOption[E, B] {
+func MonadChainOptionK[E, A, B any](ma ReaderOption[E, A], f O.Kleisli[A, B]) ReaderOption[E, B] {
 	return fromoption.MonadChainOptionK(
 		MonadChain[E, A, B],
 		FromOption[E, B],
@@ -266,7 +280,7 @@ func MonadChainOptionK[E, A, B any](ma ReaderOption[E, A], f func(A) Option[B]) 
 //	)
 //
 //go:inline
-func ChainOptionK[E, A, B any](f func(A) Option[B]) Operator[E, A, B] {
+func ChainOptionK[E, A, B any](f O.Kleisli[A, B]) Operator[E, A, B] {
 	return fromoption.ChainOptionK(
 		Chain[E, A, B],
 		FromOption[E, B],
@@ -339,11 +353,31 @@ func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 	return functor.Flap(Map[E, func(A) B, B], a)
 }
 
+// MonadAlt provides an alternative ReaderOption if the first one returns None.
+// If fa returns Some(a), that value is returned; otherwise, the alternative computation is executed.
+// This is useful for providing fallback behavior.
+//
+// Example:
+//
+//	primary := findUserInCache(123)
+//	fallback := findUserInDB(123)
+//	result := readeroption.MonadAlt(primary, fallback)
+//
 //go:inline
 func MonadAlt[E, A any](fa ReaderOption[E, A], that ReaderOption[E, A]) ReaderOption[E, A] {
 	return MonadFold(fa, that, Of[E, A])
 }
 
+// Alt returns a function that provides an alternative ReaderOption if the first one returns None.
+// This is the curried version of MonadAlt, useful for composition with F.Pipe.
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    findUserInCache(123),
+//	    readeroption.Alt(findUserInDB(123)),
+//	)
+//
 //go:inline
 func Alt[E, A any](that ReaderOption[E, A]) Operator[E, A, A] {
 	return Fold(that, Of[E, A])

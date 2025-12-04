@@ -38,7 +38,7 @@ import (
 //	    readeroption.Chain(readeroption.TraverseArray[DB](findUser)),
 //	)
 //	// result will be Some([]User) if all users are found, None otherwise
-func TraverseArray[E, A, B any](f func(A) ReaderOption[E, B]) Kleisli[E, []A, []B] {
+func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return G.TraverseArray[ReaderOption[E, B], ReaderOption[E, []B], []A](f)
 }
 

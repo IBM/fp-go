@@ -22,13 +22,14 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	G "github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMonadMap(t *testing.T) {
 	rio := Of(5)
-	doubled := MonadMap(rio, func(n int) int { return n * 2 })
+	doubled := MonadMap(rio, N.Mul(2))
 
 	result := doubled(context.Background())()
 	assert.Equal(t, 10, result)
@@ -144,7 +145,7 @@ func TestOf(t *testing.T) {
 }
 
 func TestMonadAp(t *testing.T) {
-	fabIO := Of(func(n int) int { return n * 2 })
+	fabIO := Of(N.Mul(2))
 	faIO := Of(5)
 	result := MonadAp(fabIO, faIO)
 
@@ -161,7 +162,7 @@ func TestAp(t *testing.T) {
 }
 
 func TestMonadApSeq(t *testing.T) {
-	fabIO := Of(func(n int) int { return n + 10 })
+	fabIO := Of(N.Add(10))
 	faIO := Of(5)
 	result := MonadApSeq(fabIO, faIO)
 
@@ -170,7 +171,7 @@ func TestMonadApSeq(t *testing.T) {
 
 func TestApSeq(t *testing.T) {
 	g := F.Pipe1(
-		Of(func(n int) int { return n + 10 }),
+		Of(N.Add(10)),
 		ApSeq[int](Of(5)),
 	)
 
@@ -178,7 +179,7 @@ func TestApSeq(t *testing.T) {
 }
 
 func TestMonadApPar(t *testing.T) {
-	fabIO := Of(func(n int) int { return n + 10 })
+	fabIO := Of(N.Add(10))
 	faIO := Of(5)
 	result := MonadApPar(fabIO, faIO)
 
@@ -187,7 +188,7 @@ func TestMonadApPar(t *testing.T) {
 
 func TestApPar(t *testing.T) {
 	g := F.Pipe1(
-		Of(func(n int) int { return n + 10 }),
+		Of(N.Add(10)),
 		ApPar[int](Of(5)),
 	)
 
@@ -343,7 +344,7 @@ func TestFlatten(t *testing.T) {
 }
 
 func TestMonadFlap(t *testing.T) {
-	fabIO := Of(func(n int) int { return n * 3 })
+	fabIO := Of(N.Mul(3))
 	result := MonadFlap(fabIO, 7)
 
 	assert.Equal(t, 21, result(context.Background())())
@@ -351,7 +352,7 @@ func TestMonadFlap(t *testing.T) {
 
 func TestFlap(t *testing.T) {
 	result := F.Pipe1(
-		Of(func(n int) int { return n * 3 }),
+		Of(N.Mul(3)),
 		Flap[int](7),
 	)
 
@@ -459,7 +460,7 @@ func TestComplexPipeline(t *testing.T) {
 		Chain(func(n int) ReaderIO[int] {
 			return Of(n * 2)
 		}),
-		Map(func(n int) int { return n + 10 }),
+		Map(N.Add(10)),
 	)
 
 	assert.Equal(t, 20, result(context.Background())()) // (5 * 2) + 10 = 20
@@ -488,7 +489,7 @@ func TestTapWithLogging(t *testing.T) {
 			logged = append(logged, n)
 			return Of(func() {})
 		}),
-		Map(func(n int) int { return n * 2 }),
+		Map(N.Mul(2)),
 		Tap(func(n int) ReaderIO[func()] {
 			logged = append(logged, n)
 			return Of(func() {})

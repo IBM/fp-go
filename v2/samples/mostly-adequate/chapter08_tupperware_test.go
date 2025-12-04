@@ -20,7 +20,6 @@ import (
 	"time"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
@@ -106,14 +105,14 @@ var (
 	)
 
 	// checkActive :: User -> Either error User
-	checkActive = E.FromPredicate(Chapter08User.isActive, F.Constant1[Chapter08User](fmt.Errorf("your account is not active")))
+	checkActive = R.FromPredicate(Chapter08User.isActive, F.Constant1[Chapter08User](fmt.Errorf("your account is not active")))
 
 	// validateUser :: (User -> Either String ()) -> User -> Either String User
 	validateUser = F.Curry2(func(validate func(Chapter08User) Result[any], user Chapter08User) Result[Chapter08User] {
 		return F.Pipe2(
 			user,
 			validate,
-			E.MapTo[error, any](user),
+			R.MapTo[any](user),
 		)
 	})
 
@@ -127,8 +126,10 @@ var (
 	}
 )
 
-func Withdraw(amount float32) func(account Account) Option[Account] {
-
+// Withdraw creates a Kleisli arrow that attempts to withdraw an amount from an account.
+// Returns Some(account) if sufficient balance, None otherwise.
+// This demonstrates the Option Kleisli type in action.
+func Withdraw(amount float32) O.Kleisli[Account, Account] {
 	return F.Flow3(
 		getBalance,
 		O.FromPredicate(ord.Geq(ordFloat32)(amount)),
@@ -150,9 +151,11 @@ func MakeUser(d string) User {
 	return User{BirthDate: d}
 }
 
-var parseDate = F.Bind1of2(E.Eitherize2(time.Parse))(time.DateOnly)
+var parseDate = F.Bind1of2(R.Eitherize2(time.Parse))(time.DateOnly)
 
-func GetAge(now time.Time) func(User) Result[float64] {
+// GetAge creates a Result Kleisli arrow that calculates age in days from a User's birth date.
+// This demonstrates the Result Kleisli type for computations that may fail.
+func GetAge(now time.Time) R.Kleisli[User, float64] {
 	return F.Flow3(
 		getBirthDate,
 		parseDate,
@@ -191,7 +194,7 @@ func Example_getAge() {
 	zoltar := F.Flow3(
 		GetAge(now),
 		R.Map(fortune),
-		E.GetOrElse(errors.ToString),
+		R.GetOrElse(errors.ToString),
 	)
 
 	fmt.Println(zoltar(MakeUser("2005-12-12")))
@@ -245,7 +248,7 @@ func Example_solution08D() {
 	// // validateName :: User -> Either String ()
 	validateName := F.Flow3(
 		Chapter08User.getName,
-		E.FromPredicate(F.Flow2(
+		R.FromPredicate(F.Flow2(
 			S.Size,
 			ord.Gt(ord.FromStrictCompare[int]())(3),
 		), errors.OnSome[string]("Your name %s is larger than 3 characters")),

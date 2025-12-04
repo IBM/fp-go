@@ -66,7 +66,7 @@ Creating a traversal for array elements:
 	doubled := F.Pipe2(
 		numbers,
 		TA.Traversal[int](),
-		T.Modify[[]int, int](func(n int) int { return n * 2 }),
+		T.Modify[[]int, int](N.Mul(2)),
 	)
 	// Result: [2, 4, 6, 8, 10]
 
@@ -85,7 +85,7 @@ The identity traversal focuses on the entire structure:
 	idTrav := T.Id[int, int]()
 
 	value := 42
-	result := T.Modify[int, int](func(n int) int { return n * 2 })(idTrav)(value)
+	result := T.Modify[int, int](N.Mul(2))(idTrav)(value)
 	// Result: 84
 
 # Folding with Traversals
@@ -212,7 +212,7 @@ Traverse over the Right values:
 	doubled := F.Pipe2(
 		results,
 		allRightsTrav,
-		T.Modify[[]E.Either[string, int], int](func(n int) int { return n * 2 }),
+		T.Modify[[]E.Either[string, int], int](N.Mul(2)),
 	)
 	// Result: [Right(20), Left("error"), Right(40)]
 
@@ -247,7 +247,7 @@ Traverse over Some values:
 	incremented := F.Pipe2(
 		values,
 		allSomesTrav,
-		T.Modify[[]O.Option[int], int](func(n int) int { return n + 1 }),
+		T.Modify[[]O.Option[int], int](N.Add(1)),
 	)
 	// Result: [Some(2), None, Some(3), None, Some(4)]
 

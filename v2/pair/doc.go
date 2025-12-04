@@ -90,7 +90,7 @@ Curried versions for composition:
 
 	// Compose multiple transformations
 	transform := F.Flow2(
-	    pair.MapHead[string](func(n int) int { return n * 2 }),
+	    pair.MapHead[string](N.Mul(2)),
 	    pair.MapTail[int](func(s string) int { return len(s) }),
 	)
 	result := transform(p)  // Pair[int, int]{10, 5}

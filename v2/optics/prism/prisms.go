@@ -321,6 +321,11 @@ func FromEither[E, T any]() Prism[Either[E, T], T] {
 	return MakePrismWithName(either.ToOption[E, T], either.Of[E, T], "PrismFromEither")
 }
 
+//go:inline
+func FromResult[T any]() Prism[Result[T], T] {
+	return FromEither[error, T]()
+}
+
 // FromZero creates a prism that matches zero values of comparable types.
 // It provides a safe way to work with zero values, handling non-zero values
 // gracefully through the Option type.

@@ -124,7 +124,7 @@ numbers := []int{1, 2, 3, 4, 5}
 doubled := F.Pipe2(
     numbers,
     TA.Traversal[int](),
-    traversal.Modify[[]int, int](func(n int) int { return n * 2 }),
+    traversal.Modify[[]int, int](N.Mul(2)),
 )
 // Result: [2, 4, 6, 8, 10]
 ```

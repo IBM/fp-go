@@ -22,7 +22,7 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-func lensAsOptional[S, A any](creator func(get func(S) O.Option[A], set func(S, A) S) OPT.Optional[S, A], sa L.Lens[S, A]) OPT.Optional[S, A] {
+func lensAsOptional[S, A any](creator func(get O.Kleisli[S, A], set func(S, A) S) OPT.Optional[S, A], sa L.Lens[S, A]) OPT.Optional[S, A] {
 	return creator(F.Flow2(sa.Get, O.Some[A]), func(s S, a A) S {
 		return sa.Set(a)(s)
 	})

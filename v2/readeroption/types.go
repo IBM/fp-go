@@ -65,12 +65,15 @@ package readeroption
 import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
 	// Lazy represents a deferred computation
 	Lazy[A any] = lazy.Lazy[A]
+
+	Predicate[A any] = predicate.Predicate[A]
 
 	// Option represents an optional value
 	Option[A any] = option.Option[A]

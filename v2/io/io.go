@@ -72,7 +72,7 @@ func MonadOf[A any](a A) IO[A] {
 //
 // Example:
 //
-//	doubled := io.MonadMap(io.Of(21), func(n int) int { return n * 2 })
+//	doubled := io.MonadMap(io.Of(21), N.Mul(2))
 //	result := doubled() // returns 42
 func MonadMap[A, B any](fa IO[A], f func(A) B) IO[B] {
 	return func() B {
@@ -85,7 +85,7 @@ func MonadMap[A, B any](fa IO[A], f func(A) B) IO[B] {
 //
 // Example:
 //
-//	double := io.Map(func(n int) int { return n * 2 })
+//	double := io.Map(N.Mul(2))
 //	doubled := double(io.Of(21))
 func Map[A, B any](f func(A) B) Operator[A, B] {
 	return F.Bind2nd(MonadMap[A, B], f)
@@ -285,7 +285,7 @@ func Defer[A any](gen func() IO[A]) IO[A] {
 //
 // Example:
 //
-//	addFive := io.Of(func(n int) int { return n + 5 })
+//	addFive := io.Of(N.Add(5))
 //	result := io.MonadFlap(addFive, 10) // returns IO[15]
 func MonadFlap[B, A any](fab IO[func(A) B], a A) IO[B] {
 	return functor.MonadFlap(MonadMap[func(A) B, B], fab, a)

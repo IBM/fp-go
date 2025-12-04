@@ -47,7 +47,23 @@ type (
 	// ReaderIO[A] is equivalent to func(context.Context) func() A
 	ReaderIO[A any] = readerio.ReaderIO[context.Context, A]
 
+	// Kleisli represents a Kleisli arrow for the ReaderIO monad.
+	// It is a function that takes a value of type A and returns a ReaderIO computation
+	// that produces a value of type B.
+	//
+	// Kleisli arrows are used for composing monadic computations and are fundamental
+	// to functional programming patterns involving effects and context.
+	//
+	// Kleisli[A, B] is equivalent to func(A) func(context.Context) func() B
 	Kleisli[A, B any] = reader.Reader[A, ReaderIO[B]]
 
+	// Operator represents a transformation from one ReaderIO computation to another.
+	// It takes a ReaderIO[A] and returns a ReaderIO[B], allowing for the composition
+	// of context-dependent, side-effectful computations.
+	//
+	// Operators are useful for building pipelines of ReaderIO computations where
+	// each step can depend on the previous computation's result.
+	//
+	// Operator[A, B] is equivalent to func(ReaderIO[A]) func(context.Context) func() B
 	Operator[A, B any] = Kleisli[ReaderIO[A], B]
 )

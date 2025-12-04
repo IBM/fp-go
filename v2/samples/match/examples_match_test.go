@@ -18,10 +18,10 @@ package match
 import (
 	"fmt"
 
-	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 )
 
@@ -37,13 +37,13 @@ var (
 	// func(Thing) Either[error, string]
 	getName = F.Flow2(
 		Thing.GetName,
-		E.FromPredicate(S.IsNonEmpty, errors.OnSome[string]("value [%s] is empty")),
+		result.FromPredicate(S.IsNonEmpty, errors.OnSome[string]("value [%s] is empty")),
 	)
 
 	// func(option.Option[Thing]) Either[error, string]
 	GetName = F.Flow2(
-		E.FromOption[Thing](errors.OnNone("value is none")),
-		E.Chain(getName),
+		result.FromOption[Thing](errors.OnNone("value is none")),
+		result.Chain(getName),
 	)
 )
 
@@ -54,7 +54,7 @@ func ExampleEither_match() {
 	res := F.Pipe2(
 		oThing,
 		GetName,
-		E.Fold(S.Format[error]("failed with error %v"), S.Format[string]("get value %s")),
+		result.Fold(S.Format[error]("failed with error %v"), S.Format[string]("get value %s")),
 	)
 
 	fmt.Println(res)

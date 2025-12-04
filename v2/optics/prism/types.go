@@ -17,8 +17,10 @@ package prism
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
@@ -95,5 +97,26 @@ type (
 	//   - Prism composition for building complex error-handling pipelines
 	Either[E, T any] = either.Either[E, T]
 
+	Result[T any]       = result.Result[T]
+	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
 	Reader[R, T any] = reader.Reader[R, T]
+
+	// Kleisli represents a function that takes a value of type A and returns a Prism[S, B].
+	// This is commonly used for composing prisms in a monadic style.
+	//
+	// Type Parameters:
+	//   - S: The source type of the resulting prism
+	//   - A: The input type to the function
+	//   - B: The focus type of the resulting prism
+	Kleisli[S, A, B any] = func(A) Prism[S, B]
+
+	// Operator represents a function that transforms one prism into another.
+	// It takes a Prism[S, A] and returns a Prism[S, B], allowing for prism transformations.
+	//
+	// Type Parameters:
+	//   - S: The source type (remains constant)
+	//   - A: The original focus type
+	//   - B: The new focus type
+	Operator[S, A, B any] = func(Prism[S, A]) Prism[S, B]
 )

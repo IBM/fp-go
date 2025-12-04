@@ -36,7 +36,7 @@ package function
 // Example:
 //
 //	isPositive := func(n int) bool { return n > 0 }
-//	double := func(n int) int { return n * 2 }
+//	double := N.Mul(2)
 //	negate := func(n int) int { return -n }
 //
 //	transform := Ternary(isPositive, double, negate)

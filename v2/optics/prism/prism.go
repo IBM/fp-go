@@ -18,7 +18,6 @@ package prism
 import (
 	"fmt"
 
-	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -80,12 +79,12 @@ type (
 //	)
 //
 //go:inline
-func MakePrism[S, A any](get func(S) Option[A], rev func(A) S) Prism[S, A] {
+func MakePrism[S, A any](get O.Kleisli[S, A], rev func(A) S) Prism[S, A] {
 	return MakePrismWithName(get, rev, "GenericPrism")
 }
 
 //go:inline
-func MakePrismWithName[S, A any](get func(S) Option[A], rev func(A) S, name string) Prism[S, A] {
+func MakePrismWithName[S, A any](get O.Kleisli[S, A], rev func(A) S, name string) Prism[S, A] {
 	return Prism[S, A]{get, rev, name}
 }
 
@@ -142,7 +141,7 @@ func FromPredicate[S any](pred func(S) bool) Prism[S, S] {
 //	outerPrism := MakePrism(...)  // Prism[Outer, Inner]
 //	innerPrism := MakePrism(...)  // Prism[Inner, Value]
 //	composed := Compose[Outer](innerPrism)(outerPrism)  // Prism[Outer, Value]
-func Compose[S, A, B any](ab Prism[A, B]) func(Prism[S, A]) Prism[S, B] {
+func Compose[S, A, B any](ab Prism[A, B]) Operator[S, A, B] {
 	return func(sa Prism[S, A]) Prism[S, B] {
 		return MakePrismWithName(F.Flow2(
 			sa.GetOption,
@@ -159,7 +158,7 @@ func Compose[S, A, B any](ab Prism[A, B]) func(Prism[S, A]) Prism[S, B] {
 // prismModifyOption applies a transformation function through a prism,
 // returning Some(modified S) if the prism matches, None otherwise.
 // This is an internal helper function.
-func prismModifyOption[S, A any](f func(A) A, sa Prism[S, A], s S) Option[S] {
+func prismModifyOption[S, A any](f Endomorphism[A], sa Prism[S, A], s S) Option[S] {
 	return F.Pipe2(
 		s,
 		sa.GetOption,
@@ -174,7 +173,7 @@ func prismModifyOption[S, A any](f func(A) A, sa Prism[S, A], s S) Option[S] {
 // If the prism matches, it extracts the value, applies the function,
 // and reconstructs the result. If the prism doesn't match, returns the original value.
 // This is an internal helper function.
-func prismModify[S, A any](f func(A) A, sa Prism[S, A], s S) S {
+func prismModify[S, A any](f Endomorphism[A], sa Prism[S, A], s S) S {
 	return F.Pipe1(
 		prismModifyOption(f, sa, s),
 		O.GetOrElse(F.Constant(s)),
@@ -183,7 +182,7 @@ func prismModify[S, A any](f func(A) A, sa Prism[S, A], s S) S {
 
 // prismSet is an internal helper that creates a setter function.
 // Deprecated: Use Set instead.
-func prismSet[S, A any](a A) func(Prism[S, A]) EM.Endomorphism[S] {
+func prismSet[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
 	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
 }
 
@@ -203,7 +202,7 @@ func prismSet[S, A any](a A) func(Prism[S, A]) EM.Endomorphism[S] {
 //	setter := Set[Option[int], int](100)
 //	result := setter(somePrism)(Some(42))  // Some(100)
 //	result = setter(somePrism)(None[int]()) // None[int]() (unchanged)
-func Set[S, A any](a A) func(Prism[S, A]) EM.Endomorphism[S] {
+func Set[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
 	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
 }
 
@@ -271,7 +270,7 @@ func imap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](sa Prism[S, A], ab AB, 
 //	    func(n int) string { return strconv.Itoa(n) },
 //	    func(s string) int { n, _ := strconv.Atoi(s); return n },
 //	)(intPrism)  // Prism[Result, string]
-func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) func(Prism[S, A]) Prism[S, B] {
+func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[S, A, B] {
 	return func(sa Prism[S, A]) Prism[S, B] {
 		return imap(sa, ab, ba)
 	}

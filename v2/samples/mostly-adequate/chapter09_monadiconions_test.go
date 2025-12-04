@@ -21,12 +21,12 @@ import (
 	"regexp"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 )
 
@@ -116,7 +116,7 @@ var (
 	)
 
 	// validateEmail :: Email -> Either error Email
-	validateEmail = E.FromPredicate(Matches(regexp.MustCompile(`\S+@\S+\.\S+`)), errors.OnSome[string]("email %s is invalid"))
+	validateEmail = result.FromPredicate(Matches(regexp.MustCompile(`\S+@\S+\.\S+`)), errors.OnSome[string]("email %s is invalid"))
 
 	// emailBlast :: [Email] -> IO ()
 	emailBlast = F.Flow2(

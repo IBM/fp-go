@@ -17,10 +17,13 @@ package identity
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	N "github.com/IBM/fp-go/v2/number"
+	S "github.com/IBM/fp-go/v2/string"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,17 +54,15 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("transforms string", func(t *testing.T) {
-		result := F.Pipe1("hello", Map(func(s string) int {
-			return len(s)
-		}))
+		result := F.Pipe1("hello", Map(S.Size))
 		assert.Equal(t, 5, result)
 	})
 
 	t.Run("chains multiple maps", func(t *testing.T) {
 		result := F.Pipe2(
 			5,
-			Map(func(n int) int { return n * 2 }),
-			Map(func(n int) int { return n + 3 }),
+			Map(N.Mul(2)),
+			Map(N.Add(3)),
 		)
 		assert.Equal(t, 13, result)
 	})
@@ -69,14 +70,12 @@ func TestMap(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	t.Run("transforms value", func(t *testing.T) {
-		result := MonadMap(10, func(n int) int { return n * 3 })
+		result := MonadMap(10, N.Mul(3))
 		assert.Equal(t, 30, result)
 	})
 
 	t.Run("changes type", func(t *testing.T) {
-		result := MonadMap(42, func(n int) string {
-			return fmt.Sprintf("Number: %d", n)
-		})
+		result := MonadMap(42, S.Format[int]("Number: %d"))
 		assert.Equal(t, "Number: 42", result)
 	})
 }
@@ -109,23 +108,21 @@ func TestChain(t *testing.T) {
 	t.Run("chains multiple operations", func(t *testing.T) {
 		result := F.Pipe2(
 			10,
-			Chain(func(n int) int { return n * 2 }),
-			Chain(func(n int) int { return n + 5 }),
+			Chain(N.Mul(2)),
+			Chain(N.Add(5)),
 		)
 		assert.Equal(t, 25, result)
 	})
 
 	t.Run("changes type", func(t *testing.T) {
-		result := F.Pipe1(5, Chain(func(n int) string {
-			return fmt.Sprintf("Value: %d", n)
-		}))
+		result := F.Pipe1(5, Chain(S.Format[int]("Value: %d")))
 		assert.Equal(t, "Value: 5", result)
 	})
 }
 
 func TestMonadChain(t *testing.T) {
 	t.Run("chains computation", func(t *testing.T) {
-		result := MonadChain(7, func(n int) int { return n * 7 })
+		result := MonadChain(7, N.Mul(7))
 		assert.Equal(t, 49, result)
 	})
 }
@@ -148,7 +145,7 @@ func TestChainFirst(t *testing.T) {
 		result := F.Pipe2(
 			10,
 			ChainFirst(func(n int) string { return "ignored" }),
-			Map(func(n int) int { return n * 2 }),
+			Map(N.Mul(2)),
 		)
 		assert.Equal(t, 20, result)
 	})
@@ -156,9 +153,7 @@ func TestChainFirst(t *testing.T) {
 
 func TestMonadChainFirst(t *testing.T) {
 	t.Run("keeps original value", func(t *testing.T) {
-		result := MonadChainFirst(100, func(n int) string {
-			return fmt.Sprintf("%d", n)
-		})
+		result := MonadChainFirst(100, strconv.Itoa)
 		assert.Equal(t, 100, result)
 	})
 }
@@ -170,17 +165,13 @@ func TestAp(t *testing.T) {
 	})
 
 	t.Run("applies curried function", func(t *testing.T) {
-		add := func(a int) func(int) int {
-			return func(b int) int { return a + b }
-		}
+		add := N.Add[int]
 		result := F.Pipe1(add(10), Ap[int](5))
 		assert.Equal(t, 15, result)
 	})
 
 	t.Run("changes type", func(t *testing.T) {
-		toString := func(n int) string {
-			return fmt.Sprintf("Number: %d", n)
-		}
+		toString := S.Format[int]("Number: %d")
 		result := F.Pipe1(toString, Ap[string](42))
 		assert.Equal(t, "Number: 42", result)
 	})
@@ -188,22 +179,22 @@ func TestAp(t *testing.T) {
 
 func TestMonadAp(t *testing.T) {
 	t.Run("applies function to value", func(t *testing.T) {
-		result := MonadAp(func(n int) int { return n * 3 }, 7)
+		result := MonadAp(N.Mul(3), 7)
 		assert.Equal(t, 21, result)
 	})
 }
 
 func TestFlap(t *testing.T) {
 	t.Run("flips application", func(t *testing.T) {
-		double := func(n int) int { return n * 2 }
+		double := N.Mul(2)
 		result := F.Pipe1(double, Flap[int](5))
 		assert.Equal(t, 10, result)
 	})
 
 	t.Run("with multiple functions", func(t *testing.T) {
 		funcs := []func(int) int{
-			func(n int) int { return n * 2 },
-			func(n int) int { return n + 10 },
+			N.Mul(2),
+			N.Add(10),
 			func(n int) int { return n * n },
 		}
 
@@ -218,9 +209,7 @@ func TestFlap(t *testing.T) {
 
 func TestMonadFlap(t *testing.T) {
 	t.Run("applies value to function", func(t *testing.T) {
-		result := MonadFlap(func(n int) string {
-			return fmt.Sprintf("Value: %d", n)
-		}, 42)
+		result := MonadFlap(S.Format[int]("Value: %d"), 42)
 		assert.Equal(t, "Value: 42", result)
 	})
 }
@@ -391,8 +380,8 @@ func TestTraverseTuple(t *testing.T) {
 	t.Run("TraverseTuple2", func(t *testing.T) {
 		tuple := T.MakeTuple2(1, 2)
 		result := TraverseTuple2(
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 3 },
+			N.Mul(2),
+			N.Mul(3),
 		)(tuple)
 		assert.Equal(t, T.MakeTuple2(2, 6), result)
 	})
@@ -400,7 +389,7 @@ func TestTraverseTuple(t *testing.T) {
 	t.Run("TraverseTuple3", func(t *testing.T) {
 		tuple := T.MakeTuple3(1, 2, 3)
 		result := TraverseTuple3(
-			func(n int) int { return n + 10 },
+			N.Add(10),
 			func(n int) int { return n + 20 },
 			func(n int) int { return n + 30 },
 		)(tuple)
@@ -426,15 +415,11 @@ func TestMonad(t *testing.T) {
 		assert.Equal(t, 42, value)
 
 		// Test Map
-		mapped := m.Map(func(n int) string {
-			return fmt.Sprintf("Number: %d", n)
-		})(value)
+		mapped := m.Map(S.Format[int]("Number: %d"))(value)
 		assert.Equal(t, "Number: 42", mapped)
 
 		// Test Chain
-		chained := m.Chain(func(n int) string {
-			return fmt.Sprintf("Value: %d", n)
-		})(value)
+		chained := m.Chain(S.Format[int]("Value: %d"))(value)
 		assert.Equal(t, "Value: 42", chained)
 
 		// Test Ap
@@ -450,7 +435,7 @@ func TestMonadLaws(t *testing.T) {
 	t.Run("left identity", func(t *testing.T) {
 		// Of(a).Chain(f) === f(a)
 		a := 42
-		f := func(n int) int { return n * 2 }
+		f := N.Mul(2)
 
 		left := F.Pipe1(Of(a), Chain(f))
 		right := f(a)
@@ -470,8 +455,8 @@ func TestMonadLaws(t *testing.T) {
 	t.Run("associativity", func(t *testing.T) {
 		// m.Chain(f).Chain(g) === m.Chain(x => f(x).Chain(g))
 		m := 5
-		f := func(n int) int { return n * 2 }
-		g := func(n int) int { return n + 10 }
+		f := N.Mul(2)
+		g := N.Add(10)
 
 		left := F.Pipe2(m, Chain(f), Chain(g))
 		right := F.Pipe1(m, Chain(func(x int) int {
@@ -496,8 +481,8 @@ func TestFunctorLaws(t *testing.T) {
 	t.Run("composition", func(t *testing.T) {
 		// Map(f).Map(g) === Map(g ∘ f)
 		value := 5
-		f := func(n int) int { return n * 2 }
-		g := func(n int) int { return n + 10 }
+		f := N.Mul(2)
+		g := N.Add(10)
 
 		left := F.Pipe2(value, Map(f), Map(g))
 		right := F.Pipe1(value, Map(F.Flow2(f, g)))
@@ -541,7 +526,7 @@ func TestTraverseTuple4(t *testing.T) {
 	t.Run("traverses tuple4", func(t *testing.T) {
 		tuple := T.MakeTuple4(1, 2, 3, 4)
 		result := TraverseTuple4(
-			func(n int) int { return n + 10 },
+			N.Add(10),
 			func(n int) int { return n + 20 },
 			func(n int) int { return n + 30 },
 			func(n int) int { return n + 40 },
@@ -570,8 +555,8 @@ func TestTraverseTuple5(t *testing.T) {
 		tuple := T.MakeTuple5(1, 2, 3, 4, 5)
 		result := TraverseTuple5(
 			func(n int) int { return n * 1 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 3 },
+			N.Mul(2),
+			N.Mul(3),
 			func(n int) int { return n * 4 },
 			func(n int) int { return n * 5 },
 		)(tuple)
@@ -598,11 +583,11 @@ func TestTraverseTuple6(t *testing.T) {
 	t.Run("traverses tuple6", func(t *testing.T) {
 		tuple := T.MakeTuple6(1, 2, 3, 4, 5, 6)
 		result := TraverseTuple6(
-			func(n int) int { return n + 1 },
+			N.Add(1),
 			func(n int) int { return n + 2 },
-			func(n int) int { return n + 3 },
+			N.Add(3),
 			func(n int) int { return n + 4 },
-			func(n int) int { return n + 5 },
+			N.Add(5),
 			func(n int) int { return n + 6 },
 		)(tuple)
 		assert.Equal(t, T.MakeTuple6(2, 4, 6, 8, 10, 12), result)
@@ -691,15 +676,15 @@ func TestTraverseTuple9(t *testing.T) {
 	t.Run("traverses tuple9", func(t *testing.T) {
 		tuple := T.MakeTuple9(1, 2, 3, 4, 5, 6, 7, 8, 9)
 		result := TraverseTuple9(
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
-			func(n int) int { return n + 1 },
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
+			N.Add(1),
 		)(tuple)
 		assert.Equal(t, T.MakeTuple9(2, 3, 4, 5, 6, 7, 8, 9, 10), result)
 	})
@@ -724,16 +709,16 @@ func TestTraverseTuple10(t *testing.T) {
 	t.Run("traverses tuple10", func(t *testing.T) {
 		tuple := T.MakeTuple10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 		result := TraverseTuple10(
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
-			func(n int) int { return n * 2 },
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
+			N.Mul(2),
 		)(tuple)
 		assert.Equal(t, T.MakeTuple10(2, 4, 6, 8, 10, 12, 14, 16, 18, 20), result)
 	})

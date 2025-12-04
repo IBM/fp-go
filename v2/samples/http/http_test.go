@@ -25,9 +25,9 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	R "github.com/IBM/fp-go/v2/context/readerioresult"
 	H "github.com/IBM/fp-go/v2/context/readerioresult/http"
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/result"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
@@ -69,9 +69,9 @@ func TestMultipleHttpRequests(t *testing.T) {
 		R.Map(A.Size[PostItem]),
 	)
 
-	result := data(context.Background())
+	res := data(context.Background())
 
-	assert.Equal(t, E.Of[error](count), result())
+	assert.Equal(t, result.Of(count), res())
 }
 
 func heterogeneousHTTPRequests() ReaderIOResult[T.Tuple2[PostItem, CatFact]] {

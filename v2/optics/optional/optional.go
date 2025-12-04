@@ -25,12 +25,32 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-// Optional is an optional reference to a subpart of a data type
-type Optional[S, A any] struct {
-	GetOption func(s S) O.Option[A]
-	Set       func(a A) EM.Endomorphism[S]
-	name      string
-}
+type (
+	// Optional is an optional reference to a subpart of a data type
+	Optional[S, A any] struct {
+		GetOption func(s S) O.Option[A]
+		Set       func(a A) EM.Endomorphism[S]
+		name      string
+	}
+
+	// Kleisli represents a function that takes a value of type A and returns an Optional[S, B].
+	// This is commonly used for composing optionals in a monadic style.
+	//
+	// Type Parameters:
+	//   - S: The source type of the resulting optional
+	//   - A: The input type to the function
+	//   - B: The focus type of the resulting optional
+	Kleisli[S, A, B any] = func(A) Optional[S, B]
+
+	// Operator represents a function that transforms one optional into another.
+	// It takes an Optional[S, A] and returns an Optional[S, B], allowing for optional transformations.
+	//
+	// Type Parameters:
+	//   - S: The source type (remains constant)
+	//   - A: The original focus type
+	//   - B: The new focus type
+	Operator[S, A, B any] = func(Optional[S, A]) Optional[S, B]
+)
 
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
@@ -46,11 +66,11 @@ func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 // and for other kinds of data structures that are copied by reference make sure the setter creates the copy.
 //
 //go:inline
-func MakeOptional[S, A any](get func(S) O.Option[A], set func(S, A) S) Optional[S, A] {
+func MakeOptional[S, A any](get O.Kleisli[S, A], set func(S, A) S) Optional[S, A] {
 	return MakeOptionalWithName(get, set, "GenericOptional")
 }
 
-func MakeOptionalWithName[S, A any](get func(S) O.Option[A], set func(S, A) S, name string) Optional[S, A] {
+func MakeOptionalWithName[S, A any](get O.Kleisli[S, A], set func(S, A) S, name string) Optional[S, A] {
 	return Optional[S, A]{GetOption: get, Set: F.Bind2of2(set), name: name}
 }
 
@@ -58,17 +78,17 @@ func MakeOptionalWithName[S, A any](get func(S) O.Option[A], set func(S, A) S, n
 // copy, the implementation wraps the setter into one that copies the pointer before modifying it
 //
 //go:inline
-func MakeOptionalRef[S, A any](get func(*S) O.Option[A], set func(*S, A) *S) Optional[*S, A] {
+func MakeOptionalRef[S, A any](get O.Kleisli[*S, A], set func(*S, A) *S) Optional[*S, A] {
 	return MakeOptional(get, setCopy(set))
 }
 
 //go:inline
-func MakeOptionalRefWithName[S, A any](get func(*S) O.Option[A], set func(*S, A) *S, name string) Optional[*S, A] {
+func MakeOptionalRefWithName[S, A any](get O.Kleisli[*S, A], set func(*S, A) *S, name string) Optional[*S, A] {
 	return MakeOptionalWithName(get, setCopy(set), name)
 }
 
 // Id returns am optional implementing the identity operation
-func idWithName[S any](creator func(get func(S) O.Option[S], set func(S, S) S, name string) Optional[S, S], name string) Optional[S, S] {
+func idWithName[S any](creator func(get O.Kleisli[S, S], set func(S, S) S, name string) Optional[S, S], name string) Optional[S, S] {
 	return creator(O.Some[S], F.Second[S, S], name)
 }
 
@@ -99,7 +119,7 @@ func optionalModify[S, A any](f func(A) A, optional Optional[S, A], s S) S {
 }
 
 // Compose combines two Optional and allows to narrow down the focus to a sub-Optional
-func compose[S, A, B any](creator func(get func(S) O.Option[B], set func(S, B) S) Optional[S, B], ab Optional[A, B]) func(Optional[S, A]) Optional[S, B] {
+func compose[S, A, B any](creator func(get O.Kleisli[S, B], set func(S, B) S) Optional[S, B], ab Optional[A, B]) Operator[S, A, B] {
 	abget := ab.GetOption
 	abset := ab.Set
 	return func(sa Optional[S, A]) Optional[S, B] {
@@ -114,17 +134,17 @@ func compose[S, A, B any](creator func(get func(S) O.Option[B], set func(S, B) S
 }
 
 // Compose combines two Optional and allows to narrow down the focus to a sub-Optional
-func Compose[S, A, B any](ab Optional[A, B]) func(Optional[S, A]) Optional[S, B] {
+func Compose[S, A, B any](ab Optional[A, B]) Operator[S, A, B] {
 	return compose(MakeOptional[S, B], ab)
 }
 
 // ComposeRef combines two Optional and allows to narrow down the focus to a sub-Optional
-func ComposeRef[S, A, B any](ab Optional[A, B]) func(Optional[*S, A]) Optional[*S, B] {
+func ComposeRef[S, A, B any](ab Optional[A, B]) Operator[*S, A, B] {
 	return compose(MakeOptionalRef[S, B], ab)
 }
 
 // fromPredicate implements the function generically for both the ref and the direct case
-func fromPredicate[S, A any](creator func(get func(S) O.Option[A], set func(S, A) S) Optional[S, A], pred func(A) bool) func(func(S) A, func(S, A) S) Optional[S, A] {
+func fromPredicate[S, A any](creator func(get O.Kleisli[S, A], set func(S, A) S) Optional[S, A], pred func(A) bool) func(func(S) A, func(S, A) S) Optional[S, A] {
 	fromPred := O.FromPredicate(pred)
 	return func(get func(S) A, set func(S, A) S) Optional[S, A] {
 		return creator(
@@ -163,21 +183,21 @@ func imap[S, A, B any](sa Optional[S, A], ab func(A) B, ba func(B) A) Optional[S
 }
 
 // IMap implements a bidirectional mapping of the transform
-func IMap[S, A, B any](ab func(A) B, ba func(B) A) func(Optional[S, A]) Optional[S, B] {
+func IMap[S, A, B any](ab func(A) B, ba func(B) A) Operator[S, A, B] {
 	return func(sa Optional[S, A]) Optional[S, B] {
 		return imap(sa, ab, ba)
 	}
 }
 
-func ModifyOption[S, A any](f func(A) A) func(Optional[S, A]) func(S) O.Option[S] {
-	return func(o Optional[S, A]) func(S) O.Option[S] {
+func ModifyOption[S, A any](f func(A) A) func(Optional[S, A]) O.Kleisli[S, S] {
+	return func(o Optional[S, A]) O.Kleisli[S, S] {
 		return func(s S) O.Option[S] {
 			return optionalModifyOption(f, o, s)
 		}
 	}
 }
 
-func SetOption[S, A any](a A) func(Optional[S, A]) func(S) O.Option[S] {
+func SetOption[S, A any](a A) func(Optional[S, A]) O.Kleisli[S, S] {
 	return ModifyOption[S](F.Constant1[A](a))
 }
 
@@ -191,14 +211,14 @@ func ichain[S, A, B any](sa Optional[S, A], ab func(A) O.Option[B], ba func(B) O
 }
 
 // IChain implements a bidirectional mapping of the transform if the transform can produce optionals (e.g. in case of type mappings)
-func IChain[S, A, B any](ab func(A) O.Option[B], ba func(B) O.Option[A]) func(Optional[S, A]) Optional[S, B] {
+func IChain[S, A, B any](ab func(A) O.Option[B], ba func(B) O.Option[A]) Operator[S, A, B] {
 	return func(sa Optional[S, A]) Optional[S, B] {
 		return ichain(sa, ab, ba)
 	}
 }
 
 // IChainAny implements a bidirectional mapping to and from any
-func IChainAny[S, A any]() func(Optional[S, any]) Optional[S, A] {
+func IChainAny[S, A any]() Operator[S, any, A] {
 	fromAny := O.ToType[A]
 	toAny := O.ToAny[A]
 	return func(sa Optional[S, any]) Optional[S, A] {
