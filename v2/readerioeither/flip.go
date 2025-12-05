@@ -159,8 +159,8 @@ func Traverse[R2, R1, E, A, B any](
 	f Kleisli[R1, E, A, B],
 ) func(ReaderIOEither[R2, E, A]) Kleisli[R2, E, R1, B] {
 	return readert.Traverse[ReaderIOEither[R2, E, A]](
-		ioeither.MonadMap,
-		ioeither.MonadChain,
+		ioeither.Map,
+		ioeither.Chain,
 		f,
 	)
 }

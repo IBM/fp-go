@@ -41,20 +41,14 @@ func Traverse[
 	HKTR2A ~func(R2) HKTA,
 	HKTR1B ~func(R1) HKTB,
 	R1, R2, A, HKTR1HKTB, HKTA, HKTB any](
-	mmap func(HKTA, func(A) HKTR1B) HKTR1HKTB,
-	mchain func(HKTR1HKTB, func(func(R1) HKTB) HKTB) HKTB,
+	mmap func(func(A) HKTR1B) func(HKTA) HKTR1HKTB,
+	mchain func(func(func(R1) HKTB) HKTB) func(HKTR1HKTB) HKTB,
 	f func(A) HKTR1B,
 ) func(HKTR2A) func(R1) func(R2) HKTB {
-	return func(ma HKTR2A) func(R1) func(R2) HKTB {
-		return func(r1 R1) func(R2) HKTB {
-			return func(r2 R2) HKTB {
-				return mchain(
-					mmap(ma(r2), f),
-					identity.Ap[HKTB](r1),
-				)
-			}
-		}
-	}
+	return function.Flow2(
+		function.Bind1of2(function.Bind2of3(function.Flow3[HKTR2A, func(HKTA) HKTR1HKTB, func(HKTR1HKTB) HKTB])(mmap(f))),
+		function.Bind12of3(function.Flow3[func(fa R1) identity.Operator[func(R1) HKTB, HKTB], func(func(func(R1) HKTB) HKTB) func(HKTR1HKTB) HKTB, func(func(HKTR1HKTB) HKTB) func(R2) HKTB])(identity.Ap[HKTB, R1], mchain),
+	)
 }
 
 func TraverseReader[

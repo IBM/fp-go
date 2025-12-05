@@ -68,8 +68,8 @@ func Traverse[R2, R1, A, B any](
 	f Kleisli[R1, A, B],
 ) func(Reader[R2, A]) Kleisli[R2, R1, B] {
 	return readert.Traverse[Reader[R2, A]](
-		identity.MonadMap,
-		identity.MonadChain,
+		identity.Map,
+		identity.Chain,
 		f,
 	)
 }
