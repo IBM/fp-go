@@ -60,7 +60,7 @@ func Asks[R, A any](f Reader[R, A]) Reader[R, A] {
 //	    }
 //	    return reader.Of[Config]("fresh")
 //	})
-func AsksReader[R, A any](f func(R) Reader[R, A]) Reader[R, A] {
+func AsksReader[R, A any](f Kleisli[R, R, A]) Reader[R, A] {
 	return func(r R) A {
 		return f(r)(r)
 	}
@@ -201,7 +201,7 @@ func Flatten[R, A any](mma Reader[R, Reader[R, A]]) Reader[R, A] {
 //	getConfig := func(e Env) Config { return e.Config }
 //	getPort := func(c Config) int { return c.Port }
 //	getPortFromEnv := reader.Compose(getConfig)(getPort)
-func Compose[C, R, B any](ab Reader[R, B]) func(Reader[B, C]) Reader[R, C] {
+func Compose[C, R, B any](ab Reader[R, B]) Kleisli[R, Reader[B, C], C] {
 	return func(bc Reader[B, C]) Reader[R, C] {
 		return function.Flow2(ab, bc)
 	}
@@ -247,7 +247,7 @@ func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]
 //	toString := strconv.Itoa
 //	r := reader.Promap(extractConfig, toString)(getPort)
 //	result := r(Env{Config: Config{Port: 8080}}) // "8080"
-func Promap[E, A, D, B any](f func(D) E, g func(A) B) func(Reader[E, A]) Reader[D, B] {
+func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, Reader[E, A], B] {
 	return func(fea Reader[E, A]) Reader[D, B] {
 		return function.Flow3(f, fea, g)
 	}
@@ -265,7 +265,7 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) func(Reader[E, A]) Reader[
 //	simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
 //	r := reader.Local(simplify)(getHost)
 //	result := r(DetailedConfig{Host: "localhost", Port: 8080}) // "localhost"
-func Local[A, R2, R1 any](f func(R2) R1) func(Reader[R1, A]) Reader[R2, A] {
+func Local[A, R2, R1 any](f func(R2) R1) Kleisli[R2, Reader[R1, A], A] {
 	return Compose[A](f)
 }
 
