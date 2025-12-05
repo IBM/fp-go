@@ -58,7 +58,7 @@ func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] 
 //	transform := reader.TraverseArray(multiply)
 //	r := transform([]int{1, 2, 3})
 //	result := r(Config{Multiplier: 10}) // [10, 20, 30]
-func TraverseArray[R, A, B any](f Kleisli[R, A, B]) func([]A) Reader[R, []B] {
+func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
 	return G.TraverseArray[Reader[R, B], Reader[R, []B], []A](f)
 }
 
@@ -79,7 +79,7 @@ func TraverseArray[R, A, B any](f Kleisli[R, A, B]) func([]A) Reader[R, []B] {
 //	transform := reader.TraverseArrayWithIndex(addIndexPrefix)
 //	r := transform([]string{"a", "b", "c"})
 //	result := r(Config{Prefix: "item"}) // ["item[0]:a", "item[1]:b", "item[2]:c"]
-func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) func([]A) Reader[R, []B] {
+func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) Kleisli[R, []A, []B] {
 	return G.TraverseArrayWithIndex[Reader[R, B], Reader[R, []B], []A](f)
 }
 

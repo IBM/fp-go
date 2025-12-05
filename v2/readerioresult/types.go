@@ -25,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/readeroption"
+	"github.com/IBM/fp-go/v2/readerresult"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -38,6 +39,8 @@ type (
 	// Reader represents a computation that depends on some context/environment of type R
 	// and produces a value of type A. It's useful for dependency injection patterns.
 	Reader[R, A any] = reader.Reader[R, A]
+
+	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
 
 	// ReaderIO represents a computation that depends on some context R and performs
 	// side effects to produce a value of type A.

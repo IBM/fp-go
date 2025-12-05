@@ -27,9 +27,10 @@ import (
 )
 
 type (
-	Option[A any] = option.Option[A]
-	Either[A any] = either.Either[error, A]
-	Result[A any] = result.Result[A]
+	Option[A any]    = option.Option[A]
+	Either[A any]    = either.Either[error, A]
+	Result[A any]    = result.Result[A]
+	Reader[R, A any] = reader.Reader[R, A]
 	// ReaderResult is a specialization of the Reader monad for the typical golang scenario
 	ReaderResult[A any] = readereither.ReaderEither[context.Context, error, A]
 

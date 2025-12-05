@@ -723,44 +723,221 @@ func TestMonad(t *testing.T) {
 	assert.NotNil(t, m)
 }
 
-func TestTraverseArrayWithIndex(t *testing.T) {
+func TestTraverseArrayDetailed(t *testing.T) {
 	ctx := testContext{value: 10}
-	result := TraverseArrayWithIndex(func(i int, x int) ReaderIOEither[testContext, error, int] {
-		return Of[testContext, error](x + i)
-	})([]int{1, 2, 3})
 
-	assert.Equal(t, E.Right[error]([]int{1, 3, 5}), result(ctx)())
-}
-
-func TestTraverseRecord(t *testing.T) {
-	ctx := testContext{value: 10}
-	result := TraverseRecord[string](func(x int) ReaderIOEither[testContext, error, int] {
-		return Of[testContext, error](x * 2)
-	})(map[string]int{"a": 1, "b": 2})
-
-	expected := map[string]int{"a": 2, "b": 4}
-	assert.Equal(t, E.Right[error](expected), result(ctx)())
-}
-
-func TestTraverseRecordWithIndex(t *testing.T) {
-	ctx := testContext{value: 10}
-	result := TraverseRecordWithIndex(func(k string, x int) ReaderIOEither[testContext, error, string] {
-		return Of[testContext, error](fmt.Sprintf("%s:%d", k, x))
-	})(map[string]int{"a": 1, "b": 2})
-
-	res := result(ctx)()
-	assert.True(t, E.IsRight(res))
-}
-
-func TestSequenceRecord(t *testing.T) {
-	ctx := testContext{value: 10}
-	result := SequenceRecord(map[string]ReaderIOEither[testContext, error, int]{
-		"a": Of[testContext, error](1),
-		"b": Of[testContext, error](2),
+	t.Run("empty array", func(t *testing.T) {
+		f := TraverseArray(func(a int) ReaderIOEither[testContext, error, string] {
+			return Of[testContext, error](strconv.Itoa(a))
+		})
+		result := f([]int{})
+		assert.Equal(t, E.Right[error]([]string{}), result(ctx)())
 	})
 
-	expected := map[string]int{"a": 1, "b": 2}
-	assert.Equal(t, E.Right[error](expected), result(ctx)())
+	t.Run("successful transformation", func(t *testing.T) {
+		f := TraverseArray(func(a int) ReaderIOEither[testContext, error, string] {
+			return Of[testContext, error](strconv.Itoa(a * 2))
+		})
+		result := f([]int{1, 2, 3})
+		assert.Equal(t, E.Right[error]([]string{"2", "4", "6"}), result(ctx)())
+	})
+
+	t.Run("first element fails", func(t *testing.T) {
+		expectedErr := fmt.Errorf("first error")
+		f := TraverseArray(func(a int) ReaderIOEither[testContext, error, string] {
+			if a == 1 {
+				return Left[testContext, string](expectedErr)
+			}
+			return Of[testContext, error](strconv.Itoa(a))
+		})
+		result := f([]int{1, 2, 3})
+		assert.Equal(t, E.Left[[]string](expectedErr), result(ctx)())
+	})
+
+	t.Run("middle element fails", func(t *testing.T) {
+		expectedErr := fmt.Errorf("middle error")
+		f := TraverseArray(func(a int) ReaderIOEither[testContext, error, string] {
+			if a == 2 {
+				return Left[testContext, string](expectedErr)
+			}
+			return Of[testContext, error](strconv.Itoa(a))
+		})
+		result := f([]int{1, 2, 3})
+		assert.Equal(t, E.Left[[]string](expectedErr), result(ctx)())
+	})
+}
+
+func TestTraverseArrayWithIndexDetailed(t *testing.T) {
+	ctx := testContext{value: 10}
+
+	t.Run("basic functionality", func(t *testing.T) {
+		result := TraverseArrayWithIndex(func(i int, x int) ReaderIOEither[testContext, error, int] {
+			return Of[testContext, error](x + i)
+		})([]int{1, 2, 3})
+
+		assert.Equal(t, E.Right[error]([]int{1, 3, 5}), result(ctx)())
+	})
+
+	t.Run("empty array", func(t *testing.T) {
+		f := TraverseArrayWithIndex(func(i int, a string) ReaderIOEither[testContext, error, string] {
+			return Of[testContext, error](fmt.Sprintf("%d:%s", i, a))
+		})
+		result := f([]string{})
+		assert.Equal(t, E.Right[error]([]string{}), result(ctx)())
+	})
+
+	t.Run("fails at specific index", func(t *testing.T) {
+		expectedErr := fmt.Errorf("error at index 1")
+		f := TraverseArrayWithIndex(func(i int, a string) ReaderIOEither[testContext, error, string] {
+			if i == 1 {
+				return Left[testContext, string](expectedErr)
+			}
+			return Of[testContext, error](fmt.Sprintf("%d:%s", i, a))
+		})
+		result := f([]string{"a", "b", "c"})
+		assert.Equal(t, E.Left[[]string](expectedErr), result(ctx)())
+	})
+}
+
+func TestTraverseRecordDetailed(t *testing.T) {
+	ctx := testContext{value: 10}
+
+	t.Run("basic functionality", func(t *testing.T) {
+		result := TraverseRecord[string](func(x int) ReaderIOEither[testContext, error, int] {
+			return Of[testContext, error](x * 2)
+		})(map[string]int{"a": 1, "b": 2})
+
+		expected := map[string]int{"a": 2, "b": 4}
+		assert.Equal(t, E.Right[error](expected), result(ctx)())
+	})
+
+	t.Run("empty record", func(t *testing.T) {
+		f := TraverseRecord[string](func(a int) ReaderIOEither[testContext, error, string] {
+			return Of[testContext, error](strconv.Itoa(a))
+		})
+		result := f(map[string]int{})
+		assert.Equal(t, E.Right[error](map[string]string{}), result(ctx)())
+	})
+
+	t.Run("one value fails", func(t *testing.T) {
+		expectedErr := fmt.Errorf("transformation error")
+		f := TraverseRecord[string](func(a int) ReaderIOEither[testContext, error, string] {
+			if a == 2 {
+				return Left[testContext, string](expectedErr)
+			}
+			return Of[testContext, error](strconv.Itoa(a))
+		})
+		input := map[string]int{"a": 1, "b": 2, "c": 3}
+		result := f(input)
+		assert.Equal(t, E.Left[map[string]string](expectedErr), result(ctx)())
+	})
+}
+
+func TestTraverseRecordWithIndexDetailed(t *testing.T) {
+	ctx := testContext{value: 10}
+
+	t.Run("basic functionality", func(t *testing.T) {
+		result := TraverseRecordWithIndex(func(k string, x int) ReaderIOEither[testContext, error, string] {
+			return Of[testContext, error](fmt.Sprintf("%s:%d", k, x))
+		})(map[string]int{"a": 1, "b": 2})
+
+		res := result(ctx)()
+		assert.True(t, E.IsRight(res))
+	})
+
+	t.Run("empty record", func(t *testing.T) {
+		f := TraverseRecordWithIndex(func(k string, a int) ReaderIOEither[testContext, error, string] {
+			return Of[testContext, error](fmt.Sprintf("%s:%d", k, a))
+		})
+		result := f(map[string]int{})
+		assert.Equal(t, E.Right[error](map[string]string{}), result(ctx)())
+	})
+
+	t.Run("fails for specific key", func(t *testing.T) {
+		expectedErr := fmt.Errorf("error for key y")
+		f := TraverseRecordWithIndex(func(k string, a int) ReaderIOEither[testContext, error, string] {
+			if k == "y" {
+				return Left[testContext, string](expectedErr)
+			}
+			return Of[testContext, error](fmt.Sprintf("%s:%d", k, a))
+		})
+		input := map[string]int{"x": 1, "y": 2}
+		result := f(input)
+		assert.Equal(t, E.Left[map[string]string](expectedErr), result(ctx)())
+	})
+}
+
+func TestSequenceArrayDetailed(t *testing.T) {
+	ctx := testContext{value: 10}
+
+	t.Run("empty array", func(t *testing.T) {
+		computations := []ReaderIOEither[testContext, error, int]{}
+		result := SequenceArray(computations)
+		assert.Equal(t, E.Right[error]([]int{}), result(ctx)())
+	})
+
+	t.Run("all successful", func(t *testing.T) {
+		computations := []ReaderIOEither[testContext, error, int]{
+			Of[testContext, error](1),
+			Of[testContext, error](2),
+			Of[testContext, error](3),
+		}
+		result := SequenceArray(computations)
+		assert.Equal(t, E.Right[error]([]int{1, 2, 3}), result(ctx)())
+	})
+
+	t.Run("first computation fails", func(t *testing.T) {
+		expectedErr := fmt.Errorf("first computation error")
+		computations := []ReaderIOEither[testContext, error, int]{
+			Left[testContext, int](expectedErr),
+			Of[testContext, error](2),
+			Of[testContext, error](3),
+		}
+		result := SequenceArray(computations)
+		assert.Equal(t, E.Left[[]int](expectedErr), result(ctx)())
+	})
+
+	t.Run("middle computation fails", func(t *testing.T) {
+		expectedErr := fmt.Errorf("middle computation error")
+		computations := []ReaderIOEither[testContext, error, int]{
+			Of[testContext, error](1),
+			Left[testContext, int](expectedErr),
+			Of[testContext, error](3),
+		}
+		result := SequenceArray(computations)
+		assert.Equal(t, E.Left[[]int](expectedErr), result(ctx)())
+	})
+}
+
+func TestSequenceRecordDetailed(t *testing.T) {
+	ctx := testContext{value: 10}
+
+	t.Run("basic functionality", func(t *testing.T) {
+		result := SequenceRecord(map[string]ReaderIOEither[testContext, error, int]{
+			"a": Of[testContext, error](1),
+			"b": Of[testContext, error](2),
+		})
+
+		expected := map[string]int{"a": 1, "b": 2}
+		assert.Equal(t, E.Right[error](expected), result(ctx)())
+	})
+
+	t.Run("empty record", func(t *testing.T) {
+		computations := map[string]ReaderIOEither[testContext, error, int]{}
+		result := SequenceRecord(computations)
+		assert.Equal(t, E.Right[error](map[string]int{}), result(ctx)())
+	})
+
+	t.Run("one computation fails", func(t *testing.T) {
+		expectedErr := fmt.Errorf("posts computation error")
+		computations := map[string]ReaderIOEither[testContext, error, int]{
+			"users":    Of[testContext, error](100),
+			"posts":    Left[testContext, int](expectedErr),
+			"comments": Of[testContext, error](200),
+		}
+		result := SequenceRecord(computations)
+		assert.Equal(t, E.Left[map[string]int](expectedErr), result(ctx)())
+	})
 }
 
 func TestSequenceT1(t *testing.T) {

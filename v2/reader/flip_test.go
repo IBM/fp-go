@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFlip(t *testing.T) {
+func TestSequence(t *testing.T) {
 	t.Run("flips parameter order for simple types", func(t *testing.T) {
 		// Original: takes int, returns Reader[string, int]
 		original := func(x int) Reader[string, int] {
@@ -31,15 +31,15 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		// Flipped: takes string, returns Reader[int, int]
-		flipped := Flip(original)
+		// Sequenceped: takes string, returns Reader[int, int]
+		sequenced := Sequence(original)
 
 		// Test original
 		result1 := original(10)("hello") // 10 + 5 = 15
 		assert.Equal(t, 15, result1)
 
-		// Test flipped
-		result2 := flipped("hello")(10) // 10 + 5 = 15
+		// Test sequenced
+		result2 := sequenced("hello")(10) // 10 + 5 = 15
 		assert.Equal(t, 15, result2)
 	})
 
@@ -56,8 +56,8 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		// Flipped: takes Config, returns Reader[Port, string]
-		flipped := Flip(makeURL)
+		// Sequenceped: takes Config, returns Reader[Port, string]
+		sequenced := Sequence(makeURL)
 
 		config := Config{Host: "localhost"}
 		port := Port(8080)
@@ -66,8 +66,8 @@ func TestFlip(t *testing.T) {
 		result1 := makeURL(port)(config)
 		assert.Equal(t, "localhost:8080", result1)
 
-		// Test flipped
-		result2 := flipped(config)(port)
+		// Test sequenced
+		result2 := sequenced(config)(port)
 		assert.Equal(t, "localhost:8080", result2)
 	})
 
@@ -82,15 +82,15 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(original)
+		sequenced := Sequence(original)
 
 		// Test with true flag
 		assert.Equal(t, "positive: 42", original(true)(42))
-		assert.Equal(t, "positive: 42", flipped(42)(true))
+		assert.Equal(t, "positive: 42", sequenced(42)(true))
 
 		// Test with false flag
 		assert.Equal(t, "negative: -42", original(false)(42))
-		assert.Equal(t, "negative: -42", flipped(42)(false))
+		assert.Equal(t, "negative: -42", sequenced(42)(false))
 	})
 
 	t.Run("works with multiple flips", func(t *testing.T) {
@@ -101,15 +101,15 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		// Flip once
-		flipped1 := Flip(original)
+		// Sequence once
+		sequenced1 := Sequence(original)
 
-		// Flip twice (should be equivalent to original)
-		flipped2 := Flip(flipped1)
+		// Sequence twice (should be equivalent to original)
+		sequenced2 := Sequence(sequenced1)
 
 		// Test that double flip returns to original behavior
-		result1 := original(3)("test") // 3 * 4 = 12
-		result2 := flipped2(3)("test") // Should also be 12
+		result1 := original(3)("test")   // 3 * 4 = 12
+		result2 := sequenced2(3)("test") // Should also be 12
 		assert.Equal(t, result1, result2)
 		assert.Equal(t, 12, result2)
 	})
@@ -121,11 +121,11 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(original)
+		sequenced := Sequence(original)
 
 		// Test with zero values
 		result1 := original(0)("")
-		result2 := flipped("")(0)
+		result2 := sequenced("")(0)
 		assert.Equal(t, 0, result1)
 		assert.Equal(t, 0, result2)
 	})
@@ -145,7 +145,7 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(executeQuery)
+		sequenced := Sequence(executeQuery)
 
 		db := Database{ConnectionString: "localhost:5432"}
 		query := Query{SQL: "SELECT * FROM users"}
@@ -156,8 +156,8 @@ func TestFlip(t *testing.T) {
 		result1 := executeQuery(query)(db)
 		assert.Equal(t, expected, result1)
 
-		// Test flipped
-		result2 := flipped(db)(query)
+		// Test sequenced
+		result2 := sequenced(db)(query)
 		assert.Equal(t, expected, result2)
 	})
 
@@ -173,9 +173,9 @@ func TestFlip(t *testing.T) {
 				return ""
 			}
 		}
-		flippedStr := Flip(strFunc)
+		sequencedStr := Sequence(strFunc)
 		assert.Equal(t, "42", strFunc(42)(true))
-		assert.Equal(t, "42", flippedStr(true)(42))
+		assert.Equal(t, "42", sequencedStr(true)(42))
 
 		// Bool result
 		boolFunc := func(s string) Reader[int, bool] {
@@ -183,9 +183,9 @@ func TestFlip(t *testing.T) {
 				return len(s) > n
 			}
 		}
-		flippedBool := Flip(boolFunc)
+		sequencedBool := Sequence(boolFunc)
 		assert.True(t, boolFunc("hello")(3))
-		assert.True(t, flippedBool(3)("hello"))
+		assert.True(t, sequencedBool(3)("hello"))
 
 		// Slice result
 		sliceFunc := func(n int) Reader[string, []int] {
@@ -197,10 +197,10 @@ func TestFlip(t *testing.T) {
 				return result
 			}
 		}
-		flippedSlice := Flip(sliceFunc)
+		sequencedSlice := Sequence(sliceFunc)
 		expected := []int{5, 6, 7}
 		assert.Equal(t, expected, sliceFunc(3)("hello"))
-		assert.Equal(t, expected, flippedSlice("hello")(3))
+		assert.Equal(t, expected, sequencedSlice("hello")(3))
 	})
 
 	t.Run("can be used in composition", func(t *testing.T) {
@@ -215,12 +215,12 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		// Flip it
-		flipped := Flip(multiply)
+		// Sequence it
+		sequenced := Sequence(multiply)
 
-		// Use flipped version to partially apply config first
+		// Use sequenced version to partially apply config first
 		config := Config{Multiplier: 10}
-		multiplyBy10 := flipped(config)
+		multiplyBy10 := sequenced(config)
 
 		// Now we have a simple function int -> int
 		assert.Equal(t, 50, multiplyBy10(5))
@@ -242,17 +242,17 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(original)
+		sequenced := Sequence(original)
 
 		data := &Data{Value: 100}
 
 		// Test with non-nil pointer
 		assert.Equal(t, 142, original(42)(data))
-		assert.Equal(t, 142, flipped(data)(42))
+		assert.Equal(t, 142, sequenced(data)(42))
 
 		// Test with nil pointer
 		assert.Equal(t, 42, original(42)(nil))
-		assert.Equal(t, 42, flipped(nil)(42))
+		assert.Equal(t, 42, sequenced(nil)(42))
 	})
 
 	t.Run("maintains referential transparency", func(t *testing.T) {
@@ -263,18 +263,18 @@ func TestFlip(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(original)
+		sequenced := Sequence(original)
 
 		// Call multiple times with same inputs
 		for range 5 {
 			assert.Equal(t, 15, original(10)("hello"))
-			assert.Equal(t, 15, flipped("hello")(10))
+			assert.Equal(t, 15, sequenced("hello")(10))
 		}
 	})
 }
 
-func TestFlipWithChain(t *testing.T) {
-	t.Run("flipped function can be used with Chain", func(t *testing.T) {
+func TestSequenceWithChain(t *testing.T) {
+	t.Run("sequenced function can be used with Chain", func(t *testing.T) {
 		type Config struct {
 			BaseValue int
 		}
@@ -286,14 +286,14 @@ func TestFlipWithChain(t *testing.T) {
 			}
 		}
 
-		// Flip it
-		flipped := Flip(addToBase)
+		// Sequence it
+		sequenced := Sequence(addToBase)
 
 		// Use it in a chain
 		config := Config{BaseValue: 100}
 
-		// Create a reader that uses the flipped function
-		reader := flipped(config)
+		// Create a reader that uses the sequenced function
+		reader := sequenced(config)
 
 		// Apply it
 		result := reader(42) // 100 + 42
@@ -301,7 +301,7 @@ func TestFlipWithChain(t *testing.T) {
 	})
 }
 
-func TestFlipEdgeCases(t *testing.T) {
+func TestSequenceEdgeCases(t *testing.T) {
 	t.Run("works with empty struct", func(t *testing.T) {
 		type Empty struct{}
 
@@ -311,11 +311,11 @@ func TestFlipEdgeCases(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(original)
+		sequenced := Sequence(original)
 
 		empty := Empty{}
 		assert.Equal(t, 20, original(10)(empty))
-		assert.Equal(t, 20, flipped(empty)(10))
+		assert.Equal(t, 20, sequenced(empty)(10))
 	})
 
 	t.Run("works with function types", func(t *testing.T) {
@@ -328,13 +328,13 @@ func TestFlipEdgeCases(t *testing.T) {
 			}
 		}
 
-		flipped := Flip(original)
+		sequenced := Sequence(original)
 
 		transform := func(s string) string {
 			return "value: " + s
 		}
 
 		assert.Equal(t, "value: 42", original(42)(transform))
-		assert.Equal(t, "value: 42", flipped(transform)(42))
+		assert.Equal(t, "value: 42", sequenced(transform)(42))
 	})
 }

@@ -15,9 +15,13 @@
 
 package reader
 
-import "github.com/IBM/fp-go/v2/function"
+import (
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/identity"
+	"github.com/IBM/fp-go/v2/internal/readert"
+)
 
-// Flip swaps the order of the two environment parameters in a Kleisli arrow.
+// Sequence swaps the order of the two environment parameters in a Kleisli arrow.
 // It transforms a function that takes A and returns Reader[R2, B] into a function
 // that takes R2 and returns Reader[R1, A].
 //
@@ -47,15 +51,25 @@ import "github.com/IBM/fp-go/v2/function"
 //	    }
 //	}
 //
-//	// Flipped: takes Config, returns Reader[Port, string]
-//	flipped := reader.Flip(makeURL)
-//	result := flipped(Config{Host: "localhost"})(Port(8080))
+//	// Sequenced: takes Config, returns Reader[Port, string]
+//	sequenced := reader.Sequence(makeURL)
+//	result := sequenced(Config{Host: "localhost"})(Port(8080))
 //	// result: "localhost:8080"
 //
-// The Flip operation is particularly useful when:
+// The Sequence operation is particularly useful when:
 //   - You need to partially apply environments in a different order
 //   - You're composing functions that expect parameters in reverse order
 //   - You want to curry multi-parameter functions differently
-func Flip[R1, R2, A any](ma Kleisli[R2, R1, A]) Kleisli[R1, R2, A] {
+func Sequence[R1, R2, A any](ma Reader[R2, Reader[R1, A]]) Kleisli[R2, R1, A] {
 	return function.Flip(ma)
+}
+
+func Traverse[R2, R1, A, B any](
+	f Kleisli[R1, A, B],
+) func(Reader[R2, A]) Kleisli[R2, R1, B] {
+	return readert.Traverse[Reader[R2, A]](
+		identity.MonadMap,
+		identity.MonadChain,
+		f,
+	)
 }

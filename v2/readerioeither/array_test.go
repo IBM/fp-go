@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTraverseArray(t *testing.T) {
+func TestTraverseArrayEx(t *testing.T) {
 	f := TraverseArray(func(a string) ReaderIOEither[context.Context, string, string] {
 		if len(a) > 0 {
 			return Right[context.Context, string](a + a)
@@ -40,7 +40,7 @@ func TestTraverseArray(t *testing.T) {
 	assert.Equal(t, either.Left[[]string]("e"), F.Pipe1([]string{"a", ""}, f)(ctx)())
 }
 
-func TestSequenceArray(t *testing.T) {
+func TestSequenceArrayEx(t *testing.T) {
 
 	s := TST.SequenceArrayTest(
 		FromStrictEquals[context.Context, error, bool]()(context.Background()),

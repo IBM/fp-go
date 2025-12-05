@@ -21,6 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/optics/lens/option"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/readeroption"
 )
@@ -43,6 +44,8 @@ type (
 	// IOEither represents a computation that performs side effects and can either
 	// fail with an error of type E or succeed with a value of type A.
 	IOEither[E, A any] = ioeither.IOEither[E, A]
+
+	ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
 
 	// ReaderIOEither represents a computation that:
 	//   - Depends on some context/environment of type R (Reader)

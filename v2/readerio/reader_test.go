@@ -172,7 +172,7 @@ func TestMonadChainIOK(t *testing.T) {
 func TestChainIOK(t *testing.T) {
 	result := F.Pipe1(
 		Of[ReaderTestConfig](5),
-		ChainIOK[ReaderTestConfig, int, int](func(n int) G.IO[int] {
+		ChainIOK[ReaderTestConfig](func(n int) G.IO[int] {
 			return G.Of(n * 4)
 		}),
 	)
@@ -249,7 +249,7 @@ func TestMonadFlap(t *testing.T) {
 func TestFlap(t *testing.T) {
 	result := F.Pipe1(
 		Of[ReaderTestConfig](N.Mul(3)),
-		Flap[ReaderTestConfig, int, int](7),
+		Flap[ReaderTestConfig, int](7),
 	)
 
 	config := ReaderTestConfig{Value: 1, Name: "test"}
@@ -401,7 +401,7 @@ func TestChainFirstIOK(t *testing.T) {
 	sideEffect := 0
 	result := F.Pipe1(
 		Of[ReaderTestConfig](42),
-		ChainFirstIOK[ReaderTestConfig, int, string](func(n int) G.IO[string] {
+		ChainFirstIOK[ReaderTestConfig](func(n int) G.IO[string] {
 			sideEffect = n
 			return G.Of("side effect")
 		}),
@@ -431,7 +431,7 @@ func TestTapIOK(t *testing.T) {
 	sideEffect := 0
 	result := F.Pipe1(
 		Of[ReaderTestConfig](42),
-		TapIOK[ReaderTestConfig, int, func()](func(n int) G.IO[func()] {
+		TapIOK[ReaderTestConfig](func(n int) G.IO[func()] {
 			sideEffect = n
 			return G.Of(func() {})
 		}),
