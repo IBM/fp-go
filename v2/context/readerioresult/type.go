@@ -21,6 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/ioresult"
 	"github.com/IBM/fp-go/v2/context/readerresult"
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
@@ -126,4 +127,6 @@ type (
 	ReaderResult[A any]       = readerresult.ReaderResult[A]
 	ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
 	ReaderOption[R, A any]    = readeroption.ReaderOption[R, A]
+
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
 )

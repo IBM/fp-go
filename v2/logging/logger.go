@@ -19,7 +19,10 @@
 package logging
 
 import (
+	"context"
 	"log"
+	"log/slog"
+	"sync/atomic"
 )
 
 // LoggingCallbacks creates a pair of logging callback functions from the provided loggers.
@@ -61,5 +64,105 @@ func LoggingCallbacks(loggers ...*log.Logger) (func(string, ...any), func(string
 		return log0.Printf, log0.Printf
 	default:
 		return loggers[0].Printf, loggers[1].Printf
+	}
+}
+
+var globalLogger atomic.Pointer[slog.Logger]
+
+func init() {
+	globalLogger.Store(slog.Default())
+}
+
+// SetLogger sets the global logger instance and returns the previous logger.
+// This function is useful for configuring application-wide logging behavior.
+//
+// Parameters:
+//   - l: The new *slog.Logger to set as the global logger
+//
+// Returns:
+//   - The previous *slog.Logger that was set as the global logger
+//
+// Example:
+//
+//	oldLogger := SetLogger(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+//	defer SetLogger(oldLogger) // Restore previous logger
+func SetLogger(l *slog.Logger) *slog.Logger {
+	return globalLogger.Swap(l)
+}
+
+// GetLogger returns the current global logger instance.
+// If no logger has been set via SetLogger, it returns slog.Default().
+//
+// Returns:
+//   - The current global *slog.Logger instance
+//
+// Example:
+//
+//	logger := GetLogger()
+//	logger.Info("Application started")
+func GetLogger() *slog.Logger {
+	return globalLogger.Load()
+}
+
+type loggerInContextType int
+
+var loggerInContextKey loggerInContextType
+
+// GetLoggerFromContext retrieves a logger from the provided context.
+// If no logger is found in the context, it returns the global logger.
+//
+// This function is useful in applications where different parts of the code
+// need access to context-specific loggers, such as in request handlers where
+// each request might have its own logger with specific attributes.
+//
+// Parameters:
+//   - ctx: The context.Context from which to retrieve the logger
+//
+// Returns:
+//   - A *slog.Logger instance, either from the context or the global logger
+//
+// Example:
+//
+//	func handleRequest(ctx context.Context) {
+//	    logger := GetLoggerFromContext(ctx)
+//	    logger.Info("Processing request")
+//	}
+func GetLoggerFromContext(ctx context.Context) *slog.Logger {
+	value, ok := ctx.Value(loggerInContextKey).(*slog.Logger)
+	if !ok {
+		return globalLogger.Load()
+	}
+	return value
+}
+
+// WithLogger returns an endomorphism that adds a logger to a context.
+// An endomorphism is a function that takes a value and returns a value of the same type.
+// This function creates a context transformation that embeds the provided logger.
+//
+// This is particularly useful in functional programming patterns where you want to
+// compose context transformations, or when working with middleware that needs to
+// inject loggers into request contexts.
+//
+// Parameters:
+//   - l: The *slog.Logger to embed in the context
+//
+// Returns:
+//   - An Endomorphism[context.Context] function that adds the logger to a context
+//
+// Example:
+//
+//	// Create a logger transformation
+//	addLogger := WithLogger(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+//
+//	// Apply it to a context
+//	ctx := context.Background()
+//	ctxWithLogger := addLogger(ctx)
+//
+//	// Retrieve the logger later
+//	logger := GetLoggerFromContext(ctxWithLogger)
+//	logger.Info("Using context logger")
+func WithLogger(l *slog.Logger) Endomorphism[context.Context] {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, loggerInContextKey, l)
 	}
 }
