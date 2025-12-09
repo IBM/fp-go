@@ -16,13 +16,28 @@
 package ioresult
 
 import (
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // LogJSON converts the argument to pretty printed JSON and then logs it via the format string
 // Can be used with [ChainFirst]
 //
 //go:inline
-func LogJSON[A any](prefix string) Kleisli[A, any] {
+func LogJSON[A any](prefix string) Kleisli[A, string] {
 	return ioeither.LogJSON[A](prefix)
+}
+
+//go:inline
+func LogEntryExitF[A, STARTTOKEN, ANY any](
+	onEntry IO[STARTTOKEN],
+	onExit io.Kleisli[pair.Pair[STARTTOKEN, Result[A]], ANY],
+) Operator[A, A] {
+	return ioeither.LogEntryExitF(onEntry, onExit)
+}
+
+//go:inline
+func LogEntryExit[A any](name string) Operator[A, A] {
+	return ioeither.LogEntryExit[error, A](name)
 }

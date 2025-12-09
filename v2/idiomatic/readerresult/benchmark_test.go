@@ -214,7 +214,7 @@ func BenchmarkTraverseArray(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		traversed := TraverseArray[BenchContext](kleisli)
+		traversed := TraverseArray(kleisli)
 		result := traversed(arr)
 		_, _ = result(ctx)
 	}

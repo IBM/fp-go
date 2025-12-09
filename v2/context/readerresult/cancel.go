@@ -24,8 +24,8 @@ import (
 // withContext wraps an existing ReaderResult and performs a context check for cancellation before deletating
 func WithContext[A any](ma ReaderResult[A]) ReaderResult[A] {
 	return func(ctx context.Context) E.Either[error, A] {
-		if err := context.Cause(ctx); err != nil {
-			return E.Left[A](err)
+		if ctx.Err() != nil {
+			return E.Left[A](context.Cause(ctx))
 		}
 		return ma(ctx)
 	}

@@ -248,7 +248,7 @@ func TestOrLeft(t *testing.T) {
 		}
 	}
 
-	orLeft := OrLeft[MyContext, int](enrichErr)
+	orLeft := OrLeft[int, MyContext](enrichErr)
 
 	v, err := F.Pipe1(Of[MyContext](42), orLeft)(defaultContext)
 	assert.NoError(t, err)

@@ -43,12 +43,16 @@ var (
 //
 //	greeting := io.Of("Hello, World!")
 //	result := greeting() // returns "Hello, World!"
+//
+//go:inline
 func Of[A any](a A) IO[A] {
 	return F.Constant(a)
 }
 
 // FromIO is an identity function that returns the IO value unchanged.
 // Useful for type conversions and maintaining consistency with other monad packages.
+//
+//go:inline
 func FromIO[A any](a IO[A]) IO[A] {
 	return a
 }
@@ -63,6 +67,8 @@ func FromImpure[ANY ~func()](f ANY) IO[any] {
 
 // MonadOf wraps a pure value in an IO context.
 // This is an alias for Of, following the monadic naming convention.
+//
+//go:inline
 func MonadOf[A any](a A) IO[A] {
 	return F.Constant(a)
 }
@@ -74,7 +80,10 @@ func MonadOf[A any](a A) IO[A] {
 //
 //	doubled := io.MonadMap(io.Of(21), N.Mul(2))
 //	result := doubled() // returns 42
+//
+//go:inline
 func MonadMap[A, B any](fa IO[A], f func(A) B) IO[B] {
+	//go:inline
 	return func() B {
 		return f(fa())
 	}
@@ -87,6 +96,8 @@ func MonadMap[A, B any](fa IO[A], f func(A) B) IO[B] {
 //
 //	double := io.Map(N.Mul(2))
 //	doubled := double(io.Of(21))
+//
+//go:inline
 func Map[A, B any](f func(A) B) Operator[A, B] {
 	return F.Bind2nd(MonadMap[A, B], f)
 }
@@ -97,29 +108,40 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 // Example:
 //
 //	always42 := io.MonadMapTo(sideEffect, 42)
+//
+//go:inline
 func MonadMapTo[A, B any](fa IO[A], b B) IO[B] {
 	return MonadMap(fa, F.Constant1[A](b))
 }
 
 // MapTo returns an operator that replaces the result with a constant value.
 // This is the curried version of MonadMapTo.
+//
+//go:inline
 func MapTo[A, B any](b B) Operator[A, B] {
 	return Map(F.Constant1[A](b))
 }
 
 // MonadChain composes computations in sequence, using the return value of one computation to determine the next computation.
+//
+//go:inline
 func MonadChain[A, B any](fa IO[A], f Kleisli[A, B]) IO[B] {
+	//go:inline
 	return func() B {
 		return f(fa())()
 	}
 }
 
 // Chain composes computations in sequence, using the return value of one computation to determine the next computation.
+//
+//go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return F.Bind2nd(MonadChain[A, B], f)
 }
 
 // MonadApSeq implements the applicative on a single thread by first executing mab and the ma
+//
+//go:inline
 func MonadApSeq[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 	return MonadChain(mab, F.Bind1st(MonadMap[A, B], ma))
 }
@@ -139,6 +161,8 @@ func MonadApPar[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 
 // MonadAp implements the `ap` operation. Depending on a feature flag this will be sequential or parallel, the preferred implementation
 // is parallel
+//
+//go:inline
 func MonadAp[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 	if useParallel {
 		return MonadApPar(mab, ma)
@@ -153,18 +177,24 @@ func MonadAp[A, B any](mab IO[func(A) B], ma IO[A]) IO[B] {
 //
 //	add := func(a int) func(int) int { return func(b int) int { return a + b } }
 //	result := io.Ap(io.Of(2))(io.Of(add(3))) // parallel execution
+//
+//go:inline
 func Ap[B, A any](ma IO[A]) Operator[func(A) B, B] {
 	return F.Bind2nd(MonadAp[A, B], ma)
 }
 
 // ApSeq returns an operator that applies a function wrapped in IO to a value wrapped in IO sequentially.
 // Unlike Ap, this executes the function and value computations in sequence.
+//
+//go:inline
 func ApSeq[B, A any](ma IO[A]) Operator[func(A) B, B] {
 	return Chain(F.Bind1st(MonadMap[A, B], ma))
 }
 
 // ApPar returns an operator that applies a function wrapped in IO to a value wrapped in IO in parallel.
 // This explicitly uses parallel execution (same as Ap when useParallel is true).
+//
+//go:inline
 func ApPar[B, A any](ma IO[A]) Operator[func(A) B, B] {
 	return F.Bind2nd(MonadApPar[A, B], ma)
 }
@@ -177,6 +207,8 @@ func ApPar[B, A any](ma IO[A]) Operator[func(A) B, B] {
 //	nested := io.Of(io.Of(42))
 //	flattened := io.Flatten(nested)
 //	result := flattened() // returns 42
+//
+//go:inline
 func Flatten[A any](mma IO[IO[A]]) IO[A] {
 	return MonadChain(mma, F.Identity)
 }

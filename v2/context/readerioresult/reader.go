@@ -30,6 +30,7 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/readeroption"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 const (
@@ -243,14 +244,14 @@ func MonadApPar[B, A any](fab ReaderIOResult[func(A) B], fa ReaderIOResult[A]) R
 
 	return func(ctx context.Context) IOResult[B] {
 		// quick check for cancellation
-		if err := context.Cause(ctx); err != nil {
-			return ioeither.Left[B](err)
+		if ctx.Err() != nil {
+			return ioeither.Left[B](context.Cause(ctx))
 		}
 
 		return func() Result[B] {
 			// quick check for cancellation
-			if err := context.Cause(ctx); err != nil {
-				return either.Left[B](err)
+			if ctx.Err() != nil {
+				return either.Left[B](context.Cause(ctx))
 			}
 
 			// create sub-contexts for fa and fab, so they can cancel one other
@@ -957,4 +958,206 @@ func ChainFirstLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
 //go:inline
 func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
 	return RIOR.TapLeft[A](f)
+}
+
+// Local transforms the context.Context environment before passing it to a ReaderIOResult computation.
+//
+// This is the Reader's local operation, which allows you to modify the environment
+// for a specific computation without affecting the outer context. The transformation
+// function receives the current context and returns a new context along with a
+// cancel function. The cancel function is automatically called when the computation
+// completes (via defer), ensuring proper cleanup of resources.
+//
+// The function checks for context cancellation before applying the transformation,
+// returning an error immediately if the context is already cancelled.
+//
+// This is useful for:
+//   - Adding timeouts or deadlines to specific operations
+//   - Adding context values for nested computations
+//   - Creating isolated context scopes
+//   - Implementing context-based dependency injection
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIOResult
+//
+// Parameters:
+//   - f: A function that transforms the context and returns a cancel function
+//
+// Returns:
+//   - An Operator that runs the computation with the transformed context
+//
+// Example:
+//
+//	import F "github.com/IBM/fp-go/v2/function"
+//
+//	// Add a custom value to the context
+//	type key int
+//	const userKey key = 0
+//
+//	addUser := readerioresult.Local[string](func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	    newCtx := context.WithValue(ctx, userKey, "Alice")
+//	    return newCtx, func() {} // No-op cancel
+//	})
+//
+//	getUser := readerioresult.FromReader(func(ctx context.Context) string {
+//	    if user := ctx.Value(userKey); user != nil {
+//	        return user.(string)
+//	    }
+//	    return "unknown"
+//	})
+//
+//	result := F.Pipe1(
+//	    getUser,
+//	    addUser,
+//	)
+//	value, err := result(context.Background())()  // Returns ("Alice", nil)
+//
+// Timeout Example:
+//
+//	// Add a 5-second timeout to a specific operation
+//	withTimeout := readerioresult.Local[Data](func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	    return context.WithTimeout(ctx, 5*time.Second)
+//	})
+//
+//	result := F.Pipe1(
+//	    fetchData,
+//	    withTimeout,
+//	)
+func Local[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
+	return func(rr ReaderIOResult[A]) ReaderIOResult[A] {
+		return func(ctx context.Context) IOResult[A] {
+			return func() Result[A] {
+				if ctx.Err() != nil {
+					return result.Left[A](context.Cause(ctx))
+				}
+				otherCtx, otherCancel := f(ctx)
+				defer otherCancel()
+				return rr(otherCtx)()
+			}
+		}
+	}
+}
+
+// WithTimeout adds a timeout to the context for a ReaderIOResult computation.
+//
+// This is a convenience wrapper around Local that uses context.WithTimeout.
+// The computation must complete within the specified duration, or it will be
+// cancelled. This is useful for ensuring operations don't run indefinitely
+// and for implementing timeout-based error handling.
+//
+// The timeout is relative to when the ReaderIOResult is executed, not when
+// WithTimeout is called. The cancel function is automatically called when
+// the computation completes, ensuring proper cleanup. If the timeout expires,
+// the computation will receive a context.DeadlineExceeded error.
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIOResult
+//
+// Parameters:
+//   - timeout: The maximum duration for the computation
+//
+// Returns:
+//   - An Operator that runs the computation with a timeout
+//
+// Example:
+//
+//	import (
+//	    "time"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Fetch data with a 5-second timeout
+//	fetchData := readerioresult.FromReader(func(ctx context.Context) Data {
+//	    // Simulate slow operation
+//	    select {
+//	    case <-time.After(10 * time.Second):
+//	        return Data{Value: "slow"}
+//	    case <-ctx.Done():
+//	        return Data{}
+//	    }
+//	})
+//
+//	result := F.Pipe1(
+//	    fetchData,
+//	    readerioresult.WithTimeout[Data](5*time.Second),
+//	)
+//	value, err := result(context.Background())()  // Returns (Data{}, context.DeadlineExceeded) after 5s
+//
+// Successful Example:
+//
+//	quickFetch := readerioresult.Right(Data{Value: "quick"})
+//	result := F.Pipe1(
+//	    quickFetch,
+//	    readerioresult.WithTimeout[Data](5*time.Second),
+//	)
+//	value, err := result(context.Background())()  // Returns (Data{Value: "quick"}, nil)
+func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
+	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
+		return context.WithTimeout(ctx, timeout)
+	})
+}
+
+// WithDeadline adds an absolute deadline to the context for a ReaderIOResult computation.
+//
+// This is a convenience wrapper around Local that uses context.WithDeadline.
+// The computation must complete before the specified time, or it will be
+// cancelled. This is useful for coordinating operations that must finish
+// by a specific time, such as request deadlines or scheduled tasks.
+//
+// The deadline is an absolute time, unlike WithTimeout which uses a relative
+// duration. The cancel function is automatically called when the computation
+// completes, ensuring proper cleanup. If the deadline passes, the computation
+// will receive a context.DeadlineExceeded error.
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIOResult
+//
+// Parameters:
+//   - deadline: The absolute time by which the computation must complete
+//
+// Returns:
+//   - An Operator that runs the computation with a deadline
+//
+// Example:
+//
+//	import (
+//	    "time"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Operation must complete by 3 PM
+//	deadline := time.Date(2024, 1, 1, 15, 0, 0, 0, time.UTC)
+//
+//	fetchData := readerioresult.FromReader(func(ctx context.Context) Data {
+//	    // Simulate operation
+//	    select {
+//	    case <-time.After(1 * time.Hour):
+//	        return Data{Value: "done"}
+//	    case <-ctx.Done():
+//	        return Data{}
+//	    }
+//	})
+//
+//	result := F.Pipe1(
+//	    fetchData,
+//	    readerioresult.WithDeadline[Data](deadline),
+//	)
+//	value, err := result(context.Background())()  // Returns (Data{}, context.DeadlineExceeded) if past deadline
+//
+// Combining with Parent Context:
+//
+//	// If parent context already has a deadline, the earlier one takes precedence
+//	parentCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
+//	defer cancel()
+//
+//	laterDeadline := time.Now().Add(2 * time.Hour)
+//	result := F.Pipe1(
+//	    fetchData,
+//	    readerioresult.WithDeadline[Data](laterDeadline),
+//	)
+//	value, err := result(parentCtx)()  // Will use parent's 1-hour deadline
+func WithDeadline[A any](deadline time.Time) Operator[A, A] {
+	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
+		return context.WithDeadline(ctx, deadline)
+	})
 }

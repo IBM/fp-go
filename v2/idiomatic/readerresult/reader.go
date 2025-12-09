@@ -316,7 +316,7 @@ func OrElse[R, A any](onLeft Kleisli[R, error, A]) Operator[R, A, A] {
 //	    }
 //	}
 //	result := F.Pipe1(getUserRR, readerresult.OrLeft[Config](enrichError))
-func OrLeft[R, A any](onLeft reader.Kleisli[R, error, error]) Operator[R, A, A] {
+func OrLeft[A, R any](onLeft reader.Kleisli[R, error, error]) Operator[R, A, A] {
 	return func(rr ReaderResult[R, A]) ReaderResult[R, A] {
 		return func(r R) (A, error) {
 			a, err := rr(r)

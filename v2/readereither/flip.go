@@ -78,7 +78,7 @@ import (
 //	// result is Either[error, string]
 func Sequence[R1, R2, E, A any](ma ReaderEither[R2, E, ReaderEither[R1, E, A]]) Kleisli[R2, E, R1, A] {
 	return readert.Sequence(
-		either.MonadChain,
+		either.Chain,
 		ma,
 	)
 }
@@ -137,7 +137,7 @@ func Sequence[R1, R2, E, A any](ma ReaderEither[R2, E, ReaderEither[R1, E, A]]) 
 //	// result is Either[error, string]
 func SequenceReader[R1, R2, E, A any](ma ReaderEither[R2, E, Reader[R1, A]]) Kleisli[R2, E, R1, A] {
 	return readert.SequenceReader(
-		either.MonadMap,
+		either.Map,
 		ma,
 	)
 }

@@ -17,6 +17,7 @@ package readerio
 
 import (
 	"context"
+	"time"
 
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/reader"
@@ -557,4 +558,198 @@ func TapReaderK[A, B any](f reader.Kleisli[context.Context, A, B]) Operator[A, A
 //go:inline
 func Read[A any](r context.Context) func(ReaderIO[A]) IO[A] {
 	return RIO.Read[A](r)
+}
+
+// Local transforms the context.Context environment before passing it to a ReaderIO computation.
+//
+// This is the Reader's local operation, which allows you to modify the environment
+// for a specific computation without affecting the outer context. The transformation
+// function receives the current context and returns a new context along with a
+// cancel function. The cancel function is automatically called when the computation
+// completes (via defer), ensuring proper cleanup of resources.
+//
+// This is useful for:
+//   - Adding timeouts or deadlines to specific operations
+//   - Adding context values for nested computations
+//   - Creating isolated context scopes
+//   - Implementing context-based dependency injection
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIO
+//
+// Parameters:
+//   - f: A function that transforms the context and returns a cancel function
+//
+// Returns:
+//   - An Operator that runs the computation with the transformed context
+//
+// Example:
+//
+//	import F "github.com/IBM/fp-go/v2/function"
+//
+//	// Add a custom value to the context
+//	type key int
+//	const userKey key = 0
+//
+//	addUser := readerio.Local[string](func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	    newCtx := context.WithValue(ctx, userKey, "Alice")
+//	    return newCtx, func() {} // No-op cancel
+//	})
+//
+//	getUser := readerio.FromReader(func(ctx context.Context) string {
+//	    if user := ctx.Value(userKey); user != nil {
+//	        return user.(string)
+//	    }
+//	    return "unknown"
+//	})
+//
+//	result := F.Pipe1(
+//	    getUser,
+//	    addUser,
+//	)
+//	user := result(context.Background())()  // Returns "Alice"
+//
+// Timeout Example:
+//
+//	// Add a 5-second timeout to a specific operation
+//	withTimeout := readerio.Local[Data](func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	    return context.WithTimeout(ctx, 5*time.Second)
+//	})
+//
+//	result := F.Pipe1(
+//	    fetchData,
+//	    withTimeout,
+//	)
+func Local[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
+	return func(rr ReaderIO[A]) ReaderIO[A] {
+		return func(ctx context.Context) IO[A] {
+			return func() A {
+				otherCtx, otherCancel := f(ctx)
+				defer otherCancel()
+				return rr(otherCtx)()
+			}
+		}
+	}
+}
+
+// WithTimeout adds a timeout to the context for a ReaderIO computation.
+//
+// This is a convenience wrapper around Local that uses context.WithTimeout.
+// The computation must complete within the specified duration, or it will be
+// cancelled. This is useful for ensuring operations don't run indefinitely
+// and for implementing timeout-based error handling.
+//
+// The timeout is relative to when the ReaderIO is executed, not when
+// WithTimeout is called. The cancel function is automatically called when
+// the computation completes, ensuring proper cleanup.
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIO
+//
+// Parameters:
+//   - timeout: The maximum duration for the computation
+//
+// Returns:
+//   - An Operator that runs the computation with a timeout
+//
+// Example:
+//
+//	import (
+//	    "time"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Fetch data with a 5-second timeout
+//	fetchData := readerio.FromReader(func(ctx context.Context) Data {
+//	    // Simulate slow operation
+//	    select {
+//	    case <-time.After(10 * time.Second):
+//	        return Data{Value: "slow"}
+//	    case <-ctx.Done():
+//	        return Data{}
+//	    }
+//	})
+//
+//	result := F.Pipe1(
+//	    fetchData,
+//	    readerio.WithTimeout[Data](5*time.Second),
+//	)
+//	data := result(context.Background())()  // Returns Data{} after 5s timeout
+//
+// Successful Example:
+//
+//	quickFetch := readerio.Of(Data{Value: "quick"})
+//	result := F.Pipe1(
+//	    quickFetch,
+//	    readerio.WithTimeout[Data](5*time.Second),
+//	)
+//	data := result(context.Background())()  // Returns Data{Value: "quick"}
+func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
+	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
+		return context.WithTimeout(ctx, timeout)
+	})
+}
+
+// WithDeadline adds an absolute deadline to the context for a ReaderIO computation.
+//
+// This is a convenience wrapper around Local that uses context.WithDeadline.
+// The computation must complete before the specified time, or it will be
+// cancelled. This is useful for coordinating operations that must finish
+// by a specific time, such as request deadlines or scheduled tasks.
+//
+// The deadline is an absolute time, unlike WithTimeout which uses a relative
+// duration. The cancel function is automatically called when the computation
+// completes, ensuring proper cleanup.
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIO
+//
+// Parameters:
+//   - deadline: The absolute time by which the computation must complete
+//
+// Returns:
+//   - An Operator that runs the computation with a deadline
+//
+// Example:
+//
+//	import (
+//	    "time"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Operation must complete by 3 PM
+//	deadline := time.Date(2024, 1, 1, 15, 0, 0, 0, time.UTC)
+//
+//	fetchData := readerio.FromReader(func(ctx context.Context) Data {
+//	    // Simulate operation
+//	    select {
+//	    case <-time.After(1 * time.Hour):
+//	        return Data{Value: "done"}
+//	    case <-ctx.Done():
+//	        return Data{}
+//	    }
+//	})
+//
+//	result := F.Pipe1(
+//	    fetchData,
+//	    readerio.WithDeadline[Data](deadline),
+//	)
+//	data := result(context.Background())()  // Returns Data{} if past deadline
+//
+// Combining with Parent Context:
+//
+//	// If parent context already has a deadline, the earlier one takes precedence
+//	parentCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
+//	defer cancel()
+//
+//	laterDeadline := time.Now().Add(2 * time.Hour)
+//	result := F.Pipe1(
+//	    fetchData,
+//	    readerio.WithDeadline[Data](laterDeadline),
+//	)
+//	data := result(parentCtx)()  // Will use parent's 1-hour deadline
+func WithDeadline[A any](deadline time.Time) Operator[A, A] {
+	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
+		return context.WithDeadline(ctx, deadline)
+	})
 }

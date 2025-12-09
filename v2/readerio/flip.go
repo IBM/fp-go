@@ -73,7 +73,7 @@ import (
 //	// result is IO[string]
 func Sequence[R1, R2, A any](ma ReaderIO[R2, ReaderIO[R1, A]]) Kleisli[R2, R1, A] {
 	return readert.Sequence(
-		io.MonadChain,
+		io.Chain,
 		ma,
 	)
 }
@@ -139,7 +139,7 @@ func Sequence[R1, R2, A any](ma ReaderIO[R2, ReaderIO[R1, A]]) Kleisli[R2, R1, A
 //   - Optimizing by controlling which environment access triggers IO effects
 func SequenceReader[R1, R2, A any](ma ReaderIO[R2, Reader[R1, A]]) Kleisli[R2, R1, A] {
 	return readert.SequenceReader(
-		io.MonadMap,
+		io.Map,
 		ma,
 	)
 }

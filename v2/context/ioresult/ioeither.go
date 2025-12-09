@@ -24,8 +24,8 @@ import (
 // withContext wraps an existing IOEither and performs a context check for cancellation before delegating
 func WithContext[A any](ctx context.Context, ma IOResult[A]) IOResult[A] {
 	return func() Result[A] {
-		if err := context.Cause(ctx); err != nil {
-			return result.Left[A](err)
+		if ctx.Err() != nil {
+			return result.Left[A](context.Cause(ctx))
 		}
 		return ma()
 	}

@@ -8,15 +8,12 @@ import (
 func Sequence[
 	HKTR2HKTR1A ~func(R2) HKTR1HKTA,
 	R1, R2, HKTR1HKTA, HKTA any](
-	mchain func(HKTR1HKTA, func(func(R1) HKTA) HKTA) HKTA,
+	mchain func(func(func(R1) HKTA) HKTA) func(HKTR1HKTA) HKTA,
 	ma HKTR2HKTR1A,
 ) func(R1) func(R2) HKTA {
 	return func(r1 R1) func(R2) HKTA {
 		return func(r2 R2) HKTA {
-			return mchain(
-				ma(r2),
-				identity.Ap[HKTA](r1),
-			)
+			return mchain(identity.Ap[HKTA](r1))(ma(r2))
 		}
 	}
 }
@@ -24,15 +21,12 @@ func Sequence[
 func SequenceReader[
 	HKTR2HKTR1A ~func(R2) HKTR1HKTA,
 	R1, R2, A, HKTR1HKTA, HKTA any](
-	mmap func(HKTR1HKTA, func(func(R1) A) A) HKTA,
+	mmap func(func(func(R1) A) A) func(HKTR1HKTA) HKTA,
 	ma HKTR2HKTR1A,
 ) func(R1) func(R2) HKTA {
 	return func(r1 R1) func(R2) HKTA {
 		return func(r2 R2) HKTA {
-			return mmap(
-				ma(r2),
-				identity.Ap[A](r1),
-			)
+			return mmap(identity.Ap[A](r1))(ma(r2))
 		}
 	}
 }

@@ -16,8 +16,7 @@
 package readerresult
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/array"
+	RR "github.com/IBM/fp-go/v2/idiomatic/readerresult"
 )
 
 // TraverseArray applies a ReaderResult-returning function to each element of an array,
@@ -31,25 +30,13 @@ import (
 //	// result(db) returns ([]User, nil) with all users or (nil, error) on first error
 //
 //go:inline
-func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
-	return array.Traverse[[]A](
-		Of[R, []B],
-		Map[R, []B, func(B) []B],
-		Ap[[]B, R, B],
-
-		f,
-	)
+func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
+	return RR.TraverseArray(f)
 }
 
 //go:inline
-func MonadTraverseArray[R, A, B any](as []A, f Kleisli[R, A, B]) ReaderResult[R, []B] {
-	return array.MonadTraverse(
-		Of[R, []B],
-		Map[R, []B, func(B) []B],
-		Ap[[]B, R, B],
-		as,
-		f,
-	)
+func MonadTraverseArray[A, B any](as []A, f Kleisli[A, B]) ReaderResult[[]B] {
+	return RR.MonadTraverseArray(as, f)
 }
 
 // TraverseArrayWithIndex is like TraverseArray but the function also receives the element's index.
@@ -64,14 +51,8 @@ func MonadTraverseArray[R, A, B any](as []A, f Kleisli[R, A, B]) ReaderResult[R,
 //	result := readerresult.TraverseArrayWithIndex[Config](processItem)(items)
 //
 //go:inline
-func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderResult[R, B]) Kleisli[R, []A, []B] {
-	return array.TraverseWithIndex[[]A](
-		Of[R, []B],
-		Map[R, []B, func(B) []B],
-		Ap[[]B, R, B],
-
-		f,
-	)
+func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderResult[B]) Kleisli[[]A, []B] {
+	return RR.TraverseArrayWithIndex(f)
 }
 
 // SequenceArray converts an array of ReaderResult values into a single ReaderResult of an array.
@@ -89,6 +70,6 @@ func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderResult[R, B]) Klei
 //	// result(cfg) returns ([]int{1, 2, 3}, nil)
 //
 //go:inline
-func SequenceArray[R, A any](ma []ReaderResult[R, A]) ReaderResult[R, []A] {
-	return MonadTraverseArray(ma, F.Identity[ReaderResult[R, A]])
+func SequenceArray[A any](ma []ReaderResult[A]) ReaderResult[[]A] {
+	return RR.SequenceArray(ma)
 }

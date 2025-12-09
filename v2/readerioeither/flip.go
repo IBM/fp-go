@@ -44,7 +44,7 @@ import (
 // The function preserves error handling and IO effects at both levels.
 func Sequence[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIOEither[R1, E, A]]) reader.Kleisli[R2, R1, IOEither[E, A]] {
 	return readert.Sequence(
-		ioeither.MonadChain,
+		ioeither.Chain,
 		ma,
 	)
 }
@@ -67,7 +67,7 @@ func Sequence[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIOEither[R1, E, A
 //   - A reader.Kleisli[R2, R1, IOEither[E, A]], which is func(R2) func(R1) IOEither[E, A]
 func SequenceReader[R1, R2, E, A any](ma ReaderIOEither[R2, E, Reader[R1, A]]) reader.Kleisli[R2, R1, IOEither[E, A]] {
 	return readert.SequenceReader(
-		ioeither.MonadMap,
+		ioeither.Map,
 		ma,
 	)
 }
@@ -165,6 +165,58 @@ func Traverse[R2, R1, E, A, B any](
 	)
 }
 
+// TraverseReader transforms a ReaderIOEither computation by applying a Reader-based function,
+// effectively introducing a new environment dependency.
+//
+// This function takes a Reader-based transformation (Kleisli arrow) and returns a function that
+// can transform a ReaderIOEither. The result allows you to provide the Reader's environment (R1)
+// first, which then produces a ReaderIOEither that depends on environment R2.
+//
+// Type Parameters:
+//   - R2: The outer environment type (from the original ReaderIOEither)
+//   - R1: The inner environment type (introduced by the Reader transformation)
+//   - E: The error type
+//   - A: The input value type
+//   - B: The output value type
+//
+// Parameters:
+//   - f: A Reader-based Kleisli arrow that transforms A to B using environment R1
+//
+// Returns:
+//   - A function that takes a ReaderIOEither[R2, E, A] and returns a Kleisli[R2, E, R1, B],
+//     which is func(R2) ReaderIOEither[R1, E, B]
+//
+// The function preserves error handling and IO effects while adding the Reader environment dependency.
+//
+// Example:
+//
+//	type Config struct {
+//	    Multiplier int
+//	}
+//	type Database struct {
+//	    ConnectionString string
+//	}
+//
+//	// Original computation that depends on Database
+//	original := func(db Database) IOEither[error, int] {
+//	    return ioeither.Right[error](len(db.ConnectionString))
+//	}
+//
+//	// Reader-based transformation that depends on Config
+//	multiply := func(x int) func(Config) int {
+//	    return func(cfg Config) int {
+//	        return x * cfg.Multiplier
+//	    }
+//	}
+//
+//	// Apply TraverseReader to introduce Config dependency
+//	traversed := TraverseReader[Database, Config, error, int, int](multiply)
+//	result := traversed(original)
+//
+//	// Provide Config first, then Database
+//	cfg := Config{Multiplier: 5}
+//	db := Database{ConnectionString: "localhost:5432"}
+//	finalResult := result(cfg)(db)() // Returns Right(80) = len("localhost:5432") * 5
 func TraverseReader[R2, R1, E, A, B any](
 	f reader.Kleisli[R1, A, B],
 ) func(ReaderIOEither[R2, E, A]) Kleisli[R2, E, R1, B] {

@@ -21,7 +21,9 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/ioeither"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/stretchr/testify/assert"
@@ -553,5 +555,319 @@ func TestTraverse(t *testing.T) {
 		value, err := either.Unwrap(finalResult)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, value)
+	})
+}
+
+func TestTraverseReader(t *testing.T) {
+	t.Run("basic transformation with Reader dependency", func(t *testing.T) {
+		type Config struct {
+			Multiplier int
+		}
+
+		// Original computation
+		original := F.Pipe1(
+			Ask[int, error](),
+			Map[int, error](N.Mul(2)),
+		)
+
+		// Reader-based transformation
+		multiply := func(a int) func(Config) int {
+			return func(cfg Config) int {
+				return a * cfg.Multiplier
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Config, error](multiply)
+		result := traversed(original)
+
+		// Provide Config first, then int
+		cfg := Config{Multiplier: 5}
+		innerFunc := result(cfg)
+		finalResult := innerFunc(10)()
+		value, err := either.Unwrap(finalResult)
+		assert.NoError(t, err)
+		assert.Equal(t, 100, value) // (10 * 2) * 5 = 100
+	})
+
+	t.Run("preserves outer error", func(t *testing.T) {
+		type Config struct {
+			Multiplier int
+		}
+
+		expectedError := errors.New("outer error")
+
+		// Original computation that fails
+		original := func(x int) IOEither[error, int] {
+			if x < 0 {
+				return ioeither.Left[int](expectedError)
+			}
+			return ioeither.Right[error](x)
+		}
+
+		// Reader-based transformation (won't be called)
+		multiply := func(a int) func(Config) int {
+			return func(cfg Config) int {
+				return a * cfg.Multiplier
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Config, error](multiply)
+		result := traversed(original)
+
+		// Provide Config and negative value
+		cfg := Config{Multiplier: 5}
+		innerFunc := result(cfg)
+		finalResult := innerFunc(-1)()
+		_, err := either.Unwrap(finalResult)
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		type Database struct {
+			Prefix string
+		}
+
+		// Original computation producing an int
+		original := Ask[int, error]()
+
+		// Reader-based transformation: int -> string using Database
+		format := func(a int) func(Database) string {
+			return func(db Database) string {
+				return fmt.Sprintf("%s:%d", db.Prefix, a)
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Database, error](format)
+		result := traversed(original)
+
+		// Provide Database first, then int
+		db := Database{Prefix: "ID"}
+		innerFunc := result(db)
+		finalResult := innerFunc(42)()
+		value, err := either.Unwrap(finalResult)
+		assert.NoError(t, err)
+		assert.Equal(t, "ID:42", value)
+	})
+
+	t.Run("works with struct environments", func(t *testing.T) {
+		type Settings struct {
+			Prefix string
+			Suffix string
+		}
+		type Context struct {
+			Value int
+		}
+
+		// Original computation
+		original := func(ctx Context) IOEither[error, string] {
+			return ioeither.Right[error](fmt.Sprintf("value:%d", ctx.Value))
+		}
+
+		// Reader-based transformation using Settings
+		decorate := func(s string) func(Settings) string {
+			return func(settings Settings) string {
+				return settings.Prefix + s + settings.Suffix
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[Context, Settings, error](decorate)
+		result := traversed(original)
+
+		// Provide Settings first, then Context
+		settings := Settings{Prefix: "[", Suffix: "]"}
+		ctx := Context{Value: 100}
+		innerFunc := result(settings)
+		finalResult := innerFunc(ctx)()
+		value, err := either.Unwrap(finalResult)
+		assert.NoError(t, err)
+		assert.Equal(t, "[value:100]", value)
+	})
+
+	t.Run("enables partial application", func(t *testing.T) {
+		type Config struct {
+			Factor int
+		}
+
+		// Original computation
+		original := Ask[int, error]()
+
+		// Reader-based transformation
+		scale := func(a int) func(Config) int {
+			return func(cfg Config) int {
+				return a * cfg.Factor
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Config, error](scale)
+		result := traversed(original)
+
+		// Partially apply Config
+		cfg := Config{Factor: 3}
+		withConfig := result(cfg)
+
+		// Can now use with different inputs
+		finalResult1 := withConfig(10)()
+		value1, err1 := either.Unwrap(finalResult1)
+		assert.NoError(t, err1)
+		assert.Equal(t, 30, value1)
+
+		// Reuse with different input
+		finalResult2 := withConfig(20)()
+		value2, err2 := either.Unwrap(finalResult2)
+		assert.NoError(t, err2)
+		assert.Equal(t, 60, value2)
+	})
+
+	t.Run("preserves IO effects", func(t *testing.T) {
+		type Config struct {
+			Value int
+		}
+
+		outerCounter := 0
+		innerCounter := 0
+
+		// Original computation with IO effects
+		original := func(x int) IOEither[error, int] {
+			return func() either.Either[error, int] {
+				outerCounter++
+				return either.Right[error](x)
+			}
+		}
+
+		// Reader-based transformation
+		multiply := func(a int) func(Config) int {
+			return func(cfg Config) int {
+				innerCounter++
+				return a * cfg.Value
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Config, error](multiply)
+		result := traversed(original)
+
+		// Execute multiple times to verify IO effects
+		cfg := Config{Value: 5}
+		innerFunc := result(cfg)
+		innerFunc(10)()
+		innerFunc(10)()
+
+		assert.Equal(t, 2, outerCounter)
+		assert.Equal(t, 2, innerCounter)
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		type Config struct {
+			Offset int
+		}
+
+		// Original computation with zero value
+		original := Ask[int, error]()
+
+		// Reader-based transformation
+		add := func(a int) func(Config) int {
+			return func(cfg Config) int {
+				return a + cfg.Offset
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Config, error](add)
+		result := traversed(original)
+
+		// Provide Config with zero offset and zero input
+		cfg := Config{Offset: 0}
+		innerFunc := result(cfg)
+		finalResult := innerFunc(0)()
+		value, err := either.Unwrap(finalResult)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("chains multiple transformations", func(t *testing.T) {
+		type Config struct {
+			Multiplier int
+		}
+
+		// Original computation
+		original := func(x int) IOEither[error, int] {
+			return ioeither.Right[error](x * 2)
+		}
+
+		// Reader-based transformation
+		multiply := func(a int) func(Config) int {
+			return func(cfg Config) int {
+				return a * cfg.Multiplier
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, Config, error](multiply)
+		result := traversed(original)
+
+		// Provide Config and execute
+		cfg := Config{Multiplier: 4}
+		innerFunc := result(cfg)
+		finalResult := innerFunc(5)()
+		value, err := either.Unwrap(finalResult)
+		assert.NoError(t, err)
+		assert.Equal(t, 40, value) // (5 * 2) * 4 = 40
+	})
+
+	t.Run("works with complex Reader logic", func(t *testing.T) {
+		type ValidationRules struct {
+			MinValue int
+			MaxValue int
+		}
+
+		// Original computation
+		original := Ask[int, error]()
+
+		// Reader-based transformation with validation logic
+		validate := func(a int) func(ValidationRules) int {
+			return func(rules ValidationRules) int {
+				if a < rules.MinValue {
+					return rules.MinValue
+				}
+				if a > rules.MaxValue {
+					return rules.MaxValue
+				}
+				return a
+			}
+		}
+
+		// Apply TraverseReader
+		traversed := TraverseReader[int, ValidationRules, error](validate)
+		result := traversed(original)
+
+		// Test with value within range
+		rules1 := ValidationRules{MinValue: 0, MaxValue: 100}
+		innerFunc1 := result(rules1)
+		finalResult1 := innerFunc1(50)()
+		value1, err1 := either.Unwrap(finalResult1)
+		assert.NoError(t, err1)
+		assert.Equal(t, 50, value1)
+
+		// Test with value above max
+		rules2 := ValidationRules{MinValue: 0, MaxValue: 30}
+		innerFunc2 := result(rules2)
+		finalResult2 := innerFunc2(50)()
+		value2, err2 := either.Unwrap(finalResult2)
+		assert.NoError(t, err2)
+		assert.Equal(t, 30, value2) // Clamped to max
+
+		// Test with value below min
+		rules3 := ValidationRules{MinValue: 60, MaxValue: 100}
+		innerFunc3 := result(rules3)
+		finalResult3 := innerFunc3(50)()
+		value3, err3 := either.Unwrap(finalResult3)
+		assert.NoError(t, err3)
+		assert.Equal(t, 60, value3) // Clamped to min
 	})
 }

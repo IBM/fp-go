@@ -16,5 +16,5 @@ func SequenceReader[R, A any](ma ReaderIO[Reader[R, A]]) Reader[R, ReaderIO[A]] 
 func TraverseReader[R, A, B any](
 	f reader.Kleisli[R, A, B],
 ) func(ReaderIO[A]) Kleisli[R, B] {
-	return RIO.TraverseReader[context.Context, R](f)
+	return RIO.TraverseReader[context.Context](f)
 }

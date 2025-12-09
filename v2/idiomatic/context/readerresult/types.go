@@ -13,17 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioresult
+package readerresult
 
 import (
+	"context"
+
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/idiomatic/ioresult"
-	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
-	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -37,33 +37,21 @@ type (
 	// Option represents an optional value that may or may not be present.
 	Option[A any] = option.Option[A]
 
+	// Either represents a value that can be one of two types: Left (E) or Right (A).
+	Either[E, A any] = either.Either[E, A]
+
 	// Result represents an Either with error as the left type, compatible with Go's (value, error) tuple.
 	Result[A any] = result.Result[A]
 
 	// Reader represents a computation that depends on a read-only environment of type R and produces a value of type A.
 	Reader[R, A any] = reader.Reader[R, A]
 
-	// IO represents a computation that performs side effects and returns a value of type A.
-	IO[A any] = io.IO[A]
+	ReaderResult[A any] = func(context.Context) (A, error)
 
-	// IOResult represents a computation that performs IO and may fail with an error.
-	IOResult[A any] = ioresult.IOResult[A]
+	// Monoid represents a monoid structure for ReaderResult values.
+	Monoid[A any] = monoid.Monoid[ReaderResult[A]]
 
-	// ReaderIOResult represents a computation that depends on an environment R,
-	// performs IO operations, and may fail with an error.
-	// It is equivalent to Reader[R, IOResult[A]] or func(R) func() (A, error).
-	ReaderIOResult[R, A any] = Reader[R, IOResult[A]]
+	Kleisli[A, B any] = Reader[A, ReaderResult[B]]
 
-	ReaderIO[R, A any] = readerio.ReaderIO[R, A]
-
-	// Monoid represents a monoid structure for ReaderIOResult values.
-	Monoid[R, A any] = monoid.Monoid[ReaderIOResult[R, A]]
-
-	// Kleisli represents a function from A to a ReaderIOResult of B.
-	// It is used for chaining computations that depend on environment, perform IO, and may fail.
-	Kleisli[R, A, B any] = Reader[A, ReaderIOResult[R, B]]
-
-	// Operator represents a transformation from ReaderIOResult[R, A] to ReaderIOResult[R, B].
-	// It is commonly used in function composition pipelines.
-	Operator[R, A, B any] = Kleisli[R, ReaderIOResult[R, A], B]
+	Operator[A, B any] = Kleisli[ReaderResult[A], B]
 )

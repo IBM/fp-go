@@ -53,7 +53,10 @@ func Identity[A any](a A) A {
 //
 //	getMessage := Constant("Hello")
 //	msg := getMessage()  // "Hello"
+//
+//go:inline
 func Constant[A any](a A) func() A {
+	//go:inline
 	return func() A {
 		return a
 	}
@@ -81,7 +84,10 @@ func Constant[A any](a A) func() A {
 //
 //	defaultName := Constant1[int, string]("Unknown")
 //	name := defaultName(42)  // "Unknown"
+//
+//go:inline
 func Constant1[B, A any](a A) func(B) A {
+	//go:inline
 	return func(_ B) A {
 		return a
 	}
@@ -107,7 +113,10 @@ func Constant1[B, A any](a A) func(B) A {
 //
 //	alwaysTrue := Constant2[int, string, bool](true)
 //	result := alwaysTrue(42, "test")  // true
+//
+//go:inline
 func Constant2[B, C, A any](a A) func(B, C) A {
+	//go:inline
 	return func(_ B, _ C) A {
 		return a
 	}
@@ -128,6 +137,8 @@ func Constant2[B, C, A any](a A) func(B, C) A {
 //
 //	value := 42
 //	IsNil(&value)  // false
+//
+//go:inline
 func IsNil[A any](a *A) bool {
 	return a == nil
 }
@@ -149,6 +160,8 @@ func IsNil[A any](a *A) bool {
 //
 //	value := 42
 //	IsNonNil(&value)  // true
+//
+//go:inline
 func IsNonNil[A any](a *A) bool {
 	return a != nil
 }
@@ -207,6 +220,8 @@ func Swap[T1, T2, R any](f func(T1, T2) R) func(T2, T1) R {
 //
 //	result := First(42, "hello")  // 42
 //	result := First(true, 100)    // true
+//
+//go:inline
 func First[T1, T2 any](t1 T1, _ T2) T1 {
 	return t1
 }
@@ -231,6 +246,14 @@ func First[T1, T2 any](t1 T1, _ T2) T1 {
 //
 //	result := Second(42, "hello")  // "hello"
 //	result := Second(true, 100)    // 100
+//
+//go:inline
 func Second[T1, T2 any](_ T1, t2 T2) T2 {
 	return t2
+}
+
+// Zero returns the zero value of the given type.
+func Zero[A comparable]() A {
+	var zero A
+	return zero
 }

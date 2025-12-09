@@ -595,7 +595,7 @@ func ApReaderS[
 ) Operator[R, S1, S2] {
 	return ApS(
 		setter,
-		FromReader[R](fa),
+		FromReader(fa),
 	)
 }
 

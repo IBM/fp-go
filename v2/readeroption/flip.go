@@ -77,7 +77,7 @@ import (
 //	// result is Option[string]
 func Sequence[R1, R2, A any](ma ReaderOption[R2, ReaderOption[R1, A]]) reader.Kleisli[R2, R1, Option[A]] {
 	return readert.Sequence(
-		option.MonadChain,
+		option.Chain,
 		ma,
 	)
 }
@@ -135,7 +135,7 @@ func Sequence[R1, R2, A any](ma ReaderOption[R2, ReaderOption[R1, A]]) reader.Kl
 //	// result is Option[string]
 func SequenceReader[R1, R2, A any](ma ReaderOption[R2, Reader[R1, A]]) reader.Kleisli[R2, R1, Option[A]] {
 	return readert.SequenceReader(
-		option.MonadMap,
+		option.Map,
 		ma,
 	)
 }
