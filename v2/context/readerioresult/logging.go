@@ -65,10 +65,7 @@ var (
 // Example:
 //
 //	fetchUser := func(id int) ReaderIOResult[User] {
-//	    return TryCatch(func(ctx context.Context) (User, error) {
-//	        // Fetch user from database
-//	        return User{ID: id, Name: "Alice"}, nil
-//	    })
+//	    return Of(User{ID: id, Name: "Alice"})
 //	}
 //
 //	// Wrap the result with its logging ID
@@ -178,14 +175,21 @@ func WithLoggingID[A any](src A) ReaderIOResult[pair.Pair[LoggingID, A]] {
 //	                startTime := ctx.Value("startTime").(time.Time)
 //	                duration := time.Since(startTime).Seconds()
 //
-//	                if result.IsError(res) {
-//	                    requestCount.WithLabelValues("api_call", "error").Inc()
-//	                    requestDuration.WithLabelValues("api_call", "error").Observe(duration)
-//	                } else {
-//	                    requestCount.WithLabelValues("api_call", "success").Inc()
-//	                    requestDuration.WithLabelValues("api_call", "success").Observe(duration)
-//	                }
-//	                return nil
+//	                return function.Pipe1(
+//	                    res,
+//	                    result.Fold(
+//	                        func(err error) any {
+//	                            requestCount.WithLabelValues("api_call", "error").Inc()
+//	                            requestDuration.WithLabelValues("api_call", "error").Observe(duration)
+//	                            return nil
+//	                        },
+//	                        func(_ Response) any {
+//	                            requestCount.WithLabelValues("api_call", "success").Inc()
+//	                            requestDuration.WithLabelValues("api_call", "success").Observe(duration)
+//	                            return nil
+//	                        },
+//	                    ),
+//	                )
 //	            }
 //	        }
 //	    },
@@ -255,11 +259,7 @@ func LogEntryExitF[A, ANY any](
 // Example with successful computation:
 //
 //	fetchUser := func(id int) ReaderIOResult[User] {
-//	    return TryCatch(func(ctx context.Context) (User, error) {
-//	        // Simulate database query
-//	        time.Sleep(100 * time.Millisecond)
-//	        return User{ID: id, Name: "Alice"}, nil
-//	    })
+//	    return Of(User{ID: id, Name: "Alice"})
 //	}
 //
 //	// Wrap with logging
@@ -274,27 +274,19 @@ func LogEntryExitF[A, ANY any](
 // Example with error:
 //
 //	failingOp := func() ReaderIOResult[string] {
-//	    return TryCatch(func(ctx context.Context) (string, error) {
-//	        time.Sleep(50 * time.Millisecond)
-//	        return "", errors.New("connection timeout")
-//	    })
+//	    return Left[string](errors.New("connection timeout"))
 //	}
 //
 //	logged := LogEntryExit[string]("failingOp")(failingOp())
 //	result := logged(context.Background())()
 //	// Logs:
 //	// [entering 2] failingOp
-//	// [throwing 2] failingOp [0.1s]: connection timeout
+//	// [throwing 2] failingOp [0.0s]: connection timeout
 //
 // Example with nested operations:
 //
 //	fetchOrders := func(userID int) ReaderIOResult[[]Order] {
-//	    return TryCatch(func(ctx context.Context) ([]Order, error) {
-//	        // Can access parent logging ID if needed
-//	        parentID := getLoggingID(ctx)
-//	        log.Printf("Fetching orders for user (parent operation: %d)", parentID)
-//	        return []Order{{ID: 1}}, nil
-//	    })
+//	    return Of([]Order{{ID: 1}})
 //	}
 //
 //	pipeline := F.Pipe3(
