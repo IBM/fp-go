@@ -46,7 +46,7 @@ func Right[E, L, A any](r A) ReaderEither[E, L, A] {
 	return eithert.Right(reader.Of[E, Either[L, A]], r)
 }
 
-func FromReader[E, L, A any](r Reader[E, A]) ReaderEither[E, L, A] {
+func FromReader[L, E, A any](r Reader[E, A]) ReaderEither[E, L, A] {
 	return RightReader[L](r)
 }
 
@@ -66,19 +66,19 @@ func Chain[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func(ReaderEither[E,
 	return readert.Chain[ReaderEither[E, L, A]](ET.Chain[L, A, B], f)
 }
 
-func MonadChainReaderK[E, L, A, B any](ma ReaderEither[E, L, A], f reader.Kleisli[E, A, B]) ReaderEither[E, L, B] {
-	return MonadChain(ma, function.Flow2(f, FromReader[E, L, B]))
+func MonadChainReaderK[L, E, A, B any](ma ReaderEither[E, L, A], f reader.Kleisli[E, A, B]) ReaderEither[E, L, B] {
+	return MonadChain(ma, function.Flow2(f, FromReader[L, E, B]))
 }
 
-func ChainReaderK[E, L, A, B any](f reader.Kleisli[E, A, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
-	return Chain(function.Flow2(f, FromReader[E, L, B]))
+func ChainReaderK[L, E, A, B any](f reader.Kleisli[E, A, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+	return Chain(function.Flow2(f, FromReader[L, E, B]))
 }
 
 func Of[E, L, A any](a A) ReaderEither[E, L, A] {
 	return readert.MonadOf[ReaderEither[E, L, A]](ET.Of[L, A], a)
 }
 
-func MonadAp[E, L, A, B any](fab ReaderEither[E, L, func(A) B], fa ReaderEither[E, L, A]) ReaderEither[E, L, B] {
+func MonadAp[B, E, L, A any](fab ReaderEither[E, L, func(A) B], fa ReaderEither[E, L, A]) ReaderEither[E, L, B] {
 	return readert.MonadAp[ReaderEither[E, L, A], ReaderEither[E, L, B], ReaderEither[E, L, func(A) B], E, A](ET.MonadAp[B, L, A], fab, fa)
 }
 
@@ -112,11 +112,11 @@ func OrLeft[A, L1, E, L2 any](onLeft func(L1) Reader[E, L2]) func(ReaderEither[E
 }
 
 func Ask[E, L any]() ReaderEither[E, L, E] {
-	return fromreader.Ask(FromReader[E, L, E])()
+	return fromreader.Ask(FromReader[L, E, E])()
 }
 
 func Asks[L, E, A any](r Reader[E, A]) ReaderEither[E, L, A] {
-	return fromreader.Asks(FromReader[E, L, A])(r)
+	return fromreader.Asks(FromReader[L, E, A])(r)
 }
 
 func MonadChainEitherK[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) Either[L, B]) ReaderEither[E, L, B] {

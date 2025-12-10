@@ -338,3 +338,371 @@ func TestSequenceEdgeCases(t *testing.T) {
 		assert.Equal(t, "value: 42", sequenced(transform)(42))
 	})
 }
+
+func TestTraverse(t *testing.T) {
+	t.Run("basic traverse with two environments", func(t *testing.T) {
+		type Database struct {
+			UserID int
+		}
+		type Config struct {
+			Prefix string
+		}
+
+		// Reader that gets user ID from database
+		getUserID := func(db Database) int {
+			return db.UserID
+		}
+
+		// Kleisli that formats user ID with config
+		formatUser := func(id int) Reader[Config, string] {
+			return func(c Config) string {
+				return fmt.Sprintf("%s%d", c.Prefix, id)
+			}
+		}
+
+		// Traverse applies formatUser to the result of getUserID
+		traversed := Traverse[Database](formatUser)(getUserID)
+
+		// Apply both environments
+		config := Config{Prefix: "User-"}
+		db := Database{UserID: 42}
+		result := traversed(config)(db)
+
+		assert.Equal(t, "User-42", result)
+	})
+
+	t.Run("traverse with computation", func(t *testing.T) {
+		type Source struct {
+			Value int
+		}
+		type Multiplier struct {
+			Factor int
+		}
+
+		// Reader that extracts value from source
+		getValue := func(s Source) int {
+			return s.Value
+		}
+
+		// Kleisli that multiplies value with multiplier
+		multiply := func(n int) Reader[Multiplier, int] {
+			return func(m Multiplier) int {
+				return n * m.Factor
+			}
+		}
+
+		traversed := Traverse[Source](multiply)(getValue)
+
+		source := Source{Value: 10}
+		multiplier := Multiplier{Factor: 5}
+		result := traversed(multiplier)(source)
+
+		assert.Equal(t, 50, result)
+	})
+
+	t.Run("traverse with string transformation", func(t *testing.T) {
+		type Input struct {
+			Text string
+		}
+		type Format struct {
+			Template string
+		}
+
+		// Reader that gets text from input
+		getText := func(i Input) string {
+			return i.Text
+		}
+
+		// Kleisli that formats text with template
+		format := func(text string) Reader[Format, string] {
+			return func(f Format) string {
+				return fmt.Sprintf(f.Template, text)
+			}
+		}
+
+		traversed := Traverse[Input](format)(getText)
+
+		input := Input{Text: "world"}
+		formatCfg := Format{Template: "Hello, %s!"}
+		result := traversed(formatCfg)(input)
+
+		assert.Equal(t, "Hello, world!", result)
+	})
+
+	t.Run("traverse with boolean logic", func(t *testing.T) {
+		type Data struct {
+			Value int
+		}
+		type Threshold struct {
+			Limit int
+		}
+
+		// Reader that gets value from data
+		getValue := func(d Data) int {
+			return d.Value
+		}
+
+		// Kleisli that checks if value exceeds threshold
+		checkThreshold := func(val int) Reader[Threshold, bool] {
+			return func(t Threshold) bool {
+				return val > t.Limit
+			}
+		}
+
+		traversed := Traverse[Data](checkThreshold)(getValue)
+
+		data := Data{Value: 100}
+		threshold := Threshold{Limit: 50}
+		result := traversed(threshold)(data)
+
+		assert.True(t, result)
+
+		threshold2 := Threshold{Limit: 150}
+		result2 := traversed(threshold2)(data)
+
+		assert.False(t, result2)
+	})
+
+	t.Run("traverse with slice transformation", func(t *testing.T) {
+		type Source struct {
+			Items []string
+		}
+		type Config struct {
+			Separator string
+		}
+
+		// Reader that gets items from source
+		getItems := func(s Source) []string {
+			return s.Items
+		}
+
+		// Kleisli that joins items with separator
+		joinItems := func(items []string) Reader[Config, string] {
+			return func(c Config) string {
+				result := ""
+				for i, item := range items {
+					if i > 0 {
+						result += c.Separator
+					}
+					result += item
+				}
+				return result
+			}
+		}
+
+		traversed := Traverse[Source](joinItems)(getItems)
+
+		source := Source{Items: []string{"a", "b", "c"}}
+		config := Config{Separator: ", "}
+		result := traversed(config)(source)
+
+		assert.Equal(t, "a, b, c", result)
+	})
+
+	t.Run("traverse with struct transformation", func(t *testing.T) {
+		type User struct {
+			ID   int
+			Name string
+		}
+		type Database struct {
+			TablePrefix string
+		}
+		type UserRecord struct {
+			Table string
+			ID    int
+			Name  string
+		}
+
+		// Reader that gets user
+		getUser := func(db Database) User {
+			return User{ID: 123, Name: "Alice"}
+		}
+
+		// Kleisli that creates user record
+		createRecord := func(user User) Reader[Database, UserRecord] {
+			return func(db Database) UserRecord {
+				return UserRecord{
+					Table: db.TablePrefix + "users",
+					ID:    user.ID,
+					Name:  user.Name,
+				}
+			}
+		}
+
+		traversed := Traverse[Database](createRecord)(getUser)
+
+		db := Database{TablePrefix: "prod_"}
+		result := traversed(db)(db)
+
+		assert.Equal(t, UserRecord{
+			Table: "prod_users",
+			ID:    123,
+			Name:  "Alice",
+		}, result)
+	})
+
+	t.Run("traverse with nil handling", func(t *testing.T) {
+		type Source struct {
+			Value *int
+		}
+		type Config struct {
+			Default int
+		}
+
+		// Reader that gets pointer value
+		getValue := func(s Source) *int {
+			return s.Value
+		}
+
+		// Kleisli that handles nil with default
+		handleNil := func(ptr *int) Reader[Config, int] {
+			return func(c Config) int {
+				if ptr == nil {
+					return c.Default
+				}
+				return *ptr
+			}
+		}
+
+		traversed := Traverse[Source](handleNil)(getValue)
+
+		config := Config{Default: 999}
+
+		// Test with non-nil value
+		val := 42
+		source1 := Source{Value: &val}
+		result1 := traversed(config)(source1)
+		assert.Equal(t, 42, result1)
+
+		// Test with nil value
+		source2 := Source{Value: nil}
+		result2 := traversed(config)(source2)
+		assert.Equal(t, 999, result2)
+	})
+
+	t.Run("traverse composition", func(t *testing.T) {
+		type Env1 struct {
+			Base int
+		}
+		type Env2 struct {
+			Multiplier int
+		}
+
+		// Reader that gets base value
+		getBase := func(e Env1) int {
+			return e.Base
+		}
+
+		// Kleisli that multiplies
+		multiply := func(n int) Reader[Env2, int] {
+			return func(e Env2) int {
+				return n * e.Multiplier
+			}
+		}
+
+		// Another Kleisli that adds
+		add := func(n int) Reader[Env2, int] {
+			return func(e Env2) int {
+				return n + e.Multiplier
+			}
+		}
+
+		// Traverse with multiply
+		traversed1 := Traverse[Env1](multiply)(getBase)
+		env1 := Env1{Base: 10}
+		env2 := Env2{Multiplier: 5}
+		result1 := traversed1(env2)(env1)
+		assert.Equal(t, 50, result1)
+
+		// Traverse with add
+		traversed2 := Traverse[Env1](add)(getBase)
+		result2 := traversed2(env2)(env1)
+		assert.Equal(t, 15, result2)
+	})
+
+	t.Run("traverse with identity", func(t *testing.T) {
+		type Env1 struct {
+			Value string
+		}
+		type Env2 struct {
+			Prefix string
+		}
+
+		// Reader that gets value
+		getValue := func(e Env1) string {
+			return e.Value
+		}
+
+		// Identity Kleisli (just wraps in Of)
+		identity := func(s string) Reader[Env2, string] {
+			return Of[Env2](s)
+		}
+
+		traversed := Traverse[Env1](identity)(getValue)
+
+		env1 := Env1{Value: "test"}
+		env2 := Env2{Prefix: "ignored"}
+		result := traversed(env2)(env1)
+
+		assert.Equal(t, "test", result)
+	})
+
+	t.Run("traverse with complex computation", func(t *testing.T) {
+		type Request struct {
+			UserID int
+		}
+		type Database struct {
+			Users map[int]string
+		}
+		type Response struct {
+			UserID   int
+			UserName string
+			Found    bool
+		}
+
+		// Reader that gets user ID from request
+		getUserID := func(r Request) int {
+			return r.UserID
+		}
+
+		// Kleisli that looks up user in database
+		lookupUser := func(id int) Reader[Database, Response] {
+			return func(db Database) Response {
+				name, found := db.Users[id]
+				return Response{
+					UserID:   id,
+					UserName: name,
+					Found:    found,
+				}
+			}
+		}
+
+		traversed := Traverse[Request](lookupUser)(getUserID)
+
+		request := Request{UserID: 42}
+		db := Database{
+			Users: map[int]string{
+				42: "Alice",
+				99: "Bob",
+			},
+		}
+
+		result := traversed(db)(request)
+
+		assert.Equal(t, Response{
+			UserID:   42,
+			UserName: "Alice",
+			Found:    true,
+		}, result)
+
+		// Test with missing user
+		request2 := Request{UserID: 123}
+		result2 := traversed(db)(request2)
+
+		assert.Equal(t, Response{
+			UserID:   123,
+			UserName: "",
+			Found:    false,
+		}, result2)
+	})
+}

@@ -21,6 +21,10 @@ import (
 	"github.com/IBM/fp-go/v2/readereither"
 )
 
+func FromReader[A any](r Reader[context.Context, A]) ReaderResult[A] {
+	return readereither.FromReader[error](r)
+}
+
 func FromEither[A any](e Either[A]) ReaderResult[A] {
 	return readereither.FromEither[context.Context](e)
 }

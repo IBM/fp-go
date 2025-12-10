@@ -117,9 +117,13 @@ func Nullary2[F1 ~func() T1, F2 ~func(T1) T2, T1, T2 any](f1 F1, f2 F2) func() T
 
 // Curry2 takes a function with 2 parameters and returns a cascade of functions each taking only one parameter.
 // The inverse function is [Uncurry2]
+//go:inline
 func Curry2[FCT ~func(T0, T1) T2, T0, T1, T2 any](f FCT) func(T0) func(T1) T2 {
+	//go:inline
 	return func(t0 T0) func(t1 T1) T2 {
+		//go:inline
 		return func(t1 T1) T2 {
+			//go:inline
 			return f(t0, t1)
 		}
 	}

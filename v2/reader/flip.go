@@ -64,6 +64,61 @@ func Sequence[R1, R2, A any](ma Reader[R2, Reader[R1, A]]) Kleisli[R2, R1, A] {
 	return function.Flip(ma)
 }
 
+// Traverse applies a Kleisli arrow to a value wrapped in a Reader, then sequences the result.
+// It transforms a Reader[R2, A] into a function that takes R1 and returns Reader[R2, B],
+// where the transformation from A to B is defined by a Kleisli arrow that depends on R1.
+//
+// This is useful when you have a Reader computation that produces a value, and you want to
+// apply another Reader computation to that value, but with a different environment type.
+// The result is a function that takes the second environment and returns a Reader that
+// takes the first environment.
+//
+// Type Parameters:
+//   - R2: The first environment type (outer Reader)
+//   - R1: The second environment type (inner Reader/Kleisli)
+//   - A: The input value type
+//   - B: The output value type
+//
+// Parameters:
+//   - f: A Kleisli arrow from A to B that depends on environment R1
+//
+// Returns:
+//   - A function that takes a Reader[R2, A] and returns a Kleisli[R2, R1, B]
+//
+// The signature can be understood as:
+//   - Input: Reader[R2, A] (a computation that produces A given R2)
+//   - Output: func(R1) Reader[R2, B] (a function that takes R1 and produces a computation that produces B given R2)
+//
+// Example:
+//
+//	type Database struct { ConnectionString string }
+//	type Config struct { TableName string }
+//
+//	// A Reader that gets a user ID from the database
+//	getUserID := func(db Database) int {
+//	    // Simulate database query
+//	    return 42
+//	}
+//
+//	// A Kleisli arrow that takes a user ID and returns a Reader that formats it with config
+//	formatUser := func(id int) reader.Reader[Config, string] {
+//	    return func(c Config) string {
+//	        return fmt.Sprintf("User %d from table %s", id, c.TableName)
+//	    }
+//	}
+//
+//	// Traverse applies formatUser to the result of getUserID
+//	traversed := reader.Traverse(formatUser)(getUserID)
+//
+//	// Now we can apply both environments
+//	config := Config{TableName: "users"}
+//	db := Database{ConnectionString: "localhost:5432"}
+//	result := traversed(config)(db) // "User 42 from table users"
+//
+// The Traverse operation is particularly useful when:
+//   - You need to compose computations that depend on different environments
+//   - You want to apply a transformation that itself requires environmental context
+//   - You're building pipelines where each stage has its own configuration
 func Traverse[R2, R1, A, B any](
 	f Kleisli[R1, A, B],
 ) func(Reader[R2, A]) Kleisli[R2, R1, B] {

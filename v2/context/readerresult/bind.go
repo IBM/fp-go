@@ -31,6 +31,8 @@ import (
 //	    TenantID string
 //	}
 //	result := readereither.Do(State{})
+//
+//go:inline
 func Do[S any](
 	empty S,
 ) ReaderResult[S] {
@@ -78,6 +80,8 @@ func Do[S any](
 //	        },
 //	    ),
 //	)
+//
+//go:inline
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
@@ -86,6 +90,8 @@ func Bind[S1, S2, T any](
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
+//
+//go:inline
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
@@ -94,6 +100,8 @@ func Let[S1, S2, T any](
 }
 
 // LetTo attaches the a value to a context [S1] to produce a context [S2]
+//
+//go:inline
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
@@ -102,6 +110,8 @@ func LetTo[S1, S2, T any](
 }
 
 // BindTo initializes a new state [S1] from a value [T]
+//
+//go:inline
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) Kleisli[ReaderResult[T], S1] {
@@ -145,6 +155,8 @@ func BindTo[S1, T any](
 //	        getTenantID,
 //	    ),
 //	)
+//
+//go:inline
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderResult[T],
@@ -183,6 +195,8 @@ func ApS[S1, S2, T any](
 //	    readereither.Do(Person{Name: "Alice", Age: 25}),
 //	    readereither.ApSL(ageLens, getAge),
 //	)
+//
+//go:inline
 func ApSL[S, T any](
 	lens L.Lens[S, T],
 	fa ReaderResult[T],
@@ -227,6 +241,8 @@ func ApSL[S, T any](
 //	    readereither.Of[error](Counter{Value: 42}),
 //	    readereither.BindL(valueLens, increment),
 //	)
+//
+//go:inline
 func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
@@ -262,6 +278,8 @@ func BindL[S, T any](
 //	    readereither.LetL(valueLens, double),
 //	)
 //	// result when executed will be Right(Counter{Value: 42})
+//
+//go:inline
 func LetL[S, T any](
 	lens L.Lens[S, T],
 	f func(T) T,
@@ -296,6 +314,8 @@ func LetL[S, T any](
 //	    readereither.LetToL(debugLens, false),
 //	)
 //	// result when executed will be Right(Config{Debug: false, Timeout: 30})
+//
+//go:inline
 func LetToL[S, T any](
 	lens L.Lens[S, T],
 	b T,
