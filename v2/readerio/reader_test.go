@@ -323,6 +323,161 @@ func TestMapTo(t *testing.T) {
 	assert.Equal(t, "constant", result(config)())
 }
 
+func TestMapToExecutesSideEffects(t *testing.T) {
+	t.Run("executes original ReaderIO and returns constant value", func(t *testing.T) {
+		executed := false
+		originalReaderIO := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				executed = true
+				return 42
+			}
+		}
+
+		// Apply MapTo operator
+		toDone := MapTo[ReaderTestConfig, int]("done")
+		resultReaderIO := toDone(originalReaderIO)
+
+		// Execute the resulting ReaderIO
+		config := ReaderTestConfig{Value: 10, Name: "test"}
+		result := resultReaderIO(config)()
+
+		// Verify the constant value is returned
+		assert.Equal(t, "done", result)
+		// Verify the original ReaderIO WAS executed (side effect occurred)
+		assert.True(t, executed, "original ReaderIO should be executed to allow side effects")
+	})
+
+	t.Run("executes ReaderIO in functional pipeline", func(t *testing.T) {
+		executed := false
+		step1 := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				executed = true
+				return 100
+			}
+		}
+
+		pipeline := F.Pipe1(
+			step1,
+			MapTo[ReaderTestConfig, int]("complete"),
+		)
+
+		config := ReaderTestConfig{Value: 10, Name: "test"}
+		result := pipeline(config)()
+
+		assert.Equal(t, "complete", result)
+		assert.True(t, executed, "original ReaderIO should be executed in pipeline")
+	})
+
+	t.Run("executes ReaderIO with side effects", func(t *testing.T) {
+		sideEffectOccurred := false
+		readerIOWithSideEffect := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				sideEffectOccurred = true
+				return 42
+			}
+		}
+
+		resultReaderIO := MapTo[ReaderTestConfig, int](true)(readerIOWithSideEffect)
+		config := ReaderTestConfig{Value: 10, Name: "test"}
+		result := resultReaderIO(config)()
+
+		assert.Equal(t, true, result)
+		assert.True(t, sideEffectOccurred, "side effect should occur")
+	})
+
+	t.Run("executes complex computation with side effects", func(t *testing.T) {
+		computationExecuted := false
+		complexReaderIO := func(c ReaderTestConfig) G.IO[string] {
+			return func() string {
+				computationExecuted = true
+				return "complex result"
+			}
+		}
+
+		resultReaderIO := MapTo[ReaderTestConfig, string](99)(complexReaderIO)
+		config := ReaderTestConfig{Value: 10, Name: "test"}
+		result := resultReaderIO(config)()
+
+		assert.Equal(t, 99, result)
+		assert.True(t, computationExecuted, "complex computation should be executed")
+	})
+}
+
+func TestMonadMapToExecutesSideEffects(t *testing.T) {
+	t.Run("executes original ReaderIO and returns constant value", func(t *testing.T) {
+		executed := false
+		originalReaderIO := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				executed = true
+				return 42
+			}
+		}
+
+		// Apply MonadMapTo
+		resultReaderIO := MonadMapTo(originalReaderIO, "done")
+
+		// Execute the resulting ReaderIO
+		config := ReaderTestConfig{Value: 10, Name: "test"}
+		result := resultReaderIO(config)()
+
+		// Verify the constant value is returned
+		assert.Equal(t, "done", result)
+		// Verify the original ReaderIO WAS executed (side effect occurred)
+		assert.True(t, executed, "original ReaderIO should be executed to allow side effects")
+	})
+
+	t.Run("executes complex computation with side effects", func(t *testing.T) {
+		computationExecuted := false
+		complexReaderIO := func(c ReaderTestConfig) G.IO[string] {
+			return func() string {
+				computationExecuted = true
+				return "complex result"
+			}
+		}
+
+		resultReaderIO := MonadMapTo(complexReaderIO, 42)
+		config := ReaderTestConfig{Value: 10, Name: "test"}
+		result := resultReaderIO(config)()
+
+		assert.Equal(t, 42, result)
+		assert.True(t, computationExecuted, "complex computation should be executed")
+	})
+
+	t.Run("executes ReaderIO with logging side effect", func(t *testing.T) {
+		logged := []string{}
+		loggingReaderIO := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				logged = append(logged, "computation executed")
+				return c.Value * 2
+			}
+		}
+
+		resultReaderIO := MonadMapTo(loggingReaderIO, "result")
+		config := ReaderTestConfig{Value: 5, Name: "test"}
+		result := resultReaderIO(config)()
+
+		assert.Equal(t, "result", result)
+		assert.Equal(t, []string{"computation executed"}, logged)
+	})
+
+	t.Run("executes ReaderIO accessing environment", func(t *testing.T) {
+		accessedEnv := false
+		envReaderIO := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				accessedEnv = true
+				return c.Value + 10
+			}
+		}
+
+		resultReaderIO := MonadMapTo(envReaderIO, []int{1, 2, 3})
+		config := ReaderTestConfig{Value: 20, Name: "test"}
+		result := resultReaderIO(config)()
+
+		assert.Equal(t, []int{1, 2, 3}, result)
+		assert.True(t, accessedEnv, "ReaderIO should access environment during execution")
+	})
+}
+
 func TestMonadChainFirst(t *testing.T) {
 	sideEffect := 0
 	rio := Of[ReaderTestConfig](42)

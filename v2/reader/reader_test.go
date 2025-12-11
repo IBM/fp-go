@@ -201,3 +201,287 @@ func TestFlap(t *testing.T) {
 	result := r(config)
 	assert.Equal(t, 15, result)
 }
+
+func TestMapTo(t *testing.T) {
+	t.Run("returns constant value without executing original reader", func(t *testing.T) {
+		executed := false
+		originalReader := func(c Config) int {
+			executed = true
+			return c.Port
+		}
+
+		// Apply MapTo operator
+		toDone := MapTo[Config, int]("done")
+		resultReader := toDone(originalReader)
+
+		// Execute the resulting reader
+		result := resultReader(Config{Port: 8080})
+
+		// Verify the constant value is returned
+		assert.Equal(t, "done", result)
+		// Verify the original reader was never executed
+		assert.False(t, executed, "original reader should not be executed")
+	})
+
+	t.Run("works in functional pipeline without executing original reader", func(t *testing.T) {
+		executed := false
+		step1 := func(c Config) int {
+			executed = true
+			return c.Port
+		}
+
+		pipeline := F.Pipe1(
+			step1,
+			MapTo[Config, int]("complete"),
+		)
+
+		result := pipeline(Config{Port: 8080})
+
+		assert.Equal(t, "complete", result)
+		assert.False(t, executed, "original reader should not be executed in pipeline")
+	})
+
+	t.Run("ignores reader with side effects", func(t *testing.T) {
+		sideEffectOccurred := false
+		readerWithSideEffect := func(c Config) int {
+			sideEffectOccurred = true
+			return c.Port * 2
+		}
+
+		resultReader := MapTo[Config, int](true)(readerWithSideEffect)
+		result := resultReader(Config{Port: 8080})
+
+		assert.True(t, result)
+		assert.False(t, sideEffectOccurred, "side effect should not occur")
+	})
+}
+
+func TestMonadMapTo(t *testing.T) {
+	t.Run("returns constant value without executing original reader", func(t *testing.T) {
+		executed := false
+		originalReader := func(c Config) int {
+			executed = true
+			return c.Port
+		}
+
+		// Apply MonadMapTo
+		resultReader := MonadMapTo(originalReader, "done")
+
+		// Execute the resulting reader
+		result := resultReader(Config{Port: 8080})
+
+		// Verify the constant value is returned
+		assert.Equal(t, "done", result)
+		// Verify the original reader was never executed
+		assert.False(t, executed, "original reader should not be executed")
+	})
+
+	t.Run("ignores complex computation", func(t *testing.T) {
+		computationExecuted := false
+		complexReader := func(c Config) string {
+			computationExecuted = true
+			return fmt.Sprintf("%s:%d", c.Host, c.Port)
+		}
+
+		resultReader := MonadMapTo(complexReader, 42)
+		result := resultReader(Config{Host: "localhost", Port: 8080})
+
+		assert.Equal(t, 42, result)
+		assert.False(t, computationExecuted, "complex computation should not be executed")
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		executed := false
+		intReader := func(c Config) int {
+			executed = true
+			return c.Port
+		}
+
+		resultReader := MonadMapTo(intReader, []string{"a", "b", "c"})
+		result := resultReader(Config{Port: 8080})
+
+		assert.Equal(t, []string{"a", "b", "c"}, result)
+		assert.False(t, executed, "original reader should not be executed")
+	})
+}
+
+func TestChainTo(t *testing.T) {
+	t.Run("returns second reader without executing first reader", func(t *testing.T) {
+		firstExecuted := false
+		firstReader := func(c Config) int {
+			firstExecuted = true
+			return c.Port
+		}
+
+		secondReader := func(c Config) string {
+			return c.Host
+		}
+
+		// Apply ChainTo operator
+		thenSecond := ChainTo[int](secondReader)
+		resultReader := thenSecond(firstReader)
+
+		// Execute the resulting reader
+		result := resultReader(Config{Host: "localhost", Port: 8080})
+
+		// Verify the second reader's result is returned
+		assert.Equal(t, "localhost", result)
+		// Verify the first reader was never executed
+		assert.False(t, firstExecuted, "first reader should not be executed")
+	})
+
+	t.Run("works in functional pipeline without executing first reader", func(t *testing.T) {
+		firstExecuted := false
+		step1 := func(c Config) int {
+			firstExecuted = true
+			return c.Port
+		}
+
+		step2 := func(c Config) string {
+			return fmt.Sprintf("Result: %s", c.Host)
+		}
+
+		pipeline := F.Pipe1(
+			step1,
+			ChainTo[int](step2),
+		)
+
+		result := pipeline(Config{Host: "localhost", Port: 8080})
+
+		assert.Equal(t, "Result: localhost", result)
+		assert.False(t, firstExecuted, "first reader should not be executed in pipeline")
+	})
+
+	t.Run("ignores reader with side effects", func(t *testing.T) {
+		sideEffectOccurred := false
+		readerWithSideEffect := func(c Config) int {
+			sideEffectOccurred = true
+			return c.Port * 2
+		}
+
+		secondReader := func(c Config) bool {
+			return c.Port > 0
+		}
+
+		resultReader := ChainTo[int](secondReader)(readerWithSideEffect)
+		result := resultReader(Config{Port: 8080})
+
+		assert.True(t, result)
+		assert.False(t, sideEffectOccurred, "side effect should not occur")
+	})
+
+	t.Run("chains multiple ChainTo operations", func(t *testing.T) {
+		executed1 := false
+		executed2 := false
+
+		reader1 := func(c Config) int {
+			executed1 = true
+			return c.Port
+		}
+
+		reader2 := func(c Config) string {
+			executed2 = true
+			return c.Host
+		}
+
+		reader3 := func(c Config) bool {
+			return c.Port > 0
+		}
+
+		pipeline := F.Pipe2(
+			reader1,
+			ChainTo[int](reader2),
+			ChainTo[string](reader3),
+		)
+
+		result := pipeline(Config{Host: "localhost", Port: 8080})
+
+		assert.True(t, result)
+		assert.False(t, executed1, "first reader should not be executed")
+		assert.False(t, executed2, "second reader should not be executed")
+	})
+}
+
+func TestMonadChainTo(t *testing.T) {
+	t.Run("returns second reader without executing first reader", func(t *testing.T) {
+		firstExecuted := false
+		firstReader := func(c Config) int {
+			firstExecuted = true
+			return c.Port
+		}
+
+		secondReader := func(c Config) string {
+			return c.Host
+		}
+
+		// Apply MonadChainTo
+		resultReader := MonadChainTo(firstReader, secondReader)
+
+		// Execute the resulting reader
+		result := resultReader(Config{Host: "localhost", Port: 8080})
+
+		// Verify the second reader's result is returned
+		assert.Equal(t, "localhost", result)
+		// Verify the first reader was never executed
+		assert.False(t, firstExecuted, "first reader should not be executed")
+	})
+
+	t.Run("ignores complex first computation", func(t *testing.T) {
+		firstExecuted := false
+		complexFirstReader := func(c Config) []int {
+			firstExecuted = true
+			result := make([]int, c.Port)
+			for i := range result {
+				result[i] = i * c.Multiplier
+			}
+			return result
+		}
+
+		secondReader := func(c Config) string {
+			return c.Prefix + c.Host
+		}
+
+		resultReader := MonadChainTo(complexFirstReader, secondReader)
+		result := resultReader(Config{Host: "localhost", Port: 100, Prefix: "server:"})
+
+		assert.Equal(t, "server:localhost", result)
+		assert.False(t, firstExecuted, "complex first computation should not be executed")
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		firstExecuted := false
+		firstReader := func(c Config) map[string]int {
+			firstExecuted = true
+			return map[string]int{"port": c.Port}
+		}
+
+		secondReader := func(c Config) float64 {
+			return float64(c.Multiplier) * 3.14
+		}
+
+		resultReader := MonadChainTo(firstReader, secondReader)
+		result := resultReader(Config{Multiplier: 2})
+
+		assert.Equal(t, 6.28, result)
+		assert.False(t, firstExecuted, "first reader should not be executed")
+	})
+
+	t.Run("preserves second reader behavior", func(t *testing.T) {
+		firstExecuted := false
+		firstReader := func(c Config) int {
+			firstExecuted = true
+			return 999
+		}
+
+		secondReader := func(c Config) string {
+			// Second reader should still have access to the environment
+			return fmt.Sprintf("%s:%d", c.Host, c.Port)
+		}
+
+		resultReader := MonadChainTo(firstReader, secondReader)
+		result := resultReader(Config{Host: "example.com", Port: 443})
+
+		assert.Equal(t, "example.com:443", result)
+		assert.False(t, firstExecuted, "first reader should not be executed")
+	})
+}

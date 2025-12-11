@@ -55,10 +55,10 @@ var (
 func curriedLog(
 	logLevel slog.Level,
 	cb func(context.Context) *slog.Logger,
-	message string) func(slog.Attr) func(context.Context) any {
-	return F.Curry2(func(a slog.Attr, ctx context.Context) any {
+	message string) func(slog.Attr) Reader[context.Context, struct{}] {
+	return F.Curry2(func(a slog.Attr, ctx context.Context) struct{} {
 		cb(ctx).LogAttrs(ctx, logLevel, message, a)
-		return nil
+		return struct{}{}
 	})
 }
 
@@ -114,12 +114,6 @@ func curriedLog(
 //	userResult := result.Left[User](err)
 //	logged := logDebug(userResult)(ctx) // Logs: level=DEBUG msg="User data" error="user not found"
 //	// logged still contains the error
-//
-// The function is implemented in point-free style using functional composition:
-//  1. result.Fold extracts either the error or success value
-//  2. The value is converted to slog.Attr (either "error" or "value" key)
-//  3. curriedLog performs the actual logging
-//  4. reader.Sequence and reader.MapTo preserve the original Result value
 func SLogWithCallback[A any](
 	logLevel slog.Level,
 	cb func(context.Context) *slog.Logger,
@@ -139,7 +133,10 @@ func SLogWithCallback[A any](
 			),
 			curriedLog(logLevel, cb, message),
 		),
-		reader.Chain(reader.Sequence(reader.MapTo[context.Context, any, Result[A]])),
+		reader.Chain(reader.Sequence(F.Flow2(
+			reader.Of[struct{}, Result[A]],
+			reader.Map[context.Context, struct{}, Result[A]],
+		))),
 	)
 
 }
@@ -230,5 +227,5 @@ func SLog[A any](message string) reader.Kleisli[context.Context, Result[A], Resu
 
 //go:inline
 func TapSLog[A any](message string) Operator[A, A] {
-	return reader.ChainFirst(SLog[A](message))
+	return reader.Chain(SLog[A](message))
 }

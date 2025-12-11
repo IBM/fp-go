@@ -18,7 +18,6 @@ package reader
 import (
 	"github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	T "github.com/IBM/fp-go/v2/tuple"
 )
@@ -89,44 +88,36 @@ func MonadMap[E, A, B any](fa Reader[E, A], f func(A) B) Reader[E, B] {
 	return function.Flow2(fa, f)
 }
 
-// MonadMapTo transforms a Reader by replacing its result value with a constant value.
-// This is the monadic version that takes the Reader as the first parameter.
-// The original result is discarded and replaced with the provided constant.
+// MonadMapTo creates a new Reader that completely ignores the first Reader and returns a constant value.
+// This is the monadic version that takes both the Reader and the constant value as parameters.
 //
-// This is useful when you want to perform a computation for its side effects
-// (in the Reader context) but replace the result with a specific value.
+// IMPORTANT: Readers are pure functions with no side effects. This function does NOT compose or evaluate
+// the first Reader - it completely ignores it and returns a new Reader that always returns the constant value.
+// The first Reader is neither executed during composition nor when the resulting Reader runs.
 //
 // Type Parameters:
 //   - E: The environment type
-//   - A: The original result type (will be discarded)
-//   - B: The new constant result type
+//   - A: The result type of the first Reader (completely ignored)
+//   - B: The type of the constant value to return
 //
 // Parameters:
-//   - fa: The Reader whose result will be replaced
-//   - b: The constant value to use as the new result
+//   - _: The first Reader (completely ignored, never evaluated)
+//   - b: The constant value to return
 //
 // Returns:
-//   - A Reader that evaluates fa but returns b instead of fa's result
+//   - A new Reader that ignores the environment and always returns b
 //
 // Example:
 //
-//	type Config struct { LogLevel string }
-//	getLogLevel := func(c Config) string { return c.LogLevel }
-//	// Replace the log level with a constant
-//	alwaysInfo := reader.MonadMapTo(getLogLevel, "INFO")
-//	result := alwaysInfo(Config{LogLevel: "DEBUG"}) // "INFO"
-//
-// Example - Discarding computation result:
-//
 //	type Config struct { Counter int }
-//	incrementCounter := func(c Config) int { return c.Counter + 1 }
-//	// Perform increment but return a fixed message
-//	withMessage := reader.MonadMapTo(incrementCounter, "Operation complete")
-//	result := withMessage(Config{Counter: 5}) // "Operation complete"
+//	increment := func(c Config) int { return c.Counter + 1 }
+//	// Create a Reader that ignores increment and returns "done"
+//	r := reader.MonadMapTo(increment, "done")
+//	result := r(Config{Counter: 5}) // "done" (increment was never evaluated)
 //
 //go:inline
-func MonadMapTo[E, A, B any](fa Reader[E, A], b B) Reader[E, B] {
-	return MonadMap(fa, Of[A](b))
+func MonadMapTo[E, A, B any](_ Reader[E, A], b B) Reader[E, B] {
+	return Of[E](b)
 }
 
 // Map transforms the result value of a Reader using the provided function.
@@ -147,46 +138,47 @@ func Map[E, A, B any](f func(A) B) Operator[E, A, B] {
 	return function.Bind2nd(MonadMap[E, A, B], f)
 }
 
-// MapTo creates an operator that replaces a Reader's result with a constant value.
+// MapTo creates an operator that completely ignores any Reader and returns a constant value.
 // This is the curried version where the constant value is provided first,
 // returning a function that can be applied to any Reader.
 //
-// The original result is discarded and replaced with the provided constant.
-// This is useful in functional pipelines where you want to replace values.
+// IMPORTANT: Readers are pure functions with no side effects. This operator does NOT compose or evaluate
+// the input Reader - it completely ignores it and returns a new Reader that always returns the constant value.
+// The input Reader is neither executed during composition nor when the resulting Reader runs.
 //
 // Type Parameters:
 //   - E: The environment type
-//   - A: The original result type (will be discarded)
-//   - B: The new constant result type
+//   - A: The result type of the input Reader (completely ignored)
+//   - B: The type of the constant value to return
 //
 // Parameters:
-//   - b: The constant value to use as the new result
+//   - b: The constant value to return
 //
 // Returns:
-//   - An Operator that transforms any Reader[E, A] to Reader[E, B]
+//   - An Operator that takes a Reader[E, A] and returns Reader[E, B]
 //
 // Example:
 //
-//	type Config struct { Value int }
-//	getValue := reader.Asks(func(c Config) int { return c.Value })
-//	// Create an operator that always returns "done"
+//	type Config struct { Counter int }
+//	increment := reader.Asks(func(c Config) int { return c.Counter + 1 })
+//	// Create an operator that ignores any Reader and returns "done"
 //	toDone := reader.MapTo[Config, int, string]("done")
-//	result := toDone(getValue)
-//	output := result(Config{Value: 42}) // "done"
+//	pipeline := toDone(increment)
+//	result := pipeline(Config{Counter: 5}) // "done" (increment was never evaluated)
 //
-// Example - In a pipeline:
+// Example - In a functional pipeline:
 //
-//	type Config struct { Name string }
-//	getName := reader.Asks(func(c Config) string { return c.Name })
+//	type Env struct { Step int }
+//	step1 := reader.Asks(func(e Env) int { return e.Step })
 //	pipeline := F.Pipe1(
-//	    getName,
-//	    reader.MapTo[Config, string, bool](true),
+//	    step1,
+//	    reader.MapTo[Env, int, string]("complete"),
 //	)
-//	result := pipeline(Config{Name: "Alice"}) // true
+//	output := pipeline(Env{Step: 1}) // "complete" (step1 was never evaluated)
 //
 //go:inline
 func MapTo[E, A, B any](b B) Operator[E, A, B] {
-	return Map[E](Of[A](b))
+	return Of[Reader[E, A]](Of[E](b))
 }
 
 // MonadAp applies a Reader containing a function to a Reader containing a value.
@@ -270,62 +262,54 @@ func Chain[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, B] {
 	return function.Bind2nd(MonadChain[R, A, B], f)
 }
 
-// MonadChainTo sequences two Readers where the second Reader ignores the result of the first.
+// MonadChainTo completely ignores the first Reader and returns the second Reader.
 // This is the monadic version that takes both Readers as parameters.
 //
-// The first Reader is evaluated for its effects (accessing the environment),
-// but its result is discarded. The second Reader is then evaluated with the same environment.
-//
-// This is useful when you want to perform sequential operations where the second
-// operation doesn't depend on the result of the first.
+// IMPORTANT: Readers are pure functions with no side effects. This function does NOT compose or evaluate
+// the first Reader - it completely ignores it and returns the second Reader directly.
+// The first Reader is neither executed during composition nor when the resulting Reader runs.
 //
 // Type Parameters:
-//   - A: The result type of the first Reader (will be discarded)
+//   - A: The result type of the first Reader (completely ignored)
 //   - R: The environment type
 //   - B: The result type of the second Reader
 //
 // Parameters:
-//   - ma: The first Reader to evaluate
-//   - b: The second Reader to evaluate (ignoring ma's result)
+//   - _: The first Reader (completely ignored, never evaluated)
+//   - b: The second Reader to return
 //
 // Returns:
-//   - A Reader that evaluates ma, discards its result, then evaluates b
+//   - The second Reader unchanged
 //
 // Example:
 //
-//	type Config struct { LogEnabled bool; Value int }
-//	checkLogging := func(c Config) bool { return c.LogEnabled }
-//	getValue := func(c Config) int { return c.Value }
-//	// Check logging first, then get value regardless
-//	result := reader.MonadChainTo(checkLogging, getValue)
-//	value := result(Config{LogEnabled: true, Value: 42}) // 42
+//	type Config struct { Counter int; Message string }
+//	increment := func(c Config) int { return c.Counter + 1 }
+//	getMessage := func(c Config) string { return c.Message }
+//	// Ignore increment and return getMessage
+//	r := reader.MonadChainTo(increment, getMessage)
+//	result := r(Config{Counter: 5, Message: "done"}) // "done" (increment was never evaluated)
 //
-// Example - Sequential operations:
-//
-//	type State struct { Initialized bool; Data string }
-//	checkInit := func(s State) bool { return s.Initialized }
-//	getData := func(s State) string { return s.Data }
-//	// Verify initialization, then get data
-//	pipeline := reader.MonadChainTo(checkInit, getData)
-//	data := pipeline(State{Initialized: true, Data: "content"}) // "content"
-func MonadChainTo[A, R, B any](ma Reader[R, A], b Reader[R, B]) Reader[R, B] {
-	return MonadChain(ma, Of[A](b))
+//go:inline
+func MonadChainTo[A, R, B any](_ Reader[R, A], b Reader[R, B]) Reader[R, B] {
+	return b
 }
 
-// ChainTo creates an operator that sequences two Readers where the second ignores the first's result.
+// ChainTo creates an operator that completely ignores any Reader and returns a specific Reader.
 // This is the curried version where the second Reader is provided first,
-// returning a function that can be applied to any first Reader.
+// returning a function that can be applied to any first Reader (which will be ignored).
 //
-// The first Reader is evaluated for its effects, but its result is discarded.
-// The second Reader is then evaluated with the same environment.
+// IMPORTANT: Readers are pure functions with no side effects. This operator does NOT compose or evaluate
+// the input Reader - it completely ignores it and returns the specified Reader directly.
+// The input Reader is neither executed during composition nor when the resulting Reader runs.
 //
 // Type Parameters:
-//   - A: The result type of the first Reader (will be discarded)
+//   - A: The result type of the first Reader (completely ignored)
 //   - R: The environment type
 //   - B: The result type of the second Reader
 //
 // Parameters:
-//   - b: The second Reader to evaluate
+//   - b: The Reader to return (ignoring any input Reader)
 //
 // Returns:
 //   - An Operator that takes a Reader[R, A] and returns Reader[R, B]
@@ -334,12 +318,12 @@ func MonadChainTo[A, R, B any](ma Reader[R, A], b Reader[R, B]) Reader[R, B] {
 //
 //	type Config struct { Counter int; Message string }
 //	getMessage := func(c Config) string { return c.Message }
-//	// Create an operator that always chains to getMessage
+//	// Create an operator that ignores any Reader and returns getMessage
 //	thenGetMessage := reader.ChainTo[int, Config, string](getMessage)
 //
-//	incrementCounter := func(c Config) int { return c.Counter + 1 }
-//	pipeline := thenGetMessage(incrementCounter)
-//	result := pipeline(Config{Counter: 5, Message: "done"}) // "done"
+//	increment := func(c Config) int { return c.Counter + 1 }
+//	pipeline := thenGetMessage(increment)
+//	result := pipeline(Config{Counter: 5, Message: "done"}) // "done" (increment was never evaluated)
 //
 // Example - In a functional pipeline:
 //
@@ -351,135 +335,11 @@ func MonadChainTo[A, R, B any](ma Reader[R, A], b Reader[R, B]) Reader[R, B] {
 //	    step1,
 //	    reader.ChainTo[int, Env, string](getResult),
 //	)
-//	output := pipeline(Env{Step: 1, Result: "success"}) // "success"
+//	output := pipeline(Env{Step: 1, Result: "success"}) // "success" (step1 was never evaluated)
+//
+//go:inline
 func ChainTo[A, R, B any](b Reader[R, B]) Operator[R, A, B] {
-	return Chain(Of[A](b))
-}
-
-// MonadChainFirst sequences two Readers but returns the result of the first.
-// This is the monadic version that takes both the Reader and the Kleisli function as parameters.
-//
-// The first Reader is evaluated, then its result is passed to the Kleisli function
-// to produce a second Reader. The second Reader is evaluated for its effects,
-// but its result is discarded. The original result from the first Reader is returned.
-//
-// This is useful when you want to perform a side effect based on a value
-// but keep the original value.
-//
-// Type Parameters:
-//   - R: The environment type
-//   - A: The result type of the first Reader (will be returned)
-//   - B: The result type of the second Reader (will be discarded)
-//
-// Parameters:
-//   - ma: The first Reader whose result will be returned
-//   - f: A Kleisli function that creates a second Reader from the first's result
-//
-// Returns:
-//   - A Reader that evaluates ma, passes its result to f, evaluates f's Reader,
-//     then returns ma's original result
-//
-// Example:
-//
-//	type Config struct { LogEnabled bool }
-//	getValue := func(c Config) int { return 42 }
-//	logValue := func(val int) reader.Reader[Config, string] {
-//	    return func(c Config) string {
-//	        if c.LogEnabled {
-//	            return fmt.Sprintf("Logged: %d", val)
-//	        }
-//	        return ""
-//	    }
-//	}
-//	// Get value, log it, but return the original value
-//	result := reader.MonadChainFirst(getValue, logValue)
-//	value := result(Config{LogEnabled: true}) // 42 (but logging happens)
-//
-// Example - Validation with original value:
-//
-//	type Env struct { ValidateMode bool }
-//	fetchData := func(e Env) string { return "data" }
-//	validate := func(data string) reader.Reader[Env, bool] {
-//	    return func(e Env) bool {
-//	        return e.ValidateMode && len(data) > 0
-//	    }
-//	}
-//	// Fetch data, validate it, but return the data
-//	pipeline := reader.MonadChainFirst(fetchData, validate)
-//	data := pipeline(Env{ValidateMode: true}) // "data"
-func MonadChainFirst[R, A, B any](ma Reader[R, A], f Kleisli[R, A, B]) Reader[R, A] {
-	return chain.MonadChainFirst(
-		MonadChain,
-		MonadMap,
-		ma,
-		f,
-	)
-}
-
-// ChainFirst creates an operator that sequences two Readers but returns the first's result.
-// This is the curried version where the Kleisli function is provided first,
-// returning a function that can be applied to any Reader.
-//
-// The first Reader is evaluated, then its result is passed to the Kleisli function
-// to produce a second Reader. The second Reader is evaluated for its effects,
-// but its result is discarded. The original result from the first Reader is returned.
-//
-// This is useful in functional pipelines when you want to perform side effects
-// while preserving the original value.
-//
-// Type Parameters:
-//   - R: The environment type
-//   - A: The result type of the first Reader (will be returned)
-//   - B: The result type of the second Reader (will be discarded)
-//
-// Parameters:
-//   - f: A Kleisli function that creates a second Reader from the first's result
-//
-// Returns:
-//   - An Operator that takes a Reader[R, A] and returns Reader[R, A]
-//
-// Example:
-//
-//	type Config struct { Debug bool }
-//	debugLog := func(val int) reader.Reader[Config, string] {
-//	    return func(c Config) string {
-//	        if c.Debug {
-//	            return fmt.Sprintf("Debug: %d", val)
-//	        }
-//	        return ""
-//	    }
-//	}
-//	// Create an operator that logs but preserves the value
-//	withLogging := reader.ChainFirst[Config, int, string](debugLog)
-//
-//	getValue := func(c Config) int { return 42 }
-//	pipeline := withLogging(getValue)
-//	result := pipeline(Config{Debug: true}) // 42 (with debug logging)
-//
-// Example - In a functional pipeline:
-//
-//	type Env struct { TraceEnabled bool }
-//	trace := func(s string) reader.Reader[Env, unit] {
-//	    return func(e Env) unit {
-//	        if e.TraceEnabled {
-//	            fmt.Println("Trace:", s)
-//	        }
-//	        return unit{}
-//	    }
-//	}
-//
-//	processData := reader.Asks(func(e Env) string { return "processed" })
-//	pipeline := F.Pipe1(
-//	    processData,
-//	    reader.ChainFirst[Env, string, unit](trace),
-//	)
-//	data := pipeline(Env{TraceEnabled: true}) // "processed" (with trace)
-func ChainFirst[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, A] {
-	return chain.ChainFirst(
-		Chain,
-		Map,
-		f,
-	)
+	return Of[Reader[R, A]](b)
 }
 
 // Flatten removes one level of Reader nesting.

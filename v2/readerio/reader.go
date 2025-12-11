@@ -172,26 +172,36 @@ func MonadMap[R, A, B any](fa ReaderIO[R, A], f func(A) B) ReaderIO[R, B] {
 	return readert.MonadMap[ReaderIO[R, A], ReaderIO[R, B]](io.MonadMap[A, B], fa, f)
 }
 
-// MonadMapTo replaces the value inside a ReaderIO with a constant value.
-// This is useful when you want to discard the result of a computation but keep its effects.
+// MonadMapTo executes a ReaderIO computation, discards its result, and returns a constant value.
+// This is the monadic version that takes both the ReaderIO and the constant value as parameters.
+//
+// IMPORTANT: ReaderIO represents a side-effectful computation (IO effects). For this reason,
+// MonadMapTo WILL execute the original ReaderIO to allow any side effects to occur (such as
+// logging, file I/O, network calls, etc.), then discard the result and return the constant value.
+// The side effects are preserved even though the result value is discarded.
 //
 // Type Parameters:
 //   - R: Reader environment type
-//   - A: Input value type (discarded)
-//   - B: Output value type
+//   - A: Input value type (result will be discarded after execution)
+//   - B: Output value type (constant to return)
 //
 // Parameters:
-//   - fa: The ReaderIO whose value will be replaced
-//   - b: The constant value to use
+//   - fa: The ReaderIO to execute (side effects will occur, result discarded)
+//   - b: The constant value to return after executing fa
 //
 // Returns:
-//   - A new ReaderIO with the constant value
+//   - A new ReaderIO that executes fa for its side effects, then returns b
 //
 // Example:
 //
-//	rio := readerio.Of[Config](42)
-//	replaced := readerio.MonadMapTo(rio, "constant")
-//	result := replaced(config)() // Returns "constant"
+//	logAndCompute := func(r Config) io.IO[int] {
+//	    return io.Of(func() int {
+//	        fmt.Println("Computing...") // Side effect
+//	        return 42
+//	    })
+//	}
+//	replaced := readerio.MonadMapTo(logAndCompute, "done")
+//	result := replaced(config)() // Prints "Computing...", returns "done"
 func MonadMapTo[R, A, B any](fa ReaderIO[R, A], b B) ReaderIO[R, B] {
 	return MonadMap(fa, function.Constant1[A](b))
 }
@@ -220,26 +230,37 @@ func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
 	return readert.Map[ReaderIO[R, A], ReaderIO[R, B]](io.Map[A, B], f)
 }
 
-// MapTo creates a function that replaces a ReaderIO value with a constant.
-// This is the curried version of [MonadMapTo], suitable for use in pipelines.
+// MapTo creates an operator that executes a ReaderIO computation, discards its result,
+// and returns a constant value. This is the curried version of [MonadMapTo], suitable for use in pipelines.
+//
+// IMPORTANT: ReaderIO represents a side-effectful computation (IO effects). For this reason,
+// MapTo WILL execute the input ReaderIO to allow any side effects to occur (such as logging,
+// file I/O, network calls, etc.), then discard the result and return the constant value.
+// The side effects are preserved even though the result value is discarded.
 //
 // Type Parameters:
 //   - R: Reader environment type
-//   - A: Input value type (discarded)
-//   - B: Output value type
+//   - A: Input value type (result will be discarded after execution)
+//   - B: Output value type (constant to return)
 //
 // Parameters:
-//   - b: The constant value to use
+//   - b: The constant value to return after executing the ReaderIO
 //
 // Returns:
-//   - An Operator that replaces ReaderIO values with the constant
+//   - An Operator that executes a ReaderIO for its side effects, then returns b
 //
 // Example:
 //
+//	logStep := func(r Config) io.IO[int] {
+//	    return io.Of(func() int {
+//	        fmt.Println("Step executed") // Side effect
+//	        return 42
+//	    })
+//	}
 //	result := F.Pipe1(
-//	    readerio.Of[Config](42),
-//	    readerio.MapTo[Config, int]("constant"),
-//	)(config)() // Returns "constant"
+//	    logStep,
+//	    readerio.MapTo[Config, int]("complete"),
+//	)(config)() // Prints "Step executed", returns "complete"
 func MapTo[R, A, B any](b B) Operator[R, A, B] {
 	return Map[R](function.Constant1[A](b))
 }
