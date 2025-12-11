@@ -19,6 +19,21 @@
 //   - Left represents an error or failure case (type E)
 //   - Right represents a success case (type A)
 //
+// # Fantasy Land Specification
+//
+// This implementation corresponds to the Fantasy Land Either type:
+// https://github.com/fantasyland/fantasy-land#either
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Bifunctor: https://github.com/fantasyland/fantasy-land#bifunctor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//   - Alt: https://github.com/fantasyland/fantasy-land#alt
+//   - Foldable: https://github.com/fantasyland/fantasy-land#foldable
+//
 // # Core Concepts
 //
 // The Either type is a discriminated union that can hold either a Left value (typically an error)

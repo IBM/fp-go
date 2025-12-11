@@ -31,13 +31,6 @@ import (
 	"github.com/IBM/fp-go/v2/result"
 )
 
-var (
-	// slogError creates a slog.Attr with key "error" for logging error values
-	slogError = F.Bind1st(slog.Any, "error")
-	// slogValue creates a slog.Attr with key "value" for logging success values
-	slogValue = F.Bind1st(slog.Any, "value")
-)
-
 // curriedLog creates a curried logging function that takes an slog.Attr and a context,
 // then logs the attribute with the specified log level and message.
 //
@@ -117,23 +110,14 @@ func curriedLog(
 func SLogWithCallback[A any](
 	logLevel slog.Level,
 	cb func(context.Context) *slog.Logger,
-	message string) reader.Kleisli[context.Context, Result[A], Result[A]] {
+	message string) Kleisli[Result[A], A] {
 
 	return F.Pipe1(
 		F.Flow2(
-			result.Fold(
-				F.Flow2(
-					F.ToAny[error],
-					slogError,
-				),
-				F.Flow2(
-					F.ToAny[A],
-					slogValue,
-				),
-			),
+			result.ToSLogAttr[A](),
 			curriedLog(logLevel, cb, message),
 		),
-		reader.Chain(reader.Sequence(F.Flow2(
+		reader.Chain(reader.Sequence(F.Flow2( // this flow is basically the `MapTo` function with side effects
 			reader.Of[struct{}, Result[A]],
 			reader.Map[context.Context, struct{}, Result[A]],
 		))),
@@ -221,7 +205,7 @@ func SLogWithCallback[A any](
 // which falls back to the global logger if no logger is found in the context.
 //
 //go:inline
-func SLog[A any](message string) reader.Kleisli[context.Context, Result[A], Result[A]] {
+func SLog[A any](message string) Kleisli[Result[A], A] {
 	return SLogWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, message)
 }
 

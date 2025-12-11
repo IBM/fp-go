@@ -16,6 +16,7 @@
 package iooption
 
 import (
+	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
@@ -35,4 +36,5 @@ type (
 
 	Kleisli[A, B any]  = reader.Reader[A, IOOption[B]]
 	Operator[A, B any] = Kleisli[IOOption[A], B]
+	Consumer[A any]    = consumer.Consumer[A]
 )

@@ -24,10 +24,11 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/context/readerio"
-	"github.com/IBM/fp-go/v2/function"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/logging"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -55,14 +56,14 @@ var (
 	// loggingCounter is an atomic counter that generates unique LoggingIDs
 	loggingCounter atomic.Uint64
 
-	loggingContextValue = function.Bind2nd(context.Context.Value, any(loggingContextKey))
+	loggingContextValue = F.Bind2nd(context.Context.Value, any(loggingContextKey))
 
-	withLoggingContextValue = function.Bind2of3(context.WithValue)(any(loggingContextKey))
+	withLoggingContextValue = F.Bind2of3(context.WithValue)(any(loggingContextKey))
 
 	// getLoggingContext retrieves the logging information (start time and ID) from the context.
 	// It returns a Pair containing the start time and the logging ID.
 	// This function assumes the context contains logging information; it will panic if not present.
-	getLoggingContext = function.Flow3(
+	getLoggingContext = F.Flow3(
 		loggingContextValue,
 		option.ToType[loggingContext],
 		option.GetOrElse(getDefaultLoggingContext),
@@ -86,7 +87,7 @@ func getDefaultLoggingContext() loggingContext {
 // Returns:
 //   - An endomorphism that adds the logging context to a context.Context
 func withLoggingContext(lctx loggingContext) Endomorphism[context.Context] {
-	return function.Bind2nd(withLoggingContextValue, any(lctx))
+	return F.Bind2nd(withLoggingContextValue, any(lctx))
 }
 
 // LogEntryExitF creates a customizable operator that wraps a ReaderIOResult computation with entry/exit callbacks.
@@ -134,7 +135,7 @@ func withLoggingContext(lctx loggingContext) Endomorphism[context.Context] {
 //	        return func(ctx context.Context) IO[any] {
 //	            return func() any {
 //	                reqID := ctx.Value("requestID").(RequestID)
-//	                return function.Pipe1(
+//	                return F.Pipe1(
 //	                    res,
 //	                    result.Fold(
 //	                        func(err error) any {
@@ -171,7 +172,7 @@ func withLoggingContext(lctx loggingContext) Endomorphism[context.Context] {
 //	                startTime := ctx.Value("startTime").(time.Time)
 //	                duration := time.Since(startTime).Seconds()
 //
-//	                return function.Pipe1(
+//	                return F.Pipe1(
 //	                    res,
 //	                    result.Fold(
 //	                        func(err error) any {
@@ -204,12 +205,12 @@ func LogEntryExitF[A, ANY any](
 	onEntry ReaderIO[context.Context],
 	onExit readerio.Kleisli[Result[A], ANY],
 ) Operator[A, A] {
-	bracket := function.Bind13of3(readerio.Bracket[context.Context, Result[A], ANY])(onEntry, func(newCtx context.Context, res Result[A]) ReaderIO[ANY] {
+	bracket := F.Bind13of3(readerio.Bracket[context.Context, Result[A], ANY])(onEntry, func(newCtx context.Context, res Result[A]) ReaderIO[ANY] {
 		return readerio.FromIO(onExit(res)(newCtx)) // Get the exit callback for this result
 	})
 
 	return func(src ReaderIOResult[A]) ReaderIOResult[A] {
-		return bracket(function.Flow2(
+		return bracket(F.Flow2(
 			src,
 			FromIOResult,
 		))
@@ -308,7 +309,7 @@ func onExitAny(
 						return nil
 					}
 
-					return function.Pipe1(
+					return F.Pipe1(
 						res,
 						result.Fold(onError, onSuccess),
 					)
@@ -375,7 +376,7 @@ func LogEntryExitWithCallback[A any](
 
 	return LogEntryExitF(
 		onEntry(logLevel, cb, nameAttr),
-		function.Flow2(
+		F.Flow2(
 			result.MapTo[A, any](nil),
 			onExitAny(logLevel, nameAttr),
 		),
@@ -495,6 +496,19 @@ func LogEntryExit[A any](name string) Operator[A, A] {
 	return LogEntryExitWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, name)
 }
 
+func curriedLog(
+	logLevel slog.Level,
+	cb func(context.Context) *slog.Logger,
+	message string) func(slog.Attr) func(context.Context) func() struct{} {
+	return F.Curry2(func(a slog.Attr, ctx context.Context) func() struct{} {
+		logger := cb(ctx)
+		return func() struct{} {
+			logger.LogAttrs(ctx, logLevel, message, a)
+			return struct{}{}
+		}
+	})
+}
+
 // SLogWithCallback creates a Kleisli arrow that logs a Result value (success or error) with a custom logger and log level.
 //
 // This function logs both successful values and errors, making it useful for debugging and monitoring
@@ -558,26 +572,18 @@ func LogEntryExit[A any](name string) Operator[A, A] {
 func SLogWithCallback[A any](
 	logLevel slog.Level,
 	cb func(context.Context) *slog.Logger,
-	message string) readerio.Kleisli[Result[A], Result[A]] {
-	return func(ma Result[A]) ReaderIOResult[A] {
-		return func(ctx context.Context) IOResult[A] {
-			// logger
-			logger := cb(ctx)
-			return func() Result[A] {
-				return result.MonadFold(
-					ma,
-					func(e error) Result[A] {
-						logger.LogAttrs(ctx, logLevel, message, slog.Any("error", e))
-						return ma
-					},
-					func(a A) Result[A] {
-						logger.LogAttrs(ctx, logLevel, message, slog.Any("value", a))
-						return ma
-					},
-				)
-			}
-		}
-	}
+	message string) Kleisli[Result[A], A] {
+
+	return F.Pipe1(
+		F.Flow2(
+			// create the attribute to log depending on the condition
+			result.ToSLogAttr[A](),
+			// create an `IO` that logs the attribute
+			curriedLog(logLevel, cb, message),
+		),
+		// preserve the original context
+		reader.Chain(reader.Sequence(readerio.MapTo[struct{}, Result[A]])),
+	)
 }
 
 // SLog creates a Kleisli arrow that logs a Result value (success or error) with a message.
@@ -637,7 +643,7 @@ func SLogWithCallback[A any](
 // For logging only successful values, use TapSLog instead.
 //
 //go:inline
-func SLog[A any](message string) readerio.Kleisli[Result[A], Result[A]] {
+func SLog[A any](message string) Kleisli[Result[A], A] {
 	return SLogWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, message)
 }
 

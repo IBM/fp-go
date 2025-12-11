@@ -16,6 +16,7 @@
 package readerioeither
 
 import (
+	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
@@ -92,4 +93,6 @@ type (
 
 	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]
 	Option[A any]          = option.Option[A]
+
+	Consumer[A any] = consumer.Consumer[A]
 )

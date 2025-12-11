@@ -16,6 +16,7 @@
 package readerioresult
 
 import (
+	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
@@ -103,4 +104,6 @@ type (
 	// Example:
 	//   var doubleOp Operator[Config, error, int, int] = Map(N.Mul(2))
 	Operator[R, A, B any] = Kleisli[R, ReaderIOResult[R, A], B]
+
+	Consumer[A any] = consumer.Consumer[A]
 )

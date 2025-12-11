@@ -1,6 +1,7 @@
 package ioresult
 
 import (
+	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
@@ -26,4 +27,6 @@ type (
 
 	Kleisli[A, B any]  = reader.Reader[A, IOResult[B]]
 	Operator[A, B any] = Kleisli[IOResult[A], B]
+
+	Consumer[A any] = consumer.Consumer[A]
 )

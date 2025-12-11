@@ -279,6 +279,16 @@ func ChainTo[A, E, B any](fb IOEither[E, B]) Operator[E, A, B] {
 	return Chain(function.Constant1[A](fb))
 }
 
+//go:inline
+func MonadChainToIO[E, A, B any](fa IOEither[E, A], fb IO[B]) IOEither[E, B] {
+	return MonadChainTo(fa, FromIO[E](fb))
+}
+
+//go:inline
+func ChainToIO[E, A, B any](fb IO[B]) Operator[E, A, B] {
+	return ChainTo[A](FromIO[E](fb))
+}
+
 // MonadChainFirst runs the [IOEither] monad returned by the function but returns the result of the original monad
 func MonadChainFirst[E, A, B any](ma IOEither[E, A], f Kleisli[E, A, B]) IOEither[E, A] {
 	return chain.MonadChainFirst(

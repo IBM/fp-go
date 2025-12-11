@@ -13,6 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package ioeither provides the IOEither monad, combining IO effects with Either for error handling.
+//
+// # Fantasy Land Specification
+//
+// This is a monad transformer combining:
+//   - IO monad: https://github.com/fantasyland/fantasy-land
+//   - Either monad: https://github.com/fantasyland/fantasy-land#either
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Bifunctor: https://github.com/fantasyland/fantasy-land#bifunctor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//   - Alt: https://github.com/fantasyland/fantasy-land#alt
+//
+// IOEither[E, A] represents a computation that:
+//   - Performs side effects (IO)
+//   - Can fail with an error of type E or succeed with a value of type A (Either)
+//
+// This is defined as: IO[Either[E, A]] or func() Either[E, A]
 package ioeither
 
 //go:generate go run .. ioeither --count 10 --filename gen.go

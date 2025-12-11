@@ -19,6 +19,18 @@
 // without explicitly threading it through every function call. It represents a computation that
 // depends on some external context of type R and produces a value of type A.
 //
+// # Fantasy Land Specification
+//
+// This implementation corresponds to the Fantasy Land Reader type:
+// https://github.com/fantasyland/fantasy-land
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//
 // # Core Concept
 //
 // A Reader[R, A] is simply a function from R to A: func(R) A

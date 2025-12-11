@@ -18,6 +18,7 @@ package readerioresult
 import (
 	"context"
 
+	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/context/ioresult"
 	"github.com/IBM/fp-go/v2/context/readerresult"
 	"github.com/IBM/fp-go/v2/either"
@@ -129,4 +130,6 @@ type (
 	ReaderOption[R, A any]    = readeroption.ReaderOption[R, A]
 
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	Consumer[A any] = consumer.Consumer[A]
 )

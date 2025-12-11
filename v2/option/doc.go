@@ -19,6 +19,22 @@
 // or None, and does not contain a value. This is a type-safe alternative to using nil
 // pointers or special sentinel values to represent the absence of a value.
 //
+// # Fantasy Land Specification
+//
+// This implementation corresponds to the Fantasy Land Maybe type:
+// https://github.com/fantasyland/fantasy-land#maybe
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//   - Alt: https://github.com/fantasyland/fantasy-land#alt
+//   - Plus: https://github.com/fantasyland/fantasy-land#plus
+//   - Alternative: https://github.com/fantasyland/fantasy-land#alternative
+//   - Foldable: https://github.com/fantasyland/fantasy-land#foldable
+//
 // # Basic Usage
 //
 // Create an Option with Some or None:

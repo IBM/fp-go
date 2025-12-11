@@ -15,6 +15,20 @@
 
 // Package readeroption provides a monad transformer that combines the Reader and Option monads.
 //
+// # Fantasy Land Specification
+//
+// This is a monad transformer combining:
+//   - Reader monad: https://github.com/fantasyland/fantasy-land
+//   - Maybe (Option) monad: https://github.com/fantasyland/fantasy-land#maybe
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//   - Alt: https://github.com/fantasyland/fantasy-land#alt
+//
 // ReaderOption[R, A] represents a computation that:
 //   - Depends on a shared environment of type R (Reader monad)
 //   - May fail to produce a value of type A (Option monad)

@@ -16,6 +16,18 @@
 /*
 Package identity implements the Identity monad, the simplest possible monad.
 
+# Fantasy Land Specification
+
+This implementation corresponds to the Fantasy Land Identity type:
+https://github.com/fantasyland/fantasy-land
+
+Implemented Fantasy Land algebras:
+  - Functor: https://github.com/fantasyland/fantasy-land#functor
+  - Apply: https://github.com/fantasyland/fantasy-land#apply
+  - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+  - Chain: https://github.com/fantasyland/fantasy-land#chain
+  - Monad: https://github.com/fantasyland/fantasy-land#monad
+
 # Overview
 
 The Identity monad is a trivial monad that simply wraps a value without adding

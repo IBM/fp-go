@@ -19,6 +19,18 @@
 // Unlike functions that execute immediately, IO values describe computations that will be
 // executed when explicitly invoked.
 //
+// # Fantasy Land Specification
+//
+// This implementation corresponds to the Fantasy Land IO type:
+// https://github.com/fantasyland/fantasy-land
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//
 // # Core Concepts
 //
 // The IO type is defined as a function that takes no arguments and returns a value:

@@ -16,6 +16,21 @@
 // Package statereaderioeither provides a functional programming abstraction that combines
 // four powerful concepts: State, Reader, IO, and Either monads.
 //
+// # Fantasy Land Specification
+//
+// This is a monad transformer combining:
+//   - State monad: https://github.com/fantasyland/fantasy-land
+//   - Reader monad: https://github.com/fantasyland/fantasy-land
+//   - IO monad: https://github.com/fantasyland/fantasy-land
+//   - Either monad: https://github.com/fantasyland/fantasy-land#either
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//
 // # StateReaderIOEither
 //
 // StateReaderIOEither[S, R, E, A] represents a computation that:

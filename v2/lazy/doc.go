@@ -17,6 +17,18 @@
 // without side effects. It represents deferred computations that are evaluated only when
 // their result is needed.
 //
+// # Fantasy Land Specification
+//
+// This implementation corresponds to the Fantasy Land IO type (for pure computations):
+// https://github.com/fantasyland/fantasy-land
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//
 // # Overview
 //
 // A Lazy[A] is simply a function that takes no arguments and returns a value of type A:

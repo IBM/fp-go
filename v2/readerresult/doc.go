@@ -15,6 +15,21 @@
 
 // Package readerresult provides a ReaderResult monad that combines the Reader and Result monads.
 //
+// # Fantasy Land Specification
+//
+// This is a monad transformer combining:
+//   - Reader monad: https://github.com/fantasyland/fantasy-land
+//   - Either monad: https://github.com/fantasyland/fantasy-land#either
+//
+// Implemented Fantasy Land algebras:
+//   - Functor: https://github.com/fantasyland/fantasy-land#functor
+//   - Bifunctor: https://github.com/fantasyland/fantasy-land#bifunctor
+//   - Apply: https://github.com/fantasyland/fantasy-land#apply
+//   - Applicative: https://github.com/fantasyland/fantasy-land#applicative
+//   - Chain: https://github.com/fantasyland/fantasy-land#chain
+//   - Monad: https://github.com/fantasyland/fantasy-land#monad
+//   - Alt: https://github.com/fantasyland/fantasy-land#alt
+//
 // A ReaderResult[R, A] represents a computation that:
 //   - Depends on an environment of type R (Reader aspect)
 //   - May fail with an error (Result aspect, which is Either[error, A])

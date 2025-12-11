@@ -431,6 +431,8 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, Reader[E, A], B
 //	simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
 //	r := reader.Local(simplify)(getHost)
 //	result := r(DetailedConfig{Host: "localhost", Port: 8080}) // "localhost"
+//
+//go:inline
 func Local[A, R2, R1 any](f func(R2) R1) Kleisli[R2, Reader[R1, A], A] {
 	return Compose[A](f)
 }

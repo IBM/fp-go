@@ -16,6 +16,7 @@
 package readerio
 
 import (
+	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -46,4 +47,6 @@ type (
 	// for building pipelines of ReaderIO operations. This is commonly used for
 	// middleware-style transformations and operation composition.
 	Operator[R, A, B any] = Kleisli[R, ReaderIO[R, A], B]
+
+	Consumer[A any] = consumer.Consumer[A]
 )
