@@ -17,6 +17,7 @@ package readerioresult
 
 import (
 	"github.com/IBM/fp-go/v2/consumer"
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
@@ -31,9 +32,7 @@ import (
 )
 
 type (
-	// Either represents a value of one of two possible types (a disjoint union).
-	// An instance of Either is either Left (representing an error) or Right (representing a success).
-	Either[E, A any] = Result[A]
+	Either[E, A any] = either.Either[E, A]
 
 	Result[A any] = result.Result[A]
 

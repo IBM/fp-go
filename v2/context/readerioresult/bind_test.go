@@ -203,9 +203,7 @@ func TestApS_EmptyState(t *testing.T) {
 	result := res(t.Context())()
 	assert.True(t, E.IsRight(result))
 	emptyOpt := E.ToOption(result)
-	assert.True(t, O.IsSome(emptyOpt))
-	empty, _ := O.Unwrap(emptyOpt)
-	assert.Equal(t, Empty{}, empty)
+	assert.Equal(t, O.Of(Empty{}), emptyOpt)
 }
 
 func TestApS_ChainedWithBind(t *testing.T) {

@@ -77,6 +77,7 @@
 package readeroption
 
 import (
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -91,6 +92,8 @@ type (
 
 	// Option represents an optional value
 	Option[A any] = option.Option[A]
+
+	Either[E, A any] = either.Either[E, A]
 
 	// Reader represents a computation that depends on an environment R and produces a value A
 	Reader[R, A any] = reader.Reader[R, A]

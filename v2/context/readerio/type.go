@@ -19,6 +19,7 @@ import (
 	"context"
 
 	"github.com/IBM/fp-go/v2/consumer"
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/reader"
@@ -69,4 +70,6 @@ type (
 	Operator[A, B any] = Kleisli[ReaderIO[A], B]
 
 	Consumer[A any] = consumer.Consumer[A]
+
+	Either[E, A any] = either.Either[E, A]
 )

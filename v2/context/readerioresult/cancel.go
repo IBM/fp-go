@@ -34,8 +34,8 @@ import (
 // Returns a ReaderIOResult that checks for cancellation before executing.
 func WithContext[A any](ma ReaderIOResult[A]) ReaderIOResult[A] {
 	return func(ctx context.Context) IOEither[A] {
-		if err := context.Cause(ctx); err != nil {
-			return ioeither.Left[A](err)
+		if ctx.Err() != nil {
+			return ioeither.Left[A](context.Cause(ctx))
 		}
 		return CIOE.WithContext(ctx, ma(ctx))
 	}

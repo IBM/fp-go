@@ -22,7 +22,6 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
-	IO "github.com/IBM/fp-go/v2/io"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -119,11 +118,4 @@ func TestStringer(t *testing.T) {
 
 	var s fmt.Stringer = &e
 	assert.Equal(t, exp, s.String())
-}
-
-func TestFromIO(t *testing.T) {
-	f := IO.Of("abc")
-	e := FromIO[error](f)
-
-	assert.Equal(t, Right[error]("abc"), e)
 }

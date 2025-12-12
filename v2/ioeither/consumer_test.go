@@ -73,9 +73,7 @@ func TestChainConsumer(t *testing.T) {
 
 		// Execute and verify return type
 		output := result()
-		assert.True(t, E.IsRight(output))
-		val, _ := E.Unwrap(output)
-		assert.Equal(t, struct{}{}, val)
+		assert.Equal(t, E.Of[error](struct{}{}), output)
 	})
 
 	t.Run("returns Left unchanged for Left input", func(t *testing.T) {
@@ -205,7 +203,7 @@ func TestChainConsumer(t *testing.T) {
 			Right[error]("start"),
 			ChainConsumer[error](logger),
 			Map[error](func(struct{}) string { return "middle" }),
-			Chain[error](func(s string) IOEither[error, string] {
+			Chain(func(s string) IOEither[error, string] {
 				logger(s)
 				return Right[error]("end")
 			}),
@@ -368,7 +366,7 @@ func TestChainConsumer(t *testing.T) {
 		result := F.Pipe2(
 			Right[error]("test"),
 			ChainConsumer[error](logger),
-			ChainFirst[error](func(_ struct{}) IOEither[error, int] {
+			ChainFirst(func(_ struct{}) IOEither[error, int] {
 				return Right[error](42)
 			}),
 		)

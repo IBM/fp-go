@@ -567,15 +567,13 @@ func TestMemoize(t *testing.T) {
 	res1 := computation(context.Background())()
 	assert.True(t, E.IsRight(res1))
 	val1 := E.ToOption(res1)
-	v1, _ := O.Unwrap(val1)
-	assert.Equal(t, 1, v1)
+	assert.Equal(t, O.Of(1), val1)
 
 	// Second execution should return cached value
 	res2 := computation(context.Background())()
 	assert.True(t, E.IsRight(res2))
 	val2 := E.ToOption(res2)
-	v2, _ := O.Unwrap(val2)
-	assert.Equal(t, 1, v2)
+	assert.Equal(t, O.Of(1), val2)
 
 	// Counter should only be incremented once
 	assert.Equal(t, 1, counter)
@@ -739,9 +737,7 @@ func TestTraverseArray(t *testing.T) {
 		res := result(context.Background())()
 		assert.True(t, E.IsRight(res))
 		arrOpt := E.ToOption(res)
-		assert.True(t, O.IsSome(arrOpt))
-		resultArr, _ := O.Unwrap(arrOpt)
-		assert.Equal(t, []int{2, 4, 6}, resultArr)
+		assert.Equal(t, O.Of([]int{2, 4, 6}), arrOpt)
 	})
 
 	t.Run("TraverseArray with error", func(t *testing.T) {
@@ -765,9 +761,7 @@ func TestSequenceArray(t *testing.T) {
 	res := result(context.Background())()
 	assert.True(t, E.IsRight(res))
 	arrOpt := E.ToOption(res)
-	assert.True(t, O.IsSome(arrOpt))
-	resultArr, _ := O.Unwrap(arrOpt)
-	assert.Equal(t, []int{1, 2, 3}, resultArr)
+	assert.Equal(t, O.Of([]int{1, 2, 3}), arrOpt)
 }
 
 func TestTraverseRecord(t *testing.T) {

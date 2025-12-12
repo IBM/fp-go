@@ -17,6 +17,7 @@ package readerio
 
 import (
 	"github.com/IBM/fp-go/v2/consumer"
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -25,6 +26,8 @@ type (
 	// IO represents a lazy computation that performs side effects and produces a value of type A.
 	// It's an alias for io.IO[A] and encapsulates effectful operations.
 	IO[A any] = io.IO[A]
+
+	Either[E, A any] = either.Either[E, A]
 
 	// Reader represents a computation that depends on an environment of type R and produces a value of type A.
 	// It's an alias for reader.Reader[R, A] and is used for dependency injection patterns.

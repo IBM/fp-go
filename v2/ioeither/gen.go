@@ -879,7 +879,7 @@ func Eitherize7[F ~func(T1, T2, T3, T4, T5, T6, T7) (R, error), T1, T2, T3, T4, 
 
 // Uneitherize7 converts a function with 8 parameters returning a tuple into a function with 7 parameters returning a [IOEither[error, R]]
 func Uneitherize7[F ~func(T1, T2, T3, T4, T5, T6, T7) IOEither[error, R], T1, T2, T3, T4, T5, T6, T7, R any](f F) func(T1, T2, T3, T4, T5, T6, T7) (R, error) {
-	return G.Uneitherize7[IOEither[error, R]](f)
+	return G.Uneitherize7(f)
 }
 
 // SequenceT7 converts 7 [IOEither[E, T]] into a [IOEither[E, tuple.Tuple7[T1, T2, T3, T4, T5, T6, T7]]]
