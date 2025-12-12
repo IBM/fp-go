@@ -25,10 +25,7 @@ func double(x int) int {
 
 **Point-free style (without points):**
 ```go
-var double = F.Flow2(
-    N.Mul(2),
-    identity,
-)
+var double = N.Mul(2)
 ```
 
 The key benefit is that point-free style emphasizes **what** the function does (its transformation) rather than **how** it manipulates data.

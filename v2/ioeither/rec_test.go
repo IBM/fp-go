@@ -283,5 +283,3 @@ func TestTailRecFindInList(t *testing.T) {
 		assert.True(t, E.IsLeft(result))
 	})
 }
-
-// Made with Bob

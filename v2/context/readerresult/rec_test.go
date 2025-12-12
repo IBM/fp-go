@@ -495,5 +495,3 @@ func TestTailRecComplexState(t *testing.T) {
 
 	assert.Equal(t, R.Of("sum=15, product=120"), result)
 }
-
-// Made with Bob

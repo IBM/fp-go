@@ -453,5 +453,3 @@ func TestTailRecDifferentEnvironments(t *testing.T) {
 	assert.Equal(t, 0, result1)
 	assert.Equal(t, 0, result2)
 }
-
-// Made with Bob

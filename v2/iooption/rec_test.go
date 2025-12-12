@@ -332,5 +332,3 @@ func TestTailRecCollatzConjecture(t *testing.T) {
 		assert.Equal(t, O.None[int](), result)
 	})
 }
-
-// Made with Bob

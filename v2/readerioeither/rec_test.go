@@ -610,5 +610,3 @@ func TestTailRecDifferentEnvironments(t *testing.T) {
 	assert.Equal(t, E.Of[string](0), result1) // 0 * 2 = 0
 	assert.Equal(t, E.Of[string](0), result2) // 0 * 5 = 0
 }
-
-// Made with Bob

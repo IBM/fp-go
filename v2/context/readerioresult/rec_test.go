@@ -430,5 +430,3 @@ func TestTailRec_ContextWithValue(t *testing.T) {
 
 	assert.Equal(t, E.Of[error]("Done!"), result)
 }
-
-// Made with Bob
