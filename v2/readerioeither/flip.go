@@ -39,10 +39,10 @@ import (
 //   - ma: A ReaderIOEither that takes R2 and may produce a ReaderIOEither[R1, E, A]
 //
 // Returns:
-//   - A reader.Kleisli[R2, R1, IOEither[E, A]], which is func(R2) func(R1) IOEither[E, A]
+//   - A Kleisli[R2, E, R1, A], which is func(R2) func(R1) IOEither[E, A]
 //
 // The function preserves error handling and IO effects at both levels.
-func Sequence[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIOEither[R1, E, A]]) reader.Kleisli[R2, R1, IOEither[E, A]] {
+func Sequence[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIOEither[R1, E, A]]) Kleisli[R2, E, R1, A] {
 	return readert.Sequence(
 		ioeither.Chain,
 		ma,
@@ -64,8 +64,8 @@ func Sequence[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIOEither[R1, E, A
 //   - ma: A ReaderIOEither that takes R2 and may produce a Reader[R1, A]
 //
 // Returns:
-//   - A reader.Kleisli[R2, R1, IOEither[E, A]], which is func(R2) func(R1) IOEither[E, A]
-func SequenceReader[R1, R2, E, A any](ma ReaderIOEither[R2, E, Reader[R1, A]]) reader.Kleisli[R2, R1, IOEither[E, A]] {
+//   - A Kleisli[R2, E, R1, A], which is func(R2) func(R1) IOEither[E, A]
+func SequenceReader[R1, R2, E, A any](ma ReaderIOEither[R2, E, Reader[R1, A]]) Kleisli[R2, E, R1, A] {
 	return readert.SequenceReader(
 		ioeither.Map,
 		ma,
@@ -87,8 +87,8 @@ func SequenceReader[R1, R2, E, A any](ma ReaderIOEither[R2, E, Reader[R1, A]]) r
 //   - ma: A ReaderIOEither that takes R2 and may produce a ReaderIO[R1, A]
 //
 // Returns:
-//   - A reader.Kleisli[R2, R1, IOEither[E, A]], which is func(R2) func(R1) IOEither[E, A]
-func SequenceReaderIO[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIO[R1, A]]) reader.Kleisli[R2, R1, IOEither[E, A]] {
+//   - A Kleisli[R2, E, R1, A], which is func(R2) func(R1) IOEither[E, A]
+func SequenceReaderIO[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIO[R1, A]]) Kleisli[R2, E, R1, A] {
 	return func(r1 R1) ReaderIOEither[R2, E, A] {
 		return func(r2 R2) IOEither[E, A] {
 			return func() Either[E, A] {
@@ -118,8 +118,8 @@ func SequenceReaderIO[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderIO[R1, A]
 //   - ma: A ReaderIOEither that takes R2 and may produce a ReaderEither[R1, E, A]
 //
 // Returns:
-//   - A reader.Kleisli[R2, R1, IOEither[E, A]], which is func(R2) func(R1) IOEither[E, A]
-func SequenceReaderEither[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderEither[R1, E, A]]) reader.Kleisli[R2, R1, IOEither[E, A]] {
+//   - A Kleisli[R2, E, R1, A], which is func(R2) func(R1) IOEither[E, A]
+func SequenceReaderEither[R1, R2, E, A any](ma ReaderIOEither[R2, E, ReaderEither[R1, E, A]]) Kleisli[R2, E, R1, A] {
 	return func(r1 R1) ReaderIOEither[R2, E, A] {
 		return func(r2 R2) IOEither[E, A] {
 			return func() Either[E, A] {

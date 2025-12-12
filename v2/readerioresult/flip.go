@@ -6,27 +6,27 @@ import (
 )
 
 //go:inline
-func Sequence[R1, R2, A any](ma ReaderIOResult[R2, ReaderIOResult[R1, A]]) reader.Kleisli[R2, R1, IOResult[A]] {
+func Sequence[R1, R2, A any](ma ReaderIOResult[R2, ReaderIOResult[R1, A]]) Kleisli[R2, R1, A] {
 	return RIOE.Sequence(ma)
 }
 
 //go:inline
-func SequenceReader[R1, R2, A any](ma ReaderIOResult[R2, Reader[R1, A]]) reader.Kleisli[R2, R1, IOResult[A]] {
+func SequenceReader[R1, R2, A any](ma ReaderIOResult[R2, Reader[R1, A]]) Kleisli[R2, R1, A] {
 	return RIOE.SequenceReader(ma)
 }
 
 //go:inline
-func SequenceReaderIO[R1, R2, A any](ma ReaderIOResult[R2, ReaderIO[R1, A]]) reader.Kleisli[R2, R1, IOResult[A]] {
+func SequenceReaderIO[R1, R2, A any](ma ReaderIOResult[R2, ReaderIO[R1, A]]) Kleisli[R2, R1, A] {
 	return RIOE.SequenceReaderIO(ma)
 }
 
 //go:inline
-func SequenceReaderEither[R1, R2, A any](ma ReaderIOResult[R2, ReaderResult[R1, A]]) reader.Kleisli[R2, R1, IOResult[A]] {
+func SequenceReaderEither[R1, R2, A any](ma ReaderIOResult[R2, ReaderResult[R1, A]]) Kleisli[R2, R1, A] {
 	return RIOE.SequenceReaderEither(ma)
 }
 
 //go:inline
-func SequenceReaderResult[R1, R2, A any](ma ReaderIOResult[R2, ReaderResult[R1, A]]) reader.Kleisli[R2, R1, IOResult[A]] {
+func SequenceReaderResult[R1, R2, A any](ma ReaderIOResult[R2, ReaderResult[R1, A]]) Kleisli[R2, R1, A] {
 	return RIOE.SequenceReaderEither(ma)
 }
 

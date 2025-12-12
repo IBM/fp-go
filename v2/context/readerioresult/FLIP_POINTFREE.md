@@ -8,9 +8,10 @@ This document explains how the `Sequence*` functions in the `context/readeriores
 2. [The Problem: Nested Function Application](#the-problem-nested-function-application)
 3. [The Solution: Sequence Functions](#the-solution-sequence-functions)
 4. [How Sequence Enables Point-Free Style](#how-sequence-enables-point-free-style)
-5. [Practical Benefits](#practical-benefits)
-6. [Examples](#examples)
-7. [Comparison: With and Without Sequence](#comparison-with-and-without-sequence)
+5. [TraverseReader: Introducing Dependencies](#traversereader-introducing-dependencies)
+6. [Practical Benefits](#practical-benefits)
+7. [Examples](#examples)
+8. [Comparison: With and Without Sequence](#comparison-with-and-without-sequence)
 
 ## What is Point-Free Style?
 
@@ -96,7 +97,7 @@ The `Sequence*` functions solve this by "flipping" or "sequencing" the nested st
 ```go
 func SequenceReader[R, A any](
     ma ReaderIOResult[Reader[R, A]]
-) reader.Kleisli[context.Context, R, IOResult[A]]
+) Kleisli[R, A]
 ```
 
 **Type transformation:**
@@ -112,7 +113,7 @@ Now `R` (the Reader's environment) comes **first**, before `context.Context`!
 ```go
 func SequenceReaderIO[R, A any](
     ma ReaderIOResult[ReaderIO[R, A]]
-) reader.Kleisli[context.Context, R, IOResult[A]]
+) Kleisli[R, A]
 ```
 
 **Type transformation:**
@@ -126,7 +127,7 @@ To:   func(R) func(context.Context) func() Either[error, A]
 ```go
 func SequenceReaderResult[R, A any](
     ma ReaderIOResult[ReaderResult[R, A]]
-) reader.Kleisli[context.Context, R, IOResult[A]]
+) Kleisli[R, A]
 ```
 
 **Type transformation:**
@@ -217,6 +218,186 @@ userService := sequenced(ServiceConfig{Name: "User", Version: "2.0"})
 // Reuse across contexts
 authInfo := authService(ctx)()
 userInfo := userService(ctx)()
+```
+
+## TraverseReader: Introducing Dependencies
+
+While `SequenceReader` flips the parameter order of an existing nested structure, `TraverseReader` allows you to **introduce** a new Reader dependency into an existing computation.
+
+### Function Signature
+
+```go
+func TraverseReader[R, A, B any](
+    f reader.Kleisli[R, A, B],
+) func(ReaderIOResult[A]) Kleisli[R, B]
+```
+
+**Type transformation:**
+```
+Input:  ReaderIOResult[A] = func(context.Context) func() Either[error, A]
+With:   reader.Kleisli[R, A, B] = func(A) func(R) B
+Output: Kleisli[R, B] = func(R) func(context.Context) func() Either[error, B]
+```
+
+### What It Does
+
+`TraverseReader` takes:
+1. A Reader-based transformation `f: func(A) func(R) B` that depends on environment `R`
+2. Returns a function that transforms `ReaderIOResult[A]` into `Kleisli[R, B]`
+
+This allows you to:
+- Add environment dependencies to computations that don't have them yet
+- Transform values within a ReaderIOResult using environment-dependent logic
+- Build composable pipelines where transformations depend on configuration
+
+### Key Difference from SequenceReader
+
+- **SequenceReader**: Works with computations that **already contain** a Reader (`ReaderIOResult[Reader[R, A]]`)
+  - Flips the order so `R` comes first
+  - No transformation of the value itself
+
+- **TraverseReader**: Works with computations that **don't have** a Reader yet (`ReaderIOResult[A]`)
+  - Introduces a new Reader dependency via a transformation function
+  - Transforms `A` to `B` using environment `R`
+
+### Example: Adding Configuration to a Computation
+
+```go
+type Config struct {
+    Multiplier int
+    Prefix     string
+}
+
+// Original computation that just produces an int
+getValue := func(ctx context.Context) func() Either[error, int] {
+    return func() Either[error, int] {
+        return Right[error](10)
+    }
+}
+
+// A Reader-based transformation that depends on Config
+formatWithConfig := func(n int) func(Config) string {
+    return func(cfg Config) string {
+        result := n * cfg.Multiplier
+        return fmt.Sprintf("%s: %d", cfg.Prefix, result)
+    }
+}
+
+// Use TraverseReader to introduce Config dependency
+traversed := TraverseReader[Config, int, string](formatWithConfig)
+withConfig := traversed(getValue)
+
+// Now we can provide Config to get the final result
+cfg := Config{Multiplier: 5, Prefix: "Result"}
+ctx := context.Background()
+result := withConfig(cfg)(ctx)() // Returns Right("Result: 50")
+```
+
+### Point-Free Composition with TraverseReader
+
+```go
+// Build a pipeline that introduces dependencies at each stage
+var pipeline = F.Flow4(
+    loadValue,                              // ReaderIOResult[int]
+    TraverseReader(multiplyByConfig),       // Kleisli[Config, int]
+    applyConfig(cfg),                       // ReaderIOResult[int]
+    Chain(TraverseReader(formatWithStyle)), // Introduce another dependency
+)
+```
+
+### When to Use TraverseReader vs SequenceReader
+
+**Use SequenceReader when:**
+- Your computation already returns a Reader: `ReaderIOResult[Reader[R, A]]`
+- You just want to flip the parameter order
+- No transformation of the value is needed
+
+```go
+// Already have Reader[Config, int]
+computation := getComputation() // ReaderIOResult[Reader[Config, int]]
+sequenced := SequenceReader[Config, int](computation)
+result := sequenced(cfg)(ctx)()
+```
+
+**Use TraverseReader when:**
+- Your computation doesn't have a Reader yet: `ReaderIOResult[A]`
+- You want to transform the value using environment-dependent logic
+- You're introducing a new dependency into the pipeline
+
+```go
+// Have ReaderIOResult[int], want to add Config dependency
+computation := getValue() // ReaderIOResult[int]
+traversed := TraverseReader[Config, int, string](formatWithConfig)
+withDep := traversed(computation)
+result := withDep(cfg)(ctx)()
+```
+
+### Practical Example: Multi-Stage Processing
+
+```go
+type DatabaseConfig struct {
+    ConnectionString string
+    Timeout          time.Duration
+}
+
+type FormattingConfig struct {
+    DateFormat string
+    Timezone   string
+}
+
+// Stage 1: Load raw data (no dependencies yet)
+loadData := func(ctx context.Context) func() Either[error, RawData] {
+    // ... implementation
+}
+
+// Stage 2: Process with database config
+processWithDB := func(raw RawData) func(DatabaseConfig) ProcessedData {
+    return func(cfg DatabaseConfig) ProcessedData {
+        // Use cfg.ConnectionString, cfg.Timeout
+        return ProcessedData{/* ... */}
+    }
+}
+
+// Stage 3: Format with formatting config
+formatData := func(processed ProcessedData) func(FormattingConfig) string {
+    return func(cfg FormattingConfig) string {
+        // Use cfg.DateFormat, cfg.Timezone
+        return "formatted result"
+    }
+}
+
+// Build pipeline introducing dependencies at each stage
+var pipeline = F.Flow3(
+    loadData,
+    TraverseReader[DatabaseConfig, RawData, ProcessedData](processWithDB),
+    // Now we have Kleisli[DatabaseConfig, ProcessedData]
+    applyConfig(dbConfig),
+    // Now we have ReaderIOResult[ProcessedData]
+    TraverseReader[FormattingConfig, ProcessedData, string](formatData),
+    // Now we have Kleisli[FormattingConfig, string]
+)
+
+// Execute with both configs
+result := pipeline(fmtConfig)(ctx)()
+```
+
+### Combining TraverseReader and SequenceReader
+
+You can combine both functions in complex pipelines:
+
+```go
+// Start with nested Reader
+computation := getComputation() // ReaderIOResult[Reader[Config, User]]
+
+var pipeline = F.Flow4(
+    computation,
+    SequenceReader[Config, User],           // Flip to get Kleisli[Config, User]
+    applyConfig(cfg),                       // Apply config, get ReaderIOResult[User]
+    TraverseReader(enrichWithDatabase),     // Add database dependency
+    // Now have Kleisli[Database, EnrichedUser]
+)
+
+result := pipeline(db)(ctx)()
 ```
 
 ## Practical Benefits

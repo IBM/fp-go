@@ -83,7 +83,7 @@ import (
 //	)
 //
 //go:inline
-func SequenceReader[R, A any](ma ReaderIOResult[Reader[R, A]]) reader.Kleisli[context.Context, R, IOResult[A]] {
+func SequenceReader[R, A any](ma ReaderIOResult[Reader[R, A]]) Kleisli[R, A] {
 	return RIOR.SequenceReader(ma)
 }
 
@@ -145,7 +145,7 @@ func SequenceReader[R, A any](ma ReaderIOResult[Reader[R, A]]) reader.Kleisli[co
 //	)
 //
 //go:inline
-func SequenceReaderIO[R, A any](ma ReaderIOResult[RIO.ReaderIO[R, A]]) reader.Kleisli[context.Context, R, IOResult[A]] {
+func SequenceReaderIO[R, A any](ma ReaderIOResult[RIO.ReaderIO[R, A]]) Kleisli[R, A] {
 	return RIOR.SequenceReaderIO(ma)
 }
 
@@ -212,7 +212,7 @@ func SequenceReaderIO[R, A any](ma ReaderIOResult[RIO.ReaderIO[R, A]]) reader.Kl
 //	)
 //
 //go:inline
-func SequenceReaderResult[R, A any](ma ReaderIOResult[RR.ReaderResult[R, A]]) reader.Kleisli[context.Context, R, IOResult[A]] {
+func SequenceReaderResult[R, A any](ma ReaderIOResult[RR.ReaderResult[R, A]]) Kleisli[R, A] {
 	return RIOR.SequenceReaderEither(ma)
 }
 
