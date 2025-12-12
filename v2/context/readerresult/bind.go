@@ -86,7 +86,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
 ) Kleisli[ReaderResult[S1], S2] {
-	return G.Bind[ReaderResult[S1], ReaderResult[S2]](setter, f)
+	return G.Bind[ReaderResult[S1], ReaderResult[S2]](setter, F.Flow2(f, WithContext))
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -247,7 +247,7 @@ func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
 ) Kleisli[ReaderResult[S], S] {
-	return Bind(lens.Set, F.Flow2(lens.Get, f))
+	return Bind(lens.Set, F.Flow2(lens.Get, F.Flow2(f, WithContext)))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific field in the state.
@@ -282,7 +282,7 @@ func BindL[S, T any](
 //go:inline
 func LetL[S, T any](
 	lens L.Lens[S, T],
-	f func(T) T,
+	f Endomorphism[T],
 ) Kleisli[ReaderResult[S], S] {
 	return Let(lens.Set, F.Flow2(lens.Get, f))
 }

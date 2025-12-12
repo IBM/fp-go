@@ -18,6 +18,7 @@ package readerioresult
 import (
 	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/function"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/record"
 )
 
@@ -34,7 +35,7 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 		Map[[]B, func(B) []B],
 		Ap[[]B, B],
 
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -78,7 +79,7 @@ func TraverseRecord[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A, ma
 		Map[map[K]B, func(B) map[K]B],
 		Ap[map[K]B, B],
 
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -123,7 +124,7 @@ func MonadTraverseArraySeq[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B
 		Map[[]B, func(B) []B],
 		ApSeq[[]B, B],
 		as,
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -139,7 +140,7 @@ func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApSeq[[]B, B],
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -171,7 +172,7 @@ func MonadTraverseRecordSeq[K comparable, A, B any](as map[K]A, f Kleisli[A, B])
 		Map[map[K]B, func(B) map[K]B],
 		ApSeq[map[K]B, B],
 		as,
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -182,7 +183,7 @@ func TraverseRecordSeq[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A,
 		Map[map[K]B, func(B) map[K]B],
 		ApSeq[map[K]B, B],
 
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -216,7 +217,7 @@ func MonadTraverseArrayPar[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B
 		Map[[]B, func(B) []B],
 		ApPar[[]B, B],
 		as,
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -232,7 +233,7 @@ func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		ApPar[[]B, B],
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -264,7 +265,7 @@ func TraverseRecordPar[K comparable, A, B any](f Kleisli[A, B]) Kleisli[map[K]A,
 		Map[map[K]B, func(B) map[K]B],
 		ApPar[map[K]B, B],
 
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -286,7 +287,7 @@ func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f Kleisli[A, B])
 		Map[map[K]B, func(B) map[K]B],
 		ApPar[map[K]B, B],
 		as,
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 

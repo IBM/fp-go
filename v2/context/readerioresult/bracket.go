@@ -16,11 +16,14 @@
 package readerioresult
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
 // whether the body action returns and error or not.
+//
+//go:inline
 func Bracket[
 	A, B, ANY any](
 
@@ -28,5 +31,5 @@ func Bracket[
 	use Kleisli[A, B],
 	release func(A, Either[B]) ReaderIOResult[ANY],
 ) ReaderIOResult[B] {
-	return RIOR.Bracket(acquire, use, release)
+	return RIOR.Bracket(acquire, F.Flow2(use, WithContext), release)
 }

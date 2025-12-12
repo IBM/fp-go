@@ -18,6 +18,7 @@ package readerioresult
 import (
 	"context"
 
+	"github.com/IBM/fp-go/v2/context/readerio"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/io"
@@ -25,7 +26,6 @@ import (
 	"github.com/IBM/fp-go/v2/ioresult"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/reader"
-	"github.com/IBM/fp-go/v2/readerio"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -96,7 +96,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
 ) Operator[S1, S2] {
-	return RIOR.Bind(setter, f)
+	return RIOR.Bind(setter, F.Flow2(f, WithContext))
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -256,7 +256,7 @@ func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return RIOR.BindL(lens, f)
+	return RIOR.BindL(lens, F.Flow2(f, WithContext))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.
@@ -290,7 +290,7 @@ func BindL[S, T any](
 //go:inline
 func LetL[S, T any](
 	lens L.Lens[S, T],
-	f func(T) T,
+	f Endomorphism[T],
 ) Operator[S, S] {
 	return RIOR.LetL[context.Context](lens, f)
 }
@@ -398,7 +398,7 @@ func BindReaderK[S1, S2, T any](
 //go:inline
 func BindReaderIOK[S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f readerio.Kleisli[context.Context, S1, T],
+	f readerio.Kleisli[S1, T],
 ) Operator[S1, S2] {
 	return Bind(setter, F.Flow2(f, FromReaderIO[T]))
 }
@@ -507,7 +507,7 @@ func BindReaderKL[S, T any](
 //go:inline
 func BindReaderIOKL[S, T any](
 	lens L.Lens[S, T],
-	f readerio.Kleisli[context.Context, T, T],
+	f readerio.Kleisli[T, T],
 ) Operator[S, S] {
 	return BindL(lens, F.Flow2(f, FromReaderIO[T]))
 }

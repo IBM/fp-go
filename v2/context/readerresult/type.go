@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
@@ -34,6 +35,7 @@ type (
 	// ReaderResult is a specialization of the Reader monad for the typical golang scenario
 	ReaderResult[A any] = readereither.ReaderEither[context.Context, error, A]
 
-	Kleisli[A, B any]  = reader.Reader[A, ReaderResult[B]]
-	Operator[A, B any] = Kleisli[ReaderResult[A], B]
+	Kleisli[A, B any]   = reader.Reader[A, ReaderResult[B]]
+	Operator[A, B any]  = Kleisli[ReaderResult[A], B]
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
 )

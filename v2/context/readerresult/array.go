@@ -15,11 +15,14 @@
 
 package readerresult
 
-import "github.com/IBM/fp-go/v2/readereither"
+import (
+	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/readereither"
+)
 
 // TraverseArray transforms an array
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
-	return readereither.TraverseArray(f)
+	return readereither.TraverseArray(F.Flow2(f, WithContext))
 }
 
 // TraverseArrayWithIndex transforms an array

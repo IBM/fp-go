@@ -18,7 +18,9 @@ package readerresult
 import (
 	"context"
 
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
 )
@@ -48,11 +50,11 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 }
 
 func MonadChain[A, B any](ma ReaderResult[A], f Kleisli[A, B]) ReaderResult[B] {
-	return readereither.MonadChain(ma, f)
+	return readereither.MonadChain(ma, F.Flow2(f, WithContext))
 }
 
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
-	return readereither.Chain(f)
+	return readereither.Chain(F.Flow2(f, WithContext))
 }
 
 func Of[A any](a A) ReaderResult[A] {
@@ -72,7 +74,7 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A
 }
 
 func OrElse[A any](onLeft Kleisli[error, A]) Kleisli[ReaderResult[A], A] {
-	return readereither.OrElse(onLeft)
+	return readereither.OrElse(F.Flow2(onLeft, WithContext))
 }
 
 func Ask() ReaderResult[context.Context] {
@@ -87,7 +89,7 @@ func ChainEitherK[A, B any](f func(A) Either[B]) func(ma ReaderResult[A]) Reader
 	return readereither.ChainEitherK[context.Context](f)
 }
 
-func ChainOptionK[A, B any](onNone func() error) func(func(A) Option[B]) Operator[A, B] {
+func ChainOptionK[A, B any](onNone func() error) func(option.Kleisli[A, B]) Operator[A, B] {
 	return readereither.ChainOptionK[context.Context, A, B](onNone)
 }
 
@@ -285,7 +287,7 @@ func MonadChainFirst[A, B any](ma ReaderResult[A], f Kleisli[A, B]) ReaderResult
 		MonadChain,
 		MonadMap,
 		ma,
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
 
@@ -294,6 +296,6 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return chain.ChainFirst(
 		Chain,
 		Map,
-		f,
+		F.Flow2(f, WithContext),
 	)
 }
