@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// package result provides the Either monad, a data structure representing a value of one of two possible types.
+// Package result provides the Result monad, a specialized Either monad with error as the left type.
 //
-// Either is commonly used for error handling, where by convention:
-//   - Left represents an error or failure case (type E)
-//   - Right represents a success case (type A)
+// Result is commonly used for error handling, where:
+//   - Error represents a failure case (type error)
+//   - Ok represents a success case (type A)
 //
 // # Fantasy Land Specification
 //
@@ -36,45 +36,43 @@
 //
 // # Core Concepts
 //
-// The Either type is a discriminated union that can hold either a Left value (typically an error)
-// or a Right value (typically a successful result). This makes it ideal for computations that may fail.
+// The Result type is a discriminated union that can hold either an Error value
+// or an Ok value (successful result). This makes it ideal for computations that may fail.
 //
 // # Basic Usage
 //
-//	// Creating Either values
-//	success := either.Right[error](42)           // Right value
-//	failure := either.Left[int](errors.New("oops")) // Left value
+//	// Creating Result values
+//	success := result.Ok(42)                      // Ok value
+//	failure := result.Error[int](errors.New("oops")) // Error value
 //
 //	// Pattern matching with Fold
-//	result := either.Fold(
+//	output := result.Fold(
 //	    func(err error) string { return "Error: " + err.Error() },
 //	    func(n int) string { return fmt.Sprintf("Success: %d", n) },
 //	)(success)
 //
-//	// Chaining operations (short-circuits on Left)
-//	result := either.Chain(func(n int) either.Result[int] {
-//	    return either.Right[error](n * 2)
+//	// Chaining operations (short-circuits on Error)
+//	doubled := result.Chain(func(n int) result.Result[int] {
+//	    return result.Ok(n * 2)
 //	})(success)
 //
 // # Monadic Operations
 //
-// Either implements the Monad interface, providing:
-//   - Map: Transform the Right value
+// Result implements the Monad interface, providing:
+//   - Map: Transform the Ok value
 //   - Chain (FlatMap): Chain computations that may fail
-//   - Ap: Apply a function wrapped in Either
+//   - Ap: Apply a function wrapped in Result
 //
 // # Error Handling
 //
-// Either provides utilities for working with Go's error type:
-//   - TryCatchError: Convert (value, error) tuples to Either
-//   - UnwrapError: Convert Either back to (value, error) tuple
-//   - FromError: Create Either from error-returning functions
+// Result provides utilities for working with Go's error type:
+//   - TryCatchError: Convert (value, error) tuples to Result
+//   - UnwrapError: Convert Result back to (value, error) tuple
+//   - FromError: Create Result from error-returning functions
 //
 // # Subpackages
 //
-//   - either/exec: Execute system commands returning Either
-//   - either/http: HTTP request builders returning Either
-//   - either/testing: Testing utilities for Either laws
+//   - result/http: HTTP request builders returning Result
 package result
 
 //go:generate go run .. either --count 15 --filename gen.go

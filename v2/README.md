@@ -61,6 +61,7 @@ package main
 import (
     "fmt"
     "github.com/IBM/fp-go/v2/option"
+    N "github.com/IBM/fp-go/v2/number"
 )
 
 func main() {
@@ -144,6 +145,8 @@ func main() {
     fmt.Println(result) // Output: >>> Hello, fp-go! <<<
 }
 ```
+
+## ⚠️ Breaking Changes
 
 ### From V1 to V2
 
