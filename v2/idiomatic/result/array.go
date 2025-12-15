@@ -129,7 +129,7 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 // Example - Annotate with index:
 //
 //	annotate := func(i int, s string) (string, error) {
-//	    if len(s) == 0 {
+//	    if S.IsEmpty(s) {
 //	        return "", fmt.Errorf("empty string at index %d", i)
 //	    }
 //	    return fmt.Sprintf("[%d]=%s", i, s), nil
@@ -170,7 +170,7 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) (B, erro
 // Example - Validate with position info:
 //
 //	check := func(i int, s string) (string, error) {
-//	    if len(s) == 0 {
+//	    if S.IsEmpty(s) {
 //	        return "", fmt.Errorf("empty value at position %d", i)
 //	    }
 //	    return strings.ToUpper(s), nil

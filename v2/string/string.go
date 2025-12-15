@@ -46,7 +46,7 @@ var (
 	HasPrefix = F.Bind2of2(strings.HasPrefix)
 )
 
-func Eq(left string, right string) bool {
+func Eq(left, right string) bool {
 	return left == right
 }
 
@@ -58,14 +58,17 @@ func ToRunes(s string) []rune {
 	return []rune(s)
 }
 
+//go:inline
 func IsEmpty(s string) bool {
-	return len(s) == 0
+	return s == ""
 }
 
+//go:inline
 func IsNonEmpty(s string) bool {
-	return len(s) > 0
+	return s != ""
 }
 
+//go:inline
 func Size(s string) int {
 	return len(s)
 }

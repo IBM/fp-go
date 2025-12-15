@@ -21,6 +21,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	RIE "github.com/IBM/fp-go/v2/readerioeither"
+	S "github.com/IBM/fp-go/v2/string"
 )
 
 type Config struct {
@@ -37,7 +38,7 @@ type User struct {
 func fetchUser(id int) RIE.ReaderIOEither[Config, error, User] {
 	return func(cfg Config) func() E.Either[error, User] {
 		return func() E.Either[error, User] {
-			if cfg.APIKey == "" {
+			if S.IsEmpty(cfg.APIKey) {
 				return E.Left[User](fmt.Errorf("missing API key"))
 			}
 			if id <= 0 {

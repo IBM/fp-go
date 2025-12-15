@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -242,7 +243,7 @@ func TestTailRec_ComplexState(t *testing.T) {
 	processStep := func(state ProcessState) ReaderIOResult[E.Either[ProcessState, []string]] {
 		return func(ctx context.Context) IOEither[E.Either[ProcessState, []string]] {
 			return func() Either[E.Either[ProcessState, []string]] {
-				if len(state.items) == 0 {
+				if A.IsEmpty(state.items) {
 					return E.Right[error](E.Right[ProcessState](state.processed))
 				}
 
@@ -304,7 +305,7 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 	processFileStep := func(state FileProcessState) ReaderIOResult[E.Either[FileProcessState, int]] {
 		return func(ctx context.Context) IOEither[E.Either[FileProcessState, int]] {
 			return func() Either[E.Either[FileProcessState, int]] {
-				if len(state.files) == 0 {
+				if A.IsEmpty(state.files) {
 					return E.Right[error](E.Right[FileProcessState](state.processed))
 				}
 

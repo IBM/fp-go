@@ -64,7 +64,7 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 // Example:
 //
 //	validate := func(i int, s string) either.Result[string] {
-//	    if len(s) > 0 {
+//	    if S.IsNonEmpty(s) {
 //	        return either.Right[error](fmt.Sprintf("%d:%s", i, s))
 //	    }
 //	    return either.Left[string](fmt.Errorf("empty at index %d", i))
@@ -84,7 +84,7 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Result[B
 // Example:
 //
 //	validate := func(i int, s string) either.Result[string] {
-//	    if len(s) > 0 {
+//	    if S.IsNonEmpty(s) {
 //	        return either.Right[error](fmt.Sprintf("%d:%s", i, s))
 //	    }
 //	    return either.Left[string](fmt.Errorf("empty at index %d", i))

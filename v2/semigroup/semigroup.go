@@ -37,7 +37,7 @@ type semigroup[A any] struct {
 	c func(A, A) A
 }
 
-func (self semigroup[A]) Concat(x A, y A) A {
+func (self semigroup[A]) Concat(x, y A) A {
 	return self.c(x, y)
 }
 

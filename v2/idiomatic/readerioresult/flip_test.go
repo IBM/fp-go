@@ -23,6 +23,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -89,7 +90,7 @@ func TestSequence(t *testing.T) {
 			return func() (ReaderIOResult[string, int], error) {
 				return func(s string) IOResult[int] {
 					return func() (int, error) {
-						if len(s) == 0 {
+						if S.IsEmpty(s) {
 							return 0, expectedError
 						}
 						return x + len(s), nil
@@ -140,7 +141,7 @@ func TestSequence(t *testing.T) {
 				}
 				return func(db Database) IOResult[string] {
 					return func() (string, error) {
-						if db.ConnectionString == "" {
+						if S.IsEmpty(db.ConnectionString) {
 							return "", errors.New("empty connection string")
 						}
 						return fmt.Sprintf("Query on %s with timeout %d",
@@ -400,7 +401,7 @@ func TestTraverse(t *testing.T) {
 		kleisli := func(a int) ReaderIOResult[string, int] {
 			return func(s string) IOResult[int] {
 				return func() (int, error) {
-					if len(s) == 0 {
+					if S.IsEmpty(s) {
 						return 0, expectedError
 					}
 					return a + len(s), nil

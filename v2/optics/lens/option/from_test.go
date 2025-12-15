@@ -25,6 +25,7 @@ import (
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	O "github.com/IBM/fp-go/v2/option"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -306,7 +307,7 @@ func TestFromIsoWithStringEmpty(t *testing.T) {
 	// Isomorphism that treats empty string as None
 	emptyAsNone := ISO.MakeIso(
 		func(s string) O.Option[string] {
-			if s == "" {
+			if S.IsEmpty(s) {
 				return O.None[string]()
 			}
 			return O.Some(s)

@@ -101,7 +101,7 @@ func TestWithTempFile(t *testing.T) {
 		useFile := func(f *os.File) IOResult[string] {
 			return ioeither.TryCatchError(func() (string, error) {
 				tmpPath = f.Name()
-				_, err := f.Write([]byte("test"))
+				_, err := f.WriteString("test")
 				return tmpPath, err
 			})
 		}
@@ -199,7 +199,7 @@ func TestWithTempFile(t *testing.T) {
 		useFile := func(f *os.File) IOResult[string] {
 			capturedFile = f
 			return ioeither.TryCatchError(func() (string, error) {
-				_, err := f.Write([]byte("test"))
+				_, err := f.WriteString("test")
 				return f.Name(), err
 			})
 		}
@@ -210,7 +210,7 @@ func TestWithTempFile(t *testing.T) {
 		assert.NoError(t, err)
 
 		// File should be closed
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 

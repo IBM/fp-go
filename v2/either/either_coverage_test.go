@@ -24,6 +24,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
 	O "github.com/IBM/fp-go/v2/option"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -305,7 +306,7 @@ func TestTraverseArray(t *testing.T) {
 // Test TraverseArrayWithIndex
 func TestTraverseArrayWithIndex(t *testing.T) {
 	validate := func(i int, s string) Either[error, string] {
-		if len(s) > 0 {
+		if S.IsNonEmpty(s) {
 			return Right[error](fmt.Sprintf("%d:%s", i, s))
 		}
 		return Left[string](fmt.Errorf("empty at index %d", i))
@@ -334,7 +335,7 @@ func TestTraverseRecord(t *testing.T) {
 // Test TraverseRecordWithIndex
 func TestTraverseRecordWithIndex(t *testing.T) {
 	validate := func(k string, v string) Either[error, string] {
-		if len(v) > 0 {
+		if S.IsNonEmpty(v) {
 			return Right[error](k + ":" + v)
 		}
 		return Left[string](fmt.Errorf("empty value for key %s", k))
@@ -373,7 +374,7 @@ func TestCurry0(t *testing.T) {
 }
 
 func TestCurry1(t *testing.T) {
-	parse := func(s string) (int, error) { return strconv.Atoi(s) }
+	parse := strconv.Atoi
 	curried := Curry1(parse)
 	result := curried("42")
 	assert.Equal(t, Right[error](42), result)

@@ -26,6 +26,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/option"
+	S "github.com/IBM/fp-go/v2/string"
 )
 
 // FromEncoding creates a prism for base64 encoding/decoding operations.
@@ -697,7 +698,7 @@ func RegexNamedMatcher(re *regexp.Regexp) Prism[string, NamedMatch] {
 
 			groups := make(map[string]string)
 			for i := 1; i < len(loc)/2; i++ {
-				if names[i] != "" && loc[2*i] >= 0 {
+				if S.IsNonEmpty(names[i]) && loc[2*i] >= 0 {
 					groups[names[i]] = s[loc[2*i]:loc[2*i+1]]
 				}
 			}

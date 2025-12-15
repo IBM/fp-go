@@ -127,6 +127,8 @@ Work with APIs that use zero values to indicate absence:
 
 Simplify required vs optional field validation:
 
+	import S "github.com/IBM/fp-go/v2/string"
+
 	type FormData struct {
 		Name     string // Required
 		Email    string // Required
@@ -149,7 +151,7 @@ Simplify required vs optional field validation:
 	comments := commentsIso.Get(form.Comments) // None[string]
 
 	// Validate: required fields must be non-empty
-	if form.Name == "" || form.Email == "" {
+	if S.IsEmpty(form.Name) || S.IsEmpty(form.Email) {
 		// Validation error
 	}
 

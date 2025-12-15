@@ -20,6 +20,8 @@ import (
 	"log"
 	"strings"
 	"testing"
+
+	S "github.com/IBM/fp-go/v2/string"
 )
 
 // TestLoggingCallbacks_NoLoggers tests the case when no loggers are provided.
@@ -190,7 +192,7 @@ func TestLoggingCallbacks_EmptyMessage(t *testing.T) {
 	infoLog("")
 	output := buf.String()
 	// Should still produce output (newline at minimum)
-	if len(output) == 0 {
+	if S.IsEmpty(output) {
 		t.Error("Expected some output even with empty message")
 	}
 }

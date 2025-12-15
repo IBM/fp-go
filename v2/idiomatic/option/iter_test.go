@@ -24,6 +24,7 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/iterator/iter"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -225,7 +226,7 @@ func TestTraverseIter_ComplexTransformation(t *testing.T) {
 	}
 
 	validatePerson := func(name string) (Person, bool) {
-		if name == "" {
+		if S.IsEmpty(name) {
 			return None[Person]()
 		}
 		return Some(Person{Name: name, Age: len(name)})

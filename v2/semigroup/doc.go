@@ -167,6 +167,8 @@ Example 1: Merging Configurations
 
 Example 2: Combining Validators
 
+	import S "github.com/IBM/fp-go/v2/string"
+
 	type Validator func(string) []string // Returns list of errors
 
 	validatorSG := SG.MakeSemigroup(func(v1, v2 Validator) Validator {
@@ -178,7 +180,7 @@ Example 2: Combining Validators
 	})
 
 	notEmpty := func(s string) []string {
-		if s == "" {
+		if S.IsEmpty(s) {
 			return []string{"must not be empty"}
 		}
 		return nil
@@ -223,11 +225,13 @@ Example 3: Aggregating Statistics
 
 Example 4: Building Query Strings
 
+	import S "github.com/IBM/fp-go/v2/string"
+
 	querySG := SG.MakeSemigroup(func(a, b string) string {
-		if a == "" {
+		if S.IsEmpty(a) {
 			return b
 		}
-		if b == "" {
+		if S.IsEmpty(b) {
 			return a
 		}
 		return a + "&" + b

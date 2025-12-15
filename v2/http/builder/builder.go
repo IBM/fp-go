@@ -246,7 +246,7 @@ func (builder *Builder) GetTargetURL() Result[string] {
 					parseQuery,
 					result.Map(F.Flow2(
 						F.Curry2(FM.ValuesMonoid.Concat)(builder.GetQuery()),
-						(url.Values).Encode,
+						url.Values.Encode,
 					)),
 				),
 			),

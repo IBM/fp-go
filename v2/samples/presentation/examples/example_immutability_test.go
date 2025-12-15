@@ -87,7 +87,7 @@ func MakePerson(name string, age int) Person {
 	return Person{name, age}
 }
 
-func MakeClient(city string, name string, age int) Client {
+func MakeClient(city, name string, age int) Client {
 	return Client{person: Person{name, age}, address: Address{city}}
 }
 

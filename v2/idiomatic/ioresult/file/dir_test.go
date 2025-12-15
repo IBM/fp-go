@@ -28,7 +28,7 @@ func TestMkdir(t *testing.T) {
 		tmpDir := t.TempDir()
 		newDir := filepath.Join(tmpDir, "testdir")
 
-		result := Mkdir(newDir, 0755)
+		result := Mkdir(newDir, 0o755)
 		path, err := result()
 
 		assert.NoError(t, err)
@@ -43,14 +43,14 @@ func TestMkdir(t *testing.T) {
 	t.Run("mkdir with existing directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		result := Mkdir(tmpDir, 0755)
+		result := Mkdir(tmpDir, 0o755)
 		_, err := result()
 
 		assert.Error(t, err)
 	})
 
 	t.Run("mkdir with parent directory not existing", func(t *testing.T) {
-		result := Mkdir("/non/existent/parent/child", 0755)
+		result := Mkdir("/non/existent/parent/child", 0o755)
 		_, err := result()
 
 		assert.Error(t, err)
@@ -62,7 +62,7 @@ func TestMkdirAll(t *testing.T) {
 		tmpDir := t.TempDir()
 		nestedDir := filepath.Join(tmpDir, "level1", "level2", "level3")
 
-		result := MkdirAll(nestedDir, 0755)
+		result := MkdirAll(nestedDir, 0o755)
 		path, err := result()
 
 		assert.NoError(t, err)
@@ -88,7 +88,7 @@ func TestMkdirAll(t *testing.T) {
 	t.Run("mkdirall with existing directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		result := MkdirAll(tmpDir, 0755)
+		result := MkdirAll(tmpDir, 0o755)
 		path, err := result()
 
 		// MkdirAll should succeed even if directory exists
@@ -100,7 +100,7 @@ func TestMkdirAll(t *testing.T) {
 		tmpDir := t.TempDir()
 		newDir := filepath.Join(tmpDir, "single")
 
-		result := MkdirAll(newDir, 0755)
+		result := MkdirAll(newDir, 0o755)
 		path, err := result()
 
 		assert.NoError(t, err)
@@ -116,11 +116,11 @@ func TestMkdirAll(t *testing.T) {
 		filePath := filepath.Join(tmpDir, "file.txt")
 
 		// Create a file
-		err := os.WriteFile(filePath, []byte("content"), 0644)
+		err := os.WriteFile(filePath, []byte("content"), 0o644)
 		assert.NoError(t, err)
 
 		// Try to create a directory where file exists
-		result := MkdirAll(filepath.Join(filePath, "subdir"), 0755)
+		result := MkdirAll(filepath.Join(filePath, "subdir"), 0o755)
 		_, err = result()
 
 		assert.Error(t, err)

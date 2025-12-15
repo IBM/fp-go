@@ -24,12 +24,13 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	TST "github.com/IBM/fp-go/v2/internal/testing"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTraverseArrayEx(t *testing.T) {
 	f := TraverseArray(func(a string) ReaderIOEither[context.Context, string, string] {
-		if len(a) > 0 {
+		if S.IsNonEmpty(a) {
 			return Right[context.Context, string](a + a)
 		}
 		return Left[context.Context, string]("e")

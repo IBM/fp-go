@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	S "github.com/IBM/fp-go/v2/string"
 )
 
 // Deprecated:
@@ -176,7 +178,7 @@ func generateTraverseTuple1(
 			}
 			fmt.Fprintf(f, "F%d ~func(A%d) %s", j+1, j+1, hkt(fmt.Sprintf("T%d", j+1)))
 		}
-		if infix != "" {
+		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, ", %s", infix)
 		}
 		// types
@@ -209,7 +211,7 @@ func generateTraverseTuple1(
 		fmt.Fprintf(f, "    return A.TraverseTuple%d(\n", i)
 		// map
 		fmt.Fprintf(f, "      Map[")
-		if infix != "" {
+		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s, T1,", infix)
 		} else {
 			fmt.Fprintf(f, "T1,")
@@ -231,7 +233,7 @@ func generateTraverseTuple1(
 				fmt.Fprintf(f, " ")
 			}
 			fmt.Fprintf(f, "%s", tuple)
-			if infix != "" {
+			if S.IsNonEmpty(infix) {
 				fmt.Fprintf(f, ", %s", infix)
 			}
 			fmt.Fprintf(f, ", T%d],\n", j+1)
@@ -256,11 +258,11 @@ func generateSequenceTuple1(
 
 		fmt.Fprintf(f, "\n// SequenceTuple%d converts a [Tuple%d] of [%s] into an [%s].\n", i, i, hkt("T"), hkt(fmt.Sprintf("Tuple%d", i)))
 		fmt.Fprintf(f, "func SequenceTuple%d[", i)
-		if infix != "" {
+		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s", infix)
 		}
 		for j := 0; j < i; j++ {
-			if infix != "" || j > 0 {
+			if S.IsNonEmpty(infix) || j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", j+1)
@@ -276,7 +278,7 @@ func generateSequenceTuple1(
 		fmt.Fprintf(f, "  return A.SequenceTuple%d(\n", i)
 		// map
 		fmt.Fprintf(f, "    Map[")
-		if infix != "" {
+		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s, T1,", infix)
 		} else {
 			fmt.Fprintf(f, "T1,")
@@ -298,7 +300,7 @@ func generateSequenceTuple1(
 				fmt.Fprintf(f, " ")
 			}
 			fmt.Fprintf(f, "%s", tuple)
-			if infix != "" {
+			if S.IsNonEmpty(infix) {
 				fmt.Fprintf(f, ", %s", infix)
 			}
 			fmt.Fprintf(f, ", T%d],\n", j+1)
@@ -319,11 +321,11 @@ func generateSequenceT1(
 
 		fmt.Fprintf(f, "\n// SequenceT%d converts %d parameters of [%s] into a [%s].\n", i, i, hkt("T"), hkt(fmt.Sprintf("Tuple%d", i)))
 		fmt.Fprintf(f, "func SequenceT%d[", i)
-		if infix != "" {
+		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s", infix)
 		}
 		for j := 0; j < i; j++ {
-			if infix != "" || j > 0 {
+			if S.IsNonEmpty(infix) || j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", j+1)
@@ -339,7 +341,7 @@ func generateSequenceT1(
 		fmt.Fprintf(f, "  return A.SequenceT%d(\n", i)
 		// map
 		fmt.Fprintf(f, "    Map[")
-		if infix != "" {
+		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s, T1,", infix)
 		} else {
 			fmt.Fprintf(f, "T1,")
@@ -361,7 +363,7 @@ func generateSequenceT1(
 				fmt.Fprintf(f, " ")
 			}
 			fmt.Fprintf(f, "%s", tuple)
-			if infix != "" {
+			if S.IsNonEmpty(infix) {
 				fmt.Fprintf(f, ", %s", infix)
 			}
 			fmt.Fprintf(f, ", T%d],\n", j+1)

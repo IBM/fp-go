@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +65,7 @@ func TestSequence(t *testing.T) {
 				return result.Left[ReaderResult[Database, string]](errors.New("invalid timeout"))
 			}
 			return result.Right(func(db Database) result.Result[string] {
-				if db.ConnectionString == "" {
+				if S.IsEmpty(db.ConnectionString) {
 					return result.Left[string](errors.New("empty connection string"))
 				}
 				return result.Right(fmt.Sprintf("Query on %s with timeout %d",
@@ -128,7 +129,7 @@ func TestSequence(t *testing.T) {
 		// Original that fails at inner level
 		original := func(x int) result.Result[ReaderResult[string, int]] {
 			return result.Right(func(s string) result.Result[int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return result.Left[int](expectedError)
 				}
 				return result.Right(x + len(s))
@@ -215,7 +216,7 @@ func TestSequence(t *testing.T) {
 				return result.Left[ReaderResult[Session, string]](errors.New("invalid user ID"))
 			}
 			return result.Right(func(session Session) result.Result[string] {
-				if session.Token == "" {
+				if S.IsEmpty(session.Token) {
 					return result.Left[string](errors.New("empty token"))
 				}
 				return result.Right(fmt.Sprintf("User %s (ID: %d) authenticated with token %s",
@@ -312,7 +313,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 				return result.Left[ReaderResult[string, int]](errors.New("outer: negative value"))
 			}
 			return result.Right(func(s string) result.Result[int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return result.Left[int](errors.New("inner: empty string"))
 				}
 				return result.Right(x + len(s))

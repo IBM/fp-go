@@ -70,7 +70,7 @@ func TestWriteAll(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify file is closed by trying to write to it
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 
@@ -147,7 +147,7 @@ func TestWrite(t *testing.T) {
 
 		useFile := func(f *os.File) IOResult[string] {
 			return func() (string, error) {
-				_, err := f.Write([]byte("data"))
+				_, err := f.WriteString("data")
 				return "success", err
 			}
 		}
@@ -158,7 +158,7 @@ func TestWrite(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify file is closed
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 
@@ -183,7 +183,7 @@ func TestWrite(t *testing.T) {
 		assert.Error(t, err)
 
 		// Verify file is still closed even on error
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 

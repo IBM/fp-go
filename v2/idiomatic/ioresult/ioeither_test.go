@@ -23,6 +23,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	"github.com/IBM/fp-go/v2/io"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,7 +112,7 @@ func TestChainWithIO(t *testing.T) {
 		Of("test"),
 		ChainIOK(func(s string) IO[bool] {
 			return func() bool {
-				return len(s) > 0
+				return S.IsNonEmpty(s)
 			}
 		}),
 	)

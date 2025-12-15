@@ -194,7 +194,7 @@ func IsNonNil[K comparable, V any](m map[K]V) bool {
 
 // ConstNil return a nil map
 func ConstNil[K comparable, V any]() map[K]V {
-	return (map[K]V)(nil)
+	return map[K]V(nil)
 }
 
 func MonadChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2], r map[K]V1, f func(K, V1) map[K]V2) map[K]V2 {

@@ -181,6 +181,7 @@ func prismModify[S, A any](f Endomorphism[A], sa Prism[S, A], s S) S {
 }
 
 // prismSet is an internal helper that creates a setter function.
+//
 // Deprecated: Use Set instead.
 func prismSet[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
 	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))

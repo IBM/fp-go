@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
@@ -217,7 +218,7 @@ func TestTailRecSumList(t *testing.T) {
 				if state.sum > env.MaxValue {
 					return E.Left[E.Either[State, int]](fmt.Sprintf("sum exceeds max: %d > %d", state.sum, env.MaxValue))
 				}
-				if len(state.list) == 0 {
+				if A.IsEmpty(state.list) {
 					return E.Right[string](E.Right[State](state.sum * env.Multiplier))
 				}
 				return E.Right[string](E.Left[int](State{state.list[1:], state.sum + state.list[0]}))
@@ -246,7 +247,7 @@ func TestTailRecSumListError(t *testing.T) {
 				if state.sum > env.MaxValue {
 					return E.Left[E.Either[State, int]](fmt.Sprintf("sum exceeds max: %d > %d", state.sum, env.MaxValue))
 				}
-				if len(state.list) == 0 {
+				if A.IsEmpty(state.list) {
 					return E.Right[string](E.Right[State](state.sum))
 				}
 				return E.Right[string](E.Left[int](State{state.list[1:], state.sum + state.list[0]}))

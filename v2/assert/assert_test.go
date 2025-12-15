@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 )
 
 func TestEqual(t *testing.T) {
@@ -334,7 +335,7 @@ func TestThat(t *testing.T) {
 	})
 
 	t.Run("should work with string predicates", func(t *testing.T) {
-		startsWithH := func(s string) bool { return len(s) > 0 && s[0] == 'h' }
+		startsWithH := func(s string) bool { return S.IsNonEmpty(s) && s[0] == 'h' }
 		result := That(startsWithH)("hello")(t)
 		if !result {
 			t.Error("Expected That to pass for string predicate")
@@ -484,7 +485,7 @@ func TestLocal(t *testing.T) {
 	t.Run("should compose with other assertions", func(t *testing.T) {
 		// Create multiple focused assertions
 		nameNotEmpty := Local(func(u User) string { return u.Name })(
-			That(func(name string) bool { return len(name) > 0 }),
+			That(S.IsNonEmpty),
 		)
 		ageInRange := Local(func(u User) int { return u.Age })(
 			That(func(age int) bool { return age >= 18 && age <= 100 }),

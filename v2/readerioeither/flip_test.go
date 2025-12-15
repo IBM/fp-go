@@ -26,6 +26,7 @@ import (
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -85,7 +86,7 @@ func TestSequence(t *testing.T) {
 
 		original := func(x int) IOEither[error, ReaderIOEither[string, error, int]] {
 			return ioeither.Right[error](func(s string) IOEither[error, int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return ioeither.Left[int](expectedError)
 				}
 				return ioeither.Right[error](x + len(s))
@@ -284,7 +285,7 @@ func TestSequenceReaderEither(t *testing.T) {
 
 		original := func(x int) IOEither[error, ReaderEither[string, error, int]] {
 			return ioeither.Right[error](func(s string) either.Either[error, int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return either.Left[int](expectedError)
 				}
 				return either.Right[error](x + len(s))
@@ -316,7 +317,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 				return ioeither.Left[ReaderIOEither[Database, error, string]](errors.New("invalid timeout"))
 			}
 			return ioeither.Right[error](func(db Database) IOEither[error, string] {
-				if db.ConnectionString == "" {
+				if S.IsEmpty(db.ConnectionString) {
 					return ioeither.Left[string](errors.New("empty connection string"))
 				}
 				return ioeither.Right[error](fmt.Sprintf("Query on %s with timeout %d",
@@ -414,7 +415,7 @@ func TestTraverse(t *testing.T) {
 
 		kleisli := func(a int) ReaderIOEither[string, error, int] {
 			return func(s string) IOEither[error, int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return ioeither.Left[int](expectedError)
 				}
 				return ioeither.Right[error](a + len(s))

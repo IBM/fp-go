@@ -21,15 +21,14 @@ import (
 	"strconv"
 	"testing"
 
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // TestTraverseRecordG_Success tests successful traversal of a map
 func TestTraverseRecordG_Success(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	input := map[string]string{"a": "1", "b": "2", "c": "3"}
 	result, err := TraverseRecordG[map[string]string, map[string]int](parse)(input)
@@ -42,9 +41,7 @@ func TestTraverseRecordG_Success(t *testing.T) {
 
 // TestTraverseRecordG_Error tests that traversal short-circuits on error
 func TestTraverseRecordG_Error(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	input := map[string]string{"a": "1", "b": "bad", "c": "3"}
 	result, err := TraverseRecordG[map[string]string, map[string]int](parse)(input)
@@ -55,9 +52,7 @@ func TestTraverseRecordG_Error(t *testing.T) {
 
 // TestTraverseRecordG_EmptyMap tests traversal of an empty map
 func TestTraverseRecordG_EmptyMap(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	input := map[string]string{}
 	result, err := TraverseRecordG[map[string]string, map[string]int](parse)(input)
@@ -72,9 +67,7 @@ func TestTraverseRecordG_CustomMapType(t *testing.T) {
 	type StringMap map[string]string
 	type IntMap map[string]int
 
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	input := StringMap{"x": "10", "y": "20"}
 	result, err := TraverseRecordG[StringMap, IntMap](parse)(input)
@@ -128,7 +121,7 @@ func TestTraverseRecord_ValidationError(t *testing.T) {
 // TestTraverseRecordWithIndexG_Success tests successful indexed traversal
 func TestTraverseRecordWithIndexG_Success(t *testing.T) {
 	annotate := func(k string, v string) (string, error) {
-		if len(v) == 0 {
+		if S.IsEmpty(v) {
 			return "", fmt.Errorf("empty value for key %s", k)
 		}
 		return fmt.Sprintf("%s=%s", k, v), nil
@@ -145,7 +138,7 @@ func TestTraverseRecordWithIndexG_Success(t *testing.T) {
 // TestTraverseRecordWithIndexG_Error tests error handling with key
 func TestTraverseRecordWithIndexG_Error(t *testing.T) {
 	annotate := func(k string, v string) (string, error) {
-		if len(v) == 0 {
+		if S.IsEmpty(v) {
 			return "", fmt.Errorf("empty value for key %s", k)
 		}
 		return v, nil

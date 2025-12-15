@@ -297,7 +297,7 @@ func MatchLeft[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(A, AS) B) fu
 }
 
 //go:inline
-func Slice[AS ~[]A, A any](start int, end int) func(AS) AS {
+func Slice[AS ~[]A, A any](start, end int) func(AS) AS {
 	return array.Slice[AS](start, end)
 }
 

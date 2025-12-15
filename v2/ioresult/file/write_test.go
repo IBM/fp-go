@@ -72,7 +72,7 @@ func TestWriteAll(t *testing.T) {
 		_, err := E.UnwrapError(result)
 		assert.NoError(t, err)
 
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 
@@ -150,7 +150,7 @@ func TestWrite(t *testing.T) {
 
 		useFile := func(f *os.File) IOResult[string] {
 			return ioeither.TryCatchError(func() (string, error) {
-				_, err := f.Write([]byte("data"))
+				_, err := f.WriteString("data")
 				return "success", err
 			})
 		}
@@ -160,7 +160,7 @@ func TestWrite(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 
@@ -187,7 +187,7 @@ func TestWrite(t *testing.T) {
 
 		assert.Error(t, err)
 
-		_, writeErr := capturedFile.Write([]byte("more"))
+		_, writeErr := capturedFile.WriteString("more")
 		assert.Error(t, writeErr)
 	})
 

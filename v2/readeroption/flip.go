@@ -43,6 +43,8 @@ import (
 //
 // Example:
 //
+//	import S "github.com/IBM/fp-go/v2/string"
+//
 //	type Database struct {
 //	    ConnectionString string
 //	}
@@ -56,7 +58,7 @@ import (
 //	        return option.None[ReaderOption[Database, string]]()
 //	    }
 //	    return option.Some(func(db Database) option.Option[string] {
-//	        if db.ConnectionString == "" {
+//	        if S.IsEmpty(db.ConnectionString) {
 //	            return option.None[string]()
 //	        }
 //	        return option.Some(fmt.Sprintf("Query on %s with timeout %d",

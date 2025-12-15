@@ -21,7 +21,7 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
-func concat(left string, right string) string {
+func concat(left, right string) string {
 	return fmt.Sprintf("%s%s", left, right)
 }
 

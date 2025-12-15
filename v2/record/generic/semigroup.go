@@ -26,9 +26,7 @@ func UnionSemigroup[N ~map[K]V, K comparable, V any](s S.Semigroup[V]) S.Semigro
 }
 
 func UnionLastSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {
-	return S.MakeSemigroup(func(first N, second N) N {
-		return unionLast(first, second)
-	})
+	return S.MakeSemigroup(unionLast[N])
 }
 
 func UnionFirstSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	N "github.com/IBM/fp-go/v2/number"
+	S "github.com/IBM/fp-go/v2/string"
 )
 
 // Benchmark shallow chain (1 step)
@@ -100,7 +101,7 @@ func BenchmarkChain_RealWorld_Validation(b *testing.B) {
 
 		// Step 1: Validate not empty
 		v1, ok1 := Chain(func(s string) (string, bool) {
-			if len(s) > 0 {
+			if S.IsNonEmpty(s) {
 				return s, true
 			}
 			return "", false

@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +68,7 @@ func TestSequence(t *testing.T) {
 				return either.Left[ReaderEither[Database, error, string]](errors.New("invalid timeout"))
 			}
 			return either.Right[error](func(db Database) either.Either[error, string] {
-				if db.ConnectionString == "" {
+				if S.IsEmpty(db.ConnectionString) {
 					return either.Left[string](errors.New("empty connection string"))
 				}
 				return either.Right[error](fmt.Sprintf("Query on %s with timeout %d",
@@ -135,7 +136,7 @@ func TestSequence(t *testing.T) {
 		// Original that fails at inner level
 		original := func(x int) either.Either[error, ReaderEither[string, error, int]] {
 			return either.Right[error](func(s string) either.Either[error, int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return either.Left[int](expectedError)
 				}
 				return either.Right[error](x + len(s))
@@ -223,7 +224,7 @@ func TestSequence(t *testing.T) {
 				return either.Left[ReaderEither[Session, error, string]](errors.New("invalid user ID"))
 			}
 			return either.Right[error](func(session Session) either.Either[error, string] {
-				if session.Token == "" {
+				if S.IsEmpty(session.Token) {
 					return either.Left[string](errors.New("empty token"))
 				}
 				return either.Right[error](fmt.Sprintf("User %s (ID: %d) authenticated with token %s",
@@ -332,7 +333,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 				return either.Left[ReaderEither[string, error, int]](errors.New("outer: negative value"))
 			}
 			return either.Right[error](func(s string) either.Either[error, int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return either.Left[int](errors.New("inner: empty string"))
 				}
 				return either.Right[error](x + len(s))

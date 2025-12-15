@@ -23,6 +23,7 @@ import (
 
 	N "github.com/IBM/fp-go/v2/number"
 	S "github.com/IBM/fp-go/v2/semigroup"
+	STR "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +44,7 @@ func makeErrorListSemigroup() S.Semigroup[error] {
 		var msgs []string
 		if strings.HasPrefix(msg1, "[") && strings.HasSuffix(msg1, "]") {
 			trimmed := strings.Trim(msg1, "[]")
-			if trimmed != "" {
+			if STR.IsNonEmpty(trimmed) {
 				msgs = strings.Split(trimmed, ", ")
 			}
 		} else {
@@ -52,7 +53,7 @@ func makeErrorListSemigroup() S.Semigroup[error] {
 
 		if strings.HasPrefix(msg2, "[") && strings.HasSuffix(msg2, "]") {
 			trimmed := strings.Trim(msg2, "[]")
-			if trimmed != "" {
+			if STR.IsNonEmpty(trimmed) {
 				msgs = append(msgs, strings.Split(trimmed, ", ")...)
 			}
 		} else {
@@ -160,7 +161,7 @@ func TestApV_StringTransformation(t *testing.T) {
 	sg := makeErrorConcatSemigroup()
 	apv := ApV[string, string](sg)
 
-	toUpper := func(s string) string { return strings.ToUpper(s) }
+	toUpper := strings.ToUpper
 
 	value, verr := Right("hello")
 	fn, ferr := Right(toUpper)

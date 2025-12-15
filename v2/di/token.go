@@ -103,11 +103,11 @@ func (t *token[T]) Unerase(val any) Result[T] {
 func (t *token[T]) ProviderFactory() Option[DIE.ProviderFactory] {
 	return t.base.providerFactory
 }
-func makeTokenBase(name string, id string, typ int, providerFactory Option[DIE.ProviderFactory]) *tokenBase {
+func makeTokenBase(name, id string, typ int, providerFactory Option[DIE.ProviderFactory]) *tokenBase {
 	return &tokenBase{name, id, typ, providerFactory}
 }
 
-func makeToken[T any](name string, id string, typ int, unerase func(val any) Result[T], providerFactory Option[DIE.ProviderFactory]) Dependency[T] {
+func makeToken[T any](name, id string, typ int, unerase func(val any) Result[T], providerFactory Option[DIE.ProviderFactory]) Dependency[T] {
 	return &token[T]{makeTokenBase(name, id, typ, providerFactory), unerase}
 }
 

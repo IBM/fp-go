@@ -45,6 +45,8 @@ import (
 //
 // Example:
 //
+//	import S "github.com/IBM/fp-go/v2/string"
+//
 //	type Database struct {
 //	    ConnectionString string
 //	}
@@ -58,7 +60,7 @@ import (
 //	        return result.Error[ReaderResult[Database, string]](errors.New("invalid timeout"))
 //	    }
 //	    return result.Ok[error](func(db Database) result.Result[string] {
-//	        if db.ConnectionString == "" {
+//	        if S.IsEmpty(db.ConnectionString) {
 //	            return result.Error[string](errors.New("empty connection string"))
 //	        }
 //	        return result.Ok[error](fmt.Sprintf("Query on %s with timeout %d",

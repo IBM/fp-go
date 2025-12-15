@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -129,7 +130,7 @@ func TestTailRecSumList(t *testing.T) {
 
 	sumStep := func(state State) ReaderResult[E.Either[State, int]] {
 		return func(ctx context.Context) Result[E.Either[State, int]] {
-			if len(state.list) == 0 {
+			if A.IsEmpty(state.list) {
 				return R.Of(E.Right[State](state.sum))
 			}
 			return R.Of(E.Left[int](State{state.list[1:], state.sum + state.list[0]}))

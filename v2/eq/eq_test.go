@@ -72,9 +72,7 @@ func TestFromStrictEquals(t *testing.T) {
 
 func TestFromEquals(t *testing.T) {
 	t.Run("case-insensitive string equality", func(t *testing.T) {
-		caseInsensitiveEq := FromEquals(func(a, b string) bool {
-			return strings.EqualFold(a, b)
-		})
+		caseInsensitiveEq := FromEquals(strings.EqualFold)
 
 		assert.True(t, caseInsensitiveEq.Equals("hello", "HELLO"))
 		assert.True(t, caseInsensitiveEq.Equals("Hello", "hello"))
@@ -243,9 +241,7 @@ func TestContramap(t *testing.T) {
 	})
 
 	t.Run("case-insensitive name comparison", func(t *testing.T) {
-		caseInsensitiveEq := FromEquals(func(a, b string) bool {
-			return strings.EqualFold(a, b)
-		})
+		caseInsensitiveEq := FromEquals(strings.EqualFold)
 
 		personEqByNameCI := Contramap(func(p Person) string {
 			return p.Name

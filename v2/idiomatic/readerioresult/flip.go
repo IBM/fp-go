@@ -42,6 +42,8 @@ import (
 //
 // Example:
 //
+//	import S "github.com/IBM/fp-go/v2/string"
+//
 //	type Database struct {
 //	    ConnectionString string
 //	}
@@ -57,7 +59,7 @@ import (
 //	        }
 //	        return func(db Database) func() (string, error) {
 //	            return func() (string, error) {
-//	                if db.ConnectionString == "" {
+//	                if S.IsEmpty(db.ConnectionString) {
 //	                    return "", errors.New("empty connection")
 //	                }
 //	                return fmt.Sprintf("Query on %s with timeout %d",

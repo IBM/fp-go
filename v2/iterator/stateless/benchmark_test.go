@@ -51,7 +51,7 @@ func single() int64 {
 				if n%10 == 4 {
 					return false
 				}
-				n = n / 10
+				n /= 10
 			}
 			return true
 		}),

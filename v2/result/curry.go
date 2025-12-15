@@ -34,7 +34,7 @@ func Curry0[R any](f func() (R, error)) func() Result[R] {
 //
 // Example:
 //
-//	parse := func(s string) (int, error) { return strconv.Atoi(s) }
+//	parse := strconv.Atoi
 //	curried := either.Curry1(parse)
 //	result := curried("42") // Right(42)
 func Curry1[T1, R any](f func(T1) (R, error)) func(T1) Result[R] {

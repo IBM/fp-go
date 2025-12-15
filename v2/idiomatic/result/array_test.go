@@ -21,15 +21,14 @@ import (
 	"strconv"
 	"testing"
 
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // TestTraverseArrayG_Success tests successful traversal of an array with all valid elements
 func TestTraverseArrayG_Success(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	result, err := TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"})
 
@@ -39,9 +38,7 @@ func TestTraverseArrayG_Success(t *testing.T) {
 
 // TestTraverseArrayG_Error tests that traversal short-circuits on first error
 func TestTraverseArrayG_Error(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	result, err := TraverseArrayG[[]string, []int](parse)([]string{"1", "bad", "3"})
 
@@ -51,9 +48,7 @@ func TestTraverseArrayG_Error(t *testing.T) {
 
 // TestTraverseArrayG_EmptyArray tests traversal of an empty array
 func TestTraverseArrayG_EmptyArray(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	result, err := TraverseArrayG[[]string, []int](parse)([]string{})
 
@@ -64,9 +59,7 @@ func TestTraverseArrayG_EmptyArray(t *testing.T) {
 
 // TestTraverseArrayG_SingleElement tests traversal with a single element
 func TestTraverseArrayG_SingleElement(t *testing.T) {
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	result, err := TraverseArrayG[[]string, []int](parse)([]string{"42"})
 
@@ -96,9 +89,7 @@ func TestTraverseArrayG_CustomSliceType(t *testing.T) {
 	type StringSlice []string
 	type IntSlice []int
 
-	parse := func(s string) (int, error) {
-		return strconv.Atoi(s)
-	}
+	parse := strconv.Atoi
 
 	input := StringSlice{"1", "2", "3"}
 	result, err := TraverseArrayG[StringSlice, IntSlice](parse)(input)
@@ -178,7 +169,7 @@ func TestTraverseArray_EmptyArray(t *testing.T) {
 // TestTraverseArray_DifferentTypes tests transformation between different types
 func TestTraverseArray_DifferentTypes(t *testing.T) {
 	toLength := func(s string) (int, error) {
-		if len(s) == 0 {
+		if S.IsEmpty(s) {
 			return 0, errors.New("empty string")
 		}
 		return len(s), nil
@@ -193,7 +184,7 @@ func TestTraverseArray_DifferentTypes(t *testing.T) {
 // TestTraverseArrayWithIndexG_Success tests successful indexed traversal
 func TestTraverseArrayWithIndexG_Success(t *testing.T) {
 	annotate := func(i int, s string) (string, error) {
-		if len(s) == 0 {
+		if S.IsEmpty(s) {
 			return "", fmt.Errorf("empty string at index %d", i)
 		}
 		return fmt.Sprintf("[%d]=%s", i, s), nil
@@ -208,7 +199,7 @@ func TestTraverseArrayWithIndexG_Success(t *testing.T) {
 // TestTraverseArrayWithIndexG_Error tests error handling with index
 func TestTraverseArrayWithIndexG_Error(t *testing.T) {
 	annotate := func(i int, s string) (string, error) {
-		if len(s) == 0 {
+		if S.IsEmpty(s) {
 			return "", fmt.Errorf("empty string at index %d", i)
 		}
 		return fmt.Sprintf("[%d]=%s", i, s), nil
@@ -284,7 +275,7 @@ func TestTraverseArrayWithIndexG_CustomSliceType(t *testing.T) {
 // TestTraverseArrayWithIndex_Success tests successful indexed traversal
 func TestTraverseArrayWithIndex_Success(t *testing.T) {
 	check := func(i int, s string) (string, error) {
-		if len(s) == 0 {
+		if S.IsEmpty(s) {
 			return "", fmt.Errorf("empty value at position %d", i)
 		}
 		return fmt.Sprintf("%d_%s", i, s), nil
@@ -299,7 +290,7 @@ func TestTraverseArrayWithIndex_Success(t *testing.T) {
 // TestTraverseArrayWithIndex_Error tests error with position info
 func TestTraverseArrayWithIndex_Error(t *testing.T) {
 	check := func(i int, s string) (string, error) {
-		if len(s) == 0 {
+		if S.IsEmpty(s) {
 			return "", fmt.Errorf("empty value at position %d", i)
 		}
 		return s, nil

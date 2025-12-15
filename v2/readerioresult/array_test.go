@@ -26,6 +26,7 @@ import (
 	TST "github.com/IBM/fp-go/v2/internal/testing"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,7 @@ func TestTraverseArray(t *testing.T) {
 	e := errors.New("e")
 
 	f := TraverseArray(func(a string) ReaderIOResult[context.Context, string] {
-		if len(a) > 0 {
+		if S.IsNonEmpty(a) {
 			return Right[context.Context](a + a)
 		}
 		return Left[context.Context, string](e)

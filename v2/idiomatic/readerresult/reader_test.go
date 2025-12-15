@@ -25,7 +25,6 @@ import (
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
-	RES "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -292,11 +291,11 @@ func TestChainReaderK(t *testing.T) {
 }
 
 func TestChainEitherK(t *testing.T) {
-	parseInt := func(s string) RES.Result[int] {
+	parseInt := func(s string) Result[int] {
 		if s == "42" {
-			return RES.Of(42)
+			return result.Of(42)
 		}
-		return RES.Left[int](errors.New("parse error"))
+		return result.Left[int](errors.New("parse error"))
 	}
 
 	chain := ChainEitherK[MyContext](parseInt)

@@ -352,9 +352,7 @@ func TestRetryingWithOption(t *testing.T) {
 			return result
 		}
 
-		check := func(value O.Option[string]) bool {
-			return O.IsNone(value) // Retry if None
-		}
+		check := O.IsNone[string] // Retry if None
 
 		result := Retrying(
 			testMonadChain[O.Option[string], O.Option[string]],

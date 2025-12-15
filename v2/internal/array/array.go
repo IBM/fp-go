@@ -166,7 +166,7 @@ func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B
 }
 
 func ConstNil[GA ~[]A, A any]() GA {
-	return (GA)(nil)
+	return GA(nil)
 }
 
 func Concat[GT ~[]T, T any](left, right GT) GT {

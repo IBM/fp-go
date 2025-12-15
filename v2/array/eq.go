@@ -19,7 +19,7 @@ import (
 	E "github.com/IBM/fp-go/v2/eq"
 )
 
-func equals[T any](left []T, right []T, eq func(T, T) bool) bool {
+func equals[T any](left, right []T, eq func(T, T) bool) bool {
 	if len(left) != len(right) {
 		return false
 	}

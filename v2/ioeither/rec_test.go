@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	"github.com/stretchr/testify/assert"
 )
@@ -107,7 +108,7 @@ func TestTailRecSumList(t *testing.T) {
 	}
 
 	sumList := TailRec(func(state SumState) IOEither[error, E.Either[SumState, int]] {
-		if len(state.items) == 0 {
+		if A.IsEmpty(state.items) {
 			return Of[error](E.Right[SumState](state.sum))
 		}
 		return Of[error](E.Left[int](SumState{
@@ -231,7 +232,7 @@ func TestTailRecFindInList(t *testing.T) {
 	}
 
 	findInList := TailRec(func(state FindState) IOEither[error, E.Either[FindState, int]] {
-		if len(state.items) == 0 {
+		if A.IsEmpty(state.items) {
 			return Left[E.Either[FindState, int]](errors.New("not found"))
 		}
 		if state.items[0] == state.target {

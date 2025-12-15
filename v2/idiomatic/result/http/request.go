@@ -65,6 +65,6 @@ func bodyRequest(method string) func(string) func([]byte) (*http.Request, error)
 
 func noBodyRequest(method string) func(string) (*http.Request, error) {
 	return func(url string) (*http.Request, error) {
-		return http.NewRequest(method, url, nil)
+		return http.NewRequest(method, url, http.NoBody)
 	}
 }

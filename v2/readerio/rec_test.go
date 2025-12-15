@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	G "github.com/IBM/fp-go/v2/io"
 	"github.com/stretchr/testify/assert"
@@ -156,7 +157,7 @@ func TestTailRecSumList(t *testing.T) {
 	sumStep := func(state State) ReaderIO[TestEnv, E.Either[State, int]] {
 		return func(env TestEnv) G.IO[E.Either[State, int]] {
 			return func() E.Either[State, int] {
-				if len(state.list) == 0 {
+				if A.IsEmpty(state.list) {
 					return E.Right[State](state.sum * env.Multiplier)
 				}
 				return E.Left[int](State{state.list[1:], state.sum + state.list[0]})

@@ -41,7 +41,7 @@ import (
 //	increment := N.Add(1)
 //	result := endomorphism.MonadAp(double, increment) // Composes: double ∘ increment
 //	// result(5) = double(increment(5)) = double(6) = 12
-func MonadAp[A any](fab Endomorphism[A], fa Endomorphism[A]) Endomorphism[A] {
+func MonadAp[A any](fab, fa Endomorphism[A]) Endomorphism[A] {
 	return MonadCompose(fab, fa)
 }
 
@@ -225,7 +225,7 @@ func Map[A any](f Endomorphism[A]) Operator[A] {
 //	// Compare with MonadCompose which executes RIGHT-TO-LEFT:
 //	composed := endomorphism.MonadCompose(increment, double)
 //	result2 := composed(5) // (5 * 2) + 1 = 11 (same result, different parameter order)
-func MonadChain[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
+func MonadChain[A any](ma, f Endomorphism[A]) Endomorphism[A] {
 	return function.Flow2(ma, f)
 }
 
@@ -247,7 +247,7 @@ func MonadChain[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
 //	log := func(x int) int { fmt.Println(x); return x }
 //	chained := endomorphism.MonadChainFirst(double, log)
 //	result := chained(5) // Prints 10, returns 10
-func MonadChainFirst[A any](ma Endomorphism[A], f Endomorphism[A]) Endomorphism[A] {
+func MonadChainFirst[A any](ma, f Endomorphism[A]) Endomorphism[A] {
 	return func(a A) A {
 		result := ma(a)
 		f(result)     // Apply f for its effect

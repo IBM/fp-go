@@ -44,6 +44,8 @@ import (
 //
 // Example:
 //
+//	import S "github.com/IBM/fp-go/v2/string"
+//
 //	type Database struct {
 //	    ConnectionString string
 //	}
@@ -57,7 +59,7 @@ import (
 //	        return either.Left[ReaderEither[Database, error, string]](errors.New("invalid timeout"))
 //	    }
 //	    return either.Right[error](func(db Database) either.Either[error, string] {
-//	        if db.ConnectionString == "" {
+//	        if S.IsEmpty(db.ConnectionString) {
 //	            return either.Left[string](errors.New("empty connection string"))
 //	        }
 //	        return either.Right[error](fmt.Sprintf("Query on %s with timeout %d",
@@ -186,7 +188,7 @@ func SequenceReader[R1, R2, E, A any](ma ReaderEither[R2, E, Reader[R1, A]]) Kle
 //	// Kleisli function: transforms int to ReaderEither[Database, error, string]
 //	kleisli := func(value int) ReaderEither[Database, error, string] {
 //	    return func(db Database) either.Either[error, string] {
-//	        if db.ConnectionString == "" {
+//	        if S.IsEmpty(db.ConnectionString) {
 //	            return either.Left[string](errors.New("empty connection string"))
 //	        }
 //	        return either.Right[error](fmt.Sprintf("%s:%d", db.ConnectionString, value))

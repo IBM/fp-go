@@ -22,7 +22,7 @@ import (
 	L "github.com/IBM/fp-go/v2/logging"
 )
 
-func _log[A any](left func(string, ...any), right func(string, ...any), prefix string) Kleisli[Option[A], A] {
+func _log[A any](left, right func(string, ...any), prefix string) Kleisli[Option[A], A] {
 	return Fold(
 		func() Option[A] {
 			left("%s", prefix)

@@ -27,6 +27,7 @@ import (
 	"strings"
 	"text/template"
 
+	S "github.com/IBM/fp-go/v2/string"
 	C "github.com/urfave/cli/v2"
 )
 
@@ -439,7 +440,7 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 		return results
 	}
 
-	if typeName == "" || typeIdent == nil {
+	if S.IsEmpty(typeName) || typeIdent == nil {
 		return results
 	}
 
@@ -746,7 +747,7 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 			}
 		}
 
-		if packageName == "" {
+		if S.IsEmpty(packageName) {
 			packageName = pkg
 		}
 

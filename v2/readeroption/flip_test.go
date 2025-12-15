@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/option"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,7 +67,7 @@ func TestSequence(t *testing.T) {
 				return option.None[ReaderOption[Database, string]]()
 			}
 			return option.Some(func(db Database) option.Option[string] {
-				if db.ConnectionString == "" {
+				if S.IsEmpty(db.ConnectionString) {
 					return option.None[string]()
 				}
 				return option.Some(fmt.Sprintf("Query on %s with timeout %d",
@@ -126,7 +127,7 @@ func TestSequence(t *testing.T) {
 		// Original that returns None at inner level
 		original := func(x int) option.Option[ReaderOption[string, int]] {
 			return option.Some(func(s string) option.Option[int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return option.None[int]()
 				}
 				return option.Some(x + len(s))
@@ -210,7 +211,7 @@ func TestSequence(t *testing.T) {
 				return option.None[ReaderOption[Session, string]]()
 			}
 			return option.Some(func(session Session) option.Option[string] {
-				if session.Token == "" {
+				if S.IsEmpty(session.Token) {
 					return option.None[string]()
 				}
 				return option.Some(fmt.Sprintf("User %s (ID: %d) authenticated with token %s",
@@ -319,7 +320,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 				return option.None[ReaderOption[string, int]]()
 			}
 			return option.Some(func(s string) option.Option[int] {
-				if len(s) == 0 {
+				if S.IsEmpty(s) {
 					return option.None[int]()
 				}
 				return option.Some(x + len(s))

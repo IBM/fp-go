@@ -34,7 +34,7 @@ func TestOpen(t *testing.T) {
 		defer os.Remove(tmpPath)
 
 		// Write some content
-		err = os.WriteFile(tmpPath, []byte("test content"), 0644)
+		err = os.WriteFile(tmpPath, []byte("test content"), 0o644)
 		require.NoError(t, err)
 
 		// Test Open
@@ -127,7 +127,7 @@ func TestWriteFile(t *testing.T) {
 		testPath := filepath.Join(tmpDir, "write-test.txt")
 		testData := []byte("test data")
 
-		result := WriteFile(testPath, 0644)(testData)
+		result := WriteFile(testPath, 0o644)(testData)
 		returnedData, err := result()
 
 		assert.NoError(t, err)
@@ -141,7 +141,7 @@ func TestWriteFile(t *testing.T) {
 
 	t.Run("write to invalid path", func(t *testing.T) {
 		testData := []byte("test data")
-		result := WriteFile("/non/existent/dir/file.txt", 0644)(testData)
+		result := WriteFile("/non/existent/dir/file.txt", 0o644)(testData)
 		_, err := result()
 
 		assert.Error(t, err)
@@ -155,12 +155,12 @@ func TestWriteFile(t *testing.T) {
 		defer os.Remove(tmpPath)
 
 		// Write initial content
-		err = os.WriteFile(tmpPath, []byte("initial"), 0644)
+		err = os.WriteFile(tmpPath, []byte("initial"), 0o644)
 		require.NoError(t, err)
 
 		// Overwrite with new content
 		newData := []byte("overwritten")
-		result := WriteFile(tmpPath, 0644)(newData)
+		result := WriteFile(tmpPath, 0o644)(newData)
 		returnedData, err := result()
 
 		assert.NoError(t, err)
@@ -212,7 +212,7 @@ func TestClose(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify file is closed by attempting to write
-		_, writeErr := tmpFile.Write([]byte("test"))
+		_, writeErr := tmpFile.WriteString("test")
 		assert.Error(t, writeErr)
 	})
 

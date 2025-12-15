@@ -23,7 +23,7 @@ type magma[A any] struct {
 	c func(A, A) A
 }
 
-func (m magma[A]) Concat(x A, y A) A {
+func (m magma[A]) Concat(x, y A) A {
 	return m.c(x, y)
 }
 
@@ -37,14 +37,14 @@ func Reverse[A any](m Magma[A]) Magma[A] {
 	})
 }
 
-func filterFirst[A any](p func(A) bool, c func(A, A) A, x A, y A) A {
+func filterFirst[A any](p func(A) bool, c func(A, A) A, x, y A) A {
 	if p(x) {
 		return c(x, y)
 	}
 	return y
 }
 
-func filterSecond[A any](p func(A) bool, c func(A, A) A, x A, y A) A {
+func filterSecond[A any](p func(A) bool, c func(A, A) A, x, y A) A {
 	if p(y) {
 		return c(x, y)
 	}

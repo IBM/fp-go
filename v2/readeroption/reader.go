@@ -364,7 +364,7 @@ func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 //	result := readeroption.MonadAlt(primary, fallback)
 //
 //go:inline
-func MonadAlt[E, A any](fa ReaderOption[E, A], that ReaderOption[E, A]) ReaderOption[E, A] {
+func MonadAlt[E, A any](fa, that ReaderOption[E, A]) ReaderOption[E, A] {
 	return MonadFold(fa, that, Of[E, A])
 }
 

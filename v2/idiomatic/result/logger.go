@@ -21,7 +21,7 @@ import (
 	L "github.com/IBM/fp-go/v2/logging"
 )
 
-func _log[A any](left func(string, ...any), right func(string, ...any), prefix string) Operator[A, A] {
+func _log[A any](left, right func(string, ...any), prefix string) Operator[A, A] {
 	return func(a A, err error) (A, error) {
 		if err != nil {
 			left("%s: %v", prefix, err)

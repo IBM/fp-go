@@ -31,7 +31,7 @@ func (f *Flock) Conjoin(other *Flock) *Flock {
 }
 
 func (f *Flock) Breed(other *Flock) *Flock {
-	f.Seagulls = f.Seagulls * other.Seagulls
+	f.Seagulls *= other.Seagulls
 	return f
 }
 

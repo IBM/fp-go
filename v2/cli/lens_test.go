@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +61,7 @@ func TestHasLensAnnotation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var doc *ast.CommentGroup
-			if tt.comment != "" {
+			if S.IsNonEmpty(tt.comment) {
 				doc = &ast.CommentGroup{
 					List: []*ast.Comment{
 						{Text: tt.comment},
@@ -289,7 +290,7 @@ func TestHasOmitEmpty(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var tag *ast.BasicLit
-			if tt.tag != "" {
+			if S.IsNonEmpty(tt.tag) {
 				tag = &ast.BasicLit{
 					Value: tt.tag,
 				}
@@ -326,7 +327,7 @@ type Other struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -380,7 +381,7 @@ type Config struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -440,7 +441,7 @@ type TypeTest struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -542,7 +543,7 @@ type TestStruct struct {
 `
 
 	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Generate lens code
@@ -597,7 +598,7 @@ type TestStruct struct {
 `
 
 	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Generate lens code
@@ -639,7 +640,7 @@ type TestStruct struct {
 `
 
 	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Generate lens code (should not create file)
@@ -776,7 +777,7 @@ type Extended struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -824,7 +825,7 @@ type Person struct {
 `
 
 	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Generate lens code
@@ -880,7 +881,7 @@ type Document struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -922,7 +923,7 @@ type Container[T any] struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -960,7 +961,7 @@ type Pair[K comparable, V any] struct {
 }
 `
 
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Parse the file
@@ -998,7 +999,7 @@ type Box[T any] struct {
 `
 
 	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Generate lens code
@@ -1049,7 +1050,7 @@ type ComparableBox[T comparable] struct {
 `
 
 	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
 	// Generate lens code

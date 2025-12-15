@@ -66,8 +66,8 @@ func TestIso(t *testing.T) {
 	// iso
 	intIso := FromNillable[int]()
 
-	innerFromOuter := L.MakeLens((Outer).GetInner, (Outer).SetInner)
-	valueFromInner := L.MakeLens((Inner).GetValue, (Inner).SetValue)
+	innerFromOuter := L.MakeLens(Outer.GetInner, Outer.SetInner)
+	valueFromInner := L.MakeLens(Inner.GetValue, Inner.SetValue)
 
 	optValueFromInner := F.Pipe1(
 		valueFromInner,

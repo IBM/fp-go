@@ -192,7 +192,7 @@ func FromEither[E, A any](e Either[E, A]) IOOption[A] {
 }
 
 // MonadAlt identifies an associative operation on a type constructor
-func MonadAlt[A any](first IOOption[A], second IOOption[A]) IOOption[A] {
+func MonadAlt[A any](first, second IOOption[A]) IOOption[A] {
 	return optiont.MonadAlt(
 		io.MonadOf[Option[A]],
 		io.MonadChain[Option[A], Option[A]],

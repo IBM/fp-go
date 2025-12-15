@@ -106,7 +106,7 @@ func TestReadAll(t *testing.T) {
 			largeContent[i] = byte('A' + (i % 26))
 		}
 
-		err := os.WriteFile(testPath, largeContent, 0644)
+		err := os.WriteFile(testPath, largeContent, 0o644)
 		require.NoError(t, err)
 
 		result := ReadAll(Open(testPath))()

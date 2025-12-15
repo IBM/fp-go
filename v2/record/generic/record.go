@@ -230,7 +230,7 @@ func Has[M ~map[K]V, K comparable, V any](k K, r M) bool {
 	return ok
 }
 
-func union[M ~map[K]V, K comparable, V any](m Mg.Magma[V], left M, right M) M {
+func union[M ~map[K]V, K comparable, V any](m Mg.Magma[V], left, right M) M {
 	lenLeft := len(left)
 
 	if lenLeft == 0 {
@@ -261,7 +261,7 @@ func union[M ~map[K]V, K comparable, V any](m Mg.Magma[V], left M, right M) M {
 	return result
 }
 
-func unionLast[M ~map[K]V, K comparable, V any](left M, right M) M {
+func unionLast[M ~map[K]V, K comparable, V any](left, right M) M {
 	lenLeft := len(left)
 
 	if lenLeft == 0 {
@@ -526,7 +526,7 @@ func IsNonNil[M ~map[K]V, K comparable, V any](m M) bool {
 
 // ConstNil return a nil map
 func ConstNil[M ~map[K]V, K comparable, V any]() M {
-	return (M)(nil)
+	return M(nil)
 }
 
 func FoldMap[AS ~map[K]A, K comparable, A, B any](m Mo.Monoid[B]) func(func(A) B) func(AS) B {

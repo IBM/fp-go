@@ -45,7 +45,7 @@ func Requester(builder *R.Builder) IOEH.Requester {
 
 	withoutBody := F.Curry2(func(url string, method string) IOEither[*http.Request] {
 		return ioeither.TryCatchError(func() (*http.Request, error) {
-			req, err := http.NewRequest(method, url, nil)
+			req, err := http.NewRequest(method, url, http.NoBody)
 			if err == nil {
 				H.Monoid.Concat(req.Header, builder.GetHeaders())
 			}

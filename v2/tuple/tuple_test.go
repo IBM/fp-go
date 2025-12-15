@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/IBM/fp-go/v2/number"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/ord"
 	S "github.com/IBM/fp-go/v2/string"
@@ -241,7 +240,7 @@ func TestPush3(t *testing.T) {
 
 // Test Monoid functions
 func TestMonoid1(t *testing.T) {
-	m := Monoid1(number.MonoidSum[int]())
+	m := Monoid1(N.MonoidSum[int]())
 	t1 := MakeTuple1(5)
 	t2 := MakeTuple1(3)
 	result := m.Concat(t1, t2)
@@ -250,7 +249,7 @@ func TestMonoid1(t *testing.T) {
 }
 
 func TestMonoid2(t *testing.T) {
-	m := Monoid2(S.Monoid, number.MonoidSum[int]())
+	m := Monoid2(S.Monoid, N.MonoidSum[int]())
 	t1 := MakeTuple2("hello", 5)
 	t2 := MakeTuple2(" world", 3)
 	result := m.Concat(t1, t2)
@@ -259,7 +258,7 @@ func TestMonoid2(t *testing.T) {
 }
 
 func TestMonoid3(t *testing.T) {
-	m := Monoid3(S.Monoid, number.MonoidSum[int](), number.MonoidProduct[int]())
+	m := Monoid3(S.Monoid, N.MonoidSum[int](), N.MonoidProduct[int]())
 	t1 := MakeTuple3("a", 2, 3)
 	t2 := MakeTuple3("b", 4, 5)
 	result := m.Concat(t1, t2)
@@ -527,10 +526,10 @@ func TestPush5(t *testing.T) {
 // Test Monoid for larger tuples
 func TestMonoid4(t *testing.T) {
 	m := Monoid4(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple4(1, 2, 3, 4)
 	t2 := MakeTuple4(5, 6, 7, 8)
@@ -540,11 +539,11 @@ func TestMonoid4(t *testing.T) {
 
 func TestMonoid5(t *testing.T) {
 	m := Monoid5(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple5(1, 2, 3, 4, 5)
 	t2 := MakeTuple5(1, 1, 1, 1, 1)
@@ -1044,12 +1043,12 @@ func TestTuple10JSON(t *testing.T) {
 // Test Monoid for sizes 6-10
 func TestMonoid6(t *testing.T) {
 	m := Monoid6(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple6(1, 2, 3, 4, 5, 6)
 	t2 := MakeTuple6(1, 1, 1, 1, 1, 1)
@@ -1059,13 +1058,13 @@ func TestMonoid6(t *testing.T) {
 
 func TestMonoid7(t *testing.T) {
 	m := Monoid7(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple7(1, 2, 3, 4, 5, 6, 7)
 	t2 := MakeTuple7(1, 1, 1, 1, 1, 1, 1)
@@ -1075,14 +1074,14 @@ func TestMonoid7(t *testing.T) {
 
 func TestMonoid8(t *testing.T) {
 	m := Monoid8(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple8(1, 2, 3, 4, 5, 6, 7, 8)
 	t2 := MakeTuple8(1, 1, 1, 1, 1, 1, 1, 1)
@@ -1092,15 +1091,15 @@ func TestMonoid8(t *testing.T) {
 
 func TestMonoid9(t *testing.T) {
 	m := Monoid9(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple9(1, 2, 3, 4, 5, 6, 7, 8, 9)
 	t2 := MakeTuple9(1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -1110,16 +1109,16 @@ func TestMonoid9(t *testing.T) {
 
 func TestMonoid10(t *testing.T) {
 	m := Monoid10(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple10(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	t2 := MakeTuple10(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -1779,17 +1778,17 @@ func TestTuple15JSON(t *testing.T) {
 // Test Monoid for sizes 11-15
 func TestMonoid11(t *testing.T) {
 	m := Monoid11(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple11(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 	t2 := MakeTuple11(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -1799,18 +1798,18 @@ func TestMonoid11(t *testing.T) {
 
 func TestMonoid12(t *testing.T) {
 	m := Monoid12(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple12(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
 	t2 := MakeTuple12(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -1820,19 +1819,19 @@ func TestMonoid12(t *testing.T) {
 
 func TestMonoid13(t *testing.T) {
 	m := Monoid13(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple13(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
 	t2 := MakeTuple13(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -1842,20 +1841,20 @@ func TestMonoid13(t *testing.T) {
 
 func TestMonoid14(t *testing.T) {
 	m := Monoid14(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple14(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
 	t2 := MakeTuple14(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -1865,21 +1864,21 @@ func TestMonoid14(t *testing.T) {
 
 func TestMonoid15(t *testing.T) {
 	m := Monoid15(
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
-		number.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
+		N.MonoidSum[int](),
 	)
 	t1 := MakeTuple15(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
 	t2 := MakeTuple15(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
