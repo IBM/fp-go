@@ -137,7 +137,7 @@ func Bracket[
 	use Kleisli[A, B],
 	release func(A, B, error) ReaderResult[ANY],
 ) ReaderResult[B] {
-	return RR.Bracket(acquire, use, release)
+	return RR.Bracket(acquire, WithContextK(use), release)
 }
 
 // WithResource creates a higher-order function for resource management with automatic cleanup.
@@ -255,7 +255,7 @@ func WithResource[B, A, ANY any](
 	onCreate Lazy[ReaderResult[A]],
 	onRelease Kleisli[A, ANY],
 ) Kleisli[Kleisli[A, B], B] {
-	return RR.WithResource[B](onCreate, onRelease)
+	return WithContextK(RR.WithResource[B](onCreate, onRelease))
 }
 
 // onClose is a helper function that creates a ReaderResult that closes an io.Closer.

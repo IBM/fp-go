@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -646,7 +646,7 @@ func TestAltSemigroup(t *testing.T) {
 
 // Test AlternativeMonoid
 func TestAlternativeMonoid(t *testing.T) {
-	intAdd := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intAdd := N.MonoidSum[int]()
 	m := AlternativeMonoid[error](intAdd)
 
 	result := m.Concat(Right[error](1), Right[error](2))

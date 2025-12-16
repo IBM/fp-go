@@ -43,12 +43,6 @@ import (
 // Returns:
 //   - A ReaderResult[A] that ignores the context and returns the Result
 //
-// Example:
-//
-//	result := result.Of(42)
-//	rr := readerresult.FromEither(result)
-//	value, err := rr(ctx)  // Returns (42, nil)
-//
 //go:inline
 func FromEither[A any](e Result[A]) ReaderResult[A] {
 	return RR.FromEither[context.Context](e)
@@ -68,14 +62,6 @@ func FromEither[A any](e Result[A]) ReaderResult[A] {
 //
 // Returns:
 //   - A ReaderResult[A] that returns the given value and error
-//
-// Example:
-//
-//	rr := readerresult.FromResult(42, nil)
-//	value, err := rr(ctx)  // Returns (42, nil)
-//
-//	rr2 := readerresult.FromResult(0, errors.New("failed"))
-//	value, err := rr2(ctx)  // Returns (0, error)
 //
 //go:inline
 func FromResult[A any](a A, err error) ReaderResult[A] {
@@ -106,11 +92,6 @@ func LeftReader[A, R any](l Reader[context.Context, error]) ReaderResult[A] {
 // Returns:
 //   - A ReaderResult[A] that always fails with the given error
 //
-// Example:
-//
-//	rr := readerresult.Left[int](errors.New("failed"))
-//	value, err := rr(ctx)  // Returns (0, error)
-//
 //go:inline
 func Left[A any](err error) ReaderResult[A] {
 	return RR.Left[context.Context, A](err)
@@ -130,14 +111,9 @@ func Left[A any](err error) ReaderResult[A] {
 // Returns:
 //   - A ReaderResult[A] that always succeeds with the given value
 //
-// Example:
-//
-//	rr := readerresult.Right(42)
-//	value, err := rr(ctx)  // Returns (42, nil)
-//
 //go:inline
 func Right[A any](a A) ReaderResult[A] {
-	return RR.Right[context.Context, A](a)
+	return RR.Right[context.Context](a)
 }
 
 // FromReader lifts a Reader into a ReaderResult that always succeeds.
@@ -153,14 +129,6 @@ func Right[A any](a A) ReaderResult[A] {
 //
 // Returns:
 //   - A ReaderResult[A] that executes the Reader and always succeeds
-//
-// Example:
-//
-//	getConfig := func(ctx context.Context) Config {
-//	    return Config{Port: 8080}
-//	}
-//	rr := readerresult.FromReader(getConfig)
-//	value, err := rr(ctx)  // Returns (Config{Port: 8080}, nil)
 //
 //go:inline
 func FromReader[A any](r Reader[context.Context, A]) ReaderResult[A] {
@@ -183,14 +151,6 @@ func FromReader[A any](r Reader[context.Context, A]) ReaderResult[A] {
 // Returns:
 //   - A ReaderResult[B] with the transformed value
 //
-// Example:
-//
-//	rr := readerresult.Right(42)
-//	mapped := readerresult.MonadMap(rr, func(n int) string {
-//	    return fmt.Sprintf("Value: %d", n)
-//	})
-//	value, err := mapped(ctx)  // Returns ("Value: 42", nil)
-//
 //go:inline
 func MonadMap[A, B any](fa ReaderResult[A], f func(A) B) ReaderResult[B] {
 	return RR.MonadMap(fa, f)
@@ -209,18 +169,6 @@ func MonadMap[A, B any](fa ReaderResult[A], f func(A) B) ReaderResult[B] {
 //
 // Returns:
 //   - An Operator that transforms ReaderResult[A] to ReaderResult[B]
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	rr := readerresult.Right(42)
-//	result := F.Pipe1(
-//	    rr,
-//	    readerresult.Map(func(n int) string {
-//	        return fmt.Sprintf("Value: %d", n)
-//	    }),
-//	)
 //
 //go:inline
 func Map[A, B any](f func(A) B) Operator[A, B] {
@@ -244,18 +192,9 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 // Returns:
 //   - A ReaderResult[B] representing the sequenced computation
 //
-// Example:
-//
-//	getUser := readerresult.Right(User{ID: 1, Name: "Alice"})
-//	getPosts := func(user User) readerresult.ReaderResult[[]Post] {
-//	    return readerresult.Right([]Post{{UserID: user.ID}})
-//	}
-//	result := readerresult.MonadChain(getUser, getPosts)
-//	posts, err := result(ctx)
-//
 //go:inline
 func MonadChain[A, B any](ma ReaderResult[A], f Kleisli[A, B]) ReaderResult[B] {
-	return RR.MonadChain(ma, f)
+	return RR.MonadChain(ma, WithContextK(f))
 }
 
 // Chain is the curried version of MonadChain, useful for function composition.
@@ -272,20 +211,9 @@ func MonadChain[A, B any](ma ReaderResult[A], f Kleisli[A, B]) ReaderResult[B] {
 // Returns:
 //   - An Operator that chains ReaderResult computations
 //
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	result := F.Pipe1(
-//	    getUser(1),
-//	    readerresult.Chain(func(user User) readerresult.ReaderResult[[]Post] {
-//	        return getPosts(user.ID)
-//	    }),
-//	)
-//
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
-	return RR.Chain(f)
+	return RR.Chain(WithContextK(f))
 }
 
 // Of creates a ReaderResult that always succeeds with the given value.
@@ -302,14 +230,9 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 // Returns:
 //   - A ReaderResult[A] that always succeeds with the given value
 //
-// Example:
-//
-//	rr := readerresult.Of(42)
-//	value, err := rr(ctx)  // Returns (42, nil)
-//
 //go:inline
 func Of[A any](a A) ReaderResult[A] {
-	return RR.Of[context.Context, A](a)
+	return RR.Of[context.Context](a)
 }
 
 // MonadAp applies a function wrapped in a ReaderResult to a value wrapped in a ReaderResult.
@@ -426,7 +349,7 @@ func MonadAp[B, A any](fab ReaderResult[func(A) B], fa ReaderResult[A]) ReaderRe
 //	import F "github.com/IBM/fp-go/v2/function"
 //
 //	value := readerresult.Right(32)
-//	addTen := readerresult.Right(func(n int) int { return n + 10 })
+//	addTen := readerresult.Right(N.Add(10))
 //
 //	result := F.Pipe1(
 //	    addTen,
@@ -441,7 +364,7 @@ func Ap[B, A any](fa ReaderResult[A]) Operator[func(A) B, B] {
 
 //go:inline
 func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A] {
-	return RR.FromPredicate[context.Context](pred, onFalse)
+	return WithContextK(RR.FromPredicate[context.Context](pred, onFalse))
 }
 
 //go:inline
@@ -456,7 +379,7 @@ func GetOrElse[A any](onLeft reader.Kleisli[context.Context, error, A]) func(Rea
 
 //go:inline
 func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
-	return RR.OrElse(onLeft)
+	return RR.OrElse(WithContextK(onLeft))
 }
 
 //go:inline
@@ -471,11 +394,6 @@ func OrLeft[A any](onLeft reader.Kleisli[context.Context, error, error]) Operato
 //
 // Returns:
 //   - A ReaderResult[context.Context] that returns the environment
-//
-// Example:
-//
-//	rr := readerresult.Ask()
-//	ctx, err := rr(context.Background())  // Returns (context.Background(), nil)
 //
 //go:inline
 func Ask() ReaderResult[context.Context] {
@@ -496,16 +414,6 @@ func Ask() ReaderResult[context.Context] {
 // Returns:
 //   - A ReaderResult[A] that extracts and returns the value
 //
-// Example:
-//
-//	type key int
-//	const userKey key = 0
-//
-//	getUser := readerresult.Asks(func(ctx context.Context) User {
-//	    return ctx.Value(userKey).(User)
-//	})
-//	user, err := getUser(ctx)
-//
 //go:inline
 func Asks[A any](r Reader[context.Context, A]) ReaderResult[A] {
 	return RR.Asks(r)
@@ -513,12 +421,12 @@ func Asks[A any](r Reader[context.Context, A]) ReaderResult[A] {
 
 //go:inline
 func MonadChainEitherK[A, B any](ma ReaderResult[A], f RES.Kleisli[A, B]) ReaderResult[B] {
-	return RR.MonadChainEitherK[context.Context, A, B](ma, f)
+	return RR.MonadChainEitherK(ma, f)
 }
 
 //go:inline
 func ChainEitherK[A, B any](f RES.Kleisli[A, B]) Operator[A, B] {
-	return RR.ChainEitherK[context.Context, A, B](f)
+	return RR.ChainEitherK[context.Context](f)
 }
 
 //go:inline
@@ -550,12 +458,6 @@ func ChainOptionK[A, B any](onNone Lazy[error]) func(option.Kleisli[A, B]) Opera
 // Returns:
 //   - A flattened ReaderResult[A]
 //
-// Example:
-//
-//	nested := readerresult.Right(readerresult.Right(42))
-//	flattened := readerresult.Flatten(nested)
-//	value, err := flattened(ctx)  // Returns (42, nil)
-//
 //go:inline
 func Flatten[A any](mma ReaderResult[ReaderResult[A]]) ReaderResult[A] {
 	return RR.Flatten(mma)
@@ -584,15 +486,6 @@ func BiMap[A, B any](f Endomorphism[error], g func(A) B) Operator[A, B] {
 //
 // Returns:
 //   - A function that executes a ReaderResult[A] and returns (A, error)
-//
-// Example:
-//
-//	rr := readerresult.Right(42)
-//	execute := readerresult.Read[int](ctx)
-//	value, err := execute(rr)  // Returns (42, nil)
-//
-//	// Or more commonly used directly:
-//	value, err := rr(ctx)
 //
 //go:inline
 func Read[A any](ctx context.Context) func(ReaderResult[A]) (A, error) {
@@ -776,45 +669,6 @@ func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 //
 // Returns:
 //   - An Operator that runs the computation with a deadline
-//
-// Example:
-//
-//	import (
-//	    "time"
-//	    F "github.com/IBM/fp-go/v2/function"
-//	)
-//
-//	// Operation must complete by 3 PM
-//	deadline := time.Date(2024, 1, 1, 15, 0, 0, 0, time.UTC)
-//
-//	fetchData := readerresult.FromReader(func(ctx context.Context) Data {
-//	    // Simulate operation
-//	    select {
-//	    case <-time.After(1 * time.Hour):
-//	        return Data{Value: "done"}
-//	    case <-ctx.Done():
-//	        return Data{}
-//	    }
-//	})
-//
-//	result := F.Pipe1(
-//	    fetchData,
-//	    readerresult.WithDeadline[Data](deadline),
-//	)
-//	_, err := result(context.Background())  // Returns context.DeadlineExceeded if past deadline
-//
-// Combining with Parent Context:
-//
-//	// If parent context already has a deadline, the earlier one takes precedence
-//	parentCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
-//	defer cancel()
-//
-//	laterDeadline := time.Now().Add(2 * time.Hour)
-//	result := F.Pipe1(
-//	    fetchData,
-//	    readerresult.WithDeadline[Data](laterDeadline),
-//	)
-//	_, err := result(parentCtx)  // Will use parent's 1-hour deadline
 func WithDeadline[A any](deadline time.Time) Operator[A, A] {
 	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
 		return context.WithDeadline(ctx, deadline)

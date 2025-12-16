@@ -971,3 +971,69 @@ func ParseFloat32() Prism[string, float32] {
 func ParseFloat64() Prism[string, float64] {
 	return MakePrismWithName(getFromEither(atof64), f64toa, "PrismParseFloat64")
 }
+
+// FromOption creates a prism for extracting values from Option types.
+// It provides a safe way to work with Option values, focusing on the Some case
+// and handling the None case gracefully through the prism's GetOption behavior.
+//
+// The prism's GetOption is the identity function - it returns the Option as-is.
+// If the Option is Some(value), GetOption returns Some(value); if it's None, it returns None.
+// This allows the prism to naturally handle the presence or absence of a value.
+//
+// The prism's ReverseGet wraps a value into Some, always succeeding.
+//
+// Type Parameters:
+//   - T: The value type contained in the Option
+//
+// Returns:
+//   - A Prism[Option[T], T] that safely extracts values from Options
+//
+// Example:
+//
+//	// Create a prism for extracting int values from Option[int]
+//	optPrism := FromOption[int]()
+//
+//	// Extract from Some
+//	someValue := option.Some(42)
+//	result := optPrism.GetOption(someValue)  // Some(42)
+//
+//	// Extract from None
+//	noneValue := option.None[int]()
+//	result = optPrism.GetOption(noneValue)  // None[int]()
+//
+//	// Wrap value into Some
+//	wrapped := optPrism.ReverseGet(100)  // Some(100)
+//
+//	// Use with Set to update Some values
+//	setter := Set[Option[int], int](200)
+//	result := setter(optPrism)(someValue)  // Some(200)
+//	result = setter(optPrism)(noneValue)   // None[int]() (unchanged)
+//
+//	// Compose with other prisms for nested extraction
+//	// Extract int from Option[Option[int]]
+//	nestedPrism := Compose[Option[Option[int]], Option[int], int](
+//	    FromOption[Option[int]](),
+//	    FromOption[int](),
+//	)
+//	nested := option.Some(option.Some(42))
+//	value := nestedPrism.GetOption(nested)  // Some(42)
+//
+// Common use cases:
+//   - Extracting values from optional fields
+//   - Working with nullable data in a type-safe way
+//   - Composing with other prisms to handle nested Options
+//   - Filtering and transforming optional values in pipelines
+//   - Converting between Option and other optional representations
+//
+// Key insight: This prism treats Option[T] as a "container" that may or may not
+// hold a value of type T. The prism focuses on the value inside, allowing you to
+// work with it when present and gracefully handle its absence when not.
+//
+//go:inline
+func FromOption[T any]() Prism[Option[T], T] {
+	return MakePrismWithName(
+		F.Identity[Option[T]],
+		option.Some[T],
+		"PrismFromOption",
+	)
+}

@@ -25,6 +25,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	TST "github.com/IBM/fp-go/v2/internal/testing"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -163,7 +164,7 @@ func TestMonadReduceArrayM(t *testing.T) {
 		Of[Config](15),
 	}
 
-	intAddMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intAddMonoid := N.MonoidSum[int]()
 	r := MonadReduceArrayM(readers, intAddMonoid)
 	res := r(config)()
 
@@ -181,7 +182,7 @@ func TestMonadReduceArrayMWithError(t *testing.T) {
 		Of[Config](15),
 	}
 
-	intAddMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intAddMonoid := N.MonoidSum[int]()
 	r := MonadReduceArrayM(readers, intAddMonoid)
 	res := r(config)()
 
@@ -316,7 +317,7 @@ func TestMonadTraverseReduceArrayM(t *testing.T) {
 		return Of[Config](n + 100)
 	}
 
-	intSumMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intSumMonoid := N.MonoidSum[int]()
 	r := MonadTraverseReduceArrayM(numbers, addOffset, intSumMonoid)
 	res := r(config)()
 
@@ -336,7 +337,7 @@ func TestMonadTraverseReduceArrayMWithError(t *testing.T) {
 		return Of[Config](n + 100)
 	}
 
-	intSumMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intSumMonoid := N.MonoidSum[int]()
 	r := MonadTraverseReduceArrayM(numbers, addOffset, intSumMonoid)
 	res := r(config)()
 

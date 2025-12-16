@@ -184,7 +184,7 @@ func TestStringFormat(t *testing.T) {
 
 // // Test Semigroup
 // func TestSemigroup(t *testing.T) {
-// 	intSemigroup := S.MakeSemigroup(func(a, b int) int { return a + b })
+// 	intSemigroup := N.MonoidSum[int]()
 // 	optSemigroup := Semigroup[int]()(intSemigroup)
 
 // 	AssertEq(Some(5), optSemigroup.Concat(Some(2), Some(3)))
@@ -195,7 +195,7 @@ func TestStringFormat(t *testing.T) {
 
 // // Test Monoid
 // func TestMonoid(t *testing.T) {
-// 	intSemigroup := S.MakeSemigroup(func(a, b int) int { return a + b })
+// 	intSemigroup := N.MonoidSum[int]()
 // 	optMonoid := Monoid[int]()(intSemigroup)
 
 // 	AssertEq(Some(5), optMonoid.Concat(Some(2), Some(3)))
@@ -204,7 +204,7 @@ func TestStringFormat(t *testing.T) {
 
 // // Test ApplySemigroup
 // func TestApplySemigroup(t *testing.T) {
-// 	intSemigroup := S.MakeSemigroup(func(a, b int) int { return a + b })
+// 	intSemigroup := N.MonoidSum[int]()
 // 	optSemigroup := ApplySemigroup(intSemigroup)
 
 // 	AssertEq(Some(5), optSemigroup.Concat(Some(2), Some(3)))
@@ -213,7 +213,7 @@ func TestStringFormat(t *testing.T) {
 
 // // Test ApplicativeMonoid
 // func TestApplicativeMonoid(t *testing.T) {
-// 	intMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+// 	intMonoid := N.MonoidSum[int]()
 // 	optMonoid := ApplicativeMonoid(intMonoid)
 
 // 	AssertEq(Some(5), optMonoid.Concat(Some(2), Some(3)))
@@ -222,7 +222,7 @@ func TestStringFormat(t *testing.T) {
 
 // // Test AlternativeMonoid
 // func TestAlternativeMonoid(t *testing.T) {
-// 	intMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+// 	intMonoid := N.MonoidSum[int]()
 // 	optMonoid := AlternativeMonoid(intMonoid)
 
 // 	// AlternativeMonoid uses applicative semantics, so it combines values

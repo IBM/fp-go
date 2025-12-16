@@ -13,7 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Lens is an optic used to zoom inside a product.
+// Package lens provides functional optics for zooming into and updating parts of immutable data structures.
+//
+// A lens is a composable, first-class reference to a subpart of a data structure that enables
+// getting and setting values in a purely functional way without mutation.
 package lens
 
 import (
@@ -52,25 +55,27 @@ type (
 	// 3. SetSet (Setting twice is the same as setting once):
 	//    lens.Set(a2)(lens.Set(a1)(s)) == lens.Set(a2)(s)
 	//
-	// Example:
+	// Example Usage:
 	//
 	//	type Person struct {
 	//	    Name string
 	//	    Age  int
 	//	}
 	//
+	//	// Create a lens focusing on the Name field
 	//	nameLens := lens.MakeLens(
 	//	    func(p Person) string { return p.Name },
-	//	    func(p Person, name string) Person {
-	//	        p.Name = name
-	//	        return p
+	//	    func(name string) func(Person) Person {
+	//	        return func(p Person) Person {
+	//	            return Person{Name: name, Age: p.Age}
+	//	        }
 	//	    },
 	//	)
 	//
 	//	person := Person{Name: "Alice", Age: 30}
-	//	name := nameLens.Get(person)           // "Alice"
-	//	updated := nameLens.Set("Bob")(person) // Person{Name: "Bob", Age: 30}
-	//	// person is unchanged, updated is a new value
+	//	name := nameLens.Get(person)           // Returns: "Alice"
+	//	updated := nameLens.Set("Bob")(person) // Returns: Person{Name: "Bob", Age: 30}
+	//	// Original person remains unchanged (immutability preserved)
 	Lens[S, A any] struct {
 		// Get extracts the focused value of type A from structure S.
 		Get func(s S) A
@@ -79,8 +84,27 @@ type (
 		// The returned function takes a structure S and returns a new structure S
 		// with the focused value updated to a. The original structure is never modified.
 		Set func(a A) Endomorphism[S]
+
+		// name is an end user facing identifier for the lens
+		name string
 	}
 
-	Kleisli[S, A, B any]  = func(A) Lens[S, B]
+	// Kleisli represents a function that takes a value of type A and returns a Lens[S, B].
+	// This is useful for composing lenses in a monadic style, allowing for dynamic lens creation
+	// based on input values.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type
+	//   - A: The input type
+	//   - B: The focus type of the resulting lens
+	Kleisli[S, A, B any] = func(A) Lens[S, B]
+
+	// Operator is a specialized Kleisli that takes a Lens[S, A] and returns a Lens[S, B].
+	// This enables lens transformations and compositions where one lens is used to derive another.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type
+	//   - A: The focus type of the input lens
+	//   - B: The focus type of the resulting lens
 	Operator[S, A, B any] = Kleisli[S, Lens[S, A], B]
 )

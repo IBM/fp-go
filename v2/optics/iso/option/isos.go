@@ -19,6 +19,7 @@
 package option
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/option"
 )
@@ -78,6 +79,6 @@ func FromZero[T comparable]() iso.Iso[T, option.Option[T]] {
 	var zero T
 	return iso.MakeIso(
 		option.FromPredicate(func(t T) bool { return t != zero }),
-		option.GetOrElse(func() T { return zero }),
+		option.GetOrElse(F.Constant(zero)),
 	)
 }

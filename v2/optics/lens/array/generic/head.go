@@ -26,7 +26,7 @@ import (
 // - if the new value is some and the array is empty, it creates a new array with one element
 // - if the new value is some and the array is not empty, it replaces the head
 func AtHead[AS []A, A any]() L.Lens[AS, O.Option[A]] {
-	return L.MakeLens(AA.Head[AS, A], func(as AS, a O.Option[A]) AS {
+	return L.MakeLensWithName(AA.Head[AS, A], func(as AS, a O.Option[A]) AS {
 		return O.MonadFold(a, AA.Empty[AS], func(v A) AS {
 			if AA.IsEmpty(as) {
 				return AA.Of[AS](v)
@@ -35,5 +35,5 @@ func AtHead[AS []A, A any]() L.Lens[AS, O.Option[A]] {
 			cpy[0] = v
 			return cpy
 		})
-	})
+	}, "Head")
 }

@@ -20,6 +20,7 @@ import (
 
 	RR "github.com/IBM/fp-go/v2/idiomatic/readerresult"
 	"github.com/IBM/fp-go/v2/idiomatic/result"
+	AP "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/reader"
@@ -40,33 +41,6 @@ import (
 //
 // Returns:
 //   - A ReaderResult[S] containing the initial state
-//
-// Example:
-//
-//	type State struct {
-//	    User  User
-//	    Posts []Post
-//	}
-//
-//	result := F.Pipe2(
-//	    readerresult.Do(State{}),
-//	    readerresult.Bind(
-//	        func(u User) func(State) State {
-//	            return func(s State) State { s.User = u; return s }
-//	        },
-//	        func(s State) readerresult.ReaderResult[User] {
-//	            return getUser(42)
-//	        },
-//	    ),
-//	    readerresult.Bind(
-//	        func(posts []Post) func(State) State {
-//	            return func(s State) State { s.Posts = posts; return s }
-//	        },
-//	        func(s State) readerresult.ReaderResult[[]Post] {
-//	            return getPosts(s.User.ID)
-//	        },
-//	    ),
-//	)
 //
 //go:inline
 func Do[S any](
@@ -92,17 +66,6 @@ func Do[S any](
 // Returns:
 //   - An Operator that transforms ReaderResult[S1] to ReaderResult[S2]
 //
-// Example:
-//
-//	readerresult.Bind(
-//	    func(user User) func(State) State {
-//	        return func(s State) State { s.User = user; return s }
-//	    },
-//	    func(s State) readerresult.ReaderResult[User] {
-//	        return getUser(s.UserID)
-//	    },
-//	)
-//
 //go:inline
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
@@ -112,7 +75,7 @@ func Bind[S1, S2, T any](
 		Chain[S1, S2],
 		Map[T, S2],
 		setter,
-		f,
+		WithContextK(f),
 	)
 }
 
@@ -133,17 +96,6 @@ func Bind[S1, S2, T any](
 //
 // Returns:
 //   - An Operator that transforms ReaderResult[S1] to ReaderResult[S2]
-//
-// Example:
-//
-//	readerresult.Let(
-//	    func(fullName string) func(State) State {
-//	        return func(s State) State { s.FullName = fullName; return s }
-//	    },
-//	    func(s State) string {
-//	        return s.FirstName + " " + s.LastName
-//	    },
-//	)
 //
 //go:inline
 func Let[S1, S2, T any](
@@ -170,15 +122,6 @@ func Let[S1, S2, T any](
 // Returns:
 //   - An Operator that transforms ReaderResult[S1] to ReaderResult[S2]
 //
-// Example:
-//
-//	readerresult.LetTo(
-//	    func(status string) func(State) State {
-//	        return func(s State) State { s.Status = status; return s }
-//	    },
-//	    "active",
-//	)
-//
 //go:inline
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
@@ -202,19 +145,6 @@ func LetTo[S1, S2, T any](
 // Returns:
 //   - An Operator that transforms ReaderResult[T] to ReaderResult[S1]
 //
-// Example:
-//
-//	type State struct {
-//	    User User
-//	}
-//
-//	result := F.Pipe1(
-//	    getUser(42),
-//	    readerresult.BindTo(func(u User) State {
-//	        return State{User: u}
-//	    }),
-//	)
-//
 //go:inline
 func BindTo[S1, T any](
 	setter func(T) S1,
@@ -227,7 +157,12 @@ func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderResult[T],
 ) Operator[S1, S2] {
-	return RR.ApS[context.Context](setter, fa)
+	return AP.ApS(
+		Ap[S2, T],
+		Map[S1, func(T) S2],
+		setter,
+		fa,
+	)
 }
 
 //go:inline
@@ -235,7 +170,7 @@ func ApSL[S, T any](
 	lens L.Lens[S, T],
 	fa ReaderResult[T],
 ) Operator[S, S] {
-	return ApSL(lens, fa)
+	return ApS(lens.Set, fa)
 }
 
 //go:inline
@@ -243,7 +178,7 @@ func BindL[S, T any](
 	lens L.Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return RR.BindL(lens, f)
+	return RR.BindL(lens, WithContextK(f))
 }
 
 //go:inline

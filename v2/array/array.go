@@ -536,3 +536,89 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 func Prepend[A any](head A) Operator[A, A] {
 	return G.Prepend[Operator[A, A]](head)
 }
+
+// Reverse returns a new slice with elements in reverse order.
+// This function creates a new slice containing all elements from the input slice
+// in reverse order, without modifying the original slice.
+//
+// Type Parameters:
+//   - A: The type of elements in the slice
+//
+// Parameters:
+//   - as: The input slice to reverse
+//
+// Returns:
+//   - A new slice with elements in reverse order
+//
+// Behavior:
+//   - Creates a new slice with the same length as the input
+//   - Copies elements from the input slice in reverse order
+//   - Does not modify the original slice
+//   - Returns an empty slice if the input is empty
+//   - Returns a single-element slice unchanged if input has one element
+//
+// Example:
+//
+//	numbers := []int{1, 2, 3, 4, 5}
+//	reversed := array.Reverse(numbers)
+//	// reversed: []int{5, 4, 3, 2, 1}
+//	// numbers: []int{1, 2, 3, 4, 5} (unchanged)
+//
+// Example with strings:
+//
+//	words := []string{"hello", "world", "foo", "bar"}
+//	reversed := array.Reverse(words)
+//	// reversed: []string{"bar", "foo", "world", "hello"}
+//
+// Example with empty slice:
+//
+//	empty := []int{}
+//	reversed := array.Reverse(empty)
+//	// reversed: []int{} (empty slice)
+//
+// Example with single element:
+//
+//	single := []string{"only"}
+//	reversed := array.Reverse(single)
+//	// reversed: []string{"only"}
+//
+// Use cases:
+//   - Reversing the order of elements for display or processing
+//   - Implementing stack-like behavior (LIFO)
+//   - Processing data in reverse chronological order
+//   - Reversing transformation pipelines
+//   - Creating palindrome checks
+//   - Implementing undo/redo functionality
+//
+// Example with processing in reverse:
+//
+//	events := []string{"start", "middle", "end"}
+//	reversed := array.Reverse(events)
+//	// Process events in reverse order
+//	for _, event := range reversed {
+//	    fmt.Println(event) // Prints: "end", "middle", "start"
+//	}
+//
+// Example with functional composition:
+//
+//	numbers := []int{1, 2, 3, 4, 5}
+//	result := F.Pipe2(
+//	    numbers,
+//	    array.Map(N.Mul(2)),
+//	    array.Reverse,
+//	)
+//	// result: []int{10, 8, 6, 4, 2}
+//
+// Performance:
+//   - Time complexity: O(n) where n is the length of the slice
+//   - Space complexity: O(n) for the new slice
+//   - Does not allocate if the input slice is empty
+//
+// Note: This function is immutable - it does not modify the original slice.
+// If you need to reverse a slice in-place, consider using a different approach
+// or modifying the slice directly.
+//
+//go:inline
+func Reverse[A any](as []A) []A {
+	return G.Reverse(as)
+}

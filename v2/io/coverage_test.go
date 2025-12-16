@@ -22,10 +22,8 @@ import (
 	"time"
 
 	F "github.com/IBM/fp-go/v2/function"
-	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/pair"
-	S "github.com/IBM/fp-go/v2/semigroup"
 	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
@@ -330,7 +328,7 @@ func TestPrintf(t *testing.T) {
 
 // Test ApplySemigroup
 func TestApplySemigroup(t *testing.T) {
-	intAdd := S.MakeSemigroup(func(a, b int) int { return a + b })
+	intAdd := N.MonoidSum[int]()
 	ioSemigroup := ApplySemigroup(intAdd)
 
 	result := ioSemigroup.Concat(Of(10), Of(32))
@@ -339,7 +337,7 @@ func TestApplySemigroup(t *testing.T) {
 
 // Test ApplicativeMonoid
 func TestApplicativeMonoid(t *testing.T) {
-	intAdd := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intAdd := N.MonoidSum[int]()
 	ioMonoid := ApplicativeMonoid(intAdd)
 
 	result := ioMonoid.Concat(Of(10), Of(32))

@@ -22,6 +22,7 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -140,7 +141,7 @@ func TestMonadReduceArrayM(t *testing.T) {
 		Asks(func(c Config) int { return c.Factor * 3 }),
 	}
 
-	intAddMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intAddMonoid := N.MonoidSum[int]()
 
 	r := MonadReduceArrayM(readers, intAddMonoid)
 	result := r(config)
@@ -209,7 +210,7 @@ func TestMonadTraverseReduceArrayM(t *testing.T) {
 		return Asks(func(c Config) int { return n + c.Offset })
 	}
 
-	intSumMonoid := M.MakeMonoid(func(a, b int) int { return a + b }, 0)
+	intSumMonoid := N.MonoidSum[int]()
 
 	r := MonadTraverseReduceArrayM(numbers, addOffset, intSumMonoid)
 	result := r(config)

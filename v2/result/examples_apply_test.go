@@ -13,22 +13,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lens
+package result_test
 
 import (
 	"fmt"
 
-	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	N "github.com/IBM/fp-go/v2/number"
+	R "github.com/IBM/fp-go/v2/result"
 )
 
-// IsoAsLens converts an `Iso` to a `Lens`
-func IsoAsLens[S, A any](sa Iso[S, A]) Lens[S, A] {
-	return L.MakeLensCurriedWithName(sa.Get, F.Flow2(sa.ReverseGet, F.Flow2(F.Constant1[S, S], EM.Of[func(S) S])), fmt.Sprintf("FromIso[%s]", sa))
+func ExampleApplySemigroup() {
+	intAdd := N.MonoidSum[int]()
+	eitherSemi := R.ApplySemigroup(intAdd)
+	result := eitherSemi.Concat(R.Of(2), R.Of(3))
+	fmt.Println(R.GetOrElse(F.Constant1[error](0))(result))
+	// Output:
+	// 5
 }
 
-// IsoAsLensRef converts an `Iso` to a `Lens`
-func IsoAsLensRef[S, A any](sa Iso[*S, A]) Lens[*S, A] {
-	return L.MakeLensRefCurriedWithName(sa.Get, F.Flow2(sa.ReverseGet, F.Flow2(F.Constant1[*S, *S], EM.Of[func(*S) *S])), fmt.Sprintf("FromIso[%s]", sa))
+func ExampleApplicativeMonoid() {
+	intAddMonoid := N.MonoidSum[int]()
+	eitherMon := R.ApplicativeMonoid(intAddMonoid)
+	empty := eitherMon.Empty()
+	fmt.Println(R.GetOrElse(F.Constant1[error](0))(empty))
+	// Output:
+	// 0
 }

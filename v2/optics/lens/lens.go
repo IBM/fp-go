@@ -129,8 +129,56 @@ func setCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(A)
 //	person := Person{Name: "Alice", Age: 30}
 //	name := nameLens.Get(person)           // "Alice"
 //	updated := nameLens.Set("Bob")(person) // Person{Name: "Bob", Age: 30}
+//
+//go:inline
 func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Lens[S, A] {
 	return MakeLensCurried(get, F.Bind2of2(set))
+}
+
+// MakeLensWithName creates a [Lens] with a custom name for debugging and logging.
+//
+// This is identical to [MakeLens] but allows you to specify a name that will be used
+// when the lens is printed or formatted. The name is useful for debugging complex lens
+// compositions and understanding which lens is being used in error messages or logs.
+//
+// The setter must create a (shallow) copy of the data structure. This happens automatically
+// when the data is passed by value. For pointer-based structures, use [MakeLensRef] instead.
+//
+// Type Parameters:
+//   - GET: Getter function type (S → A)
+//   - SET: Setter function type (S, A → S)
+//   - S: Source structure type
+//   - A: Focus/field type
+//
+// Parameters:
+//   - get: Function to extract value A from structure S
+//   - set: Function to update value A in structure S, returning a new S
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[S, A] with the specified name
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLensWithName(
+//	    func(p Person) string { return p.Name },
+//	    func(p Person, name string) Person {
+//	        p.Name = name
+//	        return p
+//	    },
+//	    "Person.Name",
+//	)
+//
+//	fmt.Printf("Using lens: %s\n", nameLens)  // Prints: "Using lens: Person.Name"
+//
+//go:inline
+func MakeLensWithName[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET, name string) Lens[S, A] {
+	return MakeLensCurriedWithName(get, F.Bind2of2(set), name)
 }
 
 // MakeLensCurried creates a [Lens] with a curried setter F.
@@ -165,8 +213,58 @@ func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Len
 //	        }
 //	    },
 //	)
+//
+//go:inline
 func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET) Lens[S, A] {
-	return Lens[S, A]{Get: get, Set: set}
+	return MakeLensCurriedWithName(get, set, "Lens")
+}
+
+// MakeLensCurriedWithName creates a [Lens] with a curried setter and a custom name.
+//
+// This combines the benefits of [MakeLensCurried] (curried setter for better composition)
+// with [MakeLensWithName] (custom name for debugging). The name is useful for debugging
+// complex lens compositions and understanding which lens is being used in error messages or logs.
+//
+// The setter must create a (shallow) copy of the data structure. This happens automatically
+// when the data is passed by value. For pointer-based structures, use [MakeLensRefCurried].
+//
+// Type Parameters:
+//   - GET: Getter function type (S → A)
+//   - SET: Curried setter function type (A → S → S)
+//   - S: Source structure type
+//   - A: Focus/field type
+//
+// Parameters:
+//   - get: Function to extract value A from structure S
+//   - set: Curried function to update value A in structure S
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[S, A] with the specified name
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLensCurriedWithName(
+//	    func(p Person) string { return p.Name },
+//	    func(name string) func(Person) Person {
+//	        return func(p Person) Person {
+//	            p.Name = name
+//	            return p
+//	        }
+//	    },
+//	    "Person.Name",
+//	)
+//
+//	fmt.Printf("Using lens: %s\n", nameLens)  // Prints: "Using lens: Person.Name"
+//
+//go:inline
+func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET, name string) Lens[S, A] {
+	return Lens[S, A]{Get: get, Set: set, name: name}
 }
 
 // MakeLensRef creates a [Lens] for pointer-based structures.
@@ -208,8 +306,60 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 //	person := &Person{Name: "Alice", Age: 30}
 //	updated := nameLens.Set("Bob")(person)
 //	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+//
+//go:inline
 func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET) Lens[*S, A] {
 	return MakeLens(get, setCopy(set))
+}
+
+// MakeLensRefWithName creates a [Lens] for pointer-based structures with a custom name.
+//
+// This combines [MakeLensRef] (automatic copying for pointer structures) with
+// [MakeLensWithName] (custom name for debugging). The setter does not need to create
+// a copy manually; this function automatically wraps it to ensure immutability.
+// The name is useful for debugging complex lens compositions and understanding which
+// lens is being used in error messages or logs.
+//
+// This lens assumes that property A always exists in structure S (i.e., it's not optional).
+//
+// Type Parameters:
+//   - GET: Getter function type (*S → A)
+//   - SET: Setter function type (*S, A → *S)
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type
+//
+// Parameters:
+//   - get: Function to extract value A from pointer *S
+//   - set: Function to update value A in pointer *S (copying handled automatically)
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[*S, A] with the specified name
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLensRefWithName(
+//	    func(p *Person) string { return p.Name },
+//	    func(p *Person, name string) *Person {
+//	        p.Name = name  // No manual copy needed
+//	        return p
+//	    },
+//	    "Person.Name",
+//	)
+//
+//	person := &Person{Name: "Alice", Age: 30}
+//	fmt.Printf("Using lens: %s\n", nameLens)  // Prints: "Using lens: Person.Name"
+//	updated := nameLens.Set("Bob")(person)
+//	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+//
+//go:inline
+func MakeLensRefWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET, name string) Lens[*S, A] {
+	return MakeLensWithName(get, setCopy(set), name)
 }
 
 // MakeLensWithEq creates a [Lens] for pointer-based structures with equality optimization.
@@ -263,8 +413,67 @@ func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET
 //	// Setting a different value creates a new copy
 //	updated := nameLens.Set("Bob")(person)
 //	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+//
+//go:inline
 func MakeLensWithEq[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A], get GET, set SET) Lens[*S, A] {
 	return MakeLens(get, setCopyWithEq(pred, get, set))
+}
+
+// MakeLensWithEqWithName creates a [Lens] for pointer-based structures with equality optimization and a custom name.
+//
+// This combines [MakeLensWithEq] (equality optimization) with [MakeLensWithName] (custom name for debugging).
+// If the new value equals the current value (according to the provided Eq predicate), the original pointer
+// is returned unchanged instead of creating a copy. The name is useful for debugging complex lens compositions.
+//
+// The setter does not need to create a copy manually; this function automatically wraps it
+// to ensure immutability when changes are made.
+//
+// This lens assumes that property A always exists in structure S (i.e., it's not optional).
+//
+// Type Parameters:
+//   - GET: Getter function type (*S → A)
+//   - SET: Setter function type (*S, A → *S)
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type
+//
+// Parameters:
+//   - pred: Equality predicate to compare values of type A
+//   - get: Function to extract value A from pointer *S
+//   - set: Function to update value A in pointer *S (copying handled automatically)
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[*S, A] with equality optimization and the specified name
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLensWithEqWithName(
+//	    eq.FromStrictEquals[string](),
+//	    func(p *Person) string { return p.Name },
+//	    func(p *Person, name string) *Person {
+//	        p.Name = name  // No manual copy needed
+//	        return p
+//	    },
+//	    "Person.Name",
+//	)
+//
+//	person := &Person{Name: "Alice", Age: 30}
+//	fmt.Printf("Using lens: %s\n", nameLens)  // Prints: "Using lens: Person.Name"
+//
+//	// Setting the same value returns the original pointer (no copy)
+//	same := nameLens.Set("Alice")(person)  // same == person
+//
+//	// Setting a different value creates a new copy
+//	updated := nameLens.Set("Bob")(person)  // person.Name still "Alice"
+//
+//go:inline
+func MakeLensWithEqWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A], get GET, set SET, name string) Lens[*S, A] {
+	return MakeLensWithName(get, setCopyWithEq(pred, get, set), name)
 }
 
 // MakeLensStrict creates a [Lens] for pointer-based structures with strict equality optimization.
@@ -317,8 +526,67 @@ func MakeLensWithEq[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A]
 //	// Setting a different value creates a new copy
 //	updated := nameLens.Set("Bob")(person)
 //	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+//
+//go:inline
 func MakeLensStrict[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](get GET, set SET) Lens[*S, A] {
 	return MakeLensWithEq(EQ.FromStrictEquals[A](), get, set)
+}
+
+// MakeLensStrictWithName creates a [Lens] for pointer-based structures with strict equality optimization and a custom name.
+//
+// This combines [MakeLensStrict] (strict equality optimization using ==) with [MakeLensWithName]
+// (custom name for debugging). It's a convenience function suitable for comparable types
+// (primitives, strings, pointers, etc.). If the new value equals the current value, the original
+// pointer is returned unchanged instead of creating a copy. The name is useful for debugging.
+//
+// The setter does not need to create a copy manually; this function automatically wraps it
+// to ensure immutability when changes are made.
+//
+// This lens assumes that property A always exists in structure S (i.e., it's not optional).
+//
+// Type Parameters:
+//   - GET: Getter function type (*S → A)
+//   - SET: Setter function type (*S, A → *S)
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type (must be comparable)
+//
+// Parameters:
+//   - get: Function to extract value A from pointer *S
+//   - set: Function to update value A in pointer *S (copying handled automatically)
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[*S, A] with strict equality optimization and the specified name
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	// Using MakeLensStrictWithName for a string field (comparable type)
+//	nameLens := lens.MakeLensStrictWithName(
+//	    func(p *Person) string { return p.Name },
+//	    func(p *Person, name string) *Person {
+//	        p.Name = name  // No manual copy needed
+//	        return p
+//	    },
+//	    "Person.Name",
+//	)
+//
+//	person := &Person{Name: "Alice", Age: 30}
+//	fmt.Printf("Using lens: %s\n", nameLens)  // Prints: "Using lens: Person.Name"
+//
+//	// Setting the same value returns the original pointer (no copy)
+//	same := nameLens.Set("Alice")(person)  // same == person
+//
+//	// Setting a different value creates a new copy
+//	updated := nameLens.Set("Bob")(person)  // person.Name still "Alice"
+//
+//go:inline
+func MakeLensStrictWithName[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](get GET, set SET, name string) Lens[*S, A] {
+	return MakeLensWithEqWithName(EQ.FromStrictEquals[A](), get, set, name)
 }
 
 // MakeLensRefCurried creates a [Lens] for pointer-based structures with a curried setter.
@@ -351,13 +619,64 @@ func MakeLensStrict[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](ge
 //	        }
 //	    },
 //	)
+//
+//go:inline
 func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) Endomorphism[*S]) Lens[*S, A] {
 	return MakeLensCurried(get, setCopyCurried(set))
 }
 
+// MakeLensRefCurriedWithName creates a [Lens] for pointer-based structures with a curried setter and custom name.
+//
+// This combines the benefits of [MakeLensRefCurried] (automatic copying with curried setter)
+// with [MakeLensWithName] (custom name for debugging). The setter does not need to create
+// a copy manually; this function automatically wraps it to ensure immutability. The curried
+// form is more composable in functional pipelines, and the name is useful for debugging.
+//
+// This lens assumes that property A always exists in structure S (i.e., it's not optional).
+//
+// Type Parameters:
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type
+//
+// Parameters:
+//   - get: Function to extract value A from pointer *S
+//   - set: Curried function to update value A in pointer *S (copying handled automatically)
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[*S, A] with the specified name
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLensRefCurriedWithName(
+//	    func(p *Person) string { return p.Name },
+//	    func(name string) func(*Person) *Person {
+//	        return func(p *Person) *Person {
+//	            p.Name = name  // No manual copy needed
+//	            return p
+//	        }
+//	    },
+//	    "Person.Name",
+//	)
+//
+//	person := &Person{Name: "Alice", Age: 30}
+//	fmt.Printf("Using lens: %s\n", nameLens)  // Prints: "Using lens: Person.Name"
+//	updated := nameLens.Set("Bob")(person)
+//	// person.Name is still "Alice", updated is a new pointer with Name "Bob"
+//
+//go:inline
+func MakeLensRefCurriedWithName[S, A any](get func(*S) A, set func(A) Endomorphism[*S], name string) Lens[*S, A] {
+	return MakeLensCurriedWithName(get, setCopyCurried(set), name)
+}
+
 // id returns a [Lens] implementing the identity operation
-func id[GET ~func(S) S, SET ~func(S, S) S, S any](creator func(get GET, set SET) Lens[S, S]) Lens[S, S] {
-	return creator(F.Identity[S], F.Second[S, S])
+func id[GET ~func(S) S, SET ~func(S, S) S, S any](creator func(get GET, set SET, name string) Lens[S, S]) Lens[S, S] {
+	return creator(F.Identity[S], F.Second[S, S], "LensIdentity")
 }
 
 // Id returns an identity [Lens] that focuses on the entire structure.
@@ -386,7 +705,7 @@ func id[GET ~func(S) S, SET ~func(S, S) S, S any](creator func(get GET, set SET)
 //	replaced := idLens.Set(Person{Name: "Bob", Age: 25})(person)
 //	// replaced is Person{Name: "Bob", Age: 25}
 func Id[S any]() Lens[S, S] {
-	return id(MakeLens[Endomorphism[S], func(S, S) S])
+	return id(MakeLensWithName[Endomorphism[S], func(S, S) S])
 }
 
 // IdRef returns an identity [Lens] for pointer-based structures.
@@ -409,11 +728,14 @@ func Id[S any]() Lens[S, S] {
 //	replaced := idLens.Set(&Person{Name: "Bob", Age: 25})(person)
 //	// person.Name is still "Alice", replaced is a new pointer
 func IdRef[S any]() Lens[*S, *S] {
-	return id(MakeLensRef[Endomorphism[*S], func(*S, *S) *S])
+	return id(MakeLensRefWithName[Endomorphism[*S], func(*S, *S) *S])
 }
 
 // Compose combines two lenses and allows to narrow down the focus to a sub-lens
-func compose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](creator func(get GET, set SET) Lens[S, B], ab Lens[A, B]) Operator[S, A, B] {
+func compose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](
+	creator func(get GET, set SET, name string) Lens[S, B],
+	ab Lens[A, B],
+) Operator[S, A, B] {
 	abget := ab.Get
 	abset := ab.Set
 	return func(sa Lens[S, A]) Lens[S, B] {
@@ -428,6 +750,7 @@ func compose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](creator func(g
 					saset,
 				))
 			},
+			fmt.Sprintf("LensCompose[%s -> %s]", sa, ab),
 		)
 	}
 }
@@ -481,7 +804,7 @@ func compose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](creator func(g
 //
 //go:inline
 func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
-	return compose(MakeLensCurried[func(S) B, func(B) func(S) S], ab)
+	return compose(MakeLensCurriedWithName[func(S) B, func(B) func(S) S], ab)
 }
 
 // ComposeRef combines two lenses for pointer-based structures.
@@ -523,7 +846,7 @@ func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 //
 //	personStreetLens := F.Pipe1(addressLens, lens.ComposeRef[Person](streetLens))
 func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
-	return compose(MakeLensRefCurried[S, B], ab)
+	return compose(MakeLensRefCurriedWithName[S, B], ab)
 }
 
 // Modify transforms a value through a lens using a transformation F.
@@ -634,14 +957,48 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S
 //	updated := tempFahrenheitLens.Set(86)(weather)  // Set to 86°F (30°C)
 func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[S, A, B] {
 	return func(ea Lens[S, A]) Lens[S, B] {
-		return MakeLensCurried(F.Flow2(ea.Get, ab), F.Flow2(ba, ea.Set))
+		return MakeLensCurriedWithName(F.Flow2(ea.Get, ab), F.Flow2(ba, ea.Set), fmt.Sprintf("IMap[%s]", ea))
 	}
 }
 
+// String returns the name of the lens as a string.
+//
+// This implements the fmt.Stringer interface, allowing lenses to be printed
+// in a human-readable format for debugging and logging purposes. The returned
+// string is the name provided when creating the lens with [MakeLensWithName]
+// or [MakeLensCurriedWithName], or "Lens" for lenses created with other constructors.
+//
+// Returns:
+//   - The lens name as a string
+//
+// Example:
+//
+//	nameLens := lens.MakeLensWithName(
+//	    func(p Person) string { return p.Name },
+//	    func(p Person, name string) Person { p.Name = name; return p },
+//	    "Person.Name",
+//	)
+//	fmt.Println(nameLens)  // Prints: "Person.Name"
 func (l Lens[S, T]) String() string {
-	return "Lens"
+	return l.name
 }
 
+// Format implements the fmt.Formatter interface for custom formatting of lenses.
+//
+// This allows lenses to be used with fmt.Printf and related functions with
+// various format verbs. All format operations delegate to the String() method,
+// which returns the lens name.
+//
+// Parameters:
+//   - f: The format state containing formatting options
+//   - c: The format verb (currently unused, all verbs produce the same output)
+//
+// Example:
+//
+//	nameLens := lens.MakeLensWithName(..., "Person.Name")
+//	fmt.Printf("Lens: %v\n", nameLens)  // Prints: "Lens: Person.Name"
+//	fmt.Printf("Lens: %s\n", nameLens)  // Prints: "Lens: Person.Name"
+//	fmt.Printf("Lens: %q\n", nameLens)  // Prints: "Lens: Person.Name"
 func (l Lens[S, T]) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, l.String())
 }

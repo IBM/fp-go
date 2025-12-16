@@ -29,11 +29,13 @@ import (
 )
 
 // Helper types for testing
+// fp-go:Lens
 type User struct {
 	ID   int
 	Name string
 }
 
+// fp-go:Lens
 type Config struct {
 	Port        int
 	DatabaseURL string
@@ -948,5 +950,425 @@ func TestLocalWithTimeoutAndDeadline(t *testing.T) {
 		value, err := result(context.Background())
 		assert.NoError(t, err)
 		assert.Equal(t, "A:B", value)
+	})
+}
+
+func TestMonadTraverseArray(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("applies function to each element", func(t *testing.T) {
+		double := func(n int) ReaderResult[int] {
+			return Right(n * 2)
+		}
+		numbers := []int{1, 2, 3}
+		result := MonadTraverseArray(numbers, double)
+		values, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, []int{2, 4, 6}, values)
+	})
+
+	t.Run("fails on first error", func(t *testing.T) {
+		testErr := errors.New("test error")
+		failOnTwo := func(n int) ReaderResult[int] {
+			if n == 2 {
+				return Left[int](testErr)
+			}
+			return Right(n * 2)
+		}
+		numbers := []int{1, 2, 3}
+		result := MonadTraverseArray(numbers, failOnTwo)
+		_, err := result(ctx)
+		assert.Equal(t, testErr, err)
+	})
+}
+
+func TestTraverseArrayWithIndex(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("applies function with index", func(t *testing.T) {
+		addIndex := func(idx int, s string) ReaderResult[string] {
+			return Right(fmt.Sprintf("%d:%s", idx, s))
+		}
+		items := []string{"a", "b", "c"}
+		result := TraverseArrayWithIndex(addIndex)(items)
+		values, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"0:a", "1:b", "2:c"}, values)
+	})
+
+	t.Run("fails on error", func(t *testing.T) {
+		testErr := errors.New("test error")
+		failOnIndex := func(idx int, s string) ReaderResult[string] {
+			if idx == 1 {
+				return Left[string](testErr)
+			}
+			return Right(s)
+		}
+		items := []string{"a", "b", "c"}
+		result := TraverseArrayWithIndex(failOnIndex)(items)
+		_, err := result(ctx)
+		assert.Equal(t, testErr, err)
+	})
+}
+
+func TestBracket(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("ensures resource cleanup on success", func(t *testing.T) {
+		released := false
+		result := Bracket(
+			func() ReaderResult[int] {
+				return Right(42)
+			},
+			func(resource int) ReaderResult[string] {
+				return Right(fmt.Sprintf("Resource: %d", resource))
+			},
+			func(resource int, value string, err error) ReaderResult[any] {
+				released = true
+				return Right[any](nil)
+			},
+		)
+		value, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, "Resource: 42", value)
+		assert.True(t, released)
+	})
+
+	t.Run("ensures resource cleanup on failure", func(t *testing.T) {
+		released := false
+		testErr := errors.New("use failed")
+		result := Bracket(
+			func() ReaderResult[int] {
+				return Right(42)
+			},
+			func(resource int) ReaderResult[string] {
+				return Left[string](testErr)
+			},
+			func(resource int, value string, err error) ReaderResult[any] {
+				released = true
+				assert.Equal(t, testErr, err)
+				return Right[any](nil)
+			},
+		)
+		_, err := result(ctx)
+		assert.Equal(t, testErr, err)
+		assert.True(t, released)
+	})
+
+	t.Run("does not release if acquire fails", func(t *testing.T) {
+		released := false
+		testErr := errors.New("acquire failed")
+		result := Bracket(
+			func() ReaderResult[int] {
+				return Left[int](testErr)
+			},
+			func(resource int) ReaderResult[string] {
+				return Right("should not execute")
+			},
+			func(resource int, value string, err error) ReaderResult[any] {
+				released = true
+				return Right[any](nil)
+			},
+		)
+		_, err := result(ctx)
+		assert.Equal(t, testErr, err)
+		assert.False(t, released)
+	})
+}
+
+func TestWithContextCancellation(t *testing.T) {
+	t.Run("returns error on cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		rr := WithContext(Right(42))
+		_, err := rr(ctx)
+		assert.Error(t, err)
+	})
+
+	t.Run("executes on valid context", func(t *testing.T) {
+		ctx := context.Background()
+		rr := WithContext(Right(42))
+		value, err := rr(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+}
+
+func TestWithContextK(t *testing.T) {
+	t.Run("wraps Kleisli with cancellation check", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		kleisli := func(n int) ReaderResult[string] {
+			return Right(fmt.Sprintf("Value: %d", n))
+		}
+
+		wrapped := WithContextK(kleisli)
+		result := wrapped(42)
+		_, err := result(ctx)
+		assert.Error(t, err)
+	})
+
+	t.Run("executes on valid context", func(t *testing.T) {
+		ctx := context.Background()
+
+		kleisli := func(n int) ReaderResult[string] {
+			return Right(fmt.Sprintf("Value: %d", n))
+		}
+
+		wrapped := WithContextK(kleisli)
+		result := wrapped(42)
+		value, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, "Value: 42", value)
+	})
+}
+
+func TestUncurry1(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("converts curried to uncurried", func(t *testing.T) {
+		curried := func(id int) ReaderResult[User] {
+			return Right(User{ID: id, Name: "Alice"})
+		}
+		uncurried := Uncurry1(curried)
+		user, err := uncurried(ctx, 42)
+		assert.NoError(t, err)
+		assert.Equal(t, User{ID: 42, Name: "Alice"}, user)
+	})
+}
+
+func TestUncurry2(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("converts curried to uncurried", func(t *testing.T) {
+		curried := func(id int) func(name string) ReaderResult[User] {
+			return func(name string) ReaderResult[User] {
+				return Right(User{ID: id, Name: name})
+			}
+		}
+		uncurried := Uncurry2(curried)
+		user, err := uncurried(ctx, 42, "Bob")
+		assert.NoError(t, err)
+		assert.Equal(t, User{ID: 42, Name: "Bob"}, user)
+	})
+}
+
+func TestUncurry3(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("converts curried to uncurried", func(t *testing.T) {
+		curried := func(a int) func(b int) func(c int) ReaderResult[int] {
+			return func(b int) func(c int) ReaderResult[int] {
+				return func(c int) ReaderResult[int] {
+					return Right(a + b + c)
+				}
+			}
+		}
+		uncurried := Uncurry3(curried)
+		result, err := uncurried(ctx, 1, 2, 3)
+		assert.NoError(t, err)
+		assert.Equal(t, 6, result)
+	})
+}
+
+func TestFrom0(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("creates lazy ReaderResult", func(t *testing.T) {
+		f := func(ctx context.Context) (int, error) {
+			return 42, nil
+		}
+		thunk := From0(f)
+		rr := thunk()
+		value, err := rr(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+}
+
+func TestFrom2(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("converts function to uncurried form", func(t *testing.T) {
+		f := func(ctx context.Context, id int, name string) (User, error) {
+			return User{ID: id, Name: name}, nil
+		}
+		updateUserRR := From2(f)
+		rr := updateUserRR(42, "Charlie")
+		user, err := rr(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, User{ID: 42, Name: "Charlie"}, user)
+	})
+}
+
+func TestFrom3(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("converts function to uncurried form", func(t *testing.T) {
+		f := func(ctx context.Context, a, b, c int) (int, error) {
+			return a + b + c, nil
+		}
+		sumRR := From3(f)
+		rr := sumRR(1, 2, 3)
+		result, err := rr(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 6, result)
+	})
+}
+
+func TestAlternativeMonoid(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("combines successful values", func(t *testing.T) {
+		intMonoid := N.MonoidSum[int]()
+		rrMonoid := AlternativeMonoid(intMonoid)
+
+		rr1 := Right(10)
+		rr2 := Right(20)
+		combined := rrMonoid.Concat(rr1, rr2)
+		value, err := combined(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 30, value)
+	})
+
+	t.Run("uses second on first failure", func(t *testing.T) {
+		intMonoid := N.MonoidSum[int]()
+		rrMonoid := AlternativeMonoid(intMonoid)
+
+		testErr := errors.New("first failed")
+		rr1 := Left[int](testErr)
+		rr2 := Right(42)
+		combined := rrMonoid.Concat(rr1, rr2)
+		value, err := combined(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+}
+
+func TestAltMonoid(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("uses custom zero", func(t *testing.T) {
+		zero := func() ReaderResult[int] {
+			return Right(0)
+		}
+		rrMonoid := AltMonoid(zero)
+
+		empty := rrMonoid.Empty()
+		value, err := empty(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("tries alternatives", func(t *testing.T) {
+		zero := func() ReaderResult[int] {
+			return Left[int](errors.New("empty"))
+		}
+		rrMonoid := AltMonoid(zero)
+
+		testErr := errors.New("first failed")
+		rr1 := Left[int](testErr)
+		rr2 := Right(42)
+		combined := rrMonoid.Concat(rr1, rr2)
+		value, err := combined(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+}
+
+func TestApplicativeMonoid(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("combines both computations", func(t *testing.T) {
+		intMonoid := N.MonoidSum[int]()
+		rrMonoid := ApplicativeMonoid(intMonoid)
+
+		rr1 := Right(10)
+		rr2 := Right(20)
+		combined := rrMonoid.Concat(rr1, rr2)
+		value, err := combined(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 30, value)
+	})
+
+	t.Run("fails if either fails", func(t *testing.T) {
+		intMonoid := N.MonoidSum[int]()
+		rrMonoid := ApplicativeMonoid(intMonoid)
+
+		testErr := errors.New("failed")
+		rr1 := Left[int](testErr)
+		rr2 := Right(42)
+		combined := rrMonoid.Concat(rr1, rr2)
+		_, err := combined(ctx)
+		assert.Error(t, err)
+	})
+}
+
+func TestSequenceT1(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("wraps single value in tuple", func(t *testing.T) {
+		rr := Right(42)
+		result := SequenceT1(rr)
+		tuple, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, tuple.F1)
+	})
+}
+
+func TestSequenceT3(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("combines three ReaderResults", func(t *testing.T) {
+		rr1 := Right(1)
+		rr2 := Right("two")
+		rr3 := Right(3.0)
+		result := SequenceT3(rr1, rr2, rr3)
+		tuple, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, tuple.F1)
+		assert.Equal(t, "two", tuple.F2)
+		assert.Equal(t, 3.0, tuple.F3)
+	})
+
+	t.Run("fails if any fails", func(t *testing.T) {
+		testErr := errors.New("test error")
+		rr1 := Right(1)
+		rr2 := Left[string](testErr)
+		rr3 := Right(3.0)
+		result := SequenceT3(rr1, rr2, rr3)
+		_, err := result(ctx)
+		assert.Equal(t, testErr, err)
+	})
+}
+
+func TestSequenceT4(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("combines four ReaderResults", func(t *testing.T) {
+		rr1 := Right(1)
+		rr2 := Right("two")
+		rr3 := Right(3.0)
+		rr4 := Right(true)
+		result := SequenceT4(rr1, rr2, rr3, rr4)
+		tuple, err := result(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, tuple.F1)
+		assert.Equal(t, "two", tuple.F2)
+		assert.Equal(t, 3.0, tuple.F3)
+		assert.Equal(t, true, tuple.F4)
+	})
+
+	t.Run("fails if any fails", func(t *testing.T) {
+		testErr := errors.New("test error")
+		rr1 := Right(1)
+		rr2 := Right("two")
+		rr3 := Left[float64](testErr)
+		rr4 := Right(true)
+		result := SequenceT4(rr1, rr2, rr3, rr4)
+		_, err := result(ctx)
+		assert.Equal(t, testErr, err)
 	})
 }

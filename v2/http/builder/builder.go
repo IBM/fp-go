@@ -351,13 +351,13 @@ func Header(name string) Lens[*Builder, Option[string]] {
 		LZ.Map(delHeader(name)),
 	)
 
-	return L.MakeLens(get, func(b *Builder, value Option[string]) *Builder {
+	return L.MakeLensWithName(get, func(b *Builder, value Option[string]) *Builder {
 		cpy := b.clone()
 		return F.Pipe1(
 			value,
 			O.Fold(del(cpy), set(cpy)),
 		)
-	})
+	}, fmt.Sprintf("HttpHeader[%s]", name))
 }
 
 // WithHeader creates a [Endomorphism] for a certain header

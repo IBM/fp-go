@@ -35,6 +35,8 @@ func FromNillable[T any]() Iso[*T, Option[T]] {
 
 // Compose converts a Lens to a property of `A` into a lens to a property of type `B`
 // the transformation is done via an ISO
+//
+//go:inline
 func Compose[S, A, B any](ab Iso[A, B]) Operator[S, A, B] {
 	return F.Pipe2(
 		ab,

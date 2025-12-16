@@ -17,6 +17,8 @@
 package iso
 
 import (
+	"fmt"
+
 	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 )
@@ -402,4 +404,12 @@ func IMap[S, A, B any](ab func(A) B, ba func(B) A) func(Iso[S, A]) Iso[S, B] {
 	return func(sa Iso[S, A]) Iso[S, B] {
 		return imap(sa, ab, ba)
 	}
+}
+
+func (l Iso[S, T]) String() string {
+	return "Iso"
+}
+
+func (l Iso[S, T]) Format(f fmt.State, c rune) {
+	fmt.Fprint(f, l.String())
 }

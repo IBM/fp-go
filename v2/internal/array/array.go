@@ -184,3 +184,16 @@ func Concat[GT ~[]T, T any](left, right GT) GT {
 	copy(buf[copy(buf, left):], right)
 	return buf
 }
+
+func Reverse[GT ~[]T, T any](as GT) GT {
+	l := len(as)
+	if l <= 1 {
+		return as
+	}
+	ras := make(GT, l)
+	l1 := l - 1
+	for i := range l {
+		ras[i] = as[l1-i]
+	}
+	return ras
+}

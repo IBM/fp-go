@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	keyLensDir     = "dir"
-	keyVerbose     = "verbose"
-	lensAnnotation = "fp-go:Lens"
+	keyLensDir         = "dir"
+	keyVerbose         = "verbose"
+	keyIncludeTestFile = "include-test-files"
+	lensAnnotation     = "fp-go:Lens"
 )
 
 var (
@@ -49,6 +50,13 @@ var (
 		Aliases: []string{"v"},
 		Value:   false,
 		Usage:   "Enable verbose output",
+	}
+
+	flagIncludeTestFiles = &C.BoolFlag{
+		Name:    keyIncludeTestFile,
+		Aliases: []string{"t"},
+		Value:   false,
+		Usage:   "Include test files (*_test.go) when scanning for annotated types",
 	}
 )
 
@@ -81,12 +89,12 @@ const lensStructTemplate = `
 type {{.Name}}Lenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} L.Lens[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}} __lens.Lens[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
 {{- if .IsComparable}}
-	{{.Name}}O LO.LensO[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}}O __lens_option.LensO[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
 }
@@ -95,12 +103,12 @@ type {{.Name}}Lenses{{.TypeParams}} struct {
 type {{.Name}}RefLenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} L.Lens[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}} __lens.Lens[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
 {{- if .IsComparable}}
-	{{.Name}}O LO.LensO[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}}O __lens_option.LensO[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
 }
@@ -111,15 +119,16 @@ const lensConstructorTemplate = `
 func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
-	lens{{.Name}} := L.MakeLens(
+	lens{{.Name}} := __lens.MakeLensWithName(
 		func(s {{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s {{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
+		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
 {{- if .IsComparable}}
-	lens{{.Name}}O := LO.FromIso[{{$.Name}}{{$.TypeParamNames}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
+	lens{{.Name}}O := __lens_option.FromIso[{{$.Name}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 {{- end}}
 	return {{.Name}}Lenses{{.TypeParamNames}}{
@@ -141,21 +150,23 @@ func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames
 	// mandatory lenses
 {{- range .Fields}}
 {{- if .IsComparable}}
-	lens{{.Name}} := L.MakeLensStrict(
+	lens{{.Name}} := __lens.MakeLensStrictWithName(
 		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
+		"(*{{$.Name}}{{$.TypeParamNames}}).{{.Name}}",
 	)
 {{- else}}
-	lens{{.Name}} := L.MakeLensRef(
+	lens{{.Name}} := __lens.MakeLensRefWithName(
 		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
+		"(*{{$.Name}}{{$.TypeParamNames}}).{{.Name}}",
 	)
 {{- end}}
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
 {{- if .IsComparable}}
-	lens{{.Name}}O := LO.FromIso[*{{$.Name}}{{$.TypeParamNames}}](IO.FromZero[{{.TypeName}}]())(lens{{.Name}})
+	lens{{.Name}}O := __lens_option.FromIso[*{{$.Name}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 {{- end}}
 	return {{.Name}}RefLenses{{.TypeParamNames}}{
@@ -696,7 +707,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 }
 
 // generateLensHelpers scans a directory for Go files and generates lens code
-func generateLensHelpers(dir, filename string, verbose bool) error {
+func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) error {
 	// Get absolute path
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
@@ -717,21 +728,34 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 		log.Printf("Found %d Go files", len(files))
 	}
 
-	// Parse all files and collect structs
-	var allStructs []structInfo
+	// Parse all files and collect structs, separating test and non-test files
+	var regularStructs []structInfo
+	var testStructs []structInfo
 	var packageName string
 
 	for _, file := range files {
-		// Skip generated files and test files
-		if strings.HasSuffix(file, "_test.go") || strings.Contains(file, "gen.go") {
+		baseName := filepath.Base(file)
+
+		// Skip generated lens files (both regular and test)
+		if strings.HasPrefix(baseName, "gen_lens") && strings.HasSuffix(baseName, ".go") {
 			if verbose {
-				log.Printf("Skipping file: %s", filepath.Base(file))
+				log.Printf("Skipping generated lens file: %s", baseName)
+			}
+			continue
+		}
+
+		isTestFile := strings.HasSuffix(file, "_test.go")
+
+		// Skip test files unless includeTestFiles is true
+		if isTestFile && !includeTestFiles {
+			if verbose {
+				log.Printf("Skipping test file: %s", baseName)
 			}
 			continue
 		}
 
 		if verbose {
-			log.Printf("Parsing file: %s", filepath.Base(file))
+			log.Printf("Parsing file: %s", baseName)
 		}
 
 		structs, pkg, err := parseFile(file)
@@ -741,7 +765,7 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 		}
 
 		if verbose && len(structs) > 0 {
-			log.Printf("Found %d annotated struct(s) in %s", len(structs), filepath.Base(file))
+			log.Printf("Found %d annotated struct(s) in %s", len(structs), baseName)
 			for _, s := range structs {
 				log.Printf("  - %s (%d fields)", s.Name, len(s.Fields))
 			}
@@ -751,17 +775,42 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 			packageName = pkg
 		}
 
-		allStructs = append(allStructs, structs...)
+		// Separate structs based on source file type
+		if isTestFile {
+			testStructs = append(testStructs, structs...)
+		} else {
+			regularStructs = append(regularStructs, structs...)
+		}
 	}
 
-	if len(allStructs) == 0 {
+	if len(regularStructs) == 0 && len(testStructs) == 0 {
 		log.Printf("No structs with %s annotation found in %s", lensAnnotation, absDir)
 		return nil
 	}
 
+	// Generate regular lens file if there are regular structs
+	if len(regularStructs) > 0 {
+		if err := generateLensFile(absDir, filename, packageName, regularStructs, verbose); err != nil {
+			return err
+		}
+	}
+
+	// Generate test lens file if there are test structs
+	if len(testStructs) > 0 {
+		testFilename := strings.TrimSuffix(filename, ".go") + "_test.go"
+		if err := generateLensFile(absDir, testFilename, packageName, testStructs, verbose); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// generateLensFile generates a lens file for the given structs
+func generateLensFile(absDir, filename, packageName string, structs []structInfo, verbose bool) error {
 	// Collect all unique imports from all structs
 	allImports := make(map[string]string) // import path -> alias
-	for _, s := range allStructs {
+	for _, s := range structs {
 		for importPath, alias := range s.Imports {
 			allImports[importPath] = alias
 		}
@@ -775,7 +824,7 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 	}
 	defer f.Close()
 
-	log.Printf("Generating lens code in [%s] for package [%s] with [%d] structs ...", outPath, packageName, len(allStructs))
+	log.Printf("Generating lens code in [%s] for package [%s] with [%d] structs ...", outPath, packageName, len(structs))
 
 	// Write header
 	writePackage(f, packageName)
@@ -783,10 +832,9 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 	// Write imports
 	f.WriteString("import (\n")
 	// Standard fp-go imports always needed
-	f.WriteString("\tL \"github.com/IBM/fp-go/v2/optics/lens\"\n")
-	f.WriteString("\tLO \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
-	//	f.WriteString("\tO \"github.com/IBM/fp-go/v2/option\"\n")
-	f.WriteString("\tIO \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
+	f.WriteString("\t__lens \"github.com/IBM/fp-go/v2/optics/lens\"\n")
+	f.WriteString("\t__lens_option \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
+	f.WriteString("\t__iso_option \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
 
 	// Add additional imports collected from field types
 	for importPath, alias := range allImports {
@@ -796,7 +844,7 @@ func generateLensHelpers(dir, filename string, verbose bool) error {
 	f.WriteString(")\n")
 
 	// Generate lens code for each struct using templates
-	for _, s := range allStructs {
+	for _, s := range structs {
 		var buf bytes.Buffer
 
 		// Generate struct type
@@ -828,12 +876,14 @@ func LensCommand() *C.Command {
 			flagLensDir,
 			flagFilename,
 			flagVerbose,
+			flagIncludeTestFiles,
 		},
 		Action: func(ctx *C.Context) error {
 			return generateLensHelpers(
 				ctx.String(keyLensDir),
 				ctx.String(keyFilename),
 				ctx.Bool(keyVerbose),
+				ctx.Bool(keyIncludeTestFile),
 			)
 		},
 	}

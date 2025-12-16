@@ -16,6 +16,8 @@
 package generic
 
 import (
+	"fmt"
+
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
 	L "github.com/IBM/fp-go/v2/optics/lens"
@@ -31,7 +33,7 @@ func AtRecord[M ~map[K]V, V any, K comparable](key K) L.Lens[M, O.Option[V]] {
 		delKey,
 		addKey,
 	)
-	return L.MakeLens(
+	return L.MakeLensWithName(
 		RR.Lookup[M](key),
 		func(m M, v O.Option[V]) M {
 			return F.Pipe2(
@@ -40,6 +42,7 @@ func AtRecord[M ~map[K]V, V any, K comparable](key K) L.Lens[M, O.Option[V]] {
 				I.Ap[M](m),
 			)
 		},
+		fmt.Sprintf("At[%v]", key),
 	)
 }
 

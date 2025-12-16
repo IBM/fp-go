@@ -940,3 +940,208 @@ func TestParseBoolWithSet(t *testing.T) {
 		assert.Equal(t, "maybe", result)
 	})
 }
+
+// TestFromOption tests the FromOption prism
+func TestFromOption(t *testing.T) {
+	t.Run("extract from Some", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		someValue := O.Some(42)
+		result := prism.GetOption(someValue)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(result))
+	})
+
+	t.Run("extract from None returns None", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		noneValue := O.None[int]()
+		result := prism.GetOption(noneValue)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("reverse get wraps in Some", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		wrapped := prism.ReverseGet(100)
+		assert.True(t, O.IsSome(wrapped))
+		assert.Equal(t, 100, O.GetOrElse(F.Constant(-1))(wrapped))
+	})
+
+	t.Run("works with string type", func(t *testing.T) {
+		prism := FromOption[string]()
+
+		someStr := O.Some("hello")
+		result := prism.GetOption(someStr)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "hello", O.GetOrElse(F.Constant(""))(result))
+	})
+
+	t.Run("works with pointer type", func(t *testing.T) {
+		prism := FromOption[*int]()
+
+		value := 42
+		ptr := &value
+		somePtr := O.Some(ptr)
+		result := prism.GetOption(somePtr)
+		assert.True(t, O.IsSome(result))
+		extractedPtr := O.GetOrElse(F.Constant[*int](nil))(result)
+		assert.NotNil(t, extractedPtr)
+		assert.Equal(t, 42, *extractedPtr)
+	})
+
+	t.Run("works with struct type", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+
+		prism := FromOption[Person]()
+
+		person := Person{Name: "Alice", Age: 30}
+		somePerson := O.Some(person)
+		result := prism.GetOption(somePerson)
+		assert.True(t, O.IsSome(result))
+		extracted := O.GetOrElse(F.Constant(Person{}))(result)
+		assert.Equal(t, "Alice", extracted.Name)
+		assert.Equal(t, 30, extracted.Age)
+	})
+
+	t.Run("round trip with Some", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		original := O.Some(42)
+		extracted := prism.GetOption(original)
+		if O.IsSome(extracted) {
+			value := O.GetOrElse(F.Constant(0))(extracted)
+			reconstructed := prism.ReverseGet(value)
+			assert.Equal(t, original, reconstructed)
+		}
+	})
+}
+
+// TestFromOptionWithSet tests using Set with FromOption prism
+func TestFromOptionWithSet(t *testing.T) {
+	t.Run("set on Some value", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		someValue := O.Some(42)
+		setter := Set[Option[int]](200)
+		result := setter(prism)(someValue)
+
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 200, O.GetOrElse(F.Constant(-1))(result))
+	})
+
+	t.Run("set on None returns None", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		noneValue := O.None[int]()
+		setter := Set[Option[int]](200)
+		result := setter(prism)(noneValue)
+
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("set with string type", func(t *testing.T) {
+		prism := FromOption[string]()
+
+		someStr := O.Some("hello")
+		setter := Set[Option[string]]("world")
+		result := setter(prism)(someStr)
+
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "world", O.GetOrElse(F.Constant(""))(result))
+	})
+}
+
+// TestFromOptionPrismLaws tests that FromOption satisfies prism laws
+func TestFromOptionPrismLaws(t *testing.T) {
+	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		value := 42
+		wrapped := prism.ReverseGet(value)
+		extracted := prism.GetOption(wrapped)
+
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, value, O.GetOrElse(F.Constant(-1))(extracted))
+	})
+
+	t.Run("law 2: if GetOption(s) == Some(a), then ReverseGet(a) == s for Some", func(t *testing.T) {
+		prism := FromOption[string]()
+
+		original := O.Some("test")
+		extracted := prism.GetOption(original)
+
+		if O.IsSome(extracted) {
+			value := O.GetOrElse(F.Constant(""))(extracted)
+			reconstructed := prism.ReverseGet(value)
+			assert.Equal(t, original, reconstructed)
+		}
+	})
+
+	t.Run("GetOption is identity for Option type", func(t *testing.T) {
+		prism := FromOption[int]()
+
+		someValue := O.Some(42)
+		result := prism.GetOption(someValue)
+		assert.Equal(t, someValue, result)
+
+		noneValue := O.None[int]()
+		result = prism.GetOption(noneValue)
+		assert.Equal(t, noneValue, result)
+	})
+}
+
+// TestFromOptionComposition tests composing FromOption with other prisms
+func TestFromOptionComposition(t *testing.T) {
+	t.Run("compose with ParseInt", func(t *testing.T) {
+		// Create a prism that extracts int from Option[string] by parsing
+		stringPrism := FromOption[string]()
+		intPrism := ParseInt()
+
+		// Compose: Option[string] -> string -> int
+		composed := Compose[Option[string]](intPrism)(stringPrism)
+
+		// Test with Some("42")
+		someStr := O.Some("42")
+		result := composed.GetOption(someStr)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(result))
+
+		// Test with Some("invalid")
+		invalidStr := O.Some("invalid")
+		result = composed.GetOption(invalidStr)
+		assert.True(t, O.IsNone(result))
+
+		// Test with None
+		noneStr := O.None[string]()
+		result = composed.GetOption(noneStr)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("nested Options", func(t *testing.T) {
+		// Extract int from Option[Option[int]]
+		outerPrism := FromOption[Option[int]]()
+		innerPrism := FromOption[int]()
+
+		composed := Compose[Option[Option[int]]](innerPrism)(outerPrism)
+
+		// Test with Some(Some(42))
+		nested := O.Some(O.Some(42))
+		result := composed.GetOption(nested)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(result))
+
+		// Test with Some(None)
+		someNone := O.Some(O.None[int]())
+		result = composed.GetOption(someNone)
+		assert.True(t, O.IsNone(result))
+
+		// Test with None
+		none := O.None[Option[int]]()
+		result = composed.GetOption(none)
+		assert.True(t, O.IsNone(result))
+	})
+}

@@ -56,8 +56,8 @@ import (
 //	result, err := sequenced(ctx)(config)
 //
 //go:inline
-func SequenceReader[R, A any](ma ReaderResult[Reader[R, A]]) RR.Kleisli[context.Context, R, A] {
-	return RR.SequenceReader(ma)
+func SequenceReader[R, A any](ma ReaderResult[Reader[R, A]]) Kleisli[R, A] {
+	return WithContextK(RR.SequenceReader(ma))
 }
 
 // TraverseReader combines SequenceReader with a Kleisli arrow transformation.
@@ -102,6 +102,6 @@ func SequenceReader[R, A any](ma ReaderResult[Reader[R, A]]) RR.Kleisli[context.
 //go:inline
 func TraverseReader[R, A, B any](
 	f reader.Kleisli[R, A, B],
-) func(ReaderResult[A]) RR.Kleisli[context.Context, R, B] {
+) func(ReaderResult[A]) Kleisli[R, B] {
 	return RR.TraverseReader[context.Context](f)
 }

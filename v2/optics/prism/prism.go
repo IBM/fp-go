@@ -207,12 +207,6 @@ func Set[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
 	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
 }
 
-// prismSome creates a prism that focuses on the Some variant of an Option.
-// This is an internal helper used by the Some function.
-func prismSome[A any]() Prism[Option[A], A] {
-	return MakePrismWithName(F.Identity[Option[A]], O.Some[A], "PrismSome")
-}
-
 // Some creates a prism that focuses on the Some variant of an Option within a structure.
 // It composes the provided prism (which focuses on an Option[A]) with a prism that
 // extracts the value from Some.
@@ -234,7 +228,7 @@ func prismSome[A any]() Prism[Option[A], A] {
 //	timeoutPrism := Some(configPrism)  // Prism[Config, int]
 //	value := timeoutPrism.GetOption(Config{Timeout: Some(30)})  // Some(30)
 func Some[S, A any](soa Prism[S, Option[A]]) Prism[S, A] {
-	return Compose[S](prismSome[A]())(soa)
+	return Compose[S](FromOption[A]())(soa)
 }
 
 // imap is an internal helper that bidirectionally maps a prism's focus type.
@@ -278,7 +272,7 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[
 }
 
 func (l Prism[S, T]) String() string {
-	return "Prism"
+	return l.name
 }
 
 func (l Prism[S, T]) Format(f fmt.State, c rune) {

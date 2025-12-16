@@ -140,22 +140,27 @@ func Empty[GA ~[]A, A any]() GA {
 	return array.Empty[GA]()
 }
 
+//go:inline
 func UpsertAt[GA ~[]A, A any](a A) func(GA) GA {
 	return array.UpsertAt[GA](a)
 }
 
+//go:inline
 func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	return array.MonadMap[GA, GB](as, f)
 }
 
+//go:inline
 func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
 	return array.Map[GA, GB](f)
 }
 
+//go:inline
 func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(int, A) B) GB {
 	return array.MonadMapWithIndex[GA, GB](as, f)
 }
 
+//go:inline
 func MapWithIndex[GA ~[]A, GB ~[]B, A, B any](f func(int, A) B) func(GA) GB {
 	return F.Bind2nd(MonadMapWithIndex[GA, GB, A, B], f)
 }
@@ -361,6 +366,12 @@ func Flap[FAB ~func(A) B, GFAB ~[]FAB, GB ~[]B, A, B any](a A) func(GFAB) GB {
 	return FC.Flap(Map[GFAB, GB], a)
 }
 
+//go:inline
 func Prepend[ENDO ~func(AS) AS, AS []A, A any](head A) ENDO {
 	return array.Prepend[ENDO](head)
+}
+
+//go:inline
+func Reverse[GT ~[]T, T any](as GT) GT {
+	return array.Reverse(as)
 }
