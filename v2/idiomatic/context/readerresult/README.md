@@ -294,7 +294,7 @@ Declarative pipeline, automatic error propagation, and clear data flow.
 
 ### 3. 🎨 **Pure Composition - Side Effects Deferred**
 
-**💡 Key Insight:** ReaderResult separates *building* computations from *executing* them.
+**💡 Key Insight:** [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) separates *building* computations from *executing* them.
 
 ```go
 // Building the computation (pure, no side effects)
@@ -539,11 +539,11 @@ The compiler ensures you can't access fields that haven't been set yet.
 
 ### 🔍 **Using Optics with Bind and BindTo**
 
-[Optics](../../../optics/README.md) provide powerful, composable abstractions for working with data structures. They integrate seamlessly with ReaderResult's `Bind` and `BindTo` methods, enabling elegant state accumulation patterns.
+[Optics](../../../optics/README.md) provide powerful, composable abstractions for working with data structures. They integrate seamlessly with [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult)'s [`Bind`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Bind) and [`BindTo`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Bind) methods, enabling elegant state accumulation patterns.
 
 #### Lenses for Product Types (Structs)
 
-[Lenses](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) focus on struct fields and can be used as setters in `Bind` operations:
+[Lenses](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) focus on struct fields and can be used as setters in [`Bind`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Bind) operations:
 
 ```go
 import (
@@ -628,7 +628,7 @@ buildProfile := F.Pipe3(
 
 #### Prisms for Sum Types (Variants)
 
-[Prisms](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism) are particularly powerful in `Bind` operations as they act as **generalized constructors**. The prism's `ReverseGet` function constructs values of sum types, making them ideal for building up complex results:
+[Prisms](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism) are particularly powerful in [`Bind`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Bind) operations as they act as **generalized constructors**. The prism's `ReverseGet` function constructs values of sum types, making them ideal for building up complex results:
 
 ```go
 import (
