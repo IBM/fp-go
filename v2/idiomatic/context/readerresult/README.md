@@ -2,8 +2,8 @@
 
 ## 📖 Overview
 
-The `ReaderResult` monad is a specialized implementation of the Reader monad pattern for Go, designed specifically for functions that:
-- Depend on `context.Context` (for cancellation, deadlines, or context values)
+The [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) monad is a specialized implementation of the Reader monad pattern for Go, designed specifically for functions that:
+- Depend on [`context.Context`](https://pkg.go.dev/context#Context) (for cancellation, deadlines, or context values)
 - May fail with an error
 - Need to be composed in a functional, declarative style
 
@@ -15,19 +15,19 @@ This is equivalent to the common Go pattern `func(ctx context.Context) (A, error
 
 ## 🔄 ReaderResult as an Effectful Operation
 
-**Important:** `ReaderResult` represents an **effectful operation** because it depends on `context.Context`, which is inherently mutable and can change during execution.
+**Important:** [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) represents an **effectful operation** because it depends on [`context.Context`](https://pkg.go.dev/context#Context), which is inherently mutable and can change during execution.
 
 ### Why Context Makes ReaderResult Effectful
 
-The `context.Context` type in Go is designed to be mutable in the following ways:
+The [`context.Context`](https://pkg.go.dev/context#Context) type in Go is designed to be mutable in the following ways:
 
 1. **Cancellation State**: A context can transition from active to cancelled at any time
 2. **Deadline Changes**: Timeouts and deadlines can expire during execution
-3. **Value Storage**: Context values can be added or modified through `context.WithValue`
+3. **Value Storage**: Context values can be added or modified through [`context.WithValue`](https://pkg.go.dev/context#WithValue)
 4. **Parent-Child Relationships**: Derived contexts inherit and can override parent behavior
 
 This mutability means that:
-- **Same ReaderResult, Different Results**: Executing the same `ReaderResult` with different contexts (or the same context at different times) can produce different outcomes
+- **Same ReaderResult, Different Results**: Executing the same [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) with different contexts (or the same context at different times) can produce different outcomes
 - **Non-Deterministic Behavior**: Context cancellation or timeout can interrupt execution at any point
 - **Side Effects**: The context carries runtime state that affects computation behavior
 
@@ -180,33 +180,34 @@ func FetchDashboardData(userID int) ReaderResult[Dashboard] {
 
 #### 5. **Retry Logic with Context Awareness**
 ```go
-// Context state affects retry behavior
-func FetchWithRetry[A any](operation ReaderResult[A], maxRetries int) ReaderResult[A] {
-    return func(ctx context.Context) (A, error) {
-        var lastErr error
-        for i := 0; i < maxRetries; i++ {
-            // Check if context is cancelled before each retry
-            if ctx.Err() != nil {
-                return *new(A), ctx.Err() // Context state is mutable
-            }
-            
-            result, err := operation(ctx)
-            if err == nil {
-                return result, nil
-            }
-            lastErr = err
-            
-            // Wait before retry, but respect context cancellation
-            select {
-            case <-time.After(time.Second * time.Duration(i+1)):
-                continue
-            case <-ctx.Done():
-                return *new(A), ctx.Err() // Context can be cancelled during wait
-            }
-        }
-        return *new(A), fmt.Errorf("failed after %d retries: %w", maxRetries, lastErr)
+import (
+    "time"
+    R "github.com/IBM/fp-go/v2/retry"
+)
+
+// Context state affects retry behavior using the built-in Retrying method
+func FetchWithRetry[A any](operation ReaderResult[A]) ReaderResult[A] {
+    // Create a retry policy: exponential backoff with a cap, limited to 5 retries
+    policy := R.Monoid.Concat(
+        R.LimitRetries(5),
+        R.CapDelay(10*time.Second, R.ExponentialBackoff(100*time.Millisecond)),
+    )
+    
+    // Check function: retry on any error
+    // Note: context cancellation is automatically handled by Retrying
+    shouldRetry := func(val A, err error) bool {
+        return err != nil
     }
+    
+    // Use the built-in Retrying method with automatic context awareness
+    // R.Always creates a constant function that ignores RetryStatus and always returns the operation
+    return Retrying(policy, R.Always(operation), shouldRetry)
 }
+
+// Example usage:
+// fetchUser := FetchWithRetry(GetUser(123))
+// user, err := fetchUser(ctx) // Automatically retries with exponential backoff
+//                              // and respects context cancellation
 ```
 
 ### Key Takeaway
@@ -217,7 +218,7 @@ Because `ReaderResult` depends on the mutable `context.Context`, it represents *
 - External factors (timeouts, cancellations, context values) influence outcomes
 - Side effects are inherent due to context's runtime nature
 
-This makes `ReaderResult` ideal for modeling real-world operations that interact with external systems, respect cancellation, and need to be composed in a functional style while acknowledging their effectful nature.
+This makes [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) ideal for modeling real-world operations that interact with external systems, respect cancellation, and need to be composed in a functional style while acknowledging their effectful nature.
 
 ## 🤔 Why Use ReaderResult Instead of Traditional Go Methods?
 
@@ -230,7 +231,7 @@ func GetPosts(ctx context.Context, userID int) ([]Post, error)
 func FormatUser(ctx context.Context, user User) (string, error)
 ```
 
-Every function must explicitly accept and thread `context.Context` through the call chain, leading to repetitive boilerplate.
+Every function must explicitly accept and thread [`context.Context`](https://pkg.go.dev/context#Context) through the call chain, leading to repetitive boilerplate.
 
 **ReaderResult approach:**
 ```go
@@ -391,10 +392,37 @@ The structure makes it clear which operations are independent, enabling potentia
 
 ### 7. 🔄 **Retry and Recovery Patterns**
 
-ReaderResult makes retry logic composable:
+ReaderResult makes retry logic composable. For production use, leverage the built-in [`Retrying`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Retrying) function with configurable retry policies:
 
 ```go
-func WithRetry[A any](maxAttempts int, operation ReaderResult[A]) ReaderResult[A] {
+import (
+    "time"
+    R "github.com/IBM/fp-go/v2/retry"
+)
+
+// Production-ready retry with exponential backoff and context awareness
+func WithRetry[A any](operation ReaderResult[A]) ReaderResult[A] {
+    // Create a retry policy: exponential backoff with a cap, limited to 5 retries
+    policy := R.Monoid.Concat(
+        R.LimitRetries(5),
+        R.CapDelay(10*time.Second, R.ExponentialBackoff(100*time.Millisecond)),
+    )
+    
+    // Retry on any error (context cancellation is automatically handled)
+    shouldRetry := func(val A, err error) bool {
+        return err != nil
+    }
+    
+    // Use built-in Retrying with automatic context cancellation support
+    return Retrying(policy, R.Always(operation), shouldRetry)
+}
+
+// Use it:
+reliableGetUser := WithRetry(GetUser(userID))
+user, err := reliableGetUser(ctx) // Automatically retries with exponential backoff
+
+// Or for simple cases, implement custom retry logic:
+func SimpleRetry[A any](maxAttempts int, operation ReaderResult[A]) ReaderResult[A] {
     return func(ctx context.Context) (A, error) {
         var lastErr error
         for i := 0; i < maxAttempts; i++ {
@@ -408,9 +436,6 @@ func WithRetry[A any](maxAttempts int, operation ReaderResult[A]) ReaderResult[A
         return *new(A), fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastErr)
     }
 }
-
-// Use it:
-reliableGetUser := WithRetry(3, GetUser(userID))
 ```
 
 ### 8. 🎭 **Middleware/Aspect-Oriented Programming**
@@ -418,34 +443,38 @@ reliableGetUser := WithRetry(3, GetUser(userID))
 Cross-cutting concerns can be added as higher-order functions:
 
 ```go
+import (
+    "time"
+    F "github.com/IBM/fp-go/v2/function"
+    RR "github.com/IBM/fp-go/v2/idiomatic/context/readerresult"
+)
+
 // Logging middleware
-func WithLogging[A any](name string, operation ReaderResult[A]) ReaderResult[A] {
-    return func(ctx context.Context) (A, error) {
-        log.Printf("Starting %s", name)
-        start := time.Now()
-        result, err := operation(ctx)
-        log.Printf("Finished %s in %v (error: %v)", name, time.Since(start), err)
-        return result, err
+func WithLogging[A any](name string) RR.Operator[A, A] {
+    return func(operation RR.ReaderResult[A]) RR.ReaderResult[A] {
+        return func(ctx context.Context) (A, error) {
+            log.Printf("Starting %s", name)
+            start := time.Now()
+            result, err := operation(ctx)
+            log.Printf("Finished %s in %v (error: %v)", name, time.Since(start), err)
+            return result, err
+        }
     }
 }
 
-// Timeout middleware
-func WithTimeout[A any](timeout time.Duration, operation ReaderResult[A]) ReaderResult[A] {
-    return func(ctx context.Context) (A, error) {
-        ctx, cancel := context.WithTimeout(ctx, timeout)
-        defer cancel()
-        return operation(ctx)
-    }
-}
-
-// Compose middleware:
-robustGetUser := F.Pipe1(
+// Compose middleware using built-in functions:
+robustGetUser := F.Pipe3(
     GetUser(userID),
-    WithLogging("GetUser"),
-    WithTimeout(5 * time.Second),
-    WithRetry(3),
+    WithLogging[User]("GetUser"),
+    RR.WithTimeout[User](5 * time.Second),  // Built-in timeout support
+    WithRetry[User],
 )
 ```
+
+**Built-in Middleware Functions:**
+- [`WithTimeout`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#WithTimeout) - Add timeout to operations
+- [`WithDeadline`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#WithDeadline) - Add absolute deadline to operations
+- [`Local`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Local) - Transform context for specific operations
 
 ### 9. 🛡️ **Resource Management with Bracket**
 
@@ -507,6 +536,201 @@ buildProfile := F.Pipe4(
 ```
 
 The compiler ensures you can't access fields that haven't been set yet.
+
+### 🔍 **Using Optics with Bind and BindTo**
+
+[Optics](../../../optics/README.md) provide powerful, composable abstractions for working with data structures. They integrate seamlessly with ReaderResult's `Bind` and `BindTo` methods, enabling elegant state accumulation patterns.
+
+#### Lenses for Product Types (Structs)
+
+[Lenses](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) focus on struct fields and can be used as setters in `Bind` operations:
+
+```go
+import (
+    "github.com/IBM/fp-go/v2/optics/lens"
+    F "github.com/IBM/fp-go/v2/function"
+)
+
+type User struct {
+    ID   int
+    Name string
+}
+
+type UserProfile struct {
+    User     User
+    Posts    []Post
+    Comments []Comment
+}
+
+// Auto-generated or manually created lenses
+var (
+    userLens = lens.MakeLens(
+        func(p UserProfile) User { return p.User },
+        func(p UserProfile, u User) UserProfile {
+            p.User = u
+            return p
+        },
+    )
+    postsLens = lens.MakeLens(
+        func(p UserProfile) []Post { return p.Posts },
+        func(p UserProfile, posts []Post) UserProfile {
+            p.Posts = posts
+            return p
+        },
+    )
+    commentsLens = lens.MakeLens(
+        func(p UserProfile) []Comment { return p.Comments },
+        func(p UserProfile, comments []Comment) UserProfile {
+            p.Comments = comments
+            return p
+        },
+    )
+    
+    // Lens for User.ID field
+    userIDLens = lens.MakeLens(
+        func(u User) int { return u.ID },
+        func(u User, id int) User {
+            u.ID = id
+            return u
+        },
+    )
+    
+    // Composed lens: UserProfile -> User -> ID
+    // This demonstrates lens composition - a key benefit of optics!
+    profileUserIDLens = F.Pipe1(
+        userLens,
+        lens.Compose[UserProfile](userIDLens),
+    )
+)
+
+// Use lenses as setters in Bind
+buildProfile := F.Pipe3(
+    Do(UserProfile{}),
+    Bind(userLens.Set, func(s UserProfile) ReaderResult[User] {
+        return GetUser(userID)
+    }),
+    Bind(postsLens.Set, func(s UserProfile) ReaderResult[[]Post] {
+        // Use composed lens to access nested User.ID directly
+        return GetPosts(profileUserIDLens.Get(s))
+    }),
+    Bind(commentsLens.Set, func(s UserProfile) ReaderResult[[]Comment] {
+        // Composed lens makes nested access clean and type-safe
+        return GetComments(profileUserIDLens.Get(s))
+    }),
+)
+```
+
+**Benefits:**
+- Type-safe field updates
+- Reusable lens definitions
+- Clear separation of data access from business logic
+- Can be auto-generated with `go generate` (see [optics documentation](../../../optics/README.md#-auto-generation-with-go-generate))
+
+#### Prisms for Sum Types (Variants)
+
+[Prisms](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism) are particularly powerful in `Bind` operations as they act as **generalized constructors**. The prism's `ReverseGet` function constructs values of sum types, making them ideal for building up complex results:
+
+```go
+import (
+    "github.com/IBM/fp-go/v2/optics/prism"
+    O "github.com/IBM/fp-go/v2/option"
+)
+
+type APIResponse struct {
+    UserData   O.Option[User]
+    PostsData  O.Option[[]Post]
+    StatsData  O.Option[Stats]
+}
+
+// Prisms for Option fields - ReverseGet acts as a constructor
+var (
+    userDataPrism = prism.MakePrism(
+        func(r APIResponse) O.Option[User] { return r.UserData },
+        func(u User) APIResponse {
+            return APIResponse{UserData: O.Some(u)}
+        },
+    )
+    postsDataPrism = prism.MakePrism(
+        func(r APIResponse) O.Option[[]Post] { return r.PostsData },
+        func(posts []Post) APIResponse {
+            return APIResponse{PostsData: O.Some(posts)}
+        },
+    )
+)
+
+// Use prisms to construct and accumulate optional data
+fetchAPIData := F.Pipe3(
+    Do(APIResponse{}),
+    // ReverseGet constructs APIResponse with UserData set
+    Bind(userDataPrism.ReverseGet, func(s APIResponse) ReaderResult[User] {
+        return GetUser(userID)
+    }),
+    // ReverseGet constructs APIResponse with PostsData set
+    Bind(postsDataPrism.ReverseGet, func(s APIResponse) ReaderResult[[]Post] {
+        return O.Fold(
+            func() ReaderResult[[]Post] { return Of([]Post{}) },
+            func(user User) ReaderResult[[]Post] { return GetPosts(user.ID) },
+        )(s.UserData)
+    }),
+    // Handle optional stats
+    BindTo(func(s APIResponse) ReaderResult[APIResponse] {
+        return F.Pipe1(
+            GetStats(userID),
+            Map(func(stats Stats) APIResponse {
+                s.StatsData = O.Some(stats)
+                return s
+            }),
+        )
+    }),
+)
+```
+
+**Why Prisms Excel in Bind:**
+- **Generalized Constructors**: `ReverseGet` creates values from variants, perfect for building sum types
+- **Partial Construction**: Build complex structures incrementally
+- **Type Safety**: Compiler ensures correct variant handling
+- **Composability**: Prisms compose naturally with monadic operations
+
+#### Combining Lenses and Prisms
+
+For maximum flexibility, combine both optics in a single pipeline:
+
+```go
+type ComplexState struct {
+    Config   Config
+    Result   O.Option[ProcessingResult]
+    Metadata Metadata
+}
+
+var (
+    configLens = lens.MakeLens(
+        func(s ComplexState) Config { return s.Config },
+        func(s ComplexState, c Config) ComplexState {
+            s.Config = c
+            return s
+        },
+    )
+    resultPrism = prism.MakePrism(
+        func(s ComplexState) O.Option[ProcessingResult] { return s.Result },
+        func(r ProcessingResult) ComplexState {
+            return ComplexState{Result: O.Some(r)}
+        },
+    )
+)
+
+pipeline := F.Pipe3(
+    Do(ComplexState{}),
+    Bind(configLens.Set, LoadConfig),           // Lens for required field
+    Bind(resultPrism.ReverseGet, ProcessData),  // Prism for optional result
+    Bind(metadataLens.Set, ExtractMetadata),    // Lens for metadata
+)
+```
+
+**Learn More:**
+- [Optics Overview](../../optics/README.md) - Complete guide to lenses, prisms, and other optics
+- [Lens Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) - Detailed lens API
+- [Prism Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism) - Prism patterns and usage
+- [Auto-generation](../../optics/README.md#-auto-generation-with-go-generate) - Generate optics automatically
 
 ### 11. ⏱️ **Automatic Context Cancellation Checks**
 
@@ -631,13 +855,17 @@ pipeline := F.Pipe2(
 summary, err := pipeline(context.Background())
 ```
 
+**Key functions used:**
+- [`Chain`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Chain) - Sequence dependent operations
+- [`Map`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Map) - Transform success values
+
 ## 🔄 Converting Traditional Go Functions
 
-ReaderResult provides convenient functions to convert traditional Go functions (that take `context.Context` as their first parameter) into functional ReaderResult operations. This makes it easy to integrate existing code into functional pipelines.
+[`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) provides convenient functions to convert traditional Go functions (that take [`context.Context`](https://pkg.go.dev/context#Context) as their first parameter) into functional ReaderResult operations. This makes it easy to integrate existing code into functional pipelines.
 
 ### Using `FromXXX` Functions (Uncurried)
 
-The `FromXXX` functions convert traditional Go functions into ReaderResult-returning functions that take all parameters at once. This is the most straightforward conversion for direct use.
+The [`From0`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From0), [`From1`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From1), [`From2`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From2), [`From3`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From3) functions convert traditional Go functions into ReaderResult-returning functions that take all parameters at once. This is the most straightforward conversion for direct use.
 
 ```go
 // Traditional Go function
@@ -676,7 +904,7 @@ result, err := pipeline(ctx)
 
 ### Using `CurryXXX` Functions (Curried)
 
-The `CurryXXX` functions convert traditional Go functions into curried ReaderResult-returning functions. This enables partial application, which is useful for building reusable function pipelines.
+The [`Curry0`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry0), [`Curry1`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry1), [`Curry2`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry2), [`Curry3`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry3) functions convert traditional Go functions into curried ReaderResult-returning functions. This enables partial application, which is useful for building reusable function pipelines.
 
 ```go
 // Traditional Go function
@@ -756,7 +984,7 @@ userData, err := GetUserWithData(123)(ctx)
 
 ### Converting Back: Uncurry Functions
 
-If you need to convert a ReaderResult function back to traditional Go style (e.g., for interfacing with non-functional code), use the `UncurryXXX` functions:
+If you need to convert a [`ReaderResult`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ReaderResult) function back to traditional Go style (e.g., for interfacing with non-functional code), use the [`Uncurry1`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Uncurry1), [`Uncurry2`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Uncurry2), [`Uncurry3`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Uncurry3) functions:
 
 ```go
 // Functional style
@@ -772,6 +1000,31 @@ getUser := RR.Uncurry1(getUserRR)
 // Now callable in traditional style
 user, err := getUser(ctx, 123)
 ```
+
+## 📚 API Reference
+
+### Core Functions
+- [`Map`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Map) - Transform the success value
+- [`Chain`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Chain) - Sequence operations (also known as `FlatMap` or `Bind`)
+- [`Bind`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Bind) - Do-notation binding for state accumulation
+- [`Do`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Do) - Start a Do-notation pipeline
+- [`ApS`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#ApS) - Applicative sequencing for parallel operations
+- [`Of`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Of) - Lift a pure value into ReaderResult
+
+### Resource Management
+- [`Bracket`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Bracket) - Safe resource acquisition and cleanup
+
+### Conversion Functions
+- [`From0`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From0), [`From1`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From1), [`From2`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From2), [`From3`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#From3) - Convert traditional Go functions to ReaderResult
+- [`Curry0`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry0), [`Curry1`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry1), [`Curry2`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry2), [`Curry3`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Curry3) - Convert to curried ReaderResult functions
+- [`Uncurry1`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Uncurry1), [`Uncurry2`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Uncurry2), [`Uncurry3`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#Uncurry3) - Convert back to traditional Go functions
+
+### Error Handling
+- [`MapError`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#MapError) - Transform error values
+- [`OrElse`](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult#OrElse) - Provide fallback on error
+
+### Full Documentation
+- [Package Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/context/readerresult) - Complete API reference
 
 ## 📚 See Also
 

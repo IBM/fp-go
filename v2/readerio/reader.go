@@ -27,7 +27,6 @@
 //   - Maintain functional composition and testability
 //
 // # Logging Use Case
-//
 // ReaderIO is especially well-suited for logging because it allows you to:
 //   - Pass a logger through your computation chain without explicit parameter threading
 //   - Compose logging operations with other side effects
@@ -93,6 +92,7 @@ package readerio
 
 import (
 	"sync"
+	"time"
 
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/chain"
@@ -203,7 +203,7 @@ func MonadMap[R, A, B any](fa ReaderIO[R, A], f func(A) B) ReaderIO[R, B] {
 //	replaced := readerio.MonadMapTo(logAndCompute, "done")
 //	result := replaced(config)() // Prints "Computing...", returns "done"
 func MonadMapTo[R, A, B any](fa ReaderIO[R, A], b B) ReaderIO[R, B] {
-	return MonadMap(fa, function.Constant1[A](b))
+	return MonadMap(fa, reader.Of[A](b))
 }
 
 // Map creates a function that applies a transformation to a ReaderIO value.
@@ -262,7 +262,7 @@ func Map[R, A, B any](f func(A) B) Operator[R, A, B] {
 //	    readerio.MapTo[Config, int]("complete"),
 //	)(config)() // Prints "Step executed", returns "complete"
 func MapTo[R, A, B any](b B) Operator[R, A, B] {
-	return Map[R](function.Constant1[A](b))
+	return Map[R](reader.Of[A](b))
 }
 
 // MonadChain sequences two ReaderIO computations, where the second depends on the result of the first.
@@ -1110,4 +1110,18 @@ func TapReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
 //go:inline
 func Read[A, R any](r R) func(ReaderIO[R, A]) IO[A] {
 	return reader.Read[IO[A]](r)
+}
+
+// Delay creates an operation that passes in the value after some delay
+//
+//go:inline
+func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
+	return function.Bind2nd(function.Flow2[ReaderIO[R, A]], io.Delay[A](delay))
+}
+
+// After creates an operation that passes after the given [time.Time]
+//
+//go:inline
+func After[R, A any](timestamp time.Time) Operator[R, A, A] {
+	return function.Bind2nd(function.Flow2[ReaderIO[R, A]], io.After[A](timestamp))
 }

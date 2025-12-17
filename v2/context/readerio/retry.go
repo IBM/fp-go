@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,29 +13,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerresult
+package readerio
 
 import (
-	"context"
-
-	E "github.com/IBM/fp-go/v2/either"
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/retry"
+	RG "github.com/IBM/fp-go/v2/retry/generic"
 )
 
-// withContext wraps an existing ReaderResult and performs a context check for cancellation before deletating
-func WithContext[A any](ma ReaderResult[A]) ReaderResult[A] {
-	return func(ctx context.Context) E.Either[error, A] {
-		if ctx.Err() != nil {
-			return E.Left[A](context.Cause(ctx))
-		}
-		return ma(ctx)
-	}
-}
-
 //go:inline
-func WithContextK[A, B any](f Kleisli[A, B]) Kleisli[A, B] {
-	return F.Flow2(
-		f,
-		WithContext,
+func Retrying[A any](
+	policy retry.RetryPolicy,
+	action Kleisli[retry.RetryStatus, A],
+	check func(A) bool,
+) ReaderIO[A] {
+	// get an implementation for the types
+	return RG.Retrying(
+		Chain[A, A],
+		Chain[retry.RetryStatus, A],
+		Of[A],
+		Of[retry.RetryStatus],
+		Delay[retry.RetryStatus],
+
+		policy,
+		action,
+		check,
 	)
 }

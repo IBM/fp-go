@@ -16,6 +16,10 @@
 package readerioresult
 
 import (
+	"time"
+
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -796,4 +800,18 @@ func ChainFirstLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
 //go:inline
 func TapLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
 	return RIOE.TapLeft[A](f)
+}
+
+// Delay creates an operation that passes in the value after some delay
+//
+//go:inline
+func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
+	return function.Bind2nd(function.Flow2[ReaderIOResult[R, A]], io.Delay[Result[A]](delay))
+}
+
+// After creates an operation that passes after the given [time.Time]
+//
+//go:inline
+func After[R, A any](timestamp time.Time) Operator[R, A, A] {
+	return function.Bind2nd(function.Flow2[ReaderIOResult[R, A]], io.After[Result[A]](timestamp))
 }

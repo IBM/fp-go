@@ -152,7 +152,7 @@ func MapTo[A, B any](b B) Operator[A, B] {
 //
 //go:inline
 func MonadChain[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIOResult[B] {
-	return RIOR.MonadChain(ma, function.Flow2(f, WithContext))
+	return RIOR.MonadChain(ma, WithContextK(f))
 }
 
 // Chain sequences two [ReaderIOResult] computations, where the second depends on the result of the first.
@@ -165,7 +165,7 @@ func MonadChain[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIOResult[
 //
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
-	return RIOR.Chain(function.Flow2(f, WithContext))
+	return RIOR.Chain(WithContextK(f))
 }
 
 // MonadChainFirst sequences two [ReaderIOResult] computations but returns the result of the first.
@@ -179,12 +179,12 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 //
 //go:inline
 func MonadChainFirst[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIOResult[A] {
-	return RIOR.MonadChainFirst(ma, function.Flow2(f, WithContext))
+	return RIOR.MonadChainFirst(ma, WithContextK(f))
 }
 
 //go:inline
 func MonadTap[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIOResult[A] {
-	return RIOR.MonadTap(ma, function.Flow2(f, WithContext))
+	return RIOR.MonadTap(ma, WithContextK(f))
 }
 
 // ChainFirst sequences two [ReaderIOResult] computations but returns the result of the first.
@@ -197,12 +197,12 @@ func MonadTap[A, B any](ma ReaderIOResult[A], f Kleisli[A, B]) ReaderIOResult[A]
 //
 //go:inline
 func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
-	return RIOR.ChainFirst(function.Flow2(f, WithContext))
+	return RIOR.ChainFirst(WithContextK(f))
 }
 
 //go:inline
 func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
-	return RIOR.Tap(function.Flow2(f, WithContext))
+	return RIOR.Tap(WithContextK(f))
 }
 
 // Of creates a [ReaderIOResult] that always succeeds with the given value.
@@ -398,6 +398,11 @@ func MonadChainEitherK[A, B any](ma ReaderIOResult[A], f either.Kleisli[error, A
 //
 //go:inline
 func ChainEitherK[A, B any](f either.Kleisli[error, A, B]) Operator[A, B] {
+	return RIOR.ChainEitherK[context.Context](f)
+}
+
+//go:inline
+func ChainResultK[A, B any](f either.Kleisli[error, A, B]) Operator[A, B] {
 	return RIOR.ChainEitherK[context.Context](f)
 }
 
@@ -915,7 +920,7 @@ func Read[A any](r context.Context) func(ReaderIOResult[A]) IOResult[A] {
 //
 //go:inline
 func MonadChainLeft[A any](fa ReaderIOResult[A], f Kleisli[error, A]) ReaderIOResult[A] {
-	return RIOR.MonadChainLeft(fa, function.Flow2(f, WithContext))
+	return RIOR.MonadChainLeft(fa, WithContextK(f))
 }
 
 // ChainLeft is the curried version of [MonadChainLeft].
@@ -923,7 +928,7 @@ func MonadChainLeft[A any](fa ReaderIOResult[A], f Kleisli[error, A]) ReaderIORe
 //
 //go:inline
 func ChainLeft[A any](f Kleisli[error, A]) Operator[A, A] {
-	return RIOR.ChainLeft(function.Flow2(f, WithContext))
+	return RIOR.ChainLeft(WithContextK(f))
 }
 
 // MonadChainFirstLeft chains a computation on the left (error) side but always returns the original error.
@@ -936,12 +941,12 @@ func ChainLeft[A any](f Kleisli[error, A]) Operator[A, A] {
 //
 //go:inline
 func MonadChainFirstLeft[A, B any](ma ReaderIOResult[A], f Kleisli[error, B]) ReaderIOResult[A] {
-	return RIOR.MonadChainFirstLeft(ma, function.Flow2(f, WithContext))
+	return RIOR.MonadChainFirstLeft(ma, WithContextK(f))
 }
 
 //go:inline
 func MonadTapLeft[A, B any](ma ReaderIOResult[A], f Kleisli[error, B]) ReaderIOResult[A] {
-	return RIOR.MonadTapLeft(ma, function.Flow2(f, WithContext))
+	return RIOR.MonadTapLeft(ma, WithContextK(f))
 }
 
 // ChainFirstLeft is the curried version of [MonadChainFirstLeft].
@@ -953,12 +958,12 @@ func MonadTapLeft[A, B any](ma ReaderIOResult[A], f Kleisli[error, B]) ReaderIOR
 //
 //go:inline
 func ChainFirstLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
-	return RIOR.ChainFirstLeft[A](function.Flow2(f, WithContext))
+	return RIOR.ChainFirstLeft[A](WithContextK(f))
 }
 
 //go:inline
 func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
-	return RIOR.TapLeft[A](function.Flow2(f, WithContext))
+	return RIOR.TapLeft[A](WithContextK(f))
 }
 
 // Local transforms the context.Context environment before passing it to a ReaderIOResult computation.

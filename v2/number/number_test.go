@@ -527,3 +527,127 @@ func BenchmarkMax(b *testing.B) {
 		_ = Max(i, i+1)
 	}
 }
+
+// Test MoreThan curried function
+func TestMoreThan(t *testing.T) {
+	moreThan10 := MoreThan(10)
+
+	tests := []struct {
+		name     string
+		input    int
+		expected bool
+	}{
+		{"greater than threshold", 15, true},
+		{"less than threshold", 5, false},
+		{"equal to threshold", 10, false},
+		{"much greater", 100, true},
+		{"negative value", -5, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := moreThan10(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// Test MoreThan with floats
+func TestMoreThan_Float(t *testing.T) {
+	moreThan5_5 := MoreThan(5.5)
+
+	assert.True(t, moreThan5_5(6.0))
+	assert.False(t, moreThan5_5(5.0))
+	assert.False(t, moreThan5_5(5.5))
+	assert.True(t, moreThan5_5(10.5))
+	assert.False(t, moreThan5_5(5.4))
+}
+
+// Test MoreThan with negative numbers
+func TestMoreThan_Negative(t *testing.T) {
+	moreThanNeg5 := MoreThan(-5)
+
+	assert.True(t, moreThanNeg5(0))
+	assert.True(t, moreThanNeg5(-4))
+	assert.False(t, moreThanNeg5(-5))
+	assert.False(t, moreThanNeg5(-10))
+}
+
+// Test LessThan curried function
+func TestLessThan(t *testing.T) {
+	lessThan10 := LessThan(10)
+
+	tests := []struct {
+		name     string
+		input    int
+		expected bool
+	}{
+		{"less than threshold", 5, true},
+		{"greater than threshold", 15, false},
+		{"equal to threshold", 10, false},
+		{"much less", -10, true},
+		{"zero", 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lessThan10(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// Test LessThan with floats
+func TestLessThan_Float(t *testing.T) {
+	lessThan5_5 := LessThan(5.5)
+
+	assert.True(t, lessThan5_5(5.0))
+	assert.False(t, lessThan5_5(6.0))
+	assert.False(t, lessThan5_5(5.5))
+	assert.True(t, lessThan5_5(2.5))
+	assert.True(t, lessThan5_5(5.4))
+}
+
+// Test LessThan with negative numbers
+func TestLessThan_Negative(t *testing.T) {
+	lessThanNeg5 := LessThan(-5)
+
+	assert.False(t, lessThanNeg5(0))
+	assert.False(t, lessThanNeg5(-4))
+	assert.False(t, lessThanNeg5(-5))
+	assert.True(t, lessThanNeg5(-10))
+}
+
+// Test MoreThan and LessThan together for range checking
+func TestMoreThanLessThan_Range(t *testing.T) {
+	// Check if value is in range (10, 20) - exclusive
+	moreThan10 := MoreThan(10)
+	lessThan20 := LessThan(20)
+
+	inRange := func(x int) bool {
+		return moreThan10(x) && lessThan20(x)
+	}
+
+	assert.True(t, inRange(15))
+	assert.False(t, inRange(10))
+	assert.False(t, inRange(20))
+	assert.False(t, inRange(5))
+	assert.False(t, inRange(25))
+}
+
+// Benchmark tests for comparison functions
+func BenchmarkMoreThan(b *testing.B) {
+	moreThan10 := MoreThan(10)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = moreThan10(i)
+	}
+}
+
+func BenchmarkLessThan(b *testing.B) {
+	lessThan10 := LessThan(10)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = lessThan10(i)
+	}
+}

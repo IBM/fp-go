@@ -753,3 +753,17 @@ func WithDeadline[A any](deadline time.Time) Operator[A, A] {
 		return context.WithDeadline(ctx, deadline)
 	})
 }
+
+// Delay creates an operation that passes in the value after some delay
+//
+//go:inline
+func Delay[A any](delay time.Duration) Operator[A, A] {
+	return RIO.Delay[context.Context, A](delay)
+}
+
+// After creates an operation that passes after the given [time.Time]
+//
+//go:inline
+func After[R, E, A any](timestamp time.Time) Operator[A, A] {
+	return RIO.After[context.Context, A](timestamp)
+}

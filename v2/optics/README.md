@@ -21,12 +21,12 @@ Optics bring powerful benefits to your Go code:
 
 ### 🔗 Composition with Monadic Operations
 
-One of the most powerful features of optics is their natural composition with monadic operations. Optics integrate seamlessly with `fp-go`'s monadic types like `Option`, `Either`, `Result`, and `IO`, allowing you to:
+One of the most powerful features of optics is their natural composition with monadic operations. Optics integrate seamlessly with `fp-go`'s monadic types like [`Option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/option), [`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either), [`Result`](https://pkg.go.dev/github.com/IBM/fp-go/v2/result), and [`IO`](https://pkg.go.dev/github.com/IBM/fp-go/v2/io), allowing you to:
 
-- Chain optional field access with `Option` monads
-- Handle errors gracefully with `Either` or `Result` monads
-- Perform side effects with `IO` monads
-- Combine multiple optics in a single pipeline using `Pipe`
+- Chain optional field access with [`Option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/option) monads
+- Handle errors gracefully with [`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either) or [`Result`](https://pkg.go.dev/github.com/IBM/fp-go/v2/result) monads
+- Perform side effects with [`IO`](https://pkg.go.dev/github.com/IBM/fp-go/v2/io) monads
+- Combine multiple optics in a single pipeline using [`Pipe`](https://pkg.go.dev/github.com/IBM/fp-go/v2/function#Pipe1)
 
 This composability enables you to build complex data transformations from simple, reusable building blocks.
 
@@ -64,10 +64,10 @@ updated := nameLens.Set("Bob")(person)
 
 ## 🛠️ Core Optics Types
 
-### 🔎 Lens - Product Types (Structs)
-Focus on a single field within a struct. Provides get and set operations.
+### 🔎 [Lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) - Product Types ([Structs](https://go.dev/ref/spec#Struct_types))
+Focus on a single field within a [struct](https://go.dev/ref/spec#Struct_types). Provides get and set operations.
 
-**Use when:** Working with struct fields that always exist.
+**Use when:** Working with [struct](https://go.dev/ref/spec#Struct_types) fields that always exist.
 
 ```go
 ageLens := lens.MakeLens(
@@ -79,14 +79,14 @@ ageLens := lens.MakeLens(
 )
 ```
 
-### 🔀 Prism - Sum Types (Variants)
+### 🔀 [Prism](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism) - Sum Types (Variants)
 Focus on one variant of a sum type. Provides optional get and definite set.
 
-**Use when:** Working with Either, Result, or custom sum types.
+**Use when:** Working with [`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either), [`Result`](https://pkg.go.dev/github.com/IBM/fp-go/v2/result), or custom sum types.
 
 **💡 Important Use Case - Generalized Constructors for Do Notation:**
 
-Prisms act as generalized constructors, making them invaluable for `Do` notation workflows. The prism's `ReverseGet` function serves as a constructor that creates a value of the sum type from a specific variant. This is particularly useful when building up complex data structures step-by-step in monadic contexts:
+[Prisms](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism) act as generalized constructors, making them invaluable for `Do` notation workflows. The prism's `ReverseGet` function serves as a constructor that creates a value of the sum type from a specific variant. This is particularly useful when building up complex data structures step-by-step in monadic contexts:
 
 ```go
 import "github.com/IBM/fp-go/v2/optics/prism"
@@ -110,7 +110,7 @@ result := F.Pipe2(
 )
 ```
 
-### 🔄 Iso - Isomorphisms
+### 🔄 [Iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso) - Isomorphisms
 Bidirectional transformation between equivalent types with no information loss.
 
 **Use when:** Converting between equivalent representations (e.g., Celsius ↔ Fahrenheit).
@@ -124,7 +124,7 @@ celsiusToFahrenheit := iso.MakeIso(
 )
 ```
 
-### ❓ Optional - Maybe Values
+### ❓ [Optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional) - Maybe Values
 Focus on a value that may or may not exist.
 
 **Use when:** Working with nullable fields or values that may be absent.
@@ -143,7 +143,7 @@ timeoutOptional := optional.MakeOptional(
 )
 ```
 
-### 🔢 Traversal - Multiple Values
+### 🔢 [Traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal) - Multiple Values
 Focus on multiple values simultaneously, allowing batch operations.
 
 **Use when:** Working with collections or updating multiple fields at once.
@@ -212,16 +212,16 @@ city := companyCityLens.Get(company)           // "NYC"
 updated := companyCityLens.Set("Boston")(company)
 ```
 
-## ⚙️ Auto-Generation with `go generate`
+## ⚙️ Auto-Generation with [`go generate`](https://go.dev/blog/generate)
 
 Lenses can be automatically generated using the `fp-go` CLI tool and a simple annotation. This eliminates boilerplate and ensures consistency.
 
 ### 📝 How to Use
 
-1. **Annotate your struct** with the `fp-go:Lens` comment:
+1. **Annotate your [struct](https://go.dev/ref/spec#Struct_types)** with the `fp-go:Lens` comment:
 
 ```go
-//go:generate go run github.com/IBM/fp-go/v2/main.go lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/v2 lens
 
 // fp-go:Lens
 type Person struct {
@@ -232,7 +232,7 @@ type Person struct {
 }
 ```
 
-2. **Run `go generate`**:
+2. **Run [`go generate`](https://go.dev/blog/generate)**:
 
 ```bash
 go generate ./...
@@ -256,7 +256,7 @@ personWithEmail := lenses.EmailO.Set(option.Some("new@example.com"))(person)
 
 ### 🎁 What Gets Generated
 
-For each annotated struct, the generator creates:
+For each annotated [struct](https://go.dev/ref/spec#Struct_types), the generator creates:
 
 - **`StructNameLenses`**: Lenses for value types with optional variants (`LensO`) for comparable fields
 - **`StructNameRefLenses`**: Lenses for pointer types with prisms for constructing values
@@ -264,8 +264,8 @@ For each annotated struct, the generator creates:
 - Constructor functions: `MakeStructNameLenses()`, `MakeStructNameRefLenses()`, `MakeStructNamePrisms()`
 
 The generator supports:
-- ✅ Generic types with type parameters
-- ✅ Embedded structs (fields are promoted)
+- ✅ [Generic types](https://go.dev/doc/tutorial/generics) with type parameters
+- ✅ Embedded [structs](https://go.dev/ref/spec#Struct_types) (fields are promoted)
 - ✅ Optional fields (pointers and `omitempty` tags)
 - ✅ Custom package imports
 
@@ -273,36 +273,36 @@ See [samples/lens](../samples/lens) for complete examples.
 
 ## 📊 Optics Hierarchy
 
-```
-Iso[S, A]
+```markdown
+[Iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso)[S, A]
     ↓
-Lens[S, A]
+[Lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens)[S, A]
     ↓
-Optional[S, A]
+[Optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional)[S, A]
     ↓
-Traversal[S, A]
+[Traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal)[S, A]
 
-Prism[S, A]
+[Prism](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism)[S, A]
     ↓
-Optional[S, A]
+[Optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional)[S, A]
     ↓
-Traversal[S, A]
+[Traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal)[S, A]
 ```
 
 More specific optics can be converted to more general ones.
 
 ## 📦 Package Structure
 
-- **optics/lens**: Lenses for product types (structs)
-- **optics/prism**: Prisms for sum types (Either, Result, etc.)
-- **optics/iso**: Isomorphisms for equivalent types
-- **optics/optional**: Optional optics for maybe values
-- **optics/traversal**: Traversals for multiple values
+- **[optics/lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens)**: Lenses for product types (structs)
+- **[optics/prism](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism)**: Prisms for sum types ([`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either), [`Result`](https://pkg.go.dev/github.com/IBM/fp-go/v2/result), etc.)
+- **[optics/iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso)**: Isomorphisms for equivalent types
+- **[optics/optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional)**: Optional optics for maybe values
+- **[optics/traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal)**: Traversals for multiple values
 
 Each package includes specialized sub-packages for common patterns:
 - **array**: Optics for arrays/slices
-- **either**: Optics for Either types
-- **option**: Optics for Option types
+- **either**: Optics for [`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either) types
+- **option**: Optics for [`Option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/option) types
 - **record**: Optics for maps
 
 ## 📚 Documentation

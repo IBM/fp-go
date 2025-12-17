@@ -19,6 +19,7 @@ import (
 	"context"
 
 	CIOE "github.com/IBM/fp-go/v2/context/ioresult"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/ioeither"
 )
 
@@ -39,4 +40,12 @@ func WithContext[A any](ma ReaderIOResult[A]) ReaderIOResult[A] {
 		}
 		return CIOE.WithContext(ctx, ma(ctx))
 	}
+}
+
+//go:inline
+func WithContextK[A, B any](f Kleisli[A, B]) Kleisli[A, B] {
+	return F.Flow2(
+		f,
+		WithContext,
+	)
 }

@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package retry provides utilities for implementing retry logic with configurable policies.
+// It includes type aliases and functions for handling retryable operations with exponential backoff,
+// maximum retry attempts, and other retry strategies.
 package retry
 
 import (
@@ -20,5 +23,16 @@ import (
 )
 
 type (
+	// Option is a type alias for option.Option, representing an optional value that may or may not be present.
+	// It is used throughout the retry package to represent optional configuration values and results.
+	//
+	// An Option[A] can be either:
+	//   - Some(value): Contains a value of type A
+	//   - None: Represents the absence of a value
+	//
+	// This type is commonly used for:
+	//   - Optional retry delays
+	//   - Optional maximum retry counts
+	//   - Results that may or may not succeed after retries
 	Option[A any] = option.Option[A]
 )

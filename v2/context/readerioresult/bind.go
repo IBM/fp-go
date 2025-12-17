@@ -95,7 +95,7 @@ func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
 ) Operator[S1, S2] {
-	return RIOR.Bind(setter, F.Flow2(f, WithContext))
+	return RIOR.Bind(setter, WithContextK(f))
 }
 
 // Let attaches the result of a computation to a context [S1] to produce a context [S2]
@@ -262,7 +262,7 @@ func BindL[S, T any](
 	lens Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return RIOR.BindL(lens, F.Flow2(f, WithContext))
+	return RIOR.BindL(lens, WithContextK(f))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific part of the context.

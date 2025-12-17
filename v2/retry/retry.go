@@ -57,6 +57,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 )
@@ -158,9 +159,7 @@ var Monoid = M.FunctionMonoid[RetryStatus](O.ApplicativeMonoid(M.MakeMonoid(
 func LimitRetries(i uint) RetryPolicy {
 	return F.Flow3(
 		IterNumber,
-		O.FromPredicate(func(value uint) bool {
-			return value < i
-		}),
+		O.FromPredicate(N.LessThan(i)),
 		O.Map(F.Constant1[uint](emptyDuration)),
 	)
 }
@@ -280,4 +279,51 @@ func ApplyPolicy(policy RetryPolicy, status RetryStatus) RetryStatus {
 		CumulativeDelay: status.CumulativeDelay + getOrElseDelay(previousDelay),
 		PreviousDelay:   previousDelay,
 	}
+}
+
+// Always creates a constant function that always returns the same value,
+// ignoring the RetryStatus parameter. This is particularly useful as the
+// check callback in Retrying functions to retry an operation unconditionally,
+// independent of the operation's status or result.
+//
+// When used as a check callback in Retrying, Always(true) will cause the
+// operation to retry on every iteration until the retry policy terminates
+// (e.g., via LimitRetries or context cancellation). This is useful when you
+// want to retry an operation a fixed number of times regardless of whether
+// it succeeds or fails.
+//
+// Parameters:
+//   - a: The constant value to return
+//
+// Returns:
+//
+//	A function that takes a RetryStatus and always returns the provided value a.
+//
+// Example with Retrying:
+//
+//	// Retry exactly 3 times with exponential backoff, regardless of success/failure
+//	policy := M.Concat(
+//		LimitRetries(3),
+//		ExponentialBackoff(100*time.Millisecond),
+//	)(Monoid)
+//
+//	action := func(status RetryStatus) ReaderResult[string] {
+//		return func(ctx context.Context) (string, error) {
+//			// This will be called 4 times total (initial + 3 retries)
+//			return fetchData(ctx)
+//		}
+//	}
+//
+//	// Always retry, regardless of the result
+//	retrying := Retrying(policy, action, Always(true))
+//
+// Example with custom logic:
+//
+//	// Create a function that always returns false
+//	neverRetry := Always(false)
+//	shouldRetry := neverRetry(status) // always returns false
+//
+//go:inline
+func Always[A any](a A) func(RetryStatus) A {
+	return F.Constant1[RetryStatus](a)
 }

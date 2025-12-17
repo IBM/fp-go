@@ -16,6 +16,8 @@
 package readerioeither
 
 import (
+	"time"
+
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/chain"
@@ -893,4 +895,18 @@ func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA
 //go:inline
 func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
 	return ChainFirstLeft[A](f)
+}
+
+// Delay creates an operation that passes in the value after some delay
+//
+//go:inline
+func Delay[R, E, A any](delay time.Duration) Operator[R, E, A, A] {
+	return function.Bind2nd(function.Flow2[ReaderIOEither[R, E, A]], io.Delay[Either[E, A]](delay))
+}
+
+// After creates an operation that passes after the given [time.Time]
+//
+//go:inline
+func After[R, E, A any](timestamp time.Time) Operator[R, E, A, A] {
+	return function.Bind2nd(function.Flow2[ReaderIOEither[R, E, A]], io.After[Either[E, A]](timestamp))
 }

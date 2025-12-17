@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	RS "github.com/IBM/fp-go/v2/context/readerresult"
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/idiomatic/option"
 	RR "github.com/IBM/fp-go/v2/idiomatic/readerresult"
@@ -133,6 +135,20 @@ func Right[A any](a A) ReaderResult[A] {
 //go:inline
 func FromReader[A any](r Reader[context.Context, A]) ReaderResult[A] {
 	return RR.FromReader(r)
+}
+
+//go:inline
+func FromReaderResult[A any](r RS.ReaderResult[A]) ReaderResult[A] {
+	return func(ctx context.Context) (A, error) {
+		return either.Unwrap(r(ctx))
+	}
+}
+
+//go:inline
+func ToReaderResult[A any](r ReaderResult[A]) RS.ReaderResult[A] {
+	return func(ctx context.Context) Result[A] {
+		return either.TryCatchError(r(ctx))
+	}
 }
 
 // MonadMap transforms the success value of a ReaderResult using the given function.
