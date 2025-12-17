@@ -24,7 +24,6 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
-	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/reader"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/result"
@@ -128,6 +127,13 @@ func BindTo[S1, T any](
 	return RIOR.BindTo[context.Context](setter)
 }
 
+//go:inline
+func BindToP[S1, T any](
+	setter Prism[S1, T],
+) Operator[T, S1] {
+	return BindTo(setter.ReverseGet)
+}
+
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
 // the context and the value concurrently (using Applicative rather than Monad).
 // This allows independent computations to be combined without one depending on the result of the other.
@@ -214,7 +220,7 @@ func ApS[S1, S2, T any](
 //
 //go:inline
 func ApSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa ReaderIOResult[T],
 ) Operator[S, S] {
 	return ApS(lens.Set, fa)
@@ -253,7 +259,7 @@ func ApSL[S, T any](
 //
 //go:inline
 func BindL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
 	return RIOR.BindL(lens, F.Flow2(f, WithContext))
@@ -289,7 +295,7 @@ func BindL[S, T any](
 //
 //go:inline
 func LetL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f Endomorphism[T],
 ) Operator[S, S] {
 	return RIOR.LetL[context.Context](lens, f)
@@ -322,7 +328,7 @@ func LetL[S, T any](
 //
 //go:inline
 func LetToL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	b T,
 ) Operator[S, S] {
 	return RIOR.LetToL[context.Context](lens, b)
@@ -443,7 +449,7 @@ func BindResultK[S1, S2, T any](
 //
 //go:inline
 func BindIOEitherKL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f ioresult.Kleisli[T, T],
 ) Operator[S, S] {
 	return BindL(lens, F.Flow2(f, FromIOEither[T]))
@@ -458,7 +464,7 @@ func BindIOEitherKL[S, T any](
 //
 //go:inline
 func BindIOResultKL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f ioresult.Kleisli[T, T],
 ) Operator[S, S] {
 	return BindL(lens, F.Flow2(f, FromIOEither[T]))
@@ -474,7 +480,7 @@ func BindIOResultKL[S, T any](
 //
 //go:inline
 func BindIOKL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f io.Kleisli[T, T],
 ) Operator[S, S] {
 	return BindL(lens, F.Flow2(f, FromIO[T]))
@@ -490,7 +496,7 @@ func BindIOKL[S, T any](
 //
 //go:inline
 func BindReaderKL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f reader.Kleisli[context.Context, T, T],
 ) Operator[S, S] {
 	return BindL(lens, F.Flow2(f, FromReader[T]))
@@ -506,7 +512,7 @@ func BindReaderKL[S, T any](
 //
 //go:inline
 func BindReaderIOKL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f readerio.Kleisli[T, T],
 ) Operator[S, S] {
 	return BindL(lens, F.Flow2(f, FromReaderIO[T]))
@@ -627,7 +633,7 @@ func ApResultS[S1, S2, T any](
 //
 //go:inline
 func ApIOEitherSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa IOResult[T],
 ) Operator[S, S] {
 	return F.Bind2nd(F.Flow2[ReaderIOResult[S], ioresult.Operator[S, S]], ioresult.ApSL(lens, fa))
@@ -642,7 +648,7 @@ func ApIOEitherSL[S, T any](
 //
 //go:inline
 func ApIOResultSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa IOResult[T],
 ) Operator[S, S] {
 	return F.Bind2nd(F.Flow2[ReaderIOResult[S], ioresult.Operator[S, S]], ioresult.ApSL(lens, fa))
@@ -657,7 +663,7 @@ func ApIOResultSL[S, T any](
 //
 //go:inline
 func ApIOSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa IO[T],
 ) Operator[S, S] {
 	return ApSL(lens, FromIO(fa))
@@ -672,7 +678,7 @@ func ApIOSL[S, T any](
 //
 //go:inline
 func ApReaderSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa Reader[context.Context, T],
 ) Operator[S, S] {
 	return ApSL(lens, FromReader(fa))
@@ -687,7 +693,7 @@ func ApReaderSL[S, T any](
 //
 //go:inline
 func ApReaderIOSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa ReaderIO[T],
 ) Operator[S, S] {
 	return ApSL(lens, FromReaderIO(fa))
@@ -702,7 +708,7 @@ func ApReaderIOSL[S, T any](
 //
 //go:inline
 func ApEitherSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa Result[T],
 ) Operator[S, S] {
 	return ApSL(lens, FromEither(fa))
@@ -717,7 +723,7 @@ func ApEitherSL[S, T any](
 //
 //go:inline
 func ApResultSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa Result[T],
 ) Operator[S, S] {
 	return ApSL(lens, FromResult(fa))

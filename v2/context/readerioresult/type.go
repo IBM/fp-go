@@ -26,6 +26,8 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
@@ -132,4 +134,7 @@ type (
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
 	Consumer[A any] = consumer.Consumer[A]
+
+	Prism[S, T any] = prism.Prism[S, T]
+	Lens[S, T any]  = lens.Lens[S, T]
 )

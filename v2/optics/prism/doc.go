@@ -409,6 +409,62 @@ Prisms are fully type-safe:
   - Generic type parameters ensure correctness
   - Composition maintains type relationships
 
+# Built-in Prisms
+
+The package provides many useful prisms for common transformations:
+
+**Type Conversion & Parsing:**
+  - FromEncoding(enc): Base64 encoding/decoding - Prism[string, []byte]
+  - ParseURL(): URL parsing/formatting - Prism[string, *url.URL]
+  - ParseDate(layout): Date parsing with custom layouts - Prism[string, time.Time]
+  - ParseInt(): Integer string parsing - Prism[string, int]
+  - ParseInt64(): 64-bit integer parsing - Prism[string, int64]
+  - ParseBool(): Boolean string parsing - Prism[string, bool]
+  - ParseFloat32(): 32-bit float parsing - Prism[string, float32]
+  - ParseFloat64(): 64-bit float parsing - Prism[string, float64]
+
+**Type Assertion & Extraction:**
+  - InstanceOf[T](): Safe type assertion from any - Prism[any, T]
+  - Deref[T](): Safe pointer dereferencing (filters nil) - Prism[*T, *T]
+
+**Container/Wrapper Prisms:**
+  - FromEither[E, T](): Extract Right values - Prism[Either[E, T], T]
+    ReverseGet wraps into Right (acts as success constructor)
+  - FromResult[T](): Extract success from Result - Prism[Result[T], T]
+    ReverseGet wraps into success Result
+  - FromOption[T](): Extract Some values - Prism[Option[T], T]
+    ReverseGet wraps into Some (acts as Some constructor)
+
+**Validation Prisms:**
+  - FromZero[T](): Match only zero/default values - Prism[T, T]
+  - FromNonZero[T](): Match only non-zero values - Prism[T, T]
+
+**Pattern Matching:**
+  - RegexMatcher(re): Extract regex matches with groups - Prism[string, Match]
+  - RegexNamedMatcher(re): Extract named regex groups - Prism[string, NamedMatch]
+
+Example using built-in prisms:
+
+	// Parse and validate an integer from a string
+	intPrism := prism.ParseInt()
+	value := intPrism.GetOption("42")  // Some(42)
+	invalid := intPrism.GetOption("abc")  // None[int]()
+
+	// Extract success values from Either
+	resultPrism := prism.FromEither[error, int]()
+	success := either.Right[error](100)
+	value = resultPrism.GetOption(success)  // Some(100)
+
+	// ReverseGet acts as a constructor
+	wrapped := resultPrism.ReverseGet(42)  // Right(42)
+
+	// Compose prisms for complex transformations
+	// Parse string to int, then wrap in Option
+	composed := F.Pipe1(
+		prism.ParseInt(),
+		prism.Compose[string](prism.FromOption[int]()),
+	)
+
 # Function Reference
 
 Core Functions:

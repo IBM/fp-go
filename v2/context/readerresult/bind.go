@@ -17,7 +17,6 @@ package readerresult
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 )
 
@@ -39,9 +38,17 @@ func Do[S any](
 	return G.Do[ReaderResult[S]](empty)
 }
 
-// Bind attaches the result of a computation to a context [S1] to produce a context [S2].
+// Bind attaches the result of an EFFECTFUL computation to a context [S1] to produce a context [S2].
 // This enables sequential composition where each step can depend on the results of previous steps
 // and access the context.Context from the environment.
+//
+// IMPORTANT: Bind is for EFFECTFUL FUNCTIONS that depend on context.Context.
+// The function parameter takes state and returns a ReaderResult[T], which is effectful because
+// it depends on context.Context (can be cancelled, has deadlines, carries values).
+//
+// For PURE FUNCTIONS (side-effect free), use:
+//   - BindResultK: For pure functions with errors (State -> (Value, error))
+//   - Let: For pure functions without errors (State -> Value)
 //
 // The setter function takes the result of the computation and returns a function that
 // updates the context from S1 to S2.
@@ -89,7 +96,16 @@ func Bind[S1, S2, T any](
 	return G.Bind[ReaderResult[S1], ReaderResult[S2]](setter, F.Flow2(f, WithContext))
 }
 
-// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+// Let attaches the result of a PURE computation to a context [S1] to produce a context [S2].
+//
+// IMPORTANT: Let is for PURE FUNCTIONS (side-effect free) that don't depend on context.Context.
+// The function parameter takes state and returns a value directly, with no errors or effects.
+//
+// For EFFECTFUL FUNCTIONS (that need context.Context), use:
+//   - Bind: For effectful ReaderResult computations (State -> ReaderResult[Value])
+//
+// For PURE FUNCTIONS with error handling, use:
+//   - BindResultK: For pure functions with errors (State -> (Value, error))
 //
 //go:inline
 func Let[S1, S2, T any](
@@ -99,7 +115,8 @@ func Let[S1, S2, T any](
 	return G.Let[ReaderResult[S1], ReaderResult[S2]](setter, f)
 }
 
-// LetTo attaches the a value to a context [S1] to produce a context [S2]
+// LetTo attaches a constant value to a context [S1] to produce a context [S2].
+// This is a PURE operation (side-effect free) that simply sets a field to a constant value.
 //
 //go:inline
 func LetTo[S1, S2, T any](
@@ -114,13 +131,23 @@ func LetTo[S1, S2, T any](
 //go:inline
 func BindTo[S1, T any](
 	setter func(T) S1,
-) Kleisli[ReaderResult[T], S1] {
+) Operator[T, S1] {
 	return G.BindTo[ReaderResult[S1], ReaderResult[T]](setter)
+}
+
+//go:inline
+func BindToP[S1, T any](
+	setter Prism[S1, T],
+) Operator[T, S1] {
+	return BindTo(setter.ReverseGet)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
 // the context and the value concurrently (using Applicative rather than Monad).
-// This allows independent computations to be combined without one depending on the result of the other.
+// This allows independent EFFECTFUL computations to be combined without one depending on the result of the other.
+//
+// IMPORTANT: ApS is for EFFECTFUL FUNCTIONS that depend on context.Context.
+// The ReaderResult parameter is effectful because it depends on context.Context.
 //
 // Unlike Bind, which sequences operations, ApS can be used when operations are independent
 // and can conceptually run in parallel.
@@ -198,16 +225,21 @@ func ApS[S1, S2, T any](
 //
 //go:inline
 func ApSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa ReaderResult[T],
 ) Kleisli[ReaderResult[S], S] {
 	return ApS(lens.Set, fa)
 }
 
 // BindL is a variant of Bind that uses a lens to focus on a specific field in the state.
-// It combines the lens-based field access with monadic composition, allowing you to:
+// It combines the lens-based field access with monadic composition for EFFECTFUL computations.
+//
+// IMPORTANT: BindL is for EFFECTFUL FUNCTIONS that depend on context.Context.
+// The function parameter returns a ReaderResult, which is effectful.
+//
+// It allows you to:
 // 1. Extract a field value using the lens
-// 2. Use that value in a computation that may fail
+// 2. Use that value in an effectful computation that may fail
 // 3. Update the field with the result
 //
 // Parameters:
@@ -244,14 +276,17 @@ func ApSL[S, T any](
 //
 //go:inline
 func BindL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f Kleisli[T, T],
 ) Kleisli[ReaderResult[S], S] {
 	return Bind(lens.Set, F.Flow2(lens.Get, F.Flow2(f, WithContext)))
 }
 
 // LetL is a variant of Let that uses a lens to focus on a specific field in the state.
-// It applies a pure transformation to the focused field without any effects.
+// It applies a PURE transformation to the focused field without any effects.
+//
+// IMPORTANT: LetL is for PURE FUNCTIONS (side-effect free) that don't depend on context.Context.
+// The function parameter is a pure endomorphism (T -> T) with no errors or effects.
 //
 // Parameters:
 //   - lens: A lens that focuses on a field of type T within state S
@@ -281,14 +316,14 @@ func BindL[S, T any](
 //
 //go:inline
 func LetL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f Endomorphism[T],
 ) Kleisli[ReaderResult[S], S] {
 	return Let(lens.Set, F.Flow2(lens.Get, f))
 }
 
 // LetToL is a variant of LetTo that uses a lens to focus on a specific field in the state.
-// It sets the focused field to a constant value.
+// It sets the focused field to a constant value. This is a PURE operation (side-effect free).
 //
 // Parameters:
 //   - lens: A lens that focuses on a field of type T within state S
@@ -317,7 +352,7 @@ func LetL[S, T any](
 //
 //go:inline
 func LetToL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	b T,
 ) Kleisli[ReaderResult[S], S] {
 	return LetTo(lens.Set, b)

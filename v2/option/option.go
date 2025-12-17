@@ -59,6 +59,11 @@ func FromEq[A any](pred eq.Eq[A]) func(A) Kleisli[A, A] {
 	return F.Flow2(P.IsEqual(pred), FromPredicate[A])
 }
 
+//go:inline
+func FromStrictEq[A comparable]() func(A) Kleisli[A, A] {
+	return FromEq(eq.FromStrictEquals[A]())
+}
+
 // FromNillable converts a pointer to an Option.
 // Returns Some if the pointer is non-nil, None otherwise.
 //

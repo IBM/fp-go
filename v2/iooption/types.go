@@ -20,6 +20,8 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -37,4 +39,7 @@ type (
 	Kleisli[A, B any]  = reader.Reader[A, IOOption[B]]
 	Operator[A, B any] = Kleisli[IOOption[A], B]
 	Consumer[A any]    = consumer.Consumer[A]
+
+	Lens[S, T any]  = lens.Lens[S, T]
+	Prism[S, T any] = prism.Prism[S, T]
 )

@@ -20,7 +20,6 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	L "github.com/IBM/fp-go/v2/optics/lens"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -75,7 +74,7 @@ func Do[S any](
 func Bind[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f Kleisli[S1, T],
-) Kleisli[IOOption[S1], S2] {
+) Operator[S1, S2] {
 	return chain.Bind(
 		Chain[S1, S2],
 		Map[T, S2],
@@ -88,7 +87,7 @@ func Bind[S1, S2, T any](
 func Let[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) Kleisli[IOOption[S1], S2] {
+) Operator[S1, S2] {
 	return functor.Let(
 		Map[S1, S2],
 		setter,
@@ -100,7 +99,7 @@ func Let[S1, S2, T any](
 func LetTo[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	b T,
-) Kleisli[IOOption[S1], S2] {
+) Operator[S1, S2] {
 	return functor.LetTo(
 		Map[S1, S2],
 		setter,
@@ -111,11 +110,18 @@ func LetTo[S1, S2, T any](
 // BindTo initializes a new state [S1] from a value [T]
 func BindTo[S1, T any](
 	setter func(T) S1,
-) Kleisli[IOOption[T], S1] {
+) Operator[T, S1] {
 	return chain.BindTo(
 		Map[T, S1],
 		setter,
 	)
+}
+
+//go:inline
+func BindToP[S1, T any](
+	setter Prism[S1, T],
+) Operator[T, S1] {
+	return BindTo(setter.ReverseGet)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
@@ -154,7 +160,7 @@ func BindTo[S1, T any](
 func ApS[S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa IOOption[T],
-) Kleisli[IOOption[S1], S2] {
+) Operator[S1, S2] {
 	return apply.ApS(
 		Ap[S2, T],
 		Map[S1, func(T) S2],
@@ -187,9 +193,9 @@ func ApS[S1, S2, T any](
 //	    iooption.ApSL(ageLens, iooption.Some(30)),
 //	)
 func ApSL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa IOOption[T],
-) Kleisli[IOOption[S], S] {
+) Operator[S, S] {
 	return ApS(lens.Set, fa)
 }
 
@@ -222,9 +228,9 @@ func ApSL[S, T any](
 //	    iooption.BindL(valueLens, increment),
 //	) // IOOption[Counter{Value: 43}]
 func BindL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f Kleisli[T, T],
-) Kleisli[IOOption[S], S] {
+) Operator[S, S] {
 	return Bind(lens.Set, F.Flow2(lens.Get, f))
 }
 
@@ -255,9 +261,9 @@ func BindL[S, T any](
 //	    iooption.LetL(valueLens, double),
 //	) // IOOption[Counter{Value: 42}]
 func LetL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f func(T) T,
-) Kleisli[IOOption[S], S] {
+) Operator[S, S] {
 	return Let(lens.Set, F.Flow2(lens.Get, f))
 }
 
@@ -286,8 +292,8 @@ func LetL[S, T any](
 //	    iooption.LetToL(debugLens, false),
 //	) // IOOption[Config{Debug: false, Timeout: 30}]
 func LetToL[S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	b T,
-) Kleisli[IOOption[S], S] {
+) Operator[S, S] {
 	return LetTo(lens.Set, b)
 }

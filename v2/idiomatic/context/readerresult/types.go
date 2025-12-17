@@ -22,6 +22,8 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
@@ -46,12 +48,24 @@ type (
 	// Reader represents a computation that depends on a read-only environment of type R and produces a value of type A.
 	Reader[R, A any] = reader.Reader[R, A]
 
+	// ReaderResult represents a computation that depends on a context.Context and produces either a value of type A or an error.
+	// It combines the Reader pattern with Result (error handling), making it suitable for context-aware operations that may fail.
 	ReaderResult[A any] = func(context.Context) (A, error)
 
 	// Monoid represents a monoid structure for ReaderResult values.
 	Monoid[A any] = monoid.Monoid[ReaderResult[A]]
 
+	// Kleisli represents a Kleisli arrow from A to ReaderResult[B].
+	// It's a function that takes a value of type A and returns a computation that produces B or an error in a context.
 	Kleisli[A, B any] = Reader[A, ReaderResult[B]]
 
+	// Operator represents a Kleisli arrow that operates on ReaderResult values.
+	// It transforms a ReaderResult[A] into a ReaderResult[B], useful for composing context-aware operations.
 	Operator[A, B any] = Kleisli[ReaderResult[A], B]
+
+	// Lens represents an optic that focuses on a field of type A within a structure of type S.
+	Lens[S, A any] = lens.Lens[S, A]
+
+	// Prism represents an optic that focuses on a case of type A within a sum type S.
+	Prism[S, A any] = prism.Prism[S, A]
 )

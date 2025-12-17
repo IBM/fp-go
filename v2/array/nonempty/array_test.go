@@ -368,5 +368,3 @@ func TestToNonEmptyArrayUseCases(t *testing.T) {
 		assert.Equal(t, "default", result2)
 	})
 }
-
-// Made with Bob

@@ -1,12 +1,36 @@
-# Optics
+# 🔍 Optics
 
 Functional optics for composable data access and manipulation in Go.
 
-## Overview
+## 📖 Overview
 
 Optics are first-class, composable references to parts of data structures. They provide a uniform interface for reading, writing, and transforming nested immutable data without verbose boilerplate code.
 
-## Quick Start
+## ✨ Why Use Optics?
+
+Optics bring powerful benefits to your Go code:
+
+- **🎯 Composability**: Optics naturally compose with each other and with monadic operations, enabling elegant data transformations through function composition
+- **🔒 Immutability**: Work with immutable data structures without manual copying and updating
+- **🧩 Type Safety**: Leverage Go's type system to catch errors at compile time
+- **📦 Reusability**: Define data access patterns once and reuse them throughout your codebase
+- **🎨 Expressiveness**: Write declarative code that clearly expresses intent
+- **🔄 Bidirectionality**: Read and write through the same abstraction
+- **🚀 Productivity**: Eliminate boilerplate for nested data access and updates
+- **🧪 Testability**: Optics are pure functions, making them easy to test and reason about
+
+### 🔗 Composition with Monadic Operations
+
+One of the most powerful features of optics is their natural composition with monadic operations. Optics integrate seamlessly with `fp-go`'s monadic types like `Option`, `Either`, `Result`, and `IO`, allowing you to:
+
+- Chain optional field access with `Option` monads
+- Handle errors gracefully with `Either` or `Result` monads
+- Perform side effects with `IO` monads
+- Combine multiple optics in a single pipeline using `Pipe`
+
+This composability enables you to build complex data transformations from simple, reusable building blocks.
+
+## 🚀 Quick Start
 
 ```go
 import (
@@ -38,9 +62,9 @@ updated := nameLens.Set("Bob")(person)
 // person.Name is still "Alice", updated.Name is "Bob"
 ```
 
-## Core Optics Types
+## 🛠️ Core Optics Types
 
-### Lens - Product Types (Structs)
+### 🔎 Lens - Product Types (Structs)
 Focus on a single field within a struct. Provides get and set operations.
 
 **Use when:** Working with struct fields that always exist.
@@ -55,14 +79,19 @@ ageLens := lens.MakeLens(
 )
 ```
 
-### Prism - Sum Types (Variants)
+### 🔀 Prism - Sum Types (Variants)
 Focus on one variant of a sum type. Provides optional get and definite set.
 
 **Use when:** Working with Either, Result, or custom sum types.
 
+**💡 Important Use Case - Generalized Constructors for Do Notation:**
+
+Prisms act as generalized constructors, making them invaluable for `Do` notation workflows. The prism's `ReverseGet` function serves as a constructor that creates a value of the sum type from a specific variant. This is particularly useful when building up complex data structures step-by-step in monadic contexts:
+
 ```go
 import "github.com/IBM/fp-go/v2/optics/prism"
 
+// Prism for the Success variant
 successPrism := prism.MakePrism(
     func(r Result) option.Option[int] {
         if s, ok := r.(Success); ok {
@@ -70,11 +99,18 @@ successPrism := prism.MakePrism(
         }
         return option.None[int]()
     },
-    func(v int) Result { return Success{Value: v} },
+    func(v int) Result { return Success{Value: v} }, // Constructor!
+)
+
+// Use in Do notation to construct values
+result := F.Pipe2(
+    computeValue(),
+    option.Map(func(v int) int { return v * 2 }),
+    option.Map(successPrism.ReverseGet), // Construct Result from int
 )
 ```
 
-### Iso - Isomorphisms
+### 🔄 Iso - Isomorphisms
 Bidirectional transformation between equivalent types with no information loss.
 
 **Use when:** Converting between equivalent representations (e.g., Celsius ↔ Fahrenheit).
@@ -88,7 +124,7 @@ celsiusToFahrenheit := iso.MakeIso(
 )
 ```
 
-### Optional - Maybe Values
+### ❓ Optional - Maybe Values
 Focus on a value that may or may not exist.
 
 **Use when:** Working with nullable fields or values that may be absent.
@@ -107,7 +143,7 @@ timeoutOptional := optional.MakeOptional(
 )
 ```
 
-### Traversal - Multiple Values
+### 🔢 Traversal - Multiple Values
 Focus on multiple values simultaneously, allowing batch operations.
 
 **Use when:** Working with collections or updating multiple fields at once.
@@ -129,7 +165,7 @@ doubled := F.Pipe2(
 // Result: [2, 4, 6, 8, 10]
 ```
 
-## Composition
+## 🔗 Composition
 
 The real power of optics comes from composition:
 
@@ -176,7 +212,66 @@ city := companyCityLens.Get(company)           // "NYC"
 updated := companyCityLens.Set("Boston")(company)
 ```
 
-## Optics Hierarchy
+## ⚙️ Auto-Generation with `go generate`
+
+Lenses can be automatically generated using the `fp-go` CLI tool and a simple annotation. This eliminates boilerplate and ensures consistency.
+
+### 📝 How to Use
+
+1. **Annotate your struct** with the `fp-go:Lens` comment:
+
+```go
+//go:generate go run github.com/IBM/fp-go/v2/main.go lens --dir . --filename gen_lens.go
+
+// fp-go:Lens
+type Person struct {
+    Name  string
+    Age   int
+    Email string
+    Phone *string  // Optional field
+}
+```
+
+2. **Run `go generate`**:
+
+```bash
+go generate ./...
+```
+
+3. **Use the generated lenses**:
+
+```go
+// Generated code creates PersonLenses, PersonRefLenses, and PersonPrisms
+lenses := MakePersonLenses()
+
+person := Person{Name: "Alice", Age: 30, Email: "alice@example.com"}
+
+// Use the generated lenses
+updatedPerson := lenses.Age.Set(31)(person)
+name := lenses.Name.Get(person)
+
+// Optional lenses for zero-value handling
+personWithEmail := lenses.EmailO.Set(option.Some("new@example.com"))(person)
+```
+
+### 🎁 What Gets Generated
+
+For each annotated struct, the generator creates:
+
+- **`StructNameLenses`**: Lenses for value types with optional variants (`LensO`) for comparable fields
+- **`StructNameRefLenses`**: Lenses for pointer types with prisms for constructing values
+- **`StructNamePrisms`**: Prisms for all fields, useful for partial construction
+- Constructor functions: `MakeStructNameLenses()`, `MakeStructNameRefLenses()`, `MakeStructNamePrisms()`
+
+The generator supports:
+- ✅ Generic types with type parameters
+- ✅ Embedded structs (fields are promoted)
+- ✅ Optional fields (pointers and `omitempty` tags)
+- ✅ Custom package imports
+
+See [samples/lens](../samples/lens) for complete examples.
+
+## 📊 Optics Hierarchy
 
 ```
 Iso[S, A]
@@ -196,7 +291,7 @@ Traversal[S, A]
 
 More specific optics can be converted to more general ones.
 
-## Package Structure
+## 📦 Package Structure
 
 - **optics/lens**: Lenses for product types (structs)
 - **optics/prism**: Prisms for sum types (Either, Result, etc.)
@@ -210,7 +305,7 @@ Each package includes specialized sub-packages for common patterns:
 - **option**: Optics for Option types
 - **record**: Optics for maps
 
-## Documentation
+## 📚 Documentation
 
 For detailed documentation on each optic type, see:
 - [Main Package Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics)
@@ -220,15 +315,34 @@ For detailed documentation on each optic type, see:
 - [Optional Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional)
 - [Traversal Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal)
 
-## Further Reading
+## 🌐 Further Reading
 
-For an introduction to functional optics concepts:
-- [Introduction to optics: lenses and prisms](https://medium.com/@gcanti/introduction-to-optics-lenses-and-prisms-3230e73bfcfe) by Giulio Canti
+### Haskell Lens Library
+The concepts in this library are inspired by the powerful [Haskell lens library](https://hackage.haskell.org/package/lens), which pioneered many of these abstractions.
 
-## Examples
+### Articles and Resources
+- [Introduction to optics: lenses and prisms](https://medium.com/@gcanti/introduction-to-optics-lenses-and-prisms-3230e73bfcfe) by Giulio Canti - Excellent introduction to optics concepts
+- [Lenses in Functional Programming](https://www.schoolofhaskell.com/school/to-infinity-and-beyond/pick-of-the-week/a-little-lens-starter-tutorial) - Tutorial on lens fundamentals
+- [Profunctor Optics: The Categorical View](https://bartoszmilewski.com/2017/07/07/profunctor-optics-the-categorical-view/) by Bartosz Milewski - Deep dive into the theory
+- [Why Optics?](https://www.tweag.io/blog/2022-01-06-optics-vs-lenses/) - Discussion of benefits and use cases
 
-See the [samples/lens](../samples/lens) directory for complete working examples.
+### Why Functional Optics?
+Functional optics solve real problems in software development:
+- **Nested Updates**: Eliminate deeply nested field access patterns
+- **Immutability**: Make working with immutable data practical and ergonomic
+- **Abstraction**: Separate data access patterns from business logic
+- **Composition**: Build complex operations from simple, reusable pieces
+- **Type Safety**: Catch errors at compile time rather than runtime
 
-## License
+## 💡 Examples
+
+See the [samples/lens](../samples/lens) directory for complete working examples, including:
+- Basic lens usage
+- Lens composition
+- Auto-generated lenses
+- Prism usage for sum types
+- Integration with monadic operations
+
+## 📄 License
 
 Apache License 2.0 - See LICENSE file for details.

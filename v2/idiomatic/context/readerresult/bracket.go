@@ -130,6 +130,8 @@ import (
 //	        }
 //	    },
 //	)
+//
+//go:inline
 func Bracket[
 	A, B, ANY any](
 
@@ -251,6 +253,8 @@ func Bracket[
 //	    }),
 //	    readerresult.Map(formatResult),
 //	)
+//
+//go:inline
 func WithResource[B, A, ANY any](
 	onCreate Lazy[ReaderResult[A]],
 	onRelease Kleisli[A, ANY],
@@ -261,9 +265,9 @@ func WithResource[B, A, ANY any](
 // onClose is a helper function that creates a ReaderResult that closes an io.Closer.
 // This is used internally by WithCloser to provide automatic cleanup for resources
 // that implement the io.Closer interface.
-func onClose[A io.Closer](a A) ReaderResult[any] {
-	return func(_ context.Context) (any, error) {
-		return nil, a.Close()
+func onClose[A io.Closer](a A) ReaderResult[struct{}] {
+	return func(_ context.Context) (struct{}, error) {
+		return struct{}{}, a.Close()
 	}
 }
 
@@ -398,6 +402,8 @@ func onClose[A io.Closer](a A) ReaderResult[any] {
 // Note: WithCloser is a convenience wrapper around WithResource that automatically
 // provides the Close() cleanup function. For resources that don't implement io.Closer
 // or require custom cleanup logic, use WithResource or Bracket instead.
+//
+//go:inline
 func WithCloser[B any, A io.Closer](onCreate Lazy[ReaderResult[A]]) Kleisli[Kleisli[A, B], B] {
 	return WithResource[B](onCreate, onClose[A])
 }

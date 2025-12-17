@@ -76,6 +76,7 @@ type fieldInfo struct {
 	BaseType     string // TypeName without leading * for pointer types
 	IsOptional   bool   // true if field is a pointer or has json omitempty tag
 	IsComparable bool   // true if the type is comparable (can use ==)
+	IsEmbedded   bool   // true if this field comes from an embedded struct
 }
 
 // templateData holds data for template rendering
@@ -110,6 +111,17 @@ type {{.Name}}RefLenses{{.TypeParams}} struct {
 {{- if .IsComparable}}
 	{{.Name}}O __lens_option.LensO[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
+{{- end}}
+	// prisms
+{{- range .Fields}}
+	{{.Name}}P __prism.Prism[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+{{- end}}
+}
+
+// {{.Name}}Prisms provides prisms for accessing fields of {{.Name}}
+type {{.Name}}Prisms{{.TypeParams}} struct {
+{{- range .Fields}}
+	{{.Name}} __prism.Prism[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 }
 `
@@ -179,6 +191,47 @@ func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames
 {{- if .IsComparable}}
 		{{.Name}}O: lens{{.Name}}O,
 {{- end}}
+{{- end}}
+	}
+}
+
+// Make{{.Name}}Prisms creates a new {{.Name}}Prisms with prisms for all fields
+func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
+{{- range .Fields}}
+{{- if .IsComparable}}
+	_fromNonZero{{.Name}} := __option.FromNonZero[{{.TypeName}}]()
+	_prism{{.Name}} := __prism.MakePrismWithName(
+		func(s {{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
+		func(v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} {
+			{{- if .IsEmbedded}}
+			var result {{$.Name}}{{$.TypeParamNames}}
+			result.{{.Name}} = v
+			return result
+			{{- else}}
+			return {{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			{{- end}}
+		},
+		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+	)
+{{- else}}
+	_prism{{.Name}} := __prism.MakePrismWithName(
+		func(s {{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
+		func(v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} {
+			{{- if .IsEmbedded}}
+			var result {{$.Name}}{{$.TypeParamNames}}
+			result.{{.Name}} = v
+			return result
+			{{- else}}
+			return {{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			{{- end}}
+		},
+		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+	)
+{{- end}}
+{{- end}}
+	return {{.Name}}Prisms{{.TypeParamNames}} {
+{{- range .Fields}}
+		{{.Name}}: _prism{{.Name}},
 {{- end}}
 	}
 }
@@ -506,6 +559,7 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 						BaseType:     baseType,
 						IsOptional:   isOptional,
 						IsComparable: isComparable,
+						IsEmbedded:   true,
 					},
 					fieldType: field.Type,
 				})
@@ -833,6 +887,8 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 	f.WriteString("import (\n")
 	// Standard fp-go imports always needed
 	f.WriteString("\t__lens \"github.com/IBM/fp-go/v2/optics/lens\"\n")
+	f.WriteString("\t__option \"github.com/IBM/fp-go/v2/option\"\n")
+	f.WriteString("\t__prism \"github.com/IBM/fp-go/v2/optics/prism\"\n")
 	f.WriteString("\t__lens_option \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
 	f.WriteString("\t__iso_option \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
 

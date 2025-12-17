@@ -364,11 +364,12 @@ type UserState struct {
 // This is typically used as the first operation after a computation to
 // start building up a state structure.
 func ExampleBindTo() {
+
+	userStatePrisms := MakeUserStatePrisms()
+
 	result := F.Pipe1(
 		getUser(42),
-		BindTo(func(u User) UserState {
-			return UserState{User: u}
-		}),
+		BindToP(userStatePrisms.User),
 	)
 
 	state, err := result(context.Background())
@@ -385,6 +386,8 @@ type ConfigState struct {
 // but error-free) into a ReaderResult do-notation chain.
 func ExampleBindReaderK() {
 
+	configStateLenses := MakeConfigStateLenses()
+
 	// A Reader that extracts a value from context
 	getConfig := func(ctx context.Context) string {
 		if val := ctx.Value("config"); val != nil {
@@ -395,14 +398,8 @@ func ExampleBindReaderK() {
 
 	result := F.Pipe1(
 		Do(ConfigState{}),
-		BindReaderK(
-			func(cfg string) Endomorphism[ConfigState] {
-				return func(s ConfigState) ConfigState {
-					s.Config = cfg
-					return s
-				}
-			},
-			func(s ConfigState) func(context.Context) string {
+		BindReaderK(configStateLenses.Config.Set,
+			func(s ConfigState) Reader[context.Context, string] {
 				return getConfig
 			},
 		),
@@ -423,6 +420,9 @@ type NumberState struct {
 // a ReaderResult do-notation chain. This is useful for integrating pure
 // error-handling logic that doesn't need context.
 func ExampleBindEitherK() {
+
+	numberStateLenses := MakeNumberStateLenses()
+
 	// A pure function that returns a Result
 	parseNumber := func(s NumberState) RES.Result[int] {
 		return RES.Of(42)
@@ -431,12 +431,7 @@ func ExampleBindEitherK() {
 	result := F.Pipe1(
 		Do(NumberState{}),
 		BindEitherK(
-			func(n int) Endomorphism[NumberState] {
-				return func(s NumberState) NumberState {
-					s.Number = n
-					return s
-				}
-			},
+			numberStateLenses.Number.Set,
 			parseNumber,
 		),
 	)
@@ -452,8 +447,102 @@ type DataState struct {
 }
 
 // ExampleBindResultK demonstrates binding an idiomatic Go function (returning
-// value and error) into a ReaderResult do-notation chain.
+// value and error) into a ReaderResult do-notation chain. This is particularly
+// useful for integrating existing Go code that follows the standard (value, error)
+// return pattern into functional pipelines.
+//
+// Step-by-step breakdown:
+//
+//  1. dataStateLenses := MakeDataStateLenses() - Create lenses for accessing
+//     DataState fields. This provides functional accessors (getters and setters)
+//     for the Data field, enabling type-safe, immutable field updates.
+//
+//  2. fetchData := func(s DataState) (string, error) - Define an idiomatic Go
+//     function that takes the current state and returns a tuple of (value, error).
+//
+//     IMPORTANT: This function represents a PURE READER COMPOSITION - it reads from
+//     the state and performs computations that don't require a context.Context.
+//     This is suitable for:
+//     - Pure computations that may fail (parsing, validation, calculations)
+//     - Operations that only depend on the state, not external context
+//     - Stateless transformations with error handling
+//     - Synchronous operations that don't need cancellation or timeouts
+//
+//     For EFFECTFUL COMPOSITION (operations that need context), use the full
+//     ReaderResult type instead: func(context.Context) (Value, error)
+//     Use ReaderResult when you need:
+//     - Context cancellation or timeouts
+//     - Context values (request IDs, trace IDs, etc.)
+//     - Operations that depend on external context state
+//     - Async operations that should respect context lifecycle
+//
+//     In this example, fetchData always succeeds with "fetched data", but in real
+//     code it might perform pure operations like:
+//     - Parsing or validating data from the state
+//     - Performing calculations that could fail
+//     - Calling pure functions from external libraries
+//     - Data transformations that don't require context
+//
+//  3. Do(DataState{}) - Initialize the do-notation chain with an empty DataState.
+//     This creates the initial ReaderResult that will accumulate data through
+//     subsequent operations.
+//     Initial state: {Data: ""}
+//
+//  4. BindResultK(dataStateLenses.Data.Set, fetchData) - Bind the idiomatic Go
+//     function into the ReaderResult chain.
+//
+//     BindResultK takes two parameters:
+//
+//     a) First parameter: dataStateLenses.Data.Set
+//     This is a setter function from the lens that will update the Data field
+//     with the result of the computation. The lens ensures immutable updates.
+//
+//     b) Second parameter: fetchData
+//     This is the idiomatic Go function (State -> (Value, error)) that will be
+//     lifted into the ReaderResult context.
+//
+//     The BindResultK operation flow:
+//     - Takes the current state: {Data: ""}
+//     - Calls fetchData with the state: fetchData(DataState{})
+//     - Gets the result tuple: ("fetched data", nil)
+//     - If error is not nil, short-circuits the chain and returns the error
+//     - If error is nil, uses the setter to update state.Data with "fetched data"
+//     - Returns the updated state: {Data: "fetched data"}
+//     After this step: {Data: "fetched data"}
+//
+//  5. result(context.Background()) - Execute the computation chain with a context.
+//     Even though fetchData doesn't use the context, the ReaderResult still needs
+//     one to maintain the uniform interface. This runs all operations in sequence
+//     and returns the final state and any error.
+//
+// Key concepts demonstrated:
+// - Integration of idiomatic Go code: BindResultK bridges functional and imperative styles
+// - Error propagation: Errors from the Go function automatically propagate through the chain
+// - State transformation: The result updates the state using lens-based setters
+// - Context independence: The function doesn't need context but still works in ReaderResult
+//
+// Comparison with other bind operations:
+// - BindResultK: For idiomatic Go functions (State -> (Value, error))
+// - Bind: For full ReaderResult computations (State -> ReaderResult[Value])
+// - BindEitherK: For pure Result/Either values (State -> Result[Value])
+// - BindReaderK: For context-dependent functions (State -> Reader[Context, Value])
+//
+// Use BindResultK when you need to:
+// - Integrate existing Go code that returns (value, error)
+// - Call functions that may fail but don't need context
+// - Perform stateful computations with standard Go error handling
+// - Bridge between functional pipelines and imperative Go code
+// - Work with libraries that follow Go conventions
+//
+// Real-world example scenarios:
+// - Parsing JSON from a state field: func(s State) (ParsedData, error)
+// - Validating user input: func(s State) (ValidatedInput, error)
+// - Performing calculations: func(s State) (Result, error)
+// - Calling third-party libraries: func(s State) (APIResponse, error)
 func ExampleBindResultK() {
+
+	dataStateLenses := MakeDataStateLenses()
+
 	// An idiomatic Go function returning (value, error)
 	fetchData := func(s DataState) (string, error) {
 		return "fetched data", nil
@@ -462,12 +551,7 @@ func ExampleBindResultK() {
 	result := F.Pipe1(
 		Do(DataState{}),
 		BindResultK(
-			func(data string) Endomorphism[DataState] {
-				return func(s DataState) DataState {
-					s.Data = data
-					return s
-				}
-			},
+			dataStateLenses.Data.Set,
 			fetchData,
 		),
 	)

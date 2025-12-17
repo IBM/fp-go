@@ -305,6 +305,63 @@ Convenience Functions:
   - Unwrap/To: Extract the target value (Get)
   - Wrap/From: Wrap into the source value (ReverseGet)
 
+# Useful Iso Implementations
+
+The package provides several ready-to-use isomorphisms for common transformations:
+
+**String and Byte Conversions:**
+  - UTF8String: []byte ↔ string (UTF-8 encoding)
+  - Lines: []string ↔ string (newline-separated text)
+
+**Time Conversions:**
+  - UnixMilli: int64 ↔ time.Time (Unix millisecond timestamps)
+
+**Numeric Operations:**
+  - Add[T]: T ↔ T (shift by constant addition)
+  - Sub[T]: T ↔ T (shift by constant subtraction)
+
+**Collection Operations:**
+  - ReverseArray[A]: []A ↔ []A (reverse slice order, self-inverse)
+  - Head[A]: A ↔ NonEmptyArray[A] (singleton array conversion)
+
+**Pair and Either Operations:**
+  - SwapPair[A, B]: Pair[A, B] ↔ Pair[B, A] (swap pair elements, self-inverse)
+  - SwapEither[E, A]: Either[E, A] ↔ Either[A, E] (swap Either types, self-inverse)
+
+**Option Conversions (optics/iso/option):**
+  - FromZero[T]: T ↔ Option[T] (zero value ↔ None, non-zero ↔ Some)
+
+**Lens Conversions (optics/iso/lens):**
+  - IsoAsLens: Convert Iso[S, A] to Lens[S, A]
+  - IsoAsLensRef: Convert Iso[*S, A] to Lens[*S, A]
+
+Example usage of built-in isomorphisms:
+
+	// String/byte conversion
+	utf8 := UTF8String()
+	str := utf8.Get([]byte("hello"))  // "hello"
+
+	// Time conversion
+	unixTime := UnixMilli()
+	t := unixTime.Get(1609459200000)  // 2021-01-01 00:00:00 UTC
+
+	// Numeric shift
+	addTen := Add(10)
+	result := addTen.Get(5)  // 15
+
+	// Array reversal
+	reverse := ReverseArray[int]()
+	reversed := reverse.Get([]int{1, 2, 3})  // []int{3, 2, 1}
+
+	// Pair swap
+	swap := SwapPair[string, int]()
+	swapped := swap.Get(pair.MakePair("a", 1))  // Pair[int, string](1, "a")
+
+	// Option conversion
+	optIso := option.FromZero[int]()
+	opt := optIso.Get(0)   // None
+	opt = optIso.Get(42)   // Some(42)
+
 # Related Packages
 
   - github.com/IBM/fp-go/v2/optics/lens: Lenses for focusing on parts of structures
