@@ -452,16 +452,26 @@ func process() IOResult[string] {
 
 ### Core Modules
 
+#### Standard Packages (Struct-based)
 - **Option** - Represent optional values without nil
 - **Either** - Type-safe error handling with left/right values
-- **Result** - Simplified Either with error as left type
+- **Result** - Simplified Either with error as left type (recommended for error handling)
 - **IO** - Lazy evaluation and side effect management
-- **IOEither** - Combine IO with error handling
+- **IOResult** - Combine IO with Result for error handling (recommended over IOEither)
 - **Reader** - Dependency injection pattern
-- **ReaderIOEither** - Combine Reader, IO, and Either for complex workflows
+- **ReaderIOResult** - Combine Reader, IO, and Result for complex workflows
 - **Array** - Functional array operations
 - **Record** - Functional record/map operations
 - **Optics** - Lens, Prism, Optional, and Traversal for immutable updates
+
+#### Idiomatic Packages (Tuple-based, High Performance)
+- **idiomatic/option** - Option monad using native Go `(value, bool)` tuples
+- **idiomatic/result** - Result monad using native Go `(value, error)` tuples
+- **idiomatic/ioresult** - IOResult monad using `func() (value, error)` for IO operations
+- **idiomatic/readerresult** - Reader monad combined with Result pattern
+- **idiomatic/readerioresult** - Reader monad combined with IOResult pattern
+
+The idiomatic packages offer 2-10x performance improvements and zero allocations by using Go's native tuple patterns instead of struct wrappers. Use them for performance-critical code or when you prefer Go's native error handling style.
 
 ## 🤔 Should I Migrate?
 
