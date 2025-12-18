@@ -16,26 +16,25 @@
 package readeroption
 
 import (
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 //go:inline
-func TailRec[R, A, B any](f Kleisli[R, A, Either[A, B]]) Kleisli[R, A, B] {
+func TailRec[R, A, B any](f Kleisli[R, A, tailrec.Trampoline[A, B]]) Kleisli[R, A, B] {
 	return func(a A) ReaderOption[R, B] {
 		initialReader := f(a)
-		return func(r R) Option[B] {
+		return func(r R) option.Option[B] {
 			current := initialReader(r)
 			for {
 				rec, ok := option.Unwrap(current)
 				if !ok {
 					return option.None[B]()
 				}
-				b, a := either.Unwrap(rec)
-				if either.IsRight(rec) {
-					return option.Some(b)
+				if rec.Landed {
+					return option.Some(rec.Land)
 				}
-				current = f(a)(r)
+				current = f(rec.Bounce)(r)
 			}
 		}
 	}

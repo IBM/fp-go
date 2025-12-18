@@ -22,6 +22,7 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	TR "github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,18 +59,18 @@ func TestTailRecFactorial(t *testing.T) {
 		MaxN: 20,
 	}
 
-	factorialStep := func(state State) ReaderIOEither[LoggerEnv, string, E.Either[State, int]] {
-		return func(env LoggerEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	factorialStep := func(state State) ReaderIOEither[LoggerEnv, string, TR.Trampoline[State, int]] {
+		return func(env LoggerEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.n > env.MaxN {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("n too large: %d > %d", state.n, env.MaxN))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("n too large: %d > %d", state.n, env.MaxN))
 				}
 				if state.n <= 0 {
 					env.Logger(fmt.Sprintf("Complete: %d", state.acc))
-					return E.Right[string](E.Right[State](state.acc))
+					return E.Right[string](TR.Land[State](state.acc))
 				}
 				env.Logger(fmt.Sprintf("Step: %d * %d", state.n, state.acc))
-				return E.Right[string](E.Left[int](State{state.n - 1, state.acc * state.n}))
+				return E.Right[string](TR.Bounce[int](State{state.n - 1, state.acc * state.n}))
 			}
 		}
 	}
@@ -95,16 +96,16 @@ func TestTailRecFactorialError(t *testing.T) {
 		MaxN:   10,
 	}
 
-	factorialStep := func(state State) ReaderIOEither[LoggerEnv, string, E.Either[State, int]] {
-		return func(env LoggerEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	factorialStep := func(state State) ReaderIOEither[LoggerEnv, string, TR.Trampoline[State, int]] {
+		return func(env LoggerEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.n > env.MaxN {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("n too large: %d > %d", state.n, env.MaxN))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("n too large: %d > %d", state.n, env.MaxN))
 				}
 				if state.n <= 0 {
-					return E.Right[string](E.Right[State](state.acc))
+					return E.Right[string](TR.Land[State](state.acc))
 				}
-				return E.Right[string](E.Left[int](State{state.n - 1, state.acc * state.n}))
+				return E.Right[string](TR.Bounce[int](State{state.n - 1, state.acc * state.n}))
 			}
 		}
 	}
@@ -127,16 +128,16 @@ func TestTailRecFibonacci(t *testing.T) {
 
 	env := TestEnv{Multiplier: 1, MaxValue: 1000, Logs: []string{}}
 
-	fibStep := func(state State) ReaderIOEither[TestEnv, string, E.Either[State, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	fibStep := func(state State) ReaderIOEither[TestEnv, string, TR.Trampoline[State, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.curr > env.MaxValue {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("value exceeds max: %d > %d", state.curr, env.MaxValue))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("value exceeds max: %d > %d", state.curr, env.MaxValue))
 				}
 				if state.n <= 0 {
-					return E.Right[string](E.Right[State](state.curr * env.Multiplier))
+					return E.Right[string](TR.Land[State](state.curr * env.Multiplier))
 				}
-				return E.Right[string](E.Left[int](State{state.n - 1, state.curr, state.prev + state.curr}))
+				return E.Right[string](TR.Bounce[int](State{state.n - 1, state.curr, state.prev + state.curr}))
 			}
 		}
 	}
@@ -157,16 +158,16 @@ func TestTailRecFibonacciError(t *testing.T) {
 
 	env := TestEnv{Multiplier: 1, MaxValue: 50, Logs: []string{}}
 
-	fibStep := func(state State) ReaderIOEither[TestEnv, string, E.Either[State, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	fibStep := func(state State) ReaderIOEither[TestEnv, string, TR.Trampoline[State, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.curr > env.MaxValue {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("value exceeds max: %d > %d", state.curr, env.MaxValue))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("value exceeds max: %d > %d", state.curr, env.MaxValue))
 				}
 				if state.n <= 0 {
-					return E.Right[string](E.Right[State](state.curr))
+					return E.Right[string](TR.Land[State](state.curr))
 				}
-				return E.Right[string](E.Left[int](State{state.n - 1, state.curr, state.prev + state.curr}))
+				return E.Right[string](TR.Bounce[int](State{state.n - 1, state.curr, state.prev + state.curr}))
 			}
 		}
 	}
@@ -183,16 +184,16 @@ func TestTailRecFibonacciError(t *testing.T) {
 func TestTailRecCountdown(t *testing.T) {
 	config := ConfigEnv{MinValue: 0, Step: 2, MaxRetries: 3}
 
-	countdownStep := func(n int) ReaderIOEither[ConfigEnv, string, E.Either[int, int]] {
-		return func(cfg ConfigEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
+	countdownStep := func(n int) ReaderIOEither[ConfigEnv, string, TR.Trampoline[int, int]] {
+		return func(cfg ConfigEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
 				if n < 0 {
-					return E.Left[E.Either[int, int]]("negative value")
+					return E.Left[TR.Trampoline[int, int]]("negative value")
 				}
 				if n <= cfg.MinValue {
-					return E.Right[string](E.Right[int](n))
+					return E.Right[string](TR.Land[int](n))
 				}
-				return E.Right[string](E.Left[int](n - cfg.Step))
+				return E.Right[string](TR.Bounce[int](n - cfg.Step))
 			}
 		}
 	}
@@ -212,16 +213,16 @@ func TestTailRecSumList(t *testing.T) {
 
 	env := TestEnv{Multiplier: 2, MaxValue: 100, Logs: []string{}}
 
-	sumStep := func(state State) ReaderIOEither[TestEnv, string, E.Either[State, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	sumStep := func(state State) ReaderIOEither[TestEnv, string, TR.Trampoline[State, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.sum > env.MaxValue {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("sum exceeds max: %d > %d", state.sum, env.MaxValue))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("sum exceeds max: %d > %d", state.sum, env.MaxValue))
 				}
 				if A.IsEmpty(state.list) {
-					return E.Right[string](E.Right[State](state.sum * env.Multiplier))
+					return E.Right[string](TR.Land[State](state.sum * env.Multiplier))
 				}
-				return E.Right[string](E.Left[int](State{state.list[1:], state.sum + state.list[0]}))
+				return E.Right[string](TR.Bounce[int](State{state.list[1:], state.sum + state.list[0]}))
 			}
 		}
 	}
@@ -241,16 +242,16 @@ func TestTailRecSumListError(t *testing.T) {
 
 	env := TestEnv{Multiplier: 1, MaxValue: 10, Logs: []string{}}
 
-	sumStep := func(state State) ReaderIOEither[TestEnv, string, E.Either[State, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	sumStep := func(state State) ReaderIOEither[TestEnv, string, TR.Trampoline[State, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.sum > env.MaxValue {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("sum exceeds max: %d > %d", state.sum, env.MaxValue))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("sum exceeds max: %d > %d", state.sum, env.MaxValue))
 				}
 				if A.IsEmpty(state.list) {
-					return E.Right[string](E.Right[State](state.sum))
+					return E.Right[string](TR.Land[State](state.sum))
 				}
-				return E.Right[string](E.Left[int](State{state.list[1:], state.sum + state.list[0]}))
+				return E.Right[string](TR.Bounce[int](State{state.list[1:], state.sum + state.list[0]}))
 			}
 		}
 	}
@@ -267,10 +268,10 @@ func TestTailRecSumListError(t *testing.T) {
 func TestTailRecImmediateTermination(t *testing.T) {
 	env := TestEnv{Multiplier: 1, MaxValue: 100, Logs: []string{}}
 
-	immediateStep := func(n int) ReaderIOEither[TestEnv, string, E.Either[int, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
-				return E.Right[string](E.Right[int](n * env.Multiplier))
+	immediateStep := func(n int) ReaderIOEither[TestEnv, string, TR.Trampoline[int, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
+				return E.Right[string](TR.Land[int](n * env.Multiplier))
 			}
 		}
 	}
@@ -285,10 +286,10 @@ func TestTailRecImmediateTermination(t *testing.T) {
 func TestTailRecImmediateError(t *testing.T) {
 	env := TestEnv{Multiplier: 1, MaxValue: 100, Logs: []string{}}
 
-	immediateErrorStep := func(n int) ReaderIOEither[TestEnv, string, E.Either[int, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
-				return E.Left[E.Either[int, int]]("immediate error")
+	immediateErrorStep := func(n int) ReaderIOEither[TestEnv, string, TR.Trampoline[int, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
+				return E.Left[TR.Trampoline[int, int]]("immediate error")
 			}
 		}
 	}
@@ -305,16 +306,16 @@ func TestTailRecImmediateError(t *testing.T) {
 func TestTailRecStackSafety(t *testing.T) {
 	env := TestEnv{Multiplier: 1, MaxValue: 2000000, Logs: []string{}}
 
-	countdownStep := func(n int) ReaderIOEither[TestEnv, string, E.Either[int, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
+	countdownStep := func(n int) ReaderIOEither[TestEnv, string, TR.Trampoline[int, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
 				if n > env.MaxValue {
-					return E.Left[E.Either[int, int]]("value too large")
+					return E.Left[TR.Trampoline[int, int]]("value too large")
 				}
 				if n <= 0 {
-					return E.Right[string](E.Right[int](n))
+					return E.Right[string](TR.Land[int](n))
 				}
-				return E.Right[string](E.Left[int](n - 1))
+				return E.Right[string](TR.Bounce[int](n - 1))
 			}
 		}
 	}
@@ -339,19 +340,19 @@ func TestTailRecFindInRange(t *testing.T) {
 
 	env := FindEnv{Target: 42, MaxN: 1000}
 
-	findStep := func(state State) ReaderIOEither[FindEnv, string, E.Either[State, int]] {
-		return func(env FindEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	findStep := func(state State) ReaderIOEither[FindEnv, string, TR.Trampoline[State, int]] {
+		return func(env FindEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.current > env.MaxN {
-					return E.Left[E.Either[State, int]]("search exceeded max")
+					return E.Left[TR.Trampoline[State, int]]("search exceeded max")
 				}
 				if state.current >= state.max {
-					return E.Right[string](E.Right[State](-1)) // Not found
+					return E.Right[string](TR.Land[State](-1)) // Not found
 				}
 				if state.current == env.Target {
-					return E.Right[string](E.Right[State](state.current)) // Found
+					return E.Right[string](TR.Land[State](state.current)) // Found
 				}
-				return E.Right[string](E.Left[int](State{state.current + 1, state.max}))
+				return E.Right[string](TR.Bounce[int](State{state.current + 1, state.max}))
 			}
 		}
 	}
@@ -376,19 +377,19 @@ func TestTailRecFindNotInRange(t *testing.T) {
 
 	env := FindEnv{Target: 200, MaxN: 1000}
 
-	findStep := func(state State) ReaderIOEither[FindEnv, string, E.Either[State, int]] {
-		return func(env FindEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	findStep := func(state State) ReaderIOEither[FindEnv, string, TR.Trampoline[State, int]] {
+		return func(env FindEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.current > env.MaxN {
-					return E.Left[E.Either[State, int]]("search exceeded max")
+					return E.Left[TR.Trampoline[State, int]]("search exceeded max")
 				}
 				if state.current >= state.max {
-					return E.Right[string](E.Right[State](-1)) // Not found
+					return E.Right[string](TR.Land[State](-1)) // Not found
 				}
 				if state.current == env.Target {
-					return E.Right[string](E.Right[State](state.current)) // Found
+					return E.Right[string](TR.Land[State](state.current)) // Found
 				}
-				return E.Right[string](E.Left[int](State{state.current + 1, state.max}))
+				return E.Right[string](TR.Bounce[int](State{state.current + 1, state.max}))
 			}
 		}
 	}
@@ -409,17 +410,17 @@ func TestTailRecWithLogging(t *testing.T) {
 		MaxN: 100,
 	}
 
-	countdownStep := func(n int) ReaderIOEither[LoggerEnv, string, E.Either[int, int]] {
-		return func(env LoggerEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
+	countdownStep := func(n int) ReaderIOEither[LoggerEnv, string, TR.Trampoline[int, int]] {
+		return func(env LoggerEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
 				env.Logger(fmt.Sprintf("Count: %d", n))
 				if n > env.MaxN {
-					return E.Left[E.Either[int, int]]("value too large")
+					return E.Left[TR.Trampoline[int, int]]("value too large")
 				}
 				if n <= 0 {
-					return E.Right[string](E.Right[int](n))
+					return E.Right[string](TR.Land[int](n))
 				}
-				return E.Right[string](E.Left[int](n - 1))
+				return E.Right[string](TR.Bounce[int](n - 1))
 			}
 		}
 	}
@@ -448,17 +449,17 @@ func TestTailRecGCD(t *testing.T) {
 		MaxN: 1000,
 	}
 
-	gcdStep := func(state State) ReaderIOEither[LoggerEnv, string, E.Either[State, int]] {
-		return func(env LoggerEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	gcdStep := func(state State) ReaderIOEither[LoggerEnv, string, TR.Trampoline[State, int]] {
+		return func(env LoggerEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				env.Logger(fmt.Sprintf("gcd(%d, %d)", state.a, state.b))
 				if state.a > env.MaxN || state.b > env.MaxN {
-					return E.Left[E.Either[State, int]]("values too large")
+					return E.Left[TR.Trampoline[State, int]]("values too large")
 				}
 				if state.b == 0 {
-					return E.Right[string](E.Right[State](state.a))
+					return E.Right[string](TR.Land[State](state.a))
 				}
-				return E.Right[string](E.Left[int](State{state.b, state.a % state.b}))
+				return E.Right[string](TR.Bounce[int](State{state.b, state.a % state.b}))
 			}
 		}
 	}
@@ -480,17 +481,17 @@ func TestTailRecRetryLogic(t *testing.T) {
 
 	config := ConfigEnv{MinValue: 0, Step: 1, MaxRetries: 3}
 
-	retryStep := func(state State) ReaderIOEither[ConfigEnv, string, E.Either[State, int]] {
-		return func(cfg ConfigEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	retryStep := func(state State) ReaderIOEither[ConfigEnv, string, TR.Trampoline[State, int]] {
+		return func(cfg ConfigEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.attempt > cfg.MaxRetries {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("max retries exceeded: %d", cfg.MaxRetries))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("max retries exceeded: %d", cfg.MaxRetries))
 				}
 				// Simulate success on 3rd attempt
 				if state.attempt == 3 {
-					return E.Right[string](E.Right[State](state.value))
+					return E.Right[string](TR.Land[State](state.value))
 				}
-				return E.Right[string](E.Left[int](State{state.attempt + 1, state.value}))
+				return E.Right[string](TR.Bounce[int](State{state.attempt + 1, state.value}))
 			}
 		}
 	}
@@ -510,14 +511,14 @@ func TestTailRecRetryExceeded(t *testing.T) {
 
 	config := ConfigEnv{MinValue: 0, Step: 1, MaxRetries: 2}
 
-	retryStep := func(state State) ReaderIOEither[ConfigEnv, string, E.Either[State, int]] {
-		return func(cfg ConfigEnv) IOE.IOEither[string, E.Either[State, int]] {
-			return func() E.Either[string, E.Either[State, int]] {
+	retryStep := func(state State) ReaderIOEither[ConfigEnv, string, TR.Trampoline[State, int]] {
+		return func(cfg ConfigEnv) IOE.IOEither[string, TR.Trampoline[State, int]] {
+			return func() E.Either[string, TR.Trampoline[State, int]] {
 				if state.attempt > cfg.MaxRetries {
-					return E.Left[E.Either[State, int]](fmt.Sprintf("max retries exceeded: %d", cfg.MaxRetries))
+					return E.Left[TR.Trampoline[State, int]](fmt.Sprintf("max retries exceeded: %d", cfg.MaxRetries))
 				}
 				// Never succeeds
-				return E.Right[string](E.Left[int](State{state.attempt + 1, state.value}))
+				return E.Right[string](TR.Bounce[int](State{state.attempt + 1, state.value}))
 			}
 		}
 	}
@@ -540,16 +541,16 @@ func TestTailRecMultipleEnvironmentAccess(t *testing.T) {
 
 	env := CounterEnv{Increment: 3, Limit: 20, MaxValue: 100}
 
-	counterStep := func(n int) ReaderIOEither[CounterEnv, string, E.Either[int, int]] {
-		return func(env CounterEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
+	counterStep := func(n int) ReaderIOEither[CounterEnv, string, TR.Trampoline[int, int]] {
+		return func(env CounterEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
 				if n > env.MaxValue {
-					return E.Left[E.Either[int, int]]("value exceeds max")
+					return E.Left[TR.Trampoline[int, int]]("value exceeds max")
 				}
 				if n >= env.Limit {
-					return E.Right[string](E.Right[int](n))
+					return E.Right[string](TR.Land[int](n))
 				}
-				return E.Right[string](E.Left[int](n + env.Increment))
+				return E.Right[string](TR.Bounce[int](n + env.Increment))
 			}
 		}
 	}
@@ -564,16 +565,16 @@ func TestTailRecMultipleEnvironmentAccess(t *testing.T) {
 func TestTailRecErrorInMiddle(t *testing.T) {
 	env := TestEnv{Multiplier: 1, MaxValue: 50, Logs: []string{}}
 
-	countdownStep := func(n int) ReaderIOEither[TestEnv, string, E.Either[int, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
+	countdownStep := func(n int) ReaderIOEither[TestEnv, string, TR.Trampoline[int, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
 				if n == 5 {
-					return E.Left[E.Either[int, int]]("error at 5")
+					return E.Left[TR.Trampoline[int, int]]("error at 5")
 				}
 				if n <= 0 {
-					return E.Right[string](E.Right[int](n))
+					return E.Right[string](TR.Land[int](n))
 				}
-				return E.Right[string](E.Left[int](n - 1))
+				return E.Right[string](TR.Bounce[int](n - 1))
 			}
 		}
 	}
@@ -588,13 +589,13 @@ func TestTailRecErrorInMiddle(t *testing.T) {
 
 // TestTailRecDifferentEnvironments tests that different environments produce different results
 func TestTailRecDifferentEnvironments(t *testing.T) {
-	multiplyStep := func(n int) ReaderIOEither[TestEnv, string, E.Either[int, int]] {
-		return func(env TestEnv) IOE.IOEither[string, E.Either[int, int]] {
-			return func() E.Either[string, E.Either[int, int]] {
+	multiplyStep := func(n int) ReaderIOEither[TestEnv, string, TR.Trampoline[int, int]] {
+		return func(env TestEnv) IOE.IOEither[string, TR.Trampoline[int, int]] {
+			return func() E.Either[string, TR.Trampoline[int, int]] {
 				if n <= 0 {
-					return E.Right[string](E.Right[int](n * env.Multiplier))
+					return E.Right[string](TR.Land[int](n * env.Multiplier))
 				}
-				return E.Right[string](E.Left[int](n - 1))
+				return E.Right[string](TR.Bounce[int](n - 1))
 			}
 		}
 	}

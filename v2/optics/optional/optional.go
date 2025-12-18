@@ -18,8 +18,6 @@
 package optional
 
 import (
-	"fmt"
-
 	EM "github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
@@ -224,12 +222,4 @@ func IChainAny[S, A any]() Operator[S, any, A] {
 	return func(sa Optional[S, any]) Optional[S, A] {
 		return ichain(sa, fromAny, toAny)
 	}
-}
-
-func (l Optional[S, T]) String() string {
-	return l.name
-}
-
-func (l Optional[S, T]) Format(f fmt.State, c rune) {
-	fmt.Fprint(f, l.String())
 }

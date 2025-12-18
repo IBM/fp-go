@@ -979,26 +979,3 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[
 //	    "Person.Name",
 //	)
 //	fmt.Println(nameLens)  // Prints: "Person.Name"
-func (l Lens[S, T]) String() string {
-	return l.name
-}
-
-// Format implements the fmt.Formatter interface for custom formatting of lenses.
-//
-// This allows lenses to be used with fmt.Printf and related functions with
-// various format verbs. All format operations delegate to the String() method,
-// which returns the lens name.
-//
-// Parameters:
-//   - f: The format state containing formatting options
-//   - c: The format verb (currently unused, all verbs produce the same output)
-//
-// Example:
-//
-//	nameLens := lens.MakeLensWithName(..., "Person.Name")
-//	fmt.Printf("Lens: %v\n", nameLens)  // Prints: "Lens: Person.Name"
-//	fmt.Printf("Lens: %s\n", nameLens)  // Prints: "Lens: Person.Name"
-//	fmt.Printf("Lens: %q\n", nameLens)  // Prints: "Lens: Person.Name"
-func (l Lens[S, T]) Format(f fmt.State, c rune) {
-	fmt.Fprint(f, l.String())
-}

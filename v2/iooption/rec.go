@@ -16,18 +16,18 @@
 package iooption
 
 import (
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 // TailRec creates a tail-recursive computation in the IOOption monad.
 // It enables writing recursive algorithms that don't overflow the call stack by using
 // an iterative loop - a technique where recursive calls are converted into iterations.
 //
-// The function takes a step function that returns an IOOption containing either:
+// The function takes a step function that returns an IOOption containing a Trampoline:
 //   - None: Terminate recursion with no result
-//   - Some(Left(A)): Continue recursion with a new value of type A
-//   - Some(Right(B)): Terminate recursion with a final result of type B
+//   - Some(Bounce(A)): Continue recursion with a new value of type A
+//   - Some(Land(B)): Terminate recursion with a final result of type B
 //
 // This is particularly useful for implementing recursive algorithms that may fail at any step:
 //   - Iterative calculations that may not produce a result
@@ -45,8 +45,8 @@ import (
 //
 // Parameters:
 //   - f: A step function that takes the current state (A) and returns an IOOption
-//     containing either None (failure), Some(Left(A)) to continue with a new state,
-//     or Some(Right(B)) to terminate with a final result
+//     containing either None (failure), Some(Bounce(A)) to continue with a new state,
+//     or Some(Land(B)) to terminate with a final result
 //
 // Returns:
 //   - A Kleisli arrow (function from A to IOOption[B]) that executes the
@@ -59,17 +59,17 @@ import (
 //	    result int
 //	}
 //
-//	factorial := TailRec[any](func(state FactState) IOOption[Either[FactState, int]] {
+//	factorial := TailRec[any](func(state FactState) IOOption[tailrec.Trampoline[FactState, int]] {
 //	    if state.n < 0 {
 //	        // Negative numbers have no factorial
-//	        return None[Either[FactState, int]]()
+//	        return None[tailrec.Trampoline[FactState, int]]()
 //	    }
 //	    if state.n <= 1 {
 //	        // Terminate with final result
-//	        return Of(either.Right[FactState](state.result))
+//	        return Of(tailrec.Land[FactState](state.result))
 //	    }
 //	    // Continue with next iteration
-//	    return Of(either.Left[int](FactState{
+//	    return Of(tailrec.Bounce[int](FactState{
 //	        n:      state.n - 1,
 //	        result: state.result * state.n,
 //	    }))
@@ -86,14 +86,14 @@ import (
 //	    steps       int
 //	}
 //
-//	safeDivide := TailRec[any](func(state DivState) IOOption[Either[DivState, int]] {
+//	safeDivide := TailRec[any](func(state DivState) IOOption[tailrec.Trampoline[DivState, int]] {
 //	    if state.denominator == 0 {
-//	        return None[Either[DivState, int]]() // Division by zero
+//	        return None[tailrec.Trampoline[DivState, int]]() // Division by zero
 //	    }
 //	    if state.numerator < state.denominator {
-//	        return Of(either.Right[DivState](state.steps))
+//	        return Of(tailrec.Land[DivState](state.steps))
 //	    }
-//	    return Of(either.Left[int](DivState{
+//	    return Of(tailrec.Bounce[int](DivState{
 //	        numerator:   state.numerator - state.denominator,
 //	        denominator: state.denominator,
 //	        steps:       state.steps + 1,
@@ -102,21 +102,20 @@ import (
 //
 //	result := safeDivide(DivState{numerator: 10, denominator: 3, steps: 0})() // Some(3)
 //	result := safeDivide(DivState{numerator: 10, denominator: 0, steps: 0})() // None
-func TailRec[E, A, B any](f Kleisli[A, Either[A, B]]) Kleisli[A, B] {
+func TailRec[E, A, B any](f Kleisli[A, tailrec.Trampoline[A, B]]) Kleisli[A, B] {
 	return func(a A) IOOption[B] {
 		initial := f(a)
-		return func() Option[B] {
+		return func() option.Option[B] {
 			current := initial()
 			for {
 				r, ok := option.Unwrap(current)
 				if !ok {
 					return option.None[B]()
 				}
-				b, a := either.Unwrap(r)
-				if either.IsRight(r) {
-					return option.Some(b)
+				if r.Landed {
+					return option.Some(r.Land)
 				}
-				current = f(a)()
+				current = f(r.Bounce)()
 			}
 		}
 	}

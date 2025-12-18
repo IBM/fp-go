@@ -51,6 +51,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -61,9 +62,10 @@ type (
 	// ReaderResult is a specialization of the Reader monad for the typical golang scenario
 	ReaderResult[A any] = readereither.ReaderEither[context.Context, error, A]
 
-	Kleisli[A, B any]   = reader.Reader[A, ReaderResult[B]]
-	Operator[A, B any]  = Kleisli[ReaderResult[A], B]
-	Endomorphism[A any] = endomorphism.Endomorphism[A]
-	Prism[S, T any]     = prism.Prism[S, T]
-	Lens[S, T any]      = lens.Lens[S, T]
+	Kleisli[A, B any]    = reader.Reader[A, ReaderResult[B]]
+	Operator[A, B any]   = Kleisli[ReaderResult[A], B]
+	Endomorphism[A any]  = endomorphism.Endomorphism[A]
+	Prism[S, T any]      = prism.Prism[S, T]
+	Lens[S, T any]       = lens.Lens[S, T]
+	Trampoline[A, B any] = tailrec.Trampoline[A, B]
 )

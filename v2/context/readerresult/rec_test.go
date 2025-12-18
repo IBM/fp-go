@@ -23,8 +23,8 @@ import (
 	"time"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	R "github.com/IBM/fp-go/v2/result"
+	TR "github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,12 +35,12 @@ func TestTailRecFactorial(t *testing.T) {
 		acc int
 	}
 
-	factorialStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	factorialStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if state.n <= 0 {
-				return R.Of(E.Right[State](state.acc))
+				return R.Of(TR.Land[State](state.acc))
 			}
-			return R.Of(E.Left[int](State{state.n - 1, state.acc * state.n}))
+			return R.Of(TR.Bounce[int](State{state.n - 1, state.acc * state.n}))
 		}
 	}
 
@@ -58,12 +58,12 @@ func TestTailRecFibonacci(t *testing.T) {
 		curr int
 	}
 
-	fibStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	fibStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if state.n <= 0 {
-				return R.Of(E.Right[State](state.curr))
+				return R.Of(TR.Land[State](state.curr))
 			}
-			return R.Of(E.Left[int](State{state.n - 1, state.curr, state.prev + state.curr}))
+			return R.Of(TR.Bounce[int](State{state.n - 1, state.curr, state.prev + state.curr}))
 		}
 	}
 
@@ -75,12 +75,12 @@ func TestTailRecFibonacci(t *testing.T) {
 
 // TestTailRecCountdown tests countdown computation
 func TestTailRecCountdown(t *testing.T) {
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -92,9 +92,9 @@ func TestTailRecCountdown(t *testing.T) {
 
 // TestTailRecImmediateTermination tests immediate termination (Right on first call)
 func TestTailRecImmediateTermination(t *testing.T) {
-	immediateStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
-			return R.Of(E.Right[int](n * 2))
+	immediateStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
+			return R.Of(TR.Land[int](n * 2))
 		}
 	}
 
@@ -106,12 +106,12 @@ func TestTailRecImmediateTermination(t *testing.T) {
 
 // TestTailRecStackSafety tests that TailRec handles large iterations without stack overflow
 func TestTailRecStackSafety(t *testing.T) {
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -128,12 +128,12 @@ func TestTailRecSumList(t *testing.T) {
 		sum  int
 	}
 
-	sumStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	sumStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if A.IsEmpty(state.list) {
-				return R.Of(E.Right[State](state.sum))
+				return R.Of(TR.Land[State](state.sum))
 			}
-			return R.Of(E.Left[int](State{state.list[1:], state.sum + state.list[0]}))
+			return R.Of(TR.Bounce[int](State{state.list[1:], state.sum + state.list[0]}))
 		}
 	}
 
@@ -145,15 +145,15 @@ func TestTailRecSumList(t *testing.T) {
 
 // TestTailRecCollatzConjecture tests the Collatz conjecture
 func TestTailRecCollatzConjecture(t *testing.T) {
-	collatzStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	collatzStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			if n <= 1 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
 			if n%2 == 0 {
-				return R.Of(E.Left[int](n / 2))
+				return R.Of(TR.Bounce[int](n / 2))
 			}
-			return R.Of(E.Left[int](3*n + 1))
+			return R.Of(TR.Bounce[int](3*n + 1))
 		}
 	}
 
@@ -170,12 +170,12 @@ func TestTailRecGCD(t *testing.T) {
 		b int
 	}
 
-	gcdStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	gcdStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if state.b == 0 {
-				return R.Of(E.Right[State](state.a))
+				return R.Of(TR.Land[State](state.a))
 			}
-			return R.Of(E.Left[int](State{state.b, state.a % state.b}))
+			return R.Of(TR.Bounce[int](State{state.b, state.a % state.b}))
 		}
 	}
 
@@ -189,15 +189,15 @@ func TestTailRecGCD(t *testing.T) {
 func TestTailRecErrorPropagation(t *testing.T) {
 	expectedErr := errors.New("computation error")
 
-	errorStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	errorStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			if n == 5 {
-				return R.Left[E.Either[int, int]](expectedErr)
+				return R.Left[TR.Trampoline[int, int]](expectedErr)
 			}
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -215,13 +215,13 @@ func TestTailRecContextCancellationImmediate(t *testing.T) {
 	cancel() // Cancel immediately before execution
 
 	stepExecuted := false
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			stepExecuted = true
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -240,17 +240,17 @@ func TestTailRecContextCancellationDuringExecution(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	executionCount := 0
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			executionCount++
 			// Cancel after 3 iterations
 			if executionCount == 3 {
 				cancel()
 			}
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -270,15 +270,15 @@ func TestTailRecContextWithTimeout(t *testing.T) {
 	defer cancel()
 
 	executionCount := 0
-	slowStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	slowStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			executionCount++
 			// Simulate slow computation
 			time.Sleep(20 * time.Millisecond)
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -298,12 +298,12 @@ func TestTailRecContextWithCause(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(customErr)
 
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -322,16 +322,16 @@ func TestTailRecContextCancellationMultipleIterations(t *testing.T) {
 	executionCount := 0
 	maxExecutions := 5
 
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			executionCount++
 			if executionCount == maxExecutions {
 				cancel()
 			}
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -351,13 +351,13 @@ func TestTailRecContextNotCanceled(t *testing.T) {
 	ctx := context.Background()
 
 	executionCount := 0
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			executionCount++
 			if n <= 0 {
-				return R.Of(E.Right[int](n))
+				return R.Of(TR.Land[int](n))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -376,12 +376,12 @@ func TestTailRecPowerOfTwo(t *testing.T) {
 		target   int
 	}
 
-	powerStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	powerStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if state.exponent >= state.target {
-				return R.Of(E.Right[State](state.result))
+				return R.Of(TR.Land[State](state.result))
 			}
-			return R.Of(E.Left[int](State{state.exponent + 1, state.result * 2, state.target}))
+			return R.Of(TR.Bounce[int](State{state.exponent + 1, state.result * 2, state.target}))
 		}
 	}
 
@@ -399,15 +399,15 @@ func TestTailRecFindInRange(t *testing.T) {
 		target  int
 	}
 
-	findStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	findStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if state.current >= state.max {
-				return R.Of(E.Right[State](-1)) // Not found
+				return R.Of(TR.Land[State](-1)) // Not found
 			}
 			if state.current == state.target {
-				return R.Of(E.Right[State](state.current)) // Found
+				return R.Of(TR.Land[State](state.current)) // Found
 			}
-			return R.Of(E.Left[int](State{state.current + 1, state.max, state.target}))
+			return R.Of(TR.Bounce[int](State{state.current + 1, state.max, state.target}))
 		}
 	}
 
@@ -425,15 +425,15 @@ func TestTailRecFindNotInRange(t *testing.T) {
 		target  int
 	}
 
-	findStep := func(state State) ReaderResult[E.Either[State, int]] {
-		return func(ctx context.Context) Result[E.Either[State, int]] {
+	findStep := func(state State) ReaderResult[TR.Trampoline[State, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[State, int]] {
 			if state.current >= state.max {
-				return R.Of(E.Right[State](-1)) // Not found
+				return R.Of(TR.Land[State](-1)) // Not found
 			}
 			if state.current == state.target {
-				return R.Of(E.Right[State](state.current)) // Found
+				return R.Of(TR.Land[State](state.current)) // Found
 			}
-			return R.Of(E.Left[int](State{state.current + 1, state.max, state.target}))
+			return R.Of(TR.Bounce[int](State{state.current + 1, state.max, state.target}))
 		}
 	}
 
@@ -450,13 +450,13 @@ func TestTailRecWithContextValue(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), multiplierKey, 3)
 
-	countdownStep := func(n int) ReaderResult[E.Either[int, int]] {
-		return func(ctx context.Context) Result[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
+		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
 			if n <= 0 {
 				multiplier := ctx.Value(multiplierKey).(int)
-				return R.Of(E.Right[int](n * multiplier))
+				return R.Of(TR.Land[int](n * multiplier))
 			}
-			return R.Of(E.Left[int](n - 1))
+			return R.Of(TR.Bounce[int](n - 1))
 		}
 	}
 
@@ -475,11 +475,11 @@ func TestTailRecComplexState(t *testing.T) {
 		completed bool
 	}
 
-	complexStep := func(state ComplexState) ReaderResult[E.Either[ComplexState, string]] {
-		return func(ctx context.Context) Result[E.Either[ComplexState, string]] {
+	complexStep := func(state ComplexState) ReaderResult[TR.Trampoline[ComplexState, string]] {
+		return func(ctx context.Context) Result[TR.Trampoline[ComplexState, string]] {
 			if state.counter <= 0 || state.completed {
 				result := fmt.Sprintf("sum=%d, product=%d", state.sum, state.product)
-				return R.Of(E.Right[ComplexState](result))
+				return R.Of(TR.Land[ComplexState](result))
 			}
 			newState := ComplexState{
 				counter:   state.counter - 1,
@@ -487,7 +487,7 @@ func TestTailRecComplexState(t *testing.T) {
 				product:   state.product * state.counter,
 				completed: state.counter == 1,
 			}
-			return R.Of(E.Left[string](newState))
+			return R.Of(TR.Bounce[string](newState))
 		}
 	}
 

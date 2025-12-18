@@ -64,10 +64,10 @@ updated := nameLens.Set("Bob")(person)
 
 ## 🛠️ Core Optics Types
 
-### 🔎 [Lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) - Product Types ([Structs](https://go.dev/ref/spec#Struct_types))
-Focus on a single field within a [struct](https://go.dev/ref/spec#Struct_types). Provides get and set operations.
+### 🔎 [Lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens) - Product Types (Structs)
+Focus on a single field within a struct. Provides get and set operations.
 
-**Use when:** Working with [struct](https://go.dev/ref/spec#Struct_types) fields that always exist.
+**Use when:** Working with struct fields that always exist.
 
 ```go
 ageLens := lens.MakeLens(
@@ -218,10 +218,10 @@ Lenses can be automatically generated using the `fp-go` CLI tool and a simple an
 
 ### 📝 How to Use
 
-1. **Annotate your [struct](https://go.dev/ref/spec#Struct_types)** with the `fp-go:Lens` comment:
+1. **Annotate your struct** with the `fp-go:Lens` comment:
 
 ```go
-//go:generate go run github.com/IBM/fp-go/v2 lens
+//go:generate go run github.com/IBM/fp-go/v2/main.go lens --dir . --filename gen_lens.go
 
 // fp-go:Lens
 type Person struct {
@@ -232,7 +232,7 @@ type Person struct {
 }
 ```
 
-2. **Run [`go generate`](https://go.dev/blog/generate)**:
+2. **Run `go generate`**:
 
 ```bash
 go generate ./...
@@ -256,7 +256,7 @@ personWithEmail := lenses.EmailO.Set(option.Some("new@example.com"))(person)
 
 ### 🎁 What Gets Generated
 
-For each annotated [struct](https://go.dev/ref/spec#Struct_types), the generator creates:
+For each annotated struct, the generator creates:
 
 - **`StructNameLenses`**: Lenses for value types with optional variants (`LensO`) for comparable fields
 - **`StructNameRefLenses`**: Lenses for pointer types with prisms for constructing values
@@ -264,8 +264,8 @@ For each annotated [struct](https://go.dev/ref/spec#Struct_types), the generator
 - Constructor functions: `MakeStructNameLenses()`, `MakeStructNameRefLenses()`, `MakeStructNamePrisms()`
 
 The generator supports:
-- ✅ [Generic types](https://go.dev/doc/tutorial/generics) with type parameters
-- ✅ Embedded [structs](https://go.dev/ref/spec#Struct_types) (fields are promoted)
+- ✅ Generic types with type parameters
+- ✅ Embedded structs (fields are promoted)
 - ✅ Optional fields (pointers and `omitempty` tags)
 - ✅ Custom package imports
 
@@ -273,7 +273,7 @@ See [samples/lens](../samples/lens) for complete examples.
 
 ## 📊 Optics Hierarchy
 
-```markdown
+```
 [Iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso)[S, A]
     ↓
 [Lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens)[S, A]

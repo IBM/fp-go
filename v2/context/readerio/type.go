@@ -24,6 +24,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -72,4 +73,6 @@ type (
 	Consumer[A any] = consumer.Consumer[A]
 
 	Either[E, A any] = either.Either[E, A]
+
+	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 )

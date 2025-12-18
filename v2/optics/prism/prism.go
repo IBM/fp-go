@@ -270,11 +270,3 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[
 		return imap(sa, ab, ba)
 	}
 }
-
-func (l Prism[S, T]) String() string {
-	return l.name
-}
-
-func (l Prism[S, T]) Format(f fmt.State, c rune) {
-	fmt.Fprint(f, l.String())
-}

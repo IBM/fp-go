@@ -18,7 +18,6 @@ package option
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"reflect"
 )
 
@@ -48,36 +47,15 @@ type (
 	Operator[A, B any] = Kleisli[Option[A], B]
 )
 
-// optString prints some debug info for the object
+// String implements fmt.Stringer for Option.
+// Returns a human-readable string representation.
 //
-//go:noinline
-func optString(isSome bool, value any) string {
-	if isSome {
-		return fmt.Sprintf("Some[%T](%v)", value, value)
-	}
-	return fmt.Sprintf("None[%T]", value)
-}
-
-// optFormat prints some debug info for the object
+// Example:
 //
-//go:noinline
-func optFormat(isSome bool, value any, f fmt.State, c rune) {
-	switch c {
-	case 's':
-		fmt.Fprint(f, optString(isSome, value))
-	default:
-		fmt.Fprint(f, optString(isSome, value))
-	}
-}
-
-// String prints some debug info for the object
+//	Some(42).String() // "Some[int](42)"
+//	None[int]().String() // "None[int]"
 func (s Option[A]) String() string {
 	return optString(s.isSome, s.value)
-}
-
-// Format prints some debug info for the object
-func (s Option[A]) Format(f fmt.State, c rune) {
-	optFormat(s.isSome, s.value, f, c)
 }
 
 func optMarshalJSON(isSome bool, value any) ([]byte, error) {

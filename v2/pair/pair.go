@@ -16,26 +16,9 @@
 package pair
 
 import (
-	"fmt"
-
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/tuple"
 )
-
-// String prints some debug info for the object
-func (s Pair[A, B]) String() string {
-	return fmt.Sprintf("Pair[%T, %T](%v, %v)", s.l, s.r, s.l, s.r)
-}
-
-// Format prints some debug info for the object
-func (s Pair[A, B]) Format(f fmt.State, c rune) {
-	switch c {
-	case 's':
-		fmt.Fprint(f, s.String())
-	default:
-		fmt.Fprint(f, s.String())
-	}
-}
 
 // Of creates a [Pair] with the same value in both the head and tail positions.
 //

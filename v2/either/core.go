@@ -15,10 +15,6 @@
 
 package either
 
-import (
-	"fmt"
-)
-
 type (
 	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
 	Either[E, A any] struct {
@@ -27,28 +23,6 @@ type (
 		isLeft bool
 	}
 )
-
-// String prints some debug info for the object
-//
-//go:noinline
-func (s Either[E, A]) String() string {
-	if !s.isLeft {
-		return fmt.Sprintf("Right[%T](%v)", s.r, s.r)
-	}
-	return fmt.Sprintf("Left[%T](%v)", s.l, s.l)
-}
-
-// Format prints some debug info for the object
-//
-//go:noinline
-func (s Either[E, A]) Format(f fmt.State, c rune) {
-	switch c {
-	case 's':
-		fmt.Fprint(f, s.String())
-	default:
-		fmt.Fprint(f, s.String())
-	}
-}
 
 // IsLeft tests if the Either is a Left value.
 // Rather use [Fold] or [MonadFold] if you need to access the values.

@@ -15,8 +15,12 @@
 
 package either
 
+import (
+	"github.com/IBM/fp-go/v2/tailrec"
+)
+
 //go:inline
-func TailRec[E, A, B any](f Kleisli[E, A, Either[A, B]]) Kleisli[E, A, B] {
+func TailRec[E, A, B any](f Kleisli[E, A, tailrec.Trampoline[A, B]]) Kleisli[E, A, B] {
 	return func(a A) Either[E, B] {
 		current := f(a)
 		for {
@@ -24,11 +28,10 @@ func TailRec[E, A, B any](f Kleisli[E, A, Either[A, B]]) Kleisli[E, A, B] {
 			if IsLeft(current) {
 				return Left[B](e)
 			}
-			b, a := Unwrap(rec)
-			if IsRight(rec) {
-				return Right[E](b)
+			if rec.Landed {
+				return Right[E](rec.Land)
 			}
-			current = f(a)
+			current = f(rec.Bounce)
 		}
 	}
 }

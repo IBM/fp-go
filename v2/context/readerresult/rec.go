@@ -25,8 +25,8 @@ import (
 
 // TailRec implements tail-recursive computation for ReaderResult with context cancellation support.
 //
-// TailRec takes a Kleisli function that returns Either[A, B] and converts it into a stack-safe,
-// tail-recursive computation. The function repeatedly applies the Kleisli until it produces a Right value.
+// TailRec takes a Kleisli function that returns Trampoline[A, B] and converts it into a stack-safe,
+// tail-recursive computation. The function repeatedly applies the Kleisli until it produces a Land value.
 //
 // The implementation includes a short-circuit mechanism that checks for context cancellation on each
 // iteration. If the context is canceled (ctx.Err() != nil), the computation immediately returns a
@@ -37,9 +37,9 @@ import (
 //   - B: The final result type
 //
 // Parameters:
-//   - f: A Kleisli function that takes an A and returns a ReaderResult containing Either[A, B].
-//     When the result is Left[B](a), recursion continues with the new value 'a'.
-//     When the result is Right[A](b), recursion terminates with the final value 'b'.
+//   - f: A Kleisli function that takes an A and returns a ReaderResult containing Trampoline[A, B].
+//     When the result is Bounce(a), recursion continues with the new value 'a'.
+//     When the result is Land(b), recursion terminates with the final value 'b'.
 //
 // Returns:
 //   - A Kleisli function that performs the tail-recursive computation in a stack-safe manner.
@@ -48,8 +48,8 @@ import (
 //   - On each iteration, checks if the context has been canceled (short circuit)
 //   - If canceled, returns result.Left[B](context.Cause(ctx))
 //   - If the step returns Left[B](error), propagates the error
-//   - If the step returns Right[A](Left[B](a)), continues recursion with new value 'a'
-//   - If the step returns Right[A](Right[A](b)), terminates with success value 'b'
+//   - If the step returns Right[A](Bounce(a)), continues recursion with new value 'a'
+//   - If the step returns Right[A](Land(b)), terminates with success value 'b'
 //
 // Example - Factorial computation with context:
 //
@@ -58,12 +58,12 @@ import (
 //	    acc int
 //	}
 //
-//	factorialStep := func(state State) ReaderResult[either.Either[State, int]] {
-//	    return func(ctx context.Context) result.Result[either.Either[State, int]] {
+//	factorialStep := func(state State) ReaderResult[tailrec.Trampoline[State, int]] {
+//	    return func(ctx context.Context) result.Result[tailrec.Trampoline[State, int]] {
 //	        if state.n <= 0 {
-//	            return result.Of(either.Right[State](state.acc))
+//	            return result.Of(tailrec.Land[State](state.acc))
 //	        }
-//	        return result.Of(either.Left[int](State{state.n - 1, state.acc * state.n}))
+//	        return result.Of(tailrec.Bounce[int](State{state.n - 1, state.acc * state.n}))
 //	    }
 //	}
 //
@@ -80,10 +80,10 @@ import (
 //	// Returns result.Left[B](context.Cause(ctx)) without executing any steps
 //
 //go:inline
-func TailRec[A, B any](f Kleisli[A, either.Either[A, B]]) Kleisli[A, B] {
+func TailRec[A, B any](f Kleisli[A, Trampoline[A, B]]) Kleisli[A, B] {
 	return func(a A) ReaderResult[B] {
 		initialReader := f(a)
-		return func(ctx context.Context) Result[B] {
+		return func(ctx context.Context) result.Result[B] {
 			rdr := initialReader
 			for {
 				// short circuit
@@ -95,11 +95,10 @@ func TailRec[A, B any](f Kleisli[A, either.Either[A, B]]) Kleisli[A, B] {
 				if either.IsLeft(current) {
 					return result.Left[B](e)
 				}
-				b, a := either.Unwrap(rec)
-				if either.IsRight(rec) {
-					return result.Of(b)
+				if rec.Landed {
+					return result.Of(rec.Land)
 				}
-				rdr = f(a)
+				rdr = f(rec.Bounce)
 			}
 		}
 	}

@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	G "github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,15 +54,15 @@ func TestTailRecFactorial(t *testing.T) {
 		},
 	}
 
-	factorialStep := func(state State) ReaderIO[LoggerEnv, E.Either[State, int]] {
-		return func(env LoggerEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	factorialStep := func(state State) ReaderIO[LoggerEnv, Trampoline[State, int]] {
+		return func(env LoggerEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				if state.n <= 0 {
 					env.Logger(fmt.Sprintf("Complete: %d", state.acc))
-					return E.Right[State](state.acc)
+					return tailrec.Land[State](state.acc)
 				}
 				env.Logger(fmt.Sprintf("Step: %d * %d", state.n, state.acc))
-				return E.Left[int](State{state.n - 1, state.acc * state.n})
+				return tailrec.Bounce[int](State{state.n - 1, state.acc * state.n})
 			}
 		}
 	}
@@ -86,13 +86,13 @@ func TestTailRecFibonacci(t *testing.T) {
 
 	env := TestEnv{Multiplier: 1, Logs: []string{}}
 
-	fibStep := func(state State) ReaderIO[TestEnv, E.Either[State, int]] {
-		return func(env TestEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	fibStep := func(state State) ReaderIO[TestEnv, Trampoline[State, int]] {
+		return func(env TestEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				if state.n <= 0 {
-					return E.Right[State](state.curr * env.Multiplier)
+					return tailrec.Land[State](state.curr * env.Multiplier)
 				}
-				return E.Left[int](State{state.n - 1, state.curr, state.prev + state.curr})
+				return tailrec.Bounce[int](State{state.n - 1, state.curr, state.prev + state.curr})
 			}
 		}
 	}
@@ -107,13 +107,13 @@ func TestTailRecFibonacci(t *testing.T) {
 func TestTailRecCountdown(t *testing.T) {
 	config := ConfigEnv{MinValue: 0, Step: 2}
 
-	countdownStep := func(n int) ReaderIO[ConfigEnv, E.Either[int, int]] {
-		return func(cfg ConfigEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	countdownStep := func(n int) ReaderIO[ConfigEnv, Trampoline[int, int]] {
+		return func(cfg ConfigEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				if n <= cfg.MinValue {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
-				return E.Left[int](n - cfg.Step)
+				return tailrec.Bounce[int](n - cfg.Step)
 			}
 		}
 	}
@@ -128,13 +128,13 @@ func TestTailRecCountdown(t *testing.T) {
 func TestTailRecCountdownOddStep(t *testing.T) {
 	config := ConfigEnv{MinValue: 0, Step: 3}
 
-	countdownStep := func(n int) ReaderIO[ConfigEnv, E.Either[int, int]] {
-		return func(cfg ConfigEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	countdownStep := func(n int) ReaderIO[ConfigEnv, Trampoline[int, int]] {
+		return func(cfg ConfigEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				if n <= cfg.MinValue {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
-				return E.Left[int](n - cfg.Step)
+				return tailrec.Bounce[int](n - cfg.Step)
 			}
 		}
 	}
@@ -154,13 +154,13 @@ func TestTailRecSumList(t *testing.T) {
 
 	env := TestEnv{Multiplier: 2, Logs: []string{}}
 
-	sumStep := func(state State) ReaderIO[TestEnv, E.Either[State, int]] {
-		return func(env TestEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	sumStep := func(state State) ReaderIO[TestEnv, Trampoline[State, int]] {
+		return func(env TestEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				if A.IsEmpty(state.list) {
-					return E.Right[State](state.sum * env.Multiplier)
+					return tailrec.Land[State](state.sum * env.Multiplier)
 				}
-				return E.Left[int](State{state.list[1:], state.sum + state.list[0]})
+				return tailrec.Bounce[int](State{state.list[1:], state.sum + state.list[0]})
 			}
 		}
 	}
@@ -175,10 +175,10 @@ func TestTailRecSumList(t *testing.T) {
 func TestTailRecImmediateTermination(t *testing.T) {
 	env := TestEnv{Multiplier: 1, Logs: []string{}}
 
-	immediateStep := func(n int) ReaderIO[TestEnv, E.Either[int, int]] {
-		return func(env TestEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
-				return E.Right[int](n * env.Multiplier)
+	immediateStep := func(n int) ReaderIO[TestEnv, Trampoline[int, int]] {
+		return func(env TestEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
+				return tailrec.Land[int](n * env.Multiplier)
 			}
 		}
 	}
@@ -193,13 +193,13 @@ func TestTailRecImmediateTermination(t *testing.T) {
 func TestTailRecStackSafety(t *testing.T) {
 	env := TestEnv{Multiplier: 1, Logs: []string{}}
 
-	countdownStep := func(n int) ReaderIO[TestEnv, E.Either[int, int]] {
-		return func(env TestEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	countdownStep := func(n int) ReaderIO[TestEnv, Trampoline[int, int]] {
+		return func(env TestEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				if n <= 0 {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
-				return E.Left[int](n - 1)
+				return tailrec.Bounce[int](n - 1)
 			}
 		}
 	}
@@ -223,16 +223,16 @@ func TestTailRecFindInRange(t *testing.T) {
 
 	env := FindEnv{Target: 42}
 
-	findStep := func(state State) ReaderIO[FindEnv, E.Either[State, int]] {
-		return func(env FindEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	findStep := func(state State) ReaderIO[FindEnv, Trampoline[State, int]] {
+		return func(env FindEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				if state.current >= state.max {
-					return E.Right[State](-1) // Not found
+					return tailrec.Land[State](-1) // Not found
 				}
 				if state.current == env.Target {
-					return E.Right[State](state.current) // Found
+					return tailrec.Land[State](state.current) // Found
 				}
-				return E.Left[int](State{state.current + 1, state.max})
+				return tailrec.Bounce[int](State{state.current + 1, state.max})
 			}
 		}
 	}
@@ -256,16 +256,16 @@ func TestTailRecFindNotInRange(t *testing.T) {
 
 	env := FindEnv{Target: 200}
 
-	findStep := func(state State) ReaderIO[FindEnv, E.Either[State, int]] {
-		return func(env FindEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	findStep := func(state State) ReaderIO[FindEnv, Trampoline[State, int]] {
+		return func(env FindEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				if state.current >= state.max {
-					return E.Right[State](-1) // Not found
+					return tailrec.Land[State](-1) // Not found
 				}
 				if state.current == env.Target {
-					return E.Right[State](state.current) // Found
+					return tailrec.Land[State](state.current) // Found
 				}
-				return E.Left[int](State{state.current + 1, state.max})
+				return tailrec.Bounce[int](State{state.current + 1, state.max})
 			}
 		}
 	}
@@ -285,14 +285,14 @@ func TestTailRecWithLogging(t *testing.T) {
 		},
 	}
 
-	countdownStep := func(n int) ReaderIO[LoggerEnv, E.Either[int, int]] {
-		return func(env LoggerEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	countdownStep := func(n int) ReaderIO[LoggerEnv, Trampoline[int, int]] {
+		return func(env LoggerEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				env.Logger(fmt.Sprintf("Count: %d", n))
 				if n <= 0 {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
-				return E.Left[int](n - 1)
+				return tailrec.Bounce[int](n - 1)
 			}
 		}
 	}
@@ -315,17 +315,17 @@ func TestTailRecCollatzConjecture(t *testing.T) {
 		},
 	}
 
-	collatzStep := func(n int) ReaderIO[LoggerEnv, E.Either[int, int]] {
-		return func(env LoggerEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	collatzStep := func(n int) ReaderIO[LoggerEnv, Trampoline[int, int]] {
+		return func(env LoggerEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				env.Logger(fmt.Sprintf("n=%d", n))
 				if n <= 1 {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
 				if n%2 == 0 {
-					return E.Left[int](n / 2)
+					return tailrec.Bounce[int](n / 2)
 				}
-				return E.Left[int](3*n + 1)
+				return tailrec.Bounce[int](3*n + 1)
 			}
 		}
 	}
@@ -352,13 +352,13 @@ func TestTailRecPowerOfTwo(t *testing.T) {
 
 	env := PowerEnv{MaxExponent: 10}
 
-	powerStep := func(state State) ReaderIO[PowerEnv, E.Either[State, int]] {
-		return func(env PowerEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	powerStep := func(state State) ReaderIO[PowerEnv, Trampoline[State, int]] {
+		return func(env PowerEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				if state.exponent >= env.MaxExponent {
-					return E.Right[State](state.result)
+					return tailrec.Land[State](state.result)
 				}
-				return E.Left[int](State{state.exponent + 1, state.result * 2})
+				return tailrec.Bounce[int](State{state.exponent + 1, state.result * 2})
 			}
 		}
 	}
@@ -383,14 +383,14 @@ func TestTailRecGCD(t *testing.T) {
 		},
 	}
 
-	gcdStep := func(state State) ReaderIO[LoggerEnv, E.Either[State, int]] {
-		return func(env LoggerEnv) G.IO[E.Either[State, int]] {
-			return func() E.Either[State, int] {
+	gcdStep := func(state State) ReaderIO[LoggerEnv, Trampoline[State, int]] {
+		return func(env LoggerEnv) G.IO[Trampoline[State, int]] {
+			return func() Trampoline[State, int] {
 				env.Logger(fmt.Sprintf("gcd(%d, %d)", state.a, state.b))
 				if state.b == 0 {
-					return E.Right[State](state.a)
+					return tailrec.Land[State](state.a)
 				}
-				return E.Left[int](State{state.b, state.a % state.b})
+				return tailrec.Bounce[int](State{state.b, state.a % state.b})
 			}
 		}
 	}
@@ -412,13 +412,13 @@ func TestTailRecMultipleEnvironmentAccess(t *testing.T) {
 
 	env := CounterEnv{Increment: 3, Limit: 20}
 
-	counterStep := func(n int) ReaderIO[CounterEnv, E.Either[int, int]] {
-		return func(env CounterEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	counterStep := func(n int) ReaderIO[CounterEnv, Trampoline[int, int]] {
+		return func(env CounterEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				if n >= env.Limit {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
-				return E.Left[int](n + env.Increment)
+				return tailrec.Bounce[int](n + env.Increment)
 			}
 		}
 	}
@@ -431,13 +431,13 @@ func TestTailRecMultipleEnvironmentAccess(t *testing.T) {
 
 // TestTailRecDifferentEnvironments tests that different environments produce different results
 func TestTailRecDifferentEnvironments(t *testing.T) {
-	multiplyStep := func(n int) ReaderIO[TestEnv, E.Either[int, int]] {
-		return func(env TestEnv) G.IO[E.Either[int, int]] {
-			return func() E.Either[int, int] {
+	multiplyStep := func(n int) ReaderIO[TestEnv, Trampoline[int, int]] {
+		return func(env TestEnv) G.IO[Trampoline[int, int]] {
+			return func() Trampoline[int, int] {
 				if n <= 0 {
-					return E.Right[int](n)
+					return tailrec.Land[int](n)
 				}
-				return E.Left[int](n - 1)
+				return tailrec.Bounce[int](n - 1)
 			}
 		}
 	}

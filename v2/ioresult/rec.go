@@ -17,9 +17,10 @@ package ioresult
 
 import (
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 //go:inline
-func TailRec[A, B any](f Kleisli[A, Either[A, B]]) Kleisli[A, B] {
+func TailRec[A, B any](f Kleisli[A, tailrec.Trampoline[A, B]]) Kleisli[A, B] {
 	return ioeither.TailRec(f)
 }

@@ -367,22 +367,6 @@ func TestFromStrictEquals(t *testing.T) {
 	assert.False(t, pairEq.Equals(p1, p3))
 }
 
-func TestString(t *testing.T) {
-	p := MakePair("hello", 42)
-	str := p.String()
-	assert.Contains(t, str, "Pair")
-	assert.Contains(t, str, "hello")
-	assert.Contains(t, str, "42")
-}
-
-func TestFormat(t *testing.T) {
-	p := MakePair("test", 100)
-	str := fmt.Sprintf("%s", p)
-	assert.Contains(t, str, "Pair")
-	assert.Contains(t, str, "test")
-	assert.Contains(t, str, "100")
-}
-
 func TestMonadHead(t *testing.T) {
 	stringMonoid := S.Monoid
 	monad := MonadHead[int, string, string](stringMonoid)

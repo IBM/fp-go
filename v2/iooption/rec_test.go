@@ -18,8 +18,8 @@ package iooption
 import (
 	"testing"
 
-	E "github.com/IBM/fp-go/v2/either"
 	O "github.com/IBM/fp-go/v2/option"
+	TR "github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,17 +30,17 @@ func TestTailRecFactorial(t *testing.T) {
 		result int
 	}
 
-	factorial := TailRec[any](func(state FactState) IOOption[E.Either[FactState, int]] {
+	factorial := TailRec[any](func(state FactState) IOOption[TR.Trampoline[FactState, int]] {
 		if state.n < 0 {
 			// Negative numbers have no factorial
-			return None[E.Either[FactState, int]]()
+			return None[TR.Trampoline[FactState, int]]()
 		}
 		if state.n <= 1 {
 			// Terminate with final result
-			return Of(E.Right[FactState](state.result))
+			return Of(TR.Land[FactState](state.result))
 		}
 		// Continue with next iteration
-		return Of(E.Left[int](FactState{
+		return Of(TR.Bounce[int](FactState{
 			n:      state.n - 1,
 			result: state.result * state.n,
 		}))
@@ -80,14 +80,14 @@ func TestTailRecSafeDivision(t *testing.T) {
 		steps       int
 	}
 
-	safeDivide := TailRec[any](func(state DivState) IOOption[E.Either[DivState, int]] {
+	safeDivide := TailRec[any](func(state DivState) IOOption[TR.Trampoline[DivState, int]] {
 		if state.denominator == 0 {
-			return None[E.Either[DivState, int]]() // Division by zero
+			return None[TR.Trampoline[DivState, int]]() // Division by zero
 		}
 		if state.numerator < state.denominator {
-			return Of(E.Right[DivState](state.steps))
+			return Of(TR.Land[DivState](state.steps))
 		}
-		return Of(E.Left[int](DivState{
+		return Of(TR.Bounce[int](DivState{
 			numerator:   state.numerator - state.denominator,
 			denominator: state.denominator,
 			steps:       state.steps + 1,
@@ -123,14 +123,14 @@ func TestTailRecFindInRange(t *testing.T) {
 		max     int
 	}
 
-	findInRange := TailRec[any](func(state FindState) IOOption[E.Either[FindState, int]] {
+	findInRange := TailRec[any](func(state FindState) IOOption[TR.Trampoline[FindState, int]] {
 		if state.current > state.max {
-			return None[E.Either[FindState, int]]() // Not found
+			return None[TR.Trampoline[FindState, int]]() // Not found
 		}
 		if state.current == state.target {
-			return Of(E.Right[FindState](state.current))
+			return Of(TR.Land[FindState](state.current))
 		}
-		return Of(E.Left[int](FindState{
+		return Of(TR.Bounce[int](FindState{
 			current: state.current + 1,
 			target:  state.target,
 			max:     state.max,
@@ -166,14 +166,14 @@ func TestTailRecSumUntilLimit(t *testing.T) {
 		limit   int
 	}
 
-	sumUntilLimit := TailRec[any](func(state SumState) IOOption[E.Either[SumState, int]] {
+	sumUntilLimit := TailRec[any](func(state SumState) IOOption[TR.Trampoline[SumState, int]] {
 		if state.sum > state.limit {
-			return None[E.Either[SumState, int]]() // Exceeded limit
+			return None[TR.Trampoline[SumState, int]]() // Exceeded limit
 		}
 		if state.current <= 0 {
-			return Of(E.Right[SumState](state.sum))
+			return Of(TR.Land[SumState](state.sum))
 		}
-		return Of(E.Left[int](SumState{
+		return Of(TR.Bounce[int](SumState{
 			current: state.current - 1,
 			sum:     state.sum + state.current,
 			limit:   state.limit,
@@ -198,14 +198,14 @@ func TestTailRecSumUntilLimit(t *testing.T) {
 
 // TestTailRecCountdown tests a simple countdown with optional result
 func TestTailRecCountdown(t *testing.T) {
-	countdown := TailRec[any](func(n int) IOOption[E.Either[int, string]] {
+	countdown := TailRec[any](func(n int) IOOption[TR.Trampoline[int, string]] {
 		if n < 0 {
-			return None[E.Either[int, string]]() // Negative not allowed
+			return None[TR.Trampoline[int, string]]() // Negative not allowed
 		}
 		if n == 0 {
-			return Of(E.Right[int]("Done!"))
+			return Of(TR.Land[int]("Done!"))
 		}
-		return Of(E.Left[string](n - 1))
+		return Of(TR.Bounce[string](n - 1))
 	})
 
 	t.Run("countdown from 5", func(t *testing.T) {
@@ -227,14 +227,14 @@ func TestTailRecCountdown(t *testing.T) {
 // TestTailRecStackSafety tests that TailRec doesn't overflow the stack with large iterations
 func TestTailRecStackSafety(t *testing.T) {
 	// Count down from a large number - this would overflow the stack with regular recursion
-	largeCountdown := TailRec[any](func(n int) IOOption[E.Either[int, int]] {
+	largeCountdown := TailRec[any](func(n int) IOOption[TR.Trampoline[int, int]] {
 		if n < 0 {
-			return None[E.Either[int, int]]()
+			return None[TR.Trampoline[int, int]]()
 		}
 		if n == 0 {
-			return Of(E.Right[int](0))
+			return Of(TR.Land[int](0))
 		}
-		return Of(E.Left[int](n - 1))
+		return Of(TR.Bounce[int](n - 1))
 	})
 
 	t.Run("large iteration count", func(t *testing.T) {
@@ -252,14 +252,14 @@ func TestTailRecValidation(t *testing.T) {
 	}
 
 	// Validate all items are positive, return count if valid
-	validatePositive := TailRec[any](func(state ValidationState) IOOption[E.Either[ValidationState, int]] {
+	validatePositive := TailRec[any](func(state ValidationState) IOOption[TR.Trampoline[ValidationState, int]] {
 		if state.index >= len(state.items) {
-			return Of(E.Right[ValidationState](state.index))
+			return Of(TR.Land[ValidationState](state.index))
 		}
 		if state.items[state.index] <= 0 {
-			return None[E.Either[ValidationState, int]]() // Invalid item
+			return None[TR.Trampoline[ValidationState, int]]() // Invalid item
 		}
-		return Of(E.Left[int](ValidationState{
+		return Of(TR.Bounce[int](ValidationState{
 			items: state.items,
 			index: state.index + 1,
 		}))
@@ -294,17 +294,17 @@ func TestTailRecCollatzConjecture(t *testing.T) {
 	}
 
 	// Count steps to reach 1 in Collatz sequence
-	collatz := TailRec[any](func(state CollatzState) IOOption[E.Either[CollatzState, int]] {
+	collatz := TailRec[any](func(state CollatzState) IOOption[TR.Trampoline[CollatzState, int]] {
 		if state.n <= 0 {
-			return None[E.Either[CollatzState, int]]() // Invalid input
+			return None[TR.Trampoline[CollatzState, int]]() // Invalid input
 		}
 		if state.n == 1 {
-			return Of(E.Right[CollatzState](state.steps))
+			return Of(TR.Land[CollatzState](state.steps))
 		}
 		if state.n%2 == 0 {
-			return Of(E.Left[int](CollatzState{n: state.n / 2, steps: state.steps + 1}))
+			return Of(TR.Bounce[int](CollatzState{n: state.n / 2, steps: state.steps + 1}))
 		}
-		return Of(E.Left[int](CollatzState{n: 3*state.n + 1, steps: state.steps + 1}))
+		return Of(TR.Bounce[int](CollatzState{n: 3*state.n + 1, steps: state.steps + 1}))
 	})
 
 	t.Run("collatz for 1", func(t *testing.T) {

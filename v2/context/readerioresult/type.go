@@ -35,6 +35,7 @@ import (
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -137,4 +138,6 @@ type (
 
 	Prism[S, T any] = prism.Prism[S, T]
 	Lens[S, T any]  = lens.Lens[S, T]
+
+	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 )

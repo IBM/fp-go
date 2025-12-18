@@ -17,15 +17,16 @@ package ioeither
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 // TailRec creates a tail-recursive computation in the IOEither monad.
 // It enables writing recursive algorithms that don't overflow the call stack by using
 // trampolining - a technique where recursive calls are converted into iterations.
 //
-// The function takes a step function that returns either:
-//   - Left(A): Continue recursion with a new value of type A
-//   - Right(B): Terminate recursion with a final result of type B
+// The function takes a step function that returns a Trampoline:
+//   - Bounce(A): Continue recursion with a new value of type A
+//   - Land(B): Terminate recursion with a final result of type B
 //
 // This is particularly useful for implementing recursive algorithms like:
 //   - Iterative calculations (factorial, fibonacci, etc.)
@@ -34,7 +35,7 @@ import (
 //   - Processing collections with early termination
 //
 // The recursion is stack-safe because each step returns a value that indicates
-// whether to continue (Left) or stop (Right), rather than making direct recursive calls.
+// whether to continue (Bounce) or stop (Land), rather than making direct recursive calls.
 //
 // Type Parameters:
 //   - E: The error type that may occur during computation
@@ -43,7 +44,7 @@ import (
 //
 // Parameters:
 //   - f: A step function that takes the current state (A) and returns an IOEither
-//     containing either Left(A) to continue with a new state, or Right(B) to
+//     containing either Bounce(A) to continue with a new state, or Land(B) to
 //     terminate with a final result
 //
 // Returns:
@@ -57,13 +58,13 @@ import (
 //	    result int
 //	}
 //
-//	factorial := TailRec(func(state FactState) IOEither[error, Either[FactState, int]] {
+//	factorial := TailRec(func(state FactState) IOEither[error, tailrec.Trampoline[FactState, int]] {
 //	    if state.n <= 1 {
 //	        // Terminate with final result
-//	        return Of[error](either.Right[FactState](state.result))
+//	        return Of[error](tailrec.Land[FactState](state.result))
 //	    }
 //	    // Continue with next iteration
-//	    return Of[error](either.Left[int](FactState{
+//	    return Of[error](tailrec.Bounce[int](FactState{
 //	        n:      state.n - 1,
 //	        result: state.result * state.n,
 //	    }))
@@ -78,36 +79,35 @@ import (
 //	    sum   int
 //	}
 //
-//	processItems := TailRec(func(state ProcessState) IOEither[error, Either[ProcessState, int]] {
+//	processItems := TailRec(func(state ProcessState) IOEither[error, tailrec.Trampoline[ProcessState, int]] {
 //	    if len(state.items) == 0 {
-//	        return Of[error](either.Right[ProcessState](state.sum))
+//	        return Of[error](tailrec.Land[ProcessState](state.sum))
 //	    }
 //	    val, err := strconv.Atoi(state.items[0])
 //	    if err != nil {
-//	        return Left[Either[ProcessState, int]](err)
+//	        return Left[tailrec.Trampoline[ProcessState, int]](err)
 //	    }
-//	    return Of[error](either.Left[int](ProcessState{
+//	    return Of[error](tailrec.Bounce[int](ProcessState{
 //	        items: state.items[1:],
 //	        sum:   state.sum + val,
 //	    }))
 //	})
 //
 //	result := processItems(ProcessState{items: []string{"1", "2", "3"}, sum: 0})() // Right(6)
-func TailRec[E, A, B any](f Kleisli[E, A, Either[A, B]]) Kleisli[E, A, B] {
+func TailRec[E, A, B any](f Kleisli[E, A, tailrec.Trampoline[A, B]]) Kleisli[E, A, B] {
 	return func(a A) IOEither[E, B] {
 		initial := f(a)
-		return func() Either[E, B] {
+		return func() either.Either[E, B] {
 			current := initial()
 			for {
 				r, e := either.Unwrap(current)
 				if either.IsLeft(current) {
 					return either.Left[B](e)
 				}
-				b, a := either.Unwrap(r)
-				if either.IsRight(r) {
-					return either.Right[E](b)
+				if r.Landed {
+					return either.Right[E](r.Land)
 				}
-				current = f(a)()
+				current = f(r.Bounce)()
 			}
 		}
 	}

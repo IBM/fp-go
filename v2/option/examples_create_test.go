@@ -48,7 +48,7 @@ func ExampleOption_creation() {
 	// Output:
 	// None[int]
 	// Some[string](value)
-	// None[*string]
+	// None[string]
 	// true
 	// None[int]
 	// Some[int](4)

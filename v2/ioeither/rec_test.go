@@ -22,6 +22,7 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
+	TR "github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,13 +33,13 @@ func TestTailRecFactorial(t *testing.T) {
 		result int
 	}
 
-	factorial := TailRec(func(state FactState) IOEither[error, E.Either[FactState, int]] {
+	factorial := TailRec(func(state FactState) IOEither[error, TR.Trampoline[FactState, int]] {
 		if state.n <= 1 {
 			// Terminate with final result
-			return Of[error](E.Right[FactState](state.result))
+			return Of[error](TR.Land[FactState](state.result))
 		}
 		// Continue with next iteration
-		return Of[error](E.Left[int](FactState{
+		return Of[error](TR.Bounce[int](FactState{
 			n:      state.n - 1,
 			result: state.result * state.n,
 		}))
@@ -73,11 +74,11 @@ func TestTailRecFibonacci(t *testing.T) {
 		curr int
 	}
 
-	fibonacci := TailRec(func(state FibState) IOEither[error, E.Either[FibState, int]] {
+	fibonacci := TailRec(func(state FibState) IOEither[error, TR.Trampoline[FibState, int]] {
 		if state.n == 0 {
-			return Of[error](E.Right[FibState](state.curr))
+			return Of[error](TR.Land[FibState](state.curr))
 		}
-		return Of[error](E.Left[int](FibState{
+		return Of[error](TR.Bounce[int](FibState{
 			n:    state.n - 1,
 			prev: state.curr,
 			curr: state.prev + state.curr,
@@ -107,11 +108,11 @@ func TestTailRecSumList(t *testing.T) {
 		sum   int
 	}
 
-	sumList := TailRec(func(state SumState) IOEither[error, E.Either[SumState, int]] {
+	sumList := TailRec(func(state SumState) IOEither[error, TR.Trampoline[SumState, int]] {
 		if A.IsEmpty(state.items) {
-			return Of[error](E.Right[SumState](state.sum))
+			return Of[error](TR.Land[SumState](state.sum))
 		}
-		return Of[error](E.Left[int](SumState{
+		return Of[error](TR.Bounce[int](SumState{
 			items: state.items[1:],
 			sum:   state.sum + state.items[0],
 		}))
@@ -141,14 +142,14 @@ func TestTailRecWithError(t *testing.T) {
 	}
 
 	// Divide n by 2 repeatedly until it reaches 1, fail if we encounter an odd number > 1
-	divideByTwo := TailRec(func(state DivState) IOEither[error, E.Either[DivState, int]] {
+	divideByTwo := TailRec(func(state DivState) IOEither[error, TR.Trampoline[DivState, int]] {
 		if state.n == 1 {
-			return Of[error](E.Right[DivState](state.result))
+			return Of[error](TR.Land[DivState](state.result))
 		}
 		if state.n%2 != 0 {
-			return Left[E.Either[DivState, int]](fmt.Errorf("cannot divide odd number %d", state.n))
+			return Left[TR.Trampoline[DivState, int]](fmt.Errorf("cannot divide odd number %d", state.n))
 		}
-		return Of[error](E.Left[int](DivState{
+		return Of[error](TR.Bounce[int](DivState{
 			n:      state.n / 2,
 			result: state.result + 1,
 		}))
@@ -183,11 +184,11 @@ func TestTailRecWithError(t *testing.T) {
 
 // TestTailRecCountdown tests a simple countdown
 func TestTailRecCountdown(t *testing.T) {
-	countdown := TailRec(func(n int) IOEither[error, E.Either[int, string]] {
+	countdown := TailRec(func(n int) IOEither[error, TR.Trampoline[int, string]] {
 		if n <= 0 {
-			return Of[error](E.Right[int]("Done!"))
+			return Of[error](TR.Land[int]("Done!"))
 		}
-		return Of[error](E.Left[string](n - 1))
+		return Of[error](TR.Bounce[string](n - 1))
 	})
 
 	t.Run("countdown from 5", func(t *testing.T) {
@@ -209,11 +210,11 @@ func TestTailRecCountdown(t *testing.T) {
 // TestTailRecStackSafety tests that TailRec doesn't overflow the stack with large iterations
 func TestTailRecStackSafety(t *testing.T) {
 	// Count down from a large number - this would overflow the stack with regular recursion
-	largeCountdown := TailRec(func(n int) IOEither[error, E.Either[int, int]] {
+	largeCountdown := TailRec(func(n int) IOEither[error, TR.Trampoline[int, int]] {
 		if n <= 0 {
-			return Of[error](E.Right[int](0))
+			return Of[error](TR.Land[int](0))
 		}
-		return Of[error](E.Left[int](n - 1))
+		return Of[error](TR.Bounce[int](n - 1))
 	})
 
 	t.Run("large iteration count", func(t *testing.T) {
@@ -231,14 +232,14 @@ func TestTailRecFindInList(t *testing.T) {
 		index  int
 	}
 
-	findInList := TailRec(func(state FindState) IOEither[error, E.Either[FindState, int]] {
+	findInList := TailRec(func(state FindState) IOEither[error, TR.Trampoline[FindState, int]] {
 		if A.IsEmpty(state.items) {
-			return Left[E.Either[FindState, int]](errors.New("not found"))
+			return Left[TR.Trampoline[FindState, int]](errors.New("not found"))
 		}
 		if state.items[0] == state.target {
-			return Of[error](E.Right[FindState](state.index))
+			return Of[error](TR.Land[FindState](state.index))
 		}
-		return Of[error](E.Left[int](FindState{
+		return Of[error](TR.Bounce[int](FindState{
 			items:  state.items[1:],
 			target: state.target,
 			index:  state.index + 1,

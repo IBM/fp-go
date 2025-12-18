@@ -15,24 +15,26 @@
 
 package readereither
 
-import "github.com/IBM/fp-go/v2/either"
+import (
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/tailrec"
+)
 
 //go:inline
-func TailRec[R, E, A, B any](f Kleisli[R, E, A, Either[A, B]]) Kleisli[R, E, A, B] {
+func TailRec[R, E, A, B any](f Kleisli[R, E, A, tailrec.Trampoline[A, B]]) Kleisli[R, E, A, B] {
 	return func(a A) ReaderEither[R, E, B] {
 		initialReader := f(a)
-		return func(r R) Either[E, B] {
+		return func(r R) either.Either[E, B] {
 			current := initialReader(r)
 			for {
 				rec, e := either.Unwrap(current)
 				if either.IsLeft(current) {
 					return either.Left[B](e)
 				}
-				b, a := either.Unwrap(rec)
-				if either.IsRight(rec) {
-					return either.Right[E](b)
+				if rec.Landed {
+					return either.Right[E](rec.Land)
 				}
-				current = f(a)(r)
+				current = f(rec.Bounce)(r)
 			}
 		}
 	}

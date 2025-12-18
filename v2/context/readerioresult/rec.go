@@ -16,7 +16,6 @@
 package readerioresult
 
 import (
-	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 )
@@ -36,9 +35,9 @@ import (
 //
 // # How It Works
 //
-// TailRec takes a Kleisli arrow that returns Either[A, B]:
-//   - Left(A): Continue recursion with the new state A
-//   - Right(B): Terminate recursion successfully and return the final result B
+// TailRec takes a Kleisli arrow that returns Trampoline[A, B]:
+//   - Bounce(A): Continue recursion with the new state A
+//   - Land(B): Terminate recursion successfully and return the final result B
 //
 // The function wraps each iteration with [WithContext] to ensure context cancellation
 // is checked before each recursive step. If the context is cancelled, the recursion
@@ -51,11 +50,11 @@ import (
 //
 // # Parameters
 //
-//   - f: A Kleisli arrow (A => ReaderIOResult[Either[A, B]]) that:
+//   - f: A Kleisli arrow (A => ReaderIOResult[Trampoline[A, B]]) that:
 //   - Takes the current state A
 //   - Returns a ReaderIOResult that depends on [context.Context]
 //   - Can fail with error (Left in the outer Either)
-//   - Produces Either[A, B] to control recursion flow (Right in the outer Either)
+//   - Produces Trampoline[A, B] to control recursion flow (Right in the outer Either)
 //
 // # Returns
 //
@@ -93,15 +92,15 @@ import (
 //
 // # Example: Cancellable Countdown
 //
-//	countdownStep := func(n int) readerioresult.ReaderIOResult[either.Either[int, string]] {
-//	    return func(ctx context.Context) ioeither.IOEither[error, either.Either[int, string]] {
-//	        return func() either.Either[error, either.Either[int, string]] {
+//	countdownStep := func(n int) readerioresult.ReaderIOResult[tailrec.Trampoline[int, string]] {
+//	    return func(ctx context.Context) ioeither.IOEither[error, tailrec.Trampoline[int, string]] {
+//	        return func() either.Either[error, tailrec.Trampoline[int, string]] {
 //	            if n <= 0 {
-//	                return either.Right[error](either.Right[int]("Done!"))
+//	                return either.Right[error](tailrec.Land[int]("Done!"))
 //	            }
 //	            // Simulate some work
 //	            time.Sleep(100 * time.Millisecond)
-//	            return either.Right[error](either.Left[string](n - 1))
+//	            return either.Right[error](tailrec.Bounce[string](n - 1))
 //	        }
 //	    }
 //	}
@@ -120,20 +119,20 @@ import (
 //	    processed []string
 //	}
 //
-//	processStep := func(state ProcessState) readerioresult.ReaderIOResult[either.Either[ProcessState, []string]] {
-//	    return func(ctx context.Context) ioeither.IOEither[error, either.Either[ProcessState, []string]] {
-//	        return func() either.Either[error, either.Either[ProcessState, []string]] {
+//	processStep := func(state ProcessState) readerioresult.ReaderIOResult[tailrec.Trampoline[ProcessState, []string]] {
+//	    return func(ctx context.Context) ioeither.IOEither[error, tailrec.Trampoline[ProcessState, []string]] {
+//	        return func() either.Either[error, tailrec.Trampoline[ProcessState, []string]] {
 //	            if len(state.files) == 0 {
-//	                return either.Right[error](either.Right[ProcessState](state.processed))
+//	                return either.Right[error](tailrec.Land[ProcessState](state.processed))
 //	            }
 //
 //	            file := state.files[0]
 //	            // Process file (this could be cancelled via context)
 //	            if err := processFileWithContext(ctx, file); err != nil {
-//	                return either.Left[either.Either[ProcessState, []string]](err)
+//	                return either.Left[tailrec.Trampoline[ProcessState, []string]](err)
 //	            }
 //
-//	            return either.Right[error](either.Left[[]string](ProcessState{
+//	            return either.Right[error](tailrec.Bounce[[]string](ProcessState{
 //	                files:     state.files[1:],
 //	                processed: append(state.processed, file),
 //	            }))
@@ -179,6 +178,6 @@ import (
 //   - [Left]/[Right]: For creating error/success values
 //
 //go:inline
-func TailRec[A, B any](f Kleisli[A, either.Either[A, B]]) Kleisli[A, B] {
+func TailRec[A, B any](f Kleisli[A, Trampoline[A, B]]) Kleisli[A, B] {
 	return RIOR.TailRec(F.Flow2(f, WithContext))
 }

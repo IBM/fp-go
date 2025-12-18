@@ -25,19 +25,20 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTailRec_BasicRecursion(t *testing.T) {
 	// Test basic countdown recursion
-	countdownStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
+	countdownStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
 				if n <= 0 {
-					return E.Right[error](E.Right[int]("Done!"))
+					return E.Right[error](tailrec.Land[int]("Done!"))
 				}
-				return E.Right[error](E.Left[string](n - 1))
+				return E.Right[error](tailrec.Bounce[string](n - 1))
 			}
 		}
 	}
@@ -55,13 +56,13 @@ func TestTailRec_FactorialRecursion(t *testing.T) {
 		acc int
 	}
 
-	factorialStep := func(state FactorialState) ReaderIOResult[E.Either[FactorialState, int]] {
-		return func(ctx context.Context) IOEither[E.Either[FactorialState, int]] {
-			return func() Either[E.Either[FactorialState, int]] {
+	factorialStep := func(state FactorialState) ReaderIOResult[Trampoline[FactorialState, int]] {
+		return func(ctx context.Context) IOEither[Trampoline[FactorialState, int]] {
+			return func() Either[Trampoline[FactorialState, int]] {
 				if state.n <= 1 {
-					return E.Right[error](E.Right[FactorialState](state.acc))
+					return E.Right[error](tailrec.Land[FactorialState](state.acc))
 				}
-				return E.Right[error](E.Left[int](FactorialState{
+				return E.Right[error](tailrec.Bounce[int](FactorialState{
 					n:   state.n - 1,
 					acc: state.acc * state.n,
 				}))
@@ -79,16 +80,16 @@ func TestTailRec_ErrorHandling(t *testing.T) {
 	// Test that errors are properly propagated
 	testErr := errors.New("computation error")
 
-	errorStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
+	errorStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
 				if n == 3 {
-					return E.Left[E.Either[int, string]](testErr)
+					return E.Left[Trampoline[int, string]](testErr)
 				}
 				if n <= 0 {
-					return E.Right[error](E.Right[int]("Done!"))
+					return E.Right[error](tailrec.Land[int]("Done!"))
 				}
-				return E.Right[error](E.Left[string](n - 1))
+				return E.Right[error](tailrec.Bounce[string](n - 1))
 			}
 		}
 	}
@@ -105,18 +106,18 @@ func TestTailRec_ContextCancellation(t *testing.T) {
 	// Test that recursion gets cancelled early when context is canceled
 	var iterationCount int32
 
-	slowStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
+	slowStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
 				atomic.AddInt32(&iterationCount, 1)
 
 				// Simulate some work
 				time.Sleep(50 * time.Millisecond)
 
 				if n <= 0 {
-					return E.Right[error](E.Right[int]("Done!"))
+					return E.Right[error](tailrec.Land[int]("Done!"))
 				}
-				return E.Right[error](E.Left[string](n - 1))
+				return E.Right[error](tailrec.Bounce[string](n - 1))
 			}
 		}
 	}
@@ -144,13 +145,13 @@ func TestTailRec_ContextCancellation(t *testing.T) {
 
 func TestTailRec_ImmediateCancellation(t *testing.T) {
 	// Test with an already cancelled context
-	countdownStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
+	countdownStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
 				if n <= 0 {
-					return E.Right[error](E.Right[int]("Done!"))
+					return E.Right[error](tailrec.Land[int]("Done!"))
 				}
-				return E.Right[error](E.Left[string](n - 1))
+				return E.Right[error](tailrec.Bounce[string](n - 1))
 			}
 		}
 	}
@@ -173,13 +174,13 @@ func TestTailRec_StackSafety(t *testing.T) {
 	// Test that deep recursion doesn't cause stack overflow
 	const largeN = 10000
 
-	countdownStep := func(n int) ReaderIOResult[E.Either[int, int]] {
-		return func(ctx context.Context) IOEither[E.Either[int, int]] {
-			return func() Either[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderIOResult[Trampoline[int, int]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, int]] {
+			return func() Either[Trampoline[int, int]] {
 				if n <= 0 {
-					return E.Right[error](E.Right[int](0))
+					return E.Right[error](tailrec.Land[int](0))
 				}
-				return E.Right[error](E.Left[int](n - 1))
+				return E.Right[error](tailrec.Bounce[int](n - 1))
 			}
 		}
 	}
@@ -195,9 +196,9 @@ func TestTailRec_StackSafetyWithCancellation(t *testing.T) {
 	const largeN = 100000
 	var iterationCount int32
 
-	countdownStep := func(n int) ReaderIOResult[E.Either[int, int]] {
-		return func(ctx context.Context) IOEither[E.Either[int, int]] {
-			return func() Either[E.Either[int, int]] {
+	countdownStep := func(n int) ReaderIOResult[Trampoline[int, int]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, int]] {
+			return func() Either[Trampoline[int, int]] {
 				atomic.AddInt32(&iterationCount, 1)
 
 				// Add a small delay every 1000 iterations to make cancellation more likely
@@ -206,9 +207,9 @@ func TestTailRec_StackSafetyWithCancellation(t *testing.T) {
 				}
 
 				if n <= 0 {
-					return E.Right[error](E.Right[int](0))
+					return E.Right[error](tailrec.Land[int](0))
 				}
-				return E.Right[error](E.Left[int](n - 1))
+				return E.Right[error](tailrec.Bounce[int](n - 1))
 			}
 		}
 	}
@@ -240,22 +241,22 @@ func TestTailRec_ComplexState(t *testing.T) {
 		errors    []error
 	}
 
-	processStep := func(state ProcessState) ReaderIOResult[E.Either[ProcessState, []string]] {
-		return func(ctx context.Context) IOEither[E.Either[ProcessState, []string]] {
-			return func() Either[E.Either[ProcessState, []string]] {
+	processStep := func(state ProcessState) ReaderIOResult[Trampoline[ProcessState, []string]] {
+		return func(ctx context.Context) IOEither[Trampoline[ProcessState, []string]] {
+			return func() Either[Trampoline[ProcessState, []string]] {
 				if A.IsEmpty(state.items) {
-					return E.Right[error](E.Right[ProcessState](state.processed))
+					return E.Right[error](tailrec.Land[ProcessState](state.processed))
 				}
 
 				item := state.items[0]
 
 				// Simulate processing that might fail for certain items
 				if item == "error-item" {
-					return E.Left[E.Either[ProcessState, []string]](
+					return E.Left[Trampoline[ProcessState, []string]](
 						fmt.Errorf("failed to process item: %s", item))
 				}
 
-				return E.Right[error](E.Left[[]string](ProcessState{
+				return E.Right[error](tailrec.Bounce[[]string](ProcessState{
 					items:     state.items[1:],
 					processed: append(state.processed, item),
 					errors:    state.errors,
@@ -302,18 +303,18 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 
 	var processedCount int32
 
-	processFileStep := func(state FileProcessState) ReaderIOResult[E.Either[FileProcessState, int]] {
-		return func(ctx context.Context) IOEither[E.Either[FileProcessState, int]] {
-			return func() Either[E.Either[FileProcessState, int]] {
+	processFileStep := func(state FileProcessState) ReaderIOResult[Trampoline[FileProcessState, int]] {
+		return func(ctx context.Context) IOEither[Trampoline[FileProcessState, int]] {
+			return func() Either[Trampoline[FileProcessState, int]] {
 				if A.IsEmpty(state.files) {
-					return E.Right[error](E.Right[FileProcessState](state.processed))
+					return E.Right[error](tailrec.Land[FileProcessState](state.processed))
 				}
 
 				// Simulate file processing time
 				time.Sleep(20 * time.Millisecond)
 				atomic.AddInt32(&processedCount, 1)
 
-				return E.Right[error](E.Left[int](FileProcessState{
+				return E.Right[error](tailrec.Bounce[int](FileProcessState{
 					files:     state.files[1:],
 					processed: state.processed + 1,
 				}))
@@ -356,10 +357,10 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 
 func TestTailRec_ZeroIterations(t *testing.T) {
 	// Test case where recursion terminates immediately
-	immediateStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
-				return E.Right[error](E.Right[int]("immediate"))
+	immediateStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
+				return E.Right[error](tailrec.Land[int]("immediate"))
 			}
 		}
 	}
@@ -374,16 +375,16 @@ func TestTailRec_ContextWithDeadline(t *testing.T) {
 	// Test with context deadline
 	var iterationCount int32
 
-	slowStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
+	slowStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
 				atomic.AddInt32(&iterationCount, 1)
 				time.Sleep(30 * time.Millisecond)
 
 				if n <= 0 {
-					return E.Right[error](E.Right[int]("Done!"))
+					return E.Right[error](tailrec.Land[int]("Done!"))
 				}
-				return E.Right[error](E.Left[string](n - 1))
+				return E.Right[error](tailrec.Bounce[string](n - 1))
 			}
 		}
 	}
@@ -410,17 +411,17 @@ func TestTailRec_ContextWithValue(t *testing.T) {
 	type contextKey string
 	const testKey contextKey = "test"
 
-	valueStep := func(n int) ReaderIOResult[E.Either[int, string]] {
-		return func(ctx context.Context) IOEither[E.Either[int, string]] {
-			return func() Either[E.Either[int, string]] {
+	valueStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+			return func() Either[Trampoline[int, string]] {
 				value := ctx.Value(testKey)
 				require.NotNil(t, value)
 				assert.Equal(t, "test-value", value.(string))
 
 				if n <= 0 {
-					return E.Right[error](E.Right[int]("Done!"))
+					return E.Right[error](tailrec.Land[int]("Done!"))
 				}
-				return E.Right[error](E.Left[string](n - 1))
+				return E.Right[error](tailrec.Bounce[string](n - 1))
 			}
 		}
 	}

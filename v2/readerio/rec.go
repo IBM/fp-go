@@ -1,7 +1,5 @@
 package readerio
 
-import "github.com/IBM/fp-go/v2/either"
-
 // TailRec implements stack-safe tail recursion for the ReaderIO monad.
 //
 // This function enables recursive computations that depend on an environment (Reader aspect)
@@ -10,12 +8,12 @@ import "github.com/IBM/fp-go/v2/either"
 //
 // # How It Works
 //
-// TailRec takes a Kleisli arrow that returns Either[A, B]:
-//   - Left(A): Continue recursion with the new state A
-//   - Right(B): Terminate recursion and return the final result B
+// TailRec takes a Kleisli arrow that returns Trampoline[A, B]:
+//   - Bounce(A): Continue recursion with the new state A
+//   - Land(B): Terminate recursion and return the final result B
 //
 // The function iteratively applies the Kleisli arrow, passing the environment R to each
-// iteration, until a Right(B) value is produced. This combines:
+// iteration, until a Land(B) value is produced. This combines:
 //   - Environment dependency (Reader monad): Access to configuration, context, or dependencies
 //   - Side effects (IO monad): Logging, file I/O, network calls, etc.
 //   - Stack safety: Iterative execution prevents stack overflow
@@ -29,9 +27,9 @@ import "github.com/IBM/fp-go/v2/either"
 // # Parameters
 //
 //   - f: A Kleisli arrow (A => ReaderIO[R, Either[A, B]]) that:
-//     * Takes the current state A
-//     * Returns a ReaderIO that depends on environment R
-//     * Produces Either[A, B] to control recursion flow
+//   - Takes the current state A
+//   - Returns a ReaderIO that depends on environment R
+//   - Produces Either[A, B] to control recursion flow
 //
 // # Returns
 //
@@ -117,13 +115,13 @@ import "github.com/IBM/fp-go/v2/either"
 // (thousands or millions of iterations) will not cause stack overflow:
 //
 //	// Safe for very large inputs
-//	sumToZero := readerio.TailRec(func(n int) readerio.ReaderIO[Env, either.Either[int, int]] {
-//	    return func(env Env) io.IO[either.Either[int, int]] {
-//	        return func() either.Either[int, int] {
+//	sumToZero := readerio.TailRec(func(n int) readerio.ReaderIO[Env, tailrec.Trampoline[int, int]] {
+//	    return func(env Env) io.IO[tailrec.Trampoline[int, int]] {
+//	        return func() tailrec.Trampoline[int, int] {
 //	            if n <= 0 {
-//	                return either.Right[int](0)
+//	                return tailrec.Land[int](0)
 //	            }
-//	            return either.Left[int](n - 1)
+//	            return tailrec.Bounce[int](n - 1)
 //	        }
 //	    }
 //	})
@@ -143,7 +141,7 @@ import "github.com/IBM/fp-go/v2/either"
 //   - [Chain]: For sequencing ReaderIO computations
 //   - [Ask]: For accessing the environment
 //   - [Asks]: For extracting values from the environment
-func TailRec[R, A, B any](f Kleisli[R, A, Either[A, B]]) Kleisli[R, A, B] {
+func TailRec[R, A, B any](f Kleisli[R, A, Trampoline[A, B]]) Kleisli[R, A, B] {
 	return func(a A) ReaderIO[R, B] {
 		initialReader := f(a)
 		return func(r R) IO[B] {
@@ -151,11 +149,10 @@ func TailRec[R, A, B any](f Kleisli[R, A, Either[A, B]]) Kleisli[R, A, B] {
 			return func() B {
 				current := initialB()
 				for {
-					b, a := either.Unwrap(current)
-					if either.IsRight(current) {
-						return b
+					if current.Landed {
+						return current.Land
 					}
-					current = f(a)(r)()
+					current = f(current.Bounce)(r)()
 				}
 			}
 		}

@@ -17,6 +17,7 @@ package readerioeither
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 // TailRec implements stack-safe tail recursion for the ReaderIOEither monad.
@@ -31,10 +32,10 @@ import (
 //
 // # How It Works
 //
-// TailRec takes a Kleisli arrow that returns Either[E, Either[A, B]]:
+// TailRec takes a Kleisli arrow that returns IOEither[E, Trampoline[A, B]]:
 //   - Left(E): Computation failed with error E - recursion terminates
-//   - Right(Left(A)): Continue recursion with the new state A
-//   - Right(Right(B)): Terminate recursion successfully and return the final result B
+//   - Right(Bounce(A)): Continue recursion with the new state A
+//   - Right(Land(B)): Terminate recursion successfully and return the final result B
 //
 // The function iteratively applies the Kleisli arrow, passing the environment R to each
 // iteration, until either an error (Left) or a final result (Right(Right(B))) is produced.
@@ -100,18 +101,18 @@ import (
 //	}
 //
 //	// Factorial that logs each step and validates input
-//	factorialStep := func(state State) readerioeither.ReaderIOEither[Env, string, either.Either[State, int]] {
-//	    return func(env Env) ioeither.IOEither[string, either.Either[State, int]] {
-//	        return func() either.Either[string, either.Either[State, int]] {
+//	factorialStep := func(state State) readerioeither.ReaderIOEither[Env, string, tailrec.Trampoline[State, int]] {
+//	    return func(env Env) ioeither.IOEither[string, tailrec.Trampoline[State, int]] {
+//	        return func() either.Either[string, tailrec.Trampoline[State, int]] {
 //	            if state.n > env.MaxN {
-//	                return either.Left[either.Either[State, int]](fmt.Sprintf("n too large: %d > %d", state.n, env.MaxN))
+//	                return either.Left[tailrec.Trampoline[State, int]](fmt.Sprintf("n too large: %d > %d", state.n, env.MaxN))
 //	            }
 //	            if state.n <= 0 {
 //	                env.Logger(fmt.Sprintf("Factorial complete: %d", state.acc))
-//	                return either.Right[string](either.Right[State](state.acc))
+//	                return either.Right[string](tailrec.Land[State](state.acc))
 //	            }
 //	            env.Logger(fmt.Sprintf("Computing: %d * %d", state.n, state.acc))
-//	            return either.Right[string](either.Left[int](State{state.n - 1, state.acc * state.n}))
+//	            return either.Right[string](tailrec.Bounce[int](State{state.n - 1, state.acc * state.n}))
 //	        }
 //	    }
 //	}
@@ -134,12 +135,12 @@ import (
 //	    retries int
 //	}
 //
-//	processFilesStep := func(state ProcessState) readerioeither.ReaderIOEither[Config, error, either.Either[ProcessState, []string]] {
-//	    return func(cfg Config) ioeither.IOEither[error, either.Either[ProcessState, []string]] {
-//	        return func() either.Either[error, either.Either[ProcessState, []string]] {
+//	processFilesStep := func(state ProcessState) readerioeither.ReaderIOEither[Config, error, tailrec.Trampoline[ProcessState, []string]] {
+//	    return func(cfg Config) ioeither.IOEither[error, tailrec.Trampoline[ProcessState, []string]] {
+//	        return func() either.Either[error, tailrec.Trampoline[ProcessState, []string]] {
 //	            if len(state.files) == 0 {
 //	                cfg.Logger("All files processed")
-//	                return either.Right[error](either.Right[ProcessState](state.results))
+//	                return either.Right[error](tailrec.Land[ProcessState](state.results))
 //	            }
 //	            file := state.files[0]
 //	            cfg.Logger(fmt.Sprintf("Processing: %s", file))
@@ -147,18 +148,18 @@ import (
 //	            // Simulate file processing that might fail
 //	            if err := processFile(file); err != nil {
 //	                if state.retries >= cfg.MaxRetries {
-//	                    return either.Left[either.Either[ProcessState, []string]](
+//	                    return either.Left[tailrec.Trampoline[ProcessState, []string]](
 //	                        fmt.Errorf("max retries exceeded for %s: %w", file, err))
 //	                }
 //	                cfg.Logger(fmt.Sprintf("Retry %d for %s", state.retries+1, file))
-//	                return either.Right[error](either.Left[[]string](ProcessState{
+//	                return either.Right[error](tailrec.Bounce[[]string](ProcessState{
 //	                    files:   state.files,
 //	                    results: state.results,
 //	                    retries: state.retries + 1,
 //	                }))
 //	            }
 //
-//	            return either.Right[error](either.Left[[]string](ProcessState{
+//	            return either.Right[error](tailrec.Bounce[[]string](ProcessState{
 //	                files:   state.files[1:],
 //	                results: append(state.results, file),
 //	                retries: 0,
@@ -179,13 +180,13 @@ import (
 // (thousands or millions of iterations) will not cause stack overflow:
 //
 //	// Safe for very large inputs
-//	countdownStep := func(n int) readerioeither.ReaderIOEither[Env, error, either.Either[int, int]] {
-//	    return func(env Env) ioeither.IOEither[error, either.Either[int, int]] {
-//	        return func() either.Either[error, either.Either[int, int]] {
+//	countdownStep := func(n int) readerioeither.ReaderIOEither[Env, error, tailrec.Trampoline[int, int]] {
+//	    return func(env Env) ioeither.IOEither[error, tailrec.Trampoline[int, int]] {
+//	        return func() either.Either[error, tailrec.Trampoline[int, int]] {
 //	            if n <= 0 {
-//	                return either.Right[error](either.Right[int](0))
+//	                return either.Right[error](tailrec.Land[int](0))
 //	            }
-//	            return either.Right[error](either.Left[int](n - 1))
+//	            return either.Right[error](tailrec.Bounce[int](n - 1))
 //	        }
 //	    }
 //	}
@@ -194,16 +195,16 @@ import (
 //
 // # Error Handling Patterns
 //
-// The Either[E, Either[A, B]] structure provides two levels of control:
+// The Either[E, Trampoline[A, B]] structure provides two levels of control:
 //
 //  1. Outer Either (Left(E)): Unrecoverable errors that terminate recursion
 //     - Validation failures
 //     - Resource exhaustion
 //     - Fatal errors
 //
-//  2. Inner Either (Right(Left(A)) or Right(Right(B))): Recursion control
-//     - Left(A): Continue with new state
-//     - Right(B): Terminate successfully
+//  2. Inner Trampoline (Right(Bounce(A)) or Right(Land(B))): Recursion control
+//     - Bounce(A): Continue with new state
+//     - Land(B): Terminate successfully
 //
 // This separation allows for:
 //   - Early termination on errors
@@ -226,23 +227,22 @@ import (
 //   - [Chain]: For sequencing ReaderIOEither computations
 //   - [Ask]: For accessing the environment
 //   - [Left]/[Right]: For creating error/success values
-func TailRec[R, E, A, B any](f Kleisli[R, E, A, Either[A, B]]) Kleisli[R, E, A, B] {
+func TailRec[R, E, A, B any](f Kleisli[R, E, A, tailrec.Trampoline[A, B]]) Kleisli[R, E, A, B] {
 	return func(a A) ReaderIOEither[R, E, B] {
 		initialReader := f(a)
 		return func(r R) IOEither[E, B] {
 			initialB := initialReader(r)
-			return func() Either[E, B] {
+			return func() either.Either[E, B] {
 				current := initialB()
 				for {
 					rec, e := either.Unwrap(current)
 					if either.IsLeft(current) {
 						return either.Left[B](e)
 					}
-					b, a := either.Unwrap(rec)
-					if either.IsRight(rec) {
-						return either.Right[E](b)
+					if rec.Landed {
+						return either.Right[E](rec.Land)
 					}
-					current = f(a)(r)()
+					current = f(rec.Bounce)(r)()
 				}
 			}
 		}

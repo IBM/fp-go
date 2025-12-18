@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -52,4 +53,6 @@ type (
 	Operator[R, A, B any] = Kleisli[R, ReaderIO[R, A], B]
 
 	Consumer[A any] = consumer.Consumer[A]
+
+	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 )

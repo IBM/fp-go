@@ -17,9 +17,10 @@ package readerresult
 
 import (
 	"github.com/IBM/fp-go/v2/readereither"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 //go:inline
-func TailRec[R, A, B any](f Kleisli[R, A, Either[A, B]]) Kleisli[R, A, B] {
+func TailRec[R, A, B any](f Kleisli[R, A, tailrec.Trampoline[A, B]]) Kleisli[R, A, B] {
 	return readereither.TailRec(f)
 }
