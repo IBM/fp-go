@@ -22,7 +22,6 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 	G "github.com/IBM/fp-go/v2/record/generic"
-	T "github.com/IBM/fp-go/v2/tuple"
 )
 
 // IsEmpty tests if a map is empty
@@ -55,51 +54,63 @@ func CollectOrd[V, R any, K comparable](o ord.Ord[K]) func(func(K, V) R) func(ma
 	return G.CollectOrd[map[K]V, []R](o)
 }
 
+// Reduce reduces a map to a single value by applying a reducer function to each value
 func Reduce[K comparable, V, R any](f func(R, V) R, initial R) func(map[K]V) R {
 	return G.Reduce[map[K]V](f, initial)
 }
 
+// ReduceWithIndex reduces a map to a single value by applying a reducer function to each key-value pair
 func ReduceWithIndex[K comparable, V, R any](f func(K, R, V) R, initial R) func(map[K]V) R {
 	return G.ReduceWithIndex[map[K]V](f, initial)
 }
 
+// ReduceRef reduces a map to a single value by applying a reducer function to each value reference
 func ReduceRef[K comparable, V, R any](f func(R, *V) R, initial R) func(map[K]V) R {
 	return G.ReduceRef[map[K]V](f, initial)
 }
 
+// ReduceRefWithIndex reduces a map to a single value by applying a reducer function to each key-value pair with value references
 func ReduceRefWithIndex[K comparable, V, R any](f func(K, R, *V) R, initial R) func(map[K]V) R {
 	return G.ReduceRefWithIndex[map[K]V](f, initial)
 }
 
+// MonadMap transforms each value in a map using the provided function
 func MonadMap[K comparable, V, R any](r map[K]V, f func(V) R) map[K]R {
 	return G.MonadMap[map[K]V, map[K]R](r, f)
 }
 
+// MonadMapWithIndex transforms each key-value pair in a map using the provided function
 func MonadMapWithIndex[K comparable, V, R any](r map[K]V, f func(K, V) R) map[K]R {
 	return G.MonadMapWithIndex[map[K]V, map[K]R](r, f)
 }
 
+// MonadMapRefWithIndex transforms each key-value pair in a map using the provided function with value references
 func MonadMapRefWithIndex[K comparable, V, R any](r map[K]V, f func(K, *V) R) map[K]R {
 	return G.MonadMapRefWithIndex[map[K]V, map[K]R](r, f)
 }
 
+// MonadMapRef transforms each value in a map using the provided function with value references
 func MonadMapRef[K comparable, V, R any](r map[K]V, f func(*V) R) map[K]R {
 	return G.MonadMapRef[map[K]V, map[K]R](r, f)
 }
 
-func Map[K comparable, V, R any](f func(V) R) func(map[K]V) map[K]R {
+// Map returns a function that transforms each value in a map using the provided function
+func Map[K comparable, V, R any](f func(V) R) Operator[K, V, R] {
 	return G.Map[map[K]V, map[K]R](f)
 }
 
-func MapRef[K comparable, V, R any](f func(*V) R) func(map[K]V) map[K]R {
+// MapRef returns a function that transforms each value in a map using the provided function with value references
+func MapRef[K comparable, V, R any](f func(*V) R) Operator[K, V, R] {
 	return G.MapRef[map[K]V, map[K]R](f)
 }
 
-func MapWithIndex[K comparable, V, R any](f func(K, V) R) func(map[K]V) map[K]R {
+// MapWithIndex returns a function that transforms each key-value pair in a map using the provided function
+func MapWithIndex[K comparable, V, R any](f func(K, V) R) Operator[K, V, R] {
 	return G.MapWithIndex[map[K]V, map[K]R](f)
 }
 
-func MapRefWithIndex[K comparable, V, R any](f func(K, *V) R) func(map[K]V) map[K]R {
+// MapRefWithIndex returns a function that transforms each key-value pair in a map using the provided function with value references
+func MapRefWithIndex[K comparable, V, R any](f func(K, *V) R) Operator[K, V, R] {
 	return G.MapRefWithIndex[map[K]V, map[K]R](f)
 }
 
@@ -118,12 +129,13 @@ func Has[K comparable, V any](k K, r map[K]V) bool {
 	return G.Has(k, r)
 }
 
-func Union[K comparable, V any](m Mg.Magma[V]) func(map[K]V) func(map[K]V) map[K]V {
+// Union combines two maps using the provided Magma to resolve conflicts for duplicate keys
+func Union[K comparable, V any](m Mg.Magma[V]) func(map[K]V) Operator[K, V, V] {
 	return G.Union[map[K]V](m)
 }
 
 // Merge combines two maps giving the values in the right one precedence. Also refer to [MergeMonoid]
-func Merge[K comparable, V any](right map[K]V) func(map[K]V) map[K]V {
+func Merge[K comparable, V any](right map[K]V) Operator[K, V, V] {
 	return G.Merge(right)
 }
 
@@ -137,23 +149,28 @@ func Size[K comparable, V any](r map[K]V) int {
 	return G.Size(r)
 }
 
-func ToArray[K comparable, V any](r map[K]V) []T.Tuple2[K, V] {
-	return G.ToArray[map[K]V, []T.Tuple2[K, V]](r)
+// ToArray converts a map to an array of key-value pairs
+func ToArray[K comparable, V any](r map[K]V) Entries[K, V] {
+	return G.ToArray[map[K]V, Entries[K, V]](r)
 }
 
-func ToEntries[K comparable, V any](r map[K]V) []T.Tuple2[K, V] {
-	return G.ToEntries[map[K]V, []T.Tuple2[K, V]](r)
+// ToEntries converts a map to an array of key-value pairs (alias for ToArray)
+func ToEntries[K comparable, V any](r map[K]V) Entries[K, V] {
+	return G.ToEntries[map[K]V, Entries[K, V]](r)
 }
 
-func FromEntries[K comparable, V any](fa []T.Tuple2[K, V]) map[K]V {
+// FromEntries creates a map from an array of key-value pairs
+func FromEntries[K comparable, V any](fa Entries[K, V]) map[K]V {
 	return G.FromEntries[map[K]V](fa)
 }
 
-func UpsertAt[K comparable, V any](k K, v V) func(map[K]V) map[K]V {
+// UpsertAt returns a function that inserts or updates a key-value pair in a map
+func UpsertAt[K comparable, V any](k K, v V) Operator[K, V, V] {
 	return G.UpsertAt[map[K]V](k, v)
 }
 
-func DeleteAt[K comparable, V any](k K) func(map[K]V) map[K]V {
+// DeleteAt returns a function that removes a key from a map
+func DeleteAt[K comparable, V any](k K) Operator[K, V, V] {
 	return G.DeleteAt[map[K]V](k)
 }
 
@@ -163,22 +180,22 @@ func Singleton[K comparable, V any](k K, v V) map[K]V {
 }
 
 // FilterMapWithIndex creates a new map with only the elements for which the transformation function creates a Some
-func FilterMapWithIndex[K comparable, V1, V2 any](f func(K, V1) O.Option[V2]) func(map[K]V1) map[K]V2 {
+func FilterMapWithIndex[K comparable, V1, V2 any](f func(K, V1) O.Option[V2]) Operator[K, V1, V2] {
 	return G.FilterMapWithIndex[map[K]V1, map[K]V2](f)
 }
 
 // FilterMap creates a new map with only the elements for which the transformation function creates a Some
-func FilterMap[K comparable, V1, V2 any](f func(V1) O.Option[V2]) func(map[K]V1) map[K]V2 {
+func FilterMap[K comparable, V1, V2 any](f func(V1) O.Option[V2]) Operator[K, V1, V2] {
 	return G.FilterMap[map[K]V1, map[K]V2](f)
 }
 
 // Filter creates a new map with only the elements that match the predicate
-func Filter[K comparable, V any](f func(K) bool) func(map[K]V) map[K]V {
+func Filter[K comparable, V any](f func(K) bool) Operator[K, V, V] {
 	return G.Filter[map[K]V](f)
 }
 
 // FilterWithIndex creates a new map with only the elements that match the predicate
-func FilterWithIndex[K comparable, V any](f func(K, V) bool) func(map[K]V) map[K]V {
+func FilterWithIndex[K comparable, V any](f func(K, V) bool) Operator[K, V, V] {
 	return G.FilterWithIndex[map[K]V](f)
 }
 
@@ -197,19 +214,23 @@ func ConstNil[K comparable, V any]() map[K]V {
 	return map[K]V(nil)
 }
 
+// MonadChainWithIndex chains a map transformation function that produces maps, combining results using the provided Monoid
 func MonadChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2], r map[K]V1, f func(K, V1) map[K]V2) map[K]V2 {
 	return G.MonadChainWithIndex(m, r, f)
 }
 
+// MonadChain chains a map transformation function that produces maps, combining results using the provided Monoid
 func MonadChain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2], r map[K]V1, f func(V1) map[K]V2) map[K]V2 {
 	return G.MonadChain(m, r, f)
 }
 
-func ChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(K, V1) map[K]V2) func(map[K]V1) map[K]V2 {
+// ChainWithIndex returns a function that chains a map transformation function that produces maps, combining results using the provided Monoid
+func ChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(K, V1) map[K]V2) Operator[K, V1, V2] {
 	return G.ChainWithIndex[map[K]V1](m)
 }
 
-func Chain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) map[K]V2) func(map[K]V1) map[K]V2 {
+// Chain returns a function that chains a map transformation function that produces maps, combining results using the provided Monoid
+func Chain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) map[K]V2) Operator[K, V1, V2] {
 	return G.Chain[map[K]V1](m)
 }
 
@@ -219,12 +240,12 @@ func Flatten[K comparable, V any](m Mo.Monoid[map[K]V]) func(map[K]map[K]V) map[
 }
 
 // FilterChainWithIndex creates a new map with only the elements for which the transformation function creates a Some
-func FilterChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(K, V1) O.Option[map[K]V2]) func(map[K]V1) map[K]V2 {
+func FilterChainWithIndex[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(K, V1) O.Option[map[K]V2]) Operator[K, V1, V2] {
 	return G.FilterChainWithIndex[map[K]V1](m)
 }
 
 // FilterChain creates a new map with only the elements for which the transformation function creates a Some
-func FilterChain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) O.Option[map[K]V2]) func(map[K]V1) map[K]V2 {
+func FilterChain[V1 any, K comparable, V2 any](m Mo.Monoid[map[K]V2]) func(func(V1) O.Option[map[K]V2]) Operator[K, V1, V2] {
 	return G.FilterChain[map[K]V1](m)
 }
 
@@ -278,10 +299,12 @@ func ValuesOrd[V any, K comparable](o ord.Ord[K]) func(r map[K]V) []V {
 	return G.ValuesOrd[map[K]V, []V](o)
 }
 
+// MonadFlap applies a value to a map of functions, producing a map of results
 func MonadFlap[B any, K comparable, A any](fab map[K]func(A) B, a A) map[K]B {
 	return G.MonadFlap[map[K]func(A) B, map[K]B](fab, a)
 }
 
+// Flap returns a function that applies a value to a map of functions, producing a map of results
 func Flap[B any, K comparable, A any](a A) func(map[K]func(A) B) map[K]B {
 	return G.Flap[map[K]func(A) B, map[K]B](a)
 }
@@ -303,8 +326,8 @@ func FromFoldableMap[
 	A any,
 	HKTA any,
 	K comparable,
-	V any](m Mg.Magma[V], red FOLDABLE) func(f func(A) T.Tuple2[K, V]) func(fa HKTA) map[K]V {
-	return G.FromFoldableMap[func(A) T.Tuple2[K, V]](m, red)
+	V any](m Mg.Magma[V], red FOLDABLE) func(f func(A) Entry[K, V]) func(fa HKTA) map[K]V {
+	return G.FromFoldableMap[func(A) Entry[K, V]](m, red)
 }
 
 // FromArrayMap converts from an array to a map
@@ -312,15 +335,15 @@ func FromFoldableMap[
 func FromArrayMap[
 	A any,
 	K comparable,
-	V any](m Mg.Magma[V]) func(f func(A) T.Tuple2[K, V]) func(fa []A) map[K]V {
-	return G.FromArrayMap[func(A) T.Tuple2[K, V], []A, map[K]V](m)
+	V any](m Mg.Magma[V]) func(f func(A) Entry[K, V]) func(fa []A) map[K]V {
+	return G.FromArrayMap[func(A) Entry[K, V], []A, map[K]V](m)
 }
 
 // FromFoldable converts from a reducer to a map
 // Duplicate keys are resolved by the provided [Mg.Magma]
 func FromFoldable[
 	HKTA any,
-	FOLDABLE ~func(func(map[K]V, T.Tuple2[K, V]) map[K]V, map[K]V) func(HKTA) map[K]V, // the reduce function
+	FOLDABLE ~func(func(map[K]V, Entry[K, V]) map[K]V, map[K]V) func(HKTA) map[K]V, // the reduce function
 	K comparable,
 	V any](m Mg.Magma[V], red FOLDABLE) func(fa HKTA) map[K]V {
 	return G.FromFoldable(m, red)
@@ -330,14 +353,21 @@ func FromFoldable[
 // Duplicate keys are resolved by the provided [Mg.Magma]
 func FromArray[
 	K comparable,
-	V any](m Mg.Magma[V]) func(fa []T.Tuple2[K, V]) map[K]V {
-	return G.FromArray[[]T.Tuple2[K, V], map[K]V](m)
+	V any](m Mg.Magma[V]) func(fa Entries[K, V]) map[K]V {
+	return G.FromArray[Entries[K, V], map[K]V](m)
 }
 
+// MonadAp applies a map of functions to a map of values, combining results using the provided Monoid
 func MonadAp[A any, K comparable, B any](m Mo.Monoid[map[K]B], fab map[K]func(A) B, fa map[K]A) map[K]B {
 	return G.MonadAp(m, fab, fa)
 }
 
+// Ap returns a function that applies a map of functions to a map of values, combining results using the provided Monoid
 func Ap[A any, K comparable, B any](m Mo.Monoid[map[K]B]) func(fa map[K]A) func(map[K]func(A) B) map[K]B {
 	return G.Ap[map[K]B, map[K]func(A) B, map[K]A](m)
+}
+
+// Of creates a map with a single key-value pair
+func Of[K comparable, A any](k K, a A) map[K]A {
+	return map[K]A{k: a}
 }

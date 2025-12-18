@@ -22,9 +22,11 @@ import (
 	"strings"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
+	R "github.com/IBM/fp-go/v2/record"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,13 +44,13 @@ func toMap[K comparable, V any](seq Seq2[K, V]) map[K]V {
 func TestOf(t *testing.T) {
 	seq := Of(42)
 	result := toSlice(seq)
-	assert.Equal(t, []int{42}, result)
+	assert.Equal(t, A.Of(42), result)
 }
 
 func TestOf2(t *testing.T) {
 	seq := Of2("key", 100)
 	result := toMap(seq)
-	assert.Equal(t, map[string]int{"key": 100}, result)
+	assert.Equal(t, R.Of("key", 100), result)
 }
 
 func TestFrom(t *testing.T) {
@@ -586,4 +588,30 @@ func ExampleMonoid() {
 	result := toSlice(combined)
 	fmt.Println(result)
 	// Output: [1 2 3 4 5 6]
+}
+
+func TestMonadMapToArray(t *testing.T) {
+	seq := From(1, 2, 3)
+	result := MonadMapToArray(seq, N.Mul(2))
+	assert.Equal(t, []int{2, 4, 6}, result)
+}
+
+func TestMonadMapToArrayEmpty(t *testing.T) {
+	seq := Empty[int]()
+	result := MonadMapToArray(seq, N.Mul(2))
+	assert.Empty(t, result)
+}
+
+func TestMapToArray(t *testing.T) {
+	seq := From(1, 2, 3)
+	mapper := MapToArray(N.Mul(2))
+	result := mapper(seq)
+	assert.Equal(t, []int{2, 4, 6}, result)
+}
+
+func TestMapToArrayIdentity(t *testing.T) {
+	seq := From("a", "b", "c")
+	mapper := MapToArray(F.Identity[string])
+	result := mapper(seq)
+	assert.Equal(t, []string{"a", "b", "c"}, result)
 }

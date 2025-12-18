@@ -23,14 +23,15 @@ import (
 	IOR "github.com/IBM/fp-go/v2/ioresult"
 	L "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	R "github.com/IBM/fp-go/v2/record"
 	T "github.com/IBM/fp-go/v2/tuple"
 
 	"sync"
 )
 
-func providerToEntry(p Provider) T.Tuple2[string, ProviderFactory] {
-	return T.MakeTuple2(p.Provides().Id(), p.Factory())
+func providerToEntry(p Provider) Entry[string, ProviderFactory] {
+	return pair.MakePair(p.Provides().Id(), p.Factory())
 }
 
 func itemProviderToMap(p Provider) map[string][]ProviderFactory {

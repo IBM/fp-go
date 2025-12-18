@@ -26,7 +26,7 @@ import (
 	Mo "github.com/IBM/fp-go/v2/monoid"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 func IsEmpty[M ~map[K]V, K comparable, V any](r M) bool {
@@ -59,9 +59,9 @@ func ValuesOrd[M ~map[K]V, GV ~[]V, K comparable, V any](o ord.Ord[K]) func(r M)
 
 func collectOrd[M ~map[K]V, GR ~[]R, K comparable, V, R any](o ord.Ord[K], r M, f func(K, V) R) GR {
 	// create the entries
-	entries := toEntriesOrd[M, []T.Tuple2[K, V]](o, r)
+	entries := toEntriesOrd[M, []pair.Pair[K, V]](o, r)
 	// collect this array
-	ft := T.Tupled2(f)
+	ft := pair.Paired(f)
 	count := len(entries)
 	result := make(GR, count)
 	for i := count - 1; i >= 0; i-- {
@@ -73,13 +73,13 @@ func collectOrd[M ~map[K]V, GR ~[]R, K comparable, V, R any](o ord.Ord[K], r M, 
 
 func reduceOrd[M ~map[K]V, K comparable, V, R any](o ord.Ord[K], r M, f func(K, R, V) R, initial R) R {
 	// create the entries
-	entries := toEntriesOrd[M, []T.Tuple2[K, V]](o, r)
+	entries := toEntriesOrd[M, []pair.Pair[K, V]](o, r)
 	// collect this array
 	current := initial
 	count := len(entries)
 	for i := 0; i < count; i++ {
 		t := entries[i]
-		current = f(T.First(t), current, T.Second(t))
+		current = f(pair.Head(t), current, pair.Tail(t))
 	}
 	// done
 	return current
@@ -318,32 +318,32 @@ func Size[M ~map[K]V, K comparable, V any](r M) int {
 	return len(r)
 }
 
-func ToArray[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](r M) GT {
-	return collect[M, GT](r, T.MakeTuple2[K, V])
+func ToArray[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](r M) GT {
+	return collect[M, GT](r, pair.MakePair[K, V])
 }
 
-func toEntriesOrd[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](o ord.Ord[K], r M) GT {
+func toEntriesOrd[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](o ord.Ord[K], r M) GT {
 	// total number of elements
 	count := len(r)
 	// produce an array that we can sort by key
 	entries := make(GT, count)
 	idx := 0
 	for k, v := range r {
-		entries[idx] = T.MakeTuple2(k, v)
+		entries[idx] = pair.MakePair(k, v)
 		idx++
 	}
 	sort.Slice(entries, func(i, j int) bool {
-		return o.Compare(T.First(entries[i]), T.First(entries[j])) < 0
+		return o.Compare(pair.Head(entries[i]), pair.Head(entries[j])) < 0
 	})
 	// final entries
 	return entries
 }
 
-func ToEntriesOrd[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](o ord.Ord[K]) func(r M) GT {
+func ToEntriesOrd[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](o ord.Ord[K]) func(r M) GT {
 	return F.Bind1st(toEntriesOrd[M, GT, K, V], o)
 }
 
-func ToEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](r M) GT {
+func ToEntries[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](r M) GT {
 	return ToArray[M, GT](r)
 }
 
@@ -351,7 +351,7 @@ func ToEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](r M) GT {
 // its values into a tuple. The key and value are then used to populate the map. Duplicate
 // values are resolved via the provided [Mg.Magma]
 func FromFoldableMap[
-	FCT ~func(A) T.Tuple2[K, V],
+	FCT ~func(A) pair.Pair[K, V],
 	HKTA any,
 	FOLDABLE ~func(func(M, A) M, M) func(HKTA) M,
 	M ~map[K]V,
@@ -364,12 +364,12 @@ func FromFoldableMap[
 				dst = make(M)
 			}
 			e := f(a)
-			k := T.First(e)
+			k := pair.Head(e)
 			old, ok := dst[k]
 			if ok {
-				dst[k] = m.Concat(old, T.Second(e))
+				dst[k] = m.Concat(old, pair.Tail(e))
 			} else {
-				dst[k] = T.Second(e)
+				dst[k] = pair.Tail(e)
 			}
 			return dst
 		}, Empty[M]())
@@ -378,15 +378,15 @@ func FromFoldableMap[
 
 func FromFoldable[
 	HKTA any,
-	FOLDABLE ~func(func(M, T.Tuple2[K, V]) M, M) func(HKTA) M,
+	FOLDABLE ~func(func(M, pair.Pair[K, V]) M, M) func(HKTA) M,
 	M ~map[K]V,
 	K comparable,
 	V any](m Mg.Magma[V], red FOLDABLE) func(fa HKTA) M {
-	return FromFoldableMap[func(T.Tuple2[K, V]) T.Tuple2[K, V]](m, red)(F.Identity[T.Tuple2[K, V]])
+	return FromFoldableMap[func(pair.Pair[K, V]) pair.Pair[K, V]](m, red)(F.Identity[pair.Pair[K, V]])
 }
 
 func FromArrayMap[
-	FCT ~func(A) T.Tuple2[K, V],
+	FCT ~func(A) pair.Pair[K, V],
 	GA ~[]A,
 	M ~map[K]V,
 	A any,
@@ -396,17 +396,17 @@ func FromArrayMap[
 }
 
 func FromArray[
-	GA ~[]T.Tuple2[K, V],
+	GA ~[]pair.Pair[K, V],
 	M ~map[K]V,
 	K comparable,
 	V any](m Mg.Magma[V]) func(fa GA) M {
-	return FromFoldable(m, F.Bind23of3(RAG.Reduce[GA, T.Tuple2[K, V], M]))
+	return FromFoldable(m, F.Bind23of3(RAG.Reduce[GA, pair.Pair[K, V], M]))
 }
 
-func FromEntries[M ~map[K]V, GT ~[]T.Tuple2[K, V], K comparable, V any](fa GT) M {
+func FromEntries[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](fa GT) M {
 	m := make(M)
 	for _, t := range fa {
-		upsertAtReadWrite(m, t.F1, t.F2)
+		upsertAtReadWrite(m, pair.Head(t), pair.Tail(t))
 	}
 	return m
 }

@@ -20,14 +20,90 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
+// UnionSemigroup creates a semigroup for maps that combines two maps using the provided
+// semigroup for resolving conflicts when the same key exists in both maps.
+//
+// When concatenating two maps:
+//   - Keys that exist in only one map are included in the result
+//   - Keys that exist in both maps have their values combined using the provided semigroup
+//
+// This is useful when you want custom conflict resolution logic beyond simple "first wins"
+// or "last wins" semantics.
+//
+// Example:
+//
+//	// Create a semigroup that sums values for duplicate keys
+//	sumSemigroup := number.SemigroupSum[int]()
+//	mapSemigroup := UnionSemigroup[string, int](sumSemigroup)
+//
+//	map1 := map[string]int{"a": 1, "b": 2}
+//	map2 := map[string]int{"b": 3, "c": 4}
+//	result := mapSemigroup.Concat(map1, map2)
+//	// result: {"a": 1, "b": 5, "c": 4}  // b values are summed: 2 + 3 = 5
+//
+// Example with string concatenation:
+//
+//	stringSemigroup := string.Semigroup
+//	mapSemigroup := UnionSemigroup[string, string](stringSemigroup)
+//
+//	map1 := map[string]string{"a": "Hello", "b": "World"}
+//	map2 := map[string]string{"b": "!", "c": "Goodbye"}
+//	result := mapSemigroup.Concat(map1, map2)
+//	// result: {"a": "Hello", "b": "World!", "c": "Goodbye"}
 func UnionSemigroup[K comparable, V any](s S.Semigroup[V]) S.Semigroup[map[K]V] {
 	return G.UnionSemigroup[map[K]V](s)
 }
 
+// UnionLastSemigroup creates a semigroup for maps where the last (right) value wins
+// when the same key exists in both maps being concatenated.
+//
+// This is the most common conflict resolution strategy and is equivalent to using
+// the standard map merge operation where right-side values take precedence.
+//
+// When concatenating two maps:
+//   - Keys that exist in only one map are included in the result
+//   - Keys that exist in both maps take the value from the second (right) map
+//
+// Example:
+//
+//	semigroup := UnionLastSemigroup[string, int]()
+//
+//	map1 := map[string]int{"a": 1, "b": 2}
+//	map2 := map[string]int{"b": 3, "c": 4}
+//	result := semigroup.Concat(map1, map2)
+//	// result: {"a": 1, "b": 3, "c": 4}  // b takes value from map2 (last wins)
+//
+// This is useful for:
+//   - Configuration overrides (later configs override earlier ones)
+//   - Applying updates to a base map
+//   - Merging user preferences where newer values should win
 func UnionLastSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
 	return G.UnionLastSemigroup[map[K]V]()
 }
 
+// UnionFirstSemigroup creates a semigroup for maps where the first (left) value wins
+// when the same key exists in both maps being concatenated.
+//
+// This is useful when you want to preserve original values and ignore updates for
+// keys that already exist.
+//
+// When concatenating two maps:
+//   - Keys that exist in only one map are included in the result
+//   - Keys that exist in both maps keep the value from the first (left) map
+//
+// Example:
+//
+//	semigroup := UnionFirstSemigroup[string, int]()
+//
+//	map1 := map[string]int{"a": 1, "b": 2}
+//	map2 := map[string]int{"b": 3, "c": 4}
+//	result := semigroup.Concat(map1, map2)
+//	// result: {"a": 1, "b": 2, "c": 4}  // b keeps value from map1 (first wins)
+//
+// This is useful for:
+//   - Default values (defaults are set first, user values don't override)
+//   - Caching (first cached value is kept, subsequent updates ignored)
+//   - Immutable registries (first registration wins, duplicates are ignored)
 func UnionFirstSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
 	return G.UnionFirstSemigroup[map[K]V]()
 }
