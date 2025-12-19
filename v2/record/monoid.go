@@ -16,27 +16,34 @@
 package record
 
 import (
-	M "github.com/IBM/fp-go/v2/monoid"
 	G "github.com/IBM/fp-go/v2/record/generic"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
 // UnionMonoid computes the union of two maps of the same type
-func UnionMonoid[K comparable, V any](s S.Semigroup[V]) M.Monoid[map[K]V] {
-	return G.UnionMonoid[map[K]V](s)
+//
+//go:inline
+func UnionMonoid[K comparable, V any](s S.Semigroup[V]) Monoid[Record[K, V]] {
+	return G.UnionMonoid[Record[K, V]](s)
 }
 
 // UnionLastMonoid computes the union of two maps of the same type giving the last map precedence
-func UnionLastMonoid[K comparable, V any]() M.Monoid[map[K]V] {
-	return G.UnionLastMonoid[map[K]V]()
+//
+//go:inline
+func UnionLastMonoid[K comparable, V any]() Monoid[Record[K, V]] {
+	return G.UnionLastMonoid[Record[K, V]]()
 }
 
 // UnionFirstMonoid computes the union of two maps of the same type giving the first map precedence
-func UnionFirstMonoid[K comparable, V any]() M.Monoid[map[K]V] {
-	return G.UnionFirstMonoid[map[K]V]()
+//
+//go:inline
+func UnionFirstMonoid[K comparable, V any]() Monoid[Record[K, V]] {
+	return G.UnionFirstMonoid[Record[K, V]]()
 }
 
 // MergeMonoid computes the union of two maps of the same type giving the last map precedence
-func MergeMonoid[K comparable, V any]() M.Monoid[map[K]V] {
-	return G.UnionLastMonoid[map[K]V]()
+//
+//go:inline
+func MergeMonoid[K comparable, V any]() Monoid[Record[K, V]] {
+	return G.UnionLastMonoid[Record[K, V]]()
 }

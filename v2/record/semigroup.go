@@ -17,7 +17,6 @@ package record
 
 import (
 	G "github.com/IBM/fp-go/v2/record/generic"
-	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
 // UnionSemigroup creates a semigroup for maps that combines two maps using the provided
@@ -50,8 +49,10 @@ import (
 //	map2 := map[string]string{"b": "!", "c": "Goodbye"}
 //	result := mapSemigroup.Concat(map1, map2)
 //	// result: {"a": "Hello", "b": "World!", "c": "Goodbye"}
-func UnionSemigroup[K comparable, V any](s S.Semigroup[V]) S.Semigroup[map[K]V] {
-	return G.UnionSemigroup[map[K]V](s)
+//
+//go:inline
+func UnionSemigroup[K comparable, V any](s Semigroup[V]) Semigroup[Record[K, V]] {
+	return G.UnionSemigroup[Record[K, V]](s)
 }
 
 // UnionLastSemigroup creates a semigroup for maps where the last (right) value wins
@@ -77,8 +78,10 @@ func UnionSemigroup[K comparable, V any](s S.Semigroup[V]) S.Semigroup[map[K]V] 
 //   - Configuration overrides (later configs override earlier ones)
 //   - Applying updates to a base map
 //   - Merging user preferences where newer values should win
-func UnionLastSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
-	return G.UnionLastSemigroup[map[K]V]()
+//
+//go:inline
+func UnionLastSemigroup[K comparable, V any]() Semigroup[Record[K, V]] {
+	return G.UnionLastSemigroup[Record[K, V]]()
 }
 
 // UnionFirstSemigroup creates a semigroup for maps where the first (left) value wins
@@ -104,6 +107,8 @@ func UnionLastSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
 //   - Default values (defaults are set first, user values don't override)
 //   - Caching (first cached value is kept, subsequent updates ignored)
 //   - Immutable registries (first registration wins, duplicates are ignored)
-func UnionFirstSemigroup[K comparable, V any]() S.Semigroup[map[K]V] {
-	return G.UnionFirstSemigroup[map[K]V]()
+//
+//go:inline
+func UnionFirstSemigroup[K comparable, V any]() Semigroup[Record[K, V]] {
+	return G.UnionFirstSemigroup[Record[K, V]]()
 }

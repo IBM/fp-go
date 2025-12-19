@@ -16,11 +16,19 @@
 package record
 
 import (
+	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
+	"github.com/IBM/fp-go/v2/semigroup"
 )
 
 type (
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
+	Monoid[A any]       = monoid.Monoid[A]
+	Semigroup[A any]    = semigroup.Semigroup[A]
+	Option[A any]       = option.Option[A]
 
 	// Record represents a map with comparable keys and values of any type.
 	// This is the primary data structure for the record package, providing
@@ -108,7 +116,7 @@ type (
 	//	sum := Reduce(func(acc int, v int) int {
 	//	    return acc + v
 	//	}, 0)
-	Reducer[K comparable, V, R any] = func(R, V) R
+	Reducer[V, R any] = func(R, V) R
 
 	// ReducerWithIndex accumulates values using both key and value information.
 	//

@@ -16,7 +16,6 @@
 package record
 
 import (
-	Mo "github.com/IBM/fp-go/v2/monoid"
 	G "github.com/IBM/fp-go/v2/record/generic"
 )
 
@@ -30,8 +29,8 @@ import (
 //	    Count int
 //	}
 //	result := record.Do[string, State]()
-func Do[K comparable, S any]() map[K]S {
-	return G.Do[map[K]S]()
+func Do[K comparable, S any]() Record[K, S] {
+	return G.Do[Record[K, S]]()
 }
 
 // Bind attaches the result of a computation to a context [S1] to produce a context [S2].
@@ -68,29 +67,87 @@ func Do[K comparable, S any]() map[K]S {
 //	        },
 //	    ),
 //	)
-func Bind[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, f func(S1) map[K]T) func(map[K]S1) map[K]S2 {
-	return G.Bind[map[K]S1, map[K]S2, map[K]T](m)
+func Bind[S1, T any, K comparable, S2 any](m Monoid[Record[K, S2]]) func(
+	setter func(T) func(S1) S2,
+	f Kleisli[K, S1, T],
+) Operator[K, S1, S2] {
+	return G.Bind[Record[K, S1], Record[K, S2], Record[K, T]](m)
 }
 
-// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+// Let attaches the result of a computation to a context [S1] to produce a context [S2].
+// Unlike Bind, Let does not require a Monoid because it transforms each value independently
+// without merging multiple maps.
+//
+// The setter function takes the computed value and returns a function that updates the context.
+// The computation function f takes the current context and produces a value.
+//
+// Example:
+//
+//	type State struct {
+//	    Name   string
+//	    Length int
+//	}
+//
+//	result := F.Pipe2(
+//	    map[string]State{"a": {Name: "Alice"}},
+//	    record.Let(
+//	        func(length int) func(State) State {
+//	            return func(s State) State { s.Length = length; return s }
+//	        },
+//	        func(s State) int { return len(s.Name) },
+//	    ),
+//	) // map[string]State{"a": {Name: "Alice", Length: 5}}
 func Let[S1, T any, K comparable, S2 any](
 	setter func(T) func(S1) S2,
 	f func(S1) T,
-) func(map[K]S1) map[K]S2 {
-	return G.Let[map[K]S1, map[K]S2](setter, f)
+) Operator[K, S1, S2] {
+	return G.Let[Record[K, S1], Record[K, S2]](setter, f)
 }
 
-// LetTo attaches the a value to a context [S1] to produce a context [S2]
+// LetTo attaches a constant value to a context [S1] to produce a context [S2].
+// This is similar to Let but uses a fixed value instead of computing it from the context.
+//
+// The setter function takes the value and returns a function that updates the context.
+//
+// Example:
+//
+//	type State struct {
+//	    Name    string
+//	    Version int
+//	}
+//
+//	result := F.Pipe2(
+//	    map[string]State{"a": {Name: "Alice"}},
+//	    record.LetTo(
+//	        func(version int) func(State) State {
+//	            return func(s State) State { s.Version = version; return s }
+//	        },
+//	        2,
+//	    ),
+//	) // map[string]State{"a": {Name: "Alice", Version: 2}}
 func LetTo[S1, T any, K comparable, S2 any](
 	setter func(T) func(S1) S2,
 	b T,
-) func(map[K]S1) map[K]S2 {
-	return G.LetTo[map[K]S1, map[K]S2](setter, b)
+) Operator[K, S1, S2] {
+	return G.LetTo[Record[K, S1], Record[K, S2]](setter, b)
 }
 
-// BindTo initializes a new state [S1] from a value [T]
-func BindTo[S1, T any, K comparable](setter func(T) S1) func(map[K]T) map[K]S1 {
-	return G.BindTo[map[K]S1, map[K]T](setter)
+// BindTo initializes a new state [S1] from a value [T].
+// This is typically used as the first step in a do-notation chain to convert
+// a simple map of values into a map of state objects.
+//
+// Example:
+//
+//	type State struct {
+//	    Name string
+//	}
+//
+//	result := F.Pipe1(
+//	    map[string]string{"a": "Alice", "b": "Bob"},
+//	    record.BindTo(func(name string) State { return State{Name: name} }),
+//	) // map[string]State{"a": {Name: "Alice"}, "b": {Name: "Bob"}}
+func BindTo[S1, T any, K comparable](setter func(T) S1) Operator[K, T, S1] {
+	return G.BindTo[Record[K, S1], Record[K, T]](setter)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
@@ -126,6 +183,9 @@ func BindTo[S1, T any, K comparable](setter func(T) S1) func(map[K]T) map[K]S1 {
 //	        counts,
 //	    ),
 //	) // map[string]State{"a": {Name: "Alice", Count: 10}, "b": {Name: "Bob", Count: 20}}
-func ApS[S1, T any, K comparable, S2 any](m Mo.Monoid[map[K]S2]) func(setter func(T) func(S1) S2, fa map[K]T) func(map[K]S1) map[K]S2 {
-	return G.ApS[map[K]S1, map[K]S2, map[K]T](m)
+func ApS[S1, T any, K comparable, S2 any](m Monoid[Record[K, S2]]) func(
+	setter func(T) func(S1) S2,
+	fa Record[K, T],
+) Operator[K, S1, S2] {
+	return G.ApS[Record[K, S1], Record[K, S2], Record[K, T]](m)
 }
