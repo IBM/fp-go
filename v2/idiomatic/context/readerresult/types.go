@@ -27,6 +27,7 @@ import (
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -68,4 +69,6 @@ type (
 
 	// Prism represents an optic that focuses on a case of type A within a sum type S.
 	Prism[S, A any] = prism.Prism[S, A]
+
+	Trampoline[A, B any] = tailrec.Trampoline[A, B]
 )

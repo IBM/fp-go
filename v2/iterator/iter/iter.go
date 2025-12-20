@@ -51,6 +51,7 @@ import (
 	G "github.com/IBM/fp-go/v2/internal/iter"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // Of creates a sequence containing a single element.
@@ -849,9 +850,9 @@ func Append[A any](tail A) Operator[A, A] {
 //
 //	seqA := From(1, 2, 3)
 //	seqB := From("a", "b")
-//	result := MonadZip(seqB, seqA)
+//	result := MonadZip(seqA, seqB)
 //	// yields: (1, "a"), (2, "b")
-func MonadZip[A, B any](fb Seq[B], fa Seq[A]) Seq2[A, B] {
+func MonadZip[A, B any](fa Seq[A], fb Seq[B]) Seq2[A, B] {
 
 	return func(yield func(A, B) bool) {
 		na, sa := I.Pull(fa)
@@ -882,8 +883,8 @@ func MonadZip[A, B any](fb Seq[B], fa Seq[A]) Seq2[A, B] {
 //	// yields: (1, "a"), (2, "b"), (3, "c")
 //
 //go:inline
-func Zip[A, B any](fa Seq[A]) func(Seq[B]) Seq2[A, B] {
-	return F.Bind2nd(MonadZip[A, B], fa)
+func Zip[A, B any](fb Seq[B]) func(Seq[A]) Seq2[A, B] {
+	return F.Bind2nd(MonadZip[A, B], fb)
 }
 
 //go:inline
@@ -894,4 +895,51 @@ func MonadMapToArray[A, B any](fa Seq[A], f func(A) B) []B {
 //go:inline
 func MapToArray[A, B any](f func(A) B) func(Seq[A]) []B {
 	return G.MapToArray[Seq[A], []B](f)
+}
+
+// ToSeqPair converts a key-value sequence (Seq2) into a sequence of Pairs.
+//
+// This function transforms a Seq2[A, B] (which yields key-value pairs when iterated)
+// into a Seq[Pair[A, B]] (which yields Pair objects). This is useful when you need
+// to work with pairs as first-class values rather than as separate key-value arguments.
+//
+// Type Parameters:
+//   - A: The type of the first element (key) in each pair
+//   - B: The type of the second element (value) in each pair
+//
+// Parameters:
+//   - as: A Seq2 that yields key-value pairs
+//
+// Returns:
+//   - A Seq that yields Pair objects containing the key-value pairs
+//
+// Example - Basic conversion:
+//
+//	seq2 := iter.MonadZip(iter.From("a", "b", "c"), iter.From(1, 2, 3))
+//	pairs := iter.ToSeqPair(seq2)
+//	// yields: Pair("a", 1), Pair("b", 2), Pair("c", 3)
+//
+// Example - Using with Map:
+//
+//	seq2 := iter.MonadZip(iter.From(1, 2, 3), iter.From(10, 20, 30))
+//	pairs := iter.ToSeqPair(seq2)
+//	sums := iter.MonadMap(pairs, func(p Pair[int, int]) int {
+//	    return p.Fst + p.Snd
+//	})
+//	// yields: 11, 22, 33
+//
+// Example - Empty sequence:
+//
+//	seq2 := iter.Empty[int]()
+//	zipped := iter.MonadZip(seq2, iter.Empty[string]())
+//	pairs := iter.ToSeqPair(zipped)
+//	// yields: nothing (empty sequence)
+func ToSeqPair[A, B any](as Seq2[A, B]) Seq[Pair[A, B]] {
+	return func(yield Predicate[Pair[A, B]]) {
+		for a, b := range as {
+			if !yield(pair.MakePair(a, b)) {
+				return
+			}
+		}
+	}
 }

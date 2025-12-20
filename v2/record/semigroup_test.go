@@ -26,7 +26,7 @@ import (
 func TestUnionSemigroup(t *testing.T) {
 	// Test with sum semigroup - values should be added for duplicate keys
 	sumSemigroup := N.SemigroupSum[int]()
-	mapSemigroup := UnionSemigroup[string, int](sumSemigroup)
+	mapSemigroup := UnionSemigroup[string](sumSemigroup)
 
 	map1 := map[string]int{"a": 1, "b": 2}
 	map2 := map[string]int{"b": 3, "c": 4}
@@ -39,7 +39,7 @@ func TestUnionSemigroup(t *testing.T) {
 func TestUnionSemigroupString(t *testing.T) {
 	// Test with string semigroup - strings should be concatenated
 	stringSemigroup := S.Semigroup
-	mapSemigroup := UnionSemigroup[string, string](stringSemigroup)
+	mapSemigroup := UnionSemigroup[string](stringSemigroup)
 
 	map1 := map[string]string{"a": "Hello", "b": "World"}
 	map2 := map[string]string{"b": "!", "c": "Goodbye"}
@@ -52,7 +52,7 @@ func TestUnionSemigroupString(t *testing.T) {
 func TestUnionSemigroupProduct(t *testing.T) {
 	// Test with product semigroup - values should be multiplied
 	prodSemigroup := N.SemigroupProduct[int]()
-	mapSemigroup := UnionSemigroup[string, int](prodSemigroup)
+	mapSemigroup := UnionSemigroup[string](prodSemigroup)
 
 	map1 := map[string]int{"a": 2, "b": 3}
 	map2 := map[string]int{"b": 4, "c": 5}
@@ -65,7 +65,7 @@ func TestUnionSemigroupProduct(t *testing.T) {
 func TestUnionSemigroupEmpty(t *testing.T) {
 	// Test with empty maps
 	sumSemigroup := N.SemigroupSum[int]()
-	mapSemigroup := UnionSemigroup[string, int](sumSemigroup)
+	mapSemigroup := UnionSemigroup[string](sumSemigroup)
 
 	map1 := map[string]int{"a": 1}
 	empty := map[string]int{}
@@ -180,7 +180,7 @@ func TestUnionFirstSemigroupEmpty(t *testing.T) {
 // Test associativity law for UnionSemigroup
 func TestUnionSemigroupAssociativity(t *testing.T) {
 	sumSemigroup := N.SemigroupSum[int]()
-	mapSemigroup := UnionSemigroup[string, int](sumSemigroup)
+	mapSemigroup := UnionSemigroup[string](sumSemigroup)
 
 	map1 := map[string]int{"a": 1}
 	map2 := map[string]int{"a": 2, "b": 3}
@@ -225,5 +225,3 @@ func TestUnionFirstSemigroupAssociativity(t *testing.T) {
 
 	assert.Equal(t, left, right)
 }
-
-// Made with Bob

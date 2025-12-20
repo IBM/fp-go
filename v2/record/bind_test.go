@@ -57,7 +57,7 @@ func TestLet(t *testing.T) {
 	}
 	result := F.Pipe1(
 		input,
-		Let[TestState, int, string, TestState](
+		Let[TestState, int, string](
 			func(length int) func(TestState) TestState {
 				return func(s TestState) TestState {
 					s.Count = length
@@ -83,7 +83,7 @@ func TestLetTo(t *testing.T) {
 	}
 	result := F.Pipe1(
 		input,
-		LetTo[TestState, int, string, TestState](
+		LetTo[TestState, int, string](
 			func(version int) func(TestState) TestState {
 				return func(s TestState) TestState {
 					s.Version = version
@@ -166,7 +166,7 @@ func TestBindChain(t *testing.T) {
 		BindTo[TestState, string, string](func(name string) TestState {
 			return TestState{Name: name}
 		}),
-		Let[TestState, int, string, TestState](
+		Let[TestState, int, string](
 			func(count int) func(TestState) TestState {
 				return func(s TestState) TestState {
 					s.Count = count
@@ -177,7 +177,7 @@ func TestBindChain(t *testing.T) {
 				return len(s.Name)
 			},
 		),
-		LetTo[TestState, int, string, TestState](
+		LetTo[TestState, int, string](
 			func(version int) func(TestState) TestState {
 				return func(s TestState) TestState {
 					s.Version = version
@@ -223,5 +223,3 @@ func TestBindWithDependentComputation(t *testing.T) {
 	}
 	assert.Equal(t, expected, result)
 }
-
-// Made with Bob

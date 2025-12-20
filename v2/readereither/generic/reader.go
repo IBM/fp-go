@@ -85,7 +85,7 @@ func ChainReaderK[
 	GEB ~func(E) ET.Either[L, B],
 	GB ~func(E) B,
 	L, E, A, B any](f func(A) GB) func(GEA) GEB {
-	return Chain[GEA, GEB, L, E, A, B](F.Flow2(f, FromReader[GB, GEB, L, E, B]))
+	return Chain[GEA](F.Flow2(f, FromReader[GB, GEB, L, E, B]))
 }
 
 func Of[GEA ~func(E) ET.Either[L, A], L, E, A any](a A) GEA {

@@ -19,8 +19,28 @@ import (
 	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
 )
 
-// DropWhile creates an [Iterator] that drops elements from the [Iterator] as long as the predicate is true; afterwards, returns every element.
-// Note, the [Iterator] does not produce any output until the predicate first becomes false
+// Cycle creates an [Iterator] that repeats the elements of the input [Iterator] indefinitely.
+// The iterator cycles through all elements of the input, and when it reaches the end, it starts over from the beginning.
+// This creates an infinite iterator, so it should be used with caution and typically combined with operations that limit the output.
+//
+// Type Parameters:
+//   - U: The type of elements in the iterator
+//
+// Parameters:
+//   - ma: The input iterator to cycle through
+//
+// Returns:
+//   - An iterator that infinitely repeats the elements of the input iterator
+//
+// Example:
+//
+//	iter := stateless.FromArray([]int{1, 2, 3})
+//	cycled := stateless.Cycle(iter)
+//	// Produces: 1, 2, 3, 1, 2, 3, 1, 2, 3, ... (infinitely)
+//
+//	// Typically used with Take to limit output:
+//	limited := stateless.Take(7)(cycled)
+//	// Produces: 1, 2, 3, 1, 2, 3, 1
 func Cycle[U any](ma Iterator[U]) Iterator[U] {
 	return G.Cycle(ma)
 }

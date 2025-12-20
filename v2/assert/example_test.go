@@ -98,7 +98,7 @@ func Example_resultAssertions() {
 	var t *testing.T // placeholder for example
 
 	// Assert success
-	successResult := result.Of[int](42)
+	successResult := result.Of(42)
 	assert.Success(successResult)(t)
 
 	// Assert failure

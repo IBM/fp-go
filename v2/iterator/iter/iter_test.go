@@ -462,7 +462,7 @@ func TestMonadZip(t *testing.T) {
 
 	var pairs []string
 	for a, b := range result {
-		pairs = append(pairs, fmt.Sprintf("%d:%s", a, b))
+		pairs = append(pairs, fmt.Sprintf("%d:%s", b, a))
 	}
 	assert.Equal(t, []string{"1:a", "2:b"}, pairs)
 }
@@ -470,8 +470,8 @@ func TestMonadZip(t *testing.T) {
 func TestZip(t *testing.T) {
 	seqA := From(1, 2, 3)
 	seqB := From("a", "b", "c")
-	zipWithA := Zip[int, string](seqA)
-	result := zipWithA(seqB)
+	zipWithA := Zip[int](seqB)
+	result := zipWithA(seqA)
 
 	var pairs []string
 	for a, b := range result {

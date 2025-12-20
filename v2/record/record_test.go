@@ -205,7 +205,7 @@ func TestCollect(t *testing.T) {
 		"b": 2,
 		"c": 3,
 	}
-	collector := Collect[string, int, string](func(k string, v int) string {
+	collector := Collect(func(k string, v int) string {
 		return fmt.Sprintf("%s=%d", k, v)
 	})
 	result := collector(data)
@@ -232,7 +232,7 @@ func TestReduce(t *testing.T) {
 		"b": 2,
 		"c": 3,
 	}
-	sum := Reduce[string, int, int](func(acc, v int) int {
+	sum := Reduce[string](func(acc, v int) int {
 		return acc + v
 	}, 0)
 	result := sum(data)
@@ -245,7 +245,7 @@ func TestReduceWithIndex(t *testing.T) {
 		"b": 2,
 		"c": 3,
 	}
-	concat := ReduceWithIndex[string, int, string](func(k string, acc string, v int) string {
+	concat := ReduceWithIndex(func(k string, acc string, v int) string {
 		if acc == "" {
 			return fmt.Sprintf("%s:%d", k, v)
 		}
@@ -284,7 +284,7 @@ func TestMapWithIndex(t *testing.T) {
 		"a": 1,
 		"b": 2,
 	}
-	mapper := MapWithIndex[string, int, string](func(k string, v int) string {
+	mapper := MapWithIndex(func(k string, v int) string {
 		return fmt.Sprintf("%s=%d", k, v)
 	})
 	result := mapper(data)
@@ -367,7 +367,7 @@ func TestSingleton(t *testing.T) {
 
 func TestFilterMapWithIndex(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
-	filter := FilterMapWithIndex[string, int, int](func(k string, v int) O.Option[int] {
+	filter := FilterMapWithIndex(func(k string, v int) O.Option[int] {
 		if v%2 == 0 {
 			return O.Some(v * 10)
 		}
@@ -379,7 +379,7 @@ func TestFilterMapWithIndex(t *testing.T) {
 
 func TestFilterMap(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
-	filter := FilterMap[string, int, int](func(v int) O.Option[int] {
+	filter := FilterMap[string](func(v int) O.Option[int] {
 		if v%2 == 0 {
 			return O.Some(v * 10)
 		}
@@ -400,7 +400,7 @@ func TestFilter(t *testing.T) {
 
 func TestFilterWithIndex(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
-	filter := FilterWithIndex[string, int](func(k string, v int) bool {
+	filter := FilterWithIndex(func(k string, v int) bool {
 		return v%2 == 0
 	})
 	result := filter(data)
@@ -443,7 +443,7 @@ func TestMonadChain(t *testing.T) {
 func TestChain(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2}
 	monoid := MergeMonoid[string, int]()
-	chain := Chain[int, string, int](monoid)(func(v int) map[string]int {
+	chain := Chain[int](monoid)(func(v int) map[string]int {
 		return map[string]int{
 			fmt.Sprintf("x%d", v): v * 10,
 		}
@@ -466,7 +466,7 @@ func TestFlatten(t *testing.T) {
 func TestFoldMap(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
 	// Use string monoid for simplicity
-	fold := FoldMap[string, int, string](S.Monoid)(func(v int) string {
+	fold := FoldMap[string, int](S.Monoid)(func(v int) string {
 		return fmt.Sprintf("%d", v)
 	})
 	result := fold(data)
@@ -506,7 +506,7 @@ func TestFlap(t *testing.T) {
 		"double": func(x int) int { return x * 2 },
 		"triple": func(x int) int { return x * 3 },
 	}
-	flap := Flap[int, string, int](5)
+	flap := Flap[int, string](5)
 	result := flap(fns)
 	assert.Equal(t, map[string]int{"double": 10, "triple": 15}, result)
 }
@@ -518,7 +518,7 @@ func TestFromArray(t *testing.T) {
 		P.MakePair("a", 3), // Duplicate key
 	}
 	// Use Second magma to keep last value
-	from := FromArray[string, int](Mg.Second[int]())
+	from := FromArray[string](Mg.Second[int]())
 	result := from(entries)
 	assert.Equal(t, map[string]int{"a": 3, "b": 2}, result)
 }
@@ -543,7 +543,7 @@ func TestAp(t *testing.T) {
 		"double": 5,
 	}
 	monoid := MergeMonoid[string, int]()
-	ap := Ap[int, string, int](monoid)(vals)
+	ap := Ap[int](monoid)(vals)
 	result := ap(fns)
 	assert.Equal(t, map[string]int{"double": 10}, result)
 }
@@ -555,7 +555,7 @@ func TestOf(t *testing.T) {
 
 func TestReduceRef(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
-	sum := ReduceRef[string, int, int](func(acc int, v *int) int {
+	sum := ReduceRef[string](func(acc int, v *int) int {
 		return acc + *v
 	}, 0)
 	result := sum(data)
@@ -564,7 +564,7 @@ func TestReduceRef(t *testing.T) {
 
 func TestReduceRefWithIndex(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2}
-	concat := ReduceRefWithIndex[string, int, string](func(k string, acc string, v *int) string {
+	concat := ReduceRefWithIndex(func(k string, acc string, v *int) string {
 		if acc == "" {
 			return fmt.Sprintf("%s:%d", k, *v)
 		}
@@ -583,7 +583,7 @@ func TestMonadMapRef(t *testing.T) {
 
 func TestMapRef(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2}
-	mapper := MapRef[string, int, int](func(v *int) int { return *v * 2 })
+	mapper := MapRef[string](func(v *int) int { return *v * 2 })
 	result := mapper(data)
 	assert.Equal(t, map[string]int{"a": 2, "b": 4}, result)
 }
@@ -598,7 +598,7 @@ func TestMonadMapRefWithIndex(t *testing.T) {
 
 func TestMapRefWithIndex(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2}
-	mapper := MapRefWithIndex[string, int, string](func(k string, v *int) string {
+	mapper := MapRefWithIndex(func(k string, v *int) string {
 		return fmt.Sprintf("%s=%d", k, *v)
 	})
 	result := mapper(data)
@@ -611,12 +611,12 @@ func TestUnion(t *testing.T) {
 	// Union combines maps, with the magma resolving conflicts
 	// The order is union(left)(right), which means right is merged into left
 	// First magma keeps the first value (from right in this case)
-	union := Union[string, int](Mg.First[int]())
+	union := Union[string](Mg.First[int]())
 	result := union(left)(right)
 	assert.Equal(t, map[string]int{"a": 1, "b": 3, "c": 4}, result)
 
 	// Second magma keeps the second value (from left in this case)
-	union2 := Union[string, int](Mg.Second[int]())
+	union2 := Union[string](Mg.Second[int]())
 	result2 := union2(left)(right)
 	assert.Equal(t, map[string]int{"a": 1, "b": 2, "c": 4}, result2)
 }
@@ -635,7 +635,7 @@ func TestMonadChainWithIndex(t *testing.T) {
 func TestChainWithIndex(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2}
 	monoid := MergeMonoid[string, string]()
-	chain := ChainWithIndex[int, string, string](monoid)(func(k string, v int) map[string]string {
+	chain := ChainWithIndex[int](monoid)(func(k string, v int) map[string]string {
 		return map[string]string{
 			fmt.Sprintf("%s%d", k, v): fmt.Sprintf("val%d", v),
 		}
@@ -671,7 +671,7 @@ func TestFilterChainWithIndex(t *testing.T) {
 
 func TestFoldMapWithIndex(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
-	fold := FoldMapWithIndex[string, int, string](S.Monoid)(func(k string, v int) string {
+	fold := FoldMapWithIndex[string, int](S.Monoid)(func(k string, v int) string {
 		return fmt.Sprintf("%s:%d", k, v)
 	})
 	result := fold(data)
@@ -723,7 +723,7 @@ func TestFromFoldableMap(t *testing.T) {
 	src := A.From("a", "b", "c", "a")
 	// Create a reducer function
 	reducer := A.Reduce[string, map[string]string]
-	from := FromFoldableMap[func(func(map[string]string, string) map[string]string, map[string]string) func([]string) map[string]string, string, []string, string, string](
+	from := FromFoldableMap(
 		Mg.Second[string](),
 		reducer,
 	)
@@ -743,7 +743,7 @@ func TestFromFoldable(t *testing.T) {
 		P.MakePair("a", 3), // Duplicate key
 	}
 	reducer := A.Reduce[Entry[string, int], map[string]int]
-	from := FromFoldable[[]Entry[string, int], func(func(map[string]int, Entry[string, int]) map[string]int, map[string]int) func([]Entry[string, int]) map[string]int, string, int](
+	from := FromFoldable(
 		Mg.Second[int](),
 		reducer,
 	)

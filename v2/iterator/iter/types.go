@@ -18,8 +18,12 @@ package iter
 import (
 	I "iter"
 
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/iterator/stateless"
-	"github.com/IBM/fp-go/v2/optics/lens/option"
+	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/prism"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 )
 
@@ -54,4 +58,12 @@ type (
 
 	// Operator2 represents a transformation from one key-value sequence to another.
 	Operator2[K, A, B any] = Kleisli2[K, Seq2[K, A], B]
+
+	Lens[S, A any] = lens.Lens[S, A]
+
+	Prism[S, A any] = prism.Prism[S, A]
+
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	Pair[A, B any] = pair.Pair[A, B]
 )

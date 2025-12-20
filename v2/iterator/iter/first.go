@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stateless
+package iter
 
-import (
-	G "github.com/IBM/fp-go/v2/iterator/stateless/generic"
-)
+import "github.com/IBM/fp-go/v2/option"
 
 // First returns the first element from an [Iterator] wrapped in an [Option].
 //
@@ -34,24 +32,27 @@ import (
 // Returns:
 //   - Option[U]: Some(first element) if the iterator is non-empty, None otherwise
 //
-// Example with non-empty iterator:
+// Example with non-empty sequence:
 //
-//	iter := stateless.From(1, 2, 3, 4, 5)
-//	first := stateless.First(iter)
+//	seq := iter.From(1, 2, 3, 4, 5)
+//	first := iter.First(seq)
 //	// Returns: Some(1)
 //
-// Example with empty iterator:
+// Example with empty sequence:
 //
-//	iter := stateless.Empty[int]()
-//	first := stateless.First(iter)
+//	seq := iter.Empty[int]()
+//	first := iter.First(seq)
 //	// Returns: None
 //
-// Example with filtered iterator:
+// Example with filtered sequence:
 //
-//	iter := stateless.From(1, 2, 3, 4, 5)
-//	filtered := stateless.Filter(func(x int) bool { return x > 3 })(iter)
-//	first := stateless.First(filtered)
+//	seq := iter.From(1, 2, 3, 4, 5)
+//	filtered := iter.Filter(func(x int) bool { return x > 3 })(seq)
+//	first := iter.First(filtered)
 //	// Returns: Some(4)
-func First[U any](mu Iterator[U]) Option[U] {
-	return G.First(mu)
+func First[U any](mu Seq[U]) Option[U] {
+	for u := range mu {
+		return option.Some(u)
+	}
+	return option.None[U]()
 }
