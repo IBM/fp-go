@@ -34,6 +34,8 @@ import (
 //  3. Filtering to keep only pairs where the boolean (tail) is true
 //  4. Extracting the original values (head) from the filtered pairs
 //
+// RxJS Equivalent: Similar to combining [zip] with [filter] - https://rxjs.dev/api/operators/zip
+//
 // Type Parameters:
 //   - U: The type of elements in the sequence to be filtered
 //

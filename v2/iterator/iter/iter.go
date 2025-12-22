@@ -81,6 +81,8 @@ func Of2[K, A any](k K, a A) Seq2[K, A] {
 // MonadMap transforms each element in a sequence using the provided function.
 // This is the monadic version that takes the sequence as the first parameter.
 //
+// RxJS Equivalent: [map] - https://rxjs.dev/api/operators/map
+//
 // Example:
 //
 //	seq := From(1, 2, 3)
@@ -182,6 +184,8 @@ func MapWithKey[K, A, B any](f func(K, A) B) Operator2[K, A, B] {
 }
 
 // MonadFilter returns a sequence containing only elements that satisfy the predicate.
+//
+// RxJS Equivalent: [filter] - https://rxjs.dev/api/operators/filter
 //
 // Example:
 //
@@ -425,6 +429,8 @@ func FilterMapWithKey[K, A, B any](f func(K, A) Option[B]) Operator2[K, A, B] {
 // MonadChain applies a function that returns a sequence to each element and flattens the results.
 // This is the monadic bind operation (flatMap).
 //
+// RxJS Equivalent: [mergeMap/flatMap] - https://rxjs.dev/api/operators/mergeMap
+//
 // Example:
 //
 //	seq := From(1, 2, 3)
@@ -460,6 +466,8 @@ func Chain[A, B any](f func(A) Seq[B]) Operator[A, B] {
 }
 
 // Flatten flattens a sequence of sequences into a single sequence.
+//
+// RxJS Equivalent: [mergeAll] - https://rxjs.dev/api/operators/mergeAll
 //
 // Example:
 //
@@ -562,6 +570,8 @@ func Replicate[A any](n int, a A) Seq[A] {
 
 // MonadReduce reduces a sequence to a single value by applying a function to each element
 // and an accumulator, starting with an initial value.
+//
+// RxJS Equivalent: [reduce] - https://rxjs.dev/api/operators/reduce
 //
 // Example:
 //
@@ -819,6 +829,8 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 
 // Prepend returns a function that adds an element to the beginning of a sequence.
 //
+// RxJS Equivalent: [startWith] - https://rxjs.dev/api/operators/startWith
+//
 // Example:
 //
 //	seq := From(2, 3, 4)
@@ -831,6 +843,8 @@ func Prepend[A any](head A) Operator[A, A] {
 }
 
 // Append returns a function that adds an element to the end of a sequence.
+//
+// RxJS Equivalent: [endWith] - https://rxjs.dev/api/operators/endWith
 //
 // Example:
 //
@@ -845,6 +859,8 @@ func Append[A any](tail A) Operator[A, A] {
 
 // MonadZip combines two sequences into a sequence of pairs.
 // The resulting sequence stops when either input sequence is exhausted.
+//
+// RxJS Equivalent: [zip] - https://rxjs.dev/api/operators/zip
 //
 // Example:
 //

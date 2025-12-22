@@ -23,6 +23,8 @@ import "github.com/IBM/fp-go/v2/option"
 // contains at least one element, it returns Some(element). If the iterator is empty,
 // it returns None. The function consumes only the first element of the iterator.
 //
+// RxJS Equivalent: [first] - https://rxjs.dev/api/operators/first
+//
 // Type Parameters:
 //   - U: The type of elements in the iterator
 //
