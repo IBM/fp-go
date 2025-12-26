@@ -599,3 +599,28 @@ func ChainFirstLeft[A, EA, EB, B any](f Kleisli[EB, EA, B]) Operator[EA, A, A] {
 func TapLeft[A, EA, EB, B any](f Kleisli[EB, EA, B]) Operator[EA, A, A] {
 	return ChainFirstLeft[A](f)
 }
+
+// OrElse recovers from a Left (error) by providing an alternative computation.
+// If the IOEither is Right, it returns the value unchanged.
+// If the IOEither is Left, it applies the provided function to the error value,
+// which returns a new IOEither that replaces the original.
+//
+// This is useful for error recovery, fallback logic, or chaining alternative IO computations.
+// The error type can be widened from E1 to E2, allowing transformation of error types.
+//
+// Example:
+//
+//	// Recover from specific errors with fallback IO operations
+//	recover := ioeither.OrElse(func(err error) ioeither.IOEither[error, int] {
+//	    if err.Error() == "not found" {
+//	        return ioeither.Right[error](0) // default value
+//	    }
+//	    return ioeither.Left[int](err) // propagate other errors
+//	})
+//	result := recover(ioeither.Left[int](errors.New("not found"))) // Right(0)
+//	result := recover(ioeither.Right[error](42)) // Right(42) - unchanged
+//
+//go:inline
+func OrElse[E1, E2, A any](onLeft Kleisli[E2, E1, A]) Kleisli[E2, IOEither[E1, A], A] {
+	return Fold(onLeft, Of[E2, A])
+}

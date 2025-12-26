@@ -73,6 +73,28 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A
 	return readereither.FromPredicate[context.Context](pred, onFalse)
 }
 
+// OrElse recovers from a Left (error) by providing an alternative computation with access to context.Context.
+// If the ReaderResult is Right, it returns the value unchanged.
+// If the ReaderResult is Left, it applies the provided function to the error value,
+// which returns a new ReaderResult that replaces the original.
+//
+// This is useful for error recovery, fallback logic, or chaining alternative computations
+// that need access to the context (for cancellation, deadlines, or values).
+//
+// Example:
+//
+//	// Recover with context-aware fallback
+//	recover := readerresult.OrElse(func(err error) readerresult.ReaderResult[int] {
+//	    if err.Error() == "not found" {
+//	        return func(ctx context.Context) result.Result[int] {
+//	            // Could check ctx.Err() here
+//	            return result.Of(42)
+//	        }
+//	    }
+//	    return readerresult.Left[int](err)
+//	})
+//
+//go:inline
 func OrElse[A any](onLeft Kleisli[error, A]) Kleisli[ReaderResult[A], A] {
 	return readereither.OrElse(F.Flow2(onLeft, WithContext))
 }

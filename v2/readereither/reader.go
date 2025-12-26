@@ -98,10 +98,6 @@ func GetOrElse[E, L, A any](onLeft func(L) Reader[E, A]) func(ReaderEither[E, L,
 	return eithert.GetOrElse(reader.MonadChain[E, Either[L, A], A], reader.Of[E, A], onLeft)
 }
 
-func OrElse[E, L1, A, L2 any](onLeft func(L1) ReaderEither[E, L2, A]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
-	return eithert.OrElse(reader.MonadChain[E, Either[L1, A], Either[L2, A]], reader.Of[E, Either[L2, A]], onLeft)
-}
-
 func OrLeft[A, L1, E, L2 any](onLeft func(L1) Reader[E, L2]) func(ReaderEither[E, L1, A]) ReaderEither[E, L2, A] {
 	return eithert.OrLeft(
 		reader.MonadChain[E, Either[L1, A], Either[L2, A]],
@@ -179,4 +175,221 @@ func MonadMapLeft[C, E1, E2, A any](fa ReaderEither[C, E1, A], f func(E1) E2) Re
 // MapLeft applies a mapping function to the error channel
 func MapLeft[C, E1, E2, A any](f func(E1) E2) func(ReaderEither[C, E1, A]) ReaderEither[C, E2, A] {
 	return eithert.MapLeft(reader.Map[C, Either[E1, A], Either[E2, A]], f)
+}
+
+// OrElse recovers from a Left (error) by providing an alternative computation with access to the reader context.
+// If the ReaderEither is Right, it returns the value unchanged.
+// If the ReaderEither is Left, it applies the provided function to the error value,
+// which returns a new ReaderEither that replaces the original.
+//
+// This is useful for error recovery, fallback logic, or chaining alternative computations
+// that need access to configuration or dependencies. The error type can be widened from E1 to E2.
+//
+// Example:
+//
+//	type Config struct{ fallbackValue int }
+//
+//	// Recover using config-dependent fallback
+//	recover := readereither.OrElse(func(err error) readereither.ReaderEither[Config, error, int] {
+//	    if err.Error() == "not found" {
+//	        return readereither.Asks[error](func(cfg Config) either.Either[error, int] {
+//	            return either.Right[error](cfg.fallbackValue)
+//	        })
+//	    }
+//	    return readereither.Left[Config, int](err)
+//	})
+//	result := recover(readereither.Left[Config, int](errors.New("not found")))(Config{fallbackValue: 42}) // Right(42)
+//
+//go:inline
+func OrElse[R, E1, E2, A any](onLeft Kleisli[R, E2, E1, A]) Kleisli[R, E2, ReaderEither[R, E1, A], A] {
+	return Fold(onLeft, Of[R, E2, A])
+}
+
+// MonadChainLeft chains a computation on the left (error) side of a ReaderEither.
+// If the input is a Left value, it applies the function f to transform the error and potentially
+// change the error type from EA to EB. If the input is a Right value, it passes through unchanged.
+//
+// This is useful for error recovery or error transformation scenarios where you want to handle
+// errors by performing another computation that may also fail, with access to configuration context.
+//
+// Note: This is functionally identical to the uncurried form of [OrElseW]. Use [ChainLeft] when
+// emphasizing the monadic chaining perspective, and [OrElseW] for error recovery semantics.
+//
+// Parameters:
+//   - fa: The input ReaderEither that may contain an error of type EA
+//   - f: A Kleisli function that takes an error of type EA and returns a ReaderEither with error type EB
+//
+// Returns:
+//   - A ReaderEither with the potentially transformed error type EB
+//
+// Example:
+//
+//	type Config struct{ fallbackValue int }
+//	type ValidationError struct{ field string }
+//	type SystemError struct{ code int }
+//
+//	// Recover from validation errors using config
+//	result := MonadChainLeft(
+//	    Left[Config, int](ValidationError{"username"}),
+//	    func(ve ValidationError) readereither.ReaderEither[Config, SystemError, int] {
+//	        if ve.field == "username" {
+//	            return Asks[SystemError](func(cfg Config) either.Either[SystemError, int] {
+//	                return either.Right[SystemError](cfg.fallbackValue)
+//	            })
+//	        }
+//	        return Left[Config, int](SystemError{400})
+//	    },
+//	)
+//
+//go:inline
+func MonadChainLeft[R, EA, EB, A any](fa ReaderEither[R, EA, A], f Kleisli[R, EB, EA, A]) ReaderEither[R, EB, A] {
+	return func(r R) Either[EB, A] {
+		return ET.Fold(
+			func(ea EA) Either[EB, A] { return f(ea)(r) },
+			ET.Right[EB, A],
+		)(fa(r))
+	}
+}
+
+// ChainLeft is the curried version of [MonadChainLeft].
+// It returns a function that chains a computation on the left (error) side of a ReaderEither.
+//
+// This is particularly useful in functional composition pipelines where you want to handle
+// errors by performing another computation that may also fail, with access to configuration context.
+//
+// Note: This is functionally identical to [OrElseW]. They are different names for the same operation.
+// Use [ChainLeft] when emphasizing the monadic chaining perspective on the error channel,
+// and [OrElseW] when emphasizing error recovery/fallback semantics.
+//
+// Parameters:
+//   - f: A Kleisli function that takes an error of type EA and returns a ReaderEither with error type EB
+//
+// Returns:
+//   - A function that transforms a ReaderEither with error type EA to one with error type EB
+//
+// Example:
+//
+//	type Config struct{ retryLimit int }
+//
+//	// Create a reusable error handler with config access
+//	recoverFromError := ChainLeft(func(err string) readereither.ReaderEither[Config, int, string] {
+//	    if strings.Contains(err, "retryable") {
+//	        return Asks[int](func(cfg Config) either.Either[int, string] {
+//	            if cfg.retryLimit > 0 {
+//	                return either.Right[int]("recovered")
+//	            }
+//	            return either.Left[string](500)
+//	        })
+//	    }
+//	    return Left[Config, string](404)
+//	})
+//
+//	result := F.Pipe1(
+//	    Left[Config, string]("retryable error"),
+//	    recoverFromError,
+//	)(Config{retryLimit: 3})
+//
+//go:inline
+func ChainLeft[R, EA, EB, A any](f Kleisli[R, EB, EA, A]) func(ReaderEither[R, EA, A]) ReaderEither[R, EB, A] {
+	return func(fa ReaderEither[R, EA, A]) ReaderEither[R, EB, A] {
+		return MonadChainLeft(fa, f)
+	}
+}
+
+// MonadChainFirstLeft chains a computation on the left (error) side but always returns the original error.
+// If the input is a Left value, it applies the function f to the error and executes the resulting computation,
+// but always returns the original Left error regardless of what f returns (Left or Right).
+// If the input is a Right value, it passes through unchanged without calling f.
+//
+// This is useful for side effects on errors (like logging or metrics) where you want to perform an action
+// when an error occurs but always propagate the original error, ensuring the error path is preserved.
+//
+// Parameters:
+//   - ma: The input ReaderEither that may contain an error of type EA
+//   - f: A function that takes an error of type EA and returns a ReaderEither (typically for side effects)
+//
+// Returns:
+//   - A ReaderEither with the original error preserved if input was Left, or the original Right value
+//
+// Example:
+//
+//	type Config struct{ loggingEnabled bool }
+//
+//	// Log errors but preserve the original error
+//	result := MonadChainFirstLeft(
+//	    Left[Config, int]("database error"),
+//	    func(err string) readereither.ReaderEither[Config, string, int] {
+//	        return Asks[string](func(cfg Config) either.Either[string, int] {
+//	            if cfg.loggingEnabled {
+//	                log.Printf("Error: %s", err)
+//	            }
+//	            return either.Right[string](0)
+//	        })
+//	    },
+//	)
+//	// result will always be Left("database error")
+//
+//go:inline
+func MonadChainFirstLeft[A, R, EA, EB, B any](ma ReaderEither[R, EA, A], f Kleisli[R, EB, EA, B]) ReaderEither[R, EA, A] {
+	return MonadChainLeft(ma, function.Flow2(f, Fold(function.Constant1[EB](ma), function.Constant1[B](ma))))
+}
+
+//go:inline
+func MonadTapLeft[A, R, EA, EB, B any](ma ReaderEither[R, EA, A], f Kleisli[R, EB, EA, B]) ReaderEither[R, EA, A] {
+	return MonadChainFirstLeft(ma, f)
+}
+
+// ChainFirstLeft is the curried version of [MonadChainFirstLeft].
+// It returns a function that chains a computation on the left (error) side while always preserving the original error.
+//
+// This is particularly useful for adding error handling side effects (like logging, metrics, or notifications)
+// in a functional pipeline. The original error is always returned regardless of what f returns (Left or Right),
+// ensuring the error path is preserved.
+//
+// Parameters:
+//   - f: A function that takes an error of type EA and returns a ReaderEither (typically for side effects)
+//
+// Returns:
+//   - A function that performs the side effect but always returns the original error if input was Left
+//
+// Example:
+//
+//	type Config struct{ metricsEnabled bool }
+//
+//	// Create a reusable error logger
+//	logError := ChainFirstLeft(func(err string) readereither.ReaderEither[Config, any, int] {
+//	    return Asks[any](func(cfg Config) either.Either[any, int] {
+//	        if cfg.metricsEnabled {
+//	            metrics.RecordError(err)
+//	        }
+//	        return either.Right[any](0)
+//	    })
+//	})
+//
+//	result := F.Pipe1(
+//	    Left[Config, int]("validation failed"),
+//	    logError, // records the error in metrics
+//	)
+//	// result is always Left("validation failed")
+//
+//go:inline
+func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) func(ReaderEither[R, EA, A]) ReaderEither[R, EA, A] {
+	return ChainLeft(func(e EA) ReaderEither[R, EA, A] {
+		ma := Left[R, A](e)
+		return MonadFold(f(e), function.Constant1[EB](ma), function.Constant1[B](ma))
+	})
+}
+
+//go:inline
+func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) func(ReaderEither[R, EA, A]) ReaderEither[R, EA, A] {
+	return ChainFirstLeft[A](f)
+}
+
+// MonadFold applies one of two functions depending on the Either value.
+// If Left, applies onLeft function. If Right, applies onRight function.
+// Both functions return a Reader[E, B].
+//
+//go:inline
+func MonadFold[E, L, A, B any](ma ReaderEither[E, L, A], onLeft func(L) Reader[E, B], onRight func(A) Reader[E, B]) Reader[E, B] {
+	return Fold[E, L, A, B](onLeft, onRight)(ma)
 }

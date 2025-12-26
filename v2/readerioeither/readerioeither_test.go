@@ -397,22 +397,6 @@ func TestGetOrElse(t *testing.T) {
 	assert.Equal(t, 0, resultLeft(ctx)())
 }
 
-func TestOrElse(t *testing.T) {
-	ctx := testContext{value: 10}
-
-	// Test Right case
-	resultRight := OrElse(func(e error) ReaderIOEither[testContext, string, int] {
-		return Left[testContext, int]("alternative")
-	})(Of[testContext, error](42))
-	assert.Equal(t, E.Right[string](42), resultRight(ctx)())
-
-	// Test Left case
-	resultLeft := OrElse(func(e error) ReaderIOEither[testContext, string, int] {
-		return Of[testContext, string](99)
-	})(Left[testContext, int](errors.New("test")))
-	assert.Equal(t, E.Right[string](99), resultLeft(ctx)())
-}
-
 func TestMonadBiMap(t *testing.T) {
 	ctx := testContext{value: 10}
 

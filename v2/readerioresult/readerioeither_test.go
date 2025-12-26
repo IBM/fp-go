@@ -768,3 +768,41 @@ func TestWithLock(t *testing.T) {
 	assert.Equal(t, result.Of(42), res(ctx)())
 	assert.True(t, unlocked)
 }
+
+func TestOrElse(t *testing.T) {
+	type Config struct {
+		fallbackValue int
+	}
+	ctx := Config{fallbackValue: 99}
+
+	// Test OrElse with Right - should pass through unchanged
+	rightValue := Of[Config](42)
+	recover := OrElse[Config, int](func(err error) ReaderIOResult[Config, int] {
+		return Left[Config, int](errors.New("should not be called"))
+	})
+	res := recover(rightValue)(ctx)()
+	assert.Equal(t, result.Of(42), res)
+
+	// Test OrElse with Left - should recover with fallback
+	leftValue := Left[Config, int](errors.New("not found"))
+	recoverWithFallback := OrElse[Config, int](func(err error) ReaderIOResult[Config, int] {
+		if err.Error() == "not found" {
+			return func(cfg Config) IOResult[int] {
+				return func() result.Result[int] {
+					return result.Of(cfg.fallbackValue)
+				}
+			}
+		}
+		return Left[Config, int](err)
+	})
+	res = recoverWithFallback(leftValue)(ctx)()
+	assert.Equal(t, result.Of(99), res)
+
+	// Test OrElse with Left - should propagate other errors
+	leftValue = Left[Config, int](errors.New("fatal error"))
+	res = recoverWithFallback(leftValue)(ctx)()
+	assert.True(t, result.IsLeft(res))
+	val, err := result.UnwrapError(res)
+	assert.Equal(t, 0, val)
+	assert.Equal(t, "fatal error", err.Error())
+}

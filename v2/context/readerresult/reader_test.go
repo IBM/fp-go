@@ -17,6 +17,7 @@ package readerresult
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
@@ -311,5 +312,71 @@ func TestMonadChainTo(t *testing.T) {
 		assert.Equal(t, E.Left[float64](testErr), result)
 		assert.True(t, firstExecuted, "first reader should be executed")
 		assert.False(t, secondExecuted, "second reader should not be executed on error")
+	})
+}
+
+func TestOrElse(t *testing.T) {
+	ctx := context.Background()
+
+	// Test OrElse with Right - should pass through unchanged
+	t.Run("Right value unchanged", func(t *testing.T) {
+		rightValue := Of(42)
+		recover := OrElse(func(err error) ReaderResult[int] {
+			return Left[int](errors.New("should not be called"))
+		})
+		res := recover(rightValue)(ctx)
+		assert.Equal(t, E.Of[error](42), res)
+	})
+
+	// Test OrElse with Left - should recover with fallback
+	t.Run("Left value recovered", func(t *testing.T) {
+		leftValue := Left[int](errors.New("not found"))
+		recoverWithFallback := OrElse(func(err error) ReaderResult[int] {
+			if err.Error() == "not found" {
+				return func(ctx context.Context) E.Either[error, int] {
+					return E.Of[error](99)
+				}
+			}
+			return Left[int](err)
+		})
+		res := recoverWithFallback(leftValue)(ctx)
+		assert.Equal(t, E.Of[error](99), res)
+	})
+
+	// Test OrElse with Left - should propagate other errors
+	t.Run("Left value propagated", func(t *testing.T) {
+		leftValue := Left[int](errors.New("fatal error"))
+		recoverWithFallback := OrElse(func(err error) ReaderResult[int] {
+			if err.Error() == "not found" {
+				return Of(99)
+			}
+			return Left[int](err)
+		})
+		res := recoverWithFallback(leftValue)(ctx)
+		assert.True(t, E.IsLeft(res))
+		val, err := E.UnwrapError(res)
+		assert.Equal(t, 0, val)
+		assert.Equal(t, "fatal error", err.Error())
+	})
+
+	// Test OrElse with context-aware recovery
+	t.Run("Context-aware recovery", func(t *testing.T) {
+		type ctxKey string
+		ctxWithValue := context.WithValue(ctx, ctxKey("fallback"), 123)
+
+		leftValue := Left[int](errors.New("use fallback"))
+		ctxRecover := OrElse(func(err error) ReaderResult[int] {
+			if err.Error() == "use fallback" {
+				return func(ctx context.Context) E.Either[error, int] {
+					if val := ctx.Value(ctxKey("fallback")); val != nil {
+						return E.Of[error](val.(int))
+					}
+					return E.Left[int](errors.New("no fallback"))
+				}
+			}
+			return Left[int](err)
+		})
+		res := ctxRecover(leftValue)(ctxWithValue)
+		assert.Equal(t, E.Of[error](123), res)
 	})
 }

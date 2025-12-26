@@ -401,3 +401,92 @@ func TestChainFirstLeft(t *testing.T) {
 		assert.Equal(t, E.Left[string]("step2"), actualResult)
 	})
 }
+
+func TestOrElse(t *testing.T) {
+	// Test basic recovery from Left
+	recover := OrElse(func(e error) IOEither[error, int] {
+		return Right[error](0)
+	})
+
+	result := recover(Left[int](fmt.Errorf("error")))()
+	assert.Equal(t, E.Right[error](0), result)
+
+	// Test Right value passes through unchanged
+	result = recover(Right[error](42))()
+	assert.Equal(t, E.Right[error](42), result)
+
+	// Test selective recovery - recover some errors, propagate others
+	selectiveRecover := OrElse(func(err error) IOEither[error, int] {
+		if err.Error() == "not found" {
+			return Right[error](0) // default value for "not found"
+		}
+		return Left[int](err) // propagate other errors
+	})
+	assert.Equal(t, E.Right[error](0), selectiveRecover(Left[int](fmt.Errorf("not found")))())
+	permissionErr := fmt.Errorf("permission denied")
+	assert.Equal(t, E.Left[int](permissionErr), selectiveRecover(Left[int](permissionErr))())
+
+	// Test chaining multiple OrElse operations
+	firstRecover := OrElse(func(err error) IOEither[error, int] {
+		if err.Error() == "error1" {
+			return Right[error](1)
+		}
+		return Left[int](err)
+	})
+	secondRecover := OrElse(func(err error) IOEither[error, int] {
+		if err.Error() == "error2" {
+			return Right[error](2)
+		}
+		return Left[int](err)
+	})
+	assert.Equal(t, E.Right[error](1), F.Pipe1(Left[int](fmt.Errorf("error1")), firstRecover)())
+	assert.Equal(t, E.Right[error](2), F.Pipe1(Left[int](fmt.Errorf("error2")), F.Flow2(firstRecover, secondRecover))())
+}
+
+func TestOrElseW(t *testing.T) {
+	type ValidationError string
+	type AppError int
+
+	// Test with Right value - should return Right with widened error type
+	rightValue := Right[ValidationError]("success")
+	recoverValidation := OrElse(func(ve ValidationError) IOEither[AppError, string] {
+		return Left[string](AppError(400))
+	})
+	result := recoverValidation(rightValue)()
+	assert.True(t, E.IsRight(result))
+	assert.Equal(t, "success", F.Pipe1(result, E.GetOrElse(F.Constant1[AppError](""))))
+
+	// Test with Left value - should apply recovery with new error type
+	leftValue := Left[string](ValidationError("invalid input"))
+	result = recoverValidation(leftValue)()
+	assert.True(t, E.IsLeft(result))
+	_, leftVal := E.Unwrap(result)
+	assert.Equal(t, AppError(400), leftVal)
+
+	// Test error type conversion - ValidationError to AppError
+	convertError := OrElse(func(ve ValidationError) IOEither[AppError, int] {
+		return Left[int](AppError(len(ve)))
+	})
+	converted := convertError(Left[int](ValidationError("short")))()
+	assert.True(t, E.IsLeft(converted))
+	_, leftConv := E.Unwrap(converted)
+	assert.Equal(t, AppError(5), leftConv)
+
+	// Test recovery to Right with widened error type
+	recoverToRight := OrElse(func(ve ValidationError) IOEither[AppError, int] {
+		if ve == "recoverable" {
+			return Right[AppError](99)
+		}
+		return Left[int](AppError(500))
+	})
+	assert.Equal(t, E.Right[AppError](99), recoverToRight(Left[int](ValidationError("recoverable")))())
+	assert.True(t, E.IsLeft(recoverToRight(Left[int](ValidationError("fatal")))()))
+
+	// Test that Right values are preserved with widened error type
+	preservedRight := Right[ValidationError](42)
+	preserveRecover := OrElse(func(ve ValidationError) IOEither[AppError, int] {
+		return Left[int](AppError(999))
+	})
+	preserved := preserveRecover(preservedRight)()
+	assert.Equal(t, E.Right[AppError](42), preserved)
+}
