@@ -35,7 +35,7 @@ func ApplicativeMonoid[E, A any](
 	)
 }
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [IOEither] instances via their applicative
+// ApplicativeMonoidSeq returns a [Monoid] that concatenates [IOEither] instances sequentially via their applicative
 func ApplicativeMonoidSeq[E, A any](
 	m monoid.Monoid[A],
 ) Monoid[E, A] {
@@ -47,7 +47,7 @@ func ApplicativeMonoidSeq[E, A any](
 	)
 }
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [IOEither] instances via their applicative
+// ApplicativeMonoidPar returns a [Monoid] that concatenates [IOEither] instances in parallel via their applicative
 func ApplicativeMonoidPar[E, A any](
 	m monoid.Monoid[A],
 ) Monoid[E, A] {

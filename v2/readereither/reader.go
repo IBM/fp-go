@@ -331,7 +331,13 @@ func ChainLeft[R, EA, EB, A any](f Kleisli[R, EB, EA, A]) func(ReaderEither[R, E
 //
 //go:inline
 func MonadChainFirstLeft[A, R, EA, EB, B any](ma ReaderEither[R, EA, A], f Kleisli[R, EB, EA, B]) ReaderEither[R, EA, A] {
-	return MonadChainLeft(ma, function.Flow2(f, Fold(function.Constant1[EB](ma), function.Constant1[B](ma))))
+	return eithert.MonadChainFirstLeft(
+		reader.MonadChain[R, Either[EA, A], Either[EA, A]],
+		reader.MonadMap[R, Either[EB, B], Either[EA, A]],
+		reader.Of[R, Either[EA, A]],
+		ma,
+		f,
+	)
 }
 
 //go:inline
@@ -373,15 +379,17 @@ func MonadTapLeft[A, R, EA, EB, B any](ma ReaderEither[R, EA, A], f Kleisli[R, E
 //	// result is always Left("validation failed")
 //
 //go:inline
-func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) func(ReaderEither[R, EA, A]) ReaderEither[R, EA, A] {
-	return ChainLeft(func(e EA) ReaderEither[R, EA, A] {
-		ma := Left[R, A](e)
-		return MonadFold(f(e), function.Constant1[EB](ma), function.Constant1[B](ma))
-	})
+func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
+	return eithert.ChainFirstLeft(
+		reader.Chain[R, Either[EA, A], Either[EA, A]],
+		reader.Map[R, Either[EB, B], Either[EA, A]],
+		reader.Of[R, Either[EA, A]],
+		f,
+	)
 }
 
 //go:inline
-func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) func(ReaderEither[R, EA, A]) ReaderEither[R, EA, A] {
+func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
 	return ChainFirstLeft[A](f)
 }
 
@@ -391,5 +399,5 @@ func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) func(ReaderEither[R, 
 //
 //go:inline
 func MonadFold[E, L, A, B any](ma ReaderEither[E, L, A], onLeft func(L) Reader[E, B], onRight func(A) Reader[E, B]) Reader[E, B] {
-	return Fold[E, L, A, B](onLeft, onRight)(ma)
+	return Fold(onLeft, onRight)(ma)
 }

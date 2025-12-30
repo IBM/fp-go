@@ -151,7 +151,7 @@ func TraverseArrayWithIndexPar[E, A, B any](f func(int, A) IOEither[E, B]) Kleis
 	)
 }
 
-// SequenceArrayPar converts a homogeneous Paruence of either into an either of Paruence
+// SequenceArrayPar converts a homogeneous sequence of either into an either of sequence
 func SequenceArrayPar[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 	return TraverseArrayPar(function.Identity[IOEither[E, A]])(ma)
 }
@@ -172,13 +172,13 @@ func TraverseRecordWithIndexPar[K comparable, E, A, B any](f func(K, A) IOEither
 	return record.TraverseWithIndex[map[K]A](
 		Of[E, map[K]B],
 		Map[E, map[K]B, func(B) map[K]B],
-		ApSeq[map[K]B, E, B],
+		ApPar[map[K]B, E, B],
 
 		f,
 	)
 }
 
-// SequenceRecordPar converts a homogeneous Paruence of either into an either of Paruence
+// SequenceRecordPar converts a homogeneous sequence of either into an either of sequence
 func SequenceRecordPar[K comparable, E, A any](ma map[K]IOEither[E, A]) IOEither[E, map[K]A] {
 	return TraverseRecordPar[K](function.Identity[IOEither[E, A]])(ma)
 }

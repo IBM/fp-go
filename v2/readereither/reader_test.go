@@ -184,8 +184,8 @@ func TestOrElse(t *testing.T) {
 	}
 
 	// Test OrElse with Right - should pass through unchanged
-	rightValue := Of[Config, string, int](42)
-	recover := OrElse[Config, string, string, int](func(err string) ReaderEither[Config, string, int] {
+	rightValue := Of[Config, string](42)
+	recover := OrElse(func(err string) ReaderEither[Config, string, int] {
 		return Left[Config, int]("should not be called")
 	})
 	result := recover(rightValue)(Config{fallbackValue: 0})
@@ -193,7 +193,7 @@ func TestOrElse(t *testing.T) {
 
 	// Test OrElse with Left - should recover with fallback
 	leftValue := Left[Config, int]("not found")
-	recoverWithFallback := OrElse[Config, string, string, int](func(err string) ReaderEither[Config, string, int] {
+	recoverWithFallback := OrElse(func(err string) ReaderEither[Config, string, int] {
 		if err == "not found" {
 			return func(cfg Config) ET.Either[string, int] {
 				return ET.Right[string](cfg.fallbackValue)
@@ -214,7 +214,7 @@ func TestOrElse(t *testing.T) {
 	type AppError struct{ code int }
 
 	validationErr := Left[Config, int](ValidationError{field: "username"})
-	wideningRecover := OrElse[Config, ValidationError, AppError, int](func(ve ValidationError) ReaderEither[Config, AppError, int] {
+	wideningRecover := OrElse(func(ve ValidationError) ReaderEither[Config, AppError, int] {
 		if ve.field == "username" {
 			return Right[Config, AppError](100)
 		}

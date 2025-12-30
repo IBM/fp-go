@@ -17,6 +17,7 @@ package readerioeither
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -77,6 +78,84 @@ func TestChainReaderK(t *testing.T) {
 	)
 
 	assert.Equal(t, E.Right[error]("1"), g(context.Background())())
+}
+
+func TestOrElse(t *testing.T) {
+	type Config struct {
+		retryLimit int
+		fallback   int
+	}
+
+	// Test basic recovery from Left
+	t.Run("Left value recovered", func(t *testing.T) {
+		rioe := Left[Config, int](errors.New("error"))
+		recover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			return Of[Config, error](0) // default value
+		})
+		result := recover(rioe)(Config{})()
+		assert.Equal(t, E.Right[error](0), result)
+	})
+
+	// Test Right value passes through unchanged
+	t.Run("Right value unchanged", func(t *testing.T) {
+		rioe := Right[Config, error](42)
+		recover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			return Of[Config, error](0)
+		})
+		result := recover(rioe)(Config{})()
+		assert.Equal(t, E.Right[error](42), result)
+	})
+
+	// Test conditional recovery using config
+	t.Run("Conditional recovery with config", func(t *testing.T) {
+		rioe := Left[Config, int](errors.New("retryable"))
+		recoverWithConfig := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			return func(cfg Config) IOEither[error, int] {
+				if err.Error() == "retryable" && cfg.retryLimit > 0 {
+					return IOE.Right[error](cfg.fallback)
+				}
+				return IOE.Left[int](err)
+			}
+		})
+		result := recoverWithConfig(rioe)(Config{retryLimit: 3, fallback: 99})()
+		assert.Equal(t, E.Right[error](99), result)
+	})
+
+	// Test error propagation
+	t.Run("Error propagation", func(t *testing.T) {
+		otherErr := errors.New("other error")
+		rioe := Left[Config, int](otherErr)
+		recoverSpecific := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			if err.Error() == "retryable" {
+				return Of[Config, error](0)
+			}
+			return Left[Config, int](err) // propagate other errors
+		})
+		result := recoverSpecific(rioe)(Config{})()
+		assert.Equal(t, E.Left[int](otherErr), result)
+	})
+
+	// Test chaining multiple OrElse operations
+	t.Run("Chaining OrElse operations", func(t *testing.T) {
+		firstRecover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			if err.Error() == "error1" {
+				return Of[Config, error](1)
+			}
+			return Left[Config, int](err)
+		})
+		secondRecover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			if err.Error() == "error2" {
+				return Of[Config, error](2)
+			}
+			return Left[Config, int](err)
+		})
+
+		result1 := F.Pipe1(Left[Config, int](errors.New("error1")), firstRecover)(Config{})()
+		assert.Equal(t, E.Right[error](1), result1)
+
+		result2 := F.Pipe1(Left[Config, int](errors.New("error2")), F.Flow2(firstRecover, secondRecover))(Config{})()
+		assert.Equal(t, E.Right[error](2), result2)
+	})
 }
 
 func TestOrElseWFunc(t *testing.T) {

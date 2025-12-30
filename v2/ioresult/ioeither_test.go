@@ -154,20 +154,20 @@ func TestApSecond(t *testing.T) {
 func TestOrElse(t *testing.T) {
 	// Test basic recovery from Left
 	recover := OrElse(func(e error) IOResult[int] {
-		return Right[int](0)
+		return Right(0)
 	})
 
 	res := recover(Left[int](fmt.Errorf("error")))()
 	assert.Equal(t, result.Of(0), res)
 
 	// Test Right value passes through unchanged
-	res = recover(Right[int](42))()
+	res = recover(Right(42))()
 	assert.Equal(t, result.Of(42), res)
 
 	// Test selective recovery - recover some errors, propagate others
 	selectiveRecover := OrElse(func(err error) IOResult[int] {
 		if err.Error() == "not found" {
-			return Right[int](0) // default value for "not found"
+			return Right(0) // default value for "not found"
 		}
 		return Left[int](err) // propagate other errors
 	})
@@ -181,13 +181,13 @@ func TestOrElse(t *testing.T) {
 	// Test chaining multiple OrElse operations
 	firstRecover := OrElse(func(err error) IOResult[int] {
 		if err.Error() == "error1" {
-			return Right[int](1)
+			return Right(1)
 		}
 		return Left[int](err)
 	})
 	secondRecover := OrElse(func(err error) IOResult[int] {
 		if err.Error() == "error2" {
-			return Right[int](2)
+			return Right(2)
 		}
 		return Left[int](err)
 	})
