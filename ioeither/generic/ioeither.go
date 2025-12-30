@@ -369,6 +369,11 @@ func ToIOOption[GA ~func() O.Option[A], GEA ~func() ET.Either[E, A], E, A any](i
 	)
 }
 
+// OrElse returns the original IOEither if it is a Right, otherwise it applies the given function to the error and returns the result.
+func OrElse[GA ~func() ET.Either[E, A], E, A any](onLeft func(E) GA) func(GA) GA {
+	return eithert.OrElse(IO.MonadChain[GA, GA, ET.Either[E, A], ET.Either[E, A]], IO.Of[GA, ET.Either[E, A]], onLeft)
+}
+
 func FromIOOption[GEA ~func() ET.Either[E, A], GA ~func() O.Option[A], E, A any](onNone func() E) func(ioo GA) GEA {
 	return IO.Map[GA, GEA](ET.FromOption[A](onNone))
 }

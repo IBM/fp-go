@@ -401,3 +401,65 @@ func TestChainFirstLeft(t *testing.T) {
 		assert.Equal(t, E.Left[string]("step2"), actualResult)
 	})
 }
+
+func TestOrElse(t *testing.T) {
+	// Test that OrElse recovers from a Left
+	t.Run("OrElse recovers from Left", func(t *testing.T) {
+		recover := OrElse(func(err string) IOEither[string, int] {
+			return Right[string](42)
+		})
+
+		result := F.Pipe1(
+			Left[int]("error"),
+			recover,
+		)
+		assert.Equal(t, E.Right[string](42), result())
+	})
+
+	// When input is Right, should pass through unchanged
+	t.Run("OrElse passes through Right unchanged", func(t *testing.T) {
+		recover := OrElse(func(err string) IOEither[string, int] {
+			return Right[string](42)
+		})
+
+		result := F.Pipe1(
+			Right[string](100),
+			recover,
+		)
+		assert.Equal(t, E.Right[string](100), result())
+	})
+
+	// Test that OrElse can also return a Left (propagate different error)
+	t.Run("OrElse can propagate different error", func(t *testing.T) {
+		recoverOrFail := OrElse(func(err string) IOEither[string, int] {
+			if err == "recoverable" {
+				return Right[string](0)
+			}
+			return Left[int]("unrecoverable: " + err)
+		})
+
+		recoverable := F.Pipe1(
+			Left[int]("recoverable"),
+			recoverOrFail,
+		)
+		assert.Equal(t, E.Right[string](0), recoverable())
+
+		unrecoverable := F.Pipe1(
+			Left[int]("fatal"),
+			recoverOrFail,
+		)
+		assert.Equal(t, E.Left[int]("unrecoverable: fatal"), unrecoverable())
+	})
+
+	// Test composition with other operations
+	t.Run("OrElse composition with Map", func(t *testing.T) {
+		result := F.Pipe2(
+			Left[int]("error"),
+			OrElse(func(err string) IOEither[string, int] {
+				return Right[string](21)
+			}),
+			Map[string](utils.Double),
+		)
+		assert.Equal(t, E.Right[string](42), result())
+	})
+}
