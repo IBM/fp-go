@@ -428,6 +428,28 @@ func Alt[E, A any](second lazy.Lazy[IOEither[E, A]]) Operator[E, A, A] {
 	return function.Bind2nd(MonadAlt[E, A], second)
 }
 
+// OrElse returns the original IOEither if it is a Right, otherwise it applies the given function to the error and returns the result.
+// This is useful for error recovery where you want to handle errors based on their value.
+//
+// Parameters:
+//   - onLeft: A function that takes an error and returns an [IOEither] to recover with
+//
+// Returns:
+//   - An [Operator] that recovers from errors using the provided function
+//
+// Example:
+//
+//	recover := ioeither.OrElse(func(err string) ioeither.IOEither[string, int] {
+//	    if err == "retryable" {
+//	        return ioeither.Right[string](0) // default value
+//	    }
+//	    return ioeither.Left[int](err) // propagate error
+//	})
+//	result := recover(ioeither.Left[int]("retryable")) // Right(0)
+func OrElse[E, A any](onLeft Kleisli[E, E, A]) Operator[E, A, A] {
+	return eithert.OrElse(io.MonadChain[Either[E, A], Either[E, A]], io.Of[Either[E, A]], onLeft)
+}
+
 func MonadFlap[E, B, A any](fab IOEither[E, func(A) B], a A) IOEither[E, B] {
 	return functor.MonadFlap(MonadMap[E, func(A) B, B], fab, a)
 }

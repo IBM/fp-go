@@ -134,3 +134,44 @@ func TestApSecond(t *testing.T) {
 
 	assert.Equal(t, E.Of[error]("b"), x())
 }
+
+func TestOrElse(t *testing.T) {
+	// Test that OrElse recovers from a Left
+	recover := OrElse(func(err string) IOEither[string, int] {
+		return Right[string](42)
+	})
+
+	// When input is Left, should recover
+	leftResult := F.Pipe1(
+		Left[int]("error"),
+		recover,
+	)
+	assert.Equal(t, E.Right[string](42), leftResult())
+
+	// When input is Right, should pass through unchanged
+	rightResult := F.Pipe1(
+		Right[string](100),
+		recover,
+	)
+	assert.Equal(t, E.Right[string](100), rightResult())
+
+	// Test that OrElse can also return a Left (propagate different error)
+	recoverOrFail := OrElse(func(err string) IOEither[string, int] {
+		if err == "recoverable" {
+			return Right[string](0)
+		}
+		return Left[int]("unrecoverable: " + err)
+	})
+
+	recoverable := F.Pipe1(
+		Left[int]("recoverable"),
+		recoverOrFail,
+	)
+	assert.Equal(t, E.Right[string](0), recoverable())
+
+	unrecoverable := F.Pipe1(
+		Left[int]("fatal"),
+		recoverOrFail,
+	)
+	assert.Equal(t, E.Left[int]("unrecoverable: fatal"), unrecoverable())
+}

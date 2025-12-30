@@ -413,6 +413,11 @@ func Alt[LAZY ~func() GIOA, GIOA ~func() either.Either[E, A], E, A any](second L
 	return F.Bind2nd(MonadAlt[LAZY], second)
 }
 
+// OrElse returns the original IOEither if it is a Right, otherwise it applies the given function to the error and returns the result.
+func OrElse[GA ~func() either.Either[E, A], E, A any](onLeft func(E) GA) func(GA) GA {
+	return eithert.OrElse(IO.MonadChain[GA, GA, either.Either[E, A], either.Either[E, A]], IO.Of[GA, either.Either[E, A]], onLeft)
+}
+
 // Deprecated:
 func MonadFlap[GEAB ~func() either.Either[E, func(A) B], GEB ~func() either.Either[E, B], E, B, A any](fab GEAB, a A) GEB {
 	return FC.MonadFlap(MonadMap[GEAB, GEB], fab, a)
