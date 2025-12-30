@@ -31,7 +31,7 @@
 //	import P "github.com/IBM/fp-go/v2/predicate"
 //
 //	// Create predicates
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	isEven := func(n int) bool { return n%2 == 0 }
 //
 //	// Combine predicates

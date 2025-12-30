@@ -21,6 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/optics/lens/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -95,4 +96,6 @@ type (
 	Option[A any]          = option.Option[A]
 
 	Consumer[A any] = consumer.Consumer[A]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

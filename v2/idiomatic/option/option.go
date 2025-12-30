@@ -47,7 +47,7 @@ import (
 //
 // Example:
 //
-//	isPositive := FromPredicate(func(n int) bool { return n > 0 })
+//	isPositive := FromPredicate(N.MoreThan(0))
 //	result := isPositive(5)  // Some(5)
 //	result := isPositive(-1) // None
 func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {

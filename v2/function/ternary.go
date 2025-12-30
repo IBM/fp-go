@@ -35,7 +35,7 @@ package function
 //
 // Example:
 //
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	double := N.Mul(2)
 //	negate := func(n int) int { return -n }
 //
@@ -45,7 +45,7 @@ package function
 //
 //	// Classify numbers
 //	classify := Ternary(
-//	    func(n int) bool { return n > 0 },
+//	    N.MoreThan(0),
 //	    Constant1[int, string]("positive"),
 //	    Constant1[int, string]("non-positive"),
 //	)

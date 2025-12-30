@@ -127,7 +127,7 @@
 //
 // Convert predicates to Options:
 //
-//	isPositive := FromPredicate(func(n int) bool { return n > 0 })
+//	isPositive := FromPredicate(N.MoreThan(0))
 //	result := isPositive(5)  // (5, true)
 //	result := isPositive(-1)  // (0, false)
 //

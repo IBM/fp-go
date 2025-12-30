@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/assert"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -111,7 +112,7 @@ func Example_predicateAssertions() {
 	var t *testing.T // placeholder for example
 
 	// Test if a number is positive
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	assert.That(isPositive)(42)(t)
 
 	// Test if a string is uppercase

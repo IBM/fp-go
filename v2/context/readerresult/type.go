@@ -48,6 +48,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/result"
@@ -68,4 +69,5 @@ type (
 	Prism[S, T any]      = prism.Prism[S, T]
 	Lens[S, T any]       = lens.Lens[S, T]
 	Trampoline[A, B any] = tailrec.Trampoline[A, B]
+	Predicate[A any]     = predicate.Predicate[A]
 )

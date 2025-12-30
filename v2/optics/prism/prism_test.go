@@ -24,6 +24,7 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -283,7 +284,7 @@ func TestPrismModify(t *testing.T) {
 // TestPrismModifyWithTransform tests modifying through a prism with a transformation
 func TestPrismModifyWithTransform(t *testing.T) {
 	// Create a prism for positive numbers
-	positivePrism := FromPredicate(func(n int) bool { return n > 0 })
+	positivePrism := FromPredicate(N.MoreThan(0))
 
 	// Modify positive number
 	setter := Set[int](100)

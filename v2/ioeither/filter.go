@@ -35,7 +35,7 @@ import "github.com/IBM/fp-go/v2/either"
 // Example:
 //
 //	// Validate that a number is positive
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	onNegative := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
 //
 //	validatePositive := ioeither.FilterOrElse(isPositive, onNegative)

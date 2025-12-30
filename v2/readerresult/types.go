@@ -21,6 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -38,4 +39,5 @@ type (
 
 	Kleisli[R, A, B any]  = Reader[A, ReaderResult[R, B]]
 	Operator[R, A, B any] = Kleisli[R, ReaderResult[R, A], B]
+	Predicate[A any]      = predicate.Predicate[A]
 )

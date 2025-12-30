@@ -145,8 +145,8 @@ func TestAlternativeMonoid(t *testing.T) {
 
 func TestAltMonoid(t *testing.T) {
 	ctx := testCtx{value: 1}
-	zero := L.Of[ReaderIOEither[testCtx, error, int]](Of[testCtx, error](0))
-	m := AltMonoid[testCtx, error](zero)
+	zero := L.Of(Of[testCtx, error](0))
+	m := AltMonoid(zero)
 
 	t.Run("returns first Right value", func(t *testing.T) {
 		a := Of[testCtx, error](42)
