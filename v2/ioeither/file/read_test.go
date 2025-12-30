@@ -248,9 +248,8 @@ func TestReadComposition(t *testing.T) {
 			if err != nil {
 				return 0, err
 			}
-			var num int
 			// Simple parsing
-			num = int(data[0]-'0')*10 + int(data[1]-'0')
+			num := int(data[0]-'0')*10 + int(data[1]-'0')
 			return num, nil
 		})
 	}

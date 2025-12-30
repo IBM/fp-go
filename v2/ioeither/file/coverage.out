@@ -1,0 +1,21 @@
+mode: set
+github.com/IBM/fp-go/v2/ioeither/file/dir.go:40.70,41.55 1 1
+github.com/IBM/fp-go/v2/ioeither/file/dir.go:41.55,43.3 1 1
+github.com/IBM/fp-go/v2/ioeither/file/dir.go:62.67,63.55 1 1
+github.com/IBM/fp-go/v2/ioeither/file/dir.go:63.55,65.3 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:77.81,78.51 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:78.51,79.56 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:79.56,81.4 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:86.50,87.55 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:87.55,89.3 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:93.51,94.52 1 1
+github.com/IBM/fp-go/v2/ioeither/file/file.go:94.52,96.3 1 1
+github.com/IBM/fp-go/v2/ioeither/file/read.go:76.106,80.2 1 1
+github.com/IBM/fp-go/v2/ioeither/file/readall.go:41.83,49.2 1 1
+github.com/IBM/fp-go/v2/ioeither/file/tempfile.go:42.76,44.2 1 1
+github.com/IBM/fp-go/v2/ioeither/file/write.go:24.69,25.43 1 1
+github.com/IBM/fp-go/v2/ioeither/file/write.go:25.43,26.56 1 1
+github.com/IBM/fp-go/v2/ioeither/file/write.go:26.56,29.4 2 1
+github.com/IBM/fp-go/v2/ioeither/file/write.go:45.73,47.67 2 1
+github.com/IBM/fp-go/v2/ioeither/file/write.go:47.67,53.3 1 1
+github.com/IBM/fp-go/v2/ioeither/file/write.go:71.105,75.2 1 1
