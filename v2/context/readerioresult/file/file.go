@@ -44,11 +44,11 @@ var (
 )
 
 // Close closes an object
-func Close[C io.Closer](c C) RIOE.ReaderIOResult[any] {
+func Close[C io.Closer](c C) RIOE.ReaderIOResult[struct{}] {
 	return F.Pipe2(
 		c,
 		IOEF.Close[C],
-		RIOE.FromIOEither[any],
+		RIOE.FromIOEither[struct{}],
 	)
 }
 

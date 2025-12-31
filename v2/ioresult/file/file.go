@@ -90,6 +90,6 @@ func Remove(name string) IOResult[string] {
 // Close closes an object
 //
 //go:inline
-func Close[C io.Closer](c C) IOResult[any] {
+func Close[C io.Closer](c C) IOResult[struct{}] {
 	return file.Close(c)
 }
