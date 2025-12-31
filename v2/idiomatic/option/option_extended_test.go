@@ -130,20 +130,20 @@ func TestChainFirst(t *testing.T) {
 // Test Filter
 func TestFilter(t *testing.T) {
 	t.Run("positive case - predicate satisfied", func(t *testing.T) {
-		isPositive := Filter(func(x int) bool { return x > 0 })
+		isPositive := Filter(N.MoreThan(0))
 		// Should keep value when predicate is satisfied
 		AssertEq(Some(5))(isPositive(Some(5)))(t)
 	})
 
 	t.Run("negative case - predicate not satisfied", func(t *testing.T) {
-		isPositive := Filter(func(x int) bool { return x > 0 })
+		isPositive := Filter(N.MoreThan(0))
 		// Should return None when predicate fails
 		AssertEq(None[int]())(isPositive(Some(-1)))(t)
 		AssertEq(None[int]())(isPositive(Some(0)))(t)
 	})
 
 	t.Run("negative case - input is None", func(t *testing.T) {
-		isPositive := Filter(func(x int) bool { return x > 0 })
+		isPositive := Filter(N.MoreThan(0))
 		// Should return None when input is None
 		AssertEq(None[int]())(isPositive(None[int]()))(t)
 	})

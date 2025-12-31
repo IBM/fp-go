@@ -55,7 +55,7 @@ import (
 
 // Create a pipeline of transformations
 pipeline := F.Flow3(
-    A.Filter(func(x int) bool { return x > 0 }),     // Keep positive numbers
+    A.Filter(N.MoreThan(0)),     // Keep positive numbers
     A.Map(N.Mul(2)),                                  // Double each number
     A.Reduce(func(acc, x int) int { return acc + x }, 0), // Sum them up
 )

@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
@@ -54,6 +55,7 @@ type (
 	// It is equivalent to Reader[R, IOResult[A]] or func(R) func() (A, error).
 	ReaderIOResult[R, A any] = Reader[R, IOResult[A]]
 
+	// ReaderIO represents a computation that depends on an environment R and performs side effects.
 	ReaderIO[R, A any] = readerio.ReaderIO[R, A]
 
 	// Monoid represents a monoid structure for ReaderIOResult values.
@@ -66,4 +68,6 @@ type (
 	// Operator represents a transformation from ReaderIOResult[R, A] to ReaderIOResult[R, B].
 	// It is commonly used in function composition pipelines.
 	Operator[R, A, B any] = Kleisli[R, ReaderIOResult[R, A], B]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

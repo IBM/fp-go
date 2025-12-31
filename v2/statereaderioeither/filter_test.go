@@ -20,7 +20,9 @@ import (
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
+	N "github.com/IBM/fp-go/v2/number"
 	P "github.com/IBM/fp-go/v2/pair"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,8 +36,8 @@ type Config struct {
 
 func TestFilterOrElse_PredicateTrue(t *testing.T) {
 	// Test that when predicate returns true, Right value passes through
-	isPositive := func(n int) bool { return n > 0 }
-	onFalse := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
+	isPositive := N.MoreThan(0)
+	onFalse := S.Format[int]("%d is not positive")
 
 	filter := FilterOrElse[AppState, Config](isPositive, onFalse)
 	result := filter(Right[AppState, Config, string](42))(AppState{Counter: 0})(Config{MaxValue: 100})()
@@ -49,8 +51,8 @@ func TestFilterOrElse_PredicateTrue(t *testing.T) {
 
 func TestFilterOrElse_PredicateFalse(t *testing.T) {
 	// Test that when predicate returns false, Right value becomes Left
-	isPositive := func(n int) bool { return n > 0 }
-	onFalse := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
+	isPositive := N.MoreThan(0)
+	onFalse := S.Format[int]("%d is not positive")
 
 	filter := FilterOrElse[AppState, Config](isPositive, onFalse)
 	result := filter(Right[AppState, Config, string](-5))(AppState{Counter: 0})(Config{MaxValue: 100})()
@@ -61,8 +63,8 @@ func TestFilterOrElse_PredicateFalse(t *testing.T) {
 
 func TestFilterOrElse_LeftPassesThrough(t *testing.T) {
 	// Test that Left values pass through unchanged
-	isPositive := func(n int) bool { return n > 0 }
-	onFalse := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
+	isPositive := N.MoreThan(0)
+	onFalse := S.Format[int]("%d is not positive")
 
 	filter := FilterOrElse[AppState, Config](isPositive, onFalse)
 	result := filter(Left[AppState, Config, int]("original error"))(AppState{Counter: 0})(Config{MaxValue: 100})()
@@ -111,7 +113,7 @@ func TestFilterOrElse_WithContextValidation(t *testing.T) {
 
 func TestFilterOrElse_ChainedFilters(t *testing.T) {
 	// Test chaining multiple filters
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	onNegative := func(n int) string { return "not positive" }
 
 	isEven := func(n int) bool { return n%2 == 0 }
@@ -213,7 +215,7 @@ func TestFilterOrElse_AlwaysTrue(t *testing.T) {
 func TestFilterOrElse_AlwaysFalse(t *testing.T) {
 	// Test with predicate that always returns false
 	alwaysFalse := func(n int) bool { return false }
-	onFalse := func(n int) string { return fmt.Sprintf("rejected: %d", n) }
+	onFalse := S.Format[int]("rejected: %d")
 
 	filter := FilterOrElse[AppState, Config](alwaysFalse, onFalse)
 	state := AppState{Counter: 0}

@@ -163,7 +163,7 @@ func Ap[B, E, A any](fa ReaderOption[E, A]) Operator[E, func(A) B, B] {
 //
 // Example:
 //
-//	isPositive := readeroption.FromPredicate[Config](func(x int) bool { return x > 0 })
+//	isPositive := readeroption.FromPredicate[Config](N.MoreThan(0))
 //	result := F.Pipe1(
 //	    readeroption.Of[Config](42),
 //	    readeroption.Chain(isPositive),

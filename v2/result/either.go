@@ -394,7 +394,7 @@ func UnwrapError[A any](ma Result[A]) (A, error) {
 // Example:
 //
 //	isPositive := either.FromPredicate(
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return errors.New("not positive") },
 //	)
 //	result := isPositive(42) // Right(42)

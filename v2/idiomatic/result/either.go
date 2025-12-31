@@ -216,7 +216,7 @@ func Fold[A, B any](onLeft func(error) B, onRight func(A) B) func(A, error) B {
 // Example:
 //
 //	isPositive := either.FromPredicate(
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return errors.New("not positive") },
 //	)
 //	result := isPositive(42) // Right(42)

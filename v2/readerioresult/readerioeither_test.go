@@ -342,14 +342,14 @@ func TestFromPredicate(t *testing.T) {
 
 	// Test predicate true
 	resultTrue := FromPredicate[testContext](
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errors.New("negative") },
 	)(5)
 	assert.Equal(t, result.Of(5), resultTrue(ctx)())
 
 	// Test predicate false
 	resultFalse := FromPredicate[testContext](
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errors.New("negative") },
 	)(-5)
 	assert.True(t, E.IsLeft(resultFalse(ctx)()))
@@ -777,7 +777,7 @@ func TestOrElse(t *testing.T) {
 
 	// Test OrElse with Right - should pass through unchanged
 	rightValue := Of[Config](42)
-	recover := OrElse[Config, int](func(err error) ReaderIOResult[Config, int] {
+	recover := OrElse(func(err error) ReaderIOResult[Config, int] {
 		return Left[Config, int](errors.New("should not be called"))
 	})
 	res := recover(rightValue)(ctx)()
@@ -785,7 +785,7 @@ func TestOrElse(t *testing.T) {
 
 	// Test OrElse with Left - should recover with fallback
 	leftValue := Left[Config, int](errors.New("not found"))
-	recoverWithFallback := OrElse[Config, int](func(err error) ReaderIOResult[Config, int] {
+	recoverWithFallback := OrElse(func(err error) ReaderIOResult[Config, int] {
 		if err.Error() == "not found" {
 			return func(cfg Config) IOResult[int] {
 				return func() result.Result[int] {

@@ -73,7 +73,7 @@ func BenchmarkChain(b *testing.B) {
 
 func BenchmarkFilter(b *testing.B) {
 	opt := Some(42)
-	filter := Filter(func(x int) bool { return x > 0 })
+	filter := Filter(N.MoreThan(0))
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -164,7 +164,7 @@ func BenchmarkDoBind(b *testing.B) {
 
 // Benchmark conversions
 func BenchmarkFromPredicate(b *testing.B) {
-	pred := FromPredicate(func(x int) bool { return x > 0 })
+	pred := FromPredicate(N.MoreThan(0))
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

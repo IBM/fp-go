@@ -21,13 +21,14 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	N "github.com/IBM/fp-go/v2/number"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFilterOrElse_PredicateTrue(t *testing.T) {
 	// Test that when predicate returns true, Right value passes through
 	isPositive := N.MoreThan(0)
-	onFalse := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
+	onFalse := S.Format[int]("%d is not positive")
 
 	filter := FilterOrElse(isPositive, onFalse)
 	result := filter(Right[string](42))()
@@ -38,7 +39,7 @@ func TestFilterOrElse_PredicateTrue(t *testing.T) {
 func TestFilterOrElse_PredicateFalse(t *testing.T) {
 	// Test that when predicate returns false, Right value becomes Left
 	isPositive := N.MoreThan(0)
-	onFalse := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
+	onFalse := S.Format[int]("%d is not positive")
 
 	filter := FilterOrElse(isPositive, onFalse)
 	result := filter(Right[string](-5))()
@@ -49,7 +50,7 @@ func TestFilterOrElse_PredicateFalse(t *testing.T) {
 func TestFilterOrElse_LeftPassesThrough(t *testing.T) {
 	// Test that Left values pass through unchanged
 	isPositive := N.MoreThan(0)
-	onFalse := func(n int) string { return fmt.Sprintf("%d is not positive", n) }
+	onFalse := S.Format[int]("%d is not positive")
 
 	filter := FilterOrElse(isPositive, onFalse)
 	result := filter(Left[int]("original error"))()
@@ -70,7 +71,7 @@ func TestFilterOrElse_ZeroValue(t *testing.T) {
 
 func TestFilterOrElse_StringValidation(t *testing.T) {
 	// Test with string validation
-	isNonEmpty := func(s string) bool { return len(s) > 0 }
+	isNonEmpty := S.IsNonEmpty
 	onEmpty := func(s string) error { return fmt.Errorf("string is empty") }
 
 	filter := FilterOrElse(isNonEmpty, onEmpty)
@@ -194,7 +195,7 @@ func TestFilterOrElse_AlwaysTrue(t *testing.T) {
 func TestFilterOrElse_AlwaysFalse(t *testing.T) {
 	// Test with predicate that always returns false
 	alwaysFalse := func(n int) bool { return false }
-	onFalse := func(n int) string { return fmt.Sprintf("rejected: %d", n) }
+	onFalse := S.Format[int]("rejected: %d")
 
 	filter := FilterOrElse(alwaysFalse, onFalse)
 

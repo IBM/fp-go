@@ -21,12 +21,15 @@ import (
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
+// concat concatenates two strings
 func concat(left, right string) string {
 	return fmt.Sprintf("%s%s", left, right)
 }
 
+// Semigroup is the semigroup implementing string concatenation
 var Semigroup = S.MakeSemigroup(concat)
 
+// IntersperseSemigroup creates a semigroup that concatenates strings with a middle string in between
 func IntersperseSemigroup(middle string) S.Semigroup[string] {
 	return S.MakeSemigroup(Intersperse(middle))
 }

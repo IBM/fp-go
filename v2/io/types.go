@@ -11,18 +11,31 @@ import (
 )
 
 type (
+	// IO represents a synchronous computation that cannot fail.
+	// It's a function that takes no arguments and returns a value of type A.
+	// Refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioltagt] for more details.
+	IO[A any] = func() A
 
-	// IO represents a synchronous computation that cannot fail
-	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioltagt] for more details
-	IO[A any]      = func() A
+	// Pair represents a tuple of two values of types L and R.
 	Pair[L, R any] = pair.Pair[L, R]
 
-	Kleisli[A, B any]  = reader.Reader[A, IO[B]]
-	Operator[A, B any] = Kleisli[IO[A], B]
-	Monoid[A any]      = M.Monoid[IO[A]]
-	Semigroup[A any]   = S.Semigroup[IO[A]]
+	// Kleisli represents a Kleisli arrow for the IO monad.
+	// It's a function from A to IO[B], used for composing IO operations.
+	Kleisli[A, B any] = reader.Reader[A, IO[B]]
 
+	// Operator represents a function that transforms one IO into another.
+	// It takes an IO[A] and produces an IO[B].
+	Operator[A, B any] = Kleisli[IO[A], B]
+
+	// Monoid represents a monoid structure for IO values.
+	Monoid[A any] = M.Monoid[IO[A]]
+
+	// Semigroup represents a semigroup structure for IO values.
+	Semigroup[A any] = S.Semigroup[IO[A]]
+
+	// Consumer represents a function that consumes a value of type A.
 	Consumer[A any] = consumer.Consumer[A]
 
+	// Seq represents an iterator sequence over values of type T.
 	Seq[T any] = iter.Seq[T]
 )

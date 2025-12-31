@@ -37,6 +37,7 @@ type (
 	// and produces a value of type A. It's useful for dependency injection patterns.
 	Reader[R, A any] = reader.Reader[R, A]
 
+	// IO represents a synchronous computation that cannot fail.
 	IO[T any] = io.IO[T]
 
 	// ReaderIO represents a computation that depends on some context R and performs
@@ -47,6 +48,8 @@ type (
 	// fail with an error of type E or succeed with a value of type A.
 	IOEither[E, A any] = ioeither.IOEither[E, A]
 
+	// ReaderEither represents a computation that depends on an environment R and can fail
+	// with an error E or succeed with a value A (without side effects).
 	ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
 
 	// ReaderIOEither represents a computation that:
@@ -76,6 +79,9 @@ type (
 	//   }
 	ReaderIOEither[R, E, A any] = Reader[R, IOEither[E, A]]
 
+	// Kleisli represents a Kleisli arrow for the ReaderIOEither monad.
+	// It's a function from A to ReaderIOEither[R, E, B], used for composing operations that
+	// depend on an environment, perform side effects, and may fail.
 	Kleisli[R, E, A, B any] = reader.Reader[A, ReaderIOEither[R, E, B]]
 
 	// Operator represents a transformation from one ReaderIOEither to another.
@@ -92,10 +98,15 @@ type (
 	//   var doubleOp Operator[Config, error, int, int] = Map(N.Mul(2))
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderIOEither[R, E, A], B]
 
+	// ReaderOption represents a computation that depends on an environment R and may not produce a value.
 	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]
-	Option[A any]          = option.Option[A]
 
+	// Option represents an optional value that may or may not be present.
+	Option[A any] = option.Option[A]
+
+	// Consumer represents a function that consumes a value of type A.
 	Consumer[A any] = consumer.Consumer[A]
 
+	// Predicate represents a function that tests a value of type A and returns a boolean.
 	Predicate[A any] = predicate.Predicate[A]
 )

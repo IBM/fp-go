@@ -46,42 +46,60 @@ var (
 	HasPrefix = F.Bind2of2(strings.HasPrefix)
 )
 
+// Eq tests if two strings are equal
 func Eq(left, right string) bool {
 	return left == right
 }
 
+// ToBytes converts a string to a byte slice
 func ToBytes(s string) []byte {
 	return []byte(s)
 }
 
+// ToRunes converts a string to a rune slice
 func ToRunes(s string) []rune {
 	return []rune(s)
 }
 
+// IsEmpty returns true if the string is empty
+//
 //go:inline
 func IsEmpty(s string) bool {
 	return s == ""
 }
 
+// IsNonEmpty returns true if the string is not empty
+//
 //go:inline
 func IsNonEmpty(s string) bool {
 	return s != ""
 }
 
+// Size returns the length of the string in bytes
+//
 //go:inline
 func Size(s string) int {
 	return len(s)
 }
 
-// Format applies a format string to an arbitrary value
+// Format applies a format string to an arbitrary value and returns a function
+// that formats values of type T using the provided format string
 func Format[T any](format string) func(T) string {
 	return func(t T) string {
 		return fmt.Sprintf(format, t)
 	}
 }
 
+// Intersperse returns a function that concatenates two strings with a middle string in between.
+// If either string is empty, the middle string is not added (to satisfy monoid identity laws).
 func Intersperse(middle string) func(string, string) string {
 	return func(l, r string) string {
+		if l == "" {
+			return r
+		}
+		if r == "" {
+			return l
+		}
 		return l + middle + r
 	}
 }

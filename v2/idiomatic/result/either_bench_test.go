@@ -429,7 +429,7 @@ func BenchmarkReduce_Left(b *testing.B) {
 // Benchmark FromPredicate
 func BenchmarkFromPredicate_Pass(b *testing.B) {
 	pred := FromPredicate(
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errBench },
 	)
 	b.ResetTimer()
@@ -441,7 +441,7 @@ func BenchmarkFromPredicate_Pass(b *testing.B) {
 
 func BenchmarkFromPredicate_Fail(b *testing.B) {
 	pred := FromPredicate(
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errBench },
 	)
 	b.ResetTimer()

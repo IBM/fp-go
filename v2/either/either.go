@@ -394,12 +394,12 @@ func UnwrapError[A any](ma Either[error, A]) (A, error) {
 // Example:
 //
 //	isPositive := either.FromPredicate(
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return errors.New("not positive") },
 //	)
 //	result := isPositive(42) // Right(42)
 //	result := isPositive(-1) // Left(error)
-func FromPredicate[E, A any](pred func(A) bool, onFalse func(A) E) func(A) Either[E, A] {
+func FromPredicate[E, A any](pred Predicate[A], onFalse func(A) E) Kleisli[E, A, A] {
 	return func(a A) Either[E, A] {
 		if pred(a) {
 			return Right[E](a)
@@ -416,7 +416,7 @@ func FromPredicate[E, A any](pred func(A) bool, onFalse func(A) E) func(A) Eithe
 //	result := either.FromNillable[int](errors.New("nil"))(ptr) // Left(error)
 //	val := 42
 //	result := either.FromNillable[int](errors.New("nil"))(&val) // Right(&42)
-func FromNillable[A, E any](e E) func(*A) Either[E, *A] {
+func FromNillable[A, E any](e E) Kleisli[E, *A, *A] {
 	return FromPredicate(F.IsNonNil[A], F.Constant1[*A](e))
 }
 
@@ -450,7 +450,7 @@ func Reduce[E, A, B any](f func(B, A) B, initial B) func(Either[E, A]) B {
 //	    return either.Right[string](99)
 //	})
 //	result := alternative(either.Left[int](errors.New("fail"))) // Right(99)
-func AltW[E, E1, A any](that Lazy[Either[E1, A]]) func(Either[E, A]) Either[E1, A] {
+func AltW[E, E1, A any](that Lazy[Either[E1, A]]) Kleisli[E1, Either[E, A], A] {
 	return Fold(F.Ignore1of1[E](that), Right[E1, A])
 }
 

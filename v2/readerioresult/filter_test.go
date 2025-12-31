@@ -22,6 +22,7 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	N "github.com/IBM/fp-go/v2/number"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,7 +107,7 @@ func TestFilterOrElse_ZeroValue(t *testing.T) {
 
 func TestFilterOrElse_StringValidation(t *testing.T) {
 	// Test with string validation
-	isNonEmpty := func(s string) bool { return len(s) > 0 }
+	isNonEmpty := S.IsNonEmpty
 	onEmpty := func(s string) error { return fmt.Errorf("string is empty") }
 
 	filter := FilterOrElse[context.Context](isNonEmpty, onEmpty)

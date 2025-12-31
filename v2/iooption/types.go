@@ -27,19 +27,37 @@ import (
 )
 
 type (
+	// Either represents a value of one of two possible types (a disjoint union).
 	Either[E, A any] = either.Either[E, A]
-	Option[A any]    = option.Option[A]
-	IO[A any]        = io.IO[A]
-	Lazy[A any]      = lazy.Lazy[A]
 
-	// IOOption represents a synchronous computation that may fail
-	// refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details
+	// Option represents an optional value that may or may not be present.
+	Option[A any] = option.Option[A]
+
+	// IO represents a synchronous computation that cannot fail.
+	IO[A any] = io.IO[A]
+
+	// Lazy represents a deferred computation that produces a value of type A.
+	Lazy[A any] = lazy.Lazy[A]
+
+	// IOOption represents a synchronous computation that may not produce a value.
+	// It combines IO (side effects) with Option (optional values).
+	// Refer to [https://andywhite.xyz/posts/2021-01-27-rte-foundations/#ioeitherlte-agt] for more details.
 	IOOption[A any] = io.IO[Option[A]]
 
-	Kleisli[A, B any]  = reader.Reader[A, IOOption[B]]
-	Operator[A, B any] = Kleisli[IOOption[A], B]
-	Consumer[A any]    = consumer.Consumer[A]
+	// Kleisli represents a Kleisli arrow for the IOOption monad.
+	// It's a function from A to IOOption[B], used for composing operations that may not produce a value.
+	Kleisli[A, B any] = reader.Reader[A, IOOption[B]]
 
-	Lens[S, T any]  = lens.Lens[S, T]
+	// Operator represents a function that transforms one IOOption into another.
+	// It takes an IOOption[A] and produces an IOOption[B].
+	Operator[A, B any] = Kleisli[IOOption[A], B]
+
+	// Consumer represents a function that consumes a value of type A.
+	Consumer[A any] = consumer.Consumer[A]
+
+	// Lens is an optic that focuses on a field of type T within a structure of type S.
+	Lens[S, T any] = lens.Lens[S, T]
+
+	// Prism is an optic that focuses on a case of a sum type.
 	Prism[S, T any] = prism.Prism[S, T]
 )

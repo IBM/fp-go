@@ -73,7 +73,7 @@
 //
 // Filter keeps values that satisfy a predicate:
 //
-//	isPositive := Filter(func(x int) bool { return x > 0 })
+//	isPositive := Filter(N.MoreThan(0))
 //	result := isPositive(Some(5))  // (5, true)
 //	result := isPositive(Some(-1))  // (0, false)
 //

@@ -342,14 +342,14 @@ func TestFromPredicate(t *testing.T) {
 
 	// Test predicate true
 	resultTrue := FromPredicate[testContext](
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errors.New("negative") },
 	)(5)
 	assert.Equal(t, E.Right[error](5), resultTrue(ctx)())
 
 	// Test predicate false
 	resultFalse := FromPredicate[testContext](
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errors.New("negative") },
 	)(-5)
 	assert.True(t, E.IsLeft(resultFalse(ctx)()))

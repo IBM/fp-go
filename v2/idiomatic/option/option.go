@@ -330,7 +330,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(A, bool) B {
 //
 // Example:
 //
-//	isPositive := Filter(func(x int) bool { return x > 0 })
+//	isPositive := Filter(N.MoreThan(0))
 //	result := isPositive(Some(5)) // Some(5)
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None

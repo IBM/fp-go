@@ -21,18 +21,34 @@ import (
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
-// Option is a type alias for option.Option, provided for convenience
-// when working with Either and Option together.
 type (
-	Option[A any]       = option.Option[A]
-	Lens[S, T any]      = lens.Lens[S, T]
-	Endomorphism[T any] = endomorphism.Endomorphism[T]
-	Lazy[T any]         = lazy.Lazy[T]
+	// Option is a type alias for option.Option, provided for convenience
+	// when working with Either and Option together.
+	Option[A any] = option.Option[A]
 
-	Kleisli[E, A, B any]  = reader.Reader[A, Either[E, B]]
+	// Lens is an optic that focuses on a field of type T within a structure of type S.
+	Lens[S, T any] = lens.Lens[S, T]
+
+	// Endomorphism represents a function from a type to itself (T -> T).
+	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
+	// Lazy represents a deferred computation that produces a value of type T.
+	Lazy[T any] = lazy.Lazy[T]
+
+	// Kleisli represents a Kleisli arrow for the Either monad.
+	// It's a function from A to Either[E, B], used for composing operations that may fail.
+	Kleisli[E, A, B any] = reader.Reader[A, Either[E, B]]
+
+	// Operator represents a function that transforms one Either into another.
+	// It takes an Either[E, A] and produces an Either[E, B].
 	Operator[E, A, B any] = Kleisli[E, Either[E, A], B]
-	Monoid[E, A any]      = monoid.Monoid[Either[E, A]]
+
+	// Monoid represents a monoid structure for Either values.
+	Monoid[E, A any] = monoid.Monoid[Either[E, A]]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

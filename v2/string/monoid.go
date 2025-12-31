@@ -19,9 +19,11 @@ import (
 	M "github.com/IBM/fp-go/v2/monoid"
 )
 
-// Monoid is the monoid implementing string concatenation
+// Monoid is the monoid implementing string concatenation with empty string as identity
 var Monoid = M.MakeMonoid(concat, "")
 
+// IntersperseMonoid creates a monoid that concatenates strings with a middle string in between,
+// with empty string as identity
 func IntersperseMonoid(middle string) M.Monoid[string] {
 	return M.MakeMonoid(Intersperse(middle), "")
 }

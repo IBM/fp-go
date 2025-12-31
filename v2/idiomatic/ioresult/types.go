@@ -4,6 +4,7 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -36,4 +37,6 @@ type (
 	// Operator represents a transformation from IOResult[A] to IOResult[B].
 	// It is commonly used in function composition pipelines.
 	Operator[A, B any] = Kleisli[IOResult[A], B]
+
+	Predicate[A any] = predicate.Predicate[A]
 )
