@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/optics/iso/lens"
 	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerioeither"
@@ -82,4 +83,6 @@ type (
 	// Operator represents a function that transforms one StateReaderIOEither into another.
 	// This is commonly used for building composable operations via Map, Chain, etc.
 	Operator[S, R, E, A, B any] = Reader[StateReaderIOEither[S, R, E, A], StateReaderIOEither[S, R, E, B]]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

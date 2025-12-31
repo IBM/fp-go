@@ -393,6 +393,26 @@ func GetOrElse[A any](onLeft reader.Kleisli[context.Context, error, A]) func(Rea
 	return RR.GetOrElse(onLeft)
 }
 
+// OrElse recovers from a Left (error) by providing an alternative computation.
+// If the ReaderResult is Right, it returns the value unchanged.
+// If the ReaderResult is Left, it applies the provided function to the error value,
+// which returns a new ReaderResult that replaces the original.
+//
+// This is the idiomatic version that works with context.Context-based ReaderResult.
+// This is useful for error recovery, fallback logic, or chaining alternative computations.
+//
+// Example:
+//
+//	// Recover from specific errors with fallback values
+//	recover := readerresult.OrElse(func(err error) readerresult.ReaderResult[int] {
+//	    if err.Error() == "not found" {
+//	        return readerresult.Of[int](0) // default value
+//	    }
+//	    return readerresult.Left[int](err) // propagate other errors
+//	})
+//	result := recover(readerresult.Left[int](errors.New("not found")))(ctx) // Right(0)
+//	result := recover(readerresult.Of(42))(ctx) // Right(42) - unchanged
+//
 //go:inline
 func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
 	return RR.OrElse(WithContextK(onLeft))

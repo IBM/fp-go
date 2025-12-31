@@ -24,16 +24,16 @@ type (
 	Monoid[R, E, A any] = monoid.Monoid[ReaderIOEither[R, E, A]]
 )
 
-// ApplicativeMonoid returns a [Monoid] that concatenates [ReaderIOResult] instances via their applicative.
+// ApplicativeMonoid returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative.
 // This uses the default applicative behavior (parallel or sequential based on useParallel flag).
 //
-// The monoid combines two ReaderIOResult values by applying the underlying monoid's combine operation
+// The monoid combines two ReaderIOEither values by applying the underlying monoid's combine operation
 // to their success values using applicative application.
 //
 // Parameters:
 //   - m: The underlying monoid for type A
 //
-// Returns a Monoid for ReaderIOResult[A].
+// Returns a Monoid for ReaderIOEither[R, E, A].
 func ApplicativeMonoid[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	return monoid.ApplicativeMonoid(
 		Of[R, E, A],
@@ -43,13 +43,13 @@ func ApplicativeMonoid[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	)
 }
 
-// ApplicativeMonoidSeq returns a [Monoid] that concatenates [ReaderIOResult] instances via their applicative.
+// ApplicativeMonoidSeq returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative.
 // This explicitly uses sequential execution for combining values.
 //
 // Parameters:
 //   - m: The underlying monoid for type A
 //
-// Returns a Monoid for ReaderIOResult[A] with sequential execution.
+// Returns a Monoid for ReaderIOEither[R, E, A] with sequential execution.
 func ApplicativeMonoidSeq[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	return monoid.ApplicativeMonoid(
 		Of[R, E, A],
@@ -59,13 +59,13 @@ func ApplicativeMonoidSeq[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	)
 }
 
-// ApplicativeMonoidPar returns a [Monoid] that concatenates [ReaderIOResult] instances via their applicative.
+// ApplicativeMonoidPar returns a [Monoid] that concatenates [ReaderIOEither] instances via their applicative.
 // This explicitly uses parallel execution for combining values.
 //
 // Parameters:
 //   - m: The underlying monoid for type A
 //
-// Returns a Monoid for ReaderIOResult[A] with parallel execution.
+// Returns a Monoid for ReaderIOEither[R, E, A] with parallel execution.
 func ApplicativeMonoidPar[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	return monoid.ApplicativeMonoid(
 		Of[R, E, A],
@@ -75,14 +75,14 @@ func ApplicativeMonoidPar[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	)
 }
 
-// AlternativeMonoid is the alternative [Monoid] for [ReaderIOResult].
-// This combines ReaderIOResult values using the alternative semantics,
+// AlternativeMonoid is the alternative [Monoid] for [ReaderIOEither].
+// This combines ReaderIOEither values using the alternative semantics,
 // where the second value is only evaluated if the first fails.
 //
 // Parameters:
 //   - m: The underlying monoid for type A
 //
-// Returns a Monoid for ReaderIOResult[A] with alternative semantics.
+// Returns a Monoid for ReaderIOEither[R, E, A] with alternative semantics.
 func AlternativeMonoid[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	return monoid.AlternativeMonoid(
 		Of[R, E, A],
@@ -93,14 +93,14 @@ func AlternativeMonoid[R, E, A any](m monoid.Monoid[A]) Monoid[R, E, A] {
 	)
 }
 
-// AltMonoid is the alternative [Monoid] for a [ReaderIOResult].
+// AltMonoid is the alternative [Monoid] for a [ReaderIOEither].
 // This creates a monoid where the empty value is provided lazily,
 // and combination uses the Alt operation (try first, fallback to second on failure).
 //
 // Parameters:
 //   - zero: Lazy computation that provides the empty/identity value
 //
-// Returns a Monoid for ReaderIOResult[A] with Alt-based combination.
+// Returns a Monoid for ReaderIOEither[R, E, A] with Alt-based combination.
 func AltMonoid[R, E, A any](zero lazy.Lazy[ReaderIOEither[R, E, A]]) Monoid[R, E, A] {
 	return monoid.AltMonoid(
 		zero,

@@ -17,12 +17,14 @@ package readerioeither
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	IOE "github.com/IBM/fp-go/v2/ioeither"
 	R "github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/stretchr/testify/assert"
@@ -76,4 +78,233 @@ func TestChainReaderK(t *testing.T) {
 	)
 
 	assert.Equal(t, E.Right[error]("1"), g(context.Background())())
+}
+
+func TestOrElse(t *testing.T) {
+	type Config struct {
+		retryLimit int
+		fallback   int
+	}
+
+	// Test basic recovery from Left
+	t.Run("Left value recovered", func(t *testing.T) {
+		rioe := Left[Config, int](errors.New("error"))
+		recover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			return Of[Config, error](0) // default value
+		})
+		result := recover(rioe)(Config{})()
+		assert.Equal(t, E.Right[error](0), result)
+	})
+
+	// Test Right value passes through unchanged
+	t.Run("Right value unchanged", func(t *testing.T) {
+		rioe := Right[Config, error](42)
+		recover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			return Of[Config, error](0)
+		})
+		result := recover(rioe)(Config{})()
+		assert.Equal(t, E.Right[error](42), result)
+	})
+
+	// Test conditional recovery using config
+	t.Run("Conditional recovery with config", func(t *testing.T) {
+		rioe := Left[Config, int](errors.New("retryable"))
+		recoverWithConfig := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			return func(cfg Config) IOEither[error, int] {
+				if err.Error() == "retryable" && cfg.retryLimit > 0 {
+					return IOE.Right[error](cfg.fallback)
+				}
+				return IOE.Left[int](err)
+			}
+		})
+		result := recoverWithConfig(rioe)(Config{retryLimit: 3, fallback: 99})()
+		assert.Equal(t, E.Right[error](99), result)
+	})
+
+	// Test error propagation
+	t.Run("Error propagation", func(t *testing.T) {
+		otherErr := errors.New("other error")
+		rioe := Left[Config, int](otherErr)
+		recoverSpecific := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			if err.Error() == "retryable" {
+				return Of[Config, error](0)
+			}
+			return Left[Config, int](err) // propagate other errors
+		})
+		result := recoverSpecific(rioe)(Config{})()
+		assert.Equal(t, E.Left[int](otherErr), result)
+	})
+
+	// Test chaining multiple OrElse operations
+	t.Run("Chaining OrElse operations", func(t *testing.T) {
+		firstRecover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			if err.Error() == "error1" {
+				return Of[Config, error](1)
+			}
+			return Left[Config, int](err)
+		})
+		secondRecover := OrElse(func(err error) ReaderIOEither[Config, error, int] {
+			if err.Error() == "error2" {
+				return Of[Config, error](2)
+			}
+			return Left[Config, int](err)
+		})
+
+		result1 := F.Pipe1(Left[Config, int](errors.New("error1")), firstRecover)(Config{})()
+		assert.Equal(t, E.Right[error](1), result1)
+
+		result2 := F.Pipe1(Left[Config, int](errors.New("error2")), F.Flow2(firstRecover, secondRecover))(Config{})()
+		assert.Equal(t, E.Right[error](2), result2)
+	})
+}
+
+func TestOrElseWFunc(t *testing.T) {
+	type Config struct {
+		retryEnabled bool
+	}
+
+	// Test with Right - should pass through unchanged
+	t.Run("Right passes through", func(t *testing.T) {
+		rioe := Right[Config, string](42)
+		handler := OrElse(func(err string) ReaderIOEither[Config, int, int] {
+			return Left[Config, int](999)
+		})
+		result := handler(rioe)(Config{retryEnabled: true})()
+		assert.Equal(t, E.Right[int](42), result)
+	})
+
+	// Test with Left - error type widening
+	t.Run("Left with error type widening", func(t *testing.T) {
+		rioe := Left[Config, int]("network error")
+		handler := OrElse(func(err string) ReaderIOEither[Config, int, int] {
+			return func(cfg Config) IOEither[int, int] {
+				if cfg.retryEnabled {
+					return IOE.Right[int](100)
+				}
+				return IOE.Left[int](404)
+			}
+		})
+		result := handler(rioe)(Config{retryEnabled: true})()
+		assert.Equal(t, E.Right[int](100), result)
+	})
+}
+
+func TestChainLeftFunc(t *testing.T) {
+	type Config struct {
+		errorCode int
+	}
+
+	// Test with Right - should pass through unchanged
+	t.Run("Right passes through", func(t *testing.T) {
+		g := F.Pipe1(
+			Right[Config, string](42),
+			ChainLeft(func(err string) ReaderIOEither[Config, int, int] {
+				return Left[Config, int](999)
+			}),
+		)
+		result := g(Config{errorCode: 500})()
+		assert.Equal(t, E.Right[int](42), result)
+	})
+
+	// Test with Left - error transformation with config
+	t.Run("Left transforms error with config", func(t *testing.T) {
+		g := F.Pipe1(
+			Left[Config, int]("error"),
+			ChainLeft(func(err string) ReaderIOEither[Config, int, int] {
+				return func(cfg Config) IOEither[int, int] {
+					return IOE.Left[int](cfg.errorCode)
+				}
+			}),
+		)
+		result := g(Config{errorCode: 500})()
+		assert.Equal(t, E.Left[int](500), result)
+	})
+
+	// Test with Left - successful recovery
+	t.Run("Left recovers successfully", func(t *testing.T) {
+		g := F.Pipe1(
+			Left[Config, int]("recoverable"),
+			ChainLeft(func(err string) ReaderIOEither[Config, int, int] {
+				if err == "recoverable" {
+					return Right[Config, int](999)
+				}
+				return Left[Config, int](0)
+			}),
+		)
+		result := g(Config{errorCode: 500})()
+		assert.Equal(t, E.Right[int](999), result)
+	})
+}
+
+func TestChainFirstLeftFunc(t *testing.T) {
+	type Config struct {
+		logEnabled bool
+	}
+
+	logged := false
+
+	// Test with Right - should not call function
+	t.Run("Right does not call function", func(t *testing.T) {
+		logged = false
+		g := F.Pipe1(
+			Right[Config, string](42),
+			ChainFirstLeft[int](func(err string) ReaderIOEither[Config, int, string] {
+				logged = true
+				return Right[Config, int]("logged")
+			}),
+		)
+		result := g(Config{logEnabled: true})()
+		assert.Equal(t, E.Right[string](42), result)
+		assert.False(t, logged)
+	})
+
+	// Test with Left - calls function but preserves original error
+	t.Run("Left calls function but preserves error", func(t *testing.T) {
+		logged = false
+		g := F.Pipe1(
+			Left[Config, int]("original error"),
+			ChainFirstLeft[int](func(err string) ReaderIOEither[Config, int, string] {
+				return func(cfg Config) IOEither[int, string] {
+					if cfg.logEnabled {
+						logged = true
+					}
+					return IOE.Right[int]("side effect done")
+				}
+			}),
+		)
+		result := g(Config{logEnabled: true})()
+		assert.Equal(t, E.Left[int]("original error"), result)
+		assert.True(t, logged)
+	})
+
+	// Test with Left - preserves original error even if side effect fails
+	t.Run("Left preserves error even if side effect fails", func(t *testing.T) {
+		g := F.Pipe1(
+			Left[Config, int]("original error"),
+			ChainFirstLeft[int](func(err string) ReaderIOEither[Config, int, string] {
+				return Left[Config, string](999) // Side effect fails
+			}),
+		)
+		result := g(Config{logEnabled: true})()
+		assert.Equal(t, E.Left[int]("original error"), result)
+	})
+}
+
+func TestTapLeft(t *testing.T) {
+	// TapLeft is an alias for ChainFirstLeft, so just a basic sanity test
+	type Config struct{}
+
+	sideEffectRan := false
+
+	g := F.Pipe1(
+		Left[Config, int]("error"),
+		TapLeft[int](func(err string) ReaderIOEither[Config, string, int] {
+			sideEffectRan = true
+			return Right[Config, string](0)
+		}),
+	)
+
+	result := g(Config{})()
+	assert.Equal(t, E.Left[int]("error"), result)
+	assert.True(t, sideEffectRan)
 }

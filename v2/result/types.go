@@ -22,20 +22,41 @@ import (
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
-// Option is a type alias for option.Option, provided for convenience
-// when working with Either and Option together.
 type (
-	Option[A any]       = option.Option[A]
-	Lens[S, T any]      = lens.Lens[S, T]
-	Endomorphism[T any] = endomorphism.Endomorphism[T]
-	Either[E, T any]    = either.Either[E, T]
-	Lazy[T any]         = lazy.Lazy[T]
+	// Option is a type alias for option.Option, provided for convenience
+	// when working with Result and Option together.
+	Option[A any] = option.Option[A]
 
-	Result[T any]      = Either[error, T]
-	Kleisli[A, B any]  = reader.Reader[A, Result[B]]
+	// Lens is an optic that focuses on a field of type T within a structure of type S.
+	Lens[S, T any] = lens.Lens[S, T]
+
+	// Endomorphism represents a function from a type to itself (T -> T).
+	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
+	// Either represents a value of one of two possible types (a disjoint union).
+	Either[E, T any] = either.Either[E, T]
+
+	// Lazy represents a deferred computation that produces a value of type T.
+	Lazy[T any] = lazy.Lazy[T]
+
+	// Result represents a computation that may fail with an error.
+	// It's an alias for Either[error, T], where Left contains an error and Right contains the success value.
+	Result[T any] = Either[error, T]
+
+	// Kleisli represents a Kleisli arrow for the Result monad.
+	// It's a function from A to Result[B], used for composing operations that may fail.
+	Kleisli[A, B any] = reader.Reader[A, Result[B]]
+
+	// Operator represents a function that transforms one Result into another.
+	// It takes a Result[A] and produces a Result[B].
 	Operator[A, B any] = Kleisli[Result[A], B]
-	Monoid[A any]      = monoid.Monoid[Result[A]]
+
+	// Monoid represents a monoid structure for Result values.
+	Monoid[A any] = monoid.Monoid[Result[A]]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

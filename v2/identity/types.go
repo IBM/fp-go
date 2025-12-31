@@ -16,6 +16,11 @@
 package identity
 
 type (
-	Kleisli[A, B any]  = func(A) B
+	// Kleisli represents a Kleisli arrow for the Identity monad.
+	// It's simply a function from A to B, as Identity has no computational context.
+	Kleisli[A, B any] = func(A) B
+
+	// Operator represents a function that transforms values.
+	// In the Identity monad, it's equivalent to Kleisli since there's no wrapping context.
 	Operator[A, B any] = Kleisli[A, B]
 )

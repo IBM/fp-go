@@ -21,14 +21,44 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 )
 
-// MkdirAll create a sequence of directories, see [os.MkdirAll]
+// MkdirAll creates a directory and all necessary parent directories with the specified permissions.
+// If the directory already exists, MkdirAll does nothing and returns success.
+// This is equivalent to the Unix command `mkdir -p`.
+//
+// The perm parameter specifies the Unix permission bits for the created directories.
+// Common values include 0755 (rwxr-xr-x) for directories.
+//
+// Returns an IOEither that, when executed, creates the directory structure and returns
+// the path on success or an error on failure.
+//
+// See [os.MkdirAll] for more details.
+//
+// Example:
+//
+//	mkdirOp := MkdirAll("/tmp/my/nested/dir", 0755)
+//	result := mkdirOp() // Either[error, string]
 func MkdirAll(path string, perm os.FileMode) IOEither[error, string] {
 	return ioeither.TryCatchError(func() (string, error) {
 		return path, os.MkdirAll(path, perm)
 	})
 }
 
-// Mkdir create a directory, see [os.Mkdir]
+// Mkdir creates a single directory with the specified permissions.
+// Unlike MkdirAll, it returns an error if the parent directory does not exist
+// or if the directory already exists.
+//
+// The perm parameter specifies the Unix permission bits for the created directory.
+// Common values include 0755 (rwxr-xr-x) for directories.
+//
+// Returns an IOEither that, when executed, creates the directory and returns
+// the path on success or an error on failure.
+//
+// See [os.Mkdir] for more details.
+//
+// Example:
+//
+//	mkdirOp := Mkdir("/tmp/mydir", 0755)
+//	result := mkdirOp() // Either[error, string]
 func Mkdir(path string, perm os.FileMode) IOEither[error, string] {
 	return ioeither.TryCatchError(func() (string, error) {
 		return path, os.Mkdir(path, perm)

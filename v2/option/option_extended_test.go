@@ -180,7 +180,7 @@ func TestSequence2(t *testing.T) {
 
 // Test Filter
 func TestFilter(t *testing.T) {
-	isPositive := Filter(func(x int) bool { return x > 0 })
+	isPositive := Filter(N.MoreThan(0))
 
 	assert.Equal(t, Some(5), isPositive(Some(5)))
 	assert.Equal(t, None[int](), isPositive(Some(-1)))

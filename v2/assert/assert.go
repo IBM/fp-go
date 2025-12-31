@@ -57,7 +57,7 @@
 //	assert.ArrayNotEmpty(arr)(t)
 //
 //	// Partial application - create reusable assertions
-//	isPositive := assert.That(func(n int) bool { return n > 0 })
+//	isPositive := assert.That(N.MoreThan(0))
 //	// Later, apply to different values:
 //	isPositive(42)(t)   // Passes
 //	isPositive(-5)(t)   // Fails
@@ -416,7 +416,7 @@ func NotContainsKey[T any, K comparable](expected K) Kleisli[map[K]T] {
 //
 //	func TestThat(t *testing.T) {
 //	    // Test if a number is positive
-//	    isPositive := func(n int) bool { return n > 0 }
+//	    isPositive := N.MoreThan(0)
 //	    assert.That(isPositive)(42)(t)  // Passes
 //	    assert.That(isPositive)(-5)(t)  // Fails
 //

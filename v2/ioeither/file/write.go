@@ -30,7 +30,18 @@ func onWriteAll[W io.Writer](data []byte) Kleisli[error, W, []byte] {
 	}
 }
 
-// WriteAll uses a generator function to create a stream, writes data to it and closes it
+// WriteAll writes data to a WriteCloser and ensures it is properly closed.
+// It takes the data to write and returns an Operator that accepts an IOEither
+// that creates the WriteCloser. The WriteCloser is automatically closed after
+// the write operation, even if an error occurs.
+//
+// Example:
+//
+//	writeOp := F.Pipe2(
+//		Open("output.txt"),
+//		WriteAll([]byte("Hello, World!")),
+//	)
+//	result := writeOp() // Either[error, []byte]
 func WriteAll[W io.WriteCloser](data []byte) Operator[error, W, []byte] {
 	onWrite := onWriteAll[W](data)
 	return func(onCreate IOEither[error, W]) IOEither[error, []byte] {
@@ -42,7 +53,21 @@ func WriteAll[W io.WriteCloser](data []byte) Operator[error, W, []byte] {
 	}
 }
 
-// Write uses a generator function to create a stream, writes data to it and closes it
+// Write creates a resource-safe writer that automatically manages the lifecycle of a WriteCloser.
+// It takes an IOEither that acquires the WriteCloser and returns a Kleisli arrow that accepts
+// a write operation. The WriteCloser is automatically closed after the operation completes,
+// even if an error occurs.
+//
+// This is useful for composing multiple write operations with proper resource management.
+//
+// Example:
+//
+//	writeOp := Write[int](Open("output.txt"))
+//	result := writeOp(func(f *os.File) IOEither[error, int] {
+//		return ioeither.TryCatchError(func() (int, error) {
+//			return f.Write([]byte("Hello"))
+//		})
+//	})
 func Write[R any, W io.WriteCloser](acquire IOEither[error, W]) Kleisli[error, Kleisli[error, W, R], R] {
 	return ioeither.WithResource[R](
 		acquire,

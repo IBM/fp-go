@@ -43,7 +43,7 @@ type (
 // Example:
 //
 //	s := SemigroupAny[int]()
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	isEven := func(n int) bool { return n%2 == 0 }
 //	isPositiveOrEven := s.Concat(isPositive, isEven)
 //	isPositiveOrEven(4)  // true (even)
@@ -71,7 +71,7 @@ func SemigroupAny[A any]() Semigroup[A] {
 // Example:
 //
 //	s := SemigroupAll[int]()
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	isEven := func(n int) bool { return n%2 == 0 }
 //	isPositiveAndEven := s.Concat(isPositive, isEven)
 //	isPositiveAndEven(4)  // true (both)
@@ -129,7 +129,7 @@ func MonoidAny[A any]() Monoid[A] {
 //
 //	m := MonoidAll[int]()
 //	predicates := []Predicate[int]{
-//	    func(n int) bool { return n > 0 },
+//	    N.MoreThan(0),
 //	    func(n int) bool { return n < 100 },
 //	}
 //	combined := A.Reduce(m.Empty(), m.Concat)(predicates)

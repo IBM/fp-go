@@ -54,3 +54,90 @@ func TestHasPrefix(t *testing.T) {
 	assert.False(t, HasPrefix("bab")("a"))
 	assert.False(t, HasPrefix("b")("a"))
 }
+
+func TestEq(t *testing.T) {
+	assert.True(t, Eq("hello", "hello"))
+	assert.False(t, Eq("hello", "world"))
+	assert.True(t, Eq("", ""))
+	assert.False(t, Eq("a", ""))
+}
+
+func TestToBytes(t *testing.T) {
+	result := ToBytes("hello")
+	expected := []byte{'h', 'e', 'l', 'l', 'o'}
+	assert.Equal(t, expected, result)
+
+	empty := ToBytes("")
+	assert.Equal(t, []byte{}, empty)
+}
+
+func TestToRunes(t *testing.T) {
+	result := ToRunes("hello")
+	expected := []rune{'h', 'e', 'l', 'l', 'o'}
+	assert.Equal(t, expected, result)
+
+	// Test with unicode characters
+	unicode := ToRunes("你好")
+	assert.Equal(t, 2, len(unicode))
+
+	empty := ToRunes("")
+	assert.Equal(t, []rune{}, empty)
+}
+
+func TestIsNonEmpty(t *testing.T) {
+	assert.False(t, IsNonEmpty(""))
+	assert.True(t, IsNonEmpty("Carsten"))
+	assert.True(t, IsNonEmpty(" "))
+}
+
+func TestSize(t *testing.T) {
+	assert.Equal(t, 0, Size(""))
+	assert.Equal(t, 5, Size("hello"))
+	assert.Equal(t, 7, Size("Carsten"))
+	// Note: Size returns byte length, not rune count
+	assert.Equal(t, 6, Size("你好")) // 2 Chinese characters = 6 bytes in UTF-8
+}
+
+func TestFormat(t *testing.T) {
+	formatInt := Format[int]("Number: %d")
+	assert.Equal(t, "Number: 42", formatInt(42))
+
+	formatString := Format[string]("Hello, %s!")
+	assert.Equal(t, "Hello, World!", formatString("World"))
+
+	formatFloat := Format[float64]("Value: %.2f")
+	assert.Equal(t, "Value: 3.14", formatFloat(3.14159))
+}
+
+func TestIntersperse(t *testing.T) {
+	join := Intersperse(", ")
+	assert.Equal(t, "a, b", join("a", "b"))
+	assert.Equal(t, "hello, world", join("hello", "world"))
+
+	joinDash := Intersperse("-")
+	assert.Equal(t, "foo-bar", joinDash("foo", "bar"))
+
+	// Test with empty strings - should not add separator (monoid identity)
+	assert.Equal(t, "b", join("", "b"))
+	assert.Equal(t, "a", join("a", ""))
+	assert.Equal(t, "", join("", ""))
+}
+
+func TestToUpperCase(t *testing.T) {
+	assert.Equal(t, "HELLO", ToUpperCase("hello"))
+	assert.Equal(t, "WORLD", ToUpperCase("WoRlD"))
+	assert.Equal(t, "", ToUpperCase(""))
+}
+
+func TestToLowerCase(t *testing.T) {
+	assert.Equal(t, "hello", ToLowerCase("HELLO"))
+	assert.Equal(t, "world", ToLowerCase("WoRlD"))
+	assert.Equal(t, "", ToLowerCase(""))
+}
+
+func TestOrd(t *testing.T) {
+	assert.True(t, Ord.Compare("a", "b") < 0)
+	assert.True(t, Ord.Compare("b", "a") > 0)
+	assert.True(t, Ord.Compare("a", "a") == 0)
+	assert.True(t, Ord.Compare("abc", "abd") < 0)
+}

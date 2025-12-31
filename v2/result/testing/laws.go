@@ -47,7 +47,7 @@ import (
 //	    eqError := eq.FromStrictEquals[error]()
 //
 //	    ab := strconv.Itoa
-//	    bc := func(s string) bool { return len(s) > 0 }
+//	    bc := S.IsNonEmpty
 //
 //	    testing.AssertLaws(t, eqError, eqInt, eqString, eq.FromStrictEquals[bool](), ab, bc)(42)
 //	}

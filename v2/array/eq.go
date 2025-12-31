@@ -16,21 +16,10 @@
 package array
 
 import (
+	"slices"
+
 	E "github.com/IBM/fp-go/v2/eq"
 )
-
-func equals[T any](left, right []T, eq func(T, T) bool) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for i, v1 := range left {
-		v2 := right[i]
-		if !eq(v1, v2) {
-			return false
-		}
-	}
-	return true
-}
 
 // Eq creates an equality checker for arrays given an equality checker for elements.
 // Two arrays are considered equal if they have the same length and all corresponding
@@ -46,6 +35,11 @@ func equals[T any](left, right []T, eq func(T, T) bool) bool {
 func Eq[T any](e E.Eq[T]) E.Eq[[]T] {
 	eq := e.Equals
 	return E.FromEquals(func(left, right []T) bool {
-		return equals(left, right, eq)
+		return slices.EqualFunc(left, right, eq)
 	})
+}
+
+//go:inline
+func StrictEquals[T comparable]() E.Eq[[]T] {
+	return E.FromEquals(slices.Equal[[]T])
 }

@@ -37,7 +37,7 @@ func fromPredicate[A any](a A, pred func(A) bool) Option[A] {
 //
 // Example:
 //
-//	isPositive := FromPredicate(func(n int) bool { return n > 0 })
+//	isPositive := FromPredicate(N.MoreThan(0))
 //	result := isPositive(5)  // Some(5)
 //	result := isPositive(-1) // None
 func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {
@@ -433,7 +433,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //
 // Example:
 //
-//	isPositive := Filter(func(x int) bool { return x > 0 })
+//	isPositive := Filter(N.MoreThan(0))
 //	result := isPositive(Some(5)) // Some(5)
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None

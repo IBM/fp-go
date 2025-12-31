@@ -22,12 +22,26 @@ import (
 )
 
 type (
-	Option[A any]    = option.Option[A]
+	// Option represents an optional value that may or may not be present.
+	Option[A any] = option.Option[A]
+
+	// Either represents a value of one of two possible types (a disjoint union).
 	Either[E, A any] = either.Either[E, A]
+
+	// Reader represents a computation that depends on an environment R and produces a value A.
 	Reader[R, A any] = reader.Reader[R, A]
 
+	// ReaderEither represents a computation that depends on an environment R and can fail
+	// with an error E or succeed with a value A.
+	// It combines Reader (dependency injection) with Either (error handling).
 	ReaderEither[R, E, A any] = Reader[R, Either[E, A]]
 
-	Kleisli[R, E, A, B any]  = Reader[A, ReaderEither[R, E, B]]
+	// Kleisli represents a Kleisli arrow for the ReaderEither monad.
+	// It's a function from A to ReaderEither[R, E, B], used for composing operations that
+	// depend on an environment and may fail.
+	Kleisli[R, E, A, B any] = Reader[A, ReaderEither[R, E, B]]
+
+	// Operator represents a function that transforms one ReaderEither into another.
+	// It takes a ReaderEither[R, E, A] and produces a ReaderEither[R, E, B].
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderEither[R, E, A], B]
 )

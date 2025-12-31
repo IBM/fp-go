@@ -104,9 +104,12 @@ type (
 
 	// Kleisli represents a function that takes a value A and returns a ReaderOption[R, B].
 	// This is the type of functions used with Chain/Bind operations.
+	// Kleisli represents a function that takes a value A and returns a ReaderOption[R, B].
+	// This is the type of functions used with Chain/Bind operations.
 	Kleisli[R, A, B any] = Reader[A, ReaderOption[R, B]]
 
 	// Operator represents a function that transforms one ReaderOption into another.
+	// It takes a ReaderOption[R, A] and produces a ReaderOption[R, B].
 	// This is commonly used for lifting functions into the ReaderOption context.
 	Operator[R, A, B any] = Reader[ReaderOption[R, A], ReaderOption[R, B]]
 )

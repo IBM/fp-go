@@ -228,8 +228,8 @@ func MonadTapReaderK[E, R, A, B any](ma ReaderIOEither[R, E, A], f reader.Kleisl
 	return MonadChainFirstReaderK(ma, f)
 }
 
-// ChainReaderK returns a function that chains a Reader-returning function into ReaderIOEither.
-// This is the curried version of MonadChainReaderK.
+// ChainFirstReaderK returns a function that chains a Reader-returning function into ReaderIOEither
+// while preserving the original value. This is the curried version of MonadChainFirstReaderK.
 //
 //go:inline
 func ChainFirstReaderK[E, R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, E, A, A] {
@@ -303,8 +303,8 @@ func MonadChainReaderEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f RE.Kl
 	)
 }
 
-// ChainReaderK returns a function that chains a Reader-returning function into ReaderIOEither.
-// This is the curried version of MonadChainReaderK.
+// ChainReaderEitherK returns a function that chains a ReaderEither-returning function into ReaderIOEither.
+// This is the curried version of MonadChainReaderEitherK.
 //
 //go:inline
 func ChainReaderEitherK[E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R, E, A, B] {
@@ -330,8 +330,8 @@ func MonadTapReaderEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f RE.Klei
 	return MonadChainFirstReaderEitherK(ma, f)
 }
 
-// ChainReaderK returns a function that chains a Reader-returning function into ReaderIOEither.
-// This is the curried version of MonadChainReaderK.
+// ChainFirstReaderEitherK returns a function that chains a ReaderEither-returning function into ReaderIOEither
+// while preserving the original value. This is the curried version of MonadChainFirstReaderEitherK.
 //
 //go:inline
 func ChainFirstReaderEitherK[E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R, E, A, A] {
@@ -684,14 +684,6 @@ func GetOrElse[R, E, A any](onLeft func(E) ReaderIO[R, A]) func(ReaderIOEither[R
 	return eithert.GetOrElse(readerio.MonadChain[R, either.Either[E, A], A], readerio.Of[R, A], onLeft)
 }
 
-// OrElse tries an alternative computation if the first one fails.
-// The alternative can produce a different error type.
-//
-//go:inline
-func OrElse[R, E1, A, E2 any](onLeft func(E1) ReaderIOEither[R, E2, A]) func(ReaderIOEither[R, E1, A]) ReaderIOEither[R, E2, A] {
-	return eithert.OrElse(readerio.MonadChain[R, either.Either[E1, A], either.Either[E2, A]], readerio.Of[R, either.Either[E2, A]], onLeft)
-}
-
 // OrLeft transforms the error using a ReaderIO if the computation fails.
 // The success value is preserved unchanged.
 //
@@ -829,6 +821,42 @@ func Read[E, A, R any](r R) func(ReaderIOEither[R, E, A]) IOEither[E, A] {
 	return reader.Read[IOEither[E, A]](r)
 }
 
+// MonadChainLeft chains a computation on the left (error) side of a ReaderIOEither.
+// If the input is a Left value, it applies the function f to transform the error and potentially
+// change the error type from EA to EB. If the input is a Right value, it passes through unchanged.
+//
+// This is useful for error recovery or error transformation scenarios where you want to handle
+// errors by performing another computation that may also fail, with access to configuration context.
+//
+// Note: This is functionally identical to the uncurried form of [OrElse]. Use [ChainLeft] when
+// emphasizing the monadic chaining perspective, and [OrElse] for error recovery semantics.
+//
+// Parameters:
+//   - fa: The input ReaderIOEither that may contain an error of type EA
+//   - f: A Kleisli function that takes an error of type EA and returns a ReaderIOEither with error type EB
+//
+// Returns:
+//   - A ReaderIOEither with the potentially transformed error type EB
+//
+// Example:
+//
+//	type Config struct{ retryCount int }
+//	type NetworkError struct{ msg string }
+//	type SystemError struct{ code int }
+//
+//	// Recover from network errors by retrying with config
+//	result := MonadChainLeft(
+//	    Left[Config, string](NetworkError{"connection failed"}),
+//	    func(ne NetworkError) readerioeither.ReaderIOEither[Config, SystemError, string] {
+//	        return readerioeither.Asks[SystemError](func(cfg Config) ioeither.IOEither[SystemError, string] {
+//	            if cfg.retryCount > 0 {
+//	                return ioeither.Right[SystemError]("recovered")
+//	            }
+//	            return ioeither.Left[string](SystemError{500})
+//	        })
+//	    },
+//	)
+//
 //go:inline
 func MonadChainLeft[R, EA, EB, A any](fa ReaderIOEither[R, EA, A], f Kleisli[R, EB, EA, A]) ReaderIOEither[R, EB, A] {
 	return readert.MonadChain(
@@ -838,6 +866,44 @@ func MonadChainLeft[R, EA, EB, A any](fa ReaderIOEither[R, EA, A], f Kleisli[R, 
 	)
 }
 
+// ChainLeft is the curried version of [MonadChainLeft].
+// It returns a function that chains a computation on the left (error) side of a ReaderIOEither.
+//
+// This is particularly useful in functional composition pipelines where you want to handle
+// errors by performing another computation that may also fail, with access to configuration context.
+//
+// Note: This is functionally identical to [OrElse]. They are different names for the same operation.
+// Use [ChainLeft] when emphasizing the monadic chaining perspective on the error channel,
+// and [OrElse] when emphasizing error recovery/fallback semantics.
+//
+// Parameters:
+//   - f: A Kleisli function that takes an error of type EA and returns a ReaderIOEither with error type EB
+//
+// Returns:
+//   - A function that transforms a ReaderIOEither with error type EA to one with error type EB
+//
+// Example:
+//
+//	type Config struct{ fallbackService string }
+//
+//	// Create a reusable error handler with config access
+//	recoverFromNetworkError := ChainLeft(func(err string) readerioeither.ReaderIOEither[Config, string, int] {
+//	    if strings.Contains(err, "network") {
+//	        return readerioeither.Asks[string](func(cfg Config) ioeither.IOEither[string, int] {
+//	            return ioeither.TryCatch(
+//	                func() (int, error) { return callService(cfg.fallbackService) },
+//	                func(e error) string { return e.Error() },
+//	            )
+//	        })
+//	    }
+//	    return readerioeither.Left[Config, int](err)
+//	})
+//
+//	result := F.Pipe1(
+//	    readerioeither.Left[Config, int]("network timeout"),
+//	    recoverFromNetworkError,
+//	)(Config{fallbackService: "backup"})()
+//
 //go:inline
 func ChainLeft[R, EA, EB, A any](f Kleisli[R, EB, EA, A]) func(ReaderIOEither[R, EA, A]) ReaderIOEither[R, EB, A] {
 	return readert.Chain[ReaderIOEither[R, EA, A]](
@@ -863,7 +929,13 @@ func ChainLeft[R, EA, EB, A any](f Kleisli[R, EB, EA, A]) func(ReaderIOEither[R,
 //
 //go:inline
 func MonadChainFirstLeft[A, R, EA, EB, B any](ma ReaderIOEither[R, EA, A], f Kleisli[R, EB, EA, B]) ReaderIOEither[R, EA, A] {
-	return MonadChainLeft(ma, function.Flow2(f, Fold(function.Constant1[EB](ma), function.Constant1[B](ma))))
+	return eithert.MonadChainFirstLeft(
+		readerio.MonadChain[R, Either[EA, A], Either[EA, A]],
+		readerio.MonadMap[R, Either[EB, B], Either[EA, A]],
+		readerio.Of[R, Either[EA, A]],
+		ma,
+		f,
+	)
 }
 
 //go:inline
@@ -886,10 +958,12 @@ func MonadTapLeft[A, R, EA, EB, B any](ma ReaderIOEither[R, EA, A], f Kleisli[R,
 //
 //go:inline
 func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
-	return ChainLeft(func(e EA) ReaderIOEither[R, EA, A] {
-		ma := Left[R, A](e)
-		return MonadFold(f(e), function.Constant1[EB](ma), function.Constant1[B](ma))
-	})
+	return eithert.ChainFirstLeft(
+		readerio.Chain[R, Either[EA, A], Either[EA, A]],
+		readerio.Map[R, Either[EB, B], Either[EA, A]],
+		readerio.Of[R, Either[EA, A]],
+		f,
+	)
 }
 
 //go:inline
@@ -909,4 +983,34 @@ func Delay[R, E, A any](delay time.Duration) Operator[R, E, A, A] {
 //go:inline
 func After[R, E, A any](timestamp time.Time) Operator[R, E, A, A] {
 	return function.Bind2nd(function.Flow2[ReaderIOEither[R, E, A]], io.After[Either[E, A]](timestamp))
+}
+
+// OrElse recovers from a Left (error) by providing an alternative IO computation with access to the reader context.
+// If the ReaderIOEither is Right, it returns the value unchanged.
+// If the ReaderIOEither is Left, it applies the provided function to the error value,
+// which returns a new ReaderIOEither that replaces the original.
+//
+// This is useful for error recovery, fallback logic, or chaining alternative IO computations
+// that need access to configuration or dependencies. The error type can be widened from E1 to E2.
+//
+// Example:
+//
+//	type Config struct{ retryLimit int }
+//
+//	// Recover with IO operation using config
+//	recover := readerioeither.OrElse(func(err error) readerioeither.ReaderIOEither[Config, error, int] {
+//	    if err.Error() == "retryable" {
+//	        return readerioeither.Asks[error](func(cfg Config) ioeither.IOEither[error, int] {
+//	            if cfg.retryLimit > 0 {
+//	                return ioeither.Right[error](42)
+//	            }
+//	            return ioeither.Left[int](err)
+//	        })
+//	    }
+//	    return readerioeither.Left[Config, int](err)
+//	})
+//
+//go:inline
+func OrElse[R, E1, E2, A any](onLeft Kleisli[R, E2, E1, A]) Kleisli[R, E2, ReaderIOEither[R, E1, A], A] {
+	return Fold(onLeft, Of[R, E2, A])
 }

@@ -90,8 +90,8 @@ func Remove(name string) IOEither[error, string] {
 }
 
 // Close closes an object
-func Close[C io.Closer](c C) IOEither[error, any] {
-	return ioeither.TryCatchError(func() (any, error) {
-		return c, c.Close()
+func Close[C io.Closer](c C) IOEither[error, struct{}] {
+	return ioeither.TryCatchError(func() (struct{}, error) {
+		return struct{}{}, c.Close()
 	})
 }

@@ -226,7 +226,7 @@ func Ap[B, R, A any](fa ReaderResult[R, A]) Operator[R, func(A) B, B] {
 // Example:
 //
 //	isPositive := readerresult.FromPredicate[Config](
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return fmt.Errorf("%d is not positive", x) },
 //	)
 //	result := isPositive(5)  // Returns ReaderResult that succeeds with 5

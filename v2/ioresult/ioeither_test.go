@@ -150,3 +150,51 @@ func TestApSecond(t *testing.T) {
 
 	assert.Equal(t, result.Of("b"), x())
 }
+
+func TestOrElse(t *testing.T) {
+	// Test basic recovery from Left
+	recover := OrElse(func(e error) IOResult[int] {
+		return Right(0)
+	})
+
+	res := recover(Left[int](fmt.Errorf("error")))()
+	assert.Equal(t, result.Of(0), res)
+
+	// Test Right value passes through unchanged
+	res = recover(Right(42))()
+	assert.Equal(t, result.Of(42), res)
+
+	// Test selective recovery - recover some errors, propagate others
+	selectiveRecover := OrElse(func(err error) IOResult[int] {
+		if err.Error() == "not found" {
+			return Right(0) // default value for "not found"
+		}
+		return Left[int](err) // propagate other errors
+	})
+	notFoundResult := selectiveRecover(Left[int](fmt.Errorf("not found")))()
+	assert.Equal(t, result.Of(0), notFoundResult)
+
+	permissionErr := fmt.Errorf("permission denied")
+	permissionResult := selectiveRecover(Left[int](permissionErr))()
+	assert.Equal(t, result.Left[int](permissionErr), permissionResult)
+
+	// Test chaining multiple OrElse operations
+	firstRecover := OrElse(func(err error) IOResult[int] {
+		if err.Error() == "error1" {
+			return Right(1)
+		}
+		return Left[int](err)
+	})
+	secondRecover := OrElse(func(err error) IOResult[int] {
+		if err.Error() == "error2" {
+			return Right(2)
+		}
+		return Left[int](err)
+	})
+
+	result1 := F.Pipe1(Left[int](fmt.Errorf("error1")), firstRecover)()
+	assert.Equal(t, result.Of(1), result1)
+
+	result2 := F.Pipe1(Left[int](fmt.Errorf("error2")), F.Flow2(firstRecover, secondRecover))()
+	assert.Equal(t, result.Of(2), result2)
+}

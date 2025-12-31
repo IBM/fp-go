@@ -19,15 +19,27 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 )
 
-// Option is a type alias for option.Option, provided for convenience
-// when working with Either and Option together.
 type (
-	Option[A any]       = option.Option[A]
-	Lens[S, T any]      = lens.Lens[S, T]
+	// Option is a type alias for option.Option, provided for convenience
+	// when working with Result and Option together.
+	Option[A any] = option.Option[A]
+
+	// Lens is an optic that focuses on a field of type T within a structure of type S.
+	Lens[S, T any] = lens.Lens[S, T]
+
+	// Endomorphism represents a function from a type to itself (T -> T).
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
 
-	Kleisli[A, B any]  = func(A) (B, error)
+	// Kleisli represents a Kleisli arrow for the idiomatic Result pattern.
+	// It's a function from A to (B, error), following Go's idiomatic error handling.
+	Kleisli[A, B any] = func(A) (B, error)
+
+	// Operator represents a function that transforms one Result into another.
+	// It takes (A, error) and produces (B, error), following Go's idiomatic pattern.
 	Operator[A, B any] = func(A, error) (B, error)
+
+	Predicate[A any] = predicate.Predicate[A]
 )

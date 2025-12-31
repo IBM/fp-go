@@ -25,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/tailrec"
@@ -70,5 +71,9 @@ type (
 	// Prism represents an optic that focuses on a case of type A within a sum type S.
 	Prism[S, A any] = prism.Prism[S, A]
 
+	// Trampoline represents a tail-recursive computation that can be evaluated iteratively.
+	// It's used to implement stack-safe recursion.
 	Trampoline[A, B any] = tailrec.Trampoline[A, B]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

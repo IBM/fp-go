@@ -342,14 +342,14 @@ func TestFromPredicate(t *testing.T) {
 
 	// Test predicate true
 	resultTrue := FromPredicate[testContext](
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errors.New("negative") },
 	)(5)
 	assert.Equal(t, E.Right[error](5), resultTrue(ctx)())
 
 	// Test predicate false
 	resultFalse := FromPredicate[testContext](
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return errors.New("negative") },
 	)(-5)
 	assert.True(t, E.IsLeft(resultFalse(ctx)()))
@@ -395,22 +395,6 @@ func TestGetOrElse(t *testing.T) {
 		return RIO.Of[testContext](0)
 	})(Left[testContext, int](errors.New("test")))
 	assert.Equal(t, 0, resultLeft(ctx)())
-}
-
-func TestOrElse(t *testing.T) {
-	ctx := testContext{value: 10}
-
-	// Test Right case
-	resultRight := OrElse(func(e error) ReaderIOEither[testContext, string, int] {
-		return Left[testContext, int]("alternative")
-	})(Of[testContext, error](42))
-	assert.Equal(t, E.Right[string](42), resultRight(ctx)())
-
-	// Test Left case
-	resultLeft := OrElse(func(e error) ReaderIOEither[testContext, string, int] {
-		return Of[testContext, string](99)
-	})(Left[testContext, int](errors.New("test")))
-	assert.Equal(t, E.Right[string](99), resultLeft(ctx)())
 }
 
 func TestMonadBiMap(t *testing.T) {

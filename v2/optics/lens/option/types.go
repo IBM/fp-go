@@ -94,8 +94,15 @@ type (
 	//   // optLens is a LensO[*Config, *int]
 	LensO[S, A any] = Lens[S, Option[A]]
 
-	Kleisli[S, A, B any]  = reader.Reader[A, LensO[S, B]]
+	// Kleisli represents a Kleisli arrow for optional lenses.
+	// It's a function from A to LensO[S, B], used for composing optional lens operations.
+	Kleisli[S, A, B any] = reader.Reader[A, LensO[S, B]]
+
+	// Operator represents a function that transforms one optional lens into another.
+	// It takes a LensO[S, A] and produces a LensO[S, B].
 	Operator[S, A, B any] = Kleisli[S, LensO[S, A], B]
 
+	// Iso represents an isomorphism between types S and A.
+	// An isomorphism is a bidirectional transformation that preserves structure.
 	Iso[S, A any] = iso.Iso[S, A]
 )

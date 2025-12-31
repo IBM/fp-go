@@ -140,3 +140,32 @@ func TestFromIO(t *testing.T) {
 
 	assert.Equal(t, Right("abc"), e)
 }
+
+// TestOrElse tests recovery from error
+func TestOrElse(t *testing.T) {
+	// Test basic recovery from Left
+	recover := OrElse(func(err error) Result[int] {
+		return Right(0) // default value
+	})
+
+	leftResult := Left[int](errors.New("fail"))
+	assert.Equal(t, Right(0), recover(leftResult))
+
+	// Test that Right values pass through unchanged
+	rightResult := Right(42)
+	assert.Equal(t, Right(42), recover(rightResult))
+
+	// Test conditional recovery
+	recoverSpecific := OrElse(func(err error) Result[int] {
+		if err.Error() == "not found" {
+			return Right(0) // default for not found
+		}
+		return Left[int](err) // propagate other errors
+	})
+
+	notFoundErr := errors.New("not found")
+	assert.Equal(t, Right(0), recoverSpecific(Left[int](notFoundErr)))
+
+	otherErr := errors.New("other error")
+	assert.Equal(t, Left[int](otherErr), recoverSpecific(Left[int](otherErr)))
+}

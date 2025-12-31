@@ -21,6 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -59,4 +60,6 @@ type (
 	// Operator represents a transformation from ReaderResult[R, A] to ReaderResult[R, B].
 	// It is commonly used in function composition pipelines.
 	Operator[R, A, B any] = Kleisli[R, ReaderResult[R, A], B]
+
+	Predicate[A any] = predicate.Predicate[A]
 )

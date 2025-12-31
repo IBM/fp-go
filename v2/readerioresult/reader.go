@@ -648,10 +648,9 @@ func GetOrElse[R, A any](onLeft func(error) ReaderIO[R, A]) func(ReaderIOResult[
 }
 
 // OrElse tries an alternative computation if the first one fails.
-// The alternative can produce a different error type.
 //
 //go:inline
-func OrElse[R, A, E any](onLeft func(error) RIOE.ReaderIOEither[R, E, A]) func(ReaderIOResult[R, A]) RIOE.ReaderIOEither[R, E, A] {
+func OrElse[R, A any](onLeft Kleisli[R, error, A]) Operator[R, A, A] {
 	return RIOE.OrElse(onLeft)
 }
 

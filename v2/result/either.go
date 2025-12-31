@@ -394,7 +394,7 @@ func UnwrapError[A any](ma Result[A]) (A, error) {
 // Example:
 //
 //	isPositive := either.FromPredicate(
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return errors.New("not positive") },
 //	)
 //	result := isPositive(42) // Right(42)
@@ -468,14 +468,24 @@ func Alt[A any](that Lazy[Result[A]]) Operator[A, A] {
 	return either.Alt(that)
 }
 
-// OrElse recovers from a Left by providing an alternative computation.
+// OrElse recovers from a Left (error) by providing an alternative computation.
+// If the Result is Right, it returns the value unchanged.
+// If the Result is Left, it applies the provided function to the error value,
+// which returns a new Result that replaces the original.
+//
+// This is useful for error recovery, fallback logic, or chaining alternative computations.
 //
 // Example:
 //
+//	// Recover from specific errors with fallback values
 //	recover := either.OrElse(func(err error) either.Result[int] {
-//	    return either.Right[error](0) // default value
+//	    if err.Error() == "not found" {
+//	        return either.Right[error](0) // default value
+//	    }
+//	    return either.Left[int](err) // propagate other errors
 //	})
-//	result := recover(either.Left[int](errors.New("fail"))) // Right(0)
+//	result := recover(either.Left[int](errors.New("not found"))) // Right(0)
+//	result := recover(either.Right[error](42)) // Right(42) - unchanged
 //
 //go:inline
 func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {

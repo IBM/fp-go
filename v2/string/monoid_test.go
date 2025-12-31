@@ -24,3 +24,13 @@ import (
 func TestMonoid(t *testing.T) {
 	M.AssertLaws(t, Monoid)([]string{"", "a", "some value"})
 }
+
+func TestIntersperseMonoid(t *testing.T) {
+	// Test with comma separator
+	commaMonoid := IntersperseMonoid(", ")
+	M.AssertLaws(t, commaMonoid)([]string{"", "a", "b", "some value"})
+
+	// Test with dash separator
+	dashMonoid := IntersperseMonoid("-")
+	M.AssertLaws(t, dashMonoid)([]string{"", "x", "y", "test"})
+}

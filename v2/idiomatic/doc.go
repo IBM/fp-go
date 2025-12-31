@@ -460,7 +460,7 @@
 // 5. Use FromPredicate for validation:
 //
 //	positiveInt := result.FromPredicate(
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return fmt.Errorf("%d is not positive", x) },
 //	)
 //

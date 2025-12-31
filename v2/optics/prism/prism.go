@@ -115,7 +115,7 @@ func Id[S any]() Prism[S, S] {
 //
 // Example:
 //
-//	positivePrism := FromPredicate(func(n int) bool { return n > 0 })
+//	positivePrism := FromPredicate(N.MoreThan(0))
 //	value := positivePrism.GetOption(42)  // Some(42)
 //	value = positivePrism.GetOption(-5)   // None[int]
 func FromPredicate[S any](pred func(S) bool) Prism[S, S] {

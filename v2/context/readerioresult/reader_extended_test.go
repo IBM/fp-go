@@ -235,7 +235,7 @@ func TestApPar(t *testing.T) {
 func TestFromPredicate(t *testing.T) {
 	t.Run("Predicate true", func(t *testing.T) {
 		pred := FromPredicate(
-			func(x int) bool { return x > 0 },
+			N.MoreThan(0),
 			func(x int) error { return fmt.Errorf("value %d is not positive", x) },
 		)
 		result := pred(5)
@@ -244,7 +244,7 @@ func TestFromPredicate(t *testing.T) {
 
 	t.Run("Predicate false", func(t *testing.T) {
 		pred := FromPredicate(
-			func(x int) bool { return x > 0 },
+			N.MoreThan(0),
 			func(x int) error { return fmt.Errorf("value %d is not positive", x) },
 		)
 		result := pred(-5)

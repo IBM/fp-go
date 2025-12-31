@@ -28,7 +28,16 @@ var (
 	readAll = ioeither.Eitherize1(io.ReadAll)
 )
 
-// ReadAll uses a generator function to create a stream, reads it and closes it
+// ReadAll reads all data from a ReadCloser and ensures it is properly closed.
+// It takes an IOEither that acquires the ReadCloser, reads all its content until EOF,
+// and automatically closes the reader, even if an error occurs during reading.
+//
+// This is the recommended way to read entire files with proper resource management.
+//
+// Example:
+//
+//	readOp := ReadAll(Open("input.txt"))
+//	result := readOp() // Either[error, []byte]
 func ReadAll[R io.ReadCloser](acquire IOEither[error, R]) IOEither[error, []byte] {
 	return F.Pipe1(
 		F.Flow2(

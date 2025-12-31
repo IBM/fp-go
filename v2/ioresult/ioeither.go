@@ -489,3 +489,28 @@ func ChainFirstLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
 func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
 	return ioeither.TapLeft[A](f)
 }
+
+// OrElse recovers from a Left (error) by providing an alternative computation.
+// If the IOResult is Right, it returns the value unchanged.
+// If the IOResult is Left, it applies the provided function to the error value,
+// which returns a new IOResult that replaces the original.
+//
+// This is useful for error recovery, fallback logic, or chaining alternative computations
+// in IO contexts. Since IOResult is specialized for error type, the error type remains error.
+//
+// Example:
+//
+//	// Recover from specific errors with fallback IO operations
+//	recover := ioresult.OrElse(func(err error) ioresult.IOResult[int] {
+//	    if err.Error() == "not found" {
+//	        return ioresult.Right[int](0) // default value
+//	    }
+//	    return ioresult.Left[int](err) // propagate other errors
+//	})
+//	result := recover(ioresult.Left[int](errors.New("not found"))) // Right(0)
+//	result := recover(ioresult.Right[int](42)) // Right(42) - unchanged
+//
+//go:inline
+func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
+	return ioeither.OrElse(onLeft)
+}

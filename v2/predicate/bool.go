@@ -22,7 +22,7 @@ package predicate
 //
 // Example:
 //
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	isNotPositive := Not(isPositive)
 //	isNotPositive(5)  // false
 //	isNotPositive(-3) // true
@@ -40,7 +40,7 @@ func Not[A any](predicate Predicate[A]) Predicate[A] {
 //
 // Example:
 //
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	isEven := func(n int) bool { return n%2 == 0 }
 //	isPositiveAndEven := F.Pipe1(isPositive, And(isEven))
 //	isPositiveAndEven(4)  // true
@@ -62,7 +62,7 @@ func And[A any](second Predicate[A]) Operator[A, A] {
 //
 // Example:
 //
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	isEven := func(n int) bool { return n%2 == 0 }
 //	isPositiveOrEven := F.Pipe1(isPositive, Or(isEven))
 //	isPositiveOrEven(4)  // true

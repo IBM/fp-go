@@ -107,7 +107,7 @@ func TestReduce(t *testing.T) {
 // TestFromPredicate tests creating Result from a predicate
 func TestFromPredicate(t *testing.T) {
 	isPositive := FromPredicate(
-		func(x int) bool { return x > 0 },
+		N.MoreThan(0),
 		func(x int) error { return fmt.Errorf("%d is not positive", x) },
 	)
 

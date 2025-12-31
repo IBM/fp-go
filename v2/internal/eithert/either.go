@@ -180,3 +180,28 @@ func ChainLeft[EA, A, EB, HKTFA, HKTFB any](
 	f func(EA) HKTFB) func(HKTFA) HKTFB {
 	return fchain(ET.Fold(f, F.Flow2(ET.Right[EB, A], fof)))
 }
+
+func MonadChainFirstLeft[EA, A, EB, B, HKTFA, HKTFB any](
+	fchain func(HKTFA, func(ET.Either[EA, A]) HKTFA) HKTFA,
+	fmap func(HKTFB, func(ET.Either[EB, B]) ET.Either[EA, A]) HKTFA,
+	fof func(ET.Either[EA, A]) HKTFA,
+	fa HKTFA,
+	f func(EA) HKTFB) HKTFA {
+
+	return fchain(fa, func(e ET.Either[EA, A]) HKTFA {
+		return ET.Fold(func(ea EA) HKTFA {
+			return fmap(f(ea), F.Constant1[ET.Either[EB, B]](e))
+		}, F.Flow2(ET.Right[EA, A], fof))(e)
+	})
+}
+
+func ChainFirstLeft[EA, A, EB, B, HKTFA, HKTFB any](
+	fchain func(func(ET.Either[EA, A]) HKTFA) func(HKTFA) HKTFA,
+	fmap func(func(ET.Either[EB, B]) ET.Either[EA, A]) func(HKTFB) HKTFA,
+	fof func(ET.Either[EA, A]) HKTFA,
+	f func(EA) HKTFB) func(HKTFA) HKTFA {
+
+	return fchain(func(e ET.Either[EA, A]) HKTFA {
+		return ET.Fold(F.Flow2(f, fmap(F.Constant1[ET.Either[EB, B]](e))), F.Flow2(ET.Right[EA, A], fof))(e)
+	})
+}

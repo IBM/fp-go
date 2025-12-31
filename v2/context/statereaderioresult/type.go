@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/optics/iso/lens"
 	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/state"
@@ -81,4 +82,6 @@ type (
 	// Operator represents a function that transforms one StateReaderIOResult into another.
 	// This is commonly used for building composable operations via Map, Chain, etc.
 	Operator[S, A, B any] = Reader[StateReaderIOResult[S, A], StateReaderIOResult[S, B]]
+
+	Predicate[A any] = predicate.Predicate[A]
 )
