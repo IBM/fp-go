@@ -21,7 +21,7 @@ func TestChecksum(t *testing.T) {
 
 	expectedChecksum := [sha256.Size]byte{246, 64, 183, 1, 47, 191, 7, 44, 139, 70, 69, 165, 89, 118, 27, 12, 249, 255, 186, 152, 68, 252, 168, 221, 157, 39, 156, 242, 31, 29, 65, 164}
 
-	testFile := FL.CopyFile("data/sample.txt", path.Join(tmpDir, "test.txt"))
+	testFile := FL.CopyFile("data/sample.txt")(path.Join(tmpDir, "test.txt"))
 
 	verifyHash := F.Pipe1(
 		FL.ReadFile,
