@@ -164,12 +164,14 @@ func Retrying[A any](
 	}
 
 	// get an implementation for the types
-	return RG.Retrying(
-		RIO.Chain[Result[A], Result[A]],
-		RIO.Chain[R.RetryStatus, Result[A]],
-		RIO.Of[Result[A]],
+	return RG.RetryingWithTrampoline(
+		RIO.Chain[Result[A], Trampoline[R.RetryStatus, Result[A]]],
+		RIO.Map[R.RetryStatus, Trampoline[R.RetryStatus, Result[A]]],
+		RIO.Of[Trampoline[R.RetryStatus, Result[A]]],
 		RIO.Of[R.RetryStatus],
 		delayWithCancel,
+
+		RIO.TailRec,
 
 		policy,
 		WithContextK(action),

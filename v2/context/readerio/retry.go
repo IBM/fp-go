@@ -27,12 +27,14 @@ func Retrying[A any](
 	check func(A) bool,
 ) ReaderIO[A] {
 	// get an implementation for the types
-	return RG.Retrying(
-		Chain[A, A],
-		Chain[retry.RetryStatus, A],
-		Of[A],
+	return RG.RetryingWithTrampoline(
+		Chain[A, Trampoline[retry.RetryStatus, A]],
+		Map[retry.RetryStatus, Trampoline[retry.RetryStatus, A]],
+		Of[Trampoline[retry.RetryStatus, A]],
 		Of[retry.RetryStatus],
 		Delay[retry.RetryStatus],
+
+		TailRec,
 
 		policy,
 		action,
