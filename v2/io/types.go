@@ -8,6 +8,7 @@ import (
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	S "github.com/IBM/fp-go/v2/semigroup"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -38,4 +39,6 @@ type (
 
 	// Seq represents an iterator sequence over values of type T.
 	Seq[T any] = iter.Seq[T]
+
+	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 )

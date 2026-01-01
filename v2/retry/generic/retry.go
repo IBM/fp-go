@@ -54,6 +54,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/retry"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 // applyAndDelay applies a retry policy to the current status and delays by the
@@ -194,4 +195,56 @@ func Retrying[HKTA, HKTSTATUS, A any](
 	}
 	// seed
 	return f(R.DefaultRetryStatus)
+}
+
+func RetryingWithTrampoline[HKTTRAMPOLINE, HKTA, HKTSTATUS, A any](
+	monadChain func(func(A) HKTTRAMPOLINE) func(HKTA) HKTTRAMPOLINE,
+	monadMapStatus func(func(R.RetryStatus) tailrec.Trampoline[R.RetryStatus, A]) func(HKTSTATUS) HKTTRAMPOLINE,
+	monadOf func(tailrec.Trampoline[R.RetryStatus, A]) HKTTRAMPOLINE,
+	monadOfStatus func(R.RetryStatus) HKTSTATUS,
+	monadDelay func(time.Duration) func(HKTSTATUS) HKTSTATUS,
+
+	tailRec func(func(R.RetryStatus) HKTTRAMPOLINE) func(R.RetryStatus) HKTA,
+
+	policy R.RetryPolicy,
+	action func(R.RetryStatus) HKTA,
+	check func(A) bool,
+) HKTA {
+	// delay callback
+	applyDelay := applyAndDelay(monadOfStatus, monadDelay)
+
+	// function to check if we need to retry or not
+	checkForRetry := O.FromPredicate(check)
+
+	// need some lazy init because we reference it in the chain
+	retryFct := func(status R.RetryStatus) HKTTRAMPOLINE {
+		return F.Pipe2(
+			status,
+			action,
+			monadChain(func(a A) HKTTRAMPOLINE {
+				return F.Pipe3(
+					a,
+					checkForRetry,
+					O.Map(func(a A) HKTTRAMPOLINE {
+						return F.Pipe1(
+							applyDelay(policy, status),
+							monadMapStatus(func(status R.RetryStatus) tailrec.Trampoline[R.RetryStatus, A] {
+								return F.Pipe1(
+									status.PreviousDelay,
+									O.Fold(
+										F.Constant(tailrec.Land[R.RetryStatus](a)),
+										F.Constant1[time.Duration](tailrec.Bounce[A](status)),
+									),
+								)
+							}),
+						)
+					}),
+					O.GetOrElse(F.Constant(monadOf(tailrec.Land[R.RetryStatus](a)))),
+				)
+			}),
+		)
+	}
+
+	// seed
+	return tailRec(retryFct)(R.DefaultRetryStatus)
 }
