@@ -227,11 +227,11 @@ import (
 func Retrying[R, A any](
 	policy retry.RetryPolicy,
 	action Kleisli[R, retry.RetryStatus, A],
-	check func(A) bool,
+	check Predicate[A],
 ) ReaderIO[R, A] {
 	// Delegate to the generic retry implementation with trampoline-based tail recursion.
 	// This provides stack-safe retry logic by using an iterative approach internally.
-	return RG.RetryingWithTrampoline(
+	return RG.Retrying(
 		Chain[R, A, Trampoline[retry.RetryStatus, A]],
 		Map[R, retry.RetryStatus, Trampoline[retry.RetryStatus, A]],
 		Of[R, Trampoline[retry.RetryStatus, A]],

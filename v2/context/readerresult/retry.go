@@ -24,11 +24,81 @@ import (
 	RG "github.com/IBM/fp-go/v2/retry/generic"
 )
 
+// Retrying retries a ReaderResult computation according to a retry policy with context awareness.
+//
+// This function implements a retry mechanism for operations that depend on a [context.Context]
+// and can fail (Result). It respects context cancellation, meaning that if the context is
+// cancelled during retry delays, the operation will stop immediately and return the cancellation error.
+//
+// The retry loop will continue until one of the following occurs:
+//   - The action succeeds and the check function returns false (no retry needed)
+//   - The retry policy returns None (retry limit reached)
+//   - The check function returns false (indicating success or a non-retryable failure)
+//   - The context is cancelled (returns context.Canceled or context.DeadlineExceeded)
+//
+// Type Parameters:
+//   - A: The type of the success value
+//
+// Parameters:
+//
+//   - policy: A RetryPolicy that determines when and how long to wait between retries.
+//     The policy receives a RetryStatus on each iteration and returns an optional delay.
+//     If it returns None, retrying stops. Common policies include LimitRetries,
+//     ExponentialBackoff, and CapDelay from the retry package.
+//
+//   - action: A Kleisli arrow that takes a RetryStatus and returns a ReaderResult[A].
+//     This function is called on each retry attempt and receives information about the
+//     current retry state (iteration number, cumulative delay, etc.). The action depends
+//     on a context.Context and produces a Result[A].
+//
+//   - check: A predicate function that examines the Result[A] and returns true if the
+//     operation should be retried, or false if it should stop. This allows you to
+//     distinguish between retryable failures (e.g., network timeouts) and permanent
+//     failures (e.g., invalid input).
+//
+// Returns:
+//   - A ReaderResult[A] that, when executed with a context, will perform the retry
+//     logic with context cancellation support and return the final result.
+//
+// Example:
+//
+//	// Create a retry policy: exponential backoff with a cap, limited to 5 retries
+//	policy := M.Concat(
+//	    retry.LimitRetries(5),
+//	    retry.CapDelay(10*time.Second, retry.ExponentialBackoff(100*time.Millisecond)),
+//	)(retry.Monoid)
+//
+//	// Action that fetches data
+//	fetchData := func(status retry.RetryStatus) ReaderResult[string] {
+//	    return func(ctx context.Context) Result[string] {
+//	        if ctx.Err() != nil {
+//	            return result.Left[string](ctx.Err())
+//	        }
+//	        if status.IterNumber < 3 {
+//	            return result.Left[string](fmt.Errorf("temporary error"))
+//	        }
+//	        return result.Of("success")
+//	    }
+//	}
+//
+//	// Check function: retry on any error except context cancellation
+//	shouldRetry := func(r Result[string]) bool {
+//	    return result.IsLeft(r) && !errors.Is(result.GetLeft(r), context.Canceled)
+//	}
+//
+//	// Create the retrying computation
+//	retryingFetch := Retrying(policy, fetchData, shouldRetry)
+//
+//	// Execute with a cancellable context
+//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//	defer cancel()
+//	finalResult := retryingFetch(ctx)
+//
 //go:inline
 func Retrying[A any](
 	policy R.RetryPolicy,
 	action Kleisli[R.RetryStatus, A],
-	check func(Result[A]) bool,
+	check Predicate[Result[A]],
 ) ReaderResult[A] {
 
 	// delayWithCancel implements a context-aware delay mechanism for retry operations.
@@ -70,11 +140,13 @@ func Retrying[A any](
 
 	// get an implementation for the types
 	return RG.Retrying(
-		RD.Chain[context.Context, Result[A], Result[A]],
-		RD.Chain[context.Context, R.RetryStatus, Result[A]],
-		RD.Of[context.Context, Result[A]],
+		RD.Chain[context.Context, Result[A], Trampoline[R.RetryStatus, Result[A]]],
+		RD.Map[context.Context, R.RetryStatus, Trampoline[R.RetryStatus, Result[A]]],
+		RD.Of[context.Context, Trampoline[R.RetryStatus, Result[A]]],
 		RD.Of[context.Context, R.RetryStatus],
 		delayWithCancel,
+
+		RD.TailRec,
 
 		policy,
 		WithContextK(action),

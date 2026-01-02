@@ -30,7 +30,7 @@ func TestTailRecFactorial(t *testing.T) {
 		result int
 	}
 
-	factorial := TailRec[any](func(state FactState) IOOption[TR.Trampoline[FactState, int]] {
+	factorial := TailRec(func(state FactState) IOOption[TR.Trampoline[FactState, int]] {
 		if state.n < 0 {
 			// Negative numbers have no factorial
 			return None[TR.Trampoline[FactState, int]]()
@@ -80,7 +80,7 @@ func TestTailRecSafeDivision(t *testing.T) {
 		steps       int
 	}
 
-	safeDivide := TailRec[any](func(state DivState) IOOption[TR.Trampoline[DivState, int]] {
+	safeDivide := TailRec(func(state DivState) IOOption[TR.Trampoline[DivState, int]] {
 		if state.denominator == 0 {
 			return None[TR.Trampoline[DivState, int]]() // Division by zero
 		}
@@ -123,7 +123,7 @@ func TestTailRecFindInRange(t *testing.T) {
 		max     int
 	}
 
-	findInRange := TailRec[any](func(state FindState) IOOption[TR.Trampoline[FindState, int]] {
+	findInRange := TailRec(func(state FindState) IOOption[TR.Trampoline[FindState, int]] {
 		if state.current > state.max {
 			return None[TR.Trampoline[FindState, int]]() // Not found
 		}
@@ -166,7 +166,7 @@ func TestTailRecSumUntilLimit(t *testing.T) {
 		limit   int
 	}
 
-	sumUntilLimit := TailRec[any](func(state SumState) IOOption[TR.Trampoline[SumState, int]] {
+	sumUntilLimit := TailRec(func(state SumState) IOOption[TR.Trampoline[SumState, int]] {
 		if state.sum > state.limit {
 			return None[TR.Trampoline[SumState, int]]() // Exceeded limit
 		}
@@ -198,7 +198,7 @@ func TestTailRecSumUntilLimit(t *testing.T) {
 
 // TestTailRecCountdown tests a simple countdown with optional result
 func TestTailRecCountdown(t *testing.T) {
-	countdown := TailRec[any](func(n int) IOOption[TR.Trampoline[int, string]] {
+	countdown := TailRec(func(n int) IOOption[TR.Trampoline[int, string]] {
 		if n < 0 {
 			return None[TR.Trampoline[int, string]]() // Negative not allowed
 		}
@@ -227,7 +227,7 @@ func TestTailRecCountdown(t *testing.T) {
 // TestTailRecStackSafety tests that TailRec doesn't overflow the stack with large iterations
 func TestTailRecStackSafety(t *testing.T) {
 	// Count down from a large number - this would overflow the stack with regular recursion
-	largeCountdown := TailRec[any](func(n int) IOOption[TR.Trampoline[int, int]] {
+	largeCountdown := TailRec(func(n int) IOOption[TR.Trampoline[int, int]] {
 		if n < 0 {
 			return None[TR.Trampoline[int, int]]()
 		}
@@ -252,7 +252,7 @@ func TestTailRecValidation(t *testing.T) {
 	}
 
 	// Validate all items are positive, return count if valid
-	validatePositive := TailRec[any](func(state ValidationState) IOOption[TR.Trampoline[ValidationState, int]] {
+	validatePositive := TailRec(func(state ValidationState) IOOption[TR.Trampoline[ValidationState, int]] {
 		if state.index >= len(state.items) {
 			return Of(TR.Land[ValidationState](state.index))
 		}
@@ -294,7 +294,7 @@ func TestTailRecCollatzConjecture(t *testing.T) {
 	}
 
 	// Count steps to reach 1 in Collatz sequence
-	collatz := TailRec[any](func(state CollatzState) IOOption[TR.Trampoline[CollatzState, int]] {
+	collatz := TailRec(func(state CollatzState) IOOption[TR.Trampoline[CollatzState, int]] {
 		if state.n <= 0 {
 			return None[TR.Trampoline[CollatzState, int]]() // Invalid input
 		}

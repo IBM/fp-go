@@ -37,6 +37,8 @@ type (
 	//	var g endomorphism.Endomorphism[int] = increment
 	Endomorphism[A any] = func(A) A
 
+	// Kleisli represents a Kleisli arrow for endomorphisms.
+	// It's a function from A to Endomorphism[A], used for composing endomorphic operations.
 	Kleisli[A any] = func(A) Endomorphism[A]
 
 	// Operator represents a transformation from one endomorphism to another.

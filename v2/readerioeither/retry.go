@@ -23,7 +23,7 @@ import (
 func Retrying[R, E, A any](
 	policy retry.RetryPolicy,
 	action Kleisli[R, E, retry.RetryStatus, A],
-	check func(Either[E, A]) bool,
+	check Predicate[Either[E, A]],
 ) ReaderIOEither[R, E, A] {
 	// get an implementation for the types
 	return RIO.Retrying(policy, action, check)

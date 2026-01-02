@@ -97,9 +97,14 @@ type (
 	//   - Prism composition for building complex error-handling pipelines
 	Either[E, T any] = either.Either[E, T]
 
-	Result[T any]       = result.Result[T]
+	// Result represents a computation that may fail with an error.
+	// It's an alias for Either[error, T].
+	Result[T any] = result.Result[T]
+
+	// Endomorphism represents a function from a type to itself (T → T).
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
 
+	// Reader represents a computation that depends on an environment R and produces a value T.
 	Reader[R, T any] = reader.Reader[R, T]
 
 	// Kleisli represents a function that takes a value of type A and returns a Prism[S, B].

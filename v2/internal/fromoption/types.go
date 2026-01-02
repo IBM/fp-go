@@ -20,9 +20,20 @@ import (
 )
 
 type (
+	// Option represents an optional value that may or may not be present.
 	Option[T any] = option.Option[T]
 
+	// FromOption represents a type that can be constructed from an Option value.
+	//
+	// This interface provides a way to lift Option values into other monadic contexts,
+	// enabling interoperability between Option and other effect types.
+	//
+	// Type Parameters:
+	//   - A: The value type in the Option
+	//   - HKTA: The target higher-kinded type
 	FromOption[A, HKTA any] interface {
+		// FromEither converts an Option value into the target monadic type.
+		// Note: The method name should probably be FromOption, but is FromEither for compatibility.
 		FromEither(Option[A]) HKTA
 	}
 )

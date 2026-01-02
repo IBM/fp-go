@@ -7,8 +7,15 @@ import (
 )
 
 type (
-	Option[A any]         = option.Option[A]
-	Iso[S, A any]         = iso.Iso[S, A]
-	Lens[S, A any]        = lens.Lens[S, A]
+	// Option represents an optional value that may or may not be present.
+	Option[A any] = option.Option[A]
+
+	// Iso represents an isomorphism - a bidirectional transformation between two types.
+	Iso[S, A any] = iso.Iso[S, A]
+
+	// Lens is a functional reference to a subpart of a data structure.
+	Lens[S, A any] = lens.Lens[S, A]
+
+	// Operator represents a function that transforms one lens into another.
 	Operator[S, A, B any] = lens.Operator[S, A, B]
 )

@@ -121,7 +121,7 @@ import (
 func Retrying[A any](
 	policy R.RetryPolicy,
 	action Kleisli[R.RetryStatus, A],
-	check func(Result[A]) bool,
+	check Predicate[Result[A]],
 ) ReaderIOResult[A] {
 
 	// delayWithCancel implements a context-aware delay mechanism for retry operations.
@@ -164,7 +164,7 @@ func Retrying[A any](
 	}
 
 	// get an implementation for the types
-	return RG.RetryingWithTrampoline(
+	return RG.Retrying(
 		RIO.Chain[Result[A], Trampoline[R.RetryStatus, Result[A]]],
 		RIO.Map[R.RetryStatus, Trampoline[R.RetryStatus, Result[A]]],
 		RIO.Of[Trampoline[R.RetryStatus, Result[A]]],

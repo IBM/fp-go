@@ -50,5 +50,7 @@ type (
 	// Monoid represents a monoid structure for Either values.
 	Monoid[E, A any] = monoid.Monoid[Either[E, A]]
 
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
 )

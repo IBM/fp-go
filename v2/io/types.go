@@ -6,6 +6,7 @@ import (
 	"github.com/IBM/fp-go/v2/consumer"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	"github.com/IBM/fp-go/v2/tailrec"
@@ -40,5 +41,11 @@ type (
 	// Seq represents an iterator sequence over values of type T.
 	Seq[T any] = iter.Seq[T]
 
+	// Trampoline represents a tail-recursive computation that can be evaluated safely
+	// without stack overflow. It's used for implementing stack-safe recursive algorithms.
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
+
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
+	Predicate[A any] = predicate.Predicate[A]
 )

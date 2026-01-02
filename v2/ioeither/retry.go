@@ -30,7 +30,7 @@ import (
 func Retrying[E, A any](
 	policy R.RetryPolicy,
 	action Kleisli[E, R.RetryStatus, A],
-	check func(Either[E, A]) bool,
+	check Predicate[Either[E, A]],
 ) IOEither[E, A] {
 	return io.Retrying(policy, action, check)
 }

@@ -15,6 +15,8 @@
 
 package reader
 
+import "github.com/IBM/fp-go/v2/tailrec"
+
 type (
 	// Reader represents a computation that depends on a shared environment of type R and produces a value of type A.
 	//
@@ -47,6 +49,23 @@ type (
 	//	apiKey := getAPIKey(config)      // "secret"
 	Reader[R, A any] = func(R) A
 
+	// Kleisli represents a Kleisli arrow for the Reader monad.
+	// It's a function from A to Reader[R, B], used for composing Reader computations
+	// that depend on the same environment R.
+	//
+	// Type Parameters:
+	//   - R: The shared environment/context type
+	//   - A: The input type
+	//   - B: The output type wrapped in Reader
+	//
+	// Example:
+	//
+	//	type Config struct { Multiplier int }
+	//
+	//	// A Kleisli arrow that creates a Reader from an int
+	//	multiply := func(x int) reader.Reader[Config, int] {
+	//	    return func(c Config) int { return x * c.Multiplier }
+	//	}
 	Kleisli[R, A, B any] = func(A) Reader[R, B]
 
 	// Operator represents a transformation from one Reader to another.
@@ -72,4 +91,9 @@ type (
 	//	getString := intToString(getNumber)
 	//	result := getString(Config{Multiplier: 42}) // "42"
 	Operator[R, A, B any] = Kleisli[R, Reader[R, A], B]
+
+	// Trampoline represents a tail-recursive computation that can be evaluated safely
+	// without stack overflow. It's used for implementing stack-safe recursive algorithms
+	// in the context of Reader computations.
+	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 )

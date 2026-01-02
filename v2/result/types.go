@@ -58,5 +58,7 @@ type (
 	// Monoid represents a monoid structure for Result values.
 	Monoid[A any] = monoid.Monoid[Result[A]]
 
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
 )

@@ -24,15 +24,17 @@ import (
 func Retrying[A any](
 	policy R.RetryPolicy,
 	action Kleisli[R.RetryStatus, A],
-	check func(A) bool,
+	check Predicate[A],
 ) IOOption[A] {
 	// get an implementation for the types
 	return G.Retrying(
-		Chain[A, A],
-		Chain[R.RetryStatus, A],
-		Of[A],
+		Chain[A, Trampoline[R.RetryStatus, A]],
+		Map[R.RetryStatus, Trampoline[R.RetryStatus, A]],
+		Of[Trampoline[R.RetryStatus, A]],
 		Of[R.RetryStatus],
 		Delay[R.RetryStatus],
+
+		TailRec,
 
 		policy, action, check)
 }

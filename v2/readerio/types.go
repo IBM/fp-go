@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/tailrec"
 )
@@ -28,6 +29,8 @@ type (
 	// It's an alias for io.IO[A] and encapsulates effectful operations.
 	IO[A any] = io.IO[A]
 
+	// Either represents a value of one of two possible types (a disjoint union).
+	// An instance of Either is either Left (representing an error) or Right (representing a success).
 	Either[E, A any] = either.Either[E, A]
 
 	// Reader represents a computation that depends on an environment of type R and produces a value of type A.
@@ -52,7 +55,15 @@ type (
 	// middleware-style transformations and operation composition.
 	Operator[R, A, B any] = Kleisli[R, ReaderIO[R, A], B]
 
+	// Consumer represents a function that consumes a value of type A.
+	// It's typically used for side effects like logging or updating state.
 	Consumer[A any] = consumer.Consumer[A]
 
+	// Trampoline represents a tail-recursive computation that can be evaluated safely
+	// without stack overflow. It's used for implementing stack-safe recursive algorithms.
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
+
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
+	Predicate[A any] = predicate.Predicate[A]
 )

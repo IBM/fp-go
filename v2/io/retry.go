@@ -96,13 +96,15 @@ type (
 //	        return status != "ready"
 //	    },
 //	)
+//
+//go:inline
 func Retrying[A any](
 	policy R.RetryPolicy,
 	action Kleisli[R.RetryStatus, A],
-	check func(A) bool,
+	check Predicate[A],
 ) IO[A] {
 	// Delegate to the generic retry implementation, providing the IO monad operations
-	return RG.RetryingWithTrampoline(
+	return RG.Retrying(
 		Chain[A, Trampoline[R.RetryStatus, A]],
 		Map[R.RetryStatus, Trampoline[R.RetryStatus, A]],
 		Of[Trampoline[R.RetryStatus, A]],

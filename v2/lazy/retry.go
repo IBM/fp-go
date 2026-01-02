@@ -28,7 +28,7 @@ import (
 func Retrying[A any](
 	policy R.RetryPolicy,
 	action Kleisli[R.RetryStatus, A],
-	check func(A) bool,
+	check Predicate[A],
 ) Lazy[A] {
 	return io.Retrying(policy, action, check)
 }

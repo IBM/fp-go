@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/tailrec"
@@ -75,4 +76,6 @@ type (
 	Either[E, A any] = either.Either[E, A]
 
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
+
+	Predicate[A any] = predicate.Predicate[A]
 )
