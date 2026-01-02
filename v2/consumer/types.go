@@ -52,5 +52,7 @@ type (
 	//	}
 	Consumer[A any] = func(A)
 
+	// Operator represents a function that transforms a Consumer[A] into a Consumer[B].
+	// This is useful for composing and adapting consumers to work with different types.
 	Operator[A, B any] = func(Consumer[A]) Consumer[B]
 )

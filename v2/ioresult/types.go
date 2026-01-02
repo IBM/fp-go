@@ -7,6 +7,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/semigroup"
@@ -49,5 +50,10 @@ type (
 	Operator[A, B any] = Kleisli[IOResult[A], B]
 
 	// Consumer represents a function that consumes a value of type A.
+	// It's typically used for side effects like logging or updating state.
 	Consumer[A any] = consumer.Consumer[A]
+
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
+	Predicate[A any] = predicate.Predicate[A]
 )

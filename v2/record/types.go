@@ -25,10 +25,17 @@ import (
 )
 
 type (
+	// Endomorphism represents a function from a type to itself (A -> A).
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
-	Monoid[A any]       = monoid.Monoid[A]
-	Semigroup[A any]    = semigroup.Semigroup[A]
-	Option[A any]       = option.Option[A]
+
+	// Monoid represents a monoid structure with an associative binary operation and identity element.
+	Monoid[A any] = monoid.Monoid[A]
+
+	// Semigroup represents a semigroup structure with an associative binary operation.
+	Semigroup[A any] = semigroup.Semigroup[A]
+
+	// Option represents an optional value that may or may not be present.
+	Option[A any] = option.Option[A]
 
 	// Record represents a map with comparable keys and values of any type.
 	// This is the primary data structure for the record package, providing

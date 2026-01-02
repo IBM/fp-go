@@ -75,6 +75,11 @@ func ToApply[A, B, HKTA, HKTB, HKTFAB any](ap Chainable[A, B, HKTA, HKTB, HKTFAB
 }
 
 type (
-	Kleisli[A, HKTB any]     = func(A) HKTB
+	// Kleisli represents a Kleisli arrow - a function from A to a monadic value HKTB.
+	// It's used for composing monadic computations where each step depends on the previous result.
+	Kleisli[A, HKTB any] = func(A) HKTB
+
+	// Operator represents a transformation from one monadic value to another.
+	// It takes a value in context HKTA and produces a value in context HKTB.
 	Operator[HKTA, HKTB any] = func(HKTA) HKTB
 )

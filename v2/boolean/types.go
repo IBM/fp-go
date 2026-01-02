@@ -18,5 +18,7 @@ package boolean
 import "github.com/IBM/fp-go/v2/monoid"
 
 type (
+	// Monoid represents a monoid structure for boolean values.
+	// A monoid provides an associative binary operation and an identity element.
 	Monoid = monoid.Monoid[bool]
 )

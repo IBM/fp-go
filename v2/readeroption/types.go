@@ -85,14 +85,18 @@ import (
 )
 
 type (
-	// Lazy represents a deferred computation
+	// Lazy represents a deferred computation that produces a value of type A.
 	Lazy[A any] = lazy.Lazy[A]
 
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
 
-	// Option represents an optional value
+	// Option represents an optional value that may or may not be present.
 	Option[A any] = option.Option[A]
 
+	// Either represents a value of one of two possible types (a disjoint union).
+	// An instance of Either is either Left (representing an error) or Right (representing a success).
 	Either[E, A any] = either.Either[E, A]
 
 	// Reader represents a computation that depends on an environment R and produces a value A

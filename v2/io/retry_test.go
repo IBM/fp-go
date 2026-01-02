@@ -21,19 +21,23 @@ import (
 	"testing"
 	"time"
 
+	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/retry"
 	"github.com/stretchr/testify/assert"
 )
 
+// Test helpers and common policies
+
 var expLogBackoff = R.ExponentialBackoff(10)
 
-// our retry policy with a 1s cap
+// our retry policy with a 2s cap
 var testLogPolicy = R.CapDelay(
 	2*time.Second,
 	R.Monoid.Concat(expLogBackoff, R.LimitRetries(20)),
 )
 
-func TestRetry(t *testing.T) {
+// TestRetrying_BasicSuccess tests that Retrying succeeds when the check predicate returns false
+func TestRetrying_BasicSuccess(t *testing.T) {
 	action := func(status R.RetryStatus) IO[string] {
 		return Of(fmt.Sprintf("Retrying %d", status.IterNumber))
 	}
@@ -44,4 +48,416 @@ func TestRetry(t *testing.T) {
 	r := Retrying(testLogPolicy, action, check)
 
 	assert.Equal(t, "Retrying 5", r())
+}
+
+// TestRetrying_ImmediateSuccess tests that no retries occur when the first attempt succeeds
+func TestRetrying_ImmediateSuccess(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			attempts++
+			return 42
+		}())
+	}
+	check := func(value int) bool {
+		return false // Never retry
+	}
+
+	policy := R.LimitRetries(5)
+	result := Retrying(policy, action, check)
+
+	assert.Equal(t, 42, result())
+	assert.Equal(t, 1, attempts, "Should only execute once when immediately successful")
+}
+
+// TestRetrying_MaxRetriesReached tests that retrying stops when the policy limit is reached
+func TestRetrying_MaxRetriesReached(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[string] {
+		return Of(func() string {
+			attempts++
+			return fmt.Sprintf("attempt_%d", attempts)
+		}())
+	}
+	check := func(value string) bool {
+		return true // Always retry
+	}
+
+	policy := R.LimitRetries(3)
+	result := Retrying(policy, action, check)
+
+	finalResult := result()
+	assert.Equal(t, "attempt_4", finalResult, "Should execute initial attempt + 3 retries")
+	assert.Equal(t, 4, attempts, "Should execute 4 times total (1 initial + 3 retries)")
+}
+
+// TestRetrying_StatusTracking tests that RetryStatus is correctly updated across retries
+func TestRetrying_StatusTracking(t *testing.T) {
+	var statuses []R.RetryStatus
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			statuses = append(statuses, status)
+			return len(statuses)
+		}())
+	}
+	check := func(value int) bool {
+		return value < 3 // Retry until we've done 3 attempts
+	}
+
+	policy := R.Monoid.Concat(
+		R.LimitRetries(5),
+		R.ConstantDelay(10*time.Millisecond),
+	)
+	result := Retrying(policy, action, check)
+
+	result()
+
+	assert.Equal(t, 3, len(statuses), "Should have 3 status records")
+
+	// Check first attempt
+	assert.Equal(t, uint(0), statuses[0].IterNumber, "First attempt should be iteration 0")
+	assert.True(t, O.IsNone(statuses[0].PreviousDelay), "First attempt should have no previous delay")
+
+	// Check second attempt
+	assert.Equal(t, uint(1), statuses[1].IterNumber, "Second attempt should be iteration 1")
+	assert.True(t, O.IsSome(statuses[1].PreviousDelay), "Second attempt should have previous delay")
+
+	// Check third attempt
+	assert.Equal(t, uint(2), statuses[2].IterNumber, "Third attempt should be iteration 2")
+	assert.True(t, O.IsSome(statuses[2].PreviousDelay), "Third attempt should have previous delay")
+}
+
+// TestRetrying_ConstantDelay tests retry with constant delay between attempts
+func TestRetrying_ConstantDelay(t *testing.T) {
+	attempts := 0
+	delay := 50 * time.Millisecond
+
+	action := func(status R.RetryStatus) IO[bool] {
+		return Of(func() bool {
+			attempts++
+			return attempts >= 3
+		}())
+	}
+	check := func(value bool) bool {
+		return !value // Retry while false
+	}
+
+	policy := R.Monoid.Concat(
+		R.LimitRetries(5),
+		R.ConstantDelay(delay),
+	)
+
+	start := time.Now()
+	result := Retrying(policy, action, check)
+	result()
+	elapsed := time.Since(start)
+
+	assert.Equal(t, 3, attempts)
+	// Should have 2 delays (between attempt 1-2 and 2-3)
+	expectedMinDelay := 2 * delay
+	assert.GreaterOrEqual(t, elapsed, expectedMinDelay, "Should wait at least 2 delays")
+}
+
+// TestRetrying_ExponentialBackoff tests retry with exponential backoff
+func TestRetrying_ExponentialBackoff(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			attempts++
+			return attempts
+		}())
+	}
+	check := func(value int) bool {
+		return value < 4 // Retry until 4th attempt
+	}
+
+	baseDelay := 10 * time.Millisecond
+	policy := R.Monoid.Concat(
+		R.LimitRetries(5),
+		R.ExponentialBackoff(baseDelay),
+	)
+
+	start := time.Now()
+	result := Retrying(policy, action, check)
+	result()
+	elapsed := time.Since(start)
+
+	assert.Equal(t, 4, attempts)
+	// Exponential backoff: 10ms, 20ms, 40ms = 70ms minimum
+	expectedMinDelay := 70 * time.Millisecond
+	assert.GreaterOrEqual(t, elapsed, expectedMinDelay, "Should wait with exponential backoff")
+}
+
+// TestRetrying_CapDelay tests that delay capping works correctly
+func TestRetrying_CapDelay(t *testing.T) {
+	var delays []time.Duration
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			if O.IsSome(status.PreviousDelay) {
+				delay, _ := O.Unwrap(status.PreviousDelay)
+				delays = append(delays, delay)
+			}
+			return len(delays)
+		}())
+	}
+	check := func(value int) bool {
+		return value < 5 // Do 5 retries
+	}
+
+	maxDelay := 50 * time.Millisecond
+	policy := R.Monoid.Concat(
+		R.LimitRetries(10),
+		R.CapDelay(maxDelay, R.ExponentialBackoff(10*time.Millisecond)),
+	)
+
+	result := Retrying(policy, action, check)
+	result()
+
+	// All delays should be capped at maxDelay
+	for i, delay := range delays {
+		assert.LessOrEqual(t, delay, maxDelay,
+			"Delay %d should be capped at %v, got %v", i, maxDelay, delay)
+	}
+}
+
+// TestRetrying_CombinedPolicies tests combining multiple retry policies
+func TestRetrying_CombinedPolicies(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[string] {
+		return Of(func() string {
+			attempts++
+			return fmt.Sprintf("attempt_%d", attempts)
+		}())
+	}
+	check := func(value string) bool {
+		return true // Always retry
+	}
+
+	// Combine limit and exponential backoff with cap
+	policy := R.Monoid.Concat(
+		R.LimitRetries(3),
+		R.CapDelay(100*time.Millisecond, R.ExponentialBackoff(20*time.Millisecond)),
+	)
+
+	result := Retrying(policy, action, check)
+	result()
+
+	assert.Equal(t, 4, attempts, "Should respect the retry limit")
+}
+
+// TestRetrying_PredicateBasedRetry tests retry based on result value
+func TestRetrying_PredicateBasedRetry(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	index := 0
+
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			val := values[index]
+			index++
+			return val
+		}())
+	}
+	check := func(value int) bool {
+		return value < 5 // Retry until we get 5
+	}
+
+	policy := R.LimitRetries(10)
+	result := Retrying(policy, action, check)
+
+	assert.Equal(t, 5, result())
+	assert.Equal(t, 5, index, "Should have tried 5 times")
+}
+
+// TestRetrying_NoRetryOnSuccess tests that successful operations don't retry
+func TestRetrying_NoRetryOnSuccess(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[string] {
+		return Of(func() string {
+			attempts++
+			return "success"
+		}())
+	}
+	check := func(value string) bool {
+		return value != "success" // Don't retry on success
+	}
+
+	policy := R.LimitRetries(5)
+	result := Retrying(policy, action, check)
+
+	assert.Equal(t, "success", result())
+	assert.Equal(t, 1, attempts, "Should only execute once on immediate success")
+}
+
+// TestRetrying_ZeroRetries tests behavior with zero retries allowed
+func TestRetrying_ZeroRetries(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			attempts++
+			return attempts
+		}())
+	}
+	check := func(value int) bool {
+		return true // Always want to retry
+	}
+
+	policy := R.LimitRetries(0)
+	result := Retrying(policy, action, check)
+
+	assert.Equal(t, 1, result())
+	assert.Equal(t, 1, attempts, "Should execute once even with 0 retries")
+}
+
+// TestRetrying_CumulativeDelay tests that cumulative delay is tracked correctly
+func TestRetrying_CumulativeDelay(t *testing.T) {
+	var cumulativeDelays []time.Duration
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			cumulativeDelays = append(cumulativeDelays, status.CumulativeDelay)
+			return len(cumulativeDelays)
+		}())
+	}
+	check := func(value int) bool {
+		return value < 4 // Do 4 attempts
+	}
+
+	delay := 20 * time.Millisecond
+	policy := R.Monoid.Concat(
+		R.LimitRetries(5),
+		R.ConstantDelay(delay),
+	)
+
+	result := Retrying(policy, action, check)
+	result()
+
+	assert.Equal(t, 4, len(cumulativeDelays))
+	assert.Equal(t, time.Duration(0), cumulativeDelays[0], "First attempt should have 0 cumulative delay")
+
+	// Each subsequent attempt should have increasing cumulative delay
+	for i := 1; i < len(cumulativeDelays); i++ {
+		assert.Greater(t, cumulativeDelays[i], cumulativeDelays[i-1],
+			"Cumulative delay should increase with each retry")
+	}
+}
+
+// TestRetrying_ComplexPredicate tests retry with complex success criteria
+func TestRetrying_ComplexPredicate(t *testing.T) {
+	type Result struct {
+		StatusCode int
+		Body       string
+	}
+
+	results := []Result{
+		{StatusCode: 500, Body: "error"},
+		{StatusCode: 503, Body: "unavailable"},
+		{StatusCode: 200, Body: "success"},
+	}
+	index := 0
+
+	action := func(status R.RetryStatus) IO[Result] {
+		return Of(func() Result {
+			result := results[index]
+			index++
+			return result
+		}())
+	}
+	check := func(r Result) bool {
+		// Retry on server errors (5xx)
+		return r.StatusCode >= 500
+	}
+
+	policy := R.LimitRetries(5)
+	result := Retrying(policy, action, check)
+
+	finalResult := result()
+	assert.Equal(t, 200, finalResult.StatusCode)
+	assert.Equal(t, "success", finalResult.Body)
+	assert.Equal(t, 3, index, "Should have tried 3 times")
+}
+
+// TestRetrying_WithLogging tests that retry status can be used for logging
+func TestRetrying_WithLogging(t *testing.T) {
+	var logs []string
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			logs = append(logs, fmt.Sprintf("Attempt %d, cumulative delay: %v",
+				status.IterNumber, status.CumulativeDelay))
+			return int(status.IterNumber)
+		}())
+	}
+	check := func(value int) bool {
+		return value < 3
+	}
+
+	policy := R.Monoid.Concat(
+		R.LimitRetries(5),
+		R.ConstantDelay(10*time.Millisecond),
+	)
+
+	result := Retrying(policy, action, check)
+	result()
+
+	assert.Equal(t, 4, len(logs), "Should have 4 log entries")
+	assert.Contains(t, logs[0], "Attempt 0")
+	assert.Contains(t, logs[1], "Attempt 1")
+	assert.Contains(t, logs[2], "Attempt 2")
+	assert.Contains(t, logs[3], "Attempt 3")
+}
+
+// TestRetrying_PolicyReturnsNone tests behavior when policy returns None immediately
+func TestRetrying_PolicyReturnsNone(t *testing.T) {
+	attempts := 0
+	action := func(status R.RetryStatus) IO[int] {
+		return Of(func() int {
+			attempts++
+			return attempts
+		}())
+	}
+	check := func(value int) bool {
+		return true // Always want to retry
+	}
+
+	// Policy that never allows retries
+	policy := func(status R.RetryStatus) O.Option[time.Duration] {
+		return O.None[time.Duration]()
+	}
+
+	result := Retrying(policy, action, check)
+	result()
+
+	assert.Equal(t, 1, attempts, "Should only execute once when policy returns None")
+}
+
+// TestRetrying_LongRunningRetry tests retry over multiple attempts with realistic delays
+func TestRetrying_LongRunningRetry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping long-running test in short mode")
+	}
+
+	attempts := 0
+	action := func(status R.RetryStatus) IO[bool] {
+		return Of(func() bool {
+			attempts++
+			// Succeed on 5th attempt
+			return attempts >= 5
+		}())
+	}
+	check := func(value bool) bool {
+		return !value
+	}
+
+	policy := R.Monoid.Concat(
+		R.LimitRetries(10),
+		R.ConstantDelay(100*time.Millisecond),
+	)
+
+	start := time.Now()
+	result := Retrying(policy, action, check)
+	result()
+	elapsed := time.Since(start)
+
+	assert.Equal(t, 5, attempts)
+	// Should have 4 delays of 100ms each = 400ms minimum
+	expectedMinDelay := 400 * time.Millisecond
+	assert.GreaterOrEqual(t, elapsed, expectedMinDelay)
 }

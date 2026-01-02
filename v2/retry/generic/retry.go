@@ -54,6 +54,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/retry"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 // applyAndDelay applies a retry policy to the current status and delays by the
@@ -77,121 +78,152 @@ import (
 func applyAndDelay[HKTSTATUS any](
 	monadOf func(R.RetryStatus) HKTSTATUS,
 	monadDelay func(time.Duration) func(HKTSTATUS) HKTSTATUS,
-) func(policy R.RetryPolicy, status R.RetryStatus) HKTSTATUS {
-	return func(policy R.RetryPolicy, status R.RetryStatus) HKTSTATUS {
-		newStatus := R.ApplyPolicy(policy, status)
-		return F.Pipe1(
-			newStatus.PreviousDelay,
+
+	policy R.RetryPolicy,
+) func(status R.RetryStatus) HKTSTATUS {
+
+	apStatus := F.Bind1st(R.ApplyPolicy, policy)
+
+	return func(status R.RetryStatus) HKTSTATUS {
+		newStatus := apStatus(status)
+		ofNewStatus := monadOf(newStatus)
+		return F.Pipe2(
+			newStatus,
+			R.PreviousDelayLens.Get,
 			O.Fold(
-				F.Nullary2(F.Constant(newStatus), monadOf),
+				F.Constant(ofNewStatus),
 				func(delay time.Duration) HKTSTATUS {
-					return monadDelay(delay)(monadOf(newStatus))
+					return monadDelay(delay)(ofNewStatus)
 				},
 			),
 		)
 	}
 }
 
-// Retrying is a generic retry combinator for actions that don't raise exceptions,
-// but signal failure in their type. This works with monads like Option, Either,
-// and EitherT where the type itself indicates success or failure.
+// Retrying implements a generic retry combinator that works with any monadic type.
+// It repeatedly executes an action until either the check function returns false
+// (indicating success) or the retry policy terminates (indicating failure).
 //
-// The function repeatedly executes an action until either:
-//  1. The action succeeds (check returns false)
-//  2. The retry policy returns None (retry limit reached)
-//  3. The action fails in a way that shouldn't be retried
+// This function is the core retry implementation that can be specialized for different
+// monadic types (IO, IOEither, ReaderIO, etc.) by providing the appropriate monad
+// operations. It uses tail recursion via trampolining to avoid stack overflow on
+// deep retry chains.
 //
-// Type parameters:
-//   - HKTA: The higher-kinded type for the action result (e.g., IO[A], Either[E, A])
-//   - HKTSTATUS: The higher-kinded type for the retry status (e.g., IO[RetryStatus])
+// # How It Works
+//
+// The retry logic follows these steps:
+//  1. Execute the action with the current retry status
+//  2. Check the result using the check function
+//  3. If check returns false, return the result (success case)
+//  4. If check returns true, apply the retry policy to get the next delay
+//  5. If the policy returns None, stop retrying and return the last result
+//  6. If the policy returns Some(delay), wait for that duration and retry (step 1)
+//
+// # Type Parameters
+//
+//   - HKTTRAMPOLINE: The higher-kinded type for the trampoline monad (e.g., IO[Trampoline[RetryStatus, A]])
+//   - HKTA: The higher-kinded type for the action result (e.g., IO[A])
+//   - HKTSTATUS: The higher-kinded type for the status monad (e.g., IO[RetryStatus])
 //   - A: The result type of the action
 //
-// Monad operations (first 5 parameters):
-//   - monadChain: Chains operations on HKTA (flatMap/bind for the result type)
-//   - monadChainStatus: Chains operations from HKTSTATUS to HKTA
-//   - monadOf: Lifts a value A into HKTA (pure/return for the result type)
-//   - monadOfStatus: Lifts a RetryStatus into HKTSTATUS
-//   - monadDelay: Delays execution by a duration within the monad
+// # Parameters
 //
-// Retry configuration (last 3 parameters):
-//   - policy: The retry policy that determines delays and limits
+// Monad operations for the result type:
+//   - monadChain: Chains computations in the result monad (flatMap/bind operation)
+//   - monadMapStatus: Maps over the status monad to produce a trampoline
+//   - monadOf: Lifts a trampoline value into the result monad
+//   - monadOfStatus: Lifts a RetryStatus into the status monad
+//   - monadDelay: Delays execution by a duration within the status monad
+//
+// Tail recursion support:
+//   - tailRec: Executes a tail-recursive function using trampolining to avoid stack overflow
+//
+// Retry configuration:
+//   - policy: The retry policy that determines delays and when to stop retrying
 //   - action: The action to retry, which receives the current RetryStatus
-//   - check: A predicate that returns true if the result should be retried
+//   - check: A predicate that returns true if the result should be retried, false otherwise
 //
-// Returns:
-//   - HKTA: The monadic result after retrying according to the policy
+// # Returns
 //
-// Example conceptual usage with IOEither:
+// The result of the action wrapped in the monad HKTA. This will be either:
+//   - The first result where check returns false (success)
+//   - The last result when the policy terminates (exhausted retries)
 //
-//	policy := R.Monoid.Concat(
-//		R.LimitRetries(3),
-//		R.ExponentialBackoff(100*time.Millisecond),
-//	)
+// # Example Usage Pattern
 //
-//	action := func(status R.RetryStatus) IOEither[error, string] {
-//		return fetchData() // some IO operation that might fail
-//	}
-//
-//	shouldRetry := func(result string) bool {
-//		return result == "" // retry if empty
-//	}
+// For IOEither[E, A]:
 //
 //	result := Retrying(
-//		IOE.Chain[error, string],
-//		IOE.Chain[error, R.RetryStatus],
-//		IOE.Of[error, string],
-//		IOE.Of[error, R.RetryStatus],
-//		IOE.Delay[error, R.RetryStatus],
-//		policy,
-//		action,
-//		shouldRetry,
+//		IOE.Chain[E, A],                    // Chain for IOEither[E, A]
+//		IOE.Chain[E, R.RetryStatus],        // Chain for IOEither[E, RetryStatus]
+//		IOE.Of[E, A],                       // Lift trampoline to IOEither
+//		IOE.Of[E, R.RetryStatus],           // Lift status to IOEither
+//		IOE.Delay[E, R.RetryStatus],        // Delay in IOEither
+//		IOE.TailRec[R.RetryStatus, A],      // Tail recursion for IOEither
+//		policy,                              // Retry policy
+//		action,                              // Action to retry
+//		E.IsLeft[A],                         // Retry on Left (error)
 //	)
-func Retrying[HKTA, HKTSTATUS, A any](
-	monadChain func(func(A) HKTA) func(HKTA) HKTA,
-	monadChainStatus func(func(R.RetryStatus) HKTA) func(HKTSTATUS) HKTA,
-	monadOf func(A) HKTA,
+//
+// # Implementation Notes
+//
+// The function uses trampolining to implement tail recursion, which prevents stack
+// overflow when retrying many times. The trampoline can be in one of two states:
+//   - Land: Indicates completion with a final result
+//   - Bounce: Indicates another iteration is needed with an updated status
+//
+// The retry logic checks if the policy returned a delay (Some) or termination (None).
+// If a delay is present, it bounces to the next iteration. If None, it lands with
+// the current result.
+func Retrying[HKTTRAMPOLINE, HKTA, HKTSTATUS, A any](
+	monadChain func(func(A) HKTTRAMPOLINE) func(HKTA) HKTTRAMPOLINE,
+	monadMapStatus func(func(R.RetryStatus) tailrec.Trampoline[R.RetryStatus, A]) func(HKTSTATUS) HKTTRAMPOLINE,
+	monadOf func(tailrec.Trampoline[R.RetryStatus, A]) HKTTRAMPOLINE,
 	monadOfStatus func(R.RetryStatus) HKTSTATUS,
 	monadDelay func(time.Duration) func(HKTSTATUS) HKTSTATUS,
+
+	tailRec func(func(R.RetryStatus) HKTTRAMPOLINE) func(R.RetryStatus) HKTA,
 
 	policy R.RetryPolicy,
 	action func(R.RetryStatus) HKTA,
 	check func(A) bool,
 ) HKTA {
 	// delay callback
-	applyDelay := applyAndDelay(monadOfStatus, monadDelay)
+	applyDelay := applyAndDelay(monadOfStatus, monadDelay, policy)
 
 	// function to check if we need to retry or not
 	checkForRetry := O.FromPredicate(check)
 
-	var f func(status R.RetryStatus) HKTA
-
 	// need some lazy init because we reference it in the chain
-	f = func(status R.RetryStatus) HKTA {
+	retryFct := func(status R.RetryStatus) HKTTRAMPOLINE {
 		return F.Pipe2(
 			status,
 			action,
-			monadChain(func(a A) HKTA {
+			monadChain(func(a A) HKTTRAMPOLINE {
 				return F.Pipe3(
 					a,
 					checkForRetry,
-					O.Map(func(a A) HKTA {
+					O.Map(func(a A) HKTTRAMPOLINE {
 						return F.Pipe1(
-							applyDelay(policy, status),
-							monadChainStatus(func(status R.RetryStatus) HKTA {
-								return F.Pipe1(
-									status.PreviousDelay,
-									O.Fold(F.Constant(monadOf(a)), func(_ time.Duration) HKTA {
-										return f(status)
-									}),
+							applyDelay(status),
+							monadMapStatus(func(status R.RetryStatus) tailrec.Trampoline[R.RetryStatus, A] {
+								return F.Pipe2(
+									status,
+									R.PreviousDelayLens.Get,
+									O.Fold(
+										F.Constant(tailrec.Land[R.RetryStatus](a)),
+										F.Constant1[time.Duration](tailrec.Bounce[A](status)),
+									),
 								)
 							}),
 						)
 					}),
-					O.GetOrElse(F.Constant(monadOf(a))),
+					O.GetOrElse(F.Constant(monadOf(tailrec.Land[R.RetryStatus](a)))),
 				)
 			}),
 		)
 	}
+
 	// seed
-	return f(R.DefaultRetryStatus)
+	return tailRec(retryFct)(R.DefaultRetryStatus)
 }

@@ -15,6 +15,16 @@
 
 package fromio
 
+// FromIO represents a type that can be constructed from an IO computation.
+//
+// This interface provides a way to lift IO computations into other monadic contexts,
+// enabling interoperability between IO and other effect types.
+//
+// Type Parameters:
+//   - A: The value type produced by the IO computation
+//   - GA: The IO type (constrained to func() A)
+//   - HKTA: The target higher-kinded type
 type FromIO[A, GA ~func() A, HKTA any] interface {
+	// FromIO converts an IO computation into the target monadic type.
 	FromIO(GA) HKTA
 }

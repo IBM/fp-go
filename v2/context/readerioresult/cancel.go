@@ -42,6 +42,42 @@ func WithContext[A any](ma ReaderIOResult[A]) ReaderIOResult[A] {
 	}
 }
 
+// WithContextK wraps a Kleisli arrow with context cancellation checking.
+// This ensures that the computation checks for context cancellation before executing,
+// providing a convenient way to add cancellation awareness to Kleisli arrows.
+//
+// This is particularly useful when composing multiple Kleisli arrows where each step
+// should respect context cancellation.
+//
+// Type Parameters:
+//   - A: The input type of the Kleisli arrow
+//   - B: The output type of the Kleisli arrow
+//
+// Parameters:
+//   - f: The Kleisli arrow to wrap with context checking
+//
+// Returns:
+//   - A Kleisli arrow that checks for cancellation before executing
+//
+// Example:
+//
+//	fetchUser := func(id int) ReaderIOResult[User] {
+//	    return func(ctx context.Context) IOResult[User] {
+//	        return func() Result[User] {
+//	            // Long-running operation
+//	            return result.Of(User{ID: id})
+//	        }
+//	    }
+//	}
+//
+//	// Wrap with context checking
+//	safeFetch := WithContextK(fetchUser)
+//
+//	// If context is cancelled, returns immediately without executing fetchUser
+//	ctx, cancel := context.WithCancel(context.Background())
+//	cancel() // Cancel immediately
+//	result := safeFetch(123)(ctx)() // Returns context.Canceled error
+//
 //go:inline
 func WithContextK[A, B any](f Kleisli[A, B]) Kleisli[A, B] {
 	return F.Flow2(

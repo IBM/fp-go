@@ -58,6 +58,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
+	L "github.com/IBM/fp-go/v2/optics/lens"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 )
@@ -102,6 +103,24 @@ type RetryPolicy = func(RetryStatus) Option[time.Duration]
 const emptyDuration = time.Duration(0)
 
 var ordDuration = ord.FromStrictCompare[time.Duration]()
+
+var IterNumberLens = L.MakeLensWithName(
+	func(rs RetryStatus) uint { return rs.IterNumber },
+	func(rs RetryStatus, iter uint) RetryStatus { rs.IterNumber = iter; return rs },
+	"RetryStatus.IterNumber",
+)
+
+var CumulativeDelayLens = L.MakeLensWithName(
+	func(rs RetryStatus) time.Duration { return rs.CumulativeDelay },
+	func(rs RetryStatus, delay time.Duration) RetryStatus { rs.CumulativeDelay = delay; return rs },
+	"RetryStatus.CumulativeDelay",
+)
+
+var PreviousDelayLens = L.MakeLensWithName(
+	func(rs RetryStatus) Option[time.Duration] { return rs.PreviousDelay },
+	func(rs RetryStatus, delay Option[time.Duration]) RetryStatus { rs.PreviousDelay = delay; return rs },
+	"RetryStatus.PreviousDelay",
+)
 
 // IterNumber is an accessor function that extracts the iteration number
 // from a RetryStatus. This is useful for functional composition.

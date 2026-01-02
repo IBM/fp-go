@@ -19,8 +19,22 @@ import (
 	M "github.com/IBM/fp-go/v2/monoid"
 )
 
+// Foldable represents a data structure that can be folded/reduced to a single value.
+//
+// Foldable provides operations to collapse a structure containing multiple values
+// into a single summary value by applying a combining function.
+//
+// Type Parameters:
+//   - A: The type of elements in the structure
+//   - B: The type of the accumulated result
+//   - HKTA: The higher-kinded type containing A
 type Foldable[A, B, HKTA any] interface {
+	// Reduce folds the structure from left to right using a binary function and initial value.
 	Reduce(func(B, A) B, B) func(HKTA) B
+
+	// ReduceRight folds the structure from right to left using a binary function and initial value.
 	ReduceRight(func(B, A) B, B) func(HKTA) B
+
+	// FoldMap maps each element to a monoid and combines them using the monoid's operation.
 	FoldMap(m M.Monoid[B]) func(func(A) B) func(HKTA) B
 }

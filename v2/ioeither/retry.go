@@ -25,10 +25,12 @@ import (
 // policy - refers to the retry policy
 // action - converts a status into an operation to be executed
 // check  - checks if the result of the action needs to be retried
+//
+//go:inline
 func Retrying[E, A any](
 	policy R.RetryPolicy,
 	action Kleisli[E, R.RetryStatus, A],
-	check func(Either[E, A]) bool,
+	check Predicate[Either[E, A]],
 ) IOEither[E, A] {
 	return io.Retrying(policy, action, check)
 }

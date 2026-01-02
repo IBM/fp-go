@@ -21,7 +21,34 @@ import (
 	"github.com/IBM/fp-go/v2/result"
 )
 
-// withContext wraps an existing IOEither and performs a context check for cancellation before delegating
+// WithContext wraps an IOResult and performs a context check for cancellation before executing.
+// This ensures that if the context is already cancelled, the computation short-circuits immediately
+// without executing the wrapped computation.
+//
+// This is useful for adding cancellation awareness to computations that might not check the context themselves.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//
+// Parameters:
+//   - ctx: The context to check for cancellation
+//   - ma: The IOResult to wrap with context checking
+//
+// Returns:
+//   - An IOResult that checks for cancellation before executing
+//
+// Example:
+//
+//	computation := func() Result[string] {
+//	    // Long-running operation
+//	    return result.Of("done")
+//	}
+//
+//	ctx, cancel := context.WithCancel(context.Background())
+//	cancel() // Cancel immediately
+//
+//	wrapped := WithContext(ctx, computation)
+//	result := wrapped() // Returns Left with context.Canceled error
 func WithContext[A any](ctx context.Context, ma IOResult[A]) IOResult[A] {
 	return func() Result[A] {
 		if ctx.Err() != nil {

@@ -19,6 +19,16 @@ import (
 	ET "github.com/IBM/fp-go/v2/either"
 )
 
+// FromEither represents a type that can be constructed from an Either value.
+//
+// This interface provides a way to lift Either values into other monadic contexts,
+// enabling interoperability between Either and other effect types.
+//
+// Type Parameters:
+//   - E: The error type in the Either
+//   - A: The success value type in the Either
+//   - HKTA: The target higher-kinded type
 type FromEither[E, A, HKTA any] interface {
+	// FromEither converts an Either value into the target monadic type.
 	FromEither(ET.Either[E, A]) HKTA
 }

@@ -1,5 +1,7 @@
 package lazy
 
+import "github.com/IBM/fp-go/v2/predicate"
+
 type (
 	// Lazy represents a synchronous computation without side effects.
 	// It is a function that takes no arguments and returns a value of type A.
@@ -57,4 +59,8 @@ type (
 	//	// Apply it to a lazy computation
 	//	result := doubleOp(lazy.Of(5))() // 10
 	Operator[A, B any] = Kleisli[Lazy[A], B]
+
+	// Predicate represents a function that tests a value of type A and returns a boolean.
+	// It's commonly used for filtering and conditional operations.
+	Predicate[A any] = predicate.Predicate[A]
 )
