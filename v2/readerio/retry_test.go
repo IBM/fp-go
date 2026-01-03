@@ -650,5 +650,3 @@ func TestRetrying_StackSafety(t *testing.T) {
 	assert.Equal(t, maxAttempts, finalResult)
 	assert.Equal(t, maxAttempts, attempts, "Should handle many retries without stack overflow")
 }
-
-// Made with Bob

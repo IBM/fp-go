@@ -370,5 +370,3 @@ func TestTailRec_ComplexState(t *testing.T) {
 		assert.Equal(t, 60, result)
 	})
 }
-
-// Made with Bob
