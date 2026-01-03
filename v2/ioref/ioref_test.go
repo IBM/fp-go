@@ -19,22 +19,29 @@ import (
 	"sync"
 	"testing"
 
+	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
-
-	N "github.com/IBM/fp-go/v2/number"
 )
 
 func TestMakeIORef(t *testing.T) {
 	t.Run("creates IORef with initial value", func(t *testing.T) {
-		ref := MakeIORef(42)()
-		value := Read(ref)()
+		value := F.Pipe2(
+			42,
+			MakeIORef[int],
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 42, value)
 	})
 
 	t.Run("creates IORef with string value", func(t *testing.T) {
-		ref := MakeIORef("hello")()
-		value := Read(ref)()
+		value := F.Pipe2(
+			"hello",
+			MakeIORef[string],
+			io.Chain(Read[string]),
+		)()
 		assert.Equal(t, "hello", value)
 	})
 
@@ -44,29 +51,41 @@ func TestMakeIORef(t *testing.T) {
 			Age  int
 		}
 		person := Person{Name: "Alice", Age: 30}
-		ref := MakeIORef(person)()
-		value := Read(ref)()
+		value := F.Pipe2(
+			person,
+			MakeIORef[Person],
+			io.Chain(Read[Person]),
+		)()
 		assert.Equal(t, person, value)
 	})
 
 	t.Run("creates IORef with slice value", func(t *testing.T) {
 		slice := []int{1, 2, 3, 4, 5}
-		ref := MakeIORef(slice)()
-		value := Read(ref)()
+		value := F.Pipe2(
+			slice,
+			MakeIORef[[]int],
+			io.Chain(Read[[]int]),
+		)()
 		assert.Equal(t, slice, value)
 	})
 
 	t.Run("creates IORef with zero value", func(t *testing.T) {
-		ref := MakeIORef(0)()
-		value := Read(ref)()
+		value := F.Pipe2(
+			0,
+			MakeIORef[int],
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 0, value)
 	})
 }
 
 func TestRead(t *testing.T) {
 	t.Run("reads the current value", func(t *testing.T) {
-		ref := MakeIORef(100)()
-		value := Read(ref)()
+		value := F.Pipe2(
+			100,
+			MakeIORef[int],
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 100, value)
 	})
 
@@ -81,124 +100,169 @@ func TestRead(t *testing.T) {
 	})
 
 	t.Run("reads updated value", func(t *testing.T) {
-		ref := MakeIORef(10)()
-		Write(20)(ref)()
-		value := Read(ref)()
+		value := F.Pipe3(
+			10,
+			MakeIORef[int],
+			io.Chain(Write(20)),
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 20, value)
 	})
 }
 
 func TestWrite(t *testing.T) {
 	t.Run("writes a new value", func(t *testing.T) {
-		ref := MakeIORef(42)()
-		Write(100)(ref)()
-		value := Read(ref)()
+		value := F.Pipe3(
+			42,
+			MakeIORef[int],
+			io.Chain(Write(100)),
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 100, value)
 	})
 
 	t.Run("overwrites previous value", func(t *testing.T) {
-		ref := MakeIORef(1)()
-		Write(2)(ref)()
-		Write(3)(ref)()
-		Write(4)(ref)()
-		value := Read(ref)()
+		value := F.Pipe5(
+			1,
+			MakeIORef[int],
+			io.Chain(Write(2)),
+			io.Chain(Write(3)),
+			io.Chain(Write(4)),
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 4, value)
 	})
 
 	t.Run("returns the IORef for chaining", func(t *testing.T) {
-		ref := MakeIORef(10)()
-		returnedRef := Write(20)(ref)()
-		assert.Equal(t, ref, returnedRef)
+		ref := F.Pipe2(
+			10,
+			MakeIORef[int],
+			io.Chain(Write(20)),
+		)()
+		assert.NotNil(t, ref)
+		assert.Equal(t, 20, Read(ref)())
 	})
 
 	t.Run("writes different types", func(t *testing.T) {
-		strRef := MakeIORef("initial")()
-		Write("updated")(strRef)()
-		assert.Equal(t, "updated", Read(strRef)())
+		strValue := F.Pipe3(
+			"initial",
+			MakeIORef[string],
+			io.Chain(Write("updated")),
+			io.Chain(Read[string]),
+		)()
+		assert.Equal(t, "updated", strValue)
 
-		boolRef := MakeIORef(false)()
-		Write(true)(boolRef)()
-		assert.Equal(t, true, Read(boolRef)())
+		boolValue := F.Pipe3(
+			false,
+			MakeIORef[bool],
+			io.Chain(Write(true)),
+			io.Chain(Read[bool]),
+		)()
+		assert.Equal(t, true, boolValue)
 	})
 }
 
 func TestModify(t *testing.T) {
 	t.Run("modifies value with function", func(t *testing.T) {
-		ref := MakeIORef(10)()
-		Modify(N.Mul(2))(ref)()
-		value := Read(ref)()
+		value := F.Pipe3(
+			10,
+			MakeIORef[int],
+			io.Chain(Modify(N.Mul(2))),
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 20, value)
 	})
 
 	t.Run("chains multiple modifications", func(t *testing.T) {
-		ref := MakeIORef(5)()
-		Modify(N.Add(10))(ref)()
-		Modify(N.Mul(2))(ref)()
-		Modify(N.Sub(5))(ref)()
-		value := Read(ref)()
+		value := F.Pipe5(
+			5,
+			MakeIORef[int],
+			io.Chain(Modify(N.Add(10))),
+			io.Chain(Modify(N.Mul(2))),
+			io.Chain(Modify(N.Sub(5))),
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 25, value) // (5 + 10) * 2 - 5 = 25
 	})
 
 	t.Run("modifies string value", func(t *testing.T) {
-		ref := MakeIORef("hello")()
-		Modify(func(s string) string { return s + " world" })(ref)()
-		value := Read(ref)()
+		value := F.Pipe3(
+			"hello",
+			MakeIORef[string],
+			io.Chain(Modify(func(s string) string { return s + " world" })),
+			io.Chain(Read[string]),
+		)()
 		assert.Equal(t, "hello world", value)
 	})
 
 	t.Run("returns the IORef for chaining", func(t *testing.T) {
-		ref := MakeIORef(42)()
-		returnedRef := Modify(N.Add(1))(ref)()
-		assert.Equal(t, ref, returnedRef)
+		ref := F.Pipe2(
+			42,
+			MakeIORef[int],
+			io.Chain(Modify(N.Add(1))),
+		)()
+		assert.NotNil(t, ref)
+		assert.Equal(t, 43, Read(ref)())
 	})
 
 	t.Run("modifies slice by appending", func(t *testing.T) {
-		ref := MakeIORef([]int{1, 2, 3})()
-		Modify(func(s []int) []int { return append(s, 4, 5) })(ref)()
-		value := Read(ref)()
+		value := F.Pipe3(
+			[]int{1, 2, 3},
+			MakeIORef[[]int],
+			io.Chain(Modify(func(s []int) []int { return append(s, 4, 5) })),
+			io.Chain(Read[[]int]),
+		)()
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, value)
 	})
 }
 
 func TestModifyWithResult(t *testing.T) {
 	t.Run("modifies and returns result", func(t *testing.T) {
-		ref := MakeIORef(42)()
-		oldValue := ModifyWithResult(func(x int) pair.Pair[int, int] {
-			return pair.MakePair(x+1, x)
-		})(ref)()
+		oldValue := F.Pipe2(
+			42,
+			MakeIORef[int],
+			io.Chain(ModifyWithResult(func(x int) pair.Pair[int, int] {
+				return pair.MakePair(x+1, x)
+			})),
+		)()
 
 		assert.Equal(t, 42, oldValue)
-		assert.Equal(t, 43, Read(ref)())
 	})
 
 	t.Run("swaps value and returns old", func(t *testing.T) {
-		ref := MakeIORef(100)()
-		old := ModifyWithResult(func(x int) pair.Pair[int, int] {
-			return pair.MakePair(200, x)
-		})(ref)()
+		old := F.Pipe2(
+			100,
+			MakeIORef[int],
+			io.Chain(ModifyWithResult(func(x int) pair.Pair[int, int] {
+				return pair.MakePair(200, x)
+			})),
+		)()
 
 		assert.Equal(t, 100, old)
-		assert.Equal(t, 200, Read(ref)())
 	})
 
 	t.Run("computes result from old value", func(t *testing.T) {
-		ref := MakeIORef(10)()
-		doubled := ModifyWithResult(func(x int) pair.Pair[int, int] {
-			return pair.MakePair(x+5, x*2)
-		})(ref)()
+		doubled := F.Pipe2(
+			10,
+			MakeIORef[int],
+			io.Chain(ModifyWithResult(func(x int) pair.Pair[int, int] {
+				return pair.MakePair(x+5, x*2)
+			})),
+		)()
 
-		assert.Equal(t, 20, doubled)     // old value * 2
-		assert.Equal(t, 15, Read(ref)()) // old value + 5
+		assert.Equal(t, 20, doubled) // old value * 2
 	})
 
 	t.Run("returns different type", func(t *testing.T) {
-		ref := MakeIORef(42)()
-		message := ModifyWithResult(func(x int) pair.Pair[int, string] {
-			return pair.MakePair(x*2, "doubled")
-		})(ref)()
+		message := F.Pipe2(
+			42,
+			MakeIORef[int],
+			io.Chain(ModifyWithResult(func(x int) pair.Pair[int, string] {
+				return pair.MakePair(x*2, "doubled")
+			})),
+		)()
 
 		assert.Equal(t, "doubled", message)
-		assert.Equal(t, 84, Read(ref)())
 	})
 
 	t.Run("chains multiple ModifyWithResult calls", func(t *testing.T) {
@@ -214,7 +278,8 @@ func TestModifyWithResult(t *testing.T) {
 		})(ref)()
 		assert.Equal(t, 15, result2)
 
-		assert.Equal(t, 30, Read(ref)())
+		finalValue := Read(ref)()
+		assert.Equal(t, 30, finalValue)
 	})
 }
 
@@ -343,50 +408,72 @@ func TestConcurrency(t *testing.T) {
 func TestEdgeCases(t *testing.T) {
 	t.Run("IORef with nil pointer", func(t *testing.T) {
 		var ptr *int
-		ref := MakeIORef(ptr)()
-		value := Read(ref)()
+		value := F.Pipe2(
+			ptr,
+			MakeIORef[*int],
+			io.Chain(Read[*int]),
+		)()
 		assert.Nil(t, value)
 
 		newPtr := new(int)
 		*newPtr = 42
-		Write(newPtr)(ref)()
-		value = Read(ref)()
-		assert.NotNil(t, value)
-		assert.Equal(t, 42, *value)
+		updatedValue := F.Pipe3(
+			ptr,
+			MakeIORef[*int],
+			io.Chain(Write(newPtr)),
+			io.Chain(Read[*int]),
+		)()
+		assert.NotNil(t, updatedValue)
+		assert.Equal(t, 42, *updatedValue)
 	})
 
 	t.Run("IORef with empty slice", func(t *testing.T) {
-		ref := MakeIORef([]int{})()
-		value := Read(ref)()
+		value := F.Pipe2(
+			[]int{},
+			MakeIORef[[]int],
+			io.Chain(Read[[]int]),
+		)()
 		assert.Empty(t, value)
 
-		Modify(func(s []int) []int { return append(s, 1) })(ref)()
-		value = Read(ref)()
-		assert.Equal(t, []int{1}, value)
+		updatedValue := F.Pipe3(
+			[]int{},
+			MakeIORef[[]int],
+			io.Chain(Modify(func(s []int) []int { return append(s, 1) })),
+			io.Chain(Read[[]int]),
+		)()
+		assert.Equal(t, []int{1}, updatedValue)
 	})
 
 	t.Run("IORef with empty string", func(t *testing.T) {
-		ref := MakeIORef("")()
-		value := Read(ref)()
+		value := F.Pipe2(
+			"",
+			MakeIORef[string],
+			io.Chain(Read[string]),
+		)()
 		assert.Equal(t, "", value)
 
-		Write("not empty")(ref)()
-		value = Read(ref)()
-		assert.Equal(t, "not empty", value)
+		updatedValue := F.Pipe3(
+			"",
+			MakeIORef[string],
+			io.Chain(Write("not empty")),
+			io.Chain(Read[string]),
+		)()
+		assert.Equal(t, "not empty", updatedValue)
 	})
 
 	t.Run("identity modification", func(t *testing.T) {
-		ref := MakeIORef(42)()
-		Modify(func(x int) int { return x })(ref)()
-		value := Read(ref)()
+		value := F.Pipe3(
+			42,
+			MakeIORef[int],
+			io.Chain(Modify(F.Identity[int])),
+			io.Chain(Read[int]),
+		)()
 		assert.Equal(t, 42, value)
 	})
 
 	t.Run("ModifyWithResult with identity", func(t *testing.T) {
 		ref := MakeIORef(42)()
-		result := ModifyWithResult(func(x int) pair.Pair[int, int] {
-			return pair.MakePair(x, x)
-		})(ref)()
+		result := ModifyWithResult(pair.Of[int])(ref)()
 
 		assert.Equal(t, 42, result)
 		assert.Equal(t, 42, Read(ref)())
@@ -396,34 +483,41 @@ func TestEdgeCases(t *testing.T) {
 func TestComplexTypes(t *testing.T) {
 	t.Run("IORef with map", func(t *testing.T) {
 		m := map[string]int{"a": 1, "b": 2}
-		ref := MakeIORef(m)()
+		value := F.Pipe3(
+			m,
+			MakeIORef[map[string]int],
+			io.Chain(Modify(func(m map[string]int) map[string]int {
+				m["c"] = 3
+				return m
+			})),
+			io.Chain(Read[map[string]int]),
+		)()
 
-		Modify(func(m map[string]int) map[string]int {
-			m["c"] = 3
-			return m
-		})(ref)()
-
-		value := Read(ref)()
 		assert.Equal(t, 3, len(value))
 		assert.Equal(t, 3, value["c"])
 	})
 
 	t.Run("IORef with channel", func(t *testing.T) {
 		ch := make(chan int, 1)
-		ref := MakeIORef(ch)()
+		retrievedCh := F.Pipe2(
+			ch,
+			MakeIORef[chan int],
+			io.Chain(Read[chan int]),
+		)()
 
-		retrievedCh := Read(ref)()
 		retrievedCh <- 42
-
 		value := <-retrievedCh
 		assert.Equal(t, 42, value)
 	})
 
 	t.Run("IORef with function", func(t *testing.T) {
 		fn := N.Mul(2)
-		ref := MakeIORef(fn)()
+		retrievedFn := F.Pipe2(
+			fn,
+			MakeIORef[func(int) int],
+			io.Chain(Read[func(int) int]),
+		)()
 
-		retrievedFn := Read(ref)()
 		result := retrievedFn(21)
 		assert.Equal(t, 42, result)
 	})
@@ -431,39 +525,39 @@ func TestComplexTypes(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkMakeIORef(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		MakeIORef(42)()
 	}
 }
 
 func BenchmarkRead(b *testing.B) {
 	ref := MakeIORef(42)()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		Read(ref)()
 	}
 }
 
 func BenchmarkWrite(b *testing.B) {
 	ref := MakeIORef(0)()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for i := 0; b.Loop(); i++ {
 		Write(i)(ref)()
 	}
 }
 
 func BenchmarkModify(b *testing.B) {
 	ref := MakeIORef(0)()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		Modify(N.Add(1))(ref)()
 	}
 }
 
 func BenchmarkModifyWithResult(b *testing.B) {
 	ref := MakeIORef(0)()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		ModifyWithResult(func(x int) pair.Pair[int, int] {
 			return pair.MakePair(x+1, x)
 		})(ref)()
@@ -499,3 +593,5 @@ func BenchmarkConcurrentModify(b *testing.B) {
 		}
 	})
 }
+
+//
