@@ -266,6 +266,11 @@ func Alt[E, A any](second L.Lazy[IOEither[E, A]]) func(IOEither[E, A]) IOEither[
 	return G.Alt(second)
 }
 
+// OrElse returns the original IOEither if it is a Right, otherwise it applies the given function to the error and returns the result.
+func OrElse[E, A any](onLeft func(E) IOEither[E, A]) func(IOEither[E, A]) IOEither[E, A] {
+	return G.OrElse[IOEither[E, A]](onLeft)
+}
+
 func MonadFlap[E, B, A any](fab IOEither[E, func(A) B], a A) IOEither[E, B] {
 	return G.MonadFlap[IOEither[E, func(A) B], IOEither[E, B]](fab, a)
 }
