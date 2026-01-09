@@ -326,8 +326,6 @@ func TestMakeClosedStateCounter(t *testing.T) {
 	})
 }
 
-// Made with Bob
-
 func TestMakeClosedStateHistory(t *testing.T) {
 	t.Run("creates a valid ClosedState", func(t *testing.T) {
 		timeWindow := 1 * time.Minute
@@ -755,5 +753,3 @@ func TestMakeClosedStateHistory(t *testing.T) {
 		assert.True(t, option.IsNone(result), "should fail at threshold")
 	})
 }
-
-// Made with Bob

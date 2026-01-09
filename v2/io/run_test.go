@@ -226,5 +226,3 @@ func TestRun_ZeroValue(t *testing.T) {
 	sliceIO := Of(nilSlice)
 	assert.Nil(t, Run(sliceIO))
 }
-
-// Made with Bob

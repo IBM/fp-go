@@ -130,22 +130,21 @@ func (s *closedStateWithHistory) Empty() ClosedState {
 	return resetHistory(s)
 }
 
-func (s *closedStateWithHistory) AddError(currentTime time.Time) ClosedState {
+func addToSlice(o ord.Ord[time.Time], ar []time.Time, item time.Time) []time.Time {
+	cpy := make([]time.Time, len(ar)+1)
+	cpy[copy(cpy, ar)] = item
+	slices.SortFunc(ar, o.Compare)
+	return cpy
+}
 
-	addLatest := A.Push(currentTime)
-	sortAll := A.Sort(s.ordTime)
+func (s *closedStateWithHistory) AddError(currentTime time.Time) ClosedState {
 
 	addFailureToHistory := F.Pipe1(
 		historyLens,
 		lens.Modify[*closedStateWithHistory](func(old []time.Time) []time.Time {
 			// oldest valid entry
-			oldestTime := currentTime.Add(-s.timeWindow)
-			idx, _ := slices.BinarySearchFunc(old, oldestTime, s.ordTime.Compare)
-			if idx <= 0 {
-				// Clone the entire slice to maintain immutability
-				return sortAll(addLatest(old))
-			}
-			return sortAll(addLatest(old[idx:]))
+			idx, _ := slices.BinarySearchFunc(old, currentTime.Add(-s.timeWindow), s.ordTime.Compare)
+			return addToSlice(s.ordTime, old[idx:], currentTime)
 		}),
 	)
 
