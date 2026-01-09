@@ -16,28 +16,56 @@ type (
 	// ClosedState represents the closed state of a circuit breaker.
 	// In the closed state, requests are allowed to pass through, but failures are tracked.
 	// If a failure condition is met, the circuit breaker transitions to an open state.
+	//
+	// # Thread Safety
+	//
+	// All ClosedState implementations MUST be thread-safe. The recommended approach is to
+	// make all methods return new copies rather than modifying the receiver, which provides
+	// automatic thread safety through immutability.
+	//
+	// Implementations should ensure that:
+	//   - Empty() returns a new instance with cleared state
+	//   - AddError() returns a new instance with the error recorded
+	//   - AddSuccess() returns a new instance with success recorded
+	//   - Check() does not modify the receiver
+	//
+	// Both provided implementations (closedStateWithErrorCount and closedStateWithHistory)
+	// follow this pattern and are safe for concurrent use.
 	ClosedState interface {
 		// Empty returns a new ClosedState with all tracked failures cleared.
 		// This is used when transitioning back to a closed state from an open state.
+		//
+		// Thread Safety: Returns a new instance; safe for concurrent use.
 		Empty() ClosedState
 
 		// AddError records a failure at the given time.
 		// Returns an updated ClosedState reflecting the recorded failure.
+		//
+		// Thread Safety: Returns a new instance; safe for concurrent use.
+		// The original ClosedState is not modified.
 		AddError(time.Time) ClosedState
 
 		// AddSuccess records a successful request at the given time.
 		// Returns an updated ClosedState reflecting the successful request.
+		//
+		// Thread Safety: Returns a new instance; safe for concurrent use.
+		// The original ClosedState is not modified.
 		AddSuccess(time.Time) ClosedState
 
 		// Check verifies if the circuit breaker should remain closed at the given time.
 		// Returns Some(ClosedState) if the circuit should stay closed,
 		// or None if the circuit should open due to exceeding the failure threshold.
+		//
+		// Thread Safety: Does not modify the receiver; safe for concurrent use.
 		Check(time.Time) Option[ClosedState]
 	}
 
 	// closedStateWithErrorCount is a counter-based implementation of ClosedState.
 	// It tracks the number of consecutive failures and opens the circuit when
 	// the failure count exceeds a configured threshold.
+	//
+	// Thread Safety: This implementation is immutable. All methods return new instances
+	// rather than modifying the receiver, making it safe for concurrent use without locks.
 	closedStateWithErrorCount struct {
 		// checkFailures is a Kleisli arrow that checks if the failure count exceeds the threshold.
 		// Returns Some(count) if threshold is exceeded, None otherwise.
@@ -46,6 +74,14 @@ type (
 		failureCount uint
 	}
 
+	// closedStateWithHistory is a time-window-based implementation of ClosedState.
+	// It tracks failures within a sliding time window and opens the circuit when
+	// the failure count within the window exceeds a configured threshold.
+	//
+	// Thread Safety: This implementation is immutable. All methods return new instances
+	// with new slices rather than modifying the receiver, making it safe for concurrent
+	// use without locks. The history slice is never modified in place; addToSlice always
+	// creates a new slice.
 	closedStateWithHistory struct {
 		ordTime Ord[time.Time]
 		// maxFailures is the maximum number of failures allowed within the time window.
@@ -79,18 +115,37 @@ var (
 	incFailureCount   = lens.Modify[*closedStateWithErrorCount](N.Add(uint(1)))(failureCountLens)
 )
 
+// Empty returns a new closedStateWithErrorCount with the failure count reset to zero.
+//
+// Thread Safety: Returns a new instance; the original is not modified.
+// Safe for concurrent use.
 func (s *closedStateWithErrorCount) Empty() ClosedState {
 	return resetFailureCount(s)
 }
 
+// AddError increments the failure count and returns a new closedStateWithErrorCount.
+// The time parameter is ignored in this counter-based implementation.
+//
+// Thread Safety: Returns a new instance; the original is not modified.
+// Safe for concurrent use.
 func (s *closedStateWithErrorCount) AddError(_ time.Time) ClosedState {
 	return incFailureCount(s)
 }
 
+// AddSuccess resets the failure count to zero and returns a new closedStateWithErrorCount.
+// The time parameter is ignored in this counter-based implementation.
+//
+// Thread Safety: Returns a new instance; the original is not modified.
+// Safe for concurrent use.
 func (s *closedStateWithErrorCount) AddSuccess(_ time.Time) ClosedState {
 	return resetFailureCount(s)
 }
 
+// Check verifies if the failure count is below the threshold.
+// Returns Some(ClosedState) if below threshold, None if at or above threshold.
+// The time parameter is ignored in this counter-based implementation.
+//
+// Thread Safety: Does not modify the receiver; safe for concurrent use.
 func (s *closedStateWithErrorCount) Check(_ time.Time) Option[ClosedState] {
 	return F.Pipe3(
 		s,
@@ -120,23 +175,60 @@ func (s *closedStateWithErrorCount) Check(_ time.Time) Option[ClosedState] {
 //   - Check returns Some(ClosedState) when failureCount < maxFailures (circuit stays closed)
 //   - Check returns None when failureCount >= maxFailures (circuit should open)
 //   - AddSuccess resets the failure count, so only consecutive failures trigger circuit opening
+//
+// Thread Safety: The returned ClosedState is safe for concurrent use. All methods
+// return new instances rather than modifying the receiver.
 func MakeClosedStateCounter(maxFailures uint) ClosedState {
 	return &closedStateWithErrorCount{
 		checkFailures: option.FromPredicate(N.LessThan(maxFailures)),
 	}
 }
 
+// Empty returns a new closedStateWithHistory with an empty failure history.
+//
+// Thread Safety: Returns a new instance with a new empty slice; the original is not modified.
+// Safe for concurrent use.
 func (s *closedStateWithHistory) Empty() ClosedState {
 	return resetHistory(s)
 }
 
+// addToSlice creates a new sorted slice by adding an item to an existing slice.
+// This function does not modify the input slice; it creates a new slice with the item added
+// and returns it in sorted order.
+//
+// Parameters:
+//   - o: An Ord instance for comparing time.Time values to determine sort order
+//   - ar: The existing slice of time.Time values (assumed to be sorted)
+//   - item: The new time.Time value to add to the slice
+//
+// Returns:
+//   - A new slice containing all elements from ar plus the new item, sorted in ascending order
+//
+// Implementation Details:
+//   - Creates a new slice with capacity len(ar)+1
+//   - Copies all elements from ar to the new slice
+//   - Appends the new item
+//   - Sorts the entire slice using the provided Ord comparator
+//
+// Thread Safety: This function is pure and does not modify its inputs. It always returns
+// a new slice, making it safe for concurrent use. This is a key component of the immutable
+// design of closedStateWithHistory.
+//
+// Note: This function is used internally by closedStateWithHistory.AddError to maintain
+// a sorted history of failure timestamps for efficient binary search operations.
 func addToSlice(o ord.Ord[time.Time], ar []time.Time, item time.Time) []time.Time {
 	cpy := make([]time.Time, len(ar)+1)
 	cpy[copy(cpy, ar)] = item
-	slices.SortFunc(ar, o.Compare)
+	slices.SortFunc(cpy, o.Compare)
 	return cpy
 }
 
+// AddError records a failure at the given time and returns a new closedStateWithHistory.
+// The new instance contains the failure in its history, with old failures outside the
+// time window automatically pruned.
+//
+// Thread Safety: Returns a new instance with a new history slice; the original is not modified.
+// Safe for concurrent use. The addToSlice function creates a new slice, ensuring immutability.
 func (s *closedStateWithHistory) AddError(currentTime time.Time) ClosedState {
 
 	addFailureToHistory := F.Pipe1(
@@ -151,10 +243,20 @@ func (s *closedStateWithHistory) AddError(currentTime time.Time) ClosedState {
 	return addFailureToHistory(s)
 }
 
+// AddSuccess purges the entire failure history and returns a new closedStateWithHistory.
+// The time parameter is ignored; any success clears all tracked failures.
+//
+// Thread Safety: Returns a new instance with a new empty slice; the original is not modified.
+// Safe for concurrent use.
 func (s *closedStateWithHistory) AddSuccess(_ time.Time) ClosedState {
 	return resetHistory(s)
 }
 
+// Check verifies if the number of failures in the history is below the threshold.
+// Returns Some(ClosedState) if below threshold, None if at or above threshold.
+// The time parameter is ignored; the check is based on the current history size.
+//
+// Thread Safety: Does not modify the receiver; safe for concurrent use.
 func (s *closedStateWithHistory) Check(_ time.Time) Option[ClosedState] {
 
 	return F.Pipe4(
@@ -206,6 +308,10 @@ func (s *closedStateWithHistory) Check(_ time.Time) Option[ClosedState] {
 //     unlike a pure sliding window, a single success will clear all tracked failures, even
 //     those within the time window. This behavior is similar to MakeClosedStateCounter but
 //     with time-based tracking for failures.
+//
+// Thread Safety: The returned ClosedState is safe for concurrent use. All methods return
+// new instances with new slices rather than modifying the receiver. The history slice is
+// never modified in place.
 //
 // Use Cases:
 //   - Systems where a successful request indicates recovery and past failures should be forgotten.

@@ -25,6 +25,8 @@ import (
 // Fields:
 //   - Name: The name identifying this circuit breaker instance
 //   - ResetAt: The time at which the circuit breaker will transition from open to half-open state
+//
+// Thread Safety: This type is immutable and safe for concurrent use.
 type CircuitBreakerError struct {
 	Name    string
 	ResetAt time.Time
@@ -38,11 +40,13 @@ type CircuitBreakerError struct {
 // Returns:
 //   - A string describing the circuit breaker state and reset time
 //
+// Thread Safety: This method is safe for concurrent use as it only reads immutable fields.
+//
 // Example:
 //
-//	err := &CircuitBreakerError{ResetTime: time.Now().Add(30 * time.Second)}
+//	err := &CircuitBreakerError{Name: "API", ResetAt: time.Now().Add(30 * time.Second)}
 //	fmt.Println(err.Error())
-//	// Output: circuit breaker is open, will close at 2026-01-09 12:20:47.123 +0100 CET
+//	// Output: circuit breaker is open [API], will close at 2026-01-09 12:20:47.123 +0100 CET
 func (e *CircuitBreakerError) Error() string {
 	return fmt.Sprintf("circuit breaker is open [%s], will close at %s", e.Name, e.ResetAt)
 }
@@ -59,12 +63,15 @@ func (e *CircuitBreakerError) Error() string {
 // Returns:
 //   - A function that takes a reset time and returns a CircuitBreakerError with the specified name
 //
+// Thread Safety: The returned function is safe for concurrent use as it creates new error
+// instances on each call.
+//
 // Example:
 //
 //	makeDBError := MakeCircuitBreakerErrorWithName("Database Circuit Breaker")
 //	err := makeDBError(time.Now().Add(30 * time.Second))
 //	fmt.Println(err.Error())
-//	// Output: circuit breaker Database Circuit Breaker is open, will close at 2026-01-09 12:20:47.123 +0100 CET
+//	// Output: circuit breaker is open [Database Circuit Breaker], will close at 2026-01-09 12:20:47.123 +0100 CET
 func MakeCircuitBreakerErrorWithName(name string) func(time.Time) error {
 	return func(resetTime time.Time) error {
 		return &CircuitBreakerError{Name: name, ResetAt: resetTime}
@@ -83,12 +90,15 @@ func MakeCircuitBreakerErrorWithName(name string) func(time.Time) error {
 // Returns:
 //   - An error representing the circuit breaker open state
 //
+// Thread Safety: This function is safe for concurrent use as it creates new error
+// instances on each call.
+//
 // Example:
 //
 //	resetTime := time.Now().Add(30 * time.Second)
 //	err := MakeCircuitBreakerError(resetTime)
 //	if cbErr, ok := err.(*CircuitBreakerError); ok {
-//	    fmt.Printf("Circuit breaker will reset at: %s\n", cbErr.ResetTime)
+//	    fmt.Printf("Circuit breaker will reset at: %s\n", cbErr.ResetAt)
 //	}
 var MakeCircuitBreakerError = MakeCircuitBreakerErrorWithName("Generic Circuit Breaker")
 
@@ -101,6 +111,8 @@ var MakeCircuitBreakerError = MakeCircuitBreakerErrorWithName("Generic Circuit B
 // Behavior:
 //   - If the error is non-nil, returns Some(error)
 //   - If the error is nil, returns None
+//
+// Thread Safety: This function is pure and safe for concurrent use.
 //
 // Example:
 //
@@ -144,6 +156,9 @@ var AnyError = option.FromPredicate(E.IsNonNil)
 //
 // Returns:
 //   - true if the error should cause the circuit to open, false otherwise
+//
+// Thread Safety: This function is pure and safe for concurrent use. It does not
+// modify any state.
 //
 // Example:
 //
@@ -232,6 +247,8 @@ func shouldOpenCircuit(err error) bool {
 //
 // Returns:
 //   - true if the error is an infrastructure error, false otherwise
+//
+// Thread Safety: This function is pure and safe for concurrent use.
 func isInfrastructureError(err error) bool {
 
 	var syscallErr *syscall.Errno
@@ -267,6 +284,8 @@ func isInfrastructureError(err error) bool {
 //
 // Returns:
 //   - true if the error is a TLS/certificate error, false otherwise
+//
+// Thread Safety: This function is pure and safe for concurrent use.
 func isTLSError(err error) bool {
 	// Certificate verification failed
 	var certErr *x509.CertificateInvalidError
@@ -293,6 +312,8 @@ func isTLSError(err error) bool {
 // Behavior:
 //   - Returns Some(error) if the error should open the circuit (infrastructure failure)
 //   - Returns None if the error should not open the circuit (application error)
+//
+// Thread Safety: This function is pure and safe for concurrent use.
 //
 // Use this in circuit breaker configurations to determine which errors should count
 // toward the failure threshold.

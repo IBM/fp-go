@@ -56,6 +56,9 @@ var (
 	//
 	// Returns:
 	//   - An IO operation that creates an IORef[BreakerState] initialized to closed state
+	//
+	// Thread Safety: The returned IORef[BreakerState] is thread-safe. It uses atomic
+	// operations for all read/write/modify operations. The BreakerState itself is immutable.
 	MakeClosedIORef = F.Flow2(
 		createClosedCircuit,
 		ioref.MakeIORef,
@@ -77,6 +80,9 @@ var (
 	// This is used internally to create state modification operations that can be composed
 	// with other Reader-based operations in the circuit breaker logic.
 	//
+	// Thread Safety: The IORef modification is atomic. Multiple concurrent calls will be
+	// serialized by the IORef's atomic operations.
+	//
 	// Type signature: Reader[IORef[BreakerState], IO[Endomorphism[BreakerState]]]
 	modifyV = reader.Sequence(ioref.Modify[BreakerState])
 
@@ -90,6 +96,9 @@ var (
 	//   - One request is allowed through to test the service
 	//   - If the canary succeeds, the circuit closes
 	//   - If the canary fails, the circuit remains open with an extended reset time
+	//
+	// Thread Safety: This is a pure function that returns a new openState; it does not
+	// modify its input. Safe for concurrent use.
 	//
 	// Type signature: Endomorphism[openState]
 	testCircuit = canaryRequestLens.Set(true)
@@ -115,6 +124,9 @@ var (
 //   - resetAt: Current time plus the delay from the retry policy
 //   - retryStatus: The updated retry status from applying the policy
 //   - canaryRequest: false (will be set to true when reset time is reached)
+//
+// Thread Safety: This is a pure function that creates new openState instances.
+// Safe for concurrent use.
 //
 // Example:
 //
@@ -170,6 +182,9 @@ func makeOpenCircuitFromPolicy(policy retry.RetryPolicy) func(rs retry.RetryStat
 //   - Calculates a new resetAt time based on the retry policy (typically with exponential backoff)
 //   - Sets canaryRequest to true for the next test attempt
 //
+// Thread Safety: This is a pure function that returns new openState instances.
+// Safe for concurrent use.
+//
 // Usage Context:
 //   - Called when a canary request fails in the half-open state
 //   - Extends the open period with increased backoff delay
@@ -203,6 +218,9 @@ func extendOpenCircuitFromMakeCircuit(
 //   - Returns Some(openState) if the reset time has been exceeded and no canary is active
 //   - Returns None if the reset time has not been exceeded or a canary request is already active
 //
+// Thread Safety: This is a pure function that does not modify its input.
+// Safe for concurrent use.
+//
 // Usage Context:
 //   - Called when the circuit is open to check if it's time to attempt a canary request
 //   - If this returns Some, the circuit transitions to half-open state (canary mode)
@@ -233,6 +251,9 @@ func isResetTimeExceeded(ct time.Time) option.Kleisli[openState, openState] {
 //   - An io.Kleisli that takes another io.Kleisli and chains them together.
 //     The outer Kleisli takes an Endomorphism[BreakerState] and returns BreakerState.
 //     This allows composing the success handling with other state modifications.
+//
+// Thread Safety: This function creates IO operations that will atomically modify the
+// IORef[BreakerState] when executed. The state modifications are thread-safe.
 //
 // Type signature:
 //
@@ -283,6 +304,9 @@ func handleSuccessOnClosed(
 //   - An io.Kleisli that takes another io.Kleisli and chains them together.
 //     The outer Kleisli takes an Endomorphism[BreakerState] and returns BreakerState.
 //     This allows composing the failure handling with other state modifications.
+//
+// Thread Safety: This function creates IO operations that will atomically modify the
+// IORef[BreakerState] when executed. The state modifications are thread-safe.
 //
 // Type signature:
 //
@@ -354,6 +378,10 @@ func handleFailureOnClosed(
 //   - checkError: Predicate to determine if an error should trigger circuit breaker logic
 //   - policy: Retry policy for determining reset times when circuit opens
 //   - logger: Logging function for circuit breaker events
+//
+// Thread Safety: The returned State monad creates operations that are thread-safe when
+// executed. The IORef[BreakerState] uses atomic operations for all state modifications.
+// Multiple concurrent requests will be properly serialized at the IORef level.
 //
 // Returns:
 //   - A State monad that transforms a pair of (IORef[BreakerState], HKTT) into HKTT,
@@ -543,6 +571,10 @@ func MakeCircuitBreaker[E, T, HKTT, HKTOP, HKTHKTT any](
 // Returns:
 //   - A function that wraps a computation (HKTT) with circuit breaker logic.
 //     The circuit breaker state is managed internally and persists across invocations.
+//
+// Thread Safety: The returned function is thread-safe. The internal IORef[BreakerState]
+// uses atomic operations to manage state. Multiple concurrent calls to the returned function
+// will be properly serialized at the state modification level.
 //
 // Example Usage:
 //

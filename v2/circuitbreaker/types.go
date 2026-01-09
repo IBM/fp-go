@@ -1,6 +1,24 @@
 // Package circuitbreaker provides a functional implementation of the circuit breaker pattern.
 // A circuit breaker prevents cascading failures by temporarily blocking requests to a failing service,
 // allowing it time to recover before retrying.
+//
+// # Thread Safety
+//
+// All data structures in this package are immutable except for IORef[BreakerState].
+// The IORef provides thread-safe mutable state through atomic operations.
+//
+// Immutable types (safe for concurrent use):
+//   - BreakerState (Either[openState, ClosedState])
+//   - openState
+//   - ClosedState implementations (closedStateWithErrorCount, closedStateWithHistory)
+//   - All function types and readers
+//
+// Mutable types (thread-safe through atomic operations):
+//   - IORef[BreakerState] - provides atomic read/write/modify operations
+//
+// ClosedState implementations must be thread-safe. The recommended approach is to
+// return new copies for all operations (Empty, AddError, AddSuccess, Check), which
+// provides automatic thread safety through immutability.
 package circuitbreaker
 
 import (
