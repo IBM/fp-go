@@ -22,7 +22,7 @@ import "github.com/IBM/fp-go/v2/io"
 //
 //go:inline
 func ChainConsumer[R, E, A any](c Consumer[A]) Operator[R, E, A, struct{}] {
-	return ChainIOK[R, E](io.FromConsumerK(c))
+	return ChainIOK[R, E](io.FromConsumer(c))
 }
 
 // ChainFirstConsumer chains a consumer into a ReaderIOEither computation while preserving
@@ -45,5 +45,5 @@ func ChainConsumer[R, E, A any](c Consumer[A]) Operator[R, E, A, struct{}] {
 //
 //go:inline
 func ChainFirstConsumer[R, E, A any](c Consumer[A]) Operator[R, E, A, A] {
-	return ChainFirstIOK[R, E](io.FromConsumerK(c))
+	return ChainFirstIOK[R, E](io.FromConsumer(c))
 }

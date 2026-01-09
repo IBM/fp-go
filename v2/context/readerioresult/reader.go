@@ -966,6 +966,16 @@ func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
 	return RIOR.TapLeft[A](WithContextK(f))
 }
 
+//go:inline
+func ChainFirstLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
+	return RIOR.ChainFirstLeftIOK[A, context.Context](f)
+}
+
+//go:inline
+func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
+	return RIOR.TapLeftIOK[A, context.Context](f)
+}
+
 // Local transforms the context.Context environment before passing it to a ReaderIOResult computation.
 //
 // This is the Reader's local operation, which allows you to modify the environment

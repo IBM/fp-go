@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	undefined any = struct{}{}
+	undefined = struct{}{}
 )
 
 //go:inline
@@ -38,14 +38,14 @@ func Gets[FCT ~func(S) A, A, S any](f FCT) State[S, A] {
 }
 
 //go:inline
-func Put[S any]() State[S, any] {
-	return function.Bind2nd(pair.MakePair[S, any], undefined)
+func Put[S any]() State[S, struct{}] {
+	return function.Bind2nd(pair.MakePair[S, struct{}], undefined)
 }
 
-func Modify[FCT ~func(S) S, S any](f FCT) State[S, any] {
+func Modify[FCT ~func(S) S, S any](f FCT) State[S, struct{}] {
 	return function.Flow2(
 		f,
-		function.Bind2nd(pair.MakePair[S, any], undefined),
+		function.Bind2nd(pair.MakePair[S, struct{}], undefined),
 	)
 }
 

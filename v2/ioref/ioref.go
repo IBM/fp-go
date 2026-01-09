@@ -49,43 +49,15 @@ func MakeIORef[A any](a A) IO[IORef[A]] {
 	}
 }
 
-// Write atomically writes a new value to an IORef.
-//
-// This function returns a Kleisli arrow that takes an IORef and produces an IO
-// computation that writes the new value. The write operation is atomic and
-// thread-safe, using a write lock to ensure exclusive access.
-//
-// The function returns the IORef itself, allowing for easy chaining of operations.
-//
-// Parameters:
-//   - a: The new value to write to the IORef
-//
-// Returns:
-//   - A Kleisli arrow from IORef[A] to IO[IORef[A]]
-//
-// Example:
-//
-//	ref := ioref.MakeIORef(42)()
-//
-//	// Write a new value
-//	ioref.Write(100)(ref)()
-//
-//	// Chain multiple writes
-//	pipe.Pipe2(
-//	    ref,
-//	    ioref.Write(200),
-//	    io.Chain(ioref.Write(300)),
-//	)()
-//
 //go:inline
-func Write[A any](a A) io.Kleisli[IORef[A], IORef[A]] {
-	return func(ref IORef[A]) IO[IORef[A]] {
-		return func() IORef[A] {
+func Write[A any](a A) io.Kleisli[IORef[A], A] {
+	return func(ref IORef[A]) IO[A] {
+		return func() A {
 			ref.mu.Lock()
 			defer ref.mu.Unlock()
 
 			ref.a = a
-			return ref
+			return a
 		}
 	}
 }
@@ -154,14 +126,14 @@ func Read[A any](ref IORef[A]) IO[A] {
 //	)()
 //
 //go:inline
-func Modify[A any](f Endomorphism[A]) io.Kleisli[IORef[A], IORef[A]] {
-	return func(ref IORef[A]) IO[IORef[A]] {
-		return func() IORef[A] {
+func Modify[A any](f Endomorphism[A]) io.Kleisli[IORef[A], A] {
+	return func(ref IORef[A]) IO[A] {
+		return func() A {
 			ref.mu.Lock()
 			defer ref.mu.Unlock()
 
 			ref.a = f(ref.a)
-			return ref
+			return ref.a
 		}
 	}
 }

@@ -15,6 +15,47 @@
 
 package function
 
+// Void represents the unit type, a type with exactly one value.
+//
+// In functional programming, Void (also known as Unit) is used to represent
+// the absence of meaningful information. It's similar to void in other languages,
+// but as a value rather than the absence of a value.
+//
+// Common use cases:
+//   - As a return type for functions that perform side effects but don't return meaningful data
+//   - As a placeholder type parameter when a type is required but no data needs to be passed
+//   - In functional patterns where a value is required but the actual data is irrelevant
+//
+// Example:
+//
+//	// Function that performs an action but returns no meaningful data
+//	func logMessage(msg string) Void {
+//	    fmt.Println(msg)
+//	    return VOID
+//	}
+//
+//	// Using Void as a type parameter
+//	type Action = func() Void
+type (
+	Void = struct{}
+)
+
+// VOID is the single inhabitant of the Void type.
+//
+// This constant represents the only possible value of type Void. Use it when you need
+// to return or pass a Void value.
+//
+// Example:
+//
+//	func doSomething() Void {
+//	    // perform some action
+//	    return VOID
+//	}
+//
+//	// Ignoring the return value
+//	_ = doSomething()
+var VOID Void = struct{}{}
+
 // ToAny converts a value of any type to the any (interface{}) type.
 //
 // This function performs an explicit type conversion to the any type, which can be

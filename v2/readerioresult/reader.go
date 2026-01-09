@@ -797,8 +797,18 @@ func ChainFirstLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
 }
 
 //go:inline
+func ChainFirstLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstLeftIOK[A, R](f)
+}
+
+//go:inline
 func TapLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
 	return RIOE.TapLeft[A](f)
+}
+
+//go:inline
+func TapLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
+	return RIOE.TapLeftIOK[A, R](f)
 }
 
 // Delay creates an operation that passes in the value after some delay

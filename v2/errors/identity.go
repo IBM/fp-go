@@ -31,3 +31,29 @@ import (
 //	err := errors.New("something went wrong")
 //	same := Identity(err) // returns the same error
 var Identity = F.Identity[error]
+
+// IsNonNil checks if an error is non-nil.
+//
+// This function provides a predicate for testing whether an error value is not nil.
+// It's useful in functional programming contexts where you need a function to check
+// error presence, such as in filter operations or conditional logic.
+//
+// Parameters:
+//   - err: The error to check
+//
+// Returns:
+//   - true if the error is not nil, false otherwise
+//
+// Example:
+//
+//	err := errors.New("something went wrong")
+//	if IsNonNil(err) {
+//	    // handle error
+//	}
+//
+//	// Using in functional contexts
+//	errors := []error{nil, errors.New("error1"), nil, errors.New("error2")}
+//	nonNilErrors := F.Filter(IsNonNil)(errors)  // [error1, error2]
+func IsNonNil(err error) bool {
+	return err != nil
+}

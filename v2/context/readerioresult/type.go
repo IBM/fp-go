@@ -25,10 +25,12 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readereither"
@@ -36,6 +38,7 @@ import (
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/state"
 	"github.com/IBM/fp-go/v2/tailrec"
 )
 
@@ -143,4 +146,10 @@ type (
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 
 	Predicate[A any] = predicate.Predicate[A]
+
+	Pair[A, B any] = pair.Pair[A, B]
+
+	IORef[A any] = ioref.IORef[A]
+
+	State[S, A any] = state.State[S, A]
 )
