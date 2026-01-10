@@ -20,12 +20,54 @@ import (
 	"github.com/IBM/fp-go/v2/pair"
 )
 
+// uncurryState transforms a curried function into an uncurried function that operates on pairs.
+// This is an internal helper function used by WithResource to adapt StateIO computations
+// to work with the IO resource management functions.
+//
+// It converts: func(A) io.Kleisli[S, B] -> io.Kleisli[Pair[S, A], B]
 func uncurryState[S, A, B any](f func(A) io.Kleisli[S, B]) io.Kleisli[Pair[S, A], B] {
 	return func(r Pair[S, A]) IO[B] {
 		return f(pair.Tail(r))(pair.Head(r))
 	}
 }
 
+// WithResource provides safe resource management for StateIO computations.
+// It ensures that resources are properly acquired and released, even if errors occur.
+//
+// The function takes:
+//   - onCreate: A StateIO computation that creates/acquires the resource
+//   - onRelease: A Kleisli arrow that releases the resource (receives the resource, returns any value)
+//
+// It returns a Kleisli arrow that takes a resource-using computation and ensures proper cleanup.
+//
+// The pattern follows the bracket pattern (acquire-use-release):
+//  1. Acquire the resource using onCreate
+//  2. Use the resource with the provided computation
+//  3. Release the resource using onRelease (guaranteed to run)
+//
+// Example:
+//
+//	// Create a file resource
+//	openFile := func(s AppState) IO[Pair[AppState, *os.File]] {
+//	    return io.Of(pair.MakePair(s, file))
+//	}
+//
+//	// Release the file resource
+//	closeFile := func(f *os.File) StateIO[AppState, error] {
+//	    return FromIO[AppState](io.Of(f.Close()))
+//	}
+//
+//	// Use the resource safely
+//	withFile := WithResource[string, AppState, *os.File, error](
+//	    openFile,
+//	    closeFile,
+//	)
+//
+//	// Apply to a computation that uses the file
+//	result := withFile(func(f *os.File) StateIO[AppState, string] {
+//	    // Use file f here
+//	    return Of[AppState]("data")
+//	})
 func WithResource[A, S, RES, ANY any](
 	onCreate StateIO[S, RES],
 	onRelease Kleisli[S, RES, ANY],

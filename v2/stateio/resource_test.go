@@ -61,7 +61,7 @@ func TestWithResource(t *testing.T) {
 	}
 
 	// Create the resource management computation
-	withRes := WithResource[int, ResourceState, string, int](onCreate, onRelease)
+	withRes := WithResource[int](onCreate, onRelease)
 	computation := withRes(useResource)
 
 	result := computation(initial)()
@@ -112,7 +112,7 @@ func TestWithResourceChained(t *testing.T) {
 	}
 
 	// Create the resource management computation
-	withRes := WithResource[int, ResourceState, int, int](onCreate, onRelease)
+	withRes := WithResource[int](onCreate, onRelease)
 	computation := withRes(useResource)
 
 	result := computation(initial)()
@@ -123,5 +123,3 @@ func TestWithResourceChained(t *testing.T) {
 	assert.True(t, finalState.ResourceCreated)
 	assert.Equal(t, 200, finalState.Value)
 }
-
-// Made with Bob

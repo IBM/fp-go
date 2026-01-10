@@ -283,7 +283,7 @@ func TestEq(t *testing.T) {
 			pair.Head(lResult).Value == pair.Head(rResult).Value
 	})
 
-	eq := Eq[MonadTestState, int](eqIO)(initial)
+	eq := Eq(eqIO)(initial)
 
 	assert.True(t, eq.Equals(comp1, comp2))
 	assert.False(t, eq.Equals(comp1, comp3))
@@ -302,5 +302,3 @@ func TestFromStrictEquals(t *testing.T) {
 	assert.True(t, eq.Equals(comp1, comp2))
 	assert.False(t, eq.Equals(comp1, comp3))
 }
-
-// Made with Bob

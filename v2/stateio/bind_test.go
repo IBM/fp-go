@@ -408,5 +408,3 @@ func TestDoNotationWithStatefulOperations(t *testing.T) {
 	assert.Equal(t, 2, pair.Tail(result))
 	assert.Equal(t, 2, pair.Head(result).Value)
 }
-
-// Made with Bob

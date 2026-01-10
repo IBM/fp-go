@@ -21,7 +21,19 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 )
 
-// Eq implements the equals predicate for values contained in the [StateIO] monad
+// Eq constructs an equality checker for StateIO values.
+// It takes an equality checker for IO[Pair[S, A]] and returns a function that,
+// given an initial state S, produces an equality checker for StateIO[S, A].
+//
+// Two StateIO values are considered equal if, when executed with the same initial state,
+// they produce equal IO[Pair[S, A]] results.
+//
+// Example:
+//
+//	eqIO := io.FromStrictEquals[Pair[AppState, int]]()
+//	eqStateIO := Eq[AppState, int](eqIO)
+//	initialState := AppState{}
+//	areEqual := eqStateIO(initialState).Equals(stateIO1, stateIO2)
 func Eq[
 	S, A any](eqr eq.Eq[IO[Pair[S, A]]]) func(S) eq.Eq[StateIO[S, A]] {
 	return func(s S) eq.Eq[StateIO[S, A]] {
@@ -31,7 +43,18 @@ func Eq[
 	}
 }
 
-// FromStrictEquals constructs an [eq.Eq] from the canonical comparison function
+// FromStrictEquals constructs an equality checker for StateIO values where both
+// the state S and value A are comparable types.
+//
+// This is a convenience function that uses Go's built-in equality (==) for comparison.
+// It returns a function that, given an initial state, produces an equality checker
+// for StateIO[S, A].
+//
+// Example:
+//
+//	eqStateIO := FromStrictEquals[AppState, int]()
+//	initialState := AppState{}
+//	areEqual := eqStateIO(initialState).Equals(stateIO1, stateIO2)
 func FromStrictEquals[
 	S, A comparable]() func(S) eq.Eq[StateIO[S, A]] {
 	return function.Pipe1(

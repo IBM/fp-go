@@ -50,11 +50,42 @@ type (
 	// IO represents a computation that performs side effects and produces a value of type A.
 	IO[A any] = io.IO[A]
 
+	// StateIO represents a stateful computation that performs side effects.
+	// It combines the State monad with the IO monad, allowing computations that:
+	//   - Manage state of type S
+	//   - Perform side effects (IO)
+	//   - Produce a value of type A
+	//
+	// The computation takes an initial state S and returns an IO action that produces
+	// a Pair containing the new state S and the result value A.
+	//
+	// Type definition: StateIO[S, A] = Reader[S, IO[Pair[S, A]]]
+	//
+	// This is useful for:
+	//   - Stateful computations with side effects
+	//   - Managing application state while performing IO operations
+	//   - Composing operations that need both state management and IO
 	StateIO[S, A any] = Reader[S, IO[Pair[S, A]]]
 
+	// Kleisli represents a Kleisli arrow for StateIO.
+	// It's a function from A to StateIO[S, B], enabling composition of
+	// stateful, effectful computations.
+	//
+	// Kleisli arrows are used for:
+	//   - Chaining dependent computations
+	//   - Building pipelines of stateful operations
+	//   - Monadic composition with Chain/Bind operations
 	Kleisli[S, A, B any] = Reader[A, StateIO[S, B]]
 
+	// Operator represents a transformation from one StateIO to another.
+	// It's a function that takes StateIO[S, A] and returns StateIO[S, B].
+	//
+	// Operators are used for:
+	//   - Transforming computations (Map, Chain, etc.)
+	//   - Building reusable computation transformers
+	//   - Composing higher-order operations
 	Operator[S, A, B any] = Reader[StateIO[S, A], StateIO[S, B]]
 
+	// Predicate represents a function that tests a value of type A.
 	Predicate[A any] = predicate.Predicate[A]
 )

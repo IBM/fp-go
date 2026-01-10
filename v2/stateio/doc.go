@@ -13,16 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// package stateio provides a functional programming abstraction that combines
-// four powerful concepts: State, Reader, IO, and Either monads.
+// Package stateio provides a functional programming abstraction that combines
+// stateful computations with side effects.
 //
 // # Fantasy Land Specification
 //
 // This is a monad transformer combining:
 //   - State monad: https://github.com/fantasyland/fantasy-land
-//   - Reader monad: https://github.com/fantasyland/fantasy-land
 //   - IO monad: https://github.com/fantasyland/fantasy-land
-//   - Either monad: https://github.com/fantasyland/fantasy-land#either
 //
 // Implemented Fantasy Land algebras:
 //   - Functor: https://github.com/fantasyland/fantasy-land#functor
@@ -34,53 +32,34 @@
 // # StateIO
 //
 // StateIO[S, A] represents a computation that:
-//   - Manages state of type S (State)
-//   - Depends on some context/environment of type R (Reader)
-//   - Performs side effects (IO)
-//   - Can fail with an error of type E or succeed with a value of type A (Either)
+//   - Manages state of type S (State monad)
+//   - Performs side effects (IO monad)
+//   - Produces a value of type A
 //
 // The type is defined as:
 //
-//	StateIO[S, A] = Reader[S, ReaderIOEither[Pair[S, A]]]
+//	StateIO[S, A] = Reader[S, IO[Pair[S, A]]]
 //
 // This is particularly useful for:
-//   - Stateful computations with dependency injection
-//   - Error handling in effectful computations with state
-//   - Composing operations that need access to shared configuration, manage state, and can fail
+//   - Stateful computations with side effects
+//   - Managing application state while performing IO operations
+//   - Composing operations that need both state management and effectful computation
 //
 // # Core Operations
 //
 // Construction:
-//   - Of/Right: Create a successful computation with a value
-//   - Left: Create a failed computation with an error
-//   - FromState: Lift a State into StateIO
-//   - FromReader: Lift a Reader into StateIO
-//   - FromIO: Lift an IO into StateIO
-//   - FromEither: Lift an Either into StateIO
-//   - FromIOEither: Lift an IOEither into StateIO
-//   - FromReaderEither: Lift a ReaderEither into StateIO
-//   - FromReaderIOEither: Lift a ReaderIOEither into StateIO
+//   - Of: Create a computation with a pure value
+//   - FromIO: Lift an IO computation into StateIO
 //
 // Transformation:
-//   - Map: Transform the success value
+//   - Map: Transform the value within the computation
 //   - Chain: Sequence dependent computations (monadic bind)
-//   - Flatten: Flatten nested StateIO
 //
 // Combination:
 //   - Ap: Apply a function in a context to a value in a context
 //
-// Context Access:
-//   - Asks: Get a value derived from the context
-//   - Local: Run a computation with a modified context
-//
 // Kleisli Arrows:
-//   - FromEitherK: Lift an Either-returning function to a Kleisli arrow
 //   - FromIOK: Lift an IO-returning function to a Kleisli arrow
-//   - FromIOEitherK: Lift an IOEither-returning function to a Kleisli arrow
-//   - FromReaderIOEitherK: Lift a ReaderIOEither-returning function to a Kleisli arrow
-//   - ChainEitherK: Chain with an Either-returning function
-//   - ChainIOEitherK: Chain with an IOEither-returning function
-//   - ChainReaderIOEitherK: Chain with a ReaderIOEither-returning function
 //
 // Do Notation (Monadic Composition):
 //   - Do: Start a do-notation chain
@@ -93,48 +72,46 @@
 //
 // # Example Usage
 //
-//	type Config struct {
-//	    DatabaseURL string
-//	    MaxRetries  int
-//	}
-//
 //	type AppState struct {
 //	    RequestCount int
 //	    LastError    error
 //	}
 //
-//	// A computation that manages state, depends on config, performs IO, and can fail
-//	func processRequest(data string) StateIO.StateIO[AppState, Config, error, string] {
-//	    return func(state AppState) readerioeither.ReaderIOEither[Config, error, pair.Pair[AppState, string]] {
-//	        return func(cfg Config) ioeither.IOEither[error, pair.Pair[AppState, string]] {
-//	            return func() either.Either[error, pair.Pair[AppState, string]] {
-//	                // Use cfg.DatabaseURL and cfg.MaxRetries
-//	                // Update state.RequestCount
-//	                // Perform IO operations
-//	                // Return either.Right(pair.MakePair(newState, result)) or either.Left(err)
-//	                newState := AppState{RequestCount: state.RequestCount + 1}
-//	                return either.Right(pair.MakePair(newState, "processed: " + data))
-//	            }
+//	// A computation that manages state and performs IO
+//	func incrementCounter(data string) StateIO[AppState, string] {
+//	    return func(state AppState) IO[Pair[AppState, string]] {
+//	        return func() Pair[AppState, string] {
+//	            // Update state.RequestCount
+//	            // Perform IO operations
+//	            newState := AppState{RequestCount: state.RequestCount + 1}
+//	            result := "processed: " + data
+//	            return pair.MakePair(newState, result)
 //	        }
 //	    }
 //	}
 //
 //	// Compose operations using do-notation
-//	result := function.Pipe3(
-//	    StateIO.Do[AppState, Config, error](State{}),
-//	    StateIO.Bind(
-//	        func(result string) func(State) State { return func(s State) State { return State{result: result} } },
-//	        func(s State) StateIO.StateIO[AppState, Config, error, string] {
-//	            return processRequest(s.input)
+//	type Result struct {
+//	    result string
+//	    count  int
+//	}
+//
+//	computation := function.Pipe3(
+//	    Do[AppState](Result{}),
+//	    Bind(
+//	        func(result string) func(Result) Result {
+//	            return func(r Result) Result { return Result{result: result, count: r.count} }
+//	        },
+//	        func(r Result) StateIO[AppState, string] {
+//	            return incrementCounter("data")
 //	        },
 //	    ),
-//	    StateIO.Map[AppState, Config, error](func(s State) string { return s.result }),
+//	    Map[AppState](func(r Result) string { return r.result }),
 //	)
 //
-//	// Execute with initial state and config
+//	// Execute with initial state
 //	initialState := AppState{RequestCount: 0}
-//	config := Config{DatabaseURL: "postgres://localhost", MaxRetries: 3}
-//	outcome := result(initialState)(config)() // Returns either.Either[error, pair.Pair[AppState, string]]
+//	outcome := computation(initialState)() // Returns Pair[AppState, string]
 //
 // # Monad Laws
 //
@@ -143,5 +120,9 @@
 //   - Right Identity: m >>= Of ≡ m
 //   - Associativity: (m >>= f) >>= g ≡ m >>= (x => f(x) >>= g)
 //
-// These laws are verified in the testing subpackage.
+// Where >>= represents the Chain operation (monadic bind).
+//
+// These laws ensure that StateIO computations compose predictably and that
+// the order of composition doesn't affect the final result (beyond the order
+// of effects and state updates).
 package stateio

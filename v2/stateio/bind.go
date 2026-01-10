@@ -24,18 +24,18 @@ import (
 
 // Do starts a do-notation chain for building computations in a fluent style.
 // This is typically used with Bind, Let, and other combinators to compose
-// stateful, context-dependent computations that can fail.
+// stateful computations with side effects.
 //
 // Example:
 //
-//	type State struct {
+//	type Result struct {
 //	    name string
 //	    age  int
 //	}
 //	result := function.Pipe2(
-//	    StateIO.Do[AppState, Config, error](State{}),
-//	    StateIO.Bind(...),
-//	    StateIO.Let(...),
+//	    Do[AppState](Result{}),
+//	    Bind(...),
+//	    Let(...),
 //	)
 //
 //go:inline
@@ -48,16 +48,20 @@ func Do[ST, A any](
 // Bind executes a computation and binds its result to a field in the accumulator state.
 // This is used in do-notation to sequence dependent computations.
 //
+// The setter function takes the computed value and returns a function that updates
+// the accumulator state. The computation function (f) receives the current accumulator
+// state and returns a StateIO computation.
+//
 // Example:
 //
 //	result := function.Pipe2(
-//	    StateIO.Do[AppState, Config, error](State{}),
-//	    StateIO.Bind(
-//	        func(name string) func(State) State {
-//	            return func(s State) State { return State{name: name, age: s.age} }
+//	    Do[AppState](Result{}),
+//	    Bind(
+//	        func(name string) func(Result) Result {
+//	            return func(r Result) Result { return Result{name: name, age: r.age} }
 //	        },
-//	        func(s State) StateIO.StateIO[AppState, Config, error, string] {
-//	            return StateIO.Of[AppState, Config, error]("John")
+//	        func(r Result) StateIO[AppState, string] {
+//	            return Of[AppState]("John")
 //	        },
 //	    ),
 //	)
@@ -78,15 +82,19 @@ func Bind[ST, S1, S2, T any](
 // Let computes a derived value and binds it to a field in the accumulator state.
 // Unlike Bind, this does not execute a monadic computation, just a pure function.
 //
+// The key function takes the computed value and returns a function that updates
+// the accumulator state. The computation function (f) receives the current accumulator
+// state and returns a pure value.
+//
 // Example:
 //
 //	result := function.Pipe2(
-//	    StateIO.Do[AppState, Config, error](State{age: 25}),
-//	    StateIO.Let(
-//	        func(isAdult bool) func(State) State {
-//	            return func(s State) State { return State{age: s.age, isAdult: isAdult} }
+//	    Do[AppState](Result{age: 25}),
+//	    Let(
+//	        func(isAdult bool) func(Result) Result {
+//	            return func(r Result) Result { return Result{age: r.age, isAdult: isAdult} }
 //	        },
-//	        func(s State) bool { return s.age >= 18 },
+//	        func(r Result) bool { return r.age >= 18 },
 //	    ),
 //	)
 //
@@ -103,14 +111,15 @@ func Let[ST, S1, S2, T any](
 }
 
 // LetTo binds a constant value to a field in the accumulator state.
+// This is useful for setting fixed values in the accumulator during do-notation.
 //
 // Example:
 //
 //	result := function.Pipe2(
-//	    StateIO.Do[AppState, Config, error](State{}),
-//	    StateIO.LetTo(
-//	        func(status string) func(State) State {
-//	            return func(s State) State { return State{...s, status: status} }
+//	    Do[AppState](Result{}),
+//	    LetTo(
+//	        func(status string) func(Result) Result {
+//	            return func(r Result) Result { return Result{status: status} }
 //	        },
 //	        "active",
 //	    ),
@@ -129,13 +138,14 @@ func LetTo[ST, S1, S2, T any](
 }
 
 // BindTo wraps a value in a simple constructor, typically used to start a do-notation chain
-// after getting an initial value.
+// after getting an initial value. This transforms a StateIO[S, T] into StateIO[S, S1]
+// by applying a constructor function.
 //
 // Example:
 //
 //	result := function.Pipe2(
-//	    StateIO.Of[AppState, Config, error](42),
-//	    StateIO.BindTo[AppState, Config, error](func(x int) State { return State{value: x} }),
+//	    Of[AppState](42),
+//	    BindTo[AppState](func(x int) Result { return Result{value: x} }),
 //	)
 //
 //go:inline
@@ -149,7 +159,20 @@ func BindTo[ST, S1, T any](
 }
 
 // ApS applies a computation in sequence and binds the result to a field.
-// This is the applicative version of Bind.
+// This is the applicative version of Bind, useful for parallel-style composition
+// where computations don't depend on each other's results.
+//
+// Example:
+//
+//	result := function.Pipe2(
+//	    Do[AppState](Result{}),
+//	    ApS(
+//	        func(count int) func(Result) Result {
+//	            return func(r Result) Result { return Result{count: count} }
+//	        },
+//	        Of[AppState](42),
+//	    ),
+//	)
 //
 //go:inline
 func ApS[ST, S1, S2, T any](
@@ -165,7 +188,16 @@ func ApS[ST, S1, S2, T any](
 }
 
 // ApSL is a lens-based variant of ApS for working with nested structures.
-// It uses a lens to focus on a specific field in the state.
+// It uses a lens to focus on a specific field in the accumulator state,
+// making it easier to update nested fields without manual destructuring.
+//
+// Example:
+//
+//	nameLens := lens.Prop[Result, string]("name")
+//	result := function.Pipe2(
+//	    Do[AppState](Result{}),
+//	    ApSL(nameLens, Of[AppState]("John")),
+//	)
 //
 //go:inline
 func ApSL[ST, S, T any](
@@ -176,7 +208,18 @@ func ApSL[ST, S, T any](
 }
 
 // BindL is a lens-based variant of Bind for working with nested structures.
-// It uses a lens to focus on a specific field in the state.
+// It uses a lens to focus on a specific field in the accumulator state,
+// allowing you to update that field based on a computation that depends on its current value.
+//
+// Example:
+//
+//	counterLens := lens.Prop[Result, int]("counter")
+//	result := function.Pipe2(
+//	    Do[AppState](Result{counter: 0}),
+//	    BindL(counterLens, func(n int) StateIO[AppState, int] {
+//	        return Of[AppState](n + 1)
+//	    }),
+//	)
 //
 //go:inline
 func BindL[ST, S, T any](
@@ -187,7 +230,16 @@ func BindL[ST, S, T any](
 }
 
 // LetL is a lens-based variant of Let for working with nested structures.
-// It uses a lens to focus on a specific field in the state.
+// It uses a lens to focus on a specific field in the accumulator state,
+// allowing you to update that field using a pure function.
+//
+// Example:
+//
+//	counterLens := lens.Prop[Result, int]("counter")
+//	result := function.Pipe2(
+//	    Do[AppState](Result{counter: 5}),
+//	    LetL(counterLens, func(n int) int { return n * 2 }),
+//	)
 //
 //go:inline
 func LetL[ST, S, T any](
@@ -198,7 +250,16 @@ func LetL[ST, S, T any](
 }
 
 // LetToL is a lens-based variant of LetTo for working with nested structures.
-// It uses a lens to focus on a specific field in the state.
+// It uses a lens to focus on a specific field in the accumulator state,
+// allowing you to set that field to a constant value.
+//
+// Example:
+//
+//	statusLens := lens.Prop[Result, string]("status")
+//	result := function.Pipe2(
+//	    Do[AppState](Result{}),
+//	    LetToL(statusLens, "active"),
+//	)
 //
 //go:inline
 func LetToL[ST, S, T any](

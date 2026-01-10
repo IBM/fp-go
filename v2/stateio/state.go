@@ -21,27 +21,29 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 )
 
-// Right creates a StateIO that represents a successful computation with the given value.
+// Of creates a StateIO that wraps a pure value.
 // The value is wrapped and the state is passed through unchanged.
+//
+// This is the Pointed/Applicative 'of' operation that lifts a pure value
+// into the StateIO context.
 //
 // Example:
 //
-//	result := StateIO.Right[AppState, Config, error](42)
-//	// Returns a successful computation containing 42
+//	result := Of[AppState](42)
+//	// Returns a computation containing 42 that passes state through unchanged
 func Of[S, A any](a A) StateIO[S, A] {
 	return statet.Of[StateIO[S, A]](io.Of[Pair[S, A]], a)
 }
 
-// MonadMap transforms the success value of a StateIO using the provided function.
-// If the computation fails, the error is propagated unchanged.
-// The state is threaded through the computation.
+// MonadMap transforms the value of a StateIO using the provided function.
+// The state is threaded through the computation unchanged.
 // This is the functor map operation.
 //
 // Example:
 //
-//	result := StateIO.MonadMap(
-//	    StateIO.Of[AppState, Config, error](21),
-//	    N.Mul(2),
+//	result := MonadMap(
+//	    Of[AppState](21),
+//	    func(x int) int { return x * 2 },
 //	) // Result contains 42
 func MonadMap[S, A, B any](fa StateIO[S, A], f func(A) B) StateIO[S, B] {
 	return statet.MonadMap[StateIO[S, A], StateIO[S, B]](
@@ -56,8 +58,8 @@ func MonadMap[S, A, B any](fa StateIO[S, A], f func(A) B) StateIO[S, B] {
 //
 // Example:
 //
-//	double := StateIO.Map[AppState, Config, error](N.Mul(2))
-//	result := function.Pipe1(StateIO.Of[AppState, Config, error](21), double)
+//	double := Map[AppState](func(x int) int { return x * 2 })
+//	result := function.Pipe1(Of[AppState](21), double)
 func Map[S, A, B any](f func(A) B) Operator[S, A, B] {
 	return statet.Map[StateIO[S, A], StateIO[S, B]](
 		io.Map[Pair[S, A], Pair[S, B]],
@@ -67,14 +69,14 @@ func Map[S, A, B any](f func(A) B) Operator[S, A, B] {
 
 // MonadChain sequences two computations, passing the result of the first to a function
 // that produces the second computation. This is the monadic bind operation.
-// The state is threaded through both computations.
+// The state is threaded through both computations sequentially.
 //
 // Example:
 //
-//	result := StateIO.MonadChain(
-//	    StateIO.Of[AppState, Config, error](5),
-//	    func(x int) StateIO.StateIO[AppState, Config, error, string] {
-//	        return StateIO.Of[AppState, Config, error](fmt.Sprintf("value: %d", x))
+//	result := MonadChain(
+//	    Of[AppState](5),
+//	    func(x int) StateIO[AppState, string] {
+//	        return Of[AppState](fmt.Sprintf("value: %d", x))
 //	    },
 //	)
 func MonadChain[S, A, B any](fa StateIO[S, A], f Kleisli[S, A, B]) StateIO[S, B] {
@@ -90,10 +92,10 @@ func MonadChain[S, A, B any](fa StateIO[S, A], f Kleisli[S, A, B]) StateIO[S, B]
 //
 // Example:
 //
-//	stringify := StateIO.Chain(func(x int) StateIO.StateIO[AppState, Config, error, string] {
-//	    return StateIO.Of[AppState, Config, error](fmt.Sprintf("%d", x))
+//	stringify := Chain(func(x int) StateIO[AppState, string] {
+//	    return Of[AppState](fmt.Sprintf("%d", x))
 //	})
-//	result := function.Pipe1(StateIO.Of[AppState, Config, error](42), stringify)
+//	result := function.Pipe1(Of[AppState](42), stringify)
 func Chain[S, A, B any](f Kleisli[S, A, B]) Operator[S, A, B] {
 	return statet.Chain[StateIO[S, A]](
 		io.Chain[Pair[S, A], Pair[S, B]],
@@ -102,15 +104,14 @@ func Chain[S, A, B any](f Kleisli[S, A, B]) Operator[S, A, B] {
 }
 
 // MonadAp applies a function wrapped in a StateIO to a value wrapped in a StateIO.
-// If either the function or the value fails, the error is propagated.
 // The state is threaded through both computations sequentially.
 // This is the applicative apply operation.
 //
 // Example:
 //
-//	fab := StateIO.Of[AppState, Config, error](N.Mul(2))
-//	fa := StateIO.Of[AppState, Config, error](21)
-//	result := StateIO.MonadAp(fab, fa) // Result contains 42
+//	fab := Of[AppState](func(x int) int { return x * 2 })
+//	fa := Of[AppState](21)
+//	result := MonadAp(fab, fa) // Result contains 42
 func MonadAp[B, S, A any](fab StateIO[S, func(A) B], fa StateIO[S, A]) StateIO[S, B] {
 	return statet.MonadAp[StateIO[S, A], StateIO[S, B]](
 		io.MonadMap[Pair[S, A], Pair[S, B]],
@@ -130,6 +131,14 @@ func Ap[B, S, A any](fa StateIO[S, A]) Operator[S, func(A) B, B] {
 	)
 }
 
+// FromIO lifts an IO computation into StateIO.
+// The IO computation is executed and its result is wrapped in StateIO.
+// The state is passed through unchanged.
+//
+// Example:
+//
+//	ioAction := io.Of(42)
+//	stateIOAction := FromIO[AppState](ioAction)
 func FromIO[S, A any](fa IO[A]) StateIO[S, A] {
 	return statet.FromF[StateIO[S, A]](
 		io.MonadMap[A],
@@ -140,6 +149,13 @@ func FromIO[S, A any](fa IO[A]) StateIO[S, A] {
 // Combinators
 
 // FromIOK lifts an IO-returning function into a Kleisli arrow for StateIO.
+// This is useful for composing functions that return IO actions with StateIO computations.
+//
+// Example:
+//
+//	readFile := func(path string) IO[string] { ... }
+//	kleisli := FromIOK[AppState](readFile)
+//	// kleisli can now be used with Chain
 func FromIOK[S, A, B any](f func(A) IO[B]) Kleisli[S, A, B] {
 	return function.Flow2(
 		f,

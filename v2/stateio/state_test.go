@@ -280,5 +280,3 @@ func TestApplicativeComposition(t *testing.T) {
 
 	assert.Equal(t, 42, pair.Tail(result))
 }
-
-// Made with Bob

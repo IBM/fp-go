@@ -504,5 +504,3 @@ func TestMetricsIOOperations(t *testing.T) {
 		assert.Len(t, lines, 3, "should execute multiple times")
 	})
 }
-
-// Made with Bob
