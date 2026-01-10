@@ -26,6 +26,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/option"
@@ -112,4 +113,6 @@ type (
 	//   - Half-Open -> Closed: When canary request succeeds
 	//   - Half-Open -> Open: When canary request fails (with extended resetAt)
 	BreakerState = Either[openState, ClosedState]
+
+	Void = function.Void
 )

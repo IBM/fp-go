@@ -17,13 +17,13 @@ package readerioresult
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/circuitbreaker"
-	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -66,13 +66,8 @@ func (vt *VirtualTimer) Set(t time.Time) {
 }
 
 // Helper function to create a test logger that collects messages
-func testCBLogger(messages *[]string) io.Kleisli[string, string] {
-	return func(msg string) io.IO[string] {
-		return func() string {
-			*messages = append(*messages, msg)
-			return msg
-		}
-	}
+func testMetrics(_ *[]string) circuitbreaker.Metrics {
+	return circuitbreaker.MakeMetricsFromLogger("testMetrics", log.Default())
 }
 
 // Helper function to create a simple closed state
@@ -114,7 +109,7 @@ func TestCircuitBreaker_SuccessfulOperation(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	// Create initial state
@@ -146,7 +141,7 @@ func TestCircuitBreaker_SingleFailure(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -181,7 +176,7 @@ func TestCircuitBreaker_OpensAfterThreshold(t *testing.T) {
 		testCBClosedState(), // Opens after 3 failures
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -229,7 +224,7 @@ func TestCircuitBreaker_HalfOpenAfterResetTime(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -286,7 +281,7 @@ func TestCircuitBreaker_CanaryFailureExtendsOpenTime(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -348,7 +343,7 @@ func TestCircuitBreaker_IgnoredErrorsDoNotCount(t *testing.T) {
 		testCBClosedState(),
 		checkError,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -399,7 +394,7 @@ func TestCircuitBreaker_MixedSuccessAndFailure(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -437,7 +432,7 @@ func TestCircuitBreaker_ConcurrentOperations(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -482,7 +477,7 @@ func TestCircuitBreaker_DifferentTypes(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRefInt := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -508,7 +503,7 @@ func TestCircuitBreaker_DifferentTypes(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRefUser := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -556,7 +551,7 @@ func TestCircuitBreaker_InitialState(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -588,7 +583,7 @@ func TestCircuitBreaker_ErrorMessageFormat(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -657,7 +652,7 @@ func TestCircuitBreaker_ConcurrentBatchWithThresholdExceeded(t *testing.T) {
 		testCBClosedState(), // Opens after 3 failures
 		checkAllErrors,
 		testCBRetryPolicy(), // 100ms initial backoff
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -809,7 +804,7 @@ func TestCircuitBreaker_ConcurrentHighLoad(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
@@ -893,7 +888,7 @@ func TestCircuitBreaker_TrueConcurrentRequests(t *testing.T) {
 		testCBClosedState(),
 		checkAllErrors,
 		testCBRetryPolicy(),
-		testCBLogger(&logMessages),
+		testMetrics(&logMessages),
 	)
 
 	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()

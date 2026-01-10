@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/identity"
 	"github.com/IBM/fp-go/v2/io"
@@ -42,6 +43,15 @@ var (
 			return os
 		},
 		"openState.ResetAt",
+	)
+
+	openedAtLens = lens.MakeLensWithName(
+		func(os openState) time.Time { return os.openedAt },
+		func(os openState, tm time.Time) openState {
+			os.openedAt = tm
+			return os
+		},
+		"openState.OpenedAt",
 	)
 
 	createClosedCircuit = either.Right[openState, ClosedState]
@@ -345,8 +355,8 @@ func handleFailureOnClosed(
 							)),
 						),
 						createClosedCircuit,
-					)),
-				)
+					),
+				))
 			}))),
 	)
 
@@ -401,7 +411,7 @@ func MakeCircuitBreaker[E, T, HKTT, HKTOP, HKTHKTT any](
 	makeError Reader[time.Time, E],
 	checkError option.Kleisli[E, E],
 	policy retry.RetryPolicy,
-	logger io.Kleisli[string, string],
+	metrics Metrics,
 ) State[Pair[IORef[BreakerState], HKTT], HKTT] {
 
 	type Operator = func(HKTT) HKTT
@@ -434,7 +444,7 @@ func MakeCircuitBreaker[E, T, HKTT, HKTOP, HKTHKTT any](
 
 		return F.Flow2(
 			// error case
-			chainFirstLeftIOK(F.Flow2(
+			chainFirstLeftIOK(F.Flow3(
 				checkError,
 				option.Fold(
 					// the error is not applicable, handle as success
@@ -450,6 +460,16 @@ func MakeCircuitBreaker[E, T, HKTT, HKTOP, HKTHKTT any](
 						reader.Of[E],
 					),
 				),
+				// metering
+				io.ChainFirst(either.Fold(
+					F.Flow2(
+						openedAtLens.Get,
+						metrics.Open,
+					),
+					func(c ClosedState) IO[Void] {
+						return io.Of(function.VOID)
+					},
+				)),
 			)),
 			// good case
 			chainFirstIOK(F.Pipe2(

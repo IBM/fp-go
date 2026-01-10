@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioref"
@@ -14,10 +15,69 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type testMetrics struct {
+	accepts int
+	rejects int
+	opens   int
+	closes  int
+	canary  int
+
+	mu sync.Mutex
+}
+
+func (m *testMetrics) Accept(_ time.Time) IO[Void] {
+	return func() Void {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.accepts++
+		return function.VOID
+	}
+}
+
+func (m *testMetrics) Open(_ time.Time) IO[Void] {
+	return func() Void {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.opens++
+		return function.VOID
+	}
+}
+
+func (m *testMetrics) Close(_ time.Time) IO[Void] {
+	return func() Void {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.closes++
+		return function.VOID
+	}
+}
+
+func (m *testMetrics) Reject(_ time.Time) IO[Void] {
+	return func() Void {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.rejects++
+		return function.VOID
+	}
+}
+
+func (m *testMetrics) Canary(_ time.Time) IO[Void] {
+	return func() Void {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.canary++
+		return function.VOID
+	}
+}
+
 // VirtualTimer provides a controllable time source for testing
 type VirtualTimer struct {
 	mu      sync.Mutex
 	current time.Time
+}
+
+func NewMockMetrics() Metrics {
+	return &testMetrics{}
 }
 
 // NewVirtualTimer creates a new virtual timer starting at the given time

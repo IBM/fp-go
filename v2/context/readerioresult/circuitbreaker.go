@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/circuitbreaker"
-	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/retry"
 )
@@ -22,7 +21,7 @@ func MakeCircuitBreaker[T any](
 	closedState ClosedState,
 	checkError option.Kleisli[error, error],
 	policy retry.RetryPolicy,
-	logger io.Kleisli[string, string],
+	metrics circuitbreaker.Metrics,
 ) CircuitBreaker[T] {
 	return circuitbreaker.MakeCircuitBreaker[error, T](
 		Left,
@@ -37,7 +36,7 @@ func MakeCircuitBreaker[T any](
 		circuitbreaker.MakeCircuitBreakerError,
 		checkError,
 		policy,
-		logger,
+		metrics,
 	)
 }
 
@@ -46,7 +45,7 @@ func MakeSingletonBreaker[T any](
 	closedState ClosedState,
 	checkError option.Kleisli[error, error],
 	policy retry.RetryPolicy,
-	logger io.Kleisli[string, string],
+	metrics circuitbreaker.Metrics,
 ) Operator[T, T] {
 	return circuitbreaker.MakeSingletonBreaker(
 		MakeCircuitBreaker[T](
@@ -54,7 +53,7 @@ func MakeSingletonBreaker[T any](
 			closedState,
 			checkError,
 			policy,
-			logger,
+			metrics,
 		),
 		closedState,
 	)

@@ -1,0 +1,40 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package stateio
+
+import (
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/pair"
+)
+
+func uncurryState[S, A, B any](f func(A) io.Kleisli[S, B]) io.Kleisli[Pair[S, A], B] {
+	return func(r Pair[S, A]) IO[B] {
+		return f(pair.Tail(r))(pair.Head(r))
+	}
+}
+
+func WithResource[A, S, RES, ANY any](
+	onCreate StateIO[S, RES],
+	onRelease Kleisli[S, RES, ANY],
+) Kleisli[S, Kleisli[S, RES, A], A] {
+	release := uncurryState(onRelease)
+	return func(f Kleisli[S, RES, A]) StateIO[S, A] {
+		use := uncurryState(f)
+		return func(s S) IO[Pair[S, A]] {
+			return io.WithResource[Pair[S, RES], Pair[S, A]](onCreate(s), release)(use)
+		}
+	}
+}
