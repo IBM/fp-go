@@ -48,7 +48,7 @@ type StateIOMonad[
 
 // Of lifts a pure value into the StateIO context.
 func (o *StateIOPointed[S, A]) Of(a A) StateIO[S, A] {
-	return Of[S, A](a)
+	return Of[S](a)
 }
 
 // Of lifts a pure value into the StateIO context.
