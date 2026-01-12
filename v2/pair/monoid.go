@@ -20,19 +20,91 @@ import (
 	M "github.com/IBM/fp-go/v2/monoid"
 )
 
+// Monoid creates a simple component-wise monoid for [Pair].
+//
+// This function creates a monoid that combines pairs by independently combining their
+// head and tail components using the provided monoids. Both components are combined
+// in NORMAL left-to-right order.
+//
+// IMPORTANT: This is DIFFERENT from [ApplicativeMonoidTail] and [ApplicativeMonoidHead],
+// which use applicative functor operations and reverse the order of the non-focused component.
+//
+// Use this function when you want:
+//   - Simple, predictable left-to-right combination for both components
+//   - Behavior that matches intuition for non-commutative operations
+//   - Direct component-wise combination without applicative functor semantics
+//
+// Use [ApplicativeMonoidTail] or [ApplicativeMonoidHead] when you need applicative
+// functor semantics for lifting monoid operations into the Pair context.
+//
+// Parameters:
+//   - l: A monoid for the head (left) values of type L
+//   - r: A monoid for the tail (right) values of type R
+//
+// Returns:
+//   - A Monoid[Pair[L, R]] that combines both components left-to-right
+//
+// Example:
+//
+//	import (
+//	    N "github.com/IBM/fp-go/v2/number"
+//	    S "github.com/IBM/fp-go/v2/string"
+//	)
+//
+//	intAdd := N.MonoidSum[int]()
+//	strConcat := S.Monoid
+//
+//	pairMonoid := pair.Monoid(intAdd, strConcat)
+//
+//	p1 := pair.MakePair(5, "hello")
+//	p2 := pair.MakePair(10, " world")
+//
+//	result := pairMonoid.Concat(p1, p2)
+//	// result is Pair[int, string]{15, "hello world"}
+//	// Both components combine left-to-right: (5+10, "hello"+" world")
+//
+//	empty := pairMonoid.Empty()
+//	// empty is Pair[int, string]{0, ""}
+//
+// Comparison with ApplicativeMonoidTail:
+//
+//	strConcat := S.Monoid
+//
+//	// Simple component-wise monoid
+//	simpleMonoid := pair.Monoid(strConcat, strConcat)
+//	p1 := pair.MakePair("A", "1")
+//	p2 := pair.MakePair("B", "2")
+//	result1 := simpleMonoid.Concat(p1, p2)
+//	// result1 is Pair[string, string]{"AB", "12"}
+//	// Both components: left-to-right
+//
+//	// Applicative monoid
+//	appMonoid := pair.ApplicativeMonoidTail(strConcat, strConcat)
+//	result2 := appMonoid.Concat(p1, p2)
+//	// result2 is Pair[string, string]{"BA", "12"}
+//	// Head: reversed, Tail: normal
+//
+//go:inline
+func Monoid[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, R]] {
+	return M.MakeMonoid(
+		func(pl, pr Pair[L, R]) Pair[L, R] {
+			return MakePair(l.Concat(Head(pl), Head(pr)), r.Concat(Tail(pl), Tail(pr)))
+		},
+		MakePair(l.Empty(), r.Empty()),
+	)
+}
+
 // ApplicativeMonoid creates a monoid for [Pair] using applicative functor operations on the tail.
 //
 // This is an alias for [ApplicativeMonoidTail], which lifts the right (tail) monoid into the
 // Pair applicative functor. The left monoid provides the semigroup for combining head values
 // during applicative operations.
 //
-// IMPORTANT: The three monoid constructors (ApplicativeMonoid/ApplicativeMonoidTail and
-// ApplicativeMonoidHead) produce DIFFERENT results:
-//   - ApplicativeMonoidTail: Combines head values in REVERSE order (right-to-left)
-//   - ApplicativeMonoidHead: Combines tail values in REVERSE order (right-to-left)
-//   - The "focused" component (tail for Tail, head for Head) combines in normal order (left-to-right)
-//
-// This difference is significant for non-commutative operations like string concatenation.
+// IMPORTANT BEHAVIORAL NOTE: The applicative implementation causes the HEAD component to be
+// combined in REVERSE order (right-to-left) while the TAIL combines normally (left-to-right).
+// This differs from Haskell's standard Applicative instance for pairs, which combines the
+// first component left-to-right. This matters for non-commutative operations like string
+// concatenation.
 //
 // Parameters:
 //   - l: A monoid for the head (left) values of type L
@@ -74,9 +146,16 @@ func ApplicativeMonoid[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, 
 // the tail (right) value. The head values are combined using the left monoid's semigroup
 // operation during applicative application.
 //
-// CRITICAL BEHAVIOR: Due to the applicative functor implementation, the HEAD values are
-// combined in REVERSE order (right-to-left), while TAIL values combine in normal order
-// (left-to-right). This matters for non-commutative operations:
+// CRITICAL BEHAVIORAL NOTE: The HEAD values are combined in REVERSE order (right-to-left),
+// while TAIL values combine in normal order (left-to-right). This is due to how the
+// applicative `ap` operation is implemented for Pair.
+//
+// NOTE: This differs from Haskell's standard Applicative instance for (,) which combines
+// the first component left-to-right. The reversal occurs because MonadApTail implements:
+//
+//	MakePair(sg.Concat(second.head, first.head), ...)
+//
+// Example showing the reversal with non-commutative operations:
 //
 //	strConcat := S.Monoid
 //	pairMonoid := pair.ApplicativeMonoidTail(strConcat, strConcat)
@@ -85,7 +164,9 @@ func ApplicativeMonoid[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, 
 //	result := pairMonoid.Concat(p1, p2)
 //	// result is Pair[string, string]{" worldhello", "foobar"}
 //	//                                 ^^^^^^^^^^^^^^  ^^^^^^
-//	//                                 REVERSED!       normal
+//	//                                 REVERSED!       normal order
+//
+// In Haskell's Applicative for (,), this would give ("hellohello world", "foobar")
 //
 // The resulting monoid satisfies the standard monoid laws:
 //   - Associativity: Concat(Concat(p1, p2), p3) = Concat(p1, Concat(p2, p3))
@@ -154,9 +235,13 @@ func ApplicativeMonoidTail[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair
 //
 // This is the dual of [ApplicativeMonoidTail], operating on the head instead of the tail.
 //
-// CRITICAL BEHAVIOR: Due to the applicative functor implementation, the TAIL values are
-// combined in REVERSE order (right-to-left), while HEAD values combine in normal order
-// (left-to-right). This is the opposite of ApplicativeMonoidTail:
+// CRITICAL BEHAVIORAL NOTE: The TAIL values are combined in REVERSE order (right-to-left),
+// while HEAD values combine in normal order (left-to-right). This is the opposite behavior
+// of ApplicativeMonoidTail. The reversal occurs because MonadApHead implements:
+//
+//	MakePair(..., sg.Concat(second.tail, first.tail))
+//
+// Example showing the reversal with non-commutative operations:
 //
 //	strConcat := S.Monoid
 //	pairMonoid := pair.ApplicativeMonoidHead(strConcat, strConcat)
@@ -165,7 +250,7 @@ func ApplicativeMonoidTail[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair
 //	result := pairMonoid.Concat(p1, p2)
 //	// result is Pair[string, string]{"hello world", "barfoo"}
 //	//                                 ^^^^^^^^^^^^  ^^^^^^^^
-//	//                                 normal        REVERSED!
+//	//                                 normal order  REVERSED!
 //
 // The resulting monoid satisfies the standard monoid laws:
 //   - Associativity: Concat(Concat(p1, p2), p3) = Concat(p1, Concat(p2, p3))
