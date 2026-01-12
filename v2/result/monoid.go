@@ -52,3 +52,61 @@ func AlternativeMonoid[A any](m M.Monoid[A]) Monoid[A] {
 func AltMonoid[A any](zero Lazy[Result[A]]) Monoid[A] {
 	return either.AltMonoid(zero)
 }
+
+// FirstMonoid creates a Monoid for Result[A] that returns the first Ok (Right) value.
+// This monoid prefers the left operand when it is Ok, otherwise returns the right operand.
+// The empty value is provided as a lazy computation.
+//
+// This is equivalent to AltMonoid but implemented more directly.
+//
+// Truth table:
+//
+//	| x         | y         | concat(x, y) |
+//	| --------- | --------- | ------------ |
+//	| err(e1)   | err(e2)   | err(e2)      |
+//	| ok(a)     | err(e)    | ok(a)        |
+//	| err(e)    | ok(b)     | ok(b)        |
+//	| ok(a)     | ok(b)     | ok(a)        |
+//
+// Example:
+//
+//	import "errors"
+//	zero := func() result.Result[int] { return result.Error[int](errors.New("empty")) }
+//	m := result.FirstMonoid[int](zero)
+//	m.Concat(result.Of(2), result.Of(3)) // Ok(2) - returns first Ok
+//	m.Concat(result.Error[int](errors.New("err")), result.Of(3)) // Ok(3)
+//	m.Concat(result.Of(2), result.Error[int](errors.New("err"))) // Ok(2)
+//	m.Empty() // Error(error("empty"))
+//
+//go:inline
+func FirstMonoid[A any](zero Lazy[Result[A]]) M.Monoid[Result[A]] {
+	return either.FirstMonoid(zero)
+}
+
+// LastMonoid creates a Monoid for Result[A] that returns the last Ok (Right) value.
+// This monoid prefers the right operand when it is Ok, otherwise returns the left operand.
+// The empty value is provided as a lazy computation.
+//
+// Truth table:
+//
+//	| x         | y         | concat(x, y) |
+//	| --------- | --------- | ------------ |
+//	| err(e1)   | err(e2)   | err(e1)      |
+//	| ok(a)     | err(e)    | ok(a)        |
+//	| err(e)    | ok(b)     | ok(b)        |
+//	| ok(a)     | ok(b)     | ok(b)        |
+//
+// Example:
+//
+//	import "errors"
+//	zero := func() result.Result[int] { return result.Error[int](errors.New("empty")) }
+//	m := result.LastMonoid[int](zero)
+//	m.Concat(result.Of(2), result.Of(3)) // Ok(3) - returns last Ok
+//	m.Concat(result.Error[int](errors.New("err")), result.Of(3)) // Ok(3)
+//	m.Concat(result.Of(2), result.Error[int](errors.New("err"))) // Ok(2)
+//	m.Empty() // Error(error("empty"))
+//
+//go:inline
+func LastMonoid[A any](zero Lazy[Result[A]]) M.Monoid[Result[A]] {
+	return either.LastMonoid(zero)
+}
