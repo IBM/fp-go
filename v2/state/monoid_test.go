@@ -550,5 +550,3 @@ func TestApplicativeMonoidCommutativity(t *testing.T) {
 		assert.NotEqual(t, pair.Tail(finalResult1), pair.Tail(finalResult2))
 	})
 }
-
-// Made with Bob
