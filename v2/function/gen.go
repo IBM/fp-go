@@ -43,6 +43,7 @@ func Pipe1[F1 ~func(T0) T1, T0, T1 any](t0 T0, f1 F1) T1 {
 // The final return value is the result of the last function application
 //go:inline
 func Flow1[F1 ~func(T0) T1, T0, T1 any](f1 F1) func(T0) T1 {
+	//go:inline
 	return func(t0 T0) T1 {
 		return Pipe1(t0, f1)
 	}
@@ -103,6 +104,7 @@ func Pipe2[F1 ~func(T0) T1, F2 ~func(T1) T2, T0, T1, T2 any](t0 T0, f1 F1, f2 F2
 // The final return value is the result of the last function application
 //go:inline
 func Flow2[F1 ~func(T0) T1, F2 ~func(T1) T2, T0, T1, T2 any](f1 F1, f2 F2) func(T0) T2 {
+	//go:inline
 	return func(t0 T0) T2 {
 		return Pipe2(t0, f1, f2)
 	}
@@ -169,6 +171,7 @@ func Pipe3[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, T0, T1, T2, T3 any
 // The final return value is the result of the last function application
 //go:inline
 func Flow3[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, T0, T1, T2, T3 any](f1 F1, f2 F2, f3 F3) func(T0) T3 {
+	//go:inline
 	return func(t0 T0) T3 {
 		return Pipe3(t0, f1, f2, f3)
 	}

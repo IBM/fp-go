@@ -4,6 +4,7 @@ import (
 	"iter"
 
 	"github.com/IBM/fp-go/v2/consumer"
+	"github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -48,4 +49,6 @@ type (
 	// Predicate represents a function that tests a value of type A and returns a boolean.
 	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
+
+	Void = function.Void
 )

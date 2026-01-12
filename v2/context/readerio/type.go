@@ -20,6 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -78,4 +79,6 @@ type (
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 
 	Predicate[A any] = predicate.Predicate[A]
+
+	Void = function.Void
 )

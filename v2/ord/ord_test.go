@@ -17,6 +17,7 @@ package ord
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -580,4 +581,307 @@ func BenchmarkClamp(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = clamp(i % 150)
 	}
+}
+
+// Test OrdTime
+func TestOrdTime(t *testing.T) {
+	timeOrd := OrdTime()
+
+	t1 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	t3 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Test Compare
+	assert.Equal(t, -1, timeOrd.Compare(t1, t2), "t1 should be before t2")
+	assert.Equal(t, 1, timeOrd.Compare(t2, t1), "t2 should be after t1")
+	assert.Equal(t, 0, timeOrd.Compare(t1, t3), "t1 should equal t3")
+
+	// Test Equals
+	assert.True(t, timeOrd.Equals(t1, t3), "t1 should equal t3")
+	assert.False(t, timeOrd.Equals(t1, t2), "t1 should not equal t2")
+}
+
+func TestOrdTime_WithDifferentTimezones(t *testing.T) {
+	timeOrd := OrdTime()
+
+	// Same instant in different timezones
+	utc := time.Date(2023, 6, 15, 12, 0, 0, 0, time.UTC)
+	est := utc.In(time.FixedZone("EST", -5*3600))
+
+	// Should be equal (same instant)
+	assert.Equal(t, 0, timeOrd.Compare(utc, est))
+	assert.True(t, timeOrd.Equals(utc, est))
+}
+
+func TestOrdTime_WithNanoseconds(t *testing.T) {
+	timeOrd := OrdTime()
+
+	t1 := time.Date(2023, 1, 1, 0, 0, 0, 100, time.UTC)
+	t2 := time.Date(2023, 1, 1, 0, 0, 0, 200, time.UTC)
+
+	assert.Equal(t, -1, timeOrd.Compare(t1, t2))
+	assert.Equal(t, 1, timeOrd.Compare(t2, t1))
+}
+
+func TestOrdTime_MinMax(t *testing.T) {
+	timeOrd := OrdTime()
+
+	t1 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	min := Min(timeOrd)
+	max := Max(timeOrd)
+
+	assert.Equal(t, t1, min(t1, t2))
+	assert.Equal(t, t1, min(t2, t1))
+
+	assert.Equal(t, t2, max(t1, t2))
+	assert.Equal(t, t2, max(t2, t1))
+}
+
+// Example tests for documentation
+func ExampleFromStrictCompare() {
+	intOrd := FromStrictCompare[int]()
+
+	result1 := intOrd.Compare(5, 3)
+	result2 := intOrd.Compare(3, 5)
+	result3 := intOrd.Compare(5, 5)
+
+	println(result1) // 1
+	println(result2) // -1
+	println(result3) // 0
+}
+
+func ExampleMakeOrd() {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	personOrd := MakeOrd(
+		func(p1, p2 Person) int {
+			if p1.Age < p2.Age {
+				return -1
+			} else if p1.Age > p2.Age {
+				return 1
+			}
+			return 0
+		},
+		func(p1, p2 Person) bool {
+			return p1.Age == p2.Age
+		},
+	)
+
+	p1 := Person{Name: "Alice", Age: 30}
+	p2 := Person{Name: "Bob", Age: 25}
+
+	result := personOrd.Compare(p1, p2)
+	println(result) // 1 (30 > 25)
+}
+
+func ExampleFromCompare() {
+	stringOrd := FromCompare(func(a, b string) int {
+		if a < b {
+			return -1
+		} else if a > b {
+			return 1
+		}
+		return 0
+	})
+
+	result := stringOrd.Compare("apple", "banana")
+	println(result) // -1
+}
+
+func ExampleReverse() {
+	intOrd := FromStrictCompare[int]()
+	reversedOrd := Reverse(intOrd)
+
+	result1 := intOrd.Compare(5, 3)
+	result2 := reversedOrd.Compare(5, 3)
+
+	println(result1) // 1
+	println(result2) // -1
+}
+
+func ExampleContramap() {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	intOrd := FromStrictCompare[int]()
+
+	// Order persons by age
+	personOrd := Contramap(func(p Person) int {
+		return p.Age
+	})(intOrd)
+
+	p1 := Person{Name: "Alice", Age: 30}
+	p2 := Person{Name: "Bob", Age: 25}
+
+	result := personOrd.Compare(p1, p2)
+	println(result) // 1 (30 > 25)
+}
+
+func ExampleMin() {
+	intOrd := FromStrictCompare[int]()
+	min := Min(intOrd)
+
+	result := min(5, 3)
+	println(result) // 3
+}
+
+func ExampleMax() {
+	intOrd := FromStrictCompare[int]()
+	max := Max(intOrd)
+
+	result := max(5, 3)
+	println(result) // 5
+}
+
+func ExampleClamp() {
+	intOrd := FromStrictCompare[int]()
+	clamp := Clamp(intOrd)(0, 100)
+
+	result1 := clamp(-10)
+	result2 := clamp(50)
+	result3 := clamp(150)
+
+	println(result1) // 0
+	println(result2) // 50
+	println(result3) // 100
+}
+
+func ExampleLt() {
+	intOrd := FromStrictCompare[int]()
+	isLessThan5 := Lt(intOrd)(5)
+
+	result1 := isLessThan5(3)
+	result2 := isLessThan5(5)
+	result3 := isLessThan5(7)
+
+	println(result1) // true
+	println(result2) // false
+	println(result3) // false
+}
+
+func ExampleLeq() {
+	intOrd := FromStrictCompare[int]()
+	isAtMost5 := Leq(intOrd)(5)
+
+	result1 := isAtMost5(3)
+	result2 := isAtMost5(5)
+	result3 := isAtMost5(7)
+
+	println(result1) // true
+	println(result2) // true
+	println(result3) // false
+}
+
+func ExampleGt() {
+	intOrd := FromStrictCompare[int]()
+	isGreaterThan5 := Gt(intOrd)(5)
+
+	result1 := isGreaterThan5(3)
+	result2 := isGreaterThan5(5)
+	result3 := isGreaterThan5(7)
+
+	println(result1) // false
+	println(result2) // false
+	println(result3) // true
+}
+
+func ExampleGeq() {
+	intOrd := FromStrictCompare[int]()
+	isAtLeast5 := Geq(intOrd)(5)
+
+	result1 := isAtLeast5(3)
+	result2 := isAtLeast5(5)
+	result3 := isAtLeast5(7)
+
+	println(result1) // false
+	println(result2) // true
+	println(result3) // true
+}
+
+func ExampleBetween() {
+	intOrd := FromStrictCompare[int]()
+	isBetween3And7 := Between(intOrd)(3, 7)
+
+	result1 := isBetween3And7(2)
+	result2 := isBetween3And7(3)
+	result3 := isBetween3And7(5)
+	result4 := isBetween3And7(7)
+	result5 := isBetween3And7(8)
+
+	println(result1) // false
+	println(result2) // true
+	println(result3) // true
+	println(result4) // false
+	println(result5) // false
+}
+
+func ExampleSemigroup() {
+	type Person struct {
+		LastName  string
+		FirstName string
+	}
+
+	stringOrd := FromStrictCompare[string]()
+
+	// Order by last name
+	byLastName := Contramap(func(p Person) string {
+		return p.LastName
+	})(stringOrd)
+
+	// Order by first name
+	byFirstName := Contramap(func(p Person) string {
+		return p.FirstName
+	})(stringOrd)
+
+	// Combine: order by last name, then first name
+	sg := Semigroup[Person]()
+	personOrd := sg.Concat(byLastName, byFirstName)
+
+	p1 := Person{LastName: "Smith", FirstName: "Alice"}
+	p2 := Person{LastName: "Smith", FirstName: "Bob"}
+
+	result := personOrd.Compare(p1, p2)
+	println(result) // -1 (Alice < Bob)
+}
+
+func ExampleMonoid() {
+	m := Monoid[int]()
+
+	// Empty ordering considers everything equal
+	emptyOrd := m.Empty()
+	result := emptyOrd.Compare(5, 3)
+	println(result) // 0
+}
+
+func ExampleMaxSemigroup() {
+	intOrd := FromStrictCompare[int]()
+	maxSg := MaxSemigroup(intOrd)
+
+	result := maxSg.Concat(5, 3)
+	println(result) // 5
+}
+
+func ExampleMinSemigroup() {
+	intOrd := FromStrictCompare[int]()
+	minSg := MinSemigroup(intOrd)
+
+	result := minSg.Concat(5, 3)
+	println(result) // 3
+}
+
+func ExampleOrdTime() {
+	timeOrd := OrdTime()
+
+	t1 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	result := timeOrd.Compare(t1, t2)
+	println(result) // -1 (t1 is before t2)
 }

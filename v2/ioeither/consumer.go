@@ -23,9 +23,9 @@ import "github.com/IBM/fp-go/v2/io"
 // This function bridges the gap between pure consumers (functions that consume values
 // without returning anything) and the IOEither monad. It takes a Consumer[A] and returns
 // an Operator that:
-//   1. If the IOEither is Right, executes the consumer with the value as a side effect
-//   2. If the IOEither is Left, propagates the error without calling the consumer
-//   3. Returns IOEither[E, struct{}] to maintain the monadic chain
+//  1. If the IOEither is Right, executes the consumer with the value as a side effect
+//  2. If the IOEither is Left, propagates the error without calling the consumer
+//  3. Returns IOEither[E, struct{}] to maintain the monadic chain
 //
 // The consumer is only executed for successful (Right) values. Errors (Left values) are
 // propagated unchanged. This is useful for operations like logging successful results,
@@ -79,12 +79,13 @@ import "github.com/IBM/fp-go/v2/io"
 //	    ioeither.Map[error](func(struct{}) int { return len(successfulValues) }),
 //	)
 //	count := pipeline() // Returns Right(1), successfulValues contains [100]
+//
 //go:inline
 func ChainConsumer[E, A any](c Consumer[A]) Operator[E, A, struct{}] {
-	return ChainIOK[E](io.FromConsumerK(c))
+	return ChainIOK[E](io.FromConsumer(c))
 }
 
 //go:inline
 func ChainFirstConsumer[E, A any](c Consumer[A]) Operator[E, A, A] {
-	return ChainFirstIOK[E](io.FromConsumerK(c))
+	return ChainFirstIOK[E](io.FromConsumer(c))
 }

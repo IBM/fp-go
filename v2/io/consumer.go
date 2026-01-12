@@ -15,15 +15,17 @@
 
 package io
 
+import "github.com/IBM/fp-go/v2/function"
+
 // ChainConsumer converts a Consumer into an IO operator that executes the consumer
 // as a side effect and returns an empty struct.
 //
 // This function bridges the gap between pure consumers (functions that consume values
 // without returning anything) and the IO monad. It takes a Consumer[A] and returns
 // an Operator that:
-//   1. Executes the source IO[A] to get a value
-//   2. Passes that value to the consumer for side effects
-//   3. Returns IO[struct{}] to maintain the monadic chain
+//  1. Executes the source IO[A] to get a value
+//  2. Passes that value to the consumer for side effects
+//  3. Returns IO[struct{}] to maintain the monadic chain
 //
 // The returned IO[struct{}] allows the operation to be composed with other IO operations
 // while discarding the consumed value. This is useful for operations like logging,
@@ -68,11 +70,11 @@ package io
 //	    io.Map(func(struct{}) int { return len(values) }),
 //	)
 //	count := pipeline() // Returns 1, values contains [100]
-func ChainConsumer[A any](c Consumer[A]) Operator[A, struct{}] {
-	return Chain(FromConsumerK(c))
+func ChainConsumer[A any](c Consumer[A]) Operator[A, Void] {
+	return Chain(FromConsumer(c))
 }
 
-// FromConsumerK converts a Consumer into a Kleisli arrow that wraps the consumer
+// FromConsumer converts a Consumer into a Kleisli arrow that wraps the consumer
 // in an IO context.
 //
 // This function lifts a Consumer[A] (a function that consumes a value and performs
@@ -100,7 +102,7 @@ func ChainConsumer[A any](c Consumer[A]) Operator[A, struct{}] {
 //	}
 //
 //	// Convert to Kleisli arrow
-//	logKleisli := io.FromConsumerK(logger)
+//	logKleisli := io.FromConsumer(logger)
 //
 //	// Use with Chain
 //	result := F.Pipe2(
@@ -117,11 +119,11 @@ func ChainConsumer[A any](c Consumer[A]) Operator[A, struct{}] {
 //	        io.Map(func(struct{}) int { return 1 }),
 //	    )
 //	}
-func FromConsumerK[A any](c Consumer[A]) Kleisli[A, struct{}] {
-	return func(a A) IO[struct{}] {
-		return func() struct{} {
+func FromConsumer[A any](c Consumer[A]) Kleisli[A, Void] {
+	return func(a A) IO[Void] {
+		return func() Void {
 			c(a)
-			return struct{}{}
+			return function.VOID
 		}
 	}
 }

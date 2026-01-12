@@ -402,7 +402,125 @@ result := pipeline(db)(ctx)()
 
 ## Practical Benefits
 
-### 1. **Improved Testability**
+### 1. **Performance: Eager Construction, Lazy Execution**
+
+One of the most important but often overlooked benefits of point-free style is its performance characteristic: **the program structure is constructed eagerly (at definition time), but execution happens lazily (at runtime)**.
+
+#### Construction Happens Once
+
+When you define a pipeline using point-free style with `F.Flow`, `F.Pipe`, or function composition, the composition structure is built immediately at definition time:
+
+```go
+// Point-free style - composition built ONCE at definition time
+var processUser = F.Flow3(
+    getDatabase,
+    SequenceReader[DatabaseConfig, Database],
+    applyConfig(dbConfig),
+)
+// The pipeline structure is now fixed in memory
+```
+
+#### Execution Happens on Demand
+
+The actual computation only runs when you provide the final parameters and invoke the result:
+
+```go
+// Execute multiple times - only execution cost, no re-composition
+result1 := processUser(ctx1)()  // Fast - reuses pre-built pipeline
+result2 := processUser(ctx2)()  // Fast - reuses pre-built pipeline
+result3 := processUser(ctx3)()  // Fast - reuses pre-built pipeline
+```
+
+#### Performance Benefit for Repeated Execution
+
+If a flow is executed multiple times, the point-free style is significantly more efficient because:
+
+1. **Composition overhead is paid once** - The function composition happens at definition time
+2. **No re-interpretation** - Each execution doesn't need to rebuild the pipeline
+3. **Memory efficiency** - The composed function is created once and reused
+4. **Better for hot paths** - Ideal for high-frequency operations
+
+#### Comparison: Point-Free vs. Imperative
+
+```go
+// Imperative style - reconstruction on EVERY call
+func processUserImperative(ctx context.Context) Either[error, Database] {
+    // This function body is re-interpreted/executed every time
+    dbComp := getDatabase()(ctx)()
+    if dbReader, err := either.Unwrap(dbComp); err != nil {
+        return Left[Database](err)
+    }
+    db := dbReader(dbConfig)
+    // ... manual composition happens on every invocation
+    return Right[error](db)
+}
+
+// Point-free style - composition built ONCE
+var processUserPointFree = F.Flow3(
+    getDatabase,
+    SequenceReader[DatabaseConfig, Database],
+    applyConfig(dbConfig),
+)
+
+// Benchmark scenario: 1000 executions
+for i := 0; i < 1000; i++ {
+    // Imperative: pays composition cost 1000 times
+    result := processUserImperative(ctx)()
+    
+    // Point-free: pays composition cost once, execution cost 1000 times
+    result := processUserPointFree(ctx)()
+}
+```
+
+#### When This Matters Most
+
+The performance benefit of eager construction is particularly important for:
+
+- **High-frequency operations** - APIs, event handlers, request processors
+- **Batch processing** - Same pipeline processes many items
+- **Long-running services** - Pipelines defined once at startup, executed millions of times
+- **Hot code paths** - Performance-critical sections that run repeatedly
+- **Stream processing** - Processing continuous data streams
+
+#### Example: API Handler
+
+```go
+// Define pipeline once at application startup
+var handleUserRequest = F.Flow4(
+    parseRequest,
+    SequenceReader[Database, UserRequest],
+    applyDatabase(db),
+    Chain(validateAndProcess),
+)
+
+// Execute thousands of times per second
+func apiHandler(w http.ResponseWriter, r *http.Request) {
+    // No composition overhead - just execution
+    result := handleUserRequest(r.Context())()
+    // ... handle result
+}
+```
+
+#### Memory and CPU Efficiency
+
+```go
+// Point-free: O(1) composition overhead
+var pipeline = F.Flow5(step1, step2, step3, step4, step5)
+// Composed once, stored in memory
+
+// Execute N times: O(N) execution cost only
+for i := 0; i < N; i++ {
+    result := pipeline(input[i])
+}
+
+// Imperative: O(N) composition + execution cost
+for i := 0; i < N; i++ {
+    // Composition logic runs every iteration
+    result := step5(step4(step3(step2(step1(input[i])))))
+}
+```
+
+### 2. **Improved Testability**
 
 Inject test dependencies easily:
 
@@ -418,7 +536,7 @@ testQuery := queryWithDB(testDB)
 // Same computation, different dependencies
 ```
 
-### 2. **Better Separation of Concerns**
+### 3. **Better Separation of Concerns**
 
 Separate configuration from execution:
 
@@ -431,7 +549,7 @@ computation := sequenced(cfg)
 result := computation(ctx)()
 ```
 
-### 3. **Enhanced Composability**
+### 4. **Enhanced Composability**
 
 Build complex pipelines from simple pieces:
 
@@ -444,7 +562,7 @@ var processUser = F.Flow4(
 )
 ```
 
-### 4. **Reduced Boilerplate**
+### 5. **Reduced Boilerplate**
 
 No need to manually thread parameters:
 
@@ -651,6 +769,7 @@ var processUser = func(userID string) ReaderIOResult[ProcessedUser] {
 5. **Reusability** increases as computations can be specialized early
 6. **Testability** improves through easy dependency injection
 7. **Separation of concerns** is clearer (configuration vs. execution)
+8. **Performance benefit**: Eager construction (once) + lazy execution (many times) = efficiency for repeated operations
 
 ## When to Use Sequence
 

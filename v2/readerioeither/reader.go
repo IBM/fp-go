@@ -957,7 +957,7 @@ func MonadTapLeft[A, R, EA, EB, B any](ma ReaderIOEither[R, EA, A], f Kleisli[R,
 //   - An Operator that performs the side effect but always returns the original error if input was Left
 //
 //go:inline
-func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
+func ChainFirstLeft[A, R, EB, EA, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
 	return eithert.ChainFirstLeft(
 		readerio.Chain[R, Either[EA, A], Either[EA, A]],
 		readerio.Map[R, Either[EB, B], Either[EA, A]],
@@ -966,9 +966,21 @@ func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA
 	)
 }
 
+func ChainFirstLeftIOK[A, R, EA, B any](f io.Kleisli[EA, B]) Operator[R, EA, A, A] {
+	return ChainFirstLeft[A](function.Flow2(
+		f,
+		FromIO[R, EA],
+	))
+}
+
 //go:inline
-func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
+func TapLeft[A, R, EB, EA, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
 	return ChainFirstLeft[A](f)
+}
+
+//go:inline
+func TapLeftIOK[A, R, EA, B any](f io.Kleisli[EA, B]) Operator[R, EA, A, A] {
+	return ChainFirstLeftIOK[A, R](f)
 }
 
 // Delay creates an operation that passes in the value after some delay

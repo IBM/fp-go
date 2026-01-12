@@ -17,6 +17,7 @@ package state
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
@@ -61,4 +62,6 @@ type (
 	// It transforms a State[S, A] into a State[S, B], making it useful for
 	// building pipelines of stateful transformations while maintaining the state type S.
 	Operator[S, A, B any] = Kleisli[S, State[S, A], B]
+
+	Void = function.Void
 )
