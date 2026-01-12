@@ -495,5 +495,3 @@ func TestMonoidCommutativity(t *testing.T) {
 		assert.NotEqual(t, result1, result2)
 	})
 }
-
-// Made with Bob
