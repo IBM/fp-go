@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -295,13 +296,13 @@ func TestMakeBy(t *testing.T) {
 }
 
 func TestMakeByZero(t *testing.T) {
-	seq := MakeBy(0, func(i int) int { return i })
+	seq := MakeBy(0, F.Identity)
 	result := toSlice(seq)
 	assert.Empty(t, result)
 }
 
 func TestMakeByNegative(t *testing.T) {
-	seq := MakeBy(-5, func(i int) int { return i })
+	seq := MakeBy(-5, F.Identity)
 	result := toSlice(seq)
 	assert.Empty(t, result)
 }
@@ -375,17 +376,13 @@ func TestFold(t *testing.T) {
 
 func TestMonadFoldMap(t *testing.T) {
 	seq := From(1, 2, 3)
-	result := MonadFoldMap(seq, func(x int) string {
-		return fmt.Sprintf("%d", x)
-	}, S.Monoid)
+	result := MonadFoldMap(seq, strconv.Itoa, S.Monoid)
 	assert.Equal(t, "123", result)
 }
 
 func TestFoldMap(t *testing.T) {
 	seq := From(1, 2, 3)
-	folder := FoldMap[int](S.Monoid)(func(x int) string {
-		return fmt.Sprintf("%d", x)
-	})
+	folder := FoldMap[int](S.Monoid)(strconv.Itoa)
 	result := folder(seq)
 	assert.Equal(t, "123", result)
 }

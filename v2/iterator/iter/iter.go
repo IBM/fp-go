@@ -52,6 +52,7 @@ import (
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
 // Of creates a sequence containing a single element.
@@ -507,7 +508,7 @@ func MonadAp[B, A any](fab Seq[func(A) B], fa Seq[A]) Seq[B] {
 //
 //go:inline
 func Ap[B, A any](fa Seq[A]) Operator[func(A) B, B] {
-	return F.Bind2nd(MonadAp[B, A], fa)
+	return Chain(F.Bind1st(MonadMap[A, B], fa))
 }
 
 // From creates a sequence from a variadic list of elements.
@@ -708,9 +709,7 @@ func Fold[A any](m M.Monoid[A]) func(Seq[A]) A {
 //
 //go:inline
 func MonadFoldMap[A, B any](fa Seq[A], f func(A) B, m M.Monoid[B]) B {
-	return MonadReduce(fa, func(b B, a A) B {
-		return m.Concat(b, f(a))
-	}, m.Empty())
+	return MonadFold(MonadMap(fa, f), m)
 }
 
 // FoldMap returns a function that maps and folds using a monoid.
@@ -728,11 +727,10 @@ func MonadFoldMap[A, B any](fa Seq[A], f func(A) B, m M.Monoid[B]) B {
 //
 //go:inline
 func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func(Seq[A]) B {
-	return func(f func(A) B) func(Seq[A]) B {
-		return func(as Seq[A]) B {
-			return MonadFoldMap(as, f, m)
-		}
-	}
+	return F.Pipe1(
+		Map[A, B],
+		reader.Map[func(A) B](reader.Map[Seq[A]](Fold(m))),
+	)
 }
 
 // MonadFoldMapWithIndex maps each element with its index to a monoid value and combines them.
@@ -903,11 +901,51 @@ func Zip[A, B any](fb Seq[B]) func(Seq[A]) Seq2[A, B] {
 	return F.Bind2nd(MonadZip[A, B], fb)
 }
 
+// MonadMapToArray maps each element in a sequence using a function and collects the results into an array.
+// This is a convenience function that combines Map and collection into a single operation.
+//
+// Type Parameters:
+//   - A: The type of elements in the input sequence
+//   - B: The type of elements in the output array
+//
+// Parameters:
+//   - fa: The input sequence to map
+//   - f: The mapping function to apply to each element
+//
+// Returns:
+//   - A slice containing all mapped elements
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	result := MonadMapToArray(seq, N.Mul(2))
+//	// returns: []int{2, 4, 6}
+//
 //go:inline
 func MonadMapToArray[A, B any](fa Seq[A], f func(A) B) []B {
 	return G.MonadMapToArray[Seq[A], []B](fa, f)
 }
 
+// MapToArray returns a function that maps elements and collects them into an array.
+// This is the curried version of MonadMapToArray.
+//
+// Type Parameters:
+//   - A: The type of elements in the input sequence
+//   - B: The type of elements in the output array
+//
+// Parameters:
+//   - f: The mapping function to apply to each element
+//
+// Returns:
+//   - A function that takes a sequence and returns a slice of mapped elements
+//
+// Example:
+//
+//	double := MapToArray(N.Mul(2))
+//	seq := From(1, 2, 3)
+//	result := double(seq)
+//	// returns: []int{2, 4, 6}
+//
 //go:inline
 func MapToArray[A, B any](f func(A) B) func(Seq[A]) []B {
 	return G.MapToArray[Seq[A], []B](f)

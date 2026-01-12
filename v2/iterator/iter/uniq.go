@@ -15,7 +15,10 @@
 
 package iter
 
-import F "github.com/IBM/fp-go/v2/function"
+import (
+	"github.com/IBM/fp-go/v2/function"
+	F "github.com/IBM/fp-go/v2/function"
+)
 
 // Uniq returns an operator that filters a sequence to contain only unique elements,
 // where uniqueness is determined by a key extraction function.
@@ -92,11 +95,11 @@ import F "github.com/IBM/fp-go/v2/function"
 func Uniq[A any, K comparable](f func(A) K) Operator[A, A] {
 	return func(s Seq[A]) Seq[A] {
 		return func(yield func(A) bool) {
-			items := make(map[K]struct{})
+			items := make(map[K]Void)
 			for a := range s {
 				k := f(a)
 				if _, ok := items[k]; !ok {
-					items[k] = struct{}{}
+					items[k] = function.VOID
 					if !yield(a) {
 						return
 					}
