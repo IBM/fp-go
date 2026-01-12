@@ -500,5 +500,3 @@ func TestEvaluateWithChain(t *testing.T) {
 
 	assert.Equal(t, "result: 20", value, "value should be 'result: 20'")
 }
-
-// Made with Bob

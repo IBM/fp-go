@@ -369,5 +369,3 @@ func TestIntegration_ReduceWithIndexToMap(t *testing.T) {
 	}
 	assert.Equal(t, expected, result)
 }
-
-// Made with Bob

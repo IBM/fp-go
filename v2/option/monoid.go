@@ -83,6 +83,8 @@ func Monoid[A any]() func(S.Semigroup[A]) M.Monoid[Option[A]] {
 //	intMonoid := monoid.MakeMonoid(func(a, b int) int { return a + b }, 0)
 //	optMonoid := AlternativeMonoid(intMonoid)
 //	result := optMonoid.Concat(Some(2), Some(3)) // Some(5)
+//
+//go:inline
 func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
 	return M.AlternativeMonoid(
 		Of[A],
@@ -103,9 +105,81 @@ func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
 //	optMonoid.Concat(Some(2), Some(3)) // Some(2) - returns first Some
 //	optMonoid.Concat(None[int](), Some(3)) // Some(3)
 //	optMonoid.Empty() // None
+//
+//go:inline
 func AltMonoid[A any]() M.Monoid[Option[A]] {
 	return M.AltMonoid(
 		None[A],
 		MonadAlt[A],
 	)
+}
+
+// takeFirst is a helper function that returns the first Some value, or the second if the first is None.
+func takeFirst[A any](l, r Option[A]) Option[A] {
+	if IsSome(l) {
+		return l
+	}
+	return r
+}
+
+// FirstMonoid creates a Monoid for Option[A] that returns the first Some value.
+// This monoid prefers the left operand when it is Some, otherwise returns the right operand.
+// The empty value is None.
+//
+// This is equivalent to AltMonoid but implemented more directly.
+//
+// Truth table:
+//
+//	| x       | y       | concat(x, y) |
+//	| ------- | ------- | ------------ |
+//	| none    | none    | none         |
+//	| some(a) | none    | some(a)      |
+//	| none    | some(b) | some(b)      |
+//	| some(a) | some(b) | some(a)      |
+//
+// Example:
+//
+//	optMonoid := FirstMonoid[int]()
+//	optMonoid.Concat(Some(2), Some(3)) // Some(2) - returns first Some
+//	optMonoid.Concat(None[int](), Some(3)) // Some(3)
+//	optMonoid.Concat(Some(2), None[int]()) // Some(2)
+//	optMonoid.Empty() // None
+//
+//go:inline
+func FirstMonoid[A any]() M.Monoid[Option[A]] {
+	return M.MakeMonoid(takeFirst[A], None[A]())
+}
+
+// takeLast is a helper function that returns the last Some value, or the first if the last is None.
+func takeLast[A any](l, r Option[A]) Option[A] {
+	if IsSome(r) {
+		return r
+	}
+	return l
+}
+
+// LastMonoid creates a Monoid for Option[A] that returns the last Some value.
+// This monoid prefers the right operand when it is Some, otherwise returns the left operand.
+// The empty value is None.
+//
+// Truth table:
+//
+//	| x       | y       | concat(x, y) |
+//	| ------- | ------- | ------------ |
+//	| none    | none    | none         |
+//	| some(a) | none    | some(a)      |
+//	| none    | some(b) | some(b)      |
+//	| some(a) | some(b) | some(b)      |
+//
+// Example:
+//
+//	optMonoid := LastMonoid[int]()
+//	optMonoid.Concat(Some(2), Some(3)) // Some(3) - returns last Some
+//	optMonoid.Concat(None[int](), Some(3)) // Some(3)
+//	optMonoid.Concat(Some(2), None[int]()) // Some(2)
+//	optMonoid.Empty() // None
+//
+//go:inline
+func LastMonoid[A any]() M.Monoid[Option[A]] {
+	return M.MakeMonoid(takeLast[A], None[A]())
 }

@@ -566,5 +566,3 @@ func TestMixedBindAndLet(t *testing.T) {
 	assert.Equal(t, 10, pair.Tail(result).Doubled, "doubled should be 10")
 	assert.Equal(t, "done", pair.Tail(result).Status, "status should be done")
 }
-
-// Made with Bob
