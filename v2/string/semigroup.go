@@ -16,14 +16,13 @@
 package string
 
 import (
-	"fmt"
-
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
-// concat concatenates two strings
+// concat concatenates two strings using simple string concatenation.
+// This is an internal helper function used by the Semigroup and Monoid implementations.
 func concat(left, right string) string {
-	return fmt.Sprintf("%s%s", left, right)
+	return left + right
 }
 
 // Semigroup is the semigroup implementing string concatenation

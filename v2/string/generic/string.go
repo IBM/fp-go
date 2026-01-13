@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package generic provides generic string utility functions that work with any type
+// that has string as its underlying type (using the ~string constraint).
+// This allows these functions to work with custom string types while maintaining type safety.
 package generic
 
 // ToBytes converts the string to bytes

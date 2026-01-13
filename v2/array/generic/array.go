@@ -375,3 +375,102 @@ func Prepend[ENDO ~func(AS) AS, AS []A, A any](head A) ENDO {
 func Reverse[GT ~[]T, T any](as GT) GT {
 	return array.Reverse(as)
 }
+
+// Extract returns the first element of an array, or a zero value if empty.
+// This is the comonad extract operation for arrays.
+//
+// Extract is the dual of the monadic return/of operation. While Of wraps a value
+// in a context, Extract unwraps a value from its context.
+//
+// Type Parameters:
+//   - GA: The array type constraint
+//   - A: The type of elements in the array
+//
+// Parameters:
+//   - as: The input array
+//
+// Returns:
+//   - The first element if the array is non-empty, otherwise the zero value of type A
+//
+// Behavior:
+//   - Returns as[0] if the array has at least one element
+//   - Returns the zero value of A if the array is empty
+//   - Does not modify the input array
+//
+// Example:
+//
+//	result := Extract([]int{1, 2, 3})
+//	// result: 1
+//
+// Example with empty array:
+//
+//	result := Extract([]int{})
+//	// result: 0 (zero value for int)
+//
+// Comonad laws:
+//   - Extract ∘ Of == Identity (extracting from a singleton returns the value)
+//   - Extract ∘ Extend(f) == f (extract after extend equals applying f)
+//
+//go:inline
+func Extract[GA ~[]A, A any](as GA) A {
+	if len(as) > 0 {
+		return as[0]
+	}
+	var zero A
+	return zero
+}
+
+// Extend applies a function to every suffix of an array, creating a new array of results.
+// This is the comonad extend operation for arrays.
+//
+// The function f is applied to progressively smaller suffixes of the input array:
+//   - f(as[0:]) for the first element
+//   - f(as[1:]) for the second element
+//   - f(as[2:]) for the third element
+//   - and so on...
+//
+// Type Parameters:
+//   - GA: The input array type constraint
+//   - GB: The output array type constraint
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// Parameters:
+//   - f: A function that takes an array suffix and returns a value
+//
+// Returns:
+//   - A function that transforms an array of A into an array of B
+//
+// Behavior:
+//   - Creates a new array with the same length as the input
+//   - For each position i, applies f to the suffix starting at i
+//   - Returns an empty array if the input is empty
+//
+// Example:
+//
+//	// Sum all elements from current position to end
+//	sumSuffix := Extend[[]int, []int](func(as []int) int {
+//	    return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+//	})
+//	result := sumSuffix([]int{1, 2, 3, 4})
+//	// result: []int{10, 9, 7, 4}
+//	// Explanation: [1+2+3+4, 2+3+4, 3+4, 4]
+//
+// Example with length:
+//
+//	// Get remaining length at each position
+//	lengths := Extend[[]int, []int](Size[[]int, int])
+//	result := lengths([]int{10, 20, 30})
+//	// result: []int{3, 2, 1}
+//
+// Comonad laws:
+//   - Left identity: Extend(Extract) == Identity
+//   - Right identity: Extract ∘ Extend(f) == f
+//   - Associativity: Extend(f) ∘ Extend(g) == Extend(f ∘ Extend(g))
+//
+//go:inline
+func Extend[GA ~[]A, GB ~[]B, A, B any](f func(GA) B) func(GA) GB {
+	return func(as GA) GB {
+		return MakeBy[GB](len(as), func(i int) B { return f(as[i:]) })
+	}
+}

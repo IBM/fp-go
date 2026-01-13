@@ -474,3 +474,293 @@ func TestReverseProperties(t *testing.T) {
 		}
 	})
 }
+
+// TestExtract tests the Extract function
+func TestExtract(t *testing.T) {
+	t.Run("Extract from non-empty array", func(t *testing.T) {
+		input := []int{1, 2, 3, 4, 5}
+		result := Extract(input)
+		assert.Equal(t, 1, result)
+	})
+
+	t.Run("Extract from single element array", func(t *testing.T) {
+		input := []string{"hello"}
+		result := Extract(input)
+		assert.Equal(t, "hello", result)
+	})
+
+	t.Run("Extract from empty array returns zero value", func(t *testing.T) {
+		input := []int{}
+		result := Extract(input)
+		assert.Equal(t, 0, result)
+	})
+
+	t.Run("Extract from empty string array returns empty string", func(t *testing.T) {
+		input := []string{}
+		result := Extract(input)
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("Extract does not modify original array", func(t *testing.T) {
+		original := []int{1, 2, 3}
+		originalCopy := []int{1, 2, 3}
+		_ = Extract(original)
+		assert.Equal(t, originalCopy, original)
+	})
+
+	t.Run("Extract with floats", func(t *testing.T) {
+		input := []float64{3.14, 2.71, 1.41}
+		result := Extract(input)
+		assert.Equal(t, 3.14, result)
+	})
+
+	t.Run("Extract with structs", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		input := []Person{
+			{"Alice", 30},
+			{"Bob", 25},
+		}
+		result := Extract(input)
+		assert.Equal(t, Person{"Alice", 30}, result)
+	})
+}
+
+// TestExtractComonadLaws tests comonad laws for Extract
+func TestExtractComonadLaws(t *testing.T) {
+	t.Run("Extract ∘ Of == Identity", func(t *testing.T) {
+		value := 42
+		result := Extract(Of(value))
+		assert.Equal(t, value, result)
+	})
+
+	t.Run("Extract ∘ Extend(f) == f", func(t *testing.T) {
+		input := []int{1, 2, 3, 4}
+		f := func(as []int) int {
+			return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+		}
+
+		// Extract(Extend(f)(input)) should equal f(input)
+		extended := Extend(f)(input)
+		result := Extract(extended)
+		expected := f(input)
+
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestExtend tests the Extend function
+func TestExtend(t *testing.T) {
+	t.Run("Extend with sum of suffixes", func(t *testing.T) {
+		input := []int{1, 2, 3, 4}
+		sumSuffix := Extend(func(as []int) int {
+			return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+		})
+		result := sumSuffix(input)
+		expected := []int{10, 9, 7, 4} // [1+2+3+4, 2+3+4, 3+4, 4]
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Extend with length of suffixes", func(t *testing.T) {
+		input := []int{10, 20, 30}
+		lengths := Extend(Size[int])
+		result := lengths(input)
+		expected := []int{3, 2, 1}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Extend with head extraction", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		duplicate := Extend(func(as []int) int {
+			return F.Pipe2(as, Head[int], O.GetOrElse(F.Constant(0)))
+		})
+		result := duplicate(input)
+		expected := []int{1, 2, 3}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Extend with empty array", func(t *testing.T) {
+		input := []int{}
+		result := Extend(Size[int])(input)
+		assert.Equal(t, []int{}, result)
+	})
+
+	t.Run("Extend with single element", func(t *testing.T) {
+		input := []string{"hello"}
+		result := Extend(func(as []string) int { return len(as) })(input)
+		expected := []int{1}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Extend does not modify original array", func(t *testing.T) {
+		original := []int{1, 2, 3}
+		originalCopy := []int{1, 2, 3}
+		_ = Extend(Size[int])(original)
+		assert.Equal(t, originalCopy, original)
+	})
+
+	t.Run("Extend with string concatenation", func(t *testing.T) {
+		input := []string{"a", "b", "c"}
+		concat := Extend(func(as []string) string {
+			return MonadReduce(as, func(acc, s string) string { return acc + s }, "")
+		})
+		result := concat(input)
+		expected := []string{"abc", "bc", "c"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Extend with max of suffixes", func(t *testing.T) {
+		input := []int{3, 1, 4, 1, 5}
+		maxSuffix := Extend(func(as []int) int {
+			if len(as) == 0 {
+				return 0
+			}
+			max := as[0]
+			for _, v := range as[1:] {
+				if v > max {
+					max = v
+				}
+			}
+			return max
+		})
+		result := maxSuffix(input)
+		expected := []int{5, 5, 5, 5, 5}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestExtendComonadLaws tests comonad laws for Extend
+func TestExtendComonadLaws(t *testing.T) {
+	t.Run("Left identity: Extend(Extract) == Identity", func(t *testing.T) {
+		input := []int{1, 2, 3, 4, 5}
+		result := Extend(Extract[int])(input)
+		assert.Equal(t, input, result)
+	})
+
+	t.Run("Right identity: Extract ∘ Extend(f) == f", func(t *testing.T) {
+		input := []int{1, 2, 3, 4}
+		f := func(as []int) int {
+			return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+		}
+
+		// Extract(Extend(f)(input)) should equal f(input)
+		result := F.Pipe2(input, Extend(f), Extract[int])
+		expected := f(input)
+
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Associativity: Extend(f) ∘ Extend(g) == Extend(f ∘ Extend(g))", func(t *testing.T) {
+		input := []int{1, 2, 3}
+
+		// f: sum of array
+		f := func(as []int) int {
+			return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+		}
+
+		// g: length of array
+		g := func(as []int) int {
+			return len(as)
+		}
+
+		// Left side: Extend(f) ∘ Extend(g)
+		left := F.Pipe2(input, Extend(g), Extend(f))
+
+		// Right side: Extend(f ∘ Extend(g))
+		right := Extend(func(as []int) int {
+			return f(Extend(g)(as))
+		})(input)
+
+		assert.Equal(t, left, right)
+	})
+}
+
+// TestExtendComposition tests Extend with other array operations
+func TestExtendComposition(t *testing.T) {
+	t.Run("Extend after Map", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		result := F.Pipe2(
+			input,
+			Map(N.Mul(2)),
+			Extend(func(as []int) int {
+				return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+			}),
+		)
+		expected := []int{12, 10, 6} // [2+4+6, 4+6, 6]
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Map after Extend", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		result := F.Pipe2(
+			input,
+			Extend(Size[int]),
+			Map(N.Mul(10)),
+		)
+		expected := []int{30, 20, 10}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Extend with Filter", func(t *testing.T) {
+		input := []int{1, 2, 3, 4, 5, 6}
+		result := F.Pipe2(
+			input,
+			Filter(func(n int) bool { return n%2 == 0 }),
+			Extend(Size[int]),
+		)
+		expected := []int{3, 2, 1} // lengths of [2,4,6], [4,6], [6]
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestExtendUseCases demonstrates practical use cases for Extend
+func TestExtendUseCases(t *testing.T) {
+	t.Run("Running sum (cumulative sum from each position)", func(t *testing.T) {
+		input := []int{1, 2, 3, 4, 5}
+		runningSum := Extend(func(as []int) int {
+			return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
+		})
+		result := runningSum(input)
+		expected := []int{15, 14, 12, 9, 5}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Sliding window average", func(t *testing.T) {
+		input := []float64{1.0, 2.0, 3.0, 4.0, 5.0}
+		windowAvg := Extend(func(as []float64) float64 {
+			if len(as) == 0 {
+				return 0
+			}
+			sum := MonadReduce(as, func(acc, x float64) float64 { return acc + x }, 0.0)
+			return sum / float64(len(as))
+		})
+		result := windowAvg(input)
+		expected := []float64{3.0, 3.5, 4.0, 4.5, 5.0}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Check if suffix is sorted", func(t *testing.T) {
+		input := []int{1, 2, 3, 2, 1}
+		isSorted := Extend(func(as []int) bool {
+			for i := 1; i < len(as); i++ {
+				if as[i] < as[i-1] {
+					return false
+				}
+			}
+			return true
+		})
+		result := isSorted(input)
+		expected := []bool{false, false, false, false, true}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Count remaining elements", func(t *testing.T) {
+		events := []string{"start", "middle", "end"}
+		remaining := Extend(Size[string])
+		result := remaining(events)
+		expected := []int{3, 2, 1}
+		assert.Equal(t, expected, result)
+	})
+}

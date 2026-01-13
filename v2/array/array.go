@@ -622,3 +622,128 @@ func Prepend[A any](head A) Operator[A, A] {
 func Reverse[A any](as []A) []A {
 	return G.Reverse(as)
 }
+
+// Extend applies a function to every suffix of an array, creating a new array of results.
+// This is the comonad extend operation for arrays.
+//
+// The function f is applied to progressively smaller suffixes of the input array:
+//   - f(as[0:]) for the first element
+//   - f(as[1:]) for the second element
+//   - f(as[2:]) for the third element
+//   - and so on...
+//
+// Type Parameters:
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// Parameters:
+//   - f: A function that takes an array suffix and returns a value
+//
+// Returns:
+//   - A function that transforms an array of A into an array of B
+//
+// Behavior:
+//   - Creates a new array with the same length as the input
+//   - For each position i, applies f to the suffix starting at i
+//   - Returns an empty array if the input is empty
+//
+// Example:
+//
+//	// Sum all elements from current position to end
+//	sumSuffix := array.Extend(func(as []int) int {
+//	    return array.Reduce(func(acc, x int) int { return acc + x }, 0)(as)
+//	})
+//	result := sumSuffix([]int{1, 2, 3, 4})
+//	// result: []int{10, 9, 7, 4}
+//	// Explanation: [1+2+3+4, 2+3+4, 3+4, 4]
+//
+// Example with length:
+//
+//	// Get remaining length at each position
+//	lengths := array.Extend(array.Size[int])
+//	result := lengths([]int{10, 20, 30})
+//	// result: []int{3, 2, 1}
+//
+// Example with head:
+//
+//	// Duplicate each element (extract head of each suffix)
+//	duplicate := array.Extend(func(as []int) int {
+//	    return F.Pipe1(as, array.Head[int], O.GetOrElse(F.Constant(0)))
+//	})
+//	result := duplicate([]int{1, 2, 3})
+//	// result: []int{1, 2, 3}
+//
+// Use cases:
+//   - Computing cumulative or rolling operations
+//   - Implementing sliding window algorithms
+//   - Creating context-aware transformations
+//   - Building comonadic computations
+//
+// Comonad laws:
+//   - Left identity: Extend(Extract) == Identity
+//   - Right identity: Extract ∘ Extend(f) == f
+//   - Associativity: Extend(f) ∘ Extend(g) == Extend(f ∘ Extend(g))
+//
+//go:inline
+func Extend[A, B any](f func([]A) B) Operator[A, B] {
+	return func(as []A) []B {
+		return G.MakeBy[[]B](len(as), func(i int) B { return f(as[i:]) })
+	}
+}
+
+// Extract returns the first element of an array, or a zero value if empty.
+// This is the comonad extract operation for arrays.
+//
+// Extract is the dual of the monadic return/of operation. While Of wraps a value
+// in a context, Extract unwraps a value from its context.
+//
+// Type Parameters:
+//   - A: The type of elements in the array
+//
+// Parameters:
+//   - as: The input array
+//
+// Returns:
+//   - The first element if the array is non-empty, otherwise the zero value of type A
+//
+// Behavior:
+//   - Returns as[0] if the array has at least one element
+//   - Returns the zero value of A if the array is empty
+//   - Does not modify the input array
+//
+// Example:
+//
+//	result := array.Extract([]int{1, 2, 3})
+//	// result: 1
+//
+// Example with empty array:
+//
+//	result := array.Extract([]int{})
+//	// result: 0 (zero value for int)
+//
+// Example with strings:
+//
+//	result := array.Extract([]string{"hello", "world"})
+//	// result: "hello"
+//
+// Example with empty string array:
+//
+//	result := array.Extract([]string{})
+//	// result: "" (zero value for string)
+//
+// Use cases:
+//   - Extracting the current focus from a comonadic context
+//   - Getting the head element with a default zero value
+//   - Implementing comonad-based computations
+//
+// Comonad laws:
+//   - Extract ∘ Of == Identity (extracting from a singleton returns the value)
+//   - Extract ∘ Extend(f) == f (extract after extend equals applying f)
+//
+// Note: For a safer alternative that handles empty arrays explicitly,
+// consider using Head which returns an Option[A].
+//
+//go:inline
+func Extract[A any](as []A) A {
+	return G.Extract(as)
+}
