@@ -25,6 +25,7 @@ import (
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -497,7 +498,7 @@ func TestMapComposition(t *testing.T) {
 		Of(5),
 		Map(N.Mul(2)),
 		Map(N.Add(10)),
-		Map(func(x int) int { return x }),
+		Map(reader.Ask[int]()),
 	)
 
 	assert.Equal(t, 20, result())

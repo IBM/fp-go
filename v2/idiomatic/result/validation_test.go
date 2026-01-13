@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/reader"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	STR "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -267,7 +268,7 @@ func TestApV_ZeroValues(t *testing.T) {
 	sg := makeErrorConcatSemigroup()
 	apv := ApV[int, int](sg)
 
-	identity := func(x int) int { return x }
+	identity := reader.Ask[int]()
 
 	value, verr := Right(0)
 	fn, ferr := Right(identity)

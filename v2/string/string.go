@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package string provides functional programming utilities for working with strings.
+// It includes functions for string manipulation, comparison, conversion, and formatting,
+// following functional programming principles with curried functions and composable operations.
 package string
 
 import (
@@ -42,7 +45,7 @@ var (
 	// Includes returns a predicate that tests for the existence of the search string
 	Includes = F.Bind2of2(strings.Contains)
 
-	// HasPrefix returns a predicate that checks if the prefis is included in the string
+	// HasPrefix returns a predicate that checks if the prefix is included in the string
 	HasPrefix = F.Bind2of2(strings.HasPrefix)
 )
 
@@ -101,5 +104,33 @@ func Intersperse(middle string) func(string, string) string {
 			return l
 		}
 		return l + middle + r
+	}
+}
+
+// Prepend returns a function that prepends a prefix to a string.
+// This is a curried function that takes a prefix and returns a function
+// that prepends that prefix to any string passed to it.
+//
+// Example:
+//
+//	addHello := Prepend("Hello, ")
+//	result := addHello("World") // "Hello, World"
+func Prepend(prefix string) func(string) string {
+	return func(suffix string) string {
+		return prefix + suffix
+	}
+}
+
+// Append returns a function that appends a suffix to a string.
+// This is a curried function that takes a suffix and returns a function
+// that appends that suffix to any string passed to it.
+//
+// Example:
+//
+//	addExclamation := Append("!")
+//	result := addExclamation("Hello") // "Hello!"
+func Append(suffix string) func(string) string {
+	return func(prefix string) string {
+		return prefix + suffix
 	}
 }

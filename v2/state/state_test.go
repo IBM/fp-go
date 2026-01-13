@@ -246,7 +246,7 @@ func TestExecute(t *testing.T) {
 		return TestState{Counter: s.Counter + 1, Message: "new"}
 	})
 
-	finalState := Execute[Void, TestState](initial)(computation)
+	finalState := Execute[Void](initial)(computation)
 
 	assert.Equal(t, 6, finalState.Counter, "counter should be incremented")
 	assert.Equal(t, "new", finalState.Message, "message should be updated")
@@ -258,7 +258,7 @@ func TestEvaluate(t *testing.T) {
 
 	computation := Of[TestState](42)
 
-	value := Evaluate[int, TestState](initial)(computation)
+	value := Evaluate[int](initial)(computation)
 
 	assert.Equal(t, 42, value, "value should be 42")
 }
@@ -478,7 +478,7 @@ func TestExecuteWithComplexState(t *testing.T) {
 
 	computation := step2(step1)
 
-	finalState := Execute[Void, TestState](initial)(computation)
+	finalState := Execute[Void](initial)(computation)
 
 	assert.Equal(t, 12, finalState.Counter, "counter should be (1*2)+10 = 12")
 	assert.Equal(t, "end", finalState.Message, "message should be 'end'")
@@ -496,7 +496,7 @@ func TestEvaluateWithChain(t *testing.T) {
 		}),
 	)
 
-	value := Evaluate[string, TestState](initial)(computation)
+	value := Evaluate[string](initial)(computation)
 
 	assert.Equal(t, "result: 20", value, "value should be 'result: 20'")
 }

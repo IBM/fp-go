@@ -189,7 +189,7 @@ func MonadMapTail[A, B, B1 any](fa Pair[A, B], f func(B) B1) Pair[A, B1] {
 //	p := pair.MakePair(5, "hello")
 //	p2 := pair.MonadBiMap(p,
 //	    func(n int) string { return fmt.Sprintf("%d", n) },
-//	    func(s string) int { return len(s) },
+//	    S.Size,
 //	)  // Pair[string, int]{"5", 5}
 //
 //go:inline
@@ -202,7 +202,7 @@ func MonadBiMap[A, B, A1, B1 any](fa Pair[A, B], f func(A) A1, g func(B) B1) Pai
 //
 // Example:
 //
-//	mapper := pair.Map[int](func(s string) int { return len(s) })
+//	mapper := pair.Map[int](S.Size)
 //	p := pair.MakePair(5, "hello")
 //	p2 := mapper(p)  // Pair[int, int]{5, 5}
 //
@@ -232,7 +232,7 @@ func MapHead[B, A, A1 any](f func(A) A1) func(Pair[A, B]) Pair[A1, B] {
 //
 // Example:
 //
-//	mapper := pair.MapTail[int](func(s string) int { return len(s) })
+//	mapper := pair.MapTail[int](S.Size)
 //	p := pair.MakePair(5, "hello")
 //	p2 := mapper(p)  // Pair[int, int]{5, 5}
 //
@@ -248,7 +248,7 @@ func MapTail[A, B, B1 any](f func(B) B1) Operator[A, B, B1] {
 //
 //	mapper := pair.BiMap(
 //	    func(n int) string { return fmt.Sprintf("%d", n) },
-//	    func(s string) int { return len(s) },
+//	    S.Size,
 //	)
 //	p := pair.MakePair(5, "hello")
 //	p2 := mapper(p)  // Pair[string, int]{"5", 5}
@@ -400,7 +400,7 @@ func MonadApHead[B, A, A1 any](sg Semigroup[B], faa Pair[func(A) A1, B], fa Pair
 //	import N "github.com/IBM/fp-go/v2/number"
 //
 //	intSum := N.SemigroupSum[int]()
-//	pf := pair.MakePair(10, func(s string) int { return len(s) })
+//	pf := pair.MakePair(10, S.Size)
 //	pv := pair.MakePair(5, "hello")
 //	result := pair.MonadApTail(intSum, pf, pv)  // Pair[int, int]{15, 5}
 //
@@ -417,7 +417,7 @@ func MonadApTail[A, B, B1 any](sg Semigroup[A], fbb Pair[A, func(B) B1], fb Pair
 //	import N "github.com/IBM/fp-go/v2/number"
 //
 //	intSum := N.SemigroupSum[int]()
-//	pf := pair.MakePair(10, func(s string) int { return len(s) })
+//	pf := pair.MakePair(10, S.Size)
 //	pv := pair.MakePair(5, "hello")
 //	result := pair.MonadAp(intSum, pf, pv)  // Pair[int, int]{15, 5}
 //
@@ -454,7 +454,7 @@ func ApHead[B, A, A1 any](sg Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, 
 //	intSum := N.SemigroupSum[int]()
 //	pv := pair.MakePair(5, "hello")
 //	ap := pair.ApTail(intSum, pv)
-//	pf := pair.MakePair(10, func(s string) int { return len(s) })
+//	pf := pair.MakePair(10, S.Size)
 //	result := ap(pf)  // Pair[int, int]{15, 5}
 func ApTail[A, B, B1 any](sg Semigroup[A], fb Pair[A, B]) Operator[A, func(B) B1, B1] {
 	return func(fbb Pair[A, func(B) B1]) Pair[A, B1] {
@@ -472,7 +472,7 @@ func ApTail[A, B, B1 any](sg Semigroup[A], fb Pair[A, B]) Operator[A, func(B) B1
 //	intSum := N.SemigroupSum[int]()
 //	pv := pair.MakePair(5, "hello")
 //	ap := pair.Ap(intSum, pv)
-//	pf := pair.MakePair(10, func(s string) int { return len(s) })
+//	pf := pair.MakePair(10, S.Size)
 //	result := ap(pf)  // Pair[int, int]{15, 5}
 //
 //go:inline

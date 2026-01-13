@@ -73,7 +73,7 @@ Map operations transform one or both values:
 	// Map both values
 	p4 := pair.MonadBiMap(p,
 	    func(n int) string { return fmt.Sprintf("%d", n) },
-	    func(s string) int { return len(s) },
+	    S.Size,
 	)  // Pair[string, int]{"5", 5}
 
 Curried versions for composition:
@@ -91,7 +91,7 @@ Curried versions for composition:
 	// Compose multiple transformations
 	transform := F.Flow2(
 	    pair.MapHead[string](N.Mul(2)),
-	    pair.MapTail[int](func(s string) int { return len(s) }),
+	    pair.MapTail[int](S.Size),
 	)
 	result := transform(p)  // Pair[int, int]{10, 5}
 
@@ -147,7 +147,7 @@ Apply functions wrapped in pairs to values in pairs:
 	intSum := N.SemigroupSum[int]()
 
 	// Function in a pair
-	pf := pair.MakePair(10, func(s string) int { return len(s) })
+	pf := pair.MakePair(10, S.Size)
 
 	// Value in a pair
 	pv := pair.MakePair(5, "hello")
@@ -244,7 +244,7 @@ Functor - Map over values:
 
 	// Functor for tail
 	functor := pair.FunctorTail[int, string, int]()
-	mapper := functor.Map(func(s string) int { return len(s) })
+	mapper := functor.Map(S.Size)
 
 	p := pair.MakePair(5, "hello")
 	result := mapper(p)  // Pair[int, int]{5, 5}
@@ -267,7 +267,7 @@ Applicative - Apply wrapped functions:
 	applicative := pair.ApplicativeTail[string, int, int](intSum)
 
 	// Create a pair with a function
-	pf := applicative.Of(func(s string) int { return len(s) })
+	pf := applicative.Of(S.Size)
 
 	// Apply to a value
 	pv := pair.MakePair(5, "hello")

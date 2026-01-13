@@ -154,7 +154,7 @@ FunctionMonoid - Creates a monoid for functions when the codomain has a monoid:
 
 	funcMonoid := monoid.FunctionMonoid[string, int](intAddMonoid)
 
-	f1 := func(s string) int { return len(s) }
+	f1 := S.Size
 	f2 := func(s string) int { return len(s) * 2 }
 
 	// Combine functions: result(x) = f1(x) + f2(x)

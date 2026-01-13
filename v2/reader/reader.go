@@ -367,10 +367,10 @@ func Flatten[R, A any](mma Reader[R, Reader[R, A]]) Reader[R, A] {
 //	getConfig := func(e Env) Config { return e.Config }
 //	getPort := func(c Config) int { return c.Port }
 //	getPortFromEnv := reader.Compose(getConfig)(getPort)
+//
+//go:inline
 func Compose[C, R, B any](ab Reader[R, B]) Kleisli[R, Reader[B, C], C] {
-	return func(bc Reader[B, C]) Reader[R, C] {
-		return function.Flow2(ab, bc)
-	}
+	return function.Bind1st(function.Flow2[Reader[R, B], Reader[B, C]], ab)
 }
 
 // First applies a Reader to the first element of a tuple, leaving the second element unchanged.
@@ -401,42 +401,6 @@ func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]
 	}
 }
 
-// Promap is the profunctor map operation that transforms both the input and output of a Reader.
-// It applies f to the input (contravariantly) and g to the output (covariantly).
-//
-// Example:
-//
-//	type Config struct { Port int }
-//	type Env struct { Config Config }
-//	getPort := func(c Config) int { return c.Port }
-//	extractConfig := func(e Env) Config { return e.Config }
-//	toString := strconv.Itoa
-//	r := reader.Promap(extractConfig, toString)(getPort)
-//	result := r(Env{Config: Config{Port: 8080}}) // "8080"
-func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, Reader[E, A], B] {
-	return func(fea Reader[E, A]) Reader[D, B] {
-		return function.Flow3(f, fea, g)
-	}
-}
-
-// Local changes the value of the local context during the execution of the action `ma`.
-// This is similar to Contravariant's contramap and allows you to modify the environment
-// before passing it to a Reader.
-//
-// Example:
-//
-//	type DetailedConfig struct { Host string; Port int }
-//	type SimpleConfig struct { Host string }
-//	getHost := func(c SimpleConfig) string { return c.Host }
-//	simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
-//	r := reader.Local(simplify)(getHost)
-//	result := r(DetailedConfig{Host: "localhost", Port: 8080}) // "localhost"
-//
-//go:inline
-func Local[A, R2, R1 any](f func(R2) R1) Kleisli[R2, Reader[R1, A], A] {
-	return Compose[A](f)
-}
-
 // Read applies a context to a Reader to obtain its value.
 // This is the "run" operation that executes a Reader with a specific environment.
 //
@@ -446,8 +410,10 @@ func Local[A, R2, R1 any](f func(R2) R1) Kleisli[R2, Reader[R1, A], A] {
 //	getPort := reader.Asks(func(c Config) int { return c.Port })
 //	run := reader.Read(Config{Port: 8080})
 //	port := run(getPort) // 8080
+//
+//go:inline
 func Read[A, E any](e E) func(Reader[E, A]) A {
-	return I.Ap[A](e)
+	return I.Flap[A](e)
 }
 
 // MonadFlap is the monadic version of Flap.
@@ -461,6 +427,8 @@ func Read[A, E any](e E) func(Reader[E, A]) A {
 //	}
 //	r := reader.MonadFlap(getMultiplier, 5)
 //	result := r(Config{Multiplier: 3}) // 15
+//
+//go:inline
 func MonadFlap[R, B, A any](fab Reader[R, func(A) B], a A) Reader[R, B] {
 	return functor.MonadFlap(MonadMap[R, func(A) B, B], fab, a)
 }
@@ -477,6 +445,8 @@ func MonadFlap[R, B, A any](fab Reader[R, func(A) B], a A) Reader[R, B] {
 //	applyTo5 := reader.Flap[Config](5)
 //	r := applyTo5(getMultiplier)
 //	result := r(Config{Multiplier: 3}) // 15
+//
+//go:inline
 func Flap[R, B, A any](a A) Operator[R, func(A) B, B] {
 	return functor.Flap(Map[R, func(A) B, B], a)
 }

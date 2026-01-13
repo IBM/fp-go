@@ -19,11 +19,13 @@ package consumer
 // This is the contravariant map operation for Consumers, analogous to reader.Local
 // but operating on the input side rather than the output side.
 //
+// See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
+//
 // Given a Consumer[R1] that consumes values of type R1, and a function f that
 // converts R2 to R1, Local creates a new Consumer[R2] that:
-//   1. Takes a value of type R2
-//   2. Applies f to convert it to R1
-//   3. Passes the result to the original Consumer[R1]
+//  1. Takes a value of type R2
+//  2. Applies f to convert it to R1
+//  3. Passes the result to the original Consumer[R1]
 //
 // This is particularly useful for adapting consumers to work with different input types,
 // similar to how reader.Local adapts readers to work with different environment types.
@@ -168,7 +170,7 @@ package consumer
 //   - reader.Local transforms the environment before reading
 //   - consumer.Local transforms the input before consuming
 //   - Both are contravariant functors on their input type
-func Local[R2, R1 any](f func(R2) R1) Operator[R1, R2] {
+func Local[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 	return func(c Consumer[R1]) Consumer[R2] {
 		return func(r2 R2) {
 			c(f(r2))

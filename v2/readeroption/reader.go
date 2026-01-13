@@ -320,7 +320,7 @@ func Flatten[E, A any](mma ReaderOption[E, ReaderOption[E, A]]) ReaderOption[E, 
 //	)
 //
 //go:inline
-func Local[A, R2, R1 any](f func(R2) R1) func(ReaderOption[R1, A]) ReaderOption[R2, A] {
+func Local[A, R1, R2 any](f func(R2) R1) func(ReaderOption[R1, A]) ReaderOption[R2, A] {
 	return reader.Local[Option[A]](f)
 }
 

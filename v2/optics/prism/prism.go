@@ -262,7 +262,7 @@ func imap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](sa Prism[S, A], ab AB, 
 //
 //	intPrism := MakePrism(...)  // Prism[Result, int]
 //	stringPrism := IMap[Result](
-//	    func(n int) string { return strconv.Itoa(n) },
+//	    strconv.Itoa,
 //	    func(s string) int { n, _ := strconv.Atoi(s); return n },
 //	)(intPrism)  // Prism[Result, string]
 func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[S, A, B] {

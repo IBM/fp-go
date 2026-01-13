@@ -719,7 +719,7 @@ func BiMap[R, A, B any](f Endomorphism[error], g func(A) B) Operator[R, A, B] {
 //	// adapted now accepts DB instead of Config
 //
 //go:inline
-func Local[A, R2, R1 any](f func(R2) R1) func(ReaderResult[R1, A]) ReaderResult[R2, A] {
+func Local[A, R1, R2 any](f func(R2) R1) func(ReaderResult[R1, A]) ReaderResult[R2, A] {
 	return reader.Local[Result[A]](f)
 }
 

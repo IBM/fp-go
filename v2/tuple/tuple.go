@@ -95,7 +95,7 @@ func Of2[T1, T2 any](e T2) func(T1) Tuple2[T1, T2] {
 //
 //	t := tuple.MakeTuple2(5, "hello")
 //	mapper := tuple.BiMap(
-//	    func(s string) int { return len(s) },
+//	    S.Size,
 //	    func(n int) string { return fmt.Sprintf("%d", n*2) },
 //	)
 //	result := mapper(t) // Returns Tuple2[string, int]{F1: "10", F2: 5}

@@ -18,6 +18,7 @@ package tuple_test
 import (
 	"fmt"
 
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/IBM/fp-go/v2/tuple"
 )
 
@@ -63,7 +64,7 @@ func ExampleOf2() {
 func ExampleBiMap() {
 	t := tuple.MakeTuple2(5, "hello")
 	mapper := tuple.BiMap(
-		func(s string) int { return len(s) },
+		S.Size,
 		func(n int) string { return fmt.Sprintf("%d", n*2) },
 	)
 	result := mapper(t)

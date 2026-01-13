@@ -377,7 +377,7 @@ func ExampleUniq() {
 
 func ExampleUniq_byLength() {
 	seq := From("a", "bb", "c", "dd", "eee")
-	uniqueByLength := Uniq(func(s string) int { return len(s) })
+	uniqueByLength := Uniq(S.Size)
 	result := uniqueByLength(seq)
 
 	for v := range result {

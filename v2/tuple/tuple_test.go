@@ -89,7 +89,7 @@ func TestOf2(t *testing.T) {
 func TestBiMap(t *testing.T) {
 	t2 := MakeTuple2(5, "hello")
 	mapper := BiMap(
-		func(s string) int { return len(s) },
+		S.Size,
 		func(n int) string { return fmt.Sprintf("%d", n*2) },
 	)
 	result := mapper(t2)
@@ -135,7 +135,7 @@ func TestMap2(t *testing.T) {
 	t2 := MakeTuple2(5, "hello")
 	mapper := Map2(
 		func(n int) string { return fmt.Sprintf("%d", n*2) },
-		func(s string) int { return len(s) },
+		S.Size,
 	)
 	result := mapper(t2)
 	assert.Equal(t, MakeTuple2("10", 5), result)

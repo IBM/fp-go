@@ -151,7 +151,7 @@ func BiMap[E, E1, E2, A, B any](f func(E1) E2, g func(A) B) func(ReaderEither[E,
 
 // Local changes the value of the local context during the execution of the action `ma` (similar to `Contravariant`'s
 // `contramap`).
-func Local[E, A, R2, R1 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderEither[R2, E, A] {
+func Local[E, A, R1, R2 any](f func(R2) R1) func(ReaderEither[R1, E, A]) ReaderEither[R2, E, A] {
 	return reader.Local[Either[E, A]](f)
 }
 

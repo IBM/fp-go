@@ -156,6 +156,8 @@ func Reverse[T any](o Ord[T]) Ord[T] {
 // This allows ordering values of type B by first transforming them to type A
 // and then using the ordering for type A.
 //
+// See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
+//
 // Parameters:
 //   - f: A transformation function from B to A
 //

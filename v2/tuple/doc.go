@@ -62,14 +62,14 @@
 //	t := tuple.MakeTuple2(5, "hello")
 //	mapper := tuple.Map2(
 //	    func(n int) string { return fmt.Sprintf("%d", n) },
-//	    func(s string) int { return len(s) },
+//	    S.Size,
 //	)
 //	result := mapper(t)  // Tuple2[string, int]{"5", 5}
 //
 // BiMap transforms both elements of a Tuple2:
 //
 //	mapper := tuple.BiMap(
-//	    func(s string) int { return len(s) },
+//	    S.Size,
 //	    func(n int) string { return fmt.Sprintf("%d", n*2) },
 //	)
 //

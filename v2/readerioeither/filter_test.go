@@ -174,7 +174,7 @@ func TestFilterOrElse_WithMap(t *testing.T) {
 	onNegative := func(n int) string { return "negative number" }
 
 	filter := FilterOrElse[context.Context](isPositive, onNegative)
-	double := Map[context.Context, string](func(n int) int { return n * 2 })
+	double := Map[context.Context, string](N.Mul(2))
 
 	ctx := context.Background()
 

@@ -47,14 +47,14 @@ import (
 // Example - Remove duplicate integers:
 //
 //	seq := From(1, 2, 3, 2, 4, 1, 5)
-//	unique := Uniq(func(x int) int { return x })
+//	unique := Uniq(reader.Ask[int]())
 //	result := unique(seq)
 //	// yields: 1, 2, 3, 4, 5
 //
 // Example - Unique by string length:
 //
 //	seq := From("a", "bb", "c", "dd", "eee")
-//	uniqueByLength := Uniq(func(s string) int { return len(s) })
+//	uniqueByLength := Uniq(S.Size)
 //	result := uniqueByLength(seq)
 //	// yields: "a", "bb", "eee" (first occurrence of each length)
 //
@@ -82,14 +82,14 @@ import (
 // Example - Empty sequence:
 //
 //	seq := Empty[int]()
-//	unique := Uniq(func(x int) int { return x })
+//	unique := Uniq(reader.Ask[int]())
 //	result := unique(seq)
 //	// yields: nothing (empty sequence)
 //
 // Example - All duplicates:
 //
 //	seq := From(1, 1, 1, 1)
-//	unique := Uniq(func(x int) int { return x })
+//	unique := Uniq(reader.Ask[int]())
 //	result := unique(seq)
 //	// yields: 1 (only first occurrence)
 func Uniq[A any, K comparable](f func(A) K) Operator[A, A] {

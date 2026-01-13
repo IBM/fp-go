@@ -240,7 +240,7 @@ func TestCopyFileChaining(t *testing.T) {
 	// Chain two copy operations
 	result := F.Pipe1(
 		CopyFile(srcPath)(dst1Path),
-		IOE.Chain[error](func(string) IOEither[error, string] {
+		IOE.Chain(func(string) IOEither[error, string] {
 			return CopyFile(dst1Path)(dst2Path)
 		}),
 	)()

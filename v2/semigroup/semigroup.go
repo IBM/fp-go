@@ -78,7 +78,7 @@ func Reverse[A any](m Semigroup[A]) Semigroup[A] {
 //	intSum := N.SemigroupSum[int]()
 //	funcSG := semigroup.FunctionSemigroup[string](intSum)
 //
-//	f := func(s string) int { return len(s) }
+//	f := S.Size
 //	g := func(s string) int { return len(s) * 2 }
 //	combined := funcSG.Concat(f, g)
 //	result := combined("hello")  // 5 + 10 = 15

@@ -20,6 +20,8 @@ package eq
 // by mapping the input type. It's particularly useful for comparing complex types by
 // extracting comparable fields.
 //
+// See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
+//
 // The name "contramap" comes from category theory, where it represents a contravariant
 // functor. Unlike regular map (covariant), which transforms the output, contramap
 // transforms the input in the opposite direction.

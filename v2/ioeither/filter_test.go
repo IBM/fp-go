@@ -141,7 +141,7 @@ func TestFilterOrElse_WithMap(t *testing.T) {
 	onNegative := func(n int) string { return "negative number" }
 
 	filter := FilterOrElse(isPositive, onNegative)
-	double := Map[string](func(n int) int { return n * 2 })
+	double := Map[string](N.Mul(2))
 
 	// Compose: filter then double
 	result1 := double(filter(Right[string](5)))()

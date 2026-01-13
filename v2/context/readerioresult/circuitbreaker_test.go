@@ -608,7 +608,7 @@ func TestCircuitBreaker_ErrorMessageFormat(t *testing.T) {
 	protectedOp := pair.Tail(resultEnv)
 	outcome := protectedOp(ctx)()
 
-	assert.True(t, result.IsLeft[string](outcome))
+	assert.True(t, result.IsLeft(outcome))
 
 	// Error message should indicate circuit breaker is open
 	_, err := result.Unwrap(outcome)

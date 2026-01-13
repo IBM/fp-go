@@ -723,3 +723,99 @@ func TestTraverseTuple10(t *testing.T) {
 		assert.Equal(t, T.MakeTuple10(2, 4, 6, 8, 10, 12, 14, 16, 18, 20), result)
 	})
 }
+
+func TestExtract(t *testing.T) {
+	t.Run("extracts int value", func(t *testing.T) {
+		result := Extract(42)
+		assert.Equal(t, 42, result)
+	})
+
+	t.Run("extracts string value", func(t *testing.T) {
+		result := Extract("hello")
+		assert.Equal(t, "hello", result)
+	})
+
+	t.Run("extracts struct value", func(t *testing.T) {
+		type Person struct{ Name string }
+		p := Person{Name: "Alice"}
+		result := Extract(p)
+		assert.Equal(t, p, result)
+	})
+
+	t.Run("extracts pointer value", func(t *testing.T) {
+		value := 100
+		ptr := &value
+		result := Extract(ptr)
+		assert.Equal(t, ptr, result)
+		assert.Equal(t, 100, *result)
+	})
+}
+
+func TestExtend(t *testing.T) {
+	t.Run("extends with transformation", func(t *testing.T) {
+		result := F.Pipe1(21, Extend(utils.Double))
+		assert.Equal(t, 42, result)
+	})
+
+	t.Run("extends with type change", func(t *testing.T) {
+		result := F.Pipe1(42, Extend(S.Format[int]("Number: %d")))
+		assert.Equal(t, "Number: 42", result)
+	})
+
+	t.Run("chains multiple extends", func(t *testing.T) {
+		result := F.Pipe2(
+			5,
+			Extend(N.Mul(2)),
+			Extend(N.Add(10)),
+		)
+		assert.Equal(t, 20, result)
+	})
+
+	t.Run("extends with complex computation", func(t *testing.T) {
+		result := F.Pipe1(
+			10,
+			Extend(func(n int) string {
+				doubled := n * 2
+				return fmt.Sprintf("Result: %d", doubled)
+			}),
+		)
+		assert.Equal(t, "Result: 20", result)
+	})
+}
+
+// Test Comonad laws
+func TestComonadLaws(t *testing.T) {
+	t.Run("left identity", func(t *testing.T) {
+		// Extract(Extend(f)(w)) === f(w)
+		w := 42
+		f := N.Mul(2)
+
+		left := Extract(F.Pipe1(w, Extend(f)))
+		right := f(w)
+
+		assert.Equal(t, right, left)
+	})
+
+	t.Run("right identity", func(t *testing.T) {
+		// Extend(Extract)(w) === w
+		w := 42
+
+		result := F.Pipe1(w, Extend(Extract[int]))
+
+		assert.Equal(t, w, result)
+	})
+
+	t.Run("associativity", func(t *testing.T) {
+		// Extend(f)(Extend(g)(w)) === Extend(x => f(Extend(g)(x)))(w)
+		w := 5
+		f := N.Mul(2)
+		g := N.Add(10)
+
+		left := F.Pipe2(w, Extend(g), Extend(f))
+		right := F.Pipe1(w, Extend(func(x int) int {
+			return f(F.Pipe1(x, Extend(g)))
+		}))
+
+		assert.Equal(t, right, left)
+	})
+}

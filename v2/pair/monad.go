@@ -233,7 +233,7 @@ func PointedTail[B, A any](m monoid.Monoid[A]) pointed.Pointed[B, Pair[A, B]] {
 // Example:
 //
 //	functor := pair.FunctorTail[string, int, int]()
-//	mapper := functor.Map(func(s string) int { return len(s) })
+//	mapper := functor.Map(S.Size)
 //	p := pair.MakePair(5, "hello")
 //	p2 := mapper(p)  // Pair[int, int]{5, 5}
 func FunctorTail[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]] {
@@ -250,7 +250,7 @@ func FunctorTail[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]]
 //
 //	intSum := M.MonoidSum[int]()
 //	applicative := pair.ApplicativeTail[string, int, int](intSum)
-//	pf := applicative.Of(func(s string) int { return len(s) })
+//	pf := applicative.Of(S.Size)
 //	pv := pair.MakePair(5, "hello")
 //	result := applicative.Ap(pv)(pf)  // Pair[int, int]{5, 5}
 func ApplicativeTail[B, A, B1 any](m monoid.Monoid[A]) applicative.Applicative[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {
@@ -291,7 +291,7 @@ func Pointed[B, A any](m monoid.Monoid[A]) pointed.Pointed[B, Pair[A, B]] {
 // Example:
 //
 //	functor := pair.Functor[string, int, int]()
-//	mapper := functor.Map(func(s string) int { return len(s) })
+//	mapper := functor.Map(S.Size)
 //	p := pair.MakePair(5, "hello")
 //	p2 := mapper(p)  // Pair[int, int]{5, 5}
 func Functor[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]] {
@@ -307,7 +307,7 @@ func Functor[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]] {
 //
 //	intSum := M.MonoidSum[int]()
 //	applicative := pair.Applicative[string, int, int](intSum)
-//	pf := applicative.Of(func(s string) int { return len(s) })
+//	pf := applicative.Of(S.Size)
 //	pv := pair.MakePair(5, "hello")
 //	result := applicative.Ap(pv)(pf)  // Pair[int, int]{5, 5}
 func Applicative[B, A, B1 any](m monoid.Monoid[A]) applicative.Applicative[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {

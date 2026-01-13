@@ -182,7 +182,7 @@ func TestFilterOrElse_WithMap(t *testing.T) {
 	onNegative := func(n int) error { return fmt.Errorf("negative number") }
 
 	filter := FilterOrElse[Config](isPositive, onNegative)
-	double := Map[Config](func(n int) int { return n * 2 })
+	double := Map[Config](N.Mul(2))
 
 	cfg := Config{MaxValue: 100}
 

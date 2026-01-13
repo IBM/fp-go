@@ -519,6 +519,8 @@ func RunAll(testcases map[string]Reader) Reader {
 // by providing a function that converts R2 to R1. This allows you to focus a test on a
 // specific property or subset of a larger data structure.
 //
+// See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
+//
 // This is particularly useful when you have an assertion that operates on a specific field
 // or property, and you want to apply it to a complete object. Instead of extracting the
 // property and then asserting on it, you can transform the assertion to work directly

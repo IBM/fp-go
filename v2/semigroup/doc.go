@@ -89,7 +89,7 @@ FunctionSemigroup - Lifts a semigroup to work with functions:
 	// Lift to functions that return integers
 	funcSG := SG.FunctionSemigroup[string](intSum)
 
-	f := func(s string) int { return len(s) }
+	f := S.Size
 	g := func(s string) int { return len(s) * 2 }
 
 	// Combine functions

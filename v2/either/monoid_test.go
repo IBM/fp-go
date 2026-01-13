@@ -25,7 +25,7 @@ import (
 // TestFirstMonoid tests the FirstMonoid implementation
 func TestFirstMonoid(t *testing.T) {
 	zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-	m := FirstMonoid[error, int](zero)
+	m := FirstMonoid(zero)
 
 	t.Run("both Right values - returns first", func(t *testing.T) {
 		result := m.Concat(Right[error](2), Right[error](3))
@@ -94,7 +94,7 @@ func TestFirstMonoid(t *testing.T) {
 
 	t.Run("with strings", func(t *testing.T) {
 		zeroStr := func() Either[error, string] { return Left[string](errors.New("empty")) }
-		strMonoid := FirstMonoid[error, string](zeroStr)
+		strMonoid := FirstMonoid(zeroStr)
 
 		result := strMonoid.Concat(Right[error]("first"), Right[error]("second"))
 		assert.Equal(t, Right[error]("first"), result)
@@ -107,7 +107,7 @@ func TestFirstMonoid(t *testing.T) {
 // TestLastMonoid tests the LastMonoid implementation
 func TestLastMonoid(t *testing.T) {
 	zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-	m := LastMonoid[error, int](zero)
+	m := LastMonoid(zero)
 
 	t.Run("both Right values - returns last", func(t *testing.T) {
 		result := m.Concat(Right[error](2), Right[error](3))
@@ -176,7 +176,7 @@ func TestLastMonoid(t *testing.T) {
 
 	t.Run("with strings", func(t *testing.T) {
 		zeroStr := func() Either[error, string] { return Left[string](errors.New("empty")) }
-		strMonoid := LastMonoid[error, string](zeroStr)
+		strMonoid := LastMonoid(zeroStr)
 
 		result := strMonoid.Concat(Right[error]("first"), Right[error]("second"))
 		assert.Equal(t, Right[error]("second"), result)
@@ -189,8 +189,8 @@ func TestLastMonoid(t *testing.T) {
 // TestFirstMonoidVsAltMonoid verifies FirstMonoid and AltMonoid have the same behavior
 func TestFirstMonoidVsAltMonoid(t *testing.T) {
 	zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-	firstMonoid := FirstMonoid[error, int](zero)
-	altMonoid := AltMonoid[error, int](zero)
+	firstMonoid := FirstMonoid(zero)
+	altMonoid := AltMonoid(zero)
 
 	testCases := []struct {
 		name  string
@@ -223,8 +223,8 @@ func TestFirstMonoidVsAltMonoid(t *testing.T) {
 // TestFirstMonoidVsLastMonoid verifies the difference between FirstMonoid and LastMonoid
 func TestFirstMonoidVsLastMonoid(t *testing.T) {
 	zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-	firstMonoid := FirstMonoid[error, int](zero)
-	lastMonoid := LastMonoid[error, int](zero)
+	firstMonoid := FirstMonoid(zero)
+	lastMonoid := LastMonoid(zero)
 
 	t.Run("both Right - different results", func(t *testing.T) {
 		firstResult := firstMonoid.Concat(Right[error](1), Right[error](2))
@@ -279,7 +279,7 @@ func TestFirstMonoidVsLastMonoid(t *testing.T) {
 func TestMonoidLaws(t *testing.T) {
 	t.Run("FirstMonoid laws", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := FirstMonoid[error, int](zero)
+		m := FirstMonoid(zero)
 
 		a := Right[error](1)
 		b := Right[error](2)
@@ -301,7 +301,7 @@ func TestMonoidLaws(t *testing.T) {
 
 	t.Run("LastMonoid laws", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := LastMonoid[error, int](zero)
+		m := LastMonoid(zero)
 
 		a := Right[error](1)
 		b := Right[error](2)
@@ -323,7 +323,7 @@ func TestMonoidLaws(t *testing.T) {
 
 	t.Run("FirstMonoid laws with Left values", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := FirstMonoid[error, int](zero)
+		m := FirstMonoid(zero)
 
 		a := Left[int](errors.New("err1"))
 		b := Left[int](errors.New("err2"))
@@ -337,7 +337,7 @@ func TestMonoidLaws(t *testing.T) {
 
 	t.Run("LastMonoid laws with Left values", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := LastMonoid[error, int](zero)
+		m := LastMonoid(zero)
 
 		a := Left[int](errors.New("err1"))
 		b := Left[int](errors.New("err2"))
@@ -354,7 +354,7 @@ func TestMonoidLaws(t *testing.T) {
 func TestMonoidEdgeCases(t *testing.T) {
 	t.Run("FirstMonoid with empty concatenations", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := FirstMonoid[error, int](zero)
+		m := FirstMonoid(zero)
 
 		// Empty with empty
 		result := m.Concat(m.Empty(), m.Empty())
@@ -363,7 +363,7 @@ func TestMonoidEdgeCases(t *testing.T) {
 
 	t.Run("LastMonoid with empty concatenations", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := LastMonoid[error, int](zero)
+		m := LastMonoid(zero)
 
 		// Empty with empty
 		result := m.Concat(m.Empty(), m.Empty())
@@ -372,7 +372,7 @@ func TestMonoidEdgeCases(t *testing.T) {
 
 	t.Run("FirstMonoid chain of operations", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := FirstMonoid[error, int](zero)
+		m := FirstMonoid(zero)
 
 		// Chain multiple operations
 		result := m.Concat(
@@ -387,7 +387,7 @@ func TestMonoidEdgeCases(t *testing.T) {
 
 	t.Run("LastMonoid chain of operations", func(t *testing.T) {
 		zero := func() Either[error, int] { return Left[int](errors.New("empty")) }
-		m := LastMonoid[error, int](zero)
+		m := LastMonoid(zero)
 
 		// Chain multiple operations
 		result := m.Concat(

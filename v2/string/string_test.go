@@ -141,3 +141,99 @@ func TestOrd(t *testing.T) {
 	assert.True(t, Ord.Compare("a", "a") == 0)
 	assert.True(t, Ord.Compare("abc", "abd") < 0)
 }
+
+func TestPrepend(t *testing.T) {
+	t.Run("prepend to non-empty string", func(t *testing.T) {
+		addHello := Prepend("Hello, ")
+		result := addHello("World")
+		assert.Equal(t, "Hello, World", result)
+	})
+
+	t.Run("prepend to empty string", func(t *testing.T) {
+		addPrefix := Prepend("prefix")
+		result := addPrefix("")
+		assert.Equal(t, "prefix", result)
+	})
+
+	t.Run("prepend empty string", func(t *testing.T) {
+		addNothing := Prepend("")
+		result := addNothing("test")
+		assert.Equal(t, "test", result)
+	})
+
+	t.Run("prepend with special characters", func(t *testing.T) {
+		addSymbols := Prepend(">>> ")
+		result := addSymbols("message")
+		assert.Equal(t, ">>> message", result)
+	})
+
+	t.Run("prepend with unicode", func(t *testing.T) {
+		addEmoji := Prepend("🎉 ")
+		result := addEmoji("Party!")
+		assert.Equal(t, "🎉 Party!", result)
+	})
+
+	t.Run("multiple prepends", func(t *testing.T) {
+		addA := Prepend("A")
+		addB := Prepend("B")
+		result := addB(addA("C"))
+		assert.Equal(t, "BAC", result)
+	})
+}
+
+func TestAppend(t *testing.T) {
+	t.Run("append to non-empty string", func(t *testing.T) {
+		addExclamation := Append("!")
+		result := addExclamation("Hello")
+		assert.Equal(t, "Hello!", result)
+	})
+
+	t.Run("append to empty string", func(t *testing.T) {
+		addSuffix := Append("suffix")
+		result := addSuffix("")
+		assert.Equal(t, "suffix", result)
+	})
+
+	t.Run("append empty string", func(t *testing.T) {
+		addNothing := Append("")
+		result := addNothing("test")
+		assert.Equal(t, "test", result)
+	})
+
+	t.Run("append with special characters", func(t *testing.T) {
+		addEllipsis := Append("...")
+		result := addEllipsis("To be continued")
+		assert.Equal(t, "To be continued...", result)
+	})
+
+	t.Run("append with unicode", func(t *testing.T) {
+		addEmoji := Append(" 🎉")
+		result := addEmoji("Party")
+		assert.Equal(t, "Party 🎉", result)
+	})
+
+	t.Run("multiple appends", func(t *testing.T) {
+		addA := Append("A")
+		addB := Append("B")
+		result := addB(addA("C"))
+		assert.Equal(t, "CAB", result)
+	})
+}
+
+func TestPrependAndAppend(t *testing.T) {
+	t.Run("combine prepend and append", func(t *testing.T) {
+		addPrefix := Prepend("[ ")
+		addSuffix := Append(" ]")
+		result := addSuffix(addPrefix("content"))
+		assert.Equal(t, "[ content ]", result)
+	})
+
+	t.Run("chain multiple operations", func(t *testing.T) {
+		addQuotes := Prepend("\"")
+		closeQuotes := Append("\"")
+		addLabel := Prepend("Value: ")
+
+		result := addLabel(addQuotes(closeQuotes("test")))
+		assert.Equal(t, "Value: \"test\"", result)
+	})
+}

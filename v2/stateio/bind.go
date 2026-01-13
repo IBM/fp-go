@@ -238,7 +238,7 @@ func BindL[ST, S, T any](
 //	counterLens := lens.Prop[Result, int]("counter")
 //	result := function.Pipe2(
 //	    Do[AppState](Result{counter: 5}),
-//	    LetL(counterLens, func(n int) int { return n * 2 }),
+//	    LetL(counterLens, N.Mul(2)),
 //	)
 //
 //go:inline
