@@ -171,7 +171,7 @@ func Reverse[T any](o Ord[T]) Ord[T] {
 //	    return p.Age
 //	})(intOrd)
 //	// Now persons are ordered by age
-func Contramap[A, B any](f func(B) A) func(Ord[A]) Ord[B] {
+func Contramap[A, B any](f func(B) A) Operator[A, B] {
 	return func(o Ord[A]) Ord[B] {
 		return MakeOrd(func(x, y B) int {
 			return o.Compare(f(x), f(y))
@@ -373,6 +373,8 @@ func Between[A any](o Ord[A]) func(A, A) func(A) bool {
 	}
 }
 
+// compareTime is a helper function that compares two time.Time values.
+// Returns -1 if a is before b, 1 if a is after b, and 0 if they are equal.
 func compareTime(a, b time.Time) int {
 	if a.Before(b) {
 		return -1

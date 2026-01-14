@@ -446,6 +446,7 @@ func process() IOResult[string] {
 
 ## 📚 Documentation
 
+- **[Design Decisions](./DESIGN.md)** - Key design principles and patterns explained
 - **[API Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2)** - Complete API reference
 - **[Code Samples](./samples/)** - Practical examples and use cases
 - **[Go 1.24 Release Notes](https://tip.golang.org/doc/go1.24)** - Information about generic type aliases

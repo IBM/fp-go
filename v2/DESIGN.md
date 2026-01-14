@@ -14,6 +14,8 @@ This document explains the key design decisions and principles behind fp-go's AP
 
 fp-go follows the **"data last"** principle, where the data being operated on is always the last parameter in a function. This design choice enables powerful function composition and partial application patterns.
 
+This principle is deeply rooted in functional programming tradition, particularly in **Haskell's design philosophy**. Haskell functions are automatically curried and follow the data-last convention, making function composition natural and elegant. For example, Haskell's `map` function has the signature `(a -> b) -> [a] -> [b]`, where the transformation function comes before the list.
+
 ### What is "Data Last"?
 
 In the "data last" style, functions are structured so that:
@@ -30,6 +32,8 @@ The "data last" principle enables:
 2. **Function Composition**: Operations can be composed before applying them to data
 3. **Point-Free Style**: Write transformations without explicitly mentioning the data
 4. **Reusability**: Create reusable transformation pipelines
+
+This design aligns with Haskell's approach where all functions are curried by default, enabling elegant composition patterns that have proven effective over decades of functional programming practice.
 
 ### Examples
 
@@ -181,8 +185,18 @@ result := O.MonadMap(O.Some("hello"), strings.ToUpper)
 
 The data-last currying pattern is well-documented in the functional programming community:
 
+#### Haskell Design Philosophy
+- [Haskell Wiki - Currying](https://wiki.haskell.org/Currying) - Comprehensive explanation of currying in Haskell
+- [Learn You a Haskell - Higher Order Functions](http://learnyouahaskell.com/higher-order-functions) - Introduction to currying and partial application
+- [Haskell's Prelude](https://hackage.haskell.org/package/base/docs/Prelude.html) - Standard library showing data-last convention throughout
+
+#### General Functional Programming
 - [Mostly Adequate Guide - Ch. 4: Currying](https://mostly-adequate.gitbook.io/mostly-adequate-guide/ch04) - Excellent introduction with clear examples
 - [Curry and Function Composition](https://medium.com/javascript-scene/curry-and-function-composition-2c208d774983) by Eric Elliott
+- [Why Curry Helps](https://hughfdjackson.com/javascript/why-curry-helps/) - Practical benefits of currying
+
+#### Related Libraries
+- [fp-ts Documentation](https://gcanti.github.io/fp-ts/) - TypeScript library that inspired fp-go's design
 - [fp-ts Issue #1238](https://github.com/gcanti/fp-ts/issues/1238) - Real-world examples of data-last refactoring
 
 ## Kleisli and Operator Types
