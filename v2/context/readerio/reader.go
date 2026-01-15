@@ -560,6 +560,63 @@ func Read[A any](r context.Context) func(ReaderIO[A]) IO[A] {
 	return RIO.Read[A](r)
 }
 
+// ReadIO executes a ReaderIO computation by providing a context wrapped in an IO effect.
+// This is useful when the context itself needs to be computed or retrieved through side effects.
+//
+// The function takes an IO[context.Context] (an effectful computation that produces a context) and returns
+// a function that can execute a ReaderIO[A] to produce an IO[A].
+//
+// This is particularly useful in scenarios where:
+//   - The context needs to be created with side effects (e.g., loading configuration)
+//   - The context requires initialization or setup
+//   - You want to compose context creation with the computation that uses it
+//
+// The execution flow is:
+//  1. Execute the IO[context.Context] to get the context
+//  2. Pass the context to the ReaderIO[A] to get an IO[A]
+//  3. Execute the resulting IO[A] to get the final result A
+//
+// Type Parameters:
+//   - A: The result type of the ReaderIO computation
+//
+// Parameters:
+//   - r: An IO effect that produces a context.Context
+//
+// Returns:
+//   - A function that takes a ReaderIO[A] and returns an IO[A]
+//
+// Example:
+//
+//	import (
+//	    "context"
+//	    G "github.com/IBM/fp-go/v2/io"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Create context with side effects (e.g., loading config)
+//	createContext := G.Of(context.WithValue(context.Background(), "key", "value"))
+//
+//	// A computation that uses the context
+//	getValue := readerio.FromReader(func(ctx context.Context) string {
+//	    if val := ctx.Value("key"); val != nil {
+//	        return val.(string)
+//	    }
+//	    return "default"
+//	})
+//
+//	// Compose them together
+//	result := readerio.ReadIO[string](createContext)(getValue)
+//	value := result() // Executes both effects and returns "value"
+//
+// Comparison with Read:
+//   - [Read]: Takes a pure context.Context value and executes the ReaderIO immediately
+//   - [ReadIO]: Takes an IO[context.Context] and chains the effects together
+//
+//go:inline
+func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
+	return RIO.ReadIO[A](r)
+}
+
 // Local transforms the context.Context environment before passing it to a ReaderIO computation.
 //
 // This is the Reader's local operation, which allows you to modify the environment

@@ -821,6 +821,108 @@ func Read[E, A, R any](r R) func(ReaderIOEither[R, E, A]) IOEither[E, A] {
 	return reader.Read[IOEither[E, A]](r)
 }
 
+// ReadIOEither executes a ReaderIOEither computation by providing it with an environment
+// obtained from an IOEither computation. This is useful when the environment itself needs
+// to be computed with side effects and error handling.
+//
+// The function first executes the IOEither[E, R] to get the environment R (or fail with error E),
+// then uses that environment to run the ReaderIOEither[R, E, A] computation.
+//
+// Type parameters:
+//   - A: The success value type of the ReaderIOEither computation
+//   - R: The environment/context type required by the ReaderIOEither
+//   - E: The error type
+//
+// Parameters:
+//   - r: An IOEither[E, R] that produces the environment (or an error)
+//
+// Returns:
+//   - A function that takes a ReaderIOEither[R, E, A] and returns IOEither[E, A]
+//
+// Behavior:
+//   - If the IOEither[E, R] fails (Left), the error is propagated without running the ReaderIOEither
+//   - If the IOEither[E, R] succeeds (Right), the resulting environment is used to execute the ReaderIOEither
+//
+// Example:
+//
+//	// Load configuration from a file (may fail)
+//	loadConfig := func() IOEither[error, Config] {
+//	    return func() Either[error, Config] {
+//	        // Read config file with error handling
+//	        return either.Right(Config{BaseURL: "https://api.example.com"})
+//	    }
+//	}
+//
+//	// A computation that needs the config
+//	fetchUser := func(id int) ReaderIOEither[Config, error, User] {
+//	    return func(cfg Config) IOEither[error, User] {
+//	        // Use cfg.BaseURL to fetch user
+//	        return ioeither.Right[error](User{ID: id})
+//	    }
+//	}
+//
+//	// Execute the computation with dynamically loaded config
+//	result := ReadIOEither[User](loadConfig())(fetchUser(123))()
+//
+//go:inline
+func ReadIOEither[A, R, E any](r IOEither[E, R]) func(ReaderIOEither[R, E, A]) IOEither[E, A] {
+	return function.Flow2(
+		IOE.Chain[E, R, A],
+		Read[E, A](r),
+	)
+}
+
+// ReadIO executes a ReaderIOEither computation by providing it with an environment
+// obtained from an IO computation. This is useful when the environment needs to be
+// computed with side effects but cannot fail.
+//
+// The function first executes the IO[R] to get the environment R,
+// then uses that environment to run the ReaderIOEither[R, E, A] computation.
+//
+// Type parameters:
+//   - E: The error type of the ReaderIOEither computation
+//   - A: The success value type of the ReaderIOEither computation
+//   - R: The environment/context type required by the ReaderIOEither
+//
+// Parameters:
+//   - r: An IO[R] that produces the environment
+//
+// Returns:
+//   - A function that takes a ReaderIOEither[R, E, A] and returns IOEither[E, A]
+//
+// Behavior:
+//   - The IO[R] is always executed successfully to obtain the environment
+//   - The resulting environment is then used to execute the ReaderIOEither
+//   - Only the ReaderIOEither computation can fail with error type E
+//
+// Example:
+//
+//	// Get current timestamp (cannot fail)
+//	getCurrentTime := func() IO[time.Time] {
+//	    return func() time.Time {
+//	        return time.Now()
+//	    }
+//	}
+//
+//	// A computation that needs the timestamp
+//	logWithTimestamp := func(msg string) ReaderIOEither[time.Time, error, string] {
+//	    return func(t time.Time) IOEither[error, string] {
+//	        logged := fmt.Sprintf("[%s] %s", t.Format(time.RFC3339), msg)
+//	        return ioeither.Right[error](logged)
+//	    }
+//	}
+//
+//	// Execute the computation with current time
+//	result := ReadIO[error, string](getCurrentTime())(logWithTimestamp("Hello"))()
+//
+//go:inline
+func ReadIO[E, A, R any](r IO[R]) func(ReaderIOEither[R, E, A]) IOEither[E, A] {
+	return function.Flow2(
+		io.Chain[R, Either[E, A]],
+		Read[E, A](r),
+	)
+}
+
 // MonadChainLeft chains a computation on the left (error) side of a ReaderIOEither.
 // If the input is a Left value, it applies the function f to transform the error and potentially
 // change the error type from EA to EB. If the input is a Right value, it passes through unchanged.

@@ -308,3 +308,226 @@ func TestTapLeft(t *testing.T) {
 	assert.Equal(t, E.Left[int]("error"), result)
 	assert.True(t, sideEffectRan)
 }
+
+func TestReadIOEither(t *testing.T) {
+	type Config struct {
+		baseURL string
+		timeout int
+	}
+
+	// Test with Right IOEither - should execute ReaderIOEither with the environment
+	t.Run("Right IOEither provides environment", func(t *testing.T) {
+		// IOEither that successfully produces a config
+		configIO := IOE.Right[error](Config{baseURL: "https://api.example.com", timeout: 30})
+
+		// ReaderIOEither that uses the config
+		computation := func(cfg Config) IOEither[error, string] {
+			return IOE.Right[error](cfg.baseURL + "/users")
+		}
+
+		// Execute using ReadIOEither
+		result := ReadIOEither[string](configIO)(computation)()
+		assert.Equal(t, E.Right[error]("https://api.example.com/users"), result)
+	})
+
+	// Test with Left IOEither - should propagate error without executing ReaderIOEither
+	t.Run("Left IOEither propagates error", func(t *testing.T) {
+		configError := errors.New("failed to load config")
+		configIO := IOE.Left[Config](configError)
+
+		executed := false
+		computation := func(cfg Config) IOEither[error, string] {
+			executed = true
+			return IOE.Right[error]("should not execute")
+		}
+
+		result := ReadIOEither[string](configIO)(computation)()
+		assert.Equal(t, E.Left[string](configError), result)
+		assert.False(t, executed, "ReaderIOEither should not execute when IOEither is Left")
+	})
+
+	// Test with Right IOEither but ReaderIOEither fails
+	t.Run("Right IOEither but ReaderIOEither fails", func(t *testing.T) {
+		configIO := IOE.Right[error](Config{baseURL: "https://api.example.com", timeout: 30})
+
+		computationError := errors.New("computation failed")
+		computation := func(cfg Config) IOEither[error, string] {
+			// Use the config but fail
+			if cfg.timeout < 60 {
+				return IOE.Left[string](computationError)
+			}
+			return IOE.Right[error]("success")
+		}
+
+		result := ReadIOEither[string](configIO)(computation)()
+		assert.Equal(t, E.Left[string](computationError), result)
+	})
+
+	// Test chaining with ReadIOEither
+	t.Run("Chaining with ReadIOEither", func(t *testing.T) {
+		// First get the config
+		configIO := IOE.Right[error](Config{baseURL: "https://api.example.com", timeout: 30})
+
+		// Chain multiple operations
+		result := F.Pipe2(
+			Of[Config, error](10),
+			Map[Config, error](func(x int) int { return x * 2 }),
+			ReadIOEither[int](configIO),
+		)()
+
+		assert.Equal(t, E.Right[error](20), result)
+	})
+
+	// Test with complex error type
+	t.Run("Complex error type", func(t *testing.T) {
+		type AppError struct {
+			Code    int
+			Message string
+		}
+
+		configIO := IOE.Left[Config](AppError{Code: 500, Message: "Internal error"})
+
+		computation := func(cfg Config) IOEither[AppError, string] {
+			return IOE.Right[AppError]("success")
+		}
+
+		result := ReadIOEither[string](configIO)(computation)()
+		assert.Equal(t, E.Left[string](AppError{Code: 500, Message: "Internal error"}), result)
+	})
+}
+
+func TestReadIO(t *testing.T) {
+	type Config struct {
+		baseURL string
+		version string
+	}
+
+	// Test basic execution - IO provides environment
+	t.Run("IO provides environment successfully", func(t *testing.T) {
+		// IO that produces a config (cannot fail)
+		configIO := func() Config {
+			return Config{baseURL: "https://api.example.com", version: "v1"}
+		}
+
+		// ReaderIOEither that uses the config
+		computation := func(cfg Config) IOEither[error, string] {
+			return IOE.Right[error](cfg.baseURL + "/" + cfg.version)
+		}
+
+		result := ReadIO[error, string](configIO)(computation)()
+		assert.Equal(t, E.Right[error]("https://api.example.com/v1"), result)
+	})
+
+	// Test when ReaderIOEither fails
+	t.Run("ReaderIOEither fails after IO succeeds", func(t *testing.T) {
+		configIO := func() Config {
+			return Config{baseURL: "https://api.example.com", version: "v1"}
+		}
+
+		computationError := errors.New("validation failed")
+		computation := func(cfg Config) IOEither[error, string] {
+			// Validate config
+			if cfg.version != "v2" {
+				return IOE.Left[string](computationError)
+			}
+			return IOE.Right[error]("success")
+		}
+
+		result := ReadIO[error, string](configIO)(computation)()
+		assert.Equal(t, E.Left[string](computationError), result)
+	})
+
+	// Test with side effects in IO
+	t.Run("IO with side effects", func(t *testing.T) {
+		counter := 0
+		configIO := func() Config {
+			counter++
+			return Config{baseURL: fmt.Sprintf("https://api%d.example.com", counter), version: "v1"}
+		}
+
+		computation := func(cfg Config) IOEither[error, string] {
+			return IOE.Right[error](cfg.baseURL)
+		}
+
+		result := ReadIO[error, string](configIO)(computation)()
+		assert.Equal(t, E.Right[error]("https://api1.example.com"), result)
+		assert.Equal(t, 1, counter, "IO should execute exactly once")
+	})
+
+	// Test chaining with ReadIO
+	t.Run("Chaining with ReadIO", func(t *testing.T) {
+		configIO := func() Config {
+			return Config{baseURL: "https://api.example.com", version: "v1"}
+		}
+
+		result := F.Pipe2(
+			Of[Config, error](42),
+			Map[Config, error](func(x int) string { return fmt.Sprintf("value-%d", x) }),
+			ReadIO[error, string](configIO),
+		)()
+
+		assert.Equal(t, E.Right[error]("value-42"), result)
+	})
+
+	// Test with different error types
+	t.Run("Different error types", func(t *testing.T) {
+		configIO := func() int {
+			return 100
+		}
+
+		computation := func(cfg int) IOEither[string, int] {
+			if cfg < 200 {
+				return IOE.Left[int]("value too low")
+			}
+			return IOE.Right[string](cfg)
+		}
+
+		result := ReadIO[string, int](configIO)(computation)()
+		assert.Equal(t, E.Left[int]("value too low"), result)
+	})
+
+	// Test ReadIO vs ReadIOEither - ReadIO cannot fail during environment loading
+	t.Run("ReadIO always provides environment", func(t *testing.T) {
+		// This demonstrates that ReadIO's IO always succeeds
+		configIO := func() Config {
+			// Even if we wanted to fail here, we can't - IO cannot fail
+			return Config{baseURL: "fallback", version: "v0"}
+		}
+
+		executed := false
+		computation := func(cfg Config) IOEither[error, string] {
+			executed = true
+			return IOE.Right[error](cfg.baseURL)
+		}
+
+		result := ReadIO[error, string](configIO)(computation)()
+		assert.Equal(t, E.Right[error]("fallback"), result)
+		assert.True(t, executed, "ReaderIOEither should always execute with ReadIO")
+	})
+
+	// Test with complex computation
+	t.Run("Complex computation with environment", func(t *testing.T) {
+		type Env struct {
+			multiplier int
+			offset     int
+		}
+
+		envIO := func() Env {
+			return Env{multiplier: 3, offset: 10}
+		}
+
+		computation := func(env Env) IOEither[error, int] {
+			return func() Either[error, int] {
+				// Simulate some computation using the environment
+				result := env.multiplier*5 + env.offset
+				if result > 20 {
+					return E.Right[error](result)
+				}
+				return E.Left[int](errors.New("result too small"))
+			}
+		}
+
+		result := ReadIO[error, int](envIO)(computation)()
+		assert.Equal(t, E.Right[error](25), result)
+	})
+}

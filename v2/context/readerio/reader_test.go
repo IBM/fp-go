@@ -500,3 +500,188 @@ func TestTapWithLogging(t *testing.T) {
 	assert.Equal(t, 84, value)
 	assert.Equal(t, []int{42, 84}, logged)
 }
+
+func TestReadIO(t *testing.T) {
+	// Test basic ReadIO functionality
+	contextIO := G.Of(context.WithValue(context.Background(), "testKey", "testValue"))
+	rio := FromReader(func(ctx context.Context) string {
+		if val := ctx.Value("testKey"); val != nil {
+			return val.(string)
+		}
+		return "default"
+	})
+
+	ioAction := ReadIO[string](contextIO)(rio)
+	result := ioAction()
+
+	assert.Equal(t, "testValue", result)
+}
+
+func TestReadIOWithBackground(t *testing.T) {
+	// Test ReadIO with plain background context
+	contextIO := G.Of(context.Background())
+	rio := Of(42)
+
+	ioAction := ReadIO[int](contextIO)(rio)
+	result := ioAction()
+
+	assert.Equal(t, 42, result)
+}
+
+func TestReadIOWithChain(t *testing.T) {
+	// Test ReadIO with chained operations
+	contextIO := G.Of(context.WithValue(context.Background(), "multiplier", 3))
+
+	result := F.Pipe1(
+		FromReader(func(ctx context.Context) int {
+			if val := ctx.Value("multiplier"); val != nil {
+				return val.(int)
+			}
+			return 1
+		}),
+		Chain(func(n int) ReaderIO[int] {
+			return Of(n * 10)
+		}),
+	)
+
+	ioAction := ReadIO[int](contextIO)(result)
+	value := ioAction()
+
+	assert.Equal(t, 30, value) // 3 * 10
+}
+
+func TestReadIOWithMap(t *testing.T) {
+	// Test ReadIO with Map operations
+	contextIO := G.Of(context.Background())
+
+	result := F.Pipe2(
+		Of(5),
+		Map(N.Mul(2)),
+		Map(N.Add(10)),
+	)
+
+	ioAction := ReadIO[int](contextIO)(result)
+	value := ioAction()
+
+	assert.Equal(t, 20, value) // (5 * 2) + 10
+}
+
+func TestReadIOWithSideEffects(t *testing.T) {
+	// Test ReadIO with side effects in context creation
+	counter := 0
+	contextIO := func() context.Context {
+		counter++
+		return context.WithValue(context.Background(), "counter", counter)
+	}
+
+	rio := FromReader(func(ctx context.Context) int {
+		if val := ctx.Value("counter"); val != nil {
+			return val.(int)
+		}
+		return 0
+	})
+
+	ioAction := ReadIO[int](contextIO)(rio)
+	result := ioAction()
+
+	assert.Equal(t, 1, result)
+	assert.Equal(t, 1, counter)
+}
+
+func TestReadIOMultipleExecutions(t *testing.T) {
+	// Test that ReadIO creates fresh effects on each execution
+	counter := 0
+	contextIO := func() context.Context {
+		counter++
+		return context.Background()
+	}
+
+	rio := Of(42)
+	ioAction := ReadIO[int](contextIO)(rio)
+
+	result1 := ioAction()
+	result2 := ioAction()
+
+	assert.Equal(t, 42, result1)
+	assert.Equal(t, 42, result2)
+	assert.Equal(t, 2, counter) // Context IO executed twice
+}
+
+func TestReadIOComparisonWithRead(t *testing.T) {
+	// Compare ReadIO with Read to show the difference
+	ctx := context.WithValue(context.Background(), "key", "value")
+
+	rio := FromReader(func(ctx context.Context) string {
+		if val := ctx.Value("key"); val != nil {
+			return val.(string)
+		}
+		return "default"
+	})
+
+	// Using Read (direct context)
+	ioAction1 := Read[string](ctx)(rio)
+	result1 := ioAction1()
+
+	// Using ReadIO (context wrapped in IO)
+	contextIO := G.Of(ctx)
+	ioAction2 := ReadIO[string](contextIO)(rio)
+	result2 := ioAction2()
+
+	assert.Equal(t, result1, result2)
+	assert.Equal(t, "value", result1)
+	assert.Equal(t, "value", result2)
+}
+
+func TestReadIOWithComplexContext(t *testing.T) {
+	// Test ReadIO with complex context manipulation
+	type contextKey string
+	const (
+		userKey  contextKey = "user"
+		tokenKey contextKey = "token"
+	)
+
+	contextIO := G.Of(
+		context.WithValue(
+			context.WithValue(context.Background(), userKey, "Alice"),
+			tokenKey,
+			"secret123",
+		),
+	)
+
+	rio := FromReader(func(ctx context.Context) map[string]string {
+		result := make(map[string]string)
+		if user := ctx.Value(userKey); user != nil {
+			result["user"] = user.(string)
+		}
+		if token := ctx.Value(tokenKey); token != nil {
+			result["token"] = token.(string)
+		}
+		return result
+	})
+
+	ioAction := ReadIO[map[string]string](contextIO)(rio)
+	result := ioAction()
+
+	assert.Equal(t, "Alice", result["user"])
+	assert.Equal(t, "secret123", result["token"])
+}
+
+func TestReadIOWithAsk(t *testing.T) {
+	// Test ReadIO combined with Ask
+	contextIO := G.Of(context.WithValue(context.Background(), "data", 100))
+
+	result := F.Pipe1(
+		Ask(),
+		Map(func(ctx context.Context) int {
+			if val := ctx.Value("data"); val != nil {
+				return val.(int)
+			}
+			return 0
+		}),
+	)
+
+	ioAction := ReadIO[int](contextIO)(result)
+	value := ioAction()
+
+	assert.Equal(t, 100, value)
+}
