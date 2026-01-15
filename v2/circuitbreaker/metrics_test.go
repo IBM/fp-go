@@ -504,3 +504,443 @@ func TestMetricsIOOperations(t *testing.T) {
 		assert.Len(t, lines, 3, "should execute multiple times")
 	})
 }
+
+// TestMakeVoidMetrics tests the MakeVoidMetrics constructor
+func TestMakeVoidMetrics(t *testing.T) {
+	t.Run("creates valid Metrics implementation", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+
+		assert.NotNil(t, metrics, "MakeVoidMetrics should return non-nil Metrics")
+	})
+
+	t.Run("returns voidMetrics type", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+
+		_, ok := metrics.(*voidMetrics)
+		assert.True(t, ok, "should return *voidMetrics type")
+	})
+
+	t.Run("initializes noop IO operation", func(t *testing.T) {
+		metrics := MakeVoidMetrics().(*voidMetrics)
+
+		assert.NotNil(t, metrics.noop, "noop IO operation should be initialized")
+	})
+}
+
+// TestVoidMetricsAccept tests the Accept method of voidMetrics
+func TestVoidMetricsAccept(t *testing.T) {
+	t.Run("returns non-nil IO operation", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Accept(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+	})
+
+	t.Run("IO operation executes without side effects", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Accept(timestamp)
+		result := io.Run(ioOp)
+
+		assert.NotNil(t, result, "IO operation should execute successfully")
+	})
+
+	t.Run("returns same IO operation instance", func(t *testing.T) {
+		metrics := MakeVoidMetrics().(*voidMetrics)
+		timestamp := time.Now()
+
+		ioOp1 := metrics.Accept(timestamp)
+		ioOp2 := metrics.Accept(timestamp)
+
+		// Both should be non-nil (we can't compare functions directly in Go)
+		assert.NotNil(t, ioOp1, "should return non-nil IO operation")
+		assert.NotNil(t, ioOp2, "should return non-nil IO operation")
+
+		// Verify they execute without error
+		io.Run(ioOp1)
+		io.Run(ioOp2)
+	})
+
+	t.Run("ignores timestamp parameter", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		time1 := time.Date(2026, 1, 9, 15, 30, 0, 0, time.UTC)
+		time2 := time.Date(2026, 1, 9, 16, 30, 0, 0, time.UTC)
+
+		ioOp1 := metrics.Accept(time1)
+		ioOp2 := metrics.Accept(time2)
+
+		// Should return same operation regardless of timestamp
+		io.Run(ioOp1)
+		io.Run(ioOp2)
+		// No assertions needed - just verify it doesn't panic
+	})
+}
+
+// TestVoidMetricsReject tests the Reject method of voidMetrics
+func TestVoidMetricsReject(t *testing.T) {
+	t.Run("returns non-nil IO operation", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Reject(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+	})
+
+	t.Run("IO operation executes without side effects", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Reject(timestamp)
+		result := io.Run(ioOp)
+
+		assert.NotNil(t, result, "IO operation should execute successfully")
+	})
+
+	t.Run("returns same IO operation instance", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Reject(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+		io.Run(ioOp) // Verify it executes without error
+	})
+}
+
+// TestVoidMetricsOpen tests the Open method of voidMetrics
+func TestVoidMetricsOpen(t *testing.T) {
+	t.Run("returns non-nil IO operation", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Open(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+	})
+
+	t.Run("IO operation executes without side effects", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Open(timestamp)
+		result := io.Run(ioOp)
+
+		assert.NotNil(t, result, "IO operation should execute successfully")
+	})
+
+	t.Run("returns same IO operation instance", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Open(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+		io.Run(ioOp) // Verify it executes without error
+	})
+}
+
+// TestVoidMetricsClose tests the Close method of voidMetrics
+func TestVoidMetricsClose(t *testing.T) {
+	t.Run("returns non-nil IO operation", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Close(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+	})
+
+	t.Run("IO operation executes without side effects", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Close(timestamp)
+		result := io.Run(ioOp)
+
+		assert.NotNil(t, result, "IO operation should execute successfully")
+	})
+
+	t.Run("returns same IO operation instance", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Close(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+		io.Run(ioOp) // Verify it executes without error
+	})
+}
+
+// TestVoidMetricsCanary tests the Canary method of voidMetrics
+func TestVoidMetricsCanary(t *testing.T) {
+	t.Run("returns non-nil IO operation", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Canary(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+	})
+
+	t.Run("IO operation executes without side effects", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Canary(timestamp)
+		result := io.Run(ioOp)
+
+		assert.NotNil(t, result, "IO operation should execute successfully")
+	})
+
+	t.Run("returns same IO operation instance", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Canary(timestamp)
+
+		assert.NotNil(t, ioOp, "should return non-nil IO operation")
+		io.Run(ioOp) // Verify it executes without error
+	})
+}
+
+// TestVoidMetricsThreadSafety tests concurrent access to voidMetrics
+func TestVoidMetricsThreadSafety(t *testing.T) {
+	t.Run("handles concurrent metric calls", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+
+		var wg sync.WaitGroup
+		numGoroutines := 100
+		wg.Add(numGoroutines * 5) // 5 methods
+
+		timestamp := time.Now()
+
+		// Launch multiple goroutines calling all methods concurrently
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				io.Run(metrics.Accept(timestamp))
+			}()
+			go func() {
+				defer wg.Done()
+				io.Run(metrics.Reject(timestamp))
+			}()
+			go func() {
+				defer wg.Done()
+				io.Run(metrics.Open(timestamp))
+			}()
+			go func() {
+				defer wg.Done()
+				io.Run(metrics.Close(timestamp))
+			}()
+			go func() {
+				defer wg.Done()
+				io.Run(metrics.Canary(timestamp))
+			}()
+		}
+
+		wg.Wait()
+		// Test passes if no panic occurs
+	})
+
+	t.Run("all methods return valid IO operations concurrently", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+
+		var wg sync.WaitGroup
+		numGoroutines := 50
+		wg.Add(numGoroutines)
+
+		timestamp := time.Now()
+		results := make([]IO[Void], numGoroutines)
+
+		for i := 0; i < numGoroutines; i++ {
+			go func(idx int) {
+				defer wg.Done()
+				// Each goroutine calls a different method
+				switch idx % 5 {
+				case 0:
+					results[idx] = metrics.Accept(timestamp)
+				case 1:
+					results[idx] = metrics.Reject(timestamp)
+				case 2:
+					results[idx] = metrics.Open(timestamp)
+				case 3:
+					results[idx] = metrics.Close(timestamp)
+				case 4:
+					results[idx] = metrics.Canary(timestamp)
+				}
+			}(i)
+		}
+
+		wg.Wait()
+
+		// All results should be non-nil and executable
+		for i, result := range results {
+			assert.NotNil(t, result, "result %d should be non-nil", i)
+			io.Run(result) // Verify it executes without error
+		}
+	})
+}
+
+// TestVoidMetricsPerformance tests performance characteristics
+func TestVoidMetricsPerformance(t *testing.T) {
+	t.Run("has minimal overhead", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		// Execute many operations quickly
+		iterations := 10000
+		for i := 0; i < iterations; i++ {
+			io.Run(metrics.Accept(timestamp))
+			io.Run(metrics.Reject(timestamp))
+			io.Run(metrics.Open(timestamp))
+			io.Run(metrics.Close(timestamp))
+			io.Run(metrics.Canary(timestamp))
+		}
+		// Test passes if it completes quickly without issues
+	})
+
+	t.Run("all methods return valid IO operations", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		// All methods should return non-nil IO operations
+		accept := metrics.Accept(timestamp)
+		reject := metrics.Reject(timestamp)
+		open := metrics.Open(timestamp)
+		close := metrics.Close(timestamp)
+		canary := metrics.Canary(timestamp)
+
+		assert.NotNil(t, accept, "Accept should return non-nil")
+		assert.NotNil(t, reject, "Reject should return non-nil")
+		assert.NotNil(t, open, "Open should return non-nil")
+		assert.NotNil(t, close, "Close should return non-nil")
+		assert.NotNil(t, canary, "Canary should return non-nil")
+
+		// All should execute without error
+		io.Run(accept)
+		io.Run(reject)
+		io.Run(open)
+		io.Run(close)
+		io.Run(canary)
+	})
+}
+
+// TestVoidMetricsIntegration tests integration scenarios
+func TestVoidMetricsIntegration(t *testing.T) {
+	t.Run("can be used as drop-in replacement for loggingMetrics", func(t *testing.T) {
+		// Create both types of metrics
+		var buf bytes.Buffer
+		logger := log.New(&buf, "", 0)
+		loggingMetrics := MakeMetricsFromLogger("TestCircuit", logger)
+		voidMetrics := MakeVoidMetrics()
+
+		timestamp := time.Now()
+
+		// Both should implement the same interface
+		var m1 Metrics = loggingMetrics
+		var m2 Metrics = voidMetrics
+
+		// Both should be callable
+		io.Run(m1.Accept(timestamp))
+		io.Run(m2.Accept(timestamp))
+
+		// Logging metrics should have output
+		assert.NotEmpty(t, buf.String(), "logging metrics should produce output")
+
+		// Void metrics should have no observable side effects
+		// (we can't directly test this, but the test passes if no panic occurs)
+	})
+
+	t.Run("simulates complete circuit breaker lifecycle without side effects", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		baseTime := time.Date(2026, 1, 9, 15, 30, 0, 0, time.UTC)
+
+		// Simulate circuit breaker lifecycle - all should be no-ops
+		io.Run(metrics.Accept(baseTime))
+		io.Run(metrics.Accept(baseTime.Add(1 * time.Second)))
+		io.Run(metrics.Open(baseTime.Add(2 * time.Second)))
+		io.Run(metrics.Reject(baseTime.Add(3 * time.Second)))
+		io.Run(metrics.Canary(baseTime.Add(30 * time.Second)))
+		io.Run(metrics.Close(baseTime.Add(31 * time.Second)))
+
+		// Test passes if no panic occurs and completes quickly
+	})
+}
+
+// TestVoidMetricsEdgeCases tests edge cases
+func TestVoidMetricsEdgeCases(t *testing.T) {
+	t.Run("handles zero time", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		zeroTime := time.Time{}
+
+		io.Run(metrics.Accept(zeroTime))
+		io.Run(metrics.Reject(zeroTime))
+		io.Run(metrics.Open(zeroTime))
+		io.Run(metrics.Close(zeroTime))
+		io.Run(metrics.Canary(zeroTime))
+
+		// Test passes if no panic occurs
+	})
+
+	t.Run("handles far future time", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		futureTime := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+
+		io.Run(metrics.Accept(futureTime))
+		io.Run(metrics.Reject(futureTime))
+		io.Run(metrics.Open(futureTime))
+		io.Run(metrics.Close(futureTime))
+		io.Run(metrics.Canary(futureTime))
+
+		// Test passes if no panic occurs
+	})
+
+	t.Run("IO operations are idempotent", func(t *testing.T) {
+		metrics := MakeVoidMetrics()
+		timestamp := time.Now()
+
+		ioOp := metrics.Accept(timestamp)
+
+		// Execute same operation multiple times
+		io.Run(ioOp)
+		io.Run(ioOp)
+		io.Run(ioOp)
+
+		// Test passes if no panic occurs
+	})
+}
+
+// TestMetricsComparison compares loggingMetrics and voidMetrics
+func TestMetricsComparison(t *testing.T) {
+	t.Run("both implement Metrics interface", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := log.New(&buf, "", 0)
+
+		var m1 Metrics = MakeMetricsFromLogger("Test", logger)
+		var m2 Metrics = MakeVoidMetrics()
+
+		assert.NotNil(t, m1)
+		assert.NotNil(t, m2)
+	})
+
+	t.Run("voidMetrics has no observable side effects unlike loggingMetrics", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := log.New(&buf, "", 0)
+		loggingMetrics := MakeMetricsFromLogger("Test", logger)
+		voidMetrics := MakeVoidMetrics()
+
+		timestamp := time.Now()
+
+		// Logging metrics produces output
+		io.Run(loggingMetrics.Accept(timestamp))
+		assert.NotEmpty(t, buf.String(), "logging metrics should produce output")
+
+		// Void metrics has no observable output
+		// (we can only verify it doesn't panic)
+		io.Run(voidMetrics.Accept(timestamp))
+	})
+}

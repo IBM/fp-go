@@ -318,5 +318,3 @@ func BenchmarkSemigroup_Concat(b *testing.B) {
 		_ = personOrd.Compare(p1, p2)
 	}
 }
-
-// Made with Bob

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/option"
-	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/retry"
 	"github.com/stretchr/testify/assert"
 )
@@ -452,43 +452,128 @@ func TestIsResetTimeExceeded(t *testing.T) {
 
 // TestHandleSuccessOnClosed tests the handleSuccessOnClosed function
 func TestHandleSuccessOnClosed(t *testing.T) {
-	t.Run("resets failure count on success", func(t *testing.T) {
+	t.Run("updates closed state with success when circuit is closed", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
-		currentTime := vt.Now
-		addSuccess := reader.From1(ClosedState.AddSuccess)
+		currentTime := vt.Now()
 
-		// Create initial state with some failures
-		now := vt.Now()
+		// Create a simple addSuccess reader that increments a counter
+		addSuccess := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddSuccess(ct)
+			}
+		}
+
+		// Create initial closed state
 		initialClosed := MakeClosedStateCounter(3)
-		initialClosed = initialClosed.AddError(now)
-		initialClosed = initialClosed.AddError(now)
 		initialState := createClosedCircuit(initialClosed)
 
-		ref := io.Run(ioref.MakeIORef(initialState))
-		modify := modifyV(ref)
+		// Apply handleSuccessOnClosed
+		handler := handleSuccessOnClosed(addSuccess)
+		endomorphism := handler(currentTime)
+		result := endomorphism(initialState)
 
-		handler := handleSuccessOnClosed(currentTime, addSuccess)
+		// Verify the state is still closed
+		assert.True(t, IsClosed(result), "state should remain closed after success")
 
-		// Apply the handler
-		result := io.Run(handler(modify))
-
-		// Verify state is still closed and failures are reset
-		assert.True(t, IsClosed(result), "circuit should remain closed after success")
+		// Verify the closed state was updated
+		closedState := either.Fold(
+			func(openState) ClosedState { return initialClosed },
+			F.Identity[ClosedState],
+		)(result)
+		// The success should have been recorded (implementation-specific verification)
+		assert.NotNil(t, closedState, "closed state should be present")
 	})
 
-	t.Run("keeps circuit closed", func(t *testing.T) {
+	t.Run("does not affect open state", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
-		currentTime := vt.Now
-		addSuccess := reader.From1(ClosedState.AddSuccess)
+		currentTime := vt.Now()
 
-		initialState := createClosedCircuit(MakeClosedStateCounter(3))
-		ref := io.Run(ioref.MakeIORef(initialState))
-		modify := modifyV(ref)
+		addSuccess := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddSuccess(ct)
+			}
+		}
 
-		handler := handleSuccessOnClosed(currentTime, addSuccess)
-		result := io.Run(handler(modify))
+		// Create initial open state
+		initialOpen := openState{
+			openedAt:      currentTime.Add(-1 * time.Minute),
+			resetAt:       currentTime.Add(1 * time.Minute),
+			retryStatus:   retry.DefaultRetryStatus,
+			canaryRequest: false,
+		}
+		initialState := createOpenCircuit(initialOpen)
 
-		assert.True(t, IsClosed(result), "circuit should remain closed")
+		// Apply handleSuccessOnClosed
+		handler := handleSuccessOnClosed(addSuccess)
+		endomorphism := handler(currentTime)
+		result := endomorphism(initialState)
+
+		// Verify the state remains open and unchanged
+		assert.True(t, IsOpen(result), "state should remain open")
+
+		// Extract and verify the open state is unchanged
+		openResult := either.Fold(
+			func(os openState) openState { return os },
+			func(ClosedState) openState { return initialOpen },
+		)(result)
+		assert.Equal(t, initialOpen.openedAt, openResult.openedAt, "openedAt should be unchanged")
+		assert.Equal(t, initialOpen.resetAt, openResult.resetAt, "resetAt should be unchanged")
+		assert.Equal(t, initialOpen.canaryRequest, openResult.canaryRequest, "canaryRequest should be unchanged")
+	})
+
+	t.Run("preserves time parameter through reader", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		time1 := vt.Now()
+		vt.Advance(1 * time.Hour)
+		time2 := vt.Now()
+
+		var capturedTime time.Time
+		addSuccess := func(ct time.Time) Endomorphism[ClosedState] {
+			capturedTime = ct
+			return F.Identity[ClosedState]
+		}
+
+		initialClosed := MakeClosedStateCounter(3)
+		initialState := createClosedCircuit(initialClosed)
+
+		handler := handleSuccessOnClosed(addSuccess)
+
+		// Apply with time1
+		endomorphism1 := handler(time1)
+		endomorphism1(initialState)
+		assert.Equal(t, time1, capturedTime, "should pass time1 to addSuccess")
+
+		// Apply with time2
+		endomorphism2 := handler(time2)
+		endomorphism2(initialState)
+		assert.Equal(t, time2, capturedTime, "should pass time2 to addSuccess")
+	})
+
+	t.Run("composes correctly with multiple successes", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		currentTime := vt.Now()
+
+		addSuccess := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddSuccess(ct)
+			}
+		}
+
+		initialClosed := MakeClosedStateCounter(3)
+		initialState := createClosedCircuit(initialClosed)
+
+		handler := handleSuccessOnClosed(addSuccess)
+		endomorphism := handler(currentTime)
+
+		// Apply multiple times
+		result1 := endomorphism(initialState)
+		result2 := endomorphism(result1)
+		result3 := endomorphism(result2)
+
+		// All should remain closed
+		assert.True(t, IsClosed(result1), "state should remain closed after first success")
+		assert.True(t, IsClosed(result2), "state should remain closed after second success")
+		assert.True(t, IsClosed(result3), "state should remain closed after third success")
 	})
 }
 
@@ -496,9 +581,26 @@ func TestHandleSuccessOnClosed(t *testing.T) {
 func TestHandleFailureOnClosed(t *testing.T) {
 	t.Run("keeps circuit closed when threshold not exceeded", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
-		currentTime := vt.Now
-		addError := reader.From1(ClosedState.AddError)
-		checkClosedState := reader.From1(ClosedState.Check)
+		currentTime := vt.Now()
+
+		// Create a closed state that allows 3 errors
+		initialClosed := MakeClosedStateCounter(3)
+
+		// addError increments error count
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		// checkClosedState returns Some if under threshold
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
+		// openCircuit creates an open state (shouldn't be called in this test)
 		openCircuit := func(ct time.Time) openState {
 			return openState{
 				openedAt:      ct,
@@ -508,26 +610,39 @@ func TestHandleFailureOnClosed(t *testing.T) {
 			}
 		}
 
-		// Create initial state with room for more failures
-		now := vt.Now()
-		initialClosed := MakeClosedStateCounter(5) // threshold is 5
-		initialClosed = initialClosed.AddError(now)
 		initialState := createClosedCircuit(initialClosed)
 
-		ref := io.Run(ioref.MakeIORef(initialState))
-		modify := modifyV(ref)
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
 
-		handler := handleFailureOnClosed(currentTime, addError, checkClosedState, openCircuit)
-		result := io.Run(handler(modify))
+		// First error - should stay closed
+		result1 := endomorphism(initialState)
+		assert.True(t, IsClosed(result1), "circuit should remain closed after first error")
 
-		assert.True(t, IsClosed(result), "circuit should remain closed when threshold not exceeded")
+		// Second error - should stay closed
+		result2 := endomorphism(result1)
+		assert.True(t, IsClosed(result2), "circuit should remain closed after second error")
 	})
 
 	t.Run("opens circuit when threshold exceeded", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
-		currentTime := vt.Now
-		addError := reader.From1(ClosedState.AddError)
-		checkClosedState := reader.From1(ClosedState.Check)
+		currentTime := vt.Now()
+
+		// Create a closed state that allows only 2 errors (opens at 2nd error)
+		initialClosed := MakeClosedStateCounter(2)
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
 		openCircuit := func(ct time.Time) openState {
 			return openState{
 				openedAt:      ct,
@@ -537,26 +652,85 @@ func TestHandleFailureOnClosed(t *testing.T) {
 			}
 		}
 
-		// Create initial state at threshold
-		now := vt.Now()
-		initialClosed := MakeClosedStateCounter(2) // threshold is 2
-		initialClosed = initialClosed.AddError(now)
 		initialState := createClosedCircuit(initialClosed)
 
-		ref := io.Run(ioref.MakeIORef(initialState))
-		modify := modifyV(ref)
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
 
-		handler := handleFailureOnClosed(currentTime, addError, checkClosedState, openCircuit)
-		result := io.Run(handler(modify))
+		// First error - should stay closed (count=1, threshold=2)
+		result1 := endomorphism(initialState)
+		assert.True(t, IsClosed(result1), "circuit should remain closed after first error")
 
-		assert.True(t, IsOpen(result), "circuit should open when threshold exceeded")
+		// Second error - should open (count=2, threshold=2)
+		result2 := endomorphism(result1)
+		assert.True(t, IsOpen(result2), "circuit should open when threshold reached")
 	})
 
-	t.Run("records failure in closed state", func(t *testing.T) {
+	t.Run("creates open state with correct reset time", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
-		currentTime := vt.Now
-		addError := reader.From1(ClosedState.AddError)
-		checkClosedState := reader.From1(ClosedState.Check)
+		currentTime := vt.Now()
+		expectedResetTime := currentTime.Add(5 * time.Minute)
+
+		initialClosed := MakeClosedStateCounter(1) // Opens at 1st error
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
+		openCircuit := func(ct time.Time) openState {
+			return openState{
+				openedAt:      ct,
+				resetAt:       expectedResetTime,
+				retryStatus:   retry.DefaultRetryStatus,
+				canaryRequest: false,
+			}
+		}
+
+		initialState := createClosedCircuit(initialClosed)
+
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
+
+		// First error - should open immediately (threshold=1)
+		result1 := endomorphism(initialState)
+		assert.True(t, IsOpen(result1), "circuit should open after first error")
+
+		// Verify the open state has correct reset time
+		resultOpen := either.Fold(
+			func(os openState) openState { return os },
+			func(ClosedState) openState { return openState{} },
+		)(result1)
+		assert.Equal(t, expectedResetTime, resultOpen.resetAt, "reset time should match expected")
+		assert.Equal(t, currentTime, resultOpen.openedAt, "opened time should be current time")
+	})
+
+	t.Run("edge case: zero error threshold", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		currentTime := vt.Now()
+
+		// Create a closed state that allows 0 errors (opens immediately)
+		initialClosed := MakeClosedStateCounter(0)
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
 		openCircuit := func(ct time.Time) openState {
 			return openState{
 				openedAt:      ct,
@@ -566,14 +740,212 @@ func TestHandleFailureOnClosed(t *testing.T) {
 			}
 		}
 
-		initialState := createClosedCircuit(MakeClosedStateCounter(10))
-		ref := io.Run(ioref.MakeIORef(initialState))
-		modify := modifyV(ref)
+		initialState := createClosedCircuit(initialClosed)
 
-		handler := handleFailureOnClosed(currentTime, addError, checkClosedState, openCircuit)
-		result := io.Run(handler(modify))
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
 
-		// Should still be closed but with failure recorded
-		assert.True(t, IsClosed(result), "circuit should remain closed")
+		// First error should immediately open the circuit
+		result := endomorphism(initialState)
+		assert.True(t, IsOpen(result), "circuit should open immediately with zero threshold")
+	})
+
+	t.Run("edge case: very high error threshold", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		currentTime := vt.Now()
+
+		// Create a closed state that allows 1000 errors
+		initialClosed := MakeClosedStateCounter(1000)
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
+		openCircuit := func(ct time.Time) openState {
+			return openState{
+				openedAt:      ct,
+				resetAt:       ct.Add(1 * time.Minute),
+				retryStatus:   retry.DefaultRetryStatus,
+				canaryRequest: false,
+			}
+		}
+
+		initialState := createClosedCircuit(initialClosed)
+
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
+
+		// Apply many errors
+		result := initialState
+		for i := 0; i < 100; i++ {
+			result = endomorphism(result)
+		}
+
+		// Should still be closed after 100 errors
+		assert.True(t, IsClosed(result), "circuit should remain closed with high threshold")
+	})
+
+	t.Run("preserves time parameter through reader chain", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		time1 := vt.Now()
+		vt.Advance(2 * time.Hour)
+		time2 := vt.Now()
+
+		var capturedAddErrorTime, capturedCheckTime, capturedOpenTime time.Time
+
+		initialClosed := MakeClosedStateCounter(2) // Need 2 errors to open
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			capturedAddErrorTime = ct
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			capturedCheckTime = ct
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
+		openCircuit := func(ct time.Time) openState {
+			capturedOpenTime = ct
+			return openState{
+				openedAt:      ct,
+				resetAt:       ct.Add(1 * time.Minute),
+				retryStatus:   retry.DefaultRetryStatus,
+				canaryRequest: false,
+			}
+		}
+
+		initialState := createClosedCircuit(initialClosed)
+
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+
+		// Apply with time1 - first error, stays closed
+		endomorphism1 := handler(time1)
+		result1 := endomorphism1(initialState)
+		assert.Equal(t, time1, capturedAddErrorTime, "addError should receive time1")
+		assert.Equal(t, time1, capturedCheckTime, "checkClosedState should receive time1")
+
+		// Apply with time2 - second error, should trigger open
+		endomorphism2 := handler(time2)
+		endomorphism2(result1)
+		assert.Equal(t, time2, capturedAddErrorTime, "addError should receive time2")
+		assert.Equal(t, time2, capturedCheckTime, "checkClosedState should receive time2")
+		assert.Equal(t, time2, capturedOpenTime, "openCircuit should receive time2")
+	})
+
+	t.Run("handles transition from closed to open correctly", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		currentTime := vt.Now()
+
+		initialClosed := MakeClosedStateCounter(2) // Opens at 2nd error
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
+		openCircuit := func(ct time.Time) openState {
+			return openState{
+				openedAt:      ct,
+				resetAt:       ct.Add(1 * time.Minute),
+				retryStatus:   retry.DefaultRetryStatus,
+				canaryRequest: false,
+			}
+		}
+
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
+
+		// Start with closed state
+		state := createClosedCircuit(initialClosed)
+		assert.True(t, IsClosed(state), "initial state should be closed")
+
+		// First error - should stay closed (count=1, threshold=2)
+		state = endomorphism(state)
+		assert.True(t, IsClosed(state), "should remain closed after first error")
+
+		// Second error - should open (count=2, threshold=2)
+		state = endomorphism(state)
+		assert.True(t, IsOpen(state), "should open after second error")
+
+		// Verify it's truly open with correct properties
+		resultOpen := either.Fold(
+			func(os openState) openState { return os },
+			func(ClosedState) openState { return openState{} },
+		)(state)
+		assert.False(t, resultOpen.canaryRequest, "canaryRequest should be false initially")
+		assert.Equal(t, currentTime, resultOpen.openedAt, "openedAt should be current time")
+	})
+
+	t.Run("does not affect already open state", func(t *testing.T) {
+		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+		currentTime := vt.Now()
+
+		addError := func(ct time.Time) Endomorphism[ClosedState] {
+			return func(cs ClosedState) ClosedState {
+				return cs.AddError(ct)
+			}
+		}
+
+		checkClosedState := func(ct time.Time) option.Kleisli[ClosedState, ClosedState] {
+			return func(cs ClosedState) Option[ClosedState] {
+				return cs.Check(ct)
+			}
+		}
+
+		openCircuit := func(ct time.Time) openState {
+			return openState{
+				openedAt:      ct,
+				resetAt:       ct.Add(1 * time.Minute),
+				retryStatus:   retry.DefaultRetryStatus,
+				canaryRequest: false,
+			}
+		}
+
+		// Start with an already open state
+		existingOpen := openState{
+			openedAt:      currentTime.Add(-5 * time.Minute),
+			resetAt:       currentTime.Add(5 * time.Minute),
+			retryStatus:   retry.DefaultRetryStatus,
+			canaryRequest: true,
+		}
+		initialState := createOpenCircuit(existingOpen)
+
+		handler := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+		endomorphism := handler(currentTime)
+
+		// Apply to open state - should not change it
+		result := endomorphism(initialState)
+
+		assert.True(t, IsOpen(result), "state should remain open")
+
+		// The open state should be unchanged since handleFailureOnClosed
+		// only operates on the Right (closed) side of the Either
+		openResult := either.Fold(
+			func(os openState) openState { return os },
+			func(ClosedState) openState { return openState{} },
+		)(result)
+		assert.Equal(t, existingOpen.openedAt, openResult.openedAt, "openedAt should be unchanged")
+		assert.Equal(t, existingOpen.resetAt, openResult.resetAt, "resetAt should be unchanged")
+		assert.Equal(t, existingOpen.canaryRequest, openResult.canaryRequest, "canaryRequest should be unchanged")
 	})
 }

@@ -34,6 +34,7 @@ import (
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/retry"
 	"github.com/IBM/fp-go/v2/state"
 )
@@ -79,10 +80,13 @@ type (
 	// and produces a value of type A. Used for dependency injection and configuration.
 	Reader[R, A any] = reader.Reader[R, A]
 
+	ReaderIO[R, A any] = readerio.ReaderIO[R, A]
+
 	// openState represents the internal state when the circuit breaker is open.
 	// In the open state, requests are blocked to give the failing service time to recover.
 	// The circuit breaker will transition to a half-open state (canary request) after resetAt.
 	openState struct {
+		// openedAt is the time when the circuit breaker opened the circuit
 		openedAt time.Time
 
 		// resetAt is the time when the circuit breaker should attempt a canary request

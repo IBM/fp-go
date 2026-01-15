@@ -28,7 +28,10 @@ import (
 //
 // Thread Safety: This type is immutable and safe for concurrent use.
 type CircuitBreakerError struct {
-	Name    string
+	// Name: The name identifying this circuit breaker instance
+	Name string
+
+	// ResetAt: The time at which the circuit breaker will transition from open to half-open state
 	ResetAt time.Time
 }
 

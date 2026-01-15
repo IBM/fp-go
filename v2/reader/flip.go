@@ -60,6 +60,8 @@ import (
 //   - You need to partially apply environments in a different order
 //   - You're composing functions that expect parameters in reverse order
 //   - You want to curry multi-parameter functions differently
+//
+//go:inline
 func Sequence[R1, R2, A any](ma Reader[R2, Reader[R1, A]]) Kleisli[R2, R1, A] {
 	return function.Flip(ma)
 }

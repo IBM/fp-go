@@ -57,5 +57,3 @@ type (
 	//	personOrd := ageOperator(intOrd)
 	Operator[A, B any] = Kleisli[Ord[A], B]
 )
-
-// Made with Bob

@@ -314,8 +314,8 @@ func TestExtendTypeTransformations(t *testing.T) {
 	t.Run("string to bool transformation", func(t *testing.T) {
 		isEmpty := Extend(func(e Either[error, string]) bool {
 			return Fold(
-				func(err error) bool { return true },
-				func(s string) bool { return len(s) == 0 },
+				F.Constant1[error](true),
+				S.IsEmpty,
 			)(e)
 		})
 
@@ -323,10 +323,10 @@ func TestExtendTypeTransformations(t *testing.T) {
 		result2 := isEmpty(Right[error]("hello"))
 
 		assert.True(t, IsRight(result1))
-		assert.True(t, GetOrElse(func(error) bool { return false })(result1))
+		assert.True(t, GetOrElse(F.Constant1[error](false))(result1))
 
 		assert.True(t, IsRight(result2))
-		assert.False(t, GetOrElse(func(error) bool { return true })(result2))
+		assert.False(t, GetOrElse(F.Constant1[error](true))(result2))
 	})
 }
 
@@ -367,11 +367,9 @@ func TestExtendWithComplexTypes(t *testing.T) {
 		result2 := isAdult(Right[error](user2))
 
 		assert.True(t, IsRight(result1))
-		assert.True(t, GetOrElse(func(error) bool { return false })(result1))
+		assert.True(t, GetOrElse(F.Constant1[error](false))(result1))
 
 		assert.True(t, IsRight(result2))
-		assert.False(t, GetOrElse(func(error) bool { return true })(result2))
+		assert.False(t, GetOrElse(F.Constant1[error](true))(result2))
 	})
 }
-
-// Made with Bob

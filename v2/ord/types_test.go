@@ -201,5 +201,3 @@ func ExampleOperator() {
 	result := personOrd.Compare(p1, p2)
 	println(result) // 1 (30 > 25)
 }
-
-// Made with Bob

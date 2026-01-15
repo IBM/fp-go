@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/either"
-	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/identity"
 	"github.com/IBM/fp-go/v2/io"
@@ -14,6 +13,7 @@ import (
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/retry"
 )
 
@@ -241,125 +241,155 @@ func isResetTimeExceeded(ct time.Time) option.Kleisli[openState, openState] {
 	})
 }
 
-// handleSuccessOnClosed handles a successful request when the circuit breaker is in closed state.
-// It updates the closed state by recording the success and returns an IO operation that
-// modifies the breaker state.
+// handleSuccessOnClosed creates a Reader that handles successful requests when the circuit is closed.
+// This function is used to update the circuit breaker state after a successful operation completes
+// while the circuit is in the closed state.
 //
-// This function is part of the circuit breaker's state management for the closed state.
-// When a request succeeds in closed state:
-//  1. The current time is obtained
-//  2. The addSuccess function is called with the current time to update the ClosedState
-//  3. The updated ClosedState is wrapped in a Right (closed) BreakerState
-//  4. The breaker state is modified with the new state
+// The function takes a Reader that adds a success record to the ClosedState and lifts it to work
+// with BreakerState by mapping over the Right (closed) side of the Either type. This ensures that
+// success tracking only affects the closed state and leaves any open state unchanged.
 //
 // Parameters:
-//   - currentTime: An IO operation that provides the current time
-//   - addSuccess: A Reader that takes a time and returns an endomorphism for ClosedState,
-//     typically resetting failure counters or history
+//   - addSuccess: A Reader that takes the current time and returns an Endomorphism that updates
+//     the ClosedState by recording a successful operation. This typically increments a success
+//     counter or updates a success history.
 //
 // Returns:
-//   - An io.Kleisli that takes another io.Kleisli and chains them together.
-//     The outer Kleisli takes an Endomorphism[BreakerState] and returns BreakerState.
-//     This allows composing the success handling with other state modifications.
+//   - A Reader[time.Time, Endomorphism[BreakerState]] that, when given the current time, produces
+//     an endomorphism that updates the BreakerState by applying the success update to the closed
+//     state (if closed) or leaving the state unchanged (if open).
 //
-// Thread Safety: This function creates IO operations that will atomically modify the
-// IORef[BreakerState] when executed. The state modifications are thread-safe.
-//
-// Type signature:
-//
-//	io.Kleisli[io.Kleisli[Endomorphism[BreakerState], BreakerState], BreakerState]
+// Thread Safety: This is a pure function that creates new state instances. The returned
+// endomorphism is safe for concurrent use as it does not mutate its input.
 //
 // Usage Context:
-//   - Called when a request succeeds while the circuit is closed
-//   - Resets failure tracking (counter or history) in the ClosedState
-//   - Keeps the circuit in closed state
+//   - Called after a successful request completes while the circuit is closed
+//   - Updates success metrics/counters in the ClosedState
+//   - Does not affect the circuit state if it's already open
+//   - Part of the normal operation flow when the circuit breaker is functioning properly
 func handleSuccessOnClosed(
-	currentTime IO[time.Time],
 	addSuccess Reader[time.Time, Endomorphism[ClosedState]],
-) io.Kleisli[io.Kleisli[Endomorphism[BreakerState], BreakerState], BreakerState] {
+) Reader[time.Time, Endomorphism[BreakerState]] {
 	return F.Flow2(
-		io.Chain,
-		identity.Flap[IO[BreakerState]](F.Pipe1(
-			currentTime,
-			io.Map(F.Flow2(
-				addSuccess,
-				either.Map[openState],
-			)))),
+		addSuccess,
+		either.Map[openState],
 	)
 }
 
-// handleFailureOnClosed handles a failed request when the circuit breaker is in closed state.
-// It updates the closed state by recording the failure and checks if the circuit should open.
+// handleFailureOnClosed creates a Reader that handles failed requests when the circuit is closed.
+// This function manages the critical logic for determining whether a failure should cause the
+// circuit breaker to open (transition from closed to open state).
 //
-// This function is part of the circuit breaker's state management for the closed state.
-// When a request fails in closed state:
-//  1. The current time is obtained
-//  2. The addError function is called to record the failure in the ClosedState
-//  3. The checkClosedState function is called to determine if the failure threshold is exceeded
-//  4. If the threshold is exceeded (Check returns None):
-//     - The circuit transitions to open state using openCircuit
-//     - A new openState is created with resetAt time calculated from the retry policy
-//  5. If the threshold is not exceeded (Check returns Some):
-//     - The circuit remains closed with the updated failure tracking
+// The function orchestrates three key operations:
+//  1. Records the failure in the ClosedState using addError
+//  2. Checks if the failure threshold has been exceeded using checkClosedState
+//  3. If threshold exceeded, opens the circuit; otherwise, keeps it closed with updated error count
+//
+// The decision flow is:
+//   - Add the error to the closed state's error tracking
+//   - Check if the updated closed state exceeds the failure threshold
+//   - If threshold exceeded (checkClosedState returns None):
+//   - Create a new openState with calculated reset time based on retry policy
+//   - Transition the circuit to open state (Left side of Either)
+//   - If threshold not exceeded (checkClosedState returns Some):
+//   - Keep the circuit closed with the updated error count
+//   - Continue allowing requests through
 //
 // Parameters:
-//   - currentTime: An IO operation that provides the current time
-//   - addError: A Reader that takes a time and returns an endomorphism for ClosedState,
-//     recording a failure (incrementing counter or adding to history)
-//   - checkClosedState: A Reader that takes a time and returns an option.Kleisli that checks
-//     if the ClosedState should remain closed. Returns Some if circuit stays closed, None if it should open.
-//   - openCircuit: A Reader that takes a time and returns an openState with calculated resetAt time
+//   - addError: A Reader that takes the current time and returns an Endomorphism that updates
+//     the ClosedState by recording a failed operation. This typically increments an error
+//     counter or adds to an error history.
+//   - checkClosedState: A Reader that takes the current time and returns an option.Kleisli that
+//     validates whether the ClosedState is still within acceptable failure thresholds.
+//     Returns Some(ClosedState) if threshold not exceeded, None if threshold exceeded.
+//   - openCircuit: A Reader that takes the current time and creates a new openState with
+//     appropriate reset time calculated from the retry policy. Used when transitioning to open.
 //
 // Returns:
-//   - An io.Kleisli that takes another io.Kleisli and chains them together.
-//     The outer Kleisli takes an Endomorphism[BreakerState] and returns BreakerState.
-//     This allows composing the failure handling with other state modifications.
+//   - A Reader[time.Time, Endomorphism[BreakerState]] that, when given the current time, produces
+//     an endomorphism that either:
+//   - Keeps the circuit closed with updated error tracking (if threshold not exceeded)
+//   - Opens the circuit with calculated reset time (if threshold exceeded)
 //
-// Thread Safety: This function creates IO operations that will atomically modify the
-// IORef[BreakerState] when executed. The state modifications are thread-safe.
-//
-// Type signature:
-//
-//	io.Kleisli[io.Kleisli[Endomorphism[BreakerState], BreakerState], BreakerState]
-//
-// State Transitions:
-//   - Closed -> Closed: When failure threshold is not exceeded (Some from checkClosedState)
-//   - Closed -> Open: When failure threshold is exceeded (None from checkClosedState)
+// Thread Safety: This is a pure function that creates new state instances. The returned
+// endomorphism is safe for concurrent use as it does not mutate its input.
 //
 // Usage Context:
-//   - Called when a request fails while the circuit is closed
-//   - Records the failure in the ClosedState (counter or history)
-//   - May trigger transition to open state if threshold is exceeded
+//   - Called after a failed request completes while the circuit is closed
+//   - Implements the core circuit breaker logic for opening the circuit
+//   - Determines when to stop allowing requests through to protect the failing service
+//   - Critical for preventing cascading failures in distributed systems
+//
+// State Transition:
+//   - Closed (under threshold) -> Closed (with incremented error count)
+//   - Closed (at/over threshold) -> Open (with reset time for recovery attempt)
 func handleFailureOnClosed(
-	currentTime IO[time.Time],
 	addError Reader[time.Time, Endomorphism[ClosedState]],
 	checkClosedState Reader[time.Time, option.Kleisli[ClosedState, ClosedState]],
 	openCircuit Reader[time.Time, openState],
-) io.Kleisli[io.Kleisli[Endomorphism[BreakerState], BreakerState], BreakerState] {
-
-	return F.Flow2(
-		io.Chain,
-		identity.Flap[IO[BreakerState]](F.Pipe1(
-			currentTime,
-			io.Map(func(ct time.Time) either.Operator[openState, ClosedState, ClosedState] {
-				return either.Chain(F.Flow3(
-					addError(ct),
-					checkClosedState(ct),
-					option.Fold(
-						F.Pipe2(
-							ct,
-							lazy.Of,
-							lazy.Map(F.Flow2(
-								openCircuit,
-								createOpenCircuit,
-							)),
-						),
-						createClosedCircuit,
-					),
-				))
-			}))),
+) Reader[time.Time, Endomorphism[BreakerState]] {
+	return F.Pipe2(
+		F.Pipe1(
+			addError,
+			reader.ApS(reader.Map[ClosedState], checkClosedState),
+		),
+		reader.Chain(F.Flow2(
+			reader.Map[ClosedState](option.Fold(
+				F.Pipe2(
+					openCircuit,
+					reader.Map[time.Time](createOpenCircuit),
+					lazy.Of,
+				),
+				F.Flow2(
+					createClosedCircuit,
+					reader.Of[time.Time],
+				),
+			)),
+			reader.Sequence,
+		)),
+		reader.Map[time.Time](either.Chain[openState, ClosedState, ClosedState]),
 	)
+}
 
+func handleErrorOnClosed2[E any](
+	checkError option.Kleisli[E, E],
+	onSuccess Reader[time.Time, Endomorphism[BreakerState]],
+	onFailure Reader[time.Time, Endomorphism[BreakerState]],
+) reader.Kleisli[time.Time, E, Endomorphism[BreakerState]] {
+	return F.Flow3(
+		checkError,
+		option.MapTo[E](onFailure),
+		option.GetOrElse(lazy.Of(onSuccess)),
+	)
+}
+
+func stateModifier(
+	modify io.Kleisli[Endomorphism[BreakerState], BreakerState],
+) reader.Operator[time.Time, Endomorphism[BreakerState], IO[BreakerState]] {
+	return reader.Map[time.Time](modify)
+}
+
+func reportOnClose2(
+	onClosed ReaderIO[time.Time, Void],
+	onOpened ReaderIO[time.Time, Void],
+) readerio.Operator[time.Time, BreakerState, Void] {
+	return readerio.Chain(either.Fold(
+		reader.Of[openState](onOpened),
+		reader.Of[ClosedState](onClosed),
+	))
+}
+
+func applyAndReportClose2(
+	currentTime IO[time.Time],
+	metrics readerio.Operator[time.Time, BreakerState, Void],
+) func(io.Kleisli[Endomorphism[BreakerState], BreakerState]) func(Reader[time.Time, Endomorphism[BreakerState]]) IO[Void] {
+	return func(modify io.Kleisli[Endomorphism[BreakerState], BreakerState]) func(Reader[time.Time, Endomorphism[BreakerState]]) IO[Void] {
+		return F.Flow3(
+			reader.Map[time.Time](modify),
+			metrics,
+			readerio.ReadIO[Void](currentTime),
+		)
+	}
 }
 
 // MakeCircuitBreaker creates a circuit breaker implementation for a higher-kinded type.
@@ -402,6 +432,8 @@ func MakeCircuitBreaker[E, T, HKTT, HKTOP, HKTHKTT any](
 	chainFirstIOK func(io.Kleisli[T, BreakerState]) func(HKTT) HKTT,
 	chainFirstLeftIOK func(io.Kleisli[E, BreakerState]) func(HKTT) HKTT,
 
+	chainFirstIOK2 func(io.Kleisli[Either[E, T], Void]) func(HKTT) HKTT,
+
 	fromIO func(IO[func(HKTT) HKTT]) HKTOP,
 	flap func(HKTT) func(HKTOP) HKTHKTT,
 	flatten func(HKTHKTT) HKTT,
@@ -437,47 +469,22 @@ func MakeCircuitBreaker[E, T, HKTT, HKTOP, HKTHKTT any](
 		reader.Of[HKTT],
 	)
 
-	handleSuccess := handleSuccessOnClosed(currentTime, addSuccess)
-	handleFailure := handleFailureOnClosed(currentTime, addError, checkClosedState, openCircuit)
+	handleSuccess2 := handleSuccessOnClosed(addSuccess)
+	handleFailure2 := handleFailureOnClosed(addError, checkClosedState, openCircuit)
+
+	handleError2 := handleErrorOnClosed2(checkError, handleSuccess2, handleFailure2)
+
+	metricsClose2 := reportOnClose2(metrics.Accept, metrics.Open)
+	apply2 := applyAndReportClose2(currentTime, metricsClose2)
 
 	onClosed := func(modify io.Kleisli[Endomorphism[BreakerState], BreakerState]) Operator {
-
-		return F.Flow2(
-			// error case
-			chainFirstLeftIOK(F.Flow3(
-				checkError,
-				option.Fold(
-					// the error is not applicable, handle as success
-					F.Pipe2(
-						modify,
-						handleSuccess,
-						lazy.Of,
-					),
-					// the error is relevant, record it
-					F.Pipe2(
-						modify,
-						handleFailure,
-						reader.Of[E],
-					),
-				),
-				// metering
-				io.ChainFirst(either.Fold(
-					F.Flow2(
-						openedAtLens.Get,
-						metrics.Open,
-					),
-					func(c ClosedState) IO[Void] {
-						return io.Of(function.VOID)
-					},
-				)),
-			)),
-			// good case
-			chainFirstIOK(F.Pipe2(
-				modify,
-				handleSuccess,
-				reader.Of[T],
-			)),
-		)
+		return chainFirstIOK2(F.Flow2(
+			either.Fold(
+				handleError2,
+				reader.Of[T](handleSuccess2),
+			),
+			apply2(modify),
+		))
 	}
 
 	onCanary := func(modify io.Kleisli[Endomorphism[BreakerState], BreakerState]) Operator {

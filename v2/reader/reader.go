@@ -249,6 +249,34 @@ func MonadChain[R, A, B any](ma Reader[R, A], f Kleisli[R, A, B]) Reader[R, B] {
 // Chain sequences two Reader computations where the second depends on the result of the first.
 // This is the Monad operation that enables dependent computations.
 //
+// Relationship with Compose:
+//
+// Chain and Compose serve different purposes in Reader composition:
+//
+//   - Chain: Monadic composition - sequences Readers that share the SAME environment type.
+//     The second Reader depends on the VALUE produced by the first Reader, but both
+//     Readers receive the same environment R. This is the monadic bind (>>=) operation.
+//     Signature: Chain[R, A, B](f: A -> Reader[R, B]) -> Reader[R, A] -> Reader[R, B]
+//
+//   - Compose: Function composition - chains Readers where the OUTPUT of the first
+//     becomes the INPUT environment of the second. The environment types can differ.
+//     This is standard function composition (.) for Readers as functions.
+//     Signature: Compose[C, R, B](ab: Reader[R, B]) -> Reader[B, C] -> Reader[R, C]
+//
+// Key Differences:
+//
+//  1. Environment handling:
+//     - Chain: Both Readers use the same environment R
+//     - Compose: First Reader's output B becomes second Reader's input environment
+//
+//  2. Data flow:
+//     - Chain: R -> A, then A -> Reader[R, B], both using same R
+//     - Compose: R -> B, then B -> C (B is both output and environment)
+//
+//  3. Use cases:
+//     - Chain: Dependent computations in the same context (e.g., fetch user, then fetch user's posts)
+//     - Compose: Transforming nested environments (e.g., extract config from app state, then read from config)
+//
 // Example:
 //
 //	type Config struct { UserId int }
@@ -359,6 +387,53 @@ func Flatten[R, A any](mma Reader[R, Reader[R, A]]) Reader[R, A] {
 
 // Compose composes two Readers sequentially, where the output environment of the first
 // becomes the input environment of the second.
+//
+// Relationship with Chain:
+//
+// Compose and Chain serve different purposes in Reader composition:
+//
+//   - Compose: Function composition - chains Readers where the OUTPUT of the first
+//     becomes the INPUT environment of the second. The environment types can differ.
+//     This is standard function composition (.) for Readers as functions.
+//     Signature: Compose[C, R, B](ab: Reader[R, B]) -> Reader[B, C] -> Reader[R, C]
+//
+//   - Chain: Monadic composition - sequences Readers that share the SAME environment type.
+//     The second Reader depends on the VALUE produced by the first Reader, but both
+//     Readers receive the same environment R. This is the monadic bind (>>=) operation.
+//     Signature: Chain[R, A, B](f: A -> Reader[R, B]) -> Reader[R, A] -> Reader[R, B]
+//
+// Key Differences:
+//
+//  1. Environment handling:
+//     - Compose: First Reader's output B becomes second Reader's input environment
+//     - Chain: Both Readers use the same environment R
+//
+//  2. Data flow:
+//     - Compose: R -> B, then B -> C (B is both output and environment)
+//     - Chain: R -> A, then A -> Reader[R, B], both using same R
+//
+//  3. Use cases:
+//     - Compose: Transforming nested environments (e.g., extract config from app state, then read from config)
+//     - Chain: Dependent computations in the same context (e.g., fetch user, then fetch user's posts)
+//
+// Visual Comparison:
+//
+//	// Compose: Environment transformation
+//	type AppState struct { Config Config }
+//	type Config struct { Port int }
+//	getConfig := func(s AppState) Config { return s.Config }
+//	getPort := func(c Config) int { return c.Port }
+//	getPortFromState := reader.Compose(getConfig)(getPort)
+//	// Flow: AppState -> Config -> int (Config is both output and next input)
+//
+//	// Chain: Same environment, dependent values
+//	type Env struct { UserId int; Users map[int]string }
+//	getUserId := func(e Env) int { return e.UserId }
+//	getUser := func(id int) reader.Reader[Env, string] {
+//	    return func(e Env) string { return e.Users[id] }
+//	}
+//	getUserName := reader.Chain(getUser)(getUserId)
+//	// Flow: Env -> int, then int -> Reader[Env, string] (Env used twice)
 //
 // Example:
 //

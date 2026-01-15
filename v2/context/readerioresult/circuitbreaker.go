@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/circuitbreaker"
+	"github.com/IBM/fp-go/v2/context/readerio"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/retry"
 )
@@ -27,6 +28,9 @@ func MakeCircuitBreaker[T any](
 		Left,
 		ChainFirstIOK,
 		ChainFirstLeftIOK,
+
+		readerio.ChainFirstIOK,
+
 		FromIO,
 		Flap,
 		Flatten,
