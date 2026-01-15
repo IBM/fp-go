@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
 )
 
 type (
@@ -110,6 +111,25 @@ type (
 		name   string
 		logger *log.Logger
 	}
+
+	// voidMetrics is a no-op implementation of the Metrics interface that does nothing.
+	// All methods return the same pre-allocated IO[Void] operation that immediately returns
+	// without performing any action.
+	//
+	// This implementation is useful for:
+	//   - Testing scenarios where metrics collection is not needed
+	//   - Production environments where metrics overhead should be eliminated
+	//   - Benchmarking circuit breaker logic without metrics interference
+	//   - Default initialization when no metrics implementation is provided
+	//
+	// Thread Safety: This implementation is safe for concurrent use. The noop IO operation
+	// is immutable and can be safely shared across goroutines.
+	//
+	// Performance: This is the most efficient Metrics implementation as it performs no
+	// operations and has minimal memory overhead (single shared IO[Void] instance).
+	voidMetrics struct {
+		noop IO[Void]
+	}
 )
 
 // doLog is a helper method that creates an IO operation for logging a circuit breaker event.
@@ -205,4 +225,80 @@ func (m *loggingMetrics) Canary(ct time.Time) IO[Void] {
 //	// Output: [CB] 2026/01/09 15:30:46 Reject: UserService, 2026-01-09 15:30:46.456 +0100 CET
 func MakeMetricsFromLogger(name string, logger *log.Logger) Metrics {
 	return &loggingMetrics{name: name, logger: logger}
+}
+
+// Open implements the Metrics interface for voidMetrics.
+// Returns a no-op IO operation that does nothing.
+//
+// Thread Safety: Safe for concurrent use.
+func (m *voidMetrics) Open(_ time.Time) IO[Void] {
+	return m.noop
+}
+
+// Accept implements the Metrics interface for voidMetrics.
+// Returns a no-op IO operation that does nothing.
+//
+// Thread Safety: Safe for concurrent use.
+func (m *voidMetrics) Accept(_ time.Time) IO[Void] {
+	return m.noop
+}
+
+// Canary implements the Metrics interface for voidMetrics.
+// Returns a no-op IO operation that does nothing.
+//
+// Thread Safety: Safe for concurrent use.
+func (m *voidMetrics) Canary(_ time.Time) IO[Void] {
+	return m.noop
+}
+
+// Close implements the Metrics interface for voidMetrics.
+// Returns a no-op IO operation that does nothing.
+//
+// Thread Safety: Safe for concurrent use.
+func (m *voidMetrics) Close(_ time.Time) IO[Void] {
+	return m.noop
+}
+
+// Reject implements the Metrics interface for voidMetrics.
+// Returns a no-op IO operation that does nothing.
+//
+// Thread Safety: Safe for concurrent use.
+func (m *voidMetrics) Reject(_ time.Time) IO[Void] {
+	return m.noop
+}
+
+// MakeVoidMetrics creates a no-op Metrics implementation that performs no operations.
+// All methods return the same pre-allocated IO[Void] operation that does nothing when executed.
+//
+// This is useful for:
+//   - Testing scenarios where metrics collection is not needed
+//   - Production environments where metrics overhead should be eliminated
+//   - Benchmarking circuit breaker logic without metrics interference
+//   - Default initialization when no metrics implementation is provided
+//
+// Returns:
+//   - Metrics: A thread-safe no-op Metrics implementation
+//
+// Thread Safety: The returned Metrics implementation is safe for concurrent use.
+// All methods return the same immutable IO[Void] operation.
+//
+// Performance: This is the most efficient Metrics implementation with minimal overhead.
+// The IO[Void] operation is pre-allocated once and reused for all method calls.
+//
+// Example:
+//
+//	metrics := MakeVoidMetrics()
+//
+//	// All operations do nothing
+//	io.Run(metrics.Open(time.Now()))    // No-op
+//	io.Run(metrics.Accept(time.Now()))  // No-op
+//	io.Run(metrics.Reject(time.Now()))  // No-op
+//
+//	// Useful for testing
+//	breaker := MakeCircuitBreaker(
+//	    // ... other parameters ...
+//	    MakeVoidMetrics(), // No metrics overhead
+//	)
+func MakeVoidMetrics() Metrics {
+	return &voidMetrics{io.Of(function.VOID)}
 }

@@ -1112,6 +1112,63 @@ func Read[A, R any](r R) func(ReaderIO[R, A]) IO[A] {
 	return reader.Read[IO[A]](r)
 }
 
+// ReadIO executes a ReaderIO computation by providing an environment wrapped in an IO effect.
+// This is useful when the environment itself needs to be computed or retrieved through side effects.
+//
+// The function takes an IO[R] (an effectful computation that produces an environment) and returns
+// a function that can execute a ReaderIO[R, A] to produce an IO[A].
+//
+// This is particularly useful in scenarios where:
+//   - The environment needs to be loaded from a file, database, or network
+//   - The environment requires initialization with side effects
+//   - You want to compose environment retrieval with the computation that uses it
+//
+// The execution flow is:
+//  1. Execute the IO[R] to get the environment R
+//  2. Pass the environment to the ReaderIO[R, A] to get an IO[A]
+//  3. Execute the resulting IO[A] to get the final result A
+//
+// Type Parameters:
+//   - A: The result type of the ReaderIO computation
+//   - R: The environment type required by the ReaderIO
+//
+// Parameters:
+//   - r: An IO effect that produces the environment of type R
+//
+// Returns:
+//   - A function that takes a ReaderIO[R, A] and returns an IO[A]
+//
+// Example:
+//
+//	type Config struct {
+//	    DatabaseURL string
+//	    Port        int
+//	}
+//
+//	// Load config from file (side effect)
+//	loadConfig := io.Of(Config{DatabaseURL: "localhost:5432", Port: 8080})
+//
+//	// A computation that uses the config
+//	getConnectionString := readerio.Asks(func(c Config) io.IO[string] {
+//	    return io.Of(c.DatabaseURL)
+//	})
+//
+//	// Compose them together
+//	result := readerio.ReadIO[string](loadConfig)(getConnectionString)
+//	connectionString := result() // Executes both effects and returns "localhost:5432"
+//
+// Comparison with Read:
+//   - [Read]: Takes a pure value R and executes the ReaderIO immediately
+//   - [ReadIO]: Takes an IO[R] and chains the effects together
+//
+//go:inline
+func ReadIO[A, R any](r IO[R]) func(ReaderIO[R, A]) IO[A] {
+	return function.Flow2(
+		io.Chain[R, A],
+		Read[A](r),
+	)
+}
+
 // Delay creates an operation that passes in the value after some delay
 //
 //go:inline

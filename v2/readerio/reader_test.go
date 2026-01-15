@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/utils"
 	G "github.com/IBM/fp-go/v2/io"
 	N "github.com/IBM/fp-go/v2/number"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -695,6 +696,150 @@ func TestRead(t *testing.T) {
 	result := ioAction()
 
 	assert.Equal(t, 42, result)
+}
+
+func TestReadIO(t *testing.T) {
+	t.Run("basic usage with IO environment", func(t *testing.T) {
+		// Create a ReaderIO that uses the config
+		rio := Of[ReaderTestConfig](42)
+
+		// Create an IO that produces the config
+		configIO := G.Of(ReaderTestConfig{Value: 21, Name: "test"})
+
+		// Use ReadIO to execute the ReaderIO with the IO environment
+		result := ReadIO[int](configIO)(rio)()
+
+		assert.Equal(t, 42, result)
+	})
+
+	t.Run("chains IO effects correctly", func(t *testing.T) {
+		// Track execution order
+		executionOrder := []string{}
+
+		// Create an IO that produces the config with a side effect
+		configIO := func() ReaderTestConfig {
+			executionOrder = append(executionOrder, "load config")
+			return ReaderTestConfig{Value: 10, Name: "test"}
+		}
+
+		// Create a ReaderIO that uses the config with a side effect
+		rio := func(c ReaderTestConfig) G.IO[int] {
+			return func() int {
+				executionOrder = append(executionOrder, "use config")
+				return c.Value * 3
+			}
+		}
+
+		// Execute the composed computation
+		result := ReadIO[int](configIO)(rio)()
+
+		assert.Equal(t, 30, result)
+		assert.Equal(t, []string{"load config", "use config"}, executionOrder)
+	})
+
+	t.Run("works with complex environment loading", func(t *testing.T) {
+		// Simulate loading config from a file or database
+		loadConfigFromDB := func() ReaderTestConfig {
+			// Simulate side effect
+			return ReaderTestConfig{Value: 100, Name: "production"}
+		}
+
+		// A computation that depends on the loaded config
+		getConnectionString := func(c ReaderTestConfig) G.IO[string] {
+			return G.Of(c.Name + ":" + S.Format[int]("%d")(c.Value))
+		}
+
+		result := ReadIO[string](loadConfigFromDB)(getConnectionString)()
+
+		assert.Equal(t, "production:100", result)
+	})
+
+	t.Run("composes with other ReaderIO operations", func(t *testing.T) {
+		configIO := G.Of(ReaderTestConfig{Value: 5, Name: "test"})
+
+		// Build a pipeline using ReaderIO operations
+		pipeline := F.Pipe2(
+			Ask[ReaderTestConfig](),
+			Map[ReaderTestConfig](func(c ReaderTestConfig) int { return c.Value }),
+			Chain(func(n int) ReaderIO[ReaderTestConfig, int] {
+				return Of[ReaderTestConfig](n * 4)
+			}),
+		)
+
+		result := ReadIO[int](configIO)(pipeline)()
+
+		assert.Equal(t, 20, result)
+	})
+
+	t.Run("handles environment with multiple fields", func(t *testing.T) {
+		configIO := G.Of(ReaderTestConfig{Value: 42, Name: "answer"})
+
+		// Access both fields from the environment
+		rio := func(c ReaderTestConfig) G.IO[string] {
+			return G.Of(c.Name + "=" + S.Format[int]("%d")(c.Value))
+		}
+
+		result := ReadIO[string](configIO)(rio)()
+
+		assert.Equal(t, "answer=42", result)
+	})
+
+	t.Run("lazy evaluation - IO not executed until called", func(t *testing.T) {
+		executed := false
+
+		configIO := func() ReaderTestConfig {
+			executed = true
+			return ReaderTestConfig{Value: 1, Name: "test"}
+		}
+
+		rio := Of[ReaderTestConfig](42)
+
+		// Create the composed IO but don't execute it yet
+		composedIO := ReadIO[int](configIO)(rio)
+
+		// Config IO should not be executed yet
+		assert.False(t, executed)
+
+		// Now execute it
+		result := composedIO()
+
+		// Now it should be executed
+		assert.True(t, executed)
+		assert.Equal(t, 42, result)
+	})
+
+	t.Run("works with ChainIOK", func(t *testing.T) {
+		configIO := G.Of(ReaderTestConfig{Value: 10, Name: "test"})
+
+		pipeline := F.Pipe1(
+			Of[ReaderTestConfig](5),
+			ChainIOK[ReaderTestConfig](func(n int) G.IO[int] {
+				return G.Of(n * 2)
+			}),
+		)
+
+		result := ReadIO[int](configIO)(pipeline)()
+
+		assert.Equal(t, 10, result)
+	})
+
+	t.Run("comparison with Read - different input types", func(t *testing.T) {
+		rio := func(c ReaderTestConfig) G.IO[int] {
+			return G.Of(c.Value + 10)
+		}
+
+		config := ReaderTestConfig{Value: 5, Name: "test"}
+
+		// Using Read with a pure value
+		resultRead := Read[int](config)(rio)()
+
+		// Using ReadIO with an IO value
+		resultReadIO := ReadIO[int](G.Of(config))(rio)()
+
+		// Both should produce the same result
+		assert.Equal(t, 15, resultRead)
+		assert.Equal(t, 15, resultReadIO)
+	})
 }
 
 func TestTapWithLogging(t *testing.T) {
