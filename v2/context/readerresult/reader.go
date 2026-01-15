@@ -148,6 +148,16 @@ func Read[A any](r context.Context) func(ReaderResult[A]) Result[A] {
 	return readereither.Read[error, A](r)
 }
 
+//go:inline
+func ReadEither[A any](r Result[context.Context]) func(ReaderResult[A]) Result[A] {
+	return readereither.ReadEither[error, A](r)
+}
+
+//go:inline
+func ReadResult[A any](r Result[context.Context]) func(ReaderResult[A]) Result[A] {
+	return readereither.ReadEither[error, A](r)
+}
+
 // MonadMapTo executes a ReaderResult computation, discards its success value, and returns a constant value.
 // This is the monadic version that takes both the ReaderResult and the constant value as parameters.
 //

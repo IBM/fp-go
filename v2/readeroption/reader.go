@@ -337,6 +337,26 @@ func Read[A, E any](e E) func(ReaderOption[E, A]) Option[A] {
 	return reader.Read[Option[A]](e)
 }
 
+// ReadOption executes a ReaderOption with an optional environment.
+// If the environment is None, the result is None.
+// If the environment is Some(e), the ReaderOption is executed with e.
+//
+// This is useful when the environment itself might not be available.
+//
+// Example:
+//
+//	ro := readeroption.Of[Config](42)
+//	result1 := readeroption.ReadOption[int](option.Some(myConfig))(ro) // Returns option.Some(42)
+//	result2 := readeroption.ReadOption[int](option.None[Config]())(ro) // Returns option.None[int]()
+//
+//go:inline
+func ReadOption[A, E any](e Option[E]) func(ReaderOption[E, A]) Option[A] {
+	return function.Flow2(
+		O.Chain[E],
+		Read[A](e),
+	)
+}
+
 // MonadFlap applies a value to a function wrapped in a ReaderOption.
 // This is the reverse of MonadAp.
 //

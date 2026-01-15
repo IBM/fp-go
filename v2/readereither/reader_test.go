@@ -223,3 +223,164 @@ func TestOrElse(t *testing.T) {
 	appResult := wideningRecover(validationErr)(Config{})
 	assert.Equal(t, ET.Right[AppError](100), appResult)
 }
+
+func TestReadEither(t *testing.T) {
+	type Config struct {
+		apiKey string
+		host   string
+	}
+
+	// Test with Right context - should execute the ReaderEither
+	t.Run("Right context executes computation", func(t *testing.T) {
+		validConfig := ET.Right[string](Config{apiKey: "secret", host: "localhost"})
+
+		computation := func(cfg Config) Either[string, int] {
+			if cfg.apiKey == "secret" {
+				return ET.Right[string](42)
+			}
+			return ET.Left[int]("invalid key")
+		}
+
+		result := ReadEither[string, int](validConfig)(computation)
+		assert.Equal(t, ET.Right[string](42), result)
+	})
+
+	// Test with Right context but computation fails
+	t.Run("Right context with failing computation", func(t *testing.T) {
+		validConfig := ET.Right[string](Config{apiKey: "wrong", host: "localhost"})
+
+		computation := func(cfg Config) Either[string, int] {
+			if cfg.apiKey == "secret" {
+				return ET.Right[string](42)
+			}
+			return ET.Left[int]("invalid key")
+		}
+
+		result := ReadEither[string, int](validConfig)(computation)
+		assert.Equal(t, ET.Left[int]("invalid key"), result)
+	})
+
+	// Test with Left context - should short-circuit without executing
+	t.Run("Left context short-circuits", func(t *testing.T) {
+		invalidConfig := ET.Left[Config]("config not found")
+
+		executed := false
+		computation := func(cfg Config) Either[string, int] {
+			executed = true
+			return ET.Right[string](42)
+		}
+
+		result := ReadEither[string, int](invalidConfig)(computation)
+		assert.Equal(t, ET.Left[int]("config not found"), result)
+		assert.False(t, executed, "computation should not be executed with Left context")
+	})
+
+	// Test with complex ReaderEither computation
+	t.Run("Complex ReaderEither computation", func(t *testing.T) {
+		validConfig := ET.Right[string](Config{apiKey: "secret", host: "api.example.com"})
+
+		// A more complex computation using the config
+		computation := F.Pipe2(
+			Ask[Config, string](),
+			Map[Config, string](func(cfg Config) string {
+				return cfg.host + "/data"
+			}),
+			Chain[Config, string, string, int](func(url string) ReaderEither[Config, string, int] {
+				return func(cfg Config) Either[string, int] {
+					if cfg.apiKey != "" {
+						return ET.Right[string](len(url))
+					}
+					return ET.Left[int]("no API key")
+				}
+			}),
+		)
+
+		result := ReadEither[string, int](validConfig)(computation)
+		assert.Equal(t, ET.Right[string](20), result) // len("api.example.com/data") = 20
+	})
+
+	// Test error type consistency
+	t.Run("Error type consistency", func(t *testing.T) {
+		type AppError struct {
+			code    int
+			message string
+		}
+
+		configError := AppError{code: 404, message: "config not found"}
+		invalidConfig := ET.Left[Config](configError)
+
+		computation := func(cfg Config) Either[AppError, string] {
+			return ET.Right[AppError]("success")
+		}
+
+		result := ReadEither[AppError, string](invalidConfig)(computation)
+		assert.Equal(t, ET.Left[string](configError), result)
+	})
+
+	// Test with chained operations
+	t.Run("Chained operations with ReadEither", func(t *testing.T) {
+		config1 := ET.Right[string](Config{apiKey: "key1", host: "host1"})
+		config2 := ET.Right[string](Config{apiKey: "key2", host: "host2"})
+
+		computation := func(cfg Config) Either[string, string] {
+			return ET.Right[string](cfg.host)
+		}
+
+		// Apply first config
+		result1 := ReadEither[string, string](config1)(computation)
+		assert.Equal(t, ET.Right[string]("host1"), result1)
+
+		// Apply second config
+		result2 := ReadEither[string, string](config2)(computation)
+		assert.Equal(t, ET.Right[string]("host2"), result2)
+	})
+
+	// Test with FromReader
+	t.Run("ReadEither with FromReader", func(t *testing.T) {
+		validConfig := ET.Right[string](Config{apiKey: "secret", host: "localhost"})
+
+		// Create a ReaderEither from a Reader
+		readerComputation := func(cfg Config) int {
+			return len(cfg.apiKey)
+		}
+
+		computation := FromReader[string](readerComputation)
+
+		result := ReadEither[string, int](validConfig)(computation)
+		assert.Equal(t, ET.Right[string](6), result) // len("secret") = 6
+	})
+
+	// Test with Of (pure value)
+	t.Run("ReadEither with pure value", func(t *testing.T) {
+		validConfig := ET.Right[string](Config{apiKey: "secret", host: "localhost"})
+		computation := Of[Config, string](100)
+
+		result := ReadEither[string, int](validConfig)(computation)
+		assert.Equal(t, ET.Right[string](100), result)
+	})
+
+	// Test with Left computation
+	t.Run("ReadEither with Left computation", func(t *testing.T) {
+		validConfig := ET.Right[string](Config{apiKey: "secret", host: "localhost"})
+		computation := Left[Config, int]("computation error")
+
+		result := ReadEither[string, int](validConfig)(computation)
+		assert.Equal(t, ET.Left[int]("computation error"), result)
+	})
+
+	// Test composition with Read
+	t.Run("ReadEither vs Read comparison", func(t *testing.T) {
+		config := Config{apiKey: "secret", host: "localhost"}
+		computation := func(cfg Config) Either[string, int] {
+			return ET.Right[string](len(cfg.apiKey))
+		}
+
+		// Using Read directly
+		resultRead := Read[string, int](config)(computation)
+
+		// Using ReadEither with Right
+		resultReadEither := ReadEither[string, int](ET.Right[string](config))(computation)
+
+		assert.Equal(t, resultRead, resultReadEither)
+	})
+}

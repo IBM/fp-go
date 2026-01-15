@@ -824,3 +824,141 @@ func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
 func After[R, A any](timestamp time.Time) Operator[R, A, A] {
 	return function.Bind2nd(function.Flow2[ReaderIOResult[R, A]], io.After[Result[A]](timestamp))
 }
+
+// ReadIOEither executes a ReaderIOResult computation by providing an environment
+// obtained from an IOResult. This function bridges the gap between IOResult-based
+// environment acquisition and ReaderIOResult-based computations.
+//
+// The function first executes the IOResult[R] to obtain the environment (or an error),
+// then uses that environment to run the ReaderIOResult[R, A] computation.
+//
+// Type parameters:
+//   - A: The success value type of the ReaderIOResult computation
+//   - R: The environment/context type required by the ReaderIOResult
+//
+// Parameters:
+//   - r: An IOResult[R] that produces the environment (or an error)
+//
+// Returns:
+//   - A function that takes a ReaderIOResult[R, A] and returns IOResult[A]
+//
+// Example:
+//
+//	type Config struct { BaseURL string }
+//
+//	// Get config from environment with potential error
+//	getConfig := func() IOResult[Config] {
+//	    return func() Result[Config] {
+//	        // Load config, may fail
+//	        return result.Of(Config{BaseURL: "https://api.example.com"})
+//	    }
+//	}
+//
+//	// A computation that needs config
+//	fetchUser := func(id int) ReaderIOResult[Config, User] {
+//	    return func(cfg Config) IOResult[User] {
+//	        return func() Result[User] {
+//	            // Use cfg.BaseURL to fetch user
+//	            return result.Of(User{ID: id})
+//	        }
+//	    }
+//	}
+//
+//	// Execute the computation with the config
+//	result := ReadIOEither[User](getConfig())(fetchUser(123))()
+//
+//go:inline
+func ReadIOEither[A, R any](r IOResult[R]) func(ReaderIOResult[R, A]) IOResult[A] {
+	return RIOE.ReadIOEither[A](r)
+}
+
+// ReadIOResult executes a ReaderIOResult computation by providing an environment
+// obtained from an IOResult. This is an alias for ReadIOEither with more explicit naming.
+//
+// The function first executes the IOResult[R] to obtain the environment (or an error),
+// then uses that environment to run the ReaderIOResult[R, A] computation.
+//
+// Type parameters:
+//   - A: The success value type of the ReaderIOResult computation
+//   - R: The environment/context type required by the ReaderIOResult
+//
+// Parameters:
+//   - r: An IOResult[R] that produces the environment (or an error)
+//
+// Returns:
+//   - A function that takes a ReaderIOResult[R, A] and returns IOResult[A]
+//
+// Example:
+//
+//	type Database struct { ConnectionString string }
+//
+//	// Get database connection with potential error
+//	getDB := func() IOResult[Database] {
+//	    return func() Result[Database] {
+//	        return result.Of(Database{ConnectionString: "localhost:5432"})
+//	    }
+//	}
+//
+//	// Query that needs database
+//	queryUsers := ReaderIOResult[Database, []User] {
+//	    return func(db Database) IOResult[[]User] {
+//	        return func() Result[[]User] {
+//	            // Execute query using db
+//	            return result.Of([]User{})
+//	        }
+//	    }
+//	}
+//
+//	// Execute query with database
+//	users := ReadIOResult[[]User](getDB())(queryUsers)()
+//
+//go:inline
+func ReadIOResult[A, R any](r IOResult[R]) func(ReaderIOResult[R, A]) IOResult[A] {
+	return RIOE.ReadIOEither[A](r)
+}
+
+// ReadIO executes a ReaderIOResult computation by providing an environment
+// obtained from an IO computation. Unlike ReadIOEither/ReadIOResult, the environment
+// acquisition cannot fail (it's a pure IO, not IOResult).
+//
+// The function first executes the IO[R] to obtain the environment,
+// then uses that environment to run the ReaderIOResult[R, A] computation.
+//
+// Type parameters:
+//   - A: The success value type of the ReaderIOResult computation
+//   - R: The environment/context type required by the ReaderIOResult
+//
+// Parameters:
+//   - r: An IO[R] that produces the environment (cannot fail)
+//
+// Returns:
+//   - A function that takes a ReaderIOResult[R, A] and returns IOResult[A]
+//
+// Example:
+//
+//	type Logger struct { Level string }
+//
+//	// Get logger (always succeeds)
+//	getLogger := func() IO[Logger] {
+//	    return func() Logger {
+//	        return Logger{Level: "INFO"}
+//	    }
+//	}
+//
+//	// Log operation that may fail
+//	logMessage := func(msg string) ReaderIOResult[Logger, string] {
+//	    return func(logger Logger) IOResult[string] {
+//	        return func() Result[string] {
+//	            // Log with logger, may fail
+//	            return result.Of(fmt.Sprintf("[%s] %s", logger.Level, msg))
+//	        }
+//	    }
+//	}
+//
+//	// Execute logging with logger
+//	logged := ReadIO[string](getLogger())(logMessage("Hello"))()
+//
+//go:inline
+func ReadIO[A, R any](r IO[R]) func(ReaderIOResult[R, A]) IOResult[A] {
+	return RIOE.ReadIO[error, A](r)
+}

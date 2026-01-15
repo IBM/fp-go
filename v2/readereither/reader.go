@@ -160,6 +160,66 @@ func Read[E1, A, E any](e E) func(ReaderEither[E, E1, A]) Either[E1, A] {
 	return reader.Read[Either[E1, A]](e)
 }
 
+// ReadEither applies a context wrapped in an Either to a ReaderEither to obtain its result.
+// This function is useful when the context itself may be absent or invalid (represented as Left),
+// allowing you to conditionally execute a ReaderEither computation based on the availability
+// of the required context.
+//
+// If the context Either is Left, it short-circuits and returns Left without executing the ReaderEither.
+// If the context Either is Right, it extracts the context value and applies it to the ReaderEither,
+// returning the resulting Either.
+//
+// This is particularly useful in scenarios where:
+//   - Configuration or dependencies may be missing or invalid
+//   - You want to chain context validation with computation execution
+//   - You need to propagate context errors through your computation pipeline
+//
+// Type Parameters:
+//   - E1: The error type (Left value) of both the input Either and the ReaderEither result
+//   - A: The success type (Right value) of the ReaderEither result
+//   - E: The context/environment type that the ReaderEither depends on
+//
+// Parameters:
+//   - e: An Either[E1, E] representing the context that may or may not be available
+//
+// Returns:
+//   - A function that takes a ReaderEither[E, E1, A] and returns Either[E1, A]
+//
+// Example:
+//
+//	type Config struct{ apiKey string }
+//	type ConfigError struct{ msg string }
+//
+//	// A computation that needs config
+//	fetchData := func(cfg Config) either.Either[ConfigError, string] {
+//	    if cfg.apiKey == "" {
+//	        return either.Left[string](ConfigError{"missing API key"})
+//	    }
+//	    return either.Right[ConfigError]("data from API")
+//	}
+//
+//	// Context may be invalid
+//	validConfig := either.Right[ConfigError](Config{apiKey: "secret"})
+//	invalidConfig := either.Left[Config](ConfigError{"config not found"})
+//
+//	computation := readereither.FromReader[ConfigError](fetchData)
+//
+//	// With valid config - executes computation
+//	result1 := readereither.ReadEither(validConfig)(computation)
+//	// result1 = Right("data from API")
+//
+//	// With invalid config - short-circuits without executing
+//	result2 := readereither.ReadEither(invalidConfig)(computation)
+//	// result2 = Left(ConfigError{"config not found"})
+//
+//go:inline
+func ReadEither[E1, A, E any](e Either[E1, E]) func(ReaderEither[E, E1, A]) Either[E1, A] {
+	return function.Flow2(
+		ET.Chain[E1, E],
+		Read[E1, A](e),
+	)
+}
+
 func MonadFlap[L, E, A, B any](fab ReaderEither[L, E, func(A) B], a A) ReaderEither[L, E, B] {
 	return functor.MonadFlap(MonadMap[L, E, func(A) B, B], fab, a)
 }

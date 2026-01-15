@@ -38,7 +38,7 @@ import (
 )
 
 //go:inline
-func FromReaderOption[R, A, E any](onNone func() E) Kleisli[R, E, ReaderOption[R, A], A] {
+func FromReaderOption[R, A, E any](onNone Lazy[E]) Kleisli[R, E, ReaderOption[R, A], A] {
 	return function.Bind2nd(function.Flow2[ReaderOption[R, A], IOE.Kleisli[E, Option[A], A]], IOE.FromOption[A](onNone))
 }
 
@@ -348,7 +348,7 @@ func TapReaderEitherK[E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R, E, A
 }
 
 //go:inline
-func ChainReaderOptionK[R, A, B, E any](onNone func() E) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, B] {
+func ChainReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, B] {
 	fro := FromReaderOption[R, B](onNone)
 	return func(f readeroption.Kleisli[R, A, B]) Operator[R, E, A, B] {
 		return fromreader.ChainReaderK(
@@ -360,7 +360,7 @@ func ChainReaderOptionK[R, A, B, E any](onNone func() E) func(readeroption.Kleis
 }
 
 //go:inline
-func ChainFirstReaderOptionK[R, A, B, E any](onNone func() E) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
+func ChainFirstReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	fro := FromReaderOption[R, B](onNone)
 	return func(f readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
 		return fromreader.ChainFirstReaderK(
@@ -372,7 +372,7 @@ func ChainFirstReaderOptionK[R, A, B, E any](onNone func() E) func(readeroption.
 }
 
 //go:inline
-func TapReaderOptionK[R, A, B, E any](onNone func() E) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
+func TapReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	return ChainFirstReaderOptionK[R, A, B](onNone)
 }
 
@@ -467,7 +467,7 @@ func TapIOK[R, E, A, B any](f io.Kleisli[A, B]) Operator[R, E, A, A] {
 // If the Option is None, the provided error function is called to produce the error value.
 //
 //go:inline
-func ChainOptionK[R, A, B, E any](onNone func() E) func(func(A) Option[B]) Operator[R, E, A, B] {
+func ChainOptionK[R, A, B, E any](onNone Lazy[E]) func(func(A) Option[B]) Operator[R, E, A, B] {
 	return fromeither.ChainOptionK(
 		MonadChain[R, E, A, B],
 		FromEither[R, E, B],
@@ -651,7 +651,7 @@ func Asks[E, R, A any](r Reader[R, A]) ReaderIOEither[R, E, A] {
 // If the Option is None, the provided function is called to produce the error.
 //
 //go:inline
-func FromOption[R, A, E any](onNone func() E) func(Option[A]) ReaderIOEither[R, E, A] {
+func FromOption[R, A, E any](onNone Lazy[E]) func(Option[A]) ReaderIOEither[R, E, A] {
 	return fromeither.FromOption(FromEither[R, E, A], onNone)
 }
 
@@ -847,7 +847,7 @@ func Read[E, A, R any](r R) func(ReaderIOEither[R, E, A]) IOEither[E, A] {
 //
 //	// Load configuration from a file (may fail)
 //	loadConfig := func() IOEither[error, Config] {
-//	    return func() Either[error, Config] {
+//	    return Lazy[E]ither[error, Config] {
 //	        // Read config file with error handling
 //	        return either.Right(Config{BaseURL: "https://api.example.com"})
 //	    }
@@ -1059,7 +1059,7 @@ func MonadTapLeft[A, R, EA, EB, B any](ma ReaderIOEither[R, EA, A], f Kleisli[R,
 //   - An Operator that performs the side effect but always returns the original error if input was Left
 //
 //go:inline
-func ChainFirstLeft[A, R, EB, EA, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
+func ChainFirstLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
 	return eithert.ChainFirstLeft(
 		readerio.Chain[R, Either[EA, A], Either[EA, A]],
 		readerio.Map[R, Either[EB, B], Either[EA, A]],
@@ -1076,7 +1076,7 @@ func ChainFirstLeftIOK[A, R, EA, B any](f io.Kleisli[EA, B]) Operator[R, EA, A, 
 }
 
 //go:inline
-func TapLeft[A, R, EB, EA, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
+func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A] {
 	return ChainFirstLeft[A](f)
 }
 

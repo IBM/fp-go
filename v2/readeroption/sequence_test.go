@@ -23,6 +23,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MyContext string
+
+const defaultContext MyContext = "default"
+
 func TestSequenceT1(t *testing.T) {
 
 	t1 := Of[MyContext]("s1")

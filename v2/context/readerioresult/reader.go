@@ -914,6 +914,21 @@ func Read[A any](r context.Context) func(ReaderIOResult[A]) IOResult[A] {
 	return RIOR.Read[A](r)
 }
 
+//go:inline
+func ReadIO[A any](r IO[context.Context]) func(ReaderIOResult[A]) IOResult[A] {
+	return RIOR.ReadIO[A](r)
+}
+
+//go:inline
+func ReadIOEither[A any](r IOResult[context.Context]) func(ReaderIOResult[A]) IOResult[A] {
+	return RIOR.ReadIOEither[A](r)
+}
+
+//go:inline
+func ReadIOResult[A any](r IOResult[context.Context]) func(ReaderIOResult[A]) IOResult[A] {
+	return RIOR.ReadIOResult[A](r)
+}
+
 // MonadChainLeft chains a computation on the left (error) side of a [ReaderIOResult].
 // If the input is a Left value, it applies the function f to transform the error and potentially
 // change the error type. If the input is a Right value, it passes through unchanged.
