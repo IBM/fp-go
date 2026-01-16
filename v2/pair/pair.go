@@ -536,3 +536,49 @@ func Merge[F ~func(B) func(A) R, A, B, R any](f F) func(Pair[A, B]) R {
 		return f(Tail(p))(Head(p))
 	}
 }
+
+// Zero returns the zero value of a [Pair], which is a Pair with zero values for both head and tail.
+// This function is useful for creating an empty Pair or as an identity element in monoid operations.
+//
+// The zero value for a Pair[L, R] has the zero value of type L as the head and the zero value
+// of type R as the tail. For reference types (pointers, slices, maps, channels, functions, interfaces),
+// the zero value is nil. For value types (numbers, booleans, structs), it's the type's zero value.
+//
+// Example:
+//
+//	// Zero pair of integers
+//	p1 := pair.Zero[int, int]()  // Pair[int, int]{0, 0}
+//
+//	// Zero pair of string and int
+//	p2 := pair.Zero[string, int]()  // Pair[string, int]{"", 0}
+//
+//	// Zero pair with pointer types
+//	p3 := pair.Zero[*int, *string]()  // Pair[*int, *string]{nil, nil}
+func Zero[L, R any]() Pair[L, R] {
+	return Pair[L, R]{}
+}
+
+// Unpack extracts both values from a [Pair] and returns them as separate values.
+// This is the inverse operation of [MakePair], allowing you to destructure a Pair
+// back into its constituent head and tail values.
+//
+// This function is particularly useful when you need to work with both values
+// independently or pass them to functions that expect separate parameters rather
+// than a Pair.
+//
+// Example:
+//
+//	p := pair.MakePair("hello", 42)
+//	head, tail := pair.Unpack(p)  // head = "hello", tail = 42
+//
+//	// Using with function that expects separate parameters
+//	result := someFunc(pair.Unpack(p))
+//
+//	// Destructuring for independent use
+//	name, age := pair.Unpack(pair.MakePair("Alice", 30))
+//	fmt.Printf("%s is %d years old\n", name, age)
+//
+//go:inline
+func Unpack[L, R any](p Pair[L, R]) (L, R) {
+	return Head(p), Tail(p)
+}

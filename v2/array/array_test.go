@@ -764,3 +764,341 @@ func TestExtendUseCases(t *testing.T) {
 		assert.Equal(t, expected, result)
 	})
 }
+
+// TestConcat tests the Concat function
+func TestConcat(t *testing.T) {
+	t.Run("Concat two non-empty arrays", func(t *testing.T) {
+		base := []int{1, 2, 3}
+		toAppend := []int{4, 5, 6}
+		result := Concat(toAppend)(base)
+		expected := []int{1, 2, 3, 4, 5, 6}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat with empty array to append", func(t *testing.T) {
+		base := []int{1, 2, 3}
+		empty := []int{}
+		result := Concat(empty)(base)
+		assert.Equal(t, base, result)
+	})
+
+	t.Run("Concat to empty base array", func(t *testing.T) {
+		empty := []int{}
+		toAppend := []int{1, 2, 3}
+		result := Concat(toAppend)(empty)
+		assert.Equal(t, toAppend, result)
+	})
+
+	t.Run("Concat two empty arrays", func(t *testing.T) {
+		empty1 := []int{}
+		empty2 := []int{}
+		result := Concat(empty2)(empty1)
+		assert.Equal(t, []int{}, result)
+	})
+
+	t.Run("Concat strings", func(t *testing.T) {
+		words1 := []string{"hello", "world"}
+		words2 := []string{"foo", "bar"}
+		result := Concat(words2)(words1)
+		expected := []string{"hello", "world", "foo", "bar"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat single element arrays", func(t *testing.T) {
+		arr1 := []int{1}
+		arr2 := []int{2}
+		result := Concat(arr2)(arr1)
+		expected := []int{1, 2}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Does not modify original arrays", func(t *testing.T) {
+		base := []int{1, 2, 3}
+		toAppend := []int{4, 5, 6}
+		baseCopy := []int{1, 2, 3}
+		toAppendCopy := []int{4, 5, 6}
+
+		_ = Concat(toAppend)(base)
+
+		assert.Equal(t, baseCopy, base)
+		assert.Equal(t, toAppendCopy, toAppend)
+	})
+
+	t.Run("Concat with floats", func(t *testing.T) {
+		arr1 := []float64{1.1, 2.2}
+		arr2 := []float64{3.3, 4.4}
+		result := Concat(arr2)(arr1)
+		expected := []float64{1.1, 2.2, 3.3, 4.4}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat with structs", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		arr1 := []Person{{"Alice", 30}, {"Bob", 25}}
+		arr2 := []Person{{"Charlie", 35}}
+		result := Concat(arr2)(arr1)
+		expected := []Person{{"Alice", 30}, {"Bob", 25}, {"Charlie", 35}}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat large arrays", func(t *testing.T) {
+		arr1 := MakeBy(500, F.Identity[int])
+		arr2 := MakeBy(500, func(i int) int { return i + 500 })
+		result := Concat(arr2)(arr1)
+
+		assert.Equal(t, 1000, len(result))
+		assert.Equal(t, 0, result[0])
+		assert.Equal(t, 499, result[499])
+		assert.Equal(t, 500, result[500])
+		assert.Equal(t, 999, result[999])
+	})
+
+	t.Run("Concat multiple times", func(t *testing.T) {
+		arr1 := []int{1}
+		arr2 := []int{2}
+		arr3 := []int{3}
+
+		result := F.Pipe2(
+			arr1,
+			Concat(arr2),
+			Concat(arr3),
+		)
+
+		expected := []int{1, 2, 3}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestConcatComposition tests Concat with other array operations
+func TestConcatComposition(t *testing.T) {
+	t.Run("Concat after Map", func(t *testing.T) {
+		numbers := []int{1, 2, 3}
+		result := F.Pipe2(
+			numbers,
+			Map(N.Mul(2)),
+			Concat([]int{10, 20}),
+		)
+		expected := []int{2, 4, 6, 10, 20}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Map after Concat", func(t *testing.T) {
+		arr1 := []int{1, 2}
+		arr2 := []int{3, 4}
+		result := F.Pipe2(
+			arr1,
+			Concat(arr2),
+			Map(N.Mul(2)),
+		)
+		expected := []int{2, 4, 6, 8}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat with Filter", func(t *testing.T) {
+		arr1 := []int{1, 2, 3, 4}
+		arr2 := []int{5, 6, 7, 8}
+		result := F.Pipe2(
+			arr1,
+			Concat(arr2),
+			Filter(func(n int) bool { return n%2 == 0 }),
+		)
+		expected := []int{2, 4, 6, 8}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat with Reduce", func(t *testing.T) {
+		arr1 := []int{1, 2, 3}
+		arr2 := []int{4, 5, 6}
+		result := F.Pipe2(
+			arr1,
+			Concat(arr2),
+			Reduce(func(acc, x int) int { return acc + x }, 0),
+		)
+		expected := 21 // 1+2+3+4+5+6
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat with Reverse", func(t *testing.T) {
+		arr1 := []int{1, 2, 3}
+		arr2 := []int{4, 5, 6}
+		result := F.Pipe2(
+			arr1,
+			Concat(arr2),
+			Reverse[int],
+		)
+		expected := []int{6, 5, 4, 3, 2, 1}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Concat with Flatten", func(t *testing.T) {
+		arr1 := [][]int{{1, 2}, {3, 4}}
+		arr2 := [][]int{{5, 6}}
+		result := F.Pipe2(
+			arr1,
+			Concat(arr2),
+			Flatten[int],
+		)
+		expected := []int{1, 2, 3, 4, 5, 6}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Multiple Concat operations", func(t *testing.T) {
+		arr1 := []int{1}
+		arr2 := []int{2}
+		arr3 := []int{3}
+		arr4 := []int{4}
+
+		result := Concat(arr4)(Concat(arr3)(Concat(arr2)(arr1)))
+
+		expected := []int{1, 2, 3, 4}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestConcatUseCases demonstrates practical use cases for Concat
+func TestConcatUseCases(t *testing.T) {
+	t.Run("Building array incrementally", func(t *testing.T) {
+		header := []string{"Name", "Age"}
+		data := []string{"Alice", "30"}
+		footer := []string{"Total: 1"}
+
+		result := F.Pipe2(
+			header,
+			Concat(data),
+			Concat(footer),
+		)
+
+		expected := []string{"Name", "Age", "Alice", "30", "Total: 1"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Merging results from multiple operations", func(t *testing.T) {
+		evens := Filter(func(n int) bool { return n%2 == 0 })([]int{1, 2, 3, 4, 5, 6})
+		odds := Filter(func(n int) bool { return n%2 != 0 })([]int{1, 2, 3, 4, 5, 6})
+
+		result := Concat(odds)(evens)
+		expected := []int{2, 4, 6, 1, 3, 5}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Combining prefix and suffix", func(t *testing.T) {
+		prefix := []string{"Mr.", "Dr."}
+		names := []string{"Smith", "Jones"}
+
+		addPrefix := func(name string) []string {
+			return Map(func(p string) string { return p + " " + name })(prefix)
+		}
+
+		result := F.Pipe2(
+			names,
+			Chain(addPrefix),
+			F.Identity[[]string],
+		)
+
+		expected := []string{"Mr. Smith", "Dr. Smith", "Mr. Jones", "Dr. Jones"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Queue-like behavior", func(t *testing.T) {
+		queue := []int{1, 2, 3}
+		newItems := []int{4, 5}
+
+		// Add items to end of queue
+		updatedQueue := Concat(newItems)(queue)
+
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, updatedQueue)
+		assert.Equal(t, 1, updatedQueue[0])                   // Front of queue
+		assert.Equal(t, 5, updatedQueue[len(updatedQueue)-1]) // Back of queue
+	})
+
+	t.Run("Combining configuration arrays", func(t *testing.T) {
+		defaultConfig := []string{"--verbose", "--color"}
+		userConfig := []string{"--output=file.txt", "--format=json"}
+
+		finalConfig := Concat(userConfig)(defaultConfig)
+
+		expected := []string{"--verbose", "--color", "--output=file.txt", "--format=json"}
+		assert.Equal(t, expected, finalConfig)
+	})
+}
+
+// TestConcatProperties tests mathematical properties of Concat
+func TestConcatProperties(t *testing.T) {
+	t.Run("Associativity: (a + b) + c == a + (b + c)", func(t *testing.T) {
+		a := []int{1, 2}
+		b := []int{3, 4}
+		c := []int{5, 6}
+
+		// (a + b) + c
+		left := Concat(c)(Concat(b)(a))
+
+		// a + (b + c)
+		right := Concat(Concat(c)(b))(a)
+
+		assert.Equal(t, left, right)
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, left)
+	})
+
+	t.Run("Identity: a + [] == a and [] + a == a", func(t *testing.T) {
+		arr := []int{1, 2, 3}
+		empty := []int{}
+
+		// Right identity
+		rightResult := Concat(empty)(arr)
+		assert.Equal(t, arr, rightResult)
+
+		// Left identity
+		leftResult := Concat(arr)(empty)
+		assert.Equal(t, arr, leftResult)
+	})
+
+	t.Run("Length property: len(a + b) == len(a) + len(b)", func(t *testing.T) {
+		testCases := []struct {
+			arr1 []int
+			arr2 []int
+		}{
+			{[]int{1, 2, 3}, []int{4, 5}},
+			{[]int{1}, []int{2, 3, 4, 5}},
+			{[]int{}, []int{1, 2, 3}},
+			{[]int{1, 2, 3}, []int{}},
+			{MakeBy(100, F.Identity[int]), MakeBy(50, F.Identity[int])},
+		}
+
+		for _, tc := range testCases {
+			result := Concat(tc.arr2)(tc.arr1)
+			expectedLen := len(tc.arr1) + len(tc.arr2)
+			assert.Equal(t, expectedLen, len(result))
+		}
+	})
+
+	t.Run("Order preservation: elements maintain their relative order", func(t *testing.T) {
+		arr1 := []int{1, 2, 3}
+		arr2 := []int{4, 5, 6}
+		result := Concat(arr2)(arr1)
+
+		// Check arr1 elements are in order
+		assert.Equal(t, 1, result[0])
+		assert.Equal(t, 2, result[1])
+		assert.Equal(t, 3, result[2])
+
+		// Check arr2 elements are in order after arr1
+		assert.Equal(t, 4, result[3])
+		assert.Equal(t, 5, result[4])
+		assert.Equal(t, 6, result[5])
+	})
+
+	t.Run("Immutability: original arrays are not modified", func(t *testing.T) {
+		original1 := []int{1, 2, 3}
+		original2 := []int{4, 5, 6}
+		copy1 := []int{1, 2, 3}
+		copy2 := []int{4, 5, 6}
+
+		_ = Concat(original2)(original1)
+
+		assert.Equal(t, copy1, original1)
+		assert.Equal(t, copy2, original2)
+	})
+}

@@ -174,3 +174,199 @@ func TestAlt(t *testing.T) {
 	assert.Equal(t, Some(1), F.Pipe1(None[int](), Alt(F.Constant(Some(1)))))
 	assert.Equal(t, None[int](), F.Pipe1(None[int](), Alt(F.Constant(None[int]()))))
 }
+
+// TestZeroWithIntegers tests Zero function with integer types
+func TestZeroWithIntegers(t *testing.T) {
+	o := Zero[int]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithStrings tests Zero function with string types
+func TestZeroWithStrings(t *testing.T) {
+	o := Zero[string]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithBooleans tests Zero function with boolean types
+func TestZeroWithBooleans(t *testing.T) {
+	o := Zero[bool]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithFloats tests Zero function with float types
+func TestZeroWithFloats(t *testing.T) {
+	o := Zero[float64]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithPointers tests Zero function with pointer types
+func TestZeroWithPointers(t *testing.T) {
+	o := Zero[*int]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithSlices tests Zero function with slice types
+func TestZeroWithSlices(t *testing.T) {
+	o := Zero[[]int]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithMaps tests Zero function with map types
+func TestZeroWithMaps(t *testing.T) {
+	o := Zero[map[string]int]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithStructs tests Zero function with struct types
+func TestZeroWithStructs(t *testing.T) {
+	type TestStruct struct {
+		Field1 int
+		Field2 string
+	}
+
+	o := Zero[TestStruct]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithInterfaces tests Zero function with interface types
+func TestZeroWithInterfaces(t *testing.T) {
+	o := Zero[interface{}]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroIsNotSomeWithZeroValue tests that Zero is different from Some(zero value)
+func TestZeroIsNotSomeWithZeroValue(t *testing.T) {
+	// Zero returns None
+	zero := Zero[int]()
+	assert.True(t, IsNone(zero), "Zero should be None")
+
+	// Some with zero value is different
+	someZero := Some(0)
+	assert.True(t, IsSome(someZero), "Some(0) should be Some")
+
+	// They are not equal
+	assert.NotEqual(t, zero, someZero, "Zero (None) should not equal Some(0)")
+}
+
+// TestZeroCanBeUsedWithOtherFunctions tests that Zero Options work with other option functions
+func TestZeroCanBeUsedWithOtherFunctions(t *testing.T) {
+	o := Zero[int]()
+
+	// Test with Map - should remain None
+	mapped := MonadMap(o, func(n int) string {
+		return fmt.Sprintf("%d", n)
+	})
+	assert.True(t, IsNone(mapped), "Mapped Zero should still be None")
+
+	// Test with Chain - should remain None
+	chained := MonadChain(o, func(n int) Option[string] {
+		return Some(fmt.Sprintf("value: %d", n))
+	})
+	assert.True(t, IsNone(chained), "Chained Zero should still be None")
+
+	// Test with Fold - should use onNone branch
+	folded := MonadFold(o,
+		func() string { return "none" },
+		func(n int) string { return fmt.Sprintf("some: %d", n) },
+	)
+	assert.Equal(t, "none", folded, "Folded Zero should use onNone branch")
+
+	// Test with GetOrElse
+	value := GetOrElse(func() int { return 42 })(o)
+	assert.Equal(t, 42, value, "GetOrElse on Zero should return default value")
+}
+
+// TestZeroEquality tests that multiple Zero calls produce equal Options
+func TestZeroEquality(t *testing.T) {
+	o1 := Zero[int]()
+	o2 := Zero[int]()
+
+	assert.Equal(t, IsNone(o1), IsNone(o2), "Both should be None")
+	assert.Equal(t, IsSome(o1), IsSome(o2), "Both should not be Some")
+	assert.Equal(t, o1, o2, "Zero values should be equal")
+}
+
+// TestZeroWithComplexTypes tests Zero with more complex nested types
+func TestZeroWithComplexTypes(t *testing.T) {
+	type ComplexType struct {
+		Nested map[string][]int
+		Ptr    *string
+	}
+
+	o := Zero[ComplexType]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroWithNestedOption tests Zero with nested Option type
+func TestZeroWithNestedOption(t *testing.T) {
+	o := Zero[Option[int]]()
+
+	assert.True(t, IsNone(o), "Zero should create a None value")
+	assert.False(t, IsSome(o), "Zero should not create a Some value")
+}
+
+// TestZeroIsAlwaysNone tests that Zero never creates a Some value
+func TestZeroIsAlwaysNone(t *testing.T) {
+	// Test with various types
+	o1 := Zero[int]()
+	o2 := Zero[string]()
+	o3 := Zero[bool]()
+	o4 := Zero[*int]()
+	o5 := Zero[[]string]()
+
+	assert.True(t, IsNone(o1), "Zero should always be None")
+	assert.True(t, IsNone(o2), "Zero should always be None")
+	assert.True(t, IsNone(o3), "Zero should always be None")
+	assert.True(t, IsNone(o4), "Zero should always be None")
+	assert.True(t, IsNone(o5), "Zero should always be None")
+
+	assert.False(t, IsSome(o1), "Zero should never be Some")
+	assert.False(t, IsSome(o2), "Zero should never be Some")
+	assert.False(t, IsSome(o3), "Zero should never be Some")
+	assert.False(t, IsSome(o4), "Zero should never be Some")
+	assert.False(t, IsSome(o5), "Zero should never be Some")
+}
+
+// TestZeroEqualsNone tests that Zero is equivalent to None
+func TestZeroEqualsNone(t *testing.T) {
+	zero := Zero[int]()
+	none := None[int]()
+
+	assert.Equal(t, zero, none, "Zero should be equal to None")
+	assert.Equal(t, IsNone(zero), IsNone(none), "Both should be None")
+	assert.Equal(t, IsSome(zero), IsSome(none), "Both should not be Some")
+}
+
+// TestZeroEqualsDefaultInitialization tests that Zero returns the same value as default initialization
+func TestZeroEqualsDefaultInitialization(t *testing.T) {
+	// Default initialization of Option
+	var defaultInit Option[int]
+
+	// Zero function
+	zero := Zero[int]()
+
+	// They should be equal
+	assert.Equal(t, defaultInit, zero, "Zero should equal default initialization")
+	assert.Equal(t, IsNone(defaultInit), IsNone(zero), "Both should be None")
+	assert.Equal(t, IsSome(defaultInit), IsSome(zero), "Both should not be Some")
+}

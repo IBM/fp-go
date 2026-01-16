@@ -514,6 +514,83 @@ func Push[A any](a A) Operator[A, A] {
 	return G.Push[Operator[A, A]](a)
 }
 
+// Concat concatenates two arrays, appending the provided array to the end of the input array.
+// This is a curried function that takes an array to append and returns a function that
+// takes the base array and returns the concatenated result.
+//
+// The function creates a new array containing all elements from the base array followed
+// by all elements from the appended array. Neither input array is modified.
+//
+// Type Parameters:
+//   - A: The type of elements in the arrays
+//
+// Parameters:
+//   - as: The array to append to the end of the base array
+//
+// Returns:
+//   - A function that takes a base array and returns a new array with `as` appended to its end
+//
+// Behavior:
+//   - Creates a new array with length equal to the sum of both input arrays
+//   - Copies all elements from the base array first
+//   - Appends all elements from the `as` array at the end
+//   - Returns the base array unchanged if `as` is empty
+//   - Returns `as` unchanged if the base array is empty
+//   - Does not modify either input array
+//
+// Example:
+//
+//	base := []int{1, 2, 3}
+//	toAppend := []int{4, 5, 6}
+//	result := array.Concat(toAppend)(base)
+//	// result: []int{1, 2, 3, 4, 5, 6}
+//	// base: []int{1, 2, 3} (unchanged)
+//	// toAppend: []int{4, 5, 6} (unchanged)
+//
+// Example with empty arrays:
+//
+//	base := []int{1, 2, 3}
+//	empty := []int{}
+//	result := array.Concat(empty)(base)
+//	// result: []int{1, 2, 3}
+//
+// Example with strings:
+//
+//	words1 := []string{"hello", "world"}
+//	words2 := []string{"foo", "bar"}
+//	result := array.Concat(words2)(words1)
+//	// result: []string{"hello", "world", "foo", "bar"}
+//
+// Example with functional composition:
+//
+//	numbers := []int{1, 2, 3}
+//	result := F.Pipe2(
+//	    numbers,
+//	    array.Map(N.Mul(2)),
+//	    array.Concat([]int{10, 20}),
+//	)
+//	// result: []int{2, 4, 6, 10, 20}
+//
+// Use cases:
+//   - Combining multiple arrays into one
+//   - Building arrays incrementally
+//   - Implementing array-based data structures (queues, buffers)
+//   - Merging results from multiple operations
+//   - Creating array pipelines with functional composition
+//
+// Performance:
+//   - Time complexity: O(n + m) where n and m are the lengths of the arrays
+//   - Space complexity: O(n + m) for the new array
+//   - Optimized to avoid allocation when one array is empty
+//
+// Note: This function is immutable - it creates a new array rather than modifying
+// the input arrays. For appending a single element, consider using Append or Push.
+//
+//go:inline
+func Concat[A any](as []A) Operator[A, A] {
+	return F.Bind2nd(array.Concat[[]A, A], as)
+}
+
 // MonadFlap applies a value to an array of functions, producing an array of results.
 // This is the monadic version that takes both parameters.
 //

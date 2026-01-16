@@ -16,575 +16,381 @@
 package pair
 
 import (
-	"fmt"
-	"strconv"
 	"testing"
 
-	EQ "github.com/IBM/fp-go/v2/eq"
-	N "github.com/IBM/fp-go/v2/number"
-	S "github.com/IBM/fp-go/v2/string"
-	"github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOf(t *testing.T) {
-	p := Of(42)
-	assert.Equal(t, 42, Head(p))
-	assert.Equal(t, 42, Tail(p))
+// TestZeroWithIntegers tests Zero function with integer types
+func TestZeroWithIntegers(t *testing.T) {
+	p := Zero[int, int]()
+
+	assert.Equal(t, 0, Head(p), "Head should be zero value for int")
+	assert.Equal(t, 0, Tail(p), "Tail should be zero value for int")
 }
 
-func TestMakePair(t *testing.T) {
-	p := MakePair("hello", 42)
-	assert.Equal(t, "hello", Head(p))
-	assert.Equal(t, 42, Tail(p))
+// TestZeroWithStrings tests Zero function with string types
+func TestZeroWithStrings(t *testing.T) {
+	p := Zero[string, string]()
+
+	assert.Equal(t, "", Head(p), "Head should be zero value for string")
+	assert.Equal(t, "", Tail(p), "Tail should be zero value for string")
 }
 
-func TestFromTuple(t *testing.T) {
-	tup := tuple.MakeTuple2("world", 100)
-	p := FromTuple(tup)
-	assert.Equal(t, "world", Head(p))
-	assert.Equal(t, 100, Tail(p))
+// TestZeroWithMixedTypes tests Zero function with different types
+func TestZeroWithMixedTypes(t *testing.T) {
+	p := Zero[string, int]()
+
+	assert.Equal(t, "", Head(p), "Head should be zero value for string")
+	assert.Equal(t, 0, Tail(p), "Tail should be zero value for int")
 }
 
-func TestFromHead(t *testing.T) {
-	// Test basic usage
-	makePair := FromHead[int]("hello")
-	p := makePair(42)
-	assert.Equal(t, "hello", Head(p))
-	assert.Equal(t, 42, Tail(p))
+// TestZeroWithBooleans tests Zero function with boolean types
+func TestZeroWithBooleans(t *testing.T) {
+	p := Zero[bool, bool]()
 
-	// Test with different types
-	makePair2 := FromHead[string](100)
-	p2 := makePair2("world")
-	assert.Equal(t, 100, Head(p2))
-	assert.Equal(t, "world", Tail(p2))
-
-	// Test with same type for head and tail
-	makePair3 := FromHead[int](1)
-	p3 := makePair3(2)
-	assert.Equal(t, 1, Head(p3))
-	assert.Equal(t, 2, Tail(p3))
+	assert.Equal(t, false, Head(p), "Head should be zero value for bool")
+	assert.Equal(t, false, Tail(p), "Tail should be zero value for bool")
 }
 
-func TestFromTail(t *testing.T) {
-	// Test basic usage
-	makePair := FromTail[string](42)
-	p := makePair("hello")
-	assert.Equal(t, "hello", Head(p))
-	assert.Equal(t, 42, Tail(p))
+// TestZeroWithFloats tests Zero function with float types
+func TestZeroWithFloats(t *testing.T) {
+	p := Zero[float64, float32]()
 
-	// Test with different types
-	makePair2 := FromTail[int]("world")
-	p2 := makePair2(100)
-	assert.Equal(t, 100, Head(p2))
-	assert.Equal(t, "world", Tail(p2))
-
-	// Test with same type for head and tail
-	makePair3 := FromTail[int](2)
-	p3 := makePair3(1)
-	assert.Equal(t, 1, Head(p3))
-	assert.Equal(t, 2, Tail(p3))
+	assert.Equal(t, 0.0, Head(p), "Head should be zero value for float64")
+	assert.Equal(t, float32(0.0), Tail(p), "Tail should be zero value for float32")
 }
 
-func TestFromHeadFromTailComposition(t *testing.T) {
-	// Test that FromHead and FromTail can be composed
-	// and produce the same result as MakePair
+// TestZeroWithPointers tests Zero function with pointer types
+func TestZeroWithPointers(t *testing.T) {
+	p := Zero[*int, *string]()
 
-	// Using FromHead
-	fromHeadMaker := FromHead[int]("test")
-	p1 := fromHeadMaker(123)
-
-	// Using FromTail
-	fromTailMaker := FromTail[string](123)
-	p2 := fromTailMaker("test")
-
-	// Using MakePair directly
-	p3 := MakePair("test", 123)
-
-	// All three should produce the same result
-	assert.Equal(t, Head(p1), Head(p2))
-	assert.Equal(t, Tail(p1), Tail(p2))
-	assert.Equal(t, Head(p1), Head(p3))
-	assert.Equal(t, Tail(p1), Tail(p3))
+	assert.Nil(t, Head(p), "Head should be nil for pointer type")
+	assert.Nil(t, Tail(p), "Tail should be nil for pointer type")
 }
 
-func TestToTuple(t *testing.T) {
-	p := MakePair("hello", 42)
-	tup := ToTuple(p)
-	assert.Equal(t, "hello", tup.F1)
-	assert.Equal(t, 42, tup.F2)
+// TestZeroWithSlices tests Zero function with slice types
+func TestZeroWithSlices(t *testing.T) {
+	p := Zero[[]int, []string]()
+
+	assert.Nil(t, Head(p), "Head should be nil for slice type")
+	assert.Nil(t, Tail(p), "Tail should be nil for slice type")
 }
 
-func TestHeadAndTail(t *testing.T) {
-	p := MakePair("test", 123)
-	assert.Equal(t, "test", Head(p))
-	assert.Equal(t, 123, Tail(p))
+// TestZeroWithMaps tests Zero function with map types
+func TestZeroWithMaps(t *testing.T) {
+	p := Zero[map[string]int, map[int]string]()
+
+	assert.Nil(t, Head(p), "Head should be nil for map type")
+	assert.Nil(t, Tail(p), "Tail should be nil for map type")
 }
 
-func TestFirstAndSecond(t *testing.T) {
-	p := MakePair("first", "second")
-	assert.Equal(t, "first", First(p))
-	assert.Equal(t, "second", Second(p))
-}
-
-func TestMonadMapHead(t *testing.T) {
-	p := MakePair(5, "hello")
-	p2 := MonadMapHead(p, strconv.Itoa)
-	assert.Equal(t, "5", Head(p2))
-	assert.Equal(t, "hello", Tail(p2))
-}
-
-func TestMonadMapTail(t *testing.T) {
-	p := MakePair(5, "hello")
-	p2 := MonadMapTail(p, func(s string) int {
-		return len(s)
-	})
-	assert.Equal(t, 5, Head(p2))
-	assert.Equal(t, 5, Tail(p2))
-}
-
-func TestMonadBiMap(t *testing.T) {
-	p := MakePair(5, "hello")
-	p2 := MonadBiMap(p,
-		strconv.Itoa,
-		S.Size,
-	)
-	assert.Equal(t, "5", Head(p2))
-	assert.Equal(t, 5, Tail(p2))
-}
-
-func TestMapHead(t *testing.T) {
-	mapper := MapHead[string](strconv.Itoa)
-	p := MakePair(42, "world")
-	p2 := mapper(p)
-	assert.Equal(t, "42", Head(p2))
-	assert.Equal(t, "world", Tail(p2))
-}
-
-func TestMapTail(t *testing.T) {
-	mapper := MapTail[int](func(s string) int {
-		return len(s)
-	})
-	p := MakePair(10, "hello")
-	p2 := mapper(p)
-	assert.Equal(t, 10, Head(p2))
-	assert.Equal(t, 5, Tail(p2))
-}
-
-func TestMap(t *testing.T) {
-	mapper := Map[int](func(s string) int {
-		return len(s)
-	})
-	p := MakePair(10, "test")
-	p2 := mapper(p)
-	assert.Equal(t, 10, Head(p2))
-	assert.Equal(t, 4, Tail(p2))
-}
-
-func TestBiMap(t *testing.T) {
-	mapper := BiMap(
-		S.Format[int]("n=%d"),
-		S.Size,
-	)
-	p := MakePair(7, "hello")
-	p2 := mapper(p)
-	assert.Equal(t, "n=7", Head(p2))
-	assert.Equal(t, 5, Tail(p2))
-}
-
-func TestSwap(t *testing.T) {
-	p := MakePair("hello", 42)
-	swapped := Swap(p)
-	assert.Equal(t, 42, Head(swapped))
-	assert.Equal(t, "hello", Tail(swapped))
-}
-
-func TestMonadChainHead(t *testing.T) {
-	strConcat := S.Semigroup
-	p := MakePair(5, "hello")
-	p2 := MonadChainHead(strConcat, p, func(n int) Pair[string, string] {
-		return MakePair(fmt.Sprintf("%d", n), "!")
-	})
-	assert.Equal(t, "5", Head(p2))
-	assert.Equal(t, "hello!", Tail(p2))
-}
-
-func TestMonadChainTail(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	p := MakePair(5, "hello")
-	p2 := MonadChainTail(intSum, p, func(s string) Pair[int, int] {
-		return MakePair(len(s), len(s)*2)
-	})
-	assert.Equal(t, 10, Head(p2)) // 5 + 5
-	assert.Equal(t, 10, Tail(p2))
-}
-
-func TestMonadChain(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	p := MakePair(3, "test")
-	p2 := MonadChain(intSum, p, func(s string) Pair[int, int] {
-		return MakePair(len(s), len(s)*3)
-	})
-	assert.Equal(t, 7, Head(p2)) // 3 + 4
-	assert.Equal(t, 12, Tail(p2))
-}
-
-func TestChainHead(t *testing.T) {
-	strConcat := S.Semigroup
-	chain := ChainHead(strConcat, func(n int) Pair[string, string] {
-		return MakePair(fmt.Sprintf("%d", n), "!")
-	})
-	p := MakePair(42, "hello")
-	p2 := chain(p)
-	assert.Equal(t, "42", Head(p2))
-	assert.Equal(t, "hello!", Tail(p2))
-}
-
-func TestChainTail(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	chain := ChainTail(intSum, func(s string) Pair[int, int] {
-		return MakePair(len(s), len(s)*2)
-	})
-	p := MakePair(10, "world")
-	p2 := chain(p)
-	assert.Equal(t, 15, Head(p2)) // 10 + 5
-	assert.Equal(t, 10, Tail(p2))
-}
-
-func TestChain(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	chain := Chain(intSum, func(s string) Pair[int, int] {
-		return MakePair(len(s), len(s)*2)
-	})
-	p := MakePair(5, "hi")
-	p2 := chain(p)
-	assert.Equal(t, 7, Head(p2)) // 5 + 2
-	assert.Equal(t, 4, Tail(p2))
-}
-
-func TestMonadApHead(t *testing.T) {
-	strConcat := S.Semigroup
-	pf := MakePair(strconv.Itoa, "!")
-	pv := MakePair(42, "hello")
-	result := MonadApHead(strConcat, pf, pv)
-	assert.Equal(t, "42", Head(result))
-	assert.Equal(t, "hello!", Tail(result))
-}
-
-func TestMonadApTail(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	pf := MakePair(10, S.Size)
-	pv := MakePair(5, "hello")
-	result := MonadApTail(intSum, pf, pv)
-	assert.Equal(t, 15, Head(result)) // 5 + 10
-	assert.Equal(t, 5, Tail(result))
-}
-
-func TestMonadAp(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	pf := MakePair(7, func(s string) int { return len(s) * 2 })
-	pv := MakePair(3, "test")
-	result := MonadAp(intSum, pf, pv)
-	assert.Equal(t, 10, Head(result)) // 3 + 7
-	assert.Equal(t, 8, Tail(result))  // len("test") * 2
-}
-
-func TestApHead(t *testing.T) {
-	strConcat := S.Semigroup
-	pv := MakePair(100, "world")
-	ap := ApHead[string, int, string](strConcat, pv)
-	pf := MakePair(func(n int) string { return fmt.Sprintf("num=%d", n) }, "!")
-	result := ap(pf)
-	assert.Equal(t, "num=100", Head(result))
-	assert.Equal(t, "world!", Tail(result))
-}
-
-func TestApTail(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	pv := MakePair(20, "hello")
-	ap := ApTail[int, string, int](intSum, pv)
-	pf := MakePair(5, S.Size)
-	result := ap(pf)
-	assert.Equal(t, 25, Head(result)) // 20 + 5
-	assert.Equal(t, 5, Tail(result))
-}
-
-func TestAp(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-	pv := MakePair(15, "test")
-	ap := Ap[int, string, int](intSum, pv)
-	pf := MakePair(10, func(s string) int { return len(s) * 3 })
-	result := ap(pf)
-	assert.Equal(t, 25, Head(result)) // 15 + 10
-	assert.Equal(t, 12, Tail(result)) // len("test") * 3
-}
-
-func TestPaired(t *testing.T) {
-	add := func(a, b int) int { return a + b }
-	pairedAdd := Paired(add)
-	result := pairedAdd(MakePair(3, 4))
-	assert.Equal(t, 7, result)
-}
-
-func TestUnpaired(t *testing.T) {
-	pairedAdd := func(p Pair[int, int]) int {
-		return Head(p) + Tail(p)
+// TestZeroWithStructs tests Zero function with struct types
+func TestZeroWithStructs(t *testing.T) {
+	type TestStruct struct {
+		Field1 int
+		Field2 string
 	}
-	add := Unpaired(pairedAdd)
-	result := add(5, 7)
-	assert.Equal(t, 12, result)
+
+	p := Zero[TestStruct, TestStruct]()
+
+	expected := TestStruct{Field1: 0, Field2: ""}
+	assert.Equal(t, expected, Head(p), "Head should be zero value for struct")
+	assert.Equal(t, expected, Tail(p), "Tail should be zero value for struct")
 }
 
-func TestMerge(t *testing.T) {
-	add := N.Add[int]
-	merge := Merge(add)
-	result := merge(MakePair(3, 4))
-	assert.Equal(t, 7, result)
+// TestZeroWithInterfaces tests Zero function with interface types
+func TestZeroWithInterfaces(t *testing.T) {
+	p := Zero[interface{}, interface{}]()
+
+	assert.Nil(t, Head(p), "Head should be nil for interface type")
+	assert.Nil(t, Tail(p), "Tail should be nil for interface type")
 }
 
-func TestEq(t *testing.T) {
-	pairEq := Eq(
-		EQ.FromStrictEquals[string](),
-		EQ.FromStrictEquals[int](),
-	)
-	p1 := MakePair("hello", 42)
-	p2 := MakePair("hello", 42)
-	p3 := MakePair("world", 42)
-	p4 := MakePair("hello", 100)
+// TestZeroWithChannels tests Zero function with channel types
+func TestZeroWithChannels(t *testing.T) {
+	p := Zero[chan int, chan string]()
 
-	assert.True(t, pairEq.Equals(p1, p2))
-	assert.False(t, pairEq.Equals(p1, p3))
-	assert.False(t, pairEq.Equals(p1, p4))
+	assert.Nil(t, Head(p), "Head should be nil for channel type")
+	assert.Nil(t, Tail(p), "Tail should be nil for channel type")
 }
 
-func TestFromStrictEquals(t *testing.T) {
-	pairEq := FromStrictEquals[string, int]()
-	p1 := MakePair("test", 123)
-	p2 := MakePair("test", 123)
-	p3 := MakePair("test", 456)
+// TestZeroWithFunctions tests Zero function with function types
+func TestZeroWithFunctions(t *testing.T) {
+	p := Zero[func() int, func(string) bool]()
 
-	assert.True(t, pairEq.Equals(p1, p2))
-	assert.False(t, pairEq.Equals(p1, p3))
+	assert.Nil(t, Head(p), "Head should be nil for function type")
+	assert.Nil(t, Tail(p), "Tail should be nil for function type")
 }
 
-func TestMonadHead(t *testing.T) {
-	stringMonoid := S.Monoid
-	monad := MonadHead[int, string, string](stringMonoid)
+// TestZeroCanBeUsedWithOtherFunctions tests that Zero pairs work with other pair functions
+func TestZeroCanBeUsedWithOtherFunctions(t *testing.T) {
+	p := Zero[int, string]()
 
-	// Test Of
-	p := monad.Of(42)
-	assert.Equal(t, 42, Head(p))
+	// Test with Head and Tail
+	assert.Equal(t, 0, Head(p))
 	assert.Equal(t, "", Tail(p))
 
-	// Test Map
-	mapper := monad.Map(strconv.Itoa)
-	p2 := mapper(MakePair(100, "!"))
-	assert.Equal(t, "100", Head(p2))
-	assert.Equal(t, "!", Tail(p2))
+	// Test with First and Second
+	assert.Equal(t, 0, First(p))
+	assert.Equal(t, "", Second(p))
 
-	// Test Chain
-	chain := monad.Chain(func(n int) Pair[string, string] {
-		return MakePair(fmt.Sprintf("n=%d", n), "!")
-	})
-	p3 := chain(MakePair(7, "hello"))
-	assert.Equal(t, "n=7", Head(p3))
-	assert.Equal(t, "hello!", Tail(p3))
-
-	// Test Ap
-	pv := MakePair(5, "world")
-	ap := monad.Ap(pv)
-	pf := MakePair(func(n int) string { return fmt.Sprintf("%d", n*2) }, "!")
-	p4 := ap(pf)
-	assert.Equal(t, "10", Head(p4))
-	assert.Equal(t, "world!", Tail(p4))
-}
-
-func TestPointedHead(t *testing.T) {
-	stringMonoid := S.Monoid
-	pointed := PointedHead[int](stringMonoid)
-	p := pointed.Of(42)
-	assert.Equal(t, 42, Head(p))
-	assert.Equal(t, "", Tail(p))
-}
-
-func TestFunctorHead(t *testing.T) {
-	functor := FunctorHead[int, string, string]()
-	mapper := functor.Map(func(n int) string { return fmt.Sprintf("value=%d", n) })
-	p := MakePair(42, "test")
-	p2 := mapper(p)
-	assert.Equal(t, "value=42", Head(p2))
-	assert.Equal(t, "test", Tail(p2))
-}
-
-func TestApplicativeHead(t *testing.T) {
-	stringMonoid := S.Monoid
-	applicative := ApplicativeHead[int, string, string](stringMonoid)
-
-	// Test Of
-	p := applicative.Of(100)
-	assert.Equal(t, 100, Head(p))
-	assert.Equal(t, "", Tail(p))
-
-	// Test Map
-	mapper := applicative.Map(strconv.Itoa)
-	p2 := mapper(MakePair(42, "!"))
-	assert.Equal(t, "42", Head(p2))
-	assert.Equal(t, "!", Tail(p2))
-
-	// Test Ap
-	pv := MakePair(7, "hello")
-	ap := applicative.Ap(pv)
-	pf := MakePair(func(n int) string { return fmt.Sprintf("n=%d", n) }, "!")
-	p3 := ap(pf)
-	assert.Equal(t, "n=7", Head(p3))
-	assert.Equal(t, "hello!", Tail(p3))
-}
-
-func TestMonadTail(t *testing.T) {
-	intSum := N.MonoidSum[int]()
-	monad := MonadTail[string, int, int](intSum)
-
-	// Test Of
-	p := monad.Of("hello")
-	assert.Equal(t, 0, Head(p))
-	assert.Equal(t, "hello", Tail(p))
-
-	// Test Map
-	mapper := monad.Map(S.Size)
-	p2 := mapper(MakePair(5, "world"))
-	assert.Equal(t, 5, Head(p2))
-	assert.Equal(t, 5, Tail(p2))
-
-	// Test Chain
-	chain := monad.Chain(func(s string) Pair[int, int] {
-		return MakePair(len(s), len(s)*2)
-	})
-	p3 := chain(MakePair(10, "test"))
-	assert.Equal(t, 14, Head(p3)) // 10 + 4
-	assert.Equal(t, 8, Tail(p3))
-
-	// Test Ap
-	pv := MakePair(5, "hello")
-	ap := monad.Ap(pv)
-	pf := MakePair(10, S.Size)
-	p4 := ap(pf)
-	assert.Equal(t, 15, Head(p4)) // 5 + 10
-	assert.Equal(t, 5, Tail(p4))
-}
-
-func TestPointedTail(t *testing.T) {
-	intSum := N.MonoidSum[int]()
-	pointed := PointedTail[string](intSum)
-	p := pointed.Of("test")
-	assert.Equal(t, 0, Head(p))
-	assert.Equal(t, "test", Tail(p))
-}
-
-func TestFunctorTail(t *testing.T) {
-	functor := FunctorTail[string, int, int]()
-	mapper := functor.Map(func(s string) int { return len(s) * 2 })
-	p := MakePair(10, "hello")
-	p2 := mapper(p)
-	assert.Equal(t, 10, Head(p2))
-	assert.Equal(t, 10, Tail(p2))
-}
-
-func TestApplicativeTail(t *testing.T) {
-	intSum := N.MonoidSum[int]()
-	applicative := ApplicativeTail[string, int, int](intSum)
-
-	// Test Of
-	p := applicative.Of("world")
-	assert.Equal(t, 0, Head(p))
-	assert.Equal(t, "world", Tail(p))
-
-	// Test Map
-	mapper := applicative.Map(S.Size)
-	p2 := mapper(MakePair(5, "test"))
-	assert.Equal(t, 5, Head(p2))
-	assert.Equal(t, 4, Tail(p2))
-
-	// Test Ap
-	pv := MakePair(10, "hello")
-	ap := applicative.Ap(pv)
-	pf := MakePair(5, func(s string) int { return len(s) * 2 })
-	p3 := ap(pf)
-	assert.Equal(t, 15, Head(p3)) // 10 + 5
-	assert.Equal(t, 10, Tail(p3))
-}
-
-func TestMonad(t *testing.T) {
-	intSum := N.MonoidSum[int]()
-	monad := Monad[string, int, int](intSum)
-
-	p := monad.Of("test")
-	assert.Equal(t, 0, Head(p))
-	assert.Equal(t, "test", Tail(p))
-}
-
-func TestPointed(t *testing.T) {
-	intSum := N.MonoidSum[int]()
-	pointed := Pointed[string](intSum)
-
-	p := pointed.Of("hello")
-	assert.Equal(t, 0, Head(p))
-	assert.Equal(t, "hello", Tail(p))
-}
-
-func TestFunctor(t *testing.T) {
-	functor := Functor[string, int, int]()
-	mapper := functor.Map(S.Size)
-	p := MakePair(7, "world")
-	p2 := mapper(p)
-	assert.Equal(t, 7, Head(p2))
-	assert.Equal(t, 5, Tail(p2))
-}
-
-func TestApplicative(t *testing.T) {
-	intSum := N.MonoidSum[int]()
-	applicative := Applicative[string, int, int](intSum)
-
-	p := applicative.Of("test")
-	assert.Equal(t, 0, Head(p))
-	assert.Equal(t, "test", Tail(p))
-}
-
-// Test edge cases and complex scenarios
-func TestComplexChaining(t *testing.T) {
-	intSum := N.SemigroupSum[int]()
-
-	// Chain multiple operations
-	p := MakePair(1, "a")
-	p2 := MonadChainTail(intSum, p, func(s string) Pair[int, string] {
-		return MakePair(len(s), s+"b")
-	})
-	p3 := MonadChainTail(intSum, p2, func(s string) Pair[int, string] {
-		return MakePair(len(s), s+"c")
-	})
-
-	assert.Equal(t, 4, Head(p3)) // 1 + 1 + 2
-	assert.Equal(t, "abc", Tail(p3))
-}
-
-func TestBiMapWithDifferentTypes(t *testing.T) {
-	p := MakePair(3.14, true)
-	p2 := MonadBiMap(p,
-		func(f float64) int { return int(f * 10) },
-		func(b bool) string {
-			if b {
-				return "yes"
-			}
-			return "no"
-		},
-	)
-	assert.Equal(t, 31, Head(p2))
-	assert.Equal(t, "yes", Tail(p2))
-}
-
-func TestSwapTwice(t *testing.T) {
-	p := MakePair("original", 999)
+	// Test with Swap
 	swapped := Swap(p)
-	swappedBack := Swap(swapped)
-	assert.Equal(t, "original", Head(swappedBack))
-	assert.Equal(t, 999, Tail(swappedBack))
+	assert.Equal(t, "", Head(swapped))
+	assert.Equal(t, 0, Tail(swapped))
+
+	// Test with Map
+	mapped := MonadMapTail(p, func(s string) int { return len(s) })
+	assert.Equal(t, 0, Head(mapped))
+	assert.Equal(t, 0, Tail(mapped))
+}
+
+// TestZeroEquality tests that multiple Zero calls produce equal pairs
+func TestZeroEquality(t *testing.T) {
+	p1 := Zero[int, string]()
+	p2 := Zero[int, string]()
+
+	assert.Equal(t, Head(p1), Head(p2), "Heads should be equal")
+	assert.Equal(t, Tail(p1), Tail(p2), "Tails should be equal")
+}
+
+// TestZeroWithComplexTypes tests Zero with more complex nested types
+func TestZeroWithComplexTypes(t *testing.T) {
+	type ComplexType struct {
+		Nested map[string][]int
+		Ptr    *string
+	}
+
+	p := Zero[ComplexType, []map[string]int]()
+
+	expectedHead := ComplexType{Nested: nil, Ptr: nil}
+	assert.Equal(t, expectedHead, Head(p), "Head should be zero value for complex struct")
+	assert.Nil(t, Tail(p), "Tail should be nil for slice of maps")
+}
+
+// TestUnpackWithIntegers tests Unpack function with integer types
+func TestUnpackWithIntegers(t *testing.T) {
+	p := MakePair(42, 100)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 42, head, "Head should be 42")
+	assert.Equal(t, 100, tail, "Tail should be 100")
+}
+
+// TestUnpackWithStrings tests Unpack function with string types
+func TestUnpackWithStrings(t *testing.T) {
+	p := MakePair("hello", "world")
+	head, tail := Unpack(p)
+
+	assert.Equal(t, "hello", head, "Head should be 'hello'")
+	assert.Equal(t, "world", tail, "Tail should be 'world'")
+}
+
+// TestUnpackWithMixedTypes tests Unpack function with different types
+func TestUnpackWithMixedTypes(t *testing.T) {
+	p := MakePair("Alice", 30)
+	name, age := Unpack(p)
+
+	assert.Equal(t, "Alice", name, "Name should be 'Alice'")
+	assert.Equal(t, 30, age, "Age should be 30")
+}
+
+// TestUnpackWithBooleans tests Unpack function with boolean types
+func TestUnpackWithBooleans(t *testing.T) {
+	p := MakePair(true, false)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, true, head, "Head should be true")
+	assert.Equal(t, false, tail, "Tail should be false")
+}
+
+// TestUnpackWithFloats tests Unpack function with float types
+func TestUnpackWithFloats(t *testing.T) {
+	p := MakePair(3.14, float32(2.71))
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 3.14, head, "Head should be 3.14")
+	assert.Equal(t, float32(2.71), tail, "Tail should be 2.71")
+}
+
+// TestUnpackWithPointers tests Unpack function with pointer types
+func TestUnpackWithPointers(t *testing.T) {
+	x := 42
+	y := "test"
+	p := MakePair(&x, &y)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, &x, head, "Head should point to x")
+	assert.Equal(t, &y, tail, "Tail should point to y")
+	assert.Equal(t, 42, *head, "Dereferenced head should be 42")
+	assert.Equal(t, "test", *tail, "Dereferenced tail should be 'test'")
+}
+
+// TestUnpackWithSlices tests Unpack function with slice types
+func TestUnpackWithSlices(t *testing.T) {
+	p := MakePair([]int{1, 2, 3}, []string{"a", "b", "c"})
+	head, tail := Unpack(p)
+
+	assert.Equal(t, []int{1, 2, 3}, head, "Head should be [1, 2, 3]")
+	assert.Equal(t, []string{"a", "b", "c"}, tail, "Tail should be ['a', 'b', 'c']")
+}
+
+// TestUnpackWithMaps tests Unpack function with map types
+func TestUnpackWithMaps(t *testing.T) {
+	m1 := map[string]int{"one": 1, "two": 2}
+	m2 := map[int]string{1: "one", 2: "two"}
+	p := MakePair(m1, m2)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, m1, head, "Head should be the first map")
+	assert.Equal(t, m2, tail, "Tail should be the second map")
+}
+
+// TestUnpackWithStructs tests Unpack function with struct types
+func TestUnpackWithStructs(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	p1 := Person{Name: "Alice", Age: 30}
+	p2 := Person{Name: "Bob", Age: 25}
+	p := MakePair(p1, p2)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, p1, head, "Head should be Alice")
+	assert.Equal(t, p2, tail, "Tail should be Bob")
+}
+
+// TestUnpackWithFunctions tests Unpack function with function types
+func TestUnpackWithFunctions(t *testing.T) {
+	f1 := func(x int) int { return x * 2 }
+	f2 := func(x int) int { return x + 10 }
+	p := MakePair(f1, f2)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 20, head(10), "Head function should double the input")
+	assert.Equal(t, 20, tail(10), "Tail function should add 10 to the input")
+}
+
+// TestUnpackWithZeroPair tests Unpack function with zero-valued pair
+func TestUnpackWithZeroPair(t *testing.T) {
+	p := Zero[int, string]()
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 0, head, "Head should be zero value for int")
+	assert.Equal(t, "", tail, "Tail should be zero value for string")
+}
+
+// TestUnpackWithNilValues tests Unpack function with nil values
+func TestUnpackWithNilValues(t *testing.T) {
+	p := MakePair[*int, *string](nil, nil)
+	head, tail := Unpack(p)
+
+	assert.Nil(t, head, "Head should be nil")
+	assert.Nil(t, tail, "Tail should be nil")
+}
+
+// TestUnpackInverseMakePair tests that Unpack is the inverse of MakePair
+func TestUnpackInverseMakePair(t *testing.T) {
+	original := MakePair("test", 123)
+	head, tail := Unpack(original)
+	reconstructed := MakePair(head, tail)
+
+	assert.Equal(t, Head(original), Head(reconstructed), "Heads should be equal")
+	assert.Equal(t, Tail(original), Tail(reconstructed), "Tails should be equal")
+}
+
+// TestUnpackWithOf tests Unpack with a pair created by Of
+func TestUnpackWithOf(t *testing.T) {
+	p := Of(42)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 42, head, "Head should be 42")
+	assert.Equal(t, 42, tail, "Tail should be 42")
+}
+
+// TestUnpackWithSwap tests Unpack after swapping a pair
+func TestUnpackWithSwap(t *testing.T) {
+	original := MakePair("hello", 42)
+	swapped := Swap(original)
+	head, tail := Unpack(swapped)
+
+	assert.Equal(t, 42, head, "Head should be 42 after swap")
+	assert.Equal(t, "hello", tail, "Tail should be 'hello' after swap")
+}
+
+// TestUnpackWithMappedPair tests Unpack with a mapped pair
+func TestUnpackWithMappedPair(t *testing.T) {
+	original := MakePair(5, "hello")
+	mapped := MonadMapTail(original, func(s string) int { return len(s) })
+	head, tail := Unpack(mapped)
+
+	assert.Equal(t, 5, head, "Head should remain 5")
+	assert.Equal(t, 5, tail, "Tail should be length of 'hello'")
+}
+
+// TestUnpackWithComplexTypes tests Unpack with complex nested types
+func TestUnpackWithComplexTypes(t *testing.T) {
+	type ComplexType struct {
+		Data   map[string][]int
+		Nested *ComplexType
+	}
+
+	c1 := ComplexType{
+		Data:   map[string][]int{"key": {1, 2, 3}},
+		Nested: nil,
+	}
+	c2 := ComplexType{
+		Data:   map[string][]int{"other": {4, 5, 6}},
+		Nested: &c1,
+	}
+
+	p := MakePair(c1, c2)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, c1, head, "Head should be c1")
+	assert.Equal(t, c2, tail, "Tail should be c2")
+	assert.NotNil(t, tail.Nested, "Tail's nested field should not be nil")
+}
+
+// TestUnpackMultipleAssignments tests that Unpack can be used in multiple assignments
+func TestUnpackMultipleAssignments(t *testing.T) {
+	p1 := MakePair(1, "one")
+	p2 := MakePair(2, "two")
+
+	h1, t1 := Unpack(p1)
+	h2, t2 := Unpack(p2)
+
+	assert.Equal(t, 1, h1)
+	assert.Equal(t, "one", t1)
+	assert.Equal(t, 2, h2)
+	assert.Equal(t, "two", t2)
+}
+
+// TestUnpackWithChannels tests Unpack function with channel types
+func TestUnpackWithChannels(t *testing.T) {
+	ch1 := make(chan int, 1)
+	ch2 := make(chan string, 1)
+	ch1 <- 42
+	ch2 <- "test"
+
+	p := MakePair(ch1, ch2)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 42, <-head, "Should receive 42 from head channel")
+	assert.Equal(t, "test", <-tail, "Should receive 'test' from tail channel")
+}
+
+// TestUnpackWithInterfaces tests Unpack function with interface types
+func TestUnpackWithInterfaces(t *testing.T) {
+	var i1 interface{} = 42
+	var i2 interface{} = "test"
+
+	p := MakePair(i1, i2)
+	head, tail := Unpack(p)
+
+	assert.Equal(t, 42, head, "Head should be 42")
+	assert.Equal(t, "test", tail, "Tail should be 'test'")
 }

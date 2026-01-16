@@ -564,3 +564,42 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 func MonadAlt[A any](fa Result[A], that Lazy[Result[A]]) Result[A] {
 	return either.MonadAlt(fa, that)
 }
+
+// Zero returns the zero value of a [Result], which is a Right containing the zero value of type A.
+// This function is useful as an identity element in monoid operations or for creating an empty Result
+// in a successful (Right) state.
+//
+// Result[A] is an alias for Either[error, A], so Zero returns a Right value with the zero value of type A.
+// For reference types (pointers, slices, maps, channels, functions, interfaces), the zero value is nil.
+// For value types (numbers, booleans, structs), it's the type's zero value.
+//
+// Important: Zero() returns the same value as the default initialization of Result[A].
+// When you declare `var r Result[A]` without initialization, it has the same value as Zero[A]().
+//
+// Note: This always produces a successful (Right) state with a zero value, never a Left (error) state.
+//
+// Example:
+//
+//	// Zero Result with int value
+//	r1 := result.Zero[int]()  // Right(0)
+//
+//	// Zero Result with string value
+//	r2 := result.Zero[string]()  // Right("")
+//
+//	// Zero Result with pointer type
+//	r3 := result.Zero[*int]()  // Right(nil)
+//
+//	// Zero equals default initialization
+//	var defaultInit Result[int]
+//	zero := result.Zero[int]()
+//	assert.Equal(t, defaultInit, zero) // true
+//
+//	// Verify it's a Right value
+//	r := result.Zero[int]()
+//	assert.True(t, either.IsRight(r))  // true
+//	assert.False(t, either.IsLeft(r))  // false
+//
+//go:inline
+func Zero[A any]() Result[A] {
+	return either.Zero[error, A]()
+}

@@ -570,3 +570,41 @@ func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 func MonadAlt[E, A any](fa Either[E, A], that Lazy[Either[E, A]]) Either[E, A] {
 	return MonadFold(fa, F.Ignore1of1[E](that), Of[E, A])
 }
+
+// Zero returns the zero value of an [Either], which is a Right containing the zero value of type A.
+// This function is useful as an identity element in monoid operations or for creating an empty Either
+// in a Right state.
+//
+// The returned Either is always a Right value containing the zero value of type A. For reference types
+// (pointers, slices, maps, channels, functions, interfaces), the zero value is nil. For value types
+// (numbers, booleans, structs), it's the type's zero value.
+//
+// Important: Zero() returns the same value as the default initialization of Either[E, A].
+// When you declare `var e Either[E, A]` without initialization, it has the same value as Zero[E, A]().
+//
+// Note: This differs from creating a Left value, which would represent an error or failure state.
+// Zero always produces a successful (Right) state with a zero value.
+//
+// Example:
+//
+//	// Zero Either with int value
+//	e1 := either.Zero[error, int]()  // Right(0)
+//
+//	// Zero Either with string value
+//	e2 := either.Zero[error, string]()  // Right("")
+//
+//	// Zero Either with pointer type
+//	e3 := either.Zero[error, *int]()  // Right(nil)
+//
+//	// Zero equals default initialization
+//	var defaultInit Either[error, int]
+//	zero := either.Zero[error, int]()
+//	assert.Equal(t, defaultInit, zero) // true
+//
+//	// Verify it's a Right value
+//	e := either.Zero[error, int]()
+//	assert.True(t, either.IsRight(e))  // true
+//	assert.False(t, either.IsLeft(e))  // false
+func Zero[E, A any]() Either[E, A] {
+	return Either[E, A]{isLeft: false}
+}

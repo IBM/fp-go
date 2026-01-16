@@ -475,3 +475,41 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 		return None[B]()
 	}
 }
+
+// Zero returns the zero value of an [Option], which is None.
+// This function is useful as an identity element in monoid operations or for creating an empty Option.
+//
+// The zero value for Option[A] is always None, representing the absence of a value.
+// This is consistent with the Option monad's semantics where None represents "no value"
+// and Some represents "a value".
+//
+// Important: Zero() returns the same value as the default initialization of Option[A].
+// When you declare `var o Option[A]` without initialization, it has the same value as Zero[A]().
+//
+// Note: Unlike other types where zero might be a default value, Option's zero is explicitly
+// the absence of any value (None), not Some with a zero value.
+//
+// Example:
+//
+//	// Zero Option of any type is always None
+//	o1 := option.Zero[int]()     // None
+//	o2 := option.Zero[string]()  // None
+//	o3 := option.Zero[*int]()    // None
+//
+//	// Zero equals default initialization
+//	var defaultInit Option[int]
+//	zero := option.Zero[int]()
+//	assert.Equal(t, defaultInit, zero) // true
+//
+//	// Verify it's None
+//	o := option.Zero[int]()
+//	assert.True(t, option.IsNone(o))   // true
+//	assert.False(t, option.IsSome(o))  // false
+//
+//	// Different from Some with zero value
+//	someZero := option.Some(0)         // Some(0)
+//	zero := option.Zero[int]()         // None
+//	assert.NotEqual(t, someZero, zero) // they are different
+func Zero[A any]() Option[A] {
+	return None[A]()
+}

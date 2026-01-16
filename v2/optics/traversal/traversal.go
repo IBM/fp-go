@@ -59,8 +59,5 @@ func Compose[
 	return G.Compose[
 		G.Traversal[A, B, HKTA, HKTB],
 		G.Traversal[S, A, HKTS, HKTA],
-		G.Traversal[S, B, HKTS, HKTB],
-		S, A, B,
-		HKTS, HKTA, HKTB,
-	](ab)
+		G.Traversal[S, B, HKTS, HKTB]](ab)
 }

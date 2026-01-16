@@ -169,3 +169,17 @@ func TestOrElse(t *testing.T) {
 	otherErr := errors.New("other error")
 	assert.Equal(t, Left[int](otherErr), recoverSpecific(Left[int](otherErr)))
 }
+
+// TestZeroEqualsDefaultInitialization tests that Zero returns the same value as default initialization
+func TestZeroEqualsDefaultInitialization(t *testing.T) {
+	// Default initialization of Result
+	var defaultInit Result[int]
+
+	// Zero function
+	zero := Zero[int]()
+
+	// They should be equal
+	assert.Equal(t, defaultInit, zero, "Zero should equal default initialization")
+	assert.Equal(t, IsRight(defaultInit), IsRight(zero), "Both should be Right")
+	assert.Equal(t, IsLeft(defaultInit), IsLeft(zero), "Both should not be Left")
+}

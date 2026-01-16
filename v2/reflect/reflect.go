@@ -24,9 +24,27 @@ package reflect
 import (
 	R "reflect"
 
+	"github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
-	G "github.com/IBM/fp-go/v2/reflect/generic"
 )
+
+func MonadReduceWithIndex[A any](val R.Value, f func(int, A, R.Value) A, initial A) A {
+
+	kind := val.Kind()
+
+	// Check if it supports Len() and Index()
+	if kind != R.Slice && kind != R.Array && kind != R.String {
+		// Not a sequential iterable, return initial
+		return initial
+	}
+
+	count := val.Len()
+	current := initial
+	for i := range count {
+		current = f(i, current, val.Index(i))
+	}
+	return current
+}
 
 // ReduceWithIndex applies a reducer function to each element of a reflect.Value (representing a slice or array),
 // accumulating a result value. The reducer function receives the current index, the accumulated value,
@@ -52,12 +70,7 @@ import (
 //	// result = 0 + (0+10) + (1+20) + (2+30) = 63
 func ReduceWithIndex[A any](f func(int, A, R.Value) A, initial A) func(R.Value) A {
 	return func(val R.Value) A {
-		count := val.Len()
-		current := initial
-		for i := range count {
-			current = f(i, current, val.Index(i))
-		}
-		return current
+		return MonadReduceWithIndex(val, f, initial)
 	}
 }
 
@@ -86,6 +99,71 @@ func Reduce[A any](f func(A, R.Value) A, initial A) func(R.Value) A {
 	return ReduceWithIndex(F.Ignore1of3[int](f), initial)
 }
 
+// MonadMapWithIndex is the non-curried version of MapWithIndex. It transforms each element of a
+// reflect.Value (representing a slice, array, or string) using the provided function that receives
+// both the index and the element, returning a new slice containing the transformed values.
+//
+// Unlike MapWithIndex which is curried, this function takes both the reflect.Value and the
+// transformation function as parameters in a single call. This is useful when you need to pass
+// the function directly without partial application.
+//
+// Parameters:
+//   - val: The reflect.Value to map over (must be a slice, array, or string)
+//   - f: A transformation function that takes (index int, element reflect.Value) and returns a value of type A
+//
+// Returns:
+//   - A slice of transformed values, or an empty slice if val is not iterable
+//
+// Example:
+//
+//	// Transform a reflected slice with index awareness
+//	input := reflect.ValueOf([]int{10, 20, 30})
+//	result := MonadMapWithIndex(input, func(i int, v reflect.Value) string {
+//	    return fmt.Sprintf("[%d]=%d", i, int(v.Int()))
+//	})
+//	// result = []string{"[0]=10", "[1]=20", "[2]=30"}
+func MonadMapWithIndex[A any](val R.Value, f func(int, R.Value) A) []A {
+
+	kind := val.Kind()
+
+	// Check if it supports Len() and Index()
+	if kind != R.Slice && kind != R.Array && kind != R.String {
+		// Not a sequential iterable, return initial
+		return array.Empty[A]()
+	}
+
+	l := val.Len()
+	res := make([]A, l)
+	for i := l - 1; i >= 0; i-- {
+		res[i] = f(i, val.Index(i))
+	}
+	return res
+}
+
+// MapWithIndex transforms each element of a reflect.Value (representing a slice or array) using the provided
+// function that receives both the index and the element, returning a new slice containing the transformed values.
+//
+// This is a curried function that first takes the transformation function,
+// then returns a function that accepts the reflect.Value to map over.
+//
+// Parameters:
+//   - f: A transformation function that takes (index int, element reflect.Value) and returns a value of type A
+//
+// Returns:
+//   - A function that takes a reflect.Value and returns a slice of transformed values
+//
+// Example:
+//
+//	// Create indexed labels from a reflected slice
+//	indexedLabels := MapWithIndex(func(i int, v reflect.Value) string {
+//	    return fmt.Sprintf("[%d]: %d", i, int(v.Int()))
+//	})
+//	result := indexedLabels(reflect.ValueOf([]int{10, 20, 30}))
+//	// result = []string{"[0]: 10", "[1]: 20", "[2]: 30"}
+func MapWithIndex[A any](f func(int, R.Value) A) func(R.Value) []A {
+	return F.Bind2nd(MonadMapWithIndex, f)
+}
+
 // Map transforms each element of a reflect.Value (representing a slice or array) using the provided
 // function, returning a new slice containing the transformed values.
 //
@@ -107,5 +185,5 @@ func Reduce[A any](f func(A, R.Value) A, initial A) func(R.Value) A {
 //	result := doubleInts(reflect.ValueOf([]int{1, 2, 3}))
 //	// result = []int{2, 4, 6}
 func Map[A any](f func(R.Value) A) func(R.Value) []A {
-	return G.Map[[]A](f)
+	return MapWithIndex(F.Ignore1of2[int](f))
 }
