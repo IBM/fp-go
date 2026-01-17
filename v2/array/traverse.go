@@ -16,7 +16,11 @@
 package array
 
 import (
+	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/array"
+	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/pointed"
+	"github.com/IBM/fp-go/v2/internal/traversable"
 )
 
 // Traverse maps each element of an array to an effect (HKT), then collects the results
@@ -55,9 +59,9 @@ import (
 //
 //go:inline
 func Traverse[A, B, HKTB, HKTAB, HKTRB any](
-	fof func([]B) HKTRB,
-	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
-	fap func(HKTB) func(HKTAB) HKTRB,
+	fof pointed.OfType[[]B, HKTRB],
+	fmap functor.MapType[[]B, func(B) []B, HKTRB, HKTAB],
+	fap apply.ApType[HKTB, HKTRB, HKTAB],
 
 	f func(A) HKTB) func([]A) HKTRB {
 	return array.Traverse[[]A](fof, fmap, fap, f)
@@ -71,7 +75,7 @@ func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 //
 //go:inline
 func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
-	fof func([]B) HKTRB,
+	fof pointed.OfType[[]B, HKTRB],
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
 
@@ -83,7 +87,7 @@ func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
 
 //go:inline
 func TraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
-	fof func([]B) HKTRB,
+	fof pointed.OfType[[]B, HKTRB],
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
 
@@ -93,7 +97,7 @@ func TraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
 
 //go:inline
 func MonadTraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
-	fof func([]B) HKTRB,
+	fof pointed.OfType[[]B, HKTRB],
 	fmap func(func([]B) func(B) []B) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
 
@@ -101,4 +105,23 @@ func MonadTraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
 	f func(int, A) HKTB) HKTRB {
 
 	return array.MonadTraverseWithIndex(fof, fmap, fap, ta, f)
+}
+
+func MakeTraverseType[A, B, HKT_F_B, HKT_F_T_B, HKT_F_B_T_B any]() traversable.TraverseType[A, B, []A, []B, HKT_F_B, HKT_F_T_B, HKT_F_B_T_B] {
+	return func(
+		// ap
+		fof_b pointed.OfType[[]B, HKT_F_T_B],
+		fmap_b functor.MapType[[]B, func(B) []B, HKT_F_T_B, HKT_F_B_T_B],
+		fap_b apply.ApType[HKT_F_B, HKT_F_T_B, HKT_F_B_T_B],
+
+	) func(func(A) HKT_F_B) func([]A) HKT_F_T_B {
+		return func(f func(A) HKT_F_B) func([]A) HKT_F_T_B {
+			return Traverse(
+				fof_b,
+				fmap_b,
+				fap_b,
+				f,
+			)
+		}
+	}
 }

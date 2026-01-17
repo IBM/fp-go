@@ -37,3 +37,5 @@ type Pointed[A, HKTA any] interface {
 	// creating a valid instance of the higher-kinded type.
 	Of(A) HKTA
 }
+
+type OfType[A, HKTA any] = func(A) HKTA

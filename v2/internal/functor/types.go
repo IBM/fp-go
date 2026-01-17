@@ -47,3 +47,5 @@ type Functor[A, B, HKTA, HKTB any] interface {
 	// Returns a function that takes a functor containing A and returns a functor containing B.
 	Map(func(A) B) func(HKTA) HKTB
 }
+
+type MapType[A, B, HKTA, HKTB any] = func(func(A) B) func(HKTA) HKTB

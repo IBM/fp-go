@@ -60,3 +60,5 @@ type Apply[A, B, HKTA, HKTB, HKTFAB any] interface {
 func ToFunctor[A, B, HKTA, HKTB, HKTFAB any](ap Apply[A, B, HKTA, HKTB, HKTFAB]) functor.Functor[A, B, HKTA, HKTB] {
 	return ap
 }
+
+type ApType[HKTA, HKTB, HKTFAB any] = func(HKTA) func(HKTFAB) HKTB
