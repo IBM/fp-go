@@ -230,6 +230,8 @@ func validateArray[T any](item Type[T, T, any]) func(u any) Reader[Context, Vali
 
 	itemName := item.Name()
 
+	zero := pair.Zero[validation.Errors, []T]()
+
 	return func(u any) Reader[Context, Validation[[]T]] {
 		val := reflect.ValueOf(u)
 		if !val.IsValid() {
@@ -244,12 +246,12 @@ func validateArray[T any](item Type[T, T, any]) func(u any) Reader[Context, Vali
 
 				return F.Pipe1(
 					R.MonadReduceWithIndex(val, func(i int, p validationPair[[]T], v reflect.Value) validationPair[[]T] {
-						return either.MonadFold[validation.Errors, T, Endomorphism[validationPair[[]T]]](
-							item.Validate(u)(appendContext(strconv.Itoa(i), itemName, u)(c)),
+						return either.MonadFold(
+							item.Validate(v)(appendContext(strconv.Itoa(i), itemName, v)(c)),
 							appendErrors,
 							appendValues,
 						)(p)
-					}, validationPair[[]T]{}),
+					}, zero),
 					pairToValidation,
 				)
 			}

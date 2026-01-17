@@ -590,3 +590,283 @@ type User struct {
 	ID   int
 	Name string
 }
+
+func TestReadIO(t *testing.T) {
+	t.Run("executes computation with IO environment", func(t *testing.T) {
+		// IO that produces the config
+		loadConfig := func() TestConfig {
+			return TestConfig{Multiplier: 7, Prefix: "loaded"}
+		}
+
+		// Computation that uses the config
+		computation := func(cfg TestConfig) IOResult[string] {
+			return func() (string, error) {
+				return fmt.Sprintf("%s:%d", cfg.Prefix, cfg.Multiplier), nil
+			}
+		}
+
+		result := ReadIO[string](loadConfig)(computation)
+		value, err := result()
+
+		assert.NoError(t, err)
+		assert.Equal(t, "loaded:7", value)
+	})
+
+	t.Run("executes IO before computation", func(t *testing.T) {
+		executionOrder := []string{}
+
+		// IO that tracks execution
+		loadConfig := func() TestConfig {
+			executionOrder = append(executionOrder, "load-config")
+			return TestConfig{Multiplier: 5}
+		}
+
+		// Computation that tracks execution
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				executionOrder = append(executionOrder, "compute")
+				return cfg.Multiplier * 10, nil
+			}
+		}
+
+		result := ReadIO[int](loadConfig)(computation)
+		value, err := result()
+
+		assert.NoError(t, err)
+		assert.Equal(t, 50, value)
+		assert.Equal(t, []string{"load-config", "compute"}, executionOrder)
+	})
+
+	t.Run("propagates computation error", func(t *testing.T) {
+		expectedError := errors.New("computation failed")
+
+		loadConfig := func() TestConfig {
+			return TestConfig{Multiplier: 5}
+		}
+
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				return 0, expectedError
+			}
+		}
+
+		result := ReadIO[int](loadConfig)(computation)
+		_, err := result()
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
+	})
+
+	t.Run("works with different environment types", func(t *testing.T) {
+		// Using a simple string as environment
+		loadEnv := func() string {
+			return "test-env"
+		}
+
+		computation := func(env string) IOResult[string] {
+			return func() (string, error) {
+				return "env:" + env, nil
+			}
+		}
+
+		result := ReadIO[string](loadEnv)(computation)
+		value, err := result()
+
+		assert.NoError(t, err)
+		assert.Equal(t, "env:test-env", value)
+	})
+
+	t.Run("IO is executed on each call", func(t *testing.T) {
+		counter := 0
+		loadConfig := func() TestConfig {
+			counter++
+			return TestConfig{Multiplier: counter}
+		}
+
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				return cfg.Multiplier, nil
+			}
+		}
+
+		result := ReadIO[int](loadConfig)(computation)
+
+		// First execution
+		value1, _ := result()
+		assert.Equal(t, 1, value1)
+
+		// Second execution - IO runs again
+		value2, _ := result()
+		assert.Equal(t, 2, value2)
+	})
+}
+
+func TestReadIOResult(t *testing.T) {
+	t.Run("executes computation with successful IOResult environment", func(t *testing.T) {
+		// IOResult that successfully produces config
+		loadConfig := func() (TestConfig, error) {
+			return TestConfig{Multiplier: 8, Prefix: "success"}, nil
+		}
+
+		// Computation that uses the config
+		computation := func(cfg TestConfig) IOResult[string] {
+			return func() (string, error) {
+				return fmt.Sprintf("%s:%d", cfg.Prefix, cfg.Multiplier), nil
+			}
+		}
+
+		result := ReadIOResult[string](loadConfig)(computation)
+		value, err := result()
+
+		assert.NoError(t, err)
+		assert.Equal(t, "success:8", value)
+	})
+
+	t.Run("propagates environment loading error", func(t *testing.T) {
+		expectedError := errors.New("failed to load config")
+
+		// IOResult that fails to produce config
+		loadConfig := func() (TestConfig, error) {
+			return TestConfig{}, expectedError
+		}
+
+		// Computation should not be executed
+		computationCalled := false
+		computation := func(cfg TestConfig) IOResult[string] {
+			return func() (string, error) {
+				computationCalled = true
+				return "should not reach here", nil
+			}
+		}
+
+		result := ReadIOResult[string](loadConfig)(computation)
+		_, err := result()
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
+		assert.False(t, computationCalled, "computation should not be called when environment loading fails")
+	})
+
+	t.Run("propagates computation error after successful environment load", func(t *testing.T) {
+		expectedError := errors.New("computation failed")
+
+		loadConfig := func() (TestConfig, error) {
+			return TestConfig{Multiplier: 5}, nil
+		}
+
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				return 0, expectedError
+			}
+		}
+
+		result := ReadIOResult[int](loadConfig)(computation)
+		_, err := result()
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedError, err)
+	})
+
+	t.Run("chains environment loading and computation", func(t *testing.T) {
+		executionOrder := []string{}
+
+		loadConfig := func() (TestConfig, error) {
+			executionOrder = append(executionOrder, "load-config")
+			return TestConfig{Multiplier: 3}, nil
+		}
+
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				executionOrder = append(executionOrder, "compute")
+				return cfg.Multiplier * 10, nil
+			}
+		}
+
+		result := ReadIOResult[int](loadConfig)(computation)
+		value, err := result()
+
+		assert.NoError(t, err)
+		assert.Equal(t, 30, value)
+		assert.Equal(t, []string{"load-config", "compute"}, executionOrder)
+	})
+
+	t.Run("works with validation in environment loading", func(t *testing.T) {
+		// IOResult that validates config
+		loadConfig := func() (TestConfig, error) {
+			cfg := TestConfig{Multiplier: -1}
+			if cfg.Multiplier < 0 {
+				return TestConfig{}, errors.New("invalid multiplier: must be positive")
+			}
+			return cfg, nil
+		}
+
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				return cfg.Multiplier * 10, nil
+			}
+		}
+
+		result := ReadIOResult[int](loadConfig)(computation)
+		_, err := result()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid multiplier")
+	})
+
+	t.Run("IOResult is executed on each call", func(t *testing.T) {
+		counter := 0
+		loadConfig := func() (TestConfig, error) {
+			counter++
+			if counter == 1 {
+				return TestConfig{}, errors.New("first attempt fails")
+			}
+			return TestConfig{Multiplier: counter}, nil
+		}
+
+		computation := func(cfg TestConfig) IOResult[int] {
+			return func() (int, error) {
+				return cfg.Multiplier, nil
+			}
+		}
+
+		result := ReadIOResult[int](loadConfig)(computation)
+
+		// First execution - fails
+		_, err1 := result()
+		assert.Error(t, err1)
+
+		// Second execution - succeeds
+		value2, err2 := result()
+		assert.NoError(t, err2)
+		assert.Equal(t, 2, value2)
+	})
+
+	t.Run("works with complex environment types", func(t *testing.T) {
+		type DatabaseConfig struct {
+			Host     string
+			Port     int
+			Username string
+		}
+
+		loadDBConfig := func() (DatabaseConfig, error) {
+			// Simulate loading from environment variables
+			return DatabaseConfig{
+				Host:     "localhost",
+				Port:     5432,
+				Username: "admin",
+			}, nil
+		}
+
+		computation := func(cfg DatabaseConfig) IOResult[string] {
+			return func() (string, error) {
+				return fmt.Sprintf("%s@%s:%d", cfg.Username, cfg.Host, cfg.Port), nil
+			}
+		}
+
+		result := ReadIOResult[string](loadDBConfig)(computation)
+		value, err := result()
+
+		assert.NoError(t, err)
+		assert.Equal(t, "admin@localhost:5432", value)
+	})
+}

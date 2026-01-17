@@ -917,9 +917,132 @@ func Local[A, R1, R2 any](f func(R2) R1) func(ReaderIOResult[R1, A]) ReaderIORes
 	return reader.Local[IOResult[A]](f)
 }
 
+// Read executes a ReaderIOResult by providing it with a concrete environment value.
+// This function "runs" the reader computation by supplying the required environment,
+// converting a ReaderIOResult into an IOResult that can be executed.
+//
+// This is the fundamental way to execute a ReaderIOResult computation - you provide
+// the environment it needs, and get back an IOResult that can be run.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//   - R: The type of the environment/context
+//
+// Parameters:
+//   - r: The environment value to provide to the computation
+//
+// Returns:
+//   - A function that takes a ReaderIOResult and returns an IOResult
+//
+// Example:
+//
+//	// Define a computation that needs configuration
+//	computation := func(cfg Config) IOResult[string] {
+//	    return func() (string, error) {
+//	        return fmt.Sprintf("Value: %d", cfg.Value), nil
+//	    }
+//	}
+//
+//	// Provide the configuration and execute
+//	cfg := Config{Value: 42}
+//	result := Read[string](cfg)(computation)
+//	value, err := result() // Returns "Value: 42", nil
+//
 //go:inline
 func Read[A, R any](r R) func(ReaderIOResult[R, A]) IOResult[A] {
 	return reader.Read[IOResult[A]](r)
+}
+
+// ReadIO executes a ReaderIOResult by providing it with an environment value wrapped in IO.
+// This is useful when the environment itself needs to be computed or retrieved through an IO operation.
+// The IO effect is executed first to obtain the environment, then that environment is provided
+// to the ReaderIOResult computation.
+//
+// This allows for dynamic environment resolution where the configuration or context is not
+// immediately available but must be computed or fetched.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//   - R: The type of the environment/context
+//
+// Parameters:
+//   - r: An IO operation that produces the environment value
+//
+// Returns:
+//   - A function that takes a ReaderIOResult and returns an IOResult
+//
+// Example:
+//
+//	// Environment that needs to be loaded
+//	loadConfig := func() Config {
+//	    // Simulate loading config from file or environment
+//	    return Config{Value: 42}
+//	}
+//
+//	// Computation that needs the config
+//	computation := func(cfg Config) IOResult[string] {
+//	    return func() (string, error) {
+//	        return fmt.Sprintf("Loaded: %d", cfg.Value), nil
+//	    }
+//	}
+//
+//	// Load config and execute computation
+//	result := ReadIO[string](loadConfig)(computation)
+//	value, err := result() // Loads config, then returns "Loaded: 42", nil
+func ReadIO[A, R any](r IO[R]) func(ReaderIOResult[R, A]) IOResult[A] {
+	return func(ri ReaderIOResult[R, A]) IOResult[A] {
+		return func() (A, error) {
+			return ri(r())()
+		}
+	}
+}
+
+// ReadIOResult executes a ReaderIOResult by providing it with an environment value wrapped in IOResult.
+// This is the most flexible variant, allowing the environment itself to be the result of a computation
+// that may fail. If the environment computation fails, the entire computation fails without executing
+// the ReaderIOResult.
+//
+// This is useful when the environment must be validated, loaded from external sources, or computed
+// in a way that might fail. The error from environment resolution is propagated as the final error.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//   - R: The type of the environment/context
+//
+// Parameters:
+//   - r: An IOResult operation that produces the environment value or an error
+//
+// Returns:
+//   - A function that takes a ReaderIOResult and returns an IOResult
+//
+// Example:
+//
+//	// Environment that might fail to load
+//	loadConfig := func() (Config, error) {
+//	    cfg, err := os.ReadFile("config.json")
+//	    if err != nil {
+//	        return Config{}, fmt.Errorf("failed to load config: %w", err)
+//	    }
+//	    return parseConfig(cfg)
+//	}
+//
+//	// Computation that needs the config
+//	computation := func(cfg Config) IOResult[string] {
+//	    return func() (string, error) {
+//	        return fmt.Sprintf("Using: %d", cfg.Value), nil
+//	    }
+//	}
+//
+//	// Try to load config and execute computation
+//	result := ReadIOResult[string](loadConfig)(computation)
+//	value, err := result() // Returns error if config loading fails
+//
+//go:inline
+func ReadIOResult[A, R any](r IOResult[R]) func(ReaderIOResult[R, A]) IOResult[A] {
+	return function.Flow2(
+		ioresult.Chain[R, A],
+		Read[A](r),
+	)
 }
 
 // //go:inline
