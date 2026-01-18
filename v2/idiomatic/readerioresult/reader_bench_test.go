@@ -533,5 +533,3 @@ func BenchmarkExecuteLocal(b *testing.B) {
 		}
 	}
 }
-
-// Made with Bob

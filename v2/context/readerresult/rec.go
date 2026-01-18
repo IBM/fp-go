@@ -72,7 +72,7 @@ import (
 //
 // Example - Context cancellation:
 //
-//	ctx, cancel := context.WithCancel(context.Background())
+//	ctx, cancel := context.WithCancel(t.Context())
 //	cancel() // Cancel immediately
 //
 //	computation := TailRec(someStep)

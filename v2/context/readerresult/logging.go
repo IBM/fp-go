@@ -96,7 +96,7 @@ func curriedLog(
 //	logDebug := SLogWithCallback[User](slog.LevelDebug, getLogger, "User data")
 //
 //	// Use in a pipeline
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	user := result.Of(User{ID: 123, Name: "Alice"})
 //	logged := logDebug(user)(ctx) // Logs: level=DEBUG msg="User data" value={ID:123 Name:Alice}
 //	// logged still contains the User value
@@ -149,7 +149,7 @@ func SLogWithCallback[A any](
 //
 // Example - Logging a successful computation:
 //
-//	ctx := context.Background()
+//	ctx := t.Context()
 //
 //	// Simple value logging
 //	res := result.Of(42)
@@ -172,7 +172,7 @@ func SLogWithCallback[A any](
 //	    return result.Of(fmt.Sprintf("Processed: %s", user.Name))
 //	}
 //
-//	ctx := context.Background()
+//	ctx := t.Context()
 //
 //	// Log at each step
 //	userResult := fetchUser(123)
@@ -195,7 +195,7 @@ func SLogWithCallback[A any](
 //
 //	// Set up a custom logger in the context
 //	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-//	ctx := logging.WithLogger(logger)(context.Background())
+//	ctx := logging.WithLogger(logger)(t.Context())
 //
 //	res := result.Of("important data")
 //	logged := SLog[string]("Critical operation")(res)(ctx)

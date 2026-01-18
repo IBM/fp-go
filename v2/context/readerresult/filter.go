@@ -43,7 +43,7 @@ import (
 //	onNegative := func(n int) error { return fmt.Errorf("%d is not positive", n) }
 //
 //	filter := readerresult.FilterOrElse(isPositive, onNegative)
-//	result := filter(readerresult.Right(42))(context.Background())
+//	result := filter(readerresult.Right(42))(t.Context())
 //
 //go:inline
 func FilterOrElse[A any](pred Predicate[A], onFalse func(A) error) Operator[A, A] {

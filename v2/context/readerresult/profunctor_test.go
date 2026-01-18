@@ -41,7 +41,7 @@ func TestPromapBasic(t *testing.T) {
 		toString := strconv.Itoa
 
 		adapted := Promap(addKey, toString)(getValue)
-		result := adapted(context.Background())
+		result := adapted(t.Context())
 
 		assert.Equal(t, R.Of("42"), result)
 	})
@@ -63,7 +63,7 @@ func TestContramapBasic(t *testing.T) {
 		}
 
 		adapted := Contramap[int](addKey)(getValue)
-		result := adapted(context.Background())
+		result := adapted(t.Context())
 
 		assert.Equal(t, R.Of(100), result)
 	})
@@ -85,7 +85,7 @@ func TestLocalBasic(t *testing.T) {
 		}
 
 		adapted := Local[string](addUser)(getValue)
-		result := adapted(context.Background())
+		result := adapted(t.Context())
 
 		assert.Equal(t, R.Of("Alice"), result)
 	})

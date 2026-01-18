@@ -45,7 +45,7 @@ func TestTailRecFactorial(t *testing.T) {
 	}
 
 	factorial := TailRec(factorialStep)
-	result := factorial(State{5, 1})(context.Background())
+	result := factorial(State{5, 1})(t.Context())
 
 	assert.Equal(t, R.Of(120), result)
 }
@@ -68,7 +68,7 @@ func TestTailRecFibonacci(t *testing.T) {
 	}
 
 	fib := TailRec(fibStep)
-	result := fib(State{10, 0, 1})(context.Background())
+	result := fib(State{10, 0, 1})(t.Context())
 
 	assert.Equal(t, R.Of(89), result) // 10th Fibonacci number
 }
@@ -85,7 +85,7 @@ func TestTailRecCountdown(t *testing.T) {
 	}
 
 	countdown := TailRec(countdownStep)
-	result := countdown(10)(context.Background())
+	result := countdown(10)(t.Context())
 
 	assert.Equal(t, R.Of(0), result)
 }
@@ -99,7 +99,7 @@ func TestTailRecImmediateTermination(t *testing.T) {
 	}
 
 	immediate := TailRec(immediateStep)
-	result := immediate(42)(context.Background())
+	result := immediate(42)(t.Context())
 
 	assert.Equal(t, R.Of(84), result)
 }
@@ -116,7 +116,7 @@ func TestTailRecStackSafety(t *testing.T) {
 	}
 
 	countdown := TailRec(countdownStep)
-	result := countdown(10000)(context.Background())
+	result := countdown(10000)(t.Context())
 
 	assert.Equal(t, R.Of(0), result)
 }
@@ -138,7 +138,7 @@ func TestTailRecSumList(t *testing.T) {
 	}
 
 	sumList := TailRec(sumStep)
-	result := sumList(State{[]int{1, 2, 3, 4, 5}, 0})(context.Background())
+	result := sumList(State{[]int{1, 2, 3, 4, 5}, 0})(t.Context())
 
 	assert.Equal(t, R.Of(15), result)
 }
@@ -158,7 +158,7 @@ func TestTailRecCollatzConjecture(t *testing.T) {
 	}
 
 	collatz := TailRec(collatzStep)
-	result := collatz(10)(context.Background())
+	result := collatz(10)(t.Context())
 
 	assert.Equal(t, R.Of(1), result)
 }
@@ -180,7 +180,7 @@ func TestTailRecGCD(t *testing.T) {
 	}
 
 	gcd := TailRec(gcdStep)
-	result := gcd(State{48, 18})(context.Background())
+	result := gcd(State{48, 18})(t.Context())
 
 	assert.Equal(t, R.Of(6), result)
 }
@@ -202,7 +202,7 @@ func TestTailRecErrorPropagation(t *testing.T) {
 	}
 
 	computation := TailRec(errorStep)
-	result := computation(10)(context.Background())
+	result := computation(10)(t.Context())
 
 	assert.True(t, R.IsLeft(result))
 	_, err := R.Unwrap(result)
@@ -211,7 +211,7 @@ func TestTailRecErrorPropagation(t *testing.T) {
 
 // TestTailRecContextCancellationImmediate tests short circuit when context is already canceled
 func TestTailRecContextCancellationImmediate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Cancel immediately before execution
 
 	stepExecuted := false
@@ -237,7 +237,7 @@ func TestTailRecContextCancellationImmediate(t *testing.T) {
 
 // TestTailRecContextCancellationDuringExecution tests short circuit when context is canceled during execution
 func TestTailRecContextCancellationDuringExecution(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 
 	executionCount := 0
 	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
@@ -266,7 +266,7 @@ func TestTailRecContextCancellationDuringExecution(t *testing.T) {
 
 // TestTailRecContextWithTimeout tests behavior with timeout context
 func TestTailRecContextWithTimeout(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 
 	executionCount := 0
@@ -295,7 +295,7 @@ func TestTailRecContextWithTimeout(t *testing.T) {
 // TestTailRecContextWithCause tests that context.Cause is properly returned
 func TestTailRecContextWithCause(t *testing.T) {
 	customErr := errors.New("custom cancellation reason")
-	ctx, cancel := context.WithCancelCause(context.Background())
+	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(customErr)
 
 	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
@@ -317,7 +317,7 @@ func TestTailRecContextWithCause(t *testing.T) {
 
 // TestTailRecContextCancellationMultipleIterations tests that cancellation is checked on each iteration
 func TestTailRecContextCancellationMultipleIterations(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 
 	executionCount := 0
 	maxExecutions := 5
@@ -348,7 +348,7 @@ func TestTailRecContextCancellationMultipleIterations(t *testing.T) {
 
 // TestTailRecContextNotCanceled tests normal execution when context is not canceled
 func TestTailRecContextNotCanceled(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	executionCount := 0
 	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
@@ -386,7 +386,7 @@ func TestTailRecPowerOfTwo(t *testing.T) {
 	}
 
 	power := TailRec(powerStep)
-	result := power(State{0, 1, 10})(context.Background())
+	result := power(State{0, 1, 10})(t.Context())
 
 	assert.Equal(t, R.Of(1024), result) // 2^10
 }
@@ -412,7 +412,7 @@ func TestTailRecFindInRange(t *testing.T) {
 	}
 
 	find := TailRec(findStep)
-	result := find(State{0, 100, 42})(context.Background())
+	result := find(State{0, 100, 42})(t.Context())
 
 	assert.Equal(t, R.Of(42), result)
 }
@@ -438,7 +438,7 @@ func TestTailRecFindNotInRange(t *testing.T) {
 	}
 
 	find := TailRec(findStep)
-	result := find(State{0, 100, 200})(context.Background())
+	result := find(State{0, 100, 200})(t.Context())
 
 	assert.Equal(t, R.Of(-1), result)
 }
@@ -448,7 +448,7 @@ func TestTailRecWithContextValue(t *testing.T) {
 	type contextKey string
 	const multiplierKey contextKey = "multiplier"
 
-	ctx := context.WithValue(context.Background(), multiplierKey, 3)
+	ctx := context.WithValue(t.Context(), multiplierKey, 3)
 
 	countdownStep := func(n int) ReaderResult[TR.Trampoline[int, int]] {
 		return func(ctx context.Context) Result[TR.Trampoline[int, int]] {
@@ -492,7 +492,7 @@ func TestTailRecComplexState(t *testing.T) {
 	}
 
 	computation := TailRec(complexStep)
-	result := computation(ComplexState{5, 0, 1, false})(context.Background())
+	result := computation(ComplexState{5, 0, 1, false})(t.Context())
 
 	assert.Equal(t, R.Of("sum=15, product=120"), result)
 }

@@ -37,7 +37,7 @@ func TestSLogLogsSuccessValue(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a Result and log it
 	res1 := result.Of(42)
@@ -59,7 +59,7 @@ func TestSLogLogsErrorValue(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	testErr := errors.New("test error")
 
 	// Create an error Result and log it
@@ -83,7 +83,7 @@ func TestSLogInPipeline(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// SLog takes a Result[A] and returns ReaderResult[A]
 	// So we need to start with a Result, apply SLog, then execute with context
@@ -104,7 +104,7 @@ func TestSLogWithContextLogger(t *testing.T) {
 		Level: slog.LevelInfo,
 	}))
 
-	ctx := logging.WithLogger(contextLogger)(context.Background())
+	ctx := logging.WithLogger(contextLogger)(t.Context())
 
 	res1 := result.Of("test value")
 	logged := SLog[string]("Context logger test")(res1)(ctx)
@@ -126,7 +126,7 @@ func TestSLogDisabled(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	res1 := result.Of(42)
 	logged := SLog[int]("This should not be logged")(res1)(ctx)
@@ -152,7 +152,7 @@ func TestSLogWithStruct(t *testing.T) {
 		Name string
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	user := User{ID: 123, Name: "Alice"}
 
 	res1 := result.Of(user)
@@ -177,7 +177,7 @@ func TestSLogWithCallbackCustomLevel(t *testing.T) {
 		return logger
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a Result and log it with custom callback
 	res1 := result.Of(42)
@@ -202,7 +202,7 @@ func TestSLogWithCallbackLogsError(t *testing.T) {
 		return logger
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	testErr := errors.New("warning error")
 
 	// Create an error Result and log it with custom callback
@@ -227,7 +227,7 @@ func TestSLogChainedOperations(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First log step 1
 	res1 := result.Of(5)
@@ -255,7 +255,7 @@ func TestSLogPreservesError(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	testErr := errors.New("original error")
 
 	res1 := result.Left[int](testErr)
@@ -280,7 +280,7 @@ func TestSLogMultipleValues(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with different types
 	intRes := SLog[int]("Integer")(result.Of(42))(ctx)

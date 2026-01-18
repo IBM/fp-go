@@ -63,7 +63,7 @@ import (
 //	// Sequenced: takes context first, then Database
 //	sequenced := SequenceReader(original)
 //
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	db := Database{ConnectionString: "localhost:5432"}
 //
 //	// Apply context first to get a function that takes database
@@ -135,7 +135,7 @@ func SequenceReader[R, A any](ma ReaderResult[Reader[R, A]]) reader.Kleisli[cont
 //
 //	// Now we can provide Config first, then context
 //	cfg := Config{MaxRetries: 3}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //
 //	result := flipped(cfg)(ctx)
 //	// result is Result[string] containing "Value: 42, MaxRetries: 3"

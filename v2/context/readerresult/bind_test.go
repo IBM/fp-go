@@ -16,7 +16,6 @@
 package readerresult
 
 import (
-	"context"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
@@ -42,7 +41,7 @@ func TestBind(t *testing.T) {
 		Map(utils.GetFullName),
 	)
 
-	assert.Equal(t, res(context.Background()), E.Of[error]("John Doe"))
+	assert.Equal(t, res(t.Context()), E.Of[error]("John Doe"))
 }
 
 func TestApS(t *testing.T) {
@@ -54,5 +53,5 @@ func TestApS(t *testing.T) {
 		Map(utils.GetFullName),
 	)
 
-	assert.Equal(t, res(context.Background()), E.Of[error]("John Doe"))
+	assert.Equal(t, res(t.Context()), E.Of[error]("John Doe"))
 }
