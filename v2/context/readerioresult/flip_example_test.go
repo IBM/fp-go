@@ -22,6 +22,7 @@ import (
 	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 )
 
 // Example_sequenceReader_basicUsage demonstrates the basic usage of SequenceReader
@@ -233,7 +234,7 @@ func Example_sequenceReaderResult_errorHandling() {
 	ctx := context.Background()
 	pipeline := F.Pipe2(
 		sequenced(ctx),
-		RIOE.Map(func(x int) int { return x * 2 }),
+		RIOE.Map(N.Mul(2)),
 		RIOE.Chain(func(x int) RIOE.ReaderIOResult[string] {
 			return RIOE.Of(fmt.Sprintf("Result: %d", x))
 		}),
