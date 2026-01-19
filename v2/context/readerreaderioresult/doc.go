@@ -238,6 +238,236 @@
 //   - Retry logic with policy configuration and execution context
 //   - Resource management with bracket pattern across multiple contexts
 //
+// # Dependency Injection with the Outer Context
+//
+// The outer Reader context (type parameter R) provides a powerful mechanism for dependency injection
+// in functional programming. This pattern is explained in detail in Scott Wlaschin's talk:
+// "Dependency Injection, The Functional Way" - https://www.youtube.com/watch?v=xPlsVVaMoB0
+//
+// ## Core Concept
+//
+// Instead of using traditional OOP dependency injection frameworks, the Reader monad allows you to:
+//  1. Define functions that declare their dependencies as type parameters
+//  2. Compose these functions without providing the dependencies
+//  3. Supply all dependencies at the "end of the world" (program entry point)
+//
+// This approach provides:
+//   - Compile-time safety: Missing dependencies cause compilation errors
+//   - Explicit dependencies: Function signatures show exactly what they need
+//   - Easy testing: Mock dependencies by providing different values
+//   - Pure functions: Dependencies are passed as parameters, not global state
+//
+// ## Examples from the Video Adapted to fp-go
+//
+// ### Example 1: Basic Reader Pattern (Video: "Reader Monad Basics")
+//
+// In the video, Scott shows how to pass configuration through a chain of functions.
+// In fp-go with ReaderReaderIOResult:
+//
+//	// Define your dependencies
+//	type AppConfig struct {
+//	    DatabaseURL string
+//	    APIKey      string
+//	    MaxRetries  int
+//	}
+//
+//	// Functions declare their dependencies via the R type parameter
+//	func getConnectionString() ReaderReaderIOResult[AppConfig, string] {
+//	    return Asks[AppConfig](func(cfg AppConfig) string {
+//	        return cfg.DatabaseURL
+//	    })
+//	}
+//
+//	func connectToDatabase() ReaderReaderIOResult[AppConfig, *sql.DB] {
+//	    return MonadChain(
+//	        getConnectionString(),
+//	        func(connStr string) ReaderReaderIOResult[AppConfig, *sql.DB] {
+//	            return FromIO[AppConfig](func() result.Result[*sql.DB] {
+//	                db, err := sql.Open("postgres", connStr)
+//	                return result.FromEither(either.FromError(db, err))
+//	            })
+//	        },
+//	    )
+//	}
+//
+// ### Example 2: Composing Dependencies (Video: "Composing Reader Functions")
+//
+// The video demonstrates how Reader functions compose naturally.
+// In fp-go, you can compose operations that all share the same dependency:
+//
+//	func fetchUser(id int) ReaderReaderIOResult[AppConfig, User] {
+//	    return MonadChain(
+//	        connectToDatabase(),
+//	        func(db *sql.DB) ReaderReaderIOResult[AppConfig, User] {
+//	            return FromIO[AppConfig](func() result.Result[User] {
+//	                // Query database using db and return user
+//	                // The AppConfig is still available if needed
+//	            })
+//	        },
+//	    )
+//	}
+//
+//	func enrichUser(user User) ReaderReaderIOResult[AppConfig, EnrichedUser] {
+//	    return Asks[AppConfig, EnrichedUser](func(cfg AppConfig) EnrichedUser {
+//	        // Use cfg.APIKey to call external service
+//	        return EnrichedUser{User: user, Extra: "data"}
+//	    })
+//	}
+//
+//	// Compose without providing dependencies
+//	pipeline := function.Pipe2(
+//	    fetchUser(123),
+//	    Chain[AppConfig](enrichUser),
+//	)
+//
+//	// Provide dependencies at the end
+//	config := AppConfig{DatabaseURL: "...", APIKey: "...", MaxRetries: 3}
+//	ctx := context.Background()
+//	result := pipeline(config)(ctx)()
+//
+// ### Example 3: Local Context Modification (Video: "Local Environment")
+//
+// The video shows how to temporarily modify the environment for a sub-computation.
+// In fp-go, use the Local function:
+//
+//	// Run a computation with modified configuration
+//	func withRetries(retries int, action ReaderReaderIOResult[AppConfig, string]) ReaderReaderIOResult[AppConfig, string] {
+//	    return Local[string](func(cfg AppConfig) AppConfig {
+//	        // Create a modified config with different retry count
+//	        return AppConfig{
+//	            DatabaseURL: cfg.DatabaseURL,
+//	            APIKey:      cfg.APIKey,
+//	            MaxRetries:  retries,
+//	        }
+//	    })(action)
+//	}
+//
+//	// Use it
+//	result := withRetries(5, fetchUser(123))
+//
+// ### Example 4: Testing with Mock Dependencies (Video: "Testing with Reader")
+//
+// The video emphasizes how Reader makes testing easy by allowing mock dependencies.
+// In fp-go:
+//
+//	func TestFetchUser(t *testing.T) {
+//	    // Create a test configuration
+//	    testConfig := AppConfig{
+//	        DatabaseURL: "mock://test",
+//	        APIKey:      "test-key",
+//	        MaxRetries:  1,
+//	    }
+//
+//	    // Run the computation with test config
+//	    ctx := context.Background()
+//	    result := fetchUser(123)(testConfig)(ctx)()
+//
+//	    // Assert on the result
+//	    assert.True(t, either.IsRight(result))
+//	}
+//
+// ### Example 5: Multi-Layer Dependencies (Video: "Nested Readers")
+//
+// The video discusses nested readers for multi-layer architectures.
+// ReaderReaderIOResult provides exactly this with R (outer) and context.Context (inner):
+//
+//	type AppConfig struct {
+//	    DatabaseURL string
+//	}
+//
+//	// Outer context: Application-level configuration (AppConfig)
+//	// Inner context: Request-level context (context.Context)
+//	func handleRequest(userID int) ReaderReaderIOResult[AppConfig, Response] {
+//	    return func(cfg AppConfig) readerioresult.ReaderIOResult[context.Context, Response] {
+//	        // cfg is available here (outer context)
+//	        return func(ctx context.Context) ioresult.IOResult[Response] {
+//	            // ctx is available here (inner context)
+//	            // Both cfg and ctx can be used
+//	            return func() result.Result[Response] {
+//	                // Perform operation using both contexts
+//	                select {
+//	                case <-ctx.Done():
+//	                    return result.Error[Response](ctx.Err())
+//	                default:
+//	                    // Use cfg.DatabaseURL to connect
+//	                    return result.Of(Response{})
+//	                }
+//	            }
+//	        }
+//	    }
+//	}
+//
+// ### Example 6: Avoiding Global State (Video: "Problems with Global State")
+//
+// The video criticizes global state and shows how Reader solves this.
+// In fp-go, instead of:
+//
+//	// BAD: Global state
+//	var globalConfig AppConfig
+//
+//	func fetchUser(id int) result.Result[User] {
+//	    // Uses globalConfig implicitly
+//	    db := connectTo(globalConfig.DatabaseURL)
+//	    // ...
+//	}
+//
+// Use Reader to make dependencies explicit:
+//
+//	// GOOD: Explicit dependencies
+//	func fetchUser(id int) ReaderReaderIOResult[AppConfig, User] {
+//	    return MonadChain(
+//	        Ask[AppConfig](), // Explicitly request the config
+//	        func(cfg AppConfig) ReaderReaderIOResult[AppConfig, User] {
+//	            // Use cfg explicitly
+//	            return FromIO[AppConfig](func() result.Result[User] {
+//	                db := connectTo(cfg.DatabaseURL)
+//	                // ...
+//	            })
+//	        },
+//	    )
+//	}
+//
+// ## Benefits of This Approach
+//
+// 1. **Type Safety**: The compiler ensures all dependencies are provided
+// 2. **Testability**: Easy to provide mock dependencies for testing
+// 3. **Composability**: Functions compose naturally without dependency wiring
+// 4. **Explicitness**: Function signatures document their dependencies
+// 5. **Immutability**: Dependencies are immutable values, not mutable global state
+// 6. **Flexibility**: Use Local to modify dependencies for sub-computations
+// 7. **Separation of Concerns**: Business logic is separate from dependency resolution
+//
+// ## Comparison with Traditional DI
+//
+// Traditional OOP DI (e.g., Spring, Guice):
+//   - Runtime dependency resolution
+//   - Magic/reflection-based wiring
+//   - Implicit dependencies (hidden in constructors)
+//   - Mutable containers
+//
+// Reader-based DI (fp-go):
+//   - Compile-time dependency resolution
+//   - Explicit function composition
+//   - Explicit dependencies (in type signatures)
+//   - Immutable values
+//
+// ## When to Use Each Layer
+//
+// - **Outer Reader (R)**: Application-level dependencies that rarely change
+//   - Database connection pools
+//   - API keys and secrets
+//   - Feature flags
+//   - Application configuration
+//
+// - **Inner Reader (context.Context)**: Request-level dependencies that change per operation
+//   - Request IDs and tracing
+//   - Cancellation signals
+//   - Deadlines and timeouts
+//   - User authentication tokens
+//
+// This two-layer approach mirrors the video's discussion of nested readers and provides
+// a clean separation between application-level and request-level concerns.
+//
 // # Relationship to Other Packages
 //
 //   - readerreaderioeither: The generic version with configurable error and context types

@@ -25,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
@@ -56,7 +57,7 @@ func TestLeft(t *testing.T) {
 func TestMonadMap(t *testing.T) {
 	computation := MonadMap(
 		Of[AppConfig](21),
-		func(n int) int { return n * 2 },
+		N.Mul(2),
 	)
 	outcome := computation(defaultConfig)(t.Context())()
 	assert.Equal(t, result.Of(42), outcome)
@@ -65,7 +66,7 @@ func TestMonadMap(t *testing.T) {
 func TestMap(t *testing.T) {
 	computation := F.Pipe1(
 		Of[AppConfig](21),
-		Map[AppConfig](func(n int) int { return n * 2 }),
+		Map[AppConfig](N.Mul(2)),
 	)
 	outcome := computation(defaultConfig)(t.Context())()
 	assert.Equal(t, result.Of(42), outcome)
@@ -316,7 +317,7 @@ func TestAsk(t *testing.T) {
 }
 
 func TestAsks(t *testing.T) {
-	computation := Asks[AppConfig](func(cfg AppConfig) string {
+	computation := Asks(func(cfg AppConfig) string {
 		return cfg.DatabaseURL
 	})
 	outcome := computation(defaultConfig)(t.Context())()
@@ -404,7 +405,7 @@ func TestAlt(t *testing.T) {
 }
 
 func TestMonadFlap(t *testing.T) {
-	fab := Of[AppConfig](func(n int) int { return n * 2 })
+	fab := Of[AppConfig](N.Mul(2))
 	computation := MonadFlap(fab, 21)
 	outcome := computation(defaultConfig)(t.Context())()
 	assert.Equal(t, result.Of(42), outcome)
@@ -412,7 +413,7 @@ func TestMonadFlap(t *testing.T) {
 
 func TestFlap(t *testing.T) {
 	computation := F.Pipe1(
-		Of[AppConfig](func(n int) int { return n * 2 }),
+		Of[AppConfig](N.Mul(2)),
 		Flap[AppConfig, int](21),
 	)
 	outcome := computation(defaultConfig)(t.Context())()
@@ -457,7 +458,7 @@ func TestLocal(t *testing.T) {
 	}
 
 	computation := F.Pipe1(
-		Asks[AppConfig](func(cfg AppConfig) string {
+		Asks(func(cfg AppConfig) string {
 			return cfg.DatabaseURL
 		}),
 		Local[string, AppConfig, OtherConfig](func(other OtherConfig) AppConfig {
@@ -470,7 +471,7 @@ func TestLocal(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	computation := Asks[AppConfig](func(cfg AppConfig) string {
+	computation := Asks(func(cfg AppConfig) string {
 		return cfg.DatabaseURL
 	})
 
@@ -480,7 +481,7 @@ func TestRead(t *testing.T) {
 }
 
 func TestReadIOEither(t *testing.T) {
-	computation := Asks[AppConfig](func(cfg AppConfig) string {
+	computation := Asks(func(cfg AppConfig) string {
 		return cfg.DatabaseURL
 	})
 
@@ -491,7 +492,7 @@ func TestReadIOEither(t *testing.T) {
 }
 
 func TestReadIO(t *testing.T) {
-	computation := Asks[AppConfig](func(cfg AppConfig) string {
+	computation := Asks(func(cfg AppConfig) string {
 		return cfg.DatabaseURL
 	})
 
@@ -699,7 +700,7 @@ func TestFromReaderOption(t *testing.T) {
 }
 
 func TestMonadAp(t *testing.T) {
-	fab := Of[AppConfig](func(n int) int { return n * 2 })
+	fab := Of[AppConfig](N.Mul(2))
 	fa := Of[AppConfig](21)
 	computation := MonadAp(fab, fa)
 	outcome := computation(defaultConfig)(t.Context())()
@@ -709,7 +710,7 @@ func TestMonadAp(t *testing.T) {
 func TestAp(t *testing.T) {
 	fa := Of[AppConfig](21)
 	computation := F.Pipe1(
-		Of[AppConfig](func(n int) int { return n * 2 }),
+		Of[AppConfig](N.Mul(2)),
 		Ap[int, AppConfig](fa),
 	)
 	outcome := computation(defaultConfig)(t.Context())()

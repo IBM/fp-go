@@ -9,6 +9,7 @@ import (
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/readerioeither"
 	"github.com/IBM/fp-go/v2/readeroption"
@@ -22,6 +23,7 @@ type (
 	ReaderOption[R, A any]      = readeroption.ReaderOption[R, A]
 	ReaderIO[R, A any]          = readerio.ReaderIO[R, A]
 	ReaderIOEither[R, E, A any] = readerioeither.ReaderIOEither[R, E, A]
+	ReaderEither[R, E, A any]   = readereither.ReaderEither[R, E, A]
 	Either[E, A any]            = either.Either[E, A]
 	IOEither[E, A any]          = ioeither.IOEither[E, A]
 	IO[A any]                   = io.IO[A]

@@ -306,7 +306,7 @@ func TestBindReaderIOK(t *testing.T) {
 
 	res := F.Pipe2(
 		Do[AppConfig](State{Value: 10}),
-		BindReaderIOK[AppConfig](
+		BindReaderIOK(
 			func(v int) func(State) State {
 				return func(s State) State {
 					s.Value = v
@@ -662,7 +662,7 @@ func TestApOperations(t *testing.T) {
 	t.Run("ApReaderS", func(t *testing.T) {
 		res := F.Pipe2(
 			Do[AppConfig](State{}),
-			ApReaderS[AppConfig](
+			ApReaderS(
 				func(v int) func(State) State {
 					return func(s State) State {
 						s.Value1 = v
@@ -681,7 +681,7 @@ func TestApOperations(t *testing.T) {
 	t.Run("ApReaderIOS", func(t *testing.T) {
 		res := F.Pipe2(
 			Do[AppConfig](State{}),
-			ApReaderIOS[AppConfig](
+			ApReaderIOS(
 				func(v int) func(State) State {
 					return func(s State) State {
 						s.Value1 = v

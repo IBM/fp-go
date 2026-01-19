@@ -1041,7 +1041,7 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 //	    getUser,
 //	    addUser,
 //	)
-//	value, err := result(context.Background())()  // Returns ("Alice", nil)
+//	value, err := result(t.Context())()  // Returns ("Alice", nil)
 //
 // Timeout Example:
 //
@@ -1112,7 +1112,7 @@ func Local[A any](f func(context.Context) (context.Context, context.CancelFunc))
 //	    fetchData,
 //	    readerioresult.WithTimeout[Data](5*time.Second),
 //	)
-//	value, err := result(context.Background())()  // Returns (Data{}, context.DeadlineExceeded) after 5s
+//	value, err := result(t.Context())()  // Returns (Data{}, context.DeadlineExceeded) after 5s
 //
 // Successful Example:
 //
@@ -1121,7 +1121,7 @@ func Local[A any](f func(context.Context) (context.Context, context.CancelFunc))
 //	    quickFetch,
 //	    readerioresult.WithTimeout[Data](5*time.Second),
 //	)
-//	value, err := result(context.Background())()  // Returns (Data{Value: "quick"}, nil)
+//	value, err := result(t.Context())()  // Returns (Data{Value: "quick"}, nil)
 func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
 		return context.WithTimeout(ctx, timeout)
@@ -1173,12 +1173,12 @@ func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 //	    fetchData,
 //	    readerioresult.WithDeadline[Data](deadline),
 //	)
-//	value, err := result(context.Background())()  // Returns (Data{}, context.DeadlineExceeded) if past deadline
+//	value, err := result(t.Context())()  // Returns (Data{}, context.DeadlineExceeded) if past deadline
 //
 // Combining with Parent Context:
 //
 //	// If parent context already has a deadline, the earlier one takes precedence
-//	parentCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
+//	parentCtx, cancel := context.WithDeadline(t.Context(), time.Now().Add(1*time.Hour))
 //	defer cancel()
 //
 //	laterDeadline := time.Now().Add(2 * time.Hour)

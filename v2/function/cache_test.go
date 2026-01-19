@@ -169,7 +169,7 @@ func TestContramapMemoize(t *testing.T) {
 		}
 
 		// Cache by ID only
-		cacheByID := ContramapMemoize[string, User, int](func(u User) int {
+		cacheByID := ContramapMemoize[string](func(u User) int {
 			return u.ID
 		})
 
@@ -206,7 +206,7 @@ func TestContramapMemoize(t *testing.T) {
 			return p.Price * 1.1 // Add 10% markup
 		}
 
-		cacheBySKU := ContramapMemoize[float64, Product, string](func(p Product) string {
+		cacheBySKU := ContramapMemoize[float64](func(p Product) string {
 			return p.SKU
 		})
 
@@ -238,7 +238,7 @@ func TestContramapMemoize(t *testing.T) {
 		}
 
 		// Cache by method and path, ignore body
-		cacheByMethodPath := ContramapMemoize[string, Request, string](func(r Request) string {
+		cacheByMethodPath := ContramapMemoize[string](func(r Request) string {
 			return r.Method + ":" + r.Path
 		})
 
@@ -300,7 +300,7 @@ func TestCacheCallback(t *testing.T) {
 			return fmt.Sprintf("Result: %d", n)
 		}
 
-		memoizer := CacheCallback[string, int, int](
+		memoizer := CacheCallback(
 			Identity[int],
 			boundedCache(),
 		)
@@ -372,7 +372,7 @@ func TestCacheCallback(t *testing.T) {
 			return fmt.Sprintf("Processed: %s", item.Value)
 		}
 
-		memoizer := CacheCallback[string, Item, int](
+		memoizer := CacheCallback(
 			func(item Item) int { return item.ID },
 			simpleCache(),
 		)
@@ -445,7 +445,7 @@ func TestSingleElementCache(t *testing.T) {
 			return fmt.Sprintf("Result: %d", n*n)
 		}
 
-		memoizer := CacheCallback[string, int, int](
+		memoizer := CacheCallback(
 			Identity[int],
 			cache,
 		)
@@ -591,7 +591,7 @@ func TestMemoizeIntegration(t *testing.T) {
 		}
 
 		// First level: cache by UserID
-		cacheByUser := ContramapMemoize[string, Request, int](func(r Request) int {
+		cacheByUser := ContramapMemoize[string](func(r Request) int {
 			return r.UserID
 		})
 

@@ -15,7 +15,9 @@
 
 package reader
 
-import "github.com/IBM/fp-go/v2/function"
+import (
+	"github.com/IBM/fp-go/v2/function"
+)
 
 // Promap is the profunctor map operation that transforms both the input and output of a Reader.
 // It applies f to the input (contravariantly) and g to the output (covariantly).
@@ -51,6 +53,11 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, Reader[E, A], B
 //go:inline
 func Local[A, R1, R2 any](f func(R2) R1) Kleisli[R2, Reader[R1, A], A] {
 	return Compose[A](f)
+}
+
+//go:inline
+func WithLocal[A, R1, R2 any](fa Reader[R1, A], f func(R2) R1) Reader[R2, A] {
+	return function.Flow2(f, fa)
 }
 
 // Contramap is an alias for Local.

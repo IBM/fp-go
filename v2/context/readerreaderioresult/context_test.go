@@ -22,6 +22,7 @@ import (
 	"time"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/retry"
 	"github.com/stretchr/testify/assert"
@@ -54,7 +55,7 @@ func TestContextCancellationInChain(t *testing.T) {
 	executed := false
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		Chain[AppConfig](func(n int) ReaderReaderIOResult[AppConfig, int] {
+		Chain(func(n int) ReaderReaderIOResult[AppConfig, int] {
 			return func(c AppConfig) ReaderIOResult[context.Context, int] {
 				return func(ctx context.Context) IOResult[int] {
 					return func() Result[int] {
@@ -255,7 +256,7 @@ func TestContextPropagationThroughMonadTransforms(t *testing.T) {
 			return func(ctx context.Context) IOResult[func(int) int] {
 				return func() Result[func(int) int] {
 					capturedCtx = ctx
-					return result.Of(func(n int) int { return n * 2 })
+					return result.Of(N.Mul(2))
 				}
 			}
 		}
