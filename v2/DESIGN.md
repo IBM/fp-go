@@ -584,5 +584,7 @@ func process(input string) types.Result[types.Option[int]] {
 
 For more information, see:
 - [README.md](./README.md) - Overview and quick start
+- [FUNCTIONAL_IO.md](./FUNCTIONAL_IO.md) - Functional I/O patterns with Context and Reader
+- [IDIOMATIC_COMPARISON.md](./IDIOMATIC_COMPARISON.md) - Performance comparison between standard and idiomatic packages
 - [API Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2) - Complete API reference
 - [Samples](./samples/) - Practical examples
