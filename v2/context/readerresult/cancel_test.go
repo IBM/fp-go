@@ -38,7 +38,7 @@ func TestWithContext(t *testing.T) {
 		}
 
 		wrapped := WithContext(computation)
-		result := wrapped(context.Background())
+		result := wrapped(t.Context())
 
 		assert.True(t, executed, "computation should be executed")
 		assert.Equal(t, E.Of[error](42), result)
@@ -53,7 +53,7 @@ func TestWithContext(t *testing.T) {
 
 		wrapped := WithContext(computation)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := wrapped(ctx)
@@ -74,7 +74,7 @@ func TestWithContext(t *testing.T) {
 
 		wrapped := WithContext(computation)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
 		defer cancel()
 
 		time.Sleep(20 * time.Millisecond) // Wait for timeout
@@ -94,7 +94,7 @@ func TestWithContext(t *testing.T) {
 		}
 
 		wrapped := WithContext(computation)
-		result := wrapped(context.Background())
+		result := wrapped(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -112,7 +112,7 @@ func TestWithContext(t *testing.T) {
 
 		wrapped := WithContext(expensiveComputation)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		start := time.Now()
@@ -134,7 +134,7 @@ func TestWithContext(t *testing.T) {
 		wrapped := WithContext(computation)
 
 		customErr := errors.New("custom cancellation reason")
-		ctx, cancel := context.WithCancelCause(context.Background())
+		ctx, cancel := context.WithCancelCause(t.Context())
 		cancel(customErr)
 
 		result := wrapped(ctx)
@@ -154,7 +154,7 @@ func TestWithContext(t *testing.T) {
 
 		doubleWrapped := WithContext(WithContext(computation))
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := doubleWrapped(ctx)
@@ -177,7 +177,7 @@ func TestWithContextK(t *testing.T) {
 
 		safeProcessUser := WithContextK(processUser)
 
-		result := safeProcessUser(123)(context.Background())
+		result := safeProcessUser(123)(t.Context())
 
 		assert.True(t, executed, "Kleisli should be executed")
 		assert.True(t, E.IsRight(result))
@@ -194,7 +194,7 @@ func TestWithContextK(t *testing.T) {
 
 		safeProcessUser := WithContextK(processUser)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := safeProcessUser(123)(ctx)
@@ -229,7 +229,7 @@ func TestWithContextK(t *testing.T) {
 			Chain(getOrders),
 		)
 
-		result := pipeline(context.Background())
+		result := pipeline(t.Context())
 
 		assert.True(t, firstExecuted, "first step should execute")
 		assert.True(t, secondExecuted, "second step should execute")
@@ -260,7 +260,7 @@ func TestWithContextK(t *testing.T) {
 			Chain(getOrders),
 		)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := pipeline(ctx)
@@ -295,7 +295,7 @@ func TestWithContextK(t *testing.T) {
 			Chain(step2),
 		)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
 		defer cancel()
 
 		time.Sleep(20 * time.Millisecond) // Wait for timeout
@@ -316,7 +316,7 @@ func TestWithContextK(t *testing.T) {
 		}
 
 		safeKleisli := WithContextK(failingKleisli)
-		result := safeKleisli(123)(context.Background())
+		result := safeKleisli(123)(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -354,7 +354,7 @@ func TestWithContextIntegration(t *testing.T) {
 			ChainTo[int](step3),
 		)
 
-		result := pipeline(context.Background())
+		result := pipeline(t.Context())
 
 		assert.True(t, step1Executed)
 		assert.True(t, step2Executed)
@@ -390,7 +390,7 @@ func TestWithContextIntegration(t *testing.T) {
 			ChainTo[int](step3),
 		)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := pipeline(ctx)
@@ -412,7 +412,7 @@ func TestWithContextIntegration(t *testing.T) {
 			Map(reader.Of[int]("result")),
 		)
 
-		result := pipeline(context.Background())
+		result := pipeline(t.Context())
 		assert.Equal(t, E.Of[error]("result"), result)
 	})
 }

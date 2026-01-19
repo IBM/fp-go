@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,35 +12,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package file
+package readerreaderioresult
 
 import (
-	"os"
-	"testing"
+	"context"
 
 	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/retry"
 )
 
-func TestWithTempFile(t *testing.T) {
-
-	res := WithTempFile(onWriteAll[*os.File]([]byte("Carsten")))
-
-	assert.Equal(t, E.Of[error]([]byte("Carsten")), res(t.Context())())
-}
-
-func TestWithTempFileOnClosedFile(t *testing.T) {
-
-	res := WithTempFile(func(f *os.File) RIOE.ReaderIOResult[[]byte] {
-		return F.Pipe2(
-			f,
-			onWriteAll[*os.File]([]byte("Carsten")),
-			RIOE.ChainFirst(F.Constant1[[]byte](Close(f))),
-		)
-	})
-
-	assert.Equal(t, E.Of[error]([]byte("Carsten")), res(t.Context())())
+//go:inline
+func Retrying[R, A any](
+	policy retry.RetryPolicy,
+	action Kleisli[R, retry.RetryStatus, A],
+	check Predicate[Result[A]],
+) ReaderReaderIOResult[R, A] {
+	// get an implementation for the types
+	return func(r R) ReaderIOResult[context.Context, A] {
+		return RIOE.Retrying(policy, F.Pipe1(action, reader.Map[retry.RetryStatus](reader.Read[ReaderIOResult[context.Context, A]](r))), check)
+	}
 }

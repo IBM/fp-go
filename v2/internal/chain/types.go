@@ -82,4 +82,6 @@ type (
 	// Operator represents a transformation from one monadic value to another.
 	// It takes a value in context HKTA and produces a value in context HKTB.
 	Operator[HKTA, HKTB any] = func(HKTA) HKTB
+
+	ChainType[A, HKTA, HKTB any] = func(func(A) HKTB) func(HKTA) HKTB
 )

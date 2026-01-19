@@ -17,6 +17,7 @@ package readert
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
 	R "github.com/IBM/fp-go/v2/reader/generic"
 )
 
@@ -51,7 +52,7 @@ func MonadChain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](fcha
 }
 
 func Chain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
-	fchain func(func(A) HKTB) func(HKTA) HKTB,
+	fchain chain.ChainType[A, HKTA, HKTB],
 	f func(A) GEB,
 ) func(GEA) GEB {
 	return func(ma GEA) GEB {

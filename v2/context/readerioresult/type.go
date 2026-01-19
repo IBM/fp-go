@@ -113,7 +113,7 @@ type (
 	//   }
 	//
 	// The computation is executed by providing a context and then invoking the result:
-	//   ctx := context.Background()
+	//   ctx := t.Context()
 	//   result := fetchUser("123")(ctx)()
 	ReaderIOResult[A any] = RIOR.ReaderIOResult[context.Context, A]
 

@@ -47,7 +47,7 @@ import (
 //	onNegative := func(n int) error { return fmt.Errorf("%d is not positive", n) }
 //
 //	filter := statereaderioresult.FilterOrElse[AppState](isPositive, onNegative)
-//	result := filter(statereaderioresult.Right[AppState](42))(AppState{})(context.Background())()
+//	result := filter(statereaderioresult.Right[AppState](42))(AppState{})(t.Context())()
 //
 //go:inline
 func FilterOrElse[S, A any](pred Predicate[A], onFalse func(A) error) Operator[S, A, A] {

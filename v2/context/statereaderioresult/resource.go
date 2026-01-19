@@ -91,7 +91,7 @@ import "github.com/IBM/fp-go/v2/statereaderioeither"
 //
 //	// Execute the computation
 //	initialState := AppState{openFiles: 0}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	outcome := result(initialState)(ctx)()
 func WithResource[A, S, RES, ANY any](
 	onCreate StateReaderIOResult[S, RES],

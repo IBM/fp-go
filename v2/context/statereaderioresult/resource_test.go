@@ -41,7 +41,7 @@ type mockResource struct {
 // TestWithResourceSuccess tests successful resource creation, usage, and release
 func TestWithResourceSuccess(t *testing.T) {
 	initialState := resourceState{resourcesCreated: 0, resourcesReleased: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a resource
 	onCreate := func(s resourceState) ReaderIOResult[Pair[resourceState, mockResource]] {
@@ -110,7 +110,7 @@ func TestWithResourceSuccess(t *testing.T) {
 // TestWithResourceErrorInCreate tests error handling when resource creation fails
 func TestWithResourceErrorInCreate(t *testing.T) {
 	initialState := resourceState{resourcesCreated: 0, resourcesReleased: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	createError := errors.New("failed to create resource")
 
@@ -159,7 +159,7 @@ func TestWithResourceErrorInCreate(t *testing.T) {
 // TestWithResourceErrorInUse tests that resources are released even when usage fails
 func TestWithResourceErrorInUse(t *testing.T) {
 	initialState := resourceState{resourcesCreated: 0, resourcesReleased: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	useError := errors.New("failed to use resource")
 
@@ -222,7 +222,7 @@ func TestWithResourceErrorInUse(t *testing.T) {
 // TestWithResourceStateThreading tests that state is properly threaded through all operations
 func TestWithResourceStateThreading(t *testing.T) {
 	initialState := resourceState{resourcesCreated: 0, resourcesReleased: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create increments counter
 	onCreate := func(s resourceState) ReaderIOResult[Pair[resourceState, mockResource]] {
@@ -295,7 +295,7 @@ func TestWithResourceStateThreading(t *testing.T) {
 // TestWithResourceMultipleResources tests using WithResource multiple times (nesting)
 func TestWithResourceMultipleResources(t *testing.T) {
 	initialState := resourceState{resourcesCreated: 0, resourcesReleased: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	createResource := func(s resourceState) ReaderIOResult[Pair[resourceState, mockResource]] {
 		return func(ctx context.Context) IOResult[Pair[resourceState, mockResource]] {
@@ -357,7 +357,7 @@ func TestWithResourceMultipleResources(t *testing.T) {
 // TestWithResourceContextCancellation tests behavior with context cancellation
 func TestWithResourceContextCancellation(t *testing.T) {
 	initialState := resourceState{resourcesCreated: 0, resourcesReleased: 0}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Cancel immediately
 
 	cancelError := errors.New("context cancelled")

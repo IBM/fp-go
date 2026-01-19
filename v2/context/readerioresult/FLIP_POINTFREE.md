@@ -56,7 +56,7 @@ This creates several problems:
 
 ```go
 computation := getComputation()
-ctx := context.Background()
+ctx := t.Context()
 cfg := Config{Value: 42}
 
 // Must apply in this specific order
@@ -176,7 +176,7 @@ db := Database{ConnectionString: "localhost:5432"}
 query := queryWithDB(db)  // ✅ Database injected
 
 // Use query with any context
-result := query(context.Background())()
+result := query(t.Context())()
 ```
 
 ### 3. Point-Free Composition
@@ -289,7 +289,7 @@ withConfig := traversed(getValue)
 
 // Now we can provide Config to get the final result
 cfg := Config{Multiplier: 5, Prefix: "Result"}
-ctx := context.Background()
+ctx := t.Context()
 result := withConfig(cfg)(ctx)() // Returns Right("Result: 50")
 ```
 

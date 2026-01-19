@@ -36,7 +36,7 @@ type testState struct {
 
 func TestOf(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 	result := Of[testState](42)
 	res := result(state)(ctx)()
 
@@ -56,7 +56,7 @@ func TestOf(t *testing.T) {
 
 func TestRight(t *testing.T) {
 	state := testState{counter: 5}
-	ctx := context.Background()
+	ctx := t.Context()
 	result := Right[testState](100)
 	res := result(state)(ctx)()
 
@@ -70,7 +70,7 @@ func TestRight(t *testing.T) {
 
 func TestLeft(t *testing.T) {
 	state := testState{counter: 10}
-	ctx := context.Background()
+	ctx := t.Context()
 	testErr := errors.New("test error")
 	result := Left[testState, int](testErr)
 	res := result(state)(ctx)()
@@ -80,7 +80,7 @@ func TestLeft(t *testing.T) {
 
 func TestMonadMap(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	result := MonadMap(
 		Of[testState](21),
@@ -97,7 +97,7 @@ func TestMonadMap(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	result := F.Pipe1(
 		Of[testState](21),
@@ -114,7 +114,7 @@ func TestMap(t *testing.T) {
 
 func TestMonadChain(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	result := MonadChain(
 		Of[testState](5),
@@ -133,7 +133,7 @@ func TestMonadChain(t *testing.T) {
 
 func TestChain(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	result := F.Pipe1(
 		Of[testState](5),
@@ -152,7 +152,7 @@ func TestChain(t *testing.T) {
 
 func TestMonadAp(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	fab := Of[testState](N.Mul(2))
 	fa := Of[testState](21)
@@ -168,7 +168,7 @@ func TestMonadAp(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	fa := Of[testState](21)
 	result := F.Pipe1(
@@ -186,7 +186,7 @@ func TestAp(t *testing.T) {
 
 func TestFromIOResult(t *testing.T) {
 	state := testState{counter: 3}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ior := IOR.Of(55)
 	result := FromIOResult[testState](ior)
@@ -202,7 +202,7 @@ func TestFromIOResult(t *testing.T) {
 
 func TestFromState(t *testing.T) {
 	initialState := testState{counter: 10}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// State computation that increments counter and returns it
 	stateComp := func(s testState) P.Pair[testState, int] {
@@ -223,7 +223,7 @@ func TestFromState(t *testing.T) {
 
 func TestFromIO(t *testing.T) {
 	state := testState{counter: 8}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ioVal := func() int { return 99 }
 	result := FromIO[testState](ioVal)
@@ -239,7 +239,7 @@ func TestFromIO(t *testing.T) {
 
 func TestFromResult(t *testing.T) {
 	state := testState{counter: 12}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test Success case
 	resultSuccess := FromResult[testState](RES.Of(42))
@@ -254,7 +254,7 @@ func TestFromResult(t *testing.T) {
 
 func TestLocal(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.WithValue(context.Background(), "key", "value1")
+	ctx := context.WithValue(t.Context(), "key", "value1")
 
 	// Create a computation that uses the context
 	comp := Asks(func(c context.Context) StateReaderIOResult[testState, string] {
@@ -279,7 +279,7 @@ func TestLocal(t *testing.T) {
 
 func TestAsks(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.WithValue(context.Background(), "multiplier", 7)
+	ctx := context.WithValue(t.Context(), "multiplier", 7)
 
 	result := Asks(func(c context.Context) StateReaderIOResult[testState, int] {
 		mult := c.Value("multiplier").(int)
@@ -296,7 +296,7 @@ func TestAsks(t *testing.T) {
 
 func TestFromResultK(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	validate := func(x int) RES.Result[int] {
 		if x > 0 {
@@ -324,7 +324,7 @@ func TestFromResultK(t *testing.T) {
 
 func TestFromIOK(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ioFunc := func(x int) io.IO[int] {
 		return func() int { return x * 3 }
@@ -343,7 +343,7 @@ func TestFromIOK(t *testing.T) {
 
 func TestFromIOResultK(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	iorFunc := func(x int) IOR.IOResult[int] {
 		if x > 0 {
@@ -365,7 +365,7 @@ func TestFromIOResultK(t *testing.T) {
 
 func TestChainResultK(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	validate := func(x int) RES.Result[string] {
 		if x > 0 {
@@ -389,7 +389,7 @@ func TestChainResultK(t *testing.T) {
 
 func TestChainIOResultK(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	iorFunc := func(x int) IOR.IOResult[string] {
 		return IOR.Of(fmt.Sprintf("result: %d", x))
@@ -410,7 +410,7 @@ func TestChainIOResultK(t *testing.T) {
 
 func TestDo(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	type Result struct {
 		value int
@@ -428,7 +428,7 @@ func TestDo(t *testing.T) {
 
 func TestBindTo(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	type Result struct {
 		value int
@@ -451,7 +451,7 @@ func TestBindTo(t *testing.T) {
 
 func TestStatefulComputation(t *testing.T) {
 	initialState := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a computation that modifies state
 	incrementAndGet := func(s testState) P.Pair[testState, int] {
@@ -481,7 +481,7 @@ func TestStatefulComputation(t *testing.T) {
 
 func TestErrorPropagation(t *testing.T) {
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	testErr := errors.New("test error")
 
@@ -503,7 +503,7 @@ func TestPointed(t *testing.T) {
 
 	result := p.Of(42)
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 	res := result(state)(ctx)()
 
 	assert.True(t, RES.IsRight(res))
@@ -517,7 +517,7 @@ func TestFunctor(t *testing.T) {
 	result := mapper(Of[testState](42))
 
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 	res := result(state)(ctx)()
 
 	assert.True(t, RES.IsRight(res))
@@ -536,7 +536,7 @@ func TestApplicative(t *testing.T) {
 	result := a.Ap(fa)(fab)
 
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 	res := result(state)(ctx)()
 
 	assert.True(t, RES.IsRight(res))
@@ -556,7 +556,7 @@ func TestMonad(t *testing.T) {
 	})(fa)
 
 	state := testState{counter: 0}
-	ctx := context.Background()
+	ctx := t.Context()
 	res := result(state)(ctx)()
 
 	assert.True(t, RES.IsRight(res))

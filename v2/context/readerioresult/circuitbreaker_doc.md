@@ -187,7 +187,7 @@ func main() {
     result := cb(env)
     
     // Execute the protected operation
-    ctx := context.Background()
+    ctx := t.Context()
     protectedOp := pair.Tail(result)
     outcome := protectedOp(ctx)()
 }

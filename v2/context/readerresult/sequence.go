@@ -53,7 +53,7 @@ import (
 //
 //	rr := readerresult.Of(42)
 //	tupled := readerresult.SequenceT1(rr)
-//	result := tupled(context.Background())
+//	result := tupled(t.Context())
 //	// result is Right(Tuple1{F1: 42})
 //
 //go:inline
@@ -81,7 +81,7 @@ func SequenceT1[A any](a ReaderResult[A]) ReaderResult[tuple.Tuple1[A]] {
 //	getName := readerresult.Of("Alice")
 //	getAge := readerresult.Of(30)
 //	combined := readerresult.SequenceT2(getName, getAge)
-//	result := combined(context.Background())
+//	result := combined(t.Context())
 //	// result is Right(Tuple2{F1: "Alice", F2: 30})
 //
 // Example with error:
@@ -89,7 +89,7 @@ func SequenceT1[A any](a ReaderResult[A]) ReaderResult[tuple.Tuple1[A]] {
 //	getName := readerresult.Of("Alice")
 //	getAge := readerresult.Left[int](errors.New("age not found"))
 //	combined := readerresult.SequenceT2(getName, getAge)
-//	result := combined(context.Background())
+//	result := combined(t.Context())
 //	// result is Left(error("age not found"))
 //
 //go:inline
@@ -120,7 +120,7 @@ func SequenceT2[A, B any](a ReaderResult[A], b ReaderResult[B]) ReaderResult[tup
 //	getUserName := readerresult.Of("Alice")
 //	getUserEmail := readerresult.Of("alice@example.com")
 //	combined := readerresult.SequenceT3(getUserID, getUserName, getUserEmail)
-//	result := combined(context.Background())
+//	result := combined(t.Context())
 //	// result is Right(Tuple3{F1: 123, F2: "Alice", F3: "alice@example.com"})
 //
 // Example with context-aware operations:
@@ -138,7 +138,7 @@ func SequenceT2[A, B any](a ReaderResult[A], b ReaderResult[B]) ReaderResult[tup
 //	    return result.Of("NYC")
 //	}
 //	combined := readerresult.SequenceT3(fetchUser, fetchAge, fetchCity)
-//	result := combined(context.Background())
+//	result := combined(t.Context())
 //	// result is Right(Tuple3{F1: "Alice", F2: 30, F3: "NYC"})
 //
 //go:inline
@@ -172,7 +172,7 @@ func SequenceT3[A, B, C any](a ReaderResult[A], b ReaderResult[B], c ReaderResul
 //	getEmail := readerresult.Of("alice@example.com")
 //	getAge := readerresult.Of(30)
 //	combined := readerresult.SequenceT4(getID, getName, getEmail, getAge)
-//	result := combined(context.Background())
+//	result := combined(t.Context())
 //	// result is Right(Tuple4{F1: 123, F2: "Alice", F3: "alice@example.com", F4: 30})
 //
 // Example with early failure:
@@ -182,7 +182,7 @@ func SequenceT3[A, B, C any](a ReaderResult[A], b ReaderResult[B], c ReaderResul
 //	getEmail := readerresult.Of("alice@example.com")  // Not executed
 //	getAge := readerresult.Of(30)                      // Not executed
 //	combined := readerresult.SequenceT4(getID, getName, getEmail, getAge)
-//	result := combined(context.Background())
+//	result := combined(t.Context())
 //	// result is Left(error("name not found"))
 //	// getEmail and getAge are never executed due to early failure
 //
@@ -212,7 +212,7 @@ func SequenceT3[A, B, C any](a ReaderResult[A], b ReaderResult[B], c ReaderResul
 //	})
 //
 //	userProfile := F.Pipe1(fetchUserData, buildProfile)
-//	result := userProfile(context.Background())
+//	result := userProfile(t.Context())
 //
 //go:inline
 func SequenceT4[A, B, C, D any](a ReaderResult[A], b ReaderResult[B], c ReaderResult[C], d ReaderResult[D]) ReaderResult[tuple.Tuple4[A, B, C, D]] {

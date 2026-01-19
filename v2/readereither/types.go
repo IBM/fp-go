@@ -34,8 +34,8 @@ type (
 	// ReaderEither represents a computation that depends on an environment R and can fail
 	// with an error E or succeed with a value A.
 	// It combines Reader (dependency injection) with Either (error handling).
-	ReaderEither[R, E, A any] = Reader[R, Either[E, A]]
 
+	ReaderEither[R, E, A any] = Reader[R, Either[E, A]]
 	// Kleisli represents a Kleisli arrow for the ReaderEither monad.
 	// It's a function from A to ReaderEither[R, E, B], used for composing operations that
 	// depend on an environment and may fail.

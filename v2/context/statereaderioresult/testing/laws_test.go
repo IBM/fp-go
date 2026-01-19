@@ -16,7 +16,6 @@
 package testing
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -43,7 +42,7 @@ func TestMonadLaws(t *testing.T) {
 		return fmt.Sprintf("value %d", b)
 	}
 
-	laws := AssertLaws(t, eqs, eqa, eqb, eqc, ab, bc, A.Empty[string](), context.Background())
+	laws := AssertLaws(t, eqs, eqa, eqb, eqc, ab, bc, A.Empty[string](), t.Context())
 
 	assert.True(t, laws(true))
 	assert.True(t, laws(false))

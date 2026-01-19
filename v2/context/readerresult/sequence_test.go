@@ -30,7 +30,7 @@ func TestSequenceT1(t *testing.T) {
 	t.Run("wraps single success value in tuple", func(t *testing.T) {
 		rr := Of(42)
 		tupled := SequenceT1(rr)
-		result := tupled(context.Background())
+		result := tupled(t.Context())
 
 		assert.True(t, E.IsRight(result))
 		val, _ := E.Unwrap(result)
@@ -41,7 +41,7 @@ func TestSequenceT1(t *testing.T) {
 		testErr := errors.New("test error")
 		rr := Left[int](testErr)
 		tupled := SequenceT1(rr)
-		result := tupled(context.Background())
+		result := tupled(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -58,7 +58,7 @@ func TestSequenceT1(t *testing.T) {
 
 		tupled := SequenceT1(rr)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := tupled(ctx)
@@ -73,7 +73,7 @@ func TestSequenceT2(t *testing.T) {
 		getAge := Of(30)
 
 		combined := SequenceT2(getName, getAge)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsRight(result))
 		val, _ := E.Unwrap(result)
@@ -87,7 +87,7 @@ func TestSequenceT2(t *testing.T) {
 		getAge := Of(30)
 
 		combined := SequenceT2(getName, getAge)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -100,7 +100,7 @@ func TestSequenceT2(t *testing.T) {
 		getAge := Left[int](testErr)
 
 		combined := SequenceT2(getName, getAge)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -109,7 +109,7 @@ func TestSequenceT2(t *testing.T) {
 
 	t.Run("executes both ReaderResults with same context", func(t *testing.T) {
 		type ctxKey string
-		ctx := context.WithValue(context.Background(), ctxKey("key"), "shared")
+		ctx := context.WithValue(t.Context(), ctxKey("key"), "shared")
 
 		getName := func(ctx context.Context) E.Either[error, string] {
 			val := ctx.Value(ctxKey("key"))
@@ -151,7 +151,7 @@ func TestSequenceT2(t *testing.T) {
 		}
 
 		combined := SequenceT2(first, second)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, firstExecuted, "first should be executed")
 		assert.True(t, secondExecuted, "second should be executed (applicative semantics)")
@@ -167,7 +167,7 @@ func TestSequenceT3(t *testing.T) {
 		getUserEmail := Of("alice@example.com")
 
 		combined := SequenceT3(getUserID, getUserName, getUserEmail)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsRight(result))
 		val, _ := E.Unwrap(result)
@@ -183,7 +183,7 @@ func TestSequenceT3(t *testing.T) {
 		getUserEmail := Left[string](testErr)
 
 		combined := SequenceT3(getUserID, getUserName, getUserEmail)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -211,7 +211,7 @@ func TestSequenceT3(t *testing.T) {
 		}
 
 		combined := SequenceT3(first, second, third)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, firstExecuted, "first should be executed")
 		assert.True(t, secondExecuted, "second should be executed")
@@ -232,7 +232,7 @@ func TestSequenceT3(t *testing.T) {
 
 		combined := SequenceT3(getUserID, getUserName, getUserEmail)
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		result := combined(ctx)
@@ -249,7 +249,7 @@ func TestSequenceT4(t *testing.T) {
 		getAge := Of(30)
 
 		combined := SequenceT4(getID, getName, getEmail, getAge)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsRight(result))
 		val, _ := E.Unwrap(result)
@@ -267,7 +267,7 @@ func TestSequenceT4(t *testing.T) {
 		getAge := Of(30)
 
 		combined := SequenceT4(getID, getName, getEmail, getAge)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, E.IsLeft(result))
 		_, err := E.UnwrapError(result)
@@ -301,7 +301,7 @@ func TestSequenceT4(t *testing.T) {
 		}
 
 		combined := SequenceT4(first, second, third, fourth)
-		result := combined(context.Background())
+		result := combined(t.Context())
 
 		assert.True(t, firstExecuted, "first should be executed")
 		assert.True(t, secondExecuted, "second should be executed")
@@ -344,7 +344,7 @@ func TestSequenceT4(t *testing.T) {
 			return buildProfile(Of(tupleVal))(ctx)
 		}
 
-		result := userProfile(context.Background())
+		result := userProfile(t.Context())
 
 		assert.True(t, E.IsRight(result))
 		profile, _ := E.Unwrap(result)
@@ -356,7 +356,7 @@ func TestSequenceT4(t *testing.T) {
 
 	t.Run("executes all with same context", func(t *testing.T) {
 		type ctxKey string
-		ctx := context.WithValue(context.Background(), ctxKey("multiplier"), 2)
+		ctx := context.WithValue(t.Context(), ctxKey("multiplier"), 2)
 
 		getBase := func(ctx context.Context) E.Either[error, int] {
 			return E.Of[error](10)
@@ -409,7 +409,7 @@ func TestSequenceIntegration(t *testing.T) {
 			return formatted(Of(tupleVal))(ctx)
 		}
 
-		result := pipeline(context.Background())
+		result := pipeline(t.Context())
 		assert.True(t, E.IsRight(result))
 	})
 
@@ -434,7 +434,7 @@ func TestSequenceIntegration(t *testing.T) {
 			return sumTuple(tupleVal)(ctx)
 		}
 
-		result := pipeline(context.Background())
+		result := pipeline(t.Context())
 		assert.True(t, E.IsRight(result))
 		val, _ := E.Unwrap(result)
 		assert.Equal(t, 60, val) // 10 + 20 + 30
@@ -448,7 +448,7 @@ func TestSequenceIntegration(t *testing.T) {
 		// Combine the pairs
 		combined := SequenceT2(pair1, pair2)
 
-		result := combined(context.Background())
+		result := combined(t.Context())
 		assert.True(t, E.IsRight(result))
 
 		val, _ := E.Unwrap(result)

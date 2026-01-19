@@ -58,7 +58,7 @@ import (
 //	safeLongComputation := readerresult.WithContext(longComputation)
 //
 //	// Cancel the context before execution
-//	ctx, cancel := context.WithCancel(context.Background())
+//	ctx, cancel := context.WithCancel(t.Context())
 //	cancel()
 //
 //	// The computation returns immediately with cancellation error
@@ -76,7 +76,7 @@ import (
 //	safeFetch := readerresult.WithContext(fetchData)
 //
 //	// Context with 1 second timeout
-//	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+//	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
 //	defer cancel()
 //
 //	time.Sleep(1500 * time.Millisecond) // Wait for timeout
@@ -139,7 +139,7 @@ func WithContext[A any](ma ReaderResult[A]) ReaderResult[A] {
 //	)
 //
 //	// If context is cancelled, processUser never executes
-//	ctx, cancel := context.WithCancel(context.Background())
+//	ctx, cancel := context.WithCancel(t.Context())
 //	cancel()
 //	result := pipeline(ctx) // Left(context.Canceled)
 //
@@ -165,7 +165,7 @@ func WithContext[A any](ma ReaderResult[A]) ReaderResult[A] {
 //	)
 //
 //	// If context is cancelled at any point, remaining steps don't execute
-//	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+//	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 //	defer cancel()
 //	result := pipeline(ctx)
 //

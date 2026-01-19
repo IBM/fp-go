@@ -114,7 +114,7 @@
 //
 //	// Execute with initial state and context
 //	initialState := AppState{RequestCount: 0}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	outcome := result(initialState)(ctx)() // Returns result.Result[pair.Pair[AppState, string]]
 //
 // # Context Integration
