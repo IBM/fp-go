@@ -44,7 +44,7 @@ func TestTailRec_BasicRecursion(t *testing.T) {
 	}
 
 	countdown := TailRec(countdownStep)
-	result := countdown(5)(context.Background())()
+	result := countdown(5)(t.Context())()
 
 	assert.Equal(t, E.Of[error]("Done!"), result)
 }
@@ -71,7 +71,7 @@ func TestTailRec_FactorialRecursion(t *testing.T) {
 	}
 
 	factorial := TailRec(factorialStep)
-	result := factorial(FactorialState{n: 5, acc: 1})(context.Background())()
+	result := factorial(FactorialState{n: 5, acc: 1})(t.Context())()
 
 	assert.Equal(t, E.Of[error](120), result) // 5! = 120
 }
@@ -95,7 +95,7 @@ func TestTailRec_ErrorHandling(t *testing.T) {
 	}
 
 	errorRecursion := TailRec(errorStep)
-	result := errorRecursion(5)(context.Background())()
+	result := errorRecursion(5)(t.Context())()
 
 	assert.True(t, E.IsLeft(result))
 	err := E.ToError(result)
@@ -125,7 +125,7 @@ func TestTailRec_ContextCancellation(t *testing.T) {
 	slowRecursion := TailRec(slowStep)
 
 	// Create a context that will be cancelled after 100ms
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
 	start := time.Now()
@@ -159,7 +159,7 @@ func TestTailRec_ImmediateCancellation(t *testing.T) {
 	countdown := TailRec(countdownStep)
 
 	// Create an already cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	result := countdown(5)(ctx)()
@@ -186,7 +186,7 @@ func TestTailRec_StackSafety(t *testing.T) {
 	}
 
 	countdown := TailRec(countdownStep)
-	result := countdown(largeN)(context.Background())()
+	result := countdown(largeN)(t.Context())()
 
 	assert.Equal(t, E.Of[error](0), result)
 }
@@ -217,7 +217,7 @@ func TestTailRec_StackSafetyWithCancellation(t *testing.T) {
 	countdown := TailRec(countdownStep)
 
 	// Cancel after 50ms to allow some iterations but not all
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 
 	result := countdown(largeN)(ctx)()
@@ -274,7 +274,7 @@ func TestTailRec_ComplexState(t *testing.T) {
 			errors:    []error{},
 		}
 
-		result := processItems(initialState)(context.Background())()
+		result := processItems(initialState)(t.Context())()
 
 		assert.Equal(t, E.Of[error]([]string{"item1", "item2", "item3"}), result)
 	})
@@ -286,7 +286,7 @@ func TestTailRec_ComplexState(t *testing.T) {
 			errors:    []error{},
 		}
 
-		result := processItems(initialState)(context.Background())()
+		result := processItems(initialState)(t.Context())()
 
 		assert.True(t, E.IsLeft(result))
 		err := E.ToError(result)
@@ -336,7 +336,7 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 	}
 
 	// Cancel after 100ms (should allow ~5 files to be processed)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
 	start := time.Now()
@@ -366,7 +366,7 @@ func TestTailRec_ZeroIterations(t *testing.T) {
 	}
 
 	immediate := TailRec(immediateStep)
-	result := immediate(100)(context.Background())()
+	result := immediate(100)(t.Context())()
 
 	assert.Equal(t, E.Of[error]("immediate"), result)
 }
@@ -392,7 +392,7 @@ func TestTailRec_ContextWithDeadline(t *testing.T) {
 	slowRecursion := TailRec(slowStep)
 
 	// Set deadline 80ms from now
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(80*time.Millisecond))
+	ctx, cancel := context.WithDeadline(t.Context(), time.Now().Add(80*time.Millisecond))
 	defer cancel()
 
 	result := slowRecursion(10)(ctx)()
@@ -427,7 +427,7 @@ func TestTailRec_ContextWithValue(t *testing.T) {
 	}
 
 	valueRecursion := TailRec(valueStep)
-	ctx := context.WithValue(context.Background(), testKey, "test-value")
+	ctx := context.WithValue(t.Context(), testKey, "test-value")
 	result := valueRecursion(3)(ctx)()
 
 	assert.Equal(t, E.Of[error]("Done!"), result)

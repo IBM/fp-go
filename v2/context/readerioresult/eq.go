@@ -37,7 +37,7 @@ import (
 //	    return either.Eq(eq.FromEquals(func(x, y int) bool { return x == y }))(a, b)
 //	})
 //	eqRIE := Eq(eqInt)
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	equal := eqRIE(ctx).Equals(Right[int](42), Right[int](42)) // true
 //
 //go:inline

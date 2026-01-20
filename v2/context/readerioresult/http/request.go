@@ -28,7 +28,7 @@
 //	client := MakeClient(http.DefaultClient)
 //	request := MakeGetRequest("https://api.example.com/data")
 //	result := ReadJSON[MyType](client)(request)
-//	response := result(context.Background())()
+//	response := result(t.Context())()
 package http
 
 import (
@@ -157,7 +157,7 @@ func MakeClient(httpClient *http.Client) Client {
 //	client := MakeClient(http.DefaultClient)
 //	request := MakeGetRequest("https://api.example.com/data")
 //	fullResp := ReadFullResponse(client)(request)
-//	result := fullResp(context.Background())()
+//	result := fullResp(t.Context())()
 func ReadFullResponse(client Client) RIOE.Kleisli[Requester, H.FullResponse] {
 	return func(req Requester) RIOE.ReaderIOResult[H.FullResponse] {
 		return F.Flow3(
@@ -194,7 +194,7 @@ func ReadFullResponse(client Client) RIOE.Kleisli[Requester, H.FullResponse] {
 //	client := MakeClient(http.DefaultClient)
 //	request := MakeGetRequest("https://api.example.com/data")
 //	readBytes := ReadAll(client)
-//	result := readBytes(request)(context.Background())()
+//	result := readBytes(request)(t.Context())()
 func ReadAll(client Client) RIOE.Kleisli[Requester, []byte] {
 	return F.Flow2(
 		ReadFullResponse(client),
@@ -218,7 +218,7 @@ func ReadAll(client Client) RIOE.Kleisli[Requester, []byte] {
 //	client := MakeClient(http.DefaultClient)
 //	request := MakeGetRequest("https://api.example.com/text")
 //	readText := ReadText(client)
-//	result := readText(request)(context.Background())()
+//	result := readText(request)(t.Context())()
 func ReadText(client Client) RIOE.Kleisli[Requester, string] {
 	return F.Flow2(
 		ReadAll(client),
@@ -277,7 +277,7 @@ func readJSON(client Client) RIOE.Kleisli[Requester, []byte] {
 //	client := MakeClient(http.DefaultClient)
 //	request := MakeGetRequest("https://api.example.com/user/1")
 //	readUser := ReadJSON[User](client)
-//	result := readUser(request)(context.Background())()
+//	result := readUser(request)(t.Context())()
 func ReadJSON[A any](client Client) RIOE.Kleisli[Requester, A] {
 	return F.Flow2(
 		readJSON(client),

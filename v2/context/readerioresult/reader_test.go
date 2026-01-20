@@ -29,7 +29,7 @@ import (
 
 func TestInnerContextCancelSemantics(t *testing.T) {
 	// start with a simple context
-	outer := context.Background()
+	outer := t.Context()
 
 	parent, parentCancel := context.WithCancel(outer)
 	defer parentCancel()
@@ -49,7 +49,7 @@ func TestInnerContextCancelSemantics(t *testing.T) {
 
 func TestOuterContextCancelSemantics(t *testing.T) {
 	// start with a simple context
-	outer := context.Background()
+	outer := t.Context()
 
 	parent, outerCancel := context.WithCancel(outer)
 	defer outerCancel()
@@ -69,7 +69,7 @@ func TestOuterContextCancelSemantics(t *testing.T) {
 
 func TestOuterAndInnerContextCancelSemantics(t *testing.T) {
 	// start with a simple context
-	outer := context.Background()
+	outer := t.Context()
 
 	parent, outerCancel := context.WithCancel(outer)
 	defer outerCancel()
@@ -95,7 +95,7 @@ func TestOuterAndInnerContextCancelSemantics(t *testing.T) {
 
 func TestCancelCauseSemantics(t *testing.T) {
 	// start with a simple context
-	outer := context.Background()
+	outer := t.Context()
 
 	parent, outerCancel := context.WithCancelCause(outer)
 	defer outerCancel(nil)
@@ -119,7 +119,7 @@ func TestCancelCauseSemantics(t *testing.T) {
 func TestTimer(t *testing.T) {
 	delta := 3 * time.Second
 	timer := Timer(delta)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t0 := time.Now()
 	res := timer(ctx)()
@@ -146,7 +146,7 @@ func TestCanceledApply(t *testing.T) {
 		Ap[string](errValue),
 	)
 
-	res := applied(context.Background())()
+	res := applied(t.Context())()
 	assert.Equal(t, E.Left[string](err), res)
 }
 
@@ -159,7 +159,7 @@ func TestRegularApply(t *testing.T) {
 		Ap[string](value),
 	)
 
-	res := applied(context.Background())()
+	res := applied(t.Context())()
 	assert.Equal(t, E.Of[error]("CARSTEN"), res)
 }
 
@@ -187,7 +187,7 @@ func TestWithResourceNoErrors(t *testing.T) {
 
 	resRIOE := WithResource[int](acquire, release)(body)
 
-	res := resRIOE(context.Background())()
+	res := resRIOE(t.Context())()
 
 	assert.Equal(t, 1, countAcquire)
 	assert.Equal(t, 1, countBody)
@@ -217,7 +217,7 @@ func TestWithResourceErrorInBody(t *testing.T) {
 
 	resRIOE := WithResource[int](acquire, release)(body)
 
-	res := resRIOE(context.Background())()
+	res := resRIOE(t.Context())()
 
 	assert.Equal(t, 1, countAcquire)
 	assert.Equal(t, 0, countBody)
@@ -247,7 +247,7 @@ func TestWithResourceErrorInAcquire(t *testing.T) {
 
 	resRIOE := WithResource[int](acquire, release)(body)
 
-	res := resRIOE(context.Background())()
+	res := resRIOE(t.Context())()
 
 	assert.Equal(t, 0, countAcquire)
 	assert.Equal(t, 0, countBody)
@@ -277,7 +277,7 @@ func TestWithResourceErrorInRelease(t *testing.T) {
 
 	resRIOE := WithResource[int](acquire, release)(body)
 
-	res := resRIOE(context.Background())()
+	res := resRIOE(t.Context())()
 
 	assert.Equal(t, 1, countAcquire)
 	assert.Equal(t, 1, countBody)
@@ -286,7 +286,7 @@ func TestWithResourceErrorInRelease(t *testing.T) {
 }
 
 func TestMonadChainFirstLeft(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Left value - function returns Left, always preserves original error
 	t.Run("Left value with function returning Left preserves original error", func(t *testing.T) {
@@ -353,7 +353,7 @@ func TestMonadChainFirstLeft(t *testing.T) {
 }
 
 func TestChainFirstLeft(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test with Left value - function returns Left, always preserves original error
 	t.Run("Left value with function returning Left preserves error", func(t *testing.T) {

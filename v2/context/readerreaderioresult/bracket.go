@@ -87,9 +87,8 @@ import (
 //go:inline
 func Bracket[
 	R, A, B, ANY any](
-
 	acquire ReaderReaderIOResult[R, A],
-	use func(A) ReaderReaderIOResult[R, B],
+	use Kleisli[R, A, B],
 	release func(A, Result[B]) ReaderReaderIOResult[R, ANY],
 ) ReaderReaderIOResult[R, B] {
 	return RRIOE.Bracket(acquire, use, release)

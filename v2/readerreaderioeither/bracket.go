@@ -87,9 +87,8 @@ import (
 //go:inline
 func Bracket[
 	R, C, E, A, B, ANY any](
-
 	acquire ReaderReaderIOEither[R, C, E, A],
-	use func(A) ReaderReaderIOEither[R, C, E, B],
+	use Kleisli[R, C, E, A, B],
 	release func(A, Either[E, B]) ReaderReaderIOEither[R, C, E, ANY],
 ) ReaderReaderIOEither[R, C, E, B] {
 	return func(r R) ReaderIOEither[C, E, B] {

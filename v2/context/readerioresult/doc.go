@@ -113,7 +113,7 @@
 //	}
 //
 //	// Execute the computation
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	result := fetchUser("123")(ctx)()
 //	// result is Either[error, User]
 //
@@ -161,7 +161,7 @@
 // All operations respect context cancellation. When a context is cancelled, operations
 // will return an error containing the cancellation cause:
 //
-//	ctx, cancel := context.WithCancelCause(context.Background())
+//	ctx, cancel := context.WithCancelCause(t.Context())
 //	cancel(errors.New("operation cancelled"))
 //	result := computation(ctx)() // Returns Left with cancellation error
 //

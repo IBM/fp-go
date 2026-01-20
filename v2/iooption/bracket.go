@@ -27,7 +27,7 @@ func Bracket[A, B, ANY any](
 	use Kleisli[A, B],
 	release func(A, Option[B]) IOOption[ANY],
 ) IOOption[B] {
-	return G.Bracket[IOOption[A], IOOption[B], IOOption[ANY], Option[B], A, B](
+	return G.MonadBracket[IOOption[A], IOOption[B], IOOption[ANY], Option[B], A, B](
 		io.Of[Option[B]],
 		MonadChain[A, B],
 		io.MonadChain[Option[B], Option[B]],

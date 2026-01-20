@@ -42,7 +42,7 @@
 //	)
 //
 //	requester := RB.Requester(builder)
-//	result := requester(context.Background())()
+//	result := requester(t.Context())()
 package builder
 
 import (
@@ -103,7 +103,7 @@ import (
 //	    B.WithJSONBody(map[string]string{"name": "John"}),
 //	)
 //	requester := RB.Requester(builder)
-//	result := requester(context.Background())()
+//	result := requester(t.Context())()
 //
 // Example without body:
 //
@@ -113,7 +113,7 @@ import (
 //	    B.WithMethod("GET"),
 //	)
 //	requester := RB.Requester(builder)
-//	result := requester(context.Background())()
+//	result := requester(t.Context())()
 func Requester(builder *R.Builder) RIOEH.Requester {
 
 	withBody := F.Curry3(func(data []byte, url string, method string) RIOE.ReaderIOResult[*http.Request] {

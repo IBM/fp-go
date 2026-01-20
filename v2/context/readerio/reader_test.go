@@ -31,7 +31,7 @@ func TestMonadMap(t *testing.T) {
 	rio := Of(5)
 	doubled := MonadMap(rio, N.Mul(2))
 
-	result := doubled(context.Background())()
+	result := doubled(t.Context())()
 	assert.Equal(t, 10, result)
 }
 
@@ -41,14 +41,14 @@ func TestMap(t *testing.T) {
 		Map(utils.Double),
 	)
 
-	assert.Equal(t, 2, g(context.Background())())
+	assert.Equal(t, 2, g(t.Context())())
 }
 
 func TestMonadMapTo(t *testing.T) {
 	rio := Of(42)
 	replaced := MonadMapTo(rio, "constant")
 
-	result := replaced(context.Background())()
+	result := replaced(t.Context())()
 	assert.Equal(t, "constant", result)
 }
 
@@ -58,7 +58,7 @@ func TestMapTo(t *testing.T) {
 		MapTo[int]("constant"),
 	)
 
-	assert.Equal(t, "constant", result(context.Background())())
+	assert.Equal(t, "constant", result(t.Context())())
 }
 
 func TestMonadChain(t *testing.T) {
@@ -67,7 +67,7 @@ func TestMonadChain(t *testing.T) {
 		return Of(n * 3)
 	})
 
-	assert.Equal(t, 15, result(context.Background())())
+	assert.Equal(t, 15, result(t.Context())())
 }
 
 func TestChain(t *testing.T) {
@@ -78,7 +78,7 @@ func TestChain(t *testing.T) {
 		}),
 	)
 
-	assert.Equal(t, 15, result(context.Background())())
+	assert.Equal(t, 15, result(t.Context())())
 }
 
 func TestMonadChainFirst(t *testing.T) {
@@ -89,7 +89,7 @@ func TestMonadChainFirst(t *testing.T) {
 		return Of("side effect")
 	})
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -104,7 +104,7 @@ func TestChainFirst(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -117,7 +117,7 @@ func TestMonadTap(t *testing.T) {
 		return Of(func() {})
 	})
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -132,14 +132,14 @@ func TestTap(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
 
 func TestOf(t *testing.T) {
 	rio := Of(100)
-	result := rio(context.Background())()
+	result := rio(t.Context())()
 
 	assert.Equal(t, 100, result)
 }
@@ -149,7 +149,7 @@ func TestMonadAp(t *testing.T) {
 	faIO := Of(5)
 	result := MonadAp(fabIO, faIO)
 
-	assert.Equal(t, 10, result(context.Background())())
+	assert.Equal(t, 10, result(t.Context())())
 }
 
 func TestAp(t *testing.T) {
@@ -158,7 +158,7 @@ func TestAp(t *testing.T) {
 		Ap[int](Of(1)),
 	)
 
-	assert.Equal(t, 2, g(context.Background())())
+	assert.Equal(t, 2, g(t.Context())())
 }
 
 func TestMonadApSeq(t *testing.T) {
@@ -166,7 +166,7 @@ func TestMonadApSeq(t *testing.T) {
 	faIO := Of(5)
 	result := MonadApSeq(fabIO, faIO)
 
-	assert.Equal(t, 15, result(context.Background())())
+	assert.Equal(t, 15, result(t.Context())())
 }
 
 func TestApSeq(t *testing.T) {
@@ -175,7 +175,7 @@ func TestApSeq(t *testing.T) {
 		ApSeq[int](Of(5)),
 	)
 
-	assert.Equal(t, 15, g(context.Background())())
+	assert.Equal(t, 15, g(t.Context())())
 }
 
 func TestMonadApPar(t *testing.T) {
@@ -183,7 +183,7 @@ func TestMonadApPar(t *testing.T) {
 	faIO := Of(5)
 	result := MonadApPar(fabIO, faIO)
 
-	assert.Equal(t, 15, result(context.Background())())
+	assert.Equal(t, 15, result(t.Context())())
 }
 
 func TestApPar(t *testing.T) {
@@ -192,12 +192,12 @@ func TestApPar(t *testing.T) {
 		ApPar[int](Of(5)),
 	)
 
-	assert.Equal(t, 15, g(context.Background())())
+	assert.Equal(t, 15, g(t.Context())())
 }
 
 func TestAsk(t *testing.T) {
 	rio := Ask()
-	ctx := context.WithValue(context.Background(), "key", "value")
+	ctx := context.WithValue(t.Context(), "key", "value")
 	result := rio(ctx)()
 
 	assert.Equal(t, ctx, result)
@@ -207,7 +207,7 @@ func TestFromIO(t *testing.T) {
 	ioAction := G.Of(42)
 	rio := FromIO(ioAction)
 
-	result := rio(context.Background())()
+	result := rio(t.Context())()
 	assert.Equal(t, 42, result)
 }
 
@@ -217,7 +217,7 @@ func TestFromReader(t *testing.T) {
 	}
 
 	rio := FromReader(rdr)
-	result := rio(context.Background())()
+	result := rio(t.Context())()
 
 	assert.Equal(t, 42, result)
 }
@@ -226,7 +226,7 @@ func TestFromLazy(t *testing.T) {
 	lazy := func() int { return 42 }
 	rio := FromLazy(lazy)
 
-	result := rio(context.Background())()
+	result := rio(t.Context())()
 	assert.Equal(t, 42, result)
 }
 
@@ -236,7 +236,7 @@ func TestMonadChainIOK(t *testing.T) {
 		return G.Of(n * 4)
 	})
 
-	assert.Equal(t, 20, result(context.Background())())
+	assert.Equal(t, 20, result(t.Context())())
 }
 
 func TestChainIOK(t *testing.T) {
@@ -247,7 +247,7 @@ func TestChainIOK(t *testing.T) {
 		}),
 	)
 
-	assert.Equal(t, 20, result(context.Background())())
+	assert.Equal(t, 20, result(t.Context())())
 }
 
 func TestMonadChainFirstIOK(t *testing.T) {
@@ -258,7 +258,7 @@ func TestMonadChainFirstIOK(t *testing.T) {
 		return G.Of("side effect")
 	})
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -273,7 +273,7 @@ func TestChainFirstIOK(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -286,7 +286,7 @@ func TestMonadTapIOK(t *testing.T) {
 		return G.Of(func() {})
 	})
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -301,7 +301,7 @@ func TestTapIOK(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -313,8 +313,8 @@ func TestDefer(t *testing.T) {
 		return Of(counter)
 	})
 
-	result1 := rio(context.Background())()
-	result2 := rio(context.Background())()
+	result1 := rio(t.Context())()
+	result2 := rio(t.Context())()
 
 	assert.Equal(t, 1, result1)
 	assert.Equal(t, 2, result2)
@@ -328,8 +328,8 @@ func TestMemoize(t *testing.T) {
 		return counter
 	}))
 
-	result1 := memoized(context.Background())()
-	result2 := memoized(context.Background())()
+	result1 := memoized(t.Context())()
+	result2 := memoized(t.Context())()
 
 	assert.Equal(t, 1, result1)
 	assert.Equal(t, 1, result2) // Same value, memoized
@@ -339,7 +339,7 @@ func TestFlatten(t *testing.T) {
 	nested := Of(Of(42))
 	flattened := Flatten(nested)
 
-	result := flattened(context.Background())()
+	result := flattened(t.Context())()
 	assert.Equal(t, 42, result)
 }
 
@@ -347,7 +347,7 @@ func TestMonadFlap(t *testing.T) {
 	fabIO := Of(N.Mul(3))
 	result := MonadFlap(fabIO, 7)
 
-	assert.Equal(t, 21, result(context.Background())())
+	assert.Equal(t, 21, result(t.Context())())
 }
 
 func TestFlap(t *testing.T) {
@@ -356,7 +356,7 @@ func TestFlap(t *testing.T) {
 		Flap[int](7),
 	)
 
-	assert.Equal(t, 21, result(context.Background())())
+	assert.Equal(t, 21, result(t.Context())())
 }
 
 func TestMonadChainReaderK(t *testing.T) {
@@ -365,7 +365,7 @@ func TestMonadChainReaderK(t *testing.T) {
 		return func(ctx context.Context) int { return n * 2 }
 	})
 
-	assert.Equal(t, 10, result(context.Background())())
+	assert.Equal(t, 10, result(t.Context())())
 }
 
 func TestChainReaderK(t *testing.T) {
@@ -376,7 +376,7 @@ func TestChainReaderK(t *testing.T) {
 		}),
 	)
 
-	assert.Equal(t, 10, result(context.Background())())
+	assert.Equal(t, 10, result(t.Context())())
 }
 
 func TestMonadChainFirstReaderK(t *testing.T) {
@@ -389,7 +389,7 @@ func TestMonadChainFirstReaderK(t *testing.T) {
 		}
 	})
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -406,7 +406,7 @@ func TestChainFirstReaderK(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -421,7 +421,7 @@ func TestMonadTapReaderK(t *testing.T) {
 		}
 	})
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
@@ -438,14 +438,14 @@ func TestTapReaderK(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 42, value)
 	assert.Equal(t, 42, sideEffect)
 }
 
 func TestRead(t *testing.T) {
 	rio := Of(42)
-	ctx := context.Background()
+	ctx := t.Context()
 	ioAction := Read[int](ctx)(rio)
 	result := ioAction()
 
@@ -463,7 +463,7 @@ func TestComplexPipeline(t *testing.T) {
 		Map(N.Add(10)),
 	)
 
-	assert.Equal(t, 20, result(context.Background())()) // (5 * 2) + 10 = 20
+	assert.Equal(t, 20, result(t.Context())()) // (5 * 2) + 10 = 20
 }
 
 func TestFromIOWithChain(t *testing.T) {
@@ -476,7 +476,7 @@ func TestFromIOWithChain(t *testing.T) {
 		}),
 	)
 
-	assert.Equal(t, 15, result(context.Background())())
+	assert.Equal(t, 15, result(t.Context())())
 }
 
 func TestTapWithLogging(t *testing.T) {
@@ -496,14 +496,14 @@ func TestTapWithLogging(t *testing.T) {
 		}),
 	)
 
-	value := result(context.Background())()
+	value := result(t.Context())()
 	assert.Equal(t, 84, value)
 	assert.Equal(t, []int{42, 84}, logged)
 }
 
 func TestReadIO(t *testing.T) {
 	// Test basic ReadIO functionality
-	contextIO := G.Of(context.WithValue(context.Background(), "testKey", "testValue"))
+	contextIO := G.Of(context.WithValue(t.Context(), "testKey", "testValue"))
 	rio := FromReader(func(ctx context.Context) string {
 		if val := ctx.Value("testKey"); val != nil {
 			return val.(string)
@@ -519,7 +519,7 @@ func TestReadIO(t *testing.T) {
 
 func TestReadIOWithBackground(t *testing.T) {
 	// Test ReadIO with plain background context
-	contextIO := G.Of(context.Background())
+	contextIO := G.Of(t.Context())
 	rio := Of(42)
 
 	ioAction := ReadIO[int](contextIO)(rio)
@@ -530,7 +530,7 @@ func TestReadIOWithBackground(t *testing.T) {
 
 func TestReadIOWithChain(t *testing.T) {
 	// Test ReadIO with chained operations
-	contextIO := G.Of(context.WithValue(context.Background(), "multiplier", 3))
+	contextIO := G.Of(context.WithValue(t.Context(), "multiplier", 3))
 
 	result := F.Pipe1(
 		FromReader(func(ctx context.Context) int {
@@ -552,7 +552,7 @@ func TestReadIOWithChain(t *testing.T) {
 
 func TestReadIOWithMap(t *testing.T) {
 	// Test ReadIO with Map operations
-	contextIO := G.Of(context.Background())
+	contextIO := G.Of(t.Context())
 
 	result := F.Pipe2(
 		Of(5),
@@ -571,7 +571,7 @@ func TestReadIOWithSideEffects(t *testing.T) {
 	counter := 0
 	contextIO := func() context.Context {
 		counter++
-		return context.WithValue(context.Background(), "counter", counter)
+		return context.WithValue(t.Context(), "counter", counter)
 	}
 
 	rio := FromReader(func(ctx context.Context) int {
@@ -593,7 +593,7 @@ func TestReadIOMultipleExecutions(t *testing.T) {
 	counter := 0
 	contextIO := func() context.Context {
 		counter++
-		return context.Background()
+		return t.Context()
 	}
 
 	rio := Of(42)
@@ -609,7 +609,7 @@ func TestReadIOMultipleExecutions(t *testing.T) {
 
 func TestReadIOComparisonWithRead(t *testing.T) {
 	// Compare ReadIO with Read to show the difference
-	ctx := context.WithValue(context.Background(), "key", "value")
+	ctx := context.WithValue(t.Context(), "key", "value")
 
 	rio := FromReader(func(ctx context.Context) string {
 		if val := ctx.Value("key"); val != nil {
@@ -642,7 +642,7 @@ func TestReadIOWithComplexContext(t *testing.T) {
 
 	contextIO := G.Of(
 		context.WithValue(
-			context.WithValue(context.Background(), userKey, "Alice"),
+			context.WithValue(t.Context(), userKey, "Alice"),
 			tokenKey,
 			"secret123",
 		),
@@ -668,7 +668,7 @@ func TestReadIOWithComplexContext(t *testing.T) {
 
 func TestReadIOWithAsk(t *testing.T) {
 	// Test ReadIO combined with Ask
-	contextIO := G.Of(context.WithValue(context.Background(), "data", 100))
+	contextIO := G.Of(context.WithValue(t.Context(), "data", 100))
 
 	result := F.Pipe1(
 		Ask(),

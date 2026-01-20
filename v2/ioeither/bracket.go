@@ -27,7 +27,7 @@ func Bracket[E, A, B, ANY any](
 	use Kleisli[E, A, B],
 	release func(A, Either[E, B]) IOEither[E, ANY],
 ) IOEither[E, B] {
-	return BR.Bracket[IOEither[E, A], IOEither[E, B], IOEither[E, ANY], Either[E, B], A, B](
+	return BR.MonadBracket[IOEither[E, A], IOEither[E, B], IOEither[E, ANY], Either[E, B], A, B](
 		io.Of[Either[E, B]],
 		MonadChain[E, A, B],
 		io.MonadChain[Either[E, B], Either[E, B]],

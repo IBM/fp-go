@@ -17,11 +17,12 @@ package bracket
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
 )
 
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
 // whether the body action returns and error or not.
-func Bracket[
+func MonadBracket[
 	GA, // IOEither[E, A]
 	GB, // IOEither[E, A]
 	GANY, // IOEither[E, ANY]
@@ -49,4 +50,42 @@ func Bracket[
 				)
 			})
 		})
+}
+
+// Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
+// whether the body action returns and error or not.
+func Bracket[
+	GA, // IOEither[E, A]
+	GB, // IOEither[E, A]
+	GANY, // IOEither[E, ANY]
+
+	EB, // Either[E, B]
+
+	A, B, ANY any](
+
+	ofeb func(EB) GB,
+
+	chainab chain.ChainType[A, GA, GB],
+	chainebb chain.ChainType[EB, GB, GB],
+	chainany chain.ChainType[ANY, GANY, GB],
+
+	acquire GA,
+	use func(A) GB,
+	release func(A, EB) GANY,
+) GB {
+	return F.Pipe1(
+		acquire,
+		chainab(
+			func(a A) GB {
+				return F.Pipe1(
+					use(a),
+					chainebb(func(eb EB) GB {
+						return F.Pipe1(
+							release(a, eb),
+							chainany(F.Constant1[ANY](ofeb(eb))),
+						)
+					}),
+				)
+			}),
+	)
 }

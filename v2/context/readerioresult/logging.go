@@ -429,7 +429,7 @@ func LogEntryExitWithCallback[A any](
 //	loggedFetch := LogEntryExit[User]("fetchUser")(fetchUser(123))
 //
 //	// Execute
-//	result := loggedFetch(context.Background())()
+//	result := loggedFetch(t.Context())()
 //	// Logs:
 //	// [entering 1] fetchUser
 //	// [exiting  1] fetchUser [0.1s]
@@ -441,7 +441,7 @@ func LogEntryExitWithCallback[A any](
 //	}
 //
 //	logged := LogEntryExit[string]("failingOp")(failingOp())
-//	result := logged(context.Background())()
+//	result := logged(t.Context())()
 //	// Logs:
 //	// [entering 2] failingOp
 //	// [throwing 2] failingOp [0.0s]: connection timeout
@@ -461,7 +461,7 @@ func LogEntryExitWithCallback[A any](
 //	    LogEntryExit[[]Order]("fetchOrders"),
 //	)
 //
-//	result := pipeline(context.Background())()
+//	result := pipeline(t.Context())()
 //	// Logs:
 //	// [entering 3] fetchUser
 //	// [exiting  3] fetchUser [0.1s]
@@ -474,8 +474,8 @@ func LogEntryExitWithCallback[A any](
 //	op1 := LogEntryExit[Data]("operation1")(fetchData(1))
 //	op2 := LogEntryExit[Data]("operation2")(fetchData(2))
 //
-//	go op1(context.Background())()
-//	go op2(context.Background())()
+//	go op1(t.Context())()
+//	go op2(t.Context())()
 //	// Logs (order may vary):
 //	// [entering 5] operation1
 //	// [entering 6] operation2
@@ -615,7 +615,7 @@ func SLogWithCallback[A any](
 //	    Map(func(u User) string { return u.Name }),
 //	)
 //
-//	result := pipeline(context.Background())()
+//	result := pipeline(t.Context())()
 //	// If successful, logs: "Fetched user" value={ID:123 Name:"Alice"}
 //	// If error, logs: "Fetched user" error="user not found"
 //
@@ -679,7 +679,7 @@ func SLog[A any](message string) Kleisli[Result[A], A] {
 //	    Map(func(u User) string { return u.Name }),
 //	)
 //
-//	result := pipeline(context.Background())()
+//	result := pipeline(t.Context())()
 //	// Logs: "Fetched user" value={ID:123 Name:"Alice"}
 //	// Returns: result.Of("Alice")
 //
@@ -694,7 +694,7 @@ func SLog[A any](message string) Kleisli[Result[A], A] {
 //	    TapSLog[Payment]("Payment processed"),
 //	)
 //
-//	result := processOrder(context.Background())()
+//	result := processOrder(t.Context())()
 //	// Logs each successful step with the intermediate values
 //	// If any step fails, subsequent TapSLog calls don't log
 //

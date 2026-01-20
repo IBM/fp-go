@@ -80,7 +80,7 @@ import (
 //	retryingFetch := Retrying(policy, fetchData, shouldRetry)
 //
 //	// Execute
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	result := retryingFetch(ctx)() // Returns "success" after 3 attempts
 //
 //go:inline

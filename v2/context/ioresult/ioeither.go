@@ -44,7 +44,7 @@ import (
 //	    return result.Of("done")
 //	}
 //
-//	ctx, cancel := context.WithCancel(context.Background())
+//	ctx, cancel := context.WithCancel(t.Context())
 //	cancel() // Cancel immediately
 //
 //	wrapped := WithContext(ctx, computation)

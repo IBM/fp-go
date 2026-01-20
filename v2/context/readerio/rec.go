@@ -53,7 +53,7 @@ import (
 //	}
 //
 //	countdown := TailRec(countdownStep)
-//	result := countdown(10)(context.Background())() // Returns "Done!"
+//	result := countdown(10)(t.Context())() // Returns "Done!"
 //
 // Example - Sum with context:
 //
@@ -77,7 +77,7 @@ import (
 //	}
 //
 //	sum := TailRec(sumStep)
-//	result := sum(SumState{numbers: []int{1, 2, 3, 4, 5}})(context.Background())()
+//	result := sum(SumState{numbers: []int{1, 2, 3, 4, 5}})(t.Context())()
 //	// Returns 15, safe even for very large slices
 //
 //go:inline

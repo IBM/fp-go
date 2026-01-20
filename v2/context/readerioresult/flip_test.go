@@ -41,7 +41,7 @@ func TestSequenceReader(t *testing.T) {
 		// The Reader environment (string) is now the first parameter
 		sequenced := SequenceReader(original)
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test original
 		result1 := original(ctx)()
@@ -75,7 +75,7 @@ func TestSequenceReader(t *testing.T) {
 		}
 
 		db := Database{ConnectionString: "localhost:5432"}
-		ctx := context.Background()
+		ctx := t.Context()
 
 		expected := "Query on localhost:5432"
 
@@ -106,7 +106,7 @@ func TestSequenceReader(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test original with error
 		result1 := original(ctx)()
@@ -132,7 +132,7 @@ func TestSequenceReader(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Sequence
 		sequenced := SequenceReader(original)
@@ -158,7 +158,7 @@ func TestSequenceReader(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		sequenced := SequenceReader(original)
 
 		// Test with zero values
@@ -184,7 +184,7 @@ func TestSequenceReader(t *testing.T) {
 			}
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		sequenced := SequenceReader(original)
@@ -217,14 +217,14 @@ func TestSequenceReader(t *testing.T) {
 		withConfig := sequenced(cfg)
 
 		// Now we have a ReaderIOResult[int] that can be used in different contexts
-		ctx1 := context.Background()
+		ctx1 := t.Context()
 		result1 := withConfig(ctx1)()
 		assert.True(t, either.IsRight(result1))
 		value1, _ := either.Unwrap(result1)
 		assert.Equal(t, 50, value1)
 
 		// Can reuse with different context
-		ctx2 := context.Background()
+		ctx2 := t.Context()
 		result2 := withConfig(ctx2)()
 		assert.True(t, either.IsRight(result2))
 		value2, _ := either.Unwrap(result2)
@@ -246,7 +246,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		sequenced := SequenceReaderIO(original)
 
 		// Test original
@@ -273,7 +273,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test original with error
 		result1 := original(ctx)()
@@ -303,7 +303,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			}
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		sequenced := SequenceReaderIO(original)
@@ -327,7 +327,7 @@ func TestSequenceReaderResult(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		sequenced := SequenceReaderResult(original)
 
 		// Test original
@@ -356,7 +356,7 @@ func TestSequenceReaderResult(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test original with error
 		result1 := original(ctx)()
@@ -384,7 +384,7 @@ func TestSequenceReaderResult(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test original with inner error
 		result1 := original(ctx)()
@@ -421,7 +421,7 @@ func TestSequenceReaderResult(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 
 		// Test outer error
 		sequenced1 := SequenceReaderResult(makeOriginal(-20))
@@ -460,7 +460,7 @@ func TestSequenceReaderResult(t *testing.T) {
 			}
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		sequenced := SequenceReaderResult(original)
@@ -484,7 +484,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		empty := Empty{}
 		sequenced := SequenceReader(original)
 
@@ -514,7 +514,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		data := &Data{Value: 100}
 		sequenced := SequenceReader(original)
 
@@ -544,7 +544,7 @@ func TestSequenceEdgeCases(t *testing.T) {
 			}
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		sequenced := SequenceReader(original)
 
 		// Call multiple times with same inputs
@@ -583,7 +583,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Provide Config and execute
 		cfg := Config{Multiplier: 5}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult := result(cfg)(ctx)()
 
 		assert.True(t, either.IsRight(finalResult))
@@ -614,7 +614,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Provide Config and execute
 		cfg := Config{Multiplier: 5}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult := result(cfg)(ctx)()
 
 		assert.True(t, either.IsLeft(finalResult))
@@ -643,7 +643,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Provide Database and execute
 		db := Database{Prefix: "ID"}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult := result(db)(ctx)()
 
 		assert.True(t, either.IsRight(finalResult))
@@ -673,7 +673,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Provide Settings and execute
 		settings := Settings{Prefix: "[", Suffix: "]"}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult := result(settings)(ctx)()
 
 		assert.True(t, either.IsRight(finalResult))
@@ -705,14 +705,14 @@ func TestTraverseReader(t *testing.T) {
 		withConfig := result(cfg)
 
 		// Can now use with different contexts
-		ctx1 := context.Background()
+		ctx1 := t.Context()
 		finalResult1 := withConfig(ctx1)()
 		assert.True(t, either.IsRight(finalResult1))
 		value1, _ := either.Unwrap(finalResult1)
 		assert.Equal(t, 30, value1)
 
 		// Reuse with different context
-		ctx2 := context.Background()
+		ctx2 := t.Context()
 		finalResult2 := withConfig(ctx2)()
 		assert.True(t, either.IsRight(finalResult2))
 		value2, _ := either.Unwrap(finalResult2)
@@ -746,7 +746,7 @@ func TestTraverseReader(t *testing.T) {
 		result := traversed(original)
 
 		// Use canceled context
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		cfg := Config{Value: 5}
@@ -778,7 +778,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Provide Config with zero offset
 		cfg := Config{Offset: 0}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult := result(cfg)(ctx)()
 
 		assert.True(t, either.IsRight(finalResult))
@@ -807,7 +807,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Provide Config and execute
 		cfg := Config{Multiplier: 4}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult := result(cfg)(ctx)()
 
 		assert.True(t, either.IsRight(finalResult))
@@ -843,7 +843,7 @@ func TestTraverseReader(t *testing.T) {
 
 		// Test with value within range
 		rules1 := ValidationRules{MinValue: 0, MaxValue: 100}
-		ctx := context.Background()
+		ctx := t.Context()
 		finalResult1 := result(rules1)(ctx)()
 		assert.True(t, either.IsRight(finalResult1))
 		value1, _ := either.Unwrap(finalResult1)

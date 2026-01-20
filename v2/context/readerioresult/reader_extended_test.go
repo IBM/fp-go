@@ -36,56 +36,56 @@ func TestFromEither(t *testing.T) {
 	t.Run("Right value", func(t *testing.T) {
 		either := E.Right[error]("success")
 		result := FromEither(either)
-		assert.Equal(t, E.Right[error]("success"), result(context.Background())())
+		assert.Equal(t, E.Right[error]("success"), result(t.Context())())
 	})
 
 	t.Run("Left value", func(t *testing.T) {
 		err := errors.New("test error")
 		either := E.Left[string](err)
 		result := FromEither(either)
-		assert.Equal(t, E.Left[string](err), result(context.Background())())
+		assert.Equal(t, E.Left[string](err), result(t.Context())())
 	})
 }
 
 func TestFromResult(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		result := FromResult(E.Right[error](42))
-		assert.Equal(t, E.Right[error](42), result(context.Background())())
+		assert.Equal(t, E.Right[error](42), result(t.Context())())
 	})
 
 	t.Run("Error", func(t *testing.T) {
 		err := errors.New("test error")
 		result := FromResult(E.Left[int](err))
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
 func TestLeft(t *testing.T) {
 	err := errors.New("test error")
 	result := Left[string](err)
-	assert.Equal(t, E.Left[string](err), result(context.Background())())
+	assert.Equal(t, E.Left[string](err), result(t.Context())())
 }
 
 func TestRight(t *testing.T) {
 	result := Right("success")
-	assert.Equal(t, E.Right[error]("success"), result(context.Background())())
+	assert.Equal(t, E.Right[error]("success"), result(t.Context())())
 }
 
 func TestOf(t *testing.T) {
 	result := Of(42)
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestMonadMap(t *testing.T) {
 	t.Run("Map over Right", func(t *testing.T) {
 		result := MonadMap(Of(5), N.Mul(2))
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("Map over Left", func(t *testing.T) {
 		err := errors.New("test error")
 		result := MonadMap(Left[int](err), N.Mul(2))
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -93,34 +93,34 @@ func TestMap(t *testing.T) {
 	t.Run("Map with success", func(t *testing.T) {
 		mapper := Map(N.Mul(2))
 		result := mapper(Of(5))
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("Map with error", func(t *testing.T) {
 		err := errors.New("test error")
 		mapper := Map(N.Mul(2))
 		result := mapper(Left[int](err))
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
 func TestMonadMapTo(t *testing.T) {
 	t.Run("MapTo with success", func(t *testing.T) {
 		result := MonadMapTo(Of("original"), 42)
-		assert.Equal(t, E.Right[error](42), result(context.Background())())
+		assert.Equal(t, E.Right[error](42), result(t.Context())())
 	})
 
 	t.Run("MapTo with error", func(t *testing.T) {
 		err := errors.New("test error")
 		result := MonadMapTo(Left[string](err), 42)
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
 func TestMapTo(t *testing.T) {
 	mapper := MapTo[string](42)
 	result := mapper(Of("original"))
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestMonadChain(t *testing.T) {
@@ -128,7 +128,7 @@ func TestMonadChain(t *testing.T) {
 		result := MonadChain(Of(5), func(x int) ReaderIOResult[int] {
 			return Of(x * 2)
 		})
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("Chain with error in first", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestMonadChain(t *testing.T) {
 		result := MonadChain(Left[int](err), func(x int) ReaderIOResult[int] {
 			return Of(x * 2)
 		})
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 
 	t.Run("Chain with error in second", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestMonadChain(t *testing.T) {
 		result := MonadChain(Of(5), func(x int) ReaderIOResult[int] {
 			return Left[int](err)
 		})
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -153,7 +153,7 @@ func TestChain(t *testing.T) {
 		return Of(x * 2)
 	})
 	result := chainer(Of(5))
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestMonadChainFirst(t *testing.T) {
@@ -161,7 +161,7 @@ func TestMonadChainFirst(t *testing.T) {
 		result := MonadChainFirst(Of(5), func(x int) ReaderIOResult[string] {
 			return Of("ignored")
 		})
-		assert.Equal(t, E.Right[error](5), result(context.Background())())
+		assert.Equal(t, E.Right[error](5), result(t.Context())())
 	})
 
 	t.Run("ChainFirst propagates error from second", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestMonadChainFirst(t *testing.T) {
 		result := MonadChainFirst(Of(5), func(x int) ReaderIOResult[string] {
 			return Left[string](err)
 		})
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -178,7 +178,7 @@ func TestChainFirst(t *testing.T) {
 		return Of("ignored")
 	})
 	result := chainer(Of(5))
-	assert.Equal(t, E.Right[error](5), result(context.Background())())
+	assert.Equal(t, E.Right[error](5), result(t.Context())())
 }
 
 func TestMonadApSeq(t *testing.T) {
@@ -186,7 +186,7 @@ func TestMonadApSeq(t *testing.T) {
 		fab := Of(N.Mul(2))
 		fa := Of(5)
 		result := MonadApSeq(fab, fa)
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("ApSeq with error in function", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestMonadApSeq(t *testing.T) {
 		fab := Left[func(int) int](err)
 		fa := Of(5)
 		result := MonadApSeq(fab, fa)
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 
 	t.Run("ApSeq with error in value", func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestMonadApSeq(t *testing.T) {
 		fab := Of(N.Mul(2))
 		fa := Left[int](err)
 		result := MonadApSeq(fab, fa)
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -210,7 +210,7 @@ func TestApSeq(t *testing.T) {
 	fa := Of(5)
 	fab := Of(N.Mul(2))
 	result := MonadApSeq(fab, fa)
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestApPar(t *testing.T) {
@@ -218,11 +218,11 @@ func TestApPar(t *testing.T) {
 		fa := Of(5)
 		fab := Of(N.Mul(2))
 		result := MonadApPar(fab, fa)
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("ApPar with cancelled context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 		fa := Of(5)
 		fab := Of(N.Mul(2))
@@ -239,7 +239,7 @@ func TestFromPredicate(t *testing.T) {
 			func(x int) error { return fmt.Errorf("value %d is not positive", x) },
 		)
 		result := pred(5)
-		assert.Equal(t, E.Right[error](5), result(context.Background())())
+		assert.Equal(t, E.Right[error](5), result(t.Context())())
 	})
 
 	t.Run("Predicate false", func(t *testing.T) {
@@ -248,7 +248,7 @@ func TestFromPredicate(t *testing.T) {
 			func(x int) error { return fmt.Errorf("value %d is not positive", x) },
 		)
 		result := pred(-5)
-		res := result(context.Background())()
+		res := result(t.Context())()
 		assert.True(t, E.IsLeft(res))
 	})
 }
@@ -259,7 +259,7 @@ func TestOrElse(t *testing.T) {
 			return Of(42)
 		})
 		result := fallback(Of(10))
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("OrElse with error", func(t *testing.T) {
@@ -268,13 +268,13 @@ func TestOrElse(t *testing.T) {
 			return Of(42)
 		})
 		result := fallback(Left[int](err))
-		assert.Equal(t, E.Right[error](42), result(context.Background())())
+		assert.Equal(t, E.Right[error](42), result(t.Context())())
 	})
 }
 
 func TestAsk(t *testing.T) {
 	result := Ask()
-	ctx := context.Background()
+	ctx := t.Context()
 	res := result(ctx)()
 	assert.True(t, E.IsRight(res))
 	ctxResult := E.ToOption(res)
@@ -286,7 +286,7 @@ func TestMonadChainEitherK(t *testing.T) {
 		result := MonadChainEitherK(Of(5), func(x int) Either[int] {
 			return E.Right[error](x * 2)
 		})
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("ChainEitherK with error", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestMonadChainEitherK(t *testing.T) {
 		result := MonadChainEitherK(Of(5), func(x int) Either[int] {
 			return E.Left[int](err)
 		})
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -303,7 +303,7 @@ func TestChainEitherK(t *testing.T) {
 		return E.Right[error](x * 2)
 	})
 	result := chainer(Of(5))
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestMonadChainFirstEitherK(t *testing.T) {
@@ -311,7 +311,7 @@ func TestMonadChainFirstEitherK(t *testing.T) {
 		result := MonadChainFirstEitherK(Of(5), func(x int) Either[string] {
 			return E.Right[error]("ignored")
 		})
-		assert.Equal(t, E.Right[error](5), result(context.Background())())
+		assert.Equal(t, E.Right[error](5), result(t.Context())())
 	})
 
 	t.Run("ChainFirstEitherK propagates error", func(t *testing.T) {
@@ -319,7 +319,7 @@ func TestMonadChainFirstEitherK(t *testing.T) {
 		result := MonadChainFirstEitherK(Of(5), func(x int) Either[string] {
 			return E.Left[string](err)
 		})
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -328,7 +328,7 @@ func TestChainFirstEitherK(t *testing.T) {
 		return E.Right[error]("ignored")
 	})
 	result := chainer(Of(5))
-	assert.Equal(t, E.Right[error](5), result(context.Background())())
+	assert.Equal(t, E.Right[error](5), result(t.Context())())
 }
 
 func TestChainOptionK(t *testing.T) {
@@ -339,7 +339,7 @@ func TestChainOptionK(t *testing.T) {
 			return O.Some(x * 2)
 		})
 		result := chainer(Of(5))
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("ChainOptionK with None", func(t *testing.T) {
@@ -349,7 +349,7 @@ func TestChainOptionK(t *testing.T) {
 			return O.None[int]()
 		})
 		result := chainer(Of(5))
-		res := result(context.Background())()
+		res := result(t.Context())()
 		assert.True(t, E.IsLeft(res))
 	})
 }
@@ -358,44 +358,44 @@ func TestFromIOEither(t *testing.T) {
 	t.Run("FromIOEither with success", func(t *testing.T) {
 		ioe := IOE.Of[error](42)
 		result := FromIOEither(ioe)
-		assert.Equal(t, E.Right[error](42), result(context.Background())())
+		assert.Equal(t, E.Right[error](42), result(t.Context())())
 	})
 
 	t.Run("FromIOEither with error", func(t *testing.T) {
 		err := errors.New("test error")
 		ioe := IOE.Left[int](err)
 		result := FromIOEither(ioe)
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
 func TestFromIOResult(t *testing.T) {
 	ioe := IOE.Of[error](42)
 	result := FromIOResult(ioe)
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestFromIO(t *testing.T) {
 	io := IOG.Of(42)
 	result := FromIO(io)
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestFromReader(t *testing.T) {
 	reader := R.Of[context.Context](42)
 	result := FromReader(reader)
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestFromLazy(t *testing.T) {
 	lazy := func() int { return 42 }
 	result := FromLazy(lazy)
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestNever(t *testing.T) {
 	t.Run("Never with cancelled context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		result := Never[int]()
 
 		// Cancel immediately
@@ -406,7 +406,7 @@ func TestNever(t *testing.T) {
 	})
 
 	t.Run("Never with timeout", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 		defer cancel()
 
 		result := Never[int]()
@@ -419,7 +419,7 @@ func TestMonadChainIOK(t *testing.T) {
 	result := MonadChainIOK(Of(5), func(x int) IOG.IO[int] {
 		return IOG.Of(x * 2)
 	})
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestChainIOK(t *testing.T) {
@@ -427,14 +427,14 @@ func TestChainIOK(t *testing.T) {
 		return IOG.Of(x * 2)
 	})
 	result := chainer(Of(5))
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestMonadChainFirstIOK(t *testing.T) {
 	result := MonadChainFirstIOK(Of(5), func(x int) IOG.IO[string] {
 		return IOG.Of("ignored")
 	})
-	assert.Equal(t, E.Right[error](5), result(context.Background())())
+	assert.Equal(t, E.Right[error](5), result(t.Context())())
 }
 
 func TestChainFirstIOK(t *testing.T) {
@@ -442,7 +442,7 @@ func TestChainFirstIOK(t *testing.T) {
 		return IOG.Of("ignored")
 	})
 	result := chainer(Of(5))
-	assert.Equal(t, E.Right[error](5), result(context.Background())())
+	assert.Equal(t, E.Right[error](5), result(t.Context())())
 }
 
 func TestChainIOEitherK(t *testing.T) {
@@ -451,7 +451,7 @@ func TestChainIOEitherK(t *testing.T) {
 			return IOE.Of[error](x * 2)
 		})
 		result := chainer(Of(5))
-		assert.Equal(t, E.Right[error](10), result(context.Background())())
+		assert.Equal(t, E.Right[error](10), result(t.Context())())
 	})
 
 	t.Run("ChainIOEitherK with error", func(t *testing.T) {
@@ -460,7 +460,7 @@ func TestChainIOEitherK(t *testing.T) {
 			return IOE.Left[int](err)
 		})
 		result := chainer(Of(5))
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -469,7 +469,7 @@ func TestDelay(t *testing.T) {
 		start := time.Now()
 		delayed := Delay[int](100 * time.Millisecond)
 		result := delayed(Of(42))
-		res := result(context.Background())()
+		res := result(t.Context())()
 		elapsed := time.Since(start)
 
 		assert.True(t, E.IsRight(res))
@@ -477,7 +477,7 @@ func TestDelay(t *testing.T) {
 	})
 
 	t.Run("Delay with cancelled context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		delayed := Delay[int](100 * time.Millisecond)
 		result := delayed(Of(42))
@@ -500,11 +500,11 @@ func TestDefer(t *testing.T) {
 	})
 
 	// First execution
-	res1 := deferred(context.Background())()
+	res1 := deferred(t.Context())()
 	assert.True(t, E.IsRight(res1))
 
 	// Second execution should generate a new computation
-	res2 := deferred(context.Background())()
+	res2 := deferred(t.Context())()
 	assert.True(t, E.IsRight(res2))
 
 	// Counter should be incremented for each execution
@@ -518,7 +518,7 @@ func TestTryCatch(t *testing.T) {
 				return 42, nil
 			}
 		})
-		assert.Equal(t, E.Right[error](42), result(context.Background())())
+		assert.Equal(t, E.Right[error](42), result(t.Context())())
 	})
 
 	t.Run("TryCatch with error", func(t *testing.T) {
@@ -528,7 +528,7 @@ func TestTryCatch(t *testing.T) {
 				return 0, err
 			}
 		})
-		assert.Equal(t, E.Left[int](err), result(context.Background())())
+		assert.Equal(t, E.Left[int](err), result(t.Context())())
 	})
 }
 
@@ -537,7 +537,7 @@ func TestMonadAlt(t *testing.T) {
 		first := Of(42)
 		second := func() ReaderIOResult[int] { return Of(100) }
 		result := MonadAlt(first, second)
-		assert.Equal(t, E.Right[error](42), result(context.Background())())
+		assert.Equal(t, E.Right[error](42), result(t.Context())())
 	})
 
 	t.Run("Alt with first error", func(t *testing.T) {
@@ -545,7 +545,7 @@ func TestMonadAlt(t *testing.T) {
 		first := Left[int](err)
 		second := func() ReaderIOResult[int] { return Of(100) }
 		result := MonadAlt(first, second)
-		assert.Equal(t, E.Right[error](100), result(context.Background())())
+		assert.Equal(t, E.Right[error](100), result(t.Context())())
 	})
 }
 
@@ -553,7 +553,7 @@ func TestAlt(t *testing.T) {
 	err := errors.New("test error")
 	alternative := Alt(func() ReaderIOResult[int] { return Of(100) })
 	result := alternative(Left[int](err))
-	assert.Equal(t, E.Right[error](100), result(context.Background())())
+	assert.Equal(t, E.Right[error](100), result(t.Context())())
 }
 
 func TestMemoize(t *testing.T) {
@@ -564,13 +564,13 @@ func TestMemoize(t *testing.T) {
 	}))
 
 	// First execution
-	res1 := computation(context.Background())()
+	res1 := computation(t.Context())()
 	assert.True(t, E.IsRight(res1))
 	val1 := E.ToOption(res1)
 	assert.Equal(t, O.Of(1), val1)
 
 	// Second execution should return cached value
-	res2 := computation(context.Background())()
+	res2 := computation(t.Context())()
 	assert.True(t, E.IsRight(res2))
 	val2 := E.ToOption(res2)
 	assert.Equal(t, O.Of(1), val2)
@@ -582,19 +582,19 @@ func TestMemoize(t *testing.T) {
 func TestFlatten(t *testing.T) {
 	nested := Of(Of(42))
 	result := Flatten(nested)
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestMonadFlap(t *testing.T) {
 	fab := Of(N.Mul(2))
 	result := MonadFlap(fab, 5)
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestFlap(t *testing.T) {
 	flapper := Flap[int](5)
 	result := flapper(Of(N.Mul(2)))
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestFold(t *testing.T) {
@@ -608,7 +608,7 @@ func TestFold(t *testing.T) {
 			},
 		)
 		result := folder(Of(42))
-		assert.Equal(t, E.Right[error]("success: 42"), result(context.Background())())
+		assert.Equal(t, E.Right[error]("success: 42"), result(t.Context())())
 	})
 
 	t.Run("Fold with error", func(t *testing.T) {
@@ -622,7 +622,7 @@ func TestFold(t *testing.T) {
 			},
 		)
 		result := folder(Left[int](err))
-		assert.Equal(t, E.Right[error]("error: test error"), result(context.Background())())
+		assert.Equal(t, E.Right[error]("error: test error"), result(t.Context())())
 	})
 }
 
@@ -634,7 +634,7 @@ func TestGetOrElse(t *testing.T) {
 			}
 		})
 		result := getter(Of(42))
-		assert.Equal(t, 42, result(context.Background())())
+		assert.Equal(t, 42, result(t.Context())())
 	})
 
 	t.Run("GetOrElse with error", func(t *testing.T) {
@@ -645,19 +645,19 @@ func TestGetOrElse(t *testing.T) {
 			}
 		})
 		result := getter(Left[int](err))
-		assert.Equal(t, 0, result(context.Background())())
+		assert.Equal(t, 0, result(t.Context())())
 	})
 }
 
 func TestWithContext(t *testing.T) {
 	t.Run("WithContext with valid context", func(t *testing.T) {
 		computation := WithContext(Of(42))
-		result := computation(context.Background())()
+		result := computation(t.Context())()
 		assert.Equal(t, E.Right[error](42), result)
 	})
 
 	t.Run("WithContext with cancelled context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 
 		computation := WithContext(Of(42))
@@ -672,7 +672,7 @@ func TestEitherize0(t *testing.T) {
 	}
 	eitherized := Eitherize0(f)
 	result := eitherized()
-	assert.Equal(t, E.Right[error](42), result(context.Background())())
+	assert.Equal(t, E.Right[error](42), result(t.Context())())
 }
 
 func TestUneitherize0(t *testing.T) {
@@ -680,7 +680,7 @@ func TestUneitherize0(t *testing.T) {
 		return Of(42)
 	}
 	uneitherized := Uneitherize0(f)
-	result, err := uneitherized(context.Background())
+	result, err := uneitherized(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, 42, result)
 }
@@ -691,7 +691,7 @@ func TestEitherize1(t *testing.T) {
 	}
 	eitherized := Eitherize1(f)
 	result := eitherized(5)
-	assert.Equal(t, E.Right[error](10), result(context.Background())())
+	assert.Equal(t, E.Right[error](10), result(t.Context())())
 }
 
 func TestUneitherize1(t *testing.T) {
@@ -699,14 +699,14 @@ func TestUneitherize1(t *testing.T) {
 		return Of(x * 2)
 	}
 	uneitherized := Uneitherize1(f)
-	result, err := uneitherized(context.Background(), 5)
+	result, err := uneitherized(t.Context(), 5)
 	assert.NoError(t, err)
 	assert.Equal(t, 10, result)
 }
 
 func TestSequenceT2(t *testing.T) {
 	result := SequenceT2(Of(1), Of(2))
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.True(t, E.IsRight(res))
 	tuple := E.ToOption(res)
 	assert.True(t, O.IsSome(tuple))
@@ -717,13 +717,13 @@ func TestSequenceT2(t *testing.T) {
 
 func TestSequenceSeqT2(t *testing.T) {
 	result := SequenceSeqT2(Of(1), Of(2))
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.True(t, E.IsRight(res))
 }
 
 func TestSequenceParT2(t *testing.T) {
 	result := SequenceParT2(Of(1), Of(2))
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.True(t, E.IsRight(res))
 }
 
@@ -734,7 +734,7 @@ func TestTraverseArray(t *testing.T) {
 			return Of(x * 2)
 		})
 		result := traverser(arr)
-		res := result(context.Background())()
+		res := result(t.Context())()
 		assert.True(t, E.IsRight(res))
 		arrOpt := E.ToOption(res)
 		assert.Equal(t, O.Of([]int{2, 4, 6}), arrOpt)
@@ -750,7 +750,7 @@ func TestTraverseArray(t *testing.T) {
 			return Of(x * 2)
 		})
 		result := traverser(arr)
-		res := result(context.Background())()
+		res := result(t.Context())()
 		assert.True(t, E.IsLeft(res))
 	})
 }
@@ -758,7 +758,7 @@ func TestTraverseArray(t *testing.T) {
 func TestSequenceArray(t *testing.T) {
 	arr := []ReaderIOResult[int]{Of(1), Of(2), Of(3)}
 	result := SequenceArray(arr)
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.True(t, E.IsRight(res))
 	arrOpt := E.ToOption(res)
 	assert.Equal(t, O.Of([]int{1, 2, 3}), arrOpt)
@@ -769,7 +769,7 @@ func TestTraverseRecord(t *testing.T) {
 	result := TraverseRecord[string](func(x int) ReaderIOResult[int] {
 		return Of(x * 2)
 	})(rec)
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.True(t, E.IsRight(res))
 	recOpt := E.ToOption(res)
 	assert.True(t, O.IsSome(recOpt))
@@ -784,7 +784,7 @@ func TestSequenceRecord(t *testing.T) {
 		"b": Of(2),
 	}
 	result := SequenceRecord(rec)
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.True(t, E.IsRight(res))
 	recOpt := E.ToOption(res)
 	assert.True(t, O.IsSome(recOpt))
@@ -798,7 +798,7 @@ func TestAltSemigroup(t *testing.T) {
 	err := errors.New("test error")
 
 	result := sg.Concat(Left[int](err), Of(42))
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.Equal(t, E.Right[error](42), res)
 }
 
@@ -810,7 +810,7 @@ func TestApplicativeMonoid(t *testing.T) {
 	))
 
 	result := intAddMonoid.Concat(Of(5), Of(10))
-	res := result(context.Background())()
+	res := result(t.Context())()
 	assert.Equal(t, E.Right[error](15), res)
 }
 
@@ -835,7 +835,7 @@ func TestBracket(t *testing.T) {
 		}
 
 		result := Bracket(acquire, use, release)
-		res := result(context.Background())()
+		res := result(t.Context())()
 
 		assert.True(t, acquired)
 		assert.True(t, released)
@@ -863,7 +863,7 @@ func TestBracket(t *testing.T) {
 		}
 
 		result := Bracket(acquire, use, release)
-		res := result(context.Background())()
+		res := result(t.Context())()
 
 		assert.True(t, acquired)
 		assert.True(t, released)

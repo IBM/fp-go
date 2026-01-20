@@ -26,7 +26,7 @@ func Bracket[A, B, ANY any](
 	use Kleisli[A, B],
 	release func(A, B) IO[ANY],
 ) IO[B] {
-	return INTB.Bracket[IO[A], IO[B], IO[ANY], B, A, B](
+	return INTB.MonadBracket[IO[A], IO[B], IO[ANY], B, A, B](
 		Of[B],
 		MonadChain[A, B],
 		MonadChain[B, B],

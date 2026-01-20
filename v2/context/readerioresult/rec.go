@@ -108,7 +108,7 @@ import (
 //	countdown := readerioresult.TailRec(countdownStep)
 //
 //	// With cancellation
-//	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+//	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 //	defer cancel()
 //	result := countdown(10)(ctx)() // Will be cancelled after ~500ms
 //
@@ -141,7 +141,7 @@ import (
 //	}
 //
 //	processFiles := readerioresult.TailRec(processStep)
-//	ctx, cancel := context.WithCancel(context.Background())
+//	ctx, cancel := context.WithCancel(t.Context())
 //
 //	// Can be cancelled at any point during processing
 //	go func() {
@@ -159,7 +159,7 @@ import (
 //
 //	// Safe for very large inputs with cancellation support
 //	largeCountdown := readerioresult.TailRec(countdownStep)
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	result := largeCountdown(1000000)(ctx)() // Safe, no stack overflow
 //
 // # Performance Considerations

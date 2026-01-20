@@ -26,7 +26,7 @@ func TestLoggingContext(t *testing.T) {
 		LogEntryExit[string]("TestLoggingContext2"),
 	)
 
-	assert.Equal(t, result.Of("Sample"), data(context.Background())())
+	assert.Equal(t, result.Of("Sample"), data(t.Context())())
 }
 
 // TestLogEntryExitSuccess tests successful operation logging
@@ -43,7 +43,7 @@ func TestLogEntryExitSuccess(t *testing.T) {
 		LogEntryExit[string]("TestOperation"),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.Equal(t, result.Of("success value"), res)
 
@@ -70,7 +70,7 @@ func TestLogEntryExitError(t *testing.T) {
 		LogEntryExit[string]("FailingOperation"),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.True(t, result.IsLeft(res))
 
@@ -105,7 +105,7 @@ func TestLogEntryExitNested(t *testing.T) {
 		}),
 	)
 
-	res := outerOp(context.Background())()
+	res := outerOp(t.Context())()
 
 	assert.True(t, result.IsRight(res))
 
@@ -137,7 +137,7 @@ func TestLogEntryExitWithCallback(t *testing.T) {
 		LogEntryExitWithCallback[int](slog.LevelDebug, customCallback, "DebugOperation"),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.Equal(t, result.Of(42), res)
 
@@ -163,7 +163,7 @@ func TestLogEntryExitDisabled(t *testing.T) {
 		LogEntryExit[string]("DisabledOperation"),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.True(t, result.IsRight(res))
 
@@ -197,7 +197,7 @@ func TestLogEntryExitF(t *testing.T) {
 		LogEntryExitF(onEntry, onExit),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.True(t, result.IsRight(res))
 	assert.Equal(t, 1, entryCount, "Entry callback should be called once")
@@ -234,7 +234,7 @@ func TestLogEntryExitFWithError(t *testing.T) {
 		LogEntryExitF(onEntry, onExit),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.True(t, result.IsLeft(res))
 	assert.Equal(t, 1, entryCount, "Entry callback should be called once")
@@ -257,7 +257,7 @@ func TestLoggingIDUniqueness(t *testing.T) {
 			Of(i),
 			LogEntryExit[int]("Operation"),
 		)
-		op(context.Background())()
+		op(t.Context())()
 	}
 
 	logOutput := buf.String()
@@ -287,7 +287,7 @@ func TestLogEntryExitWithContextLogger(t *testing.T) {
 		Level: slog.LevelInfo,
 	}))
 
-	ctx := logging.WithLogger(contextLogger)(context.Background())
+	ctx := logging.WithLogger(contextLogger)(t.Context())
 
 	operation := F.Pipe1(
 		Of("context value"),
@@ -326,7 +326,7 @@ func TestLogEntryExitTiming(t *testing.T) {
 		LogEntryExit[string]("SlowOperation"),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.True(t, result.IsRight(res))
 
@@ -379,7 +379,7 @@ func TestLogEntryExitChainedOperations(t *testing.T) {
 		)),
 	)
 
-	res := pipeline(context.Background())()
+	res := pipeline(t.Context())()
 
 	assert.Equal(t, result.Of("2"), res)
 
@@ -408,7 +408,7 @@ func TestTapSLog(t *testing.T) {
 		Map(N.Mul(2)),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.Equal(t, result.Of(84), res)
 
@@ -443,7 +443,7 @@ func TestTapSLogInPipeline(t *testing.T) {
 		TapSLog[int]("Step 3: Final length"),
 	)
 
-	res := pipeline(context.Background())()
+	res := pipeline(t.Context())()
 
 	assert.Equal(t, result.Of(11), res)
 
@@ -472,7 +472,7 @@ func TestTapSLogWithError(t *testing.T) {
 		Map(N.Mul(2)),
 	)
 
-	res := pipeline(context.Background())()
+	res := pipeline(t.Context())()
 
 	assert.True(t, result.IsLeft(res))
 
@@ -504,7 +504,7 @@ func TestTapSLogWithStruct(t *testing.T) {
 		Map(func(u User) string { return u.Name }),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.Equal(t, result.Of("Alice"), res)
 
@@ -530,7 +530,7 @@ func TestTapSLogDisabled(t *testing.T) {
 		Map(N.Mul(2)),
 	)
 
-	res := operation(context.Background())()
+	res := operation(t.Context())()
 
 	assert.Equal(t, result.Of(84), res)
 
@@ -546,7 +546,7 @@ func TestTapSLogWithContextLogger(t *testing.T) {
 		Level: slog.LevelInfo,
 	}))
 
-	ctx := logging.WithLogger(contextLogger)(context.Background())
+	ctx := logging.WithLogger(contextLogger)(t.Context())
 
 	operation := F.Pipe2(
 		Of("test value"),
@@ -572,7 +572,7 @@ func TestSLogLogsSuccessValue(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a Result and log it
 	res1 := result.Of(42)
@@ -594,7 +594,7 @@ func TestSLogLogsErrorValue(t *testing.T) {
 	oldLogger := logging.SetLogger(logger)
 	defer logging.SetLogger(oldLogger)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	testErr := errors.New("test error")
 
 	// Create an error Result and log it
@@ -620,7 +620,7 @@ func TestSLogWithCallbackCustomLevel(t *testing.T) {
 		return logger
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a Result and log it with custom callback
 	res1 := result.Of(42)
@@ -645,7 +645,7 @@ func TestSLogWithCallbackLogsError(t *testing.T) {
 		return logger
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	testErr := errors.New("warning error")
 
 	// Create an error Result and log it with custom callback

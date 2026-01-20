@@ -173,6 +173,200 @@ func TestLocal(t *testing.T) {
 	assert.Equal(t, "localhost", result)
 }
 
+func TestWithLocal(t *testing.T) {
+	t.Run("transforms environment before passing to Reader", func(t *testing.T) {
+		type DetailedConfig struct {
+			Host string
+			Port int
+		}
+		type SimpleConfig struct{ Host string }
+
+		// Original Reader that works with SimpleConfig
+		getHost := func(c SimpleConfig) string { return c.Host }
+
+		// Transform function from DetailedConfig to SimpleConfig
+		simplify := func(d DetailedConfig) SimpleConfig {
+			return SimpleConfig{Host: d.Host}
+		}
+
+		// Apply the transformation
+		adapted := WithLocal(getHost, simplify)
+
+		// Test with DetailedConfig
+		detailed := DetailedConfig{Host: "localhost", Port: 8080}
+		result := adapted(detailed)
+		assert.Equal(t, "localhost", result)
+	})
+
+	t.Run("works with numeric transformations", func(t *testing.T) {
+		type LargeEnv struct{ Value int }
+		type SmallEnv struct{ Value int }
+
+		// Reader that doubles a value
+		doubler := func(e SmallEnv) int { return e.Value * 2 }
+
+		// Transform that extracts and scales
+		extract := func(l LargeEnv) SmallEnv {
+			return SmallEnv{Value: l.Value / 10}
+		}
+
+		adapted := WithLocal(doubler, extract)
+		result := adapted(LargeEnv{Value: 100})
+		assert.Equal(t, 20, result) // (100/10) * 2 = 20
+	})
+
+	t.Run("can be composed with other Reader operations", func(t *testing.T) {
+		type FullConfig struct {
+			Host string
+			Port int
+			Path string
+		}
+		type PartialConfig struct {
+			Host string
+			Port int
+		}
+
+		// Reader that builds endpoint
+		buildEndpoint := func(c PartialConfig) string {
+			return fmt.Sprintf("%s:%d", c.Host, c.Port)
+		}
+
+		// Extract partial config
+		extractPartial := func(f FullConfig) PartialConfig {
+			return PartialConfig{Host: f.Host, Port: f.Port}
+		}
+
+		// Adapt the reader
+		adapted := WithLocal(buildEndpoint, extractPartial)
+
+		// Compose with Map to add path
+		withPath := Map[FullConfig](func(endpoint string) string {
+			return endpoint + "/api"
+		})(adapted)
+
+		full := FullConfig{Host: "localhost", Port: 8080, Path: "/api"}
+		result := withPath(full)
+		assert.Equal(t, "localhost:8080/api", result)
+	})
+
+	t.Run("maintains referential transparency", func(t *testing.T) {
+		type Env1 struct{ X int }
+		type Env2 struct {
+			X int
+			Y int
+		}
+
+		reader := func(e Env1) int { return e.X * 2 }
+		transform := func(e Env2) Env1 { return Env1{X: e.X} }
+
+		adapted := WithLocal(reader, transform)
+		env := Env2{X: 5, Y: 10}
+
+		// Multiple calls should produce same result
+		result1 := adapted(env)
+		result2 := adapted(env)
+		assert.Equal(t, result1, result2)
+		assert.Equal(t, 10, result1)
+	})
+
+	t.Run("works with complex nested structures", func(t *testing.T) {
+		type Database struct{ URL string }
+		type Cache struct{ TTL int }
+		type FullEnv struct {
+			DB    Database
+			Cache Cache
+		}
+		type DBEnv struct{ DB Database }
+
+		// Reader that extracts DB URL
+		getDBURL := func(e DBEnv) string { return e.DB.URL }
+
+		// Extract DB environment
+		extractDB := func(f FullEnv) DBEnv {
+			return DBEnv{DB: f.DB}
+		}
+
+		adapted := WithLocal(getDBURL, extractDB)
+		full := FullEnv{
+			DB:    Database{URL: "postgres://localhost"},
+			Cache: Cache{TTL: 300},
+		}
+		result := adapted(full)
+		assert.Equal(t, "postgres://localhost", result)
+	})
+
+	t.Run("can chain multiple WithLocal transformations", func(t *testing.T) {
+		type Env1 struct{ Value int }
+		type Env2 struct{ Value int }
+		type Env3 struct{ Value int }
+
+		// Base reader
+		reader := func(e Env1) int { return e.Value }
+
+		// First transformation
+		transform1 := func(e Env2) Env1 { return Env1{Value: e.Value * 2} }
+		adapted1 := WithLocal(reader, transform1)
+
+		// Second transformation
+		transform2 := func(e Env3) Env2 { return Env2{Value: e.Value + 10} }
+		adapted2 := WithLocal(adapted1, transform2)
+
+		result := adapted2(Env3{Value: 5})
+		assert.Equal(t, 30, result) // (5 + 10) * 2 = 30
+	})
+
+	t.Run("equivalent to Local when applied", func(t *testing.T) {
+		type DetailedConfig struct {
+			Host string
+			Port int
+		}
+		type SimpleConfig struct{ Host string }
+
+		getHost := func(c SimpleConfig) string { return c.Host }
+		simplify := func(d DetailedConfig) SimpleConfig {
+			return SimpleConfig{Host: d.Host}
+		}
+
+		// Using WithLocal
+		withLocalResult := WithLocal(getHost, simplify)
+
+		// Using Local
+		localResult := Local[string](simplify)(getHost)
+
+		detailed := DetailedConfig{Host: "localhost", Port: 8080}
+		assert.Equal(t, withLocalResult(detailed), localResult(detailed))
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		type Env1 struct{ Value int }
+		type Env2 struct{ Value int }
+
+		reader := func(e Env1) int { return e.Value }
+		transform := func(e Env2) Env1 { return Env1{Value: e.Value} }
+
+		adapted := WithLocal(reader, transform)
+		result := adapted(Env2{Value: 0})
+		assert.Equal(t, 0, result)
+	})
+
+	t.Run("preserves type information through transformation", func(t *testing.T) {
+		type StringEnv struct{ Value string }
+		type IntEnv struct{ Value int }
+
+		// Reader that returns string length
+		getLength := func(e StringEnv) int { return len(e.Value) }
+
+		// Transform int to string
+		intToString := func(e IntEnv) StringEnv {
+			return StringEnv{Value: strconv.Itoa(e.Value)}
+		}
+
+		adapted := WithLocal(getLength, intToString)
+		result := adapted(IntEnv{Value: 12345})
+		assert.Equal(t, 5, result) // len("12345") = 5
+	})
+}
+
 func TestRead(t *testing.T) {
 	config := Config{Port: 8080}
 	getPort := Asks(func(c Config) int { return c.Port })

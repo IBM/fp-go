@@ -50,7 +50,7 @@ import (
 //	// Sequence it to apply Config first
 //	sequenced := SequenceReader[Config, int](getMultiplier)
 //	cfg := Config{Timeout: 30}
-//	result := sequenced(cfg)(context.Background())() // Returns 60
+//	result := sequenced(cfg)(t.Context())() // Returns 60
 //
 //go:inline
 func SequenceReader[R, A any](ma ReaderIO[Reader[R, A]]) Reader[R, ReaderIO[A]] {
@@ -107,7 +107,7 @@ func SequenceReader[R, A any](ma ReaderIO[Reader[R, A]]) Reader[R, ReaderIO[A]] 
 //
 //	// Provide Config to get final result
 //	cfg := Config{Multiplier: 5}
-//	finalResult := result(cfg)(context.Background())() // Returns 50
+//	finalResult := result(cfg)(t.Context())() // Returns 50
 //
 //go:inline
 func TraverseReader[R, A, B any](

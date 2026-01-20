@@ -55,6 +55,52 @@ func Local[A, R1, R2 any](f func(R2) R1) Kleisli[R2, Reader[R1, A], A] {
 	return Compose[A](f)
 }
 
+// WithLocal applies a local environment transformation to an existing Reader.
+// It takes a Reader that expects environment R1 and a transformation function
+// that converts R2 to R1, returning a new Reader that expects environment R2.
+//
+// This is the "applied" version of Local - while Local returns a Kleisli arrow
+// that can transform any Reader, WithLocal directly applies the transformation
+// to a specific Reader instance.
+//
+// Type Parameters:
+//   - A: The output type of the Reader
+//   - R1: The original environment type that the Reader expects
+//   - R2: The new environment type that the returned Reader will expect
+//
+// Parameters:
+//   - fa: The original Reader[R1, A] to transform
+//   - f: A function that converts the new environment R2 to the original environment R1
+//
+// Returns:
+//   - Reader[R2, A]: A new Reader that accepts R2 and produces A
+//
+// The transformation is contravariant - it modifies the input environment before
+// passing it to the original Reader. This allows you to adapt a Reader to work
+// with a different (typically broader) environment type.
+//
+// Example:
+//
+//	type DetailedConfig struct { Host string; Port int; Timeout time.Duration }
+//	type SimpleConfig struct { Host string; Port int }
+//
+//	// A Reader that works with SimpleConfig
+//	getEndpoint := func(c SimpleConfig) string {
+//	    return fmt.Sprintf("%s:%d", c.Host, c.Port)
+//	}
+//
+//	// Transform it to work with DetailedConfig
+//	simplify := func(d DetailedConfig) SimpleConfig {
+//	    return SimpleConfig{Host: d.Host, Port: d.Port}
+//	}
+//	adaptedReader := reader.WithLocal(getEndpoint, simplify)
+//
+//	// Now it can be called with DetailedConfig
+//	detailed := DetailedConfig{Host: "localhost", Port: 8080, Timeout: 30*time.Second}
+//	endpoint := adaptedReader(detailed) // "localhost:8080"
+//
+// See also: Local, Contramap
+//
 //go:inline
 func WithLocal[A, R1, R2 any](fa Reader[R1, A], f func(R2) R1) Reader[R2, A] {
 	return function.Flow2(f, fa)

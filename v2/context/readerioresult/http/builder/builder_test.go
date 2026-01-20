@@ -55,7 +55,7 @@ func TestBuilderWithQuery(t *testing.T) {
 		}),
 	)
 
-	assert.True(t, E.IsRight(req(context.Background())()))
+	assert.True(t, E.IsRight(req(t.Context())()))
 }
 
 // TestBuilderWithoutBody tests creating a request without a body
@@ -67,7 +67,7 @@ func TestBuilderWithoutBody(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 
@@ -90,7 +90,7 @@ func TestBuilderWithBody(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 
@@ -112,7 +112,7 @@ func TestBuilderWithHeaders(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 
@@ -130,7 +130,7 @@ func TestBuilderWithInvalidURL(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsLeft(result), "Expected Left result for invalid URL")
 }
@@ -144,7 +144,7 @@ func TestBuilderWithEmptyMethod(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	// Empty method should still work (defaults to GET in http.NewRequest)
 	assert.True(t, E.IsRight(result), "Expected Right result")
@@ -161,7 +161,7 @@ func TestBuilderWithMultipleHeaders(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 
@@ -185,7 +185,7 @@ func TestBuilderWithBodyAndHeaders(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 
@@ -207,7 +207,7 @@ func TestBuilderContextCancellation(t *testing.T) {
 	requester := Requester(builder)
 
 	// Create a cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Cancel immediately
 
 	result := requester(ctx)()
@@ -233,7 +233,7 @@ func TestBuilderWithDifferentMethods(t *testing.T) {
 			)
 
 			requester := Requester(builder)
-			result := requester(context.Background())()
+			result := requester(t.Context())()
 
 			assert.True(t, E.IsRight(result), "Expected Right result for method %s", method)
 
@@ -256,7 +256,7 @@ func TestBuilderWithJSON(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 
@@ -277,7 +277,7 @@ func TestBuilderWithBearer(t *testing.T) {
 	)
 
 	requester := Requester(builder)
-	result := requester(context.Background())()
+	result := requester(t.Context())()
 
 	assert.True(t, E.IsRight(result), "Expected Right result")
 

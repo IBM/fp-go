@@ -81,7 +81,7 @@ func SLogWithCallback[A any](
 //	    Chain(SLog[string]("Extracted name")),
 //	)
 //
-//	result := pipeline(context.Background())()
+//	result := pipeline(t.Context())()
 //	// Logs: "Fetched user" value={ID:123 Name:"Alice"}
 //	// Logs: "Extracted name" value="Alice"
 //

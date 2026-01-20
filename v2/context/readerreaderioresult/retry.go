@@ -15,8 +15,6 @@
 package readerreaderioresult
 
 import (
-	"context"
-
 	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/reader"
@@ -91,7 +89,10 @@ func Retrying[R, A any](
 	check Predicate[Result[A]],
 ) ReaderReaderIOResult[R, A] {
 	// get an implementation for the types
-	return func(r R) ReaderIOResult[context.Context, A] {
-		return RIOE.Retrying(policy, F.Pipe1(action, reader.Map[retry.RetryStatus](reader.Read[ReaderIOResult[context.Context, A]](r))), check)
-	}
+	return F.Flow4(
+		reader.Read[RIOE.ReaderIOResult[A]],
+		reader.Map[retry.RetryStatus],
+		reader.Read[RIOE.Kleisli[retry.RetryStatus, A]](action),
+		F.Bind13of3(RIOE.Retrying[A])(policy, check),
+	)
 }

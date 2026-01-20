@@ -594,7 +594,7 @@ func Read[A any](r context.Context) func(ReaderIO[A]) IO[A] {
 //	)
 //
 //	// Create context with side effects (e.g., loading config)
-//	createContext := G.Of(context.WithValue(context.Background(), "key", "value"))
+//	createContext := G.Of(context.WithValue(t.Context(), "key", "value"))
 //
 //	// A computation that uses the context
 //	getValue := readerio.FromReader(func(ctx context.Context) string {
@@ -664,7 +664,7 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //	    getUser,
 //	    addUser,
 //	)
-//	user := result(context.Background())()  // Returns "Alice"
+//	user := result(t.Context())()  // Returns "Alice"
 //
 // Timeout Example:
 //
@@ -731,7 +731,7 @@ func Local[A any](f func(context.Context) (context.Context, context.CancelFunc))
 //	    fetchData,
 //	    readerio.WithTimeout[Data](5*time.Second),
 //	)
-//	data := result(context.Background())()  // Returns Data{} after 5s timeout
+//	data := result(t.Context())()  // Returns Data{} after 5s timeout
 //
 // Successful Example:
 //
@@ -740,7 +740,7 @@ func Local[A any](f func(context.Context) (context.Context, context.CancelFunc))
 //	    quickFetch,
 //	    readerio.WithTimeout[Data](5*time.Second),
 //	)
-//	data := result(context.Background())()  // Returns Data{Value: "quick"}
+//	data := result(t.Context())()  // Returns Data{Value: "quick"}
 func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
 		return context.WithTimeout(ctx, timeout)
@@ -791,12 +791,12 @@ func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 //	    fetchData,
 //	    readerio.WithDeadline[Data](deadline),
 //	)
-//	data := result(context.Background())()  // Returns Data{} if past deadline
+//	data := result(t.Context())()  // Returns Data{} if past deadline
 //
 // Combining with Parent Context:
 //
 //	// If parent context already has a deadline, the earlier one takes precedence
-//	parentCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
+//	parentCtx, cancel := context.WithDeadline(t.Context(), time.Now().Add(1*time.Hour))
 //	defer cancel()
 //
 //	laterDeadline := time.Now().Add(2 * time.Hour)

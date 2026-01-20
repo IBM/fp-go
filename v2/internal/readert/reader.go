@@ -17,7 +17,10 @@ package readert
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/pointed"
 	R "github.com/IBM/fp-go/v2/reader/generic"
 )
 
@@ -33,7 +36,7 @@ func MonadMap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, E, A, B, HKTA, HKTB any](
 }
 
 func Map[GEA ~func(E) HKTA, GEB ~func(E) HKTB, E, A, B, HKTA, HKTB any](
-	fmap func(func(A) B) func(HKTA) HKTB,
+	fmap functor.MapType[A, B, HKTA, HKTB],
 	f func(A) B,
 ) func(GEA) GEB {
 	return F.Pipe2(
@@ -64,7 +67,7 @@ func Chain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
 	}
 }
 
-func MonadOf[GEA ~func(E) HKTA, E, A, HKTA any](fof func(A) HKTA, a A) GEA {
+func MonadOf[GEA ~func(E) HKTA, E, A, HKTA any](fof pointed.OfType[A, HKTA], a A) GEA {
 	return R.MakeReader(func(_ E) HKTA {
 		return fof(a)
 	})
@@ -77,7 +80,9 @@ func MonadAp[GEA ~func(E) HKTA, GEB ~func(E) HKTB, GEFAB ~func(E) HKTFAB, E, A, 
 	})
 }
 
-func Ap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, GEFAB ~func(E) HKTFAB, E, A, HKTA, HKTB, HKTFAB any](fap func(HKTA) func(HKTFAB) HKTB, fa GEA) func(GEFAB) GEB {
+func Ap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, GEFAB ~func(E) HKTFAB, E, A, HKTA, HKTB, HKTFAB any](
+	fap apply.ApType[HKTA, HKTB, HKTFAB],
+	fa GEA) func(GEFAB) GEB {
 	return func(fab GEFAB) GEB {
 		return func(r E) HKTB {
 			return fap(fa(r))(fab(r))
@@ -86,11 +91,11 @@ func Ap[GEA ~func(E) HKTA, GEB ~func(E) HKTB, GEFAB ~func(E) HKTFAB, E, A, HKTA,
 }
 
 func MonadFromReader[GA ~func(E) A, GEA ~func(E) HKTA, E, A, HKTA any](
-	fof func(A) HKTA, ma GA) GEA {
+	fof pointed.OfType[A, HKTA], ma GA) GEA {
 	return R.MakeReader(F.Flow2(ma, fof))
 }
 
 func FromReader[GA ~func(E) A, GEA ~func(E) HKTA, E, A, HKTA any](
-	fof func(A) HKTA) func(ma GA) GEA {
+	fof pointed.OfType[A, HKTA]) func(ma GA) GEA {
 	return F.Bind1st(MonadFromReader[GA, GEA, E, A, HKTA], fof)
 }

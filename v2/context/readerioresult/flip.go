@@ -71,7 +71,7 @@ import (
 //
 //	// Now we can partially apply the Config
 //	cfg := Config{Timeout: 30}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	result := sequenced(ctx)(cfg)() // Returns Right(60)
 //
 // This is especially useful in point-free style when building computation pipelines:
@@ -133,7 +133,7 @@ func SequenceReader[R, A any](ma ReaderIOResult[Reader[R, A]]) Kleisli[R, A] {
 //
 //	// Partially apply the Database
 //	db := Database{ConnectionString: "localhost:5432"}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	result := sequenced(ctx)(db)() // Executes IO and returns Right("Query result...")
 //
 // In point-free style, this enables clean composition:
@@ -195,7 +195,7 @@ func SequenceReaderIO[R, A any](ma ReaderIOResult[RIO.ReaderIO[R, A]]) Kleisli[R
 //
 //	// Partially apply the Config
 //	cfg := Config{MaxRetries: 3}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	result := sequenced(ctx)(cfg)() // Returns Right(3)
 //
 //	// With invalid config
@@ -276,7 +276,7 @@ func SequenceReaderResult[R, A any](ma ReaderIOResult[RR.ReaderResult[R, A]]) Kl
 //
 //	// Now we can provide the Config to get the final result
 //	cfg := Config{Multiplier: 5}
-//	ctx := context.Background()
+//	ctx := t.Context()
 //	finalResult := result(cfg)(ctx)() // Returns Right(50)
 //
 // In point-free style, this enables clean composition:

@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/retry"
 	"github.com/stretchr/testify/assert"
@@ -45,9 +47,7 @@ func TestRetryingSuccess(t *testing.T) {
 		}
 	}
 
-	check := func(r Result[int]) bool {
-		return result.IsLeft(r)
-	}
+	check := result.IsLeft[int]
 
 	policy := retry.LimitRetries(5)
 
@@ -76,9 +76,7 @@ func TestRetryingFailureExhaustsRetries(t *testing.T) {
 		}
 	}
 
-	check := func(r Result[int]) bool {
-		return result.IsLeft(r)
-	}
+	check := result.IsLeft[int]
 
 	policy := retry.LimitRetries(3)
 
@@ -105,9 +103,7 @@ func TestRetryingNoRetryNeeded(t *testing.T) {
 		}
 	}
 
-	check := func(r Result[int]) bool {
-		return result.IsLeft(r)
-	}
+	check := result.IsLeft[int]
 
 	policy := retry.LimitRetries(5)
 
@@ -139,9 +135,7 @@ func TestRetryingWithDelay(t *testing.T) {
 		}
 	}
 
-	check := func(r Result[int]) bool {
-		return result.IsLeft(r)
-	}
+	check := result.IsLeft[int]
 
 	// Policy with delay
 	policy := retry.CapDelay(
@@ -181,9 +175,7 @@ func TestRetryingAccessesConfig(t *testing.T) {
 		}
 	}
 
-	check := func(r Result[int]) bool {
-		return result.IsLeft(r)
-	}
+	check := result.IsLeft[int]
 
 	policy := retry.LimitRetries(3)
 
@@ -214,9 +206,7 @@ func TestRetryingWithExponentialBackoff(t *testing.T) {
 		}
 	}
 
-	check := func(r Result[int]) bool {
-		return result.IsLeft(r)
-	}
+	check := result.IsLeft[int]
 
 	// Exponential backoff policy
 	policy := retry.CapDelay(
@@ -250,8 +240,8 @@ func TestRetryingCheckFunction(t *testing.T) {
 	// Retry while result is less than 3
 	check := func(r Result[int]) bool {
 		return result.Fold(
-			func(error) bool { return true },
-			func(v int) bool { return v < 3 },
+			reader.Of[error](true),
+			N.LessThan(3),
 		)(r)
 	}
 

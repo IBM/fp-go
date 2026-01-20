@@ -74,7 +74,7 @@ func WithContext[A any](ma ReaderIOResult[A]) ReaderIOResult[A] {
 //	safeFetch := WithContextK(fetchUser)
 //
 //	// If context is cancelled, returns immediately without executing fetchUser
-//	ctx, cancel := context.WithCancel(context.Background())
+//	ctx, cancel := context.WithCancel(t.Context())
 //	cancel() // Cancel immediately
 //	result := safeFetch(123)(ctx)() // Returns context.Canceled error
 //

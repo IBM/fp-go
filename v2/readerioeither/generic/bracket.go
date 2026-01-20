@@ -38,7 +38,7 @@ func Bracket[
 	use func(A) GB,
 	release func(A, either.Either[E, B]) GANY,
 ) GB {
-	return G.Bracket[GA, GB, GANY, either.Either[E, B], A, B](
+	return G.MonadBracket[GA, GB, GANY, either.Either[E, B], A, B](
 		I.Of[GB, TB, R, either.Either[E, B]],
 		MonadChain[GA, GB, TA, TB, R, E, A, B],
 		I.MonadChain[GB, GB, TB, TB, R, either.Either[E, B], either.Either[E, B]],

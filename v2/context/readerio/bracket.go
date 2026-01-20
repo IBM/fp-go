@@ -61,7 +61,7 @@ import (
 //
 //	// Safely read file with automatic cleanup
 //	safeRead := Bracket(acquireFile, readFile, closeFile)
-//	result := safeRead(context.Background())()
+//	result := safeRead(t.Context())()
 //
 //go:inline
 func Bracket[

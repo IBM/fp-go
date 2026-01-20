@@ -12,7 +12,7 @@ func Bracket[
 	use Kleisli[R, A, B],
 	release func(A, B) Reader[R, ANY],
 ) Reader[R, B] {
-	return G.Bracket[
+	return G.MonadBracket[
 		Reader[R, A],
 		Reader[R, B],
 		Reader[R, ANY],
