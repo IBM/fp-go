@@ -45,7 +45,7 @@ func FromReaderOption[R, C, A, E any](onNone Lazy[E]) Kleisli[R, C, E, ReaderOpt
 
 //go:inline
 func FromReaderIOEither[C, E, R, A any](ma ReaderIOEither[R, E, A]) ReaderReaderIOEither[R, C, E, A] {
-	return reader.MonadMap[R](ma, RIOE.FromIOEither[C])
+	return reader.MonadMap(ma, RIOE.FromIOEither[C])
 }
 
 //go:inline
@@ -55,12 +55,12 @@ func FromReaderIO[C, E, R, A any](ma ReaderIO[R, A]) ReaderReaderIOEither[R, C, 
 
 //go:inline
 func RightReaderIO[C, E, R, A any](ma ReaderIO[R, A]) ReaderReaderIOEither[R, C, E, A] {
-	return reader.MonadMap[R](ma, RIOE.RightIO[C, E, A])
+	return reader.MonadMap(ma, RIOE.RightIO[C, E, A])
 }
 
 //go:inline
 func LeftReaderIO[C, A, R, E any](me ReaderIO[R, E]) ReaderReaderIOEither[R, C, E, A] {
-	return reader.MonadMap[R](me, RIOE.LeftIO[C, A, E])
+	return reader.MonadMap(me, RIOE.LeftIO[C, A, E])
 }
 
 //go:inline
@@ -297,7 +297,7 @@ func ChainFirstReaderEitherK[C, E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operat
 
 //go:inline
 func TapReaderEitherK[C, E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R, C, E, A, A] {
-	return ChainFirstReaderEitherK[C, E](f)
+	return ChainFirstReaderEitherK[C](f)
 }
 
 func ChainReaderOptionK[R, C, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, C, E, A, B] {
@@ -538,7 +538,7 @@ func FromIOEither[R, C, E, A any](ma IOEither[E, A]) ReaderReaderIOEither[R, C, 
 
 //go:inline
 func FromReaderEither[R, C, E, A any](ma RE.ReaderEither[R, E, A]) ReaderReaderIOEither[R, C, E, A] {
-	return reader.MonadMap[R](ma, RIOE.FromEither[C])
+	return reader.MonadMap(ma, RIOE.FromEither[C])
 }
 
 //go:inline
@@ -587,12 +587,12 @@ func Flap[R, C, E, B, A any](a A) Operator[R, C, E, func(A) B, B] {
 
 //go:inline
 func MonadMapLeft[R, C, E1, E2, A any](fa ReaderReaderIOEither[R, C, E1, A], f func(E1) E2) ReaderReaderIOEither[R, C, E2, A] {
-	return reader.MonadMap[R](fa, RIOE.MapLeft[C, A, E1, E2](f))
+	return reader.MonadMap(fa, RIOE.MapLeft[C, A](f))
 }
 
 //go:inline
 func MapLeft[R, C, A, E1, E2 any](f func(E1) E2) func(ReaderReaderIOEither[R, C, E1, A]) ReaderReaderIOEither[R, C, E2, A] {
-	return reader.Map[R](RIOE.MapLeft[C, A, E1, E2](f))
+	return reader.Map[R](RIOE.MapLeft[C, A](f))
 }
 
 //go:inline

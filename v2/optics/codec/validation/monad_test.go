@@ -109,7 +109,7 @@ func TestAp(t *testing.T) {
 		funcValidation := Of(double)
 		valueValidation := Of(21)
 
-		result := Ap[int, int](valueValidation)(funcValidation)
+		result := Ap[int](valueValidation)(funcValidation)
 
 		assert.True(t, either.IsRight(result))
 		value := either.MonadFold(result,
@@ -126,7 +126,7 @@ func TestAp(t *testing.T) {
 			&ValidationError{Messsage: "value error"},
 		})
 
-		result := Ap[int, int](valueValidation)(funcValidation)
+		result := Ap[int](valueValidation)(funcValidation)
 
 		assert.True(t, either.IsLeft(result))
 		errors := either.MonadFold(result,
@@ -143,7 +143,7 @@ func TestAp(t *testing.T) {
 		})
 		valueValidation := Of(21)
 
-		result := Ap[int, int](valueValidation)(funcValidation)
+		result := Ap[int](valueValidation)(funcValidation)
 
 		assert.True(t, either.IsLeft(result))
 		errors := either.MonadFold(result,
@@ -162,7 +162,7 @@ func TestAp(t *testing.T) {
 			&ValidationError{Messsage: "value error"},
 		})
 
-		result := Ap[int, int](valueValidation)(funcValidation)
+		result := Ap[int](valueValidation)(funcValidation)
 
 		assert.True(t, either.IsLeft(result))
 		errors := either.MonadFold(result,
@@ -180,7 +180,7 @@ func TestAp(t *testing.T) {
 		funcValidation := Of(toUpper)
 		valueValidation := Of("hello")
 
-		result := Ap[string, string](valueValidation)(funcValidation)
+		result := Ap[string](valueValidation)(funcValidation)
 
 		assert.True(t, either.IsRight(result))
 		value := either.MonadFold(result,
@@ -199,7 +199,7 @@ func TestAp(t *testing.T) {
 			&ValidationError{Messsage: "value error 1"},
 		})
 
-		result := Ap[int, int](valueValidation)(funcValidation)
+		result := Ap[int](valueValidation)(funcValidation)
 
 		assert.True(t, either.IsLeft(result))
 		errors := either.MonadFold(result,
@@ -242,7 +242,7 @@ func TestMonadLaws(t *testing.T) {
 	t.Run("applicative identity law", func(t *testing.T) {
 		// Ap(v)(Of(id)) == v
 		v := Of(42)
-		result := Ap[int, int](v)(Of(F.Identity[int]))
+		result := Ap[int](v)(Of(F.Identity[int]))
 
 		assert.Equal(t, v, result)
 	})
@@ -252,7 +252,7 @@ func TestMonadLaws(t *testing.T) {
 		f := func(x int) int { return x * 2 }
 		x := 21
 
-		left := Ap[int, int](Of(x))(Of(f))
+		left := Ap[int](Of(x))(Of(f))
 		right := Of(f(x))
 
 		assert.Equal(t, left, right)
@@ -285,7 +285,7 @@ func TestMapWithOperator(t *testing.T) {
 func TestApWithOperator(t *testing.T) {
 	t.Run("Ap returns an Operator", func(t *testing.T) {
 		valueValidation := Of(21)
-		operator := Ap[int, int](valueValidation)
+		operator := Ap[int](valueValidation)
 
 		// Operator can be applied to different function validations
 		double := func(x int) int { return x * 2 }

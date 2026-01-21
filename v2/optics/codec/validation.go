@@ -15,7 +15,7 @@ func onTypeError(expType string) func(any) error {
 // Is checks if a value can be converted to type T.
 // Returns Some(value) if the conversion succeeds, None otherwise.
 // This is a type-safe cast operation.
-func Is[T any]() func(any) Result[T] {
+func Is[T any]() ReaderResult[any, T] {
 	var zero T
 	return result.ToType[T](onTypeError(fmt.Sprintf("%T", zero)))
 }

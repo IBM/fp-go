@@ -1,12 +1,12 @@
 package codec
 
 import (
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
@@ -15,6 +15,8 @@ import (
 )
 
 type (
+	// ReaderResult represents a computation that depends on an environment R,
+	// produces a value A, and may fail with an error.
 	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
 
 	// Lazy represents a lazily evaluated value.
@@ -26,9 +28,6 @@ type (
 	// Option represents an optional value that may or may not be present.
 	Option[A any] = option.Option[A]
 
-	// Either represents a value that can be one of two types: Left (error) or Right (success).
-	Either[E, A any] = either.Either[E, A]
-
 	// Result represents a computation that may fail with an error.
 	Result[A any] = result.Result[A]
 
@@ -39,8 +38,12 @@ type (
 		Encode encoder.Encoder[O, A]
 	}
 
+	// Validation represents the result of a validation operation that may contain
+	// validation errors or a successfully validated value of type A.
 	Validation[A any] = validation.Validation[A]
 
+	// Context provides contextual information for validation operations,
+	// such as the current path in a nested structure.
 	Context = validation.Context
 
 	// Validate is a function that validates input I to produce type A.
@@ -77,7 +80,17 @@ type (
 		Is(any) Result[A]
 	}
 
+	// Endomorphism represents a function from type A to itself (A -> A).
+	// It forms a monoid under function composition.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
+	// Pair represents a tuple of two values of types L and R.
 	Pair[L, R any] = pair.Pair[L, R]
+
+	// Prism is an optic that focuses on a part of a sum type S that may or may not
+	// contain a value of type A. It provides a way to preview and review values.
+	Prism[S, A any] = prism.Prism[S, A]
+
+	// Refinement represents the concept that B is a specialized type of A
+	Refinement[A, B any] = Prism[A, B]
 )

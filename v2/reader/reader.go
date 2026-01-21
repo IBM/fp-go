@@ -479,6 +479,15 @@ func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]
 // Read applies a context to a Reader to obtain its value.
 // This is the "run" operation that executes a Reader with a specific environment.
 //
+// Note: Read is functionally identical to identity.Flap[A](e). Both take a value and
+// return a function that applies that value to a function. The difference is semantic:
+// - identity.Flap: Generic function application (applies value to any function)
+// - reader.Read: Reader-specific execution (applies environment to a Reader)
+//
+// Recommendation: Use reader.Read when working in a Reader context, as it makes the
+// intent clearer that you're executing a Reader computation with an environment.
+// Use identity.Flap for general-purpose function application outside the Reader context.
+//
 // Example:
 //
 //	type Config struct { Port int }

@@ -101,7 +101,7 @@ func TestMonadChain(t *testing.T) {
 func TestChain(t *testing.T) {
 	computation := F.Pipe1(
 		Of[AppConfig](21),
-		Chain[AppConfig](func(n int) ReaderReaderIOResult[AppConfig, int] {
+		Chain(func(n int) ReaderReaderIOResult[AppConfig, int] {
 			return Of[AppConfig](n * 2)
 		}),
 	)
@@ -127,7 +127,7 @@ func TestChainFirst(t *testing.T) {
 	sideEffect := 0
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		ChainFirst[AppConfig](func(n int) ReaderReaderIOResult[AppConfig, string] {
+		ChainFirst(func(n int) ReaderReaderIOResult[AppConfig, string] {
 			sideEffect = n
 			return Of[AppConfig]("ignored")
 		}),
@@ -141,7 +141,7 @@ func TestTap(t *testing.T) {
 	sideEffect := 0
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		Tap[AppConfig](func(n int) ReaderReaderIOResult[AppConfig, string] {
+		Tap(func(n int) ReaderReaderIOResult[AppConfig, string] {
 			sideEffect = n
 			return Of[AppConfig]("ignored")
 		}),
@@ -167,7 +167,7 @@ func TestFromEither(t *testing.T) {
 
 	t.Run("left", func(t *testing.T) {
 		err := errors.New("test error")
-		computation := FromEither[AppConfig, int](either.Left[int](err))
+		computation := FromEither[AppConfig](either.Left[int](err))
 		outcome := computation(defaultConfig)(t.Context())()
 		assert.True(t, result.IsLeft(outcome))
 	})
@@ -189,7 +189,7 @@ func TestFromResult(t *testing.T) {
 }
 
 func TestFromReader(t *testing.T) {
-	computation := FromReader[AppConfig](func(cfg AppConfig) int {
+	computation := FromReader(func(cfg AppConfig) int {
 		return len(cfg.DatabaseURL)
 	})
 	outcome := computation(defaultConfig)(t.Context())()
@@ -197,7 +197,7 @@ func TestFromReader(t *testing.T) {
 }
 
 func TestRightReader(t *testing.T) {
-	computation := RightReader[AppConfig](func(cfg AppConfig) int {
+	computation := RightReader(func(cfg AppConfig) int {
 		return len(cfg.LogLevel)
 	})
 	outcome := computation(defaultConfig)(t.Context())()
@@ -241,7 +241,7 @@ func TestFromIOEither(t *testing.T) {
 
 	t.Run("left", func(t *testing.T) {
 		err := errors.New("test error")
-		computation := FromIOEither[AppConfig, int](ioeither.Left[int](err))
+		computation := FromIOEither[AppConfig](ioeither.Left[int](err))
 		outcome := computation(defaultConfig)(t.Context())()
 		assert.True(t, result.IsLeft(outcome))
 	})
@@ -267,7 +267,7 @@ func TestFromIOResult(t *testing.T) {
 }
 
 func TestFromReaderIO(t *testing.T) {
-	computation := FromReaderIO[AppConfig](func(cfg AppConfig) io.IO[int] {
+	computation := FromReaderIO(func(cfg AppConfig) io.IO[int] {
 		return func() int { return len(cfg.DatabaseURL) }
 	})
 	outcome := computation(defaultConfig)(t.Context())()
@@ -275,7 +275,7 @@ func TestFromReaderIO(t *testing.T) {
 }
 
 func TestRightReaderIO(t *testing.T) {
-	computation := RightReaderIO[AppConfig](func(cfg AppConfig) io.IO[int] {
+	computation := RightReaderIO(func(cfg AppConfig) io.IO[int] {
 		return func() int { return len(cfg.LogLevel) }
 	})
 	outcome := computation(defaultConfig)(t.Context())()
@@ -293,7 +293,7 @@ func TestLeftReaderIO(t *testing.T) {
 
 func TestFromReaderEither(t *testing.T) {
 	t.Run("right", func(t *testing.T) {
-		computation := FromReaderEither[AppConfig](func(cfg AppConfig) either.Either[error, int] {
+		computation := FromReaderEither(func(cfg AppConfig) either.Either[error, int] {
 			return either.Right[error](len(cfg.DatabaseURL))
 		})
 		outcome := computation(defaultConfig)(t.Context())()
@@ -302,7 +302,7 @@ func TestFromReaderEither(t *testing.T) {
 
 	t.Run("left", func(t *testing.T) {
 		err := errors.New("test error")
-		computation := FromReaderEither[AppConfig, int](func(cfg AppConfig) either.Either[error, int] {
+		computation := FromReaderEither(func(cfg AppConfig) either.Either[error, int] {
 			return either.Left[int](err)
 		})
 		outcome := computation(defaultConfig)(t.Context())()
@@ -396,7 +396,7 @@ func TestAlt(t *testing.T) {
 
 	computation := F.Pipe1(
 		Left[AppConfig, int](err),
-		Alt[AppConfig](func() ReaderReaderIOResult[AppConfig, int] {
+		Alt(func() ReaderReaderIOResult[AppConfig, int] {
 			return Of[AppConfig](99)
 		}),
 	)
@@ -461,7 +461,7 @@ func TestLocal(t *testing.T) {
 		Asks(func(cfg AppConfig) string {
 			return cfg.DatabaseURL
 		}),
-		Local[string, AppConfig, OtherConfig](func(other OtherConfig) AppConfig {
+		Local[string](func(other OtherConfig) AppConfig {
 			return AppConfig{DatabaseURL: other.URL, LogLevel: "debug"}
 		}),
 	)
@@ -518,7 +518,7 @@ func TestChainLeft(t *testing.T) {
 	err := errors.New("original error")
 	computation := F.Pipe1(
 		Left[AppConfig, int](err),
-		ChainLeft[AppConfig](func(e error) ReaderReaderIOResult[AppConfig, int] {
+		ChainLeft(func(e error) ReaderReaderIOResult[AppConfig, int] {
 			return Of[AppConfig](99)
 		}),
 	)
@@ -553,7 +553,7 @@ func TestChainEitherK(t *testing.T) {
 func TestChainReaderK(t *testing.T) {
 	computation := F.Pipe1(
 		Of[AppConfig](10),
-		ChainReaderK[AppConfig](func(n int) reader.Reader[AppConfig, int] {
+		ChainReaderK(func(n int) reader.Reader[AppConfig, int] {
 			return func(cfg AppConfig) int {
 				return n + len(cfg.LogLevel)
 			}
@@ -566,7 +566,7 @@ func TestChainReaderK(t *testing.T) {
 func TestChainReaderIOK(t *testing.T) {
 	computation := F.Pipe1(
 		Of[AppConfig](10),
-		ChainReaderIOK[AppConfig](func(n int) readerio.ReaderIO[AppConfig, int] {
+		ChainReaderIOK(func(n int) readerio.ReaderIO[AppConfig, int] {
 			return func(cfg AppConfig) io.IO[int] {
 				return func() int {
 					return n + len(cfg.DatabaseURL)
@@ -581,7 +581,7 @@ func TestChainReaderIOK(t *testing.T) {
 func TestChainReaderEitherK(t *testing.T) {
 	computation := F.Pipe1(
 		Of[AppConfig](10),
-		ChainReaderEitherK[AppConfig](func(n int) RE.ReaderEither[AppConfig, error, int] {
+		ChainReaderEitherK(func(n int) RE.ReaderEither[AppConfig, error, int] {
 			return func(cfg AppConfig) either.Either[error, int] {
 				return either.Right[error](n + len(cfg.LogLevel))
 			}
@@ -670,7 +670,7 @@ func TestChainOptionK(t *testing.T) {
 }
 
 func TestFromReaderIOResult(t *testing.T) {
-	computation := FromReaderIOResult[AppConfig](func(cfg AppConfig) ioresult.IOResult[int] {
+	computation := FromReaderIOResult(func(cfg AppConfig) ioresult.IOResult[int] {
 		return func() result.Result[int] {
 			return result.Of(len(cfg.DatabaseURL))
 		}
@@ -711,7 +711,7 @@ func TestAp(t *testing.T) {
 	fa := Of[AppConfig](21)
 	computation := F.Pipe1(
 		Of[AppConfig](N.Mul(2)),
-		Ap[int, AppConfig](fa),
+		Ap[int](fa),
 	)
 	outcome := computation(defaultConfig)(t.Context())()
 	assert.Equal(t, result.Of(42), outcome)

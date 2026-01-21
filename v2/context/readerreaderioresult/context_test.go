@@ -232,7 +232,7 @@ func TestContextPropagationThroughMonadTransforms(t *testing.T) {
 		var capturedCtx context.Context
 		computation := F.Pipe1(
 			Of[AppConfig](42),
-			Chain[AppConfig](func(n int) ReaderReaderIOResult[AppConfig, int] {
+			Chain(func(n int) ReaderReaderIOResult[AppConfig, int] {
 				return func(c AppConfig) ReaderIOResult[context.Context, int] {
 					return func(ctx context.Context) IOResult[int] {
 						return func() Result[int] {
@@ -405,7 +405,7 @@ func TestContextCancellationBetweenSteps(t *testing.T) {
 				}
 			}
 		},
-		Chain[AppConfig](func(n int) ReaderReaderIOResult[AppConfig, int] {
+		Chain(func(n int) ReaderReaderIOResult[AppConfig, int] {
 			return func(c AppConfig) ReaderIOResult[context.Context, int] {
 				return func(ctx context.Context) IOResult[int] {
 					return func() Result[int] {

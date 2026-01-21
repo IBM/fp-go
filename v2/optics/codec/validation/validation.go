@@ -73,6 +73,78 @@ func (v *ValidationError) Format(s fmt.State, verb rune) {
 	fmt.Fprint(s, result)
 }
 
+// Error implements the error interface for ValidationErrors.
+// Returns a generic error message indicating validation errors occurred.
+func (ve *ValidationErrors) Error() string {
+	if len(ve.Errors) == 0 {
+		return "ValidationErrors: no errors"
+	}
+	if len(ve.Errors) == 1 {
+		return "ValidationErrors: 1 error"
+	}
+	return fmt.Sprintf("ValidationErrors: %d errors", len(ve.Errors))
+}
+
+// Unwrap returns the underlying cause error if present.
+// This allows ValidationErrors to work with errors.Is and errors.As.
+func (ve *ValidationErrors) Unwrap() error {
+	return ve.Cause
+}
+
+// String returns a simple string representation of all validation errors.
+// Each error is listed on a separate line with its index.
+func (ve *ValidationErrors) String() string {
+	if len(ve.Errors) == 0 {
+		return "ValidationErrors: no errors"
+	}
+
+	result := fmt.Sprintf("ValidationErrors (%d):\n", len(ve.Errors))
+	for i, err := range ve.Errors {
+		result += fmt.Sprintf("  [%d] %s\n", i, err.String())
+	}
+
+	if ve.Cause != nil {
+		result += fmt.Sprintf("  caused by: %v\n", ve.Cause)
+	}
+
+	return result
+}
+
+// Format implements fmt.Formatter for custom formatting of ValidationErrors.
+// Supports verbs: %s, %v, %+v (with additional details)
+// %s and %v: compact format with error count
+// %+v: verbose format with all error details
+func (ve *ValidationErrors) Format(s fmt.State, verb rune) {
+	if len(ve.Errors) == 0 {
+		fmt.Fprint(s, "ValidationErrors: no errors")
+		return
+	}
+
+	// For simple format, just show the count
+	if verb == 's' || (verb == 'v' && !s.Flag('+')) {
+		if len(ve.Errors) == 1 {
+			fmt.Fprint(s, "ValidationErrors: 1 error")
+		} else {
+			fmt.Fprintf(s, "ValidationErrors: %d errors", len(ve.Errors))
+		}
+		return
+	}
+
+	// Verbose format with all details
+	if s.Flag('+') && verb == 'v' {
+		fmt.Fprintf(s, "ValidationErrors (%d):\n", len(ve.Errors))
+		for i, err := range ve.Errors {
+			fmt.Fprintf(s, "  [%d] ", i)
+			err.Format(s, verb)
+			fmt.Fprint(s, "\n")
+		}
+
+		if ve.Cause != nil {
+			fmt.Fprintf(s, "  root cause: %+v\n", ve.Cause)
+		}
+	}
+}
+
 // Failures creates a validation failure from a collection of errors.
 // Returns a Left Either containing the errors.
 func Failures[T any](err Errors) Validation[T] {
@@ -122,4 +194,51 @@ func FailureWithError[T any](value any, message string) Reader[error, Reader[Con
 // Returns a Right Either containing the validated value.
 func Success[T any](value T) Validation[T] {
 	return either.Of[Errors](value)
+}
+
+// MakeValidationErrors converts a collection of validation errors into a single error.
+// It wraps the Errors slice in a ValidationErrors struct that implements the error interface.
+// This is useful for converting validation failures into standard Go errors.
+//
+// Parameters:
+//   - errors: A slice of ValidationError pointers representing validation failures
+//
+// Returns:
+//   - An error that contains all the validation errors and can be used with standard error handling
+//
+// Example:
+//
+//	errors := Errors{
+//	    &ValidationError{Value: "abc", Messsage: "expected number"},
+//	    &ValidationError{Value: nil, Messsage: "required field"},
+//	}
+//	err := MakeValidationErrors(errors)
+//	fmt.Println(err) // Output: ValidationErrors: 2 errors
+func MakeValidationErrors(errors Errors) error {
+	return &ValidationErrors{Errors: errors}
+}
+
+// ToResult converts a Validation[T] to a Result[T].
+// It transforms the Left side (validation errors) into a standard error using MakeValidationErrors,
+// while preserving the Right side (successful value) unchanged.
+// This is useful for integrating validation results with code that expects Result types.
+//
+// Type Parameters:
+//   - T: The type of the successfully validated value
+//
+// Parameters:
+//   - val: A Validation[T] which is Either[Errors, T]
+//
+// Returns:
+//   - A Result[T] which is Either[error, T], with validation errors converted to a single error
+//
+// Example:
+//
+//	validation := Success[int](42)
+//	result := ToResult(validation) // Result containing 42
+//
+//	validation := Failures[int](Errors{&ValidationError{Messsage: "invalid"}})
+//	result := ToResult(validation) // Result containing ValidationErrors error
+func ToResult[T any](val Validation[T]) Result[T] {
+	return either.MonadMapLeft(val, MakeValidationErrors)
 }

@@ -4,9 +4,11 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
+	Result[A any] = result.Result[A]
 
 	// Either represents a value that can be one of two types: Left (error) or Right (success).
 	Either[E, A any] = either.Either[E, A]
@@ -33,6 +35,11 @@ type (
 
 	// Errors is a collection of validation errors.
 	Errors = []*ValidationError
+
+	ValidationErrors struct {
+		Errors Errors
+		Cause  error
+	}
 
 	// Validation represents the result of a validation operation.
 	// Left contains validation errors, Right contains the successfully validated value.

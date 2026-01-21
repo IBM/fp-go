@@ -764,14 +764,14 @@ func TestFoldMap(t *testing.T) {
 	t.Run("FoldMap with sum semigroup", func(t *testing.T) {
 		sumSemigroup := N.SemigroupSum[int]()
 		arr := From(1, 2, 3, 4)
-		result := FoldMap[int, int](sumSemigroup)(func(x int) int { return x * 2 })(arr)
+		result := FoldMap[int](sumSemigroup)(func(x int) int { return x * 2 })(arr)
 		assert.Equal(t, 20, result) // (1*2) + (2*2) + (3*2) + (4*2) = 20
 	})
 
 	t.Run("FoldMap with string concatenation", func(t *testing.T) {
 		concatSemigroup := STR.Semigroup
 		arr := From(1, 2, 3)
-		result := FoldMap[int, string](concatSemigroup)(func(x int) string { return fmt.Sprintf("%d", x) })(arr)
+		result := FoldMap[int](concatSemigroup)(func(x int) string { return fmt.Sprintf("%d", x) })(arr)
 		assert.Equal(t, "123", result)
 	})
 }

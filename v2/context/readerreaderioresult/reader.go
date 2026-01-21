@@ -52,7 +52,7 @@ func FromReaderOption[R, A any](onNone Lazy[error]) Kleisli[R, ReaderOption[R, A
 //
 //go:inline
 func FromReaderIOResult[R, A any](ma ReaderIOResult[R, A]) ReaderReaderIOResult[R, A] {
-	return RRIOE.FromReaderIOEither[context.Context, error](ma)
+	return RRIOE.FromReaderIOEither[context.Context](ma)
 }
 
 // FromReaderIO lifts a ReaderIO into a ReaderReaderIOResult.
@@ -734,7 +734,7 @@ func FromIO[R, A any](ma IO[A]) ReaderReaderIOResult[R, A] {
 //
 //go:inline
 func FromIOEither[R, A any](ma IOEither[error, A]) ReaderReaderIOResult[R, A] {
-	return RRIOE.FromIOEither[R, context.Context, error](ma)
+	return RRIOE.FromIOEither[R, context.Context](ma)
 }
 
 // FromIOResult lifts an IOResult into a ReaderReaderIOResult.
@@ -742,14 +742,14 @@ func FromIOEither[R, A any](ma IOEither[error, A]) ReaderReaderIOResult[R, A] {
 //
 //go:inline
 func FromIOResult[R, A any](ma IOResult[A]) ReaderReaderIOResult[R, A] {
-	return RRIOE.FromIOEither[R, context.Context, error](ma)
+	return RRIOE.FromIOEither[R, context.Context](ma)
 }
 
 // FromReaderEither lifts a ReaderEither into a ReaderReaderIOResult.
 //
 //go:inline
 func FromReaderEither[R, A any](ma RE.ReaderEither[R, error, A]) ReaderReaderIOResult[R, A] {
-	return RRIOE.FromReaderEither[R, context.Context, error](ma)
+	return RRIOE.FromReaderEither[R, context.Context](ma)
 }
 
 // Ask retrieves the outer environment R.
@@ -782,7 +782,7 @@ func FromOption[R, A any](onNone Lazy[error]) func(Option[A]) ReaderReaderIOResu
 //
 //go:inline
 func FromPredicate[R, A any](pred func(A) bool, onFalse func(A) error) Kleisli[R, A, A] {
-	return RRIOE.FromPredicate[R, context.Context, error](pred, onFalse)
+	return RRIOE.FromPredicate[R, context.Context](pred, onFalse)
 }
 
 // MonadAlt provides alternative/fallback behavior.
@@ -825,7 +825,7 @@ func Flap[R, B, A any](a A) Operator[R, func(A) B, B] {
 //
 //go:inline
 func MonadMapLeft[R, A any](fa ReaderReaderIOResult[R, A], f Endmorphism[error]) ReaderReaderIOResult[R, A] {
-	return RRIOE.MonadMapLeft[R, context.Context](fa, f)
+	return RRIOE.MonadMapLeft(fa, f)
 }
 
 // MapLeft transforms the error value if the computation fails.
@@ -864,7 +864,7 @@ func ReadIOEither[A, R any](rio IOEither[error, R]) func(ReaderReaderIOResult[R,
 //
 //go:inline
 func ReadIO[A, R any](rio IO[R]) func(ReaderReaderIOResult[R, A]) ReaderIOResult[context.Context, A] {
-	return RRIOE.ReadIO[context.Context, error, A, R](rio)
+	return RRIOE.ReadIO[context.Context, error, A](rio)
 }
 
 // MonadChainLeft handles errors by chaining a recovery computation.
@@ -873,7 +873,7 @@ func ReadIO[A, R any](rio IO[R]) func(ReaderReaderIOResult[R, A]) ReaderIOResult
 //
 //go:inline
 func MonadChainLeft[R, A any](fa ReaderReaderIOResult[R, A], f Kleisli[R, error, A]) ReaderReaderIOResult[R, A] {
-	return RRIOE.MonadChainLeft[R, context.Context, error, error, A](fa, f)
+	return RRIOE.MonadChainLeft(fa, f)
 }
 
 // ChainLeft handles errors by chaining a recovery computation.
@@ -882,7 +882,7 @@ func MonadChainLeft[R, A any](fa ReaderReaderIOResult[R, A], f Kleisli[R, error,
 //
 //go:inline
 func ChainLeft[R, A any](f Kleisli[R, error, A]) func(ReaderReaderIOResult[R, A]) ReaderReaderIOResult[R, A] {
-	return RRIOE.ChainLeft[R, context.Context, error, error, A](f)
+	return RRIOE.ChainLeft(f)
 }
 
 // Delay adds a time delay before executing the computation.

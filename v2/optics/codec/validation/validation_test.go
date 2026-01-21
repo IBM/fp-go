@@ -29,8 +29,8 @@ func TestValidationError_String(t *testing.T) {
 	expected := "ValidationError: invalid value"
 	assert.Equal(t, expected, err.String())
 }
-
 func TestValidationError_Unwrap(t *testing.T) {
+
 	t.Run("with cause", func(t *testing.T) {
 		cause := errors.New("underlying error")
 		err := &ValidationError{
@@ -415,5 +415,238 @@ func TestValidationError_FormatEdgeCases(t *testing.T) {
 		result := fmt.Sprintf("%+v", err)
 		assert.Contains(t, result, "nil not allowed")
 		assert.Contains(t, result, "value: <nil>")
+	})
+}
+
+func TestMakeValidationErrors(t *testing.T) {
+	t.Run("creates error from single validation error", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{Value: "test", Messsage: "invalid value"},
+		}
+
+		err := MakeValidationErrors(errs)
+
+		require.NotNil(t, err)
+		assert.Equal(t, "ValidationErrors: 1 error", err.Error())
+
+		// Verify it's a ValidationErrors type
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		assert.Len(t, ve.Errors, 1)
+		assert.Equal(t, "invalid value", ve.Errors[0].Messsage)
+	})
+
+	t.Run("creates error from multiple validation errors", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{Value: "test1", Messsage: "error 1"},
+			&ValidationError{Value: "test2", Messsage: "error 2"},
+			&ValidationError{Value: "test3", Messsage: "error 3"},
+		}
+
+		err := MakeValidationErrors(errs)
+
+		require.NotNil(t, err)
+		assert.Equal(t, "ValidationErrors: 3 errors", err.Error())
+
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		assert.Len(t, ve.Errors, 3)
+	})
+
+	t.Run("creates error from empty errors slice", func(t *testing.T) {
+		errs := Errors{}
+
+		err := MakeValidationErrors(errs)
+
+		require.NotNil(t, err)
+		assert.Equal(t, "ValidationErrors: no errors", err.Error())
+
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		assert.Len(t, ve.Errors, 0)
+	})
+
+	t.Run("preserves error details", func(t *testing.T) {
+		cause := errors.New("underlying cause")
+		errs := Errors{
+			&ValidationError{
+				Value:    "abc",
+				Context:  []ContextEntry{{Key: "field"}},
+				Messsage: "invalid format",
+				Cause:    cause,
+			},
+		}
+
+		err := MakeValidationErrors(errs)
+
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		require.Len(t, ve.Errors, 1)
+		assert.Equal(t, "abc", ve.Errors[0].Value)
+		assert.Equal(t, "invalid format", ve.Errors[0].Messsage)
+		assert.Equal(t, cause, ve.Errors[0].Cause)
+		assert.Len(t, ve.Errors[0].Context, 1)
+	})
+
+	t.Run("error can be formatted", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{
+				Context:  []ContextEntry{{Key: "user"}, {Key: "name"}},
+				Messsage: "required",
+			},
+		}
+
+		err := MakeValidationErrors(errs)
+
+		formatted := fmt.Sprintf("%+v", err)
+		assert.Contains(t, formatted, "ValidationErrors")
+		assert.Contains(t, formatted, "user.name")
+		assert.Contains(t, formatted, "required")
+	})
+}
+
+func TestToResult(t *testing.T) {
+	t.Run("converts successful validation to result", func(t *testing.T) {
+		validation := Success(42)
+
+		result := ToResult(validation)
+
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(error) int { return 0 },
+			F.Identity[int],
+		)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("converts failed validation to result with error", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{Value: "abc", Messsage: "expected number"},
+		}
+		validation := Failures[int](errs)
+
+		result := ToResult(validation)
+
+		assert.True(t, either.IsLeft(result))
+		err := either.MonadFold(result,
+			F.Identity[error],
+			func(int) error { return nil },
+		)
+		require.NotNil(t, err)
+		assert.Equal(t, "ValidationErrors: 1 error", err.Error())
+
+		// Verify it's a ValidationErrors type
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		assert.Len(t, ve.Errors, 1)
+		assert.Equal(t, "expected number", ve.Errors[0].Messsage)
+	})
+
+	t.Run("converts multiple validation errors to result", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{Value: "test1", Messsage: "error 1"},
+			&ValidationError{Value: "test2", Messsage: "error 2"},
+		}
+		validation := Failures[string](errs)
+
+		result := ToResult(validation)
+
+		assert.True(t, either.IsLeft(result))
+		err := either.MonadFold(result,
+			F.Identity[error],
+			func(string) error { return nil },
+		)
+		require.NotNil(t, err)
+		assert.Equal(t, "ValidationErrors: 2 errors", err.Error())
+
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		assert.Len(t, ve.Errors, 2)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		// String type
+		strValidation := Success("hello")
+		strResult := ToResult(strValidation)
+		assert.True(t, either.IsRight(strResult))
+
+		// Bool type
+		boolValidation := Success(true)
+		boolResult := ToResult(boolValidation)
+		assert.True(t, either.IsRight(boolResult))
+
+		// Struct type
+		type User struct{ Name string }
+		userValidation := Success(User{Name: "Alice"})
+		userResult := ToResult(userValidation)
+		assert.True(t, either.IsRight(userResult))
+		user := either.MonadFold(userResult,
+			func(error) User { return User{} },
+			F.Identity[User],
+		)
+		assert.Equal(t, "Alice", user.Name)
+	})
+
+	t.Run("preserves error context in result", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{
+				Value:    nil,
+				Context:  []ContextEntry{{Key: "user"}, {Key: "email"}},
+				Messsage: "required field",
+			},
+		}
+		validation := Failures[string](errs)
+
+		result := ToResult(validation)
+
+		err := either.MonadFold(result,
+			F.Identity[error],
+			func(string) error { return nil },
+		)
+		formatted := fmt.Sprintf("%+v", err)
+		assert.Contains(t, formatted, "user.email")
+		assert.Contains(t, formatted, "required field")
+	})
+
+	t.Run("preserves cause in result error", func(t *testing.T) {
+		cause := errors.New("parse error")
+		errs := Errors{
+			&ValidationError{
+				Value:    "abc",
+				Messsage: "invalid number",
+				Cause:    cause,
+			},
+		}
+		validation := Failures[int](errs)
+
+		result := ToResult(validation)
+
+		err := either.MonadFold(result,
+			F.Identity[error],
+			func(int) error { return nil },
+		)
+		ve, ok := err.(*ValidationErrors)
+		require.True(t, ok)
+		require.Len(t, ve.Errors, 1)
+		assert.True(t, errors.Is(ve.Errors[0], cause))
+	})
+
+	t.Run("result error implements error interface", func(t *testing.T) {
+		errs := Errors{
+			&ValidationError{Messsage: "test error"},
+		}
+		validation := Failures[int](errs)
+
+		result := ToResult(validation)
+
+		err := either.MonadFold(result,
+			F.Identity[error],
+			func(int) error { return nil },
+		)
+
+		// Should be usable as a standard error
+		var stdErr error = err
+		assert.NotNil(t, stdErr)
+		assert.Contains(t, stdErr.Error(), "ValidationErrors")
 	})
 }

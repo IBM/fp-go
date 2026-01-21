@@ -381,3 +381,513 @@ func TestLocal(t *testing.T) {
 		assert.Equal(t, 42, captured)
 	})
 }
+
+func TestContramap(t *testing.T) {
+	t.Run("basic contravariant mapping", func(t *testing.T) {
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		parseToInt := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		consumeString := Contramap(parseToInt)(consumeInt)
+		consumeString("42")
+
+		assert.Equal(t, 42, captured)
+	})
+
+	t.Run("contravariant identity law", func(t *testing.T) {
+		// contramap(identity) = identity
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		identity := function.Identity[int]
+		consumeIdentity := Contramap(identity)(consumeInt)
+
+		consumeIdentity(42)
+		assert.Equal(t, 42, captured)
+
+		// Should behave identically to original consumer
+		consumeInt(100)
+		capturedDirect := captured
+		consumeIdentity(100)
+		capturedMapped := captured
+
+		assert.Equal(t, capturedDirect, capturedMapped)
+	})
+
+	t.Run("contravariant composition law", func(t *testing.T) {
+		// contramap(f . g) = contramap(g) . contramap(f)
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		f := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		g := func(b bool) string {
+			if b {
+				return "1"
+			}
+			return "0"
+		}
+
+		// Compose f and g manually
+		fg := func(b bool) int {
+			return f(g(b))
+		}
+
+		// Method 1: contramap(f . g)
+		consumer1 := Contramap(fg)(consumeInt)
+		consumer1(true)
+		result1 := captured
+
+		// Method 2: contramap(g) . contramap(f)
+		consumer2 := Contramap(g)(Contramap(f)(consumeInt))
+		consumer2(true)
+		result2 := captured
+
+		assert.Equal(t, result1, result2)
+		assert.Equal(t, 1, result1)
+	})
+
+	t.Run("type hierarchy adaptation", func(t *testing.T) {
+		type Animal struct {
+			Name string
+		}
+
+		type Dog struct {
+			Animal Animal
+			Breed  string
+		}
+
+		var capturedName string
+		consumeAnimal := func(a Animal) {
+			capturedName = a.Name
+		}
+
+		dogToAnimal := func(d Dog) Animal {
+			return d.Animal
+		}
+
+		consumeDog := Contramap(dogToAnimal)(consumeAnimal)
+		consumeDog(Dog{
+			Animal: Animal{Name: "Buddy"},
+			Breed:  "Golden Retriever",
+		})
+
+		assert.Equal(t, "Buddy", capturedName)
+	})
+
+	t.Run("field extraction with contramap", func(t *testing.T) {
+		type Message struct {
+			Text      string
+			Timestamp time.Time
+		}
+
+		var capturedText string
+		consumeString := func(s string) {
+			capturedText = s
+		}
+
+		extractText := func(m Message) string {
+			return m.Text
+		}
+
+		consumeMessage := Contramap(extractText)(consumeString)
+		consumeMessage(Message{
+			Text:      "Hello",
+			Timestamp: time.Now(),
+		})
+
+		assert.Equal(t, "Hello", capturedText)
+	})
+
+	t.Run("multiple contramap applications", func(t *testing.T) {
+		type Level3 struct{ Value int }
+		type Level2 struct{ L3 Level3 }
+		type Level1 struct{ L2 Level2 }
+
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		extract3 := func(l3 Level3) int { return l3.Value }
+		extract2 := func(l2 Level2) Level3 { return l2.L3 }
+		extract1 := func(l1 Level1) Level2 { return l1.L2 }
+
+		// Chain contramap operations
+		consumeLevel3 := Contramap(extract3)(consumeInt)
+		consumeLevel2 := Contramap(extract2)(consumeLevel3)
+		consumeLevel1 := Contramap(extract1)(consumeLevel2)
+
+		consumeLevel1(Level1{L2: Level2{L3: Level3{Value: 42}}})
+
+		assert.Equal(t, 42, captured)
+	})
+
+	t.Run("contramap with calculation", func(t *testing.T) {
+		type Rectangle struct {
+			Width  int
+			Height int
+		}
+
+		var capturedArea int
+		consumeArea := func(area int) {
+			capturedArea = area
+		}
+
+		calculateArea := func(r Rectangle) int {
+			return r.Width * r.Height
+		}
+
+		consumeRectangle := Contramap(calculateArea)(consumeArea)
+		consumeRectangle(Rectangle{Width: 5, Height: 10})
+
+		assert.Equal(t, 50, capturedArea)
+	})
+
+	t.Run("contramap preserves side effects", func(t *testing.T) {
+		callCount := 0
+		consumer := func(x int) {
+			callCount++
+		}
+
+		transform := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		contramappedConsumer := Contramap(transform)(consumer)
+
+		contramappedConsumer("1")
+		contramappedConsumer("2")
+		contramappedConsumer("3")
+
+		assert.Equal(t, 3, callCount)
+	})
+
+	t.Run("contramap with pointer types", func(t *testing.T) {
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		dereference := func(p *int) int {
+			if p == nil {
+				return 0
+			}
+			return *p
+		}
+
+		consumePointer := Contramap(dereference)(consumeInt)
+
+		value := 42
+		consumePointer(&value)
+		assert.Equal(t, 42, captured)
+
+		consumePointer(nil)
+		assert.Equal(t, 0, captured)
+	})
+
+	t.Run("contramap equivalence with Local", func(t *testing.T) {
+		var capturedLocal, capturedContramap int
+
+		consumeIntLocal := func(x int) {
+			capturedLocal = x
+		}
+
+		consumeIntContramap := func(x int) {
+			capturedContramap = x
+		}
+
+		transform := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		// Both should produce identical results
+		consumerLocal := Local(transform)(consumeIntLocal)
+		consumerContramap := Contramap(transform)(consumeIntContramap)
+
+		consumerLocal("42")
+		consumerContramap("42")
+
+		assert.Equal(t, capturedLocal, capturedContramap)
+		assert.Equal(t, 42, capturedLocal)
+	})
+}
+
+func TestCompose(t *testing.T) {
+	t.Run("basic composition", func(t *testing.T) {
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		parseToInt := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		consumeString := Compose(parseToInt)(consumeInt)
+		consumeString("42")
+
+		assert.Equal(t, 42, captured)
+	})
+
+	t.Run("composing multiple transformations", func(t *testing.T) {
+		type Data struct {
+			Value string
+		}
+
+		type Wrapper struct {
+			Data Data
+		}
+
+		var captured string
+		consumeString := func(s string) {
+			captured = s
+		}
+
+		extractData := func(w Wrapper) Data { return w.Data }
+		extractValue := func(d Data) string { return d.Value }
+
+		// Compose step by step
+		consumeData := Compose(extractValue)(consumeString)
+		consumeWrapper := Compose(extractData)(consumeData)
+
+		consumeWrapper(Wrapper{Data: Data{Value: "Hello"}})
+
+		assert.Equal(t, "Hello", captured)
+	})
+
+	t.Run("function composition style", func(t *testing.T) {
+		type Request struct {
+			Body []byte
+		}
+
+		var captured string
+		processString := func(s string) {
+			captured = s
+		}
+
+		bytesToString := func(b []byte) string {
+			return string(b)
+		}
+
+		extractBody := func(r Request) []byte {
+			return r.Body
+		}
+
+		// Chain compositions
+		processBytes := Compose(bytesToString)(processString)
+		processRequest := Compose(extractBody)(processBytes)
+
+		processRequest(Request{Body: []byte("test")})
+
+		assert.Equal(t, "test", captured)
+	})
+
+	t.Run("compose with identity", func(t *testing.T) {
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		identity := function.Identity[int]
+		composedConsumer := Compose(identity)(consumeInt)
+
+		composedConsumer(42)
+		assert.Equal(t, 42, captured)
+	})
+
+	t.Run("compose with field extraction", func(t *testing.T) {
+		type User struct {
+			Name  string
+			Email string
+			Age   int
+		}
+
+		var capturedName string
+		consumeName := func(name string) {
+			capturedName = name
+		}
+
+		extractName := func(u User) string {
+			return u.Name
+		}
+
+		consumeUser := Compose(extractName)(consumeName)
+		consumeUser(User{Name: "Alice", Email: "alice@example.com", Age: 30})
+
+		assert.Equal(t, "Alice", capturedName)
+	})
+
+	t.Run("compose with calculation", func(t *testing.T) {
+		type Circle struct {
+			Radius float64
+		}
+
+		var capturedArea float64
+		consumeArea := func(area float64) {
+			capturedArea = area
+		}
+
+		calculateArea := func(c Circle) float64 {
+			return 3.14159 * c.Radius * c.Radius
+		}
+
+		consumeCircle := Compose(calculateArea)(consumeArea)
+		consumeCircle(Circle{Radius: 5.0})
+
+		assert.InDelta(t, 78.53975, capturedArea, 0.00001)
+	})
+
+	t.Run("compose with slice operations", func(t *testing.T) {
+		var captured int
+		consumeLength := func(n int) {
+			captured = n
+		}
+
+		getLength := func(s []string) int {
+			return len(s)
+		}
+
+		consumeSlice := Compose(getLength)(consumeLength)
+		consumeSlice([]string{"a", "b", "c", "d"})
+
+		assert.Equal(t, 4, captured)
+	})
+
+	t.Run("compose with map operations", func(t *testing.T) {
+		var captured bool
+		consumeHasKey := func(has bool) {
+			captured = has
+		}
+
+		hasKey := func(m map[string]int) bool {
+			_, exists := m["key"]
+			return exists
+		}
+
+		consumeMap := Compose(hasKey)(consumeHasKey)
+
+		consumeMap(map[string]int{"key": 42})
+		assert.True(t, captured)
+
+		consumeMap(map[string]int{"other": 42})
+		assert.False(t, captured)
+	})
+
+	t.Run("compose preserves consumer behavior", func(t *testing.T) {
+		callCount := 0
+		consumer := func(x int) {
+			callCount++
+		}
+
+		transform := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		composedConsumer := Compose(transform)(consumer)
+
+		composedConsumer("1")
+		composedConsumer("2")
+		composedConsumer("3")
+
+		assert.Equal(t, 3, callCount)
+	})
+
+	t.Run("compose with error handling", func(t *testing.T) {
+		type Result struct {
+			Value int
+			Error error
+		}
+
+		var captured int
+		consumeInt := func(x int) {
+			captured = x
+		}
+
+		extractValue := func(r Result) int {
+			if r.Error != nil {
+				return -1
+			}
+			return r.Value
+		}
+
+		consumeResult := Compose(extractValue)(consumeInt)
+
+		consumeResult(Result{Value: 42, Error: nil})
+		assert.Equal(t, 42, captured)
+
+		consumeResult(Result{Value: 100, Error: assert.AnError})
+		assert.Equal(t, -1, captured)
+	})
+
+	t.Run("compose equivalence with Local", func(t *testing.T) {
+		var capturedLocal, capturedCompose int
+
+		consumeIntLocal := func(x int) {
+			capturedLocal = x
+		}
+
+		consumeIntCompose := func(x int) {
+			capturedCompose = x
+		}
+
+		transform := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		// Both should produce identical results
+		consumerLocal := Local(transform)(consumeIntLocal)
+		consumerCompose := Compose(transform)(consumeIntCompose)
+
+		consumerLocal("42")
+		consumerCompose("42")
+
+		assert.Equal(t, capturedLocal, capturedCompose)
+		assert.Equal(t, 42, capturedLocal)
+	})
+
+	t.Run("compose equivalence with Contramap", func(t *testing.T) {
+		var capturedCompose, capturedContramap int
+
+		consumeIntCompose := func(x int) {
+			capturedCompose = x
+		}
+
+		consumeIntContramap := func(x int) {
+			capturedContramap = x
+		}
+
+		transform := func(s string) int {
+			n, _ := strconv.Atoi(s)
+			return n
+		}
+
+		// All three should produce identical results
+		consumerCompose := Compose(transform)(consumeIntCompose)
+		consumerContramap := Contramap(transform)(consumeIntContramap)
+
+		consumerCompose("42")
+		consumerContramap("42")
+
+		assert.Equal(t, capturedCompose, capturedContramap)
+		assert.Equal(t, 42, capturedCompose)
+	})
+}

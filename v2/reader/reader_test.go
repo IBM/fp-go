@@ -173,6 +173,85 @@ func TestLocal(t *testing.T) {
 	assert.Equal(t, "localhost", result)
 }
 
+func TestContramap(t *testing.T) {
+	t.Run("transforms environment before passing to Reader", func(t *testing.T) {
+		type DetailedConfig struct {
+			Host string
+			Port int
+		}
+		type SimpleConfig struct{ Host string }
+
+		detailed := DetailedConfig{Host: "localhost", Port: 8080}
+		getHost := func(c SimpleConfig) string { return c.Host }
+		simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
+		r := Contramap[string](simplify)(getHost)
+		result := r(detailed)
+		assert.Equal(t, "localhost", result)
+	})
+
+	t.Run("is functionally identical to Local", func(t *testing.T) {
+		type DetailedConfig struct {
+			Host string
+			Port int
+		}
+		type SimpleConfig struct{ Host string }
+
+		getHost := func(c SimpleConfig) string { return c.Host }
+		simplify := func(d DetailedConfig) SimpleConfig {
+			return SimpleConfig{Host: d.Host}
+		}
+
+		// Using Contramap
+		contramapResult := Contramap[string](simplify)(getHost)
+
+		// Using Local
+		localResult := Local[string](simplify)(getHost)
+
+		detailed := DetailedConfig{Host: "localhost", Port: 8080}
+		assert.Equal(t, contramapResult(detailed), localResult(detailed))
+		assert.Equal(t, "localhost", contramapResult(detailed))
+	})
+
+	t.Run("works with numeric transformations", func(t *testing.T) {
+		type LargeEnv struct{ Value int }
+		type SmallEnv struct{ Value int }
+
+		// Reader that doubles a value
+		doubler := func(e SmallEnv) int { return e.Value * 2 }
+
+		// Transform that extracts and scales
+		extract := func(l LargeEnv) SmallEnv {
+			return SmallEnv{Value: l.Value / 10}
+		}
+
+		adapted := Contramap[int](extract)(doubler)
+		result := adapted(LargeEnv{Value: 100})
+		assert.Equal(t, 20, result) // (100/10) * 2 = 20
+	})
+
+	t.Run("can be composed with Map for full profunctor behavior", func(t *testing.T) {
+		type Env struct{ Config Config }
+		env := Env{Config: Config{Port: 8080}}
+
+		// Extract config (contravariant)
+		extractConfig := func(e Env) Config { return e.Config }
+
+		// Get port and convert to string (covariant)
+		getPort := func(c Config) int { return c.Port }
+		toString := strconv.Itoa
+
+		// Contramap on input, Map on output
+		r := F.Pipe2(
+			getPort,
+			Contramap[int](extractConfig),
+			Map[Env](toString),
+		)
+
+		result := r(env)
+		assert.Equal(t, "8080", result)
+	})
+}
+
 func TestWithLocal(t *testing.T) {
 	t.Run("transforms environment before passing to Reader", func(t *testing.T) {
 		type DetailedConfig struct {

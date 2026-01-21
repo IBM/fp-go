@@ -204,7 +204,7 @@ func BenchmarkMonadChain_Left(b *testing.B) {
 
 func BenchmarkChain_Right(b *testing.B) {
 	rioe := Right[benchConfig](42)
-	chainer := Chain[benchConfig](func(a int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](a * 2) })
+	chainer := Chain(func(a int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](a * 2) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -214,7 +214,7 @@ func BenchmarkChain_Right(b *testing.B) {
 
 func BenchmarkChain_Left(b *testing.B) {
 	rioe := Left[benchConfig, int](benchErr)
-	chainer := Chain[benchConfig](func(a int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](a * 2) })
+	chainer := Chain(func(a int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](a * 2) })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -224,7 +224,7 @@ func BenchmarkChain_Left(b *testing.B) {
 
 func BenchmarkChainFirst_Right(b *testing.B) {
 	rioe := Right[benchConfig](42)
-	chainer := ChainFirst[benchConfig](func(a int) ReaderIOResult[benchConfig, string] { return Right[benchConfig]("logged") })
+	chainer := ChainFirst(func(a int) ReaderIOResult[benchConfig, string] { return Right[benchConfig]("logged") })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -234,7 +234,7 @@ func BenchmarkChainFirst_Right(b *testing.B) {
 
 func BenchmarkChainFirst_Left(b *testing.B) {
 	rioe := Left[benchConfig, int](benchErr)
-	chainer := ChainFirst[benchConfig](func(a int) ReaderIOResult[benchConfig, string] { return Right[benchConfig]("logged") })
+	chainer := ChainFirst(func(a int) ReaderIOResult[benchConfig, string] { return Right[benchConfig]("logged") })
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
@@ -443,7 +443,7 @@ func BenchmarkPipeline_Chain_Right(b *testing.B) {
 	for b.Loop() {
 		benchRIOE = F.Pipe1(
 			rioe,
-			Chain[benchConfig](func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x * 2) }),
+			Chain(func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x * 2) }),
 		)
 	}
 }
@@ -455,7 +455,7 @@ func BenchmarkPipeline_Chain_Left(b *testing.B) {
 	for b.Loop() {
 		benchRIOE = F.Pipe1(
 			rioe,
-			Chain[benchConfig](func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x * 2) }),
+			Chain(func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x * 2) }),
 		)
 	}
 }
@@ -468,7 +468,7 @@ func BenchmarkPipeline_Complex_Right(b *testing.B) {
 		benchRIOE = F.Pipe3(
 			rioe,
 			Map[benchConfig](N.Mul(2)),
-			Chain[benchConfig](func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x + 1) }),
+			Chain(func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x + 1) }),
 			Map[benchConfig](N.Mul(2)),
 		)
 	}
@@ -482,7 +482,7 @@ func BenchmarkPipeline_Complex_Left(b *testing.B) {
 		benchRIOE = F.Pipe3(
 			rioe,
 			Map[benchConfig](N.Mul(2)),
-			Chain[benchConfig](func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x + 1) }),
+			Chain(func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x + 1) }),
 			Map[benchConfig](N.Mul(2)),
 		)
 	}
@@ -492,7 +492,7 @@ func BenchmarkExecutePipeline_Complex_Right(b *testing.B) {
 	rioe := F.Pipe3(
 		Right[benchConfig](10),
 		Map[benchConfig](N.Mul(2)),
-		Chain[benchConfig](func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x + 1) }),
+		Chain(func(x int) ReaderIOResult[benchConfig, int] { return Right[benchConfig](x + 1) }),
 		Map[benchConfig](N.Mul(2)),
 	)
 	b.ResetTimer()

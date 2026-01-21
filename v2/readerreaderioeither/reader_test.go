@@ -109,7 +109,7 @@ func TestMonadChain(t *testing.T) {
 func TestChainFirst(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		ChainFirst[OuterConfig, InnerConfig, error](func(v int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
+		ChainFirst(func(v int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
 			return Of[OuterConfig, InnerConfig, error](fmt.Sprintf("%d", v))
 		}),
 	)
@@ -128,7 +128,7 @@ func TestTap(t *testing.T) {
 	sideEffect := 0
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		Tap[OuterConfig, InnerConfig, error](func(v int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
+		Tap(func(v int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
 			sideEffect = v * 2
 			return Of[OuterConfig, InnerConfig, error]("ignored")
 		}),
@@ -187,7 +187,7 @@ func TestMonadApPar(t *testing.T) {
 
 func TestFromEither(t *testing.T) {
 	t.Run("Right", func(t *testing.T) {
-		result := FromEither[OuterConfig, InnerConfig, error](E.Right[error](42))
+		result := FromEither[OuterConfig, InnerConfig](E.Right[error](42))
 		assert.Equal(t, E.Right[error](42), result(OuterConfig{})(InnerConfig{})())
 	})
 
@@ -246,7 +246,7 @@ func TestFromIOEither(t *testing.T) {
 	t.Run("Left", func(t *testing.T) {
 		err := errors.New("test error")
 		ioe := IOE.Left[int](err)
-		result := FromIOEither[OuterConfig, InnerConfig, error, int](ioe)
+		result := FromIOEither[OuterConfig, InnerConfig](ioe)
 		assert.Equal(t, E.Left[int](err), result(OuterConfig{})(InnerConfig{})())
 	})
 }
@@ -273,14 +273,14 @@ func TestLeftReaderIO(t *testing.T) {
 func TestFromReaderEither(t *testing.T) {
 	t.Run("Right", func(t *testing.T) {
 		re := RE.Right[OuterConfig, error](42)
-		result := FromReaderEither[OuterConfig, InnerConfig, error](re)
+		result := FromReaderEither[OuterConfig, InnerConfig](re)
 		assert.Equal(t, E.Right[error](42), result(OuterConfig{})(InnerConfig{})())
 	})
 
 	t.Run("Left", func(t *testing.T) {
 		err := errors.New("test error")
 		re := RE.Left[OuterConfig, int](err)
-		result := FromReaderEither[OuterConfig, InnerConfig, error, int](re)
+		result := FromReaderEither[OuterConfig, InnerConfig](re)
 		assert.Equal(t, E.Left[int](err), result(OuterConfig{})(InnerConfig{})())
 	})
 }
@@ -288,14 +288,14 @@ func TestFromReaderEither(t *testing.T) {
 func TestFromReaderIOEither(t *testing.T) {
 	t.Run("Right", func(t *testing.T) {
 		rioe := RIOE.Right[OuterConfig, error](42)
-		result := FromReaderIOEither[InnerConfig, error](rioe)
+		result := FromReaderIOEither[InnerConfig](rioe)
 		assert.Equal(t, E.Right[error](42), result(OuterConfig{})(InnerConfig{})())
 	})
 
 	t.Run("Left", func(t *testing.T) {
 		err := errors.New("test error")
 		rioe := RIOE.Left[OuterConfig, int](err)
-		result := FromReaderIOEither[InnerConfig, error, OuterConfig, int](rioe)
+		result := FromReaderIOEither[InnerConfig](rioe)
 		assert.Equal(t, E.Left[int](err), result(OuterConfig{})(InnerConfig{})())
 	})
 }
@@ -339,7 +339,7 @@ func TestFromPredicate(t *testing.T) {
 	onFalse := func(n int) error { return fmt.Errorf("not positive: %d", n) }
 
 	t.Run("Predicate true", func(t *testing.T) {
-		result := FromPredicate[OuterConfig, InnerConfig, error](isPositive, onFalse)(5)
+		result := FromPredicate[OuterConfig, InnerConfig](isPositive, onFalse)(5)
 		assert.Equal(t, E.Right[error](5), result(OuterConfig{})(InnerConfig{})())
 	})
 
@@ -409,7 +409,7 @@ func TestMonadChainEitherK(t *testing.T) {
 func TestChainFirstEitherK(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		ChainFirstEitherK[OuterConfig, InnerConfig, error](func(v int) E.Either[error, string] {
+		ChainFirstEitherK[OuterConfig, InnerConfig](func(v int) E.Either[error, string] {
 			return E.Right[error](fmt.Sprintf("%d", v))
 		}),
 	)
@@ -428,7 +428,7 @@ func TestTapEitherK(t *testing.T) {
 	sideEffect := ""
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		TapEitherK[OuterConfig, InnerConfig, error](func(v int) E.Either[error, string] {
+		TapEitherK[OuterConfig, InnerConfig](func(v int) E.Either[error, string] {
 			sideEffect = fmt.Sprintf("%d", v)
 			return E.Right[error](sideEffect)
 		}),
@@ -577,7 +577,7 @@ func TestMonadTapReaderIOK(t *testing.T) {
 func TestChainReaderEitherK(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		ChainReaderEitherK[InnerConfig, error](func(v int) RE.ReaderEither[OuterConfig, error, string] {
+		ChainReaderEitherK[InnerConfig](func(v int) RE.ReaderEither[OuterConfig, error, string] {
 			return RE.Right[OuterConfig, error](fmt.Sprintf("%d", v))
 		}),
 	)
@@ -595,7 +595,7 @@ func TestMonadChainReaderEitherK(t *testing.T) {
 func TestChainFirstReaderEitherK(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		ChainFirstReaderEitherK[InnerConfig, error](func(v int) RE.ReaderEither[OuterConfig, error, string] {
+		ChainFirstReaderEitherK[InnerConfig](func(v int) RE.ReaderEither[OuterConfig, error, string] {
 			return RE.Right[OuterConfig, error](fmt.Sprintf("%d", v))
 		}),
 	)
@@ -614,7 +614,7 @@ func TestTapReaderEitherK(t *testing.T) {
 	sideEffect := ""
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		TapReaderEitherK[InnerConfig, error](func(v int) RE.ReaderEither[OuterConfig, error, string] {
+		TapReaderEitherK[InnerConfig](func(v int) RE.ReaderEither[OuterConfig, error, string] {
 			sideEffect = fmt.Sprintf("%d", v)
 			return RE.Right[OuterConfig, error](sideEffect)
 		}),
@@ -709,7 +709,7 @@ func TestTapReaderOptionK(t *testing.T) {
 func TestChainIOEitherK(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		ChainIOEitherK[OuterConfig, InnerConfig, error](func(v int) IOE.IOEither[error, string] {
+		ChainIOEitherK[OuterConfig, InnerConfig](func(v int) IOE.IOEither[error, string] {
 			return IOE.Right[error](fmt.Sprintf("%d", v))
 		}),
 	)
@@ -850,7 +850,7 @@ func TestAlt(t *testing.T) {
 		}
 		g := F.Pipe1(
 			Right[OuterConfig, InnerConfig, error](42),
-			Alt[OuterConfig, InnerConfig, error, int](second),
+			Alt(second),
 		)
 		assert.Equal(t, E.Right[error](42), g(OuterConfig{})(InnerConfig{})())
 	})
@@ -862,7 +862,7 @@ func TestAlt(t *testing.T) {
 		}
 		g := F.Pipe1(
 			Left[OuterConfig, InnerConfig, int](err),
-			Alt[OuterConfig, InnerConfig, error, int](second),
+			Alt(second),
 		)
 		assert.Equal(t, E.Right[error](99), g(OuterConfig{})(InnerConfig{})())
 	})
@@ -939,7 +939,7 @@ func TestCompositionWithBothContexts(t *testing.T) {
 		Map[OuterConfig, InnerConfig, error](func(cfg OuterConfig) string {
 			return cfg.database
 		}),
-		Chain[OuterConfig, InnerConfig, error](func(db string) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
+		Chain(func(db string) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
 			return func(r OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
 				return func(c InnerConfig) IOE.IOEither[error, string] {
 					return IOE.Right[error](fmt.Sprintf("%s:%s", db, c.apiKey))

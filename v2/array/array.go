@@ -190,6 +190,11 @@ func MonadReduce[A, B any](fa []A, f func(B, A) B, initial B) B {
 	return G.MonadReduce(fa, f, initial)
 }
 
+//go:inline
+func MonadReduceWithIndex[A, B any](fa []A, f func(int, B, A) B, initial B) B {
+	return G.MonadReduceWithIndex(fa, f, initial)
+}
+
 // Reduce folds an array from left to right, applying a function to accumulate a result.
 //
 // Example:

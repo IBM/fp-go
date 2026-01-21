@@ -150,7 +150,7 @@ func TestApS(t *testing.T) {
 func TestBindIOEitherK(t *testing.T) {
 	res := F.Pipe2(
 		Do[OuterCtx, InnerCtx, error](utils.Empty),
-		BindIOEitherK[OuterCtx, InnerCtx, error](
+		BindIOEitherK[OuterCtx, InnerCtx](
 			utils.SetLastName,
 			func(s utils.Initial) IOE.IOEither[error, string] {
 				return IOE.Of[error]("Smith")
@@ -168,7 +168,7 @@ func TestBindIOEitherKError(t *testing.T) {
 	err := errors.New("io error")
 	res := F.Pipe2(
 		Do[OuterCtx, InnerCtx, error](utils.Empty),
-		BindIOEitherK[OuterCtx, InnerCtx, error](
+		BindIOEitherK[OuterCtx, InnerCtx](
 			utils.SetLastName,
 			func(s utils.Initial) IOE.IOEither[error, string] {
 				return IOE.Left[string](err)
@@ -244,7 +244,7 @@ func TestBindReaderIOK(t *testing.T) {
 func TestBindEitherK(t *testing.T) {
 	res := F.Pipe2(
 		Do[OuterCtx, InnerCtx, error](utils.Empty),
-		BindEitherK[OuterCtx, InnerCtx, error](
+		BindEitherK[OuterCtx, InnerCtx](
 			utils.SetLastName,
 			func(s utils.Initial) E.Either[error, string] {
 				return E.Of[error]("Brown")
@@ -262,7 +262,7 @@ func TestBindEitherKError(t *testing.T) {
 	err := errors.New("either error")
 	res := F.Pipe2(
 		Do[OuterCtx, InnerCtx, error](utils.Empty),
-		BindEitherK[OuterCtx, InnerCtx, error](
+		BindEitherK[OuterCtx, InnerCtx](
 			utils.SetLastName,
 			func(s utils.Initial) E.Either[error, string] {
 				return E.Left[string](err)
@@ -279,7 +279,7 @@ func TestBindEitherKError(t *testing.T) {
 func TestApIOEitherS(t *testing.T) {
 	res := F.Pipe2(
 		Do[OuterCtx, InnerCtx, error](utils.Empty),
-		ApIOEitherS[OuterCtx, InnerCtx, error](utils.SetLastName, IOE.Of[error]("Williams")),
+		ApIOEitherS[OuterCtx, InnerCtx](utils.SetLastName, IOE.Of[error]("Williams")),
 		Map[OuterCtx, InnerCtx, error](func(s utils.WithLastName) string {
 			return s.LastName
 		}),
@@ -335,7 +335,7 @@ func TestApReaderIOS(t *testing.T) {
 func TestApEitherS(t *testing.T) {
 	res := F.Pipe2(
 		Do[OuterCtx, InnerCtx, error](utils.Empty),
-		ApEitherS[OuterCtx, InnerCtx, error](utils.SetLastName, E.Of[error]("Miller")),
+		ApEitherS[OuterCtx, InnerCtx](utils.SetLastName, E.Of[error]("Miller")),
 		Map[OuterCtx, InnerCtx, error](func(s utils.WithLastName) string {
 			return s.LastName
 		}),

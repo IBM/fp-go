@@ -52,7 +52,7 @@ func TestSequence(t *testing.T) {
 		}
 
 		// Sequence swaps Config1 and Config2 order
-		sequenced := Sequence[Config1, Config2, Context, error, int](original)
+		sequenced := Sequence(original)
 
 		cfg1 := Config1{value1: 10}
 		cfg2 := Config2{value2: "hello"}
@@ -79,7 +79,7 @@ func TestSequence(t *testing.T) {
 			return RIOE.Left[Context, ReaderReaderIOEither[Config1, Context, error, int]](testErr)
 		}
 
-		sequenced := Sequence[Config1, Config2, Context, error, int](original)
+		sequenced := Sequence(original)
 
 		cfg1 := Config1{value1: 10}
 		cfg2 := Config2{value2: "hello"}
@@ -105,7 +105,7 @@ func TestSequence(t *testing.T) {
 			})
 		}
 
-		sequenced := Sequence[Config1, Config2, Context, error, string](original)
+		sequenced := Sequence(original)
 
 		ctx := Context{contextID: "test"}
 
@@ -129,7 +129,7 @@ func TestSequence(t *testing.T) {
 			})
 		}
 
-		sequenced := Sequence[Config1, Config2, Context, error, int](original)
+		sequenced := Sequence(original)
 
 		result := sequenced(Config1{value1: 0})(Config2{value2: ""})(Context{contextID: ""})()
 		assert.Equal(t, E.Right[error](0), result)
@@ -142,7 +142,7 @@ func TestSequence(t *testing.T) {
 			})
 		}
 
-		sequenced := Sequence[Config1, Config2, Context, error, int](original)
+		sequenced := Sequence(original)
 
 		cfg1 := Config1{value1: 3}
 		cfg2 := Config2{value2: "test"}
@@ -166,7 +166,7 @@ func TestSequenceReader(t *testing.T) {
 		}
 
 		// Sequence swaps Config1 and Config2 order
-		sequenced := SequenceReader[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReader(original)
 
 		cfg1 := Config1{value1: 10}
 		cfg2 := Config2{value2: "hello"}
@@ -194,7 +194,7 @@ func TestSequenceReader(t *testing.T) {
 			return RIOE.Left[Context, R.Reader[Config1, int]](testErr)
 		}
 
-		sequenced := SequenceReader[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReader(original)
 
 		result := sequenced(Config1{value1: 10})(Config2{value2: "hello"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Left[int](testErr), result)
@@ -210,7 +210,7 @@ func TestSequenceReader(t *testing.T) {
 			})
 		}
 
-		sequenced := SequenceReader[Config1, Config2, Context, error, string](original)
+		sequenced := SequenceReader(original)
 
 		ctx := Context{contextID: "test"}
 
@@ -230,7 +230,7 @@ func TestSequenceReader(t *testing.T) {
 			})
 		}
 
-		sequenced := SequenceReader[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReader(original)
 
 		result := sequenced(Config1{value1: 0})(Config2{value2: ""})(Context{contextID: ""})()
 		assert.Equal(t, E.Right[error](0), result)
@@ -243,7 +243,7 @@ func TestSequenceReader(t *testing.T) {
 			})
 		}
 
-		sequenced := SequenceReader[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReader(original)
 
 		cfg1 := Config1{value1: 3}
 		cfg2 := Config2{value2: "test"}
@@ -267,7 +267,7 @@ func TestSequenceReaderIO(t *testing.T) {
 		}
 
 		// Sequence swaps Config1 and Config2 order
-		sequenced := SequenceReaderIO[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReaderIO(original)
 
 		cfg1 := Config1{value1: 10}
 		cfg2 := Config2{value2: "hello"}
@@ -295,7 +295,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			return RIOE.Left[Context, readerio.ReaderIO[Config1, int]](testErr)
 		}
 
-		sequenced := SequenceReaderIO[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReaderIO(original)
 
 		result := sequenced(Config1{value1: 10})(Config2{value2: "hello"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Left[int](testErr), result)
@@ -316,7 +316,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			})
 		}
 
-		sequenced := SequenceReaderIO[Config1, Config2, Context, error, string](original)
+		sequenced := SequenceReaderIO(original)
 
 		ctx := Context{contextID: "test"}
 
@@ -340,7 +340,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			})
 		}
 
-		sequenced := SequenceReaderIO[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReaderIO(original)
 
 		result := sequenced(Config1{value1: 0})(Config2{value2: ""})(Context{contextID: ""})()
 		assert.Equal(t, E.Right[error](0), result)
@@ -358,7 +358,7 @@ func TestSequenceReaderIO(t *testing.T) {
 			})
 		}
 
-		sequenced := SequenceReaderIO[Config1, Config2, Context, error, int](original)
+		sequenced := SequenceReaderIO(original)
 
 		cfg1 := Config1{value1: 10}
 		cfg2 := Config2{value2: "hello"}
@@ -389,7 +389,7 @@ func TestTraverse(t *testing.T) {
 		}
 
 		// Apply traverse to swap order and transform
-		traversed := Traverse[Config2, Config1, Context, error, int, string](transform)(original)
+		traversed := Traverse[Config2](transform)(original)
 
 		cfg1 := Config1{value1: 100}
 		cfg2 := Config2{value2: "test"}
@@ -407,7 +407,7 @@ func TestTraverse(t *testing.T) {
 			return Of[Config1, Context, error](fmt.Sprintf("%d", n))
 		}
 
-		traversed := Traverse[Config2, Config1, Context, error, int, string](transform)(original)
+		traversed := Traverse[Config2](transform)(original)
 
 		result := traversed(Config1{value1: 100})(Config2{value2: "test"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Left[string](testErr), result)
@@ -426,12 +426,12 @@ func TestTraverse(t *testing.T) {
 
 		// Test with negative value
 		originalNeg := Of[Config2, Context, error](-1)
-		traversedNeg := Traverse[Config2, Config1, Context, error, int, string](transform)(originalNeg)
+		traversedNeg := Traverse[Config2](transform)(originalNeg)
 		resultNeg := traversedNeg(Config1{value1: 100})(Config2{value2: "test"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Left[string](testErr), resultNeg)
 
 		// Test with positive value
-		traversedPos := Traverse[Config2, Config1, Context, error, int, string](transform)(original)
+		traversedPos := Traverse[Config2](transform)(original)
 		resultPos := traversedPos(Config1{value1: 100})(Config2{value2: "test"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Right[error]("42"), resultPos)
 	})
@@ -447,7 +447,7 @@ func TestTraverse(t *testing.T) {
 			}
 		}
 
-		traversed := Traverse[Config2, Config1, Context, error, int, int](transform)(original)
+		traversed := Traverse[Config2](transform)(original)
 
 		result := traversed(Config1{value1: 5})(Config2{value2: "test"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Right[error](50), result)
@@ -462,7 +462,7 @@ func TestTraverse(t *testing.T) {
 
 		result := F.Pipe2(
 			original,
-			Traverse[Config2, Config1, Context, error, int, int](transform),
+			Traverse[Config2](transform),
 			func(k Kleisli[Config2, Context, error, Config1, int]) ReaderReaderIOEither[Config2, Context, error, int] {
 				return k(Config1{value1: 5})
 			},
@@ -486,7 +486,7 @@ func TestTraverseReader(t *testing.T) {
 		}
 
 		// Apply traverse to introduce Config1 and swap order
-		traversed := TraverseReader[Config2, Config1, Context, error, int, string](formatWithConfig)(original)
+		traversed := TraverseReader[Config2, Config1, Context, error](formatWithConfig)(original)
 
 		cfg1 := Config1{value1: 5}
 		cfg2 := Config2{value2: "test"}
@@ -504,7 +504,7 @@ func TestTraverseReader(t *testing.T) {
 			return R.Of[Config1](fmt.Sprintf("%d", n))
 		}
 
-		traversed := TraverseReader[Config2, Config1, Context, error, int, string](transform)(original)
+		traversed := TraverseReader[Config2, Config1, Context, error](transform)(original)
 
 		result := traversed(Config1{value1: 5})(Config2{value2: "test"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Left[string](testErr), result)
@@ -520,7 +520,7 @@ func TestTraverseReader(t *testing.T) {
 			}
 		}
 
-		traversed := TraverseReader[Config2, Config1, Context, error, int, int](double)(original)
+		traversed := TraverseReader[Config2, Config1, Context, error](double)(original)
 
 		result := traversed(Config1{value1: 3})(Config2{value2: "test"})(Context{contextID: "test"})()
 		assert.Equal(t, E.Right[error](126), result)
@@ -535,7 +535,7 @@ func TestTraverseReader(t *testing.T) {
 			}
 		}
 
-		traversed := TraverseReader[Config2, Config1, Context, error, int, int](transform)(original)
+		traversed := TraverseReader[Config2, Config1, Context, error](transform)(original)
 
 		result := traversed(Config1{value1: 0})(Config2{value2: ""})(Context{contextID: ""})()
 		assert.Equal(t, E.Right[error](0), result)
@@ -550,7 +550,7 @@ func TestTraverseReader(t *testing.T) {
 			}
 		}
 
-		traversed := TraverseReader[Config2, Config1, Context, error, int, int](transform)(original)
+		traversed := TraverseReader[Config2, Config1, Context, error](transform)(original)
 
 		cfg1 := Config1{value1: 5}
 		cfg2 := Config2{value2: "test"}
@@ -574,7 +574,7 @@ func TestTraverseReader(t *testing.T) {
 
 		result := F.Pipe2(
 			original,
-			TraverseReader[Config2, Config1, Context, error, int, int](multiply),
+			TraverseReader[Config2, Config1, Context, error](multiply),
 			func(k Kleisli[Config2, Context, error, Config1, int]) ReaderReaderIOEither[Config2, Context, error, int] {
 				return k(Config1{value1: 3})
 			},
@@ -593,7 +593,7 @@ func TestFlipIntegration(t *testing.T) {
 		}
 
 		// Sequence it
-		sequenced := Sequence[Config1, Config2, Context, error, int](nested)
+		sequenced := Sequence(nested)
 
 		// Then traverse with a transformation
 		transform := func(n int) ReaderReaderIOEither[Config1, Context, error, string] {
@@ -611,7 +611,7 @@ func TestFlipIntegration(t *testing.T) {
 
 		// Then apply traverse on a new computation
 		original := Of[Config2, Context, error](5)
-		traversed := Traverse[Config2, Config1, Context, error, int, string](transform)(original)
+		traversed := Traverse[Config2](transform)(original)
 		result := traversed(cfg1)(cfg2)(ctx)()
 		assert.Equal(t, E.Right[error]("length=5"), result)
 	})
@@ -626,21 +626,21 @@ func TestFlipIntegration(t *testing.T) {
 		seqErr := func(cfg2 Config2) RIOE.ReaderIOEither[Context, error, ReaderReaderIOEither[Config1, Context, error, int]] {
 			return RIOE.Left[Context, ReaderReaderIOEither[Config1, Context, error, int]](testErr)
 		}
-		seqResult := Sequence[Config1, Config2, Context, error, int](seqErr)(cfg1)(cfg2)(ctx)()
+		seqResult := Sequence(seqErr)(cfg1)(cfg2)(ctx)()
 		assert.True(t, E.IsLeft(seqResult))
 
 		// Test SequenceReader with error
 		seqReaderErr := func(cfg2 Config2) RIOE.ReaderIOEither[Context, error, R.Reader[Config1, int]] {
 			return RIOE.Left[Context, R.Reader[Config1, int]](testErr)
 		}
-		seqReaderResult := SequenceReader[Config1, Config2, Context, error, int](seqReaderErr)(cfg1)(cfg2)(ctx)()
+		seqReaderResult := SequenceReader(seqReaderErr)(cfg1)(cfg2)(ctx)()
 		assert.True(t, E.IsLeft(seqReaderResult))
 
 		// Test SequenceReaderIO with error
 		seqReaderIOErr := func(cfg2 Config2) RIOE.ReaderIOEither[Context, error, readerio.ReaderIO[Config1, int]] {
 			return RIOE.Left[Context, readerio.ReaderIO[Config1, int]](testErr)
 		}
-		seqReaderIOResult := SequenceReaderIO[Config1, Config2, Context, error, int](seqReaderIOErr)(cfg1)(cfg2)(ctx)()
+		seqReaderIOResult := SequenceReaderIO(seqReaderIOErr)(cfg1)(cfg2)(ctx)()
 		assert.True(t, E.IsLeft(seqReaderIOResult))
 
 		// Test Traverse with error
@@ -648,7 +648,7 @@ func TestFlipIntegration(t *testing.T) {
 		travTransform := func(n int) ReaderReaderIOEither[Config1, Context, error, string] {
 			return Of[Config1, Context, error](fmt.Sprintf("%d", n))
 		}
-		travResult := Traverse[Config2, Config1, Context, error, int, string](travTransform)(travErr)(cfg1)(cfg2)(ctx)()
+		travResult := Traverse[Config2](travTransform)(travErr)(cfg1)(cfg2)(ctx)()
 		assert.True(t, E.IsLeft(travResult))
 
 		// Test TraverseReader with error
@@ -656,7 +656,7 @@ func TestFlipIntegration(t *testing.T) {
 		travReaderTransform := func(n int) R.Reader[Config1, string] {
 			return R.Of[Config1](fmt.Sprintf("%d", n))
 		}
-		travReaderResult := TraverseReader[Config2, Config1, Context, error, int, string](travReaderTransform)(travReaderErr)(cfg1)(cfg2)(ctx)()
+		travReaderResult := TraverseReader[Config2, Config1, Context, error](travReaderTransform)(travReaderErr)(cfg1)(cfg2)(ctx)()
 		assert.True(t, E.IsLeft(travReaderResult))
 	})
 }

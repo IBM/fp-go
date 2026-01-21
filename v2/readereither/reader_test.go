@@ -285,7 +285,7 @@ func TestReadEither(t *testing.T) {
 			Map[Config, string](func(cfg Config) string {
 				return cfg.host + "/data"
 			}),
-			Chain[Config, string, string, int](func(url string) ReaderEither[Config, string, int] {
+			Chain(func(url string) ReaderEither[Config, string, int] {
 				return func(cfg Config) Either[string, int] {
 					if cfg.apiKey != "" {
 						return ET.Right[string](len(url))
