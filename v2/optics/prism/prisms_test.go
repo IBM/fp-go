@@ -1145,3 +1145,254 @@ func TestFromOptionComposition(t *testing.T) {
 		assert.True(t, O.IsNone(result))
 	})
 }
+
+// TestNonEmptyString tests the NonEmptyString prism
+func TestNonEmptyString(t *testing.T) {
+	t.Run("match non-empty string", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		result := prism.GetOption("hello")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "hello", O.GetOrElse(F.Constant("default"))(result))
+	})
+
+	t.Run("empty string returns None", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		result := prism.GetOption("")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("whitespace string is non-empty", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		result := prism.GetOption("   ")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "   ", O.GetOrElse(F.Constant("default"))(result))
+	})
+
+	t.Run("single character string", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		result := prism.GetOption("a")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "a", O.GetOrElse(F.Constant("default"))(result))
+	})
+
+	t.Run("multiline string", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		multiline := "line1\nline2\nline3"
+		result := prism.GetOption(multiline)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, multiline, O.GetOrElse(F.Constant("default"))(result))
+	})
+
+	t.Run("unicode string", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		unicode := "Hello 世界 🌍"
+		result := prism.GetOption(unicode)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, unicode, O.GetOrElse(F.Constant("default"))(result))
+	})
+
+	t.Run("reverse get is identity", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		assert.Equal(t, "", prism.ReverseGet(""))
+		assert.Equal(t, "hello", prism.ReverseGet("hello"))
+		assert.Equal(t, "world", prism.ReverseGet("world"))
+	})
+}
+
+// TestNonEmptyStringWithSet tests using Set with NonEmptyString prism
+func TestNonEmptyStringWithSet(t *testing.T) {
+	t.Run("set on non-empty string", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		setter := Set[string]("updated")
+		result := setter(prism)("original")
+
+		assert.Equal(t, "updated", result)
+	})
+
+	t.Run("set on empty string returns original", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		setter := Set[string]("updated")
+		result := setter(prism)("")
+
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("set with empty value on non-empty string", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		setter := Set[string]("")
+		result := setter(prism)("original")
+
+		assert.Equal(t, "", result)
+	})
+}
+
+// TestNonEmptyStringPrismLaws tests that NonEmptyString satisfies prism laws
+func TestNonEmptyStringPrismLaws(t *testing.T) {
+	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		// For any non-empty string a, GetOption(ReverseGet(a)) should return Some(a)
+		testCases := []string{"hello", "world", "a", "test string", "123"}
+		for _, testCase := range testCases {
+			reversed := prism.ReverseGet(testCase)
+			result := prism.GetOption(reversed)
+
+			assert.True(t, O.IsSome(result), "Expected Some for: %s", testCase)
+			assert.Equal(t, testCase, O.GetOrElse(F.Constant(""))(result))
+		}
+	})
+
+	t.Run("law 2: if GetOption(s) == Some(a), then ReverseGet(a) == s", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		// For any non-empty string s where GetOption(s) returns Some(a),
+		// ReverseGet(a) should equal s
+		testCases := []string{"hello", "world", "test", "   ", "123"}
+		for _, testCase := range testCases {
+			optResult := prism.GetOption(testCase)
+			if O.IsSome(optResult) {
+				extracted := O.GetOrElse(F.Constant(""))(optResult)
+				reversed := prism.ReverseGet(extracted)
+				assert.Equal(t, testCase, reversed)
+			}
+		}
+	})
+
+	t.Run("law 3: GetOption is idempotent", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		testCases := []string{"hello", "", "world", "   "}
+		for _, testCase := range testCases {
+			result1 := prism.GetOption(testCase)
+			result2 := prism.GetOption(testCase)
+
+			assert.Equal(t, result1, result2, "GetOption should be idempotent for: %s", testCase)
+		}
+	})
+}
+
+// TestNonEmptyStringComposition tests composing NonEmptyString with other prisms
+func TestNonEmptyStringComposition(t *testing.T) {
+	t.Run("compose with ParseInt", func(t *testing.T) {
+		// Create a prism that only parses non-empty strings to int
+		nonEmptyPrism := NonEmptyString()
+		intPrism := ParseInt()
+
+		// Compose: string -> non-empty string -> int
+		composed := Compose[string](intPrism)(nonEmptyPrism)
+
+		// Test with valid non-empty string
+		result := composed.GetOption("42")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(result))
+
+		// Test with empty string
+		result = composed.GetOption("")
+		assert.True(t, O.IsNone(result))
+
+		// Test with invalid non-empty string
+		result = composed.GetOption("abc")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("compose with ParseFloat64", func(t *testing.T) {
+		// Create a prism that only parses non-empty strings to float64
+		nonEmptyPrism := NonEmptyString()
+		floatPrism := ParseFloat64()
+
+		composed := Compose[string](floatPrism)(nonEmptyPrism)
+
+		// Test with valid non-empty string
+		result := composed.GetOption("3.14")
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 3.14, O.GetOrElse(F.Constant(-1.0))(result))
+
+		// Test with empty string
+		result = composed.GetOption("")
+		assert.True(t, O.IsNone(result))
+
+		// Test with invalid non-empty string
+		result = composed.GetOption("not a number")
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("compose with FromOption", func(t *testing.T) {
+		// Create a prism that extracts non-empty strings from Option[string]
+		optionPrism := FromOption[string]()
+		nonEmptyPrism := NonEmptyString()
+
+		composed := Compose[Option[string]](nonEmptyPrism)(optionPrism)
+
+		// Test with Some(non-empty)
+		someNonEmpty := O.Some("hello")
+		result := composed.GetOption(someNonEmpty)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, "hello", O.GetOrElse(F.Constant(""))(result))
+
+		// Test with Some(empty)
+		someEmpty := O.Some("")
+		result = composed.GetOption(someEmpty)
+		assert.True(t, O.IsNone(result))
+
+		// Test with None
+		none := O.None[string]()
+		result = composed.GetOption(none)
+		assert.True(t, O.IsNone(result))
+	})
+}
+
+// TestNonEmptyStringValidation tests NonEmptyString for validation scenarios
+func TestNonEmptyStringValidation(t *testing.T) {
+	t.Run("validate username", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		// Valid username
+		validUsername := "john_doe"
+		result := prism.GetOption(validUsername)
+		assert.True(t, O.IsSome(result))
+
+		// Invalid empty username
+		emptyUsername := ""
+		result = prism.GetOption(emptyUsername)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("validate configuration value", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		// Valid config value
+		configValue := "production"
+		result := prism.GetOption(configValue)
+		assert.True(t, O.IsSome(result))
+
+		// Invalid empty config
+		emptyConfig := ""
+		result = prism.GetOption(emptyConfig)
+		assert.True(t, O.IsNone(result))
+	})
+
+	t.Run("filter non-empty strings from slice", func(t *testing.T) {
+		prism := NonEmptyString()
+
+		inputs := []string{"hello", "", "world", "", "test"}
+		var nonEmpty []string
+
+		for _, input := range inputs {
+			if result := prism.GetOption(input); O.IsSome(result) {
+				nonEmpty = append(nonEmpty, O.GetOrElse(F.Constant(""))(result))
+			}
+		}
+
+		assert.Equal(t, []string{"hello", "world", "test"}, nonEmpty)
+	})
+}

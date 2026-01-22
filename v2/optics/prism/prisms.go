@@ -1037,3 +1037,63 @@ func FromOption[T any]() Prism[Option[T], T] {
 		"PrismFromOption",
 	)
 }
+
+// NonEmptyString creates a prism that matches non-empty strings.
+// It provides a safe way to work with non-empty string values, handling
+// empty strings gracefully through the Option type.
+//
+// This is a specialized version of FromNonZero[string]() that makes the intent
+// clearer when working specifically with strings that must not be empty.
+//
+// The prism's GetOption returns Some(s) if the string is not empty;
+// otherwise, it returns None.
+//
+// The prism's ReverseGet is the identity function, returning the string unchanged.
+//
+// Returns:
+//   - A Prism[string, string] that matches non-empty strings
+//
+// Example:
+//
+//	// Create a prism for non-empty strings
+//	nonEmptyPrism := NonEmptyString()
+//
+//	// Match non-empty string
+//	result := nonEmptyPrism.GetOption("hello")  // Some("hello")
+//
+//	// Empty string returns None
+//	result = nonEmptyPrism.GetOption("")  // None[string]()
+//
+//	// ReverseGet is identity
+//	value := nonEmptyPrism.ReverseGet("world")  // "world"
+//
+//	// Use with Set to update non-empty strings
+//	setter := Set[string, string]("updated")
+//	result := setter(nonEmptyPrism)("original")  // "updated"
+//	result = setter(nonEmptyPrism)("")           // "" (unchanged)
+//
+//	// Compose with other prisms for validation pipelines
+//	// Example: Parse a non-empty string as an integer
+//	nonEmptyIntPrism := Compose[string, string, int](
+//	    NonEmptyString(),
+//	    ParseInt(),
+//	)
+//	value := nonEmptyIntPrism.GetOption("42")   // Some(42)
+//	value = nonEmptyIntPrism.GetOption("")      // None[int]()
+//	value = nonEmptyIntPrism.GetOption("abc")   // None[int]()
+//
+// Common use cases:
+//   - Validating required string fields (usernames, names, IDs)
+//   - Filtering empty strings from data pipelines
+//   - Ensuring configuration values are non-empty
+//   - Composing with parsing prisms to validate input before parsing
+//   - Working with user input that must not be blank
+//
+// Key insight: This prism is particularly useful for validation scenarios where
+// an empty string represents an invalid or missing value, allowing you to handle
+// such cases gracefully through the Option type rather than with error handling.
+//
+//go:inline
+func NonEmptyString() Prism[string, string] {
+	return FromNonZero[string]()
+}

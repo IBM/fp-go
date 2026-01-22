@@ -36,7 +36,7 @@ type (
 //
 // Returns a Monoid for ReaderIOResult[A].
 func ApplicativeMonoid[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
-	return RIOE.AlternativeMonoid[R, error](m)
+	return RIOE.ApplicativeMonoid[R, error](m)
 }
 
 // ApplicativeMonoidSeq returns a [Monoid] that concatenates [ReaderIOResult] instances via their applicative.

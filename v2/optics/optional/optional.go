@@ -13,8 +13,77 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Optional is an optic used to zoom inside a product. Unlike the `Lens`, the element that the `Optional` focuses
-// on may not exist.
+// Package optional provides an optic for focusing on values that may not exist.
+//
+// # Overview
+//
+// Optional is an optic used to zoom inside a product. Unlike the Lens, the element that the Optional focuses
+// on may not exist. An Optional[S, A] represents a relationship between a source type S and a focus type A,
+// where the focus may or may not be present.
+//
+// # Optional Laws
+//
+// An Optional must satisfy the following laws, which are consistent with other functional programming libraries
+// such as monocle-ts (https://gcanti.github.io/monocle-ts/modules/Optional.ts.html) and the Haskell lens library
+// (https://hackage.haskell.org/package/lens):
+//
+//  1. GetSet Law (No-op on None):
+//     If GetOption(s) returns None, then Set(a)(s) must return s unchanged (no-op).
+//     This ensures that attempting to update a value that doesn't exist has no effect.
+//
+//     Formally: GetOption(s) = None => Set(a)(s) = s
+//
+//  2. SetGet Law (Get what you Set):
+//     If GetOption(s) returns Some(_), then GetOption(Set(a)(s)) must return Some(a).
+//     This ensures that after setting a value, you can retrieve it.
+//
+//     Formally: GetOption(s) = Some(_) => GetOption(Set(a)(s)) = Some(a)
+//
+//  3. SetSet Law (Last Set Wins):
+//     Setting twice is the same as setting once with the final value.
+//
+//     Formally: Set(b)(Set(a)(s)) = Set(b)(s)
+//
+// # No-op Behavior
+//
+// A key property of Optional is that updating a value for which GetOption returns None is a no-op.
+// This behavior is implemented through the optionalModify function, which only applies the modification
+// if the optional value exists. When GetOption returns None, the original structure is returned unchanged.
+//
+// This is consistent with the behavior in:
+//   - monocle-ts: Optional.modify returns the original value when the optional doesn't match
+//   - Haskell lens: over and set operations are no-ops when the traversal finds no targets
+//
+// # Example
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	// Create an optional that focuses on non-empty names
+//	nameOptional := MakeOptional(
+//	    func(p Person) option.Option[string] {
+//	        if p.Name != "" {
+//	            return option.Some(p.Name)
+//	        }
+//	        return option.None[string]()
+//	    },
+//	    func(p Person, name string) Person {
+//	        p.Name = name
+//	        return p
+//	    },
+//	)
+//
+//	// When the optional matches, Set updates the value
+//	person1 := Person{Name: "Alice", Age: 30}
+//	updated1 := nameOptional.Set("Bob")(person1)
+//	// updated1.Name == "Bob"
+//
+//	// When the optional doesn't match (Name is empty), Set is a no-op
+//	person2 := Person{Name: "", Age: 30}
+//	updated2 := nameOptional.Set("Bob")(person2)
+//	// updated2 == person2 (unchanged)
 package optional
 
 import (
@@ -50,12 +119,29 @@ type (
 	Operator[S, A, B any] = func(Optional[S, A]) Optional[S, B]
 )
 
-// setCopy wraps a setter for a pointer into a setter that first creates a copy before
+// setCopyRef wraps a setter for a pointer into a setter that first creates a copy before
 // modifying that copy
-func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
-	return func(s *S, a A) *S {
-		cpy := *s
-		return setter(&cpy, a)
+func setCopyRef[SET ~func(A) func(*S) *S, S, A any](setter SET) func(a A) func(*S) *S {
+	return func(a A) func(*S) *S {
+
+		sa := setter(a)
+
+		return func(s *S) *S {
+			if s == nil {
+				return s
+			}
+			cpy := *s
+			return sa(&cpy)
+		}
+	}
+}
+
+func getRef[GET ~func(*S) O.Option[A], S, A any](getter GET) func(*S) O.Option[A] {
+	return func(s *S) O.Option[A] {
+		if s == nil {
+			return O.None[A]()
+		}
+		return getter(s)
 	}
 }
 
@@ -68,8 +154,18 @@ func MakeOptional[S, A any](get O.Kleisli[S, A], set func(S, A) S) Optional[S, A
 	return MakeOptionalWithName(get, set, "GenericOptional")
 }
 
+//go:inline
+func MakeOptionalCurried[S, A any](get O.Kleisli[S, A], set func(A) func(S) S) Optional[S, A] {
+	return MakeOptionalCurriedWithName(get, set, "GenericOptional")
+}
+
+//go:inline
 func MakeOptionalWithName[S, A any](get O.Kleisli[S, A], set func(S, A) S, name string) Optional[S, A] {
-	return Optional[S, A]{GetOption: get, Set: F.Bind2of2(set), name: name}
+	return MakeOptionalCurriedWithName(get, F.Bind2of2(set), name)
+}
+
+func MakeOptionalCurriedWithName[S, A any](get O.Kleisli[S, A], set func(A) func(S) S, name string) Optional[S, A] {
+	return Optional[S, A]{GetOption: get, Set: set, name: name}
 }
 
 // MakeOptionalRef creates an Optional based on a getter and a setter function. The setter passed in does not have to create a shallow
@@ -77,12 +173,17 @@ func MakeOptionalWithName[S, A any](get O.Kleisli[S, A], set func(S, A) S, name 
 //
 //go:inline
 func MakeOptionalRef[S, A any](get O.Kleisli[*S, A], set func(*S, A) *S) Optional[*S, A] {
-	return MakeOptional(get, setCopy(set))
+	return MakeOptionalCurried(getRef(get), setCopyRef(F.Bind2of2(set)))
 }
 
 //go:inline
 func MakeOptionalRefWithName[S, A any](get O.Kleisli[*S, A], set func(*S, A) *S, name string) Optional[*S, A] {
-	return MakeOptionalWithName(get, setCopy(set), name)
+	return MakeOptionalCurriedWithName(getRef(get), setCopyRef(F.Bind2of2(set)), name)
+}
+
+//go:inline
+func MakeOptionalRefCurriedWithName[S, A any](get O.Kleisli[*S, A], set func(A) func(*S) *S, name string) Optional[*S, A] {
+	return MakeOptionalCurriedWithName(getRef(get), setCopyRef(set), name)
 }
 
 // Id returns am optional implementing the identity operation
@@ -147,12 +248,14 @@ func fromPredicate[S, A any](creator func(get O.Kleisli[S, A], set func(S, A) S)
 	return func(get func(S) A, set func(S, A) S) Optional[S, A] {
 		return creator(
 			F.Flow2(get, fromPred),
-			func(s S, _ A) S {
+			func(s S, a A) S {
 				return F.Pipe3(
 					s,
 					get,
 					fromPred,
-					O.Fold(F.Constant(s), F.Bind1st(set, s)),
+					O.Fold(F.Constant(s), func(_ A) S {
+						return set(s, a)
+					}),
 				)
 			},
 		)
