@@ -64,11 +64,11 @@ type (
 //
 // fp-go:Lens
 type PartialPerson struct {
-	// Name is the person's name as a raw string, which may be empty or invalid.
-	Name string
+	// name is the person's name as a raw string, which may be empty or invalid.
+	name string
 
-	// Age is the person's age as a raw integer, which may be negative or otherwise invalid.
-	Age int
+	// age is the person's age as a raw integer, which may be negative or otherwise invalid.
+	age int
 }
 
 // Person represents a person record with validated fields.

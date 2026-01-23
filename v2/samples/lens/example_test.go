@@ -21,6 +21,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	O "github.com/IBM/fp-go/v2/option"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -340,4 +341,126 @@ func TestCompanyRefLensesOptionalIdempotent(t *testing.T) {
 	assert.NotSame(t, company, differentWebsite, "Setting Website to different value should return new pointer")
 	assert.Equal(t, &newWebsiteValue, differentWebsite.Website)
 	assert.Equal(t, &websiteValue, company.Website, "Original should be unchanged")
+}
+
+func TestDataBuilderLensWithUnexportedFields(t *testing.T) {
+	// Test that lenses can access and modify unexported fields
+	// This demonstrates that the lens generator now supports unexported fields
+
+	// Create a DataBuilder with unexported fields
+	builder := DataBuilder{
+		name:  "initial-name",
+		value: "initial-value",
+	}
+
+	// Create lenses
+	lenses := MakeDataBuilderLenses()
+
+	// Test Get on unexported fields
+	assert.Equal(t, "initial-name", lenses.name.Get(builder))
+	assert.Equal(t, "initial-value", lenses.value.Get(builder))
+
+	// Test Set on unexported fields
+	updatedName := lenses.name.Set("updated-name")(builder)
+	assert.Equal(t, "updated-name", updatedName.name)
+	assert.Equal(t, "initial-value", updatedName.value) // Other field unchanged
+	assert.Equal(t, "initial-name", builder.name)       // Original unchanged
+
+	updatedValue := lenses.value.Set("updated-value")(builder)
+	assert.Equal(t, "initial-name", updatedValue.name) // Other field unchanged
+	assert.Equal(t, "updated-value", updatedValue.value)
+	assert.Equal(t, "initial-value", builder.value) // Original unchanged
+
+	// Test Modify on unexported fields
+	modifyName := F.Pipe1(
+		lenses.name,
+		L.Modify[DataBuilder](S.Append("-modified")),
+	)
+	modified := modifyName(builder)
+	assert.Equal(t, "initial-name-modified", modified.name)
+	assert.Equal(t, "initial-name", builder.name) // Original unchanged
+
+	// Test composition of modifications
+	updatedBoth := F.Pipe2(
+		builder,
+		lenses.name.Set("new-name"),
+		lenses.value.Set("new-value"),
+	)
+	assert.Equal(t, "new-name", updatedBoth.name)
+	assert.Equal(t, "new-value", updatedBoth.value)
+	assert.Equal(t, "initial-name", builder.name)   // Original unchanged
+	assert.Equal(t, "initial-value", builder.value) // Original unchanged
+}
+
+func TestDataBuilderRefLensesWithUnexportedFields(t *testing.T) {
+	// Test that ref lenses work with unexported fields and maintain idempotency
+
+	builder := &DataBuilder{
+		name:  "test-name",
+		value: "test-value",
+	}
+
+	refLenses := MakeDataBuilderRefLenses()
+
+	// Test Get on unexported fields
+	assert.Equal(t, "test-name", refLenses.name.Get(builder))
+	assert.Equal(t, "test-value", refLenses.value.Get(builder))
+
+	// Test idempotency - setting same value should return same pointer
+	sameName := refLenses.name.Set("test-name")(builder)
+	assert.Same(t, builder, sameName, "Setting name to same value should return identical pointer")
+
+	sameValue := refLenses.value.Set("test-value")(builder)
+	assert.Same(t, builder, sameValue, "Setting value to same value should return identical pointer")
+
+	// Test that setting different value creates new pointer
+	differentName := refLenses.name.Set("different-name")(builder)
+	assert.NotSame(t, builder, differentName, "Setting name to different value should return new pointer")
+	assert.Equal(t, "different-name", differentName.name)
+	assert.Equal(t, "test-name", builder.name, "Original should be unchanged")
+
+	differentValue := refLenses.value.Set("different-value")(builder)
+	assert.NotSame(t, builder, differentValue, "Setting value to different value should return new pointer")
+	assert.Equal(t, "different-value", differentValue.value)
+	assert.Equal(t, "test-value", builder.value, "Original should be unchanged")
+}
+
+func TestDataBuilderOptionalLensesWithUnexportedFields(t *testing.T) {
+	// Test optional lenses (LensO) with unexported fields
+
+	builder := DataBuilder{
+		name:  "test",
+		value: "data",
+	}
+
+	lenses := MakeDataBuilderLenses()
+
+	// Test getting non-zero values as Some
+	nameOpt := lenses.nameO.Get(builder)
+	assert.True(t, O.IsSome(nameOpt))
+	assert.Equal(t, "test", O.GetOrElse(F.Zero[string])(nameOpt))
+
+	valueOpt := lenses.valueO.Get(builder)
+	assert.True(t, O.IsSome(valueOpt))
+	assert.Equal(t, "data", O.GetOrElse(F.Zero[string])(valueOpt))
+
+	// Test setting to Some
+	updatedName := lenses.nameO.Set(O.Some("new-test"))(builder)
+	assert.Equal(t, "new-test", updatedName.name)
+
+	// Test setting to None (zero value for string is "")
+	clearedName := lenses.nameO.Set(O.None[string]())(builder)
+	assert.Equal(t, "", clearedName.name)
+
+	// Test with zero value
+	emptyBuilder := DataBuilder{
+		name:  "",
+		value: "",
+	}
+
+	emptyNameOpt := lenses.nameO.Get(emptyBuilder)
+	assert.True(t, O.IsNone(emptyNameOpt), "Empty string should be None")
+
+	emptyValueOpt := lenses.valueO.Get(emptyBuilder)
+	assert.True(t, O.IsNone(emptyValueOpt), "Empty string should be None")
 }

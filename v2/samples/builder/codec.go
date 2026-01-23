@@ -81,7 +81,7 @@ func makePersonValidate() Validate[Endomorphism[*PartialPerson], *Person] {
 	// 2. Validate using nameCodec (ensures non-empty)
 	// 3. Map to a Person name setter if valid
 	valName := F.Flow3(
-		partialPersonLenses.Name.Get,
+		partialPersonLenses.name.Get,
 		nameCodec.Validate,
 		decode.Map[validation.Context](personLenses.Name.Set),
 	)
@@ -91,7 +91,7 @@ func makePersonValidate() Validate[Endomorphism[*PartialPerson], *Person] {
 	// 2. Validate using ageCodec (ensures >= 18)
 	// 3. Map to a Person age setter if valid
 	valAge := F.Flow3(
-		partialPersonLenses.Age.Get,
+		partialPersonLenses.age.Get,
 		ageCodec.Validate,
 		decode.Map[validation.Context](personLenses.Age.Set),
 	)

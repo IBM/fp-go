@@ -230,7 +230,15 @@ type Person struct {
     Email string
     Phone *string  // Optional field
 }
+
+// fp-go:Lens
+type Config struct {
+    PublicField  string
+    privateField int  // Unexported fields are supported!
+}
 ```
+
+**Note:** The generator supports both exported (uppercase) and unexported (lowercase) fields. Generated lenses for unexported fields will have lowercase names and can only be used within the same package as the struct.
 
 2. **Run `go generate`**:
 
@@ -268,6 +276,7 @@ The generator supports:
 - ✅ Embedded structs (fields are promoted)
 - ✅ Optional fields (pointers and `omitempty` tags)
 - ✅ Custom package imports
+- ✅ **Unexported fields** (lowercase names) - lenses will have lowercase names matching the field names
 
 See [samples/lens](../samples/lens) for complete examples.
 

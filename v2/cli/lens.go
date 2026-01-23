@@ -536,9 +536,9 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 		}
 
 		for _, name := range field.Names {
-			// Only export lenses for exported fields
-			if name.IsExported() {
-				fieldTypeName := getTypeName(field.Type)
+			// Generate lenses for both exported and unexported fields
+			fieldTypeName := getTypeName(field.Type)
+			if true { // Keep the block structure for minimal changes
 				isOptional := false
 				baseType := fieldTypeName
 
@@ -698,9 +698,9 @@ func parseFile(filename string) ([]structInfo, string, error) {
 				continue
 			}
 			for _, name := range field.Names {
-				// Only export lenses for exported fields
-				if name.IsExported() {
-					typeName := getTypeName(field.Type)
+				// Generate lenses for both exported and unexported fields
+				typeName := getTypeName(field.Type)
+				if true { // Keep the block structure for minimal changes
 					isOptional := false
 					baseType := typeName
 					isComparable := false

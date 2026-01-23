@@ -151,8 +151,8 @@ func TestMakePersonCodec_Encode(t *testing.T) {
 	partial := builder(emptyPartialPerson)
 
 	// Assert
-	assert.Equal(t, "Eve", partial.Name)
-	assert.Equal(t, 28, partial.Age)
+	assert.Equal(t, "Eve", partial.name)
+	assert.Equal(t, 28, partial.age)
 }
 
 // TestMakePersonCodec_RoundTrip tests encoding and decoding round-trip

@@ -64,3 +64,9 @@ type WithGeneric[T any] struct {
 	Name  string
 	Value T
 }
+
+// fp-go:Lens
+type DataBuilder struct {
+	name  string
+	value string
+}

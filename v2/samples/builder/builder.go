@@ -90,7 +90,7 @@ var (
 	// Example:
 	//   builder := WithName("Alice")
 	//   person := builder(&PartialPerson{})
-	WithName = partialPersonLenses.Name.Set
+	WithName = partialPersonLenses.name.Set
 
 	// WithAge is a builder function that sets the Age field of a PartialPerson.
 	// It returns an endomorphism that can be composed with other builder operations.
@@ -98,7 +98,7 @@ var (
 	// Example:
 	//   builder := WithAge(25)
 	//   person := builder(&PartialPerson{})
-	WithAge = partialPersonLenses.Age.Set
+	WithAge = partialPersonLenses.age.Set
 
 	// PersonPrism is a prism that converts between a builder pattern (Endomorphism[*PartialPerson])
 	// and a validated Person in both directions.
@@ -160,7 +160,7 @@ func buildPerson() ReaderOption[Endomorphism[*PartialPerson], *Person] {
 	// maybeName extracts the name from PartialPerson, validates it,
 	// and creates a setter for the Person's Name field if valid
 	maybeName := F.Flow3(
-		partialPersonLenses.Name.Get,
+		partialPersonLenses.name.Get,
 		namePrism.GetOption,
 		option.Map(personLenses.Name.Set),
 	)
@@ -168,7 +168,7 @@ func buildPerson() ReaderOption[Endomorphism[*PartialPerson], *Person] {
 	// maybeAge extracts the age from PartialPerson, validates it,
 	// and creates a setter for the Person's Age field if valid
 	maybeAge := F.Flow3(
-		partialPersonLenses.Age.Get,
+		partialPersonLenses.age.Get,
 		agePrism.GetOption,
 		option.Map(personLenses.Age.Set),
 	)
@@ -200,7 +200,7 @@ func buildEndomorphism() Reader[*Person, Endomorphism[*PartialPerson]] {
 	name := F.Flow3(
 		personLenses.Name.Get,
 		namePrism.ReverseGet,
-		partialPersonLenses.Name.Set,
+		partialPersonLenses.name.Set,
 	)
 
 	// age extracts the validated age, converts it to int,
@@ -208,7 +208,7 @@ func buildEndomorphism() Reader[*Person, Endomorphism[*PartialPerson]] {
 	age := F.Flow3(
 		personLenses.Age.Get,
 		agePrism.ReverseGet,
-		partialPersonLenses.Age.Set,
+		partialPersonLenses.age.Set,
 	)
 
 	// Combine the field extractors into a single builder

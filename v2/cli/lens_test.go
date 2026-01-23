@@ -1086,3 +1086,255 @@ type ComparableBox[T comparable] struct {
 	// Verify that MakeLensRef is NOT used (since both fields are comparable)
 	assert.NotContains(t, contentStr, "__lens.MakeLensRefWithName(", "Should not use MakeLensRefWithName when all fields are comparable")
 }
+
+func TestParseFileWithUnexportedFields(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type Config struct {
+	PublicName  string
+	privateName string
+	PublicValue int
+	privateValue *int
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check Config struct
+	config := structs[0]
+	assert.Equal(t, "Config", config.Name)
+	assert.Len(t, config.Fields, 4, "Should include both exported and unexported fields")
+
+	// Check exported field
+	assert.Equal(t, "PublicName", config.Fields[0].Name)
+	assert.Equal(t, "string", config.Fields[0].TypeName)
+	assert.False(t, config.Fields[0].IsOptional)
+
+	// Check unexported field
+	assert.Equal(t, "privateName", config.Fields[1].Name)
+	assert.Equal(t, "string", config.Fields[1].TypeName)
+	assert.False(t, config.Fields[1].IsOptional)
+
+	// Check exported int field
+	assert.Equal(t, "PublicValue", config.Fields[2].Name)
+	assert.Equal(t, "int", config.Fields[2].TypeName)
+	assert.False(t, config.Fields[2].IsOptional)
+
+	// Check unexported pointer field
+	assert.Equal(t, "privateValue", config.Fields[3].Name)
+	assert.Equal(t, "*int", config.Fields[3].TypeName)
+	assert.True(t, config.Fields[3].IsOptional)
+}
+
+func TestGenerateLensHelpersWithUnexportedFields(t *testing.T) {
+	// Create a temporary directory with test files
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type MixedStruct struct {
+	PublicField  string
+	privateField int
+	OptionalPrivate *string
+}
+`
+
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	// Generate lens code
+	outputFile := "gen_lens.go"
+	err = generateLensHelpers(tmpDir, outputFile, false, false)
+	require.NoError(t, err)
+
+	// Verify the generated file exists
+	genPath := filepath.Join(tmpDir, outputFile)
+	_, err = os.Stat(genPath)
+	require.NoError(t, err)
+
+	// Read and verify the generated content
+	content, err := os.ReadFile(genPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+
+	// Check for expected content
+	assert.Contains(t, contentStr, "package testpkg")
+	assert.Contains(t, contentStr, "MixedStructLenses")
+	assert.Contains(t, contentStr, "MakeMixedStructLenses")
+
+	// Check that lenses are generated for all fields (exported and unexported)
+	assert.Contains(t, contentStr, "PublicField __lens.Lens[MixedStruct, string]")
+	assert.Contains(t, contentStr, "privateField __lens.Lens[MixedStruct, int]")
+	assert.Contains(t, contentStr, "OptionalPrivate __lens.Lens[MixedStruct, *string]")
+
+	// Check lens constructors
+	assert.Contains(t, contentStr, "func(s MixedStruct) string { return s.PublicField }")
+	assert.Contains(t, contentStr, "func(s MixedStruct) int { return s.privateField }")
+	assert.Contains(t, contentStr, "func(s MixedStruct) *string { return s.OptionalPrivate }")
+
+	// Check setters
+	assert.Contains(t, contentStr, "func(s MixedStruct, v string) MixedStruct { s.PublicField = v; return s }")
+	assert.Contains(t, contentStr, "func(s MixedStruct, v int) MixedStruct { s.privateField = v; return s }")
+	assert.Contains(t, contentStr, "func(s MixedStruct, v *string) MixedStruct { s.OptionalPrivate = v; return s }")
+}
+
+func TestParseFileWithOnlyUnexportedFields(t *testing.T) {
+	// Create a temporary test file
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type PrivateConfig struct {
+	name    string
+	value   int
+	enabled bool
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check PrivateConfig struct
+	config := structs[0]
+	assert.Equal(t, "PrivateConfig", config.Name)
+	assert.Len(t, config.Fields, 3, "Should include all unexported fields")
+
+	// Check all fields are unexported
+	assert.Equal(t, "name", config.Fields[0].Name)
+	assert.Equal(t, "value", config.Fields[1].Name)
+	assert.Equal(t, "enabled", config.Fields[2].Name)
+}
+
+func TestGenerateLensHelpersWithUnexportedEmbeddedFields(t *testing.T) {
+	// Create a temporary directory with test files
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+type BaseConfig struct {
+	publicBase  string
+	privateBase int
+}
+
+// fp-go:Lens
+type ExtendedConfig struct {
+	BaseConfig
+	PublicField  string
+	privateField bool
+}
+`
+
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	// Generate lens code
+	outputFile := "gen_lens.go"
+	err = generateLensHelpers(tmpDir, outputFile, false, false)
+	require.NoError(t, err)
+
+	// Verify the generated file exists
+	genPath := filepath.Join(tmpDir, outputFile)
+	_, err = os.Stat(genPath)
+	require.NoError(t, err)
+
+	// Read and verify the generated content
+	content, err := os.ReadFile(genPath)
+	require.NoError(t, err)
+
+	contentStr := string(content)
+
+	// Check for expected content
+	assert.Contains(t, contentStr, "package testpkg")
+	assert.Contains(t, contentStr, "ExtendedConfigLenses")
+
+	// Check that lenses are generated for embedded unexported fields
+	assert.Contains(t, contentStr, "publicBase __lens.Lens[ExtendedConfig, string]")
+	assert.Contains(t, contentStr, "privateBase __lens.Lens[ExtendedConfig, int]")
+
+	// Check that lenses are generated for direct fields (both exported and unexported)
+	assert.Contains(t, contentStr, "PublicField __lens.Lens[ExtendedConfig, string]")
+	assert.Contains(t, contentStr, "privateField __lens.Lens[ExtendedConfig, bool]")
+}
+
+func TestParseFileWithMixedFieldVisibility(t *testing.T) {
+	// Create a temporary test file with various field visibility patterns
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+// fp-go:Lens
+type ComplexStruct struct {
+	// Exported fields
+	Name        string
+	Age         int
+	Email       *string
+	
+	// Unexported fields
+	password    string
+	secretKey   []byte
+	internalID  *int
+	
+	// Mixed with tags
+	PublicWithTag  string ` + "`json:\"public,omitempty\"`" + `
+	privateWithTag int    ` + "`json:\"private,omitempty\"`" + `
+}
+`
+
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	// Parse the file
+	structs, pkg, err := parseFile(testFile)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, "testpkg", pkg)
+	assert.Len(t, structs, 1)
+
+	// Check ComplexStruct
+	complex := structs[0]
+	assert.Equal(t, "ComplexStruct", complex.Name)
+	assert.Len(t, complex.Fields, 8, "Should include all fields regardless of visibility")
+
+	// Verify field names and types
+	fieldNames := []string{"Name", "Age", "Email", "password", "secretKey", "internalID", "PublicWithTag", "privateWithTag"}
+	for i, expectedName := range fieldNames {
+		assert.Equal(t, expectedName, complex.Fields[i].Name, "Field %d should be %s", i, expectedName)
+	}
+
+	// Check optional fields
+	assert.False(t, complex.Fields[0].IsOptional, "Name should not be optional")
+	assert.True(t, complex.Fields[2].IsOptional, "Email (pointer) should be optional")
+	assert.True(t, complex.Fields[5].IsOptional, "internalID (pointer) should be optional")
+	assert.True(t, complex.Fields[6].IsOptional, "PublicWithTag (with omitempty) should be optional")
+	assert.True(t, complex.Fields[7].IsOptional, "privateWithTag (with omitempty) should be optional")
+}
