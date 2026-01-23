@@ -465,7 +465,7 @@ func TestTranscodeArrayWithTransformation(t *testing.T) {
 			// Simple conversion: length of string
 			return either.Of[error](len(s))
 		},
-		func(s string) Reader[Context, Validation[int]] {
+		func(s string) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				// Transform string to its length
 				return validation.Success(len(s))
@@ -520,7 +520,7 @@ func TestTranscodeArrayValidation(t *testing.T) {
 			}
 			return either.Of[error](i)
 		},
-		func(i int) Reader[Context, Validation[int]] {
+		func(i int) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				if i <= 0 {
 					return validation.FailureWithMessage[int](i, "must be positive")(c)
@@ -721,7 +721,7 @@ func TestTranscodeEitherWithTransformation(t *testing.T) {
 			}
 			return either.Of[error](len(s))
 		},
-		func(s string) Reader[Context, Validation[int]] {
+		func(s string) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				return validation.Success(len(s))
 			}
@@ -741,7 +741,7 @@ func TestTranscodeEitherWithTransformation(t *testing.T) {
 			}
 			return either.Of[error](i * 2)
 		},
-		func(i int) Reader[Context, Validation[int]] {
+		func(i int) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				return validation.Success(i * 2)
 			}
@@ -944,7 +944,7 @@ func TestTypeToPrism(t *testing.T) {
 			}
 			return either.Of[error](s)
 		},
-		func(s string) Reader[Context, Validation[string]] {
+		func(s string) Decode[Context, string] {
 			return func(c Context) Validation[string] {
 				return validation.Success(s)
 			}
@@ -1001,7 +1001,7 @@ func TestTypeToPrismWithValidation(t *testing.T) {
 			}
 			return either.Of[error](i)
 		},
-		func(i int) Reader[Context, Validation[int]] {
+		func(i int) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				if i <= 0 {
 					return validation.FailureWithMessage[int](i, "must be positive")(c)
@@ -1053,7 +1053,7 @@ func TestTypeToPrismWithArrays(t *testing.T) {
 			}
 			return either.Of[error](i)
 		},
-		func(i int) Reader[Context, Validation[int]] {
+		func(i int) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				return validation.Success(i)
 			}
@@ -1093,7 +1093,7 @@ func TestTypeToPrismWithEither(t *testing.T) {
 			}
 			return either.Of[error](s)
 		},
-		func(s string) Reader[Context, Validation[string]] {
+		func(s string) Decode[Context, string] {
 			return func(c Context) Validation[string] {
 				return validation.Success(s)
 			}
@@ -1110,7 +1110,7 @@ func TestTypeToPrismWithEither(t *testing.T) {
 			}
 			return either.Of[error](i)
 		},
-		func(i int) Reader[Context, Validation[int]] {
+		func(i int) Decode[Context, int] {
 			return func(c Context) Validation[int] {
 				return validation.Success(i)
 			}
@@ -1158,7 +1158,7 @@ func TestTypeToPrismComposition(t *testing.T) {
 				}
 				return either.Of[error](s)
 			},
-			func(s string) Reader[Context, Validation[string]] {
+			func(s string) Decode[Context, string] {
 				return func(c Context) Validation[string] {
 					return validation.Success(s)
 				}
@@ -1193,7 +1193,7 @@ func TestTypeToPrismIntegration(t *testing.T) {
 				}
 				return either.Of[error](i)
 			},
-			func(i int) Reader[Context, Validation[int]] {
+			func(i int) Decode[Context, int] {
 				return func(c Context) Validation[int] {
 					return validation.Success(i)
 				}

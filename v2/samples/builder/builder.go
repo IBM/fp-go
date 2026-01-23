@@ -143,27 +143,6 @@ func MakePerson(name string, age int) Endomorphism[*PartialPerson] {
 		allOfPartialPerson)
 }
 
-func buildGeneric[S, A, T any](
-	src Prism[Endomorphism[S], Endomorphism[A]],
-) Prism[Endomorphism[S], A] {
-	var emptyA A
-
-	x := F.Pipe1(
-		src.GetOption,
-		readeroption.Map[Endomorphism[S]](reader.Read[A](emptyA)),
-	)
-
-	y := F.Pipe1(
-		src.ReverseGet,
-		reader.Local[Endomorphism[S]](reader.Of[A, A]),
-	)
-
-	return prism.MakePrism(
-		x,
-		y,
-	)
-}
-
 // buildPerson constructs the forward direction of PersonPrism.
 // It takes a builder (Endomorphism[*PartialPerson]) and attempts to create
 // a validated Person by:

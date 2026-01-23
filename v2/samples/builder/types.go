@@ -4,6 +4,9 @@ package builder
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/optics/codec"
+	"github.com/IBM/fp-go/v2/optics/codec/validate"
+	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -37,6 +40,11 @@ type (
 
 	Prism[S, A any] = prism.Prism[S, A]
 	Lens[S, A any]  = lens.Lens[S, A]
+
+	Type[A, O, I any]  = codec.Type[A, O, I]
+	Validate[I, A any] = validate.Validate[I, A]
+	Validation[A any]  = validation.Validation[A]
+	Encode[A, O any]   = codec.Encode[A, O]
 
 	// NonEmptyString is a string type that represents a validated non-empty string.
 	// It is used to ensure that string fields contain meaningful data.

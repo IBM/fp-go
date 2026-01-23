@@ -134,7 +134,7 @@ func TestComposeBasicFunctionality(t *testing.T) {
 		pgPrism := postgresqlPrism()
 
 		// Compose connection lens with PostgreSQL prism
-		configPgOptional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: PostgreSQL{Host: "localhost", Port: 5432},
@@ -153,7 +153,7 @@ func TestComposeBasicFunctionality(t *testing.T) {
 		connLens := connectionLens()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: MySQL{Host: "localhost", Port: 3306},
@@ -168,7 +168,7 @@ func TestComposeBasicFunctionality(t *testing.T) {
 		connLens := connectionLens()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: PostgreSQL{Host: "localhost", Port: 5432},
@@ -194,7 +194,7 @@ func TestComposeBasicFunctionality(t *testing.T) {
 		connLens := connectionLens()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: MySQL{Host: "localhost", Port: 3306},
@@ -222,7 +222,7 @@ func TestComposeBasicFunctionality(t *testing.T) {
 func TestComposeOptionalLaws(t *testing.T) {
 	connLens := connectionLens()
 	pgPrism := postgresqlPrism()
-	configPgOptional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+	configPgOptional := Compose[Config](pgPrism)(connLens)
 
 	t.Run("SetGet Law: GetOption(Set(b)(s)) = Some(b) when GetOption(s) = Some(_)", func(t *testing.T) {
 		// Start with a config that has PostgreSQL
@@ -301,7 +301,7 @@ func TestComposeMultipleVariants(t *testing.T) {
 
 	t.Run("PostgreSQL variant", func(t *testing.T) {
 		pgPrism := postgresqlPrism()
-		optional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: PostgreSQL{Host: "pg.example.com", Port: 5432},
@@ -313,7 +313,7 @@ func TestComposeMultipleVariants(t *testing.T) {
 
 	t.Run("MySQL variant", func(t *testing.T) {
 		myPrism := mysqlPrism()
-		optional := Compose[Config, ConnectionType, MySQL](myPrism)(connLens)
+		optional := Compose[Config](myPrism)(connLens)
 
 		config := Config{
 			Connection: MySQL{Host: "mysql.example.com", Port: 3306},
@@ -325,7 +325,7 @@ func TestComposeMultipleVariants(t *testing.T) {
 
 	t.Run("MongoDB variant", func(t *testing.T) {
 		mgPrism := mongodbPrism()
-		optional := Compose[Config, ConnectionType, MongoDB](mgPrism)(connLens)
+		optional := Compose[Config](mgPrism)(connLens)
 
 		config := Config{
 			Connection: MongoDB{Host: "mongo.example.com", Port: 27017},
@@ -338,7 +338,7 @@ func TestComposeMultipleVariants(t *testing.T) {
 	t.Run("Cross-variant no-op", func(t *testing.T) {
 		// Try to use PostgreSQL optional on MySQL config
 		pgPrism := postgresqlPrism()
-		optional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: MySQL{Host: "mysql.example.com", Port: 3306},
@@ -365,7 +365,7 @@ func TestComposeEdgeCases(t *testing.T) {
 		)
 
 		pgPrism := postgresqlPrism()
-		optional := Compose[ConnectionType, ConnectionType, PostgreSQL](pgPrism)(idLens)
+		optional := Compose[ConnectionType](pgPrism)(idLens)
 
 		conn := ConnectionType(PostgreSQL{Host: "localhost", Port: 5432})
 		result := optional.GetOption(conn)
@@ -378,7 +378,7 @@ func TestComposeEdgeCases(t *testing.T) {
 	t.Run("Multiple sets preserve structure", func(t *testing.T) {
 		connLens := connectionLens()
 		pgPrism := postgresqlPrism()
-		optional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := Compose[Config](pgPrism)(connLens)
 
 		config := Config{
 			Connection: PostgreSQL{Host: "host1", Port: 5432},
@@ -431,7 +431,7 @@ func TestComposeDocumentationExample(t *testing.T) {
 	)
 
 	// Compose to create Optional[Config, PostgreSQL]
-	configPgOptional := Compose[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+	configPgOptional := Compose[Config](pgPrism)(connLens)
 
 	config := Config{Connection: PostgreSQL{Host: "localhost"}}
 	host := configPgOptional.GetOption(config) // Some(PostgreSQL{Host: "localhost"})
@@ -459,7 +459,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 		config := &Config{
 			Connection: PostgreSQL{Host: "localhost", Port: 5432},
@@ -478,7 +478,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 		var config *Config = nil
 
@@ -490,7 +490,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 		config := &Config{
 			Connection: MySQL{Host: "localhost", Port: 3306},
@@ -505,7 +505,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 		original := &Config{
 			Connection: PostgreSQL{Host: "localhost", Port: 5432},
@@ -541,7 +541,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 		var config *Config = nil
 
@@ -558,7 +558,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
 
-		configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 		original := &Config{
 			Connection: MySQL{Host: "localhost", Port: 3306},
@@ -585,7 +585,7 @@ func TestComposeRefBasicFunctionality(t *testing.T) {
 func TestComposeRefOptionalLaws(t *testing.T) {
 	connLens := connectionLensRef()
 	pgPrism := postgresqlPrism()
-	configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+	configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 	t.Run("SetGet Law: GetOption(Set(b)(s)) = Some(b) when GetOption(s) = Some(_)", func(t *testing.T) {
 		// Start with a config that has PostgreSQL
@@ -686,7 +686,7 @@ func TestComposeRefImmutability(t *testing.T) {
 	t.Run("Set creates a new pointer, doesn't modify original", func(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
-		optional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := ComposeRef[Config](pgPrism)(connLens)
 
 		original := &Config{
 			Connection: PostgreSQL{Host: "original", Port: 5432},
@@ -731,7 +731,7 @@ func TestComposeRefImmutability(t *testing.T) {
 	t.Run("Multiple operations on nil preserve nil", func(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
-		optional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := ComposeRef[Config](pgPrism)(connLens)
 
 		var config *Config = nil
 
@@ -756,7 +756,7 @@ func TestComposeRefNilPointerEdgeCases(t *testing.T) {
 	t.Run("GetOption on nil returns None", func(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
-		optional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := ComposeRef[Config](pgPrism)(connLens)
 
 		var config *Config = nil
 		result := optional.GetOption(config)
@@ -767,7 +767,7 @@ func TestComposeRefNilPointerEdgeCases(t *testing.T) {
 	t.Run("Set on nil with matching prism returns nil", func(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
-		optional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := ComposeRef[Config](pgPrism)(connLens)
 
 		var config *Config = nil
 		newPg := PostgreSQL{Host: "remote", Port: 5432}
@@ -781,7 +781,7 @@ func TestComposeRefNilPointerEdgeCases(t *testing.T) {
 	t.Run("Chaining operations starting from nil", func(t *testing.T) {
 		connLens := connectionLensRef()
 		pgPrism := postgresqlPrism()
-		optional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+		optional := ComposeRef[Config](pgPrism)(connLens)
 
 		var config *Config = nil
 
@@ -818,7 +818,7 @@ func TestComposeRefDocumentationExample(t *testing.T) {
 	)
 
 	// Compose to create Optional[*Config, PostgreSQL]
-	configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+	configPgOptional := ComposeRef[Config](pgPrism)(connLens)
 
 	// Works with non-nil pointers
 	config := &Config{Connection: PostgreSQL{Host: "localhost"}}

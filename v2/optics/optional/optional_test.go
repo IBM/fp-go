@@ -605,7 +605,7 @@ func TestOptionalComposition(t *testing.T) {
 		)
 
 		// Compose them
-		composed := Compose[Person, string, rune](firstCharOptional)(nameOptional)
+		composed := Compose[Person](firstCharOptional)(nameOptional)
 
 		person := Person{Name: "Alice", Age: 30}
 		result := composed.GetOption(person)
@@ -639,7 +639,7 @@ func TestOptionalNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// Try to modify - should return None
-		modifyResult := ModifyOption[Person, string](func(name string) string {
+		modifyResult := ModifyOption[Person](func(name string) string {
 			return "Bob"
 		})(optional)(person)
 
@@ -672,7 +672,7 @@ func TestOptionalNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsSome(initial))
 
 		// Modify should return Some with updated value
-		modifyResult := ModifyOption[Person, string](func(name string) string {
+		modifyResult := ModifyOption[Person](func(name string) string {
 			return name + " Smith"
 		})(optional)(person)
 
@@ -721,7 +721,7 @@ func TestOptionalNoOpBehaviorRef(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// Try to modify - should return None
-		modifyResult := ModifyOption[*Person, string](func(name string) string {
+		modifyResult := ModifyOption[*Person](func(name string) string {
 			return "Bob"
 		})(optional)(person)
 
@@ -736,7 +736,7 @@ func TestOptionalNoOpBehaviorRef(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// Try to modify - should return None
-		modifyResult := ModifyOption[*Person, string](func(name string) string {
+		modifyResult := ModifyOption[*Person](func(name string) string {
 			return "Bob"
 		})(optional)(person)
 
@@ -966,7 +966,7 @@ func TestSetOptionNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// SetOption should return None
-		result := SetOption[Person, string]("Bob")(optional)(person)
+		result := SetOption[Person]("Bob")(optional)(person)
 
 		assert.True(t, O.IsNone(result))
 	})
@@ -979,7 +979,7 @@ func TestSetOptionNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsSome(initial))
 
 		// SetOption should return Some with updated value
-		result := SetOption[Person, string]("Bob")(optional)(person)
+		result := SetOption[Person]("Bob")(optional)(person)
 
 		assert.True(t, O.IsSome(result))
 		updatedPerson := O.GetOrElse(F.Constant(person))(result)
