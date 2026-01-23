@@ -22,7 +22,8 @@
             "matchDepTypes": [
                 "golang"
             ],
-            "enabled": false
+            "enabled": false,
+            "description": "Disable updates to the go directive in go.mod files - the directive identifies the minimum compatible Go version and should stay as small as possible for maximum compatibility"
         },
         {
             "matchUpdateTypes": [
