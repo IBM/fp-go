@@ -17,6 +17,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -28,7 +29,7 @@ import (
 	"text/template"
 
 	S "github.com/IBM/fp-go/v2/string"
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 const (
@@ -934,12 +935,12 @@ func LensCommand() *C.Command {
 			flagVerbose,
 			flagIncludeTestFiles,
 		},
-		Action: func(ctx *C.Context) error {
+		Action: func(ctx context.Context, cmd *C.Command) error {
 			return generateLensHelpers(
-				ctx.String(keyLensDir),
-				ctx.String(keyFilename),
-				ctx.Bool(keyVerbose),
-				ctx.Bool(keyIncludeTestFile),
+				cmd.String(keyLensDir),
+				cmd.String(keyFilename),
+				cmd.Bool(keyVerbose),
+				cmd.Bool(keyIncludeTestFile),
 			)
 		},
 	}

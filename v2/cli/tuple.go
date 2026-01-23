@@ -16,6 +16,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -23,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 func writeTupleType(f *os.File, symbol string, i int) {
@@ -615,10 +616,10 @@ func TupleCommand() *C.Command {
 			flagCount,
 			flagFilename,
 		},
-		Action: func(ctx *C.Context) error {
+		Action: func(ctx context.Context, cmd *C.Command) error {
 			return generateTupleHelpers(
-				ctx.String(keyFilename),
-				ctx.Int(keyCount),
+				cmd.String(keyFilename),
+				cmd.Int(keyCount),
 			)
 		},
 	}

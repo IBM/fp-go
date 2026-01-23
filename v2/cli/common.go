@@ -16,7 +16,7 @@
 package cli
 
 import (
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 const (

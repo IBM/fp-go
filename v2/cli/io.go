@@ -16,6 +16,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -23,7 +24,7 @@ import (
 	"time"
 
 	A "github.com/IBM/fp-go/v2/array"
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 func nonGenericIO(param string) string {
@@ -102,10 +103,10 @@ func IOCommand() *C.Command {
 			flagCount,
 			flagFilename,
 		},
-		Action: func(ctx *C.Context) error {
+		Action: func(ctx context.Context, cmd *C.Command) error {
 			return generateIOHelpers(
-				ctx.String(keyFilename),
-				ctx.Int(keyCount),
+				cmd.String(keyFilename),
+				cmd.Int(keyCount),
 			)
 		},
 	}

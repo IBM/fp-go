@@ -16,13 +16,14 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
 
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 func generateReaderIOEitherFrom(f, fg *os.File, i int) {
@@ -284,10 +285,10 @@ func ReaderIOEitherCommand() *C.Command {
 			flagCount,
 			flagFilename,
 		},
-		Action: func(ctx *C.Context) error {
+		Action: func(ctx context.Context, cmd *C.Command) error {
 			return generateReaderIOEitherHelpers(
-				ctx.String(keyFilename),
-				ctx.Int(keyCount),
+				cmd.String(keyFilename),
+				cmd.Int(keyCount),
 			)
 		},
 	}

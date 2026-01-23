@@ -17,23 +17,28 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/IBM/fp-go/v2/cli"
 
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
 
-	app := &C.App{
+	app := &C.Command{
 		Name:     "fp-go",
 		Usage:    "Code generation for fp-go",
 		Commands: cli.Commands(),
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(ctx, os.Args); err != nil {
 		log.Fatal(err)
 	}
 }

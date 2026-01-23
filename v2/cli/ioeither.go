@@ -16,6 +16,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -23,7 +24,7 @@ import (
 	"time"
 
 	A "github.com/IBM/fp-go/v2/array"
-	C "github.com/urfave/cli/v2"
+	C "github.com/urfave/cli/v3"
 )
 
 // [GA ~func() ET.Either[E, A], GB ~func() ET.Either[E, B], GTAB ~func() ET.Either[E, T.Tuple2[A, B]], E, A, B any](a GA, b GB) GTAB {
@@ -273,10 +274,10 @@ func IOEitherCommand() *C.Command {
 			flagCount,
 			flagFilename,
 		},
-		Action: func(ctx *C.Context) error {
+		Action: func(ctx context.Context, cmd *C.Command) error {
 			return generateIOEitherHelpers(
-				ctx.String(keyFilename),
-				ctx.Int(keyCount),
+				cmd.String(keyFilename),
+				cmd.Int(keyCount),
 			)
 		},
 	}
