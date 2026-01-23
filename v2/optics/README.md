@@ -221,7 +221,7 @@ Lenses can be automatically generated using the `fp-go` CLI tool and a simple an
 1. **Annotate your struct** with the `fp-go:Lens` comment:
 
 ```go
-//go:generate go run github.com/IBM/fp-go/v2/main.go lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/v2 lens --dir . --filename gen_lens.go
 
 // fp-go:Lens
 type Person struct {
@@ -293,13 +293,23 @@ More specific optics can be converted to more general ones.
 
 ## 📦 Package Structure
 
+### Core Optics
 - **[optics/lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens)**: Lenses for product types (structs)
 - **[optics/prism](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism)**: Prisms for sum types ([`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either), [`Result`](https://pkg.go.dev/github.com/IBM/fp-go/v2/result), etc.)
 - **[optics/iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso)**: Isomorphisms for equivalent types
 - **[optics/optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional)**: Optional optics for maybe values
 - **[optics/traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal)**: Traversals for multiple values
 
-Each package includes specialized sub-packages for common patterns:
+### Utilities
+- **[optics/builder](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/builder)**: Builder pattern for constructing complex optics
+- **[optics/codec](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/codec)**: Type-safe encoding/decoding with validation
+  - Provides `Type[A, O, I]` for bidirectional transformations with validation
+  - Includes codecs for primitives (String, Int, Bool), collections (Array), and sum types (Either)
+  - Supports refinement types and codec composition via `Pipe`
+  - Integrates validation errors with context tracking
+
+### Specialized Sub-packages
+Each core optics package includes specialized sub-packages for common patterns:
 - **array**: Optics for arrays/slices
 - **either**: Optics for [`Either`](https://pkg.go.dev/github.com/IBM/fp-go/v2/either) types
 - **option**: Optics for [`Option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/option) types

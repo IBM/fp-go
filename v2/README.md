@@ -465,7 +465,7 @@ func process() IOResult[string] {
 - **ReaderIOResult** - Combine Reader, IO, and Result for complex workflows
 - **Array** - Functional array operations
 - **Record** - Functional record/map operations
-- **Optics** - Lens, Prism, Optional, and Traversal for immutable updates
+- **[Optics](./optics/README.md)** - Lens, Prism, Optional, and Traversal for immutable updates
 
 #### Idiomatic Packages (Tuple-based, High Performance)
 - **idiomatic/option** - Option monad using native Go `(value, bool)` tuples
