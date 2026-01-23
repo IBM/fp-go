@@ -5,7 +5,6 @@ go 1.24
 require (
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/urfave/cli/v3 v3.6.2
 )
 
 require (
