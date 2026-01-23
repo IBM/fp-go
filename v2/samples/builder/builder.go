@@ -27,10 +27,10 @@ var (
 	personLenses = MakePersonRefLenses()
 
 	// emptyPartialPerson is a zero-value PartialPerson used as a starting point for building.
-	emptyPartialPerson = &PartialPerson{}
+	emptyPartialPerson = F.Zero[*PartialPerson]()
 
 	// emptyPerson is a zero-value Person used as a starting point for validation.
-	emptyPerson = &Person{}
+	emptyPerson = F.Zero[*Person]()
 
 	// monoidPartialPerson is a monoid for composing endomorphisms on PartialPerson.
 	// Allows combining multiple builder operations.
