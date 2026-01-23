@@ -75,6 +75,20 @@ builder := MakePerson("Alice", 25)
 
 Define prisms that validate individual fields:
 
+> 💡 **Tip**: The `optics/prism` package provides many helpful out-of-the-box prisms for common validations, including:
+> - `NonEmptyString()` - validates non-empty strings
+> - `ParseInt()`, `ParseInt64()` - parses integers from strings
+> - `ParseFloat32()`, `ParseFloat64()` - parses floats from strings
+> - `ParseBool()` - parses booleans from strings
+> - `ParseDate(layout)` - parses dates with custom layouts
+> - `ParseURL()` - parses URLs
+> - `FromZero()`, `FromNonZero()` - validates zero/non-zero values
+> - `RegexMatcher()`, `RegexNamedMatcher()` - regex-based validation
+> - `FromOption()`, `FromEither()`, `FromResult()` - extracts from monadic types
+> - And many more! Check `optics/prism/prisms.go` for the full list.
+>
+> For custom validation logic, create your own prisms:
+
 ```go
 namePrism = prism.MakePrismWithName(
     func(s string) Option[NonEmptyString] {

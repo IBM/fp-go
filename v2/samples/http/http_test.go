@@ -107,7 +107,7 @@ func TestHeterogeneousHttpRequests(t *testing.T) {
 // BenchmarkHeterogeneousHttpRequests shows how to execute multiple HTTP requests in parallel when
 // the response structure of these requests is different. We use [R.TraverseTuple2] to account for the different types
 func BenchmarkHeterogeneousHttpRequests(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		heterogeneousHTTPRequests()(context.Background())()
+	for b.Loop() {
+		heterogeneousHTTPRequests()(b.Context())()
 	}
 }
