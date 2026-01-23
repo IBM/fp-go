@@ -8,6 +8,7 @@ import (
 )
 
 type (
+	// Result represents a computation that may succeed with a value of type A or fail with an error.
 	Result[A any] = result.Result[A]
 
 	// Either represents a value that can be one of two types: Left (error) or Right (success).
@@ -36,9 +37,11 @@ type (
 	// Errors is a collection of validation errors.
 	Errors = []*ValidationError
 
-	ValidationErrors struct {
-		Errors Errors
-		Cause  error
+	// validationErrors wraps a collection of validation errors with an optional root cause.
+	// It provides structured error information for validation failures.
+	validationErrors struct {
+		errors Errors
+		cause  error
 	}
 
 	// Validation represents the result of a validation operation.
@@ -48,9 +51,14 @@ type (
 	// Reader represents a computation that depends on an environment R and produces a value A.
 	Reader[R, A any] = reader.Reader[R, A]
 
+	// Kleisli represents a function from A to a validated B.
+	// It's a Reader that takes an input A and produces a Validation[B].
 	Kleisli[A, B any] = Reader[A, Validation[B]]
 
+	// Operator represents a validation transformation that takes a validated A and produces a validated B.
+	// It's a specialized Kleisli arrow for composing validation operations.
 	Operator[A, B any] = Kleisli[Validation[A], B]
 
+	// Monoid represents an algebraic structure with an associative binary operation and an identity element.
 	Monoid[A any] = monoid.Monoid[A]
 )

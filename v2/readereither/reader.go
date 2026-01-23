@@ -461,3 +461,24 @@ func TapLeft[A, R, EA, EB, B any](f Kleisli[R, EB, EA, B]) Operator[R, EA, A, A]
 func MonadFold[E, L, A, B any](ma ReaderEither[E, L, A], onLeft func(L) Reader[E, B], onRight func(A) Reader[E, B]) Reader[E, B] {
 	return Fold(onLeft, onRight)(ma)
 }
+
+//go:inline
+func MonadAlt[R, E, A any](first ReaderEither[R, E, A], second Lazy[ReaderEither[R, E, A]]) ReaderEither[R, E, A] {
+	return eithert.MonadAlt(
+		reader.Of[R, Either[E, A]],
+		reader.MonadChain[R, Either[E, A], Either[E, A]],
+
+		first,
+		second,
+	)
+}
+
+//go:inline
+func Alt[R, E, A any](second Lazy[ReaderEither[R, E, A]]) Operator[R, E, A, A] {
+	return eithert.Alt(
+		reader.Of[R, Either[E, A]],
+		reader.Chain[R, Either[E, A], Either[E, A]],
+
+		second,
+	)
+}

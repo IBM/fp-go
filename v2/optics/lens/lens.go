@@ -267,6 +267,11 @@ func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A 
 	return Lens[S, A]{Get: get, Set: set, name: name}
 }
 
+//go:inline
+func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], S, A any](get GET, set SET, name string) Lens[*S, A] {
+	return Lens[*S, A]{Get: get, Set: setCopyCurried(set), name: name}
+}
+
 // MakeLensRef creates a [Lens] for pointer-based structures.
 //
 // Unlike [MakeLens], the setter does not need to create a copy manually. This function

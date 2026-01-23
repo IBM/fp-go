@@ -17,6 +17,7 @@ package readereither
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -44,4 +45,6 @@ type (
 	// Operator represents a function that transforms one ReaderEither into another.
 	// It takes a ReaderEither[R, E, A] and produces a ReaderEither[R, E, B].
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderEither[R, E, A], B]
+
+	Lazy[A any] = lazy.Lazy[A]
 )

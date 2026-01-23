@@ -21,6 +21,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	"github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
@@ -473,21 +474,21 @@ func TestMonadAlt(t *testing.T) {
 	t.Run("Alt with first Some", func(t *testing.T) {
 		primary := Of[Config](42)
 		fallback := Of[Config](99)
-		result := MonadAlt(primary, fallback)
+		result := MonadAlt(primary, lazy.Of(fallback))
 		assert.Equal(t, O.Some(42), result(defaultConfig))
 	})
 
 	t.Run("Alt with first None", func(t *testing.T) {
 		primary := None[Config, int]()
 		fallback := Of[Config](99)
-		result := MonadAlt(primary, fallback)
+		result := MonadAlt(primary, lazy.Of(fallback))
 		assert.Equal(t, O.Some(99), result(defaultConfig))
 	})
 
 	t.Run("Alt with both None", func(t *testing.T) {
 		primary := None[Config, int]()
 		fallback := None[Config, int]()
-		result := MonadAlt(primary, fallback)
+		result := MonadAlt(primary, lazy.Of(fallback))
 		assert.Equal(t, O.None[int](), result(defaultConfig))
 	})
 }
@@ -497,7 +498,7 @@ func TestAlt(t *testing.T) {
 	t.Run("Alt with first Some", func(t *testing.T) {
 		result := F.Pipe1(
 			Of[Config](42),
-			Alt(Of[Config](99)),
+			Alt(lazy.Of(Of[Config](99))),
 		)
 		assert.Equal(t, O.Some(42), result(defaultConfig))
 	})
@@ -505,7 +506,7 @@ func TestAlt(t *testing.T) {
 	t.Run("Alt with first None", func(t *testing.T) {
 		result := F.Pipe1(
 			None[Config, int](),
-			Alt(Of[Config](99)),
+			Alt(lazy.Of(Of[Config](99))),
 		)
 		assert.Equal(t, O.Some(99), result(defaultConfig))
 	})

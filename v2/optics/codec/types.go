@@ -2,7 +2,10 @@ package codec
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/internal/formatting"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/codec/decode"
+	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
@@ -15,6 +18,10 @@ import (
 )
 
 type (
+	// Formattable represents a type that can be formatted as a string representation.
+	// It provides a way to obtain a human-readable description of a type or value.
+	Formattable = formatting.Formattable
+
 	// ReaderResult represents a computation that depends on an environment R,
 	// produces a value A, and may fail with an error.
 	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
@@ -48,11 +55,11 @@ type (
 
 	// Validate is a function that validates input I to produce type A.
 	// It takes an input and returns a Reader that depends on the validation Context.
-	Validate[I, A any] = Reader[I, Reader[Context, Validation[A]]]
+	Validate[I, A any] = validate.Validate[I, A]
 
 	// Decode is a function that decodes input I to type A with validation.
 	// It returns a Validation result directly.
-	Decode[I, A any] = Reader[I, Validation[A]]
+	Decode[I, A any] = decode.Decode[I, A]
 
 	// Encode is a function that encodes type A to output O.
 	Encode[A, O any] = Reader[A, O]
@@ -60,7 +67,7 @@ type (
 	// Decoder is an interface for types that can decode and validate input.
 	Decoder[I, A any] interface {
 		Name() string
-		Validate(I) Reader[Context, Validation[A]]
+		Validate(I) Decode[Context, A]
 		Decode(I) Validation[A]
 	}
 
@@ -73,6 +80,7 @@ type (
 	// and type checking capabilities. It represents a complete specification of
 	// how to work with a particular type.
 	Type[A, O, I any] interface {
+		Formattable
 		Decoder[I, A]
 		Encoder[A, O]
 		AsDecoder() Decoder[I, A]

@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"log/slog"
 
 	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
@@ -73,38 +74,80 @@ func (v *ValidationError) Format(s fmt.State, verb rune) {
 	fmt.Fprint(s, result)
 }
 
+// LogValue implements the slog.LogValuer interface for ValidationError.
+// It provides structured logging representation of the validation error.
+// Returns a slog.Value containing the error details as a group with
+// message, value, context path, and optional cause.
+//
+// This method is called automatically when logging a ValidationError with slog.
+//
+// Example:
+//
+//	err := &ValidationError{Value: "abc", Messsage: "expected number"}
+//	slog.Error("validation failed", "error", err)
+//	// Logs: error={message="expected number" value="abc"}
+func (v *ValidationError) LogValue() slog.Value {
+	attrs := []slog.Attr{
+		slog.String("message", v.Messsage),
+		slog.Any("value", v.Value),
+	}
+
+	// Add context path if available
+	if len(v.Context) > 0 {
+		path := ""
+		for i, entry := range v.Context {
+			if i > 0 {
+				path += "."
+			}
+			if entry.Key != "" {
+				path += entry.Key
+			} else {
+				path += entry.Type
+			}
+		}
+		attrs = append(attrs, slog.String("path", path))
+	}
+
+	// Add cause if present
+	if v.Cause != nil {
+		attrs = append(attrs, slog.Any("cause", v.Cause))
+	}
+
+	return slog.GroupValue(attrs...)
+}
+
 // Error implements the error interface for ValidationErrors.
 // Returns a generic error message indicating validation errors occurred.
-func (ve *ValidationErrors) Error() string {
-	if len(ve.Errors) == 0 {
+func (ve *validationErrors) Error() string {
+	if len(ve.errors) == 0 {
 		return "ValidationErrors: no errors"
 	}
-	if len(ve.Errors) == 1 {
+	if len(ve.errors) == 1 {
 		return "ValidationErrors: 1 error"
 	}
-	return fmt.Sprintf("ValidationErrors: %d errors", len(ve.Errors))
+	return fmt.Sprintf("ValidationErrors: %d errors", len(ve.errors))
 }
 
 // Unwrap returns the underlying cause error if present.
 // This allows ValidationErrors to work with errors.Is and errors.As.
-func (ve *ValidationErrors) Unwrap() error {
-	return ve.Cause
+func (ve *validationErrors) Unwrap() error {
+	return ve.cause
 }
 
 // String returns a simple string representation of all validation errors.
 // Each error is listed on a separate line with its index.
-func (ve *ValidationErrors) String() string {
-	if len(ve.Errors) == 0 {
+func (ve *validationErrors) String() string {
+	if len(ve.errors) == 0 {
 		return "ValidationErrors: no errors"
 	}
 
-	result := fmt.Sprintf("ValidationErrors (%d):\n", len(ve.Errors))
-	for i, err := range ve.Errors {
+	result := fmt.Sprintf("ValidationErrors (%d):\n", len(ve.errors))
+	for i, err := range ve.errors {
 		result += fmt.Sprintf("  [%d] %s\n", i, err.String())
 	}
 
-	if ve.Cause != nil {
-		result += fmt.Sprintf("  caused by: %v\n", ve.Cause)
+	if ve.cause != nil {
+		result += fmt.Sprintf("  caused by: %v\n", ve.cause)
 	}
 
 	return result
@@ -114,35 +157,68 @@ func (ve *ValidationErrors) String() string {
 // Supports verbs: %s, %v, %+v (with additional details)
 // %s and %v: compact format with error count
 // %+v: verbose format with all error details
-func (ve *ValidationErrors) Format(s fmt.State, verb rune) {
-	if len(ve.Errors) == 0 {
+func (ve *validationErrors) Format(s fmt.State, verb rune) {
+	if len(ve.errors) == 0 {
 		fmt.Fprint(s, "ValidationErrors: no errors")
 		return
 	}
 
 	// For simple format, just show the count
 	if verb == 's' || (verb == 'v' && !s.Flag('+')) {
-		if len(ve.Errors) == 1 {
+		if len(ve.errors) == 1 {
 			fmt.Fprint(s, "ValidationErrors: 1 error")
 		} else {
-			fmt.Fprintf(s, "ValidationErrors: %d errors", len(ve.Errors))
+			fmt.Fprintf(s, "ValidationErrors: %d errors", len(ve.errors))
 		}
 		return
 	}
 
 	// Verbose format with all details
 	if s.Flag('+') && verb == 'v' {
-		fmt.Fprintf(s, "ValidationErrors (%d):\n", len(ve.Errors))
-		for i, err := range ve.Errors {
+		fmt.Fprintf(s, "ValidationErrors (%d):\n", len(ve.errors))
+		for i, err := range ve.errors {
 			fmt.Fprintf(s, "  [%d] ", i)
 			err.Format(s, verb)
 			fmt.Fprint(s, "\n")
 		}
 
-		if ve.Cause != nil {
-			fmt.Fprintf(s, "  root cause: %+v\n", ve.Cause)
+		if ve.cause != nil {
+			fmt.Fprintf(s, "  root cause: %+v\n", ve.cause)
 		}
 	}
+}
+
+// LogValue implements the slog.LogValuer interface for ValidationErrors.
+// It provides structured logging representation of multiple validation errors.
+// Returns a slog.Value containing the error count and individual errors as a group.
+//
+// This method is called automatically when logging ValidationErrors with slog.
+//
+// Example:
+//
+//	errors := &ValidationErrors{Errors: []*ValidationError{{Messsage: "error1"}, {Messsage: "error2"}}}
+//	slog.Error("validation failed", "errors", errors)
+//	// Logs: errors={count=2 errors=[...]}
+func (ve *validationErrors) LogValue() slog.Value {
+	attrs := []slog.Attr{
+		slog.Int("count", len(ve.errors)),
+	}
+
+	// Add individual errors as a group
+	if len(ve.errors) > 0 {
+		errorAttrs := make([]slog.Attr, len(ve.errors))
+		for i, err := range ve.errors {
+			errorAttrs[i] = slog.Any(fmt.Sprintf("error_%d", i), err)
+		}
+		attrs = append(attrs, slog.Any("errors", slog.GroupValue(errorAttrs...)))
+	}
+
+	// Add cause if present
+	if ve.cause != nil {
+		attrs = append(attrs, slog.Any("cause", ve.cause))
+	}
+
+	return slog.GroupValue(attrs...)
 }
 
 // Failures creates a validation failure from a collection of errors.
@@ -215,7 +291,7 @@ func Success[T any](value T) Validation[T] {
 //	err := MakeValidationErrors(errors)
 //	fmt.Println(err) // Output: ValidationErrors: 2 errors
 func MakeValidationErrors(errors Errors) error {
-	return &ValidationErrors{Errors: errors}
+	return &validationErrors{errors: errors}
 }
 
 // ToResult converts a Validation[T] to a Result[T].

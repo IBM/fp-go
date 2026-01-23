@@ -31,6 +31,10 @@ func Ap[B, A any](fa Validation[A]) Operator[func(A) B, B] {
 	return either.ApV[B, A](ErrorsMonoid())(fa)
 }
 
+func MonadAp[B, A any](fab Validation[func(A) B], fa Validation[A]) Validation[B] {
+	return either.MonadApV[B, A](ErrorsMonoid())(fab, fa)
+}
+
 // Map transforms the value inside a successful validation using the provided function.
 // If the validation is a failure, the errors are preserved unchanged.
 // This is the functor map operation for Validation.
@@ -41,6 +45,18 @@ func Ap[B, A any](fa Validation[A]) Operator[func(A) B, B] {
 //	// Result: Success(42)
 func Map[A, B any](f func(A) B) Operator[A, B] {
 	return either.Map[Errors](f)
+}
+
+func MonadMap[A, B any](fa Validation[A], f func(A) B) Validation[B] {
+	return either.MonadMap(fa, f)
+}
+
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
+	return either.Chain(f)
+}
+
+func MonadChain[A, B any](fa Validation[A], f Kleisli[A, B]) Validation[B] {
+	return either.MonadChain(fa, f)
 }
 
 // Applicative creates an Applicative instance for Validation with error accumulation.

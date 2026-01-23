@@ -3,6 +3,7 @@ package validation
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
@@ -430,10 +431,10 @@ func TestMakeValidationErrors(t *testing.T) {
 		assert.Equal(t, "ValidationErrors: 1 error", err.Error())
 
 		// Verify it's a ValidationErrors type
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		assert.Len(t, ve.Errors, 1)
-		assert.Equal(t, "invalid value", ve.Errors[0].Messsage)
+		assert.Len(t, ve.errors, 1)
+		assert.Equal(t, "invalid value", ve.errors[0].Messsage)
 	})
 
 	t.Run("creates error from multiple validation errors", func(t *testing.T) {
@@ -448,9 +449,9 @@ func TestMakeValidationErrors(t *testing.T) {
 		require.NotNil(t, err)
 		assert.Equal(t, "ValidationErrors: 3 errors", err.Error())
 
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		assert.Len(t, ve.Errors, 3)
+		assert.Len(t, ve.errors, 3)
 	})
 
 	t.Run("creates error from empty errors slice", func(t *testing.T) {
@@ -461,9 +462,9 @@ func TestMakeValidationErrors(t *testing.T) {
 		require.NotNil(t, err)
 		assert.Equal(t, "ValidationErrors: no errors", err.Error())
 
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		assert.Len(t, ve.Errors, 0)
+		assert.Len(t, ve.errors, 0)
 	})
 
 	t.Run("preserves error details", func(t *testing.T) {
@@ -479,13 +480,13 @@ func TestMakeValidationErrors(t *testing.T) {
 
 		err := MakeValidationErrors(errs)
 
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		require.Len(t, ve.Errors, 1)
-		assert.Equal(t, "abc", ve.Errors[0].Value)
-		assert.Equal(t, "invalid format", ve.Errors[0].Messsage)
-		assert.Equal(t, cause, ve.Errors[0].Cause)
-		assert.Len(t, ve.Errors[0].Context, 1)
+		require.Len(t, ve.errors, 1)
+		assert.Equal(t, "abc", ve.errors[0].Value)
+		assert.Equal(t, "invalid format", ve.errors[0].Messsage)
+		assert.Equal(t, cause, ve.errors[0].Cause)
+		assert.Len(t, ve.errors[0].Context, 1)
 	})
 
 	t.Run("error can be formatted", func(t *testing.T) {
@@ -536,10 +537,10 @@ func TestToResult(t *testing.T) {
 		assert.Equal(t, "ValidationErrors: 1 error", err.Error())
 
 		// Verify it's a ValidationErrors type
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		assert.Len(t, ve.Errors, 1)
-		assert.Equal(t, "expected number", ve.Errors[0].Messsage)
+		assert.Len(t, ve.errors, 1)
+		assert.Equal(t, "expected number", ve.errors[0].Messsage)
 	})
 
 	t.Run("converts multiple validation errors to result", func(t *testing.T) {
@@ -559,9 +560,9 @@ func TestToResult(t *testing.T) {
 		require.NotNil(t, err)
 		assert.Equal(t, "ValidationErrors: 2 errors", err.Error())
 
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		assert.Len(t, ve.Errors, 2)
+		assert.Len(t, ve.errors, 2)
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
@@ -625,10 +626,10 @@ func TestToResult(t *testing.T) {
 			F.Identity[error],
 			func(int) error { return nil },
 		)
-		ve, ok := err.(*ValidationErrors)
+		ve, ok := err.(*validationErrors)
 		require.True(t, ok)
-		require.Len(t, ve.Errors, 1)
-		assert.True(t, errors.Is(ve.Errors[0], cause))
+		require.Len(t, ve.errors, 1)
+		assert.True(t, errors.Is(ve.errors[0], cause))
 	})
 
 	t.Run("result error implements error interface", func(t *testing.T) {
@@ -648,5 +649,215 @@ func TestToResult(t *testing.T) {
 		var stdErr error = err
 		assert.NotNil(t, stdErr)
 		assert.Contains(t, stdErr.Error(), "ValidationErrors")
+	})
+}
+
+// TestValidationError_LogValue tests the LogValue() method implementation
+func TestValidationError_LogValue(t *testing.T) {
+	t.Run("simple error without context", func(t *testing.T) {
+		err := &ValidationError{
+			Value:    "test",
+			Messsage: "invalid value",
+		}
+
+		logValue := err.LogValue()
+		assert.Equal(t, slog.KindGroup, logValue.Kind())
+
+		attrs := logValue.Group()
+		assert.GreaterOrEqual(t, len(attrs), 2)
+
+		attrMap := make(map[string]string)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.String()
+		}
+
+		assert.Equal(t, "invalid value", attrMap["message"])
+		assert.Contains(t, attrMap["value"], "test")
+	})
+
+	t.Run("error with context path", func(t *testing.T) {
+		err := &ValidationError{
+			Value:    "test",
+			Context:  []ContextEntry{{Key: "user"}, {Key: "name"}},
+			Messsage: "must not be empty",
+		}
+
+		logValue := err.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]string)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.String()
+		}
+
+		assert.Equal(t, "must not be empty", attrMap["message"])
+		assert.Equal(t, "user.name", attrMap["path"])
+	})
+
+	t.Run("error with cause", func(t *testing.T) {
+		cause := errors.New("parse error")
+		err := &ValidationError{
+			Value:    "abc",
+			Messsage: "invalid number",
+			Cause:    cause,
+		}
+
+		logValue := err.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]any)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.Any()
+		}
+
+		assert.Equal(t, "invalid number", attrMap["message"])
+		assert.NotNil(t, attrMap["cause"])
+	})
+
+	t.Run("error with context using type", func(t *testing.T) {
+		err := &ValidationError{
+			Value:    123,
+			Context:  []ContextEntry{{Type: "User"}, {Key: "age"}},
+			Messsage: "must be positive",
+		}
+
+		logValue := err.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]string)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.String()
+		}
+
+		assert.Equal(t, "User.age", attrMap["path"])
+	})
+
+	t.Run("complex context path", func(t *testing.T) {
+		err := &ValidationError{
+			Value: "invalid",
+			Context: []ContextEntry{
+				{Key: "user"},
+				{Key: "address"},
+				{Key: "zipCode"},
+			},
+			Messsage: "invalid format",
+		}
+
+		logValue := err.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]string)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.String()
+		}
+
+		assert.Equal(t, "user.address.zipCode", attrMap["path"])
+	})
+}
+
+// TestValidationErrors_LogValue tests the LogValue() method implementation
+func TestValidationErrors_LogValue(t *testing.T) {
+	t.Run("empty errors", func(t *testing.T) {
+		ve := &validationErrors{errors: Errors{}}
+
+		logValue := ve.LogValue()
+		assert.Equal(t, slog.KindGroup, logValue.Kind())
+
+		attrs := logValue.Group()
+		attrMap := make(map[string]any)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.Any()
+		}
+
+		assert.Equal(t, int64(0), attrMap["count"])
+	})
+
+	t.Run("single error", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Value: "test", Messsage: "error 1"},
+			},
+		}
+
+		logValue := ve.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]any)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.Any()
+		}
+
+		assert.Equal(t, int64(1), attrMap["count"])
+		assert.NotNil(t, attrMap["errors"])
+	})
+
+	t.Run("multiple errors", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Value: "test1", Messsage: "error 1"},
+				&ValidationError{Value: "test2", Messsage: "error 2"},
+				&ValidationError{Value: "test3", Messsage: "error 3"},
+			},
+		}
+
+		logValue := ve.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]any)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.Any()
+		}
+
+		assert.Equal(t, int64(3), attrMap["count"])
+		assert.NotNil(t, attrMap["errors"])
+	})
+
+	t.Run("with cause", func(t *testing.T) {
+		cause := errors.New("underlying error")
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Value: "test", Messsage: "error"},
+			},
+			cause: cause,
+		}
+
+		logValue := ve.LogValue()
+		attrs := logValue.Group()
+
+		attrMap := make(map[string]any)
+		for _, attr := range attrs {
+			attrMap[attr.Key] = attr.Value.Any()
+		}
+
+		assert.NotNil(t, attrMap["cause"])
+	})
+
+	t.Run("preserves error details", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{
+					Value:    "abc",
+					Context:  []ContextEntry{{Key: "field"}},
+					Messsage: "invalid format",
+				},
+			},
+		}
+
+		logValue := ve.LogValue()
+		assert.Equal(t, slog.KindGroup, logValue.Kind())
+
+		attrs := logValue.Group()
+		assert.GreaterOrEqual(t, len(attrs), 2)
+	})
+}
+
+// TestLogValuerInterface verifies that ValidationError and ValidationErrors implement slog.LogValuer
+func TestLogValuerInterface(t *testing.T) {
+	t.Run("ValidationError implements slog.LogValuer", func(t *testing.T) {
+		var _ slog.LogValuer = (*ValidationError)(nil)
+	})
+
+	t.Run("ValidationErrors implements slog.LogValuer", func(t *testing.T) {
+		var _ slog.LogValuer = (*validationErrors)(nil)
 	})
 }

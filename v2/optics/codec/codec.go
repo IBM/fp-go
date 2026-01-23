@@ -55,7 +55,7 @@ func MakeType[A, O, I any](
 
 // Validate validates the input value in the context of a validation path.
 // Returns a Reader that takes a Context and produces a Validation result.
-func (t *typeImpl[A, O, I]) Validate(i I) Reader[Context, Validation[A]] {
+func (t *typeImpl[A, O, I]) Validate(i I) Decode[Context, A] {
 	return t.validate(i)
 }
 
@@ -145,7 +145,7 @@ func validateFromIs[A, I any](
 	is ReaderResult[I, A],
 	msg string,
 ) Validate[I, A] {
-	return func(i I) Reader[Context, Validation[A]] {
+	return func(i I) Decode[Context, A] {
 		return F.Pipe2(
 			i,
 			is,
@@ -284,7 +284,7 @@ func validateArrayFromArray[T, O, I any](item Type[T, O, I]) Validate[[]I, []T] 
 
 	zero := pair.Zero[validation.Errors, []T]()
 
-	return func(is []I) Reader[Context, Validation[[]T]] {
+	return func(is []I) Decode[Context, []T] {
 
 		return func(c Context) Validation[[]T] {
 
@@ -318,7 +318,7 @@ func validateArray[T, O any](item Type[T, O, any]) Validate[any, []T] {
 
 	zero := pair.Zero[validation.Errors, []T]()
 
-	return func(i any) Reader[Context, Validation[[]T]] {
+	return func(i any) Decode[Context, []T] {
 
 		res, ok := i.([]T)
 		if ok {
@@ -471,7 +471,7 @@ func validateEitherFromEither[L, R, OL, OR, IL, IR any](
 	// leftName := left.Name()
 	// rightName := right.Name()
 
-	return func(is either.Either[IL, IR]) Reader[Context, Validation[either.Either[L, R]]] {
+	return func(is either.Either[IL, IR]) Decode[Context, either.Either[L, R]] {
 
 		return either.MonadFold(
 			is,
@@ -570,7 +570,7 @@ func TranscodeEither[L, R, OL, OR, IL, IR any](leftItem Type[L, OL, IL], rightIt
 	)
 }
 
-func validateAlways[T any](is T) Reader[Context, Validation[T]] {
+func validateAlways[T any](is T) Decode[Context, T] {
 	return reader.Of[Context](validation.Success(is))
 }
 
@@ -633,7 +633,7 @@ func Id[T any]() Type[T, T, T] {
 
 func validateFromRefinement[A, B any](refinement Refinement[A, B]) Validate[A, B] {
 
-	return func(a A) Reader[Context, Validation[B]] {
+	return func(a A) Decode[Context, B] {
 
 		return func(ctx Context) Validation[B] {
 			return F.Pipe2(

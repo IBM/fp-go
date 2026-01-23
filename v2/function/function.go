@@ -253,7 +253,7 @@ func Second[T1, T2 any](_ T1, t2 T2) T2 {
 }
 
 // Zero returns the zero value of the given type.
-func Zero[A comparable]() A {
+func Zero[A any]() A {
 	var zero A
 	return zero
 }

@@ -384,8 +384,13 @@ func Flap[E, B, A any](a A) Operator[E, func(A) B, B] {
 //	result := readeroption.MonadAlt(primary, fallback)
 //
 //go:inline
-func MonadAlt[E, A any](fa, that ReaderOption[E, A]) ReaderOption[E, A] {
-	return MonadFold(fa, that, Of[E, A])
+func MonadAlt[E, A any](first ReaderOption[E, A], second Lazy[ReaderOption[E, A]]) ReaderOption[E, A] {
+	return optiont.MonadAlt(
+		reader.Of[E, Option[A]],
+		reader.MonadChain[E, Option[A], Option[A]],
+		first,
+		second,
+	)
 }
 
 // Alt returns a function that provides an alternative ReaderOption if the first one returns None.
@@ -399,6 +404,10 @@ func MonadAlt[E, A any](fa, that ReaderOption[E, A]) ReaderOption[E, A] {
 //	)
 //
 //go:inline
-func Alt[E, A any](that ReaderOption[E, A]) Operator[E, A, A] {
-	return Fold(that, Of[E, A])
+func Alt[E, A any](second Lazy[ReaderOption[E, A]]) Operator[E, A, A] {
+	return optiont.Alt(
+		reader.Of[E, Option[A]],
+		reader.Chain[E, Option[A], Option[A]],
+		second,
+	)
 }

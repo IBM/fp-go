@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -124,4 +125,6 @@ type (
 	//   - A: The original focus type
 	//   - B: The new focus type
 	Operator[S, A, B any] = func(Prism[S, A]) Prism[S, B]
+
+	Predicate[A any] = predicate.Predicate[A]
 )
