@@ -61,7 +61,7 @@ func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
 
 		Of[Seq[B]],
 		Map[Seq[B]],
-		MonadAp[Seq[B]],
+		Ap[Seq[B]],
 
 		f,
 	)

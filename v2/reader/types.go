@@ -15,7 +15,11 @@
 
 package reader
 
-import "github.com/IBM/fp-go/v2/tailrec"
+import (
+	"iter"
+
+	"github.com/IBM/fp-go/v2/tailrec"
+)
 
 type (
 	// Reader represents a computation that depends on a shared environment of type R and produces a value of type A.
@@ -96,4 +100,7 @@ type (
 	// without stack overflow. It's used for implementing stack-safe recursive algorithms
 	// in the context of Reader computations.
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
+
+	// Seq represents an iterator sequence over values of type T.
+	Seq[T any] = iter.Seq[T]
 )

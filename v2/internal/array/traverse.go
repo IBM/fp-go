@@ -19,6 +19,31 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
+// MonadSequenceSegment sequences a segment of an array of effects using a divide-and-conquer approach.
+// It recursively splits the array segment in half, sequences each half, and concatenates the results.
+//
+// This function is optimized for performance by using a divide-and-conquer strategy that reduces
+// the depth of nested function calls compared to a linear fold approach.
+//
+// Type parameters:
+//   - HKTB: The higher-kinded type containing values (e.g., Option[B], Either[E, B])
+//   - HKTRB: The higher-kinded type containing an array of values (e.g., Option[[]B], Either[E, []B])
+//
+// Parameters:
+//   - fof: Function to lift a single HKTB into HKTRB
+//   - empty: The empty/identity value for HKTRB
+//   - concat: Function to concatenate two HKTRB values
+//   - fbs: The array of effects to sequence
+//   - start: The starting index of the segment (inclusive)
+//   - end: The ending index of the segment (exclusive)
+//
+// Returns:
+//   - HKTRB: The sequenced result for the segment
+//
+// The function handles three cases:
+//   - Empty segment (end - start == 0): returns empty
+//   - Single element (end - start == 1): returns fof(fbs[start])
+//   - Multiple elements: recursively divides and conquers
 func MonadSequenceSegment[HKTB, HKTRB any](
 	fof func(HKTB) HKTRB,
 	empty HKTRB,
@@ -41,6 +66,23 @@ func MonadSequenceSegment[HKTB, HKTRB any](
 	}
 }
 
+// SequenceSegment creates a function that sequences a segment of an array of effects.
+// Unlike MonadSequenceSegment, this returns a curried function that can be reused.
+//
+// This function builds a computation tree at construction time, which can be more efficient
+// when the same sequencing pattern needs to be applied multiple times to arrays of the same length.
+//
+// Type parameters:
+//   - HKTB: The higher-kinded type containing values
+//   - HKTRB: The higher-kinded type containing an array of values
+//
+// Parameters:
+//   - fof: Function to lift a single HKTB into HKTRB
+//   - empty: The empty/identity value for HKTRB
+//   - concat: Function to concatenate two HKTRB values
+//
+// Returns:
+//   - A function that takes an array of HKTB and returns HKTRB
 func SequenceSegment[HKTB, HKTRB any](
 	fof func(HKTB) HKTRB,
 	empty HKTRB,
@@ -85,14 +127,39 @@ func SequenceSegment[HKTB, HKTRB any](
 	}
 }
 
-/*
-*
-We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
-
-HKTRB = HKT<GB>
-HKTB = HKT<B>
-HKTAB = HKT<func(A)B>
-*/
+// MonadTraverse maps each element of an array to an effect, then sequences the results.
+// This is the monadic version that takes the array as a direct parameter.
+//
+// Traverse combines mapping and sequencing in one operation. It's useful when you want to
+// transform each element of an array into an effect (like Option, Either, IO, etc.) and
+// then collect all those effects into a single effect containing an array.
+//
+// We need to pass the members of the applicative explicitly, because golang does neither
+// support higher kinded types nor template methods on structs or interfaces.
+//
+// Type parameters:
+//   - GA: The input array type (e.g., []A)
+//   - GB: The output array type (e.g., []B)
+//   - A: The input element type
+//   - B: The output element type
+//   - HKTB: HKT<B> - The effect containing B (e.g., Option[B])
+//   - HKTAB: HKT<func(B)GB> - Intermediate applicative type
+//   - HKTRB: HKT<GB> - The effect containing the result array (e.g., Option[[]B])
+//
+// Parameters:
+//   - fof: Function to lift a value into the effect (Of/Pure)
+//   - fmap: Function to map over the effect (Map)
+//   - fap: Function to apply an effect of a function to an effect of a value (Ap)
+//   - ta: The input array to traverse
+//   - f: The function to apply to each element, producing an effect
+//
+// Returns:
+//   - HKTRB: An effect containing the array of transformed values
+//
+// Example:
+//
+//	If any element produces None, the entire result is None.
+//	If all elements produce Some, the result is Some containing all values.
 func MonadTraverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -103,14 +170,20 @@ func MonadTraverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	return MonadTraverseReduce(fof, fmap, fap, ta, f, Append[GB, B], Empty[GB]())
 }
 
-/*
-*
-We need to pass the members of the applicative explicitly, because golang does neither support higher kinded types nor template methods on structs or interfaces
-
-HKTRB = HKT<GB>
-HKTB = HKT<B>
-HKTAB = HKT<func(A)B>
-*/
+// MonadTraverseWithIndex is like MonadTraverse but the transformation function also receives the index.
+// This is useful when the transformation depends on the element's position in the array.
+//
+// Type parameters: Same as MonadTraverse
+//
+// Parameters:
+//   - fof: Function to lift a value into the effect (Of/Pure)
+//   - fmap: Function to map over the effect (Map)
+//   - fap: Function to apply an effect of a function to an effect of a value (Ap)
+//   - ta: The input array to traverse
+//   - f: The function to apply to each element with its index, producing an effect
+//
+// Returns:
+//   - HKTRB: An effect containing the array of transformed values
 func MonadTraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -121,6 +194,19 @@ func MonadTraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	return MonadTraverseReduceWithIndex(fof, fmap, fap, ta, f, Append[GB, B], Empty[GB]())
 }
 
+// Traverse creates a curried function that maps each element to an effect and sequences the results.
+// This is the curried version of MonadTraverse, useful for partial application and composition.
+//
+// Type parameters: Same as MonadTraverse
+//
+// Parameters:
+//   - fof: Function to lift a value into the effect (Of/Pure)
+//   - fmap: Function to map over the effect (Map)
+//   - fap: Function to apply an effect of a function to an effect of a value (Ap)
+//   - f: The function to apply to each element, producing an effect
+//
+// Returns:
+//   - A function that takes an array and returns an effect containing the transformed array
 func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -133,6 +219,19 @@ func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	}
 }
 
+// TraverseWithIndex creates a curried function like Traverse but with index-aware transformation.
+// This is the curried version of MonadTraverseWithIndex.
+//
+// Type parameters: Same as MonadTraverse
+//
+// Parameters:
+//   - fof: Function to lift a value into the effect (Of/Pure)
+//   - fmap: Function to map over the effect (Map)
+//   - fap: Function to apply an effect of a function to an effect of a value (Ap)
+//   - f: The function to apply to each element with its index, producing an effect
+//
+// Returns:
+//   - A function that takes an array and returns an effect containing the transformed array
 func TraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -231,6 +330,16 @@ func TraverseReduce[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
 	}
 }
 
+// TraverseReduceWithIndex creates a curried function for index-aware custom reduction during traversal.
+// This is the curried version of MonadTraverseReduceWithIndex.
+//
+// Type parameters: Same as MonadTraverseReduce
+//
+// Parameters: Same as TraverseReduce, except:
+//   - transform: Function that takes index and element, producing an effect
+//
+// Returns:
+//   - A function that takes an array and returns an effect containing the accumulated value
 func TraverseReduceWithIndex[GA ~[]A, GB, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,

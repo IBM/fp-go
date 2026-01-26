@@ -61,15 +61,102 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	)
 }
 
+// TraverseIter applies an IO-returning function to each element of an iterator sequence
+// and collects the results into an IO of an iterator sequence. Executes in parallel by default.
+//
+// This function is useful for processing lazy sequences where each element requires an IO operation.
+// The resulting iterator is also lazy and will only execute IO operations when iterated.
+//
+// Type Parameters:
+//   - A: The input element type
+//   - B: The output element type
+//
+// Parameters:
+//   - f: A function that takes an element of type A and returns an IO computation producing B
+//
+// Returns:
+//   - A function that takes an iterator sequence of A and returns an IO of an iterator sequence of B
+//
+// Example:
+//
+//	// Fetch user data for each ID in a sequence
+//	fetchUser := func(id int) io.IO[User] {
+//	    return func() User {
+//	        // Simulate fetching user from database
+//	        return User{ID: id, Name: fmt.Sprintf("User%d", id)}
+//	    }
+//	}
+//
+//	// Create an iterator of user IDs
+//	userIDs := func(yield func(int) bool) {
+//	    for _, id := range []int{1, 2, 3, 4, 5} {
+//	        if !yield(id) { return }
+//	    }
+//	}
+//
+//	// Traverse the iterator, fetching each user
+//	fetchUsers := io.TraverseIter(fetchUser)
+//	usersIO := fetchUsers(userIDs)
+//
+//	// Execute the IO to get the iterator of users
+//	users := usersIO()
+//	for user := range users {
+//	    fmt.Printf("User: %v\n", user)
+//	}
 func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
 	return INTI.Traverse[Seq[A]](
 		Map[B],
 
 		Of[Seq[B]],
 		Map[Seq[B]],
-		MonadAp[Seq[B]],
+		Ap[Seq[B]],
 
 		f,
+	)
+}
+
+// SequenceIter converts an iterator sequence of IO computations into an IO of an iterator sequence of results.
+// All computations are executed in parallel by default when the resulting IO is invoked.
+//
+// This is a special case of TraverseIter where the transformation function is the identity.
+// It "flips" the nesting of the iterator and IO types, executing all IO operations and collecting
+// their results into a lazy iterator.
+//
+// Type Parameters:
+//   - A: The element type
+//
+// Parameters:
+//   - as: An iterator sequence where each element is an IO computation
+//
+// Returns:
+//   - An IO computation that, when executed, produces an iterator sequence of results
+//
+// Example:
+//
+//	// Create an iterator of IO operations
+//	operations := func(yield func(io.IO[int]) bool) {
+//	    yield(func() int { return 1 })
+//	    yield(func() int { return 2 })
+//	    yield(func() int { return 3 })
+//	}
+//
+//	// Sequence the operations
+//	resultsIO := io.SequenceIter(operations)
+//
+//	// Execute all IO operations and get the iterator of results
+//	results := resultsIO()
+//	for result := range results {
+//	    fmt.Printf("Result: %d\n", result)
+//	}
+//
+// Note: The IO operations are executed when resultsIO() is called, not when iterating
+// over the results. The resulting iterator is lazy but the computations have already
+// been performed.
+func SequenceIter[A any](as Seq[IO[A]]) IO[Seq[A]] {
+	return INTI.MonadSequence(
+		Map(INTI.Of[Seq[A]]),
+		ApplicativeMonoid(INTI.Monoid[Seq[A]]()),
+		as,
 	)
 }
 
