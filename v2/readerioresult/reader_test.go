@@ -17,10 +17,12 @@ package readerioresult
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"testing"
 
+	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	R "github.com/IBM/fp-go/v2/reader"
@@ -321,5 +323,299 @@ func TestReadIO(t *testing.T) {
 
 		assert.True(t, result.IsRight(res))
 		assert.Equal(t, "Processing user alice (ID: 123)", result.GetOrElse(func(error) string { return "" })(res))
+	})
+}
+
+// TestLocalIOK tests LocalIOK functionality
+func TestLocalIOK(t *testing.T) {
+	type SimpleConfig struct {
+		Port int
+	}
+
+	t.Run("basic IO transformation", func(t *testing.T) {
+		// IO effect that loads config from a path
+		loadConfig := func(path string) IO[SimpleConfig] {
+			return func() SimpleConfig {
+				// Simulate loading config
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// ReaderIOResult that uses the config
+		useConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+			}
+		}
+
+		// Compose using LocalIOK
+		adapted := LocalIOK[string, SimpleConfig, string](loadConfig)(useConfig)
+		res := adapted("config.json")()
+
+		assert.Equal(t, result.Of("Port: 8080"), res)
+	})
+
+	t.Run("IO transformation with side effects", func(t *testing.T) {
+		var loadLog []string
+
+		loadData := func(key string) IO[int] {
+			return func() int {
+				loadLog = append(loadLog, "Loading: "+key)
+				return len(key) * 10
+			}
+		}
+
+		processData := func(n int) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Processed: %d", n))
+			}
+		}
+
+		adapted := LocalIOK[string, int, string](loadData)(processData)
+		res := adapted("test")()
+
+		assert.Equal(t, result.Of("Processed: 40"), res)
+		assert.Equal(t, []string{"Loading: test"}, loadLog)
+	})
+
+	t.Run("error propagation in ReaderIOResult", func(t *testing.T) {
+		loadConfig := func(path string) IO[SimpleConfig] {
+			return func() SimpleConfig {
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// ReaderIOResult that returns an error
+		failingOperation := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Left[string](errors.New("operation failed"))
+			}
+		}
+
+		adapted := LocalIOK[string, SimpleConfig, string](loadConfig)(failingOperation)
+		res := adapted("config.json")()
+
+		assert.True(t, result.IsLeft(res))
+	})
+}
+
+// TestLocalIOEitherK tests LocalIOEitherK functionality
+func TestLocalIOEitherK(t *testing.T) {
+	type SimpleConfig struct {
+		Port int
+	}
+
+	t.Run("basic IOEither transformation", func(t *testing.T) {
+		// IOEither effect that loads config from a path (can fail)
+		loadConfig := func(path string) IOEither[error, SimpleConfig] {
+			return func() Either[error, SimpleConfig] {
+				if path == "" {
+					return E.Left[SimpleConfig](errors.New("empty path"))
+				}
+				return E.Of[error](SimpleConfig{Port: 8080})
+			}
+		}
+
+		// ReaderIOResult that uses the config
+		useConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+			}
+		}
+
+		// Compose using LocalIOEitherK
+		adapted := LocalIOEitherK[string, SimpleConfig, string](loadConfig)(useConfig)
+
+		// Success case
+		res := adapted("config.json")()
+		assert.Equal(t, result.Of("Port: 8080"), res)
+
+		// Failure case
+		resErr := adapted("")()
+		assert.True(t, result.IsLeft(resErr))
+	})
+
+	t.Run("error propagation from environment transformation", func(t *testing.T) {
+		loadConfig := func(path string) IOEither[error, SimpleConfig] {
+			return func() Either[error, SimpleConfig] {
+				return E.Left[SimpleConfig](errors.New("file not found"))
+			}
+		}
+
+		useConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+			}
+		}
+
+		adapted := LocalIOEitherK[string, SimpleConfig, string](loadConfig)(useConfig)
+		res := adapted("missing.json")()
+
+		// Error from loadConfig should propagate
+		assert.True(t, result.IsLeft(res))
+	})
+
+	t.Run("error propagation from ReaderIOResult", func(t *testing.T) {
+		loadConfig := func(path string) IOEither[error, SimpleConfig] {
+			return func() Either[error, SimpleConfig] {
+				return E.Of[error](SimpleConfig{Port: 8080})
+			}
+		}
+
+		// ReaderIOResult that returns an error
+		failingOperation := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Left[string](errors.New("operation failed"))
+			}
+		}
+
+		adapted := LocalIOEitherK[string, SimpleConfig, string](loadConfig)(failingOperation)
+		res := adapted("config.json")()
+
+		// Error from ReaderIOResult should propagate
+		assert.True(t, result.IsLeft(res))
+	})
+}
+
+// TestLocalIOResultK tests LocalIOResultK functionality
+func TestLocalIOResultK(t *testing.T) {
+	type SimpleConfig struct {
+		Port int
+	}
+
+	t.Run("basic IOResult transformation", func(t *testing.T) {
+		// IOResult effect that loads config from a path (can fail)
+		loadConfig := func(path string) IOResult[SimpleConfig] {
+			return func() Result[SimpleConfig] {
+				if path == "" {
+					return result.Left[SimpleConfig](errors.New("empty path"))
+				}
+				return result.Of(SimpleConfig{Port: 8080})
+			}
+		}
+
+		// ReaderIOResult that uses the config
+		useConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+			}
+		}
+
+		// Compose using LocalIOResultK
+		adapted := LocalIOResultK[string, SimpleConfig, string](loadConfig)(useConfig)
+
+		// Success case
+		res := adapted("config.json")()
+		assert.Equal(t, result.Of("Port: 8080"), res)
+
+		// Failure case
+		resErr := adapted("")()
+		assert.True(t, result.IsLeft(resErr))
+	})
+
+	t.Run("error propagation from environment transformation", func(t *testing.T) {
+		loadConfig := func(path string) IOResult[SimpleConfig] {
+			return func() Result[SimpleConfig] {
+				return result.Left[SimpleConfig](errors.New("file not found"))
+			}
+		}
+
+		useConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+			}
+		}
+
+		adapted := LocalIOResultK[string, SimpleConfig, string](loadConfig)(useConfig)
+		res := adapted("missing.json")()
+
+		// Error from loadConfig should propagate
+		assert.True(t, result.IsLeft(res))
+	})
+
+	t.Run("compose multiple LocalIOResultK", func(t *testing.T) {
+		// First transformation: string -> int (can fail)
+		parseID := func(s string) IOResult[int] {
+			return func() Result[int] {
+				if s == "" {
+					return result.Left[int](errors.New("empty string"))
+				}
+				return result.Of(len(s) * 10)
+			}
+		}
+
+		// Second transformation: int -> SimpleConfig (can fail)
+		loadConfig := func(id int) IOResult[SimpleConfig] {
+			return func() Result[SimpleConfig] {
+				if id < 0 {
+					return result.Left[SimpleConfig](errors.New("invalid ID"))
+				}
+				return result.Of(SimpleConfig{Port: 8000 + id})
+			}
+		}
+
+		// Use the config
+		formatConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+			}
+		}
+
+		// Compose transformations
+		step1 := LocalIOResultK[string, SimpleConfig, int](loadConfig)(formatConfig)
+		step2 := LocalIOResultK[string, int, string](parseID)(step1)
+
+		// Success case
+		res := step2("test")()
+		assert.Equal(t, result.Of("Port: 8040"), res)
+
+		// Failure in first transformation
+		resErr1 := step2("")()
+		assert.True(t, result.IsLeft(resErr1))
+	})
+
+	t.Run("real-world: load and validate config", func(t *testing.T) {
+		type ConfigFile struct {
+			Path string
+		}
+
+		// Read file (can fail)
+		readFile := func(cf ConfigFile) IOResult[string] {
+			return func() Result[string] {
+				if cf.Path == "" {
+					return result.Left[string](errors.New("empty path"))
+				}
+				return result.Of(`{"port":9000}`)
+			}
+		}
+
+		// Parse config (can fail)
+		parseConfig := func(content string) IOResult[SimpleConfig] {
+			return func() Result[SimpleConfig] {
+				if content == "" {
+					return result.Left[SimpleConfig](errors.New("empty content"))
+				}
+				return result.Of(SimpleConfig{Port: 9000})
+			}
+		}
+
+		// Use the config
+		useConfig := func(cfg SimpleConfig) IOResult[string] {
+			return func() Result[string] {
+				return result.Of(fmt.Sprintf("Using port: %d", cfg.Port))
+			}
+		}
+
+		// Compose the pipeline
+		step1 := LocalIOResultK[string, SimpleConfig, string](parseConfig)(useConfig)
+		step2 := LocalIOResultK[string, string, ConfigFile](readFile)(step1)
+
+		// Success case
+		res := step2(ConfigFile{Path: "app.json"})()
+		assert.Equal(t, result.Of("Using port: 9000"), res)
+
+		// Failure case
+		resErr := step2(ConfigFile{Path: ""})()
+		assert.True(t, result.IsLeft(resErr))
 	})
 }

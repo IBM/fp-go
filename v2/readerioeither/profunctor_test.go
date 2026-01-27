@@ -131,3 +131,248 @@ func TestPromapWithIO(t *testing.T) {
 		assert.Equal(t, 1, counter) // Side effect occurred
 	})
 }
+
+// TestLocalIOK tests LocalIOK functionality
+func TestLocalIOK(t *testing.T) {
+	t.Run("basic IO transformation", func(t *testing.T) {
+		// IO effect that loads config from a path
+		loadConfig := func(path string) IOE.IO[SimpleConfig] {
+			return func() SimpleConfig {
+				// Simulate loading config
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// ReaderIOEither that uses the config
+		useConfig := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Of[string]("Port: " + strconv.Itoa(cfg.Port))
+		}
+
+		// Compose using LocalIOK
+		adapted := LocalIOK[string, string, SimpleConfig, string](loadConfig)(useConfig)
+		result := adapted("config.json")()
+
+		assert.Equal(t, E.Of[string]("Port: 8080"), result)
+	})
+
+	t.Run("IO transformation with side effects", func(t *testing.T) {
+		var loadLog []string
+
+		loadData := func(key string) IOE.IO[int] {
+			return func() int {
+				loadLog = append(loadLog, "Loading: "+key)
+				return len(key) * 10
+			}
+		}
+
+		processData := func(n int) IOEither[string, string] {
+			return IOE.Of[string]("Processed: " + strconv.Itoa(n))
+		}
+
+		adapted := LocalIOK[string, string, int, string](loadData)(processData)
+		result := adapted("test")()
+
+		assert.Equal(t, E.Of[string]("Processed: 40"), result)
+		assert.Equal(t, []string{"Loading: test"}, loadLog)
+	})
+
+	t.Run("error propagation in ReaderIOEither", func(t *testing.T) {
+		loadConfig := func(path string) IOE.IO[SimpleConfig] {
+			return func() SimpleConfig {
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// ReaderIOEither that returns an error
+		failingOperation := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Left[string]("operation failed")
+		}
+
+		adapted := LocalIOK[string, string, SimpleConfig, string](loadConfig)(failingOperation)
+		result := adapted("config.json")()
+
+		assert.Equal(t, E.Left[string]("operation failed"), result)
+	})
+
+	t.Run("compose multiple LocalIOK", func(t *testing.T) {
+		// First transformation: string -> int
+		parseID := func(s string) IOE.IO[int] {
+			return func() int {
+				id, _ := strconv.Atoi(s)
+				return id
+			}
+		}
+
+		// Second transformation: int -> SimpleConfig
+		loadConfig := func(id int) IOE.IO[SimpleConfig] {
+			return func() SimpleConfig {
+				return SimpleConfig{Port: 8000 + id}
+			}
+		}
+
+		// Use the config
+		formatConfig := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Of[string]("Port: " + strconv.Itoa(cfg.Port))
+		}
+
+		// Compose transformations
+		step1 := LocalIOK[string, string, SimpleConfig, int](loadConfig)(formatConfig)
+		step2 := LocalIOK[string, string, int, string](parseID)(step1)
+
+		result := step2("42")()
+		assert.Equal(t, E.Of[string]("Port: 8042"), result)
+	})
+}
+
+// TestLocalIOEitherK tests LocalIOEitherK functionality
+func TestLocalIOEitherK(t *testing.T) {
+	t.Run("basic IOEither transformation", func(t *testing.T) {
+		// IOEither effect that loads config from a path (can fail)
+		loadConfig := func(path string) IOEither[string, SimpleConfig] {
+			return func() E.Either[string, SimpleConfig] {
+				if path == "" {
+					return E.Left[SimpleConfig]("empty path")
+				}
+				return E.Of[string](SimpleConfig{Port: 8080})
+			}
+		}
+
+		// ReaderIOEither that uses the config
+		useConfig := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Of[string]("Port: " + strconv.Itoa(cfg.Port))
+		}
+
+		// Compose using LocalIOEitherK
+		adapted := LocalIOEitherK[string, SimpleConfig, string, string](loadConfig)(useConfig)
+
+		// Success case
+		result := adapted("config.json")()
+		assert.Equal(t, E.Of[string]("Port: 8080"), result)
+
+		// Failure case
+		resultErr := adapted("")()
+		assert.Equal(t, E.Left[string]("empty path"), resultErr)
+	})
+
+	t.Run("error propagation from environment transformation", func(t *testing.T) {
+		loadConfig := func(path string) IOEither[string, SimpleConfig] {
+			return func() E.Either[string, SimpleConfig] {
+				return E.Left[SimpleConfig]("file not found")
+			}
+		}
+
+		useConfig := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Of[string]("Port: " + strconv.Itoa(cfg.Port))
+		}
+
+		adapted := LocalIOEitherK[string, SimpleConfig, string, string](loadConfig)(useConfig)
+		result := adapted("missing.json")()
+
+		// Error from loadConfig should propagate
+		assert.Equal(t, E.Left[string]("file not found"), result)
+	})
+
+	t.Run("error propagation from ReaderIOEither", func(t *testing.T) {
+		loadConfig := func(path string) IOEither[string, SimpleConfig] {
+			return IOE.Of[string](SimpleConfig{Port: 8080})
+		}
+
+		// ReaderIOEither that returns an error
+		failingOperation := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Left[string]("operation failed")
+		}
+
+		adapted := LocalIOEitherK[string, SimpleConfig, string, string](loadConfig)(failingOperation)
+		result := adapted("config.json")()
+
+		// Error from ReaderIOEither should propagate
+		assert.Equal(t, E.Left[string]("operation failed"), result)
+	})
+
+	t.Run("compose multiple LocalIOEitherK", func(t *testing.T) {
+		// First transformation: string -> int (can fail)
+		parseID := func(s string) IOEither[string, int] {
+			return func() E.Either[string, int] {
+				id, err := strconv.Atoi(s)
+				if err != nil {
+					return E.Left[int]("invalid ID")
+				}
+				return E.Of[string](id)
+			}
+		}
+
+		// Second transformation: int -> SimpleConfig (can fail)
+		loadConfig := func(id int) IOEither[string, SimpleConfig] {
+			return func() E.Either[string, SimpleConfig] {
+				if id < 0 {
+					return E.Left[SimpleConfig]("invalid ID")
+				}
+				return E.Of[string](SimpleConfig{Port: 8000 + id})
+			}
+		}
+
+		// Use the config
+		formatConfig := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Of[string]("Port: " + strconv.Itoa(cfg.Port))
+		}
+
+		// Compose transformations
+		step1 := LocalIOEitherK[string, SimpleConfig, int, string](loadConfig)(formatConfig)
+		step2 := LocalIOEitherK[string, int, string, string](parseID)(step1)
+
+		// Success case
+		result := step2("42")()
+		assert.Equal(t, E.Of[string]("Port: 8042"), result)
+
+		// Failure in first transformation
+		resultErr1 := step2("invalid")()
+		assert.Equal(t, E.Left[string]("invalid ID"), resultErr1)
+
+		// Failure in second transformation
+		resultErr2 := step2("-5")()
+		assert.Equal(t, E.Left[string]("invalid ID"), resultErr2)
+	})
+
+	t.Run("real-world: load and validate config", func(t *testing.T) {
+		type ConfigFile struct {
+			Path string
+		}
+
+		// Read file (can fail)
+		readFile := func(cf ConfigFile) IOEither[string, string] {
+			return func() E.Either[string, string] {
+				if cf.Path == "" {
+					return E.Left[string]("empty path")
+				}
+				return E.Of[string](`{"port":9000}`)
+			}
+		}
+
+		// Parse config (can fail)
+		parseConfig := func(content string) IOEither[string, SimpleConfig] {
+			return func() E.Either[string, SimpleConfig] {
+				if content == "" {
+					return E.Left[SimpleConfig]("empty content")
+				}
+				return E.Of[string](SimpleConfig{Port: 9000})
+			}
+		}
+
+		// Use the config
+		useConfig := func(cfg SimpleConfig) IOEither[string, string] {
+			return IOE.Of[string]("Using port: " + strconv.Itoa(cfg.Port))
+		}
+
+		// Compose the pipeline
+		step1 := LocalIOEitherK[string, SimpleConfig, string, string](parseConfig)(useConfig)
+		step2 := LocalIOEitherK[string, string, ConfigFile, string](readFile)(step1)
+
+		// Success case
+		result := step2(ConfigFile{Path: "app.json"})()
+		assert.Equal(t, E.Of[string]("Using port: 9000"), result)
+
+		// Failure case
+		resultErr := step2(ConfigFile{Path: ""})()
+		assert.Equal(t, E.Left[string]("empty path"), resultErr)
+	})
+}

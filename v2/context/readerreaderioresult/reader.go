@@ -837,14 +837,6 @@ func MapLeft[R, A any](f Endmorphism[error]) Operator[R, A, A] {
 	return RRIOE.MapLeft[R, context.Context, A](f)
 }
 
-// Local modifies the outer environment before passing it to a computation.
-// Useful for providing different configurations to sub-computations.
-//
-//go:inline
-func Local[A, R1, R2 any](f func(R2) R1) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
-	return RRIOE.Local[context.Context, error, A](f)
-}
-
 // Read provides a specific outer environment value to a computation.
 // Converts ReaderReaderIOResult[R, A] to ReaderIOResult[context.Context, A].
 //
@@ -891,4 +883,9 @@ func ChainLeft[R, A any](f Kleisli[R, error, A]) func(ReaderReaderIOResult[R, A]
 //go:inline
 func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
 	return reader.Map[R](RIOE.Delay[A](delay))
+}
+
+//go:inline
+func Defer[R, A any](fa Lazy[ReaderReaderIOResult[R, A]]) ReaderReaderIOResult[R, A] {
+	return RRIOE.Defer(fa)
 }

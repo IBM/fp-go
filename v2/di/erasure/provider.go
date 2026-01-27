@@ -30,8 +30,8 @@ import (
 
 type (
 	// InjectableFactory is a factory function that can create an untyped instance of a service based on its [Dependency] identifier
-	InjectableFactory = func(Dependency) IOResult[any]
-	ProviderFactory   = func(InjectableFactory) IOResult[any]
+	InjectableFactory = ReaderIOResult[Dependency, any]
+	ProviderFactory   = ReaderIOResult[InjectableFactory, any]
 
 	paramIndex = map[int]int
 	paramValue = map[int]any

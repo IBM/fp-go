@@ -272,6 +272,15 @@ func ChainReaderEitherK[C, E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R,
 }
 
 //go:inline
+func ChainReaderIOEitherK[C, R, E, A, B any](f RIOE.Kleisli[R, E, A, B]) Operator[R, C, E, A, B] {
+	return fromreader.ChainReaderK(
+		Chain[R, C, E, A, B],
+		FromReaderIOEither[C, E, R, B],
+		f,
+	)
+}
+
+//go:inline
 func MonadChainFirstReaderEitherK[R, C, E, A, B any](ma ReaderReaderIOEither[R, C, E, A], f RE.Kleisli[R, E, A, B]) ReaderReaderIOEither[R, C, E, A] {
 	return fromreader.MonadChainFirstReaderK(
 		MonadChainFirst[R, C, E, A, B],
@@ -596,11 +605,6 @@ func MapLeft[R, C, A, E1, E2 any](f func(E1) E2) func(ReaderReaderIOEither[R, C,
 }
 
 //go:inline
-func Local[C, E, A, R1, R2 any](f func(R2) R1) func(ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
-	return reader.Local[ReaderIOEither[C, E, A]](f)
-}
-
-//go:inline
 func Read[C, E, A, R any](r R) func(ReaderReaderIOEither[R, C, E, A]) ReaderIOEither[C, E, A] {
 	return reader.Read[ReaderIOEither[C, E, A]](r)
 }
@@ -658,4 +662,14 @@ func Delay[R, C, E, A any](delay time.Duration) Operator[R, C, E, A, A] {
 //go:inline
 func After[R, C, E, A any](timestamp time.Time) Operator[R, C, E, A, A] {
 	return reader.Map[R](RIOE.After[C, E, A](timestamp))
+}
+
+func Defer[R, C, E, A any](fa Lazy[ReaderReaderIOEither[R, C, E, A]]) ReaderReaderIOEither[R, C, E, A] {
+	return func(r R) ReaderIOEither[C, E, A] {
+		return func(c C) RIOE.IOEither[E, A] {
+			return func() IOE.Either[E, A] {
+				return fa()(r)(c)()
+			}
+		}
+	}
 }

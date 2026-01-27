@@ -612,3 +612,133 @@ func TestRealWorldScenarios(t *testing.T) {
 		assert.Equal(t, "[API] Status: 200, Body: OK", result)
 	})
 }
+
+// TestLocalIOK tests LocalIOK functionality
+func TestLocalIOK(t *testing.T) {
+	t.Run("basic IO transformation", func(t *testing.T) {
+		// IO effect that loads config from a path
+		loadConfig := func(path string) io.IO[SimpleConfig] {
+			return func() SimpleConfig {
+				// Simulate loading config
+				return SimpleConfig{Host: "localhost", Port: 8080}
+			}
+		}
+
+		// ReaderIO that uses the config
+		useConfig := func(cfg SimpleConfig) io.IO[string] {
+			return io.Of(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
+		}
+
+		// Compose using LocalIOK
+		adapted := LocalIOK[string, SimpleConfig, string](loadConfig)(useConfig)
+		result := adapted("config.json")()
+
+		assert.Equal(t, "localhost:8080", result)
+	})
+
+	t.Run("IO transformation with side effects", func(t *testing.T) {
+		var loadLog []string
+
+		loadData := func(key string) io.IO[int] {
+			return func() int {
+				loadLog = append(loadLog, "Loading: "+key)
+				return len(key) * 10
+			}
+		}
+
+		processData := func(n int) io.IO[string] {
+			return io.Of(fmt.Sprintf("Processed: %d", n))
+		}
+
+		adapted := LocalIOK[string, int, string](loadData)(processData)
+		result := adapted("test")()
+
+		assert.Equal(t, "Processed: 40", result)
+		assert.Equal(t, []string{"Loading: test"}, loadLog)
+	})
+
+	t.Run("compose multiple LocalIOK", func(t *testing.T) {
+		// First transformation: string -> int
+		parseID := func(s string) io.IO[int] {
+			return func() int {
+				id, _ := strconv.Atoi(s)
+				return id
+			}
+		}
+
+		// Second transformation: int -> UserEnv
+		loadUser := func(id int) io.IO[UserEnv] {
+			return func() UserEnv {
+				return UserEnv{UserID: id}
+			}
+		}
+
+		// Use the UserEnv
+		formatUser := func(env UserEnv) io.IO[string] {
+			return io.Of(fmt.Sprintf("User ID: %d", env.UserID))
+		}
+
+		// Compose transformations
+		step1 := LocalIOK[string, UserEnv, int](loadUser)(formatUser)
+		step2 := LocalIOK[string, int, string](parseID)(step1)
+
+		result := step2("42")()
+		assert.Equal(t, "User ID: 42", result)
+	})
+
+	t.Run("environment extraction with IO", func(t *testing.T) {
+		// Extract database config from app config
+		extractDB := func(app AppConfig) io.IO[DatabaseConfig] {
+			return func() DatabaseConfig {
+				// Could perform validation or default setting here
+				cfg := app.Database
+				if cfg.Host == "" {
+					cfg.Host = "localhost"
+				}
+				return cfg
+			}
+		}
+
+		// Use the database config
+		connectDB := func(cfg DatabaseConfig) io.IO[string] {
+			return io.Of(fmt.Sprintf("Connected to %s:%d", cfg.Host, cfg.Port))
+		}
+
+		adapted := LocalIOK[string, DatabaseConfig, AppConfig](extractDB)(connectDB)
+		result := adapted(AppConfig{
+			Database: DatabaseConfig{Host: "", Port: 5432},
+		})()
+
+		assert.Equal(t, "Connected to localhost:5432", result)
+	})
+
+	t.Run("real-world: load and parse config file", func(t *testing.T) {
+		type ConfigFile struct {
+			Path string
+		}
+
+		// Simulate reading file content
+		readFile := func(cf ConfigFile) io.IO[string] {
+			return func() string {
+				return `{"host":"example.com","port":9000}`
+			}
+		}
+
+		// Parse the content
+		parseConfig := func(content string) io.IO[SimpleConfig] {
+			return io.Of(SimpleConfig{Host: "example.com", Port: 9000})
+		}
+
+		// Use the parsed config
+		useConfig := func(cfg SimpleConfig) io.IO[string] {
+			return io.Of(fmt.Sprintf("Using %s:%d", cfg.Host, cfg.Port))
+		}
+
+		// Compose the pipeline
+		step1 := LocalIOK[string, SimpleConfig, string](parseConfig)(useConfig)
+		step2 := LocalIOK[string, string, ConfigFile](readFile)(step1)
+
+		result := step2(ConfigFile{Path: "app.json"})()
+		assert.Equal(t, "Using example.com:9000", result)
+	})
+}

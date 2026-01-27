@@ -16,6 +16,7 @@
 package readerio
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -233,4 +234,55 @@ func Local[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderIO[R1, A], A] {
 //go:inline
 func Contramap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderIO[R1, A], A] {
 	return reader.Contramap[IO[A]](f)
+}
+
+// LocalIOK transforms the environment of a ReaderIO using an IO-based Kleisli arrow.
+// It allows you to modify the environment through an effectful computation before
+// passing it to the ReaderIO.
+//
+// This is useful when the environment transformation itself requires IO effects,
+// such as reading from a file, making a network call, or accessing system resources.
+//
+// The transformation happens in two stages:
+//  1. The IO effect f is executed with the R2 environment to produce an R1 value
+//  2. The resulting R1 value is passed to the ReaderIO[R1, A] to produce the final result
+//
+// Type Parameters:
+//   - A: The result type produced by the ReaderIO
+//   - R1: The original environment type expected by the ReaderIO
+//   - R2: The new input environment type
+//
+// Parameters:
+//   - f: An IO Kleisli arrow that transforms R2 to R1 with IO effects
+//
+// Returns:
+//   - A Kleisli arrow that takes a ReaderIO[R1, A] and returns a ReaderIO[R2, A]
+//
+// Example:
+//
+//	// Transform a config path into a loaded config
+//	loadConfig := func(path string) IO[Config] {
+//	    return func() Config {
+//	        // Load config from file
+//	        return parseConfig(readFile(path))
+//	    }
+//	}
+//
+//	// Use the config to perform some operation
+//	useConfig := func(cfg Config) IO[string] {
+//	    return Of("Using: " + cfg.Name)
+//	}
+//
+//	// Compose them using LocalIOK
+//	result := LocalIOK[string, Config, string](loadConfig)(useConfig)
+//	output := result("config.json")() // Loads config and uses it
+//
+//go:inline
+func LocalIOK[A, R1, R2 any](f io.Kleisli[R2, R1]) Kleisli[R2, ReaderIO[R1, A], A] {
+	return func(ri ReaderIO[R1, A]) ReaderIO[R2, A] {
+		return F.Flow2(
+			f,
+			io.Chain(ri),
+		)
+	}
 }

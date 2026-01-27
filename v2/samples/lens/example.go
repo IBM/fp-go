@@ -15,7 +15,9 @@
 
 package lens
 
-import "github.com/IBM/fp-go/v2/optics/lens/option"
+import (
+	"github.com/IBM/fp-go/v2/optics/lens/option"
+)
 
 //go:generate go run ../../main.go lens --dir . --filename gen_lens.go
 

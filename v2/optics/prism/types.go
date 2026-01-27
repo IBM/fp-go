@@ -18,6 +18,7 @@ package prism
 import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/optics/lens"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -127,4 +128,6 @@ type (
 	Operator[S, A, B any] = func(Prism[S, A]) Prism[S, B]
 
 	Predicate[A any] = predicate.Predicate[A]
+
+	Lens[S, A any] = lens.Lens[S, A]
 )

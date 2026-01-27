@@ -430,6 +430,8 @@ func FromNonZero[T comparable]() Prism[T, T] {
 //	//     Groups: []string{"123"},
 //	//     After: "",
 //	// }
+//
+// fp-go:Lens
 type Match struct {
 	Before string   // Text before the match
 	Groups []string // Capture groups (index 0 is full match)
@@ -599,6 +601,8 @@ func RegexMatcher(re *regexp.Regexp) Prism[string, Match] {
 //	//     Full: "user@example.com",
 //	//     After: "",
 //	// }
+//
+// fp-go:Lens
 type NamedMatch struct {
 	Before string
 	Groups map[string]string
