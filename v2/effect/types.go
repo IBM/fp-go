@@ -27,6 +27,7 @@ type (
 	ReaderIOResult[A any] = readerioresult.ReaderIOResult[A]
 	Monoid[A any]         = monoid.Monoid[A]
 	Effect[C, A any]      = readerreaderioresult.ReaderReaderIOResult[C, A]
+	Thunk[A any]          = ReaderIOResult[A]
 	Predicate[A any]      = predicate.Predicate[A]
 	Result[A any]         = result.Result[A]
 	Lens[S, T any]        = lens.Lens[S, T]

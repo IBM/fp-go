@@ -7,6 +7,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
 	RRIOE "github.com/IBM/fp-go/v2/readerreaderioeither"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // Local modifies the outer environment before passing it to a computation.
@@ -99,6 +100,11 @@ func LocalIOEitherK[A, R1, R2 any](f ioresult.Kleisli[R2, R1]) func(ReaderReader
 //go:inline
 func LocalIOResultK[A, R1, R2 any](f ioresult.Kleisli[R2, R1]) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
 	return RRIOE.LocalIOEitherK[context.Context, A](f)
+}
+
+//go:inline
+func LocalResultK[A, R1, R2 any](f result.Kleisli[R2, R1]) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
+	return RRIOE.LocalEitherK[context.Context, A](f)
 }
 
 // LocalReaderIOEitherK transforms the outer environment of a ReaderReaderIOResult using a ReaderIOResult-based Kleisli arrow.

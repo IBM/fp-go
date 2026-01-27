@@ -37,6 +37,7 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/readeroption"
 	RRIOE "github.com/IBM/fp-go/v2/readerreaderioeither"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // FromReaderOption converts a ReaderOption to a ReaderReaderIOResult.
@@ -163,6 +164,15 @@ func MonadChainEitherK[R, A, B any](ma ReaderReaderIOResult[R, A], f either.Klei
 //
 //go:inline
 func ChainEitherK[R, A, B any](f either.Kleisli[error, A, B]) Operator[R, A, B] {
+	return fromeither.ChainEitherK(
+		Chain[R, A, B],
+		FromEither[R, B],
+		f,
+	)
+}
+
+//go:inline
+func ChainResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
 	return fromeither.ChainEitherK(
 		Chain[R, A, B],
 		FromEither[R, B],

@@ -20,6 +20,8 @@
 package result
 
 import (
+	"fmt"
+
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/option"
 )
@@ -602,4 +604,55 @@ func MonadAlt[A any](fa Result[A], that Lazy[Result[A]]) Result[A] {
 //go:inline
 func Zero[A any]() Result[A] {
 	return either.Zero[error, A]()
+}
+
+// InstanceOf attempts to perform a type assertion on an any value to convert it to type A.
+// If the type assertion succeeds, it returns a Right containing the converted value.
+// If the type assertion fails, it returns a Left containing an error describing the type mismatch.
+//
+// This function is useful for safely converting interface{}/any values to concrete types
+// in a functional programming style, where type assertion failures are represented as
+// Left values rather than panics or boolean checks.
+//
+// Type Parameters:
+//   - A: The target type to convert to
+//
+// Parameters:
+//   - a: The value of type any to be type-asserted
+//
+// Returns:
+//   - Result[A]: Right(value) if type assertion succeeds, Left(error) if it fails
+//
+// Example:
+//
+//	// Successful type assertion
+//	var value any = 42
+//	result := result.InstanceOf[int](value) // Right(42)
+//
+//	// Failed type assertion
+//	var value any = "hello"
+//	result := result.InstanceOf[int](value) // Left(error: "expected int, got string")
+//
+//	// Using with pipe for safe type conversion
+//	var data any = 3.14
+//	result := F.Pipe1(
+//	    data,
+//	    result.InstanceOf[float64],
+//	) // Right(3.14)
+//
+//	// Chaining with other operations
+//	var value any = 10
+//	result := F.Pipe2(
+//	    value,
+//	    result.InstanceOf[int],
+//	    result.Map(func(n int) int { return n * 2 }),
+//	) // Right(20)
+//
+//go:inline
+func InstanceOf[A any](a any) Result[A] {
+	var res, ok = a.(A)
+	if ok {
+		return Of(res)
+	}
+	return Left[A](fmt.Errorf("expected %T, got %T", res, a))
 }

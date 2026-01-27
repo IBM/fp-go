@@ -3,6 +3,7 @@ package effect
 import (
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 func Succeed[C, A any](a A) Effect[C, A] {
@@ -39,4 +40,12 @@ func Tap[C, A, ANY any](f Kleisli[C, A, ANY]) Operator[C, A, A] {
 
 func Ternary[C, A, B any](pred Predicate[A], onTrue, onFalse Kleisli[C, A, B]) Kleisli[C, A, B] {
 	return function.Ternary(pred, onTrue, onFalse)
+}
+
+func ChainResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, B] {
+	return readerreaderioresult.ChainResultK[C](f)
+}
+
+func Read[A, C any](c C) func(Effect[C, A]) Thunk[A] {
+	return readerreaderioresult.Read[A](c)
 }

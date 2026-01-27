@@ -10,7 +10,6 @@ import (
 	__iso_option "github.com/IBM/fp-go/v2/optics/iso/option"
 	__lens "github.com/IBM/fp-go/v2/optics/lens"
 	__lens_option "github.com/IBM/fp-go/v2/optics/lens/option"
-	__prism "github.com/IBM/fp-go/v2/optics/prism"
 	__option "github.com/IBM/fp-go/v2/option"
 )
 
@@ -36,17 +35,6 @@ type ErrorRefLenses struct {
 	OpO  __lens_option.LensO[*url.Error, string]
 	URLO __lens_option.LensO[*url.Error, string]
 	ErrO __lens_option.LensO[*url.Error, error]
-	// prisms
-	OpP  __prism.Prism[*url.Error, string]
-	URLP __prism.Prism[*url.Error, string]
-	ErrP __prism.Prism[*url.Error, error]
-}
-
-// ErrorPrisms provides prisms for accessing fields of url.Error
-type ErrorPrisms struct {
-	Op  __prism.Prism[url.Error, string]
-	URL __prism.Prism[url.Error, string]
-	Err __prism.Prism[url.Error, error]
 }
 
 // MakeErrorLenses creates a new ErrorLenses with lenses for all fields
@@ -117,39 +105,6 @@ func MakeErrorRefLenses() ErrorRefLenses {
 	}
 }
 
-// MakeErrorPrisms creates a new ErrorPrisms with prisms for all fields
-func MakeErrorPrisms() ErrorPrisms {
-	_fromNonZeroOp := __option.FromNonZero[string]()
-	_prismOp := __prism.MakePrismWithName(
-		func(s url.Error) __option.Option[string] { return _fromNonZeroOp(s.Op) },
-		func(v string) url.Error {
-			return url.Error{Op: v}
-		},
-		"Error.Op",
-	)
-	_fromNonZeroURL := __option.FromNonZero[string]()
-	_prismURL := __prism.MakePrismWithName(
-		func(s url.Error) __option.Option[string] { return _fromNonZeroURL(s.URL) },
-		func(v string) url.Error {
-			return url.Error{URL: v}
-		},
-		"Error.URL",
-	)
-	_fromNonZeroErr := __option.FromNonZero[error]()
-	_prismErr := __prism.MakePrismWithName(
-		func(s url.Error) __option.Option[error] { return _fromNonZeroErr(s.Err) },
-		func(v error) url.Error {
-			return url.Error{Err: v}
-		},
-		"Error.Err",
-	)
-	return ErrorPrisms{
-		Op:  _prismOp,
-		URL: _prismURL,
-		Err: _prismErr,
-	}
-}
-
 // URLLenses provides lenses for accessing fields of url.URL
 type URLLenses struct {
 	// mandatory fields
@@ -204,33 +159,6 @@ type URLRefLenses struct {
 	RawQueryO    __lens_option.LensO[*url.URL, string]
 	FragmentO    __lens_option.LensO[*url.URL, string]
 	RawFragmentO __lens_option.LensO[*url.URL, string]
-	// prisms
-	SchemeP      __prism.Prism[*url.URL, string]
-	OpaqueP      __prism.Prism[*url.URL, string]
-	UserP        __prism.Prism[*url.URL, *url.Userinfo]
-	HostP        __prism.Prism[*url.URL, string]
-	PathP        __prism.Prism[*url.URL, string]
-	RawPathP     __prism.Prism[*url.URL, string]
-	OmitHostP    __prism.Prism[*url.URL, bool]
-	ForceQueryP  __prism.Prism[*url.URL, bool]
-	RawQueryP    __prism.Prism[*url.URL, string]
-	FragmentP    __prism.Prism[*url.URL, string]
-	RawFragmentP __prism.Prism[*url.URL, string]
-}
-
-// URLPrisms provides prisms for accessing fields of url.URL
-type URLPrisms struct {
-	Scheme      __prism.Prism[url.URL, string]
-	Opaque      __prism.Prism[url.URL, string]
-	User        __prism.Prism[url.URL, *url.Userinfo]
-	Host        __prism.Prism[url.URL, string]
-	Path        __prism.Prism[url.URL, string]
-	RawPath     __prism.Prism[url.URL, string]
-	OmitHost    __prism.Prism[url.URL, bool]
-	ForceQuery  __prism.Prism[url.URL, bool]
-	RawQuery    __prism.Prism[url.URL, string]
-	Fragment    __prism.Prism[url.URL, string]
-	RawFragment __prism.Prism[url.URL, string]
 }
 
 // MakeURLLenses creates a new URLLenses with lenses for all fields
@@ -429,111 +357,6 @@ func MakeURLRefLenses() URLRefLenses {
 	}
 }
 
-// MakeURLPrisms creates a new URLPrisms with prisms for all fields
-func MakeURLPrisms() URLPrisms {
-	_fromNonZeroScheme := __option.FromNonZero[string]()
-	_prismScheme := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroScheme(s.Scheme) },
-		func(v string) url.URL {
-			return url.URL{Scheme: v}
-		},
-		"URL.Scheme",
-	)
-	_fromNonZeroOpaque := __option.FromNonZero[string]()
-	_prismOpaque := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroOpaque(s.Opaque) },
-		func(v string) url.URL {
-			return url.URL{Opaque: v}
-		},
-		"URL.Opaque",
-	)
-	_fromNonZeroUser := __option.FromNonZero[*url.Userinfo]()
-	_prismUser := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[*url.Userinfo] { return _fromNonZeroUser(s.User) },
-		func(v *url.Userinfo) url.URL {
-			return url.URL{User: v}
-		},
-		"URL.User",
-	)
-	_fromNonZeroHost := __option.FromNonZero[string]()
-	_prismHost := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroHost(s.Host) },
-		func(v string) url.URL {
-			return url.URL{Host: v}
-		},
-		"URL.Host",
-	)
-	_fromNonZeroPath := __option.FromNonZero[string]()
-	_prismPath := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroPath(s.Path) },
-		func(v string) url.URL {
-			return url.URL{Path: v}
-		},
-		"URL.Path",
-	)
-	_fromNonZeroRawPath := __option.FromNonZero[string]()
-	_prismRawPath := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroRawPath(s.RawPath) },
-		func(v string) url.URL {
-			return url.URL{RawPath: v}
-		},
-		"URL.RawPath",
-	)
-	_fromNonZeroOmitHost := __option.FromNonZero[bool]()
-	_prismOmitHost := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[bool] { return _fromNonZeroOmitHost(s.OmitHost) },
-		func(v bool) url.URL {
-			return url.URL{OmitHost: v}
-		},
-		"URL.OmitHost",
-	)
-	_fromNonZeroForceQuery := __option.FromNonZero[bool]()
-	_prismForceQuery := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[bool] { return _fromNonZeroForceQuery(s.ForceQuery) },
-		func(v bool) url.URL {
-			return url.URL{ForceQuery: v}
-		},
-		"URL.ForceQuery",
-	)
-	_fromNonZeroRawQuery := __option.FromNonZero[string]()
-	_prismRawQuery := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroRawQuery(s.RawQuery) },
-		func(v string) url.URL {
-			return url.URL{RawQuery: v}
-		},
-		"URL.RawQuery",
-	)
-	_fromNonZeroFragment := __option.FromNonZero[string]()
-	_prismFragment := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroFragment(s.Fragment) },
-		func(v string) url.URL {
-			return url.URL{Fragment: v}
-		},
-		"URL.Fragment",
-	)
-	_fromNonZeroRawFragment := __option.FromNonZero[string]()
-	_prismRawFragment := __prism.MakePrismWithName(
-		func(s url.URL) __option.Option[string] { return _fromNonZeroRawFragment(s.RawFragment) },
-		func(v string) url.URL {
-			return url.URL{RawFragment: v}
-		},
-		"URL.RawFragment",
-	)
-	return URLPrisms{
-		Scheme:      _prismScheme,
-		Opaque:      _prismOpaque,
-		User:        _prismUser,
-		Host:        _prismHost,
-		Path:        _prismPath,
-		RawPath:     _prismRawPath,
-		OmitHost:    _prismOmitHost,
-		ForceQuery:  _prismForceQuery,
-		RawQuery:    _prismRawQuery,
-		Fragment:    _prismFragment,
-		RawFragment: _prismRawFragment,
-	}
-}
-
 // UserinfoRefLenses provides lenses for accessing fields of url.Userinfo via a reference to url.Userinfo
 type UserinfoRefLenses struct {
 	// mandatory fields
@@ -542,9 +365,6 @@ type UserinfoRefLenses struct {
 	// optional fields
 	UsernameO __lens_option.LensO[*url.Userinfo, string]
 	PasswordO __lens_option.LensO[*url.Userinfo, string]
-	// prisms
-	UsernameP __prism.Prism[*url.Userinfo, string]
-	PasswordP __prism.Prism[*url.Userinfo, string]
 }
 
 // MakeUserinfoRefLenses creates a new UserinfoRefLenses with lenses for all fields
@@ -563,11 +383,8 @@ func MakeUserinfoRefLenses() UserinfoRefLenses {
 	)
 	lensPassword := __lens.MakeLensStrictWithName(
 		func(s *url.Userinfo) string {
-			pwd, ok := s.Password()
-			if ok {
-				return pwd
-			}
-			return ""
+			pwd, _ := s.Password()
+			return pwd
 		},
 		func(s *url.Userinfo, v string) *url.Userinfo { return url.UserPassword(s.Username(), v) },
 		"(*url.Userinfo).Password",
@@ -575,7 +392,7 @@ func MakeUserinfoRefLenses() UserinfoRefLenses {
 	// optional lenses
 	lensUsernameO := __lens_option.FromIso[*url.Userinfo](__iso_option.FromZero[string]())(lensUsername)
 	lensPasswordO := __lens.MakeLensStrictWithName(
-		__option.Optionize1((*url.Userinfo).Password),
+		__option.FromValidation((*url.Userinfo).Password),
 		func(s *url.Userinfo, v __option.Option[string]) *url.Userinfo {
 			return __option.MonadFold(v, func() *url.Userinfo { return url.User(s.Username()) }, func(pwd string) *url.Userinfo { return url.UserPassword(s.Username(), pwd) })
 		},

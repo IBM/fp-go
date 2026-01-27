@@ -1,6 +1,7 @@
 package readerreaderioeither
 
 import (
+	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
@@ -32,6 +33,18 @@ func LocalIOEitherK[C, A, R1, R2, E any](f ioeither.Kleisli[E, R2, R1]) func(Rea
 			f,
 			ioeither.Map[E](rri),
 			readerioeither.FromIOEither[C],
+			readerioeither.Flatten,
+		)
+	}
+}
+
+//go:inline
+func LocalEitherK[C, A, R1, R2, E any](f either.Kleisli[E, R2, R1]) func(ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
+	return func(rri ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
+		return F.Flow4(
+			f,
+			either.Map[E](rri),
+			readerioeither.FromEither[C],
 			readerioeither.Flatten,
 		)
 	}

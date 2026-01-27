@@ -1101,3 +1101,163 @@ func FromOption[T any]() Prism[Option[T], T] {
 func NonEmptyString() Prism[string, string] {
 	return FromNonZero[string]()
 }
+
+// ErrorPrisms provides prisms for accessing fields of url.Error
+type ErrorPrisms struct {
+	Op  Prism[url.Error, string]
+	URL Prism[url.Error, string]
+	Err Prism[url.Error, error]
+}
+
+// MakeErrorPrisms creates a new ErrorPrisms with prisms for all fields
+func MakeErrorPrisms() ErrorPrisms {
+	_fromNonZeroOp := option.FromNonZero[string]()
+	_prismOp := MakePrismWithName(
+		func(s url.Error) Option[string] { return _fromNonZeroOp(s.Op) },
+		func(v string) url.Error {
+			return url.Error{Op: v}
+		},
+		"Error.Op",
+	)
+	_fromNonZeroURL := option.FromNonZero[string]()
+	_prismURL := MakePrismWithName(
+		func(s url.Error) Option[string] { return _fromNonZeroURL(s.URL) },
+		func(v string) url.Error {
+			return url.Error{URL: v}
+		},
+		"Error.URL",
+	)
+	_fromNonZeroErr := option.FromNonZero[error]()
+	_prismErr := MakePrismWithName(
+		func(s url.Error) Option[error] { return _fromNonZeroErr(s.Err) },
+		func(v error) url.Error {
+			return url.Error{Err: v}
+		},
+		"Error.Err",
+	)
+	return ErrorPrisms{
+		Op:  _prismOp,
+		URL: _prismURL,
+		Err: _prismErr,
+	}
+}
+
+// URLPrisms provides prisms for accessing fields of url.URL
+type URLPrisms struct {
+	Scheme      Prism[url.URL, string]
+	Opaque      Prism[url.URL, string]
+	User        Prism[url.URL, *url.Userinfo]
+	Host        Prism[url.URL, string]
+	Path        Prism[url.URL, string]
+	RawPath     Prism[url.URL, string]
+	OmitHost    Prism[url.URL, bool]
+	ForceQuery  Prism[url.URL, bool]
+	RawQuery    Prism[url.URL, string]
+	Fragment    Prism[url.URL, string]
+	RawFragment Prism[url.URL, string]
+}
+
+// MakeURLPrisms creates a new URLPrisms with prisms for all fields
+func MakeURLPrisms() URLPrisms {
+	_fromNonZeroScheme := option.FromNonZero[string]()
+	_prismScheme := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroScheme(s.Scheme) },
+		func(v string) url.URL {
+			return url.URL{Scheme: v}
+		},
+		"URL.Scheme",
+	)
+	_fromNonZeroOpaque := option.FromNonZero[string]()
+	_prismOpaque := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroOpaque(s.Opaque) },
+		func(v string) url.URL {
+			return url.URL{Opaque: v}
+		},
+		"URL.Opaque",
+	)
+	_fromNonZeroUser := option.FromNonZero[*url.Userinfo]()
+	_prismUser := MakePrismWithName(
+		func(s url.URL) Option[*url.Userinfo] { return _fromNonZeroUser(s.User) },
+		func(v *url.Userinfo) url.URL {
+			return url.URL{User: v}
+		},
+		"URL.User",
+	)
+	_fromNonZeroHost := option.FromNonZero[string]()
+	_prismHost := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroHost(s.Host) },
+		func(v string) url.URL {
+			return url.URL{Host: v}
+		},
+		"URL.Host",
+	)
+	_fromNonZeroPath := option.FromNonZero[string]()
+	_prismPath := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroPath(s.Path) },
+		func(v string) url.URL {
+			return url.URL{Path: v}
+		},
+		"URL.Path",
+	)
+	_fromNonZeroRawPath := option.FromNonZero[string]()
+	_prismRawPath := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroRawPath(s.RawPath) },
+		func(v string) url.URL {
+			return url.URL{RawPath: v}
+		},
+		"URL.RawPath",
+	)
+	_fromNonZeroOmitHost := option.FromNonZero[bool]()
+	_prismOmitHost := MakePrismWithName(
+		func(s url.URL) Option[bool] { return _fromNonZeroOmitHost(s.OmitHost) },
+		func(v bool) url.URL {
+			return url.URL{OmitHost: v}
+		},
+		"URL.OmitHost",
+	)
+	_fromNonZeroForceQuery := option.FromNonZero[bool]()
+	_prismForceQuery := MakePrismWithName(
+		func(s url.URL) Option[bool] { return _fromNonZeroForceQuery(s.ForceQuery) },
+		func(v bool) url.URL {
+			return url.URL{ForceQuery: v}
+		},
+		"URL.ForceQuery",
+	)
+	_fromNonZeroRawQuery := option.FromNonZero[string]()
+	_prismRawQuery := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroRawQuery(s.RawQuery) },
+		func(v string) url.URL {
+			return url.URL{RawQuery: v}
+		},
+		"URL.RawQuery",
+	)
+	_fromNonZeroFragment := option.FromNonZero[string]()
+	_prismFragment := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroFragment(s.Fragment) },
+		func(v string) url.URL {
+			return url.URL{Fragment: v}
+		},
+		"URL.Fragment",
+	)
+	_fromNonZeroRawFragment := option.FromNonZero[string]()
+	_prismRawFragment := MakePrismWithName(
+		func(s url.URL) Option[string] { return _fromNonZeroRawFragment(s.RawFragment) },
+		func(v string) url.URL {
+			return url.URL{RawFragment: v}
+		},
+		"URL.RawFragment",
+	)
+	return URLPrisms{
+		Scheme:      _prismScheme,
+		Opaque:      _prismOpaque,
+		User:        _prismUser,
+		Host:        _prismHost,
+		Path:        _prismPath,
+		RawPath:     _prismRawPath,
+		OmitHost:    _prismOmitHost,
+		ForceQuery:  _prismForceQuery,
+		RawQuery:    _prismRawQuery,
+		Fragment:    _prismFragment,
+		RawFragment: _prismRawFragment,
+	}
+}

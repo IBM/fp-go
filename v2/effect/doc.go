@@ -218,3 +218,5 @@ The effect package integrates seamlessly with other fp-go packages:
 	}
 */
 package effect
+
+//go:generate go run ../main.go lens --dir . --filename gen_lens.go --include-test-files

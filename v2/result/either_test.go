@@ -183,3 +183,176 @@ func TestZeroEqualsDefaultInitialization(t *testing.T) {
 	assert.Equal(t, IsRight(defaultInit), IsRight(zero), "Both should be Right")
 	assert.Equal(t, IsLeft(defaultInit), IsLeft(zero), "Both should not be Left")
 }
+
+// TestInstanceOf tests the InstanceOf function for type assertions
+func TestInstanceOf(t *testing.T) {
+	// Test successful type assertion with int
+	t.Run("successful int assertion", func(t *testing.T) {
+		var value any = 42
+		result := InstanceOf[int](value)
+		assert.True(t, IsRight(result))
+		assert.Equal(t, Right(42), result)
+	})
+
+	// Test successful type assertion with string
+	t.Run("successful string assertion", func(t *testing.T) {
+		var value any = "hello"
+		result := InstanceOf[string](value)
+		assert.True(t, IsRight(result))
+		assert.Equal(t, Right("hello"), result)
+	})
+
+	// Test successful type assertion with float64
+	t.Run("successful float64 assertion", func(t *testing.T) {
+		var value any = 3.14
+		result := InstanceOf[float64](value)
+		assert.True(t, IsRight(result))
+		assert.Equal(t, Right(3.14), result)
+	})
+
+	// Test successful type assertion with pointer
+	t.Run("successful pointer assertion", func(t *testing.T) {
+		val := 42
+		var value any = &val
+		result := InstanceOf[*int](value)
+		assert.True(t, IsRight(result))
+		v, err := UnwrapError(result)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, *v)
+	})
+
+	// Test successful type assertion with struct
+	t.Run("successful struct assertion", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+		var value any = Person{Name: "Alice", Age: 30}
+		result := InstanceOf[Person](value)
+		assert.True(t, IsRight(result))
+		assert.Equal(t, Right(Person{Name: "Alice", Age: 30}), result)
+	})
+
+	// Test failed type assertion - int to string
+	t.Run("failed int to string assertion", func(t *testing.T) {
+		var value any = 42
+		result := InstanceOf[string](value)
+		assert.True(t, IsLeft(result))
+		_, err := UnwrapError(result)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "expected")
+		assert.Contains(t, err.Error(), "got")
+	})
+
+	// Test failed type assertion - string to int
+	t.Run("failed string to int assertion", func(t *testing.T) {
+		var value any = "hello"
+		result := InstanceOf[int](value)
+		assert.True(t, IsLeft(result))
+		_, err := UnwrapError(result)
+		assert.Error(t, err)
+	})
+
+	// Test failed type assertion - int to float64
+	t.Run("failed int to float64 assertion", func(t *testing.T) {
+		var value any = 42
+		result := InstanceOf[float64](value)
+		assert.True(t, IsLeft(result))
+	})
+
+	// Test with nil value
+	t.Run("nil value assertion", func(t *testing.T) {
+		var value any = nil
+		result := InstanceOf[string](value)
+		assert.True(t, IsLeft(result))
+	})
+
+	// Test chaining with Map
+	t.Run("chaining with Map", func(t *testing.T) {
+		var value any = 10
+		result := F.Pipe2(
+			value,
+			InstanceOf[int],
+			Map(func(n int) int { return n * 2 }),
+		)
+		assert.Equal(t, Right(20), result)
+	})
+
+	// Test chaining with Map on failed assertion
+	t.Run("chaining with Map on failed assertion", func(t *testing.T) {
+		var value any = "not a number"
+		result := F.Pipe2(
+			value,
+			InstanceOf[int],
+			Map(func(n int) int { return n * 2 }),
+		)
+		assert.True(t, IsLeft(result))
+	})
+
+	// Test with Chain for dependent operations
+	t.Run("chaining with Chain", func(t *testing.T) {
+		var value any = 5
+		result := F.Pipe2(
+			value,
+			InstanceOf[int],
+			Chain(func(n int) Result[string] {
+				if n > 0 {
+					return Right(fmt.Sprintf("positive: %d", n))
+				}
+				return Left[string](errors.New("not positive"))
+			}),
+		)
+		assert.Equal(t, Right("positive: 5"), result)
+	})
+
+	// Test with GetOrElse for default value
+	t.Run("GetOrElse with failed assertion", func(t *testing.T) {
+		var value any = "not an int"
+		result := F.Pipe2(
+			value,
+			InstanceOf[int],
+			GetOrElse(func(err error) int { return -1 }),
+		)
+		assert.Equal(t, -1, result)
+	})
+
+	// Test with GetOrElse for successful assertion
+	t.Run("GetOrElse with successful assertion", func(t *testing.T) {
+		var value any = 42
+		result := F.Pipe2(
+			value,
+			InstanceOf[int],
+			GetOrElse(func(err error) int { return -1 }),
+		)
+		assert.Equal(t, 42, result)
+	})
+
+	// Test with interface type
+	t.Run("interface type assertion", func(t *testing.T) {
+		var value any = errors.New("test error")
+		result := InstanceOf[error](value)
+		assert.True(t, IsRight(result))
+		v, err := UnwrapError(result)
+		assert.NoError(t, err)
+		assert.Equal(t, "test error", v.Error())
+	})
+
+	// Test with slice type
+	t.Run("slice type assertion", func(t *testing.T) {
+		var value any = []int{1, 2, 3}
+		result := InstanceOf[[]int](value)
+		assert.True(t, IsRight(result))
+		assert.Equal(t, Right([]int{1, 2, 3}), result)
+	})
+
+	// Test with map type
+	t.Run("map type assertion", func(t *testing.T) {
+		var value any = map[string]int{"a": 1, "b": 2}
+		result := InstanceOf[map[string]int](value)
+		assert.True(t, IsRight(result))
+		v, err := UnwrapError(result)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, v["a"])
+		assert.Equal(t, 2, v["b"])
+	})
+}

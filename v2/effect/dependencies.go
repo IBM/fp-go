@@ -5,6 +5,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 //go:inline
@@ -28,7 +29,12 @@ func LocalIOResultK[A, C1, C2 any](f ioresult.Kleisli[C2, C1]) func(Effect[C1, A
 }
 
 //go:inline
-func LocalReaderIOResultK[A, C1, C2 any](f readerioresult.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
+func LocalResultK[A, C1, C2 any](f result.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
+	return readerreaderioresult.LocalResultK[A](f)
+}
+
+//go:inline
+func LocalThunkK[A, C1, C2 any](f readerioresult.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
 	return readerreaderioresult.LocalReaderIOResultK[A](f)
 }
 
