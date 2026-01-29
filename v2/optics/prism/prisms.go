@@ -169,7 +169,7 @@ func ParseURL() Prism[string, *url.URL] {
 //   - Pattern matching on interface{} values
 func InstanceOf[T any]() Prism[any, T] {
 	var t T
-	return MakePrismWithName(option.ToType[T], F.ToAny[T], fmt.Sprintf("PrismInstanceOf[%T]", t))
+	return MakePrismWithName(option.InstanceOf[T], F.ToAny[T], fmt.Sprintf("PrismInstanceOf[%T]", t))
 }
 
 // ParseDate creates a prism for parsing and formatting dates with a specific layout.

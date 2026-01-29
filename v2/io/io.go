@@ -18,6 +18,7 @@ package io
 import (
 	"time"
 
+	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
@@ -29,11 +30,6 @@ import (
 const (
 	// useParallel is the feature flag to control if we use the parallel or the sequential implementation of ap
 	useParallel = true
-)
-
-var (
-	// undefined represents an undefined value
-	undefined = struct{}{}
 )
 
 // Of wraps a pure value in an IO context, creating a computation that returns that value.
@@ -58,10 +54,10 @@ func FromIO[A any](a IO[A]) IO[A] {
 }
 
 // FromImpure converts a side effect without a return value into a side effect that returns any
-func FromImpure[ANY ~func()](f ANY) IO[any] {
-	return func() any {
+func FromImpure[ANY ~func()](f ANY) IO[Void] {
+	return func() Void {
 		f()
-		return undefined
+		return function.VOID
 	}
 }
 

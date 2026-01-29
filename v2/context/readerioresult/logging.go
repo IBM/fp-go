@@ -65,7 +65,7 @@ var (
 	// This function assumes the context contains logging information; it will panic if not present.
 	getLoggingContext = F.Flow3(
 		loggingContextValue,
-		option.ToType[loggingContext],
+		option.InstanceOf[loggingContext],
 		option.GetOrElse(getDefaultLoggingContext),
 	)
 )

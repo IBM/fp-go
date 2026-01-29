@@ -158,7 +158,7 @@ func MakeClient(httpClient *http.Client) Client {
 //	request := MakeGetRequest("https://api.example.com/data")
 //	fullResp := ReadFullResponse(client)(request)
 //	result := fullResp(t.Context())()
-func ReadFullResponse(client Client) RIOE.Kleisli[Requester, H.FullResponse] {
+func ReadFullResponse(client Client) RIOE.Operator[*http.Request, H.FullResponse] {
 	return func(req Requester) RIOE.ReaderIOResult[H.FullResponse] {
 		return F.Flow3(
 			client.Do(req),
@@ -195,7 +195,7 @@ func ReadFullResponse(client Client) RIOE.Kleisli[Requester, H.FullResponse] {
 //	request := MakeGetRequest("https://api.example.com/data")
 //	readBytes := ReadAll(client)
 //	result := readBytes(request)(t.Context())()
-func ReadAll(client Client) RIOE.Kleisli[Requester, []byte] {
+func ReadAll(client Client) RIOE.Operator[*http.Request, []byte] {
 	return F.Flow2(
 		ReadFullResponse(client),
 		RIOE.Map(H.Body),
@@ -219,7 +219,7 @@ func ReadAll(client Client) RIOE.Kleisli[Requester, []byte] {
 //	request := MakeGetRequest("https://api.example.com/text")
 //	readText := ReadText(client)
 //	result := readText(request)(t.Context())()
-func ReadText(client Client) RIOE.Kleisli[Requester, string] {
+func ReadText(client Client) RIOE.Operator[*http.Request, string] {
 	return F.Flow2(
 		ReadAll(client),
 		RIOE.Map(B.ToString),
@@ -231,7 +231,7 @@ func ReadText(client Client) RIOE.Kleisli[Requester, string] {
 // Deprecated: Use [ReadJSON] instead. This function is kept for backward compatibility
 // but will be removed in a future version. The capitalized version follows Go naming
 // conventions for acronyms.
-func ReadJson[A any](client Client) RIOE.Kleisli[Requester, A] {
+func ReadJson[A any](client Client) RIOE.Operator[*http.Request, A] {
 	return ReadJSON[A](client)
 }
 
@@ -242,7 +242,7 @@ func ReadJson[A any](client Client) RIOE.Kleisli[Requester, A] {
 //  3. Reads the response body as bytes
 //
 // This function is used internally by ReadJSON to ensure proper JSON response handling.
-func readJSON(client Client) RIOE.Kleisli[Requester, []byte] {
+func readJSON(client Client) RIOE.Operator[*http.Request, []byte] {
 	return F.Flow3(
 		ReadFullResponse(client),
 		RIOE.ChainFirstEitherK(F.Flow2(
@@ -278,7 +278,7 @@ func readJSON(client Client) RIOE.Kleisli[Requester, []byte] {
 //	request := MakeGetRequest("https://api.example.com/user/1")
 //	readUser := ReadJSON[User](client)
 //	result := readUser(request)(t.Context())()
-func ReadJSON[A any](client Client) RIOE.Kleisli[Requester, A] {
+func ReadJSON[A any](client Client) RIOE.Operator[*http.Request, A] {
 	return F.Flow2(
 		readJSON(client),
 		RIOE.ChainEitherK(J.Unmarshal[A]),

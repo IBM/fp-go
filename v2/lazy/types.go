@@ -1,6 +1,9 @@
 package lazy
 
-import "github.com/IBM/fp-go/v2/predicate"
+import (
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/predicate"
+)
 
 type (
 	// Lazy represents a synchronous computation without side effects.
@@ -63,4 +66,6 @@ type (
 	// Predicate represents a function that tests a value of type A and returns a boolean.
 	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
+
+	Void = function.Void
 )

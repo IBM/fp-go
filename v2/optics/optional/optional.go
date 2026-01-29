@@ -320,7 +320,7 @@ func IChain[S, A, B any](ab func(A) O.Option[B], ba func(B) O.Option[A]) Operato
 
 // IChainAny implements a bidirectional mapping to and from any
 func IChainAny[S, A any]() Operator[S, any, A] {
-	fromAny := O.ToType[A]
+	fromAny := O.InstanceOf[A]
 	toAny := O.ToAny[A]
 	return func(sa Optional[S, any]) Optional[S, A] {
 		return ichain(sa, fromAny, toAny)

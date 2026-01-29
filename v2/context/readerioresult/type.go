@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerresult"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioref"
@@ -152,4 +153,6 @@ type (
 	IORef[A any] = ioref.IORef[A]
 
 	State[S, A any] = state.State[S, A]
+
+	Void = function.Void
 )

@@ -2,6 +2,7 @@ package ioresult
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -39,4 +40,6 @@ type (
 	Operator[A, B any] = Kleisli[IOResult[A], B]
 
 	Predicate[A any] = predicate.Predicate[A]
+
+	Void = function.Void
 )

@@ -428,11 +428,11 @@ func Swap[E, A any](val IOEither[E, A]) IOEither[A, E] {
 }
 
 // FromImpure converts a side effect without a return value into an [IOEither] that returns any
-func FromImpure[E any](f func()) IOEither[E, any] {
+func FromImpure[E any](f func()) IOEither[E, Void] {
 	return function.Pipe2(
 		f,
 		io.FromImpure,
-		FromIO[E, any],
+		FromIO[E, Void],
 	)
 }
 

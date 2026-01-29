@@ -48,7 +48,7 @@ func WithLock[A any](lock ReaderIOResult[context.CancelFunc]) Operator[A, A] {
 		function.Constant1[context.CancelFunc, ReaderIOResult[A]],
 		WithResource[A](lock, function.Flow2(
 			io.FromImpure[context.CancelFunc],
-			FromIO[any],
+			FromIO[Void],
 		)),
 	)
 }

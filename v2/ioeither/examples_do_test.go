@@ -29,7 +29,7 @@ func ExampleIOEither_do() {
 	bar := Of[error](1)
 
 	// quux consumes the state of three bindings and returns an [IO] instead of an [IOEither]
-	quux := func(t T.Tuple3[string, int, string]) IO[any] {
+	quux := func(t T.Tuple3[string, int, string]) IO[Void] {
 		return io.FromImpure(func() {
 			log.Printf("t1: %s, t2: %d, t3: %s", t.F1, t.F2, t.F3)
 		})

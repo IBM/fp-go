@@ -222,7 +222,7 @@ func withCancelCauseFunc[A any](cancel context.CancelCauseFunc, ma IOResult[A]) 
 	return function.Pipe3(
 		ma,
 		ioresult.Swap[A],
-		ioeither.ChainFirstIOK[A](func(err error) func() any {
+		ioeither.ChainFirstIOK[A](func(err error) func() Void {
 			return io.FromImpure(func() { cancel(err) })
 		}),
 		ioeither.Swap[A],

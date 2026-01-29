@@ -25,13 +25,13 @@ func TestTypeConversion(t *testing.T) {
 
 	var src any = "Carsten"
 
-	dst := ToType[string](src)
+	dst := InstanceOf[string](src)
 	assert.Equal(t, Some("Carsten"), dst)
 }
 
 func TestInvalidConversion(t *testing.T) {
 	var src any = make(map[string]string)
 
-	dst := ToType[int](src)
+	dst := InstanceOf[int](src)
 	assert.Equal(t, None[int](), dst)
 }

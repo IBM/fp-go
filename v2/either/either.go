@@ -504,7 +504,7 @@ func ToType[A, E any](onError func(any) E) func(any) Either[E, A] {
 	return func(value any) Either[E, A] {
 		return F.Pipe2(
 			value,
-			O.ToType[A],
+			O.InstanceOf[A],
 			O.Fold(F.Nullary3(F.Constant(value), onError, Left[A, E]), Right[E, A]),
 		)
 	}

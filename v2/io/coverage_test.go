@@ -247,7 +247,7 @@ func TestBracket(t *testing.T) {
 		return Of(x * 2)
 	}
 
-	release := func(x int, result int) IO[any] {
+	release := func(x int, result int) IO[Void] {
 		return FromImpure(func() {
 			released = true
 		})
@@ -271,7 +271,7 @@ func TestWithResource(t *testing.T) {
 		return 42
 	}
 
-	onRelease := func(x int) IO[any] {
+	onRelease := func(x int) IO[Void] {
 		return FromImpure(func() {
 			released = true
 		})

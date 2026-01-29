@@ -664,11 +664,11 @@ func WithResource[A, R, ANY any](
 
 // FromImpure converts an impure side-effecting function into an IOResult.
 // The function is executed when the IOResult runs, and always succeeds with nil.
-func FromImpure(f func()) IOResult[any] {
+func FromImpure(f func()) IOResult[Void] {
 	return function.Pipe2(
 		f,
 		io.FromImpure,
-		FromIO[any],
+		FromIO[Void],
 	)
 }
 

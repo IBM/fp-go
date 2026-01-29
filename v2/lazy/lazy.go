@@ -48,7 +48,7 @@ func FromLazy[A any](a Lazy[A]) Lazy[A] {
 }
 
 // FromImpure converts a side effect without a return value into a side effect that returns any
-func FromImpure(f func()) Lazy[any] {
+func FromImpure(f func()) Lazy[Void] {
 	return io.FromImpure(f)
 }
 

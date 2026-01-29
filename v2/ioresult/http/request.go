@@ -52,27 +52,27 @@ func MakeClient(httpClient *http.Client) Client {
 // ReadFullResponse sends a request,  reads the response as a byte array and represents the result as a tuple
 //
 //go:inline
-func ReadFullResponse(client Client) Kleisli[Requester, H.FullResponse] {
+func ReadFullResponse(client Client) Operator[*http.Request, H.FullResponse] {
 	return IOEH.ReadFullResponse(client)
 }
 
 // ReadAll sends a request and reads the response as bytes
 //
 //go:inline
-func ReadAll(client Client) Kleisli[Requester, []byte] {
+func ReadAll(client Client) Operator[*http.Request, []byte] {
 	return IOEH.ReadAll(client)
 }
 
 // ReadText sends a request, reads the response and represents the response as a text string
 //
 //go:inline
-func ReadText(client Client) Kleisli[Requester, string] {
+func ReadText(client Client) Operator[*http.Request, string] {
 	return IOEH.ReadText(client)
 }
 
 // ReadJSON sends a request, reads the response and parses the response as JSON
 //
 //go:inline
-func ReadJSON[A any](client Client) Kleisli[Requester, A] {
+func ReadJSON[A any](client Client) Operator[*http.Request, A] {
 	return IOEH.ReadJSON[A](client)
 }

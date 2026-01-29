@@ -45,7 +45,7 @@ func TestBuilderWithQuery(t *testing.T) {
 		ioresult.Map(func(r *http.Request) *url.URL {
 			return r.URL
 		}),
-		ioresult.ChainFirstIOK(func(u *url.URL) io.IO[any] {
+		ioresult.ChainFirstIOK(func(u *url.URL) io.IO[Void] {
 			return io.FromImpure(func() {
 				q := u.Query()
 				assert.Equal(t, "10", q.Get("limit"))

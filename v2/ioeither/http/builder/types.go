@@ -15,8 +15,12 @@
 
 package builder
 
-import "github.com/IBM/fp-go/v2/ioeither"
+import (
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/ioeither"
+)
 
 type (
 	IOEither[A any] = ioeither.IOEither[error, A]
+	Void            = function.Void
 )

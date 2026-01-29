@@ -2,6 +2,7 @@ package ioeither
 
 import (
 	"github.com/IBM/fp-go/v2/consumer"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/tailrec"
 )
@@ -18,4 +19,6 @@ type (
 	// Trampoline represents a tail-recursive computation that can be evaluated safely
 	// without stack overflow. It's used for implementing stack-safe recursive algorithms.
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
+
+	Void = function.Void
 )

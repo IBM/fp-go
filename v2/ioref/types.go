@@ -70,5 +70,20 @@ type (
 	// It's commonly used with Modify to transform the value in an IORef.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
+	// Pair represents a tuple of two values of types A and B.
+	// It's used with ModifyWithResult and ModifyIOKWithResult to return both
+	// a new value for the IORef (head) and a computed result (tail).
+	//
+	// The head of the pair contains the new value to store in the IORef,
+	// while the tail contains the result to return from the operation.
+	//
+	// Example:
+	//
+	//	// Create a pair where head is the new value and tail is the old value
+	//	p := pair.MakePair(newValue, oldValue)
+	//
+	//	// Extract values
+	//	newVal := pair.Head(p)  // Gets the head (new value)
+	//	oldVal := pair.Tail(p)  // Gets the tail (old value)
 	Pair[A, B any] = pair.Pair[A, B]
 )

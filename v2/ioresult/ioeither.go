@@ -404,7 +404,7 @@ func Swap[A any](val IOResult[A]) ioeither.IOEither[A, error] {
 // FromImpure converts a side effect without a return value into a side effect that returns any
 //
 //go:inline
-func FromImpure[E any](f func()) IOResult[any] {
+func FromImpure[E any](f func()) IOResult[Void] {
 	return ioeither.FromImpure[error](f)
 }
 

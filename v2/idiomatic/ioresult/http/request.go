@@ -76,7 +76,7 @@ func MakeClient(httpClient *http.Client) Client {
 }
 
 // ReadFullResponse sends a request,  reads the response as a byte array and represents the result as a tuple
-func ReadFullResponse(client Client) Kleisli[Requester, H.FullResponse] {
+func ReadFullResponse(client Client) Operator[*http.Request, H.FullResponse] {
 	return F.Flow3(
 		client.Do,
 		ioresult.ChainEitherK(H.ValidateResponse),
@@ -101,7 +101,7 @@ func ReadFullResponse(client Client) Kleisli[Requester, H.FullResponse] {
 }
 
 // ReadAll sends a request and reads the response as bytes
-func ReadAll(client Client) Kleisli[Requester, []byte] {
+func ReadAll(client Client) Operator[*http.Request, []byte] {
 	return F.Flow2(
 		ReadFullResponse(client),
 		ioresult.Map(H.Body),
@@ -109,7 +109,7 @@ func ReadAll(client Client) Kleisli[Requester, []byte] {
 }
 
 // ReadText sends a request, reads the response and represents the response as a text string
-func ReadText(client Client) Kleisli[Requester, string] {
+func ReadText(client Client) Operator[*http.Request, string] {
 	return F.Flow2(
 		ReadAll(client),
 		ioresult.Map(B.ToString),
@@ -117,7 +117,7 @@ func ReadText(client Client) Kleisli[Requester, string] {
 }
 
 // readJSON sends a request, reads the response and parses the response as a []byte
-func readJSON(client Client) Kleisli[Requester, []byte] {
+func readJSON(client Client) Operator[*http.Request, []byte] {
 	return F.Flow3(
 		ReadFullResponse(client),
 		ioresult.ChainFirstEitherK(F.Flow2(
@@ -129,7 +129,7 @@ func readJSON(client Client) Kleisli[Requester, []byte] {
 }
 
 // ReadJSON sends a request, reads the response and parses the response as JSON
-func ReadJSON[A any](client Client) Kleisli[Requester, A] {
+func ReadJSON[A any](client Client) Operator[*http.Request, A] {
 	return F.Flow2(
 		readJSON(client),
 		ioresult.ChainEitherK(J.Unmarshal[A]),

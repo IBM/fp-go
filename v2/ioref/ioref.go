@@ -16,6 +16,7 @@
 package ioref
 
 import (
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/pair"
 )
@@ -124,15 +125,56 @@ func Read[A any](ref IORef[A]) IO[A] {
 //	    ioref.Modify(func(x int) int { return x + 10 }),
 //	    io.Chain(ioref.Modify(func(x int) int { return x * 2 })),
 //	)()
-//
-//go:inline
 func Modify[A any](f Endomorphism[A]) io.Kleisli[IORef[A], A] {
+	return ModifyIOK(function.Flow2(f, io.Of))
+}
+
+// ModifyIOK atomically modifies the value in an IORef using an IO-based transformation.
+//
+// This is a more powerful version of Modify that allows the transformation function
+// to perform IO effects. The function takes a Kleisli arrow (a function from A to IO[A])
+// and returns a Kleisli arrow that modifies the IORef atomically.
+//
+// The modification is atomic and thread-safe, using a write lock to ensure exclusive
+// access during the read-modify-write cycle. The IO effect in the transformation
+// function is executed while holding the lock.
+//
+// Parameters:
+//   - f: A Kleisli arrow (io.Kleisli[A, A]) that transforms the current value with IO effects
+//
+// Returns:
+//   - A Kleisli arrow from IORef[A] to IO[A] that returns the new value
+//
+// Example:
+//
+//	ref := ioref.MakeIORef(42)()
+//
+//	// Modify with an IO effect (e.g., logging)
+//	modifyWithLog := ioref.ModifyIOK(func(x int) io.IO[int] {
+//	    return func() int {
+//	        fmt.Printf("Old value: %d\n", x)
+//	        return x * 2
+//	    }
+//	})
+//	newValue := modifyWithLog(ref)()  // Logs and returns 84
+//
+//	// Chain multiple IO-based modifications
+//	pipe.Pipe2(
+//	    ref,
+//	    ioref.ModifyIOK(func(x int) io.IO[int] {
+//	        return io.Of(x + 10)
+//	    }),
+//	    io.Chain(ioref.ModifyIOK(func(x int) io.IO[int] {
+//	        return io.Of(x * 2)
+//	    })),
+//	)()
+func ModifyIOK[A any](f io.Kleisli[A, A]) io.Kleisli[IORef[A], A] {
 	return func(ref IORef[A]) IO[A] {
 		return func() A {
 			ref.mu.Lock()
 			defer ref.mu.Unlock()
 
-			ref.a = f(ref.a)
+			ref.a = f(ref.a)()
 			return ref.a
 		}
 	}
@@ -167,12 +209,61 @@ func Modify[A any](f Endomorphism[A]) io.Kleisli[IORef[A], A] {
 //
 //go:inline
 func ModifyWithResult[A, B any](f func(A) Pair[A, B]) io.Kleisli[IORef[A], B] {
+	return ModifyIOKWithResult(function.Flow2(f, io.Of))
+}
+
+// ModifyIOKWithResult atomically modifies the value in an IORef and returns a result,
+// using an IO-based transformation function.
+//
+// This is a more powerful version of ModifyWithResult that allows the transformation
+// function to perform IO effects. The function takes a Kleisli arrow that transforms
+// the old value into an IO computation producing a Pair of (new value, result).
+//
+// This is useful when you need to:
+//   - Both transform the stored value and compute some result based on the old value
+//   - Perform IO effects during the transformation (e.g., logging, validation)
+//   - Ensure atomicity of the entire read-transform-write-compute cycle
+//
+// The modification is atomic and thread-safe, using a write lock to ensure exclusive
+// access. The IO effect in the transformation function is executed while holding the lock.
+//
+// Parameters:
+//   - f: A Kleisli arrow (io.Kleisli[A, Pair[A, B]]) that takes the old value and
+//     returns an IO computation producing a Pair of (new value, result)
+//
+// Returns:
+//   - A Kleisli arrow from IORef[A] to IO[B] that produces the result
+//
+// Example:
+//
+//	ref := ioref.MakeIORef(42)()
+//
+//	// Increment with IO effect and return old value
+//	incrementWithLog := ioref.ModifyIOKWithResult(func(x int) io.IO[pair.Pair[int, int]] {
+//	    return func() pair.Pair[int, int] {
+//	        fmt.Printf("Incrementing from %d\n", x)
+//	        return pair.MakePair(x+1, x)
+//	    }
+//	})
+//	oldValue := incrementWithLog(ref)()  // Logs and returns 42, ref now contains 43
+//
+//	// Swap with validation
+//	swapWithValidation := ioref.ModifyIOKWithResult(func(old int) io.IO[pair.Pair[int, string]] {
+//	    return func() pair.Pair[int, string] {
+//	        if old < 0 {
+//	            return pair.MakePair(0, "reset negative")
+//	        }
+//	        return pair.MakePair(100, fmt.Sprintf("swapped %d", old))
+//	    }
+//	})
+//	message := swapWithValidation(ref)()
+func ModifyIOKWithResult[A, B any](f io.Kleisli[A, Pair[A, B]]) io.Kleisli[IORef[A], B] {
 	return func(ref IORef[A]) IO[B] {
 		return func() B {
 			ref.mu.Lock()
 			defer ref.mu.Unlock()
 
-			result := f(ref.a)
+			result := f(ref.a)()
 			ref.a = pair.Head(result)
 			return pair.Tail(result)
 		}

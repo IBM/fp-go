@@ -15,8 +15,12 @@
 
 package builder
 
-import "github.com/IBM/fp-go/v2/idiomatic/ioresult"
+import (
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/idiomatic/ioresult"
+)
 
 type (
 	IOResult[A any] = ioresult.IOResult[A]
+	Void            = function.Void
 )
