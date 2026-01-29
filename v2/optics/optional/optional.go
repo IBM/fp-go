@@ -302,7 +302,7 @@ func SetOption[S, A any](a A) func(Optional[S, A]) O.Kleisli[S, S] {
 	return ModifyOption[S](F.Constant1[A](a))
 }
 
-func ichain[S, A, B any](sa Optional[S, A], ab func(A) O.Option[B], ba func(B) O.Option[A]) Optional[S, B] {
+func ichain[S, A, B any](sa Optional[S, A], ab O.Kleisli[A, B], ba O.Kleisli[B, A]) Optional[S, B] {
 	return MakeOptional(
 		F.Flow2(sa.GetOption, O.Chain(ab)),
 		func(s S, b B) S {
@@ -312,7 +312,7 @@ func ichain[S, A, B any](sa Optional[S, A], ab func(A) O.Option[B], ba func(B) O
 }
 
 // IChain implements a bidirectional mapping of the transform if the transform can produce optionals (e.g. in case of type mappings)
-func IChain[S, A, B any](ab func(A) O.Option[B], ba func(B) O.Option[A]) Operator[S, A, B] {
+func IChain[S, A, B any](ab O.Kleisli[A, B], ba O.Kleisli[B, A]) Operator[S, A, B] {
 	return func(sa Optional[S, A]) Optional[S, B] {
 		return ichain(sa, ab, ba)
 	}
