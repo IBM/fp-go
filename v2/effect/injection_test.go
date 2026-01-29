@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/IBM/fp-go/v2/context/readerioresult"
+	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -88,11 +88,11 @@ func makeSampleInjectionContainer() InjectionContainer {
 	return func(token InjectionToken) Thunk[any] {
 		switch token {
 		case service1:
-			return readerioresult.Of(any(&impl1{}))
+			return thunk.Of(any(&impl1{}))
 		case service2:
-			return readerioresult.Of(any(&impl2{}))
+			return thunk.Of(any(&impl2{}))
 		default:
-			return readerioresult.Left[any](errors.New("dependency not available"))
+			return thunk.Left[any](errors.New("dependency not available"))
 		}
 	}
 }
@@ -102,7 +102,7 @@ func makeSampleInjectionContainer() InjectionContainer {
 // rather than the untyped container, providing compile-time type safety.
 func handleService1() Effect[Service1, string] {
 	return func(ctx Service1) ReaderIOResult[string] {
-		return readerioresult.Of(fmt.Sprintf("Service1: %s", ctx.GetService1()))
+		return thunk.Of(fmt.Sprintf("Service1: %s", ctx.GetService1()))
 	}
 }
 
@@ -111,7 +111,7 @@ func handleService1() Effect[Service1, string] {
 // This demonstrates how to work with composite dependencies in a type-safe manner.
 func handleComplexService() Effect[ComplexService, string] {
 	return func(ctx ComplexService) ReaderIOResult[string] {
-		return readerioresult.Of(fmt.Sprintf("ComplexService: %s x %s", ctx.service1.GetService1(), ctx.service2.GetService2()))
+		return thunk.Of(fmt.Sprintf("ComplexService: %s x %s", ctx.service1.GetService1(), ctx.service2.GetService2()))
 	}
 }
 
@@ -122,14 +122,14 @@ func handleComplexService() Effect[ComplexService, string] {
 // This conversion provides type safety when moving from the untyped container to typed handlers.
 var lookupService1 = F.Flow2(
 	Read[any](service1),
-	readerioresult.ChainResultK(result.InstanceOf[Service1]),
+	thunk.ChainResultK(result.InstanceOf[Service1]),
 )
 
 // lookupService2 is a lookup method for Service2, following the same pattern as lookupService1.
 // It retrieves Service2 from the container and safely casts it to the correct type.
 var lookupService2 = F.Flow2(
 	Read[any](service2),
-	readerioresult.ChainResultK(result.InstanceOf[Service2]),
+	thunk.ChainResultK(result.InstanceOf[Service2]),
 )
 
 // lookupComplexService demonstrates applicative composition for complex dependency injection.

@@ -1,7 +1,7 @@
 package effect
 
 import (
-	"github.com/IBM/fp-go/v2/context/readerioresult"
+	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
@@ -34,7 +34,7 @@ func LocalResultK[A, C1, C2 any](f result.Kleisli[C2, C1]) func(Effect[C1, A]) E
 }
 
 //go:inline
-func LocalThunkK[A, C1, C2 any](f readerioresult.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
+func LocalThunkK[A, C1, C2 any](f thunk.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
 	return readerreaderioresult.LocalReaderIOResultK[A](f)
 }
 

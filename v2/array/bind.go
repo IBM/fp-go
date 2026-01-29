@@ -63,17 +63,26 @@ func Bind[S1, S2, T any](
 
 // Let attaches the result of a pure computation to a context S1 to produce a context S2.
 // Unlike Bind, the computation function returns a plain value T rather than []T.
+// This is useful when you need to compute a derived value from the current context
+// without introducing additional array elements.
 //
 // Example:
 //
-//	result := array.Let(
-//	    func(sum int) func(s struct{ X int }) struct{ X, Sum int } {
-//	        return func(s struct{ X int }) struct{ X, Sum int } {
-//	            return struct{ X, Sum int }{s.X, sum}
-//	        }
-//	    },
-//	    func(s struct{ X int }) int { return s.X * 2 },
+//	type State1 struct{ X int }
+//	type State2 struct{ X, Double int }
+//
+//	result := F.Pipe2(
+//	    []State1{{X: 5}, {X: 10}},
+//	    array.Let(
+//	        func(double int) func(s State1) State2 {
+//	            return func(s State1) State2 {
+//	                return State2{X: s.X, Double: double}
+//	            }
+//	        },
+//	        func(s State1) int { return s.X * 2 },
+//	    ),
 //	)
+//	// result: []State2{{X: 5, Double: 10}, {X: 10, Double: 20}}
 //
 //go:inline
 func Let[S1, S2, T any](
@@ -84,18 +93,25 @@ func Let[S1, S2, T any](
 }
 
 // LetTo attaches a constant value to a context S1 to produce a context S2.
-// This is useful for adding constant values to the context.
+// This is useful for adding constant values to the context without computation.
 //
 // Example:
 //
-//	result := array.LetTo(
-//	    func(name string) func(s struct{ X int }) struct{ X int; Name string } {
-//	        return func(s struct{ X int }) struct{ X int; Name string } {
-//	            return struct{ X int; Name string }{s.X, name}
-//	        }
-//	    },
-//	    "constant",
+//	type State1 struct{ X int }
+//	type State2 struct{ X int; Name string }
+//
+//	result := F.Pipe2(
+//	    []State1{{X: 1}, {X: 2}},
+//	    array.LetTo(
+//	        func(name string) func(s State1) State2 {
+//	            return func(s State1) State2 {
+//	                return State2{X: s.X, Name: name}
+//	            }
+//	        },
+//	        "constant",
+//	    ),
 //	)
+//	// result: []State2{{X: 1, Name: "constant"}, {X: 2, Name: "constant"}}
 //
 //go:inline
 func LetTo[S1, S2, T any](
@@ -107,15 +123,19 @@ func LetTo[S1, S2, T any](
 
 // BindTo initializes a new state S1 from a value T.
 // This is typically the first operation after Do to start building the context.
+// It transforms each element of type T into a state of type S1.
 //
 // Example:
 //
+//	type State struct{ X int }
+//
 //	result := F.Pipe2(
 //	    []int{1, 2, 3},
-//	    array.BindTo(func(x int) struct{ X int } {
-//	        return struct{ X int }{x}
+//	    array.BindTo(func(x int) State {
+//	        return State{X: x}
 //	    }),
 //	)
+//	// result: []State{{X: 1}, {X: 2}, {X: 3}}
 //
 //go:inline
 func BindTo[S1, T any](

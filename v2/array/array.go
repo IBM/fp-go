@@ -239,6 +239,16 @@ func ReduceRef[A, B any](f func(B, *A) B, initial B) func([]A) B {
 }
 
 // Append adds an element to the end of an array, returning a new array.
+// This is a non-curried version that takes both the array and element as parameters.
+//
+// Example:
+//
+//	arr := []int{1, 2, 3}
+//	result := array.Append(arr, 4)
+//	// result: []int{1, 2, 3, 4}
+//	// arr: []int{1, 2, 3} (unchanged)
+//
+// For a curried version, see Push.
 //
 //go:inline
 func Append[A any](as []A, a A) []A {

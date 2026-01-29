@@ -87,7 +87,9 @@ type templateData struct {
 }
 
 const lensStructTemplate = `
-// {{.Name}}Lenses provides lenses for accessing fields of {{.Name}}
+// {{.Name}}Lenses provides [lenses] for accessing fields of [{{.Name}}]
+//
+// [lenses]: __lens.Lens
 type {{.Name}}Lenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
@@ -101,7 +103,10 @@ type {{.Name}}Lenses{{.TypeParams}} struct {
 {{- end}}
 }
 
-// {{.Name}}RefLenses provides lenses for accessing fields of {{.Name}} via a reference to {{.Name}}
+// {{.Name}}RefLenses provides [lenses] for accessing fields of [{{.Name}}] via a reference to [{{.Name}}]
+//
+//
+// [lenses]: __lens.Lens
 type {{.Name}}RefLenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
@@ -113,22 +118,31 @@ type {{.Name}}RefLenses{{.TypeParams}} struct {
 	{{.Name}}O __lens_option.LensO[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
-	// prisms
-{{- range .Fields}}
-	{{.Name}}P __prism.Prism[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
-{{- end}}
 }
 
-// {{.Name}}Prisms provides prisms for accessing fields of {{.Name}}
+// {{.Name}}Prisms provides [prisms] for accessing fields of [{{.Name}}]
+//
+// [prisms]: __prism.Prism
 type {{.Name}}Prisms{{.TypeParams}} struct {
 {{- range .Fields}}
 	{{.Name}} __prism.Prism[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 }
+
+// {{.Name}}RefPrisms provides [prisms] for accessing fields of [{{.Name}}] via a reference to [{{.Name}}]
+//
+// [prisms]: __prism.Prism
+type {{.Name}}RefPrisms{{.TypeParams}} struct {
+{{- range .Fields}}
+	{{.Name}} __prism.Prism[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+{{- end}}
+}
 `
 
 const lensConstructorTemplate = `
-// Make{{.Name}}Lenses creates a new {{.Name}}Lenses with lenses for all fields
+// Make{{.Name}}Lenses creates a new [{{.Name}}Lenses] with [lenses] for all fields
+//
+// [lenses]:__lens.Lens
 func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
@@ -158,7 +172,9 @@ func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 	}
 }
 
-// Make{{.Name}}RefLenses creates a new {{.Name}}RefLenses with lenses for all fields
+// Make{{.Name}}RefLenses creates a new [{{.Name}}RefLenses] with [lenses] for all fields
+//
+// [lenses]:__lens.Lens
 func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
@@ -196,7 +212,9 @@ func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames
 	}
 }
 
-// Make{{.Name}}Prisms creates a new {{.Name}}Prisms with prisms for all fields
+// Make{{.Name}}Prisms creates a new [{{.Name}}Prisms] with [prisms] for all fields
+//
+// [prisms]:__prism.Prism
 func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
 {{- range .Fields}}
 {{- if .IsComparable}}
@@ -231,6 +249,49 @@ func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
 {{- end}}
 {{- end}}
 	return {{.Name}}Prisms{{.TypeParamNames}} {
+{{- range .Fields}}
+		{{.Name}}: _prism{{.Name}},
+{{- end}}
+	}
+}
+
+// Make{{.Name}}RefPrisms creates a new [{{.Name}}RefPrisms] with [prisms] for all fields
+//
+// [prisms]:__prism.Prism
+func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames}} {
+{{- range .Fields}}
+{{- if .IsComparable}}
+	_fromNonZero{{.Name}} := __option.FromNonZero[{{.TypeName}}]()
+	_prism{{.Name}} := __prism.MakePrismWithName(
+		func(s *{{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
+		func(v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} {
+			{{- if .IsEmbedded}}
+			var result {{$.Name}}{{$.TypeParamNames}}
+			result.{{.Name}} = v
+			return &result
+			{{- else}}
+			return &{{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			{{- end}}
+		},
+		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+	)
+{{- else}}
+	_prism{{.Name}} := __prism.MakePrismWithName(
+		func(s *{{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
+		func(v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} {
+			{{- if .IsEmbedded}}
+			var result {{$.Name}}{{$.TypeParamNames}}
+			result.{{.Name}} = v
+			return &result
+			{{- else}}
+			return &{{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			{{- end}}
+		},
+		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+	)
+{{- end}}
+{{- end}}
+	return {{.Name}}RefPrisms{{.TypeParamNames}} {
 {{- range .Fields}}
 		{{.Name}}: _prism{{.Name}},
 {{- end}}

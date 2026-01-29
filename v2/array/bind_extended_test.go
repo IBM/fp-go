@@ -22,57 +22,176 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestState1 struct {
-	X int
-}
-
-type TestState2 struct {
-	X int
-	Y int
-}
-
+// TestLet tests the Let function
 func TestLet(t *testing.T) {
-	result := F.Pipe2(
-		Do(TestState1{}),
+	type State1 struct {
+		X int
+	}
+	type State2 struct {
+		X      int
+		Double int
+	}
+
+	// Test Let with pure computation
+	result := F.Pipe1(
+		[]State1{{X: 5}, {X: 10}},
 		Let(
-			func(y int) func(s TestState1) TestState2 {
-				return func(s TestState1) TestState2 {
-					return TestState2{X: s.X, Y: y}
+			func(double int) func(s State1) State2 {
+				return func(s State1) State2 {
+					return State2{X: s.X, Double: double}
 				}
 			},
-			func(s TestState1) int { return s.X * 2 },
+			func(s State1) int { return s.X * 2 },
 		),
-		Map(func(s TestState2) int { return s.X + s.Y }),
 	)
 
-	assert.Equal(t, []int{0}, result)
+	expected := []State2{{X: 5, Double: 10}, {X: 10, Double: 20}}
+	assert.Equal(t, expected, result)
+
+	// Test Let with empty array
+	empty := []State1{}
+	result2 := F.Pipe1(
+		empty,
+		Let(
+			func(double int) func(s State1) State2 {
+				return func(s State1) State2 {
+					return State2{X: s.X, Double: double}
+				}
+			},
+			func(s State1) int { return s.X * 2 },
+		),
+	)
+	assert.Equal(t, []State2{}, result2)
 }
 
+// TestLetTo tests the LetTo function
 func TestLetTo(t *testing.T) {
-	result := F.Pipe2(
-		Do(TestState1{X: 5}),
+	type State1 struct {
+		X int
+	}
+	type State2 struct {
+		X    int
+		Name string
+	}
+
+	// Test LetTo with constant value
+	result := F.Pipe1(
+		[]State1{{X: 1}, {X: 2}},
 		LetTo(
-			func(y int) func(s TestState1) TestState2 {
-				return func(s TestState1) TestState2 {
-					return TestState2{X: s.X, Y: y}
+			func(name string) func(s State1) State2 {
+				return func(s State1) State2 {
+					return State2{X: s.X, Name: name}
 				}
 			},
-			42,
+			"constant",
 		),
-		Map(func(s TestState2) int { return s.X + s.Y }),
 	)
 
-	assert.Equal(t, []int{47}, result)
+	expected := []State2{{X: 1, Name: "constant"}, {X: 2, Name: "constant"}}
+	assert.Equal(t, expected, result)
+
+	// Test LetTo with different constant
+	result2 := F.Pipe1(
+		[]State1{{X: 10}},
+		LetTo(
+			func(name string) func(s State1) State2 {
+				return func(s State1) State2 {
+					return State2{X: s.X, Name: name}
+				}
+			},
+			"test",
+		),
+	)
+
+	expected2 := []State2{{X: 10, Name: "test"}}
+	assert.Equal(t, expected2, result2)
 }
 
+// TestBindTo tests the BindTo function
 func TestBindTo(t *testing.T) {
+	type State struct {
+		X int
+	}
+
+	// Test BindTo with integers
 	result := F.Pipe1(
 		[]int{1, 2, 3},
-		BindTo(func(x int) TestState1 {
-			return TestState1{X: x}
+		BindTo(func(x int) State {
+			return State{X: x}
 		}),
 	)
 
-	expected := []TestState1{{X: 1}, {X: 2}, {X: 3}}
+	expected := []State{{X: 1}, {X: 2}, {X: 3}}
+	assert.Equal(t, expected, result)
+
+	// Test BindTo with strings
+	type StringState struct {
+		Value string
+	}
+
+	result2 := F.Pipe1(
+		[]string{"hello", "world"},
+		BindTo(func(s string) StringState {
+			return StringState{Value: s}
+		}),
+	)
+
+	expected2 := []StringState{{Value: "hello"}, {Value: "world"}}
+	assert.Equal(t, expected2, result2)
+
+	// Test BindTo with empty array
+	empty := []int{}
+	result3 := F.Pipe1(
+		empty,
+		BindTo(func(x int) State {
+			return State{X: x}
+		}),
+	)
+	assert.Equal(t, []State{}, result3)
+}
+
+// TestDoWithLetAndBindTo tests combining Do, Let, LetTo, and BindTo
+func TestDoWithLetAndBindTo(t *testing.T) {
+	type State1 struct {
+		X int
+	}
+	type State2 struct {
+		X      int
+		Double int
+	}
+	type State3 struct {
+		X      int
+		Double int
+		Name   string
+	}
+
+	// Test complex pipeline
+	result := F.Pipe3(
+		[]int{5, 10},
+		BindTo(func(x int) State1 {
+			return State1{X: x}
+		}),
+		Let(
+			func(double int) func(s State1) State2 {
+				return func(s State1) State2 {
+					return State2{X: s.X, Double: double}
+				}
+			},
+			func(s State1) int { return s.X * 2 },
+		),
+		LetTo(
+			func(name string) func(s State2) State3 {
+				return func(s State2) State3 {
+					return State3{X: s.X, Double: s.Double, Name: name}
+				}
+			},
+			"result",
+		),
+	)
+
+	expected := []State3{
+		{X: 5, Double: 10, Name: "result"},
+		{X: 10, Double: 20, Name: "result"},
+	}
 	assert.Equal(t, expected, result)
 }
