@@ -9,7 +9,7 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/identity"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
@@ -35,15 +35,6 @@ var (
 	// monoidPartialPerson is a monoid for composing endomorphisms on PartialPerson.
 	// Allows combining multiple builder operations.
 	monoidPartialPerson = endomorphism.Monoid[*PartialPerson]()
-
-	// monoidPerson is a monoid for composing endomorphisms on Person.
-	monoidPerson = endomorphism.Monoid[*Person]()
-
-	// allOfPartialPerson combines multiple PartialPerson endomorphisms into one.
-	allOfPartialPerson = monoid.ConcatAll(monoidPartialPerson)
-
-	// foldPartialPersons folds an array of PartialPerson operations into a single ReaderOption.
-	foldPartialPersons = array.Fold(readeroption.ApplicativeMonoid[*PartialPerson](monoidPerson))
 
 	// foldPersons folds an array of Person operations into a single Reader.
 	foldPersons = array.Fold(reader.ApplicativeMonoid[*Person](monoidPartialPerson))
@@ -135,12 +126,10 @@ var (
 //	partial := builder(&PartialPerson{})
 //	// partial now has Name="Alice" and Age=25
 func MakePerson(name string, age int) Endomorphism[*PartialPerson] {
-	return F.Pipe1(
-		A.From(
-			WithName(name),
-			WithAge(age),
-		),
-		allOfPartialPerson)
+	return F.Flow2(
+		identity.ApS(WithName, name),
+		identity.ApS(WithAge, age),
+	)
 }
 
 // buildPerson constructs the forward direction of PersonPrism.
@@ -157,27 +146,25 @@ func MakePerson(name string, age int) Endomorphism[*PartialPerson] {
 //	or None if any validation fails.
 func buildPerson() ReaderOption[Endomorphism[*PartialPerson], *Person] {
 
-	// maybeName extracts the name from PartialPerson, validates it,
-	// and creates a setter for the Person's Name field if valid
-	maybeName := F.Flow3(
+	maybeName := F.Flow2(
 		partialPersonLenses.name.Get,
 		namePrism.GetOption,
-		option.Map(personLenses.Name.Set),
 	)
 
-	// maybeAge extracts the age from PartialPerson, validates it,
-	// and creates a setter for the Person's Age field if valid
-	maybeAge := F.Flow3(
+	maybeAge := F.Flow2(
 		partialPersonLenses.age.Get,
 		agePrism.GetOption,
-		option.Map(personLenses.Age.Set),
 	)
 
-	// Combine the field validators and apply them to build a Person
-	return F.Pipe2(
-		A.From(maybeName, maybeAge),
-		foldPartialPersons,
-		readeroption.Promap(reader.Read[*PartialPerson](emptyPartialPerson), reader.Read[*Person](emptyPerson)),
+	makePerson := F.Pipe2(
+		readeroption.Do[*PartialPerson](emptyPerson),
+		readeroption.ApSL(personLenses.Name, maybeName),
+		readeroption.ApSL(personLenses.Age, maybeAge),
+	)
+
+	return F.Flow2(
+		reader.Read[*PartialPerson](emptyPartialPerson),
+		makePerson,
 	)
 }
 
@@ -200,7 +187,7 @@ func buildEndomorphism() Reader[*Person, Endomorphism[*PartialPerson]] {
 	name := F.Flow3(
 		personLenses.Name.Get,
 		namePrism.ReverseGet,
-		partialPersonLenses.name.Set,
+		WithName,
 	)
 
 	// age extracts the validated age, converts it to int,
@@ -208,7 +195,7 @@ func buildEndomorphism() Reader[*Person, Endomorphism[*PartialPerson]] {
 	age := F.Flow3(
 		personLenses.Age.Get,
 		agePrism.ReverseGet,
-		partialPersonLenses.age.Set,
+		WithAge,
 	)
 
 	// Combine the field extractors into a single builder

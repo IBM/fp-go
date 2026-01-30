@@ -52,6 +52,96 @@ func Curry1[R, T1, A any](f func(R, T1) A) Kleisli[R, T1, A] {
 	return G.Curry1[Reader[R, A]](f)
 }
 
+// Curry is an alias for Curry1, converting a function with context as first parameter
+// into a curried function returning a Reader.
+//
+// # Currying Direction
+//
+// The Curry functions in this package follow a specific direction that bridges Go conventions
+// with functional programming conventions:
+//
+// **Input (Go Convention)**: Functions with context as the FIRST parameter
+//   - func(Context, T1, T2, ...) Result
+//   - This follows Go's standard practice (https://pkg.go.dev/context)
+//
+// **Output (FP Convention)**: Curried functions with context as the LAST parameter (Reader position)
+//   - func(T1) func(T2) ... Reader[Context, Result]
+//   - This follows the Reader monad convention where context is the final parameter
+//
+// # Transformation Process
+//
+// The currying process transforms parameters in this order:
+//
+//  1. Original function: func(Context, T1, T2, T3) Result
+//  2. After Curry3:      func(T1) func(T2) func(T3) Reader[Context, Result]
+//  3. When applied:      T1 -> T2 -> T3 -> (Context -> Result)
+//
+// The context parameter moves from FIRST position to LAST position (inside the Reader).
+//
+// # Why This Direction?
+//
+// This direction allows you to:
+//   - Write functions following Go's context-first convention
+//   - Use them in functional pipelines where context is provided at the end
+//   - Compose functions before providing the context
+//   - Delay context injection until the final execution
+//
+// # Example - Direction Visualization
+//
+//	// Original Go-style function (context first)
+//	func processData(ctx Context, id int, name string) string {
+//	    return fmt.Sprintf("%s: %s-%d", ctx.Prefix, name, id)
+//	}
+//
+//	// After currying (context last, inside Reader)
+//	curried := reader.Curry2(processData)
+//	// Type: func(int) func(string) Reader[Context, string]
+//
+//	// Apply parameters left-to-right
+//	step1 := curried(42)           // Provide id
+//	step2 := step1("example")      // Provide name
+//	// step2 is now: Reader[Context, string]
+//
+//	// Finally provide context (last)
+//	result := step2(Context{Prefix: "Item"})
+//	// Result: "Item: example-42"
+//
+// # Comparison with Standard Currying
+//
+// Standard currying (left-to-right):
+//   - func(A, B, C) R  →  func(A) func(B) func(C) R
+//   - Parameters stay in the same order
+//
+// Reader currying (context moves to end):
+//   - func(Context, A, B) R  →  func(A) func(B) Reader[Context, R]
+//   - Context moves from first to last position
+//   - This is sometimes called "flipping" or "context rotation"
+//
+// # Use Cases
+//
+//  1. **Dependency Injection**: Provide dependencies (context) at the end
+//  2. **Configuration**: Build operations first, configure later
+//  3. **Testing**: Create testable functions that receive mocked context last
+//  4. **Composition**: Compose operations before providing shared context
+//
+// # Related Functions
+//
+//   - Curry0-Curry4: Convert functions with 0-4 additional parameters
+//   - Uncurry0-Uncurry4: Reverse the transformation (Reader back to Go-style)
+//
+// Example:
+//
+//	type Config struct { Prefix string }
+//	addPrefix := func(c Config, s string) string { return c.Prefix + s }
+//	curried := reader.Curry(addPrefix)
+//	r := curried("hello")
+//	result := r(Config{Prefix: ">> "}) // ">> hello"
+//
+//go:inline
+func Curry[R, T1, A any](f func(R, T1) A) Kleisli[R, T1, A] {
+	return Curry1(f)
+}
+
 // Curry2 converts a function with context as first parameter and 2 other parameters
 // into a curried function returning a Reader.
 //

@@ -82,7 +82,30 @@ func Bind[S1, S2, T any](
 	)
 }
 
-// Let attaches the result of a computation to a context [S1] to produce a context [S2]
+// Let attaches the result of a computation to a context [S1] to produce a context [S2].
+// Similar to Bind, but uses the Functor's Map operation instead of the Monad's Chain.
+// This is useful when you want to add a computed value to the context without needing
+// the full power of monadic composition.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	    Sum int
+//	}
+//
+//	result := F.Pipe2(
+//	    identity.Do(State{X: 10, Y: 20}),
+//	    identity.Let(
+//	        func(sum int) func(State) State {
+//	            return func(s State) State { s.Sum = sum; return s }
+//	        },
+//	        func(s State) int {
+//	            return s.X + s.Y
+//	        },
+//	    ),
+//	) // State{X: 10, Y: 20, Sum: 30}
 func Let[S1, S2, T any](
 	key func(T) func(S1) S2,
 	f func(S1) T,
@@ -94,7 +117,27 @@ func Let[S1, S2, T any](
 	)
 }
 
-// LetTo attaches the a value to a context [S1] to produce a context [S2]
+// LetTo attaches a constant value to a context [S1] to produce a context [S2].
+// This is a specialized version of Let that doesn't require a computation function,
+// useful when you want to add a known value to the context.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	    Constant string
+//	}
+//
+//	result := F.Pipe2(
+//	    identity.Do(State{X: 10, Y: 20}),
+//	    identity.LetTo(
+//	        func(c string) func(State) State {
+//	            return func(s State) State { s.Constant = c; return s }
+//	        },
+//	        "fixed value",
+//	    ),
+//	) // State{X: 10, Y: 20, Constant: "fixed value"}
 func LetTo[S1, S2, B any](
 	key func(B) func(S1) S2,
 	b B,
@@ -106,7 +149,31 @@ func LetTo[S1, S2, B any](
 	)
 }
 
-// BindTo initializes a new state [S1] from a value [T]
+// BindTo initializes a new state [S1] from a value [T].
+// This is typically used as the first operation in a do-notation chain to convert
+// a plain value into a context that can be used with subsequent Bind operations.
+//
+// Example:
+//
+//	type State struct {
+//	    X int
+//	    Y int
+//	}
+//
+//	result := F.Pipe2(
+//	    42,
+//	    identity.BindTo(func(x int) State {
+//	        return State{X: x}
+//	    }),
+//	    identity.Bind(
+//	        func(y int) func(State) State {
+//	            return func(s State) State { s.Y = y; return s }
+//	        },
+//	        func(s State) int {
+//	            return s.X * 2
+//	        },
+//	    ),
+//	) // State{X: 42, Y: 84}
 func BindTo[S1, T any](
 	setter func(T) S1,
 ) func(T) S1 {
