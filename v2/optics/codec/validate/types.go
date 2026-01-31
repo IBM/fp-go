@@ -16,6 +16,7 @@
 package validate
 
 import (
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
@@ -90,6 +91,30 @@ type (
 	//   "at user.address.zipCode: expected string, got number"
 	Context = validation.Context
 
+	// Decode represents a decoding operation that transforms input I into output A
+	// within a validation context.
+	//
+	// Type structure:
+	//   Decode[I, A] = Reader[Context, Validation[A]]
+	//
+	// This means:
+	//   1. Takes a validation Context (path through nested structures)
+	//   2. Returns a Validation[A] (Either[Errors, A])
+	//
+	// Decode is used as the foundation for validation operations, providing:
+	//   - Context-aware error reporting with detailed paths
+	//   - Error accumulation across multiple validations
+	//   - Composable validation logic
+	//
+	// The Decode type is typically not used directly but through the Validate type,
+	// which adds an additional Reader layer for accessing the input value.
+	//
+	// Example:
+	//   decoder := func(ctx Context) Validation[int] {
+	//     // Perform validation and return result
+	//     return validation.Success(42)
+	//   }
+	//   // decoder is a Decode[any, int]
 	Decode[I, A any] = decode.Decode[I, A]
 
 	// Validate is a function that validates input I to produce type A with full context tracking.
@@ -174,4 +199,30 @@ type (
 	//   // toUpper is an Operator[string, string, string]
 	//   // It can be applied to any string validator to uppercase the result
 	Operator[I, A, B any] = Kleisli[I, Validate[I, A], B]
+
+	// Endomorphism represents a function from a type to itself.
+	//
+	// Type: Endomorphism[A] = func(A) A
+	//
+	// An endomorphism is a morphism (structure-preserving map) where the source
+	// and target are the same type. In simpler terms, it's a function that takes
+	// a value of type A and returns a value of the same type A.
+	//
+	// Endomorphisms are useful for:
+	//   - Transformations that preserve type (e.g., string normalization)
+	//   - Composable updates and modifications
+	//   - Building pipelines of same-type transformations
+	//   - Implementing the Monoid pattern (composition as binary operation)
+	//
+	// Endomorphisms form a Monoid under function composition:
+	//   - Identity: func(a A) A { return a }
+	//   - Concat: func(f, g Endomorphism[A]) Endomorphism[A] {
+	//       return func(a A) A { return f(g(a)) }
+	//     }
+	//
+	// Example:
+	//   trim := strings.TrimSpace      // Endomorphism[string]
+	//   lower := strings.ToLower       // Endomorphism[string]
+	//   normalize := compose(trim, lower)  // Endomorphism[string]
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
 )
