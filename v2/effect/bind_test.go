@@ -61,7 +61,7 @@ func TestBind(t *testing.T) {
 	t.Run("binds effect result to state", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
 
-		eff := Bind[TestContext](
+		eff := Bind(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -69,7 +69,7 @@ func TestBind(t *testing.T) {
 				}
 			},
 			func(s BindState) Effect[TestContext, int] {
-				return Of[TestContext, int](30)
+				return Of[TestContext](30)
 			},
 		)(Do[TestContext](initial))
 
@@ -83,7 +83,7 @@ func TestBind(t *testing.T) {
 	t.Run("chains multiple binds", func(t *testing.T) {
 		initial := BindState{}
 
-		eff := Bind[TestContext](
+		eff := Bind(
 			func(email string) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Email = email
@@ -91,9 +91,9 @@ func TestBind(t *testing.T) {
 				}
 			},
 			func(s BindState) Effect[TestContext, string] {
-				return Of[TestContext, string]("alice@example.com")
+				return Of[TestContext]("alice@example.com")
 			},
-		)(Bind[TestContext](
+		)(Bind(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -101,9 +101,9 @@ func TestBind(t *testing.T) {
 				}
 			},
 			func(s BindState) Effect[TestContext, int] {
-				return Of[TestContext, int](30)
+				return Of[TestContext](30)
 			},
-		)(Bind[TestContext](
+		)(Bind(
 			func(name string) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Name = name
@@ -111,7 +111,7 @@ func TestBind(t *testing.T) {
 				}
 			},
 			func(s BindState) Effect[TestContext, string] {
-				return Of[TestContext, string]("Alice")
+				return Of[TestContext]("Alice")
 			},
 		)(Do[TestContext](initial))))
 
@@ -127,7 +127,7 @@ func TestBind(t *testing.T) {
 		expectedErr := errors.New("bind error")
 		initial := BindState{Name: "Alice"}
 
-		eff := Bind[TestContext](
+		eff := Bind(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -182,7 +182,7 @@ func TestLet(t *testing.T) {
 			func(s BindState) string {
 				return s.Name + "@example.com"
 			},
-		)(Bind[TestContext](
+		)(Bind(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -190,7 +190,7 @@ func TestLet(t *testing.T) {
 				}
 			},
 			func(s BindState) Effect[TestContext, int] {
-				return Of[TestContext, int](25)
+				return Of[TestContext](25)
 			},
 		)(Do[TestContext](initial)))
 
@@ -270,7 +270,7 @@ func TestBindTo(t *testing.T) {
 
 		eff := BindTo[TestContext](func(v int) SimpleState {
 			return SimpleState{Value: v}
-		})(Of[TestContext, int](42))
+		})(Of[TestContext](42))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
@@ -296,7 +296,7 @@ func TestBindTo(t *testing.T) {
 			},
 		)(BindTo[TestContext](func(x int) State {
 			return State{X: x}
-		})(Of[TestContext, int](10)))
+		})(Of[TestContext](10)))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
@@ -309,9 +309,9 @@ func TestBindTo(t *testing.T) {
 func TestApS(t *testing.T) {
 	t.Run("applies effect and binds result to state", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
-		ageEffect := Of[TestContext, int](30)
+		ageEffect := Of[TestContext](30)
 
-		eff := ApS[TestContext](
+		eff := ApS(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -333,7 +333,7 @@ func TestApS(t *testing.T) {
 		initial := BindState{Name: "Alice"}
 		ageEffect := Fail[TestContext, int](expectedErr)
 
-		eff := ApS[TestContext](
+		eff := ApS(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -388,7 +388,7 @@ func TestBindIOEitherK(t *testing.T) {
 				}
 			},
 			func(s BindState) ioeither.IOEither[error, int] {
-				return ioeither.Of[error, int](30)
+				return ioeither.Of[error](30)
 			},
 		)(Do[TestContext](initial))
 
@@ -411,7 +411,7 @@ func TestBindIOEitherK(t *testing.T) {
 				}
 			},
 			func(s BindState) ioeither.IOEither[error, int] {
-				return ioeither.Left[int, error](expectedErr)
+				return ioeither.Left[int](expectedErr)
 			},
 		)(Do[TestContext](initial))
 
@@ -434,7 +434,7 @@ func TestBindIOResultK(t *testing.T) {
 				}
 			},
 			func(s BindState) ioresult.IOResult[int] {
-				return ioresult.Of[int](30)
+				return ioresult.Of(30)
 			},
 		)(Do[TestContext](initial))
 
@@ -450,7 +450,7 @@ func TestBindReaderK(t *testing.T) {
 	t.Run("binds Reader operation to state", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
 
-		eff := BindReaderK[TestContext](
+		eff := BindReaderK(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -476,7 +476,7 @@ func TestBindReaderIOK(t *testing.T) {
 	t.Run("binds ReaderIO operation to state", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
 
-		eff := BindReaderIOK[TestContext](
+		eff := BindReaderIOK(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -512,7 +512,7 @@ func TestBindEitherK(t *testing.T) {
 				}
 			},
 			func(s BindState) either.Either[error, int] {
-				return either.Of[error, int](30)
+				return either.Of[error](30)
 			},
 		)(Do[TestContext](initial))
 
@@ -535,7 +535,7 @@ func TestBindEitherK(t *testing.T) {
 				}
 			},
 			func(s BindState) either.Either[error, int] {
-				return either.Left[int, error](expectedErr)
+				return either.Left[int](expectedErr)
 			},
 		)(Do[TestContext](initial))
 
@@ -566,9 +566,9 @@ func TestLensOperations(t *testing.T) {
 
 	t.Run("ApSL applies effect using lens", func(t *testing.T) {
 		initial := BindState{Name: "Alice", Age: 25}
-		ageEffect := Of[TestContext, int](30)
+		ageEffect := Of[TestContext](30)
 
-		eff := ApSL[TestContext](ageLens, ageEffect)(Do[TestContext](initial))
+		eff := ApSL(ageLens, ageEffect)(Do[TestContext](initial))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
@@ -580,10 +580,10 @@ func TestLensOperations(t *testing.T) {
 	t.Run("BindL binds effect using lens", func(t *testing.T) {
 		initial := BindState{Name: "Alice", Age: 25}
 
-		eff := BindL[TestContext](
+		eff := BindL(
 			ageLens,
 			func(age int) Effect[TestContext, int] {
-				return Of[TestContext, int](age + 5)
+				return Of[TestContext](age + 5)
 			},
 		)(Do[TestContext](initial))
 
@@ -667,7 +667,7 @@ func TestApOperations(t *testing.T) {
 		initial := BindState{Name: "Alice"}
 		readerEffect := func(ctx TestContext) int { return 30 }
 
-		eff := ApReaderS[TestContext](
+		eff := ApReaderS(
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
@@ -685,7 +685,7 @@ func TestApOperations(t *testing.T) {
 
 	t.Run("ApEitherS applies Either effect", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
-		eitherEffect := either.Of[error, int](30)
+		eitherEffect := either.Of[error](30)
 
 		eff := ApEitherS[TestContext](
 			func(age int) func(BindState) BindState {
@@ -742,7 +742,7 @@ func TestComplexBindChain(t *testing.T) {
 			func(s ComplexState) string {
 				return s.Name + "@example.com"
 			},
-		)(Bind[TestContext](
+		)(Bind(
 			func(age int) func(ComplexState) ComplexState {
 				return func(s ComplexState) ComplexState {
 					s.Age = age
@@ -750,11 +750,11 @@ func TestComplexBindChain(t *testing.T) {
 				}
 			},
 			func(s ComplexState) Effect[TestContext, int] {
-				return Of[TestContext, int](25)
+				return Of[TestContext](25)
 			},
 		)(BindTo[TestContext](func(name string) ComplexState {
 			return ComplexState{Name: name}
-		})(Of[TestContext, string]("Alice"))))))
+		})(Of[TestContext]("Alice"))))))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
 

@@ -31,13 +31,13 @@ type TestContext struct {
 
 func runEffect[A any](eff Effect[TestContext, A], ctx TestContext) (A, error) {
 	ioResult := Provide[TestContext, A](ctx)(eff)
-	readerResult := RunSync[A](ioResult)
+	readerResult := RunSync(ioResult)
 	return readerResult(context.Background())
 }
 
 func TestSucceed(t *testing.T) {
 	t.Run("creates successful effect with value", func(t *testing.T) {
-		eff := Succeed[TestContext, int](42)
+		eff := Succeed[TestContext](42)
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
 		assert.NoError(t, err)
@@ -45,7 +45,7 @@ func TestSucceed(t *testing.T) {
 	})
 
 	t.Run("creates successful effect with string", func(t *testing.T) {
-		eff := Succeed[TestContext, string]("hello")
+		eff := Succeed[TestContext]("hello")
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
 		assert.NoError(t, err)
@@ -58,7 +58,7 @@ func TestSucceed(t *testing.T) {
 			Age  int
 		}
 		user := User{Name: "Alice", Age: 30}
-		eff := Succeed[TestContext, User](user)
+		eff := Succeed[TestContext](user)
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
 		assert.NoError(t, err)
@@ -88,7 +88,7 @@ func TestFail(t *testing.T) {
 
 func TestOf(t *testing.T) {
 	t.Run("lifts value into effect", func(t *testing.T) {
-		eff := Of[TestContext, int](100)
+		eff := Of[TestContext](100)
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
 		assert.NoError(t, err)
@@ -97,8 +97,8 @@ func TestOf(t *testing.T) {
 
 	t.Run("is equivalent to Succeed", func(t *testing.T) {
 		value := "test value"
-		eff1 := Of[TestContext, string](value)
-		eff2 := Succeed[TestContext, string](value)
+		eff1 := Of[TestContext](value)
+		eff2 := Succeed[TestContext](value)
 
 		result1, err1 := runEffect(eff1, TestContext{Value: "test"})
 		result2, err2 := runEffect(eff2, TestContext{Value: "test"})
@@ -111,7 +111,7 @@ func TestOf(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	t.Run("maps over successful effect", func(t *testing.T) {
-		eff := Of[TestContext, int](10)
+		eff := Of[TestContext](10)
 		mapped := Map[TestContext](func(x int) int {
 			return x * 2
 		})(eff)
@@ -123,7 +123,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("maps to different type", func(t *testing.T) {
-		eff := Of[TestContext, int](42)
+		eff := Of[TestContext](42)
 		mapped := Map[TestContext](func(x int) string {
 			return fmt.Sprintf("value: %d", x)
 		})(eff)
@@ -148,7 +148,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("chains multiple maps", func(t *testing.T) {
-		eff := Of[TestContext, int](5)
+		eff := Of[TestContext](5)
 		result := Map[TestContext](func(x int) int {
 			return x + 1
 		})(Map[TestContext](func(x int) int {
@@ -164,9 +164,9 @@ func TestMap(t *testing.T) {
 
 func TestChain(t *testing.T) {
 	t.Run("chains successful effects", func(t *testing.T) {
-		eff := Of[TestContext, int](10)
-		chained := Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
+		eff := Of[TestContext](10)
+		chained := Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
 		})(eff)
 
 		result, err := runEffect(chained, TestContext{Value: "test"})
@@ -176,9 +176,9 @@ func TestChain(t *testing.T) {
 	})
 
 	t.Run("chains to different type", func(t *testing.T) {
-		eff := Of[TestContext, int](42)
-		chained := Chain[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](fmt.Sprintf("number: %d", x))
+		eff := Of[TestContext](42)
+		chained := Chain(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](fmt.Sprintf("number: %d", x))
 		})(eff)
 
 		result, err := runEffect(chained, TestContext{Value: "test"})
@@ -190,8 +190,8 @@ func TestChain(t *testing.T) {
 	t.Run("propagates first error", func(t *testing.T) {
 		expectedErr := errors.New("first error")
 		eff := Fail[TestContext, int](expectedErr)
-		chained := Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
+		chained := Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
 		})(eff)
 
 		_, err := runEffect(chained, TestContext{Value: "test"})
@@ -202,8 +202,8 @@ func TestChain(t *testing.T) {
 
 	t.Run("propagates second error", func(t *testing.T) {
 		expectedErr := errors.New("second error")
-		eff := Of[TestContext, int](10)
-		chained := Chain[TestContext](func(x int) Effect[TestContext, int] {
+		eff := Of[TestContext](10)
+		chained := Chain(func(x int) Effect[TestContext, int] {
 			return Fail[TestContext, int](expectedErr)
 		})(eff)
 
@@ -214,11 +214,11 @@ func TestChain(t *testing.T) {
 	})
 
 	t.Run("chains multiple operations", func(t *testing.T) {
-		eff := Of[TestContext, int](5)
-		result := Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x + 10)
-		})(Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
+		eff := Of[TestContext](5)
+		result := Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x + 10)
+		})(Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
 		})(eff))
 
 		value, err := runEffect(result, TestContext{Value: "test"})
@@ -230,10 +230,10 @@ func TestChain(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	t.Run("applies function effect to value effect", func(t *testing.T) {
-		fn := Of[TestContext, func(int) int](func(x int) int {
+		fn := Of[TestContext](func(x int) int {
 			return x * 2
 		})
-		value := Of[TestContext, int](21)
+		value := Of[TestContext](21)
 
 		result := Ap[int](value)(fn)
 		val, err := runEffect(result, TestContext{Value: "test"})
@@ -243,10 +243,10 @@ func TestAp(t *testing.T) {
 	})
 
 	t.Run("applies function to different type", func(t *testing.T) {
-		fn := Of[TestContext, func(int) string](func(x int) string {
+		fn := Of[TestContext](func(x int) string {
 			return fmt.Sprintf("value: %d", x)
 		})
-		value := Of[TestContext, int](42)
+		value := Of[TestContext](42)
 
 		result := Ap[string](value)(fn)
 		val, err := runEffect(result, TestContext{Value: "test"})
@@ -258,7 +258,7 @@ func TestAp(t *testing.T) {
 	t.Run("propagates error from function effect", func(t *testing.T) {
 		expectedErr := errors.New("function error")
 		fn := Fail[TestContext, func(int) int](expectedErr)
-		value := Of[TestContext, int](42)
+		value := Of[TestContext](42)
 
 		result := Ap[int](value)(fn)
 		_, err := runEffect(result, TestContext{Value: "test"})
@@ -269,7 +269,7 @@ func TestAp(t *testing.T) {
 
 	t.Run("propagates error from value effect", func(t *testing.T) {
 		expectedErr := errors.New("value error")
-		fn := Of[TestContext, func(int) int](func(x int) int {
+		fn := Of[TestContext](func(x int) int {
 			return x * 2
 		})
 		value := Fail[TestContext, int](expectedErr)
@@ -285,9 +285,9 @@ func TestAp(t *testing.T) {
 func TestSuspend(t *testing.T) {
 	t.Run("suspends effect computation", func(t *testing.T) {
 		callCount := 0
-		eff := Suspend[TestContext, int](func() Effect[TestContext, int] {
+		eff := Suspend(func() Effect[TestContext, int] {
 			callCount++
-			return Of[TestContext, int](42)
+			return Of[TestContext](42)
 		})
 
 		// Effect not executed yet
@@ -302,7 +302,7 @@ func TestSuspend(t *testing.T) {
 
 	t.Run("suspends failing effect", func(t *testing.T) {
 		expectedErr := errors.New("suspended error")
-		eff := Suspend[TestContext, int](func() Effect[TestContext, int] {
+		eff := Suspend(func() Effect[TestContext, int] {
 			return Fail[TestContext, int](expectedErr)
 		})
 
@@ -314,8 +314,8 @@ func TestSuspend(t *testing.T) {
 
 	t.Run("allows lazy evaluation", func(t *testing.T) {
 		var value int
-		eff := Suspend[TestContext, int](func() Effect[TestContext, int] {
-			return Of[TestContext, int](value)
+		eff := Suspend(func() Effect[TestContext, int] {
+			return Of[TestContext](value)
 		})
 
 		value = 10
@@ -334,8 +334,8 @@ func TestSuspend(t *testing.T) {
 func TestTap(t *testing.T) {
 	t.Run("executes side effect without changing value", func(t *testing.T) {
 		sideEffectValue := 0
-		eff := Of[TestContext, int](42)
-		tapped := Tap[TestContext](func(x int) Effect[TestContext, any] {
+		eff := Of[TestContext](42)
+		tapped := Tap(func(x int) Effect[TestContext, any] {
 			sideEffectValue = x * 2
 			return Of[TestContext, any](nil)
 		})(eff)
@@ -350,7 +350,7 @@ func TestTap(t *testing.T) {
 	t.Run("propagates original error", func(t *testing.T) {
 		expectedErr := errors.New("original error")
 		eff := Fail[TestContext, int](expectedErr)
-		tapped := Tap[TestContext](func(x int) Effect[TestContext, any] {
+		tapped := Tap(func(x int) Effect[TestContext, any] {
 			return Of[TestContext, any](nil)
 		})(eff)
 
@@ -362,8 +362,8 @@ func TestTap(t *testing.T) {
 
 	t.Run("propagates tap error", func(t *testing.T) {
 		expectedErr := errors.New("tap error")
-		eff := Of[TestContext, int](42)
-		tapped := Tap[TestContext](func(x int) Effect[TestContext, any] {
+		eff := Of[TestContext](42)
+		tapped := Tap(func(x int) Effect[TestContext, any] {
 			return Fail[TestContext, any](expectedErr)
 		})(eff)
 
@@ -375,11 +375,11 @@ func TestTap(t *testing.T) {
 
 	t.Run("chains multiple taps", func(t *testing.T) {
 		values := []int{}
-		eff := Of[TestContext, int](10)
-		result := Tap[TestContext](func(x int) Effect[TestContext, any] {
+		eff := Of[TestContext](10)
+		result := Tap(func(x int) Effect[TestContext, any] {
 			values = append(values, x+2)
 			return Of[TestContext, any](nil)
-		})(Tap[TestContext](func(x int) Effect[TestContext, any] {
+		})(Tap(func(x int) Effect[TestContext, any] {
 			values = append(values, x+1)
 			return Of[TestContext, any](nil)
 		})(eff))
@@ -394,13 +394,13 @@ func TestTap(t *testing.T) {
 
 func TestTernary(t *testing.T) {
 	t.Run("executes onTrue when predicate is true", func(t *testing.T) {
-		kleisli := Ternary[TestContext, int, string](
+		kleisli := Ternary(
 			func(x int) bool { return x > 10 },
 			func(x int) Effect[TestContext, string] {
-				return Of[TestContext, string]("greater")
+				return Of[TestContext]("greater")
 			},
 			func(x int) Effect[TestContext, string] {
-				return Of[TestContext, string]("less or equal")
+				return Of[TestContext]("less or equal")
 			},
 		)
 
@@ -411,13 +411,13 @@ func TestTernary(t *testing.T) {
 	})
 
 	t.Run("executes onFalse when predicate is false", func(t *testing.T) {
-		kleisli := Ternary[TestContext, int, string](
+		kleisli := Ternary(
 			func(x int) bool { return x > 10 },
 			func(x int) Effect[TestContext, string] {
-				return Of[TestContext, string]("greater")
+				return Of[TestContext]("greater")
 			},
 			func(x int) Effect[TestContext, string] {
-				return Of[TestContext, string]("less or equal")
+				return Of[TestContext]("less or equal")
 			},
 		)
 
@@ -429,13 +429,13 @@ func TestTernary(t *testing.T) {
 
 	t.Run("handles errors in onTrue branch", func(t *testing.T) {
 		expectedErr := errors.New("true branch error")
-		kleisli := Ternary[TestContext, int, string](
+		kleisli := Ternary(
 			func(x int) bool { return x > 10 },
 			func(x int) Effect[TestContext, string] {
 				return Fail[TestContext, string](expectedErr)
 			},
 			func(x int) Effect[TestContext, string] {
-				return Of[TestContext, string]("less or equal")
+				return Of[TestContext]("less or equal")
 			},
 		)
 
@@ -447,10 +447,10 @@ func TestTernary(t *testing.T) {
 
 	t.Run("handles errors in onFalse branch", func(t *testing.T) {
 		expectedErr := errors.New("false branch error")
-		kleisli := Ternary[TestContext, int, string](
+		kleisli := Ternary(
 			func(x int) bool { return x > 10 },
 			func(x int) Effect[TestContext, string] {
-				return Of[TestContext, string]("greater")
+				return Of[TestContext]("greater")
 			},
 			func(x int) Effect[TestContext, string] {
 				return Fail[TestContext, string](expectedErr)
@@ -466,9 +466,9 @@ func TestTernary(t *testing.T) {
 
 func TestEffectComposition(t *testing.T) {
 	t.Run("composes Map and Chain", func(t *testing.T) {
-		eff := Of[TestContext, int](5)
-		result := Chain[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](fmt.Sprintf("result: %d", x))
+		eff := Of[TestContext](5)
+		result := Chain(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](fmt.Sprintf("result: %d", x))
 		})(Map[TestContext](func(x int) int {
 			return x * 2
 		})(eff))
@@ -481,12 +481,12 @@ func TestEffectComposition(t *testing.T) {
 
 	t.Run("composes Chain and Tap", func(t *testing.T) {
 		sideEffect := 0
-		eff := Of[TestContext, int](10)
-		result := Tap[TestContext](func(x int) Effect[TestContext, any] {
+		eff := Of[TestContext](10)
+		result := Tap(func(x int) Effect[TestContext, any] {
 			sideEffect = x
 			return Of[TestContext, any](nil)
-		})(Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
+		})(Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
 		})(eff))
 
 		value, err := runEffect(result, TestContext{Value: "test"})
@@ -499,7 +499,7 @@ func TestEffectComposition(t *testing.T) {
 
 func TestEffectWithResult(t *testing.T) {
 	t.Run("converts result to effect", func(t *testing.T) {
-		res := result.Of[int](42)
+		res := result.Of(42)
 		// This demonstrates integration with result package
 		assert.True(t, result.IsRight(res))
 	})

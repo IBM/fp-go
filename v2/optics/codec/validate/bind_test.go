@@ -354,7 +354,7 @@ func TestApS(t *testing.T) {
 	t.Run("attaches value using applicative pattern", func(t *testing.T) {
 		validator := F.Pipe1(
 			Do[string](State{}),
-			ApS[string](func(x int) func(State) State {
+			ApS(func(x int) func(State) State {
 				return func(s State) State { s.x = x; return s }
 			}, Of[string](42)),
 		)
@@ -375,7 +375,7 @@ func TestApS(t *testing.T) {
 			}
 		}
 
-		validator := ApS[string](func(x int) func(State) State {
+		validator := ApS(func(x int) func(State) State {
 			return func(s State) State { s.x = x; return s }
 		}, valueFailure)
 
@@ -394,10 +394,10 @@ func TestApS(t *testing.T) {
 	t.Run("combines multiple ApS operations", func(t *testing.T) {
 		validator := F.Pipe2(
 			Do[string](State{}),
-			ApS[string](func(x int) func(State) State {
+			ApS(func(x int) func(State) State {
 				return func(s State) State { s.x = x; return s }
 			}, Of[string](10)),
-			ApS[string](func(y int) func(State) State {
+			ApS(func(y int) func(State) State {
 				return func(s State) State { s.y = y; return s }
 			}, Of[string](20)),
 		)
@@ -426,7 +426,7 @@ func TestApSL(t *testing.T) {
 
 		validator := F.Pipe1(
 			Of[string](Person{Name: "Alice"}),
-			ApSL[string](
+			ApSL(
 				addressLens,
 				Of[string](Address{Street: "Main St", City: "NYC"}),
 			),
@@ -457,7 +457,7 @@ func TestApSL(t *testing.T) {
 			}
 		}
 
-		validator := ApSL[string](addressLens, addressFailure)
+		validator := ApSL(addressLens, addressFailure)
 		result := validator(personFailure)("input")(nil)
 
 		assert.True(t, either.IsLeft(result))
@@ -486,7 +486,7 @@ func TestBindL(t *testing.T) {
 
 		validator := F.Pipe1(
 			Of[string](Counter{Value: 42}),
-			BindL[string](valueLens, increment),
+			BindL(valueLens, increment),
 		)
 
 		result := validator("input")(nil)
@@ -507,7 +507,7 @@ func TestBindL(t *testing.T) {
 
 		validator := F.Pipe1(
 			Of[string](Counter{Value: 100}),
-			BindL[string](valueLens, increment),
+			BindL(valueLens, increment),
 		)
 
 		result := validator("input")(nil)
@@ -530,7 +530,7 @@ func TestBindL(t *testing.T) {
 				return validation.Failures[Counter](Errors{&validation.ValidationError{Messsage: "error"}})
 			}
 		}
-		validator := BindL[string](valueLens, increment)
+		validator := BindL(valueLens, increment)
 		result := validator(failure)("input")(nil)
 
 		assert.True(t, either.IsLeft(result))
@@ -651,7 +651,7 @@ func TestBindOperationsComposition(t *testing.T) {
 			LetTo[string](func(n string) func(User) User {
 				return func(u User) User { u.Name = n; return u }
 			}, "Alice"),
-			Bind[string](func(a int) func(User) User {
+			Bind(func(a int) func(User) User {
 				return func(u User) User { u.Age = a; return u }
 			}, func(u User) Validate[string, int] {
 				// Age validation
@@ -670,7 +670,7 @@ func TestBindOperationsComposition(t *testing.T) {
 				// Derive email from name
 				return u.Name + "@example.com"
 			}),
-			Bind[string](func(a int) func(User) User {
+			Bind(func(a int) func(User) User {
 				return func(u User) User { u.Age = a; return u }
 			}, func(u User) Validate[string, int] {
 				// Validate age is positive
@@ -702,7 +702,7 @@ func TestBindOperationsComposition(t *testing.T) {
 
 		validator := F.Pipe2(
 			Do[int](Config{}),
-			Bind[int](func(max int) func(Config) Config {
+			Bind(func(max int) func(Config) Config {
 				return func(c Config) Config { c.MaxValue = max; return c }
 			}, func(c Config) Validate[int, int] {
 				// Extract max from input
@@ -712,7 +712,7 @@ func TestBindOperationsComposition(t *testing.T) {
 					}
 				}
 			}),
-			Bind[int](func(val int) func(Config) Config {
+			Bind(func(val int) func(Config) Config {
 				return func(c Config) Config { c.Value = val; return c }
 			}, func(c Config) Validate[int, int] {
 				// Validate value against max

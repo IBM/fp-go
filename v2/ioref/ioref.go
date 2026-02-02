@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/readerio"
 )
 
 // MakeIORef creates a new IORef containing the given initial value.
@@ -50,6 +51,32 @@ func MakeIORef[A any](a A) IO[IORef[A]] {
 	}
 }
 
+// Write atomically writes a new value to an IORef and returns the written value.
+//
+// This function returns a Kleisli arrow that takes an IORef and produces an IO
+// computation that writes the given value to the reference. The write operation
+// is atomic and thread-safe, using a write lock to ensure exclusive access.
+//
+// Parameters:
+//   - a: The new value to write to the IORef
+//
+// Returns:
+//   - A Kleisli arrow from IORef[A] to IO[A] that writes the value and returns it
+//
+// Example:
+//
+//	ref := ioref.MakeIORef(42)()
+//
+//	// Write a new value
+//	newValue := ioref.Write(100)(ref)()  // Returns 100, ref now contains 100
+//
+//	// Chain writes
+//	pipe.Pipe2(
+//	    ref,
+//	    ioref.Write(50),
+//	    io.Chain(ioref.Write(75)),
+//	)()  // ref now contains 75
+//
 //go:inline
 func Write[A any](a A) io.Kleisli[IORef[A], A] {
 	return func(ref IORef[A]) IO[A] {
@@ -180,6 +207,57 @@ func ModifyIOK[A any](f io.Kleisli[A, A]) io.Kleisli[IORef[A], A] {
 	}
 }
 
+// ModifyReaderIOK atomically modifies the value in an IORef using a ReaderIO-based transformation.
+//
+// This is a variant of ModifyIOK that works with ReaderIO computations, allowing the
+// transformation function to access an environment of type R while performing IO effects.
+// This is useful when the modification logic needs access to configuration, context,
+// or other shared resources.
+//
+// The modification is atomic and thread-safe, using a write lock to ensure exclusive
+// access during the read-modify-write cycle. The ReaderIO effect in the transformation
+// function is executed while holding the lock.
+//
+// Parameters:
+//   - f: A ReaderIO Kleisli arrow (readerio.Kleisli[R, A, A]) that takes the current value
+//     and an environment R, and returns an IO computation producing the new value
+//
+// Returns:
+//   - A ReaderIO Kleisli arrow from IORef[A] to ReaderIO[R, A] that returns the new value
+//
+// Example:
+//
+//	type Config struct {
+//	    multiplier int
+//	}
+//
+//	ref := ioref.MakeIORef(10)()
+//
+//	// Modify using environment
+//	modifyWithConfig := ioref.ModifyReaderIOK(func(x int) readerio.ReaderIO[Config, int] {
+//	    return func(cfg Config) io.IO[int] {
+//	        return func() int {
+//	            return x * cfg.multiplier
+//	        }
+//	    }
+//	})
+//
+//	config := Config{multiplier: 5}
+//	newValue := modifyWithConfig(ref)(config)()  // Returns 50, ref now contains 50
+func ModifyReaderIOK[R, A any](f readerio.Kleisli[R, A, A]) readerio.Kleisli[R, IORef[A], A] {
+	return func(ref IORef[A]) ReaderIO[R, A] {
+		return func(r R) readerio.IO[A] {
+			return func() A {
+				ref.mu.Lock()
+				defer ref.mu.Unlock()
+
+				ref.a = f(ref.a)(r)()
+				return ref.a
+			}
+		}
+	}
+}
+
 // ModifyWithResult atomically modifies the value in an IORef and returns both
 // the new value and an additional result computed from the old value.
 //
@@ -266,6 +344,65 @@ func ModifyIOKWithResult[A, B any](f io.Kleisli[A, Pair[A, B]]) io.Kleisli[IORef
 			result := f(ref.a)()
 			ref.a = pair.Head(result)
 			return pair.Tail(result)
+		}
+	}
+}
+
+// ModifyReaderIOKWithResult atomically modifies the value in an IORef and returns a result,
+// using a ReaderIO-based transformation function.
+//
+// This combines the capabilities of ModifyIOKWithResult and ModifyReaderIOK, allowing the
+// transformation function to:
+//   - Access an environment of type R (like configuration or context)
+//   - Perform IO effects during the transformation
+//   - Both update the stored value and compute a result based on the old value
+//   - Ensure atomicity of the entire read-transform-write-compute cycle
+//
+// The modification is atomic and thread-safe, using a write lock to ensure exclusive
+// access. The ReaderIO effect in the transformation function is executed while holding the lock.
+//
+// Parameters:
+//   - f: A ReaderIO Kleisli arrow (readerio.Kleisli[R, A, Pair[A, B]]) that takes the old value
+//     and an environment R, and returns an IO computation producing a Pair of (new value, result)
+//
+// Returns:
+//   - A ReaderIO Kleisli arrow from IORef[A] to ReaderIO[R, B] that produces the result
+//
+// Example:
+//
+//	type Config struct {
+//	    logEnabled bool
+//	}
+//
+//	ref := ioref.MakeIORef(42)()
+//
+//	// Increment with conditional logging, return old value
+//	incrementWithLog := ioref.ModifyReaderIOKWithResult(
+//	    func(x int) readerio.ReaderIO[Config, pair.Pair[int, int]] {
+//	        return func(cfg Config) io.IO[pair.Pair[int, int]] {
+//	            return func() pair.Pair[int, int] {
+//	                if cfg.logEnabled {
+//	                    fmt.Printf("Incrementing from %d\n", x)
+//	                }
+//	                return pair.MakePair(x+1, x)
+//	            }
+//	        }
+//	    },
+//	)
+//
+//	config := Config{logEnabled: true}
+//	oldValue := incrementWithLog(ref)(config)()  // Logs and returns 42, ref now contains 43
+func ModifyReaderIOKWithResult[R, A, B any](f readerio.Kleisli[R, A, Pair[A, B]]) readerio.Kleisli[R, IORef[A], B] {
+	return func(ref IORef[A]) ReaderIO[R, B] {
+		return func(r R) readerio.IO[B] {
+			return func() B {
+				ref.mu.Lock()
+				defer ref.mu.Unlock()
+
+				result := f(ref.a)(r)()
+				ref.a = pair.Head(result)
+				return pair.Tail(result)
+			}
 		}
 	}
 }

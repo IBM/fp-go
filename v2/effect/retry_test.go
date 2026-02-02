@@ -34,7 +34,7 @@ func TestRetrying(t *testing.T) {
 			policy,
 			func(status retry.RetryStatus) Effect[TestContext, string] {
 				attemptCount++
-				return Of[TestContext, string]("success")
+				return Of[TestContext]("success")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res) // retry on error
@@ -59,7 +59,7 @@ func TestRetrying(t *testing.T) {
 				if attemptCount < 3 {
 					return Fail[TestContext, string](errors.New("temporary error"))
 				}
-				return Of[TestContext, string]("success after retries")
+				return Of[TestContext]("success after retries")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res) // retry on error
@@ -78,7 +78,7 @@ func TestRetrying(t *testing.T) {
 		maxRetries := uint(3)
 		policy := retry.LimitRetries(maxRetries)
 
-		eff := Retrying[TestContext, string](
+		eff := Retrying(
 			policy,
 			func(status retry.RetryStatus) Effect[TestContext, string] {
 				attemptCount++
@@ -103,7 +103,7 @@ func TestRetrying(t *testing.T) {
 			policy,
 			func(status retry.RetryStatus) Effect[TestContext, int] {
 				attemptCount++
-				return Of[TestContext, int](42)
+				return Of[TestContext](42)
 			},
 			func(res Result[int]) bool {
 				return result.IsLeft(res) // retry on error
@@ -125,7 +125,7 @@ func TestRetrying(t *testing.T) {
 			policy,
 			func(status retry.RetryStatus) Effect[TestContext, int] {
 				attemptCount++
-				return Of[TestContext, int](attemptCount * 10)
+				return Of[TestContext](attemptCount * 10)
 			},
 			func(res Result[int]) bool {
 				// Retry if value is less than 30
@@ -155,7 +155,7 @@ func TestRetrying(t *testing.T) {
 				if len(statuses) < 3 {
 					return Fail[TestContext, string](errors.New("retry"))
 				}
-				return Of[TestContext, string]("done")
+				return Of[TestContext]("done")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res)
@@ -188,7 +188,7 @@ func TestRetrying(t *testing.T) {
 				if attemptCount < 3 {
 					return Fail[TestContext, string](errors.New("retry"))
 				}
-				return Of[TestContext, string]("success")
+				return Of[TestContext]("success")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res)
@@ -218,7 +218,7 @@ func TestRetrying(t *testing.T) {
 				if attemptCount < 2 {
 					return Fail[TestContext, string](errors.New("retry"))
 				}
-				return Of[TestContext, string]("success")
+				return Of[TestContext]("success")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res)
@@ -250,7 +250,7 @@ func TestRetrying(t *testing.T) {
 					return Fail[TestContext, string](err)
 				}
 				attemptCount++
-				return Of[TestContext, string]("finally succeeded")
+				return Of[TestContext]("finally succeeded")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res)
@@ -268,7 +268,7 @@ func TestRetrying(t *testing.T) {
 		attemptCount := 0
 		policy := retry.LimitRetries(5)
 
-		eff := Retrying[TestContext, string](
+		eff := Retrying(
 			policy,
 			func(status retry.RetryStatus) Effect[TestContext, string] {
 				attemptCount++
@@ -297,7 +297,7 @@ func TestRetrying(t *testing.T) {
 				if attemptCount < 2 {
 					return Fail[TestContext, string](errors.New("retry"))
 				}
-				return Of[TestContext, string]("success with context")
+				return Of[TestContext]("success with context")
 			},
 			func(res Result[string]) bool {
 				return result.IsLeft(res)
@@ -335,7 +335,7 @@ func TestRetryingWithComplexScenarios(t *testing.T) {
 				if status.IterNumber < 2 {
 					return Fail[TestContext, State](errors.New("retry"))
 				}
-				return Of[TestContext, State](state)
+				return Of[TestContext](state)
 			},
 			func(res Result[State]) bool {
 				return result.IsLeft(res)
@@ -353,8 +353,8 @@ func TestRetryingWithComplexScenarios(t *testing.T) {
 		attemptCount := 0
 		policy := retry.LimitRetries(3)
 
-		eff := Chain[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string]("final: " + string(rune('0'+x)))
+		eff := Chain(func(x int) Effect[TestContext, string] {
+			return Of[TestContext]("final: " + string(rune('0'+x)))
 		})(Retrying[TestContext, int](
 			policy,
 			func(status retry.RetryStatus) Effect[TestContext, int] {
@@ -362,7 +362,7 @@ func TestRetryingWithComplexScenarios(t *testing.T) {
 				if attemptCount < 2 {
 					return Fail[TestContext, int](errors.New("retry"))
 				}
-				return Of[TestContext, int](attemptCount)
+				return Of[TestContext](attemptCount)
 			},
 			func(res Result[int]) bool {
 				return result.IsLeft(res)

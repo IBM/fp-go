@@ -30,11 +30,11 @@ func TestApplicativeMonoid(t *testing.T) {
 			"",
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](stringMonoid)
 
-		eff1 := Of[TestContext, string]("Hello")
-		eff2 := Of[TestContext, string](" ")
-		eff3 := Of[TestContext, string]("World")
+		eff1 := Of[TestContext]("Hello")
+		eff2 := Of[TestContext](" ")
+		eff3 := Of[TestContext]("World")
 
 		combined := effectMonoid.Concat(eff1, effectMonoid.Concat(eff2, eff3))
 		result, err := runEffect(combined, TestContext{Value: "test"})
@@ -49,11 +49,11 @@ func TestApplicativeMonoid(t *testing.T) {
 			0,
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, int](intMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](intMonoid)
 
-		eff1 := Of[TestContext, int](10)
-		eff2 := Of[TestContext, int](20)
-		eff3 := Of[TestContext, int](30)
+		eff1 := Of[TestContext](10)
+		eff2 := Of[TestContext](20)
+		eff3 := Of[TestContext](30)
 
 		combined := effectMonoid.Concat(eff1, effectMonoid.Concat(eff2, eff3))
 		result, err := runEffect(combined, TestContext{Value: "test"})
@@ -68,7 +68,7 @@ func TestApplicativeMonoid(t *testing.T) {
 			"empty",
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](stringMonoid)
 
 		result, err := runEffect(effectMonoid.Empty(), TestContext{Value: "test"})
 
@@ -83,10 +83,10 @@ func TestApplicativeMonoid(t *testing.T) {
 			"",
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](stringMonoid)
 
 		eff1 := Fail[TestContext, string](expectedErr)
-		eff2 := Of[TestContext, string]("World")
+		eff2 := Of[TestContext]("World")
 
 		combined := effectMonoid.Concat(eff1, eff2)
 		_, err := runEffect(combined, TestContext{Value: "test"})
@@ -102,9 +102,9 @@ func TestApplicativeMonoid(t *testing.T) {
 			"",
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](stringMonoid)
 
-		eff1 := Of[TestContext, string]("Hello")
+		eff1 := Of[TestContext]("Hello")
 		eff2 := Fail[TestContext, string](expectedErr)
 
 		combined := effectMonoid.Concat(eff1, eff2)
@@ -120,13 +120,13 @@ func TestApplicativeMonoid(t *testing.T) {
 			1,
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, int](intMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](intMonoid)
 
 		effects := []Effect[TestContext, int]{
-			Of[TestContext, int](2),
-			Of[TestContext, int](3),
-			Of[TestContext, int](4),
-			Of[TestContext, int](5),
+			Of[TestContext](2),
+			Of[TestContext](3),
+			Of[TestContext](4),
+			Of[TestContext](5),
 		}
 
 		combined := effectMonoid.Empty()
@@ -152,11 +152,11 @@ func TestApplicativeMonoid(t *testing.T) {
 			Counter{Count: 0},
 		)
 
-		effectMonoid := ApplicativeMonoid[TestContext, Counter](counterMonoid)
+		effectMonoid := ApplicativeMonoid[TestContext](counterMonoid)
 
-		eff1 := Of[TestContext, Counter](Counter{Count: 5})
-		eff2 := Of[TestContext, Counter](Counter{Count: 10})
-		eff3 := Of[TestContext, Counter](Counter{Count: 15})
+		eff1 := Of[TestContext](Counter{Count: 5})
+		eff2 := Of[TestContext](Counter{Count: 10})
+		eff3 := Of[TestContext](Counter{Count: 15})
 
 		combined := effectMonoid.Concat(eff1, effectMonoid.Concat(eff2, eff3))
 		result, err := runEffect(combined, TestContext{Value: "test"})
@@ -173,10 +173,10 @@ func TestAlternativeMonoid(t *testing.T) {
 			"",
 		)
 
-		effectMonoid := AlternativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := AlternativeMonoid[TestContext](stringMonoid)
 
-		eff1 := Of[TestContext, string]("First")
-		eff2 := Of[TestContext, string]("Second")
+		eff1 := Of[TestContext]("First")
+		eff2 := Of[TestContext]("Second")
 
 		combined := effectMonoid.Concat(eff1, eff2)
 		result, err := runEffect(combined, TestContext{Value: "test"})
@@ -191,10 +191,10 @@ func TestAlternativeMonoid(t *testing.T) {
 			"",
 		)
 
-		effectMonoid := AlternativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := AlternativeMonoid[TestContext](stringMonoid)
 
 		eff1 := Fail[TestContext, string](errors.New("first failed"))
-		eff2 := Of[TestContext, string]("Second")
+		eff2 := Of[TestContext]("Second")
 
 		combined := effectMonoid.Concat(eff1, eff2)
 		result, err := runEffect(combined, TestContext{Value: "test"})
@@ -210,7 +210,7 @@ func TestAlternativeMonoid(t *testing.T) {
 			"",
 		)
 
-		effectMonoid := AlternativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := AlternativeMonoid[TestContext](stringMonoid)
 
 		eff1 := Fail[TestContext, string](errors.New("first error"))
 		eff2 := Fail[TestContext, string](expectedErr)
@@ -228,7 +228,7 @@ func TestAlternativeMonoid(t *testing.T) {
 			"default",
 		)
 
-		effectMonoid := AlternativeMonoid[TestContext, string](stringMonoid)
+		effectMonoid := AlternativeMonoid[TestContext](stringMonoid)
 
 		result, err := runEffect(effectMonoid.Empty(), TestContext{Value: "test"})
 
@@ -242,12 +242,12 @@ func TestAlternativeMonoid(t *testing.T) {
 			0,
 		)
 
-		effectMonoid := AlternativeMonoid[TestContext, int](intMonoid)
+		effectMonoid := AlternativeMonoid[TestContext](intMonoid)
 
 		eff1 := Fail[TestContext, int](errors.New("error 1"))
 		eff2 := Fail[TestContext, int](errors.New("error 2"))
-		eff3 := Of[TestContext, int](42)
-		eff4 := Of[TestContext, int](100)
+		eff3 := Of[TestContext](42)
+		eff4 := Of[TestContext](100)
 
 		combined := effectMonoid.Concat(
 			effectMonoid.Concat(eff1, eff2),
@@ -273,11 +273,11 @@ func TestAlternativeMonoid(t *testing.T) {
 			Result{Value: "", Code: 0},
 		)
 
-		effectMonoid := AlternativeMonoid[TestContext, Result](resultMonoid)
+		effectMonoid := AlternativeMonoid[TestContext](resultMonoid)
 
 		eff1 := Fail[TestContext, Result](errors.New("failed"))
-		eff2 := Of[TestContext, Result](Result{Value: "success", Code: 200})
-		eff3 := Of[TestContext, Result](Result{Value: "backup", Code: 201})
+		eff2 := Of[TestContext](Result{Value: "success", Code: 200})
+		eff3 := Of[TestContext](Result{Value: "backup", Code: 201})
 
 		combined := effectMonoid.Concat(effectMonoid.Concat(eff1, eff2), eff3)
 		result, err := runEffect(combined, TestContext{Value: "test"})
@@ -295,11 +295,11 @@ func TestMonoidComparison(t *testing.T) {
 			"",
 		)
 
-		applicativeMonoid := ApplicativeMonoid[TestContext, string](stringMonoid)
-		alternativeMonoid := AlternativeMonoid[TestContext, string](stringMonoid)
+		applicativeMonoid := ApplicativeMonoid[TestContext](stringMonoid)
+		alternativeMonoid := AlternativeMonoid[TestContext](stringMonoid)
 
-		eff1 := Of[TestContext, string]("A")
-		eff2 := Of[TestContext, string]("B")
+		eff1 := Of[TestContext]("A")
+		eff2 := Of[TestContext]("B")
 
 		// Applicative combines values
 		applicativeResult, err1 := runEffect(
@@ -325,11 +325,11 @@ func TestMonoidComparison(t *testing.T) {
 			0,
 		)
 
-		applicativeMonoid := ApplicativeMonoid[TestContext, int](intMonoid)
-		alternativeMonoid := AlternativeMonoid[TestContext, int](intMonoid)
+		applicativeMonoid := ApplicativeMonoid[TestContext](intMonoid)
+		alternativeMonoid := AlternativeMonoid[TestContext](intMonoid)
 
 		eff1 := Fail[TestContext, int](errors.New("error 1"))
-		eff2 := Of[TestContext, int](42)
+		eff2 := Of[TestContext](42)
 
 		// Applicative fails on first error
 		_, err1 := runEffect(

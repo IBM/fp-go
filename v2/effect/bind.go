@@ -68,7 +68,7 @@ func ApS[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Effect[C, T],
 ) Operator[C, S1, S2] {
-	return readerreaderioresult.ApS[C](setter, fa)
+	return readerreaderioresult.ApS(setter, fa)
 }
 
 //go:inline
@@ -76,7 +76,7 @@ func ApSL[C, S, T any](
 	lens Lens[S, T],
 	fa Effect[C, T],
 ) Operator[C, S, S] {
-	return readerreaderioresult.ApSL[C](lens, fa)
+	return readerreaderioresult.ApSL(lens, fa)
 }
 
 //go:inline
@@ -84,7 +84,7 @@ func BindL[C, S, T any](
 	lens Lens[S, T],
 	f func(T) Effect[C, T],
 ) Operator[C, S, S] {
-	return readerreaderioresult.BindL[C](lens, f)
+	return readerreaderioresult.BindL(lens, f)
 }
 
 //go:inline
@@ -132,7 +132,7 @@ func BindReaderK[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f reader.Kleisli[C, S1, T],
 ) Operator[C, S1, S2] {
-	return readerreaderioresult.BindReaderK[C](setter, f)
+	return readerreaderioresult.BindReaderK(setter, f)
 }
 
 //go:inline
@@ -140,7 +140,7 @@ func BindReaderIOK[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f readerio.Kleisli[C, S1, T],
 ) Operator[C, S1, S2] {
-	return readerreaderioresult.BindReaderIOK[C](setter, f)
+	return readerreaderioresult.BindReaderIOK(setter, f)
 }
 
 //go:inline
@@ -172,7 +172,7 @@ func BindReaderKL[C, S, T any](
 	lens Lens[S, T],
 	f reader.Kleisli[C, T, T],
 ) Operator[C, S, S] {
-	return readerreaderioresult.BindReaderKL[C](lens, f)
+	return readerreaderioresult.BindReaderKL(lens, f)
 }
 
 //go:inline
@@ -180,7 +180,7 @@ func BindReaderIOKL[C, S, T any](
 	lens Lens[S, T],
 	f readerio.Kleisli[C, T, T],
 ) Operator[C, S, S] {
-	return readerreaderioresult.BindReaderIOKL[C](lens, f)
+	return readerreaderioresult.BindReaderIOKL(lens, f)
 }
 
 //go:inline
@@ -204,7 +204,7 @@ func ApReaderS[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa Reader[C, T],
 ) Operator[C, S1, S2] {
-	return readerreaderioresult.ApReaderS[C](setter, fa)
+	return readerreaderioresult.ApReaderS(setter, fa)
 }
 
 //go:inline
@@ -212,7 +212,7 @@ func ApReaderIOS[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	fa ReaderIO[C, T],
 ) Operator[C, S1, S2] {
-	return readerreaderioresult.ApReaderIOS[C](setter, fa)
+	return readerreaderioresult.ApReaderIOS(setter, fa)
 }
 
 //go:inline
@@ -244,7 +244,7 @@ func ApReaderSL[C, S, T any](
 	lens Lens[S, T],
 	fa Reader[C, T],
 ) Operator[C, S, S] {
-	return readerreaderioresult.ApReaderSL[C](lens, fa)
+	return readerreaderioresult.ApReaderSL(lens, fa)
 }
 
 //go:inline
@@ -252,7 +252,7 @@ func ApReaderIOSL[C, S, T any](
 	lens Lens[S, T],
 	fa ReaderIO[C, T],
 ) Operator[C, S, S] {
-	return readerreaderioresult.ApReaderIOSL[C](lens, fa)
+	return readerreaderioresult.ApReaderIOSL(lens, fa)
 }
 
 //go:inline

@@ -26,10 +26,10 @@ import (
 func TestProvide(t *testing.T) {
 	t.Run("provides context to effect", func(t *testing.T) {
 		ctx := TestContext{Value: "test-value"}
-		eff := Of[TestContext, string]("result")
+		eff := Of[TestContext]("result")
 
 		ioResult := Provide[TestContext, string](ctx)(eff)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -43,10 +43,10 @@ func TestProvide(t *testing.T) {
 		}
 
 		cfg := Config{Host: "localhost", Port: 8080}
-		eff := Of[Config, string]("connected")
+		eff := Of[Config]("connected")
 
 		ioResult := Provide[Config, string](cfg)(eff)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -59,7 +59,7 @@ func TestProvide(t *testing.T) {
 		eff := Fail[TestContext, string](expectedErr)
 
 		ioResult := Provide[TestContext, string](ctx)(eff)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
@@ -72,10 +72,10 @@ func TestProvide(t *testing.T) {
 		}
 
 		ctx := SimpleContext{ID: 42}
-		eff := Of[SimpleContext, int](100)
+		eff := Of[SimpleContext](100)
 
 		ioResult := Provide[SimpleContext, int](ctx)(eff)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -85,12 +85,12 @@ func TestProvide(t *testing.T) {
 	t.Run("provides context to chained effects", func(t *testing.T) {
 		ctx := TestContext{Value: "base"}
 
-		eff := Chain[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string]("result")
-		})(Of[TestContext, int](42))
+		eff := Chain(func(x int) Effect[TestContext, string] {
+			return Of[TestContext]("result")
+		})(Of[TestContext](42))
 
 		ioResult := Provide[TestContext, string](ctx)(eff)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -102,10 +102,10 @@ func TestProvide(t *testing.T) {
 
 		eff := Map[TestContext](func(x int) string {
 			return "mapped"
-		})(Of[TestContext, int](42))
+		})(Of[TestContext](42))
 
 		ioResult := Provide[TestContext, string](ctx)(eff)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -116,10 +116,10 @@ func TestProvide(t *testing.T) {
 func TestRunSync(t *testing.T) {
 	t.Run("runs effect synchronously", func(t *testing.T) {
 		ctx := TestContext{Value: "test"}
-		eff := Of[TestContext, int](42)
+		eff := Of[TestContext](42)
 
 		ioResult := Provide[TestContext, int](ctx)(eff)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -128,10 +128,10 @@ func TestRunSync(t *testing.T) {
 
 	t.Run("runs effect with context.Context", func(t *testing.T) {
 		ctx := TestContext{Value: "test"}
-		eff := Of[TestContext, string]("hello")
+		eff := Of[TestContext]("hello")
 
 		ioResult := Provide[TestContext, string](ctx)(eff)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 
 		bgCtx := context.Background()
 		result, err := readerResult(bgCtx)
@@ -146,7 +146,7 @@ func TestRunSync(t *testing.T) {
 		eff := Fail[TestContext, int](expectedErr)
 
 		ioResult := Provide[TestContext, int](ctx)(eff)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
@@ -156,14 +156,14 @@ func TestRunSync(t *testing.T) {
 	t.Run("runs complex effect chains", func(t *testing.T) {
 		ctx := TestContext{Value: "test"}
 
-		eff := Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
-		})(Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x + 10)
-		})(Of[TestContext, int](5)))
+		eff := Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
+		})(Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x + 10)
+		})(Of[TestContext](5)))
 
 		ioResult := Provide[TestContext, int](ctx)(eff)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -172,10 +172,10 @@ func TestRunSync(t *testing.T) {
 
 	t.Run("handles multiple sequential runs", func(t *testing.T) {
 		ctx := TestContext{Value: "test"}
-		eff := Of[TestContext, int](42)
+		eff := Of[TestContext](42)
 
 		ioResult := Provide[TestContext, int](ctx)(eff)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 
 		// Run multiple times
 		result1, err1 := readerResult(context.Background())
@@ -198,10 +198,10 @@ func TestRunSync(t *testing.T) {
 
 		ctx := TestContext{Value: "test"}
 		user := User{Name: "Alice", Age: 30}
-		eff := Of[TestContext, User](user)
+		eff := Of[TestContext](user)
 
 		ioResult := Provide[TestContext, User](ctx)(eff)
-		readerResult := RunSync[User](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -219,10 +219,10 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 		cfg := AppConfig{APIKey: "secret", Timeout: 30}
 
 		// Create an effect that uses the config
-		eff := Of[AppConfig, string]("API call successful")
+		eff := Of[AppConfig]("API call successful")
 
 		// Provide config and run
-		result, err := RunSync[string](Provide[AppConfig, string](cfg)(eff))(context.Background())
+		result, err := RunSync(Provide[AppConfig, string](cfg)(eff))(context.Background())
 
 		assert.NoError(t, err)
 		assert.Equal(t, "API call successful", result)
@@ -238,7 +238,7 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 
 		eff := Fail[AppConfig, string](expectedErr)
 
-		_, err := RunSync[string](Provide[AppConfig, string](cfg)(eff))(context.Background())
+		_, err := RunSync(Provide[AppConfig, string](cfg)(eff))(context.Background())
 
 		assert.Error(t, err)
 		assert.Equal(t, expectedErr, err)
@@ -249,11 +249,11 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 
 		eff := Map[TestContext](func(x int) string {
 			return "final"
-		})(Chain[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
-		})(Of[TestContext, int](21)))
+		})(Chain(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
+		})(Of[TestContext](21)))
 
-		result, err := RunSync[string](Provide[TestContext, string](ctx)(eff))(context.Background())
+		result, err := RunSync(Provide[TestContext, string](ctx)(eff))(context.Background())
 
 		assert.NoError(t, err)
 		assert.Equal(t, "final", result)
@@ -267,7 +267,7 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 
 		ctx := TestContext{Value: "test"}
 
-		eff := Bind[TestContext](
+		eff := Bind(
 			func(y int) func(State) State {
 				return func(s State) State {
 					s.Y = y
@@ -275,13 +275,13 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 				}
 			},
 			func(s State) Effect[TestContext, int] {
-				return Of[TestContext, int](s.X * 2)
+				return Of[TestContext](s.X * 2)
 			},
 		)(BindTo[TestContext](func(x int) State {
 			return State{X: x}
-		})(Of[TestContext, int](10)))
+		})(Of[TestContext](10)))
 
-		result, err := RunSync[State](Provide[TestContext, State](ctx)(eff))(context.Background())
+		result, err := RunSync(Provide[TestContext, State](ctx)(eff))(context.Background())
 
 		assert.NoError(t, err)
 		assert.Equal(t, 10, result.X)
@@ -297,14 +297,14 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 		}
 
 		outerCtx := OuterCtx{Value: "outer"}
-		innerEff := Of[InnerCtx, string]("inner result")
+		innerEff := Of[InnerCtx]("inner result")
 
 		// Transform context
 		transformedEff := Local[OuterCtx, InnerCtx, string](func(outer OuterCtx) InnerCtx {
 			return InnerCtx{Data: outer.Value + "-transformed"}
 		})(innerEff)
 
-		result, err := RunSync[string](Provide[OuterCtx, string](outerCtx)(transformedEff))(context.Background())
+		result, err := RunSync(Provide[OuterCtx, string](outerCtx)(transformedEff))(context.Background())
 
 		assert.NoError(t, err)
 		assert.Equal(t, "inner result", result)
@@ -314,11 +314,11 @@ func TestProvideAndRunSyncIntegration(t *testing.T) {
 		ctx := TestContext{Value: "test"}
 		input := []int{1, 2, 3, 4, 5}
 
-		eff := TraverseArray[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
+		eff := TraverseArray(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
 		})(input)
 
-		result, err := RunSync[[]int](Provide[TestContext, []int](ctx)(eff))(context.Background())
+		result, err := RunSync(Provide[TestContext, []int](ctx)(eff))(context.Background())
 
 		assert.NoError(t, err)
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)

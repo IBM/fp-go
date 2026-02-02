@@ -36,7 +36,7 @@ type InnerContext struct {
 func TestLocal(t *testing.T) {
 	t.Run("transforms context for inner effect", func(t *testing.T) {
 		// Create an effect that uses InnerContext
-		innerEffect := Of[InnerContext, string]("result")
+		innerEffect := Of[InnerContext]("result")
 
 		// Transform OuterContext to InnerContext
 		accessor := func(outer OuterContext) InnerContext {
@@ -52,7 +52,7 @@ func TestLocal(t *testing.T) {
 			Value:  "test",
 			Number: 42,
 		})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -61,9 +61,9 @@ func TestLocal(t *testing.T) {
 
 	t.Run("allows accessing outer context fields", func(t *testing.T) {
 		// Create an effect that reads from InnerContext
-		innerEffect := Chain[InnerContext](func(_ string) Effect[InnerContext, string] {
-			return Of[InnerContext, string]("inner value")
-		})(Of[InnerContext, string]("start"))
+		innerEffect := Chain(func(_ string) Effect[InnerContext, string] {
+			return Of[InnerContext]("inner value")
+		})(Of[InnerContext]("start"))
 
 		// Transform context
 		accessor := func(outer OuterContext) InnerContext {
@@ -78,7 +78,7 @@ func TestLocal(t *testing.T) {
 			Value:  "original",
 			Number: 100,
 		})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -100,7 +100,7 @@ func TestLocal(t *testing.T) {
 			Value:  "test",
 			Number: 42,
 		})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
@@ -119,7 +119,7 @@ func TestLocal(t *testing.T) {
 		}
 
 		// Effect at deepest level
-		level3Effect := Of[Level3, string]("deep result")
+		level3Effect := Of[Level3]("deep result")
 
 		// Transform Level2 -> Level3
 		local23 := Local[Level2, Level3, string](func(l2 Level2) Level3 {
@@ -137,7 +137,7 @@ func TestLocal(t *testing.T) {
 
 		// Run with Level1 context
 		ioResult := Provide[Level1, string](Level1{A: "a"})(level1Effect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -158,7 +158,7 @@ func TestLocal(t *testing.T) {
 		}
 
 		// Effect that needs only DatabaseConfig
-		dbEffect := Of[DatabaseConfig, string]("connected")
+		dbEffect := Of[DatabaseConfig]("connected")
 
 		// Extract DB config from AppConfig
 		accessor := func(app AppConfig) DatabaseConfig {
@@ -178,7 +178,7 @@ func TestLocal(t *testing.T) {
 			APIKey:  "secret",
 			Timeout: 30,
 		})(appEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -188,7 +188,7 @@ func TestLocal(t *testing.T) {
 
 func TestContramap(t *testing.T) {
 	t.Run("is equivalent to Local", func(t *testing.T) {
-		innerEffect := Of[InnerContext, int](42)
+		innerEffect := Of[InnerContext](42)
 
 		accessor := func(outer OuterContext) InnerContext {
 			return InnerContext{Value: outer.Value}
@@ -206,11 +206,11 @@ func TestContramap(t *testing.T) {
 
 		// Run both
 		localIO := Provide[OuterContext, int](outerCtx)(localEffect)
-		localReader := RunSync[int](localIO)
+		localReader := RunSync(localIO)
 		localResult, localErr := localReader(context.Background())
 
 		contramapIO := Provide[OuterContext, int](outerCtx)(contramapEffect)
-		contramapReader := RunSync[int](contramapIO)
+		contramapReader := RunSync(contramapIO)
 		contramapResult, contramapErr := contramapReader(context.Background())
 
 		assert.NoError(t, localErr)
@@ -219,7 +219,7 @@ func TestContramap(t *testing.T) {
 	})
 
 	t.Run("transforms context correctly", func(t *testing.T) {
-		innerEffect := Of[InnerContext, string]("success")
+		innerEffect := Of[InnerContext]("success")
 
 		accessor := func(outer OuterContext) InnerContext {
 			return InnerContext{Value: outer.Value + " modified"}
@@ -232,7 +232,7 @@ func TestContramap(t *testing.T) {
 			Value:  "original",
 			Number: 50,
 		})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -254,7 +254,7 @@ func TestContramap(t *testing.T) {
 			Value:  "test",
 			Number: 42,
 		})(outerEffect)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
@@ -275,7 +275,7 @@ func TestLocalAndContramapInteroperability(t *testing.T) {
 		}
 
 		// Effect at deepest level
-		effect3 := Of[Config3, string]("result")
+		effect3 := Of[Config3]("result")
 
 		// Use Local for first transformation
 		local23 := Local[Config2, Config3, string](func(c2 Config2) Config3 {
@@ -293,7 +293,7 @@ func TestLocalAndContramapInteroperability(t *testing.T) {
 
 		// Run
 		ioResult := Provide[Config1, string](Config1{Value: "test"})(effect1)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -312,24 +312,24 @@ func TestLocalEffectK(t *testing.T) {
 		}
 
 		// Effect that needs DatabaseConfig
-		dbEffect := Of[DatabaseConfig, string]("query result")
+		dbEffect := Of[DatabaseConfig]("query result")
 
 		// Transform AppConfig to DatabaseConfig effectfully
 		loadConfig := func(app AppConfig) Effect[AppConfig, DatabaseConfig] {
-			return Of[AppConfig, DatabaseConfig](DatabaseConfig{
+			return Of[AppConfig](DatabaseConfig{
 				ConnectionString: "loaded from " + app.ConfigPath,
 			})
 		}
 
 		// Apply the transformation
-		transform := LocalEffectK[string, DatabaseConfig, AppConfig](loadConfig)
+		transform := LocalEffectK[string](loadConfig)
 		appEffect := transform(dbEffect)
 
 		// Run with AppConfig
 		ioResult := Provide[AppConfig, string](AppConfig{
 			ConfigPath: "/etc/app.conf",
 		})(appEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -345,7 +345,7 @@ func TestLocalEffectK(t *testing.T) {
 			Path string
 		}
 
-		innerEffect := Of[InnerCtx, string]("success")
+		innerEffect := Of[InnerCtx]("success")
 
 		expectedErr := assert.AnError
 		// Context transformation that fails
@@ -353,11 +353,11 @@ func TestLocalEffectK(t *testing.T) {
 			return Fail[OuterCtx, InnerCtx](expectedErr)
 		}
 
-		transform := LocalEffectK[string, InnerCtx, OuterCtx](failingTransform)
+		transform := LocalEffectK[string](failingTransform)
 		outerEffect := transform(innerEffect)
 
 		ioResult := Provide[OuterCtx, string](OuterCtx{Path: "test"})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
@@ -378,14 +378,14 @@ func TestLocalEffectK(t *testing.T) {
 
 		// Successful context transformation
 		transform := func(outer OuterCtx) Effect[OuterCtx, InnerCtx] {
-			return Of[OuterCtx, InnerCtx](InnerCtx{Value: outer.Path})
+			return Of[OuterCtx](InnerCtx{Value: outer.Path})
 		}
 
-		transformK := LocalEffectK[string, InnerCtx, OuterCtx](transform)
+		transformK := LocalEffectK[string](transform)
 		outerEffect := transformK(innerEffect)
 
 		ioResult := Provide[OuterCtx, string](OuterCtx{Path: "test"})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
@@ -402,25 +402,25 @@ func TestLocalEffectK(t *testing.T) {
 		}
 
 		// Effect that uses Config
-		configEffect := Chain[Config](func(cfg Config) Effect[Config, string] {
-			return Of[Config, string]("processed: " + cfg.Data)
+		configEffect := Chain(func(cfg Config) Effect[Config, string] {
+			return Of[Config]("processed: " + cfg.Data)
 		})(readerreaderioresult.Ask[Config]())
 
 		// Effectful transformation that simulates loading config
 		loadConfigEffect := func(app AppContext) Effect[AppContext, Config] {
 			// Simulate IO operation (e.g., reading file)
-			return Of[AppContext, Config](Config{
+			return Of[AppContext](Config{
 				Data: "loaded from " + app.ConfigFile,
 			})
 		}
 
-		transform := LocalEffectK[string, Config, AppContext](loadConfigEffect)
+		transform := LocalEffectK[string](loadConfigEffect)
 		appEffect := transform(configEffect)
 
 		ioResult := Provide[AppContext, string](AppContext{
 			ConfigFile: "config.json",
 		})(appEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -439,16 +439,16 @@ func TestLocalEffectK(t *testing.T) {
 		}
 
 		// Effect at deepest level
-		level3Effect := Of[Level3, string]("deep result")
+		level3Effect := Of[Level3]("deep result")
 
 		// Transform Level2 -> Level3 effectfully
-		transform23 := LocalEffectK[string, Level3, Level2](func(l2 Level2) Effect[Level2, Level3] {
-			return Of[Level2, Level3](Level3{C: l2.B + "-c"})
+		transform23 := LocalEffectK[string](func(l2 Level2) Effect[Level2, Level3] {
+			return Of[Level2](Level3{C: l2.B + "-c"})
 		})
 
 		// Transform Level1 -> Level2 effectfully
-		transform12 := LocalEffectK[string, Level2, Level1](func(l1 Level1) Effect[Level1, Level2] {
-			return Of[Level1, Level2](Level2{B: l1.A + "-b"})
+		transform12 := LocalEffectK[string](func(l1 Level1) Effect[Level1, Level2] {
+			return Of[Level1](Level2{B: l1.A + "-b"})
 		})
 
 		// Compose transformations
@@ -457,7 +457,7 @@ func TestLocalEffectK(t *testing.T) {
 
 		// Run with Level1 context
 		ioResult := Provide[Level1, string](Level1{A: "a"})(level1Effect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -477,8 +477,8 @@ func TestLocalEffectK(t *testing.T) {
 		}
 
 		// Effect that needs DatabaseConfig
-		dbEffect := Chain[DatabaseConfig](func(cfg DatabaseConfig) Effect[DatabaseConfig, string] {
-			return Of[DatabaseConfig, string](fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
+		dbEffect := Chain(func(cfg DatabaseConfig) Effect[DatabaseConfig, string] {
+			return Of[DatabaseConfig](fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
 		})(readerreaderioresult.Ask[DatabaseConfig]())
 
 		// Transform using outer context
@@ -488,13 +488,13 @@ func TestLocalEffectK(t *testing.T) {
 			if app.Environment == "prod" {
 				prefix = "prod-"
 			}
-			return Of[AppConfig, DatabaseConfig](DatabaseConfig{
+			return Of[AppConfig](DatabaseConfig{
 				Host: prefix + app.DBHost,
 				Port: app.DBPort,
 			})
 		}
 
-		transform := LocalEffectK[string, DatabaseConfig, AppConfig](transformWithContext)
+		transform := LocalEffectK[string](transformWithContext)
 		appEffect := transform(dbEffect)
 
 		ioResult := Provide[AppConfig, string](AppConfig{
@@ -502,7 +502,7 @@ func TestLocalEffectK(t *testing.T) {
 			DBHost:      "localhost",
 			DBPort:      5432,
 		})(appEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -518,31 +518,31 @@ func TestLocalEffectK(t *testing.T) {
 			APIKey string
 		}
 
-		innerEffect := Of[ValidatedConfig, string]("success")
+		innerEffect := Of[ValidatedConfig]("success")
 
 		// Validation that can fail
 		validateConfig := func(raw RawConfig) Effect[RawConfig, ValidatedConfig] {
 			if raw.APIKey == "" {
 				return Fail[RawConfig, ValidatedConfig](assert.AnError)
 			}
-			return Of[RawConfig, ValidatedConfig](ValidatedConfig{
+			return Of[RawConfig](ValidatedConfig{
 				APIKey: raw.APIKey,
 			})
 		}
 
-		transform := LocalEffectK[string, ValidatedConfig, RawConfig](validateConfig)
+		transform := LocalEffectK[string](validateConfig)
 		outerEffect := transform(innerEffect)
 
 		// Test with invalid config
 		ioResult := Provide[RawConfig, string](RawConfig{APIKey: ""})(outerEffect)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
 
 		// Test with valid config
 		ioResult2 := Provide[RawConfig, string](RawConfig{APIKey: "valid-key"})(outerEffect)
-		readerResult2 := RunSync[string](ioResult2)
+		readerResult2 := RunSync(ioResult2)
 		result, err2 := readerResult2(context.Background())
 
 		assert.NoError(t, err2)
@@ -561,11 +561,11 @@ func TestLocalEffectK(t *testing.T) {
 		}
 
 		// Effect at deepest level
-		effect3 := Of[Level3, string]("result")
+		effect3 := Of[Level3]("result")
 
 		// Use LocalEffectK for first transformation (effectful)
-		localEffectK23 := LocalEffectK[string, Level3, Level2](func(l2 Level2) Effect[Level2, Level3] {
-			return Of[Level2, Level3](Level3{Info: l2.Data})
+		localEffectK23 := LocalEffectK[string](func(l2 Level2) Effect[Level2, Level3] {
+			return Of[Level2](Level3{Info: l2.Data})
 		})
 
 		// Use Local for second transformation (pure)
@@ -579,7 +579,7 @@ func TestLocalEffectK(t *testing.T) {
 
 		// Run
 		ioResult := Provide[Level1, string](Level1{Value: "test"})(effect1)
-		readerResult := RunSync[string](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)
@@ -596,22 +596,22 @@ func TestLocalEffectK(t *testing.T) {
 		}
 
 		// Effect that uses InnerCtx
-		innerEffect := Chain[InnerCtx](func(ctx InnerCtx) Effect[InnerCtx, int] {
-			return Of[InnerCtx, int](ctx.Value * 2)
+		innerEffect := Chain(func(ctx InnerCtx) Effect[InnerCtx, int] {
+			return Of[InnerCtx](ctx.Value * 2)
 		})(readerreaderioresult.Ask[InnerCtx]())
 
 		// Complex transformation with nested effects
 		complexTransform := func(outer OuterCtx) Effect[OuterCtx, InnerCtx] {
-			return Of[OuterCtx, InnerCtx](InnerCtx{
+			return Of[OuterCtx](InnerCtx{
 				Value: outer.Multiplier * 10,
 			})
 		}
 
-		transform := LocalEffectK[int, InnerCtx, OuterCtx](complexTransform)
+		transform := LocalEffectK[int](complexTransform)
 		outerEffect := transform(innerEffect)
 
 		ioResult := Provide[OuterCtx, int](OuterCtx{Multiplier: 3})(outerEffect)
-		readerResult := RunSync[int](ioResult)
+		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
 		assert.NoError(t, err)

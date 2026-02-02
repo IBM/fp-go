@@ -117,23 +117,46 @@ type (
 	//   // decoder is a Decode[any, int]
 	Decode[I, A any] = decode.Decode[I, A]
 
-	// Validate is a function that validates input I to produce type A with full context tracking.
+	// Validate represents a composable validator that transforms input I to output A
+	// with comprehensive error tracking and context propagation.
 	//
-	// Type structure:
+	// # Type Structure
+	//
 	//   Validate[I, A] = Reader[I, Decode[Context, A]]
+	//                  = Reader[I, Reader[Context, Validation[A]]]
+	//                  = func(I) func(Context) Either[Errors, A]
 	//
-	// This means:
-	//  1. Takes an input of type I
-	//  2. Returns a Reader that depends on validation Context
-	//  3. That Reader produces a Validation[A] (Either[Errors, A])
+	// This three-layer structure provides:
+	//   1. Input access: The outer Reader[I, ...] gives access to the input value I
+	//   2. Context tracking: The middle Reader[Context, ...] tracks the validation path
+	//   3. Error handling: The inner Validation[A] accumulates errors or produces value A
 	//
-	// The layered structure enables:
-	//   - Access to the input value being validated
-	//   - Context tracking through nested structures
-	//   - Error accumulation with detailed paths
-	//   - Composition with other validators
+	// # Purpose
 	//
-	// Example usage:
+	// Validate is the core type for building type-safe, composable validators that:
+	//   - Transform and validate data from one type to another
+	//   - Track the path through nested structures for detailed error messages
+	//   - Accumulate multiple validation errors instead of failing fast
+	//   - Compose with other validators using functional patterns
+	//
+	// # Key Features
+	//
+	//   - Context-aware: Automatically tracks validation path (e.g., "user.address.zipCode")
+	//   - Error accumulation: Collects all validation errors, not just the first one
+	//   - Type-safe: Leverages Go's type system to ensure correctness
+	//   - Composable: Validators can be combined using Map, Chain, Ap, and other operators
+	//
+	// # Algebraic Structure
+	//
+	// Validate forms several algebraic structures:
+	//   - Functor: Transform successful results with Map
+	//   - Applicative: Combine independent validators in parallel with Ap
+	//   - Monad: Chain dependent validators sequentially with Chain
+	//
+	// # Example Usage
+	//
+	// Basic validator:
+	//
 	//   validatePositive := func(n int) Reader[Context, Validation[int]] {
 	//     return func(ctx Context) Validation[int] {
 	//       if n > 0 {
@@ -144,10 +167,33 @@ type (
 	//   }
 	//   // validatePositive is a Validate[int, int]
 	//
-	// The Validate type forms:
-	//   - A Functor: Can map over successful results
-	//   - An Applicative: Can combine validators in parallel
-	//   - A Monad: Can chain dependent validations
+	// Composing validators:
+	//
+	//   // Transform the result of a validator
+	//   doubled := Map[int, int, int](func(x int) int { return x * 2 })(validatePositive)
+	//
+	//   // Chain dependent validations
+	//   validateRange := func(n int) Validate[int, int] {
+	//     return func(input int) Reader[Context, Validation[int]] {
+	//       return func(ctx Context) Validation[int] {
+	//         if n <= 100 {
+	//           return validation.Success(n)
+	//         }
+	//         return validation.FailureWithMessage[int](n, "must be <= 100")(ctx)
+	//       }
+	//     }
+	//   }
+	//   combined := Chain(validateRange)(validatePositive)
+	//
+	// # Integration
+	//
+	// Validate integrates with the broader optics/codec ecosystem:
+	//   - Works with Decode for decoding operations
+	//   - Uses Validation for error handling
+	//   - Leverages Context for detailed error reporting
+	//   - Composes with other codec types for complete encode/decode pipelines
+	//
+	// See the package documentation for more examples and patterns.
 	Validate[I, A any] = Reader[I, Decode[Context, A]]
 
 	// Errors is a collection of validation errors that occurred during validation.

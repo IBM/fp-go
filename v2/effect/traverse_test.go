@@ -27,8 +27,8 @@ import (
 func TestTraverseArray(t *testing.T) {
 	t.Run("traverses empty array", func(t *testing.T) {
 		input := []int{}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x))
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -39,8 +39,8 @@ func TestTraverseArray(t *testing.T) {
 
 	t.Run("traverses array with single element", func(t *testing.T) {
 		input := []int{42}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x))
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -51,8 +51,8 @@ func TestTraverseArray(t *testing.T) {
 
 	t.Run("traverses array with multiple elements", func(t *testing.T) {
 		input := []int{1, 2, 3, 4, 5}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x))
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -63,8 +63,8 @@ func TestTraverseArray(t *testing.T) {
 
 	t.Run("transforms to different type", func(t *testing.T) {
 		input := []string{"hello", "world", "test"}
-		kleisli := TraverseArray[TestContext](func(s string) Effect[TestContext, int] {
-			return Of[TestContext, int](len(s))
+		kleisli := TraverseArray(func(s string) Effect[TestContext, int] {
+			return Of[TestContext](len(s))
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -76,11 +76,11 @@ func TestTraverseArray(t *testing.T) {
 	t.Run("stops on first error", func(t *testing.T) {
 		expectedErr := errors.New("traverse error")
 		input := []int{1, 2, 3, 4, 5}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
 			if x == 3 {
 				return Fail[TestContext, string](expectedErr)
 			}
-			return Of[TestContext, string](strconv.Itoa(x))
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		_, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -96,8 +96,8 @@ func TestTraverseArray(t *testing.T) {
 		}
 
 		input := []int{1, 2, 3}
-		kleisli := TraverseArray[TestContext](func(id int) Effect[TestContext, User] {
-			return Of[TestContext, User](User{
+		kleisli := TraverseArray(func(id int) Effect[TestContext, User] {
+			return Of[TestContext](User{
 				ID:   id,
 				Name: fmt.Sprintf("User%d", id),
 			})
@@ -118,15 +118,15 @@ func TestTraverseArray(t *testing.T) {
 	t.Run("chains with other operations", func(t *testing.T) {
 		input := []int{1, 2, 3}
 
-		eff := Chain[TestContext](func(strings []string) Effect[TestContext, int] {
+		eff := Chain(func(strings []string) Effect[TestContext, int] {
 			total := 0
 			for _, s := range strings {
 				val, _ := strconv.Atoi(s)
 				total += val
 			}
-			return Of[TestContext, int](total)
-		})(TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x * 2))
+			return Of[TestContext](total)
+		})(TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x * 2))
 		})(input))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
@@ -137,10 +137,10 @@ func TestTraverseArray(t *testing.T) {
 
 	t.Run("uses context in transformation", func(t *testing.T) {
 		input := []int{1, 2, 3}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Chain[TestContext](func(ctx TestContext) Effect[TestContext, string] {
-				return Of[TestContext, string](fmt.Sprintf("%s-%d", ctx.Value, x))
-			})(Of[TestContext, TestContext](TestContext{Value: "prefix"}))
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
+			return Chain(func(ctx TestContext) Effect[TestContext, string] {
+				return Of[TestContext](fmt.Sprintf("%s-%d", ctx.Value, x))
+			})(Of[TestContext](TestContext{Value: "prefix"}))
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -151,8 +151,8 @@ func TestTraverseArray(t *testing.T) {
 
 	t.Run("preserves order", func(t *testing.T) {
 		input := []int{5, 3, 8, 1, 9, 2}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 10)
+		kleisli := TraverseArray(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 10)
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -168,8 +168,8 @@ func TestTraverseArray(t *testing.T) {
 			input[i] = i
 		}
 
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, int] {
-			return Of[TestContext, int](x * 2)
+		kleisli := TraverseArray(func(x int) Effect[TestContext, int] {
+			return Of[TestContext](x * 2)
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -184,16 +184,16 @@ func TestTraverseArray(t *testing.T) {
 		input := []int{1, 2, 3}
 
 		// First traversal: int -> string
-		kleisli1 := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x))
+		kleisli1 := TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		// Second traversal: string -> int (length)
-		kleisli2 := TraverseArray[TestContext](func(s string) Effect[TestContext, int] {
-			return Of[TestContext, int](len(s))
+		kleisli2 := TraverseArray(func(s string) Effect[TestContext, int] {
+			return Of[TestContext](len(s))
 		})
 
-		eff := Chain[TestContext](kleisli2)(kleisli1(input))
+		eff := Chain(kleisli2)(kleisli1(input))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
 
@@ -203,8 +203,8 @@ func TestTraverseArray(t *testing.T) {
 
 	t.Run("handles nil array", func(t *testing.T) {
 		var input []int
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x))
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		result, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -222,8 +222,8 @@ func TestTraverseArray(t *testing.T) {
 				result += s + ","
 			}
 			return result
-		})(TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
-			return Of[TestContext, string](strconv.Itoa(x))
+		})(TraverseArray(func(x int) Effect[TestContext, string] {
+			return Of[TestContext](strconv.Itoa(x))
 		})(input))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})
@@ -235,11 +235,11 @@ func TestTraverseArray(t *testing.T) {
 	t.Run("error in middle of array", func(t *testing.T) {
 		expectedErr := errors.New("middle error")
 		input := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
 			if x == 5 {
 				return Fail[TestContext, string](expectedErr)
 			}
-			return Of[TestContext, string](strconv.Itoa(x))
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		_, err := runEffect(kleisli(input), TestContext{Value: "test"})
@@ -251,11 +251,11 @@ func TestTraverseArray(t *testing.T) {
 	t.Run("error at end of array", func(t *testing.T) {
 		expectedErr := errors.New("end error")
 		input := []int{1, 2, 3, 4, 5}
-		kleisli := TraverseArray[TestContext](func(x int) Effect[TestContext, string] {
+		kleisli := TraverseArray(func(x int) Effect[TestContext, string] {
 			if x == 5 {
 				return Fail[TestContext, string](expectedErr)
 			}
-			return Of[TestContext, string](strconv.Itoa(x))
+			return Of[TestContext](strconv.Itoa(x))
 		})
 
 		_, err := runEffect(kleisli(input), TestContext{Value: "test"})
