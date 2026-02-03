@@ -475,6 +475,8 @@ func Alt[A any](that Lazy[Result[A]]) Operator[A, A] {
 // If the Result is Left, it applies the provided function to the error value,
 // which returns a new Result that replaces the original.
 //
+// Note: OrElse is identical to [ChainLeft] - both provide the same functionality for error recovery.
+//
 // This is useful for error recovery, fallback logic, or chaining alternative computations.
 //
 // Example:
@@ -667,6 +669,8 @@ func InstanceOf[A any](a any) Result[A] {
 //   - Error transformation: changing error types or adding context
 //   - Fallback logic: providing alternative computations when errors occur
 //
+// Note: MonadChainLeft is identical to [OrElse] - both provide the same functionality for error recovery.
+//
 // The function parameter receives the error value and must return a new Result[A].
 // This allows you to:
 //   - Recover by returning Right[error](value)
@@ -710,6 +714,8 @@ func MonadChainLeft[A any](fa Result[A], f Kleisli[error, A]) Result[A] {
 
 // ChainLeft is the curried version of [MonadChainLeft].
 // Returns a function that transforms Left (error) values while preserving Right values.
+//
+// Note: ChainLeft is identical to [OrElse] - both provide the same functionality for error recovery.
 //
 // This curried form is particularly useful in functional pipelines and for creating
 // reusable error handlers that can be composed with other operations.

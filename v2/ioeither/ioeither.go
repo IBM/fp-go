@@ -489,6 +489,8 @@ func After[E, A any](timestamp time.Time) Operator[E, A, A] {
 // If the input is a Left value, it applies the function f to transform the error and potentially
 // change the error type from EA to EB. If the input is a Right value, it passes through unchanged.
 //
+// Note: MonadChainLeft is identical to [OrElse] - both provide the same functionality for error recovery.
+//
 // This is useful for error recovery or error transformation scenarios where you want to handle
 // errors by performing another computation that may also fail.
 //
@@ -522,6 +524,8 @@ func MonadChainLeft[EA, EB, A any](fa IOEither[EA, A], f Kleisli[EB, EA, A]) IOE
 
 // ChainLeft is the curried version of [MonadChainLeft].
 // It returns a function that chains a computation on the left (error) side of an [IOEither].
+//
+// Note: ChainLeft is identical to [OrElse] - both provide the same functionality for error recovery.
 //
 // This is particularly useful in functional composition pipelines where you want to handle
 // errors by performing another computation that may also fail.
@@ -643,6 +647,8 @@ func TapLeft[A, EA, EB, B any](f Kleisli[EB, EA, B]) Operator[EA, A, A] {
 // If the IOEither is Right, it returns the value unchanged.
 // If the IOEither is Left, it applies the provided function to the error value,
 // which returns a new IOEither that replaces the original.
+//
+// Note: OrElse is identical to [ChainLeft] - both provide the same functionality for error recovery.
 //
 // This is useful for error recovery, fallback logic, or chaining alternative IO computations.
 // The error type can be widened from E1 to E2, allowing transformation of error types.

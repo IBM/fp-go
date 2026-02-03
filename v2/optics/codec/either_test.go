@@ -345,5 +345,3 @@ func TestEitherErrorAccumulation(t *testing.T) {
 		assert.NotEmpty(t, errors)
 	})
 }
-
-// Made with Bob

@@ -196,6 +196,8 @@ func MonadChain[E, A, B any](fa Either[E, A], f Kleisli[E, A, B]) Either[E, B] {
 // MonadChainLeft operates on Left values (errors). It's useful for error recovery, error transformation,
 // or chaining alternative computations when an error occurs.
 //
+// Note: MonadChainLeft is identical to [OrElse] - both provide the same functionality for error recovery.
+//
 // The error type can be transformed from EA to EB, allowing flexible error type conversions.
 //
 // Example:
@@ -234,6 +236,8 @@ func MonadChainLeft[EA, EB, A any](fa Either[EA, A], f Kleisli[EB, EA, A]) Eithe
 
 // ChainLeft is the curried version of [MonadChainLeft].
 // Returns a function that sequences a computation on the Left (error) value.
+//
+// Note: ChainLeft is identical to [OrElse] - both provide the same functionality for error recovery.
 //
 // This is useful for creating reusable error handlers or transformers that can be
 // composed with other Either operations using pipes or function composition.
@@ -541,6 +545,8 @@ func Alt[E, A any](that Lazy[Either[E, A]]) Operator[E, A, A] {
 // If the Either is Right, it returns the value unchanged.
 // If the Either is Left, it applies the provided function to the error value,
 // which returns a new Either that replaces the original.
+//
+// Note: OrElse is identical to [ChainLeft] - both provide the same functionality for error recovery.
 //
 // This is useful for error recovery, fallback logic, or chaining alternative computations.
 // The error type can be widened from E1 to E2, allowing transformation of error types.

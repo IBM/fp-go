@@ -186,12 +186,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("creates right either with value", func(t *testing.T) {
 		result := Success(42)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 42, value)
+		assert.Equal(t, Success(42), result)
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
@@ -327,7 +322,7 @@ func TestValidationIntegration(t *testing.T) {
 			&ValidationError{Value: "bad", Messsage: "error"},
 		})
 
-		assert.True(t, either.IsRight(success))
+		assert.Equal(t, Success(42), success)
 		assert.True(t, either.IsLeft(failure))
 	})
 
@@ -512,12 +507,7 @@ func TestToResult(t *testing.T) {
 
 		result := ToResult(validation)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(error) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 42, value)
+		assert.Equal(t, either.Of[error](42), result)
 	})
 
 	t.Run("converts failed validation to result with error", func(t *testing.T) {
@@ -569,23 +559,18 @@ func TestToResult(t *testing.T) {
 		// String type
 		strValidation := Success("hello")
 		strResult := ToResult(strValidation)
-		assert.True(t, either.IsRight(strResult))
+		assert.Equal(t, either.Of[error]("hello"), strResult)
 
 		// Bool type
 		boolValidation := Success(true)
 		boolResult := ToResult(boolValidation)
-		assert.True(t, either.IsRight(boolResult))
+		assert.Equal(t, either.Of[error](true), boolResult)
 
 		// Struct type
 		type User struct{ Name string }
 		userValidation := Success(User{Name: "Alice"})
 		userResult := ToResult(userValidation)
-		assert.True(t, either.IsRight(userResult))
-		user := either.MonadFold(userResult,
-			func(error) User { return User{} },
-			F.Identity[User],
-		)
-		assert.Equal(t, "Alice", user.Name)
+		assert.Equal(t, either.Of[error](User{Name: "Alice"}), userResult)
 	})
 
 	t.Run("preserves error context in result", func(t *testing.T) {

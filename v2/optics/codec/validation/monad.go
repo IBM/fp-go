@@ -469,3 +469,8 @@ func Applicative[A, B any]() applicative.Applicative[A, B, Validation[A], Valida
 		errorsMonoid,
 	)
 }
+
+//go:inline
+func OrElse[A any](f Kleisli[Errors, A]) Operator[A, A] {
+	return ChainLeft(f)
+}

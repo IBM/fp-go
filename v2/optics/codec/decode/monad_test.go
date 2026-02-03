@@ -382,3 +382,400 @@ func TestFunctorLaws(t *testing.T) {
 		assert.Equal(t, right(input), left(input))
 	})
 }
+
+// TestChainLeft tests the ChainLeft function
+func TestChainLeft(t *testing.T) {
+	t.Run("transforms failures while preserving successes", func(t *testing.T) {
+		// Create a failing decoder
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "decode failed"},
+			})
+		}
+
+		// Handler that recovers from specific errors
+		handler := ChainLeft(func(errs Errors) Decode[string, int] {
+			for _, err := range errs {
+				if err.Messsage == "decode failed" {
+					return Of[string](0) // recover with default
+				}
+			}
+			return func(input string) Validation[int] {
+				return either.Left[int](errs)
+			}
+		})
+
+		decoder := handler(failingDecoder)
+		res := decoder("input")
+
+		assert.Equal(t, validation.Of(0), res, "Should recover from failure")
+	})
+
+	t.Run("preserves success values unchanged", func(t *testing.T) {
+		successDecoder := Of[string](42)
+
+		handler := ChainLeft(func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Messsage: "should not be called"},
+				})
+			}
+		})
+
+		decoder := handler(successDecoder)
+		res := decoder("input")
+
+		assert.Equal(t, validation.Of(42), res, "Success should pass through unchanged")
+	})
+
+	t.Run("aggregates errors when transformation also fails", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: input, Messsage: "original error"},
+			})
+		}
+
+		handler := ChainLeft(func(errs Errors) Decode[string, string] {
+			return func(input string) Validation[string] {
+				return either.Left[string](validation.Errors{
+					{Messsage: "additional error"},
+				})
+			}
+		})
+
+		decoder := handler(failingDecoder)
+		res := decoder("input")
+
+		assert.True(t, either.IsLeft(res))
+		errors := either.MonadFold(res,
+			func(e Errors) Errors { return e },
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should aggregate both errors")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error")
+		assert.Contains(t, messages, "additional error")
+	})
+
+	t.Run("adds context to errors", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "invalid format"},
+			})
+		}
+
+		addContext := ChainLeft(func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{
+						Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "age", Type: "int"}},
+						Messsage: "failed to decode user age",
+					},
+				})
+			}
+		})
+
+		decoder := addContext(failingDecoder)
+		res := decoder("abc")
+
+		assert.True(t, either.IsLeft(res))
+		errors := either.MonadFold(res,
+			func(e Errors) Errors { return e },
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should have both original and context errors")
+	})
+
+	t.Run("can be composed in pipeline", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error1"},
+			})
+		}
+
+		handler1 := ChainLeft(func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Messsage: "error2"},
+				})
+			}
+		})
+
+		handler2 := ChainLeft(func(errs Errors) Decode[string, int] {
+			// Check if we can recover
+			for _, err := range errs {
+				if err.Messsage == "error1" {
+					return Of[string](100) // recover
+				}
+			}
+			return func(input string) Validation[int] {
+				return either.Left[int](errs)
+			}
+		})
+
+		// Compose handlers
+		decoder := handler2(handler1(failingDecoder))
+		res := decoder("input")
+
+		// Should recover because error1 is present
+		assert.Equal(t, validation.Of(100), res)
+	})
+
+	t.Run("works with different input types", func(t *testing.T) {
+		type Config struct {
+			Port int
+		}
+
+		failingDecoder := func(cfg Config) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: cfg.Port, Messsage: "invalid port"},
+			})
+		}
+
+		handler := ChainLeft(func(errs Errors) Decode[Config, string] {
+			return Of[Config]("default-value")
+		})
+
+		decoder := handler(failingDecoder)
+		res := decoder(Config{Port: 9999})
+
+		assert.Equal(t, validation.Of("default-value"), res)
+	})
+}
+
+// TestOrElse tests the OrElse function
+func TestOrElse(t *testing.T) {
+	t.Run("OrElse is equivalent to ChainLeft - Success case", func(t *testing.T) {
+		successDecoder := Of[string](42)
+
+		handler := func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Messsage: "should not be called"},
+				})
+			}
+		}
+
+		// Test with OrElse
+		resultOrElse := OrElse(handler)(successDecoder)("input")
+		// Test with ChainLeft
+		resultChainLeft := ChainLeft(handler)(successDecoder)("input")
+
+		assert.Equal(t, resultChainLeft, resultOrElse, "OrElse and ChainLeft should produce identical results for Success")
+		assert.Equal(t, validation.Of(42), resultOrElse)
+	})
+
+	t.Run("OrElse is equivalent to ChainLeft - Failure recovery", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "not found"},
+			})
+		}
+
+		handler := func(errs Errors) Decode[string, int] {
+			for _, err := range errs {
+				if err.Messsage == "not found" {
+					return Of[string](0) // recover with default
+				}
+			}
+			return func(input string) Validation[int] {
+				return either.Left[int](errs)
+			}
+		}
+
+		// Test with OrElse
+		resultOrElse := OrElse(handler)(failingDecoder)("input")
+		// Test with ChainLeft
+		resultChainLeft := ChainLeft(handler)(failingDecoder)("input")
+
+		assert.Equal(t, resultChainLeft, resultOrElse, "OrElse and ChainLeft should produce identical results for recovery")
+		assert.Equal(t, validation.Of(0), resultOrElse)
+	})
+
+	t.Run("OrElse is equivalent to ChainLeft - Error aggregation", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: input, Messsage: "original error"},
+			})
+		}
+
+		handler := func(errs Errors) Decode[string, string] {
+			return func(input string) Validation[string] {
+				return either.Left[string](validation.Errors{
+					{Messsage: "additional error"},
+				})
+			}
+		}
+
+		// Test with OrElse
+		resultOrElse := OrElse(handler)(failingDecoder)("input")
+		// Test with ChainLeft
+		resultChainLeft := ChainLeft(handler)(failingDecoder)("input")
+
+		assert.Equal(t, resultChainLeft, resultOrElse, "OrElse and ChainLeft should produce identical results for error aggregation")
+
+		// Verify both aggregate errors
+		assert.True(t, either.IsLeft(resultOrElse))
+		errors := either.MonadFold(resultOrElse,
+			func(e Errors) Errors { return e },
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should aggregate both errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error")
+		assert.Contains(t, messages, "additional error")
+	})
+
+	t.Run("OrElse semantic meaning - fallback decoder", func(t *testing.T) {
+		// OrElse provides a semantic name for fallback/alternative decoding
+		// It reads naturally: "try this decoder, or else try this alternative"
+
+		primaryDecoder := func(input string) Validation[int] {
+			if input == "valid" {
+				return validation.Of(42)
+			}
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "primary decode failed"},
+			})
+		}
+
+		// Use OrElse to provide a fallback: if decoding fails, use default value
+		withDefault := OrElse(func(errs Errors) Decode[string, int] {
+			return Of[string](0) // default to 0 if decoding fails
+		})
+
+		decoder := withDefault(primaryDecoder)
+
+		// Test success case
+		resSuccess := decoder("valid")
+		assert.Equal(t, validation.Of(42), resSuccess, "Should use primary decoder on success")
+
+		// Test fallback case
+		resFallback := decoder("invalid")
+		assert.Equal(t, validation.Of(0), resFallback, "OrElse provides fallback value")
+	})
+
+	t.Run("OrElse in pipeline composition", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "database error"},
+			})
+		}
+
+		addContext := OrElse(func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Messsage: "context added"},
+				})
+			}
+		})
+
+		recoverFromNotFound := OrElse(func(errs Errors) Decode[string, int] {
+			for _, err := range errs {
+				if err.Messsage == "not found" {
+					return Of[string](0)
+				}
+			}
+			return func(input string) Validation[int] {
+				return either.Left[int](errs)
+			}
+		})
+
+		// Test error aggregation in pipeline
+		decoder1 := recoverFromNotFound(addContext(failingDecoder))
+		res1 := decoder1("input")
+
+		assert.True(t, either.IsLeft(res1))
+		errors := either.MonadFold(res1,
+			func(e Errors) Errors { return e },
+			func(int) Errors { return nil },
+		)
+		// Errors accumulate through the pipeline
+		assert.Greater(t, len(errors), 1, "Should aggregate errors from pipeline")
+
+		// Test recovery in pipeline
+		failingDecoder2 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "not found"},
+			})
+		}
+
+		decoder2 := recoverFromNotFound(addContext(failingDecoder2))
+		res2 := decoder2("input")
+
+		assert.Equal(t, validation.Of(0), res2, "Should recover from 'not found' error")
+	})
+
+	t.Run("OrElse vs ChainLeft - identical behavior verification", func(t *testing.T) {
+		// Create various test scenarios
+		scenarios := []struct {
+			name    string
+			decoder Decode[string, int]
+			handler func(Errors) Decode[string, int]
+		}{
+			{
+				name:    "Success value",
+				decoder: Of[string](42),
+				handler: func(errs Errors) Decode[string, int] {
+					return func(input string) Validation[int] {
+						return either.Left[int](validation.Errors{{Messsage: "error"}})
+					}
+				},
+			},
+			{
+				name: "Failure with recovery",
+				decoder: func(input string) Validation[int] {
+					return either.Left[int](validation.Errors{{Messsage: "error"}})
+				},
+				handler: func(errs Errors) Decode[string, int] {
+					return Of[string](0)
+				},
+			},
+			{
+				name: "Failure with error transformation",
+				decoder: func(input string) Validation[int] {
+					return either.Left[int](validation.Errors{{Messsage: "error1"}})
+				},
+				handler: func(errs Errors) Decode[string, int] {
+					return func(input string) Validation[int] {
+						return either.Left[int](validation.Errors{{Messsage: "error2"}})
+					}
+				},
+			},
+			{
+				name: "Multiple errors aggregation",
+				decoder: func(input string) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Messsage: "error1"},
+						{Messsage: "error2"},
+					})
+				},
+				handler: func(errs Errors) Decode[string, int] {
+					return func(input string) Validation[int] {
+						return either.Left[int](validation.Errors{
+							{Messsage: "error3"},
+							{Messsage: "error4"},
+						})
+					}
+				},
+			},
+		}
+
+		for _, scenario := range scenarios {
+			t.Run(scenario.name, func(t *testing.T) {
+				resultOrElse := OrElse(scenario.handler)(scenario.decoder)("test-input")
+				resultChainLeft := ChainLeft(scenario.handler)(scenario.decoder)("test-input")
+
+				assert.Equal(t, resultChainLeft, resultOrElse,
+					"OrElse and ChainLeft must produce identical results for: %s", scenario.name)
+			})
+		}
+	})
+}

@@ -57,6 +57,10 @@ func ChainLeft[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
 	)
 }
 
+func OrElse[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
+	return ChainLeft(f)
+}
+
 // MonadMap transforms the decoded value using the provided function.
 // This is the functor map operation that applies a transformation to successful decode results.
 //

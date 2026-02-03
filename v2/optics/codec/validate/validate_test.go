@@ -849,3 +849,428 @@ func TestFunctorLaws(t *testing.T) {
 		}
 	})
 }
+
+// TestChainLeft tests the ChainLeft function
+func TestChainLeft(t *testing.T) {
+	t.Run("transforms failures while preserving successes", func(t *testing.T) {
+		// Create a failing validator
+		failingValidator := func(n int) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](n, "validation failed")(ctx)
+			}
+		}
+
+		// Handler that recovers from specific errors
+		handler := ChainLeft(func(errs Errors) Validate[int, int] {
+			for _, err := range errs {
+				if err.Messsage == "validation failed" {
+					return Of[int](0) // recover with default
+				}
+			}
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					return E.Left[int](errs)
+				}
+			}
+		})
+
+		validator := handler(failingValidator)
+		result := validator(-5)(nil)
+
+		assert.Equal(t, validation.Of(0), result, "Should recover from failure")
+	})
+
+	t.Run("preserves success values unchanged", func(t *testing.T) {
+		successValidator := Of[int](42)
+
+		handler := ChainLeft(func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					return validation.FailureWithMessage[int](input, "should not be called")(ctx)
+				}
+			}
+		})
+
+		validator := handler(successValidator)
+		result := validator(100)(nil)
+
+		assert.Equal(t, validation.Of(42), result, "Success should pass through unchanged")
+	})
+
+	t.Run("aggregates errors when transformation also fails", func(t *testing.T) {
+		failingValidator := func(s string) Reader[validation.Context, validation.Validation[string]] {
+			return func(ctx validation.Context) validation.Validation[string] {
+				return validation.FailureWithMessage[string](s, "original error")(ctx)
+			}
+		}
+
+		handler := ChainLeft(func(errs Errors) Validate[string, string] {
+			return func(input string) Reader[validation.Context, validation.Validation[string]] {
+				return func(ctx validation.Context) validation.Validation[string] {
+					return validation.FailureWithMessage[string](input, "additional error")(ctx)
+				}
+			}
+		})
+
+		validator := handler(failingValidator)
+		result := validator("test")(nil)
+
+		assert.True(t, E.IsLeft(result))
+		_, errors := E.Unwrap(result)
+		assert.Len(t, errors, 2, "Should aggregate both errors")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error")
+		assert.Contains(t, messages, "additional error")
+	})
+
+	t.Run("adds context to errors", func(t *testing.T) {
+		failingValidator := func(n int) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](n, "invalid value")(ctx)
+			}
+		}
+
+		addContext := ChainLeft(func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					return E.Left[int](validation.Errors{
+						{
+							Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "age", Type: "int"}},
+							Messsage: "failed to validate user age",
+						},
+					})
+				}
+			}
+		})
+
+		validator := addContext(failingValidator)
+		result := validator(150)(nil)
+
+		assert.True(t, E.IsLeft(result))
+		_, errors := E.Unwrap(result)
+		assert.Len(t, errors, 2, "Should have both original and context errors")
+	})
+
+	t.Run("can be composed in pipeline", func(t *testing.T) {
+		failingValidator := func(n int) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](n, "error1")(ctx)
+			}
+		}
+
+		handler1 := ChainLeft(func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					return validation.FailureWithMessage[int](input, "error2")(ctx)
+				}
+			}
+		})
+
+		handler2 := ChainLeft(func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					return validation.FailureWithMessage[int](input, "error3")(ctx)
+				}
+			}
+		})
+
+		validator := handler2(handler1(failingValidator))
+		result := validator(42)(nil)
+
+		assert.True(t, E.IsLeft(result))
+		_, errors := E.Unwrap(result)
+		assert.GreaterOrEqual(t, len(errors), 2, "Should accumulate errors through pipeline")
+	})
+
+	t.Run("provides access to original input", func(t *testing.T) {
+		failingValidator := func(n int) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](n, "failed")(ctx)
+			}
+		}
+
+		// Handler uses input to determine recovery strategy
+		handler := ChainLeft(func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					// Use input value to decide on recovery
+					if input < 0 {
+						return validation.Of(0)
+					}
+					if input > 100 {
+						return validation.Of(100)
+					}
+					return E.Left[int](errs)
+				}
+			}
+		})
+
+		validator := handler(failingValidator)
+
+		result1 := validator(-10)(nil)
+		assert.Equal(t, validation.Of(0), result1, "Should recover negative to 0")
+
+		result2 := validator(150)(nil)
+		assert.Equal(t, validation.Of(100), result2, "Should recover large to 100")
+	})
+
+	t.Run("works with different input and output types", func(t *testing.T) {
+		// Validator that converts string to int
+		parseValidator := func(s string) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](s, "parse failed")(ctx)
+			}
+		}
+
+		// Handler that provides default based on input string
+		handler := ChainLeft(func(errs Errors) Validate[string, int] {
+			return func(input string) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					if input == "default" {
+						return validation.Of(42)
+					}
+					return E.Left[int](errs)
+				}
+			}
+		})
+
+		validator := handler(parseValidator)
+		result := validator("default")(nil)
+
+		assert.Equal(t, validation.Of(42), result)
+	})
+}
+
+// TestOrElse tests the OrElse function
+func TestOrElse(t *testing.T) {
+	t.Run("provides fallback for failing validation", func(t *testing.T) {
+		// Primary validator that fails
+		primaryValidator := func(s string) Reader[validation.Context, validation.Validation[string]] {
+			return func(ctx validation.Context) validation.Validation[string] {
+				return validation.FailureWithMessage[string](s, "not found")(ctx)
+			}
+		}
+
+		// Use OrElse to provide fallback
+		withFallback := OrElse(func(errs Errors) Validate[string, string] {
+			return Of[string]("default value")
+		})
+
+		validator := withFallback(primaryValidator)
+		result := validator("missing")(nil)
+
+		assert.Equal(t, validation.Of("default value"), result)
+	})
+
+	t.Run("preserves success values unchanged", func(t *testing.T) {
+		successValidator := Of[string]("success")
+
+		withFallback := OrElse(func(errs Errors) Validate[string, string] {
+			return Of[string]("fallback")
+		})
+
+		validator := withFallback(successValidator)
+		result := validator("input")(nil)
+
+		assert.Equal(t, validation.Of("success"), result, "Should not use fallback for success")
+	})
+
+	t.Run("aggregates errors when fallback also fails", func(t *testing.T) {
+		failingValidator := func(n int) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](n, "primary failed")(ctx)
+			}
+		}
+
+		withFallback := OrElse(func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					return validation.FailureWithMessage[int](input, "fallback failed")(ctx)
+				}
+			}
+		})
+
+		validator := withFallback(failingValidator)
+		result := validator(42)(nil)
+
+		assert.True(t, E.IsLeft(result))
+		_, errors := E.Unwrap(result)
+		assert.Len(t, errors, 2, "Should aggregate both errors")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "primary failed")
+		assert.Contains(t, messages, "fallback failed")
+	})
+
+	t.Run("supports multiple fallback strategies", func(t *testing.T) {
+		failingValidator := func(s string) Reader[validation.Context, validation.Validation[string]] {
+			return func(ctx validation.Context) validation.Validation[string] {
+				return validation.FailureWithMessage[string](s, "not in database")(ctx)
+			}
+		}
+
+		// First fallback: try cache
+		tryCache := OrElse(func(errs Errors) Validate[string, string] {
+			return func(input string) Reader[validation.Context, validation.Validation[string]] {
+				return func(ctx validation.Context) validation.Validation[string] {
+					if input == "cached" {
+						return validation.Of("from cache")
+					}
+					return E.Left[string](errs)
+				}
+			}
+		})
+
+		// Second fallback: use default
+		useDefault := OrElse(func(errs Errors) Validate[string, string] {
+			return Of[string]("default")
+		})
+
+		// Compose fallbacks
+		validator := useDefault(tryCache(failingValidator))
+
+		// Test with cached value
+		result1 := validator("cached")(nil)
+		assert.Equal(t, validation.Of("from cache"), result1)
+
+		// Test with non-cached value (should use default)
+		result2 := validator("other")(nil)
+		assert.Equal(t, validation.Of("default"), result2)
+	})
+
+	t.Run("provides input-dependent fallback", func(t *testing.T) {
+		failingValidator := func(s string) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](s, "parse failed")(ctx)
+			}
+		}
+
+		// Fallback with different defaults based on input
+		smartFallback := OrElse(func(errs Errors) Validate[string, int] {
+			return func(input string) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					// Provide context-aware defaults
+					if input == "http" {
+						return validation.Of(80)
+					}
+					if input == "https" {
+						return validation.Of(443)
+					}
+					return validation.Of(8080)
+				}
+			}
+		})
+
+		validator := smartFallback(failingValidator)
+
+		result1 := validator("http")(nil)
+		assert.Equal(t, validation.Of(80), result1)
+
+		result2 := validator("https")(nil)
+		assert.Equal(t, validation.Of(443), result2)
+
+		result3 := validator("other")(nil)
+		assert.Equal(t, validation.Of(8080), result3)
+	})
+
+	t.Run("is equivalent to ChainLeft", func(t *testing.T) {
+		// Create identical handlers
+		handler := func(errs Errors) Validate[int, int] {
+			return func(input int) Reader[validation.Context, validation.Validation[int]] {
+				return func(ctx validation.Context) validation.Validation[int] {
+					if input < 0 {
+						return validation.Of(0)
+					}
+					return E.Left[int](errs)
+				}
+			}
+		}
+
+		failingValidator := func(n int) Reader[validation.Context, validation.Validation[int]] {
+			return func(ctx validation.Context) validation.Validation[int] {
+				return validation.FailureWithMessage[int](n, "failed")(ctx)
+			}
+		}
+
+		// Apply with ChainLeft
+		withChainLeft := ChainLeft(handler)(failingValidator)
+
+		// Apply with OrElse
+		withOrElse := OrElse(handler)(failingValidator)
+
+		// Test with same inputs
+		inputs := []int{-10, 0, 10, -5, 100}
+		for _, input := range inputs {
+			result1 := withChainLeft(input)(nil)
+			result2 := withOrElse(input)(nil)
+
+			// Results should be identical
+			assert.Equal(t, E.IsLeft(result1), E.IsLeft(result2))
+			if E.IsRight(result1) {
+				val1, _ := E.Unwrap(result1)
+				val2, _ := E.Unwrap(result2)
+				assert.Equal(t, val1, val2, "OrElse and ChainLeft should produce identical results")
+			}
+		}
+	})
+
+	t.Run("works in complex validation pipeline", func(t *testing.T) {
+		type Config struct {
+			Port int
+			Host string
+		}
+
+		// Validator that tries to parse config
+		parseConfig := func(s string) Reader[validation.Context, validation.Validation[Config]] {
+			return func(ctx validation.Context) validation.Validation[Config] {
+				return validation.FailureWithMessage[Config](s, "invalid config")(ctx)
+			}
+		}
+
+		// Fallback to environment variables
+		tryEnv := OrElse(func(errs Errors) Validate[string, Config] {
+			return func(input string) Reader[validation.Context, validation.Validation[Config]] {
+				return func(ctx validation.Context) validation.Validation[Config] {
+					// Simulate env var lookup
+					if input == "from_env" {
+						return validation.Of(Config{Port: 8080, Host: "localhost"})
+					}
+					return E.Left[Config](errs)
+				}
+			}
+		})
+
+		// Final fallback to defaults
+		useDefaults := OrElse(func(errs Errors) Validate[string, Config] {
+			return Of[string](Config{Port: 3000, Host: "0.0.0.0"})
+		})
+
+		// Build pipeline
+		validator := useDefaults(tryEnv(parseConfig))
+
+		// Test with env fallback
+		result1 := validator("from_env")(nil)
+		assert.True(t, E.IsRight(result1))
+		if E.IsRight(result1) {
+			cfg, _ := E.Unwrap(result1)
+			assert.Equal(t, 8080, cfg.Port)
+			assert.Equal(t, "localhost", cfg.Host)
+		}
+
+		// Test with default fallback
+		result2 := validator("other")(nil)
+		assert.True(t, E.IsRight(result2))
+		if E.IsRight(result2) {
+			cfg, _ := E.Unwrap(result2)
+			assert.Equal(t, 3000, cfg.Port)
+			assert.Equal(t, "0.0.0.0", cfg.Host)
+		}
+	})
+}

@@ -1104,6 +1104,8 @@ func After[R, E, A any](timestamp time.Time) Operator[R, E, A, A] {
 // If the ReaderIOEither is Left, it applies the provided function to the error value,
 // which returns a new ReaderIOEither that replaces the original.
 //
+// Note: OrElse is identical to [ChainLeft] - both provide the same functionality for error recovery.
+//
 // This is useful for error recovery, fallback logic, or chaining alternative IO computations
 // that need access to configuration or dependencies. The error type can be widened from E1 to E2.
 //

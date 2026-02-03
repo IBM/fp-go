@@ -309,6 +309,225 @@ func Chain[I, A, B any](f Kleisli[I, A, B]) Operator[I, A, B] {
 	)
 }
 
+// ChainLeft sequences a computation on the failure (Left) channel of a validation.
+//
+// This function operates on the error path of validation, allowing you to transform,
+// enrich, or recover from validation failures. It's the dual of Chain - while Chain
+// operates on success values, ChainLeft operates on error values.
+//
+// # Key Behavior
+//
+// **Critical difference from standard Either operations**: This validation-specific
+// implementation **aggregates errors** using the Errors monoid. When the transformation
+// function returns a failure, both the original errors AND the new errors are combined,
+// ensuring comprehensive error reporting.
+//
+//  1. **Success Pass-Through**: If validation succeeds, the handler is never called and
+//     the success value passes through unchanged.
+//
+//  2. **Error Recovery**: The handler can recover from failures by returning a successful
+//     validation, converting Left to Right.
+//
+//  3. **Error Aggregation**: When the handler also returns a failure, both the original
+//     errors and the new errors are combined using the Errors monoid.
+//
+//  4. **Input Access**: The handler returns a Validate[I, A] function, giving it access
+//     to the original input value I for context-aware error handling.
+//
+// # Type Parameters
+//
+//   - I: The input type
+//   - A: The type of the validation result
+//
+// # Parameters
+//
+//   - f: A Kleisli arrow that takes Errors and returns a Validate[I, A]. This function
+//     is called only when validation fails, receiving the accumulated errors.
+//
+// # Returns
+//
+// An Operator[I, A, A] that transforms validators by handling their error cases.
+//
+// # Example: Error Recovery
+//
+//	// Validator that may fail
+//	validatePositive := func(n int) Reader[validation.Context, validation.Validation[int]] {
+//	    return func(ctx validation.Context) validation.Validation[int] {
+//	        if n > 0 {
+//	            return validation.Success(n)
+//	        }
+//	        return validation.FailureWithMessage[int](n, "must be positive")(ctx)
+//	    }
+//	}
+//
+//	// Recover from specific errors with a default value
+//	withDefault := ChainLeft(func(errs Errors) Validate[int, int] {
+//	    for _, err := range errs {
+//	        if err.Messsage == "must be positive" {
+//	            return Of[int](0) // recover with default
+//	        }
+//	    }
+//	    return func(input int) Reader[validation.Context, validation.Validation[int]] {
+//	        return func(ctx validation.Context) validation.Validation[int] {
+//	            return either.Left[int](errs)
+//	        }
+//	    }
+//	})
+//
+//	validator := withDefault(validatePositive)
+//	result := validator(-5)(nil)
+//	// Result: Success(0) - recovered from failure
+//
+// # Example: Error Context Addition
+//
+//	// Add contextual information to errors
+//	addContext := ChainLeft(func(errs Errors) Validate[string, int] {
+//	    return func(input string) Reader[validation.Context, validation.Validation[int]] {
+//	        return func(ctx validation.Context) validation.Validation[int] {
+//	            return either.Left[int](validation.Errors{
+//	                {
+//	                    Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "age", Type: "int"}},
+//	                    Messsage: "failed to validate user age",
+//	                },
+//	            })
+//	        }
+//	    }
+//	})
+//
+//	validator := addContext(someValidator)
+//	// Errors will include both original error and context
+//
+// # Example: Input-Dependent Recovery
+//
+//	// Recover with different defaults based on input
+//	smartDefault := ChainLeft(func(errs Errors) Validate[string, int] {
+//	    return func(input string) Reader[validation.Context, validation.Validation[int]] {
+//	        return func(ctx validation.Context) validation.Validation[int] {
+//	            // Use input to determine appropriate default
+//	            if strings.Contains(input, "http") {
+//	                return validation.Of(80)
+//	            }
+//	            if strings.Contains(input, "https") {
+//	                return validation.Of(443)
+//	            }
+//	            return validation.Of(8080)
+//	        }
+//	    }
+//	})
+//
+// # Notes
+//
+//   - Errors are accumulated, not replaced - this ensures no validation failures are lost
+//   - The handler has access to both the errors and the original input
+//   - Success values bypass the handler completely
+//   - This enables sophisticated error handling strategies including recovery, enrichment, and transformation
+//   - Use OrElse as a semantic alias when emphasizing fallback/alternative logic
+func ChainLeft[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
+	return readert.Chain[Validate[I, A]](
+		decode.ChainLeft,
+		f,
+	)
+}
+
+// OrElse provides an alternative validation when the primary validation fails.
+//
+// This is a semantic alias for ChainLeft with identical behavior. The name "OrElse"
+// emphasizes the intent of providing fallback or alternative validation logic, making
+// code more readable when that's the primary use case.
+//
+// # Relationship to ChainLeft
+//
+// **OrElse and ChainLeft are functionally identical** - they produce exactly the same
+// results for all inputs. The choice between them is purely about code readability:
+//
+//   - Use **OrElse** when emphasizing fallback/alternative validation logic
+//   - Use **ChainLeft** when emphasizing technical error channel transformation
+//
+// Both maintain the critical property of **error aggregation**, ensuring all validation
+// failures are preserved and reported together.
+//
+// # Type Parameters
+//
+//   - I: The input type
+//   - A: The type of the validation result
+//
+// # Parameters
+//
+//   - f: A Kleisli arrow that takes Errors and returns a Validate[I, A]. This function
+//     is called only when validation fails, receiving the accumulated errors.
+//
+// # Returns
+//
+// An Operator[I, A, A] that transforms validators by providing alternative validation.
+//
+// # Example: Fallback Validation
+//
+//	// Primary validator that may fail
+//	validateFromConfig := func(key string) Reader[validation.Context, validation.Validation[string]] {
+//	    return func(ctx validation.Context) validation.Validation[string] {
+//	        // Try to get value from config
+//	        if value, ok := config[key]; ok {
+//	            return validation.Success(value)
+//	        }
+//	        return validation.FailureWithMessage[string](key, "not found in config")(ctx)
+//	    }
+//	}
+//
+//	// Use OrElse for semantic clarity - "try config, or else use environment"
+//	withEnvFallback := OrElse(func(errs Errors) Validate[string, string] {
+//	    return func(key string) Reader[validation.Context, validation.Validation[string]] {
+//	        return func(ctx validation.Context) validation.Validation[string] {
+//	            if value := os.Getenv(key); value != "" {
+//	                return validation.Success(value)
+//	            }
+//	            return either.Left[string](errs) // propagate original errors
+//	        }
+//	    }
+//	})
+//
+//	validator := withEnvFallback(validateFromConfig)
+//	result := validator("DATABASE_URL")(nil)
+//	// Tries config first, falls back to environment variable
+//
+// # Example: Default Value on Failure
+//
+//	// Provide a default value when validation fails
+//	withDefault := OrElse(func(errs Errors) Validate[int, int] {
+//	    return Of[int](0) // default to 0 on any failure
+//	})
+//
+//	validator := withDefault(someValidator)
+//	result := validator(input)(nil)
+//	// Always succeeds, using default value if validation fails
+//
+// # Example: Pipeline with Multiple Fallbacks
+//
+//	// Build a validation pipeline with multiple fallback strategies
+//	validator := F.Pipe2(
+//	    validateFromDatabase,
+//	    OrElse(func(errs Errors) Validate[string, Config] {
+//	        // Try cache as first fallback
+//	        return validateFromCache
+//	    }),
+//	    OrElse(func(errs Errors) Validate[string, Config] {
+//	        // Use default config as final fallback
+//	        return Of[string](defaultConfig)
+//	    }),
+//	)
+//	// Tries database, then cache, then default
+//
+// # Notes
+//
+//   - Identical behavior to ChainLeft - they are aliases
+//   - Errors are accumulated when transformations fail
+//   - Success values pass through unchanged
+//   - The handler has access to both errors and original input
+//   - Choose OrElse for better readability when providing alternatives
+//   - See ChainLeft documentation for detailed behavior and additional examples
+func OrElse[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
+	return ChainLeft(f)
+}
+
 // MonadAp applies a validator containing a function to a validator containing a value.
 //
 // This is the applicative apply operation for Validate. It allows you to apply

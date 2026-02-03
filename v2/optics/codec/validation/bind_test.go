@@ -17,12 +17,7 @@ func TestDo(t *testing.T) {
 		}
 		result := Do(State{})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{}, value)
+		assert.Equal(t, Of(State{}), result)
 	})
 
 	t.Run("creates successful validation with initialized state", func(t *testing.T) {
@@ -33,24 +28,19 @@ func TestDo(t *testing.T) {
 		initial := State{x: 42, y: "hello"}
 		result := Do(initial)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, initial, value)
+		assert.Equal(t, Of(initial), result)
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
 		intResult := Do(0)
-		assert.True(t, either.IsRight(intResult))
+		assert.Equal(t, Of(0), intResult)
 
 		strResult := Do("")
-		assert.True(t, either.IsRight(strResult))
+		assert.Equal(t, Of(""), strResult)
 
 		type Custom struct{ Value int }
 		customResult := Do(Custom{Value: 100})
-		assert.True(t, either.IsRight(customResult))
+		assert.Equal(t, Of(Custom{Value: 100}), customResult)
 	})
 }
 
@@ -71,12 +61,7 @@ func TestBind(t *testing.T) {
 			}, func(s State) Validation[int] { return Success(10) }),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 42, y: 10}, value)
+		assert.Equal(t, Of(State{x: 42, y: 10}), result)
 	})
 
 	t.Run("propagates failure", func(t *testing.T) {
@@ -115,12 +100,7 @@ func TestBind(t *testing.T) {
 			}),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 10, y: 20}, value)
+		assert.Equal(t, Success(State{x: 10, y: 20}), result)
 	})
 }
 
@@ -138,12 +118,7 @@ func TestLet(t *testing.T) {
 			}, func(s State) int { return s.x * 2 }),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 5, computed: 10}, value)
+		assert.Equal(t, Of(State{x: 5, computed: 10}), result)
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
@@ -180,12 +155,7 @@ func TestLet(t *testing.T) {
 			}, func(s State) int { return s.z * 3 }),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 60, y: 10, z: 20}, value)
+		assert.Equal(t, Of(State{x: 60, y: 10, z: 20}), result)
 	})
 }
 
@@ -203,12 +173,7 @@ func TestLetTo(t *testing.T) {
 			}, "example"),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 5, name: "example"}, value)
+		assert.Equal(t, Of(State{x: 5, name: "example"}), result)
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
@@ -239,12 +204,7 @@ func TestLetTo(t *testing.T) {
 			}, true),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{name: "app", version: 2, active: true}, value)
+		assert.Equal(t, Of(State{name: "app", version: 2, active: true}), result)
 	})
 }
 
@@ -259,12 +219,7 @@ func TestBindTo(t *testing.T) {
 			BindTo(func(x int) State { return State{value: x} }),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{value: 42}, value)
+		assert.Equal(t, Of(State{value: 42}), result)
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
@@ -289,12 +244,7 @@ func TestBindTo(t *testing.T) {
 			BindTo(func(s string) StringState { return StringState{text: s} }),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) StringState { return StringState{} },
-			F.Identity[StringState],
-		)
-		assert.Equal(t, StringState{text: "hello"}, value)
+		assert.Equal(t, Of(StringState{text: "hello"}), result)
 	})
 }
 
@@ -312,12 +262,7 @@ func TestApS(t *testing.T) {
 			}, Success(42)),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 42}, value)
+		assert.Equal(t, Of(State{x: 42}), result)
 	})
 
 	t.Run("accumulates errors from both validations", func(t *testing.T) {
@@ -350,12 +295,7 @@ func TestApS(t *testing.T) {
 			}, Success(20)),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 10, y: 20}, value)
+		assert.Equal(t, Of(State{x: 10, y: 20}), result)
 	})
 }
 
@@ -384,14 +324,11 @@ func TestApSL(t *testing.T) {
 			),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) Person { return Person{} },
-			F.Identity[Person],
-		)
-		assert.Equal(t, "Alice", value.Name)
-		assert.Equal(t, "Main St", value.Address.Street)
-		assert.Equal(t, "NYC", value.Address.City)
+		expected := Person{
+			Name:    "Alice",
+			Address: Address{Street: "Main St", City: "NYC"},
+		}
+		assert.Equal(t, Of(expected), result)
 	})
 
 	t.Run("accumulates errors", func(t *testing.T) {
@@ -434,12 +371,7 @@ func TestBindL(t *testing.T) {
 			BindL(valueLens, increment),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) Counter { return Counter{} },
-			F.Identity[Counter],
-		)
-		assert.Equal(t, Counter{Value: 43}, value)
+		assert.Equal(t, Of(Counter{Value: 43}), result)
 	})
 
 	t.Run("fails validation based on current value", func(t *testing.T) {
@@ -494,12 +426,7 @@ func TestLetL(t *testing.T) {
 			LetL(valueLens, double),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) Counter { return Counter{} },
-			F.Identity[Counter],
-		)
-		assert.Equal(t, Counter{Value: 42}, value)
+		assert.Equal(t, Of(Counter{Value: 42}), result)
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
@@ -521,12 +448,7 @@ func TestLetL(t *testing.T) {
 			LetL(valueLens, double),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) Counter { return Counter{} },
-			F.Identity[Counter],
-		)
-		assert.Equal(t, Counter{Value: 30}, value)
+		assert.Equal(t, Of(Counter{Value: 30}), result)
 	})
 }
 
@@ -547,12 +469,7 @@ func TestLetToL(t *testing.T) {
 			LetToL(debugLens, false),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) Config { return Config{} },
-			F.Identity[Config],
-		)
-		assert.Equal(t, Config{Debug: false, Timeout: 30}, value)
+		assert.Equal(t, Of(Config{Debug: false, Timeout: 30}), result)
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
@@ -574,12 +491,7 @@ func TestLetToL(t *testing.T) {
 			LetToL(timeoutLens, 60),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) Config { return Config{} },
-			F.Identity[Config],
-		)
-		assert.Equal(t, Config{Debug: false, Timeout: 60}, value)
+		assert.Equal(t, Of(Config{Debug: false, Timeout: 60}), result)
 	})
 }
 
@@ -622,13 +534,7 @@ func TestBindOperationsComposition(t *testing.T) {
 			}),
 		)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) User { return User{} },
-			F.Identity[User],
-		)
-		assert.Equal(t, "Alice", value.Name)
-		assert.Equal(t, 25, value.Age)
-		assert.Equal(t, "Alice@example.com", value.Email)
+		expected := User{Name: "Alice", Age: 25, Email: "Alice@example.com"}
+		assert.Equal(t, Of(expected), result)
 	})
 }

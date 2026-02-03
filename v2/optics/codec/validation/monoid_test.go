@@ -74,12 +74,7 @@ func TestApplicativeMonoid(t *testing.T) {
 		t.Run("empty returns successful validation with empty string", func(t *testing.T) {
 			empty := m.Empty()
 
-			assert.True(t, either.IsRight(empty))
-			value := either.MonadFold(empty,
-				func(Errors) string { return "ERROR" },
-				F.Identity[string],
-			)
-			assert.Equal(t, "", value)
+			assert.Equal(t, Success(""), empty)
 		})
 
 		t.Run("concat combines successful validations", func(t *testing.T) {
@@ -88,12 +83,7 @@ func TestApplicativeMonoid(t *testing.T) {
 
 			result := m.Concat(v1, v2)
 
-			assert.True(t, either.IsRight(result))
-			value := either.MonadFold(result,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-			assert.Equal(t, "Hello World", value)
+			assert.Equal(t, Success("Hello World"), result)
 		})
 
 		t.Run("concat with failure returns failure", func(t *testing.T) {

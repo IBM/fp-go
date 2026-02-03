@@ -531,3 +531,205 @@ func TestReadIO(t *testing.T) {
 		assert.Equal(t, E.Right[error](25), result)
 	})
 }
+
+// TestChainLeftIdenticalToOrElse proves that ChainLeft and OrElse are identical functions.
+// This test verifies that both functions produce the same results for all scenarios with reader context:
+// - Left values with error recovery using reader context
+// - Left values with error transformation
+// - Right values passing through unchanged
+// - Error type widening
+func TestChainLeftIdenticalToOrElse(t *testing.T) {
+	type Config struct {
+		fallbackValue int
+		retryEnabled  bool
+	}
+
+	// Test 1: Left value with error recovery using reader context
+	t.Run("Left value recovery with reader - ChainLeft equals OrElse", func(t *testing.T) {
+		recoveryFn := func(e string) ReaderIOEither[Config, string, int] {
+			if e == "recoverable" {
+				return func(cfg Config) IOE.IOEither[string, int] {
+					return IOE.Right[string](cfg.fallbackValue)
+				}
+			}
+			return Left[Config, int](e)
+		}
+
+		input := Left[Config, int]("recoverable")
+		cfg := Config{fallbackValue: 42, retryEnabled: true}
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(recoveryFn)(input)(cfg)()
+
+		// Using OrElse
+		resultOrElse := OrElse(recoveryFn)(input)(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](42), resultChainLeft)
+	})
+
+	// Test 2: Left value with error transformation
+	t.Run("Left value transformation - ChainLeft equals OrElse", func(t *testing.T) {
+		transformFn := func(e string) ReaderIOEither[Config, string, int] {
+			return Left[Config, int]("transformed: " + e)
+		}
+
+		input := Left[Config, int]("original error")
+		cfg := Config{fallbackValue: 0, retryEnabled: false}
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(transformFn)(input)(cfg)()
+
+		// Using OrElse
+		resultOrElse := OrElse(transformFn)(input)(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Left[int]("transformed: original error"), resultChainLeft)
+	})
+
+	// Test 3: Right value - both should pass through unchanged
+	t.Run("Right value passthrough - ChainLeft equals OrElse", func(t *testing.T) {
+		handlerFn := func(e string) ReaderIOEither[Config, string, int] {
+			return Left[Config, int]("should not be called")
+		}
+
+		input := Right[Config, string](100)
+		cfg := Config{fallbackValue: 0, retryEnabled: false}
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(handlerFn)(input)(cfg)()
+
+		// Using OrElse
+		resultOrElse := OrElse(handlerFn)(input)(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](100), resultChainLeft)
+	})
+
+	// Test 4: Error type widening
+	t.Run("Error type widening - ChainLeft equals OrElse", func(t *testing.T) {
+		widenFn := func(e string) ReaderIOEither[Config, int, int] {
+			return Left[Config, int](404)
+		}
+
+		input := Left[Config, int]("not found")
+		cfg := Config{fallbackValue: 0, retryEnabled: false}
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(widenFn)(input)(cfg)()
+
+		// Using OrElse
+		resultOrElse := OrElse(widenFn)(input)(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Left[int](404), resultChainLeft)
+	})
+
+	// Test 5: Composition in pipeline with reader context
+	t.Run("Pipeline composition with reader - ChainLeft equals OrElse", func(t *testing.T) {
+		recoveryFn := func(e string) ReaderIOEither[Config, string, int] {
+			if e == "network error" {
+				return func(cfg Config) IOE.IOEither[string, int] {
+					if cfg.retryEnabled {
+						return IOE.Right[string](cfg.fallbackValue)
+					}
+					return IOE.Left[int]("retry disabled")
+				}
+			}
+			return Left[Config, int](e)
+		}
+
+		input := Left[Config, int]("network error")
+		cfg := Config{fallbackValue: 99, retryEnabled: true}
+
+		// Using ChainLeft in pipeline
+		resultChainLeft := F.Pipe1(input, ChainLeft(recoveryFn))(cfg)()
+
+		// Using OrElse in pipeline
+		resultOrElse := F.Pipe1(input, OrElse(recoveryFn))(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](99), resultChainLeft)
+	})
+
+	// Test 6: Multiple chained operations with reader context
+	t.Run("Multiple operations with reader - ChainLeft equals OrElse", func(t *testing.T) {
+		handler1 := func(e string) ReaderIOEither[Config, string, int] {
+			if e == "error1" {
+				return Right[Config, string](1)
+			}
+			return Left[Config, int](e)
+		}
+
+		handler2 := func(e string) ReaderIOEither[Config, string, int] {
+			if e == "error2" {
+				return func(cfg Config) IOE.IOEither[string, int] {
+					return IOE.Right[string](cfg.fallbackValue)
+				}
+			}
+			return Left[Config, int](e)
+		}
+
+		input := Left[Config, int]("error2")
+		cfg := Config{fallbackValue: 2, retryEnabled: false}
+
+		// Using ChainLeft
+		resultChainLeft := F.Pipe2(
+			input,
+			ChainLeft(handler1),
+			ChainLeft(handler2),
+		)(cfg)()
+
+		// Using OrElse
+		resultOrElse := F.Pipe2(
+			input,
+			OrElse(handler1),
+			OrElse(handler2),
+		)(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](2), resultChainLeft)
+	})
+
+	// Test 7: Reader context is properly threaded through both functions
+	t.Run("Reader context threading - ChainLeft equals OrElse", func(t *testing.T) {
+		var chainLeftCfg, orElseCfg *Config
+
+		recoveryFn := func(e string) ReaderIOEither[Config, string, int] {
+			return func(cfg Config) IOE.IOEither[string, int] {
+				// Capture the config to verify it's passed correctly
+				if chainLeftCfg == nil {
+					chainLeftCfg = &cfg
+				} else {
+					orElseCfg = &cfg
+				}
+				return IOE.Right[string](cfg.fallbackValue)
+			}
+		}
+
+		input := Left[Config, int]("error")
+		cfg := Config{fallbackValue: 123, retryEnabled: true}
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(recoveryFn)(input)(cfg)()
+
+		// Using OrElse
+		resultOrElse := OrElse(recoveryFn)(input)(cfg)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](123), resultChainLeft)
+
+		// Verify both received the same config
+		assert.NotNil(t, chainLeftCfg)
+		assert.NotNil(t, orElseCfg)
+		assert.Equal(t, *chainLeftCfg, *orElseCfg)
+		assert.Equal(t, cfg, *chainLeftCfg)
+	})
+}

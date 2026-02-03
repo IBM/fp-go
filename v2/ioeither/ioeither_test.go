@@ -490,3 +490,148 @@ func TestOrElseW(t *testing.T) {
 	preserved := preserveRecover(preservedRight)()
 	assert.Equal(t, E.Right[AppError](42), preserved)
 }
+
+// TestChainLeftIdenticalToOrElse proves that ChainLeft and OrElse are identical functions.
+// This test verifies that both functions produce the same results for all scenarios:
+// - Left values with error recovery
+// - Left values with error transformation
+// - Right values passing through unchanged
+func TestChainLeftIdenticalToOrElse(t *testing.T) {
+	// Test 1: Left value with error recovery - both should recover to Right
+	t.Run("Left value recovery - ChainLeft equals OrElse", func(t *testing.T) {
+		recoveryFn := func(e string) IOEither[string, int] {
+			if e == "recoverable" {
+				return Right[string](42)
+			}
+			return Left[int](e)
+		}
+
+		input := Left[int]("recoverable")
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(recoveryFn)(input)()
+
+		// Using OrElse
+		resultOrElse := OrElse(recoveryFn)(input)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](42), resultChainLeft)
+	})
+
+	// Test 2: Left value with error transformation - both should transform error
+	t.Run("Left value transformation - ChainLeft equals OrElse", func(t *testing.T) {
+		transformFn := func(e string) IOEither[string, int] {
+			return Left[int]("transformed: " + e)
+		}
+
+		input := Left[int]("original error")
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(transformFn)(input)()
+
+		// Using OrElse
+		resultOrElse := OrElse(transformFn)(input)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Left[int]("transformed: original error"), resultChainLeft)
+	})
+
+	// Test 3: Right value - both should pass through unchanged
+	t.Run("Right value passthrough - ChainLeft equals OrElse", func(t *testing.T) {
+		handlerFn := func(e string) IOEither[string, int] {
+			return Left[int]("should not be called")
+		}
+
+		input := Right[string](100)
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(handlerFn)(input)()
+
+		// Using OrElse
+		resultOrElse := OrElse(handlerFn)(input)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](100), resultChainLeft)
+	})
+
+	// Test 4: Error type widening - both should handle type transformation
+	t.Run("Error type widening - ChainLeft equals OrElse", func(t *testing.T) {
+		widenFn := func(e string) IOEither[int, int] {
+			return Left[int](404)
+		}
+
+		input := Left[int]("not found")
+
+		// Using ChainLeft
+		resultChainLeft := ChainLeft(widenFn)(input)()
+
+		// Using OrElse
+		resultOrElse := OrElse(widenFn)(input)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Left[int](404), resultChainLeft)
+	})
+
+	// Test 5: Composition in pipeline - both should work identically in F.Pipe
+	t.Run("Pipeline composition - ChainLeft equals OrElse", func(t *testing.T) {
+		recoveryFn := func(e string) IOEither[string, int] {
+			if e == "network error" {
+				return Right[string](0)
+			}
+			return Left[int](e)
+		}
+
+		input := Left[int]("network error")
+
+		// Using ChainLeft in pipeline
+		resultChainLeft := F.Pipe1(input, ChainLeft(recoveryFn))()
+
+		// Using OrElse in pipeline
+		resultOrElse := F.Pipe1(input, OrElse(recoveryFn))()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](0), resultChainLeft)
+	})
+
+	// Test 6: Multiple chained operations - both should behave identically
+	t.Run("Multiple operations - ChainLeft equals OrElse", func(t *testing.T) {
+		handler1 := func(e string) IOEither[string, int] {
+			if e == "error1" {
+				return Right[string](1)
+			}
+			return Left[int](e)
+		}
+
+		handler2 := func(e string) IOEither[string, int] {
+			if e == "error2" {
+				return Right[string](2)
+			}
+			return Left[int](e)
+		}
+
+		input := Left[int]("error2")
+
+		// Using ChainLeft
+		resultChainLeft := F.Pipe2(
+			input,
+			ChainLeft(handler1),
+			ChainLeft(handler2),
+		)()
+
+		// Using OrElse
+		resultOrElse := F.Pipe2(
+			input,
+			OrElse(handler1),
+			OrElse(handler2),
+		)()
+
+		// Both should produce identical results
+		assert.Equal(t, resultOrElse, resultChainLeft)
+		assert.Equal(t, E.Right[string](2), resultChainLeft)
+	})
+}
