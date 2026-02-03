@@ -22,6 +22,8 @@ import (
 )
 
 type (
+	Errors = validation.Errors
+
 	// Validation represents the result of a validation operation that may contain
 	// validation errors or a successfully validated value of type A.
 	// This is an alias for validation.Validation[A], which is Either[Errors, A].

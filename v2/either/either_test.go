@@ -124,79 +124,52 @@ func TestStringer(t *testing.T) {
 func TestZeroWithIntegers(t *testing.T) {
 	e := Zero[error, int]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-	assert.False(t, IsLeft(e), "Zero should not create a Left value")
-
-	value, err := Unwrap(e)
-	assert.Equal(t, 0, value, "Right value should be zero for int")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](0), e, "Zero should create a Right value with zero for int")
 }
 
 // TestZeroWithStrings tests Zero function with string types
 func TestZeroWithStrings(t *testing.T) {
 	e := Zero[error, string]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-	assert.False(t, IsLeft(e), "Zero should not create a Left value")
-
-	value, err := Unwrap(e)
-	assert.Equal(t, "", value, "Right value should be empty string")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](""), e, "Zero should create a Right value with empty string")
 }
 
 // TestZeroWithBooleans tests Zero function with boolean types
 func TestZeroWithBooleans(t *testing.T) {
 	e := Zero[error, bool]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.Equal(t, false, value, "Right value should be false for bool")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](false), e, "Zero should create a Right value with false for bool")
 }
 
 // TestZeroWithFloats tests Zero function with float types
 func TestZeroWithFloats(t *testing.T) {
 	e := Zero[error, float64]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.Equal(t, 0.0, value, "Right value should be 0.0 for float64")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](0.0), e, "Zero should create a Right value with 0.0 for float64")
 }
 
 // TestZeroWithPointers tests Zero function with pointer types
 func TestZeroWithPointers(t *testing.T) {
 	e := Zero[error, *int]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.Nil(t, value, "Right value should be nil for pointer type")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	var nilPtr *int
+	assert.Equal(t, Of[error](nilPtr), e, "Zero should create a Right value with nil pointer")
 }
 
 // TestZeroWithSlices tests Zero function with slice types
 func TestZeroWithSlices(t *testing.T) {
 	e := Zero[error, []int]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.Nil(t, value, "Right value should be nil for slice type")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	var nilSlice []int
+	assert.Equal(t, Of[error](nilSlice), e, "Zero should create a Right value with nil slice")
 }
 
 // TestZeroWithMaps tests Zero function with map types
 func TestZeroWithMaps(t *testing.T) {
 	e := Zero[error, map[string]int]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.Nil(t, value, "Right value should be nil for map type")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	var nilMap map[string]int
+	assert.Equal(t, Of[error](nilMap), e, "Zero should create a Right value with nil map")
 }
 
 // TestZeroWithStructs tests Zero function with struct types
@@ -208,23 +181,16 @@ func TestZeroWithStructs(t *testing.T) {
 
 	e := Zero[error, TestStruct]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
 	expected := TestStruct{Field1: 0, Field2: ""}
-	assert.Equal(t, expected, value, "Right value should be zero value for struct")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](expected), e, "Zero should create a Right value with zero value for struct")
 }
 
 // TestZeroWithInterfaces tests Zero function with interface types
 func TestZeroWithInterfaces(t *testing.T) {
 	e := Zero[error, interface{}]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.Nil(t, value, "Right value should be nil for interface type")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	var nilInterface interface{}
+	assert.Equal(t, Of[error](nilInterface), e, "Zero should create a Right value with nil interface")
 }
 
 // TestZeroWithCustomErrorType tests Zero function with custom error types
@@ -236,12 +202,7 @@ func TestZeroWithCustomErrorType(t *testing.T) {
 
 	e := Zero[CustomError, string]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-	assert.False(t, IsLeft(e), "Zero should not create a Left value")
-
-	value, err := Unwrap(e)
-	assert.Equal(t, "", value, "Right value should be empty string")
-	assert.Equal(t, CustomError{Code: 0, Message: ""}, err, "Error should be zero value for CustomError")
+	assert.Equal(t, Of[CustomError](""), e, "Zero should create a Right value with empty string")
 }
 
 // TestZeroCanBeUsedWithOtherFunctions tests that Zero Eithers work with other either functions
@@ -252,17 +213,13 @@ func TestZeroCanBeUsedWithOtherFunctions(t *testing.T) {
 	mapped := MonadMap(e, func(n int) string {
 		return fmt.Sprintf("%d", n)
 	})
-	assert.True(t, IsRight(mapped), "Mapped Zero should still be Right")
-	value, _ := Unwrap(mapped)
-	assert.Equal(t, "0", value, "Mapped value should be '0'")
+	assert.Equal(t, Of[error]("0"), mapped, "Mapped Zero should be Right with '0'")
 
 	// Test with Chain
 	chained := MonadChain(e, func(n int) Either[error, string] {
 		return Right[error](fmt.Sprintf("value: %d", n))
 	})
-	assert.True(t, IsRight(chained), "Chained Zero should still be Right")
-	chainedValue, _ := Unwrap(chained)
-	assert.Equal(t, "value: 0", chainedValue, "Chained value should be 'value: 0'")
+	assert.Equal(t, Of[error]("value: 0"), chained, "Chained Zero should be Right with 'value: 0'")
 
 	// Test with Fold
 	folded := MonadFold(e,
@@ -295,23 +252,15 @@ func TestZeroWithComplexTypes(t *testing.T) {
 
 	e := Zero[error, ComplexType]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
 	expected := ComplexType{Nested: nil, Ptr: nil}
-	assert.Equal(t, expected, value, "Right value should be zero value for complex struct")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](expected), e, "Zero should create a Right value with zero value for complex struct")
 }
 
 // TestZeroWithOption tests Zero with Option type
 func TestZeroWithOption(t *testing.T) {
 	e := Zero[error, O.Option[int]]()
 
-	assert.True(t, IsRight(e), "Zero should create a Right value")
-
-	value, err := Unwrap(e)
-	assert.True(t, O.IsNone(value), "Right value should be None for Option type")
-	assert.Nil(t, err, "Error should be nil for Right value")
+	assert.Equal(t, Of[error](O.None[int]()), e, "Zero should create a Right value with None option")
 }
 
 // TestZeroIsNotLeft tests that Zero never creates a Left value
@@ -342,4 +291,212 @@ func TestZeroEqualsDefaultInitialization(t *testing.T) {
 	assert.Equal(t, defaultInit, zero, "Zero should equal default initialization")
 	assert.Equal(t, IsRight(defaultInit), IsRight(zero), "Both should be Right")
 	assert.Equal(t, IsLeft(defaultInit), IsLeft(zero), "Both should not be Left")
+}
+
+// TestMonadChainLeft tests the MonadChainLeft function with various scenarios
+func TestMonadChainLeft(t *testing.T) {
+	t.Run("Left value is transformed by function", func(t *testing.T) {
+		// Transform error to success
+		result := MonadChainLeft(
+			Left[int](errors.New("not found")),
+			func(err error) Either[string, int] {
+				if err.Error() == "not found" {
+					return Right[string](0) // default value
+				}
+				return Left[int](err.Error())
+			},
+		)
+		assert.Equal(t, Of[string](0), result)
+	})
+
+	t.Run("Left value error type is transformed", func(t *testing.T) {
+		// Transform error type from int to string
+		result := MonadChainLeft(
+			Left[int](404),
+			func(code int) Either[string, int] {
+				return Left[int](fmt.Sprintf("Error code: %d", code))
+			},
+		)
+		assert.Equal(t, Left[int]("Error code: 404"), result)
+	})
+
+	t.Run("Right value passes through unchanged", func(t *testing.T) {
+		// Right value should not be affected
+		result := MonadChainLeft(
+			Right[error](42),
+			func(err error) Either[string, int] {
+				return Left[int]("should not be called")
+			},
+		)
+		assert.Equal(t, Of[string](42), result)
+	})
+
+	t.Run("Chain multiple error transformations", func(t *testing.T) {
+		// First transformation
+		step1 := MonadChainLeft(
+			Left[int](errors.New("error1")),
+			func(err error) Either[error, int] {
+				return Left[int](errors.New("error2"))
+			},
+		)
+		// Second transformation
+		step2 := MonadChainLeft(
+			step1,
+			func(err error) Either[string, int] {
+				return Left[int](err.Error())
+			},
+		)
+		assert.Equal(t, Left[int]("error2"), step2)
+	})
+
+	t.Run("Error recovery with fallback", func(t *testing.T) {
+		// Recover from specific errors
+		result := MonadChainLeft(
+			Left[int](errors.New("timeout")),
+			func(err error) Either[error, int] {
+				if err.Error() == "timeout" {
+					return Right[error](999) // fallback value
+				}
+				return Left[int](err)
+			},
+		)
+		assert.Equal(t, Of[error](999), result)
+	})
+
+	t.Run("Transform error to different Left", func(t *testing.T) {
+		// Transform one error to another
+		result := MonadChainLeft(
+			Left[string]("original error"),
+			func(s string) Either[int, string] {
+				return Left[string](len(s))
+			},
+		)
+		assert.Equal(t, Left[string](14), result) // length of "original error"
+	})
+}
+
+// TestChainLeft tests the curried ChainLeft function
+func TestChainLeft(t *testing.T) {
+	t.Run("Curried function transforms Left value", func(t *testing.T) {
+		// Create a reusable error handler
+		handleNotFound := ChainLeft[error, string](func(err error) Either[string, int] {
+			if err.Error() == "not found" {
+				return Right[string](0)
+			}
+			return Left[int](err.Error())
+		})
+
+		result := handleNotFound(Left[int](errors.New("not found")))
+		assert.Equal(t, Of[string](0), result)
+	})
+
+	t.Run("Curried function with Right value", func(t *testing.T) {
+		handler := ChainLeft[error, string](func(err error) Either[string, int] {
+			return Left[int]("should not be called")
+		})
+
+		result := handler(Right[error](42))
+		assert.Equal(t, Of[string](42), result)
+	})
+
+	t.Run("Use in pipeline with Pipe", func(t *testing.T) {
+		// Create error transformer
+		toStringError := ChainLeft[int, string](func(code int) Either[string, string] {
+			return Left[string](fmt.Sprintf("Error: %d", code))
+		})
+
+		result := F.Pipe1(
+			Left[string](404),
+			toStringError,
+		)
+		assert.Equal(t, Left[string]("Error: 404"), result)
+	})
+
+	t.Run("Compose multiple ChainLeft operations", func(t *testing.T) {
+		// First handler: convert error to string
+		handler1 := ChainLeft[error, string](func(err error) Either[string, int] {
+			return Left[int](err.Error())
+		})
+
+		// Second handler: add prefix to string error
+		handler2 := ChainLeft[string, string](func(s string) Either[string, int] {
+			return Left[int]("Handled: " + s)
+		})
+
+		result := F.Pipe2(
+			Left[int](errors.New("original")),
+			handler1,
+			handler2,
+		)
+		assert.Equal(t, Left[int]("Handled: original"), result)
+	})
+
+	t.Run("Error recovery in pipeline", func(t *testing.T) {
+		// Handler that recovers from specific errors
+		recoverFromTimeout := ChainLeft(func(err error) Either[error, int] {
+			if err.Error() == "timeout" {
+				return Right[error](0) // recovered value
+			}
+			return Left[int](err) // propagate other errors
+		})
+
+		// Test with timeout error
+		result1 := F.Pipe1(
+			Left[int](errors.New("timeout")),
+			recoverFromTimeout,
+		)
+		assert.Equal(t, Of[error](0), result1)
+
+		// Test with other error
+		result2 := F.Pipe1(
+			Left[int](errors.New("other error")),
+			recoverFromTimeout,
+		)
+		assert.True(t, IsLeft(result2))
+	})
+
+	t.Run("Transform error type in pipeline", func(t *testing.T) {
+		// Convert numeric error codes to descriptive strings
+		codeToMessage := ChainLeft(func(code int) Either[string, string] {
+			messages := map[int]string{
+				404: "Not Found",
+				500: "Internal Server Error",
+			}
+			if msg, ok := messages[code]; ok {
+				return Left[string](msg)
+			}
+			return Left[string](fmt.Sprintf("Unknown error: %d", code))
+		})
+
+		result := F.Pipe1(
+			Left[string](404),
+			codeToMessage,
+		)
+		assert.Equal(t, Left[string]("Not Found"), result)
+	})
+
+	t.Run("ChainLeft with Map combination", func(t *testing.T) {
+		// Combine ChainLeft with Map to handle both channels
+		errorHandler := ChainLeft(func(err error) Either[string, int] {
+			return Left[int]("Error: " + err.Error())
+		})
+
+		valueMapper := Map[string](S.Format[int]("Value: %d"))
+
+		// Test with Left
+		result1 := F.Pipe2(
+			Left[int](errors.New("fail")),
+			errorHandler,
+			valueMapper,
+		)
+		assert.Equal(t, Left[string]("Error: fail"), result1)
+
+		// Test with Right
+		result2 := F.Pipe2(
+			Right[error](42),
+			errorHandler,
+			valueMapper,
+		)
+		assert.Equal(t, Of[string]("Value: 42"), result2)
+	})
 }

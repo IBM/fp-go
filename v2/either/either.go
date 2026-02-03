@@ -188,6 +188,77 @@ func MonadChain[E, A, B any](fa Either[E, A], f Kleisli[E, A, B]) Either[E, B] {
 	return f(fa.r)
 }
 
+// MonadChainLeft sequences a computation on the Left (error) value, allowing error recovery or transformation.
+// If the Either is Left, applies the provided function to the error value, which returns a new Either.
+// If the Either is Right, returns the Right value unchanged with the new error type.
+//
+// This is the dual of [MonadChain] - while MonadChain operates on Right values (success),
+// MonadChainLeft operates on Left values (errors). It's useful for error recovery, error transformation,
+// or chaining alternative computations when an error occurs.
+//
+// The error type can be transformed from EA to EB, allowing flexible error type conversions.
+//
+// Example:
+//
+//	// Error recovery: convert specific errors to success
+//	result := either.MonadChainLeft(
+//	    either.Left[int](errors.New("not found")),
+//	    func(err error) either.Either[string, int] {
+//	        if err.Error() == "not found" {
+//	            return either.Right[string](0) // default value
+//	        }
+//	        return either.Left[int](err.Error()) // transform error
+//	    },
+//	) // Right(0)
+//
+//	// Error transformation: change error type
+//	result := either.MonadChainLeft(
+//	    either.Left[int](404),
+//	    func(code int) either.Either[string, int] {
+//	        return either.Left[int](fmt.Sprintf("Error code: %d", code))
+//	    },
+//	) // Left("Error code: 404")
+//
+//	// Right values pass through unchanged
+//	result := either.MonadChainLeft(
+//	    either.Right[error](42),
+//	    func(err error) either.Either[string, int] {
+//	        return either.Left[int]("error")
+//	    },
+//	) // Right(42)
+//
+//go:inline
+func MonadChainLeft[EA, EB, A any](fa Either[EA, A], f Kleisli[EB, EA, A]) Either[EB, A] {
+	return MonadFold(fa, f, Of[EB])
+}
+
+// ChainLeft is the curried version of [MonadChainLeft].
+// Returns a function that sequences a computation on the Left (error) value.
+//
+// This is useful for creating reusable error handlers or transformers that can be
+// composed with other Either operations using pipes or function composition.
+//
+// Example:
+//
+//	// Create a reusable error handler
+//	handleNotFound := either.ChainLeft[error, string](func(err error) either.Either[string, int] {
+//	    if err.Error() == "not found" {
+//	        return either.Right[string](0)
+//	    }
+//	    return either.Left[int](err.Error())
+//	})
+//
+//	// Use in a pipeline
+//	result := F.Pipe1(
+//	    either.Left[int](errors.New("not found")),
+//	    handleNotFound,
+//	) // Right(0)
+//
+//go:inline
+func ChainLeft[EA, EB, A any](f Kleisli[EB, EA, A]) Kleisli[EB, Either[EA, A], A] {
+	return Fold(f, Of[EB])
+}
+
 // MonadChainFirst executes a side-effect computation but returns the original value.
 // Useful for performing actions (like logging) without changing the value.
 //

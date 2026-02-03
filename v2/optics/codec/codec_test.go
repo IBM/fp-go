@@ -710,6 +710,146 @@ func TestTranscodeEither(t *testing.T) {
 	})
 }
 
+func TestTranscodeEitherValidation(t *testing.T) {
+	t.Run("validates Left value with context", func(t *testing.T) {
+		eitherCodec := TranscodeEither(String(), Int())
+		result := eitherCodec.Decode(either.Left[any, any](123)) // Invalid: should be string
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[validation.Errors],
+			func(either.Either[string, int]) validation.Errors { return nil },
+		)
+		assert.NotEmpty(t, errors)
+		// Verify error contains type information
+		assert.Contains(t, fmt.Sprintf("%v", errors[0]), "string")
+	})
+
+	t.Run("validates Right value with context", func(t *testing.T) {
+		eitherCodec := TranscodeEither(String(), Int())
+		result := eitherCodec.Decode(either.Right[any, any]("not a number"))
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[validation.Errors],
+			func(either.Either[string, int]) validation.Errors { return nil },
+		)
+		assert.NotEmpty(t, errors)
+		// Verify error contains type information
+		assert.Contains(t, fmt.Sprintf("%v", errors[0]), "int")
+	})
+
+	t.Run("preserves Either structure on validation failure", func(t *testing.T) {
+		eitherCodec := TranscodeEither(String(), Int())
+
+		// Left with wrong type
+		leftResult := eitherCodec.Decode(either.Left[any, any]([]int{1, 2, 3}))
+		assert.True(t, either.IsLeft(leftResult))
+
+		// Right with wrong type
+		rightResult := eitherCodec.Decode(either.Right[any, any](true))
+		assert.True(t, either.IsLeft(rightResult))
+	})
+
+	t.Run("validates with custom codec that can fail", func(t *testing.T) {
+		// Create a codec that only accepts positive integers
+		positiveInt := MakeType(
+			"PositiveInt",
+			func(u any) either.Either[error, int] {
+				i, ok := u.(int)
+				if !ok || i <= 0 {
+					return either.Left[int](fmt.Errorf("not a positive integer"))
+				}
+				return either.Of[error](i)
+			},
+			func(i int) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					if i <= 0 {
+						return validation.FailureWithMessage[int](i, "must be positive")(c)
+					}
+					return validation.Success(i)
+				}
+			},
+			F.Identity[int],
+		)
+
+		eitherCodec := TranscodeEither(String(), positiveInt)
+
+		// Valid positive integer
+		validResult := eitherCodec.Decode(either.Right[any](42))
+		assert.True(t, either.IsRight(validResult))
+
+		// Invalid: zero
+		zeroResult := eitherCodec.Decode(either.Right[any](0))
+		assert.True(t, either.IsLeft(zeroResult))
+
+		// Invalid: negative
+		negativeResult := eitherCodec.Decode(either.Right[any](-5))
+		assert.True(t, either.IsLeft(negativeResult))
+	})
+
+	t.Run("validates both branches independently", func(t *testing.T) {
+		// Create codecs with specific validation rules
+		nonEmptyString := MakeType(
+			"NonEmptyString",
+			func(u any) either.Either[error, string] {
+				s, ok := u.(string)
+				if !ok || len(s) == 0 {
+					return either.Left[string](fmt.Errorf("not a non-empty string"))
+				}
+				return either.Of[error](s)
+			},
+			func(s string) Decode[Context, string] {
+				return func(c Context) Validation[string] {
+					if len(s) == 0 {
+						return validation.FailureWithMessage[string](s, "must not be empty")(c)
+					}
+					return validation.Success(s)
+				}
+			},
+			F.Identity[string],
+		)
+
+		evenInt := MakeType(
+			"EvenInt",
+			func(u any) either.Either[error, int] {
+				i, ok := u.(int)
+				if !ok || i%2 != 0 {
+					return either.Left[int](fmt.Errorf("not an even integer"))
+				}
+				return either.Of[error](i)
+			},
+			func(i int) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					if i%2 != 0 {
+						return validation.FailureWithMessage[int](i, "must be even")(c)
+					}
+					return validation.Success(i)
+				}
+			},
+			F.Identity[int],
+		)
+
+		eitherCodec := TranscodeEither(nonEmptyString, evenInt)
+
+		// Valid Left: non-empty string
+		validLeft := eitherCodec.Decode(either.Left[int]("hello"))
+		assert.True(t, either.IsRight(validLeft))
+
+		// Invalid Left: empty string
+		invalidLeft := eitherCodec.Decode(either.Left[int](""))
+		assert.True(t, either.IsLeft(invalidLeft))
+
+		// Valid Right: even integer
+		validRight := eitherCodec.Decode(either.Right[string](42))
+		assert.True(t, either.IsRight(validRight))
+
+		// Invalid Right: odd integer
+		invalidRight := eitherCodec.Decode(either.Right[string](43))
+		assert.True(t, either.IsLeft(invalidRight))
+	})
+}
+
 func TestTranscodeEitherWithTransformation(t *testing.T) {
 	// Create a codec that transforms strings to their lengths
 	stringToLength := MakeType(

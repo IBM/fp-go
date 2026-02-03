@@ -656,3 +656,114 @@ func InstanceOf[A any](a any) Result[A] {
 	}
 	return Left[A](fmt.Errorf("expected %T, got %T", res, a))
 }
+
+// MonadChainLeft sequences a computation on the Left (error) channel.
+// If the Result is Left, applies the function to transform or recover from the error.
+// If the Result is Right, returns the Right value unchanged.
+//
+// This is the dual of [MonadChain] - while Chain operates on Right values,
+// ChainLeft operates on Left (error) values. It's particularly useful for:
+//   - Error recovery: converting specific errors into successful values
+//   - Error transformation: changing error types or adding context
+//   - Fallback logic: providing alternative computations when errors occur
+//
+// The function parameter receives the error value and must return a new Result[A].
+// This allows you to:
+//   - Recover by returning Right[error](value)
+//   - Transform the error by returning Left[A](newError)
+//   - Implement conditional error handling based on error content
+//
+// Example - Error recovery:
+//
+//	result := result.MonadChainLeft(
+//	    result.Left[int](errors.New("not found")),
+//	    func(err error) result.Result[int] {
+//	        if err.Error() == "not found" {
+//	            return result.Right(0) // recover with default value
+//	        }
+//	        return result.Left[int](err) // propagate other errors
+//	    },
+//	) // Right(0)
+//
+// Example - Error type transformation:
+//
+//	result := result.MonadChainLeft(
+//	    result.Left[string](errors.New("database error")),
+//	    func(err error) result.Result[string] {
+//	        return result.Left[string](fmt.Errorf("wrapped: %w", err))
+//	    },
+//	) // Left(wrapped error)
+//
+// Example - Right values pass through:
+//
+//	result := result.MonadChainLeft(
+//	    result.Right(42),
+//	    func(err error) result.Result[int] {
+//	        return result.Right(0) // never called
+//	    },
+//	) // Right(42) - unchanged
+//
+//go:inline
+func MonadChainLeft[A any](fa Result[A], f Kleisli[error, A]) Result[A] {
+	return either.MonadChainLeft(fa, f)
+}
+
+// ChainLeft is the curried version of [MonadChainLeft].
+// Returns a function that transforms Left (error) values while preserving Right values.
+//
+// This curried form is particularly useful in functional pipelines and for creating
+// reusable error handlers that can be composed with other operations.
+//
+// The returned function can be used with [F.Pipe1], [F.Pipe2], etc., to build
+// complex error handling pipelines in a point-free style.
+//
+// Example - Creating reusable error handlers:
+//
+//	// Handler that recovers from "not found" errors
+//	recoverNotFound := result.ChainLeft(func(err error) result.Result[int] {
+//	    if err.Error() == "not found" {
+//	        return result.Right(0)
+//	    }
+//	    return result.Left[int](err)
+//	})
+//
+//	result1 := recoverNotFound(result.Left[int](errors.New("not found"))) // Right(0)
+//	result2 := recoverNotFound(result.Right(42)) // Right(42)
+//
+// Example - Using in pipelines:
+//
+//	result := F.Pipe2(
+//	    result.Left[int](errors.New("timeout")),
+//	    result.ChainLeft(func(err error) result.Result[int] {
+//	        if err.Error() == "timeout" {
+//	            return result.Right(999) // fallback value
+//	        }
+//	        return result.Left[int](err)
+//	    }),
+//	    result.Map(func(n int) string {
+//	        return fmt.Sprintf("Value: %d", n)
+//	    }),
+//	) // Right("Value: 999")
+//
+// Example - Composing multiple error handlers:
+//
+//	// First handler: convert error to string
+//	toStringError := result.ChainLeft(func(err error) result.Result[int] {
+//	    return result.Left[int](errors.New(err.Error()))
+//	})
+//
+//	// Second handler: add prefix
+//	addPrefix := result.ChainLeft(func(err error) result.Result[int] {
+//	    return result.Left[int](fmt.Errorf("Error: %w", err))
+//	})
+//
+//	result := F.Pipe2(
+//	    result.Left[int](errors.New("failed")),
+//	    toStringError,
+//	    addPrefix,
+//	) // Left(Error: failed)
+//
+//go:inline
+func ChainLeft[A any](f Kleisli[error, A]) Operator[A, A] {
+	return either.ChainLeft(f)
+}

@@ -356,3 +356,296 @@ func TestInstanceOf(t *testing.T) {
 		assert.Equal(t, 2, v["b"])
 	})
 }
+
+// TestMonadChainLeft tests the MonadChainLeft function with various scenarios
+func TestMonadChainLeft(t *testing.T) {
+	t.Run("Left value is transformed by function", func(t *testing.T) {
+		// Transform error to success
+		result := MonadChainLeft(
+			Left[int](errors.New("not found")),
+			func(err error) Result[int] {
+				if err.Error() == "not found" {
+					return Right(0) // default value
+				}
+				return Left[int](err)
+			},
+		)
+		assert.Equal(t, Of(0), result)
+	})
+
+	t.Run("Left value error is transformed", func(t *testing.T) {
+		// Transform error with additional context
+		result := MonadChainLeft(
+			Left[int](errors.New("database error")),
+			func(err error) Result[int] {
+				return Left[int](fmt.Errorf("wrapped: %w", err))
+			},
+		)
+		assert.True(t, IsLeft(result))
+		_, err := UnwrapError(result)
+		assert.Contains(t, err.Error(), "wrapped:")
+		assert.Contains(t, err.Error(), "database error")
+	})
+
+	t.Run("Right value passes through unchanged", func(t *testing.T) {
+		// Right value should not be affected
+		result := MonadChainLeft(
+			Right(42),
+			func(err error) Result[int] {
+				return Left[int](errors.New("should not be called"))
+			},
+		)
+		assert.Equal(t, Of(42), result)
+	})
+
+	t.Run("Chain multiple error transformations", func(t *testing.T) {
+		// First transformation
+		step1 := MonadChainLeft(
+			Left[int](errors.New("error1")),
+			func(err error) Result[int] {
+				return Left[int](errors.New("error2"))
+			},
+		)
+		// Second transformation
+		step2 := MonadChainLeft(
+			step1,
+			func(err error) Result[int] {
+				return Left[int](fmt.Errorf("final: %s", err.Error()))
+			},
+		)
+		assert.True(t, IsLeft(step2))
+		_, err := UnwrapError(step2)
+		assert.Equal(t, "final: error2", err.Error())
+	})
+
+	t.Run("Error recovery with fallback", func(t *testing.T) {
+		// Recover from specific errors
+		result := MonadChainLeft(
+			Left[int](errors.New("timeout")),
+			func(err error) Result[int] {
+				if err.Error() == "timeout" {
+					return Right(999) // fallback value
+				}
+				return Left[int](err)
+			},
+		)
+		assert.Equal(t, Of(999), result)
+	})
+
+	t.Run("Conditional error handling", func(t *testing.T) {
+		// Handle different error types differently
+		handleError := func(err error) Result[string] {
+			switch err.Error() {
+			case "not found":
+				return Right("default")
+			case "timeout":
+				return Right("retry")
+			default:
+				return Left[string](err)
+			}
+		}
+
+		result1 := MonadChainLeft(Left[string](errors.New("not found")), handleError)
+		assert.Equal(t, Of("default"), result1)
+
+		result2 := MonadChainLeft(Left[string](errors.New("timeout")), handleError)
+		assert.Equal(t, Of("retry"), result2)
+
+		result3 := MonadChainLeft(Left[string](errors.New("other")), handleError)
+		assert.True(t, IsLeft(result3))
+	})
+
+	t.Run("Type preservation", func(t *testing.T) {
+		// Ensure type is preserved through transformation
+		result := MonadChainLeft(
+			Left[string](errors.New("error")),
+			func(err error) Result[string] {
+				return Right("recovered")
+			},
+		)
+		assert.Equal(t, Of("recovered"), result)
+	})
+}
+
+// TestChainLeft tests the curried ChainLeft function
+func TestChainLeft(t *testing.T) {
+	t.Run("Curried function transforms Left value", func(t *testing.T) {
+		// Create a reusable error handler
+		handleNotFound := ChainLeft(func(err error) Result[int] {
+			if err.Error() == "not found" {
+				return Right(0)
+			}
+			return Left[int](err)
+		})
+
+		result := handleNotFound(Left[int](errors.New("not found")))
+		assert.Equal(t, Of(0), result)
+	})
+
+	t.Run("Curried function with Right value", func(t *testing.T) {
+		handler := ChainLeft(func(err error) Result[int] {
+			return Left[int](errors.New("should not be called"))
+		})
+
+		result := handler(Right(42))
+		assert.Equal(t, Of(42), result)
+	})
+
+	t.Run("Use in pipeline with Pipe", func(t *testing.T) {
+		// Create error transformer
+		wrapError := ChainLeft(func(err error) Result[string] {
+			return Left[string](fmt.Errorf("Error: %w", err))
+		})
+
+		result := F.Pipe1(
+			Left[string](errors.New("failed")),
+			wrapError,
+		)
+		assert.True(t, IsLeft(result))
+		_, err := UnwrapError(result)
+		assert.Contains(t, err.Error(), "Error:")
+		assert.Contains(t, err.Error(), "failed")
+	})
+
+	t.Run("Compose multiple ChainLeft operations", func(t *testing.T) {
+		// First handler: convert error to string representation
+		handler1 := ChainLeft(func(err error) Result[int] {
+			return Left[int](errors.New(err.Error()))
+		})
+
+		// Second handler: add prefix to error
+		handler2 := ChainLeft(func(err error) Result[int] {
+			return Left[int](fmt.Errorf("Handled: %w", err))
+		})
+
+		result := F.Pipe2(
+			Left[int](errors.New("original")),
+			handler1,
+			handler2,
+		)
+		assert.True(t, IsLeft(result))
+		_, err := UnwrapError(result)
+		assert.Contains(t, err.Error(), "Handled:")
+		assert.Contains(t, err.Error(), "original")
+	})
+
+	t.Run("Error recovery in pipeline", func(t *testing.T) {
+		// Handler that recovers from specific errors
+		recoverFromTimeout := ChainLeft(func(err error) Result[int] {
+			if err.Error() == "timeout" {
+				return Right(0) // recovered value
+			}
+			return Left[int](err) // propagate other errors
+		})
+
+		// Test with timeout error
+		result1 := F.Pipe1(
+			Left[int](errors.New("timeout")),
+			recoverFromTimeout,
+		)
+		assert.Equal(t, Of(0), result1)
+
+		// Test with other error
+		result2 := F.Pipe1(
+			Left[int](errors.New("other error")),
+			recoverFromTimeout,
+		)
+		assert.True(t, IsLeft(result2))
+	})
+
+	t.Run("ChainLeft with Map combination", func(t *testing.T) {
+		// Combine ChainLeft with Map to handle both channels
+		errorHandler := ChainLeft(func(err error) Result[int] {
+			return Left[int](fmt.Errorf("Error: %w", err))
+		})
+
+		valueMapper := Map(func(n int) string {
+			return fmt.Sprintf("Value: %d", n)
+		})
+
+		// Test with Left
+		result1 := F.Pipe2(
+			Left[int](errors.New("fail")),
+			errorHandler,
+			valueMapper,
+		)
+		assert.True(t, IsLeft(result1))
+
+		// Test with Right
+		result2 := F.Pipe2(
+			Right(42),
+			errorHandler,
+			valueMapper,
+		)
+		assert.Equal(t, Of("Value: 42"), result2)
+	})
+
+	t.Run("Reusable error handlers", func(t *testing.T) {
+		// Create a library of reusable error handlers
+		recoverNotFound := ChainLeft(func(err error) Result[string] {
+			if err.Error() == "not found" {
+				return Right("default")
+			}
+			return Left[string](err)
+		})
+
+		recoverTimeout := ChainLeft(func(err error) Result[string] {
+			if err.Error() == "timeout" {
+				return Right("retry")
+			}
+			return Left[string](err)
+		})
+
+		// Apply handlers in sequence
+		result := F.Pipe2(
+			Left[string](errors.New("not found")),
+			recoverNotFound,
+			recoverTimeout,
+		)
+		assert.Equal(t, Of("default"), result)
+	})
+
+	t.Run("Error transformation pipeline", func(t *testing.T) {
+		// Build a pipeline that transforms errors step by step
+		addContext := ChainLeft(func(err error) Result[int] {
+			return Left[int](fmt.Errorf("context: %w", err))
+		})
+
+		addTimestamp := ChainLeft(func(err error) Result[int] {
+			return Left[int](fmt.Errorf("[2024-01-01] %w", err))
+		})
+
+		result := F.Pipe2(
+			Left[int](errors.New("base error")),
+			addContext,
+			addTimestamp,
+		)
+		assert.True(t, IsLeft(result))
+		_, err := UnwrapError(result)
+		assert.Contains(t, err.Error(), "[2024-01-01]")
+		assert.Contains(t, err.Error(), "context:")
+		assert.Contains(t, err.Error(), "base error")
+	})
+
+	t.Run("Conditional recovery based on error content", func(t *testing.T) {
+		// Recover from errors matching specific patterns
+		smartRecover := ChainLeft(func(err error) Result[int] {
+			msg := err.Error()
+			if msg == "not found" {
+				return Right(0)
+			}
+			if msg == "timeout" {
+				return Right(-1)
+			}
+			if msg == "unauthorized" {
+				return Right(-2)
+			}
+			return Left[int](err)
+		})
+
+		assert.Equal(t, Of(0), smartRecover(Left[int](errors.New("not found"))))
+		assert.Equal(t, Of(-1), smartRecover(Left[int](errors.New("timeout"))))
+		assert.Equal(t, Of(-2), smartRecover(Left[int](errors.New("unauthorized"))))
+		assert.True(t, IsLeft(smartRecover(Left[int](errors.New("unknown")))))
+	})
+}

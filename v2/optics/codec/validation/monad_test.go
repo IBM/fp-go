@@ -2,10 +2,12 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +46,7 @@ func TestOf(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	t.Run("transforms successful validation", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		result := Map(double)(Of(21))
 
 		assert.True(t, either.IsRight(result))
@@ -59,7 +61,7 @@ func TestMap(t *testing.T) {
 		errs := Errors{&ValidationError{Messsage: "error"}}
 		failure := Failures[int](errs)
 
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		result := Map(double)(failure)
 
 		assert.True(t, either.IsLeft(result))
@@ -73,7 +75,7 @@ func TestMap(t *testing.T) {
 
 	t.Run("chains multiple maps", func(t *testing.T) {
 		add10 := func(x int) int { return x + 10 }
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		toString := func(x int) string { return fmt.Sprintf("%d", x) }
 
 		result := F.Pipe3(
@@ -105,7 +107,7 @@ func TestMap(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	t.Run("applies function to value when both succeed", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		funcValidation := Of(double)
 		valueValidation := Of(21)
 
@@ -120,7 +122,7 @@ func TestAp(t *testing.T) {
 	})
 
 	t.Run("accumulates errors when value fails", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		funcValidation := Of(double)
 		valueValidation := Failures[int](Errors{
 			&ValidationError{Messsage: "value error"},
@@ -228,7 +230,7 @@ func TestMonadLaws(t *testing.T) {
 
 	t.Run("functor composition law", func(t *testing.T) {
 		// Map(f . g) == Map(f) . Map(g)
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		g := func(x int) int { return x + 10 }
 		composed := func(x int) int { return f(g(x)) }
 
@@ -249,7 +251,7 @@ func TestMonadLaws(t *testing.T) {
 
 	t.Run("applicative homomorphism law", func(t *testing.T) {
 		// Ap(Of(x))(Of(f)) == Of(f(x))
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		x := 21
 
 		left := Ap[int](Of(x))(Of(f))
@@ -261,7 +263,7 @@ func TestMonadLaws(t *testing.T) {
 
 func TestMapWithOperator(t *testing.T) {
 	t.Run("Map returns an Operator", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		operator := Map(double)
 
 		// Operator can be applied to different validations
@@ -288,7 +290,7 @@ func TestApWithOperator(t *testing.T) {
 		operator := Ap[int](valueValidation)
 
 		// Operator can be applied to different function validations
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		triple := func(x int) int { return x * 3 }
 
 		result1 := operator(Of(double))
@@ -392,7 +394,7 @@ func TestApplicativeMap(t *testing.T) {
 	app := Applicative[int, int]()
 
 	t.Run("maps a function over successful validation", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		result := app.Map(double)(app.Of(21))
 
 		assert.True(t, either.IsRight(result))
@@ -431,7 +433,7 @@ func TestApplicativeMap(t *testing.T) {
 		errs := Errors{&ValidationError{Messsage: "error"}}
 		failure := Failures[int](errs)
 
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		result := app.Map(double)(failure)
 
 		assert.True(t, either.IsLeft(result))
@@ -446,7 +448,7 @@ func TestApplicativeMap(t *testing.T) {
 	t.Run("chains multiple maps", func(t *testing.T) {
 		app := Applicative[int, string]()
 		add10 := func(x int) int { return x + 10 }
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		toString := func(x int) string { return fmt.Sprintf("%d", x) }
 
 		result := F.Pipe3(
@@ -469,7 +471,7 @@ func TestApplicativeAp(t *testing.T) {
 	app := Applicative[int, int]()
 
 	t.Run("applies wrapped function to wrapped value when both succeed", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		funcValidation := Of(double)
 		valueValidation := app.Of(21)
 
@@ -484,7 +486,7 @@ func TestApplicativeAp(t *testing.T) {
 	})
 
 	t.Run("accumulates errors when value fails", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		funcValidation := Of(double)
 		valueValidation := Failures[int](Errors{
 			&ValidationError{Messsage: "value error"},
@@ -588,7 +590,7 @@ func TestApplicativeComposition(t *testing.T) {
 	app := Applicative[int, int]()
 
 	t.Run("composes Map and Of", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		result := F.Pipe1(
 			app.Of(21),
 			app.Map(double),
@@ -604,7 +606,7 @@ func TestApplicativeComposition(t *testing.T) {
 
 	t.Run("composes multiple Map operations", func(t *testing.T) {
 		app := Applicative[int, string]()
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		toString := func(x int) string { return fmt.Sprintf("%d", x) }
 
 		result := F.Pipe2(
@@ -657,7 +659,7 @@ func TestApplicativeLawsWithInstance(t *testing.T) {
 	})
 
 	t.Run("homomorphism law: Ap(Of(x))(Of(f)) == Of(f(x))", func(t *testing.T) {
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		x := 21
 
 		left := app.Ap(app.Of(x))(Of(f))
@@ -667,7 +669,7 @@ func TestApplicativeLawsWithInstance(t *testing.T) {
 	})
 
 	t.Run("interchange law: Ap(Of(y))(u) == Ap(u)(Of($ y))", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		u := Of(double)
 		y := 21
 
@@ -917,5 +919,951 @@ func TestApplicativeRealWorldScenario(t *testing.T) {
 		assert.Contains(t, messages, "Name must be at least 3 characters")
 		assert.Contains(t, messages, "Must be 18 or older")
 		assert.Contains(t, messages, "Email is required")
+	})
+}
+
+// TestMonadChainLeft tests the MonadChainLeft function with error aggregation
+func TestMonadChainLeft(t *testing.T) {
+	t.Run("Success value passes through unchanged", func(t *testing.T) {
+		result := MonadChainLeft(
+			Success(42),
+			func(errs Errors) Validation[int] {
+				return Failures[int](Errors{
+					&ValidationError{Messsage: "should not be called"},
+				})
+			},
+		)
+		assert.Equal(t, Success(42), result)
+	})
+
+	t.Run("Failure is transformed to Success (recovery)", func(t *testing.T) {
+		result := MonadChainLeft(
+			Failures[int](Errors{
+				&ValidationError{Messsage: "not found"},
+			}),
+			func(errs Errors) Validation[int] {
+				if len(errs) > 0 && errs[0].Messsage == "not found" {
+					return Success(0) // recover with default
+				}
+				return Failures[int](errs)
+			},
+		)
+		assert.Equal(t, Success(0), result)
+	})
+
+	t.Run("Errors are aggregated when transformation fails", func(t *testing.T) {
+		result := MonadChainLeft(
+			Failures[int](Errors{
+				&ValidationError{Messsage: "error 1"},
+				&ValidationError{Messsage: "error 2"},
+			}),
+			func(errs Errors) Validation[int] {
+				// Transformation also fails
+				return Failures[int](Errors{
+					&ValidationError{Messsage: "error 3"},
+				})
+			},
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 3, "Should aggregate all errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "error 1")
+		assert.Contains(t, messages, "error 2")
+		assert.Contains(t, messages, "error 3")
+	})
+
+	t.Run("Multiple errors aggregated from both sources", func(t *testing.T) {
+		result := MonadChainLeft(
+			Failures[string](Errors{
+				&ValidationError{Messsage: "original error 1"},
+				&ValidationError{Messsage: "original error 2"},
+			}),
+			func(errs Errors) Validation[string] {
+				return Failures[string](Errors{
+					&ValidationError{Messsage: "new error 1"},
+					&ValidationError{Messsage: "new error 2"},
+				})
+			},
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 4, "Should aggregate all 4 errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error 1")
+		assert.Contains(t, messages, "original error 2")
+		assert.Contains(t, messages, "new error 1")
+		assert.Contains(t, messages, "new error 2")
+	})
+
+	t.Run("Adding context to existing errors", func(t *testing.T) {
+		result := MonadChainLeft(
+			Failures[int](Errors{
+				&ValidationError{
+					Value:    "abc",
+					Messsage: "invalid number",
+				},
+			}),
+			func(errs Errors) Validation[int] {
+				// Add contextual information
+				return Failures[int](Errors{
+					&ValidationError{
+						Context: []ContextEntry{
+							{Key: "user", Type: "User"},
+							{Key: "age", Type: "int"},
+						},
+						Messsage: "failed to parse user age",
+					},
+				})
+			},
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should have both original and context errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "invalid number")
+		assert.Contains(t, messages, "failed to parse user age")
+		// Find the error with context
+		var contextError *ValidationError
+		for _, err := range errors {
+			if len(err.Context) > 0 {
+				contextError = err
+				break
+			}
+		}
+		assert.NotNil(t, contextError, "Should have an error with context")
+		assert.Len(t, contextError.Context, 2)
+	})
+
+	t.Run("Conditional recovery based on error content", func(t *testing.T) {
+		handler := func(errs Errors) Validation[int] {
+			for _, err := range errs {
+				switch err.Messsage {
+				case "not found":
+					return Success(0)
+				case "timeout":
+					return Success(-1)
+				}
+			}
+			// Add recovery attempt error
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "recovery failed"},
+			})
+		}
+
+		// Test recovery for "not found"
+		result1 := MonadChainLeft(
+			Failures[int](Errors{&ValidationError{Messsage: "not found"}}),
+			handler,
+		)
+		assert.Equal(t, Success(0), result1)
+
+		// Test recovery for "timeout"
+		result2 := MonadChainLeft(
+			Failures[int](Errors{&ValidationError{Messsage: "timeout"}}),
+			handler,
+		)
+		assert.Equal(t, Success(-1), result2)
+
+		// Test error aggregation for unknown error
+		result3 := MonadChainLeft(
+			Failures[int](Errors{&ValidationError{Messsage: "unknown error"}}),
+			handler,
+		)
+		assert.True(t, either.IsLeft(result3))
+		errors := either.MonadFold(result3,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should aggregate original and recovery errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "unknown error")
+		assert.Contains(t, messages, "recovery failed")
+	})
+
+	t.Run("Chaining multiple MonadChainLeft operations", func(t *testing.T) {
+		// First transformation
+		step1 := MonadChainLeft(
+			Failures[int](Errors{
+				&ValidationError{Messsage: "step 1 error"},
+			}),
+			func(errs Errors) Validation[int] {
+				return Failures[int](Errors{
+					&ValidationError{Messsage: "step 2 error"},
+				})
+			},
+		)
+
+		// Second transformation
+		step2 := MonadChainLeft(
+			step1,
+			func(errs Errors) Validation[int] {
+				return Failures[int](Errors{
+					&ValidationError{Messsage: "step 3 error"},
+				})
+			},
+		)
+
+		assert.True(t, either.IsLeft(step2))
+		errors := either.MonadFold(step2,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 3, "Should aggregate errors from all steps")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "step 1 error")
+		assert.Contains(t, messages, "step 2 error")
+		assert.Contains(t, messages, "step 3 error")
+	})
+}
+
+// TestChainLeft tests the curried ChainLeft function with error aggregation
+func TestChainLeft(t *testing.T) {
+	t.Run("Curried function transforms failures", func(t *testing.T) {
+		handler := ChainLeft(func(errs Errors) Validation[int] {
+			if len(errs) > 0 && errs[0].Messsage == "not found" {
+				return Success(0)
+			}
+			return Failures[int](errs)
+		})
+
+		result := handler(Failures[int](Errors{
+			&ValidationError{Messsage: "not found"},
+		}))
+		assert.Equal(t, Success(0), result)
+	})
+
+	t.Run("Curried function with Success value", func(t *testing.T) {
+		handler := ChainLeft(func(errs Errors) Validation[int] {
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "should not be called"},
+			})
+		})
+
+		result := handler(Success(42))
+		assert.Equal(t, Success(42), result)
+	})
+
+	t.Run("Use in pipeline with error aggregation", func(t *testing.T) {
+		addContext := ChainLeft(func(errs Errors) Validation[string] {
+			return Failures[string](Errors{
+				&ValidationError{Messsage: "context: validation failed"},
+			})
+		})
+
+		result := F.Pipe1(
+			Failures[string](Errors{
+				&ValidationError{Messsage: "original error"},
+			}),
+			addContext,
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should aggregate both errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error")
+		assert.Contains(t, messages, "context: validation failed")
+	})
+
+	t.Run("Compose multiple ChainLeft operations with aggregation", func(t *testing.T) {
+		handler1 := ChainLeft(func(errs Errors) Validation[int] {
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "handler 1 error"},
+			})
+		})
+
+		handler2 := ChainLeft(func(errs Errors) Validation[int] {
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "handler 2 error"},
+			})
+		})
+
+		result := F.Pipe2(
+			Failures[int](Errors{
+				&ValidationError{Messsage: "original error"},
+			}),
+			handler1,
+			handler2,
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 3, "Should aggregate all errors from pipeline")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error")
+		assert.Contains(t, messages, "handler 1 error")
+		assert.Contains(t, messages, "handler 2 error")
+	})
+
+	t.Run("Error recovery in pipeline", func(t *testing.T) {
+		recoverFromTimeout := ChainLeft(func(errs Errors) Validation[int] {
+			for _, err := range errs {
+				if err.Messsage == "timeout" {
+					return Success(0)
+				}
+			}
+			return Failures[int](errs)
+		})
+
+		// Test with timeout error - should recover
+		result1 := F.Pipe1(
+			Failures[int](Errors{&ValidationError{Messsage: "timeout"}}),
+			recoverFromTimeout,
+		)
+		assert.Equal(t, Success(0), result1)
+
+		// Test with other error - should propagate
+		result2 := F.Pipe1(
+			Failures[int](Errors{&ValidationError{Messsage: "other error"}}),
+			recoverFromTimeout,
+		)
+		assert.True(t, either.IsLeft(result2))
+	})
+
+	t.Run("ChainLeft with Map combination", func(t *testing.T) {
+		errorHandler := ChainLeft(func(errs Errors) Validation[int] {
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "handled error"},
+			})
+		})
+
+		valueMapper := Map(func(n int) string {
+			return fmt.Sprintf("Value: %d", n)
+		})
+
+		// Test with Failure - errors should aggregate
+		result1 := F.Pipe2(
+			Failures[int](Errors{
+				&ValidationError{Messsage: "original error"},
+			}),
+			errorHandler,
+			valueMapper,
+		)
+		assert.True(t, either.IsLeft(result1))
+		errors := either.MonadFold(result1,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 2)
+
+		// Test with Success
+		result2 := F.Pipe2(
+			Success(42),
+			errorHandler,
+			valueMapper,
+		)
+		assert.Equal(t, Success("Value: 42"), result2)
+	})
+
+	t.Run("Reusable error enrichment handlers", func(t *testing.T) {
+		addFieldContext := func(field string) func(Errors) Validation[string] {
+			return func(errs Errors) Validation[string] {
+				return Failures[string](Errors{
+					&ValidationError{
+						Context:  []ContextEntry{{Key: field, Type: "string"}},
+						Messsage: fmt.Sprintf("validation failed for field: %s", field),
+					},
+				})
+			}
+		}
+
+		emailHandler := ChainLeft(addFieldContext("email"))
+		nameHandler := ChainLeft(addFieldContext("name"))
+
+		// Apply email context
+		result1 := emailHandler(Failures[string](Errors{
+			&ValidationError{Messsage: "invalid format"},
+		}))
+		errors1 := either.MonadFold(result1,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors1, 2)
+		messages1 := make([]string, len(errors1))
+		for i, err := range errors1 {
+			messages1[i] = err.Messsage
+		}
+		assert.Contains(t, messages1, "invalid format")
+		// Check that one of the messages contains "email"
+		hasEmail := false
+		for _, msg := range messages1 {
+			if strings.Contains(msg, "email") {
+				hasEmail = true
+				break
+			}
+		}
+		assert.True(t, hasEmail, "Should have an error message containing 'email'")
+
+		// Apply name context
+		result2 := nameHandler(Failures[string](Errors{
+			&ValidationError{Messsage: "too short"},
+		}))
+		errors2 := either.MonadFold(result2,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors2, 2)
+		messages2 := make([]string, len(errors2))
+		for i, err := range errors2 {
+			messages2[i] = err.Messsage
+		}
+		assert.Contains(t, messages2, "too short")
+		// Check that one of the messages contains "name"
+		hasName := false
+		for _, msg := range messages2 {
+			if strings.Contains(msg, "name") {
+				hasName = true
+				break
+			}
+		}
+		assert.True(t, hasName, "Should have an error message containing 'name'")
+	})
+
+	t.Run("Complex error aggregation scenario", func(t *testing.T) {
+		// Simulate a validation pipeline with multiple error sources
+		validateFormat := ChainLeft(func(errs Errors) Validation[string] {
+			return Failures[string](Errors{
+				&ValidationError{Messsage: "format validation failed"},
+			})
+		})
+
+		validateLength := ChainLeft(func(errs Errors) Validation[string] {
+			return Failures[string](Errors{
+				&ValidationError{Messsage: "length validation failed"},
+			})
+		})
+
+		validateContent := ChainLeft(func(errs Errors) Validation[string] {
+			return Failures[string](Errors{
+				&ValidationError{Messsage: "content validation failed"},
+			})
+		})
+
+		result := F.Pipe3(
+			Failures[string](Errors{
+				&ValidationError{Messsage: "initial error"},
+			}),
+			validateFormat,
+			validateLength,
+			validateContent,
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 4, "Should aggregate all errors from pipeline")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "initial error")
+		assert.Contains(t, messages, "format validation failed")
+		assert.Contains(t, messages, "length validation failed")
+		assert.Contains(t, messages, "content validation failed")
+	})
+}
+
+// TestMonadMap tests the MonadMap function
+func TestMonadMap(t *testing.T) {
+	t.Run("transforms successful validation", func(t *testing.T) {
+		result := MonadMap(Of(21), N.Mul(2))
+		assert.Equal(t, Of(42), result)
+	})
+
+	t.Run("preserves failure unchanged", func(t *testing.T) {
+		failure := Failures[int](Errors{
+			&ValidationError{Messsage: "error"},
+		})
+		result := MonadMap(failure, N.Mul(2))
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 1)
+		assert.Equal(t, "error", errors[0].Messsage)
+	})
+
+	t.Run("type transformation", func(t *testing.T) {
+		result := MonadMap(Of(42), func(x int) string {
+			return fmt.Sprintf("Value: %d", x)
+		})
+
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "Value: 42", value)
+	})
+
+	t.Run("computing derived values", func(t *testing.T) {
+		type User struct {
+			FirstName string
+			LastName  string
+		}
+
+		result := MonadMap(
+			Of(User{"John", "Doe"}),
+			func(u User) string { return u.FirstName + " " + u.LastName },
+		)
+
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "John Doe", value)
+	})
+
+	t.Run("chaining multiple MonadMap operations", func(t *testing.T) {
+		step1 := MonadMap(Of(5), func(x int) int { return x + 10 })
+		step2 := MonadMap(step1, N.Mul(2))
+		step3 := MonadMap(step2, func(x int) string { return fmt.Sprintf("%d", x) })
+
+		assert.True(t, either.IsRight(step3))
+		value := either.MonadFold(step3,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "30", value)
+	})
+
+	t.Run("identity function", func(t *testing.T) {
+		original := Of(42)
+		result := MonadMap(original, F.Identity[int])
+		assert.Equal(t, original, result)
+	})
+
+	t.Run("preserves multiple errors", func(t *testing.T) {
+		failure := Failures[int](Errors{
+			&ValidationError{Messsage: "error 1"},
+			&ValidationError{Messsage: "error 2"},
+		})
+		result := MonadMap(failure, func(x int) string { return fmt.Sprintf("%d", x) })
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 2)
+		assert.Equal(t, "error 1", errors[0].Messsage)
+		assert.Equal(t, "error 2", errors[1].Messsage)
+	})
+}
+
+// TestMonadAp tests the MonadAp function with error accumulation
+func TestMonadAp(t *testing.T) {
+	t.Run("applies function to value when both succeed", func(t *testing.T) {
+		double := N.Mul(2)
+		result := MonadAp(Of(double), Of(21))
+		assert.Equal(t, Of(42), result)
+	})
+
+	t.Run("returns function errors when function fails", func(t *testing.T) {
+		funcValidation := Failures[func(int) int](Errors{
+			&ValidationError{Messsage: "function error"},
+		})
+		valueValidation := Of(21)
+
+		result := MonadAp(funcValidation, valueValidation)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 1)
+		assert.Equal(t, "function error", errors[0].Messsage)
+	})
+
+	t.Run("returns value errors when value fails", func(t *testing.T) {
+		double := N.Mul(2)
+		funcValidation := Of(double)
+		valueValidation := Failures[int](Errors{
+			&ValidationError{Messsage: "value error"},
+		})
+
+		result := MonadAp(funcValidation, valueValidation)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 1)
+		assert.Equal(t, "value error", errors[0].Messsage)
+	})
+
+	t.Run("accumulates all errors when both fail", func(t *testing.T) {
+		funcValidation := Failures[func(int) int](Errors{
+			&ValidationError{Messsage: "function error"},
+		})
+		valueValidation := Failures[int](Errors{
+			&ValidationError{Messsage: "value error"},
+		})
+
+		result := MonadAp(funcValidation, valueValidation)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should accumulate errors from both sources")
+		messages := []string{errors[0].Messsage, errors[1].Messsage}
+		assert.Contains(t, messages, "function error")
+		assert.Contains(t, messages, "value error")
+	})
+
+	t.Run("accumulates multiple errors from both sources", func(t *testing.T) {
+		funcValidation := Failures[func(int) int](Errors{
+			&ValidationError{Messsage: "function error 1"},
+			&ValidationError{Messsage: "function error 2"},
+		})
+		valueValidation := Failures[int](Errors{
+			&ValidationError{Messsage: "value error 1"},
+			&ValidationError{Messsage: "value error 2"},
+		})
+
+		result := MonadAp(funcValidation, valueValidation)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 4, "Should accumulate all 4 errors")
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "function error 1")
+		assert.Contains(t, messages, "function error 2")
+		assert.Contains(t, messages, "value error 1")
+		assert.Contains(t, messages, "value error 2")
+	})
+
+	t.Run("type transformation with success", func(t *testing.T) {
+		toString := func(x int) string { return fmt.Sprintf("Value: %d", x) }
+		result := MonadAp(Of(toString), Of(42))
+
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "Value: 42", value)
+	})
+
+	t.Run("curried function application", func(t *testing.T) {
+		add := func(a int) func(int) int {
+			return func(b int) int { return a + b }
+		}
+
+		// First application
+		step1 := MonadMap(Of(10), add)
+		// Second application
+		result := MonadAp(step1, Of(32))
+
+		assert.Equal(t, Of(42), result)
+	})
+
+	t.Run("validating multiple fields accumulates all errors", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+
+		makeUser := func(name string) func(int) User {
+			return func(age int) User { return User{name, age} }
+		}
+
+		nameValidation := Failures[string](Errors{
+			&ValidationError{Messsage: "name too short"},
+		})
+		ageValidation := Failures[int](Errors{
+			&ValidationError{Messsage: "age too low"},
+		})
+
+		// Apply name first
+		step1 := MonadAp(Of(makeUser), nameValidation)
+		// Apply age second
+		result := MonadAp(step1, ageValidation)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(User) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should accumulate errors from both fields")
+		messages := []string{errors[0].Messsage, errors[1].Messsage}
+		assert.Contains(t, messages, "name too short")
+		assert.Contains(t, messages, "age too low")
+	})
+}
+
+// TestMonadChain tests the MonadChain function
+func TestMonadChain(t *testing.T) {
+	t.Run("chains successful validations", func(t *testing.T) {
+		result := MonadChain(
+			Of(42),
+			func(x int) Validation[string] {
+				return Of(fmt.Sprintf("Value: %d", x))
+			},
+		)
+
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "Value: 42", value)
+	})
+
+	t.Run("short-circuits on first failure", func(t *testing.T) {
+		failure := Failures[int](Errors{
+			&ValidationError{Messsage: "initial error"},
+		})
+
+		result := MonadChain(
+			failure,
+			func(x int) Validation[string] {
+				return Of("should not be called")
+			},
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 1)
+		assert.Equal(t, "initial error", errors[0].Messsage)
+	})
+
+	t.Run("propagates failure from chained function", func(t *testing.T) {
+		result := MonadChain(
+			Of(42),
+			func(x int) Validation[string] {
+				return Failures[string](Errors{
+					&ValidationError{Messsage: "chained error"},
+				})
+			},
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 1)
+		assert.Equal(t, "chained error", errors[0].Messsage)
+	})
+
+	t.Run("chains multiple operations", func(t *testing.T) {
+		step1 := MonadChain(
+			Of(5),
+			func(x int) Validation[int] {
+				return Of(x + 10)
+			},
+		)
+		step2 := MonadChain(
+			step1,
+			func(x int) Validation[int] {
+				return Of(x * 2)
+			},
+		)
+		step3 := MonadChain(
+			step2,
+			func(x int) Validation[string] {
+				return Of(fmt.Sprintf("%d", x))
+			},
+		)
+
+		assert.True(t, either.IsRight(step3))
+		value := either.MonadFold(step3,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "30", value)
+	})
+
+	t.Run("conditional validation", func(t *testing.T) {
+		validatePositive := func(x int) Validation[int] {
+			if x > 0 {
+				return Of(x)
+			}
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "must be positive"},
+			})
+		}
+
+		result1 := MonadChain(Of(42), validatePositive)
+		assert.Equal(t, Of(42), result1)
+
+		result2 := MonadChain(Of(-5), validatePositive)
+		assert.True(t, either.IsLeft(result2))
+	})
+
+	t.Run("dependent validation", func(t *testing.T) {
+		validateRange := func(min int) func(int) Validation[int] {
+			return func(max int) Validation[int] {
+				if max > min {
+					return Of(max)
+				}
+				return Failures[int](Errors{
+					&ValidationError{
+						Messsage: fmt.Sprintf("max (%d) must be greater than min (%d)", max, min),
+					},
+				})
+			}
+		}
+
+		result1 := MonadChain(Of(10), validateRange(5))
+		assert.Equal(t, Of(10), result1)
+
+		result2 := MonadChain(Of(3), validateRange(5))
+		assert.True(t, either.IsLeft(result2))
+	})
+}
+
+// TestChain tests the curried Chain function
+func TestChain(t *testing.T) {
+	t.Run("creates reusable validation operator", func(t *testing.T) {
+		validatePositive := Chain(func(x int) Validation[int] {
+			if x > 0 {
+				return Of(x)
+			}
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "must be positive"},
+			})
+		})
+
+		result1 := validatePositive(Of(42))
+		assert.Equal(t, Of(42), result1)
+
+		result2 := validatePositive(Of(-5))
+		assert.True(t, either.IsLeft(result2))
+	})
+
+	t.Run("use in pipeline", func(t *testing.T) {
+		validatePositive := Chain(func(x int) Validation[int] {
+			if x > 0 {
+				return Of(x)
+			}
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "must be positive"},
+			})
+		})
+
+		validateEven := Chain(func(x int) Validation[int] {
+			if x%2 == 0 {
+				return Of(x)
+			}
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "must be even"},
+			})
+		})
+
+		result := F.Pipe2(
+			Of(42),
+			validatePositive,
+			validateEven,
+		)
+		assert.Equal(t, Of(42), result)
+	})
+
+	t.Run("short-circuits on first failure in pipeline", func(t *testing.T) {
+		validatePositive := Chain(func(x int) Validation[int] {
+			if x > 0 {
+				return Of(x)
+			}
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "must be positive"},
+			})
+		})
+
+		validateEven := Chain(func(x int) Validation[int] {
+			if x%2 == 0 {
+				return Of(x)
+			}
+			return Failures[int](Errors{
+				&ValidationError{Messsage: "must be even"},
+			})
+		})
+
+		result := F.Pipe2(
+			Of(-5),
+			validatePositive,
+			validateEven,
+		)
+
+		assert.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result,
+			F.Identity[Errors],
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 1)
+		assert.Equal(t, "must be positive", errors[0].Messsage)
+	})
+
+	t.Run("type transformation in chain", func(t *testing.T) {
+		toString := Chain(func(x int) Validation[string] {
+			return Of(fmt.Sprintf("Value: %d", x))
+		})
+
+		result := F.Pipe1(Of(42), toString)
+
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "Value: 42", value)
 	})
 }

@@ -50,6 +50,13 @@ func Chain[I, A, B any](f Kleisli[I, A, B]) Operator[I, A, B] {
 	)
 }
 
+func ChainLeft[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
+	return readert.Chain[Decode[I, A]](
+		validation.ChainLeft,
+		f,
+	)
+}
+
 // MonadMap transforms the decoded value using the provided function.
 // This is the functor map operation that applies a transformation to successful decode results.
 //
