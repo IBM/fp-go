@@ -131,17 +131,8 @@ func TestApplicativeMonoid(t *testing.T) {
 			result1 := m.Concat(v, empty)
 			result2 := m.Concat(empty, v)
 
-			val1 := either.MonadFold(result1,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-			val2 := either.MonadFold(result2,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-
-			assert.Equal(t, "test", val1)
-			assert.Equal(t, "test", val2)
+			assert.Equal(t, Of("test"), result1)
+			assert.Equal(t, Of("test"), result2)
 		})
 	})
 
@@ -156,11 +147,7 @@ func TestApplicativeMonoid(t *testing.T) {
 		t.Run("empty returns zero", func(t *testing.T) {
 			empty := m.Empty()
 
-			value := either.MonadFold(empty,
-				func(Errors) int { return -1 },
-				F.Identity[int],
-			)
-			assert.Equal(t, 0, value)
+			assert.Equal(t, Of(0), empty)
 		})
 
 		t.Run("concat adds values", func(t *testing.T) {
@@ -169,11 +156,7 @@ func TestApplicativeMonoid(t *testing.T) {
 
 			result := m.Concat(v1, v2)
 
-			value := either.MonadFold(result,
-				func(Errors) int { return 0 },
-				F.Identity[int],
-			)
-			assert.Equal(t, 42, value)
+			assert.Equal(t, Of(42), result)
 		})
 
 		t.Run("multiple concat operations", func(t *testing.T) {
@@ -184,11 +167,7 @@ func TestApplicativeMonoid(t *testing.T) {
 
 			result := m.Concat(m.Concat(m.Concat(v1, v2), v3), v4)
 
-			value := either.MonadFold(result,
-				func(Errors) int { return 0 },
-				F.Identity[int],
-			)
-			assert.Equal(t, 10, value)
+			assert.Equal(t, Of(10), result)
 		})
 	})
 }
@@ -235,21 +214,13 @@ func TestMonoidLaws(t *testing.T) {
 		t.Run("left identity", func(t *testing.T) {
 			// empty + a = a
 			result := m.Concat(m.Empty(), v1)
-			value := either.MonadFold(result,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-			assert.Equal(t, "a", value)
+			assert.Equal(t, Of("a"), result)
 		})
 
 		t.Run("right identity", func(t *testing.T) {
 			// a + empty = a
 			result := m.Concat(v1, m.Empty())
-			value := either.MonadFold(result,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-			assert.Equal(t, "a", value)
+			assert.Equal(t, Of("a"), result)
 		})
 
 		t.Run("associativity", func(t *testing.T) {
@@ -258,17 +229,8 @@ func TestMonoidLaws(t *testing.T) {
 			left := m.Concat(m.Concat(v1, v2), v3)
 			right := m.Concat(v1, m.Concat(v2, v3))
 
-			leftVal := either.MonadFold(left,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-			rightVal := either.MonadFold(right,
-				func(Errors) string { return "" },
-				F.Identity[string],
-			)
-
-			assert.Equal(t, "abc", leftVal)
-			assert.Equal(t, "abc", rightVal)
+			assert.Equal(t, Of("abc"), left)
+			assert.Equal(t, Of("abc"), right)
 		})
 	})
 }
@@ -322,11 +284,7 @@ func TestApplicativeMonoidEdgeCases(t *testing.T) {
 
 		result := m.Concat(v1, v2)
 
-		value := either.MonadFold(result,
-			func(Errors) Counter { return Counter{} },
-			F.Identity[Counter],
-		)
-		assert.Equal(t, 15, value.Count)
+		assert.Equal(t, Of(Counter{Count: 15}), result)
 	})
 
 	t.Run("empty concat empty", func(t *testing.T) {
@@ -334,10 +292,6 @@ func TestApplicativeMonoidEdgeCases(t *testing.T) {
 
 		result := m.Concat(m.Empty(), m.Empty())
 
-		value := either.MonadFold(result,
-			func(Errors) string { return "ERROR" },
-			F.Identity[string],
-		)
-		assert.Equal(t, "", value)
+		assert.Equal(t, Of(""), result)
 	})
 }

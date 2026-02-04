@@ -474,3 +474,167 @@ func Applicative[A, B any]() applicative.Applicative[A, B, Validation[A], Valida
 func OrElse[A any](f Kleisli[Errors, A]) Operator[A, A] {
 	return ChainLeft(f)
 }
+
+// MonadAlt implements the Alternative operation for Validation, providing fallback behavior.
+// If the first validation fails, it evaluates and returns the second validation as an alternative.
+// If the first validation succeeds, it returns the first validation without evaluating the second.
+//
+// This is the fundamental operation for the Alt typeclass, enabling "try first, fallback to second"
+// semantics. It's particularly useful for:
+//   - Providing default values when validation fails
+//   - Trying multiple validation strategies in sequence
+//   - Building validation pipelines with fallback logic
+//   - Implementing optional validation with defaults
+//
+// **Key behavior**: Unlike error accumulation in [MonadAp], MonadAlt does NOT accumulate errors.
+// When falling back to the second validation, the first validation's errors are discarded.
+// This is the standard Alt behavior - it's about choosing alternatives, not combining errors.
+//
+// The second parameter is lazy (Lazy[Validation[A]]) to avoid unnecessary computation when
+// the first validation succeeds. The second validation is only evaluated if needed.
+//
+// Behavior:
+//   - First succeeds: returns first validation (second is not evaluated)
+//   - First fails: evaluates and returns second validation (first errors discarded)
+//
+// This is useful for:
+//   - Fallback values: provide defaults when primary validation fails
+//   - Alternative strategies: try different validation approaches
+//   - Optional validation: make validation optional with a default
+//   - Chaining attempts: try multiple sources until one succeeds
+//
+// Type Parameters:
+//   - A: The type of the successful value
+//
+// Parameters:
+//   - first: The primary validation to try
+//   - second: A lazy computation producing the fallback validation (only evaluated if first fails)
+//
+// Returns:
+//
+//	The first validation if it succeeds, otherwise the second validation
+//
+// Example - Fallback to default:
+//
+//	primary := parseConfig("config.json")  // Fails
+//	fallback := func() Validation[Config] {
+//	    return Success(defaultConfig)
+//	}
+//	result := MonadAlt(primary, fallback)
+//	// Result: Success(defaultConfig)
+//
+// Example - First succeeds (second not evaluated):
+//
+//	primary := Success(42)
+//	fallback := func() Validation[int] {
+//	    panic("never called") // This won't execute
+//	}
+//	result := MonadAlt(primary, fallback)
+//	// Result: Success(42)
+//
+// Example - Chaining multiple alternatives:
+//
+//	result := MonadAlt(
+//	    parseFromEnv("API_KEY"),
+//	    func() Validation[string] {
+//	        return MonadAlt(
+//	            parseFromFile(".env"),
+//	            func() Validation[string] {
+//	                return Success("default-key")
+//	            },
+//	        )
+//	    },
+//	)
+//	// Tries: env var → file → default (uses first that succeeds)
+//
+// Example - No error accumulation:
+//
+//	v1 := Failures[int](Errors{
+//	    &ValidationError{Messsage: "error 1"},
+//	    &ValidationError{Messsage: "error 2"},
+//	})
+//	v2 := func() Validation[int] {
+//	    return Failures[int](Errors{
+//	        &ValidationError{Messsage: "error 3"},
+//	    })
+//	}
+//	result := MonadAlt(v1, v2)
+//	// Result: Failures with only ["error 3"]
+//	// The errors from v1 are discarded (not accumulated)
+func MonadAlt[A any](first Validation[A], second Lazy[Validation[A]]) Validation[A] {
+	return MonadChainLeft(first, function.Ignore1of1[Errors](second))
+}
+
+// Alt is the curried version of [MonadAlt].
+// Returns a function that provides fallback behavior for a Validation.
+//
+// This is useful for creating reusable fallback operators that can be applied
+// to multiple validations, or for use in function composition pipelines.
+//
+// The returned function takes a validation and returns either that validation
+// (if successful) or the provided alternative (if the validation fails).
+//
+// Type Parameters:
+//   - A: The type of the successful value
+//
+// Parameters:
+//   - second: A lazy computation producing the fallback validation
+//
+// Returns:
+//
+//	A function that takes a Validation[A] and returns a Validation[A] with fallback behavior
+//
+// Example - Creating a reusable fallback operator:
+//
+//	withDefault := Alt(func() Validation[int] {
+//	    return Success(0)
+//	})
+//
+//	result1 := withDefault(parseNumber("42"))    // Success(42)
+//	result2 := withDefault(parseNumber("abc"))   // Success(0) - fallback
+//	result3 := withDefault(parseNumber("123"))   // Success(123)
+//
+// Example - Using in a pipeline:
+//
+//	import F "github.com/IBM/fp-go/v2/function"
+//
+//	result := F.Pipe2(
+//	    parseFromEnv("CONFIG_PATH"),
+//	    Alt(func() Validation[string] {
+//	        return parseFromFile("config.json")
+//	    }),
+//	    Alt(func() Validation[string] {
+//	        return Success("./default-config.json")
+//	    }),
+//	)
+//	// Tries: env var → file → default path
+//
+// Example - Combining with Map:
+//
+//	import F "github.com/IBM/fp-go/v2/function"
+//
+//	result := F.Pipe2(
+//	    validatePositive(-5),  // Fails
+//	    Alt(func() Validation[int] { return Success(1) }),
+//	    Map(func(x int) int { return x * 2 }),
+//	)
+//	// Result: Success(2) - uses fallback value 1, then doubles it
+//
+// Example - Multiple fallback layers:
+//
+//	primaryFallback := Alt(func() Validation[Config] {
+//	    return loadFromFile("backup.json")
+//	})
+//	secondaryFallback := Alt(func() Validation[Config] {
+//	    return Success(defaultConfig)
+//	})
+//
+//	result := F.Pipe2(
+//	    loadFromFile("config.json"),
+//	    primaryFallback,
+//	    secondaryFallback,
+//	)
+//	// Tries: config.json → backup.json → default
+func Alt[A any](second Lazy[Validation[A]]) Operator[A, A] {
+	return ChainLeft(function.Ignore1of1[Errors](second))
+}

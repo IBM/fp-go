@@ -17,6 +17,8 @@ package decode
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -219,4 +221,8 @@ type (
 	//	    LetL(nameLens, normalize),
 	//	)
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	Monoid[A any] = monoid.Monoid[A]
+
+	Lazy[A any] = lazy.Lazy[A]
 )

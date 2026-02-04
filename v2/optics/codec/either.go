@@ -151,6 +151,11 @@ func validateEither[A, B, O, I any](
 	rightItem Type[B, O, I],
 ) Validate[I, either.Either[A, B]] {
 
+	// F.Pipe1(
+	// 	leftItem.Decode,
+	// 	decode.OrElse()
+	// )
+
 	return func(i I) Decode[Context, either.Either[A, B]] {
 		valRight := rightItem.Validate(i)
 		valLeft := leftItem.Validate(i)

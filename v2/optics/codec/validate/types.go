@@ -17,6 +17,7 @@ package validate
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
@@ -271,4 +272,6 @@ type (
 	//   lower := strings.ToLower       // Endomorphism[string]
 	//   normalize := compose(trim, lower)  // Endomorphism[string]
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	Lazy[A any] = lazy.Lazy[A]
 )

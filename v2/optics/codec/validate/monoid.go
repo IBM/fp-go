@@ -122,3 +122,13 @@ func ApplicativeMonoid[I, A any](m Monoid[A]) Monoid[Validate[I, A]] {
 		m,
 	)
 }
+
+// func AlternativeMonoid[I, A any](m Monoid[A]) Monoid[Validate[I, A]] {
+// 	return monoid.AlternativeMonoid(
+// 		Of[I, A],
+// 		MonadMap[I, A, func(A) A],
+// 		MonadAp[A, I, A],
+// 		MonadAlt[I, A],
+// 		m,
+// 	)
+// }

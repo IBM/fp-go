@@ -18,6 +18,7 @@ package validation
 import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
@@ -257,4 +258,6 @@ type (
 	//	double := func(x int) int { return x * 2 }  // Endomorphism[int]
 	//	result := LetL(lens, double)(Success(21))   // Success(42)
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	Lazy[A any] = lazy.Lazy[A]
 )
