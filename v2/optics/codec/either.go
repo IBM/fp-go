@@ -18,11 +18,10 @@ package codec
 import (
 	"fmt"
 
-	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
-	"github.com/IBM/fp-go/v2/optics/codec/validation"
 )
 
 // encodeEither creates an encoder for Either[A, B] values.
@@ -151,33 +150,20 @@ func validateEither[A, B, O, I any](
 	rightItem Type[B, O, I],
 ) Validate[I, either.Either[A, B]] {
 
-	// F.Pipe1(
-	// 	leftItem.Decode,
-	// 	decode.OrElse()
-	// )
+	valRight := F.Pipe1(
+		rightItem.Validate,
+		validate.Map[I, B](either.Right[A]),
+	)
 
-	return func(i I) Decode[Context, either.Either[A, B]] {
-		valRight := rightItem.Validate(i)
-		valLeft := leftItem.Validate(i)
+	valLeft := F.Pipe1(
+		leftItem.Validate,
+		validate.Map[I, A](either.Left[B]),
+	)
 
-		return func(ctx Context) Validation[either.Either[A, B]] {
-
-			resRight := valRight(ctx)
-
-			return either.Fold(
-				func(rightErrors validate.Errors) Validation[either.Either[A, B]] {
-					resLeft := valLeft(ctx)
-					return either.Fold(
-						func(leftErrors validate.Errors) Validation[either.Either[A, B]] {
-							return validation.Failures[either.Either[A, B]](array.Concat(leftErrors)(rightErrors))
-						},
-						F.Flow2(either.Left[B, A], validation.Of),
-					)(resLeft)
-				},
-				F.Flow2(either.Right[A, B], validation.Of),
-			)(resRight)
-		}
-	}
+	return F.Pipe1(
+		valRight,
+		validate.Alt(lazy.Of(valLeft)),
+	)
 }
 
 // Either creates a codec for Either[A, B] values.
@@ -270,12 +256,9 @@ func Either[A, B, O, I any](
 	leftItem Type[A, O, I],
 	rightItem Type[B, O, I],
 ) Type[either.Either[A, B], O, I] {
-	name := fmt.Sprintf("Either[%s, %s]", leftItem.Name(), rightItem.Name())
-	isEither := Is[either.Either[A, B]]()
-
 	return MakeType(
-		name,
-		isEither,
+		fmt.Sprintf("Either[%s, %s]", leftItem.Name(), rightItem.Name()),
+		Is[either.Either[A, B]](),
 		validateEither(leftItem, rightItem),
 		encodeEither(leftItem, rightItem),
 	)

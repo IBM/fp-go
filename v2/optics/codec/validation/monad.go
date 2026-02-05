@@ -486,16 +486,17 @@ func OrElse[A any](f Kleisli[Errors, A]) Operator[A, A] {
 //   - Building validation pipelines with fallback logic
 //   - Implementing optional validation with defaults
 //
-// **Key behavior**: Unlike error accumulation in [MonadAp], MonadAlt does NOT accumulate errors.
-// When falling back to the second validation, the first validation's errors are discarded.
-// This is the standard Alt behavior - it's about choosing alternatives, not combining errors.
+// **Key behavior**: When both validations fail, MonadAlt DOES accumulate errors from both
+// validations using the Errors monoid. This is different from standard Either Alt behavior.
+// The error accumulation happens through the underlying ChainLeft/chainErrors mechanism.
 //
 // The second parameter is lazy (Lazy[Validation[A]]) to avoid unnecessary computation when
 // the first validation succeeds. The second validation is only evaluated if needed.
 //
 // Behavior:
 //   - First succeeds: returns first validation (second is not evaluated)
-//   - First fails: evaluates and returns second validation (first errors discarded)
+//   - First fails, second succeeds: returns second validation
+//   - Both fail: aggregates errors from both validations
 //
 // This is useful for:
 //   - Fallback values: provide defaults when primary validation fails
@@ -547,7 +548,7 @@ func OrElse[A any](f Kleisli[Errors, A]) Operator[A, A] {
 //	)
 //	// Tries: env var → file → default (uses first that succeeds)
 //
-// Example - No error accumulation:
+// Example - Error accumulation when both fail:
 //
 //	v1 := Failures[int](Errors{
 //	    &ValidationError{Messsage: "error 1"},
@@ -559,8 +560,8 @@ func OrElse[A any](f Kleisli[Errors, A]) Operator[A, A] {
 //	    })
 //	}
 //	result := MonadAlt(v1, v2)
-//	// Result: Failures with only ["error 3"]
-//	// The errors from v1 are discarded (not accumulated)
+//	// Result: Failures with ALL errors ["error 1", "error 2", "error 3"]
+//	// The errors from v1 are aggregated with errors from v2
 func MonadAlt[A any](first Validation[A], second Lazy[Validation[A]]) Validation[A] {
 	return MonadChainLeft(first, function.Ignore1of1[Errors](second))
 }

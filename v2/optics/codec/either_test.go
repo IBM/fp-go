@@ -342,6 +342,27 @@ func TestEitherErrorAccumulation(t *testing.T) {
 
 		require.NotNil(t, errors)
 		// Should have errors from both string and int validation attempts
-		assert.NotEmpty(t, errors)
+		assert.GreaterOrEqual(t, len(errors), 2, "Should have at least 2 errors (one from Right validation, one from Left validation)")
+
+		// Verify we have errors from both validation attempts
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+
+		// Check that we have errors related to both validations
+		hasIntError := false
+		hasStringError := false
+		for _, msg := range messages {
+			if msg == "expected integer string" || msg == "must be positive" {
+				hasIntError = true
+			}
+			if msg == "must not be empty" {
+				hasStringError = true
+			}
+		}
+
+		assert.True(t, hasIntError, "Should have error from integer validation (Right branch)")
+		assert.True(t, hasStringError, "Should have error from string validation (Left branch)")
 	})
 }

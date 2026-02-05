@@ -101,4 +101,7 @@ type (
 
 	// Refinement represents the concept that B is a specialized type of A
 	Refinement[A, B any] = Prism[A, B]
+
+	Kleisli[A, B, O, I any]  = Reader[A, Type[B, O, I]]
+	Operator[A, B, O, I any] = Kleisli[Type[A, O, I], B, O, I]
 )
