@@ -1,475 +1,397 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
-// All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package validate
 
 import (
 	"testing"
 
-	E "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
+	MO "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	intAddMonoid = N.MonoidSum[int]()
-	strMonoid    = S.Monoid
-)
+// TestAlternativeMonoid tests the AlternativeMonoid function
+func TestAlternativeMonoid(t *testing.T) {
+	t.Run("with string monoid", func(t *testing.T) {
+		m := AlternativeMonoid[string, string](S.Monoid)
 
-// Helper function to create a successful validator
-func successValidator[I, A any](value A) Validate[I, A] {
-	return func(input I) Reader[validation.Context, validation.Validation[A]] {
-		return func(ctx validation.Context) validation.Validation[A] {
-			return validation.Success(value)
-		}
-	}
-}
+		t.Run("empty returns validator that succeeds with empty string", func(t *testing.T) {
+			empty := m.Empty()
+			result := empty("input")(nil)
 
-// Helper function to create a failing validator
-func failureValidator[I, A any](message string) Validate[I, A] {
-	return func(input I) Reader[validation.Context, validation.Validation[A]] {
-		return validation.FailureWithMessage[A](input, message)
-	}
-}
+			assert.Equal(t, validation.Of(""), result)
+		})
 
-// Helper function to create a validator that uses the input
-func inputDependentValidator[A any](f func(A) A) Validate[A, A] {
-	return func(input A) Reader[validation.Context, validation.Validation[A]] {
-		return func(ctx validation.Context) validation.Validation[A] {
-			return validation.Success(f(input))
-		}
-	}
-}
+		t.Run("concat combines successful validators using monoid", func(t *testing.T) {
+			validator1 := Of[string, string]("Hello")
+			validator2 := Of[string, string](" World")
 
-// TestApplicativeMonoid_EmptyElement tests the empty element of the monoid
-func TestApplicativeMonoid_EmptyElement(t *testing.T) {
-	t.Run("int addition monoid", func(t *testing.T) {
-		m := ApplicativeMonoid[string](intAddMonoid)
-		empty := m.Empty()
+			combined := m.Concat(validator1, validator2)
+			result := combined("input")(nil)
 
-		result := empty("test")(nil)
+			assert.Equal(t, validation.Of("Hello World"), result)
+		})
 
-		assert.Equal(t, validation.Of(0), result)
-	})
-
-	t.Run("string concatenation monoid", func(t *testing.T) {
-		m := ApplicativeMonoid[int](strMonoid)
-		empty := m.Empty()
-
-		result := empty(42)(nil)
-
-		assert.Equal(t, validation.Of(""), result)
-	})
-}
-
-// TestApplicativeMonoid_ConcatSuccesses tests concatenating two successful validators
-func TestApplicativeMonoid_ConcatSuccesses(t *testing.T) {
-	t.Run("int addition", func(t *testing.T) {
-		m := ApplicativeMonoid[string](intAddMonoid)
-
-		v1 := successValidator[string](5)
-		v2 := successValidator[string](3)
-
-		combined := m.Concat(v1, v2)
-		result := combined("input")(nil)
-
-		assert.Equal(t, validation.Of(8), result)
-	})
-
-	t.Run("string concatenation", func(t *testing.T) {
-		m := ApplicativeMonoid[int](strMonoid)
-
-		v1 := successValidator[int]("Hello")
-		v2 := successValidator[int](" World")
-
-		combined := m.Concat(v1, v2)
-		result := combined(42)(nil)
-
-		assert.Equal(t, validation.Of("Hello World"), result)
-	})
-}
-
-// TestApplicativeMonoid_ConcatWithFailure tests concatenating validators where one fails
-func TestApplicativeMonoid_ConcatWithFailure(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	t.Run("left failure", func(t *testing.T) {
-		v1 := failureValidator[string, int]("left error")
-		v2 := successValidator[string](5)
-
-		combined := m.Concat(v1, v2)
-		result := combined("input")(nil)
-
-		assert.True(t, E.IsLeft(result))
-		_, errors := E.Unwrap(result)
-		assert.Len(t, errors, 1)
-		assert.Equal(t, "left error", errors[0].Messsage)
-	})
-
-	t.Run("right failure", func(t *testing.T) {
-		v1 := successValidator[string](5)
-		v2 := failureValidator[string, int]("right error")
-
-		combined := m.Concat(v1, v2)
-		result := combined("input")(nil)
-
-		assert.True(t, E.IsLeft(result))
-		_, errors := E.Unwrap(result)
-		assert.Len(t, errors, 1)
-		assert.Equal(t, "right error", errors[0].Messsage)
-	})
-
-	t.Run("both failures", func(t *testing.T) {
-		v1 := failureValidator[string, int]("left error")
-		v2 := failureValidator[string, int]("right error")
-
-		combined := m.Concat(v1, v2)
-		result := combined("input")(nil)
-
-		assert.True(t, E.IsLeft(result))
-		_, errors := E.Unwrap(result)
-		// Note: The current implementation returns the first error encountered
-		assert.GreaterOrEqual(t, len(errors), 1)
-		// At least one of the errors should be present
-		hasError := false
-		for _, err := range errors {
-			if err.Messsage == "left error" || err.Messsage == "right error" {
-				hasError = true
-				break
+		t.Run("concat uses second as fallback when first fails", func(t *testing.T) {
+			failing := func(input string) Reader[Context, Validation[string]] {
+				return func(ctx Context) Validation[string] {
+					return either.Left[string](validation.Errors{
+						{Value: input, Messsage: "first failed"},
+					})
+				}
 			}
-		}
-		assert.True(t, hasError, "Should contain at least one validation error")
-	})
-}
+			succeeding := Of[string, string]("fallback")
 
-// TestApplicativeMonoid_LeftIdentity tests the left identity law
-func TestApplicativeMonoid_LeftIdentity(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
+			combined := m.Concat(failing, succeeding)
+			result := combined("input")(nil)
 
-	v := successValidator[string](42)
+			assert.Equal(t, validation.Of("fallback"), result)
+		})
 
-	// empty <> v == v
-	combined := m.Concat(m.Empty(), v)
-
-	resultCombined := combined("test")(nil)
-	resultOriginal := v("test")(nil)
-
-	assert.Equal(t, resultOriginal, resultCombined)
-}
-
-// TestApplicativeMonoid_RightIdentity tests the right identity law
-func TestApplicativeMonoid_RightIdentity(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	v := successValidator[string](42)
-
-	// v <> empty == v
-	combined := m.Concat(v, m.Empty())
-
-	resultCombined := combined("test")(nil)
-	resultOriginal := v("test")(nil)
-
-	assert.Equal(t, resultOriginal, resultCombined)
-}
-
-// TestApplicativeMonoid_Associativity tests the associativity law
-func TestApplicativeMonoid_Associativity(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	v1 := successValidator[string](1)
-	v2 := successValidator[string](2)
-	v3 := successValidator[string](3)
-
-	// (v1 <> v2) <> v3 == v1 <> (v2 <> v3)
-	left := m.Concat(m.Concat(v1, v2), v3)
-	right := m.Concat(v1, m.Concat(v2, v3))
-
-	resultLeft := left("test")(nil)
-	resultRight := right("test")(nil)
-
-	assert.Equal(t, resultRight, resultLeft)
-
-	// Both should equal 6
-	assert.Equal(t, validation.Of(6), resultLeft)
-}
-
-// TestApplicativeMonoid_AssociativityWithFailures tests associativity with failures
-func TestApplicativeMonoid_AssociativityWithFailures(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	v1 := successValidator[string](1)
-	v2 := failureValidator[string, int]("error 2")
-	v3 := successValidator[string](3)
-
-	// (v1 <> v2) <> v3 == v1 <> (v2 <> v3)
-	left := m.Concat(m.Concat(v1, v2), v3)
-	right := m.Concat(v1, m.Concat(v2, v3))
-
-	resultLeft := left("test")(nil)
-	resultRight := right("test")(nil)
-
-	// Both should fail with the same error
-	assert.True(t, E.IsLeft(resultLeft))
-	assert.True(t, E.IsLeft(resultRight))
-
-	_, errorsLeft := E.Unwrap(resultLeft)
-	_, errorsRight := E.Unwrap(resultRight)
-
-	assert.Len(t, errorsLeft, 1)
-	assert.Len(t, errorsRight, 1)
-	assert.Equal(t, "error 2", errorsLeft[0].Messsage)
-	assert.Equal(t, "error 2", errorsRight[0].Messsage)
-}
-
-// TestApplicativeMonoid_MultipleValidators tests combining multiple validators
-func TestApplicativeMonoid_MultipleValidators(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	v1 := successValidator[string](10)
-	v2 := successValidator[string](20)
-	v3 := successValidator[string](30)
-	v4 := successValidator[string](40)
-
-	// Chain multiple concat operations
-	combined := m.Concat(
-		m.Concat(
-			m.Concat(v1, v2),
-			v3,
-		),
-		v4,
-	)
-
-	result := combined("test")(nil)
-
-	assert.Equal(t, validation.Of(100), result)
-}
-
-// TestApplicativeMonoid_InputDependent tests validators that depend on input
-func TestApplicativeMonoid_InputDependent(t *testing.T) {
-	m := ApplicativeMonoid[int](intAddMonoid)
-
-	// Validator that doubles the input
-	v1 := inputDependentValidator(N.Mul(2))
-	// Validator that adds 10 to the input
-	v2 := inputDependentValidator(N.Add(10))
-
-	combined := m.Concat(v1, v2)
-	result := combined(5)(nil)
-
-	// (5 * 2) + (5 + 10) = 10 + 15 = 25
-	assert.Equal(t, validation.Of(25), result)
-}
-
-// TestApplicativeMonoid_ContextPropagation tests that context is properly propagated
-func TestApplicativeMonoid_ContextPropagation(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	// Create a validator that captures the context
-	var capturedContext validation.Context
-	v1 := func(input string) Reader[validation.Context, validation.Validation[int]] {
-		return func(ctx validation.Context) validation.Validation[int] {
-			capturedContext = ctx
-			return validation.Success(5)
-		}
-	}
-
-	v2 := successValidator[string](3)
-
-	combined := m.Concat(v1, v2)
-
-	// Create a context with some entries
-	ctx := validation.Context{
-		{Key: "field1", Type: "int"},
-		{Key: "field2", Type: "string"},
-	}
-
-	result := combined("test")(ctx)
-
-	assert.True(t, E.IsRight(result))
-	assert.Equal(t, ctx, capturedContext)
-}
-
-// TestApplicativeMonoid_ErrorAccumulation tests that errors are accumulated
-func TestApplicativeMonoid_ErrorAccumulation(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	v1 := failureValidator[string, int]("error 1")
-	v2 := failureValidator[string, int]("error 2")
-	v3 := failureValidator[string, int]("error 3")
-
-	combined := m.Concat(m.Concat(v1, v2), v3)
-	result := combined("test")(nil)
-
-	assert.True(t, E.IsLeft(result))
-	_, errors := E.Unwrap(result)
-
-	// Note: The current implementation returns the first error encountered
-	// At least one error should be present
-	assert.GreaterOrEqual(t, len(errors), 1)
-	hasError := false
-	for _, err := range errors {
-		if err.Messsage == "error 1" || err.Messsage == "error 2" || err.Messsage == "error 3" {
-			hasError = true
-			break
-		}
-	}
-	assert.True(t, hasError, "Should contain at least one validation error")
-}
-
-// TestApplicativeMonoid_MixedSuccessFailure tests mixing successes and failures
-func TestApplicativeMonoid_MixedSuccessFailure(t *testing.T) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-
-	v1 := successValidator[string](10)
-	v2 := failureValidator[string, int]("error in v2")
-	v3 := successValidator[string](20)
-	v4 := failureValidator[string, int]("error in v4")
-
-	combined := m.Concat(
-		m.Concat(
-			m.Concat(v1, v2),
-			v3,
-		),
-		v4,
-	)
-
-	result := combined("test")(nil)
-
-	assert.True(t, E.IsLeft(result))
-	_, errors := E.Unwrap(result)
-
-	// Note: The current implementation returns the first error encountered
-	// At least one error should be present
-	assert.GreaterOrEqual(t, len(errors), 1)
-	hasError := false
-	for _, err := range errors {
-		if err.Messsage == "error in v2" || err.Messsage == "error in v4" {
-			hasError = true
-			break
-		}
-	}
-	assert.True(t, hasError, "Should contain at least one validation error")
-}
-
-// TestApplicativeMonoid_DifferentInputTypes tests with different input types
-func TestApplicativeMonoid_DifferentInputTypes(t *testing.T) {
-	t.Run("struct input", func(t *testing.T) {
-		type Config struct {
-			Port    int
-			Timeout int
-		}
-
-		m := ApplicativeMonoid[Config](intAddMonoid)
-
-		v1 := func(cfg Config) Reader[validation.Context, validation.Validation[int]] {
-			return func(ctx validation.Context) validation.Validation[int] {
-				return validation.Success(cfg.Port)
+		t.Run("concat aggregates errors when both fail", func(t *testing.T) {
+			failing1 := func(input string) Reader[Context, Validation[string]] {
+				return func(ctx Context) Validation[string] {
+					return either.Left[string](validation.Errors{
+						{Value: input, Messsage: "error 1"},
+					})
+				}
 			}
-		}
-
-		v2 := func(cfg Config) Reader[validation.Context, validation.Validation[int]] {
-			return func(ctx validation.Context) validation.Validation[int] {
-				return validation.Success(cfg.Timeout)
+			failing2 := func(input string) Reader[Context, Validation[string]] {
+				return func(ctx Context) Validation[string] {
+					return either.Left[string](validation.Errors{
+						{Value: input, Messsage: "error 2"},
+					})
+				}
 			}
-		}
 
-		combined := m.Concat(v1, v2)
-		result := combined(Config{Port: 8080, Timeout: 30})(nil)
+			combined := m.Concat(failing1, failing2)
+			result := combined("input")(nil)
 
-		assert.Equal(t, validation.Of(8110), result) // 8080 + 30
+			assert.True(t, either.IsLeft(result))
+			errors := either.MonadFold(result,
+				F.Identity[Errors],
+				func(string) Errors { return nil },
+			)
+			assert.GreaterOrEqual(t, len(errors), 2, "Should aggregate errors from both validators")
+
+			messages := make([]string, len(errors))
+			for i, err := range errors {
+				messages[i] = err.Messsage
+			}
+			assert.Contains(t, messages, "error 1")
+			assert.Contains(t, messages, "error 2")
+		})
+
+		t.Run("concat with empty preserves validator", func(t *testing.T) {
+			validator := Of[string, string]("test")
+			empty := m.Empty()
+
+			result1 := m.Concat(validator, empty)("input")(nil)
+			result2 := m.Concat(empty, validator)("input")(nil)
+
+			val1 := either.MonadFold(result1,
+				func(Errors) string { return "" },
+				F.Identity[string],
+			)
+			val2 := either.MonadFold(result2,
+				func(Errors) string { return "" },
+				F.Identity[string],
+			)
+
+			assert.Equal(t, "test", val1)
+			assert.Equal(t, "test", val2)
+		})
 	})
-}
 
-// TestApplicativeMonoid_StringConcatenation tests string concatenation scenarios
-func TestApplicativeMonoid_StringConcatenation(t *testing.T) {
-	m := ApplicativeMonoid[string](strMonoid)
-
-	t.Run("build sentence", func(t *testing.T) {
-		v1 := successValidator[string]("The")
-		v2 := successValidator[string](" quick")
-		v3 := successValidator[string](" brown")
-		v4 := successValidator[string](" fox")
-
-		combined := m.Concat(
-			m.Concat(
-				m.Concat(v1, v2),
-				v3,
-			),
-			v4,
+	t.Run("with int addition monoid", func(t *testing.T) {
+		intMonoid := MO.MakeMonoid(
+			func(a, b int) int { return a + b },
+			0,
 		)
+		m := AlternativeMonoid[string, int](intMonoid)
 
-		result := combined("input")(nil)
+		t.Run("empty returns validator with zero", func(t *testing.T) {
+			empty := m.Empty()
+			result := empty("input")(nil)
 
-		assert.Equal(t, validation.Of("The quick brown fox"), result)
+			value := either.MonadFold(result,
+				func(Errors) int { return -1 },
+				F.Identity[int],
+			)
+			assert.Equal(t, 0, value)
+		})
+
+		t.Run("concat combines decoded values when both succeed", func(t *testing.T) {
+			validator1 := Of[string, int](10)
+			validator2 := Of[string, int](32)
+
+			combined := m.Concat(validator1, validator2)
+			result := combined("input")(nil)
+
+			value := either.MonadFold(result,
+				func(Errors) int { return 0 },
+				F.Identity[int],
+			)
+			assert.Equal(t, 42, value)
+		})
+
+		t.Run("concat uses fallback when first fails", func(t *testing.T) {
+			failing := func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Value: input, Messsage: "failed"},
+					})
+				}
+			}
+			succeeding := Of[string, int](42)
+
+			combined := m.Concat(failing, succeeding)
+			result := combined("input")(nil)
+
+			value := either.MonadFold(result,
+				func(Errors) int { return 0 },
+				F.Identity[int],
+			)
+			assert.Equal(t, 42, value)
+		})
+
+		t.Run("multiple concat operations", func(t *testing.T) {
+			validator1 := Of[string, int](1)
+			validator2 := Of[string, int](2)
+			validator3 := Of[string, int](3)
+			validator4 := Of[string, int](4)
+
+			combined := m.Concat(m.Concat(m.Concat(validator1, validator2), validator3), validator4)
+			result := combined("input")(nil)
+
+			value := either.MonadFold(result,
+				func(Errors) int { return 0 },
+				F.Identity[int],
+			)
+			assert.Equal(t, 10, value)
+		})
 	})
 
-	t.Run("with empty strings", func(t *testing.T) {
-		v1 := successValidator[string]("Hello")
-		v2 := successValidator[string]("")
-		v3 := successValidator[string]("World")
+	t.Run("satisfies monoid laws", func(t *testing.T) {
+		m := AlternativeMonoid[string, string](S.Monoid)
 
-		combined := m.Concat(m.Concat(v1, v2), v3)
-		result := combined("input")(nil)
+		validator1 := Of[string, string]("a")
+		validator2 := Of[string, string]("b")
+		validator3 := Of[string, string]("c")
 
-		assert.Equal(t, validation.Of("HelloWorld"), result)
+		t.Run("left identity", func(t *testing.T) {
+			result := m.Concat(m.Empty(), validator1)("input")(nil)
+			value := either.MonadFold(result,
+				func(Errors) string { return "" },
+				F.Identity[string],
+			)
+			assert.Equal(t, "a", value)
+		})
+
+		t.Run("right identity", func(t *testing.T) {
+			result := m.Concat(validator1, m.Empty())("input")(nil)
+			value := either.MonadFold(result,
+				func(Errors) string { return "" },
+				F.Identity[string],
+			)
+			assert.Equal(t, "a", value)
+		})
+
+		t.Run("associativity", func(t *testing.T) {
+			left := m.Concat(m.Concat(validator1, validator2), validator3)("input")(nil)
+			right := m.Concat(validator1, m.Concat(validator2, validator3))("input")(nil)
+
+			leftVal := either.MonadFold(left,
+				func(Errors) string { return "" },
+				F.Identity[string],
+			)
+			rightVal := either.MonadFold(right,
+				func(Errors) string { return "" },
+				F.Identity[string],
+			)
+
+			assert.Equal(t, "abc", leftVal)
+			assert.Equal(t, "abc", rightVal)
+		})
 	})
 }
 
-// Benchmark tests
-func BenchmarkApplicativeMonoid_ConcatSuccesses(b *testing.B) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-	v1 := successValidator[string](5)
-	v2 := successValidator[string](3)
-	combined := m.Concat(v1, v2)
+// TestAltMonoid tests the AltMonoid function
+func TestAltMonoid(t *testing.T) {
+	t.Run("with default value as zero", func(t *testing.T) {
+		m := AltMonoid(func() Validate[string, int] {
+			return Of[string, int](0)
+		})
 
-	b.ResetTimer()
-	for range b.N {
-		_ = combined("test")(nil)
-	}
-}
+		t.Run("empty returns the provided zero validator", func(t *testing.T) {
+			empty := m.Empty()
+			result := empty("input")(nil)
 
-func BenchmarkApplicativeMonoid_ConcatFailures(b *testing.B) {
-	m := ApplicativeMonoid[string](intAddMonoid)
-	v1 := failureValidator[string, int]("error 1")
-	v2 := failureValidator[string, int]("error 2")
-	combined := m.Concat(v1, v2)
+			assert.Equal(t, validation.Of(0), result)
+		})
 
-	b.ResetTimer()
-	for range b.N {
-		_ = combined("test")(nil)
-	}
-}
+		t.Run("concat returns first validator when it succeeds", func(t *testing.T) {
+			validator1 := Of[string, int](42)
+			validator2 := Of[string, int](100)
 
-func BenchmarkApplicativeMonoid_MultipleConcat(b *testing.B) {
-	m := ApplicativeMonoid[string](intAddMonoid)
+			combined := m.Concat(validator1, validator2)
+			result := combined("input")(nil)
 
-	validators := make([]Validate[string, int], 10)
-	for i := range validators {
-		validators[i] = successValidator[string](i)
-	}
+			assert.Equal(t, validation.Of(42), result)
+		})
 
-	// Chain all validators
-	combined := validators[0]
-	for i := 1; i < len(validators); i++ {
-		combined = m.Concat(combined, validators[i])
-	}
+		t.Run("concat uses second as fallback when first fails", func(t *testing.T) {
+			failing := func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Value: input, Messsage: "failed"},
+					})
+				}
+			}
+			succeeding := Of[string, int](42)
 
-	b.ResetTimer()
-	for range b.N {
-		_ = combined("test")(nil)
-	}
+			combined := m.Concat(failing, succeeding)
+			result := combined("input")(nil)
+
+			assert.Equal(t, validation.Of(42), result)
+		})
+
+		t.Run("concat aggregates errors when both fail", func(t *testing.T) {
+			failing1 := func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Value: input, Messsage: "error 1"},
+					})
+				}
+			}
+			failing2 := func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Value: input, Messsage: "error 2"},
+					})
+				}
+			}
+
+			combined := m.Concat(failing1, failing2)
+			result := combined("input")(nil)
+
+			assert.True(t, either.IsLeft(result))
+			errors := either.MonadFold(result,
+				F.Identity[Errors],
+				func(int) Errors { return nil },
+			)
+			assert.GreaterOrEqual(t, len(errors), 2, "Should aggregate errors from both validators")
+
+			messages := make([]string, len(errors))
+			for i, err := range errors {
+				messages[i] = err.Messsage
+			}
+			assert.Contains(t, messages, "error 1")
+			assert.Contains(t, messages, "error 2")
+		})
+	})
+
+	t.Run("with failing zero", func(t *testing.T) {
+		m := AltMonoid(func() Validate[string, int] {
+			return func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Messsage: "no default available"},
+					})
+				}
+			}
+		})
+
+		t.Run("empty returns the failing zero validator", func(t *testing.T) {
+			empty := m.Empty()
+			result := empty("input")(nil)
+
+			assert.True(t, either.IsLeft(result))
+		})
+
+		t.Run("concat with all failures aggregates errors", func(t *testing.T) {
+			failing1 := func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Value: input, Messsage: "error 1"},
+					})
+				}
+			}
+			failing2 := func(input string) Reader[Context, Validation[int]] {
+				return func(ctx Context) Validation[int] {
+					return either.Left[int](validation.Errors{
+						{Value: input, Messsage: "error 2"},
+					})
+				}
+			}
+
+			combined := m.Concat(failing1, failing2)
+			result := combined("input")(nil)
+
+			assert.True(t, either.IsLeft(result))
+			errors := either.MonadFold(result,
+				F.Identity[Errors],
+				func(int) Errors { return nil },
+			)
+			assert.GreaterOrEqual(t, len(errors), 2, "Should aggregate errors")
+		})
+	})
+
+	t.Run("chaining multiple fallbacks", func(t *testing.T) {
+		m := AltMonoid(func() Validate[string, string] {
+			return Of[string, string]("default")
+		})
+
+		primary := func(input string) Reader[Context, Validation[string]] {
+			return func(ctx Context) Validation[string] {
+				return either.Left[string](validation.Errors{
+					{Value: input, Messsage: "primary failed"},
+				})
+			}
+		}
+		secondary := func(input string) Reader[Context, Validation[string]] {
+			return func(ctx Context) Validation[string] {
+				return either.Left[string](validation.Errors{
+					{Value: input, Messsage: "secondary failed"},
+				})
+			}
+		}
+		tertiary := Of[string, string]("tertiary value")
+
+		combined := m.Concat(m.Concat(primary, secondary), tertiary)
+		result := combined("input")(nil)
+
+		assert.Equal(t, validation.Of("tertiary value"), result)
+	})
+
+	t.Run("difference from AlternativeMonoid", func(t *testing.T) {
+		// AltMonoid - first success wins
+		altM := AltMonoid(func() Validate[string, int] {
+			return Of[string, int](0)
+		})
+
+		// AlternativeMonoid - combines successes
+		altMonoid := AlternativeMonoid[string, int](N.MonoidSum[int]())
+
+		validator1 := Of[string, int](10)
+		validator2 := Of[string, int](32)
+
+		// AltMonoid: returns first success (10)
+		result1 := altM.Concat(validator1, validator2)("input")(nil)
+		value1 := either.MonadFold(result1,
+			func(Errors) int { return 0 },
+			F.Identity[int],
+		)
+		assert.Equal(t, 10, value1, "AltMonoid returns first success")
+
+		// AlternativeMonoid: combines both successes (10 + 32 = 42)
+		result2 := altMonoid.Concat(validator1, validator2)("input")(nil)
+		value2 := either.MonadFold(result2,
+			func(Errors) int { return 0 },
+			F.Identity[int],
+		)
+		assert.Equal(t, 42, value2, "AlternativeMonoid combines successes")
+	})
 }

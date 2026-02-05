@@ -7,6 +7,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
+	"github.com/IBM/fp-go/v2/reader"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,6 +48,221 @@ func TestOf(t *testing.T) {
 
 		assert.Equal(t, res1, res2)
 		assert.Equal(t, validation.Of(100), res1)
+	})
+}
+
+// TestLeft tests the Left function
+func TestLeft(t *testing.T) {
+	t.Run("creates decoder that always fails", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Value:    "test",
+				Messsage: "test error",
+			},
+		}
+		decoder := Left[string, int](errors)
+		res := decoder("any input")
+
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("works with different input types", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "error message",
+			},
+		}
+		decoder := Left[int, string](errors)
+		res := decoder(123)
+
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("works with complex error types", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Value:    map[string]any{"key": "value"},
+				Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "email", Type: "string"}},
+				Messsage: "invalid email format",
+				Cause:    fmt.Errorf("underlying error"),
+			},
+			&validation.ValidationError{
+				Value:    -1,
+				Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "age", Type: "int"}},
+				Messsage: "age must be positive",
+			},
+		}
+		decoder := Left[string, int](errors)
+		res := decoder("input")
+
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("ignores input value", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "constant error",
+			},
+		}
+		decoder := Left[string, int](errors)
+
+		res1 := decoder("input1")
+		res2 := decoder("input2")
+
+		assert.Equal(t, res1, res2)
+		assert.True(t, either.IsLeft(res1))
+		_, leftVal := either.Unwrap(res1)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("works with empty error list", func(t *testing.T) {
+		errors := validation.Errors{}
+		decoder := Left[string, int](errors)
+		res := decoder("input")
+
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("can be used with OrElse for recovery", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "initial failure",
+			},
+		}
+		failDecoder := Left[string, int](errors)
+
+		recovered := OrElse(func(errs Errors) Decode[string, int] {
+			return Of[string](42)
+		})(failDecoder)
+
+		res := recovered("input")
+		assert.True(t, either.IsRight(res))
+		rightVal, _ := either.Unwrap(res)
+		assert.Equal(t, 42, rightVal)
+	})
+
+	t.Run("can be used with Alt for fallback", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "primary failure",
+			},
+		}
+		failDecoder := Left[string, int](errors)
+
+		withFallback := Alt(func() Decode[string, int] {
+			return Of[string](100)
+		})(failDecoder)
+
+		res := withFallback("input")
+		assert.True(t, either.IsRight(res))
+		rightVal, _ := either.Unwrap(res)
+		assert.Equal(t, 100, rightVal)
+	})
+
+	t.Run("can be used in MonadChain", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "chain failure",
+			},
+		}
+
+		decoder := MonadChain(Of[string](42), func(n int) Decode[string, string] {
+			if n > 40 {
+				return Left[string, string](errors)
+			}
+			return Of[string](fmt.Sprintf("Number: %d", n))
+		})
+
+		res := decoder("input")
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("errors are preserved through Map", func(t *testing.T) {
+		errors := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "original error",
+			},
+		}
+		failDecoder := Left[string, int](errors)
+
+		mapped := Map[string](func(n int) string {
+			return fmt.Sprintf("Number: %d", n)
+		})(failDecoder)
+
+		res := mapped("input")
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+		assert.Equal(t, errors, leftVal)
+	})
+
+	t.Run("can be used for conditional validation", func(t *testing.T) {
+		validateAge := func(age int) Decode[map[string]any, int] {
+			if age < 0 {
+				return Left[map[string]any, int](validation.Errors{
+					&validation.ValidationError{
+						Value:    age,
+						Context:  validation.Context{{Key: "age", Type: "int"}},
+						Messsage: "age cannot be negative",
+					},
+				})
+			}
+			return Of[map[string]any](age)
+		}
+
+		// Test with negative age
+		res1 := validateAge(-5)(map[string]any{"age": -5})
+		assert.True(t, either.IsLeft(res1))
+		_, leftVal := either.Unwrap(res1)
+		assert.Len(t, leftVal, 1)
+		assert.Equal(t, "age cannot be negative", leftVal[0].Messsage)
+
+		// Test with positive age
+		res2 := validateAge(25)(map[string]any{"age": 25})
+		assert.True(t, either.IsRight(res2))
+		rightVal, _ := either.Unwrap(res2)
+		assert.Equal(t, 25, rightVal)
+	})
+
+	t.Run("multiple Left decoders aggregate errors with Alt", func(t *testing.T) {
+		errors1 := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "error 1",
+			},
+		}
+		errors2 := validation.Errors{
+			&validation.ValidationError{
+				Messsage: "error 2",
+			},
+		}
+
+		decoder1 := Left[string, int](errors1)
+		decoder2 := func() Decode[string, int] {
+			return Left[string, int](errors2)
+		}
+
+		combined := MonadAlt(decoder1, decoder2)
+		res := combined("input")
+
+		assert.True(t, either.IsLeft(res))
+		_, leftVal := either.Unwrap(res)
+
+		// Extract error messages for checking
+		messages := make([]string, len(leftVal))
+		for i, err := range leftVal {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "error 1", "Should contain error from first decoder")
+		assert.Contains(t, messages, "error 2", "Should contain error from second decoder")
 	})
 }
 
@@ -448,7 +664,7 @@ func TestChainLeft(t *testing.T) {
 
 		assert.True(t, either.IsLeft(res))
 		errors := either.MonadFold(res,
-			func(e Errors) Errors { return e },
+			reader.Ask[Errors](),
 			func(string) Errors { return nil },
 		)
 		assert.Len(t, errors, 2, "Should aggregate both errors")
@@ -484,7 +700,7 @@ func TestChainLeft(t *testing.T) {
 
 		assert.True(t, either.IsLeft(res))
 		errors := either.MonadFold(res,
-			func(e Errors) Errors { return e },
+			reader.Ask[Errors](),
 			func(int) Errors { return nil },
 		)
 		assert.Len(t, errors, 2, "Should have both original and context errors")
@@ -544,6 +760,270 @@ func TestChainLeft(t *testing.T) {
 		res := decoder(Config{Port: 9999})
 
 		assert.Equal(t, validation.Of("default-value"), res)
+	})
+}
+
+// TestMonadChainLeft tests the MonadChainLeft function
+func TestMonadChainLeft(t *testing.T) {
+	t.Run("transforms failures while preserving successes", func(t *testing.T) {
+		// Create a failing decoder
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "decode failed"},
+			})
+		}
+
+		// Handler that recovers from specific errors
+		handler := func(errs Errors) Decode[string, int] {
+			for _, err := range errs {
+				if err.Messsage == "decode failed" {
+					return Of[string](0) // recover with default
+				}
+			}
+			return func(input string) Validation[int] {
+				return either.Left[int](errs)
+			}
+		}
+
+		decoder := MonadChainLeft(failingDecoder, handler)
+		res := decoder("input")
+
+		assert.Equal(t, validation.Of(0), res, "Should recover from failure")
+	})
+
+	t.Run("preserves success values unchanged", func(t *testing.T) {
+		successDecoder := Of[string](42)
+
+		handler := func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Messsage: "should not be called"},
+				})
+			}
+		}
+
+		decoder := MonadChainLeft(successDecoder, handler)
+		res := decoder("input")
+
+		assert.Equal(t, validation.Of(42), res, "Success should pass through unchanged")
+	})
+
+	t.Run("aggregates errors when transformation also fails", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: input, Messsage: "original error"},
+			})
+		}
+
+		handler := func(errs Errors) Decode[string, string] {
+			return func(input string) Validation[string] {
+				return either.Left[string](validation.Errors{
+					{Messsage: "additional error"},
+				})
+			}
+		}
+
+		decoder := MonadChainLeft(failingDecoder, handler)
+		res := decoder("input")
+
+		assert.True(t, either.IsLeft(res))
+		errors := either.MonadFold(res,
+			reader.Ask[Errors](),
+			func(string) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should aggregate both errors")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "original error")
+		assert.Contains(t, messages, "additional error")
+	})
+
+	t.Run("adds context to errors", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "invalid format"},
+			})
+		}
+
+		addContext := func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{
+						Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "age", Type: "int"}},
+						Messsage: "failed to decode user age",
+					},
+				})
+			}
+		}
+
+		decoder := MonadChainLeft(failingDecoder, addContext)
+		res := decoder("abc")
+
+		assert.True(t, either.IsLeft(res))
+		errors := either.MonadFold(res,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 2, "Should have both original and context errors")
+	})
+
+	t.Run("works with different input types", func(t *testing.T) {
+		type Config struct {
+			Port int
+		}
+
+		failingDecoder := func(cfg Config) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: cfg.Port, Messsage: "invalid port"},
+			})
+		}
+
+		handler := func(errs Errors) Decode[Config, string] {
+			return Of[Config]("default-value")
+		}
+
+		decoder := MonadChainLeft(failingDecoder, handler)
+		res := decoder(Config{Port: 9999})
+
+		assert.Equal(t, validation.Of("default-value"), res)
+	})
+
+	t.Run("handler can access original input", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "parse failed"},
+			})
+		}
+
+		handler := func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				// Handler can use the original input to make decisions
+				if input == "special" {
+					return validation.Of(999)
+				}
+				return validation.Of(0)
+			}
+		}
+
+		decoder := MonadChainLeft(failingDecoder, handler)
+
+		res1 := decoder("special")
+		assert.Equal(t, validation.Of(999), res1)
+
+		res2 := decoder("other")
+		assert.Equal(t, validation.Of(0), res2)
+	})
+
+	t.Run("is equivalent to ChainLeft", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error"},
+			})
+		}
+
+		handler := func(errs Errors) Decode[string, int] {
+			return Of[string](42)
+		}
+
+		// MonadChainLeft - direct application
+		result1 := MonadChainLeft(failingDecoder, handler)("input")
+
+		// ChainLeft - curried for pipelines
+		result2 := ChainLeft(handler)(failingDecoder)("input")
+
+		assert.Equal(t, result1, result2, "MonadChainLeft and ChainLeft should produce identical results")
+	})
+
+	t.Run("chains multiple error transformations", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error1"},
+			})
+		}
+
+		handler1 := func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Messsage: "error2"},
+				})
+			}
+		}
+
+		handler2 := func(errs Errors) Decode[string, int] {
+			// Check if we can recover
+			for _, err := range errs {
+				if err.Messsage == "error1" {
+					return Of[string](100) // recover
+				}
+			}
+			return func(input string) Validation[int] {
+				return either.Left[int](errs)
+			}
+		}
+
+		// Chain handlers
+		decoder := MonadChainLeft(MonadChainLeft(failingDecoder, handler1), handler2)
+		res := decoder("input")
+
+		// Should recover because error1 is present
+		assert.Equal(t, validation.Of(100), res)
+	})
+
+	t.Run("preserves error context through transformation", func(t *testing.T) {
+		failingDecoder := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{
+					Value:    input,
+					Messsage: "parse error",
+					Context:  validation.Context{{Key: "field", Type: "int"}},
+				},
+			})
+		}
+
+		handler := func(errs Errors) Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{
+						Messsage: "validation error",
+						Context:  validation.Context{{Key: "value", Type: "int"}},
+					},
+				})
+			}
+		}
+
+		decoder := MonadChainLeft(failingDecoder, handler)
+		res := decoder("abc")
+
+		assert.True(t, either.IsLeft(res))
+		errors := either.MonadFold(res,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		assert.Len(t, errors, 2)
+
+		// Verify both errors have context
+		for _, err := range errors {
+			assert.NotNil(t, err.Context, "Error should have context")
+		}
+	})
+
+	t.Run("does not call handler on success", func(t *testing.T) {
+		successDecoder := Of[string](42)
+		handlerCalled := false
+
+		handler := func(errs Errors) Decode[string, int] {
+			handlerCalled = true
+			return Of[string](0)
+		}
+
+		decoder := MonadChainLeft(successDecoder, handler)
+		res := decoder("input")
+
+		assert.Equal(t, validation.Of(42), res)
+		assert.False(t, handlerCalled, "Handler should not be called on success")
 	})
 }
 
@@ -621,7 +1101,7 @@ func TestOrElse(t *testing.T) {
 		// Verify both aggregate errors
 		assert.True(t, either.IsLeft(resultOrElse))
 		errors := either.MonadFold(resultOrElse,
-			func(e Errors) Errors { return e },
+			reader.Ask[Errors](),
 			func(string) Errors { return nil },
 		)
 		assert.Len(t, errors, 2, "Should aggregate both errors")
@@ -694,7 +1174,7 @@ func TestOrElse(t *testing.T) {
 
 		assert.True(t, either.IsLeft(res1))
 		errors := either.MonadFold(res1,
-			func(e Errors) Errors { return e },
+			reader.Ask[Errors](),
 			func(int) Errors { return nil },
 		)
 		// Errors accumulate through the pipeline
@@ -777,5 +1257,516 @@ func TestOrElse(t *testing.T) {
 					"OrElse and ChainLeft must produce identical results for: %s", scenario.name)
 			})
 		}
+	})
+}
+
+// TestMonadAlt tests the MonadAlt function
+func TestMonadAlt(t *testing.T) {
+	t.Run("returns first decoder when it succeeds", func(t *testing.T) {
+		decoder1 := Of[string](42)
+		decoder2 := func() Decode[string, int] {
+			return Of[string](100)
+		}
+
+		result := MonadAlt(decoder1, decoder2)("input")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("returns second decoder when first fails", func(t *testing.T) {
+		failing := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "first failed"},
+			})
+		}
+		fallback := func() Decode[string, int] {
+			return Of[string](42)
+		}
+
+		result := MonadAlt(failing, fallback)("input")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("aggregates errors when both fail", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+		failing2 := func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		}
+
+		result := MonadAlt(failing1, failing2)("input")
+		assert.True(t, either.IsLeft(result))
+
+		errors := either.MonadFold(result,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		// Note: Due to the implementation of onErrors using OrElse/ChainLeft,
+		// when both decoders fail, we get error aggregation but with some duplication
+		// The actual behavior aggregates: [second_error, first_error, second_error]
+		assert.GreaterOrEqual(t, len(errors), 2, "Should aggregate errors from both decoders")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "error 1", "Should contain error from first decoder")
+		assert.Contains(t, messages, "error 2", "Should contain error from second decoder")
+	})
+
+	t.Run("does not evaluate second decoder when first succeeds", func(t *testing.T) {
+		decoder1 := Of[string](42)
+		evaluated := false
+		decoder2 := func() Decode[string, int] {
+			evaluated = true
+			return Of[string](100)
+		}
+
+		result := MonadAlt(decoder1, decoder2)("input")
+		assert.Equal(t, validation.Of(42), result)
+		assert.False(t, evaluated, "Second decoder should not be evaluated")
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		failing := func(input string) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: input, Messsage: "failed"},
+			})
+		}
+		fallback := func() Decode[string, string] {
+			return Of[string]("fallback")
+		}
+
+		result := MonadAlt(failing, fallback)("input")
+		assert.Equal(t, validation.Of("fallback"), result)
+	})
+
+	t.Run("chains multiple alternatives", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+		failing2 := func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		}
+		succeeding := func() Decode[string, int] {
+			return Of[string](42)
+		}
+
+		// Chain: try failing1, then failing2, then succeeding
+		result := MonadAlt(MonadAlt(failing1, failing2), succeeding)("input")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("aggregates errors from multiple failed alternatives", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+		failing2 := func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		}
+		failing3 := func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 3"},
+				})
+			}
+		}
+
+		// Chain three failing decoders
+		result := MonadAlt(MonadAlt(failing1, failing2), failing3)("input")
+		assert.True(t, either.IsLeft(result))
+
+		errors := either.MonadFold(result,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		// Note: Due to chaining with onErrors/OrElse, errors accumulate with some duplication
+		assert.GreaterOrEqual(t, len(errors), 3, "Should aggregate errors from all decoders")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "error 1", "Should contain error from first decoder")
+		assert.Contains(t, messages, "error 2", "Should contain error from second decoder")
+		assert.Contains(t, messages, "error 3", "Should contain error from third decoder")
+	})
+
+	t.Run("works with complex input types", func(t *testing.T) {
+		type Config struct {
+			Port int
+		}
+
+		failing := func(cfg Config) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: cfg.Port, Messsage: "invalid port"},
+			})
+		}
+		fallback := func() Decode[Config, string] {
+			return Of[Config]("default")
+		}
+
+		result := MonadAlt(failing, fallback)(Config{Port: 9999})
+		assert.Equal(t, validation.Of("default"), result)
+	})
+
+	t.Run("preserves error context", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{
+					Value:    input,
+					Messsage: "parse error",
+					Context:  validation.Context{{Key: "field", Type: "int"}},
+				},
+			})
+		}
+		failing2 := func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{
+						Value:    input,
+						Messsage: "validation error",
+						Context:  validation.Context{{Key: "value", Type: "int"}},
+					},
+				})
+			}
+		}
+
+		result := MonadAlt(failing1, failing2)("abc")
+		assert.True(t, either.IsLeft(result))
+
+		errors := either.MonadFold(result,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		assert.GreaterOrEqual(t, len(errors), 2, "Should have errors from both decoders")
+		// Verify that errors with context are present
+		hasParseError := false
+		hasValidationError := false
+		for _, err := range errors {
+			if err.Messsage == "parse error" {
+				hasParseError = true
+				assert.NotNil(t, err.Context)
+			}
+			if err.Messsage == "validation error" {
+				hasValidationError = true
+				assert.NotNil(t, err.Context)
+			}
+		}
+		assert.True(t, hasParseError, "Should have parse error")
+		assert.True(t, hasValidationError, "Should have validation error")
+	})
+}
+
+// TestAlt tests the Alt function
+func TestAlt(t *testing.T) {
+	t.Run("creates operator that returns first decoder when it succeeds", func(t *testing.T) {
+		decoder1 := Of[string](42)
+		altOp := Alt(func() Decode[string, int] {
+			return Of[string](100)
+		})
+
+		result := altOp(decoder1)("input")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("creates operator that returns second decoder when first fails", func(t *testing.T) {
+		failing := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "first failed"},
+			})
+		}
+		altOp := Alt(func() Decode[string, int] {
+			return Of[string](42)
+		})
+
+		result := altOp(failing)("input")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("aggregates errors when both fail", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+		altOp := Alt(func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		})
+
+		result := altOp(failing1)("input")
+		assert.True(t, either.IsLeft(result))
+
+		errors := either.MonadFold(result,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		assert.GreaterOrEqual(t, len(errors), 2, "Should aggregate errors from both decoders")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "error 1", "Should contain error from first decoder")
+		assert.Contains(t, messages, "error 2", "Should contain error from second decoder")
+	})
+
+	t.Run("can be composed in pipeline", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+
+		alt2 := Alt(func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		})
+
+		alt3 := Alt(func() Decode[string, int] {
+			return Of[string](42)
+		})
+
+		// Compose: try failing1, then alt2, then alt3
+		decoder := alt3(alt2(failing1))
+		result := decoder("input")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("aggregates errors from pipeline when all fail", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+
+		alt2 := Alt(func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		})
+
+		alt3 := Alt(func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 3"},
+				})
+			}
+		})
+
+		decoder := alt3(alt2(failing1))
+		result := decoder("input")
+		assert.True(t, either.IsLeft(result))
+
+		errors := either.MonadFold(result,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		assert.GreaterOrEqual(t, len(errors), 3, "Should aggregate errors from all decoders")
+
+		messages := make([]string, len(errors))
+		for i, err := range errors {
+			messages[i] = err.Messsage
+		}
+		assert.Contains(t, messages, "error 1", "Should contain error from first decoder")
+		assert.Contains(t, messages, "error 2", "Should contain error from second decoder")
+		assert.Contains(t, messages, "error 3", "Should contain error from third decoder")
+	})
+
+	t.Run("creates reusable fallback operator", func(t *testing.T) {
+		// Create a reusable operator that falls back to 0
+		withDefault := Alt(func() Decode[string, int] {
+			return Of[string](0)
+		})
+
+		// Apply to different decoders
+		decoder1 := func(input string) Validation[int] {
+			if input == "valid" {
+				return validation.Of(42)
+			}
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "invalid"},
+			})
+		}
+
+		decoder2 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "always fails"},
+			})
+		}
+
+		result1 := withDefault(decoder1)("valid")
+		assert.Equal(t, validation.Of(42), result1)
+
+		result2 := withDefault(decoder1)("invalid")
+		assert.Equal(t, validation.Of(0), result2)
+
+		result3 := withDefault(decoder2)("anything")
+		assert.Equal(t, validation.Of(0), result3)
+	})
+
+	t.Run("does not evaluate second decoder when first succeeds", func(t *testing.T) {
+		decoder1 := Of[string](42)
+		evaluated := false
+		altOp := Alt(func() Decode[string, int] {
+			evaluated = true
+			return Of[string](100)
+		})
+
+		result := altOp(decoder1)("input")
+		assert.Equal(t, validation.Of(42), result)
+		assert.False(t, evaluated, "Second decoder should not be evaluated")
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		failing := func(input string) Validation[string] {
+			return either.Left[string](validation.Errors{
+				{Value: input, Messsage: "failed"},
+			})
+		}
+		altOp := Alt(func() Decode[string, string] {
+			return Of[string]("fallback")
+		})
+
+		result := altOp(failing)("input")
+		assert.Equal(t, validation.Of("fallback"), result)
+	})
+
+	t.Run("preserves error details in aggregation", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{
+					Value:    input,
+					Messsage: "parse error",
+					Context:  validation.Context{{Key: "field", Type: "int"}},
+				},
+			})
+		}
+		altOp := Alt(func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{
+						Value:    input,
+						Messsage: "validation error",
+						Context:  validation.Context{{Key: "value", Type: "int"}},
+					},
+				})
+			}
+		})
+
+		result := altOp(failing1)("abc")
+		assert.True(t, either.IsLeft(result))
+
+		errors := either.MonadFold(result,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		assert.GreaterOrEqual(t, len(errors), 2, "Should have errors from both decoders")
+		// Verify that both error types are present
+		hasParseError := false
+		hasValidationError := false
+		for _, err := range errors {
+			if err.Messsage == "parse error" {
+				hasParseError = true
+				assert.NotNil(t, err.Context, "Parse error should have context")
+			}
+			if err.Messsage == "validation error" {
+				hasValidationError = true
+				assert.NotNil(t, err.Context, "Validation error should have context")
+			}
+		}
+		assert.True(t, hasParseError, "Should have parse error")
+		assert.True(t, hasValidationError, "Should have validation error")
+	})
+}
+
+// TestMonadAltAndAltEquivalence tests that Alt is the curried version of MonadAlt
+func TestMonadAltAndAltEquivalence(t *testing.T) {
+	t.Run("Alt is equivalent to MonadAlt - Success case", func(t *testing.T) {
+		decoder1 := Of[string](42)
+		decoder2 := func() Decode[string, int] {
+			return Of[string](100)
+		}
+
+		resultMonadAlt := MonadAlt(decoder1, decoder2)("input")
+		resultAlt := Alt(decoder2)(decoder1)("input")
+
+		assert.Equal(t, resultMonadAlt, resultAlt)
+	})
+
+	t.Run("Alt is equivalent to MonadAlt - Fallback case", func(t *testing.T) {
+		failing := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "failed"},
+			})
+		}
+		fallback := func() Decode[string, int] {
+			return Of[string](42)
+		}
+
+		resultMonadAlt := MonadAlt(failing, fallback)("input")
+		resultAlt := Alt(fallback)(failing)("input")
+
+		assert.Equal(t, resultMonadAlt, resultAlt)
+	})
+
+	t.Run("Alt is equivalent to MonadAlt - Error aggregation", func(t *testing.T) {
+		failing1 := func(input string) Validation[int] {
+			return either.Left[int](validation.Errors{
+				{Value: input, Messsage: "error 1"},
+			})
+		}
+		failing2 := func() Decode[string, int] {
+			return func(input string) Validation[int] {
+				return either.Left[int](validation.Errors{
+					{Value: input, Messsage: "error 2"},
+				})
+			}
+		}
+
+		resultMonadAlt := MonadAlt(failing1, failing2)("input")
+		resultAlt := Alt(failing2)(failing1)("input")
+
+		assert.Equal(t, resultMonadAlt, resultAlt)
+
+		// Verify both aggregate errors
+		errorsMonadAlt := either.MonadFold(resultMonadAlt,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+		errorsAlt := either.MonadFold(resultAlt,
+			reader.Ask[Errors](),
+			func(int) Errors { return nil },
+		)
+
+		assert.GreaterOrEqual(t, len(errorsMonadAlt), 2, "MonadAlt should aggregate errors")
+		assert.GreaterOrEqual(t, len(errorsAlt), 2, "Alt should aggregate errors")
 	})
 }

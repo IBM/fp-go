@@ -24,6 +24,53 @@ import (
 )
 
 type (
+	// Errors is a collection of validation errors that occurred during decoding.
+	// This is an alias for validation.Errors, which is []*ValidationError.
+	//
+	// Errors accumulates multiple validation failures, allowing decoders to report
+	// all problems at once rather than failing on the first error. This is particularly
+	// useful for form validation, API request validation, and configuration parsing
+	// where users benefit from seeing all issues simultaneously.
+	//
+	// The Errors type forms a Semigroup and Monoid, enabling:
+	//  - Concatenation: Combining errors from multiple decoders
+	//  - Accumulation: Collecting errors through applicative operations
+	//  - Empty value: An empty slice representing no errors (success)
+	//
+	// Each error in the collection is a *ValidationError containing:
+	//  - Value: The actual value that failed validation
+	//  - Context: The path to the value in nested structures
+	//  - Message: Human-readable error description
+	//  - Cause: Optional underlying error
+	//
+	// Example:
+	//
+	//	// Multiple validation failures
+	//	errors := Errors{
+	//	    &validation.ValidationError{
+	//	        Value:    "",
+	//	        Context:  []validation.ContextEntry{{Key: "name"}},
+	//	        Messsage: "name is required",
+	//	    },
+	//	    &validation.ValidationError{
+	//	        Value:    "invalid@",
+	//	        Context:  []validation.ContextEntry{{Key: "email"}},
+	//	        Messsage: "invalid email format",
+	//	    },
+	//	}
+	//
+	//	// Create a failed validation with these errors
+	//	result := validation.Failures[User](errors)
+	//
+	//	// Errors can be combined using the monoid
+	//	moreErrors := Errors{
+	//	    &validation.ValidationError{
+	//	        Value:    -1,
+	//	        Context:  []validation.ContextEntry{{Key: "age"}},
+	//	        Messsage: "age must be positive",
+	//	    },
+	//	}
+	//	allErrors := append(errors, moreErrors...)
 	Errors = validation.Errors
 
 	// Validation represents the result of a validation operation that may contain
@@ -222,7 +269,78 @@ type (
 	//	)
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
+	// Monoid represents an algebraic structure with an associative binary operation
+	// and an identity element. This is an alias for monoid.Monoid[A].
+	//
+	// A Monoid[A] consists of:
+	//  - Concat: func(A, A) A - An associative binary operation
+	//  - Empty: func() A - An identity element
+	//
+	// In the decode context, monoids are used to combine multiple decoders or
+	// validation results. The most common use case is combining validation errors
+	// from multiple decoders using the Errors monoid.
+	//
+	// Properties:
+	//  - Associativity: Concat(Concat(a, b), c) == Concat(a, Concat(b, c))
+	//  - Identity: Concat(Empty(), a) == a == Concat(a, Empty())
+	//
+	// Common monoid instances:
+	//  - Errors: Combines validation errors from multiple sources
+	//  - Array: Concatenates arrays of decoded values
+	//  - String: Concatenates strings
+	//
+	// Example:
+	//
+	//	// Combine validation errors from multiple decoders
+	//	errorsMonoid := validation.GetMonoid[int]()
+	//
+	//	// Decode multiple fields and combine errors
+	//	result1 := decodeField1(data)  // Validation[string]
+	//	result2 := decodeField2(data)  // Validation[int]
+	//
+	//	// If both fail, errors are combined using the monoid
+	//	combined := errorsMonoid.Concat(result1, result2)
+	//
+	//	// The monoid's Empty() provides a successful validation with no errors
+	//	empty := errorsMonoid.Empty()  // Success with no value
 	Monoid[A any] = monoid.Monoid[A]
 
+	// Lazy represents a deferred computation that produces a value of type A.
+	// This is an alias for lazy.Lazy[A], which is func() A.
+	//
+	// In the decode context, Lazy is used to defer expensive computations or
+	// recursive decoder definitions until they are actually needed. This is
+	// particularly important for:
+	//  - Recursive data structures (e.g., trees, linked lists)
+	//  - Expensive default values
+	//  - Breaking circular dependencies in decoder definitions
+	//
+	// A Lazy[A] is simply a function that takes no arguments and returns A.
+	// The computation is only executed when the function is called, allowing
+	// for lazy evaluation and recursive definitions.
+	//
+	// Example:
+	//
+	//	// Define a recursive decoder for a tree structure
+	//	type Tree struct {
+	//	    Value    int
+	//	    Children []Tree
+	//	}
+	//
+	//	// Use Lazy to break the circular dependency
+	//	var decodeTree Decode[map[string]any, Tree]
+	//	decodeTree = func(data map[string]any) Validation[Tree] {
+	//	    // Lazy evaluation allows referencing decodeTree within itself
+	//	    childrenDecoder := Array(Lazy(func() Decode[map[string]any, Tree] {
+	//	        return decodeTree
+	//	    }))
+	//	    // ... rest of decoder implementation
+	//	}
+	//
+	//	// Lazy default value that's only computed if needed
+	//	expensiveDefault := Lazy(func() Config {
+	//	    // This computation only runs if the decode fails
+	//	    return computeExpensiveDefaultConfig()
+	//	})
 	Lazy[A any] = lazy.Lazy[A]
 )

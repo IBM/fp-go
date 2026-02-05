@@ -119,6 +119,7 @@
 package validate
 
 import (
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/readert"
 	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/reader"
@@ -429,6 +430,145 @@ func ChainLeft[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
 	)
 }
 
+// MonadChainLeft sequences a computation on the failure (Left) channel of a validation.
+//
+// This is the direct application version of ChainLeft. It operates on the error path
+// of validation, allowing you to transform, enrich, or recover from validation failures.
+// It's the dual of Chain - while Chain operates on success values, MonadChainLeft
+// operates on error values.
+//
+// # Key Behavior
+//
+// **Critical difference from standard Either operations**: This validation-specific
+// implementation **aggregates errors** using the Errors monoid. When the transformation
+// function returns a failure, both the original errors AND the new errors are combined,
+// ensuring comprehensive error reporting.
+//
+//  1. **Success Pass-Through**: If validation succeeds, the handler is never called and
+//     the success value passes through unchanged.
+//
+//  2. **Error Recovery**: The handler can recover from failures by returning a successful
+//     validation, converting Left to Right.
+//
+//  3. **Error Aggregation**: When the handler also returns a failure, both the original
+//     errors and the new errors are combined using the Errors monoid.
+//
+//  4. **Input Access**: The handler returns a Validate[I, A] function, giving it access
+//     to the original input value I for context-aware error handling.
+//
+// # Type Parameters
+//
+//   - I: The input type
+//   - A: The type of the validation result
+//
+// # Parameters
+//
+//   - fa: The Validate[I, A] to transform
+//   - f: A Kleisli arrow that takes Errors and returns a Validate[I, A]. This function
+//     is called only when validation fails, receiving the accumulated errors.
+//
+// # Returns
+//
+// A Validate[I, A] that handles error cases according to the provided function.
+//
+// # Example: Error Recovery
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/optics/codec/validate"
+//	    "github.com/IBM/fp-go/v2/optics/codec/validation"
+//	)
+//
+//	// Validator that may fail
+//	validatePositive := func(n int) validate.Reader[validation.Context, validation.Validation[int]] {
+//	    return func(ctx validation.Context) validation.Validation[int] {
+//	        if n > 0 {
+//	            return validation.Success(n)
+//	        }
+//	        return validation.FailureWithMessage[int](n, "must be positive")(ctx)
+//	    }
+//	}
+//
+//	// Recover from specific errors with a default value
+//	withDefault := func(errs validation.Errors) validate.Validate[int, int] {
+//	    for _, err := range errs {
+//	        if err.Messsage == "must be positive" {
+//	            return validate.Of[int](0) // recover with default
+//	        }
+//	    }
+//	    // Propagate other errors
+//	    return func(input int) validate.Reader[validation.Context, validation.Validation[int]] {
+//	        return func(ctx validation.Context) validation.Validation[int] {
+//	            return either.Left[int](errs)
+//	        }
+//	    }
+//	}
+//
+//	validator := validate.MonadChainLeft(validatePositive, withDefault)
+//	result := validator(-5)(nil)
+//	// Result: Success(0) - recovered from failure
+//
+// # Example: Error Context Addition
+//
+//	// Add contextual information to errors
+//	addContext := func(errs validation.Errors) validate.Validate[string, int] {
+//	    return func(input string) validate.Reader[validation.Context, validation.Validation[int]] {
+//	        return func(ctx validation.Context) validation.Validation[int] {
+//	            // Add context error (will be aggregated with original)
+//	            return either.Left[int](validation.Errors{
+//	                {
+//	                    Context:  validation.Context{{Key: "user", Type: "User"}, {Key: "age", Type: "int"}},
+//	                    Messsage: "failed to validate user age",
+//	                },
+//	            })
+//	        }
+//	    }
+//	}
+//
+//	validator := validate.MonadChainLeft(someValidator, addContext)
+//	// Errors will include both original error and context
+//
+// # Example: Input-Dependent Recovery
+//
+//	// Recover with different defaults based on input
+//	smartDefault := func(errs validation.Errors) validate.Validate[string, int] {
+//	    return func(input string) validate.Reader[validation.Context, validation.Validation[int]] {
+//	        return func(ctx validation.Context) validation.Validation[int] {
+//	            // Use input to determine appropriate default
+//	            if strings.Contains(input, "http:") {
+//	                return validation.Success(80)
+//	            }
+//	            if strings.Contains(input, "https:") {
+//	                return validation.Success(443)
+//	            }
+//	            return validation.Success(8080)
+//	        }
+//	    }
+//	}
+//
+//	validator := validate.MonadChainLeft(parsePort, smartDefault)
+//
+// # Notes
+//
+//   - Errors are accumulated, not replaced - this ensures no validation failures are lost
+//   - The handler has access to both the errors and the original input
+//   - Success values bypass the handler completely
+//   - This is the direct application version of ChainLeft
+//   - This enables sophisticated error handling strategies including recovery, enrichment, and transformation
+//
+// # See Also
+//
+//   - ChainLeft: The curried, point-free version
+//   - OrElse: Semantic alias for ChainLeft emphasizing fallback logic
+//   - MonadAlt: Simplified alternative that ignores error details
+//   - Alt: Curried version of MonadAlt
+func MonadChainLeft[I, A any](fa Validate[I, A], f Kleisli[I, Errors, A]) Validate[I, A] {
+	return readert.MonadChain(
+		decode.MonadChainLeft,
+		fa,
+		f,
+	)
+}
+
 // OrElse provides an alternative validation when the primary validation fails.
 //
 // This is a semantic alias for ChainLeft with identical behavior. The name "OrElse"
@@ -627,4 +767,219 @@ func Ap[B, I, A any](fa Validate[I, A]) Operator[I, func(A) B, B] {
 		decode.Ap[B, Context, A],
 		fa,
 	)
+}
+
+// Alt provides an alternative validator when the primary validator fails.
+//
+// This is the curried, point-free version of MonadAlt. It creates an operator that
+// transforms a validator by adding a fallback alternative. When the first validator
+// fails, the second (lazily evaluated) validator is tried. If both fail, errors are
+// aggregated.
+//
+// Alt implements the Alternative typeclass pattern, providing a way to express
+// "try this, or else try that" logic in a composable way.
+//
+// # Type Parameters
+//
+//   - I: The input type
+//   - A: The type of the validation result
+//
+// # Parameters
+//
+//   - second: A lazy Validate[I, A] that serves as the fallback. It's only evaluated
+//     if the first validator fails.
+//
+// # Returns
+//
+// An Operator[I, A, A] that transforms validators by adding alternative fallback logic.
+//
+// # Behavior
+//
+//   - **First succeeds**: Returns the first result, second is never evaluated
+//   - **First fails, second succeeds**: Returns the second result
+//   - **Both fail**: Aggregates errors from both validators
+//
+// # Example: Fallback Validation
+//
+//	import (
+//	    F "github.com/IBM/fp-go/v2/function"
+//	    "github.com/IBM/fp-go/v2/optics/codec/validate"
+//	    "github.com/IBM/fp-go/v2/optics/codec/validation"
+//	)
+//
+//	// Primary validator that may fail
+//	validateFromConfig := func(key string) validate.Reader[validation.Context, validation.Validation[string]] {
+//	    return func(ctx validation.Context) validation.Validation[string] {
+//	        // Try to get value from config
+//	        if value, ok := config[key]; ok {
+//	            return validation.Success(value)
+//	        }
+//	        return validation.FailureWithMessage[string](key, "not in config")(ctx)
+//	    }
+//	}
+//
+//	// Fallback to environment variable
+//	validateFromEnv := func(key string) validate.Reader[validation.Context, validation.Validation[string]] {
+//	    return func(ctx validation.Context) validation.Validation[string] {
+//	        if value := os.Getenv(key); value != "" {
+//	            return validation.Success(value)
+//	        }
+//	        return validation.FailureWithMessage[string](key, "not in env")(ctx)
+//	    }
+//	}
+//
+//	// Use Alt to add fallback - point-free style
+//	withFallback := validate.Alt(func() validate.Validate[string, string] {
+//	    return validateFromEnv
+//	})
+//
+//	validator := withFallback(validateFromConfig)
+//	result := validator("DATABASE_URL")(nil)
+//	// Tries config first, falls back to environment variable
+//
+// # Example: Pipeline with Multiple Alternatives
+//
+//	// Chain multiple alternatives using function composition
+//	validator := F.Pipe2(
+//	    validateFromDatabase,
+//	    validate.Alt(func() validate.Validate[string, Config] {
+//	        return validateFromCache
+//	    }),
+//	    validate.Alt(func() validate.Validate[string, Config] {
+//	        return validate.Of[string](defaultConfig)
+//	    }),
+//	)
+//	// Tries database, then cache, then default
+//
+// # Notes
+//
+//   - The second validator is lazily evaluated for efficiency
+//   - First success short-circuits evaluation
+//   - Errors are aggregated when both fail
+//   - This is the point-free version of MonadAlt
+//   - Useful for building validation pipelines with F.Pipe
+//
+// # See Also
+//
+//   - MonadAlt: The direct application version
+//   - ChainLeft: The more general error transformation operator
+//   - OrElse: Semantic alias for ChainLeft
+//   - AltMonoid: For combining multiple alternatives with monoid structure
+func Alt[I, A any](second Lazy[Validate[I, A]]) Operator[I, A, A] {
+	return ChainLeft(function.Ignore1of1[Errors](second))
+}
+
+// MonadAlt provides an alternative validator when the primary validator fails.
+//
+// This is the direct application version of Alt. It takes two validators and returns
+// a new validator that tries the first, and if it fails, tries the second. If both
+// fail, errors from both are aggregated.
+//
+// MonadAlt implements the Alternative typeclass pattern, enabling "try this, or else
+// try that" logic with comprehensive error reporting.
+//
+// # Type Parameters
+//
+//   - I: The input type
+//   - A: The type of the validation result
+//
+// # Parameters
+//
+//   - first: The primary Validate[I, A] to try first
+//   - second: A lazy Validate[I, A] that serves as the fallback. It's only evaluated
+//     if the first validator fails.
+//
+// # Returns
+//
+// A Validate[I, A] that tries the first validator, falling back to the second if needed.
+//
+// # Behavior
+//
+//   - **First succeeds**: Returns the first result, second is never evaluated
+//   - **First fails, second succeeds**: Returns the second result
+//   - **Both fail**: Aggregates errors from both validators
+//
+// # Example: Configuration with Fallback
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/optics/codec/validate"
+//	    "github.com/IBM/fp-go/v2/optics/codec/validation"
+//	)
+//
+//	// Primary validator
+//	validateFromConfig := func(key string) validate.Reader[validation.Context, validation.Validation[string]] {
+//	    return func(ctx validation.Context) validation.Validation[string] {
+//	        if value, ok := config[key]; ok {
+//	            return validation.Success(value)
+//	        }
+//	        return validation.FailureWithMessage[string](key, "not in config")(ctx)
+//	    }
+//	}
+//
+//	// Fallback validator
+//	validateFromEnv := func(key string) validate.Reader[validation.Context, validation.Validation[string]] {
+//	    return func(ctx validation.Context) validation.Validation[string] {
+//	        if value := os.Getenv(key); value != "" {
+//	            return validation.Success(value)
+//	        }
+//	        return validation.FailureWithMessage[string](key, "not in env")(ctx)
+//	    }
+//	}
+//
+//	// Combine with MonadAlt
+//	validator := validate.MonadAlt(
+//	    validateFromConfig,
+//	    func() validate.Validate[string, string] { return validateFromEnv },
+//	)
+//	result := validator("DATABASE_URL")(nil)
+//	// Tries config first, falls back to environment variable
+//
+// # Example: Multiple Fallbacks
+//
+//	// Chain multiple alternatives
+//	validator := validate.MonadAlt(
+//	    validate.MonadAlt(
+//	        validateFromDatabase,
+//	        func() validate.Validate[string, Config] { return validateFromCache },
+//	    ),
+//	    func() validate.Validate[string, Config] { return validate.Of[string](defaultConfig) },
+//	)
+//	// Tries database, then cache, then default
+//
+// # Example: Error Aggregation
+//
+//	failing1 := func(input string) validate.Reader[validation.Context, validation.Validation[int]] {
+//	    return func(ctx validation.Context) validation.Validation[int] {
+//	        return validation.FailureWithMessage[int](input, "error 1")(ctx)
+//	    }
+//	}
+//	failing2 := func(input string) validate.Reader[validation.Context, validation.Validation[int]] {
+//	    return func(ctx validation.Context) validation.Validation[int] {
+//	        return validation.FailureWithMessage[int](input, "error 2")(ctx)
+//	    }
+//	}
+//
+//	validator := validate.MonadAlt(
+//	    failing1,
+//	    func() validate.Validate[string, int] { return failing2 },
+//	)
+//	result := validator("input")(nil)
+//	// result contains both "error 1" and "error 2"
+//
+// # Notes
+//
+//   - The second validator is lazily evaluated for efficiency
+//   - First success short-circuits evaluation (second not called)
+//   - Errors are aggregated when both fail
+//   - This is equivalent to Alt but with direct application
+//   - Both validators receive the same input value
+//
+// # See Also
+//
+//   - Alt: The curried, point-free version
+//   - MonadChainLeft: The underlying error transformation operation
+//   - OrElse: Semantic alias for ChainLeft
+//   - AltMonoid: For combining multiple alternatives with monoid structure
+func MonadAlt[I, A any](first Validate[I, A], second Lazy[Validate[I, A]]) Validate[I, A] {
+	return MonadChainLeft(first, function.Ignore1of1[Errors](second))
 }
