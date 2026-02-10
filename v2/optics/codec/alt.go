@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -269,4 +270,211 @@ func MonadAlt[A, O, I any](first Type[A, O, I], second Lazy[Type[A, O, I]]) Type
 //   - F.Pipe: For composing multiple operators
 func Alt[A, O, I any](second Lazy[Type[A, O, I]]) Operator[A, A, O, I] {
 	return F.Bind2nd(MonadAlt, second)
+}
+
+// AltMonoid creates a Monoid instance for Type[A, O, I] using alternative semantics
+// with a provided zero/default codec.
+//
+// This function creates a monoid where:
+//  1. The first successful codec wins (no result combination)
+//  2. If the first fails during validation, the second is tried as a fallback
+//  3. If both fail, errors are aggregated
+//  4. The provided zero codec serves as the identity element
+//
+// Unlike other monoid patterns, AltMonoid does NOT combine successful results - it always
+// returns the first success. This makes it ideal for building fallback chains with default
+// codecs, configuration loading from multiple sources, and parser combinators with alternatives.
+//
+// # Type Parameters
+//
+//   - A: The target type that all codecs decode to
+//   - O: The output type that all codecs encode to
+//   - I: The input type that all codecs decode from
+//
+// # Parameters
+//
+//   - zero: A lazy Type[A, O, I] that serves as the identity element. This is typically
+//     a codec that always succeeds with a default value, but can also be a failing
+//     codec if no default is appropriate.
+//
+// # Returns
+//
+// A Monoid[Type[A, O, I]] that combines codecs using alternative semantics where
+// the first success wins.
+//
+// # Behavior Details
+//
+// The AltMonoid implements a "first success wins" strategy:
+//
+//   - **First succeeds**: Returns the first result, second is never evaluated
+//   - **First fails, second succeeds**: Returns the second result
+//   - **Both fail**: Aggregates errors from both validators
+//   - **Concat with Empty**: The zero codec is used as fallback
+//   - **Encoding**: Always uses the first codec's encoder
+//
+// # Example: Configuration Loading with Fallbacks
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/optics/codec"
+//	    "github.com/IBM/fp-go/v2/array"
+//	)
+//
+//	// Create a monoid with a default configuration
+//	m := codec.AltMonoid(func() codec.Type[Config, string, string] {
+//	    return codec.MakeType(
+//	        "DefaultConfig",
+//	        codec.Is[Config](),
+//	        func(s string) codec.Decode[codec.Context, Config] {
+//	            return func(c codec.Context) codec.Validation[Config] {
+//	                return validation.Success(defaultConfig)
+//	            }
+//	        },
+//	        encodeConfig,
+//	    )
+//	})
+//
+//	// Define codecs for different sources
+//	fileCodec := loadFromFile("config.json")
+//	envCodec := loadFromEnv()
+//	defaultCodec := m.Empty()
+//
+//	// Try file, then env, then default
+//	configCodec := array.MonadFold(
+//	    []codec.Type[Config, string, string]{fileCodec, envCodec, defaultCodec},
+//	    m.Empty(),
+//	    m.Concat,
+//	)
+//
+//	// Load configuration - tries each source in order
+//	result := configCodec.Decode(input)
+//
+// # Example: Parser with Multiple Formats
+//
+//	// Create a monoid for parsing dates in multiple formats
+//	m := codec.AltMonoid(func() codec.Type[time.Time, string, string] {
+//	    return codec.Date(time.RFC3339) // default format
+//	})
+//
+//	// Define parsers for different date formats
+//	iso8601 := codec.Date("2006-01-02")
+//	usFormat := codec.Date("01/02/2006")
+//	euroFormat := codec.Date("02/01/2006")
+//
+//	// Combine: try ISO 8601, then US, then European, then RFC3339
+//	flexibleDate := m.Concat(
+//	    m.Concat(
+//	        m.Concat(iso8601, usFormat),
+//	        euroFormat,
+//	    ),
+//	    m.Empty(),
+//	)
+//
+//	// Can parse any of these formats
+//	result1 := flexibleDate.Decode("2024-03-15")      // ISO 8601
+//	result2 := flexibleDate.Decode("03/15/2024")      // US format
+//	result3 := flexibleDate.Decode("15/03/2024")      // European format
+//
+// # Example: Integer Parsing with Default
+//
+//	// Create a monoid with default value of 0
+//	m := codec.AltMonoid(func() codec.Type[int, string, string] {
+//	    return codec.MakeType(
+//	        "DefaultZero",
+//	        codec.Is[int](),
+//	        func(s string) codec.Decode[codec.Context, int] {
+//	            return func(c codec.Context) codec.Validation[int] {
+//	                return validation.Success(0)
+//	            }
+//	        },
+//	        strconv.Itoa,
+//	    )
+//	})
+//
+//	// Try parsing as int, fall back to 0
+//	intOrZero := m.Concat(codec.IntFromString(), m.Empty())
+//
+//	result1 := intOrZero.Decode("42")        // Success(42)
+//	result2 := intOrZero.Decode("invalid")   // Success(0) - uses default
+//
+// # Example: Error Aggregation
+//
+//	// Both codecs fail - errors are aggregated
+//	m := codec.AltMonoid(func() codec.Type[int, string, string] {
+//	    return codec.MakeType(
+//	        "NoDefault",
+//	        codec.Is[int](),
+//	        func(s string) codec.Decode[codec.Context, int] {
+//	            return func(c codec.Context) codec.Validation[int] {
+//	                return validation.FailureWithMessage[int](s, "no default available")(c)
+//	            }
+//	        },
+//	        strconv.Itoa,
+//	    )
+//	})
+//
+//	failing1 := codec.MakeType(
+//	    "Failing1",
+//	    codec.Is[int](),
+//	    func(s string) codec.Decode[codec.Context, int] {
+//	        return func(c codec.Context) codec.Validation[int] {
+//	            return validation.FailureWithMessage[int](s, "error 1")(c)
+//	        }
+//	    },
+//	    strconv.Itoa,
+//	)
+//
+//	failing2 := codec.MakeType(
+//	    "Failing2",
+//	    codec.Is[int](),
+//	    func(s string) codec.Decode[codec.Context, int] {
+//	        return func(c codec.Context) codec.Validation[int] {
+//	            return validation.FailureWithMessage[int](s, "error 2")(c)
+//	        }
+//	    },
+//	    strconv.Itoa,
+//	)
+//
+//	combined := m.Concat(failing1, failing2)
+//	result := combined.Decode("input")
+//	// result contains errors: "error 1", "error 2", and "no default available"
+//
+// # Monoid Laws
+//
+// AltMonoid satisfies the monoid laws:
+//
+//  1. **Left Identity**: m.Concat(m.Empty(), codec) ≡ codec
+//  2. **Right Identity**: m.Concat(codec, m.Empty()) ≡ codec (tries codec first, falls back to zero)
+//  3. **Associativity**: m.Concat(m.Concat(a, b), c) ≡ m.Concat(a, m.Concat(b, c))
+//
+// Note: Due to the "first success wins" behavior, right identity means the zero is only
+// used if the codec fails.
+//
+// # Use Cases
+//
+//   - Configuration loading with multiple sources (file, env, default)
+//   - Parsing data in multiple formats with fallbacks
+//   - API versioning (try v2, fall back to v1, then default)
+//   - Content negotiation (try JSON, then XML, then plain text)
+//   - Validation with default values
+//   - Parser combinators with alternative branches
+//
+// # Notes
+//
+//   - The zero codec is lazily evaluated, only when needed
+//   - First success short-circuits evaluation (subsequent codecs not tried)
+//   - Error aggregation ensures all validation failures are reported
+//   - Encoding always uses the first codec's encoder
+//   - This follows the alternative functor laws
+//
+// # See Also
+//
+//   - MonadAlt: The underlying alternative operation for two codecs
+//   - Alt: The curried version for pipeline composition
+//   - validate.AltMonoid: The validation-level alternative monoid
+//   - decode.AltMonoid: The decode-level alternative monoid
+func AltMonoid[A, O, I any](zero Lazy[Type[A, O, I]]) Monoid[Type[A, O, I]] {
+	return monoid.AltMonoid(
+		zero,
+		MonadAlt[A, O, I],
+	)
 }

@@ -561,3 +561,361 @@ func TestAltErrorMessages(t *testing.T) {
 		assert.True(t, hasCodec2Error, "should have error from second codec")
 	})
 }
+
+// TestAltMonoid tests the AltMonoid function
+func TestAltMonoid(t *testing.T) {
+	t.Run("with default value as zero", func(t *testing.T) {
+		// Create a monoid with a default value of 0
+		m := AltMonoid(func() Type[int, string, string] {
+			return MakeType(
+				"DefaultZero",
+				Is[int](),
+				func(s string) Decode[Context, int] {
+					return func(c Context) Validation[int] {
+						return validation.Success(0)
+					}
+				},
+				strconv.Itoa,
+			)
+		})
+
+		// Create codecs
+		intFromString := IntFromString()
+		failing := MakeType(
+			"Failing",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.FailureWithMessage[int](s, "always fails")(c)
+				}
+			},
+			strconv.Itoa,
+		)
+
+		t.Run("first success wins", func(t *testing.T) {
+			// Combine two successful codecs - first should win
+			codec1 := MakeType(
+				"Returns10",
+				Is[int](),
+				func(s string) Decode[Context, int] {
+					return func(c Context) Validation[int] {
+						return validation.Success(10)
+					}
+				},
+				strconv.Itoa,
+			)
+			codec2 := MakeType(
+				"Returns20",
+				Is[int](),
+				func(s string) Decode[Context, int] {
+					return func(c Context) Validation[int] {
+						return validation.Success(20)
+					}
+				},
+				strconv.Itoa,
+			)
+
+			combined := m.Concat(codec1, codec2)
+			result := combined.Decode("input")
+
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, int](0))(result)
+			assert.Equal(t, 10, value, "first success should win")
+		})
+
+		t.Run("falls back to second when first fails", func(t *testing.T) {
+			combined := m.Concat(failing, intFromString)
+			result := combined.Decode("42")
+
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, int](0))(result)
+			assert.Equal(t, 42, value)
+		})
+
+		t.Run("uses zero when both fail", func(t *testing.T) {
+			combined := m.Concat(failing, m.Empty())
+			result := combined.Decode("invalid")
+
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, int](-1))(result)
+			assert.Equal(t, 0, value, "should use default zero value")
+		})
+	})
+
+	t.Run("with failing zero", func(t *testing.T) {
+		// Create a monoid with a failing zero
+		m := AltMonoid(func() Type[int, string, string] {
+			return MakeType(
+				"NoDefault",
+				Is[int](),
+				func(s string) Decode[Context, int] {
+					return func(c Context) Validation[int] {
+						return validation.FailureWithMessage[int](s, "no default available")(c)
+					}
+				},
+				strconv.Itoa,
+			)
+		})
+
+		failing1 := MakeType(
+			"Failing1",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.FailureWithMessage[int](s, "error 1")(c)
+				}
+			},
+			strconv.Itoa,
+		)
+
+		failing2 := MakeType(
+			"Failing2",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.FailureWithMessage[int](s, "error 2")(c)
+				}
+			},
+			strconv.Itoa,
+		)
+
+		t.Run("aggregates all errors when all fail", func(t *testing.T) {
+			combined := m.Concat(m.Concat(failing1, failing2), m.Empty())
+			result := combined.Decode("input")
+
+			assert.True(t, either.IsLeft(result))
+
+			errors := either.MonadFold(result,
+				F.Identity[validation.Errors],
+				func(int) validation.Errors { return nil },
+			)
+
+			require.NotNil(t, errors)
+			// Should have errors from all three: failing1, failing2, and zero
+			assert.GreaterOrEqual(t, len(errors), 3)
+
+			messages := make([]string, len(errors))
+			for i, err := range errors {
+				messages[i] = err.Messsage
+			}
+
+			hasError1 := false
+			hasError2 := false
+			hasNoDefault := false
+			for _, msg := range messages {
+				if msg == "error 1" {
+					hasError1 = true
+				}
+				if msg == "error 2" {
+					hasError2 = true
+				}
+				if msg == "no default available" {
+					hasNoDefault = true
+				}
+			}
+
+			assert.True(t, hasError1, "should have error from failing1")
+			assert.True(t, hasError2, "should have error from failing2")
+			assert.True(t, hasNoDefault, "should have error from zero")
+		})
+	})
+
+	t.Run("chaining multiple fallbacks", func(t *testing.T) {
+		m := AltMonoid(func() Type[string, string, string] {
+			return MakeType(
+				"Default",
+				Is[string](),
+				func(s string) Decode[Context, string] {
+					return func(c Context) Validation[string] {
+						return validation.Success("default")
+					}
+				},
+				F.Identity[string],
+			)
+		})
+
+		primary := MakeType(
+			"Primary",
+			Is[string](),
+			func(s string) Decode[Context, string] {
+				return func(c Context) Validation[string] {
+					if s == "primary" {
+						return validation.Success("from primary")
+					}
+					return validation.FailureWithMessage[string](s, "not primary")(c)
+				}
+			},
+			F.Identity[string],
+		)
+
+		secondary := MakeType(
+			"Secondary",
+			Is[string](),
+			func(s string) Decode[Context, string] {
+				return func(c Context) Validation[string] {
+					if s == "secondary" {
+						return validation.Success("from secondary")
+					}
+					return validation.FailureWithMessage[string](s, "not secondary")(c)
+				}
+			},
+			F.Identity[string],
+		)
+
+		// Chain: try primary, then secondary, then default
+		combined := m.Concat(m.Concat(primary, secondary), m.Empty())
+
+		t.Run("uses primary when it succeeds", func(t *testing.T) {
+			result := combined.Decode("primary")
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+			assert.Equal(t, "from primary", value)
+		})
+
+		t.Run("uses secondary when primary fails", func(t *testing.T) {
+			result := combined.Decode("secondary")
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+			assert.Equal(t, "from secondary", value)
+		})
+
+		t.Run("uses default when both fail", func(t *testing.T) {
+			result := combined.Decode("other")
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+			assert.Equal(t, "default", value)
+		})
+	})
+
+	t.Run("satisfies monoid laws", func(t *testing.T) {
+		m := AltMonoid(func() Type[int, string, string] {
+			return MakeType(
+				"DefaultZero",
+				Is[int](),
+				func(s string) Decode[Context, int] {
+					return func(c Context) Validation[int] {
+						return validation.Success(0)
+					}
+				},
+				strconv.Itoa,
+			)
+		})
+
+		codec1 := MakeType(
+			"Codec1",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.Success(10)
+				}
+			},
+			strconv.Itoa,
+		)
+
+		codec2 := MakeType(
+			"Codec2",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.Success(20)
+				}
+			},
+			strconv.Itoa,
+		)
+
+		codec3 := MakeType(
+			"Codec3",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.Success(30)
+				}
+			},
+			strconv.Itoa,
+		)
+
+		t.Run("left identity", func(t *testing.T) {
+			// m.Concat(m.Empty(), codec) should behave like codec
+			// But with AltMonoid, if codec fails, it falls back to empty
+			combined := m.Concat(m.Empty(), codec1)
+			result := combined.Decode("input")
+
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, int](-1))(result)
+			// Empty (0) comes first, so it wins
+			assert.Equal(t, 0, value)
+		})
+
+		t.Run("right identity", func(t *testing.T) {
+			// m.Concat(codec, m.Empty()) tries codec first, falls back to empty
+			combined := m.Concat(codec1, m.Empty())
+			result := combined.Decode("input")
+
+			assert.True(t, either.IsRight(result))
+			value := either.GetOrElse(reader.Of[validation.Errors, int](-1))(result)
+			assert.Equal(t, 10, value, "codec1 should win")
+		})
+
+		t.Run("associativity", func(t *testing.T) {
+			// For AltMonoid, first success wins
+			left := m.Concat(m.Concat(codec1, codec2), codec3)
+			right := m.Concat(codec1, m.Concat(codec2, codec3))
+
+			resultLeft := left.Decode("input")
+			resultRight := right.Decode("input")
+
+			assert.True(t, either.IsRight(resultLeft))
+			assert.True(t, either.IsRight(resultRight))
+
+			valueLeft := either.GetOrElse(reader.Of[validation.Errors, int](-1))(resultLeft)
+			valueRight := either.GetOrElse(reader.Of[validation.Errors, int](-1))(resultRight)
+
+			// Both should return 10 (first success)
+			assert.Equal(t, valueLeft, valueRight)
+			assert.Equal(t, 10, valueLeft)
+		})
+	})
+
+	t.Run("encoding uses first codec", func(t *testing.T) {
+		m := AltMonoid(func() Type[int, string, string] {
+			return MakeType(
+				"Default",
+				Is[int](),
+				func(s string) Decode[Context, int] {
+					return func(c Context) Validation[int] {
+						return validation.Success(0)
+					}
+				},
+				func(n int) string { return "DEFAULT" },
+			)
+		})
+
+		codec1 := MakeType(
+			"Codec1",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.Success(42)
+				}
+			},
+			func(n int) string { return fmt.Sprintf("FIRST:%d", n) },
+		)
+
+		codec2 := MakeType(
+			"Codec2",
+			Is[int](),
+			func(s string) Decode[Context, int] {
+				return func(c Context) Validation[int] {
+					return validation.Success(100)
+				}
+			},
+			func(n int) string { return fmt.Sprintf("SECOND:%d", n) },
+		)
+
+		combined := m.Concat(codec1, codec2)
+
+		// Encoding should use first codec's encoder
+		encoded := combined.Encode(42)
+		assert.Equal(t, "FIRST:42", encoded)
+	})
+}
