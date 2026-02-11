@@ -25,10 +25,11 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 	RIOE "github.com/IBM/fp-go/v2/readerioeither"
 	"github.com/IBM/fp-go/v2/readeroption"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 //go:inline
-func FromReaderOption[R, A any](onNone func() error) Kleisli[R, ReaderOption[R, A], A] {
+func FromReaderOption[R, A any](onNone Lazy[error]) Kleisli[R, ReaderOption[R, A], A] {
 	return RIOE.FromReaderOption[R, A](onNone)
 }
 
@@ -113,7 +114,7 @@ func MonadTap[R, A, B any](fa ReaderIOResult[R, A], f Kleisli[R, A, B]) ReaderIO
 // The Either is automatically lifted into the ReaderIOResult context.
 //
 //go:inline
-func MonadChainEitherK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) ReaderIOResult[R, B] {
+func MonadChainEitherK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, B] {
 	return RIOE.MonadChainEitherK(ma, f)
 }
 
@@ -121,7 +122,7 @@ func MonadChainEitherK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]
 // The Either is automatically lifted into the ReaderIOResult context.
 //
 //go:inline
-func MonadChainResultK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) ReaderIOResult[R, B] {
+func MonadChainResultK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, B] {
 	return RIOE.MonadChainEitherK(ma, f)
 }
 
@@ -129,7 +130,7 @@ func MonadChainResultK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]
 // This is the curried version of MonadChainEitherK.
 //
 //go:inline
-func ChainEitherK[R, A, B any](f func(A) Result[B]) Operator[R, A, B] {
+func ChainEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
 	return RIOE.ChainEitherK[R](f)
 }
 
@@ -137,7 +138,7 @@ func ChainEitherK[R, A, B any](f func(A) Result[B]) Operator[R, A, B] {
 // This is the curried version of MonadChainEitherK.
 //
 //go:inline
-func ChainResultK[R, A, B any](f func(A) Result[B]) Operator[R, A, B] {
+func ChainResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
 	return RIOE.ChainEitherK[R](f)
 }
 
@@ -145,12 +146,12 @@ func ChainResultK[R, A, B any](f func(A) Result[B]) Operator[R, A, B] {
 // Useful for validation or side effects that return Either.
 //
 //go:inline
-func MonadChainFirstEitherK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) ReaderIOResult[R, A] {
+func MonadChainFirstEitherK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstEitherK(ma, f)
 }
 
 //go:inline
-func MonadTapEitherK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) ReaderIOResult[R, A] {
+func MonadTapEitherK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapEitherK(ma, f)
 }
 
@@ -158,12 +159,12 @@ func MonadTapEitherK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) 
 // This is the curried version of MonadChainFirstEitherK.
 //
 //go:inline
-func ChainFirstEitherK[R, A, B any](f func(A) Result[B]) Operator[R, A, A] {
+func ChainFirstEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstEitherK[R](f)
 }
 
 //go:inline
-func TapEitherK[R, A, B any](f func(A) Result[B]) Operator[R, A, A] {
+func TapEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.TapEitherK[R](f)
 }
 
@@ -171,12 +172,12 @@ func TapEitherK[R, A, B any](f func(A) Result[B]) Operator[R, A, A] {
 // Useful for validation or side effects that return Either.
 //
 //go:inline
-func MonadChainFirstResultK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) ReaderIOResult[R, A] {
+func MonadChainFirstResultK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstEitherK(ma, f)
 }
 
 //go:inline
-func MonadTapResultK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) ReaderIOResult[R, A] {
+func MonadTapResultK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapEitherK(ma, f)
 }
 
@@ -184,12 +185,12 @@ func MonadTapResultK[R, A, B any](ma ReaderIOResult[R, A], f func(A) Result[B]) 
 // This is the curried version of MonadChainFirstEitherK.
 //
 //go:inline
-func ChainFirstResultK[R, A, B any](f func(A) Result[B]) Operator[R, A, A] {
+func ChainFirstResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstEitherK[R](f)
 }
 
 //go:inline
-func TapResultK[R, A, B any](f func(A) Result[B]) Operator[R, A, A] {
+func TapResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.TapEitherK[R](f)
 }
 
@@ -230,17 +231,17 @@ func TapReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
 }
 
 //go:inline
-func ChainReaderOptionK[R, A, B any](onNone func() error) func(readeroption.Kleisli[R, A, B]) Operator[R, A, B] {
+func ChainReaderOptionK[R, A, B any](onNone Lazy[error]) func(readeroption.Kleisli[R, A, B]) Operator[R, A, B] {
 	return RIOE.ChainReaderOptionK[R, A, B](onNone)
 }
 
 //go:inline
-func ChainFirstReaderOptionK[R, A, B any](onNone func() error) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
+func ChainFirstReaderOptionK[R, A, B any](onNone Lazy[error]) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstReaderOptionK[R, A, B](onNone)
 }
 
 //go:inline
-func TapReaderOptionK[R, A, B any](onNone func() error) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
+func TapReaderOptionK[R, A, B any](onNone Lazy[error]) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.TapReaderOptionK[R, A, B](onNone)
 }
 
@@ -421,7 +422,7 @@ func TapIOK[R, A, B any](f func(A) IO[B]) Operator[R, A, A] {
 // If the Option is None, the provided error function is called to produce the error value.
 //
 //go:inline
-func ChainOptionK[R, A, B any](onNone func() error) func(func(A) Option[B]) Operator[R, A, B] {
+func ChainOptionK[R, A, B any](onNone Lazy[error]) func(func(A) Option[B]) Operator[R, A, B] {
 	return RIOE.ChainOptionK[R, A, B](onNone)
 }
 
@@ -619,7 +620,7 @@ func Asks[R, A any](r Reader[R, A]) ReaderIOResult[R, A] {
 // If the Option is None, the provided function is called to produce the error.
 //
 //go:inline
-func FromOption[R, A any](onNone func() error) Kleisli[R, Option[A], A] {
+func FromOption[R, A any](onNone Lazy[error]) Kleisli[R, Option[A], A] {
 	return RIOE.FromOption[R, A](onNone)
 }
 

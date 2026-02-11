@@ -18,6 +18,7 @@ package readerio
 import (
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -66,4 +67,6 @@ type (
 	// Predicate represents a function that tests a value of type A and returns a boolean.
 	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
+
+	Void = function.Void
 )
