@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.20.x', '1.21.x', '1.22.x', '1.23.x', '1.24.x', '1.25.x']
+        go-version: ['1.20.x', '1.21.x', '1.22.x', '1.23.x', '1.24.x', '1.25.x', '1.26.x']
       fail-fast: false  # Continue with other versions if one fails
     steps:
       # full checkout for semantic-release
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.24.x', '1.25.x']
+        go-version: ['1.24.x', '1.25.x', '1.26.x']
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
