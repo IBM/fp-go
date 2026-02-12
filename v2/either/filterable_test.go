@@ -746,8 +746,6 @@ func BenchmarkFilterChained(b *testing.B) {
 	}
 }
 
-// Made with Bob
-
 func TestFilterMap(t *testing.T) {
 	t.Run("Right value with Some result", func(t *testing.T) {
 		// Arrange

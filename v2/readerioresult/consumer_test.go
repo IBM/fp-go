@@ -358,5 +358,3 @@ func TestChainFirstConsumer_ComplexType(t *testing.T) {
 		assert.InDelta(t, 10.989, finalProduct.Price, 0.001)
 	}
 }
-
-// Made with Bob

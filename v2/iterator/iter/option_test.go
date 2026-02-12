@@ -385,5 +385,3 @@ func TestFlatMapOptionK_NestedOptions(t *testing.T) {
 	expected := A.From(10, 30, 50)
 	assert.Equal(t, expected, values)
 }
-
-// Made with Bob

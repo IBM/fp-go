@@ -687,5 +687,3 @@ func BenchmarkPartitionMapError(b *testing.B) {
 		_ = partitionMap(input)
 	}
 }
-
-// Made with Bob

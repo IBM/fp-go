@@ -367,5 +367,3 @@ func TestComposeWithEmptyValues(t *testing.T) {
 		assert.Equal(t, "", str)
 	})
 }
-
-// Made with Bob
