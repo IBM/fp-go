@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +40,7 @@ func TestZip(t *testing.T) {
 
 	res := Zip[string](left)(right)
 
-	assert.Equal(t, From(T.MakeTuple2("a", 1), T.MakeTuple2("b", 2), T.MakeTuple2("c", 3)), res)
+	assert.Equal(t, From(pair.MakePair("a", 1), pair.MakePair("b", 2), pair.MakePair("c", 3)), res)
 }
 
 func TestUnzip(t *testing.T) {
@@ -51,6 +51,6 @@ func TestUnzip(t *testing.T) {
 
 	unzipped := Unzip(zipped)
 
-	assert.Equal(t, right, unzipped.F1)
-	assert.Equal(t, left, unzipped.F2)
+	assert.Equal(t, right, pair.Head(unzipped))
+	assert.Equal(t, left, pair.Tail(unzipped))
 }

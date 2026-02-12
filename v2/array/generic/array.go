@@ -21,7 +21,7 @@ import (
 	FC "github.com/IBM/fp-go/v2/internal/functor"
 	M "github.com/IBM/fp-go/v2/monoid"
 	O "github.com/IBM/fp-go/v2/option"
-	"github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // Of constructs a single element array
@@ -215,7 +215,7 @@ func Filter[AS ~[]A, PRED ~func(A) bool, A any](pred PRED) func(AS) AS {
 	return FilterWithIndex[AS](F.Ignore1of2[int](pred))
 }
 
-func FilterChain[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[GB]) func(GA) GB {
+func ChainOptionK[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[GB]) func(GA) GB {
 	return F.Flow2(
 		FilterMap[GA, []GB](f),
 		Flatten[[]GB],
@@ -234,7 +234,7 @@ func FilterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](f func(int, A) O.Option[B]) 
 	return F.Bind2nd(MonadFilterMapWithIndex[GA, GB, A, B], f)
 }
 
-func MonadPartition[GA ~[]A, A any](as GA, pred func(A) bool) tuple.Tuple2[GA, GA] {
+func MonadPartition[GA ~[]A, A any](as GA, pred func(A) bool) pair.Pair[GA, GA] {
 	left := Empty[GA]()
 	right := Empty[GA]()
 	array.Reduce(as, func(c bool, a A) bool {
@@ -246,10 +246,10 @@ func MonadPartition[GA ~[]A, A any](as GA, pred func(A) bool) tuple.Tuple2[GA, G
 		return c
 	}, true)
 	// returns the partition
-	return tuple.MakeTuple2(left, right)
+	return pair.MakePair(left, right)
 }
 
-func Partition[GA ~[]A, A any](pred func(A) bool) func(GA) tuple.Tuple2[GA, GA] {
+func Partition[GA ~[]A, A any](pred func(A) bool) func(GA) pair.Pair[GA, GA] {
 	return F.Bind2nd(MonadPartition[GA, A], pred)
 }
 

@@ -24,8 +24,8 @@ import (
 	"github.com/IBM/fp-go/v2/internal/utils"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	S "github.com/IBM/fp-go/v2/string"
-	T "github.com/IBM/fp-go/v2/tuple"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -163,11 +163,11 @@ func TestPartition(t *testing.T) {
 		return n > 2
 	}
 
-	assert.Equal(t, T.MakeTuple2(Empty[int](), Empty[int]()), Partition(pred)(Empty[int]()))
-	assert.Equal(t, T.MakeTuple2(From(1), From(3)), Partition(pred)(From(1, 3)))
+	assert.Equal(t, pair.MakePair(Empty[int](), Empty[int]()), Partition(pred)(Empty[int]()))
+	assert.Equal(t, pair.MakePair(From(1), From(3)), Partition(pred)(From(1, 3)))
 }
 
-func TestFilterChain(t *testing.T) {
+func TestChainOptionK(t *testing.T) {
 	src := From(1, 2, 3)
 
 	f := func(i int) O.Option[[]string] {
@@ -177,7 +177,7 @@ func TestFilterChain(t *testing.T) {
 		return O.None[[]string]()
 	}
 
-	res := FilterChain(f)(src)
+	res := ChainOptionK(f)(src)
 
 	assert.Equal(t, From("a1", "b1", "a3", "b3"), res)
 }

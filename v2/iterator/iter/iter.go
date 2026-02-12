@@ -466,6 +466,11 @@ func Chain[A, B any](f func(A) Seq[B]) Operator[A, B] {
 	return F.Bind2nd(MonadChain[A, B], f)
 }
 
+//go:inline
+func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
+	return Chain(f)
+}
+
 // Flatten flattens a sequence of sequences into a single sequence.
 //
 // RxJS Equivalent: [mergeAll] - https://rxjs.dev/api/operators/mergeAll

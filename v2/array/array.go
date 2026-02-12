@@ -21,7 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/array"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
-	"github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // From constructs an array from a set of variadic arguments
@@ -163,11 +163,11 @@ func FilterMapWithIndex[A, B any](f func(int, A) Option[B]) Operator[A, B] {
 	return G.FilterMapWithIndex[[]A, []B](f)
 }
 
-// FilterChain maps an array with an iterating function that returns an [Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
+// ChainOptionK maps an array with an iterating function that returns an [Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
 //
 //go:inline
-func FilterChain[A, B any](f option.Kleisli[A, []B]) Operator[A, B] {
-	return G.FilterChain[[]A](f)
+func ChainOptionK[A, B any](f option.Kleisli[A, []B]) Operator[A, B] {
+	return G.ChainOptionK[[]A](f)
 }
 
 // FilterMapRef filters an array using a predicate on pointers and maps the matching elements using a function on pointers.
@@ -453,7 +453,7 @@ func Size[A any](as []A) int {
 // the second contains elements for which it returns true.
 //
 //go:inline
-func MonadPartition[A any](as []A, pred func(A) bool) tuple.Tuple2[[]A, []A] {
+func MonadPartition[A any](as []A, pred func(A) bool) pair.Pair[[]A, []A] {
 	return G.MonadPartition(as, pred)
 }
 
@@ -461,7 +461,7 @@ func MonadPartition[A any](as []A, pred func(A) bool) tuple.Tuple2[[]A, []A] {
 // for which the predicate returns false, the right one those for which the predicate returns true
 //
 //go:inline
-func Partition[A any](pred func(A) bool) func([]A) tuple.Tuple2[[]A, []A] {
+func Partition[A any](pred func(A) bool) func([]A) pair.Pair[[]A, []A] {
 	return G.Partition[[]A](pred)
 }
 

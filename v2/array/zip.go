@@ -17,7 +17,7 @@ package array
 
 import (
 	G "github.com/IBM/fp-go/v2/array/generic"
-	T "github.com/IBM/fp-go/v2/tuple"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // ZipWith applies a function to pairs of elements at the same index in two arrays,
@@ -55,8 +55,8 @@ func ZipWith[FCT ~func(A, B) C, A, B, C any](fa []A, fb []B, f FCT) []C {
 //	// Result: [(a, 1), (b, 2)]
 //
 //go:inline
-func Zip[A, B any](fb []B) func([]A) []T.Tuple2[A, B] {
-	return G.Zip[[]A, []B, []T.Tuple2[A, B]](fb)
+func Zip[A, B any](fb []B) func([]A) []pair.Pair[A, B] {
+	return G.Zip[[]A, []B, []pair.Pair[A, B]](fb)
 }
 
 // Unzip is the reverse of Zip. It takes an array of pairs (tuples) and returns
@@ -78,6 +78,6 @@ func Zip[A, B any](fb []B) func([]A) []T.Tuple2[A, B] {
 //	ages := result.Tail   // [30, 25, 35]
 //
 //go:inline
-func Unzip[A, B any](cs []T.Tuple2[A, B]) T.Tuple2[[]A, []B] {
+func Unzip[A, B any](cs []pair.Pair[A, B]) pair.Pair[[]A, []B] {
 	return G.Unzip[[]A, []B](cs)
 }

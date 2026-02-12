@@ -87,8 +87,8 @@ var (
 	// assembleProviders constructs the provider map for item and non-item providers
 	assembleProviders = F.Flow3(
 		A.Partition(isItemProvider),
-		T.Map2(collectProviders, collectItemProviders),
-		T.Tupled2(mergeProviders.Concat),
+		pair.BiMap(collectProviders, collectItemProviders),
+		pair.Paired(mergeProviders.Concat),
 	)
 )
 
