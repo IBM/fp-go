@@ -16,11 +16,14 @@
 package prism
 
 import (
+	"errors"
 	"regexp"
 	"testing"
 
+	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1394,5 +1397,405 @@ func TestNonEmptyStringValidation(t *testing.T) {
 		}
 
 		assert.Equal(t, []string{"hello", "world", "test"}, nonEmpty)
+	})
+}
+
+// TestFromResult tests the FromResult prism with Result types
+func TestFromResult(t *testing.T) {
+	t.Run("extract from successful result", func(t *testing.T) {
+		prism := FromResult[int]()
+
+		success := result.Of[int](42)
+		extracted := prism.GetOption(success)
+
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(extracted))
+	})
+
+	t.Run("extract from error result", func(t *testing.T) {
+		prism := FromResult[int]()
+
+		failure := E.Left[int](errors.New("test error"))
+		extracted := prism.GetOption(failure)
+
+		assert.True(t, O.IsNone(extracted))
+	})
+
+	t.Run("ReverseGet wraps value in successful result", func(t *testing.T) {
+		prism := FromResult[int]()
+
+		wrapped := prism.ReverseGet(100)
+
+		// Verify it's a successful result
+		extracted := prism.GetOption(wrapped)
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, 100, O.GetOrElse(F.Constant(-1))(extracted))
+	})
+
+	t.Run("works with string type", func(t *testing.T) {
+		prism := FromResult[string]()
+
+		success := result.Of[string]("hello")
+		extracted := prism.GetOption(success)
+
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, "hello", O.GetOrElse(F.Constant(""))(extracted))
+	})
+
+	t.Run("works with struct type", func(t *testing.T) {
+		type Person struct {
+			Name string
+			Age  int
+		}
+
+		prism := FromResult[Person]()
+
+		person := Person{Name: "Alice", Age: 30}
+		success := result.Of[Person](person)
+		extracted := prism.GetOption(success)
+
+		assert.True(t, O.IsSome(extracted))
+		result := O.GetOrElse(F.Constant(Person{}))(extracted)
+		assert.Equal(t, "Alice", result.Name)
+		assert.Equal(t, 30, result.Age)
+	})
+}
+
+// TestFromResultWithSet tests using Set with FromResult prism
+func TestFromResultWithSet(t *testing.T) {
+	t.Run("set on successful result", func(t *testing.T) {
+		prism := FromResult[int]()
+		setter := Set[result.Result[int], int](200)
+
+		success := result.Of[int](42)
+		updated := setter(prism)(success)
+
+		// Verify the value was updated
+		extracted := prism.GetOption(updated)
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, 200, O.GetOrElse(F.Constant(-1))(extracted))
+	})
+
+	t.Run("set on error result leaves it unchanged", func(t *testing.T) {
+		prism := FromResult[int]()
+		setter := Set[result.Result[int], int](200)
+
+		failure := E.Left[int](errors.New("test error"))
+		updated := setter(prism)(failure)
+
+		// Verify it's still an error
+		extracted := prism.GetOption(updated)
+		assert.True(t, O.IsNone(extracted))
+	})
+}
+
+// TestFromResultPrismLaws tests that FromResult satisfies prism laws
+func TestFromResultPrismLaws(t *testing.T) {
+	prism := FromResult[int]()
+
+	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
+		value := 42
+		wrapped := prism.ReverseGet(value)
+		extracted := prism.GetOption(wrapped)
+
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, value, O.GetOrElse(F.Constant(-1))(extracted))
+	})
+
+	t.Run("law 2: ReverseGet is consistent", func(t *testing.T) {
+		value := 42
+		result1 := prism.ReverseGet(value)
+		result2 := prism.ReverseGet(value)
+
+		// Both should extract the same value
+		extracted1 := prism.GetOption(result1)
+		extracted2 := prism.GetOption(result2)
+
+		val1 := O.GetOrElse(F.Constant(-1))(extracted1)
+		val2 := O.GetOrElse(F.Constant(-1))(extracted2)
+		assert.Equal(t, val1, val2)
+	})
+}
+
+// TestFromResultComposition tests composing FromResult with other prisms
+func TestFromResultComposition(t *testing.T) {
+	t.Run("compose with predicate prism", func(t *testing.T) {
+		// Create a prism that only matches positive numbers
+		positivePrism := FromPredicate(func(n int) bool { return n > 0 })
+
+		// Compose: Result[int] -> int -> positive int
+		composed := Compose[result.Result[int]](positivePrism)(FromResult[int]())
+
+		// Test with positive number
+		success := result.Of[int](42)
+		extracted := composed.GetOption(success)
+		assert.True(t, O.IsSome(extracted))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(extracted))
+
+		// Test with negative number
+		negativeSuccess := result.Of[int](-5)
+		extracted = composed.GetOption(negativeSuccess)
+		assert.True(t, O.IsNone(extracted))
+
+		// Test with error
+		failure := E.Left[int](errors.New("test error"))
+		extracted = composed.GetOption(failure)
+		assert.True(t, O.IsNone(extracted))
+	})
+}
+
+// TestParseJSON tests the ParseJSON prism with various JSON data
+func TestParseJSON(t *testing.T) {
+	type Person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+
+	t.Run("parse valid JSON", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		jsonData := []byte(`{"name":"Alice","age":30}`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "Alice", person.Name)
+		assert.Equal(t, 30, person.Age)
+	})
+
+	t.Run("parse invalid JSON", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		invalidJSON := []byte(`{invalid json}`)
+		parsed := prism.GetOption(invalidJSON)
+
+		assert.True(t, O.IsNone(parsed))
+	})
+
+	t.Run("parse JSON with missing fields", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		// Missing age field - should use zero value
+		jsonData := []byte(`{"name":"Bob"}`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "Bob", person.Name)
+		assert.Equal(t, 0, person.Age)
+	})
+
+	t.Run("parse JSON with extra fields", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		// Extra field should be ignored
+		jsonData := []byte(`{"name":"Charlie","age":25,"extra":"ignored"}`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "Charlie", person.Name)
+		assert.Equal(t, 25, person.Age)
+	})
+
+	t.Run("ReverseGet marshals to JSON", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		person := Person{Name: "David", Age: 35}
+		jsonBytes := prism.ReverseGet(person)
+
+		// Parse it back to verify
+		parsed := prism.GetOption(jsonBytes)
+		assert.True(t, O.IsSome(parsed))
+		result := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "David", result.Name)
+		assert.Equal(t, 35, result.Age)
+	})
+
+	t.Run("works with primitive types", func(t *testing.T) {
+		prism := ParseJSON[int]()
+
+		jsonData := []byte(`42`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(parsed))
+	})
+
+	t.Run("works with arrays", func(t *testing.T) {
+		prism := ParseJSON[[]string]()
+
+		jsonData := []byte(`["hello","world","test"]`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		arr := O.GetOrElse(F.Constant([]string{}))(parsed)
+		assert.Equal(t, []string{"hello", "world", "test"}, arr)
+	})
+
+	t.Run("works with maps", func(t *testing.T) {
+		prism := ParseJSON[map[string]int]()
+
+		jsonData := []byte(`{"a":1,"b":2,"c":3}`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		m := O.GetOrElse(F.Constant(map[string]int{}))(parsed)
+		assert.Equal(t, 1, m["a"])
+		assert.Equal(t, 2, m["b"])
+		assert.Equal(t, 3, m["c"])
+	})
+
+	t.Run("works with nested structures", func(t *testing.T) {
+		type Address struct {
+			Street string `json:"street"`
+			City   string `json:"city"`
+		}
+		type PersonWithAddress struct {
+			Name    string  `json:"name"`
+			Address Address `json:"address"`
+		}
+
+		prism := ParseJSON[PersonWithAddress]()
+
+		jsonData := []byte(`{"name":"Eve","address":{"street":"123 Main St","city":"NYC"}}`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(PersonWithAddress{}))(parsed)
+		assert.Equal(t, "Eve", person.Name)
+		assert.Equal(t, "123 Main St", person.Address.Street)
+		assert.Equal(t, "NYC", person.Address.City)
+	})
+
+	t.Run("parse empty JSON object", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		jsonData := []byte(`{}`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "", person.Name)
+		assert.Equal(t, 0, person.Age)
+	})
+
+	t.Run("parse null JSON", func(t *testing.T) {
+		prism := ParseJSON[*Person]()
+
+		jsonData := []byte(`null`)
+		parsed := prism.GetOption(jsonData)
+
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(&Person{}))(parsed)
+		assert.Nil(t, person)
+	})
+}
+
+// TestParseJSONWithSet tests using Set with ParseJSON prism
+func TestParseJSONWithSet(t *testing.T) {
+	type Person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+
+	t.Run("set updates JSON data", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		originalJSON := []byte(`{"name":"Alice","age":30}`)
+		newPerson := Person{Name: "Bob", Age: 25}
+
+		setter := Set[[]byte, Person](newPerson)
+		updatedJSON := setter(prism)(originalJSON)
+
+		// Parse the updated JSON
+		parsed := prism.GetOption(updatedJSON)
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "Bob", person.Name)
+		assert.Equal(t, 25, person.Age)
+	})
+
+	t.Run("set on invalid JSON returns original unchanged", func(t *testing.T) {
+		prism := ParseJSON[Person]()
+
+		invalidJSON := []byte(`{invalid}`)
+		newPerson := Person{Name: "Charlie", Age: 35}
+
+		setter := Set[[]byte, Person](newPerson)
+		result := setter(prism)(invalidJSON)
+
+		// Should return original unchanged since it couldn't be parsed
+		assert.Equal(t, invalidJSON, result)
+	})
+}
+
+// TestParseJSONPrismLaws tests that ParseJSON satisfies prism laws
+func TestParseJSONPrismLaws(t *testing.T) {
+	type Person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+
+	prism := ParseJSON[Person]()
+
+	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
+		person := Person{Name: "Alice", Age: 30}
+		jsonBytes := prism.ReverseGet(person)
+		parsed := prism.GetOption(jsonBytes)
+
+		assert.True(t, O.IsSome(parsed))
+		result := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, person.Name, result.Name)
+		assert.Equal(t, person.Age, result.Age)
+	})
+
+	t.Run("law 2: ReverseGet is consistent", func(t *testing.T) {
+		person := Person{Name: "Bob", Age: 25}
+		json1 := prism.ReverseGet(person)
+		json2 := prism.ReverseGet(person)
+
+		// Both should parse to the same value
+		parsed1 := prism.GetOption(json1)
+		parsed2 := prism.GetOption(json2)
+
+		result1 := O.GetOrElse(F.Constant(Person{}))(parsed1)
+		result2 := O.GetOrElse(F.Constant(Person{}))(parsed2)
+
+		assert.Equal(t, result1.Name, result2.Name)
+		assert.Equal(t, result1.Age, result2.Age)
+	})
+}
+
+// TestParseJSONComposition tests composing ParseJSON with other prisms
+func TestParseJSONComposition(t *testing.T) {
+	type Person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+
+	t.Run("compose with predicate prism", func(t *testing.T) {
+		// Create a prism that only matches adults (age >= 18)
+		adultPrism := FromPredicate(func(p Person) bool { return p.Age >= 18 })
+
+		// Compose: []byte -> Person -> Adult
+		composed := Compose[[]byte](adultPrism)(ParseJSON[Person]())
+
+		// Test with adult
+		adultJSON := []byte(`{"name":"Alice","age":30}`)
+		parsed := composed.GetOption(adultJSON)
+		assert.True(t, O.IsSome(parsed))
+		person := O.GetOrElse(F.Constant(Person{}))(parsed)
+		assert.Equal(t, "Alice", person.Name)
+
+		// Test with minor
+		minorJSON := []byte(`{"name":"Bob","age":15}`)
+		parsed = composed.GetOption(minorJSON)
+		assert.True(t, O.IsNone(parsed))
+
+		// Test with invalid JSON
+		invalidJSON := []byte(`{invalid}`)
+		parsed = composed.GetOption(invalidJSON)
+		assert.True(t, O.IsNone(parsed))
 	})
 }

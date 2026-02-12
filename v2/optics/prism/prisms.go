@@ -23,8 +23,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	J "github.com/IBM/fp-go/v2/json"
 	"github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 )
@@ -322,6 +324,50 @@ func FromEither[E, T any]() Prism[Either[E, T], T] {
 	return MakePrismWithName(either.ToOption[E, T], either.Of[E, T], "PrismFromEither")
 }
 
+// FromResult creates a prism for extracting values from Result types.
+// It provides a safe way to work with Result values (which are Either[error, T]),
+// focusing on the success case and handling errors gracefully through the Option type.
+//
+// This is a convenience function that is equivalent to FromEither[error, T]().
+//
+// The prism's GetOption attempts to extract the success value from a Result.
+// If the Result is successful, it returns Some(value); if it's an error, it returns None.
+//
+// The prism's ReverseGet always succeeds, wrapping a value into a successful Result.
+//
+// Type Parameters:
+//   - T: The value type contained in the Result
+//
+// Returns:
+//   - A Prism[Result[T], T] that safely extracts success values
+//
+// Example:
+//
+//	// Create a prism for extracting successful results
+//	resultPrism := FromResult[int]()
+//
+//	// Extract from successful result
+//	success := result.Of[int](42)
+//	value := resultPrism.GetOption(success)  // Some(42)
+//
+//	// Extract from error result
+//	failure := result.Error[int](errors.New("failed"))
+//	value = resultPrism.GetOption(failure)  // None[int]()
+//
+//	// Wrap value into successful Result
+//	wrapped := resultPrism.ReverseGet(100)  // Result containing 100
+//
+//	// Use with Set to update successful results
+//	setter := Set[Result[int], int](200)
+//	result := setter(resultPrism)(success)  // Result containing 200
+//	result = setter(resultPrism)(failure)   // Error result (unchanged)
+//
+// Common use cases:
+//   - Extracting successful values from Result types
+//   - Filtering out errors in data pipelines
+//   - Working with fallible operations that return Result
+//   - Composing with other prisms for complex error handling
+//
 //go:inline
 func FromResult[T any]() Prism[Result[T], T] {
 	return FromEither[error, T]()
@@ -1260,4 +1306,72 @@ func MakeURLPrisms() URLPrisms {
 		Fragment:    _prismFragment,
 		RawFragment: _prismRawFragment,
 	}
+}
+
+// ParseJSON creates a prism for parsing and marshaling JSON data.
+// It provides a safe way to convert between JSON bytes and Go types,
+// handling parsing and marshaling errors gracefully through the Option type.
+//
+// The prism's GetOption attempts to unmarshal JSON bytes into type A.
+// If unmarshaling succeeds, it returns Some(A); if it fails (e.g., invalid JSON
+// or type mismatch), it returns None.
+//
+// The prism's ReverseGet marshals a value of type A into JSON bytes.
+// If marshaling fails (which is rare), it returns an empty byte slice.
+//
+// Type Parameters:
+//   - A: The Go type to unmarshal JSON into
+//
+// Returns:
+//   - A Prism[[]byte, A] that safely handles JSON parsing/marshaling
+//
+// Example:
+//
+//	// Define a struct type
+//	type Person struct {
+//	    Name string `json:"name"`
+//	    Age  int    `json:"age"`
+//	}
+//
+//	// Create a JSON parsing prism
+//	jsonPrism := ParseJSON[Person]()
+//
+//	// Parse valid JSON
+//	jsonData := []byte(`{"name":"Alice","age":30}`)
+//	person := jsonPrism.GetOption(jsonData)
+//	// Some(Person{Name: "Alice", Age: 30})
+//
+//	// Parse invalid JSON
+//	invalidJSON := []byte(`{invalid json}`)
+//	result := jsonPrism.GetOption(invalidJSON)  // None[Person]()
+//
+//	// Marshal to JSON
+//	p := Person{Name: "Bob", Age: 25}
+//	jsonBytes := jsonPrism.ReverseGet(p)
+//	// []byte(`{"name":"Bob","age":25}`)
+//
+//	// Use with Set to update JSON data
+//	newPerson := Person{Name: "Charlie", Age: 35}
+//	setter := Set[[]byte, Person](newPerson)
+//	updated := setter(jsonPrism)(jsonData)
+//	// []byte(`{"name":"Charlie","age":35}`)
+//
+// Common use cases:
+//   - Parsing JSON configuration files
+//   - Working with JSON API responses
+//   - Validating and transforming JSON data in pipelines
+//   - Type-safe JSON deserialization
+//   - Converting between JSON and Go structs
+func ParseJSON[A any]() Prism[[]byte, A] {
+	return MakePrismWithName(
+		F.Flow2(
+			J.Unmarshal[A],
+			either.ToOption[error, A],
+		),
+		F.Flow2(
+			J.Marshal[A],
+			either.GetOrElse(F.Constant1[error](array.Empty[byte]())),
+		),
+		"JSON",
+	)
 }
