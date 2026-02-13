@@ -636,7 +636,7 @@ func FromPredicate[R, A any](pred func(A) bool, onFalse func(A) error) Kleisli[R
 // This is useful for converting a ReaderIOResult into a ReaderIO by handling all cases.
 //
 //go:inline
-func Fold[R, A, B any](onLeft func(error) ReaderIO[R, B], onRight func(A) ReaderIO[R, B]) func(ReaderIOResult[R, A]) ReaderIO[R, B] {
+func Fold[R, A, B any](onLeft readerio.Kleisli[R, error, B], onRight func(A) ReaderIO[R, B]) func(ReaderIOResult[R, A]) ReaderIO[R, B] {
 	return RIOE.Fold(onLeft, onRight)
 }
 
@@ -644,7 +644,7 @@ func Fold[R, A, B any](onLeft func(error) ReaderIO[R, B], onRight func(A) Reader
 // The default is computed lazily via a ReaderIO.
 //
 //go:inline
-func GetOrElse[R, A any](onLeft func(error) ReaderIO[R, A]) func(ReaderIOResult[R, A]) ReaderIO[R, A] {
+func GetOrElse[R, A any](onLeft readerio.Kleisli[R, error, A]) func(ReaderIOResult[R, A]) ReaderIO[R, A] {
 	return RIOE.GetOrElse(onLeft)
 }
 
@@ -659,7 +659,7 @@ func OrElse[R, A any](onLeft Kleisli[R, error, A]) Operator[R, A, A] {
 // The success value is preserved unchanged.
 //
 //go:inline
-func OrLeft[A, R, E any](onLeft func(error) ReaderIO[R, E]) func(ReaderIOResult[R, A]) RIOE.ReaderIOEither[R, E, A] {
+func OrLeft[A, R, E any](onLeft readerio.Kleisli[R, error, E]) func(ReaderIOResult[R, A]) RIOE.ReaderIOEither[R, E, A] {
 	return RIOE.OrLeft[A](onLeft)
 }
 

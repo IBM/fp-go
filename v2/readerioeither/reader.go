@@ -667,12 +667,12 @@ func FromPredicate[R, E, A any](pred func(A) bool, onFalse func(A) E) func(A) Re
 // This is useful for converting a ReaderIOEither into a ReaderIO by handling all cases.
 //
 //go:inline
-func Fold[R, E, A, B any](onLeft func(E) ReaderIO[R, B], onRight func(A) ReaderIO[R, B]) func(ReaderIOEither[R, E, A]) ReaderIO[R, B] {
+func Fold[R, E, A, B any](onLeft readerio.Kleisli[R, E, B], onRight func(A) ReaderIO[R, B]) func(ReaderIOEither[R, E, A]) ReaderIO[R, B] {
 	return eithert.MatchE(readerio.MonadChain[R, either.Either[E, A], B], onLeft, onRight)
 }
 
 //go:inline
-func MonadFold[R, E, A, B any](ma ReaderIOEither[R, E, A], onLeft func(E) ReaderIO[R, B], onRight func(A) ReaderIO[R, B]) ReaderIO[R, B] {
+func MonadFold[R, E, A, B any](ma ReaderIOEither[R, E, A], onLeft readerio.Kleisli[R, E, B], onRight func(A) ReaderIO[R, B]) ReaderIO[R, B] {
 	return eithert.FoldE(readerio.MonadChain[R, either.Either[E, A], B], ma, onLeft, onRight)
 }
 
@@ -680,7 +680,7 @@ func MonadFold[R, E, A, B any](ma ReaderIOEither[R, E, A], onLeft func(E) Reader
 // The default is computed lazily via a ReaderIO.
 //
 //go:inline
-func GetOrElse[R, E, A any](onLeft func(E) ReaderIO[R, A]) func(ReaderIOEither[R, E, A]) ReaderIO[R, A] {
+func GetOrElse[R, E, A any](onLeft readerio.Kleisli[R, E, A]) func(ReaderIOEither[R, E, A]) ReaderIO[R, A] {
 	return eithert.GetOrElse(readerio.MonadChain[R, either.Either[E, A], A], readerio.Of[R, A], onLeft)
 }
 

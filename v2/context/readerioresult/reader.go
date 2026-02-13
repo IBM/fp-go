@@ -452,7 +452,7 @@ func TapEitherK[A, B any](f either.Kleisli[error, A, B]) Operator[A, A] {
 // Returns a function that chains Option-returning functions into ReaderIOResult.
 //
 //go:inline
-func ChainOptionK[A, B any](onNone func() error) func(option.Kleisli[A, B]) Operator[A, B] {
+func ChainOptionK[A, B any](onNone Lazy[error]) func(option.Kleisli[A, B]) Operator[A, B] {
 	return RIOR.ChainOptionK[context.Context, A, B](onNone)
 }
 
@@ -800,7 +800,7 @@ func FromReaderResult[A any](ma ReaderResult[A]) ReaderIOResult[A] {
 }
 
 //go:inline
-func FromReaderOption[A any](onNone func() error) Kleisli[ReaderOption[context.Context, A], A] {
+func FromReaderOption[A any](onNone Lazy[error]) Kleisli[ReaderOption[context.Context, A], A] {
 	return RIOR.FromReaderOption[context.Context, A](onNone)
 }
 
@@ -895,17 +895,17 @@ func TapReaderIOK[A, B any](f readerio.Kleisli[A, B]) Operator[A, A] {
 }
 
 //go:inline
-func ChainReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, B] {
+func ChainReaderOptionK[A, B any](onNone Lazy[error]) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, B] {
 	return RIOR.ChainReaderOptionK[context.Context, A, B](onNone)
 }
 
 //go:inline
-func ChainFirstReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
+func ChainFirstReaderOptionK[A, B any](onNone Lazy[error]) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
 	return RIOR.ChainFirstReaderOptionK[context.Context, A, B](onNone)
 }
 
 //go:inline
-func TapReaderOptionK[A, B any](onNone func() error) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
+func TapReaderOptionK[A, B any](onNone Lazy[error]) func(readeroption.Kleisli[context.Context, A, B]) Operator[A, A] {
 	return RIOR.TapReaderOptionK[context.Context, A, B](onNone)
 }
 

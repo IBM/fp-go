@@ -194,6 +194,25 @@ func ArrayNotEmpty[T any](arr []T) Reader {
 	}
 }
 
+// ArrayEmpty checks if an array is empty.
+//
+// This is the complement of ArrayNotEmpty, asserting that a slice has no elements.
+//
+// Example:
+//
+//	func TestArrayEmpty(t *testing.T) {
+//	    empty := []int{}
+//	    assert.ArrayEmpty(empty)(t)  // Passes
+//
+//	    numbers := []int{1, 2, 3}
+//	    assert.ArrayEmpty(numbers)(t)  // Fails
+//	}
+func ArrayEmpty[T any](arr []T) Reader {
+	return func(t *testing.T) bool {
+		return assert.Empty(t, arr)
+	}
+}
+
 // RecordNotEmpty checks if a map is not empty.
 //
 // Example:
@@ -208,6 +227,25 @@ func ArrayNotEmpty[T any](arr []T) Reader {
 func RecordNotEmpty[K comparable, T any](mp map[K]T) Reader {
 	return func(t *testing.T) bool {
 		return assert.NotEmpty(t, mp)
+	}
+}
+
+// RecordEmpty checks if a map is empty.
+//
+// This is the complement of RecordNotEmpty, asserting that a map has no key-value pairs.
+//
+// Example:
+//
+//	func TestRecordEmpty(t *testing.T) {
+//	    empty := map[string]int{}
+//	    assert.RecordEmpty(empty)(t)  // Passes
+//
+//	    config := map[string]int{"timeout": 30}
+//	    assert.RecordEmpty(config)(t)  // Fails
+//	}
+func RecordEmpty[K comparable, T any](mp map[K]T) Reader {
+	return func(t *testing.T) bool {
+		return assert.Empty(t, mp)
 	}
 }
 
@@ -504,15 +542,7 @@ func AllOf(readers []Reader) Reader {
 //
 //go:inline
 func RunAll(testcases map[string]Reader) Reader {
-	return func(t *testing.T) bool {
-		current := true
-		for k, r := range testcases {
-			current = current && t.Run(k, func(t1 *testing.T) {
-				r(t1)
-			})
-		}
-		return current
-	}
+	return SequenceRecord(testcases)
 }
 
 // Local transforms a Reader that works on type R1 into a Reader that works on type R2,

@@ -85,6 +85,33 @@ func TestArrayNotEmpty(t *testing.T) {
 	})
 }
 
+func TestArrayEmpty(t *testing.T) {
+	t.Run("should pass for empty array", func(t *testing.T) {
+		arr := []int{}
+		result := ArrayEmpty(arr)(t)
+		if !result {
+			t.Error("Expected ArrayEmpty to pass for empty array")
+		}
+	})
+
+	t.Run("should fail for non-empty array", func(t *testing.T) {
+		mockT := &testing.T{}
+		arr := []int{1, 2, 3}
+		result := ArrayEmpty(arr)(mockT)
+		if result {
+			t.Error("Expected ArrayEmpty to fail for non-empty array")
+		}
+	})
+
+	t.Run("should work with different types", func(t *testing.T) {
+		strArr := []string{}
+		result := ArrayEmpty(strArr)(t)
+		if !result {
+			t.Error("Expected ArrayEmpty to pass for empty string array")
+		}
+	})
+}
+
 func TestRecordNotEmpty(t *testing.T) {
 	t.Run("should pass for non-empty map", func(t *testing.T) {
 		mp := map[string]int{"a": 1, "b": 2}
@@ -131,6 +158,33 @@ func TestArrayLength(t *testing.T) {
 	})
 }
 
+func TestRecordEmpty(t *testing.T) {
+	t.Run("should pass for empty map", func(t *testing.T) {
+		mp := map[string]int{}
+		result := RecordEmpty(mp)(t)
+		if !result {
+			t.Error("Expected RecordEmpty to pass for empty map")
+		}
+	})
+
+	t.Run("should fail for non-empty map", func(t *testing.T) {
+		mockT := &testing.T{}
+		mp := map[string]int{"a": 1, "b": 2}
+		result := RecordEmpty(mp)(mockT)
+		if result {
+			t.Error("Expected RecordEmpty to fail for non-empty map")
+		}
+	})
+
+	t.Run("should work with different key-value types", func(t *testing.T) {
+		mp := map[int]string{}
+		result := RecordEmpty(mp)(t)
+		if !result {
+			t.Error("Expected RecordEmpty to pass for empty map with int keys")
+		}
+	})
+}
+
 func TestRecordLength(t *testing.T) {
 	t.Run("should pass when map length matches", func(t *testing.T) {
 		mp := map[string]int{"a": 1, "b": 2}
@@ -146,6 +200,33 @@ func TestRecordLength(t *testing.T) {
 		result := RecordLength[string, int](3)(mp)(mockT)
 		if result {
 			t.Error("Expected RecordLength to fail when length doesn't match")
+		}
+	})
+}
+
+func TestStringNotEmpty(t *testing.T) {
+	t.Run("should pass for non-empty string", func(t *testing.T) {
+		str := "Hello, World!"
+		result := StringNotEmpty(str)(t)
+		if !result {
+			t.Error("Expected StringNotEmpty to pass for non-empty string")
+		}
+	})
+
+	t.Run("should fail for empty string", func(t *testing.T) {
+		mockT := &testing.T{}
+		str := ""
+		result := StringNotEmpty(str)(mockT)
+		if result {
+			t.Error("Expected StringNotEmpty to fail for empty string")
+		}
+	})
+
+	t.Run("should pass for string with whitespace", func(t *testing.T) {
+		str := "   "
+		result := StringNotEmpty(str)(t)
+		if !result {
+			t.Error("Expected StringNotEmpty to pass for string with whitespace")
 		}
 	})
 }
