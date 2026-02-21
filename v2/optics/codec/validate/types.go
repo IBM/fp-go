@@ -22,9 +22,11 @@ import (
 	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerresult"
 )
 
 type (
+	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
 
 	// Monoid represents an algebraic structure with an associative binary operation
 	// and an identity element. Used for combining values of type A.
