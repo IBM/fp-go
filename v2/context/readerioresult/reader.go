@@ -28,6 +28,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/readeroption"
@@ -1054,14 +1055,14 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 //	    fetchData,
 //	    withTimeout,
 //	)
-func Local[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
+func Local[A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[A, A] {
 	return func(rr ReaderIOResult[A]) ReaderIOResult[A] {
 		return func(ctx context.Context) IOResult[A] {
 			return func() Result[A] {
 				if ctx.Err() != nil {
 					return result.Left[A](context.Cause(ctx))
 				}
-				otherCtx, otherCancel := f(ctx)
+				otherCancel, otherCtx := pair.Unpack(f(ctx))
 				defer otherCancel()
 				return rr(otherCtx)()
 			}
@@ -1123,9 +1124,10 @@ func Local[A any](f func(context.Context) (context.Context, context.CancelFunc))
 //	)
 //	value, err := result(t.Context())()  // Returns (Data{Value: "quick"}, nil)
 func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
-	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
-		return context.WithTimeout(ctx, timeout)
-	})
+	return Local[A](
+		func(ctx context.Context) ContextCancel {
+			return pairFromContextCancel(context.WithTimeout(ctx, timeout))
+		})
 }
 
 // WithDeadline adds an absolute deadline to the context for a ReaderIOResult computation.
@@ -1188,7 +1190,7 @@ func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 //	)
 //	value, err := result(parentCtx)()  // Will use parent's 1-hour deadline
 func WithDeadline[A any](deadline time.Time) Operator[A, A] {
-	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
-		return context.WithDeadline(ctx, deadline)
+	return Local[A](func(ctx context.Context) ContextCancel {
+		return pairFromContextCancel(context.WithDeadline(ctx, deadline))
 	})
 }

@@ -21,6 +21,7 @@ import (
 	CIOE "github.com/IBM/fp-go/v2/context/ioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // WithContext wraps an existing [ReaderIOResult] and performs a context check for cancellation before delegating.
@@ -84,4 +85,8 @@ func WithContextK[A, B any](f Kleisli[A, B]) Kleisli[A, B] {
 		f,
 		WithContext,
 	)
+}
+
+func pairFromContextCancel(newCtx context.Context, cancelFct context.CancelFunc) ContextCancel {
+	return pair.MakePair(cancelFct, newCtx)
 }

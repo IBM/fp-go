@@ -55,6 +55,10 @@ type (
 	// Either[A] is equivalent to Either[error, A] from the either package.
 	Either[A any] = either.Either[error, A]
 
+	// Result represents a computation that can either succeed with a value of type A
+	// or fail with an error. This is an alias for result.Result[A].
+	//
+	// Result[A] is equivalent to Either[error, A]
 	Result[A any] = result.Result[A]
 
 	// Lazy represents a deferred computation that produces a value of type A when executed.
@@ -73,6 +77,10 @@ type (
 	// IOEither[A] is equivalent to func() Either[error, A]
 	IOEither[A any] = ioeither.IOEither[error, A]
 
+	// IOResult represents a side-effectful computation that can fail with an error.
+	// This combines IO (side effects) with Result (error handling).
+	//
+	// IOResult[A] is equivalent to func() Result[A]
 	IOResult[A any] = ioresult.IOResult[A]
 
 	// Reader represents a computation that depends on a context of type R.
@@ -118,6 +126,13 @@ type (
 	//   result := fetchUser("123")(ctx)()
 	ReaderIOResult[A any] = RIOR.ReaderIOResult[context.Context, A]
 
+	// Kleisli represents a Kleisli arrow for ReaderIOResult.
+	// It is a function that takes a value of type A and returns a ReaderIOResult[B].
+	//
+	// Kleisli arrows are used for monadic composition, allowing you to chain operations
+	// that produce ReaderIOResults. They are particularly useful with Chain operations.
+	//
+	// Kleisli[A, B] is equivalent to func(A) ReaderIOResult[B]
 	Kleisli[A, B any] = reader.Reader[A, ReaderIOResult[B]]
 
 	// Operator represents a transformation from one ReaderIOResult to another.
@@ -133,26 +148,76 @@ type (
 	//   result := toUpper(computation)
 	Operator[A, B any] = Kleisli[ReaderIOResult[A], B]
 
-	ReaderResult[A any]       = readerresult.ReaderResult[A]
-	ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
-	ReaderOption[R, A any]    = readeroption.ReaderOption[R, A]
+	// ReaderResult represents a context-dependent computation that can fail.
+	// This is specialized to use context.Context as the context type.
+	//
+	// ReaderResult[A] is equivalent to func(context.Context) Result[A]
+	ReaderResult[A any] = readerresult.ReaderResult[A]
 
+	// ReaderEither represents a context-dependent computation that can fail.
+	// It takes a context of type R and produces an Either[E, A].
+	//
+	// ReaderEither[R, E, A] is equivalent to func(R) Either[E, A]
+	ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
+
+	// ReaderOption represents a context-dependent computation that may not produce a value.
+	// It takes a context of type R and produces an Option[A].
+	//
+	// ReaderOption[R, A] is equivalent to func(R) Option[A]
+	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]
+
+	// Endomorphism represents a function from a type to itself.
+	// It is used for transformations that preserve the type.
+	//
+	// Endomorphism[A] is equivalent to func(A) A
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
+	// Consumer represents a function that consumes a value without producing a result.
+	// It is used for side effects like logging or updating state.
+	//
+	// Consumer[A] is equivalent to func(A)
 	Consumer[A any] = consumer.Consumer[A]
 
+	// Prism represents an optic for working with sum types (tagged unions).
+	// It provides a way to focus on a specific variant of a sum type.
 	Prism[S, T any] = prism.Prism[S, T]
-	Lens[S, T any]  = lens.Lens[S, T]
 
+	// Lens represents an optic for working with product types (records/structs).
+	// It provides a way to focus on a specific field of a product type.
+	Lens[S, T any] = lens.Lens[S, T]
+
+	// Trampoline represents a computation that can be executed in a stack-safe manner.
+	// It is used for tail-recursive computations that would otherwise overflow the stack.
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 
+	// Predicate represents a function that tests a value of type A.
+	// It returns true if the value satisfies the predicate, false otherwise.
+	//
+	// Predicate[A] is equivalent to func(A) bool
 	Predicate[A any] = predicate.Predicate[A]
 
+	// Pair represents a tuple of two values of types A and B.
+	// It is used to group two related values together.
 	Pair[A, B any] = pair.Pair[A, B]
 
+	// IORef represents a mutable reference that can be safely accessed in IO computations.
+	// It provides thread-safe read and write operations.
 	IORef[A any] = ioref.IORef[A]
 
+	// State represents a stateful computation that transforms a state of type S
+	// and produces a value of type A.
+	//
+	// State[S, A] is equivalent to func(S) Pair[A, S]
 	State[S, A any] = state.State[S, A]
 
+	// Void represents the absence of a value, similar to unit type in other languages.
+	// It is used when a function performs side effects but doesn't return a meaningful value.
 	Void = function.Void
+
+	// ContextCancel represents a pair of a cancel function and a context.
+	// It is used in operations that create new contexts with cancellation capabilities.
+	//
+	// The first element is the CancelFunc that should be called to release resources.
+	// The second element is the new Context that was created.
+	ContextCancel = Pair[context.CancelFunc, context.Context]
 )
