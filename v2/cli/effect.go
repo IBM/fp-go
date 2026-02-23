@@ -197,5 +197,3 @@ func MakeCommandWithSubcommands(
 		Action:   ToAction(effect),
 	}
 }
-
-// Made with Bob

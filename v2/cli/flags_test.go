@@ -285,5 +285,3 @@ func TestPrisms_EdgeCases(t *testing.T) {
 		assert.True(t, O.IsNone(Int64FlagPrism().GetOption(flag)))
 	})
 }
-
-// Made with Bob

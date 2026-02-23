@@ -480,5 +480,3 @@ func BenchmarkFromReaderResult_WithContext(b *testing.B) {
 		_ = validator(42)(ctx)
 	}
 }
-
-// Made with Bob

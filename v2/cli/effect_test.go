@@ -202,5 +202,3 @@ func TestToAction_Integration(t *testing.T) {
 		assert.Equal(t, "default-value", capturedValue)
 	})
 }
-
-// Made with Bob

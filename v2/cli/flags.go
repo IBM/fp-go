@@ -357,5 +357,3 @@ func Int64FlagPrism() P.Prism[C.Flag, *C.Int64Flag] {
 		func(f *C.Int64Flag) C.Flag { return f },
 	)
 }
-
-// Made with Bob
