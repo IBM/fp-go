@@ -51,7 +51,7 @@ import (
 //	)(dbEffect)
 //
 //go:inline
-func Local[C1, C2, A any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
+func Local[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
 	return readerreaderioresult.Local[A](acc)
 }
 
@@ -73,7 +73,7 @@ func Local[C1, C2, A any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
 //   - Kleisli[C1, Effect[C2, A], A]: A function that adapts the effect to use C1
 //
 //go:inline
-func Contramap[C1, C2, A any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
+func Contramap[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
 	return readerreaderioresult.Local[A](acc)
 }
 

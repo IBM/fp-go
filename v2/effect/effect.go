@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/fromreader"
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
@@ -187,8 +188,119 @@ func Map[C, A, B any](f func(A) B) Operator[C, A, B] {
 //		return effect.Of[MyContext](strconv.Itoa(x * 2))
 //	})(eff)
 //	// chained produces "84"
+//
+//go:inline
 func Chain[C, A, B any](f Kleisli[C, A, B]) Operator[C, A, B] {
 	return readerreaderioresult.Chain(f)
+}
+
+// ChainIOK chains an effect with a function that returns an IO action.
+// This is useful for integrating IO-based computations (synchronous side effects)
+// into effect chains. The IO action is automatically lifted into the Effect context.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns IO[B]
+//
+// # Returns
+//
+//   - Operator[C, A, B]: A function that chains the IO-returning function with the effect
+//
+// # Example
+//
+//	performIO := func(n int) io.IO[string] {
+//	    return func() string {
+//	        // Perform synchronous side effect
+//	        return fmt.Sprintf("Value: %d", n)
+//	    }
+//	}
+//
+//	eff := effect.Of[MyContext](42)
+//	chained := effect.ChainIOK[MyContext](performIO)(eff)
+//	// chained produces "Value: 42"
+//
+//go:inline
+func ChainIOK[C, A, B any](f io.Kleisli[A, B]) Operator[C, A, B] {
+	return readerreaderioresult.ChainIOK[C](f)
+}
+
+// ChainFirstIOK chains an effect with a function that returns an IO action,
+// but discards the result and returns the original value.
+// This is useful for performing side effects (like logging) without changing the value.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the IO action (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns IO[B] for side effects
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that executes the IO action but preserves the original value
+//
+// # Example
+//
+//	logValue := func(n int) io.IO[any] {
+//	    return func() any {
+//	        fmt.Printf("Processing: %d\n", n)
+//	        return nil
+//	    }
+//	}
+//
+//	eff := effect.Of[MyContext](42)
+//	logged := effect.ChainFirstIOK[MyContext](logValue)(eff)
+//	// Prints "Processing: 42" but still produces 42
+//
+//go:inline
+func ChainFirstIOK[C, A, B any](f io.Kleisli[A, B]) Operator[C, A, A] {
+	return readerreaderioresult.ChainFirstIOK[C](f)
+}
+
+// TapIOK is an alias for ChainFirstIOK.
+// It chains an effect with a function that returns an IO action for side effects,
+// but preserves the original value. This is useful for logging, debugging, or
+// performing actions without changing the result.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the IO action (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns IO[B] for side effects
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that executes the IO action but preserves the original value
+//
+// # Example
+//
+//	logValue := func(n int) io.IO[any] {
+//	    return func() any {
+//	        fmt.Printf("Value: %d\n", n)
+//	        return nil
+//	    }
+//	}
+//
+//	eff := effect.Of[MyContext](42)
+//	tapped := effect.TapIOK[MyContext](logValue)(eff)
+//	// Prints "Value: 42" but still produces 42
+//
+//go:inline
+func TapIOK[C, A, B any](f io.Kleisli[A, B]) Operator[C, A, A] {
+	return readerreaderioresult.ChainFirstIOK[C](f)
 }
 
 // Ap applies a function wrapped in an Effect to a value wrapped in an Effect.

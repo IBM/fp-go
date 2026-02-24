@@ -26,7 +26,7 @@ type TestContext struct {
 
 // runEffect is a helper function to run an effect with a context and return the result
 func runEffect[C, A any](eff Effect[C, A], ctx C) (A, error) {
-	ioResult := Provide[C, A](ctx)(eff)
+	ioResult := Provide[A, C](ctx)(eff)
 	readerResult := RunSync(ioResult)
 	return readerResult(context.Background())
 }

@@ -44,11 +44,11 @@ func TestLocal(t *testing.T) {
 		}
 
 		// Apply Local to transform the context
-		kleisli := Local[OuterContext, InnerContext, string](accessor)
+		kleisli := Local[string, OuterContext, InnerContext](accessor)
 		outerEffect := kleisli(innerEffect)
 
 		// Run with OuterContext
-		ioResult := Provide[OuterContext, string](OuterContext{
+		ioResult := Provide[string, OuterContext](OuterContext{
 			Value:  "test",
 			Number: 42,
 		})(outerEffect)
@@ -70,11 +70,11 @@ func TestLocal(t *testing.T) {
 			return InnerContext{Value: outer.Value + " transformed"}
 		}
 
-		kleisli := Local[OuterContext, InnerContext, string](accessor)
+		kleisli := Local[string, OuterContext, InnerContext](accessor)
 		outerEffect := kleisli(innerEffect)
 
 		// Run with OuterContext
-		ioResult := Provide[OuterContext, string](OuterContext{
+		ioResult := Provide[string, OuterContext](OuterContext{
 			Value:  "original",
 			Number: 100,
 		})(outerEffect)
@@ -93,10 +93,10 @@ func TestLocal(t *testing.T) {
 			return InnerContext{Value: outer.Value}
 		}
 
-		kleisli := Local[OuterContext, InnerContext, string](accessor)
+		kleisli := Local[string, OuterContext, InnerContext](accessor)
 		outerEffect := kleisli(innerEffect)
 
-		ioResult := Provide[OuterContext, string](OuterContext{
+		ioResult := Provide[string, OuterContext](OuterContext{
 			Value:  "test",
 			Number: 42,
 		})(outerEffect)
@@ -122,12 +122,12 @@ func TestLocal(t *testing.T) {
 		level3Effect := Of[Level3]("deep result")
 
 		// Transform Level2 -> Level3
-		local23 := Local[Level2, Level3, string](func(l2 Level2) Level3 {
+		local23 := Local[string, Level2, Level3](func(l2 Level2) Level3 {
 			return Level3{C: l2.B + "-c"}
 		})
 
 		// Transform Level1 -> Level2
-		local12 := Local[Level1, Level2, string](func(l1 Level1) Level2 {
+		local12 := Local[string, Level1, Level2](func(l1 Level1) Level2 {
 			return Level2{B: l1.A + "-b"}
 		})
 
@@ -136,7 +136,7 @@ func TestLocal(t *testing.T) {
 		level1Effect := local12(level2Effect)
 
 		// Run with Level1 context
-		ioResult := Provide[Level1, string](Level1{A: "a"})(level1Effect)
+		ioResult := Provide[string, Level1](Level1{A: "a"})(level1Effect)
 		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
@@ -165,11 +165,11 @@ func TestLocal(t *testing.T) {
 			return app.DB
 		}
 
-		kleisli := Local[AppConfig, DatabaseConfig, string](accessor)
+		kleisli := Local[string, AppConfig, DatabaseConfig](accessor)
 		appEffect := kleisli(dbEffect)
 
 		// Run with full AppConfig
-		ioResult := Provide[AppConfig, string](AppConfig{
+		ioResult := Provide[string, AppConfig](AppConfig{
 			DB: DatabaseConfig{
 				Host:     "localhost",
 				Port:     5432,
@@ -195,21 +195,21 @@ func TestContramap(t *testing.T) {
 		}
 
 		// Test Local
-		localKleisli := Local[OuterContext, InnerContext, int](accessor)
+		localKleisli := Local[int, OuterContext, InnerContext](accessor)
 		localEffect := localKleisli(innerEffect)
 
 		// Test Contramap
-		contramapKleisli := Contramap[OuterContext, InnerContext, int](accessor)
+		contramapKleisli := Contramap[int, OuterContext, InnerContext](accessor)
 		contramapEffect := contramapKleisli(innerEffect)
 
 		outerCtx := OuterContext{Value: "test", Number: 100}
 
 		// Run both
-		localIO := Provide[OuterContext, int](outerCtx)(localEffect)
+		localIO := Provide[int, OuterContext](outerCtx)(localEffect)
 		localReader := RunSync(localIO)
 		localResult, localErr := localReader(context.Background())
 
-		contramapIO := Provide[OuterContext, int](outerCtx)(contramapEffect)
+		contramapIO := Provide[int, OuterContext](outerCtx)(contramapEffect)
 		contramapReader := RunSync(contramapIO)
 		contramapResult, contramapErr := contramapReader(context.Background())
 
@@ -225,10 +225,10 @@ func TestContramap(t *testing.T) {
 			return InnerContext{Value: outer.Value + " modified"}
 		}
 
-		kleisli := Contramap[OuterContext, InnerContext, string](accessor)
+		kleisli := Contramap[string, OuterContext, InnerContext](accessor)
 		outerEffect := kleisli(innerEffect)
 
-		ioResult := Provide[OuterContext, string](OuterContext{
+		ioResult := Provide[string, OuterContext](OuterContext{
 			Value:  "original",
 			Number: 50,
 		})(outerEffect)
@@ -247,10 +247,10 @@ func TestContramap(t *testing.T) {
 			return InnerContext{Value: outer.Value}
 		}
 
-		kleisli := Contramap[OuterContext, InnerContext, int](accessor)
+		kleisli := Contramap[int, OuterContext, InnerContext](accessor)
 		outerEffect := kleisli(innerEffect)
 
-		ioResult := Provide[OuterContext, int](OuterContext{
+		ioResult := Provide[int, OuterContext](OuterContext{
 			Value:  "test",
 			Number: 42,
 		})(outerEffect)
@@ -278,12 +278,12 @@ func TestLocalAndContramapInteroperability(t *testing.T) {
 		effect3 := Of[Config3]("result")
 
 		// Use Local for first transformation
-		local23 := Local[Config2, Config3, string](func(c2 Config2) Config3 {
+		local23 := Local[string, Config2, Config3](func(c2 Config2) Config3 {
 			return Config3{Info: c2.Data}
 		})
 
 		// Use Contramap for second transformation
-		contramap12 := Contramap[Config1, Config2, string](func(c1 Config1) Config2 {
+		contramap12 := Contramap[string, Config1, Config2](func(c1 Config1) Config2 {
 			return Config2{Data: c1.Value}
 		})
 
@@ -292,7 +292,7 @@ func TestLocalAndContramapInteroperability(t *testing.T) {
 		effect1 := contramap12(effect2)
 
 		// Run
-		ioResult := Provide[Config1, string](Config1{Value: "test"})(effect1)
+		ioResult := Provide[string, Config1](Config1{Value: "test"})(effect1)
 		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
@@ -326,7 +326,7 @@ func TestLocalEffectK(t *testing.T) {
 		appEffect := transform(dbEffect)
 
 		// Run with AppConfig
-		ioResult := Provide[AppConfig, string](AppConfig{
+		ioResult := Provide[string, AppConfig](AppConfig{
 			ConfigPath: "/etc/app.conf",
 		})(appEffect)
 		readerResult := RunSync(ioResult)
@@ -356,7 +356,7 @@ func TestLocalEffectK(t *testing.T) {
 		transform := LocalEffectK[string](failingTransform)
 		outerEffect := transform(innerEffect)
 
-		ioResult := Provide[OuterCtx, string](OuterCtx{Path: "test"})(outerEffect)
+		ioResult := Provide[string, OuterCtx](OuterCtx{Path: "test"})(outerEffect)
 		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
@@ -384,7 +384,7 @@ func TestLocalEffectK(t *testing.T) {
 		transformK := LocalEffectK[string](transform)
 		outerEffect := transformK(innerEffect)
 
-		ioResult := Provide[OuterCtx, string](OuterCtx{Path: "test"})(outerEffect)
+		ioResult := Provide[string, OuterCtx](OuterCtx{Path: "test"})(outerEffect)
 		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
@@ -417,7 +417,7 @@ func TestLocalEffectK(t *testing.T) {
 		transform := LocalEffectK[string](loadConfigEffect)
 		appEffect := transform(configEffect)
 
-		ioResult := Provide[AppContext, string](AppContext{
+		ioResult := Provide[string, AppContext](AppContext{
 			ConfigFile: "config.json",
 		})(appEffect)
 		readerResult := RunSync(ioResult)
@@ -456,7 +456,7 @@ func TestLocalEffectK(t *testing.T) {
 		level1Effect := transform12(level2Effect)
 
 		// Run with Level1 context
-		ioResult := Provide[Level1, string](Level1{A: "a"})(level1Effect)
+		ioResult := Provide[string, Level1](Level1{A: "a"})(level1Effect)
 		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
@@ -497,7 +497,7 @@ func TestLocalEffectK(t *testing.T) {
 		transform := LocalEffectK[string](transformWithContext)
 		appEffect := transform(dbEffect)
 
-		ioResult := Provide[AppConfig, string](AppConfig{
+		ioResult := Provide[string, AppConfig](AppConfig{
 			Environment: "prod",
 			DBHost:      "localhost",
 			DBPort:      5432,
@@ -534,14 +534,14 @@ func TestLocalEffectK(t *testing.T) {
 		outerEffect := transform(innerEffect)
 
 		// Test with invalid config
-		ioResult := Provide[RawConfig, string](RawConfig{APIKey: ""})(outerEffect)
+		ioResult := Provide[string, RawConfig](RawConfig{APIKey: ""})(outerEffect)
 		readerResult := RunSync(ioResult)
 		_, err := readerResult(context.Background())
 
 		assert.Error(t, err)
 
 		// Test with valid config
-		ioResult2 := Provide[RawConfig, string](RawConfig{APIKey: "valid-key"})(outerEffect)
+		ioResult2 := Provide[string, RawConfig](RawConfig{APIKey: "valid-key"})(outerEffect)
 		readerResult2 := RunSync(ioResult2)
 		result, err2 := readerResult2(context.Background())
 
@@ -569,7 +569,7 @@ func TestLocalEffectK(t *testing.T) {
 		})
 
 		// Use Local for second transformation (pure)
-		local12 := Local[Level1, Level2, string](func(l1 Level1) Level2 {
+		local12 := Local[string, Level1, Level2](func(l1 Level1) Level2 {
 			return Level2{Data: l1.Value}
 		})
 
@@ -578,7 +578,7 @@ func TestLocalEffectK(t *testing.T) {
 		effect1 := local12(effect2)
 
 		// Run
-		ioResult := Provide[Level1, string](Level1{Value: "test"})(effect1)
+		ioResult := Provide[string, Level1](Level1{Value: "test"})(effect1)
 		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
@@ -610,7 +610,7 @@ func TestLocalEffectK(t *testing.T) {
 		transform := LocalEffectK[int](complexTransform)
 		outerEffect := transform(innerEffect)
 
-		ioResult := Provide[OuterCtx, int](OuterCtx{Multiplier: 3})(outerEffect)
+		ioResult := Provide[int, OuterCtx](OuterCtx{Multiplier: 3})(outerEffect)
 		readerResult := RunSync(ioResult)
 		result, err := readerResult(context.Background())
 
