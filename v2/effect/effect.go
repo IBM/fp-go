@@ -16,12 +16,48 @@
 package effect
 
 import (
+	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/fromreader"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
 )
+
+// FromThunk lifts a Thunk (context-independent IO computation with error handling) into an Effect.
+// This allows you to integrate computations that don't need the effect's context type C
+// into effect chains. The Thunk will be executed with the runtime context when the effect runs.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect (not used by the thunk)
+//   - A: The type of the success value
+//
+// # Parameters
+//
+//   - f: A Thunk[A] that performs IO with error handling
+//
+// # Returns
+//
+//   - Effect[C, A]: An effect that ignores its context and executes the thunk
+//
+// # Example
+//
+//	thunk := func(ctx context.Context) io.IO[result.Result[int]] {
+//	    return func() result.Result[int] {
+//	        // Perform IO operation
+//	        return result.Of(42)
+//	    }
+//	}
+//
+//	eff := effect.FromThunk[MyContext](thunk)
+//	// eff can be used in any context but executes the thunk
+//
+//go:inline
+func FromThunk[C, A any](f Thunk[A]) Effect[C, A] {
+	return reader.Of[C](f)
+}
 
 // Succeed creates a successful Effect that produces the given value.
 // This is the primary way to lift a pure value into the Effect context.
@@ -343,6 +379,48 @@ func ChainResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, B] {
 //go:inline
 func ChainReaderK[C, A, B any](f reader.Kleisli[C, A, B]) Operator[C, A, B] {
 	return readerreaderioresult.ChainReaderK(f)
+}
+
+// ChainThunkK chains an effect with a function that returns a Thunk.
+// This is useful for integrating Thunk-based computations (context-independent IO with error handling)
+// into effect chains. The Thunk is automatically lifted into the Effect context.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns Thunk[B] (readerioresult.Kleisli[A, B])
+//
+// # Returns
+//
+//   - Operator[C, A, B]: A function that chains the Thunk-returning function with the effect
+//
+// # Example
+//
+//	performIO := func(n int) readerioresult.ReaderIOResult[string] {
+//	    return func(ctx context.Context) io.IO[result.Result[string]] {
+//	        return func() result.Result[string] {
+//	            // Perform IO operation that doesn't need effect context
+//	            return result.Of(fmt.Sprintf("Processed: %d", n))
+//	        }
+//	    }
+//	}
+//
+//	eff := effect.Of[MyContext](42)
+//	chained := effect.ChainThunkK[MyContext](performIO)(eff)
+//	// chained produces "Processed: 42"
+//
+//go:inline
+func ChainThunkK[C, A, B any](f thunk.Kleisli[A, B]) Operator[C, A, B] {
+	return fromreader.ChainReaderK(
+		Chain[C, A, B],
+		FromThunk[C, B],
+		f,
+	)
 }
 
 // ChainReaderIOK chains an effect with a function that returns a ReaderIO.
