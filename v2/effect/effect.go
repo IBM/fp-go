@@ -18,6 +18,8 @@ package effect
 import (
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -300,8 +302,87 @@ func Ternary[C, A, B any](pred Predicate[A], onTrue, onFalse Kleisli[C, A, B]) K
 //	eff := effect.Of[MyContext]("42")
 //	chained := effect.ChainResultK[MyContext](parseIntResult)(eff)
 //	// chained produces 42 as an int
+//
+//go:inline
 func ChainResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, B] {
 	return readerreaderioresult.ChainResultK[C](f)
+}
+
+// ChainReaderK chains an effect with a function that returns a Reader.
+// This is useful for integrating Reader-based computations (pure context-dependent functions)
+// into effect chains. The Reader is automatically lifted into the Effect context.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns Reader[C, B]
+//
+// # Returns
+//
+//   - Operator[C, A, B]: A function that chains the Reader-returning function with the effect
+//
+// # Example
+//
+//	type Config struct { Multiplier int }
+//
+//	getMultiplied := func(n int) reader.Reader[Config, int] {
+//	    return func(cfg Config) int {
+//	        return n * cfg.Multiplier
+//	    }
+//	}
+//
+//	eff := effect.Of[Config](5)
+//	chained := effect.ChainReaderK[Config](getMultiplied)(eff)
+//	// With Config{Multiplier: 3}, produces 15
+//
+//go:inline
+func ChainReaderK[C, A, B any](f reader.Kleisli[C, A, B]) Operator[C, A, B] {
+	return readerreaderioresult.ChainReaderK(f)
+}
+
+// ChainReaderIOK chains an effect with a function that returns a ReaderIO.
+// This is useful for integrating ReaderIO-based computations (context-dependent IO operations)
+// into effect chains. The ReaderIO is automatically lifted into the Effect context.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns ReaderIO[C, B]
+//
+// # Returns
+//
+//   - Operator[C, A, B]: A function that chains the ReaderIO-returning function with the effect
+//
+// # Example
+//
+//	type Config struct { LogPrefix string }
+//
+//	logAndDouble := func(n int) readerio.ReaderIO[Config, int] {
+//	    return func(cfg Config) io.IO[int] {
+//	        return func() int {
+//	            fmt.Printf("%s: %d\n", cfg.LogPrefix, n)
+//	            return n * 2
+//	        }
+//	    }
+//	}
+//
+//	eff := effect.Of[Config](21)
+//	chained := effect.ChainReaderIOK[Config](logAndDouble)(eff)
+//	// Logs "prefix: 21" and produces 42
+//
+//go:inline
+func ChainReaderIOK[C, A, B any](f readerio.Kleisli[C, A, B]) Operator[C, A, B] {
+	return readerreaderioresult.ChainReaderIOK(f)
 }
 
 // Read provides a context to an effect, partially applying it.
@@ -326,6 +407,8 @@ func ChainResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, B] {
 //	eff := effect.Of[MyContext](42)
 //	thunk := effect.Read[int](ctx)(eff)
 //	// thunk is now a Thunk[int] that can be run without context
+//
+//go:inline
 func Read[A, C any](c C) func(Effect[C, A]) Thunk[A] {
 	return readerreaderioresult.Read[A](c)
 }

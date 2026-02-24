@@ -211,5 +211,3 @@ func TestChainResultK(t *testing.T) {
 		assert.Equal(t, customError, err)
 	})
 }
-
-// Made with Bob
