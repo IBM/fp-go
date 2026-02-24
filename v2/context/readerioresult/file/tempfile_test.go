@@ -34,7 +34,7 @@ func TestWithTempFile(t *testing.T) {
 
 func TestWithTempFileOnClosedFile(t *testing.T) {
 
-	res := WithTempFile(func(f *os.File) RIOE.ReaderIOResult[[]byte] {
+	res := WithTempFile(func(f *os.File) ReaderIOResult[[]byte] {
 		return F.Pipe2(
 			f,
 			onWriteAll[*os.File]([]byte("Carsten")),

@@ -89,6 +89,18 @@ func ContramapIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[
 // (a pair of CancelFunc and the new Context). This allows the context transformation to
 // perform side effects.
 //
+// # Use Cases
+//
+// This function is useful for sharing information via the Context that is computed through
+// side effects that cannot fail, such as:
+//   - Generating unique request IDs or trace IDs
+//   - Recording timestamps or metrics
+//   - Logging context information
+//   - Computing derived values from existing context data
+//
+// The side effect is executed during the context transformation, and the resulting data is
+// stored in the context for downstream computations to access.
+//
 // # Type Parameters
 //
 //   - A: The success type (unchanged through the transformation)
@@ -103,13 +115,17 @@ func ContramapIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[
 //
 // # Example Usage
 //
-//	transformCtx := func(ctx context.Context) io.IO[ContextCancel] {
+//	// Generate a request ID via side effect and add to context
+//	addRequestID := func(ctx context.Context) io.IO[ContextCancel] {
 //	    return func() ContextCancel {
-//	        newCtx := context.WithValue(ctx, "key", "value")
+//	        // Side effect: generate unique ID
+//	        requestID := uuid.New().String()
+//	        // Share the ID via context
+//	        newCtx := context.WithValue(ctx, "requestID", requestID)
 //	        return pair.MakePair(func() {}, newCtx)
 //	    }
 //	}
-//	adapted := LocalIOK[int](transformCtx)(computation)
+//	adapted := LocalIOK[int](addRequestID)(computation)
 //
 // # See Also
 //
@@ -128,6 +144,18 @@ func LocalIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A
 // (a pair of CancelFunc and the new Context). If the transformation fails, the error is propagated
 // and the original ReaderIOResult is not executed.
 //
+// # Use Cases
+//
+// This function is particularly useful for sharing information via the Context that is computed
+// through side effects, such as:
+//   - Loading configuration from a file or database
+//   - Fetching authentication tokens from an external service
+//   - Computing derived values that require I/O operations
+//   - Validating and enriching context with data from external sources
+//
+// The side effect is executed during the context transformation, and the resulting data is
+// stored in the context for downstream computations to access.
+//
 // # Type Parameters
 //
 //   - A: The success type (unchanged through the transformation)
@@ -142,21 +170,25 @@ func LocalIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A
 //
 // # Example Usage
 //
-//	transformCtx := func(ctx context.Context) ioresult.IOResult[ContextCancel] {
+//	// Load configuration via side effect and add to context
+//	loadConfig := func(ctx context.Context) ioresult.IOResult[ContextCancel] {
 //	    return func() result.Result[ContextCancel] {
-//	        if ctx.Value("required") == nil {
-//	            return result.Left[ContextCancel](errors.New("missing required value"))
+//	        // Side effect: read from file system
+//	        config, err := os.ReadFile("config.json")
+//	        if err != nil {
+//	            return result.Left[ContextCancel](err)
 //	        }
-//	        newCtx := context.WithValue(ctx, "key", "value")
+//	        // Share the loaded config via context
+//	        newCtx := context.WithValue(ctx, "config", config)
 //	        return result.Of(pair.MakePair(func() {}, newCtx))
 //	    }
 //	}
-//	adapted := LocalIOResultK[int](transformCtx)(computation)
+//	adapted := LocalIOResultK[int](loadConfig)(computation)
 //
 // # See Also
 //
 //   - Local: For pure context transformations
-//   - LocalIOK: For context transformations with side effects
+//   - LocalIOK: For context transformations with side effects that cannot fail
 //
 //go:inline
 func LocalIOResultK[A any](f ioresult.Kleisli[context.Context, ContextCancel]) Operator[A, A] {

@@ -38,7 +38,7 @@ var (
 )
 
 // CreateTemp created a temp file with proper parametrization
-func CreateTemp(dir, pattern string) RIOE.ReaderIOResult[*os.File] {
+func CreateTemp(dir, pattern string) ReaderIOResult[*os.File] {
 	return F.Pipe2(
 		IOEF.CreateTemp(dir, pattern),
 		RIOE.FromIOEither[*os.File],
@@ -47,6 +47,6 @@ func CreateTemp(dir, pattern string) RIOE.ReaderIOResult[*os.File] {
 }
 
 // WithTempFile creates a temporary file, then invokes a callback to create a resource based on the file, then close and remove the temp file
-func WithTempFile[A any](f func(*os.File) RIOE.ReaderIOResult[A]) RIOE.ReaderIOResult[A] {
+func WithTempFile[A any](f Kleisli[*os.File, A]) ReaderIOResult[A] {
 	return RIOE.WithResource[A](onCreateTempFile, onReleaseTempFile)(f)
 }
