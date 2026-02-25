@@ -20,6 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -28,6 +29,9 @@ import (
 	"github.com/IBM/fp-go/v2/result"
 )
 
+// FromReaderOption converts a ReaderOption to a ReaderIOResult.
+// If the ReaderOption is None, the provided function is called to produce the error.
+//
 //go:inline
 func FromReaderOption[R, A any](onNone Lazy[error]) Kleisli[R, ReaderOption[R, A], A] {
 	return RIOE.FromReaderOption[R, A](onNone)
@@ -105,6 +109,9 @@ func MonadChainFirst[R, A, B any](fa ReaderIOResult[R, A], f Kleisli[R, A, B]) R
 	return RIOE.MonadChainFirst(fa, f)
 }
 
+// MonadTap is an alias for MonadChainFirst, executing a side effect while preserving the original value.
+// The name "Tap" emphasizes the side-effect nature of the operation.
+//
 //go:inline
 func MonadTap[R, A, B any](fa ReaderIOResult[R, A], f Kleisli[R, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTap(fa, f)
@@ -150,6 +157,8 @@ func MonadChainFirstEitherK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleis
 	return RIOE.MonadChainFirstEitherK(ma, f)
 }
 
+// MonadTapEitherK is an alias for MonadChainFirstEitherK, executing a Result side effect while preserving the original value.
+//
 //go:inline
 func MonadTapEitherK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapEitherK(ma, f)
@@ -163,9 +172,41 @@ func ChainFirstEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstEitherK[R](f)
 }
 
+// TapEitherK is an alias for ChainFirstEitherK, executing a Result side effect while preserving the original value.
+//
 //go:inline
 func TapEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.TapEitherK[R](f)
+}
+
+// ChainFirstIOEitherK chains an IOResult computation while preserving the original value.
+// Useful for performing side effects that may fail while keeping the original value.
+//
+//go:inline
+func ChainFirstIOEitherK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstIOEitherK[R](f)
+}
+
+// TapIOEitherK is an alias for ChainFirstIOEitherK, executing an IOResult side effect while preserving the original value.
+//
+//go:inline
+func TapIOEitherK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
+	return RIOE.TapIOEitherK[R](f)
+}
+
+// ChainFirstIOResultK chains an IOResult computation while preserving the original value.
+// This is an alias for ChainFirstIOEitherK with more explicit naming.
+//
+//go:inline
+func ChainFirstIOResultK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
+	return RIOE.ChainFirstIOEitherK[R](f)
+}
+
+// TapIOResultK is an alias for ChainFirstIOResultK, executing an IOResult side effect while preserving the original value.
+//
+//go:inline
+func TapIOResultK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
+	return RIOE.TapIOEitherK[R](f)
 }
 
 // MonadChainFirstEitherK chains an Either-returning computation but keeps the original value.
@@ -176,19 +217,23 @@ func MonadChainFirstResultK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleis
 	return RIOE.MonadChainFirstEitherK(ma, f)
 }
 
+// MonadTapResultK is an alias for MonadChainFirstResultK, executing a Result side effect while preserving the original value.
+//
 //go:inline
 func MonadTapResultK[R, A, B any](ma ReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapEitherK(ma, f)
 }
 
-// ChainFirstEitherK returns a function that chains an Either computation while preserving the original value.
-// This is the curried version of MonadChainFirstEitherK.
+// ChainFirstResultK returns a function that chains a Result computation while preserving the original value.
+// This is an alias for ChainFirstEitherK with more explicit naming.
 //
 //go:inline
 func ChainFirstResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstEitherK[R](f)
 }
 
+// TapResultK is an alias for ChainFirstResultK, executing a Result side effect while preserving the original value.
+//
 //go:inline
 func TapResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.TapEitherK[R](f)
@@ -210,36 +255,54 @@ func ChainReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, B] {
 	return RIOE.ChainReaderK[error](f)
 }
 
+// MonadChainFirstReaderK chains a Reader computation but keeps the original value.
+// Useful for performing Reader-based side effects while preserving the original value.
+//
 //go:inline
 func MonadChainFirstReaderK[R, A, B any](ma ReaderIOResult[R, A], f reader.Kleisli[R, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstReaderK(ma, f)
 }
 
+// MonadTapReaderK is an alias for MonadChainFirstReaderK, executing a Reader side effect while preserving the original value.
+//
 //go:inline
 func MonadTapReaderK[R, A, B any](ma ReaderIOResult[R, A], f reader.Kleisli[R, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapReaderK(ma, f)
 }
 
+// ChainFirstReaderK returns a function that chains a Reader computation while preserving the original value.
+// This is the curried version of MonadChainFirstReaderK.
+//
 //go:inline
 func ChainFirstReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstReaderK[error](f)
 }
 
+// TapReaderK is an alias for ChainFirstReaderK, executing a Reader side effect while preserving the original value.
+//
 //go:inline
 func TapReaderK[R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.TapReaderK[error](f)
 }
 
+// ChainReaderOptionK returns a function that chains a ReaderOption-returning function into ReaderIOResult.
+// If the ReaderOption is None, the provided error function is called.
+//
 //go:inline
 func ChainReaderOptionK[R, A, B any](onNone Lazy[error]) func(readeroption.Kleisli[R, A, B]) Operator[R, A, B] {
 	return RIOE.ChainReaderOptionK[R, A, B](onNone)
 }
 
+// ChainFirstReaderOptionK chains a ReaderOption computation while preserving the original value.
+// If the ReaderOption is None, the provided error function is called.
+//
 //go:inline
 func ChainFirstReaderOptionK[R, A, B any](onNone Lazy[error]) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstReaderOptionK[R, A, B](onNone)
 }
 
+// TapReaderOptionK is an alias for ChainFirstReaderOptionK, executing a ReaderOption side effect while preserving the original value.
+//
 //go:inline
 func TapReaderOptionK[R, A, B any](onNone Lazy[error]) func(readeroption.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.TapReaderOptionK[R, A, B](onNone)
@@ -261,84 +324,123 @@ func ChainReaderEitherK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A
 	return RIOE.ChainReaderEitherK(f)
 }
 
+// MonadChainFirstReaderEitherK chains a ReaderEither computation but keeps the original value.
+// Useful for performing ReaderEither-based side effects while preserving the original value.
+//
 //go:inline
 func MonadChainFirstReaderEitherK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstReaderEitherK(ma, f)
 }
 
+// MonadTapReaderEitherK is an alias for MonadChainFirstReaderEitherK, executing a ReaderEither side effect while preserving the original value.
+//
 //go:inline
 func MonadTapReaderEitherK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapReaderEitherK(ma, f)
 }
 
+// ChainFirstReaderEitherK returns a function that chains a ReaderEither computation while preserving the original value.
+// This is the curried version of MonadChainFirstReaderEitherK.
+//
 //go:inline
 func ChainFirstReaderEitherK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstReaderEitherK(f)
 }
 
+// TapReaderEitherK is an alias for ChainFirstReaderEitherK, executing a ReaderEither side effect while preserving the original value.
+//
 //go:inline
 func TapReaderEitherK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, A] {
 	return RIOE.TapReaderEitherK(f)
 }
 
+// MonadChainReaderResultK chains a ReaderResult-returning computation into a ReaderIOResult.
+// This is an alias for MonadChainReaderEitherK with more explicit naming.
+//
 //go:inline
 func MonadChainReaderResultK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, B] {
 	return RIOE.MonadChainReaderEitherK(ma, f)
 }
 
-// ChainReaderK returns a function that chains a Reader-returning function into ReaderIOResult.
-// This is the curried version of MonadChainReaderK.
+// ChainReaderResultK returns a function that chains a ReaderResult-returning function into ReaderIOResult.
+// This is an alias for ChainReaderEitherK with more explicit naming.
 //
 //go:inline
 func ChainReaderResultK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, B] {
 	return RIOE.ChainReaderEitherK(f)
 }
 
+// MonadChainFirstReaderResultK chains a ReaderResult computation but keeps the original value.
+// This is an alias for MonadChainFirstReaderEitherK with more explicit naming.
+//
 //go:inline
 func MonadChainFirstReaderResultK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstReaderEitherK(ma, f)
 }
 
+// MonadTapReaderResultK is an alias for MonadChainFirstReaderResultK, executing a ReaderResult side effect while preserving the original value.
+//
 //go:inline
 func MonadTapReaderResultK[R, A, B any](ma ReaderIOResult[R, A], f RE.Kleisli[R, error, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapReaderEitherK(ma, f)
 }
 
+// ChainFirstReaderResultK returns a function that chains a ReaderResult computation while preserving the original value.
+// This is an alias for ChainFirstReaderEitherK with more explicit naming.
+//
 //go:inline
 func ChainFirstReaderResultK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstReaderEitherK(f)
 }
 
+// TapReaderResultK is an alias for ChainFirstReaderResultK, executing a ReaderResult side effect while preserving the original value.
+//
 //go:inline
 func TapReaderResultK[R, A, B any](f RE.Kleisli[R, error, A, B]) Operator[R, A, A] {
 	return RIOE.TapReaderEitherK(f)
 }
 
+// MonadChainReaderIOK chains a ReaderIO-returning computation into a ReaderIOResult.
+// The ReaderIO is automatically lifted into the ReaderIOResult context (always succeeds).
+//
 //go:inline
 func MonadChainReaderIOK[R, A, B any](ma ReaderIOResult[R, A], f readerio.Kleisli[R, A, B]) ReaderIOResult[R, B] {
 	return RIOE.MonadChainReaderIOK(ma, f)
 }
 
+// ChainReaderIOK returns a function that chains a ReaderIO-returning function into ReaderIOResult.
+// This is the curried version of MonadChainReaderIOK.
+//
 //go:inline
 func ChainReaderIOK[R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, A, B] {
 	return RIOE.ChainReaderIOK[error](f)
 }
 
+// MonadChainFirstReaderIOK chains a ReaderIO computation but keeps the original value.
+// Useful for performing ReaderIO-based side effects while preserving the original value.
+//
 //go:inline
 func MonadChainFirstReaderIOK[R, A, B any](ma ReaderIOResult[R, A], f readerio.Kleisli[R, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstReaderIOK(ma, f)
 }
 
+// MonadTapReaderIOK is an alias for MonadChainFirstReaderIOK, executing a ReaderIO side effect while preserving the original value.
+//
 //go:inline
 func MonadTapReaderIOK[R, A, B any](ma ReaderIOResult[R, A], f readerio.Kleisli[R, A, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapReaderIOK(ma, f)
 }
 
+// ChainFirstReaderIOK returns a function that chains a ReaderIO computation while preserving the original value.
+// This is the curried version of MonadChainFirstReaderIOK.
+//
 //go:inline
 func ChainFirstReaderIOK[R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstReaderIOK[error](f)
 }
 
+// TapReaderIOK is an alias for ChainFirstReaderIOK, executing a ReaderIO side effect while preserving the original value.
+//
 //go:inline
 func TapReaderIOK[R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.TapReaderIOK[error](f)
@@ -400,6 +502,8 @@ func MonadChainFirstIOK[R, A, B any](ma ReaderIOResult[R, A], f func(A) IO[B]) R
 	return RIOE.MonadChainFirstIOK(ma, f)
 }
 
+// MonadTapIOK is an alias for MonadChainFirstIOK, executing an IO side effect while preserving the original value.
+//
 //go:inline
 func MonadTapIOK[R, A, B any](ma ReaderIOResult[R, A], f func(A) IO[B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapIOK(ma, f)
@@ -413,6 +517,8 @@ func ChainFirstIOK[R, A, B any](f func(A) IO[B]) Operator[R, A, A] {
 	return RIOE.ChainFirstIOK[R, error](f)
 }
 
+// TapIOK is an alias for ChainFirstIOK, executing an IO side effect while preserving the original value.
+//
 //go:inline
 func TapIOK[R, A, B any](f func(A) IO[B]) Operator[R, A, A] {
 	return RIOE.TapIOK[R, error](f)
@@ -473,6 +579,9 @@ func ChainFirst[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.ChainFirst(f)
 }
 
+// Tap is an alias for ChainFirst, executing a side effect while preserving the original value.
+// The name "Tap" emphasizes the side-effect nature of the operation.
+//
 //go:inline
 func Tap[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, A] {
 	return RIOE.Tap(f)
@@ -767,46 +876,70 @@ func Local[A, R1, R2 any](f func(R2) R1) func(ReaderIOResult[R1, A]) ReaderIORes
 	return RIOE.Local[error, A](f)
 }
 
+// Read executes a ReaderIOResult by providing a concrete environment value.
+// This converts a ReaderIOResult[R, A] into an IOResult[A] by supplying the R value.
+//
 //go:inline
 func Read[A, R any](r R) func(ReaderIOResult[R, A]) IOResult[A] {
 	return RIOE.Read[error, A](r)
 }
 
+// MonadChainLeft chains a computation on the error channel, allowing error recovery or transformation.
+// If the computation is successful (Right), it passes through unchanged.
+//
 //go:inline
 func MonadChainLeft[R, A any](fa ReaderIOResult[R, A], f Kleisli[R, error, A]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainLeft(fa, f)
 }
 
+// ChainLeft returns a function that chains a computation on the error channel.
+// This is the curried version of MonadChainLeft.
+//
 //go:inline
 func ChainLeft[R, A any](f Kleisli[R, error, A]) func(ReaderIOResult[R, A]) ReaderIOResult[R, A] {
 	return RIOE.ChainLeft(f)
 }
 
+// MonadChainFirstLeft chains an error-handling computation but preserves the original error.
+// Useful for logging or side effects on errors without changing the error value.
+//
 //go:inline
 func MonadChainFirstLeft[A, R, B any](ma ReaderIOResult[R, A], f Kleisli[R, error, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadChainFirstLeft(ma, f)
 }
 
+// MonadTapLeft is an alias for MonadChainFirstLeft, executing a side effect on errors while preserving the original error.
+//
 //go:inline
 func MonadTapLeft[A, R, B any](ma ReaderIOResult[R, A], f Kleisli[R, error, B]) ReaderIOResult[R, A] {
 	return RIOE.MonadTapLeft(ma, f)
 }
 
+// ChainFirstLeft returns a function that chains an error-handling computation while preserving the original error.
+// This is the curried version of MonadChainFirstLeft.
+//
 //go:inline
 func ChainFirstLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstLeft[A](f)
 }
 
+// ChainFirstLeftIOK chains an IO computation on errors while preserving the original error.
+// Useful for IO-based error logging or side effects.
+//
 //go:inline
 func ChainFirstLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
 	return RIOE.ChainFirstLeftIOK[A, R](f)
 }
 
+// TapLeft is an alias for ChainFirstLeft, executing a side effect on errors while preserving the original error.
+//
 //go:inline
 func TapLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
 	return RIOE.TapLeft[A](f)
 }
 
+// TapLeftIOK is an alias for ChainFirstLeftIOK, executing an IO side effect on errors while preserving the original error.
+//
 //go:inline
 func TapLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
 	return RIOE.TapLeftIOK[A, R](f)

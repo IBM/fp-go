@@ -37,11 +37,46 @@ import (
 	"github.com/IBM/fp-go/v2/readeroption"
 )
 
+// FromReaderOption converts a ReaderOption to a Kleisli arrow that handles None cases.
+// When the Option is None, the provided lazy error value is used.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - A: The value type
+//   - E: The error type
+//
+// # Parameters
+//
+//   - onNone: Lazy function that provides the error value when Option is None
+//
+// # Returns
+//
+//   - Kleisli arrow that converts ReaderOption to ReaderIOEither
+//
 //go:inline
 func FromReaderOption[R, A, E any](onNone Lazy[E]) Kleisli[R, E, ReaderOption[R, A], A] {
 	return function.Bind2nd(function.Flow2[ReaderOption[R, A], IOE.Kleisli[E, Option[A], A]], IOE.FromOption[A](onNone))
 }
 
+// FromReaderIO lifts a ReaderIO into a ReaderIOEither, placing the result in the Right side.
+// This is an alias for RightReaderIO, converting a computation that cannot fail into one
+// that can fail but never does.
+//
+// # Type Parameters
+//
+//   - E: The error type (will never actually contain an error)
+//   - R: The context/environment type
+//   - A: The value type
+//
+// # Parameters
+//
+//   - ma: The ReaderIO to lift
+//
+// # Returns
+//
+//   - ReaderIOEither with the ReaderIO result in the Right side
+//
 //go:inline
 func FromReaderIO[E, R, A any](ma ReaderIO[R, A]) ReaderIOEither[R, E, A] {
 	return RightReaderIO[E](ma)
@@ -121,6 +156,26 @@ func MonadChainFirst[R, E, A, B any](fa ReaderIOEither[R, E, A], f Kleisli[R, E,
 		f)
 }
 
+// MonadTap is an alias for MonadChainFirst.
+// It sequences two computations but keeps the result of the first, emphasizing the
+// side-effect nature of the operation (like "tapping" into a pipeline).
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - fa: The ReaderIOEither computation
+//   - f: The side effect Kleisli arrow
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadTap[R, E, A, B any](fa ReaderIOEither[R, E, A], f Kleisli[R, E, A, B]) ReaderIOEither[R, E, A] {
 	return MonadChainFirst(fa, f)
@@ -165,6 +220,26 @@ func MonadChainFirstEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f either
 	)
 }
 
+// MonadTapEitherK is an alias for MonadChainFirstEitherK.
+// It chains an Either-returning computation while preserving the original value,
+// emphasizing the side-effect nature of the operation.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The Either-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadTapEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f either.Kleisli[E, A, B]) ReaderIOEither[R, E, A] {
 	return MonadChainFirstEitherK(ma, f)
@@ -183,6 +258,25 @@ func ChainFirstEitherK[R, E, A, B any](f either.Kleisli[E, A, B]) Operator[R, E,
 	)
 }
 
+// TapEitherK is an alias for ChainFirstEitherK.
+// It returns a function that chains an Either-returning side effect while preserving
+// the original value, emphasizing the "tap" pattern for observing values.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The Either-returning side effect function
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func TapEitherK[R, E, A, B any](f either.Kleisli[E, A, B]) Operator[R, E, A, A] {
 	return ChainFirstEitherK[R](f)
@@ -213,6 +307,26 @@ func ChainReaderK[E, R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, E, A, B
 	)
 }
 
+// MonadChainFirstReaderK chains a Reader-returning computation while preserving the original value.
+// Useful for performing Reader-based side effects (like logging with context) while keeping
+// the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The Reader-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadChainFirstReaderK[E, R, A, B any](ma ReaderIOEither[R, E, A], f reader.Kleisli[R, A, B]) ReaderIOEither[R, E, A] {
 	return fromreader.MonadChainFirstReaderK(
@@ -223,6 +337,25 @@ func MonadChainFirstReaderK[E, R, A, B any](ma ReaderIOEither[R, E, A], f reader
 	)
 }
 
+// MonadTapReaderK is an alias for MonadChainFirstReaderK.
+// It chains a Reader-returning side effect while preserving the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The Reader-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadTapReaderK[E, R, A, B any](ma ReaderIOEither[R, E, A], f reader.Kleisli[R, A, B]) ReaderIOEither[R, E, A] {
 	return MonadChainFirstReaderK(ma, f)
@@ -240,11 +373,49 @@ func ChainFirstReaderK[E, R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, E,
 	)
 }
 
+// TapReaderK is an alias for ChainFirstReaderK.
+// It returns a function that chains a Reader-returning side effect while preserving
+// the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The Reader-returning side effect function
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func TapReaderK[E, R, A, B any](f reader.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	return ChainFirstReaderK[E](f)
 }
 
+// MonadChainReaderIOK chains a ReaderIO-returning computation into a ReaderIOEither.
+// The ReaderIO is automatically lifted into the ReaderIOEither context.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The ReaderIO-returning function
+//
+// # Returns
+//
+//   - ReaderIOEither with the result of the ReaderIO computation
+//
 //go:inline
 func MonadChainReaderIOK[E, R, A, B any](ma ReaderIOEither[R, E, A], f readerio.Kleisli[R, A, B]) ReaderIOEither[R, E, B] {
 	return fromreader.MonadChainReaderK(
@@ -255,6 +426,24 @@ func MonadChainReaderIOK[E, R, A, B any](ma ReaderIOEither[R, E, A], f readerio.
 	)
 }
 
+// ChainReaderIOK returns a function that chains a ReaderIO-returning function into ReaderIOEither.
+// This is the curried version of MonadChainReaderIOK.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - f: The ReaderIO-returning function
+//
+// # Returns
+//
+//   - Operator that chains the ReaderIO computation
+//
 //go:inline
 func ChainReaderIOK[E, R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, E, A, B] {
 	return fromreader.ChainReaderK(
@@ -264,6 +453,25 @@ func ChainReaderIOK[E, R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, E, 
 	)
 }
 
+// MonadChainFirstReaderIOK chains a ReaderIO-returning computation while preserving the original value.
+// Useful for performing ReaderIO-based side effects while keeping the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The ReaderIO-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadChainFirstReaderIOK[E, R, A, B any](ma ReaderIOEither[R, E, A], f readerio.Kleisli[R, A, B]) ReaderIOEither[R, E, A] {
 	return fromreader.MonadChainFirstReaderK(
@@ -274,11 +482,48 @@ func MonadChainFirstReaderIOK[E, R, A, B any](ma ReaderIOEither[R, E, A], f read
 	)
 }
 
+// MonadTapReaderIOK is an alias for MonadChainFirstReaderIOK.
+// It chains a ReaderIO-returning side effect while preserving the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The ReaderIO-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadTapReaderIOK[E, R, A, B any](ma ReaderIOEither[R, E, A], f readerio.Kleisli[R, A, B]) ReaderIOEither[R, E, A] {
 	return MonadChainFirstReaderIOK(ma, f)
 }
 
+// ChainFirstReaderIOK returns a function that chains a ReaderIO-returning function while
+// preserving the original value. This is the curried version of MonadChainFirstReaderIOK.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The ReaderIO-returning side effect function
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func ChainFirstReaderIOK[E, R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	return fromreader.ChainFirstReaderK(
@@ -288,11 +533,49 @@ func ChainFirstReaderIOK[E, R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R
 	)
 }
 
+// TapReaderIOK is an alias for ChainFirstReaderIOK.
+// It returns a function that chains a ReaderIO-returning side effect while preserving
+// the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The ReaderIO-returning side effect function
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func TapReaderIOK[E, R, A, B any](f readerio.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	return ChainFirstReaderIOK[E](f)
 }
 
+// MonadChainReaderEitherK chains a ReaderEither-returning computation into a ReaderIOEither.
+// The ReaderEither is automatically lifted into the ReaderIOEither context.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The ReaderEither-returning function
+//
+// # Returns
+//
+//   - ReaderIOEither with the result of the ReaderEither computation
+//
 //go:inline
 func MonadChainReaderEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f RE.Kleisli[R, E, A, B]) ReaderIOEither[R, E, B] {
 	return fromreader.MonadChainReaderK(
@@ -315,6 +598,25 @@ func ChainReaderEitherK[E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R, E,
 	)
 }
 
+// MonadChainFirstReaderEitherK chains a ReaderEither-returning computation while preserving the original value.
+// Useful for performing ReaderEither-based side effects while keeping the original value.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The ReaderEither-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadChainFirstReaderEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f RE.Kleisli[R, E, A, B]) ReaderIOEither[R, E, A] {
 	return fromreader.MonadChainFirstReaderK(
@@ -325,6 +627,25 @@ func MonadChainFirstReaderEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f 
 	)
 }
 
+// MonadTapReaderEitherK is an alias for MonadChainFirstReaderEitherK.
+// It chains a ReaderEither-returning side effect while preserving the original value.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The ReaderEither-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadTapReaderEitherK[R, E, A, B any](ma ReaderIOEither[R, E, A], f RE.Kleisli[R, E, A, B]) ReaderIOEither[R, E, A] {
 	return MonadChainFirstReaderEitherK(ma, f)
@@ -342,11 +663,48 @@ func ChainFirstReaderEitherK[E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[
 	)
 }
 
+// TapReaderEitherK is an alias for ChainFirstReaderEitherK.
+// It returns a function that chains a ReaderEither-returning side effect while preserving
+// the original value.
+//
+// # Type Parameters
+//
+//   - E: The error type
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The ReaderEither-returning side effect function
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func TapReaderEitherK[E, R, A, B any](f RE.Kleisli[R, E, A, B]) Operator[R, E, A, A] {
 	return ChainFirstReaderEitherK(f)
 }
 
+// ChainReaderOptionK returns a function that chains a ReaderOption-returning function into ReaderIOEither.
+// When the Option is None, the provided error value is used.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - A: The input value type
+//   - B: The output value type
+//   - E: The error type
+//
+// # Parameters
+//
+//   - onNone: Lazy function that provides the error value when Option is None
+//
+// # Returns
+//
+//   - Function that takes a ReaderOption Kleisli and returns an Operator
+//
 //go:inline
 func ChainReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, B] {
 	fro := FromReaderOption[R, B](onNone)
@@ -359,6 +717,24 @@ func ChainReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisl
 	}
 }
 
+// ChainFirstReaderOptionK returns a function that chains a ReaderOption-returning function
+// while preserving the original value. When the Option is None, the provided error value is used.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//   - E: The error type
+//
+// # Parameters
+//
+//   - onNone: Lazy function that provides the error value when Option is None
+//
+// # Returns
+//
+//   - Function that takes a ReaderOption Kleisli and returns an Operator
+//
 //go:inline
 func ChainFirstReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	fro := FromReaderOption[R, B](onNone)
@@ -371,6 +747,25 @@ func ChainFirstReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.K
 	}
 }
 
+// TapReaderOptionK is an alias for ChainFirstReaderOptionK.
+// It returns a function that chains a ReaderOption-returning side effect while preserving
+// the original value.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//   - E: The error type
+//
+// # Parameters
+//
+//   - onNone: Lazy function that provides the error value when Option is None
+//
+// # Returns
+//
+//   - Function that takes a ReaderOption Kleisli and returns an Operator
+//
 //go:inline
 func TapReaderOptionK[R, A, B, E any](onNone Lazy[E]) func(readeroption.Kleisli[R, A, B]) Operator[R, E, A, A] {
 	return ChainFirstReaderOptionK[R, A, B](onNone)
@@ -399,6 +794,110 @@ func ChainIOEitherK[R, E, A, B any](f IOE.Kleisli[E, A, B]) Operator[R, E, A, B]
 		FromIOEither[R, E, B],
 		f,
 	)
+}
+
+// ChainFirstIOEitherK chains an IOEither computation while preserving the original value.
+// This is useful for performing side effects that may fail (like logging, validation, or
+// external API calls) while keeping the original value in the success case.
+//
+// The function executes the IOEither computation but discards its result, returning the
+// original value if both computations succeed. If either computation fails, the error
+// is propagated.
+//
+// This is the curried version that returns an Operator for use in function composition.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: IOEither.Kleisli function that performs the side effect
+//
+// # Returns
+//
+//   - Operator that chains the side effect while preserving the original value
+//
+// # Example Usage
+//
+//	type Config struct{ LogEnabled bool }
+//
+//	logValue := func(v int) IOEither[error, string] {
+//	    return IOE.Of[error](fmt.Sprintf("Value: %d", v))
+//	}
+//
+//	pipeline := F.Pipe1(
+//	    Of[Config, error](42),
+//	    ChainFirstIOEitherK[Config](logValue),
+//	)
+//	result := pipeline(Config{LogEnabled: true})() // Right(42)
+//
+// # See Also
+//
+//   - TapIOEitherK: Alias for ChainFirstIOEitherK
+//   - ChainIOEitherK: Chains IOEither and uses its result
+//   - ChainFirstEitherK: Similar but for Either computations
+//
+//go:inline
+func ChainFirstIOEitherK[R, E, A, B any](f IOE.Kleisli[E, A, B]) Operator[R, E, A, A] {
+	return fromioeither.ChainFirstIOEitherK(
+		Chain[R, E, A, A],
+		Map[R, E, B, A],
+		FromIOEither[R, E, B],
+		f,
+	)
+}
+
+// TapIOEitherK is an alias for ChainFirstIOEitherK.
+// It executes an IOEither side effect while preserving the original value.
+//
+// The name "Tap" emphasizes the side-effect nature of the operation, similar to
+// tapping into a pipeline to observe or log values without modifying the flow.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: IOEither.Kleisli function that performs the side effect
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
+// # Example Usage
+//
+//	type Config struct{}
+//
+//	validatePositive := func(v int) IOEither[error, bool] {
+//	    if v > 0 {
+//	        return IOE.Of[error](true)
+//	    }
+//	    return IOE.Left[bool](errors.New("must be positive"))
+//	}
+//
+//	pipeline := F.Pipe1(
+//	    Of[Config, error](42),
+//	    TapIOEitherK[Config](validatePositive),
+//	)
+//	result := pipeline(Config{})() // Right(42) if validation passes
+//
+// # See Also
+//
+//   - ChainFirstIOEitherK: The underlying implementation
+//   - TapEitherK: Similar but for Either computations
+//   - TapIOK: Similar but for IO computations
+//
+//go:inline
+func TapIOEitherK[R, E, A, B any](f IOE.Kleisli[E, A, B]) Operator[R, E, A, A] {
+	return ChainFirstIOEitherK[R](f)
 }
 
 // MonadChainIOK chains an IO-returning computation into a ReaderIOEither.
@@ -440,6 +939,25 @@ func MonadChainFirstIOK[R, E, A, B any](ma ReaderIOEither[R, E, A], f io.Kleisli
 	)
 }
 
+// MonadTapIOK is an alias for MonadChainFirstIOK.
+// It chains an IO-returning side effect while preserving the original value.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - ma: The ReaderIOEither computation
+//   - f: The IO-returning side effect function
+//
+// # Returns
+//
+//   - ReaderIOEither with the original value preserved
+//
 //go:inline
 func MonadTapIOK[R, E, A, B any](ma ReaderIOEither[R, E, A], f io.Kleisli[A, B]) ReaderIOEither[R, E, A] {
 	return MonadChainFirstIOK(ma, f)
@@ -458,6 +976,25 @@ func ChainFirstIOK[R, E, A, B any](f io.Kleisli[A, B]) Operator[R, E, A, A] {
 	)
 }
 
+// TapIOK is an alias for ChainFirstIOK.
+// It returns a function that chains an IO-returning side effect while preserving
+// the original value.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The IO-returning side effect function
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func TapIOK[R, E, A, B any](f io.Kleisli[A, B]) Operator[R, E, A, A] {
 	return ChainFirstIOK[R, E](f)
@@ -540,6 +1077,25 @@ func ChainFirst[R, E, A, B any](f Kleisli[R, E, A, B]) Operator[R, E, A, A] {
 		f)
 }
 
+// Tap is an alias for ChainFirst.
+// It returns a function that sequences computations but keeps the first result,
+// emphasizing the side-effect nature of the operation.
+//
+// # Type Parameters
+//
+//   - R: The context/environment type
+//   - E: The error type
+//   - A: The input value type (preserved in output)
+//   - B: The side effect result type (discarded)
+//
+// # Parameters
+//
+//   - f: The Kleisli arrow for the side effect
+//
+// # Returns
+//
+//   - Operator that executes the side effect while preserving the original value
+//
 //go:inline
 func Tap[R, E, A, B any](f Kleisli[R, E, A, B]) Operator[R, E, A, A] {
 	return ChainFirst(f)

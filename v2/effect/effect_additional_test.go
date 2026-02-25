@@ -647,5 +647,3 @@ func TestRead_Failure(t *testing.T) {
 		assert.Equal(t, result.Left[int](testErr), outcome)
 	})
 }
-
-// Made with Bob

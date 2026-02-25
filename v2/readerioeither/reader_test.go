@@ -733,3 +733,390 @@ func TestChainLeftIdenticalToOrElse(t *testing.T) {
 		assert.Equal(t, cfg, *chainLeftCfg)
 	})
 }
+
+func TestChainFirstIOEitherK(t *testing.T) {
+	type Config struct {
+		logEnabled bool
+	}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		sideEffectRan := false
+
+		logValue := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				sideEffectRan = true
+				return E.Right[error](fmt.Sprintf("Logged: %d", v))
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](42),
+			ChainFirstIOEitherK[Config](logValue),
+		)
+
+		result := pipeline(Config{logEnabled: true})()
+		assert.Equal(t, E.Right[error](42), result)
+		assert.True(t, sideEffectRan)
+	})
+
+	t.Run("Success - side effect result is discarded", func(t *testing.T) {
+		sideEffect := func(v int) IOE.IOEither[error, string] {
+			return IOE.Of[error]("side effect result")
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](100),
+			ChainFirstIOEitherK[Config](sideEffect),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](100), result)
+	})
+
+	t.Run("Failure - side effect fails", func(t *testing.T) {
+		sideEffectError := errors.New("side effect failed")
+
+		failingSideEffect := func(v int) IOE.IOEither[error, string] {
+			return IOE.Left[string](sideEffectError)
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](42),
+			ChainFirstIOEitherK[Config](failingSideEffect),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Left[int](sideEffectError), result)
+	})
+
+	t.Run("Failure - original computation fails", func(t *testing.T) {
+		originalError := errors.New("original failed")
+		sideEffectRan := false
+
+		sideEffect := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				sideEffectRan = true
+				return E.Right[error]("logged")
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Left[Config, int](originalError),
+			ChainFirstIOEitherK[Config](sideEffect),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Left[int](originalError), result)
+		assert.False(t, sideEffectRan, "Side effect should not run when original computation fails")
+	})
+
+	t.Run("Chaining multiple side effects", func(t *testing.T) {
+		log1Ran := false
+		log2Ran := false
+
+		log1 := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				log1Ran = true
+				return E.Right[error]("log1")
+			}
+		}
+
+		log2 := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				log2Ran = true
+				return E.Right[error]("log2")
+			}
+		}
+
+		pipeline := F.Pipe2(
+			Of[Config, error](42),
+			ChainFirstIOEitherK[Config](log1),
+			ChainFirstIOEitherK[Config](log2),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](42), result)
+		assert.True(t, log1Ran)
+		assert.True(t, log2Ran)
+	})
+
+	t.Run("Integration with Map", func(t *testing.T) {
+		validate := func(v int) IOE.IOEither[error, bool] {
+			if v > 0 {
+				return IOE.Of[error](true)
+			}
+			return IOE.Left[bool](errors.New("must be positive"))
+		}
+
+		pipeline := F.Pipe2(
+			Of[Config, error](10),
+			ChainFirstIOEitherK[Config](validate),
+			Map[Config, error](func(x int) int { return x * 2 }),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](20), result)
+	})
+
+	t.Run("Different types for input and side effect result", func(t *testing.T) {
+		convertToString := func(v int) IOE.IOEither[error, string] {
+			return IOE.Of[error](fmt.Sprintf("Value: %d", v))
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](123),
+			ChainFirstIOEitherK[Config](convertToString),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](123), result)
+	})
+
+	t.Run("With context-dependent side effect", func(t *testing.T) {
+		logged := ""
+
+		logIfEnabled := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				logged = fmt.Sprintf("Logged: %d", v)
+				return E.Right[error](logged)
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](99),
+			ChainFirstIOEitherK[Config](logIfEnabled),
+		)
+
+		result := pipeline(Config{logEnabled: true})()
+		assert.Equal(t, E.Right[error](99), result)
+		assert.Equal(t, "Logged: 99", logged)
+	})
+}
+
+func TestTapIOEitherK(t *testing.T) {
+	type Config struct {
+		debugMode bool
+	}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				tapped = true
+				return E.Right[error](fmt.Sprintf("Tapped: %d", v))
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](42),
+			TapIOEitherK[Config](tapFunc),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](42), result)
+		assert.True(t, tapped)
+	})
+
+	t.Run("Failure - tap fails", func(t *testing.T) {
+		tapError := errors.New("tap failed")
+
+		tapFunc := func(v int) IOE.IOEither[error, string] {
+			return IOE.Left[string](tapError)
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](42),
+			TapIOEitherK[Config](tapFunc),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Left[int](tapError), result)
+	})
+
+	t.Run("Failure - original computation fails", func(t *testing.T) {
+		originalError := errors.New("original failed")
+		tapped := false
+
+		tapFunc := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				tapped = true
+				return E.Right[error]("tapped")
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Left[Config, int](originalError),
+			TapIOEitherK[Config](tapFunc),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Left[int](originalError), result)
+		assert.False(t, tapped, "Tap should not run when original computation fails")
+	})
+
+	t.Run("Validation use case", func(t *testing.T) {
+		validatePositive := func(v int) IOE.IOEither[error, bool] {
+			if v > 0 {
+				return IOE.Of[error](true)
+			}
+			return IOE.Left[bool](errors.New("must be positive"))
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](42),
+			TapIOEitherK[Config](validatePositive),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](42), result)
+	})
+
+	t.Run("Validation failure", func(t *testing.T) {
+		validatePositive := func(v int) IOE.IOEither[error, bool] {
+			if v > 0 {
+				return IOE.Of[error](true)
+			}
+			return IOE.Left[bool](errors.New("must be positive"))
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config, error](-5),
+			TapIOEitherK[Config](validatePositive),
+		)
+
+		result := pipeline(Config{})()
+		assert.True(t, E.IsLeft(result))
+	})
+
+	t.Run("Multiple taps in sequence", func(t *testing.T) {
+		tap1Ran := false
+		tap2Ran := false
+		tap3Ran := false
+
+		tap1 := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				tap1Ran = true
+				return E.Right[error]("tap1")
+			}
+		}
+
+		tap2 := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				tap2Ran = true
+				return E.Right[error]("tap2")
+			}
+		}
+
+		tap3 := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				tap3Ran = true
+				return E.Right[error]("tap3")
+			}
+		}
+
+		pipeline := F.Pipe3(
+			Of[Config, error](100),
+			TapIOEitherK[Config](tap1),
+			TapIOEitherK[Config](tap2),
+			TapIOEitherK[Config](tap3),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](100), result)
+		assert.True(t, tap1Ran)
+		assert.True(t, tap2Ran)
+		assert.True(t, tap3Ran)
+	})
+
+	t.Run("Tap with transformation pipeline", func(t *testing.T) {
+		tappedValue := 0
+
+		tapFunc := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				tappedValue = v
+				return E.Right[error]("tapped")
+			}
+		}
+
+		pipeline := F.Pipe3(
+			Of[Config, error](10),
+			Map[Config, error](func(x int) int { return x * 2 }),
+			TapIOEitherK[Config](tapFunc),
+			Map[Config, error](func(x int) int { return x + 5 }),
+		)
+
+		result := pipeline(Config{})()
+		assert.Equal(t, E.Right[error](25), result)
+		assert.Equal(t, 20, tappedValue)
+	})
+
+	t.Run("Tap is alias for ChainFirstIOEitherK", func(t *testing.T) {
+		// Verify that TapIOEitherK and ChainFirstIOEitherK produce identical results
+		sideEffect := func(v int) IOE.IOEither[error, string] {
+			return IOE.Of[error](fmt.Sprintf("Value: %d", v))
+		}
+
+		pipelineWithTap := F.Pipe1(
+			Of[Config, error](42),
+			TapIOEitherK[Config](sideEffect),
+		)
+
+		pipelineWithChainFirst := F.Pipe1(
+			Of[Config, error](42),
+			ChainFirstIOEitherK[Config](sideEffect),
+		)
+
+		resultTap := pipelineWithTap(Config{})()
+		resultChainFirst := pipelineWithChainFirst(Config{})()
+
+		assert.Equal(t, resultChainFirst, resultTap)
+	})
+
+	t.Run("Logging use case", func(t *testing.T) {
+		logs := []string{}
+
+		logValue := func(v int) IOE.IOEither[error, string] {
+			return func() E.Either[error, string] {
+				logMsg := fmt.Sprintf("Processing value: %d", v)
+				logs = append(logs, logMsg)
+				return E.Right[error](logMsg)
+			}
+		}
+
+		pipeline := F.Pipe2(
+			Of[Config, error](5),
+			TapIOEitherK[Config](logValue),
+			Map[Config, error](func(x int) int { return x * x }),
+		)
+
+		result := pipeline(Config{debugMode: true})()
+		assert.Equal(t, E.Right[error](25), result)
+		assert.Len(t, logs, 1)
+		assert.Equal(t, "Processing value: 5", logs[0])
+	})
+
+	t.Run("Error propagation in tap chain", func(t *testing.T) {
+		tap1 := func(v int) IOE.IOEither[error, string] {
+			return IOE.Of[error]("tap1")
+		}
+
+		tap2 := func(v int) IOE.IOEither[error, string] {
+			return IOE.Left[string](errors.New("tap2 failed"))
+		}
+
+		tap3 := func(v int) IOE.IOEither[error, string] {
+			return IOE.Of[error]("tap3")
+		}
+
+		pipeline := F.Pipe3(
+			Of[Config, error](42),
+			TapIOEitherK[Config](tap1),
+			TapIOEitherK[Config](tap2),
+			TapIOEitherK[Config](tap3),
+		)
+
+		result := pipeline(Config{})()
+		assert.True(t, E.IsLeft(result))
+	})
+}

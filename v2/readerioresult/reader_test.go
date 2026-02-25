@@ -619,3 +619,453 @@ func TestLocalIOResultK(t *testing.T) {
 		assert.True(t, result.IsLeft(resErr))
 	})
 }
+
+func TestChainFirstIOResultK(t *testing.T) {
+	type Config struct {
+		logEnabled bool
+	}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		sideEffectRan := false
+
+		logValue := func(v int) IOResult[string] {
+			return func() Result[string] {
+				sideEffectRan = true
+				return result.Of(fmt.Sprintf("Logged: %d", v))
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			ChainFirstIOResultK[Config](logValue),
+		)
+
+		res := pipeline(Config{logEnabled: true})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, sideEffectRan)
+	})
+
+	t.Run("Failure - side effect fails", func(t *testing.T) {
+		sideEffectError := errors.New("side effect failed")
+
+		failingSideEffect := func(v int) IOResult[string] {
+			return func() Result[string] {
+				return result.Left[string](sideEffectError)
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			ChainFirstIOResultK[Config](failingSideEffect),
+		)
+
+		res := pipeline(Config{})()
+		assert.True(t, E.IsLeft(res))
+	})
+
+	t.Run("Failure - original computation fails", func(t *testing.T) {
+		originalError := errors.New("original failed")
+		sideEffectRan := false
+
+		sideEffect := func(v int) IOResult[string] {
+			return func() Result[string] {
+				sideEffectRan = true
+				return result.Of("logged")
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Left[Config, int](originalError),
+			ChainFirstIOResultK[Config](sideEffect),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Left[int](originalError), res)
+		assert.False(t, sideEffectRan)
+	})
+}
+
+func TestTapIOResultK(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) IOResult[string] {
+			return func() Result[string] {
+				tapped = true
+				return result.Of(fmt.Sprintf("Tapped: %d", v))
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapIOResultK[Config](tapFunc),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+
+	t.Run("Validation use case", func(t *testing.T) {
+		validatePositive := func(v int) IOResult[bool] {
+			return func() Result[bool] {
+				if v > 0 {
+					return result.Of(true)
+				}
+				return result.Left[bool](errors.New("must be positive"))
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapIOResultK[Config](validatePositive),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("Validation failure", func(t *testing.T) {
+		validatePositive := func(v int) IOResult[bool] {
+			return func() Result[bool] {
+				if v > 0 {
+					return result.Of(true)
+				}
+				return result.Left[bool](errors.New("must be positive"))
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](-5),
+			TapIOResultK[Config](validatePositive),
+		)
+
+		res := pipeline(Config{})()
+		assert.True(t, E.IsLeft(res))
+	})
+}
+
+func TestTap(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) ReaderIOResult[Config, string] {
+			return func(cfg Config) IOResult[string] {
+				return func() Result[string] {
+					tapped = true
+					return result.Of(fmt.Sprintf("Tapped: %d", v))
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			Tap[Config](tapFunc),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+
+	t.Run("Tap is alias for ChainFirst", func(t *testing.T) {
+		sideEffect := func(v int) ReaderIOResult[Config, string] {
+			return func(cfg Config) IOResult[string] {
+				return func() Result[string] {
+					return result.Of(fmt.Sprintf("Value: %d", v))
+				}
+			}
+		}
+
+		pipelineWithTap := F.Pipe1(
+			Of[Config](42),
+			Tap[Config](sideEffect),
+		)
+
+		pipelineWithChainFirst := F.Pipe1(
+			Of[Config](42),
+			ChainFirst[Config](sideEffect),
+		)
+
+		resultTap := pipelineWithTap(Config{})()
+		resultChainFirst := pipelineWithChainFirst(Config{})()
+
+		assert.Equal(t, resultChainFirst, resultTap)
+	})
+}
+
+func TestMonadTap(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) ReaderIOResult[Config, string] {
+			return func(cfg Config) IOResult[string] {
+				return func() Result[string] {
+					tapped = true
+					return result.Of("tapped")
+				}
+			}
+		}
+
+		res := MonadTap(Of[Config](42), tapFunc)(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+}
+
+func TestTapEitherK(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) Result[string] {
+			tapped = true
+			return result.Of(fmt.Sprintf("Tapped: %d", v))
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapEitherK[Config](tapFunc),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+
+	t.Run("Failure - tap fails", func(t *testing.T) {
+		tapError := errors.New("tap failed")
+
+		tapFunc := func(v int) Result[string] {
+			return result.Left[string](tapError)
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapEitherK[Config](tapFunc),
+		)
+
+		res := pipeline(Config{})()
+		assert.True(t, E.IsLeft(res))
+	})
+}
+
+func TestTapResultK(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) Result[string] {
+			tapped = true
+			return result.Of("tapped")
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapResultK[Config](tapFunc),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+}
+
+func TestTapReaderK(t *testing.T) {
+	type Config struct {
+		multiplier int
+	}
+
+	t.Run("Success - preserves original value with context", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) R.Reader[Config, string] {
+			return func(cfg Config) string {
+				tapped = true
+				return fmt.Sprintf("Value: %d, Multiplier: %d", v, cfg.multiplier)
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapReaderK[Config](tapFunc),
+		)
+
+		res := pipeline(Config{multiplier: 2})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+}
+
+func TestTapIOK(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Success - preserves original value", func(t *testing.T) {
+		tapped := false
+
+		tapFunc := func(v int) IO[string] {
+			return func() string {
+				tapped = true
+				return fmt.Sprintf("Tapped: %d", v)
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[Config](42),
+			TapIOK[Config](tapFunc),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.True(t, tapped)
+	})
+}
+
+func TestRead(t *testing.T) {
+	type Config struct {
+		value int
+	}
+
+	t.Run("Success - provides environment", func(t *testing.T) {
+		computation := func(cfg Config) IOResult[int] {
+			return func() Result[int] {
+				return result.Of(cfg.value * 2)
+			}
+		}
+
+		res := Read[int](Config{value: 21})(computation)()
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("Failure - computation fails", func(t *testing.T) {
+		compError := errors.New("computation failed")
+
+		computation := func(cfg Config) IOResult[int] {
+			return func() Result[int] {
+				return result.Left[int](compError)
+			}
+		}
+
+		res := Read[int](Config{value: 21})(computation)()
+		assert.Equal(t, result.Left[int](compError), res)
+	})
+}
+
+func TestChainLeft(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Right passes through unchanged", func(t *testing.T) {
+		pipeline := F.Pipe1(
+			Right[Config](42),
+			ChainLeft[Config](func(err error) ReaderIOResult[Config, int] {
+				return Left[Config, int](errors.New("should not run"))
+			}),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("Left transforms error", func(t *testing.T) {
+		originalError := errors.New("original")
+		newError := errors.New("transformed")
+
+		pipeline := F.Pipe1(
+			Left[Config, int](originalError),
+			ChainLeft[Config](func(err error) ReaderIOResult[Config, int] {
+				return Left[Config, int](newError)
+			}),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Left[int](newError), res)
+	})
+
+	t.Run("Left recovers to Right", func(t *testing.T) {
+		pipeline := F.Pipe1(
+			Left[Config, int](errors.New("error")),
+			ChainLeft[Config](func(err error) ReaderIOResult[Config, int] {
+				return Right[Config](99)
+			}),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(99), res)
+	})
+}
+
+func TestTapLeft(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Right does not call function", func(t *testing.T) {
+		tapped := false
+
+		pipeline := F.Pipe1(
+			Right[Config](42),
+			TapLeft[int, Config](func(err error) ReaderIOResult[Config, string] {
+				return func(cfg Config) IOResult[string] {
+					return func() Result[string] {
+						tapped = true
+						return result.Of("logged")
+					}
+				}
+			}),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Of(42), res)
+		assert.False(t, tapped)
+	})
+
+	t.Run("Left calls function but preserves error", func(t *testing.T) {
+		tapped := false
+		originalError := errors.New("original error")
+
+		pipeline := F.Pipe1(
+			Left[Config, int](originalError),
+			TapLeft[int, Config](func(err error) ReaderIOResult[Config, string] {
+				return func(cfg Config) IOResult[string] {
+					return func() Result[string] {
+						tapped = true
+						return result.Of("side effect done")
+					}
+				}
+			}),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Left[int](originalError), res)
+		assert.True(t, tapped)
+	})
+}
+
+func TestTapLeftIOK(t *testing.T) {
+	type Config struct{}
+
+	t.Run("Left calls IO function but preserves error", func(t *testing.T) {
+		tapped := false
+		originalError := errors.New("original error")
+
+		pipeline := F.Pipe1(
+			Left[Config, int](originalError),
+			TapLeftIOK[int, Config](func(err error) IO[string] {
+				return func() string {
+					tapped = true
+					return "logged error"
+				}
+			}),
+		)
+
+		res := pipeline(Config{})()
+		assert.Equal(t, result.Left[int](originalError), res)
+		assert.True(t, tapped)
+	})
+}

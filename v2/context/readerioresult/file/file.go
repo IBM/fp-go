@@ -83,6 +83,45 @@ var (
 		RIOE.WithContext[*os.File],
 	)
 
+	// Create creates or truncates a file for writing within the given context.
+	// If the file already exists, it is truncated. If it doesn't exist, it is created
+	// with mode 0666 (before umask).
+	//
+	// The operation respects context cancellation and returns a ReaderIOResult
+	// that produces an os.File handle on success.
+	//
+	// The returned file handle should be closed using the Close function when no longer needed,
+	// or managed automatically using WithResource or WriteFile.
+	//
+	// Parameters:
+	//   - path: The path to the file to create or truncate
+	//
+	// Returns:
+	//   - ReaderIOResult[*os.File]: A context-aware computation that creates the file
+	//
+	// Example:
+	//
+	//	createFile := Create("output.txt")
+	//	result := createFile(ctx)()
+	//	either.Fold(
+	//	    result,
+	//	    func(err error) { log.Printf("Error: %v", err) },
+	//	    func(f *os.File) {
+	//	        defer f.Close()
+	//	        f.WriteString("Hello, World!")
+	//	    },
+	//	)
+	//
+	// See Also:
+	//   - WriteFile: For writing data to a file with automatic resource management
+	//   - Open: For opening files for reading
+	//   - Close: For closing file handles
+	Create = F.Flow3(
+		IOEF.Create,
+		RIOE.FromIOEither[*os.File],
+		RIOE.WithContext[*os.File],
+	)
+
 	// Remove removes a file by name.
 	// The operation returns the filename on success, allowing for easy composition
 	// with other file operations.
@@ -190,4 +229,49 @@ func ReadFile(path string) ReaderIOResult[[]byte] {
 			}
 		}
 	})
+}
+
+// WriteFile writes data to a file in a context-aware manner.
+// This function automatically manages the file resource using the RAII pattern,
+// ensuring the file is properly closed even if an error occurs or the context is canceled.
+//
+// If the file doesn't exist, it is created with mode 0666 (before umask).
+// If the file already exists, it is truncated before writing.
+//
+// The operation:
+//   - Creates or truncates the file for writing
+//   - Writes all data to the file
+//   - Automatically closes the file when done
+//   - Respects context cancellation during the write operation
+//
+// Parameters:
+//   - data: The byte slice to write to the file
+//
+// Returns:
+//   - Kleisli[string, []byte]: A function that takes a file path and returns a computation
+//     that writes the data and returns the written bytes on success
+//
+// Example:
+//
+//	writeOp := WriteFile([]byte("Hello, World!"))
+//	result := writeOp("output.txt")(ctx)()
+//	either.Fold(
+//	    result,
+//	    func(err error) { log.Printf("Write error: %v", err) },
+//	    func(data []byte) { log.Printf("Wrote %d bytes", len(data)) },
+//	)
+//
+// The function uses WithResource internally to ensure proper cleanup:
+//
+//	WriteFile(data) = Create >> WriteAll(data) >> Close
+//
+// See Also:
+//   - ReadFile: For reading file contents with automatic resource management
+//   - Create: For creating files without automatic writing
+//   - WriteAll: For writing to an already-open file handle
+func WriteFile(data []byte) Kleisli[string, []byte] {
+	return F.Flow2(
+		Create,
+		WriteAll[*os.File](data),
+	)
 }

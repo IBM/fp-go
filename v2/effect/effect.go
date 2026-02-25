@@ -60,6 +60,11 @@ func FromThunk[C, A any](f Thunk[A]) Effect[C, A] {
 	return reader.Of[C](f)
 }
 
+//go:inline
+func FromResult[C, A any](r Result[A]) Effect[C, A] {
+	return readerreaderioresult.FromEither[C](r)
+}
+
 // Succeed creates a successful Effect that produces the given value.
 // This is the primary way to lift a pure value into the Effect context.
 //
@@ -192,6 +197,11 @@ func Map[C, A, B any](f func(A) B) Operator[C, A, B] {
 //go:inline
 func Chain[C, A, B any](f Kleisli[C, A, B]) Operator[C, A, B] {
 	return readerreaderioresult.Chain(f)
+}
+
+//go:inline
+func ChainFirst[C, A, B any](f Kleisli[C, A, B]) Operator[C, A, A] {
+	return readerreaderioresult.ChainFirst(f)
 }
 
 // ChainIOK chains an effect with a function that returns an IO action.
