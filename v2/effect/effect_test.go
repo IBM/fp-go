@@ -641,8 +641,8 @@ func TestChainThunkK_Integration(t *testing.T) {
 
 		computation := F.Pipe3(
 			Of[TestConfig](5),
-			ChainReaderK[TestConfig](addMultiplier),
-			ChainReaderIOK[TestConfig](logValue),
+			ChainReaderK(addMultiplier),
+			ChainReaderIOK(logValue),
 			ChainThunkK[TestConfig](processThunk),
 		)
 		outcome := computation(testConfig)(context.Background())()

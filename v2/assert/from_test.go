@@ -29,7 +29,7 @@ func TestFromReaderIOResult(t *testing.T) {
 		ri := func(ctx context.Context) func() result.Result[Reader] {
 			return func() result.Result[Reader] {
 				// Return a Reader that always passes
-				return result.Of[Reader](func(t *testing.T) bool {
+				return result.Of(func(t *testing.T) bool {
 					return true
 				})
 			}
@@ -46,7 +46,7 @@ func TestFromReaderIOResult(t *testing.T) {
 		// Create a ReaderIOResult that returns a successful Equal assertion
 		ri := func(ctx context.Context) func() result.Result[Reader] {
 			return func() result.Result[Reader] {
-				return result.Of[Reader](Equal(42)(42))
+				return result.Of(Equal(42)(42))
 			}
 		}
 
@@ -80,7 +80,7 @@ func TestFromReaderIOResult(t *testing.T) {
 		// Create a ReaderIOResult that returns a failing assertion
 		ri := func(ctx context.Context) func() result.Result[Reader] {
 			return func() result.Result[Reader] {
-				return result.Of[Reader](Equal(42)(43))
+				return result.Of(Equal(42)(43))
 			}
 		}
 
@@ -100,7 +100,7 @@ func TestFromReaderIOResult(t *testing.T) {
 				contextUsed = true
 			}
 			return func() result.Result[Reader] {
-				return result.Of[Reader](func(t *testing.T) bool {
+				return result.Of(func(t *testing.T) bool {
 					return true
 				})
 			}
@@ -118,7 +118,7 @@ func TestFromReaderIOResult(t *testing.T) {
 		// Create a ReaderIOResult that returns NoError assertion
 		ri := func(ctx context.Context) func() result.Result[Reader] {
 			return func() result.Result[Reader] {
-				return result.Of[Reader](NoError(nil))
+				return result.Of(NoError(nil))
 			}
 		}
 
@@ -139,7 +139,7 @@ func TestFromReaderIOResult(t *testing.T) {
 					ArrayLength[int](3)(arr),
 					ArrayContains(2)(arr),
 				})
-				return result.Of[Reader](assertions)
+				return result.Of(assertions)
 			}
 		}
 
@@ -297,7 +297,7 @@ func TestFromReaderIO(t *testing.T) {
 		// Create a ReaderIO with Result assertions
 		ri := func(ctx context.Context) func() Reader {
 			return func() Reader {
-				successResult := result.Of[int](42)
+				successResult := result.Of(42)
 				return Success(successResult)
 			}
 		}
@@ -338,7 +338,7 @@ func TestFromReaderIOResultIntegration(t *testing.T) {
 				}
 
 				// Return a successful assertion
-				return result.Of[Reader](Equal("test")("test"))
+				return result.Of(Equal("test")("test"))
 			}
 		}
 

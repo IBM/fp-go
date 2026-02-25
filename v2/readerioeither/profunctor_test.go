@@ -149,7 +149,7 @@ func TestLocalIOK(t *testing.T) {
 		}
 
 		// Compose using LocalIOK
-		adapted := LocalIOK[string, string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOK[string, string](loadConfig)(useConfig)
 		result := adapted("config.json")()
 
 		assert.Equal(t, E.Of[string]("Port: 8080"), result)
@@ -169,7 +169,7 @@ func TestLocalIOK(t *testing.T) {
 			return IOE.Of[string]("Processed: " + strconv.Itoa(n))
 		}
 
-		adapted := LocalIOK[string, string, int, string](loadData)(processData)
+		adapted := LocalIOK[string, string](loadData)(processData)
 		result := adapted("test")()
 
 		assert.Equal(t, E.Of[string]("Processed: 40"), result)
@@ -188,7 +188,7 @@ func TestLocalIOK(t *testing.T) {
 			return IOE.Left[string]("operation failed")
 		}
 
-		adapted := LocalIOK[string, string, SimpleConfig, string](loadConfig)(failingOperation)
+		adapted := LocalIOK[string, string](loadConfig)(failingOperation)
 		result := adapted("config.json")()
 
 		assert.Equal(t, E.Left[string]("operation failed"), result)
@@ -216,8 +216,8 @@ func TestLocalIOK(t *testing.T) {
 		}
 
 		// Compose transformations
-		step1 := LocalIOK[string, string, SimpleConfig, int](loadConfig)(formatConfig)
-		step2 := LocalIOK[string, string, int, string](parseID)(step1)
+		step1 := LocalIOK[string, string](loadConfig)(formatConfig)
+		step2 := LocalIOK[string, string](parseID)(step1)
 
 		result := step2("42")()
 		assert.Equal(t, E.Of[string]("Port: 8042"), result)
@@ -243,7 +243,7 @@ func TestLocalIOEitherK(t *testing.T) {
 		}
 
 		// Compose using LocalIOEitherK
-		adapted := LocalIOEitherK[string, SimpleConfig, string, string](loadConfig)(useConfig)
+		adapted := LocalIOEitherK[string](loadConfig)(useConfig)
 
 		// Success case
 		result := adapted("config.json")()
@@ -265,7 +265,7 @@ func TestLocalIOEitherK(t *testing.T) {
 			return IOE.Of[string]("Port: " + strconv.Itoa(cfg.Port))
 		}
 
-		adapted := LocalIOEitherK[string, SimpleConfig, string, string](loadConfig)(useConfig)
+		adapted := LocalIOEitherK[string](loadConfig)(useConfig)
 		result := adapted("missing.json")()
 
 		// Error from loadConfig should propagate
@@ -282,7 +282,7 @@ func TestLocalIOEitherK(t *testing.T) {
 			return IOE.Left[string]("operation failed")
 		}
 
-		adapted := LocalIOEitherK[string, SimpleConfig, string, string](loadConfig)(failingOperation)
+		adapted := LocalIOEitherK[string](loadConfig)(failingOperation)
 		result := adapted("config.json")()
 
 		// Error from ReaderIOEither should propagate
@@ -317,8 +317,8 @@ func TestLocalIOEitherK(t *testing.T) {
 		}
 
 		// Compose transformations
-		step1 := LocalIOEitherK[string, SimpleConfig, int, string](loadConfig)(formatConfig)
-		step2 := LocalIOEitherK[string, int, string, string](parseID)(step1)
+		step1 := LocalIOEitherK[string](loadConfig)(formatConfig)
+		step2 := LocalIOEitherK[string](parseID)(step1)
 
 		// Success case
 		result := step2("42")()
@@ -364,8 +364,8 @@ func TestLocalIOEitherK(t *testing.T) {
 		}
 
 		// Compose the pipeline
-		step1 := LocalIOEitherK[string, SimpleConfig, string, string](parseConfig)(useConfig)
-		step2 := LocalIOEitherK[string, string, ConfigFile, string](readFile)(step1)
+		step1 := LocalIOEitherK[string](parseConfig)(useConfig)
+		step2 := LocalIOEitherK[string](readFile)(step1)
 
 		// Success case
 		result := step2(ConfigFile{Path: "app.json"})()

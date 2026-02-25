@@ -91,7 +91,7 @@ func TestMonadMapTo(t *testing.T) {
 func TestChain(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		Chain[OuterConfig, InnerConfig, error](func(v int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
+		Chain(func(v int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
 			return Of[OuterConfig, InnerConfig, error](fmt.Sprintf("%d", v))
 		}),
 	)
@@ -193,7 +193,7 @@ func TestFromEither(t *testing.T) {
 
 	t.Run("Left", func(t *testing.T) {
 		err := errors.New("test error")
-		result := FromEither[OuterConfig, InnerConfig, error, int](E.Left[int](err))
+		result := FromEither[OuterConfig, InnerConfig](E.Left[int](err))
 		assert.Equal(t, E.Left[int](err), result(OuterConfig{})(InnerConfig{})())
 	})
 }
@@ -239,7 +239,7 @@ func TestLeftIO(t *testing.T) {
 func TestFromIOEither(t *testing.T) {
 	t.Run("Right", func(t *testing.T) {
 		ioe := IOE.Right[error](42)
-		result := FromIOEither[OuterConfig, InnerConfig, error](ioe)
+		result := FromIOEither[OuterConfig, InnerConfig](ioe)
 		assert.Equal(t, E.Right[error](42), result(OuterConfig{})(InnerConfig{})())
 	})
 
@@ -344,7 +344,7 @@ func TestFromPredicate(t *testing.T) {
 	})
 
 	t.Run("Predicate false", func(t *testing.T) {
-		result := FromPredicate[OuterConfig, InnerConfig, error](isPositive, onFalse)(-5)
+		result := FromPredicate[OuterConfig, InnerConfig](isPositive, onFalse)(-5)
 		expected := E.Left[int](fmt.Errorf("not positive: -5"))
 		assert.Equal(t, expected, result(OuterConfig{})(InnerConfig{})())
 	})
@@ -391,7 +391,7 @@ func TestRead(t *testing.T) {
 func TestChainEitherK(t *testing.T) {
 	g := F.Pipe1(
 		Of[OuterConfig, InnerConfig, error](1),
-		ChainEitherK[OuterConfig, InnerConfig, error](func(v int) E.Either[error, string] {
+		ChainEitherK[OuterConfig, InnerConfig](func(v int) E.Either[error, string] {
 			return E.Right[error](fmt.Sprintf("%d", v))
 		}),
 	)

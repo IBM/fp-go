@@ -39,7 +39,7 @@ func TestFromReaderResult_Success(t *testing.T) {
 		}
 
 		// Convert to Validate
-		validator := FromReaderResult[int, string](successRR)
+		validator := FromReaderResult(successRR)
 
 		// Execute the validator
 		validationResult := validator(42)(nil)
@@ -53,7 +53,7 @@ func TestFromReaderResult_Success(t *testing.T) {
 		parseIntRR := result.Eitherize1(strconv.Atoi)
 
 		// Convert to Validate
-		validator := FromReaderResult[string, int](parseIntRR)
+		validator := FromReaderResult(parseIntRR)
 
 		// Execute with valid input
 		validationResult := validator("123")(nil)
@@ -74,7 +74,7 @@ func TestFromReaderResult_Success(t *testing.T) {
 		}
 
 		// Convert to Validate
-		validator := FromReaderResult[string, User](createUserRR)
+		validator := FromReaderResult(createUserRR)
 
 		// Execute the validator
 		validationResult := validator("Alice")(nil)
@@ -88,7 +88,7 @@ func TestFromReaderResult_Success(t *testing.T) {
 			return result.Of(input * 2)
 		}
 
-		validator := FromReaderResult[int, int](successRR)
+		validator := FromReaderResult(successRR)
 		validationResult := validator(21)(Context{})
 
 		assert.Equal(t, validation.Success(42), validationResult)
@@ -99,7 +99,7 @@ func TestFromReaderResult_Success(t *testing.T) {
 			return result.Of(input + " processed")
 		}
 
-		validator := FromReaderResult[string, string](successRR)
+		validator := FromReaderResult(successRR)
 		ctx := Context{
 			{Key: "user", Type: "User"},
 			{Key: "name", Type: "string"},
@@ -122,7 +122,7 @@ func TestFromReaderResult_Failure(t *testing.T) {
 		}
 
 		// Convert to Validate
-		validator := FromReaderResult[string, int](failureRR)
+		validator := FromReaderResult(failureRR)
 
 		// Execute the validator
 		validationResult := validator("invalid")(nil)
@@ -147,7 +147,7 @@ func TestFromReaderResult_Failure(t *testing.T) {
 			return result.Left[string](originalErr)
 		}
 
-		validator := FromReaderResult[int, string](failureRR)
+		validator := FromReaderResult(failureRR)
 		validationResult := validator(42)(nil)
 
 		assert.True(t, either.IsLeft(validationResult))
@@ -166,7 +166,7 @@ func TestFromReaderResult_Failure(t *testing.T) {
 			return result.Left[int](errors.New("conversion failed"))
 		}
 
-		validator := FromReaderResult[string, int](failureRR)
+		validator := FromReaderResult(failureRR)
 		ctx := Context{
 			{Key: "user", Type: "User"},
 			{Key: "age", Type: "int"},
@@ -213,7 +213,7 @@ func TestFromReaderResult_Failure(t *testing.T) {
 					return result.Left[int](tc.err)
 				}
 
-				validator := FromReaderResult[string, int](failureRR)
+				validator := FromReaderResult(failureRR)
 				validationResult := validator(tc.input)(nil)
 
 				assert.True(t, either.IsLeft(validationResult))
@@ -251,7 +251,7 @@ func TestFromReaderResult_Integration(t *testing.T) {
 
 		// Combine validators
 		validator := F.Pipe1(
-			FromReaderResult[string, int](parseIntRR),
+			FromReaderResult(parseIntRR),
 			Chain(validatePositive),
 		)
 
@@ -273,8 +273,8 @@ func TestFromReaderResult_Integration(t *testing.T) {
 
 		// Convert and map to double the value
 		validator := F.Pipe1(
-			FromReaderResult[string, int](parseIntRR),
-			Map[string, int, int](func(n int) int { return n * 2 }),
+			FromReaderResult(parseIntRR),
+			Map[string](func(n int) int { return n * 2 }),
 		)
 
 		validationResult := validator("21")(nil)
@@ -294,7 +294,7 @@ func TestFromReaderResult_Integration(t *testing.T) {
 			Bind(func(p int) func(State) State {
 				return func(s State) State { s.parsed = p; return s }
 			}, func(s State) Validate[string, int] {
-				return FromReaderResult[string, int](parseIntRR)
+				return FromReaderResult(parseIntRR)
 			}),
 			Let[string](func(v bool) func(State) State {
 				return func(s State) State { s.valid = v; return s }
@@ -315,7 +315,7 @@ func TestFromReaderResult_EdgeCases(t *testing.T) {
 			return result.Of(input)
 		}
 
-		validator := FromReaderResult[int, int](successRR)
+		validator := FromReaderResult(successRR)
 		validationResult := validator(42)(nil)
 
 		assert.True(t, either.IsRight(validationResult))
@@ -326,7 +326,7 @@ func TestFromReaderResult_EdgeCases(t *testing.T) {
 			return result.Of(input)
 		}
 
-		validator := FromReaderResult[string, string](identityRR)
+		validator := FromReaderResult(identityRR)
 		validationResult := validator("")(nil)
 
 		assert.Equal(t, validation.Success(""), validationResult)
@@ -337,7 +337,7 @@ func TestFromReaderResult_EdgeCases(t *testing.T) {
 			return result.Of(input)
 		}
 
-		validator := FromReaderResult[int, int](identityRR)
+		validator := FromReaderResult(identityRR)
 		validationResult := validator(0)(nil)
 
 		assert.Equal(t, validation.Success(0), validationResult)
@@ -352,7 +352,7 @@ func TestFromReaderResult_EdgeCases(t *testing.T) {
 			return result.Of(&Data{Value: input})
 		}
 
-		validator := FromReaderResult[int, *Data](createDataRR)
+		validator := FromReaderResult(createDataRR)
 		validationResult := validator(42)(nil)
 
 		assert.True(t, either.IsRight(validationResult))
@@ -372,7 +372,7 @@ func TestFromReaderResult_EdgeCases(t *testing.T) {
 			return result.Of([]string{input, input})
 		}
 
-		validator := FromReaderResult[string, []string](splitRR)
+		validator := FromReaderResult(splitRR)
 		validationResult := validator("test")(nil)
 
 		assert.Equal(t, validation.Success([]string{"test", "test"}), validationResult)
@@ -383,7 +383,7 @@ func TestFromReaderResult_EdgeCases(t *testing.T) {
 			return result.Of(map[string]int{input: len(input)})
 		}
 
-		validator := FromReaderResult[string, map[string]int](createMapRR)
+		validator := FromReaderResult(createMapRR)
 		validationResult := validator("hello")(nil)
 
 		assert.Equal(t, validation.Success(map[string]int{"hello": 5}), validationResult)
@@ -398,7 +398,7 @@ func TestFromReaderResult_TypeSafety(t *testing.T) {
 			return result.Of(fmt.Sprintf("%d", input))
 		}
 
-		validator := FromReaderResult[int, string](intToStringRR)
+		validator := FromReaderResult(intToStringRR)
 
 		// This should compile and work correctly
 		validationResult := validator(42)(nil)
@@ -409,7 +409,7 @@ func TestFromReaderResult_TypeSafety(t *testing.T) {
 		// This test verifies that the output type is preserved
 		stringToIntRR := result.Eitherize1(strconv.Atoi)
 
-		validator := FromReaderResult[string, int](stringToIntRR)
+		validator := FromReaderResult(stringToIntRR)
 		validationResult := validator("42")(nil)
 
 		// The result should be Validation[int]
@@ -428,7 +428,7 @@ func TestFromReaderResult_TypeSafety(t *testing.T) {
 			return Output{Result: val}, nil
 		})
 
-		validator := FromReaderResult[Input, Output](transformRR)
+		validator := FromReaderResult(transformRR)
 		validationResult := validator(Input{Value: "42"})(nil)
 
 		assert.Equal(t, validation.Success(Output{Result: 42}), validationResult)
@@ -441,7 +441,7 @@ func BenchmarkFromReaderResult_Success(b *testing.B) {
 		return result.Of(input * 2)
 	}
 
-	validator := FromReaderResult[int, int](successRR)
+	validator := FromReaderResult(successRR)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -455,7 +455,7 @@ func BenchmarkFromReaderResult_Failure(b *testing.B) {
 		return result.Left[int](errors.New("error"))
 	}
 
-	validator := FromReaderResult[int, int](failureRR)
+	validator := FromReaderResult(failureRR)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -469,7 +469,7 @@ func BenchmarkFromReaderResult_WithContext(b *testing.B) {
 		return result.Of(input * 2)
 	}
 
-	validator := FromReaderResult[int, int](successRR)
+	validator := FromReaderResult(successRR)
 	ctx := Context{
 		{Key: "user", Type: "User"},
 		{Key: "age", Type: "int"},

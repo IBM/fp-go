@@ -379,7 +379,7 @@ func TestMonadChainLeft(t *testing.T) {
 func TestChainLeft(t *testing.T) {
 	t.Run("Curried function transforms Left value", func(t *testing.T) {
 		// Create a reusable error handler
-		handleNotFound := ChainLeft[error, string](func(err error) Either[string, int] {
+		handleNotFound := ChainLeft(func(err error) Either[string, int] {
 			if err.Error() == "not found" {
 				return Right[string](0)
 			}
@@ -391,7 +391,7 @@ func TestChainLeft(t *testing.T) {
 	})
 
 	t.Run("Curried function with Right value", func(t *testing.T) {
-		handler := ChainLeft[error, string](func(err error) Either[string, int] {
+		handler := ChainLeft(func(err error) Either[string, int] {
 			return Left[int]("should not be called")
 		})
 
@@ -401,7 +401,7 @@ func TestChainLeft(t *testing.T) {
 
 	t.Run("Use in pipeline with Pipe", func(t *testing.T) {
 		// Create error transformer
-		toStringError := ChainLeft[int, string](func(code int) Either[string, string] {
+		toStringError := ChainLeft(func(code int) Either[string, string] {
 			return Left[string](fmt.Sprintf("Error: %d", code))
 		})
 
@@ -414,12 +414,12 @@ func TestChainLeft(t *testing.T) {
 
 	t.Run("Compose multiple ChainLeft operations", func(t *testing.T) {
 		// First handler: convert error to string
-		handler1 := ChainLeft[error, string](func(err error) Either[string, int] {
+		handler1 := ChainLeft(func(err error) Either[string, int] {
 			return Left[int](err.Error())
 		})
 
 		// Second handler: add prefix to string error
-		handler2 := ChainLeft[string, string](func(s string) Either[string, int] {
+		handler2 := ChainLeft(func(s string) Either[string, int] {
 			return Left[int]("Handled: " + s)
 		})
 

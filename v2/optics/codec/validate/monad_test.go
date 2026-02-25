@@ -26,7 +26,7 @@ func TestMonadChainLeft(t *testing.T) {
 		handler := func(errs Errors) Validate[string, int] {
 			for _, err := range errs {
 				if err.Messsage == "validation failed" {
-					return Of[string, int](0) // recover with default
+					return Of[string](0) // recover with default
 				}
 			}
 			return func(input string) Reader[Context, Validation[int]] {
@@ -43,7 +43,7 @@ func TestMonadChainLeft(t *testing.T) {
 	})
 
 	t.Run("preserves success values unchanged", func(t *testing.T) {
-		successValidator := Of[string, int](42)
+		successValidator := Of[string](42)
 
 		handler := func(errs Errors) Validate[string, int] {
 			return func(input string) Reader[Context, Validation[int]] {
@@ -145,7 +145,7 @@ func TestMonadChainLeft(t *testing.T) {
 		}
 
 		handler := func(errs Errors) Validate[Config, string] {
-			return Of[Config, string]("default-value")
+			return Of[Config]("default-value")
 		}
 
 		validator := MonadChainLeft(failingValidator, handler)
@@ -194,7 +194,7 @@ func TestMonadChainLeft(t *testing.T) {
 		}
 
 		handler := func(errs Errors) Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		// MonadChainLeft - direct application
@@ -229,7 +229,7 @@ func TestMonadChainLeft(t *testing.T) {
 			// Check if we can recover
 			for _, err := range errs {
 				if err.Messsage == "error1" {
-					return Of[string, int](100) // recover
+					return Of[string](100) // recover
 				}
 			}
 			return func(input string) Reader[Context, Validation[int]] {
@@ -248,12 +248,12 @@ func TestMonadChainLeft(t *testing.T) {
 	})
 
 	t.Run("does not call handler on success", func(t *testing.T) {
-		successValidator := Of[string, int](42)
+		successValidator := Of[string](42)
 		handlerCalled := false
 
 		handler := func(errs Errors) Validate[string, int] {
 			handlerCalled = true
-			return Of[string, int](0)
+			return Of[string](0)
 		}
 
 		validator := MonadChainLeft(successValidator, handler)
@@ -267,9 +267,9 @@ func TestMonadChainLeft(t *testing.T) {
 // TestMonadAlt tests the MonadAlt function
 func TestMonadAlt(t *testing.T) {
 	t.Run("returns first validator when it succeeds", func(t *testing.T) {
-		validator1 := Of[string, int](42)
+		validator1 := Of[string](42)
 		validator2 := func() Validate[string, int] {
-			return Of[string, int](100)
+			return Of[string](100)
 		}
 
 		result := MonadAlt(validator1, validator2)("input")(nil)
@@ -285,7 +285,7 @@ func TestMonadAlt(t *testing.T) {
 			}
 		}
 		fallback := func() Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		result := MonadAlt(failing, fallback)("input")(nil)
@@ -328,11 +328,11 @@ func TestMonadAlt(t *testing.T) {
 	})
 
 	t.Run("does not evaluate second validator when first succeeds", func(t *testing.T) {
-		validator1 := Of[string, int](42)
+		validator1 := Of[string](42)
 		evaluated := false
 		validator2 := func() Validate[string, int] {
 			evaluated = true
-			return Of[string, int](100)
+			return Of[string](100)
 		}
 
 		result := MonadAlt(validator1, validator2)("input")(nil)
@@ -349,7 +349,7 @@ func TestMonadAlt(t *testing.T) {
 			}
 		}
 		fallback := func() Validate[string, string] {
-			return Of[string, string]("fallback")
+			return Of[string]("fallback")
 		}
 
 		result := MonadAlt(failing, fallback)("input")(nil)
@@ -374,7 +374,7 @@ func TestMonadAlt(t *testing.T) {
 			}
 		}
 		succeeding := func() Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		// Chain: try failing1, then failing2, then succeeding
@@ -395,7 +395,7 @@ func TestMonadAlt(t *testing.T) {
 			}
 		}
 		fallback := func() Validate[Config, string] {
-			return Of[Config, string]("default")
+			return Of[Config]("default")
 		}
 
 		result := MonadAlt(failing, fallback)(Config{Port: 9999})(nil)
@@ -458,9 +458,9 @@ func TestMonadAlt(t *testing.T) {
 // TestAlt tests the Alt function
 func TestAlt(t *testing.T) {
 	t.Run("returns first validator when it succeeds", func(t *testing.T) {
-		validator1 := Of[string, int](42)
+		validator1 := Of[string](42)
 		validator2 := func() Validate[string, int] {
-			return Of[string, int](100)
+			return Of[string](100)
 		}
 
 		withAlt := Alt(validator2)
@@ -477,7 +477,7 @@ func TestAlt(t *testing.T) {
 			}
 		}
 		fallback := func() Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		withAlt := Alt(fallback)
@@ -522,11 +522,11 @@ func TestAlt(t *testing.T) {
 	})
 
 	t.Run("does not evaluate second validator when first succeeds", func(t *testing.T) {
-		validator1 := Of[string, int](42)
+		validator1 := Of[string](42)
 		evaluated := false
 		validator2 := func() Validate[string, int] {
 			evaluated = true
-			return Of[string, int](100)
+			return Of[string](100)
 		}
 
 		withAlt := Alt(validator2)
@@ -553,7 +553,7 @@ func TestAlt(t *testing.T) {
 			}
 		}
 		succeeding := func() Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		// Use F.Pipe to chain alternatives
@@ -576,7 +576,7 @@ func TestAlt(t *testing.T) {
 			}
 		}
 		fallback := func() Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		// Alt - curried for pipelines
@@ -592,9 +592,9 @@ func TestAlt(t *testing.T) {
 // TestMonadAltAndAltEquivalence tests that MonadAlt and Alt are equivalent
 func TestMonadAltAndAltEquivalence(t *testing.T) {
 	t.Run("both produce same results for success", func(t *testing.T) {
-		validator1 := Of[string, int](42)
+		validator1 := Of[string](42)
 		validator2 := func() Validate[string, int] {
-			return Of[string, int](100)
+			return Of[string](100)
 		}
 
 		resultMonadAlt := MonadAlt(validator1, validator2)("input")(nil)
@@ -612,7 +612,7 @@ func TestMonadAltAndAltEquivalence(t *testing.T) {
 			}
 		}
 		fallback := func() Validate[string, int] {
-			return Of[string, int](42)
+			return Of[string](42)
 		}
 
 		resultMonadAlt := MonadAlt(failing, fallback)("input")(nil)

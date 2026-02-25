@@ -630,7 +630,7 @@ func TestLocalIOK(t *testing.T) {
 		}
 
 		// Compose using LocalIOK
-		adapted := LocalIOK[string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOK[string](loadConfig)(useConfig)
 		result := adapted("config.json")()
 
 		assert.Equal(t, "localhost:8080", result)
@@ -650,7 +650,7 @@ func TestLocalIOK(t *testing.T) {
 			return io.Of(fmt.Sprintf("Processed: %d", n))
 		}
 
-		adapted := LocalIOK[string, int, string](loadData)(processData)
+		adapted := LocalIOK[string](loadData)(processData)
 		result := adapted("test")()
 
 		assert.Equal(t, "Processed: 40", result)
@@ -679,8 +679,8 @@ func TestLocalIOK(t *testing.T) {
 		}
 
 		// Compose transformations
-		step1 := LocalIOK[string, UserEnv, int](loadUser)(formatUser)
-		step2 := LocalIOK[string, int, string](parseID)(step1)
+		step1 := LocalIOK[string](loadUser)(formatUser)
+		step2 := LocalIOK[string](parseID)(step1)
 
 		result := step2("42")()
 		assert.Equal(t, "User ID: 42", result)
@@ -704,7 +704,7 @@ func TestLocalIOK(t *testing.T) {
 			return io.Of(fmt.Sprintf("Connected to %s:%d", cfg.Host, cfg.Port))
 		}
 
-		adapted := LocalIOK[string, DatabaseConfig, AppConfig](extractDB)(connectDB)
+		adapted := LocalIOK[string](extractDB)(connectDB)
 		result := adapted(AppConfig{
 			Database: DatabaseConfig{Host: "", Port: 5432},
 		})()
@@ -735,8 +735,8 @@ func TestLocalIOK(t *testing.T) {
 		}
 
 		// Compose the pipeline
-		step1 := LocalIOK[string, SimpleConfig, string](parseConfig)(useConfig)
-		step2 := LocalIOK[string, string, ConfigFile](readFile)(step1)
+		step1 := LocalIOK[string](parseConfig)(useConfig)
+		step2 := LocalIOK[string](readFile)(step1)
 
 		result := step2(ConfigFile{Path: "app.json"})()
 		assert.Equal(t, "Using example.com:9000", result)

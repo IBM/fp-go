@@ -32,7 +32,7 @@ func TestTraverseArray_AllSuccess(t *testing.T) {
 	}
 
 	input := []int{1, 2, 3, 4, 5}
-	result := TraverseArray[context.Context](double)(input)
+	result := TraverseArray(double)(input)
 
 	expected := O.Of([]int{2, 4, 6, 8, 10})
 	assert.Equal(t, expected, result(context.Background())())
@@ -48,7 +48,7 @@ func TestTraverseArray_OneFailure(t *testing.T) {
 	}
 
 	input := []int{1, 2, 3, 4, 5}
-	result := TraverseArray[context.Context](failOnThree)(input)
+	result := TraverseArray(failOnThree)(input)
 
 	expected := O.None[[]int]()
 	assert.Equal(t, expected, result(context.Background())())
@@ -61,7 +61,7 @@ func TestTraverseArray_EmptyArray(t *testing.T) {
 	}
 
 	input := []int{}
-	result := TraverseArray[context.Context](double)(input)
+	result := TraverseArray(double)(input)
 
 	expected := O.Of([]int{})
 	assert.Equal(t, expected, result(context.Background())())
@@ -82,7 +82,7 @@ func TestTraverseArray_WithEnvironment(t *testing.T) {
 	}
 
 	input := []int{1, 2, 3}
-	result := TraverseArray[Config](multiply)(input)
+	result := TraverseArray(multiply)(input)
 
 	cfg := Config{Multiplier: 10}
 	expected := O.Of([]int{10, 20, 30})
@@ -105,7 +105,7 @@ func TestTraverseArray_ChainedOperation(t *testing.T) {
 
 	result := F.Pipe1(
 		Of[Config]([]int{1, 2, 3, 4}),
-		Chain(TraverseArray[Config](multiplyByFactor)),
+		Chain(TraverseArray(multiplyByFactor)),
 	)
 
 	cfg := Config{Factor: 5}
@@ -120,7 +120,7 @@ func TestTraverseArrayWithIndex_AllSuccess(t *testing.T) {
 	}
 
 	input := []string{"a", "b", "c"}
-	result := TraverseArrayWithIndex[context.Context](addIndex)(input)
+	result := TraverseArrayWithIndex(addIndex)(input)
 
 	expected := O.Of([]string{"0:a", "1:b", "2:c"})
 	assert.Equal(t, expected, result(context.Background())())
@@ -136,7 +136,7 @@ func TestTraverseArrayWithIndex_OneFailure(t *testing.T) {
 	}
 
 	input := []string{"a", "b", "c"}
-	result := TraverseArrayWithIndex[context.Context](failOnIndex)(input)
+	result := TraverseArrayWithIndex(failOnIndex)(input)
 
 	expected := O.None[[]string]()
 	assert.Equal(t, expected, result(context.Background())())
@@ -149,7 +149,7 @@ func TestTraverseArrayWithIndex_EmptyArray(t *testing.T) {
 	}
 
 	input := []string{}
-	result := TraverseArrayWithIndex[context.Context](addIndex)(input)
+	result := TraverseArrayWithIndex(addIndex)(input)
 
 	expected := O.Of([]string{})
 	assert.Equal(t, expected, result(context.Background())())
@@ -170,7 +170,7 @@ func TestTraverseArrayWithIndex_WithEnvironment(t *testing.T) {
 	}
 
 	input := []string{"a", "b", "c"}
-	result := TraverseArrayWithIndex[Config](formatWithIndex)(input)
+	result := TraverseArrayWithIndex(formatWithIndex)(input)
 
 	cfg := Config{Prefix: "item-"}
 	expected := O.Of([]string{"item-0:a", "item-1:b", "item-2:c"})
@@ -184,7 +184,7 @@ func TestTraverseArrayWithIndex_IndexUsedInLogic(t *testing.T) {
 	}
 
 	input := []int{10, 20, 30, 40}
-	result := TraverseArrayWithIndex[context.Context](multiplyByIndex)(input)
+	result := TraverseArrayWithIndex(multiplyByIndex)(input)
 
 	// 10*0=0, 20*1=20, 30*2=60, 40*3=120
 	expected := O.Of([]int{0, 20, 60, 120})
@@ -216,7 +216,7 @@ func TestTraverseArray_ComplexType(t *testing.T) {
 		{ID: 3, Name: "Charlie"},
 	}
 
-	result := TraverseArray[context.Context](loadProfile)(users)
+	result := TraverseArray(loadProfile)(users)
 
 	expected := O.Of([]UserProfile{
 		{UserID: 1, DisplayName: "Profile: Alice"},
@@ -247,12 +247,12 @@ func TestTraverseArray_ConditionalFailure(t *testing.T) {
 
 	// With MaxValue=3, should fail on 4 and 5
 	cfg1 := Config{MaxValue: 3}
-	result1 := TraverseArray[Config](validateAndDouble)(input)
+	result1 := TraverseArray(validateAndDouble)(input)
 	assert.Equal(t, O.None[[]int](), result1(cfg1)())
 
 	// With MaxValue=10, all should succeed
 	cfg2 := Config{MaxValue: 10}
-	result2 := TraverseArray[Config](validateAndDouble)(input)
+	result2 := TraverseArray(validateAndDouble)(input)
 	expected := O.Of([]int{2, 4, 6, 8, 10})
 	assert.Equal(t, expected, result2(cfg2)())
 }

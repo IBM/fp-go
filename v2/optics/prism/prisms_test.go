@@ -1405,7 +1405,7 @@ func TestFromResult(t *testing.T) {
 	t.Run("extract from successful result", func(t *testing.T) {
 		prism := FromResult[int]()
 
-		success := result.Of[int](42)
+		success := result.Of(42)
 		extracted := prism.GetOption(success)
 
 		assert.True(t, O.IsSome(extracted))
@@ -1435,7 +1435,7 @@ func TestFromResult(t *testing.T) {
 	t.Run("works with string type", func(t *testing.T) {
 		prism := FromResult[string]()
 
-		success := result.Of[string]("hello")
+		success := result.Of("hello")
 		extracted := prism.GetOption(success)
 
 		assert.True(t, O.IsSome(extracted))
@@ -1451,7 +1451,7 @@ func TestFromResult(t *testing.T) {
 		prism := FromResult[Person]()
 
 		person := Person{Name: "Alice", Age: 30}
-		success := result.Of[Person](person)
+		success := result.Of(person)
 		extracted := prism.GetOption(success)
 
 		assert.True(t, O.IsSome(extracted))
@@ -1465,9 +1465,9 @@ func TestFromResult(t *testing.T) {
 func TestFromResultWithSet(t *testing.T) {
 	t.Run("set on successful result", func(t *testing.T) {
 		prism := FromResult[int]()
-		setter := Set[result.Result[int], int](200)
+		setter := Set[result.Result[int]](200)
 
-		success := result.Of[int](42)
+		success := result.Of(42)
 		updated := setter(prism)(success)
 
 		// Verify the value was updated
@@ -1478,7 +1478,7 @@ func TestFromResultWithSet(t *testing.T) {
 
 	t.Run("set on error result leaves it unchanged", func(t *testing.T) {
 		prism := FromResult[int]()
-		setter := Set[result.Result[int], int](200)
+		setter := Set[result.Result[int]](200)
 
 		failure := E.Left[int](errors.New("test error"))
 		updated := setter(prism)(failure)
@@ -1527,13 +1527,13 @@ func TestFromResultComposition(t *testing.T) {
 		composed := Compose[result.Result[int]](positivePrism)(FromResult[int]())
 
 		// Test with positive number
-		success := result.Of[int](42)
+		success := result.Of(42)
 		extracted := composed.GetOption(success)
 		assert.True(t, O.IsSome(extracted))
 		assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(extracted))
 
 		// Test with negative number
-		negativeSuccess := result.Of[int](-5)
+		negativeSuccess := result.Of(-5)
 		extracted = composed.GetOption(negativeSuccess)
 		assert.True(t, O.IsNone(extracted))
 
@@ -1705,7 +1705,7 @@ func TestParseJSONWithSet(t *testing.T) {
 		originalJSON := []byte(`{"name":"Alice","age":30}`)
 		newPerson := Person{Name: "Bob", Age: 25}
 
-		setter := Set[[]byte, Person](newPerson)
+		setter := Set[[]byte](newPerson)
 		updatedJSON := setter(prism)(originalJSON)
 
 		// Parse the updated JSON
@@ -1722,7 +1722,7 @@ func TestParseJSONWithSet(t *testing.T) {
 		invalidJSON := []byte(`{invalid}`)
 		newPerson := Person{Name: "Charlie", Age: 35}
 
-		setter := Set[[]byte, Person](newPerson)
+		setter := Set[[]byte](newPerson)
 		result := setter(prism)(invalidJSON)
 
 		// Should return original unchanged since it couldn't be parsed

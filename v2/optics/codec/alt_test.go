@@ -62,7 +62,7 @@ func TestMonadAltBasicFunctionality(t *testing.T) {
 
 		assert.True(t, either.IsRight(result), "should successfully decode with first codec")
 
-		value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+		value := either.GetOrElse(reader.Of[validation.Errors](""))(result)
 		assert.Equal(t, "HELLO", value)
 	})
 
@@ -105,7 +105,7 @@ func TestMonadAltBasicFunctionality(t *testing.T) {
 
 		assert.True(t, either.IsRight(result), "should successfully decode with second codec")
 
-		value := either.GetOrElse(reader.Of[validation.Errors, int](0))(result)
+		value := either.GetOrElse(reader.Of[validation.Errors](0))(result)
 		assert.Equal(t, -5, value)
 	})
 
@@ -302,19 +302,19 @@ func TestAltOperator(t *testing.T) {
 		// Test with "42" - should use base codec
 		result1 := pipeline.Decode("42")
 		assert.True(t, either.IsRight(result1))
-		value1 := either.GetOrElse(reader.Of[validation.Errors, int](0))(result1)
+		value1 := either.GetOrElse(reader.Of[validation.Errors](0))(result1)
 		assert.Equal(t, 42, value1)
 
 		// Test with "100" - should use fallback1
 		result2 := pipeline.Decode("100")
 		assert.True(t, either.IsRight(result2))
-		value2 := either.GetOrElse(reader.Of[validation.Errors, int](0))(result2)
+		value2 := either.GetOrElse(reader.Of[validation.Errors](0))(result2)
 		assert.Equal(t, 100, value2)
 
 		// Test with "999" - should use fallback2
 		result3 := pipeline.Decode("999")
 		assert.True(t, either.IsRight(result3))
-		value3 := either.GetOrElse(reader.Of[validation.Errors, int](0))(result3)
+		value3 := either.GetOrElse(reader.Of[validation.Errors](0))(result3)
 		assert.Equal(t, 999, value3)
 	})
 }
@@ -449,7 +449,7 @@ func TestAltRoundTrip(t *testing.T) {
 		decodeResult := altCodec.Decode(original)
 		require.True(t, either.IsRight(decodeResult))
 
-		decoded := either.GetOrElse(reader.Of[validation.Errors, string](""))(decodeResult)
+		decoded := either.GetOrElse(reader.Of[validation.Errors](""))(decodeResult)
 
 		// Encode
 		encoded := altCodec.Encode(decoded)
@@ -487,7 +487,7 @@ func TestAltRoundTrip(t *testing.T) {
 		decodeResult := altCodec.Decode(original)
 		require.True(t, either.IsRight(decodeResult))
 
-		decoded := either.GetOrElse(reader.Of[validation.Errors, string](""))(decodeResult)
+		decoded := either.GetOrElse(reader.Of[validation.Errors](""))(decodeResult)
 
 		// Encode (uses first codec's encoder, which is identity)
 		encoded := altCodec.Encode(decoded)
@@ -619,7 +619,7 @@ func TestAltMonoid(t *testing.T) {
 			result := combined.Decode("input")
 
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, int](0))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](0))(result)
 			assert.Equal(t, 10, value, "first success should win")
 		})
 
@@ -628,7 +628,7 @@ func TestAltMonoid(t *testing.T) {
 			result := combined.Decode("42")
 
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, int](0))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](0))(result)
 			assert.Equal(t, 42, value)
 		})
 
@@ -637,7 +637,7 @@ func TestAltMonoid(t *testing.T) {
 			result := combined.Decode("invalid")
 
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, int](-1))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](-1))(result)
 			assert.Equal(t, 0, value, "should use default zero value")
 		})
 	})
@@ -768,21 +768,21 @@ func TestAltMonoid(t *testing.T) {
 		t.Run("uses primary when it succeeds", func(t *testing.T) {
 			result := combined.Decode("primary")
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](""))(result)
 			assert.Equal(t, "from primary", value)
 		})
 
 		t.Run("uses secondary when primary fails", func(t *testing.T) {
 			result := combined.Decode("secondary")
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](""))(result)
 			assert.Equal(t, "from secondary", value)
 		})
 
 		t.Run("uses default when both fail", func(t *testing.T) {
 			result := combined.Decode("other")
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, string](""))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](""))(result)
 			assert.Equal(t, "default", value)
 		})
 	})
@@ -841,7 +841,7 @@ func TestAltMonoid(t *testing.T) {
 			result := combined.Decode("input")
 
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, int](-1))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](-1))(result)
 			// Empty (0) comes first, so it wins
 			assert.Equal(t, 0, value)
 		})
@@ -852,7 +852,7 @@ func TestAltMonoid(t *testing.T) {
 			result := combined.Decode("input")
 
 			assert.True(t, either.IsRight(result))
-			value := either.GetOrElse(reader.Of[validation.Errors, int](-1))(result)
+			value := either.GetOrElse(reader.Of[validation.Errors](-1))(result)
 			assert.Equal(t, 10, value, "codec1 should win")
 		})
 
@@ -867,8 +867,8 @@ func TestAltMonoid(t *testing.T) {
 			assert.True(t, either.IsRight(resultLeft))
 			assert.True(t, either.IsRight(resultRight))
 
-			valueLeft := either.GetOrElse(reader.Of[validation.Errors, int](-1))(resultLeft)
-			valueRight := either.GetOrElse(reader.Of[validation.Errors, int](-1))(resultRight)
+			valueLeft := either.GetOrElse(reader.Of[validation.Errors](-1))(resultLeft)
+			valueRight := either.GetOrElse(reader.Of[validation.Errors](-1))(resultRight)
 
 			// Both should return 10 (first success)
 			assert.Equal(t, valueLeft, valueRight)

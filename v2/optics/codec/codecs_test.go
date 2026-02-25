@@ -159,7 +159,7 @@ func TestURL(t *testing.T) {
 
 func TestDate(t *testing.T) {
 
-	getOrElseNull := either.GetOrElse(reader.Of[validation.Errors, time.Time](time.Time{}))
+	getOrElseNull := either.GetOrElse(reader.Of[validation.Errors](time.Time{}))
 
 	t.Run("ISO 8601 date format", func(t *testing.T) {
 		dateCodec := Date("2006-01-02")

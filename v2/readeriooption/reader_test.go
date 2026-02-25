@@ -67,7 +67,7 @@ func TestFromReader(t *testing.T) {
 		return cfg.Value * 2
 	}
 
-	ro := FromReader[Config](r)
+	ro := FromReader(r)
 	cfg := Config{Value: 21}
 	result := ro(cfg)()
 
@@ -83,7 +83,7 @@ func TestSomeReader(t *testing.T) {
 		return cfg.Value * 2
 	}
 
-	ro := SomeReader[Config](r)
+	ro := SomeReader(r)
 	cfg := Config{Value: 21}
 	result := ro(cfg)()
 

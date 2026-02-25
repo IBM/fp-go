@@ -349,7 +349,7 @@ func TestLocalIOK(t *testing.T) {
 		}
 
 		// Compose using LocalIOK
-		adapted := LocalIOK[string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOK[string](loadConfig)(useConfig)
 		res := adapted("config.json")()
 
 		assert.Equal(t, result.Of("Port: 8080"), res)
@@ -371,7 +371,7 @@ func TestLocalIOK(t *testing.T) {
 			}
 		}
 
-		adapted := LocalIOK[string, int, string](loadData)(processData)
+		adapted := LocalIOK[string](loadData)(processData)
 		res := adapted("test")()
 
 		assert.Equal(t, result.Of("Processed: 40"), res)
@@ -392,7 +392,7 @@ func TestLocalIOK(t *testing.T) {
 			}
 		}
 
-		adapted := LocalIOK[string, SimpleConfig, string](loadConfig)(failingOperation)
+		adapted := LocalIOK[string](loadConfig)(failingOperation)
 		res := adapted("config.json")()
 
 		assert.True(t, result.IsLeft(res))
@@ -424,7 +424,7 @@ func TestLocalIOEitherK(t *testing.T) {
 		}
 
 		// Compose using LocalIOEitherK
-		adapted := LocalIOEitherK[string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOEitherK[string](loadConfig)(useConfig)
 
 		// Success case
 		res := adapted("config.json")()
@@ -448,7 +448,7 @@ func TestLocalIOEitherK(t *testing.T) {
 			}
 		}
 
-		adapted := LocalIOEitherK[string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOEitherK[string](loadConfig)(useConfig)
 		res := adapted("missing.json")()
 
 		// Error from loadConfig should propagate
@@ -469,7 +469,7 @@ func TestLocalIOEitherK(t *testing.T) {
 			}
 		}
 
-		adapted := LocalIOEitherK[string, SimpleConfig, string](loadConfig)(failingOperation)
+		adapted := LocalIOEitherK[string](loadConfig)(failingOperation)
 		res := adapted("config.json")()
 
 		// Error from ReaderIOResult should propagate
@@ -502,7 +502,7 @@ func TestLocalIOResultK(t *testing.T) {
 		}
 
 		// Compose using LocalIOResultK
-		adapted := LocalIOResultK[string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOResultK[string](loadConfig)(useConfig)
 
 		// Success case
 		res := adapted("config.json")()
@@ -526,7 +526,7 @@ func TestLocalIOResultK(t *testing.T) {
 			}
 		}
 
-		adapted := LocalIOResultK[string, SimpleConfig, string](loadConfig)(useConfig)
+		adapted := LocalIOResultK[string](loadConfig)(useConfig)
 		res := adapted("missing.json")()
 
 		// Error from loadConfig should propagate
@@ -562,8 +562,8 @@ func TestLocalIOResultK(t *testing.T) {
 		}
 
 		// Compose transformations
-		step1 := LocalIOResultK[string, SimpleConfig, int](loadConfig)(formatConfig)
-		step2 := LocalIOResultK[string, int, string](parseID)(step1)
+		step1 := LocalIOResultK[string](loadConfig)(formatConfig)
+		step2 := LocalIOResultK[string](parseID)(step1)
 
 		// Success case
 		res := step2("test")()
@@ -607,8 +607,8 @@ func TestLocalIOResultK(t *testing.T) {
 		}
 
 		// Compose the pipeline
-		step1 := LocalIOResultK[string, SimpleConfig, string](parseConfig)(useConfig)
-		step2 := LocalIOResultK[string, string, ConfigFile](readFile)(step1)
+		step1 := LocalIOResultK[string](parseConfig)(useConfig)
+		step2 := LocalIOResultK[string](readFile)(step1)
 
 		// Success case
 		res := step2(ConfigFile{Path: "app.json"})()
@@ -764,7 +764,7 @@ func TestTap(t *testing.T) {
 
 		pipeline := F.Pipe1(
 			Of[Config](42),
-			Tap[Config](tapFunc),
+			Tap(tapFunc),
 		)
 
 		res := pipeline(Config{})()
@@ -783,12 +783,12 @@ func TestTap(t *testing.T) {
 
 		pipelineWithTap := F.Pipe1(
 			Of[Config](42),
-			Tap[Config](sideEffect),
+			Tap(sideEffect),
 		)
 
 		pipelineWithChainFirst := F.Pipe1(
 			Of[Config](42),
-			ChainFirst[Config](sideEffect),
+			ChainFirst(sideEffect),
 		)
 
 		resultTap := pipelineWithTap(Config{})()
@@ -896,7 +896,7 @@ func TestTapReaderK(t *testing.T) {
 
 		pipeline := F.Pipe1(
 			Of[Config](42),
-			TapReaderK[Config](tapFunc),
+			TapReaderK(tapFunc),
 		)
 
 		res := pipeline(Config{multiplier: 2})()
@@ -965,7 +965,7 @@ func TestChainLeft(t *testing.T) {
 	t.Run("Right passes through unchanged", func(t *testing.T) {
 		pipeline := F.Pipe1(
 			Right[Config](42),
-			ChainLeft[Config](func(err error) ReaderIOResult[Config, int] {
+			ChainLeft(func(err error) ReaderIOResult[Config, int] {
 				return Left[Config, int](errors.New("should not run"))
 			}),
 		)
@@ -980,7 +980,7 @@ func TestChainLeft(t *testing.T) {
 
 		pipeline := F.Pipe1(
 			Left[Config, int](originalError),
-			ChainLeft[Config](func(err error) ReaderIOResult[Config, int] {
+			ChainLeft(func(err error) ReaderIOResult[Config, int] {
 				return Left[Config, int](newError)
 			}),
 		)
@@ -992,7 +992,7 @@ func TestChainLeft(t *testing.T) {
 	t.Run("Left recovers to Right", func(t *testing.T) {
 		pipeline := F.Pipe1(
 			Left[Config, int](errors.New("error")),
-			ChainLeft[Config](func(err error) ReaderIOResult[Config, int] {
+			ChainLeft(func(err error) ReaderIOResult[Config, int] {
 				return Right[Config](99)
 			}),
 		)
@@ -1010,7 +1010,7 @@ func TestTapLeft(t *testing.T) {
 
 		pipeline := F.Pipe1(
 			Right[Config](42),
-			TapLeft[int, Config](func(err error) ReaderIOResult[Config, string] {
+			TapLeft[int](func(err error) ReaderIOResult[Config, string] {
 				return func(cfg Config) IOResult[string] {
 					return func() Result[string] {
 						tapped = true
@@ -1031,7 +1031,7 @@ func TestTapLeft(t *testing.T) {
 
 		pipeline := F.Pipe1(
 			Left[Config, int](originalError),
-			TapLeft[int, Config](func(err error) ReaderIOResult[Config, string] {
+			TapLeft[int](func(err error) ReaderIOResult[Config, string] {
 				return func(cfg Config) IOResult[string] {
 					return func() Result[string] {
 						tapped = true

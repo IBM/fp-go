@@ -70,7 +70,7 @@ func TestEitherEncode(t *testing.T) {
 
 // TestEitherDecode tests decoding/validation of Either values
 func TestEitherDecode(t *testing.T) {
-	getOrElseNull := either.GetOrElse(reader.Of[validation.Errors, either.Either[string, int]](either.Left[int]("")))
+	getOrElseNull := either.GetOrElse(reader.Of[validation.Errors](either.Left[int]("")))
 
 	// Create codecs that both work with string input
 	stringCodec := Id[string]()

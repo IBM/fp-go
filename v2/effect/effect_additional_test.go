@@ -138,7 +138,7 @@ func TestChain_Success(t *testing.T) {
 	t.Run("sequences two effects", func(t *testing.T) {
 		eff := F.Pipe1(
 			Of[TestConfig](42),
-			Chain[TestConfig](func(x int) Effect[TestConfig, string] {
+			Chain(func(x int) Effect[TestConfig, string] {
 				return Of[TestConfig](strconv.Itoa(x))
 			}),
 		)
@@ -149,10 +149,10 @@ func TestChain_Success(t *testing.T) {
 	t.Run("chains multiple effects", func(t *testing.T) {
 		eff := F.Pipe2(
 			Of[TestConfig](10),
-			Chain[TestConfig](func(x int) Effect[TestConfig, int] {
+			Chain(func(x int) Effect[TestConfig, int] {
 				return Of[TestConfig](x + 5)
 			}),
-			Chain[TestConfig](func(x int) Effect[TestConfig, int] {
+			Chain(func(x int) Effect[TestConfig, int] {
 				return Of[TestConfig](x * 2)
 			}),
 		)
@@ -166,7 +166,7 @@ func TestChain_Failure(t *testing.T) {
 		testErr := errors.New("first error")
 		eff := F.Pipe1(
 			Fail[TestConfig, int](testErr),
-			Chain[TestConfig](func(x int) Effect[TestConfig, string] {
+			Chain(func(x int) Effect[TestConfig, string] {
 				return Of[TestConfig]("should not execute")
 			}),
 		)
@@ -178,7 +178,7 @@ func TestChain_Failure(t *testing.T) {
 		testErr := errors.New("second error")
 		eff := F.Pipe1(
 			Of[TestConfig](42),
-			Chain[TestConfig](func(x int) Effect[TestConfig, string] {
+			Chain(func(x int) Effect[TestConfig, string] {
 				return Fail[TestConfig, string](testErr)
 			}),
 		)
@@ -503,7 +503,7 @@ func TestTap_Success(t *testing.T) {
 		log := []string{}
 		eff := F.Pipe1(
 			Of[TestConfig](42),
-			Tap[TestConfig](func(x int) Effect[TestConfig, any] {
+			Tap(func(x int) Effect[TestConfig, any] {
 				log = append(log, fmt.Sprintf("tapped: %d", x))
 				return Of[TestConfig, any](nil)
 			}),
@@ -517,11 +517,11 @@ func TestTap_Success(t *testing.T) {
 		log := []string{}
 		eff := F.Pipe2(
 			Of[TestConfig](10),
-			Tap[TestConfig](func(x int) Effect[TestConfig, any] {
+			Tap(func(x int) Effect[TestConfig, any] {
 				log = append(log, "first")
 				return Of[TestConfig, any](nil)
 			}),
-			Tap[TestConfig](func(x int) Effect[TestConfig, any] {
+			Tap(func(x int) Effect[TestConfig, any] {
 				log = append(log, "second")
 				return Of[TestConfig, any](nil)
 			}),
@@ -538,7 +538,7 @@ func TestTap_Failure(t *testing.T) {
 		executed := false
 		eff := F.Pipe1(
 			Fail[TestConfig, int](testErr),
-			Tap[TestConfig](func(x int) Effect[TestConfig, any] {
+			Tap(func(x int) Effect[TestConfig, any] {
 				executed = true
 				return Of[TestConfig, any](nil)
 			}),
@@ -620,7 +620,7 @@ func TestRead_Success(t *testing.T) {
 		// Create an effect that uses the context's Multiplier
 		eff := F.Pipe1(
 			Of[TestConfig](10),
-			ChainReaderK[TestConfig](func(x int) reader.Reader[TestConfig, int] {
+			ChainReaderK(func(x int) reader.Reader[TestConfig, int] {
 				return func(cfg TestConfig) int {
 					return x * cfg.Multiplier
 				}

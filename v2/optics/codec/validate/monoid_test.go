@@ -15,7 +15,7 @@ import (
 // TestAlternativeMonoid tests the AlternativeMonoid function
 func TestAlternativeMonoid(t *testing.T) {
 	t.Run("with string monoid", func(t *testing.T) {
-		m := AlternativeMonoid[string, string](S.Monoid)
+		m := AlternativeMonoid[string](S.Monoid)
 
 		t.Run("empty returns validator that succeeds with empty string", func(t *testing.T) {
 			empty := m.Empty()
@@ -25,8 +25,8 @@ func TestAlternativeMonoid(t *testing.T) {
 		})
 
 		t.Run("concat combines successful validators using monoid", func(t *testing.T) {
-			validator1 := Of[string, string]("Hello")
-			validator2 := Of[string, string](" World")
+			validator1 := Of[string]("Hello")
+			validator2 := Of[string](" World")
 
 			combined := m.Concat(validator1, validator2)
 			result := combined("input")(nil)
@@ -42,7 +42,7 @@ func TestAlternativeMonoid(t *testing.T) {
 					})
 				}
 			}
-			succeeding := Of[string, string]("fallback")
+			succeeding := Of[string]("fallback")
 
 			combined := m.Concat(failing, succeeding)
 			result := combined("input")(nil)
@@ -85,7 +85,7 @@ func TestAlternativeMonoid(t *testing.T) {
 		})
 
 		t.Run("concat with empty preserves validator", func(t *testing.T) {
-			validator := Of[string, string]("test")
+			validator := Of[string]("test")
 			empty := m.Empty()
 
 			result1 := m.Concat(validator, empty)("input")(nil)
@@ -110,7 +110,7 @@ func TestAlternativeMonoid(t *testing.T) {
 			func(a, b int) int { return a + b },
 			0,
 		)
-		m := AlternativeMonoid[string, int](intMonoid)
+		m := AlternativeMonoid[string](intMonoid)
 
 		t.Run("empty returns validator with zero", func(t *testing.T) {
 			empty := m.Empty()
@@ -124,8 +124,8 @@ func TestAlternativeMonoid(t *testing.T) {
 		})
 
 		t.Run("concat combines decoded values when both succeed", func(t *testing.T) {
-			validator1 := Of[string, int](10)
-			validator2 := Of[string, int](32)
+			validator1 := Of[string](10)
+			validator2 := Of[string](32)
 
 			combined := m.Concat(validator1, validator2)
 			result := combined("input")(nil)
@@ -145,7 +145,7 @@ func TestAlternativeMonoid(t *testing.T) {
 					})
 				}
 			}
-			succeeding := Of[string, int](42)
+			succeeding := Of[string](42)
 
 			combined := m.Concat(failing, succeeding)
 			result := combined("input")(nil)
@@ -158,10 +158,10 @@ func TestAlternativeMonoid(t *testing.T) {
 		})
 
 		t.Run("multiple concat operations", func(t *testing.T) {
-			validator1 := Of[string, int](1)
-			validator2 := Of[string, int](2)
-			validator3 := Of[string, int](3)
-			validator4 := Of[string, int](4)
+			validator1 := Of[string](1)
+			validator2 := Of[string](2)
+			validator3 := Of[string](3)
+			validator4 := Of[string](4)
 
 			combined := m.Concat(m.Concat(m.Concat(validator1, validator2), validator3), validator4)
 			result := combined("input")(nil)
@@ -175,11 +175,11 @@ func TestAlternativeMonoid(t *testing.T) {
 	})
 
 	t.Run("satisfies monoid laws", func(t *testing.T) {
-		m := AlternativeMonoid[string, string](S.Monoid)
+		m := AlternativeMonoid[string](S.Monoid)
 
-		validator1 := Of[string, string]("a")
-		validator2 := Of[string, string]("b")
-		validator3 := Of[string, string]("c")
+		validator1 := Of[string]("a")
+		validator2 := Of[string]("b")
+		validator3 := Of[string]("c")
 
 		t.Run("left identity", func(t *testing.T) {
 			result := m.Concat(m.Empty(), validator1)("input")(nil)
@@ -222,7 +222,7 @@ func TestAlternativeMonoid(t *testing.T) {
 func TestAltMonoid(t *testing.T) {
 	t.Run("with default value as zero", func(t *testing.T) {
 		m := AltMonoid(func() Validate[string, int] {
-			return Of[string, int](0)
+			return Of[string](0)
 		})
 
 		t.Run("empty returns the provided zero validator", func(t *testing.T) {
@@ -233,8 +233,8 @@ func TestAltMonoid(t *testing.T) {
 		})
 
 		t.Run("concat returns first validator when it succeeds", func(t *testing.T) {
-			validator1 := Of[string, int](42)
-			validator2 := Of[string, int](100)
+			validator1 := Of[string](42)
+			validator2 := Of[string](100)
 
 			combined := m.Concat(validator1, validator2)
 			result := combined("input")(nil)
@@ -250,7 +250,7 @@ func TestAltMonoid(t *testing.T) {
 					})
 				}
 			}
-			succeeding := Of[string, int](42)
+			succeeding := Of[string](42)
 
 			combined := m.Concat(failing, succeeding)
 			result := combined("input")(nil)
@@ -341,7 +341,7 @@ func TestAltMonoid(t *testing.T) {
 
 	t.Run("chaining multiple fallbacks", func(t *testing.T) {
 		m := AltMonoid(func() Validate[string, string] {
-			return Of[string, string]("default")
+			return Of[string]("default")
 		})
 
 		primary := func(input string) Reader[Context, Validation[string]] {
@@ -358,7 +358,7 @@ func TestAltMonoid(t *testing.T) {
 				})
 			}
 		}
-		tertiary := Of[string, string]("tertiary value")
+		tertiary := Of[string]("tertiary value")
 
 		combined := m.Concat(m.Concat(primary, secondary), tertiary)
 		result := combined("input")(nil)
@@ -369,14 +369,14 @@ func TestAltMonoid(t *testing.T) {
 	t.Run("difference from AlternativeMonoid", func(t *testing.T) {
 		// AltMonoid - first success wins
 		altM := AltMonoid(func() Validate[string, int] {
-			return Of[string, int](0)
+			return Of[string](0)
 		})
 
 		// AlternativeMonoid - combines successes
-		altMonoid := AlternativeMonoid[string, int](N.MonoidSum[int]())
+		altMonoid := AlternativeMonoid[string](N.MonoidSum[int]())
 
-		validator1 := Of[string, int](10)
-		validator2 := Of[string, int](32)
+		validator1 := Of[string](10)
+		validator2 := Of[string](32)
 
 		// AltMonoid: returns first success (10)
 		result1 := altM.Concat(validator1, validator2)("input")(nil)
