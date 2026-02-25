@@ -42,6 +42,7 @@ jobs:
           go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
       
       - name: Upload coverage to Coveralls
+        continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -81,6 +82,7 @@ jobs:
           go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
       
       - name: Upload coverage to Coveralls
+        continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -106,6 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
+        continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
