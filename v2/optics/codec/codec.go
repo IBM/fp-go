@@ -100,7 +100,7 @@ func (t *typeImpl[A, O, I]) Is(i any) Result[A] {
 //	stringToInt := codec.MakeType(...)  // Type[int, string, string]
 //	intToPositive := codec.MakeType(...) // Type[PositiveInt, int, int]
 //	composed := codec.Pipe(intToPositive)(stringToInt) // Type[PositiveInt, string, string]
-func Pipe[A, B, O, I any](ab Type[B, A, A]) func(Type[A, O, I]) Type[B, O, I] {
+func Pipe[O, I, A, B any](ab Type[B, A, A]) func(Type[A, O, I]) Type[B, O, I] {
 	return func(this Type[A, O, I]) Type[B, O, I] {
 		return MakeType(
 			fmt.Sprintf("Pipe(%s, %s)", this.Name(), ab.Name()),

@@ -1748,7 +1748,7 @@ func TestFromRefinementComposition(t *testing.T) {
 	positiveCodec := FromRefinement(positiveIntPrism)
 
 	// Compose with Int codec using Pipe
-	composed := Pipe[int, int, int, any](positiveCodec)(Int())
+	composed := Pipe[int, any, int, int](positiveCodec)(Int())
 
 	t.Run("ComposedDecodeValid", func(t *testing.T) {
 		result := composed.Decode(42)
