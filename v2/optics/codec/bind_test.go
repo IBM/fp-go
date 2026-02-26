@@ -23,6 +23,8 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/optional"
+	"github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
@@ -405,6 +407,407 @@ func TestApSL_ErrorAccumulation(t *testing.T) {
 		errors := either.MonadFold(result,
 			F.Identity[validation.Errors],
 			func(Person) validation.Errors { return nil },
+		)
+
+		// Should have errors from both base and field validation
+		assert.NotEmpty(t, errors, "Should have validation errors")
+	})
+}
+
+// Test types for ApSO
+type PersonWithNickname struct {
+	Name     string
+	Nickname *string
+}
+
+func TestApSO_EncodingWithPresentField(t *testing.T) {
+	t.Run("encodes optional field when present", func(t *testing.T) {
+		// Create an optional for PersonWithNickname.Nickname
+		nicknameOpt := optional.MakeOptional(
+			func(p PersonWithNickname) option.Option[string] {
+				if p.Nickname != nil {
+					return option.Some(*p.Nickname)
+				}
+				return option.None[string]()
+			},
+			func(p PersonWithNickname, nick string) PersonWithNickname {
+				p.Nickname = &nick
+				return p
+			},
+		)
+
+		// Create base codec that encodes to "Person:"
+		baseCodec := MakeType(
+			"PersonWithNickname",
+			func(i any) validation.Result[PersonWithNickname] {
+				if p, ok := i.(PersonWithNickname); ok {
+					return validation.ToResult(validation.Success(p))
+				}
+				return validation.ToResult(validation.Failures[PersonWithNickname](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected PersonWithNickname",
+					},
+				}))
+			},
+			func(i any) Decode[Context, PersonWithNickname] {
+				return func(ctx Context) validation.Validation[PersonWithNickname] {
+					if p, ok := i.(PersonWithNickname); ok {
+						return validation.Success(p)
+					}
+					return validation.FailureWithMessage[PersonWithNickname](i, "expected PersonWithNickname")(ctx)
+				}
+			},
+			func(p PersonWithNickname) string { return "Person:" },
+		)
+
+		// Create field codec for Nickname
+		nicknameCodec := MakeType(
+			"Nickname",
+			func(i any) validation.Result[string] {
+				if s, ok := i.(string); ok {
+					return validation.ToResult(validation.Success(s))
+				}
+				return validation.ToResult(validation.Failures[string](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected string",
+					},
+				}))
+			},
+			func(i any) Decode[Context, string] {
+				return func(ctx Context) validation.Validation[string] {
+					if s, ok := i.(string); ok {
+						return validation.Success(s)
+					}
+					return validation.FailureWithMessage[string](i, "expected string")(ctx)
+				}
+			},
+			F.Identity[string],
+		)
+
+		// Apply ApSO to combine encodings
+		operator := ApSO(S.Monoid, nicknameOpt, nicknameCodec)
+		enhancedCodec := operator(baseCodec)
+
+		// Test encoding with nickname present
+		nickname := "Ali"
+		person := PersonWithNickname{Name: "Alice", Nickname: &nickname}
+		encoded := enhancedCodec.Encode(person)
+
+		// Should include both base and nickname
+		assert.Contains(t, encoded, "Person:")
+		assert.Contains(t, encoded, "Ali")
+	})
+}
+
+func TestApSO_EncodingWithAbsentField(t *testing.T) {
+	t.Run("omits optional field when absent", func(t *testing.T) {
+		// Create an optional for PersonWithNickname.Nickname
+		nicknameOpt := optional.MakeOptional(
+			func(p PersonWithNickname) option.Option[string] {
+				if p.Nickname != nil {
+					return option.Some(*p.Nickname)
+				}
+				return option.None[string]()
+			},
+			func(p PersonWithNickname, nick string) PersonWithNickname {
+				p.Nickname = &nick
+				return p
+			},
+		)
+
+		// Create base codec
+		baseCodec := MakeType(
+			"PersonWithNickname",
+			func(i any) validation.Result[PersonWithNickname] {
+				if p, ok := i.(PersonWithNickname); ok {
+					return validation.ToResult(validation.Success(p))
+				}
+				return validation.ToResult(validation.Failures[PersonWithNickname](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected PersonWithNickname",
+					},
+				}))
+			},
+			func(i any) Decode[Context, PersonWithNickname] {
+				return func(ctx Context) validation.Validation[PersonWithNickname] {
+					if p, ok := i.(PersonWithNickname); ok {
+						return validation.Success(p)
+					}
+					return validation.FailureWithMessage[PersonWithNickname](i, "expected PersonWithNickname")(ctx)
+				}
+			},
+			func(p PersonWithNickname) string { return "Person:Bob" },
+		)
+
+		// Create field codec
+		nicknameCodec := MakeType(
+			"Nickname",
+			func(i any) validation.Result[string] {
+				if s, ok := i.(string); ok {
+					return validation.ToResult(validation.Success(s))
+				}
+				return validation.ToResult(validation.Failures[string](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected string",
+					},
+				}))
+			},
+			func(i any) Decode[Context, string] {
+				return func(ctx Context) validation.Validation[string] {
+					if s, ok := i.(string); ok {
+						return validation.Success(s)
+					}
+					return validation.FailureWithMessage[string](i, "expected string")(ctx)
+				}
+			},
+			F.Identity[string],
+		)
+
+		// Apply ApSO
+		operator := ApSO(S.Monoid, nicknameOpt, nicknameCodec)
+		enhancedCodec := operator(baseCodec)
+
+		// Test encoding with nickname absent
+		person := PersonWithNickname{Name: "Bob", Nickname: nil}
+		encoded := enhancedCodec.Encode(person)
+
+		// Should only have base encoding
+		assert.Equal(t, "Person:Bob", encoded)
+	})
+}
+
+func TestApSO_TypeChecking(t *testing.T) {
+	t.Run("preserves base type checker", func(t *testing.T) {
+		// Create an optional for PersonWithNickname.Nickname
+		nicknameOpt := optional.MakeOptional(
+			func(p PersonWithNickname) option.Option[string] {
+				if p.Nickname != nil {
+					return option.Some(*p.Nickname)
+				}
+				return option.None[string]()
+			},
+			func(p PersonWithNickname, nick string) PersonWithNickname {
+				p.Nickname = &nick
+				return p
+			},
+		)
+
+		// Create base codec with type checker
+		baseCodec := MakeType(
+			"PersonWithNickname",
+			func(i any) validation.Result[PersonWithNickname] {
+				if p, ok := i.(PersonWithNickname); ok {
+					return validation.ToResult(validation.Success(p))
+				}
+				return validation.ToResult(validation.Failures[PersonWithNickname](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected PersonWithNickname",
+					},
+				}))
+			},
+			func(i any) Decode[Context, PersonWithNickname] {
+				return func(ctx Context) validation.Validation[PersonWithNickname] {
+					if p, ok := i.(PersonWithNickname); ok {
+						return validation.Success(p)
+					}
+					return validation.FailureWithMessage[PersonWithNickname](i, "expected PersonWithNickname")(ctx)
+				}
+			},
+			func(p PersonWithNickname) string { return "" },
+		)
+
+		// Create field codec
+		nicknameCodec := MakeType(
+			"Nickname",
+			func(i any) validation.Result[string] {
+				if s, ok := i.(string); ok {
+					return validation.ToResult(validation.Success(s))
+				}
+				return validation.ToResult(validation.Failures[string](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected string",
+					},
+				}))
+			},
+			func(i any) Decode[Context, string] {
+				return func(ctx Context) validation.Validation[string] {
+					if s, ok := i.(string); ok {
+						return validation.Success(s)
+					}
+					return validation.FailureWithMessage[string](i, "expected string")(ctx)
+				}
+			},
+			F.Identity[string],
+		)
+
+		// Apply ApSO
+		operator := ApSO(S.Monoid, nicknameOpt, nicknameCodec)
+		enhancedCodec := operator(baseCodec)
+
+		// Test type checking with valid type
+		nickname := "Eve"
+		person := PersonWithNickname{Name: "Eve", Nickname: &nickname}
+		isResult := enhancedCodec.Is(person)
+		assert.True(t, either.IsRight(isResult), "Should accept PersonWithNickname type")
+
+		// Test type checking with invalid type
+		invalidResult := enhancedCodec.Is("not a person")
+		assert.True(t, either.IsLeft(invalidResult), "Should reject non-PersonWithNickname type")
+	})
+}
+
+func TestApSO_Naming(t *testing.T) {
+	t.Run("generates descriptive name", func(t *testing.T) {
+		// Create an optional for PersonWithNickname.Nickname
+		nicknameOpt := optional.MakeOptional(
+			func(p PersonWithNickname) option.Option[string] {
+				if p.Nickname != nil {
+					return option.Some(*p.Nickname)
+				}
+				return option.None[string]()
+			},
+			func(p PersonWithNickname, nick string) PersonWithNickname {
+				p.Nickname = &nick
+				return p
+			},
+		)
+
+		// Create base codec
+		baseCodec := MakeType(
+			"PersonWithNickname",
+			func(i any) validation.Result[PersonWithNickname] {
+				if p, ok := i.(PersonWithNickname); ok {
+					return validation.ToResult(validation.Success(p))
+				}
+				return validation.ToResult(validation.Failures[PersonWithNickname](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected PersonWithNickname",
+					},
+				}))
+			},
+			func(i any) Decode[Context, PersonWithNickname] {
+				return func(ctx Context) validation.Validation[PersonWithNickname] {
+					if p, ok := i.(PersonWithNickname); ok {
+						return validation.Success(p)
+					}
+					return validation.FailureWithMessage[PersonWithNickname](i, "expected PersonWithNickname")(ctx)
+				}
+			},
+			func(p PersonWithNickname) string { return "" },
+		)
+
+		// Create field codec
+		nicknameCodec := MakeType(
+			"Nickname",
+			func(i any) validation.Result[string] {
+				if s, ok := i.(string); ok {
+					return validation.ToResult(validation.Success(s))
+				}
+				return validation.ToResult(validation.Failures[string](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "expected string",
+					},
+				}))
+			},
+			func(i any) Decode[Context, string] {
+				return func(ctx Context) validation.Validation[string] {
+					if s, ok := i.(string); ok {
+						return validation.Success(s)
+					}
+					return validation.FailureWithMessage[string](i, "expected string")(ctx)
+				}
+			},
+			F.Identity[string],
+		)
+
+		// Apply ApSO
+		operator := ApSO(S.Monoid, nicknameOpt, nicknameCodec)
+		enhancedCodec := operator(baseCodec)
+
+		// Check that the name includes ApS
+		name := enhancedCodec.Name()
+		assert.Contains(t, name, "ApS", "Name should contain 'ApS'")
+	})
+}
+
+func TestApSO_ErrorAccumulation(t *testing.T) {
+	t.Run("accumulates validation errors", func(t *testing.T) {
+		// Create an optional for PersonWithNickname.Nickname
+		nicknameOpt := optional.MakeOptional(
+			func(p PersonWithNickname) option.Option[string] {
+				if p.Nickname != nil {
+					return option.Some(*p.Nickname)
+				}
+				return option.None[string]()
+			},
+			func(p PersonWithNickname, nick string) PersonWithNickname {
+				p.Nickname = &nick
+				return p
+			},
+		)
+
+		// Create base codec that fails validation
+		baseCodec := MakeType(
+			"PersonWithNickname",
+			func(i any) validation.Result[PersonWithNickname] {
+				return validation.ToResult(validation.Failures[PersonWithNickname](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "base validation error",
+					},
+				}))
+			},
+			func(i any) Decode[Context, PersonWithNickname] {
+				return func(ctx Context) validation.Validation[PersonWithNickname] {
+					return validation.FailureWithMessage[PersonWithNickname](i, "base validation error")(ctx)
+				}
+			},
+			func(p PersonWithNickname) string { return "" },
+		)
+
+		// Create field codec that also fails
+		nicknameCodec := MakeType(
+			"Nickname",
+			func(i any) validation.Result[string] {
+				return validation.ToResult(validation.Failures[string](validation.Errors{
+					&validation.ValidationError{
+						Value:    i,
+						Messsage: "nickname validation error",
+					},
+				}))
+			},
+			func(i any) Decode[Context, string] {
+				return func(ctx Context) validation.Validation[string] {
+					return validation.FailureWithMessage[string](i, "nickname validation error")(ctx)
+				}
+			},
+			F.Identity[string],
+		)
+
+		// Apply ApSO
+		operator := ApSO(S.Monoid, nicknameOpt, nicknameCodec)
+		enhancedCodec := operator(baseCodec)
+
+		// Test validation with present nickname - should accumulate errors
+		nickname := "Dave"
+		person := PersonWithNickname{Name: "Dave", Nickname: &nickname}
+		result := enhancedCodec.Decode(person)
+
+		// Should fail
+		assert.True(t, either.IsLeft(result), "Should fail validation")
+
+		// Extract errors
+		errors := either.MonadFold(result,
+			F.Identity[validation.Errors],
+			func(PersonWithNickname) validation.Errors { return nil },
 		)
 
 		// Should have errors from both base and field validation

@@ -11,6 +11,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -340,5 +341,103 @@ type (
 	//   - AlternativeMonoid: Combines applicative and alternative behaviors
 	Monoid[A any] = monoid.Monoid[A]
 
+	// Lens is an optic that focuses on a specific field within a product type S.
+	// It provides a way to get and set a field of type A within a structure of type S.
+	//
+	// A Lens[S, A] represents a relationship between a source type S and a focus type A,
+	// where the focus always exists (unlike Optional which may not exist).
+	//
+	// Lens operations:
+	//   - Get: Extract the field value A from structure S
+	//   - Set: Update the field value A in structure S, returning a new S
+	//
+	// Lens laws:
+	//   1. GetSet: If you get a value and then set it back, nothing changes
+	//      Set(Get(s))(s) = s
+	//   2. SetGet: If you set a value, you can get it back
+	//      Get(Set(a)(s)) = a
+	//   3. SetSet: Setting twice is the same as setting once with the final value
+	//      Set(b)(Set(a)(s)) = Set(b)(s)
+	//
+	// In the codec context, lenses are used with ApSL to build codecs for struct fields:
+	//   - Extract field values for encoding
+	//   - Update field values during validation
+	//   - Compose codec operations on nested structures
+	//
+	// Example:
+	//   type Person struct { Name string; Age int }
+	//
+	//   nameLens := lens.MakeLens(
+	//       func(p Person) string { return p.Name },
+	//       func(p Person, name string) Person { p.Name = name; return p },
+	//   )
+	//
+	//   // Use with ApSL to build a codec
+	//   personCodec := F.Pipe1(
+	//       codec.Struct[Person]("Person"),
+	//       codec.ApSL(S.Monoid, nameLens, codec.String),
+	//   )
+	//
+	// See also:
+	//   - ApSL: Applicative sequencing with lens
+	//   - Optional: For fields that may not exist
 	Lens[S, A any] = lens.Lens[S, A]
+
+	// Optional is an optic that focuses on a field within a product type S that may not exist.
+	// It provides a way to get and set an optional field of type A within a structure of type S.
+	//
+	// An Optional[S, A] represents a relationship between a source type S and a focus type A,
+	// where the focus may or may not be present (unlike Lens where it always exists).
+	//
+	// Optional operations:
+	//   - GetOption: Try to extract the field value, returning Option[A]
+	//   - Set: Update the field value if it exists, returning a new S
+	//
+	// Optional laws:
+	//   1. GetSet (No-op on None): If GetOption returns None, Set has no effect
+	//      GetOption(s) = None => Set(a)(s) = s
+	//   2. SetGet (Get what you Set): If GetOption returns Some, you can get back what you set
+	//      GetOption(s) = Some(_) => GetOption(Set(a)(s)) = Some(a)
+	//   3. SetSet (Last Set Wins): Setting twice is the same as setting once with the final value
+	//      Set(b)(Set(a)(s)) = Set(b)(s)
+	//
+	// In the codec context, optionals are used with ApSO to build codecs for optional fields:
+	//   - Extract optional field values for encoding (only if present)
+	//   - Update optional field values during validation
+	//   - Handle nullable or pointer fields gracefully
+	//   - Compose codec operations on structures with optional data
+	//
+	// Example:
+	//   type Person struct {
+	//       Name     string
+	//       Nickname *string  // Optional field
+	//   }
+	//
+	//   nicknameOpt := optional.MakeOptional(
+	//       func(p Person) option.Option[string] {
+	//           if p.Nickname != nil {
+	//               return option.Some(*p.Nickname)
+	//           }
+	//           return option.None[string]()
+	//       },
+	//       func(p Person, nick string) Person {
+	//           p.Nickname = &nick
+	//           return p
+	//       },
+	//   )
+	//
+	//   // Use with ApSO to build a codec with optional field
+	//   personCodec := F.Pipe1(
+	//       codec.Struct[Person]("Person"),
+	//       codec.ApSO(S.Monoid, nicknameOpt, codec.String),
+	//   )
+	//
+	//   // Encoding omits the field when absent
+	//   p1 := Person{Name: "Alice", Nickname: nil}
+	//   encoded := personCodec.Encode(p1)  // No nickname in output
+	//
+	// See also:
+	//   - ApSO: Applicative sequencing with optional
+	//   - Lens: For fields that always exist
+	Optional[S, A any] = optional.Optional[S, A]
 )
