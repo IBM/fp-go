@@ -444,3 +444,261 @@ func BenchmarkFunctionSemigroup(b *testing.B) {
 		combined("hello")
 	}
 }
+
+// Test ConcatWith function
+func TestConcatWith(t *testing.T) {
+	t.Run("with integer addition", func(t *testing.T) {
+		add := MakeSemigroup(func(a, b int) int { return a + b })
+		concatWith := ConcatWith(add)
+
+		// Fix left operand to 5
+		add5 := concatWith(5)
+		assert.Equal(t, 8, add5(3))   // 5 + 3 = 8
+		assert.Equal(t, 15, add5(10)) // 5 + 10 = 15
+		assert.Equal(t, 5, add5(0))   // 5 + 0 = 5
+	})
+
+	t.Run("with string concatenation", func(t *testing.T) {
+		concat := MakeSemigroup(func(a, b string) string { return a + b })
+		concatWith := ConcatWith(concat)
+
+		// Fix left operand to "Hello, "
+		greet := concatWith("Hello, ")
+		assert.Equal(t, "Hello, World", greet("World"))
+		assert.Equal(t, "Hello, Bob", greet("Bob"))
+		assert.Equal(t, "Hello, ", greet(""))
+	})
+
+	t.Run("with subtraction (non-commutative)", func(t *testing.T) {
+		sub := MakeSemigroup(func(a, b int) int { return a - b })
+		concatWith := ConcatWith(sub)
+
+		// Fix left operand to 10
+		subtract10 := concatWith(10)
+		assert.Equal(t, 7, subtract10(3))   // 10 - 3 = 7
+		assert.Equal(t, 5, subtract10(5))   // 10 - 5 = 5
+		assert.Equal(t, -5, subtract10(15)) // 10 - 15 = -5
+	})
+
+	t.Run("with First semigroup", func(t *testing.T) {
+		first := First[int]()
+		concatWith := ConcatWith(first)
+
+		// Fix left operand to 42
+		always42 := concatWith(42)
+		assert.Equal(t, 42, always42(1))
+		assert.Equal(t, 42, always42(100))
+		assert.Equal(t, 42, always42(0))
+	})
+
+	t.Run("with Last semigroup", func(t *testing.T) {
+		last := Last[string]()
+		concatWith := ConcatWith(last)
+
+		// Fix left operand to "first"
+		alwaysSecond := concatWith("first")
+		assert.Equal(t, "second", alwaysSecond("second"))
+		assert.Equal(t, "other", alwaysSecond("other"))
+		assert.Equal(t, "", alwaysSecond(""))
+	})
+
+	t.Run("currying behavior", func(t *testing.T) {
+		mul := MakeSemigroup(func(a, b int) int { return a * b })
+		concatWith := ConcatWith(mul)
+
+		// Create multiple partially applied functions
+		double := concatWith(2)
+		triple := concatWith(3)
+		quadruple := concatWith(4)
+
+		assert.Equal(t, 10, double(5))    // 2 * 5 = 10
+		assert.Equal(t, 15, triple(5))    // 3 * 5 = 15
+		assert.Equal(t, 20, quadruple(5)) // 4 * 5 = 20
+	})
+
+	t.Run("with complex types", func(t *testing.T) {
+		type Point struct {
+			X, Y int
+		}
+
+		pointAdd := MakeSemigroup(func(a, b Point) Point {
+			return Point{X: a.X + b.X, Y: a.Y + b.Y}
+		})
+		concatWith := ConcatWith(pointAdd)
+
+		// Fix left operand to origin offset
+		offset := concatWith(Point{X: 10, Y: 20})
+		assert.Equal(t, Point{X: 15, Y: 25}, offset(Point{X: 5, Y: 5}))
+		assert.Equal(t, Point{X: 10, Y: 20}, offset(Point{X: 0, Y: 0}))
+	})
+}
+
+// Test AppendTo function
+func TestAppendTo(t *testing.T) {
+	t.Run("with integer addition", func(t *testing.T) {
+		add := MakeSemigroup(func(a, b int) int { return a + b })
+		appendTo := AppendTo(add)
+
+		// Fix right operand to 5
+		addTo5 := appendTo(5)
+		assert.Equal(t, 8, addTo5(3))   // 3 + 5 = 8
+		assert.Equal(t, 15, addTo5(10)) // 10 + 5 = 15
+		assert.Equal(t, 5, addTo5(0))   // 0 + 5 = 5
+	})
+
+	t.Run("with string concatenation", func(t *testing.T) {
+		concat := MakeSemigroup(func(a, b string) string { return a + b })
+		appendTo := AppendTo(concat)
+
+		// Fix right operand to "!"
+		addExclamation := appendTo("!")
+		assert.Equal(t, "Hello!", addExclamation("Hello"))
+		assert.Equal(t, "World!", addExclamation("World"))
+		assert.Equal(t, "!", addExclamation(""))
+	})
+
+	t.Run("with subtraction (non-commutative)", func(t *testing.T) {
+		sub := MakeSemigroup(func(a, b int) int { return a - b })
+		appendTo := AppendTo(sub)
+
+		// Fix right operand to 3
+		subtract3 := appendTo(3)
+		assert.Equal(t, 7, subtract3(10))  // 10 - 3 = 7
+		assert.Equal(t, 2, subtract3(5))   // 5 - 3 = 2
+		assert.Equal(t, -3, subtract3(0))  // 0 - 3 = -3
+		assert.Equal(t, -8, subtract3(-5)) // -5 - 3 = -8
+	})
+
+	t.Run("with First semigroup", func(t *testing.T) {
+		first := First[string]()
+		appendTo := AppendTo(first)
+
+		// Fix right operand to "second"
+		alwaysFirst := appendTo("second")
+		assert.Equal(t, "first", alwaysFirst("first"))
+		assert.Equal(t, "other", alwaysFirst("other"))
+		assert.Equal(t, "", alwaysFirst(""))
+	})
+
+	t.Run("with Last semigroup", func(t *testing.T) {
+		last := Last[int]()
+		appendTo := AppendTo(last)
+
+		// Fix right operand to 42
+		always42 := appendTo(42)
+		assert.Equal(t, 42, always42(1))
+		assert.Equal(t, 42, always42(100))
+		assert.Equal(t, 42, always42(0))
+	})
+
+	t.Run("currying behavior", func(t *testing.T) {
+		mul := MakeSemigroup(func(a, b int) int { return a * b })
+		appendTo := AppendTo(mul)
+
+		// Create multiple partially applied functions
+		multiplyBy2 := appendTo(2)
+		multiplyBy3 := appendTo(3)
+		multiplyBy4 := appendTo(4)
+
+		assert.Equal(t, 10, multiplyBy2(5)) // 5 * 2 = 10
+		assert.Equal(t, 15, multiplyBy3(5)) // 5 * 3 = 15
+		assert.Equal(t, 20, multiplyBy4(5)) // 5 * 4 = 20
+	})
+
+	t.Run("with complex types", func(t *testing.T) {
+		type Point struct {
+			X, Y int
+		}
+
+		pointAdd := MakeSemigroup(func(a, b Point) Point {
+			return Point{X: a.X + b.X, Y: a.Y + b.Y}
+		})
+		appendTo := AppendTo(pointAdd)
+
+		// Fix right operand to offset
+		addOffset := appendTo(Point{X: 10, Y: 20})
+		assert.Equal(t, Point{X: 15, Y: 25}, addOffset(Point{X: 5, Y: 5}))
+		assert.Equal(t, Point{X: 10, Y: 20}, addOffset(Point{X: 0, Y: 0}))
+	})
+}
+
+// Test ConcatWith vs AppendTo difference
+func TestConcatWithVsAppendTo(t *testing.T) {
+	t.Run("demonstrates order difference with non-commutative operation", func(t *testing.T) {
+		sub := MakeSemigroup(func(a, b int) int { return a - b })
+
+		concatWith := ConcatWith(sub)
+		appendTo := AppendTo(sub)
+
+		// ConcatWith fixes left operand first
+		subtract10From := concatWith(10)      // 10 - x
+		assert.Equal(t, 7, subtract10From(3)) // 10 - 3 = 7
+
+		// AppendTo fixes right operand first
+		subtract3From := appendTo(3)          // x - 3
+		assert.Equal(t, 7, subtract3From(10)) // 10 - 3 = 7
+
+		// Same result but different partial application order
+		assert.Equal(t, subtract10From(3), subtract3From(10))
+	})
+
+	t.Run("demonstrates order difference with string concatenation", func(t *testing.T) {
+		concat := MakeSemigroup(func(a, b string) string { return a + b })
+
+		concatWith := ConcatWith(concat)
+		appendTo := AppendTo(concat)
+
+		// ConcatWith: prefix is fixed
+		addPrefix := concatWith("Hello, ")
+		assert.Equal(t, "Hello, World", addPrefix("World"))
+
+		// AppendTo: suffix is fixed
+		addSuffix := appendTo("!")
+		assert.Equal(t, "Hello!", addSuffix("Hello"))
+
+		// Different results due to different order
+		assert.NotEqual(t, addPrefix("test"), addSuffix("test"))
+	})
+}
+
+// Test composition with ConcatWith and AppendTo
+func TestConcatWithAppendToComposition(t *testing.T) {
+	t.Run("composing multiple operations", func(t *testing.T) {
+		add := MakeSemigroup(func(a, b int) int { return a + b })
+
+		// Create a pipeline: add 5, then add 3
+		concatWith := ConcatWith(add)
+		appendTo := AppendTo(add)
+
+		add5 := concatWith(5)
+		add3 := appendTo(3)
+
+		// Apply both operations
+		result := add3(add5(2)) // (2 + 5) + 3 = 10
+		assert.Equal(t, 10, result)
+	})
+}
+
+// Benchmark ConcatWith
+func BenchmarkConcatWith(b *testing.B) {
+	add := MakeSemigroup(func(a, b int) int { return a + b })
+	concatWith := ConcatWith(add)
+	add5 := concatWith(5)
+
+	b.ResetTimer()
+	for b.Loop() {
+		add5(3)
+	}
+}
+
+// Benchmark AppendTo
+func BenchmarkAppendTo(b *testing.B) {
+	add := MakeSemigroup(func(a, b int) int { return a + b })
+	appendTo := AppendTo(add)
+	addTo5 := appendTo(5)
+
+	b.ResetTimer()
+	for b.Loop() {
+		addTo5(3)
+	}
+}

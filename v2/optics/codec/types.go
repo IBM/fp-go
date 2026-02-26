@@ -10,6 +10,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
+	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -338,4 +339,6 @@ type (
 	//   - ApplicativeMonoid: Combines successful results using inner monoid
 	//   - AlternativeMonoid: Combines applicative and alternative behaviors
 	Monoid[A any] = monoid.Monoid[A]
+
+	Lens[S, A any] = lens.Lens[S, A]
 )

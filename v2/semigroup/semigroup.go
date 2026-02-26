@@ -123,3 +123,78 @@ func Last[A any]() Semigroup[A] {
 func ToMagma[A any](s Semigroup[A]) M.Magma[A] {
 	return s
 }
+
+// ConcatWith creates a curried version of the Concat operation with the left argument fixed first.
+// It returns a function that takes the left operand and returns another function that takes
+// the right operand and performs the concatenation.
+//
+// This is useful for partial application and function composition patterns.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the semigroup
+//
+// # Parameters
+//
+//   - s: The semigroup to use for concatenation
+//
+// # Returns
+//
+//   - func(A) func(A) A: A curried function that takes left then right operand
+//
+// # Example Usage
+//
+//	import N "github.com/IBM/fp-go/v2/number"
+//	sum := N.SemigroupSum[int]()
+//	concatWith := ConcatWith(sum)
+//	add5 := concatWith(5)
+//	result := add5(3)  // 5 + 3 = 8
+//
+// # See Also
+//
+//   - AppendTo: Similar but fixes the right argument first
+func ConcatWith[A any](s Semigroup[A]) func(A) func(A) A {
+	return func(l A) func(A) A {
+		return func(r A) A {
+			return s.Concat(l, r)
+		}
+	}
+}
+
+// AppendTo creates a curried version of the Concat operation with the right argument fixed first.
+// It returns a function that takes the right operand and returns another function that takes
+// the left operand and performs the concatenation.
+//
+// This is useful for partial application where you want to fix the second argument first,
+// which is common in append-style operations.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the semigroup
+//
+// # Parameters
+//
+//   - s: The semigroup to use for concatenation
+//
+// # Returns
+//
+//   - func(A) func(A) A: A curried function that takes right then left operand
+//
+// # Example Usage
+//
+//	import S "github.com/IBM/fp-go/v2/string"
+//	strConcat := S.Semigroup
+//	appendTo := AppendTo(strConcat)
+//	addSuffix := appendTo("!")
+//	result := addSuffix("Hello")  // "Hello" + "!" = "Hello!"
+//
+// # See Also
+//
+//   - ConcatWith: Similar but fixes the left argument first
+func AppendTo[A any](s Semigroup[A]) func(A) func(A) A {
+	return func(r A) func(A) A {
+		return func(l A) A {
+			return s.Concat(l, r)
+		}
+	}
+}
