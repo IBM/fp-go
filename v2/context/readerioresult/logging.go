@@ -369,7 +369,7 @@ func onExitAny(
 //	)
 func LogEntryExitWithCallback[A any](
 	logLevel slog.Level,
-	cb func(context.Context) *slog.Logger,
+	cb Reader[context.Context, *slog.Logger],
 	name string) Operator[A, A] {
 
 	nameAttr := slog.String("name", name)
@@ -499,12 +499,12 @@ func LogEntryExit[A any](name string) Operator[A, A] {
 func curriedLog(
 	logLevel slog.Level,
 	cb func(context.Context) *slog.Logger,
-	message string) func(slog.Attr) func(context.Context) func() struct{} {
-	return F.Curry2(func(a slog.Attr, ctx context.Context) func() struct{} {
+	message string) func(slog.Attr) ReaderIO[Void] {
+	return F.Curry2(func(a slog.Attr, ctx context.Context) IO[Void] {
 		logger := cb(ctx)
-		return func() struct{} {
+		return func() Void {
 			logger.LogAttrs(ctx, logLevel, message, a)
-			return struct{}{}
+			return F.VOID
 		}
 	})
 }
@@ -571,7 +571,7 @@ func curriedLog(
 //   - Conditional logging: Enable/disable logging based on logger configuration
 func SLogWithCallback[A any](
 	logLevel slog.Level,
-	cb func(context.Context) *slog.Logger,
+	cb Reader[context.Context, *slog.Logger],
 	message string) Kleisli[Result[A], A] {
 
 	return F.Pipe1(
@@ -582,18 +582,23 @@ func SLogWithCallback[A any](
 			curriedLog(logLevel, cb, message),
 		),
 		// preserve the original context
-		reader.Chain(reader.Sequence(readerio.MapTo[struct{}, Result[A]])),
+		reader.Chain(reader.Sequence(readerio.MapTo[Void, Result[A]])),
 	)
 }
 
 // SLog creates a Kleisli arrow that logs a Result value (success or error) with a message.
 //
-// This function logs both successful values and errors at Info level using the logger from the context.
+// This function logs both successful values and errors at Info level. It retrieves the logger
+// using logging.GetLoggerFromContext, which returns either:
+//   - The logger stored in the context via logging.WithLogger, or
+//   - The global logger (set via logging.SetLogger or slog.Default())
+//
 // It's a convenience wrapper around SLogWithCallback with standard settings.
 //
-// The logged output includes:
-//   - For success: The message with the value as a structured "value" attribute
-//   - For error: The message with the error as a structured "error" attribute
+// The message parameter becomes the main log message text, and the Result value or error
+// is attached as a structured logging attribute:
+//   - For success: Logs message with attribute value=<the actual value>
+//   - For error: Logs message with attribute error=<the error>
 //
 // The Result is passed through unchanged after logging, making this function transparent in the
 // computation pipeline.
@@ -647,25 +652,47 @@ func SLog[A any](message string) Kleisli[Result[A], A] {
 	return SLogWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, message)
 }
 
-// TapSLog creates an operator that logs only successful values with a message and passes them through unchanged.
+// TapSLog creates an operator that logs both successful values and errors with a message,
+// and passes the ReaderIOResult through unchanged.
 //
 // This function is useful for debugging and monitoring values as they flow through a ReaderIOResult
-// computation chain. Unlike SLog which logs both successes and errors, TapSLog only logs when the
-// computation is successful. If the computation contains an error, no logging occurs and the error
-// is propagated unchanged.
+// computation chain. It logs both successful values and errors at Info level. It retrieves the logger
+// using logging.GetLoggerFromContext, which returns either:
+//   - The logger stored in the context via logging.WithLogger, or
+//   - The global logger (set via logging.SetLogger or slog.Default())
 //
-// The logged output includes:
-//   - The provided message
-//   - The value being passed through (as a structured "value" attribute)
+// The ReaderIOResult is returned unchanged after logging.
+//
+// The difference between TapSLog and SLog is their position in the pipeline:
+//   - SLog is a Kleisli[Result[A], A] used with Chain to intercept the raw Result
+//   - TapSLog is an Operator[A, A] used directly in a pipe on a ReaderIOResult[A]
+//
+// Both log the same information (success value or error), but TapSLog is more ergonomic
+// when composing ReaderIOResult pipelines with F.Pipe.
+//
+// The message parameter becomes the main log message text, and the Result value or error
+// is attached as a structured logging attribute:
+//   - For success: Logs message with attribute value=<the actual value>
+//   - For error: Logs message with attribute error=<the error>
+//
+// For example, TapSLog[User]("Fetched user") with a successful result produces:
+//
+//	Log message: "Fetched user"
+//	Structured attribute: value={ID:123 Name:"Alice"}
+//
+// With an error result, it produces:
+//
+//	Log message: "Fetched user"
+//	Structured attribute: error="user not found"
 //
 // Type Parameters:
-//   - A: The type of the value to log and pass through
+//   - A: The success type of the ReaderIOResult to log and pass through
 //
 // Parameters:
 //   - message: A descriptive message to include in the log entry
 //
 // Returns:
-//   - An Operator that logs successful values and returns them unchanged
+//   - An Operator that logs the Result (value or error) and returns the ReaderIOResult unchanged
 //
 // Example with simple value logging:
 //
@@ -680,7 +707,7 @@ func SLog[A any](message string) Kleisli[Result[A], A] {
 //	)
 //
 //	result := pipeline(t.Context())()
-//	// Logs: "Fetched user" value={ID:123 Name:"Alice"}
+//	// If successful, logs: "Fetched user" value={ID:123 Name:"Alice"}
 //	// Returns: result.Of("Alice")
 //
 // Example in a processing pipeline:
@@ -695,36 +722,36 @@ func SLog[A any](message string) Kleisli[Result[A], A] {
 //	)
 //
 //	result := processOrder(t.Context())()
-//	// Logs each successful step with the intermediate values
-//	// If any step fails, subsequent TapSLog calls don't log
+//	// Logs each step with its value or error
 //
 // Example with error handling:
 //
 //	pipeline := F.Pipe3(
 //	    fetchData(id),
 //	    TapSLog[Data]("Data fetched"),
-//	    Chain(func(d Data) ReaderIOResult[Result] {
+//	    Chain(func(d Data) ReaderIOResult[Data] {
 //	        if d.IsValid() {
 //	            return Of(processData(d))
 //	        }
-//	        return Left[Result](errors.New("invalid data"))
+//	        return Left[Data](errors.New("invalid data"))
 //	    }),
-//	    TapSLog[Result]("Data processed"),
+//	    TapSLog[Data]("Data processed"),
 //	)
 //
-//	// If fetchData succeeds: logs "Data fetched" with the data
-//	// If processing succeeds: logs "Data processed" with the result
-//	// If processing fails: "Data processed" is NOT logged (error propagates)
+//	// If fetchData succeeds: logs "Data fetched" value={...}
+//	// If fetchData fails: logs "Data fetched" error="..."
+//	// If processing succeeds: logs "Data processed" value={...}
+//	// If processing fails: logs "Data processed" error="invalid data"
 //
 // Use Cases:
-//   - Debugging: Inspect intermediate successful values in a computation pipeline
-//   - Monitoring: Track successful data flow through complex operations
-//   - Troubleshooting: Identify where successful computations stop (last logged value before error)
-//   - Auditing: Log important successful values for compliance or security
-//   - Development: Understand data transformations during development
+//   - Debugging: Inspect intermediate values and errors in a computation pipeline
+//   - Monitoring: Track both successful and failed data flow through complex operations
+//   - Troubleshooting: Identify where errors are introduced or propagated
+//   - Auditing: Log important values and failures for compliance or security
+//   - Development: Understand data transformations and error paths during development
 //
-// Note: This function only logs successful values. Errors are silently propagated without logging.
-// For logging both successes and errors, use SLog instead.
+// Note: This function logs both successful values and errors. It is equivalent to SLog
+// but expressed as an Operator for direct use in F.Pipe pipelines on ReaderIOResult values.
 //
 //go:inline
 func TapSLog[A any](message string) Operator[A, A] {
