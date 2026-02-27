@@ -170,12 +170,7 @@ func TestLet(t *testing.T) {
 		)
 
 		result := validator("input")(nil)
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 5, computed: 10}, value)
+		assert.Equal(t, validation.Of(State{x: 5, computed: 10}), result)
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
@@ -218,12 +213,7 @@ func TestLet(t *testing.T) {
 		)
 
 		result := validator("input")(nil)
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 60, y: 10, z: 20}, value)
+		assert.Equal(t, validation.Of(State{x: 60, y: 10, z: 20}), result)
 	})
 }
 

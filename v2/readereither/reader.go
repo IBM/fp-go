@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/fromreader"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/readert"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
@@ -44,6 +45,13 @@ func Left[E, A, L any](l L) ReaderEither[E, L, A] {
 
 func Right[E, L, A any](r A) ReaderEither[E, L, A] {
 	return eithert.Right(reader.Of[E, Either[L, A]], r)
+}
+
+func OfLazy[E, L, A any](r Lazy[A]) ReaderEither[E, L, A] {
+	return reader.OfLazy[E](function.Pipe1(
+		r,
+		lazy.Map(ET.Of[L, A]),
+	))
 }
 
 func FromReader[L, E, A any](r Reader[E, A]) ReaderEither[E, L, A] {

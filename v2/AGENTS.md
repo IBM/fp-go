@@ -151,6 +151,11 @@ func TestFromReaderResult_Success(t *testing.T) {
    - Don't manually handle `(value, error)` tuples when helpers exist
    - Don't use `either.MonadFold` in tests unless necessary
 
+4. **Use Void Type for Unit Values**
+   - Use `function.Void` (or `F.Void`) instead of `struct{}`
+   - Use `function.VOID` (or `F.VOID`) instead of `struct{}{}`
+   - Example: `Empty[F.Void, F.Void, any](lazy.Of(pair.MakePair(F.VOID, F.VOID)))`
+
 ### Error Handling
 
 1. **In Production Code**

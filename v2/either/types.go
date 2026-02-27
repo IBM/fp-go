@@ -55,5 +55,7 @@ type (
 	// It's commonly used for filtering and conditional operations.
 	Predicate[A any] = predicate.Predicate[A]
 
+	// Pair represents a tuple of two values of types L and R.
+	// It's commonly used to return multiple values from functions or to group related data.
 	Pair[L, R any] = pair.Pair[L, R]
 )

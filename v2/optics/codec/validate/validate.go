@@ -160,6 +160,109 @@ func Of[I, A any](a A) Validate[I, A] {
 	return reader.Of[I](decode.Of[Context](a))
 }
 
+// OfLazy creates a Validate that defers the computation of a value until needed.
+//
+// This function lifts a lazy computation into the validation context. The computation
+// is deferred until the validator is actually executed, allowing for efficient handling
+// of expensive operations or values that may not always be needed.
+//
+// **IMPORTANT**: The lazy function MUST be pure (referentially transparent). It should
+// always return the same value when called and must not perform side effects. For
+// computations with side effects, use IO or IOEither types instead.
+//
+// # Type Parameters
+//
+//   - I: The input type (not used, but required for type consistency)
+//   - A: The type of the value produced by the lazy computation
+//
+// # Parameters
+//
+//   - fa: A lazy computation that produces a value of type A. This function is called
+//     each time the validator is executed.
+//
+// # Returns
+//
+// A Validate[I, A] that ignores its input and returns a successful validation containing
+// the lazily computed value.
+//
+// # Purity Requirements
+//
+// The lazy function MUST be pure:
+//   - Always returns the same result for the same (lack of) input
+//   - No side effects (no I/O, no mutation, no randomness)
+//   - Deterministic and referentially transparent
+//
+// For side effects, use:
+//   - IO types for effectful computations
+//   - IOEither for effectful computations that may fail
+//
+// # Example: Deferring Expensive Computation
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/optics/codec/validate"
+//	    "github.com/IBM/fp-go/v2/optics/codec/validation"
+//	)
+//
+//	// Expensive computation deferred until needed
+//	expensiveValue := validate.OfLazy[string, int](func() int {
+//	    // This computation only runs when the validator is executed
+//	    return computeExpensiveValue()
+//	})
+//
+//	result := expensiveValue("any input")(nil)
+//	// result is validation.Success(computed value)
+//
+// # Example: Lazy Default Value
+//
+//	// Provide a default value that's only computed if needed
+//	withDefault := validate.OfLazy[Config, Config](func() Config {
+//	    return loadDefaultConfig()
+//	})
+//
+//	// Use in a validation pipeline
+//	validator := F.Pipe1(
+//	    validateFromFile,
+//	    validate.Alt(func() validate.Validate[string, Config] {
+//	        return withDefault
+//	    }),
+//	)
+//	// Default config only loaded if file validation fails
+//
+// # Example: Composition with Other Validators
+//
+//	// Combine lazy value with validation logic
+//	lazyValidator := F.Pipe1(
+//	    validate.OfLazy[string, int](func() int { return 42 }),
+//	    validate.Chain(func(n int) validate.Validate[string, string] {
+//	        return func(input string) validate.Reader[validation.Context, validation.Validation[string]] {
+//	            return func(ctx validation.Context) validation.Validation[string] {
+//	                if len(input) > n {
+//	                    return validation.FailureWithMessage[string](input, "too long")(ctx)
+//	                }
+//	                return validation.Success(input)
+//	            }
+//	        }
+//	    }),
+//	)
+//
+// # Notes
+//
+//   - The lazy function is evaluated each time the validator is executed
+//   - The input value I is ignored; the validator succeeds regardless of input
+//   - The result is always wrapped in a successful validation
+//   - This is useful for deferring expensive computations or providing lazy defaults
+//   - The lazy function must be pure - no side effects allowed
+//   - For side effects, use IO or IOEither types instead
+//
+// # See Also
+//
+//   - Of: For non-lazy values
+//   - decode.OfLazy: The underlying decode operation
+//   - reader.Of: The reader lifting operation
+func OfLazy[I, A any](fa Lazy[A]) Validate[I, A] {
+	return reader.Of[I](decode.OfLazy[Context](fa))
+}
+
 // MonadMap applies a function to the successful result of a validation.
 //
 // This is the functor map operation for Validate. It transforms the success value

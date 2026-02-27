@@ -1274,3 +1274,139 @@ func TestOrElse(t *testing.T) {
 		}
 	})
 }
+
+// TestOfLazy tests the OfLazy function
+func TestOfLazy(t *testing.T) {
+	t.Run("evaluates lazy computation", func(t *testing.T) {
+		// Create a validator with a lazy value
+		validator := OfLazy[string, int](func() int {
+			return 42
+		})
+
+		result := validator("any input")(nil)
+		assert.Equal(t, validation.Success(42), result)
+	})
+
+	t.Run("defers execution until called", func(t *testing.T) {
+		executed := false
+		validator := OfLazy[string, int](func() int {
+			executed = true
+			return 100
+		})
+
+		// Lazy function not executed yet
+		assert.False(t, executed)
+
+		// Execute the validator
+		result := validator("input")(nil)
+
+		// Now it should be executed
+		assert.True(t, executed)
+		assert.Equal(t, validation.Success(100), result)
+	})
+
+	t.Run("evaluates on each call", func(t *testing.T) {
+		callCount := 0
+		validator := OfLazy[string, int](func() int {
+			callCount++
+			return callCount
+		})
+
+		// First call
+		result1 := validator("input")(nil)
+		assert.Equal(t, validation.Success(1), result1)
+
+		// Second call - evaluates again
+		result2 := validator("input")(nil)
+		assert.Equal(t, validation.Success(2), result2)
+
+		// Third call
+		result3 := validator("input")(nil)
+		assert.Equal(t, validation.Success(3), result3)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		// String type
+		stringValidator := OfLazy[int, string](func() string {
+			return "hello"
+		})
+		result := stringValidator(42)(nil)
+		assert.Equal(t, validation.Success("hello"), result)
+
+		// Struct type
+		type Config struct {
+			Host string
+			Port int
+		}
+		configValidator := OfLazy[string, Config](func() Config {
+			return Config{Host: "localhost", Port: 8080}
+		})
+		result2 := configValidator("input")(nil)
+		assert.Equal(t, validation.Success(Config{Host: "localhost", Port: 8080}), result2)
+
+		// Slice type
+		sliceValidator := OfLazy[string, []int](func() []int {
+			return []int{1, 2, 3}
+		})
+		result3 := sliceValidator("input")(nil)
+		assert.Equal(t, validation.Success([]int{1, 2, 3}), result3)
+	})
+
+	t.Run("composes with other validators", func(t *testing.T) {
+		// Create a lazy validator that produces a number
+		lazyValue := OfLazy[string, int](func() int {
+			return 42
+		})
+
+		// Map to transform the value
+		validator := MonadMap(lazyValue, func(n int) int {
+			return n * 2
+		})
+
+		result := validator("any input")(nil)
+		assert.Equal(t, validation.Success(84), result)
+	})
+
+	t.Run("ignores input value", func(t *testing.T) {
+		validator := OfLazy[string, int](func() int {
+			return 999
+		})
+
+		// Different inputs should produce the same result
+		result1 := validator("input1")(nil)
+		result2 := validator("input2")(nil)
+		result3 := validator("")(nil)
+
+		assert.Equal(t, validation.Success(999), result1)
+		assert.Equal(t, validation.Success(999), result2)
+		assert.Equal(t, validation.Success(999), result3)
+	})
+
+	t.Run("always wraps in success validation", func(t *testing.T) {
+		validator := OfLazy[string, int](func() int {
+			return 42
+		})
+
+		result := validator("input")(nil)
+
+		// Verify it's a Right (success)
+		assert.True(t, E.IsRight(result))
+
+		// Extract and verify the value
+		value, _ := E.Unwrap(result)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("works with context", func(t *testing.T) {
+		validator := OfLazy[string, string](func() string {
+			return "validated"
+		})
+
+		ctx := validation.Context{
+			{Key: "field", Type: "string"},
+		}
+
+		result := validator("input")(ctx)
+		assert.Equal(t, validation.Success("validated"), result)
+	})
+}

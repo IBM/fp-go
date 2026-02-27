@@ -92,6 +92,91 @@ func TestOf(t *testing.T) {
 	assert.Equal(t, "constant", result)
 }
 
+func TestOfLazy(t *testing.T) {
+	t.Run("evaluates lazy computation ignoring environment", func(t *testing.T) {
+		lazyValue := func() int { return 42 }
+		r := OfLazy[Config](lazyValue)
+		result := r(Config{Host: "localhost", Port: 8080})
+		assert.Equal(t, 42, result)
+	})
+
+	t.Run("defers computation until Reader is executed", func(t *testing.T) {
+		executed := false
+		lazyComputation := func() string {
+			executed = true
+			return "computed"
+		}
+		r := OfLazy[Config](lazyComputation)
+
+		// Computation should not be executed yet
+		assert.False(t, executed, "lazy computation should not be executed during Reader creation")
+
+		// Execute the Reader
+		result := r(Config{Host: "localhost"})
+
+		// Now computation should be executed
+		assert.True(t, executed, "lazy computation should be executed when Reader runs")
+		assert.Equal(t, "computed", result)
+	})
+
+	t.Run("evaluates lazy computation each time Reader is called", func(t *testing.T) {
+		counter := 0
+		lazyCounter := func() int {
+			counter++
+			return counter
+		}
+		r := OfLazy[Config](lazyCounter)
+
+		// First execution
+		result1 := r(Config{Host: "localhost"})
+		assert.Equal(t, 1, result1)
+
+		// Second execution
+		result2 := r(Config{Host: "localhost"})
+		assert.Equal(t, 2, result2)
+
+		// Third execution
+		result3 := r(Config{Host: "localhost"})
+		assert.Equal(t, 3, result3)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		lazyString := func() string { return "hello" }
+		r1 := OfLazy[Config](lazyString)
+		assert.Equal(t, "hello", r1(Config{}))
+
+		lazySlice := func() []int { return []int{1, 2, 3} }
+		r2 := OfLazy[Config](lazySlice)
+		assert.Equal(t, []int{1, 2, 3}, r2(Config{}))
+
+		lazyStruct := func() Config { return Config{Host: "test", Port: 9000} }
+		r3 := OfLazy[string](lazyStruct)
+		assert.Equal(t, Config{Host: "test", Port: 9000}, r3("ignored"))
+	})
+
+	t.Run("can be composed with other Reader operations", func(t *testing.T) {
+		lazyValue := func() int { return 10 }
+		r := F.Pipe1(
+			OfLazy[Config](lazyValue),
+			Map[Config](func(x int) int { return x * 2 }),
+		)
+		result := r(Config{Host: "localhost"})
+		assert.Equal(t, 20, result)
+	})
+
+	t.Run("ignores environment completely", func(t *testing.T) {
+		lazyValue := func() string { return "constant" }
+		r := OfLazy[Config](lazyValue)
+
+		// Different environments should produce same result
+		config1 := Config{Host: "host1", Port: 8080}
+		config2 := Config{Host: "host2", Port: 9090}
+
+		assert.Equal(t, "constant", r(config1))
+		assert.Equal(t, "constant", r(config2))
+	})
+}
+
 func TestChain(t *testing.T) {
 	config := Config{Port: 8080}
 	getPort := Asks(func(c Config) int { return c.Port })

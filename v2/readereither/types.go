@@ -23,10 +23,14 @@ import (
 )
 
 type (
+	// Lazy represents a deferred computation that produces a value of type A.
+	Lazy[A any] = lazy.Lazy[A]
+
 	// Option represents an optional value that may or may not be present.
 	Option[A any] = option.Option[A]
 
 	// Either represents a value of one of two possible types (a disjoint union).
+	// An instance of Either is either Left (representing an error) or Right (representing a success).
 	Either[E, A any] = either.Either[E, A]
 
 	// Reader represents a computation that depends on an environment R and produces a value A.
@@ -34,9 +38,9 @@ type (
 
 	// ReaderEither represents a computation that depends on an environment R and can fail
 	// with an error E or succeed with a value A.
-	// It combines Reader (dependency injection) with Either (error handling).
-
+	// It combines the Reader monad (for dependency injection) with the Either monad (for error handling).
 	ReaderEither[R, E, A any] = Reader[R, Either[E, A]]
+
 	// Kleisli represents a Kleisli arrow for the ReaderEither monad.
 	// It's a function from A to ReaderEither[R, E, B], used for composing operations that
 	// depend on an environment and may fail.
@@ -44,7 +48,6 @@ type (
 
 	// Operator represents a function that transforms one ReaderEither into another.
 	// It takes a ReaderEither[R, E, A] and produces a ReaderEither[R, E, B].
+	// This is commonly used for lifting functions into the ReaderEither context.
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderEither[R, E, A], B]
-
-	Lazy[A any] = lazy.Lazy[A]
 )

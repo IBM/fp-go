@@ -19,12 +19,7 @@ func TestDo(t *testing.T) {
 		decoder := Do[string](State{})
 		result := decoder("input")
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{}, value)
+		assert.Equal(t, validation.Of(State{}), result)
 	})
 
 	t.Run("creates decoder with initialized state", func(t *testing.T) {
@@ -79,12 +74,7 @@ func TestBind(t *testing.T) {
 		)
 
 		result := decoder("input")
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 42, y: 10}, value)
+		assert.Equal(t, validation.Of(State{x: 42, y: 10}), result)
 	})
 
 	t.Run("propagates failure", func(t *testing.T) {
@@ -216,12 +206,7 @@ func TestLet(t *testing.T) {
 		)
 
 		result := decoder("input")
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) State { return State{} },
-			F.Identity[State],
-		)
-		assert.Equal(t, State{x: 60, y: 10, z: 20}, value)
+		assert.Equal(t, validation.Of(State{x: 60, y: 10, z: 20}), result)
 	})
 }
 

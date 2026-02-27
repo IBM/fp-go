@@ -814,5 +814,3 @@ func TestApSO_ErrorAccumulation(t *testing.T) {
 		assert.NotEmpty(t, errors, "Should have validation errors")
 	})
 }
-
-// Made with Bob

@@ -7,9 +7,11 @@ import (
 
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,12 +21,7 @@ func TestString(t *testing.T) {
 		stringType := String()
 		result := stringType.Decode("hello")
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) string { return "" },
-			F.Identity[string],
-		)
-		assert.Equal(t, "hello", value)
+		assert.Equal(t, validation.Of("hello"), result)
 	})
 
 	t.Run("fails to decode non-string", func(t *testing.T) {
@@ -57,12 +54,7 @@ func TestString(t *testing.T) {
 		stringType := String()
 		result := stringType.Decode("")
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) string { return "error" },
-			F.Identity[string],
-		)
-		assert.Equal(t, "", value)
+		assert.Equal(t, validation.Of(""), result)
 	})
 }
 
@@ -71,12 +63,7 @@ func TestInt(t *testing.T) {
 		intType := Int()
 		result := intType.Decode(42)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 42, value)
+		assert.Equal(t, validation.Of(42), result)
 	})
 
 	t.Run("fails to decode string as int", func(t *testing.T) {
@@ -109,24 +96,14 @@ func TestInt(t *testing.T) {
 		intType := Int()
 		result := intType.Decode(-42)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, -42, value)
+		assert.Equal(t, validation.Of(-42), result)
 	})
 
 	t.Run("decodes zero", func(t *testing.T) {
 		intType := Int()
 		result := intType.Decode(0)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) int { return -1 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 0, value)
+		assert.Equal(t, validation.Of(0), result)
 	})
 }
 
@@ -135,24 +112,14 @@ func TestBool(t *testing.T) {
 		boolType := Bool()
 		result := boolType.Decode(true)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) bool { return false },
-			F.Identity[bool],
-		)
-		assert.Equal(t, true, value)
+		assert.Equal(t, validation.Of(true), result)
 	})
 
 	t.Run("decodes false", func(t *testing.T) {
 		boolType := Bool()
 		result := boolType.Decode(false)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) bool { return true },
-			F.Identity[bool],
-		)
-		assert.Equal(t, false, value)
+		assert.Equal(t, validation.Of(false), result)
 	})
 
 	t.Run("fails to decode int as bool", func(t *testing.T) {
@@ -189,36 +156,21 @@ func TestArray(t *testing.T) {
 		intArray := Array(Int())
 		result := intArray.Decode([]int{1, 2, 3})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []int { return nil },
-			F.Identity[[]int],
-		)
-		assert.Equal(t, []int{1, 2, 3}, value)
+		assert.Equal(t, validation.Of([]int{1, 2, 3}), result)
 	})
 
 	t.Run("decodes valid string array", func(t *testing.T) {
 		stringArray := Array(String())
 		result := stringArray.Decode([]string{"a", "b", "c"})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []string { return nil },
-			F.Identity[[]string],
-		)
-		assert.Equal(t, []string{"a", "b", "c"}, value)
+		assert.Equal(t, validation.Of([]string{"a", "b", "c"}), result)
 	})
 
 	t.Run("decodes empty array", func(t *testing.T) {
 		intArray := Array(Int())
 		result := intArray.Decode([]int{})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []int { return nil },
-			F.Identity[[]int],
-		)
-		assert.Equal(t, []int{}, value)
+		assert.Equal(t, validation.Of([]int{}), result)
 	})
 
 	t.Run("fails when array contains invalid element", func(t *testing.T) {
@@ -256,12 +208,7 @@ func TestArray(t *testing.T) {
 		nestedArray := Array(Array(Int()))
 		result := nestedArray.Decode([][]int{{1, 2}, {3, 4}})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) [][]int { return nil },
-			F.Identity[[][]int],
-		)
-		assert.Equal(t, [][]int{{1, 2}, {3, 4}}, value)
+		assert.Equal(t, validation.Of([][]int{{1, 2}, {3, 4}}), result)
 	})
 
 	t.Run("fails to decode non-iterable", func(t *testing.T) {
@@ -275,12 +222,7 @@ func TestArray(t *testing.T) {
 		boolArray := Array(Bool())
 		result := boolArray.Decode([]bool{true, false, true})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []bool { return nil },
-			F.Identity[[]bool],
-		)
-		assert.Equal(t, []bool{true, false, true}, value)
+		assert.Equal(t, validation.Of([]bool{true, false, true}), result)
 	})
 
 	t.Run("collects multiple validation errors", func(t *testing.T) {
@@ -360,24 +302,14 @@ func TestTranscodeArray(t *testing.T) {
 		intTranscode := TranscodeArray(Int())
 		result := intTranscode.Decode([]any{1, 2, 3})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []int { return nil },
-			F.Identity[[]int],
-		)
-		assert.Equal(t, []int{1, 2, 3}, value)
+		assert.Equal(t, validation.Of([]int{1, 2, 3}), result)
 	})
 
 	t.Run("decodes valid string array from string slice", func(t *testing.T) {
 		stringTranscode := TranscodeArray(String())
 		result := stringTranscode.Decode([]any{"a", "b", "c"})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []string { return nil },
-			F.Identity[[]string],
-		)
-		assert.Equal(t, []string{"a", "b", "c"}, value)
+		assert.Equal(t, validation.Of([]string{"a", "b", "c"}), result)
 	})
 
 	t.Run("decodes empty array", func(t *testing.T) {
@@ -411,24 +343,14 @@ func TestTranscodeArray(t *testing.T) {
 		nestedTranscode := TranscodeArray(TranscodeArray(Int()))
 		result := nestedTranscode.Decode([][]any{{1, 2}, {3, 4}})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) [][]int { return nil },
-			F.Identity[[][]int],
-		)
-		assert.Equal(t, [][]int{{1, 2}, {3, 4}}, value)
+		assert.Equal(t, validation.Of([][]int{{1, 2}, {3, 4}}), result)
 	})
 
 	t.Run("decodes array of bools", func(t *testing.T) {
 		boolTranscode := TranscodeArray(Bool())
 		result := boolTranscode.Decode([]any{true, false, true})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []bool { return nil },
-			F.Identity[[]bool],
-		)
-		assert.Equal(t, []bool{true, false, true}, value)
+		assert.Equal(t, validation.Of([]bool{true, false, true}), result)
 	})
 
 	t.Run("encodes empty array", func(t *testing.T) {
@@ -481,12 +403,7 @@ func TestTranscodeArrayWithTransformation(t *testing.T) {
 		arrayTranscode := TranscodeArray(stringToInt)
 		result := arrayTranscode.Decode([]string{"a", "bb", "ccc"})
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) []int { return nil },
-			F.Identity[[]int],
-		)
-		assert.Equal(t, []int{1, 2, 3}, value)
+		assert.Equal(t, validation.Of([]int{1, 2, 3}), result)
 	})
 
 	t.Run("encodes int slice to string slice", func(t *testing.T) {
@@ -1358,24 +1275,14 @@ func TestId(t *testing.T) {
 		idCodec := Id[string]()
 		result := idCodec.Decode("hello")
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) string { return "" },
-			F.Identity[string],
-		)
-		assert.Equal(t, "hello", value)
+		assert.Equal(t, validation.Of("hello"), result)
 	})
 
 	t.Run("decodes int successfully", func(t *testing.T) {
 		idCodec := Id[int]()
 		result := idCodec.Decode(42)
 
-		assert.True(t, either.IsRight(result))
-		value := either.MonadFold(result,
-			func(validation.Errors) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 42, value)
+		assert.Equal(t, validation.Of(42), result)
 	})
 
 	t.Run("encodes with identity function", func(t *testing.T) {
@@ -1431,13 +1338,7 @@ func TestId(t *testing.T) {
 		person := Person{Name: "Alice", Age: 30}
 
 		result := idCodec.Decode(person)
-		assert.True(t, either.IsRight(result))
-
-		value := either.MonadFold(result,
-			func(validation.Errors) Person { return Person{} },
-			F.Identity[Person],
-		)
-		assert.Equal(t, person, value)
+		assert.Equal(t, validation.Of(person), result)
 
 		encoded := idCodec.Encode(person)
 		assert.Equal(t, person, encoded)
@@ -1450,13 +1351,7 @@ func TestIdWithTranscodeArray(t *testing.T) {
 		arrayCodec := TranscodeArray(intId)
 
 		result := arrayCodec.Decode([]int{1, 2, 3, 4, 5})
-		assert.True(t, either.IsRight(result))
-
-		value := either.MonadFold(result,
-			func(validation.Errors) []int { return nil },
-			F.Identity[[]int],
-		)
-		assert.Equal(t, []int{1, 2, 3, 4, 5}, value)
+		assert.Equal(t, validation.Of([]int{1, 2, 3, 4, 5}), result)
 	})
 
 	t.Run("Id codec encodes array with identity", func(t *testing.T) {
@@ -1473,13 +1368,7 @@ func TestIdWithTranscodeArray(t *testing.T) {
 
 		input := [][]int{{1, 2}, {3, 4}, {5}}
 		result := nestedCodec.Decode(input)
-		assert.True(t, either.IsRight(result))
-
-		value := either.MonadFold(result,
-			func(validation.Errors) [][]int { return nil },
-			F.Identity[[][]int],
-		)
-		assert.Equal(t, input, value)
+		assert.Equal(t, validation.Of(input), result)
 	})
 }
 
@@ -1748,7 +1637,7 @@ func TestFromRefinementComposition(t *testing.T) {
 	positiveCodec := FromRefinement(positiveIntPrism)
 
 	// Compose with Int codec using Pipe
-	composed := Pipe[int, any, int, int](positiveCodec)(Int())
+	composed := Pipe[int, any](positiveCodec)(Int())
 
 	t.Run("ComposedDecodeValid", func(t *testing.T) {
 		result := composed.Decode(42)
@@ -1847,5 +1736,418 @@ func TestFromRefinementValidationContext(t *testing.T) {
 		// Check that error contains the value and context
 		err := errors[0]
 		assert.Equal(t, -5, err.Value)
+	})
+}
+
+// TestEmpty_Success tests that Empty always succeeds during decoding
+func TestEmpty_Success(t *testing.T) {
+	t.Run("decodes any input to default value", func(t *testing.T) {
+		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+
+		// Test with various input types
+		testCases := []struct {
+			name  string
+			input any
+		}{
+			{"string input", "anything"},
+			{"int input", 123},
+			{"nil input", nil},
+			{"bool input", true},
+			{"struct input", struct{ X int }{X: 10}},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result := defaultCodec.Decode(tc.input)
+
+				assert.Equal(t, validation.Of(42), result)
+			})
+		}
+	})
+
+	t.Run("always returns same default value", func(t *testing.T) {
+		defaultCodec := Empty[string, string, any](lazy.Of(pair.MakePair("output", "default")))
+
+		result1 := defaultCodec.Decode(123)
+		result2 := defaultCodec.Decode("different")
+		result3 := defaultCodec.Decode(nil)
+
+		assert.True(t, either.IsRight(result1))
+		assert.True(t, either.IsRight(result2))
+		assert.True(t, either.IsRight(result3))
+
+		value1 := either.MonadFold(result1, func(validation.Errors) string { return "" }, F.Identity[string])
+		value2 := either.MonadFold(result2, func(validation.Errors) string { return "" }, F.Identity[string])
+		value3 := either.MonadFold(result3, func(validation.Errors) string { return "" }, F.Identity[string])
+
+		assert.Equal(t, "default", value1)
+		assert.Equal(t, "default", value2)
+		assert.Equal(t, "default", value3)
+	})
+}
+
+// TestEmpty_Encoding tests that Empty always uses default output during encoding
+func TestEmpty_Encoding(t *testing.T) {
+	t.Run("encodes any value to default output", func(t *testing.T) {
+		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+
+		// Test with various input values
+		testCases := []struct {
+			name  string
+			input int
+		}{
+			{"zero value", 0},
+			{"positive value", 100},
+			{"negative value", -50},
+			{"default value", 42},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				encoded := defaultCodec.Encode(tc.input)
+				assert.Equal(t, "default", encoded)
+			})
+		}
+	})
+
+	t.Run("always returns same default output", func(t *testing.T) {
+		defaultCodec := Empty[string, int, any](lazy.Of(pair.MakePair(999, "ignored")))
+
+		encoded1 := defaultCodec.Encode("value1")
+		encoded2 := defaultCodec.Encode("value2")
+		encoded3 := defaultCodec.Encode("")
+
+		assert.Equal(t, 999, encoded1)
+		assert.Equal(t, 999, encoded2)
+		assert.Equal(t, 999, encoded3)
+	})
+}
+
+// TestEmpty_Name tests that Empty has correct name
+func TestEmpty_Name(t *testing.T) {
+	t.Run("has name 'Empty'", func(t *testing.T) {
+		defaultCodec := Empty[int, int, any](lazy.Of(pair.MakePair(0, 0)))
+		assert.Equal(t, "Empty", defaultCodec.Name())
+	})
+}
+
+// TestEmpty_TypeChecking tests that Empty performs standard type checking
+func TestEmpty_TypeChecking(t *testing.T) {
+	t.Run("Is checks for correct type", func(t *testing.T) {
+		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+
+		// Should succeed for int
+		result := defaultCodec.Is(100)
+		assert.True(t, either.IsRight(result))
+
+		// Should fail for non-int
+		result = defaultCodec.Is("not an int")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("Is checks for string type", func(t *testing.T) {
+		defaultCodec := Empty[string, string, any](lazy.Of(pair.MakePair("out", "in")))
+
+		// Should succeed for string
+		result := defaultCodec.Is("hello")
+		assert.True(t, either.IsRight(result))
+
+		// Should fail for non-string
+		result = defaultCodec.Is(123)
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+// TestEmpty_LazyEvaluation tests that the Pair parameter allows dynamic values
+func TestEmpty_LazyEvaluation(t *testing.T) {
+	t.Run("lazy pair allows dynamic values", func(t *testing.T) {
+		counter := 0
+		lazyPair := func() pair.Pair[int, int] {
+			counter++
+			return pair.MakePair(counter, counter*10)
+		}
+
+		defaultCodec := Empty[int, int, any](lazyPair)
+
+		// Each decode can get a different value if the lazy function is dynamic
+		result1 := defaultCodec.Decode("input1")
+		value1 := either.MonadFold(result1,
+			func(validation.Errors) int { return 0 },
+			F.Identity[int],
+		)
+
+		result2 := defaultCodec.Decode("input2")
+		value2 := either.MonadFold(result2,
+			func(validation.Errors) int { return 0 },
+			F.Identity[int],
+		)
+
+		// Values can be different if lazy function produces different results
+		assert.True(t, value1 > 0)
+		assert.True(t, value2 > 0)
+	})
+}
+
+// TestEmpty_WithStructs tests Empty with struct types
+func TestEmpty_WithStructs(t *testing.T) {
+	type Config struct {
+		Timeout int
+		Retries int
+	}
+
+	t.Run("provides default struct value", func(t *testing.T) {
+		defaultConfig := Config{Timeout: 30, Retries: 3}
+		defaultCodec := Empty[Config, Config, any](lazy.Of(pair.MakePair(defaultConfig, defaultConfig)))
+
+		result := defaultCodec.Decode("anything")
+		assert.True(t, either.IsRight(result))
+
+		value := either.MonadFold(result,
+			func(validation.Errors) Config { return Config{} },
+			F.Identity[Config],
+		)
+		assert.Equal(t, 30, value.Timeout)
+		assert.Equal(t, 3, value.Retries)
+	})
+
+	t.Run("encodes to default struct", func(t *testing.T) {
+		defaultConfig := Config{Timeout: 30, Retries: 3}
+		inputConfig := Config{Timeout: 60, Retries: 5}
+
+		defaultCodec := Empty[Config, Config, any](lazy.Of(pair.MakePair(defaultConfig, defaultConfig)))
+
+		encoded := defaultCodec.Encode(inputConfig)
+		assert.Equal(t, 30, encoded.Timeout)
+		assert.Equal(t, 3, encoded.Retries)
+	})
+}
+
+// TestEmpty_WithPointers tests Empty with pointer types
+func TestEmpty_WithPointers(t *testing.T) {
+	t.Run("provides default pointer value", func(t *testing.T) {
+		defaultValue := 42
+		defaultCodec := Empty[*int, *int, any](lazy.Of(pair.MakePair(&defaultValue, &defaultValue)))
+
+		result := defaultCodec.Decode("anything")
+		assert.True(t, either.IsRight(result))
+
+		value := either.MonadFold(result,
+			func(validation.Errors) *int { return nil },
+			F.Identity[*int],
+		)
+		require.NotNil(t, value)
+		assert.Equal(t, 42, *value)
+	})
+
+	t.Run("provides nil pointer as default", func(t *testing.T) {
+		var nilPtr *int
+		defaultCodec := Empty[*int, *int, any](lazy.Of(pair.MakePair(nilPtr, nilPtr)))
+
+		result := defaultCodec.Decode("anything")
+		assert.True(t, either.IsRight(result))
+
+		value := either.MonadFold(result,
+			func(validation.Errors) *int { return new(int) },
+			F.Identity[*int],
+		)
+		assert.Nil(t, value)
+	})
+}
+
+// TestEmpty_WithSlices tests Empty with slice types
+func TestEmpty_WithSlices(t *testing.T) {
+	t.Run("provides default slice value", func(t *testing.T) {
+		defaultSlice := []int{1, 2, 3}
+		defaultCodec := Empty[[]int, []int, any](lazy.Of(pair.MakePair(defaultSlice, defaultSlice)))
+
+		result := defaultCodec.Decode("anything")
+		assert.True(t, either.IsRight(result))
+
+		value := either.MonadFold(result,
+			func(validation.Errors) []int { return nil },
+			F.Identity[[]int],
+		)
+		assert.Equal(t, []int{1, 2, 3}, value)
+	})
+
+	t.Run("provides empty slice as default", func(t *testing.T) {
+		emptySlice := []int{}
+		defaultCodec := Empty[[]int, []int, any](lazy.Of(pair.MakePair(emptySlice, emptySlice)))
+
+		result := defaultCodec.Decode("anything")
+		assert.True(t, either.IsRight(result))
+
+		value := either.MonadFold(result,
+			func(validation.Errors) []int { return nil },
+			F.Identity[[]int],
+		)
+		assert.Equal(t, []int{}, value)
+	})
+}
+
+// TestEmpty_DifferentInputOutput tests Empty with different input and output types
+func TestEmpty_DifferentInputOutput(t *testing.T) {
+	t.Run("decodes to int, encodes to string", func(t *testing.T) {
+		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default-output", 42)))
+
+		// Decode always returns 42
+		result := defaultCodec.Decode("any input")
+		assert.Equal(t, validation.Of(42), result)
+
+		// Encode always returns "default-output"
+		encoded := defaultCodec.Encode(100)
+		assert.Equal(t, "default-output", encoded)
+	})
+
+	t.Run("decodes to string, encodes to int", func(t *testing.T) {
+		defaultCodec := Empty[string, int, any](lazy.Of(pair.MakePair(999, "default-value")))
+
+		// Decode always returns "default-value"
+		result := defaultCodec.Decode(123)
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(validation.Errors) string { return "" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "default-value", value)
+
+		// Encode always returns 999
+		encoded := defaultCodec.Encode("any string")
+		assert.Equal(t, 999, encoded)
+	})
+}
+
+// TestEmpty_EdgeCases tests edge cases for Empty
+func TestEmpty_EdgeCases(t *testing.T) {
+	t.Run("with zero values", func(t *testing.T) {
+		defaultCodec := Empty[int, int, any](lazy.Of(pair.MakePair(0, 0)))
+
+		result := defaultCodec.Decode("anything")
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(validation.Errors) int { return -1 },
+			F.Identity[int],
+		)
+		assert.Equal(t, 0, value)
+
+		encoded := defaultCodec.Encode(100)
+		assert.Equal(t, 0, encoded)
+	})
+
+	t.Run("with empty string", func(t *testing.T) {
+		defaultCodec := Empty[string, string, any](lazy.Of(pair.MakePair("", "")))
+
+		result := defaultCodec.Decode("non-empty")
+		assert.True(t, either.IsRight(result))
+		value := either.MonadFold(result,
+			func(validation.Errors) string { return "error" },
+			F.Identity[string],
+		)
+		assert.Equal(t, "", value)
+
+		encoded := defaultCodec.Encode("non-empty")
+		assert.Equal(t, "", encoded)
+	})
+
+	t.Run("with false boolean", func(t *testing.T) {
+		defaultCodec := Empty[bool, bool, any](lazy.Of(pair.MakePair(false, false)))
+
+		result := defaultCodec.Decode(true)
+		assert.Equal(t, validation.Of(false), result)
+
+		encoded := defaultCodec.Encode(true)
+		assert.Equal(t, false, encoded)
+	})
+}
+
+// TestEmpty_Integration tests Empty in composition scenarios
+func TestEmpty_Integration(t *testing.T) {
+	t.Run("composes with other codecs using Pipe", func(t *testing.T) {
+		// Create a codec that always provides a default int
+		defaultIntCodec := Empty[int, int, any](lazy.Of(pair.MakePair(42, 42)))
+
+		// Create a refinement that only accepts positive integers
+		positiveIntPrism := prism.MakePrismWithName(
+			func(n int) option.Option[int] {
+				if n > 0 {
+					return option.Some(n)
+				}
+				return option.None[int]()
+			},
+			func(n int) int { return n },
+			"PositiveInt",
+		)
+
+		positiveCodec := FromRefinement(positiveIntPrism)
+
+		// Compose: always decode to 42, then validate it's positive
+		composed := Pipe[int, any](positiveCodec)(defaultIntCodec)
+
+		// Should succeed because 42 is positive
+		result := composed.Decode("anything")
+		assert.Equal(t, validation.Of(42), result)
+	})
+
+	t.Run("used as placeholder in generic contexts", func(t *testing.T) {
+		// Empty can be used where a codec is required but not actually used
+		unitCodec := Empty[Void, Void, any](
+			lazy.Of(pair.MakePair(F.VOID, F.VOID)),
+		)
+
+		result := unitCodec.Decode("ignored")
+		assert.Equal(t, validation.Of(F.VOID), result)
+
+		encoded := unitCodec.Encode(F.VOID)
+		assert.Equal(t, F.VOID, encoded)
+	})
+}
+
+// TestEmpty_RoundTrip tests that Empty maintains consistency
+func TestEmpty_RoundTrip(t *testing.T) {
+	t.Run("decode then encode returns default output", func(t *testing.T) {
+		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("output", 42)))
+
+		// Decode
+		result := defaultCodec.Decode("input")
+		require.True(t, either.IsRight(result))
+
+		decoded := either.MonadFold(result,
+			func(validation.Errors) int { return 0 },
+			F.Identity[int],
+		)
+
+		// Encode
+		encoded := defaultCodec.Encode(decoded)
+
+		// Should get default output, not related to decoded value
+		assert.Equal(t, "output", encoded)
+	})
+
+	t.Run("multiple round trips are consistent", func(t *testing.T) {
+		defaultCodec := Empty[int, int, any](lazy.Of(pair.MakePair(100, 50)))
+
+		// First round trip
+		result1 := defaultCodec.Decode("input1")
+		decoded1 := either.MonadFold(result1,
+			func(validation.Errors) int { return 0 },
+			F.Identity[int],
+		)
+		encoded1 := defaultCodec.Encode(decoded1)
+
+		// Second round trip
+		result2 := defaultCodec.Decode("input2")
+		decoded2 := either.MonadFold(result2,
+			func(validation.Errors) int { return 0 },
+			F.Identity[int],
+		)
+		encoded2 := defaultCodec.Encode(decoded2)
+
+		// All decoded values should be the same
+		assert.Equal(t, 50, decoded1)
+		assert.Equal(t, 50, decoded2)
+
+		// All encoded values should be the same
+		assert.Equal(t, 100, encoded1)
+		assert.Equal(t, 100, encoded2)
 	})
 }

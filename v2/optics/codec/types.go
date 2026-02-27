@@ -2,6 +2,7 @@ package codec
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/formatting"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
@@ -18,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerresult"
 	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/semigroup"
 )
 
 type (
@@ -440,4 +442,56 @@ type (
 	//   - ApSO: Applicative sequencing with optional
 	//   - Lens: For fields that always exist
 	Optional[S, A any] = optional.Optional[S, A]
+
+	// Semigroup represents an algebraic structure with an associative binary operation.
+	//
+	// A Semigroup[A] provides:
+	//   - Concat(A, A): Combines two values associatively
+	//
+	// Semigroup law:
+	//   - Associativity: Concat(Concat(a, b), c) = Concat(a, Concat(b, c))
+	//
+	// Unlike Monoid, Semigroup does not require an identity element (Empty).
+	// This makes it more general but less powerful for certain operations.
+	//
+	// In the codec context, semigroups are used to:
+	//   - Combine validation errors
+	//   - Merge partial results
+	//   - Aggregate codec outputs
+	//
+	// Example semigroups:
+	//   - String concatenation (without empty string)
+	//   - Array concatenation (without empty array)
+	//   - Error accumulation
+	//
+	// Note: Every Monoid is also a Semigroup, but not every Semigroup is a Monoid.
+	Semigroup[A any] = semigroup.Semigroup[A]
+
+	// Void represents a unit type with a single value.
+	//
+	// Void is used instead of struct{} to represent:
+	//   - Unit values in functional programming
+	//   - Placeholder types where no meaningful value is needed
+	//   - Return types for functions that produce no useful result
+	//
+	// The single value of type Void is VOID (function.VOID).
+	//
+	// Usage:
+	//   - Use function.Void (or F.Void) as the type
+	//   - Use function.VOID (or F.VOID) as the value
+	//
+	// Example:
+	//   unitCodec := codec.Empty[F.Void, F.Void, any](
+	//       lazy.Of(pair.MakePair(F.VOID, F.VOID)),
+	//   )
+	//
+	// Benefits over struct{}:
+	//   - More explicit intent (unit type vs empty struct)
+	//   - Consistent with functional programming conventions
+	//   - Better semantic meaning in type signatures
+	//
+	// See also:
+	//   - function.VOID: The single value of type Void
+	//   - Empty: Codec function that uses Void for unit types
+	Void = function.Void
 )

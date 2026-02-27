@@ -18,6 +18,47 @@ func Of[I, A any](a A) Decode[I, A] {
 	return readereither.Of[I, Errors](a)
 }
 
+// OfLazy converts a lazy computation into a Decode that ignores its input.
+// The resulting Decode will evaluate the lazy computation when executed and wrap
+// the result in a successful validation, regardless of the input provided.
+//
+// This function is intended solely for deferring the computation of a value, NOT for
+// representing side effects. The lazy computation should be a pure function that
+// produces the same result each time it's called (referential transparency). For
+// operations with side effects, use appropriate effect types like IO or IOResult.
+//
+// This is useful for lifting deferred computations into the Decode context without
+// requiring access to the input, while maintaining the validation wrapper for consistency.
+//
+// Type Parameters:
+//   - I: The input type (ignored by the resulting Decode)
+//   - A: The result type produced by the lazy computation
+//
+// Parameters:
+//   - fa: A lazy computation that produces a value of type A (must be pure, no side effects)
+//
+// Returns:
+//   - A Decode that ignores its input, evaluates the lazy computation, and wraps the result in Validation[A]
+//
+// Example:
+//
+//	lazyValue := func() int { return 42 }
+//	decoder := decode.OfLazy[string](lazyValue)
+//	result := decoder("any input") // validation.Success(42)
+//
+// Example - Deferring expensive computation:
+//
+//	expensiveCalc := func() Config {
+//	    // Expensive but pure computation here
+//	    return computeDefaultConfig()
+//	}
+//	decoder := decode.OfLazy[map[string]any](expensiveCalc)
+//	// Computation is deferred until the Decode is executed
+//	result := decoder(inputData) // validation.Success(config)
+func OfLazy[I, A any](fa Lazy[A]) Decode[I, A] {
+	return readereither.OfLazy[I, Errors](fa)
+}
+
 // Left creates a Decode that always fails with the given validation errors.
 // This is the dual of Of - while Of lifts a success value, Left lifts failure errors
 // into the Decode context.

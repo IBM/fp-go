@@ -51,6 +51,108 @@ func TestOf(t *testing.T) {
 	})
 }
 
+// TestOfLazy tests the OfLazy function
+func TestOfLazy(t *testing.T) {
+	t.Run("evaluates lazy computation ignoring input", func(t *testing.T) {
+		lazyValue := func() int { return 42 }
+		decoder := OfLazy[string](lazyValue)
+		res := decoder("any input")
+
+		assert.Equal(t, validation.Of(42), res)
+	})
+
+	t.Run("defers computation until Decode is executed", func(t *testing.T) {
+		executed := false
+		lazyComputation := func() string {
+			executed = true
+			return "computed"
+		}
+		decoder := OfLazy[string](lazyComputation)
+
+		// Computation should not be executed yet
+		assert.False(t, executed, "lazy computation should not be executed during Decode creation")
+
+		// Execute the Decode
+		res := decoder("input")
+
+		// Now computation should be executed
+		assert.True(t, executed, "lazy computation should be executed when Decode runs")
+		assert.Equal(t, validation.Of("computed"), res)
+	})
+
+	t.Run("evaluates lazy computation each time Decode is called", func(t *testing.T) {
+		counter := 0
+		lazyCounter := func() int {
+			counter++
+			return counter
+		}
+		decoder := OfLazy[string](lazyCounter)
+
+		// First execution
+		res1 := decoder("input")
+		assert.Equal(t, validation.Of(1), res1)
+
+		// Second execution
+		res2 := decoder("input")
+		assert.Equal(t, validation.Of(2), res2)
+
+		// Third execution
+		res3 := decoder("input")
+		assert.Equal(t, validation.Of(3), res3)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		lazyString := func() string { return "hello" }
+		decoder1 := OfLazy[int](lazyString)
+		assert.Equal(t, validation.Of("hello"), decoder1(123))
+
+		lazySlice := func() []int { return []int{1, 2, 3} }
+		decoder2 := OfLazy[string](lazySlice)
+		assert.Equal(t, validation.Of([]int{1, 2, 3}), decoder2("input"))
+
+		type Person struct {
+			Name string
+			Age  int
+		}
+		lazyStruct := func() Person { return Person{Name: "Alice", Age: 30} }
+		decoder3 := OfLazy[map[string]any](lazyStruct)
+		assert.Equal(t, validation.Of(Person{Name: "Alice", Age: 30}), decoder3(map[string]any{}))
+	})
+
+	t.Run("can be composed with other Decode operations", func(t *testing.T) {
+		lazyValue := func() int { return 10 }
+		decoder := MonadMap(
+			OfLazy[string](lazyValue),
+			func(x int) int { return x * 2 },
+		)
+		res := decoder("input")
+		assert.Equal(t, validation.Of(20), res)
+	})
+
+	t.Run("ignores input completely", func(t *testing.T) {
+		lazyValue := func() string { return "constant" }
+		decoder := OfLazy[string](lazyValue)
+
+		// Different inputs should produce same result
+		res1 := decoder("input1")
+		res2 := decoder("input2")
+
+		assert.Equal(t, validation.Of("constant"), res1)
+		assert.Equal(t, validation.Of("constant"), res2)
+		assert.Equal(t, res1, res2)
+	})
+
+	t.Run("always wraps result in success validation", func(t *testing.T) {
+		lazyValue := func() int { return 42 }
+		decoder := OfLazy[string](lazyValue)
+		res := decoder("input")
+
+		// Verify it's a successful validation
+		assert.True(t, either.IsRight(res))
+		assert.Equal(t, validation.Of(42), res)
+	})
+}
+
 // TestLeft tests the Left function
 func TestLeft(t *testing.T) {
 	t.Run("creates decoder that always fails", func(t *testing.T) {

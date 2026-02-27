@@ -11,6 +11,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
@@ -745,5 +746,116 @@ func FromRefinement[A, B any](refinement Refinement[A, B]) Type[B, A, A] {
 		isFromRefinement(refinement),
 		validateFromRefinement(refinement),
 		refinement.ReverseGet,
+	)
+}
+
+// Empty creates a Type codec that ignores input during decoding and uses a default value,
+// and ignores the value during encoding, using a default output.
+//
+// This codec is useful for:
+//   - Providing default values for optional fields
+//   - Creating placeholder codecs in generic contexts
+//   - Implementing constant codecs that always produce the same value
+//   - Building codecs for phantom types or unit-like types
+//
+// The codec uses a lazily-evaluated Pair[O, A] to provide both the default output
+// for encoding and the default value for decoding. The lazy evaluation ensures that
+// the defaults are only computed when needed.
+//
+// # Type Parameters
+//
+//   - A: The target type (what we decode to and encode from)
+//   - O: The output type (what we encode to)
+//   - I: The input type (what we decode from, but is ignored)
+//
+// # Parameters
+//
+//   - e: A Lazy[Pair[O, A]] that provides the default values:
+//   - pair.Head(e()): The default output value O used during encoding
+//   - pair.Tail(e()): The default decoded value A used during decoding
+//
+// # Returns
+//
+//   - A Type[A, O, I] that:
+//   - Decode: Always succeeds and returns the default value A, ignoring input I
+//   - Encode: Always returns the default output O, ignoring the input value A
+//   - Is: Checks if a value is of type A (standard type checking)
+//   - Name: Returns "Empty"
+//
+// # Behavior
+//
+// Decoding:
+//   - Ignores the input value completely
+//   - Always succeeds with validation.Success
+//   - Returns the default value from pair.Tail(e())
+//
+// Encoding:
+//   - Ignores the input value completely
+//   - Always returns the default output from pair.Head(e())
+//
+// # Example Usage
+//
+// Creating a codec with default values:
+//
+//	// Create a codec that always decodes to 42 and encodes to "default"
+//	defaultCodec := codec.Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+//
+//	// Decode always returns 42, regardless of input
+//	result := defaultCodec.Decode("anything")     // Success: Right(42)
+//	result = defaultCodec.Decode(123)             // Success: Right(42)
+//	result = defaultCodec.Decode(nil)             // Success: Right(42)
+//
+//	// Encode always returns "default", regardless of input
+//	encoded := defaultCodec.Encode(100)           // Returns: "default"
+//	encoded = defaultCodec.Encode(0)              // Returns: "default"
+//
+// Using with struct fields for default values:
+//
+//	type Config struct {
+//	    Timeout int
+//	    Retries int
+//	}
+//
+//	// Codec that provides default retries value
+//	defaultRetries := codec.Empty[int, int, any](lazy.Of(pair.MakePair(3, 3)))
+//
+//	configCodec := F.Pipe2(
+//	    codec.Struct[Config]("Config"),
+//	    codec.ApSL(S.Monoid, timeoutLens, codec.Int()),
+//	    codec.ApSL(S.Monoid, retriesLens, defaultRetries),
+//	)
+//
+// Creating a unit-like codec:
+//
+//	// Codec for a unit type that always produces Void
+//	unitCodec := codec.Empty[function.Void, function.Void, any](
+//	    lazy.Of(pair.MakePair(function.VOID, function.VOID)),
+//	)
+//
+// # Use Cases
+//
+//   - Default values: Provide fallback values when decoding optional fields
+//   - Constant codecs: Always produce the same value regardless of input
+//   - Placeholder codecs: Use in generic contexts where a codec is required but not used
+//   - Unit types: Encode/decode unit-like types that carry no information
+//   - Testing: Create simple codecs for testing codec composition
+//
+// # Notes
+//
+//   - The lazy evaluation of the Pair ensures defaults are only computed when needed
+//   - Both encoding and decoding always succeed (no validation errors)
+//   - The input values are completely ignored in both directions
+//   - The Is method still performs standard type checking for type A
+//   - This codec is useful in applicative composition where some fields have defaults
+//
+// See also:
+//   - Id: For identity codecs that preserve values
+//   - MakeType: For creating custom codecs with validation logic
+func Empty[A, O, I any](e Lazy[Pair[O, A]]) Type[A, O, I] {
+	return MakeType(
+		"Empty",
+		Is[A](),
+		validate.OfLazy[I](F.Pipe1(e, lazy.Map(pair.Tail[O, A]))),
+		reader.OfLazy[A](F.Pipe1(e, lazy.Map(pair.Head[O, A]))),
 	)
 }

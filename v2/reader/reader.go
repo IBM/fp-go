@@ -227,6 +227,51 @@ func Of[R, A any](a A) Reader[R, A] {
 	return function.Constant1[R](a)
 }
 
+// OfLazy converts a lazy computation into a Reader that ignores its environment.
+// The resulting Reader will evaluate the lazy computation when executed, regardless
+// of the environment provided.
+//
+// This function is intended solely for deferring the computation of a value, NOT for
+// representing side effects. The lazy computation should be a pure function that
+// produces the same result each time it's called (referential transparency). For
+// operations with side effects, use appropriate effect types like IO or IOEither.
+//
+// This is useful for lifting deferred computations into the Reader context without
+// requiring access to the environment.
+//
+// Type Parameters:
+//   - R: The environment type (ignored by the resulting Reader)
+//   - A: The result type produced by the lazy computation
+//
+// Parameters:
+//   - fa: A lazy computation that produces a value of type A (must be pure, no side effects)
+//
+// Returns:
+//   - A Reader that ignores its environment and evaluates the lazy computation
+//
+// Example:
+//
+//	type Config struct { Host string }
+//	lazyValue := func() int { return 42 }
+//	r := reader.OfLazy[Config](lazyValue)
+//	result := r(Config{Host: "localhost"}) // 42
+//
+// Example - Deferring expensive computation:
+//
+//	type Env struct { Debug bool }
+//	expensiveCalc := func() string {
+//	    // Expensive but pure computation here
+//	    return "computed result"
+//	}
+//	r := reader.OfLazy[Env](expensiveCalc)
+//	// Computation is deferred until the Reader is executed
+//	result := r(Env{Debug: true}) // "computed result"
+func OfLazy[R, A any](fa Lazy[A]) Reader[R, A] {
+	return func(_ R) A {
+		return fa()
+	}
+}
+
 // MonadChain sequences two Reader computations where the second depends on the result of the first.
 // Both computations share the same environment.
 // This is the monadic bind operation (flatMap).

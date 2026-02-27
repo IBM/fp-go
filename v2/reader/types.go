@@ -103,4 +103,6 @@ type (
 
 	// Seq represents an iterator sequence over values of type T.
 	Seq[T any] = iter.Seq[T]
+
+	Lazy[A any] = func() A
 )

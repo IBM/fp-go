@@ -29,6 +29,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readereither"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -277,6 +278,49 @@ func ChainI[R, A, B any](f RRI.Kleisli[R, A, B]) Operator[R, A, B] {
 //go:inline
 func Of[R, A any](a A) ReaderResult[R, A] {
 	return readert.MonadOf[ReaderResult[R, A]](ET.Of[error, A], a)
+}
+
+// OfLazy converts a lazy computation into a ReaderResult that ignores its environment.
+// The resulting ReaderResult will evaluate the lazy computation when executed and wrap
+// the result in a successful Result, regardless of the environment provided.
+//
+// This function is intended solely for deferring the computation of a value, NOT for
+// representing side effects. The lazy computation should be a pure function that
+// produces the same result each time it's called (referential transparency). For
+// operations with side effects, use appropriate effect types like IO or IOResult.
+//
+// This is useful for lifting deferred computations into the ReaderResult context without
+// requiring access to the environment, while maintaining the Result wrapper for consistency.
+//
+// Type Parameters:
+//   - R: The environment type (ignored by the resulting ReaderResult)
+//   - A: The result type produced by the lazy computation
+//
+// Parameters:
+//   - r: A lazy computation that produces a value of type A (must be pure, no side effects)
+//
+// Returns:
+//   - A ReaderResult that ignores its environment, evaluates the lazy computation, and wraps the result in Result[A]
+//
+// Example:
+//
+//	type Config struct { Host string }
+//	lazyValue := func() int { return 42 }
+//	rr := readerresult.OfLazy[Config](lazyValue)
+//	result := rr(Config{Host: "localhost"}) // result.Of(42)
+//
+// Example - Deferring expensive computation:
+//
+//	type Env struct { Debug bool }
+//	expensiveCalc := func() string {
+//	    // Expensive but pure computation here
+//	    return "computed result"
+//	}
+//	rr := readerresult.OfLazy[Env](expensiveCalc)
+//	// Computation is deferred until the ReaderResult is executed
+//	result := rr(Env{Debug: true}) // result.Of("computed result")
+func OfLazy[R, A any](r Lazy[A]) ReaderResult[R, A] {
+	return readereither.OfLazy[R, error](r)
 }
 
 // MonadAp applies a function wrapped in a ReaderResult to a value wrapped in a ReaderResult.

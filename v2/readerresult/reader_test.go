@@ -77,6 +77,101 @@ func TestOf(t *testing.T) {
 	assert.Equal(t, result.Of(42), rr(defaultContext))
 }
 
+func TestOfLazy(t *testing.T) {
+	t.Run("evaluates lazy computation ignoring environment", func(t *testing.T) {
+		lazyValue := func() int { return 42 }
+		rr := OfLazy[MyContext](lazyValue)
+		res := rr(defaultContext)
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("defers computation until ReaderResult is executed", func(t *testing.T) {
+		executed := false
+		lazyComputation := func() string {
+			executed = true
+			return "computed"
+		}
+		rr := OfLazy[MyContext](lazyComputation)
+
+		// Computation should not be executed yet
+		assert.False(t, executed, "lazy computation should not be executed during ReaderResult creation")
+
+		// Execute the ReaderResult
+		res := rr(defaultContext)
+
+		// Now computation should be executed
+		assert.True(t, executed, "lazy computation should be executed when ReaderResult runs")
+		assert.Equal(t, result.Of("computed"), res)
+	})
+
+	t.Run("evaluates lazy computation each time ReaderResult is called", func(t *testing.T) {
+		counter := 0
+		lazyCounter := func() int {
+			counter++
+			return counter
+		}
+		rr := OfLazy[MyContext](lazyCounter)
+
+		// First execution
+		res1 := rr(defaultContext)
+		assert.Equal(t, result.Of(1), res1)
+
+		// Second execution
+		res2 := rr(defaultContext)
+		assert.Equal(t, result.Of(2), res2)
+
+		// Third execution
+		res3 := rr(defaultContext)
+		assert.Equal(t, result.Of(3), res3)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		lazyString := func() string { return "hello" }
+		rr1 := OfLazy[MyContext](lazyString)
+		assert.Equal(t, result.Of("hello"), rr1(defaultContext))
+
+		lazySlice := func() []int { return []int{1, 2, 3} }
+		rr2 := OfLazy[MyContext](lazySlice)
+		assert.Equal(t, result.Of([]int{1, 2, 3}), rr2(defaultContext))
+
+		lazyStruct := func() MyContext { return "test" }
+		rr3 := OfLazy[string](lazyStruct)
+		assert.Equal(t, result.Of(MyContext("test")), rr3("ignored"))
+	})
+
+	t.Run("can be composed with other ReaderResult operations", func(t *testing.T) {
+		lazyValue := func() int { return 10 }
+		rr := F.Pipe1(
+			OfLazy[MyContext](lazyValue),
+			Map[MyContext](func(x int) int { return x * 2 }),
+		)
+		res := rr(defaultContext)
+		assert.Equal(t, result.Of(20), res)
+	})
+
+	t.Run("ignores environment completely", func(t *testing.T) {
+		lazyValue := func() string { return "constant" }
+		rr := OfLazy[MyContext](lazyValue)
+
+		// Different environments should produce same result
+		ctx1 := MyContext("context1")
+		ctx2 := MyContext("context2")
+
+		assert.Equal(t, result.Of("constant"), rr(ctx1))
+		assert.Equal(t, result.Of("constant"), rr(ctx2))
+	})
+
+	t.Run("always wraps result in success", func(t *testing.T) {
+		lazyValue := func() int { return 42 }
+		rr := OfLazy[MyContext](lazyValue)
+		res := rr(defaultContext)
+
+		// Verify it's a successful Result
+		assert.True(t, result.IsRight(res))
+		assert.Equal(t, result.Of(42), res)
+	})
+}
+
 func TestFromReader(t *testing.T) {
 	r := func(ctx MyContext) string { return string(ctx) }
 	rr := FromReader(r)
