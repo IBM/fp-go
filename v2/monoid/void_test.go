@@ -288,5 +288,3 @@ func BenchmarkVoidMonoid_Empty(b *testing.B) {
 		_ = m.Empty()
 	}
 }
-
-// Made with Bob
