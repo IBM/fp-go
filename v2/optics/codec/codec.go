@@ -851,7 +851,7 @@ func FromRefinement[A, B any](refinement Refinement[A, B]) Type[B, A, A] {
 // See also:
 //   - Id: For identity codecs that preserve values
 //   - MakeType: For creating custom codecs with validation logic
-func Empty[A, O, I any](e Lazy[Pair[O, A]]) Type[A, O, I] {
+func Empty[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
 	return MakeType(
 		"Empty",
 		Is[A](),

@@ -421,7 +421,7 @@ func TestEitherize1_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe1(
 			Of[TestConfig]("not-a-number"),
-			Chain[TestConfig](parseKleisli),
+			Chain(parseKleisli),
 		)
 		outcome := pipeline(testConfig)(context.Background())()
 

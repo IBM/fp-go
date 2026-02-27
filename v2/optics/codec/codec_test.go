@@ -1742,7 +1742,7 @@ func TestFromRefinementValidationContext(t *testing.T) {
 // TestEmpty_Success tests that Empty always succeeds during decoding
 func TestEmpty_Success(t *testing.T) {
 	t.Run("decodes any input to default value", func(t *testing.T) {
-		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+		defaultCodec := Empty[any, int, string](lazy.Of(pair.MakePair("default", 42)))
 
 		// Test with various input types
 		testCases := []struct {
@@ -1766,7 +1766,7 @@ func TestEmpty_Success(t *testing.T) {
 	})
 
 	t.Run("always returns same default value", func(t *testing.T) {
-		defaultCodec := Empty[string, string, any](lazy.Of(pair.MakePair("output", "default")))
+		defaultCodec := Empty[any, string, string](lazy.Of(pair.MakePair("output", "default")))
 
 		result1 := defaultCodec.Decode(123)
 		result2 := defaultCodec.Decode("different")
@@ -1789,7 +1789,7 @@ func TestEmpty_Success(t *testing.T) {
 // TestEmpty_Encoding tests that Empty always uses default output during encoding
 func TestEmpty_Encoding(t *testing.T) {
 	t.Run("encodes any value to default output", func(t *testing.T) {
-		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+		defaultCodec := Empty[any, int, string](lazy.Of(pair.MakePair("default", 42)))
 
 		// Test with various input values
 		testCases := []struct {
@@ -1811,7 +1811,7 @@ func TestEmpty_Encoding(t *testing.T) {
 	})
 
 	t.Run("always returns same default output", func(t *testing.T) {
-		defaultCodec := Empty[string, int, any](lazy.Of(pair.MakePair(999, "ignored")))
+		defaultCodec := Empty[any, string, int](lazy.Of(pair.MakePair(999, "ignored")))
 
 		encoded1 := defaultCodec.Encode("value1")
 		encoded2 := defaultCodec.Encode("value2")
@@ -1826,7 +1826,7 @@ func TestEmpty_Encoding(t *testing.T) {
 // TestEmpty_Name tests that Empty has correct name
 func TestEmpty_Name(t *testing.T) {
 	t.Run("has name 'Empty'", func(t *testing.T) {
-		defaultCodec := Empty[int, int, any](lazy.Of(pair.MakePair(0, 0)))
+		defaultCodec := Empty[any, int, int](lazy.Of(pair.MakePair(0, 0)))
 		assert.Equal(t, "Empty", defaultCodec.Name())
 	})
 }
@@ -1834,7 +1834,7 @@ func TestEmpty_Name(t *testing.T) {
 // TestEmpty_TypeChecking tests that Empty performs standard type checking
 func TestEmpty_TypeChecking(t *testing.T) {
 	t.Run("Is checks for correct type", func(t *testing.T) {
-		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default", 42)))
+		defaultCodec := Empty[any, int, string](lazy.Of(pair.MakePair("default", 42)))
 
 		// Should succeed for int
 		result := defaultCodec.Is(100)
@@ -1846,7 +1846,7 @@ func TestEmpty_TypeChecking(t *testing.T) {
 	})
 
 	t.Run("Is checks for string type", func(t *testing.T) {
-		defaultCodec := Empty[string, string, any](lazy.Of(pair.MakePair("out", "in")))
+		defaultCodec := Empty[any, string, string](lazy.Of(pair.MakePair("out", "in")))
 
 		// Should succeed for string
 		result := defaultCodec.Is("hello")
@@ -1867,7 +1867,7 @@ func TestEmpty_LazyEvaluation(t *testing.T) {
 			return pair.MakePair(counter, counter*10)
 		}
 
-		defaultCodec := Empty[int, int, any](lazyPair)
+		defaultCodec := Empty[any, int, int](lazyPair)
 
 		// Each decode can get a different value if the lazy function is dynamic
 		result1 := defaultCodec.Decode("input1")
@@ -1897,7 +1897,7 @@ func TestEmpty_WithStructs(t *testing.T) {
 
 	t.Run("provides default struct value", func(t *testing.T) {
 		defaultConfig := Config{Timeout: 30, Retries: 3}
-		defaultCodec := Empty[Config, Config, any](lazy.Of(pair.MakePair(defaultConfig, defaultConfig)))
+		defaultCodec := Empty[any, Config, Config](lazy.Of(pair.MakePair(defaultConfig, defaultConfig)))
 
 		result := defaultCodec.Decode("anything")
 		assert.True(t, either.IsRight(result))
@@ -1914,7 +1914,7 @@ func TestEmpty_WithStructs(t *testing.T) {
 		defaultConfig := Config{Timeout: 30, Retries: 3}
 		inputConfig := Config{Timeout: 60, Retries: 5}
 
-		defaultCodec := Empty[Config, Config, any](lazy.Of(pair.MakePair(defaultConfig, defaultConfig)))
+		defaultCodec := Empty[any, Config, Config](lazy.Of(pair.MakePair(defaultConfig, defaultConfig)))
 
 		encoded := defaultCodec.Encode(inputConfig)
 		assert.Equal(t, 30, encoded.Timeout)
@@ -1926,7 +1926,7 @@ func TestEmpty_WithStructs(t *testing.T) {
 func TestEmpty_WithPointers(t *testing.T) {
 	t.Run("provides default pointer value", func(t *testing.T) {
 		defaultValue := 42
-		defaultCodec := Empty[*int, *int, any](lazy.Of(pair.MakePair(&defaultValue, &defaultValue)))
+		defaultCodec := Empty[any, *int, *int](lazy.Of(pair.MakePair(&defaultValue, &defaultValue)))
 
 		result := defaultCodec.Decode("anything")
 		assert.True(t, either.IsRight(result))
@@ -1941,7 +1941,7 @@ func TestEmpty_WithPointers(t *testing.T) {
 
 	t.Run("provides nil pointer as default", func(t *testing.T) {
 		var nilPtr *int
-		defaultCodec := Empty[*int, *int, any](lazy.Of(pair.MakePair(nilPtr, nilPtr)))
+		defaultCodec := Empty[any, *int, *int](lazy.Of(pair.MakePair(nilPtr, nilPtr)))
 
 		result := defaultCodec.Decode("anything")
 		assert.True(t, either.IsRight(result))
@@ -1958,7 +1958,7 @@ func TestEmpty_WithPointers(t *testing.T) {
 func TestEmpty_WithSlices(t *testing.T) {
 	t.Run("provides default slice value", func(t *testing.T) {
 		defaultSlice := []int{1, 2, 3}
-		defaultCodec := Empty[[]int, []int, any](lazy.Of(pair.MakePair(defaultSlice, defaultSlice)))
+		defaultCodec := Empty[any, []int, []int](lazy.Of(pair.MakePair(defaultSlice, defaultSlice)))
 
 		result := defaultCodec.Decode("anything")
 		assert.True(t, either.IsRight(result))
@@ -1972,7 +1972,7 @@ func TestEmpty_WithSlices(t *testing.T) {
 
 	t.Run("provides empty slice as default", func(t *testing.T) {
 		emptySlice := []int{}
-		defaultCodec := Empty[[]int, []int, any](lazy.Of(pair.MakePair(emptySlice, emptySlice)))
+		defaultCodec := Empty[any, []int, []int](lazy.Of(pair.MakePair(emptySlice, emptySlice)))
 
 		result := defaultCodec.Decode("anything")
 		assert.True(t, either.IsRight(result))
@@ -1988,7 +1988,7 @@ func TestEmpty_WithSlices(t *testing.T) {
 // TestEmpty_DifferentInputOutput tests Empty with different input and output types
 func TestEmpty_DifferentInputOutput(t *testing.T) {
 	t.Run("decodes to int, encodes to string", func(t *testing.T) {
-		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("default-output", 42)))
+		defaultCodec := Empty[any, int, string](lazy.Of(pair.MakePair("default-output", 42)))
 
 		// Decode always returns 42
 		result := defaultCodec.Decode("any input")
@@ -2000,7 +2000,7 @@ func TestEmpty_DifferentInputOutput(t *testing.T) {
 	})
 
 	t.Run("decodes to string, encodes to int", func(t *testing.T) {
-		defaultCodec := Empty[string, int, any](lazy.Of(pair.MakePair(999, "default-value")))
+		defaultCodec := Empty[any, string, int](lazy.Of(pair.MakePair(999, "default-value")))
 
 		// Decode always returns "default-value"
 		result := defaultCodec.Decode(123)
@@ -2020,7 +2020,7 @@ func TestEmpty_DifferentInputOutput(t *testing.T) {
 // TestEmpty_EdgeCases tests edge cases for Empty
 func TestEmpty_EdgeCases(t *testing.T) {
 	t.Run("with zero values", func(t *testing.T) {
-		defaultCodec := Empty[int, int, any](lazy.Of(pair.MakePair(0, 0)))
+		defaultCodec := Empty[any, int, int](lazy.Of(pair.MakePair(0, 0)))
 
 		result := defaultCodec.Decode("anything")
 		assert.True(t, either.IsRight(result))
@@ -2035,7 +2035,7 @@ func TestEmpty_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("with empty string", func(t *testing.T) {
-		defaultCodec := Empty[string, string, any](lazy.Of(pair.MakePair("", "")))
+		defaultCodec := Empty[any, string, string](lazy.Of(pair.MakePair("", "")))
 
 		result := defaultCodec.Decode("non-empty")
 		assert.True(t, either.IsRight(result))
@@ -2050,7 +2050,7 @@ func TestEmpty_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("with false boolean", func(t *testing.T) {
-		defaultCodec := Empty[bool, bool, any](lazy.Of(pair.MakePair(false, false)))
+		defaultCodec := Empty[any, bool, bool](lazy.Of(pair.MakePair(false, false)))
 
 		result := defaultCodec.Decode(true)
 		assert.Equal(t, validation.Of(false), result)
@@ -2064,7 +2064,7 @@ func TestEmpty_EdgeCases(t *testing.T) {
 func TestEmpty_Integration(t *testing.T) {
 	t.Run("composes with other codecs using Pipe", func(t *testing.T) {
 		// Create a codec that always provides a default int
-		defaultIntCodec := Empty[int, int, any](lazy.Of(pair.MakePair(42, 42)))
+		defaultIntCodec := Empty[any, int, int](lazy.Of(pair.MakePair(42, 42)))
 
 		// Create a refinement that only accepts positive integers
 		positiveIntPrism := prism.MakePrismWithName(
@@ -2090,7 +2090,7 @@ func TestEmpty_Integration(t *testing.T) {
 
 	t.Run("used as placeholder in generic contexts", func(t *testing.T) {
 		// Empty can be used where a codec is required but not actually used
-		unitCodec := Empty[Void, Void, any](
+		unitCodec := Empty[any, Void, Void](
 			lazy.Of(pair.MakePair(F.VOID, F.VOID)),
 		)
 
@@ -2105,7 +2105,7 @@ func TestEmpty_Integration(t *testing.T) {
 // TestEmpty_RoundTrip tests that Empty maintains consistency
 func TestEmpty_RoundTrip(t *testing.T) {
 	t.Run("decode then encode returns default output", func(t *testing.T) {
-		defaultCodec := Empty[int, string, any](lazy.Of(pair.MakePair("output", 42)))
+		defaultCodec := Empty[any, int, string](lazy.Of(pair.MakePair("output", 42)))
 
 		// Decode
 		result := defaultCodec.Decode("input")
@@ -2124,7 +2124,7 @@ func TestEmpty_RoundTrip(t *testing.T) {
 	})
 
 	t.Run("multiple round trips are consistent", func(t *testing.T) {
-		defaultCodec := Empty[int, int, any](lazy.Of(pair.MakePair(100, 50)))
+		defaultCodec := Empty[any, int, int](lazy.Of(pair.MakePair(100, 50)))
 
 		// First round trip
 		result1 := defaultCodec.Decode("input1")
