@@ -461,7 +461,8 @@ func process() IOResult[string] {
 - **Result** - Simplified Either with error as left type (recommended for error handling)
 - **IO** - Lazy evaluation and side effect management
 - **IOOption** - Combine IO with Option for optional values with side effects
-- **IOResult** - Combine IO with Result for error handling (recommended over IOEither)
+- **IOResult** - Combine IO with Result for error handling (recommended over IOEither when using standard `error` type)
+- **Effect** - Composable effects with dependency injection and error handling
 - **Reader** - Dependency injection pattern
 - **ReaderOption** - Combine Reader with Option for optional values with dependency injection
 - **ReaderIOOption** - Combine Reader, IO, and Option for optional values with dependency injection and side effects

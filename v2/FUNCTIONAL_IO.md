@@ -1,6 +1,6 @@
 # Functional I/O in Go: Context, Errors, and the Reader Pattern
 
-This document explores how functional programming principles apply to I/O operations in Go, comparing traditional imperative approaches with functional patterns using the `context/readerioresult` and `idiomatic/context/readerresult` packages.
+This document explores how functional programming principles apply to I/O operations in Go, comparing traditional imperative approaches with functional patterns using the `context/readerioresult`, `idiomatic/context/readerresult`, and `effect` packages.
 
 ## Table of Contents
 
@@ -10,6 +10,7 @@ This document explores how functional programming principles apply to I/O operat
 - [Benefits of the Functional Approach](#benefits-of-the-functional-approach)
 - [Side-by-Side Comparison](#side-by-side-comparison)
 - [Advanced Patterns](#advanced-patterns)
+- [The Effect Package: Higher-Level Abstraction](#the-effect-package-higher-level-abstraction)
 - [When to Use Each Approach](#when-to-use-each-approach)
 
 ## Why Context in I/O Operations
@@ -775,6 +776,191 @@ func FetchWithRetry(url string, maxRetries int) RIO.ReaderIOResult[[]byte] {
 }
 ```
 
+## The Effect Package: Higher-Level Abstraction
+
+### What is Effect?
+
+The `effect` package provides a higher-level abstraction over `ReaderReaderIOResult`, offering a complete effect system for managing dependencies, errors, and side effects in a composable way. It's inspired by [effect-ts](https://effect.website/) and provides a cleaner API for complex workflows.
+
+### Core Type
+
+```go
+// Effect represents an effectful computation that:
+//   - Requires a context of type C (dependency injection)
+//   - Can perform I/O operations
+//   - Can fail with an error
+//   - Produces a value of type A on success
+type Effect[C, A any] = readerreaderioresult.ReaderReaderIOResult[C, A]
+```
+
+**Key difference from ReaderIOResult**: Effect adds an additional layer of dependency injection (the `C` type parameter) on top of the runtime `context.Context`, enabling type-safe dependency management.
+
+### When to Use Effect
+
+Use the Effect package when you need:
+
+1. **Type-Safe Dependency Injection**: Your application has typed dependencies (config, services, repositories) that need to be threaded through operations
+2. **Complex Workflows**: Multiple services and dependencies need to be composed
+3. **Testability**: You want to easily mock dependencies by providing different contexts
+4. **Separation of Concerns**: Clear separation between business logic, dependencies, and I/O
+
+### Effect vs ReaderIOResult
+
+```go
+// ReaderIOResult - depends only on runtime context
+type ReaderIOResult[A any] = func(context.Context) (A, error)
+
+// Effect - depends on typed context C AND runtime context
+type Effect[C, A any] = func(C) func(context.Context) (A, error)
+```
+
+**ReaderIOResult** is simpler and suitable when you only need runtime context (cancellation, deadlines, request-scoped values).
+
+**Effect** adds typed dependency injection, making it ideal for applications with complex service dependencies.
+
+### Basic Usage
+
+#### Creating Effects
+
+```go
+type AppConfig struct {
+    DatabaseURL string
+    APIKey      string
+}
+
+// Create a successful effect
+successEffect := effect.Succeed[AppConfig, string]("hello")
+
+// Create a failed effect
+failEffect := effect.Fail[AppConfig, string](errors.New("failed"))
+
+// Lift a pure value
+pureEffect := effect.Of[AppConfig, int](42)
+```
+
+#### Integrating Standard Go Functions
+
+The `Eitherize` function makes it easy to integrate standard Go functions that return `(value, error)`:
+
+```go
+type Database struct {
+    conn *sql.DB
+}
+
+// Convert a standard Go function to an Effect using Eitherize
+func fetchUser(id int) effect.Effect[Database, User] {
+    return effect.Eitherize(func(db Database, ctx context.Context) (User, error) {
+        var user User
+        err := db.conn.QueryRowContext(ctx, "SELECT * FROM users WHERE id = ?", id).Scan(&user)
+        return user, err
+    })
+}
+
+// Use Eitherize1 for Kleisli arrows (functions with an additional parameter)
+fetchUserKleisli := effect.Eitherize1(func(db Database, ctx context.Context, id int) (User, error) {
+    var user User
+    err := db.conn.QueryRowContext(ctx, "SELECT * FROM users WHERE id = ?", id).Scan(&user)
+    return user, err
+})
+// fetchUserKleisli has type: func(int) Effect[Database, User]
+```
+
+#### Composing Effects
+
+```go
+type Services struct {
+    UserRepo UserRepository
+    EmailSvc EmailService
+}
+
+// Compose multiple effects with typed dependencies
+func processUser(id int, newEmail string) effect.Effect[Services, User] {
+    return F.Pipe3(
+        // Fetch user from repository
+        effect.Eitherize(func(svc Services, ctx context.Context) (User, error) {
+            return svc.UserRepo.GetUser(ctx, id)
+        }),
+        // Validate user (pure function lifted into Effect)
+        effect.ChainEitherK[Services](validateUser),
+        // Update email
+        effect.Chain[Services](func(user User) effect.Effect[Services, User] {
+            return effect.Eitherize(func(svc Services, ctx context.Context) (User, error) {
+                if err := svc.EmailSvc.SendVerification(ctx, newEmail); err != nil {
+                    return User{}, err
+                }
+                return svc.UserRepo.UpdateEmail(ctx, user.ID, newEmail)
+            })
+        }),
+    )
+}
+```
+
+#### Running Effects
+
+```go
+func main() {
+    // Set up typed dependencies once
+    services := Services{
+        UserRepo: &PostgresUserRepo{db: db},
+        EmailSvc: &SMTPEmailService{host: "smtp.example.com"},
+    }
+
+    // Build the effect pipeline (no execution yet)
+    userEffect := processUser(42, "new@email.com")
+
+    // Provide dependencies - returns a Thunk (ReaderIOResult)
+    thunk := effect.Provide(services)(userEffect)
+
+    // Run synchronously - returns a func(context.Context) (User, error)
+    readerResult := effect.RunSync(thunk)
+
+    // Execute with runtime context
+    user, err := readerResult(context.Background())
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Updated user: %+v\n", user)
+}
+```
+
+### Comparison: Traditional vs ReaderIOResult vs Effect
+
+| Aspect | Traditional | ReaderIOResult | Effect |
+|---|---|---|---|
+| Error propagation | Manual | Automatic | Automatic |
+| Dependency injection | Function parameters | Closure / `context.Context` | Typed `C` parameter |
+| Testability | Requires mocking | Mock `ReaderIOResult` | Provide mock `C` |
+| Composability | Low | High | High |
+| Type-safe dependencies | No | No | Yes |
+| Complexity | Low | Medium | Medium-High |
+
+### Testing with Effect
+
+One of the key benefits of Effect is easy testing through dependency substitution:
+
+```go
+func TestProcessUser(t *testing.T) {
+    // Create mock services
+    mockServices := Services{
+        UserRepo: &MockUserRepo{
+            users: map[int]User{42: {ID: 42, Age: 25, Email: "old@email.com"}},
+        },
+        EmailSvc: &MockEmailService{},
+    }
+
+    // Run the effect with mock dependencies
+    user, err := effect.RunSync(
+        effect.Provide(mockServices)(processUser(42, "new@email.com")),
+    )(context.Background())
+
+    assert.NoError(t, err)
+    assert.Equal(t, "new@email.com", user.Email)
+}
+```
+
+No database or SMTP server needed — just provide mock implementations of the `Services` struct.
+
 ## When to Use Each Approach
 
 ### Use Traditional Go Style When:
@@ -794,6 +980,17 @@ func FetchWithRetry(url string, maxRetries int) RIO.ReaderIOResult[[]byte] {
 5. **Resource management**: Need guaranteed cleanup (Bracket)
 6. **Parallel execution**: Need to parallelize operations easily
 7. **Type safety**: Want the type system to track I/O effects
+8. **Simple dependencies**: Only need runtime `context.Context`, no typed dependencies
+
+### Use Effect When:
+
+1. **Type-safe dependency injection**: Application has typed dependencies (config, services, repositories)
+2. **Complex service architectures**: Multiple services need to be composed with clear dependency management
+3. **Testability with mocks**: Want to easily substitute dependencies for testing
+4. **Separation of concerns**: Need clear separation between business logic, dependencies, and I/O
+5. **Large applications**: Building applications where dependency management is critical
+6. **Team experience**: Team is comfortable with functional programming and effect systems
+7. **Integration with standard Go**: Need to integrate many standard `(value, error)` functions using `Eitherize`
 
 ### Use Idiomatic Functional Style (idiomatic/context/readerresult) When:
 
@@ -803,6 +1000,7 @@ func FetchWithRetry(url string, maxRetries int) RIO.ReaderIOResult[[]byte] {
 4. **Go integration**: Want seamless integration with existing Go code
 5. **Production services**: Building high-throughput services
 6. **Best of both worlds**: Want functional composition with Go's native patterns
+7. **Simple dependencies**: Only need runtime `context.Context`, no typed dependencies
 
 ## Summary
 
@@ -814,11 +1012,18 @@ The functional approach to I/O in Go offers significant advantages:
 4. **Type Safety**: I/O effects visible in the type system
 5. **Lazy Evaluation**: Build pipelines, execute when ready
 6. **Context Propagation**: Automatic threading of context
-7. **Performance**: Idiomatic version offers 2-10x speedup
+7. **Dependency Injection**: Type-safe dependency management with Effect
+8. **Performance**: Idiomatic version offers 2-10x speedup
 
-The key insight is that **I/O operations return descriptions of effects** (ReaderIOResult) rather than performing effects immediately. This enables powerful composition patterns while maintaining Go's idiomatic error handling through the `(value, error)` tuple pattern.
+The key insight is that **I/O operations return descriptions of effects** rather than performing effects immediately. This enables powerful composition patterns while maintaining Go's idiomatic error handling through the `(value, error)` tuple pattern.
 
-For production Go services, the **idiomatic/context/readerresult** package provides the best balance: full functional programming capabilities with native Go performance and familiar error handling patterns.
+### Choosing the Right Abstraction
+
+- **ReaderIOResult**: Best for simple I/O pipelines that only need runtime `context.Context`
+- **Effect**: Best for complex applications with typed dependencies and service architectures
+- **idiomatic/context/readerresult**: Best for production services needing high performance with functional patterns
+
+For production Go services, the **idiomatic/context/readerresult** package provides the best balance of performance and functional capabilities. For applications with complex dependency management, the **effect** package provides type-safe dependency injection with a clean, composable API.
 
 ## Further Reading
 
@@ -827,3 +1032,5 @@ For production Go services, the **idiomatic/context/readerresult** package provi
 - [idiomatic/doc.go](./idiomatic/doc.go) - Idiomatic package overview
 - [context/readerioresult](./context/readerioresult/) - ReaderIOResult package
 - [idiomatic/context/readerresult](./idiomatic/context/readerresult/) - Idiomatic ReaderResult package
+- [effect](./effect/) - Effect package for type-safe dependency injection
+- [effect-ts](https://effect.website/) - TypeScript effect system that inspired this package
