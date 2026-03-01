@@ -22,15 +22,19 @@
 package codec
 
 import (
+	"encoding"
+	"encoding/json"
 	"net/url"
 	"regexp"
 	"strconv"
 	"time"
 
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // validateFromParser creates a validation function from a parser that may fail.
@@ -336,5 +340,130 @@ func Int64FromString() Type[int64, string, string] {
 		Is[int64](),
 		validateFromParser(func(s string) (int64, error) { return strconv.ParseInt(s, 10, 64) }),
 		prism.ParseInt64().ReverseGet,
+	)
+}
+
+func decodeJSON[T any](dec json.Unmarshaler) ReaderResult[[]byte, T] {
+	return func(b []byte) Result[T] {
+		var t T
+		err := dec.UnmarshalJSON(b)
+		return result.TryCatchError(t, err)
+	}
+}
+
+func decodeText[T any](dec encoding.TextUnmarshaler) ReaderResult[[]byte, T] {
+	return func(b []byte) Result[T] {
+		var t T
+		err := dec.UnmarshalText(b)
+		return result.TryCatchError(t, err)
+	}
+}
+
+// MarshalText creates a bidirectional codec for types that implement encoding.TextMarshaler
+// and encoding.TextUnmarshaler. This codec handles binary text serialization formats.
+//
+// The codec:
+//   - Decodes: Calls dec.UnmarshalText(b) to deserialize []byte into the target type T
+//   - Encodes: Calls enc.MarshalText() to serialize the value to []byte
+//   - Validates: Returns a failure if UnmarshalText returns an error
+//
+// Note: The enc and dec parameters are external marshaler/unmarshaler instances. The
+// decoded value is the zero value of T after UnmarshalText has been called on dec
+// (the caller is responsible for ensuring dec holds the decoded state).
+//
+// Type Parameters:
+//   - T: The Go type to encode/decode
+//
+// Parameters:
+//   - enc: An encoding.TextMarshaler used for encoding values to []byte
+//   - dec: An encoding.TextUnmarshaler used for decoding []byte to the target type
+//
+// Returns:
+//   - A Type[T, []byte, []byte] codec that handles text marshaling/unmarshaling
+//
+// Example:
+//
+//	type MyType struct{ Value string }
+//
+//	var instance MyType
+//	codec := MarshalText[MyType](instance, &instance)
+//
+//	// Decode bytes to MyType
+//	result := codec.Decode([]byte(`some text`))
+//
+//	// Encode MyType to bytes
+//	encoded := codec.Encode(instance)
+func MarshalText[T any](
+	enc encoding.TextMarshaler,
+	dec encoding.TextUnmarshaler,
+) Type[T, []byte, []byte] {
+	return MakeType(
+		"UnmarshalText",
+		Is[T](),
+		F.Pipe2(
+			dec,
+			decodeText[T],
+			validate.FromReaderResult,
+		),
+		func(t T) []byte {
+			b, _ := enc.MarshalText()
+			return b
+		},
+	)
+}
+
+// MarshalJSON creates a bidirectional codec for types that implement encoding/json's
+// json.Marshaler and json.Unmarshaler interfaces. This codec handles JSON serialization.
+//
+// The codec:
+//   - Decodes: Calls dec.UnmarshalJSON(b) to deserialize []byte JSON into the target type T
+//   - Encodes: Calls enc.MarshalJSON() to serialize the value to []byte JSON
+//   - Validates: Returns a failure if UnmarshalJSON returns an error
+//
+// Note: The enc and dec parameters are external marshaler/unmarshaler instances. The
+// decoded value is the zero value of T after UnmarshalJSON has been called on dec
+// (the caller is responsible for ensuring dec holds the decoded state).
+//
+// Type Parameters:
+//   - T: The Go type to encode/decode
+//
+// Parameters:
+//   - enc: A json.Marshaler used for encoding values to JSON []byte
+//   - dec: A json.Unmarshaler used for decoding JSON []byte to the target type
+//
+// Returns:
+//   - A Type[T, []byte, []byte] codec that handles JSON marshaling/unmarshaling
+//
+// Example:
+//
+//	type MyData struct {
+//	    Name  string `json:"name"`
+//	    Value int    `json:"value"`
+//	}
+//
+//	var instance MyData
+//	codec := MarshalJSON[MyData](&instance, &instance)
+//
+//	// Decode JSON bytes to MyData
+//	result := codec.Decode([]byte(`{"name":"test","value":42}`))
+//
+//	// Encode MyData to JSON bytes
+//	encoded := codec.Encode(instance)
+func MarshalJSON[T any](
+	enc json.Marshaler,
+	dec json.Unmarshaler,
+) Type[T, []byte, []byte] {
+	return MakeType(
+		"UnmarshalJSON",
+		Is[T](),
+		F.Pipe2(
+			dec,
+			decodeJSON[T],
+			validate.FromReaderResult,
+		),
+		func(t T) []byte {
+			b, _ := enc.MarshalJSON()
+			return b
+		},
 	)
 }
