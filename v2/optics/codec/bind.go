@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
@@ -293,6 +294,157 @@ func ApSO[S, T, O, I any](
 					option.Flap[O](to),
 					option.GetOrElse(lazy.Of(to)),
 				)
+			},
+		)
+	}
+}
+
+// Bind creates a monadic sequencing operator for codecs using a lens and a Kleisli arrow.
+//
+// This function implements the "Bind" (monadic bind / chain) pattern for codecs,
+// allowing you to build up complex codecs where the codec for a field depends on
+// the current decoded value of the struct. Unlike ApSL which uses a fixed field
+// codec, Bind accepts a Kleisli arrow — a function from the current struct value S
+// to a Type[T, O, I] — enabling context-sensitive codec construction.
+//
+// The function combines:
+//   - Encoding: Evaluates the Kleisli arrow f on the current struct value s to obtain
+//     the field codec, extracts the field T using the lens, encodes it with that codec,
+//     and combines it with the base encoding using the monoid.
+//   - Validation: Validates the base struct first (monadic sequencing), then uses the
+//     Kleisli arrow to obtain the field codec for the decoded struct value, and validates
+//     the field through the lens. Errors are propagated but NOT accumulated (fail-fast
+//     semantics, unlike ApSL which accumulates errors).
+//
+// # Type Parameters
+//
+//   - S: The source struct type (what we're building a codec for)
+//   - T: The field type accessed by the lens
+//   - O: The output type for encoding (must have a monoid)
+//   - I: The input type for decoding
+//
+// # Parameters
+//
+//   - m: A Monoid[O] for combining encoded outputs
+//   - l: A Lens[S, T] that focuses on a specific field in S
+//   - f: A Kleisli[S, T, O, I] — a function from S to Type[T, O, I] — that produces
+//     the field codec based on the current struct value
+//
+// # Returns
+//
+// An Operator[S, S, O, I] that transforms a base codec by adding the field
+// specified by the lens, where the field codec is determined by the Kleisli arrow.
+//
+// # How It Works
+//
+// 1. **Encoding**: When encoding a value of type S:
+//   - Evaluate f(s) to obtain the field codec fa
+//   - Extract the field T using l.Get
+//   - Encode T to O using fa.Encode
+//   - Combine with the base encoding using the monoid
+//
+// 2. **Validation**: When validating input I:
+//   - Run the base validation to obtain a decoded S (fail-fast: stop on base failure)
+//   - For the decoded S, evaluate f(s) to obtain the field codec fa
+//   - Validate the input I using fa.Validate
+//   - Set the validated T into S using l.Set
+//
+// 3. **Type Checking**: Preserves the base type checker
+//
+// # Difference from ApSL
+//
+// Unlike ApSL which uses a fixed field codec:
+//   - ApSL: Field codec is fixed at construction time; errors are accumulated
+//   - Bind: Field codec depends on the current struct value (Kleisli arrow); validation
+//     uses monadic sequencing (fail-fast on base failure)
+//   - Bind is more powerful but less parallel than ApSL
+//
+// # Example
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/optics/codec"
+//	    "github.com/IBM/fp-go/v2/optics/lens"
+//	    S "github.com/IBM/fp-go/v2/string"
+//	)
+//
+//	type Config struct {
+//	    Mode  string
+//	    Value int
+//	}
+//
+//	modeLens := lens.MakeLens(
+//	    func(c Config) string { return c.Mode },
+//	    func(c Config, mode string) Config { c.Mode = mode; return c },
+//	)
+//
+//	// Build a Config codec where the Value codec depends on the Mode
+//	configCodec := F.Pipe1(
+//	    codec.Struct[Config]("Config"),
+//	    codec.Bind(S.Monoid, modeLens, func(c Config) codec.Type[string, string, any] {
+//	        return codec.String()
+//	    }),
+//	)
+//
+// # Use Cases
+//
+//   - Building codecs where a field's codec depends on another field's value
+//   - Implementing discriminated unions or tagged variants
+//   - Context-sensitive validation (e.g., validate field B differently based on field A)
+//   - Dependent type-like patterns in codec construction
+//
+// # Notes
+//
+//   - The monoid determines how encoded outputs are combined
+//   - The lens must be total (handle all cases safely)
+//   - Validation uses monadic (fail-fast) sequencing: if the base codec fails,
+//     the Kleisli arrow is never evaluated
+//   - The name is automatically generated for debugging purposes
+//
+// See also:
+//   - ApSL: Applicative sequencing with a fixed lens codec (error accumulation)
+//   - Kleisli: The function type from S to Type[T, O, I]
+//   - decode.Bind: The underlying decode-level bind combinator
+func Bind[S, T, O, I any](
+	m Monoid[O],
+	l Lens[S, T],
+	f Kleisli[S, T, O, I],
+) Operator[S, S, O, I] {
+	name := fmt.Sprintf("Bind[%s]", l)
+	val := reader.Curry(Type[T, O, I].Validate)
+	rm := reader.ApplicativeMonoid[S](m)
+
+	return func(t Type[S, O, I]) Type[S, O, I] {
+		return MakeType(
+			name,
+			t.Is,
+			func(i I) Decode[validate.Context, S] {
+
+				bind := decode.Bind(
+					l.Set,
+					F.Flow2(
+						f,
+						val(i),
+					),
+				)
+
+				return F.Pipe2(
+					i,
+					t.Validate,
+					bind,
+				)
+			},
+			func(s S) O {
+				fa := f(s)
+
+				encConcat := F.Pipe1(
+					F.Flow2(
+						l.Get,
+						fa.Encode,
+					),
+					semigroup.AppendTo(rm),
+				)
+
+				return encConcat(t.Encode)(s)
 			},
 		)
 	}
