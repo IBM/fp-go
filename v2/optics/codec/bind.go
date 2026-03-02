@@ -20,12 +20,88 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/semigroup"
 )
+
+// Do creates the initial empty codec to be used as the starting point for
+// do-notation style codec construction.
+//
+// This is the entry point for building up a struct codec field-by-field using
+// the applicative and monadic sequencing operators ApSL, ApSO, and Bind.
+// It wraps Empty and lifts a lazily-evaluated default Pair[O, A] into a
+// Type[A, O, I] that ignores its input and always succeeds with the default value.
+//
+// # Type Parameters
+//
+//   - I: The input type for decoding (what the codec reads from)
+//   - A: The target struct type being built up (what the codec decodes to)
+//   - O: The output type for encoding (what the codec writes to)
+//
+// # Parameters
+//
+//   - e: A Lazy[Pair[O, A]] providing the initial default values:
+//   - pair.Head(e()): The default encoded output O (e.g. an empty monoid value)
+//   - pair.Tail(e()): The initial zero value of the struct A (e.g. MyStruct{})
+//
+// # Returns
+//
+//   - A Type[A, O, I] that always decodes to the default A and encodes to the
+//     default O, regardless of input. This is then transformed by chaining
+//     ApSL, ApSO, or Bind operators to add fields one by one.
+//
+// # Example Usage
+//
+// Building a struct codec using do-notation style:
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/function"
+//	    "github.com/IBM/fp-go/v2/lazy"
+//	    "github.com/IBM/fp-go/v2/optics/codec"
+//	    "github.com/IBM/fp-go/v2/optics/lens"
+//	    "github.com/IBM/fp-go/v2/pair"
+//	    S "github.com/IBM/fp-go/v2/string"
+//	)
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	nameLens := lens.MakeLens(
+//	    func(p Person) string { return p.Name },
+//	    func(p Person, name string) Person { p.Name = name; return p },
+//	)
+//	ageLens := lens.MakeLens(
+//	    func(p Person) int { return p.Age },
+//	    func(p Person, age int) Person { p.Age = age; return p },
+//	)
+//
+//	personCodec := F.Pipe2(
+//	    codec.Do[any, Person, string](lazy.Of(pair.MakePair("", Person{}))),
+//	    codec.ApSL(S.Monoid, nameLens, codec.String()),
+//	    codec.ApSL(S.Monoid, ageLens, codec.Int()),
+//	)
+//
+// # Notes
+//
+//   - Do is typically the first call in a codec pipeline, followed by ApSL, ApSO, or Bind
+//   - The lazy pair should use the monoid's empty value for O and the zero value for A
+//   - For convenience, use Struct to create the initial codec for named struct types
+//
+// # See Also
+//
+//   - Empty: The underlying codec constructor that Do delegates to
+//   - ApSL: Applicative sequencing for required struct fields via Lens
+//   - ApSO: Applicative sequencing for optional struct fields via Optional
+//   - Bind: Monadic sequencing for context-dependent field codecs
+//
+//go:inline
+func Do[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
+	return Empty[I](e)
+}
 
 // ApSL creates an applicative sequencing operator for codecs using a lens.
 //
@@ -410,41 +486,19 @@ func Bind[S, T, O, I any](
 	f Kleisli[S, T, O, I],
 ) Operator[S, S, O, I] {
 	name := fmt.Sprintf("Bind[%s]", l)
-	val := reader.Curry(Type[T, O, I].Validate)
-	rm := reader.ApplicativeMonoid[S](m)
+	val := F.Curry2(Type[T, O, I].Validate)
 
 	return func(t Type[S, O, I]) Type[S, O, I] {
+
 		return MakeType(
 			name,
 			t.Is,
-			func(i I) Decode[validate.Context, S] {
-
-				bind := decode.Bind(
-					l.Set,
-					F.Flow2(
-						f,
-						val(i),
-					),
-				)
-
-				return F.Pipe2(
-					i,
-					t.Validate,
-					bind,
-				)
-			},
+			F.Pipe1(
+				t.Validate,
+				validate.Bind(l.Set, F.Flow2(f, val)),
+			),
 			func(s S) O {
-				fa := f(s)
-
-				encConcat := F.Pipe1(
-					F.Flow2(
-						l.Get,
-						fa.Encode,
-					),
-					semigroup.AppendTo(rm),
-				)
-
-				return encConcat(t.Encode)(s)
+				return m.Concat(t.Encode(s), f(s).Encode(l.Get(s)))
 			},
 		)
 	}
