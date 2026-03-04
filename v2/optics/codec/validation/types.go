@@ -259,5 +259,42 @@ type (
 	//	result := LetL(lens, double)(Success(21))   // Success(42)
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
+	// Lazy represents a lazily-evaluated value of type A.
+	// This is an alias for lazy.Lazy[A], which defers computation until the value is needed.
+	//
+	// In the validation context, Lazy is used to defer expensive validation operations
+	// or to break circular dependencies in validation logic.
+	//
+	// Example:
+	//
+	//	lazyValidation := lazy.Of(func() Validation[int] {
+	//	    // Expensive validation logic here
+	//	    return Success(42)
+	//	})
+	//	// Validation is not executed until lazyValidation() is called
 	Lazy[A any] = lazy.Lazy[A]
+
+	// ErrorsProvider is an interface for types that can provide a collection of errors.
+	// This interface allows validation errors to be extracted from various error types
+	// in a uniform way, supporting error aggregation and reporting.
+	//
+	// Types implementing this interface can be unwrapped to access their underlying
+	// error collection, enabling consistent error handling across different error types.
+	//
+	// Example:
+	//
+	//	type MyErrors struct {
+	//	    errs []error
+	//	}
+	//
+	//	func (e *MyErrors) Errors() []error {
+	//	    return e.errs
+	//	}
+	//
+	//	// Usage
+	//	var provider ErrorsProvider = &MyErrors{errs: []error{...}}
+	//	allErrors := provider.Errors()
+	ErrorsProvider interface {
+		Errors() []error
+	}
 )

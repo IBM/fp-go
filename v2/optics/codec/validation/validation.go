@@ -134,6 +134,10 @@ func (ve *validationErrors) Unwrap() error {
 	return ve.cause
 }
 
+func (ve *validationErrors) Errors() []error {
+	return ve.Errors()
+}
+
 // String returns a simple string representation of all validation errors.
 // Each error is listed on a separate line with its index.
 func (ve *validationErrors) String() string {

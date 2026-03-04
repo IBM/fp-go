@@ -479,7 +479,7 @@ func ApSO[S, T, O, I any](
 // See also:
 //   - ApSL: Applicative sequencing with a fixed lens codec (error accumulation)
 //   - Kleisli: The function type from S to Type[T, O, I]
-//   - decode.Bind: The underlying decode-level bind combinator
+//   - validate.Bind: The underlying validate-level bind combinator
 func Bind[S, T, O, I any](
 	m Monoid[O],
 	l Lens[S, T],

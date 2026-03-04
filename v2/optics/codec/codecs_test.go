@@ -462,6 +462,233 @@ func TestInt64FromString_Name(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// BoolFromString
+// ---------------------------------------------------------------------------
+
+func TestBoolFromString_Decode_Success(t *testing.T) {
+	t.Run("decodes 'true' string", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("true")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("decodes 'false' string", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("false")
+		assert.Equal(t, validation.Success(false), result)
+	})
+
+	t.Run("decodes '1' as true", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("1")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("decodes '0' as false", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("0")
+		assert.Equal(t, validation.Success(false), result)
+	})
+
+	t.Run("decodes 't' as true", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("t")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("decodes 'f' as false", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("f")
+		assert.Equal(t, validation.Success(false), result)
+	})
+
+	t.Run("decodes 'T' as true", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("T")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("decodes 'F' as false", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("F")
+		assert.Equal(t, validation.Success(false), result)
+	})
+
+	t.Run("decodes 'TRUE' as true", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("TRUE")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("decodes 'FALSE' as false", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("FALSE")
+		assert.Equal(t, validation.Success(false), result)
+	})
+
+	t.Run("decodes 'True' as true", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("True")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("decodes 'False' as false", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("False")
+		assert.Equal(t, validation.Success(false), result)
+	})
+}
+
+func TestBoolFromString_Decode_Failure(t *testing.T) {
+	t.Run("fails on 'yes'", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("yes")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("fails on 'no'", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("no")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("fails on empty string", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("fails on numeric string other than 0 or 1", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("2")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("fails on arbitrary text", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("not a boolean")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("fails on whitespace", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode(" ")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("fails on 'true' with leading/trailing spaces", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode(" true ")
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+func TestBoolFromString_Encode(t *testing.T) {
+	t.Run("encodes true to 'true'", func(t *testing.T) {
+		c := BoolFromString()
+		assert.Equal(t, "true", c.Encode(true))
+	})
+
+	t.Run("encodes false to 'false'", func(t *testing.T) {
+		c := BoolFromString()
+		assert.Equal(t, "false", c.Encode(false))
+	})
+
+	t.Run("round-trip: decode 'true' then encode", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("true")
+		require.True(t, either.IsRight(result))
+		b := either.MonadFold(result, func(validation.Errors) bool { return false }, func(b bool) bool { return b })
+		assert.Equal(t, "true", c.Encode(b))
+	})
+
+	t.Run("round-trip: decode 'false' then encode", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("false")
+		require.True(t, either.IsRight(result))
+		b := either.MonadFold(result, func(validation.Errors) bool { return true }, func(b bool) bool { return b })
+		assert.Equal(t, "false", c.Encode(b))
+	})
+
+	t.Run("round-trip: decode '1' encodes as 'true'", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("1")
+		require.True(t, either.IsRight(result))
+		b := either.MonadFold(result, func(validation.Errors) bool { return false }, func(b bool) bool { return b })
+		// Note: strconv.FormatBool always returns "true" or "false", not "1" or "0"
+		assert.Equal(t, "true", c.Encode(b))
+	})
+
+	t.Run("round-trip: decode '0' encodes as 'false'", func(t *testing.T) {
+		c := BoolFromString()
+		result := c.Decode("0")
+		require.True(t, either.IsRight(result))
+		b := either.MonadFold(result, func(validation.Errors) bool { return true }, func(b bool) bool { return b })
+		assert.Equal(t, "false", c.Encode(b))
+	})
+}
+
+func TestBoolFromString_EdgeCases(t *testing.T) {
+	t.Run("case sensitivity variations", func(t *testing.T) {
+		c := BoolFromString()
+		cases := []struct {
+			input    string
+			expected bool
+		}{
+			{"true", true},
+			{"True", true},
+			{"TRUE", true},
+			{"false", false},
+			{"False", false},
+			{"FALSE", false},
+			{"t", true},
+			{"T", true},
+			{"f", false},
+			{"F", false},
+		}
+		for _, tc := range cases {
+			result := c.Decode(tc.input)
+			require.True(t, either.IsRight(result), "expected success for %s", tc.input)
+			b := either.MonadFold(result, func(validation.Errors) bool { return !tc.expected }, func(b bool) bool { return b })
+			assert.Equal(t, tc.expected, b, "input: %s", tc.input)
+		}
+	})
+}
+
+func TestBoolFromString_Name(t *testing.T) {
+	assert.Equal(t, "BoolFromString", BoolFromString().Name())
+}
+
+func TestBoolFromString_Integration(t *testing.T) {
+	t.Run("decodes and encodes multiple boolean values", func(t *testing.T) {
+		c := BoolFromString()
+		cases := []struct {
+			str string
+			val bool
+		}{
+			{"true", true},
+			{"false", false},
+			{"1", true},
+			{"0", false},
+			{"T", true},
+			{"F", false},
+		}
+		for _, tc := range cases {
+			result := c.Decode(tc.str)
+			require.True(t, either.IsRight(result), "expected success for %s", tc.str)
+			b := either.MonadFold(result, func(validation.Errors) bool { return !tc.val }, func(b bool) bool { return b })
+			assert.Equal(t, tc.val, b)
+			// Note: encoding always produces "true" or "false", not the original input
+			if tc.val {
+				assert.Equal(t, "true", c.Encode(b))
+			} else {
+				assert.Equal(t, "false", c.Encode(b))
+			}
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
 // MarshalJSON
 // ---------------------------------------------------------------------------
 

@@ -343,6 +343,61 @@ func Int64FromString() Type[int64, string, string] {
 	)
 }
 
+// BoolFromString creates a bidirectional codec for parsing boolean values from strings.
+// This codec converts string representations of booleans to bool values and vice versa.
+//
+// The codec:
+//   - Decodes: Parses a string to a bool using strconv.ParseBool
+//   - Encodes: Converts a bool to its string representation using strconv.FormatBool
+//   - Validates: Ensures the string contains a valid boolean value
+//
+// The codec accepts the following string values (case-insensitive):
+//   - true: "1", "t", "T", "true", "TRUE", "True"
+//   - false: "0", "f", "F", "false", "FALSE", "False"
+//
+// Returns:
+//   - A Type[bool, string, string] codec that handles bool/string conversions
+//
+// Example:
+//
+//	boolCodec := BoolFromString()
+//
+//	// Decode valid boolean strings
+//	validation := boolCodec.Decode("true")
+//	// validation is Right(true)
+//
+//	validation := boolCodec.Decode("1")
+//	// validation is Right(true)
+//
+//	validation := boolCodec.Decode("false")
+//	// validation is Right(false)
+//
+//	validation := boolCodec.Decode("0")
+//	// validation is Right(false)
+//
+//	// Encode a boolean to string
+//	str := boolCodec.Encode(true)
+//	// str is "true"
+//
+//	str := boolCodec.Encode(false)
+//	// str is "false"
+//
+//	// Invalid boolean string fails validation
+//	validation := boolCodec.Decode("yes")
+//	// validation is Left(ValidationError{...})
+//
+//	// Case variations are accepted
+//	validation := boolCodec.Decode("TRUE")
+//	// validation is Right(true)
+func BoolFromString() Type[bool, string, string] {
+	return MakeType(
+		"BoolFromString",
+		Is[bool](),
+		validateFromParser(strconv.ParseBool),
+		strconv.FormatBool,
+	)
+}
+
 func decodeJSON[T any](dec json.Unmarshaler) ReaderResult[[]byte, T] {
 	return func(b []byte) Result[T] {
 		var t T
