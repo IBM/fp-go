@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 
 	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
@@ -11,6 +12,11 @@ import (
 // Error implements the error interface for ValidationError.
 // Returns a generic error message indicating this is a validation error.
 // For detailed error information, use String() or Format() methods.
+
+// toError converts the validation error to the error interface
+func toError(v *ValidationError) error {
+	return v
+}
 
 // Error implements the error interface for ValidationError.
 // Returns a generic error message.
@@ -34,44 +40,45 @@ func (v *ValidationError) String() string {
 // It includes the context path, message, and optionally the cause error.
 // Supports verbs: %s, %v, %+v (with additional details)
 func (v *ValidationError) Format(s fmt.State, verb rune) {
-	// Build the context path
-	path := ""
-	for i, entry := range v.Context {
-		if i > 0 {
-			path += "."
-		}
-		if entry.Key != "" {
-			path += entry.Key
-		} else {
-			path += entry.Type
-		}
-	}
+	var result strings.Builder
 
-	// Start with the path if available
-	result := ""
-	if path != "" {
-		result = fmt.Sprintf("at %s: ", path)
+	// Build the context path
+	if len(v.Context) > 0 {
+		var path strings.Builder
+		for i, entry := range v.Context {
+			if i > 0 {
+				path.WriteString(".")
+			}
+			if entry.Key != "" {
+				path.WriteString(entry.Key)
+			} else {
+				path.WriteString(entry.Type)
+			}
+		}
+		result.WriteString("at ")
+		result.WriteString(path.String())
+		result.WriteString(": ")
 	}
 
 	// Add the message
-	result += v.Messsage
+	result.WriteString(v.Messsage)
 
 	// Add the cause if present
 	if v.Cause != nil {
 		if s.Flag('+') && verb == 'v' {
 			// Verbose format with detailed cause
-			result += fmt.Sprintf("\n  caused by: %+v", v.Cause)
+			fmt.Fprintf(&result, "\n  caused by: %+v", v.Cause)
 		} else {
-			result += fmt.Sprintf(" (caused by: %v)", v.Cause)
+			fmt.Fprintf(&result, " (caused by: %v)", v.Cause)
 		}
 	}
 
 	// Add value information for verbose format
 	if s.Flag('+') && verb == 'v' {
-		result += fmt.Sprintf("\n  value: %#v", v.Value)
+		fmt.Fprintf(&result, "\n  value: %#v", v.Value)
 	}
 
-	fmt.Fprint(s, result)
+	fmt.Fprint(s, result.String())
 }
 
 // LogValue implements the slog.LogValuer interface for ValidationError.
@@ -94,18 +101,18 @@ func (v *ValidationError) LogValue() slog.Value {
 
 	// Add context path if available
 	if len(v.Context) > 0 {
-		path := ""
+		var path strings.Builder
 		for i, entry := range v.Context {
 			if i > 0 {
-				path += "."
+				path.WriteString(".")
 			}
 			if entry.Key != "" {
-				path += entry.Key
+				path.WriteString(entry.Key)
 			} else {
-				path += entry.Type
+				path.WriteString(entry.Type)
 			}
 		}
-		attrs = append(attrs, slog.String("path", path))
+		attrs = append(attrs, slog.String("path", path.String()))
 	}
 
 	// Add cause if present
@@ -119,13 +126,14 @@ func (v *ValidationError) LogValue() slog.Value {
 // Error implements the error interface for ValidationErrors.
 // Returns a generic error message indicating validation errors occurred.
 func (ve *validationErrors) Error() string {
-	if len(ve.errors) == 0 {
+	switch len(ve.errors) {
+	case 0:
 		return "ValidationErrors: no errors"
-	}
-	if len(ve.errors) == 1 {
+	case 1:
 		return "ValidationErrors: 1 error"
+	default:
+		return fmt.Sprintf("ValidationErrors: %d errors", len(ve.errors))
 	}
-	return fmt.Sprintf("ValidationErrors: %d errors", len(ve.errors))
 }
 
 // Unwrap returns the underlying cause error if present.
@@ -134,8 +142,31 @@ func (ve *validationErrors) Unwrap() error {
 	return ve.cause
 }
 
+// Errors implements the ErrorsProvider interface for validationErrors.
+// It converts the internal collection of ValidationError pointers to a slice of error interfaces.
+// This method enables uniform error extraction from validation error collections.
+//
+// The returned slice contains the same errors as the internal errors field,
+// but typed as error interface values for compatibility with standard Go error handling.
+//
+// Returns:
+//   - A slice of error interfaces, one for each ValidationError in the collection
+//
+// Example:
+//
+//	ve := &validationErrors{
+//	    errors: Errors{
+//	        &ValidationError{Messsage: "invalid email"},
+//	        &ValidationError{Messsage: "age must be positive"},
+//	    },
+//	}
+//	errs := ve.Errors()
+//	// errs is []error with 2 elements, each implementing the error interface
+//	for _, err := range errs {
+//	    fmt.Println(err.Error())  // "ValidationError"
+//	}
 func (ve *validationErrors) Errors() []error {
-	return ve.Errors()
+	return A.MonadMap(ve.errors, toError)
 }
 
 // String returns a simple string representation of all validation errors.
@@ -145,16 +176,17 @@ func (ve *validationErrors) String() string {
 		return "ValidationErrors: no errors"
 	}
 
-	result := fmt.Sprintf("ValidationErrors (%d):\n", len(ve.errors))
+	var result strings.Builder
+	fmt.Fprintf(&result, "ValidationErrors (%d):\n", len(ve.errors))
 	for i, err := range ve.errors {
-		result += fmt.Sprintf("  [%d] %s\n", i, err.String())
+		fmt.Fprintf(&result, "  [%d] %s\n", i, err.String())
 	}
 
 	if ve.cause != nil {
-		result += fmt.Sprintf("  caused by: %v\n", ve.cause)
+		fmt.Fprintf(&result, "  caused by: %v\n", ve.cause)
 	}
 
-	return result
+	return result.String()
 }
 
 // Format implements fmt.Formatter for custom formatting of ValidationErrors.

@@ -846,3 +846,142 @@ func TestLogValuerInterface(t *testing.T) {
 		var _ slog.LogValuer = (*validationErrors)(nil)
 	})
 }
+
+// TestValidationErrors_Errors tests the Errors() method implementation
+func TestValidationErrors_Errors(t *testing.T) {
+	t.Run("returns empty slice for no errors", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{},
+		}
+
+		errs := ve.Errors()
+		assert.Empty(t, errs)
+		assert.NotNil(t, errs)
+	})
+
+	t.Run("converts single ValidationError to error interface", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Value: "test", Messsage: "invalid value"},
+			},
+		}
+
+		errs := ve.Errors()
+		require.Len(t, errs, 1)
+		assert.Equal(t, "ValidationError", errs[0].Error())
+	})
+
+	t.Run("converts multiple ValidationErrors to error interfaces", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Value: "test1", Messsage: "error 1"},
+				&ValidationError{Value: "test2", Messsage: "error 2"},
+				&ValidationError{Value: "test3", Messsage: "error 3"},
+			},
+		}
+
+		errs := ve.Errors()
+		require.Len(t, errs, 3)
+		for _, err := range errs {
+			assert.Equal(t, "ValidationError", err.Error())
+		}
+	})
+
+	t.Run("preserves error details in converted errors", func(t *testing.T) {
+		originalErr := &ValidationError{
+			Value:    "abc",
+			Context:  []ContextEntry{{Key: "field"}},
+			Messsage: "invalid format",
+			Cause:    errors.New("parse error"),
+		}
+		ve := &validationErrors{
+			errors: Errors{originalErr},
+		}
+
+		errs := ve.Errors()
+		require.Len(t, errs, 1)
+
+		// Verify the error can be type-asserted back to ValidationError
+		validationErr, ok := errs[0].(*ValidationError)
+		require.True(t, ok)
+		assert.Equal(t, "abc", validationErr.Value)
+		assert.Equal(t, "invalid format", validationErr.Messsage)
+		assert.NotNil(t, validationErr.Cause)
+		assert.Len(t, validationErr.Context, 1)
+	})
+
+	t.Run("implements ErrorsProvider interface", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Messsage: "error 1"},
+				&ValidationError{Messsage: "error 2"},
+			},
+		}
+
+		// Verify it implements ErrorsProvider
+		var provider ErrorsProvider = ve
+		errs := provider.Errors()
+		assert.Len(t, errs, 2)
+	})
+
+	t.Run("returned errors are usable with standard error handling", func(t *testing.T) {
+		cause := errors.New("underlying error")
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{
+					Value:    "test",
+					Messsage: "validation failed",
+					Cause:    cause,
+				},
+			},
+		}
+
+		errs := ve.Errors()
+		require.Len(t, errs, 1)
+
+		// Test with errors.Is
+		assert.True(t, errors.Is(errs[0], cause))
+
+		// Test with errors.As
+		var validationErr *ValidationError
+		assert.True(t, errors.As(errs[0], &validationErr))
+		assert.Equal(t, "validation failed", validationErr.Messsage)
+	})
+
+	t.Run("does not modify original errors slice", func(t *testing.T) {
+		originalErrors := Errors{
+			&ValidationError{Value: "test1", Messsage: "error 1"},
+			&ValidationError{Value: "test2", Messsage: "error 2"},
+		}
+		ve := &validationErrors{
+			errors: originalErrors,
+		}
+
+		errs := ve.Errors()
+		require.Len(t, errs, 2)
+
+		// Original should be unchanged
+		assert.Len(t, ve.errors, 2)
+		assert.Equal(t, originalErrors, ve.errors)
+	})
+
+	t.Run("each error in slice is independent", func(t *testing.T) {
+		ve := &validationErrors{
+			errors: Errors{
+				&ValidationError{Value: "test1", Messsage: "error 1"},
+				&ValidationError{Value: "test2", Messsage: "error 2"},
+			},
+		}
+
+		errs := ve.Errors()
+		require.Len(t, errs, 2)
+
+		// Verify each error is distinct
+		err1, ok1 := errs[0].(*ValidationError)
+		err2, ok2 := errs[1].(*ValidationError)
+		require.True(t, ok1)
+		require.True(t, ok2)
+		assert.NotEqual(t, err1.Messsage, err2.Messsage)
+		assert.NotEqual(t, err1.Value, err2.Value)
+	})
+}
