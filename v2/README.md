@@ -3,6 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/IBM/fp-go/v2.svg)](https://pkg.go.dev/github.com/IBM/fp-go/v2)
 [![Coverage Status](https://coveralls.io/repos/github/IBM/fp-go/badge.svg?branch=main&flag=v2)](https://coveralls.io/github/IBM/fp-go?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/IBM/fp-go/v2)](https://goreportcard.com/report/github.com/IBM/fp-go/v2)
+[![Context7](https://img.shields.io/badge/context7-docs-blue)](https://context7.com/ibm/fp-go)
 
 **fp-go** is a comprehensive functional programming library for Go, bringing type-safe functional patterns inspired by [fp-ts](https://gcanti.github.io/fp-ts/) to the Go ecosystem. Version 2 leverages [generic type aliases](https://github.com/golang/go/issues/46477) introduced in Go 1.24, providing a more ergonomic and streamlined API.
 
