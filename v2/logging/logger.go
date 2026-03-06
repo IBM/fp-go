@@ -128,6 +128,7 @@ var loggerInContextKey loggerInContextType
 //	    logger.Info("Processing request")
 //	}
 func GetLoggerFromContext(ctx context.Context) *slog.Logger {
+	// using idomatic style to avoid import cycle
 	value, ok := ctx.Value(loggerInContextKey).(*slog.Logger)
 	if !ok {
 		return globalLogger.Load()
