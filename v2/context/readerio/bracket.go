@@ -75,6 +75,114 @@ func Bracket[
 	return RIO.Bracket(acquire, use, release)
 }
 
+// WithResource creates a higher-order function that manages a resource lifecycle for any operation.
+// It returns a Kleisli arrow that takes a use function and automatically handles resource
+// acquisition and cleanup using the bracket pattern.
+//
+// This is a more composable alternative to Bracket, allowing you to define resource management
+// once and reuse it with different use functions. The resource is acquired when the returned
+// Kleisli arrow is invoked, used by the provided function, and then released regardless of
+// success or failure.
+//
+// Type Parameters:
+//   - A: The type of the resource to be managed
+//   - B: The type of the result produced by the use function
+//   - ANY: The type returned by the release function (typically ignored)
+//
+// Parameters:
+//   - onCreate: A ReaderIO that acquires/creates the resource
+//   - onRelease: A Kleisli arrow that releases/cleans up the resource
+//
+// Returns:
+//   - A Kleisli arrow that takes a use function and returns a ReaderIO managing the full lifecycle
+//
+// Example with database connection:
+//
+//	// Define resource management once
+//	withDB := WithResource(
+//	    // Acquire connection
+//	    func(ctx context.Context) IO[*sql.DB] {
+//	        return func() *sql.DB {
+//	            db, _ := sql.Open("postgres", "connection-string")
+//	            return db
+//	        }
+//	    },
+//	    // Release connection
+//	    func(db *sql.DB) ReaderIO[any] {
+//	        return func(ctx context.Context) IO[any] {
+//	            return func() any {
+//	                db.Close()
+//	                return nil
+//	            }
+//	        }
+//	    },
+//	)
+//
+//	// Reuse with different operations
+//	queryUsers := withDB(func(db *sql.DB) ReaderIO[[]User] {
+//	    return func(ctx context.Context) IO[[]User] {
+//	        return func() []User {
+//	            // Query users from db
+//	            return users
+//	        }
+//	    }
+//	})
+//
+//	insertUser := withDB(func(db *sql.DB) ReaderIO[int64] {
+//	    return func(ctx context.Context) IO[int64] {
+//	        return func() int64 {
+//	            // Insert user into db
+//	            return userID
+//	        }
+//	    }
+//	})
+//
+// Example with file handling:
+//
+//	withFile := WithResource(
+//	    func(ctx context.Context) IO[*os.File] {
+//	        return func() *os.File {
+//	            f, _ := os.Open("data.txt")
+//	            return f
+//	        }
+//	    },
+//	    func(f *os.File) ReaderIO[any] {
+//	        return func(ctx context.Context) IO[any] {
+//	            return func() any {
+//	                f.Close()
+//	                return nil
+//	            }
+//	        }
+//	    },
+//	)
+//
+//	// Use for reading
+//	readContent := withFile(func(f *os.File) ReaderIO[string] {
+//	    return func(ctx context.Context) IO[string] {
+//	        return func() string {
+//	            data, _ := io.ReadAll(f)
+//	            return string(data)
+//	        }
+//	    }
+//	})
+//
+//	// Use for getting file info
+//	getSize := withFile(func(f *os.File) ReaderIO[int64] {
+//	    return func(ctx context.Context) IO[int64] {
+//	        return func() int64 {
+//	            info, _ := f.Stat()
+//	            return info.Size()
+//	        }
+//	    }
+//	})
+//
+// Use Cases:
+//   - Database connections: Acquire connection, execute queries, close connection
+//   - File handles: Open file, read/write, close file
+//   - Network connections: Establish connection, transfer data, close connection
+//   - Locks: Acquire lock, perform critical section, release lock
+//   - Temporary resources: Create temp file/directory, use it, clean up
+//
 //go:inline
 func WithResource[A, B, ANY any](
 	onCreate ReaderIO[A], onRelease Kleisli[A, ANY]) Kleisli[Kleisli[A, B], B] {
