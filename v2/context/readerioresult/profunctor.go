@@ -78,6 +78,26 @@ func Contramap[A any](f pair.Kleisli[context.CancelFunc, context.Context, contex
 	return Local[A](f)
 }
 
+// ContramapIOK changes the context during the execution of a ReaderIOResult using an IO effect.
+// This is the contravariant functor operation with IO effects.
+//
+// ContramapIOK is an alias for LocalIOK and is useful for adapting a ReaderIOResult to work with
+// a modified context when the transformation itself requires side effects.
+//
+// Type Parameters:
+//   - A: The success type (unchanged)
+//
+// Parameters:
+//   - f: An IO Kleisli arrow that transforms the context with side effects
+//
+// Returns:
+//   - An Operator that takes a ReaderIOResult[A] and returns a ReaderIOResult[A]
+//
+// See Also:
+//   - Contramap: For pure context transformations
+//   - LocalIOK: The underlying implementation
+//
+//go:inline
 func ContramapIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A] {
 	return LocalIOK[A](f)
 }
@@ -189,8 +209,6 @@ func LocalIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A
 //
 //   - Local: For pure context transformations
 //   - LocalIOK: For context transformations with side effects that cannot fail
-//
-//go:inline
 func LocalIOResultK[A any](f ioresult.Kleisli[context.Context, ContextCancel]) Operator[A, A] {
 	return func(rr ReaderIOResult[A]) ReaderIOResult[A] {
 		return func(ctx context.Context) IOResult[A] {

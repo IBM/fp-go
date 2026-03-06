@@ -13,6 +13,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/logging"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -53,6 +54,11 @@ func TestLogEntryExitSuccess(t *testing.T) {
 	assert.Contains(t, logOutput, "TestOperation")
 	assert.Contains(t, logOutput, "ID=")
 	assert.Contains(t, logOutput, "duration=")
+
+	// Verify entry log appears before exit log
+	enteringIdx := strings.Index(logOutput, "[entering]")
+	exitingIdx := strings.Index(logOutput, "[exiting ]")
+	assert.Greater(t, exitingIdx, enteringIdx, "Exit log should appear after entry log")
 }
 
 // TestLogEntryExitError tests error operation logging
@@ -81,6 +87,11 @@ func TestLogEntryExitError(t *testing.T) {
 	assert.Contains(t, logOutput, "test error")
 	assert.Contains(t, logOutput, "ID=")
 	assert.Contains(t, logOutput, "duration=")
+
+	// Verify entry log appears before error log
+	enteringIdx := strings.Index(logOutput, "[entering]")
+	throwingIdx := strings.Index(logOutput, "[throwing]")
+	assert.Greater(t, throwingIdx, enteringIdx, "Error log should appear after entry log")
 }
 
 // TestLogEntryExitNested tests nested operations with different IDs
@@ -119,6 +130,48 @@ func TestLogEntryExitNested(t *testing.T) {
 	exitCount := strings.Count(logOutput, "[exiting ]")
 	assert.Equal(t, 2, enterCount, "Should have 2 entering logs")
 	assert.Equal(t, 2, exitCount, "Should have 2 exiting logs")
+
+	// Verify log ordering: Each operation logs entry before exit
+	// Note: Due to Chain semantics, OuterOp completes before InnerOp starts
+	lines := strings.Split(logOutput, "\n")
+	var logSequence []string
+	for _, line := range lines {
+		if strings.Contains(line, "OuterOp") && strings.Contains(line, "[entering]") {
+			logSequence = append(logSequence, "OuterOp-entering")
+		} else if strings.Contains(line, "OuterOp") && strings.Contains(line, "[exiting ]") {
+			logSequence = append(logSequence, "OuterOp-exiting")
+		} else if strings.Contains(line, "InnerOp") && strings.Contains(line, "[entering]") {
+			logSequence = append(logSequence, "InnerOp-entering")
+		} else if strings.Contains(line, "InnerOp") && strings.Contains(line, "[exiting ]") {
+			logSequence = append(logSequence, "InnerOp-exiting")
+		}
+	}
+
+	// Verify each operation's entry comes before its exit
+	assert.Equal(t, 4, len(logSequence), "Should have 4 log entries")
+
+	// Find indices
+	outerEnterIdx := -1
+	outerExitIdx := -1
+	innerEnterIdx := -1
+	innerExitIdx := -1
+
+	for i, log := range logSequence {
+		switch log {
+		case "OuterOp-entering":
+			outerEnterIdx = i
+		case "OuterOp-exiting":
+			outerExitIdx = i
+		case "InnerOp-entering":
+			innerEnterIdx = i
+		case "InnerOp-exiting":
+			innerExitIdx = i
+		}
+	}
+
+	// Verify entry before exit for each operation
+	assert.Greater(t, outerExitIdx, outerEnterIdx, "OuterOp exit should come after OuterOp entry")
+	assert.Greater(t, innerExitIdx, innerEnterIdx, "InnerOp exit should come after InnerOp entry")
 }
 
 // TestLogEntryExitWithCallback tests custom log level and callback
@@ -172,76 +225,6 @@ func TestLogEntryExitDisabled(t *testing.T) {
 	assert.Empty(t, logOutput, "Should have no logs when logging is disabled")
 }
 
-// TestLogEntryExitF tests custom entry/exit callbacks
-func TestLogEntryExitF(t *testing.T) {
-	var entryCount, exitCount int
-
-	onEntry := func(ctx context.Context) IO[context.Context] {
-		return func() context.Context {
-			entryCount++
-			return ctx
-		}
-	}
-
-	onExit := func(res Result[string]) ReaderIO[any] {
-		return func(ctx context.Context) IO[any] {
-			return func() any {
-				exitCount++
-				return nil
-			}
-		}
-	}
-
-	operation := F.Pipe1(
-		Of("test"),
-		LogEntryExitF(onEntry, onExit),
-	)
-
-	res := operation(t.Context())()
-
-	assert.True(t, result.IsRight(res))
-	assert.Equal(t, 1, entryCount, "Entry callback should be called once")
-	assert.Equal(t, 1, exitCount, "Exit callback should be called once")
-}
-
-// TestLogEntryExitFWithError tests custom callbacks with error
-func TestLogEntryExitFWithError(t *testing.T) {
-	var entryCount, exitCount int
-	var capturedError error
-
-	onEntry := func(ctx context.Context) IO[context.Context] {
-		return func() context.Context {
-			entryCount++
-			return ctx
-		}
-	}
-
-	onExit := func(res Result[string]) ReaderIO[any] {
-		return func(ctx context.Context) IO[any] {
-			return func() any {
-				exitCount++
-				if result.IsLeft(res) {
-					_, capturedError = result.Unwrap(res)
-				}
-				return nil
-			}
-		}
-	}
-
-	testErr := errors.New("custom error")
-	operation := F.Pipe1(
-		Left[string](testErr),
-		LogEntryExitF(onEntry, onExit),
-	)
-
-	res := operation(t.Context())()
-
-	assert.True(t, result.IsLeft(res))
-	assert.Equal(t, 1, entryCount, "Entry callback should be called once")
-	assert.Equal(t, 1, exitCount, "Exit callback should be called once")
-	assert.Equal(t, testErr, capturedError, "Should capture the error")
-}
-
 // TestLoggingIDUniqueness tests that logging IDs are unique
 func TestLoggingIDUniqueness(t *testing.T) {
 	var buf bytes.Buffer
@@ -287,7 +270,8 @@ func TestLogEntryExitWithContextLogger(t *testing.T) {
 		Level: slog.LevelInfo,
 	}))
 
-	ctx := logging.WithLogger(contextLogger)(t.Context())
+	cancelFct, ctx := pair.Unpack(logging.WithLogger(contextLogger)(t.Context()))
+	defer cancelFct()
 
 	operation := F.Pipe1(
 		Of("context value"),
@@ -546,7 +530,8 @@ func TestTapSLogWithContextLogger(t *testing.T) {
 		Level: slog.LevelInfo,
 	}))
 
-	ctx := logging.WithLogger(contextLogger)(t.Context())
+	cancelFct, ctx := pair.Unpack(logging.WithLogger(contextLogger)(t.Context()))
+	defer cancelFct()
 
 	operation := F.Pipe2(
 		Of("test value"),
@@ -659,4 +644,139 @@ func TestSLogWithCallbackLogsError(t *testing.T) {
 	assert.Contains(t, logOutput, "error")
 	assert.Contains(t, logOutput, "warning error")
 	assert.Contains(t, logOutput, "level=WARN")
+}
+
+// TestTapSLogPreservesResult tests that TapSLog doesn't modify the result
+func TestTapSLogPreservesResult(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	// Test with success value
+	successOp := F.Pipe2(
+		Of(42),
+		TapSLog[int]("Success value"),
+		Map(N.Mul(2)),
+	)
+
+	successRes := successOp(t.Context())()
+	assert.Equal(t, result.Of(84), successRes)
+
+	// Test with error value
+	testErr := errors.New("test error")
+	errorOp := F.Pipe2(
+		Left[int](testErr),
+		TapSLog[int]("Error value"),
+		Map(N.Mul(2)),
+	)
+
+	errorRes := errorOp(t.Context())()
+	assert.True(t, result.IsLeft(errorRes))
+
+	// Verify the error is preserved
+	_, err := result.Unwrap(errorRes)
+	assert.Equal(t, testErr, err)
+}
+
+// TestTapSLogChainBehavior tests that TapSLog properly chains with other operations
+func TestTapSLogChainBehavior(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	// Create a pipeline with multiple TapSLog calls
+	step1 := F.Pipe2(
+		Of(1),
+		TapSLog[int]("Step 1"),
+		Map(N.Mul(2)),
+	)
+
+	step2 := F.Pipe2(
+		step1,
+		TapSLog[int]("Step 2"),
+		Map(N.Mul(3)),
+	)
+
+	pipeline := F.Pipe1(
+		step2,
+		TapSLog[int]("Step 3"),
+	)
+
+	res := pipeline(t.Context())()
+	assert.Equal(t, result.Of(6), res)
+
+	logOutput := buf.String()
+
+	// Verify all steps were logged
+	assert.Contains(t, logOutput, "Step 1")
+	assert.Contains(t, logOutput, "value=1")
+	assert.Contains(t, logOutput, "Step 2")
+	assert.Contains(t, logOutput, "value=2")
+	assert.Contains(t, logOutput, "Step 3")
+	assert.Contains(t, logOutput, "value=6")
+}
+
+// TestTapSLogWithNilValue tests TapSLog with nil pointer values
+func TestTapSLogWithNilValue(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	type Data struct {
+		Value string
+	}
+
+	// Test with nil pointer
+	var nilData *Data
+	operation := F.Pipe1(
+		Of(nilData),
+		TapSLog[*Data]("Nil pointer value"),
+	)
+
+	res := operation(t.Context())()
+	assert.True(t, result.IsRight(res))
+
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Nil pointer value")
+	// The exact representation of nil may vary, but it should be logged
+	assert.NotEmpty(t, logOutput)
+}
+
+// TestTapSLogLogsErrors verifies that TapSLog DOES log errors
+// TapSLog uses SLog internally, which logs both success values and errors
+func TestTapSLogLogsErrors(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	testErr := errors.New("test error message")
+	pipeline := F.Pipe2(
+		Left[int](testErr),
+		TapSLog[int]("Error logging test"),
+		Map(N.Mul(2)),
+	)
+
+	res := pipeline(t.Context())()
+
+	// Verify the error is preserved
+	assert.True(t, result.IsLeft(res))
+
+	// Verify logging occurred for the error
+	logOutput := buf.String()
+	assert.NotEmpty(t, logOutput, "TapSLog should log when the Result is an error")
+	assert.Contains(t, logOutput, "Error logging test")
+	assert.Contains(t, logOutput, "error")
+	assert.Contains(t, logOutput, "test error message")
 }

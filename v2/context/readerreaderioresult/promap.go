@@ -102,6 +102,29 @@ func LocalIOResultK[A, R1, R2 any](f ioresult.Kleisli[R2, R1]) func(ReaderReader
 	return RRIOE.LocalIOEitherK[context.Context, A](f)
 }
 
+// LocalResultK transforms the outer environment of a ReaderReaderIOResult using a Result-based Kleisli arrow.
+// It allows you to modify the outer environment through a pure computation that can fail before
+// passing it to the ReaderReaderIOResult.
+//
+// This is useful when the outer environment transformation is a pure computation that can fail,
+// such as parsing, validation, or data transformation that doesn't require IO effects.
+//
+// The transformation happens in two stages:
+//  1. The Result function f is executed with the R2 environment to produce Result[R1]
+//  2. If successful (Ok), the R1 value is passed as the outer environment to the ReaderReaderIOResult[R1, A]
+//  3. If failed (Err), the error is propagated without executing the ReaderReaderIOResult
+//
+// Type Parameters:
+//   - A: The success type produced by the ReaderReaderIOResult
+//   - R1: The original outer environment type expected by the ReaderReaderIOResult
+//   - R2: The new input outer environment type
+//
+// Parameters:
+//   - f: A Result Kleisli arrow that transforms R2 to R1 with pure computation that can fail
+//
+// Returns:
+//   - A function that takes a ReaderReaderIOResult[R1, A] and returns a ReaderReaderIOResult[R2, A]
+//
 //go:inline
 func LocalResultK[A, R1, R2 any](f result.Kleisli[R2, R1]) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
 	return RRIOE.LocalEitherK[context.Context, A](f)
@@ -162,6 +185,31 @@ func LocalReaderIOResultK[A, R1, R2 any](f readerioresult.Kleisli[R2, R1]) func(
 	return RRIOE.LocalReaderIOEitherK[A](f)
 }
 
+// LocalReaderReaderIOEitherK transforms the outer environment of a ReaderReaderIOResult using a ReaderReaderIOResult-based Kleisli arrow.
+// It allows you to modify the outer environment through a computation that depends on both the outer environment
+// and the inner context, and can perform IO effects that may fail.
+//
+// This is the most powerful Local variant, useful when the outer environment transformation requires:
+//   - Access to both the outer environment (R2) and inner context (context.Context)
+//   - IO operations that can fail
+//   - Complex transformations that need the full computational context
+//
+// The transformation happens in three stages:
+//  1. The ReaderReaderIOResult effect f is executed with the R2 outer environment and inner context
+//  2. If successful (Ok), the R1 value is passed as the outer environment to the ReaderReaderIOResult[R1, A]
+//  3. If failed (Err), the error is propagated without executing the ReaderReaderIOResult
+//
+// Type Parameters:
+//   - A: The success type produced by the ReaderReaderIOResult
+//   - R1: The original outer environment type expected by the ReaderReaderIOResult
+//   - R2: The new input outer environment type
+//
+// Parameters:
+//   - f: A ReaderReaderIOResult Kleisli arrow that transforms R2 to R1 with full context-aware IO effects that can fail
+//
+// Returns:
+//   - A function that takes a ReaderReaderIOResult[R1, A] and returns a ReaderReaderIOResult[R2, A]
+//
 //go:inline
 func LocalReaderReaderIOEitherK[A, R1, R2 any](f Kleisli[R2, R2, R1]) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
 	return RRIOE.LocalReaderReaderIOEitherK[A](f)

@@ -24,6 +24,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/logging"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -104,7 +105,8 @@ func TestSLogWithContextLogger(t *testing.T) {
 		Level: slog.LevelInfo,
 	}))
 
-	ctx := logging.WithLogger(contextLogger)(t.Context())
+	cancelFct, ctx := pair.Unpack(logging.WithLogger(contextLogger)(t.Context()))
+	defer cancelFct()
 
 	res1 := result.Of("test value")
 	logged := SLog[string]("Context logger test")(res1)(ctx)

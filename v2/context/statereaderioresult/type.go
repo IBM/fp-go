@@ -16,6 +16,8 @@
 package statereaderioresult
 
 import (
+	"context"
+
 	RIORES "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
@@ -84,4 +86,11 @@ type (
 	Operator[S, A, B any] = Reader[StateReaderIOResult[S, A], StateReaderIOResult[S, B]]
 
 	Predicate[A any] = predicate.Predicate[A]
+
+	// ContextCancel represents a pair of a cancel function and a context.
+	// It is used in operations that create new contexts with cancellation capabilities.
+	//
+	// The first element is the CancelFunc that should be called to release resources.
+	// The second element is the new Context that was created.
+	ContextCancel = Pair[context.CancelFunc, context.Context]
 )

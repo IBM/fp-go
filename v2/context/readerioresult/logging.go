@@ -28,6 +28,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/logging"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -90,132 +91,7 @@ func withLoggingContext(lctx loggingContext) Endomorphism[context.Context] {
 	return F.Bind2nd(withLoggingContextValue, any(lctx))
 }
 
-// LogEntryExitF creates a customizable operator that wraps a ReaderIOResult computation with entry/exit callbacks.
-//
-// This is a more flexible version of LogEntryExit that allows you to provide custom callbacks for
-// entry and exit events. The onEntry callback receives the current context and can return a modified
-// context (e.g., with additional logging information). The onExit callback receives the computation
-// result and can perform custom logging, metrics collection, or cleanup.
-//
-// The function uses the bracket pattern to ensure that:
-//   - The onEntry callback is executed before the computation starts
-//   - The computation runs with the context returned by onEntry
-//   - The onExit callback is executed after the computation completes (success or failure)
-//   - The original result is preserved and returned unchanged
-//   - Cleanup happens even if the computation fails
-//
-// Type Parameters:
-//   - A: The success type of the ReaderIOResult
-//   - ANY: The return type of the onExit callback (typically any)
-//
-// Parameters:
-//   - onEntry: A ReaderIO that receives the current context and returns a (possibly modified) context.
-//     This is executed before the computation starts. Use this for logging entry, adding context values,
-//     starting timers, or initialization logic.
-//   - onExit: A Kleisli function that receives the Result[A] and returns a ReaderIO[ANY].
-//     This is executed after the computation completes, regardless of success or failure.
-//     Use this for logging exit, recording metrics, cleanup, or finalization logic.
-//
-// Returns:
-//   - An Operator that wraps the ReaderIOResult computation with the custom entry/exit callbacks
-//
-// Example with custom context modification:
-//
-//	type RequestID string
-//
-//	logOp := LogEntryExitF[User, any](
-//	    func(ctx context.Context) IO[context.Context] {
-//	        return func() context.Context {
-//	            reqID := RequestID(uuid.New().String())
-//	            log.Printf("[%s] Starting operation", reqID)
-//	            return context.WithValue(ctx, "requestID", reqID)
-//	        }
-//	    },
-//	    func(res Result[User]) ReaderIO[any] {
-//	        return func(ctx context.Context) IO[any] {
-//	            return func() any {
-//	                reqID := ctx.Value("requestID").(RequestID)
-//	                return F.Pipe1(
-//	                    res,
-//	                    result.Fold(
-//	                        func(err error) any {
-//	                            log.Printf("[%s] Operation failed: %v", reqID, err)
-//	                            return nil
-//	                        },
-//	                        func(_ User) any {
-//	                            log.Printf("[%s] Operation succeeded", reqID)
-//	                            return nil
-//	                        },
-//	                    ),
-//	                )
-//	            }
-//	        }
-//	    },
-//	)
-//
-//	wrapped := logOp(fetchUser(123))
-//
-// Example with metrics collection:
-//
-//	import "github.com/prometheus/client_golang/prometheus"
-//
-//	metricsOp := LogEntryExitF[Response, any](
-//	    func(ctx context.Context) IO[context.Context] {
-//	        return func() context.Context {
-//	            requestCount.WithLabelValues("api_call", "started").Inc()
-//	            return context.WithValue(ctx, "startTime", time.Now())
-//	        }
-//	    },
-//	    func(res Result[Response]) ReaderIO[any] {
-//	        return func(ctx context.Context) IO[any] {
-//	            return func() any {
-//	                startTime := ctx.Value("startTime").(time.Time)
-//	                duration := time.Since(startTime).Seconds()
-//
-//	                return F.Pipe1(
-//	                    res,
-//	                    result.Fold(
-//	                        func(err error) any {
-//	                            requestCount.WithLabelValues("api_call", "error").Inc()
-//	                            requestDuration.WithLabelValues("api_call", "error").Observe(duration)
-//	                            return nil
-//	                        },
-//	                        func(_ Response) any {
-//	                            requestCount.WithLabelValues("api_call", "success").Inc()
-//	                            requestDuration.WithLabelValues("api_call", "success").Observe(duration)
-//	                            return nil
-//	                        },
-//	                    ),
-//	                )
-//	            }
-//	        }
-//	    },
-//	)
-//
-// Use Cases:
-//   - Custom context modification: Adding request IDs, trace IDs, or other context values
-//   - Structured logging: Integration with zap, logrus, or other structured loggers
-//   - Metrics collection: Recording operation durations, success/failure rates
-//   - Distributed tracing: OpenTelemetry, Jaeger integration
-//   - Custom monitoring: Application-specific monitoring and alerting
-//
-// Note: LogEntryExit is implemented using LogEntryExitF with standard logging and context management.
-// Use LogEntryExitF when you need more control over the entry/exit behavior or context modification.
-func LogEntryExitF[A, ANY any](
-	onEntry ReaderIO[context.Context],
-	onExit readerio.Kleisli[Result[A], ANY],
-) Operator[A, A] {
-	bracket := F.Bind13of3(readerio.Bracket[context.Context, Result[A], ANY])(onEntry, func(newCtx context.Context, res Result[A]) ReaderIO[ANY] {
-		return readerio.FromIO(onExit(res)(newCtx)) // Get the exit callback for this result
-	})
-
-	return func(src ReaderIOResult[A]) ReaderIOResult[A] {
-		return bracket(F.Flow2(
-			src,
-			FromIOResult,
-		))
-	}
-}
+func noop() {}
 
 // onEntry creates a ReaderIO that handles the entry logging for an operation.
 // It generates a unique logging ID, captures the start time, and logs the entry message.
@@ -230,15 +106,15 @@ func LogEntryExitF[A, ANY any](
 //   - A ReaderIO that prepares the context with logging information and logs the entry
 func onEntry(
 	logLevel slog.Level,
-	cb func(context.Context) *slog.Logger,
+	cb Reader[context.Context, *slog.Logger],
 	nameAttr slog.Attr,
-) ReaderIO[context.Context] {
+) ReaderIO[ContextCancel] {
 
-	return func(ctx context.Context) IO[context.Context] {
+	return func(ctx context.Context) IO[ContextCancel] {
 		// logger
 		logger := cb(ctx)
 
-		return func() context.Context {
+		return func() ContextCancel {
 			// check if the logger is enabled
 			if logger.Enabled(ctx, logLevel) {
 				// Generate unique logging ID and capture start time
@@ -258,19 +134,23 @@ func onEntry(
 				})
 				withLogger := logging.WithLogger(newLogger)
 
-				return withCtx(withLogger(ctx))
+				return F.Pipe2(
+					ctx,
+					withLogger,
+					pair.Map[context.CancelFunc](withCtx),
+				)
 			}
 			// logging disabled
 			withCtx := withLoggingContext(loggingContext{
 				logger:    logger,
 				isEnabled: false,
 			})
-			return withCtx(ctx)
+			return pair.MakePair[context.CancelFunc](noop, withCtx(ctx))
 		}
 	}
 }
 
-// onExitAny creates a Kleisli function that handles exit logging for an operation.
+// onExitVoid creates a Kleisli function that handles exit logging for an operation.
 // It logs either success or error based on the Result, including the operation duration.
 // Only logs if logging was enabled during entry (checked via loggingContext.isEnabled).
 //
@@ -280,33 +160,33 @@ func onEntry(
 //
 // Returns:
 //   - A Kleisli function that logs the exit/error and returns nil
-func onExitAny(
+func onExitVoid(
 	logLevel slog.Level,
 	nameAttr slog.Attr,
-) readerio.Kleisli[Result[any], any] {
-	return func(res Result[any]) ReaderIO[any] {
-		return func(ctx context.Context) IO[any] {
+) readerio.Kleisli[Result[Void], Void] {
+	return func(res Result[Void]) ReaderIO[Void] {
+		return func(ctx context.Context) IO[Void] {
 			value := getLoggingContext(ctx)
 
 			if value.isEnabled {
 
-				return func() any {
+				return func() Void {
 					// Retrieve logging information from context
 					durationAttr := slog.Duration("duration", time.Since(value.startTime))
 
 					// Log error with ID and duration
-					onError := func(err error) any {
+					onError := func(err error) Void {
 						value.logger.LogAttrs(ctx, logLevel, "[throwing]",
 							nameAttr,
 							durationAttr,
 							slog.Any("error", err))
-						return nil
+						return F.VOID
 					}
 
 					// Log success with ID and duration
-					onSuccess := func(_ any) any {
+					onSuccess := func(v Void) Void {
 						value.logger.LogAttrs(ctx, logLevel, "[exiting ]", nameAttr, durationAttr)
-						return nil
+						return v
 					}
 
 					return F.Pipe1(
@@ -316,7 +196,7 @@ func onExitAny(
 				}
 			}
 			// nothing to do
-			return io.Of[any](nil)
+			return io.Of(F.VOID)
 		}
 	}
 }
@@ -374,13 +254,21 @@ func LogEntryExitWithCallback[A any](
 
 	nameAttr := slog.String("name", name)
 
-	return LogEntryExitF(
+	entry := F.Pipe1(
 		onEntry(logLevel, cb, nameAttr),
-		F.Flow2(
-			result.MapTo[A, any](nil),
-			onExitAny(logLevel, nameAttr),
-		),
+		readerio.LocalIOK[Result[A]],
 	)
+
+	exit := readerio.Tap(F.Flow2(
+		result.MapTo[A](F.VOID),
+		onExitVoid(logLevel, nameAttr),
+	))
+
+	return F.Flow2(
+		exit,
+		entry,
+	)
+
 }
 
 // LogEntryExit creates an operator that logs the entry and exit of a ReaderIOResult computation with timing and correlation IDs.

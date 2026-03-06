@@ -77,6 +77,105 @@ func TestContramapBasic(t *testing.T) {
 	})
 }
 
+// TestContramapIOK tests ContramapIOK functionality
+func TestContramapIOK(t *testing.T) {
+	t.Run("transforms context with IO effect", func(t *testing.T) {
+		getValue := func(ctx context.Context) IOResult[string] {
+			return func() R.Result[string] {
+				if v := ctx.Value("requestID"); v != nil {
+					return R.Of(v.(string))
+				}
+				return R.Of("no-id")
+			}
+		}
+
+		addRequestID := func(ctx context.Context) io.IO[ContextCancel] {
+			return func() ContextCancel {
+				// Simulate generating a request ID via side effect
+				requestID := "req-12345"
+				newCtx := context.WithValue(ctx, "requestID", requestID)
+				return pair.MakePair(context.CancelFunc(func() {}), newCtx)
+			}
+		}
+
+		adapted := ContramapIOK[string](addRequestID)(getValue)
+		result := adapted(t.Context())()
+
+		assert.Equal(t, R.Of("req-12345"), result)
+	})
+
+	t.Run("preserves value type", func(t *testing.T) {
+		getValue := func(ctx context.Context) IOResult[int] {
+			return func() R.Result[int] {
+				if v := ctx.Value("counter"); v != nil {
+					return R.Of(v.(int))
+				}
+				return R.Of(0)
+			}
+		}
+
+		addCounter := func(ctx context.Context) io.IO[ContextCancel] {
+			return func() ContextCancel {
+				newCtx := context.WithValue(ctx, "counter", 999)
+				return pair.MakePair(context.CancelFunc(func() {}), newCtx)
+			}
+		}
+
+		adapted := ContramapIOK[int](addCounter)(getValue)
+		result := adapted(t.Context())()
+
+		assert.Equal(t, R.Of(999), result)
+	})
+
+	t.Run("calls cancel function", func(t *testing.T) {
+		cancelCalled := false
+
+		getValue := func(ctx context.Context) IOResult[string] {
+			return func() R.Result[string] {
+				return R.Of("test")
+			}
+		}
+
+		addData := func(ctx context.Context) io.IO[ContextCancel] {
+			return func() ContextCancel {
+				newCtx := context.WithValue(ctx, "data", "value")
+				cancelFunc := context.CancelFunc(func() {
+					cancelCalled = true
+				})
+				return pair.MakePair(cancelFunc, newCtx)
+			}
+		}
+
+		adapted := ContramapIOK[string](addData)(getValue)
+		_ = adapted(t.Context())()
+
+		assert.True(t, cancelCalled, "cancel function should be called")
+	})
+
+	t.Run("handles cancelled context", func(t *testing.T) {
+		getValue := func(ctx context.Context) IOResult[string] {
+			return func() R.Result[string] {
+				return R.Of("should not reach here")
+			}
+		}
+
+		addData := func(ctx context.Context) io.IO[ContextCancel] {
+			return func() ContextCancel {
+				newCtx := context.WithValue(ctx, "data", "value")
+				return pair.MakePair(context.CancelFunc(func() {}), newCtx)
+			}
+		}
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		adapted := ContramapIOK[string](addData)(getValue)
+		result := adapted(ctx)()
+
+		assert.True(t, R.IsLeft(result))
+	})
+}
+
 // TestLocalBasic tests basic Local functionality
 func TestLocalBasic(t *testing.T) {
 	t.Run("adds value to context", func(t *testing.T) {

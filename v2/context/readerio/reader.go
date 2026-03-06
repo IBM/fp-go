@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	RIO "github.com/IBM/fp-go/v2/readerio"
 )
@@ -677,11 +678,11 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //	    fetchData,
 //	    withTimeout,
 //	)
-func Local[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
+func Local[A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[A, A] {
 	return func(rr ReaderIO[A]) ReaderIO[A] {
 		return func(ctx context.Context) IO[A] {
 			return func() A {
-				otherCtx, otherCancel := f(ctx)
+				otherCancel, otherCtx := pair.Unpack(f(ctx))
 				defer otherCancel()
 				return rr(otherCtx)()
 			}
@@ -742,8 +743,9 @@ func Local[A any](f func(context.Context) (context.Context, context.CancelFunc))
 //	)
 //	data := result(t.Context())()  // Returns Data{Value: "quick"}
 func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
-	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
-		return context.WithTimeout(ctx, timeout)
+	return Local[A](func(ctx context.Context) ContextCancel {
+		newCtx, cancelFct := context.WithTimeout(ctx, timeout)
+		return pair.MakePair(cancelFct, newCtx)
 	})
 }
 
@@ -806,8 +808,9 @@ func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 //	)
 //	data := result(parentCtx)()  // Will use parent's 1-hour deadline
 func WithDeadline[A any](deadline time.Time) Operator[A, A] {
-	return Local[A](func(ctx context.Context) (context.Context, context.CancelFunc) {
-		return context.WithDeadline(ctx, deadline)
+	return Local[A](func(ctx context.Context) ContextCancel {
+		newCtx, cancelFct := context.WithDeadline(ctx, deadline)
+		return pair.MakePair(cancelFct, newCtx)
 	})
 }
 

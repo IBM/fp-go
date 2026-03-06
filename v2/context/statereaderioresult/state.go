@@ -21,7 +21,7 @@ import (
 	RIORES "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/statet"
-	RIOR "github.com/IBM/fp-go/v2/readerioresult"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -202,21 +202,38 @@ func FromResult[S, A any](ma Result[A]) StateReaderIOResult[S, A] {
 // Combinators
 
 // Local runs a computation with a modified context.
-// The function f transforms the context before passing it to the computation.
+// The function f transforms the context before passing it to the computation,
+// returning both a new context and a CancelFunc that should be called to release resources.
+//
+// This is useful for:
+//   - Adding values to the context
+//   - Setting timeouts or deadlines
+//   - Modifying context metadata
+//
+// The CancelFunc is automatically called after the computation completes to ensure proper cleanup.
+//
+// Type Parameters:
+//   - S: The state type
+//   - A: The result type
+//
+// Parameters:
+//   - f: Function to transform the context, returning a new context and CancelFunc
+//
+// Returns:
+//   - A function that takes a StateReaderIOResult[S, A] and returns a StateReaderIOResult[S, A]
 //
 // Example:
 //
-//	// Modify context before running computation
-//	withTimeout := statereaderioresult.Local[AppState](
-//	    func(ctx context.Context) context.Context {
-//	        ctx, _ = context.WithTimeout(ctx, 60*time.Second)
-//	        return ctx
-//	    }
+//	// Add a timeout to a specific operation
+//	withTimeout := statereaderioresult.Local[AppState, Data](
+//	    func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	        return context.WithTimeout(ctx, 60*time.Second)
+//	    },
 //	)
 //	result := withTimeout(computation)
-func Local[S, A any](f func(context.Context) context.Context) func(StateReaderIOResult[S, A]) StateReaderIOResult[S, A] {
+func Local[S, A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[S, A, A] {
 	return func(ma StateReaderIOResult[S, A]) StateReaderIOResult[S, A] {
-		return function.Flow2(ma, RIOR.Local[Pair[S, A]](f))
+		return function.Flow2(ma, RIORES.Local[Pair[S, A]](f))
 	}
 }
 

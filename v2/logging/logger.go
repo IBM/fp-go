@@ -23,6 +23,8 @@ import (
 	"log"
 	"log/slog"
 	"sync/atomic"
+
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // LoggingCallbacks creates a pair of logging callback functions from the provided loggers.
@@ -136,9 +138,11 @@ func GetLoggerFromContext(ctx context.Context) *slog.Logger {
 	return value
 }
 
-// WithLogger returns an endomorphism that adds a logger to a context.
-// An endomorphism is a function that takes a value and returns a value of the same type.
-// This function creates a context transformation that embeds the provided logger.
+func noop() {}
+
+// WithLogger returns a Kleisli arrow that adds a logger to a context.
+// A Kleisli arrow transforms a context into a ContextCancel pair containing
+// a no-op cancel function and the new context with the embedded logger.
 //
 // This is particularly useful in functional programming patterns where you want to
 // compose context transformations, or when working with middleware that needs to
@@ -148,7 +152,7 @@ func GetLoggerFromContext(ctx context.Context) *slog.Logger {
 //   - l: The *slog.Logger to embed in the context
 //
 // Returns:
-//   - An Endomorphism[context.Context] function that adds the logger to a context
+//   - A Kleisli arrow (function from context.Context to ContextCancel) that adds the logger to a context
 //
 // Example:
 //
@@ -157,13 +161,14 @@ func GetLoggerFromContext(ctx context.Context) *slog.Logger {
 //
 //	// Apply it to a context
 //	ctx := context.Background()
-//	ctxWithLogger := addLogger(ctx)
+//	result := addLogger(ctx)
+//	ctxWithLogger := pair.Second(result)
 //
 //	// Retrieve the logger later
 //	logger := GetLoggerFromContext(ctxWithLogger)
 //	logger.Info("Using context logger")
-func WithLogger(l *slog.Logger) Endomorphism[context.Context] {
-	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, loggerInContextKey, l)
+func WithLogger(l *slog.Logger) pair.Kleisli[context.CancelFunc, context.Context, context.Context] {
+	return func(ctx context.Context) ContextCancel {
+		return pair.MakePair[context.CancelFunc](noop, context.WithValue(ctx, loggerInContextKey, l))
 	}
 }

@@ -1,6 +1,7 @@
 package readerio
 
 import (
+	"github.com/IBM/fp-go/v2/function"
 	RIO "github.com/IBM/fp-go/v2/readerio"
 )
 
@@ -72,4 +73,10 @@ func Bracket[
 	release func(A, B) ReaderIO[ANY],
 ) ReaderIO[B] {
 	return RIO.Bracket(acquire, use, release)
+}
+
+//go:inline
+func WithResource[A, B, ANY any](
+	onCreate ReaderIO[A], onRelease Kleisli[A, ANY]) Kleisli[Kleisli[A, B], B] {
+	return function.Bind13of3(Bracket[A, B, ANY])(onCreate, function.Ignore2of2[B](onRelease))
 }

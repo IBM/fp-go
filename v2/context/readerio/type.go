@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -81,4 +82,15 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Void = function.Void
+
+	// Pair represents a tuple of two values of types A and B.
+	// It is used to group two related values together.
+	Pair[A, B any] = pair.Pair[A, B]
+
+	// ContextCancel represents a pair of a cancel function and a context.
+	// It is used in operations that create new contexts with cancellation capabilities.
+	//
+	// The first element is the CancelFunc that should be called to release resources.
+	// The second element is the new Context that was created.
+	ContextCancel = Pair[context.CancelFunc, context.Context]
 )

@@ -25,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	IOR "github.com/IBM/fp-go/v2/ioresult"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/pair"
 	P "github.com/IBM/fp-go/v2/pair"
 	RES "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -264,8 +265,8 @@ func TestLocal(t *testing.T) {
 
 	// Modify context before running computation
 	result := Local[testState, string](
-		func(c context.Context) context.Context {
-			return context.WithValue(c, "key", "value2")
+		func(c context.Context) ContextCancel {
+			return pair.MakePair[context.CancelFunc](func() {}, context.WithValue(c, "key", "value2"))
 		},
 	)(comp)
 

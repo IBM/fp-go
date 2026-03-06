@@ -19,6 +19,8 @@ import (
 	"context"
 
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/pair"
 )
 
 // Promap is the profunctor map operation that transforms both the input and output of a context-based ReaderIO.
@@ -44,7 +46,7 @@ import (
 //   - An Operator that takes a ReaderIO[A] and returns a ReaderIO[B]
 //
 //go:inline
-func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFunc), g func(A) B) Operator[A, B] {
+func Promap[A, B any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context], g func(A) B) Operator[A, B] {
 	return function.Flow2(
 		Local[A](f),
 		Map(g),
@@ -69,6 +71,76 @@ func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFu
 //   - An Operator that takes a ReaderIO[A] and returns a ReaderIO[A]
 //
 //go:inline
-func Contramap[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
+func Contramap[A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[A, A] {
 	return Local[A](f)
+}
+
+// LocalIOK transforms the context using an IO effect before passing it to a ReaderIO computation.
+//
+// This is similar to Local, but the context transformation itself is wrapped in an IO effect,
+// allowing for side-effectful context transformations. The transformation function receives
+// the current context and returns an IO effect that produces a new context along with a
+// cancel function. The cancel function is automatically called when the computation completes
+// (via defer), ensuring proper cleanup of resources.
+//
+// This is useful for:
+//   - Context transformations that require side effects (e.g., loading configuration)
+//   - Lazy initialization of context values
+//   - Context transformations that may fail or need to perform I/O
+//   - Composing effectful context setup with computations
+//
+// Type Parameters:
+//   - A: The value type of the ReaderIO
+//
+// Parameters:
+//   - f: An IO Kleisli arrow that transforms the context with side effects
+//
+// Returns:
+//   - An Operator that runs the computation with the effectfully transformed context
+//
+// Example:
+//
+//	import (
+//	    "context"
+//	    G "github.com/IBM/fp-go/v2/io"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Context transformation with side effects (e.g., loading config)
+//	loadConfig := func(ctx context.Context) G.IO[ContextCancel] {
+//	    return func() ContextCancel {
+//	        // Simulate loading configuration
+//	        config := loadConfigFromFile()
+//	        newCtx := context.WithValue(ctx, "config", config)
+//	        return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+//	    }
+//	}
+//
+//	getValue := readerio.FromReader(func(ctx context.Context) string {
+//	    if cfg := ctx.Value("config"); cfg != nil {
+//	        return cfg.(string)
+//	    }
+//	    return "default"
+//	})
+//
+//	result := F.Pipe1(
+//	    getValue,
+//	    readerio.LocalIOK[string](loadConfig),
+//	)
+//	value := result(t.Context())()  // Loads config and uses it
+//
+// Comparison with Local:
+//   - Local: Takes a pure function that transforms the context
+//   - LocalIOK: Takes an IO effect that transforms the context, allowing side effects
+func LocalIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A] {
+	return func(r ReaderIO[A]) ReaderIO[A] {
+		return func(ctx context.Context) IO[A] {
+			p := f(ctx)
+			return func() A {
+				otherCancel, otherCtx := pair.Unpack(p())
+				defer otherCancel()
+				return r(otherCtx)()
+			}
+		}
+	}
 }
