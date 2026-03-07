@@ -32,7 +32,6 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/readeroption"
-	"github.com/IBM/fp-go/v2/result"
 )
 
 const (
@@ -1011,12 +1010,15 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 //
 // Type Parameters:
 //   - A: The value type of the ReaderIOResult
+//   - R: The input environment type that f transforms into context.Context
 //
 // Parameters:
-//   - f: A function that transforms the context and returns a cancel function
+//   - f: A function that transforms the input environment R into context.Context and returns a cancel function
 //
 // Returns:
-//   - An Operator that runs the computation with the transformed context
+//   - A Kleisli arrow that runs the computation with the transformed context
+//
+// Note: When R is context.Context, this simplifies to an Operator[A, A]
 //
 // Example:
 //
@@ -1055,19 +1057,10 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 //	    fetchData,
 //	    withTimeout,
 //	)
-func Local[A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[A, A] {
-	return func(rr ReaderIOResult[A]) ReaderIOResult[A] {
-		return func(ctx context.Context) IOResult[A] {
-			return func() Result[A] {
-				if ctx.Err() != nil {
-					return result.Left[A](context.Cause(ctx))
-				}
-				otherCancel, otherCtx := pair.Unpack(f(ctx))
-				defer otherCancel()
-				return rr(otherCtx)()
-			}
-		}
-	}
+//
+//go:inline
+func Local[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RIOR.Kleisli[R, ReaderIOResult[A], A] {
+	return readerio.Local[Result[A]](f)
 }
 
 // WithTimeout adds a timeout to the context for a ReaderIOResult computation.

@@ -13,6 +13,17 @@ import (
 // Local modifies the outer environment before passing it to a computation.
 // Useful for providing different configurations to sub-computations.
 //
+// Type Parameters:
+//   - A: The success type produced by the ReaderReaderIOResult
+//   - R1: The original outer environment type expected by the ReaderReaderIOResult
+//   - R2: The new input outer environment type
+//
+// Parameters:
+//   - f: A function that transforms R2 to R1
+//
+// Returns:
+//   - A function that takes a ReaderReaderIOResult[R1, A] and returns a ReaderReaderIOResult[R2, A]
+//
 //go:inline
 func Local[A, R1, R2 any](f func(R2) R1) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
 	return RRIOE.Local[context.Context, error, A](f)

@@ -634,12 +634,15 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //
 // Type Parameters:
 //   - A: The value type of the ReaderIO
+//   - R: The input environment type that f transforms into context.Context
 //
 // Parameters:
-//   - f: A function that transforms the context and returns a cancel function
+//   - f: A function that transforms the input environment R into context.Context and returns a cancel function
 //
 // Returns:
-//   - An Operator that runs the computation with the transformed context
+//   - A Kleisli arrow that runs the computation with the transformed context
+//
+// Note: When R is context.Context, this simplifies to an Operator[A, A]
 //
 // Example:
 //
@@ -678,11 +681,11 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //	    fetchData,
 //	    withTimeout,
 //	)
-func Local[A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[A, A] {
-	return func(rr ReaderIO[A]) ReaderIO[A] {
-		return func(ctx context.Context) IO[A] {
+func Local[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RIO.Kleisli[R, ReaderIO[A], A] {
+	return func(rr ReaderIO[A]) RIO.ReaderIO[R, A] {
+		return func(r R) IO[A] {
 			return func() A {
-				otherCancel, otherCtx := pair.Unpack(f(ctx))
+				otherCancel, otherCtx := pair.Unpack(f(r))
 				defer otherCancel()
 				return rr(otherCtx)()
 			}

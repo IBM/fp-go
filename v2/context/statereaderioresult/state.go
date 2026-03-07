@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/statet"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/result"
+	SRIOE "github.com/IBM/fp-go/v2/statereaderioeither"
 )
 
 // Left creates a StateReaderIOResult that represents a failed computation with the given error.
@@ -215,12 +216,15 @@ func FromResult[S, A any](ma Result[A]) StateReaderIOResult[S, A] {
 // Type Parameters:
 //   - S: The state type
 //   - A: The result type
+//   - R: The input environment type that f transforms into context.Context
 //
 // Parameters:
-//   - f: Function to transform the context, returning a new context and CancelFunc
+//   - f: Function to transform the input environment R into context.Context, returning a new context and CancelFunc
 //
 // Returns:
-//   - A function that takes a StateReaderIOResult[S, A] and returns a StateReaderIOResult[S, A]
+//   - A Kleisli arrow that takes a StateReaderIOResult[S, A] and returns a StateReaderIOEither[S, R, error, A]
+//
+// Note: When R is context.Context, the return type simplifies to func(StateReaderIOResult[S, A]) StateReaderIOResult[S, A]
 //
 // Example:
 //
@@ -231,8 +235,8 @@ func FromResult[S, A any](ma Result[A]) StateReaderIOResult[S, A] {
 //	    },
 //	)
 //	result := withTimeout(computation)
-func Local[S, A any](f pair.Kleisli[context.CancelFunc, context.Context, context.Context]) Operator[S, A, A] {
-	return func(ma StateReaderIOResult[S, A]) StateReaderIOResult[S, A] {
+func Local[S, A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) SRIOE.Kleisli[S, R, error, StateReaderIOResult[S, A], A] {
+	return func(ma StateReaderIOResult[S, A]) SRIOE.StateReaderIOEither[S, R, error, A] {
 		return function.Flow2(ma, RIORES.Local[Pair[S, A]](f))
 	}
 }
