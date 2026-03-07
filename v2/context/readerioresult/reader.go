@@ -1028,9 +1028,9 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 //	type key int
 //	const userKey key = 0
 //
-//	addUser := readerioresult.Local[string](func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	addUser := readerioresult.Local[string, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 //	    newCtx := context.WithValue(ctx, userKey, "Alice")
-//	    return newCtx, func() {} // No-op cancel
+//	    return pair.MakePair(func() {}, newCtx) // No-op cancel
 //	})
 //
 //	getUser := readerioresult.FromReader(func(ctx context.Context) string {
@@ -1049,8 +1049,9 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 // Timeout Example:
 //
 //	// Add a 5-second timeout to a specific operation
-//	withTimeout := readerioresult.Local[Data](func(ctx context.Context) (context.Context, context.CancelFunc) {
-//	    return context.WithTimeout(ctx, 5*time.Second)
+//	withTimeout := readerioresult.Local[Data, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
+//	    newCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+//	    return pair.MakePair(cancel, newCtx)
 //	})
 //
 //	result := F.Pipe1(

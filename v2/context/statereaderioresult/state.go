@@ -229,9 +229,10 @@ func FromResult[S, A any](ma Result[A]) StateReaderIOResult[S, A] {
 // Example:
 //
 //	// Add a timeout to a specific operation
-//	withTimeout := statereaderioresult.Local[AppState, Data](
-//	    func(ctx context.Context) (context.Context, context.CancelFunc) {
-//	        return context.WithTimeout(ctx, 60*time.Second)
+//	withTimeout := statereaderioresult.Local[AppState, Data, context.Context](
+//	    func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
+//	        newCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+//	        return pair.MakePair(cancel, newCtx)
 //	    },
 //	)
 //	result := withTimeout(computation)

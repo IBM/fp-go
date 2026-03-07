@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/IBM/fp-go/v2/pair"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,9 +35,9 @@ func TestPromapBasic(t *testing.T) {
 			return R.Of(0)
 		}
 
-		addKey := func(ctx context.Context) (context.Context, context.CancelFunc) {
+		addKey := func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 			newCtx := context.WithValue(ctx, "key", 42)
-			return newCtx, func() {}
+			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
 		}
 		toString := strconv.Itoa
 
@@ -57,9 +58,9 @@ func TestContramapBasic(t *testing.T) {
 			return R.Of(0)
 		}
 
-		addKey := func(ctx context.Context) (context.Context, context.CancelFunc) {
+		addKey := func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 			newCtx := context.WithValue(ctx, "key", 100)
-			return newCtx, func() {}
+			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
 		}
 
 		adapted := Contramap[int](addKey)(getValue)
@@ -79,9 +80,9 @@ func TestLocalBasic(t *testing.T) {
 			return R.Of("unknown")
 		}
 
-		addUser := func(ctx context.Context) (context.Context, context.CancelFunc) {
+		addUser := func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 			newCtx := context.WithValue(ctx, "user", "Alice")
-			return newCtx, func() {}
+			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
 		}
 
 		adapted := Local[string](addUser)(getValue)

@@ -19,6 +19,8 @@ import (
 	"context"
 
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/pair"
+	RR "github.com/IBM/fp-go/v2/readerresult"
 )
 
 // Promap is the profunctor map operation that transforms both the input and output of a context-based ReaderResult.
@@ -34,21 +36,24 @@ import (
 // The error type is fixed as error and remains unchanged through the transformation.
 //
 // Type Parameters:
+//   - R: The input environment type that f transforms into context.Context
 //   - A: The original success type produced by the ReaderResult
 //   - B: The new output success type
 //
 // Parameters:
-//   - f: Function to transform the input context (contravariant)
+//   - f: Function to transform the input environment R into context.Context (contravariant)
 //   - g: Function to transform the output success value from A to B (covariant)
 //
 // Returns:
-//   - An Operator that takes a ReaderResult[A] and returns a ReaderResult[B]
+//   - A Kleisli arrow that takes a ReaderResult[A] and returns a function from R to B
+//
+// Note: When R is context.Context, this simplifies to an Operator[A, B]
 //
 //go:inline
-func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFunc), g func(A) B) Operator[A, B] {
+func Promap[R, A, B any](f pair.Kleisli[context.CancelFunc, R, context.Context], g func(A) B) RR.Kleisli[R, ReaderResult[A], B] {
 	return function.Flow2(
 		Local[A](f),
-		Map(g),
+		RR.Map[R](g),
 	)
 }
 
@@ -62,15 +67,18 @@ func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFu
 //
 // Type Parameters:
 //   - A: The success type (unchanged)
+//   - R: The input environment type that f transforms into context.Context
 //
 // Parameters:
-//   - f: Function to transform the context, returning a new context and CancelFunc
+//   - f: Function to transform the input environment R into context.Context, returning a new context and CancelFunc
 //
 // Returns:
-//   - An Operator that takes a ReaderResult[A] and returns a ReaderResult[A]
+//   - A Kleisli arrow that takes a ReaderResult[A] and returns a function from R to A
+//
+// Note: When R is context.Context, this simplifies to an Operator[A, A]
 //
 //go:inline
-func Contramap[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
+func Contramap[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RR.Kleisli[R, ReaderResult[A], A] {
 	return Local[A](f)
 }
 
@@ -89,16 +97,19 @@ func Contramap[A any](f func(context.Context) (context.Context, context.CancelFu
 //
 // Type Parameters:
 //   - A: The result type (unchanged)
+//   - R: The input environment type that f transforms into context.Context
 //
 // Parameters:
-//   - f: Function to transform the context, returning a new context and CancelFunc
+//   - f: Function to transform the input environment R into context.Context, returning a new context and CancelFunc
 //
 // Returns:
-//   - An Operator that takes a ReaderResult[A] and returns a ReaderResult[A]
-func Local[A any](f func(context.Context) (context.Context, context.CancelFunc)) Operator[A, A] {
-	return func(rr ReaderResult[A]) ReaderResult[A] {
-		return func(ctx context.Context) Result[A] {
-			otherCtx, otherCancel := f(ctx)
+//   - A Kleisli arrow that takes a ReaderResult[A] and returns a function from R to A
+//
+// Note: When R is context.Context, this simplifies to an Operator[A, A]
+func Local[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RR.Kleisli[R, ReaderResult[A], A] {
+	return func(rr ReaderResult[A]) RR.ReaderResult[R, A] {
+		return func(r R) Result[A] {
+			otherCancel, otherCtx := pair.Unpack(f(r))
 			defer otherCancel()
 			return rr(otherCtx)
 		}

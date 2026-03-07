@@ -652,9 +652,9 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //	type key int
 //	const userKey key = 0
 //
-//	addUser := readerio.Local[string](func(ctx context.Context) (context.Context, context.CancelFunc) {
+//	addUser := readerio.Local[string, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 //	    newCtx := context.WithValue(ctx, userKey, "Alice")
-//	    return newCtx, func() {} // No-op cancel
+//	    return pair.MakePair(func() {}, newCtx) // No-op cancel
 //	})
 //
 //	getUser := readerio.FromReader(func(ctx context.Context) string {
@@ -673,8 +673,9 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 // Timeout Example:
 //
 //	// Add a 5-second timeout to a specific operation
-//	withTimeout := readerio.Local[Data](func(ctx context.Context) (context.Context, context.CancelFunc) {
-//	    return context.WithTimeout(ctx, 5*time.Second)
+//	withTimeout := readerio.Local[Data, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
+//	    newCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+//	    return pair.MakePair(cancel, newCtx)
 //	})
 //
 //	result := F.Pipe1(
