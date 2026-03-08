@@ -144,8 +144,8 @@ func Semigroup[A any]() S.Semigroup[Endomorphism[A]] {
 //	square := func(x int) int { return x * x }
 //
 //	// Combine multiple endomorphisms (RIGHT-TO-LEFT execution)
-//	combined := M.ConcatAll(monoid)(double, increment, square)
-//	result := combined(5) // square(increment(double(5))) = square(increment(10)) = square(11) = 121
+//	combined := M.ConcatAll(monoid)([]Endomorphism[int]{double, increment, square})
+//	result := combined(5) // double(increment(square(5))) = double(increment(25)) = double(26) = 52
 func Monoid[A any]() M.Monoid[Endomorphism[A]] {
 	return M.MakeMonoid(MonadCompose[A], Identity[A]())
 }

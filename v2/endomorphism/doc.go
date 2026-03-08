@@ -40,7 +40,7 @@
 //	increment := N.Add(1)
 //
 //	// Compose them (RIGHT-TO-LEFT execution)
-//	composed := endomorphism.Compose(double, increment)
+//	composed := endomorphism.MonadCompose(double, increment)
 //	result := composed(5) // increment(5) then double: (5 + 1) * 2 = 12
 //
 //	// Chain them (LEFT-TO-RIGHT execution)
@@ -61,11 +61,11 @@
 //	monoid := endomorphism.Monoid[int]()
 //
 //	// Combine multiple endomorphisms (RIGHT-TO-LEFT execution)
-//	combined := M.ConcatAll(monoid)(
+//	combined := M.ConcatAll(monoid)([]endomorphism.Endomorphism[int]{
 //		N.Mul(2),  // applied third
 //		N.Add(1),  // applied second
 //		N.Mul(3),  // applied first
-//	)
+//	})
 //	result := combined(5) // (5 * 3) = 15, (15 + 1) = 16, (16 * 2) = 32
 //
 // # Monad Operations
@@ -87,7 +87,7 @@
 //	increment := N.Add(1)
 //
 //	// Compose: RIGHT-TO-LEFT (mathematical composition)
-//	composed := endomorphism.Compose(double, increment)
+//	composed := endomorphism.MonadCompose(double, increment)
 //	result1 := composed(5) // increment(5) * 2 = (5 + 1) * 2 = 12
 //
 //	// MonadChain: LEFT-TO-RIGHT (sequential application)

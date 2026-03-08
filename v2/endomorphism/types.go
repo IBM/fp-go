@@ -41,20 +41,22 @@ type (
 	// It's a function from A to Endomorphism[A], used for composing endomorphic operations.
 	Kleisli[A any] = func(A) Endomorphism[A]
 
-	// Operator represents a transformation from one endomorphism to another.
+	// Operator represents a higher-order transformation on endomorphisms of the same type.
 	//
-	// An Operator takes an endomorphism on type A and produces an endomorphism on type B.
-	// This is useful for lifting operations or transforming endomorphisms in a generic way.
+	// An Operator takes an endomorphism on type A and produces another endomorphism on type A.
+	// Since Operator[A] = Endomorphism[Endomorphism[A]] = func(func(A)A) func(A)A,
+	// both the input and output endomorphisms operate on the same type A.
+	//
+	// This is the return type of curried operations such as Compose, Map, and Chain.
 	//
 	// Example:
 	//
-	//	// An operator that converts an int endomorphism to a string endomorphism
-	//	intToString := func(f endomorphism.Endomorphism[int]) endomorphism.Endomorphism[string] {
-	//		return func(s string) string {
-	//			n, _ := strconv.Atoi(s)
-	//			result := f(n)
-	//			return strconv.Itoa(result)
-	//		}
+	//	// An operator that applies any endomorphism twice
+	//	var applyTwice endomorphism.Operator[int] = func(f endomorphism.Endomorphism[int]) endomorphism.Endomorphism[int] {
+	//		return func(x int) int { return f(f(x)) }
 	//	}
+	//	double := N.Mul(2)
+	//	result := applyTwice(double) // double ∘ double
+	//	// result(5) = double(double(5)) = double(10) = 20
 	Operator[A any] = Endomorphism[Endomorphism[A]]
 )

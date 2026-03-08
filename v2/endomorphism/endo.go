@@ -111,15 +111,19 @@ func MonadCompose[A any](f, g Endomorphism[A]) Endomorphism[A] {
 // This is the functor map operation for endomorphisms.
 //
 // IMPORTANT: Execution order is RIGHT-TO-LEFT:
-//   - g is applied first to the input
+//   - ma is applied first to the input
 //   - f is applied to the result
 //
+// Note: unlike most other packages where MonadMap takes (fa, f) with the container
+// first, here f (the morphism) comes first to match the right-to-left composition
+// convention: MonadMap(f, ma) = f ∘ ma.
+//
 // Parameters:
-//   - f: The function to map (outer function)
-//   - g: The endomorphism to map over (inner function)
+//   - f: The function to map (outer function, applied second)
+//   - ma: The endomorphism to map over (inner function, applied first)
 //
 // Returns:
-//   - A new endomorphism that applies g, then f
+//   - A new endomorphism that applies ma, then f
 //
 // Example:
 //
@@ -127,8 +131,8 @@ func MonadCompose[A any](f, g Endomorphism[A]) Endomorphism[A] {
 //	increment := N.Add(1)
 //	mapped := endomorphism.MonadMap(double, increment)
 //	// mapped(5) = double(increment(5)) = double(6) = 12
-func MonadMap[A any](f, g Endomorphism[A]) Endomorphism[A] {
-	return MonadCompose(f, g)
+func MonadMap[A any](f, ma Endomorphism[A]) Endomorphism[A] {
+	return MonadCompose(f, ma)
 }
 
 // Compose returns a function that composes an endomorphism with another, executing right to left.
