@@ -3,6 +3,7 @@ package readerreaderioresult
 import (
 	"context"
 
+	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
@@ -194,6 +195,65 @@ func LocalReaderIOEitherK[A, R1, R2 any](f readerioresult.Kleisli[R2, R1]) func(
 //go:inline
 func LocalReaderIOResultK[A, R1, R2 any](f readerioresult.Kleisli[R2, R1]) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
 	return RRIOE.LocalReaderIOEitherK[A](f)
+}
+
+// LocalReaderK transforms the outer environment of a ReaderReaderIOResult using a Reader-based Kleisli arrow.
+// It allows you to modify the outer environment through a pure computation that depends on the inner context
+// before passing it to the ReaderReaderIOResult.
+//
+// This is useful when the outer environment transformation is a pure computation that requires access
+// to the inner context (e.g., context.Context) but cannot fail. Common use cases include:
+//   - Extracting configuration from context values
+//   - Computing derived environment values based on context
+//   - Transforming environment based on context metadata
+//
+// The transformation happens in two stages:
+//  1. The Reader function f is executed with the R2 outer environment and inner context to produce an R1 value
+//  2. The resulting R1 value is passed as the outer environment to the ReaderReaderIOResult[R1, A]
+//
+// Type Parameters:
+//   - A: The success type produced by the ReaderReaderIOResult
+//   - R1: The original outer environment type expected by the ReaderReaderIOResult
+//   - R2: The new input outer environment type
+//
+// Parameters:
+//   - f: A Reader Kleisli arrow that transforms R2 to R1 using the inner context
+//
+// Returns:
+//   - A function that takes a ReaderReaderIOResult[R1, A] and returns a ReaderReaderIOResult[R2, A]
+//
+// Example Usage:
+//
+//	type ctxKey string
+//	const configKey ctxKey = "config"
+//
+//	// Extract config from context and transform environment
+//	extractConfig := func(path string) reader.Reader[DetailedConfig] {
+//	    return func(ctx context.Context) DetailedConfig {
+//	        if cfg, ok := ctx.Value(configKey).(DetailedConfig); ok {
+//	            return cfg
+//	        }
+//	        return DetailedConfig{Host: "localhost", Port: 8080}
+//	    }
+//	}
+//
+//	// Use the config
+//	useConfig := func(cfg DetailedConfig) readerioresult.ReaderIOResult[string] {
+//	    return func(ctx context.Context) ioresult.IOResult[string] {
+//	        return func() result.Result[string] {
+//	            return result.Of(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
+//	        }
+//	    }
+//	}
+//
+//	// Compose using LocalReaderK
+//	adapted := LocalReaderK[string](extractConfig)(useConfig)
+//	ctx := context.WithValue(context.Background(), configKey, DetailedConfig{Host: "api.example.com", Port: 443})
+//	result := adapted("config.json")(ctx)() // Result: "api.example.com:443"
+//
+//go:inline
+func LocalReaderK[A, R1, R2 any](f reader.Kleisli[R2, R1]) func(ReaderReaderIOResult[R1, A]) ReaderReaderIOResult[R2, A] {
+	return RRIOE.LocalReaderK[error, A](f)
 }
 
 // LocalReaderReaderIOEitherK transforms the outer environment of a ReaderReaderIOResult using a ReaderReaderIOResult-based Kleisli arrow.

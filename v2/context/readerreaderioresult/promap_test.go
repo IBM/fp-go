@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
@@ -424,5 +425,228 @@ func TestLocalReaderIOResultK(t *testing.T) {
 		// Failure case
 		resErr := step2(ConfigFile{Path: ""})(ctx)()
 		assert.True(t, result.IsLeft(resErr))
+	})
+}
+
+// TestLocalReaderK tests LocalReaderK functionality
+func TestLocalReaderK(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("basic Reader transformation", func(t *testing.T) {
+		// Reader that transforms string path to SimpleConfig using context
+		loadConfig := func(path string) reader.Reader[SimpleConfig] {
+			return func(ctx context.Context) SimpleConfig {
+				// Could extract values from context here
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// ReaderReaderIOResult that uses the config
+		useConfig := func(cfg SimpleConfig) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) ioresult.IOResult[string] {
+				return func() result.Result[string] {
+					return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+				}
+			}
+		}
+
+		// Compose using LocalReaderK
+		adapted := LocalReaderK[string](loadConfig)(useConfig)
+		res := adapted("config.json")(ctx)()
+
+		assert.Equal(t, result.Of("Port: 8080"), res)
+	})
+
+	t.Run("extract config from context", func(t *testing.T) {
+		type ctxKey string
+		const configKey ctxKey = "config"
+
+		// Reader that extracts config from context
+		extractConfig := func(path string) reader.Reader[DetailedConfig] {
+			return func(ctx context.Context) DetailedConfig {
+				if cfg, ok := ctx.Value(configKey).(DetailedConfig); ok {
+					return cfg
+				}
+				// Default config if not in context
+				return DetailedConfig{Host: "localhost", Port: 8080}
+			}
+		}
+
+		// Use the config
+		useConfig := func(cfg DetailedConfig) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) ioresult.IOResult[string] {
+				return func() result.Result[string] {
+					return result.Of(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
+				}
+			}
+		}
+
+		adapted := LocalReaderK[string](extractConfig)(useConfig)
+
+		// With context value
+		ctxWithConfig := context.WithValue(ctx, configKey, DetailedConfig{Host: "api.example.com", Port: 443})
+		res := adapted("ignored")(ctxWithConfig)()
+		assert.Equal(t, result.Of("api.example.com:443"), res)
+
+		// Without context value (uses default)
+		resDefault := adapted("ignored")(ctx)()
+		assert.Equal(t, result.Of("localhost:8080"), resDefault)
+	})
+
+	t.Run("context-aware transformation", func(t *testing.T) {
+		type ctxKey string
+		const multiplierKey ctxKey = "multiplier"
+
+		// Reader that uses context to compute environment
+		computeValue := func(base int) reader.Reader[int] {
+			return func(ctx context.Context) int {
+				if mult, ok := ctx.Value(multiplierKey).(int); ok {
+					return base * mult
+				}
+				return base
+			}
+		}
+
+		// Use the computed value
+		formatValue := func(val int) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) ioresult.IOResult[string] {
+				return func() result.Result[string] {
+					return result.Of(fmt.Sprintf("Value: %d", val))
+				}
+			}
+		}
+
+		adapted := LocalReaderK[string](computeValue)(formatValue)
+
+		// With multiplier in context
+		ctxWithMult := context.WithValue(ctx, multiplierKey, 10)
+		res := adapted(5)(ctxWithMult)()
+		assert.Equal(t, result.Of("Value: 50"), res)
+
+		// Without multiplier (uses base value)
+		resBase := adapted(5)(ctx)()
+		assert.Equal(t, result.Of("Value: 5"), resBase)
+	})
+
+	t.Run("compose multiple LocalReaderK", func(t *testing.T) {
+		type ctxKey string
+		const prefixKey ctxKey = "prefix"
+
+		// First transformation: int -> string using context
+		intToString := func(n int) reader.Reader[string] {
+			return func(ctx context.Context) string {
+				if prefix, ok := ctx.Value(prefixKey).(string); ok {
+					return fmt.Sprintf("%s-%d", prefix, n)
+				}
+				return fmt.Sprintf("%d", n)
+			}
+		}
+
+		// Second transformation: string -> SimpleConfig
+		stringToConfig := func(s string) reader.Reader[SimpleConfig] {
+			return func(ctx context.Context) SimpleConfig {
+				return SimpleConfig{Port: len(s) * 100}
+			}
+		}
+
+		// Use the config
+		formatConfig := func(cfg SimpleConfig) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) ioresult.IOResult[string] {
+				return func() result.Result[string] {
+					return result.Of(fmt.Sprintf("Port: %d", cfg.Port))
+				}
+			}
+		}
+
+		// Compose transformations
+		step1 := LocalReaderK[string](stringToConfig)(formatConfig)
+		step2 := LocalReaderK[string](intToString)(step1)
+
+		// With prefix in context
+		ctxWithPrefix := context.WithValue(ctx, prefixKey, "test")
+		res := step2(42)(ctxWithPrefix)()
+		// "test-42" has length 7, so port = 700
+		assert.Equal(t, result.Of("Port: 700"), res)
+
+		// Without prefix
+		resNoPrefix := step2(42)(ctx)()
+		// "42" has length 2, so port = 200
+		assert.Equal(t, result.Of("Port: 200"), resNoPrefix)
+	})
+
+	t.Run("error propagation in ReaderReaderIOResult", func(t *testing.T) {
+		// Reader transformation (pure, cannot fail)
+		loadConfig := func(path string) reader.Reader[SimpleConfig] {
+			return func(ctx context.Context) SimpleConfig {
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// ReaderReaderIOResult that returns an error
+		failingOperation := func(cfg SimpleConfig) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) ioresult.IOResult[string] {
+				return func() result.Result[string] {
+					return result.Left[string](errors.New("operation failed"))
+				}
+			}
+		}
+
+		adapted := LocalReaderK[string](loadConfig)(failingOperation)
+		res := adapted("config.json")(ctx)()
+
+		// Error from the ReaderReaderIOResult should propagate
+		assert.True(t, result.IsLeft(res))
+	})
+
+	t.Run("real-world: environment selection based on context", func(t *testing.T) {
+		type Environment string
+		const (
+			Dev  Environment = "dev"
+			Prod Environment = "prod"
+		)
+
+		type ctxKey string
+		const envKey ctxKey = "environment"
+
+		type EnvConfig struct {
+			Name string
+		}
+
+		// Reader that selects config based on context environment
+		selectConfig := func(envName EnvConfig) reader.Reader[DetailedConfig] {
+			return func(ctx context.Context) DetailedConfig {
+				env := Dev
+				if e, ok := ctx.Value(envKey).(Environment); ok {
+					env = e
+				}
+
+				switch env {
+				case Prod:
+					return DetailedConfig{Host: "api.production.com", Port: 443}
+				default:
+					return DetailedConfig{Host: "localhost", Port: 8080}
+				}
+			}
+		}
+
+		// Use the selected config
+		useConfig := func(cfg DetailedConfig) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) ioresult.IOResult[string] {
+				return func() result.Result[string] {
+					return result.Of(fmt.Sprintf("Connecting to %s:%d", cfg.Host, cfg.Port))
+				}
+			}
+		}
+
+		adapted := LocalReaderK[string](selectConfig)(useConfig)
+
+		// Production environment
+		ctxProd := context.WithValue(ctx, envKey, Prod)
+		resProd := adapted(EnvConfig{Name: "app"})(ctxProd)()
+		assert.Equal(t, result.Of("Connecting to api.production.com:443"), resProd)
+
+		// Development environment (default)
+		resDev := adapted(EnvConfig{Name: "app"})(ctx)()
+		assert.Equal(t, result.Of("Connecting to localhost:8080"), resDev)
 	})
 }

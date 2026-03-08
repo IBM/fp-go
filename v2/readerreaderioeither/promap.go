@@ -62,6 +62,18 @@ func LocalReaderIOEitherK[A, C, E, R1, R2 any](f readerioeither.Kleisli[C, E, R2
 }
 
 //go:inline
+func LocalReaderK[E, A, C, R1, R2 any](f reader.Kleisli[C, R2, R1]) func(ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
+	return func(rri ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
+		return F.Flow4(
+			f,
+			readerioeither.FromReader,
+			readerioeither.Map[C, E](rri),
+			readerioeither.Flatten,
+		)
+	}
+}
+
+//go:inline
 func LocalReaderReaderIOEitherK[A, C, E, R1, R2 any](f Kleisli[R2, C, E, R2, R1]) func(ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
 	return func(rri ReaderReaderIOEither[R1, C, E, A]) ReaderReaderIOEither[R2, C, E, A] {
 		return F.Flow2(

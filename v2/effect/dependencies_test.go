@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/stretchr/testify/assert"
 )
@@ -616,5 +617,349 @@ func TestLocalEffectK(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 60, result) // 3 * 10 * 2
+	})
+}
+
+func TestLocalReaderK(t *testing.T) {
+	t.Run("basic Reader transformation", func(t *testing.T) {
+		type SimpleConfig struct {
+			Port int
+		}
+
+		// Reader that transforms string path to SimpleConfig using runtime context
+		loadConfig := func(path string) reader.Reader[SimpleConfig] {
+			return func(ctx context.Context) SimpleConfig {
+				// Could extract values from runtime context here
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// Effect that uses the config
+		configEffect := Of[SimpleConfig]("connected")
+
+		// Transform using LocalReaderK
+		transform := LocalReaderK[string](loadConfig)
+		pathEffect := transform(configEffect)
+
+		// Run with path
+		ioResult := Provide[string]("config.json")(pathEffect)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(context.Background())
+
+		assert.NoError(t, err)
+		assert.Equal(t, "connected", result)
+	})
+
+	t.Run("extract config from runtime context", func(t *testing.T) {
+		type ctxKey string
+		const configKey ctxKey = "config"
+
+		type DetailedConfig struct {
+			Host string
+			Port int
+		}
+
+		// Reader that extracts config from runtime context
+		extractConfig := func(path string) reader.Reader[DetailedConfig] {
+			return func(ctx context.Context) DetailedConfig {
+				if cfg, ok := ctx.Value(configKey).(DetailedConfig); ok {
+					return cfg
+				}
+				// Default config if not in runtime context
+				return DetailedConfig{Host: "localhost", Port: 8080}
+			}
+		}
+
+		// Effect that uses the config
+		configEffect := Chain(func(cfg DetailedConfig) Effect[DetailedConfig, string] {
+			return Of[DetailedConfig](fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
+		})(readerreaderioresult.Ask[DetailedConfig]())
+
+		transform := LocalReaderK[string](extractConfig)
+		pathEffect := transform(configEffect)
+
+		// With config in runtime context
+		ctxWithConfig := context.WithValue(context.Background(), configKey, DetailedConfig{Host: "api.example.com", Port: 443})
+		ioResult := Provide[string]("ignored")(pathEffect)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(ctxWithConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "api.example.com:443", result)
+
+		// Without config in runtime context (uses default)
+		ioResult2 := Provide[string]("ignored")(pathEffect)
+		readerResult2 := RunSync(ioResult2)
+		result2, err2 := readerResult2(context.Background())
+
+		assert.NoError(t, err2)
+		assert.Equal(t, "localhost:8080", result2)
+	})
+
+	t.Run("runtime context-aware transformation", func(t *testing.T) {
+		type ctxKey string
+		const multiplierKey ctxKey = "multiplier"
+
+		// Reader that uses runtime context to compute context
+		computeValue := func(base int) reader.Reader[int] {
+			return func(ctx context.Context) int {
+				if mult, ok := ctx.Value(multiplierKey).(int); ok {
+					return base * mult
+				}
+				return base
+			}
+		}
+
+		// Effect that uses the computed value
+		valueEffect := Chain(func(val int) Effect[int, string] {
+			return Of[int](fmt.Sprintf("Value: %d", val))
+		})(readerreaderioresult.Ask[int]())
+
+		transform := LocalReaderK[string](computeValue)
+		baseEffect := transform(valueEffect)
+
+		// With multiplier in runtime context
+		ctxWithMult := context.WithValue(context.Background(), multiplierKey, 10)
+		ioResult := Provide[string](5)(baseEffect)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(ctxWithMult)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Value: 50", result)
+
+		// Without multiplier (uses base value)
+		ioResult2 := Provide[string](5)(baseEffect)
+		readerResult2 := RunSync(ioResult2)
+		result2, err2 := readerResult2(context.Background())
+
+		assert.NoError(t, err2)
+		assert.Equal(t, "Value: 5", result2)
+	})
+
+	t.Run("compose multiple LocalReaderK", func(t *testing.T) {
+		type ctxKey string
+		const prefixKey ctxKey = "prefix"
+
+		// First transformation: int -> string using runtime context
+		intToString := func(n int) reader.Reader[string] {
+			return func(ctx context.Context) string {
+				if prefix, ok := ctx.Value(prefixKey).(string); ok {
+					return fmt.Sprintf("%s-%d", prefix, n)
+				}
+				return fmt.Sprintf("%d", n)
+			}
+		}
+
+		// Second transformation: string -> SimpleConfig
+		type SimpleConfig struct {
+			Port int
+		}
+
+		stringToConfig := func(s string) reader.Reader[SimpleConfig] {
+			return func(ctx context.Context) SimpleConfig {
+				return SimpleConfig{Port: len(s) * 100}
+			}
+		}
+
+		// Effect that uses the config
+		configEffect := Chain(func(cfg SimpleConfig) Effect[SimpleConfig, string] {
+			return Of[SimpleConfig](fmt.Sprintf("Port: %d", cfg.Port))
+		})(readerreaderioresult.Ask[SimpleConfig]())
+
+		// Compose transformations
+		step1 := LocalReaderK[string](stringToConfig)
+		step2 := LocalReaderK[string](intToString)
+
+		effect1 := step1(configEffect)
+		effect2 := step2(effect1)
+
+		// With prefix in runtime context
+		ctxWithPrefix := context.WithValue(context.Background(), prefixKey, "test")
+		ioResult := Provide[string](42)(effect2)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(ctxWithPrefix)
+
+		assert.NoError(t, err)
+		// "test-42" has length 7, so port = 700
+		assert.Equal(t, "Port: 700", result)
+
+		// Without prefix
+		ioResult2 := Provide[string](42)(effect2)
+		readerResult2 := RunSync(ioResult2)
+		result2, err2 := readerResult2(context.Background())
+
+		assert.NoError(t, err2)
+		// "42" has length 2, so port = 200
+		assert.Equal(t, "Port: 200", result2)
+	})
+
+	t.Run("error propagation from Effect", func(t *testing.T) {
+		type SimpleConfig struct {
+			Port int
+		}
+
+		// Reader transformation (pure, cannot fail)
+		loadConfig := func(path string) reader.Reader[SimpleConfig] {
+			return func(ctx context.Context) SimpleConfig {
+				return SimpleConfig{Port: 8080}
+			}
+		}
+
+		// Effect that returns an error
+		expectedErr := assert.AnError
+		failingEffect := Fail[SimpleConfig, string](expectedErr)
+
+		transform := LocalReaderK[string](loadConfig)
+		pathEffect := transform(failingEffect)
+
+		ioResult := Provide[string]("config.json")(pathEffect)
+		readerResult := RunSync(ioResult)
+		_, err := readerResult(context.Background())
+
+		// Error from the Effect should propagate
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("real-world: environment selection based on runtime context", func(t *testing.T) {
+		type Environment string
+		const (
+			Dev  Environment = "dev"
+			Prod Environment = "prod"
+		)
+
+		type ctxKey string
+		const envKey ctxKey = "environment"
+
+		type EnvConfig struct {
+			Name string
+		}
+
+		type DetailedConfig struct {
+			Host string
+			Port int
+		}
+
+		// Reader that selects config based on runtime context environment
+		selectConfig := func(envName EnvConfig) reader.Reader[DetailedConfig] {
+			return func(ctx context.Context) DetailedConfig {
+				env := Dev
+				if e, ok := ctx.Value(envKey).(Environment); ok {
+					env = e
+				}
+
+				switch env {
+				case Prod:
+					return DetailedConfig{Host: "api.production.com", Port: 443}
+				default:
+					return DetailedConfig{Host: "localhost", Port: 8080}
+				}
+			}
+		}
+
+		// Effect that uses the selected config
+		configEffect := Chain(func(cfg DetailedConfig) Effect[DetailedConfig, string] {
+			return Of[DetailedConfig](fmt.Sprintf("Connecting to %s:%d", cfg.Host, cfg.Port))
+		})(readerreaderioresult.Ask[DetailedConfig]())
+
+		transform := LocalReaderK[string](selectConfig)
+		envEffect := transform(configEffect)
+
+		// Production environment
+		ctxProd := context.WithValue(context.Background(), envKey, Prod)
+		ioResult := Provide[string](EnvConfig{Name: "app"})(envEffect)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(ctxProd)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Connecting to api.production.com:443", result)
+
+		// Development environment (default)
+		ioResult2 := Provide[string](EnvConfig{Name: "app"})(envEffect)
+		readerResult2 := RunSync(ioResult2)
+		result2, err2 := readerResult2(context.Background())
+
+		assert.NoError(t, err2)
+		assert.Equal(t, "Connecting to localhost:8080", result2)
+	})
+
+	t.Run("composes with other Local functions", func(t *testing.T) {
+		type Level1 struct {
+			Value string
+		}
+		type Level2 struct {
+			Data string
+		}
+		type Level3 struct {
+			Info string
+		}
+
+		// Effect at deepest level
+		effect3 := Of[Level3]("result")
+
+		// Use LocalReaderK for first transformation (with runtime context access)
+		localReaderK23 := LocalReaderK[string](func(l2 Level2) reader.Reader[Level3] {
+			return func(ctx context.Context) Level3 {
+				return Level3{Info: l2.Data}
+			}
+		})
+
+		// Use Local for second transformation (pure)
+		local12 := Local[string](func(l1 Level1) Level2 {
+			return Level2{Data: l1.Value}
+		})
+
+		// Compose them
+		effect2 := localReaderK23(effect3)
+		effect1 := local12(effect2)
+
+		// Run
+		ioResult := Provide[string](Level1{Value: "test"})(effect1)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(context.Background())
+
+		assert.NoError(t, err)
+		assert.Equal(t, "result", result)
+	})
+
+	t.Run("runtime context deadline awareness", func(t *testing.T) {
+		type Config struct {
+			HasDeadline bool
+		}
+
+		// Reader that checks runtime context for deadline
+		checkContext := func(path string) reader.Reader[Config] {
+			return func(ctx context.Context) Config {
+				_, hasDeadline := ctx.Deadline()
+				return Config{HasDeadline: hasDeadline}
+			}
+		}
+
+		// Effect that uses the config
+		configEffect := Chain(func(cfg Config) Effect[Config, string] {
+			return Of[Config](fmt.Sprintf("Has deadline: %v", cfg.HasDeadline))
+		})(readerreaderioresult.Ask[Config]())
+
+		transform := LocalReaderK[string](checkContext)
+		pathEffect := transform(configEffect)
+
+		// Without deadline
+		ioResult := Provide[string]("config.json")(pathEffect)
+		readerResult := RunSync(ioResult)
+		result, err := readerResult(context.Background())
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Has deadline: false", result)
+
+		// With deadline
+		ctxWithDeadline, cancel := context.WithTimeout(context.Background(), 1000)
+		defer cancel()
+
+		ioResult2 := Provide[string]("config.json")(pathEffect)
+		readerResult2 := RunSync(ioResult2)
+		result2, err2 := readerResult2(ctxWithDeadline)
+
+		assert.NoError(t, err2)
+		assert.Equal(t, "Has deadline: true", result2)
 	})
 }

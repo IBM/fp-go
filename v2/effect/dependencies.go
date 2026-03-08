@@ -16,6 +16,7 @@
 package effect
 
 import (
+	"github.com/IBM/fp-go/v2/context/reader"
 	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/io"
@@ -267,10 +268,89 @@ func LocalThunkK[A, C1, C2 any](f thunk.Kleisli[C2, C1]) func(Effect[C1, A]) Eff
 //   - Local/Contramap: Pure context transformation (C2 -> C1)
 //   - LocalIOK: IO-based transformation (C2 -> IO[C1])
 //   - LocalIOResultK: IO with error handling (C2 -> IOResult[C1])
-//   - LocalReaderIOResultK: Reader-based with IO and errors (C2 -> ReaderIOResult[C1])
+//   - LocalThunkK: Reader-based with IO and errors (C2 -> ReaderIOResult[C1])
 //   - LocalEffectK: Full Effect transformation (C2 -> Effect[C2, C1])
 //
 //go:inline
 func LocalEffectK[A, C1, C2 any](f Kleisli[C2, C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
 	return readerreaderioresult.LocalReaderReaderIOEitherK[A](f)
+}
+
+// LocalReaderK transforms the context of an Effect using a Reader-based Kleisli arrow.
+// It allows you to modify the context through a pure computation that depends on the runtime context
+// before passing it to the Effect.
+//
+// This is useful when the context transformation is a pure computation that requires access
+// to the runtime context (context.Context) but cannot fail. Common use cases include:
+//   - Extracting configuration from context values
+//   - Computing derived context values based on runtime context
+//   - Transforming context based on runtime metadata
+//
+// The transformation happens in two stages:
+//  1. The Reader function f is executed with the C2 context and runtime context to produce a C1 value
+//  2. The resulting C1 value is passed as the context to the Effect[C1, A]
+//
+// # Type Parameters
+//
+//   - A: The value type produced by the effect
+//   - C1: The inner context type (required by the original effect)
+//   - C2: The outer context type (provided to the transformed effect)
+//
+// # Parameters
+//
+//   - f: A Reader Kleisli arrow that transforms C2 to C1 using the runtime context
+//
+// # Returns
+//
+//   - func(Effect[C1, A]) Effect[C2, A]: A function that adapts the effect to use C2
+//
+// # Example
+//
+//	type ctxKey string
+//	const configKey ctxKey = "config"
+//
+//	type DetailedConfig struct {
+//		Host string
+//		Port int
+//	}
+//
+//	type SimpleConfig struct {
+//		Port int
+//	}
+//
+//	// Extract config from runtime context and transform
+//	extractConfig := func(path string) reader.Reader[DetailedConfig] {
+//		return func(ctx context.Context) DetailedConfig {
+//			if cfg, ok := ctx.Value(configKey).(DetailedConfig); ok {
+//				return cfg
+//			}
+//			return DetailedConfig{Host: "localhost", Port: 8080}
+//		}
+//	}
+//
+//	// Effect that uses DetailedConfig
+//	configEffect := effect.Of[DetailedConfig]("connected")
+//
+//	// Transform to use string path instead
+//	transform := effect.LocalReaderK[string](extractConfig)
+//	pathEffect := transform(configEffect)
+//
+//	// Run with runtime context containing config
+//	ctx := context.WithValue(context.Background(), configKey, DetailedConfig{Host: "api.example.com", Port: 443})
+//	ioResult := effect.Provide[string]("config.json")(pathEffect)
+//	readerResult := effect.RunSync(ioResult)
+//	result, err := readerResult(ctx) // Uses config from context
+//
+// # Comparison with other Local functions
+//
+//   - Local/Contramap: Pure context transformation (C2 -> C1)
+//   - LocalIOK: IO-based transformation (C2 -> IO[C1])
+//   - LocalIOResultK: IO with error handling (C2 -> IOResult[C1])
+//   - LocalReaderK: Reader-based pure transformation with runtime context access (C2 -> Reader[C1])
+//   - LocalThunkK: Reader-based with IO and errors (C2 -> ReaderIOResult[C1])
+//   - LocalEffectK: Full Effect transformation (C2 -> Effect[C2, C1])
+//
+//go:inline
+func LocalReaderK[A, C1, C2 any](f reader.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
+	return readerreaderioresult.LocalReaderK[A](f)
 }
