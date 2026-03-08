@@ -39,7 +39,7 @@ jobs:
       - name: Run tests
         run: |
           go mod tidy
-          go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+          go test -v -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
       
       - name: Upload coverage to Coveralls
         continue-on-error: true
