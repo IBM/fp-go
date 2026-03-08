@@ -578,4 +578,4 @@ func TestChainLazyK(t *testing.T) {
 	assert.Equal(t, result.Of("42"), res)
 }
 
-// Made with Bob
+

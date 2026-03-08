@@ -238,4 +238,4 @@ func TestBracket_ResultValue(t *testing.T) {
 	assert.Equal(t, result.Of("test result"), releaseReceivedResult)
 }
 
-// Made with Bob
+
