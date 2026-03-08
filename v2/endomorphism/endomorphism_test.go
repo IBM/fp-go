@@ -1071,3 +1071,226 @@ func TestReduceWithBuild(t *testing.T) {
 
 	assert.NotEqual(t, reduceResult, buildResult, "Reduce and Build(ConcatAll) produce different results due to execution order")
 }
+
+// TestRead tests the Read function
+func TestRead(t *testing.T) {
+	t.Run("applies endomorphism to captured value", func(t *testing.T) {
+		applyTo5 := Read(5)
+
+		result := applyTo5(double)
+		assert.Equal(t, 10, result, "Read should apply double to captured value 5")
+
+		result2 := applyTo5(increment)
+		assert.Equal(t, 6, result2, "Read should apply increment to captured value 5")
+
+		result3 := applyTo5(square)
+		assert.Equal(t, 25, result3, "Read should apply square to captured value 5")
+	})
+
+	t.Run("captures value for reuse", func(t *testing.T) {
+		applyTo10 := Read(10)
+
+		// Apply multiple different endomorphisms to the same captured value
+		doubled := applyTo10(double)
+		incremented := applyTo10(increment)
+		negated := applyTo10(negate)
+
+		assert.Equal(t, 20, doubled, "Should double 10")
+		assert.Equal(t, 11, incremented, "Should increment 10")
+		assert.Equal(t, -10, negated, "Should negate 10")
+	})
+
+	t.Run("works with identity", func(t *testing.T) {
+		applyTo42 := Read(42)
+
+		result := applyTo42(Identity[int]())
+		assert.Equal(t, 42, result, "Read with identity should return original value")
+	})
+
+	t.Run("works with composed endomorphisms", func(t *testing.T) {
+		applyTo5 := Read(5)
+
+		// Compose: double then increment (RIGHT-TO-LEFT)
+		composed := MonadCompose(increment, double)
+		result := applyTo5(composed)
+		assert.Equal(t, 11, result, "Read should work with composed endomorphisms: (5 * 2) + 1 = 11")
+	})
+
+	t.Run("works with chained endomorphisms", func(t *testing.T) {
+		applyTo5 := Read(5)
+
+		// Chain: double then increment (LEFT-TO-RIGHT)
+		chained := MonadChain(double, increment)
+		result := applyTo5(chained)
+		assert.Equal(t, 11, result, "Read should work with chained endomorphisms: (5 * 2) + 1 = 11")
+	})
+
+	t.Run("works with ConcatAll", func(t *testing.T) {
+		applyTo5 := Read(5)
+
+		// ConcatAll composes RIGHT-TO-LEFT
+		combined := ConcatAll([]Endomorphism[int]{double, increment, square})
+		result := applyTo5(combined)
+		// Execution: square(5) = 25, increment(25) = 26, double(26) = 52
+		assert.Equal(t, 52, result, "Read should work with ConcatAll")
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		// Test with string
+		applyToHello := Read("hello")
+
+		toUpper := func(s string) string { return s + " WORLD" }
+		result := applyToHello(toUpper)
+		assert.Equal(t, "hello WORLD", result, "Read should work with strings")
+
+		// Test with struct
+		type Point struct {
+			X, Y int
+		}
+
+		applyToPoint := Read(Point{X: 3, Y: 4})
+
+		scaleX := func(p Point) Point {
+			p.X *= 2
+			return p
+		}
+
+		result2 := applyToPoint(scaleX)
+		assert.Equal(t, Point{X: 6, Y: 4}, result2, "Read should work with structs")
+	})
+
+	t.Run("creates independent evaluation contexts", func(t *testing.T) {
+		applyTo5 := Read(5)
+		applyTo10 := Read(10)
+
+		// Same endomorphism, different contexts
+		result5 := applyTo5(double)
+		result10 := applyTo10(double)
+
+		assert.Equal(t, 10, result5, "First context should double 5")
+		assert.Equal(t, 20, result10, "Second context should double 10")
+	})
+
+	t.Run("useful for testing transformations", func(t *testing.T) {
+		testValue := 100
+		applyToTest := Read(testValue)
+
+		// Test multiple transformations on the same value
+		transformations := []struct {
+			name     string
+			endo     Endomorphism[int]
+			expected int
+		}{
+			{"double", double, 200},
+			{"increment", increment, 101},
+			{"negate", negate, -100},
+			{"square", square, 10000},
+		}
+
+		for _, tt := range transformations {
+			t.Run(tt.name, func(t *testing.T) {
+				result := applyToTest(tt.endo)
+				assert.Equal(t, tt.expected, result)
+			})
+		}
+	})
+
+	t.Run("works with monoid operations", func(t *testing.T) {
+		applyTo5 := Read(5)
+
+		// Use monoid to combine endomorphisms
+		combined := M.ConcatAll(Monoid[int]())([]Endomorphism[int]{
+			double,
+			increment,
+		})
+
+		result := applyTo5(combined)
+		// RIGHT-TO-LEFT: increment(5) = 6, double(6) = 12
+		assert.Equal(t, 12, result, "Read should work with monoid operations")
+	})
+
+	t.Run("configuration example", func(t *testing.T) {
+		type Config struct {
+			Timeout int
+			Retries int
+		}
+
+		baseConfig := Config{Timeout: 30, Retries: 3}
+		applyToBase := Read(baseConfig)
+
+		withLongTimeout := func(c Config) Config {
+			c.Timeout = 60
+			return c
+		}
+
+		withMoreRetries := func(c Config) Config {
+			c.Retries = 5
+			return c
+		}
+
+		result1 := applyToBase(withLongTimeout)
+		assert.Equal(t, Config{Timeout: 60, Retries: 3}, result1)
+
+		result2 := applyToBase(withMoreRetries)
+		assert.Equal(t, Config{Timeout: 30, Retries: 5}, result2)
+
+		// Original is unchanged
+		result3 := applyToBase(Identity[Config]())
+		assert.Equal(t, baseConfig, result3)
+	})
+}
+
+// TestReadWithBuild tests the relationship between Read and Build
+func TestReadWithBuild(t *testing.T) {
+	t.Run("Read applies to specific value, Build to zero value", func(t *testing.T) {
+		endo := double
+
+		// Build applies to zero value
+		builtResult := Build(endo)
+		assert.Equal(t, 0, builtResult, "Build should apply to zero value: 0 * 2 = 0")
+
+		// Read applies to specific value
+		readResult := Read(5)(endo)
+		assert.Equal(t, 10, readResult, "Read should apply to captured value: 5 * 2 = 10")
+	})
+
+	t.Run("Read can evaluate Build results", func(t *testing.T) {
+		// Build an endomorphism
+		builder := ConcatAll([]Endomorphism[int]{double, increment})
+
+		// Apply it to zero value
+		builtValue := Build(builder)
+		// RIGHT-TO-LEFT: increment(0) = 1, double(1) = 2
+		assert.Equal(t, 2, builtValue)
+
+		// Now use Read to apply the same builder to a different value
+		readValue := Read(5)(builder)
+		// RIGHT-TO-LEFT: increment(5) = 6, double(6) = 12
+		assert.Equal(t, 12, readValue)
+	})
+}
+
+// BenchmarkRead benchmarks the Read function
+func BenchmarkRead(b *testing.B) {
+	applyTo5 := Read(5)
+
+	b.Run("simple endomorphism", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = applyTo5(double)
+		}
+	})
+
+	b.Run("composed endomorphism", func(b *testing.B) {
+		composed := MonadCompose(double, increment)
+		for i := 0; i < b.N; i++ {
+			_ = applyTo5(composed)
+		}
+	})
+
+	b.Run("ConcatAll endomorphism", func(b *testing.B) {
+		combined := ConcatAll([]Endomorphism[int]{double, increment, square})
+		for i := 0; i < b.N; i++ {
+			_ = applyTo5(combined)
+		}
+	})
+}

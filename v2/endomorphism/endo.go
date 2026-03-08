@@ -386,3 +386,91 @@ func Join[A any](f Kleisli[A]) Endomorphism[A] {
 		return f(a)(a)
 	}
 }
+
+// Read captures a value and returns a function that applies endomorphisms to it.
+//
+// This function implements a "reader" pattern for endomorphisms. It takes a value
+// and returns a function that can apply any endomorphism to that captured value.
+// This is useful for creating reusable evaluation contexts where you want to apply
+// different transformations to the same initial value.
+//
+// The returned function has the signature func(Endomorphism[A]) A, which means
+// it takes an endomorphism and returns the result of applying that endomorphism
+// to the captured value.
+//
+// # Type Parameters
+//
+//   - A: The type of the value being captured and transformed
+//
+// # Parameters
+//
+//   - a: The value to capture for later transformation
+//
+// # Returns
+//
+//   - A function that applies endomorphisms to the captured value
+//
+// # Example - Basic Usage
+//
+//	// Capture a value
+//	applyTo5 := Read(5)
+//
+//	// Apply different endomorphisms to the same value
+//	doubled := applyTo5(N.Mul(2))    // 10
+//	incremented := applyTo5(N.Add(1)) // 6
+//	squared := applyTo5(func(x int) int { return x * x }) // 25
+//
+// # Example - Reusable Evaluation Context
+//
+//	type Config struct {
+//	    Timeout int
+//	    Retries int
+//	}
+//
+//	baseConfig := Config{Timeout: 30, Retries: 3}
+//	applyToBase := Read(baseConfig)
+//
+//	// Apply different transformations to the same base config
+//	withLongTimeout := applyToBase(func(c Config) Config {
+//	    c.Timeout = 60
+//	    return c
+//	})
+//
+//	withMoreRetries := applyToBase(func(c Config) Config {
+//	    c.Retries = 5
+//	    return c
+//	})
+//
+// # Example - Testing Different Transformations
+//
+//	// Useful for testing multiple transformations on the same input
+//	testValue := "hello"
+//	applyToTest := Read(testValue)
+//
+//	upperCase := applyToTest(strings.ToUpper)     // "HELLO"
+//	withSuffix := applyToTest(func(s string) string {
+//	    return s + " world"
+//	}) // "hello world"
+//
+// # Use Cases
+//
+//  1. **Testing**: Apply multiple transformations to the same test value
+//  2. **Configuration**: Create variations of a base configuration
+//  3. **Data Processing**: Evaluate different processing pipelines on the same data
+//  4. **Benchmarking**: Compare different endomorphisms on the same input
+//  5. **Functional Composition**: Build evaluation contexts for composed operations
+//
+// # Relationship to Other Functions
+//
+// Read is complementary to other endomorphism operations:
+//   - Build applies an endomorphism to the zero value
+//   - Read applies endomorphisms to a specific captured value
+//   - Reduce applies multiple endomorphisms sequentially
+//   - ConcatAll composes multiple endomorphisms
+//
+//go:inline
+func Read[A any](a A) func(Endomorphism[A]) A {
+	return func(f Endomorphism[A]) A {
+		return f(a)
+	}
+}
