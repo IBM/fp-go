@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
@@ -952,7 +953,7 @@ func TestLocalReaderK(t *testing.T) {
 		assert.Equal(t, "Has deadline: false", result)
 
 		// With deadline
-		ctxWithDeadline, cancel := context.WithTimeout(context.Background(), 1000)
+		ctxWithDeadline, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
 		ioResult2 := Provide[string]("config.json")(pathEffect)
