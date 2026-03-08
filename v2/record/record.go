@@ -55,10 +55,16 @@ func IsNonEmpty[K comparable, V any](r Record[K, V]) bool {
 // The order of keys is non-deterministic due to Go's map iteration behavior.
 // Use KeysOrd if you need keys in a specific order.
 //
+// Note: The return value can be nil in case of an empty map, since nil is a
+// valid representation of an empty slice in Go.
+//
 // Example:
 //
 //	record := Record[string, int]{"a": 1, "b": 2, "c": 3}
 //	keys := Keys(record) // ["a", "b", "c"] in any order
+//
+//	emptyRecord := Record[string, int]{}
+//	emptyKeys := Keys(emptyRecord) // nil or []string{}
 func Keys[K comparable, V any](r Record[K, V]) []K {
 	return G.Keys[Record[K, V], []K](r)
 }
@@ -68,10 +74,16 @@ func Keys[K comparable, V any](r Record[K, V]) []K {
 // The order of values is non-deterministic due to Go's map iteration behavior.
 // Use ValuesOrd if you need values ordered by their keys.
 //
+// Note: The return value can be nil in case of an empty map, since nil is a
+// valid representation of an empty slice in Go.
+//
 // Example:
 //
 //	record := Record[string, int]{"a": 1, "b": 2, "c": 3}
 //	values := Values(record) // [1, 2, 3] in any order
+//
+//	emptyRecord := Record[string, int]{}
+//	emptyValues := Values(emptyRecord) // nil or []int{}
 func Values[K comparable, V any](r Record[K, V]) []V {
 	return G.Values[Record[K, V], []V](r)
 }
@@ -98,6 +110,9 @@ func Collect[K comparable, V, R any](f func(K, V) R) func(Record[K, V]) []R {
 //
 // Unlike Collect, this function guarantees the order of results based on key ordering.
 //
+// Note: The return value can be nil in case of an empty map, since nil is a
+// valid representation of an empty slice in Go.
+//
 // Example:
 //
 //	record := Record[string, int]{"c": 3, "a": 1, "b": 2}
@@ -105,6 +120,9 @@ func Collect[K comparable, V, R any](f func(K, V) R) func(Record[K, V]) []R {
 //	    return fmt.Sprintf("%s=%d", k, v)
 //	})
 //	result := toStrings(record) // ["a=1", "b=2", "c=3"] (ordered by key)
+//
+//	emptyRecord := Record[string, int]{}
+//	emptyResult := toStrings(emptyRecord) // nil or []string{}
 func CollectOrd[V, R any, K comparable](o ord.Ord[K]) func(func(K, V) R) func(Record[K, V]) []R {
 	return G.CollectOrd[Record[K, V], []R](o)
 }
@@ -458,11 +476,18 @@ func UpsertAt[K comparable, V any](k K, v V) Operator[K, V, V] {
 // If the key doesn't exist, the record is returned unchanged.
 // The original record is not modified; a new record is returned.
 //
+// In case of an empty input map (including nil maps), the identical map is returned,
+// since deleting from an empty map is an idempotent operation.
+//
 // Example:
 //
 //	record := Record[string, int]{"a": 1, "b": 2, "c": 3}
 //	removeB := DeleteAt[string, int]("b")
 //	result := removeB(record) // {"a": 1, "c": 3}
+//
+//	// Deleting from empty map returns empty map
+//	emptyRecord := Record[string, int]{}
+//	result2 := removeB(emptyRecord) // {}
 func DeleteAt[K comparable, V any](k K) Operator[K, V, V] {
 	return G.DeleteAt[Record[K, V]](k)
 }

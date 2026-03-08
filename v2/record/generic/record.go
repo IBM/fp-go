@@ -38,21 +38,41 @@ func IsNonEmpty[M ~map[K]V, K comparable, V any](r M) bool {
 }
 
 func Keys[M ~map[K]V, GK ~[]K, K comparable, V any](r M) GK {
+	// fast path
+	if len(r) == 0 {
+		return nil
+	}
+	// full implementation
 	return collect[M, GK](r, F.First[K, V])
 }
 
 func Values[M ~map[K]V, GV ~[]V, K comparable, V any](r M) GV {
+	// fast path
+	if len(r) == 0 {
+		return nil
+	}
+	// full implementation
 	return collect[M, GV](r, F.Second[K, V])
 }
 
 func KeysOrd[M ~map[K]V, GK ~[]K, K comparable, V any](o ord.Ord[K]) func(r M) GK {
 	return func(r M) GK {
+		// fast path
+		if len(r) == 0 {
+			return nil
+		}
+		// full implementation
 		return collectOrd[M, GK](o, r, F.First[K, V])
 	}
 }
 
 func ValuesOrd[M ~map[K]V, GV ~[]V, K comparable, V any](o ord.Ord[K]) func(r M) GV {
 	return func(r M) GV {
+		// fast path
+		if len(r) == 0 {
+			return nil
+		}
+		// full implementation
 		return collectOrd[M, GV](o, r, F.Second[K, V])
 	}
 }
@@ -97,12 +117,18 @@ func collect[M ~map[K]V, GR ~[]R, K comparable, V, R any](r M, f func(K, V) R) G
 }
 
 func Collect[M ~map[K]V, GR ~[]R, K comparable, V, R any](f func(K, V) R) func(M) GR {
+	// full implementation
 	return F.Bind2nd(collect[M, GR, K, V, R], f)
 }
 
 func CollectOrd[M ~map[K]V, GR ~[]R, K comparable, V, R any](o ord.Ord[K]) func(f func(K, V) R) func(M) GR {
 	return func(f func(K, V) R) func(M) GR {
 		return func(r M) GR {
+			// fast path
+			if len(r) == 0 {
+				return nil
+			}
+			// full implementation
 			return collectOrd[M, GR](o, r, f)
 		}
 	}
@@ -416,12 +442,22 @@ func duplicate[M ~map[K]V, K comparable, V any](r M) M {
 }
 
 func upsertAt[M ~map[K]V, K comparable, V any](r M, k K, v V) M {
+	// fast path
+	if len(r) == 0 {
+		return Singleton[M](k, v)
+	}
+	// duplicate and update
 	dup := duplicate(r)
 	dup[k] = v
 	return dup
 }
 
 func deleteAt[M ~map[K]V, K comparable, V any](r M, k K) M {
+	// fast path
+	if len(r) == 0 {
+		return r
+	}
+	// duplicate and update
 	dup := duplicate(r)
 	delete(dup, k)
 	return dup
