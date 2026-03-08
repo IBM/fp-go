@@ -452,5 +452,3 @@ func BenchmarkWithResource(b *testing.B) {
 		operation(ctx)()
 	}
 }
-
-// Made with Bob

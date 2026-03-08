@@ -413,5 +413,3 @@ func isRight[A any](res Result[A]) bool {
 func isLeft[A any](res Result[A]) bool {
 	return result.IsLeft(res)
 }
-
-// Made with Bob
