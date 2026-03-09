@@ -22,14 +22,18 @@ import (
 // LogValue implements the slog.LogValuer interface for Trampoline.
 //
 // This method allows Trampoline values to be logged using Go's structured logging
-// (log/slog) with proper representation of their state:
+// with proper representation of their state:
 //   - When Landed is true: returns a group with a single "landed" attribute containing the Land value
 //   - When Landed is false: returns a group with a single "bouncing" attribute containing the Bounce value
 //
 // The implementation ensures that Trampoline values are logged in a structured,
 // readable format that clearly shows the current state of the tail-recursive computation.
 //
-// Example usage:
+// # Returns
+//
+//   - slog.Value: A structured log value representing the trampoline state
+//
+// # Example
 //
 //	trampoline := tailrec.Bounce[int](42)
 //	slog.Info("Processing", "state", trampoline)

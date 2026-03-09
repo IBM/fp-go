@@ -52,7 +52,7 @@ import (
 //
 //   - f: A Kleisli arrow (A => ReaderIOResult[Trampoline[A, B]]) that:
 //   - Takes the current state A
-//   - Returns a ReaderIOResult that depends on [context.Context]
+//   - Returns a ReaderIOResult that depends on context.Context
 //   - Can fail with error (Left in the outer Either)
 //   - Produces Trampoline[A, B] to control recursion flow (Right in the outer Either)
 //
@@ -60,13 +60,13 @@ import (
 //
 // A Kleisli arrow (A => ReaderIOResult[B]) that:
 //   - Takes an initial state A
-//   - Returns a ReaderIOResult that requires [context.Context]
+//   - Returns a ReaderIOResult that requires context.Context
 //   - Can fail with error or context cancellation
 //   - Produces the final result B after recursion completes
 //
 // # Context Cancellation
 //
-// Unlike the base [readerioresult.TailRec], this version automatically integrates
+// Unlike the base readerioresult.TailRec, this version automatically integrates
 // context cancellation checking:
 //   - Each recursive iteration checks if the context is cancelled
 //   - If cancelled, recursion terminates immediately with a cancellation error
@@ -92,9 +92,9 @@ import (
 //
 // # Example: Cancellable Countdown
 //
-//	countdownStep := func(n int) readerioresult.ReaderIOResult[tailrec.Trampoline[int, string]] {
-//	    return func(ctx context.Context) ioeither.IOEither[error, tailrec.Trampoline[int, string]] {
-//	        return func() either.Either[error, tailrec.Trampoline[int, string]] {
+//	countdownStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
+//	    return func(ctx context.Context) IOEither[Trampoline[int, string]] {
+//	        return func() Either[Trampoline[int, string]] {
 //	            if n <= 0 {
 //	                return either.Right[error](tailrec.Land[int]("Done!"))
 //	            }
@@ -105,7 +105,7 @@ import (
 //	    }
 //	}
 //
-//	countdown := readerioresult.TailRec(countdownStep)
+//	countdown := TailRec(countdownStep)
 //
 //	// With cancellation
 //	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
@@ -119,9 +119,9 @@ import (
 //	    processed []string
 //	}
 //
-//	processStep := func(state ProcessState) readerioresult.ReaderIOResult[tailrec.Trampoline[ProcessState, []string]] {
-//	    return func(ctx context.Context) ioeither.IOEither[error, tailrec.Trampoline[ProcessState, []string]] {
-//	        return func() either.Either[error, tailrec.Trampoline[ProcessState, []string]] {
+//	processStep := func(state ProcessState) ReaderIOResult[Trampoline[ProcessState, []string]] {
+//	    return func(ctx context.Context) IOEither[Trampoline[ProcessState, []string]] {
+//	        return func() Either[Trampoline[ProcessState, []string]] {
 //	            if len(state.files) == 0 {
 //	                return either.Right[error](tailrec.Land[ProcessState](state.processed))
 //	            }
@@ -140,7 +140,7 @@ import (
 //	    }
 //	}
 //
-//	processFiles := readerioresult.TailRec(processStep)
+//	processFiles := TailRec(processStep)
 //	ctx, cancel := context.WithCancel(t.Context())
 //
 //	// Can be cancelled at any point during processing
@@ -158,7 +158,7 @@ import (
 // still respecting context cancellation:
 //
 //	// Safe for very large inputs with cancellation support
-//	largeCountdown := readerioresult.TailRec(countdownStep)
+//	largeCountdown := TailRec(countdownStep)
 //	ctx := t.Context()
 //	result := largeCountdown(1000000)(ctx)() // Safe, no stack overflow
 //
@@ -171,11 +171,11 @@ import (
 //
 // # See Also
 //
-//   - [readerioresult.TailRec]: Base tail recursion without automatic context checking
-//   - [WithContext]: Context cancellation wrapper used internally
-//   - [Chain]: For sequencing ReaderIOResult computations
-//   - [Ask]: For accessing the context
-//   - [Left]/[Right]: For creating error/success values
+//   - readerioresult.TailRec: Base tail recursion without automatic context checking
+//   - WithContext: Context cancellation wrapper used internally
+//   - Chain: For sequencing ReaderIOResult computations
+//   - Ask: For accessing the context
+//   - Left/Right: For creating error/success values
 //
 //go:inline
 func TailRec[A, B any](f Kleisli[A, Trampoline[A, B]]) Kleisli[A, B] {

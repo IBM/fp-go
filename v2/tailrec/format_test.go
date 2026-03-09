@@ -69,6 +69,14 @@ func TestFormatterInterface(t *testing.T) {
 		result := fmt.Sprintf("%q", tramp)
 		assert.Equal(t, "\"Bounce(42)\"", result)
 	})
+
+	t.Run("unknown verb format", func(t *testing.T) {
+		tramp := Bounce[string](42)
+		result := fmt.Sprintf("%x", tramp)
+		assert.Contains(t, result, "%!x")
+		assert.Contains(t, result, "Trampoline[B, L]")
+		assert.Contains(t, result, "Bounce(42)")
+	})
 }
 
 // TestGoStringerInterface verifies fmt.GoStringer implementation

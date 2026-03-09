@@ -7,14 +7,21 @@ type (
 	//   - Bounce: The computation should continue with a new intermediate state (type B)
 	//   - Land: The computation is complete with a final result (type L)
 	//
-	// Type Parameters:
+	// # Type Parameters
+	//
 	//   - B: The "bounce" type - intermediate state passed between recursive steps
 	//   - L: The "land" type - the final result type when computation completes
 	//
 	// The trampoline pattern allows converting recursive algorithms into iterative ones,
 	// preventing stack overflow for deep recursion while maintaining code clarity.
 	//
-	// Example:
+	// # Design Note
+	//
+	// This type uses a struct with a boolean flag rather than the Either type to avoid
+	// a cyclic dependency. The either package depends on tailrec for its own tail-recursive
+	// operations, so using Either here would create a circular import.
+	//
+	// # Example
 	//
 	//	// Factorial using trampolines
 	//	type State struct { n, acc int }
