@@ -612,3 +612,50 @@ func ChainReaderIOK[C, A, B any](f readerio.Kleisli[C, A, B]) Operator[C, A, B] 
 func Read[A, C any](c C) func(Effect[C, A]) Thunk[A] {
 	return readerreaderioresult.Read[A](c)
 }
+
+// Asks creates an Effect that projects a value from the context using a Reader function.
+// This is useful for extracting specific fields or computing derived values from the context.
+// It's essentially a lifted version of the Reader pattern into the Effect context.
+//
+// # Type Parameters
+//
+//   - C: The context type
+//   - A: The type of the projected value
+//
+// # Parameters
+//
+//   - r: A Reader function that extracts or computes a value from the context
+//
+// # Returns
+//
+//   - Effect[C, A]: An effect that succeeds with the projected value
+//
+// # Example
+//
+//	type Config struct {
+//		Host string
+//		Port int
+//	}
+//
+//	// Extract a specific field
+//	getHost := effect.Asks[Config](func(cfg Config) string {
+//		return cfg.Host
+//	})
+//
+//	// Compute a derived value
+//	getURL := effect.Asks[Config](func(cfg Config) string {
+//		return fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
+//	})
+//
+//	result, err := runEffect(getHost, Config{Host: "localhost", Port: 8080})
+//	// result == "localhost", err == nil
+//
+// # See Also
+//
+//   - Ask: Returns the entire context as the value
+//   - Map: Transforms the value after extraction
+//
+//go:inline
+func Asks[C, A any](r Reader[C, A]) Effect[C, A] {
+	return readerreaderioresult.Asks(r)
+}

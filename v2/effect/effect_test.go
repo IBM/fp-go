@@ -677,3 +677,411 @@ func TestChainThunkK_Integration(t *testing.T) {
 		assert.Equal(t, result.Of("Value: 100"), outcome)
 	})
 }
+
+func TestAsks_Success(t *testing.T) {
+	t.Run("extracts a field from context", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		getHost := Asks[Config](func(cfg Config) string {
+			return cfg.Host
+		})
+
+		result, err := runEffect(getHost, Config{Host: "localhost", Port: 8080})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "localhost", result)
+	})
+
+	t.Run("extracts multiple fields and computes derived value", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		getURL := Asks[Config](func(cfg Config) string {
+			return fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
+		})
+
+		result, err := runEffect(getURL, Config{Host: "example.com", Port: 443})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "http://example.com:443", result)
+	})
+
+	t.Run("extracts numeric field", func(t *testing.T) {
+		getPort := Asks[TestConfig](func(cfg TestConfig) int {
+			return cfg.Multiplier
+		})
+
+		result, err := runEffect(getPort, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 3, result)
+	})
+
+	t.Run("computes value from context", func(t *testing.T) {
+		type Config struct {
+			Width  int
+			Height int
+		}
+
+		getArea := Asks[Config](func(cfg Config) int {
+			return cfg.Width * cfg.Height
+		})
+
+		result, err := runEffect(getArea, Config{Width: 10, Height: 20})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 200, result)
+	})
+
+	t.Run("transforms string field", func(t *testing.T) {
+		getUpperPrefix := Asks[TestConfig](func(cfg TestConfig) string {
+			return fmt.Sprintf("[%s]", cfg.Prefix)
+		})
+
+		result, err := runEffect(getUpperPrefix, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "[LOG]", result)
+	})
+}
+
+func TestAsks_EdgeCases(t *testing.T) {
+	t.Run("handles zero values", func(t *testing.T) {
+		type Config struct {
+			Value int
+		}
+
+		getValue := Asks[Config](func(cfg Config) int {
+			return cfg.Value
+		})
+
+		result, err := runEffect(getValue, Config{Value: 0})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 0, result)
+	})
+
+	t.Run("handles empty string", func(t *testing.T) {
+		type Config struct {
+			Name string
+		}
+
+		getName := Asks[Config](func(cfg Config) string {
+			return cfg.Name
+		})
+
+		result, err := runEffect(getName, Config{Name: ""})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("handles nil pointer fields", func(t *testing.T) {
+		type Config struct {
+			Data *string
+		}
+
+		hasData := Asks[Config](func(cfg Config) bool {
+			return cfg.Data != nil
+		})
+
+		result, err := runEffect(hasData, Config{Data: nil})
+
+		assert.NoError(t, err)
+		assert.False(t, result)
+	})
+
+	t.Run("handles complex nested structures", func(t *testing.T) {
+		type Database struct {
+			Host string
+			Port int
+		}
+		type Config struct {
+			DB Database
+		}
+
+		getDBHost := Asks[Config](func(cfg Config) string {
+			return cfg.DB.Host
+		})
+
+		result, err := runEffect(getDBHost, Config{
+			DB: Database{Host: "db.example.com", Port: 5432},
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "db.example.com", result)
+	})
+}
+
+func TestAsks_Integration(t *testing.T) {
+	t.Run("composes with Map", func(t *testing.T) {
+		type Config struct {
+			Value int
+		}
+
+		computation := F.Pipe1(
+			Asks[Config](func(cfg Config) int {
+				return cfg.Value
+			}),
+			Map[Config](func(x int) int { return x * 2 }),
+		)
+
+		result, err := runEffect(computation, Config{Value: 21})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, result)
+	})
+
+	t.Run("composes with Chain", func(t *testing.T) {
+		type Config struct {
+			Multiplier int
+		}
+
+		computation := F.Pipe1(
+			Asks[Config](func(cfg Config) int {
+				return cfg.Multiplier
+			}),
+			Chain(func(mult int) Effect[Config, int] {
+				return Of[Config](mult * 10)
+			}),
+		)
+
+		result, err := runEffect(computation, Config{Multiplier: 5})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 50, result)
+	})
+
+	t.Run("composes with ChainReaderK", func(t *testing.T) {
+		computation := F.Pipe1(
+			Asks[TestConfig](func(cfg TestConfig) int {
+				return cfg.Multiplier
+			}),
+			ChainReaderK(func(mult int) reader.Reader[TestConfig, int] {
+				return func(cfg TestConfig) int {
+					return mult + len(cfg.Prefix)
+				}
+			}),
+		)
+
+		result, err := runEffect(computation, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 6, result) // 3 + len("LOG")
+	})
+
+	t.Run("composes with ChainReaderIOK", func(t *testing.T) {
+		log := []string{}
+
+		computation := F.Pipe1(
+			Asks[TestConfig](func(cfg TestConfig) string {
+				return cfg.Prefix
+			}),
+			ChainReaderIOK(func(prefix string) readerio.ReaderIO[TestConfig, string] {
+				return func(cfg TestConfig) io.IO[string] {
+					return func() string {
+						log = append(log, "executed")
+						return fmt.Sprintf("%s:%d", prefix, cfg.Multiplier)
+					}
+				}
+			}),
+		)
+
+		result, err := runEffect(computation, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "LOG:3", result)
+		assert.Equal(t, 1, len(log))
+	})
+
+	t.Run("multiple Asks in sequence", func(t *testing.T) {
+		type Config struct {
+			First  string
+			Second string
+		}
+
+		computation := F.Pipe2(
+			Asks[Config](func(cfg Config) string {
+				return cfg.First
+			}),
+			Chain(func(_ string) Effect[Config, string] {
+				return Asks[Config](func(cfg Config) string {
+					return cfg.Second
+				})
+			}),
+			Map[Config](func(s string) string {
+				return "Result: " + s
+			}),
+		)
+
+		result, err := runEffect(computation, Config{First: "A", Second: "B"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Result: B", result)
+	})
+
+	t.Run("Asks combined with Ask", func(t *testing.T) {
+		type Config struct {
+			Value int
+		}
+
+		computation := F.Pipe1(
+			Ask[Config](),
+			Chain(func(cfg Config) Effect[Config, int] {
+				return Asks[Config](func(c Config) int {
+					return c.Value * 2
+				})
+			}),
+		)
+
+		result, err := runEffect(computation, Config{Value: 15})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 30, result)
+	})
+}
+
+func TestAsks_Comparison(t *testing.T) {
+	t.Run("Asks vs Ask with Map", func(t *testing.T) {
+		type Config struct {
+			Port int
+		}
+
+		// Using Asks
+		asksVersion := Asks[Config](func(cfg Config) int {
+			return cfg.Port
+		})
+
+		// Using Ask + Map
+		askMapVersion := F.Pipe1(
+			Ask[Config](),
+			Map[Config](func(cfg Config) int {
+				return cfg.Port
+			}),
+		)
+
+		cfg := Config{Port: 8080}
+
+		result1, err1 := runEffect(asksVersion, cfg)
+		result2, err2 := runEffect(askMapVersion, cfg)
+
+		assert.NoError(t, err1)
+		assert.NoError(t, err2)
+		assert.Equal(t, result1, result2)
+		assert.Equal(t, 8080, result1)
+	})
+
+	t.Run("Asks is more concise than Ask + Map", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		// Asks is more direct for field extraction
+		getHost := Asks[Config](func(cfg Config) string {
+			return cfg.Host
+		})
+
+		result, err := runEffect(getHost, Config{Host: "api.example.com", Port: 443})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "api.example.com", result)
+	})
+}
+
+func TestAsks_RealWorldScenarios(t *testing.T) {
+	t.Run("extract database connection string", func(t *testing.T) {
+		type DatabaseConfig struct {
+			Host     string
+			Port     int
+			Database string
+			User     string
+		}
+
+		getConnectionString := Asks[DatabaseConfig](func(cfg DatabaseConfig) string {
+			return fmt.Sprintf("postgres://%s@%s:%d/%s",
+				cfg.User, cfg.Host, cfg.Port, cfg.Database)
+		})
+
+		result, err := runEffect(getConnectionString, DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Database: "myapp",
+			User:     "admin",
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "postgres://admin@localhost:5432/myapp", result)
+	})
+
+	t.Run("compute API endpoint from config", func(t *testing.T) {
+		type APIConfig struct {
+			Protocol string
+			Host     string
+			Port     int
+			BasePath string
+		}
+
+		getEndpoint := Asks[APIConfig](func(cfg APIConfig) string {
+			return fmt.Sprintf("%s://%s:%d%s",
+				cfg.Protocol, cfg.Host, cfg.Port, cfg.BasePath)
+		})
+
+		result, err := runEffect(getEndpoint, APIConfig{
+			Protocol: "https",
+			Host:     "api.example.com",
+			Port:     443,
+			BasePath: "/v1",
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "https://api.example.com:443/v1", result)
+	})
+
+	t.Run("validate configuration", func(t *testing.T) {
+		type Config struct {
+			Timeout    int
+			MaxRetries int
+		}
+
+		isValid := Asks[Config](func(cfg Config) bool {
+			return cfg.Timeout > 0 && cfg.MaxRetries >= 0
+		})
+
+		// Valid config
+		result1, err1 := runEffect(isValid, Config{Timeout: 30, MaxRetries: 3})
+		assert.NoError(t, err1)
+		assert.True(t, result1)
+
+		// Invalid config
+		result2, err2 := runEffect(isValid, Config{Timeout: 0, MaxRetries: 3})
+		assert.NoError(t, err2)
+		assert.False(t, result2)
+	})
+
+	t.Run("extract feature flags", func(t *testing.T) {
+		type FeatureFlags struct {
+			EnableNewUI     bool
+			EnableBetaAPI   bool
+			EnableAnalytics bool
+		}
+
+		hasNewUI := Asks[FeatureFlags](func(flags FeatureFlags) bool {
+			return flags.EnableNewUI
+		})
+
+		result, err := runEffect(hasNewUI, FeatureFlags{
+			EnableNewUI:     true,
+			EnableBetaAPI:   false,
+			EnableAnalytics: true,
+		})
+
+		assert.NoError(t, err)
+		assert.True(t, result)
+	})
+}

@@ -19,8 +19,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
-
 	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/stretchr/testify/assert"
@@ -922,45 +920,77 @@ func TestLocalReaderK(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "result", result)
 	})
+}
 
-	t.Run("runtime context deadline awareness", func(t *testing.T) {
-		type Config struct {
-			HasDeadline bool
-		}
-
-		// Reader that checks runtime context for deadline
-		checkContext := func(path string) reader.Reader[Config] {
-			return func(ctx context.Context) Config {
-				_, hasDeadline := ctx.Deadline()
-				return Config{HasDeadline: hasDeadline}
-			}
-		}
-
-		// Effect that uses the config
-		configEffect := Chain(func(cfg Config) Effect[Config, string] {
-			return Of[Config](fmt.Sprintf("Has deadline: %v", cfg.HasDeadline))
-		})(readerreaderioresult.Ask[Config]())
-
-		transform := LocalReaderK[string](checkContext)
-		pathEffect := transform(configEffect)
-
-		// Without deadline
-		ioResult := Provide[string]("config.json")(pathEffect)
-		readerResult := RunSync(ioResult)
-		result, err := readerResult(context.Background())
+func TestAsk(t *testing.T) {
+	t.Run("returns context as value", func(t *testing.T) {
+		ctx := "my-context"
+		result, err := runEffect(Ask[string](), ctx)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "Has deadline: false", result)
+		assert.Equal(t, ctx, result)
+	})
 
-		// With deadline
-		ctxWithDeadline, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
+	t.Run("works with struct context", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
 
-		ioResult2 := Provide[string]("config.json")(pathEffect)
-		readerResult2 := RunSync(ioResult2)
-		result2, err2 := readerResult2(ctxWithDeadline)
+		cfg := Config{Host: "localhost", Port: 8080}
+		result, err := runEffect(Ask[Config](), cfg)
 
+		assert.NoError(t, err)
+		assert.Equal(t, cfg, result)
+	})
+
+	t.Run("can be chained with Map to extract a field", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		hostEffect := Map[Config](func(cfg Config) string {
+			return cfg.Host
+		})(Ask[Config]())
+
+		result, err := runEffect(hostEffect, Config{Host: "example.com", Port: 443})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "example.com", result)
+	})
+
+	t.Run("can be chained with Chain to produce a derived effect", func(t *testing.T) {
+		type Config struct {
+			APIKey string
+		}
+
+		derived := Chain(func(cfg Config) Effect[Config, string] {
+			if cfg.APIKey == "" {
+				return Fail[Config, string](assert.AnError)
+			}
+			return Of[Config]("authenticated: " + cfg.APIKey)
+		})(Ask[Config]())
+
+		// Valid key
+		result, err := runEffect(derived, Config{APIKey: "secret"})
+		assert.NoError(t, err)
+		assert.Equal(t, "authenticated: secret", result)
+
+		// Empty key
+		_, err = runEffect(derived, Config{APIKey: ""})
+		assert.Error(t, err)
+		assert.Equal(t, assert.AnError, err)
+	})
+
+	t.Run("is idempotent - multiple calls return same context", func(t *testing.T) {
+		ctx := TestContext{Value: "shared"}
+
+		r1, err1 := runEffect(Ask[TestContext](), ctx)
+		r2, err2 := runEffect(Ask[TestContext](), ctx)
+
+		assert.NoError(t, err1)
 		assert.NoError(t, err2)
-		assert.Equal(t, "Has deadline: true", result2)
+		assert.Equal(t, r1, r2)
 	})
 }

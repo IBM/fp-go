@@ -354,3 +354,20 @@ func LocalEffectK[A, C1, C2 any](f Kleisli[C2, C2, C1]) func(Effect[C1, A]) Effe
 func LocalReaderK[A, C1, C2 any](f reader.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] {
 	return readerreaderioresult.LocalReaderK[A](f)
 }
+
+// Ask returns an Effect that produces the context C as its success value.
+// This is the fundamental operation of the reader/environment monad,
+// allowing effects to access their own context.
+//
+// # Type Parameters
+//
+//   - C: The context type (also the produced value type)
+//
+// # Returns
+//
+//   - Effect[C, C]: An effect that succeeds with its own context value
+//
+//go:inline
+func Ask[C any]() Effect[C, C] {
+	return readerreaderioresult.Ask[C]()
+}
