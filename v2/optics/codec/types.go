@@ -11,6 +11,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
+	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
@@ -494,4 +495,7 @@ type (
 	//   - function.VOID: The single value of type Void
 	//   - Empty: Codec function that uses Void for unit types
 	Void = function.Void
+
+	// Iso represents an isomorphism - a bidirectional transformation between two types.
+	Iso[S, A any] = iso.Iso[S, A]
 )
