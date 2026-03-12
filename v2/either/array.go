@@ -16,6 +16,9 @@
 package either
 
 import (
+	"iter"
+	"slices"
+
 	F "github.com/IBM/fp-go/v2/function"
 	RA "github.com/IBM/fp-go/v2/internal/array"
 )
@@ -177,4 +180,93 @@ func CompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
 //go:inline
 func CompactArray[E, A any](fa []Either[E, A]) []A {
 	return CompactArrayG[[]Either[E, A], []A](fa)
+}
+
+// TraverseSeq transforms an iterator by applying a function that returns an Either to each element.
+// If any element produces a Left, the entire result is that Left (short-circuits).
+// Otherwise, returns Right containing an iterator of all Right values.
+//
+// The function eagerly evaluates all elements in the input iterator to detect any Left values,
+// then returns an iterator over the collected Right values. This is necessary because Either
+// represents computations that can fail, and we need to know if any element failed before
+// producing the result iterator.
+//
+// # Type Parameters
+//
+//   - E: The error type for Left values
+//   - A: The input element type
+//   - B: The output element type
+//
+// # Parameters
+//
+//   - f: A function that transforms each element into an Either
+//
+// # Returns
+//
+//   - A function that takes an iterator of A and returns Either containing an iterator of B
+//
+// # Example Usage
+//
+//	parse := func(s string) either.Either[error, int] {
+//	    v, err := strconv.Atoi(s)
+//	    return either.FromError(v, err)
+//	}
+//	input := slices.Values([]string{"1", "2", "3"})
+//	result := either.TraverseSeq(parse)(input)
+//	// result is Right(iterator over [1, 2, 3])
+//
+// # See Also
+//
+//   - TraverseArray: For slice-based traversal
+//   - SequenceSeq: For sequencing iterators of Either values
+func TraverseSeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, iter.Seq[A], iter.Seq[B]] {
+	return func(ga iter.Seq[A]) Either[E, iter.Seq[B]] {
+		var bs []B
+		for a := range ga {
+			b := f(a)
+			if b.isLeft {
+				return Left[iter.Seq[B]](b.l)
+			}
+			bs = append(bs, b.r)
+		}
+		return Of[E](slices.Values(bs))
+	}
+}
+
+// SequenceSeq converts an iterator of Either into an Either of iterator.
+// If any element is Left, returns that Left (short-circuits).
+// Otherwise, returns Right containing an iterator of all the Right values.
+//
+// This function eagerly evaluates all Either values in the input iterator to detect
+// any Left values, then returns an iterator over the collected Right values.
+//
+// # Type Parameters
+//
+//   - E: The error type for Left values
+//   - A: The value type for Right values
+//
+// # Parameters
+//
+//   - ma: An iterator of Either values
+//
+// # Returns
+//
+//   - Either containing an iterator of Right values, or the first Left encountered
+//
+// # Example Usage
+//
+//	eithers := slices.Values([]either.Either[error, int]{
+//	    either.Right[error](1),
+//	    either.Right[error](2),
+//	    either.Right[error](3),
+//	})
+//	result := either.SequenceSeq(eithers)
+//	// result is Right(iterator over [1, 2, 3])
+//
+// # See Also
+//
+//   - SequenceArray: For slice-based sequencing
+//   - TraverseSeq: For transforming and sequencing in one step
+func SequenceSeq[E, A any](ma iter.Seq[Either[E, A]]) Either[E, iter.Seq[A]] {
+	return TraverseSeq(F.Identity[Either[E, A]])(ma)
 }

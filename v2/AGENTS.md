@@ -2,6 +2,20 @@
 
 This document provides guidelines for AI agents working on the fp-go/v2 project.
 
+## Table of Contents
+
+- [Documentation Standards](#documentation-standards)
+  - [Go Doc Comments](#go-doc-comments)
+  - [File Headers](#file-headers)
+- [Testing Standards](#testing-standards)
+  - [Test Structure](#test-structure)
+  - [Test Coverage](#test-coverage)
+  - [Example Test Pattern](#example-test-pattern)
+- [Code Style](#code-style)
+  - [Functional Patterns](#functional-patterns)
+  - [Error Handling](#error-handling)
+- [Checklist for New Code](#checklist-for-new-code)
+
 ## Documentation Standards
 
 ### Go Doc Comments
@@ -102,6 +116,50 @@ Always include the Apache 2.0 license header:
    - Use `result.Of` for success values
    - Use `result.Left` for error values
 
+4. **Folding Either/Result Values in Tests**
+   - Use `F.Pipe1(result, Fold(onLeft, onRight))` — avoid the `_ = Fold(...)(result)` discard pattern
+   - Use `slices.Collect[T]` instead of a manual `for n := range seq { collected = append(...) }` loop
+   - Use `t.Fatal` in the unexpected branch to combine the `IsLeft`/`IsRight` check with value extraction:
+     ```go
+     // Good: single fold combines assertion and extraction
+     collected := F.Pipe1(result, Fold(
+         func(e error) []int { t.Fatal(e); return nil },
+         slices.Collect[int],
+     ))
+
+     // Avoid: separate IsRight check + manual loop
+     assert.True(t, IsRight(result))
+     var collected []int
+     _ = MonadFold(result,
+         func(e error) []int { return nil },
+         func(seq iter.Seq[int]) []int {
+             for n := range seq { collected = append(collected, n) }
+             return collected
+         },
+     )
+     ```
+   - Use `F.Identity[error]` as the Left branch when extracting an error value:
+     ```go
+     err := F.Pipe1(result, Fold(
+         F.Identity[error],
+         func(_ iter.Seq[int]) error { t.Fatal("expected Left but got Right"); return nil },
+     ))
+     ```
+   - Extract repeated fold patterns as local helper closures within the test function:
+     ```go
+     collectInts := func(r Result[iter.Seq[int]]) []int {
+         return F.Pipe1(r, Fold(
+             func(e error) []int { t.Fatal(e); return nil },
+             slices.Collect[int],
+         ))
+     }
+     ```
+
+5. **Other Test Style Details**
+   - Use `for i := range 10` instead of `for i := 0; i < 10; i++`
+   - Chain curried calls directly: `TraverseSeq(parse)(input)` — no need for an intermediate `traverseFn` variable
+   - Use direct slice literals (`[]string{"a", "b"}`) rather than `A.From("a", "b")` in tests
+
 ### Test Coverage
 
 Include tests for:
@@ -167,56 +225,6 @@ func TestFromReaderResult_Success(t *testing.T) {
    - Verify error messages and causes
    - Check error context is preserved
    - Test error accumulation when applicable
-
-## Common Patterns
-
-### Converting Error-Based Functions
-
-```go
-// Good: Use Eitherize1
-parseIntRR := result.Eitherize1(strconv.Atoi)
-
-// Avoid: Manual error handling
-parseIntRR := func(input string) result.Result[int] {
-    val, err := strconv.Atoi(input)
-    if err != nil {
-        return result.Left[int](err)
-    }
-    return result.Of(val)
-}
-```
-
-### Testing Validation Results
-
-```go
-// Good: Direct comparison
-assert.Equal(t, validation.Success(42), result)
-
-// Avoid: Verbose extraction (unless you need to verify specific fields)
-assert.True(t, either.IsRight(result))
-value := either.MonadFold(result,
-    func(Errors) int { return 0 },
-    F.Identity[int],
-)
-assert.Equal(t, 42, value)
-```
-
-### Documentation Examples
-
-```go
-// Good: Concise and idiomatic
-//  parseIntRR := result.Eitherize1(strconv.Atoi)
-//  validator := FromReaderResult[string, int](parseIntRR)
-
-// Avoid: Verbose manual patterns
-//  parseIntRR := func(input string) result.Result[int] {
-//      val, err := strconv.Atoi(input)
-//      if err != nil {
-//          return result.Left[int](err)
-//      }
-//      return result.Of(val)
-//  }
-```
 
 ## Checklist for New Code
 

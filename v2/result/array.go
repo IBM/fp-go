@@ -16,6 +16,8 @@
 package result
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/either"
 )
 
@@ -154,4 +156,85 @@ func CompactArrayG[A1 ~[]Result[A], A2 ~[]A, A any](fa A1) A2 {
 //go:inline
 func CompactArray[A any](fa []Result[A]) []A {
 	return either.CompactArray(fa)
+}
+
+// TraverseSeq transforms an iterator by applying a function that returns a Result to each element.
+// If any element produces a Left, the entire result is that Left (short-circuits).
+// Otherwise, returns Right containing an iterator of all Right values.
+//
+// The function eagerly evaluates all elements in the input iterator to detect any Left values,
+// then returns an iterator over the collected Right values. This is necessary because Result
+// represents computations that can fail, and we need to know if any element failed before
+// producing the result iterator.
+//
+// # Type Parameters
+//
+//   - A: The input element type
+//   - B: The output element type
+//
+// # Parameters
+//
+//   - f: A function that transforms each element into a Result
+//
+// # Returns
+//
+//   - A function that takes an iterator of A and returns Result containing an iterator of B
+//
+// # Example Usage
+//
+//	parse := func(s string) result.Result[int] {
+//	    v, err := strconv.Atoi(s)
+//	    return result.TryCatchError(v, err)
+//	}
+//	input := slices.Values([]string{"1", "2", "3"})
+//	result := result.TraverseSeq(parse)(input)
+//	// result is Right(iterator over [1, 2, 3])
+//
+// # See Also
+//
+//   - TraverseArray: For slice-based traversal
+//   - SequenceSeq: For sequencing iterators of Result values
+//
+//go:inline
+func TraverseSeq[A, B any](f Kleisli[A, B]) Kleisli[iter.Seq[A], iter.Seq[B]] {
+	return either.TraverseSeq(f)
+}
+
+// SequenceSeq converts an iterator of Result into a Result of iterator.
+// If any element is Left, returns that Left (short-circuits).
+// Otherwise, returns Right containing an iterator of all the Right values.
+//
+// This function eagerly evaluates all Result values in the input iterator to detect
+// any Left values, then returns an iterator over the collected Right values.
+//
+// # Type Parameters
+//
+//   - A: The value type for Right values
+//
+// # Parameters
+//
+//   - ma: An iterator of Result values
+//
+// # Returns
+//
+//   - Result containing an iterator of Right values, or the first Left encountered
+//
+// # Example Usage
+//
+//	results := slices.Values([]result.Result[int]{
+//	    result.Of(1),
+//	    result.Of(2),
+//	    result.Of(3),
+//	})
+//	result := result.SequenceSeq(results)
+//	// result is Right(iterator over [1, 2, 3])
+//
+// # See Also
+//
+//   - SequenceArray: For slice-based sequencing
+//   - TraverseSeq: For transforming and sequencing in one step
+//
+//go:inline
+func SequenceSeq[A any](ma iter.Seq[Result[A]]) Result[iter.Seq[A]] {
+	return either.SequenceSeq(ma)
 }
