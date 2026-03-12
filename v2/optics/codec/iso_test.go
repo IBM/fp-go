@@ -502,5 +502,3 @@ func TestFromIso_Validate(t *testing.T) {
 		assert.Equal(t, validation.Success(42), result)
 	})
 }
-
-// Made with Bob
