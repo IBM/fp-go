@@ -236,6 +236,7 @@ func Pipe4[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, T
 // The final return value is the result of the last function application
 //go:inline
 func Flow4[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, T0, T1, T2, T3, T4 any](f1 F1, f2 F2, f3 F3, f4 F4) func(T0) T4 {
+	//go:inline
 	return func(t0 T0) T4 {
 		return Pipe4(t0, f1, f2, f3, f4)
 	}
@@ -302,6 +303,7 @@ func Pipe5[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F
 // The final return value is the result of the last function application
 //go:inline
 func Flow5[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, T0, T1, T2, T3, T4, T5 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5) func(T0) T5 {
+	//go:inline
 	return func(t0 T0) T5 {
 		return Pipe5(t0, f1, f2, f3, f4, f5)
 	}
@@ -370,6 +372,7 @@ func Pipe6[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F
 // The final return value is the result of the last function application
 //go:inline
 func Flow6[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, T0, T1, T2, T3, T4, T5, T6 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6) func(T0) T6 {
+	//go:inline
 	return func(t0 T0) T6 {
 		return Pipe6(t0, f1, f2, f3, f4, f5, f6)
 	}
@@ -440,6 +443,7 @@ func Pipe7[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F
 // The final return value is the result of the last function application
 //go:inline
 func Flow7[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, T0, T1, T2, T3, T4, T5, T6, T7 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7) func(T0) T7 {
+	//go:inline
 	return func(t0 T0) T7 {
 		return Pipe7(t0, f1, f2, f3, f4, f5, f6, f7)
 	}
@@ -512,6 +516,7 @@ func Pipe8[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F
 // The final return value is the result of the last function application
 //go:inline
 func Flow8[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, T0, T1, T2, T3, T4, T5, T6, T7, T8 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8) func(T0) T8 {
+	//go:inline
 	return func(t0 T0) T8 {
 		return Pipe8(t0, f1, f2, f3, f4, f5, f6, f7, f8)
 	}
@@ -586,6 +591,7 @@ func Pipe9[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F
 // The final return value is the result of the last function application
 //go:inline
 func Flow9[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9) func(T0) T9 {
+	//go:inline
 	return func(t0 T0) T9 {
 		return Pipe9(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9)
 	}
@@ -662,6 +668,7 @@ func Pipe10[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow10[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10) func(T0) T10 {
+	//go:inline
 	return func(t0 T0) T10 {
 		return Pipe10(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10)
 	}
@@ -740,6 +747,7 @@ func Pipe11[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow11[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11) func(T0) T11 {
+	//go:inline
 	return func(t0 T0) T11 {
 		return Pipe11(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11)
 	}
@@ -820,6 +828,7 @@ func Pipe12[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow12[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12) func(T0) T12 {
+	//go:inline
 	return func(t0 T0) T12 {
 		return Pipe12(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12)
 	}
@@ -902,6 +911,7 @@ func Pipe13[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow13[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13) func(T0) T13 {
+	//go:inline
 	return func(t0 T0) T13 {
 		return Pipe13(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13)
 	}
@@ -986,6 +996,7 @@ func Pipe14[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow14[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14) func(T0) T14 {
+	//go:inline
 	return func(t0 T0) T14 {
 		return Pipe14(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14)
 	}
@@ -1072,6 +1083,7 @@ func Pipe15[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow15[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, F15 ~func(T14) T15, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14, f15 F15) func(T0) T15 {
+	//go:inline
 	return func(t0 T0) T15 {
 		return Pipe15(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15)
 	}
@@ -1160,6 +1172,7 @@ func Pipe16[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow16[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, F15 ~func(T14) T15, F16 ~func(T15) T16, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14, f15 F15, f16 F16) func(T0) T16 {
+	//go:inline
 	return func(t0 T0) T16 {
 		return Pipe16(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16)
 	}
@@ -1250,6 +1263,7 @@ func Pipe17[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow17[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, F15 ~func(T14) T15, F16 ~func(T15) T16, F17 ~func(T16) T17, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14, f15 F15, f16 F16, f17 F17) func(T0) T17 {
+	//go:inline
 	return func(t0 T0) T17 {
 		return Pipe17(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17)
 	}
@@ -1342,6 +1356,7 @@ func Pipe18[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow18[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, F15 ~func(T14) T15, F16 ~func(T15) T16, F17 ~func(T16) T17, F18 ~func(T17) T18, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14, f15 F15, f16 F16, f17 F17, f18 F18) func(T0) T18 {
+	//go:inline
 	return func(t0 T0) T18 {
 		return Pipe18(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18)
 	}
@@ -1436,6 +1451,7 @@ func Pipe19[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow19[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, F15 ~func(T14) T15, F16 ~func(T15) T16, F17 ~func(T16) T17, F18 ~func(T17) T18, F19 ~func(T18) T19, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14, f15 F15, f16 F16, f17 F17, f18 F18, f19 F19) func(T0) T19 {
+	//go:inline
 	return func(t0 T0) T19 {
 		return Pipe19(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19)
 	}
@@ -1532,6 +1548,7 @@ func Pipe20[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // The final return value is the result of the last function application
 //go:inline
 func Flow20[F1 ~func(T0) T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, F5 ~func(T4) T5, F6 ~func(T5) T6, F7 ~func(T6) T7, F8 ~func(T7) T8, F9 ~func(T8) T9, F10 ~func(T9) T10, F11 ~func(T10) T11, F12 ~func(T11) T12, F13 ~func(T12) T13, F14 ~func(T13) T14, F15 ~func(T14) T15, F16 ~func(T15) T16, F17 ~func(T16) T17, F18 ~func(T17) T18, F19 ~func(T18) T19, F20 ~func(T19) T20, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20 any](f1 F1, f2 F2, f3 F3, f4 F4, f5 F5, f6 F6, f7 F7, f8 F8, f9 F9, f10 F10, f11 F11, f12 F12, f13 F13, f14 F14, f15 F15, f16 F16, f17 F17, f18 F18, f19 F19, f20 F20) func(T0) T20 {
+	//go:inline
 	return func(t0 T0) T20 {
 		return Pipe20(t0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, f20)
 	}
