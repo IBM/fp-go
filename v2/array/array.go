@@ -529,71 +529,116 @@ func Push[A any](a A) Operator[A, A] {
 	return G.Push[Operator[A, A]](a)
 }
 
-// Concat concatenates two arrays, appending the provided array to the end of the input array.
-// This is a curried function that takes an array to append and returns a function that
-// takes the base array and returns the concatenated result.
+// Concat concatenates two arrays by appending a suffix array to a base array.
 //
-// The function creates a new array containing all elements from the base array followed
-// by all elements from the appended array. Neither input array is modified.
+// This is a curried function that takes a suffix array and returns a function
+// that takes a base array and produces a new array with the suffix appended.
+// It follows the "data last" pattern, where the data to be operated on (base array)
+// is provided last, making it ideal for use in functional pipelines.
+//
+// Semantic: Concat(suffix)(base) produces [base... suffix...]
+//
+// The function creates a new array containing all elements from the base array
+// followed by all elements from the suffix array. Neither input array is modified.
 //
 // Type Parameters:
+//
 //   - A: The type of elements in the arrays
 //
 // Parameters:
-//   - as: The array to append to the end of the base array
+//
+//   - suffix: The array to append to the end of the base array
 //
 // Returns:
-//   - A function that takes a base array and returns a new array with `as` appended to its end
+//
+//   - A function that takes a base array and returns [base... suffix...]
 //
 // Behavior:
-//   - Creates a new array with length equal to the sum of both input arrays
-//   - Copies all elements from the base array first
-//   - Appends all elements from the `as` array at the end
-//   - Returns the base array unchanged if `as` is empty
-//   - Returns `as` unchanged if the base array is empty
-//   - Does not modify either input array
 //
-// Example:
+//   - Creates a new array with length equal to len(base) + len(suffix)
+//   - Copies all elements from the base array first
+//   - Appends all elements from the suffix array at the end
+//   - Returns the base array unchanged if suffix is empty
+//   - Returns suffix unchanged if the base array is empty
+//   - Does not modify either input array
+//   - Preserves element order within each array
+//
+// Example - Basic concatenation:
 //
 //	base := []int{1, 2, 3}
-//	toAppend := []int{4, 5, 6}
-//	result := array.Concat(toAppend)(base)
+//	suffix := []int{4, 5, 6}
+//	concat := array.Concat(suffix)
+//	result := concat(base)
 //	// result: []int{1, 2, 3, 4, 5, 6}
 //	// base: []int{1, 2, 3} (unchanged)
-//	// toAppend: []int{4, 5, 6} (unchanged)
+//	// suffix: []int{4, 5, 6} (unchanged)
 //
-// Example with empty arrays:
+// Example - Direct application:
+//
+//	result := array.Concat([]int{4, 5, 6})([]int{1, 2, 3})
+//	// result: []int{1, 2, 3, 4, 5, 6}
+//	// Demonstrates: Concat(b)(a) = [a... b...]
+//
+// Example - Empty arrays:
 //
 //	base := []int{1, 2, 3}
 //	empty := []int{}
 //	result := array.Concat(empty)(base)
 //	// result: []int{1, 2, 3}
 //
-// Example with strings:
+// Example - Strings:
 //
 //	words1 := []string{"hello", "world"}
 //	words2 := []string{"foo", "bar"}
 //	result := array.Concat(words2)(words1)
 //	// result: []string{"hello", "world", "foo", "bar"}
 //
-// Example with functional composition:
+// Example - Functional composition:
 //
 //	numbers := []int{1, 2, 3}
 //	result := F.Pipe2(
 //	    numbers,
-//	    array.Map(N.Mul(2)),
-//	    array.Concat([]int{10, 20}),
+//	    array.Map(N.Mul(2)),           // [2, 4, 6]
+//	    array.Concat([]int{10, 20}),   // [2, 4, 6, 10, 20]
 //	)
-//	// result: []int{2, 4, 6, 10, 20}
+//
+// Example - Multiple concatenations:
+//
+//	result := F.Pipe2(
+//	    []int{1},
+//	    array.Concat([]int{2, 3}),     // [1, 2, 3]
+//	    array.Concat([]int{4, 5}),     // [1, 2, 3, 4, 5]
+//	)
+//
+// Example - Building arrays incrementally:
+//
+//	header := []string{"Name", "Age"}
+//	data := []string{"Alice", "30"}
+//	footer := []string{"Total: 1"}
+//	result := F.Pipe2(
+//	    header,
+//	    array.Concat(data),
+//	    array.Concat(footer),
+//	)
+//	// result: []string{"Name", "Age", "Alice", "30", "Total: 1"}
 //
 // Use cases:
+//
 //   - Combining multiple arrays into one
-//   - Building arrays incrementally
+//   - Building arrays incrementally in pipelines
 //   - Implementing array-based data structures (queues, buffers)
 //   - Merging results from multiple operations
-//   - Creating array pipelines with functional composition
+//   - Creating array transformation pipelines
+//   - Appending batches of elements
+//
+// Mathematical properties:
+//
+//   - Associativity: Concat(c)(Concat(b)(a)) == Concat(Concat(c)(b))(a)
+//   - Identity: Concat([])(a) == a and Concat(a)([]) == a
+//   - Length: len(Concat(b)(a)) == len(a) + len(b)
 //
 // Performance:
+//
 //   - Time complexity: O(n + m) where n and m are the lengths of the arrays
 //   - Space complexity: O(n + m) for the new array
 //   - Optimized to avoid allocation when one array is empty
@@ -601,9 +646,15 @@ func Push[A any](a A) Operator[A, A] {
 // Note: This function is immutable - it creates a new array rather than modifying
 // the input arrays. For appending a single element, consider using Append or Push.
 //
+// See Also:
+//
+//   - Append: For appending a single element
+//   - Push: Curried version of Append
+//   - Flatten: For flattening nested arrays
+//
 //go:inline
-func Concat[A any](as []A) Operator[A, A] {
-	return F.Bind2nd(array.Concat[[]A, A], as)
+func Concat[A any](suffix []A) Operator[A, A] {
+	return F.Bind2nd(array.Concat[[]A, A], suffix)
 }
 
 // MonadFlap applies a value to an array of functions, producing an array of results.

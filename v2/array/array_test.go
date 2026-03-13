@@ -767,6 +767,25 @@ func TestExtendUseCases(t *testing.T) {
 
 // TestConcat tests the Concat function
 func TestConcat(t *testing.T) {
+	t.Run("Semantic: Concat(b)(a) produces [a... b...]", func(t *testing.T) {
+		a := []int{1, 2, 3}
+		b := []int{4, 5, 6}
+
+		// Concat(b)(a) should produce [a... b...]
+		result := Concat(b)(a)
+		expected := []int{1, 2, 3, 4, 5, 6}
+
+		assert.Equal(t, expected, result, "Concat(b)(a) should produce [a... b...]")
+
+		// Verify order: a's elements come first, then b's elements
+		assert.Equal(t, a[0], result[0], "First element should be from a")
+		assert.Equal(t, a[1], result[1], "Second element should be from a")
+		assert.Equal(t, a[2], result[2], "Third element should be from a")
+		assert.Equal(t, b[0], result[3], "Fourth element should be from b")
+		assert.Equal(t, b[1], result[4], "Fifth element should be from b")
+		assert.Equal(t, b[2], result[5], "Sixth element should be from b")
+	})
+
 	t.Run("Concat two non-empty arrays", func(t *testing.T) {
 		base := []int{1, 2, 3}
 		toAppend := []int{4, 5, 6}
@@ -868,6 +887,54 @@ func TestConcat(t *testing.T) {
 		)
 
 		expected := []int{1, 2, 3}
+		assert.Equal(t, expected, result)
+	})
+	t.Run("Explicit append semantic demonstration", func(t *testing.T) {
+		// Given a base array
+		base := []string{"A", "B", "C"}
+
+		// And a suffix to append
+		suffix := []string{"D", "E", "F"}
+
+		// When we apply Concat(suffix) to base
+		appendSuffix := Concat(suffix)
+		result := appendSuffix(base)
+
+		// Then the result should be base followed by suffix
+		expected := []string{"A", "B", "C", "D", "E", "F"}
+		assert.Equal(t, expected, result)
+
+		// And the base should be unchanged
+		assert.Equal(t, []string{"A", "B", "C"}, base)
+
+		// And the suffix should be unchanged
+		assert.Equal(t, []string{"D", "E", "F"}, suffix)
+	})
+
+	t.Run("Append semantic with different types", func(t *testing.T) {
+		// Integers
+		intResult := Concat([]int{4, 5})([]int{1, 2, 3})
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, intResult)
+
+		// Strings
+		strResult := Concat([]string{"world"})([]string{"hello"})
+		assert.Equal(t, []string{"hello", "world"}, strResult)
+
+		// Floats
+		floatResult := Concat([]float64{3.3, 4.4})([]float64{1.1, 2.2})
+		assert.Equal(t, []float64{1.1, 2.2, 3.3, 4.4}, floatResult)
+	})
+
+	t.Run("Append semantic in pipeline", func(t *testing.T) {
+		// Start with [1, 2, 3]
+		// Append [4, 5] to get [1, 2, 3, 4, 5]
+		// Append [6, 7] to get [1, 2, 3, 4, 5, 6, 7]
+		result := F.Pipe2(
+			[]int{1, 2, 3},
+			Concat([]int{4, 5}),
+			Concat([]int{6, 7}),
+		)
+		expected := []int{1, 2, 3, 4, 5, 6, 7}
 		assert.Equal(t, expected, result)
 	})
 }
