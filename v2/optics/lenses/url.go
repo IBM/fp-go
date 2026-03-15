@@ -5,6 +5,7 @@ package lenses
 // 2026-01-27 16:08:47.5483589 +0100 CET m=+0.003380301
 
 import (
+	"net"
 	url "net/url"
 
 	__iso_option "github.com/IBM/fp-go/v2/optics/iso/option"
@@ -119,6 +120,8 @@ type URLLenses struct {
 	RawQuery    __lens.Lens[url.URL, string]
 	Fragment    __lens.Lens[url.URL, string]
 	RawFragment __lens.Lens[url.URL, string]
+	Hostname    __lens.Lens[url.URL, string]
+	Port        __lens.Lens[url.URL, string]
 	// optional fields
 	SchemeO      __lens_option.LensO[url.URL, string]
 	OpaqueO      __lens_option.LensO[url.URL, string]
@@ -131,6 +134,8 @@ type URLLenses struct {
 	RawQueryO    __lens_option.LensO[url.URL, string]
 	FragmentO    __lens_option.LensO[url.URL, string]
 	RawFragmentO __lens_option.LensO[url.URL, string]
+	HostnameO    __lens_option.LensO[url.URL, string]
+	PortO        __lens_option.LensO[url.URL, string]
 }
 
 // URLRefLenses provides lenses for accessing fields of url.URL via a reference to url.URL
@@ -147,6 +152,8 @@ type URLRefLenses struct {
 	RawQuery    __lens.Lens[*url.URL, string]
 	Fragment    __lens.Lens[*url.URL, string]
 	RawFragment __lens.Lens[*url.URL, string]
+	Hostname    __lens.Lens[*url.URL, string]
+	Port        __lens.Lens[*url.URL, string]
 	// optional fields
 	SchemeO      __lens_option.LensO[*url.URL, string]
 	OpaqueO      __lens_option.LensO[*url.URL, string]
@@ -159,6 +166,8 @@ type URLRefLenses struct {
 	RawQueryO    __lens_option.LensO[*url.URL, string]
 	FragmentO    __lens_option.LensO[*url.URL, string]
 	RawFragmentO __lens_option.LensO[*url.URL, string]
+	HostnameO    __lens_option.LensO[*url.URL, string]
+	PortO        __lens_option.LensO[*url.URL, string]
 }
 
 // MakeURLLenses creates a new URLLenses with lenses for all fields
@@ -219,6 +228,38 @@ func MakeURLLenses() URLLenses {
 		func(s url.URL, v string) url.URL { s.RawFragment = v; return s },
 		"URL.RawFragment",
 	)
+	lensHostname := __lens.MakeLensWithName(
+		func(s url.URL) string {
+			host, _, err := net.SplitHostPort(s.Host)
+			if err != nil {
+				return s.Host
+			}
+			return host
+		},
+		func(s url.URL, v string) url.URL {
+			_, port, err := net.SplitHostPort(s.Host)
+			if err != nil {
+				s.Host = v
+			} else {
+				s.Host = net.JoinHostPort(v, port)
+			}
+			return s
+		},
+		"URL.Hostname",
+	)
+	lensPort := __lens.MakeLensWithName(
+		func(s url.URL) string { return s.Port() },
+		func(s url.URL, v string) url.URL {
+			host, _, err := net.SplitHostPort(s.Host)
+			if err != nil {
+				s.Host = net.JoinHostPort(s.Host, v)
+			} else {
+				s.Host = net.JoinHostPort(host, v)
+			}
+			return s
+		},
+		"URL.Port",
+	)
 	// optional lenses
 	lensSchemeO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensScheme)
 	lensOpaqueO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensOpaque)
@@ -231,6 +272,8 @@ func MakeURLLenses() URLLenses {
 	lensRawQueryO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensRawQuery)
 	lensFragmentO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensFragment)
 	lensRawFragmentO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensRawFragment)
+	lensHostnameO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensHostname)
+	lensPortO := __lens_option.FromIso[url.URL](__iso_option.FromZero[string]())(lensPort)
 	return URLLenses{
 		// mandatory lenses
 		Scheme:      lensScheme,
@@ -244,6 +287,8 @@ func MakeURLLenses() URLLenses {
 		RawQuery:    lensRawQuery,
 		Fragment:    lensFragment,
 		RawFragment: lensRawFragment,
+		Hostname:    lensHostname,
+		Port:        lensPort,
 		// optional lenses
 		SchemeO:      lensSchemeO,
 		OpaqueO:      lensOpaqueO,
@@ -256,6 +301,8 @@ func MakeURLLenses() URLLenses {
 		RawQueryO:    lensRawQueryO,
 		FragmentO:    lensFragmentO,
 		RawFragmentO: lensRawFragmentO,
+		HostnameO:    lensHostnameO,
+		PortO:        lensPortO,
 	}
 }
 
@@ -317,6 +364,38 @@ func MakeURLRefLenses() URLRefLenses {
 		func(s *url.URL, v string) *url.URL { s.RawFragment = v; return s },
 		"(*url.URL).RawFragment",
 	)
+	lensHostname := __lens.MakeLensStrictWithName(
+		func(s *url.URL) string {
+			host, _, err := net.SplitHostPort(s.Host)
+			if err != nil {
+				return s.Host
+			}
+			return host
+		},
+		func(s *url.URL, v string) *url.URL {
+			_, port, err := net.SplitHostPort(s.Host)
+			if err != nil {
+				s.Host = v
+			} else {
+				s.Host = net.JoinHostPort(v, port)
+			}
+			return s
+		},
+		"URL.Hostname",
+	)
+	lensPort := __lens.MakeLensStrictWithName(
+		(*url.URL).Port,
+		func(s *url.URL, v string) *url.URL {
+			host, _, err := net.SplitHostPort(s.Host)
+			if err != nil {
+				s.Host = net.JoinHostPort(s.Host, v)
+			} else {
+				s.Host = net.JoinHostPort(host, v)
+			}
+			return s
+		},
+		"URL.Port",
+	)
 	// optional lenses
 	lensSchemeO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensScheme)
 	lensOpaqueO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensOpaque)
@@ -329,6 +408,8 @@ func MakeURLRefLenses() URLRefLenses {
 	lensRawQueryO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensRawQuery)
 	lensFragmentO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensFragment)
 	lensRawFragmentO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensRawFragment)
+	lensHostnameO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensHostname)
+	lensPortO := __lens_option.FromIso[*url.URL](__iso_option.FromZero[string]())(lensPort)
 	return URLRefLenses{
 		// mandatory lenses
 		Scheme:      lensScheme,
@@ -342,6 +423,8 @@ func MakeURLRefLenses() URLRefLenses {
 		RawQuery:    lensRawQuery,
 		Fragment:    lensFragment,
 		RawFragment: lensRawFragment,
+		Hostname:    lensHostname,
+		Port:        lensPort,
 		// optional lenses
 		SchemeO:      lensSchemeO,
 		OpaqueO:      lensOpaqueO,
@@ -354,6 +437,8 @@ func MakeURLRefLenses() URLRefLenses {
 		RawQueryO:    lensRawQueryO,
 		FragmentO:    lensFragmentO,
 		RawFragmentO: lensRawFragmentO,
+		HostnameO:    lensHostnameO,
+		PortO:        lensPortO,
 	}
 }
 
