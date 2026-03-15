@@ -18,6 +18,10 @@ package readerioresult
 import (
 	"context"
 
+	"github.com/IBM/fp-go/v2/array"
+	"github.com/IBM/fp-go/v2/internal/witherable"
+	"github.com/IBM/fp-go/v2/iterator/iter"
+	"github.com/IBM/fp-go/v2/option"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 )
 
@@ -48,4 +52,44 @@ import (
 //go:inline
 func FilterOrElse[A any](pred Predicate[A], onFalse func(A) error) Operator[A, A] {
 	return RIOR.FilterOrElse[context.Context](pred, onFalse)
+}
+
+//go:inline
+func Filter[A, HKTA any](
+	filter func(Predicate[A]) Endomorphism[HKTA],
+) func(Predicate[A]) Operator[HKTA, HKTA] {
+	return witherable.Filter(
+		Map,
+		filter,
+	)
+}
+
+//go:inline
+func FilterArray[A any](p Predicate[A]) Operator[[]A, []A] {
+	return Filter(array.Filter[A])(p)
+}
+
+//go:inline
+func FilterIter[A any](p Predicate[A]) Operator[Seq[A], Seq[A]] {
+	return Filter(iter.Filter[A])(p)
+}
+
+//go:inline
+func FilterMap[A, B, HKTA, HKTB any](
+	filter func(option.Kleisli[A, B]) Reader[HKTA, HKTB],
+) func(option.Kleisli[A, B]) Operator[HKTA, HKTB] {
+	return witherable.FilterMap(
+		Map,
+		filter,
+	)
+}
+
+//go:inline
+func FilterMapArray[A, B any](p option.Kleisli[A, B]) Operator[[]A, []B] {
+	return FilterMap(array.FilterMap[A, B])(p)
+}
+
+//go:inline
+func FilterMapIter[A, B any](p option.Kleisli[A, B]) Operator[Seq[A], Seq[B]] {
+	return FilterMap(iter.FilterMap[A, B])(p)
 }

@@ -17,6 +17,7 @@ package readerioresult
 
 import (
 	"context"
+	"iter"
 
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/context/ioresult"
@@ -220,4 +221,6 @@ type (
 	// The first element is the CancelFunc that should be called to release resources.
 	// The second element is the new Context that was created.
 	ContextCancel = Pair[context.CancelFunc, context.Context]
+
+	Seq[A any] = iter.Seq[A]
 )
