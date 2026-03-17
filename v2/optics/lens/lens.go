@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // setCopy wraps a setter for a pointer into a setter that first creates a copy before
@@ -906,6 +907,83 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S
 			f,
 			la.Set,
 		))
+	}
+}
+
+// ModifyF transforms a value through a lens using a function that returns a value in a functor context.
+//
+// This is the functorial version of Modify, allowing transformations that produce effects
+// (like Option, Either, IO, etc.) while updating the focused value. The functor's map operation
+// is used to apply the lens's setter to the transformed value, preserving the computational context.
+//
+// This function corresponds to modifyF from monocle-ts, enabling effectful updates through lenses.
+//
+// # Type Parameters
+//
+//   - S: Structure type
+//   - A: Focus type (the value being transformed)
+//   - HKTA: Higher-kinded type containing the transformed value (e.g., Option[A], Either[E, A])
+//   - HKTS: Higher-kinded type containing the updated structure (e.g., Option[S], Either[E, S])
+//
+// # Parameters
+//
+//   - fmap: A functor map operation that transforms A to S within the functor context
+//
+// # Returns
+//
+//   - A curried function that takes:
+//     1. A transformation function (A → HKTA)
+//     2. A Lens[S, A]
+//     3. A structure S
+//     And returns the updated structure in the functor context (HKTS)
+//
+// # Example Usage
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	ageLens := lens.MakeLens(
+//	    func(p Person) int { return p.Age },
+//	    func(p Person, age int) Person { p.Age = age; return p },
+//	)
+//
+//	// Validate age is positive, returning Option
+//	validateAge := func(age int) option.Option[int] {
+//	    if age > 0 {
+//	        return option.Some(age)
+//	    }
+//	    return option.None[int]()
+//	}
+//
+//	// Create a modifier that validates while updating
+//	modifyAge := lens.ModifyF[Person, int](option.Functor[int, Person]().Map)
+//
+//	person := Person{Name: "Alice", Age: 30}
+//	result := modifyAge(validateAge)(ageLens)(person)
+//	// result is Some(Person{Name: "Alice", Age: 30})
+//
+//	invalidResult := modifyAge(func(age int) option.Option[int] {
+//	    return option.None[int]()
+//	})(ageLens)(person)
+//	// invalidResult is None[Person]()
+//
+// # See Also
+//
+//   - Modify: Non-functorial version for simple transformations
+//   - functor.Functor: The functor interface used for mapping
+func ModifyF[S, A, HKTA, HKTS any](
+	fmap functor.MapType[A, S, HKTA, HKTS],
+) func(func(A) HKTA) func(Lens[S, A]) func(S) HKTS {
+	return func(f func(A) HKTA) func(Lens[S, A]) func(S) HKTS {
+		return func(sa Lens[S, A]) func(S) HKTS {
+			return func(s S) HKTS {
+				return fmap(func(a A) S {
+					return sa.Set(a)(s)
+				})(f(sa.Get(s)))
+			}
+		}
 	}
 }
 

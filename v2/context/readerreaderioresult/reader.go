@@ -834,7 +834,7 @@ func Flap[R, B, A any](a A) Operator[R, func(A) B, B] {
 // This is the monadic version that takes the computation as the first parameter.
 //
 //go:inline
-func MonadMapLeft[R, A any](fa ReaderReaderIOResult[R, A], f Endmorphism[error]) ReaderReaderIOResult[R, A] {
+func MonadMapLeft[R, A any](fa ReaderReaderIOResult[R, A], f Endomorphism[error]) ReaderReaderIOResult[R, A] {
 	return RRIOE.MonadMapLeft(fa, f)
 }
 
@@ -843,7 +843,7 @@ func MonadMapLeft[R, A any](fa ReaderReaderIOResult[R, A], f Endmorphism[error])
 // This is the curried version that returns an operator.
 //
 //go:inline
-func MapLeft[R, A any](f Endmorphism[error]) Operator[R, A, A] {
+func MapLeft[R, A any](f Endomorphism[error]) Operator[R, A, A] {
 	return RRIOE.MapLeft[R, context.Context, A](f)
 }
 

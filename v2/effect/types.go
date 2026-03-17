@@ -19,9 +19,11 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
+	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
@@ -89,4 +91,14 @@ type (
 	// Operator represents a function that transforms Effect[C, A] to Effect[C, B].
 	// It's used for lifting operations over effects.
 	Operator[C, A, B any] = readerreaderioresult.Operator[C, A, B]
+
+	// Endomorphism represents a function from type A to type A.
+	// It's an alias for endomorphism.Endomorphism[A].
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	// Seq is an iterator over sequences of individual values.
+	// When called as seq(yield), seq calls yield(v) for each value v in the sequence,
+	// stopping early if yield returns false.
+	// See the [iter] package documentation for more details.
+	Seq[A any] = iter.Seq[A]
 )

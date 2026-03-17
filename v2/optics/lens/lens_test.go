@@ -16,6 +16,7 @@
 package lens
 
 import (
+	"errors"
 	"testing"
 
 	EQ "github.com/IBM/fp-go/v2/eq"
@@ -936,4 +937,368 @@ func TestMakeLensWithEq_WithNilState_MultipleOperations(t *testing.T) {
 	street4 := nameLens.Set("")(nilStreet)
 	assert.NotNil(t, street4)
 	assert.Equal(t, "", street4.name)
+}
+
+// TestModifyF_Success tests ModifyF with a simple Maybe-like functor for successful transformations
+func TestModifyF_Success(t *testing.T) {
+	// Define a simple Maybe type for testing
+	type Maybe[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Maybe[int] {
+		return Maybe[int]{value: &a}
+	}
+
+	none := func() Maybe[int] {
+		return Maybe[int]{value: nil}
+	}
+
+	// Functor map for Maybe
+	maybeMap := func(f func(int) Inner) func(Maybe[int]) Maybe[Inner] {
+		return func(ma Maybe[int]) Maybe[Inner] {
+			if ma.value == nil {
+				return Maybe[Inner]{value: nil}
+			}
+			result := f(*ma.value)
+			return Maybe[Inner]{value: &result}
+		}
+	}
+
+	t.Run("transforms value with successful result", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		// Function that returns Some for positive values
+		validatePositive := func(n int) Maybe[int] {
+			if n > 0 {
+				return some(n * 2)
+			}
+			return none()
+		}
+
+		modifyAge := ModifyF[Inner, int](maybeMap)
+
+		person := Inner{Value: 5, Foo: "test"}
+		result := modifyAge(validatePositive)(ageLens)(person)
+
+		assert.NotNil(t, result.value)
+		updated := *result.value
+		assert.Equal(t, 10, updated.Value)
+		assert.Equal(t, "test", updated.Foo)
+	})
+
+	t.Run("preserves structure with identity transformation", func(t *testing.T) {
+		type MaybeStr struct {
+			value *string
+		}
+
+		someStr := func(s string) MaybeStr {
+			return MaybeStr{value: &s}
+		}
+
+		maybeStrMap := func(f func(string) Street) func(MaybeStr) struct{ value *Street } {
+			return func(ma MaybeStr) struct{ value *Street } {
+				if ma.value == nil {
+					return struct{ value *Street }{value: nil}
+				}
+				result := f(*ma.value)
+				return struct{ value *Street }{value: &result}
+			}
+		}
+
+		nameLens := MakeLens(
+			func(s Street) string { return s.name },
+			func(s Street, name string) Street { s.name = name; return s },
+		)
+
+		identity := func(s string) MaybeStr {
+			return someStr(s)
+		}
+
+		modifyName := ModifyF[Street, string](maybeStrMap)
+
+		street := Street{num: 1, name: "Main"}
+		result := modifyName(identity)(nameLens)(street)
+
+		assert.NotNil(t, result.value)
+		assert.Equal(t, street, *result.value)
+	})
+}
+
+// TestModifyF_Failure tests ModifyF with failures
+func TestModifyF_Failure(t *testing.T) {
+	type Maybe[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Maybe[int] {
+		return Maybe[int]{value: &a}
+	}
+
+	none := func() Maybe[int] {
+		return Maybe[int]{value: nil}
+	}
+
+	maybeMap := func(f func(int) Inner) func(Maybe[int]) Maybe[Inner] {
+		return func(ma Maybe[int]) Maybe[Inner] {
+			if ma.value == nil {
+				return Maybe[Inner]{value: nil}
+			}
+			result := f(*ma.value)
+			return Maybe[Inner]{value: &result}
+		}
+	}
+
+	t.Run("returns None when transformation fails", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		validatePositive := func(n int) Maybe[int] {
+			if n > 0 {
+				return some(n)
+			}
+			return none()
+		}
+
+		modifyAge := ModifyF[Inner, int](maybeMap)
+
+		person := Inner{Value: -5, Foo: "test"}
+		result := modifyAge(validatePositive)(ageLens)(person)
+
+		assert.Nil(t, result.value)
+	})
+}
+
+// TestModifyF_WithResult tests ModifyF with Result/Either-like functor
+func TestModifyF_WithResult(t *testing.T) {
+	type Result[A any] struct {
+		value *A
+		err   error
+	}
+
+	ok := func(a int) Result[int] {
+		return Result[int]{value: &a, err: nil}
+	}
+
+	fail := func(e error) Result[int] {
+		return Result[int]{value: nil, err: e}
+	}
+
+	resultMap := func(f func(int) Inner) func(Result[int]) Result[Inner] {
+		return func(r Result[int]) Result[Inner] {
+			if r.err != nil {
+				return Result[Inner]{value: nil, err: r.err}
+			}
+			result := f(*r.value)
+			return Result[Inner]{value: &result, err: nil}
+		}
+	}
+
+	t.Run("returns success for valid transformation", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		validateAge := func(n int) Result[int] {
+			if n >= 0 && n <= 150 {
+				return ok(n + 1)
+			}
+			return fail(errors.New("age out of range"))
+		}
+
+		modifyAge := ModifyF[Inner, int](resultMap)
+
+		person := Inner{Value: 30, Foo: "test"}
+		result := modifyAge(validateAge)(ageLens)(person)
+
+		assert.Nil(t, result.err)
+		assert.NotNil(t, result.value)
+		assert.Equal(t, 31, result.value.Value)
+		assert.Equal(t, "test", result.value.Foo)
+	})
+
+	t.Run("returns error for failed validation", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		validateAge := func(n int) Result[int] {
+			if n >= 0 && n <= 150 {
+				return ok(n)
+			}
+			return fail(errors.New("age out of range"))
+		}
+
+		modifyAge := ModifyF[Inner, int](resultMap)
+
+		person := Inner{Value: 200, Foo: "test"}
+		result := modifyAge(validateAge)(ageLens)(person)
+
+		assert.NotNil(t, result.err)
+		assert.Equal(t, "age out of range", result.err.Error())
+		assert.Nil(t, result.value)
+	})
+}
+
+// TestModifyF_EdgeCases tests edge cases for ModifyF
+func TestModifyF_EdgeCases(t *testing.T) {
+	type Maybe[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Maybe[int] {
+		return Maybe[int]{value: &a}
+	}
+
+	maybeMap := func(f func(int) Inner) func(Maybe[int]) Maybe[Inner] {
+		return func(ma Maybe[int]) Maybe[Inner] {
+			if ma.value == nil {
+				return Maybe[Inner]{value: nil}
+			}
+			result := f(*ma.value)
+			return Maybe[Inner]{value: &result}
+		}
+	}
+
+	t.Run("handles zero values", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		identity := func(n int) Maybe[int] {
+			return some(n)
+		}
+
+		modifyAge := ModifyF[Inner, int](maybeMap)
+
+		person := Inner{Value: 0, Foo: ""}
+		result := modifyAge(identity)(ageLens)(person)
+
+		assert.NotNil(t, result.value)
+		assert.Equal(t, person, *result.value)
+	})
+
+	t.Run("works with composed lenses", func(t *testing.T) {
+		innerLens := MakeLens(
+			Outer.GetInner,
+			Outer.SetInner,
+		)
+		valueLens := MakeLensRef(
+			(*Inner).GetValue,
+			(*Inner).SetValue,
+		)
+
+		composedLens := Compose[Outer](valueLens)(innerLens)
+
+		maybeMapOuter := func(f func(int) Outer) func(Maybe[int]) Maybe[Outer] {
+			return func(ma Maybe[int]) Maybe[Outer] {
+				if ma.value == nil {
+					return Maybe[Outer]{value: nil}
+				}
+				result := f(*ma.value)
+				return Maybe[Outer]{value: &result}
+			}
+		}
+
+		validatePositive := func(n int) Maybe[int] {
+			if n > 0 {
+				return some(n * 2)
+			}
+			return Maybe[int]{value: nil}
+		}
+
+		modifyValue := ModifyF[Outer, int](maybeMapOuter)
+
+		outer := Outer{inner: &Inner{Value: 5, Foo: "test"}}
+		result := modifyValue(validatePositive)(composedLens)(outer)
+
+		assert.NotNil(t, result.value)
+		assert.Equal(t, 10, result.value.inner.Value)
+		assert.Equal(t, "test", result.value.inner.Foo)
+	})
+}
+
+// TestModifyF_Integration tests integration scenarios
+func TestModifyF_Integration(t *testing.T) {
+	type Maybe[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Maybe[int] {
+		return Maybe[int]{value: &a}
+	}
+
+	maybeMap := func(f func(int) Inner) func(Maybe[int]) Maybe[Inner] {
+		return func(ma Maybe[int]) Maybe[Inner] {
+			if ma.value == nil {
+				return Maybe[Inner]{value: nil}
+			}
+			result := f(*ma.value)
+			return Maybe[Inner]{value: &result}
+		}
+	}
+
+	t.Run("chains multiple ModifyF operations", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		increment := func(n int) Maybe[int] {
+			return some(n + 1)
+		}
+
+		modifyAge := ModifyF[Inner, int](maybeMap)
+
+		person := Inner{Value: 5, Foo: "test"}
+
+		// Apply transformation twice
+		result1 := modifyAge(increment)(ageLens)(person)
+		assert.NotNil(t, result1.value)
+
+		result2 := modifyAge(increment)(ageLens)(*result1.value)
+		assert.NotNil(t, result2.value)
+
+		assert.Equal(t, 7, result2.value.Value)
+	})
+
+	t.Run("combines with regular Modify", func(t *testing.T) {
+		ageLens := MakeLens(
+			func(p Inner) int { return p.Value },
+			func(p Inner, age int) Inner { p.Value = age; return p },
+		)
+
+		// First use regular Modify
+		person := Inner{Value: 5, Foo: "test"}
+		modified := F.Pipe2(
+			ageLens,
+			Modify[Inner](func(n int) int { return n * 2 }),
+			func(endoFn func(Inner) Inner) Inner {
+				return endoFn(person)
+			},
+		)
+
+		assert.Equal(t, 10, modified.Value)
+
+		// Then use ModifyF with validation
+		validateRange := func(n int) Maybe[int] {
+			if n >= 0 && n <= 100 {
+				return some(n)
+			}
+			return Maybe[int]{value: nil}
+		}
+
+		modifyAge := ModifyF[Inner, int](maybeMap)
+		result := modifyAge(validateRange)(ageLens)(modified)
+
+		assert.NotNil(t, result.value)
+	})
 }

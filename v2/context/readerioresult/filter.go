@@ -55,7 +55,7 @@ func FilterOrElse[A any](pred Predicate[A], onFalse func(A) error) Operator[A, A
 }
 
 //go:inline
-func Filter[A, HKTA any](
+func Filter[HKTA, A any](
 	filter func(Predicate[A]) Endomorphism[HKTA],
 ) func(Predicate[A]) Operator[HKTA, HKTA] {
 	return witherable.Filter(
@@ -75,7 +75,7 @@ func FilterIter[A any](p Predicate[A]) Operator[Seq[A], Seq[A]] {
 }
 
 //go:inline
-func FilterMap[A, B, HKTA, HKTB any](
+func FilterMap[HKTA, HKTB, A, B any](
 	filter func(option.Kleisli[A, B]) Reader[HKTA, HKTB],
 ) func(option.Kleisli[A, B]) Operator[HKTA, HKTB] {
 	return witherable.FilterMap(

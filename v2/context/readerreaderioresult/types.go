@@ -24,6 +24,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
+	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/traversal/result"
@@ -146,9 +147,15 @@ type (
 	// It's an alias for predicate.Predicate[A].
 	Predicate[A any] = predicate.Predicate[A]
 
-	// Endmorphism represents a function from type A to type A.
+	// Endomorphism represents a function from type A to type A.
 	// It's an alias for endomorphism.Endomorphism[A].
-	Endmorphism[A any] = endomorphism.Endomorphism[A]
+	Endomorphism[A any] = endomorphism.Endomorphism[A]
+
+	// Seq is an iterator over sequences of individual values.
+	// When called as seq(yield), seq calls yield(v) for each value v in the sequence,
+	// stopping early if yield returns false.
+	// See the [iter] package documentation for more details.
+	Seq[A any] = iter.Seq[A]
 
 	Void = function.Void
 )

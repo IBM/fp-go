@@ -222,5 +222,9 @@ type (
 	// The second element is the new Context that was created.
 	ContextCancel = Pair[context.CancelFunc, context.Context]
 
+	// Seq is an iterator over sequences of individual values.
+	// When called as seq(yield), seq calls yield(v) for each value v in the sequence,
+	// stopping early if yield returns false.
+	// See the [iter] package documentation for more details.
 	Seq[A any] = iter.Seq[A]
 )
