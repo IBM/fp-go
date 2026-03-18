@@ -1002,3 +1002,80 @@ func ToSeqPair[A, B any](as Seq2[A, B]) Seq[Pair[A, B]] {
 		}
 	}
 }
+
+// FromSeqPair converts a sequence of Pairs into a key-value sequence.
+//
+// This function transforms a Seq[Pair[A, B]] (which yields Pair objects when iterated)
+// into a Seq2[A, B] (which yields key-value pairs as separate arguments). This is the
+// inverse operation of ToSeqPair and is useful when you need to convert from working
+// with pairs as first-class values back to the key-value iteration pattern.
+//
+// # Type Parameters
+//
+//   - A: The type of the first element (key) in each pair
+//   - B: The type of the second element (value) in each pair
+//
+// # Parameters
+//
+//   - as: A Seq that yields Pair objects
+//
+// # Returns
+//
+//   - Seq2[A, B]: A key-value sequence that yields the unpacked pairs
+//
+// # Example Usage
+//
+//	// Create a sequence of pairs
+//	pairs := From(
+//	    pair.MakePair("a", 1),
+//	    pair.MakePair("b", 2),
+//	    pair.MakePair("c", 3),
+//	)
+//	seq2 := FromSeqPair(pairs)
+//
+//	// Iterate as key-value pairs
+//	for k, v := range seq2 {
+//	    fmt.Printf("%s: %d\n", k, v)
+//	}
+//	// Output:
+//	// a: 1
+//	// b: 2
+//	// c: 3
+//
+// # Example with Map
+//
+//	pairs := From(
+//	    pair.MakePair(1, 10),
+//	    pair.MakePair(2, 20),
+//	    pair.MakePair(3, 30),
+//	)
+//	seq2 := FromSeqPair(pairs)
+//
+//	// Use with Seq2 operations
+//	mapped := MonadMapWithKey(seq2, func(k, v int) int {
+//	    return k + v
+//	})
+//	// yields: 11, 22, 33
+//
+// # Example - Round-trip conversion
+//
+//	original := MonadZip(From(1, 2, 3), From("a", "b", "c"))
+//	pairs := ToSeqPair(original)
+//	restored := FromSeqPair(pairs)
+//	// restored is equivalent to original
+//
+// # See Also
+//
+//   - ToSeqPair: Converts Seq2 to Seq of Pairs (inverse operation)
+//   - MonadZip: Creates key-value sequences from two sequences
+//   - pair.MakePair: Creates a Pair from two values
+//   - pair.Unpack: Unpacks a Pair into two values
+func FromSeqPair[A, B any](as Seq[Pair[A, B]]) Seq2[A, B] {
+	return func(yield func(A, B) bool) {
+		for p := range as {
+			if !yield(pair.Unpack(p)) {
+				return
+			}
+		}
+	}
+}

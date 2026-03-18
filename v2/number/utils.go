@@ -115,10 +115,7 @@ func Inc[T Number](value T) T {
 //	result := Min(5, 10) // returns 5
 //	result := Min(3.14, 2.71) // returns 2.71
 func Min[A C.Ordered](a, b A) A {
-	if a < b {
-		return a
-	}
-	return b
+	return min(a, b)
 }
 
 // Max returns the maximum of two ordered values.
@@ -132,10 +129,7 @@ func Min[A C.Ordered](a, b A) A {
 //	result := Max(5, 10) // returns 10
 //	result := Max(3.14, 2.71) // returns 3.14
 func Max[A C.Ordered](a, b A) A {
-	if a > b {
-		return a
-	}
-	return b
+	return max(a, b)
 }
 
 // MoreThan is a curried comparison function that checks if a value is more than (greater than) another.
