@@ -204,6 +204,102 @@ func ChainFirst[C, A, B any](f Kleisli[C, A, B]) Operator[C, A, A] {
 	return readerreaderioresult.ChainFirst(f)
 }
 
+// ChainFirstThunkK chains an effect with a function that returns a Thunk,
+// but discards the result and returns the original value.
+// This is useful for performing side effects (like logging or IO operations) that don't
+// need the effect's context, without changing the value flowing through the computation.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the Thunk (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns Thunk[B] for side effects
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that executes the Thunk but preserves the original value
+//
+// # Example
+//
+//	logToFile := func(n int) readerioresult.ReaderIOResult[any] {
+//	    return func(ctx context.Context) io.IO[result.Result[any]] {
+//	        return func() result.Result[any] {
+//	            // Perform IO operation that doesn't need effect context
+//	            fmt.Printf("Logging: %d\n", n)
+//	            return result.Of[any](nil)
+//	        }
+//	    }
+//	}
+//
+//	eff := effect.Of[MyContext](42)
+//	logged := effect.ChainFirstThunkK[MyContext](logToFile)(eff)
+//	// Prints "Logging: 42" but still produces 42
+//
+// # See Also
+//
+//   - ChainThunkK: Chains with a Thunk and uses its result
+//   - TapThunkK: Alias for ChainFirstThunkK
+//   - ChainFirstIOK: Similar but for IO operations
+//
+//go:inline
+func ChainFirstThunkK[C, A, B any](f thunk.Kleisli[A, B]) Operator[C, A, A] {
+	return fromreader.ChainFirstReaderK(
+		ChainFirst[C, A, B],
+		FromThunk[C, B],
+		f,
+	)
+}
+
+// TapThunkK is an alias for ChainFirstThunkK.
+// It chains an effect with a function that returns a Thunk for side effects,
+// but preserves the original value. This is useful for logging, debugging, or
+// performing IO operations that don't need the effect's context.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the Thunk (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns Thunk[B] for side effects
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that executes the Thunk but preserves the original value
+//
+// # Example
+//
+//	performSideEffect := func(n int) readerioresult.ReaderIOResult[any] {
+//	    return func(ctx context.Context) io.IO[result.Result[any]] {
+//	        return func() result.Result[any] {
+//	            // Perform context-independent IO operation
+//	            log.Printf("Processing value: %d", n)
+//	            return result.Of[any](nil)
+//	        }
+//	    }
+//	}
+//
+//	eff := effect.Of[MyContext](42)
+//	tapped := effect.TapThunkK[MyContext](performSideEffect)(eff)
+//	// Logs "Processing value: 42" but still produces 42
+//
+// # See Also
+//
+//   - ChainFirstThunkK: The underlying implementation
+//   - TapIOK: Similar but for IO operations
+//   - Tap: Similar but for full effects
+//
+//go:inline
+func TapThunkK[C, A, B any](f thunk.Kleisli[A, B]) Operator[C, A, A] {
+	return ChainFirstThunkK[C](f)
+}
+
 // ChainIOK chains an effect with a function that returns an IO action.
 // This is useful for integrating IO-based computations (synchronous side effects)
 // into effect chains. The IO action is automatically lifted into the Effect context.

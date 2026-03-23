@@ -678,6 +678,587 @@ func TestChainThunkK_Integration(t *testing.T) {
 	})
 }
 
+func TestChainFirstThunkK_Success(t *testing.T) {
+	t.Run("executes thunk but preserves original value", func(t *testing.T) {
+		sideEffectExecuted := false
+
+		sideEffect := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					sideEffectExecuted = true
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			ChainFirstThunkK[TestConfig](sideEffect),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(42), outcome)
+		assert.True(t, sideEffectExecuted)
+	})
+
+	t.Run("chains multiple side effects", func(t *testing.T) {
+		log := []string{}
+
+		logValue := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("log: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe2(
+			Of[TestConfig](10),
+			ChainFirstThunkK[TestConfig](logValue),
+			ChainFirstThunkK[TestConfig](logValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(10), outcome)
+		assert.Equal(t, 2, len(log))
+		assert.Equal(t, "log: 10", log[0])
+		assert.Equal(t, "log: 10", log[1])
+	})
+
+	t.Run("side effect can access runtime context", func(t *testing.T) {
+		var capturedCtx context.Context
+
+		captureContext := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					capturedCtx = ctx
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		ctx := context.Background()
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			ChainFirstThunkK[TestConfig](captureContext),
+		)
+		outcome := computation(testConfig)(ctx)()
+
+		assert.Equal(t, result.Of(42), outcome)
+		assert.Equal(t, ctx, capturedCtx)
+	})
+
+	t.Run("side effect result is discarded", func(t *testing.T) {
+		returnDifferentValue := func(n int) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) io.IO[result.Result[string]] {
+				return func() result.Result[string] {
+					return result.Of("different value")
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			ChainFirstThunkK[TestConfig](returnDifferentValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(42), outcome)
+	})
+}
+
+func TestChainFirstThunkK_Failure(t *testing.T) {
+	t.Run("propagates error from previous effect", func(t *testing.T) {
+		testErr := fmt.Errorf("previous error")
+		sideEffectExecuted := false
+
+		sideEffect := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					sideEffectExecuted = true
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Fail[TestConfig, int](testErr),
+			ChainFirstThunkK[TestConfig](sideEffect),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Left[int](testErr), outcome)
+		assert.False(t, sideEffectExecuted)
+	})
+
+	t.Run("propagates error from thunk side effect", func(t *testing.T) {
+		testErr := fmt.Errorf("side effect error")
+
+		failingSideEffect := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					return result.Left[any](testErr)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			ChainFirstThunkK[TestConfig](failingSideEffect),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Left[int](testErr), outcome)
+	})
+
+	t.Run("stops execution on first error", func(t *testing.T) {
+		testErr := fmt.Errorf("first error")
+		secondEffectExecuted := false
+
+		failingEffect := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					return result.Left[any](testErr)
+				}
+			}
+		}
+
+		secondEffect := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					secondEffectExecuted = true
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe2(
+			Of[TestConfig](42),
+			ChainFirstThunkK[TestConfig](failingEffect),
+			ChainFirstThunkK[TestConfig](secondEffect),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Left[int](testErr), outcome)
+		assert.False(t, secondEffectExecuted)
+	})
+}
+
+func TestChainFirstThunkK_EdgeCases(t *testing.T) {
+	t.Run("handles zero value", func(t *testing.T) {
+		callCount := 0
+
+		countCalls := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					callCount++
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](0),
+			ChainFirstThunkK[TestConfig](countCalls),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(0), outcome)
+		assert.Equal(t, 1, callCount)
+	})
+
+	t.Run("handles empty string", func(t *testing.T) {
+		var capturedValue string
+
+		captureValue := func(s string) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					capturedValue = s
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](""),
+			ChainFirstThunkK[TestConfig](captureValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(""), outcome)
+		assert.Equal(t, "", capturedValue)
+	})
+
+	t.Run("handles nil pointer", func(t *testing.T) {
+		var capturedPtr *int
+
+		capturePtr := func(ptr *int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					capturedPtr = ptr
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig]((*int)(nil)),
+			ChainFirstThunkK[TestConfig](capturePtr),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of((*int)(nil)), outcome)
+		assert.Nil(t, capturedPtr)
+	})
+}
+
+func TestChainFirstThunkK_Integration(t *testing.T) {
+	t.Run("composes with Map and Chain", func(t *testing.T) {
+		log := []string{}
+
+		logValue := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("value: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe3(
+			Of[TestConfig](5),
+			Map[TestConfig](func(x int) int { return x * 2 }),
+			ChainFirstThunkK[TestConfig](logValue),
+			Map[TestConfig](func(x int) int { return x + 3 }),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(13), outcome) // (5 * 2) + 3
+		assert.Equal(t, 1, len(log))
+		assert.Equal(t, "value: 10", log[0])
+	})
+
+	t.Run("composes with ChainThunkK", func(t *testing.T) {
+		log := []string{}
+
+		logSideEffect := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("side-effect: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		transformValue := func(n int) readerioresult.ReaderIOResult[string] {
+			return func(ctx context.Context) io.IO[result.Result[string]] {
+				return func() result.Result[string] {
+					log = append(log, fmt.Sprintf("transform: %d", n))
+					return result.Of(fmt.Sprintf("Result: %d", n))
+				}
+			}
+		}
+
+		computation := F.Pipe2(
+			Of[TestConfig](42),
+			ChainFirstThunkK[TestConfig](logSideEffect),
+			ChainThunkK[TestConfig](transformValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of("Result: 42"), outcome)
+		assert.Equal(t, 2, len(log))
+		assert.Equal(t, "side-effect: 42", log[0])
+		assert.Equal(t, "transform: 42", log[1])
+	})
+
+	t.Run("composes with ChainReaderK and ChainReaderIOK", func(t *testing.T) {
+		log := []string{}
+
+		addMultiplier := func(n int) reader.Reader[TestConfig, int] {
+			return func(cfg TestConfig) int {
+				return n + cfg.Multiplier
+			}
+		}
+
+		logReaderIO := func(n int) readerio.ReaderIO[TestConfig, int] {
+			return func(cfg TestConfig) io.IO[int] {
+				return func() int {
+					log = append(log, fmt.Sprintf("reader-io: %d", n))
+					return n * 2
+				}
+			}
+		}
+
+		logThunk := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("thunk: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe3(
+			Of[TestConfig](5),
+			ChainReaderK(addMultiplier),
+			ChainReaderIOK(logReaderIO),
+			ChainFirstThunkK[TestConfig](logThunk),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(16), outcome) // (5 + 3) * 2
+		assert.Equal(t, 2, len(log))
+		assert.Equal(t, "reader-io: 8", log[0])
+		assert.Equal(t, "thunk: 16", log[1])
+	})
+}
+
+func TestTapThunkK_Success(t *testing.T) {
+	t.Run("is alias for ChainFirstThunkK", func(t *testing.T) {
+		log := []string{}
+
+		logValue := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("tapped: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			TapThunkK[TestConfig](logValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(42), outcome)
+		assert.Equal(t, 1, len(log))
+		assert.Equal(t, "tapped: 42", log[0])
+	})
+
+	t.Run("useful for logging without changing value", func(t *testing.T) {
+		log := []string{}
+
+		logStep := func(step string) func(int) readerioresult.ReaderIOResult[any] {
+			return func(n int) readerioresult.ReaderIOResult[any] {
+				return func(ctx context.Context) io.IO[result.Result[any]] {
+					return func() result.Result[any] {
+						log = append(log, fmt.Sprintf("%s: %d", step, n))
+						return result.Of[any](nil)
+					}
+				}
+			}
+		}
+
+		computation := F.Pipe4(
+			Of[TestConfig](10),
+			TapThunkK[TestConfig](logStep("start")),
+			Map[TestConfig](func(x int) int { return x * 2 }),
+			TapThunkK[TestConfig](logStep("after-map")),
+			Map[TestConfig](func(x int) int { return x + 5 }),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(25), outcome) // (10 * 2) + 5
+		assert.Equal(t, 2, len(log))
+		assert.Equal(t, "start: 10", log[0])
+		assert.Equal(t, "after-map: 20", log[1])
+	})
+
+	t.Run("can perform IO operations", func(t *testing.T) {
+		var ioExecuted bool
+
+		performIO := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					// Simulate IO operation
+					ioExecuted = true
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			TapThunkK[TestConfig](performIO),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(42), outcome)
+		assert.True(t, ioExecuted)
+	})
+}
+
+func TestTapThunkK_Failure(t *testing.T) {
+	t.Run("propagates error from previous effect", func(t *testing.T) {
+		testErr := fmt.Errorf("previous error")
+		tapExecuted := false
+
+		tapValue := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					tapExecuted = true
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Fail[TestConfig, int](testErr),
+			TapThunkK[TestConfig](tapValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Left[int](testErr), outcome)
+		assert.False(t, tapExecuted)
+	})
+
+	t.Run("propagates error from tap operation", func(t *testing.T) {
+		testErr := fmt.Errorf("tap error")
+
+		failingTap := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					return result.Left[any](testErr)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Of[TestConfig](42),
+			TapThunkK[TestConfig](failingTap),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Left[int](testErr), outcome)
+	})
+}
+
+func TestTapThunkK_EdgeCases(t *testing.T) {
+	t.Run("handles multiple taps in sequence", func(t *testing.T) {
+		log := []string{}
+
+		tap1 := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, "tap1")
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		tap2 := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, "tap2")
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		tap3 := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, "tap3")
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe3(
+			Of[TestConfig](42),
+			TapThunkK[TestConfig](tap1),
+			TapThunkK[TestConfig](tap2),
+			TapThunkK[TestConfig](tap3),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(42), outcome)
+		assert.Equal(t, []string{"tap1", "tap2", "tap3"}, log)
+	})
+}
+
+func TestTapThunkK_Integration(t *testing.T) {
+	t.Run("real-world logging scenario", func(t *testing.T) {
+		log := []string{}
+
+		logStart := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("Starting computation with: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		logIntermediate := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("Intermediate result: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		logFinal := func(s string) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("Final result: %s", s))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe5(
+			Of[TestConfig](10),
+			TapThunkK[TestConfig](logStart),
+			Map[TestConfig](func(x int) int { return x * 3 }),
+			TapThunkK[TestConfig](logIntermediate),
+			Map[TestConfig](func(x int) string { return fmt.Sprintf("Value: %d", x) }),
+			TapThunkK[TestConfig](logFinal),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of("Value: 30"), outcome)
+		assert.Equal(t, 3, len(log))
+		assert.Equal(t, "Starting computation with: 10", log[0])
+		assert.Equal(t, "Intermediate result: 30", log[1])
+		assert.Equal(t, "Final result: Value: 30", log[2])
+	})
+
+	t.Run("composes with FromThunk", func(t *testing.T) {
+		log := []string{}
+
+		thunk := func(ctx context.Context) io.IO[result.Result[int]] {
+			return func() result.Result[int] {
+				return result.Of(100)
+			}
+		}
+
+		logValue := func(n int) readerioresult.ReaderIOResult[any] {
+			return func(ctx context.Context) io.IO[result.Result[any]] {
+				return func() result.Result[any] {
+					log = append(log, fmt.Sprintf("value: %d", n))
+					return result.Of[any](nil)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			FromThunk[TestConfig](thunk),
+			TapThunkK[TestConfig](logValue),
+		)
+		outcome := computation(testConfig)(context.Background())()
+
+		assert.Equal(t, result.Of(100), outcome)
+		assert.Equal(t, 1, len(log))
+		assert.Equal(t, "value: 100", log[0])
+	})
+}
+
 func TestAsks_Success(t *testing.T) {
 	t.Run("extracts a field from context", func(t *testing.T) {
 		type Config struct {
@@ -685,7 +1266,7 @@ func TestAsks_Success(t *testing.T) {
 			Port int
 		}
 
-		getHost := Asks[Config](func(cfg Config) string {
+		getHost := Asks(func(cfg Config) string {
 			return cfg.Host
 		})
 
@@ -701,7 +1282,7 @@ func TestAsks_Success(t *testing.T) {
 			Port int
 		}
 
-		getURL := Asks[Config](func(cfg Config) string {
+		getURL := Asks(func(cfg Config) string {
 			return fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
 		})
 
@@ -712,7 +1293,7 @@ func TestAsks_Success(t *testing.T) {
 	})
 
 	t.Run("extracts numeric field", func(t *testing.T) {
-		getPort := Asks[TestConfig](func(cfg TestConfig) int {
+		getPort := Asks(func(cfg TestConfig) int {
 			return cfg.Multiplier
 		})
 
@@ -728,7 +1309,7 @@ func TestAsks_Success(t *testing.T) {
 			Height int
 		}
 
-		getArea := Asks[Config](func(cfg Config) int {
+		getArea := Asks(func(cfg Config) int {
 			return cfg.Width * cfg.Height
 		})
 
@@ -739,7 +1320,7 @@ func TestAsks_Success(t *testing.T) {
 	})
 
 	t.Run("transforms string field", func(t *testing.T) {
-		getUpperPrefix := Asks[TestConfig](func(cfg TestConfig) string {
+		getUpperPrefix := Asks(func(cfg TestConfig) string {
 			return fmt.Sprintf("[%s]", cfg.Prefix)
 		})
 
@@ -756,7 +1337,7 @@ func TestAsks_EdgeCases(t *testing.T) {
 			Value int
 		}
 
-		getValue := Asks[Config](func(cfg Config) int {
+		getValue := Asks(func(cfg Config) int {
 			return cfg.Value
 		})
 
@@ -771,7 +1352,7 @@ func TestAsks_EdgeCases(t *testing.T) {
 			Name string
 		}
 
-		getName := Asks[Config](func(cfg Config) string {
+		getName := Asks(func(cfg Config) string {
 			return cfg.Name
 		})
 
@@ -786,7 +1367,7 @@ func TestAsks_EdgeCases(t *testing.T) {
 			Data *string
 		}
 
-		hasData := Asks[Config](func(cfg Config) bool {
+		hasData := Asks(func(cfg Config) bool {
 			return cfg.Data != nil
 		})
 
@@ -805,7 +1386,7 @@ func TestAsks_EdgeCases(t *testing.T) {
 			DB Database
 		}
 
-		getDBHost := Asks[Config](func(cfg Config) string {
+		getDBHost := Asks(func(cfg Config) string {
 			return cfg.DB.Host
 		})
 
@@ -825,7 +1406,7 @@ func TestAsks_Integration(t *testing.T) {
 		}
 
 		computation := F.Pipe1(
-			Asks[Config](func(cfg Config) int {
+			Asks(func(cfg Config) int {
 				return cfg.Value
 			}),
 			Map[Config](func(x int) int { return x * 2 }),
@@ -843,7 +1424,7 @@ func TestAsks_Integration(t *testing.T) {
 		}
 
 		computation := F.Pipe1(
-			Asks[Config](func(cfg Config) int {
+			Asks(func(cfg Config) int {
 				return cfg.Multiplier
 			}),
 			Chain(func(mult int) Effect[Config, int] {
@@ -859,7 +1440,7 @@ func TestAsks_Integration(t *testing.T) {
 
 	t.Run("composes with ChainReaderK", func(t *testing.T) {
 		computation := F.Pipe1(
-			Asks[TestConfig](func(cfg TestConfig) int {
+			Asks(func(cfg TestConfig) int {
 				return cfg.Multiplier
 			}),
 			ChainReaderK(func(mult int) reader.Reader[TestConfig, int] {
@@ -879,7 +1460,7 @@ func TestAsks_Integration(t *testing.T) {
 		log := []string{}
 
 		computation := F.Pipe1(
-			Asks[TestConfig](func(cfg TestConfig) string {
+			Asks(func(cfg TestConfig) string {
 				return cfg.Prefix
 			}),
 			ChainReaderIOK(func(prefix string) readerio.ReaderIO[TestConfig, string] {
@@ -906,11 +1487,11 @@ func TestAsks_Integration(t *testing.T) {
 		}
 
 		computation := F.Pipe2(
-			Asks[Config](func(cfg Config) string {
+			Asks(func(cfg Config) string {
 				return cfg.First
 			}),
 			Chain(func(_ string) Effect[Config, string] {
-				return Asks[Config](func(cfg Config) string {
+				return Asks(func(cfg Config) string {
 					return cfg.Second
 				})
 			}),
@@ -933,7 +1514,7 @@ func TestAsks_Integration(t *testing.T) {
 		computation := F.Pipe1(
 			Ask[Config](),
 			Chain(func(cfg Config) Effect[Config, int] {
-				return Asks[Config](func(c Config) int {
+				return Asks(func(c Config) int {
 					return c.Value * 2
 				})
 			}),
@@ -953,7 +1534,7 @@ func TestAsks_Comparison(t *testing.T) {
 		}
 
 		// Using Asks
-		asksVersion := Asks[Config](func(cfg Config) int {
+		asksVersion := Asks(func(cfg Config) int {
 			return cfg.Port
 		})
 
@@ -983,7 +1564,7 @@ func TestAsks_Comparison(t *testing.T) {
 		}
 
 		// Asks is more direct for field extraction
-		getHost := Asks[Config](func(cfg Config) string {
+		getHost := Asks(func(cfg Config) string {
 			return cfg.Host
 		})
 
@@ -1003,7 +1584,7 @@ func TestAsks_RealWorldScenarios(t *testing.T) {
 			User     string
 		}
 
-		getConnectionString := Asks[DatabaseConfig](func(cfg DatabaseConfig) string {
+		getConnectionString := Asks(func(cfg DatabaseConfig) string {
 			return fmt.Sprintf("postgres://%s@%s:%d/%s",
 				cfg.User, cfg.Host, cfg.Port, cfg.Database)
 		})
@@ -1027,7 +1608,7 @@ func TestAsks_RealWorldScenarios(t *testing.T) {
 			BasePath string
 		}
 
-		getEndpoint := Asks[APIConfig](func(cfg APIConfig) string {
+		getEndpoint := Asks(func(cfg APIConfig) string {
 			return fmt.Sprintf("%s://%s:%d%s",
 				cfg.Protocol, cfg.Host, cfg.Port, cfg.BasePath)
 		})
@@ -1049,7 +1630,7 @@ func TestAsks_RealWorldScenarios(t *testing.T) {
 			MaxRetries int
 		}
 
-		isValid := Asks[Config](func(cfg Config) bool {
+		isValid := Asks(func(cfg Config) bool {
 			return cfg.Timeout > 0 && cfg.MaxRetries >= 0
 		})
 
