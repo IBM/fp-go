@@ -1079,3 +1079,55 @@ func FromSeqPair[A, B any](as Seq[Pair[A, B]]) Seq2[A, B] {
 		}
 	}
 }
+
+// Skip returns an operator that skips the first n elements of a sequence.
+//
+// This function creates a transformation that discards the first n elements from
+// the source sequence and yields all remaining elements. If n is less than or equal
+// to 0, all elements are yielded. If n is greater than or equal to the sequence length,
+// an empty sequence is returned.
+//
+// The operation is lazy and only consumes elements from the source sequence as needed.
+// The first n elements are consumed and discarded, then subsequent elements are yielded.
+//
+// RxJS Equivalent: [skip] - https://rxjs.dev/api/operators/skip
+//
+// Type Parameters:
+//   - U: The type of elements in the sequence
+//
+// Parameters:
+//   - count: The number of elements to skip from the beginning of the sequence
+//
+// Returns:
+//   - An Operator that transforms a Seq[U] by skipping the first count elements
+//
+// Example - Skip first 3 elements:
+//
+//	seq := From(1, 2, 3, 4, 5)
+//	result := Skip[int](3)(seq)
+//	// yields: 4, 5
+//
+// Example - Skip more than available:
+//
+//	seq := From(1, 2)
+//	result := Skip[int](5)(seq)
+//	// yields: nothing (empty sequence)
+//
+// Example - Skip zero or negative:
+//
+//	seq := From(1, 2, 3)
+//	result := Skip[int](0)(seq)
+//	// yields: 1, 2, 3 (all elements)
+//
+// Example - Chaining with other operations:
+//
+//	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+//	result := F.Pipe2(
+//	    seq,
+//	    Skip[int](3),
+//	    MonadFilter(seq, func(x int) bool { return x%2 == 0 }),
+//	)
+//	// yields: 4, 6, 8, 10 (skip first 3, then filter evens)
+func Skip[U any](count int) Operator[U, U] {
+	return FilterWithIndex(func(idx int, _ U) bool { return idx >= count })
+}

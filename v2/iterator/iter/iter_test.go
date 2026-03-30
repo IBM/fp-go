@@ -612,3 +612,440 @@ func TestMapToArrayIdentity(t *testing.T) {
 	result := mapper(seq)
 	assert.Equal(t, []string{"a", "b", "c"}, result)
 }
+
+// TestSkip tests basic Skip functionality
+func TestSkip(t *testing.T) {
+	t.Run("skips first n elements from sequence", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(Skip[int](3)(seq))
+		assert.Equal(t, []int{4, 5}, result)
+	})
+
+	t.Run("skips first element", func(t *testing.T) {
+		seq := From(10, 20, 30)
+		result := toSlice(Skip[int](1)(seq))
+		assert.Equal(t, []int{20, 30}, result)
+	})
+
+	t.Run("skips all elements when n equals length", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		result := toSlice(Skip[int](3)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("skips all elements when n exceeds length", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		result := toSlice(Skip[int](10)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("skips from string sequence", func(t *testing.T) {
+		seq := From("a", "b", "c", "d", "e")
+		result := toSlice(Skip[string](2)(seq))
+		assert.Equal(t, []string{"c", "d", "e"}, result)
+	})
+
+	t.Run("skips from single element sequence", func(t *testing.T) {
+		seq := From(42)
+		result := toSlice(Skip[int](1)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("skips from large sequence", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		result := toSlice(Skip[int](7)(seq))
+		assert.Equal(t, []int{8, 9, 10}, result)
+	})
+}
+
+// TestSkipZeroOrNegative tests Skip with zero or negative values
+func TestSkipZeroOrNegative(t *testing.T) {
+	t.Run("returns all elements when n is zero", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(Skip[int](0)(seq))
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
+	})
+
+	t.Run("returns all elements when n is negative", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(Skip[int](-1)(seq))
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
+	})
+
+	t.Run("returns all elements when n is large negative", func(t *testing.T) {
+		seq := From("a", "b", "c")
+		result := toSlice(Skip[string](-100)(seq))
+		assert.Equal(t, []string{"a", "b", "c"}, result)
+	})
+}
+
+// TestSkipEmpty tests Skip with empty sequences
+func TestSkipEmpty(t *testing.T) {
+	t.Run("returns empty from empty integer sequence", func(t *testing.T) {
+		seq := Empty[int]()
+		result := toSlice(Skip[int](5)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("returns empty from empty string sequence", func(t *testing.T) {
+		seq := Empty[string]()
+		result := toSlice(Skip[string](3)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("returns empty when skipping zero from empty", func(t *testing.T) {
+		seq := Empty[int]()
+		result := toSlice(Skip[int](0)(seq))
+		assert.Empty(t, result)
+	})
+}
+
+// TestSkipWithComplexTypes tests Skip with complex data types
+func TestSkipWithComplexTypes(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	t.Run("skips structs", func(t *testing.T) {
+		seq := From(
+			Person{"Alice", 30},
+			Person{"Bob", 25},
+			Person{"Charlie", 35},
+			Person{"David", 28},
+		)
+		result := toSlice(Skip[Person](2)(seq))
+		expected := []Person{
+			{"Charlie", 35},
+			{"David", 28},
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("skips pointers", func(t *testing.T) {
+		p1 := &Person{"Alice", 30}
+		p2 := &Person{"Bob", 25}
+		p3 := &Person{"Charlie", 35}
+		seq := From(p1, p2, p3)
+		result := toSlice(Skip[*Person](1)(seq))
+		assert.Equal(t, []*Person{p2, p3}, result)
+	})
+
+	t.Run("skips slices", func(t *testing.T) {
+		seq := From([]int{1, 2}, []int{3, 4}, []int{5, 6}, []int{7, 8})
+		result := toSlice(Skip[[]int](2)(seq))
+		expected := [][]int{{5, 6}, {7, 8}}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestSkipWithChainedOperations tests Skip with other sequence operations
+func TestSkipWithChainedOperations(t *testing.T) {
+	t.Run("skip after map", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		mapped := MonadMap(seq, N.Mul(2))
+		result := toSlice(Skip[int](2)(mapped))
+		assert.Equal(t, []int{6, 8, 10}, result)
+	})
+
+	t.Run("skip after filter", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		filtered := MonadFilter(seq, func(x int) bool { return x%2 == 0 })
+		result := toSlice(Skip[int](2)(filtered))
+		assert.Equal(t, []int{6, 8, 10}, result)
+	})
+
+	t.Run("map after skip", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		skipped := Skip[int](2)(seq)
+		result := toSlice(MonadMap(skipped, N.Mul(10)))
+		assert.Equal(t, []int{30, 40, 50}, result)
+	})
+
+	t.Run("filter after skip", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8)
+		skipped := Skip[int](2)(seq)
+		result := toSlice(MonadFilter(skipped, func(x int) bool { return x%2 == 0 }))
+		assert.Equal(t, []int{4, 6, 8}, result)
+	})
+
+	t.Run("skip after chain", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		chained := MonadChain(seq, func(x int) Seq[int] {
+			return From(x, x*10)
+		})
+		result := toSlice(Skip[int](3)(chained))
+		assert.Equal(t, []int{20, 3, 30}, result)
+	})
+
+	t.Run("multiple skips", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		skipped1 := Skip[int](2)(seq)
+		skipped2 := Skip[int](3)(skipped1)
+		result := toSlice(skipped2)
+		assert.Equal(t, []int{6, 7, 8, 9, 10}, result)
+	})
+
+	t.Run("skip and take", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		skipped := Skip[int](3)(seq)
+		taken := Take[int](3)(skipped)
+		result := toSlice(taken)
+		assert.Equal(t, []int{4, 5, 6}, result)
+	})
+
+	t.Run("take and skip", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		taken := Take[int](7)(seq)
+		skipped := Skip[int](2)(taken)
+		result := toSlice(skipped)
+		assert.Equal(t, []int{3, 4, 5, 6, 7}, result)
+	})
+}
+
+// TestSkipWithReplicate tests Skip with Replicate
+func TestSkipWithReplicate(t *testing.T) {
+	t.Run("skips from replicated sequence", func(t *testing.T) {
+		seq := Replicate(10, 42)
+		result := toSlice(Skip[int](7)(seq))
+		assert.Equal(t, []int{42, 42, 42}, result)
+	})
+
+	t.Run("skips all from short replicate", func(t *testing.T) {
+		seq := Replicate(2, "hello")
+		result := toSlice(Skip[string](5)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("skips zero from replicate", func(t *testing.T) {
+		seq := Replicate(3, 100)
+		result := toSlice(Skip[int](0)(seq))
+		assert.Equal(t, []int{100, 100, 100}, result)
+	})
+}
+
+// TestSkipWithMakeBy tests Skip with MakeBy
+func TestSkipWithMakeBy(t *testing.T) {
+	t.Run("skips from generated sequence", func(t *testing.T) {
+		seq := MakeBy(10, func(i int) int { return i * i })
+		result := toSlice(Skip[int](5)(seq))
+		assert.Equal(t, []int{25, 36, 49, 64, 81}, result)
+	})
+
+	t.Run("skips more than generated", func(t *testing.T) {
+		seq := MakeBy(3, func(i int) int { return i + 1 })
+		result := toSlice(Skip[int](10)(seq))
+		assert.Empty(t, result)
+	})
+}
+
+// TestSkipWithPrependAppend tests Skip with Prepend and Append
+func TestSkipWithPrependAppend(t *testing.T) {
+	t.Run("skip from prepended sequence", func(t *testing.T) {
+		seq := From(2, 3, 4, 5)
+		prepended := Prepend(1)(seq)
+		result := toSlice(Skip[int](2)(prepended))
+		assert.Equal(t, []int{3, 4, 5}, result)
+	})
+
+	t.Run("skip from appended sequence", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		appended := Append(4)(seq)
+		result := toSlice(Skip[int](2)(appended))
+		assert.Equal(t, []int{3, 4}, result)
+	})
+
+	t.Run("skip includes appended element", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		appended := Append(4)(seq)
+		result := toSlice(Skip[int](3)(appended))
+		assert.Equal(t, []int{4}, result)
+	})
+}
+
+// TestSkipWithFlatten tests Skip with Flatten
+func TestSkipWithFlatten(t *testing.T) {
+	t.Run("skips from flattened sequence", func(t *testing.T) {
+		nested := From(From(1, 2), From(3, 4), From(5, 6))
+		flattened := Flatten(nested)
+		result := toSlice(Skip[int](3)(flattened))
+		assert.Equal(t, []int{4, 5, 6}, result)
+	})
+
+	t.Run("skips from flattened with empty inner sequences", func(t *testing.T) {
+		nested := From(From(1, 2), Empty[int](), From(3, 4))
+		flattened := Flatten(nested)
+		result := toSlice(Skip[int](2)(flattened))
+		assert.Equal(t, []int{3, 4}, result)
+	})
+}
+
+// TestSkipDoesNotConsumeSkippedElements tests that Skip is efficient
+func TestSkipDoesNotConsumeSkippedElements(t *testing.T) {
+	t.Run("processes all elements including skipped", func(t *testing.T) {
+		callCount := 0
+		seq := MonadMap(From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), func(x int) int {
+			callCount++
+			return x * 2
+		})
+
+		skipped := Skip[int](7)(seq)
+
+		result := []int{}
+		for v := range skipped {
+			result = append(result, v)
+		}
+
+		assert.Equal(t, []int{16, 18, 20}, result)
+		// Skip still needs to iterate through skipped elements to count them
+		assert.Equal(t, 10, callCount, "should process all elements")
+	})
+}
+
+// TestSkipEdgeCases tests edge cases
+func TestSkipEdgeCases(t *testing.T) {
+	t.Run("skip 0 from single element", func(t *testing.T) {
+		seq := From(42)
+		result := toSlice(Skip[int](0)(seq))
+		assert.Equal(t, []int{42}, result)
+	})
+
+	t.Run("skip 1 from single element", func(t *testing.T) {
+		seq := From(42)
+		result := toSlice(Skip[int](1)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("skip large number from small sequence", func(t *testing.T) {
+		seq := From(1, 2)
+		result := toSlice(Skip[int](1000000)(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("skip with very large n", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		result := toSlice(Skip[int](int(^uint(0) >> 1))(seq)) // max int
+		assert.Empty(t, result)
+	})
+
+	t.Run("skip all but one", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(Skip[int](4)(seq))
+		assert.Equal(t, []int{5}, result)
+	})
+}
+
+// Benchmark tests for Skip
+func BenchmarkSkip(b *testing.B) {
+	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	b.ResetTimer()
+	for range b.N {
+		skipped := Skip[int](5)(seq)
+		for range skipped {
+		}
+	}
+}
+
+func BenchmarkSkipLargeSequence(b *testing.B) {
+	data := make([]int, 1000)
+	for i := range data {
+		data[i] = i
+	}
+	seq := From(data...)
+	b.ResetTimer()
+	for range b.N {
+		skipped := Skip[int](900)(seq)
+		for range skipped {
+		}
+	}
+}
+
+func BenchmarkSkipWithMap(b *testing.B) {
+	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	b.ResetTimer()
+	for range b.N {
+		mapped := MonadMap(seq, N.Mul(2))
+		skipped := Skip[int](5)(mapped)
+		for range skipped {
+		}
+	}
+}
+
+func BenchmarkSkipWithFilter(b *testing.B) {
+	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	b.ResetTimer()
+	for range b.N {
+		filtered := MonadFilter(seq, func(x int) bool { return x%2 == 0 })
+		skipped := Skip[int](2)(filtered)
+		for range skipped {
+		}
+	}
+}
+
+// Example tests for documentation
+func ExampleSkip() {
+	seq := From(1, 2, 3, 4, 5)
+	skipped := Skip[int](3)(seq)
+
+	for v := range skipped {
+		fmt.Printf("%d ", v)
+	}
+	// Output: 4 5
+}
+
+func ExampleSkip_moreThanAvailable() {
+	seq := From(1, 2, 3)
+	skipped := Skip[int](10)(seq)
+
+	count := 0
+	for range skipped {
+		count++
+	}
+	fmt.Printf("Count: %d\n", count)
+	// Output: Count: 0
+}
+
+func ExampleSkip_zero() {
+	seq := From(1, 2, 3, 4, 5)
+	skipped := Skip[int](0)(seq)
+
+	for v := range skipped {
+		fmt.Printf("%d ", v)
+	}
+	// Output: 1 2 3 4 5
+}
+
+func ExampleSkip_withFilter() {
+	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	evens := MonadFilter(seq, func(x int) bool { return x%2 == 0 })
+	skipped := Skip[int](2)(evens)
+
+	for v := range skipped {
+		fmt.Printf("%d ", v)
+	}
+	// Output: 6 8 10
+}
+
+func ExampleSkip_withMap() {
+	seq := From(1, 2, 3, 4, 5)
+	doubled := MonadMap(seq, N.Mul(2))
+	skipped := Skip[int](2)(doubled)
+
+	for v := range skipped {
+		fmt.Printf("%d ", v)
+	}
+	// Output: 6 8 10
+}
+
+func ExampleSkip_chained() {
+	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	result := F.Pipe3(
+		seq,
+		Skip[int](3),
+		Filter(func(x int) bool { return x%2 == 0 }),
+		toSlice[int],
+	)
+
+	fmt.Println(result)
+	// Output: [4 6 8 10]
+}
