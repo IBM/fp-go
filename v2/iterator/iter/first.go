@@ -23,6 +23,16 @@ import "github.com/IBM/fp-go/v2/option"
 // contains at least one element, it returns Some(element). If the iterator is empty,
 // it returns None. The function consumes only the first element of the iterator.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5-->
+//	First
+//	Output: --Some(1)|
+//
+//	Input:  --|
+//	First
+//	Output: --None|
+//
 // RxJS Equivalent: [first] - https://rxjs.dev/api/operators/first
 //
 // Type Parameters:

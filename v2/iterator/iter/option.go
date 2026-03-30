@@ -28,6 +28,13 @@ import (
 //
 // This is the monadic form that takes the sequence as the first parameter.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5-->
+//	ChainOptionK(x => x % 2 == 0 ? Some(x * 10) : None)
+//	Output: -----20----40---->
+//	        (filters and transforms)
+//
 // RxJS Equivalent: [concatMap] combined with [filter] - https://rxjs.dev/api/operators/concatMap
 //
 // Type parameters:
@@ -71,6 +78,13 @@ func MonadChainOptionK[A, B any](as Seq[A], f option.Kleisli[A, B]) Seq[B] {
 //
 // This is the curried version of [MonadChainOptionK], useful for function composition
 // and creating reusable transformations.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5-->
+//	ChainOptionK(x => x > 2 ? Some(x) : None)
+//	Output: --------3--4--5-->
+//	        (filters out values <= 2)
 //
 // RxJS Equivalent: [concatMap] combined with [filter] - https://rxjs.dev/api/operators/concatMap
 //

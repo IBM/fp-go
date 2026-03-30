@@ -10,6 +10,16 @@ import (
 // sequence. If the iterator contains at least one element, it returns Some(element).
 // If the iterator is empty, it returns None.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5--|
+//	Last
+//	Output: -----------------Some(5)|
+//
+//	Input:  --|
+//	Last
+//	Output: --None|
+//
 // RxJS Equivalent: [last] - https://rxjs.dev/api/operators/last
 //
 // Type Parameters:

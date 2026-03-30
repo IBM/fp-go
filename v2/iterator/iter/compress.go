@@ -34,6 +34,13 @@ import (
 //  3. Filtering to keep only pairs where the boolean (tail) is true
 //  4. Extracting the original values (head) from the filtered pairs
 //
+// Marble Diagram:
+//
+//	Data:      --1--2--3--4--5-->
+//	Selectors: --T--F--T--F--T-->
+//	Compress
+//	Output:    --1-----3-----5-->
+//
 // RxJS Equivalent: Similar to combining [zip] with [filter] - https://rxjs.dev/api/operators/zip
 //
 // Type Parameters:

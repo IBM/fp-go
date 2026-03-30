@@ -21,6 +21,12 @@ package iter
 // all elements repeatedly. When the end of the input sequence is reached, it starts over
 // from the beginning, continuing this pattern forever.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3|
+//	Cycle
+//	Output: --1--2--3--1--2--3--1--2--3--> (infinite)
+//
 // RxJS Equivalent: [repeat] - https://rxjs.dev/api/operators/repeat
 //
 // WARNING: This creates an INFINITE sequence for non-empty inputs. It must be used with

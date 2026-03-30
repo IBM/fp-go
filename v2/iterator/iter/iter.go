@@ -82,6 +82,12 @@ func Of2[K, A any](k K, a A) Seq2[K, A] {
 // MonadMap transforms each element in a sequence using the provided function.
 // This is the monadic version that takes the sequence as the first parameter.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3-->
+//	Map(x => x * 2)
+//	Output: --2--4--6-->
+//
 // RxJS Equivalent: [map] - https://rxjs.dev/api/operators/map
 //
 // Example:
@@ -185,6 +191,12 @@ func MapWithKey[K, A, B any](f func(K, A) B) Operator2[K, A, B] {
 }
 
 // MonadFilter returns a sequence containing only elements that satisfy the predicate.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5-->
+//	Filter(x => x % 2 == 0)
+//	Output: -----2-----4----->
 //
 // RxJS Equivalent: [filter] - https://rxjs.dev/api/operators/filter
 //
@@ -292,6 +304,12 @@ func FilterWithKey[K, A any](pred func(K, A) bool) Operator2[K, A, A] {
 
 // MonadFilterMap applies a function that returns an Option to each element,
 // keeping only the Some values and unwrapping them.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5-->
+//	FilterMap(x => x % 2 == 0 ? Some(x * 10) : None)
+//	Output: -----20----40---->
 //
 // Example:
 //
@@ -430,6 +448,12 @@ func FilterMapWithKey[K, A, B any](f func(K, A) Option[B]) Operator2[K, A, B] {
 // MonadChain applies a function that returns a sequence to each element and flattens the results.
 // This is the monadic bind operation (flatMap).
 //
+// Marble Diagram:
+//
+//	Input:  --1-----2-----3---->
+//	Chain(x => [x, x*10])
+//	Output: --1-10--2-20--3-30->
+//
 // RxJS Equivalent: [mergeMap/flatMap] - https://rxjs.dev/api/operators/mergeMap
 //
 // Example:
@@ -473,6 +497,12 @@ func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 
 // Flatten flattens a sequence of sequences into a single sequence.
 //
+// Marble Diagram:
+//
+//	Input:  --[1,2]--[3,4]--[5]-->
+//	Flatten
+//	Output: --1-2----3-4----5---->
+//
 // RxJS Equivalent: [mergeAll] - https://rxjs.dev/api/operators/mergeAll
 //
 // Example:
@@ -488,6 +518,14 @@ func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
 
 // MonadAp applies a sequence of functions to a sequence of values.
 // This is the applicative apply operation.
+//
+// Marble Diagram:
+//
+//	Functions: --(*2)---(+10)-->
+//	Values:    --5------3------>
+//	Ap
+//	Output:    --10-6---15-13-->
+//	           (each function applied to each value)
 //
 // Example:
 //
@@ -576,6 +614,13 @@ func Replicate[A any](n int, a A) Seq[A] {
 
 // MonadReduce reduces a sequence to a single value by applying a function to each element
 // and an accumulator, starting with an initial value.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5--|
+//	Reduce((acc, x) => acc + x, 0)
+//	Output: ------------------15|
+//	        (emits final result only)
 //
 // RxJS Equivalent: [reduce] - https://rxjs.dev/api/operators/reduce
 //
@@ -811,6 +856,13 @@ func FoldMapWithKey[K, A, B any](m M.Monoid[B]) func(func(K, A) B) func(Seq2[K, 
 // MonadFlap applies a fixed value to a sequence of functions.
 // This is the dual of MonadAp.
 //
+// Marble Diagram:
+//
+//	Functions: --(*2)---(+10)-->
+//	Value:     5 (fixed)
+//	Flap
+//	Output:    --10-----15----->
+//
 // Example:
 //
 //	fns := From(N.Mul(2), N.Add(10))
@@ -832,6 +884,12 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 
 // Prepend returns a function that adds an element to the beginning of a sequence.
 //
+// Marble Diagram:
+//
+//	Input:  -----2--3--4-->
+//	Prepend(1)
+//	Output: --1--2--3--4-->
+//
 // RxJS Equivalent: [startWith] - https://rxjs.dev/api/operators/startWith
 //
 // Example:
@@ -846,6 +904,12 @@ func Prepend[A any](head A) Operator[A, A] {
 }
 
 // Append returns a function that adds an element to the end of a sequence.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3-----|
+//	Append(4)
+//	Output: --1--2--3--4--|
 //
 // RxJS Equivalent: [endWith] - https://rxjs.dev/api/operators/endWith
 //
@@ -862,6 +926,14 @@ func Append[A any](tail A) Operator[A, A] {
 
 // MonadZip combines two sequences into a sequence of pairs.
 // The resulting sequence stops when either input sequence is exhausted.
+//
+// Marble Diagram:
+//
+//	SeqA:   --1--2--3---->
+//	SeqB:   --a--b------->
+//	Zip
+//	Output: --(1,a)-(2,b)|
+//	        (stops when shorter sequence ends)
 //
 // RxJS Equivalent: [zip] - https://rxjs.dev/api/operators/zip
 //
@@ -1089,6 +1161,12 @@ func FromSeqPair[A, B any](as Seq[Pair[A, B]]) Seq2[A, B] {
 //
 // The operation is lazy and only consumes elements from the source sequence as needed.
 // The first n elements are consumed and discarded, then subsequent elements are yielded.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5--6--7--8-->
+//	Skip(3)
+//	Output: -----------4--5--6--7--8-->
 //
 // RxJS Equivalent: [skip] - https://rxjs.dev/api/operators/skip
 //

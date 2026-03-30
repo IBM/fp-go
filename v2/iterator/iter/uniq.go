@@ -32,6 +32,13 @@ import (
 // the number of unique keys encountered. The operation is lazy - elements are processed
 // and filtered as they are consumed.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3--2--4--1--5-->
+//	Uniq(identity)
+//	Output: --1--2--3-----4-----5-->
+//	        (first occurrence only)
+//
 // RxJS Equivalent: [distinct] - https://rxjs.dev/api/operators/distinct
 //
 // Type Parameters:
@@ -118,6 +125,13 @@ func Uniq[A any, K comparable](f func(A) K) Operator[A, A] {
 //
 // The operation maintains a map of seen elements internally, so memory usage grows with
 // the number of unique elements. Only the first occurrence of each unique element is kept.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3--2--4--1--5-->
+//	StrictUniq
+//	Output: --1--2--3-----4-----5-->
+//	        (first occurrence only)
 //
 // RxJS Equivalent: [distinct] - https://rxjs.dev/api/operators/distinct
 //

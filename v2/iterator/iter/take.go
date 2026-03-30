@@ -27,6 +27,12 @@ import F "github.com/IBM/fp-go/v2/function"
 // Once n elements have been yielded, iteration stops immediately without consuming
 // the remaining elements from the source.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5--6--7--8-->
+//	Take(3)
+//	Output: --1--2--3|
+//
 // RxJS Equivalent: [take] - https://rxjs.dev/api/operators/take
 //
 // Type Parameters:
@@ -89,6 +95,13 @@ func Take[U any](n int) Operator[U, U] {
 // The operation is lazy and only consumes elements from the source sequence as needed.
 // Once the predicate returns false, iteration stops immediately without consuming
 // the remaining elements from the source.
+//
+// Marble Diagram:
+//
+//	Input:       --1--2--3--4--5--2--1-->
+//	TakeWhile(x < 4)
+//	Output:      --1--2--3|
+//	                      (stops at 4)
 //
 // RxJS Equivalent: [takeWhile] - https://rxjs.dev/api/operators/takeWhile
 //
@@ -157,6 +170,13 @@ func TakeWhile[U any](p Predicate[U]) Operator[U, U] {
 // The operation is lazy and only consumes elements from the source sequence as needed.
 // Once the predicate returns false, all remaining elements are yielded without further
 // predicate evaluation.
+//
+// Marble Diagram:
+//
+//	Input:        --1--2--3--4--5--2--1-->
+//	SkipWhile(x < 4)
+//	Output:       -----------4--5--2--1-->
+//	                         (starts at 4, continues with all)
 //
 // RxJS Equivalent: [skipWhile] - https://rxjs.dev/api/operators/skipWhile
 //

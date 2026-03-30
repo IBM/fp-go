@@ -24,6 +24,13 @@ package iter
 //
 // The operation is lazy - intermediate values are computed only as they are consumed.
 //
+// Marble Diagram:
+//
+//	Input:  --1--2--3--4--5-->
+//	Scan((acc, x) => acc + x, 0)
+//	Output: --1--3--6--10-15->
+//	        (running sum)
+//
 // RxJS Equivalent: [scan] - https://rxjs.dev/api/operators/scan
 //
 // Scan is useful for:
