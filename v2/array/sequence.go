@@ -25,7 +25,7 @@ func MonadSequence[HKTA, HKTRA any](
 	fof func(HKTA) HKTRA,
 	m M.Monoid[HKTRA],
 	ma []HKTA) HKTRA {
-	return array.MonadSequence(fof, m.Empty(), m.Concat, ma)
+	return array.MonadSequence(fof, m.Empty, m.Concat, ma)
 }
 
 // Sequence takes an array where elements are HKT<A> (higher kinded type) and,
@@ -67,7 +67,7 @@ func Sequence[HKTA, HKTRA any](
 	fof func(HKTA) HKTRA,
 	m M.Monoid[HKTRA],
 ) func([]HKTA) HKTRA {
-	return array.Sequence[[]HKTA](fof, m.Empty(), m.Concat)
+	return array.Sequence[[]HKTA](fof, m.Empty, m.Concat)
 }
 
 // ArrayOption returns a function to convert a sequence of options into an option of a sequence.

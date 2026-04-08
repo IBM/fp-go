@@ -73,7 +73,7 @@ func MonadTraverse[GA ~func(yield func(A) bool), GB ~func(yield func(B) bool), A
 
 	fof := F.Bind2nd(fmap_b, Of[GB])
 
-	empty := fof_gb(Empty[GB]())
+	empty := F.Nullary2(Empty[GB], fof_gb)
 
 	cb := F.Curry2(Concat[GB])
 	concat_gb := F.Bind2nd(fmap_gb, cb)
@@ -180,7 +180,7 @@ func MonadSequence[GA ~func(yield func(HKTA) bool), HKTA, HKTRA any](
 
 	// convert to an array
 	hktb := ToArray[GA, []HKTA](ta)
-	return INTA.MonadSequenceSegment(fof, m.Empty(), m.Concat, hktb, 0, len(hktb))
+	return INTA.MonadSequenceSegment(fof, m.Empty, m.Concat, hktb, 0, len(hktb))
 }
 
 // MonadTraverseWithIndex traverses an iterator sequence with index tracking, applying an effectful
@@ -223,7 +223,7 @@ func MonadTraverseWithIndex[GA ~func(yield func(A) bool), A, HKTB, HKTRB any](
 
 	// convert to an array
 	hktb := MonadMapToArrayWithIndex[GA, []HKTB](ta, f)
-	return INTA.MonadSequenceSegment(fof, m.Empty(), m.Concat, hktb, 0, len(hktb))
+	return INTA.MonadSequenceSegment(fof, m.Empty, m.Concat, hktb, 0, len(hktb))
 }
 
 // Sequence is the curried version of MonadSequence, returning a function that sequences an iterator of effects.

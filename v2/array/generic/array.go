@@ -323,34 +323,31 @@ func Clone[AS ~[]A, A any](f func(A) A) func(as AS) AS {
 }
 
 func FoldMap[AS ~[]A, A, B any](m M.Monoid[B]) func(func(A) B) func(AS) B {
-	empty := m.Empty()
 	concat := m.Concat
 	return func(f func(A) B) func(AS) B {
 		return func(as AS) B {
 			return array.Reduce(as, func(cur B, a A) B {
 				return concat(cur, f(a))
-			}, empty)
+			}, m.Empty())
 		}
 	}
 }
 
 func FoldMapWithIndex[AS ~[]A, A, B any](m M.Monoid[B]) func(func(int, A) B) func(AS) B {
-	empty := m.Empty()
 	concat := m.Concat
 	return func(f func(int, A) B) func(AS) B {
 		return func(as AS) B {
 			return array.ReduceWithIndex(as, func(idx int, cur B, a A) B {
 				return concat(cur, f(idx, a))
-			}, empty)
+			}, m.Empty())
 		}
 	}
 }
 
 func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
-	empty := m.Empty()
 	concat := m.Concat
 	return func(as AS) A {
-		return array.Reduce(as, concat, empty)
+		return array.Reduce(as, concat, m.Empty())
 	}
 }
 

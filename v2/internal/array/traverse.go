@@ -46,7 +46,7 @@ import (
 //   - Multiple elements: recursively divides and conquers
 func MonadSequenceSegment[HKTB, HKTRB any](
 	fof func(HKTB) HKTRB,
-	empty HKTRB,
+	empty func() HKTRB,
 	concat func(HKTRB, HKTRB) HKTRB,
 	fbs []HKTB,
 	start, end int,
@@ -54,7 +54,7 @@ func MonadSequenceSegment[HKTB, HKTRB any](
 
 	switch end - start {
 	case 0:
-		return empty
+		return empty()
 	case 1:
 		return fof(fbs[start])
 	default:
@@ -254,7 +254,7 @@ HKTAB = HKT<func(A)B>
 */
 func MonadSequence[GA ~[]HKTA, HKTA, HKTRA any](
 	fof func(HKTA) HKTRA,
-	empty HKTRA,
+	empty func() HKTRA,
 	concat func(HKTRA, HKTRA) HKTRA,
 
 	ta GA) HKTRA {
@@ -263,7 +263,7 @@ func MonadSequence[GA ~[]HKTA, HKTA, HKTRA any](
 
 func Sequence[GA ~[]HKTA, HKTA, HKTRA any](
 	fof func(HKTA) HKTRA,
-	empty HKTRA,
+	empty func() HKTRA,
 	concat func(HKTRA, HKTRA) HKTRA,
 ) func(GA) HKTRA {
 
