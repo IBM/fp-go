@@ -24,21 +24,75 @@ import (
 	"github.com/IBM/fp-go/v2/pair"
 )
 
-// From constructs an array from a set of variadic arguments
+// From constructs an array from a set of variadic arguments.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - data: Variadic arguments to include in the array
+//
+// # Returns
+//
+//   - A new array containing all provided arguments
+//
+// # Example
+//
+//	arr := array.From(1, 2, 3, 4, 5)
+//	// arr: []int{1, 2, 3, 4, 5}
 //
 //go:inline
 func From[A any](data ...A) []A {
 	return G.From[[]A](data...)
 }
 
-// MakeBy returns a `Array` of length `n` with element `i` initialized with `f(i)`.
+// MakeBy returns an array of length n with element i initialized with f(i).
+//
+// # Type Parameters
+//
+//   - F: Function type that takes an int and returns A
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - n: The length of the array to create
+//   - f: Function to generate each element based on its index
+//
+// # Returns
+//
+//   - A new array where element at index i equals f(i)
+//
+// # Example
+//
+//	squares := array.MakeBy(5, func(i int) int { return i * i })
+//	// squares: []int{0, 1, 4, 9, 16}
 //
 //go:inline
 func MakeBy[F ~func(int) A, A any](n int, f F) []A {
 	return G.MakeBy[[]A](n, f)
 }
 
-// Replicate creates a `Array` containing a value repeated the specified number of times.
+// Replicate creates an array containing a value repeated the specified number of times.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - n: The number of times to repeat the value
+//   - a: The value to repeat
+//
+// # Returns
+//
+//   - A new array containing n copies of a
+//
+// # Example
+//
+//	zeros := array.Replicate(5, 0)
+//	// zeros: []int{0, 0, 0, 0, 0}
 //
 //go:inline
 func Replicate[A any](n int, a A) []A {
@@ -55,6 +109,27 @@ func MonadMap[A, B any](as []A, f func(A) B) []B {
 
 // MonadMapRef applies a function to a pointer to each element of an array, returning a new array with the results.
 // This is useful when you need to access elements by reference without copying.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// # Parameters
+//
+//   - as: The input array
+//   - f: Function that takes a pointer to an element and returns a transformed value
+//
+// # Returns
+//
+//   - A new array with transformed elements
+//
+// # Example
+//
+//	type Point struct { X, Y int }
+//	points := []Point{{1, 2}, {3, 4}}
+//	xs := array.MonadMapRef(points, func(p *Point) int { return p.X })
+//	// xs: []int{1, 3}
 func MonadMapRef[A, B any](as []A, f func(*A) B) []B {
 	count := len(as)
 	bs := make([]B, count)
@@ -86,6 +161,27 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 
 // MapRef applies a function to a pointer to each element of an array, returning a new array with the results.
 // This is the curried version that returns a function.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// # Parameters
+//
+//   - f: Function that takes a pointer to an element and returns a transformed value
+//
+// # Returns
+//
+//   - A function that transforms an array of A into an array of B
+//
+// # Example
+//
+//	type Point struct { X, Y int }
+//	extractX := array.MapRef(func(p *Point) int { return p.X })
+//	points := []Point{{1, 2}, {3, 4}}
+//	xs := extractX(points)
+//	// xs: []int{1, 3}
 func MapRef[A, B any](f func(*A) B) Operator[A, B] {
 	return F.Bind2nd(MonadMapRef[A, B], f)
 }
@@ -114,14 +210,51 @@ func filterMapRef[A, B any](fa []A, pred func(*A) bool, f func(*A) B) []B {
 	return result
 }
 
-// Filter returns a new array with all elements from the original array that match a predicate
+// Filter returns a new array with all elements from the original array that match a predicate.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - pred: Predicate function to test each element
+//
+// # Returns
+//
+//   - A function that filters an array based on the predicate
+//
+// # Example
+//
+//	isEven := array.Filter(func(x int) bool { return x%2 == 0 })
+//	result := isEven([]int{1, 2, 3, 4, 5, 6})
+//	// result: []int{2, 4, 6}
 //
 //go:inline
 func Filter[A any](pred func(A) bool) Operator[A, A] {
 	return G.Filter[[]A](pred)
 }
 
-// FilterWithIndex returns a new array with all elements from the original array that match a predicate
+// FilterWithIndex returns a new array with all elements from the original array that match a predicate.
+// The predicate receives both the index and the element.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - pred: Predicate function that takes an index and element
+//
+// # Returns
+//
+//   - A function that filters an array based on the predicate
+//
+// # Example
+//
+//	filterOddIndices := array.FilterWithIndex(func(i int, _ int) bool { return i%2 == 1 })
+//	result := filterOddIndices([]int{10, 20, 30, 40, 50})
+//	// result: []int{20, 40}
 //
 //go:inline
 func FilterWithIndex[A any](pred func(int, A) bool) Operator[A, A] {
@@ -129,6 +262,26 @@ func FilterWithIndex[A any](pred func(int, A) bool) Operator[A, A] {
 }
 
 // FilterRef returns a new array with all elements from the original array that match a predicate operating on pointers.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - pred: Predicate function that takes a pointer to an element
+//
+// # Returns
+//
+//   - A function that filters an array based on the predicate
+//
+// # Example
+//
+//	type Point struct { X, Y int }
+//	filterPositiveX := array.FilterRef(func(p *Point) bool { return p.X > 0 })
+//	points := []Point{{-1, 2}, {3, 4}, {-5, 6}}
+//	result := filterPositiveX(points)
+//	// result: []Point{{3, 4}}
 func FilterRef[A any](pred func(*A) bool) Operator[A, A] {
 	return F.Bind2nd(filterRef[A], pred)
 }
@@ -149,21 +302,73 @@ func MonadFilterMapWithIndex[A, B any](fa []A, f func(int, A) Option[B]) []B {
 	return G.MonadFilterMapWithIndex[[]A, []B](fa, f)
 }
 
-// FilterMap maps an array with an iterating function that returns an [Option] and it keeps only the Some values discarding the Nones.
+// FilterMap maps an array with an iterating function that returns an Option and keeps only the Some values discarding the Nones.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// # Parameters
+//
+//   - f: Function that maps elements to Option values
+//
+// # Returns
+//
+//   - A function that transforms and filters an array
+//
+// # Example
+//
+//	parseInt := array.FilterMap(func(s string) option.Option[int] {
+//	    if n, err := strconv.Atoi(s); err == nil {
+//	        return option.Some(n)
+//	    }
+//	    return option.None[int]()
+//	})
+//	result := parseInt([]string{"1", "bad", "3", "4"})
+//	// result: []int{1, 3, 4}
 //
 //go:inline
 func FilterMap[A, B any](f option.Kleisli[A, B]) Operator[A, B] {
 	return G.FilterMap[[]A, []B](f)
 }
 
-// FilterMapWithIndex maps an array with an iterating function that returns an [Option] and it keeps only the Some values discarding the Nones.
+// FilterMapWithIndex maps an array with an iterating function that returns an Option and keeps only the Some values discarding the Nones.
+// The function receives both the index and the element.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// # Parameters
+//
+//   - f: Function that takes an index and element and returns an Option
+//
+// # Returns
+//
+//   - A function that transforms and filters an array
 //
 //go:inline
 func FilterMapWithIndex[A, B any](f func(int, A) Option[B]) Operator[A, B] {
 	return G.FilterMapWithIndex[[]A, []B](f)
 }
 
-// ChainOptionK maps an array with an iterating function that returns an [Option] of an array. It keeps only the Some values discarding the Nones and then flattens the result.
+// ChainOptionK maps an array with an iterating function that returns an Option of an array.
+// It keeps only the Some values discarding the Nones and then flattens the result.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// # Parameters
+//
+//   - f: Function that maps elements to Option of arrays
+//
+// # Returns
+//
+//   - A function that transforms, filters, and flattens an array
 //
 //go:inline
 func ChainOptionK[A, B any](f option.Kleisli[A, []B]) Operator[A, B] {
@@ -171,6 +376,20 @@ func ChainOptionK[A, B any](f option.Kleisli[A, []B]) Operator[A, B] {
 }
 
 // FilterMapRef filters an array using a predicate on pointers and maps the matching elements using a function on pointers.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements in the output array
+//
+// # Parameters
+//
+//   - pred: Predicate function that takes a pointer to an element
+//   - f: Function that transforms a pointer to an element
+//
+// # Returns
+//
+//   - A function that filters and transforms an array
 func FilterMapRef[A, B any](pred func(a *A) bool, f func(*A) B) Operator[A, B] {
 	return func(fa []A) []B {
 		return filterMapRef(fa, pred, f)
@@ -185,11 +404,48 @@ func reduceRef[A, B any](fa []A, f func(B, *A) B, initial B) B {
 	return current
 }
 
+// MonadReduce folds an array from left to right, applying a function to accumulate a result.
+// This is the monadic version that takes the array as the first parameter.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//   - B: The type of the accumulated result
+//
+// # Parameters
+//
+//   - fa: The input array
+//   - f: Function that combines the accumulator with each element
+//   - initial: The initial accumulator value
+//
+// # Returns
+//
+//   - The final accumulated result
+//
 //go:inline
 func MonadReduce[A, B any](fa []A, f func(B, A) B, initial B) B {
 	return G.MonadReduce(fa, f, initial)
 }
 
+// MonadReduceWithIndex folds an array from left to right with access to the index,
+// applying a function to accumulate a result.
+// This is the monadic version that takes the array as the first parameter.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//   - B: The type of the accumulated result
+//
+// # Parameters
+//
+//   - fa: The input array
+//   - f: Function that combines the index, accumulator, and element
+//   - initial: The initial accumulator value
+//
+// # Returns
+//
+//   - The final accumulated result
+//
 //go:inline
 func MonadReduceWithIndex[A, B any](fa []A, f func(int, B, A) B, initial B) B {
 	return G.MonadReduceWithIndex(fa, f, initial)
@@ -232,6 +488,20 @@ func ReduceRightWithIndex[A, B any](f func(int, A, B) B, initial B) func([]A) B 
 
 // ReduceRef folds an array from left to right using pointers to elements,
 // applying a function to accumulate a result.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//   - B: The type of the accumulated result
+//
+// # Parameters
+//
+//   - f: Function that combines the accumulator with a pointer to each element
+//   - initial: The initial accumulator value
+//
+// # Returns
+//
+//   - A function that reduces an array to a single value
 func ReduceRef[A, B any](f func(B, *A) B, initial B) func([]A) B {
 	return func(as []A) B {
 		return reduceRef(as, f, initial)
@@ -257,12 +527,36 @@ func Append[A any](as []A, a A) []A {
 
 // IsEmpty checks if an array has no elements.
 //
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - as: The array to check
+//
+// # Returns
+//
+//   - true if the array is empty, false otherwise
+//
 //go:inline
 func IsEmpty[A any](as []A) bool {
 	return G.IsEmpty(as)
 }
 
 // IsNonEmpty checks if an array has at least one element.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - as: The array to check
+//
+// # Returns
+//
+//   - true if the array has at least one element, false otherwise
 func IsNonEmpty[A any](as []A) bool {
 	return len(as) > 0
 }
@@ -372,6 +666,23 @@ func Last[A any](as []A) Option[A] {
 }
 
 // PrependAll inserts a separator before each element of an array.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - middle: The separator to insert before each element
+//
+// # Returns
+//
+//   - A function that transforms an array by prepending the separator to each element
+//
+// # Example
+//
+//	result := array.PrependAll(0)([]int{1, 2, 3})
+//	// result: []int{0, 1, 0, 2, 0, 3}
 func PrependAll[A any](middle A) Operator[A, A] {
 	return func(as []A) []A {
 		count := len(as)
@@ -389,9 +700,22 @@ func PrependAll[A any](middle A) Operator[A, A] {
 
 // Intersperse inserts a separator between each element of an array.
 //
-// Example:
+// # Type Parameters
 //
-//	result := array.Intersperse(0)([]int{1, 2, 3}) // [1, 0, 2, 0, 3]
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - middle: The separator to insert between elements
+//
+// # Returns
+//
+//   - A function that transforms an array by inserting the separator between elements
+//
+// # Example
+//
+//	result := array.Intersperse(0)([]int{1, 2, 3})
+//	// result: []int{1, 0, 2, 0, 3}
 func Intersperse[A any](middle A) Operator[A, A] {
 	prepend := PrependAll(middle)
 	return func(as []A) []A {
@@ -403,6 +727,18 @@ func Intersperse[A any](middle A) Operator[A, A] {
 }
 
 // Intercalate inserts a separator between elements and concatenates them using a Monoid.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - m: The Monoid to use for concatenation
+//
+// # Returns
+//
+//   - A curried function that takes a separator and returns a function that reduces an array
 func Intercalate[A any](m M.Monoid[A]) func(A) func([]A) A {
 	return func(middle A) func([]A) A {
 		return Match(m.Empty, F.Flow2(Intersperse(middle), ConcatAll(m)))
@@ -411,9 +747,22 @@ func Intercalate[A any](m M.Monoid[A]) func(A) func([]A) A {
 
 // Flatten converts a nested array into a flat array by concatenating all inner arrays.
 //
-// Example:
+// # Type Parameters
 //
-//	result := array.Flatten([][]int{{1, 2}, {3, 4}, {5}}) // [1, 2, 3, 4, 5]
+//   - A: The type of elements in the inner arrays
+//
+// # Parameters
+//
+//   - mma: A nested array (array of arrays)
+//
+// # Returns
+//
+//   - A flat array containing all elements from all inner arrays
+//
+// # Example
+//
+//	result := array.Flatten([][]int{{1, 2}, {3, 4}, {5}})
+//	// result: []int{1, 2, 3, 4, 5}
 //
 //go:inline
 func Flatten[A any](mma [][]A) []A {
@@ -421,12 +770,49 @@ func Flatten[A any](mma [][]A) []A {
 }
 
 // Slice extracts a subarray from index low (inclusive) to high (exclusive).
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - low: The starting index (inclusive)
+//   - high: The ending index (exclusive)
+//
+// # Returns
+//
+//   - A function that extracts a subarray
+//
+// # Example
+//
+//	middle := array.Slice[int](2, 5)
+//	result := middle([]int{0, 1, 2, 3, 4, 5, 6})
+//	// result: []int{2, 3, 4}
 func Slice[A any](low, high int) Operator[A, A] {
 	return array.Slice[[]A](low, high)
 }
 
 // Lookup returns the element at the specified index, wrapped in an Option.
 // Returns None if the index is out of bounds.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - idx: The index to look up
+//
+// # Returns
+//
+//   - A function that retrieves an element at the given index, wrapped in an Option
+//
+// # Example
+//
+//	getSecond := array.Lookup[int](1)
+//	result := getSecond([]int{10, 20, 30})
+//	// result: option.Some(20)
 //
 //go:inline
 func Lookup[A any](idx int) func([]A) Option[A] {
@@ -436,12 +822,36 @@ func Lookup[A any](idx int) func([]A) Option[A] {
 // UpsertAt returns a function that inserts or updates an element at a specific index.
 // If the index is out of bounds, the element is appended.
 //
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - a: The element to insert or update
+//
+// # Returns
+//
+//   - A function that takes an index and returns a function that upserts at that index
+//
 //go:inline
 func UpsertAt[A any](a A) Operator[A, A] {
 	return G.UpsertAt[[]A](a)
 }
 
 // Size returns the number of elements in an array.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - as: The array to measure
+//
+// # Returns
+//
+//   - The number of elements in the array
 //
 //go:inline
 func Size[A any](as []A) int {
@@ -457,58 +867,178 @@ func MonadPartition[A any](as []A, pred func(A) bool) pair.Pair[[]A, []A] {
 	return G.MonadPartition(as, pred)
 }
 
-// Partition creates two new arrays out of one, the left result contains the elements
-// for which the predicate returns false, the right one those for which the predicate returns true
+// Partition creates two new arrays out of one. The left result contains the elements
+// for which the predicate returns false, the right one those for which the predicate returns true.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - pred: Predicate function to test each element
+//
+// # Returns
+//
+//   - A function that partitions an array into a pair of arrays
+//
+// # Example
+//
+//	isEven := array.Partition(func(x int) bool { return x%2 == 0 })
+//	result := isEven([]int{1, 2, 3, 4, 5, 6})
+//	// result: pair.Pair{Left: []int{1, 3, 5}, Right: []int{2, 4, 6}}
 //
 //go:inline
 func Partition[A any](pred func(A) bool) func([]A) pair.Pair[[]A, []A] {
 	return G.Partition[[]A](pred)
 }
 
-// IsNil checks if the array is set to nil
+// IsNil checks if the array is set to nil.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - as: The array to check
+//
+// # Returns
+//
+//   - true if the array is nil, false otherwise
 func IsNil[A any](as []A) bool {
 	return array.IsNil(as)
 }
 
-// IsNonNil checks if the array is set to nil
+// IsNonNil checks if the array is not nil.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - as: The array to check
+//
+// # Returns
+//
+//   - true if the array is not nil, false otherwise
 func IsNonNil[A any](as []A) bool {
 	return array.IsNonNil(as)
 }
 
-// ConstNil returns a nil array
+// ConstNil returns a nil array.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Returns
+//
+//   - A nil array of type A
 func ConstNil[A any]() []A {
 	return array.ConstNil[[]A]()
 }
 
 // SliceRight extracts a subarray from the specified start index to the end.
 //
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - start: The starting index (inclusive)
+//
+// # Returns
+//
+//   - A function that extracts a subarray from start to end
+//
+// # Example
+//
+//	fromThird := array.SliceRight[int](2)
+//	result := fromThird([]int{0, 1, 2, 3, 4, 5})
+//	// result: []int{2, 3, 4, 5}
+//
 //go:inline
 func SliceRight[A any](start int) Operator[A, A] {
 	return G.SliceRight[[]A](start)
 }
 
-// Copy creates a shallow copy of the array
+// Copy creates a shallow copy of the array.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - b: The array to copy
+//
+// # Returns
+//
+//   - A new array with the same elements
 //
 //go:inline
 func Copy[A any](b []A) []A {
 	return G.Copy(b)
 }
 
-// Clone creates a deep copy of the array using the provided endomorphism to clone the values
+// Clone creates a deep copy of the array using the provided endomorphism to clone the values.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - f: Function to clone each element
+//
+// # Returns
+//
+//   - A function that creates a deep copy of an array
 //
 //go:inline
 func Clone[A any](f func(A) A) Operator[A, A] {
 	return G.Clone[[]A](f)
 }
 
-// FoldMap maps and folds an array. Map the Array passing each value to the iterating function. Then fold the results using the provided Monoid.
+// FoldMap maps and folds an array. Maps each value using the iterating function,
+// then folds the results using the provided Monoid.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements after mapping
+//
+// # Parameters
+//
+//   - m: The Monoid to use for folding
+//
+// # Returns
+//
+//   - A curried function that takes a mapping function and returns a function that folds an array
 //
 //go:inline
 func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func([]A) B {
 	return G.FoldMap[[]A](m)
 }
 
-// FoldMapWithIndex maps and folds an array. Map the Array passing each value to the iterating function. Then fold the results using the provided Monoid.
+// FoldMapWithIndex maps and folds an array with access to indices. Maps each value using the iterating function,
+// then folds the results using the provided Monoid.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the input array
+//   - B: The type of elements after mapping
+//
+// # Parameters
+//
+//   - m: The Monoid to use for folding
+//
+// # Returns
+//
+//   - A curried function that takes a mapping function and returns a function that folds an array
 //
 //go:inline
 func FoldMapWithIndex[A, B any](m M.Monoid[B]) func(func(int, A) B) func([]A) B {
@@ -517,12 +1047,46 @@ func FoldMapWithIndex[A, B any](m M.Monoid[B]) func(func(int, A) B) func([]A) B 
 
 // Fold folds the array using the provided Monoid.
 //
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - m: The Monoid to use for folding
+//
+// # Returns
+//
+//   - A function that folds an array to a single value
+//
 //go:inline
 func Fold[A any](m M.Monoid[A]) func([]A) A {
 	return G.Fold[[]A](m)
 }
 
-// Push adds an element to the end of an array (alias for Append).
+// Push adds an element to the end of an array (curried version of Append).
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - a: The element to add
+//
+// # Returns
+//
+//   - A function that appends the element to an array
+//
+// # Example
+//
+//	addFive := array.Push(5)
+//	result := addFive([]int{1, 2, 3})
+//	// result: []int{1, 2, 3, 5}
+//
+// # See Also
+//
+//   - Append: Non-curried version
 //
 //go:inline
 func Push[A any](a A) Operator[A, A] {
@@ -660,6 +1224,20 @@ func Concat[A any](suffix []A) Operator[A, A] {
 // MonadFlap applies a value to an array of functions, producing an array of results.
 // This is the monadic version that takes both parameters.
 //
+// # Type Parameters
+//
+//   - B: The type of results
+//   - A: The type of the input value
+//
+// # Parameters
+//
+//   - fab: Array of functions to apply
+//   - a: The value to apply to each function
+//
+// # Returns
+//
+//   - An array of results from applying the value to each function
+//
 //go:inline
 func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 	return G.MonadFlap[func(A) B, []func(A) B, []B](fab, a)
@@ -668,12 +1246,54 @@ func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 // Flap applies a value to an array of functions, producing an array of results.
 // This is the curried version.
 //
+// # Type Parameters
+//
+//   - B: The type of results
+//   - A: The type of the input value
+//
+// # Parameters
+//
+//   - a: The value to apply to each function
+//
+// # Returns
+//
+//   - A function that applies the value to an array of functions
+//
+// # Example
+//
+//	fns := []func(int) int{
+//	    func(x int) int { return x * 2 },
+//	    func(x int) int { return x + 10 },
+//	    func(x int) int { return x * x },
+//	}
+//	applyFive := array.Flap[int](5)
+//	result := applyFive(fns)
+//	// result: []int{10, 15, 25}
+//
 //go:inline
 func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return G.Flap[func(A) B, []func(A) B, []B](a)
 }
 
 // Prepend adds an element to the beginning of an array, returning a new array.
+//
+// # Type Parameters
+//
+//   - A: The type of elements in the array
+//
+// # Parameters
+//
+//   - head: The element to add at the beginning
+//
+// # Returns
+//
+//   - A function that prepends the element to an array
+//
+// # Example
+//
+//	addZero := array.Prepend(0)
+//	result := addZero([]int{1, 2, 3})
+//	// result: []int{0, 1, 2, 3}
 //
 //go:inline
 func Prepend[A any](head A) Operator[A, A] {

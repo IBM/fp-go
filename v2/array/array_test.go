@@ -198,11 +198,228 @@ func TestFilterMap(t *testing.T) {
 }
 
 func TestFoldMap(t *testing.T) {
-	src := From("a", "b", "c")
+	t.Run("FoldMap with 0 items", func(t *testing.T) {
+		empty := []int{}
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMap[int](sumMonoid)(N.Mul(2))
+		result := foldMap(empty)
+		assert.Equal(t, 0, result, "FoldMap should return monoid empty for 0 items")
+	})
 
-	fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+	t.Run("FoldMap with 1 item", func(t *testing.T) {
+		single := From(5)
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMap[int](sumMonoid)(N.Mul(2))
+		result := foldMap(single)
+		assert.Equal(t, 10, result, "FoldMap should map and return single item")
+	})
 
-	assert.Equal(t, "ABC", fold(src))
+	t.Run("FoldMap with 2 items", func(t *testing.T) {
+		two := From(3, 4)
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMap[int](sumMonoid)(N.Mul(2))
+		result := foldMap(two)
+		assert.Equal(t, 14, result, "FoldMap should map and fold 2 items: (3*2) + (4*2) = 14")
+	})
+
+	t.Run("FoldMap with many items", func(t *testing.T) {
+		many := From(1, 2, 3, 4, 5)
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMap[int](sumMonoid)(N.Mul(2))
+		result := foldMap(many)
+		assert.Equal(t, 30, result, "FoldMap should map and fold many items: (1*2) + (2*2) + (3*2) + (4*2) + (5*2) = 30")
+	})
+
+	t.Run("FoldMap with string concatenation - 0 items", func(t *testing.T) {
+		empty := []string{}
+		fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+		result := fold(empty)
+		assert.Equal(t, "", result, "FoldMap should return empty string for 0 items")
+	})
+
+	t.Run("FoldMap with string concatenation - 1 item", func(t *testing.T) {
+		single := From("a")
+		fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+		result := fold(single)
+		assert.Equal(t, "A", result, "FoldMap should map single string")
+	})
+
+	t.Run("FoldMap with string concatenation - 2 items", func(t *testing.T) {
+		two := From("a", "b")
+		fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+		result := fold(two)
+		assert.Equal(t, "AB", result, "FoldMap should map and concatenate 2 strings")
+	})
+
+	t.Run("FoldMap with string concatenation - many items", func(t *testing.T) {
+		many := From("a", "b", "c", "d", "e")
+		fold := FoldMap[string](S.Monoid)(strings.ToUpper)
+		result := fold(many)
+		assert.Equal(t, "ABCDE", result, "FoldMap should map and concatenate many strings")
+	})
+}
+
+func TestFold(t *testing.T) {
+	t.Run("Fold with 0 items", func(t *testing.T) {
+		empty := []int{}
+		sumMonoid := N.MonoidSum[int]()
+		fold := Fold[int](sumMonoid)
+		result := fold(empty)
+		assert.Equal(t, 0, result, "Fold should return monoid empty for 0 items")
+	})
+
+	t.Run("Fold with 1 item", func(t *testing.T) {
+		single := From(42)
+		sumMonoid := N.MonoidSum[int]()
+		fold := Fold[int](sumMonoid)
+		result := fold(single)
+		assert.Equal(t, 42, result, "Fold should return single item")
+	})
+
+	t.Run("Fold with 2 items", func(t *testing.T) {
+		two := From(10, 20)
+		sumMonoid := N.MonoidSum[int]()
+		fold := Fold[int](sumMonoid)
+		result := fold(two)
+		assert.Equal(t, 30, result, "Fold should combine 2 items: 10 + 20 = 30")
+	})
+
+	t.Run("Fold with many items", func(t *testing.T) {
+		many := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		sumMonoid := N.MonoidSum[int]()
+		fold := Fold[int](sumMonoid)
+		result := fold(many)
+		assert.Equal(t, 55, result, "Fold should combine many items: 1+2+3+4+5+6+7+8+9+10 = 55")
+	})
+
+	t.Run("Fold with string concatenation - 0 items", func(t *testing.T) {
+		empty := []string{}
+		fold := Fold[string](S.Monoid)
+		result := fold(empty)
+		assert.Equal(t, "", result, "Fold should return empty string for 0 items")
+	})
+
+	t.Run("Fold with string concatenation - 1 item", func(t *testing.T) {
+		single := From("hello")
+		fold := Fold[string](S.Monoid)
+		result := fold(single)
+		assert.Equal(t, "hello", result, "Fold should return single string")
+	})
+
+	t.Run("Fold with string concatenation - 2 items", func(t *testing.T) {
+		two := From("hello", "world")
+		fold := Fold[string](S.Monoid)
+		result := fold(two)
+		assert.Equal(t, "helloworld", result, "Fold should concatenate 2 strings")
+	})
+
+	t.Run("Fold with string concatenation - many items", func(t *testing.T) {
+		many := From("a", "b", "c", "d", "e", "f")
+		fold := Fold[string](S.Monoid)
+		result := fold(many)
+		assert.Equal(t, "abcdef", result, "Fold should concatenate many strings")
+	})
+
+	t.Run("Fold with product monoid - 0 items", func(t *testing.T) {
+		empty := []int{}
+		productMonoid := N.MonoidProduct[int]()
+		fold := Fold[int](productMonoid)
+		result := fold(empty)
+		assert.Equal(t, 1, result, "Fold should return monoid empty (1) for product with 0 items")
+	})
+
+	t.Run("Fold with product monoid - 1 item", func(t *testing.T) {
+		single := From(7)
+		productMonoid := N.MonoidProduct[int]()
+		fold := Fold[int](productMonoid)
+		result := fold(single)
+		assert.Equal(t, 7, result, "Fold should return single item for product")
+	})
+
+	t.Run("Fold with product monoid - 2 items", func(t *testing.T) {
+		two := From(3, 4)
+		productMonoid := N.MonoidProduct[int]()
+		fold := Fold[int](productMonoid)
+		result := fold(two)
+		assert.Equal(t, 12, result, "Fold should multiply 2 items: 3 * 4 = 12")
+	})
+
+	t.Run("Fold with product monoid - many items", func(t *testing.T) {
+		many := From(2, 3, 4, 5)
+		productMonoid := N.MonoidProduct[int]()
+		fold := Fold[int](productMonoid)
+		result := fold(many)
+		assert.Equal(t, 120, result, "Fold should multiply many items: 2*3*4*5 = 120")
+	})
+}
+func TestFoldMapWithIndex(t *testing.T) {
+	t.Run("FoldMapWithIndex with 0 items", func(t *testing.T) {
+		empty := []int{}
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMapWithIndex[int](sumMonoid)(func(i, x int) int { return i + x })
+		result := foldMap(empty)
+		assert.Equal(t, 0, result, "FoldMapWithIndex should return monoid empty for 0 items")
+	})
+
+	t.Run("FoldMapWithIndex with 1 item", func(t *testing.T) {
+		single := From(10)
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMapWithIndex[int](sumMonoid)(func(i, x int) int { return i + x })
+		result := foldMap(single)
+		assert.Equal(t, 10, result, "FoldMapWithIndex should map with index: 0 + 10 = 10")
+	})
+
+	t.Run("FoldMapWithIndex with 2 items", func(t *testing.T) {
+		two := From(10, 20)
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMapWithIndex[int](sumMonoid)(func(i, x int) int { return i + x })
+		result := foldMap(two)
+		assert.Equal(t, 31, result, "FoldMapWithIndex should map with indices: (0+10) + (1+20) = 31")
+	})
+
+	t.Run("FoldMapWithIndex with many items", func(t *testing.T) {
+		many := From(5, 10, 15, 20)
+		sumMonoid := N.MonoidSum[int]()
+		foldMap := FoldMapWithIndex[int](sumMonoid)(func(i, x int) int { return i * x })
+		result := foldMap(many)
+		assert.Equal(t, 100, result, "FoldMapWithIndex should map with indices: (0*5) + (1*10) + (2*15) + (3*20) = 100")
+	})
+
+	t.Run("FoldMapWithIndex with string concatenation - 0 items", func(t *testing.T) {
+		empty := []string{}
+		foldMap := FoldMapWithIndex[string](S.Monoid)(func(i int, s string) string {
+			return fmt.Sprintf("%d:%s", i, s)
+		})
+		result := foldMap(empty)
+		assert.Equal(t, "", result, "FoldMapWithIndex should return empty string for 0 items")
+	})
+
+	t.Run("FoldMapWithIndex with string concatenation - 1 item", func(t *testing.T) {
+		single := From("a")
+		foldMap := FoldMapWithIndex[string](S.Monoid)(func(i int, s string) string {
+			return fmt.Sprintf("%d:%s", i, s)
+		})
+		result := foldMap(single)
+		assert.Equal(t, "0:a", result, "FoldMapWithIndex should format single item with index")
+	})
+
+	t.Run("FoldMapWithIndex with string concatenation - 2 items", func(t *testing.T) {
+		two := From("a", "b")
+		foldMap := FoldMapWithIndex[string](S.Monoid)(func(i int, s string) string {
+			return fmt.Sprintf("%d:%s,", i, s)
+		})
+		result := foldMap(two)
+		assert.Equal(t, "0:a,1:b,", result, "FoldMapWithIndex should format 2 items with indices")
+	})
+
+	t.Run("FoldMapWithIndex with string concatenation - many items", func(t *testing.T) {
+		many := From("a", "b", "c", "d")
+		foldMap := FoldMapWithIndex[string](S.Monoid)(func(i int, s string) string {
+			return fmt.Sprintf("[%d]%s", i, s)
+		})
+		result := foldMap(many)
+		assert.Equal(t, "[0]a[1]b[2]c[3]d", result, "FoldMapWithIndex should format many items with indices")
+	})
 }
 
 func ExampleFoldMap() {

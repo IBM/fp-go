@@ -22,8 +22,10 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
 
 1. **Use Standard Go Doc Format**
    - Do NOT use markdown-style links like `[text](url)`
+   - Do NOT use markdown-style headers like `# Section` or `## Subsection`
    - Use simple type references: `ReaderResult`, `Validate[I, A]`, `validation.Success`
    - Go's documentation system will automatically create links
+   - Use plain text with blank lines to separate sections
 
 2. **Structure**
    ```go
@@ -31,24 +33,20 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    //
    // Longer description explaining the purpose and behavior.
    //
-   // # Type Parameters
-   //
+   // Type Parameters:
    //   - T: Description of type parameter
    //
-   // # Parameters
-   //
+   // Parameters:
    //   - param: Description of parameter
    //
-   // # Returns
-   //
+   // Returns:
    //   - ReturnType: Description of return value
    //
-   // # Example Usage
+   // Example:
    //
    //   code example here
    //
-   // # See Also
-   //
+   // See Also:
    //   - RelatedFunction: Brief description
    func FunctionName[T any](param T) ReturnType {
    ```
@@ -57,6 +55,7 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    - Use idiomatic Go patterns
    - Prefer `result.Eitherize1(strconv.Atoi)` over manual error handling
    - Show realistic, runnable examples
+   - Indent code examples with spaces (not tabs) for proper godoc rendering
 
 ### File Headers
 

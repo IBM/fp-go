@@ -326,9 +326,18 @@ func FoldMap[AS ~[]A, A, B any](m M.Monoid[B]) func(func(A) B) func(AS) B {
 	concat := m.Concat
 	return func(f func(A) B) func(AS) B {
 		return func(as AS) B {
-			return array.Reduce(as, func(cur B, a A) B {
-				return concat(cur, f(a))
-			}, m.Empty())
+			switch len(as) {
+			case 0:
+				return m.Empty()
+			case 1:
+				return f(as[0])
+			case 2:
+				return concat(f(as[0]), f(as[1]))
+			default:
+				return array.Reduce(as[1:], func(cur B, a A) B {
+					return concat(cur, f(a))
+				}, f(as[0]))
+			}
 		}
 	}
 }
@@ -347,7 +356,16 @@ func FoldMapWithIndex[AS ~[]A, A, B any](m M.Monoid[B]) func(func(int, A) B) fun
 func Fold[AS ~[]A, A any](m M.Monoid[A]) func(AS) A {
 	concat := m.Concat
 	return func(as AS) A {
-		return array.Reduce(as, concat, m.Empty())
+		switch len(as) {
+		case 0:
+			return m.Empty()
+		case 1:
+			return as[0]
+		case 2:
+			return concat(as[0], as[1])
+		default:
+			return array.Reduce(as[1:], concat, as[0])
+		}
 	}
 }
 
