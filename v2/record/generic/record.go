@@ -16,6 +16,7 @@
 package generic
 
 import (
+	"maps"
 	"sort"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -301,13 +302,8 @@ func unionLast[M ~map[K]V, K comparable, V any](left, right M) M {
 
 	result := make(M, lenLeft+lenRight)
 
-	for k, v := range left {
-		result[k] = v
-	}
-
-	for k, v := range right {
-		result[k] = v
-	}
+	maps.Copy(result, left)
+	maps.Copy(result, right)
 
 	return result
 }

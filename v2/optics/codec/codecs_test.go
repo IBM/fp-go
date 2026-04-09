@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -689,6 +690,596 @@ func TestBoolFromString_Integration(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// FromNonZero
+// ---------------------------------------------------------------------------
+
+func TestFromNonZero_Decode_Success(t *testing.T) {
+	t.Run("int - decodes non-zero value", func(t *testing.T) {
+		c := FromNonZero[int]()
+		result := c.Decode(42)
+		assert.Equal(t, validation.Success(42), result)
+	})
+
+	t.Run("int - decodes negative value", func(t *testing.T) {
+		c := FromNonZero[int]()
+		result := c.Decode(-5)
+		assert.Equal(t, validation.Success(-5), result)
+	})
+
+	t.Run("string - decodes non-empty string", func(t *testing.T) {
+		c := FromNonZero[string]()
+		result := c.Decode("hello")
+		assert.Equal(t, validation.Success("hello"), result)
+	})
+
+	t.Run("string - decodes whitespace string", func(t *testing.T) {
+		c := FromNonZero[string]()
+		result := c.Decode("   ")
+		assert.Equal(t, validation.Success("   "), result)
+	})
+
+	t.Run("bool - decodes true", func(t *testing.T) {
+		c := FromNonZero[bool]()
+		result := c.Decode(true)
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("float64 - decodes non-zero value", func(t *testing.T) {
+		c := FromNonZero[float64]()
+		result := c.Decode(3.14)
+		assert.Equal(t, validation.Success(3.14), result)
+	})
+
+	t.Run("float64 - decodes negative value", func(t *testing.T) {
+		c := FromNonZero[float64]()
+		result := c.Decode(-2.5)
+		assert.Equal(t, validation.Success(-2.5), result)
+	})
+
+	t.Run("pointer - decodes non-nil pointer", func(t *testing.T) {
+		c := FromNonZero[*int]()
+		value := 42
+		result := c.Decode(&value)
+		assert.True(t, either.IsRight(result))
+		ptr := either.MonadFold(result, func(validation.Errors) *int { return nil }, func(p *int) *int { return p })
+		require.NotNil(t, ptr)
+		assert.Equal(t, 42, *ptr)
+	})
+}
+
+func TestFromNonZero_Decode_Failure(t *testing.T) {
+	t.Run("int - fails on zero", func(t *testing.T) {
+		c := FromNonZero[int]()
+		result := c.Decode(0)
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("string - fails on empty string", func(t *testing.T) {
+		c := FromNonZero[string]()
+		result := c.Decode("")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("bool - fails on false", func(t *testing.T) {
+		c := FromNonZero[bool]()
+		result := c.Decode(false)
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("float64 - fails on zero", func(t *testing.T) {
+		c := FromNonZero[float64]()
+		result := c.Decode(0.0)
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("pointer - fails on nil", func(t *testing.T) {
+		c := FromNonZero[*int]()
+		result := c.Decode(nil)
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+func TestFromNonZero_Encode(t *testing.T) {
+	t.Run("int - encodes value unchanged", func(t *testing.T) {
+		c := FromNonZero[int]()
+		assert.Equal(t, 42, c.Encode(42))
+	})
+
+	t.Run("string - encodes value unchanged", func(t *testing.T) {
+		c := FromNonZero[string]()
+		assert.Equal(t, "hello", c.Encode("hello"))
+	})
+
+	t.Run("bool - encodes value unchanged", func(t *testing.T) {
+		c := FromNonZero[bool]()
+		assert.Equal(t, true, c.Encode(true))
+	})
+
+	t.Run("float64 - encodes value unchanged", func(t *testing.T) {
+		c := FromNonZero[float64]()
+		assert.Equal(t, 3.14, c.Encode(3.14))
+	})
+
+	t.Run("pointer - encodes value unchanged", func(t *testing.T) {
+		c := FromNonZero[*int]()
+		value := 42
+		ptr := &value
+		assert.Equal(t, ptr, c.Encode(ptr))
+	})
+
+	t.Run("round-trip: decode then encode", func(t *testing.T) {
+		c := FromNonZero[int]()
+		original := 42
+		result := c.Decode(original)
+		require.True(t, either.IsRight(result))
+		decoded := either.MonadFold(result, func(validation.Errors) int { return 0 }, func(n int) int { return n })
+		assert.Equal(t, original, c.Encode(decoded))
+	})
+}
+
+func TestFromNonZero_Name(t *testing.T) {
+	t.Run("int codec name", func(t *testing.T) {
+		c := FromNonZero[int]()
+		assert.Contains(t, c.Name(), "FromRefinement")
+		assert.Contains(t, c.Name(), "PrismFromNonZero")
+	})
+
+	t.Run("string codec name", func(t *testing.T) {
+		c := FromNonZero[string]()
+		assert.Contains(t, c.Name(), "FromRefinement")
+		assert.Contains(t, c.Name(), "PrismFromNonZero")
+	})
+}
+
+func TestFromNonZero_Integration(t *testing.T) {
+	t.Run("validates multiple non-zero integers", func(t *testing.T) {
+		c := FromNonZero[int]()
+		values := []int{1, -1, 42, -100, 999}
+		for _, v := range values {
+			result := c.Decode(v)
+			require.True(t, either.IsRight(result), "expected success for %d", v)
+			decoded := either.MonadFold(result, func(validation.Errors) int { return 0 }, func(n int) int { return n })
+			assert.Equal(t, v, decoded)
+			assert.Equal(t, v, c.Encode(decoded))
+		}
+	})
+
+	t.Run("rejects zero values", func(t *testing.T) {
+		c := FromNonZero[int]()
+		result := c.Decode(0)
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("works with custom comparable types", func(t *testing.T) {
+		type UserID string
+		c := FromNonZero[UserID]()
+
+		result := c.Decode(UserID("user123"))
+		assert.Equal(t, validation.Success(UserID("user123")), result)
+
+		result = c.Decode(UserID(""))
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// NonEmptyString
+// ---------------------------------------------------------------------------
+
+func TestNonEmptyString_Decode_Success(t *testing.T) {
+	t.Run("decodes non-empty string", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("hello")
+		assert.Equal(t, validation.Success("hello"), result)
+	})
+
+	t.Run("decodes single character", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("a")
+		assert.Equal(t, validation.Success("a"), result)
+	})
+
+	t.Run("decodes whitespace string", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("   ")
+		assert.Equal(t, validation.Success("   "), result)
+	})
+
+	t.Run("decodes string with newlines", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("\n\t")
+		assert.Equal(t, validation.Success("\n\t"), result)
+	})
+
+	t.Run("decodes unicode string", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("你好")
+		assert.Equal(t, validation.Success("你好"), result)
+	})
+
+	t.Run("decodes emoji string", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("🎉")
+		assert.Equal(t, validation.Success("🎉"), result)
+	})
+
+	t.Run("decodes multiline string", func(t *testing.T) {
+		c := NonEmptyString()
+		multiline := "line1\nline2\nline3"
+		result := c.Decode(multiline)
+		assert.Equal(t, validation.Success(multiline), result)
+	})
+}
+
+func TestNonEmptyString_Decode_Failure(t *testing.T) {
+	t.Run("fails on empty string", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("error contains context", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("")
+		require.True(t, either.IsLeft(result))
+		errors := either.MonadFold(result, func(e validation.Errors) validation.Errors { return e }, func(string) validation.Errors { return nil })
+		require.NotEmpty(t, errors)
+	})
+}
+
+func TestNonEmptyString_Encode(t *testing.T) {
+	t.Run("encodes string unchanged", func(t *testing.T) {
+		c := NonEmptyString()
+		assert.Equal(t, "hello", c.Encode("hello"))
+	})
+
+	t.Run("encodes unicode string unchanged", func(t *testing.T) {
+		c := NonEmptyString()
+		assert.Equal(t, "你好", c.Encode("你好"))
+	})
+
+	t.Run("encodes whitespace string unchanged", func(t *testing.T) {
+		c := NonEmptyString()
+		assert.Equal(t, "   ", c.Encode("   "))
+	})
+
+	t.Run("round-trip: decode then encode", func(t *testing.T) {
+		c := NonEmptyString()
+		original := "test string"
+		result := c.Decode(original)
+		require.True(t, either.IsRight(result))
+		decoded := either.MonadFold(result, func(validation.Errors) string { return "" }, func(s string) string { return s })
+		assert.Equal(t, original, c.Encode(decoded))
+	})
+}
+
+func TestNonEmptyString_Name(t *testing.T) {
+	c := NonEmptyString()
+	assert.Equal(t, c.Name(), "NonEmptyString")
+}
+
+func TestNonEmptyString_Integration(t *testing.T) {
+	t.Run("validates multiple non-empty strings", func(t *testing.T) {
+		c := NonEmptyString()
+		strings := []string{"a", "hello", "world", "test123", "  spaces  ", "🎉"}
+		for _, s := range strings {
+			result := c.Decode(s)
+			require.True(t, either.IsRight(result), "expected success for %q", s)
+			decoded := either.MonadFold(result, func(validation.Errors) string { return "" }, func(str string) string { return str })
+			assert.Equal(t, s, decoded)
+			assert.Equal(t, s, c.Encode(decoded))
+		}
+	})
+
+	t.Run("rejects empty string", func(t *testing.T) {
+		c := NonEmptyString()
+		result := c.Decode("")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("compose with IntFromString", func(t *testing.T) {
+		// Create a codec that only parses non-empty strings to integers
+		nonEmptyThenInt := Pipe[string, string](IntFromString())(NonEmptyString())
+
+		// Valid non-empty string with integer
+		result := nonEmptyThenInt.Decode("42")
+		assert.Equal(t, validation.Success(42), result)
+
+		// Empty string fails at NonEmptyString stage
+		result = nonEmptyThenInt.Decode("")
+		assert.True(t, either.IsLeft(result))
+
+		// Non-empty but invalid integer fails at IntFromString stage
+		result = nonEmptyThenInt.Decode("abc")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("use in validation pipeline", func(t *testing.T) {
+		c := NonEmptyString()
+
+		// Simulate validating user input
+		inputs := []struct {
+			value    string
+			expected bool
+		}{
+			{"john_doe", true},
+			{"", false},
+			{"a", true},
+			{"user@example.com", true},
+		}
+
+		for _, input := range inputs {
+			result := c.Decode(input.value)
+			if input.expected {
+				assert.True(t, either.IsRight(result), "expected success for %q", input.value)
+			} else {
+				assert.True(t, either.IsLeft(result), "expected failure for %q", input.value)
+			}
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// WithName
+// ---------------------------------------------------------------------------
+
+func TestWithName_BasicFunctionality(t *testing.T) {
+	t.Run("renames codec without changing behavior", func(t *testing.T) {
+		original := IntFromString()
+		renamed := WithName[int, string, string]("CustomIntCodec")(original)
+
+		// Name should be changed
+		assert.Equal(t, "CustomIntCodec", renamed.Name())
+		assert.NotEqual(t, original.Name(), renamed.Name())
+
+		// Behavior should be unchanged
+		result := renamed.Decode("42")
+		assert.Equal(t, validation.Success(42), result)
+
+		encoded := renamed.Encode(42)
+		assert.Equal(t, "42", encoded)
+	})
+
+	t.Run("preserves validation logic", func(t *testing.T) {
+		original := IntFromString()
+		renamed := WithName[int, string, string]("MyInt")(original)
+
+		// Valid input should succeed
+		result := renamed.Decode("123")
+		assert.True(t, either.IsRight(result))
+
+		// Invalid input should fail
+		result = renamed.Decode("not a number")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("preserves encoding logic", func(t *testing.T) {
+		original := BoolFromString()
+		renamed := WithName[bool, string, string]("CustomBool")(original)
+
+		assert.Equal(t, "true", renamed.Encode(true))
+		assert.Equal(t, "false", renamed.Encode(false))
+	})
+}
+
+func TestWithName_WithComposedCodecs(t *testing.T) {
+	t.Run("renames composed codec", func(t *testing.T) {
+		// Create a composed codec
+		composed := Pipe[string, string](IntFromString())(NonEmptyString())
+
+		// Rename it
+		renamed := WithName[int, string, string]("NonEmptyIntString")(composed)
+
+		assert.Equal(t, "NonEmptyIntString", renamed.Name())
+
+		// Behavior should be preserved
+		result := renamed.Decode("42")
+		assert.Equal(t, validation.Success(42), result)
+
+		// Empty string should fail
+		result = renamed.Decode("")
+		assert.True(t, either.IsLeft(result))
+
+		// Non-numeric should fail
+		result = renamed.Decode("abc")
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("works in pipeline with F.Pipe", func(t *testing.T) {
+		codec := F.Pipe1(
+			IntFromString(),
+			WithName[int, string, string]("UserAge"),
+		)
+
+		assert.Equal(t, "UserAge", codec.Name())
+
+		result := codec.Decode("25")
+		assert.Equal(t, validation.Success(25), result)
+	})
+}
+
+func TestWithName_PreservesTypeChecking(t *testing.T) {
+	t.Run("preserves Is function", func(t *testing.T) {
+		original := String()
+		renamed := WithName[string, string, any]("CustomString")(original)
+
+		// Should accept string
+		result := renamed.Is("hello")
+		assert.True(t, either.IsRight(result))
+
+		// Should reject non-string
+		result = renamed.Is(42)
+		assert.True(t, either.IsLeft(result))
+	})
+
+	t.Run("preserves complex type checking", func(t *testing.T) {
+		original := Array(Int())
+		renamed := WithName[[]int, []int, any]("IntArray")(original)
+
+		// Should accept []int
+		result := renamed.Is([]int{1, 2, 3})
+		assert.True(t, either.IsRight(result))
+
+		// Should reject []string
+		result = renamed.Is([]string{"a", "b"})
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+func TestWithName_RoundTrip(t *testing.T) {
+	t.Run("maintains round-trip property", func(t *testing.T) {
+		original := Int64FromString()
+		renamed := WithName[int64, string, string]("CustomInt64")(original)
+
+		testValues := []string{"0", "42", "-100", "9223372036854775807"}
+		for _, input := range testValues {
+			result := renamed.Decode(input)
+			require.True(t, either.IsRight(result), "expected success for %s", input)
+
+			decoded := either.MonadFold(result, func(validation.Errors) int64 { return 0 }, func(n int64) int64 { return n })
+			encoded := renamed.Encode(decoded)
+			assert.Equal(t, input, encoded)
+		}
+	})
+}
+
+func TestWithName_ErrorMessages(t *testing.T) {
+	t.Run("custom name appears in validation context", func(t *testing.T) {
+		codec := WithName[int, string, string]("PositiveInteger")(IntFromString())
+
+		result := codec.Decode("not a number")
+		require.True(t, either.IsLeft(result))
+
+		// The error context should reference the custom name
+		errors := either.MonadFold(result, func(e validation.Errors) validation.Errors { return e }, func(int) validation.Errors { return nil })
+		require.NotEmpty(t, errors)
+
+		// Check that at least one error references our custom name
+		found := false
+		for _, err := range errors {
+			if len(err.Context) > 0 {
+				for _, ctx := range err.Context {
+					if ctx.Type == "PositiveInteger" {
+						found = true
+						break
+					}
+				}
+			}
+		}
+		assert.True(t, found, "expected custom name 'PositiveInteger' in error context")
+	})
+}
+
+func TestWithName_MultipleRenames(t *testing.T) {
+	t.Run("can rename multiple times", func(t *testing.T) {
+		codec := IntFromString()
+
+		renamed1 := WithName[int, string, string]("FirstName")(codec)
+		assert.Equal(t, "FirstName", renamed1.Name())
+
+		renamed2 := WithName[int, string, string]("SecondName")(renamed1)
+		assert.Equal(t, "SecondName", renamed2.Name())
+
+		// Behavior should still work
+		result := renamed2.Decode("42")
+		assert.Equal(t, validation.Success(42), result)
+	})
+}
+
+func TestWithName_WithDifferentTypes(t *testing.T) {
+	t.Run("works with string codec", func(t *testing.T) {
+		codec := WithName[string, string, string]("Username")(NonEmptyString())
+		assert.Equal(t, "Username", codec.Name())
+
+		result := codec.Decode("john_doe")
+		assert.Equal(t, validation.Success("john_doe"), result)
+	})
+
+	t.Run("works with bool codec", func(t *testing.T) {
+		codec := WithName[bool, string, string]("IsActive")(BoolFromString())
+		assert.Equal(t, "IsActive", codec.Name())
+
+		result := codec.Decode("true")
+		assert.Equal(t, validation.Success(true), result)
+	})
+
+	t.Run("works with URL codec", func(t *testing.T) {
+		codec := WithName[*url.URL, string, string]("WebsiteURL")(URL())
+		assert.Equal(t, "WebsiteURL", codec.Name())
+
+		result := codec.Decode("https://example.com")
+		assert.True(t, either.IsRight(result))
+	})
+
+	t.Run("works with array codec", func(t *testing.T) {
+		codec := WithName[[]int, []int, any]("Numbers")(Array(Int()))
+		assert.Equal(t, "Numbers", codec.Name())
+
+		result := codec.Decode([]int{1, 2, 3})
+		assert.Equal(t, validation.Success([]int{1, 2, 3}), result)
+	})
+}
+
+func TestWithName_AsDecoderEncoder(t *testing.T) {
+	t.Run("AsDecoder returns decoder interface", func(t *testing.T) {
+		codec := WithName[int, string, string]("MyInt")(IntFromString())
+		decoder := codec.AsDecoder()
+
+		result := decoder.Decode("42")
+		assert.Equal(t, validation.Success(42), result)
+	})
+
+	t.Run("AsEncoder returns encoder interface", func(t *testing.T) {
+		codec := WithName[int, string, string]("MyInt")(IntFromString())
+		encoder := codec.AsEncoder()
+
+		encoded := encoder.Encode(42)
+		assert.Equal(t, "42", encoded)
+	})
+}
+
+func TestWithName_Integration(t *testing.T) {
+	t.Run("domain-specific codec names", func(t *testing.T) {
+		// Create domain-specific codecs with meaningful names
+		emailCodec := WithName[string, string, string]("EmailAddress")(NonEmptyString())
+		phoneCodec := WithName[string, string, string]("PhoneNumber")(NonEmptyString())
+		ageCodec := WithName[int, string, string]("Age")(IntFromString())
+
+		// Test email
+		result := emailCodec.Decode("user@example.com")
+		assert.True(t, either.IsRight(result))
+		assert.Equal(t, "EmailAddress", emailCodec.Name())
+
+		// Test phone
+		result = phoneCodec.Decode("+1234567890")
+		assert.True(t, either.IsRight(result))
+		assert.Equal(t, "PhoneNumber", phoneCodec.Name())
+
+		// Test age
+		ageResult := ageCodec.Decode("25")
+		assert.True(t, either.IsRight(ageResult))
+		assert.Equal(t, "Age", ageCodec.Name())
+	})
+
+	t.Run("naming complex validation pipelines", func(t *testing.T) {
+		// Create a complex codec and give it a clear name
+		positiveIntCodec := F.Pipe2(
+			NonEmptyString(),
+			Pipe[string, string](IntFromString()),
+			WithName[int, string, string]("PositiveIntegerFromString"),
+		)
+
+		assert.Equal(t, "PositiveIntegerFromString", positiveIntCodec.Name())
+
+		result := positiveIntCodec.Decode("42")
+		assert.True(t, either.IsRight(result))
+
+		result = positiveIntCodec.Decode("")
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+// ---------------------------------------------------------------------------
 // MarshalJSON
 // ---------------------------------------------------------------------------
 
@@ -773,7 +1364,7 @@ func TestIntFromString_PipeComposition(t *testing.T) {
 		func(n int) int { return n },
 		"PositiveInt",
 	)
-	positiveIntCodec := Pipe[string, string, int, int](
+	positiveIntCodec := Pipe[string, string](
 		FromRefinement(positiveIntPrism),
 	)(IntFromString())
 

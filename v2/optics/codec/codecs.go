@@ -522,3 +522,199 @@ func MarshalJSON[T any](
 		},
 	)
 }
+
+// FromNonZero creates a bidirectional codec for non-zero values of comparable types.
+// This codec validates that values are not equal to their zero value (e.g., 0 for int,
+// "" for string, false for bool, nil for pointers).
+//
+// The codec uses a refinement (prism) that:
+//   - Decodes: Validates that the input is not the zero value of type T
+//   - Encodes: Returns the value unchanged (identity function)
+//   - Validates: Ensures the value is non-zero/non-default
+//
+// This is useful for enforcing that required fields have meaningful values rather than
+// their default zero values, which often represent "not set" or "missing" states.
+//
+// Type Parameters:
+//   - T: A comparable type (must support == and != operators)
+//
+// Returns:
+//   - A Type[T, T, T] codec that validates non-zero values
+//
+// Example:
+//
+//	// Create a codec for non-zero integers
+//	nonZeroInt := FromNonZero[int]()
+//
+//	// Decode non-zero value succeeds
+//	result := nonZeroInt.Decode(42)
+//	// result is Right(42)
+//
+//	// Decode zero value fails
+//	result := nonZeroInt.Decode(0)
+//	// result is Left(ValidationError{...})
+//
+//	// Encode is identity
+//	encoded := nonZeroInt.Encode(42)
+//	// encoded is 42
+//
+//	// Works with strings
+//	nonEmptyStr := FromNonZero[string]()
+//	result := nonEmptyStr.Decode("hello")  // Right("hello")
+//	result = nonEmptyStr.Decode("")        // Left(ValidationError{...})
+//
+//	// Works with pointers
+//	nonNilPtr := FromNonZero[*int]()
+//	value := 42
+//	result := nonNilPtr.Decode(&value)  // Right(&value)
+//	result = nonNilPtr.Decode(nil)      // Left(ValidationError{...})
+//
+// Common use cases:
+//   - Validating required numeric fields are not zero
+//   - Ensuring string fields are not empty
+//   - Checking pointers are not nil
+//   - Validating boolean flags are explicitly set to true
+//   - Composing with other codecs for multi-stage validation
+//
+// See Also:
+//   - NonEmptyString: Specialized version for strings with clearer intent
+//   - FromRefinement: General function for creating codecs from prisms
+func FromNonZero[T comparable]() Type[T, T, T] {
+	return FromRefinement(prism.FromNonZero[T]())
+}
+
+// NonEmptyString creates a bidirectional codec for non-empty strings.
+// This codec validates that string values are not empty, providing a type-safe
+// way to work with strings that must contain at least one character.
+//
+// This is a specialized version of FromNonZero[string]() that makes the intent
+// clearer when working specifically with strings that must not be empty.
+//
+// The codec:
+//   - Decodes: Validates that the input string is not empty ("")
+//   - Encodes: Returns the string unchanged (identity function)
+//   - Validates: Ensures the string has length > 0
+//
+// Note: This codec only checks for empty strings, not whitespace-only strings.
+// A string containing only spaces, tabs, or newlines will pass validation.
+//
+// Returns:
+//   - A Type[string, string, string] codec that validates non-empty strings
+//
+// Example:
+//
+//	nonEmpty := NonEmptyString()
+//
+//	// Decode non-empty string succeeds
+//	result := nonEmpty.Decode("hello")
+//	// result is Right("hello")
+//
+//	// Decode empty string fails
+//	result := nonEmpty.Decode("")
+//	// result is Left(ValidationError{...})
+//
+//	// Whitespace-only strings pass validation
+//	result := nonEmpty.Decode("   ")
+//	// result is Right("   ")
+//
+//	// Encode is identity
+//	encoded := nonEmpty.Encode("world")
+//	// encoded is "world"
+//
+//	// Compose with other codecs for validation pipelines
+//	intFromNonEmptyString := Pipe(IntFromString())(nonEmpty)
+//	result := intFromNonEmptyString.Decode("42")   // Right(42)
+//	result = intFromNonEmptyString.Decode("")      // Left(ValidationError{...})
+//	result = intFromNonEmptyString.Decode("abc")   // Left(ValidationError{...})
+//
+// Common use cases:
+//   - Validating required string fields (usernames, names, IDs)
+//   - Ensuring configuration values are provided
+//   - Validating user input before processing
+//   - Composing with parsing codecs to validate before parsing
+//   - Building validation pipelines for string data
+//
+// See Also:
+//   - FromNonZero: General version for any comparable type
+//   - String: Basic string codec without validation
+//   - IntFromString: Codec for parsing integers from strings
+func NonEmptyString() Type[string, string, string] {
+	return F.Pipe1(
+		FromRefinement(prism.NonEmptyString()),
+		WithName[string, string, string]("NonEmptyString"),
+	)
+}
+
+// WithName creates an endomorphism that renames a codec without changing its behavior.
+// This function returns a higher-order function that takes a codec and returns a new codec
+// with the specified name, while preserving all validation, encoding, and type-checking logic.
+//
+// This is useful for:
+//   - Providing more descriptive names for composed codecs
+//   - Creating domain-specific codec names for better error messages
+//   - Documenting the purpose of complex codec pipelines
+//   - Improving debugging and logging output
+//
+// The renamed codec maintains the same:
+//   - Type checking behavior (Is function)
+//   - Validation logic (Validate function)
+//   - Encoding behavior (Encode function)
+//
+// Only the name returned by the Name() method changes.
+//
+// Type Parameters:
+//   - A: The target type (what we decode to and encode from)
+//   - O: The output type (what we encode to)
+//   - I: The input type (what we decode from)
+//
+// Parameters:
+//   - name: The new name for the codec
+//
+// Returns:
+//   - An Endomorphism[Type[A, O, I]] that renames the codec
+//
+// Example:
+//
+//	// Create a codec with a generic name
+//	positiveInt := Pipe[int, int, string, int](
+//	    FromRefinement(prism.FromPredicate(func(n int) bool { return n > 0 })),
+//	)(IntFromString())
+//	// positiveInt.Name() returns something like "Pipe(FromRefinement(...), IntFromString)"
+//
+//	// Rename it for clarity
+//	namedCodec := WithName[int, string, string]("PositiveIntFromString")(positiveInt)
+//	// namedCodec.Name() returns "PositiveIntFromString"
+//
+//	// Use in a pipeline with F.Pipe
+//	userAgeCodec := F.Pipe1(
+//	    IntFromString(),
+//	    WithName[int, string, string]("UserAge"),
+//	)
+//
+//	// Validation errors will show the custom name
+//	result := userAgeCodec.Decode("invalid")
+//	// Error context will reference "UserAge" instead of "IntFromString"
+//
+// Common use cases:
+//   - Naming composed codecs for better error messages
+//   - Creating domain-specific codec names (e.g., "EmailAddress", "PhoneNumber")
+//   - Documenting complex validation pipelines
+//   - Improving debugging output in logs
+//   - Making codec composition more readable
+//
+// Note: This function creates a new codec instance with the same behavior but a different
+// name. The original codec is not modified.
+//
+// See Also:
+//   - MakeType: For creating codecs with custom names from scratch
+//   - Pipe: For composing codecs (which generates automatic names)
+func WithName[A, O, I any](name string) Endomorphism[Type[A, O, I]] {
+	return func(codec Type[A, O, I]) Type[A, O, I] {
+		return MakeType(
+			name,
+			codec.Is,
+			codec.Validate,
+			codec.Encode,
+		)
+	}
+}
