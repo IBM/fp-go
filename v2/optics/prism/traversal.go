@@ -17,6 +17,9 @@ package prism
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/pointed"
+	"github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
 )
 
@@ -58,24 +61,23 @@ import (
 // higher-kinded types and applicative functors. Most users will work
 // directly with prisms rather than converting them to traversals.
 func AsTraversal[R ~func(func(A) HKTA) func(S) HKTS, S, A, HKTS, HKTA any](
-	fof func(S) HKTS,
-	fmap func(HKTA, func(A) S) HKTS,
+	fof pointed.OfType[S, HKTS],
+	fmap functor.MapType[A, S, HKTA, HKTS],
 ) func(Prism[S, A]) R {
 	return func(sa Prism[S, A]) R {
-		return func(f func(a A) HKTA) func(S) HKTS {
+		return func(f func(A) HKTA) func(S) HKTS {
 			return func(s S) HKTS {
 				return F.Pipe2(
 					s,
 					sa.GetOption,
 					O.Fold(
-						// If prism doesn't match, return the original value lifted into HKTS
-						F.Nullary2(F.Constant(s), fof),
-						// If prism matches, apply f to the extracted value and map back
-						func(a A) HKTS {
-							return fmap(f(a), func(a A) S {
-								return prismModify(F.Constant1[A](a), sa, s)
-							})
-						},
+						lazy.Of(fof(s)),
+						F.Flow2(
+							f,
+							fmap(func(a A) S {
+								return Set[S](a)(sa)(s)
+							}),
+						),
 					),
 				)
 			}

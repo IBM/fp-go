@@ -23,5 +23,5 @@ import (
 )
 
 func AsTraversal[E, S, A any]() func(L.Lens[S, A]) T.Traversal[E, S, A] {
-	return LG.AsTraversal[T.Traversal[E, S, A]](ET.MonadMap[E, A, S])
+	return LG.AsTraversal[T.Traversal[E, S, A]](ET.Map[E, A, S])
 }

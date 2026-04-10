@@ -1510,3 +1510,8 @@ func Extend[A, B any](f func([]A) B) Operator[A, B] {
 func Extract[A any](as []A) A {
 	return G.Extract(as)
 }
+
+//go:inline
+func UpdateAt[T any](i int, v T) func([]T) Option[[]T] {
+	return G.UpdateAt[[]T](i, v)
+}

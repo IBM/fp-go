@@ -310,8 +310,10 @@ func TestAsTraversal(t *testing.T) {
 		return Identity[Option[int]]{Value: s}
 	}
 
-	fmap := func(ia Identity[int], f func(int) Option[int]) Identity[Option[int]] {
-		return Identity[Option[int]]{Value: f(ia.Value)}
+	fmap := func(f func(int) Option[int]) func(Identity[int]) Identity[Option[int]] {
+		return func(ia Identity[int]) Identity[Option[int]] {
+			return Identity[Option[int]]{Value: f(ia.Value)}
+		}
 	}
 
 	type TraversalFunc func(func(int) Identity[int]) func(Option[int]) Identity[Option[int]]

@@ -489,3 +489,16 @@ func Extend[GA ~[]A, GB ~[]B, A, B any](f func(GA) B) func(GA) GB {
 		return MakeBy[GB](len(as), func(i int) B { return f(as[i:]) })
 	}
 }
+
+func UpdateAt[GT ~[]T, T any](i int, v T) func(GT) O.Option[GT] {
+	none := O.None[GT]()
+	if i < 0 {
+		return F.Constant1[GT](none)
+	}
+	return func(g GT) O.Option[GT] {
+		if i >= len(g) {
+			return none
+		}
+		return O.Of(array.UnsafeUpdateAt(g, i, v))
+	}
+}

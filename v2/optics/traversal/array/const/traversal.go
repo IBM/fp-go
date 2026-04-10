@@ -23,6 +23,6 @@ import (
 )
 
 // FromArray returns a traversal from an array for the identity [Monoid]
-func FromArray[E, A any](m M.Monoid[E]) G.Traversal[[]A, A, C.Const[E, []A], C.Const[E, A]] {
+func FromArray[A, E any](m M.Monoid[E]) G.Traversal[[]A, A, C.Const[E, []A], C.Const[E, A]] {
 	return AR.FromArray[[]A](m)
 }

@@ -15,6 +15,8 @@
 
 package array
 
+import "slices"
+
 func Of[GA ~[]A, A any](a A) GA {
 	return GA{a}
 }
@@ -196,4 +198,10 @@ func Reverse[GT ~[]T, T any](as GT) GT {
 		ras[i] = as[l1-i]
 	}
 	return ras
+}
+
+func UnsafeUpdateAt[GT ~[]T, T any](as GT, i int, v T) GT {
+	c := slices.Clone(as)
+	c[i] = v
+	return c
 }
