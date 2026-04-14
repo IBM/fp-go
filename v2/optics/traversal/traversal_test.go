@@ -70,7 +70,7 @@ func TestTraverse(t *testing.T) {
 
 	sa := F.Pipe1(
 		Id[[]int, []int](),
-		Compose[[]int, []int, []int, int](tr),
+		Compose[[]int, []int](tr),
 	)
 
 	res := sa(utils.Double)(as)
@@ -85,14 +85,14 @@ func TestFilter_Success(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		// Filter to only positive numbers
 		isPositive := N.MoreThan(0)
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isPositive),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isPositive),
 		)
 
 		// Act - double only positive numbers
@@ -108,14 +108,14 @@ func TestFilter_Success(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		// Filter to only even numbers
 		isEven := func(n int) bool { return n%2 == 0 }
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isEven),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isEven),
 		)
 
 		// Act
@@ -158,13 +158,13 @@ func TestFilter_EdgeCases(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		isPositive := N.MoreThan(0)
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isPositive),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isPositive),
 		)
 
 		// Act
@@ -180,13 +180,13 @@ func TestFilter_EdgeCases(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		isPositive := N.MoreThan(0)
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isPositive),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isPositive),
 		)
 
 		// Act
@@ -202,13 +202,13 @@ func TestFilter_EdgeCases(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		isPositive := N.MoreThan(0)
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isPositive),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isPositive),
 		)
 
 		// Act
@@ -224,13 +224,13 @@ func TestFilter_EdgeCases(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		isPositive := N.MoreThan(0)
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isPositive),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isPositive),
 		)
 
 		// Act
@@ -246,13 +246,13 @@ func TestFilter_EdgeCases(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		isPositive := N.MoreThan(0)
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isPositive),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isPositive),
 		)
 
 		// Act
@@ -270,7 +270,7 @@ func TestFilter_Integration(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		// Filter to only even numbers, then only those > 4
@@ -279,8 +279,8 @@ func TestFilter_Integration(t *testing.T) {
 
 		filteredTraversal := F.Pipe2(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isEven),
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(greaterThanFour),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isEven),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(greaterThanFour),
 		)
 
 		// Act - add 100 to matching elements
@@ -296,13 +296,13 @@ func TestFilter_Integration(t *testing.T) {
 		arrayTraversal := AI.FromArray[int]()
 		baseTraversal := F.Pipe1(
 			Id[[]int, []int](),
-			Compose[[]int, []int, []int, int](arrayTraversal),
+			Compose[[]int, []int](arrayTraversal),
 		)
 
 		isEven := func(n int) bool { return n%2 == 0 }
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]int, []int, int, int](F.Identity[int], F.Identity[func(int) int])(isEven),
+			Filter[[]int, []int](F.Identity[int], F.Identity[func(int) int])(isEven),
 		)
 
 		// Act - identity transformation

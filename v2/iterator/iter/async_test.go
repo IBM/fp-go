@@ -30,21 +30,21 @@ import (
 func TestAsync_Success(t *testing.T) {
 	t.Run("converts sequence to async with buffer", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 10)
+		async := AsyncBuf(seq, 10)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
 	})
 
 	t.Run("preserves element order", func(t *testing.T) {
 		seq := From("a", "b", "c", "d", "e")
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		result := toSlice(async)
 		assert.Equal(t, []string{"a", "b", "c", "d", "e"}, result)
 	})
 
 	t.Run("works with single element", func(t *testing.T) {
 		seq := From(42)
-		async := Async(seq, 1)
+		async := AsyncBuf(seq, 1)
 		result := toSlice(async)
 		assert.Equal(t, []int{42}, result)
 	})
@@ -55,7 +55,7 @@ func TestAsync_Success(t *testing.T) {
 			data[i] = i
 		}
 		seq := From(data...)
-		async := Async(seq, 20)
+		async := AsyncBuf(seq, 20)
 		result := toSlice(async)
 		assert.Equal(t, data, result)
 	})
@@ -65,42 +65,42 @@ func TestAsync_Success(t *testing.T) {
 func TestAsync_BufferSizes(t *testing.T) {
 	t.Run("unbuffered channel (bufSize 0)", func(t *testing.T) {
 		seq := From(1, 2, 3)
-		async := Async(seq, 0)
+		async := AsyncBuf(seq, 0)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3}, result)
 	})
 
 	t.Run("small buffer", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 2)
+		async := AsyncBuf(seq, 2)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
 	})
 
 	t.Run("large buffer", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 100)
+		async := AsyncBuf(seq, 100)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
 	})
 
 	t.Run("negative buffer size treated as 0", func(t *testing.T) {
 		seq := From(1, 2, 3)
-		async := Async(seq, -5)
+		async := AsyncBuf(seq, -5)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3}, result)
 	})
 
 	t.Run("buffer size equals sequence length", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
 	})
 
 	t.Run("buffer size larger than sequence", func(t *testing.T) {
 		seq := From(1, 2, 3)
-		async := Async(seq, 10)
+		async := AsyncBuf(seq, 10)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3}, result)
 	})
@@ -110,21 +110,21 @@ func TestAsync_BufferSizes(t *testing.T) {
 func TestAsync_Empty(t *testing.T) {
 	t.Run("empty integer sequence", func(t *testing.T) {
 		seq := Empty[int]()
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		result := toSlice(async)
 		assert.Empty(t, result)
 	})
 
 	t.Run("empty string sequence", func(t *testing.T) {
 		seq := Empty[string]()
-		async := Async(seq, 10)
+		async := AsyncBuf(seq, 10)
 		result := toSlice(async)
 		assert.Empty(t, result)
 	})
 
 	t.Run("empty with zero buffer", func(t *testing.T) {
 		seq := Empty[int]()
-		async := Async(seq, 0)
+		async := AsyncBuf(seq, 0)
 		result := toSlice(async)
 		assert.Empty(t, result)
 	})
@@ -145,7 +145,7 @@ func TestAsync_EarlyTermination(t *testing.T) {
 			}
 		}
 
-		async := Async(seq, 10)
+		async := AsyncBuf(seq, 10)
 
 		// Consume only 5 elements
 		count := 0
@@ -168,7 +168,7 @@ func TestAsync_EarlyTermination(t *testing.T) {
 
 	t.Run("handles yield returning false", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 
 		collected := []int{}
 		for v := range async {
@@ -183,7 +183,7 @@ func TestAsync_EarlyTermination(t *testing.T) {
 
 	t.Run("early termination with unbuffered channel", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 0)
+		async := AsyncBuf(seq, 0)
 
 		collected := []int{}
 		for v := range async {
@@ -210,7 +210,7 @@ func TestAsync_WithComplexTypes(t *testing.T) {
 			Person{"Bob", 25},
 			Person{"Charlie", 35},
 		)
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		result := toSlice(async)
 		expected := []Person{
 			{"Alice", 30},
@@ -225,14 +225,14 @@ func TestAsync_WithComplexTypes(t *testing.T) {
 		p2 := &Person{"Bob", 25}
 		p3 := &Person{"Charlie", 35}
 		seq := From(p1, p2, p3)
-		async := Async(seq, 3)
+		async := AsyncBuf(seq, 3)
 		result := toSlice(async)
 		assert.Equal(t, []*Person{p1, p2, p3}, result)
 	})
 
 	t.Run("works with slices", func(t *testing.T) {
 		seq := From([]int{1, 2}, []int{3, 4}, []int{5, 6})
-		async := Async(seq, 2)
+		async := AsyncBuf(seq, 2)
 		result := toSlice(async)
 		expected := [][]int{{1, 2}, {3, 4}, {5, 6}}
 		assert.Equal(t, expected, result)
@@ -243,7 +243,7 @@ func TestAsync_WithComplexTypes(t *testing.T) {
 		m2 := map[string]int{"b": 2}
 		m3 := map[string]int{"c": 3}
 		seq := From(m1, m2, m3)
-		async := Async(seq, 3)
+		async := AsyncBuf(seq, 3)
 		result := toSlice(async)
 		assert.Equal(t, []map[string]int{m1, m2, m3}, result)
 	})
@@ -254,14 +254,14 @@ func TestAsync_WithChainedOperations(t *testing.T) {
 	t.Run("async after map", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
 		mapped := MonadMap(seq, N.Mul(2))
-		async := Async(mapped, 5)
+		async := AsyncBuf(mapped, 5)
 		result := toSlice(async)
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
 	})
 
 	t.Run("map after async", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		mapped := MonadMap(async, N.Mul(2))
 		result := toSlice(mapped)
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
@@ -270,14 +270,14 @@ func TestAsync_WithChainedOperations(t *testing.T) {
 	t.Run("async after filter", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 		filtered := MonadFilter(seq, func(x int) bool { return x%2 == 0 })
-		async := Async(filtered, 5)
+		async := AsyncBuf(filtered, 5)
 		result := toSlice(async)
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
 	})
 
 	t.Run("filter after async", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		filtered := MonadFilter(async, func(x int) bool { return x%2 == 0 })
 		result := toSlice(filtered)
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, result)
@@ -288,15 +288,15 @@ func TestAsync_WithChainedOperations(t *testing.T) {
 		chained := MonadChain(seq, func(x int) Seq[int] {
 			return From(x, x*10)
 		})
-		async := Async(chained, 10)
+		async := AsyncBuf(chained, 10)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, result)
 	})
 
 	t.Run("multiple async operations", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async1 := Async(seq, 3)
-		async2 := Async(async1, 2)
+		async1 := AsyncBuf(seq, 3)
+		async2 := AsyncBuf(async1, 2)
 		result := toSlice(async2)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
 	})
@@ -314,26 +314,26 @@ func TestAsync_Concurrency(t *testing.T) {
 				}
 			}
 		}
-		
-		async := Async(seq, 10)
-		
+
+		async := AsyncBuf(seq, 10)
+
 		result := toSlice(async)
-		
+
 		// Verify all elements are produced correctly
 		assert.Equal(t, []int{0, 1, 2, 3, 4}, result)
 	})
 
 	t.Run("handles concurrent consumption safely", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-		async := Async(seq, 5)
-		
+		async := AsyncBuf(seq, 5)
+
 		// Consume with some processing time
 		var sum atomic.Int32
 		for v := range async {
 			sum.Add(int32(v))
 			time.Sleep(1 * time.Millisecond)
 		}
-		
+
 		assert.Equal(t, int32(55), sum.Load())
 	})
 }
@@ -342,28 +342,28 @@ func TestAsync_Concurrency(t *testing.T) {
 func TestAsync_EdgeCases(t *testing.T) {
 	t.Run("very large buffer size", func(t *testing.T) {
 		seq := From(1, 2, 3)
-		async := Async(seq, 1000000)
+		async := AsyncBuf(seq, 1000000)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3}, result)
 	})
 
 	t.Run("buffer size of 1", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		async := Async(seq, 1)
+		async := AsyncBuf(seq, 1)
 		result := toSlice(async)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
 	})
 
 	t.Run("works with replicate", func(t *testing.T) {
 		seq := Replicate(5, 42)
-		async := Async(seq, 3)
+		async := AsyncBuf(seq, 3)
 		result := toSlice(async)
 		assert.Equal(t, []int{42, 42, 42, 42, 42}, result)
 	})
 
 	t.Run("works with makeBy", func(t *testing.T) {
 		seq := MakeBy(5, func(i int) int { return i * i })
-		async := Async(seq, 3)
+		async := AsyncBuf(seq, 3)
 		result := toSlice(async)
 		assert.Equal(t, []int{0, 1, 4, 9, 16}, result)
 	})
@@ -374,7 +374,7 @@ func BenchmarkAsync(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		for range async {
 		}
 	}
@@ -388,7 +388,7 @@ func BenchmarkAsync_LargeSequence(b *testing.B) {
 	seq := From(data...)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 100)
+		async := AsyncBuf(seq, 100)
 		for range async {
 		}
 	}
@@ -398,7 +398,7 @@ func BenchmarkAsync_SmallBuffer(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 1)
+		async := AsyncBuf(seq, 1)
 		for range async {
 		}
 	}
@@ -408,7 +408,7 @@ func BenchmarkAsync_LargeBuffer(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 100)
+		async := AsyncBuf(seq, 100)
 		for range async {
 		}
 	}
@@ -418,7 +418,7 @@ func BenchmarkAsync_Unbuffered(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 0)
+		async := AsyncBuf(seq, 0)
 		for range async {
 		}
 	}
@@ -428,7 +428,7 @@ func BenchmarkAsync_WithMap(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		mapped := MonadMap(async, N.Mul(2))
 		for range mapped {
 		}
@@ -439,7 +439,7 @@ func BenchmarkAsync_WithFilter(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	b.ResetTimer()
 	for range b.N {
-		async := Async(seq, 5)
+		async := AsyncBuf(seq, 5)
 		filtered := MonadFilter(async, func(x int) bool { return x%2 == 0 })
 		for range filtered {
 		}
@@ -449,7 +449,7 @@ func BenchmarkAsync_WithFilter(b *testing.B) {
 // Example tests for documentation
 func ExampleAsync() {
 	seq := From(1, 2, 3, 4, 5)
-	async := Async(seq, 10)
+	async := AsyncBuf(seq, 10)
 
 	for v := range async {
 		fmt.Printf("%d ", v)
@@ -459,7 +459,7 @@ func ExampleAsync() {
 
 func ExampleAsync_unbuffered() {
 	seq := From(1, 2, 3)
-	async := Async(seq, 0)
+	async := AsyncBuf(seq, 0)
 
 	for v := range async {
 		fmt.Printf("%d ", v)
@@ -469,7 +469,7 @@ func ExampleAsync_unbuffered() {
 
 func ExampleAsync_earlyTermination() {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-	async := Async(seq, 5)
+	async := AsyncBuf(seq, 5)
 
 	count := 0
 	for v := range async {
@@ -484,7 +484,7 @@ func ExampleAsync_earlyTermination() {
 
 func ExampleAsync_withMap() {
 	seq := From(1, 2, 3, 4, 5)
-	async := Async(seq, 5)
+	async := AsyncBuf(seq, 5)
 	doubled := MonadMap(async, N.Mul(2))
 
 	for v := range doubled {
@@ -495,7 +495,7 @@ func ExampleAsync_withMap() {
 
 func ExampleAsync_withFilter() {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-	async := Async(seq, 5)
+	async := AsyncBuf(seq, 5)
 	evens := MonadFilter(async, func(x int) bool { return x%2 == 0 })
 
 	for v := range evens {
@@ -508,7 +508,7 @@ func ExampleAsync_withFilter() {
 func TestAsync2_Success(t *testing.T) {
 	t.Run("converts Seq2 to async with buffer", func(t *testing.T) {
 		seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
-		async := Async2(seq, 10)
+		async := Async2Buf(seq, 10)
 		result := toMap(async)
 		expected := map[int]string{1: "a", 2: "b", 3: "c"}
 		assert.Equal(t, expected, result)
@@ -516,22 +516,22 @@ func TestAsync2_Success(t *testing.T) {
 
 	t.Run("preserves key-value pairs order", func(t *testing.T) {
 		seq := MonadZip(From("x", "y", "z"), From(10, 20, 30))
-		async := Async2(seq, 5)
-		
+		async := Async2Buf(seq, 5)
+
 		keys := []string{}
 		values := []int{}
 		for k, v := range async {
 			keys = append(keys, k)
 			values = append(values, v)
 		}
-		
+
 		assert.Equal(t, []string{"x", "y", "z"}, keys)
 		assert.Equal(t, []int{10, 20, 30}, values)
 	})
 
 	t.Run("works with single pair", func(t *testing.T) {
 		seq := Of2("key", 42)
-		async := Async2(seq, 1)
+		async := Async2Buf(seq, 1)
 		result := toMap(async)
 		assert.Equal(t, map[string]int{"key": 42}, result)
 	})
@@ -544,7 +544,7 @@ func TestAsync2_Success(t *testing.T) {
 			values[i] = fmt.Sprintf("val%d", i)
 		}
 		seq := MonadZip(From(keys...), From(values...))
-		async := Async2(seq, 20)
+		async := Async2Buf(seq, 20)
 		result := toMap(async)
 		assert.Equal(t, 100, len(result))
 		for i := range 100 {
@@ -557,7 +557,7 @@ func TestAsync2_Success(t *testing.T) {
 func TestAsync2_BufferSizes(t *testing.T) {
 	t.Run("unbuffered channel (bufSize 0)", func(t *testing.T) {
 		seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
-		async := Async2(seq, 0)
+		async := Async2Buf(seq, 0)
 		result := toMap(async)
 		expected := map[int]string{1: "a", 2: "b", 3: "c"}
 		assert.Equal(t, expected, result)
@@ -565,7 +565,7 @@ func TestAsync2_BufferSizes(t *testing.T) {
 
 	t.Run("negative buffer size treated as 0", func(t *testing.T) {
 		seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
-		async := Async2(seq, -5)
+		async := Async2Buf(seq, -5)
 		result := toMap(async)
 		expected := map[int]string{1: "a", 2: "b", 3: "c"}
 		assert.Equal(t, expected, result)
@@ -573,7 +573,7 @@ func TestAsync2_BufferSizes(t *testing.T) {
 
 	t.Run("large buffer", func(t *testing.T) {
 		seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
-		async := Async2(seq, 100)
+		async := Async2Buf(seq, 100)
 		result := toMap(async)
 		expected := map[int]string{1: "a", 2: "b", 3: "c"}
 		assert.Equal(t, expected, result)
@@ -584,7 +584,7 @@ func TestAsync2_BufferSizes(t *testing.T) {
 func TestAsync2_Empty(t *testing.T) {
 	t.Run("empty Seq2", func(t *testing.T) {
 		seq := MonadZip(Empty[int](), Empty[string]())
-		async := Async2(seq, 5)
+		async := Async2Buf(seq, 5)
 		result := toMap(async)
 		assert.Empty(t, result)
 	})
@@ -594,8 +594,8 @@ func TestAsync2_Empty(t *testing.T) {
 func TestAsync2_EarlyTermination(t *testing.T) {
 	t.Run("stops producer when consumer breaks", func(t *testing.T) {
 		seq := MonadZip(From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), From("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"))
-		async := Async2(seq, 5)
-		
+		async := Async2Buf(seq, 5)
+
 		count := 0
 		for range async {
 			count++
@@ -603,7 +603,7 @@ func TestAsync2_EarlyTermination(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.Equal(t, 3, count)
 	})
 }
@@ -613,7 +613,7 @@ func TestAsync2_WithChainedOperations(t *testing.T) {
 	t.Run("async2 after map", func(t *testing.T) {
 		seq := MonadZip(From(1, 2, 3), From(10, 20, 30))
 		mapped := MonadMapWithKey(seq, func(k, v int) int { return k + v })
-		async := Async2(mapped, 5)
+		async := Async2Buf(mapped, 5)
 		result := toMap(async)
 		expected := map[int]int{1: 11, 2: 22, 3: 33}
 		assert.Equal(t, expected, result)
@@ -626,7 +626,7 @@ func TestToSeqPair_Success(t *testing.T) {
 		seq2 := MonadZip(From(1, 2, 3), From("a", "b", "c"))
 		pairs := ToSeqPair(seq2)
 		result := toSlice(pairs)
-		
+
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, 1, pair.Head(result[0]))
 		assert.Equal(t, "a", pair.Tail(result[0]))
@@ -640,7 +640,7 @@ func TestToSeqPair_Success(t *testing.T) {
 		seq2 := MonadZip(From("x", "y", "z"), From(10, 20, 30))
 		pairs := ToSeqPair(seq2)
 		result := toSlice(pairs)
-		
+
 		assert.Equal(t, 3, len(result))
 		for i, p := range result {
 			expectedKey := string(rune('x' + i))
@@ -654,7 +654,7 @@ func TestToSeqPair_Success(t *testing.T) {
 		seq2 := Of2("key", 42)
 		pairs := ToSeqPair(seq2)
 		result := toSlice(pairs)
-		
+
 		assert.Equal(t, 1, len(result))
 		assert.Equal(t, "key", pair.Head(result[0]))
 		assert.Equal(t, 42, pair.Tail(result[0]))
@@ -685,7 +685,7 @@ func TestToSeqPair_WithComplexTypes(t *testing.T) {
 		)
 		pairs := ToSeqPair(seq2)
 		result := toSlice(pairs)
-		
+
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, 1, pair.Head(result[0]))
 		assert.Equal(t, Person{"Alice", 30}, pair.Tail(result[0]))
@@ -702,7 +702,7 @@ func TestFromSeqPair_Success(t *testing.T) {
 		)
 		seq2 := FromSeqPair(pairs)
 		result := toMap(seq2)
-		
+
 		expected := map[int]string{1: "a", 2: "b", 3: "c"}
 		assert.Equal(t, expected, result)
 	})
@@ -714,14 +714,14 @@ func TestFromSeqPair_Success(t *testing.T) {
 			pair.MakePair("z", 30),
 		)
 		seq2 := FromSeqPair(pairs)
-		
+
 		keys := []string{}
 		values := []int{}
 		for k, v := range seq2 {
 			keys = append(keys, k)
 			values = append(values, v)
 		}
-		
+
 		assert.Equal(t, []string{"x", "y", "z"}, keys)
 		assert.Equal(t, []int{10, 20, 30}, values)
 	})
@@ -730,7 +730,7 @@ func TestFromSeqPair_Success(t *testing.T) {
 		pairs := From(pair.MakePair("key", 42))
 		seq2 := FromSeqPair(pairs)
 		result := toMap(seq2)
-		
+
 		assert.Equal(t, map[string]int{"key": 42}, result)
 	})
 }
@@ -760,7 +760,7 @@ func TestFromSeqPair_WithComplexTypes(t *testing.T) {
 		)
 		seq2 := FromSeqPair(pairs)
 		result := toMap(seq2)
-		
+
 		expected := map[int]Person{
 			1: {"Alice", 30},
 			2: {"Bob", 25},
@@ -777,7 +777,7 @@ func TestRoundTrip(t *testing.T) {
 		pairs := ToSeqPair(original)
 		restored := FromSeqPair(pairs)
 		result := toMap(restored)
-		
+
 		expected := map[int]string{1: "a", 2: "b", 3: "c"}
 		assert.Equal(t, expected, result)
 	})
@@ -791,7 +791,7 @@ func TestRoundTrip(t *testing.T) {
 		seq2 := FromSeqPair(original)
 		restored := ToSeqPair(seq2)
 		result := toSlice(restored)
-		
+
 		assert.Equal(t, 3, len(result))
 		assert.Equal(t, 1, pair.Head(result[0]))
 		assert.Equal(t, "a", pair.Tail(result[0]))
@@ -803,7 +803,7 @@ func BenchmarkAsync2(b *testing.B) {
 	seq := MonadZip(From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), From("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"))
 	b.ResetTimer()
 	for range b.N {
-		async := Async2(seq, 5)
+		async := Async2Buf(seq, 5)
 		for range async {
 		}
 	}
@@ -819,7 +819,7 @@ func BenchmarkAsync2_LargeSequence(b *testing.B) {
 	seq := MonadZip(From(keys...), From(values...))
 	b.ResetTimer()
 	for range b.N {
-		async := Async2(seq, 100)
+		async := Async2Buf(seq, 100)
 		for range async {
 		}
 	}
@@ -856,7 +856,7 @@ func BenchmarkRoundTrip(b *testing.B) {
 // Example tests for Async2
 func ExampleAsync2() {
 	seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
-	async := Async2(seq, 10)
+	async := Async2Buf(seq, 10)
 
 	for k, v := range async {
 		fmt.Printf("%d: %s\n", k, v)
@@ -869,7 +869,7 @@ func ExampleAsync2() {
 
 func ExampleAsync2_earlyTermination() {
 	seq := MonadZip(From(1, 2, 3, 4, 5), From("a", "b", "c", "d", "e"))
-	async := Async2(seq, 5)
+	async := Async2Buf(seq, 5)
 
 	count := 0
 	for k, v := range async {
@@ -901,5 +901,3 @@ func ExampleFromSeqPair() {
 	// 2: b
 	// 3: c
 }
-
-

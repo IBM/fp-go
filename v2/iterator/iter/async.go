@@ -16,10 +16,10 @@
 package iter
 
 import (
-	N "github.com/IBM/fp-go/v2/number"
+	A "github.com/IBM/fp-go/v2/array"
 )
 
-// Async converts a synchronous sequence into an asynchronous buffered sequence.
+// AsyncBuf converts a synchronous sequence into an asynchronous buffered sequence.
 // It spawns a goroutine to consume the input sequence and sends values through
 // a buffered channel, allowing concurrent production and consumption of elements.
 //
@@ -57,7 +57,7 @@ import (
 //
 //	// Create an async sequence with a buffer of 10
 //	seq := From(1, 2, 3, 4, 5)
-//	async := Async(seq, 10)
+//	async := AsyncBuf(seq, 10)
 //
 //	// Elements are produced concurrently
 //	for v := range async {
@@ -67,7 +67,7 @@ import (
 // # Example with Early Termination
 //
 //	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-//	async := Async(seq, 5)
+//	async := AsyncBuf(seq, 5)
 //
 //	// Stop after 3 elements - producer goroutine will be properly cleaned up
 //	count := 0
@@ -83,7 +83,7 @@ import (
 //
 //	// bufSize of 0 creates an unbuffered channel
 //	seq := From(1, 2, 3)
-//	async := Async(seq, 0)
+//	async := AsyncBuf(seq, 0)
 //
 //	// Producer and consumer are synchronized
 //	for v := range async {
@@ -95,32 +95,48 @@ import (
 //   - From: Creates a sequence from values
 //   - Map: Transforms sequence elements
 //   - Filter: Filters sequence elements
-func Async[T any](input Seq[T], bufSize int) Seq[T] {
-	return func(yield func(T) bool) {
-		ch := make(chan T, N.Max(bufSize, 0))
-		done := make(chan Void)
-
-		go func() {
-			defer close(ch)
-			for v := range input {
-				select {
-				case ch <- v:
-				case <-done:
-					return
-				}
-			}
-		}()
-
-		defer close(done)
-		for v := range ch {
-			if !yield(v) {
-				return
-			}
-		}
-	}
+func AsyncBuf[T any](input Seq[T], bufSize int) Seq[T] {
+	return MergeBuf(A.Of(input), bufSize)
 }
 
-// Async2 converts a synchronous key-value sequence into an asynchronous buffered sequence.
+// Async converts a synchronous sequence into an asynchronous sequence using a default buffer size.
+// This is a convenience wrapper around AsyncBuf that uses a default buffer size of 8.
+//
+// Type Parameters:
+//   - T: The type of elements in the sequence
+//
+// Parameters:
+//   - input: The source sequence to be consumed asynchronously
+//
+// Returns:
+//   - Seq[T]: A new sequence that yields elements from the input sequence asynchronously
+//
+// Behavior:
+//   - Uses a default buffer size of 8 for the internal channel
+//   - Spawns a goroutine that consumes the input sequence
+//   - Elements are sent through a buffered channel to the output sequence
+//   - Properly handles early termination with goroutine cleanup
+//   - The channel is closed when the input sequence is exhausted
+//
+// Example:
+//
+//	seq := From(1, 2, 3, 4, 5)
+//	async := Async(seq)
+//
+//	// Elements are produced concurrently
+//	for v := range async {
+//	    fmt.Println(v) // Prints: 1, 2, 3, 4, 5
+//	}
+//
+// See Also:
+//   - AsyncBuf: Async with custom buffer size
+//   - Async2: Asynchronous sequence for key-value sequences
+//   - Merge: Merges multiple sequences concurrently
+func Async[T any](input Seq[T]) Seq[T] {
+	return AsyncBuf(input, defaultBufferSize)
+}
+
+// Async2Buf converts a synchronous key-value sequence into an asynchronous buffered sequence.
 // It spawns a goroutine to consume the input sequence and sends key-value pairs through
 // a buffered channel, allowing concurrent production and consumption of elements.
 //
@@ -158,7 +174,7 @@ func Async[T any](input Seq[T], bufSize int) Seq[T] {
 //
 //	// Create an async key-value sequence with a buffer of 10
 //	seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
-//	async := Async2(seq, 10)
+//	async := Async2Buf(seq, 10)
 //
 //	// Elements are produced concurrently
 //	for k, v := range async {
@@ -172,7 +188,7 @@ func Async[T any](input Seq[T], bufSize int) Seq[T] {
 // # Example with Early Termination
 //
 //	seq := MonadZip(From(1, 2, 3, 4, 5), From("a", "b", "c", "d", "e"))
-//	async := Async2(seq, 5)
+//	async := Async2Buf(seq, 5)
 //
 //	// Stop after 2 pairs - producer goroutine will be properly cleaned up
 //	count := 0
@@ -190,6 +206,49 @@ func Async[T any](input Seq[T], bufSize int) Seq[T] {
 //   - ToSeqPair: Converts Seq2 to Seq of Pairs
 //   - FromSeqPair: Converts Seq of Pairs to Seq2
 //   - MonadZip: Creates key-value sequences from two sequences
-func Async2[K, V any](input Seq2[K, V], bufSize int) Seq2[K, V] {
-	return FromSeqPair(Async(ToSeqPair(input), bufSize))
+func Async2Buf[K, V any](input Seq2[K, V], bufSize int) Seq2[K, V] {
+	return FromSeqPair(AsyncBuf(ToSeqPair(input), bufSize))
+}
+
+// Async2 converts a synchronous key-value sequence into an asynchronous sequence using a default buffer size.
+// This is a convenience wrapper around Async2Buf that uses a default buffer size of 8.
+// It's the Seq2 variant of Async, providing the same asynchronous behavior for key-value sequences.
+//
+// Type Parameters:
+//   - K: The type of keys in the sequence
+//   - V: The type of values in the sequence
+//
+// Parameters:
+//   - input: The source key-value sequence to be consumed asynchronously
+//
+// Returns:
+//   - Seq2[K, V]: A new key-value sequence that yields elements from the input sequence asynchronously
+//
+// Behavior:
+//   - Uses a default buffer size of 8 for the internal channel
+//   - Spawns a goroutine that consumes the input key-value sequence
+//   - Key-value pairs are sent through a buffered channel to the output sequence
+//   - Properly handles early termination with goroutine cleanup
+//   - The channel is closed when the input sequence is exhausted
+//
+// Example:
+//
+//	seq := MonadZip(From(1, 2, 3), From("a", "b", "c"))
+//	async := Async2(seq)
+//
+//	// Elements are produced concurrently
+//	for k, v := range async {
+//	    fmt.Printf("%d: %s\n", k, v)
+//	}
+//	// Output:
+//	// 1: a
+//	// 2: b
+//	// 3: c
+//
+// See Also:
+//   - Async2Buf: Async2 with custom buffer size
+//   - Async: Asynchronous sequence for single-value sequences
+//   - MonadZip: Creates key-value sequences from two sequences
+func Async2[K, V any](input Seq2[K, V]) Seq2[K, V] {
+	return Async2Buf(input, defaultBufferSize)
 }

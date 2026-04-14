@@ -495,6 +495,26 @@ func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 	return Chain(f)
 }
 
+// ConcatMap is an alias for Chain that emphasizes sequential concatenation.
+// It maps each element to a sequence and concatenates the results in order.
+//
+// Unlike concurrent operations, ConcatMap preserves the order of elements:
+// it fully processes each input element (yielding all elements from f(a))
+// before moving to the next input element.
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	result := ConcatMap(func(x int) Seq[int] {
+//	    return From(x, x*10)
+//	})(seq)
+//	// yields: 1, 10, 2, 20, 3, 30 (order preserved)
+//
+//go:inline
+func ConcatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
+	return Chain(f)
+}
+
 // Flatten flattens a sequence of sequences into a single sequence.
 //
 // Marble Diagram:
@@ -514,6 +534,11 @@ func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 //go:inline
 func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
 	return MonadChain(mma, F.Identity[Seq[A]])
+}
+
+//go:inline
+func ConcatAll[A any](mma Seq[Seq[A]]) Seq[A] {
+	return Flatten(mma)
 }
 
 // MonadAp applies a sequence of functions to a sequence of values.
