@@ -19,6 +19,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/IBM/fp-go/v2/lazy"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
@@ -354,4 +355,403 @@ func TestAlternativeMonoid_InterspersedFailures(t *testing.T) {
 	expected := O.Of(10) // 5 + 3 + 2
 
 	assert.Equal(t, expected, result(context.Background())())
+}
+
+// TestAltMonoid tests the AltMonoid function
+func TestAltMonoid(t *testing.T) {
+	roMonoid := AltMonoid(lazy.Of(None[context.Context, int]()))
+
+	t.Run("empty element", func(t *testing.T) {
+		empty := roMonoid.Empty()
+		result := empty(context.Background())()
+		assert.Equal(t, O.None[int](), result)
+	})
+
+	t.Run("concat two Some values - returns first", func(t *testing.T) {
+		ro1 := Of[context.Context](5)
+		ro2 := Of[context.Context](10)
+		combined := roMonoid.Concat(ro1, ro2)
+		result := combined(context.Background())()
+		// Alt returns first success, does NOT combine values
+		assert.Equal(t, O.Some(5), result)
+	})
+
+	t.Run("concat None then Some - fallback behavior", func(t *testing.T) {
+		roFailure := None[context.Context, int]()
+		roSuccess := Of[context.Context](42)
+
+		combined := roMonoid.Concat(roFailure, roSuccess)
+		result := combined(context.Background())()
+		// Should fall back to second when first fails
+		assert.Equal(t, O.Some(42), result)
+	})
+
+	t.Run("concat Some then None - uses first", func(t *testing.T) {
+		roSuccess := Of[context.Context](42)
+		roFailure := None[context.Context, int]()
+
+		combined := roMonoid.Concat(roSuccess, roFailure)
+		result := combined(context.Background())()
+		// Should use first successful value
+		assert.Equal(t, O.Some(42), result)
+	})
+
+	t.Run("concat both None", func(t *testing.T) {
+		ro1 := None[context.Context, int]()
+		ro2 := None[context.Context, int]()
+
+		combined := roMonoid.Concat(ro1, ro2)
+		result := combined(context.Background())()
+		assert.Equal(t, O.None[int](), result)
+	})
+
+	t.Run("concat with empty - left identity", func(t *testing.T) {
+		ro := Of[context.Context](42)
+		combined := roMonoid.Concat(roMonoid.Empty(), ro)
+		result := combined(context.Background())()
+		assert.Equal(t, O.Some(42), result)
+	})
+
+	t.Run("concat with empty - right identity", func(t *testing.T) {
+		ro := Of[context.Context](42)
+		combined := roMonoid.Concat(ro, roMonoid.Empty())
+		result := combined(context.Background())()
+		assert.Equal(t, O.Some(42), result)
+	})
+
+	t.Run("multiple values - returns first success", func(t *testing.T) {
+		ro1 := None[context.Context, int]()
+		ro2 := Of[context.Context](5)
+		ro3 := Of[context.Context](10)
+		ro4 := Of[context.Context](15)
+
+		// Alt should return first success, not accumulate
+		combined := roMonoid.Concat(
+			roMonoid.Concat(
+				roMonoid.Concat(ro1, ro2),
+				ro3,
+			),
+			ro4,
+		)
+		result := combined(context.Background())()
+		// Should return first successful value: 5
+		assert.Equal(t, O.Some(5), result)
+	})
+
+	t.Run("fallback chain - tries until success", func(t *testing.T) {
+		// Simulate trying multiple sources until one succeeds
+		primary := None[context.Context, string]()
+		secondary := None[context.Context, string]()
+		tertiary := Of[context.Context]("tertiary success")
+		quaternary := Of[context.Context]("quaternary success")
+
+		strROMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+
+		// Chain concat: try primary, then secondary, then tertiary
+		combined := strROMonoid.Concat(
+			strROMonoid.Concat(
+				strROMonoid.Concat(primary, secondary),
+				tertiary,
+			),
+			quaternary,
+		)
+		result := combined(context.Background())()
+		// Should return first success (tertiary), not quaternary
+		assert.Equal(t, O.Some("tertiary success"), result)
+	})
+
+	t.Run("all failures in chain", func(t *testing.T) {
+		ro1 := None[context.Context, int]()
+		ro2 := None[context.Context, int]()
+		ro3 := None[context.Context, int]()
+
+		combined := roMonoid.Concat(
+			roMonoid.Concat(ro1, ro2),
+			ro3,
+		)
+		result := combined(context.Background())()
+		assert.Equal(t, O.None[int](), result)
+	})
+
+	t.Run("custom empty value", func(t *testing.T) {
+		// Create monoid with custom empty value
+		customEmpty := Of[context.Context](100)
+		customMonoid := AltMonoid(lazy.Of(customEmpty))
+
+		empty := customMonoid.Empty()
+		result := empty(context.Background())()
+		assert.Equal(t, O.Some(100), result)
+
+		// Verify it acts as identity
+		ro := Of[context.Context](42)
+		combined := customMonoid.Concat(ro, customMonoid.Empty())
+		result2 := combined(context.Background())()
+		assert.Equal(t, O.Some(42), result2)
+	})
+}
+
+// TestAltMonoidLaws verifies that the monoid laws hold for AltMonoid
+func TestAltMonoidLaws(t *testing.T) {
+	roMonoid := AltMonoid(lazy.Of(None[context.Context, int]()))
+
+	t.Run("left identity law", func(t *testing.T) {
+		// empty <> x == x
+		x := Of[context.Context](42)
+		result1 := roMonoid.Concat(roMonoid.Empty(), x)(context.Background())()
+		result2 := x(context.Background())()
+		assert.Equal(t, result2, result1)
+	})
+
+	t.Run("right identity law", func(t *testing.T) {
+		// x <> empty == x
+		x := Of[context.Context](42)
+		result1 := roMonoid.Concat(x, roMonoid.Empty())(context.Background())()
+		result2 := x(context.Background())()
+		assert.Equal(t, result2, result1)
+	})
+
+	t.Run("associativity law", func(t *testing.T) {
+		// (x <> y) <> z == x <> (y <> z)
+		x := Of[context.Context](1)
+		y := Of[context.Context](2)
+		z := Of[context.Context](3)
+
+		left := roMonoid.Concat(roMonoid.Concat(x, y), z)(context.Background())()
+		right := roMonoid.Concat(x, roMonoid.Concat(y, z))(context.Background())()
+
+		assert.Equal(t, right, left)
+	})
+
+	t.Run("associativity with None values", func(t *testing.T) {
+		// Verify associativity even with None values
+		x := None[context.Context, int]()
+		y := Of[context.Context](5)
+		z := Of[context.Context](10)
+
+		left := roMonoid.Concat(roMonoid.Concat(x, y), z)(context.Background())()
+		right := roMonoid.Concat(x, roMonoid.Concat(y, z))(context.Background())()
+
+		assert.Equal(t, right, left)
+	})
+
+	t.Run("associativity with mixed None and Some", func(t *testing.T) {
+		x := Of[context.Context](1)
+		y := None[context.Context, int]()
+		z := Of[context.Context](3)
+
+		left := roMonoid.Concat(roMonoid.Concat(x, y), z)(context.Background())()
+		right := roMonoid.Concat(x, roMonoid.Concat(y, z))(context.Background())()
+
+		assert.Equal(t, right, left)
+	})
+}
+
+// TestAltVsAlternativeMonoid compares AltMonoid with AlternativeMonoid
+func TestAltVsAlternativeMonoid(t *testing.T) {
+	altMonoid := AltMonoid(lazy.Of(None[context.Context, int]()))
+	alternativeMonoid := AlternativeMonoid[context.Context](N.MonoidSum[int]())
+
+	t.Run("both succeed - different behavior", func(t *testing.T) {
+		ro1 := Of[context.Context](5)
+		ro2 := Of[context.Context](3)
+
+		altResult := altMonoid.Concat(ro1, ro2)(context.Background())()
+		alternativeResult := alternativeMonoid.Concat(ro1, ro2)(context.Background())()
+
+		// Alt returns first success
+		assert.Equal(t, O.Some(5), altResult)
+		// Alternative combines values
+		assert.Equal(t, O.Some(8), alternativeResult)
+	})
+
+	t.Run("first fails - same behavior", func(t *testing.T) {
+		ro1 := None[context.Context, int]()
+		ro2 := Of[context.Context](42)
+
+		altResult := altMonoid.Concat(ro1, ro2)(context.Background())()
+		alternativeResult := alternativeMonoid.Concat(ro1, ro2)(context.Background())()
+
+		// Both fall back to second
+		assert.Equal(t, O.Some(42), altResult)
+		assert.Equal(t, O.Some(42), alternativeResult)
+	})
+
+	t.Run("second fails - same behavior", func(t *testing.T) {
+		ro1 := Of[context.Context](42)
+		ro2 := None[context.Context, int]()
+
+		altResult := altMonoid.Concat(ro1, ro2)(context.Background())()
+		alternativeResult := alternativeMonoid.Concat(ro1, ro2)(context.Background())()
+
+		// Both use first success
+		assert.Equal(t, O.Some(42), altResult)
+		assert.Equal(t, O.Some(42), alternativeResult)
+	})
+
+	t.Run("both fail - same behavior", func(t *testing.T) {
+		ro1 := None[context.Context, int]()
+		ro2 := None[context.Context, int]()
+
+		altResult := altMonoid.Concat(ro1, ro2)(context.Background())()
+		alternativeResult := alternativeMonoid.Concat(ro1, ro2)(context.Background())()
+
+		assert.Equal(t, O.None[int](), altResult)
+		assert.Equal(t, O.None[int](), alternativeResult)
+	})
+
+	t.Run("multiple successes - key difference", func(t *testing.T) {
+		ro1 := Of[context.Context](10)
+		ro2 := Of[context.Context](20)
+		ro3 := Of[context.Context](30)
+
+		altResult := altMonoid.Concat(
+			altMonoid.Concat(ro1, ro2),
+			ro3,
+		)(context.Background())()
+
+		alternativeResult := alternativeMonoid.Concat(
+			alternativeMonoid.Concat(ro1, ro2),
+			ro3,
+		)(context.Background())()
+
+		// Alt returns first success
+		assert.Equal(t, O.Some(10), altResult)
+		// Alternative accumulates all successes
+		assert.Equal(t, O.Some(60), alternativeResult)
+	})
+}
+
+// TestAltMonoidWithEnvironment tests AltMonoid with environment-dependent computations
+func TestAltMonoidWithEnvironment(t *testing.T) {
+	type Config struct {
+		UseCache bool
+		Factor   int
+	}
+
+	roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+
+	t.Run("environment dependent with fallback", func(t *testing.T) {
+		// First computation depends on environment
+		cacheValue := func(cfg Config) IOOption[int] {
+			return func() Option[int] {
+				if cfg.UseCache {
+					return O.Of(100)
+				}
+				return O.None[int]()
+			}
+		}
+
+		// Second computation also depends on environment
+		dbValue := func(cfg Config) IOOption[int] {
+			return func() Option[int] {
+				return O.Of(50 * cfg.Factor)
+			}
+		}
+
+		combined := roMonoid.Concat(cacheValue, dbValue)
+
+		// With cache enabled, should use cache value (first success)
+		cfg1 := Config{UseCache: true, Factor: 2}
+		assert.Equal(t, O.Some(100), combined(cfg1)())
+
+		// With cache disabled, should fall back to DB value
+		cfg2 := Config{UseCache: false, Factor: 2}
+		assert.Equal(t, O.Some(100), combined(cfg2)())
+	})
+}
+
+// TestAltMonoidRealWorldScenarios tests practical use cases
+func TestAltMonoidRealWorldScenarios(t *testing.T) {
+	t.Run("configuration source fallback", func(t *testing.T) {
+		roMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+
+		// Simulate trying to load config from multiple sources
+		fromEnv := None[context.Context, string]()
+		fromFile := None[context.Context, string]()
+		fromDefault := Of[context.Context]("default-config")
+		fromHardcoded := Of[context.Context]("hardcoded-config")
+
+		// Try sources in priority order
+		combined := roMonoid.Concat(
+			roMonoid.Concat(
+				roMonoid.Concat(fromEnv, fromFile),
+				fromDefault,
+			),
+			fromHardcoded,
+		)
+
+		result := combined(context.Background())()
+		// Should use first available (default-config)
+		assert.Equal(t, O.Some("default-config"), result)
+	})
+
+	t.Run("service discovery with fallback", func(t *testing.T) {
+		roMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+
+		// Simulate service discovery from multiple registries
+		fromConsul := Of[context.Context]("consul-service")
+		fromEtcd := Of[context.Context]("etcd-service")
+		fromStatic := Of[context.Context]("static-service")
+
+		combined := roMonoid.Concat(
+			roMonoid.Concat(fromConsul, fromEtcd),
+			fromStatic,
+		)
+
+		result := combined(context.Background())()
+		// Should use first available service
+		assert.Equal(t, O.Some("consul-service"), result)
+	})
+
+	t.Run("cache lookup with fallback to database", func(t *testing.T) {
+		type Config struct {
+			CacheEnabled bool
+		}
+
+		roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+
+		// Simulate cache miss, then database lookup
+		fromCache := func(cfg Config) IOOption[int] {
+			return func() Option[int] {
+				if cfg.CacheEnabled {
+					return O.None[int]() // Cache miss
+				}
+				return O.None[int]()
+			}
+		}
+
+		fromDatabase := func(cfg Config) IOOption[int] {
+			return func() Option[int] {
+				return O.Of(42) // Database query
+			}
+		}
+
+		combined := roMonoid.Concat(fromCache, fromDatabase)
+		cfg := Config{CacheEnabled: true}
+		result := combined(cfg)()
+		// Should fall back to database
+		assert.Equal(t, O.Some(42), result)
+	})
+
+	t.Run("retry with first success", func(t *testing.T) {
+		roMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+
+		// Simulate retrying an operation
+		attempt1 := None[context.Context, string]()
+		attempt2 := None[context.Context, string]()
+		attempt3 := Of[context.Context]("success on third try")
+		attempt4 := Of[context.Context]("would succeed but not reached")
+
+		combined := roMonoid.Concat(
+			roMonoid.Concat(
+				roMonoid.Concat(attempt1, attempt2),
+				attempt3,
+			),
+			attempt4,
+		)
+
+		result := combined(context.Background())()
+		// Should return first success
+		assert.Equal(t, O.Some("success on third try"), result)
+	})
 }
