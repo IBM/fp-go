@@ -113,3 +113,42 @@ func ToWriter[W io.Writer](w W) io.Writer {
 func ToCloser[C io.Closer](c C) io.Closer {
 	return c
 }
+
+// ToWriteCloser converts any type that implements io.WriteCloser to the io.WriteCloser interface.
+// This is useful for type erasure when you need to work with the interface type
+// rather than a concrete implementation.
+//
+// Example:
+//
+//	import (
+//	    "os"
+//	    "io"
+//	)
+//
+//	f, _ := os.Create("output.txt")
+//	var wc io.WriteCloser = file.ToWriteCloser(f)
+//	defer wc.Close()
+//	wc.Write([]byte("hello"))
+//	// wc is now of type io.WriteCloser
+func ToWriteCloser[C io.WriteCloser](c C) io.WriteCloser {
+	return c
+}
+
+// ToReadCloser converts any type that implements io.ReadCloser to the io.ReadCloser interface.
+// This is useful for type erasure when you need to work with the interface type
+// rather than a concrete implementation.
+//
+// Example:
+//
+//	import (
+//	    "os"
+//	    "io"
+//	)
+//
+//	f, _ := os.Open("input.txt")
+//	var rc io.ReadCloser = file.ToReadCloser(f)
+//	defer rc.Close()
+//	// rc is now of type io.ReadCloser
+func ToReadCloser[C io.ReadCloser](c C) io.ReadCloser {
+	return c
+}
