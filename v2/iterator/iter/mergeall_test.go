@@ -718,8 +718,6 @@ func ExampleMergeAll_unbuffered() {
 	// Output: 1 2 3 4 5 6
 }
 
-// Made with Bob
-
 // TestMerge_Alias tests that Merge is an alias for MergeAll
 func TestMerge_Alias(t *testing.T) {
 	t.Run("merge works identically to MergeAll", func(t *testing.T) {

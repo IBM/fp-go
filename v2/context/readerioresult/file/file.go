@@ -303,22 +303,6 @@ func WriteFile(data []byte) Kleisli[string, []byte] {
 	)
 }
 
-type noCloseable struct {
-	delegate *os.File
-}
-
-func (_ *noCloseable) Close() error {
-	return nil
-}
-
-func (nc *noCloseable) Write(p []byte) (n int, err error) {
-	return nc.delegate.Write(p)
-}
-
-func (nc *noCloseable) Read(p []byte) (n int, err error) {
-	return nc.delegate.Read(p)
-}
-
 // CreateOrStdOut creates a file for writing or returns stdout if the path is "-".
 // This function is useful for CLI applications that need to support writing to either
 // a file or stdout based on user input.
@@ -368,7 +352,7 @@ func CreateOrStdOut() Kleisli[string, io.WriteCloser] {
 			Create,
 			RIOE.Map[*os.File](FL.ToWriteCloser),
 		)),
-		O.GetOrElse(lazy.Of(RIOE.Of[io.WriteCloser](&noCloseable{os.Stdout}))),
+		O.GetOrElse(lazy.Of(RIOE.Of(FL.NopWriteCloser(os.Stdout)))),
 	)
 }
 
@@ -422,6 +406,6 @@ func OpenOrStdIn() Kleisli[string, io.ReadCloser] {
 			Open,
 			RIOE.Map[*os.File](FL.ToReadCloser),
 		)),
-		O.GetOrElse(lazy.Of(RIOE.Of[io.ReadCloser](&noCloseable{os.Stdin}))),
+		O.GetOrElse(lazy.Of(RIOE.Of(FL.NopReadCloser(os.Stdin)))),
 	)
 }
