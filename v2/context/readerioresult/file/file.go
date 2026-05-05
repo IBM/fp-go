@@ -66,7 +66,7 @@ import (
 //	// Write to stdout
 //	result := WriteFile([]byte("Hello"))(STDIO)(ctx)()
 const (
-	STDIO = "-"
+	STDIO = FL.STDIO
 )
 
 var (
