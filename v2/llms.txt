@@ -1,99 +1,247 @@
-# fp-go
+# fp-go v2
 
-> A comprehensive functional programming library for Go, bringing type-safe monads, functors, applicatives, optics, and composable abstractions inspired by fp-ts and Haskell to the Go ecosystem. Created by IBM, licensed under Apache-2.0.
+> A comprehensive functional programming library for Go 1.24+, inspired by fp-ts and Haskell. Provides type-safe monads (Option, Either, Result, IO, IOResult, Reader, ReaderIOResult), optics (Lens, Prism, Traversal, Iso), and composable abstractions using generic type aliases. Created by IBM, Apache-2.0 licensed.
 
-fp-go v2 requires Go 1.24+ and leverages generic type aliases for a cleaner API. 
+fp-go v2 requires Go 1.24+ for generic type alias support. All imports use `github.com/IBM/fp-go/v2/...` (not `github.com/IBM/fp-go/...` which is v1).
 
-Key concepts: `Option` for nullable values, `Either`/`Result` for error handling, `IO` for lazy side effects, `Reader` for dependency injection, `IOResult` for effectful error handling, `ReaderIOResult` for the full monad stack, and `Optics` (lens, prism, traversal, iso) for immutable data manipulation.
+Important: fp-go follows the **data-last** principle — the data being operated on is always the last parameter. All operations return a function that takes the data, enabling composition via `function.Pipe` and `function.Flow`. This is the single most important design principle to understand.
+
+Important: When the standard Go `error` type is sufficient for error handling, prefer `Result` over `Either`. `Result[A]` is an alias for `Either[error, A]` and is recommended as the default. Use `Either[E, A]` only when you need a custom error type `E` that is not `error`.
+
+Important: Idiomatic packages (`github.com/IBM/fp-go/v2/idiomatic/...`) use Go-native `(value, bool)` and `(value, error)` tuple representations instead of struct wrappers. They offer 2-10x performance improvements and zero allocations. Prefer idiomatic packages in performance-critical code paths. Standard packages provide a richer API surface and are recommended for general use.
+
+## LLM Code Generation Rules
+
+When generating fp-go v2 code, follow these rules:
+
+### Type Parameter Ordering
+
+Go requires all type parameters on global function definitions. Parameters that CANNOT be inferred from arguments come FIRST:
+
+```go
+// Map: the output type B cannot be inferred, so it comes first
+func Map[B, A any](f func(A) B) func(Option[A]) Option[B]
+
+// Ap: the output type B cannot be inferred from the argument
+func Ap[B, A any](fa Option[A]) func(Option[func(A) B]) Option[B]
+
+// Chain: B cannot be inferred
+func Chain[B, A any](f func(A) Option[B]) func(Option[A]) Option[B]
+```
+
+When calling these functions, you often need to specify only the non-inferable type parameters explicitly:
+
+```go
+// Explicit: specify B (the non-inferable param)
+option.Map[string](func(x int) string { return fmt.Sprint(x) })(someOption)
+
+// Often Go can infer all params from context — let it:
+option.Map(strconv.Itoa)(someOption)
+```
+
+### Data-Last and Composition
+
+All operations return a function waiting for the data. Use `function.Pipe` or `function.Flow` to compose:
+
+```go
+import (
+    "github.com/IBM/fp-go/v2/function"
+    "github.com/IBM/fp-go/v2/option"
+    "github.com/IBM/fp-go/v2/result"
+)
+
+// Pipe: apply value through a chain of transformations (value first, then operations)
+out := function.Pipe3(
+    option.Some(42),
+    option.Map(func(x int) int { return x * 2 }),
+    option.Filter(func(x int) bool { return x > 50 }),
+    option.GetOrElse(func() int { return 0 }),
+)
+
+// Flow: compose functions without a starting value (returns a new function)
+transform := function.Flow3(
+    option.Map(func(x int) int { return x * 2 }),
+    option.Filter(func(x int) bool { return x > 50 }),
+    option.GetOrElse(func() int { return 0 }),
+)
+out := transform(option.Some(42))
+```
+
+`Pipe1` through `Pipe20` are available (number = number of transformation steps). Same for `Flow1` through `Flow20`.
+
+### Import Alias Convention
+
+fp-go code idiomatically uses short import aliases:
+
+```go
+import (
+    F "github.com/IBM/fp-go/v2/function"
+    O "github.com/IBM/fp-go/v2/option"
+    E "github.com/IBM/fp-go/v2/either"
+    R "github.com/IBM/fp-go/v2/result"
+    IO "github.com/IBM/fp-go/v2/io"
+    IOR "github.com/IBM/fp-go/v2/ioresult"
+    RD "github.com/IBM/fp-go/v2/reader"
+    RIOR "github.com/IBM/fp-go/v2/readerioresult"
+    A "github.com/IBM/fp-go/v2/array"
+    N "github.com/IBM/fp-go/v2/number"
+    S "github.com/IBM/fp-go/v2/string"
+)
+```
+
+When used with aliases: `O.Some(42)`, `R.Ok(value)`, `R.Error[int](err)`, `F.Pipe2(...)`.
+
+Using fully qualified names without aliases is equally valid and may be clearer for beginners.
+
+### Monad Selection Guide
+
+Choose the right monad based on what your computation needs:
+
+- `Option[A]` — Value may or may not exist. No error information. Use for lookups, nullable fields, optional configs.
+- `Either[E, A]` — Computation can fail with a typed error `E`. Use when you need a custom error type.
+- `Result[A]` — Computation can fail with Go's `error`. **Recommended default** for error handling. Alias for `Either[error, A]`.
+- `IO[A]` — Lazy side-effecting computation that always succeeds. Underlying type: `func() A`.
+- `IOOption[A]` — Lazy computation that may produce no value.
+- `IOEither[E, A]` — Lazy computation that can fail with typed error.
+- `IOResult[A]` — Lazy computation that can fail with `error`. **Recommended** over `IOEither` when using standard errors.
+- `Reader[R, A]` — Computation that depends on an environment `R` (dependency injection).
+- `ReaderIOResult[R, A]` — Full monad stack: dependency injection + lazy evaluation + error handling. Use for real-world I/O operations.
+- `context/readerioresult` — `ReaderIOResult` specialized for `context.Context` as the environment. **Recommended for production I/O** (HTTP calls, DB queries, file operations).
+
+Escalation path: `Option` → `Result` → `IOResult` → `ReaderIOResult` → `context/readerioresult`. Start with the simplest type that covers your needs.
+
+### Common Patterns
+
+**Wrapping existing Go functions:**
+
+```go
+import (
+    "os"
+    "github.com/IBM/fp-go/v2/result"
+    "github.com/IBM/fp-go/v2/ioresult"
+)
+
+// Lift a (value, error) Go function into IOResult
+readFile := ioresult.Eitherize1(os.ReadFile) // func(string) IOResult[[]byte]
+```
+
+`Eitherize1` through `EitherizeN` lift Go functions with `(T, error)` returns into functional equivalents.
+
+**Do-notation style (sequential binding):**
+
+```go
+// Use Bind and Ap for sequential computation with named intermediate results
+result := F.Pipe3(
+    R.Ok(initialValue),
+    result.Bind("step1", func(x int) result.Result[string] {
+        return R.Ok(fmt.Sprint(x))
+    }),
+    result.Bind("step2", func(s string) result.Result[int] {
+        return R.Ok(len(s))
+    }),
+    result.Map(func(ctx result.BindContext) int {
+        return result.Get[int](ctx, "step2")
+    }),
+)
+```
+
+### Common Mistakes to Avoid
+
+1. **Using v1 imports**: `github.com/IBM/fp-go/either` is v1. Always use `github.com/IBM/fp-go/v2/either`.
+2. **Data-first ordering**: Writing `option.Map(someValue, fn)` — this is wrong. It's `option.Map(fn)(someValue)`.
+3. **Using Either when Result suffices**: Unless you need a custom error type, prefer `result` over `either`.
+4. **Forgetting to execute IO**: `IO[A]` is `func() A` — you must call it `()` to execute. IO values describe computations; they don't run until invoked.
+5. **Type parameter confusion**: Non-inferable type params come first. `Map[B, A]` not `Map[A, B]`.
+6. **Using `ioeither` instead of `ioresult`**: When your error type is `error`, prefer `ioresult` (or `idiomatic/ioresult` for performance).
 
 ## Core Documentation
 
 - [API Reference (pkg.go.dev)](https://pkg.go.dev/github.com/IBM/fp-go/v2): Complete API documentation for all packages
 - [README](https://github.com/IBM/fp-go/blob/main/v2/README.md): Overview, quick start, installation, and migration guide from v1 to v2
-- [Design Decisions](https://github.com/IBM/fp-go/blob/main/v2/DESIGN.md): Key design principles and patterns
-- [Functional I/O Guide](https://github.com/IBM/fp-go/blob/main/v2/FUNCTIONAL_IO.md): Understanding Context, errors, and the Reader pattern for I/O operations
-- [Idiomatic vs Standard Comparison](https://github.com/IBM/fp-go/blob/main/v2/IDIOMATIC_COMPARISON.md): Performance comparison and when to use each approach
-- [Optics README](https://github.com/IBM/fp-go/blob/main/v2/optics/README.md): Guide to lens, prism, optional, and traversal optics
+- [Design Decisions](https://github.com/IBM/fp-go/blob/main/v2/DESIGN.md): Data-last principle, Kleisli types, type parameter ordering, generic type aliases
+- [Functional I/O Guide](https://github.com/IBM/fp-go/blob/main/v2/FUNCTIONAL_IO.md): Context, errors, Reader pattern, the effect package, and when to use each approach
+- [Idiomatic vs Standard Comparison](https://github.com/IBM/fp-go/blob/main/v2/IDIOMATIC_COMPARISON.md): Performance benchmarks and when to use idiomatic (tuple-based) vs standard (struct-based) packages
+- [Optics README](https://github.com/IBM/fp-go/blob/main/v2/optics/README.md): Guide to lens, prism, optional, iso, traversal, and codec optics
 
-## Standard Packages (struct-based)
+## Packages
 
-- [option](https://pkg.go.dev/github.com/IBM/fp-go/v2/option): Option monad — represent optional values without nil
-- [either](https://pkg.go.dev/github.com/IBM/fp-go/v2/either): Either monad — type-safe error handling with Left/Right values
-- [result](https://pkg.go.dev/github.com/IBM/fp-go/v2/result): Result monad — simplified Either with `error` as Left type (recommended for error handling)
-- [io](https://pkg.go.dev/github.com/IBM/fp-go/v2/io): IO monad — lazy evaluation and side effect management
-- [iooption](https://pkg.go.dev/github.com/IBM/fp-go/v2/iooption): IOOption — IO combined with Option
-- [ioeither](https://pkg.go.dev/github.com/IBM/fp-go/v2/ioeither): IOEither — IO combined with Either for effectful error handling
-- [ioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/ioresult): IOResult — IO combined with Result (recommended over IOEither)
-- [reader](https://pkg.go.dev/github.com/IBM/fp-go/v2/reader): Reader monad — dependency injection pattern
-- [readeroption](https://pkg.go.dev/github.com/IBM/fp-go/v2/readeroption): ReaderOption — Reader combined with Option
-- [readeriooption](https://pkg.go.dev/github.com/IBM/fp-go/v2/readeriooption): ReaderIOOption — Reader + IO + Option
-- [readerioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/readerioresult): ReaderIOResult — Reader + IO + Result for complex workflows
-- [readerioeither](https://pkg.go.dev/github.com/IBM/fp-go/v2/readerioeither): ReaderIOEither — Reader + IO + Either
-- [statereaderioeither](https://pkg.go.dev/github.com/IBM/fp-go/v2/statereaderioeither): StateReaderIOEither — State + Reader + IO + Either
+### Data Types — Standard (struct-based)
 
-## Idiomatic Packages (tuple-based, high performance)
+- [option](https://pkg.go.dev/github.com/IBM/fp-go/v2/option): Optional values (Some/None) without nil
+- [either](https://pkg.go.dev/github.com/IBM/fp-go/v2/either): Type-safe Left/Right error handling with custom error types
+- [result](https://pkg.go.dev/github.com/IBM/fp-go/v2/result): Either[error, A] — recommended for error handling with Go's error type
+- [io](https://pkg.go.dev/github.com/IBM/fp-go/v2/io): Lazy side-effect management
+- [ioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/ioresult): IO + Result — effectful computations that can fail (recommended over ioeither)
+- [reader](https://pkg.go.dev/github.com/IBM/fp-go/v2/reader): Dependency injection via environment
+- [readerioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/readerioresult): Reader + IO + Result — full monad stack for real-world workflows
+- [ioeither](https://pkg.go.dev/github.com/IBM/fp-go/v2/ioeither): IO + Either — use only when you need a custom error type E
+- [readerioeither](https://pkg.go.dev/github.com/IBM/fp-go/v2/readerioeither): Reader + IO + Either — use only when you need a custom error type E
+- [iooption](https://pkg.go.dev/github.com/IBM/fp-go/v2/iooption): IO + Option
+- [readeroption](https://pkg.go.dev/github.com/IBM/fp-go/v2/readeroption): Reader + Option
+- [readeriooption](https://pkg.go.dev/github.com/IBM/fp-go/v2/readeriooption): Reader + IO + Option
+- [statereaderioeither](https://pkg.go.dev/github.com/IBM/fp-go/v2/statereaderioeither): State + Reader + IO + Either
 
-- [idiomatic/option](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/option): Option using native Go `(value, bool)` tuples
-- [idiomatic/result](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/result): Result using native Go `(value, error)` tuples
-- [idiomatic/ioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/ioresult): IOResult using `func() (value, error)`
-- [idiomatic/readerresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/readerresult): ReaderResult with tuple-based results
+### Data Types — Idiomatic (tuple-based, 2-10x faster)
+
+- [idiomatic/option](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/option): Option as (value, bool) — zero allocations
+- [idiomatic/result](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/result): Result as (value, error) — zero allocations
+- [idiomatic/ioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/ioresult): IOResult as func() (value, error)
 - [idiomatic/readerioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/idiomatic/readerioresult): ReaderIOResult with tuple-based results
 
-## Context Packages (context.Context specializations)
+### Context Packages (context.Context specializations)
 
-- [context/readerioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/context/readerioresult): ReaderIOResult specialized for context.Context
-- [context/readerioresult/http](https://pkg.go.dev/github.com/IBM/fp-go/v2/context/readerioresult/http): Functional HTTP client utilities
+- [context/readerioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/context/readerioresult): ReaderIOResult for context.Context — recommended for production I/O
+- [context/readerioresult/http](https://pkg.go.dev/github.com/IBM/fp-go/v2/context/readerioresult/http): Functional HTTP client
 - [context/readerioresult/http/builder](https://pkg.go.dev/github.com/IBM/fp-go/v2/context/readerioresult/http/builder): Functional HTTP request builder
-- [context/statereaderioresult](https://pkg.go.dev/github.com/IBM/fp-go/v2/context/statereaderioresult): State + Reader + IO + Result for context.Context
 
-## Optics
+### Composition and Utilities
 
-- [optics](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics): Core optics package
-- [optics/lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens): Lenses for focusing on fields in product types
-- [optics/prism](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism): Prisms for focusing on variants in sum types
-- [optics/iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso): Isomorphisms for bidirectional transformations
-- [optics/optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional): Optionals for values that may not exist
-- [optics/traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal): Traversals for focusing on multiple values
-- [optics/codec](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/codec): Codecs for encoding/decoding with validation
-
-## Utility Packages
-
-- [array](https://pkg.go.dev/github.com/IBM/fp-go/v2/array): Functional array/slice operations (map, filter, fold, etc.)
+- [function](https://pkg.go.dev/github.com/IBM/fp-go/v2/function): Pipe, Flow, curry, identity, constant — core composition tools
+- [array](https://pkg.go.dev/github.com/IBM/fp-go/v2/array): Map, filter, fold, reduce, traverse for slices
 - [record](https://pkg.go.dev/github.com/IBM/fp-go/v2/record): Functional operations for maps
-- [function](https://pkg.go.dev/github.com/IBM/fp-go/v2/function): Function composition, pipe, flow, curry, identity
-- [pair](https://pkg.go.dev/github.com/IBM/fp-go/v2/pair): Strongly-typed pair/tuple data structure
+- [pair](https://pkg.go.dev/github.com/IBM/fp-go/v2/pair): Strongly-typed pair data structure
 - [tuple](https://pkg.go.dev/github.com/IBM/fp-go/v2/tuple): Type-safe heterogeneous tuples
-- [predicate](https://pkg.go.dev/github.com/IBM/fp-go/v2/predicate): Predicate combinators (and, or, not, etc.)
-- [endomorphism](https://pkg.go.dev/github.com/IBM/fp-go/v2/endomorphism): Endomorphism operations (compose, chain)
-- [eq](https://pkg.go.dev/github.com/IBM/fp-go/v2/eq): Type-safe equality comparisons
-- [ord](https://pkg.go.dev/github.com/IBM/fp-go/v2/ord): Total ordering type class
+- [predicate](https://pkg.go.dev/github.com/IBM/fp-go/v2/predicate): And, or, not combinators
+- [eq](https://pkg.go.dev/github.com/IBM/fp-go/v2/eq): Type-safe equality
+- [ord](https://pkg.go.dev/github.com/IBM/fp-go/v2/ord): Total ordering
 - [semigroup](https://pkg.go.dev/github.com/IBM/fp-go/v2/semigroup): Semigroup algebraic structure
 - [monoid](https://pkg.go.dev/github.com/IBM/fp-go/v2/monoid): Monoid algebraic structure
-- [number](https://pkg.go.dev/github.com/IBM/fp-go/v2/number): Algebraic structures for numeric types
+- [number](https://pkg.go.dev/github.com/IBM/fp-go/v2/number): Algebraic structures for numeric types (Add, Mul, etc.)
+
+### Optics
+
+- [optics/lens](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens): Focus on fields in product types (structs)
+- [optics/prism](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism): Focus on variants in sum types
+- [optics/iso](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso): Bidirectional transformations
+- [optics/optional](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional): Values that may not exist
+- [optics/traversal](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/traversal): Focus on multiple values
+- [optics/codec](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/codec): Encoding/decoding with validation
+
+### Additional Packages
+
+- [effect](https://pkg.go.dev/github.com/IBM/fp-go/v2/effect): Composable effects with dependency injection and error handling
+- [retry](https://pkg.go.dev/github.com/IBM/fp-go/v2/retry): Retry policies with configurable backoff
+- [json](https://pkg.go.dev/github.com/IBM/fp-go/v2/json): Functional JSON encoding/decoding
+- [lazy](https://pkg.go.dev/github.com/IBM/fp-go/v2/lazy): Lazy evaluation without side effects
+- [tailrec](https://pkg.go.dev/github.com/IBM/fp-go/v2/tailrec): Trampoline for stack-safe tail recursion
+- [di](https://pkg.go.dev/github.com/IBM/fp-go/v2/di): Dependency injection utilities
+- [builder](https://pkg.go.dev/github.com/IBM/fp-go/v2/builder): Generic builder pattern with validation
+- [circuitbreaker](https://pkg.go.dev/github.com/IBM/fp-go/v2/circuitbreaker): Circuit breaker error types
+- [identity](https://pkg.go.dev/github.com/IBM/fp-go/v2/identity): Identity monad
 - [string](https://pkg.go.dev/github.com/IBM/fp-go/v2/string): Functional string utilities
 - [boolean](https://pkg.go.dev/github.com/IBM/fp-go/v2/boolean): Functional boolean utilities
 - [bytes](https://pkg.go.dev/github.com/IBM/fp-go/v2/bytes): Functional byte slice utilities
-- [json](https://pkg.go.dev/github.com/IBM/fp-go/v2/json): Functional JSON encoding/decoding
-- [lazy](https://pkg.go.dev/github.com/IBM/fp-go/v2/lazy): Lazy evaluation without side effects
-- [identity](https://pkg.go.dev/github.com/IBM/fp-go/v2/identity): Identity monad
-- [retry](https://pkg.go.dev/github.com/IBM/fp-go/v2/retry): Retry policies with configurable backoff
-- [tailrec](https://pkg.go.dev/github.com/IBM/fp-go/v2/tailrec): Trampoline for tail-call optimization
-- [di](https://pkg.go.dev/github.com/IBM/fp-go/v2/di): Dependency injection utilities
-- [effect](https://pkg.go.dev/github.com/IBM/fp-go/v2/effect): Functional effect system
-- [circuitbreaker](https://pkg.go.dev/github.com/IBM/fp-go/v2/circuitbreaker): Circuit breaker error types
-- [builder](https://pkg.go.dev/github.com/IBM/fp-go/v2/builder): Generic builder pattern with validation
+- [endomorphism](https://pkg.go.dev/github.com/IBM/fp-go/v2/endomorphism): Endomorphism operations
 
 ## Code Samples
 
-- [samples/builder](https://github.com/IBM/fp-go/tree/main/v2/samples/builder): Functional builder pattern example
-- [samples/http](https://github.com/IBM/fp-go/tree/main/v2/samples/http): HTTP client examples
-- [samples/lens](https://github.com/IBM/fp-go/tree/main/v2/samples/lens): Optics/lens examples
-- [samples/mostly-adequate](https://github.com/IBM/fp-go/tree/main/v2/samples/mostly-adequate): Examples adapted from "Mostly Adequate Guide to Functional Programming"
-- [samples/tuples](https://github.com/IBM/fp-go/tree/main/v2/samples/tuples): Tuple usage examples
+- [samples/builder](https://github.com/IBM/fp-go/tree/main/v2/samples/builder): Functional builder pattern
+- [samples/http](https://github.com/IBM/fp-go/tree/main/v2/samples/http): HTTP client with functional error handling
+- [samples/lens](https://github.com/IBM/fp-go/tree/main/v2/samples/lens): Optics/lens for immutable struct updates
+- [samples/mostly-adequate](https://github.com/IBM/fp-go/tree/main/v2/samples/mostly-adequate): Examples from "Mostly Adequate Guide to FP"
+- [samples/tuples](https://github.com/IBM/fp-go/tree/main/v2/samples/tuples): Tuple usage patterns
 
 ## Optional
 
 - [Source Code](https://github.com/IBM/fp-go): GitHub repository
 - [Issues](https://github.com/IBM/fp-go/issues): Bug reports and feature requests
-- [Go Report Card](https://goreportcard.com/report/github.com/IBM/fp-go/v2): Code quality report
-- [Coverage](https://coveralls.io/github/IBM/fp-go?branch=main): Test coverage report
