@@ -44,7 +44,7 @@ func SequenceArrayTest[
 
 		exp := make([]string, count)
 		good := make([]HKTA, count)
-		for i := 0; i < count; i++ {
+		for i := range count {
 			val := fmt.Sprintf("TestData %d", i)
 			exp[i] = val
 			good[i] = pa.Of(val)
@@ -86,7 +86,7 @@ func SequenceArrayErrorTest[
 		expBad := make([]error, count)
 		bad := make([]HKTA, count)
 
-		for i := 0; i < count; i++ {
+		for i := range count {
 			goodVal := fmt.Sprintf("TestData %d", i)
 			badVal := fmt.Errorf("ErrorData %d", i)
 			expGood[i] = goodVal
@@ -117,7 +117,7 @@ func SequenceArrayErrorTest[
 					var exp error
 					// prepare the values bases on the bit mask
 					mask := 1
-					for j := 0; j < count; j++ {
+					for j := range count {
 						if (i & mask) == 0 {
 							act[j] = good[j]
 						} else {
@@ -162,7 +162,7 @@ func SequenceRecordTest[
 
 		exp := make(map[string]string)
 		good := make(map[string]HKTA)
-		for i := 0; i < count; i++ {
+		for i := range count {
 			key := fmt.Sprintf("KeyData %d", i)
 			val := fmt.Sprintf("ValueData %d", i)
 			exp[key] = val

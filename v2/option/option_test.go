@@ -246,7 +246,7 @@ func TestZeroWithStructs(t *testing.T) {
 
 // TestZeroWithInterfaces tests Zero function with interface types
 func TestZeroWithInterfaces(t *testing.T) {
-	o := Zero[interface{}]()
+	o := Zero[any]()
 
 	assert.True(t, IsNone(o), "Zero should create a None value")
 	assert.False(t, IsSome(o), "Zero should not create a Some value")

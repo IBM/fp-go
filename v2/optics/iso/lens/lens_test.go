@@ -16,6 +16,7 @@
 package lens
 
 import (
+	"strings"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -374,11 +375,11 @@ func TestIsoAsLensTypeConversion(t *testing.T) {
 		func(s StringWrapper) IntWrapper { return IntWrapper(len(s)) },
 		func(i IntWrapper) StringWrapper {
 			// Create a string of given length (simplified)
-			result := ""
+			var result strings.Builder
 			for j := 0; j < int(i); j++ {
-				result += "x"
+				result.WriteString("x")
 			}
-			return StringWrapper(result)
+			return StringWrapper(result.String())
 		},
 	)
 

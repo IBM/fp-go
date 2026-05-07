@@ -55,17 +55,17 @@ func deprecatedGenerateGenericSequenceT(
 		// non generic version
 		fmt.Fprintf(f, "\n// SequenceT%d converts %d [%s] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tuple))
 		fmt.Fprintf(f, "func SequenceT%d[%s any](\n", i, joinAll(", ")(extra, typesT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "  t%d %s,\n", j+1, nonGenericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(f, ") %s {\n", nonGenericType(tuple))
 		fmt.Fprintf(f, "  return G.SequenceT%d[\n", i)
 		fmt.Fprintf(f, "    %s,\n", nonGenericType(tuple))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "    %s,\n", nonGenericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(f, "  ](")
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -78,11 +78,11 @@ func deprecatedGenerateGenericSequenceT(
 		fmt.Fprintf(fg, "\n// SequenceT%d converts %d [%s] into a [%s]\n", i, i, genericType("T"), genericType(tuple))
 		fmt.Fprintf(fg, "func SequenceT%d[\n", i)
 		fmt.Fprintf(fg, "  G_TUPLE%d ~%s,\n", i, genericType(tuple))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "  G_T%d ~%s, \n", j+1, genericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(fg, "  %s any](\n", joinAll(", ")(extra, typesT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "  t%d G_T%d,\n", j+1, j+1)
 		}
 		fmt.Fprintf(fg, ")  G_TUPLE%d {\n", i)
@@ -107,7 +107,7 @@ func deprecatedGenerateGenericSequenceT(
 			fmt.Fprintf(fg, "    Ap[%s, %s, G_T%d],\n", cio, genericType(generateNestedCallbacks(j, i)), j+1)
 		}
 		// function parameters
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "    t%d,\n", j+1)
 		}
 
@@ -133,7 +133,7 @@ func deprecatedGenerateGenericSequenceTuple(
 		// non generic version
 		fmt.Fprintf(f, "\n// SequenceTuple%d converts a [T.Tuple%d[%s]] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tuple))
 		fmt.Fprintf(f, "func SequenceTuple%d[%s any](t T.Tuple%d[", i, joinAll(", ")(extra, typesT), i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -142,7 +142,7 @@ func deprecatedGenerateGenericSequenceTuple(
 		fmt.Fprintf(f, "]) %s {\n", nonGenericType(tuple))
 		fmt.Fprintf(f, "  return G.SequenceTuple%d[\n", i)
 		fmt.Fprintf(f, "    %s,\n", nonGenericType(tuple))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "    %s,\n", nonGenericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(f, "  ](t)\n")
@@ -152,11 +152,11 @@ func deprecatedGenerateGenericSequenceTuple(
 		fmt.Fprintf(fg, "\n// SequenceTuple%d converts a [T.Tuple%d[%s]] into a [%s]\n", i, i, genericType("T"), genericType(tuple))
 		fmt.Fprintf(fg, "func SequenceTuple%d[\n", i)
 		fmt.Fprintf(fg, "  G_TUPLE%d ~%s,\n", i, genericType(tuple))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "  G_T%d ~%s, \n", j+1, genericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(fg, "  %s any](t T.Tuple%d[", joinAll(", ")(extra, typesT), i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(fg, ", ")
 			}
@@ -219,7 +219,7 @@ func deprecatedGenerateGenericTraverseTuple(
 		// non generic version
 		fmt.Fprintf(f, "\n// TraverseTuple%d converts a [T.Tuple%d[%s]] into a [%s]\n", i, i, nonGenericType("T"), nonGenericType(tupleT))
 		fmt.Fprintf(f, "func TraverseTuple%d[%s any](", i, joinAll(", ")(typesF, extra, typesA, typesT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -227,7 +227,7 @@ func deprecatedGenerateGenericTraverseTuple(
 		}
 		fmt.Fprintf(f, ") func(%s) %s {\n", tupleA, nonGenericType(tupleT))
 		fmt.Fprintf(f, "  return G.TraverseTuple%d[%s](", i, nonGenericType(tupleT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -240,14 +240,14 @@ func deprecatedGenerateGenericTraverseTuple(
 		fmt.Fprintf(fg, "\n// TraverseTuple%d converts a [T.Tuple%d[%s]] into a [%s]\n", i, i, genericType("T"), genericType(tupleT))
 		fmt.Fprintf(fg, "func TraverseTuple%d[\n", i)
 		fmt.Fprintf(fg, "  G_TUPLE%d ~%s,\n", i, genericType(tupleT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "  F%d ~func(A%d) G_T%d,\n", j+1, j+1, j+1)
 		}
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "  G_T%d ~%s, \n", j+1, genericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(fg, "  %s any](", joinAll(", ")(extra, typesA, typesT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(fg, ", ")
 			}
@@ -276,7 +276,7 @@ func deprecatedGenerateGenericTraverseTuple(
 			fmt.Fprintf(fg, "    Ap[%s, %s, G_T%d],\n", cio, genericType(generateNestedCallbacks(j, i)), j+1)
 		}
 		// function parameters
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(fg, "    f%d,\n", j+1)
 		}
 		// tuple parameter
@@ -302,7 +302,7 @@ func generateGenericSequenceT(
 		// non generic version
 		fmt.Fprintf(f, "\n// Sequence%sT%d converts %d [%s] into a [%s]\n", suffix, i, i, nonGenericType("T"), nonGenericType(tuple))
 		fmt.Fprintf(f, "func Sequence%sT%d[%s any](\n", suffix, i, joinAll(", ")(extra, typesT))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "  t%d %s,\n", j+1, nonGenericType(fmt.Sprintf("T%d", j+1)))
 		}
 		fmt.Fprintf(f, ") %s {\n", nonGenericType(tuple))
@@ -339,7 +339,7 @@ func generateGenericSequenceTuple(
 		// non generic version
 		fmt.Fprintf(f, "\n// Sequence%sTuple%d converts a [tuple.Tuple%d[%s]] into a [%s]\n", suffix, i, i, nonGenericType("T"), nonGenericType(tuple))
 		fmt.Fprintf(f, "func Sequence%sTuple%d[%s any](t tuple.Tuple%d[", suffix, i, joinAll(", ")(extra, typesT), i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}

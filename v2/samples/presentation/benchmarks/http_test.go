@@ -68,7 +68,7 @@ func heterogeneousHTTPRequestsIdiomatic(count int) ([]T.Tuple2[PostItem, CatFact
 	// prepare the http client
 	var result []T.Tuple2[PostItem, CatFact]
 
-	for i := 0; i < count; i++ {
+	for range count {
 		resp, err := HTTP.Get("https://jsonplaceholder.typicode.com/posts/1")
 		if err != nil {
 			return nil, err

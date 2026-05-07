@@ -16,6 +16,7 @@
 package record
 
 import (
+	"strings"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -209,11 +210,11 @@ func TestBindWithDependentComputation(t *testing.T) {
 			},
 			func(n int) map[string]string {
 				// Create a string based on the number
-				result := ""
-				for i := 0; i < n; i++ {
-					result += "a"
+				var result strings.Builder
+				for range n {
+					result.WriteString("a")
 				}
-				return map[string]string{"x": result}
+				return map[string]string{"x": result.String()}
 			},
 		),
 	)

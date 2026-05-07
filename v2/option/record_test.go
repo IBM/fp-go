@@ -48,7 +48,7 @@ func TestSequenceRecord(t *testing.T) {
 		SequenceRecord[string, string],
 	)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		t.Run(fmt.Sprintf("TestSequenceRecord %d", i), s(i))
 	}
 }

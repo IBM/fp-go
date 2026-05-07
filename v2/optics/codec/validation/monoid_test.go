@@ -61,7 +61,7 @@ func TestErrorsMonoid(t *testing.T) {
 
 		assert.Len(t, left, 3)
 		assert.Len(t, right, 3)
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			assert.Equal(t, left[i].Messsage, right[i].Messsage)
 		}
 	})
@@ -199,7 +199,7 @@ func TestMonoidLaws(t *testing.T) {
 
 			assert.Len(t, left, 3)
 			assert.Len(t, right, 3)
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				assert.Equal(t, left[i].Messsage, right[i].Messsage)
 			}
 		})

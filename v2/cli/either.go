@@ -47,18 +47,18 @@ func generateUneitherize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning an Either into a function with %d parameters returning a tuple\n// The inverse function is [Eitherize%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Uneitherize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j)
 	}
 	fmt.Fprintf(f, ") Either[error, R]")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -66,7 +66,7 @@ func generateUneitherize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") (R, error) {\n")
 	fmt.Fprintf(f, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -74,7 +74,7 @@ func generateUneitherize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") (R, error) {\n")
 	fmt.Fprintf(f, "    return UnwrapError(f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -89,18 +89,18 @@ func generateEitherize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning an Either\n// The inverse function is [Uneitherize%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Eitherize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j)
 	}
 	fmt.Fprintf(f, ") (R, error)")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -108,7 +108,7 @@ func generateEitherize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") Either[error, R] {\n")
 	fmt.Fprintf(f, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -116,7 +116,7 @@ func generateEitherize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") Either[error, R] {\n")
 	fmt.Fprintf(f, "    return TryCatchError(f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}

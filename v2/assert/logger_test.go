@@ -292,7 +292,7 @@ Line 3`
 func TestLogf_ReuseLogger(t *testing.T) {
 	logInt := Logf[int]("Value: %d")
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		logInt(i)(t)()
 	}
 

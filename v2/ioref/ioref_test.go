@@ -115,7 +115,7 @@ func TestRead(t *testing.T) {
 		iterations := 100
 		results := make([]int, iterations)
 
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
@@ -137,7 +137,7 @@ func TestRead(t *testing.T) {
 		iterations := 50
 
 		// Start concurrent writes
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			wg.Add(1)
 			go func(val int) {
 				defer wg.Done()
@@ -146,7 +146,7 @@ func TestRead(t *testing.T) {
 		}
 
 		// Start concurrent reads
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -203,7 +203,7 @@ func TestWrite(t *testing.T) {
 		var wg sync.WaitGroup
 		iterations := 100
 
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			wg.Add(1)
 			go func(val int) {
 				defer wg.Done()
@@ -261,7 +261,7 @@ func TestModify(t *testing.T) {
 		var wg sync.WaitGroup
 		iterations := 100
 
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -343,7 +343,7 @@ func TestModifyWithResult(t *testing.T) {
 		iterations := 100
 		results := make([]int, iterations)
 
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
@@ -440,7 +440,7 @@ func TestModifyReaderIOK(t *testing.T) {
 		var wg sync.WaitGroup
 		iterations := 100
 
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -559,7 +559,7 @@ func TestModifyReaderIOKWithResult(t *testing.T) {
 		iterations := 100
 		results := make([]int, iterations)
 
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
@@ -659,7 +659,7 @@ func TestModifyIOK(t *testing.T) {
 		iterations := 100
 
 		// Increment concurrently
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -789,7 +789,7 @@ func TestModifyIOKWithResult(t *testing.T) {
 		results := make([]int, iterations)
 
 		// Increment concurrently and collect old values
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()

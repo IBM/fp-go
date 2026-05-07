@@ -93,7 +93,7 @@ func TestMemoize(t *testing.T) {
 		// Run concurrent calls with same input
 		var wg sync.WaitGroup
 		results := make([]int, 10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
@@ -491,7 +491,7 @@ func TestSingleElementCache(t *testing.T) {
 		results := make([]string, 20)
 
 		// Concurrent access with same key
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
@@ -533,7 +533,7 @@ func TestSingleElementCache(t *testing.T) {
 		}
 
 		// Rapidly alternate between keys
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			cache(1, gen(1))()
 			cache(2, gen(2))()
 		}

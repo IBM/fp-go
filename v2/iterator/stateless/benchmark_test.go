@@ -32,7 +32,7 @@ func single() int64 {
 
 	length := 10000
 	nums := make([]int, 0, length)
-	for i := 0; i < length; i++ {
+	for i := range length {
 		nums = append(nums, i+1)
 	}
 

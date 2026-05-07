@@ -785,7 +785,7 @@ func TestHandleFailureOnClosed(t *testing.T) {
 
 		// Apply many errors
 		result := initialState
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			result = endomorphism(result)
 		}
 

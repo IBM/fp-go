@@ -166,7 +166,7 @@ func TestWithTempFile(t *testing.T) {
 	t.Run("multiple temp files", func(t *testing.T) {
 		var paths []string
 
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			useFile := func(f *os.File) IOResult[string] {
 				return ioeither.TryCatchError(func() (string, error) {
 					return f.Name(), nil

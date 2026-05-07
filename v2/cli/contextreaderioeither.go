@@ -55,15 +55,15 @@ func generateContextReaderIOEitherEitherize(f, fg *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning a [ReaderIOEither[R]]\n// The inverse function is [Uneitherize%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Eitherize%d[F ~func(context.Context", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ") (R, error)")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -76,15 +76,15 @@ func generateContextReaderIOEitherEitherize(f, fg *os.File, i int) {
 	// generic version
 	fmt.Fprintf(fg, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning a [GRA]\n// The inverse function is [Uneitherize%d]\n", i, i, i, i)
 	fmt.Fprintf(fg, "func Eitherize%d[GRA ~func(context.Context) GIOA, F ~func(context.Context", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j)
 	}
 	fmt.Fprintf(fg, ") (R, error), GIOA ~func() E.Either[error, R]")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j)
 	}
 	fmt.Fprintf(fg, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -99,25 +99,25 @@ func generateContextReaderIOEitherUneitherize(f, fg *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning a [ReaderIOEither[R]] into a function with %d parameters returning a tuple.\n// The first parameter is considered to be the [context.Context].\n", i, i+1, i)
 	fmt.Fprintf(f, "func Uneitherize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j)
 	}
 	fmt.Fprintf(f, ") ReaderIOEither[R]")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(context.Context")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ") (R, error) {\n")
 	fmt.Fprintf(f, "  return G.Uneitherize%d[ReaderIOEither[R]", i)
 
 	fmt.Fprintf(f, ", func(context.Context")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ")(R, error)](f)\n")
@@ -126,15 +126,15 @@ func generateContextReaderIOEitherUneitherize(f, fg *os.File, i int) {
 	// generic version
 	fmt.Fprintf(fg, "\n// Uneitherize%d converts a function with %d parameters returning a [GRA] into a function with %d parameters returning a tuple.\n// The first parameter is considered to be the [context.Context].\n", i, i, i)
 	fmt.Fprintf(fg, "func Uneitherize%d[GRA ~func(context.Context) GIOA, F ~func(context.Context", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j)
 	}
 	fmt.Fprintf(fg, ") (R, error), GIOA ~func() E.Either[error, R]")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j)
 	}
 	fmt.Fprintf(fg, ", R any](f func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -143,12 +143,12 @@ func generateContextReaderIOEitherUneitherize(f, fg *os.File, i int) {
 	fmt.Fprintf(fg, ") GRA) F {\n")
 
 	fmt.Fprintf(fg, "  return func(c context.Context")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", t%d T%d", j, j)
 	}
 	fmt.Fprintf(fg, ") (R, error) {\n")
 	fmt.Fprintf(fg, "    return E.UnwrapError(f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}

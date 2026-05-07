@@ -308,7 +308,7 @@ func TestMetricsThreadSafety(t *testing.T) {
 		wg.Add(numGoroutines)
 
 		// Launch multiple goroutines recording metrics concurrently
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer wg.Done()
 				timestamp := time.Now()
@@ -334,7 +334,7 @@ func TestMetricsThreadSafety(t *testing.T) {
 
 		timestamp := time.Now()
 
-		for i := 0; i < numIterations; i++ {
+		for range numIterations {
 			go func() {
 				defer wg.Done()
 				io.Run(metrics.Accept(timestamp))
@@ -719,7 +719,7 @@ func TestVoidMetricsThreadSafety(t *testing.T) {
 		timestamp := time.Now()
 
 		// Launch multiple goroutines calling all methods concurrently
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			go func() {
 				defer wg.Done()
 				io.Run(metrics.Accept(timestamp))
@@ -756,7 +756,7 @@ func TestVoidMetricsThreadSafety(t *testing.T) {
 		timestamp := time.Now()
 		results := make([]IO[Void], numGoroutines)
 
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(idx int) {
 				defer wg.Done()
 				// Each goroutine calls a different method
@@ -793,7 +793,7 @@ func TestVoidMetricsPerformance(t *testing.T) {
 
 		// Execute many operations quickly
 		iterations := 10000
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			io.Run(metrics.Accept(timestamp))
 			io.Run(metrics.Reject(timestamp))
 			io.Run(metrics.Open(timestamp))

@@ -29,15 +29,15 @@ func generateReaderFrom(f, fg *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// From%d converts a function with %d parameters returning a [R] into a function with %d parameters returning a [Reader[C, R]]\n// The first parameter is considered to be the context [C] of the reader\n", i, i+1, i)
 	fmt.Fprintf(f, "func From%d[F ~func(C", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ") R")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", C, R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -50,15 +50,15 @@ func generateReaderFrom(f, fg *os.File, i int) {
 	// generic version
 	fmt.Fprintf(fg, "\n// From%d converts a function with %d parameters returning a [R] into a function with %d parameters returning a [GRA]\n// The first parameter is considered to be the context [C].\n", i, i+1, i)
 	fmt.Fprintf(fg, "func From%d[GRA ~func(C) R, F ~func(C", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j)
 	}
 	fmt.Fprintf(fg, ") R")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j)
 	}
 	fmt.Fprintf(fg, ", C, R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -67,7 +67,7 @@ func generateReaderFrom(f, fg *os.File, i int) {
 	fmt.Fprintf(fg, ") GRA {\n")
 
 	fmt.Fprintf(fg, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -76,7 +76,7 @@ func generateReaderFrom(f, fg *os.File, i int) {
 	fmt.Fprintf(fg, ") GRA {\n")
 	fmt.Fprintf(fg, "    return MakeReader[GRA](func(r C) R {\n")
 	fmt.Fprintf(fg, "      return f(r")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", t%d", j)
 	}
 	fmt.Fprintf(fg, ")\n")

@@ -118,7 +118,7 @@ func tupleUnmarshalJSON(data []byte, dst ...any) error {
 	}
 	l := N.Min(len(src), len(dst))
 	// unmarshal
-	for i := 0; i < l; i++ {
+	for i := range l {
 		if err := json.Unmarshal(src[i], dst[i]); err != nil {
 			return err
 		}

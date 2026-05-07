@@ -343,7 +343,7 @@ func TestMakeClosedStateCounter(t *testing.T) {
 		state := MakeClosedStateCounter(maxFailures)
 
 		// Alternate errors and successes
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			state = state.AddError(vt.Now())
 			vt.Advance(500 * time.Millisecond)
 			state = state.AddSuccess(vt.Now())
@@ -826,7 +826,7 @@ func TestMakeClosedStateHistory(t *testing.T) {
 		baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 
 		// Add many failures within the window
-		for i := 0; i < 99; i++ {
+		for i := range 99 {
 			state = state.AddError(baseTime.Add(time.Duration(i) * time.Minute))
 		}
 

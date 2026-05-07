@@ -17,6 +17,7 @@ package reader
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -191,7 +192,7 @@ func TestSequence(t *testing.T) {
 		sliceFunc := func(n int) Reader[string, []int] {
 			return func(s string) []int {
 				result := make([]int, n)
-				for i := 0; i < n; i++ {
+				for i := range n {
 					result[i] = len(s) + i
 				}
 				return result
@@ -479,14 +480,14 @@ func TestTraverse(t *testing.T) {
 		// Kleisli that joins items with separator
 		joinItems := func(items []string) Reader[Config, string] {
 			return func(c Config) string {
-				result := ""
+				var result strings.Builder
 				for i, item := range items {
 					if i > 0 {
-						result += c.Separator
+						result.WriteString(c.Separator)
 					}
-					result += item
+					result.WriteString(item)
 				}
-				return result
+				return result.String()
 			}
 		}
 

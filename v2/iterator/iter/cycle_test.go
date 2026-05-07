@@ -307,7 +307,7 @@ func TestCycleEarlyTermination(t *testing.T) {
 		assert.Len(t, result, 100)
 
 		// Verify pattern repeats correctly
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			expected := (i % 3) + 1
 			assert.Equal(t, expected, result[i])
 		}
@@ -327,7 +327,7 @@ func TestCycleLargeSequence(t *testing.T) {
 
 		assert.Len(t, result, 25)
 		// Verify first cycle
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			assert.Equal(t, i, result[i])
 		}
 		// Verify second cycle
@@ -362,7 +362,7 @@ func TestCycleEdgeCases(t *testing.T) {
 		assert.Len(t, result, 1000)
 
 		// Verify pattern
-		for i := 0; i < 1000; i++ {
+		for i := range 1000 {
 			expected := (i % 2) + 1
 			assert.Equal(t, expected, result[i])
 		}

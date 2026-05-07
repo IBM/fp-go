@@ -187,9 +187,9 @@ func TestZeroWithStructs(t *testing.T) {
 
 // TestZeroWithInterfaces tests Zero function with interface types
 func TestZeroWithInterfaces(t *testing.T) {
-	e := Zero[error, interface{}]()
+	e := Zero[error, any]()
 
-	var nilInterface interface{}
+	var nilInterface any
 	assert.Equal(t, Of[error](nilInterface), e, "Zero should create a Right value with nil interface")
 }
 

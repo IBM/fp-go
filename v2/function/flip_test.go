@@ -17,6 +17,7 @@ package function
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,11 +90,11 @@ func TestFlip(t *testing.T) {
 	t.Run("flips with different types", func(t *testing.T) {
 		// Curried function with different input types
 		repeat := Curry2(func(s string, n int) string {
-			result := ""
-			for i := 0; i < n; i++ {
-				result += s
+			var result strings.Builder
+			for range n {
+				result.WriteString(s)
 			}
-			return result
+			return result.String()
 		})
 
 		// Original: repeat("x")(3) = "xxx"

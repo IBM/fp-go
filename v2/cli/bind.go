@@ -86,14 +86,14 @@ func generateCombSingleBind(f *os.File, comb [][]int, total int) {
 			fmt.Fprintf(f, "%d", idx)
 		}
 		fmt.Fprintf(f, "of%d[F ~func(", total)
-		for i := 0; i < total; i++ {
+		for i := range total {
 			if i > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", i+1)
 		}
 		fmt.Fprintf(f, ") R")
-		for i := 0; i < total; i++ {
+		for i := range total {
 			fmt.Fprintf(f, ", T%d", i+1)
 		}
 		fmt.Fprintf(f, ", R any](f F) func(")
@@ -191,7 +191,7 @@ func generateCombSingleBind(f *os.File, comb [][]int, total int) {
 			fmt.Fprintf(f, ", T%d", idx)
 		}
 		fmt.Fprintf(f, ", R any](f F) func(")
-		for i := 0; i < total; i++ {
+		for i := range total {
 			if i > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -200,7 +200,7 @@ func generateCombSingleBind(f *os.File, comb [][]int, total int) {
 		fmt.Fprintf(f, ") R {\n")
 
 		fmt.Fprintf(f, "  return func(")
-		for i := 0; i < total; i++ {
+		for i := range total {
 			if i > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -228,11 +228,11 @@ func generateSingleBind(f *os.File, total int) {
 
 	// construct the indexes
 	all := make([]int, total)
-	for i := 0; i < total; i++ {
+	for i := range total {
 		all[i] = i + 1
 	}
 	// for all permutations of a certain length
-	for j := 0; j < total; j++ {
+	for j := range total {
 		// get combinations of that size
 		comb := createCombinations(j+1, all, []int{})
 		generateCombSingleBind(f, comb, total)

@@ -298,7 +298,7 @@ func TestUniqLargeSequence(t *testing.T) {
 		result := toSlice(unique(seq))
 
 		assert.Len(t, result, 10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			assert.Equal(t, i, result[i])
 		}
 	})
@@ -313,7 +313,7 @@ func TestUniqLargeSequence(t *testing.T) {
 		result := toSlice(unique(seq))
 
 		assert.Len(t, result, 100)
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			assert.Equal(t, i, result[i])
 		}
 	})

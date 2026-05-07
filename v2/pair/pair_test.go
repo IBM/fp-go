@@ -101,7 +101,7 @@ func TestZeroWithStructs(t *testing.T) {
 
 // TestZeroWithInterfaces tests Zero function with interface types
 func TestZeroWithInterfaces(t *testing.T) {
-	p := Zero[interface{}, interface{}]()
+	p := Zero[any, any]()
 
 	assert.Nil(t, Head(p), "Head should be nil for interface type")
 	assert.Nil(t, Tail(p), "Tail should be nil for interface type")
@@ -385,8 +385,8 @@ func TestUnpackWithChannels(t *testing.T) {
 
 // TestUnpackWithInterfaces tests Unpack function with interface types
 func TestUnpackWithInterfaces(t *testing.T) {
-	var i1 interface{} = 42
-	var i2 interface{} = "test"
+	var i1 any = 42
+	var i2 any = "test"
 
 	p := MakePair(i1, i2)
 	head, tail := Unpack(p)

@@ -45,18 +45,18 @@ func generateOptionize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Optionize%d converts a function with %d parameters returning a tuple of a return value R and a boolean into a function with %d parameters returning an Option[R]\n", i, i, i)
 	fmt.Fprintf(f, "func Optionize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j)
 	}
 	fmt.Fprintf(f, ") (R, bool)")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -64,7 +64,7 @@ func generateOptionize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") Option[R] {\n")
 	fmt.Fprintf(f, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -73,7 +73,7 @@ func generateOptionize(f *os.File, i int) {
 	fmt.Fprintf(f, ") Option[R] {\n")
 	fmt.Fprintf(f, "    return optionize(func() (R, bool) {\n")
 	fmt.Fprintf(f, "      return f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -89,18 +89,18 @@ func generateUnoptionize(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Unoptionize%d converts a function with %d parameters returning a tuple of a return value R and a boolean into a function with %d parameters returning an Option[R]\n", i, i, i)
 	fmt.Fprintf(f, "func Unoptionize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j)
 	}
 	fmt.Fprintf(f, ") Option[R]")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -108,7 +108,7 @@ func generateUnoptionize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") (R, bool) {\n")
 	fmt.Fprintf(f, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -116,7 +116,7 @@ func generateUnoptionize(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") (R, bool) {\n")
 	fmt.Fprintf(f, "    return Unwrap(f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}

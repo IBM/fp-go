@@ -16,6 +16,8 @@
 package generic
 
 import (
+	"maps"
+
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
@@ -24,9 +26,7 @@ import (
 // addToMap makes a deep copy of a map and adds a value
 func addToMap[A comparable](a A, m map[A]bool) map[A]bool {
 	cpy := make(map[A]bool, len(m)+1)
-	for k, v := range m {
-		cpy[k] = v
-	}
+	maps.Copy(cpy, m)
 	cpy[a] = true
 	return cpy
 }

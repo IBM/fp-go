@@ -56,18 +56,18 @@ func generateIOEitherUneitherize(f, fg *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// Uneitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning a [IOEither[error, R]]\n", i, i+1, i)
 	fmt.Fprintf(f, "func Uneitherize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, ") IOEither[error, R]")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j+1)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -80,18 +80,18 @@ func generateIOEitherUneitherize(f, fg *os.File, i int) {
 	// generic version
 	fmt.Fprintf(fg, "\n// Uneitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning a [GIOA]\n", i, i, i)
 	fmt.Fprintf(fg, "func Uneitherize%d[GIOA ~func() ET.Either[error, R], GTA ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
 		fmt.Fprintf(fg, "T%d", j+1)
 	}
 	fmt.Fprintf(fg, ") GIOA")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j+1)
 	}
 	fmt.Fprintf(fg, ", R any](f GTA) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -99,7 +99,7 @@ func generateIOEitherUneitherize(f, fg *os.File, i int) {
 	}
 	fmt.Fprintf(fg, ") (R, error) {\n")
 	fmt.Fprintf(fg, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -107,7 +107,7 @@ func generateIOEitherUneitherize(f, fg *os.File, i int) {
 	}
 	fmt.Fprintf(fg, ") (R, error) {\n")
 	fmt.Fprintf(fg, "    return ET.Unwrap(f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -122,18 +122,18 @@ func generateIOEitherEitherize(f, fg *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning a [IOEither[error, R]]\n", i, i+1, i)
 	fmt.Fprintf(f, "func Eitherize%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, ") (R, error)")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j+1)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -146,18 +146,18 @@ func generateIOEitherEitherize(f, fg *os.File, i int) {
 	// generic version
 	fmt.Fprintf(fg, "\n// Eitherize%d converts a function with %d parameters returning a tuple into a function with %d parameters returning a [GIOA]\n", i, i, i)
 	fmt.Fprintf(fg, "func Eitherize%d[GIOA ~func() ET.Either[error, R], F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
 		fmt.Fprintf(fg, "T%d", j+1)
 	}
 	fmt.Fprintf(fg, ") (R, error)")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(fg, ", T%d", j+1)
 	}
 	fmt.Fprintf(fg, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -166,7 +166,7 @@ func generateIOEitherEitherize(f, fg *os.File, i int) {
 	fmt.Fprintf(fg, ") GIOA {\n")
 	fmt.Fprintf(fg, "  e := ET.Eitherize%d(f)\n", i)
 	fmt.Fprintf(fg, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}
@@ -175,7 +175,7 @@ func generateIOEitherEitherize(f, fg *os.File, i int) {
 	fmt.Fprintf(fg, ") GIOA {\n")
 	fmt.Fprintf(fg, "    return func() ET.Either[error, R] {\n")
 	fmt.Fprintf(fg, "      return e(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(fg, ", ")
 		}

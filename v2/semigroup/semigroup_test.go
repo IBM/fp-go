@@ -16,6 +16,7 @@
 package semigroup
 
 import (
+	"maps"
 	"testing"
 
 	M "github.com/IBM/fp-go/v2/magma"
@@ -320,10 +321,7 @@ func TestComplexTypes(t *testing.T) {
 	}
 
 	configSG := MakeSemigroup(func(a, b Config) Config {
-		maxTimeout := a.Timeout
-		if b.Timeout > maxTimeout {
-			maxTimeout = b.Timeout
-		}
+		maxTimeout := max(b.Timeout, a.Timeout)
 		return Config{
 			Timeout: maxTimeout,
 			Retries: a.Retries + b.Retries,
@@ -370,12 +368,9 @@ func TestSliceSemigroup(t *testing.T) {
 func TestMapSemigroup(t *testing.T) {
 	mapMerge := MakeSemigroup(func(a, b map[string]int) map[string]int {
 		result := make(map[string]int)
-		for k, v := range a {
-			result[k] = v
-		}
-		for k, v := range b {
-			result[k] = v // Later values override
-		}
+		maps.Copy(result, a)
+		// Later values override
+		maps.Copy(result, b)
 		return result
 	})
 

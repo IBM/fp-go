@@ -29,7 +29,7 @@ func generateUnsliced(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Unsliced%d converts a function taking a slice parameter into a function with %d parameters\n", i, i)
 	fmt.Fprintf(f, "func Unsliced%d[F ~func([]T) R, T, R any](f F) func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -37,7 +37,7 @@ func generateUnsliced(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") R {\n")
 	fmt.Fprintf(f, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -48,7 +48,7 @@ func generateUnsliced(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") R {\n")
 	fmt.Fprintf(f, "    return f([]T{")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}

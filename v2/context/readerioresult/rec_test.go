@@ -668,8 +668,7 @@ func BenchmarkTailRec_WithCancellation(b *testing.B) {
 	}
 
 	countdown := TailRec(countdownStep)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := b.Context()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

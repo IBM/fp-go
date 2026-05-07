@@ -17,6 +17,7 @@ package iter
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -153,9 +154,7 @@ func TestScanStateful(t *testing.T) {
 		seq := From(1, 2, 1, 3, 1, 2)
 		scanned := Scan(func(acc map[int]int, x int) map[int]int {
 			newMap := make(map[int]int)
-			for k, v := range acc {
-				newMap[k] = v
-			}
+			maps.Copy(newMap, acc)
 			newMap[x]++
 			return newMap
 		}, map[int]int{})

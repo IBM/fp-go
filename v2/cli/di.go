@@ -29,7 +29,7 @@ func generateMakeProvider(f *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// MakeProvider%d creates a [DIE.Provider] for an [InjectionToken] from a function with %d dependencies\n", i, i)
 	fmt.Fprintf(f, "func MakeProvider%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -37,11 +37,11 @@ func generateMakeProvider(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, " any, R any](\n")
 	fmt.Fprintf(f, "  token InjectionToken[R],\n")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  d%d Dependency[T%d],\n", j+1, j+1)
 	}
 	fmt.Fprintf(f, "  f func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -52,7 +52,7 @@ func generateMakeProvider(f *os.File, i int) {
 	fmt.Fprint(f, "  return DIE.MakeProvider(\n")
 	fmt.Fprint(f, "    token,\n")
 	fmt.Fprintf(f, "    MakeProviderFactory%d(\n", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "      d%d,\n", j+1)
 	}
 	fmt.Fprint(f, "      f,\n")
@@ -64,7 +64,7 @@ func generateMakeTokenWithDefault(f *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// MakeTokenWithDefault%d creates an [InjectionToken] with a default implementation with %d dependencies\n", i, i)
 	fmt.Fprintf(f, "func MakeTokenWithDefault%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -72,11 +72,11 @@ func generateMakeTokenWithDefault(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, " any, R any](\n")
 	fmt.Fprintf(f, "  name string,\n")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  d%d Dependency[T%d],\n", j+1, j+1)
 	}
 	fmt.Fprintf(f, "  f func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -85,7 +85,7 @@ func generateMakeTokenWithDefault(f *os.File, i int) {
 	fmt.Fprintf(f, ") IOE.IOEither[error, R],\n")
 	fmt.Fprintf(f, ") InjectionToken[R] {\n")
 	fmt.Fprintf(f, "  return MakeTokenWithDefault[R](name, MakeProviderFactory%d(\n", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "    d%d,\n", j+1)
 	}
 	fmt.Fprint(f, "    f,\n")
@@ -97,18 +97,18 @@ func generateMakeProviderFactory(f *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// MakeProviderFactory%d creates a [DIE.ProviderFactory] from a function with %d arguments and %d dependencies\n", i, i, i)
 	fmt.Fprintf(f, "func MakeProviderFactory%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, " any, R any](\n")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  d%d Dependency[T%d],\n", j+1, j+1)
 	}
 	fmt.Fprintf(f, "  f func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -118,12 +118,12 @@ func generateMakeProviderFactory(f *os.File, i int) {
 	fmt.Fprintf(f, ") DIE.ProviderFactory {\n")
 	fmt.Fprint(f, "  return DIE.MakeProviderFactory(\n")
 	fmt.Fprint(f, "    A.From[DIE.Dependency](\n")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "      d%d,\n", j+1)
 	}
 	fmt.Fprint(f, "    ),\n")
 	fmt.Fprintf(f, "    eraseProviderFactory%d(\n", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "      d%d,\n", j+1)
 	}
 	fmt.Fprint(f, "      f,\n")
@@ -136,18 +136,18 @@ func generateEraseProviderFactory(f *os.File, i int) {
 	// non generic version
 	fmt.Fprintf(f, "\n// eraseProviderFactory%d creates a function that takes a variadic number of untyped arguments and from a function of %d strongly typed arguments and %d dependencies\n", i, i, i)
 	fmt.Fprintf(f, "func eraseProviderFactory%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, " any, R any](\n")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  d%d Dependency[T%d],\n", j+1, j+1)
 	}
 	fmt.Fprintf(f, "  f func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -155,12 +155,12 @@ func generateEraseProviderFactory(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") IOE.IOEither[error, R]) func(params ...any) IOE.IOEither[error, any] {\n")
 	fmt.Fprintf(f, "  ft := eraseTuple(T.Tupled%d(f))\n", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  t%d := lookupAt[T%d](%d, d%d)\n", j+1, j+1, j, j+1)
 	}
 	fmt.Fprint(f, "  return func(params ...any) IOE.IOEither[error, any] {\n")
 	fmt.Fprintf(f, "    return ft(E.SequenceT%d(\n", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "      t%d(params),\n", j+1)
 	}
 	fmt.Fprint(f, "    ))\n")

@@ -280,7 +280,7 @@ func TestSequenceIter(t *testing.T) {
 	t.Run("can handle large number of readers", func(t *testing.T) {
 
 		readers := func(yield func(Reader[Config, int]) bool) {
-			for i := 0; i < 100; i++ {
+			for i := range 100 {
 				i := i // capture loop variable
 				yield(func(c Config) int { return c.Base + i })
 			}

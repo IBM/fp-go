@@ -28,7 +28,7 @@ func tupleType(name string) func(i int) string {
 	return func(i int) string {
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf("T.Tuple%d[", i))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				buf.WriteString(", ")
 			}
@@ -44,7 +44,7 @@ func tupleTypePlain(name string) func(i int) string {
 	return func(i int) string {
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf("tuple.Tuple%d[", i))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				buf.WriteString(", ")
 			}
@@ -66,14 +66,14 @@ func monadGenerateSequenceTNonGeneric(
 		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "SequenceT%d[", i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", j+1)
 		}
 		fmt.Fprintf(f, "](")
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -98,7 +98,7 @@ func monadGenerateSequenceTNonGeneric(
 			fmt.Fprintf(f, "    %s,\n", fap(curried(j+1), fmt.Sprintf("T%d", j)))
 		}
 
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "    T%d,\n", j+1)
 		}
 
@@ -119,14 +119,14 @@ func monadGenerateSequenceTGeneric(
 		tuple := tupleType("T")(i)
 
 		fmt.Fprintf(f, "SequenceT%d[", i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", j+1)
 		}
 		fmt.Fprintf(f, "](")
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -151,7 +151,7 @@ func monadGenerateSequenceTGeneric(
 			fmt.Fprintf(f, "    %s,\n", fap(curried(j+1), fmt.Sprintf("T%d", j)))
 		}
 
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "    T%d,\n", j+1)
 		}
 
@@ -172,7 +172,7 @@ func generateTraverseTuple1(
 		fmt.Fprintf(f, "\n// TraverseTuple%d converts a [Tuple%d] of [A] via transformation functions transforming [A] to [%s] into a [%s].\n", i, i, hkt("A"), hkt(fmt.Sprintf("Tuple%d", i)))
 		fmt.Fprintf(f, "func TraverseTuple%d[", i)
 		// functions
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -182,18 +182,18 @@ func generateTraverseTuple1(
 			fmt.Fprintf(f, ", %s", infix)
 		}
 		// types
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, ", A%d, T%d", j+1, j+1)
 		}
 		fmt.Fprintf(f, " any](")
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "f%d F%d", j+1, j+1)
 		}
 		fmt.Fprintf(f, ") func (T.Tuple%d[", i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -201,7 +201,7 @@ func generateTraverseTuple1(
 		}
 		fmt.Fprintf(f, "]) %s {\n", hkt(tuple))
 		fmt.Fprintf(f, "  return func(t T.Tuple%d[", i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -238,7 +238,7 @@ func generateTraverseTuple1(
 			}
 			fmt.Fprintf(f, ", T%d],\n", j+1)
 		}
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "      f%d,\n", j+1)
 		}
 		fmt.Fprintf(f, "      t,\n")
@@ -261,14 +261,14 @@ func generateSequenceTuple1(
 		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s", infix)
 		}
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if S.IsNonEmpty(infix) || j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", j+1)
 		}
 		fmt.Fprintf(f, " any](t T.Tuple%d[", i)
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -324,14 +324,14 @@ func generateSequenceT1(
 		if S.IsNonEmpty(infix) {
 			fmt.Fprintf(f, "%s", infix)
 		}
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if S.IsNonEmpty(infix) || j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
 			fmt.Fprintf(f, "T%d", j+1)
 		}
 		fmt.Fprintf(f, " any](")
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				fmt.Fprintf(f, ", ")
 			}
@@ -368,7 +368,7 @@ func generateSequenceT1(
 			}
 			fmt.Fprintf(f, ", T%d],\n", j+1)
 		}
-		for j := 0; j < i; j++ {
+		for j := range i {
 			fmt.Fprintf(f, "    t%d,\n", j+1)
 		}
 		fmt.Fprintf(f, "  )\n")

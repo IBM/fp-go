@@ -422,7 +422,7 @@ func TestComplexBuilderComposition(t *testing.T) {
 		Default,
 		WithURL("http://api.example.com/users"),
 		WithPost,
-		WithJSON(map[string]interface{}{
+		WithJSON(map[string]any{
 			"name":  "John Doe",
 			"email": "john@example.com",
 		}),

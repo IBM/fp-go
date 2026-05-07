@@ -57,7 +57,7 @@ func TestSequenceArray(t *testing.T) {
 		SequenceArray[context.Context, string],
 	)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		t.Run(fmt.Sprintf("TestSequenceArray %d", i), s(i))
 	}
 }

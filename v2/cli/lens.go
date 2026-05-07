@@ -22,6 +22,7 @@ import (
 	"go/parser"
 	"go/token"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -403,8 +404,8 @@ func hasOmitEmpty(tag *ast.BasicLit) bool {
 	jsonTag := structTag.Get("json")
 
 	// Check if omitempty is present
-	parts := strings.Split(jsonTag, ",")
-	for _, part := range parts {
+	parts := strings.SplitSeq(jsonTag, ",")
+	for part := range parts {
 		if strings.TrimSpace(part) == "omitempty" {
 			return true
 		}
@@ -927,9 +928,7 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 	// Collect all unique imports from all structs
 	allImports := make(map[string]string) // import path -> alias
 	for _, s := range structs {
-		for importPath, alias := range s.Imports {
-			allImports[importPath] = alias
-		}
+		maps.Copy(allImports, s.Imports)
 	}
 
 	// Create output file

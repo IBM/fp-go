@@ -98,7 +98,7 @@ func reduceOrd[M ~map[K]V, K comparable, V, R any](o ord.Ord[K], r M, f func(K, 
 	// collect this array
 	current := initial
 	count := len(entries)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		t := entries[i]
 		current = f(pair.Head(t), current, pair.Tail(t))
 	}

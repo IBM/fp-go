@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	strings0 "strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -164,7 +165,7 @@ func TestTraverseArray(t *testing.T) {
 	t.Run("handles large arrays", func(t *testing.T) {
 		size := 1000
 		input := make([]int, size)
-		for i := 0; i < size; i++ {
+		for i := range size {
 			input[i] = i
 		}
 
@@ -217,11 +218,11 @@ func TestTraverseArray(t *testing.T) {
 		input := []int{1, 2, 3}
 
 		eff := Map[TestContext](func(strings []string) string {
-			result := ""
+			var result strings0.Builder
 			for _, s := range strings {
-				result += s + ","
+				result.WriteString(s + ",")
 			}
-			return result
+			return result.String()
 		})(TraverseArray(func(x int) Effect[TestContext, string] {
 			return Of[TestContext](strconv.Itoa(x))
 		})(input))

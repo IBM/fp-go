@@ -41,7 +41,7 @@ func makeTupleType(name string) func(i int) string {
 	return func(i int) string {
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf("Tuple%d[", i))
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if j > 0 {
 				buf.WriteString(", ")
 			}
@@ -69,7 +69,7 @@ func generatePush(f *os.File, i int) {
 	fmt.Fprintf(f, " any](value T%d) func(%s) %s {\n", i+1, tuple1, tuple2)
 	fmt.Fprintf(f, "  return func(t %s) %s {\n", tuple1, tuple2)
 	fmt.Fprintf(f, "    return MakeTuple%d(", i+1)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -298,18 +298,18 @@ func generateUntupled(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Untupled%d converts a function with a [Tuple%d] parameter into a function with %d parameters\n// The inverse function is [Tupled%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Untupled%d[F ~func(Tuple%d[", i, i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, "]) R")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j+1)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -317,7 +317,7 @@ func generateUntupled(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") R {\n")
 	fmt.Fprintf(f, "  return func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -325,7 +325,7 @@ func generateUntupled(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, ") R {\n")
 	fmt.Fprintf(f, "    return f(MakeTuple%d(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -340,18 +340,18 @@ func generateTupled(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// Tupled%d converts a function with %d parameters into a function taking a Tuple%d\n// The inverse function is [Untupled%d]\n", i, i, i, i)
 	fmt.Fprintf(f, "func Tupled%d[F ~func(", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, ") R")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, ", T%d", j+1)
 	}
 	fmt.Fprintf(f, ", R any](f F) func(Tuple%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -359,7 +359,7 @@ func generateTupled(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, "]) R {\n")
 	fmt.Fprintf(f, "  return func(t Tuple%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -367,7 +367,7 @@ func generateTupled(f *os.File, i int) {
 	}
 	fmt.Fprintf(f, "]) R {\n")
 	fmt.Fprintf(f, "    return f(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}

@@ -31,7 +31,7 @@ func generateTraverseTuple(f *os.File, i int) {
 	fmt.Fprintf(f, "func TraverseTuple%d[\n", i)
 	// map as the starting point
 	fmt.Fprintf(f, "  MAP ~func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, " ")
 		}
@@ -69,13 +69,13 @@ func generateTraverseTuple(f *os.File, i int) {
 		}
 		fmt.Fprintf(f, ",\n")
 	}
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  F%d ~func(A%d) HKT_T%d,\n", j+1, j+1, j+1)
 	}
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  A%d, T%d,\n", j+1, j+1)
 	}
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  HKT_T%d, // HKT[T%d]\n", j+1, j+1)
 	}
 	for j := 1; j < i; j++ {
@@ -107,7 +107,7 @@ func generateTraverseTuple(f *os.File, i int) {
 	}
 	// the parameters
 	fmt.Fprintf(f, "  t T.Tuple%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -119,7 +119,7 @@ func generateTraverseTuple(f *os.File, i int) {
 	fmt.Fprintf(f, "  return F.Pipe%d(\n", i)
 	fmt.Fprintf(f, "    f1(t.F1),\n")
 	fmt.Fprintf(f, "    fmap(tupleConstructor%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -139,7 +139,7 @@ func generateSequenceTuple(f *os.File, i int) {
 	fmt.Fprintf(f, "func SequenceTuple%d[\n", i)
 	// map as the starting point
 	fmt.Fprintf(f, "  MAP ~func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, " ")
 		}
@@ -178,10 +178,10 @@ func generateSequenceTuple(f *os.File, i int) {
 		fmt.Fprintf(f, ",\n")
 	}
 
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  T%d,\n", j+1)
 	}
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  HKT_T%d, // HKT[T%d]\n", j+1, j+1)
 	}
 	for j := 1; j < i; j++ {
@@ -209,7 +209,7 @@ func generateSequenceTuple(f *os.File, i int) {
 	}
 	// the parameters
 	fmt.Fprintf(f, "  t T.Tuple%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -221,7 +221,7 @@ func generateSequenceTuple(f *os.File, i int) {
 	fmt.Fprintf(f, "  return F.Pipe%d(\n", i)
 	fmt.Fprintf(f, "    t.F1,\n")
 	fmt.Fprintf(f, "    fmap(tupleConstructor%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -241,7 +241,7 @@ func generateSequenceT(f *os.File, i int) {
 	fmt.Fprintf(f, "func SequenceT%d[\n", i)
 	// map as the starting point
 	fmt.Fprintf(f, "  MAP ~func(")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, " ")
 		}
@@ -280,10 +280,10 @@ func generateSequenceT(f *os.File, i int) {
 		fmt.Fprintf(f, ",\n")
 	}
 
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  T%d,\n", j+1)
 	}
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  HKT_T%d, // HKT[T%d]\n", j+1, j+1)
 	}
 	for j := 1; j < i; j++ {
@@ -310,7 +310,7 @@ func generateSequenceT(f *os.File, i int) {
 		fmt.Fprintf(f, "  fap%d AP%d,\n", j, j)
 	}
 	// the parameters
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, "  t%d HKT_T%d,\n", j+1, j+1)
 	}
 	fmt.Fprintf(f, ") HKT_TUPLE%d {\n", i)
@@ -318,7 +318,7 @@ func generateSequenceT(f *os.File, i int) {
 	fmt.Fprintf(f, "  return F.Pipe%d(\n", i)
 	fmt.Fprintf(f, "    t1,\n")
 	fmt.Fprintf(f, "    fmap(tupleConstructor%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -336,18 +336,18 @@ func generateTupleConstructor(f *os.File, i int) {
 	// Create the optionize version
 	fmt.Fprintf(f, "\n// tupleConstructor%d returns a curried version of [T.MakeTuple%d]\n", i, i)
 	fmt.Fprintf(f, "func tupleConstructor%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
 		fmt.Fprintf(f, "T%d", j+1)
 	}
 	fmt.Fprintf(f, " any]()")
-	for j := 0; j < i; j++ {
+	for j := range i {
 		fmt.Fprintf(f, " func(T%d)", j+1)
 	}
 	fmt.Fprintf(f, " T.Tuple%d[", i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}
@@ -356,7 +356,7 @@ func generateTupleConstructor(f *os.File, i int) {
 	fmt.Fprintf(f, "] {\n")
 
 	fmt.Fprintf(f, "  return F.Curry%d(T.MakeTuple%d[", i, i)
-	for j := 0; j < i; j++ {
+	for j := range i {
 		if j > 0 {
 			fmt.Fprintf(f, ", ")
 		}

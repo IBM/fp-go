@@ -16,6 +16,7 @@
 package array
 
 import (
+	"slices"
 	"testing"
 
 	N "github.com/IBM/fp-go/v2/number"
@@ -393,13 +394,7 @@ func TestSlicePropertyBased(t *testing.T) {
 	t.Run("subset property: all elements in slice are in original", func(t *testing.T) {
 		result := Slice[int](2, 7)(data)
 		for _, elem := range result {
-			found := false
-			for _, orig := range data {
-				if elem == orig {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(data, elem)
 			assert.True(t, found, "Element %d should be in original array", elem)
 		}
 	})
