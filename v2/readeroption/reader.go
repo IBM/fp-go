@@ -288,6 +288,50 @@ func ChainOptionK[E, A, B any](f O.Kleisli[A, B]) Operator[E, A, B] {
 	)
 }
 
+// ChainReaderK returns a function that chains a ReaderOption with a function returning a Reader.
+// This is useful for integrating environment-dependent computations that cannot fail.
+//
+// Example:
+//
+//	result := F.Pipe1(
+//	    Of[Config](21),
+//	    ChainReaderK(func(x int) reader.Reader[Config, int] {
+//	        return func(cfg Config) int { return x + cfg.Port }
+//	    }),
+//	)
+//
+//go:inline
+func ChainReaderK[E, A, B any](f reader.Kleisli[E, A, B]) Operator[E, A, B] {
+	return fromreader.ChainReaderK(
+		Chain[E, A, B],
+		FromReader[E, B],
+		f,
+	)
+}
+
+// MonadChainReaderK chains a ReaderOption with a function that returns a Reader.
+// This is the non-curried version of ChainReaderK.
+// If the ReaderOption returns None, the Reader is not executed.
+//
+// Example:
+//
+//	result := MonadChainReaderK(
+//	    Of[Config](21),
+//	    func(x int) reader.Reader[Config, int] {
+//	        return func(cfg Config) int { return x + cfg.Port }
+//	    },
+//	)
+//
+//go:inline
+func MonadChainReaderK[E, A, B any](ma ReaderOption[E, A], f reader.Kleisli[E, A, B]) ReaderOption[E, B] {
+	return fromreader.MonadChainReaderK(
+		MonadChain[E, A, B],
+		FromReader[E, B],
+		ma,
+		f,
+	)
+}
+
 // Flatten removes one level of nesting from a ReaderOption.
 // Converts ReaderOption[E, ReaderOption[E, A]] to ReaderOption[E, A].
 //

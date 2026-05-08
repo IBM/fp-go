@@ -183,6 +183,68 @@ func TestChain(t *testing.T) {
 	})
 }
 
+func TestChainReaderK(t *testing.T) {
+	t.Run("chains Some with Reader using environment", func(t *testing.T) {
+		result := F.Pipe1(
+			Of[Config](21),
+			ChainReaderK(func(x int) reader.Reader[Config, int] {
+				return func(cfg Config) int {
+					return x + cfg.Port
+				}
+			}),
+		)
+
+		assert.Equal(t, O.Some(21+defaultConfig.Port), result(defaultConfig))
+	})
+
+	t.Run("short circuits on None", func(t *testing.T) {
+		called := false
+		result := F.Pipe1(
+			None[Config, int](),
+			ChainReaderK(func(x int) reader.Reader[Config, int] {
+				called = true
+				return func(cfg Config) int {
+					return x + cfg.Port
+				}
+			}),
+		)
+
+		assert.Equal(t, O.None[int](), result(defaultConfig))
+		assert.False(t, called)
+	})
+}
+
+func TestMonadChainReaderK(t *testing.T) {
+	t.Run("chains Some with Reader using environment", func(t *testing.T) {
+		result := MonadChainReaderK(
+			Of[Config](21),
+			func(x int) reader.Reader[Config, string] {
+				return func(cfg Config) string {
+					return fmt.Sprintf("%s:%d", cfg.Host, x+cfg.Port)
+				}
+			},
+		)
+
+		assert.Equal(t, O.Some(fmt.Sprintf("%s:%d", defaultConfig.Host, 21+defaultConfig.Port)), result(defaultConfig))
+	})
+
+	t.Run("short circuits on None", func(t *testing.T) {
+		called := false
+		result := MonadChainReaderK(
+			None[Config, int](),
+			func(x int) reader.Reader[Config, int] {
+				called = true
+				return func(cfg Config) int {
+					return x + cfg.Port
+				}
+			},
+		)
+
+		assert.Equal(t, O.None[int](), result(defaultConfig))
+		assert.False(t, called)
+	})
+}
+
 // TestMonadAp tests applying a function wrapped in a ReaderOption
 func TestMonadAp(t *testing.T) {
 	t.Run("Ap with both Some", func(t *testing.T) {
