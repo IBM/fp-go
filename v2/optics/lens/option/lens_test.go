@@ -115,6 +115,100 @@ var (
 	sampleAddress = Address{street: &sampleStreet}
 )
 
+func TestModify(t *testing.T) {
+	t.Run("updates present focus", func(t *testing.T) {
+		type Person struct {
+			name string
+		}
+
+		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+			L.MakeLensRef(
+				func(p *Person) string { return p.name },
+				func(p *Person, name string) *Person {
+					p.name = name
+					return p
+				},
+			),
+		)
+
+		person := &Person{name: "alice"}
+
+		updated := Modify[*Person](func(name string) string { return name + "!" })(nameLens)(person)
+
+		assert.Equal(t, O.Some("alice!"), nameLens.Get(updated))
+		assert.Equal(t, "alice", person.name)
+	})
+
+	t.Run("returns original structure when focus is absent", func(t *testing.T) {
+		type Person struct {
+			name string
+		}
+
+		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+			L.MakeLensRef(
+				func(p *Person) string { return p.name },
+				func(p *Person, name string) *Person {
+					p.name = name
+					return p
+				},
+			),
+		)
+
+		person := &Person{name: ""}
+
+		updated := Modify[*Person](func(name string) string { return name + "!" })(nameLens)(person)
+
+		assert.Same(t, person, updated)
+		assert.Equal(t, O.None[string](), nameLens.Get(updated))
+	})
+}
+
+func TestSet(t *testing.T) {
+	t.Run("sets a present value through an option lens", func(t *testing.T) {
+		type Person struct {
+			name string
+		}
+
+		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+			L.MakeLensRef(
+				func(p *Person) string { return p.name },
+				func(p *Person, name string) *Person {
+					p.name = name
+					return p
+				},
+			),
+		)
+
+		person := &Person{name: ""}
+		updated := Set[*Person]("alice")(nameLens)(person)
+
+		assert.Equal(t, O.Some("alice"), nameLens.Get(updated))
+		assert.Equal(t, O.None[string](), nameLens.Get(person))
+	})
+
+	t.Run("replaces existing present value", func(t *testing.T) {
+		type Person struct {
+			name string
+		}
+
+		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+			L.MakeLensRef(
+				func(p *Person) string { return p.name },
+				func(p *Person, name string) *Person {
+					p.name = name
+					return p
+				},
+			),
+		)
+
+		person := &Person{name: "before"}
+		updated := Set[*Person]("after")(nameLens)(person)
+
+		assert.Equal(t, O.Some("after"), nameLens.Get(updated))
+		assert.Equal(t, "before", person.name)
+	})
+}
+
 func TestComposeOption(t *testing.T) {
 	// default inner object
 	defaultInner := &Inner{

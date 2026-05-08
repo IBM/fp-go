@@ -159,6 +159,38 @@ func TestIMap(t *testing.T) {
 	assert.Equal(t, S{2}, sa.Set(2)(S{1}))
 }
 
+func TestSet(t *testing.T) {
+	t.Run("sets a constant value through a lens", func(t *testing.T) {
+		testLens := MakeLens(
+			func(s Street) string { return s.name },
+			func(s Street, value string) Street {
+				s.name = value
+				return s
+			},
+		)
+
+		updated := Set[Street]("updated")(testLens)(Street{num: 1, name: "initial"})
+
+		assert.Equal(t, Street{num: 1, name: "updated"}, updated)
+	})
+
+	t.Run("works in composition pipelines without mutating the original", func(t *testing.T) {
+		original := Street{num: 1, name: "initial"}
+		testLens := MakeLens(
+			func(s Street) string { return s.name },
+			func(s Street, value string) Street {
+				s.name = value
+				return s
+			},
+		)
+
+		updated := Set[Street]("changed")(testLens)(original)
+
+		assert.Equal(t, Street{num: 1, name: "initial"}, original)
+		assert.Equal(t, Street{num: 1, name: "changed"}, updated)
+	})
+}
+
 func TestPassByValue(t *testing.T) {
 
 	testLens := MakeLens(func(s Street) string { return s.name }, func(s Street, value string) Street {

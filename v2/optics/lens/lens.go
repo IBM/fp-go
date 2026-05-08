@@ -910,6 +910,38 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S
 	}
 }
 
+// Set returns a function that updates the focus of a lens to a constant value.
+//
+// This is a convenience helper for partially applying a value before supplying the lens,
+// making it useful in composition pipelines with F.Pipe.
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, value int) Counter {
+//	        c.Value = value
+//	        return c
+//	    },
+//	)
+//
+//	counter := Counter{Value: 5}
+//	updated := F.Pipe2(
+//	    10,
+//	    lens.Set[Counter](10),
+//	    F.Ap(valueLens),
+//	)
+//	// updated.Value == 10
+func Set[S any, A any](a A) func(Lens[S, A]) Endomorphism[S] {
+	return func(l Lens[S, A]) Endomorphism[S] {
+		return l.Set(a)
+	}
+}
+
 // ModifyF transforms a value through a lens using a function that returns a value in a functor context.
 //
 // This is the functorial version of Modify, allowing transformations that produce effects
