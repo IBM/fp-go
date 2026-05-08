@@ -20,8 +20,10 @@ import (
 
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
 	O "github.com/IBM/fp-go/v2/option"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,7 +123,7 @@ func TestModify(t *testing.T) {
 			name string
 		}
 
-		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+		nameLens := FromPredicateRef[Person](S.IsNonEmpty, "")(
 			L.MakeLensRef(
 				func(p *Person) string { return p.name },
 				func(p *Person, name string) *Person {
@@ -144,7 +146,7 @@ func TestModify(t *testing.T) {
 			name string
 		}
 
-		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+		nameLens := FromPredicateRef[Person](S.IsNonEmpty, "")(
 			L.MakeLensRef(
 				func(p *Person) string { return p.name },
 				func(p *Person, name string) *Person {
@@ -169,7 +171,7 @@ func TestSet(t *testing.T) {
 			name string
 		}
 
-		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+		nameLens := FromPredicateRef[Person](S.IsNonEmpty, "")(
 			L.MakeLensRef(
 				func(p *Person) string { return p.name },
 				func(p *Person, name string) *Person {
@@ -191,7 +193,7 @@ func TestSet(t *testing.T) {
 			name string
 		}
 
-		nameLens := FromPredicateRef[Person](func(name string) bool { return name != "" }, "")(
+		nameLens := FromPredicateRef[Person](S.IsNonEmpty, "")(
 			L.MakeLensRef(
 				func(p *Person) string { return p.name },
 				func(p *Person, name string) *Person {
@@ -493,7 +495,7 @@ func TestFromPredicateEdgeCases(t *testing.T) {
 	)
 
 	// Only positive scores are valid
-	validLens := FromPredicate[Score](func(p int) bool { return p > 0 }, 0)(pointsLens)
+	validLens := FromPredicate[Score](N.MoreThan(0), 0)(pointsLens)
 
 	// Test with valid score
 	validScore := Score{points: 100}
@@ -811,7 +813,7 @@ func TestFromPredicateLensLaws(t *testing.T) {
 	)
 
 	// Only positive scores are valid
-	validLens := FromPredicate[Score](func(p int) bool { return p > 0 }, 0)(pointsLens)
+	validLens := FromPredicate[Score](N.MoreThan(0), 0)(pointsLens)
 
 	// Equality predicates
 	eqInt := EQT.Eq[int]()
