@@ -902,11 +902,7 @@ func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 //	// doubled.Value == 10
 func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S] {
 	return func(la Lens[S, A]) Endomorphism[S] {
-		return endomorphism.Join(F.Flow3(
-			la.Get,
-			f,
-			la.Set,
-		))
+		return la.Modify(f)
 	}
 }
 
@@ -1094,3 +1090,48 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[
 //	    "Person.Name",
 //	)
 //	fmt.Println(nameLens)  // Prints: "Person.Name"
+
+// Modify applies a transformation function to the value focused by the lens.
+//
+// This method transforms the focused value within a structure by applying an endomorphism
+// (a function from A to A) and returns a new structure with the transformed value.
+// The transformation is applied by first getting the current value, applying the function,
+// and then setting the result back into the structure.
+//
+// Type Parameters:
+//   - S: The structure type containing the focused value
+//   - A: The type of the focused value
+//
+// Parameters:
+//   - f: An endomorphism that transforms the focused value
+//
+// Returns:
+//   - An endomorphism on S that applies the transformation
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	ageLens := lens.MakeLens(
+//	    func(p Person) int { return p.Age },
+//	    func(p Person, age int) Person { p.Age = age; return p },
+//	)
+//
+//	person := Person{Name: "Alice", Age: 30}
+//	incrementAge := ageLens.Modify(func(age int) int { return age + 1 })
+//	older := incrementAge(person)
+//	// older.Age == 31, person.Age == 30 (original unchanged)
+//
+// See Also:
+//   - Modify: Package-level function for use in pipelines
+//   - Set: For setting a constant value instead of transforming
+func (la Lens[S, A]) Modify(f Endomorphism[A]) Endomorphism[S] {
+	return endomorphism.Join(F.Flow3(
+		la.Get,
+		f,
+		la.Set,
+	))
+}

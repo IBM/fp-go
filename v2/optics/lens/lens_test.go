@@ -1334,3 +1334,261 @@ func TestModifyF_Integration(t *testing.T) {
 		assert.NotNil(t, result.value)
 	})
 }
+
+func TestModify_Success(t *testing.T) {
+	t.Run("modifies int field", func(t *testing.T) {
+		inner := Inner{Value: 10, Foo: "test"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		increment := valueLens.Modify(func(v int) int { return v + 1 })
+		result := increment(inner)
+
+		assert.Equal(t, 11, result.Value)
+		assert.Equal(t, "test", result.Foo)
+		assert.Equal(t, 10, inner.Value) // Original unchanged
+	})
+
+	t.Run("modifies string field", func(t *testing.T) {
+		inner := Inner{Value: 42, Foo: "hello"}
+		fooLens := MakeLens(
+			func(i Inner) string { return i.Foo },
+			func(i Inner, s string) Inner { i.Foo = s; return i },
+		)
+
+		appendWorld := fooLens.Modify(func(s string) string { return s + " world" })
+		result := appendWorld(inner)
+
+		assert.Equal(t, "hello world", result.Foo)
+		assert.Equal(t, 42, result.Value)
+		assert.Equal(t, "hello", inner.Foo) // Original unchanged
+	})
+
+	t.Run("modifies pointer field with MakeLensRef", func(t *testing.T) {
+		inner := &Inner{Value: 5, Foo: "bar"}
+		valueLens := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
+
+		double := valueLens.Modify(func(v int) int { return v * 2 })
+		result := double(inner)
+
+		assert.Equal(t, 10, result.Value)
+		assert.Equal(t, "bar", result.Foo)
+		assert.Equal(t, 5, inner.Value)  // Original unchanged
+		assert.NotSame(t, inner, result) // New pointer
+	})
+
+	t.Run("modifies nested structure", func(t *testing.T) {
+		outer := Outer{inner: &Inner{Value: 100, Foo: "nested"}}
+		outerLens := MakeLens(Outer.GetInner, Outer.SetInner)
+		valueLens := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
+
+		composedLens := F.Pipe1(outerLens, Compose[Outer](valueLens))
+		halve := composedLens.Modify(func(v int) int { return v / 2 })
+		result := halve(outer)
+
+		assert.Equal(t, 50, result.inner.Value)
+		assert.Equal(t, "nested", result.inner.Foo)
+		assert.Equal(t, 100, outer.inner.Value) // Original unchanged
+	})
+
+	t.Run("chains multiple modifications", func(t *testing.T) {
+		inner := Inner{Value: 10, Foo: "test"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		increment := valueLens.Modify(func(v int) int { return v + 1 })
+		double := valueLens.Modify(func(v int) int { return v * 2 })
+
+		result := F.Pipe2(inner, increment, double)
+
+		assert.Equal(t, 22, result.Value) // (10 + 1) * 2
+		assert.Equal(t, 10, inner.Value)  // Original unchanged
+	})
+}
+
+func TestModify_EdgeCases(t *testing.T) {
+	t.Run("identity transformation", func(t *testing.T) {
+		inner := Inner{Value: 42, Foo: "unchanged"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		identity := valueLens.Modify(func(v int) int { return v })
+		result := identity(inner)
+
+		assert.Equal(t, 42, result.Value)
+		assert.Equal(t, "unchanged", result.Foo)
+	})
+
+	t.Run("zero value transformation", func(t *testing.T) {
+		inner := Inner{Value: 100, Foo: "test"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		toZero := valueLens.Modify(func(v int) int { return 0 })
+		result := toZero(inner)
+
+		assert.Equal(t, 0, result.Value)
+		assert.Equal(t, "test", result.Foo)
+	})
+
+	t.Run("modifies empty string", func(t *testing.T) {
+		inner := Inner{Value: 1, Foo: ""}
+		fooLens := MakeLens(
+			func(i Inner) string { return i.Foo },
+			func(i Inner, s string) Inner { i.Foo = s; return i },
+		)
+
+		addPrefix := fooLens.Modify(func(s string) string { return "prefix-" + s })
+		result := addPrefix(inner)
+
+		assert.Equal(t, "prefix-", result.Foo)
+	})
+
+	t.Run("modifies negative numbers", func(t *testing.T) {
+		inner := Inner{Value: -5, Foo: "negative"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		negate := valueLens.Modify(func(v int) int { return -v })
+		result := negate(inner)
+
+		assert.Equal(t, 5, result.Value)
+	})
+
+	t.Run("modifies with MakeLensStrict preserves pointer on equal value", func(t *testing.T) {
+		inner := &Inner{Value: 42, Foo: "test"}
+		valueLens := MakeLensStrict((*Inner).GetValue, (*Inner).SetValue)
+
+		identity := valueLens.Modify(func(v int) int { return v })
+		result := identity(inner)
+
+		assert.Same(t, inner, result) // Same pointer due to equality optimization
+	})
+}
+
+func TestModify_Integration(t *testing.T) {
+	t.Run("modifies deeply nested structure", func(t *testing.T) {
+		street := &Street{num: 123, name: "Main St"}
+		address := &Address{city: "Springfield", street: street}
+
+		streetLens := MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
+		nameLens := MakeLensRef((*Street).GetName, (*Street).SetName)
+
+		composedLens := F.Pipe1(streetLens, ComposeRef[Address](nameLens))
+		uppercase := composedLens.Modify(func(s string) string {
+			return s + " Avenue"
+		})
+
+		result := uppercase(address)
+
+		assert.Equal(t, "Main St Avenue", result.street.name)
+		assert.Equal(t, 123, result.street.num)
+		assert.Equal(t, "Springfield", result.city)
+		assert.Equal(t, "Main St", address.street.name) // Original unchanged
+	})
+
+	t.Run("modifies using package-level Modify function", func(t *testing.T) {
+		inner := Inner{Value: 10, Foo: "test"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		tripleValue := F.Pipe1(
+			valueLens,
+			Modify[Inner](func(v int) int { return v * 3 }),
+		)
+		result := tripleValue(inner)
+
+		assert.Equal(t, 30, result.Value)
+	})
+
+	t.Run("modifies with composed transformations", func(t *testing.T) {
+		inner := Inner{Value: 5, Foo: "hello"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+		fooLens := MakeLens(
+			func(i Inner) string { return i.Foo },
+			func(i Inner, s string) Inner { i.Foo = s; return i },
+		)
+
+		incrementValue := valueLens.Modify(func(v int) int { return v + 1 })
+		appendFoo := fooLens.Modify(func(s string) string { return s + "!" })
+
+		result := F.Pipe2(inner, incrementValue, appendFoo)
+
+		assert.Equal(t, 6, result.Value)
+		assert.Equal(t, "hello!", result.Foo)
+		assert.Equal(t, 5, inner.Value)
+		assert.Equal(t, "hello", inner.Foo)
+	})
+
+	t.Run("modifies with conditional logic", func(t *testing.T) {
+		inner := Inner{Value: 15, Foo: "test"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+
+		clampToTen := valueLens.Modify(func(v int) int {
+			if v > 10 {
+				return 10
+			}
+			return v
+		})
+
+		result := clampToTen(inner)
+
+		assert.Equal(t, 10, result.Value)
+	})
+
+	t.Run("modifies multiple fields independently", func(t *testing.T) {
+		inner := Inner{Value: 1, Foo: "a"}
+		valueLens := MakeLens(
+			func(i Inner) int { return i.Value },
+			func(i Inner, v int) Inner { i.Value = v; return i },
+		)
+		fooLens := MakeLens(
+			func(i Inner) string { return i.Foo },
+			func(i Inner, s string) Inner { i.Foo = s; return i },
+		)
+
+		// Apply modifications in sequence
+		step1 := valueLens.Modify(func(v int) int { return v * 10 })(inner)
+		step2 := fooLens.Modify(func(s string) string { return s + s })(step1)
+		step3 := valueLens.Modify(func(v int) int { return v + 5 })(step2)
+
+		assert.Equal(t, 15, step3.Value) // (1 * 10) + 5
+		assert.Equal(t, "aa", step3.Foo) // "a" + "a"
+		assert.Equal(t, 1, inner.Value)  // Original unchanged
+		assert.Equal(t, "a", inner.Foo)  // Original unchanged
+	})
+
+	t.Run("modifies with Id lens", func(t *testing.T) {
+		inner := Inner{Value: 42, Foo: "test"}
+		idLens := Id[Inner]()
+
+		swapFields := idLens.Modify(func(i Inner) Inner {
+			return Inner{Value: len(i.Foo), Foo: "modified"}
+		})
+
+		result := swapFields(inner)
+
+		assert.Equal(t, 4, result.Value) // len("test")
+		assert.Equal(t, "modified", result.Foo)
+		assert.Equal(t, 42, inner.Value)   // Original unchanged
+		assert.Equal(t, "test", inner.Foo) // Original unchanged
+	})
+}
