@@ -67,6 +67,11 @@ func Of[A any](a A) Seq[A] {
 	return G.Of[Seq[A]](a)
 }
 
+//go:inline
+func MonadOf[A any](a A) Seq[A] {
+	return G.Of[Seq[A]](a)
+}
+
 // Of2 creates a key-value sequence containing a single key-value pair.
 //
 // Example:

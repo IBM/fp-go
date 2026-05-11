@@ -506,7 +506,7 @@ func MergeAll[T any](bufSize int) Operator[Seq[T], T] {
 //   - MergeAll: Merges pre-existing sequences concurrently
 //   - Map: Transforms elements without flattening
 //   - Async: Converts a single sequence to asynchronous
-func MergeMapBuf[A, B any](f func(A) Seq[B], bufSize int) Operator[A, B] {
+func MergeMapBuf[A, B any](f Kleisli[A, B], bufSize int) Operator[A, B] {
 	return F.Flow2(
 		Map(f),
 		MergeAll[B](bufSize),
@@ -558,6 +558,10 @@ func MergeMapBuf[A, B any](f func(A) Seq[B], bufSize int) Operator[A, B] {
 //   - Chain: Sequential version (deterministic order)
 //   - MergeAll: Merges pre-existing sequences concurrently
 //   - Map: Transforms elements without flattening
-func MergeMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
+func MergeMap[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return MergeMapBuf(f, defaultBufferSize)
+}
+
+func MonadMergeMap[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
+	return MergeMap(f)(fa)
 }
