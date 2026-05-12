@@ -1102,7 +1102,7 @@ func TestMergeMonoid_WithReduce(t *testing.T) {
 		)
 
 		result := MonadReduce(sequences, monoid.Concat, monoid.Empty())
-		collected := toSlice(result)
+		collected := toSlice(result())
 
 		assert.Equal(t, 6, len(collected))
 		slices.Sort(collected)
@@ -1118,7 +1118,7 @@ func TestMergeMonoid_WithReduce(t *testing.T) {
 		)
 
 		result := MonadReduce(sequences, monoid.Concat, monoid.Empty())
-		collected := toSlice(result)
+		collected := toSlice(result())
 
 		assert.Equal(t, []int{1, 2}, collected)
 	})
@@ -1128,7 +1128,7 @@ func TestMergeMonoid_WithReduce(t *testing.T) {
 		sequences := Empty[Seq[int]]()
 
 		result := MonadReduce(sequences, monoid.Concat, monoid.Empty())
-		collected := toSlice(result)
+		collected := toSlice(result())
 
 		assert.Empty(t, collected)
 	})
@@ -1145,7 +1145,7 @@ func TestMergeMonoid_WithFoldMap(t *testing.T) {
 			return From(n, n*10)
 		}, monoid)
 
-		collected := toSlice(result)
+		collected := toSlice(result())
 		assert.Equal(t, 6, len(collected))
 		slices.Sort(collected)
 		assert.Equal(t, []int{1, 2, 3, 10, 20, 30}, collected)
@@ -1159,7 +1159,7 @@ func TestMergeMonoid_WithFoldMap(t *testing.T) {
 			return From(n, n*10, n*100)
 		}, monoid)
 
-		collected := toSlice(result)
+		collected := toSlice(result())
 		assert.Equal(t, 9, len(collected))
 		slices.Sort(collected)
 		assert.Equal(t, []int{1, 2, 3, 10, 20, 30, 100, 200, 300}, collected)
@@ -1173,7 +1173,7 @@ func TestMergeMonoid_WithFoldMap(t *testing.T) {
 			return From(n, n*10)
 		}, monoid)
 
-		collected := toSlice(result)
+		collected := toSlice(result())
 		assert.Empty(t, collected)
 	})
 }
@@ -1273,7 +1273,7 @@ func BenchmarkMergeMonoid_Reduce(b *testing.B) {
 	b.ResetTimer()
 	for range b.N {
 		result := MonadReduce(sequences, monoid.Concat, monoid.Empty())
-		for range result {
+		for range result() {
 		}
 	}
 }
@@ -1286,7 +1286,7 @@ func BenchmarkMergeMonoid_FoldMap(b *testing.B) {
 		result := MonadFoldMap(numbers, func(n int) Seq[int] {
 			return From(n, n*10)
 		}, monoid)
-		for range result {
+		for range result() {
 		}
 	}
 }
@@ -1346,7 +1346,7 @@ func ExampleMergeMonoid_reduce() {
 	)
 
 	result := MonadReduce(sequences, monoid.Concat, monoid.Empty())
-	collected := toSlice(result)
+	collected := toSlice(result())
 	slices.Sort(collected)
 	for _, v := range collected {
 		fmt.Printf("%d ", v)
@@ -1363,7 +1363,7 @@ func ExampleMergeMonoid_foldMap() {
 		return From(n, n*10)
 	}, monoid)
 
-	collected := toSlice(result)
+	collected := toSlice(result())
 	slices.Sort(collected)
 	for _, v := range collected {
 		fmt.Printf("%d ", v)

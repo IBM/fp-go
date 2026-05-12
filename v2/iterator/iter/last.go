@@ -49,16 +49,19 @@ import (
 //	filtered := iter.Filter(func(x int) bool { return x < 4 })(seq)
 //	last := iter.Last(filtered)
 //	// Returns: Some(3)
-func Last[U any](it Seq[U]) Option[U] {
-	var last U
-	found := false
+func Last[U any](it Seq[U]) IOOption[U] {
+	none := option.None[U]()
+	return func() Option[U] {
+		var last U
+		found := false
 
-	for last = range it {
-		found = true
-	}
+		for last = range it {
+			found = true
+		}
 
-	if !found {
-		return option.None[U]()
+		if !found {
+			return none
+		}
+		return option.Some(last)
 	}
-	return option.Some(last)
 }

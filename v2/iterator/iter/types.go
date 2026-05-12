@@ -20,7 +20,10 @@ import (
 
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/iooption"
 	"github.com/IBM/fp-go/v2/iterator/stateless"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -181,4 +184,10 @@ type (
 	// Void represents the absence of a value, similar to void in other languages.
 	// It's used in functions that perform side effects but don't return meaningful values.
 	Void = function.Void
+
+	IO[A any] = io.IO[A]
+
+	Lazy[A any] = lazy.Lazy[A]
+
+	IOOption[A any] = iooption.IOOption[A]
 )

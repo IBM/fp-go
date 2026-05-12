@@ -141,21 +141,21 @@ func TestCycleWithFirst(t *testing.T) {
 		seq := From(10, 20, 30)
 		cycled := Cycle(seq)
 		first := First(cycled)
-		assert.Equal(t, O.Of(10), first)
+		assert.Equal(t, O.Of(10), first())
 	})
 
 	t.Run("gets first from single element cycle", func(t *testing.T) {
 		seq := From(42)
 		cycled := Cycle(seq)
 		first := First(cycled)
-		assert.Equal(t, O.Of(42), first)
+		assert.Equal(t, O.Of(42), first())
 	})
 
 	t.Run("gets none from empty cycle", func(t *testing.T) {
 		seq := Empty[int]()
 		cycled := Cycle(seq)
 		first := First(cycled)
-		assert.Equal(t, O.None[int](), first)
+		assert.Equal(t, O.None[int](), first())
 	})
 }
 
@@ -349,7 +349,7 @@ func TestCycleWithReduce(t *testing.T) {
 		limited := Take[int](10)(cycled)
 		sum := MonadReduce(limited, func(acc, x int) int { return acc + x }, 0)
 		// 1+2+3+1+2+3+1+2+3+1 = 19
-		assert.Equal(t, 19, sum)
+		assert.Equal(t, 19, sum())
 	})
 }
 
@@ -454,7 +454,7 @@ func ExampleCycle_withFirst() {
 	cycled := Cycle(seq)
 	first := First(cycled)
 
-	if value, ok := O.Unwrap(first); ok {
+	if value, ok := O.Unwrap(first()); ok {
 		fmt.Printf("First: %d\n", value)
 	}
 	// Output: First: 10

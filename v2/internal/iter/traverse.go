@@ -326,7 +326,7 @@ func TraverseWithIndex[GA ~func(yield func(A) bool), A, HKTB, HKTRB any](
 //	// Parse strings to ints and sum them
 //	result := MonadTraverseReduce(..., iter, parseInt, add, 0)
 //	// Returns: Some(6) or None if any parse fails
-func MonadTraverseReduce[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
+func MonadTraverseReduce[GHKTRB ~func() HKTRB, GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
@@ -336,10 +336,10 @@ func MonadTraverseReduce[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HK
 	transform func(A) HKTB,
 	reduce func(GB, B) GB,
 	initial GB,
-) HKTRB {
+) GHKTRB {
 	mmap := fmap(F.Curry2(reduce))
 
-	return MonadReduce(ta, func(r HKTRB, a A) HKTRB {
+	return MonadReduce[GHKTRB](ta, func(r HKTRB, a A) HKTRB {
 		return F.Pipe2(
 			r,
 			mmap,
@@ -386,7 +386,7 @@ func MonadTraverseReduce[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HK
 //	    func(acc, s string) string { return acc + "," + s },
 //	    "")
 //	// Returns: Effect containing "0:a,1:b,2:c"
-func MonadTraverseReduceWithIndex[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
+func MonadTraverseReduceWithIndex[GHKTRB ~func() HKTRB, GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
@@ -396,10 +396,10 @@ func MonadTraverseReduceWithIndex[GA ~func(yield func(A) bool), GB, A, B, HKTB, 
 	transform func(int, A) HKTB,
 	reduce func(GB, B) GB,
 	initial GB,
-) HKTRB {
+) GHKTRB {
 	mmap := fmap(F.Curry2(reduce))
 
-	return MonadReduceWithIndex(ta, func(idx int, r HKTRB, a A) HKTRB {
+	return MonadReduceWithIndex[GHKTRB](ta, func(idx int, r HKTRB, a A) HKTRB {
 		return F.Pipe2(
 			r,
 			mmap,
@@ -438,7 +438,7 @@ func MonadTraverseReduceWithIndex[GA ~func(yield func(A) bool), GB, A, B, HKTB, 
 //	sumParsedInts := TraverseReduce[...](fof, fmap, fap, parseInt, add, 0)
 //	iter := func(yield func(string) bool) { yield("1"); yield("2"); yield("3") }
 //	result := sumParsedInts(iter) // Some(6) or None if any parse fails
-func TraverseReduce[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
+func TraverseReduce[GHKTRB ~func() HKTRB, GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
@@ -446,9 +446,9 @@ func TraverseReduce[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB a
 	transform func(A) HKTB,
 	reduce func(GB, B) GB,
 	initial GB,
-) func(GA) HKTRB {
-	return func(ta GA) HKTRB {
-		return MonadTraverseReduce(fof, fmap, fap, ta, transform, reduce, initial)
+) func(GA) GHKTRB {
+	return func(ta GA) GHKTRB {
+		return MonadTraverseReduce[GHKTRB](fof, fmap, fap, ta, transform, reduce, initial)
 	}
 }
 
@@ -487,7 +487,7 @@ func TraverseReduce[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB a
 //	    "")
 //	iter := func(yield func(string) bool) { yield("a"); yield("b") }
 //	result := concatIndexed(iter) // Effect containing "0:a,1:b"
-func TraverseReduceWithIndex[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
+func TraverseReduceWithIndex[GHKTRB ~func() HKTRB, GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,
@@ -495,8 +495,8 @@ func TraverseReduceWithIndex[GA ~func(yield func(A) bool), GB, A, B, HKTB, HKTAB
 	transform func(int, A) HKTB,
 	reduce func(GB, B) GB,
 	initial GB,
-) func(GA) HKTRB {
-	return func(ta GA) HKTRB {
-		return MonadTraverseReduceWithIndex(fof, fmap, fap, ta, transform, reduce, initial)
+) func(GA) GHKTRB {
+	return func(ta GA) GHKTRB {
+		return MonadTraverseReduceWithIndex[GHKTRB](fof, fmap, fap, ta, transform, reduce, initial)
 	}
 }

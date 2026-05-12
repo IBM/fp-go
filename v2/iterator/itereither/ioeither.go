@@ -16,6 +16,7 @@
 package itereither
 
 import (
+	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/chain"
@@ -24,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/fromeither"
 	"github.com/IBM/fp-go/v2/internal/fromiter"
 	"github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
@@ -31,14 +33,178 @@ import (
 )
 
 type (
-	Seq[A any]       = iter.Seq[A]
+	// Seq is a single-value iterator sequence from Go 1.23+.
+	// It represents a lazy sequence of values that can be iterated using range.
+	//
+	// Type Parameters:
+	//   - A: The type of elements in the sequence
+	Seq[A any] = iter.Seq[A]
+
+	// Either represents a value that can be one of two types: Left (error) or Right (success).
+	// It is used for computations that may fail, providing a type-safe alternative to
+	// error handling with multiple return values.
+	//
+	// Type Parameters:
+	//   - E: The error type (Left)
+	//   - A: The success type (Right)
 	Either[E, A any] = either.Either[E, A]
 
+	// SeqEither represents a lazy sequence of Either values.
+	// Each element in the sequence can be either a Left (error) or Right (success).
+	// This combines the lazy evaluation of sequences with the error handling of Either.
+	//
+	// Type Parameters:
+	//   - E: The error type
+	//   - A: The success type
+	//
+	// Example:
+	//
+	//	seq := iter.From(
+	//	    either.Right[string](1),
+	//	    either.Right[string](2),
+	//	    either.Left[int]("error"),
+	//	)
+	//	// seq is a SeqEither[string, int]
 	SeqEither[E, A any] = Seq[Either[E, A]]
 
-	Kleisli[E, A, B any]  = R.Reader[A, SeqEither[E, B]]
+	// Kleisli represents a function that takes a value and returns a SeqEither.
+	// This is the monadic bind operation for SeqEither, enabling composition of
+	// computations that may produce sequences of results or errors.
+	//
+	// Type Parameters:
+	//   - E: The error type
+	//   - A: The input type
+	//   - B: The element type of the output sequence
+	//
+	// Example:
+	//
+	//	validate := func(x int) SeqEither[string, int] {
+	//	    if x > 0 {
+	//	        return Right[string](x)
+	//	    }
+	//	    return Left[int]("must be positive")
+	//	}
+	//	// validate is a Kleisli[string, int, int]
+	Kleisli[E, A, B any] = R.Reader[A, SeqEither[E, B]]
+
+	// Operator represents a transformation from one SeqEither to another.
+	// It takes a SeqEither[E, A] and returns a SeqEither[E, B], allowing for
+	// composition of sequence transformations in a functional pipeline.
+	//
+	// Type Parameters:
+	//   - E: The error type (preserved across the transformation)
+	//   - A: The element type of the input sequence
+	//   - B: The element type of the output sequence
+	//
+	// Example:
+	//
+	//	double := Map[string](func(x int) int { return x * 2 })
+	//	// double is an Operator[string, int, int]
 	Operator[E, A, B any] = Kleisli[E, SeqEither[E, A], B]
 )
+
+// FromIO converts an IO computation into a single-element SeqEither containing a Right value.
+// The IO computation is executed when the sequence is consumed, and its result is wrapped
+// in a Right, creating a successful SeqEither.
+//
+// This function bridges IO computations with SeqEither, allowing side effects that always
+// succeed to be integrated into error-handling pipelines.
+//
+// Type Parameters:
+//   - E: The error type (not used, but required for type consistency)
+//   - A: The type of value produced by the IO computation
+//
+// Parameters:
+//   - mr: An IO computation that produces a value of type A
+//
+// Returns:
+//   - SeqEither[E, A]: A sequence containing a single Right value with the IO result
+//
+// Example:
+//
+//	getCurrentTime := func() time.Time { return time.Now() }
+//	seq := FromIO[error](getCurrentTime)
+//	// seq yields: Right(current time) when consumed
+//
+// See Also:
+//   - FromLazy: Converts a Lazy computation to SeqEither
+//   - FromIOEither: Converts an IOEither to SeqEither
+//   - Right: Creates a SeqEither from a pure value
+func FromIO[E, A any](mr IO[A]) SeqEither[E, A] {
+	return iter.FromIO(eithert.RightF(io.MonadMap[A, Either[E, A]], mr))
+}
+
+// FromLazy converts a Lazy computation into a single-element SeqEither containing a Right value.
+// The Lazy computation is executed when the sequence is consumed, and its result is wrapped
+// in a Right, creating a successful SeqEither.
+//
+// This is a convenience function that provides semantic clarity when working with lazy
+// computations. It delegates to FromIO since Lazy is an alias for IO.
+//
+// Type Parameters:
+//   - E: The error type (not used, but required for type consistency)
+//   - A: The type of value produced by the Lazy computation
+//
+// Parameters:
+//   - mr: A Lazy computation that produces a value of type A
+//
+// Returns:
+//   - SeqEither[E, A]: A sequence containing a single Right value with the Lazy result
+//
+// Example:
+//
+//	expensiveCalc := func() int {
+//	    // Expensive computation
+//	    return 42
+//	}
+//	seq := FromLazy[error](expensiveCalc)
+//	// Computation only runs when sequence is consumed
+//	// seq yields: Right(42)
+//
+// See Also:
+//   - FromIO: Converts an IO computation to SeqEither
+//   - FromIOEither: Converts an IOEither to SeqEither
+//   - Right: Creates a SeqEither from a pure value
+func FromLazy[E, A any](mr Lazy[A]) SeqEither[E, A] {
+	return iter.FromIO(eithert.RightF(io.MonadMap[A, Either[E, A]], mr))
+}
+
+// FromIOEither converts an IOEither computation into a single-element SeqEither.
+// The IOEither computation is executed when the sequence is consumed, and its result
+// (either Left or Right) becomes the single element of the sequence.
+//
+// This function bridges IOEither computations with SeqEither, allowing deferred I/O operations
+// that may fail to be integrated into sequence-based error-handling pipelines.
+//
+// Type Parameters:
+//   - E: The error type
+//   - A: The success type
+//
+// Parameters:
+//   - mr: An IOEither computation that produces Either[E, A]
+//
+// Returns:
+//   - SeqEither[E, A]: A sequence containing the single Either value from the deferred IOEither
+//
+// Example:
+//
+//	readConfig := func() either.Either[error, Config] {
+//	    data, err := os.ReadFile("config.json")
+//	    if err != nil {
+//	        return either.Left[Config](err)
+//	    }
+//	    return either.Right[error](parseConfig(data))
+//	}
+//	seq := FromIOEither(readConfig)
+//	// The IOEither is only executed when the sequence is iterated.
+//
+// See Also:
+//   - FromIO: Converts an IO computation to SeqEither (always Right)
+//   - FromLazy: Converts a Lazy computation to SeqEither (always Right)
+//   - FromEither: Converts a pure Either to SeqEither
+func FromIOEither[E, A any](mr IOEither[E, A]) SeqEither[E, A] {
+	return iter.FromIO(mr)
+}
 
 // Left constructs an [SeqEither] that represents a failure with an error value of type E
 func Left[A, E any](l E) SeqEither[E, A] {
@@ -684,20 +850,27 @@ func OrElse[E1, E2, A any](onLeft Kleisli[E2, E1, A]) Kleisli[E2, SeqEither[E1, 
 //	// returns: E.Left[int]("error")
 //
 //go:inline
-func MonadReduce[E, A, B any](fa SeqEither[E, A], f func(B, A) B, initial B) Either[E, B] {
-	current := initial
-	for ea := range fa {
-		a, e := either.Unwrap(ea)
-		if either.IsLeft(ea) {
-			return either.Left[B](e)
+func MonadReduce[E, A, B any](fa SeqEither[E, A], f func(B, A) B, initial B) IOEither[E, B] {
+	return func() Either[E, B] {
+		current := initial
+		for ea := range fa {
+			a, e := either.Unwrap(ea)
+			if either.IsLeft(ea) {
+				return either.Left[B](e)
+			}
+			current = f(current, a)
 		}
-		current = f(current, a)
+		return either.Of[E](current)
 	}
-	return either.Of[E](current)
 }
 
 // Reduce returns a function that reduces a SeqEither to a single Either value.
 // This is the curried version of MonadReduce.
+//
+// The return type is IOEither because a SeqEither represents a dynamic lazy sequence of
+// Either values. Reducing it requires consuming the iterator, so the final Either must
+// also remain deferred as a lazy effect. IOEither is the single-value counterpart to
+// SeqEither: both are lazy, and both represent work that is only performed when evaluated.
 //
 // Type Parameters:
 //   - E: The error type
@@ -709,16 +882,85 @@ func MonadReduce[E, A, B any](fa SeqEither[E, A], f func(B, A) B, initial B) Eit
 //   - initial: The initial accumulator value
 //
 // Returns:
-//   - A function that takes a SeqEither and returns Either[E, B]
+//   - A function that takes a SeqEither and returns IOEither[E, B]
 //
 // Example:
 //
 //	sum := Reduce(func(acc, x int) int { return acc + x }, 0)
 //	seq := iter.From(E.Right[string](1), E.Right[string](2), E.Right[string](3))
-//	result := sum(seq)
+//	resultIO := sum(seq)
+//	result := resultIO()
 //	// returns: E.Right[string](6)
-func Reduce[E, A, B any](f func(B, A) B, initial B) func(SeqEither[E, A]) Either[E, B] {
-	return func(fa SeqEither[E, A]) Either[E, B] {
+func Reduce[E, A, B any](f func(B, A) B, initial B) func(SeqEither[E, A]) IOEither[E, B] {
+	return func(fa SeqEither[E, A]) IOEither[E, B] {
 		return MonadReduce(fa, f, initial)
 	}
+}
+
+// Collect materializes a SeqEither into an Either containing a slice.
+// It consumes all elements from the sequence, collecting Right values into a slice.
+// If any Left (error) is encountered during iteration, collection stops immediately
+// and returns that Left value.
+//
+// The return type is IOEither because collecting a SeqEither is a reduction over a dynamic
+// lazy source. The final Either is not available until iteration has happened, so it must
+// stay deferred. IOEither is the single-value counterpart to SeqEither: both are lazy, and
+// both represent work that is only performed when evaluated.
+//
+// This function eagerly evaluates the entire sequence and accumulates all successful
+// values into a slice in memory. It short-circuits on the first error.
+//
+// Type Parameters:
+//   - E: The error type
+//   - T: The type of elements in the sequence
+//
+// Parameters:
+//   - fa: The SeqEither to collect into a slice
+//
+// Returns:
+//   - IOEither[E, []T]: A deferred computation that yields the first error encountered or a slice of all values
+//
+// Marble Diagram:
+//
+//	Input:  --R(1)--R(2)--R(3)--R(4)--R(5)--|
+//	Output: IO(Right([1, 2, 3, 4, 5]))
+//
+//	Input:  --R(1)--R(2)--L(e)--R(4)--R(5)--|
+//	Output: IO(Left(e))
+//
+// Example - Success case:
+//
+//	seq := iter.From(
+//	    either.Right[string](1),
+//	    either.Right[string](2),
+//	    either.Right[string](3),
+//	)
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = either.Right[string]([]int{1, 2, 3})
+//
+// Example - Error case:
+//
+//	seq := iter.From(
+//	    either.Right[string](1),
+//	    either.Left[int]("error"),
+//	    either.Right[string](3),
+//	)
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = either.Left[[]int]("error")
+//
+// Example - Empty sequence:
+//
+//	seq := iter.Empty[either.Either[string, int]]()
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = either.Right[string]([]int{})
+//
+// See Also:
+//   - MonadReduce: Reduces a SeqEither to a single value
+//   - Fold: Converts SeqEither to Seq by handling both cases
+//   - GetOrElse: Extracts value or provides default
+func Collect[E, T any](fa SeqEither[E, T]) IOEither[E, []T] {
+	return MonadReduce(fa, A.Append, nil)
 }

@@ -65,6 +65,343 @@ func TestEmpty(t *testing.T) {
 	result := toSlice(seq)
 	assert.Empty(t, result)
 }
+func TestFromIO_Success(t *testing.T) {
+	t.Run("converts IO computation to single-element sequence", func(t *testing.T) {
+		io := func() int { return 42 }
+		seq := FromIO(io)
+		result := toSlice(seq)
+		assert.Equal(t, []int{42}, result)
+	})
+
+	t.Run("executes IO computation when sequence is consumed", func(t *testing.T) {
+		executed := false
+		io := func() string {
+			executed = true
+			return "hello"
+		}
+		seq := FromIO(io)
+
+		// IO should not be executed yet
+		assert.False(t, executed)
+
+		// Consume the sequence
+		result := toSlice(seq)
+
+		// Now IO should be executed
+		assert.True(t, executed)
+		assert.Equal(t, []string{"hello"}, result)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		t.Run("string", func(t *testing.T) {
+			io := func() string { return "test" }
+			seq := FromIO(io)
+			result := toSlice(seq)
+			assert.Equal(t, []string{"test"}, result)
+		})
+
+		t.Run("struct", func(t *testing.T) {
+			type Person struct {
+				Name string
+				Age  int
+			}
+			io := func() Person { return Person{Name: "Alice", Age: 30} }
+			seq := FromIO(io)
+			result := toSlice(seq)
+			assert.Equal(t, []Person{{Name: "Alice", Age: 30}}, result)
+		})
+
+		t.Run("pointer", func(t *testing.T) {
+			value := 100
+			io := func() *int { return &value }
+			seq := FromIO(io)
+			result := toSlice(seq)
+			assert.Len(t, result, 1)
+			assert.Equal(t, 100, *result[0])
+		})
+	})
+
+	t.Run("can be composed with other operations", func(t *testing.T) {
+		io := func() int { return 10 }
+		seq := F.Pipe1(
+			FromIO(io),
+			Map(N.Mul(2)),
+		)
+		result := toSlice(seq)
+		assert.Equal(t, []int{20}, result)
+	})
+
+	t.Run("can be used in chain operations", func(t *testing.T) {
+		io := func() int { return 3 }
+		seq := F.Pipe1(
+			FromIO(io),
+			Chain(func(n int) Seq[int] {
+				return From(n, n*2, n*3)
+			}),
+		)
+		result := toSlice(seq)
+		assert.Equal(t, []int{3, 6, 9}, result)
+	})
+}
+
+func TestFromIO_EdgeCases(t *testing.T) {
+	t.Run("handles zero value", func(t *testing.T) {
+		io := func() int { return 0 }
+		seq := FromIO(io)
+		result := toSlice(seq)
+		assert.Equal(t, []int{0}, result)
+	})
+
+	t.Run("handles empty string", func(t *testing.T) {
+		io := func() string { return "" }
+		seq := FromIO(io)
+		result := toSlice(seq)
+		assert.Equal(t, []string{""}, result)
+	})
+
+	t.Run("handles nil pointer", func(t *testing.T) {
+		io := func() *int { return nil }
+		seq := FromIO(io)
+		result := toSlice(seq)
+		assert.Len(t, result, 1)
+		assert.Nil(t, result[0])
+	})
+}
+
+func TestFromIO_Integration(t *testing.T) {
+	t.Run("multiple iterations execute IO multiple times", func(t *testing.T) {
+		counter := 0
+		io := func() int {
+			counter++
+			return counter
+		}
+		seq := FromIO(io)
+
+		// First iteration
+		result1 := toSlice(seq)
+		assert.Equal(t, []int{1}, result1)
+
+		// Second iteration - IO executes again
+		result2 := toSlice(seq)
+		assert.Equal(t, []int{2}, result2)
+	})
+
+	t.Run("works with filter", func(t *testing.T) {
+		io := func() int { return 5 }
+		seq := F.Pipe1(
+			FromIO(io),
+			Filter(func(n int) bool { return n > 3 }),
+		)
+		result := toSlice(seq)
+		assert.Equal(t, []int{5}, result)
+	})
+
+	t.Run("works with reduce", func(t *testing.T) {
+		io := func() int { return 10 }
+		resultIO := MonadReduce(
+			FromIO(io),
+			func(acc, n int) int { return acc + n },
+			5,
+		)
+		assert.Equal(t, 15, resultIO())
+	})
+}
+
+func TestFromLazy_Success(t *testing.T) {
+	t.Run("converts Lazy computation to single-element sequence", func(t *testing.T) {
+		lazy := func() int { return 42 }
+		seq := FromLazy(lazy)
+		result := toSlice(seq)
+		assert.Equal(t, []int{42}, result)
+	})
+
+	t.Run("defers computation until sequence is consumed", func(t *testing.T) {
+		executed := false
+		lazy := func() string {
+			executed = true
+			return "lazy value"
+		}
+		seq := FromLazy(lazy)
+
+		// Lazy computation should not be executed yet
+		assert.False(t, executed)
+
+		// Consume the sequence
+		result := toSlice(seq)
+
+		// Now lazy computation should be executed
+		assert.True(t, executed)
+		assert.Equal(t, []string{"lazy value"}, result)
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		t.Run("bool", func(t *testing.T) {
+			lazy := func() bool { return true }
+			seq := FromLazy(lazy)
+			result := toSlice(seq)
+			assert.Equal(t, []bool{true}, result)
+		})
+
+		t.Run("slice", func(t *testing.T) {
+			lazy := func() []int { return []int{1, 2, 3} }
+			seq := FromLazy(lazy)
+			result := toSlice(seq)
+			assert.Len(t, result, 1)
+			assert.Equal(t, []int{1, 2, 3}, result[0])
+		})
+
+		t.Run("map", func(t *testing.T) {
+			lazy := func() map[string]int {
+				return map[string]int{"a": 1, "b": 2}
+			}
+			seq := FromLazy(lazy)
+			result := toSlice(seq)
+			assert.Len(t, result, 1)
+			assert.Equal(t, map[string]int{"a": 1, "b": 2}, result[0])
+		})
+	})
+
+	t.Run("can be composed with other operations", func(t *testing.T) {
+		lazy := func() int { return 5 }
+		seq := F.Pipe1(
+			FromLazy(lazy),
+			Map(func(n int) int { return n * n }),
+		)
+		result := toSlice(seq)
+		assert.Equal(t, []int{25}, result)
+	})
+
+	t.Run("can be used with filterMap", func(t *testing.T) {
+		lazy := func() int { return 10 }
+		seq := F.Pipe1(
+			FromLazy(lazy),
+			FilterMap(func(n int) O.Option[string] {
+				if n > 5 {
+					return O.Some(strconv.Itoa(n))
+				}
+				return O.None[string]()
+			}),
+		)
+		result := toSlice(seq)
+		assert.Equal(t, []string{"10"}, result)
+	})
+}
+
+func TestFromLazy_EdgeCases(t *testing.T) {
+	t.Run("handles expensive computation", func(t *testing.T) {
+		lazy := func() int {
+			// Simulate expensive computation
+			sum := 0
+			for i := range 1000 {
+				sum += i
+			}
+			return sum
+		}
+		seq := FromLazy(lazy)
+		result := toSlice(seq)
+		assert.Equal(t, []int{499500}, result)
+	})
+
+	t.Run("handles function returning function", func(t *testing.T) {
+		lazy := func() func(int) int {
+			return func(x int) int { return x * 2 }
+		}
+		seq := FromLazy(lazy)
+		result := toSlice(seq)
+		assert.Len(t, result, 1)
+		assert.Equal(t, 10, result[0](5))
+	})
+}
+
+func TestFromLazy_Integration(t *testing.T) {
+	t.Run("multiple iterations execute lazy computation multiple times", func(t *testing.T) {
+		counter := 0
+		lazy := func() int {
+			counter++
+			return counter * 10
+		}
+		seq := FromLazy(lazy)
+
+		// First iteration
+		result1 := toSlice(seq)
+		assert.Equal(t, []int{10}, result1)
+
+		// Second iteration - lazy computation executes again
+		result2 := toSlice(seq)
+		assert.Equal(t, []int{20}, result2)
+	})
+
+	t.Run("works with append and prepend", func(t *testing.T) {
+		lazy := func() int { return 2 }
+		seq := F.Pipe1(
+			FromLazy(lazy),
+			Prepend(1),
+		)
+		seq = Append(3)(seq)
+		result := toSlice(seq)
+		assert.Equal(t, []int{1, 2, 3}, result)
+	})
+
+	t.Run("works with zip", func(t *testing.T) {
+		lazy1 := func() int { return 1 }
+		lazy2 := func() string { return "a" }
+		seq := MonadZip(FromLazy(lazy1), FromLazy(lazy2))
+		result := toMap(seq)
+		assert.Equal(t, map[int]string{1: "a"}, result)
+	})
+
+	t.Run("works with foldMap", func(t *testing.T) {
+		lazy := func() int { return 7 }
+		result := MonadFoldMap(
+			FromLazy(lazy),
+			func(n int) string { return strings.Repeat("*", n) },
+			S.Monoid,
+		)
+		assert.Equal(t, "*******", result())
+	})
+}
+
+func TestFromIO_vs_FromLazy(t *testing.T) {
+	t.Run("FromLazy delegates to FromIO", func(t *testing.T) {
+		value := 42
+		io := func() int { return value }
+		lazy := func() int { return value }
+
+		seqIO := FromIO(io)
+		seqLazy := FromLazy(lazy)
+
+		resultIO := toSlice(seqIO)
+		resultLazy := toSlice(seqLazy)
+
+		assert.Equal(t, resultIO, resultLazy)
+	})
+
+	t.Run("both handle side effects similarly", func(t *testing.T) {
+		counterIO := 0
+		counterLazy := 0
+
+		io := func() int {
+			counterIO++
+			return counterIO
+		}
+		lazy := func() int {
+			counterLazy++
+			return counterLazy
+		}
+
+		seqIO := FromIO(io)
+		seqLazy := FromLazy(lazy)
+
+		// Both should execute on consumption
+		resultIO := toSlice(seqIO)
+		resultLazy := toSlice(seqLazy)
+
+		assert.Equal(t, []int{1}, resultIO)
+		assert.Equal(t, []int{1}, resultLazy)
+		assert.Equal(t, 1, counterIO)
+		assert.Equal(t, 1, counterLazy)
+	})
+}
 
 func TestMonadMap(t *testing.T) {
 	seq := From(1, 2, 3)
@@ -316,14 +653,14 @@ func TestReplicate(t *testing.T) {
 func TestMonadReduce(t *testing.T) {
 	seq := From(1, 2, 3, 4)
 	sum := MonadReduce(seq, func(acc, x int) int { return acc + x }, 0)
-	assert.Equal(t, 10, sum)
+	assert.Equal(t, 10, sum())
 }
 
 func TestReduce(t *testing.T) {
 	seq := From(1, 2, 3, 4)
 	sum := Reduce(func(acc, x int) int { return acc + x }, 0)
 	result := sum(seq)
-	assert.Equal(t, 10, result)
+	assert.Equal(t, 10, result())
 }
 
 func TestMonadReduceWithIndex(t *testing.T) {
@@ -332,7 +669,7 @@ func TestMonadReduceWithIndex(t *testing.T) {
 		return acc + (i * x)
 	}, 0)
 	// 0*10 + 1*20 + 2*30 = 0 + 20 + 60 = 80
-	assert.Equal(t, 80, result)
+	assert.Equal(t, 80, result())
 }
 
 func TestReduceWithIndex(t *testing.T) {
@@ -341,7 +678,7 @@ func TestReduceWithIndex(t *testing.T) {
 		return acc + (i * x)
 	}, 0)
 	result := reducer(seq)
-	assert.Equal(t, 80, result)
+	assert.Equal(t, 80, result())
 }
 
 func TestMonadReduceWithKey(t *testing.T) {
@@ -349,7 +686,7 @@ func TestMonadReduceWithKey(t *testing.T) {
 	result := MonadReduceWithKey(seq, func(k string, acc, v int) int {
 		return acc + v
 	}, 0)
-	assert.Equal(t, 10, result)
+	assert.Equal(t, 10, result())
 }
 
 func TestReduceWithKey(t *testing.T) {
@@ -358,33 +695,33 @@ func TestReduceWithKey(t *testing.T) {
 		return acc + v
 	}, 0)
 	result := reducer(seq)
-	assert.Equal(t, 10, result)
+	assert.Equal(t, 10, result())
 }
 
 func TestMonadFold(t *testing.T) {
 	seq := From("Hello", " ", "World")
 	result := MonadFold(seq, S.Monoid)
-	assert.Equal(t, "Hello World", result)
+	assert.Equal(t, "Hello World", result())
 }
 
 func TestFold(t *testing.T) {
 	seq := From("Hello", " ", "World")
 	folder := Fold(S.Monoid)
 	result := folder(seq)
-	assert.Equal(t, "Hello World", result)
+	assert.Equal(t, "Hello World", result())
 }
 
 func TestMonadFoldMap(t *testing.T) {
 	seq := From(1, 2, 3)
 	result := MonadFoldMap(seq, strconv.Itoa, S.Monoid)
-	assert.Equal(t, "123", result)
+	assert.Equal(t, "123", result())
 }
 
 func TestFoldMap(t *testing.T) {
 	seq := From(1, 2, 3)
 	folder := FoldMap[int](S.Monoid)(strconv.Itoa)
 	result := folder(seq)
-	assert.Equal(t, "123", result)
+	assert.Equal(t, "123", result())
 }
 
 func TestMonadFoldMapWithIndex(t *testing.T) {
@@ -392,7 +729,7 @@ func TestMonadFoldMapWithIndex(t *testing.T) {
 	result := MonadFoldMapWithIndex(seq, func(i int, s string) string {
 		return fmt.Sprintf("%d:%s ", i, s)
 	}, S.Monoid)
-	assert.Equal(t, "0:a 1:b 2:c ", result)
+	assert.Equal(t, "0:a 1:b 2:c ", result())
 }
 
 func TestFoldMapWithIndex(t *testing.T) {
@@ -401,7 +738,7 @@ func TestFoldMapWithIndex(t *testing.T) {
 		return fmt.Sprintf("%d:%s ", i, s)
 	})
 	result := folder(seq)
-	assert.Equal(t, "0:a 1:b 2:c ", result)
+	assert.Equal(t, "0:a 1:b 2:c ", result())
 }
 
 func TestMonadFoldMapWithKey(t *testing.T) {
@@ -409,7 +746,7 @@ func TestMonadFoldMapWithKey(t *testing.T) {
 	result := MonadFoldMapWithKey(seq, func(k string, v int) string {
 		return fmt.Sprintf("%s:%d ", k, v)
 	}, S.Monoid)
-	assert.Equal(t, "x:10 ", result)
+	assert.Equal(t, "x:10 ", result())
 }
 
 func TestFoldMapWithKey(t *testing.T) {
@@ -418,7 +755,7 @@ func TestFoldMapWithKey(t *testing.T) {
 		return fmt.Sprintf("%s:%d ", k, v)
 	})
 	result := folder(seq)
-	assert.Equal(t, "x:10 ", result)
+	assert.Equal(t, "x:10 ", result())
 }
 
 func TestMonadFlap(t *testing.T) {
@@ -560,7 +897,7 @@ func ExampleFoldMap() {
 	seq := From("a", "b", "c")
 	fold := FoldMap[string](S.Monoid)(strings.ToUpper)
 	result := fold(seq)
-	fmt.Println(result)
+	fmt.Println(result())
 	// Output: ABC
 }
 
@@ -1048,4 +1385,211 @@ func ExampleSkip_chained() {
 
 	fmt.Println(result)
 	// Output: [4 6 8 10]
+}
+
+// TestCollect_Success tests basic Collect functionality
+func TestCollect_Success(t *testing.T) {
+	t.Run("collects simple sequence into slice", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := Collect(seq)
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, result())
+	})
+
+	t.Run("collects empty sequence into nil slice", func(t *testing.T) {
+		seq := Empty[int]()
+		result := Collect(seq)
+		assert.Nil(t, result())
+	})
+
+	t.Run("collects single element sequence", func(t *testing.T) {
+		seq := Of(42)
+		result := Collect(seq)
+		assert.Equal(t, []int{42}, result())
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		t.Run("string", func(t *testing.T) {
+			seq := From("hello", "world", "test")
+			result := Collect(seq)
+			assert.Equal(t, []string{"hello", "world", "test"}, result())
+		})
+
+		t.Run("struct", func(t *testing.T) {
+			type Person struct {
+				Name string
+				Age  int
+			}
+			seq := From(
+				Person{"Alice", 30},
+				Person{"Bob", 25},
+			)
+			result := Collect(seq)
+			assert.Equal(t, []Person{{"Alice", 30}, {"Bob", 25}}, result())
+		})
+
+		t.Run("pointer", func(t *testing.T) {
+			val1, val2 := 10, 20
+			seq := From(&val1, &val2)
+			result := Collect(seq)
+			assert.Equal(t, []*int{&val1, &val2}, result())
+		})
+	})
+
+	t.Run("collects transformed sequence", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		doubled := Map(N.Mul(2))(seq)
+		result := Collect(doubled)
+		assert.Equal(t, []int{2, 4, 6, 8, 10}, result())
+	})
+
+	t.Run("collects filtered sequence", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6)
+		evens := Filter(func(x int) bool { return x%2 == 0 })(seq)
+		result := Collect(evens)
+		assert.Equal(t, []int{2, 4, 6}, result())
+	})
+}
+
+// TestCollect_EdgeCases tests edge cases
+func TestCollect_EdgeCases(t *testing.T) {
+	t.Run("handles zero values", func(t *testing.T) {
+		seq := From(0, 0, 0)
+		result := Collect(seq)
+		assert.Equal(t, []int{0, 0, 0}, result())
+	})
+
+	t.Run("handles empty strings", func(t *testing.T) {
+		seq := From("", "a", "", "b")
+		result := Collect(seq)
+		assert.Equal(t, []string{"", "a", "", "b"}, result())
+	})
+
+	t.Run("handles nil pointers", func(t *testing.T) {
+		var nilPtr *int
+		val := 42
+		seq := From(nilPtr, &val, nilPtr)
+		result := Collect(seq)
+		assert.Equal(t, []*int{nilPtr, &val, nilPtr}, result())
+	})
+
+	t.Run("handles large sequence", func(t *testing.T) {
+		seq := MakeBy(1000, F.Identity[int])
+		result := Collect(seq)()
+		assert.Len(t, result, 1000)
+		assert.Equal(t, 0, result[0])
+		assert.Equal(t, 999, result[999])
+	})
+
+	t.Run("handles replicated values", func(t *testing.T) {
+		seq := Replicate(5, "test")
+		result := Collect(seq)
+		assert.Equal(t, []string{"test", "test", "test", "test", "test"}, result())
+	})
+}
+
+// TestCollect_Integration tests integration with other operations
+func TestCollect_Integration(t *testing.T) {
+	t.Run("works with chain of transformations", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := F.Pipe3(
+			seq,
+			Map(N.Mul(2)),
+			Filter(func(x int) bool { return x > 5 }),
+			Collect[int],
+		)
+		assert.Equal(t, []int{6, 8, 10}, result())
+	})
+
+	t.Run("works with MonadChain", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		chained := MonadChain(seq, func(x int) Seq[int] {
+			return From(x, x*10)
+		})
+		result := Collect(chained)
+		assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, result())
+	})
+
+	t.Run("works with Flatten", func(t *testing.T) {
+		nested := From(
+			From(1, 2),
+			From(3, 4),
+			From(5),
+		)
+		flattened := Flatten(nested)
+		result := Collect(flattened)
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, result())
+	})
+
+	t.Run("works with Prepend and Append", func(t *testing.T) {
+		seq := From(2, 3, 4)
+		result := F.Pipe2(
+			seq,
+			Prepend(1),
+			Append(5),
+		)
+		collected := Collect(result)
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, collected())
+	})
+
+	t.Run("works with FilterMap", func(t *testing.T) {
+		seq := From("1", "2", "not a number", "3", "4")
+		parseInt := func(s string) O.Option[int] {
+			if n, err := strconv.Atoi(s); err == nil {
+				return O.Some(n)
+			}
+			return O.None[int]()
+		}
+		filtered := MonadFilterMap(seq, parseInt)
+		result := Collect(filtered)
+		assert.Equal(t, []int{1, 2, 3, 4}, result())
+	})
+
+	t.Run("works with Skip", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		skipped := Skip[int](2)(seq)
+		result := Collect(skipped)
+		assert.Equal(t, []int{3, 4, 5}, result())
+	})
+
+	t.Run("works with FromIO", func(t *testing.T) {
+		counter := 0
+		io := func() int {
+			counter++
+			return counter * 10
+		}
+		seq := FromIO(io)
+		result := Collect(seq)
+		assert.Equal(t, []int{10}, result())
+		assert.Equal(t, 1, counter)
+	})
+
+	t.Run("works with FromLazy", func(t *testing.T) {
+		lazy := func() string { return "computed" }
+		seq := FromLazy(lazy)
+		result := Collect(seq)
+		assert.Equal(t, []string{"computed"}, result())
+	})
+}
+
+// TestCollect_Comparison tests Collect vs toSlice helper
+func TestCollect_Comparison(t *testing.T) {
+	t.Run("Collect produces same result as toSlice helper", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+
+		// Both should produce identical results
+		result1 := Collect(seq)
+		result2 := toSlice(seq)
+
+		assert.Equal(t, result1(), result2)
+	})
+
+	t.Run("Collect is equivalent to slices.Collect", func(t *testing.T) {
+		seq := From("a", "b", "c")
+
+		// Collect should delegate to slices.Collect
+		result1 := Collect(seq)
+		result2 := slices.Collect(seq)
+
+		assert.Equal(t, result1(), result2)
+	})
 }

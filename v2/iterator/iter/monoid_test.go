@@ -106,7 +106,7 @@ func TestConcatMonoid_WithReduce(t *testing.T) {
 	}
 
 	result := MonadReduce(From(sequences...), monoid.Concat, monoid.Empty())
-	collected := slices.Collect(result)
+	collected := slices.Collect(result())
 
 	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8, 9}, collected)
 }
@@ -118,7 +118,7 @@ func TestConcatMonoid_WithFoldMap(t *testing.T) {
 	result := MonadFoldMap(numbers, func(n int) Seq[int] {
 		return From(n, n*10, n*100)
 	}, monoid)
-	collected := slices.Collect(result)
+	collected := slices.Collect(result())
 
 	// Deterministic order: each number's expansion in sequence
 	assert.Equal(t, []int{1, 10, 100, 2, 20, 200, 3, 30, 300}, collected)
@@ -223,7 +223,7 @@ func BenchmarkConcatMonoid_Reduce(b *testing.B) {
 	b.ResetTimer()
 	for range b.N {
 		result := MonadReduce(From(sequences...), monoid.Concat, monoid.Empty())
-		for range result {
+		for range result() {
 		}
 	}
 }
@@ -304,7 +304,7 @@ func ExampleConcatMonoid_reduce() {
 	}
 
 	result := MonadReduce(From(sequences...), monoid.Concat, monoid.Empty())
-	for v := range result {
+	for v := range result() {
 		fmt.Println(v)
 	}
 	// Output:

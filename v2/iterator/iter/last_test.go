@@ -6,6 +6,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/iooption"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
@@ -17,25 +18,25 @@ func TestLastSimple(t *testing.T) {
 	t.Run("returns last element from integer sequence", func(t *testing.T) {
 		seq := From(1, 2, 3)
 		last := Last(seq)
-		assert.Equal(t, O.Of(3), last)
+		assert.Equal(t, O.Of(3), last())
 	})
 
 	t.Run("returns last element from string sequence", func(t *testing.T) {
 		seq := From("a", "b", "c")
 		last := Last(seq)
-		assert.Equal(t, O.Of("c"), last)
+		assert.Equal(t, O.Of("c"), last())
 	})
 
 	t.Run("returns last element from single element sequence", func(t *testing.T) {
 		seq := From(42)
 		last := Last(seq)
-		assert.Equal(t, O.Of(42), last)
+		assert.Equal(t, O.Of(42), last())
 	})
 
 	t.Run("returns last element from large sequence", func(t *testing.T) {
 		seq := From(100, 200, 300, 400, 500)
 		last := Last(seq)
-		assert.Equal(t, O.Of(500), last)
+		assert.Equal(t, O.Of(500), last())
 	})
 }
 
@@ -45,13 +46,13 @@ func TestLastEmpty(t *testing.T) {
 	t.Run("returns None for empty integer sequence", func(t *testing.T) {
 		seq := Empty[int]()
 		last := Last(seq)
-		assert.Equal(t, O.None[int](), last)
+		assert.Equal(t, O.None[int](), last())
 	})
 
 	t.Run("returns None for empty string sequence", func(t *testing.T) {
 		seq := Empty[string]()
 		last := Last(seq)
-		assert.Equal(t, O.None[string](), last)
+		assert.Equal(t, O.None[string](), last())
 	})
 
 	t.Run("returns None for empty struct sequence", func(t *testing.T) {
@@ -60,14 +61,14 @@ func TestLastEmpty(t *testing.T) {
 		}
 		seq := Empty[TestStruct]()
 		last := Last(seq)
-		assert.Equal(t, O.None[TestStruct](), last)
+		assert.Equal(t, O.None[TestStruct](), last())
 	})
 
 	t.Run("returns None for empty sequence of functions", func(t *testing.T) {
 		type TestFunc func(int)
 		seq := Empty[TestFunc]()
 		last := Last(seq)
-		assert.Equal(t, O.None[TestFunc](), last)
+		assert.Equal(t, O.None[TestFunc](), last())
 	})
 }
 
@@ -86,7 +87,7 @@ func TestLastWithComplex(t *testing.T) {
 		)
 		last := Last(seq)
 		expected := O.Of(Person{"Charlie", 35})
-		assert.Equal(t, expected, last)
+		assert.Equal(t, expected, last())
 	})
 
 	t.Run("returns last pointer", func(t *testing.T) {
@@ -94,7 +95,7 @@ func TestLastWithComplex(t *testing.T) {
 		p2 := &Person{"Bob", 25}
 		seq := From(p1, p2)
 		last := Last(seq)
-		assert.Equal(t, O.Of(p2), last)
+		assert.Equal(t, O.Of(p2), last())
 	})
 }
 
@@ -109,9 +110,9 @@ func TestLastWithFunctions(t *testing.T) {
 
 		getLast := function.Flow2(
 			Last,
-			O.Map(funcReader),
+			iooption.Map(funcReader),
 		)
-		assert.Equal(t, O.Of(want), getLast(seq))
+		assert.Equal(t, O.Of(want), getLast(seq)())
 	})
 }
 
@@ -129,9 +130,9 @@ func TestLastWithChan(t *testing.T) {
 
 		getLast := function.Flow2(
 			Last,
-			O.Map(chanReader[int]),
+			iooption.Map(chanReader[int]),
 		)
-		assert.Equal(t, O.Of(want), getLast(seq))
+		assert.Equal(t, O.Of(want), getLast(seq)())
 
 	})
 }
@@ -154,7 +155,7 @@ func TestLastWithChainedOperations(t *testing.T) {
 		filtered := MonadFilter(seq, N.MoreThan(5))
 		mapped := MonadMap(filtered, N.Mul(10))
 		result := Last(mapped)
-		assert.Equal(t, O.Of(100), result)
+		assert.Equal(t, O.Of(100), result())
 	})
 
 	t.Run("chains map and filter", func(t *testing.T) {
@@ -162,7 +163,7 @@ func TestLastWithChainedOperations(t *testing.T) {
 		mapped := MonadMap(seq, N.Mul(2))
 		filtered := MonadFilter(mapped, N.MoreThan(5))
 		result := Last(filtered)
-		assert.Equal(t, O.Of(10), result)
+		assert.Equal(t, O.Of(10), result())
 	})
 }
 
@@ -171,13 +172,13 @@ func TestLastWithReplicate(t *testing.T) {
 	t.Run("returns last from replicated sequence", func(t *testing.T) {
 		seq := Replicate(5, 42)
 		last := Last(seq)
-		assert.Equal(t, O.Of(42), last)
+		assert.Equal(t, O.Of(42), last())
 	})
 
 	t.Run("returns None from zero replications", func(t *testing.T) {
 		seq := Replicate(0, 42)
 		last := Last(seq)
-		assert.Equal(t, O.None[int](), last)
+		assert.Equal(t, O.None[int](), last())
 	})
 }
 
@@ -186,13 +187,13 @@ func TestLastWithMakeBy(t *testing.T) {
 	t.Run("returns last generated element", func(t *testing.T) {
 		seq := MakeBy(5, func(i int) int { return i * i })
 		last := Last(seq)
-		assert.Equal(t, O.Of(16), last)
+		assert.Equal(t, O.Of(16), last())
 	})
 
 	t.Run("returns None for zero elements", func(t *testing.T) {
 		seq := MakeBy(0, F.Identity[int])
 		last := Last(seq)
-		assert.Equal(t, O.None[int](), last)
+		assert.Equal(t, O.None[int](), last())
 	})
 }
 
@@ -202,14 +203,14 @@ func TestLastWithPrepend(t *testing.T) {
 		seq := From(2, 3, 4)
 		prepended := Prepend(1)(seq)
 		last := Last(prepended)
-		assert.Equal(t, O.Of(4), last)
+		assert.Equal(t, O.Of(4), last())
 	})
 
 	t.Run("returns prepended element from empty sequence", func(t *testing.T) {
 		seq := Empty[int]()
 		prepended := Prepend(42)(seq)
 		last := Last(prepended)
-		assert.Equal(t, O.Of(42), last)
+		assert.Equal(t, O.Of(42), last())
 	})
 }
 
@@ -219,14 +220,14 @@ func TestLastWithAppend(t *testing.T) {
 		seq := From(1, 2, 3)
 		appended := Append(4)(seq)
 		last := Last(appended)
-		assert.Equal(t, O.Of(4), last)
+		assert.Equal(t, O.Of(4), last())
 	})
 
 	t.Run("returns appended element from empty sequence", func(t *testing.T) {
 		seq := Empty[int]()
 		appended := Append(42)(seq)
 		last := Last(appended)
-		assert.Equal(t, O.Of(42), last)
+		assert.Equal(t, O.Of(42), last())
 	})
 }
 
@@ -238,7 +239,7 @@ func TestLastWithChain(t *testing.T) {
 			return From(x, x*10)
 		})
 		last := Last(chained)
-		assert.Equal(t, O.Of(30), last)
+		assert.Equal(t, O.Of(30), last())
 	})
 
 	t.Run("returns None when chain produces empty", func(t *testing.T) {
@@ -247,7 +248,7 @@ func TestLastWithChain(t *testing.T) {
 			return Empty[int]()
 		})
 		last := Last(chained)
-		assert.Equal(t, O.None[int](), last)
+		assert.Equal(t, O.None[int](), last())
 	})
 }
 
@@ -257,14 +258,14 @@ func TestLastWithFlatten(t *testing.T) {
 		nested := From(From(1, 2), From(3, 4), From(5))
 		flattened := Flatten(nested)
 		last := Last(flattened)
-		assert.Equal(t, O.Of(5), last)
+		assert.Equal(t, O.Of(5), last())
 	})
 
 	t.Run("returns None from empty nested sequence", func(t *testing.T) {
 		nested := Empty[Seq[int]]()
 		flattened := Flatten(nested)
 		last := Last(flattened)
-		assert.Equal(t, O.None[int](), last)
+		assert.Equal(t, O.None[int](), last())
 	})
 }
 
@@ -273,7 +274,7 @@ func ExampleLast() {
 	seq := From(1, 2, 3, 4, 5)
 	last := Last(seq)
 
-	if value, ok := O.Unwrap(last); ok {
+	if value, ok := O.Unwrap(last()); ok {
 		fmt.Printf("Last element: %d\n", value)
 	}
 	// Output: Last element: 5
@@ -283,7 +284,7 @@ func ExampleLast_empty() {
 	seq := Empty[int]()
 	last := Last(seq)
 
-	if _, ok := O.Unwrap(last); !ok {
+	if _, ok := O.Unwrap(last()); !ok {
 		fmt.Println("Sequence is empty")
 	}
 	// Output: Sequence is empty
@@ -297,7 +298,7 @@ func ExampleLast_functions() {
 
 	last := Last(seq)
 
-	if fn, ok := O.Unwrap(last); ok {
+	if fn, ok := O.Unwrap(last()); ok {
 		result := fn()
 		fmt.Printf("Last function result: %s\n", result)
 	}

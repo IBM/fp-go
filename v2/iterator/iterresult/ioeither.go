@@ -25,14 +25,171 @@ import (
 )
 
 type (
-	Seq[A any]    = iter.Seq[A]
+	// Seq is a single-value iterator sequence from Go 1.23+.
+	// It represents a lazy sequence of values that can be iterated using range.
+	//
+	// Type Parameters:
+	//   - A: The type of elements in the sequence
+	Seq[A any] = iter.Seq[A]
+
+	// Result represents a value that can be either an error or a success value.
+	// It is used for computations that may fail, providing a type-safe alternative to
+	// error handling with multiple return values. The error type is always error.
+	//
+	// Type Parameters:
+	//   - A: The success type
 	Result[A any] = result.Result[A]
 
+	// SeqResult represents a lazy sequence of Result values.
+	// Each element in the sequence can be either an error or a success value.
+	// This combines the lazy evaluation of sequences with the error handling of Result.
+	//
+	// Type Parameters:
+	//   - A: The success type
+	//
+	// Example:
+	//
+	//	seq := iter.From(
+	//	    result.Of(1),
+	//	    result.Of(2),
+	//	    result.Left(errors.New("error")),
+	//	)
+	//	// seq is a SeqResult[int]
 	SeqResult[A any] = Seq[Result[A]]
 
-	Kleisli[A, B any]  = R.Reader[A, SeqResult[B]]
+	// Kleisli represents a function that takes a value and returns a SeqResult.
+	// This is the monadic bind operation for SeqResult, enabling composition of
+	// computations that may produce sequences of results or errors.
+	//
+	// Type Parameters:
+	//   - A: The input type
+	//   - B: The element type of the output sequence
+	//
+	// Example:
+	//
+	//	validate := func(x int) SeqResult[int] {
+	//	    if x > 0 {
+	//	        return Of(x)
+	//	    }
+	//	    return Left[int](errors.New("must be positive"))
+	//	}
+	//	// validate is a Kleisli[int, int]
+	Kleisli[A, B any] = R.Reader[A, SeqResult[B]]
+
+	// Operator represents a transformation from one SeqResult to another.
+	// It takes a SeqResult[A] and returns a SeqResult[B], allowing for
+	// composition of sequence transformations in a functional pipeline.
+	//
+	// Type Parameters:
+	//   - A: The element type of the input sequence
+	//   - B: The element type of the output sequence
+	//
+	// Example:
+	//
+	//	double := Map(func(x int) int { return x * 2 })
+	//	// double is an Operator[int, int]
 	Operator[A, B any] = Kleisli[SeqResult[A], B]
 )
+
+// FromIO converts an IO computation into a single-element SeqResult containing a success value.
+// The IO computation is executed when the sequence is consumed, and its result is wrapped
+// in a success Result, creating a successful SeqResult.
+//
+// This function bridges IO computations with SeqResult, allowing side effects that always
+// succeed to be integrated into error-handling pipelines.
+//
+// Type Parameters:
+//   - A: The type of value produced by the IO computation
+//
+// Parameters:
+//   - mr: An IO computation that produces a value of type A
+//
+// Returns:
+//   - SeqResult[A]: A sequence containing a single success Result with the IO result
+//
+// Example:
+//
+//	getCurrentTime := func() time.Time { return time.Now() }
+//	seq := FromIO(getCurrentTime)
+//	// seq yields: Ok(current time) when consumed
+//
+// See Also:
+//   - FromLazy: Converts a Lazy computation to SeqResult
+//   - FromIOResult: Converts an IOResult to SeqResult
+//   - Of: Creates a SeqResult from a pure value
+func FromIO[A any](mr IO[A]) SeqResult[A] {
+	return itereither.FromIO[error](mr)
+}
+
+// FromLazy converts a Lazy computation into a single-element SeqResult containing a success value.
+// The Lazy computation is executed when the sequence is consumed, and its result is wrapped
+// in a success Result, creating a successful SeqResult.
+//
+// This is a convenience function that provides semantic clarity when working with lazy
+// computations. It delegates to FromIO since Lazy is an alias for IO.
+//
+// Type Parameters:
+//   - A: The type of value produced by the Lazy computation
+//
+// Parameters:
+//   - mr: A Lazy computation that produces a value of type A
+//
+// Returns:
+//   - SeqResult[A]: A sequence containing a single success Result with the Lazy result
+//
+// Example:
+//
+//	expensiveCalc := func() int {
+//	    // Expensive computation
+//	    return 42
+//	}
+//	seq := FromLazy(expensiveCalc)
+//	// Computation only runs when sequence is consumed
+//	// seq yields: Ok(42)
+//
+// See Also:
+//   - FromIO: Converts an IO computation to SeqResult
+//   - FromIOResult: Converts an IOResult to SeqResult
+//   - Of: Creates a SeqResult from a pure value
+func FromLazy[A any](mr Lazy[A]) SeqResult[A] {
+	return itereither.FromLazy[error](mr)
+}
+
+// FromIOResult converts an IOResult computation into a single-element SeqResult.
+// The IOResult computation is executed when the sequence is consumed, and its result
+// (either error or success) becomes the single element of the sequence.
+//
+// This function bridges IOResult computations with SeqResult, allowing deferred I/O operations
+// that may fail to be integrated into sequence-based error-handling pipelines.
+//
+// Type Parameters:
+//   - A: The success type
+//
+// Parameters:
+//   - mr: An IOResult computation that produces Result[A]
+//
+// Returns:
+//   - SeqResult[A]: A sequence containing the single Result value from the deferred IOResult
+//
+// Example:
+//
+//	readConfig := func() result.Result[Config] {
+//	    data, err := os.ReadFile("config.json")
+//	    if err != nil {
+//	        return result.Left(err)
+//	    }
+//	    return result.Of(parseConfig(data))
+//	}
+//	seq := FromIOResult(readConfig)
+//	// The IOResult is only executed when the sequence is iterated.
+//
+// See Also:
+//   - FromIO: Converts an IO computation to SeqResult (always success)
+//   - FromLazy: Converts a Lazy computation to SeqResult (always success)
+//   - FromResult: Converts a pure Result to SeqResult
+func FromIOResult[A any](mr IOResult[A]) SeqResult[A] {
+	return itereither.FromIOEither(mr)
+}
 
 // Left constructs a SeqResult that represents a failure with an error value
 func Left[A any](l error) SeqResult[A] {
@@ -597,15 +754,19 @@ func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
 //	// returns: Left(error: "error")
 //
 //go:inline
-func MonadReduce[A, B any](fa SeqResult[A], f func(B, A) B, initial B) Result[B] {
+func MonadReduce[A, B any](fa SeqResult[A], f func(B, A) B, initial B) IOResult[B] {
 	return itereither.MonadReduce(fa, f, initial)
 }
 
 // Reduce returns a function that reduces a SeqResult to a single Result value.
 // This is the curried version of MonadReduce.
 //
+// The return type is IOResult because a SeqResult represents a dynamic lazy sequence of
+// Result values. Reducing it requires consuming the iterator, so the final Result must
+// also remain deferred as a lazy effect. IOResult is the single-value counterpart to
+// SeqResult: both are lazy, and both represent work that is only performed when evaluated.
+//
 // Type Parameters:
-//   - E: The error type
 //   - A: The element type in the sequence
 //   - B: The accumulator and result type
 //
@@ -614,7 +775,7 @@ func MonadReduce[A, B any](fa SeqResult[A], f func(B, A) B, initial B) Result[B]
 //   - initial: The initial accumulator value
 //
 // Returns:
-//   - A function that takes a SeqResult and returns Result[B]
+//   - A function that takes a SeqResult and returns IOResult[B]
 //
 // Example:
 //
@@ -624,8 +785,65 @@ func MonadReduce[A, B any](fa SeqResult[A], f func(B, A) B, initial B) Result[B]
 //	    yield(Right(2))
 //	    yield(Right(3))
 //	}
-//	result := sum(seq)
+//	resultIO := sum(seq)
+//	result := resultIO()
 //	// returns: Right(6)
-func Reduce[A, B any](f func(B, A) B, initial B) func(SeqResult[A]) Result[B] {
+func Reduce[A, B any](f func(B, A) B, initial B) func(SeqResult[A]) IOResult[B] {
 	return itereither.Reduce[error](f, initial)
+}
+
+// Collect materializes a SeqResult into a Result containing a slice.
+// It consumes all elements from the sequence, collecting successful values into a slice.
+// If any error is encountered during iteration, collection stops immediately and returns
+// that error.
+//
+// The return type is IOResult because collecting a SeqResult is a reduction over a dynamic
+// lazy source. The final Result is not available until iteration has happened, so it must
+// stay deferred. IOResult is the single-value counterpart to SeqResult: both are lazy, and
+// both represent work that is only performed when evaluated.
+//
+// Type Parameters:
+//   - T: The type of elements in the sequence
+//
+// Parameters:
+//   - fa: The SeqResult to collect into a slice
+//
+// Returns:
+//   - IOResult[[]T]: A deferred computation that yields the first error encountered or a slice of all values
+//
+// Example - Success case:
+//
+//	seq := func(yield func(Result[int]) bool) {
+//	    yield(Right(1))
+//	    yield(Right(2))
+//	    yield(Right(3))
+//	}
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = Right([]int{1, 2, 3})
+//
+// Example - Error case:
+//
+//	seq := func(yield func(Result[int]) bool) {
+//	    yield(Right(1))
+//	    yield(Left[int](errors.New("error")))
+//	    yield(Right(3))
+//	}
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = Left(error: "error")
+//
+// Example - Empty sequence:
+//
+//	seq := iter.Empty[Result[int]]()
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = Right([]int{})
+//
+// See Also:
+//   - MonadReduce: Reduces a SeqResult to a single value
+//   - Fold: Converts SeqResult to Seq by handling both cases
+//   - GetOrElse: Extracts value or provides default
+func Collect[T any](fa SeqResult[T]) IOResult[[]T] {
+	return itereither.Collect(fa)
 }

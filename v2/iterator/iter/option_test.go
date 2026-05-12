@@ -353,7 +353,7 @@ func TestChainOptionK_WithReduce(t *testing.T) {
 		return acc + x
 	}, 0)
 
-	assert.Equal(t, 60, sum)
+	assert.Equal(t, 60, sum())
 }
 
 // TestFlatMapOptionK_NestedOptions tests FlatMapOptionK with nested option handling

@@ -37,7 +37,8 @@
 //
 //	// Filter and reduce
 //	evens := Filter(func(x int) bool { return x%2 == 0 })(doubled)
-//	sum := MonadReduce(evens, func(acc, x int) int { return acc + x }, 0)
+//	sumIO := MonadReduce(evens, func(acc, x int) int { return acc + x }, 0)
+//	sum := sumIO()
 //	// sum = 20 (2+4+6+8+10 from doubled evens)
 package iter
 
@@ -46,6 +47,7 @@ import (
 
 	I "iter"
 
+	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	G "github.com/IBM/fp-go/v2/internal/iter"
@@ -70,6 +72,74 @@ func Of[A any](a A) Seq[A] {
 //go:inline
 func MonadOf[A any](a A) Seq[A] {
 	return G.Of[Seq[A]](a)
+}
+
+// FromIO converts an IO computation into a single-element sequence.
+// The IO computation is executed when the sequence is consumed, and its result
+// becomes the single element of the sequence.
+//
+// This function bridges the IO monad with lazy sequences, allowing side effects
+// to be deferred until iteration time.
+//
+// Type Parameters:
+//   - A: The type of value produced by the IO computation
+//
+// Parameters:
+//   - io: An IO computation that produces a value of type A
+//
+// Returns:
+//   - Seq[A]: A sequence containing the single value produced by the IO computation
+//
+// Example:
+//
+//	getTime := func() time.Time { return time.Now() }
+//	seq := FromIO(getTime)
+//	for t := range seq {
+//	    fmt.Println(t) // prints current time when iterated
+//	}
+//
+// See Also:
+//   - FromLazy: Converts a Lazy computation to a sequence
+//   - Of: Creates a sequence from a pure value
+func FromIO[A any](io IO[A]) Seq[A] {
+	return func(yield func(A) bool) {
+		yield(io())
+	}
+}
+
+// FromLazy converts a Lazy computation into a single-element sequence.
+// The Lazy computation is executed when the sequence is consumed, and its result
+// becomes the single element of the sequence.
+//
+// This is a convenience function that delegates to FromIO, since Lazy is an alias
+// for IO. It provides semantic clarity when working with lazy computations.
+//
+// Type Parameters:
+//   - A: The type of value produced by the Lazy computation
+//
+// Parameters:
+//   - l: A Lazy computation that produces a value of type A
+//
+// Returns:
+//   - Seq[A]: A sequence containing the single value produced by the Lazy computation
+//
+// Example:
+//
+//	expensiveCalc := func() int {
+//	    // Expensive computation here
+//	    return 42
+//	}
+//	seq := FromLazy(expensiveCalc)
+//	// Computation only runs when sequence is consumed
+//	for v := range seq {
+//	    fmt.Println(v) // prints 42
+//	}
+//
+// See Also:
+//   - FromIO: Converts an IO computation to a sequence
+//   - Of: Creates a sequence from a pure value
+func FromLazy[A any](l Lazy[A]) Seq[A] {
+	return FromIO(l)
 }
 
 // Of2 creates a key-value sequence containing a single key-value pair.
@@ -645,37 +715,47 @@ func Replicate[A any](n int, a A) Seq[A] {
 // MonadReduce reduces a sequence to a single value by applying a function to each element
 // and an accumulator, starting with an initial value.
 //
+// The reduction itself is deferred and returned as an IO. The sequence is only consumed
+// when the returned IO is executed.
+//
 // Marble Diagram:
 //
 //	Input:  --1--2--3--4--5--|
 //	Reduce((acc, x) => acc + x, 0)
-//	Output: ------------------15|
-//	        (emits final result only)
+//	Output: --------------IO(15)|
+//	        (produces an IO for the final result)
 //
 // RxJS Equivalent: [reduce] - https://rxjs.dev/api/operators/reduce
 //
 // Example:
 //
 //	seq := From(1, 2, 3, 4, 5)
-//	sum := MonadReduce(seq, func(acc, x int) int { return acc + x }, 0)
-//	// returns: 15
+//	sumIO := MonadReduce(seq, func(acc, x int) int { return acc + x }, 0)
+//	sum := sumIO()
+//	// sum == 15
 //
 //go:inline
-func MonadReduce[A, B any](fa Seq[A], f func(B, A) B, initial B) B {
-	return G.MonadReduce(fa, f, initial)
+func MonadReduce[A, B any](fa Seq[A], f func(B, A) B, initial B) IO[B] {
+	return G.MonadReduce[IO[B]](fa, f, initial)
 }
 
-// Reduce returns a function that reduces a sequence to a single value.
+// Reduce returns a function that reduces a sequence to a single value and produces an IO.
 // This is the curried version of MonadReduce.
+//
+// The return type is IO because a Seq represents a dynamic lazy sequence. Reducing it
+// requires consuming the iterator, so the final value is also deferred as a lazy effect.
+// In that sense, an IO is the single-value equivalent of a Seq: both represent work that
+// is only performed when evaluated.
 //
 // Example:
 //
 //	sum := Reduce(func(acc, x int) int { return acc + x }, 0)
 //	seq := From(1, 2, 3, 4, 5)
-//	result := sum(seq)
-//	// returns: 15
-func Reduce[A, B any](f func(B, A) B, initial B) func(Seq[A]) B {
-	return func(fa Seq[A]) B {
+//	resultIO := sum(seq)
+//	result := resultIO()
+//	// result == 15
+func Reduce[A, B any](f func(B, A) B, initial B) func(Seq[A]) IO[B] {
+	return func(fa Seq[A]) IO[B] {
 		return MonadReduce(fa, f, initial)
 	}
 }
@@ -691,8 +771,8 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Seq[A]) B {
 //	// returns: 0*10 + 1*20 + 2*30 = 80
 //
 //go:inline
-func MonadReduceWithIndex[A, B any](fa Seq[A], f func(int, B, A) B, initial B) B {
-	return G.MonadReduceWithIndex(fa, f, initial)
+func MonadReduceWithIndex[A, B any](fa Seq[A], f func(int, B, A) B, initial B) IO[B] {
+	return G.MonadReduceWithIndex[IO[B]](fa, f, initial)
 }
 
 // ReduceWithIndex returns a function that reduces with index.
@@ -706,8 +786,8 @@ func MonadReduceWithIndex[A, B any](fa Seq[A], f func(int, B, A) B, initial B) B
 //	seq := From(10, 20, 30)
 //	result := weightedSum(seq)
 //	// returns: 80
-func ReduceWithIndex[A, B any](f func(int, B, A) B, initial B) func(Seq[A]) B {
-	return func(fa Seq[A]) B {
+func ReduceWithIndex[A, B any](f func(int, B, A) B, initial B) func(Seq[A]) IO[B] {
+	return func(fa Seq[A]) IO[B] {
 		return MonadReduceWithIndex(fa, f, initial)
 	}
 }
@@ -721,12 +801,14 @@ func ReduceWithIndex[A, B any](f func(int, B, A) B, initial B) func(Seq[A]) B {
 //	    return acc + v
 //	}, 0)
 //	// returns: 10
-func MonadReduceWithKey[K, A, B any](fa Seq2[K, A], f func(K, B, A) B, initial B) B {
-	current := initial
-	for k, a := range fa {
-		current = f(k, current, a)
+func MonadReduceWithKey[K, A, B any](fa Seq2[K, A], f func(K, B, A) B, initial B) IO[B] {
+	return func() B {
+		current := initial
+		for k, a := range fa {
+			current = f(k, current, a)
+		}
+		return current
 	}
-	return current
 }
 
 // ReduceWithKey returns a function that reduces key-value pairs.
@@ -740,8 +822,8 @@ func MonadReduceWithKey[K, A, B any](fa Seq2[K, A], f func(K, B, A) B, initial B
 //	seq := Of2("x", 10)
 //	result := sumValues(seq)
 //	// returns: 10
-func ReduceWithKey[K, A, B any](f func(K, B, A) B, initial B) func(Seq2[K, A]) B {
-	return func(fa Seq2[K, A]) B {
+func ReduceWithKey[K, A, B any](f func(K, B, A) B, initial B) func(Seq2[K, A]) IO[B] {
+	return func(fa Seq2[K, A]) IO[B] {
 		return MonadReduceWithKey(fa, f, initial)
 	}
 }
@@ -756,7 +838,7 @@ func ReduceWithKey[K, A, B any](f func(K, B, A) B, initial B) func(Seq2[K, A]) B
 //	// returns: 15
 //
 //go:inline
-func MonadFold[A any](fa Seq[A], m M.Monoid[A]) A {
+func MonadFold[A any](fa Seq[A], m M.Monoid[A]) IO[A] {
 	return MonadReduce(fa, m.Concat, m.Empty())
 }
 
@@ -772,7 +854,7 @@ func MonadFold[A any](fa Seq[A], m M.Monoid[A]) A {
 //	// returns: 15
 //
 //go:inline
-func Fold[A any](m M.Monoid[A]) func(Seq[A]) A {
+func Fold[A any](m M.Monoid[A]) func(Seq[A]) IO[A] {
 	return Reduce(m.Concat, m.Empty())
 }
 
@@ -788,7 +870,7 @@ func Fold[A any](m M.Monoid[A]) func(Seq[A]) A {
 //	// returns: "1 2 3 "
 //
 //go:inline
-func MonadFoldMap[A, B any](fa Seq[A], f func(A) B, m M.Monoid[B]) B {
+func MonadFoldMap[A, B any](fa Seq[A], f func(A) B, m M.Monoid[B]) IO[B] {
 	return MonadFold(MonadMap(fa, f), m)
 }
 
@@ -806,7 +888,7 @@ func MonadFoldMap[A, B any](fa Seq[A], f func(A) B, m M.Monoid[B]) B {
 //	// returns: "1 2 3 "
 //
 //go:inline
-func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func(Seq[A]) B {
+func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func(Seq[A]) IO[B] {
 	return F.Pipe1(
 		Map[A, B],
 		reader.Map[func(A) B](reader.Map[Seq[A]](Fold(m))),
@@ -825,7 +907,7 @@ func FoldMap[A, B any](m M.Monoid[B]) func(func(A) B) func(Seq[A]) B {
 //	// returns: "0:a 1:b 2:c "
 //
 //go:inline
-func MonadFoldMapWithIndex[A, B any](fa Seq[A], f func(int, A) B, m M.Monoid[B]) B {
+func MonadFoldMapWithIndex[A, B any](fa Seq[A], f func(int, A) B, m M.Monoid[B]) IO[B] {
 	return MonadReduceWithIndex(fa, func(i int, b B, a A) B {
 		return m.Concat(b, f(i, a))
 	}, m.Empty())
@@ -845,9 +927,9 @@ func MonadFoldMapWithIndex[A, B any](fa Seq[A], f func(int, A) B, m M.Monoid[B])
 //	// returns: "0:a 1:b 2:c "
 //
 //go:inline
-func FoldMapWithIndex[A, B any](m M.Monoid[B]) func(func(int, A) B) func(Seq[A]) B {
-	return func(f func(int, A) B) func(Seq[A]) B {
-		return func(as Seq[A]) B {
+func FoldMapWithIndex[A, B any](m M.Monoid[B]) func(func(int, A) B) func(Seq[A]) IO[B] {
+	return func(f func(int, A) B) func(Seq[A]) IO[B] {
+		return func(as Seq[A]) IO[B] {
 			return MonadFoldMapWithIndex(as, f, m)
 		}
 	}
@@ -865,7 +947,7 @@ func FoldMapWithIndex[A, B any](m M.Monoid[B]) func(func(int, A) B) func(Seq[A])
 //	// returns: "x:10 "
 //
 //go:inline
-func MonadFoldMapWithKey[K, A, B any](fa Seq2[K, A], f func(K, A) B, m M.Monoid[B]) B {
+func MonadFoldMapWithKey[K, A, B any](fa Seq2[K, A], f func(K, A) B, m M.Monoid[B]) IO[B] {
 	return MonadReduceWithKey(fa, func(k K, b B, a A) B {
 		return m.Concat(b, f(k, a))
 	}, m.Empty())
@@ -875,9 +957,9 @@ func MonadFoldMapWithKey[K, A, B any](fa Seq2[K, A], f func(K, A) B, m M.Monoid[
 // This is the curried version of MonadFoldMapWithKey.
 //
 //go:inline
-func FoldMapWithKey[K, A, B any](m M.Monoid[B]) func(func(K, A) B) func(Seq2[K, A]) B {
-	return func(f func(K, A) B) func(Seq2[K, A]) B {
-		return func(as Seq2[K, A]) B {
+func FoldMapWithKey[K, A, B any](m M.Monoid[B]) func(func(K, A) B) func(Seq2[K, A]) IO[B] {
+	return func(f func(K, A) B) func(Seq2[K, A]) IO[B] {
+		return func(as Seq2[K, A]) IO[B] {
 			return MonadFoldMapWithKey(as, f, m)
 		}
 	}
@@ -1238,4 +1320,55 @@ func FromSeqPair[A, B any](as Seq[Pair[A, B]]) Seq2[A, B] {
 //	// yields: 4, 6, 8, 10 (skip first 3, then filter evens)
 func Skip[U any](count int) Operator[U, U] {
 	return FilterWithIndex(func(idx int, _ U) bool { return idx >= count })
+}
+
+// Collect materializes a lazy sequence into a slice by consuming all elements.
+// This function eagerly evaluates the entire sequence and collects all values
+// into a slice in memory.
+//
+// The return type is IO because collecting a Seq is itself a reduction over a dynamic
+// lazy source. The slice is not available until the iterator has been consumed, so the
+// collected value must remain deferred. IO is the natural single-value counterpart to Seq:
+// both are lazy and both represent work that only happens when evaluated.
+//
+// This is a convenience wrapper around slices.Collect from the standard library,
+// providing a consistent API within the functional programming ecosystem.
+//
+// Type Parameters:
+//   - T: The type of elements in the sequence
+//
+// Parameters:
+//   - fa: The sequence to collect into a slice
+//
+// Returns:
+//   - IO[[]T]: A deferred computation that produces a slice containing all elements from the sequence in order
+//
+// Example:
+//
+//	seq := From(1, 2, 3, 4, 5)
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = []int{1, 2, 3, 4, 5}
+//
+// Example - With transformations:
+//
+//	seq := From(1, 2, 3, 4, 5)
+//	doubled := Map(N.Mul(2))(seq)
+//	resultIO := Collect(doubled)
+//	result := resultIO()
+//	// result = []int{2, 4, 6, 8, 10}
+//
+// Example - Empty sequence:
+//
+//	seq := Empty[int]()
+//	resultIO := Collect(seq)
+//	result := resultIO()
+//	// result = []int{} (empty slice)
+//
+// See Also:
+//   - From: Creates a sequence from slice elements
+//   - MonadReduce: Reduces a sequence to a single value
+//   - ToSeqPair: Converts Seq2 to Seq of pairs
+func Collect[T any](fa Seq[T]) IO[[]T] {
+	return MonadReduce(fa, A.Append, nil)
 }

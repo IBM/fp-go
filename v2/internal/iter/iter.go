@@ -55,14 +55,16 @@ func From[A any](as ...A) Seq[A] {
 //	result := MonadReduceWithIndex(iter, func(i, acc, val int) int {
 //	    return acc + i*val
 //	}, 0)
-func MonadReduceWithIndex[GA ~func(yield func(A) bool), A, B any](fa GA, f func(int, B, A) B, initial B) B {
-	current := initial
-	var i int
-	for a := range fa {
-		current = f(i, current, a)
-		i += 1
+func MonadReduceWithIndex[GB ~func() B, GA ~func(yield func(A) bool), A, B any](fa GA, f func(int, B, A) B, initial B) GB {
+	return func() B {
+		current := initial
+		var i int
+		for a := range fa {
+			current = f(i, current, a)
+			i += 1
+		}
+		return current
 	}
-	return current
 }
 
 // MonadReduce reduces an iterator sequence to a single value using a reducer function.
@@ -88,12 +90,14 @@ func MonadReduceWithIndex[GA ~func(yield func(A) bool), A, B any](fa GA, f func(
 //	sum := MonadReduce(iter, func(acc, val int) int {
 //	    return acc + val
 //	}, 0) // Returns: 6
-func MonadReduce[GA ~func(yield func(A) bool), A, B any](fa GA, f func(B, A) B, initial B) B {
-	current := initial
-	for a := range fa {
-		current = f(current, a)
+func MonadReduce[GB ~func() B, GA ~func(yield func(A) bool), A, B any](fa GA, f func(B, A) B, initial B) GB {
+	return func() B {
+		current := initial
+		for a := range fa {
+			current = f(current, a)
+		}
+		return current
 	}
-	return current
 }
 
 // Concat concatenates two iterator sequences, yielding all elements from left followed by all elements from right.

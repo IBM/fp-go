@@ -31,25 +31,25 @@ func TestFirst(t *testing.T) {
 	t.Run("returns first element from integer sequence", func(t *testing.T) {
 		seq := From(1, 2, 3)
 		fst := First(seq)
-		assert.Equal(t, O.Of(1), fst)
+		assert.Equal(t, O.Of(1), fst())
 	})
 
 	t.Run("returns first element from string sequence", func(t *testing.T) {
 		seq := From("a", "b", "c")
 		fst := First(seq)
-		assert.Equal(t, O.Of("a"), fst)
+		assert.Equal(t, O.Of("a"), fst())
 	})
 
 	t.Run("returns first element from single element sequence", func(t *testing.T) {
 		seq := From(42)
 		fst := First(seq)
-		assert.Equal(t, O.Of(42), fst)
+		assert.Equal(t, O.Of(42), fst())
 	})
 
 	t.Run("returns first element from large sequence", func(t *testing.T) {
 		seq := From(100, 200, 300, 400, 500)
 		fst := First(seq)
-		assert.Equal(t, O.Of(100), fst)
+		assert.Equal(t, O.Of(100), fst())
 	})
 }
 
@@ -58,13 +58,13 @@ func TestFirstEmpty(t *testing.T) {
 	t.Run("returns None for empty integer sequence", func(t *testing.T) {
 		seq := Empty[int]()
 		fst := First(seq)
-		assert.Equal(t, O.None[int](), fst)
+		assert.Equal(t, O.None[int](), fst())
 	})
 
 	t.Run("returns None for empty string sequence", func(t *testing.T) {
 		seq := Empty[string]()
 		fst := First(seq)
-		assert.Equal(t, O.None[string](), fst)
+		assert.Equal(t, O.None[string](), fst())
 	})
 
 	t.Run("returns None for empty struct sequence", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestFirstEmpty(t *testing.T) {
 		}
 		seq := Empty[TestStruct]()
 		fst := First(seq)
-		assert.Equal(t, O.None[TestStruct](), fst)
+		assert.Equal(t, O.None[TestStruct](), fst())
 	})
 }
 
@@ -83,21 +83,21 @@ func TestFirstWithFiltered(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
 		filtered := MonadFilter(seq, N.MoreThan(3))
 		fst := First(filtered)
-		assert.Equal(t, O.Of(4), fst)
+		assert.Equal(t, O.Of(4), fst())
 	})
 
 	t.Run("returns None when no elements match filter", func(t *testing.T) {
 		seq := From(1, 2, 3)
 		filtered := MonadFilter(seq, N.MoreThan(10))
 		fst := First(filtered)
-		assert.Equal(t, O.None[int](), fst)
+		assert.Equal(t, O.None[int](), fst())
 	})
 
 	t.Run("returns first even number", func(t *testing.T) {
 		seq := From(1, 3, 5, 6, 7, 8)
 		filtered := MonadFilter(seq, func(x int) bool { return x%2 == 0 })
 		fst := First(filtered)
-		assert.Equal(t, O.Of(6), fst)
+		assert.Equal(t, O.Of(6), fst())
 	})
 }
 
@@ -107,14 +107,14 @@ func TestFirstWithMapped(t *testing.T) {
 		seq := From(1, 2, 3)
 		mapped := MonadMap(seq, N.Mul(2))
 		fst := First(mapped)
-		assert.Equal(t, O.Of(2), fst)
+		assert.Equal(t, O.Of(2), fst())
 	})
 
 	t.Run("returns first string after mapping", func(t *testing.T) {
 		seq := From(1, 2, 3)
 		mapped := MonadMap(seq, S.Format[int]("num-%d"))
 		fst := First(mapped)
-		assert.Equal(t, O.Of("num-1"), fst)
+		assert.Equal(t, O.Of("num-1"), fst())
 	})
 }
 
@@ -133,7 +133,7 @@ func TestFirstWithComplex(t *testing.T) {
 		)
 		fst := First(seq)
 		expected := O.Of(Person{"Alice", 30})
-		assert.Equal(t, expected, fst)
+		assert.Equal(t, expected, fst())
 	})
 
 	t.Run("returns first pointer", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestFirstWithComplex(t *testing.T) {
 		p2 := &Person{"Bob", 25}
 		seq := From(p1, p2)
 		fst := First(seq)
-		assert.Equal(t, O.Of(p1), fst)
+		assert.Equal(t, O.Of(p1), fst())
 	})
 }
 
@@ -156,7 +156,7 @@ func TestFirstDoesNotConsumeEntireSequence(t *testing.T) {
 
 		fst := First(seq)
 
-		assert.Equal(t, O.Of(2), fst)
+		assert.Equal(t, O.Of(2), fst())
 		// Should only have called the map function once for the first element
 		assert.Equal(t, 1, callCount)
 	})
@@ -169,7 +169,7 @@ func TestFirstWithChainedOperations(t *testing.T) {
 		filtered := MonadFilter(seq, N.MoreThan(5))
 		mapped := MonadMap(filtered, N.Mul(10))
 		result := First(mapped)
-		assert.Equal(t, O.Of(60), result)
+		assert.Equal(t, O.Of(60), result())
 	})
 
 	t.Run("chains map and filter", func(t *testing.T) {
@@ -177,7 +177,7 @@ func TestFirstWithChainedOperations(t *testing.T) {
 		mapped := MonadMap(seq, N.Mul(2))
 		filtered := MonadFilter(mapped, N.MoreThan(5))
 		result := First(filtered)
-		assert.Equal(t, O.Of(6), result)
+		assert.Equal(t, O.Of(6), result())
 	})
 }
 
@@ -186,13 +186,13 @@ func TestFirstWithReplicate(t *testing.T) {
 	t.Run("returns first from replicated sequence", func(t *testing.T) {
 		seq := Replicate(5, 42)
 		fst := First(seq)
-		assert.Equal(t, O.Of(42), fst)
+		assert.Equal(t, O.Of(42), fst())
 	})
 
 	t.Run("returns None from zero replications", func(t *testing.T) {
 		seq := Replicate(0, 42)
 		fst := First(seq)
-		assert.Equal(t, O.None[int](), fst)
+		assert.Equal(t, O.None[int](), fst())
 	})
 }
 
@@ -201,13 +201,13 @@ func TestFirstWithMakeBy(t *testing.T) {
 	t.Run("returns first generated element", func(t *testing.T) {
 		seq := MakeBy(5, func(i int) int { return i * i })
 		fst := First(seq)
-		assert.Equal(t, O.Of(0), fst)
+		assert.Equal(t, O.Of(0), fst())
 	})
 
 	t.Run("returns None for zero elements", func(t *testing.T) {
 		seq := MakeBy(0, F.Identity[int])
 		fst := First(seq)
-		assert.Equal(t, O.None[int](), fst)
+		assert.Equal(t, O.None[int](), fst())
 	})
 }
 
@@ -217,14 +217,14 @@ func TestFirstWithPrepend(t *testing.T) {
 		seq := From(2, 3, 4)
 		prepended := Prepend(1)(seq)
 		fst := First(prepended)
-		assert.Equal(t, O.Of(1), fst)
+		assert.Equal(t, O.Of(1), fst())
 	})
 
 	t.Run("returns prepended element from empty sequence", func(t *testing.T) {
 		seq := Empty[int]()
 		prepended := Prepend(42)(seq)
 		fst := First(prepended)
-		assert.Equal(t, O.Of(42), fst)
+		assert.Equal(t, O.Of(42), fst())
 	})
 }
 
@@ -234,14 +234,14 @@ func TestFirstWithAppend(t *testing.T) {
 		seq := From(1, 2, 3)
 		appended := Append(4)(seq)
 		fst := First(appended)
-		assert.Equal(t, O.Of(1), fst)
+		assert.Equal(t, O.Of(1), fst())
 	})
 
 	t.Run("returns appended element from empty sequence", func(t *testing.T) {
 		seq := Empty[int]()
 		appended := Append(42)(seq)
 		fst := First(appended)
-		assert.Equal(t, O.Of(42), fst)
+		assert.Equal(t, O.Of(42), fst())
 	})
 }
 
@@ -253,7 +253,7 @@ func TestFirstWithChain(t *testing.T) {
 			return From(x, x*10)
 		})
 		fst := First(chained)
-		assert.Equal(t, O.Of(1), fst)
+		assert.Equal(t, O.Of(1), fst())
 	})
 
 	t.Run("returns None when chain produces empty", func(t *testing.T) {
@@ -262,7 +262,7 @@ func TestFirstWithChain(t *testing.T) {
 			return Empty[int]()
 		})
 		fst := First(chained)
-		assert.Equal(t, O.None[int](), fst)
+		assert.Equal(t, O.None[int](), fst())
 	})
 }
 
@@ -272,14 +272,14 @@ func TestFirstWithFlatten(t *testing.T) {
 		nested := From(From(1, 2), From(3, 4), From(5))
 		flattened := Flatten(nested)
 		fst := First(flattened)
-		assert.Equal(t, O.Of(1), fst)
+		assert.Equal(t, O.Of(1), fst())
 	})
 
 	t.Run("returns None from empty nested sequence", func(t *testing.T) {
 		nested := Empty[Seq[int]]()
 		flattened := Flatten(nested)
 		fst := First(flattened)
-		assert.Equal(t, O.None[int](), fst)
+		assert.Equal(t, O.None[int](), fst())
 	})
 }
 
@@ -318,7 +318,7 @@ func ExampleFirst() {
 	seq := From(1, 2, 3, 4, 5)
 	first := First(seq)
 
-	if value, ok := O.Unwrap(first); ok {
+	if value, ok := O.Unwrap(first()); ok {
 		fmt.Printf("First element: %d\n", value)
 	}
 	// Output: First element: 1
@@ -328,7 +328,7 @@ func ExampleFirst_empty() {
 	seq := Empty[int]()
 	first := First(seq)
 
-	if _, ok := O.Unwrap(first); !ok {
+	if _, ok := O.Unwrap(first()); !ok {
 		fmt.Println("Sequence is empty")
 	}
 	// Output: Sequence is empty
@@ -339,7 +339,7 @@ func ExampleFirst_filtered() {
 	filtered := MonadFilter(seq, N.MoreThan(3))
 	first := First(filtered)
 
-	if value, ok := O.Unwrap(first); ok {
+	if value, ok := O.Unwrap(first()); ok {
 		fmt.Printf("First element > 3: %d\n", value)
 	}
 	// Output: First element > 3: 4

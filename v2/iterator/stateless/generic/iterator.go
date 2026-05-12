@@ -80,7 +80,7 @@ func Reduce[GU ~func() Option[Pair[GU, U]], U, V any](f func(V, U) V, initial V)
 
 // ToArray converts the iterator to an array
 func ToArray[GU ~func() Option[Pair[GU, U]], US ~[]U, U any](u GU) US {
-	return Reduce[GU](A.Append[US], A.Empty[US]())(u)
+	return Reduce[GU](A.Append[US], nil)(u)
 }
 
 func Map[GV ~func() Option[Pair[GV, V]], GU ~func() Option[Pair[GU, U]], FCT ~func(U) V, U, V any](f FCT) func(ma GU) GV {

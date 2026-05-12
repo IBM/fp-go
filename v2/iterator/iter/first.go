@@ -62,9 +62,12 @@ import "github.com/IBM/fp-go/v2/option"
 //	filtered := iter.Filter(func(x int) bool { return x > 3 })(seq)
 //	first := iter.First(filtered)
 //	// Returns: Some(4)
-func First[U any](mu Seq[U]) Option[U] {
-	for u := range mu {
-		return option.Some(u)
+func First[U any](mu Seq[U]) IOOption[U] {
+	none := option.None[U]()
+	return func() Option[U] {
+		for u := range mu {
+			return option.Some(u)
+		}
+		return none
 	}
-	return option.None[U]()
 }
