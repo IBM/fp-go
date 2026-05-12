@@ -4,6 +4,7 @@ import (
 	"iter"
 
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/predicate"
 )
 
 type (
@@ -13,4 +14,6 @@ type (
 
 	// Endomorphism represents a function from a type to itself (T -> T).
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
+	Predicate[T any] = predicate.Predicate[T]
 )

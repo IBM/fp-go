@@ -15,7 +15,10 @@
 
 package itereither
 
-import "github.com/IBM/fp-go/v2/either"
+import (
+	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/iterator/iter"
+)
 
 // FilterOrElse filters a SeqEither value based on a predicate.
 // If the predicate returns true for the Right value, it passes through unchanged.
@@ -57,4 +60,96 @@ import "github.com/IBM/fp-go/v2/either"
 //go:inline
 func FilterOrElse[E, A any](pred Predicate[A], onFalse func(A) E) Operator[E, A, A] {
 	return ChainEitherK(either.FromPredicate(pred, onFalse))
+}
+
+// MonadFilter filters a SeqEither sequence, keeping only Right values that satisfy the predicate.
+// Left values are always passed through unchanged, regardless of the predicate.
+//
+// This function processes each element in the sequence:
+//   - If the element is Left, it passes through unchanged
+//   - If the element is Right and satisfies the predicate, it passes through
+//   - If the element is Right but fails the predicate, it is filtered out
+//
+// Unlike FilterOrElse, which converts failing Right values to Left, MonadFilter
+// simply removes them from the sequence entirely.
+//
+// Marble diagram:
+//
+//	Input:  --R(1)--R(2)--L(e)--R(3)--R(4)--R(5)-->
+//	pred(x) = x % 2 == 0
+//	Output: --------R(2)--L(e)--------R(4)-------->
+//
+// Where R(x) represents Right(x) and L(e) represents Left(e).
+// Odd numbers are filtered out, even numbers and errors pass through.
+//
+// Type Parameters:
+//   - E: The type of the Left value (error type)
+//   - A: The type of the Right value (success type)
+//
+// Parameters:
+//   - as: The input SeqEither sequence to filter
+//   - pred: A predicate function that tests Right values
+//
+// Returns:
+//   - A SeqEither containing only Left values and Right values that satisfy the predicate
+//
+// Example:
+//
+//	seq := iter.From(
+//	    E.Right[string](1),
+//	    E.Right[string](2),
+//	    E.Left[int]("error"),
+//	    E.Right[string](3),
+//	    E.Right[string](4),
+//	)
+//	isEven := func(x int) bool { return x%2 == 0 }
+//	result := itereither.MonadFilter(seq, isEven)
+//	// yields: Right(2), Left("error"), Right(4)
+//
+// See Also:
+//
+// Filter is the curried version of MonadFilter.
+// FilterOrElse converts failing values to Left instead of removing them.
+func MonadFilter[E, A any](as SeqEither[E, A], pred Predicate[A]) SeqEither[E, A] {
+	return iter.MonadFilter(as, either.ForAll[E](pred))
+}
+
+// Filter returns a function that filters SeqEither elements based on a predicate.
+// This is the curried version of MonadFilter, useful for creating reusable filter operations.
+//
+// The returned function keeps only Right values that satisfy the predicate, while
+// passing all Left values through unchanged. Right values that fail the predicate
+// are removed from the sequence.
+//
+// Type Parameters:
+//   - E: The type of the Left value (error type)
+//   - A: The type of the Right value (success type)
+//
+// Parameters:
+//   - pred: A predicate function that tests Right values
+//
+// Returns:
+//   - An Operator that filters SeqEither sequences based on the predicate
+//
+// Example:
+//
+//	// Create a reusable filter for even numbers
+//	evens := itereither.Filter[string](func(x int) bool { return x%2 == 0 })
+//
+//	seq1 := iter.From(E.Right[string](1), E.Right[string](2), E.Right[string](3))
+//	result1 := evens(seq1)
+//	// yields: Right(2)
+//
+//	seq2 := iter.From(E.Right[string](4), E.Left[int]("error"), E.Right[string](5))
+//	result2 := evens(seq2)
+//	// yields: Right(4), Left("error")
+//
+// See Also:
+//
+// MonadFilter is the non-curried version.
+// FilterOrElse converts failing values to Left instead of removing them.
+//
+//go:inline
+func Filter[E, A any](pred func(A) bool) Operator[E, A, A] {
+	return iter.Filter(either.ForAll[E](pred))
 }

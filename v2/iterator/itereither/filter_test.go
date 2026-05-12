@@ -16,6 +16,7 @@
 package itereither
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -179,4 +180,352 @@ func TestFilterOrElse_CustomPredicate(t *testing.T) {
 	assert.True(t, E.IsRight(result[0]))
 	assert.True(t, E.IsLeft(result[1]))
 	assert.True(t, E.IsRight(result[2]))
+}
+
+// TestMonadFilter_Success tests basic MonadFilter functionality
+func TestMonadFilter_Success(t *testing.T) {
+	t.Run("filters Right values based on predicate", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](1),
+			E.Right[string](2),
+			E.Right[string](3),
+			E.Right[string](4),
+			E.Right[string](5),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		expected := []Either[string, int]{
+			E.Right[string](2),
+			E.Right[string](4),
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("keeps all Right values when all satisfy predicate", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](2),
+			E.Right[string](4),
+			E.Right[string](6),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		expected := []Either[string, int]{
+			E.Right[string](2),
+			E.Right[string](4),
+			E.Right[string](6),
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("filters out all Right values when none satisfy predicate", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](1),
+			E.Right[string](3),
+			E.Right[string](5),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		assert.Empty(t, result)
+	})
+
+	t.Run("passes through Left values unchanged", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](1),
+			E.Left[int]("error1"),
+			E.Right[string](2),
+			E.Left[int]("error2"),
+			E.Right[string](3),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		expected := []Either[string, int]{
+			E.Left[int]("error1"),
+			E.Right[string](2),
+			E.Left[int]("error2"),
+		}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestMonadFilter_Empty tests MonadFilter with empty sequences
+func TestMonadFilter_Empty(t *testing.T) {
+	t.Run("returns empty from empty sequence", func(t *testing.T) {
+		seq := iter.Empty[Either[string, int]]()
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		assert.Empty(t, result)
+	})
+}
+
+// TestMonadFilter_EdgeCases tests edge cases
+func TestMonadFilter_EdgeCases(t *testing.T) {
+	t.Run("handles zero values", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](0),
+			E.Right[string](1),
+			E.Right[string](2),
+		)
+		isZero := func(n int) bool { return n == 0 }
+		result := collectEithers(MonadFilter(seq, isZero))
+
+		expected := []Either[string, int]{E.Right[string](0)}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("handles single Right element that passes", func(t *testing.T) {
+		seq := iter.From(E.Right[string](2))
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		expected := []Either[string, int]{E.Right[string](2)}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("handles single Right element that fails", func(t *testing.T) {
+		seq := iter.From(E.Right[string](1))
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		assert.Empty(t, result)
+	})
+
+	t.Run("handles single Left element", func(t *testing.T) {
+		seq := iter.From(E.Left[int]("error"))
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		expected := []Either[string, int]{E.Left[int]("error")}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("handles sequence of only Left values", func(t *testing.T) {
+		seq := iter.From(
+			E.Left[int]("error1"),
+			E.Left[int]("error2"),
+			E.Left[int]("error3"),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := collectEithers(MonadFilter(seq, isEven))
+
+		expected := []Either[string, int]{
+			E.Left[int]("error1"),
+			E.Left[int]("error2"),
+			E.Left[int]("error3"),
+		}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestMonadFilter_WithComplexTypes tests MonadFilter with complex types
+func TestMonadFilter_WithComplexTypes(t *testing.T) {
+	type User struct {
+		ID   int
+		Name string
+		Age  int
+	}
+
+	t.Run("filters struct types", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[error](User{1, "Alice", 25}),
+			E.Right[error](User{2, "Bob", 17}),
+			E.Right[error](User{3, "Charlie", 30}),
+			E.Left[User](errors.New("database error")),
+			E.Right[error](User{4, "David", 16}),
+		)
+		isAdult := func(u User) bool { return u.Age >= 18 }
+		result := collectEithers(MonadFilter(seq, isAdult))
+
+		expected := []Either[error, User]{
+			E.Right[error](User{1, "Alice", 25}),
+			E.Right[error](User{3, "Charlie", 30}),
+			E.Left[User](errors.New("database error")),
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("filters string types", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string]("hello"),
+			E.Right[string](""),
+			E.Right[string]("world"),
+			E.Left[string]("error"),
+			E.Right[string]("test"),
+		)
+		isNonEmpty := S.IsNonEmpty
+		result := collectEithers(MonadFilter(seq, isNonEmpty))
+
+		expected := []Either[string, string]{
+			E.Right[string]("hello"),
+			E.Right[string]("world"),
+			E.Left[string]("error"),
+			E.Right[string]("test"),
+		}
+		assert.Equal(t, expected, result)
+	})
+}
+
+// TestFilter_Success tests the curried Filter function
+func TestFilter_Success(t *testing.T) {
+	t.Run("creates reusable filter function", func(t *testing.T) {
+		isEven := func(n int) bool { return n%2 == 0 }
+		evens := Filter[string](isEven)
+
+		seq1 := iter.From(
+			E.Right[string](1),
+			E.Right[string](2),
+			E.Right[string](3),
+		)
+		result1 := collectEithers(evens(seq1))
+		expected1 := []Either[string, int]{E.Right[string](2)}
+		assert.Equal(t, expected1, result1)
+
+		seq2 := iter.From(
+			E.Right[string](4),
+			E.Left[int]("error"),
+			E.Right[string](5),
+			E.Right[string](6),
+		)
+		result2 := collectEithers(evens(seq2))
+		expected2 := []Either[string, int]{
+			E.Right[string](4),
+			E.Left[int]("error"),
+			E.Right[string](6),
+		}
+		assert.Equal(t, expected2, result2)
+	})
+
+	t.Run("works in pipeline", func(t *testing.T) {
+		isPositive := N.MoreThan(0)
+		result := F.Pipe2(
+			iter.From(
+				E.Right[string](-1),
+				E.Right[string](2),
+				E.Left[int]("error"),
+				E.Right[string](3),
+				E.Right[string](-4),
+			),
+			Filter[string](isPositive),
+			collectEithers[string, int],
+		)
+
+		expected := []Either[string, int]{
+			E.Right[string](2),
+			E.Left[int]("error"),
+			E.Right[string](3),
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("chains with Map", func(t *testing.T) {
+		isEven := func(n int) bool { return n%2 == 0 }
+		result := F.Pipe3(
+			iter.From(1, 2, 3, 4, 5),
+			FromSeq[string],
+			Map[string](func(n int) int { return n * 2 }),
+			Filter[string](isEven),
+		)
+
+		collected := collectEithers(result)
+		expected := []Either[string, int]{
+			E.Right[string](2),
+			E.Right[string](4),
+			E.Right[string](6),
+			E.Right[string](8),
+			E.Right[string](10),
+		}
+		assert.Equal(t, expected, collected)
+	})
+}
+
+// TestFilter_VsFilterOrElse compares Filter and FilterOrElse behavior
+func TestFilter_VsFilterOrElse(t *testing.T) {
+	t.Run("Filter removes failing values", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](1),
+			E.Right[string](2),
+			E.Right[string](3),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+
+		// Filter removes odd numbers
+		filterResult := collectEithers(Filter[string](isEven)(seq))
+		assert.Len(t, filterResult, 1)
+		assert.Equal(t, E.Right[string](2), filterResult[0])
+	})
+
+	t.Run("FilterOrElse converts failing values to Left", func(t *testing.T) {
+		seq := iter.From(
+			E.Right[string](1),
+			E.Right[string](2),
+			E.Right[string](3),
+		)
+		isEven := func(n int) bool { return n%2 == 0 }
+		onOdd := S.Format[int]("%d is odd")
+
+		// FilterOrElse converts odd numbers to Left
+		filterOrElseResult := collectEithers(FilterOrElse(isEven, onOdd)(seq))
+		assert.Len(t, filterOrElseResult, 3)
+		assert.True(t, E.IsLeft(filterOrElseResult[0]))
+		assert.True(t, E.IsRight(filterOrElseResult[1]))
+		assert.True(t, E.IsLeft(filterOrElseResult[2]))
+	})
+}
+
+// BenchmarkMonadFilter benchmarks basic MonadFilter operation
+func BenchmarkMonadFilter(b *testing.B) {
+	seq := iter.From(
+		E.Right[string](1),
+		E.Right[string](2),
+		E.Right[string](3),
+		E.Right[string](4),
+		E.Right[string](5),
+	)
+	isEven := func(n int) bool { return n%2 == 0 }
+
+	b.ResetTimer()
+	for range b.N {
+		_ = collectEithers(MonadFilter(seq, isEven))
+	}
+}
+
+// BenchmarkFilter benchmarks curried Filter operation
+func BenchmarkFilter(b *testing.B) {
+	seq := iter.From(
+		E.Right[string](1),
+		E.Right[string](2),
+		E.Right[string](3),
+		E.Right[string](4),
+		E.Right[string](5),
+	)
+	isEven := func(n int) bool { return n%2 == 0 }
+	evens := Filter[string](isEven)
+
+	b.ResetTimer()
+	for range b.N {
+		_ = collectEithers(evens(seq))
+	}
+}
+
+// BenchmarkMonadFilter_LargeSequence benchmarks with a large sequence
+func BenchmarkMonadFilter_LargeSequence(b *testing.B) {
+	makeSeq := func() SeqEither[string, int] {
+		return func(yield func(Either[string, int]) bool) {
+			for i := range 1000 {
+				if !yield(E.Right[string](i)) {
+					return
+				}
+			}
+		}
+	}
+	isEven := func(n int) bool { return n%2 == 0 }
+
+	b.ResetTimer()
+	for range b.N {
+		_ = collectEithers(MonadFilter(makeSeq(), isEven))
+	}
 }
