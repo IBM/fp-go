@@ -29,6 +29,14 @@
 //
 // All operations are lazy and only execute when the sequence is consumed via iteration.
 //
+// Relationship to IO:
+//
+// A single-element iterator created with Of is semantically equivalent to an IO computation.
+// Both represent deferred computations that produce a single value when executed. The FromIO
+// function makes this relationship explicit by converting IO computations into single-element
+// sequences. This equivalence allows iterators to serve as a bridge between pure functional
+// code and effectful computations.
+//
 // Example usage:
 //
 //	// Create a sequence and transform it
@@ -59,10 +67,28 @@ import (
 
 // Of creates a sequence containing a single element.
 //
+// A single-element iterator is semantically equivalent to an IO computation,
+// as both represent deferred computations that produce a single value when executed.
+// This makes Of useful for lifting pure values into the iterator context while
+// maintaining the lazy evaluation semantics.
+//
+// Type Parameters:
+//   - A: The type of the element
+//
+// Parameters:
+//   - a: The element to wrap in a sequence
+//
+// Returns:
+//   - Seq[A]: A sequence containing the single element
+//
 // Example:
 //
 //	seq := Of(42)
 //	// yields: 42
+//
+// See Also:
+//   - FromIO: Converts an IO computation to a single-element sequence
+//   - MonadOf: Alias for Of in monadic context
 //
 //go:inline
 func Of[A any](a A) Seq[A] {

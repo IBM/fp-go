@@ -85,6 +85,24 @@ func Take[U any](n int) Operator[U, U] {
 	}
 }
 
+func takeWhile[U any](p Predicate[U], inclusive bool) Operator[U, U] {
+	return func(s Seq[U]) Seq[U] {
+		return func(yield func(U) bool) {
+			for u := range s {
+				if !p(u) {
+					if inclusive {
+						yield(u)
+					}
+					return
+				}
+				if !yield(u) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // TakeWhile returns an operator that emits elements from a sequence while a predicate is satisfied.
 //
 // This function creates a transformation that yields elements from the source sequence
@@ -149,15 +167,80 @@ func Take[U any](n int) Operator[U, U] {
 //	)
 //	// yields: 2, 4, 6, 8 (stops when doubled value reaches 10)
 func TakeWhile[U any](p Predicate[U]) Operator[U, U] {
-	return func(s Seq[U]) Seq[U] {
-		return func(yield func(U) bool) {
-			for u := range s {
-				if !p(u) || !yield(u) {
-					return
-				}
-			}
-		}
-	}
+	return takeWhile(p, false)
+}
+
+// TakeWhileInclusive returns an operator that emits elements from a sequence while a predicate is satisfied, including the first element that fails the predicate.
+//
+// This function creates a transformation that yields elements from the source sequence
+// as long as each element satisfies the provided predicate. Unlike TakeWhile, when an
+// element fails the predicate test, that element is still emitted before the sequence
+// terminates. This is useful when you want to include the boundary element that caused
+// the condition to fail.
+//
+// The operation is lazy and only consumes elements from the source sequence as needed.
+// Once the predicate returns false, the failing element is yielded, then iteration stops
+// immediately without consuming the remaining elements from the source.
+//
+// Marble Diagram:
+//
+//	Input:                --1--2--3--4--5--2--1-->
+//	TakeWhileInclusive(x < 4)
+//	Output:               --1--2--3--4|
+//	                               (includes 4, then stops)
+//
+// RxJS Equivalent: [takeWhile with inclusive option] - https://rxjs.dev/api/operators/takeWhile
+//
+// Type Parameters:
+//   - U: The type of elements in the sequence
+//
+// Parameters:
+//   - p: A predicate function that tests each element. Returns true to continue, false to stop after including the current element
+//
+// Returns:
+//   - An Operator that transforms a Seq[U] by taking elements while the predicate is satisfied, plus the first failing element
+//
+// Example - Take while less than threshold, including boundary:
+//
+//	seq := From(1, 2, 3, 4, 5, 2, 1)
+//	result := TakeWhileInclusive(func(x int) bool { return x < 4 })(seq)
+//	// yields: 1, 2, 3, 4 (includes 4 which fails the predicate)
+//
+// Example - Take while condition is met, including first non-letter:
+//
+//	seq := From("a", "b", "c", "1", "d", "e")
+//	isLetter := func(s string) bool { return s >= "a" && s <= "z" }
+//	result := TakeWhileInclusive(isLetter)(seq)
+//	// yields: "a", "b", "c", "1" (includes "1" which fails the predicate)
+//
+// Example - Take all when predicate always true:
+//
+//	seq := From(2, 4, 6, 8)
+//	result := TakeWhileInclusive(func(x int) bool { return x%2 == 0 })(seq)
+//	// yields: 2, 4, 6, 8 (all elements satisfy predicate, no failing element)
+//
+// Example - Take only first when it fails:
+//
+//	seq := From(5, 1, 2, 3)
+//	result := TakeWhileInclusive(func(x int) bool { return x < 5 })(seq)
+//	// yields: 5 (first element fails, but is included)
+//
+// Example - Chaining with other operations:
+//
+//	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+//	result := F.Pipe2(
+//	    seq,
+//	    MonadMap(seq, func(x int) int { return x * 2 }),
+//	    TakeWhileInclusive(func(x int) bool { return x < 10 }),
+//	)
+//	// yields: 2, 4, 6, 8, 10 (includes 10 which fails x < 10)
+//
+// See Also:
+//   - TakeWhile: Similar but excludes the first failing element
+//   - Take: Takes a fixed number of elements
+//   - SkipWhile: Skips elements while predicate is satisfied
+func TakeWhileInclusive[U any](p Predicate[U]) Operator[U, U] {
+	return takeWhile(p, true)
 }
 
 // SkipWhile returns an operator that skips elements from a sequence while a predicate is satisfied.

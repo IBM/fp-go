@@ -25,11 +25,15 @@ import (
 // IsEmpty tests if a record is empty (contains no entries).
 //
 // Returns true if the record has no key-value pairs, false otherwise.
+// A nil map is treated as empty, consistent with Go's native behavior.
 //
 // Example:
 //
 //	empty := Record[string, int]{}
 //	IsEmpty(empty) // true
+//
+//	var nilMap Record[string, int]
+//	IsEmpty(nilMap) // true
 //
 //	nonEmpty := Record[string, int]{"a": 1}
 //	IsEmpty(nonEmpty) // false
@@ -40,12 +44,15 @@ func IsEmpty[K comparable, V any](r Record[K, V]) bool {
 // IsNonEmpty tests if a record is not empty (contains at least one entry).
 //
 // Returns true if the record has at least one key-value pair, false otherwise.
-// This is the logical negation of IsEmpty.
+// This is the logical negation of IsEmpty. A nil map is treated as empty.
 //
 // Example:
 //
 //	record := Record[string, int]{"a": 1}
 //	IsNonEmpty(record) // true
+//
+//	var nilMap Record[string, int]
+//	IsNonEmpty(nilMap) // false
 func IsNonEmpty[K comparable, V any](r Record[K, V]) bool {
 	return G.IsNonEmpty(r)
 }
@@ -55,13 +62,17 @@ func IsNonEmpty[K comparable, V any](r Record[K, V]) bool {
 // The order of keys is non-deterministic due to Go's map iteration behavior.
 // Use KeysOrd if you need keys in a specific order.
 //
-// Note: The return value can be nil in case of an empty map, since nil is a
-// valid representation of an empty slice in Go.
+// A nil map is treated as empty and returns nil (which is a valid empty slice).
+// The return value can be nil for empty maps, since nil is a valid representation
+// of an empty slice in Go.
 //
 // Example:
 //
 //	record := Record[string, int]{"a": 1, "b": 2, "c": 3}
 //	keys := Keys(record) // ["a", "b", "c"] in any order
+//
+//	var nilMap Record[string, int]
+//	nilKeys := Keys(nilMap) // nil (treated as empty)
 //
 //	emptyRecord := Record[string, int]{}
 //	emptyKeys := Keys(emptyRecord) // nil or []string{}

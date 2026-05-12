@@ -1199,6 +1199,327 @@ func BenchmarkTakeWhile(b *testing.B) {
 	}
 }
 
+// TestTakeWhileInclusive tests basic TakeWhileInclusive functionality
+func TestTakeWhileInclusive(t *testing.T) {
+	t.Run("takes while predicate is true, including first false", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 2, 1)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 4 })(seq))
+		assert.Equal(t, []int{1, 2, 3, 4}, result)
+	})
+
+	t.Run("takes all when predicate always true", func(t *testing.T) {
+		seq := From(2, 4, 6, 8)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x%2 == 0 })(seq))
+		assert.Equal(t, []int{2, 4, 6, 8}, result)
+	})
+
+	t.Run("takes only first when it fails", func(t *testing.T) {
+		seq := From(5, 1, 2, 3)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 5 })(seq))
+		assert.Equal(t, []int{5}, result)
+	})
+
+	t.Run("takes from string sequence including boundary", func(t *testing.T) {
+		seq := From("a", "b", "c", "1", "d", "e")
+		isLetter := func(s string) bool { return s >= "a" && s <= "z" }
+		result := toSlice(TakeWhileInclusive(isLetter)(seq))
+		assert.Equal(t, []string{"a", "b", "c", "1"}, result)
+	})
+
+	t.Run("takes single element plus boundary", func(t *testing.T) {
+		seq := From(1, 10, 2, 3)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 10 })(seq))
+		assert.Equal(t, []int{1, 10}, result)
+	})
+
+	t.Run("includes first false predicate element", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 1, 2, 3)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 4 })(seq))
+		assert.Equal(t, []int{1, 2, 3, 4}, result)
+	})
+}
+
+// TestTakeWhileInclusive_ComparisonWithTakeWhile demonstrates the difference
+func TestTakeWhileInclusive_ComparisonWithTakeWhile(t *testing.T) {
+	t.Run("TakeWhile excludes boundary, TakeWhileInclusive includes it", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		predicate := func(x int) bool { return x < 4 }
+
+		resultExclusive := toSlice(TakeWhile(predicate)(seq))
+		resultInclusive := toSlice(TakeWhileInclusive(predicate)(seq))
+
+		assert.Equal(t, []int{1, 2, 3}, resultExclusive, "TakeWhile should exclude 4")
+		assert.Equal(t, []int{1, 2, 3, 4}, resultInclusive, "TakeWhileInclusive should include 4")
+	})
+
+	t.Run("both behave same when all elements satisfy predicate", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		predicate := func(x int) bool { return x < 10 }
+
+		resultExclusive := toSlice(TakeWhile(predicate)(seq))
+		resultInclusive := toSlice(TakeWhileInclusive(predicate)(seq))
+
+		assert.Equal(t, []int{1, 2, 3}, resultExclusive)
+		assert.Equal(t, []int{1, 2, 3}, resultInclusive)
+	})
+
+	t.Run("TakeWhile returns empty, TakeWhileInclusive returns first element", func(t *testing.T) {
+		seq := From(10, 1, 2, 3)
+		predicate := func(x int) bool { return x < 10 }
+
+		resultExclusive := toSlice(TakeWhile(predicate)(seq))
+		resultInclusive := toSlice(TakeWhileInclusive(predicate)(seq))
+
+		assert.Empty(t, resultExclusive, "TakeWhile should return empty")
+		assert.Equal(t, []int{10}, resultInclusive, "TakeWhileInclusive should include first element")
+	})
+}
+
+// TestTakeWhileInclusiveEmpty tests TakeWhileInclusive with empty sequences
+func TestTakeWhileInclusiveEmpty(t *testing.T) {
+	t.Run("returns empty from empty sequence", func(t *testing.T) {
+		seq := Empty[int]()
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x > 0 })(seq))
+		assert.Empty(t, result)
+	})
+
+	t.Run("returns first element when predicate never satisfied", func(t *testing.T) {
+		seq := From(10, 20, 30)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 5 })(seq))
+		assert.Equal(t, []int{10}, result)
+	})
+}
+
+// TestTakeWhileInclusiveWithComplexTypes tests TakeWhileInclusive with complex data types
+func TestTakeWhileInclusiveWithComplexTypes(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	t.Run("takes people while age below threshold, including boundary", func(t *testing.T) {
+		seq := From(
+			Person{"Alice", 25},
+			Person{"Bob", 30},
+			Person{"Charlie", 35},
+			Person{"David", 40},
+			Person{"Eve", 28},
+		)
+		result := toSlice(TakeWhileInclusive(func(p Person) bool { return p.Age < 35 })(seq))
+		expected := []Person{
+			{"Alice", 25},
+			{"Bob", 30},
+			{"Charlie", 35},
+		}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("takes pointers including boundary", func(t *testing.T) {
+		p1 := &Person{"Alice", 25}
+		p2 := &Person{"Bob", 30}
+		p3 := &Person{"Charlie", 35}
+		p4 := &Person{"David", 40}
+
+		seq := From(p1, p2, p3, p4)
+		result := toSlice(TakeWhileInclusive(func(p *Person) bool { return p.Age < 35 })(seq))
+		assert.Equal(t, []*Person{p1, p2, p3}, result)
+	})
+}
+
+// TestTakeWhileInclusiveWithChainedOperations tests TakeWhileInclusive with other sequence operations
+func TestTakeWhileInclusiveWithChainedOperations(t *testing.T) {
+	t.Run("takeWhileInclusive after map", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(
+			TakeWhileInclusive(func(x int) bool { return x < 8 })(
+				MonadMap(seq, func(x int) int { return x * 2 }),
+			),
+		)
+		assert.Equal(t, []int{2, 4, 6, 8}, result)
+	})
+
+	t.Run("map after takeWhileInclusive", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		taken := TakeWhileInclusive(func(x int) bool { return x < 4 })(seq)
+		result := toSlice(
+			MonadMap(taken, func(x int) int { return x * 10 }),
+		)
+		assert.Equal(t, []int{10, 20, 30, 40}, result)
+	})
+
+	t.Run("takeWhileInclusive after filter", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		result := toSlice(
+			TakeWhileInclusive(func(x int) bool { return x < 8 })(
+				MonadFilter(seq, func(x int) bool { return x%2 == 0 }),
+			),
+		)
+		assert.Equal(t, []int{2, 4, 6, 8}, result)
+	})
+
+	t.Run("filter after takeWhileInclusive", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8)
+		taken := TakeWhileInclusive(func(x int) bool { return x < 6 })(seq)
+		result := toSlice(
+			MonadFilter(taken, func(x int) bool { return x%2 == 0 }),
+		)
+		assert.Equal(t, []int{2, 4, 6}, result)
+	})
+
+	t.Run("multiple takeWhileInclusive operations", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		result := toSlice(
+			TakeWhileInclusive(func(x int) bool { return x < 6 })(
+				TakeWhileInclusive(func(x int) bool { return x < 8 })(seq),
+			),
+		)
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+	})
+}
+
+// TestTakeWhileInclusiveWithReplicate tests TakeWhileInclusive with Replicate
+func TestTakeWhileInclusiveWithReplicate(t *testing.T) {
+	t.Run("takes from replicated sequence including boundary", func(t *testing.T) {
+		seq := Replicate(5, 42)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x == 42 })(seq))
+		assert.Equal(t, []int{42, 42, 42, 42, 42}, result)
+	})
+
+	t.Run("takes first from replicated when predicate fails", func(t *testing.T) {
+		seq := Replicate(5, 42)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x != 42 })(seq))
+		assert.Equal(t, []int{42}, result)
+	})
+}
+
+// TestTakeWhileInclusiveWithMakeBy tests TakeWhileInclusive with MakeBy
+func TestTakeWhileInclusiveWithMakeBy(t *testing.T) {
+	t.Run("takes from generated sequence including boundary", func(t *testing.T) {
+		seq := MakeBy(10, func(i int) int { return i * 2 })
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 10 })(seq))
+		assert.Equal(t, []int{0, 2, 4, 6, 8, 10}, result)
+	})
+}
+
+// TestTakeWhileInclusiveWithPrependAppend tests TakeWhileInclusive with Prepend and Append
+func TestTakeWhileInclusiveWithPrependAppend(t *testing.T) {
+	t.Run("takeWhileInclusive from prepended sequence", func(t *testing.T) {
+		seq := From(2, 3, 4, 5)
+		prepended := Prepend(1)(seq)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 4 })(prepended))
+		assert.Equal(t, []int{1, 2, 3, 4}, result)
+	})
+
+	t.Run("takeWhileInclusive from appended sequence", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		appended := Append(4)(seq)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 4 })(appended))
+		assert.Equal(t, []int{1, 2, 3, 4}, result)
+	})
+}
+
+// TestTakeWhileInclusiveWithFlatten tests TakeWhileInclusive with Flatten
+func TestTakeWhileInclusiveWithFlatten(t *testing.T) {
+	t.Run("takes from flattened sequence including boundary", func(t *testing.T) {
+		seq := From(From(1, 2), From(3, 4), From(5, 6))
+		flattened := Flatten(seq)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 4 })(flattened))
+		assert.Equal(t, []int{1, 2, 3, 4}, result)
+	})
+}
+
+// TestTakeWhileInclusiveDoesNotConsumeEntireSequence tests that TakeWhileInclusive is lazy
+func TestTakeWhileInclusiveDoesNotConsumeEntireSequence(t *testing.T) {
+	t.Run("only consumes needed elements plus one", func(t *testing.T) {
+		callCount := 0
+		seq := func(yield func(int) bool) {
+			for i := range 100 {
+				callCount++
+				if !yield(i) {
+					return
+				}
+			}
+		}
+
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 5 })(seq))
+		assert.Equal(t, []int{0, 1, 2, 3, 4, 5}, result)
+		assert.Equal(t, 6, callCount, "should consume exactly 6 elements (0-5)")
+	})
+
+	t.Run("stops after first false predicate", func(t *testing.T) {
+		callCount := 0
+		seq := func(yield func(int) bool) {
+			for i := 1; i <= 100; i++ {
+				callCount++
+				if !yield(i) {
+					return
+				}
+			}
+		}
+
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x%2 == 1 })(seq))
+		// Takes 1 (odd), then 2 (even, fails predicate, but included)
+		assert.Equal(t, []int{1, 2}, result)
+		assert.Equal(t, 2, callCount, "should consume exactly 2 elements")
+	})
+}
+
+// TestTakeWhileInclusiveEdgeCases tests edge cases
+func TestTakeWhileInclusiveEdgeCases(t *testing.T) {
+	t.Run("takeWhileInclusive with always false predicate", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return false })(seq))
+		assert.Equal(t, []int{1}, result, "should include first element even when predicate is false")
+	})
+
+	t.Run("takeWhileInclusive with always true predicate", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return true })(seq))
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, result)
+	})
+
+	t.Run("takeWhileInclusive from single element that passes", func(t *testing.T) {
+		seq := From(42)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x > 0 })(seq))
+		assert.Equal(t, []int{42}, result)
+	})
+
+	t.Run("takeWhileInclusive from single element that fails", func(t *testing.T) {
+		seq := From(42)
+		result := toSlice(TakeWhileInclusive(func(x int) bool { return x < 0 })(seq))
+		assert.Equal(t, []int{42}, result, "should include the element even when it fails")
+	})
+
+	t.Run("takeWhileInclusive with complex predicate", func(t *testing.T) {
+		seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		result := toSlice(TakeWhileInclusive(func(x int) bool {
+			return x%2 == 1 || x < 5
+		})(seq))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+	})
+}
+
+// Benchmark tests for TakeWhileInclusive
+func BenchmarkTakeWhileInclusive(b *testing.B) {
+	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	b.ResetTimer()
+	for range b.N {
+		taken := TakeWhileInclusive(func(x int) bool { return x < 6 })(seq)
+		for range taken {
+		}
+	}
+}
+
+func BenchmarkTakeWhileInclusive_LargeSequence(b *testing.B) {
+	seq := MakeBy(2000, func(i int) int { return i })
+	b.ResetTimer()
+	for range b.N {
+		taken := TakeWhileInclusive(func(x int) bool { return x < 1000 })(seq)
+		for range taken {
+		}
+	}
+}
+
 func BenchmarkTakeWhileLargeSequence(b *testing.B) {
 	data := make([]int, 1000)
 	for i := range data {

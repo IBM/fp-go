@@ -41,6 +41,16 @@ type (
 	// This is the primary data structure for the record package, providing
 	// functional operations over Go's native map type.
 	//
+	// Nil Map Handling:
+	//
+	// A nil map is treated identically to an empty map throughout this package,
+	// consistent with Go's native map behavior. This means:
+	//   - IsEmpty returns true for nil maps
+	//   - Size returns 0 for nil maps
+	//   - Iteration over nil maps produces zero iterations
+	//   - Map operations (Map, Filter, etc.) return non-nil empty maps
+	//   - Lookup operations return None for nil maps
+	//
 	// Example:
 	//
 	//	type UserRecord = Record[string, User]
@@ -48,6 +58,10 @@ type (
 	//	    "alice": User{Name: "Alice", Age: 30},
 	//	    "bob":   User{Name: "Bob", Age: 25},
 	//	}
+	//
+	//	var nilMap Record[string, int]
+	//	IsEmpty(nilMap)  // true (same as empty map)
+	//	Size(nilMap)     // 0 (same as empty map)
 	Record[K comparable, V any] = map[K]V
 
 	// Predicate is a function that tests whether a key satisfies a condition.
