@@ -180,5 +180,3 @@ func TestFilterOrElse_CustomPredicate(t *testing.T) {
 	assert.True(t, E.IsLeft(result[1]))
 	assert.True(t, E.IsRight(result[2]))
 }
-
-// Made with Bob

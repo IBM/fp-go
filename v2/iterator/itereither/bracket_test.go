@@ -215,5 +215,3 @@ func TestBracket_FileHandlePattern(t *testing.T) {
 	assert.NotNil(t, handle)
 	assert.True(t, handle.Closed)
 }
-
-// Made with Bob

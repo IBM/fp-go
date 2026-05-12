@@ -163,5 +163,3 @@ func TestApSequence(t *testing.T) {
 		assert.Equal(t, []Either[string, int]{E.Right[string](30)}, collectEithers(result))
 	})
 }
-
-// Made with Bob

@@ -1079,5 +1079,3 @@ func TestReduce_Integration(t *testing.T) {
 		assert.Equal(t, E.Right[string](3), result)
 	})
 }
-
-// Made with Bob

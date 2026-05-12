@@ -76,14 +76,14 @@ func FromEither[E, A any](e Either[E, A]) SeqEither[E, A] {
 	return iter.Of(e)
 }
 
-func FromOption[A, E any](onNone func() E) func(o O.Option[A]) SeqEither[E, A] {
+func FromOption[A, E any](onNone func() E) Kleisli[E, O.Option[A], A] {
 	return fromeither.FromOption(
 		FromEither[E, A],
 		onNone,
 	)
 }
 
-func ChainOptionK[A, B, E any](onNone func() E) func(func(A) O.Option[B]) Operator[E, A, B] {
+func ChainOptionK[A, B, E any](onNone func() E) func(O.Kleisli[A, B]) Operator[E, A, B] {
 	return fromeither.ChainOptionK(
 		MonadChain[E, A, B],
 		FromEither[E, B],

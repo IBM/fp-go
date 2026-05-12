@@ -1,0 +1,271 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package iterresult
+
+import (
+	"github.com/IBM/fp-go/v2/iterator/itereither"
+	L "github.com/IBM/fp-go/v2/optics/lens"
+)
+
+// Do creates an empty context of type S to be used with the Bind operation.
+// This is the starting point for do-notation style composition.
+//
+// Example:
+//
+//	type State struct {
+//	    User  User
+//	    Posts []Post
+//	}
+//	result := Do(State{})
+func Do[S any](
+	empty S,
+) SeqResult[S] {
+	return itereither.Do[error](empty)
+}
+
+// Bind attaches the result of a computation to a context S1 to produce a context S2.
+// This enables sequential composition where each step can depend on the results of previous steps.
+//
+// The setter function takes the result of the computation and returns a function that
+// updates the context from S1 to S2.
+//
+// Example:
+//
+//	type State struct {
+//	    User  User
+//	    Posts []Post
+//	}
+//
+//	result := F.Pipe2(
+//	    Do(State{}),
+//	    Bind(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        func(s State) SeqResult[User] {
+//	            return FromEither(result.Eitherize1(fetchUser)())
+//	        },
+//	    ),
+//	    Bind(
+//	        func(posts []Post) func(State) State {
+//	            return func(s State) State { s.Posts = posts; return s }
+//	        },
+//	        func(s State) SeqResult[[]Post] {
+//	            return FromEither(result.Eitherize1(fetchPostsForUser)(s.User.ID))
+//	        },
+//	    ),
+//	)
+func Bind[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f Kleisli[S1, T],
+) Operator[S1, S2] {
+	return itereither.Bind(setter, f)
+}
+
+// Let attaches the result of a computation to a context S1 to produce a context S2
+func Let[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	f func(S1) T,
+) Operator[S1, S2] {
+	return itereither.Let[error](setter, f)
+}
+
+// LetTo attaches a value to a context S1 to produce a context S2
+func LetTo[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	b T,
+) Operator[S1, S2] {
+	return itereither.LetTo[error](setter, b)
+}
+
+// BindTo initializes a new state S1 from a value T
+func BindTo[S1, T any](
+	setter func(T) S1,
+) Operator[T, S1] {
+	return itereither.BindTo[error](setter)
+}
+
+// ApS attaches a value to a context S1 to produce a context S2 by considering
+// the context and the value concurrently (using Applicative rather than Monad).
+// This allows independent computations to be combined without one depending on the result of the other.
+//
+// Unlike Bind, which sequences operations, ApS can be used when operations are independent
+// and can conceptually run in parallel.
+//
+// Example:
+//
+//	type State struct {
+//	    User  User
+//	    Posts []Post
+//	}
+//
+//	// These operations are independent and can be combined with ApS
+//	getUser := Right(User{ID: 1, Name: "Alice"})
+//	getPosts := Right([]Post{{ID: 1, Title: "Hello"}})
+//
+//	result := F.Pipe2(
+//	    Do(State{}),
+//	    ApS(
+//	        func(user User) func(State) State {
+//	            return func(s State) State { s.User = user; return s }
+//	        },
+//	        getUser,
+//	    ),
+//	    ApS(
+//	        func(posts []Post) func(State) State {
+//	            return func(s State) State { s.Posts = posts; return s }
+//	        },
+//	        getPosts,
+//	    ),
+//	)
+func ApS[S1, S2, T any](
+	setter func(T) func(S1) S2,
+	fa SeqResult[T],
+) Operator[S1, S2] {
+	return itereither.ApS(setter, fa)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// This eliminates the need to manually write setter functions.
+//
+// Example:
+//
+//	type Config struct {
+//	    Host string
+//	    Port int
+//	}
+//
+//	portLens := lens.MakeLens(
+//	    func(c Config) int { return c.Port },
+//	    func(c Config, p int) Config { c.Port = p; return c },
+//	)
+//
+//	result := F.Pipe1(
+//	    Of(Config{Host: "localhost"}),
+//	    ApSL(portLens, Of(8080)),
+//	)
+func ApSL[S, T any](
+	lens L.Lens[S, T],
+	fa SeqResult[T],
+) Operator[S, S] {
+	return itereither.ApSL(lens, fa)
+}
+
+// BindL attaches the result of a computation to a context using a lens-based setter.
+// This is a convenience function that combines Bind with a lens, allowing you to use
+// optics to update nested structures based on their current values.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// The computation function f receives the current value of the focused field and returns
+// a SeqResult that produces the new value.
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	increment := func(v int) SeqResult[int] {
+//	    return FromEither(result.TryCatch(func() (int, error) {
+//	        if v >= 100 {
+//	            return 0, errors.New("overflow")
+//	        }
+//	        return v + 1, nil
+//	    }))
+//	}
+//
+//	result := F.Pipe1(
+//	    Of(Counter{Value: 42}),
+//	    BindL(valueLens, increment),
+//	)
+func BindL[S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[T, T],
+) Operator[S, S] {
+	return itereither.BindL(lens, f)
+}
+
+// LetL attaches the result of a pure computation to a context using a lens-based setter.
+// This is a convenience function that combines Let with a lens, allowing you to use
+// optics to update nested structures with pure transformations.
+//
+// The lens parameter provides both the getter and setter for a field within the structure S.
+// The transformation function f receives the current value of the focused field and returns
+// the new value directly (not wrapped in SeqResult).
+//
+// Example:
+//
+//	type Counter struct {
+//	    Value int
+//	}
+//
+//	valueLens := lens.MakeLens(
+//	    func(c Counter) int { return c.Value },
+//	    func(c Counter, v int) Counter { c.Value = v; return c },
+//	)
+//
+//	double := func(v int) int { return v * 2 }
+//
+//	result := F.Pipe1(
+//	    Of(Counter{Value: 21}),
+//	    LetL(valueLens, double),
+//	)
+func LetL[S, T any](
+	lens L.Lens[S, T],
+	f Endomorphism[T],
+) Operator[S, S] {
+	return itereither.LetL[error](lens, f)
+}
+
+// LetToL attaches a constant value to a context using a lens-based setter.
+// This is a convenience function that combines LetTo with a lens, allowing you to use
+// optics to set nested fields to specific values.
+//
+// The lens parameter provides the setter for a field within the structure S.
+// Unlike LetL which transforms the current value, LetToL simply replaces it with
+// the provided constant value b.
+//
+// Example:
+//
+//	type Config struct {
+//	    Debug   bool
+//	    Timeout int
+//	}
+//
+//	debugLens := lens.MakeLens(
+//	    func(c Config) bool { return c.Debug },
+//	    func(c Config, d bool) Config { c.Debug = d; return c },
+//	)
+//
+//	result := F.Pipe1(
+//	    Of(Config{Debug: true, Timeout: 30}),
+//	    LetToL(debugLens, false),
+//	)
+func LetToL[S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Operator[S, S] {
+	return itereither.LetToL[error](lens, b)
+}

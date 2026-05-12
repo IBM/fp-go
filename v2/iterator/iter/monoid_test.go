@@ -359,5 +359,3 @@ func ExampleConcatMonoid_comparison() {
 	// 5
 	// 6
 }
-
-// Made with Bob
