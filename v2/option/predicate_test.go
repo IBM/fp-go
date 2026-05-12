@@ -933,5 +933,3 @@ func BenchmarkForAllStringPredicate(b *testing.B) {
 		_ = allLongString(input)
 	}
 }
-
-// Made with Bob

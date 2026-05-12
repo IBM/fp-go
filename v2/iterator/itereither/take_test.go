@@ -438,5 +438,3 @@ func BenchmarkTakeUntilLeft_ImmediateLeft(b *testing.B) {
 		_ = collectEithers(TakeUntilLeft(makeSeq()))
 	}
 }
-
-// Made with Bob

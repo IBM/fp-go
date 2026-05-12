@@ -480,5 +480,3 @@ func BenchmarkStopOnError(b *testing.B) {
 		_ = collectResults(StopOnError(seq))
 	}
 }
-
-// Made with Bob

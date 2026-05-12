@@ -531,5 +531,3 @@ func BenchmarkMonadFilter_LargeSequence(b *testing.B) {
 		_ = collectResults(MonadFilter(makeSeq(), isEven))
 	}
 }
-
-// Made with Bob

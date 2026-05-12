@@ -1003,5 +1003,3 @@ func BenchmarkForAllComplexPredicate(b *testing.B) {
 		_ = allEvenPositive(input)
 	}
 }
-
-// Made with Bob
