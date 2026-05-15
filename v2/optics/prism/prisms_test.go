@@ -17,13 +17,16 @@ package prism
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1798,4 +1801,22 @@ func TestParseJSONComposition(t *testing.T) {
 		parsed = composed.GetOption(invalidJSON)
 		assert.True(t, O.IsNone(parsed))
 	})
+}
+
+func ExampleParseInt_double() {
+
+	parseAndDouble := F.Flow3(
+		O.FromPredicate(S.IsNonEmpty),
+		O.Chain(ParseInt().GetOption),
+		O.Map(N.Mul(2)),
+	)
+
+	fmt.Println(parseAndDouble("42")) // Some(84)
+	fmt.Println(parseAndDouble(""))
+	fmt.Println(parseAndDouble("abc"))
+
+	// Output:
+	// Some[int](84)
+	// None[int]
+	// None[int]
 }

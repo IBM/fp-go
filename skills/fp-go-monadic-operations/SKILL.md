@@ -170,18 +170,14 @@ import (
     O  "github.com/IBM/fp-go/v2/option"
     F  "github.com/IBM/fp-go/v2/function"
     S  "github.com/IBM/fp-go/v2/string"
+    P  "github.com/IBM/fp-go/v2/optics/prism"
     "strconv"
 )
 
-parseAndDouble := F.Flow2(
+parseAndDouble := F.Flow3(
     O.FromPredicate(S.IsNonEmpty),
-    O.Chain(func(s string) O.Option[int] {
-        n, err := strconv.Atoi(s)
-        if err != nil {
-            return O.None[int]()
-        }
-        return O.Some(n * 2)
-    }),
+    O.Chain(P.ParseInt().GetOption),
+    O.Map(N.Mul(2)),
 )
 
 parseAndDouble("21")  // Some(42)
