@@ -1,0 +1,114 @@
+---
+id: design-kit
+title: Content design kit
+sidebar_label: Content design kit
+description: Reusable MDX building blocks for fp-go documentation pages.
+---
+
+<PageHeader
+  eyebrow="Style guide · Section 01 / 01"
+  title="Content design"
+  titleAccent="kit."
+  lede="A reusable set of MDX blocks — code cards, callouts, benches, compare strips, and more — for any docs page."
+  meta={[
+    {label: '// Version', value: <>v2.2.82 <MetaPill>LATEST</MetaPill></>},
+    {label: '// Updated', value: 'today'},
+    {label: '// Reading time', value: '3 min · 1 section'},
+  ]}
+/>
+
+<TLDR>
+  <TLDRCard
+    label="// Components"
+    value="10"
+    accent="ready"
+    description="Header, TL;DR strip, sections, code cards, callouts, compare, bench, API, checklist, pager."
+    variant="up"
+  />
+  <TLDRCard
+    label="// Imports needed"
+    value="0"
+    unit="in MDX"
+    description="All components are registered as MDX globals."
+    variant="up"
+  />
+  <TLDRCard
+    label="// Read this if"
+    prose
+    value={<>You're <em>writing a docs page</em> and want the Carbon look.</>}
+  />
+</TLDR>
+
+<Section
+  id="usage"
+  number="01"
+  title="Usage"
+  titleAccent="cheatsheet."
+  tag="Difficulty · Beginner"
+  lede="Drop these into any .mdx file. No imports — they are registered globally via theme/MDXComponents."
+>
+
+### Code card <span style={{fontFamily:'var(--ifm-font-family-monospace)', fontSize:12, color:'var(--fp-text-subtle)'}}>#code-card</span>
+
+<CodeCard file="example.go" status="tested">
+{`func Example() {
+    // your code here
+}`}
+</CodeCard>
+
+<Callout title="Heads up.">
+  Wrap inline `identifiers` in backticks. Swap `type` to `warn` or `success`.
+</Callout>
+
+<Callout type="warn" title="Caveat.">
+  Use this when the reader is about to make a destructive change.
+</Callout>
+
+<Callout type="success" title="Great pick.">
+  Confirms the recommended path.
+</Callout>
+
+### Before & after
+
+<Compare>
+  <CompareCol kind="bad" pill="slow path">
+    <p>Short description of the problem.</p>
+    <code>oldApi(x, y)</code>
+  </CompareCol>
+  <CompareCol kind="good" pill="recommended">
+    <p>Short description of the fix.</p>
+    <code>F.NewApi(x, y)</code>
+  </CompareCol>
+</Compare>
+
+### Benchmarks
+
+<Bench
+  title="Benchmark · description"
+  command="go test -bench=. -benchmem"
+  rows={[
+    {label: 'Baseline', bar: 1, barKind: 'lose', nsOp: '14,820', bOp: '96', delta: 'baseline', deltaKind: 'bad'},
+    {label: 'Optimized', bar: 0.14, barKind: 'win', nsOp: '2,140', bOp: '48', delta: '−85%', deltaKind: 'good', winner: true},
+  ]}
+/>
+
+### API
+
+<ApiTable
+  rows={[
+    {symbol: 'Foo', signature: 'func Foo[A any](x A) A', description: 'One-line description of the function.', since: 'v2.0'},
+    {symbol: 'Bar', signature: 'func Bar[A, B any](f func(A) B) func([]A) []B', description: 'Lift a unary function over slices.', since: 'v2.2'},
+  ]}
+/>
+
+### Checklist
+
+<Checklist
+  items={[
+    {label: 'First action item', impact: 'required'},
+    {label: 'Second action item', impact: 'high impact', done: true},
+    {label: 'Third, optional action', impact: 'situational'},
+  ]}
+/>
+
+</Section>
