@@ -191,18 +191,19 @@ parseAndDouble("abc") // None
 import (
     R  "github.com/IBM/fp-go/v2/result"
     F  "github.com/IBM/fp-go/v2/function"
+    N  "github.com/IBM/fp-go/v2/number"
+    P  "github.com/IBM/fp-go/v2/predicate"
+    ER "github.com/IBM/fp-go/v2/errors"
     "strconv"
     "errors"
 )
 
 parse := R.Eitherize1(strconv.Atoi)  // lifts (int, error) → Result[int]
 
-validate := func(n int) R.Result[int] {
-    if n < 0 {
-        return R.Error[int](errors.New("must be non-negative"))
-    }
-    return R.Of(n)
-}
+validate := R.FromPredicate(
+    P.Not(N.LessThan(0)),
+    ER.OnSome[int]("%d must not be negative"),
+)
 
 pipeline := F.Flow2(parse, R.Chain(validate))
 

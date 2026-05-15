@@ -18,12 +18,16 @@ package result
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
+	ER "github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	IO "github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
+	P "github.com/IBM/fp-go/v2/predicate"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
@@ -648,4 +652,25 @@ func TestChainLeft(t *testing.T) {
 		assert.Equal(t, Of(-2), smartRecover(Left[int](errors.New("unauthorized"))))
 		assert.True(t, IsLeft(smartRecover(Left[int](errors.New("unknown")))))
 	})
+}
+
+func ExampleFromPredicate_nonNegative() {
+
+	parse := Eitherize1(strconv.Atoi) // lifts (int, error) → Result[int]
+
+	validate := FromPredicate(
+		P.Not(N.LessThan(0)),
+		ER.OnSome[int]("%d must not be negative"),
+	)
+
+	pipeline := F.Flow2(parse, Chain(validate))
+
+	fmt.Println(pipeline("42"))  // Ok(42)
+	fmt.Println(pipeline("-1"))  // Error("must be non-negative")
+	fmt.Println(pipeline("abc")) // Error(strconv parse error)
+
+	// Output:
+	// Right[int](42)
+	// Left[*errors.errorString](-1 must not be negative)
+	// Left[*strconv.NumError](strconv.Atoi: parsing "abc": invalid syntax)
 }
