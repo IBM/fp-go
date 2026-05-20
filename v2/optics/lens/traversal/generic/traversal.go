@@ -7,7 +7,7 @@ import (
 	TG "github.com/IBM/fp-go/v2/optics/traversal/generic"
 )
 
-func Compose[S, A, B, HKTS, HKTA, HKTB any](
+func Compose[B, HKTB, S, A, HKTS, HKTA any](
 	fmap functor.MapType[A, S, HKTA, HKTS],
 ) func(Traversal[A, B, HKTA, HKTB]) func(Lens[S, A]) Traversal[S, B, HKTS, HKTB] {
 	lensTrav := G.AsTraversal[Traversal[S, A, HKTS, HKTA]](fmap)

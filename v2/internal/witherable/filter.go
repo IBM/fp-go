@@ -25,3 +25,12 @@ func FilterMap[A, B, HKT_G_A, HKT_G_B, HKT_F_HKT_G_A, HKT_F_HKT_G_B any](
 		fmap,
 	)
 }
+
+// func Wither[A, HKTWA, HKTFOB, HKTFWB any](
+
+// ) WitherType[A, HKTWA, HKTFOB, HKTFWB] {
+
+// 	return func(f func(A) HKTFOB) func(HKTWA) HKTFWB {
+
+// 	}
+// }

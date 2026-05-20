@@ -80,7 +80,7 @@ import (
 //   - Traversal: A functional reference to multiple subparts
 //   - traversal.Compose: Composes two traversals
 func Compose[S, A, B any](t Traversal[A, B, A, B]) func(Lens[S, A]) Traversal[S, B, S, B] {
-	return G.Compose[S, A, B, S, A, B](
-		I.Map,
+	return G.Compose[B, B](
+		I.Map[A, S],
 	)(t)
 }
