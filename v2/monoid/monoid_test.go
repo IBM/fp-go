@@ -695,6 +695,291 @@ func BenchmarkConcatAll(b *testing.B) {
 	}
 }
 
+// Test FunctionMonoid identity laws
+func TestFunctionMonoid_IdentityLaws(t *testing.T) {
+	intAddMonoid := MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+
+	funcMonoid := FunctionMonoid[string, int](intAddMonoid)
+
+	f := func(s string) int { return len(s) * 3 }
+	emptyFunc := funcMonoid.Empty()
+
+	testInputs := []string{"", "a", "hello", "test"}
+
+	for _, input := range testInputs {
+		t.Run("input: "+input, func(t *testing.T) {
+			// Left identity: Empty + f = f
+			leftResult := funcMonoid.Concat(emptyFunc, f)(input)
+			assert.Equal(t, f(input), leftResult, "Left identity failed")
+
+			// Right identity: f + Empty = f
+			rightResult := funcMonoid.Concat(f, emptyFunc)(input)
+			assert.Equal(t, f(input), rightResult, "Right identity failed")
+		})
+	}
+}
+
+// Test FunctionMonoid associativity
+func TestFunctionMonoid_Associativity(t *testing.T) {
+	intAddMonoid := MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+
+	funcMonoid := FunctionMonoid[string, int](intAddMonoid)
+
+	f1 := func(s string) int { return len(s) }
+	f2 := func(s string) int { return len(s) * 2 }
+	f3 := func(s string) int { return 10 }
+
+	testInputs := []string{"", "a", "hello"}
+
+	for _, input := range testInputs {
+		t.Run("input: "+input, func(t *testing.T) {
+			// (f1 + f2) + f3
+			left := funcMonoid.Concat(funcMonoid.Concat(f1, f2), f3)(input)
+
+			// f1 + (f2 + f3)
+			right := funcMonoid.Concat(f1, funcMonoid.Concat(f2, f3))(input)
+
+			assert.Equal(t, left, right, "Associativity failed")
+		})
+	}
+}
+
+// Test FunctionMonoid with multiplication
+func TestFunctionMonoid_Multiplication(t *testing.T) {
+	intMulMonoid := MakeMonoid(
+		func(a, b int) int { return a * b },
+		1,
+	)
+
+	funcMonoid := FunctionMonoid[int, int](intMulMonoid)
+
+	double := func(n int) int { return n * 2 }
+	triple := func(n int) int { return n * 3 }
+
+	combined := funcMonoid.Concat(double, triple)
+
+	// For input 5: double(5) * triple(5) = 10 * 15 = 150
+	assert.Equal(t, 150, combined(5))
+
+	// Empty function returns 1
+	emptyFunc := funcMonoid.Empty()
+	assert.Equal(t, 1, emptyFunc(100))
+}
+
+// Test ApplicativeMonoid with None values
+func TestApplicativeMonoid_WithNone(t *testing.T) {
+	type Option[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Option[int] {
+		return Option[int]{value: &a}
+	}
+
+	none := func() Option[int] {
+		return Option[int]{value: nil}
+	}
+
+	fmap := func(opt Option[int], f func(int) func(int) int) Option[func(int) int] {
+		if opt.value == nil {
+			return Option[func(int) int]{value: nil}
+		}
+		fn := f(*opt.value)
+		return Option[func(int) int]{value: &fn}
+	}
+
+	fap := func(optF Option[func(int) int], opt Option[int]) Option[int] {
+		if optF.value == nil || opt.value == nil {
+			return none()
+		}
+		result := (*optF.value)(*opt.value)
+		return some(result)
+	}
+
+	intAddMonoid := MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+
+	optMonoid := ApplicativeMonoid(some, fmap, fap, intAddMonoid)
+
+	// Test concat with None values
+	t.Run("Some + None = None", func(t *testing.T) {
+		result := optMonoid.Concat(some(5), none())
+		assert.Nil(t, result.value)
+	})
+
+	t.Run("None + Some = None", func(t *testing.T) {
+		result := optMonoid.Concat(none(), some(5))
+		assert.Nil(t, result.value)
+	})
+
+	t.Run("None + None = None", func(t *testing.T) {
+		result := optMonoid.Concat(none(), none())
+		assert.Nil(t, result.value)
+	})
+}
+
+// Test AlternativeMonoid with multiple None values
+func TestAlternativeMonoid_MultipleNone(t *testing.T) {
+	type Option[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Option[int] {
+		return Option[int]{value: &a}
+	}
+
+	none := func() Option[int] {
+		return Option[int]{value: nil}
+	}
+
+	fmap := func(opt Option[int], f func(int) func(int) int) Option[func(int) int] {
+		if opt.value == nil {
+			return Option[func(int) int]{value: nil}
+		}
+		fn := f(*opt.value)
+		return Option[func(int) int]{value: &fn}
+	}
+
+	fap := func(optF Option[func(int) int], opt Option[int]) Option[int] {
+		if optF.value == nil || opt.value == nil {
+			return none()
+		}
+		result := (*optF.value)(*opt.value)
+		return some(result)
+	}
+
+	falt := func(first Option[int], second func() Option[int]) Option[int] {
+		if first.value != nil {
+			return first
+		}
+		return second()
+	}
+
+	intAddMonoid := MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+
+	optMonoid := AlternativeMonoid(some, fmap, fap, falt, intAddMonoid)
+
+	// Test with multiple None values
+	t.Run("None + None = None", func(t *testing.T) {
+		result := optMonoid.Concat(none(), none())
+		assert.Nil(t, result.value)
+	})
+
+	// Test associativity with None
+	t.Run("associativity with None", func(t *testing.T) {
+		opt1 := some(5)
+		opt2 := none()
+		opt3 := some(3)
+
+		left := optMonoid.Concat(optMonoid.Concat(opt1, opt2), opt3)
+		right := optMonoid.Concat(opt1, optMonoid.Concat(opt2, opt3))
+
+		// Both should handle None appropriately
+		assert.Equal(t, left.value != nil, right.value != nil)
+	})
+}
+
+// Test AltMonoid with multiple operations
+func TestAltMonoid_MultipleOperations(t *testing.T) {
+	type Option[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Option[int] {
+		return Option[int]{value: &a}
+	}
+
+	none := func() Option[int] {
+		return Option[int]{value: nil}
+	}
+
+	falt := func(first Option[int], second func() Option[int]) Option[int] {
+		if first.value != nil {
+			return first
+		}
+		return second()
+	}
+
+	optMonoid := AltMonoid(none, falt)
+
+	// Test chaining multiple operations
+	t.Run("chain multiple Some values", func(t *testing.T) {
+		opt1 := some(1)
+		opt2 := some(2)
+		opt3 := some(3)
+
+		// First Some should win
+		result := optMonoid.Concat(optMonoid.Concat(opt1, opt2), opt3)
+		assert.NotNil(t, result.value)
+		assert.Equal(t, 1, *result.value)
+	})
+
+	t.Run("chain with None in middle", func(t *testing.T) {
+		opt1 := none()
+		opt2 := some(2)
+		opt3 := some(3)
+
+		result := optMonoid.Concat(optMonoid.Concat(opt1, opt2), opt3)
+		assert.NotNil(t, result.value)
+		assert.Equal(t, 2, *result.value)
+	})
+
+	t.Run("all None", func(t *testing.T) {
+		result := optMonoid.Concat(optMonoid.Concat(none(), none()), none())
+		assert.Nil(t, result.value)
+	})
+}
+
+// Test AltMonoid identity laws
+func TestAltMonoid_IdentityLaws(t *testing.T) {
+	type Option[A any] struct {
+		value *A
+	}
+
+	some := func(a int) Option[int] {
+		return Option[int]{value: &a}
+	}
+
+	none := func() Option[int] {
+		return Option[int]{value: nil}
+	}
+
+	falt := func(first Option[int], second func() Option[int]) Option[int] {
+		if first.value != nil {
+			return first
+		}
+		return second()
+	}
+
+	optMonoid := AltMonoid(none, falt)
+
+	opt := some(42)
+	empty := optMonoid.Empty()
+
+	// Left identity: Empty + x = x
+	t.Run("left identity", func(t *testing.T) {
+		result := optMonoid.Concat(empty, opt)
+		assert.Equal(t, opt, result)
+	})
+
+	// Right identity: x + Empty = x
+	t.Run("right identity", func(t *testing.T) {
+		result := optMonoid.Concat(opt, empty)
+		assert.Equal(t, opt, result)
+	})
+}
+
 // Benchmark FunctionMonoid
 func BenchmarkFunctionMonoid(b *testing.B) {
 	intAddMonoid := MakeMonoid(

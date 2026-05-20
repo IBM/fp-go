@@ -17,7 +17,6 @@ package monoid
 
 import (
 	"github.com/IBM/fp-go/v2/function"
-	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
 // VoidMonoid creates a Monoid for the Void (unit) type.
@@ -59,7 +58,7 @@ import (
 //	_ = ConcatAll(m)(results)  // All actions executed, result is VOID
 func VoidMonoid() Monoid[Void] {
 	return MakeMonoid(
-		S.Last[Void]().Concat,
+		function.Constant2[Void, Void](function.VOID),
 		function.VOID,
 	)
 }
