@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/function"
 	F "github.com/IBM/fp-go/v2/function"
+	INTI "github.com/IBM/fp-go/v2/internal/iter"
 	"github.com/IBM/fp-go/v2/internal/record"
 )
 
@@ -34,6 +35,18 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 		Of[[]B],
 		Map[[]B, func(B) []B],
 		Ap[[]B, B],
+
+		F.Flow2(f, WithContext),
+	)
+}
+
+func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
+	return INTI.Traverse[Seq[A]](
+		Map[B],
+
+		Of[Seq[B]],
+		Map[Seq[B]],
+		Ap[Seq[B]],
 
 		F.Flow2(f, WithContext),
 	)
@@ -300,4 +313,16 @@ func MonadTraverseRecordPar[K comparable, A, B any](as map[K]A, f Kleisli[A, B])
 // Returns a ReaderIOResult containing a map of values.
 func SequenceRecordPar[K comparable, A any](ma map[K]ReaderIOResult[A]) ReaderIOResult[map[K]A] {
 	return MonadTraverseRecordPar(ma, function.Identity[ReaderIOResult[A]])
+}
+
+func TraversableArray[A, B any]() Traversable[A, B, []A, []B] {
+	return TraverseArray[A, B]
+}
+
+func TraversableRecord[K comparable, A, B any]() Traversable[A, B, map[K]A, map[K]B] {
+	return TraverseRecord[K, A, B]
+}
+
+func TraversableIter[A, B any]() Traversable[A, B, Seq[A], Seq[B]] {
+	return TraverseIter[A, B]
 }

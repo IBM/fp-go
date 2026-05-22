@@ -270,3 +270,7 @@ func TraverseSeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, iter.Seq[A], iter.S
 func SequenceSeq[E, A any](ma iter.Seq[Either[E, A]]) Either[E, iter.Seq[A]] {
 	return TraverseSeq(F.Identity[Either[E, A]])(ma)
 }
+
+func TraversableArray[E, A, B any]() Traversable[E, A, B, []A, []B] {
+	return TraverseArrayG[[]A, []B, E, A, B]
+}

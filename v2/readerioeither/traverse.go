@@ -16,6 +16,7 @@
 package readerioeither
 
 import (
+	INTI "github.com/IBM/fp-go/v2/internal/iter"
 	G "github.com/IBM/fp-go/v2/readerioeither/generic"
 )
 
@@ -49,6 +50,19 @@ import (
 //go:inline
 func TraverseArray[R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, []A, []B] {
 	return G.TraverseArray[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
+}
+
+//go:inline
+func TraverseIter[R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, Seq[A], Seq[B]] {
+	return INTI.Traverse[Seq[A]](
+		Map[R, E, B],
+
+		Of[R, E, Seq[B]],
+		Map[R, E, Seq[B]],
+		Ap[Seq[B], R, E],
+
+		f,
+	)
 }
 
 // TraverseArrayWithIndex is like TraverseArray but the transformation function also receives the index.
@@ -139,7 +153,7 @@ func SequenceArray[R, E, A any](ma []ReaderIOEither[R, E, A]) ReaderIOEither[R, 
 //	result := enrichUsers(map[string]User{"alice": user1, "bob": user2})
 //
 //go:inline
-func TraverseRecord[K comparable, R, E, A, B any](f func(A) ReaderIOEither[R, E, B]) func(map[K]A) ReaderIOEither[R, E, map[K]B] {
+func TraverseRecord[K comparable, R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, map[K]A, map[K]B] {
 	return G.TraverseRecord[ReaderIOEither[R, E, B], ReaderIOEither[R, E, map[K]B], IOEither[E, B], IOEither[E, map[K]B], map[K]A](f)
 }
 
@@ -203,4 +217,16 @@ func TraverseRecordWithIndex[K comparable, R, E, A, B any](f func(K, A) ReaderIO
 //go:inline
 func SequenceRecord[K comparable, R, E, A any](ma map[K]ReaderIOEither[R, E, A]) ReaderIOEither[R, E, map[K]A] {
 	return G.SequenceRecord[ReaderIOEither[R, E, A], ReaderIOEither[R, E, map[K]A]](ma)
+}
+
+func TraversableArray[R, E, A, B any]() Traversable[R, E, A, B, []A, []B] {
+	return TraverseArray[R, E, A, B]
+}
+
+func TraversableRecord[K comparable, R, E, A, B any]() Traversable[R, E, A, B, map[K]A, map[K]B] {
+	return TraverseRecord[K, R, E, A, B]
+}
+
+func TraversableIter[R, E, A, B any]() Traversable[R, E, A, B, Seq[A], Seq[B]] {
+	return TraverseIter[R, E, A, B]
 }

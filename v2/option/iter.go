@@ -74,3 +74,7 @@ func SequenceIter[A any](as Seq[Option[A]]) Option[Seq[A]] {
 		as,
 	)
 }
+
+func TraversableIter[A, B any]() Traversable[A, B, Seq[A], Seq[B]] {
+	return TraverseIter[A, B]
+}

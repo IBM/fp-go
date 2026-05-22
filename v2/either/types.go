@@ -16,6 +16,8 @@
 package either
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
@@ -58,4 +60,8 @@ type (
 	// Pair represents a tuple of two values of types L and R.
 	// It's commonly used to return multiple values from functions or to group related data.
 	Pair[L, R any] = pair.Pair[L, R]
+
+	Traversable[E, A, B, GA, GB any] = func(Kleisli[E, A, B]) Kleisli[E, GA, GB]
+
+	Seq[A any] = iter.Seq[A]
 )

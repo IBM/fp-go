@@ -16,7 +16,7 @@
 package monoid
 
 import (
-	S "github.com/IBM/fp-go/v2/semigroup"
+	AR "github.com/IBM/fp-go/v2/internal/array"
 )
 
 // GenericConcatAll combines all elements in a generic slice using a monoid.
@@ -48,7 +48,18 @@ import (
 //	result := concatAll(IntSlice{1, 2, 3, 4, 5})  // 15
 //	empty := concatAll(IntSlice{})                 // 0
 func GenericConcatAll[GA ~[]A, A any](m Monoid[A]) func(GA) A {
-	return S.GenericConcatAll[GA](S.MakeSemigroup(m.Concat))(m.Empty())
+	return func(g GA) A {
+		switch len(g) {
+		case 0:
+			return m.Empty()
+		case 1:
+			return g[0]
+		case 2:
+			return m.Concat(g[0], g[1])
+		default:
+			return AR.Reduce(g[1:], m.Concat, g[0])
+		}
+	}
 }
 
 // ConcatAll combines all elements in a slice using a monoid.

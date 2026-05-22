@@ -16,6 +16,8 @@
 package readerioeither
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
@@ -112,4 +114,8 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Lazy[A any] = lazy.Lazy[A]
+
+	Seq[T any] = iter.Seq[T]
+
+	Traversable[R, E, A, B, GA, GB any] = func(Kleisli[R, E, A, B]) Kleisli[R, E, GA, GB]
 )

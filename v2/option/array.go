@@ -158,3 +158,47 @@ func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 func CompactArray[A any](fa []Option[A]) []A {
 	return CompactArrayG[[]Option[A], []A](fa)
 }
+
+// TraversableArray returns a Traversable instance for arrays.
+// A Traversable represents a data structure that can be traversed from left to right,
+// applying an effectful function to each element and collecting the results.
+//
+// This function provides a way to obtain the traversal operation for arrays as a
+// first-class value, which is useful when you need to pass the traversal operation
+// as a parameter or compose it with other operations.
+//
+// Type Parameters:
+//   - A: The input element type
+//   - B: The output element type
+//
+// Returns:
+//   - Traversable[A, B, []A, []B]: A function that takes a Kleisli arrow and returns
+//     another Kleisli arrow that operates on arrays
+//
+// The returned Traversable has the signature:
+//
+//	func(Kleisli[A, B]) Kleisli[[]A, []B]
+//
+// which is equivalent to:
+//
+//	func(func(A) Option[B]) func([]A) Option[[]B]
+//
+// Example:
+//
+//	// Get the traversable instance
+//	traversable := TraversableArray[string, int]()
+//
+//	// Use it with a parsing function
+//	parse := func(s string) Option[int] {
+//	    n, err := strconv.Atoi(s)
+//	    if err != nil { return None[int]() }
+//	    return Some(n)
+//	}
+//	result := traversable(parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
+//
+// See Also:
+//   - TraverseArray: Direct traversal without obtaining the Traversable instance
+//   - TraverseArrayG: Generic version supporting custom slice types
+func TraversableArray[A, B any]() Traversable[A, B, []A, []B] {
+	return TraverseArrayG[[]A, []B, A, B]
+}

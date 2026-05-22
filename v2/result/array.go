@@ -238,3 +238,7 @@ func TraverseSeq[A, B any](f Kleisli[A, B]) Kleisli[iter.Seq[A], iter.Seq[B]] {
 func SequenceSeq[A any](ma iter.Seq[Result[A]]) Result[iter.Seq[A]] {
 	return either.SequenceSeq(ma)
 }
+
+func TraversableArray[A, B any]() Traversable[A, B, []A, []B] {
+	return either.TraversableArray[error, A, B]()
+}

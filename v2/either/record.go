@@ -184,3 +184,7 @@ func CompactRecordG[M1 ~map[K]Either[E, A], M2 ~map[K]A, K comparable, E, A any]
 func CompactRecord[K comparable, E, A any](m map[K]Either[E, A]) map[K]A {
 	return CompactRecordG[map[K]Either[E, A], map[K]A](m)
 }
+
+func TraversableRecord[K comparable, E, A, B any]() Traversable[E, A, B, map[K]A, map[K]B] {
+	return TraverseRecordG[map[K]A, map[K]B, K, E, A, B]
+}

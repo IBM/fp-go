@@ -9,6 +9,15 @@ import (
 )
 
 type (
+
+	// Traversable is a type class that represents data structures that can be traversed from left to right,
+	// Example:
+	// A - item type
+	// HKT_F_B = F[B]
+	// HKT_T_A = []A
+	// HKT_F_T_B = F[[]B]
+	Traversable[A, HKT_F_B, HKT_T_A, HKT_F_T_B any] = func(func(A) HKT_F_B) func(HKT_T_A) HKT_F_T_B
+
 	Pointed[A, HKT_A any]                       = pointed.Pointed[A, HKT_A]
 	Functor[A, B, HKT_A, HKT_B any]             = functor.Functor[A, B, HKT_A, HKT_B]
 	Applicative[A, B, HKT_A, HKT_B, HKT_AB any] = applicative.Applicative[A, B, HKT_A, HKT_B, HKT_AB]

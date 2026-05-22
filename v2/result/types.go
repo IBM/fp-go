@@ -16,6 +16,8 @@
 package result
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/lazy"
@@ -64,4 +66,8 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Pair[L, R any] = pair.Pair[L, R]
+
+	Traversable[A, B, GA, GB any] = func(Kleisli[A, B]) Kleisli[GA, GB]
+
+	Seq[A any] = iter.Seq[A]
 )

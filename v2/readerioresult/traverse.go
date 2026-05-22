@@ -204,3 +204,15 @@ func TraverseRecordWithIndex[K comparable, R, A, B any](f func(K, A) ReaderIORes
 func SequenceRecord[K comparable, R, A any](ma map[K]ReaderIOResult[R, A]) ReaderIOResult[R, map[K]A] {
 	return RIOE.SequenceRecord(ma)
 }
+
+func TraversableArray[R, A, B any]() Traversable[R, A, B, []A, []B] {
+	return RIOE.TraversableArray[R, error, A, B]()
+}
+
+func TraversableRecord[K comparable, R, A, B any]() Traversable[R, A, B, map[K]A, map[K]B] {
+	return RIOE.TraversableRecord[K, R, error, A, B]()
+}
+
+func TraversableIter[R, A, B any]() Traversable[R, A, B, Seq[A], Seq[B]] {
+	return RIOE.TraversableIter[R, error, A, B]()
+}

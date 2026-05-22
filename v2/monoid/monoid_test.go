@@ -702,7 +702,7 @@ func TestFunctionMonoid_IdentityLaws(t *testing.T) {
 		0,
 	)
 
-	funcMonoid := FunctionMonoid[string, int](intAddMonoid)
+	funcMonoid := FunctionMonoid[string](intAddMonoid)
 
 	f := func(s string) int { return len(s) * 3 }
 	emptyFunc := funcMonoid.Empty()
@@ -729,7 +729,7 @@ func TestFunctionMonoid_Associativity(t *testing.T) {
 		0,
 	)
 
-	funcMonoid := FunctionMonoid[string, int](intAddMonoid)
+	funcMonoid := FunctionMonoid[string](intAddMonoid)
 
 	f1 := func(s string) int { return len(s) }
 	f2 := func(s string) int { return len(s) * 2 }
@@ -757,7 +757,7 @@ func TestFunctionMonoid_Multiplication(t *testing.T) {
 		1,
 	)
 
-	funcMonoid := FunctionMonoid[int, int](intMulMonoid)
+	funcMonoid := FunctionMonoid[int](intMulMonoid)
 
 	double := func(n int) int { return n * 2 }
 	triple := func(n int) int { return n * 3 }

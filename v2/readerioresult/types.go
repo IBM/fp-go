@@ -16,6 +16,8 @@
 package readerioresult
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
@@ -125,4 +127,8 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Void = function.Void
+
+	Seq[A any] = iter.Seq[A]
+
+	Traversable[R, A, B, GA, GB any] = func(Kleisli[R, A, B]) Kleisli[R, GA, GB]
 )

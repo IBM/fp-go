@@ -115,7 +115,7 @@ func TestCompose_Success(t *testing.T) {
 
 		scoreTraversal := F.Pipe1(
 			scoresLens,
-			Compose[Stats, []int, int](arrayTraversal),
+			Compose[Stats](arrayTraversal),
 		)
 
 		stats := Stats{

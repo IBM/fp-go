@@ -148,3 +148,7 @@ func CompactRecordG[M1 ~map[K]Option[A], M2 ~map[K]A, K comparable, A any](m M1)
 func CompactRecord[K comparable, A any](m map[K]Option[A]) map[K]A {
 	return CompactRecordG[map[K]Option[A], map[K]A](m)
 }
+
+func TraversableRecord[K comparable, A, B any]() Traversable[A, B, map[K]A, map[K]B] {
+	return TraverseRecordG[map[K]A, map[K]B, K, A, B]
+}

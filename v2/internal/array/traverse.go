@@ -219,6 +219,65 @@ func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	}
 }
 
+// Traversable creates a fully curried traversal function that can be specialized for different effects.
+// This is the most abstract form of traverse, returning a function that takes the transformation
+// function and then the array, enabling maximum composability and reusability.
+//
+// This function is useful when you want to create a reusable traversal operation that can be
+// applied to different transformation functions and arrays. It's particularly valuable in
+// point-free style programming and when building traversal pipelines.
+//
+// Type Parameters:
+//   - GA: The input array type (e.g., []A)
+//   - GB: The output array type (e.g., []B)
+//   - A: The input element type
+//   - B: The output element type
+//   - HKTB: The effect containing B (e.g., Option[B], Either[E, B])
+//   - HKTAB: Intermediate applicative type for function application
+//   - HKTRB: The effect containing the result array (e.g., Option[[]B])
+//
+// Parameters:
+//   - fof: Function to lift a value into the effect (Of/Pure from the applicative)
+//   - fmap: Function to map over the effect (Map from the functor)
+//   - fap: Function to apply an effect of a function to an effect of a value (Ap from the applicative)
+//
+// Returns:
+//   - A function that takes a transformation function and returns a function that takes an array
+//     and returns an effect containing the transformed array
+//
+// Example:
+//
+//	import (
+//	    O "github.com/IBM/fp-go/v2/option"
+//	    A "github.com/IBM/fp-go/v2/array/generic"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Create a reusable Option traversal for string arrays
+//	traverseOption := A.Traversable[[]string, []int](
+//	    O.Of[[]int],
+//	    O.Map[[]int, func(int) []int],
+//	    O.Ap[int, []int],
+//	)
+//
+//	// Use it with different transformation functions
+//	parseInts := traverseOption(result.Eitherize1(strconv.Atoi))
+//	result1 := parseInts([]string{"1", "2", "3"})  // Some([1, 2, 3])
+//	result2 := parseInts([]string{"1", "x", "3"})  // None
+//
+// See Also:
+//   - Traverse: Non-curried version that takes the transformation function directly
+//   - MonadTraverse: Version that takes the array as a direct parameter
+func Traversable[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
+	fof func(GB) HKTRB,
+	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
+	fap func(HKTB) func(HKTAB) HKTRB,
+) func(func(A) HKTB) func(GA) HKTRB {
+	return func(f func(A) HKTB) func(GA) HKTRB {
+		return Traverse[GA](fof, fmap, fap, f)
+	}
+}
+
 // TraverseWithIndex creates a curried function like Traverse but with index-aware transformation.
 // This is the curried version of MonadTraverseWithIndex.
 //

@@ -610,6 +610,11 @@ func Concat[A, HKTA, S, HKTS any](
 // This monoid instance enables you to use traversals with generic monoid operations
 // like fold, reduce, or mconcat to combine multiple traversals into one.
 //
+// Note: This monoid works sequentially, processing traversals one after another using
+// the chain operation. For better performance with parallel composition, consider using
+// optics/traversalendo/generic.MakeMonoid instead, which uses applicative operations
+// to combine traversals more efficiently.
+//
 // Type Parameters:
 //   - S: The source type
 //   - A: The focus type

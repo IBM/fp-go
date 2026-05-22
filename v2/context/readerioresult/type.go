@@ -227,4 +227,6 @@ type (
 	// stopping early if yield returns false.
 	// See the [iter] package documentation for more details.
 	Seq[A any] = iter.Seq[A]
+
+	Traversable[A, B, GA, GB any] = func(Kleisli[A, B]) Kleisli[GA, GB]
 )
