@@ -15,8 +15,8 @@ type (
 
 	Optional[S, A any] = optional.Optional[S, A]
 
-	// HKTS = HKT[Endomorphism[S]]
-	Traversal[S, A, HKTS, HKTA any] = TG.Traversal[S, A, HKTS, HKTA]
+	// HKTES = HKT[Endomorphism[S]]
+	Traversal[S, A, HKTES, HKTA any] = TG.Traversal[S, A, HKTES, HKTA]
 
 	Monoid[T any] = monoid.Monoid[T]
 )
