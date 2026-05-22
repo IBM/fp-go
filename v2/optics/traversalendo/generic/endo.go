@@ -92,7 +92,7 @@ import (
 //   - MakeMonoid: Create a monoid for combining traversal endomorphisms
 //   - Concat: Combine two traversal endomorphisms
 func Compose[
-	S, HKTES, A, HKTEA, B, HKTA, HKTB any](
+	S, B, HKTES, HKTB, A, HKTEA, HKTA any](
 	fmap functor.MapType[Endomorphism[A], A, HKTEA, HKTA],
 ) func(Traversal[A, B, HKTEA, HKTB]) func(Traversal[S, A, HKTES, HKTA]) Traversal[S, B, HKTES, HKTB] {
 	readA := F.Flow2(
