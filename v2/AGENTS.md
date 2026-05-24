@@ -55,6 +55,7 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    - Use idiomatic Go patterns
    - Prefer `result.Eitherize1(strconv.Atoi)` over manual error handling
    - Prefer `strconv.Itoa` over `func(x int) string { return fmt.Sprintf("%d", x) }`
+   - Prefer direct function references such as `strconv.Itoa` over redundant wrappers like `func(x int) string { return strconv.Itoa(x) }`
    - In documentation examples, prefer reusable combinators over ad-hoc closures when an equivalent helper exists
    - Prefer `F.Flow2(option.Predicate(N.MoreThan(0)), option.Map(N.Mul(2)))` over `func(x int) Option[int] { if x > 0 { return Some(x * 2) }; return None[int]() }` in non-idiomatic option examples
    - Prefer `S.Format[T]("...")` over `func(x T) string { return fmt.Sprintf("...", x) }`, matching the type parameter to the formatted value

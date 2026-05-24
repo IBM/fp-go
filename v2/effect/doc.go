@@ -57,9 +57,7 @@ Creating Effects:
 Transforming Effects:
 
 	// Map over the success value
-	effect.Map[MyContext](func(x int) string {
-		return strconv.Itoa(x)
-	})
+	effect.Map[MyContext](strconv.Itoa)
 
 	// Chain effects together (flatMap)
 	effect.Chain[MyContext](func(x int) Effect[MyContext, string] {
@@ -137,9 +135,7 @@ Apply effects in parallel:
 Traverse collections with effects:
 
 	// Map an array with an effectful function
-	effect.TraverseArray[MyContext](func(x int) Effect[MyContext, string] {
-		return effect.Succeed[MyContext, string](strconv.Itoa(x))
-	})
+	effect.TraverseArray[MyContext](F.Flow2(strconv.Itoa, effect.Succeed[MyContext, string]))
 
 # Retry Logic
 
