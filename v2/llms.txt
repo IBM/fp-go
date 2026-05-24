@@ -53,14 +53,14 @@ import (
 // Pipe: apply value through a chain of transformations (value first, then operations)
 out := function.Pipe3(
     option.Some(42),
-    option.Map(func(x int) int { return x * 2 }),
+    option.Map(N.Mul(2)),
     option.Filter(func(x int) bool { return x > 50 }),
     option.GetOrElse(func() int { return 0 }),
 )
 
 // Flow: compose functions without a starting value (returns a new function)
 transform := function.Flow3(
-    option.Map(func(x int) int { return x * 2 }),
+    option.Map(N.Mul(2)),
     option.Filter(func(x int) bool { return x > 50 }),
     option.GetOrElse(func() int { return 0 }),
 )

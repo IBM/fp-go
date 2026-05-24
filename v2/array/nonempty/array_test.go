@@ -144,7 +144,7 @@ func TestToNonEmptyArrayWithOption(t *testing.T) {
 		result := F.Pipe2(
 			input,
 			ToNonEmptyArray[int],
-			O.Map(Map(func(x int) int { return x * 2 })),
+			O.Map(Map(N.Mul(2))),
 		)
 
 		assert.True(t, O.IsSome(result))
@@ -451,7 +451,7 @@ func TestIsNonEmpty(t *testing.T) {
 func TestMonadMap(t *testing.T) {
 	t.Run("Map integers to doubles", func(t *testing.T) {
 		arr := From(1, 2, 3, 4)
-		result := MonadMap(arr, func(x int) int { return x * 2 })
+		result := MonadMap(arr, N.Mul(2))
 		assert.Equal(t, 4, Size(result))
 		assert.Equal(t, 2, Head(result))
 		assert.Equal(t, 8, Last(result))
@@ -467,7 +467,7 @@ func TestMonadMap(t *testing.T) {
 
 	t.Run("Map single element", func(t *testing.T) {
 		arr := Of(5)
-		result := MonadMap(arr, func(x int) int { return x * 10 })
+		result := MonadMap(arr, N.Mul(10))
 		assert.Equal(t, 1, Size(result))
 		assert.Equal(t, 50, Head(result))
 	})
@@ -476,7 +476,7 @@ func TestMonadMap(t *testing.T) {
 // TestMap tests the Map function
 func TestMap(t *testing.T) {
 	t.Run("Curried map with integers", func(t *testing.T) {
-		double := Map(func(x int) int { return x * 2 })
+		double := Map(N.Mul(2))
 		arr := From(1, 2, 3)
 		result := double(arr)
 		assert.Equal(t, 3, Size(result))
@@ -726,7 +726,7 @@ func TestChain(t *testing.T) {
 func TestMonadAp(t *testing.T) {
 	t.Run("Apply functions to values", func(t *testing.T) {
 		fns := From(
-			func(x int) int { return x * 2 },
+			N.Mul(2),
 			func(x int) int { return x + 10 },
 		)
 		vals := From(1, 2)
@@ -750,7 +750,7 @@ func TestAp(t *testing.T) {
 		vals := From(1, 2)
 		applyTo := Ap[int](vals)
 		fns := From(
-			func(x int) int { return x * 2 },
+			N.Mul(2),
 			func(x int) int { return x + 10 },
 		)
 		result := applyTo(fns)
@@ -764,7 +764,7 @@ func TestFoldMap(t *testing.T) {
 	t.Run("FoldMap with sum semigroup", func(t *testing.T) {
 		sumSemigroup := N.SemigroupSum[int]()
 		arr := From(1, 2, 3, 4)
-		result := FoldMap[int](sumSemigroup)(func(x int) int { return x * 2 })(arr)
+		result := FoldMap[int](sumSemigroup)(N.Mul(2))(arr)
 		assert.Equal(t, 20, result) // (1*2) + (2*2) + (3*2) + (4*2) = 20
 	})
 

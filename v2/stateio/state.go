@@ -43,7 +43,7 @@ func Of[S, A any](a A) StateIO[S, A] {
 //
 //	result := MonadMap(
 //	    Of[AppState](21),
-//	    func(x int) int { return x * 2 },
+//	    N.Mul(2),
 //	) // Result contains 42
 func MonadMap[S, A, B any](fa StateIO[S, A], f func(A) B) StateIO[S, B] {
 	return statet.MonadMap[StateIO[S, A], StateIO[S, B]](
@@ -58,7 +58,7 @@ func MonadMap[S, A, B any](fa StateIO[S, A], f func(A) B) StateIO[S, B] {
 //
 // Example:
 //
-//	double := Map[AppState](func(x int) int { return x * 2 })
+//	double := Map[AppState](N.Mul(2))
 //	result := function.Pipe1(Of[AppState](21), double)
 func Map[S, A, B any](f func(A) B) Operator[S, A, B] {
 	return statet.Map[StateIO[S, A], StateIO[S, B]](
@@ -109,7 +109,7 @@ func Chain[S, A, B any](f Kleisli[S, A, B]) Operator[S, A, B] {
 //
 // Example:
 //
-//	fab := Of[AppState](func(x int) int { return x * 2 })
+//	fab := Of[AppState](N.Mul(2))
 //	fa := Of[AppState](21)
 //	result := MonadAp(fab, fa) // Result contains 42
 func MonadAp[B, S, A any](fab StateIO[S, func(A) B], fa StateIO[S, A]) StateIO[S, B] {

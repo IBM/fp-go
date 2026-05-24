@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 )
@@ -158,7 +159,7 @@ func TestCompressWithChainedOperations(t *testing.T) {
 		result := toSlice(
 			MonadMap(
 				Compress[int](selectors)(data),
-				func(x int) int { return x * 10 },
+				N.Mul(10),
 			),
 		)
 		assert.Equal(t, []int{10, 30, 50}, result)
@@ -166,7 +167,7 @@ func TestCompressWithChainedOperations(t *testing.T) {
 
 	t.Run("map then compress", func(t *testing.T) {
 		data := From(1, 2, 3, 4, 5)
-		mapped := MonadMap(data, func(x int) int { return x * 2 })
+		mapped := MonadMap(data, N.Mul(2))
 		selectors := From(true, true, false, false, true)
 		result := toSlice(Compress[int](selectors)(mapped))
 		assert.Equal(t, []int{2, 4, 10}, result)

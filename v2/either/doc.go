@@ -48,7 +48,7 @@
 //	// Pattern matching with Fold
 //	result := either.Fold(
 //	    func(err error) string { return "Error: " + err.Error() },
-//	    func(n int) string { return fmt.Sprintf("Success: %d", n) },
+//	    S.Format[int]("Success: %d"),
 //	)(success)
 //
 //	// Chaining operations (short-circuits on Left)

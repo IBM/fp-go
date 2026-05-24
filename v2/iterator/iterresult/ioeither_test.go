@@ -24,6 +24,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/iterator/iter"
+	N "github.com/IBM/fp-go/v2/number"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -124,7 +125,7 @@ func TestFromIO_Success(t *testing.T) {
 		io := func() int { return 10 }
 		seq := F.Pipe1(
 			FromIO(io),
-			Map(func(x int) int { return x * 2 }),
+			Map(N.Mul(2)),
 		)
 		collected := slices.Collect(F.Pipe1(seq, GetOrElse(
 			func(e error) Seq[int] { t.Fatal(e); return nil },
@@ -333,7 +334,7 @@ func TestFromLazy_EdgeCases(t *testing.T) {
 
 	t.Run("handles function returning function", func(t *testing.T) {
 		lazy := func() func(int) int {
-			return func(x int) int { return x * 2 }
+			return N.Mul(2)
 		}
 		seq := FromLazy(lazy)
 		collected := slices.Collect(F.Pipe1(seq, GetOrElse(
@@ -477,7 +478,7 @@ func TestFromIOResult_Success(t *testing.T) {
 		ior := func() R.Result[int] { return R.Of(10) }
 		seq := F.Pipe1(
 			FromIOResult(ior),
-			Map(func(x int) int { return x * 2 }),
+			Map(N.Mul(2)),
 		)
 		collected := slices.Collect(F.Pipe1(seq, GetOrElse(
 			func(e error) Seq[int] { t.Fatal(e); return nil },
@@ -489,7 +490,7 @@ func TestFromIOResult_Success(t *testing.T) {
 		ior := func() R.Result[int] { return R.Left[int](errors.New("error")) }
 		seq := F.Pipe1(
 			FromIOResult(ior),
-			Map(func(x int) int { return x * 2 }),
+			Map(N.Mul(2)),
 		)
 		var err error
 		for r := range seq {
@@ -732,7 +733,7 @@ func TestMonadMap(t *testing.T) {
 			}
 			yield(R.Right(3))
 		}
-		result := MonadMap(input, func(x int) int { return x * 2 })
+		result := MonadMap(input, N.Mul(2))
 		collected := slices.Collect(F.Pipe1(result, GetOrElse(
 			func(e error) Seq[int] { t.Fatal(e); return nil },
 		)))
@@ -750,7 +751,7 @@ func TestMonadMap(t *testing.T) {
 			}
 			yield(R.Right(3))
 		}
-		result := MonadMap(input, func(x int) int { return x * 2 })
+		result := MonadMap(input, N.Mul(2))
 
 		var foundError bool
 		for e := range result {
@@ -772,7 +773,7 @@ func TestMap(t *testing.T) {
 			}
 			yield(R.Right(2))
 		}
-		double := Map(func(x int) int { return x * 2 })
+		double := Map(N.Mul(2))
 		result := double(input)
 		collected := slices.Collect(F.Pipe1(result, GetOrElse(
 			func(e error) Seq[int] { t.Fatal(e); return nil },
@@ -1060,7 +1061,7 @@ func TestMonadBiMap(t *testing.T) {
 
 		result := MonadBiMap(input,
 			func(e error) error { return errors.New("mapped: " + e.Error()) },
-			func(x int) int { return x * 2 },
+			N.Mul(2),
 		)
 
 		var values []int

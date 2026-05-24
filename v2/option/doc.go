@@ -61,43 +61,33 @@
 //
 // Map transforms the contained value:
 //
-//	result := F.Pipe1(Some(42), Map(func(x int) string {
-//	    return fmt.Sprintf("%d", x)
-//	}))  // Some("42")
+//	result := F.Pipe1(Some(42), Map(strconv.Itoa))  // Some("42")
 //
 // Chain sequences operations that may fail:
 //
-//	result := F.Pipe1(Some(5), Chain(func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	}))  // Some(10)
+//	result := F.Pipe1(Some(5), Chain(F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))))  // Some(10)
 //
 // Filter keeps values that satisfy a predicate:
 //
-//	result := F.Pipe1(Some(5), Filter(func(x int) bool {
-//	    return x > 0
-//	}))  // Some(5)
+//	result := F.Pipe1(Some(5), Filter(N.MoreThan(0)))  // Some(5)
 //
 // # Working with Collections
 //
 // Transform arrays:
 //
-//	result := F.Pipe1([]int{1, 2, 3}, TraverseArray(func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	}))  // Some([2, 4, 6])
+//	result := F.Pipe1([]int{1, 2, 3}, TraverseArray(F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))))  // Some([2, 4, 6])
 //
 // Sequence arrays of Options:
 //
-//	result := SequenceArray([]Option[int]{
+//	result := SequenceArray(A.From(
 //	    Some(1), Some(2), Some(3),
-//	})  // Some([1, 2, 3])
+//	))  // Some([1, 2, 3])
 //
 // Compact arrays (remove None values):
 //
-//	result := CompactArray([]Option[int]{
+//	result := CompactArray(A.From(
 //	    Some(1), None[int](), Some(3),
-//	})  // [1, 3]
+//	))  // [1, 3]
 //
 // # Algebraic Operations
 //

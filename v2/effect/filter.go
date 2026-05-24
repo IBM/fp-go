@@ -86,7 +86,7 @@ func Filter[C, HKTA, A any](
 //
 // # Example Usage
 //
-//	isPositive := func(n int) bool { return n > 0 }
+//	isPositive := N.MoreThan(0)
 //	filterPositive := FilterArray[MyContext](isPositive)
 //
 //	pipeline := F.Pipe1(

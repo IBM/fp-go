@@ -17,6 +17,7 @@ package record
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	O "github.com/IBM/fp-go/v2/option"
@@ -108,9 +109,7 @@ func TestNilMap_ReduceRefWithIndex(t *testing.T) {
 // TestNilMap_MonadMap verifies that MonadMap handles nil maps correctly
 func TestNilMap_MonadMap(t *testing.T) {
 	var nilMap Record[string, int]
-	result := MonadMap(nilMap, func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	result := MonadMap(nilMap, strconv.Itoa)
 	assert.NotNil(t, result, "MonadMap should return non-nil map")
 	assert.Equal(t, 0, len(result), "MonadMap should return empty map for nil input")
 }
@@ -148,9 +147,7 @@ func TestNilMap_MonadMapRef(t *testing.T) {
 // TestNilMap_Map verifies that Map handles nil maps correctly
 func TestNilMap_Map(t *testing.T) {
 	var nilMap Record[string, int]
-	mapper := Map[string](func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	mapper := Map[string](strconv.Itoa)
 	result := mapper(nilMap)
 	assert.NotNil(t, result, "Map should return non-nil map")
 	assert.Equal(t, 0, len(result), "Map should return empty map for nil input")
@@ -516,9 +513,7 @@ func TestNilMap_ConstNil(t *testing.T) {
 func TestNilMap_FoldMap(t *testing.T) {
 	var nilMap Record[string, int]
 	monoid := S.Monoid
-	foldMap := FoldMap[string, int, string](monoid)(func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	foldMap := FoldMap[string, int, string](monoid)(strconv.Itoa)
 	result := foldMap(nilMap)
 	assert.Equal(t, "", result, "FoldMap should return empty value for nil map")
 }

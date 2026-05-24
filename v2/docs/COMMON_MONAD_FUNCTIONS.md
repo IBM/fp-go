@@ -148,7 +148,7 @@ result := computation() // 42
 **Example**:
 ```go
 // Option
-double := option.Map(func(x int) int { return x * 2 })
+double := option.Map(N.Mul(2))
 result := double(option.Some(21)) // Some(42)
 
 // Either
@@ -219,7 +219,7 @@ result := F.Pipe2(
 
 // Either - fail-fast on first error
 result := F.Pipe1(
-    either.Right[error](func(x int) int { return x * 2 }),
+    either.Right[error](N.Mul(2)),
     either.Ap[int](either.Right[error](21)),
 ) // Right(42)
 ```

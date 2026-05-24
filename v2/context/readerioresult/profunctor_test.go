@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/ioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/pair"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -496,7 +497,7 @@ func TestLocalIOResultK_Integration(t *testing.T) {
 			}
 		}
 
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 
 		adapted := F.Flow2(
 			LocalIOResultK[int](addValue),

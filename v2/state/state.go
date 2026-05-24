@@ -110,7 +110,7 @@ func Of[S, A any](a A) State[S, A] {
 //
 //	type Counter struct { count int }
 //	computation := Of[Counter](10)
-//	doubled := MonadMap(computation, func(x int) int { return x * 2 })
+//	doubled := MonadMap(computation, N.Mul(2))
 //	result := doubled(Counter{count: 5})
 //	// result = Pair{head: Counter{count: 5}, tail: 20}
 //
@@ -125,7 +125,7 @@ func MonadMap[S any, FCT ~func(A) B, A, B any](fa State[S, A], f FCT) State[S, B
 // Example:
 //
 //	type Counter struct { count int }
-//	double := Map[Counter](func(x int) int { return x * 2 })
+//	double := Map[Counter](N.Mul(2))
 //	computation := function.Pipe1(Of[Counter](10), double)
 //	result := computation(Counter{count: 5})
 //	// result = Pair{head: Counter{count: 5}, tail: 20}
@@ -186,7 +186,7 @@ func Chain[S any, FCT ~func(A) State[S, B], A, B any](f FCT) Operator[S, A, B] {
 // Example:
 //
 //	type Counter struct { count int }
-//	fab := Of[Counter](func(x int) int { return x * 2 })
+//	fab := Of[Counter](N.Mul(2))
 //	fa := Of[Counter](21)
 //	result := MonadAp(fab, fa)(Counter{count: 5})
 //	// result = Pair{head: Counter{count: 5}, tail: 42}
@@ -206,7 +206,7 @@ func MonadAp[B, S, A any](fab State[S, func(A) B], fa State[S, A]) State[S, B] {
 //
 //	type Counter struct { count int }
 //	computation := function.Pipe1(
-//	    Of[Counter](func(x int) int { return x * 2 }),
+//	    Of[Counter](N.Mul(2)),
 //	    Ap[int](Of[Counter](21)),
 //	)
 //	result := computation(Counter{count: 5})
@@ -314,7 +314,7 @@ func Evaluate[A, S any](s S) func(State[S, A]) A {
 // Example:
 //
 //	type Counter struct { count int }
-//	fab := Of[Counter](func(x int) int { return x * 2 })
+//	fab := Of[Counter](N.Mul(2))
 //	result := MonadFlap(fab, 21)(Counter{count: 5})
 //	// result = Pair{head: Counter{count: 5}, tail: 42}
 func MonadFlap[FAB ~func(A) B, S, A, B any](fab State[S, FAB], a A) State[S, B] {
@@ -332,7 +332,7 @@ func MonadFlap[FAB ~func(A) B, S, A, B any](fab State[S, FAB], a A) State[S, B] 
 //	type Counter struct { count int }
 //	applyTwentyOne := Flap[Counter, int, int](21)
 //	computation := function.Pipe1(
-//	    Of[Counter](func(x int) int { return x * 2 }),
+//	    Of[Counter](N.Mul(2)),
 //	    applyTwentyOne,
 //	)
 //	result := computation(Counter{count: 5})

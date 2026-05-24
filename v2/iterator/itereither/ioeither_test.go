@@ -24,6 +24,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	"github.com/IBM/fp-go/v2/iterator/iter"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -154,7 +155,7 @@ func TestFromIO_Success(t *testing.T) {
 		io := func() int { return 10 }
 		seq := F.Pipe1(
 			FromIO[string](io),
-			Map[string](func(x int) int { return x * 2 }),
+			Map[string](N.Mul(2)),
 		)
 		result := collectEithers(seq)
 		assert.Equal(t, []Either[string, int]{E.Right[string](20)}, result)
@@ -349,7 +350,7 @@ func TestFromLazy_EdgeCases(t *testing.T) {
 
 	t.Run("handles function returning function", func(t *testing.T) {
 		lazy := func() func(int) int {
-			return func(x int) int { return x * 2 }
+			return N.Mul(2)
 		}
 		seq := FromLazy[error](lazy)
 		result := collectEithers(seq)
@@ -490,7 +491,7 @@ func TestFromIOEither_Success(t *testing.T) {
 		ioe := func() Either[string, int] { return E.Right[string](10) }
 		seq := F.Pipe1(
 			FromIOEither(ioe),
-			Map[string](func(x int) int { return x * 2 }),
+			Map[string](N.Mul(2)),
 		)
 		result := collectEithers(seq)
 		assert.Equal(t, []Either[string, int]{E.Right[string](20)}, result)
@@ -500,7 +501,7 @@ func TestFromIOEither_Success(t *testing.T) {
 		ioe := func() Either[string, int] { return E.Left[int]("error") }
 		seq := F.Pipe1(
 			FromIOEither(ioe),
-			Map[string](func(x int) int { return x * 2 }),
+			Map[string](N.Mul(2)),
 		)
 		result := collectEithers(seq)
 		assert.Equal(t, []Either[string, int]{E.Left[int]("error")}, result)
@@ -1814,7 +1815,7 @@ func TestCollect_Integration(t *testing.T) {
 			E.Right[string](2),
 			E.Right[string](3),
 		)
-		mapped := MonadMap(seq, func(x int) int { return x * 2 })
+		mapped := MonadMap(seq, N.Mul(2))
 		result := Collect(mapped)
 		assert.Equal(t, E.Right[string]([]int{2, 4, 6}), result())
 	})

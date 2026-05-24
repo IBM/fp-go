@@ -25,6 +25,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	N "github.com/IBM/fp-go/v2/number"
 	R "github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/stretchr/testify/assert"
@@ -371,7 +372,7 @@ func TestReadIOEither(t *testing.T) {
 		// Chain multiple operations
 		result := F.Pipe2(
 			Of[Config, error](10),
-			Map[Config, error](func(x int) int { return x * 2 }),
+			Map[Config, error](N.Mul(2)),
 			ReadIOEither[int](configIO),
 		)()
 
@@ -851,7 +852,7 @@ func TestChainFirstIOEitherK(t *testing.T) {
 		pipeline := F.Pipe2(
 			Of[Config, error](10),
 			ChainFirstIOEitherK[Config](validate),
-			Map[Config, error](func(x int) int { return x * 2 }),
+			Map[Config, error](N.Mul(2)),
 		)
 
 		result := pipeline(Config{})()
@@ -1041,7 +1042,7 @@ func TestTapIOEitherK(t *testing.T) {
 
 		pipeline := F.Pipe3(
 			Of[Config, error](10),
-			Map[Config, error](func(x int) int { return x * 2 }),
+			Map[Config, error](N.Mul(2)),
 			TapIOEitherK[Config](tapFunc),
 			Map[Config, error](func(x int) int { return x + 5 }),
 		)

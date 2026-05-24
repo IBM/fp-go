@@ -384,7 +384,7 @@ func Ap[A, B any](fa ReaderResult[A]) func(ReaderResult[func(A) B]) ReaderResult
 // Example:
 //
 //	isPositive := readerresult.FromPredicate(
-//	    func(x int) bool { return x > 0 },
+//	    N.MoreThan(0),
 //	    func(x int) error { return fmt.Errorf("%d is not positive", x) },
 //	)
 //	result1 := isPositive(42)(t.Context()) // Right(42)

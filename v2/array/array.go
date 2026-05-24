@@ -1262,7 +1262,7 @@ func MonadFlap[B, A any](fab []func(A) B, a A) []B {
 // # Example
 //
 //	fns := []func(int) int{
-//	    func(x int) int { return x * 2 },
+//	    N.Mul(2),
 //	    func(x int) int { return x + 10 },
 //	    func(x int) int { return x * x },
 //	}

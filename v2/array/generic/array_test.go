@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -215,7 +216,7 @@ func TestExtendComposition(t *testing.T) {
 		input := []int{1, 2, 3}
 		result := F.Pipe2(
 			input,
-			Map[[]int, []int](func(x int) int { return x * 2 }),
+			Map[[]int, []int](N.Mul(2)),
 			Extend[[]int, []int](func(as []int) int {
 				return MonadReduce(as, func(acc, x int) int { return acc + x }, 0)
 			}),
@@ -229,7 +230,7 @@ func TestExtendComposition(t *testing.T) {
 		result := F.Pipe2(
 			input,
 			Extend[[]int, []int](Size[[]int, int]),
-			Map[[]int, []int](func(x int) int { return x * 10 }),
+			Map[[]int, []int](N.Mul(10)),
 		)
 		expected := []int{30, 20, 10}
 		assert.Equal(t, expected, result)

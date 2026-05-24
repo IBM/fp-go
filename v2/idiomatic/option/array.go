@@ -47,10 +47,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //
 // Example:
 //
-//	validate := func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	}
+//	validate := F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))
 //	result := TraverseArray(validate)([]int{1, 2, 3}) // Some([2, 4, 6])
 //	result := TraverseArray(validate)([]int{1, -1, 3}) // None
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {

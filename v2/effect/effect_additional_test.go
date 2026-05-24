@@ -24,6 +24,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -95,7 +96,7 @@ func TestMap_Success(t *testing.T) {
 	t.Run("transforms success value", func(t *testing.T) {
 		eff := F.Pipe1(
 			Of[TestConfig](42),
-			Map[TestConfig](func(x int) int { return x * 2 }),
+			Map[TestConfig](N.Mul(2)),
 		)
 		outcome := eff(testConfig)(context.Background())()
 		assert.Equal(t, result.Of(84), outcome)
@@ -114,7 +115,7 @@ func TestMap_Success(t *testing.T) {
 		eff := F.Pipe2(
 			Of[TestConfig](10),
 			Map[TestConfig](func(x int) int { return x + 5 }),
-			Map[TestConfig](func(x int) int { return x * 2 }),
+			Map[TestConfig](N.Mul(2)),
 		)
 		outcome := eff(testConfig)(context.Background())()
 		assert.Equal(t, result.Of(30), outcome)
@@ -126,7 +127,7 @@ func TestMap_Failure(t *testing.T) {
 		testErr := errors.New("test error")
 		eff := F.Pipe1(
 			Fail[TestConfig, int](testErr),
-			Map[TestConfig](func(x int) int { return x * 2 }),
+			Map[TestConfig](N.Mul(2)),
 		)
 		outcome := eff(testConfig)(context.Background())()
 		assert.Equal(t, result.Left[int](testErr), outcome)
@@ -428,7 +429,7 @@ func TestChainResultK_Failure(t *testing.T) {
 // TestAp tests the Ap function
 func TestAp_Success(t *testing.T) {
 	t.Run("applies function effect to value effect", func(t *testing.T) {
-		fnEff := Of[TestConfig](func(x int) int { return x * 2 })
+		fnEff := Of[TestConfig](N.Mul(2))
 		valEff := Of[TestConfig](21)
 		eff := Ap[int](valEff)(fnEff)
 		outcome := eff(testConfig)(context.Background())()
@@ -456,7 +457,7 @@ func TestAp_Failure(t *testing.T) {
 
 	t.Run("propagates error from value effect", func(t *testing.T) {
 		testErr := errors.New("value error")
-		fnEff := Of[TestConfig](func(x int) int { return x * 2 })
+		fnEff := Of[TestConfig](N.Mul(2))
 		valEff := Fail[TestConfig, int](testErr)
 		eff := Ap[int](valEff)(fnEff)
 		outcome := eff(testConfig)(context.Background())()

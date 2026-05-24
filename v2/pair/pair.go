@@ -188,7 +188,7 @@ func MonadMapTail[A, B, B1 any](fa Pair[A, B], f func(B) B1) Pair[A, B1] {
 //
 //	p := pair.MakePair(5, "hello")
 //	p2 := pair.MonadBiMap(p,
-//	    func(n int) string { return fmt.Sprintf("%d", n) },
+//	    strconv.Itoa,
 //	    S.Size,
 //	)  // Pair[string, int]{"5", 5}
 //
@@ -247,7 +247,7 @@ func MapTail[A, B, B1 any](f func(B) B1) Operator[A, B, B1] {
 // Example:
 //
 //	mapper := pair.BiMap(
-//	    func(n int) string { return fmt.Sprintf("%d", n) },
+//	    strconv.Itoa,
 //	    S.Size,
 //	)
 //	p := pair.MakePair(5, "hello")
@@ -383,7 +383,7 @@ func Chain[A, B, B1 any](sg Semigroup[A], f Kleisli[A, B, B1]) Operator[A, B, B1
 //	import SG "github.com/IBM/fp-go/v2/semigroup"
 //
 //	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
-//	pf := pair.MakePair(func(n int) string { return fmt.Sprintf("%d", n) }, "!")
+//	pf := pair.MakePair(strconv.Itoa, "!")
 //	pv := pair.MakePair(42, "hello")
 //	result := pair.MonadApHead(strConcat, pf, pv)  // Pair[string, string]{"42", "!hello"}
 //
@@ -436,7 +436,7 @@ func MonadAp[A, B, B1 any](sg Semigroup[A], faa Pair[A, func(B) B1], fa Pair[A, 
 //	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
 //	pv := pair.MakePair(42, "hello")
 //	ap := pair.ApHead(strConcat, pv)
-//	pf := pair.MakePair(func(n int) string { return fmt.Sprintf("%d", n) }, "!")
+//	pf := pair.MakePair(strconv.Itoa, "!")
 //	result := ap(pf)  // Pair[string, string]{"42", "!hello"}
 func ApHead[B, A, A1 any](sg Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
 	return func(faa Pair[func(A) A1, B]) Pair[A1, B] {

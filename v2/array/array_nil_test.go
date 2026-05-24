@@ -17,6 +17,7 @@ package array
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	O "github.com/IBM/fp-go/v2/option"
@@ -40,9 +41,7 @@ func TestNilSlice_IsNonEmpty(t *testing.T) {
 // TestNilSlice_MonadMap verifies that MonadMap handles nil slices correctly
 func TestNilSlice_MonadMap(t *testing.T) {
 	var nilSlice []int
-	result := MonadMap(nilSlice, func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	result := MonadMap(nilSlice, strconv.Itoa)
 	assert.NotNil(t, result, "MonadMap should return non-nil slice")
 	assert.Equal(t, 0, len(result), "MonadMap should return empty slice for nil input")
 }
@@ -60,9 +59,7 @@ func TestNilSlice_MonadMapRef(t *testing.T) {
 // TestNilSlice_Map verifies that Map handles nil slices correctly
 func TestNilSlice_Map(t *testing.T) {
 	var nilSlice []int
-	mapper := Map(func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	mapper := Map(strconv.Itoa)
 	result := mapper(nilSlice)
 	assert.NotNil(t, result, "Map should return non-nil slice")
 	assert.Equal(t, 0, len(result), "Map should return empty slice for nil input")
@@ -407,9 +404,7 @@ func TestNilSlice_Copy(t *testing.T) {
 func TestNilSlice_FoldMap(t *testing.T) {
 	var nilSlice []int
 	monoid := S.Monoid
-	foldMap := FoldMap[int](monoid)(func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	foldMap := FoldMap[int](monoid)(strconv.Itoa)
 	result := foldMap(nilSlice)
 	assert.Equal(t, "", result, "FoldMap should return empty value for nil slice")
 }

@@ -18,12 +18,14 @@ package record
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	Mg "github.com/IBM/fp-go/v2/magma"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
 	S "github.com/IBM/fp-go/v2/string"
@@ -466,9 +468,7 @@ func TestFlatten(t *testing.T) {
 func TestFoldMap(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
 	// Use string monoid for simplicity
-	fold := FoldMap[string, int](S.Monoid)(func(v int) string {
-		return fmt.Sprintf("%d", v)
-	})
+	fold := FoldMap[string, int](S.Monoid)(strconv.Itoa)
 	result := fold(data)
 	// Result contains all digits but order is non-deterministic
 	assert.Contains(t, result, "1")
@@ -494,7 +494,7 @@ func TestKeysOrd(t *testing.T) {
 
 func TestMonadFlap(t *testing.T) {
 	fns := map[string]func(int) int{
-		"double": func(x int) int { return x * 2 },
+		"double": N.Mul(2),
 		"triple": func(x int) int { return x * 3 },
 	}
 	result := MonadFlap(fns, 5)
@@ -503,7 +503,7 @@ func TestMonadFlap(t *testing.T) {
 
 func TestFlap(t *testing.T) {
 	fns := map[string]func(int) int{
-		"double": func(x int) int { return x * 2 },
+		"double": N.Mul(2),
 		"triple": func(x int) int { return x * 3 },
 	}
 	flap := Flap[int, string](5)
@@ -525,7 +525,7 @@ func TestFromArray(t *testing.T) {
 
 func TestMonadAp(t *testing.T) {
 	fns := map[string]func(int) int{
-		"double": func(x int) int { return x * 2 },
+		"double": N.Mul(2),
 	}
 	vals := map[string]int{
 		"double": 5,
@@ -537,7 +537,7 @@ func TestMonadAp(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	fns := map[string]func(int) int{
-		"double": func(x int) int { return x * 2 },
+		"double": N.Mul(2),
 	}
 	vals := map[string]int{
 		"double": 5,

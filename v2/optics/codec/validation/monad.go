@@ -60,7 +60,7 @@ func Ap[B, A any](fa Validation[A]) Operator[func(A) B, B] {
 //
 // Example - Both succeed:
 //
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	result := MonadAp(Of(double), Of(21))
 //	// Result: Success(42)
 //
@@ -118,19 +118,19 @@ func MonadAp[B, A any](fab Validation[func(A) B], fa Validation[A]) Validation[B
 //
 // Example - Transform successful value:
 //
-//	doubled := Map(func(x int) int { return x * 2 })(Of(21))
+//	doubled := Map(N.Mul(2))(Of(21))
 //	// Result: Success(42)
 //
 // Example - Failure preserved:
 //
-//	result := Map(func(x int) int { return x * 2 })(
+//	result := Map(N.Mul(2))(
 //	    Failures[int](Errors{&ValidationError{Messsage: "invalid"}}),
 //	)
 //	// Result: Failure with same error: ["invalid"]
 //
 // Example - Type transformation:
 //
-//	toString := Map(func(x int) string { return fmt.Sprintf("%d", x) })
+//	toString := Map(strconv.Itoa)
 //	result := toString(Of(42))
 //	// Result: Success("42")
 //
@@ -139,8 +139,8 @@ func MonadAp[B, A any](fab Validation[func(A) B], fa Validation[A]) Validation[B
 //	result := F.Pipe3(
 //	    Of(5),
 //	    Map(func(x int) int { return x + 10 }),  // 15
-//	    Map(func(x int) int { return x * 2 }),   // 30
-//	    Map(func(x int) string { return fmt.Sprintf("%d", x) }),  // "30"
+//	    Map(N.Mul(2)),   // 30
+//	    Map(strconv.Itoa),  // "30"
 //	)
 //	// Result: Success("30")
 func Map[A, B any](f func(A) B) Operator[A, B] {
@@ -160,14 +160,14 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 //
 // Example - Transform successful value:
 //
-//	result := MonadMap(Of(21), func(x int) int { return x * 2 })
+//	result := MonadMap(Of(21), N.Mul(2))
 //	// Result: Success(42)
 //
 // Example - Failure preserved:
 //
 //	result := MonadMap(
 //	    Failures[int](Errors{&ValidationError{Messsage: "invalid"}}),
-//	    func(x int) int { return x * 2 },
+//	    N.Mul(2),
 //	)
 //	// Result: Failure with same error: ["invalid"]
 //
@@ -617,7 +617,7 @@ func MonadAlt[A any](first Validation[A], second Lazy[Validation[A]]) Validation
 //	result := F.Pipe2(
 //	    validatePositive(-5),  // Fails
 //	    Alt(func() Validation[int] { return Success(1) }),
-//	    Map(func(x int) int { return x * 2 }),
+//	    Map(N.Mul(2)),
 //	)
 //	// Result: Success(2) - uses fallback value 1, then doubles it
 //

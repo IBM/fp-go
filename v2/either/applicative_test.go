@@ -22,6 +22,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	N "github.com/IBM/fp-go/v2/number"
 	S "github.com/IBM/fp-go/v2/semigroup"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +63,7 @@ func TestApplicativeMap(t *testing.T) {
 	app := Applicative[error, int, int]()
 
 	t.Run("maps a function over Right value", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		eitherValue := app.Of(21)
 		result := app.Map(double)(eitherValue)
 		assert.True(t, IsRight(result))
@@ -85,7 +86,7 @@ func TestApplicativeMap(t *testing.T) {
 	})
 
 	t.Run("preserves Left on map", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		eitherValue := Left[int](errors.New("error"))
 		result := app.Map(double)(eitherValue)
 		assert.True(t, IsLeft(result))
@@ -178,7 +179,7 @@ func TestApplicativeVMap(t *testing.T) {
 	app := ApplicativeV[string, int, int](sg)
 
 	t.Run("maps a function over Right value", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		eitherValue := app.Of(21)
 		result := app.Map(double)(eitherValue)
 		assert.True(t, IsRight(result))
@@ -186,7 +187,7 @@ func TestApplicativeVMap(t *testing.T) {
 	})
 
 	t.Run("preserves Left on map", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		eitherValue := Left[int]("error")
 		result := app.Map(double)(eitherValue)
 		assert.True(t, IsLeft(result))
@@ -273,7 +274,7 @@ func TestApplicativeLaws(t *testing.T) {
 	})
 
 	t.Run("homomorphism law: Ap(Of(x))(Of(f)) = Of(f(x))", func(t *testing.T) {
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		x := 21
 
 		left := app.Ap(app.Of(x))(Of[error](f))
@@ -284,7 +285,7 @@ func TestApplicativeLaws(t *testing.T) {
 	})
 
 	t.Run("interchange law: Ap(Of(y))(u) = Ap(u)(Of(f => f(y)))", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		u := Of[error](double)
 		y := 21
 
@@ -300,7 +301,7 @@ func TestApplicativeLaws(t *testing.T) {
 
 	t.Run("composition law", func(t *testing.T) {
 		// For Either, we test a simpler version of composition
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		g := func(x int) int { return x + 10 }
 		x := 16
 
@@ -337,7 +338,7 @@ func TestApplicativeVLaws(t *testing.T) {
 	})
 
 	t.Run("homomorphism law: Ap(Of(x))(Of(f)) = Of(f(x))", func(t *testing.T) {
-		f := func(x int) int { return x * 2 }
+		f := N.Mul(2)
 		x := 21
 
 		left := app.Ap(app.Of(x))(Of[string](f))
@@ -348,7 +349,7 @@ func TestApplicativeVLaws(t *testing.T) {
 	})
 
 	t.Run("interchange law: Ap(Of(y))(u) = Ap(u)(Of(f => f(y)))", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		u := Of[string](double)
 		y := 21
 
@@ -367,7 +368,7 @@ func TestApplicativeComposition(t *testing.T) {
 	app := Applicative[error, int, int]()
 
 	t.Run("composes Map and Of", func(t *testing.T) {
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		result := F.Pipe1(
 			app.Of(21),
 			app.Map(double),
@@ -377,7 +378,7 @@ func TestApplicativeComposition(t *testing.T) {
 
 	t.Run("composes multiple Map operations", func(t *testing.T) {
 		app := Applicative[error, int, string]()
-		double := func(x int) int { return x * 2 }
+		double := N.Mul(2)
 		toString := func(x int) string { return strconv.Itoa(x) }
 
 		result := F.Pipe2(

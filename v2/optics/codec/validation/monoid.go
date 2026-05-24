@@ -211,11 +211,11 @@ func AlternativeMonoid[A any](m Monoid[A]) Monoid[Validation[A]] {
 //	})
 //
 //	// Try multiple configuration sources in order
-//	configs := []Validation[Config]{
+//	configs := A.From(
 //	    loadFromFile("config.json"),      // Try file first
 //	    loadFromEnv(),                     // Then environment
 //	    loadFromRemote("api.example.com"), // Then remote API
-//	}
+//	)
 //
 //	// Fold using the monoid to get first successful config
 //	result := A.MonoidFold(m)(configs)

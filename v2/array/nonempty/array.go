@@ -125,7 +125,7 @@ func IsNonEmpty[A any](_ NonEmptyArray[A]) bool {
 // Example:
 //
 //	arr := From(1, 2, 3)
-//	doubled := MonadMap(arr, func(x int) int { return x * 2 })  // NonEmptyArray[int]{2, 4, 6}
+//	doubled := MonadMap(arr, N.Mul(2))  // NonEmptyArray[int]{2, 4, 6}
 //
 //go:inline
 func MonadMap[A, B any](as NonEmptyArray[A], f func(a A) B) NonEmptyArray[B] {
@@ -147,7 +147,7 @@ func MonadMap[A, B any](as NonEmptyArray[A], f func(a A) B) NonEmptyArray[B] {
 //
 // Example:
 //
-//	double := Map(func(x int) int { return x * 2 })
+//	double := Map(N.Mul(2))
 //	result := double(From(1, 2, 3))  // NonEmptyArray[int]{2, 4, 6}
 //
 //go:inline
@@ -400,7 +400,7 @@ func Chain[A, B any](f func(A) NonEmptyArray[B]) Operator[A, B] {
 //
 // Example:
 //
-//	fns := From(func(x int) int { return x * 2 }, func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
 //	vals := From(1, 2)
 //	result := MonadAp(fns, vals)  // NonEmptyArray[int]{2, 4, 11, 12}
 func MonadAp[B, A any](fab NonEmptyArray[func(A) B], fa NonEmptyArray[A]) NonEmptyArray[B] {
@@ -424,7 +424,7 @@ func MonadAp[B, A any](fab NonEmptyArray[func(A) B], fa NonEmptyArray[A]) NonEmp
 //
 //	vals := From(1, 2)
 //	applyTo := Ap[int](vals)
-//	fns := From(func(x int) int { return x * 2 }, func(x int) int { return x + 10 })
+//	fns := From(N.Mul(2), func(x int) int { return x + 10 })
 //	result := applyTo(fns)  // NonEmptyArray[int]{2, 4, 11, 12}
 func Ap[B, A any](fa NonEmptyArray[A]) func(NonEmptyArray[func(A) B]) NonEmptyArray[B] {
 	return G.Ap[NonEmptyArray[B], NonEmptyArray[func(A) B]](fa)
@@ -541,7 +541,7 @@ func Prepend[A any](head A) EM.Endomorphism[NonEmptyArray[A]] {
 //	result := F.Pipe3(
 //	    []int{1, 2, 3},
 //	    ToNonEmptyArray[int],
-//	    O.Map(Map(func(x int) int { return x * 2 })),
+//	    O.Map(Map(N.Mul(2))),
 //	    O.Map(Head[int]),
 //	)  // Some(2)
 //

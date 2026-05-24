@@ -136,7 +136,7 @@ func PointedHead[A, B any](m monoid.Monoid[B]) pointed.Pointed[A, Pair[A, B]] {
 // Example:
 //
 //	functor := pair.FunctorHead[int, string, string]()
-//	mapper := functor.Map(func(n int) string { return fmt.Sprintf("%d", n) })
+//	mapper := functor.Map(strconv.Itoa)
 //	p := pair.MakePair(42, "hello")
 //	p2 := mapper(p)  // Pair[string, string]{"42", "hello"}
 func FunctorHead[A, B, A1 any]() functor.Functor[A, A1, Pair[A, B], Pair[A1, B]] {
@@ -156,7 +156,7 @@ func FunctorHead[A, B, A1 any]() functor.Functor[A, A1, Pair[A, B], Pair[A1, B]]
 //	    "",
 //	)
 //	applicative := pair.ApplicativeHead[int, string, string](stringMonoid)
-//	pf := applicative.Of(func(n int) string { return fmt.Sprintf("%d", n) })
+//	pf := applicative.Of(strconv.Itoa)
 //	pv := pair.MakePair(42, "!")
 //	result := applicative.Ap(pv)(pf)  // Pair[string, string]{"42", "!"}
 func ApplicativeHead[A, B, A1 any](m monoid.Monoid[B]) applicative.Applicative[A, A1, Pair[A, B], Pair[A1, B], Pair[func(A) A1, B]] {

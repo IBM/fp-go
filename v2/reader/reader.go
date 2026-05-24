@@ -252,7 +252,7 @@ func Of[R, A any](a A) Reader[R, A] {
 // Example:
 //
 //	type Config struct { Host string }
-//	lazyValue := func() int { return 42 }
+//	lazyValue := lazy.Of(42)
 //	r := reader.OfLazy[Config](lazyValue)
 //	result := r(Config{Host: "localhost"}) // 42
 //

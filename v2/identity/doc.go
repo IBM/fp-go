@@ -224,7 +224,7 @@ Example of generic code:
 	    return F.Pipe2(
 	        monad.Of(value),
 	        monad.Map(N.Mul(2)),
-	        monad.Map(func(n int) string { return fmt.Sprintf("%d", n) }),
+	        monad.Map(strconv.Itoa),
 	    )
 	}
 

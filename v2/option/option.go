@@ -233,8 +233,8 @@ func Fold[A, B any](onNone func() B, onSome func(a A) B) func(ma Option[A]) B {
 //
 // Example:
 //
-//	result := MonadGetOrElse(Some(42), func() int { return 0 }) // 42
-//	result := MonadGetOrElse(None[int](), func() int { return 0 }) // 0
+//	result := MonadGetOrElse(Some(42), lazy.Of(0)) // 42
+//	result := MonadGetOrElse(None[int](), lazy.Of(0)) // 0
 //
 //go:inline
 func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
@@ -245,7 +245,7 @@ func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
 //
 // Example:
 //
-//	getOrZero := GetOrElse(func() int { return 0 })
+//	getOrZero := GetOrElse(lazy.Of(0))
 //	result := getOrZero(Some(42)) // 42
 //	result := getOrZero(None[int]()) // 0
 //
@@ -260,10 +260,7 @@ func GetOrElse[A any](onNone func() A) func(Option[A]) A {
 // Example:
 //
 //	fa := Some(5)
-//	result := MonadChain(fa, func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	}) // Some(10)
+//	result := MonadChain(fa, F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))) // Some(10)
 //
 //go:inline
 func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
@@ -275,10 +272,7 @@ func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
 //
 // Example:
 //
-//	validate := Chain(func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	})
+//	validate := Chain(F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2))))
 //	result := validate(Some(5)) // Some(10)
 //
 //go:inline

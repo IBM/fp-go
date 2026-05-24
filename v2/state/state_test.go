@@ -267,7 +267,7 @@ func TestEvaluate(t *testing.T) {
 func TestMonadFlap(t *testing.T) {
 	initial := TestState{Counter: 5, Message: "test"}
 
-	fab := Of[TestState](func(x int) int { return x * 2 })
+	fab := Of[TestState](N.Mul(2))
 	result := MonadFlap(fab, 21)(initial)
 
 	assert.Equal(t, 42, pair.Tail(result), "value should be 42")
@@ -280,7 +280,7 @@ func TestFlap(t *testing.T) {
 
 	applyTwentyOne := Flap[TestState, int, int](21)
 	computation := F.Pipe1(
-		Of[TestState](func(x int) int { return x * 2 }),
+		Of[TestState](N.Mul(2)),
 		applyTwentyOne,
 	)
 

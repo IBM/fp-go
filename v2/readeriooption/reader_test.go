@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	RIO "github.com/IBM/fp-go/v2/readerio"
 	"github.com/stretchr/testify/assert"
@@ -92,20 +93,20 @@ func TestSomeReader(t *testing.T) {
 
 func TestMonadMap_Some(t *testing.T) {
 	ro := Of[context.Context](21)
-	result := MonadMap(ro, func(x int) int { return x * 2 })
+	result := MonadMap(ro, N.Mul(2))
 	assert.Equal(t, O.Of(42), result(context.Background())())
 }
 
 func TestMonadMap_None(t *testing.T) {
 	ro := None[context.Context, int]()
-	result := MonadMap(ro, func(x int) int { return x * 2 })
+	result := MonadMap(ro, N.Mul(2))
 	assert.Equal(t, O.None[int](), result(context.Background())())
 }
 
 func TestMap_Some(t *testing.T) {
 	result := F.Pipe1(
 		Of[context.Context](21),
-		Map[context.Context](func(x int) int { return x * 2 }),
+		Map[context.Context](N.Mul(2)),
 	)
 	assert.Equal(t, O.Of(42), result(context.Background())())
 }
@@ -113,7 +114,7 @@ func TestMap_Some(t *testing.T) {
 func TestMap_None(t *testing.T) {
 	result := F.Pipe1(
 		None[context.Context, int](),
-		Map[context.Context](func(x int) int { return x * 2 }),
+		Map[context.Context](N.Mul(2)),
 	)
 	assert.Equal(t, O.None[int](), result(context.Background())())
 }
@@ -159,7 +160,7 @@ func TestChain(t *testing.T) {
 }
 
 func TestMonadAp_BothSome(t *testing.T) {
-	fab := Of[context.Context](func(x int) int { return x * 2 })
+	fab := Of[context.Context](N.Mul(2))
 	fa := Of[context.Context](21)
 
 	result := MonadAp(fab, fa)
@@ -175,7 +176,7 @@ func TestMonadAp_FunctionNone(t *testing.T) {
 }
 
 func TestMonadAp_ValueNone(t *testing.T) {
-	fab := Of[context.Context](func(x int) int { return x * 2 })
+	fab := Of[context.Context](N.Mul(2))
 	fa := None[context.Context, int]()
 
 	result := MonadAp(fab, fa)
@@ -185,7 +186,7 @@ func TestMonadAp_ValueNone(t *testing.T) {
 func TestAp(t *testing.T) {
 	fa := Of[context.Context](21)
 	result := F.Pipe1(
-		Of[context.Context](func(x int) int { return x * 2 }),
+		Of[context.Context](N.Mul(2)),
 		Ap[int](fa),
 	)
 	assert.Equal(t, O.Of(42), result(context.Background())())
@@ -339,14 +340,14 @@ func TestRead(t *testing.T) {
 }
 
 func TestMonadFlap(t *testing.T) {
-	fab := Of[context.Context](func(x int) int { return x * 2 })
+	fab := Of[context.Context](N.Mul(2))
 	result := MonadFlap(fab, 21)
 	assert.Equal(t, O.Of(42), result(context.Background())())
 }
 
 func TestFlap(t *testing.T) {
 	result := F.Pipe1(
-		Of[context.Context](func(x int) int { return x * 2 }),
+		Of[context.Context](N.Mul(2)),
 		Flap[context.Context, int](21),
 	)
 	assert.Equal(t, O.Of(42), result(context.Background())())
@@ -440,7 +441,7 @@ func TestComplexChain(t *testing.T) {
 
 	result := F.Pipe3(
 		Of[Config](10),
-		Map[Config](func(x int) int { return x * 2 }), // 20
+		Map[Config](N.Mul(2)), // 20
 		Chain(func(x int) ReaderIOOption[Config, int] {
 			return Asks(func(cfg Config) int {
 				return x * cfg.Factor

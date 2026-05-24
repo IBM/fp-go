@@ -677,7 +677,7 @@ func NonEmptyString() Type[string, string, string] {
 //
 //	// Create a codec with a generic name
 //	positiveInt := Pipe[int, int, string, int](
-//	    FromRefinement(prism.FromPredicate(func(n int) bool { return n > 0 })),
+//	    FromRefinement(prism.FromPredicate(N.MoreThan(0))),
 //	)(IntFromString())
 //	// positiveInt.Name() returns something like "Pipe(FromRefinement(...), IntFromString)"
 //

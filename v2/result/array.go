@@ -110,11 +110,11 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Result[A], A any](ma GOA) Result[GA] {
 //
 // Example:
 //
-//	eithers := []either.Result[int]{
+//	eithers := A.From(
 //	    either.Right[error](1),
 //	    either.Right[error](2),
 //	    either.Right[error](3),
-//	}
+//	)
 //	result := either.SequenceArray(eithers)
 //	// result is Right([]int{1, 2, 3})
 //
@@ -128,11 +128,11 @@ func SequenceArray[A any](ma []Result[A]) Result[[]A] {
 //
 // Example:
 //
-//	eithers := []either.Result[int]{
+//	eithers := A.From(
 //	    either.Right[error](1),
 //	    either.Left[int](errors.New("error")),
 //	    either.Right[error](3),
-//	}
+//	)
 //	result := either.CompactArrayG[[]either.Result[int], []int](eithers)
 //	// result is []int{1, 3}
 //
@@ -145,11 +145,11 @@ func CompactArrayG[A1 ~[]Result[A], A2 ~[]A, A any](fa A1) A2 {
 //
 // Example:
 //
-//	eithers := []either.Result[int]{
+//	eithers := A.From(
 //	    either.Right[error](1),
 //	    either.Left[int](errors.New("error")),
 //	    either.Right[error](3),
-//	}
+//	)
 //	result := either.CompactArray(eithers)
 //	// result is []int{1, 3}
 //

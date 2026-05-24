@@ -26,10 +26,7 @@ import (
 //
 // Example:
 //
-//	validate := func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	}
+//	validate := F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))
 //	input := map[string]int{"a": 1, "b": 2}
 //	result := TraverseRecordG[map[string]int, map[string]int](validate)(input) // Some(map[a:2 b:4])
 func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {

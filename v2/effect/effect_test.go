@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
@@ -413,7 +414,7 @@ func TestFromThunk_Integration(t *testing.T) {
 
 		computation := F.Pipe2(
 			FromThunk[TestConfig](thunk),
-			Map[TestConfig](func(x int) int { return x * 2 }),
+			Map[TestConfig](N.Mul(2)),
 			Map[TestConfig](func(x int) string { return fmt.Sprintf("Result: %d", x) }),
 		)
 		outcome := computation(testConfig)(context.Background())()
@@ -928,7 +929,7 @@ func TestChainFirstThunkK_Integration(t *testing.T) {
 
 		computation := F.Pipe3(
 			Of[TestConfig](5),
-			Map[TestConfig](func(x int) int { return x * 2 }),
+			Map[TestConfig](N.Mul(2)),
 			ChainFirstThunkK[TestConfig](logValue),
 			Map[TestConfig](func(x int) int { return x + 3 }),
 		)
@@ -1056,7 +1057,7 @@ func TestTapThunkK_Success(t *testing.T) {
 		computation := F.Pipe4(
 			Of[TestConfig](10),
 			TapThunkK[TestConfig](logStep("start")),
-			Map[TestConfig](func(x int) int { return x * 2 }),
+			Map[TestConfig](N.Mul(2)),
 			TapThunkK[TestConfig](logStep("after-map")),
 			Map[TestConfig](func(x int) int { return x + 5 }),
 		)
@@ -1409,7 +1410,7 @@ func TestAsks_Integration(t *testing.T) {
 			Asks(func(cfg Config) int {
 				return cfg.Value
 			}),
-			Map[Config](func(x int) int { return x * 2 }),
+			Map[Config](N.Mul(2)),
 		)
 
 		result, err := runEffect(computation, Config{Value: 21})

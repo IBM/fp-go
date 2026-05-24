@@ -61,7 +61,7 @@
 //
 //	t := tuple.MakeTuple2(5, "hello")
 //	mapper := tuple.Map2(
-//	    func(n int) string { return fmt.Sprintf("%d", n) },
+//	    strconv.Itoa,
 //	    S.Size,
 //	)
 //	result := mapper(t)  // Tuple2[string, int]{"5", 5}

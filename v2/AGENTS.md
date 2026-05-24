@@ -54,6 +54,10 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
 3. **Code Examples**
    - Use idiomatic Go patterns
    - Prefer `result.Eitherize1(strconv.Atoi)` over manual error handling
+   - Prefer `strconv.Itoa` over `func(x int) string { return fmt.Sprintf("%d", x) }`
+   - In documentation examples, prefer reusable combinators over ad-hoc closures when an equivalent helper exists
+   - Prefer `F.Flow2(option.Predicate(N.MoreThan(0)), option.Map(N.Mul(2)))` over `func(x int) Option[int] { if x > 0 { return Some(x * 2) }; return None[int]() }` in non-idiomatic option examples
+   - Prefer `S.Format[T]("...")` over `func(x T) string { return fmt.Sprintf("...", x) }`, matching the type parameter to the formatted value
    - Show realistic, runnable examples
    - Indent code examples with spaces (not tabs) for proper godoc rendering
 
@@ -64,10 +68,10 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
 
    ```go
    // Preferred
-   result := F.Pipe1(Some(42), Map(func(x int) string { return strconv.Itoa(x) }))
+   result := F.Pipe1(Some(42), Map(strconv.Itoa))
 
    // Avoid
-   result := Map(func(x int) string { return strconv.Itoa(x) })(Some(42))
+   result := Map(strconv.Itoa)(Some(42))
    ```
 
    In the **idiomatic** option package, operators have the shape `func(A, bool) (B, bool)`
@@ -99,6 +103,33 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    // Avoid
    GetOrElse(func() int { return 0 })(opt)
    ```
+
+6. **Array Initialization in Documentation**
+
+   In documentation examples, prefer `A.From` over array literal syntax to avoid
+   duplicating type parameters:
+
+   ```go
+   // Preferred — type is inferred from elements
+   options := A.From(
+       Some(1),
+       None[int](),
+       Some(3),
+   )
+
+   // Avoid — duplicates the type parameter
+   options := []Option[int]{
+       Some(1),
+       None[int](),
+       Some(3),
+   }
+   ```
+
+   This applies to all monadic types: `Option[T]`, `Either[E, A]`, `Result[A]`, `Validation[E, A]`.
+
+   **Note**: In test code within packages that would create circular dependencies with
+   the `array` package (e.g., `option` package tests), continue using array literal syntax.
+   Only documentation examples should use `A.From`.
 
 ### File Headers
 
@@ -200,7 +231,8 @@ Always include the Apache 2.0 license header:
 5. **Other Test Style Details**
    - Use `for i := range 10` instead of `for i := 0; i < 10; i++`
    - Chain curried calls directly: `TraverseSeq(parse)(input)` — no need for an intermediate `traverseFn` variable
-   - Use direct slice literals (`[]string{"a", "b"}`) rather than `A.From("a", "b")` in tests
+   - Use direct slice literals (`[]string{"a", "b"}`) for plain types in tests
+   - For monadic types in tests, use array literals if importing `array` would create a circular dependency
 
 ### Test Coverage
 
@@ -275,6 +307,7 @@ func TestFromReaderResult_Success(t *testing.T) {
 - [ ] Code examples are idiomatic and concise
 - [ ] Doc examples use `F.Pipe1`/`F.FlowN` for sequencing (see §4 above)
 - [ ] Default values in examples use `lazy.Of(value)`, not `func() T { return value }`
+- [ ] Array initializations in doc examples use `A.From` for monadic types (see §6 above)
 - [ ] Tests cover success, failure, edge cases, and integration
 - [ ] Tests use direct assertions where possible
 - [ ] Benchmarks included for performance-critical code

@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -281,7 +282,7 @@ func TestPromapIntegration(t *testing.T) {
 				n, _ := strconv.Atoi(s)
 				return n
 			},
-			func(x int) int { return x * 2 },
+			N.Mul(2),
 		)(baseEffect)
 
 		// Apply Map on top
@@ -304,7 +305,7 @@ func TestPromapIntegration(t *testing.T) {
 				n, _ := strconv.Atoi(s)
 				return n
 			},
-			func(x int) int { return x * 2 },
+			N.Mul(2),
 		)(baseEffect)
 
 		// Chain with another effect

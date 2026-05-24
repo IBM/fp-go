@@ -45,7 +45,7 @@ func Of[E, A any](value A) Either[E, A] {
 //
 // Example:
 //
-//	getValue := func() int { return 42 }
+//	getValue := lazy.Of(42)
 //	result := either.FromIO[error](getValue) // Right(42)
 //
 // go: inline

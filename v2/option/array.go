@@ -51,10 +51,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //
 // Example:
 //
-//	validate := func(x int) Option[int] {
-//	    if x > 0 { return Some(x * 2) }
-//	    return None[int]()
-//	}
+//	validate := F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))
 //	result := TraverseArray(validate)([]int{1, 2, 3}) // Some([2, 4, 6])
 //	result := TraverseArray(validate)([]int{1, -1, 3}) // None
 //
@@ -110,8 +107,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B
 // Example:
 //
 //	type MySlice []int
-//	result := SequenceArrayG[MySlice]([]Option[int]{Some(1), Some(2)}) // Some(MySlice{1, 2})
-//	result := SequenceArrayG[MySlice]([]Option[int]{Some(1), None[int]()}) // None
+//	result := SequenceArrayG[MySlice](A.From(Some(1), Some(2))) // Some(MySlice{1, 2})
+//	result := SequenceArrayG[MySlice](A.From(Some(1), None[int]())) // None
 //
 //go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
@@ -123,8 +120,8 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
 //
 // Example:
 //
-//	result := SequenceArray([]Option[int]{Some(1), Some(2), Some(3)}) // Some([1, 2, 3])
-//	result := SequenceArray([]Option[int]{Some(1), None[int](), Some(3)}) // None
+//	result := SequenceArray(A.From(Some(1), Some(2), Some(3))) // Some([1, 2, 3])
+//	result := SequenceArray(A.From(Some(1), None[int](), Some(3))) // None
 func SequenceArray[A any](ma []Option[A]) Option[[]A] {
 	return SequenceArrayG[[]A](ma)
 }
@@ -135,7 +132,7 @@ func SequenceArray[A any](ma []Option[A]) Option[[]A] {
 // Example:
 //
 //	type MySlice []int
-//	input := []Option[int]{Some(1), None[int](), Some(3)}
+//	input := A.From(Some(1), None[int](), Some(3))
 //	result := CompactArrayG[[]Option[int], MySlice](input) // MySlice{1, 3}
 func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 	as := make(A2, 0, len(fa))
@@ -151,7 +148,7 @@ func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 //
 // Example:
 //
-//	input := []Option[int]{Some(1), None[int](), Some(3), Some(5), None[int]()}
+//	input := A.From(Some(1), None[int](), Some(3), Some(5), None[int]())
 //	result := CompactArray(input) // [1, 3, 5]
 //
 //go:inline

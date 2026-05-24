@@ -47,7 +47,7 @@ import (
 // Example:
 //
 //	// Validate that a number is positive
-//	isPositive := func(x int) bool { return x > 0 }
+//	isPositive := N.MoreThan(0)
 //	onNegative := func(x int) error { return fmt.Errorf("%d is not positive", x) }
 //
 //	validatePositive := FilterOrElse(isPositive, onNegative)

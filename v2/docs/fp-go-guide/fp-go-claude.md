@@ -224,7 +224,7 @@ modified := L.Modify(strings.ToUpper)(nameLens)(person) // modify
 ```go
 result := F.Pipe3(
     O.Some(42),
-    O.Map(func(x int) int { return x * 2 }),
+    O.Map(N.Mul(2)),
     O.GetOrElse(F.Constant(0)),
 )
 ```

@@ -1332,7 +1332,7 @@ func TestTakeWhileInclusiveWithChainedOperations(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
 		result := toSlice(
 			TakeWhileInclusive(func(x int) bool { return x < 8 })(
-				MonadMap(seq, func(x int) int { return x * 2 }),
+				MonadMap(seq, N.Mul(2)),
 			),
 		)
 		assert.Equal(t, []int{2, 4, 6, 8}, result)
@@ -1342,7 +1342,7 @@ func TestTakeWhileInclusiveWithChainedOperations(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
 		taken := TakeWhileInclusive(func(x int) bool { return x < 4 })(seq)
 		result := toSlice(
-			MonadMap(taken, func(x int) int { return x * 10 }),
+			MonadMap(taken, N.Mul(10)),
 		)
 		assert.Equal(t, []int{10, 20, 30, 40}, result)
 	})

@@ -18,6 +18,7 @@ package pair
 import (
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -265,7 +266,7 @@ func TestUnpackWithStructs(t *testing.T) {
 
 // TestUnpackWithFunctions tests Unpack function with function types
 func TestUnpackWithFunctions(t *testing.T) {
-	f1 := func(x int) int { return x * 2 }
+	f1 := N.Mul(2)
 	f2 := func(x int) int { return x + 10 }
 	p := MakePair(f1, f2)
 	head, tail := Unpack(p)

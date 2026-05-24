@@ -228,7 +228,7 @@ import (
 
 result := F.Pipe3(
     E.Right[error](42),
-    E.Map[error](func(x int) int { return x * 2 }),
+    E.Map[error](N.Mul(2)),
     E.Chain(func(x int) E.Either[error, string] {
         if x > 0 {
             return E.Right[error](fmt.Sprintf("%d", x))

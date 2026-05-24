@@ -21,6 +21,7 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -59,7 +60,7 @@ func TestApFirstExtended(t *testing.T) {
 		result := F.Pipe2(
 			Of[error](10),
 			ApFirst[int](Of[error](20)),
-			Map[error](func(x int) int { return x * 2 }),
+			Map[error](N.Mul(2)),
 		)
 		assert.Equal(t, E.Of[error](20), result())
 	})
@@ -108,7 +109,7 @@ func TestApSecondExtended(t *testing.T) {
 		result := F.Pipe2(
 			Of[error](10),
 			ApSecond[int](Of[error](20)),
-			Map[error](func(x int) int { return x * 2 }),
+			Map[error](N.Mul(2)),
 		)
 		assert.Equal(t, E.Of[error](40), result())
 	})

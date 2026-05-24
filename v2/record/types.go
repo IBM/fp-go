@@ -89,7 +89,7 @@ type (
 	//
 	// Example:
 	//
-	//	doubleValues := Map(func(x int) int { return x * 2 })
+	//	doubleValues := Map(N.Mul(2))
 	//	result := doubleValues(Record[string, int]{"a": 1, "b": 2})
 	//	// result: {"a": 2, "b": 4}
 	Operator[K comparable, V1, V2 any] = func(Record[K, V1]) Record[K, V2]

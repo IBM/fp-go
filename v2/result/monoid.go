@@ -71,7 +71,7 @@ func AltMonoid[A any](zero Lazy[Result[A]]) Monoid[A] {
 // Example:
 //
 //	import "errors"
-//	zero := func() result.Result[int] { return result.Error[int](errors.New("empty")) }
+//	zero := lazy.Of(result.Error[int](errors.New("empty")))
 //	m := result.FirstMonoid[int](zero)
 //	m.Concat(result.Of(2), result.Of(3)) // Ok(2) - returns first Ok
 //	m.Concat(result.Error[int](errors.New("err")), result.Of(3)) // Ok(3)
@@ -99,7 +99,7 @@ func FirstMonoid[A any](zero Lazy[Result[A]]) M.Monoid[Result[A]] {
 // Example:
 //
 //	import "errors"
-//	zero := func() result.Result[int] { return result.Error[int](errors.New("empty")) }
+//	zero := lazy.Of(result.Error[int](errors.New("empty")))
 //	m := result.LastMonoid[int](zero)
 //	m.Concat(result.Of(2), result.Of(3)) // Ok(3) - returns last Ok
 //	m.Concat(result.Error[int](errors.New("err")), result.Of(3)) // Ok(3)

@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -355,8 +356,8 @@ func TestMergeAll_WithComplexTypes(t *testing.T) {
 // TestMergeAll_WithChainedOperations tests MergeAll with other sequence operations
 func TestMergeAll_WithChainedOperations(t *testing.T) {
 	t.Run("merge after map", func(t *testing.T) {
-		seq1 := MonadMap(From(1, 2, 3), func(x int) int { return x * 2 })
-		seq2 := MonadMap(From(4, 5, 6), func(x int) int { return x * 2 })
+		seq1 := MonadMap(From(1, 2, 3), N.Mul(2))
+		seq2 := MonadMap(From(4, 5, 6), N.Mul(2))
 		merged := MergeBuf([]Seq[int]{seq1, seq2}, 10)
 		result := toSlice(merged)
 
@@ -369,7 +370,7 @@ func TestMergeAll_WithChainedOperations(t *testing.T) {
 		seq1 := From(1, 2, 3)
 		seq2 := From(4, 5, 6)
 		merged := MergeBuf([]Seq[int]{seq1, seq2}, 10)
-		mapped := MonadMap(merged, func(x int) int { return x * 2 })
+		mapped := MonadMap(merged, N.Mul(2))
 		result := toSlice(mapped)
 
 		assert.Equal(t, 6, len(result))
@@ -643,7 +644,7 @@ func BenchmarkMergeAll_WithMap(b *testing.B) {
 	b.ResetTimer()
 	for range b.N {
 		merged := MergeBuf([]Seq[int]{seq1, seq2}, 5)
-		mapped := MonadMap(merged, func(x int) int { return x * 2 })
+		mapped := MonadMap(merged, N.Mul(2))
 		for range mapped {
 		}
 	}

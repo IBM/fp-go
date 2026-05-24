@@ -72,7 +72,7 @@ Map operations transform one or both values:
 
 	// Map both values
 	p4 := pair.MonadBiMap(p,
-	    func(n int) string { return fmt.Sprintf("%d", n) },
+	    strconv.Itoa,
 	    S.Size,
 	)  // Pair[string, int]{"5", 5}
 

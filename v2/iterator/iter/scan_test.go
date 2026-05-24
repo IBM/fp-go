@@ -20,6 +20,7 @@ import (
 	"maps"
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -212,14 +213,14 @@ func TestScanWithChainedOperations(t *testing.T) {
 	t.Run("scan then map", func(t *testing.T) {
 		seq := From(1, 2, 3, 4)
 		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
-		mapped := MonadMap(scanned(seq), func(x int) int { return x * 2 })
+		mapped := MonadMap(scanned(seq), N.Mul(2))
 		result := toSlice(mapped)
 		assert.Equal(t, []int{2, 6, 12, 20}, result)
 	})
 
 	t.Run("map then scan", func(t *testing.T) {
 		seq := From(1, 2, 3, 4)
-		mapped := MonadMap(seq, func(x int) int { return x * 2 })
+		mapped := MonadMap(seq, N.Mul(2))
 		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
 		result := toSlice(scanned(mapped))
 		assert.Equal(t, []int{2, 6, 12, 20}, result)

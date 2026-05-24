@@ -21,12 +21,13 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/iterator/iter"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMonadAp(t *testing.T) {
 	t.Run("applies function to value", func(t *testing.T) {
-		fab := iter.From(E.Right[string](func(x int) int { return x * 2 }))
+		fab := iter.From(E.Right[string](N.Mul(2)))
 		fa := iter.From(E.Right[string](21))
 		result := collectEithers(MonadAp(fab, fa))
 		assert.Equal(t, []Either[string, int]{E.Right[string](42)}, result)
@@ -40,7 +41,7 @@ func TestMonadAp(t *testing.T) {
 	})
 
 	t.Run("preserves Left in value", func(t *testing.T) {
-		fab := iter.From(E.Right[string](func(x int) int { return x * 2 }))
+		fab := iter.From(E.Right[string](N.Mul(2)))
 		fa := iter.From(E.Left[int]("error"))
 		result := collectEithers(MonadAp(fab, fa))
 		assert.Equal(t, []Either[string, int]{E.Left[int]("error")}, result)
@@ -48,7 +49,7 @@ func TestMonadAp(t *testing.T) {
 }
 
 func TestAp(t *testing.T) {
-	fab := iter.From(E.Right[string](func(x int) int { return x * 2 }))
+	fab := iter.From(E.Right[string](N.Mul(2)))
 	fa := iter.From(E.Right[string](21))
 	result := F.Pipe1(fab, Ap[int](fa))
 	assert.Equal(t, []Either[string, int]{E.Right[string](42)}, collectEithers(result))
@@ -89,7 +90,7 @@ func TestApFirst(t *testing.T) {
 		result := F.Pipe2(
 			iter.From(E.Right[string](10)),
 			ApFirst[int](iter.From(E.Right[string](20))),
-			Map[string](func(x int) int { return x * 2 }),
+			Map[string](N.Mul(2)),
 		)
 		assert.Equal(t, []Either[string, int]{E.Right[string](20)}, collectEithers(result))
 	})
@@ -138,7 +139,7 @@ func TestApSecond(t *testing.T) {
 		result := F.Pipe2(
 			iter.From(E.Right[string](10)),
 			ApSecond[int](iter.From(E.Right[string](20))),
-			Map[string](func(x int) int { return x * 2 }),
+			Map[string](N.Mul(2)),
 		)
 		assert.Equal(t, []Either[string, int]{E.Right[string](40)}, collectEithers(result))
 	})
@@ -158,7 +159,7 @@ func TestApSequence(t *testing.T) {
 			iter.From(E.Right[string](5)),
 			ApFirst[int](iter.From(E.Right[string](10))),
 			ApSecond[int](iter.From(E.Right[string](15))),
-			Map[string](func(x int) int { return x * 2 }),
+			Map[string](N.Mul(2)),
 		)
 		assert.Equal(t, []Either[string, int]{E.Right[string](30)}, collectEithers(result))
 	})

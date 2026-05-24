@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
+	N "github.com/IBM/fp-go/v2/number"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -325,7 +326,7 @@ func TestIsWithChannelTypes(t *testing.T) {
 func TestIsWithFunctionTypes(t *testing.T) {
 	t.Run("function type succeeds with matching function", func(t *testing.T) {
 		isFunc := Is[func(int) int]()
-		fn := func(x int) int { return x * 2 }
+		fn := N.Mul(2)
 
 		res := isFunc(fn)
 		// Functions can't be compared for equality, so just check it's Right
