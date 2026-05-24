@@ -51,8 +51,8 @@
 // Extract values:
 //
 //	value, ok := Some(42)      // Direct tuple unpacking: value == 42, ok == true
-//	value := GetOrElse(func() int { return 0 })(Some(42))  // Returns 42
-//	value := GetOrElse(func() int { return 0 })(None[int]())  // Returns 0
+//	value := GetOrElse(lazy.Of(0))(Some(42))  // Returns 42
+//	value := GetOrElse(lazy.Of(0))(None[int]())  // Returns 0
 //
 // # Transformations
 //
@@ -162,8 +162,7 @@
 //	    sum int
 //	}
 //
-//	result := F.Pipe3(
-//	    Do(Result{}),
+//	result, ok := F.Flow3(
 //	    Bind(func(x int) func(Result) Result {
 //	        return func(r Result) Result { r.x = x; return r }
 //	    }, func(r Result) (int, bool) { return Some(10) }),
@@ -173,7 +172,7 @@
 //	    Let(func(sum int) func(Result) Result {
 //	        return func(r Result) Result { r.sum = sum; return r }
 //	    }, func(r Result) int { return r.x + r.y }),
-//	)  // (Result{x: 10, y: 20, sum: 30}, true)
+//	)(Do(Result{}))  // ok = true, result = Result{x: 10, y: 20, sum: 30}
 //
 // # Lens-Based Operations
 //

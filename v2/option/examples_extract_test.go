@@ -32,8 +32,8 @@ func ExampleOption_extraction() {
 	fromSome, okFromSome := Unwrap(someValue) // 42, true
 
 	// Convert Option[T] with a default value
-	noneWithDefault := GetOrElse(F.Constant(0))(noneValue) // 0
-	someWithDefault := GetOrElse(F.Constant(0))(someValue) // 42
+	noneWithDefault := F.Pipe1(noneValue, GetOrElse(F.Constant(0))) // 0
+	someWithDefault := F.Pipe1(someValue, GetOrElse(F.Constant(0))) // 42
 
 	// Apply a different function on None/Some(...)
 	doubleOrZero := Fold(
@@ -41,16 +41,16 @@ func ExampleOption_extraction() {
 		N.Mul(2),      // some case
 	) // func(ma Option[int]) int
 
-	doubleFromNone := doubleOrZero(noneValue) // 0
-	doubleFromSome := doubleOrZero(someValue) // 84
+	doubleFromNone := F.Pipe1(noneValue, doubleOrZero) // 0
+	doubleFromSome := F.Pipe1(someValue, doubleOrZero) // 84
 
 	// Pro-tip: Fold is short for the following:
 	doubleOfZeroBis := F.Flow2(
 		Map(N.Mul(2)),            // some case
 		GetOrElse(F.Constant(0)), // none case
 	)
-	doubleFromNoneBis := doubleOfZeroBis(noneValue) // 0
-	doubleFromSomeBis := doubleOfZeroBis(someValue) // 84
+	doubleFromNoneBis := F.Pipe1(noneValue, doubleOfZeroBis) // 0
+	doubleFromSomeBis := F.Pipe1(someValue, doubleOfZeroBis) // 84
 
 	fmt.Printf("%d, %t\n", fromNone, okFromNone)
 	fmt.Printf("%d, %t\n", fromSome, okFromSome)

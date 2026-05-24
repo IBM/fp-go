@@ -86,7 +86,7 @@
 //	result = validate(some)        // (84, true)
 //
 //	// Pattern matching
-//	value := option.GetOrElse(func() int { return 0 })(some)  // 42
+//	value := option.GetOrElse(lazy.Of(0))(some)  // 42
 //
 // ## idiomatic/result
 //
@@ -455,7 +455,7 @@
 //
 // 4. Leverage GetOrElse for defaults:
 //
-//	value := option.GetOrElse(func() Config { return defaultConfig })(maybeConfig)
+//	value := option.GetOrElse(lazy.Of(defaultConfig))(maybeConfig)
 //
 // 5. Use FromPredicate for validation:
 //

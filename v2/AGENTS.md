@@ -57,6 +57,49 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    - Show realistic, runnable examples
    - Indent code examples with spaces (not tabs) for proper godoc rendering
 
+4. **Pipe and Flow in Examples**
+
+   In the non-idiomatic `option` (and similar) packages, operators have the shape
+   `func(T) U`, so `F.Pipe1` works and is preferred over direct nesting:
+
+   ```go
+   // Preferred
+   result := F.Pipe1(Some(42), Map(func(x int) string { return strconv.Itoa(x) }))
+
+   // Avoid
+   result := Map(func(x int) string { return strconv.Itoa(x) })(Some(42))
+   ```
+
+   In the **idiomatic** option package, operators have the shape `func(A, bool) (B, bool)`
+   (an `Operator[A, B]`). These take two arguments, so `F.Pipe1` cannot be used.
+   Instead, build the pipeline with `F.FlowN` and apply it to the initial tuple via
+   Go's multi-return spreading:
+
+   ```go
+   // Preferred — Flow composes Operators; the tuple (S, bool) is spread into the call
+   result, ok := F.Flow3(
+       Bind(setX, func(s State) (int, bool) { return Some(10) }),
+       Bind(setY, func(s State) (int, bool) { return Some(20) }),
+       Map(computeSum),
+   )(Do(State{}))
+
+   // Avoid — F.Pipe3 requires a single first argument; Do returns (S, bool) — two values
+   result := F.Pipe3(Do(State{}), Bind(...), Bind(...), Map(...))
+   ```
+
+5. **Default / fallback values**
+
+   Use `lazy.Of(value)` instead of an inline zero-returning closure wherever a
+   `func() T` is needed for a default:
+
+   ```go
+   // Preferred
+   GetOrElse(lazy.Of(0))(opt)
+
+   // Avoid
+   GetOrElse(func() int { return 0 })(opt)
+   ```
+
 ### File Headers
 
 Always include the Apache 2.0 license header:
@@ -230,6 +273,8 @@ func TestFromReaderResult_Success(t *testing.T) {
 - [ ] Apache 2.0 license header included
 - [ ] Go doc comments use standard format (no markdown links)
 - [ ] Code examples are idiomatic and concise
+- [ ] Doc examples use `F.Pipe1`/`F.FlowN` for sequencing (see §4 above)
+- [ ] Default values in examples use `lazy.Of(value)`, not `func() T { return value }`
 - [ ] Tests cover success, failure, edge cases, and integration
 - [ ] Tests use direct assertions where possible
 - [ ] Benchmarks included for performance-critical code
