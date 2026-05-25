@@ -113,7 +113,7 @@ func Write[A any](a A) io.Kleisli[IORef[A], A] {
 //	result := pipe.Pipe2(
 //	    ref,
 //	    ioref.Read[int],
-//	    io.Map(func(x int) int { return x * 2 }),
+//	    io.Map(N.Mul(2)),
 //	)()
 //
 //go:inline
@@ -144,13 +144,13 @@ func Read[A any](ref IORef[A]) IO[A] {
 //	ref := ioref.MakeIORef(42)()
 //
 //	// Double the value
-//	ioref.Modify(func(x int) int { return x * 2 })(ref)()
+//	ioref.Modify(N.Mul(2))(ref)()
 //
 //	// Chain multiple modifications
 //	pipe.Pipe2(
 //	    ref,
 //	    ioref.Modify(func(x int) int { return x + 10 }),
-//	    io.Chain(ioref.Modify(func(x int) int { return x * 2 })),
+//	    io.Chain(ioref.Modify(N.Mul(2))),
 //	)()
 func Modify[A any](f Endomorphism[A]) io.Kleisli[IORef[A], A] {
 	return ModifyIOK(function.Flow2(f, io.Of))

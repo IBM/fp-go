@@ -229,7 +229,7 @@ func TestWrite(t *testing.T) {
 func TestModify(t *testing.T) {
 	t.Run("modifies value with simple function", func(t *testing.T) {
 		ref := MakeIORef(10)()
-		result := Modify(func(x int) int { return x * 2 })(ref)()
+		result := Modify(N.Mul(2))(ref)()
 		assert.Equal(t, 20, result)
 		assert.Equal(t, 20, Read(ref)())
 	})

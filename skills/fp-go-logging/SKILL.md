@@ -1,3 +1,7 @@
+---
+name: fp-go-logging
+description: Use this skill when working with logging in fp-go functional pipelines (github.com/IBM/fp-go/v2/logging). Trigger on mentions of logging in monadic contexts, ChainFirstIOK, ChainFirst with logging, side-effect logging, structured logging (SLog), context-embedded loggers, LoggingCallbacks, TapSLog, LogEntryExit, Printf/Logf in IO/ReaderIO/ReaderIOResult, or when the user needs to add logging to functional pipelines without breaking the data flow.
+---
 # fp-go Logging
 
 ## Overview

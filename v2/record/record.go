@@ -909,7 +909,7 @@ func ValuesOrd[V any, K comparable](o ord.Ord[K]) func(r Record[K, V]) []V {
 // Example:
 //
 //	funcs := Record[string, func(int) int]{
-//	    "double": func(x int) int { return x * 2 },
+//	    "double": N.Mul(2),
 //	    "triple": func(x int) int { return x * 3 },
 //	}
 //	result := MonadFlap(funcs, 5)
@@ -926,7 +926,7 @@ func MonadFlap[B any, K comparable, A any](fab Record[K, func(A) B], a A) Record
 // Example:
 //
 //	funcs := Record[string, func(int) int]{
-//	    "double": func(x int) int { return x * 2 },
+//	    "double": N.Mul(2),
 //	    "triple": func(x int) int { return x * 3 },
 //	}
 //	applyFive := Flap[int, string, int](5)
@@ -1065,7 +1065,7 @@ func FromArray[
 // Example:
 //
 //	funcs := Record[string, func(int) int]{
-//	    "double": func(x int) int { return x * 2 },
+//	    "double": N.Mul(2),
 //	    "triple": func(x int) int { return x * 3 },
 //	}
 //	values := Record[string, int]{"double": 5, "triple": 7}
@@ -1083,7 +1083,7 @@ func MonadAp[A any, K comparable, B any](m Monoid[Record[K, B]], fab Record[K, f
 // Example:
 //
 //	funcs := Record[string, func(int) int]{
-//	    "double": func(x int) int { return x * 2 },
+//	    "double": N.Mul(2),
 //	}
 //	applyFuncs := Ap[int, string, int](MergeMonoid[string, int]())
 //	values := Record[string, int]{"double": 5}

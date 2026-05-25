@@ -123,7 +123,7 @@ func TestOfLazy(t *testing.T) {
 		lazyValue := func() int { return 10 }
 		decoder := MonadMap(
 			OfLazy[string](lazyValue),
-			func(x int) int { return x * 2 },
+			N.Mul(2),
 		)
 		res := decoder("input")
 		assert.Equal(t, validation.Of(20), res)

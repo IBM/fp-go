@@ -58,7 +58,7 @@ func (o *ioApplicative[A, B]) Of(a A) IO[A] {
 // Example:
 //
 //	app := io.Applicative[int, string]()
-//	double := func(x int) int { return x * 2 }
+//	double := N.Mul(2)
 //	ioValue := app.Of(21)
 //	doubled := app.Map(double)(ioValue)
 //	result := doubled() // 42

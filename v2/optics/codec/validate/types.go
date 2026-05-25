@@ -173,7 +173,7 @@ type (
 	// Composing validators:
 	//
 	//   // Transform the result of a validator
-	//   doubled := Map[int, int, int](func(x int) int { return x * 2 })(validatePositive)
+	//   doubled := Map[int, int, int](N.Mul(2))(validatePositive)
 	//
 	//   // Chain dependent validations
 	//   validateRange := func(n int) Validate[int, int] {

@@ -143,7 +143,7 @@ func TestOfLazy(t *testing.T) {
 		lazyValue := func() int { return 10 }
 		rr := F.Pipe1(
 			OfLazy[MyContext](lazyValue),
-			Map[MyContext](func(x int) int { return x * 2 }),
+			Map[MyContext](N.Mul(2)),
 		)
 		res := rr(defaultContext)
 		assert.Equal(t, result.Of(20), res)

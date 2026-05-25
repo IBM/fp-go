@@ -33,7 +33,7 @@
 //	ioref.Write(100)(ref)()
 //
 //	// Modify the value
-//	ioref.Modify(func(x int) int { return x * 2 })(ref)()
+//	ioref.Modify(N.Mul(2))(ref)()
 //
 //	// Read the modified value
 //	newValue := ioref.Read(ref)()  // 200
@@ -128,7 +128,7 @@ type (
 	//	ioref.Write(100)(ref)()
 	//
 	//	// Modify the value atomically
-	//	ioref.Modify(func(x int) int { return x * 2 })(ref)()
+	//	ioref.Modify(N.Mul(2))(ref)()
 	IORef[A any] = *ioRef[A]
 
 	// Endomorphism represents a function from A to A.
@@ -141,7 +141,7 @@ type (
 	// Example:
 	//
 	//	// An endomorphism that doubles an integer
-	//	double := func(x int) int { return x * 2 }
+	//	double := N.Mul(2)
 	//
 	//	// An endomorphism that uppercases a string
 	//	upper := func(s string) string { return strings.ToUpper(s) }

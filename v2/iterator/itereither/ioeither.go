@@ -98,7 +98,7 @@ type (
 	//
 	// Example:
 	//
-	//	double := Map[string](func(x int) int { return x * 2 })
+	//	double := Map[string](N.Mul(2))
 	//	// double is an Operator[string, int, int]
 	Operator[E, A, B any] = Kleisli[E, SeqEither[E, A], B]
 )

@@ -304,7 +304,7 @@ func TestFromLazy_EdgeCases(t *testing.T) {
 
 	t.Run("handles function returning function", func(t *testing.T) {
 		lazy := func() func(int) int {
-			return func(x int) int { return x * 2 }
+			return N.Mul(2)
 		}
 		seq := FromLazy(lazy)
 		result := toSlice(seq)

@@ -58,7 +58,7 @@ package io
 //	result := io.Run(
 //	    pipe.Pipe2(
 //	        io.Of(5),
-//	        io.Map(func(x int) int { return x * 2 }),
+//	        io.Map(N.Mul(2)),
 //	        io.Map(func(x int) int { return x + 1 }),
 //	    ),
 //	) // result == 11

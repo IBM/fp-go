@@ -795,7 +795,7 @@ func OrElse[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
 // # Example
 //
 //	// Create a validator that produces a function
-//	validateFunc := validate.Of[string, func(int) int](func(x int) int { return x * 2 })
+//	validateFunc := validate.Of[string, func(int) int](N.Mul(2))
 //
 //	// Create a validator that produces a value
 //	validateValue := validate.Of[string, int](21)
@@ -850,7 +850,7 @@ func MonadAp[B, I, A any](fab Validate[I, func(A) B], fa Validate[I, A]) Validat
 //	applyTo21 := validate.Ap[int, string, int](validateValue)
 //
 //	// Create a function validator
-//	validateDouble := validate.Of[string, func(int) int](func(x int) int { return x * 2 })
+//	validateDouble := validate.Of[string, func(int) int](N.Mul(2))
 //
 //	// Apply it
 //	result := applyTo21(validateDouble)

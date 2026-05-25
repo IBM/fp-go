@@ -255,7 +255,7 @@ type (
 	//
 	// Example:
 	//
-	//	double := func(x int) int { return x * 2 }  // Endomorphism[int]
+	//	double := N.Mul(2)  // Endomorphism[int]
 	//	result := LetL(lens, double)(Success(21))   // Success(42)
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 

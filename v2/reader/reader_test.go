@@ -158,7 +158,7 @@ func TestOfLazy(t *testing.T) {
 		lazyValue := func() int { return 10 }
 		r := F.Pipe1(
 			OfLazy[Config](lazyValue),
-			Map[Config](func(x int) int { return x * 2 }),
+			Map[Config](N.Mul(2)),
 		)
 		result := r(Config{Host: "localhost"})
 		assert.Equal(t, 20, result)

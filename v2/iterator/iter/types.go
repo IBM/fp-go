@@ -125,7 +125,7 @@ type (
 	//
 	// Example:
 	//
-	//	double := Map(func(x int) int { return x * 2 })
+	//	double := Map(N.Mul(2))
 	//	result := double(From(1, 2, 3))
 	//	// yields: 2, 4, 6
 	Operator[A, B any] = Kleisli[Seq[A], B]

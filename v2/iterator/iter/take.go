@@ -162,7 +162,7 @@ func takeWhile[U any](p Predicate[U], inclusive bool) Operator[U, U] {
 //	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 //	result := F.Pipe2(
 //	    seq,
-//	    MonadMap(seq, func(x int) int { return x * 2 }),
+//	    MonadMap(seq, N.Mul(2)),
 //	    TakeWhile(func(x int) bool { return x < 10 }),
 //	)
 //	// yields: 2, 4, 6, 8 (stops when doubled value reaches 10)
@@ -230,7 +230,7 @@ func TakeWhile[U any](p Predicate[U]) Operator[U, U] {
 //	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 //	result := F.Pipe2(
 //	    seq,
-//	    MonadMap(seq, func(x int) int { return x * 2 }),
+//	    MonadMap(seq, N.Mul(2)),
 //	    TakeWhileInclusive(func(x int) bool { return x < 10 }),
 //	)
 //	// yields: 2, 4, 6, 8, 10 (includes 10 which fails x < 10)
@@ -303,7 +303,7 @@ func TakeWhileInclusive[U any](p Predicate[U]) Operator[U, U] {
 //	result := F.Pipe2(
 //	    seq,
 //	    SkipWhile(func(x int) bool { return x < 5 }),
-//	    MonadMap(seq, func(x int) int { return x * 2 }),
+//	    MonadMap(seq, N.Mul(2)),
 //	)
 //	// yields: 10, 12, 14, 16, 18, 20 (skip until 5, then double remaining)
 func SkipWhile[U any](p Predicate[U]) Operator[U, U] {

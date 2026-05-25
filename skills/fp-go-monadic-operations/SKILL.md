@@ -1,13 +1,6 @@
 ---
-name: fp-go
-description: >
-  Use this skill whenever writing, reviewing, or refactoring Go code that uses
-  the fp-go library (github.com/IBM/fp-go/v2). Trigger on any mention of fp-go,
-  functional programming in Go, monads in Go, Option/Either/Result types in Go,
-  IOResult, ReaderIOResult, data-last composition, Pipe/Flow, or do-notation with
-  Bind/ApS in Go. Also trigger when the user wants to convert idiomatic Go
-  error handling into functional pipelines, or asks about optics (lens, prism,
-  traversal) in Go.
+name: fp-go-monadic-operations
+description: Use this skill whenever writing, reviewing, or refactoring Go code that uses the fp-go library (github.com/IBM/fp-go/v2). Trigger on any mention of fp-go, functional programming in Go, monads in Go, Option/Either/Result types in Go, IOResult, ReaderIOResult, data-last composition, Pipe/Flow, or do-notation with Bind/ApS in Go. Also trigger when the user wants to convert idiomatic Go error handling into functional pipelines, or asks about optics (lens, prism, traversal) in Go.
 ---
 
 # fp-go v2 — Functional Programming for Go
