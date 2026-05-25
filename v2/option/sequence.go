@@ -57,7 +57,67 @@ func Sequence[A, HKTA, HKTOA any](
 //	    func(opt Option[string]) IO[Option[string]] { return IO.Of(opt) },
 //	    func(f func(string) Option[string]) func(IO[string]) IO[Option[string]] { ... },
 //	)
+//
+// deprecated: use MakeTraversable instead
 func Traverse[A, B, HKTB, HKTOB any](
+	mof func(Option[B]) HKTOB,
+	mmap func(Kleisli[B, B]) func(HKTB) HKTOB,
+) func(func(A) HKTB) func(Option[A]) HKTOB {
+	return MakeTraversable[A](mof, mmap)
+}
+
+// MakeTraversable creates a fully curried traversal function for Option types.
+// This function enables traversing an Option by applying a transformation that produces
+// a higher-kinded type, then sequencing the result into that higher-kinded type containing an Option.
+//
+// This is the preferred way to create traversable operations for Option types, replacing
+// the deprecated Traverse function. It provides maximum composability by returning a function
+// that can be specialized with different transformation functions.
+//
+// Type Parameters:
+//   - A: The input element type contained in the Option
+//   - B: The output element type after transformation
+//   - HKTB: The higher-kinded type containing B (e.g., IO[B], Either[E, B])
+//   - HKTOB: The higher-kinded type containing Option[B] (e.g., IO[Option[B]])
+//
+// Parameters:
+//   - mof: Function to lift an Option into the target higher-kinded type
+//   - mmap: Function to map over the target higher-kinded type
+//
+// Returns:
+//   - A function that takes a transformation function and returns a function that takes
+//     an Option and produces the higher-kinded type containing an Option
+//
+// Behavior:
+//   - None values are lifted directly into the target type as None
+//   - Some values are transformed by f, then wrapped in Some and lifted into the target type
+//
+// Example:
+//
+//	import (
+//	    O "github.com/IBM/fp-go/v2/option"
+//	    IO "github.com/IBM/fp-go/v2/io"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Create a traversable for Option that works with IO
+//	traverseIO := O.MakeTraversable[int, string](
+//	    IO.Of[O.Option[string]],
+//	    IO.Map[string, O.Option[string]],
+//	)
+//
+//	// Use it to transform Option[int] to IO[Option[string]]
+//	fetchUser := func(id int) IO.IO[string] {
+//	    return IO.Of(F.Pipe1(id, strconv.Itoa))
+//	}
+//
+//	result := traverseIO(fetchUser)(O.Some(42))  // IO[Some("42")]
+//	result2 := traverseIO(fetchUser)(O.None[int]())  // IO[None]
+//
+// See Also:
+//   - Traverse: Deprecated alias for this function
+//   - Sequence: Traversal with identity transformation
+func MakeTraversable[A, B, HKTB, HKTOB any](
 	mof func(Option[B]) HKTOB,
 	mmap func(Kleisli[B, B]) func(HKTB) HKTOB,
 ) func(func(A) HKTB) func(Option[A]) HKTOB {

@@ -109,5 +109,5 @@ func FromArrayLens[GA ~[]A, S, A, HKTS, HKTA, HKTAA, HKTRA any](
 	fmapEndo functor.MapType[GA, Endomorphism[S], HKTRA, HKTS],
 	fap apply.ApType[HKTA, HKTRA, HKTAA],
 ) func(Lens[S, GA]) Traversal[S, A, HKTS, HKTA] {
-	return TG.FromTraversableLens[A, HKTA](fmapEndo)(AR.Traversable[GA](fof, fmap, fap))
+	return TG.FromTraversableLens[A, HKTA](fmapEndo)(AR.MakeTraversable[GA](fof, fmap, fap))
 }

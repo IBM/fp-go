@@ -219,7 +219,7 @@ func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	}
 }
 
-// Traversable creates a fully curried traversal function that can be specialized for different effects.
+// MakeTraversable creates a fully curried traversal function that can be specialized for different effects.
 // This is the most abstract form of traverse, returning a function that takes the transformation
 // function and then the array, enabling maximum composability and reusability.
 //
@@ -254,7 +254,7 @@ func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 //	)
 //
 //	// Create a reusable Option traversal for string arrays
-//	traverseOption := A.Traversable[[]string, []int](
+//	traverseOption := A.MakeTraversable[[]string, []int](
 //	    O.Of[[]int],
 //	    O.Map[[]int, func(int) []int],
 //	    O.Ap[int, []int],
@@ -268,7 +268,7 @@ func Traverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 // See Also:
 //   - Traverse: Non-curried version that takes the transformation function directly
 //   - MonadTraverse: Version that takes the array as a direct parameter
-func Traversable[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
+func MakeTraversable[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
 	fap func(HKTB) func(HKTAB) HKTRB,

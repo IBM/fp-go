@@ -45,7 +45,7 @@ func TestMonoid(t *testing.T) {
 		thunk.Ap,
 	)
 
-	arTraversable := AR.Traversable[[]string, []string](
+	arTraversable := AR.MakeTraversable[[]string, []string](
 		thunk.Of,
 		thunk.Map,
 		thunk.Ap,

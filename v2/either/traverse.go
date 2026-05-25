@@ -33,7 +33,68 @@ import (
 //	    option.Of[either.Either[error, int]],
 //	    option.Map[int, either.Either[error, int]],
 //	)(f)(eitherOfOption)
+//
+// deprecated: use MakeTraversable instead
 func Traverse[A, E, B, HKTB, HKTRB any](
+	mof func(Either[E, B]) HKTRB,
+	mmap func(Kleisli[E, B, B]) func(HKTB) HKTRB,
+) func(func(A) HKTB) func(Either[E, A]) HKTRB {
+	return MakeTraversable[A](mof, mmap)
+}
+
+// MakeTraversable creates a fully curried traversal function for Either types.
+// This function enables traversing an Either by applying a transformation that produces
+// a higher-kinded type, then sequencing the result into that higher-kinded type containing an Either.
+//
+// This is the preferred way to create traversable operations for Either types, replacing
+// the deprecated Traverse function. It provides maximum composability by returning a function
+// that can be specialized with different transformation functions.
+//
+// Type Parameters:
+//   - A: The input element type contained in the Right case
+//   - E: The error type contained in the Left case
+//   - B: The output element type after transformation
+//   - HKTB: The higher-kinded type containing B (e.g., IO[B], Option[B])
+//   - HKTRB: The higher-kinded type containing Either[E, B] (e.g., IO[Either[E, B]])
+//
+// Parameters:
+//   - mof: Function to lift an Either into the target higher-kinded type
+//   - mmap: Function to map over the target higher-kinded type
+//
+// Returns:
+//   - A function that takes a transformation function and returns a function that takes
+//     an Either and produces the higher-kinded type containing an Either
+//
+// Behavior:
+//   - Left values are lifted directly into the target type as Left (error is preserved)
+//   - Right values are transformed by f, then wrapped in Right and lifted into the target type
+//
+// Example:
+//
+//	import (
+//	    E "github.com/IBM/fp-go/v2/either"
+//	    IO "github.com/IBM/fp-go/v2/io"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	)
+//
+//	// Create a traversable for Either that works with IO
+//	traverseIO := E.MakeTraversable[int, error, string](
+//	    IO.Of[E.Either[error, string]],
+//	    IO.Map[string, E.Either[error, string]],
+//	)
+//
+//	// Use it to transform Either[error, int] to IO[Either[error, string]]
+//	fetchUser := func(id int) IO.IO[string] {
+//	    return IO.Of(F.Pipe1(id, strconv.Itoa))
+//	}
+//
+//	result := traverseIO(fetchUser)(E.Right[error](42))  // IO[Right("42")]
+//	result2 := traverseIO(fetchUser)(E.Left[int](errors.New("fail")))  // IO[Left(error)]
+//
+// See Also:
+//   - Traverse: Deprecated alias for this function
+//   - Sequence: Traversal with identity transformation
+func MakeTraversable[A, E, B, HKTB, HKTRB any](
 	mof func(Either[E, B]) HKTRB,
 	mmap func(Kleisli[E, B, B]) func(HKTB) HKTRB,
 ) func(func(A) HKTB) func(Either[E, A]) HKTRB {

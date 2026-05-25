@@ -315,14 +315,71 @@ func SequenceRecordPar[K comparable, A any](ma map[K]ReaderIOResult[A]) ReaderIO
 	return MonadTraverseRecordPar(ma, function.Identity[ReaderIOResult[A]])
 }
 
+// TraversableArray returns a Traversable instance for arrays.
+// This provides a higher-order function that can be used to traverse arrays
+// with any transformation function.
+//
+// Type Parameters:
+//   - A: The element type of the input array
+//   - B: The element type of the output array
+//
+// Returns:
+//   - Traversable[A, B, []A, []B]: A function that takes a Kleisli arrow and returns
+//     a function that transforms arrays
+//
+// Example:
+//
+//	parse := result.Eitherize1(strconv.Atoi)
+//	traversable := TraversableArray[string, int]()
+//	transform := traversable(parse)
+//	result := transform([]string{"1", "2", "3"})(ctx)()
 func TraversableArray[A, B any]() Traversable[A, B, []A, []B] {
 	return TraverseArray[A, B]
 }
 
+// TraversableRecord returns a Traversable instance for maps.
+// This provides a higher-order function that can be used to traverse maps
+// with any transformation function.
+//
+// Type Parameters:
+//   - K: The key type of the map (must be comparable)
+//   - A: The value type of the input map
+//   - B: The value type of the output map
+//
+// Returns:
+//   - Traversable[A, B, map[K]A, map[K]B]: A function that takes a Kleisli arrow and
+//     returns a function that transforms maps
+//
+// Example:
+//
+//	parse := result.Eitherize1(strconv.Atoi)
+//	traversable := TraversableRecord[string, string, int]()
+//	transform := traversable(parse)
+//	input := map[string]string{"a": "1", "b": "2"}
+//	result := transform(input)(ctx)()
 func TraversableRecord[K comparable, A, B any]() Traversable[A, B, map[K]A, map[K]B] {
 	return TraverseRecord[K, A, B]
 }
 
+// TraversableIter returns a Traversable instance for iterators.
+// This provides a higher-order function that can be used to traverse iterators
+// with any transformation function.
+//
+// Type Parameters:
+//   - A: The element type of the input iterator
+//   - B: The element type of the output iterator
+//
+// Returns:
+//   - Traversable[A, B, Seq[A], Seq[B]]: A function that takes a Kleisli arrow and
+//     returns a function that transforms iterators
+//
+// Example:
+//
+//	parse := result.Eitherize1(strconv.Atoi)
+//	traversable := TraversableIter[string, int]()
+//	transform := traversable(parse)
+//	input := slices.Values([]string{"1", "2", "3"})
+//	result := transform(input)(ctx)()
 func TraversableIter[A, B any]() Traversable[A, B, Seq[A], Seq[B]] {
 	return TraverseIter[A, B]
 }
