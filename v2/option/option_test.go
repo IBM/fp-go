@@ -18,6 +18,7 @@ package option
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -271,9 +272,7 @@ func TestZeroCanBeUsedWithOtherFunctions(t *testing.T) {
 	o := Zero[int]()
 
 	// Test with Map - should remain None
-	mapped := MonadMap(o, func(n int) string {
-		return fmt.Sprintf("%d", n)
-	})
+	mapped := MonadMap(o, strconv.Itoa)
 	assert.True(t, IsNone(mapped), "Mapped Zero should still be None")
 
 	// Test with Chain - should remain None

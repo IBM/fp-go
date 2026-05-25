@@ -117,7 +117,7 @@
 //	// Pattern matching
 //	output := result.Fold(
 //	    func(err error) string { return "Error: " + err.Error() },
-//	    func(n int) string { return fmt.Sprintf("Success: %d", n) },
+//	    S.Format[int]("Success: %d"),
 //	)(success)  // "Success: 42"
 //
 //	// Direct integration with Go error handling

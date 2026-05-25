@@ -155,7 +155,7 @@ func TestWithResource_Success(t *testing.T) {
 	resource := &mockResource{id: 1}
 
 	// Define resource management
-	withResource := WithResource[*mockResource, string, any](
+	withResource := WithResource[*mockResource, string](
 		func(ctx context.Context) io.IO[*mockResource] {
 			return func() *mockResource {
 				resource.acquired = true
@@ -194,7 +194,7 @@ func TestWithResource_Success(t *testing.T) {
 func TestWithResource_Reusability(t *testing.T) {
 	callCount := 0
 
-	withResource := WithResource[*mockResource, int, any](
+	withResource := WithResource[*mockResource, int](
 		func(ctx context.Context) io.IO[*mockResource] {
 			return func() *mockResource {
 				callCount++
@@ -244,7 +244,7 @@ func TestWithResource_Reusability(t *testing.T) {
 func TestWithResource_DifferentResultTypes(t *testing.T) {
 	resource := &mockResource{id: 42}
 
-	withResourceInt := WithResource[*mockResource, int, any](
+	withResourceInt := WithResource[*mockResource, int](
 		func(ctx context.Context) io.IO[*mockResource] {
 			return func() *mockResource {
 				resource.acquired = true
@@ -278,7 +278,7 @@ func TestWithResource_DifferentResultTypes(t *testing.T) {
 	resource.released = false
 
 	// Create new WithResource for string type
-	withResourceString := WithResource[*mockResource, string, any](
+	withResourceString := WithResource[*mockResource, string](
 		func(ctx context.Context) io.IO[*mockResource] {
 			return func() *mockResource {
 				resource.acquired = true
@@ -314,7 +314,7 @@ func TestWithResource_ContextPropagation(t *testing.T) {
 	type contextKey string
 	const key contextKey = "test-key"
 
-	withResource := WithResource[string, string, any](
+	withResource := WithResource[string, string](
 		func(ctx context.Context) io.IO[string] {
 			return func() string {
 				value := ctx.Value(key)
@@ -352,7 +352,7 @@ func TestWithResource_ErrorInRelease(t *testing.T) {
 	resource := &mockResource{id: 1}
 	releaseError := errors.New("release failed")
 
-	withResource := WithResource[*mockResource, string, error](
+	withResource := WithResource[*mockResource, string](
 		func(ctx context.Context) io.IO[*mockResource] {
 			return func() *mockResource {
 				resource.acquired = true
@@ -422,7 +422,7 @@ func BenchmarkBracket(b *testing.B) {
 
 // BenchmarkWithResource benchmarks the WithResource function
 func BenchmarkWithResource(b *testing.B) {
-	withResource := WithResource[int, int, any](
+	withResource := WithResource[int, int](
 		func(ctx context.Context) io.IO[int] {
 			return func() int {
 				return 42

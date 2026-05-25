@@ -736,7 +736,7 @@ func TestMonadMapTo(t *testing.T) {
 
 func TestMapTo(t *testing.T) {
 	seq := iter.From(E.Right[string](1), E.Right[string](2))
-	result := F.Pipe1(seq, MapTo[string, int, int](99))
+	result := F.Pipe1(seq, MapTo[string, int](99))
 	expected := []Either[string, int]{
 		E.Right[string](99),
 		E.Right[string](99),
@@ -1085,7 +1085,7 @@ func TestChainFirst(t *testing.T) {
 		sideEffect = n * 2
 		return iter.From(E.Right[string]("ignored"))
 	}
-	result := F.Pipe1(seq, ChainFirst[string](f))
+	result := F.Pipe1(seq, ChainFirst(f))
 	assert.Equal(t, []E.Either[string, int]{E.Right[string](42)}, collectEithers(result))
 	assert.Equal(t, 84, sideEffect)
 }
@@ -1109,7 +1109,7 @@ func TestTap(t *testing.T) {
 		sideEffect = n * 2
 		return iter.From(E.Right[string]("ignored"))
 	}
-	result := F.Pipe1(seq, Tap[string](f))
+	result := F.Pipe1(seq, Tap(f))
 	assert.Equal(t, []E.Either[string, int]{E.Right[string](42)}, collectEithers(result))
 	assert.Equal(t, 84, sideEffect)
 }
@@ -1161,7 +1161,7 @@ func TestWithResource(t *testing.T) {
 		return iter.From(E.Right[error](len(r)))
 	}
 
-	withRes := WithResource[int, error, string, F.Void](onCreate, onRelease)
+	withRes := WithResource[int](onCreate, onRelease)
 	result := collectEithers(withRes(use))
 	assert.Equal(t, []Either[error, int]{E.Right[error](8)}, result)
 	assert.True(t, released)
@@ -1186,7 +1186,7 @@ func TestChainFirstEitherK(t *testing.T) {
 		sideEffect = n * 2
 		return E.Right[string]("ignored")
 	}
-	result := F.Pipe1(seq, ChainFirstEitherK[int](f))
+	result := F.Pipe1(seq, ChainFirstEitherK(f))
 	assert.Equal(t, []E.Either[string, int]{E.Right[string](42)}, collectEithers(result))
 	assert.Equal(t, 84, sideEffect)
 }
@@ -1210,7 +1210,7 @@ func TestTapEitherK(t *testing.T) {
 		sideEffect = n * 2
 		return E.Right[string]("ignored")
 	}
-	result := F.Pipe1(seq, TapEitherK[int](f))
+	result := F.Pipe1(seq, TapEitherK(f))
 	assert.Equal(t, []E.Either[string, int]{E.Right[string](42)}, collectEithers(result))
 	assert.Equal(t, 84, sideEffect)
 }

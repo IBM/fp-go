@@ -148,19 +148,19 @@ func TestMonadAp(t *testing.T) {
 
 func TestAp(t *testing.T) {
 	ma := Of(5)
-	result := F.Pipe1(Of(utils.Double), Ap[int, int](ma))()
+	result := F.Pipe1(Of(utils.Double), Ap[int](ma))()
 	assert.Equal(t, O.Some(10), result)
 }
 
 func TestApSeq(t *testing.T) {
 	ma := Of(5)
-	result := F.Pipe1(Of(utils.Double), ApSeq[int, int](ma))()
+	result := F.Pipe1(Of(utils.Double), ApSeq[int](ma))()
 	assert.Equal(t, O.Some(10), result)
 }
 
 func TestApPar(t *testing.T) {
 	ma := Of(5)
-	result := F.Pipe1(Of(utils.Double), ApPar[int, int](ma))()
+	result := F.Pipe1(Of(utils.Double), ApPar[int](ma))()
 	assert.Equal(t, O.Some(10), result)
 }
 

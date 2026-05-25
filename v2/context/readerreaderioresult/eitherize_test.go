@@ -220,7 +220,7 @@ func TestEitherize_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe1(
 			Eitherize(firstFunc),
-			Chain[TestConfig](secondFunc),
+			Chain(secondFunc),
 		)
 		outcome := pipeline(testConfig)(context.Background())()
 
@@ -402,8 +402,8 @@ func TestEitherize1_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe2(
 			Of[TestConfig]("42"),
-			Chain[TestConfig](parseKleisli),
-			Chain[TestConfig](doubleFunc),
+			Chain(parseKleisli),
+			Chain(doubleFunc),
 		)
 		outcome := pipeline(testConfig)(context.Background())()
 
@@ -444,8 +444,8 @@ func TestEitherize1_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe2(
 			Of[TestConfig]("123"),
-			Chain[TestConfig](parseKleisli),
-			Chain[TestConfig](formatKleisli),
+			Chain(parseKleisli),
+			Chain(formatKleisli),
 		)
 		outcome := pipeline(testConfig)(context.Background())()
 

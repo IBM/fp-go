@@ -1011,7 +1011,7 @@ func TestModifyF_Success(t *testing.T) {
 			return none()
 		}
 
-		modifyAge := ModifyF[Inner, int](maybeMap)
+		modifyAge := ModifyF(maybeMap)
 
 		person := Inner{Value: 5, Foo: "test"}
 		result := modifyAge(validatePositive)(ageLens)(person)
@@ -1050,7 +1050,7 @@ func TestModifyF_Success(t *testing.T) {
 			return someStr(s)
 		}
 
-		modifyName := ModifyF[Street, string](maybeStrMap)
+		modifyName := ModifyF(maybeStrMap)
 
 		street := Street{num: 1, name: "Main"}
 		result := modifyName(identity)(nameLens)(street)
@@ -1097,7 +1097,7 @@ func TestModifyF_Failure(t *testing.T) {
 			return none()
 		}
 
-		modifyAge := ModifyF[Inner, int](maybeMap)
+		modifyAge := ModifyF(maybeMap)
 
 		person := Inner{Value: -5, Foo: "test"}
 		result := modifyAge(validatePositive)(ageLens)(person)
@@ -1144,7 +1144,7 @@ func TestModifyF_WithResult(t *testing.T) {
 			return fail(errors.New("age out of range"))
 		}
 
-		modifyAge := ModifyF[Inner, int](resultMap)
+		modifyAge := ModifyF(resultMap)
 
 		person := Inner{Value: 30, Foo: "test"}
 		result := modifyAge(validateAge)(ageLens)(person)
@@ -1168,7 +1168,7 @@ func TestModifyF_WithResult(t *testing.T) {
 			return fail(errors.New("age out of range"))
 		}
 
-		modifyAge := ModifyF[Inner, int](resultMap)
+		modifyAge := ModifyF(resultMap)
 
 		person := Inner{Value: 200, Foo: "test"}
 		result := modifyAge(validateAge)(ageLens)(person)
@@ -1209,7 +1209,7 @@ func TestModifyF_EdgeCases(t *testing.T) {
 			return some(n)
 		}
 
-		modifyAge := ModifyF[Inner, int](maybeMap)
+		modifyAge := ModifyF(maybeMap)
 
 		person := Inner{Value: 0, Foo: ""}
 		result := modifyAge(identity)(ageLens)(person)
@@ -1247,7 +1247,7 @@ func TestModifyF_EdgeCases(t *testing.T) {
 			return Maybe[int]{value: nil}
 		}
 
-		modifyValue := ModifyF[Outer, int](maybeMapOuter)
+		modifyValue := ModifyF(maybeMapOuter)
 
 		outer := Outer{inner: &Inner{Value: 5, Foo: "test"}}
 		result := modifyValue(validatePositive)(composedLens)(outer)
@@ -1288,7 +1288,7 @@ func TestModifyF_Integration(t *testing.T) {
 			return some(n + 1)
 		}
 
-		modifyAge := ModifyF[Inner, int](maybeMap)
+		modifyAge := ModifyF(maybeMap)
 
 		person := Inner{Value: 5, Foo: "test"}
 
@@ -1328,7 +1328,7 @@ func TestModifyF_Integration(t *testing.T) {
 			return Maybe[int]{value: nil}
 		}
 
-		modifyAge := ModifyF[Inner, int](maybeMap)
+		modifyAge := ModifyF(maybeMap)
 		result := modifyAge(validateRange)(ageLens)(modified)
 
 		assert.NotNil(t, result.value)

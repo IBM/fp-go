@@ -38,7 +38,7 @@ func TestFromIso_Success(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		result := codec.Decode(UserId(42))
@@ -53,7 +53,7 @@ func TestFromIso_Success(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		encoded := codec.Encode(42)
@@ -68,7 +68,7 @@ func TestFromIso_Success(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 		original := UserId(123)
 
 		// Act
@@ -76,7 +76,7 @@ func TestFromIso_Success(t *testing.T) {
 
 		// Assert
 		assert.True(t, either.IsRight(decoded))
-		roundTrip := either.Fold[validation.Errors, int, UserId](
+		roundTrip := either.Fold(
 			func(validation.Errors) UserId { return UserId(0) },
 			codec.Encode,
 		)(decoded)
@@ -91,7 +91,7 @@ func TestFromIso_StringTypes(t *testing.T) {
 			func(e Email) string { return string(e) },
 			func(s string) Email { return Email(s) },
 		)
-		codec := FromIso[string, Email](emailIso)
+		codec := FromIso(emailIso)
 
 		// Act
 		result := codec.Decode(Email("user@example.com"))
@@ -106,7 +106,7 @@ func TestFromIso_StringTypes(t *testing.T) {
 			func(e Email) string { return string(e) },
 			func(s string) Email { return Email(s) },
 		)
-		codec := FromIso[string, Email](emailIso)
+		codec := FromIso(emailIso)
 
 		// Act
 		encoded := codec.Encode("admin@example.com")
@@ -121,7 +121,7 @@ func TestFromIso_StringTypes(t *testing.T) {
 			func(e Email) string { return string(e) },
 			func(s string) Email { return Email(s) },
 		)
-		codec := FromIso[string, Email](emailIso)
+		codec := FromIso(emailIso)
 
 		// Act
 		result := codec.Decode(Email(""))
@@ -138,7 +138,7 @@ func TestFromIso_NumericConversions(t *testing.T) {
 			func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) },
 			func(f Fahrenheit) Celsius { return Celsius((f - 32) * 5 / 9) },
 		)
-		codec := FromIso[Fahrenheit, Celsius](tempIso)
+		codec := FromIso(tempIso)
 
 		// Act
 		result := codec.Decode(Celsius(0))
@@ -153,7 +153,7 @@ func TestFromIso_NumericConversions(t *testing.T) {
 			func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) },
 			func(f Fahrenheit) Celsius { return Celsius((f - 32) * 5 / 9) },
 		)
-		codec := FromIso[Fahrenheit, Celsius](tempIso)
+		codec := FromIso(tempIso)
 
 		// Act
 		encoded := codec.Encode(Fahrenheit(68))
@@ -168,7 +168,7 @@ func TestFromIso_NumericConversions(t *testing.T) {
 			func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) },
 			func(f Fahrenheit) Celsius { return Celsius((f - 32) * 5 / 9) },
 		)
-		codec := FromIso[Fahrenheit, Celsius](tempIso)
+		codec := FromIso(tempIso)
 
 		// Act
 		result := codec.Decode(Celsius(-40))
@@ -183,7 +183,7 @@ func TestFromIso_NumericConversions(t *testing.T) {
 			func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) },
 			func(f Fahrenheit) Celsius { return Celsius((f - 32) * 5 / 9) },
 		)
-		codec := FromIso[Fahrenheit, Celsius](tempIso)
+		codec := FromIso(tempIso)
 		original := Celsius(25)
 
 		// Act
@@ -191,7 +191,7 @@ func TestFromIso_NumericConversions(t *testing.T) {
 
 		// Assert
 		assert.True(t, either.IsRight(decoded))
-		roundTrip := either.Fold[validation.Errors, Fahrenheit, Celsius](
+		roundTrip := either.Fold(
 			func(validation.Errors) Celsius { return Celsius(0) },
 			codec.Encode,
 		)(decoded)
@@ -211,7 +211,7 @@ func TestFromIso_EdgeCases(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		result := codec.Decode(UserId(0))
@@ -226,7 +226,7 @@ func TestFromIso_EdgeCases(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		result := codec.Decode(UserId(-1))
@@ -241,7 +241,7 @@ func TestFromIso_EdgeCases(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		result := codec.Decode(UserId(999999999))
@@ -258,7 +258,7 @@ func TestFromIso_TypeChecking(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		isResult := codec.Is(42)
@@ -273,7 +273,7 @@ func TestFromIso_TypeChecking(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		isResult := codec.Is("not an int")
@@ -290,7 +290,7 @@ func TestFromIso_Name(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		name := codec.Name()
@@ -320,8 +320,8 @@ func TestFromIso_Composition(t *testing.T) {
 
 		// Compose codecs
 		codec := F.Pipe1(
-			FromIso[int, UserId](userIdIso),
-			Pipe[UserId, UserId](FromIso[PositiveInt, int](positiveIso)),
+			FromIso(userIdIso),
+			Pipe[UserId, UserId](FromIso(positiveIso)),
 		)
 
 		// Act
@@ -346,8 +346,8 @@ func TestFromIso_Composition(t *testing.T) {
 		)
 
 		codec := F.Pipe1(
-			FromIso[int, UserId](userIdIso),
-			Pipe[UserId, UserId](FromIso[PositiveInt, int](positiveIso)),
+			FromIso(userIdIso),
+			Pipe[UserId, UserId](FromIso(positiveIso)),
 		)
 
 		// Act
@@ -365,7 +365,7 @@ func TestFromIso_Integration(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		userIdCodec := FromIso[int, UserId](userIdIso)
+		userIdCodec := FromIso(userIdIso)
 		arrayCodec := TranscodeArray(userIdCodec)
 
 		// Act
@@ -381,7 +381,7 @@ func TestFromIso_Integration(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		userIdCodec := FromIso[int, UserId](userIdIso)
+		userIdCodec := FromIso(userIdIso)
 		arrayCodec := TranscodeArray(userIdCodec)
 
 		// Act
@@ -397,7 +397,7 @@ func TestFromIso_Integration(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		userIdCodec := FromIso[int, UserId](userIdIso)
+		userIdCodec := FromIso(userIdIso)
 		arrayCodec := TranscodeArray(userIdCodec)
 
 		// Act
@@ -405,7 +405,7 @@ func TestFromIso_Integration(t *testing.T) {
 
 		// Assert
 		assert.True(t, either.IsRight(result))
-		decoded := either.Fold[validation.Errors, []int, []int](
+		decoded := either.Fold(
 			func(validation.Errors) []int { return nil },
 			func(arr []int) []int { return arr },
 		)(result)
@@ -422,7 +422,7 @@ func TestFromIso_ComplexTypes(t *testing.T) {
 			func(w Wrapper) int { return w.Value },
 			func(i int) Wrapper { return Wrapper{Value: i} },
 		)
-		codec := FromIso[int, Wrapper](wrapperIso)
+		codec := FromIso(wrapperIso)
 
 		// Act
 		result := codec.Decode(Wrapper{Value: 42})
@@ -439,7 +439,7 @@ func TestFromIso_ComplexTypes(t *testing.T) {
 			func(w Wrapper) int { return w.Value },
 			func(i int) Wrapper { return Wrapper{Value: i} },
 		)
-		codec := FromIso[int, Wrapper](wrapperIso)
+		codec := FromIso(wrapperIso)
 
 		// Act
 		encoded := codec.Encode(42)
@@ -456,7 +456,7 @@ func TestFromIso_AsDecoder(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		decoder := codec.AsDecoder()
@@ -474,7 +474,7 @@ func TestFromIso_AsEncoder(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		encoder := codec.AsEncoder()
@@ -492,7 +492,7 @@ func TestFromIso_Validate(t *testing.T) {
 			func(id UserId) int { return int(id) },
 			func(i int) UserId { return UserId(i) },
 		)
-		codec := FromIso[int, UserId](userIdIso)
+		codec := FromIso(userIdIso)
 
 		// Act
 		validateFn := codec.Validate(UserId(42))

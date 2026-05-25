@@ -210,7 +210,7 @@ func TestEitherize_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe1(
 			Eitherize(firstFunc),
-			Chain[TestConfig](secondFunc),
+			Chain(secondFunc),
 		)
 		result, err := runEffect(pipeline, testConfig)
 
@@ -402,8 +402,8 @@ func TestEitherize1_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe2(
 			Succeed[TestConfig]("42"),
-			Chain[TestConfig](parseKleisli),
-			Chain[TestConfig](doubleFunc),
+			Chain(parseKleisli),
+			Chain(doubleFunc),
 		)
 		result, err := runEffect(pipeline, testConfig)
 
@@ -422,7 +422,7 @@ func TestEitherize1_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe1(
 			Succeed[TestConfig]("not-a-number"),
-			Chain[TestConfig](parseKleisli),
+			Chain(parseKleisli),
 		)
 		_, err := runEffect(pipeline, testConfig)
 
@@ -445,8 +445,8 @@ func TestEitherize1_Integration(t *testing.T) {
 		// Act
 		pipeline := F.Pipe2(
 			Succeed[TestConfig]("123"),
-			Chain[TestConfig](parseKleisli),
-			Chain[TestConfig](formatKleisli),
+			Chain(parseKleisli),
+			Chain(formatKleisli),
 		)
 		result, err := runEffect(pipeline, testConfig)
 

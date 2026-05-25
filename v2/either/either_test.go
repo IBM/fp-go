@@ -18,6 +18,7 @@ package either
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -210,9 +211,7 @@ func TestZeroCanBeUsedWithOtherFunctions(t *testing.T) {
 	e := Zero[error, int]()
 
 	// Test with Map
-	mapped := MonadMap(e, func(n int) string {
-		return fmt.Sprintf("%d", n)
-	})
+	mapped := MonadMap(e, strconv.Itoa)
 	assert.Equal(t, Of[error]("0"), mapped, "Mapped Zero should be Right with '0'")
 
 	// Test with Chain
@@ -224,7 +223,7 @@ func TestZeroCanBeUsedWithOtherFunctions(t *testing.T) {
 	// Test with Fold
 	folded := MonadFold(e,
 		func(err error) string { return "error" },
-		func(n int) string { return fmt.Sprintf("success: %d", n) },
+		S.Format[int]("success: %d"),
 	)
 	assert.Equal(t, "success: 0", folded, "Folded value should be 'success: 0'")
 }

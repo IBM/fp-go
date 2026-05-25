@@ -47,6 +47,9 @@ var (
 
 	// HasPrefix returns a predicate that checks if the prefix is included in the string
 	HasPrefix = F.Bind2of2(strings.HasPrefix)
+
+	// HasSuffix
+	HasSuffix = F.Bind2of2(strings.HasSuffix)
 )
 
 // Eq tests if two strings are equal

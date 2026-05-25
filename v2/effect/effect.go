@@ -428,7 +428,7 @@ func TapIOK[C, A, B any](f io.Kleisli[A, B]) Operator[C, A, A] {
 //
 // # Example
 //
-//	fnEff := effect.Of[MyContext](func(x int) int { return x * 2 })
+//	fnEff := effect.Of[MyContext](N.Mul(2))
 //	valEff := effect.Of[MyContext](21)
 //	result := effect.Ap[int](valEff)(fnEff)
 //	// result produces 42

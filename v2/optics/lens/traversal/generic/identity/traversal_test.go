@@ -150,7 +150,7 @@ func TestCompose_Integration(t *testing.T) {
 		teamArrayTraversal := AI.FromArray[Team]()
 		companyToTeamTraversal := F.Pipe1(
 			teamsLens,
-			Compose[Company, []Team, Team](teamArrayTraversal),
+			Compose[Company](teamArrayTraversal),
 		)
 
 		// Second compose: Team -> []string -> string

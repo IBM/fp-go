@@ -1279,7 +1279,7 @@ func TestOrElse(t *testing.T) {
 func TestOfLazy(t *testing.T) {
 	t.Run("evaluates lazy computation", func(t *testing.T) {
 		// Create a validator with a lazy value
-		validator := OfLazy[string, int](func() int {
+		validator := OfLazy[string](func() int {
 			return 42
 		})
 
@@ -1289,7 +1289,7 @@ func TestOfLazy(t *testing.T) {
 
 	t.Run("defers execution until called", func(t *testing.T) {
 		executed := false
-		validator := OfLazy[string, int](func() int {
+		validator := OfLazy[string](func() int {
 			executed = true
 			return 100
 		})
@@ -1307,7 +1307,7 @@ func TestOfLazy(t *testing.T) {
 
 	t.Run("evaluates on each call", func(t *testing.T) {
 		callCount := 0
-		validator := OfLazy[string, int](func() int {
+		validator := OfLazy[string](func() int {
 			callCount++
 			return callCount
 		})
@@ -1327,7 +1327,7 @@ func TestOfLazy(t *testing.T) {
 
 	t.Run("works with different types", func(t *testing.T) {
 		// String type
-		stringValidator := OfLazy[int, string](func() string {
+		stringValidator := OfLazy[int](func() string {
 			return "hello"
 		})
 		result := stringValidator(42)(nil)
@@ -1338,14 +1338,14 @@ func TestOfLazy(t *testing.T) {
 			Host string
 			Port int
 		}
-		configValidator := OfLazy[string, Config](func() Config {
+		configValidator := OfLazy[string](func() Config {
 			return Config{Host: "localhost", Port: 8080}
 		})
 		result2 := configValidator("input")(nil)
 		assert.Equal(t, validation.Success(Config{Host: "localhost", Port: 8080}), result2)
 
 		// Slice type
-		sliceValidator := OfLazy[string, []int](func() []int {
+		sliceValidator := OfLazy[string](func() []int {
 			return []int{1, 2, 3}
 		})
 		result3 := sliceValidator("input")(nil)
@@ -1354,7 +1354,7 @@ func TestOfLazy(t *testing.T) {
 
 	t.Run("composes with other validators", func(t *testing.T) {
 		// Create a lazy validator that produces a number
-		lazyValue := OfLazy[string, int](func() int {
+		lazyValue := OfLazy[string](func() int {
 			return 42
 		})
 
@@ -1368,7 +1368,7 @@ func TestOfLazy(t *testing.T) {
 	})
 
 	t.Run("ignores input value", func(t *testing.T) {
-		validator := OfLazy[string, int](func() int {
+		validator := OfLazy[string](func() int {
 			return 999
 		})
 
@@ -1383,7 +1383,7 @@ func TestOfLazy(t *testing.T) {
 	})
 
 	t.Run("always wraps in success validation", func(t *testing.T) {
-		validator := OfLazy[string, int](func() int {
+		validator := OfLazy[string](func() int {
 			return 42
 		})
 
@@ -1398,7 +1398,7 @@ func TestOfLazy(t *testing.T) {
 	})
 
 	t.Run("works with context", func(t *testing.T) {
-		validator := OfLazy[string, string](func() string {
+		validator := OfLazy[string](func() string {
 			return "validated"
 		})
 

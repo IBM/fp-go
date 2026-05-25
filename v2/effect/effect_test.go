@@ -1653,7 +1653,7 @@ func TestAsks_RealWorldScenarios(t *testing.T) {
 			EnableAnalytics bool
 		}
 
-		hasNewUI := Asks[FeatureFlags](func(flags FeatureFlags) bool {
+		hasNewUI := Asks(func(flags FeatureFlags) bool {
 			return flags.EnableNewUI
 		})
 

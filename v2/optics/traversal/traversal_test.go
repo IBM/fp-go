@@ -36,7 +36,7 @@ func TestGetAll(t *testing.T) {
 
 	sa := F.Pipe1(
 		Id[[]int, C.Const[[]int, []int]](),
-		Compose[[]int, C.Const[[]int, []int], []int, int](tr),
+		Compose[[]int, C.Const[[]int, []int]](tr),
 	)
 
 	getall := GetAll[int](as)(sa)
@@ -50,11 +50,11 @@ func TestFold(t *testing.T) {
 
 	as := AR.From(1, 2, 3)
 
-	tr := AT.FromArray[int, int](monoidSum)
+	tr := AT.FromArray[int](monoidSum)
 
 	sa := F.Pipe1(
 		Id[[]int, C.Const[int, []int]](),
-		Compose[[]int, C.Const[int, []int], []int, int](tr),
+		Compose[[]int, C.Const[int, []int]](tr),
 	)
 
 	folded := Fold(sa)(as)
@@ -131,14 +131,14 @@ func TestFilter_Success(t *testing.T) {
 		arrayTraversal := AI.FromArray[string]()
 		baseTraversal := F.Pipe1(
 			Id[[]string, []string](),
-			Compose[[]string, []string, []string, string](arrayTraversal),
+			Compose[[]string, []string](arrayTraversal),
 		)
 
 		// Filter strings with length > 2
 		longerThanTwo := func(s string) bool { return len(s) > 2 }
 		filteredTraversal := F.Pipe1(
 			baseTraversal,
-			Filter[[]string, []string, string, string](F.Identity[string], F.Identity[func(string) string])(longerThanTwo),
+			Filter[[]string, []string](F.Identity[string], F.Identity[func(string) string])(longerThanTwo),
 		)
 
 		// Act - convert to uppercase

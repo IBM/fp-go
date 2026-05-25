@@ -167,7 +167,7 @@ func TestNilMap_MapRef(t *testing.T) {
 // TestNilMap_MapWithIndex verifies that MapWithIndex handles nil maps correctly
 func TestNilMap_MapWithIndex(t *testing.T) {
 	var nilMap Record[string, int]
-	mapper := MapWithIndex[string](func(k string, v int) string {
+	mapper := MapWithIndex(func(k string, v int) string {
 		return fmt.Sprintf("%s=%d", k, v)
 	})
 	result := mapper(nilMap)
@@ -178,7 +178,7 @@ func TestNilMap_MapWithIndex(t *testing.T) {
 // TestNilMap_MapRefWithIndex verifies that MapRefWithIndex handles nil maps correctly
 func TestNilMap_MapRefWithIndex(t *testing.T) {
 	var nilMap Record[string, int]
-	mapper := MapRefWithIndex[string](func(k string, v *int) string {
+	mapper := MapRefWithIndex(func(k string, v *int) string {
 		return fmt.Sprintf("%s=%d", k, *v)
 	})
 	result := mapper(nilMap)
@@ -311,7 +311,7 @@ func TestNilMap_Filter(t *testing.T) {
 // TestNilMap_FilterWithIndex verifies that FilterWithIndex handles nil maps correctly
 func TestNilMap_FilterWithIndex(t *testing.T) {
 	var nilMap Record[string, int]
-	filter := FilterWithIndex[string, int](func(k string, v int) bool {
+	filter := FilterWithIndex(func(k string, v int) bool {
 		return true
 	})
 	result := filter(nilMap)
@@ -363,7 +363,7 @@ func TestNilMap_MonadChain(t *testing.T) {
 func TestNilMap_ChainWithIndex(t *testing.T) {
 	var nilMap Record[string, int]
 	monoid := MergeMonoid[string, string]()
-	chain := ChainWithIndex[int, string](monoid)(func(k string, v int) Record[string, string] {
+	chain := ChainWithIndex[int](monoid)(func(k string, v int) Record[string, string] {
 		return Record[string, string]{k: fmt.Sprintf("%d", v)}
 	})
 	result := chain(nilMap)
@@ -375,7 +375,7 @@ func TestNilMap_ChainWithIndex(t *testing.T) {
 func TestNilMap_Chain(t *testing.T) {
 	var nilMap Record[string, int]
 	monoid := MergeMonoid[string, string]()
-	chain := Chain[int, string](monoid)(func(v int) Record[string, string] {
+	chain := Chain[int](monoid)(func(v int) Record[string, string] {
 		return Record[string, string]{"key": fmt.Sprintf("%d", v)}
 	})
 	result := chain(nilMap)
@@ -387,7 +387,7 @@ func TestNilMap_Chain(t *testing.T) {
 func TestNilMap_Flatten(t *testing.T) {
 	var nilMap Record[string, Record[string, int]]
 	monoid := MergeMonoid[string, int]()
-	flatten := Flatten[string, int](monoid)
+	flatten := Flatten(monoid)
 	result := flatten(nilMap)
 	assert.NotNil(t, result, "Flatten should return non-nil map")
 	assert.Equal(t, 0, len(result), "Flatten should return empty map for nil input")
@@ -404,7 +404,7 @@ func TestNilMap_Copy(t *testing.T) {
 // TestNilMap_Clone verifies that Clone handles nil maps correctly
 func TestNilMap_Clone(t *testing.T) {
 	var nilMap Record[string, int]
-	clone := Clone[string, int](func(v int) int { return v * 2 })
+	clone := Clone[string](func(v int) int { return v * 2 })
 	result := clone(nilMap)
 	assert.NotNil(t, result, "Clone should return non-nil map")
 	assert.Equal(t, 0, len(result), "Clone should return empty map for nil input")
@@ -413,7 +413,7 @@ func TestNilMap_Clone(t *testing.T) {
 // TestNilMap_FromArray verifies that FromArray handles nil/empty arrays correctly
 func TestNilMap_FromArray(t *testing.T) {
 	semigroup := SG.Last[int]()
-	fromArray := FromArray[string, int](semigroup)
+	fromArray := FromArray[string](semigroup)
 
 	// Test with nil slice
 	var nilSlice Entries[string, int]
@@ -513,7 +513,7 @@ func TestNilMap_ConstNil(t *testing.T) {
 func TestNilMap_FoldMap(t *testing.T) {
 	var nilMap Record[string, int]
 	monoid := S.Monoid
-	foldMap := FoldMap[string, int, string](monoid)(strconv.Itoa)
+	foldMap := FoldMap[string, int](monoid)(strconv.Itoa)
 	result := foldMap(nilMap)
 	assert.Equal(t, "", result, "FoldMap should return empty value for nil map")
 }
@@ -522,7 +522,7 @@ func TestNilMap_FoldMap(t *testing.T) {
 func TestNilMap_FoldMapWithIndex(t *testing.T) {
 	var nilMap Record[string, int]
 	monoid := S.Monoid
-	foldMap := FoldMapWithIndex[string, int, string](monoid)(func(k string, v int) string {
+	foldMap := FoldMapWithIndex[string, int](monoid)(func(k string, v int) string {
 		return fmt.Sprintf("%s=%d", k, v)
 	})
 	result := foldMap(nilMap)

@@ -18,6 +18,7 @@ package readeriooption
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -48,9 +49,7 @@ func TestPromap_TransformBoth(t *testing.T) {
 	}
 
 	// Transform int to string (covariant)
-	valueTransform := func(n int) string {
-		return fmt.Sprintf("%d", n)
-	}
+	valueTransform := strconv.Itoa
 
 	// Apply Promap
 	adapted := F.Pipe1(
@@ -81,9 +80,7 @@ func TestPromap_WithNone(t *testing.T) {
 		return Config1{Value: c2.Data}
 	}
 
-	valueTransform := func(n int) string {
-		return fmt.Sprintf("%d", n)
-	}
+	valueTransform := strconv.Itoa
 
 	adapted := F.Pipe1(
 		original,

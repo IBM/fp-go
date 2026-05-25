@@ -263,7 +263,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with 0 items", func(t *testing.T) {
 		empty := []int{}
 		sumMonoid := N.MonoidSum[int]()
-		fold := Fold[int](sumMonoid)
+		fold := Fold(sumMonoid)
 		result := fold(empty)
 		assert.Equal(t, 0, result, "Fold should return monoid empty for 0 items")
 	})
@@ -271,7 +271,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with 1 item", func(t *testing.T) {
 		single := From(42)
 		sumMonoid := N.MonoidSum[int]()
-		fold := Fold[int](sumMonoid)
+		fold := Fold(sumMonoid)
 		result := fold(single)
 		assert.Equal(t, 42, result, "Fold should return single item")
 	})
@@ -279,7 +279,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with 2 items", func(t *testing.T) {
 		two := From(10, 20)
 		sumMonoid := N.MonoidSum[int]()
-		fold := Fold[int](sumMonoid)
+		fold := Fold(sumMonoid)
 		result := fold(two)
 		assert.Equal(t, 30, result, "Fold should combine 2 items: 10 + 20 = 30")
 	})
@@ -287,35 +287,35 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with many items", func(t *testing.T) {
 		many := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 		sumMonoid := N.MonoidSum[int]()
-		fold := Fold[int](sumMonoid)
+		fold := Fold(sumMonoid)
 		result := fold(many)
 		assert.Equal(t, 55, result, "Fold should combine many items: 1+2+3+4+5+6+7+8+9+10 = 55")
 	})
 
 	t.Run("Fold with string concatenation - 0 items", func(t *testing.T) {
 		empty := []string{}
-		fold := Fold[string](S.Monoid)
+		fold := Fold(S.Monoid)
 		result := fold(empty)
 		assert.Equal(t, "", result, "Fold should return empty string for 0 items")
 	})
 
 	t.Run("Fold with string concatenation - 1 item", func(t *testing.T) {
 		single := From("hello")
-		fold := Fold[string](S.Monoid)
+		fold := Fold(S.Monoid)
 		result := fold(single)
 		assert.Equal(t, "hello", result, "Fold should return single string")
 	})
 
 	t.Run("Fold with string concatenation - 2 items", func(t *testing.T) {
 		two := From("hello", "world")
-		fold := Fold[string](S.Monoid)
+		fold := Fold(S.Monoid)
 		result := fold(two)
 		assert.Equal(t, "helloworld", result, "Fold should concatenate 2 strings")
 	})
 
 	t.Run("Fold with string concatenation - many items", func(t *testing.T) {
 		many := From("a", "b", "c", "d", "e", "f")
-		fold := Fold[string](S.Monoid)
+		fold := Fold(S.Monoid)
 		result := fold(many)
 		assert.Equal(t, "abcdef", result, "Fold should concatenate many strings")
 	})
@@ -323,7 +323,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with product monoid - 0 items", func(t *testing.T) {
 		empty := []int{}
 		productMonoid := N.MonoidProduct[int]()
-		fold := Fold[int](productMonoid)
+		fold := Fold(productMonoid)
 		result := fold(empty)
 		assert.Equal(t, 1, result, "Fold should return monoid empty (1) for product with 0 items")
 	})
@@ -331,7 +331,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with product monoid - 1 item", func(t *testing.T) {
 		single := From(7)
 		productMonoid := N.MonoidProduct[int]()
-		fold := Fold[int](productMonoid)
+		fold := Fold(productMonoid)
 		result := fold(single)
 		assert.Equal(t, 7, result, "Fold should return single item for product")
 	})
@@ -339,7 +339,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with product monoid - 2 items", func(t *testing.T) {
 		two := From(3, 4)
 		productMonoid := N.MonoidProduct[int]()
-		fold := Fold[int](productMonoid)
+		fold := Fold(productMonoid)
 		result := fold(two)
 		assert.Equal(t, 12, result, "Fold should multiply 2 items: 3 * 4 = 12")
 	})
@@ -347,7 +347,7 @@ func TestFold(t *testing.T) {
 	t.Run("Fold with product monoid - many items", func(t *testing.T) {
 		many := From(2, 3, 4, 5)
 		productMonoid := N.MonoidProduct[int]()
-		fold := Fold[int](productMonoid)
+		fold := Fold(productMonoid)
 		result := fold(many)
 		assert.Equal(t, 120, result, "Fold should multiply many items: 2*3*4*5 = 120")
 	})

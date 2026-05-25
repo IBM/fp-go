@@ -424,7 +424,7 @@ func TestNilSlice_FoldMapWithIndex(t *testing.T) {
 func TestNilSlice_Fold(t *testing.T) {
 	var nilSlice []string
 	monoid := S.Monoid
-	fold := Fold[string](monoid)
+	fold := Fold(monoid)
 	result := fold(nilSlice)
 	assert.Equal(t, "", result, "Fold should return empty value for nil slice")
 }
@@ -461,7 +461,7 @@ func TestNilSlice_MonadFlap(t *testing.T) {
 // TestNilSlice_Flap verifies that Flap handles nil slices correctly
 func TestNilSlice_Flap(t *testing.T) {
 	var nilSlice []func(int) string
-	flap := Flap[string, int](42)
+	flap := Flap[string](42)
 	result := flap(nilSlice)
 	assert.NotNil(t, result, "Flap should return non-nil slice")
 	assert.Equal(t, 0, len(result), "Flap should return empty slice for nil input")

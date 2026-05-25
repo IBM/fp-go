@@ -18,6 +18,7 @@ package ioresult
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	ET "github.com/IBM/fp-go/v2/either"
@@ -298,19 +299,19 @@ func TestMonadAp_Comprehensive(t *testing.T) {
 
 func TestAp_Comprehensive(t *testing.T) {
 	ma := Of(5)
-	res := F.Pipe1(Of(utils.Double), Ap[int, int](ma))()
+	res := F.Pipe1(Of(utils.Double), Ap[int](ma))()
 	assert.Equal(t, result.Of(10), res)
 }
 
 func TestApPar(t *testing.T) {
 	ma := Of(5)
-	res := F.Pipe1(Of(utils.Double), ApPar[int, int](ma))()
+	res := F.Pipe1(Of(utils.Double), ApPar[int](ma))()
 	assert.Equal(t, result.Of(10), res)
 }
 
 func TestApSeq(t *testing.T) {
 	ma := Of(5)
-	res := F.Pipe1(Of(utils.Double), ApSeq[int, int](ma))()
+	res := F.Pipe1(Of(utils.Double), ApSeq[int](ma))()
 	assert.Equal(t, result.Of(10), res)
 }
 
@@ -452,9 +453,7 @@ func TestMonadBiMap(t *testing.T) {
 	leftF := func(e error) string {
 		return e.Error()
 	}
-	rightF := func(n int) string {
-		return fmt.Sprintf("%d", n)
-	}
+	rightF := strconv.Itoa
 
 	t.Run("bimap Right", func(t *testing.T) {
 		res := MonadBiMap(Of(42), leftF, rightF)()
@@ -475,9 +474,7 @@ func TestBiMap_Comprehensive(t *testing.T) {
 	leftF := func(e error) string {
 		return e.Error()
 	}
-	rightF := func(n int) string {
-		return fmt.Sprintf("%d", n)
-	}
+	rightF := strconv.Itoa
 
 	t.Run("bimap Right", func(t *testing.T) {
 		res := F.Pipe1(Of(42), BiMap(leftF, rightF))()
@@ -577,5 +574,3 @@ func TestChainLazyK(t *testing.T) {
 	res := F.Pipe1(Of(42), ChainLazyK(f))()
 	assert.Equal(t, result.Of("42"), res)
 }
-
-

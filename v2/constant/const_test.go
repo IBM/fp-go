@@ -103,7 +103,7 @@ func TestMap(t *testing.T) {
 
 	t.Run("changes phantom type", func(t *testing.T) {
 		fa := Make[string, int]("data")
-		fb := Map[string, int, string](strconv.Itoa)(fa)
+		fb := Map[string](strconv.Itoa)(fa)
 		// Value unchanged, but type changed from Const[string, int] to Const[string, string]
 		assert.Equal(t, "data", Unwrap(fb))
 	})
@@ -111,7 +111,7 @@ func TestMap(t *testing.T) {
 	t.Run("function is never called", func(t *testing.T) {
 		called := false
 		fa := Make[string, int]("test")
-		fb := Map[string, int, string](func(i int) string {
+		fb := Map[string](func(i int) string {
 			called = true
 			return strconv.Itoa(i)
 		})(fa)
@@ -223,7 +223,7 @@ func TestConstFunctorLaws(t *testing.T) {
 	t.Run("identity law", func(t *testing.T) {
 		// map id = id
 		fa := Make[string, int]("test")
-		mapped := Map[string, int, int](F.Identity[int])(fa)
+		mapped := Map[string](F.Identity[int])(fa)
 		assert.Equal(t, Unwrap(fa), Unwrap(mapped))
 	})
 
@@ -234,11 +234,11 @@ func TestConstFunctorLaws(t *testing.T) {
 		g := func(s string) bool { return len(s) > 0 }
 
 		// map (g . f)
-		composed := Map[string, int, bool](func(i int) bool { return g(f(i)) })(fa)
+		composed := Map[string](func(i int) bool { return g(f(i)) })(fa)
 
 		// map g . map f
-		intermediate := F.Pipe1(fa, Map[string, int, string](f))
-		chained := Map[string, string, bool](g)(intermediate)
+		intermediate := F.Pipe1(fa, Map[string](f))
+		chained := Map[string](g)(intermediate)
 
 		assert.Equal(t, Unwrap(composed), Unwrap(chained))
 	})
@@ -277,7 +277,7 @@ func TestConstEdgeCases(t *testing.T) {
 		c := Make[string, int]("")
 		assert.Equal(t, "", Unwrap(c))
 
-		mapped := Map[string, int, string](strconv.Itoa)(c)
+		mapped := Map[string](strconv.Itoa)(c)
 		assert.Equal(t, "", Unwrap(mapped))
 	})
 
@@ -295,9 +295,9 @@ func TestConstEdgeCases(t *testing.T) {
 	t.Run("multiple map operations", func(t *testing.T) {
 		c := Make[string, int]("original")
 		// Chain multiple map operations
-		step1 := Map[string, int, string](strconv.Itoa)(c)
-		step2 := Map[string, string, bool](func(s string) bool { return len(s) > 0 })(step1)
-		result := Map[string, bool, int](func(b bool) int {
+		step1 := Map[string](strconv.Itoa)(c)
+		step2 := Map[string](func(s string) bool { return len(s) > 0 })(step1)
+		result := Map[string](func(b bool) int {
 			if b {
 				return 1
 			}
@@ -327,7 +327,7 @@ func BenchmarkUnwrap(b *testing.B) {
 // BenchmarkMap benchmarks the Map function
 func BenchmarkMap(b *testing.B) {
 	c := Make[string, int]("test")
-	mapFn := Map[string, int, string](strconv.Itoa)
+	mapFn := Map[string](strconv.Itoa)
 	b.ResetTimer()
 	for b.Loop() {
 		_ = mapFn(c)
