@@ -1,36 +1,87 @@
 ---
 name: fp-go-lens
-description: Use this skill when working with lenses and optics in Go using the fp-go library (github.com/IBM/fp-go/v2/optics/lens). Trigger on mentions of lenses, optics, MakeLens, MakeLensRef, lens composition, immutable updates to nested structs, accessing nested data structures, Compose, ComposeOption, FromNillable, Modify, getter/setter patterns, or functional updates to Go structs. Also trigger when the user needs to update deeply nested fields immutably or work with optional fields in struct hierarchies.
+description: Use this skill when working with lenses and optics in Go using the fp-go library (github.com/IBM/fp-go/v2/optics/lens). Trigger on mentions of lenses, optics, MakeLens, MakeLensRef, MakeLensStrict, lens composition, immutable updates to nested structs, accessing nested data structures, Compose, ComposeRef, ComposeOption, FromNillable, FromNillableRef, Modify, getter/setter patterns, or functional updates to Go structs. Also trigger when the user needs to update deeply nested fields immutably or work with optional fields in struct hierarchies. Also trigger for `// fp-go:Lens` annotation or go generate for lens code generation.
 ---
 
 # fp-go Lenses for Structs
 
 ## Overview
 
-Lenses are functional optics that provide immutable access to nested data structures. In fp-go, a [`Lens[S, A]`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#Lens) focuses on a property `A` within a structure `S`, allowing you to read and update that property without mutating the original structure.
+Lenses are functional optics that provide immutable access to nested data structures. A [`Lens[S, A]`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#Lens) focuses on a field `A` within a structure `S`, providing `Get` (read) and `Set` (immutable update) operations.
 
 ```go
-import L "github.com/IBM/fp-go/v2/optics/lens"
+import (
+    L  "github.com/IBM/fp-go/v2/optics/lens"
+    LO "github.com/IBM/fp-go/v2/optics/lens/option"
+    F  "github.com/IBM/fp-go/v2/function"
+    O  "github.com/IBM/fp-go/v2/option"
+)
 ```
 
-## Core Concept
+---
 
-A lens consists of two operations:
-- **Get**: Extract a value from a structure
-- **Set**: Create a new structure with an updated value
+## Code Generation (Recommended)
+
+The fastest way to create lenses is via **code generation**. Annotate any struct with `// fp-go:Lens` and run `go generate ./...`.
 
 ```go
-type Lens[S, A any] struct {
-    Get func(s S) A
-    Set func(a A) Endomorphism[S]  // func(a A) func(S) S
+//go:generate go run github.com/IBM/fp-go/v2/main lens --dir . --filename gen_lens.go
+
+// fp-go:Lens
+type Person struct {
+    Name  string
+    Age   int
+    Phone *string  // pointer → optional lens auto-generated
 }
 ```
 
-## Creating Lenses: MakeLens vs MakeLensRef
+Running `go generate ./...` produces a `gen_lens.go` file with:
 
-### MakeLens - For Value Types
+| Generated type | Description |
+|---|---|
+| `PersonLenses` | Lenses for `Person` (value type) |
+| `PersonRefLenses` | Lenses for `*Person` (pointer type) |
+| `PersonPrisms` | Prisms for `Person` |
+| `PersonRefPrisms` | Prisms for `*Person` |
 
-Use [`MakeLens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLens) when working with **structs passed by value**. The setter must create a copy of the data, which happens automatically for value types.
+Each type has fields for **every struct field**, with both a required lens and an optional lens:
+
+```go
+type PersonLenses struct {
+    Name  L.Lens[Person, string]            // required lens
+    NameO LO.LensO[Person, string]          // optional lens (LensO = Lens[S, Option[A]])
+    Age   L.Lens[Person, int]
+    AgeO  LO.LensO[Person, int]
+    Phone L.Lens[Person, *string]
+    PhoneO LO.LensO[Person, *string]        // pointer fields auto-get optional variant
+}
+```
+
+Constructor functions:
+
+```go
+lenses    := MakePersonLenses()             // PersonLenses
+refLenses := MakePersonRefLenses()          // PersonRefLenses
+
+// Usage
+person  := Person{Name: "Alice", Age: 30}
+updated := lenses.Name.Set("Bob")(person)   // Person{Name: "Bob", Age: 30}
+name    := lenses.Name.Get(person)          // "Alice"
+```
+
+**Pointer fields** (`*string`, `*SomeStruct`) automatically generate optional lenses using `LO.FromNillable`.
+
+**Embedded structs** and **generic types** are also supported.
+
+---
+
+## Manual Lens Creation
+
+Use manual creation when code generation is not suitable or for one-off lenses.
+
+### MakeLens — Value Types
+
+Use [`MakeLens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLens) for structs passed **by value**. The setter receives a copy automatically.
 
 ```go
 type Person struct {
@@ -38,282 +89,352 @@ type Person struct {
     Age  int
 }
 
-// Getter and setter for value types
-func (p Person) GetName() string {
-    return p.Name
-}
+nameLens := L.MakeLens(
+    func(p Person) string          { return p.Name },
+    func(p Person, name string) Person { p.Name = name; return p },
+)
 
-func (p Person) SetName(name string) Person {
-    p.Name = name  // Automatic copy because Person is passed by value
-    return p
-}
-
-// Create lens for value type
-nameLens := L.MakeLens(Person.GetName, Person.SetName)
-
-// Usage
-person := Person{Name: "Alice", Age: 30}
-updated := nameLens.Set("Bob")(person)
-
-// person.Name is still "Alice" (immutable)
-// updated.Name is "Bob"
+person  := Person{Name: "Alice", Age: 30}
+updated := nameLens.Set("Bob")(person)   // Person{Name: "Bob", Age: 30}
+name    := nameLens.Get(person)          // "Alice"
 ```
 
-**Key Point**: When you pass a struct by value in Go, modifications to the parameter don't affect the original. This automatic copying makes [`MakeLens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLens) safe for value types.
+Method expressions also work (receiver becomes first argument):
 
-### MakeLensRef - For Pointer Types
+```go
+func (p Person) GetName() string            { return p.Name }
+func (p Person) SetName(name string) Person { p.Name = name; return p }
 
-Use [`MakeLensRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensRef) when working with **pointers to structs**. The setter does NOT need to create a copy—[`MakeLensRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensRef) automatically wraps your setter to copy the pointer before modification.
+nameLens := L.MakeLens(Person.GetName, Person.SetName)
+```
+
+**Setter signature**: `func(S, A) S` — struct first, value second.
+
+### MakeLensRef — Pointer Types
+
+Use [`MakeLensRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensRef) for structs passed **by pointer**. The framework handles copying automatically — your setter modifies the pointer directly.
 
 ```go
 type Address struct {
-    street string
-    city   string
+    Street string
+    City   string
 }
 
-// Getter and setter for pointer types
-func (a *Address) GetStreet() string {
-    return a.street
-}
+streetLens := L.MakeLensRef(
+    func(a *Address) string                  { return a.Street },
+    func(a *Address, s string) *Address      { a.Street = s; return a },
+)
 
-func (a *Address) SetStreet(street string) *Address {
-    a.street = street  // Direct modification - MakeLensRef will handle copying
-    return a
-}
-
-// Create lens for pointer type
-streetLens := L.MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
-
-// Usage
-addr := &Address{street: "Main St", city: "Boston"}
-updated := streetLens.Set("Oak Ave")(addr)
-
-// addr.street is still "Main St" (original unchanged)
-// updated.street is "Oak Ave" (new copy)
+addr    := &Address{Street: "Main St", City: "Boston"}
+updated := streetLens.Set("Oak Ave")(addr)   // new *Address, original unchanged
 ```
 
-**Key Point**: [`MakeLensRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensRef) internally calls `setCopy` which creates a shallow copy (`cpy := *s`) before applying your setter. This ensures immutability even though your setter modifies the pointer directly.
+**Setter signature**: `func(*S, A) *S` — pointer first, value second. No manual copy needed.
 
-## Comparison Table
+### MakeLensStrict — Pointer Types with Comparable Fields (Optimization)
 
-| Aspect | MakeLens | MakeLensRef |
-|--------|----------|-------------|
-| **Input Type** | Value type `S` | Pointer type `*S` |
-| **Setter Signature** | `func(S, A) S` | `func(*S, A) *S` |
-| **Copy Responsibility** | Caller must copy | Automatic (handled by framework) |
-| **Use When** | Struct passed by value | Struct passed by pointer |
-| **Example** | `Person` struct | `*Address` pointer |
+Use [`MakeLensStrict`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensStrict) for pointer structs when the field type is **comparable** (`string`, `int`, pointers, etc.). If the new value equals the current value, the original pointer is returned unchanged (no allocation).
+
+```go
+nameLens := L.MakeLensStrict(
+    func(p *Person) string             { return p.Name },
+    func(p *Person, name string) *Person { p.Name = name; return p },
+)
+
+// Setting the same value → returns original pointer (no copy)
+same    := nameLens.Set("Alice")(person)  // same == person
+// Setting a different value → creates a new copy
+updated := nameLens.Set("Bob")(person)
+```
+
+For non-comparable types use [`MakeLensWithEq`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensWithEq) with a custom `Eq[A]`.
+
+### Comparison
+
+| Constructor | Source type | Copy responsibility | Best for |
+|---|---|---|---|
+| `MakeLens` | `S` (value) | Automatic (value copy) | Structs by value |
+| `MakeLensRef` | `*S` (pointer) | Automatic (framework) | Structs by pointer |
+| `MakeLensStrict` | `*S` (pointer) | Automatic + equality skip | Comparable fields, performance-sensitive |
+| `MakeLensWithEq` | `*S` (pointer) | Automatic + custom Eq | Non-comparable fields with equality |
+
+---
 
 ## Composing Lenses
 
-Lenses can be composed to access deeply nested properties:
+### Compose — Value Outer Structure
+
+[`Compose[S](ab)(sa)`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#Compose) combines a `Lens[S, A]` and a `Lens[A, B]` into a `Lens[S, B]`.
 
 ```go
-type Street struct {
-    num  int
-    name string
-}
+type Street  struct { Name string }
+type Address struct { Street Street }
 
-type Address struct {
-    city   string
-    street *Street
-}
+addressLens := L.MakeLens(
+    func(p Person) Address          { return p.Address },
+    func(p Person, a Address) Person { p.Address = a; return p },
+)
+streetNameLens := L.MakeLens(
+    func(a Address) string            { return a.Street.Name },
+    func(a Address, n string) Address { a.Street.Name = n; return a },
+)
 
-// Lenses for each level
-streetNameLens := L.MakeLensRef((*Street).GetName, (*Street).SetName)
-addressStreetLens := L.MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
+// Compose: Person → Address → string
+personStreetNameLens := F.Pipe1(addressLens, L.Compose[Person](streetNameLens))
 
-// Compose to access street name through address
-streetNameInAddress := L.Compose[*Address](streetNameLens)(addressStreetLens)
-
-// Usage
-addr := &Address{
-    city: "Boston",
-    street: &Street{num: 123, name: "Main St"},
-}
-
-updated := streetNameInAddress.Set("Oak Ave")(addr)
-// addr.street.name is still "Main St"
-// updated.street.name is "Oak Ave"
+updated := personStreetNameLens.Set("Oak Ave")(person)
 ```
+
+### ComposeRef — Pointer Outer Structure
+
+[`ComposeRef[S](ab)(sa)`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#ComposeRef) is the pointer version — use when the outer lens is `Lens[*S, A]`.
+
+```go
+// Composes Lens[*Person, Address] with Lens[Address, string] → Lens[*Person, string]
+personStreetNameLens := F.Pipe1(addressRefLens, L.ComposeRef[Person](streetNameLens))
+```
+
+---
 
 ## Working with Optional Fields
 
-### FromNillable - Pointer to Option
+Optional field lenses have type `LensO[S, A]` (alias for `Lens[S, Option[A]]`). Get returns `Option[A]`; Set takes `Option[A]`.
 
-Convert a lens for a pointer field into a lens for an [`Option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/option#Option):
+All functions below are in the **`optics/lens/option`** package (imported as `LO`).
+
+### FromNillable — Pointer Field to Option
+
+[`LO.FromNillable`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/option#FromNillable) converts a `Lens[S, *A]` to a `LensO[S, *A]`. Get returns `None` when the pointer is nil.
 
 ```go
 type Company struct {
-    name    string
-    address *Address  // Optional field
+    Name    string
+    Address *Address  // optional
 }
 
-addressLens := L.MakeLens(Company.GetAddress, Company.SetAddress)
-optionalAddressLens := L.FromNillable(addressLens)
-
-// Get returns Option[*Address]
-company := Company{name: "Acme"}
-result := optionalAddressLens.Get(company)  // None
-
-// Set with Some creates the address
-updated := optionalAddressLens.Set(O.Some(&Address{...}))(company)
-
-// Set with None removes the address
-cleared := optionalAddressLens.Set(O.None[*Address]())(updated)
-```
-
-### ComposeOption - Compose with Optional Parent
-
-When the parent structure is optional, use [`ComposeOption`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#ComposeOption) with a default value:
-
-```go
-type Person struct {
-    name    string
-    address *Address  // Optional
-}
-
-defaultAddress := &Address{city: "Unknown", street: &Street{}}
-
-addressLens := L.FromNillable(L.MakeLens(Person.GetAddress, Person.SetAddress))
-streetLens := L.MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
-
-// Compose with default for missing address
-streetInPerson := F.Pipe1(
-    addressLens,
-    L.ComposeOption[Person, *Street](defaultAddress)(streetLens),
+addressPtrLens := L.MakeLens(
+    func(c Company) *Address             { return c.Address },
+    func(c Company, a *Address) Company  { c.Address = a; return c },
 )
 
-// If person has no address, uses defaultAddress
-person := Person{name: "Alice"}
-updated := streetInPerson.Set(O.Some(&Street{name: "Main St"}))(person)
-// Creates address with default values and sets the street
+// LensO[Company, *Address]
+optAddressLens := LO.FromNillable(addressPtrLens)
+
+company := Company{Name: "Acme"}
+result  := optAddressLens.Get(company)              // None[*Address]
+
+withAddr := optAddressLens.Set(O.Some(&Address{City: "Boston"}))(company)
+cleared  := optAddressLens.Set(O.None[*Address]())(withAddr)
 ```
+
+For pointer outer structs use [`LO.FromNillableRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/option#FromNillableRef) (`Lens[*S, *A]` → `LensO[*S, *A]`).
+
+### ComposeOption — Optional Container, Required Field
+
+[`LO.ComposeOption[S, B](defaultA)(ab)`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/option#ComposeOption) composes a `LensO[S, A]` (optional container) with a `Lens[A, B]` (required field) into a `LensO[S, B]`.
+
+- **Get**: returns `None[B]` when A is absent
+- **Set(Some[B])**: updates B in A, creating A from `defaultA` if absent
+- **Set(None[B])**: removes A entirely
+
+```go
+type Config struct { Database *Database }
+
+dbLens := LO.FromNillable(L.MakeLens(
+    func(c Config) *Database             { return c.Database },
+    func(c Config, db *Database) Config  { c.Database = db; return c },
+))
+
+portLens := L.MakeLensRef(
+    func(db *Database) int               { return db.Port },
+    func(db *Database, p int) *Database  { db.Port = p; return db },
+)
+
+defaultDB := &Database{Host: "localhost", Port: 5432}
+configPortLens := F.Pipe1(dbLens, LO.ComposeOption[Config, int](defaultDB)(portLens))
+
+config  := Config{}
+port    := configPortLens.Get(config)                         // None[int]
+updated := configPortLens.Set(O.Some(3306))(config)           // Database created from defaultDB
+```
+
+### Compose (option package) — Optional Container, Optional Field
+
+[`LO.Compose[S, B](defaultA)(ab)`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/option#Compose) is like `ComposeOption` but `ab` is a `LensO[A, B]` (the inner field is also optional).
+
+```go
+// Both the Settings container and MaxRetries field are optional pointers
+settingsLens := LO.FromNillable(settingsPtrLens)   // LensO[Config, *Settings]
+retriesLens  := LO.FromNillable(retriesPtrLens)    // LensO[*Settings, *int]
+
+defaultSettings := &Settings{}
+configRetriesLens := F.Pipe1(settingsLens, LO.Compose[Config, *int](defaultSettings)(retriesLens))
+```
+
+### Chaining Multiple Optional Levels
+
+Use `F.Pipe2` / `F.Pipe3` to chain compose steps:
+
+```go
+// Person.Address (*Address, optional) → Address.Street (*Street, optional) → Street.Name (string, required)
+defaultAddress := &Address{}
+defaultStreet  := &Street{}
+
+streetNameLens := L.MakeLensStrict(
+    func(s *Street) string               { return s.Name },
+    func(s *Street, n string) *Street    { s.Name = n; return s },
+)
+addressStreetLens := LO.FromNillableRef(L.MakeLensRef(
+    func(a *Address) *Street             { return a.Street },
+    func(a *Address, s *Street) *Address { a.Street = s; return a },
+))
+personAddressLens := LO.FromNillable(L.MakeLens(
+    func(p Person) *Address              { return p.Address },
+    func(p Person, a *Address) Person    { p.Address = a; return p },
+))
+
+streetNameInPerson := F.Pipe2(
+    personAddressLens,
+    LO.ComposeOption[Person, *Street](defaultAddress)(addressStreetLens),  // NOTE: addressStreetLens is LensO
+    LO.ComposeOption[Person, string](defaultStreet)(streetNameLens),
+)
+
+// streetNameInPerson is LensO[Person, string]
+updated := streetNameInPerson.Set(O.Some("Oak Ave"))(person)
+```
+
+Wait — when the inner lens is `LensO` (not `Lens`), use `LO.Compose` instead of `LO.ComposeOption`:
+
+```go
+streetNameInPerson := F.Pipe2(
+    personAddressLens,                                                       // LensO[Person, *Address]
+    LO.Compose[Person, *Street](defaultAddress)(addressStreetLens),          // addressStreetLens: LensO[*Address, *Street]
+    LO.ComposeOption[Person, string](defaultStreet)(streetNameLens),         // streetNameLens: Lens[*Street, string]
+)
+```
+
+---
 
 ## Modifying Values
 
-Use [`Modify`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#Modify) to transform a value through a lens:
+[`Modify`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#Modify) applies a transformation function to the focused value:
 
 ```go
-type Counter struct {
-    value int
-}
+type Counter struct { Value int }
 
 valueLens := L.MakeLens(
-    func(c Counter) int { return c.value },
-    func(c Counter, v int) Counter { c.value = v; return c },
+    func(c Counter) int             { return c.Value },
+    func(c Counter, v int) Counter  { c.Value = v; return c },
 )
 
-counter := Counter{value: 5}
-
-// Increment by applying a function
-incremented := L.Modify[Counter](func(v int) int { 
-    return v + 1 
-})(valueLens)(counter)
-
-// counter.value is still 5
-// incremented.value is 6
+counter     := Counter{Value: 5}
+incremented := valueLens.Modify(func(v int) int { return v + 1 })(counter)
+// incremented.Value == 6, counter.Value == 5 (unchanged)
 ```
 
-## Best Practices
-
-1. **Choose the Right Constructor**:
-   - Use [`MakeLens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLens) for value types (structs passed by value)
-   - Use [`MakeLensRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensRef) for pointer types (structs passed by pointer)
-
-2. **Setter Implementation**:
-   - With [`MakeLens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLens): Modify the value parameter directly (it's already a copy)
-   - With [`MakeLensRef`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensRef): Modify the pointer parameter directly (framework handles copying)
-
-3. **Immutability**:
-   - Lenses always return new structures
-   - Original data is never modified
-   - Safe for concurrent access
-
-4. **Composition**:
-   - Build complex lenses from simple ones using [`Compose`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#Compose)
-   - Use [`ComposeOption`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#ComposeOption) when dealing with optional nested structures
-
-## Complete Example
+Or using the package-level function in pipelines:
 
 ```go
-package main
-
-import (
-    F "github.com/IBM/fp-go/v2/function"
-    L "github.com/IBM/fp-go/v2/optics/lens"
-    O "github.com/IBM/fp-go/v2/option"
-)
-
-type Street struct {
-    num  int
-    name string
-}
-
-type Address struct {
-    city   string
-    street *Street
-}
-
-type Person struct {
-    name    string
-    age     int
-    address *Address
-}
-
-// Getters and setters
-func (s *Street) GetName() string { return s.name }
-func (s *Street) SetName(name string) *Street { s.name = name; return s }
-
-func (a *Address) GetStreet() *Street { return a.street }
-func (a *Address) SetStreet(s *Street) *Address { a.street = s; return a }
-
-func (p Person) GetAddress() *Address { return p.address }
-func (p Person) SetAddress(a *Address) Person { p.address = a; return p }
-
-func main() {
-    // Create lenses
-    streetNameLens := L.MakeLensRef((*Street).GetName, (*Street).SetName)
-    addressStreetLens := L.MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
-    personAddressLens := L.FromNillable(L.MakeLens(Person.GetAddress, Person.SetAddress))
-    
-    // Compose to access street name through person
-    defaultAddress := &Address{city: "Unknown", street: &Street{}}
-    streetNameInPerson := F.Pipe2(
-        personAddressLens,
-        L.ComposeOption[Person, *Street](defaultAddress)(addressStreetLens),
-        L.ComposeOption[Person, string](&Street{})(streetNameLens),
-    )
-    
-    // Usage
-    person := Person{
-        name: "Alice",
-        age:  30,
-        address: &Address{
-            city: "Boston",
-            street: &Street{num: 123, name: "Main St"},
-        },
-    }
-    
-    // Update street name immutably
-    updated := streetNameInPerson.Set(O.Some("Oak Ave"))(person)
-    
-    // person.address.street.name is still "Main St"
-    // updated.address.street.name is "Oak Ave"
-}
+incremented := F.Pipe1(valueLens, L.Modify[Counter](func(v int) int { return v + 1 }))(counter)
 ```
+
+---
 
 ## Import Reference
 
 ```go
 import (
-    L "github.com/IBM/fp-go/v2/optics/lens"
-    F "github.com/IBM/fp-go/v2/function"
-    O "github.com/IBM/fp-go/v2/option"
+    L  "github.com/IBM/fp-go/v2/optics/lens"            // MakeLens, MakeLensRef, MakeLensStrict, Compose, ComposeRef, Modify
+    LO "github.com/IBM/fp-go/v2/optics/lens/option"     // LensO, FromNillable, FromNillableRef, ComposeOption, Compose
+    F  "github.com/IBM/fp-go/v2/function"               // Pipe1, Pipe2, Pipe3, ...
+    O  "github.com/IBM/fp-go/v2/option"                 // Some, None, Option
+    EQ "github.com/IBM/fp-go/v2/eq"                     // FromStrictEquals (for MakeLensWithEq)
 )
 ```
+
+---
+
+## Complete Manual Example
+
+```go
+package main
+
+import (
+    F  "github.com/IBM/fp-go/v2/function"
+    L  "github.com/IBM/fp-go/v2/optics/lens"
+    LO "github.com/IBM/fp-go/v2/optics/lens/option"
+    O  "github.com/IBM/fp-go/v2/option"
+)
+
+type Street struct {
+    Name string
+}
+
+type Address struct {
+    City   string
+    Street *Street  // optional
+}
+
+type Person struct {
+    Name    string
+    Age     int
+    Address *Address  // optional
+}
+
+func main() {
+    // Leaf lens: *Street.Name (comparable → use Strict for optimization)
+    streetNameLens := L.MakeLensStrict(
+        func(s *Street) string              { return s.Name },
+        func(s *Street, n string) *Street   { s.Name = n; return s },
+    )
+
+    // Mid lens: *Address.Street (pointer field → optional)
+    addressStreetLens := LO.FromNillableRef(L.MakeLensRef(
+        func(a *Address) *Street              { return a.Street },
+        func(a *Address, s *Street) *Address  { a.Street = s; return a },
+    ))
+
+    // Root lens: Person.Address (pointer field → optional)
+    personAddressLens := LO.FromNillable(L.MakeLens(
+        func(p Person) *Address              { return p.Address },
+        func(p Person, a *Address) Person    { p.Address = a; return p },
+    ))
+
+    // Compose all levels
+    defaultAddress := &Address{City: "Unknown"}
+    defaultStreet  := &Street{}
+
+    streetNameInPerson := F.Pipe2(
+        personAddressLens,
+        LO.Compose[Person, *Street](defaultAddress)(addressStreetLens),
+        LO.ComposeOption[Person, string](defaultStreet)(streetNameLens),
+    )
+
+    // Update deeply nested field immutably
+    person := Person{
+        Name: "Alice",
+        Age:  30,
+        Address: &Address{
+            City:   "Boston",
+            Street: &Street{Name: "Main St"},
+        },
+    }
+
+    updated := streetNameInPerson.Set(O.Some("Oak Ave"))(person)
+    // person.Address.Street.Name == "Main St" (original unchanged)
+    // updated.Address.Street.Name == "Oak Ave"
+
+    // Person with no address: default values are used
+    noAddr   := Person{Name: "Bob"}
+    withAddr := streetNameInPerson.Set(O.Some("Elm St"))(noAddr)
+    // withAddr.Address == &Address{City: "Unknown", Street: &Street{Name: "Elm St"}}
+}
+```
+
+---
 
 ## Further Reading
 
 - [Introduction to optics: lenses and prisms](https://medium.com/@gcanti/introduction-to-optics-lenses-and-prisms-3230e73bfcfe)
-- [Lens Laws](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/testing) - Property-based tests for lens correctness
+- [Lens Laws](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/testing) — Property-based tests for lens correctness
+- [Code generation CLI](https://pkg.go.dev/github.com/IBM/fp-go/v2/cli) — `// fp-go:Lens` annotation details
