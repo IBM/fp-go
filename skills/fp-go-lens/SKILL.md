@@ -71,7 +71,7 @@ name    := lenses.Name.Get(person)          // "Alice"
 
 **Pointer fields** (`*string`, `*SomeStruct`) automatically generate optional lenses using `LO.FromNillable`.
 
-**Embedded structs** and **generic types** are also supported.
+**Embedded structs** and **generic types** are also supported — for embedded structs, lenses are generated for each promoted field.
 
 ---
 
@@ -148,6 +148,24 @@ updated := nameLens.Set("Bob")(person)
 ```
 
 For non-comparable types use [`MakeLensWithEq`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensWithEq) with a custom `Eq[A]`.
+
+### MakeLensWithEq — Pointer Types with Custom Equality
+
+Use [`MakeLensWithEq`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens#MakeLensWithEq) when the field type is **not comparable** (slices, maps, structs containing those). Provide an `Eq[A]` to determine equality; if values are equal, the original pointer is returned unchanged without copying.
+
+```go
+import A "github.com/IBM/fp-go/v2/array"
+
+// []string is not comparable, so MakeLensStrict cannot be used.
+// array.StrictEquals[string]() compares slices element-by-element using slices.Equal.
+tagsLens := L.MakeLensWithEq(
+    A.StrictEquals[string](),
+    func(p *Person) []string            { return p.Tags },
+    func(p *Person, t []string) *Person { p.Tags = t; return p },
+)
+```
+
+For custom element equality (e.g. case-insensitive strings or struct slices), use `EQ.FromEquals(func(a, b []T) bool { ... })` instead. For comparable types, `EQ.FromStrictEquals[T]()` is equivalent to using `MakeLensStrict`.
 
 ### Comparison
 
@@ -273,7 +291,12 @@ configRetriesLens := F.Pipe1(settingsLens, LO.Compose[Config, *int](defaultSetti
 
 ### Chaining Multiple Optional Levels
 
-Use `F.Pipe2` / `F.Pipe3` to chain compose steps:
+Use `F.Pipe2` / `F.Pipe3` to chain compose steps. Choose the compose function based on the type of the inner lens (`ab`):
+
+| Function | `ab` type | Use when |
+|---|---|---|
+| `LO.ComposeOption` | `Lens[A, B]` — required field | The inner field always exists once A is present |
+| `LO.Compose` | `LensO[A, B]` — optional field | The inner field is itself optional |
 
 ```go
 // Person.Address (*Address, optional) → Address.Street (*Street, optional) → Street.Name (string, required)
@@ -284,33 +307,23 @@ streetNameLens := L.MakeLensStrict(
     func(s *Street) string               { return s.Name },
     func(s *Street, n string) *Street    { s.Name = n; return s },
 )
+// LensO[*Address, *Street] — Street pointer is optional
 addressStreetLens := LO.FromNillableRef(L.MakeLensRef(
     func(a *Address) *Street             { return a.Street },
     func(a *Address, s *Street) *Address { a.Street = s; return a },
 ))
+// LensO[Person, *Address] — Address pointer is optional
 personAddressLens := LO.FromNillable(L.MakeLens(
     func(p Person) *Address              { return p.Address },
     func(p Person, a *Address) Person    { p.Address = a; return p },
 ))
 
 streetNameInPerson := F.Pipe2(
-    personAddressLens,
-    LO.ComposeOption[Person, *Street](defaultAddress)(addressStreetLens),  // NOTE: addressStreetLens is LensO
-    LO.ComposeOption[Person, string](defaultStreet)(streetNameLens),
+    personAddressLens,                                                      // LensO[Person, *Address]
+    LO.Compose[Person, *Street](defaultAddress)(addressStreetLens),         // ab is LensO → LO.Compose
+    LO.ComposeOption[Person, string](defaultStreet)(streetNameLens),        // ab is Lens  → LO.ComposeOption
 )
-
 // streetNameInPerson is LensO[Person, string]
-updated := streetNameInPerson.Set(O.Some("Oak Ave"))(person)
-```
-
-Wait — when the inner lens is `LensO` (not `Lens`), use `LO.Compose` instead of `LO.ComposeOption`:
-
-```go
-streetNameInPerson := F.Pipe2(
-    personAddressLens,                                                       // LensO[Person, *Address]
-    LO.Compose[Person, *Street](defaultAddress)(addressStreetLens),          // addressStreetLens: LensO[*Address, *Street]
-    LO.ComposeOption[Person, string](defaultStreet)(streetNameLens),         // streetNameLens: Lens[*Street, string]
-)
 ```
 
 ---
@@ -328,14 +341,14 @@ valueLens := L.MakeLens(
 )
 
 counter     := Counter{Value: 5}
-incremented := valueLens.Modify(func(v int) int { return v + 1 })(counter)
+incremented := valueLens.Modify(N.Add(1))(counter)
 // incremented.Value == 6, counter.Value == 5 (unchanged)
 ```
 
 Or using the package-level function in pipelines:
 
 ```go
-incremented := F.Pipe1(valueLens, L.Modify[Counter](func(v int) int { return v + 1 }))(counter)
+incremented := F.Pipe1(valueLens, L.Modify[Counter](N.Add(1)))(counter)
 ```
 
 ---
@@ -344,11 +357,13 @@ incremented := F.Pipe1(valueLens, L.Modify[Counter](func(v int) int { return v +
 
 ```go
 import (
-    L  "github.com/IBM/fp-go/v2/optics/lens"            // MakeLens, MakeLensRef, MakeLensStrict, Compose, ComposeRef, Modify
+    L  "github.com/IBM/fp-go/v2/optics/lens"            // MakeLens, MakeLensRef, MakeLensStrict, MakeLensWithEq, Compose, ComposeRef, Modify
     LO "github.com/IBM/fp-go/v2/optics/lens/option"     // LensO, FromNillable, FromNillableRef, ComposeOption, Compose
     F  "github.com/IBM/fp-go/v2/function"               // Pipe1, Pipe2, Pipe3, ...
     O  "github.com/IBM/fp-go/v2/option"                 // Some, None, Option
-    EQ "github.com/IBM/fp-go/v2/eq"                     // FromStrictEquals (for MakeLensWithEq)
+    EQ "github.com/IBM/fp-go/v2/eq"                     // FromStrictEquals, FromEquals (for MakeLensWithEq)
+    A  "github.com/IBM/fp-go/v2/array"                  // StrictEquals, Eq (for MakeLensWithEq with slice fields)
+    N  "github.com/IBM/fp-go/v2/number"                 // Add, Sub, Mul, ... (arithmetic on numeric fields)
 )
 ```
 

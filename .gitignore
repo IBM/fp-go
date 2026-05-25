@@ -4,3 +4,4 @@ main.exe
 build/
 .idea
 *.exe
+.claude
