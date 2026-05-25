@@ -190,7 +190,7 @@ func RightReaderIO[R, A any](ma ReaderIO[R, A]) ReaderIOResult[R, A] {
 // Example:
 //
 //	getValue := Right[Config](10)
-//	doubled := MonadMap(getValue, func(x int) int { return x * 2 })
+//	doubled := MonadMap(getValue, N.Mul(2))
 //	result, err := doubled(cfg)() // Returns 20, nil
 func MonadMap[R, A, B any](fa ReaderIOResult[R, A], f func(A) B) ReaderIOResult[R, B] {
 	return function.Flow2(
@@ -215,7 +215,7 @@ func MonadMap[R, A, B any](fa ReaderIOResult[R, A], f func(A) B) ReaderIOResult[
 //
 // Example:
 //
-//	double := Map[Config](func(x int) int { return x * 2 })
+//	double := Map[Config](N.Mul(2))
 //	getValue := Right[Config](10)
 //	result := F.Pipe1(getValue, double)
 //	value, err := result(cfg)() // Returns 20, nil

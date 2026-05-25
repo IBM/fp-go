@@ -69,7 +69,7 @@
 //	ref := ioref.MakeIORef(10)()
 //
 //	// Double the value
-//	ioref.Modify(func(x int) int { return x * 2 })(ref)()
+//	ioref.Modify(N.Mul(2))(ref)()
 //
 //	// Chain multiple modifications
 //	ioref.Modify(func(x int) int { return x + 5 })(ref)()

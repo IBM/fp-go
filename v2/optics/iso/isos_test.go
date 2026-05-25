@@ -690,7 +690,7 @@ func TestAddComposition(t *testing.T) {
 		addTen := Add(10)
 
 		// Double the value after adding 10
-		doubler := Modify[int](func(x int) int { return x * 2 })(addTen)
+		doubler := Modify[int](N.Mul(2))(addTen)
 
 		// (5 + 10) * 2 = 30, then subtract 10 = 20
 		result := doubler(5)
@@ -993,7 +993,7 @@ func TestSubComposition(t *testing.T) {
 		subTen := Sub(10)
 
 		// Double the value after subtracting 10
-		doubler := Modify[int](func(x int) int { return x * 2 })(subTen)
+		doubler := Modify[int](N.Mul(2))(subTen)
 
 		// (20 - 10) * 2 = 20, then add 10 = 30
 		result := doubler(20)

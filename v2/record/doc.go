@@ -38,6 +38,6 @@
 //	record.Size(emptyMap)    // 0
 //
 //	// Transformations return non-nil empty maps
-//	result := record.Map(func(x int) int { return x * 2 })(nilMap)
+//	result := record.Map(N.Mul(2))(nilMap)
 //	// result is non-nil but empty: map[string]int{}
 package record
