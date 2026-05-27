@@ -24,6 +24,8 @@ const config: Config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'IBM', // Usually your GitHub org/user name.
   projectName: 'fp-go', // Usually your repo name.
+  deploymentBranch: 'gh-pages', // The branch to deploy to
+  trailingSlash: false,
 
   onBrokenLinks: 'warn',
   // Broken-anchor checker reads markdown heading slugs from the MDX AST and
