@@ -7,6 +7,12 @@ on:
     paths:
       - 'fp-go-docs/**'
       - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'fp-go-docs/**'
+      - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
 permissions:
@@ -27,7 +33,7 @@ jobs:
       
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 'lts/*'
           cache: npm
           cache-dependency-path: fp-go-docs/package-lock.json
       
