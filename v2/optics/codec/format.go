@@ -72,11 +72,11 @@ func (t *typeImpl[A, O, I]) LogValue() slog.Value {
 }
 
 // typeNameOf returns a string representation of the type T.
-// It handles the special case where T is 'any' (interface{}).
+// It handles the special case where T is 'any' (any).
 func typeNameOf[T any]() string {
 	var zero T
 	typeName := fmt.Sprintf("%T", zero)
-	// Handle the case where %T prints "<nil>" for interface{} types
+	// Handle the case where %T prints "<nil>" for any types
 	if typeName == "<nil>" {
 		return "interface {}"
 	}

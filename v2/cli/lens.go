@@ -344,7 +344,7 @@ func getTypeName(expr ast.Expr) string {
 	case *ast.SelectorExpr:
 		return getTypeName(t.X) + "." + t.Sel.Name
 	case *ast.InterfaceType:
-		return "interface{}"
+		return "any"
 	case *ast.IndexExpr:
 		// Generic type with single type parameter (Go 1.18+)
 		// e.g., Option[string]

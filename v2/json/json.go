@@ -147,10 +147,10 @@ func Marshal[A any](a A) Either[[]byte] {
 // Example with error handling:
 //
 //	type Config struct {
-//	    Settings map[string]interface{} `json:"settings"`
+//	    Settings map[string]any `json:"settings"`
 //	}
 //
-//	config := Config{Settings: map[string]interface{}{"debug": true}}
+//	config := Config{Settings: map[string]any{"debug": true}}
 //	result := json.MarshalIndent(config)
 //
 //	either.Fold(
