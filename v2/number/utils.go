@@ -78,7 +78,7 @@ func Mul[T Number](right T) func(T) T {
 
 // Div is a curried function that divides two numbers.
 // It takes a right operand (divisor) and returns a function that takes a left operand (dividend),
-// returning their quotient (left / right).
+// returning their quotient (dividend / divisor).
 //
 // Note: Division by zero will cause a panic for integer types or return infinity for float types.
 //
@@ -88,9 +88,9 @@ func Mul[T Number](right T) func(T) T {
 //
 //	halve := Div(2)
 //	result := halve(10) // returns 5
-func Div[T Number](right T) func(T) T {
-	return func(left T) T {
-		return left / right
+func Div[T Number](divisor T) func(T) T {
+	return func(dividend T) T {
+		return dividend / divisor
 	}
 }
 
@@ -165,5 +165,26 @@ func MoreThan[A C.Ordered](a A) func(A) bool {
 func LessThan[A C.Ordered](a A) func(A) bool {
 	return func(b A) bool {
 		return a > b
+	}
+}
+
+// Mod is a curried function that computes the remainder of integer division.
+// It takes a divisor and returns a function that takes a dividend,
+// returning the remainder (dividend % divisor).
+//
+// Note: Mod only works with integer types (C.Integer), not floats or complex numbers.
+// Division by zero will cause a panic.
+//
+// This curried form is useful for partial application and function composition,
+// for example when filtering values by parity or bucketing by modulus.
+//
+// Example:
+//
+//	mod3 := Mod(3)
+//	result := mod3(10) // returns 1 (10 % 3 == 1)
+//	result := mod3(9)  // returns 0 (9 % 3 == 0)
+func Mod[T C.Integer](divisor T) func(T) T {
+	return func(dividend T) T {
+		return dividend % divisor
 	}
 }

@@ -651,3 +651,66 @@ func BenchmarkLessThan(b *testing.B) {
 		_ = lessThan10(i)
 	}
 }
+
+// Test Mod curried function
+func TestMod(t *testing.T) {
+	mod3 := Mod(3)
+
+	tests := []struct {
+		name     string
+		input    int
+		expected int
+	}{
+		{"exact multiple", 9, 0},
+		{"remainder 1", 10, 1},
+		{"remainder 2", 11, 2},
+		{"zero dividend", 0, 0},
+		{"negative dividend", -10, -1},
+		{"negative remainder", -11, -2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mod3(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// Test Mod with divisor 2 (parity check)
+func TestMod_Parity(t *testing.T) {
+	isOdd := Mod(2)
+
+	assert.Equal(t, 0, isOdd(4))
+	assert.Equal(t, 1, isOdd(5))
+	assert.Equal(t, 0, isOdd(0))
+	assert.Equal(t, 0, isOdd(-4))
+	assert.Equal(t, -1, isOdd(-5))
+}
+
+// Test Mod with different integer types
+func TestMod_Int8(t *testing.T) {
+	mod7 := Mod(int8(7))
+
+	assert.Equal(t, int8(0), mod7(7))
+	assert.Equal(t, int8(3), mod7(10))
+	assert.Equal(t, int8(6), mod7(13))
+}
+
+// Test Mod with large divisor (divisor > dividend)
+func TestMod_LargeDivisor(t *testing.T) {
+	mod100 := Mod(100)
+
+	assert.Equal(t, 42, mod100(42))
+	assert.Equal(t, 0, mod100(0))
+	assert.Equal(t, 0, mod100(100))
+	assert.Equal(t, 1, mod100(101))
+}
+
+func BenchmarkMod(b *testing.B) {
+	mod3 := Mod(3)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = mod3(i)
+	}
+}
