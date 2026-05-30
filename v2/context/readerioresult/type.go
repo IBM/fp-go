@@ -28,6 +28,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioref"
+	"github.com/IBM/fp-go/v2/iterator/iterresult"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/prism"
@@ -227,6 +228,8 @@ type (
 	// stopping early if yield returns false.
 	// See the [iter] package documentation for more details.
 	Seq[A any] = iter.Seq[A]
+
+	SeqResult[A any] = iterresult.SeqResult[A]
 
 	Traversable[A, B, GA, GB any] = func(Kleisli[A, B]) Kleisli[GA, GB]
 )
