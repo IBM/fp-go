@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - 'fp-go-docs/**'
+      - 'v2/samples/**'
       - '.github/workflows/deploy-docs.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'fp-go-docs/**'
+      - 'v2/samples/**'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -30,6 +32,20 @@ jobs:
         working-directory: fp-go-docs
     steps:
       - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Install embedmd
+        run: go install github.com/campoy/embedmd@latest
+      
+      - name: Validate Go Examples Compile
+        run: |
+          cd v2/samples
+          go test -v ./...
+        working-directory: ${{ github.workspace }}
       
       - uses: actions/setup-node@v4
         with:
