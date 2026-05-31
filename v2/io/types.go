@@ -6,6 +6,7 @@ import (
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -51,4 +52,6 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Void = function.Void
+
+	Option[T any] = option.Option[T]
 )
