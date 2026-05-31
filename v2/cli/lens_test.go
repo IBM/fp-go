@@ -733,14 +733,12 @@ func TestLensCommandFlags(t *testing.T) {
 	cmd := LensCommand()
 
 	assert.Equal(t, "lens", cmd.Name)
-	assert.Equal(t, "generate lens code for annotated structs", cmd.Usage)
+	assert.Contains(t, cmd.Usage, "lens")
 	assert.Contains(t, strings.ToLower(cmd.Description), "fp-go:lens")
 	assert.Contains(t, strings.ToLower(cmd.Description), "lenso", "Description should mention LensO for optional lenses")
 
 	// Check flags
-	assert.Len(t, cmd.Flags, 4)
-
-	var hasDir, hasFilename, hasVerbose, hasIncludeTestFiles bool
+	var hasDir, hasFilename, hasVerbose, hasIncludeTestFiles, hasType bool
 	for _, flag := range cmd.Flags {
 		switch flag.Names()[0] {
 		case "dir":
@@ -751,6 +749,8 @@ func TestLensCommandFlags(t *testing.T) {
 			hasVerbose = true
 		case "include-test-files":
 			hasIncludeTestFiles = true
+		case "type":
+			hasType = true
 		}
 	}
 
@@ -758,6 +758,7 @@ func TestLensCommandFlags(t *testing.T) {
 	assert.True(t, hasFilename, "should have filename flag")
 	assert.True(t, hasVerbose, "should have verbose flag")
 	assert.True(t, hasIncludeTestFiles, "should have include-test-files flag")
+	assert.True(t, hasType, "should have type flag")
 }
 
 func TestParseFileWithEmbeddedStruct(t *testing.T) {

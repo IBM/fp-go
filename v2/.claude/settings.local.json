@@ -9,7 +9,8 @@
       "Bash(go tool cover:*)",
       "Bash(sort:*)",
       "Bash(tee:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
