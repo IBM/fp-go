@@ -56,6 +56,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Verify embedmd processes without errors
+        run: |
+          echo "🔨 Running embedmd to inject code examples..."
+          npm run preprocess
+          echo "✅ embedmd completed successfully"
+          
+          echo "📊 Checking if any files were modified..."
+          if git diff --quiet docs/; then
+            echo "✅ No unexpected changes detected"
+          else
+            echo "ℹ️  Files modified by embedmd (expected):"
+            git diff --stat docs/
+          fi
+      
       - name: Build website
         run: npm run build
       
