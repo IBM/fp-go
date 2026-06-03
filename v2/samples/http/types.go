@@ -15,8 +15,16 @@
 
 package http
 
-import "github.com/IBM/fp-go/v2/context/readerioresult"
+import (
+	"github.com/IBM/fp-go/v2/context/readerioresult"
+	"github.com/IBM/fp-go/v2/effect"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
+)
 
 type (
-	ReaderIOResult[A any] = readerioresult.ReaderIOResult[A]
+	Thunk[A any]     = readerioresult.ReaderIOResult[A]
+	Effect[C, T any] = effect.Effect[C, T]
+	Option[T any]    = option.Option[T]
+	Pair[A, B any]   = pair.Pair[A, B]
 )

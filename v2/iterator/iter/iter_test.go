@@ -1593,3 +1593,242 @@ func TestCollect_Comparison(t *testing.T) {
 		assert.Equal(t, result1(), result2)
 	})
 }
+
+// ---------------------------------------------------------------------------
+// MonadOf
+// ---------------------------------------------------------------------------
+
+func TestMonadOf(t *testing.T) {
+	t.Run("produces single-element sequence", func(t *testing.T) {
+		seq := MonadOf(42)
+		assert.Equal(t, []int{42}, toSlice(seq))
+	})
+
+	t.Run("behaves identically to Of", func(t *testing.T) {
+		assert.Equal(t, toSlice(Of("hello")), toSlice(MonadOf("hello")))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// FlatMap
+// ---------------------------------------------------------------------------
+
+func TestFlatMap(t *testing.T) {
+	t.Run("maps and flattens like Chain", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		result := FlatMap(func(x int) Seq[int] {
+			return From(x, x*10)
+		})(seq)
+		assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, toSlice(result))
+	})
+
+	t.Run("produces same result as Chain", func(t *testing.T) {
+		f := func(x int) Seq[int] { return From(x, x+100) }
+		seq := From(1, 2, 3)
+		assert.Equal(t, toSlice(Chain(f)(seq)), toSlice(FlatMap(f)(seq)))
+	})
+
+	t.Run("empty input yields empty output", func(t *testing.T) {
+		result := FlatMap(func(x int) Seq[int] { return From(x) })(Empty[int]())
+		assert.Empty(t, toSlice(result))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAll
+// ---------------------------------------------------------------------------
+
+func TestConcatAll(t *testing.T) {
+	t.Run("flattens nested sequences", func(t *testing.T) {
+		nested := From(From(1, 2), From(3, 4), From(5))
+		result := ConcatAll(nested)
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, toSlice(result))
+	})
+
+	t.Run("behaves identically to Flatten", func(t *testing.T) {
+		nested := From(From("a", "b"), From("c"))
+		assert.Equal(t, toSlice(Flatten(nested)), toSlice(ConcatAll(nested)))
+	})
+
+	t.Run("handles empty inner sequences", func(t *testing.T) {
+		nested := From(From(1, 2), Empty[int](), From(3))
+		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAll(nested)))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainFirst / ChainFirst / Tap
+// ---------------------------------------------------------------------------
+
+func TestMonadChainFirst(t *testing.T) {
+	t.Run("returns original elements unchanged", func(t *testing.T) {
+		seq := From(1, 2, 3)
+		result := MonadChainFirst(seq, func(x int) Seq[string] {
+			return Of(fmt.Sprintf("side-%d", x))
+		})
+		assert.Equal(t, []int{1, 2, 3}, toSlice(result))
+	})
+
+	t.Run("executes side effects in order", func(t *testing.T) {
+		var seen []int
+		seq := From(10, 20, 30)
+		result := MonadChainFirst(seq, func(x int) Seq[int] {
+			seen = append(seen, x)
+			return Of(x * 2)
+		})
+		toSlice(result)
+		assert.Equal(t, []int{10, 20, 30}, seen)
+	})
+
+	t.Run("empty input produces no side effects", func(t *testing.T) {
+		called := false
+		result := MonadChainFirst(Empty[int](), func(x int) Seq[string] {
+			called = true
+			return Of("x")
+		})
+		assert.Empty(t, toSlice(result))
+		assert.False(t, called)
+	})
+}
+
+func TestChainFirst(t *testing.T) {
+	t.Run("returns original elements unchanged", func(t *testing.T) {
+		var seen []int
+		op := ChainFirst(func(x int) Seq[int] {
+			seen = append(seen, x)
+			return Of(0)
+		})
+		result := op(From(1, 2, 3))
+		assert.Equal(t, []int{1, 2, 3}, toSlice(result))
+		assert.Equal(t, []int{1, 2, 3}, seen)
+	})
+}
+
+func TestTap(t *testing.T) {
+	t.Run("is equivalent to ChainFirst", func(t *testing.T) {
+		f := func(x int) Seq[string] { return Of(fmt.Sprintf("%d", x)) }
+		seq := From(1, 2, 3)
+		assert.Equal(t, toSlice(ChainFirst(f)(seq)), toSlice(Tap(f)(seq)))
+	})
+
+	t.Run("preserves all elements with side effects", func(t *testing.T) {
+		sum := 0
+		op := Tap(func(x int) Seq[int] {
+			sum += x
+			return Of(0)
+		})
+		result := op(From(1, 2, 3, 4))
+		assert.Equal(t, []int{1, 2, 3, 4}, toSlice(result))
+		assert.Equal(t, 10, sum)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainFirstIOK / ChainFirstIOK / TapIOK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainFirstIOK(t *testing.T) {
+	t.Run("returns original elements and executes IO", func(t *testing.T) {
+		var executed []int
+		ioF := func(x int) func() string {
+			return func() string {
+				executed = append(executed, x)
+				return fmt.Sprintf("log-%d", x)
+			}
+		}
+		result := MonadChainFirstIOK(From(1, 2, 3), ioF)
+		assert.Equal(t, []int{1, 2, 3}, toSlice(result))
+		assert.Equal(t, []int{1, 2, 3}, executed)
+	})
+
+	t.Run("IO is lazy — not called until iteration", func(t *testing.T) {
+		called := false
+		ioF := func(x int) func() string {
+			return func() string {
+				called = true
+				return "ok"
+			}
+		}
+		result := MonadChainFirstIOK(From(1), ioF)
+		assert.False(t, called)
+		toSlice(result)
+		assert.True(t, called)
+	})
+}
+
+func TestChainFirstIOK(t *testing.T) {
+	t.Run("returns original elements unchanged", func(t *testing.T) {
+		var seen []int
+		op := ChainFirstIOK(func(x int) func() int {
+			return func() int {
+				seen = append(seen, x)
+				return x * 2
+			}
+		})
+		result := op(From(10, 20, 30))
+		assert.Equal(t, []int{10, 20, 30}, toSlice(result))
+		assert.Equal(t, []int{10, 20, 30}, seen)
+	})
+}
+
+func TestTapIOK(t *testing.T) {
+	t.Run("is equivalent to ChainFirstIOK", func(t *testing.T) {
+		f := func(x int) func() string {
+			return func() string { return fmt.Sprintf("%d", x) }
+		}
+		seq := From(1, 2, 3)
+		assert.Equal(t, toSlice(ChainFirstIOK(f)(seq)), toSlice(TapIOK(f)(seq)))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainIOK / ChainIOK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainIOK(t *testing.T) {
+	t.Run("maps elements through IO-returning function", func(t *testing.T) {
+		ioF := func(x int) func() string {
+			return func() string { return fmt.Sprintf("item-%d", x) }
+		}
+		result := MonadChainIOK(From(1, 2, 3), ioF)
+		assert.Equal(t, []string{"item-1", "item-2", "item-3"}, toSlice(result))
+	})
+
+	t.Run("empty input yields empty output", func(t *testing.T) {
+		ioF := func(x int) func() int { return func() int { return x * 2 } }
+		result := MonadChainIOK(Empty[int](), ioF)
+		assert.Empty(t, toSlice(result))
+	})
+
+	t.Run("IO computation is deferred", func(t *testing.T) {
+		called := false
+		ioF := func(x int) func() int {
+			return func() int {
+				called = true
+				return x
+			}
+		}
+		result := MonadChainIOK(From(42), ioF)
+		assert.False(t, called)
+		toSlice(result)
+		assert.True(t, called)
+	})
+}
+
+func TestChainIOK(t *testing.T) {
+	t.Run("maps elements through IO-returning function", func(t *testing.T) {
+		double := ChainIOK(func(x int) func() int {
+			return func() int { return x * 2 }
+		})
+		result := double(From(1, 2, 3))
+		assert.Equal(t, []int{2, 4, 6}, toSlice(result))
+	})
+
+	t.Run("produces same result as MonadChainIOK", func(t *testing.T) {
+		f := func(x int) func() string {
+			return func() string { return strconv.Itoa(x) }
+		}
+		seq := From(10, 20, 30)
+		assert.Equal(t, toSlice(MonadChainIOK(seq, f)), toSlice(ChainIOK(f)(seq)))
+	})
+}

@@ -1934,3 +1934,245 @@ func TestCollect_Comparison(t *testing.T) {
 		assert.True(t, E.IsLeft(result1()))
 	})
 }
+
+// ---------------------------------------------------------------------------
+// MonadChainFirstIOK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainFirstIOK(t *testing.T) {
+	t.Run("executes IO side effect and returns original Right values", func(t *testing.T) {
+		var seen []int
+		logIO := func(n int) func() string {
+			return func() string { seen = append(seen, n); return "logged" }
+		}
+		seq := iter.From(E.Right[string](1), E.Right[string](2), E.Right[string](3))
+		result := collectEithers(MonadChainFirstIOK(seq, logIO))
+		assert.Equal(t, []Either[string, int]{
+			E.Right[string](1),
+			E.Right[string](2),
+			E.Right[string](3),
+		}, result)
+		assert.Equal(t, []int{1, 2, 3}, seen)
+	})
+
+	t.Run("Left values pass through without calling IO", func(t *testing.T) {
+		called := false
+		logIO := func(n int) func() string {
+			return func() string { called = true; return "ok" }
+		}
+		seq := iter.From(E.Left[int]("error"))
+		result := collectEithers(MonadChainFirstIOK(seq, logIO))
+		assert.Equal(t, []Either[string, int]{E.Left[int]("error")}, result)
+		assert.False(t, called)
+	})
+
+	t.Run("mixed Left and Right — IO called only for Right", func(t *testing.T) {
+		var seen []int
+		logIO := func(n int) func() int {
+			return func() int { seen = append(seen, n); return n * 2 }
+		}
+		seq := iter.From(E.Right[string](10), E.Left[int]("err"), E.Right[string](30))
+		result := collectEithers(MonadChainFirstIOK(seq, logIO))
+		assert.Equal(t, []Either[string, int]{
+			E.Right[string](10),
+			E.Left[int]("err"),
+			E.Right[string](30),
+		}, result)
+		assert.Equal(t, []int{10, 30}, seen)
+	})
+
+	t.Run("IO is lazy — not called until iteration", func(t *testing.T) {
+		called := false
+		logIO := func(n int) func() string {
+			return func() string { called = true; return "ok" }
+		}
+		seq := iter.From(E.Right[string](42))
+		result := MonadChainFirstIOK(seq, logIO)
+		assert.False(t, called)
+		collectEithers(result)
+		assert.True(t, called)
+	})
+
+	t.Run("empty input yields empty output", func(t *testing.T) {
+		called := false
+		logIO := func(n int) func() string {
+			return func() string { called = true; return "ok" }
+		}
+		result := collectEithers(MonadChainFirstIOK(iter.From[Either[string, int]](), logIO))
+		assert.Empty(t, result)
+		assert.False(t, called)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ChainFirstIOK
+// ---------------------------------------------------------------------------
+
+func TestChainFirstIOK(t *testing.T) {
+	t.Run("returns original Right values unchanged", func(t *testing.T) {
+		var seen []int
+		op := ChainFirstIOK[string](func(n int) func() int {
+			return func() int { seen = append(seen, n); return n * 2 }
+		})
+		seq := iter.From(E.Right[string](5), E.Right[string](10))
+		result := collectEithers(op(seq))
+		assert.Equal(t, []Either[string, int]{E.Right[string](5), E.Right[string](10)}, result)
+		assert.Equal(t, []int{5, 10}, seen)
+	})
+
+	t.Run("Left values pass through unchanged", func(t *testing.T) {
+		called := false
+		op := ChainFirstIOK[string](func(n int) func() int {
+			return func() int { called = true; return n }
+		})
+		seq := iter.From(E.Left[int]("error"))
+		result := collectEithers(op(seq))
+		assert.Equal(t, []Either[string, int]{E.Left[int]("error")}, result)
+		assert.False(t, called)
+	})
+
+	t.Run("is equivalent to MonadChainFirstIOK applied curried", func(t *testing.T) {
+		f := func(n int) func() string {
+			return func() string { return strings.Repeat("x", n) }
+		}
+		seq := iter.From(E.Right[string](2), E.Right[string](3))
+		direct := collectEithers(MonadChainFirstIOK(seq, f))
+		curried := collectEithers(ChainFirstIOK[string](f)(seq))
+		assert.Equal(t, direct, curried)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TapIOK
+// ---------------------------------------------------------------------------
+
+func TestTapIOK(t *testing.T) {
+	t.Run("is equivalent to ChainFirstIOK", func(t *testing.T) {
+		f := func(n int) func() string {
+			return func() string { return strings.Repeat("*", n) }
+		}
+		seq := iter.From(E.Right[string](1), E.Right[string](2))
+		assert.Equal(t,
+			collectEithers(ChainFirstIOK[string](f)(seq)),
+			collectEithers(TapIOK[string](f)(seq)),
+		)
+	})
+
+	t.Run("preserves all Right values and executes side effect", func(t *testing.T) {
+		sum := 0
+		op := TapIOK[string](func(n int) func() int {
+			return func() int { sum += n; return 0 }
+		})
+		result := collectEithers(op(iter.From(E.Right[string](1), E.Right[string](2), E.Right[string](3))))
+		assert.Equal(t, []Either[string, int]{
+			E.Right[string](1), E.Right[string](2), E.Right[string](3),
+		}, result)
+		assert.Equal(t, 6, sum)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainIOK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainIOK(t *testing.T) {
+	t.Run("maps Right values through IO-returning function", func(t *testing.T) {
+		toStringIO := func(n int) func() string {
+			return func() string { return strings.Repeat("x", n) }
+		}
+		seq := iter.From(E.Right[string](3), E.Right[string](2))
+		result := collectEithers(MonadChainIOK(seq, toStringIO))
+		assert.Equal(t, []Either[string, string]{
+			E.Right[string]("xxx"),
+			E.Right[string]("xx"),
+		}, result)
+	})
+
+	t.Run("Left values pass through without calling IO", func(t *testing.T) {
+		called := false
+		f := func(n int) func() string {
+			return func() string { called = true; return "ok" }
+		}
+		seq := iter.From(E.Left[int]("error"))
+		result := collectEithers(MonadChainIOK(seq, f))
+		assert.Equal(t, []Either[string, string]{E.Left[string]("error")}, result)
+		assert.False(t, called)
+	})
+
+	t.Run("mixed Left and Right", func(t *testing.T) {
+		f := func(n int) func() string {
+			return func() string { return strings.Repeat("*", n) }
+		}
+		seq := iter.From(E.Right[string](2), E.Left[int]("err"), E.Right[string](3))
+		result := collectEithers(MonadChainIOK(seq, f))
+		assert.Equal(t, []Either[string, string]{
+			E.Right[string]("**"),
+			E.Left[string]("err"),
+			E.Right[string]("***"),
+		}, result)
+	})
+
+	t.Run("IO is lazy — not called until iteration", func(t *testing.T) {
+		called := false
+		f := func(n int) func() string {
+			return func() string { called = true; return "ok" }
+		}
+		result := MonadChainIOK(iter.From(E.Right[string](1)), f)
+		assert.False(t, called)
+		collectEithers(result)
+		assert.True(t, called)
+	})
+
+	t.Run("empty input yields empty output", func(t *testing.T) {
+		f := func(n int) func() string { return func() string { return "x" } }
+		result := collectEithers(MonadChainIOK(iter.From[Either[string, int]](), f))
+		assert.Empty(t, result)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ChainIOK
+// ---------------------------------------------------------------------------
+
+func TestChainIOK(t *testing.T) {
+	t.Run("maps Right values through IO-returning function", func(t *testing.T) {
+		doubleIO := ChainIOK[string](func(n int) func() int {
+			return func() int { return n * 2 }
+		})
+		seq := iter.From(E.Right[string](5), E.Right[string](10))
+		result := collectEithers(doubleIO(seq))
+		assert.Equal(t, []Either[string, int]{E.Right[string](10), E.Right[string](20)}, result)
+	})
+
+	t.Run("Left values pass through unchanged", func(t *testing.T) {
+		op := ChainIOK[string](func(n int) func() int {
+			return func() int { return n * 2 }
+		})
+		seq := iter.From(E.Left[int]("error"))
+		result := collectEithers(op(seq))
+		assert.Equal(t, []Either[string, int]{E.Left[int]("error")}, result)
+	})
+
+	t.Run("is equivalent to MonadChainIOK applied curried", func(t *testing.T) {
+		f := func(n int) func() string {
+			return func() string { return strings.Repeat("z", n) }
+		}
+		seq := iter.From(E.Right[string](2), E.Right[string](4))
+		direct := collectEithers(MonadChainIOK(seq, f))
+		curried := collectEithers(ChainIOK[string](f)(seq))
+		assert.Equal(t, direct, curried)
+	})
+
+	t.Run("works in F.Pipe1 pipeline", func(t *testing.T) {
+		result := collectEithers(F.Pipe1(
+			iter.From(E.Right[string](3), E.Left[int]("err")),
+			ChainIOK[string](func(n int) func() string {
+				return func() string { return strings.Repeat("!", n) }
+			}),
+		))
+		assert.Equal(t, []Either[string, string]{
+			E.Right[string]("!!!"),
+			E.Left[string]("err"),
+		}, result)
+	})
+}

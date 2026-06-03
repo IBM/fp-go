@@ -25,6 +25,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	N "github.com/IBM/fp-go/v2/number"
+	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -1105,5 +1106,423 @@ func TestFlatten(t *testing.T) {
 			func(e error) Seq[int] { t.Fatal(e); return nil },
 		)))
 		assert.Equal(t, []int{1, 2, 3, 4}, collected)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+// mustOK collects success values; fails the test if any error is encountered.
+func mustOK[A any](t *testing.T, seq SeqResult[A]) []A {
+	t.Helper()
+	return slices.Collect(F.Pipe1(seq, GetOrElse(func(e error) Seq[A] {
+		t.Fatalf("unexpected error: %v", e)
+		return nil
+	})))
+}
+
+// firstError returns the first error element from seq, fails if none found.
+func firstError[A any](t *testing.T, seq SeqResult[A]) error {
+	t.Helper()
+	for r := range seq {
+		err := R.MonadFold(r, F.Identity[error], func(A) error { return nil })
+		if err != nil {
+			return err
+		}
+	}
+	t.Fatal("expected an error element, got none")
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// FromOption
+// ---------------------------------------------------------------------------
+
+func TestFromOption(t *testing.T) {
+	errMissing := errors.New("missing value")
+	onNone := func() error { return errMissing }
+
+	t.Run("Some produces success", func(t *testing.T) {
+		seq := FromOption[int](onNone)(O.Some(42))
+		assert.Equal(t, []int{42}, mustOK(t, seq))
+	})
+
+	t.Run("None produces error", func(t *testing.T) {
+		seq := FromOption[int](onNone)(O.None[int]())
+		assert.Equal(t, errMissing, firstError[int](t, seq))
+	})
+
+	t.Run("works with string type", func(t *testing.T) {
+		seq := FromOption[string](onNone)(O.Some("hello"))
+		assert.Equal(t, []string{"hello"}, mustOK(t, seq))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ChainOptionK
+// ---------------------------------------------------------------------------
+
+func TestChainOptionK(t *testing.T) {
+	errZero := errors.New("division by zero")
+	safeDiv := ChainOptionK[int, int](func() error { return errZero })(
+		func(n int) O.Option[int] {
+			if n == 0 {
+				return O.None[int]()
+			}
+			return O.Some(100 / n)
+		},
+	)
+
+	t.Run("Some result produces success", func(t *testing.T) {
+		assert.Equal(t, []int{20}, mustOK(t, safeDiv(Of(5))))
+	})
+
+	t.Run("None result produces error", func(t *testing.T) {
+		assert.Equal(t, errZero, firstError[int](t, safeDiv(Of(0))))
+	})
+
+	t.Run("error input passes through unchanged", func(t *testing.T) {
+		origErr := errors.New("original")
+		seq := iter.From(R.Left[int](origErr))
+		assert.Equal(t, origErr, firstError[int](t, safeDiv(seq)))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainSeqK / ChainSeqK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainSeqK(t *testing.T) {
+	expand := func(n int) iter.Seq[int] { return iter.From(n, n*10) }
+
+	t.Run("expands success values in order", func(t *testing.T) {
+		seq := iter.From(R.Of(1), R.Of(2))
+		assert.Equal(t, []int{1, 10, 2, 20}, mustOK(t, MonadChainSeqK(seq, expand)))
+	})
+
+	t.Run("error passes through", func(t *testing.T) {
+		errMsg := errors.New("fail")
+		seq := iter.From(R.Left[int](errMsg))
+		assert.Equal(t, errMsg, firstError[int](t, MonadChainSeqK(seq, expand)))
+	})
+
+	t.Run("empty input yields empty output", func(t *testing.T) {
+		assert.Empty(t, mustOK(t, MonadChainSeqK(iter.From[R.Result[int]](), expand)))
+	})
+}
+
+func TestChainSeqK(t *testing.T) {
+	expand := ChainSeqK(func(n int) iter.Seq[int] { return iter.From(n, n*10) })
+
+	t.Run("expands success values in order", func(t *testing.T) {
+		seq := iter.From(R.Of(1), R.Of(2))
+		assert.Equal(t, []int{1, 10, 2, 20}, mustOK(t, expand(seq)))
+	})
+
+	t.Run("produces same result as MonadChainSeqK", func(t *testing.T) {
+		f := func(n int) iter.Seq[int] { return iter.From(n, n*100) }
+		seq := iter.From(R.Of(3), R.Of(4))
+		assert.Equal(t, mustOK(t, MonadChainSeqK(seq, f)), mustOK(t, ChainSeqK(f)(seq)))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadMergeMapSeqK / MergeMapSeqK
+// ---------------------------------------------------------------------------
+
+func TestMonadMergeMapSeqK(t *testing.T) {
+	f := func(n int) iter.Seq[int] { return iter.From(n * 10) }
+
+	t.Run("produces results for each success element", func(t *testing.T) {
+		seq := iter.From(R.Of(1), R.Of(2))
+		result := slices.Collect(F.Pipe1(MonadMergeMapSeqK(seq, f), GetOrElse(func(e error) Seq[int] {
+			return nil
+		})))
+		assert.Len(t, result, 2)
+		assert.Contains(t, result, 10)
+		assert.Contains(t, result, 20)
+	})
+
+	t.Run("error passes through", func(t *testing.T) {
+		errMsg := errors.New("fail")
+		seq := iter.From(R.Left[int](errMsg))
+		assert.Equal(t, errMsg, firstError[int](t, MonadMergeMapSeqK(seq, f)))
+	})
+}
+
+func TestMergeMapSeqK(t *testing.T) {
+	f := MergeMapSeqK(func(n int) iter.Seq[int] { return iter.From(n * 10) })
+
+	t.Run("produces results for each success element", func(t *testing.T) {
+		seq := iter.From(R.Of(3), R.Of(4))
+		result := slices.Collect(F.Pipe1(f(seq), GetOrElse(func(e error) Seq[int] { return nil })))
+		assert.Len(t, result, 2)
+		assert.Contains(t, result, 30)
+		assert.Contains(t, result, 40)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainEitherK / ChainEitherK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainEitherK(t *testing.T) {
+	errNeg := errors.New("negative")
+	validate := func(n int) R.Result[int] {
+		if n > 0 {
+			return R.Of(n * 2)
+		}
+		return R.Left[int](errNeg)
+	}
+
+	t.Run("success input with successful Result", func(t *testing.T) {
+		assert.Equal(t, []int{10}, mustOK(t, MonadChainEitherK(Of(5), validate)))
+	})
+
+	t.Run("success input with failing Result", func(t *testing.T) {
+		assert.Equal(t, errNeg, firstError[int](t, MonadChainEitherK(Of(-1), validate)))
+	})
+
+	t.Run("error input passes through", func(t *testing.T) {
+		orig := errors.New("original")
+		seq := iter.From(R.Left[int](orig))
+		assert.Equal(t, orig, firstError[int](t, MonadChainEitherK(seq, validate)))
+	})
+}
+
+func TestChainEitherK(t *testing.T) {
+	errNeg := errors.New("negative")
+	op := ChainEitherK(func(n int) R.Result[int] {
+		if n > 0 {
+			return R.Of(n * 2)
+		}
+		return R.Left[int](errNeg)
+	})
+
+	t.Run("chains successful Result", func(t *testing.T) {
+		assert.Equal(t, []int{10}, mustOK(t, op(Of(5))))
+	})
+
+	t.Run("chains failing Result", func(t *testing.T) {
+		assert.Equal(t, errNeg, firstError[int](t, op(Of(-1))))
+	})
+
+	t.Run("error input passes through", func(t *testing.T) {
+		orig := errors.New("original")
+		assert.Equal(t, orig, firstError[int](t, op(iter.From(R.Left[int](orig)))))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadTapLeft / TapLeft
+// ---------------------------------------------------------------------------
+
+func TestMonadTapLeft(t *testing.T) {
+	t.Run("executes side effect but preserves original error", func(t *testing.T) {
+		var logged []string
+		origErr := errors.New("db error")
+		seq := iter.From(R.Left[int](origErr))
+		f := func(err error) SeqResult[int] {
+			logged = append(logged, err.Error())
+			return Of(0)
+		}
+		result := slices.Collect(MonadTapLeft(seq, f))
+		assert.Len(t, result, 1)
+		assert.True(t, R.IsLeft(result[0]))
+		assert.Equal(t, origErr, R.MonadFold(result[0], F.Identity[error], func(int) error { return nil }))
+		assert.Equal(t, []string{"db error"}, logged)
+	})
+
+	t.Run("success passes through without calling f", func(t *testing.T) {
+		called := false
+		f := func(err error) SeqResult[int] { called = true; return Of(0) }
+		result := slices.Collect(MonadTapLeft(Of(42), f))
+		assert.Len(t, result, 1)
+		assert.True(t, R.IsRight(result[0]))
+		assert.False(t, called)
+	})
+
+	t.Run("mixed sequence — only errors trigger side effect", func(t *testing.T) {
+		var seen []string
+		errA := errors.New("a")
+		f := func(err error) SeqResult[int] { seen = append(seen, err.Error()); return Of(0) }
+		seq := iter.From(R.Of(1), R.Left[int](errA), R.Of(2))
+		slices.Collect(MonadTapLeft(seq, f))
+		assert.Equal(t, []string{"a"}, seen)
+	})
+}
+
+func TestTapLeft(t *testing.T) {
+	t.Run("curried version behaves like MonadTapLeft", func(t *testing.T) {
+		var logged []string
+		origErr := errors.New("fail")
+		op := TapLeft[int](func(err error) SeqResult[int] {
+			logged = append(logged, err.Error())
+			return Of(0)
+		})
+		seq := iter.From(R.Left[int](origErr), R.Of(99))
+		result := slices.Collect(op(seq))
+		assert.Len(t, result, 2)
+		assert.True(t, R.IsLeft(result[0]))
+		assert.True(t, R.IsRight(result[1]))
+		assert.Equal(t, []string{"fail"}, logged)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainFirstIOK / ChainFirstIOK / TapIOK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainFirstIOK(t *testing.T) {
+	t.Run("executes IO side effect and returns original success values", func(t *testing.T) {
+		var seen []int
+		logIO := func(n int) func() string {
+			return func() string { seen = append(seen, n); return "ok" }
+		}
+		seq := iter.From(R.Of(1), R.Of(2), R.Of(3))
+		assert.Equal(t, []int{1, 2, 3}, mustOK(t, MonadChainFirstIOK(seq, logIO)))
+		assert.Equal(t, []int{1, 2, 3}, seen)
+	})
+
+	t.Run("error values pass through without calling IO", func(t *testing.T) {
+		called := false
+		logIO := func(n int) func() string { return func() string { called = true; return "ok" } }
+		errMsg := errors.New("fail")
+		assert.Equal(t, errMsg, firstError[int](t, MonadChainFirstIOK(iter.From(R.Left[int](errMsg)), logIO)))
+		assert.False(t, called)
+	})
+
+	t.Run("mixed — IO called only for success", func(t *testing.T) {
+		var seen []int
+		logIO := func(n int) func() int { return func() int { seen = append(seen, n); return n * 2 } }
+		seq := iter.From(R.Of(10), R.Left[int](errors.New("err")), R.Of(30))
+		result := slices.Collect(MonadChainFirstIOK(seq, logIO))
+		assert.Len(t, result, 3)
+		assert.Equal(t, []int{10, 30}, seen)
+	})
+
+	t.Run("IO is lazy — not executed until iteration", func(t *testing.T) {
+		called := false
+		logIO := func(n int) func() string { return func() string { called = true; return "ok" } }
+		result := MonadChainFirstIOK(Of(42), logIO)
+		assert.False(t, called)
+		slices.Collect(result)
+		assert.True(t, called)
+	})
+}
+
+func TestChainFirstIOK(t *testing.T) {
+	t.Run("returns original success values unchanged", func(t *testing.T) {
+		var seen []int
+		op := ChainFirstIOK(func(n int) func() int {
+			return func() int { seen = append(seen, n); return n * 2 }
+		})
+		seq := iter.From(R.Of(5), R.Of(10))
+		assert.Equal(t, []int{5, 10}, mustOK(t, op(seq)))
+		assert.Equal(t, []int{5, 10}, seen)
+	})
+
+	t.Run("error values pass through", func(t *testing.T) {
+		called := false
+		op := ChainFirstIOK(func(n int) func() int { return func() int { called = true; return n } })
+		errMsg := errors.New("error")
+		assert.Equal(t, errMsg, firstError[int](t, op(iter.From(R.Left[int](errMsg)))))
+		assert.False(t, called)
+	})
+
+	t.Run("equivalent to MonadChainFirstIOK curried", func(t *testing.T) {
+		f := func(n int) func() string { return func() string { return strings.Repeat("x", n) } }
+		seq := iter.From(R.Of(2), R.Of(3))
+		assert.Equal(t, mustOK(t, MonadChainFirstIOK(seq, f)), mustOK(t, ChainFirstIOK(f)(seq)))
+	})
+}
+
+func TestTapIOK(t *testing.T) {
+	t.Run("is equivalent to ChainFirstIOK", func(t *testing.T) {
+		f := func(n int) func() string { return func() string { return strings.Repeat("*", n) } }
+		seq := iter.From(R.Of(1), R.Of(2))
+		assert.Equal(t, mustOK(t, ChainFirstIOK(f)(seq)), mustOK(t, TapIOK(f)(seq)))
+	})
+
+	t.Run("preserves all success values and executes side effects", func(t *testing.T) {
+		total := 0
+		op := TapIOK(func(n int) func() int { return func() int { total += n; return 0 } })
+		assert.Equal(t, []int{1, 2, 3}, mustOK(t, op(iter.From(R.Of(1), R.Of(2), R.Of(3)))))
+		assert.Equal(t, 6, total)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainIOK / ChainIOK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainIOK(t *testing.T) {
+	toStr := func(n int) func() string { return func() string { return fmt.Sprintf("item-%d", n) } }
+
+	t.Run("maps success values through IO function", func(t *testing.T) {
+		seq := iter.From(R.Of(1), R.Of(2))
+		assert.Equal(t, []string{"item-1", "item-2"}, mustOK(t, MonadChainIOK(seq, toStr)))
+	})
+
+	t.Run("error passes through without calling IO", func(t *testing.T) {
+		called := false
+		f := func(n int) func() string { return func() string { called = true; return "ok" } }
+		errMsg := errors.New("fail")
+		assert.Equal(t, errMsg, firstError[string](t, MonadChainIOK(iter.From(R.Left[int](errMsg)), f)))
+		assert.False(t, called)
+	})
+
+	t.Run("mixed — errors pass through, successes mapped", func(t *testing.T) {
+		errMsg := errors.New("err")
+		seq := iter.From(R.Of(2), R.Left[int](errMsg), R.Of(3))
+		result := slices.Collect(MonadChainIOK(seq, toStr))
+		assert.Len(t, result, 3)
+		assert.True(t, R.IsRight(result[0]))
+		assert.True(t, R.IsLeft(result[1]))
+		assert.True(t, R.IsRight(result[2]))
+	})
+
+	t.Run("IO is lazy — not called until iteration", func(t *testing.T) {
+		called := false
+		f := func(n int) func() string { return func() string { called = true; return "ok" } }
+		result := MonadChainIOK(Of(1), f)
+		assert.False(t, called)
+		slices.Collect(result)
+		assert.True(t, called)
+	})
+}
+
+func TestChainIOK(t *testing.T) {
+	double := ChainIOK(func(n int) func() int { return func() int { return n * 2 } })
+
+	t.Run("maps success values through IO function", func(t *testing.T) {
+		assert.Equal(t, []int{10, 20}, mustOK(t, double(iter.From(R.Of(5), R.Of(10)))))
+	})
+
+	t.Run("error passes through", func(t *testing.T) {
+		errMsg := errors.New("fail")
+		assert.Equal(t, errMsg, firstError[int](t, double(iter.From(R.Left[int](errMsg)))))
+	})
+
+	t.Run("equivalent to MonadChainIOK curried", func(t *testing.T) {
+		f := func(n int) func() string { return func() string { return strings.Repeat("z", n) } }
+		seq := iter.From(R.Of(2), R.Of(4))
+		assert.Equal(t, mustOK(t, MonadChainIOK(seq, f)), mustOK(t, ChainIOK(f)(seq)))
+	})
+
+	t.Run("works in F.Pipe1 pipeline", func(t *testing.T) {
+		errMsg := errors.New("err")
+		result := slices.Collect(F.Pipe1(
+			iter.From(R.Of(3), R.Left[int](errMsg)),
+			ChainIOK(func(n int) func() string {
+				return func() string { return strings.Repeat("!", n) }
+			}),
+		))
+		assert.Len(t, result, 2)
+		assert.True(t, R.IsRight(result[0]))
+		assert.True(t, R.IsLeft(result[1]))
+		v, _ := R.Unwrap(result[0])
+		assert.Equal(t, "!!!", v)
 	})
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/eithert"
 	"github.com/IBM/fp-go/v2/internal/file"
 	"github.com/IBM/fp-go/v2/internal/fromeither"
+	"github.com/IBM/fp-go/v2/internal/fromio"
 	"github.com/IBM/fp-go/v2/internal/fromiter"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/io"
@@ -242,6 +243,25 @@ func FromEither[E, A any](e Either[E, A]) SeqEither[E, A] {
 	return iter.Of(e)
 }
 
+// FromOption converts an Option[A] to a single-element SeqEither.
+// Some(a) becomes Right(a). None becomes Left(onNone()), using the provided
+// function to compute the error value.
+//
+// Type Parameters:
+//   - A: The success type
+//   - E: The error type
+//
+// Parameters:
+//   - onNone: A function that produces the error value when the Option is None
+//
+// Returns:
+//   - A Kleisli function that converts Option[A] to SeqEither[E, A]
+//
+// Example:
+//
+//	fromOpt := FromOption[int](func() string { return "missing value" })
+//	seq := fromOpt(option.Some(42))   // yields: Right(42)
+//	seq2 := fromOpt(option.None[int]()) // yields: Left("missing value")
 func FromOption[A, E any](onNone func() E) Kleisli[E, O.Option[A], A] {
 	return fromeither.FromOption(
 		FromEither[E, A],
@@ -249,6 +269,32 @@ func FromOption[A, E any](onNone func() E) Kleisli[E, O.Option[A], A] {
 	)
 }
 
+// ChainOptionK chains an Option-returning function into the SeqEither context.
+// For each Right(a) in the sequence it applies f(a); if f returns Some(b) the
+// result is Right(b), if f returns None the result is Left(onNone()).
+// Left values in the input sequence pass through unchanged.
+//
+// Type Parameters:
+//   - A: The input element type
+//   - B: The output element type
+//   - E: The error type
+//
+// Parameters:
+//   - onNone: Produces the error value when f returns None
+//
+// Returns:
+//   - A function that takes an Option-returning Kleisli and produces an Operator
+//
+// Example:
+//
+//	safeDiv := ChainOptionK[int, int](func() string { return "division by zero" })(
+//	    func(n int) option.Option[int] {
+//	        if n == 0 { return option.None[int]() }
+//	        return option.Some(100 / n)
+//	    },
+//	)
+//	result := safeDiv(Right[string](5))  // yields: Right(20)
+//	result2 := safeDiv(Right[string](0)) // yields: Left("division by zero")
 func ChainOptionK[A, B, E any](onNone func() E) func(O.Kleisli[A, B]) Operator[E, A, B] {
 	return fromeither.ChainOptionK(
 		MonadChain[E, A, B],
@@ -257,6 +303,21 @@ func ChainOptionK[A, B, E any](onNone func() E) func(O.Kleisli[A, B]) Operator[E
 	)
 }
 
+// MonadChainSeqK is the uncurried form of ChainSeqK.
+// For each Right(a) in ma it calls f(a) (which returns a plain Seq[B]), lifts
+// every element of that sequence into Right, and concatenates them in order.
+// Left values in the input pass through unchanged.
+//
+// This is useful when you have an infallible sequence-producing function that
+// you want to use inside a SeqEither pipeline.
+//
+// Example:
+//
+//	seq := iter.From(E.Right[string](1), E.Right[string](2))
+//	result := MonadChainSeqK(seq, func(n int) iter.Seq[int] {
+//	    return iter.From(n, n*10)
+//	})
+//	// yields: Right(1), Right(10), Right(2), Right(20)
 func MonadChainSeqK[E, A, B any](ma SeqEither[E, A], f iter.Kleisli[A, B]) SeqEither[E, B] {
 	return fromiter.MonadChainIOK(
 		MonadChain[E, A, B],
@@ -266,6 +327,18 @@ func MonadChainSeqK[E, A, B any](ma SeqEither[E, A], f iter.Kleisli[A, B]) SeqEi
 	)
 }
 
+// ChainSeqK is the curried version of MonadChainSeqK.
+// It returns an Operator that chains an infallible Seq-returning function into
+// the SeqEither context, lifting each produced value into Right.
+//
+// Example:
+//
+//	expand := ChainSeqK[string](func(n int) iter.Seq[int] {
+//	    return iter.From(n, n*10)
+//	})
+//	seq := iter.From(E.Right[string](1), E.Right[string](2))
+//	result := expand(seq)
+//	// yields: Right(1), Right(10), Right(2), Right(20)
 func ChainSeqK[E, A, B any](f iter.Kleisli[A, B]) Operator[E, A, B] {
 	return fromiter.ChainIOK(
 		Chain[E, A, B],
@@ -274,6 +347,21 @@ func ChainSeqK[E, A, B any](f iter.Kleisli[A, B]) Operator[E, A, B] {
 	)
 }
 
+// MonadMergeMapSeqK is the uncurried form of MergeMapSeqK.
+// It is identical to MonadChainSeqK except it uses MergeMap semantics:
+// results from different inner sequences may be interleaved rather than
+// strictly concatenated in input order.
+//
+// Use MonadChainSeqK (ordered) when result order matters; use
+// MonadMergeMapSeqK when throughput is more important than ordering.
+//
+// Example:
+//
+//	seq := iter.From(E.Right[string](1), E.Right[string](2))
+//	result := MonadMergeMapSeqK(seq, func(n int) iter.Seq[int] {
+//	    return iter.From(n * 10)
+//	})
+//	// yields: Right(10), Right(20) in some order
 func MonadMergeMapSeqK[E, A, B any](ma SeqEither[E, A], f iter.Kleisli[A, B]) SeqEither[E, B] {
 	return fromiter.MonadChainIOK(
 		MonadMergeMap[E, A, B],
@@ -283,6 +371,18 @@ func MonadMergeMapSeqK[E, A, B any](ma SeqEither[E, A], f iter.Kleisli[A, B]) Se
 	)
 }
 
+// MergeMapSeqK is the curried version of MonadMergeMapSeqK.
+// It returns an Operator that uses MergeMap (interleaving) semantics when
+// expanding Right values through an infallible Seq-producing function.
+//
+// Example:
+//
+//	expand := MergeMapSeqK[string](func(n int) iter.Seq[int] {
+//	    return iter.From(n * 10)
+//	})
+//	seq := iter.From(E.Right[string](1), E.Right[string](2))
+//	result := expand(seq)
+//	// yields: Right(10), Right(20) in some order
 func MergeMapSeqK[E, A, B any](f iter.Kleisli[A, B]) Operator[E, A, B] {
 	return fromiter.ChainIOK(
 		MergeMap[E, A, B],
@@ -963,4 +1063,116 @@ func Reduce[E, A, B any](f func(B, A) B, initial B) func(SeqEither[E, A]) IOEith
 //   - GetOrElse: Extracts value or provides default
 func Collect[E, T any](fa SeqEither[E, T]) IOEither[E, []T] {
 	return MonadReduce(fa, A.Append, nil)
+}
+
+// MonadChainFirstIOK is the uncurried form of ChainFirstIOK.
+// For each Right(a) in ma it executes the IO computation f(a) for its side
+// effect, then discards the result and passes the original Right(a) through.
+// Left values pass through unchanged without calling f.
+//
+// This is the SeqEither equivalent of iter.MonadChainFirstIOK: use it to
+// attach IO side effects (logging, metrics, tracing) to Right values in a
+// SeqEither pipeline without altering the values.
+//
+// Example:
+//
+//	var logged []int
+//	logIO := func(n int) func() string {
+//	    return func() string { logged = append(logged, n); return "ok" }
+//	}
+//	seq := iter.From(E.Right[string](1), E.Left[int]("err"), E.Right[string](3))
+//	result := MonadChainFirstIOK(seq, logIO)
+//	// yields: Right(1), Left("err"), Right(3)
+//	// logged == [1, 3] (Left is skipped)
+func MonadChainFirstIOK[E, A, B any](ma SeqEither[E, A], f io.Kleisli[A, B]) SeqEither[E, A] {
+	return fromio.MonadChainFirstIOK(
+		MonadChain[E, A, A],
+		MonadMap[E, B, A],
+		FromIO,
+		ma,
+		f,
+	)
+}
+
+// ChainFirstIOK is the curried version of MonadChainFirstIOK.
+// It returns an Operator that executes an IO-returning function for side
+// effects on each Right value while passing the original element through
+// unchanged. Left values are not affected.
+//
+// Example:
+//
+//	var seen []int
+//	logOp := ChainFirstIOK[string](func(n int) func() string {
+//	    return func() string { seen = append(seen, n); return "logged" }
+//	})
+//	seq := iter.From(E.Right[string](10), E.Right[string](20))
+//	result := logOp(seq)
+//	// yields: Right(10), Right(20)
+//	// seen == [10, 20]
+func ChainFirstIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, A] {
+	return fromio.ChainFirstIOK(
+		Chain[E, A, A],
+		Map[E, B, A],
+		FromIO,
+		f,
+	)
+}
+
+// TapIOK is an alias for ChainFirstIOK.
+// It executes an IO-returning function for its side effect on each Right value
+// and passes the original element through unchanged.
+//
+// Example:
+//
+//	logOp := TapIOK[string](func(n int) func() string {
+//	    return func() string { fmt.Printf("element: %d\n", n); return "ok" }
+//	})
+//	seq := iter.From(E.Right[string](1), E.Right[string](2))
+//	result := logOp(seq)
+//	// yields: Right(1), Right(2) (and prints each element on iteration)
+func TapIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, A] {
+	return ChainFirstIOK[E](f)
+}
+
+// MonadChainIOK is the uncurried form of ChainIOK.
+// For each Right(a) in ma it calls f(a) to obtain an IO[B], executes it,
+// and lifts the result into Right(b), replacing the original element.
+// Left values pass through unchanged without calling f.
+//
+// Example:
+//
+//	toStringIO := func(n int) func() string {
+//	    return func() string { return fmt.Sprintf("item-%d", n) }
+//	}
+//	seq := iter.From(E.Right[string](1), E.Left[int]("err"), E.Right[string](3))
+//	result := MonadChainIOK(seq, toStringIO)
+//	// yields: Right("item-1"), Left("err"), Right("item-3")
+func MonadChainIOK[E, A, B any](ma SeqEither[E, A], f io.Kleisli[A, B]) SeqEither[E, B] {
+	return fromio.MonadChainIOK(
+		MonadChain[E, A, B],
+		FromIO,
+		ma,
+		f,
+	)
+}
+
+// ChainIOK is the curried version of MonadChainIOK.
+// It returns an Operator that maps each Right value through an IO-producing
+// function, replacing each Right(a) with Right(f(a)()), and leaving Left
+// values unchanged.
+//
+// Example:
+//
+//	stringify := ChainIOK[string](func(n int) func() string {
+//	    return func() string { return fmt.Sprintf("item-%d", n) }
+//	})
+//	seq := iter.From(E.Right[string](1), E.Right[string](2))
+//	result := stringify(seq)
+//	// yields: Right("item-1"), Right("item-2")
+func ChainIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, B] {
+	return fromio.ChainIOK(
+		Chain[E, A, B],
+		FromIO,
+		f,
+	)
 }

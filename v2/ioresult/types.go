@@ -1,6 +1,8 @@
 package ioresult
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
@@ -8,6 +10,8 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
@@ -59,4 +63,10 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Void = function.Void
+
+	Option[T any] = option.Option[T]
+
+	Pair[A, B any] = pair.Pair[A, B]
+
+	SeqResult[T any] = iter.Seq[Result[T]]
 )

@@ -1,8 +1,12 @@
 package ioeither
 
 import (
+	"iter"
+
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/tailrec"
 )
@@ -21,4 +25,10 @@ type (
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 
 	Void = function.Void
+
+	Option[T any] = option.Option[T]
+
+	Pair[A, B any] = pair.Pair[A, B]
+
+	Seq[T any] = iter.Seq[T]
 )

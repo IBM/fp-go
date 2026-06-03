@@ -57,8 +57,11 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/fromio"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	G "github.com/IBM/fp-go/v2/internal/iter"
+	"github.com/IBM/fp-go/v2/io"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -95,6 +98,11 @@ func Of[A any](a A) Seq[A] {
 	return G.Of[Seq[A]](a)
 }
 
+// MonadOf is an alias for Of in monadic context.
+// It creates a single-element sequence containing the provided value.
+// Functionally identical to Of; prefer Of unless working with higher-order
+// combinators that expect a MonadOf-named constructor.
+//
 //go:inline
 func MonadOf[A any](a A) Seq[A] {
 	return G.Of[Seq[A]](a)
@@ -591,6 +599,11 @@ func Chain[A, B any](f func(A) Seq[B]) Operator[A, B] {
 	return F.Bind2nd(MonadChain[A, B], f)
 }
 
+// FlatMap is an alias for Chain.
+// It maps each element to a sequence and flattens all resulting sequences into one.
+// Provided as a familiar name for developers coming from languages where flatMap
+// is the conventional term for the monadic bind operation.
+//
 //go:inline
 func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 	return Chain(f)
@@ -637,6 +650,12 @@ func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
 	return MonadChain(mma, F.Identity[Seq[A]])
 }
 
+// ConcatAll is an alias for Flatten.
+// It concatenates a sequence of sequences into a single sequence,
+// preserving the order of elements from each inner sequence.
+//
+// RxJS Equivalent: [concatAll] - https://rxjs.dev/api/operators/concatAll
+//
 //go:inline
 func ConcatAll[A any](mma Seq[Seq[A]]) Seq[A] {
 	return Flatten(mma)
@@ -1397,4 +1416,183 @@ func Skip[U any](count int) Operator[U, U] {
 //   - ToSeqPair: Converts Seq2 to Seq of pairs
 func Collect[T any](fa Seq[T]) IO[[]T] {
 	return MonadReduce(fa, A.Append, nil)
+}
+
+// MonadChainFirst executes f for each element's side effects but passes the
+// original element through unchanged. This is the monadic (uncurried) form.
+//
+// Unlike MonadChain, the results of f are discarded; only the elements from
+// the original sequence ma are yielded. This is useful for performing
+// sequential side effects while keeping the original values in scope.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3-->
+//	f produces a side-effecting sequence for each element
+//	Output: --1--2--3-->  (original values, side effects happened)
+//
+// RxJS Equivalent: [tap/do] - https://rxjs.dev/api/operators/tap
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	sideEffect := func(x int) Seq[string] {
+//	    fmt.Printf("processing %d\n", x)
+//	    return From("done")
+//	}
+//	result := MonadChainFirst(seq, sideEffect)
+//	// yields: 1, 2, 3 (prints "processing 1", "processing 2", "processing 3")
+func MonadChainFirst[A, B any](ma Seq[A], f Kleisli[A, B]) Seq[A] {
+	return chain.MonadChainFirst(
+		MonadChain[A, A],
+		MonadMap[B, A],
+		ma,
+		f,
+	)
+}
+
+// ChainFirst is the curried version of MonadChainFirst.
+// It returns an operator that executes f for side effects but preserves the original element.
+//
+// Example:
+//
+//	log := ChainFirst(func(x int) Seq[string] {
+//	    fmt.Printf("element: %d\n", x)
+//	    return Of("logged")
+//	})
+//	seq := From(1, 2, 3)
+//	result := log(seq)
+//	// yields: 1, 2, 3 (and prints each element)
+func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return chain.ChainFirst(
+		Chain[A, A],
+		Map[B, A],
+		f,
+	)
+}
+
+// Tap is an alias for ChainFirst.
+// It executes f for each element's side effects and passes the original element through.
+//
+// RxJS Equivalent: [tap] - https://rxjs.dev/api/operators/tap
+//
+// Example:
+//
+//	logged := Tap(func(x int) Seq[string] {
+//	    fmt.Printf("element: %d\n", x)
+//	    return Of("logged")
+//	})
+//	seq := From(10, 20, 30)
+//	result := logged(seq)
+//	// yields: 10, 20, 30 (and prints each element)
+func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return ChainFirst(f)
+}
+
+// MonadChainFirstIOK is the uncurried form of ChainFirstIOK.
+// For each element a in ma, it executes f(a) (an IO computation) for its side effect
+// and passes the original a through unchanged.
+//
+// The IO returned by f is executed but its result is discarded.
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	logIO := func(x int) func() string {
+//	    return func() string {
+//	        fmt.Printf("logging %d\n", x)
+//	        return "ok"
+//	    }
+//	}
+//	result := MonadChainFirstIOK(seq, logIO)
+//	// yields: 1, 2, 3 (and executes logIO for each element when iterated)
+func MonadChainFirstIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[A] {
+	return fromio.MonadChainFirstIOK(
+		MonadChain[A, A],
+		MonadMap[B, A],
+		FromIO,
+		ma,
+		f,
+	)
+}
+
+// ChainFirstIOK is the curried version of MonadChainFirstIOK.
+// It returns an operator that executes an IO-returning function for side effects
+// while passing the original elements through unchanged.
+//
+// Example:
+//
+//	logIO := ChainFirstIOK(func(x int) func() string {
+//	    return func() string {
+//	        fmt.Printf("element: %d\n", x)
+//	        return "logged"
+//	    }
+//	})
+//	seq := From(1, 2, 3)
+//	result := logIO(seq)
+//	// yields: 1, 2, 3 (IO side effects run on iteration)
+func ChainFirstIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
+	return fromio.ChainFirstIOK(
+		Chain[A, A],
+		Map[B, A],
+		FromIO,
+		f,
+	)
+}
+
+// TapIOK is an alias for ChainFirstIOK.
+// It executes an IO-returning function for side effects and passes the original element through.
+//
+// Example:
+//
+//	logged := TapIOK(func(x int) func() string {
+//	    return func() string {
+//	        fmt.Printf("element: %d\n", x)
+//	        return "ok"
+//	    }
+//	})
+//	result := logged(From(10, 20, 30))
+//	// yields: 10, 20, 30 (IO executes on iteration)
+func TapIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
+	return ChainFirstIOK(f)
+}
+
+// MonadChainIOK is the uncurried form of ChainIOK.
+// For each element a in ma, it calls f(a) to get an IO[B], converts it to a
+// single-element Seq[B] via FromIO, and flattens the results.
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	toStringIO := func(x int) func() string {
+//	    return func() string { return fmt.Sprintf("item-%d", x) }
+//	}
+//	result := MonadChainIOK(seq, toStringIO)
+//	// yields: "item-1", "item-2", "item-3"
+func MonadChainIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[B] {
+	return fromio.MonadChainIOK(
+		MonadChain[A, B],
+		FromIO[B],
+		ma, f,
+	)
+}
+
+// ChainIOK is the curried version of MonadChainIOK.
+// It returns an operator that maps each element through an IO-producing function
+// and lifts each IO result into the sequence.
+//
+// Example:
+//
+//	toStringIO := ChainIOK(func(x int) func() string {
+//	    return func() string { return fmt.Sprintf("item-%d", x) }
+//	})
+//	seq := From(1, 2, 3)
+//	result := toStringIO(seq)
+//	// yields: "item-1", "item-2", "item-3"
+func ChainIOK[A, B any](f io.Kleisli[A, B]) Operator[A, B] {
+	return fromio.ChainIOK(
+		Chain[A, B],
+		FromIO[B],
+		f,
+	)
 }
