@@ -554,16 +554,15 @@ func FilterMapWithKey[K, A, B any](f func(K, A) Option[B]) Operator2[K, A, B] {
 	return F.Bind2nd(MonadFilterMapWithKey[K, A, B], f)
 }
 
-// MonadChain applies a function that returns a sequence to each element and flattens the results.
-// This is the monadic bind operation (flatMap).
+// MonadChain maps f over as and flattens the results with deterministic output
+// order. All mapped sequences run concurrently; only output order is guaranteed.
+// This is the uncurried form of Chain.
 //
 // Marble Diagram:
 //
 //	Input:  --1-----2-----3---->
 //	Chain(x => [x, x*10])
-//	Output: --1-10--2-20--3-30->
-//
-// RxJS Equivalent: [mergeMap/flatMap] - https://rxjs.dev/api/operators/mergeMap
+//	Output: --1-10--2-20--3-30->  (output order preserved; producers concurrent)
 //
 // Example:
 //
@@ -573,19 +572,12 @@ func FilterMapWithKey[K, A, B any](f func(K, A) Option[B]) Operator2[K, A, B] {
 //	})
 //	// yields: 1, 10, 2, 20, 3, 30
 func MonadChain[A, B any](as Seq[A], f Kleisli[A, B]) Seq[B] {
-	return func(yield Predicate[B]) {
-		for a := range as {
-			for b := range f(a) {
-				if !yield(b) {
-					return
-				}
-			}
-		}
-	}
+	return MonadConcatMap(as, f)
 }
 
-// Chain returns a function that chains (flatMaps) a sequence transformation.
-// This is the curried version of MonadChain.
+// Chain maps each element to a sequence and flattens all results with
+// deterministic output order (concurrent inner producers, sequential drain).
+// Alias for ConcatMap. See ConcatMapBuf for the full semantics.
 //
 // Example:
 //
@@ -596,7 +588,7 @@ func MonadChain[A, B any](as Seq[A], f Kleisli[A, B]) Seq[B] {
 //
 //go:inline
 func Chain[A, B any](f func(A) Seq[B]) Operator[A, B] {
-	return F.Bind2nd(MonadChain[A, B], f)
+	return ConcatMap(f)
 }
 
 // FlatMap is an alias for Chain.
@@ -609,12 +601,9 @@ func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 	return Chain(f)
 }
 
-// ConcatMap is an alias for Chain that emphasizes sequential concatenation.
-// It maps each element to a sequence and concatenates the results in order.
-//
-// Unlike concurrent operations, ConcatMap preserves the order of elements:
-// it fully processes each input element (yielding all elements from f(a))
-// before moving to the next input element.
+// ConcatMap maps each element to a sequence and flattens the results with
+// deterministic output order (concurrent inner producers, sequential drain).
+// Convenience wrapper around ConcatMapBuf using defaultBufferSize.
 //
 // Example:
 //
@@ -622,22 +611,22 @@ func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 //	result := ConcatMap(func(x int) Seq[int] {
 //	    return From(x, x*10)
 //	})(seq)
-//	// yields: 1, 10, 2, 20, 3, 30 (order preserved)
+//	// yields: 1, 10, 2, 20, 3, 30 (output order preserved)
 //
 //go:inline
 func ConcatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
-	return Chain(f)
+	return ConcatMapBuf(f, defaultBufferSize)
 }
 
-// Flatten flattens a sequence of sequences into a single sequence.
+// Flatten flattens a sequence of sequences into a single sequence with
+// deterministic output order. Inner sequences run concurrently but are drained
+// in order. Convenience wrapper around ConcatAll using defaultBufferSize.
 //
 // Marble Diagram:
 //
 //	Input:  --[1,2]--[3,4]--[5]-->
-//	Flatten
+//	Flatten (concurrent producers, sequential drain)
 //	Output: --1-2----3-4----5---->
-//
-// RxJS Equivalent: [mergeAll] - https://rxjs.dev/api/operators/mergeAll
 //
 // Example:
 //
@@ -647,18 +636,7 @@ func ConcatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 //
 //go:inline
 func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
-	return MonadChain(mma, F.Identity[Seq[A]])
-}
-
-// ConcatAll is an alias for Flatten.
-// It concatenates a sequence of sequences into a single sequence,
-// preserving the order of elements from each inner sequence.
-//
-// RxJS Equivalent: [concatAll] - https://rxjs.dev/api/operators/concatAll
-//
-//go:inline
-func ConcatAll[A any](mma Seq[Seq[A]]) Seq[A] {
-	return Flatten(mma)
+	return ConcatAll[A](defaultBufferSize)(mma)
 }
 
 // MonadAp applies a sequence of functions to a sequence of values.

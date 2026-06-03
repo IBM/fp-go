@@ -25,7 +25,7 @@ import (
 
 func TestConcatMonoid_Identity(t *testing.T) {
 	t.Run("left identity", func(t *testing.T) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		seq := From(1, 2, 3)
 
 		result := monoid.Concat(monoid.Empty(), seq)
@@ -35,7 +35,7 @@ func TestConcatMonoid_Identity(t *testing.T) {
 	})
 
 	t.Run("right identity", func(t *testing.T) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		seq := From(1, 2, 3)
 
 		result := monoid.Concat(seq, monoid.Empty())
@@ -46,7 +46,7 @@ func TestConcatMonoid_Identity(t *testing.T) {
 }
 
 func TestConcatMonoid_Associativity(t *testing.T) {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	seq1 := From(1, 2)
 	seq2 := From(3, 4)
 	seq3 := From(5, 6)
@@ -65,7 +65,7 @@ func TestConcatMonoid_Associativity(t *testing.T) {
 
 func TestConcatMonoid_DeterministicOrder(t *testing.T) {
 	t.Run("concatenates in deterministic order", func(t *testing.T) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		seq1 := From(1, 2, 3)
 		seq2 := From(4, 5, 6)
 		seq3 := From(7, 8, 9)
@@ -78,7 +78,7 @@ func TestConcatMonoid_DeterministicOrder(t *testing.T) {
 	})
 
 	t.Run("multiple runs produce same order", func(t *testing.T) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		seq1 := From(1, 2, 3)
 		seq2 := From(4, 5, 6)
 
@@ -98,7 +98,7 @@ func TestConcatMonoid_DeterministicOrder(t *testing.T) {
 }
 
 func TestConcatMonoid_WithReduce(t *testing.T) {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	sequences := []Seq[int]{
 		From(1, 2, 3),
 		From(4, 5, 6),
@@ -112,7 +112,7 @@ func TestConcatMonoid_WithReduce(t *testing.T) {
 }
 
 func TestConcatMonoid_WithFoldMap(t *testing.T) {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	numbers := From(1, 2, 3)
 
 	result := MonadFoldMap(numbers, func(n int) Seq[int] {
@@ -126,7 +126,7 @@ func TestConcatMonoid_WithFoldMap(t *testing.T) {
 
 func TestConcatMonoid_ComparisonWithMergeMonoid(t *testing.T) {
 	t.Run("ConcatMonoid is deterministic", func(t *testing.T) {
-		concatMonoid := ConcatMonoid[int]()
+		concatMonoid := ConcatMonoid[int](defaultBufferSize)
 		seq1 := From(1, 2, 3)
 		seq2 := From(4, 5, 6)
 
@@ -153,7 +153,7 @@ func TestConcatMonoid_ComparisonWithMergeMonoid(t *testing.T) {
 
 func TestConcatMonoid_EmptySequences(t *testing.T) {
 	t.Run("concatenating empty sequences", func(t *testing.T) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		empty1 := Empty[int]()
 		empty2 := Empty[int]()
 
@@ -164,7 +164,7 @@ func TestConcatMonoid_EmptySequences(t *testing.T) {
 	})
 
 	t.Run("concatenating with empty in middle", func(t *testing.T) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		seq1 := From(1, 2)
 		empty := Empty[int]()
 		seq2 := From(3, 4)
@@ -182,7 +182,7 @@ func TestConcatMonoid_WithComplexTypes(t *testing.T) {
 		Age  int
 	}
 
-	monoid := ConcatMonoid[Person]()
+	monoid := ConcatMonoid[Person](defaultBufferSize)
 	seq1 := From(Person{"Alice", 30}, Person{"Bob", 25})
 	seq2 := From(Person{"Charlie", 35}, Person{"Diana", 28})
 
@@ -199,7 +199,7 @@ func TestConcatMonoid_WithComplexTypes(t *testing.T) {
 }
 
 func BenchmarkConcatMonoid_TwoSequences(b *testing.B) {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	seq1 := From(1, 2, 3, 4, 5)
 	seq2 := From(6, 7, 8, 9, 10)
 
@@ -212,7 +212,7 @@ func BenchmarkConcatMonoid_TwoSequences(b *testing.B) {
 }
 
 func BenchmarkConcatMonoid_Reduce(b *testing.B) {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	sequences := []Seq[int]{
 		From(1, 2, 3),
 		From(4, 5, 6),
@@ -233,7 +233,7 @@ func BenchmarkConcatMonoid_VsMergeMonoid(b *testing.B) {
 	seq2 := From(6, 7, 8, 9, 10)
 
 	b.Run("ConcatMonoid", func(b *testing.B) {
-		monoid := ConcatMonoid[int]()
+		monoid := ConcatMonoid[int](defaultBufferSize)
 		b.ResetTimer()
 		for range b.N {
 			result := monoid.Concat(seq1, seq2)
@@ -254,7 +254,7 @@ func BenchmarkConcatMonoid_VsMergeMonoid(b *testing.B) {
 }
 
 func ExampleConcatMonoid() {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	seq1 := From(1, 2, 3)
 	seq2 := From(4, 5, 6)
 
@@ -272,7 +272,7 @@ func ExampleConcatMonoid() {
 }
 
 func ExampleConcatMonoid_identity() {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	seq := From(1, 2, 3)
 
 	// Left identity
@@ -296,7 +296,7 @@ func ExampleConcatMonoid_identity() {
 }
 
 func ExampleConcatMonoid_reduce() {
-	monoid := ConcatMonoid[int]()
+	monoid := ConcatMonoid[int](defaultBufferSize)
 	sequences := []Seq[int]{
 		From(1, 2, 3),
 		From(4, 5, 6),
@@ -324,7 +324,7 @@ func ExampleConcatMonoid_comparison() {
 	seq2 := From(4, 5, 6)
 
 	// ConcatMonoid: Sequential, deterministic
-	concatMonoid := ConcatMonoid[int]()
+	concatMonoid := ConcatMonoid[int](defaultBufferSize)
 	concat := concatMonoid.Concat(seq1, seq2)
 	fmt.Println("ConcatMonoid (always same order):")
 	for v := range concat {

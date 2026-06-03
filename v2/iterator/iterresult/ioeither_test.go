@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
@@ -1376,13 +1377,21 @@ func TestTapLeft(t *testing.T) {
 
 func TestMonadChainFirstIOK(t *testing.T) {
 	t.Run("executes IO side effect and returns original success values", func(t *testing.T) {
+		// Chain uses concurrent inner producers; output order is guaranteed but
+		// side-effect firing order is not — protect seen with a mutex.
+		var mu sync.Mutex
 		var seen []int
 		logIO := func(n int) func() string {
-			return func() string { seen = append(seen, n); return "ok" }
+			return func() string {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return "ok"
+			}
 		}
 		seq := iter.From(R.Of(1), R.Of(2), R.Of(3))
 		assert.Equal(t, []int{1, 2, 3}, mustOK(t, MonadChainFirstIOK(seq, logIO)))
-		assert.Equal(t, []int{1, 2, 3}, seen)
+		assert.ElementsMatch(t, []int{1, 2, 3}, seen)
 	})
 
 	t.Run("error values pass through without calling IO", func(t *testing.T) {
@@ -1394,12 +1403,20 @@ func TestMonadChainFirstIOK(t *testing.T) {
 	})
 
 	t.Run("mixed — IO called only for success", func(t *testing.T) {
+		var mu sync.Mutex
 		var seen []int
-		logIO := func(n int) func() int { return func() int { seen = append(seen, n); return n * 2 } }
+		logIO := func(n int) func() int {
+			return func() int {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return n * 2
+			}
+		}
 		seq := iter.From(R.Of(10), R.Left[int](errors.New("err")), R.Of(30))
 		result := slices.Collect(MonadChainFirstIOK(seq, logIO))
 		assert.Len(t, result, 3)
-		assert.Equal(t, []int{10, 30}, seen)
+		assert.ElementsMatch(t, []int{10, 30}, seen)
 	})
 
 	t.Run("IO is lazy — not executed until iteration", func(t *testing.T) {
@@ -1414,13 +1431,20 @@ func TestMonadChainFirstIOK(t *testing.T) {
 
 func TestChainFirstIOK(t *testing.T) {
 	t.Run("returns original success values unchanged", func(t *testing.T) {
+		// Output order is guaranteed; side-effect order is not (concurrent producers).
+		var mu sync.Mutex
 		var seen []int
 		op := ChainFirstIOK(func(n int) func() int {
-			return func() int { seen = append(seen, n); return n * 2 }
+			return func() int {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return n * 2
+			}
 		})
 		seq := iter.From(R.Of(5), R.Of(10))
 		assert.Equal(t, []int{5, 10}, mustOK(t, op(seq)))
-		assert.Equal(t, []int{5, 10}, seen)
+		assert.ElementsMatch(t, []int{5, 10}, seen)
 	})
 
 	t.Run("error values pass through", func(t *testing.T) {

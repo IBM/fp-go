@@ -21,6 +21,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
@@ -1641,18 +1642,18 @@ func TestFlatMap(t *testing.T) {
 func TestConcatAll(t *testing.T) {
 	t.Run("flattens nested sequences", func(t *testing.T) {
 		nested := From(From(1, 2), From(3, 4), From(5))
-		result := ConcatAll(nested)
+		result := ConcatAll[int](8)(nested)
 		assert.Equal(t, []int{1, 2, 3, 4, 5}, toSlice(result))
 	})
 
 	t.Run("behaves identically to Flatten", func(t *testing.T) {
 		nested := From(From("a", "b"), From("c"))
-		assert.Equal(t, toSlice(Flatten(nested)), toSlice(ConcatAll(nested)))
+		assert.Equal(t, toSlice(Flatten(nested)), toSlice(ConcatAll[string](8)(nested)))
 	})
 
 	t.Run("handles empty inner sequences", func(t *testing.T) {
 		nested := From(From(1, 2), Empty[int](), From(3))
-		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAll(nested)))
+		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAll[int](8)(nested)))
 	})
 }
 
@@ -1729,16 +1730,22 @@ func TestTap(t *testing.T) {
 
 func TestMonadChainFirstIOK(t *testing.T) {
 	t.Run("returns original elements and executes IO", func(t *testing.T) {
+		// Chain uses ConcatAll which starts inner producers concurrently,
+		// so side-effect order is non-deterministic. Assert only on output values
+		// and that all effects fired exactly once.
+		var mu sync.Mutex
 		var executed []int
 		ioF := func(x int) func() string {
 			return func() string {
+				mu.Lock()
 				executed = append(executed, x)
+				mu.Unlock()
 				return fmt.Sprintf("log-%d", x)
 			}
 		}
 		result := MonadChainFirstIOK(From(1, 2, 3), ioF)
 		assert.Equal(t, []int{1, 2, 3}, toSlice(result))
-		assert.Equal(t, []int{1, 2, 3}, executed)
+		assert.ElementsMatch(t, []int{1, 2, 3}, executed)
 	})
 
 	t.Run("IO is lazy — not called until iteration", func(t *testing.T) {
@@ -1758,16 +1765,20 @@ func TestMonadChainFirstIOK(t *testing.T) {
 
 func TestChainFirstIOK(t *testing.T) {
 	t.Run("returns original elements unchanged", func(t *testing.T) {
+		// Output order is deterministic; side-effect order is not (concurrent producers).
+		var mu sync.Mutex
 		var seen []int
 		op := ChainFirstIOK(func(x int) func() int {
 			return func() int {
+				mu.Lock()
 				seen = append(seen, x)
+				mu.Unlock()
 				return x * 2
 			}
 		})
 		result := op(From(10, 20, 30))
 		assert.Equal(t, []int{10, 20, 30}, toSlice(result))
-		assert.Equal(t, []int{10, 20, 30}, seen)
+		assert.ElementsMatch(t, []int{10, 20, 30}, seen)
 	})
 }
 

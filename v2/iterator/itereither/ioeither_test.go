@@ -18,6 +18,7 @@ package itereither
 import (
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
@@ -1941,9 +1942,17 @@ func TestCollect_Comparison(t *testing.T) {
 
 func TestMonadChainFirstIOK(t *testing.T) {
 	t.Run("executes IO side effect and returns original Right values", func(t *testing.T) {
+		// Chain uses concurrent inner producers, so side-effect order is
+		// non-deterministic. Assert output values (ordered) and effect set.
+		var mu sync.Mutex
 		var seen []int
 		logIO := func(n int) func() string {
-			return func() string { seen = append(seen, n); return "logged" }
+			return func() string {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return "logged"
+			}
 		}
 		seq := iter.From(E.Right[string](1), E.Right[string](2), E.Right[string](3))
 		result := collectEithers(MonadChainFirstIOK(seq, logIO))
@@ -1952,7 +1961,7 @@ func TestMonadChainFirstIOK(t *testing.T) {
 			E.Right[string](2),
 			E.Right[string](3),
 		}, result)
-		assert.Equal(t, []int{1, 2, 3}, seen)
+		assert.ElementsMatch(t, []int{1, 2, 3}, seen)
 	})
 
 	t.Run("Left values pass through without calling IO", func(t *testing.T) {
@@ -1967,9 +1976,15 @@ func TestMonadChainFirstIOK(t *testing.T) {
 	})
 
 	t.Run("mixed Left and Right — IO called only for Right", func(t *testing.T) {
+		var mu sync.Mutex
 		var seen []int
 		logIO := func(n int) func() int {
-			return func() int { seen = append(seen, n); return n * 2 }
+			return func() int {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return n * 2
+			}
 		}
 		seq := iter.From(E.Right[string](10), E.Left[int]("err"), E.Right[string](30))
 		result := collectEithers(MonadChainFirstIOK(seq, logIO))
@@ -1978,7 +1993,7 @@ func TestMonadChainFirstIOK(t *testing.T) {
 			E.Left[int]("err"),
 			E.Right[string](30),
 		}, result)
-		assert.Equal(t, []int{10, 30}, seen)
+		assert.ElementsMatch(t, []int{10, 30}, seen)
 	})
 
 	t.Run("IO is lazy — not called until iteration", func(t *testing.T) {
@@ -2010,14 +2025,21 @@ func TestMonadChainFirstIOK(t *testing.T) {
 
 func TestChainFirstIOK(t *testing.T) {
 	t.Run("returns original Right values unchanged", func(t *testing.T) {
+		// Output order is deterministic; side-effect order is not (concurrent producers).
+		var mu sync.Mutex
 		var seen []int
 		op := ChainFirstIOK[string](func(n int) func() int {
-			return func() int { seen = append(seen, n); return n * 2 }
+			return func() int {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return n * 2
+			}
 		})
 		seq := iter.From(E.Right[string](5), E.Right[string](10))
 		result := collectEithers(op(seq))
 		assert.Equal(t, []Either[string, int]{E.Right[string](5), E.Right[string](10)}, result)
-		assert.Equal(t, []int{5, 10}, seen)
+		assert.ElementsMatch(t, []int{5, 10}, seen)
 	})
 
 	t.Run("Left values pass through unchanged", func(t *testing.T) {

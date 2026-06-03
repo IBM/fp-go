@@ -9,7 +9,8 @@
       "Bash(go tool cover:*)",
       "Bash(sort:*)",
       "Bash(tee:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(go vet *)"
     ],
     "deny": [],
     "ask": []
