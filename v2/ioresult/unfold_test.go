@@ -58,21 +58,21 @@ func countDownStep(n int) IOResult[O.Option[P.Pair[int, int]]] {
 }
 
 func TestUnfold_EmptySequenceWhenSeedTerminatesImmediately(t *testing.T) {
-	seq := Unfold(countDownStep, 0)
+	seq := Unfold(countDownStep)(0)
 	values, err := collectSeq(seq)
 	require.NoError(t, err)
 	assert.Empty(t, values)
 }
 
 func TestUnfold_FiniteSequenceCountdown(t *testing.T) {
-	seq := Unfold(countDownStep, 3)
+	seq := Unfold(countDownStep)(3)
 	values, err := collectSeq(seq)
 	require.NoError(t, err)
 	assert.Equal(t, []int{3, 2, 1}, values)
 }
 
 func TestUnfold_SingleElement(t *testing.T) {
-	seq := Unfold(countDownStep, 1)
+	seq := Unfold(countDownStep)(1)
 	values, err := collectSeq(seq)
 	require.NoError(t, err)
 	assert.Equal(t, []int{1}, values)
@@ -83,7 +83,7 @@ func TestUnfold_ErrorOnFirstStep(t *testing.T) {
 	step := func(_ int) IOResult[O.Option[P.Pair[int, int]]] {
 		return Left[O.Option[P.Pair[int, int]]](sentinel)
 	}
-	rs := collectSeqRaw(Unfold(step, 0))
+	rs := collectSeqRaw(Unfold(step)(0))
 	require.Len(t, rs, 1)
 	assert.True(t, R.IsLeft(rs[0]))
 	_, err := R.Unwrap(rs[0])
@@ -99,7 +99,7 @@ func TestUnfold_ErrorMidSequence(t *testing.T) {
 		}
 		return Of(O.Some(P.MakePair(n-1, n)))
 	}
-	rs := collectSeqRaw(Unfold(step, 3))
+	rs := collectSeqRaw(Unfold(step)(3))
 	require.Len(t, rs, 4)
 	assert.True(t, R.IsRight(rs[0]))
 	assert.True(t, R.IsRight(rs[1]))
@@ -116,7 +116,7 @@ func TestUnfold_EarlyTerminationByConsumer(t *testing.T) {
 		return Of(O.Some(P.MakePair(n+1, n)))
 	}
 	collected := 0
-	for r := range Unfold(step, 0) {
+	for r := range Unfold(step)(0) {
 		assert.True(t, R.IsRight(r))
 		collected++
 		if collected == 3 {
@@ -135,7 +135,7 @@ func TestUnfold_StringUnfolding(t *testing.T) {
 		}
 		return Of(O.Some(P.MakePair(s[1:], s[0])))
 	}
-	rs := collectSeqRaw(Unfold(step, "abc"))
+	rs := collectSeqRaw(Unfold(step)("abc"))
 	require.Len(t, rs, 3)
 	v0, _ := R.Unwrap(rs[0])
 	v1, _ := R.Unwrap(rs[1])

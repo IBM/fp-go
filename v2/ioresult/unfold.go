@@ -1,6 +1,9 @@
 package ioresult
 
-import "github.com/IBM/fp-go/v2/ioeither"
+import (
+	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/iterator/iter"
+)
 
 // Unfold generates a lazy [SeqResult] of values by repeatedly applying f to a
 // seed of type B. It is the dual of a fold (an anamorphism).
@@ -25,12 +28,10 @@ import "github.com/IBM/fp-go/v2/ioeither"
 //	        // Head = next seed, Tail = emitted value
 //	        return Of(option.Some(pair.MakePair(n-1, n)))
 //	    },
-//	    3,
-//	)
+//	)(3)
 //	// Iterating countDown yields: Right(3), Right(2), Right(1)
 func Unfold[A, B any](
 	f Kleisli[B, Option[Pair[B, A]]],
-	seed B,
-) SeqResult[A] {
-	return ioeither.Unfold(f, seed)
+) iter.Kleisli[B, Result[A]] {
+	return ioeither.Unfold(f)
 }

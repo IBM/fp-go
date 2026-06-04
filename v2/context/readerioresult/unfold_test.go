@@ -60,21 +60,21 @@ func counter(limit int) func(int) ReaderIOResult[Option[Pair[int, int]]] {
 }
 
 func TestUnfold_EmitsExpectedValues(t *testing.T) {
-	seq := Unfold(counter(5), 0)
+	seq := Unfold(counter(5))(0)
 	values, err := collectSeq(seq(t.Context()))
 	require.NoError(t, err)
 	assert.Equal(t, []int{0, 1, 2, 3, 4}, values)
 }
 
 func TestUnfold_EmptySequenceWhenSeedTerminatesImmediately(t *testing.T) {
-	seq := Unfold(counter(0), 0)
+	seq := Unfold(counter(0))(0)
 	values, err := collectSeq(seq(t.Context()))
 	require.NoError(t, err)
 	assert.Empty(t, values)
 }
 
 func TestUnfold_SingleElement(t *testing.T) {
-	seq := Unfold(counter(1), 0)
+	seq := Unfold(counter(1))(0)
 	values, err := collectSeq(seq(t.Context()))
 	require.NoError(t, err)
 	assert.Equal(t, []int{0}, values)
@@ -88,7 +88,7 @@ func TestUnfold_PropagatesStepError(t *testing.T) {
 		}
 		return Of(option.Some(pair.MakePair(n+1, n)))
 	}
-	seq := Unfold(step, 0)
+	seq := Unfold(step)(0)
 	rs := collectSeqRaw(seq(t.Context()))
 	// Expect Right(0), Right(1), Right(2), Left(sentinel)
 	require.Len(t, rs, 4)
@@ -105,7 +105,7 @@ func TestUnfold_ErrorOnFirstStep(t *testing.T) {
 	step := func(_ int) ReaderIOResult[Option[Pair[int, int]]] {
 		return Left[Option[Pair[int, int]]](sentinel)
 	}
-	seq := Unfold(step, 0)
+	seq := Unfold(step)(0)
 	rs := collectSeqRaw(seq(t.Context()))
 	require.Len(t, rs, 1)
 	assert.True(t, result.IsLeft(rs[0]))
@@ -117,7 +117,7 @@ func TestUnfold_CancelledContextBeforeStart(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // cancel before any iteration
 
-	seq := Unfold(counter(5), 0)
+	seq := Unfold(counter(5))(0)
 	rs := collectSeqRaw(seq(ctx))
 	require.Len(t, rs, 1)
 	assert.True(t, result.IsLeft(rs[0]))
@@ -135,7 +135,7 @@ func TestUnfold_CancelledContextMidSequence(t *testing.T) {
 		return Of(option.Some(pair.MakePair(n+1, n)))
 	}
 
-	seq := Unfold(step, 0)
+	seq := Unfold(step)(0)
 	rs := collectSeqRaw(seq(ctx))
 
 	// Values 0, 1, 2 succeed; then cancellation is detected before the next iteration
@@ -156,7 +156,7 @@ func TestUnfold_EarlyTerminationByConsumer(t *testing.T) {
 		return Of(option.Some(pair.MakePair(n+1, n)))
 	}
 
-	seq := Unfold(step, 0)
+	seq := Unfold(step)(0)
 	collected := 0
 	for r := range seq(t.Context()) {
 		assert.True(t, result.IsRight(r))
@@ -180,7 +180,7 @@ func TestUnfold_StringSeed(t *testing.T) {
 		return Of(option.Some(pair.MakePair(s[1:], s[0])))
 	}
 
-	seq := Unfold(step, "abc")
+	seq := Unfold(step)("abc")
 	rs := collectSeqRaw(seq(t.Context()))
 	require.Len(t, rs, 3)
 	v0, _ := result.Unwrap(rs[0])
@@ -208,7 +208,7 @@ func TestUnfold_ContextValueVisible(t *testing.T) {
 	}
 
 	ctx := context.WithValue(t.Context(), key, "tenant-42")
-	seq := Unfold(step, 0)
+	seq := Unfold(step)(0)
 	values, err := collectSeq(seq(ctx))
 	require.NoError(t, err)
 	assert.Equal(t, []string{"tenant-42", "tenant-42"}, values)

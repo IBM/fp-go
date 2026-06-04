@@ -46,13 +46,13 @@ func collectUnfold[E, A any](seq Seq[Either[E, A]]) []Either[E, A] {
 
 func TestUnfoldEmpty(t *testing.T) {
 	// seed = 0, so f returns Right(None) immediately
-	seq := Unfold(countDownStep, 0)
+	seq := Unfold(countDownStep)(0)
 	assert.Equal(t, []Either[error, int](nil), collectUnfold(seq))
 }
 
 func TestUnfoldFiniteSequence(t *testing.T) {
 	// seed = 3, expect [Right(3), Right(2), Right(1)]
-	seq := Unfold(countDownStep, 3)
+	seq := Unfold(countDownStep)(3)
 	assert.Equal(t, []Either[error, int]{
 		E.Of[error](3),
 		E.Of[error](2),
@@ -67,7 +67,7 @@ func TestUnfoldErrorOnFirstStep(t *testing.T) {
 			return E.Left[O.Option[P.Pair[int, int]]](errBoom)
 		}
 	}
-	seq := Unfold(f, 5)
+	seq := Unfold(f)(5)
 	assert.Equal(t, []Either[error, int]{
 		E.Left[int](errBoom),
 	}, collectUnfold(seq))
@@ -84,7 +84,7 @@ func TestUnfoldErrorMidSequence(t *testing.T) {
 			return E.Of[error](O.Some(P.MakePair(n-1, n)))
 		}
 	}
-	seq := Unfold(f, 2)
+	seq := Unfold(f)(2)
 	assert.Equal(t, []Either[error, int]{
 		E.Of[error](2),
 		E.Of[error](1),
@@ -94,7 +94,7 @@ func TestUnfoldErrorMidSequence(t *testing.T) {
 
 func TestUnfoldEarlyTermination(t *testing.T) {
 	// Consumer stops after 2 elements; f would produce 5 but only 2 are taken.
-	seq := Unfold(countDownStep, 5)
+	seq := Unfold(countDownStep)(5)
 	var result []Either[error, int]
 	for v := range seq {
 		result = append(result, v)

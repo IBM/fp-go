@@ -562,6 +562,13 @@ func MergeMap[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return MergeMapBuf(f, defaultBufferSize)
 }
 
+// MonadMergeMap is the uncurried form of MergeMap. It maps f over fa and
+// merges the resulting sequences concurrently with non-deterministic output
+// order. Elements arrive in the order that inner producers emit them.
+//
+// See Also:
+//   - MergeMap: The curried/operator form
+//   - MonadChain: Deterministic output order (concurrent producers, sequential drain)
 func MonadMergeMap[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
 	return MergeMap(f)(fa)
 }

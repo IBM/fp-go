@@ -42,6 +42,55 @@ func Monoid[T any]() M.Monoid[Seq[T]] {
 	return ConcatMonoid[T](defaultBufferSize)
 }
 
+// MonoidSeq returns a Monoid[Seq[T]] whose Concat operation uses purely
+// sequential nested iteration — no goroutines, no channels. Each left-hand
+// sequence is fully drained before the right-hand sequence is started.
+//
+// Use this when inner sequences are cheap and synchronous and goroutine
+// overhead must be avoided.
+//
+// Properties:
+//   - Identity: Concat(Empty(), x) = Concat(x, Empty()) = x
+//   - Associativity: output order is always left-to-right
+//
+// See Also:
+//   - Monoid: Concurrent producers, same output order (uses defaultBufferSize)
+//   - MonoidPar: Always concurrent, never selects the sequential path
+//   - ConcatMonoid: Concurrent monoid with configurable buffer size
+func MonoidSeq[T any]() M.Monoid[Seq[T]] {
+	return M.MakeMonoid(
+		func(l, r Seq[T]) Seq[T] {
+			return ConcatSeq(A.From(l, r))
+		},
+		Empty[T](),
+	)
+}
+
+// MonoidPar returns a Monoid[Seq[T]] whose Concat operation runs both
+// sequences concurrently via ConcatAllPar with defaultBufferSize, draining
+// them in left-to-right order. Unlike Monoid, it never selects the
+// goroutine-free sequential path.
+//
+// Use this when you need concurrent producers regardless of buffer size,
+// for example to ensure forward progress in I/O-bound pipelines.
+//
+// Properties:
+//   - Identity: Concat(Empty(), x) = Concat(x, Empty()) = x
+//   - Associativity: output order is always left-to-right
+//
+// See Also:
+//   - Monoid: Dispatches to sequential when bufSize == 1
+//   - MonoidSeq: Always sequential, no goroutines
+//   - ConcatMonoid: Configurable buffer size
+func MonoidPar[T any]() M.Monoid[Seq[T]] {
+	return M.MakeMonoid(
+		func(l, r Seq[T]) Seq[T] {
+			return ConcatPar(A.From(l, r))
+		},
+		Empty[T](),
+	)
+}
+
 // ConcatMonoid returns a Monoid[Seq[T]] whose Concat operation runs both
 // sequences concurrently (each in its own goroutine) but drains them in order,
 // guaranteeing deterministic output. bufSize is forwarded to ConcatBuf and

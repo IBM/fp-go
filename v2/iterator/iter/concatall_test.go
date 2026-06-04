@@ -24,6 +24,7 @@ import (
 
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestConcatBuf_Success tests basic ConcatBuf functionality
@@ -1301,4 +1302,706 @@ func ExampleConcatAll_dynamicGeneration() {
 		fmt.Printf("%d ", v)
 	}
 	// Output: 1 10 2 20 3 30
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAllSeq tests
+// ---------------------------------------------------------------------------
+
+// TestConcatAllSeq_Success verifies basic output correctness.
+func TestConcatAllSeq_Success(t *testing.T) {
+	t.Run("flattens two inner sequences", func(t *testing.T) {
+		outer := From(From(1, 2, 3), From(4, 5, 6))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+
+	t.Run("flattens three inner sequences", func(t *testing.T) {
+		outer := From(From(1, 2), From(3, 4), From(5, 6))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+
+	t.Run("flattens single inner sequence", func(t *testing.T) {
+		outer := From(From(42, 43, 44))
+		assert.Equal(t, []int{42, 43, 44}, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+
+	t.Run("works with strings", func(t *testing.T) {
+		outer := From(From("a", "b"), From("c"))
+		assert.Equal(t, []string{"a", "b", "c"}, toSlice(ConcatAllSeq[string]()(outer)))
+	})
+}
+
+// TestConcatAllSeq_Empty verifies correct handling of empty inputs.
+func TestConcatAllSeq_Empty(t *testing.T) {
+	t.Run("empty outer sequence", func(t *testing.T) {
+		assert.Empty(t, toSlice(ConcatAllSeq[int]()(Empty[Seq[int]]())))
+	})
+
+	t.Run("all empty inner sequences", func(t *testing.T) {
+		outer := From(Empty[int](), Empty[int]())
+		assert.Empty(t, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+
+	t.Run("leading empty inner sequence", func(t *testing.T) {
+		outer := From(Empty[int](), From(1, 2))
+		assert.Equal(t, []int{1, 2}, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+
+	t.Run("trailing empty inner sequence", func(t *testing.T) {
+		outer := From(From(1, 2), Empty[int]())
+		assert.Equal(t, []int{1, 2}, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+
+	t.Run("interspersed empty inner sequences", func(t *testing.T) {
+		outer := From(Empty[int](), From(1, 2), Empty[int](), From(3))
+		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAllSeq[int]()(outer)))
+	})
+}
+
+// TestConcatAllSeq_EarlyTermination verifies that the consumer can break out
+// of the range loop and that iteration stops immediately.
+func TestConcatAllSeq_EarlyTermination(t *testing.T) {
+	t.Run("stops mid-first-inner-sequence", func(t *testing.T) {
+		outer := From(From(1, 2, 3, 4, 5), From(6, 7, 8))
+		var got []int
+		for v := range ConcatAllSeq[int]()(outer) {
+			got = append(got, v)
+			if len(got) == 2 {
+				break
+			}
+		}
+		assert.Equal(t, []int{1, 2}, got)
+	})
+
+	t.Run("stops exactly at inner sequence boundary", func(t *testing.T) {
+		outer := From(From(1, 2, 3), From(4, 5, 6))
+		var got []int
+		for v := range ConcatAllSeq[int]()(outer) {
+			got = append(got, v)
+			if len(got) == 3 {
+				break
+			}
+		}
+		assert.Equal(t, []int{1, 2, 3}, got)
+	})
+
+	t.Run("second inner sequence is never started after early exit", func(t *testing.T) {
+		seq2Started := false
+		seq2 := func(yield func(int) bool) {
+			seq2Started = true
+			yield(4)
+		}
+		outer := From(From(1, 2, 3), seq2)
+		for v := range ConcatAllSeq[int]()(outer) {
+			if v == 2 {
+				break
+			}
+		}
+		assert.False(t, seq2Started, "seq2 should not be started after early exit")
+	})
+}
+
+// TestConcatAllSeq_IsSequential verifies that ConcatAllSeq processes inner
+// sequences one after another — seq[n+1] does not start until seq[n] is done.
+// This is the key semantic difference from ConcatAllPar.
+func TestConcatAllSeq_IsSequential(t *testing.T) {
+	var order []string
+	seq1 := func(yield func(int) bool) {
+		order = append(order, "seq1-start")
+		yield(1)
+		yield(2)
+		order = append(order, "seq1-end")
+	}
+	seq2 := func(yield func(int) bool) {
+		order = append(order, "seq2-start")
+		yield(3)
+		order = append(order, "seq2-end")
+	}
+
+	_ = toSlice(ConcatAllSeq[int]()(From[Seq[int]](seq1, seq2)))
+
+	assert.Equal(t, []string{"seq1-start", "seq1-end", "seq2-start", "seq2-end"}, order,
+		"seq2 must start only after seq1 is fully drained")
+}
+
+// TestConcatAllSeq_MatchesConcatAll_BufSize1 verifies that ConcatAllSeq and
+// ConcatAll(1) produce identical output — they must be the same code path.
+func TestConcatAllSeq_MatchesConcatAll_BufSize1(t *testing.T) {
+	cases := [][]Seq[int]{
+		{From(1, 2, 3), From(4, 5, 6)},
+		{Empty[int](), From(1), Empty[int]()},
+		{From(10, 20)},
+	}
+	for _, seqs := range cases {
+		outer := From(seqs...)
+		direct := toSlice(ConcatAllSeq[int]()(outer))
+		viaAll := toSlice(ConcatAll[int](1)(outer))
+		assert.Equal(t, direct, viaAll)
+	}
+}
+
+// TestConcatAllSeq_ManySequences verifies correct ordering across a large
+// number of inner sequences, ensuring each group appears before the next.
+func TestConcatAllSeq_ManySequences(t *testing.T) {
+	const n = 20
+	sequences := make([]Seq[int], n)
+	for i := range n {
+		sequences[i] = From(i*10, i*10+1, i*10+2)
+	}
+	result := toSlice(ConcatAllSeq[int]()(From(sequences...)))
+
+	require.Len(t, result, n*3)
+	expected := make([]int, n*3)
+	for i := range n {
+		expected[i*3] = i * 10
+		expected[i*3+1] = i*10 + 1
+		expected[i*3+2] = i*10 + 2
+	}
+	assert.Equal(t, expected, result)
+}
+
+// TestConcatAllSeq_SingleElementInnerSeqs verifies that sequences containing
+// exactly one element each are concatenated in the correct order.
+func TestConcatAllSeq_SingleElementInnerSeqs(t *testing.T) {
+	seqs := make([]Seq[int], 5)
+	for i := range 5 {
+		seqs[i] = From(i)
+	}
+	result := toSlice(ConcatAllSeq[int]()(From(seqs...)))
+	assert.Equal(t, []int{0, 1, 2, 3, 4}, result)
+}
+
+// TestConcatAllSeq_ComplexTypes verifies that ConcatAllSeq works correctly
+// with struct elements, preserving both order and identity.
+func TestConcatAllSeq_ComplexTypes(t *testing.T) {
+	type Point struct{ X, Y int }
+	seq1 := From(Point{1, 2}, Point{3, 4})
+	seq2 := From(Point{5, 6})
+	result := toSlice(ConcatAllSeq[Point]()(From(seq1, seq2)))
+	assert.Equal(t, []Point{{1, 2}, {3, 4}, {5, 6}}, result)
+}
+
+// TestConcatAllSeq_OperatorReuse verifies that the Operator returned by
+// ConcatAllSeq can be applied more than once without interference.
+func TestConcatAllSeq_OperatorReuse(t *testing.T) {
+	op := ConcatAllSeq[int]()
+
+	r1 := toSlice(op(From(From(1, 2), From(3, 4))))
+	r2 := toSlice(op(From(From(5, 6), From(7, 8))))
+
+	assert.Equal(t, []int{1, 2, 3, 4}, r1)
+	assert.Equal(t, []int{5, 6, 7, 8}, r2)
+}
+
+// TestConcatAllSeq_DynamicOuterSeq verifies that ConcatAllSeq correctly
+// handles an outer sequence whose elements are produced lazily.
+func TestConcatAllSeq_DynamicOuterSeq(t *testing.T) {
+	callCount := 0
+	outer := func(yield func(Seq[int]) bool) {
+		for i := range 3 {
+			callCount++
+			if !yield(From(i*10, i*10+1)) {
+				return
+			}
+		}
+	}
+	result := toSlice(ConcatAllSeq[int]()(outer))
+	assert.Equal(t, []int{0, 1, 10, 11, 20, 21}, result)
+	assert.Equal(t, 3, callCount)
+}
+
+// TestConcatAllSeq_EarlyTerminationCountsProducerCalls verifies that
+// ConcatAllSeq never calls the outer producer after the consumer breaks,
+// confirming there is no pre-fetching or buffering.
+func TestConcatAllSeq_EarlyTerminationStopsOuter(t *testing.T) {
+	outerCalls := 0
+	outer := func(yield func(Seq[int]) bool) {
+		for i := range 10 {
+			outerCalls++
+			if !yield(From(i)) {
+				return
+			}
+		}
+	}
+	var got []int
+	for v := range ConcatAllSeq[int]()(outer) {
+		got = append(got, v)
+		if len(got) == 3 {
+			break
+		}
+	}
+	assert.Equal(t, []int{0, 1, 2}, got)
+	assert.Equal(t, 3, outerCalls,
+		"outer producer should be called exactly once per consumed element")
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAllPar direct tests
+// ---------------------------------------------------------------------------
+
+// TestConcatAllPar_Direct exercises ConcatAllPar at several buffer sizes,
+// bypassing the ConcatAll dispatch table, to confirm that correctness is not
+// an artefact of the bufSize==1 sequential path.
+func TestConcatAllPar_Direct(t *testing.T) {
+	for _, bufSize := range []int{-1, 0, 2, 8, 100} {
+		bufSize := bufSize
+		t.Run(fmt.Sprintf("bufSize=%d", bufSize), func(t *testing.T) {
+			outer := From(From(1, 2, 3), From(4, 5, 6))
+			result := toSlice(ConcatAllPar[int](bufSize)(outer))
+			assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+		})
+	}
+}
+
+// TestConcatAllPar_Empty verifies empty-input edge cases for ConcatAllPar.
+func TestConcatAllPar_Empty(t *testing.T) {
+	t.Run("empty outer sequence", func(t *testing.T) {
+		assert.Empty(t, toSlice(ConcatAllPar[int](8)(Empty[Seq[int]]())))
+	})
+	t.Run("all empty inner sequences", func(t *testing.T) {
+		outer := From(Empty[int](), Empty[int](), Empty[int]())
+		assert.Empty(t, toSlice(ConcatAllPar[int](8)(outer)))
+	})
+	t.Run("leading empty inner sequence", func(t *testing.T) {
+		outer := From(Empty[int](), From(1, 2, 3))
+		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAllPar[int](8)(outer)))
+	})
+	t.Run("trailing empty inner sequence", func(t *testing.T) {
+		outer := From(From(1, 2, 3), Empty[int]())
+		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAllPar[int](8)(outer)))
+	})
+	t.Run("interspersed empty inner sequences", func(t *testing.T) {
+		outer := From(Empty[int](), From(1, 2), Empty[int](), From(3))
+		assert.Equal(t, []int{1, 2, 3}, toSlice(ConcatAllPar[int](8)(outer)))
+	})
+}
+
+// TestConcatAllPar_OrderPreservation verifies the core guarantee: output is
+// always in input order even when inner sequences complete at different rates.
+func TestConcatAllPar_OrderPreservation(t *testing.T) {
+	t.Run("slow first, fast second: first still comes first", func(t *testing.T) {
+		slow := func(yield func(int) bool) {
+			time.Sleep(20 * time.Millisecond)
+			yield(1)
+		}
+		result := toSlice(ConcatAllPar[int](8)(From[Seq[int]](slow, From(2))))
+		assert.Equal(t, []int{1, 2}, result)
+	})
+
+	t.Run("deterministic across 20 runs", func(t *testing.T) {
+		expected := []int{1, 2, 3, 4, 5, 6}
+		for range 20 {
+			result := toSlice(ConcatAllPar[int](8)(From(From(1, 2, 3), From(4, 5, 6))))
+			assert.Equal(t, expected, result)
+		}
+	})
+
+	t.Run("10 sequences, all buffer sizes, correct group order", func(t *testing.T) {
+		expected := make([]int, 30)
+		for i := range 30 {
+			expected[i] = i
+		}
+		for _, bufSize := range []int{0, 2, 8} {
+			seqs := make([]Seq[int], 10)
+			for i := range 10 {
+				seqs[i] = From(i*3, i*3+1, i*3+2)
+			}
+			result := toSlice(ConcatAllPar[int](bufSize)(From(seqs...)))
+			assert.Equal(t, expected, result, "bufSize=%d", bufSize)
+		}
+	})
+}
+
+// TestConcatAllPar_EarlyTermination verifies that all goroutines stop promptly
+// when the consumer breaks out of the range loop.
+func TestConcatAllPar_EarlyTermination(t *testing.T) {
+	t.Run("consumer stops after first element", func(t *testing.T) {
+		outer := From(From(1, 2, 3), From(4, 5, 6))
+		var got []int
+		for v := range ConcatAllPar[int](8)(outer) {
+			got = append(got, v)
+			break
+		}
+		assert.Equal(t, []int{1}, got)
+	})
+
+	t.Run("infinite inner producer stops after consumer breaks", func(t *testing.T) {
+		var produced atomic.Int64
+		inf := func(yield func(int) bool) {
+			for i := 0; ; i++ {
+				produced.Add(1)
+				if !yield(i) {
+					return
+				}
+			}
+		}
+		var got []int
+		for v := range ConcatAllPar[int](8)(From[Seq[int]](inf, inf)) {
+			got = append(got, v)
+			if len(got) == 5 {
+				break
+			}
+		}
+		assert.Len(t, got, 5)
+		// Production should stop once done is closed. Verify with two snapshots.
+		time.Sleep(30 * time.Millisecond)
+		snap1 := produced.Load()
+		time.Sleep(30 * time.Millisecond)
+		snap2 := produced.Load()
+		assert.Equal(t, snap1, snap2,
+			"infinite producer should have stopped after consumer broke out")
+	})
+
+	t.Run("elements observed by consumer are a strict prefix", func(t *testing.T) {
+		// The drainer forwards values in order; breaking after 3 elements must
+		// yield exactly [1, 2, 3] regardless of how far producers have run.
+		outer := From(From(1, 2, 3, 4, 5), From(6, 7, 8))
+		var got []int
+		for v := range ConcatAllPar[int](8)(outer) {
+			got = append(got, v)
+			if len(got) == 3 {
+				break
+			}
+		}
+		assert.Equal(t, []int{1, 2, 3}, got)
+	})
+
+	t.Run("unbuffered channels: early termination does not deadlock", func(t *testing.T) {
+		outer := From(From(1, 2, 3, 4, 5), From(6, 7, 8))
+		var got []int
+		for v := range ConcatAllPar[int](0)(outer) {
+			got = append(got, v)
+			if len(got) == 2 {
+				break
+			}
+		}
+		assert.Equal(t, 2, len(got))
+	})
+}
+
+// TestConcatAllPar_UnbufferedChannels confirms that bufSize=0 (unbuffered ch,
+// inners, and out channels) neither deadlocks nor corrupts output order.
+func TestConcatAllPar_UnbufferedChannels(t *testing.T) {
+	t.Run("two non-empty sequences", func(t *testing.T) {
+		result := toSlice(ConcatAllPar[int](0)(From(From(1, 2, 3), From(4, 5, 6))))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+	})
+	t.Run("single element per inner sequence", func(t *testing.T) {
+		seqs := make([]Seq[int], 5)
+		for i := range 5 {
+			seqs[i] = From(i)
+		}
+		assert.Equal(t, []int{0, 1, 2, 3, 4}, toSlice(ConcatAllPar[int](0)(From(seqs...))))
+	})
+	t.Run("empty outer", func(t *testing.T) {
+		assert.Empty(t, toSlice(ConcatAllPar[int](0)(Empty[Seq[int]]())))
+	})
+	t.Run("all empty inners", func(t *testing.T) {
+		outer := From(Empty[int](), Empty[int]())
+		assert.Empty(t, toSlice(ConcatAllPar[int](0)(outer)))
+	})
+	t.Run("slow first, fast second", func(t *testing.T) {
+		slow := func(yield func(int) bool) {
+			time.Sleep(10 * time.Millisecond)
+			yield(1)
+		}
+		result := toSlice(ConcatAllPar[int](0)(From[Seq[int]](slow, From(2))))
+		assert.Equal(t, []int{1, 2}, result)
+	})
+}
+
+// TestConcatAllPar_OperatorReuse verifies that the Operator value returned by
+// ConcatAllPar is safe to invoke more than once sequentially.
+func TestConcatAllPar_OperatorReuse(t *testing.T) {
+	op := ConcatAllPar[int](8)
+	r1 := toSlice(op(From(From(1, 2), From(3, 4))))
+	r2 := toSlice(op(From(From(5, 6), From(7, 8))))
+	assert.Equal(t, []int{1, 2, 3, 4}, r1)
+	assert.Equal(t, []int{5, 6, 7, 8}, r2)
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAllPar race-detection tests
+//
+// These tests exercise concurrent access patterns that the race detector
+// (go test -race) would flag if the implementation has unsynchronised state.
+// Each test creates multiple goroutines that invoke ConcatAllPar independently;
+// all shared state inside ConcatAllPar is local per invocation, so there must
+// be no races.
+// ---------------------------------------------------------------------------
+
+// TestConcatAllPar_Race_ConcurrentInvocations calls the same Operator value
+// from many goroutines simultaneously.  Each call creates independent channels
+// and goroutines, so no sharing across invocations should occur.
+func TestConcatAllPar_Race_ConcurrentInvocations(t *testing.T) {
+	op := ConcatAllPar[int](8)
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result := toSlice(op(From(From(1, 2, 3), From(4, 5, 6))))
+			assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+		}()
+	}
+	wg.Wait()
+}
+
+// TestConcatAllPar_Race_ConcurrentEarlyTermination breaks early from many
+// concurrent invocations; close(done) must execute exactly once per invocation
+// without racing against the goroutines that read from done.
+func TestConcatAllPar_Race_ConcurrentEarlyTermination(t *testing.T) {
+	op := ConcatAllPar[int](8)
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var got []int
+			for v := range op(From(From(1, 2, 3, 4, 5), From(6, 7, 8))) {
+				got = append(got, v)
+				if len(got) == 2 {
+					break
+				}
+			}
+			assert.Equal(t, 2, len(got))
+		}()
+	}
+	wg.Wait()
+}
+
+// TestConcatAllPar_Race_ProducerConsumerContention stresses the channel
+// handoff between inner producers (Iₙ), the drainer (D), and the consumer
+// under high throughput to surface any unsynchronised shared state.
+func TestConcatAllPar_Race_ProducerConsumerContention(t *testing.T) {
+	var totalEmitted atomic.Int64
+	makeSeq := func(n int) Seq[int] {
+		return func(yield func(int) bool) {
+			for i := range n {
+				totalEmitted.Add(1)
+				if !yield(i) {
+					return
+				}
+			}
+		}
+	}
+	seqs := make([]Seq[int], 8)
+	for i := range 8 {
+		seqs[i] = makeSeq(50)
+	}
+	count := 0
+	for range ConcatAllPar[int](8)(From(seqs...)) {
+		count++
+	}
+	assert.Equal(t, 8*50, count)
+	assert.Equal(t, int64(8*50), totalEmitted.Load())
+}
+
+// TestConcatAllPar_Race_DoneClosedConcurrently verifies that goroutines safely
+// observe done being closed while they are in the middle of channel operations.
+func TestConcatAllPar_Race_DoneClosedConcurrently(t *testing.T) {
+	var wg sync.WaitGroup
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var produced atomic.Int64
+			makeInf := func(yield func(int) bool) {
+				for i := 0; ; i++ {
+					produced.Add(1)
+					if !yield(i) {
+						return
+					}
+				}
+			}
+			count := 0
+			for range ConcatAllPar[int](4)(From[Seq[int]](makeInf, makeInf, makeInf)) {
+				count++
+				if count == 10 {
+					break
+				}
+			}
+			assert.Equal(t, 10, count)
+		}()
+	}
+	wg.Wait()
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAllPar benchmarks
+// ---------------------------------------------------------------------------
+
+func BenchmarkConcatAllPar_TwoSequences(b *testing.B) {
+	seq1 := From(1, 2, 3, 4, 5)
+	seq2 := From(6, 7, 8, 9, 10)
+	b.ResetTimer()
+	for range b.N {
+		for range ConcatAllPar[int](8)(From(seq1, seq2)) {
+		}
+	}
+}
+
+func BenchmarkConcatAllPar_LargeSequences(b *testing.B) {
+	data1 := make([]int, 500)
+	data2 := make([]int, 500)
+	for i := range 500 {
+		data1[i] = i
+		data2[i] = i + 500
+	}
+	seq1 := From(data1...)
+	seq2 := From(data2...)
+	b.ResetTimer()
+	for range b.N {
+		for range ConcatAllPar[int](8)(From(seq1, seq2)) {
+		}
+	}
+}
+
+// BenchmarkConcatAllPar_vs_Seq compares the parallel and sequential paths
+// for CPU-bound (non-sleeping) sequences of moderate size.
+func BenchmarkConcatAllPar_vs_Seq(b *testing.B) {
+	data := make([]int, 200)
+	for i := range data {
+		data[i] = i
+	}
+	seqs := []Seq[int]{From(data...), From(data...), From(data...), From(data...)}
+
+	b.Run("par-bufSize8", func(b *testing.B) {
+		for range b.N {
+			for range ConcatAllPar[int](8)(From(seqs...)) {
+			}
+		}
+	})
+
+	b.Run("par-bufSize0", func(b *testing.B) {
+		for range b.N {
+			for range ConcatAllPar[int](0)(From(seqs...)) {
+			}
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAll routing / dispatch tests
+// ---------------------------------------------------------------------------
+
+// TestConcatAll_RoutingSemantics documents the non-monotonic dispatch:
+// bufSize == 1 → sequential (no goroutines); bufSize == 0 → concurrent+unbuffered.
+func TestConcatAll_RoutingSemantics(t *testing.T) {
+	// With bufSize=1 (ConcatAllSeq), inner sequences are started strictly in order.
+	t.Run("bufSize=1 is sequential: seq[n+1] starts only after seq[n] ends", func(t *testing.T) {
+		var order []string
+		seq1 := func(yield func(int) bool) {
+			order = append(order, "seq1-start")
+			yield(1)
+			order = append(order, "seq1-end")
+		}
+		seq2 := func(yield func(int) bool) {
+			order = append(order, "seq2-start")
+			yield(2)
+		}
+		_ = toSlice(ConcatAll[int](1)(From[Seq[int]](seq1, seq2)))
+		assert.Equal(t, []string{"seq1-start", "seq1-end", "seq2-start"}, order)
+	})
+
+	// With bufSize=0 (ConcatAllPar), inner producers start concurrently so
+	// seq2-start can appear before seq1-end.
+	t.Run("bufSize=0 output is still ordered even with concurrent producers", func(t *testing.T) {
+		outer := From(From(1, 2, 3), From(4, 5, 6))
+		result := toSlice(ConcatAll[int](0)(outer))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+	})
+
+	// Larger bufSizes also preserve deterministic output order.
+	t.Run("bufSize=8 output is deterministic", func(t *testing.T) {
+		outer := From(From(1, 2, 3), From(4, 5, 6))
+		result := toSlice(ConcatAll[int](8)(outer))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+	})
+
+	// Negative bufSize is forwarded to ConcatAllPar (clamped to 0 internally).
+	t.Run("negative bufSize produces correct ordered output", func(t *testing.T) {
+		outer := From(From(1, 2, 3), From(4, 5, 6))
+		result := toSlice(ConcatAll[int](-4)(outer))
+		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, result)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAllSeq benchmarks
+// ---------------------------------------------------------------------------
+
+func BenchmarkConcatAllSeq_TwoSequences(b *testing.B) {
+	seq1 := From(1, 2, 3, 4, 5)
+	seq2 := From(6, 7, 8, 9, 10)
+	b.ResetTimer()
+	for range b.N {
+		for range ConcatAllSeq[int]()(From(seq1, seq2)) {
+		}
+	}
+}
+
+func BenchmarkConcatAllSeq_LargeSequences(b *testing.B) {
+	data1 := make([]int, 500)
+	data2 := make([]int, 500)
+	for i := range 500 {
+		data1[i] = i
+		data2[i] = i + 500
+	}
+	seq1 := From(data1...)
+	seq2 := From(data2...)
+	b.ResetTimer()
+	for range b.N {
+		for range ConcatAllSeq[int]()(From(seq1, seq2)) {
+		}
+	}
+}
+
+// BenchmarkConcatAll_SeqVsPar compares the sequential (bufSize=1) and
+// concurrent (bufSize=8) paths for CPU-bound sequences.
+func BenchmarkConcatAll_SeqVsPar(b *testing.B) {
+	data := make([]int, 200)
+	for i := range data {
+		data[i] = i
+	}
+	seqs := []Seq[int]{From(data...), From(data...), From(data...), From(data...)}
+
+	b.Run("sequential-bufSize1", func(b *testing.B) {
+		for range b.N {
+			for range ConcatAll[int](1)(From(seqs...)) {
+			}
+		}
+	})
+
+	b.Run("concurrent-bufSize8", func(b *testing.B) {
+		for range b.N {
+			for range ConcatAll[int](8)(From(seqs...)) {
+			}
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ConcatAllSeq examples
+// ---------------------------------------------------------------------------
+
+func ExampleConcatAllSeq() {
+	outer := From(From(1, 2, 3), From(4, 5, 6))
+	for v := range ConcatAllSeq[int]()(outer) {
+		fmt.Printf("%d ", v)
+	}
+	// Output: 1 2 3 4 5 6
+}
+
+func ExampleConcatAllSeq_earlyTermination() {
+	outer := From(From(1, 2, 3, 4, 5), From(6, 7, 8))
+	count := 0
+	for range ConcatAllSeq[int]()(outer) {
+		count++
+		if count >= 3 {
+			break
+		}
+	}
+	fmt.Printf("Consumed %d elements\n", count)
+	// Output: Consumed 3 elements
 }

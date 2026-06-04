@@ -118,8 +118,9 @@ func ExampleUnfold_pagination() {
 
 	client := H.MakeClient(HTTP.DefaultClient)
 
-	allPagesSeq := F.Pipe2(
-		thunk.Unfold(fetchPageStep(client), O.Of(srv.URL+"/items")),
+	allPagesSeq := F.Pipe3(
+		O.Of(srv.URL+"/items"),
+		thunk.Unfold(fetchPageStep(client)),
 		reader.Map[context.Context](F.Pipe1(
 			slices.Values[[]string],
 			iterresult.ChainSeqK,

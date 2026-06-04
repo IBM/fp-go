@@ -44,33 +44,34 @@ import (
 //	    }
 //	    // Head = next seed, Tail = emitted value
 //	    return Of(option.Some(pair.MakePair(n+1, n)))
-//	}, 0)
+//	})(0)
 //	// counter(ctx) yields Right(0), Right(1), Right(2), Right(3), Right(4)
 func Unfold[A, B any](
 	f func(B) ReaderIOResult[Option[Pair[B, A]]],
-	seed B,
-) Reader[context.Context, SeqResult[A]] {
-	return func(ctx context.Context) SeqResult[A] {
-		return func(yield func(Result[A]) bool) {
-			current := seed
-			for {
-				if ctx.Err() != nil {
-					yield(result.Left[A](context.Cause(ctx)))
-					return
+) func(B) Reader[context.Context, SeqResult[A]] {
+	return func(seed B) Reader[context.Context, SeqResult[A]] {
+		return func(ctx context.Context) SeqResult[A] {
+			return func(yield func(Result[A]) bool) {
+				current := seed
+				for {
+					if ctx.Err() != nil {
+						yield(result.Left[A](context.Cause(ctx)))
+						return
+					}
+					opab, err := result.Unwrap(f(current)(ctx)())
+					if err != nil {
+						yield(result.Left[A](err))
+						return
+					}
+					pab, ok := option.Unwrap(opab)
+					if !ok {
+						return
+					}
+					if !yield(result.Of(pair.Tail(pab))) {
+						return
+					}
+					current = pair.Head(pab)
 				}
-				opab, err := result.Unwrap(f(current)(ctx)())
-				if err != nil {
-					yield(result.Left[A](err))
-					return
-				}
-				pab, ok := option.Unwrap(opab)
-				if !ok {
-					return
-				}
-				if !yield(result.Of(pair.Tail(pab))) {
-					return
-				}
-				current = pair.Head(pab)
 			}
 		}
 	}

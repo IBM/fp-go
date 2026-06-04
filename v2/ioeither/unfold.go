@@ -2,6 +2,7 @@ package ioeither
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 )
@@ -25,27 +26,27 @@ import (
 //	            return either.Of[error](option.Some(pair.MakePair(n-1, n)))
 //	        }
 //	    },
-//	    3,
-//	)
+//	)(3)
 //	// Iterating countDown yields: Right(3), Right(2), Right(1)
 func Unfold[E, A, B any](
 	f Kleisli[E, B, Option[Pair[B, A]]],
-	seed B,
-) Seq[Either[E, A]] {
-	return func(yield func(Either[E, A]) bool) {
-		current := seed
-		for {
-			eoba := f(current)()
-			oba, e := either.Unwrap(eoba)
-			if either.IsLeft(eoba) {
-				yield(either.Left[A](e))
-				return
+) iter.Kleisli[B, Either[E, A]] {
+	return func(seed B) Seq[Either[E, A]] {
+		return func(yield func(Either[E, A]) bool) {
+			current := seed
+			for {
+				eoba := f(current)()
+				oba, e := either.Unwrap(eoba)
+				if either.IsLeft(eoba) {
+					yield(either.Left[A](e))
+					return
+				}
+				ba, o := option.Unwrap(oba)
+				if !o || !yield(either.Of[E](pair.Tail(ba))) {
+					return
+				}
+				current = pair.Head(ba)
 			}
-			ba, o := option.Unwrap(oba)
-			if !o || !yield(either.Of[E](pair.Tail(ba))) {
-				return
-			}
-			current = pair.Head(ba)
 		}
 	}
 }

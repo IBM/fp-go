@@ -44,17 +44,17 @@ func collect[A any](seq Seq[A]) []A {
 }
 
 func TestUnfold_EmitsExpectedValues(t *testing.T) {
-	values := collect(Unfold(counter(5), 0))
+	values := collect(Unfold(counter(5))(0))
 	assert.Equal(t, []int{0, 1, 2, 3, 4}, values)
 }
 
 func TestUnfold_EmptySequenceWhenSeedTerminatesImmediately(t *testing.T) {
-	values := collect(Unfold(counter(0), 0))
+	values := collect(Unfold(counter(0))(0))
 	assert.Empty(t, values)
 }
 
 func TestUnfold_SingleElement(t *testing.T) {
-	values := collect(Unfold(counter(1), 0))
+	values := collect(Unfold(counter(1))(0))
 	assert.Equal(t, []int{0}, values)
 }
 
@@ -66,7 +66,7 @@ func TestUnfold_StringSeed(t *testing.T) {
 		return Of(option.Some(pair.MakePair(s[1:], s[0])))
 	}
 
-	values := collect(Unfold(step, "abc"))
+	values := collect(Unfold(step)("abc"))
 	require.Len(t, values, 3)
 	assert.Equal(t, byte('a'), values[0])
 	assert.Equal(t, byte('b'), values[1])
@@ -81,7 +81,7 @@ func TestUnfold_EarlyTerminationByConsumer(t *testing.T) {
 	}
 
 	collected := 0
-	for range Unfold(step, 0) {
+	for range Unfold(step)(0) {
 		collected++
 		if collected == 3 {
 			break
@@ -94,7 +94,7 @@ func TestUnfold_EarlyTerminationByConsumer(t *testing.T) {
 
 func TestUnfold_LargeSequence(t *testing.T) {
 	const n = 1000
-	values := collect(Unfold(counter(n), 0))
+	values := collect(Unfold(counter(n))(0))
 	require.Len(t, values, n)
 	assert.Equal(t, 0, values[0])
 	assert.Equal(t, n-1, values[n-1])

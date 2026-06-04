@@ -17,7 +17,6 @@ package iter
 
 import (
 	"slices"
-	"sync"
 
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
@@ -29,10 +28,10 @@ import (
 // the consumer always observes elements from iterables[0] before iterables[1],
 // iterables[1] before iterables[2], and so on.
 //
-// bufSize controls the capacity of each per-sequence channel and of the
-// innerChannels coordination channel. A larger value lets producers run further
-// ahead of the drainer, reducing synchronisation overhead at the cost of memory.
-// Negative values are clamped to 0 (unbuffered).
+// bufSize controls the capacity of each per-sequence channel and of the inners
+// coordination channel. A larger value lets producers run further ahead of the
+// drainer, reducing synchronisation overhead at the cost of memory. Negative
+// values are clamped to 0 (unbuffered).
 //
 // This is the order-preserving, concurrent-producers counterpart of MergeBuf.
 // Use it when you need deterministic output order but still want producers to
@@ -86,6 +85,49 @@ func Concat[T any](iterables []Seq[T]) Seq[T] {
 	return ConcatBuf(iterables, defaultBufferSize)
 }
 
+// ConcatSeq concatenates multiple sequences into a single sequence using
+// purely sequential nested iteration — no goroutines, no channels. Each input
+// sequence is fully drained before the next one is started.
+//
+// This is the goroutine-free counterpart of Concat. Use it when the inner
+// sequences are cheap and synchronous and goroutine overhead is undesirable.
+//
+// See Also:
+//   - Concat: Concurrent producers, same output order, uses defaultBufferSize
+//   - ConcatPar: Always concurrent (bypasses the sequential optimisation)
+//   - ConcatBuf: Custom buffer size
+//
+//go:inline
+func ConcatSeq[T any](iterables []Seq[T]) Seq[T] {
+	return F.Pipe2(
+		iterables,
+		slices.Values,
+		ConcatAllSeq[T](),
+	)
+}
+
+// ConcatPar concatenates multiple sequences into a single sequence using
+// concurrent inner producers drained in order, always via ConcatAllPar with
+// defaultBufferSize. Unlike Concat, it never selects the goroutine-free
+// sequential path.
+//
+// Use this when you need concurrent producers regardless of buffer size, for
+// example to ensure forward progress in I/O-bound pipelines.
+//
+// See Also:
+//   - Concat: Dispatches to sequential when bufSize == 1
+//   - ConcatSeq: Always sequential, no goroutines
+//   - ConcatBuf: Custom buffer size
+//
+//go:inline
+func ConcatPar[T any](iterables []Seq[T]) Seq[T] {
+	return F.Pipe2(
+		iterables,
+		slices.Values,
+		ConcatAllPar[T](defaultBufferSize),
+	)
+}
+
 // ConcatMapBuf maps each element to a sequence via f and flattens the results
 // with deterministic output order. Each mapped sequence runs in its own goroutine
 // (concurrent producers), but a drainer goroutine forwards values to the consumer
@@ -128,6 +170,31 @@ func ConcatMapBuf[A, B any](f Kleisli[A, B], bufSize int) Operator[A, B] {
 	)
 }
 
+// ConcatMapBufPar maps each element to a sequence via f and flattens the
+// results using ConcatAllPar directly, bypassing the bufSize == 1 sequential
+// optimisation of ConcatMapBuf. All mapped sequences always run in their own
+// goroutines and are drained in input order.
+//
+// Use this variant when you need the concurrent-producers model regardless of
+// bufSize, for example to ensure forward progress in I/O-bound pipelines even
+// when bufSize == 1.
+//
+// See ConcatMapBuf for full semantics. The only difference is that this
+// function never selects the goroutine-free sequential path.
+//
+// See Also:
+//   - ConcatMapBuf: Dispatches to sequential for bufSize == 1
+//   - ConcatMapPar: Convenience wrapper using defaultBufferSize
+//   - MergeMapBuf: Concurrent, non-deterministic output order
+//
+//go:inline
+func ConcatMapBufPar[A, B any](f Kleisli[A, B], bufSize int) Operator[A, B] {
+	return F.Flow2(
+		Map(f),
+		ConcatAllPar[B](bufSize),
+	)
+}
+
 // MonadConcatMap is the uncurried form of ConcatMap. It maps f over fa and
 // flattens the results with deterministic output order using concurrent inner
 // producers (see ConcatMapBuf for the full semantics).
@@ -140,80 +207,92 @@ func MonadConcatMap[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
 	return ConcatMap(f)(fa)
 }
 
-// ConcatAll flattens a sequence of sequences into a single sequence.
+// MonadConcatMapSeq is the uncurried form of ConcatMapSeq. It maps f over fa
+// and flattens the results using purely sequential iteration — no goroutines,
+// no channels. Each inner sequence is fully drained before f is called with
+// the next element.
+//
+// See Also:
+//   - ConcatMapSeq: The curried/operator form
+//   - MonadConcatMap: Uses the bufSize-dispatched path (concurrent by default)
+//   - MonadConcatMapPar: Always concurrent
+func MonadConcatMapSeq[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
+	return ConcatMapSeq(f)(fa)
+}
+
+// MonadConcatMapPar is the uncurried form of ConcatMapPar. It maps f over fa
+// and flattens the results using ConcatAllPar with defaultBufferSize — all
+// mapped sequences run concurrently in their own goroutines and are drained in
+// input order.
+//
+// See Also:
+//   - ConcatMapPar: The curried/operator form
+//   - MonadConcatMap: Dispatches to sequential for small bufSizes
+//   - MonadConcatMapSeq: Always sequential
+func MonadConcatMapPar[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
+	return ConcatMapPar(f)(fa)
+}
+
+// ConcatAllPar flattens a sequence of sequences into a single sequence with
+// deterministic output order using three goroutine roles per invocation.
 //
 // # Concurrency model
 //
-// Four goroutine roles are involved for each invocation:
-//
 //  1. Outer (O): iterates the outer sequence s.  For every inner Seq it spawns
-//     an inner producer goroutine and hands its channel to the Drainer via
-//     innerChannels.
+//     an Iₙ goroutine and passes its output channel out_n to the Drainer via
+//     the inners coordination channel.  O closes inners when s is exhausted or
+//     done is closed.
 //
-//  2. Inner producers (Iₙ, one per inner Seq): pull values from one inner Seq
-//     and push them into a dedicated buffered channel innerCh_n.  Each Iₙ is
-//     tracked by the WaitGroup.
+//  2. Inner producers (Iₙ, one per inner Seq): drain one inner Seq into a
+//     dedicated buffered channel out_n, then close it.  Not tracked by a
+//     WaitGroup — they exit as soon as their Seq is exhausted or done is closed.
 //
-//  3. Drainer (D): reads innerCh_n channels from innerChannels strictly in
-//     arrival order and forwards their values to the single output channel ch.
-//     This is the mechanism that guarantees output order even though all Iₙ run
-//     in parallel.
+//  3. Drainer (D): for-ranges over inners in arrival order.  For each out_n it
+//     drains all values into the output channel ch, then moves to the next
+//     channel.  D closes ch when inners is closed (i.e. after O exits).
 //
-//  4. Closer (C): calls wg.Wait() and then closes ch once every tracked
-//     goroutine (O, all Iₙ, D) has exited.  C is not itself tracked by wg.
+// # Defer ordering
 //
-// # WaitGroup invariant
+// O defers close(inners): fires when O exits, signalling D that no more
+// inner channels will arrive.
 //
-// O and D are registered (wg.Add) before C starts.  Therefore wg ≥ 2 when C
-// begins waiting, so C cannot see a spurious zero caused by O finishing quickly
-// before D is registered.  Each Iₙ is registered inside O's loop body while O
-// still holds wg ≥ 1, so the counter never touches zero between registrations.
+// Each Iₙ defers close(out_n): fires when Iₙ exits, signalling D that out_n
+// is fully drained and it can move to the next channel.
 //
-// # Defer ordering inside O and each Iₙ
-//
-// Go defers are LIFO, so inside O:
-//   - close(innerChannels) runs first  → D's for-range exits
-//   - wg.Done() runs second            → C unblocks only after D has seen the close
-//
-// Inside each Iₙ:
-//   - close(innerCh_n) runs first      → D's inner for-range exits
-//   - wg.Done() runs second            → C unblocks only after innerCh_n is drained
+// D defers close(ch): fires after the for-range over inners exits (i.e. after
+// O has closed inners and all out_n channels have been drained), signalling the
+// consumer that no more values will arrive.
 //
 // # Cancellation via done
 //
-// All goroutines check the done channel via select:
-//   - O checks at the top of each callback invocation and when handing innerCh
-//     to innerChannels.
-//   - Each Iₙ checks when sending a value to its innerCh.
-//   - D checks between consecutive inner channels and when forwarding to ch.
+// The consumer defers close(done).  All goroutines observe cancellation via select:
+//   - O: checks done when handing out_n to inners.
+//   - Each Iₙ: checks done when sending a value to out_n.
+//   - D: checks done when forwarding a value to ch.
 //
-// When done is closed, every goroutine reaches its done-check and returns.
-// Their defers close their owned channels and call wg.Done().  After all have
-// exited, C calls close(ch), which unblocks the consumer's drain loop.
+// When done is closed each goroutine reaches its done-check on the next send or
+// receive and returns.  Their defers then close their owned channels in
+// dependency order (Iₙ closes out_n → D drains out_n and closes ch).
+// Goroutines may run briefly after the consumer returns; the done channel
+// ensures they terminate promptly.
 //
 // # Consumer cleanup
 //
-// The consumer's defer (see below) runs on both normal and early exit:
-//
-//	defer func() {
-//	    close(done)      // signal all goroutines to stop
-//	    for range ch {}  // drain until C closes ch (blocking until all goroutines exit)
-//	}()
-//
-// This ensures the consumer never returns while any goroutine is still live.
-// On normal completion done is closed after ch is already shut; the drain loop
-// exits immediately and the close is harmless to the already-finished goroutines.
+//	defer close(done) // signal all goroutines to stop
+//	for v := range ch {
+//	    if !yield(v) { return }
+//	}
 //
 // # Note on RxJS
 //
 // The RxJS concatAll operator subscribes to inner observables one at a time
-// (strictly sequential).  This implementation starts all inner goroutines
+// (strictly sequential).  This implementation starts all Iₙ goroutines
 // concurrently for lower latency while preserving output order via the drainer.
 //
 // # Parameters
 //
-//   - bufSize: capacity of each innerCh_n and of the innerChannels coordination
-//     channel.  Larger values let producers run further ahead of the drainer.
+//   - bufSize: capacity of each out_n and of the inners coordination channel.
+//     Larger values let producers run further ahead of the drainer.
 //     Negative values are clamped to 0 (unbuffered).
 //
 // Marble Diagram:
@@ -221,48 +300,21 @@ func MonadConcatMap[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
 //	Seq1 (goroutine I₁): --1--2--3--|
 //	Seq2 (goroutine I₂): --4--5--6--|   (concurrent with I₁)
 //	Drainer output:       --1--2--3--4--5--6--|
-func ConcatAll[T any](bufSize int) Operator[Seq[T], T] {
+func ConcatAllPar[T any](bufSize int) Operator[Seq[T], T] {
 	buf := N.Max(bufSize, 0)
-
 	return func(s Seq[Seq[T]]) Seq[T] {
 		return func(yield func(T) bool) {
-
-			// ch is the single output channel read by the consumer.
-			// Closed by the Closer (C) after wg reaches zero.
 			ch := make(chan T, buf)
-
-			// done is closed by the consumer's defer to cancel all goroutines.
 			done := make(chan Void)
+			inners := make(chan chan T, buf)
 
-			// innerChannels delivers per-sequence channels from O to D in order.
-			innerChannels := make(chan chan T, buf)
-
-			// wg tracks O + all Iₙ + D.  C calls wg.Wait() to know when to
-			// close ch.  O and D are added before C starts (see invariant above).
-			var wg sync.WaitGroup
-
-			// O — Outer goroutine.
-			// Iterates s, spawns one Iₙ per inner Seq, hands its channel to D.
-			// close(innerChannels) runs before wg.Done() (LIFO defers).
-			wg.Add(1)
 			go func() {
-				defer wg.Done()
-				defer close(innerChannels)
+				defer close(inners)
 				s(func(inner Seq[T]) bool {
-					select {
-					case <-done:
-						return false
-					default:
-					}
-					innerCh := make(chan T, buf)
-					// Iₙ — Inner producer goroutine.
-					// Pulls from inner Seq, pushes to innerCh.
-					// close(innerCh) runs before wg.Done() (LIFO defers).
-					wg.Add(1)
-					go func(seq Seq[T], out chan T) {
-						defer wg.Done()
+					out := make(chan T, buf)
+					go func() {
 						defer close(out)
-						seq(func(v T) bool {
+						inner(func(v T) bool {
 							select {
 							case out <- v:
 								return true
@@ -270,9 +322,9 @@ func ConcatAll[T any](bufSize int) Operator[Seq[T], T] {
 								return false
 							}
 						})
-					}(inner, innerCh)
+					}()
 					select {
-					case innerChannels <- innerCh:
+					case inners <- out:
 						return true
 					case <-done:
 						return false
@@ -280,22 +332,10 @@ func ConcatAll[T any](bufSize int) Operator[Seq[T], T] {
 				})
 			}()
 
-			// D — Drainer goroutine.
-			// Reads innerCh channels in arrival order and forwards values to ch.
-			// Registered before C starts (see WaitGroup invariant above).
-			wg.Add(1)
 			go func() {
-				defer wg.Done()
-				for innerCh := range innerChannels {
-					// Check cancellation between consecutive inner channels.
-					select {
-					case <-done:
-						return
-					default:
-					}
-					for v := range innerCh {
-						// innerCh is closed by Iₙ's defer when Iₙ exits, so
-						// this for-range terminates even without checking done.
+				defer close(ch)
+				for out := range inners {
+					for v := range out {
 						select {
 						case ch <- v:
 						case <-done:
@@ -305,28 +345,89 @@ func ConcatAll[T any](bufSize int) Operator[Seq[T], T] {
 				}
 			}()
 
-			// C — Closer goroutine (not tracked by wg).
-			// Closes ch once every tracked goroutine has called wg.Done().
-			// Must start after all fixed wg.Add calls (O and D above).
-			go func() {
-				wg.Wait()
-				close(ch)
-			}()
-
-			// Consumer cleanup: signal cancellation, then drain ch until C
-			// closes it.  This blocks until every goroutine has exited,
-			// guaranteeing no goroutine outlives the consumer.
-			defer func() {
-				close(done)
-				for range ch {
-				}
-			}()
-
+			defer close(done)
 			for v := range ch {
 				if !yield(v) {
 					return
 				}
 			}
 		}
+	}
+}
+
+// ConcatAllSeq flattens a Seq[Seq[T]] into a Seq[T] using purely sequential
+// nested iteration — no goroutines, no channels. Each inner sequence is fully
+// drained before the next outer element is consumed.
+//
+// This is the implementation selected by ConcatAll when bufSize == 1. It
+// eliminates all synchronisation overhead, making it the fastest choice for
+// pipelines that are already single-threaded or where the inner sequences are
+// cheap to produce synchronously.
+//
+// Compare with ConcatAllPar, which spawns one goroutine per inner sequence and
+// forwards results to the consumer in order via a drainer goroutine. Even
+// ConcatAllPar(0) (unbuffered channels) still incurs goroutine-spawn and
+// channel overhead; ConcatAllSeq avoids all of it.
+//
+// Marble Diagram (sequential — seq[n+1] starts only after seq[n] is drained):
+//
+//	Seq1: --1--2--3--|
+//	Seq2:             --4--5--6--|
+//	Output: --1--2--3--4--5--6--|
+//
+// Example:
+//
+//	outer := From(From(1, 2, 3), From(4, 5, 6))
+//	for v := range ConcatAllSeq[int]()(outer) {
+//	    fmt.Println(v) // prints: 1, 2, 3, 4, 5, 6
+//	}
+//
+// See Also:
+//   - ConcatAll: Dispatcher — selects ConcatAllSeq for bufSize == 1
+//   - ConcatAllPar: Concurrent inner producers, sequential consumer output
+func ConcatAllSeq[T any]() Operator[Seq[T], T] {
+	return func(s Seq[Seq[T]]) Seq[T] {
+		return func(yield func(T) bool) {
+			for outer := range s {
+				for inner := range outer {
+					if !yield(inner) {
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+// ConcatAll flattens a Seq[Seq[T]] into a Seq[T] with deterministic output
+// order, dispatching to the most efficient implementation for the requested
+// buffer size:
+//
+//   - bufSize == 1: delegates to ConcatAllSeq — purely sequential iteration,
+//     zero goroutines, zero channels. Each inner sequence is fully consumed
+//     before the next one is started. Best when concurrency adds no value or
+//     when goroutine overhead must be avoided.
+//
+//   - all other values (including 0 and negative): delegates to
+//     ConcatAllPar(bufSize) — all inner producers run concurrently (one
+//     goroutine each), a drainer goroutine forwards values in arrival order,
+//     channels have capacity max(bufSize, 0). Negative values → unbuffered.
+//
+// The dispatch is non-monotonic with respect to concurrency: bufSize == 0
+// (unbuffered) still uses goroutines and channels, whereas bufSize == 1 is
+// fully goroutine-free and sequential. This is intentional: the
+// goroutine-free path is selected only at bufSize == 1 as an explicit
+// performance mode, not as a generalisation of "small buffer".
+//
+// See Also:
+//   - ConcatAllSeq: Sequential implementation (no goroutines)
+//   - ConcatAllPar: Concurrent implementation with configurable buffer
+//   - ConcatBuf: Slice-input convenience wrapper
+func ConcatAll[T any](bufSize int) Operator[Seq[T], T] {
+	switch bufSize {
+	case 1:
+		return ConcatAllSeq[T]()
+	default:
+		return ConcatAllPar[T](bufSize)
 	}
 }
