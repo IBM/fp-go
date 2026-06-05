@@ -18,6 +18,7 @@ package iterresult
 import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/iterator/itereither"
 	O "github.com/IBM/fp-go/v2/option"
@@ -1064,4 +1065,105 @@ func MonadChainIOK[A, B any](ma SeqResult[A], f io.Kleisli[A, B]) SeqResult[B] {
 //	// yields: Ok("item-1"), Ok("item-2")
 func ChainIOK[A, B any](f io.Kleisli[A, B]) Operator[A, B] {
 	return itereither.ChainIOK[error](f)
+}
+
+// MonadChainIOResultK chains an [ioresult.Kleisli] function into a SeqResult
+// pipeline. For each success value a in ma it calls f(a) to obtain an
+// IOResult[B], executes it, and yields the result into the sequence.
+// Error elements pass through unchanged without calling f.
+//
+// Marble diagram:
+//
+//	Input:  ---R(1)---R(2)---L(e)---|
+//	f(1) = IO(Ok(10)), f(2) = IO(Left("bad"))
+//	Output: ---R(10)---L("bad")---L(e)---|
+//
+// See Also:
+//   - ChainIOResultK: The curried/operator form
+//   - MonadChainIOK: For plain IO computations (always succeed)
+func MonadChainIOResultK[A, B any](ma SeqResult[A], f ioresult.Kleisli[A, B]) SeqResult[B] {
+	return itereither.MonadChainIOEitherK(ma, f)
+}
+
+// ChainIOResultK is the curried version of MonadChainIOResultK. It returns an
+// Operator that chains an [ioresult.Kleisli] function into a SeqResult pipeline.
+// For each success value a in the input sequence it calls f(a), executes the
+// resulting IOResult, and yields the result. Error elements pass through unchanged.
+//
+// Example:
+//
+//	fetchUser := ChainIOResultK(func(id int) func() R.Result[string] {
+//	    return func() R.Result[string] {
+//	        if id > 0 { return R.Of("user-" + strconv.Itoa(id)) }
+//	        return R.Left[string](errors.New("invalid id"))
+//	    }
+//	})
+//	seq := iter.From(R.Of(1), R.Of(-1))
+//	result := fetchUser(seq)
+//	// yields: Ok("user-1"), Left(error("invalid id"))
+//
+// See Also:
+//   - MonadChainIOResultK: The uncurried form
+//   - ChainIOK: For plain IO computations (always succeed)
+func ChainIOResultK[A, B any](f ioresult.Kleisli[A, B]) Operator[A, B] {
+	return itereither.ChainIOEitherK(f)
+}
+
+// MonadChainFirstIOResultK executes a side-effecting [ioresult.Kleisli]
+// computation for each success value and returns the original value unchanged.
+// For each success value a in ma it calls f(a), executes the resulting
+// IOResult for its side effect, and passes the original Ok(a) through.
+// If f returns an error that error propagates in place of the original value.
+// Error elements in the input pass through unchanged without calling f.
+//
+// Example:
+//
+//	var seen []int
+//	auditIO := func(n int) func() R.Result[string] {
+//	    return func() R.Result[string] { seen = append(seen, n); return R.Of("ok") }
+//	}
+//	seq := iter.From(R.Of(1), R.Of(2), R.Left[int](errors.New("err")))
+//	result := MonadChainFirstIOResultK(seq, auditIO)
+//	// yields: Ok(1), Ok(2), Left(error("err"))
+//	// seen == [1, 2]
+//
+// See Also:
+//   - ChainFirstIOResultK: The curried/operator form
+//   - MonadChainFirstIOK: For plain IO side-effects (never fail)
+func MonadChainFirstIOResultK[A, B any](ma SeqResult[A], f ioresult.Kleisli[A, B]) SeqResult[A] {
+	return itereither.MonadChainFirstIOEitherK(ma, f)
+}
+
+// ChainFirstIOResultK is the curried version of MonadChainFirstIOResultK. It
+// returns an Operator that executes a side-effecting [ioresult.Kleisli]
+// computation on each success value and passes the original value through
+// unchanged. If the IOResult side-effect fails, that error propagates.
+// Error elements in the input pass through unchanged without calling f.
+//
+// See Also:
+//   - MonadChainFirstIOResultK: The uncurried form
+//   - TapIOResultK: Alias for this function
+//   - ChainFirstIOK: For plain IO side-effects (never fail)
+func ChainFirstIOResultK[A, B any](f ioresult.Kleisli[A, B]) Operator[A, A] {
+	return itereither.ChainFirstIOEitherK(f)
+}
+
+// TapIOResultK is an alias for [ChainFirstIOResultK]. It executes a
+// side-effecting [ioresult.Kleisli] computation on each success value and
+// passes the original value through unchanged. Error elements pass through
+// without calling f.
+//
+// Example:
+//
+//	audit := TapIOResultK(func(n int) func() R.Result[string] {
+//	    return func() R.Result[string] {
+//	        fmt.Printf("processing %d\n", n)
+//	        return R.Of("logged")
+//	    }
+//	})
+//	seq := iter.From(R.Of(1), R.Of(2))
+//	result := audit(seq)
+//	// yields: Ok(1), Ok(2) (and prints on iteration)
+func TapIOResultK[A, B any](f ioresult.Kleisli[A, B]) Operator[A, A] {
+	return ChainFirstIOResultK(f)
 }

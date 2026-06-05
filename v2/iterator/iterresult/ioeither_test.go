@@ -1551,3 +1551,223 @@ func TestChainIOK(t *testing.T) {
 		assert.Equal(t, "!!!", v)
 	})
 }
+
+// ---------------------------------------------------------------------------
+// MonadChainIOResultK / ChainIOResultK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainIOResultK(t *testing.T) {
+	t.Run("chains IOResult-returning function for success values", func(t *testing.T) {
+		f := func(n int) func() R.Result[int] {
+			return func() R.Result[int] { return R.Of(n * 2) }
+		}
+		seq := iter.From(R.Of(5), R.Of(10))
+		assert.Equal(t, []int{10, 20}, mustOK(t, MonadChainIOResultK(seq, f)))
+	})
+
+	t.Run("error elements pass through without calling f", func(t *testing.T) {
+		called := false
+		f := func(n int) func() R.Result[int] {
+			return func() R.Result[int] { called = true; return R.Of(n) }
+		}
+		errMsg := errors.New("fail")
+		assert.Equal(t, errMsg, firstError[int](t, MonadChainIOResultK(iter.From(R.Left[int](errMsg)), f)))
+		assert.False(t, called)
+	})
+
+	t.Run("f returning IOResult error propagates", func(t *testing.T) {
+		ioErr := errors.New("io error")
+		f := func(n int) func() R.Result[int] {
+			return func() R.Result[int] { return R.Left[int](ioErr) }
+		}
+		assert.Equal(t, ioErr, firstError[int](t, MonadChainIOResultK(Of(1), f)))
+	})
+
+	t.Run("IOResult is lazy — not called until iteration", func(t *testing.T) {
+		called := false
+		f := func(n int) func() R.Result[int] {
+			return func() R.Result[int] { called = true; return R.Of(n) }
+		}
+		result := MonadChainIOResultK(Of(1), f)
+		assert.False(t, called)
+		slices.Collect(result)
+		assert.True(t, called)
+	})
+
+	t.Run("mixed — errors pass through, successes mapped", func(t *testing.T) {
+		errMsg := errors.New("err")
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Of(fmt.Sprintf("item-%d", n)) }
+		}
+		seq := iter.From(R.Of(2), R.Left[int](errMsg), R.Of(3))
+		result := slices.Collect(MonadChainIOResultK(seq, f))
+		assert.Len(t, result, 3)
+		assert.True(t, R.IsRight(result[0]))
+		assert.True(t, R.IsLeft(result[1]))
+		assert.True(t, R.IsRight(result[2]))
+	})
+}
+
+func TestChainIOResultK(t *testing.T) {
+	t.Run("curried form equivalent to MonadChainIOResultK", func(t *testing.T) {
+		f := func(n int) func() R.Result[int] {
+			return func() R.Result[int] { return R.Of(n * 3) }
+		}
+		seq := iter.From(R.Of(4), R.Of(5))
+		assert.Equal(t, mustOK(t, MonadChainIOResultK(seq, f)), mustOK(t, ChainIOResultK(f)(seq)))
+	})
+
+	t.Run("error elements pass through unchanged", func(t *testing.T) {
+		op := ChainIOResultK(func(n int) func() R.Result[int] {
+			return func() R.Result[int] { return R.Of(n) }
+		})
+		errMsg := errors.New("error")
+		assert.Equal(t, errMsg, firstError[int](t, op(iter.From(R.Left[int](errMsg)))))
+	})
+
+	t.Run("f returning error propagates through pipeline", func(t *testing.T) {
+		ioErr := errors.New("io fail")
+		op := ChainIOResultK(func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Left[string](ioErr) }
+		})
+		assert.Equal(t, ioErr, firstError[string](t, op(Of(1))))
+	})
+
+	t.Run("works in F.Pipe1 pipeline", func(t *testing.T) {
+		errMsg := errors.New("err")
+		result := slices.Collect(F.Pipe1(
+			iter.From(R.Of(3), R.Left[int](errMsg)),
+			ChainIOResultK(func(n int) func() R.Result[int] {
+				return func() R.Result[int] { return R.Of(n * 10) }
+			}),
+		))
+		assert.Len(t, result, 2)
+		assert.True(t, R.IsRight(result[0]))
+		assert.True(t, R.IsLeft(result[1]))
+		v, _ := R.Unwrap(result[0])
+		assert.Equal(t, 30, v)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MonadChainFirstIOResultK / ChainFirstIOResultK / TapIOResultK
+// ---------------------------------------------------------------------------
+
+func TestMonadChainFirstIOResultK(t *testing.T) {
+	t.Run("executes IOResult side effect and returns original success value", func(t *testing.T) {
+		var sideEffect int
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] {
+				sideEffect = n * 2
+				return R.Of("ignored")
+			}
+		}
+		assert.Equal(t, []int{42}, mustOK(t, MonadChainFirstIOResultK(Of(42), f)))
+		assert.Equal(t, 84, sideEffect)
+	})
+
+	t.Run("error elements pass through without calling f", func(t *testing.T) {
+		called := false
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { called = true; return R.Of("ok") }
+		}
+		errMsg := errors.New("fail")
+		assert.Equal(t, errMsg, firstError[int](t, MonadChainFirstIOResultK(iter.From(R.Left[int](errMsg)), f)))
+		assert.False(t, called)
+	})
+
+	t.Run("IOResult is lazy — not called until iteration", func(t *testing.T) {
+		called := false
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { called = true; return R.Of("ok") }
+		}
+		result := MonadChainFirstIOResultK(Of(1), f)
+		assert.False(t, called)
+		slices.Collect(result)
+		assert.True(t, called)
+	})
+
+	t.Run("multiple success values — side effect called for each", func(t *testing.T) {
+		var mu sync.Mutex
+		var seen []int
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return R.Of("ok")
+			}
+		}
+		_ = slices.Collect(MonadChainFirstIOResultK(iter.From(R.Of(1), R.Left[int](errors.New("err")), R.Of(3)), f))
+		assert.ElementsMatch(t, []int{1, 3}, seen)
+	})
+}
+
+func TestChainFirstIOResultK(t *testing.T) {
+	t.Run("curried form returns original success value unchanged", func(t *testing.T) {
+		var sideEffect int
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] {
+				sideEffect = n
+				return R.Of("ok")
+			}
+		}
+		assert.Equal(t, []int{9}, mustOK(t, ChainFirstIOResultK(f)(Of(9))))
+		assert.Equal(t, 9, sideEffect)
+	})
+
+	t.Run("error elements pass through", func(t *testing.T) {
+		op := ChainFirstIOResultK(func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Of("ok") }
+		})
+		errMsg := errors.New("error")
+		assert.Equal(t, errMsg, firstError[int](t, op(iter.From(R.Left[int](errMsg)))))
+	})
+
+	t.Run("equivalent to MonadChainFirstIOResultK curried", func(t *testing.T) {
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Of(strings.Repeat("x", n)) }
+		}
+		seq := iter.From(R.Of(2), R.Of(3))
+		assert.Equal(t, mustOK(t, MonadChainFirstIOResultK(seq, f)), mustOK(t, ChainFirstIOResultK(f)(seq)))
+	})
+}
+
+func TestTapIOResultK(t *testing.T) {
+	t.Run("is an alias for ChainFirstIOResultK", func(t *testing.T) {
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Of("ok") }
+		}
+		seq := iter.From(R.Of(5), R.Left[int](errors.New("err")))
+		tapResult := slices.Collect(TapIOResultK(f)(seq))
+		chainResult := slices.Collect(ChainFirstIOResultK(f)(seq))
+		assert.Equal(t, tapResult, chainResult)
+	})
+
+	t.Run("executes side effect on success values only", func(t *testing.T) {
+		var mu sync.Mutex
+		var seen []int
+		op := TapIOResultK(func(n int) func() R.Result[string] {
+			return func() R.Result[string] {
+				mu.Lock()
+				seen = append(seen, n)
+				mu.Unlock()
+				return R.Of("logged")
+			}
+		})
+		seq := iter.From(R.Of(1), R.Left[int](errors.New("err")), R.Of(3))
+		result := slices.Collect(op(seq))
+		assert.Len(t, result, 3)
+		assert.True(t, R.IsRight(result[0]))
+		assert.True(t, R.IsLeft(result[1]))
+		assert.True(t, R.IsRight(result[2]))
+		assert.ElementsMatch(t, []int{1, 3}, seen)
+	})
+
+	t.Run("preserves original success values", func(t *testing.T) {
+		op := TapIOResultK(func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Of("side-effect") }
+		})
+		assert.Equal(t, []int{7, 42}, mustOK(t, op(iter.From(R.Of(7), R.Of(42)))))
+	})
+}

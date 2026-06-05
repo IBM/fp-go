@@ -310,26 +310,24 @@ func ConcatAllPar[T any](bufSize int) Operator[Seq[T], T] {
 
 			go func() {
 				defer close(inners)
-				s(func(inner Seq[T]) bool {
+				for inner := range s {
 					out := make(chan T, buf)
 					go func() {
 						defer close(out)
-						inner(func(v T) bool {
+						for v := range inner {
 							select {
 							case out <- v:
-								return true
 							case <-done:
-								return false
+								return
 							}
-						})
+						}
 					}()
 					select {
 					case inners <- out:
-						return true
 					case <-done:
-						return false
+						return
 					}
-				})
+				}
 			}()
 
 			go func() {

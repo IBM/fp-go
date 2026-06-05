@@ -1691,7 +1691,7 @@ func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
 //	// yields: 1, 2, 3 (and executes logIO for each element when iterated)
 func MonadChainFirstIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[A] {
 	return fromio.MonadChainFirstIOK(
-		MonadChain[A, A],
+		MonadChainSeq[A, A],
 		MonadMap[B, A],
 		FromIO,
 		ma,
@@ -1716,7 +1716,7 @@ func MonadChainFirstIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[A] {
 //	// yields: 1, 2, 3 (IO side effects run on iteration)
 func ChainFirstIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
 	return fromio.ChainFirstIOK(
-		Chain[A, A],
+		ChainSeq[A, A],
 		Map[B, A],
 		FromIO,
 		f,
@@ -1754,7 +1754,7 @@ func TapIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
 //	// yields: "item-1", "item-2", "item-3"
 func MonadChainIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[B] {
 	return fromio.MonadChainIOK(
-		MonadChain[A, B],
+		MonadChainSeq[A, B],
 		FromIO[B],
 		ma, f,
 	)
@@ -1774,7 +1774,7 @@ func MonadChainIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[B] {
 //	// yields: "item-1", "item-2", "item-3"
 func ChainIOK[A, B any](f io.Kleisli[A, B]) Operator[A, B] {
 	return fromio.ChainIOK(
-		Chain[A, B],
+		ChainSeq[A, B],
 		FromIO[B],
 		f,
 	)

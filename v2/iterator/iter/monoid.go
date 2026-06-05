@@ -16,7 +16,6 @@
 package iter
 
 import (
-	A "github.com/IBM/fp-go/v2/array"
 	M "github.com/IBM/fp-go/v2/monoid"
 )
 
@@ -42,6 +41,15 @@ func Monoid[T any]() M.Monoid[Seq[T]] {
 	return ConcatMonoid[T](defaultBufferSize)
 }
 
+func makeMonoid[T any](concAll Operator[Seq[T], T]) M.Monoid[Seq[T]] {
+	return M.MakeMonoid(
+		func(l, r Seq[T]) Seq[T] {
+			return concAll(From(l, r))
+		},
+		Empty[T](),
+	)
+}
+
 // MonoidSeq returns a Monoid[Seq[T]] whose Concat operation uses purely
 // sequential nested iteration — no goroutines, no channels. Each left-hand
 // sequence is fully drained before the right-hand sequence is started.
@@ -58,12 +66,7 @@ func Monoid[T any]() M.Monoid[Seq[T]] {
 //   - MonoidPar: Always concurrent, never selects the sequential path
 //   - ConcatMonoid: Concurrent monoid with configurable buffer size
 func MonoidSeq[T any]() M.Monoid[Seq[T]] {
-	return M.MakeMonoid(
-		func(l, r Seq[T]) Seq[T] {
-			return ConcatSeq(A.From(l, r))
-		},
-		Empty[T](),
-	)
+	return makeMonoid(ConcatAllSeq[T]())
 }
 
 // MonoidPar returns a Monoid[Seq[T]] whose Concat operation runs both
@@ -83,12 +86,7 @@ func MonoidSeq[T any]() M.Monoid[Seq[T]] {
 //   - MonoidSeq: Always sequential, no goroutines
 //   - ConcatMonoid: Configurable buffer size
 func MonoidPar[T any]() M.Monoid[Seq[T]] {
-	return M.MakeMonoid(
-		func(l, r Seq[T]) Seq[T] {
-			return ConcatPar(A.From(l, r))
-		},
-		Empty[T](),
-	)
+	return makeMonoid(ConcatAllPar[T](defaultBufferSize))
 }
 
 // ConcatMonoid returns a Monoid[Seq[T]] whose Concat operation runs both
@@ -117,10 +115,5 @@ func MonoidPar[T any]() M.Monoid[Seq[T]] {
 //   - MergeMonoid: Non-deterministic order, same concurrency model
 //   - ConcatBuf: The underlying implementation
 func ConcatMonoid[T any](bufSize int) M.Monoid[Seq[T]] {
-	return M.MakeMonoid(
-		func(l, r Seq[T]) Seq[T] {
-			return ConcatBuf(A.From(l, r), bufSize)
-		},
-		Empty[T](),
-	)
+	return makeMonoid(ConcatAll[T](defaultBufferSize))
 }

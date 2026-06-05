@@ -27,6 +27,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -101,4 +102,6 @@ type (
 	// stopping early if yield returns false.
 	// See the [iter] package documentation for more details.
 	Seq[A any] = iter.Seq[A]
+
+	Pair[L, R any] = pair.Pair[L, R]
 )
