@@ -1470,8 +1470,9 @@ func TestTapIOK(t *testing.T) {
 	})
 
 	t.Run("preserves all success values and executes side effects", func(t *testing.T) {
+		var mu sync.Mutex
 		total := 0
-		op := TapIOK(func(n int) func() int { return func() int { total += n; return 0 } })
+		op := TapIOK(func(n int) func() int { return func() int { mu.Lock(); total += n; mu.Unlock(); return 0 } })
 		assert.Equal(t, []int{1, 2, 3}, mustOK(t, op(iter.From(R.Of(1), R.Of(2), R.Of(3)))))
 		assert.Equal(t, 6, total)
 	})

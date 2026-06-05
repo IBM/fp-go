@@ -2081,15 +2081,16 @@ func TestTapIOK(t *testing.T) {
 	})
 
 	t.Run("preserves all Right values and executes side effect", func(t *testing.T) {
-		sum := 0
+		var mu sync.Mutex
+		total := 0
 		op := TapIOK[string](func(n int) func() int {
-			return func() int { sum += n; return 0 }
+			return func() int { mu.Lock(); total += n; mu.Unlock(); return 0 }
 		})
 		result := collectEithers(op(iter.From(E.Right[string](1), E.Right[string](2), E.Right[string](3))))
 		assert.Equal(t, []Either[string, int]{
 			E.Right[string](1), E.Right[string](2), E.Right[string](3),
 		}, result)
-		assert.Equal(t, 6, sum)
+		assert.Equal(t, 6, total)
 	})
 }
 
