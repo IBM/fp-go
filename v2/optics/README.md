@@ -262,6 +262,69 @@ name := lenses.Name.Get(person)
 personWithEmail := lenses.EmailO.Set(option.Some("new@example.com"))(person)
 ```
 
+### 🏗️ Generating Lenses for Foreign Structs (`--type`)
+
+When you don't own the source code — types from the standard library or a third-party module — you can't add the `// fp-go:Lens` annotation. The `--type` flag solves this by following the [`stringer`](https://pkg.go.dev/golang.org/x/tools/cmd/stringer) convention: name the types explicitly on the command line and let `go/packages` do full type resolution.
+
+**Syntax:**
+
+```
+go run github.com/IBM/fp-go/v2 lens \
+  --type <TypeName>[,<TypeName>...] \
+  --dir <output-dir> \
+  --filename <output-file> \
+  [package-pattern...]
+```
+
+- `--type` — comma-separated list of struct names to generate lenses for.
+- `--dir` — directory where the generated file is written (default: `.`).
+- `--filename` — name of the generated file (default: `gen.go`).
+- `package-pattern` — optional positional arguments passed to `go/packages` (default: `.`). Use import paths like `net/http` or `example.com/pkg/v2` to target external packages.
+
+**Example — generate lenses for `net/http.Server`:**
+
+```bash
+go run github.com/IBM/fp-go/v2 lens \
+  --type Server \
+  --dir ./http_lenses \
+  --filename gen_lens.go \
+  net/http
+```
+
+This produces `./http_lenses/gen_lens.go` containing `ServerLenses`, `ServerRefLenses`, `ServerPrisms`, and their `Make*` constructors. The generated package name matches the loaded package (`package http`).
+
+**Example — multiple types from an external module:**
+
+```bash
+go run github.com/IBM/fp-go/v2 lens \
+  --type Config,Client \
+  --dir . \
+  --filename gen_lens.go \
+  github.com/some/library
+```
+
+**In a `go:generate` directive:**
+
+```go
+//go:generate go run github.com/IBM/fp-go/v2 lens --type Server --dir . --filename gen_lens.go net/http
+```
+
+**How it differs from annotation mode:**
+
+| | Annotation mode | `--type` mode |
+|---|---|---|
+| Requires source changes | Yes (`// fp-go:Lens`) | No |
+| Works with foreign packages | No | Yes |
+| Type resolution | AST-based | `go/packages` (full) |
+| Generics support | Yes | Yes |
+| Struct tags | Partial | Full |
+
+**Important notes:**
+
+- The generated file's `package` declaration matches the loaded package name (e.g., `net/http` → `package http`). Place it in its own subdirectory or use build tags if you need it in a different package.
+- Fields with non-comparable types (maps, slices, functions) produce a mandatory lens but no optional `LensO` variant.
+- Unexported fields are included only when generating lenses for types in the same module; `go/packages` cannot expose them for external dependencies.
+
 ### 🎁 What Gets Generated
 
 For each annotated struct, the generator creates:
