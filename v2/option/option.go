@@ -25,7 +25,7 @@ import (
 
 // fromPredicate creates an Option based on a predicate function.
 // If the predicate returns true for the value, it returns Some(a), otherwise None.
-func fromPredicate[A any](a A, pred func(A) bool) Option[A] {
+func fromPredicate[A any](a A, pred Predicate[A]) Option[A] {
 	if pred(a) {
 		return Some(a)
 	}
@@ -40,7 +40,7 @@ func fromPredicate[A any](a A, pred func(A) bool) Option[A] {
 //	isPositive := FromPredicate(N.MoreThan(0))
 //	result := isPositive(5)  // Some(5)
 //	result := isPositive(-1) // None
-func FromPredicate[A any](pred func(A) bool) Kleisli[A, A] {
+func FromPredicate[A any](pred Predicate[A]) Kleisli[A, A] {
 	return F.Bind2nd(fromPredicate[A], pred)
 }
 
@@ -431,7 +431,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //	result := isPositive(Some(5)) // Some(5)
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None
-func Filter[A any](pred func(A) bool) Operator[A, A] {
+func Filter[A any](pred Predicate[A]) Operator[A, A] {
 	return func(ma Option[A]) Option[A] {
 		if ma.isSome && pred(ma.value) {
 			return ma

@@ -92,7 +92,7 @@ func Ap[B, E, A any](fa Either[E, A]) Operator[E, func(A) B, B] {
 //	) // Right(42)
 //
 //go:inline
-func MonadMap[E, A, B any](fa Either[E, A], f func(a A) B) Either[E, B] {
+func MonadMap[E, A, B any](fa Either[E, A], f func(A) B) Either[E, B] {
 	if fa.isLeft {
 		return Left[B](fa.l)
 	}
@@ -157,7 +157,7 @@ func MonadMapLeft[E1, A, E2 any](fa Either[E1, A], f func(E1) E2) Either[E2, A] 
 
 // Map is the curried version of [MonadMap].
 // Transforms the Right value using the provided function.
-func Map[E, A, B any](f func(a A) B) Operator[E, A, B] {
+func Map[E, A, B any](f func(A) B) Operator[E, A, B] {
 	return F.Bind2nd(MonadMap[E], f)
 }
 

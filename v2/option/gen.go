@@ -19,10 +19,12 @@ func optionize[R any](f func() (R, bool)) Option[R] {
 
 // Optionize0 converts a function with 0 parameters returning a tuple of a return value R and a boolean into a function with 0 parameters returning an Option[R]
 func Optionize0[F ~func() (R, bool), R any](f F) func() Option[R] {
+	none := None[R]()
 	return func() Option[R] {
-		return optionize(func() (R, bool) {
-			return f()
-		})
+		if r, ok := f(); ok {
+			return Some(r)
+		}
+		return none
 	}
 }
 
@@ -35,10 +37,12 @@ func Unoptionize0[F ~func() Option[R], R any](f F) func() (R, bool) {
 
 // Optionize1 converts a function with 1 parameters returning a tuple of a return value R and a boolean into a function with 1 parameters returning an Option[R]
 func Optionize1[F ~func(T0) (R, bool), T0, R any](f F) Kleisli[T0, R] {
+	none := None[R]()
 	return func(t0 T0) Option[R] {
-		return optionize(func() (R, bool) {
-			return f(t0)
-		})
+		if r, ok := f(t0); ok {
+			return Some(r)
+		}
+		return none
 	}
 }
 

@@ -70,4 +70,6 @@ type (
 	Traversable[A, B, GA, GB any] = func(Kleisli[A, B]) Kleisli[GA, GB]
 
 	Seq[A any] = iter.Seq[A]
+
+	KleisliIdiomatic[A, B any] = func(A) (B, error)
 )
