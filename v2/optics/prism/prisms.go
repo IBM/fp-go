@@ -129,7 +129,7 @@ func ParseURL() Prism[string, *url.URL] {
 	)
 }
 
-// InstanceOf creates a prism for type assertions on interface{}/any values.
+// InstanceOf creates a prism for type assertions on any/any values.
 // It provides a safe way to extract values of a specific type from an any value,
 // handling type mismatches gracefully through the Option type.
 //
@@ -165,10 +165,10 @@ func ParseURL() Prism[string, *url.URL] {
 //	result := setter(intPrism)(any(42))  // any(100)
 //
 // Common use cases:
-//   - Safely extracting typed values from interface{} collections
+//   - Safely extracting typed values from any collections
 //   - Working with heterogeneous data structures
 //   - Type-safe deserialization and validation
-//   - Pattern matching on interface{} values
+//   - Pattern matching on any values
 func InstanceOf[T any]() Prism[any, T] {
 	var t T
 	return MakePrismWithName(option.InstanceOf[T], F.ToAny[T], fmt.Sprintf("PrismInstanceOf[%T]", t))

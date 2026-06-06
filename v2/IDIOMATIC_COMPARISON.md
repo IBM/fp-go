@@ -160,7 +160,7 @@ func bad1() *Either[error, int] {
 }
 
 // Storing in interface
-func bad2() interface{} {
+func bad2() any {
     return Right[error](42)  // ESCAPES: interface boxing
 }
 

@@ -612,7 +612,7 @@ func Zero[A any]() Result[A] {
 // If the type assertion succeeds, it returns a Right containing the converted value.
 // If the type assertion fails, it returns a Left containing an error describing the type mismatch.
 //
-// This function is useful for safely converting interface{}/any values to concrete types
+// This function is useful for safely converting any/any values to concrete types
 // in a functional programming style, where type assertion failures are represented as
 // Left values rather than panics or boolean checks.
 //

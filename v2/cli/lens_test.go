@@ -212,7 +212,7 @@ func TestIsComparableType(t *testing.T) {
 		},
 		{
 			name:     "interface type",
-			code:     "type T struct { F interface{} }",
+			code:     "type T struct { F any }",
 			expected: true,
 		},
 		{

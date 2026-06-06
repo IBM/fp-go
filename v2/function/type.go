@@ -56,11 +56,11 @@ type (
 //	_ = doSomething()
 var VOID Void = struct{}{}
 
-// ToAny converts a value of any type to the any (interface{}) type.
+// ToAny converts a value of any type to the any (any) type.
 //
 // This function performs an explicit type conversion to the any type, which can be
 // useful when you need to store values of different types in a homogeneous collection
-// or when interfacing with APIs that require any/interface{}.
+// or when interfacing with APIs that require any/any.
 //
 // Type Parameters:
 //   - A: The type of the input value

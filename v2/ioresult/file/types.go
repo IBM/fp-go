@@ -70,9 +70,9 @@ type (
 	//   })
 	//
 	//   // An operator that validates JSON
-	//   var validateJSON Operator[string, map[string]interface{}] = ChainEitherK(
-	//       func(s string) Result[map[string]interface{}] {
-	//           var result map[string]interface{}
+	//   var validateJSON Operator[string, map[string]any] = ChainEitherK(
+	//       func(s string) Result[map[string]any] {
+	//           var result map[string]any
 	//           err := json.Unmarshal([]byte(s), &result)
 	//           return result.TryCatchError(result, err)
 	//       },
