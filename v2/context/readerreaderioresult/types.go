@@ -29,6 +29,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/traversal/result"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
@@ -158,4 +159,6 @@ type (
 	Seq[A any] = iter.Seq[A]
 
 	Void = function.Void
+
+	Pair[L, R any] = pair.Pair[L, R]
 )

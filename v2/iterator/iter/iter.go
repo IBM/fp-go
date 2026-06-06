@@ -57,8 +57,11 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/chain"
+	"github.com/IBM/fp-go/v2/internal/fromio"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	G "github.com/IBM/fp-go/v2/internal/iter"
+	"github.com/IBM/fp-go/v2/io"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -95,6 +98,11 @@ func Of[A any](a A) Seq[A] {
 	return G.Of[Seq[A]](a)
 }
 
+// MonadOf is an alias for Of in monadic context.
+// It creates a single-element sequence containing the provided value.
+// Functionally identical to Of; prefer Of unless working with higher-order
+// combinators that expect a MonadOf-named constructor.
+//
 //go:inline
 func MonadOf[A any](a A) Seq[A] {
 	return G.Of[Seq[A]](a)
@@ -546,16 +554,15 @@ func FilterMapWithKey[K, A, B any](f func(K, A) Option[B]) Operator2[K, A, B] {
 	return F.Bind2nd(MonadFilterMapWithKey[K, A, B], f)
 }
 
-// MonadChain applies a function that returns a sequence to each element and flattens the results.
-// This is the monadic bind operation (flatMap).
+// MonadChain maps f over as and flattens the results with deterministic output
+// order. All mapped sequences run concurrently; only output order is guaranteed.
+// This is the uncurried form of Chain.
 //
 // Marble Diagram:
 //
 //	Input:  --1-----2-----3---->
 //	Chain(x => [x, x*10])
-//	Output: --1-10--2-20--3-30->
-//
-// RxJS Equivalent: [mergeMap/flatMap] - https://rxjs.dev/api/operators/mergeMap
+//	Output: --1-10--2-20--3-30->  (output order preserved; producers concurrent)
 //
 // Example:
 //
@@ -565,19 +572,37 @@ func FilterMapWithKey[K, A, B any](f func(K, A) Option[B]) Operator2[K, A, B] {
 //	})
 //	// yields: 1, 10, 2, 20, 3, 30
 func MonadChain[A, B any](as Seq[A], f Kleisli[A, B]) Seq[B] {
-	return func(yield Predicate[B]) {
-		for a := range as {
-			for b := range f(a) {
-				if !yield(b) {
-					return
-				}
-			}
-		}
-	}
+	return MonadConcatMap(as, f)
 }
 
-// Chain returns a function that chains (flatMaps) a sequence transformation.
-// This is the curried version of MonadChain.
+// MonadChainSeq is the uncurried form of ChainSeq. It maps f over as and
+// flattens the results using purely sequential iteration — no goroutines, no
+// channels. Alias for MonadConcatMapSeq.
+//
+// See Also:
+//   - MonadChain: Concurrent producers, same output order
+//   - MonadChainPar: Always concurrent
+//   - ChainSeq: The curried/operator form
+func MonadChainSeq[A, B any](as Seq[A], f Kleisli[A, B]) Seq[B] {
+	return MonadConcatMapSeq(as, f)
+}
+
+// MonadChainPar is the uncurried form of ChainPar. It maps f over as and
+// flattens the results using ConcatAllPar with defaultBufferSize — all inner
+// sequences run concurrently and are drained in input order. Alias for
+// MonadConcatMapPar.
+//
+// See Also:
+//   - MonadChain: Dispatches to sequential when bufSize == 1
+//   - MonadChainSeq: Always sequential
+//   - ChainPar: The curried/operator form
+func MonadChainPar[A, B any](as Seq[A], f Kleisli[A, B]) Seq[B] {
+	return MonadConcatMapPar(as, f)
+}
+
+// Chain maps each element to a sequence and flattens all results with
+// deterministic output order (concurrent inner producers, sequential drain).
+// Alias for ConcatMap. See ConcatMapBuf for the full semantics.
 //
 // Example:
 //
@@ -587,21 +612,74 @@ func MonadChain[A, B any](as Seq[A], f Kleisli[A, B]) Seq[B] {
 //	// yields: 1, 1, 2, 2, 3, 3
 //
 //go:inline
-func Chain[A, B any](f func(A) Seq[B]) Operator[A, B] {
-	return F.Bind2nd(MonadChain[A, B], f)
+func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
+	return ConcatMap(f)
 }
 
+// ChainSeq maps each element to a sequence and flattens the results using
+// purely sequential iteration — no goroutines, no channels. Alias for
+// ConcatMapSeq.
+//
+// See Also:
+//   - Chain: Concurrent producers, same output order
+//   - ChainPar: Always concurrent
+//
 //go:inline
-func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
+func ChainSeq[A, B any](f Kleisli[A, B]) Operator[A, B] {
+	return ConcatMapSeq(f)
+}
+
+// ChainPar maps each element to a sequence and flattens the results using
+// ConcatAllPar with defaultBufferSize — all inner sequences run concurrently
+// and are drained in input order. Alias for ConcatMapPar.
+//
+// See Also:
+//   - Chain: Dispatches to sequential when bufSize == 1
+//   - ChainSeq: Always sequential, no goroutines
+//
+//go:inline
+func ChainPar[A, B any](f Kleisli[A, B]) Operator[A, B] {
+	return ConcatMapPar(f)
+}
+
+// FlatMap is an alias for Chain.
+// It maps each element to a sequence and flattens all resulting sequences into one.
+// Provided as a familiar name for developers coming from languages where flatMap
+// is the conventional term for the monadic bind operation.
+//
+//go:inline
+func FlatMap[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return Chain(f)
 }
 
-// ConcatMap is an alias for Chain that emphasizes sequential concatenation.
-// It maps each element to a sequence and concatenates the results in order.
+// FlatMapPar is an alias for ChainPar. It maps each element to a sequence and
+// flattens the results using concurrent inner producers drained in input order.
 //
-// Unlike concurrent operations, ConcatMap preserves the order of elements:
-// it fully processes each input element (yielding all elements from f(a))
-// before moving to the next input element.
+// See Also:
+//   - FlatMap: Dispatches to sequential when bufSize == 1
+//   - FlatMapSeq: Always sequential, no goroutines
+//
+//go:inline
+func FlatMapPar[A, B any](f Kleisli[A, B]) Operator[A, B] {
+	return ChainPar(f)
+}
+
+// FlatMapSeq is an alias for ChainSeq. It maps each element to a sequence and
+// flattens the results using purely sequential iteration — no goroutines, no
+// channels.
+//
+// See Also:
+//   - FlatMap: Concurrent producers, same output order
+//   - FlatMapPar: Always concurrent
+//
+//go:inline
+func FlatMapSeq[A, B any](f Kleisli[A, B]) Operator[A, B] {
+	return ChainSeq(f)
+}
+
+// ConcatMap maps each element to a sequence and flattens the results with
+// deterministic output order (concurrent inner producers, sequential drain).
+// Convenience wrapper around ConcatMapBuf using defaultBufferSize.
 //
 // Example:
 //
@@ -609,22 +687,57 @@ func FlatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 //	result := ConcatMap(func(x int) Seq[int] {
 //	    return From(x, x*10)
 //	})(seq)
-//	// yields: 1, 10, 2, 20, 3, 30 (order preserved)
+//	// yields: 1, 10, 2, 20, 3, 30 (output order preserved)
 //
 //go:inline
 func ConcatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
-	return Chain(f)
+	return ConcatMapBuf(f, defaultBufferSize)
 }
 
-// Flatten flattens a sequence of sequences into a single sequence.
+// ConcatMapSeq maps each element to a sequence and flattens the results using
+// purely sequential iteration — no goroutines, no channels. Each inner
+// sequence is fully drained before f is called on the next element. Use this
+// when inner sequences are cheap and synchronous and goroutine overhead is
+// undesirable.
+//
+// See Also:
+//   - ConcatMap: Concurrent producers, same output order, uses defaultBufferSize
+//   - ConcatMapPar: Always concurrent (bypasses the sequential optimisation)
+//
+//go:inline
+func ConcatMapSeq[A, B any](f func(A) Seq[B]) Operator[A, B] {
+	return F.Flow2(
+		Map(f),
+		ConcatAllSeq[B](),
+	)
+}
+
+// ConcatMapPar maps each element to a sequence and flattens the results using
+// ConcatAllPar with defaultBufferSize. All mapped sequences always run in their
+// own goroutines and are drained in input order, bypassing the bufSize == 1
+// sequential optimisation that ConcatMap applies.
+//
+// Use this when you need the concurrent-producers model regardless of buffer
+// size, for example to ensure forward progress in I/O-bound pipelines.
+//
+// See Also:
+//   - ConcatMap: Dispatches to sequential when bufSize == 1
+//   - ConcatMapSeq: Always sequential, no goroutines
+//
+//go:inline
+func ConcatMapPar[A, B any](f func(A) Seq[B]) Operator[A, B] {
+	return ConcatMapBufPar(f, defaultBufferSize)
+}
+
+// Flatten flattens a sequence of sequences into a single sequence with
+// deterministic output order. Inner sequences run concurrently but are drained
+// in order. Convenience wrapper around ConcatAll using defaultBufferSize.
 //
 // Marble Diagram:
 //
 //	Input:  --[1,2]--[3,4]--[5]-->
-//	Flatten
+//	Flatten (concurrent producers, sequential drain)
 //	Output: --1-2----3-4----5---->
-//
-// RxJS Equivalent: [mergeAll] - https://rxjs.dev/api/operators/mergeAll
 //
 // Example:
 //
@@ -634,12 +747,33 @@ func ConcatMap[A, B any](f func(A) Seq[B]) Operator[A, B] {
 //
 //go:inline
 func Flatten[A any](mma Seq[Seq[A]]) Seq[A] {
-	return MonadChain(mma, F.Identity[Seq[A]])
+	return ConcatAll[A](defaultBufferSize)(mma)
 }
 
+// FlattenSeq flattens a sequence of sequences into a single sequence using
+// purely sequential iteration — no goroutines, no channels. Each inner
+// sequence is fully drained before the next one is started.
+//
+// See Also:
+//   - Flatten: Concurrent producers, same output order
+//   - FlattenPar: Always concurrent (bypasses the sequential optimisation)
+//
 //go:inline
-func ConcatAll[A any](mma Seq[Seq[A]]) Seq[A] {
-	return Flatten(mma)
+func FlattenSeq[A any](mma Seq[Seq[A]]) Seq[A] {
+	return ConcatAllSeq[A]()(mma)
+}
+
+// FlattenPar flattens a sequence of sequences into a single sequence using
+// ConcatAllPar with defaultBufferSize — all inner sequences run concurrently
+// in their own goroutines and are drained in input order.
+//
+// See Also:
+//   - Flatten: Dispatches to sequential when bufSize == 1
+//   - FlattenSeq: Always sequential, no goroutines
+//
+//go:inline
+func FlattenPar[A any](mma Seq[Seq[A]]) Seq[A] {
+	return ConcatAllPar[A](defaultBufferSize)(mma)
 }
 
 // MonadAp applies a sequence of functions to a sequence of values.
@@ -665,19 +799,87 @@ func MonadAp[B, A any](fab Seq[func(A) B], fa Seq[A]) Seq[B] {
 	return MonadChain(fab, F.Bind1st(MonadMap[A, B], fa))
 }
 
-// Ap returns a function that applies functions to values.
-// This is the curried version of MonadAp.
+// MonadApSeq applies a sequence of functions to a sequence of values using
+// purely sequential iteration — no goroutines, no channels. Each function is
+// applied to every value before the next function is processed.
+//
+// See Also:
+//   - MonadAp: Concurrent inner producers, same output order
+//   - MonadApPar: Always concurrent
+//   - ApSeq: The curried/operator form
+//
+//go:inline
+func MonadApSeq[B, A any](fab Seq[func(A) B], fa Seq[A]) Seq[B] {
+	return MonadChainSeq(fab, F.Bind1st(MonadMap[A, B], fa))
+}
+
+// MonadApPar applies a sequence of functions to a sequence of values using
+// concurrent inner producers drained in input order.
+//
+// See Also:
+//   - MonadAp: Dispatches to sequential when bufSize == 1
+//   - MonadApSeq: Always sequential, no goroutines
+//   - ApPar: The curried/operator form
+//
+//go:inline
+func MonadApPar[B, A any](fab Seq[func(A) B], fa Seq[A]) Seq[B] {
+	return MonadChainPar(fab, F.Bind1st(MonadMap[A, B], fa))
+}
+
+// Ap returns an Operator that applies a sequence of functions to fa, the value
+// sequence captured at construction. For each function f in the input sequence
+// it computes MonadMap(fa, f); the per-function results are then concatenated
+// in function-sequence order. This is the curried form of MonadAp.
+//
+// Marble Diagram:
+//
+//	fa  (values, captured): --5------3------>
+//	fab (functions, input): --(*2)---(+10)-->
+//	Ap(fa)(fab)
+//	Output:                 --10-6---15-13-->
+//	                        (for each f ∈ fab: f applied to every v ∈ fa)
 //
 // Example:
 //
-//	applyTo5 := Ap(From(5))
+//	applyTo := Ap[int, int](From(5, 3))
 //	fns := From(N.Mul(2), N.Add(10))
-//	result := applyTo5(fns)
-//	// yields: 10, 15
+//	result := applyTo(fns)
+//	// yields: 10, 6, 15, 13
+//
+// See Also:
+//   - MonadAp: Uncurried form
+//   - ApSeq: Sequential inner application, no goroutines
+//   - ApPar: Always concurrent inner application
 //
 //go:inline
 func Ap[B, A any](fa Seq[A]) Operator[func(A) B, B] {
 	return Chain(F.Bind1st(MonadMap[A, B], fa))
+}
+
+// ApSeq returns an operator that applies a sequence of functions to fa using
+// purely sequential iteration — no goroutines, no channels. The curried form
+// of MonadApSeq.
+//
+// See Also:
+//   - Ap: Concurrent producers, same output order
+//   - ApPar: Always concurrent
+//
+//go:inline
+func ApSeq[B, A any](fa Seq[A]) Operator[func(A) B, B] {
+	return ChainSeq(F.Bind1st(MonadMap[A, B], fa))
+}
+
+// ApPar returns an operator that applies a sequence of functions to fa using
+// concurrent inner producers drained in input order. The curried form of
+// MonadApPar.
+//
+// See Also:
+//   - Ap: Dispatches to sequential when bufSize == 1
+//   - ApSeq: Always sequential, no goroutines
+//
+//go:inline
+func ApPar[B, A any](fa Seq[A]) Operator[func(A) B, B] {
+	return ChainPar(F.Bind1st(MonadMap[A, B], fa))
 }
 
 // From creates a sequence from a variadic list of elements.
@@ -1397,4 +1599,183 @@ func Skip[U any](count int) Operator[U, U] {
 //   - ToSeqPair: Converts Seq2 to Seq of pairs
 func Collect[T any](fa Seq[T]) IO[[]T] {
 	return MonadReduce(fa, A.Append, nil)
+}
+
+// MonadChainFirst executes f for each element's side effects but passes the
+// original element through unchanged. This is the monadic (uncurried) form.
+//
+// Unlike MonadChain, the results of f are discarded; only the elements from
+// the original sequence ma are yielded. This is useful for performing
+// sequential side effects while keeping the original values in scope.
+//
+// Marble Diagram:
+//
+//	Input:  --1--2--3-->
+//	f produces a side-effecting sequence for each element
+//	Output: --1--2--3-->  (original values, side effects happened)
+//
+// RxJS Equivalent: [tap/do] - https://rxjs.dev/api/operators/tap
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	sideEffect := func(x int) Seq[string] {
+//	    fmt.Printf("processing %d\n", x)
+//	    return From("done")
+//	}
+//	result := MonadChainFirst(seq, sideEffect)
+//	// yields: 1, 2, 3 (prints "processing 1", "processing 2", "processing 3")
+func MonadChainFirst[A, B any](ma Seq[A], f Kleisli[A, B]) Seq[A] {
+	return chain.MonadChainFirst(
+		MonadChain[A, A],
+		MonadMap[B, A],
+		ma,
+		f,
+	)
+}
+
+// ChainFirst is the curried version of MonadChainFirst.
+// It returns an operator that executes f for side effects but preserves the original element.
+//
+// Example:
+//
+//	log := ChainFirst(func(x int) Seq[string] {
+//	    fmt.Printf("element: %d\n", x)
+//	    return Of("logged")
+//	})
+//	seq := From(1, 2, 3)
+//	result := log(seq)
+//	// yields: 1, 2, 3 (and prints each element)
+func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return chain.ChainFirst(
+		Chain[A, A],
+		Map[B, A],
+		f,
+	)
+}
+
+// Tap is an alias for ChainFirst.
+// It executes f for each element's side effects and passes the original element through.
+//
+// RxJS Equivalent: [tap] - https://rxjs.dev/api/operators/tap
+//
+// Example:
+//
+//	logged := Tap(func(x int) Seq[string] {
+//	    fmt.Printf("element: %d\n", x)
+//	    return Of("logged")
+//	})
+//	seq := From(10, 20, 30)
+//	result := logged(seq)
+//	// yields: 10, 20, 30 (and prints each element)
+func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return ChainFirst(f)
+}
+
+// MonadChainFirstIOK is the uncurried form of ChainFirstIOK.
+// For each element a in ma, it executes f(a) (an IO computation) for its side effect
+// and passes the original a through unchanged.
+//
+// The IO returned by f is executed but its result is discarded.
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	logIO := func(x int) func() string {
+//	    return func() string {
+//	        fmt.Printf("logging %d\n", x)
+//	        return "ok"
+//	    }
+//	}
+//	result := MonadChainFirstIOK(seq, logIO)
+//	// yields: 1, 2, 3 (and executes logIO for each element when iterated)
+func MonadChainFirstIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[A] {
+	return fromio.MonadChainFirstIOK(
+		MonadChainSeq[A, A],
+		MonadMap[B, A],
+		FromIO,
+		ma,
+		f,
+	)
+}
+
+// ChainFirstIOK is the curried version of MonadChainFirstIOK.
+// It returns an operator that executes an IO-returning function for side effects
+// while passing the original elements through unchanged.
+//
+// Example:
+//
+//	logIO := ChainFirstIOK(func(x int) func() string {
+//	    return func() string {
+//	        fmt.Printf("element: %d\n", x)
+//	        return "logged"
+//	    }
+//	})
+//	seq := From(1, 2, 3)
+//	result := logIO(seq)
+//	// yields: 1, 2, 3 (IO side effects run on iteration)
+func ChainFirstIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
+	return fromio.ChainFirstIOK(
+		ChainSeq[A, A],
+		Map[B, A],
+		FromIO,
+		f,
+	)
+}
+
+// TapIOK is an alias for ChainFirstIOK.
+// It executes an IO-returning function for side effects and passes the original element through.
+//
+// Example:
+//
+//	logged := TapIOK(func(x int) func() string {
+//	    return func() string {
+//	        fmt.Printf("element: %d\n", x)
+//	        return "ok"
+//	    }
+//	})
+//	result := logged(From(10, 20, 30))
+//	// yields: 10, 20, 30 (IO executes on iteration)
+func TapIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
+	return ChainFirstIOK(f)
+}
+
+// MonadChainIOK is the uncurried form of ChainIOK.
+// For each element a in ma, it calls f(a) to get an IO[B], converts it to a
+// single-element Seq[B] via FromIO, and flattens the results.
+//
+// Example:
+//
+//	seq := From(1, 2, 3)
+//	toStringIO := func(x int) func() string {
+//	    return func() string { return fmt.Sprintf("item-%d", x) }
+//	}
+//	result := MonadChainIOK(seq, toStringIO)
+//	// yields: "item-1", "item-2", "item-3"
+func MonadChainIOK[A, B any](ma Seq[A], f io.Kleisli[A, B]) Seq[B] {
+	return fromio.MonadChainIOK(
+		MonadChainSeq[A, B],
+		FromIO[B],
+		ma, f,
+	)
+}
+
+// ChainIOK is the curried version of MonadChainIOK.
+// It returns an operator that maps each element through an IO-producing function
+// and lifts each IO result into the sequence.
+//
+// Example:
+//
+//	toStringIO := ChainIOK(func(x int) func() string {
+//	    return func() string { return fmt.Sprintf("item-%d", x) }
+//	})
+//	seq := From(1, 2, 3)
+//	result := toStringIO(seq)
+//	// yields: "item-1", "item-2", "item-3"
+func ChainIOK[A, B any](f io.Kleisli[A, B]) Operator[A, B] {
+	return fromio.ChainIOK(
+		ChainSeq[A, B],
+		FromIO[B],
+		f,
+	)
 }

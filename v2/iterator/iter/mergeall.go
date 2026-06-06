@@ -19,7 +19,6 @@ import (
 	"slices"
 	"sync"
 
-	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
@@ -241,9 +240,10 @@ func Merge[T any](iterables []Seq[T]) Seq[T] {
 //   - MergeAll: Merges multiple sequences at once
 //   - Empty: Creates an empty sequence
 func MergeMonoid[T any](bufSize int) M.Monoid[Seq[T]] {
+	mergeAll := MergeAll[T](bufSize)
 	return M.MakeMonoid(
 		func(l, r Seq[T]) Seq[T] {
-			return MergeBuf(A.From(l, r), bufSize)
+			return mergeAll(From(l, r))
 		},
 		Empty[T](),
 	)
@@ -562,6 +562,13 @@ func MergeMap[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return MergeMapBuf(f, defaultBufferSize)
 }
 
+// MonadMergeMap is the uncurried form of MergeMap. It maps f over fa and
+// merges the resulting sequences concurrently with non-deterministic output
+// order. Elements arrive in the order that inner producers emit them.
+//
+// See Also:
+//   - MergeMap: The curried/operator form
+//   - MonadChain: Deterministic output order (concurrent producers, sequential drain)
 func MonadMergeMap[A, B any](fa Seq[A], f Kleisli[A, B]) Seq[B] {
 	return MergeMap(f)(fa)
 }

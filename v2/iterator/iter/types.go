@@ -185,9 +185,23 @@ type (
 	// It's used in functions that perform side effects but don't return meaningful values.
 	Void = function.Void
 
+	// IO represents a deferred computation that produces a value of type A when executed.
+	// It is a zero-argument function, so calling it runs the computation and returns A.
+	// IO computations are lazy: no work happens until the function is called.
+	//
+	// In this package IO appears as the return type of reduction operations (Reduce, Fold,
+	// Collect) because consuming a Seq is itself a side-effecting action that must remain
+	// deferred until the caller is ready.
 	IO[A any] = io.IO[A]
 
+	// Lazy is an alias for IO and carries the same semantics: a zero-argument function
+	// whose body is evaluated only when called.  Use Lazy to signal that the emphasis is
+	// on the deferred nature of the computation rather than on potential side effects.
 	Lazy[A any] = lazy.Lazy[A]
 
+	// IOOption represents a deferred computation that may or may not produce a value.
+	// It combines IO (deferred execution) with Option (optional result), returning
+	// Option[A] when called.  Useful for effectful lookups that can legitimately
+	// return nothing.
 	IOOption[A any] = iooption.IOOption[A]
 )

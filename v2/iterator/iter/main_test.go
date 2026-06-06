@@ -13,18 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package http
+package iter
 
 import (
-	"github.com/IBM/fp-go/v2/context/readerioresult"
-	"github.com/IBM/fp-go/v2/effect"
-	"github.com/IBM/fp-go/v2/option"
-	"github.com/IBM/fp-go/v2/pair"
+	"testing"
+
+	"go.uber.org/goleak"
 )
 
-type (
-	Thunk[A any]     = readerioresult.ReaderIOResult[A]
-	Effect[C, T any] = effect.Effect[C, T]
-	Option[T any]    = option.Option[T]
-	Pair[A, B any]   = pair.Pair[A, B]
-)
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
+}

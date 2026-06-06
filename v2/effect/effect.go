@@ -16,11 +16,14 @@
 package effect
 
 import (
+	"context"
+
 	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/fromreader"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
@@ -756,4 +759,39 @@ func Read[A, C any](c C) func(Effect[C, A]) Thunk[A] {
 //go:inline
 func Asks[C, A any](r Reader[C, A]) Effect[C, A] {
 	return readerreaderioresult.Asks(r)
+}
+
+// Paired converts an [Effect] into a single-argument function that accepts a [Pair]
+// bundling the context.Context (head) and the outer environment R (tail).
+//
+// This is a thin wrapper over [readerreaderioresult.Paired]; see that function for
+// the full rationale. In short: R sits in the tail because the tail is the primary
+// value that [pair.Map] and other functor operations act on, while context.Context
+// sits in the head as auxiliary threading data that passes through unchanged.
+//
+// # Type Parameters
+//
+//   - R: The context type required by the effect (outer environment)
+//   - A: The type of the success value
+//
+// # Parameters
+//
+//   - f: The effect to convert
+//
+// # Returns
+//
+//   - func(Pair[context.Context, R]) IOResult[A]: A function that accepts a bundled pair
+//     and runs the effect, equivalent to f(pair.Tail(p))(pair.Head(p))
+//
+// # Example
+//
+//	type Config struct{ BaseURL string }
+//
+//	fetch := effect.Of[Config]("hello")
+//	paired := effect.Paired(fetch)
+//
+//	p := pair.MakePair[context.Context, Config](ctx, Config{BaseURL: "http://example.com"})
+//	res := paired(p)()  // Result[string]
+func Paired[R, A any](f Effect[R, A]) ioresult.Kleisli[Pair[context.Context, R], A] {
+	return readerreaderioresult.Paired(f)
 }
