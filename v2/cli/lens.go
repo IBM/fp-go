@@ -37,6 +37,7 @@ const (
 	keyLensDir         = "dir"
 	keyVerbose         = "verbose"
 	keyIncludeTestFile = "include-test-files"
+	keyTypeNames       = "type"
 	lensAnnotation     = "fp-go:Lens"
 )
 
@@ -59,6 +60,14 @@ var (
 		Aliases: []string{"t"},
 		Value:   false,
 		Usage:   "Include test files (*_test.go) when scanning for annotated types",
+	}
+
+	// flagTypeNames follows the stringer convention: a comma-separated list of
+	// type names that bypasses annotation scanning and uses go/packages for full
+	// type resolution (generics, external field types, struct tags).
+	flagTypeNames = &C.StringFlag{
+		Name:  keyTypeNames,
+		Usage: "Comma-separated list of struct type names to generate lenses for (replaces annotation scanning)",
 	}
 )
 
@@ -983,19 +992,51 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 	return nil
 }
 
-// LensCommand creates the CLI command for lens generation
+// LensCommand creates the CLI command for lens generation.
+//
+// Two modes are supported:
+//
+//  1. Annotation mode (default): scans Go files in --dir for structs annotated
+//     with "fp-go:Lens" and generates lenses for them.
+//
+//  2. Type-name mode (--type flag, following the stringer convention): accepts a
+//     comma-separated list of struct names and optional package patterns as
+//     positional arguments (default "."). Uses go/packages for full type
+//     resolution — generics, external field types, and struct tags are all handled
+//     correctly without requiring source annotations.
 func LensCommand() *C.Command {
 	return &C.Command{
 		Name:        "lens",
-		Usage:       "generate lens code for annotated structs",
-		Description: "Scans Go files for structs annotated with 'fp-go:Lens' and generates lens types. Pointer types and non-pointer types with json omitempty tag generate LensO (optional lens).",
+		Usage:       "generate lens code for annotated structs or named types",
+		Description: "Scans Go files for structs annotated with 'fp-go:Lens', or — when --type is given — uses go/packages to load named types directly (stringer-style). Pointer fields and json-omitempty fields produce LensO (optional lens).",
 		Flags: []C.Flag{
 			flagLensDir,
 			flagFilename,
 			flagVerbose,
 			flagIncludeTestFiles,
+			flagTypeNames,
 		},
 		Action: func(ctx context.Context, cmd *C.Command) error {
+			if typesStr := cmd.String(keyTypeNames); typesStr != "" {
+				// Type-name mode: split comma-separated names, collect patterns from
+				// positional args (default to ".") following the stringer convention.
+				typeNames := strings.Split(typesStr, ",")
+				for i, n := range typeNames {
+					typeNames[i] = strings.TrimSpace(n)
+				}
+				patterns := cmd.Args().Slice()
+				if len(patterns) == 0 {
+					patterns = []string{"."}
+				}
+				return generateLensHelpersByType(
+					cmd.String(keyLensDir),
+					cmd.String(keyFilename),
+					patterns,
+					typeNames,
+					cmd.Bool(keyVerbose),
+				)
+			}
+			// Annotation mode: scan directory for fp-go:Lens annotations.
 			return generateLensHelpers(
 				cmd.String(keyLensDir),
 				cmd.String(keyFilename),

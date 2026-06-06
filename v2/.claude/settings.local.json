@@ -10,7 +10,7 @@
       "Bash(sort:*)",
       "Bash(tee:*)",
       "Bash(find:*)",
-      "Bash(go vet *)"
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
