@@ -607,35 +607,28 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 		}
 
 		for _, name := range field.Names {
-			// Generate lenses for both exported and unexported fields
 			fieldTypeName := getTypeName(field.Type)
-			if true { // Keep the block structure for minimal changes
-				isOptional := false
-				baseType := fieldTypeName
+			isOptional := false
+			baseType := fieldTypeName
 
-				// Check if field is optional
-				if isPointerType(field.Type) {
-					isOptional = true
-					baseType = strings.TrimPrefix(fieldTypeName, "*")
-				} else if hasOmitEmpty(field.Tag) {
-					isOptional = true
-				}
-
-				// Check if the type is comparable
-				isComparable := isComparableType(field.Type, typeParamsMap)
-
-				results = append(results, embeddedFieldResult{
-					fieldInfo: fieldInfo{
-						Name:         name.Name,
-						TypeName:     fieldTypeName,
-						BaseType:     baseType,
-						IsOptional:   isOptional,
-						IsComparable: isComparable,
-						IsEmbedded:   true,
-					},
-					fieldType: field.Type,
-				})
+			if isPointerType(field.Type) {
+				isOptional = true
+				baseType = strings.TrimPrefix(fieldTypeName, "*")
+			} else if hasOmitEmpty(field.Tag) {
+				isOptional = true
 			}
+
+			results = append(results, embeddedFieldResult{
+				fieldInfo: fieldInfo{
+					Name:         name.Name,
+					TypeName:     fieldTypeName,
+					BaseType:     baseType,
+					IsOptional:   isOptional,
+					IsComparable: isComparableType(field.Type, typeParamsMap),
+					IsEmbedded:   true,
+				},
+				fieldType: field.Type,
+			})
 		}
 	}
 
@@ -769,49 +762,32 @@ func parseFile(filename string) ([]structInfo, string, error) {
 				continue
 			}
 			for _, name := range field.Names {
-				// Generate lenses for both exported and unexported fields
 				typeName := getTypeName(field.Type)
-				if true { // Keep the block structure for minimal changes
-					isOptional := false
-					baseType := typeName
-					isComparable := false
+				isOptional := false
+				baseType := typeName
 
-					// Check if field is optional:
-					// 1. Pointer types are always optional
-					// 2. Non-pointer types with json omitempty tag are optional
-					if isPointerType(field.Type) {
-						isOptional = true
-						// Strip leading * for base type
-						baseType = strings.TrimPrefix(typeName, "*")
-					} else if hasOmitEmpty(field.Tag) {
-						// Non-pointer type with omitempty is also optional
-						isOptional = true
-					}
-
-					// Check if the type is comparable (for non-optional fields)
-					// For optional fields, we don't need to check since they use LensO
-					isComparable = isComparableType(field.Type, typeParamsMap)
-					// log.Printf("field %s, type: %v, isComparable: %b\n", name, field.Type, isComparable)
-
-					// Extract imports from this field's type
-					fieldImports := make(map[string]string)
-					extractImports(field.Type, fieldImports)
-
-					// Resolve package names to full import paths
-					for pkgName := range fieldImports {
-						if importPath, ok := fileImports[pkgName]; ok {
-							structImports[importPath] = pkgName
-						}
-					}
-
-					fields = append(fields, fieldInfo{
-						Name:         name.Name,
-						TypeName:     typeName,
-						BaseType:     baseType,
-						IsOptional:   isOptional,
-						IsComparable: isComparable,
-					})
+				if isPointerType(field.Type) {
+					isOptional = true
+					baseType = strings.TrimPrefix(typeName, "*")
+				} else if hasOmitEmpty(field.Tag) {
+					isOptional = true
 				}
+
+				fieldImports := make(map[string]string)
+				extractImports(field.Type, fieldImports)
+				for pkgName := range fieldImports {
+					if importPath, ok := fileImports[pkgName]; ok {
+						structImports[importPath] = pkgName
+					}
+				}
+
+				fields = append(fields, fieldInfo{
+					Name:         name.Name,
+					TypeName:     typeName,
+					BaseType:     baseType,
+					IsOptional:   isOptional,
+					IsComparable: isComparableType(field.Type, typeParamsMap),
+				})
 			}
 		}
 
