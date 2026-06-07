@@ -26,6 +26,17 @@
             "description": "Disable updates to the go directive in go.mod files - the directive identifies the minimum compatible Go version and should stay as small as possible for maximum compatibility"
         },
         {
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchPackageNames": [
+                "github.com/IBM/fp-go",
+                "github.com/IBM/fp-go/v2"
+            ],
+            "commitMessagePrefix": "doc:",
+            "description": "Updates to fp-go itself are documentation-only and should not trigger a new release"
+        },
+        {
             "matchUpdateTypes": [
                 "major",
                 "minor",

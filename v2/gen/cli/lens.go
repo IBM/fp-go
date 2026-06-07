@@ -1004,22 +1004,38 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 //     positional arguments (default "."). Uses go/packages for full type
 //     resolution — generics, external field types, and struct tags are all handled
 //     correctly without requiring source annotations.
-//
-// deprecated
 func LensCommand() *C.Command {
 	return &C.Command{
 		Name:        "lens",
 		Usage:       "generate lens code for annotated structs or named types",
-		Description: "Scans Go files for structs annotated with 'fp-go:Lens'.",
+		Description: "Scans Go files for structs annotated with 'fp-go:Lens', or — when --type is given — uses go/packages to load named types directly (stringer-style). Pointer fields and json-omitempty fields produce LensO (optional lens).",
 		Flags: []C.Flag{
 			flagLensDir,
 			flagFilename,
 			flagVerbose,
 			flagIncludeTestFiles,
+			flagTypeNames,
 		},
 		Action: func(ctx context.Context, cmd *C.Command) error {
-			// print warning
-			log.Println("Deprecated")
+			if typesStr := cmd.String(keyTypeNames); typesStr != "" {
+				// Type-name mode: split comma-separated names, collect patterns from
+				// positional args (default to ".") following the stringer convention.
+				typeNames := strings.Split(typesStr, ",")
+				for i, n := range typeNames {
+					typeNames[i] = strings.TrimSpace(n)
+				}
+				patterns := cmd.Args().Slice()
+				if len(patterns) == 0 {
+					patterns = []string{"."}
+				}
+				return generateLensHelpersByType(
+					cmd.String(keyLensDir),
+					cmd.String(keyFilename),
+					patterns,
+					typeNames,
+					cmd.Bool(keyVerbose),
+				)
+			}
 			// Annotation mode: scan directory for fp-go:Lens annotations.
 			return generateLensHelpers(
 				cmd.String(keyLensDir),
