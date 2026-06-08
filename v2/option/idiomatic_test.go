@@ -38,27 +38,27 @@ func positiveToString(n int) (string, bool) {
 	return "", false
 }
 
-func TestMonadChainIdiomatic(t *testing.T) {
-	assert.Equal(t, Some(42), MonadChainIdiomatic(Some("42"), parseInt))
-	assert.Equal(t, None[int](), MonadChainIdiomatic(Some("abc"), parseInt))
-	assert.Equal(t, None[int](), MonadChainIdiomatic(None[string](), parseInt))
+func TestMonadChainI(t *testing.T) {
+	assert.Equal(t, Some(42), MonadChainI(Some("42"), parseInt))
+	assert.Equal(t, None[int](), MonadChainI(Some("abc"), parseInt))
+	assert.Equal(t, None[int](), MonadChainI(None[string](), parseInt))
 }
 
-func TestChainIdiomatic(t *testing.T) {
-	parse := ChainIdiomatic(parseInt)
+func TestChainI(t *testing.T) {
+	parse := ChainI(parseInt)
 	assert.Equal(t, Some(7), parse(Some("7")))
 	assert.Equal(t, None[int](), parse(Some("bad")))
 	assert.Equal(t, None[int](), parse(None[string]()))
 }
 
-func TestMonadChainFirstIdiomatic(t *testing.T) {
-	assert.Equal(t, Some(5), MonadChainFirstIdiomatic(Some(5), positiveToString))
-	assert.Equal(t, None[int](), MonadChainFirstIdiomatic(Some(-1), positiveToString))
-	assert.Equal(t, None[int](), MonadChainFirstIdiomatic(None[int](), positiveToString))
+func TestMonadChainFirstI(t *testing.T) {
+	assert.Equal(t, Some(5), MonadChainFirstI(Some(5), positiveToString))
+	assert.Equal(t, None[int](), MonadChainFirstI(Some(-1), positiveToString))
+	assert.Equal(t, None[int](), MonadChainFirstI(None[int](), positiveToString))
 }
 
-func TestChainFirstIdiomatic(t *testing.T) {
-	keepIfPositive := ChainFirstIdiomatic(positiveToString)
+func TestChainFirstI(t *testing.T) {
+	keepIfPositive := ChainFirstI(positiveToString)
 	assert.Equal(t, Some(5), keepIfPositive(Some(5)))
 	assert.Equal(t, None[int](), keepIfPositive(Some(-1)))
 	assert.Equal(t, None[int](), keepIfPositive(None[int]()))
@@ -72,21 +72,21 @@ func getGivenNameIdiomatic(_ utils.WithLastName) (string, bool) {
 	return "John", true
 }
 
-func TestBindIdiomatic(t *testing.T) {
+func TestBindI(t *testing.T) {
 	res := F.Pipe3(
 		Do(utils.Empty),
-		BindIdiomatic(utils.SetLastName, getLastNameIdiomatic),
-		BindIdiomatic(utils.SetGivenName, getGivenNameIdiomatic),
+		BindI(utils.SetLastName, getLastNameIdiomatic),
+		BindI(utils.SetGivenName, getGivenNameIdiomatic),
 		Map(utils.GetFullName),
 	)
 	assert.Equal(t, Of("John Doe"), res)
 }
 
-func TestBindIdiomaticNone(t *testing.T) {
+func TestBindINone(t *testing.T) {
 	res := F.Pipe3(
 		Do(utils.Empty),
-		BindIdiomatic(utils.SetLastName, func(_ utils.Initial) (string, bool) { return "", false }),
-		BindIdiomatic(utils.SetGivenName, getGivenNameIdiomatic),
+		BindI(utils.SetLastName, func(_ utils.Initial) (string, bool) { return "", false }),
+		BindI(utils.SetGivenName, getGivenNameIdiomatic),
 		Map(utils.GetFullName),
 	)
 	assert.Equal(t, None[string](), res)
@@ -108,36 +108,36 @@ func incrementUnder100(v int) (int, bool) {
 	return v + 1, true
 }
 
-func TestBindLIdiomatic(t *testing.T) {
-	inc := BindLIdiomatic(counterValueLens, incrementUnder100)
+func TestBindIL(t *testing.T) {
+	inc := BindIL(counterValueLens, incrementUnder100)
 	assert.Equal(t, Some(counterState{value: 43}), inc(Some(counterState{value: 42})))
 	assert.Equal(t, None[counterState](), inc(Some(counterState{value: 100})))
 	assert.Equal(t, None[counterState](), inc(None[counterState]()))
 }
 
-func TestTraverseArrayIdiomatic(t *testing.T) {
-	parse := TraverseArrayIdiomatic(parseInt)
+func TestTraverseArrayI(t *testing.T) {
+	parse := TraverseArrayI(parseInt)
 	assert.Equal(t, Some([]int{1, 2, 3}), parse([]string{"1", "2", "3"}))
 	assert.Equal(t, None[[]int](), parse([]string{"1", "x", "3"}))
 	assert.Equal(t, Some([]int{}), parse([]string{}))
 }
 
-func TestTraverseIterIdiomatic_AllSome(t *testing.T) {
-	parse := TraverseIterIdiomatic(parseInt)
+func TestTraverseIterI_AllSome(t *testing.T) {
+	parse := TraverseIterI(parseInt)
 	result := parse(slices.Values([]string{"1", "2", "3"}))
 	assert.True(t, IsSome(result))
 	collected := MonadFold(result, func() []int { return nil }, collectSeq[int])
 	assert.Equal(t, []int{1, 2, 3}, collected)
 }
 
-func TestTraverseIterIdiomatic_ContainsNone(t *testing.T) {
-	parse := TraverseIterIdiomatic(parseInt)
+func TestTraverseIterI_ContainsNone(t *testing.T) {
+	parse := TraverseIterI(parseInt)
 	result := parse(slices.Values([]string{"1", "x", "3"}))
 	assert.True(t, IsNone(result))
 }
 
-func TestTraverseIterIdiomatic_Empty(t *testing.T) {
-	parse := TraverseIterIdiomatic(parseInt)
+func TestTraverseIterI_Empty(t *testing.T) {
+	parse := TraverseIterI(parseInt)
 	result := parse(slices.Values([]string{}))
 	assert.True(t, IsSome(result))
 	collected := MonadFold(result, func() []int { return nil }, collectSeq[int])

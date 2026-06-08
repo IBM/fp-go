@@ -71,5 +71,5 @@ type (
 
 	Seq[A any] = iter.Seq[A]
 
-	KleisliIdiomatic[A, B any] = func(A) (B, error)
+	KleisliI[A, B any] = func(A) (B, error)
 )

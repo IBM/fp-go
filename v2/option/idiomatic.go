@@ -17,10 +17,10 @@ package option
 
 import L "github.com/IBM/fp-go/v2/optics/lens"
 
-// MonadChainIdiomatic applies a Go-idiomatic function (returning (B, bool)) to the value
+// MonadChainI applies a Go-idiomatic function (returning (B, bool)) to the value
 // inside an Option. Returns None if the input is None or the function returns false.
 //
-// [KleisliIdiomatic][A, B] is func(A) (B, bool), the conventional Go pattern for
+// [KleisliI][A, B] is func(A) (B, bool), the conventional Go pattern for
 // functions that may fail without an error value (e.g., map lookups, type assertions).
 //
 // Example:
@@ -29,17 +29,17 @@ import L "github.com/IBM/fp-go/v2/optics/lens"
 //	    n, err := strconv.Atoi(s)
 //	    return n, err == nil
 //	}
-//	MonadChainIdiomatic(Some("42"), parse) // Some(42)
-//	MonadChainIdiomatic(Some("x"), parse)  // None
-//	MonadChainIdiomatic(None[string](), parse) // None
-func MonadChainIdiomatic[A, B any](fa Option[A], f KleisliIdiomatic[A, B]) Option[B] {
+//	MonadChainI(Some("42"), parse) // Some(42)
+//	MonadChainI(Some("x"), parse)  // None
+//	MonadChainI(None[string](), parse) // None
+func MonadChainI[A, B any](fa Option[A], f KleisliI[A, B]) Option[B] {
 	return MonadChain(fa, FromValidation(f))
 }
 
-// ChainIdiomatic returns a function that applies a Go-idiomatic function (returning (B, bool))
+// ChainI returns a function that applies a Go-idiomatic function (returning (B, bool))
 // to the value inside an Option. Returns None if the input is None or the function returns false.
 //
-// This is the curried form of [MonadChainIdiomatic].
+// This is the curried form of [MonadChainI].
 //
 // Example:
 //
@@ -47,13 +47,13 @@ func MonadChainIdiomatic[A, B any](fa Option[A], f KleisliIdiomatic[A, B]) Optio
 //	    n, err := strconv.Atoi(s)
 //	    return n, err == nil
 //	}
-//	ChainIdiomatic(parse)(Some("42")) // Some(42)
-//	ChainIdiomatic(parse)(None[string]()) // None
-func ChainIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Operator[A, B] {
+//	ChainI(parse)(Some("42")) // Some(42)
+//	ChainI(parse)(None[string]()) // None
+func ChainI[A, B any](f KleisliI[A, B]) Operator[A, B] {
 	return Fold(None[B], FromValidation(f))
 }
 
-// MonadChainFirstIdiomatic applies a Go-idiomatic function (returning (B, bool)) to the value
+// MonadChainFirstI applies a Go-idiomatic function (returning (B, bool)) to the value
 // inside an Option, but discards the function's result and keeps the original value on success.
 // Returns None if the input is None or the function returns false.
 //
@@ -63,18 +63,18 @@ func ChainIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Operator[A, B] {
 //	    if n > 0 { return strconv.Itoa(n), true }
 //	    return "", false
 //	}
-//	MonadChainFirstIdiomatic(Some(5), validate)  // Some(5) — original value kept
-//	MonadChainFirstIdiomatic(Some(-1), validate) // None
-//	MonadChainFirstIdiomatic(None[int](), validate) // None
-func MonadChainFirstIdiomatic[A, B any](ma Option[A], f KleisliIdiomatic[A, B]) Option[A] {
+//	MonadChainFirstI(Some(5), validate)  // Some(5) — original value kept
+//	MonadChainFirstI(Some(-1), validate) // None
+//	MonadChainFirstI(None[int](), validate) // None
+func MonadChainFirstI[A, B any](ma Option[A], f KleisliI[A, B]) Option[A] {
 	return MonadChainFirst(ma, FromValidation(f))
 }
 
-// ChainFirstIdiomatic returns a function that applies a Go-idiomatic function (returning (B, bool))
+// ChainFirstI returns a function that applies a Go-idiomatic function (returning (B, bool))
 // but keeps the original Option value if the function succeeds.
 // Returns None if the input is None or the function returns false.
 //
-// This is the curried form of [MonadChainFirstIdiomatic].
+// This is the curried form of [MonadChainFirstI].
 //
 // Example:
 //
@@ -82,13 +82,13 @@ func MonadChainFirstIdiomatic[A, B any](ma Option[A], f KleisliIdiomatic[A, B]) 
 //	    if n > 0 { return strconv.Itoa(n), true }
 //	    return "", false
 //	}
-//	ChainFirstIdiomatic(validate)(Some(5))  // Some(5)
-//	ChainFirstIdiomatic(validate)(None[int]()) // None
-func ChainFirstIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Operator[A, A] {
+//	ChainFirstI(validate)(Some(5))  // Some(5)
+//	ChainFirstI(validate)(None[int]()) // None
+func ChainFirstI[A, B any](f KleisliI[A, B]) Operator[A, A] {
 	return ChainFirst(FromValidation(f))
 }
 
-// BindIdiomatic attaches the result of a Go-idiomatic computation (returning (A, bool))
+// BindI attaches the result of a Go-idiomatic computation (returning (A, bool))
 // to a context S1 to produce a context S2, using the given setter.
 // Returns None if the input is None or the computation returns false.
 //
@@ -99,22 +99,22 @@ func ChainFirstIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Operator[A, A] {
 //
 //	res := F.Pipe3(
 //	    Do(utils.Empty),
-//	    BindIdiomatic(utils.SetLastName, func(utils.Initial) (string, bool) {
+//	    BindI(utils.SetLastName, func(utils.Initial) (string, bool) {
 //	        return "Doe", true
 //	    }),
-//	    BindIdiomatic(utils.SetGivenName, func(utils.WithLastName) (string, bool) {
+//	    BindI(utils.SetGivenName, func(utils.WithLastName) (string, bool) {
 //	        return "John", true
 //	    }),
 //	    Map(utils.GetFullName),
 //	) // Some("John Doe")
-func BindIdiomatic[S1, S2, A any](
+func BindI[S1, S2, A any](
 	setter func(A) func(S1) S2,
-	f KleisliIdiomatic[S1, A],
+	f KleisliI[S1, A],
 ) Operator[S1, S2] {
 	return Bind(setter, FromValidation(f))
 }
 
-// BindLIdiomatic attaches the result of a Go-idiomatic computation (returning (T, bool))
+// BindIL attaches the result of a Go-idiomatic computation (returning (T, bool))
 // to a context using a lens-based setter. The computation receives the current value at
 // the lens focus and returns a new value of the same type.
 // Returns None if the input is None or the computation returns false.
@@ -132,16 +132,16 @@ func BindIdiomatic[S1, S2, A any](
 //	    if v >= 100 { return 0, false }
 //	    return v + 1, true
 //	}
-//	BindLIdiomatic(valueLens, increment)(Some(Counter{Value: 42})) // Some(Counter{Value: 43})
-//	BindLIdiomatic(valueLens, increment)(Some(Counter{Value: 100})) // None
-func BindLIdiomatic[S, T any](
+//	BindIL(valueLens, increment)(Some(Counter{Value: 42})) // Some(Counter{Value: 43})
+//	BindIL(valueLens, increment)(Some(Counter{Value: 100})) // None
+func BindIL[S, T any](
 	lens L.Lens[S, T],
-	f KleisliIdiomatic[T, T],
+	f KleisliI[T, T],
 ) Operator[S, S] {
 	return BindL(lens, FromValidation(f))
 }
 
-// TraverseIterIdiomatic transforms a sequence by applying a Go-idiomatic function
+// TraverseIterI transforms a sequence by applying a Go-idiomatic function
 // (returning (B, bool)) to each element.
 // Returns Some containing a sequence of results if all calls return true, None if any returns false.
 //
@@ -153,13 +153,13 @@ func BindLIdiomatic[S, T any](
 //	    n, err := strconv.Atoi(s)
 //	    return n, err == nil
 //	}
-//	TraverseIterIdiomatic(parse)(slices.Values([]string{"1", "2", "3"})) // Some(iter{1,2,3})
-//	TraverseIterIdiomatic(parse)(slices.Values([]string{"1", "x"}))      // None
-func TraverseIterIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Kleisli[Seq[A], Seq[B]] {
+//	TraverseIterI(parse)(slices.Values([]string{"1", "2", "3"})) // Some(iter{1,2,3})
+//	TraverseIterI(parse)(slices.Values([]string{"1", "x"}))      // None
+func TraverseIterI[A, B any](f KleisliI[A, B]) Kleisli[Seq[A], Seq[B]] {
 	return TraverseIter(FromValidation(f))
 }
 
-// TraverseArrayIdiomatic transforms a slice by applying a Go-idiomatic function
+// TraverseArrayI transforms a slice by applying a Go-idiomatic function
 // (returning (B, bool)) to each element.
 // Returns Some containing the slice of results if all calls return true, None if any returns false.
 //
@@ -171,8 +171,8 @@ func TraverseIterIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Kleisli[Seq[A], S
 //	    n, err := strconv.Atoi(s)
 //	    return n, err == nil
 //	}
-//	TraverseArrayIdiomatic(parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
-//	TraverseArrayIdiomatic(parse)([]string{"1", "x", "3"}) // None
-func TraverseArrayIdiomatic[A, B any](f KleisliIdiomatic[A, B]) Kleisli[[]A, []B] {
+//	TraverseArrayI(parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
+//	TraverseArrayI(parse)([]string{"1", "x", "3"}) // None
+func TraverseArrayI[A, B any](f KleisliI[A, B]) Kleisli[[]A, []B] {
 	return TraverseArray(FromValidation(f))
 }

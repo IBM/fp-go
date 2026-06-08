@@ -73,28 +73,28 @@ func TestFromIdiomatic(t *testing.T) {
 	})
 }
 
-func TestMonadChainIdiomatic(t *testing.T) {
+func TestMonadChainI(t *testing.T) {
 	t.Run("success chains value", func(t *testing.T) {
 		fa := Of[TestContext](5)
-		v, err := runEffect(MonadChainIdiomatic(fa, doubleIdiomatic), testCtx)
+		v, err := runEffect(MonadChainI(fa, doubleIdiomatic), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 10, v)
 	})
 
 	t.Run("error in fa short-circuits", func(t *testing.T) {
 		fa := Fail[TestContext, int](idiomaticTestErr)
-		_, err := runEffect(MonadChainIdiomatic(fa, doubleIdiomatic), testCtx)
+		_, err := runEffect(MonadChainI(fa, doubleIdiomatic), testCtx)
 		assert.Error(t, err)
 	})
 
 	t.Run("error in f propagates", func(t *testing.T) {
 		fa := Of[TestContext](5)
-		_, err := runEffect(MonadChainIdiomatic(fa, failIdiomatic), testCtx)
+		_, err := runEffect(MonadChainI(fa, failIdiomatic), testCtx)
 		assert.Equal(t, idiomaticTestErr, err)
 	})
 }
 
-func TestMonadChainFirstIdiomatic(t *testing.T) {
+func TestMonadChainFirstI(t *testing.T) {
 	sideEffectRan := false
 	sideEffect := func(n int) func(context.Context, TestContext) (int, error) {
 		return func(ctx context.Context, c TestContext) (int, error) {
@@ -106,7 +106,7 @@ func TestMonadChainFirstIdiomatic(t *testing.T) {
 	t.Run("returns original value", func(t *testing.T) {
 		sideEffectRan = false
 		fa := Of[TestContext](7)
-		v, err := runEffect(MonadChainFirstIdiomatic(fa, sideEffect), testCtx)
+		v, err := runEffect(MonadChainFirstI(fa, sideEffect), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 7, v)
 		assert.True(t, sideEffectRan)
@@ -115,19 +115,19 @@ func TestMonadChainFirstIdiomatic(t *testing.T) {
 	t.Run("error in fa short-circuits", func(t *testing.T) {
 		sideEffectRan = false
 		fa := Fail[TestContext, int](idiomaticTestErr)
-		_, err := runEffect(MonadChainFirstIdiomatic(fa, sideEffect), testCtx)
+		_, err := runEffect(MonadChainFirstI(fa, sideEffect), testCtx)
 		assert.Error(t, err)
 		assert.False(t, sideEffectRan)
 	})
 
 	t.Run("error in f propagates", func(t *testing.T) {
 		fa := Of[TestContext](7)
-		_, err := runEffect(MonadChainFirstIdiomatic(fa, failIdiomatic), testCtx)
+		_, err := runEffect(MonadChainFirstI(fa, failIdiomatic), testCtx)
 		assert.Error(t, err)
 	})
 }
 
-func TestMonadTapIdiomatic(t *testing.T) {
+func TestMonadTapI(t *testing.T) {
 	sideEffectRan := false
 	sideEffect := func(n int) func(context.Context, TestContext) (string, error) {
 		return func(ctx context.Context, c TestContext) (string, error) {
@@ -139,7 +139,7 @@ func TestMonadTapIdiomatic(t *testing.T) {
 	t.Run("returns original value after side effect", func(t *testing.T) {
 		sideEffectRan = false
 		fa := Of[TestContext](42)
-		v, err := runEffect(MonadTapIdiomatic(fa, sideEffect), testCtx)
+		v, err := runEffect(MonadTapI(fa, sideEffect), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, v)
 		assert.True(t, sideEffectRan)
@@ -148,26 +148,26 @@ func TestMonadTapIdiomatic(t *testing.T) {
 	t.Run("error in fa skips side effect", func(t *testing.T) {
 		sideEffectRan = false
 		fa := Fail[TestContext, int](idiomaticTestErr)
-		_, err := runEffect(MonadTapIdiomatic(fa, sideEffect), testCtx)
+		_, err := runEffect(MonadTapI(fa, sideEffect), testCtx)
 		assert.Error(t, err)
 		assert.False(t, sideEffectRan)
 	})
 }
 
-func TestChainIdiomatic(t *testing.T) {
+func TestChainI(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		v, err := runEffect(F.Pipe1(Of[TestContext](5), ChainIdiomatic(doubleIdiomatic)), testCtx)
+		v, err := runEffect(F.Pipe1(Of[TestContext](5), ChainI(doubleIdiomatic)), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 10, v)
 	})
 
 	t.Run("error propagates", func(t *testing.T) {
-		_, err := runEffect(F.Pipe1(Of[TestContext](5), ChainIdiomatic(failIdiomatic)), testCtx)
+		_, err := runEffect(F.Pipe1(Of[TestContext](5), ChainI(failIdiomatic)), testCtx)
 		assert.Error(t, err)
 	})
 }
 
-func TestChainFirstIdiomatic(t *testing.T) {
+func TestChainFirstI(t *testing.T) {
 	sideEffectRan := false
 	sideEffect := func(n int) func(context.Context, TestContext) (int, error) {
 		return func(ctx context.Context, c TestContext) (int, error) {
@@ -178,19 +178,19 @@ func TestChainFirstIdiomatic(t *testing.T) {
 
 	t.Run("returns original value", func(t *testing.T) {
 		sideEffectRan = false
-		v, err := runEffect(F.Pipe1(Of[TestContext](3), ChainFirstIdiomatic(sideEffect)), testCtx)
+		v, err := runEffect(F.Pipe1(Of[TestContext](3), ChainFirstI(sideEffect)), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 3, v)
 		assert.True(t, sideEffectRan)
 	})
 
 	t.Run("error propagates from f", func(t *testing.T) {
-		_, err := runEffect(F.Pipe1(Of[TestContext](3), ChainFirstIdiomatic(failIdiomatic)), testCtx)
+		_, err := runEffect(F.Pipe1(Of[TestContext](3), ChainFirstI(failIdiomatic)), testCtx)
 		assert.Error(t, err)
 	})
 }
 
-func TestTapIdiomatic(t *testing.T) {
+func TestTapI(t *testing.T) {
 	logged := ""
 	logF := func(n int) func(context.Context, TestContext) (string, error) {
 		return func(ctx context.Context, c TestContext) (string, error) {
@@ -201,14 +201,14 @@ func TestTapIdiomatic(t *testing.T) {
 
 	t.Run("passes through original value", func(t *testing.T) {
 		logged = ""
-		v, err := runEffect(F.Pipe1(Of[TestContext](99), TapIdiomatic(logF)), testCtx)
+		v, err := runEffect(F.Pipe1(Of[TestContext](99), TapI(logF)), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 99, v)
 		assert.Equal(t, "test", logged)
 	})
 }
 
-func TestMonadChainLeftIdiomatic(t *testing.T) {
+func TestMonadChainLeftI(t *testing.T) {
 	recover := func(err error) func(context.Context, TestContext) (int, error) {
 		return func(ctx context.Context, c TestContext) (int, error) {
 			return -1, nil
@@ -217,14 +217,14 @@ func TestMonadChainLeftIdiomatic(t *testing.T) {
 
 	t.Run("success value passes through", func(t *testing.T) {
 		fa := Of[TestContext](42)
-		v, err := runEffect(MonadChainLeftIdiomatic(fa, recover), testCtx)
+		v, err := runEffect(MonadChainLeftI(fa, recover), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, v)
 	})
 
 	t.Run("error triggers recovery", func(t *testing.T) {
 		fa := Fail[TestContext, int](idiomaticTestErr)
-		v, err := runEffect(MonadChainLeftIdiomatic(fa, recover), testCtx)
+		v, err := runEffect(MonadChainLeftI(fa, recover), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, -1, v)
 	})
@@ -237,12 +237,12 @@ func TestMonadChainLeftIdiomatic(t *testing.T) {
 			}
 		}
 		fa := Fail[TestContext, int](idiomaticTestErr)
-		_, err := runEffect(MonadChainLeftIdiomatic(fa, failRecover), testCtx)
+		_, err := runEffect(MonadChainLeftI(fa, failRecover), testCtx)
 		assert.Equal(t, recoveryErr, err)
 	})
 }
 
-func TestChainLeftIdiomatic(t *testing.T) {
+func TestChainLeftI(t *testing.T) {
 	recover := func(e error) func(context.Context, TestContext) (int, error) {
 		return func(ctx context.Context, c TestContext) (int, error) {
 			return 0, nil
@@ -250,19 +250,19 @@ func TestChainLeftIdiomatic(t *testing.T) {
 	}
 
 	t.Run("success passes through", func(t *testing.T) {
-		v, err := runEffect(F.Pipe1(Of[TestContext](42), ChainLeftIdiomatic(recover)), testCtx)
+		v, err := runEffect(F.Pipe1(Of[TestContext](42), ChainLeftI(recover)), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, v)
 	})
 
 	t.Run("error triggers recovery", func(t *testing.T) {
-		v, err := runEffect(F.Pipe1(Fail[TestContext, int](idiomaticTestErr), ChainLeftIdiomatic(recover)), testCtx)
+		v, err := runEffect(F.Pipe1(Fail[TestContext, int](idiomaticTestErr), ChainLeftI(recover)), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, v)
 	})
 }
 
-func TestRetryingIdiomatic(t *testing.T) {
+func TestRetryingI(t *testing.T) {
 	t.Run("succeeds on first attempt", func(t *testing.T) {
 		attempts := 0
 		action := func(_ retry.RetryStatus) func(context.Context, TestContext) (int, error) {
@@ -271,7 +271,7 @@ func TestRetryingIdiomatic(t *testing.T) {
 				return 42, nil
 			}
 		}
-		v, err := runEffect(RetryingIdiomatic(retry.LimitRetries(3), action, result.IsLeft[int]), testCtx)
+		v, err := runEffect(RetryingI(retry.LimitRetries(3), action, result.IsLeft[int]), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, v)
 		assert.Equal(t, 1, attempts)
@@ -288,7 +288,7 @@ func TestRetryingIdiomatic(t *testing.T) {
 				return 42, nil
 			}
 		}
-		v, err := runEffect(RetryingIdiomatic(retry.LimitRetries(5), action, result.IsLeft[int]), testCtx)
+		v, err := runEffect(RetryingI(retry.LimitRetries(5), action, result.IsLeft[int]), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, v)
 		assert.Equal(t, 3, attempts)
@@ -302,15 +302,15 @@ func TestRetryingIdiomatic(t *testing.T) {
 				return 0, idiomaticTestErr
 			}
 		}
-		_, err := runEffect(RetryingIdiomatic(retry.LimitRetries(2), action, result.IsLeft[int]), testCtx)
+		_, err := runEffect(RetryingI(retry.LimitRetries(2), action, result.IsLeft[int]), testCtx)
 		assert.Error(t, err)
 		assert.Equal(t, 3, attempts) // initial + 2 retries
 	})
 }
 
-func TestTraverseArrayIdiomatic(t *testing.T) {
+func TestTraverseArrayI(t *testing.T) {
 	t.Run("all succeed", func(t *testing.T) {
-		v, err := runEffect(TraverseArrayIdiomatic(doubleIdiomatic)([]int{1, 2, 3}), testCtx)
+		v, err := runEffect(TraverseArrayI(doubleIdiomatic)([]int{1, 2, 3}), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, []int{2, 4, 6}, v)
 	})
@@ -324,18 +324,18 @@ func TestTraverseArrayIdiomatic(t *testing.T) {
 				return n * 2, nil
 			}
 		}
-		_, err := runEffect(TraverseArrayIdiomatic(f)([]int{1, 2, 3}), testCtx)
+		_, err := runEffect(TraverseArrayI(f)([]int{1, 2, 3}), testCtx)
 		assert.Error(t, err)
 	})
 
 	t.Run("empty slice", func(t *testing.T) {
-		v, err := runEffect(TraverseArrayIdiomatic(doubleIdiomatic)([]int{}), testCtx)
+		v, err := runEffect(TraverseArrayI(doubleIdiomatic)([]int{}), testCtx)
 		assert.NoError(t, err)
 		assert.Equal(t, []int{}, v)
 	})
 }
 
-func TestBindIdiomatic(t *testing.T) {
+func TestBindI(t *testing.T) {
 	type State struct {
 		Value int
 	}
@@ -356,7 +356,7 @@ func TestBindIdiomatic(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		eff := F.Pipe2(
 			Do[TestContext](State{Value: 5}),
-			BindIdiomatic(setter, f),
+			BindI(setter, f),
 			Map[TestContext](func(s State) int { return s.Value }),
 		)
 		v, err := runEffect(eff, testCtx)
@@ -372,7 +372,7 @@ func TestBindIdiomatic(t *testing.T) {
 		}
 		eff := F.Pipe2(
 			Do[TestContext](State{Value: 5}),
-			BindIdiomatic(setter, fErr),
+			BindI(setter, fErr),
 			Map[TestContext](func(s State) int { return s.Value }),
 		)
 		_, err := runEffect(eff, testCtx)
@@ -380,7 +380,7 @@ func TestBindIdiomatic(t *testing.T) {
 	})
 }
 
-func TestBindLIdiomatic(t *testing.T) {
+func TestBindIL(t *testing.T) {
 	type State struct {
 		Count int
 	}
@@ -402,7 +402,7 @@ func TestBindLIdiomatic(t *testing.T) {
 	t.Run("success updates via lens", func(t *testing.T) {
 		eff := F.Pipe2(
 			Do[TestContext](State{Count: 10}),
-			BindLIdiomatic(countLens, f),
+			BindIL(countLens, f),
 			Map[TestContext](func(s State) int { return s.Count }),
 		)
 		v, err := runEffect(eff, testCtx)
@@ -419,7 +419,7 @@ func TestBindLIdiomatic(t *testing.T) {
 		}
 		eff := F.Pipe2(
 			Do[TestContext](State{Count: 10}),
-			BindLIdiomatic(countLens, fErr),
+			BindIL(countLens, fErr),
 			Map[TestContext](func(s State) int { return s.Count }),
 		)
 		_, err := runEffect(eff, testCtx)

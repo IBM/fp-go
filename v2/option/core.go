@@ -43,9 +43,9 @@ type Option[A any] struct {
 }
 
 type (
-	Kleisli[A, B any]          = func(A) Option[B]
-	Operator[A, B any]         = Kleisli[Option[A], B]
-	KleisliIdiomatic[A, B any] = func(A) (B, bool)
+	Kleisli[A, B any]  = func(A) Option[B]
+	Operator[A, B any] = Kleisli[Option[A], B]
+	KleisliI[A, B any] = func(A) (B, bool)
 )
 
 // String implements fmt.Stringer for Option.

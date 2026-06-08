@@ -107,12 +107,12 @@ type (
 	// It is an alias for [pair.Pair][L, R].
 	Pair[L, R any] = pair.Pair[L, R]
 
-	// KleisliIdiomatic is the idiomatic Go representation of a Kleisli arrow from A to B.
+	// KleisliI is the idiomatic Go representation of a Kleisli arrow from A to B.
 	// The outer function accepts the input value A; the returned function accepts a
 	// context.Context (for cancellation and request-scoped values) and the outer
 	// context C, and returns the result B or an error.
 	//
 	// This matches the signature of typical service methods in Go and can be lifted into
 	// the functional style with [FromIdiomatic].
-	KleisliIdiomatic[R, A, B any] = readerreaderioresult.KleisliIdiomatic[R, A, B]
+	KleisliI[R, A, B any] = readerreaderioresult.KleisliI[R, A, B]
 )

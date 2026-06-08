@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// positiveToStr is a KleisliIdiomatic[int, string] for testing.
+// positiveToStr is a KleisliI[int, string] for testing.
 func positiveToStr(n int) (string, error) {
 	if n > 0 {
 		return strconv.Itoa(n), nil
@@ -31,7 +31,7 @@ func positiveToStr(n int) (string, error) {
 	return "", errors.New("non-positive")
 }
 
-// recoverNotFound is a KleisliIdiomatic[error, int] that recovers from "not found" errors.
+// recoverNotFound is a KleisliI[error, int] that recovers from "not found" errors.
 func recoverNotFound(err error) (int, error) {
 	if err.Error() == "not found" {
 		return 0, nil
@@ -41,21 +41,21 @@ func recoverNotFound(err error) (int, error) {
 
 var errSentinel = errors.New("sentinel error")
 
-func TestMonadChainIdiomatic(t *testing.T) {
+func TestMonadChainI(t *testing.T) {
 	t.Run("Right input, function succeeds", func(t *testing.T) {
-		assert.Equal(t, Right(42), MonadChainIdiomatic(Right("42"), strconv.Atoi))
+		assert.Equal(t, Right(42), MonadChainI(Right("42"), strconv.Atoi))
 	})
 	t.Run("Right input, function fails", func(t *testing.T) {
-		result := MonadChainIdiomatic(Right("abc"), strconv.Atoi)
+		result := MonadChainI(Right("abc"), strconv.Atoi)
 		assert.True(t, IsLeft(result))
 	})
 	t.Run("Left input propagates", func(t *testing.T) {
-		assert.Equal(t, Left[int](errSentinel), MonadChainIdiomatic(Left[string](errSentinel), strconv.Atoi))
+		assert.Equal(t, Left[int](errSentinel), MonadChainI(Left[string](errSentinel), strconv.Atoi))
 	})
 }
 
-func TestChainIdiomatic(t *testing.T) {
-	parse := ChainIdiomatic(strconv.Atoi)
+func TestChainI(t *testing.T) {
+	parse := ChainI(strconv.Atoi)
 
 	t.Run("Right input, function succeeds", func(t *testing.T) {
 		assert.Equal(t, Right(7), parse(Right("7")))
@@ -68,21 +68,21 @@ func TestChainIdiomatic(t *testing.T) {
 	})
 }
 
-func TestMonadChainLeftIdiomatic(t *testing.T) {
+func TestMonadChainLeftI(t *testing.T) {
 	t.Run("Left input, function recovers", func(t *testing.T) {
-		assert.Equal(t, Right(0), MonadChainLeftIdiomatic(Left[int](errors.New("not found")), recoverNotFound))
+		assert.Equal(t, Right(0), MonadChainLeftI(Left[int](errors.New("not found")), recoverNotFound))
 	})
 	t.Run("Left input, function propagates", func(t *testing.T) {
-		result := MonadChainLeftIdiomatic(Left[int](errSentinel), recoverNotFound)
+		result := MonadChainLeftI(Left[int](errSentinel), recoverNotFound)
 		assert.Equal(t, Left[int](errSentinel), result)
 	})
 	t.Run("Right input passes through unchanged", func(t *testing.T) {
-		assert.Equal(t, Right(42), MonadChainLeftIdiomatic(Right(42), recoverNotFound))
+		assert.Equal(t, Right(42), MonadChainLeftI(Right(42), recoverNotFound))
 	})
 }
 
-func TestChainLeftIdiomatic(t *testing.T) {
-	recover := ChainLeftIdiomatic(recoverNotFound)
+func TestChainLeftI(t *testing.T) {
+	recover := ChainLeftI(recoverNotFound)
 
 	t.Run("Left input, function recovers", func(t *testing.T) {
 		assert.Equal(t, Right(0), recover(Left[int](errors.New("not found"))))
@@ -95,21 +95,21 @@ func TestChainLeftIdiomatic(t *testing.T) {
 	})
 }
 
-func TestMonadChainFirstIdiomatic(t *testing.T) {
+func TestMonadChainFirstI(t *testing.T) {
 	t.Run("Right input, function succeeds — original value kept", func(t *testing.T) {
-		assert.Equal(t, Right(5), MonadChainFirstIdiomatic(Right(5), positiveToStr))
+		assert.Equal(t, Right(5), MonadChainFirstI(Right(5), positiveToStr))
 	})
 	t.Run("Right input, function fails", func(t *testing.T) {
-		result := MonadChainFirstIdiomatic(Right(-1), positiveToStr)
+		result := MonadChainFirstI(Right(-1), positiveToStr)
 		assert.True(t, IsLeft(result))
 	})
 	t.Run("Left input propagates", func(t *testing.T) {
-		assert.Equal(t, Left[int](errSentinel), MonadChainFirstIdiomatic(Left[int](errSentinel), positiveToStr))
+		assert.Equal(t, Left[int](errSentinel), MonadChainFirstI(Left[int](errSentinel), positiveToStr))
 	})
 }
 
-func TestChainFirstIdiomatic(t *testing.T) {
-	keepIfPositive := ChainFirstIdiomatic(positiveToStr)
+func TestChainFirstI(t *testing.T) {
+	keepIfPositive := ChainFirstI(positiveToStr)
 
 	t.Run("Right input, function succeeds — original value kept", func(t *testing.T) {
 		assert.Equal(t, Right(5), keepIfPositive(Right(5)))
