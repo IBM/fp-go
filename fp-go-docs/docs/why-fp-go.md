@@ -536,7 +536,7 @@ func divide(a, b int) result.Result[int] {
 
 <ul>
   <li><a href="./quickstart">Quickstart</a></li>
-  <li><a href="./recipes/error-handling">Error handling recipes</a></li>
+  <li><a href="./v2/result">Result &amp; error handling</a></li>
 </ul>
 
 ### 4. Gradual adoption

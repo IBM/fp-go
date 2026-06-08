@@ -522,8 +522,6 @@ func main() {
     {symbol: 'Either', signature: <a href="./v2/either">Either</a>, description: 'Generic sum type.'},
     {symbol: 'Option', signature: <a href="./v2/option">Option</a>, description: 'Handle optional values safely.'},
     {symbol: 'IO', signature: <a href="./v2/io">IO</a>, description: 'Manage side effects.'},
-    {symbol: 'Recipes · errors', signature: <a href="./recipes/error-handling">Error handling</a>, description: 'Production-style patterns.'},
-    {symbol: 'Recipes · HTTP', signature: <a href="./recipes/http-requests">HTTP requests</a>, description: 'Effectful pipelines.'},
   ]}
 />
 
@@ -539,7 +537,7 @@ func main() {
 </Callout>
 
 <Callout type="info" title="What's the performance impact?">
-  Standard packages: minimal overhead. Idiomatic packages (v2): 2–32× faster, near-native performance. See the <a href="./advanced/performance">performance guide</a> for details.
+  Standard packages: minimal overhead. Idiomatic packages (v2): 2–32× faster, near-native performance.
 </Callout>
 
 <Callout type="info" title="Migrating from v1 to v2?">

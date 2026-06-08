@@ -50,7 +50,6 @@ documentation incrementally — one (or a few) packages per PR.
 
 ---
 
-# API Reference
 
 ## Core Effect & Data Types
 
@@ -93,19 +92,48 @@ documentation incrementally — one (or a few) packages per PR.
 | ⬜ | `endomorphism` | `Endomorphism[A]` — functions `A -> A`, forming a monoid under composition. |
 | ⬜ | `tailrec` | A trampoline for stack-safe tail-recursion (Go has no TCO). |
 
-## Collections
+## Collections — Array
 
-| Status | Package | Description |
+| Status | Page | Description |
 | --- | --- | --- |
-| ⬜ | `array` | Immutable, functional operations over slices (`Map`, `Filter`, `Reduce`, `Sort`, `Uniq`, `Zip`, …). |
-| ⬜ | `record` | Functional operations over `map[K]V` (`Map`, `Chain`, `Traverse`, conversions, instances). |
+| ⬜ | `v2/collections/array` | Immutable, functional operations over slices (`Map`, `Filter`, `Reduce`, …). |
+| ⬜ | `v2/collections/array-ap` | Applicative `Ap` for arrays. |
+| ⬜ | `v2/collections/array-eq` | Equality instances for arrays. |
+| ⬜ | `v2/collections/array-find` | Find / search operations. |
+| ⬜ | `v2/collections/array-monoid` | Monoid instances (concat) for arrays. |
+| ⬜ | `v2/collections/array-sort` | Sorting helpers. |
+| ⬜ | `v2/collections/array-uniq` | Deduplication helpers. |
+| ⬜ | `v2/collections/array-zip` | Zip / unzip operations. |
+| ⬜ | `v2/collections/nonempty-array` | Non-empty array type and operations. |
+
+## Collections — Record
+
+| Status | Page | Description |
+| --- | --- | --- |
+| ⬜ | `v2/collections/record` | Functional operations over `map[K]V`. |
+| ⬜ | `v2/collections/record-ap` | Applicative `Ap` for records. |
+| ⬜ | `v2/collections/record-chain` | `Chain` / flatMap for records. |
+| ⬜ | `v2/collections/record-conversion` | Converting records to/from other structures. |
+| ⬜ | `v2/collections/record-eq` | Equality instances for records. |
+| ⬜ | `v2/collections/record-monoid` | Monoid instances for records. |
+| ⬜ | `v2/collections/record-ord` | Ordering instances for records. |
+| ⬜ | `v2/collections/record-traverse` | `Traverse` / `Sequence` for records. |
+
+## Collections — Sequence & Other
+
+| Status | Page | Description |
+| --- | --- | --- |
+| ⬜ | `v2/collections/sequence-traverse` | `Sequence` and `Traverse` across containers. |
 | ⬜ | `iterator` | Lazy sequence/iterator abstractions (`iter`, `itereither`, `iterresult`, `stateless`). |
 
 ## Utilities
 
 | Status | Package | Description |
 | --- | --- | --- |
-| ⬜ | `function` | Core combinators — `Pipe`, `Flow`, `Identity`, `Constant`, currying, etc. |
+| ⬜ | `function` | Core combinators — `Identity`, `Constant`, etc. (page `v2/utilities/function`). |
+| ⬜ | `function` · pipe/flow | `Pipe` & `Flow` composition (page `v2/utilities/pipe-flow`). |
+| ⬜ | `function` · compose | `Compose` right-to-left composition (page `v2/utilities/compose`). |
+| ⬜ | `function` · bind/curry | `Bind` & currying helpers (page `v2/utilities/bind-curry`). |
 | ⬜ | `predicate` | `Predicate[A]` = `func(A) bool` with `And` / `Or` / `Not` combinators. |
 | ⬜ | `boolean` | Boolean helpers and folds. |
 | ⬜ | `number` | Numeric helpers and type-class instances. |

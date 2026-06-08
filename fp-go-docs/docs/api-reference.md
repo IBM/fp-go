@@ -356,14 +356,7 @@ result := program(config)()
 
 ### Learning Resources
 - [Core Concepts](./concepts/index) - Fundamental FP concepts
-- [Recipes](./recipes/index) - Practical examples
 - [Migration Guide](./migration/v1-to-v2) - Upgrade from v1
-
-### Advanced Topics
-- [Patterns](./advanced/patterns) - Monad transformers, Free monads, Tagless final
-- [Type Theory](./advanced/type-theory) - Category theory foundations
-- [Performance](./advanced/performance) - Optimization techniques
-- [Architecture](./advanced/architecture) - Application design patterns
 
 ### Legacy Version
 - [v1.x Documentation](./1.0.0/intro) - Previous version docs

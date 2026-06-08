@@ -116,7 +116,7 @@ result := array.Map(func(x int) int { return x * 2 })(data)
 // Idiomatic - near-native speed
 result := idiomatic.Map(data, func(x int) int { return x * 2 })`}
   </CodeCard>
-  <p>See the <a href="./advanced/performance">performance guide</a> for details.</p>
+  <p>Idiomatic packages give near-native performance for hot paths.</p>
 </Callout>
 
 <Callout title="Does fp-go allocate a lot of memory?">
@@ -338,8 +338,8 @@ config := program() // Side effect happens here`}
 </Callout>
 
 <Callout title="Are there good tutorials or courses?">
-  <p><strong>Official:</strong> <a href="./quickstart">Quickstart</a>, <a href="./concepts">Core Concepts</a>, <a href="./recipes/error-handling">Recipes</a>, <a href="https://pkg.go.dev/github.com/IBM/fp-go/v2">API docs</a>.</p>
-  <p><strong>Learning path:</strong> Read <a href="./why-fp-go">Why fp-go?</a> → Complete <a href="./quickstart">Quickstart</a> → Study <a href="./concepts/pure-functions">Pure Functions</a> → Learn <a href="./concepts/monads">Monads</a> → Practice with <a href="./recipes/error-handling">Recipes</a>.</p>
+  <p><strong>Official:</strong> <a href="./quickstart">Quickstart</a>, <a href="./concepts">Core Concepts</a>, <a href="https://pkg.go.dev/github.com/IBM/fp-go/v2">API docs</a>.</p>
+  <p><strong>Learning path:</strong> Read <a href="./why-fp-go">Why fp-go?</a> → Complete <a href="./quickstart">Quickstart</a> → Study <a href="./concepts/pure-functions">Pure Functions</a> → Learn <a href="./concepts/monads">Monads</a>.</p>
 </Callout>
 
 </Section>
@@ -517,7 +517,6 @@ v2Result := v2.Ok(42)`}
     <li><a href="https://github.com/IBM/fp-go/issues">GitHub Issues</a> — report bugs</li>
     <li><a href="./intro">Documentation</a> — comprehensive guides</li>
     <li><a href="https://pkg.go.dev/github.com/IBM/fp-go/v2">API reference</a></li>
-    <li><a href="./recipes/error-handling">Recipes</a> — practical examples</li>
   </ul>
 </Callout>
 

@@ -61,7 +61,6 @@ export default function Footer() {
             <nav className={styles.ftCol}>
               <h5>Learn</h5>
               <Link to="/docs/concepts">Core Concepts</Link>
-              <Link to="/docs/recipes">Recipes</Link>
               <Link to="/docs/v2/result">API Reference</Link>
               <Link to="/docs/faq">FAQ</Link>
             </nav>

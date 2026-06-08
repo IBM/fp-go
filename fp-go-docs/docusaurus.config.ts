@@ -137,12 +137,6 @@ const config: Config = {
           label: 'API Reference',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'recipesSidebar',
-          position: 'left',
-          label: 'Recipes',
-        },
-        {
           type: 'docsVersionDropdown',
           position: 'right',
           dropdownItemsAfter: [],
@@ -190,10 +184,6 @@ const config: Config = {
             {
               label: 'Core Concepts',
               to: '/docs/concepts',
-            },
-            {
-              label: 'Recipes',
-              to: '/docs/recipes',
             },
             {
               label: 'API Reference',
