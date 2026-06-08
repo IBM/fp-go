@@ -1,0 +1,23 @@
+{
+  "skill_name": "fp-go-pipe-flow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write a function in fp-go v2 that takes a list of User structs (each with Name string and Age int fields), filters to only users over 18, extracts their names, and joins them with a comma. Use pipe, point-free style, and the reader monad with context.Context as the environment. Also generate a unit test.",
+      "expected_output": "A Go function returning a Reader[context.Context, string] that uses F.Pipe with reader.Do/Bind/ApS or reader.Map, creates lenses or helper functions for Name/Age field access instead of inline lambdas, wraps the result in a function (not a var), and includes a _test.go with assert.Equal. All imports from github.com/IBM/fp-go/v2.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Refactor this imperative Go code to use fp-go v2 Pipe and the reader monad:\n\nfunc processOrder(ctx context.Context, orderID string) (Invoice, error) {\n    order, err := db.GetOrder(ctx, orderID)\n    if err != nil {\n        return Invoice{}, err\n    }\n    customer, err := db.GetCustomer(ctx, order.CustomerID)\n    if err != nil {\n        return Invoice{}, err\n    }\n    total := calculateTotal(order.Items)\n    return Invoice{Order: order, Customer: customer, Total: total}, nil\n}\n\nUse do-notation (Do/Bind/ApS) and return a kleisli arrow. Prefer pipe over flow. Add a unit test.",
+      "expected_output": "A function processOrder(orderID string) returning ReadierIOResult[context.Context, Invoice] or ReaderIOEither using do-notation with Bind for db calls (sequential, context-dependent) and Let for calculateTotal (pure). Uses helper functions instead of inline lambdas for field access. Returns a function, not a var. Includes _test.go. All imports from github.com/IBM/fp-go/v2.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a Config struct with Host string, Port int, and TLS bool fields. Write fp-go v2 lenses for each field, then write a function that reads the Config from the reader environment and returns a formatted connection string like 'https://host:port'. Use point-free style, no inline functions in the pipe. Generate a test.",
+      "expected_output": "Three lenses using L.MakeLens from github.com/IBM/fp-go/v2/optics/lens. A function connectionString() returning Reader[Config, string] that uses F.Pipe with R.Ask and R.Map, referencing lens.Get functions by name (not inline). A _test.go that passes a concrete Config struct and checks the returned string. All imports from github.com/IBM/fp-go/v2.",
+      "files": []
+    }
+  ]
+}
