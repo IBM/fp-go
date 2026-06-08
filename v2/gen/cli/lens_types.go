@@ -187,11 +187,10 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 
 			// importPkgs accumulates external packages referenced in field types.
 			// The qualifier closure populates it as types are stringified.
+			// We always qualify types with their package name since we're generating
+			// code in a potentially different target package.
 			importPkgs := make(map[string]*types.Package)
 			qualifier := func(p *types.Package) string {
-				if p == pkg.Types {
-					return "" // same package — no qualifier needed
-				}
 				importPkgs[p.Path()] = p
 				return p.Name()
 			}
