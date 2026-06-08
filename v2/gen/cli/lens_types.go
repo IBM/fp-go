@@ -17,6 +17,8 @@ package cli
 
 import (
 	"fmt"
+	"go/parser"
+	"go/token"
 	"go/types"
 	"log"
 	"path/filepath"
@@ -29,7 +31,7 @@ import (
 // generateLensHelpersByType generates lens code for explicitly named struct types,
 // following the stringer pattern: type names are CLI parameters, package loading
 // uses go/packages for full type resolution (generics, external field types, tags).
-func generateLensHelpersByType(dir, filename string, patterns []string, typeNames []string, verbose bool) error {
+func generateLensHelpersByType(dir, filename string, patterns []string, typeNames []string, packageNameOverride string, verbose bool) error {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		return err
@@ -39,7 +41,7 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 		log.Printf("Loading package from %s for types: %s", absDir, strings.Join(typeNames, ", "))
 	}
 
-	structs, packageName, err := parsePackageByTypeNames(absDir, patterns, typeNames, verbose)
+	structs, sourcePackageName, sourcePackagePath, err := parsePackageByTypeNames(absDir, patterns, typeNames, verbose)
 	if err != nil {
 		return err
 	}
@@ -49,12 +51,73 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 		return nil
 	}
 
-	return generateLensFile(absDir, filename, packageName, structs, verbose)
+	// Determine the target package name for generated code
+	targetPackageName := packageNameOverride
+	if targetPackageName == "" {
+		// Derive from existing files in target directory
+		targetPackageName, err = derivePackageNameFromDirectory(absDir)
+		if err != nil || targetPackageName == "" {
+			// Fallback to source package name if no existing files
+			targetPackageName = sourcePackageName
+			if verbose {
+				log.Printf("No existing files in target directory, using source package name: %s", targetPackageName)
+			}
+		} else if verbose {
+			log.Printf("Derived target package name from existing files: %s", targetPackageName)
+		}
+	} else if verbose {
+		log.Printf("Using explicitly provided package name: %s", targetPackageName)
+	}
+
+	// If target package differs from source package, add import for source package
+	if targetPackageName != sourcePackageName && sourcePackagePath != "" {
+		for i := range structs {
+			if structs[i].Imports == nil {
+				structs[i].Imports = make(map[string]string)
+			}
+			structs[i].Imports[sourcePackagePath] = sourcePackageName
+		}
+		if verbose {
+			log.Printf("Added import for source package: %s (%s)", sourcePackageName, sourcePackagePath)
+		}
+	}
+
+	return generateLensFile(absDir, filename, targetPackageName, structs, verbose)
+}
+
+// derivePackageNameFromDirectory scans existing Go files in the directory to determine
+// the package name. Returns empty string if no Go files are found.
+func derivePackageNameFromDirectory(dir string) (string, error) {
+	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+	if err != nil {
+		return "", err
+	}
+
+	for _, file := range files {
+		// Skip generated files and test files
+		baseName := filepath.Base(file)
+		if strings.HasPrefix(baseName, "gen_") || strings.HasSuffix(baseName, "_test.go") {
+			continue
+		}
+
+		fset := token.NewFileSet()
+		node, err := parser.ParseFile(fset, file, nil, parser.PackageClauseOnly)
+		if err != nil {
+			continue
+		}
+
+		if node.Name != nil {
+			return node.Name.Name, nil
+		}
+	}
+
+	return "", nil
 }
 
 // parsePackageByTypeNames loads packages via go/packages and returns structInfo for
-// each type name that resolves to a struct in those packages.
-func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, verbose bool) ([]structInfo, string, error) {
+// each type name that resolves to a struct in those packages. Returns the structs,
+// source package name, and source package path.
+func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, verbose bool) ([]structInfo, string, string, error) {
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports,
 		Dir:  dir,
@@ -62,15 +125,15 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
-		return nil, "", fmt.Errorf("loading packages %v: %w", patterns, err)
+		return nil, "", "", fmt.Errorf("loading packages %v: %w", patterns, err)
 	}
 
 	if n := packages.PrintErrors(pkgs); n > 0 {
-		return nil, "", fmt.Errorf("%d error(s) loading packages", n)
+		return nil, "", "", fmt.Errorf("%d error(s) loading packages", n)
 	}
 
 	if len(pkgs) == 0 {
-		return nil, "", fmt.Errorf("no packages found matching %v", patterns)
+		return nil, "", "", fmt.Errorf("no packages found matching %v", patterns)
 	}
 
 	// O(1) lookup set for requested type names
@@ -83,6 +146,7 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 
 	var structs []structInfo
 	var packageName string
+	var packagePath string
 
 	for _, pkg := range pkgs {
 		if pkg.Types == nil {
@@ -90,6 +154,7 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 		}
 		if packageName == "" {
 			packageName = pkg.Name
+			packagePath = pkg.PkgPath
 		}
 
 		scope := pkg.Types.Scope()
@@ -151,7 +216,7 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 		}
 	}
 
-	return structs, packageName, nil
+	return structs, packageName, packagePath, nil
 }
 
 // extractNamedTypeParams returns the full type-parameter list (e.g. "[T any, K comparable]")

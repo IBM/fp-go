@@ -38,6 +38,7 @@ const (
 	keyVerbose         = "verbose"
 	keyIncludeTestFile = "include-test-files"
 	keyTypeNames       = "type"
+	keyPackageName     = "package"
 	lensAnnotation     = "fp-go:Lens"
 )
 
@@ -68,6 +69,11 @@ var (
 	flagTypeNames = &C.StringFlag{
 		Name:  keyTypeNames,
 		Usage: "Comma-separated list of struct type names to generate lenses for (replaces annotation scanning)",
+	}
+
+	flagPackageName = &C.StringFlag{
+		Name:  keyPackageName,
+		Usage: "Package name for generated code (defaults to package name of existing files in target directory)",
 	}
 )
 
@@ -991,6 +997,7 @@ func LensCommand() *C.Command {
 			flagVerbose,
 			flagIncludeTestFiles,
 			flagTypeNames,
+			flagPackageName,
 		},
 		Action: func(ctx context.Context, cmd *C.Command) error {
 			if typesStr := cmd.String(keyTypeNames); typesStr != "" {
@@ -1009,6 +1016,7 @@ func LensCommand() *C.Command {
 					cmd.String(keyFilename),
 					patterns,
 					typeNames,
+					cmd.String(keyPackageName),
 					cmd.Bool(keyVerbose),
 				)
 			}
