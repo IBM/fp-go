@@ -80,6 +80,7 @@ var (
 // structInfo holds information about a struct that needs lens generation
 type structInfo struct {
 	Name           string
+	QualifiedName  string // e.g., "openai.ChatCompletionUserMessageParam" when package differs
 	TypeParams     string // e.g., "[T any]" or "[K comparable, V any]" - for type declarations
 	TypeParamNames string // e.g., "[T]" or "[K, V]" - for type usage in function signatures
 	Fields         []fieldInfo
@@ -109,12 +110,12 @@ const lensStructTemplate = `
 type {{.Name}}Lenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} __lens.Lens[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}} __lens.Lens[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
 {{- if .IsComparable}}
-	{{.Name}}O __lens_option.LensO[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}}O __lens_option.LensO[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
 }
@@ -126,12 +127,12 @@ type {{.Name}}Lenses{{.TypeParams}} struct {
 type {{.Name}}RefLenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
-	{{.Name}} __lens.Lens[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}} __lens.Lens[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
 {{- if .IsComparable}}
-	{{.Name}}O __lens_option.LensO[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}}O __lens_option.LensO[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
 }
@@ -141,7 +142,7 @@ type {{.Name}}RefLenses{{.TypeParams}} struct {
 // [prisms]: __prism.Prism
 type {{.Name}}Prisms{{.TypeParams}} struct {
 {{- range .Fields}}
-	{{.Name}} __prism.Prism[{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}} __prism.Prism[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 }
 
@@ -150,7 +151,7 @@ type {{.Name}}Prisms{{.TypeParams}} struct {
 // [prisms]: __prism.Prism
 type {{.Name}}RefPrisms{{.TypeParams}} struct {
 {{- range .Fields}}
-	{{.Name}} __prism.Prism[*{{$.Name}}{{$.TypeParamNames}}, {{.TypeName}}]
+	{{.Name}} __prism.Prism[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 }
 `
@@ -163,15 +164,15 @@ func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
 	lens{{.Name}} := __lens.MakeLensWithName(
-		func(s {{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
-		func(s {{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
-		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s {{$.QualifiedName}}{{$.TypeParamNames}}, v {{.TypeName}}) {{$.QualifiedName}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
+		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
 {{- if .IsComparable}}
-	lens{{.Name}}O := __lens_option.FromIso[{{$.Name}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
+	lens{{.Name}}O := __lens_option.FromIso[{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 {{- end}}
 	return {{.Name}}Lenses{{.TypeParamNames}}{
@@ -196,22 +197,22 @@ func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames
 {{- range .Fields}}
 {{- if .IsComparable}}
 	lens{{.Name}} := __lens.MakeLensStrictWithName(
-		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
-		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
-		"(*{{$.Name}}{{$.TypeParamNames}}).{{.Name}}",
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
+		"(*{{$.QualifiedName}}{{$.TypeParamNames}}).{{.Name}}",
 	)
 {{- else}}
 	lens{{.Name}} := __lens.MakeLensRefWithName(
-		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
-		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
-		"(*{{$.Name}}{{$.TypeParamNames}}).{{.Name}}",
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
+		"(*{{$.QualifiedName}}{{$.TypeParamNames}}).{{.Name}}",
 	)
 {{- end}}
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
 {{- if .IsComparable}}
-	lens{{.Name}}O := __lens_option.FromIso[*{{$.Name}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
+	lens{{.Name}}O := __lens_option.FromIso[*{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 {{- end}}
 	return {{.Name}}RefLenses{{.TypeParamNames}}{
@@ -236,31 +237,31 @@ func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
 {{- if .IsComparable}}
 	_fromNonZero{{.Name}} := __option.FromNonZero[{{.TypeName}}]()
 	_prism{{.Name}} := __prism.MakePrismWithName(
-		func(s {{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
-		func(v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} {
+		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
+		func(v {{.TypeName}}) {{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
-			var result {{$.Name}}{{$.TypeParamNames}}
+			var result {{$.QualifiedName}}{{$.TypeParamNames}}
 			result.{{.Name}} = v
 			return result
 			{{- else}}
-			return {{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			return {{$.QualifiedName}}{{$.TypeParamNames}}{ {{.Name}}: v }
 			{{- end}}
 		},
-		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- else}}
 	_prism{{.Name}} := __prism.MakePrismWithName(
-		func(s {{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
-		func(v {{.TypeName}}) {{$.Name}}{{$.TypeParamNames}} {
+		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
+		func(v {{.TypeName}}) {{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
-			var result {{$.Name}}{{$.TypeParamNames}}
+			var result {{$.QualifiedName}}{{$.TypeParamNames}}
 			result.{{.Name}} = v
 			return result
 			{{- else}}
-			return {{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			return {{$.QualifiedName}}{{$.TypeParamNames}}{ {{.Name}}: v }
 			{{- end}}
 		},
-		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- end}}
 {{- end}}
@@ -279,31 +280,31 @@ func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames
 {{- if .IsComparable}}
 	_fromNonZero{{.Name}} := __option.FromNonZero[{{.TypeName}}]()
 	_prism{{.Name}} := __prism.MakePrismWithName(
-		func(s *{{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
-		func(v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} {
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
+		func(v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
-			var result {{$.Name}}{{$.TypeParamNames}}
+			var result {{$.QualifiedName}}{{$.TypeParamNames}}
 			result.{{.Name}} = v
 			return &result
 			{{- else}}
-			return &{{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			return &{{$.QualifiedName}}{{$.TypeParamNames}}{ {{.Name}}: v }
 			{{- end}}
 		},
-		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- else}}
 	_prism{{.Name}} := __prism.MakePrismWithName(
-		func(s *{{$.Name}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
-		func(v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} {
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
+		func(v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
-			var result {{$.Name}}{{$.TypeParamNames}}
+			var result {{$.QualifiedName}}{{$.TypeParamNames}}
 			result.{{.Name}} = v
 			return &result
 			{{- else}}
-			return &{{$.Name}}{{$.TypeParamNames}}{ {{.Name}}: v }
+			return &{{$.QualifiedName}}{{$.TypeParamNames}}{ {{.Name}}: v }
 			{{- end}}
 		},
-		"{{$.Name}}{{$.TypeParamNames}}.{{.Name}}",
+		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- end}}
 {{- end}}
@@ -801,6 +802,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 			typeParams, typeParamNames := extractTypeParams(typeSpec)
 			structs = append(structs, structInfo{
 				Name:           typeSpec.Name.Name,
+				QualifiedName:  typeSpec.Name.Name, // Same package, no prefix needed
 				TypeParams:     typeParams,
 				TypeParamNames: typeParamNames,
 				Fields:         fields,

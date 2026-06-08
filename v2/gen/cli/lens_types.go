@@ -70,12 +70,15 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 	}
 
 	// If target package differs from source package, add import for source package
+	// and update QualifiedName to include package prefix
 	if targetPackageName != sourcePackageName && sourcePackagePath != "" {
 		for i := range structs {
 			if structs[i].Imports == nil {
 				structs[i].Imports = make(map[string]string)
 			}
 			structs[i].Imports[sourcePackagePath] = sourcePackageName
+			// Update QualifiedName to include package prefix
+			structs[i].QualifiedName = sourcePackageName + "." + structs[i].Name
 		}
 		if verbose {
 			log.Printf("Added import for source package: %s (%s)", sourcePackageName, sourcePackagePath)
@@ -204,6 +207,7 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 			if len(fields) > 0 {
 				structs = append(structs, structInfo{
 					Name:           typName,
+					QualifiedName:  typName, // Will be updated if target package differs
 					TypeParams:     typeParams,
 					TypeParamNames: typeParamNames,
 					Fields:         fields,
