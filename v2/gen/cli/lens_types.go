@@ -17,6 +17,7 @@ package cli
 
 import (
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"go/types"
@@ -122,7 +123,7 @@ func derivePackageNameFromDirectory(dir string) (string, error) {
 // source package name, and source package path.
 func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, verbose bool) ([]structInfo, string, string, error) {
 	cfg := &packages.Config{
-		Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports,
+		Mode: packages.NeedName | packages.NeedTypes | packages.NeedImports | packages.NeedSyntax,
 		Dir:  dir,
 	}
 
@@ -195,8 +196,27 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 				return p.Name()
 			}
 
+			// Build a map of field names to their documentation for deprecation detection
+			fieldDocs := make(map[string]string)
+			for _, file := range pkg.Syntax {
+				ast.Inspect(file, func(n ast.Node) bool {
+					if ts, ok := n.(*ast.TypeSpec); ok && ts.Name.Name == typName {
+						if st, ok := ts.Type.(*ast.StructType); ok {
+							for _, field := range st.Fields.List {
+								if field.Doc != nil {
+									for _, name := range field.Names {
+										fieldDocs[name.Name] = field.Doc.Text()
+									}
+								}
+							}
+						}
+					}
+					return true
+				})
+			}
+
 			typeParams, typeParamNames := extractNamedTypeParams(named, qualifier)
-			fields := extractStructFields(structType, qualifier)
+			fields := extractStructFields(structType, qualifier, fieldDocs)
 
 			imports := make(map[string]string, len(importPkgs))
 			for path, p := range importPkgs {
@@ -248,9 +268,36 @@ func extractNamedTypeParams(named *types.Named, qualifier types.Qualifier) (stri
 	return "[" + strings.Join(params, ", ") + "]", "[" + strings.Join(names, ", ") + "]"
 }
 
+// hasAnonymousStructWithUnexportedFields checks if a type is an anonymous struct
+// with unexported fields, which cannot be used in function signatures outside
+// the defining package.
+func hasAnonymousStructWithUnexportedFields(t types.Type) bool {
+	// Unwrap pointer types
+	if ptr, ok := t.(*types.Pointer); ok {
+		t = ptr.Elem()
+	}
+
+	// Check if it's a struct type (not a named type)
+	structType, ok := t.(*types.Struct)
+	if !ok {
+		return false
+	}
+
+	// Check if any field is unexported
+	for i := 0; i < structType.NumFields(); i++ {
+		field := structType.Field(i)
+		if !field.Exported() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // extractStructFields extracts fieldInfo for every field in a struct, promoting
 // embedded struct fields (one level deep, same pattern as the annotation scanner).
-func extractStructFields(structType *types.Struct, qualifier types.Qualifier) []fieldInfo {
+// fieldDocs maps field names to their documentation comments for deprecation detection.
+func extractStructFields(structType *types.Struct, qualifier types.Qualifier, fieldDocs map[string]string) []fieldInfo {
 	var fields []fieldInfo
 
 	for i := 0; i < structType.NumFields(); i++ {
@@ -265,12 +312,19 @@ func extractStructFields(structType *types.Struct, qualifier types.Qualifier) []
 			}
 			if named, ok := embType.(*types.Named); ok {
 				if embStruct, ok := named.Underlying().(*types.Struct); ok {
-					for _, embField := range extractStructFields(embStruct, qualifier) {
+					// Embedded fields don't have their own docs in the parent struct
+					for _, embField := range extractStructFields(embStruct, qualifier, nil) {
 						embField.IsEmbedded = true
 						fields = append(fields, embField)
 					}
 				}
 			}
+			continue
+		}
+
+		// Skip fields with anonymous struct types that have unexported fields
+		// These cannot be used in function signatures outside their defining package
+		if hasAnonymousStructWithUnexportedFields(field.Type()) {
 			continue
 		}
 
@@ -286,6 +340,14 @@ func extractStructFields(structType *types.Struct, qualifier types.Qualifier) []
 		isOptional := isPointer || hasOmitEmptyStringTag(tag)
 		isComparable := types.Comparable(field.Type())
 
+		// Check if field is deprecated by looking for "Deprecated:" in its documentation
+		isDeprecated := false
+		if fieldDocs != nil {
+			if doc, ok := fieldDocs[field.Name()]; ok {
+				isDeprecated = strings.Contains(doc, "Deprecated:")
+			}
+		}
+
 		fields = append(fields, fieldInfo{
 			Name:         field.Name(),
 			TypeName:     typeName,
@@ -293,6 +355,7 @@ func extractStructFields(structType *types.Struct, qualifier types.Qualifier) []
 			IsOptional:   isOptional,
 			IsComparable: isComparable,
 			IsEmbedded:   false,
+			IsDeprecated: isDeprecated,
 		})
 	}
 

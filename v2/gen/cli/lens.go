@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"log"
@@ -68,7 +69,7 @@ var (
 	// type resolution (generics, external field types, struct tags).
 	flagTypeNames = &C.StringFlag{
 		Name:  keyTypeNames,
-		Usage: "Comma-separated list of struct type names to generate lenses for (replaces annotation scanning)",
+		Usage: "Comma-separated list of struct type names, or @filename to read from file (replaces annotation scanning)",
 	}
 
 	flagPackageName = &C.StringFlag{
@@ -95,6 +96,7 @@ type fieldInfo struct {
 	IsOptional   bool   // true if field is a pointer or has json omitempty tag
 	IsComparable bool   // true if the type is comparable (can use ==)
 	IsEmbedded   bool   // true if this field comes from an embedded struct
+	IsDeprecated bool   // true if the field is marked as deprecated
 }
 
 // templateData holds data for template rendering
@@ -110,11 +112,17 @@ const lensStructTemplate = `
 type {{.Name}}Lenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
+{{- if .IsDeprecated}}
+	// Deprecated: This field is deprecated
+{{- end}}
 	{{.Name}} __lens.Lens[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
 {{- if .IsComparable}}
+{{- if .IsDeprecated}}
+	// Deprecated: This field is deprecated
+{{- end}}
 	{{.Name}}O __lens_option.LensO[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
@@ -127,11 +135,17 @@ type {{.Name}}Lenses{{.TypeParams}} struct {
 type {{.Name}}RefLenses{{.TypeParams}} struct {
 	// mandatory fields
 {{- range .Fields}}
+{{- if .IsDeprecated}}
+	// Deprecated: This field is deprecated
+{{- end}}
 	{{.Name}} __lens.Lens[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 	// optional fields
 {{- range .Fields}}
 {{- if .IsComparable}}
+{{- if .IsDeprecated}}
+	// Deprecated: This field is deprecated
+{{- end}}
 	{{.Name}}O __lens_option.LensO[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 {{- end}}
@@ -142,6 +156,9 @@ type {{.Name}}RefLenses{{.TypeParams}} struct {
 // [prisms]: __prism.Prism
 type {{.Name}}Prisms{{.TypeParams}} struct {
 {{- range .Fields}}
+{{- if .IsDeprecated}}
+	// Deprecated: This field is deprecated
+{{- end}}
 	{{.Name}} __prism.Prism[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 }
@@ -151,6 +168,9 @@ type {{.Name}}Prisms{{.TypeParams}} struct {
 // [prisms]: __prism.Prism
 type {{.Name}}RefPrisms{{.TypeParams}} struct {
 {{- range .Fields}}
+{{- if .IsDeprecated}}
+	// Deprecated: This field is deprecated
+{{- end}}
 	{{.Name}} __prism.Prism[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
 }
@@ -973,6 +993,27 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 		}
 	}
 
+	// Close the file before formatting
+	f.Close()
+
+	// Format the generated file using gofmt
+	content, err := os.ReadFile(outPath)
+	if err != nil {
+		return err
+	}
+
+	formatted, err := format.Source(content)
+	if err != nil {
+		log.Printf("Warning: failed to format %s: %v", outPath, err)
+		// Don't fail if formatting fails, the file is still valid Go code
+		return nil
+	}
+
+	// Write the formatted content back
+	if err := os.WriteFile(outPath, formatted, 0644); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -988,6 +1029,29 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 //     positional arguments (default "."). Uses go/packages for full type
 //     resolution — generics, external field types, and struct tags are all handled
 //     correctly without requiring source annotations.
+//
+// readTypeNamesFromFile reads type names from a file, one per line.
+// Empty lines and lines starting with # are ignored.
+func readTypeNamesFromFile(filename string) ([]string, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var typeNames []string
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		typeNames = append(typeNames, line)
+	}
+
+	return typeNames, nil
+}
+
 func LensCommand() *C.Command {
 	return &C.Command{
 		Name:        "lens",
@@ -1003,12 +1067,24 @@ func LensCommand() *C.Command {
 		},
 		Action: func(ctx context.Context, cmd *C.Command) error {
 			if typesStr := cmd.String(keyTypeNames); typesStr != "" {
-				// Type-name mode: split comma-separated names, collect patterns from
-				// positional args (default to ".") following the stringer convention.
-				typeNames := strings.Split(typesStr, ",")
-				for i, n := range typeNames {
-					typeNames[i] = strings.TrimSpace(n)
+				// Type-name mode: parse type names from file or comma-separated list
+				var typeNames []string
+				var err error
+
+				if strings.HasPrefix(typesStr, "@") {
+					// Read type names from file (one per line)
+					typeNames, err = readTypeNamesFromFile(strings.TrimPrefix(typesStr, "@"))
+					if err != nil {
+						return err
+					}
+				} else {
+					// Split comma-separated names
+					typeNames = strings.Split(typesStr, ",")
+					for i, n := range typeNames {
+						typeNames[i] = strings.TrimSpace(n)
+					}
 				}
+
 				patterns := cmd.Args().Slice()
 				if len(patterns) == 0 {
 					patterns = []string{"."}
