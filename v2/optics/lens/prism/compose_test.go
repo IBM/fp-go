@@ -856,3 +856,341 @@ func TestComposeRefDocumentationExample(t *testing.T) {
 	// unchanged == configMySQL (no-op because Prism doesn't match)
 	assert.Equal(configMySQL)(unchanged)(t)
 }
+
+// TestComposeOptionalLawsExtended provides additional comprehensive tests for Optional laws
+// to ensure Compose and ComposeRef implementations are fully compliant
+func TestComposeOptionalLawsExtended(t *testing.T) {
+	connLens := connectionLens()
+	pgPrism := postgresqlPrism()
+	configPgOptional := Compose[Config](pgPrism)(connLens)
+
+	t.Run("Law 1 Extended: Multiple consecutive Sets on None remain no-op", func(t *testing.T) {
+		config := Config{
+			Connection: MySQL{Host: "localhost", Port: 3306},
+			AppName:    "TestApp",
+		}
+
+		// Verify GetOption returns None
+		assert.Equal(true)(O.IsNone(configPgOptional.GetOption(config)))(t)
+
+		// Apply multiple Sets
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		pg3 := PostgreSQL{Host: "host3", Port: 5435}
+
+		updated := configPgOptional.Set(pg3)(configPgOptional.Set(pg2)(configPgOptional.Set(pg1)(config)))
+
+		// All Sets should be no-ops, config should be unchanged
+		assert.Equal(config)(updated)(t)
+		assert.Equal(true)(O.IsNone(configPgOptional.GetOption(updated)))(t)
+	})
+
+	t.Run("Law 2 Extended: SetGet with zero values", func(t *testing.T) {
+		config := Config{
+			Connection: PostgreSQL{Host: "", Port: 0},
+			AppName:    "TestApp",
+		}
+
+		// Verify GetOption returns Some (even with zero values)
+		initial := configPgOptional.GetOption(config)
+		assert.Equal(true)(O.IsSome(initial))(t)
+
+		// Set zero values
+		zeroPg := PostgreSQL{Host: "", Port: 0}
+		updated := configPgOptional.Set(zeroPg)(config)
+
+		// Get should return what we set
+		result := configPgOptional.GetOption(updated)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{Host: "default", Port: 9999}))(result)
+		assert.Equal("")(pg.Host)(t)
+		assert.Equal(0)(pg.Port)(t)
+	})
+
+	t.Run("Law 3 Extended: SetSet with alternating values", func(t *testing.T) {
+		config := Config{
+			Connection: PostgreSQL{Host: "initial", Port: 5432},
+			AppName:    "TestApp",
+		}
+
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		pg3 := PostgreSQL{Host: "host3", Port: 5435}
+		pg4 := PostgreSQL{Host: "host4", Port: 5436}
+
+		// Set multiple times with different values
+		setMultiple := configPgOptional.Set(pg4)(
+			configPgOptional.Set(pg3)(
+				configPgOptional.Set(pg2)(
+					configPgOptional.Set(pg1)(config))))
+
+		// Set once with final value
+		setOnce := configPgOptional.Set(pg4)(config)
+
+		// They should be equal
+		assert.Equal(setOnce)(setMultiple)(t)
+
+		// Verify final value
+		result := configPgOptional.GetOption(setMultiple)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{}))(result)
+		assert.Equal("host4")(pg.Host)(t)
+		assert.Equal(5436)(pg.Port)(t)
+	})
+
+	t.Run("Law Combination: Set after failed Set still works", func(t *testing.T) {
+		// Start with MySQL (prism doesn't match)
+		config := Config{
+			Connection: MySQL{Host: "localhost", Port: 3306},
+			AppName:    "TestApp",
+		}
+
+		// Try to set PostgreSQL (should be no-op)
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		afterFailedSet := configPgOptional.Set(pg1)(config)
+
+		// Verify it's still MySQL (no-op)
+		assert.Equal(config)(afterFailedSet)(t)
+
+		// Now manually change to PostgreSQL
+		configWithPg := Config{
+			Connection: PostgreSQL{Host: "localhost", Port: 5432},
+			AppName:    "TestApp",
+		}
+
+		// Now Set should work
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		updated := configPgOptional.Set(pg2)(configWithPg)
+
+		// Verify the update worked
+		result := configPgOptional.GetOption(updated)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{}))(result)
+		assert.Equal("host2")(pg.Host)(t)
+		assert.Equal(5434)(pg.Port)(t)
+	})
+
+	t.Run("Law Verification: GetOption after Set preserves structure", func(t *testing.T) {
+		config := Config{
+			Connection: PostgreSQL{Host: "localhost", Port: 5432},
+			AppName:    "TestApp",
+		}
+
+		newPg := PostgreSQL{Host: "remote", Port: 5433}
+		updated := configPgOptional.Set(newPg)(config)
+
+		// Verify the connection was updated
+		result := configPgOptional.GetOption(updated)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{}))(result)
+		assert.Equal("remote")(pg.Host)(t)
+
+		// Verify other fields are preserved
+		assert.Equal("TestApp")(updated.AppName)(t)
+	})
+}
+
+// TestComposeRefOptionalLawsExtended provides additional comprehensive tests for Optional laws
+// with pointer types to ensure ComposeRef implementation is fully compliant
+func TestComposeRefOptionalLawsExtended(t *testing.T) {
+	connLens := connectionLensRef()
+	pgPrism := postgresqlPrism()
+	configPgOptional := ComposeRef[Config](pgPrism)(connLens)
+
+	t.Run("Law 1 Extended: Multiple consecutive Sets on None (nil) remain no-op", func(t *testing.T) {
+		var config *Config = nil
+
+		// Verify GetOption returns None
+		assert.Equal(true)(O.IsNone(configPgOptional.GetOption(config)))(t)
+
+		// Apply multiple Sets
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		pg3 := PostgreSQL{Host: "host3", Port: 5435}
+
+		updated := configPgOptional.Set(pg3)(configPgOptional.Set(pg2)(configPgOptional.Set(pg1)(config)))
+
+		// All Sets should be no-ops, should remain nil
+		if updated != nil {
+			t.Fatalf("Expected nil, got %v", updated)
+		}
+	})
+
+	t.Run("Law 1 Extended: Multiple consecutive Sets on None (mismatched prism) remain no-op", func(t *testing.T) {
+		config := &Config{
+			Connection: MySQL{Host: "localhost", Port: 3306},
+			AppName:    "TestApp",
+		}
+
+		// Verify GetOption returns None
+		assert.Equal(true)(O.IsNone(configPgOptional.GetOption(config)))(t)
+
+		// Apply multiple Sets
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		pg3 := PostgreSQL{Host: "host3", Port: 5435}
+
+		updated := configPgOptional.Set(pg3)(configPgOptional.Set(pg2)(configPgOptional.Set(pg1)(config)))
+
+		// All Sets should be no-ops, config should be unchanged
+		assert.Equal(config)(updated)(t)
+		assert.Equal(true)(O.IsNone(configPgOptional.GetOption(updated)))(t)
+	})
+
+	t.Run("Law 2 Extended: SetGet with zero values", func(t *testing.T) {
+		config := &Config{
+			Connection: PostgreSQL{Host: "", Port: 0},
+			AppName:    "TestApp",
+		}
+
+		// Verify GetOption returns Some (even with zero values)
+		initial := configPgOptional.GetOption(config)
+		assert.Equal(true)(O.IsSome(initial))(t)
+
+		// Set zero values
+		zeroPg := PostgreSQL{Host: "", Port: 0}
+		updated := configPgOptional.Set(zeroPg)(config)
+
+		// Get should return what we set
+		result := configPgOptional.GetOption(updated)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{Host: "default", Port: 9999}))(result)
+		assert.Equal("")(pg.Host)(t)
+		assert.Equal(0)(pg.Port)(t)
+
+		// Verify immutability: original should be unchanged
+		origPg := config.Connection.(PostgreSQL)
+		assert.Equal("")(origPg.Host)(t)
+		assert.Equal(0)(origPg.Port)(t)
+	})
+
+	t.Run("Law 3 Extended: SetSet with alternating values preserves immutability", func(t *testing.T) {
+		original := &Config{
+			Connection: PostgreSQL{Host: "initial", Port: 5432},
+			AppName:    "TestApp",
+		}
+
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		pg3 := PostgreSQL{Host: "host3", Port: 5435}
+		pg4 := PostgreSQL{Host: "host4", Port: 5436}
+
+		// Set multiple times with different values
+		setMultiple := configPgOptional.Set(pg4)(
+			configPgOptional.Set(pg3)(
+				configPgOptional.Set(pg2)(
+					configPgOptional.Set(pg1)(original))))
+
+		// Set once with final value
+		setOnce := configPgOptional.Set(pg4)(original)
+
+		// Verify final values are equal
+		result1 := configPgOptional.GetOption(setMultiple)
+		result2 := configPgOptional.GetOption(setOnce)
+
+		assert.Equal(true)(O.IsSome(result1))(t)
+		assert.Equal(true)(O.IsSome(result2))(t)
+
+		pg1Result := O.GetOrElse(F.Constant(PostgreSQL{}))(result1)
+		pg2Result := O.GetOrElse(F.Constant(PostgreSQL{}))(result2)
+
+		assert.Equal("host4")(pg1Result.Host)(t)
+		assert.Equal(5436)(pg1Result.Port)(t)
+		assert.Equal("host4")(pg2Result.Host)(t)
+		assert.Equal(5436)(pg2Result.Port)(t)
+
+		// Verify original is unchanged (immutability)
+		origPg := original.Connection.(PostgreSQL)
+		assert.Equal("initial")(origPg.Host)(t)
+		assert.Equal(5432)(origPg.Port)(t)
+	})
+
+	t.Run("Law Combination: Set after failed Set still works with immutability", func(t *testing.T) {
+		// Start with MySQL (prism doesn't match)
+		config := &Config{
+			Connection: MySQL{Host: "localhost", Port: 3306},
+			AppName:    "TestApp",
+		}
+
+		// Try to set PostgreSQL (should be no-op)
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		afterFailedSet := configPgOptional.Set(pg1)(config)
+
+		// Verify it's still MySQL (no-op)
+		assert.Equal(config)(afterFailedSet)(t)
+
+		// Now manually change to PostgreSQL
+		configWithPg := &Config{
+			Connection: PostgreSQL{Host: "localhost", Port: 5432},
+			AppName:    "TestApp",
+		}
+
+		// Now Set should work
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		updated := configPgOptional.Set(pg2)(configWithPg)
+
+		// Verify the update worked
+		result := configPgOptional.GetOption(updated)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{}))(result)
+		assert.Equal("host2")(pg.Host)(t)
+		assert.Equal(5434)(pg.Port)(t)
+
+		// Verify original is unchanged (immutability)
+		origPg := configWithPg.Connection.(PostgreSQL)
+		assert.Equal("localhost")(origPg.Host)(t)
+		assert.Equal(5432)(origPg.Port)(t)
+	})
+
+	t.Run("Law Verification: GetOption after Set preserves structure and immutability", func(t *testing.T) {
+		original := &Config{
+			Connection: PostgreSQL{Host: "localhost", Port: 5432},
+			AppName:    "TestApp",
+		}
+
+		newPg := PostgreSQL{Host: "remote", Port: 5433}
+		updated := configPgOptional.Set(newPg)(original)
+
+		// Verify the connection was updated
+		result := configPgOptional.GetOption(updated)
+		assert.Equal(true)(O.IsSome(result))(t)
+		pg := O.GetOrElse(F.Constant(PostgreSQL{}))(result)
+		assert.Equal("remote")(pg.Host)(t)
+
+		// Verify other fields are preserved
+		assert.Equal("TestApp")(updated.AppName)(t)
+
+		// Verify original is unchanged (immutability)
+		origPg := original.Connection.(PostgreSQL)
+		assert.Equal("localhost")(origPg.Host)(t)
+		assert.Equal(5432)(origPg.Port)(t)
+		assert.Equal("TestApp")(original.AppName)(t)
+
+		// Verify they are different pointers
+		if original == updated {
+			t.Fatal("Set should create a new pointer, not modify in place")
+		}
+	})
+
+	t.Run("Law Verification: Nil pointer handling across all laws", func(t *testing.T) {
+		var nilConfig *Config = nil
+
+		// Law 1: Set on nil is no-op
+		pg1 := PostgreSQL{Host: "host1", Port: 5433}
+		afterSet := configPgOptional.Set(pg1)(nilConfig)
+		if afterSet != nil {
+			t.Fatalf("Expected nil after Set on nil, got %v", afterSet)
+		}
+
+		// Law 2: GetOption on nil returns None
+		result := configPgOptional.GetOption(nilConfig)
+		assert.Equal(true)(O.IsNone(result))(t)
+
+		// Law 3: Multiple Sets on nil remain nil
+		pg2 := PostgreSQL{Host: "host2", Port: 5434}
+		afterMultipleSets := configPgOptional.Set(pg2)(configPgOptional.Set(pg1)(nilConfig))
+		if afterMultipleSets != nil {
+			t.Fatalf("Expected nil after multiple Sets on nil, got %v", afterMultipleSets)
+		}
+	})
+}
