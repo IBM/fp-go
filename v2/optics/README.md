@@ -167,7 +167,33 @@ doubled := F.Pipe2(
 
 ## 🔗 Composition
 
-The real power of optics comes from composition:
+The real power of optics comes from composition. Optics can be composed with each other to create more complex focusing operations, following a clear hierarchy where more specific optics can be converted to more general ones.
+
+### 📐 Composition Hierarchy
+
+```
+Iso[S, A] ──────────────────────────────────────┐
+    │                                            │
+    ├─> Lens[S, A] ──────────────────────────┐  │
+    │       │                                 │  │
+    │       └─> Optional[S, A] ──────────┐   │  │
+    │               │                     │   │  │
+    │               └─> Traversal[S, A]  │   │  │
+    │                                     │   │  │
+    └─> Prism[S, A] ────────────────────>┘   │  │
+            │                                 │  │
+            └─> Optional[S, A] ──────────────┘  │
+                    │                            │
+                    └─> Traversal[S, A] ────────┘
+```
+
+**Key Principle**: More specific optics (top) can be converted to more general optics (bottom), but not vice versa.
+
+### 🔄 Composition Patterns
+
+#### 1️⃣ **Lens + Lens → Lens** (Nested Struct Access)
+
+Compose two lenses to access deeply nested fields:
 
 ```go
 type Company struct {
@@ -211,6 +237,250 @@ company := Company{
 city := companyCityLens.Get(company)           // "NYC"
 updated := companyCityLens.Set("Boston")(company)
 ```
+
+#### 2️⃣ **Prism + Lens → Optional** (Sum Type Field Access)
+
+Compose a prism (focusing on a variant) with a lens (focusing on a field) to create an optional:
+
+```go
+import PL "github.com/IBM/fp-go/v2/optics/prism/lens"
+
+type Result interface{ isResult() }
+type Success struct{ Value int }
+type Failure struct{ Error string }
+
+// Prism for Success variant
+successPrism := prism.MakePrism(
+    func(r Result) option.Option[Success] {
+        if s, ok := r.(Success); ok {
+            return option.Some(s)
+        }
+        return option.None[Success]()
+    },
+    func(s Success) Result { return s },
+)
+
+// Lens for Value field
+valueLens := lens.MakeLens(
+    func(s Success) int { return s.Value },
+    func(s Success, v int) Success { s.Value = v; return s },
+)
+
+// Compose: Prism + Lens → Optional
+resultValueOptional := F.Pipe1(
+    successPrism,
+    PL.Compose[Result, Success, int](valueLens),
+)
+
+// Use the optional
+result := Success{Value: 42}
+value := resultValueOptional.GetOption(result)  // Some(42)
+updated := resultValueOptional.Set(100)(result) // Success{Value: 100}
+
+// Set is no-op when prism doesn't match
+failure := Failure{Error: "failed"}
+unchanged := resultValueOptional.Set(100)(failure) // failure (unchanged)
+```
+
+#### 3️⃣ **Lens + Prism → Optional** (Field with Sum Type)
+
+Compose a lens (focusing on a field) with a prism (focusing on a variant within that field):
+
+```go
+import LP "github.com/IBM/fp-go/v2/optics/lens/prism"
+
+type Config struct {
+    Connection ConnectionType
+    AppName    string
+}
+
+type ConnectionType interface{ isConnection() }
+type PostgreSQL struct{ Host string; Port int }
+type MySQL struct{ Host string; Port int }
+
+// Lens for Connection field
+connectionLens := lens.MakeLens(
+    func(c Config) ConnectionType { return c.Connection },
+    func(c Config, conn ConnectionType) Config {
+        c.Connection = conn
+        return c
+    },
+)
+
+// Prism for PostgreSQL variant
+postgresqlPrism := prism.MakePrism(
+    func(ct ConnectionType) option.Option[PostgreSQL] {
+        if pg, ok := ct.(PostgreSQL); ok {
+            return option.Some(pg)
+        }
+        return option.None[PostgreSQL]()
+    },
+    func(pg PostgreSQL) ConnectionType { return pg },
+)
+
+// Compose: Lens + Prism → Optional
+configPgOptional := F.Pipe1(
+    connectionLens,
+    LP.Compose[Config](postgresqlPrism),
+)
+
+// Use the optional
+config := Config{Connection: PostgreSQL{Host: "localhost", Port: 5432}}
+pg := configPgOptional.GetOption(config)  // Some(PostgreSQL{...})
+updated := configPgOptional.Set(PostgreSQL{Host: "remote", Port: 5432})(config)
+```
+
+#### 4️⃣ **Optional + Optional → Optional** (Chaining Optional Access)
+
+Compose two optionals to chain optional field access:
+
+```go
+import "github.com/IBM/fp-go/v2/optics/optional"
+
+type Config struct {
+    Database option.Option[DatabaseConfig]
+}
+
+type DatabaseConfig struct {
+    Connection option.Option[ConnectionInfo]
+}
+
+type ConnectionInfo struct {
+    Host string
+    Port int
+}
+
+// Optional for Database field
+dbOptional := optional.MakeOptional(
+    func(c Config) option.Option[DatabaseConfig] {
+        return c.Database
+    },
+    func(c Config, db DatabaseConfig) Config {
+        c.Database = option.Some(db)
+        return c
+    },
+)
+
+// Optional for Connection field
+connOptional := optional.MakeOptional(
+    func(db DatabaseConfig) option.Option[ConnectionInfo] {
+        return db.Connection
+    },
+    func(db DatabaseConfig, conn ConnectionInfo) DatabaseConfig {
+        db.Connection = option.Some(conn)
+        return db
+    },
+)
+
+// Compose: Optional + Optional → Optional
+configConnOptional := F.Pipe1(
+    dbOptional,
+    optional.Compose[Config](connOptional),
+)
+
+// Use the optional - only succeeds if both levels exist
+config := Config{
+    Database: option.Some(DatabaseConfig{
+        Connection: option.Some(ConnectionInfo{Host: "localhost", Port: 5432}),
+    }),
+}
+conn := configConnOptional.GetOption(config)  // Some(ConnectionInfo{...})
+```
+
+#### 5️⃣ **Iso + Lens → Lens** (Type Conversion + Field Access)
+
+Compose an isomorphism with a lens to access fields through type conversions:
+
+```go
+import IL "github.com/IBM/fp-go/v2/optics/lens/iso"
+
+type Celsius float64
+type Fahrenheit float64
+
+type WeatherReport struct {
+    TempF Fahrenheit
+}
+
+// Iso between Celsius and Fahrenheit
+celsiusToFahrenheit := iso.MakeIso(
+    func(c Celsius) Fahrenheit { return Fahrenheit(float64(c)*9/5 + 32) },
+    func(f Fahrenheit) Celsius { return Celsius((float64(f) - 32) * 5 / 9) },
+)
+
+// Lens for temperature field
+tempLens := lens.MakeLens(
+    func(w WeatherReport) Fahrenheit { return w.TempF },
+    func(w WeatherReport, t Fahrenheit) WeatherReport {
+        w.TempF = t
+        return w
+    },
+)
+
+// Compose: Iso + Lens → Lens (access Fahrenheit as Celsius)
+celsiusLens := F.Pipe1(
+    tempLens,
+    IL.Compose[WeatherReport, Fahrenheit, Celsius](celsiusToFahrenheit),
+)
+
+report := WeatherReport{TempF: 68.0}
+tempC := celsiusLens.Get(report)  // 20.0 Celsius
+updated := celsiusLens.Set(25.0)(report)  // Sets to 77.0 Fahrenheit
+```
+
+#### 6️⃣ **Lens + Option → Optional** (Optional Field Access)
+
+Convert a lens focusing on an [`Option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/option) field into an optional:
+
+```go
+import LO "github.com/IBM/fp-go/v2/optics/lens/option"
+
+type Config struct {
+    Timeout option.Option[int]
+}
+
+// Lens focusing on Option[int] field
+timeoutLens := lens.MakeLens(
+    func(c Config) option.Option[int] { return c.Timeout },
+    func(c Config, t option.Option[int]) Config {
+        c.Timeout = t
+        return c
+    },
+)
+
+// Convert to Optional[Config, int]
+timeoutOptional := LO.AsOptional(timeoutLens)
+
+config := Config{Timeout: option.Some(30)}
+
+// Get the value directly (not wrapped in Option)
+value := timeoutOptional.GetOption(config)  // Some(30)
+
+// Set a value (automatically wrapped in Some)
+updated := timeoutOptional.Set(60)(config)  // Config{Timeout: Some(60)}
+
+// Set is no-op when field is None
+emptyConfig := Config{Timeout: option.None[int]()}
+stillEmpty := timeoutOptional.Set(60)(emptyConfig)  // Timeout still None
+```
+
+### 🎯 Composition Guidelines
+
+1. **Type Safety**: Composition is type-safe - the compiler ensures that optics compose correctly
+2. **Associativity**: Composition is associative: `(A ∘ B) ∘ C = A ∘ (B ∘ C)`
+3. **No-op Preservation**: When composing optionals, the no-op behavior is preserved through the chain
+4. **Law Preservation**: Composed optics maintain the laws of their result type
+
+### 📦 Composition Packages
+
+Each optic type has specialized sub-packages for composition:
+
+- [`optics/lens/prism`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/prism): Lens + Prism → Optional
+- [`optics/prism/lens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/prism/lens): Prism + Lens → Optional
+- [`optics/lens/iso`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/iso): Lens + Iso → Lens
+- [`optics/iso/lens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/iso/lens): Iso → Lens conversion
+- [`optics/lens/option`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/lens/option): Lens[S, Option[A]] → Optional[S, A]
+- [`optics/optional/lens`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional/lens): Optional + Lens → Optional
+- [`optics/optional/prism`](https://pkg.go.dev/github.com/IBM/fp-go/v2/optics/optional/prism): Optional + Prism → Optional
 
 ## ⚙️ Auto-Generation with [`go generate`](https://go.dev/blog/generate)
 
