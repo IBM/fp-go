@@ -717,7 +717,496 @@ func TestPrismSome(t *testing.T) {
 
 		assert.Equal(t, O.Some(42), wrapped)
 	})
+}
 
+// TestCompose_BasicFunctionality tests basic composition behavior
+func TestCompose_BasicFunctionality(t *testing.T) {
+	t.Run("GetOption returns Some when both optional and prism match", func(t *testing.T) {
+		// Create an optional that focuses on an Option field
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		// Create a prism for Some values
+		somePrism := PrismSome[int]()
+
+		// Compose them
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30)}
+		value := composed.GetOption(config)
+
+		assert.True(t, O.IsSome(value))
+		assert.Equal(t, 30, O.GetOrElse(F.Constant(0))(value))
+	})
+
+	t.Run("GetOption returns None when optional doesn't match", func(t *testing.T) {
+		// Create an optional that may not match
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				if c.Retries == O.None[int]() {
+					return O.None[O.Option[int]]()
+				}
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
+		value := composed.GetOption(config)
+
+		assert.True(t, O.IsNone(value))
+	})
+
+	t.Run("GetOption returns None when prism doesn't match", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.None[int]()}
+		value := composed.GetOption(config)
+
+		assert.True(t, O.IsNone(value))
+	})
+
+	t.Run("Set updates value when both optional and prism match", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30)}
+		updated := composed.Set(60)(config)
+
+		assert.Equal(t, O.Some(60), updated.Timeout)
+	})
+
+	t.Run("Set is no-op when optional doesn't match", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				if c.Retries == O.None[int]() {
+					return O.None[O.Option[int]]()
+				}
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
+		updated := composed.Set(60)(config)
+
+		assert.Equal(t, config, updated)
+	})
+
+	t.Run("Set is no-op when prism doesn't match", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.None[int]()}
+		updated := composed.Set(60)(config)
+
+		assert.Equal(t, config, updated)
+	})
+}
+
+// TestCompose_OptionalLaw1_GetSet tests Law 1 (No-op on None)
+// Law: GetOption(s) = None => Set(b)(s) = s
+func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
+	t.Run("Law 1: Set is no-op when GetOption returns None (optional doesn't match)", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				if c.Retries == O.None[int]() {
+					return O.None[O.Option[int]]()
+				}
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
+
+		// Verify GetOption returns None
+		assert.True(t, O.IsNone(composed.GetOption(config)))
+
+		// Law 1: Set must be a no-op when GetOption returns None
+		updated := composed.Set(60)(config)
+
+		// Verify the config is unchanged
+		assert.Equal(t, config, updated)
+	})
+
+	t.Run("Law 1: Set is no-op when GetOption returns None (prism doesn't match)", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.None[int]()}
+
+		// Verify GetOption returns None
+		assert.True(t, O.IsNone(composed.GetOption(config)))
+
+		// Law 1: Set must be a no-op when GetOption returns None
+		updated := composed.Set(60)(config)
+
+		// Verify the config is unchanged
+		assert.Equal(t, config, updated)
+	})
+
+	t.Run("Law 1: Set updates when GetOption returns Some", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30)}
+
+		// Verify GetOption returns Some
+		assert.True(t, O.IsSome(composed.GetOption(config)))
+
+		// Set should update when GetOption returns Some
+		updated := composed.Set(60)(config)
+
+		assert.Equal(t, O.Some(60), updated.Timeout)
+	})
+}
+
+// TestCompose_OptionalLaw2_SetGet tests Law 2 (Get what you Set)
+// Law: GetOption(s) = Some(_) => GetOption(Set(b)(s)) = Some(b)
+func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
+	t.Run("Law 2: Can retrieve what was set when Some exists", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30)}
+
+		// Verify GetOption returns Some
+		assert.True(t, O.IsSome(composed.GetOption(config)))
+
+		// Set a value and get it back
+		newValue := 60
+		updated := composed.Set(newValue)(config)
+		retrieved := composed.GetOption(updated)
+
+		assert.True(t, O.IsSome(retrieved))
+		assert.Equal(t, newValue, O.GetOrElse(F.Constant(0))(retrieved))
+	})
+
+	t.Run("Law 2: Set is no-op when starting from None (optional doesn't match)", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				if c.Retries == O.None[int]() {
+					return O.None[O.Option[int]]()
+				}
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
+
+		// Verify GetOption returns None
+		assert.True(t, O.IsNone(composed.GetOption(config)))
+
+		// Set is a no-op when GetOption returns None (Law 1)
+		updated := composed.Set(60)(config)
+
+		// Verify the config is unchanged
+		assert.Equal(t, config, updated)
+		assert.True(t, O.IsNone(composed.GetOption(updated)))
+	})
+
+	t.Run("Law 2: Set is no-op when starting from None (prism doesn't match)", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.None[int]()}
+
+		// Verify GetOption returns None
+		assert.True(t, O.IsNone(composed.GetOption(config)))
+
+		// Set is a no-op when GetOption returns None (Law 1)
+		updated := composed.Set(60)(config)
+
+		// Verify the config is unchanged
+		assert.Equal(t, config, updated)
+		assert.True(t, O.IsNone(composed.GetOption(updated)))
+	})
+
+	t.Run("Law 2: Works with zero values", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30)}
+
+		// Set to zero value
+		updated := composed.Set(0)(config)
+		retrieved := composed.GetOption(updated)
+
+		assert.True(t, O.IsSome(retrieved))
+		assert.Equal(t, 0, O.GetOrElse(F.Constant(-1))(retrieved))
+	})
+}
+
+// TestCompose_OptionalLaw3_SetSet tests Law 3 (Last Set Wins)
+// Law: Set(c)(Set(b)(s)) = Set(c)(s)
+func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
+	t.Run("Law 3: Last set wins when starting with Some", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30)}
+
+		// Set twice
+		setTwice := composed.Set(60)(composed.Set(45)(config))
+		setOnce := composed.Set(60)(config)
+
+		assert.Equal(t, setOnce.Timeout, setTwice.Timeout)
+		assert.Equal(t, O.Some(60), setTwice.Timeout)
+	})
+
+	t.Run("Law 3: Both are no-op when starting with None (optional doesn't match)", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				if c.Retries == O.None[int]() {
+					return O.None[O.Option[int]]()
+				}
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
+
+		// Both Set operations are no-ops when GetOption returns None
+		setTwice := composed.Set(60)(composed.Set(45)(config))
+		setOnce := composed.Set(60)(config)
+
+		// Both should equal the original config (no-op)
+		assert.Equal(t, config, setTwice)
+		assert.Equal(t, config, setOnce)
+	})
+
+	t.Run("Law 3: Both are no-op when starting with None (prism doesn't match)", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.None[int]()}
+
+		// Both Set operations are no-ops when GetOption returns None
+		setTwice := composed.Set(60)(composed.Set(45)(config))
+		setOnce := composed.Set(60)(config)
+
+		// Both should equal the original config (no-op)
+		assert.Equal(t, config, setTwice)
+		assert.Equal(t, config, setOnce)
+		assert.Equal(t, O.None[int](), setTwice.Timeout)
+	})
+
+	t.Run("Law 3: Works with multiple different values", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(10)}
+
+		// Set multiple times
+		setMultiple := composed.Set(40)(composed.Set(30)(composed.Set(20)(config)))
+		setOnce := composed.Set(40)(config)
+
+		assert.Equal(t, setOnce.Timeout, setMultiple.Timeout)
+		assert.Equal(t, O.Some(40), setMultiple.Timeout)
+	})
+}
+
+// TestCompose_EdgeCases tests edge cases
+func TestCompose_EdgeCases(t *testing.T) {
+	t.Run("Works with zero values", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(0)}
+
+		result := composed.GetOption(config)
+		assert.True(t, O.IsSome(result))
+		assert.Equal(t, 0, O.GetOrElse(F.Constant(-1))(result))
+
+		updated := composed.Set(0)(config)
+		assert.Equal(t, O.Some(0), updated.Timeout)
+	})
+
+	t.Run("Preserves other fields", func(t *testing.T) {
+		configOptional := OPT.MakeOptional(
+			func(c Config) O.Option[O.Option[int]] {
+				return O.Some(c.Timeout)
+			},
+			func(c Config, opt O.Option[int]) Config {
+				c.Timeout = opt
+				return c
+			},
+		)
+
+		somePrism := PrismSome[int]()
+		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+
+		config := Config{Timeout: O.Some(30), Retries: O.Some(3)}
+		updated := composed.Set(60)(config)
+
+		assert.Equal(t, O.Some(60), updated.Timeout)
+		assert.Equal(t, O.Some(3), updated.Retries)
+	})
+}
+
+// TestPrismSome_TypeVariants tests PrismSome with different types
+func TestPrismSome_TypeVariants(t *testing.T) {
 	t.Run("works with string type", func(t *testing.T) {
 		prism := PrismSome[string]()
 

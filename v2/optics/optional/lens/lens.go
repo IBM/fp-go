@@ -23,7 +23,7 @@ import (
 )
 
 // Compose composes a lens with an optional
-func Compose[S, A, B any](ab L.Lens[A, B]) func(sa OPT.Optional[S, A]) OPT.Optional[S, B] {
+func Compose[S, A, B any](ab L.Lens[A, B]) func(OPT.Optional[S, A]) OPT.Optional[S, B] {
 	return F.Pipe2(
 		ab,
 		LO.LensAsOptional[A, B],

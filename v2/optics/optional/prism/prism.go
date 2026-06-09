@@ -232,3 +232,106 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 func Some[S, A any](soa OPT.Optional[S, O.Option[A]]) OPT.Optional[S, A] {
 	return OPT.Compose[S](AsOptional(PrismSome[A]()))(soa)
 }
+
+// Compose composes an Optional with a Prism to create a new Optional.
+//
+// This composition allows you to first focus on a value that may not exist (using an Optional),
+// and then focus on a variant within that value (using a Prism). The result is an Optional
+// because either the initial optional may not match, or the prism may not match the focused value.
+//
+// The composition works by:
+//  1. Converting the Prism to an Optional using AsOptional
+//  2. Composing the input Optional with the prism-derived Optional using optional composition
+//
+// The resulting Optional satisfies the three optional laws:
+//
+//  1. GetSet Law (No-op on None):
+//     If GetOption(s) returns None (either the optional doesn't match or the prism doesn't match),
+//     then Set(b)(s) returns s unchanged.
+//     This is satisfied because both the optional and prism-to-optional conversions ensure
+//     Set is a no-op when GetOption returns None.
+//
+//     Formally: GetOption(s) = None => Set(b)(s) = s
+//
+//  2. SetGet Law (Get what you Set):
+//     If GetOption(s) returns Some(_) (both optional and prism match), then
+//     GetOption(Set(b)(s)) returns Some(b).
+//     This is satisfied because optional composition preserves this property from both components.
+//
+//     Formally: GetOption(s) = Some(_) => GetOption(Set(b)(s)) = Some(b)
+//
+//  3. SetSet Law (Last Set Wins):
+//     Set(c)(Set(b)(s)) equals Set(c)(s).
+//     This is satisfied because optional composition preserves this property.
+//
+//     Formally: Set(c)(Set(b)(s)) = Set(c)(s)
+//
+// Type Parameters:
+//   - S: The source type
+//   - A: The intermediate type (focused by the Optional)
+//   - B: The target type (variant within A, focused by the Prism)
+//
+// Parameters:
+//   - ab: A Prism[A, B] that focuses on variant B within type A
+//
+// Returns:
+//   - A function that takes an Optional[S, A] and returns an Optional[S, B]
+//
+// Example:
+//
+//	type Config struct {
+//	    Database Option[DatabaseConfig]
+//	}
+//
+//	type DatabaseConfig interface{ isDatabase() }
+//	type PostgreSQL struct{ Host string }
+//	type MySQL struct{ Host string }
+//
+//	// Optional focusing on Database field
+//	dbOptional := optional.MakeOptional(
+//	    func(c Config) Option[DatabaseConfig] {
+//	        return c.Database
+//	    },
+//	    func(c Config, db DatabaseConfig) Config {
+//	        c.Database = Some(db)
+//	        return c
+//	    },
+//	)
+//
+//	// Prism focusing on PostgreSQL variant
+//	pgPrism := prism.MakePrism(
+//	    func(db DatabaseConfig) Option[PostgreSQL] {
+//	        if pg, ok := db.(PostgreSQL); ok {
+//	            return Some(pg)
+//	        }
+//	        return None[PostgreSQL]()
+//	    },
+//	    func(pg PostgreSQL) DatabaseConfig { return pg },
+//	)
+//
+//	// Compose to create Optional[Config, PostgreSQL]
+//	configPgOptional := Compose[Config, DatabaseConfig, PostgreSQL](pgPrism)(dbOptional)
+//
+//	// Use the optional
+//	config := Config{Database: Some(PostgreSQL{Host: "localhost"})}
+//	host := configPgOptional.GetOption(config)  // Some(PostgreSQL{Host: "localhost"})
+//	updated := configPgOptional.Set(PostgreSQL{Host: "remote"})(config)
+//	// updated.Database = Some(PostgreSQL{Host: "remote"})
+//
+//	// Set is no-op when optional doesn't match (Law 1)
+//	emptyConfig := Config{Database: None[DatabaseConfig]()}
+//	unchanged := configPgOptional.Set(PostgreSQL{Host: "remote"})(emptyConfig)
+//	// unchanged == emptyConfig (no-op)
+//
+//	// Set is no-op when prism doesn't match (Law 1)
+//	mysqlConfig := Config{Database: Some(MySQL{Host: "localhost"})}
+//	unchanged = configPgOptional.Set(PostgreSQL{Host: "remote"})(mysqlConfig)
+//	// unchanged == mysqlConfig (no-op)
+//
+// See Also:
+//   - AsOptional: Converts prisms to optionals
+//   - github.com/IBM/fp-go/v2/optics/optional.Compose for optional composition
+//   - github.com/IBM/fp-go/v2/optics/prism/lens for the inverse composition (prism then lens)
+func Compose[S, A, B any](ab P.Prism[A, B]) func(OPT.Optional[S, A]) OPT.Optional[S, B] {
+	return OPT.Compose[S](AsOptional(ab))
+}
