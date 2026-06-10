@@ -448,6 +448,7 @@ func process() IOResult[string] {
 
 ## 📚 Documentation
 
+- **[Pattern Matching](./docs/PATTERN_MATCHING.md)** - Using FindFirstMap and AltAllArray for multi-branch pattern matching
 - **[Design Decisions](./DESIGN.md)** - Key design principles and patterns explained
 - **[Functional I/O in Go](./FUNCTIONAL_IO.md)** - Understanding Context, errors, and the Reader pattern for I/O operations
 - **[Idiomatic vs Standard Packages](./IDIOMATIC_COMPARISON.md)** - Performance comparison and when to use each approach
