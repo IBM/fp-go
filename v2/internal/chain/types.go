@@ -84,4 +84,6 @@ type (
 	Operator[HKTA, HKTB any] = func(HKTA) HKTB
 
 	ChainType[A, HKTA, HKTB any] = func(func(A) HKTB) func(HKTA) HKTB
+
+	MonadChainType[A, HKTA, HKTB any] = func(HKTA, func(A) HKTB) HKTB
 )

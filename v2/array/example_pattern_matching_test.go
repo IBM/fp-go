@@ -21,8 +21,8 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/identity"
 	O "github.com/IBM/fp-go/v2/option"
+	RO "github.com/IBM/fp-go/v2/readeroption"
 )
 
 // Example_patternMatching demonstrates using FindFirstMap with option.Alt for
@@ -74,16 +74,13 @@ func Example_patternMatching() {
 		matchDELETE,
 	)
 
-	// Combine matchers using AltAllArray - tries each in order until one returns Some
-	handleRequest := func(r Request) string {
-		return F.Pipe2(
-			matchers,
-			A.FindFirstMap(identity.Ap[O.Option[string]](r)),
-			O.GetOrElse(func() string {
-				return defaultCase(r)
-			}),
-		)
-	}
+	altMonoid := RO.AltMonoid[Request, string]()
+
+	handleRequest := F.Pipe2(
+		matchers,
+		A.Fold(altMonoid),
+		RO.GetOrElse(defaultCase),
+	)
 
 	// Test various requests
 	requests := []Request{

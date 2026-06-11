@@ -128,3 +128,98 @@
 //	    )
 //	}
 package reader
+
+import "context"
+
+// WithValue creates a Kleisli arrow that adds a value to the context.
+//
+// This function provides a functional way to add values to a context.Context,
+// returning a new context with the key-value pair added. It's particularly useful
+// for building context-dependent computations that need to propagate values through
+// a chain of operations.
+//
+// Type Parameters:
+//   - A: The type of the value to store in the context
+//   - K: The type of the key (typically string or a custom type)
+//
+// Parameters:
+//   - key: The key to associate with the value in the context
+//
+// Returns:
+//   - Kleisli[A, context.Context]: A function that takes a value and returns a Reader
+//     that produces a new context with the key-value pair added
+//
+// Example:
+//
+//	import (
+//	    "context"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	    "github.com/IBM/fp-go/v2/context/reader"
+//	)
+//
+//	// Create a Kleisli arrow for adding a user ID to context
+//	setUserID := reader.WithValue[string, string]("userID")
+//
+//	// Use it to create a context with a user ID
+//	ctx := context.Background()
+//	newCtx := setUserID("user123")(ctx)
+//	userID := newCtx.Value("userID").(string) // "user123"
+//
+// Example: Chaining multiple context values
+//
+//	import (
+//	    R "github.com/IBM/fp-go/v2/reader"
+//	)
+//
+//	// Chain multiple WithValue operations
+//	enrichContext := F.Pipe2(
+//	    reader.WithValue[string, string]("userID")("user123"),
+//	    R.Chain(reader.WithValue[string, string]("requestID")("req456")),
+//	    R.Chain(reader.WithValue[int, string]("timeout")(30)),
+//	)
+//
+//	ctx := context.Background()
+//	enrichedCtx := enrichContext(ctx)
+//	// enrichedCtx now contains userID, requestID, and timeout
+//
+// Example: Using with custom key types
+//
+//	type contextKey string
+//
+//	const (
+//	    userKey    contextKey = "user"
+//	    sessionKey contextKey = "session"
+//	)
+//
+//	type User struct {
+//	    ID   string
+//	    Name string
+//	}
+//
+//	// Type-safe context value setting
+//	setUser := reader.WithValue[User, contextKey](userKey)
+//	setSession := reader.WithValue[string, contextKey](sessionKey)
+//
+//	user := User{ID: "123", Name: "Alice"}
+//	ctx := F.Pipe1(
+//	    setUser(user),
+//	    R.Chain(setSession("session-token")),
+//	)(context.Background())
+//
+// Notes:
+//   - The returned context is a new context; the original is not modified
+//   - Keys should be comparable types (typically string or custom types)
+//   - For type safety, consider using custom key types instead of strings
+//   - Values stored in context should be request-scoped and immutable
+//
+// See Also:
+//   - context.WithValue: The underlying standard library function
+//   - Reader: For composing context-dependent computations
+//   - Kleisli: For understanding Kleisli arrow composition
+func WithValue[A, K any](key K) Kleisli[A, context.Context] {
+	return func(val A) Reader[context.Context] {
+		return func(ctx context.Context) context.Context {
+			return context.WithValue(ctx, key, val)
+		}
+	}
+}

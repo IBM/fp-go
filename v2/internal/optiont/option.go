@@ -18,7 +18,9 @@ package optiont
 import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/apply"
+	"github.com/IBM/fp-go/v2/internal/chain"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
+	"github.com/IBM/fp-go/v2/internal/pointed"
 	O "github.com/IBM/fp-go/v2/option"
 )
 
@@ -125,8 +127,8 @@ func ChainOptionK[A, B, HKTA, HKTB any](
 }
 
 func MonadAlt[LAZY ~func() HKTFA, A, HKTFA any](
-	fof func(O.Option[A]) HKTFA,
-	fchain func(HKTFA, func(O.Option[A]) HKTFA) HKTFA,
+	fof pointed.OfType[O.Option[A], HKTFA],
+	fchain chain.MonadChainType[O.Option[A], HKTFA, HKTFA],
 
 	first HKTFA,
 	second LAZY) HKTFA {
@@ -135,8 +137,8 @@ func MonadAlt[LAZY ~func() HKTFA, A, HKTFA any](
 }
 
 func Alt[LAZY ~func() HKTFA, A, HKTFA any](
-	fof func(O.Option[A]) HKTFA,
-	fchain func(func(O.Option[A]) HKTFA) func(HKTFA) HKTFA,
+	fof pointed.OfType[O.Option[A], HKTFA],
+	fchain chain.ChainType[O.Option[A], HKTFA, HKTFA],
 
 	second LAZY) func(HKTFA) HKTFA {
 

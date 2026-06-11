@@ -16,7 +16,6 @@
 package readeroption
 
 import (
-	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 )
 
@@ -91,16 +90,24 @@ func ApplicativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderOption[
 //   - If both succeed, combine their values using the underlying monoid
 //   - If both fail, the result is None
 //
+// The behavior differs from AltMonoid in that it combines success values:
+//   - AltMonoid returns the first success without combining
+//   - AlternativeMonoid combines all successes using the underlying monoid
+//
 // The resulting monoid satisfies the monoid laws:
 //   - Left identity: Concat(Empty(), x) = x
 //   - Right identity: Concat(x, Empty()) = x
 //   - Associativity: Concat(Concat(x, y), z) = Concat(x, Concat(y, z))
 //
+// Type Parameters:
+//   - R: The environment type that the reader depends on
+//   - A: The value type wrapped in Option
+//
 // Parameters:
 //   - m: The underlying monoid for combining success values of type A
 //
 // Returns:
-//   - A Monoid[ReaderOption[R, A]] that combines ReaderOption computations with fallback
+//   - monoid.Monoid: A Monoid[ReaderOption[R, A]] that combines ReaderOption computations with fallback
 //
 // Example:
 //
@@ -136,6 +143,11 @@ func ApplicativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderOption[
 //	)
 //	// result(cfg) returns option.Some(8)
 //
+// See Also:
+//   - AltMonoid: Returns the first success without combining values
+//   - ApplicativeMonoid: Requires all computations to succeed
+//   - MonadAlt: The underlying Alt operation used for fallback
+//
 //go:inline
 func AlternativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderOption[R, A]] {
 	return monoid.AlternativeMonoid(
@@ -149,10 +161,10 @@ func AlternativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderOption[
 
 // AltMonoid creates a Monoid for ReaderOption that uses the Alt operation for combination.
 // This monoid returns the first successful computation (Some), or falls back to the second
-// if the first fails (None). The empty value is provided lazily.
+// if the first fails (None). The empty value is None, which always fails.
 //
 // The Alt operation provides fallback semantics:
-//   - If the first computation succeeds (Some), return it
+//   - If the first computation succeeds (Some), return it immediately
 //   - If the first fails (None), try the second computation
 //   - If both fail, return None
 //
@@ -160,26 +172,30 @@ func AlternativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderOption[
 // an underlying monoid - it simply returns the first success. This makes it useful for
 // scenarios where you want to try multiple alternatives without accumulation.
 //
+// This differs from ApplicativeMonoid in that it provides fallback behavior:
+//   - ApplicativeMonoid requires all computations to succeed
+//   - AltMonoid succeeds if any computation succeeds
+//
 // The resulting monoid satisfies the monoid laws:
 //   - Left identity: Concat(Empty(), x) = x
 //   - Right identity: Concat(x, Empty()) = x
 //   - Associativity: Concat(Concat(x, y), z) = Concat(x, Concat(y, z))
 //
-// Parameters:
-//   - zero: Lazy computation that provides the empty/identity value
+// Type Parameters:
+//   - R: The environment type that the reader depends on
+//   - A: The value type wrapped in Option
 //
 // Returns:
-//   - A Monoid[ReaderOption[R, A]] that combines computations using Alt semantics
+//   - monoid.Monoid: A Monoid[ReaderOption[R, A]] that combines computations using Alt semantics
 //
 // Example:
 //
 //	import (
-//	    L "github.com/IBM/fp-go/v2/lazy"
 //	    RO "github.com/IBM/fp-go/v2/readeroption"
 //	)
 //
-//	// Create a monoid with None as the empty value
-//	roMonoid := RO.AltMonoid(L.Of(RO.None[Config, int]()))
+//	// Create a monoid for ReaderOption[Config, int]
+//	roMonoid := RO.AltMonoid[Config, int]()
 //
 //	// Returns first success
 //	ro1 := RO.Of[Config](5)
@@ -199,16 +215,16 @@ func AlternativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderOption[
 //	bothFail := roMonoid.Concat(ro5, ro6)
 //	// bothFail(cfg) returns option.None[int]()
 //
-//	// Empty is identity
+//	// Empty is identity (always returns None)
 //	withEmpty := roMonoid.Concat(ro1, roMonoid.Empty())
 //	// withEmpty(cfg) returns option.Some(5)
 //
 // See Also:
 //   - AlternativeMonoid: Combines success values using an underlying monoid
 //   - ApplicativeMonoid: Requires all computations to succeed
-func AltMonoid[R, A any](zero lazy.Lazy[ReaderOption[R, A]]) monoid.Monoid[ReaderOption[R, A]] {
+func AltMonoid[R, A any]() monoid.Monoid[ReaderOption[R, A]] {
 	return monoid.AltMonoid(
-		zero,
+		None[R, A],
 		MonadAlt[R, A],
 	)
 }

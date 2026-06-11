@@ -19,7 +19,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/IBM/fp-go/v2/lazy"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
@@ -359,7 +358,7 @@ func TestAlternativeMonoid_InterspersedFailures(t *testing.T) {
 
 // TestAltMonoid tests the AltMonoid function
 func TestAltMonoid(t *testing.T) {
-	roMonoid := AltMonoid(lazy.Of(None[context.Context, int]()))
+	roMonoid := AltMonoid[context.Context, int]()
 
 	t.Run("empty element", func(t *testing.T) {
 		empty := roMonoid.Empty()
@@ -445,7 +444,7 @@ func TestAltMonoid(t *testing.T) {
 		tertiary := Of[context.Context]("tertiary success")
 		quaternary := Of[context.Context]("quaternary success")
 
-		strROMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+		strROMonoid := AltMonoid[context.Context, string]()
 
 		// Chain concat: try primary, then secondary, then tertiary
 		combined := strROMonoid.Concat(
@@ -473,26 +472,11 @@ func TestAltMonoid(t *testing.T) {
 		assert.Equal(t, O.None[int](), result)
 	})
 
-	t.Run("custom empty value", func(t *testing.T) {
-		// Create monoid with custom empty value
-		customEmpty := Of[context.Context](100)
-		customMonoid := AltMonoid(lazy.Of(customEmpty))
-
-		empty := customMonoid.Empty()
-		result := empty(context.Background())()
-		assert.Equal(t, O.Some(100), result)
-
-		// Verify it acts as identity
-		ro := Of[context.Context](42)
-		combined := customMonoid.Concat(ro, customMonoid.Empty())
-		result2 := combined(context.Background())()
-		assert.Equal(t, O.Some(42), result2)
-	})
 }
 
 // TestAltMonoidLaws verifies that the monoid laws hold for AltMonoid
 func TestAltMonoidLaws(t *testing.T) {
-	roMonoid := AltMonoid(lazy.Of(None[context.Context, int]()))
+	roMonoid := AltMonoid[context.Context, int]()
 
 	t.Run("left identity law", func(t *testing.T) {
 		// empty <> x == x
@@ -548,7 +532,7 @@ func TestAltMonoidLaws(t *testing.T) {
 
 // TestAltVsAlternativeMonoid compares AltMonoid with AlternativeMonoid
 func TestAltVsAlternativeMonoid(t *testing.T) {
-	altMonoid := AltMonoid(lazy.Of(None[context.Context, int]()))
+	altMonoid := AltMonoid[context.Context, int]()
 	alternativeMonoid := AlternativeMonoid[context.Context](N.MonoidSum[int]())
 
 	t.Run("both succeed - different behavior", func(t *testing.T) {
@@ -628,7 +612,7 @@ func TestAltMonoidWithEnvironment(t *testing.T) {
 		Factor   int
 	}
 
-	roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+	roMonoid := AltMonoid[Config, int]()
 
 	t.Run("environment dependent with fallback", func(t *testing.T) {
 		// First computation depends on environment
@@ -663,7 +647,7 @@ func TestAltMonoidWithEnvironment(t *testing.T) {
 // TestAltMonoidRealWorldScenarios tests practical use cases
 func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	t.Run("configuration source fallback", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+		roMonoid := AltMonoid[context.Context, string]()
 
 		// Simulate trying to load config from multiple sources
 		fromEnv := None[context.Context, string]()
@@ -686,7 +670,7 @@ func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	})
 
 	t.Run("service discovery with fallback", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+		roMonoid := AltMonoid[context.Context, string]()
 
 		// Simulate service discovery from multiple registries
 		fromConsul := Of[context.Context]("consul-service")
@@ -708,7 +692,7 @@ func TestAltMonoidRealWorldScenarios(t *testing.T) {
 			CacheEnabled bool
 		}
 
-		roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+		roMonoid := AltMonoid[Config, int]()
 
 		// Simulate cache miss, then database lookup
 		fromCache := func(cfg Config) IOOption[int] {
@@ -734,7 +718,7 @@ func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	})
 
 	t.Run("retry with first success", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[context.Context, string]()))
+		roMonoid := AltMonoid[context.Context, string]()
 
 		// Simulate retrying an operation
 		attempt1 := None[context.Context, string]()

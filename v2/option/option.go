@@ -215,7 +215,6 @@ func TryCatch[A any](f func() (A, error)) Option[A] {
 // Example:
 //
 //	handler := Fold(
-//	    func() string { return "no value" },
 //	    func(x int) string { return fmt.Sprintf("value: %d", x) },
 //	)
 //	result := handler(Some(42)) // "value: 42"
@@ -506,4 +505,43 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 //	assert.NotEqual(t, someZero, zero) // they are different
 func Zero[A any]() Option[A] {
 	return None[A]()
+}
+
+// ChainNone is the curried version that sequences a computation on the None (empty) value.
+// Returns a function that applies the provided function when the Option is None,
+// or returns None when the Option is Some.
+//
+// Note: ChainNone is identical to Alt - both provide the same functionality for providing
+// alternative values when an Option is None.
+//
+// The naming convention follows the pattern established by ChainLeft in the Either type,
+// where operations on the "error" or "empty" case use the Left/None suffix to distinguish
+// them from operations on the "success" or "present" case (Chain operates on Some values,
+// while ChainNone operates on None values).
+//
+// This is useful for creating reusable default value providers or transformers that can be
+// composed with other Option operations using pipes or function composition.
+//
+// Example:
+//
+//	// Create a reusable default provider
+//	provideDefault := option.ChainNone(func() option.Option[int] {
+//	    return option.Some(42)
+//	})
+//
+//	// Use in a pipeline
+//	result := F.Pipe1(
+//	    option.None[int](),
+//	    provideDefault,
+//	) // Some(42)
+//
+//	// Some values pass through unchanged
+//	result := F.Pipe1(
+//	    option.Some(10),
+//	    provideDefault,
+//	) // Some(10)
+//
+//go:inline
+func ChainNone[A any](onNone func() Option[A]) Operator[A, A] {
+	return Alt(onNone)
 }

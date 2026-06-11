@@ -18,7 +18,6 @@ package readeroption
 import (
 	"testing"
 
-	"github.com/IBM/fp-go/v2/lazy"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
@@ -474,7 +473,7 @@ func TestComplexScenarios(t *testing.T) {
 
 // TestAltMonoid tests the AltMonoid function
 func TestAltMonoid(t *testing.T) {
-	roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+	roMonoid := AltMonoid[Config, int]()
 
 	t.Run("empty element", func(t *testing.T) {
 		empty := roMonoid.Empty()
@@ -560,7 +559,7 @@ func TestAltMonoid(t *testing.T) {
 		tertiary := Of[Config]("tertiary success")
 		quaternary := Of[Config]("quaternary success")
 
-		strROMonoid := AltMonoid(lazy.Of(None[Config, string]()))
+		strROMonoid := AltMonoid[Config, string]()
 
 		// Chain concat: try primary, then secondary, then tertiary
 		combined := strROMonoid.Concat(
@@ -602,26 +601,11 @@ func TestAltMonoid(t *testing.T) {
 		assert.Equal(t, O.None[int](), result)
 	})
 
-	t.Run("custom empty value", func(t *testing.T) {
-		// Create monoid with custom empty value
-		customEmpty := Of[Config](100)
-		customMonoid := AltMonoid(lazy.Of(customEmpty))
-
-		empty := customMonoid.Empty()
-		result := empty(defaultConfig)
-		assert.Equal(t, O.Some(100), result)
-
-		// Verify it acts as identity
-		ro := Of[Config](42)
-		combined := customMonoid.Concat(ro, customMonoid.Empty())
-		result2 := combined(defaultConfig)
-		assert.Equal(t, O.Some(42), result2)
-	})
 }
 
 // TestAltMonoidLaws verifies that the monoid laws hold for AltMonoid
 func TestAltMonoidLaws(t *testing.T) {
-	roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+	roMonoid := AltMonoid[Config, int]()
 
 	t.Run("left identity law", func(t *testing.T) {
 		// empty <> x == x
@@ -677,7 +661,7 @@ func TestAltMonoidLaws(t *testing.T) {
 
 // TestAltVsAlternativeMonoid compares AltMonoid with AlternativeMonoid
 func TestAltVsAlternativeMonoid(t *testing.T) {
-	altMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+	altMonoid := AltMonoid[Config, int]()
 	alternativeMonoid := AlternativeMonoid[Config](intAddMonoid)
 
 	t.Run("both succeed - different behavior", func(t *testing.T) {
@@ -753,7 +737,7 @@ func TestAltVsAlternativeMonoid(t *testing.T) {
 // TestAltMonoidRealWorldScenarios tests practical use cases
 func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	t.Run("configuration source fallback", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[Config, string]()))
+		roMonoid := AltMonoid[Config, string]()
 
 		// Simulate trying to load config from multiple sources
 		fromEnv := None[Config, string]()
@@ -776,7 +760,7 @@ func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	})
 
 	t.Run("service discovery with fallback", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[Config, string]()))
+		roMonoid := AltMonoid[Config, string]()
 
 		// Simulate service discovery from multiple registries
 		fromConsul := Of[Config]("consul-service")
@@ -794,7 +778,7 @@ func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	})
 
 	t.Run("cache lookup with fallback to database", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[Config, int]()))
+		roMonoid := AltMonoid[Config, int]()
 
 		// Simulate cache miss, then database lookup
 		fromCache := None[Config, int]()
@@ -809,7 +793,7 @@ func TestAltMonoidRealWorldScenarios(t *testing.T) {
 	})
 
 	t.Run("retry with first success", func(t *testing.T) {
-		roMonoid := AltMonoid(lazy.Of(None[Config, string]()))
+		roMonoid := AltMonoid[Config, string]()
 
 		// Simulate retrying an operation
 		attempt1 := None[Config, string]()
