@@ -16,12 +16,24 @@
 package cli
 
 import (
+	"context"
+
+	"github.com/IBM/fp-go/v2/gen/mcp"
+
 	C "github.com/urfave/cli/v3"
 )
 
-func Commands() []*C.Command {
-	return []*C.Command{
-		LensCommand(),
-		McpCommand(),
+// McpCommand returns the CLI command for starting the MCP server
+func McpCommand() *C.Command {
+	return &C.Command{
+		Name:  "mcp",
+		Usage: "Start the MCP server with stdio transport",
+		Description: `Start the Model Context Protocol (MCP) server that provides tools for code generation.
+The server communicates over stdin/stdout and can be used by MCP clients.`,
+		Action: func(ctx context.Context, cmd *C.Command) error {
+			return mcp.Run(ctx)
+		},
 	}
 }
+
+// Made with Bob

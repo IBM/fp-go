@@ -1055,7 +1055,7 @@ func readTypeNamesFromFile(filename string) ([]string, error) {
 func LensCommand() *C.Command {
 	return &C.Command{
 		Name:        "lens",
-		Usage:       "generate lens code for annotated structs or named types",
+		Usage:       "Generate lens code for annotated structs or named types",
 		Description: "Scans Go files for structs annotated with 'fp-go:Lens', or — when --type is given — uses go/packages to load named types directly (stringer-style). Pointer fields and json-omitempty fields produce LensO (optional lens).",
 		Flags: []C.Flag{
 			flagLensDir,
