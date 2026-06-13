@@ -35,5 +35,3 @@ The server communicates over stdin/stdout and can be used by MCP clients.`,
 		},
 	}
 }
-
-// Made with Bob
