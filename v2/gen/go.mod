@@ -3,7 +3,7 @@ module github.com/IBM/fp-go/v2/gen
 go 1.25.0
 
 require (
-	github.com/IBM/fp-go/v2 v2.3.32
+	github.com/IBM/fp-go/v2 v2.3.33
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v3 v3.9.1
