@@ -25,5 +25,6 @@ func Commands() []*C.Command {
 		McpCommand(),
 		CpCommand(),
 		EmbedCommand(),
+		ExamplesCommand(),
 	}
 }

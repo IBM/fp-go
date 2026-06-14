@@ -17,39 +17,16 @@ package mcp
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/IBM/fp-go/v2/gen/data"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	_ "modernc.org/sqlite"
 )
-
-// FindExamplesArgs represents the arguments for the find_examples tool
-type FindExamplesArgs struct {
-	Query               string   `json:"query" jsonschema:"The primary, conceptual search query. This should capture the user's main goal or question (e.g., 'using Option monad' or 'how to compose functions'). The query will be processed by a full-text search engine. Key Syntax: AND (default with spaces), OR operator, NOT operator, Grouping with (), Phrase Search with quotes, Prefix Search with *."`
-	Keywords            []string `json:"keywords,omitempty" jsonschema:"A list of specific, exact keywords to narrow the search. Use this for precise terms like function names or type names."`
-	RequiredPackages    []string `json:"required_packages,omitempty" jsonschema:"A list of Go packages that an example must use. Use this when the user's request is specific to a feature within a certain package (e.g., if the user asks about Option, you should filter by github.com/IBM/fp-go/v2/option)."`
-	RelatedConcepts     []string `json:"related_concepts,omitempty" jsonschema:"A list of high-level concepts to filter by. Use this to find examples related to broader functional programming ideas or patterns (e.g., monads, functors, composition, error handling)."`
-	IncludeExperimental bool     `json:"include_experimental,omitempty" jsonschema:"By default, this tool returns only production-safe examples. Set this to true only if the user explicitly asks for a bleeding-edge feature or if a stable solution cannot be found. If set to true, you MUST warn the user that the example uses experimental APIs not suitable for production."`
-}
-
-// ExampleResult represents a single example result
-type ExampleResult struct {
-	Title            string   `json:"title" jsonschema:"The title of the example. Use this as a heading when presenting the example to the user."`
-	Summary          string   `json:"summary" jsonschema:"A one-sentence summary of the example's purpose. Use this to help the user decide if the example is relevant to them."`
-	Keywords         []string `json:"keywords,omitempty" jsonschema:"A list of keywords for the example. You can use these to explain why this example was a good match for the user's query."`
-	RequiredPackages []string `json:"required_packages,omitempty" jsonschema:"A list of Go packages required for the example to work. Before presenting the code, you should inform the user if any of these packages need to be installed."`
-	RelatedConcepts  []string `json:"related_concepts,omitempty" jsonschema:"A list of related concepts. You can suggest these to the user as topics for follow-up questions."`
-	RelatedTools     []string `json:"related_tools,omitempty" jsonschema:"A list of related MCP tools. You can suggest these as potential next steps for the user."`
-	Content          string   `json:"content" jsonschema:"A complete, self-contained Go code example in Markdown format. This should be presented to the user inside a markdown code block."`
-	Snippet          string   `json:"snippet,omitempty" jsonschema:"A contextual snippet from the content showing the matched search term. This field is critical for efficiently evaluating a result's relevance."`
-}
-
-// FindExamplesOutput represents the output of the find_examples tool
-type FindExamplesOutput struct {
-	Examples []ExampleResult `json:"examples" jsonschema:"List of example results matching the search criteria"`
-}
 
 // SkillInfo represents information about a skill
 type SkillInfo struct {
@@ -75,18 +52,48 @@ type UseSkillOutput struct {
 	Content     string `json:"content" jsonschema:"The content of the skill's SKILL.md file after the YAML frontmatter header"`
 }
 
+// SearchExamplesArgs represents the arguments for the search_examples tool
+type SearchExamplesArgs struct {
+	Query         string `json:"query" jsonschema:"The search query for full-text search across example names, symbols, packages, doc comments, and code"`
+	PackageFilter string `json:"package_filter,omitempty" jsonschema:"Optional package name to filter results (e.g., 'option' or 'either')"`
+}
+
+// GoExample represents a Go example function
+type GoExample struct {
+	ID         string `json:"id" jsonschema:"Unique identifier in format 'package::ExampleName'"`
+	Package    string `json:"package" jsonschema:"Package path"`
+	Symbol     string `json:"symbol,omitempty" jsonschema:"Symbol name (e.g., 'Type.Method' parsed from function name)"`
+	Name       string `json:"name" jsonschema:"Function name (e.g., 'ExampleType_Method')"`
+	DocComment string `json:"doc_comment,omitempty" jsonschema:"Documentation comment for the example"`
+	Code       string `json:"code,omitempty" jsonschema:"Full source code of the example function"`
+	Output     string `json:"output,omitempty" jsonschema:"Expected output from // Output: block"`
+	Imports    string `json:"imports,omitempty" jsonschema:"Import statements needed by the example"`
+	File       string `json:"file,omitempty" jsonschema:"File path where the example is located"`
+}
+
+// SearchExamplesOutput represents the output of the search_examples tool
+type SearchExamplesOutput struct {
+	Examples []GoExample `json:"examples" jsonschema:"List of examples matching the search query"`
+	Count    int         `json:"count" jsonschema:"Number of examples found"`
+}
+
+// GetExampleArgs represents the arguments for the get_example tool
+type GetExampleArgs struct {
+	Symbol string `json:"symbol" jsonschema:"The symbol name to look up (e.g., 'Type.Method' or 'ExampleType_Method')"`
+}
+
+// GetExampleOutput represents the output of the get_example tool
+type GetExampleOutput struct {
+	Examples []GoExample `json:"examples" jsonschema:"List of examples matching the symbol"`
+	Count    int         `json:"count" jsonschema:"Number of examples found"`
+}
+
 // NewServer creates a new MCP server with fp-go tools
 func NewServer() *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "fp-go-generator",
 		Version: "1.0.0",
 	}, nil)
-
-	// Register the find_examples tool
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "find_examples",
-		Description: "Find code examples matching a search query. Searches through test files, example directories, and documentation for relevant fp-go code snippets demonstrating functional programming patterns.",
-	}, handleFindExamples)
 
 	// Register the list_skills tool
 	mcp.AddTool(server, &mcp.Tool{
@@ -106,6 +113,24 @@ func NewServer() *mcp.Server {
 		},
 	}, handleUseSkill)
 
+	// Register the search_examples tool
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "search_examples",
+		Description: "Search for Go example functions using full-text search. Searches across example names, symbols, packages, documentation comments, and code. Returns up to 10 ranked results with metadata.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, handleSearchExamples)
+
+	// Register the get_example tool
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "get_example",
+		Description: "Retrieve a specific Go example by symbol name. Performs exact lookup by symbol (e.g., 'Type.Method') or function name (e.g., 'ExampleType_Method'). Returns the complete example with code, documentation, and output.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, handleGetExample)
+
 	return server
 }
 
@@ -119,42 +144,6 @@ func Run(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// handleFindExamples handles the find_examples tool call
-func handleFindExamples(ctx context.Context, req *mcp.CallToolRequest, args FindExamplesArgs) (*mcp.CallToolResult, FindExamplesOutput, error) {
-	// TODO: Implement actual example search logic
-	// This would search through:
-	// - Test files (*_test.go) for example functions
-	// - Example directories for code samples
-	// - Documentation files for usage patterns
-	// - Match against keywords, packages, and concepts
-
-	// For now, return sample examples
-	output := FindExamplesOutput{
-		Examples: []ExampleResult{
-			{
-				Title:    "Using Option Monad for Null Safety",
-				Summary:  "Demonstrates how to use the Option monad to handle nullable values safely without nil checks.",
-				Keywords: []string{"Option", "monad", "null safety", "Some", "None"},
-				RequiredPackages: []string{
-					"github.com/IBM/fp-go/v2/option",
-				},
-				RelatedConcepts: []string{"monads", "functional error handling", "type safety"},
-				RelatedTools:    []string{},
-				Content:         "```go\npackage main\n\nimport (\n\t\"fmt\"\n\tO \"github.com/IBM/fp-go/v2/option\"\n)\n\nfunc main() {\n\t// Create Some and None values\n\tsome := O.Some(42)\n\tnone := O.None[int]()\n\n\t// Use Map to transform values\n\tresult := O.Map(func(x int) int { return x * 2 })(some)\n\tfmt.Println(O.GetOrElse(func() int { return 0 })(result)) // Output: 84\n}\n```",
-				Snippet:         "O.Map(func(x int) int { return x * 2 })(some)",
-			},
-		},
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: fmt.Sprintf("Found %d example(s) matching query: %s", len(output.Examples), args.Query),
-			},
-		},
-	}, output, nil
 }
 
 // parseSkillMetadata extracts name and description from YAML frontmatter
@@ -181,8 +170,8 @@ func parseSkillMetadata(content []byte) (name, description string) {
 		}
 
 		// Parse name field
-		if strings.HasPrefix(trimmed, "name:") {
-			name = strings.TrimSpace(strings.TrimPrefix(trimmed, "name:"))
+		if after, ok := strings.CutPrefix(trimmed, "name:"); ok {
+			name = strings.TrimSpace(after)
 			continue
 		}
 
@@ -326,6 +315,253 @@ func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkill
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: fmt.Sprintf("Retrieved skill: %s", args.Name),
+			},
+		},
+	}, output, nil
+}
+
+// handleSearchExamples handles the search_examples tool call
+func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
+	if args.Query == "" {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: "Error: search query is required",
+				},
+			},
+			IsError: true,
+		}, SearchExamplesOutput{}, fmt.Errorf("search query is required")
+	}
+
+	// Create a temporary file for the database
+	tmpFile, err := os.CreateTemp("", "examples-*.db")
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: failed to create temp file: %v", err),
+				},
+			},
+			IsError: true,
+		}, SearchExamplesOutput{}, fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	// Write embedded database to temp file
+	if _, err := tmpFile.Write(data.EXAMPLES_DB); err != nil {
+		tmpFile.Close()
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: failed to write database: %v", err),
+				},
+			},
+			IsError: true,
+		}, SearchExamplesOutput{}, fmt.Errorf("failed to write database: %w", err)
+	}
+	tmpFile.Close()
+
+	// Open the database
+	db, err := sql.Open("sqlite", tmpPath)
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: failed to open database: %v", err),
+				},
+			},
+			IsError: true,
+		}, SearchExamplesOutput{}, fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	sqlQuery := `
+		SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
+		FROM examples e
+		JOIN examples_fts f ON e.rowid = f.rowid
+		WHERE examples_fts MATCH ?
+		ORDER BY rank
+		LIMIT 10
+	`
+
+	var rows *sql.Rows
+	if args.PackageFilter != "" {
+		sqlQuery = `
+			SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
+			FROM examples e
+			JOIN examples_fts f ON e.rowid = f.rowid
+			WHERE examples_fts MATCH ? AND e.package = ?
+			ORDER BY rank
+			LIMIT 10
+		`
+		rows, err = db.Query(sqlQuery, args.Query, args.PackageFilter)
+	} else {
+		rows, err = db.Query(sqlQuery, args.Query)
+	}
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: search failed: %v", err),
+				},
+			},
+			IsError: true,
+		}, SearchExamplesOutput{}, fmt.Errorf("search failed: %w", err)
+	}
+	defer rows.Close()
+
+	var examples []GoExample
+	for rows.Next() {
+		var ex GoExample
+		if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name, &ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("Error: failed to scan row: %v", err),
+					},
+				},
+				IsError: true,
+			}, SearchExamplesOutput{}, fmt.Errorf("failed to scan row: %w", err)
+		}
+		examples = append(examples, ex)
+	}
+
+	output := SearchExamplesOutput{
+		Examples: examples,
+		Count:    len(examples),
+	}
+
+	resultText := fmt.Sprintf("Found %d example(s) matching query: %s", len(examples), args.Query)
+	if args.PackageFilter != "" {
+		resultText += fmt.Sprintf(" (filtered by package: %s)", args.PackageFilter)
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: resultText,
+			},
+		},
+	}, output, nil
+}
+
+// handleGetExample handles the get_example tool call
+func handleGetExample(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
+	if args.Symbol == "" {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: "Error: symbol name is required",
+				},
+			},
+			IsError: true,
+		}, GetExampleOutput{}, fmt.Errorf("symbol name is required")
+	}
+
+	// Create a temporary file for the database
+	tmpFile, err := os.CreateTemp("", "examples-*.db")
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: failed to create temp file: %v", err),
+				},
+			},
+			IsError: true,
+		}, GetExampleOutput{}, fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	// Write embedded database to temp file
+	if _, err := tmpFile.Write(data.EXAMPLES_DB); err != nil {
+		tmpFile.Close()
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: failed to write database: %v", err),
+				},
+			},
+			IsError: true,
+		}, GetExampleOutput{}, fmt.Errorf("failed to write database: %w", err)
+	}
+	tmpFile.Close()
+
+	// Open the database
+	db, err := sql.Open("sqlite", tmpPath)
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: failed to open database: %v", err),
+				},
+			},
+			IsError: true,
+		}, GetExampleOutput{}, fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	query := `
+		SELECT id, package, symbol, name, code, doc_comment, output, imports, file
+		FROM examples
+		WHERE symbol = ? OR name = ? OR symbol LIKE ? OR name LIKE ?
+		ORDER BY name
+	`
+
+	// Add wildcards for pattern matching
+	pattern := "%" + args.Symbol + "%"
+	rows, err := db.Query(query, args.Symbol, args.Symbol, pattern, pattern)
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: query failed: %v", err),
+				},
+			},
+			IsError: true,
+		}, GetExampleOutput{}, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var examples []GoExample
+	for rows.Next() {
+		var ex GoExample
+		if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name,
+			&ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("Error: failed to scan row: %v", err),
+					},
+				},
+				IsError: true,
+			}, GetExampleOutput{}, fmt.Errorf("failed to scan row: %w", err)
+		}
+		examples = append(examples, ex)
+	}
+
+	if len(examples) == 0 {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("No examples found for symbol: %s", args.Symbol),
+				},
+			},
+		}, GetExampleOutput{Examples: []GoExample{}, Count: 0}, nil
+	}
+
+	output := GetExampleOutput{
+		Examples: examples,
+		Count:    len(examples),
+	}
+
+	resultText := fmt.Sprintf("Retrieved %d example(s) for symbol: %s", len(examples), args.Symbol)
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: resultText,
 			},
 		},
 	}, output, nil

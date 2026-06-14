@@ -4,6 +4,9 @@ package data
 
 import _ "embed"
 
+//go:embed skills/README.md
+var README_MD []byte
+
 //go:embed skills/fp-go/SKILL.md
 var FP_GO_SKILL_MD []byte
 
@@ -24,6 +27,7 @@ var FP_GO_PIPE_FLOW_EVALS_EVALS_JSON []byte
 
 // Skills is a map of relative file paths to their embedded content
 var Skills = map[string][]byte{
+	"README.md":                        README_MD,
 	"fp-go/SKILL.md":                   FP_GO_SKILL_MD,
 	"fp-go-http/SKILL.md":              FP_GO_HTTP_SKILL_MD,
 	"fp-go-lens/SKILL.md":              FP_GO_LENS_SKILL_MD,
