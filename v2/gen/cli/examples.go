@@ -217,9 +217,10 @@ func initDB(dbPath string) (*sql.DB, error) {
 
 // isValidExampleName checks if a function name follows Go's example naming conventions:
 // 1. Must start with "Example"
-// 2. The part after "Example" must start with a capital letter (exported identifier)
-// 3. For Type_Method format: both Type and Method must start with capital letters
-// 4. For disambiguating suffix: suffix must be all lowercase (no uppercase letters anywhere)
+// 2. Package-level examples: "Example" or "Example_suffix" (suffix all lowercase, can contain underscores)
+// 3. Type examples: "ExampleType" or "ExampleType_suffix" (Type capitalized, suffix all lowercase)
+// 4. Method examples: "ExampleType_Method" or "ExampleType_Method_suffix" (both Type and Method capitalized, suffix all lowercase)
+// 5. Suffixes are used for disambiguation and must be all lowercase (letters, numbers, underscores allowed)
 func isValidExampleName(name string) bool {
 	if !strings.HasPrefix(name, "Example") {
 		return false
@@ -232,9 +233,26 @@ func isValidExampleName(name string) bool {
 		return true
 	}
 
-	// First character after "Example" must be uppercase
-	if len(rest) > 0 && !unicode.IsUpper(rune(rest[0])) {
+	// First character after "Example" must be uppercase or underscore
+	// Underscore indicates package-level example with disambiguating suffix (e.g., Example_suffix)
+	if len(rest) > 0 && !unicode.IsUpper(rune(rest[0])) && rest[0] != '_' {
 		return false
+	}
+
+	// If starts with underscore, it's Example_suffix format
+	// The entire suffix (after underscore) must be all lowercase
+	if len(rest) > 0 && rest[0] == '_' {
+		suffix := rest[1:] // Remove leading underscore
+		if suffix == "" {
+			return false // "Example_" alone is invalid
+		}
+		// Suffix can contain underscores, but all letters must be lowercase
+		for _, r := range suffix {
+			if unicode.IsUpper(r) {
+				return false
+			}
+		}
+		return true
 	}
 
 	// Split by underscores to check each part
