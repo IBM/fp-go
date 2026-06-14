@@ -70,8 +70,9 @@ type UseSkillArgs struct {
 
 // UseSkillOutput represents the output of the use_skill tool
 type UseSkillOutput struct {
-	Name    string `json:"name" jsonschema:"The name of the skill"`
-	Content string `json:"content" jsonschema:"The full content of the skill's SKILL.md file"`
+	Name        string `json:"name" jsonschema:"The name of the skill"`
+	Description string `json:"description,omitempty" jsonschema:"A brief description of the skill from its SKILL.md file"`
+	Content     string `json:"content" jsonschema:"The content of the skill's SKILL.md file after the YAML frontmatter header"`
 }
 
 // NewServer creates a new MCP server with fp-go tools
@@ -91,12 +92,18 @@ func NewServer() *mcp.Server {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_skills",
 		Description: "List all available fp-go skills. Each skill provides specialized knowledge and guidance for specific fp-go features and patterns. Returns a list of skills with their names, descriptions, and paths.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, handleListSkills)
 
 	// Register the use_skill tool
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "use_skill",
 		Description: "Retrieve the full content of a specific fp-go skill by name. Use this after list_skills to get detailed documentation, examples, and best practices for a particular fp-go feature or pattern.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}, handleUseSkill)
 
 	return server
@@ -244,6 +251,37 @@ func handleListSkills(ctx context.Context, req *mcp.CallToolRequest, args struct
 	}, output, nil
 }
 
+// stripFrontmatter removes YAML frontmatter from content and returns the remaining content
+func stripFrontmatter(content []byte) string {
+	lines := strings.Split(string(content), "\n")
+	inFrontmatter := false
+	contentStart := 0
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Check for frontmatter delimiters
+		if trimmed == "---" {
+			if !inFrontmatter {
+				inFrontmatter = true
+				continue
+			} else {
+				// End of frontmatter - content starts after this line
+				contentStart = i + 1
+				break
+			}
+		}
+	}
+
+	// If we found frontmatter, return content after it
+	if contentStart > 0 && contentStart < len(lines) {
+		return strings.Join(lines[contentStart:], "\n")
+	}
+
+	// No frontmatter found, return original content
+	return string(content)
+}
+
 // handleUseSkill handles the use_skill tool call
 func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkillArgs) (*mcp.CallToolResult, UseSkillOutput, error) {
 	if args.Name == "" {
@@ -272,9 +310,16 @@ func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkill
 		}, UseSkillOutput{}, fmt.Errorf("skill '%s' not found", args.Name)
 	}
 
+	// Parse metadata from YAML frontmatter
+	_, description := parseSkillMetadata(content)
+
+	// Strip frontmatter from content
+	contentWithoutHeader := stripFrontmatter(content)
+
 	output := UseSkillOutput{
-		Name:    args.Name,
-		Content: string(content),
+		Name:        args.Name,
+		Description: description,
+		Content:     contentWithoutHeader,
 	}
 
 	return &mcp.CallToolResult{
