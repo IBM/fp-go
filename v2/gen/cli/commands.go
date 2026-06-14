@@ -23,5 +23,7 @@ func Commands() []*C.Command {
 	return []*C.Command{
 		LensCommand(),
 		McpCommand(),
+		CpCommand(),
+		EmbedCommand(),
 	}
 }

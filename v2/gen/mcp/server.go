@@ -18,7 +18,10 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
+	"github.com/IBM/fp-go/v2/gen/data"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -48,6 +51,29 @@ type FindExamplesOutput struct {
 	Examples []ExampleResult `json:"examples" jsonschema:"List of example results matching the search criteria"`
 }
 
+// SkillInfo represents information about a skill
+type SkillInfo struct {
+	Name        string `json:"name" jsonschema:"The name of the skill (directory name)"`
+	Description string `json:"description,omitempty" jsonschema:"A brief description of the skill from its SKILL.md file"`
+	Path        string `json:"path" jsonschema:"The relative path to the skill directory"`
+}
+
+// ListSkillsOutput represents the output of the list_skills tool
+type ListSkillsOutput struct {
+	Skills []SkillInfo `json:"skills" jsonschema:"List of available skills"`
+}
+
+// UseSkillArgs represents the arguments for the use_skill tool
+type UseSkillArgs struct {
+	Name string `json:"name" jsonschema:"The name of the skill to use (directory name from list_skills)"`
+}
+
+// UseSkillOutput represents the output of the use_skill tool
+type UseSkillOutput struct {
+	Name    string `json:"name" jsonschema:"The name of the skill"`
+	Content string `json:"content" jsonschema:"The full content of the skill's SKILL.md file"`
+}
+
 // NewServer creates a new MCP server with fp-go tools
 func NewServer() *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{
@@ -60,6 +86,18 @@ func NewServer() *mcp.Server {
 		Name:        "find_examples",
 		Description: "Find code examples matching a search query. Searches through test files, example directories, and documentation for relevant fp-go code snippets demonstrating functional programming patterns.",
 	}, handleFindExamples)
+
+	// Register the list_skills tool
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "list_skills",
+		Description: "List all available fp-go skills. Each skill provides specialized knowledge and guidance for specific fp-go features and patterns. Returns a list of skills with their names, descriptions, and paths.",
+	}, handleListSkills)
+
+	// Register the use_skill tool
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "use_skill",
+		Description: "Retrieve the full content of a specific fp-go skill by name. Use this after list_skills to get detailed documentation, examples, and best practices for a particular fp-go feature or pattern.",
+	}, handleUseSkill)
 
 	return server
 }
@@ -107,6 +145,142 @@ func handleFindExamples(ctx context.Context, req *mcp.CallToolRequest, args Find
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: fmt.Sprintf("Found %d example(s) matching query: %s", len(output.Examples), args.Query),
+			},
+		},
+	}, output, nil
+}
+
+// parseSkillMetadata extracts name and description from YAML frontmatter
+func parseSkillMetadata(content []byte) (name, description string) {
+	lines := strings.Split(string(content), "\n")
+	inFrontmatter := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Check for frontmatter delimiters
+		if trimmed == "---" {
+			if !inFrontmatter {
+				inFrontmatter = true
+				continue
+			} else {
+				// End of frontmatter
+				break
+			}
+		}
+
+		if !inFrontmatter {
+			continue
+		}
+
+		// Parse name field
+		if strings.HasPrefix(trimmed, "name:") {
+			name = strings.TrimSpace(strings.TrimPrefix(trimmed, "name:"))
+			continue
+		}
+
+		// Parse description field
+		if strings.HasPrefix(trimmed, "description:") {
+			description = strings.TrimSpace(strings.TrimPrefix(trimmed, "description:"))
+			continue
+		}
+	}
+
+	return name, description
+}
+
+// handleListSkills handles the list_skills tool call
+func handleListSkills(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, ListSkillsOutput, error) {
+	var skills []SkillInfo
+
+	// Iterate through the Skills map from data package
+	for path, content := range data.Skills {
+		// Only process SKILL.md files
+		if !strings.HasSuffix(path, "SKILL.md") {
+			continue
+		}
+
+		// Extract directory name from path (e.g., "fp-go-logging/SKILL.md" -> "fp-go-logging")
+		dirName := filepath.Dir(path)
+
+		// Parse metadata from YAML frontmatter
+		name, description := parseSkillMetadata(content)
+
+		// Validate that the name matches the directory name
+		if name != "" && name != dirName {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("Error: skill name '%s' does not match directory name '%s' in %s", name, dirName, path),
+					},
+				},
+				IsError: true,
+			}, ListSkillsOutput{}, fmt.Errorf("skill name mismatch: '%s' != '%s' in %s", name, dirName, path)
+		}
+
+		// Use the name from frontmatter if available, otherwise use directory name
+		skillName := name
+		if skillName == "" {
+			skillName = dirName
+		}
+
+		skills = append(skills, SkillInfo{
+			Name:        skillName,
+			Description: description,
+			Path:        dirName,
+		})
+	}
+
+	output := ListSkillsOutput{
+		Skills: skills,
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: fmt.Sprintf("Found %d skill(s)", len(skills)),
+			},
+		},
+	}, output, nil
+}
+
+// handleUseSkill handles the use_skill tool call
+func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkillArgs) (*mcp.CallToolResult, UseSkillOutput, error) {
+	if args.Name == "" {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: "Error: skill name is required",
+				},
+			},
+			IsError: true,
+		}, UseSkillOutput{}, fmt.Errorf("skill name is required")
+	}
+
+	// Look up the skill in the Skills map
+	// Use forward slashes to match the embedded map keys (cross-platform)
+	skillPath := args.Name + "/SKILL.md"
+	content, found := data.Skills[skillPath]
+	if !found {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Error: skill '%s' not found", args.Name),
+				},
+			},
+			IsError: true,
+		}, UseSkillOutput{}, fmt.Errorf("skill '%s' not found", args.Name)
+	}
+
+	output := UseSkillOutput{
+		Name:    args.Name,
+		Content: string(content),
+	}
+
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: fmt.Sprintf("Retrieved skill: %s", args.Name),
 			},
 		},
 	}, output, nil
