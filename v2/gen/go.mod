@@ -3,7 +3,7 @@ module github.com/IBM/fp-go/v2/gen
 go 1.25.0
 
 require (
-	github.com/IBM/fp-go/v2 v2.3.33
+	github.com/IBM/fp-go/v2 v2.3.35
 	github.com/iancoleman/strcase v0.3.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/otiai10/copy v1.14.1
