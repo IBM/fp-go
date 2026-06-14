@@ -23,6 +23,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -31,6 +32,16 @@ import (
 	"github.com/stretchr/testify/require"
 	C "github.com/urfave/cli/v3"
 )
+
+// assertContainsField checks if content contains a field declaration, ignoring extra whitespace
+func assertContainsField(t *testing.T, content, fieldName, lensType string, msgAndArgs ...interface{}) {
+	t.Helper()
+	// Create a regex that matches the field with flexible whitespace
+	pattern := regexp.QuoteMeta(fieldName) + `\s+` + regexp.QuoteMeta(lensType)
+	matched, err := regexp.MatchString(pattern, content)
+	require.NoError(t, err, "regex compilation failed")
+	assert.True(t, matched, append(msgAndArgs, "Expected to find field: %s %s", fieldName, lensType)...)
+}
 
 func TestHasLensAnnotation(t *testing.T) {
 	tests := []struct {
@@ -497,7 +508,8 @@ type TypeTest struct {
 
 func TestLensRefTemplatesWithComparable(t *testing.T) {
 	s := structInfo{
-		Name: "TestStruct",
+		Name:          "TestStruct",
+		QualifiedName: "TestStruct",
 		Fields: []fieldInfo{
 			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
 			{Name: "Age", TypeName: "int", IsOptional: false, IsComparable: true},
@@ -658,7 +670,8 @@ type TestStruct struct {
 
 func TestLensTemplates(t *testing.T) {
 	s := structInfo{
-		Name: "TestStruct",
+		Name:          "TestStruct",
+		QualifiedName: "TestStruct",
 		Fields: []fieldInfo{
 			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
 			{Name: "Value", TypeName: "*int", IsOptional: true, IsComparable: true},
@@ -694,7 +707,8 @@ func TestLensTemplates(t *testing.T) {
 
 func TestLensTemplatesWithOmitEmpty(t *testing.T) {
 	s := structInfo{
-		Name: "ConfigStruct",
+		Name:          "ConfigStruct",
+		QualifiedName: "ConfigStruct",
 		Fields: []fieldInfo{
 			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
 			{Name: "Value", TypeName: "string", IsOptional: true, IsComparable: true},    // non-pointer with omitempty
@@ -856,14 +870,14 @@ type Person struct {
 	assert.Contains(t, contentStr, "MakePersonLenses")
 
 	// Check that embedded fields are included
-	assert.Contains(t, contentStr, "Street __lens.Lens[Person, string]", "Should have lens for embedded Street field")
-	assert.Contains(t, contentStr, "City __lens.Lens[Person, string]", "Should have lens for embedded City field")
-	assert.Contains(t, contentStr, "Name __lens.Lens[Person, string]", "Should have lens for Name field")
-	assert.Contains(t, contentStr, "Age __lens.Lens[Person, int]", "Should have lens for Age field")
+	assertContainsField(t, contentStr, "Street", "__lens.Lens[Person, string]", "Should have lens for embedded Street field")
+	assertContainsField(t, contentStr, "City", "__lens.Lens[Person, string]", "Should have lens for embedded City field")
+	assertContainsField(t, contentStr, "Name", "__lens.Lens[Person, string]", "Should have lens for Name field")
+	assertContainsField(t, contentStr, "Age", "__lens.Lens[Person, int]", "Should have lens for Age field")
 
 	// Check that optional lenses are also generated for embedded fields
-	assert.Contains(t, contentStr, "StreetO __lens_option.LensO[Person, string]")
-	assert.Contains(t, contentStr, "CityO __lens_option.LensO[Person, string]")
+	assertContainsField(t, contentStr, "StreetO", "__lens_option.LensO[Person, string]")
+	assertContainsField(t, contentStr, "CityO", "__lens_option.LensO[Person, string]")
 }
 
 func TestParseFileWithPointerEmbeddedStruct(t *testing.T) {
@@ -1032,8 +1046,8 @@ type Box[T any] struct {
 	assert.Contains(t, contentStr, "func MakeBoxRefLenses[T any]() BoxRefLenses[T]", "Should have generic ref constructor")
 
 	// Check that fields use the generic type parameter
-	assert.Contains(t, contentStr, "Content __lens.Lens[Box[T], T]", "Should have lens for generic Content field")
-	assert.Contains(t, contentStr, "Label __lens.Lens[Box[T], string]", "Should have lens for Label field")
+	assertContainsField(t, contentStr, "Content", "__lens.Lens[Box[T], T]", "Should have lens for generic Content field")
+	assertContainsField(t, contentStr, "Label", "__lens.Lens[Box[T], string]", "Should have lens for Label field")
 
 	// Check optional lenses - only for comparable types
 	// T any is not comparable, so ContentO should NOT be generated
@@ -1183,9 +1197,9 @@ type MixedStruct struct {
 	assert.Contains(t, contentStr, "MakeMixedStructLenses")
 
 	// Check that lenses are generated for all fields (exported and unexported)
-	assert.Contains(t, contentStr, "PublicField __lens.Lens[MixedStruct, string]")
-	assert.Contains(t, contentStr, "privateField __lens.Lens[MixedStruct, int]")
-	assert.Contains(t, contentStr, "OptionalPrivate __lens.Lens[MixedStruct, *string]")
+	assertContainsField(t, contentStr, "PublicField", "__lens.Lens[MixedStruct, string]")
+	assertContainsField(t, contentStr, "privateField", "__lens.Lens[MixedStruct, int]")
+	assertContainsField(t, contentStr, "OptionalPrivate", "__lens.Lens[MixedStruct, *string]")
 
 	// Check lens constructors
 	assert.Contains(t, contentStr, "func(s MixedStruct) string { return s.PublicField }")
@@ -1279,12 +1293,12 @@ type ExtendedConfig struct {
 	assert.Contains(t, contentStr, "ExtendedConfigLenses")
 
 	// Check that lenses are generated for embedded unexported fields
-	assert.Contains(t, contentStr, "publicBase __lens.Lens[ExtendedConfig, string]")
-	assert.Contains(t, contentStr, "privateBase __lens.Lens[ExtendedConfig, int]")
+	assertContainsField(t, contentStr, "publicBase", "__lens.Lens[ExtendedConfig, string]")
+	assertContainsField(t, contentStr, "privateBase", "__lens.Lens[ExtendedConfig, int]")
 
 	// Check that lenses are generated for direct fields (both exported and unexported)
-	assert.Contains(t, contentStr, "PublicField __lens.Lens[ExtendedConfig, string]")
-	assert.Contains(t, contentStr, "privateField __lens.Lens[ExtendedConfig, bool]")
+	assertContainsField(t, contentStr, "PublicField", "__lens.Lens[ExtendedConfig, string]")
+	assertContainsField(t, contentStr, "privateField", "__lens.Lens[ExtendedConfig, bool]")
 }
 
 func TestLensCommandHttpServer(t *testing.T) {
@@ -1319,20 +1333,20 @@ func TestLensCommandHttpServer(t *testing.T) {
 	assert.Contains(t, contentStr, "func MakeServerRefLenses() ServerRefLenses")
 
 	// Addr (string) — comparable: mandatory + optional lens
-	assert.Contains(t, contentStr, "Addr __lens.Lens[Server, string]")
-	assert.Contains(t, contentStr, "AddrO __lens_option.LensO[Server, string]")
+	assertContainsField(t, contentStr, "Addr", "__lens.Lens[Server, string]")
+	assertContainsField(t, contentStr, "AddrO", "__lens_option.LensO[Server, string]")
 
 	// ReadTimeout (time.Duration) — comparable
-	assert.Contains(t, contentStr, "ReadTimeout __lens.Lens[Server, time.Duration]")
-	assert.Contains(t, contentStr, "ReadTimeoutO __lens_option.LensO[Server, time.Duration]")
+	assertContainsField(t, contentStr, "ReadTimeout", "__lens.Lens[Server, time.Duration]")
+	assertContainsField(t, contentStr, "ReadTimeoutO", "__lens_option.LensO[Server, time.Duration]")
 
 	// TLSConfig (*tls.Config) — pointer, optional and comparable
-	assert.Contains(t, contentStr, "TLSConfig __lens.Lens[Server, *tls.Config]")
-	assert.Contains(t, contentStr, "TLSConfigO __lens_option.LensO[Server, *tls.Config]")
+	assertContainsField(t, contentStr, "TLSConfig", "__lens.Lens[Server, *tls.Config]")
+	assertContainsField(t, contentStr, "TLSConfigO", "__lens_option.LensO[Server, *tls.Config]")
 
 	// MaxHeaderBytes (int) — comparable
-	assert.Contains(t, contentStr, "MaxHeaderBytes __lens.Lens[Server, int]")
-	assert.Contains(t, contentStr, "MaxHeaderBytesO __lens_option.LensO[Server, int]")
+	assertContainsField(t, contentStr, "MaxHeaderBytes", "__lens.Lens[Server, int]")
+	assertContainsField(t, contentStr, "MaxHeaderBytesO", "__lens_option.LensO[Server, int]")
 
 	// Non-comparable fields (map, func) must not produce optional lenses
 	assert.NotContains(t, contentStr, "TLSNextProtoO __lens_option.LensO")

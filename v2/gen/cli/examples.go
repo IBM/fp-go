@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	C "github.com/urfave/cli/v3"
 	_ "modernc.org/sqlite"
@@ -212,6 +213,103 @@ func initDB(dbPath string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+// isValidExampleName checks if a function name follows Go's example naming conventions:
+// 1. Must start with "Example"
+// 2. The part after "Example" must start with a capital letter (exported identifier)
+// 3. For Type_Method format: both Type and Method must start with capital letters
+// 4. For disambiguating suffix: suffix must be all lowercase (no uppercase letters anywhere)
+func isValidExampleName(name string) bool {
+	if !strings.HasPrefix(name, "Example") {
+		return false
+	}
+
+	rest := strings.TrimPrefix(name, "Example")
+
+	// "Example" alone is valid (package-level example)
+	if rest == "" {
+		return true
+	}
+
+	// First character after "Example" must be uppercase
+	if len(rest) > 0 && !unicode.IsUpper(rune(rest[0])) {
+		return false
+	}
+
+	// Split by underscores to check each part
+	parts := strings.Split(rest, "_")
+
+	// First part (Type or Function name) must start with uppercase - already checked above
+
+	// If there are 2 parts: Type_Method (both must start uppercase) or Function_suffix
+	if len(parts) == 2 {
+		secondPart := parts[1]
+		if secondPart == "" {
+			return false
+		}
+
+		// Check if second part is all lowercase (disambiguating suffix)
+		allLower := true
+		hasUpperAfterFirst := false
+
+		for i, r := range secondPart {
+			if unicode.IsUpper(r) {
+				if i == 0 {
+					// Uppercase at start is OK for Type_Method
+					allLower = false
+				} else {
+					// Uppercase after first character means it's neither
+					// a valid suffix (must be all lowercase) nor
+					// a valid method name (would need to be PascalCase throughout)
+					hasUpperAfterFirst = true
+					allLower = false
+				}
+			}
+		}
+
+		if allLower {
+			// It's a disambiguating suffix (all lowercase - valid)
+			return true
+		}
+
+		if hasUpperAfterFirst {
+			// Has uppercase in the middle/end - invalid
+			// (not a valid suffix, and not a valid method name pattern)
+			return false
+		}
+
+		// Starts with uppercase and no uppercase after - assume Type_Method format (valid)
+		if unicode.IsUpper(rune(secondPart[0])) {
+			return true
+		}
+
+		// Doesn't start with uppercase - invalid
+		return false
+	}
+
+	// If there are 3 parts: Type_Method_suffix
+	if len(parts) == 3 {
+		// Second part (Method) must start with uppercase
+		if !unicode.IsUpper(rune(parts[1][0])) {
+			return false
+		}
+
+		// Third part (suffix) must be all lowercase
+		for _, r := range parts[2] {
+			if unicode.IsUpper(r) {
+				return false
+			}
+		}
+		return true
+	}
+
+	// More than 3 parts is invalid
+	if len(parts) > 3 {
+		return false
+	}
+
+	return true
 }
 
 // parseExampleName extracts the symbol from an example function name
@@ -476,9 +574,25 @@ func collectExamples(srcDir string) ([]Example, error) {
 				continue
 			}
 
-			// Check if function name starts with "Example"
+			// Check if function name starts with "Example" and follows naming conventions
 			funcName := funcDecl.Name.Name
 			if !strings.HasPrefix(funcName, "Example") {
+				continue
+			}
+
+			// Validate example naming conventions
+			if !isValidExampleName(funcName) {
+				fmt.Fprintf(os.Stderr, "Warning: skipping invalid example name %s in %s (must follow Go example naming conventions)\n", funcName, path)
+				continue
+			}
+
+			// Validate function signature (no parameters, no return values)
+			if funcDecl.Type.Params.NumFields() > 0 {
+				fmt.Fprintf(os.Stderr, "Warning: skipping %s in %s (example functions must have no parameters)\n", funcName, path)
+				continue
+			}
+			if funcDecl.Type.Results != nil && funcDecl.Type.Results.NumFields() > 0 {
+				fmt.Fprintf(os.Stderr, "Warning: skipping %s in %s (example functions must have no return values)\n", funcName, path)
 				continue
 			}
 
