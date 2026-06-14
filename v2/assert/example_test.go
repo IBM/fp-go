@@ -25,8 +25,8 @@ import (
 	"github.com/IBM/fp-go/v2/result"
 )
 
-// Example_basicAssertions demonstrates basic equality and inequality assertions
-func Example_basicAssertions() {
+// Example_basic_assertions demonstrates basic equality and inequality assertions
+func Example_basic_assertions() {
 	// This would be in a real test function
 	var t *testing.T // placeholder for example
 
@@ -42,8 +42,8 @@ func Example_basicAssertions() {
 	assert.NotEqual(10)(value)(t)
 }
 
-// Example_arrayAssertions demonstrates array-related assertions
-func Example_arrayAssertions() {
+// Example_array_assertions demonstrates array-related assertions
+func Example_array_assertions() {
 	var t *testing.T // placeholder for example
 
 	numbers := []int{1, 2, 3, 4, 5}
@@ -58,8 +58,8 @@ func Example_arrayAssertions() {
 	assert.ArrayContains(3)(numbers)(t)
 }
 
-// Example_mapAssertions demonstrates map-related assertions
-func Example_mapAssertions() {
+// Example_map_assertions demonstrates map-related assertions
+func Example_map_assertions() {
 	var t *testing.T // placeholder for example
 
 	config := map[string]int{
@@ -81,8 +81,8 @@ func Example_mapAssertions() {
 	assert.NotContainsKey[int]("unknown")(config)(t)
 }
 
-// Example_errorAssertions demonstrates error-related assertions
-func Example_errorAssertions() {
+// Example_error_assertions demonstrates error-related assertions
+func Example_error_assertions() {
 	var t *testing.T // placeholder for example
 
 	// Assert no error
@@ -94,8 +94,8 @@ func Example_errorAssertions() {
 	assert.Error(err2)(t)
 }
 
-// Example_resultAssertions demonstrates Result type assertions
-func Example_resultAssertions() {
+// Example_result_assertions demonstrates Result type assertions
+func Example_result_assertions() {
 	var t *testing.T // placeholder for example
 
 	// Assert success
@@ -107,8 +107,8 @@ func Example_resultAssertions() {
 	assert.Failure(failureResult)(t)
 }
 
-// Example_predicateAssertions demonstrates custom predicate assertions
-func Example_predicateAssertions() {
+// Example_predicate_assertions demonstrates custom predicate assertions
+func Example_predicate_assertions() {
 	var t *testing.T // placeholder for example
 
 	// Test if a number is positive
@@ -124,8 +124,8 @@ func Example_predicateAssertions() {
 	assert.That(isEven)(10)(t)
 }
 
-// Example_allOf demonstrates combining multiple assertions
-func Example_allOf() {
+// Example_all_of demonstrates combining multiple assertions
+func Example_all_of() {
 	var t *testing.T // placeholder for example
 
 	type User struct {
@@ -146,8 +146,8 @@ func Example_allOf() {
 	assertions(t)
 }
 
-// Example_runAll demonstrates running named test cases
-func Example_runAll() {
+// Example_run_all demonstrates running named test cases
+func Example_run_all() {
 	var t *testing.T // placeholder for example
 
 	testcases := map[string]assert.Reader{
@@ -180,8 +180,8 @@ func Example_local() {
 	userAgeIsPositive(user)(t)
 }
 
-// Example_composableAssertions demonstrates building complex assertions
-func Example_composableAssertions() {
+// Example_composable_assertions demonstrates building complex assertions
+func Example_composable_assertions() {
 	var t *testing.T // placeholder for example
 
 	type Config struct {

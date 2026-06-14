@@ -385,8 +385,8 @@ func Example_remove() {
 	// Output: File removed: true
 }
 
-// Example_closeAndRemove demonstrates using Close and Remove together
-func Example_closeAndRemove() {
+// Example_close_and_remove demonstrates using Close and Remove together
+func Example_close_and_remove() {
 	// Create a temporary file
 	tmpFile, _ := os.CreateTemp("", "example-*.txt")
 

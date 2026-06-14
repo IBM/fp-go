@@ -25,7 +25,7 @@ import (
 	RO "github.com/IBM/fp-go/v2/readeroption"
 )
 
-// Example_patternMatching demonstrates using FindFirstMap with option.Alt for
+// Example_pattern_matching demonstrates using FindFirstMap with option.Alt for
 // multi-branch pattern matching.
 //
 // FindFirstMap searches an array and applies a selector function to each element,
@@ -34,7 +34,7 @@ import (
 //
 // For pattern matching on a single value (similar to switch/case), combine
 // multiple matcher functions using option.Alt via function.Flow.
-func Example_patternMatching() {
+func Example_pattern_matching() {
 	// Define a type to classify
 	type Request struct {
 		Method string
@@ -101,9 +101,9 @@ func Example_patternMatching() {
 	// Unsupported method: PATCH
 }
 
-// Example_patternMatchingArray demonstrates using FindFirstMap to find and
+// Example_pattern_matching_array demonstrates using FindFirstMap to find and
 // transform the first matching element in an array.
-func Example_patternMatchingArray() {
+func Example_pattern_matching_array() {
 	// Parse different string formats into integers
 	parseDecimal := func(s string) O.Option[int] {
 		if len(s) > 0 && s[0] != '0' {
@@ -167,9 +167,9 @@ func Example_patternMatchingArray() {
 	// First parseable number: 42
 }
 
-// Example_patternMatchingNumeric demonstrates pattern matching on numeric values
+// Example_pattern_matching_numeric demonstrates pattern matching on numeric values
 // with range checks and special cases.
-func Example_patternMatchingNumeric() {
+func Example_pattern_matching_numeric() {
 	// Classify numbers into categories
 	isZero := func(n int) O.Option[string] {
 		if n == 0 {
@@ -225,9 +225,9 @@ func Example_patternMatchingNumeric() {
 	// 10: small positive
 }
 
-// Example_patternMatchingWithGuards demonstrates using guards (additional conditions)
+// Example_pattern_matching_with_guards demonstrates using guards (additional conditions)
 // within pattern matchers for more precise matching.
-func Example_patternMatchingWithGuards() {
+func Example_pattern_matching_with_guards() {
 	type Event struct {
 		Type     string
 		Priority int

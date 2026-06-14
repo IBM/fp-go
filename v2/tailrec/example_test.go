@@ -49,8 +49,8 @@ func ExampleLand() {
 	// Final result: done
 }
 
-// Example_fieldAccess demonstrates accessing trampoline fields directly.
-func Example_fieldAccess() {
+// Example_field_access demonstrates accessing trampoline fields directly.
+func Example_field_access() {
 	// Create a bounce trampoline
 	bounceTramp := tailrec.Bounce[string](42)
 	fmt.Printf("Bounce: value=%d, landed=%v\n", bounceTramp.Bounce, bounceTramp.Landed)
@@ -137,8 +137,8 @@ func Example_fibonacci() {
 	// fib(10) = 89
 }
 
-// Example_sumList demonstrates processing a list using trampolines.
-func Example_sumList() {
+// Example_sum_list demonstrates processing a list using trampolines.
+func Example_sum_list() {
 	type State struct {
 		list []int
 		sum  int
@@ -238,8 +238,8 @@ func Example_gcd() {
 	// gcd(48, 18) = 6
 }
 
-// Example_deepRecursion demonstrates handling deep recursion without stack overflow.
-func Example_deepRecursion() {
+// Example_deep_recursion demonstrates handling deep recursion without stack overflow.
+func Example_deep_recursion() {
 	// Define the step function
 	countdownStep := func(n int) tailrec.Trampoline[int, int] {
 		if n <= 0 {

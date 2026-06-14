@@ -53,7 +53,7 @@ var (
 	readdir = ioresult.Of(A.From("file1", "file2", "file3"))
 )
 
-func Example_solution12A() {
+func Example_solution_12a() {
 	// getJsons :: Map Route Route -> Task Error (Map Route JSON)
 	getJsons := ioresult.TraverseRecord[string](httpGet)
 
@@ -63,7 +63,7 @@ func Example_solution12A() {
 	// Right[map[string]string](map[/:json for / /about:json for /about])
 }
 
-func Example_solution12B() {
+func Example_solution_12b() {
 	// startGame :: [Player] -> [Either Error String]
 	startGame := F.Flow2(
 		E.TraverseArray(validatePlayer),
@@ -78,7 +78,7 @@ func Example_solution12B() {
 	// Left[*errors.errorString](player 4 must have a name)
 }
 
-func Example_solution12C() {
+func Example_solution_12c() {
 	traverseO := O.Traverse[string](
 		ioresult.Of[Option[string]],
 		ioresult.Map[string, Option[string]],

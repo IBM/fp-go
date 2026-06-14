@@ -27,7 +27,7 @@ import (
 
 // Example_build_basicUsage demonstrates basic usage of the Build function
 // to construct a value from the zero value using endomorphisms.
-func Example_build_basicUsage() {
+func Example_build_basic_usage() {
 	// Define simple endomorphisms
 	addTen := N.Add(10)
 	double := N.Mul(2)
@@ -46,7 +46,7 @@ func Example_build_basicUsage() {
 }
 
 // Example_build_configBuilder demonstrates using Build as a configuration builder pattern.
-func Example_build_configBuilder() {
+func Example_build_config_builder() {
 	type Config struct {
 		Host    string
 		Port    int
@@ -106,7 +106,7 @@ func Example_build_configBuilder() {
 }
 
 // Example_build_stringBuilder demonstrates building a string using endomorphisms.
-func Example_build_stringBuilder() {
+func Example_build_string_builder() {
 	// Define string transformation endomorphisms
 	appendHello := func(s string) string { return s + "Hello" }
 	appendSpace := func(s string) string { return s + " " }
@@ -128,7 +128,7 @@ func Example_build_stringBuilder() {
 }
 
 // Example_build_personBuilder demonstrates building a complex struct using the builder pattern.
-func Example_build_personBuilder() {
+func Example_build_person_builder() {
 	type Person struct {
 		FirstName string
 		LastName  string
@@ -181,7 +181,7 @@ func Example_build_personBuilder() {
 }
 
 // Example_build_conditionalBuilder demonstrates conditional building using endomorphisms.
-func Example_build_conditionalBuilder() {
+func Example_build_conditional_builder() {
 	type Settings struct {
 		Theme      string
 		FontSize   int

@@ -95,7 +95,7 @@ func renderString(destinations string) func(string) string {
 	}
 }
 
-func Example_renderPage() {
+func Example_render_page() {
 	// prepare the http client
 	client := H.MakeClient(http.DefaultClient)
 
@@ -121,7 +121,7 @@ func Example_renderPage() {
 
 }
 
-func Example_solution10A() {
+func Example_solution_10a() {
 	safeAdd := F.Curry2(func(a, b Option[int]) Option[int] {
 		return F.Pipe3(
 			N.Add[int],
@@ -141,7 +141,7 @@ func Example_solution10A() {
 	// None[int]
 }
 
-func Example_solution10B() {
+func Example_solution_10b() {
 
 	safeAdd := F.Curry2(T.Untupled2(F.Flow2(
 		O.SequenceTuple2[int, int],
@@ -158,7 +158,7 @@ func Example_solution10B() {
 	// None[int]
 }
 
-func Example_solution10C() {
+func Example_solution_10c() {
 	// startGame :: IO String
 	startGame := F.Pipe2(
 		IOO.Of(game),

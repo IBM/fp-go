@@ -36,8 +36,8 @@ func ExampleOption_String() {
 	// None[int]
 }
 
-// ExampleOption_GoString demonstrates the fmt.GoStringer interface implementation.
-func ExampleOption_GoString() {
+// ExampleOption_go_string demonstrates the fmt.GoStringer interface implementation.
+func ExampleOption_go_string() {
 	some := O.Some(42)
 	none := O.None[int]()
 
@@ -66,8 +66,8 @@ func ExampleOption_Format() {
 	// %#v: option.Some[int](42)
 }
 
-// ExampleOption_LogValue demonstrates the slog.LogValuer interface implementation.
-func ExampleOption_LogValue() {
+// ExampleOption_log_value demonstrates the slog.LogValuer interface implementation.
+func ExampleOption_log_value() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -114,8 +114,8 @@ func ExampleOption_formatting_comparison() {
 	// %#v:        option.Some[option_test.User](option_test.User{ID:123, Name:"Alice"})
 }
 
-// ExampleOption_LogValue_structured demonstrates structured logging with Option.
-func ExampleOption_LogValue_structured() {
+// ExampleOption_log_value_structured demonstrates structured logging with Option.
+func ExampleOption_log_value_structured() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {

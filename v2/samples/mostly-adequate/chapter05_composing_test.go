@@ -62,7 +62,7 @@ func Example_pipe() {
 	// Output: SEND IN THE CLOWNS!
 }
 
-func Example_solution05A() {
+func Example_solution_05a() {
 	IsLastInStock := F.Flow2(
 		A.Last[Car],
 		O.Map(Car.getInStock),
@@ -76,7 +76,7 @@ func Example_solution05A() {
 	// Some[bool](false)
 }
 
-func Example_solution05B() {
+func Example_solution_05b() {
 	// averageDollarValue :: [Car] -> Int
 	averageDollarValue := F.Flow2(
 		A.Map(Car.getDollarValue),
@@ -89,7 +89,7 @@ func Example_solution05B() {
 	// 790700
 }
 
-func Example_solution05C() {
+func Example_solution_05c() {
 	// order by horsepower
 	ordByHorsepower := ord.Contramap(Car.getHorsepower)(I.Ord)
 

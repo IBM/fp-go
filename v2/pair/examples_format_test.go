@@ -37,8 +37,8 @@ func ExamplePair_String() {
 	// Pair[int, string](100, active)
 }
 
-// ExamplePair_GoString demonstrates the fmt.GoStringer interface implementation.
-func ExamplePair_GoString() {
+// ExamplePair_go_string demonstrates the fmt.GoStringer interface implementation.
+func ExamplePair_go_string() {
 	p1 := P.MakePair("key", 42)
 	p2 := P.MakePair(errors.New("error"), "value")
 
@@ -67,8 +67,8 @@ func ExamplePair_Format() {
 	// %#v: pair.MakePair[string, int]("config", 8080)
 }
 
-// ExamplePair_LogValue demonstrates the slog.LogValuer interface implementation.
-func ExamplePair_LogValue() {
+// ExamplePair_log_value demonstrates the slog.LogValuer interface implementation.
+func ExamplePair_log_value() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -115,8 +115,8 @@ func ExamplePair_formatting_comparison() {
 	// %#v:        pair.MakePair[pair_test.Config, []string](pair_test.Config{Host:"localhost", Port:8080}, []string{"api", "web"})
 }
 
-// ExamplePair_LogValue_structured demonstrates structured logging with Pair.
-func ExamplePair_LogValue_structured() {
+// ExamplePair_log_value_structured demonstrates structured logging with Pair.
+func ExamplePair_log_value_structured() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {

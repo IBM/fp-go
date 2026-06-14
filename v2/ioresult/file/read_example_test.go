@@ -29,7 +29,7 @@ import (
 
 // Example_read_basicUsage demonstrates basic usage of the Read function
 // to read data from a file with automatic resource cleanup.
-func Example_read_basicUsage() {
+func Example_read_basic_usage() {
 	// Create a temporary file for demonstration
 	tmpFile, err := os.CreateTemp("", "example-*.txt")
 	if err != nil {

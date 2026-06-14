@@ -27,7 +27,7 @@ import (
 
 // Example_sequenceReader_basicUsage demonstrates the basic usage of SequenceReader
 // to flip the parameter order, enabling point-free style programming.
-func Example_sequenceReader_basicUsage() {
+func Example_sequence_reader_basic_usage() {
 	type Config struct {
 		Multiplier int
 	}
@@ -62,7 +62,7 @@ func Example_sequenceReader_basicUsage() {
 
 // Example_sequenceReader_dependencyInjection demonstrates how SequenceReader
 // enables clean dependency injection patterns in point-free style.
-func Example_sequenceReader_dependencyInjection() {
+func Example_sequence_reader_dependency_injection() {
 	// Define our dependencies
 	type Database struct {
 		ConnectionString string
@@ -100,7 +100,7 @@ func Example_sequenceReader_dependencyInjection() {
 
 // Example_sequenceReader_pointFreeComposition demonstrates how SequenceReader
 // enables point-free style composition of computations.
-func Example_sequenceReader_pointFreeComposition() {
+func Example_sequence_reader_point_free_composition() {
 	type Config struct {
 		BaseValue int
 	}
@@ -139,7 +139,7 @@ func Example_sequenceReader_pointFreeComposition() {
 
 // Example_sequenceReader_multipleEnvironments demonstrates using SequenceReader
 // to work with multiple environment types in a clean, composable way.
-func Example_sequenceReader_multipleEnvironments() {
+func Example_sequence_reader_multiple_environments() {
 	type DatabaseConfig struct {
 		Host string
 		Port int
@@ -198,7 +198,7 @@ func Example_sequenceReader_multipleEnvironments() {
 
 // Example_sequenceReaderResult_errorHandling demonstrates how SequenceReaderResult
 // enables point-free style with proper error handling at multiple levels.
-func Example_sequenceReaderResult_errorHandling() {
+func Example_sequence_reader_result_error_handling() {
 	type ValidationConfig struct {
 		MinValue int
 		MaxValue int
@@ -250,7 +250,7 @@ func Example_sequenceReaderResult_errorHandling() {
 
 // Example_sequenceReader_partialApplication demonstrates the power of partial
 // application enabled by SequenceReader for building reusable computations.
-func Example_sequenceReader_partialApplication() {
+func Example_sequence_reader_partial_application() {
 	type ServiceConfig struct {
 		ServiceName string
 		Version     string
@@ -295,7 +295,7 @@ func Example_sequenceReader_partialApplication() {
 
 // Example_sequenceReader_testingBenefits demonstrates how SequenceReader
 // makes testing easier by allowing you to inject test dependencies.
-func Example_sequenceReader_testingBenefits() {
+func Example_sequence_reader_testing_benefits() {
 	// Simple logger that collects messages
 	type SimpleLogger struct {
 		Messages []string

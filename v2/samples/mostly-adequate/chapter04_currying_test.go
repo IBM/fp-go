@@ -49,7 +49,7 @@ func Replace(search *regexp.Regexp) func(replace string) func(s string) string {
 	}
 }
 
-func Example_solution04A() {
+func Example_solution_04a() {
 	// words :: String -> [String]
 	words := Split(regexp.MustCompile(` `))
 
@@ -59,7 +59,7 @@ func Example_solution04A() {
 	// [Jingle bells Batman smells]
 }
 
-func Example_solution04B() {
+func Example_solution_04b() {
 	// filterQs :: [String] -> [String]
 	filterQs := A.Filter(Matches(regexp.MustCompile(`q`)))
 
@@ -69,7 +69,7 @@ func Example_solution04B() {
 	// [quick quarry quails]
 }
 
-func Example_solution04C() {
+func Example_solution_04c() {
 
 	keepHighest := N.Max[int]
 

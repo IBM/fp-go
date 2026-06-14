@@ -135,7 +135,7 @@ func Example_street() {
 	// Some[mostlyadequate.Street]({Mulburry 8402})
 }
 
-func Example_solution09A() {
+func Example_solution_09a() {
 	// // getStreetName :: User -> Maybe String
 	getStreetName := F.Flow4(
 		Chapter09User.getAddress,
@@ -155,7 +155,7 @@ func Example_solution09A() {
 
 }
 
-func Example_solution09B() {
+func Example_solution_09b() {
 	logFilename := F.Flow2(
 		io.Map(path.Base),
 		io.ChainFirst(pureLog),
@@ -167,7 +167,7 @@ func Example_solution09B() {
 	// ch09.md
 }
 
-func Example_solution09C() {
+func Example_solution_09c() {
 
 	// // joinMailingList :: Email -> Either String (IO ())
 	joinMailingList := F.Flow4(

@@ -37,8 +37,8 @@ func ExampleEither_String() {
 	// Left[*errors.errorString](something went wrong)
 }
 
-// ExampleEither_GoString demonstrates the fmt.GoStringer interface implementation.
-func ExampleEither_GoString() {
+// ExampleEither_go_string demonstrates the fmt.GoStringer interface implementation.
+func ExampleEither_go_string() {
 	right := E.Right[error](42)
 	left := E.Left[int](errors.New("error"))
 
@@ -67,8 +67,8 @@ func ExampleEither_Format() {
 	// %#v: either.Right[error](42)
 }
 
-// ExampleEither_LogValue demonstrates the slog.LogValuer interface implementation.
-func ExampleEither_LogValue() {
+// ExampleEither_log_value demonstrates the slog.LogValuer interface implementation.
+func ExampleEither_log_value() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
@@ -115,8 +115,8 @@ func ExampleEither_formatting_comparison() {
 	// %#v:        either.Right[error](either_test.User{ID:123, Name:"Alice"})
 }
 
-// ExampleEither_LogValue_structured demonstrates structured logging with Either.
-func ExampleEither_LogValue_structured() {
+// ExampleEither_log_value_structured demonstrates structured logging with Either.
+func ExampleEither_log_value_structured() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {

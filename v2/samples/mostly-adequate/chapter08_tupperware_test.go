@@ -167,7 +167,7 @@ func GetAge(now time.Time) R.Kleisli[User, float64] {
 	)
 }
 
-func Example_widthdraw() {
+func Example_withdraw() {
 	fmt.Println(getTwenty(MakeAccount(200)))
 	fmt.Println(getTwenty(MakeAccount(10)))
 
@@ -176,7 +176,7 @@ func Example_widthdraw() {
 	// You're broke!
 }
 
-func Example_getAge() {
+func Example_get_age() {
 	now, err := time.Parse(time.DateOnly, "2023-09-01")
 	if err != nil {
 		panic(err)
@@ -205,7 +205,7 @@ func Example_getAge() {
 	// If you survive, you will be 6837
 }
 
-func Example_solution08A() {
+func Example_solution_08a() {
 	incrF := I.Map(N.Add(1))
 
 	fmt.Println(incrF(I.Of(2)))
@@ -213,7 +213,7 @@ func Example_solution08A() {
 	// Output: 3
 }
 
-func Example_solution08B() {
+func Example_solution_08b() {
 	// initial :: User -> Option rune
 	initial := F.Flow3(
 		Chapter08User.getName,
@@ -227,7 +227,7 @@ func Example_solution08B() {
 	// Some[int32](65)
 }
 
-func Example_solution08C() {
+func Example_solution_08c() {
 
 	// eitherWelcome :: User -> Either String String
 	eitherWelcome := F.Flow2(
@@ -243,7 +243,7 @@ func Example_solution08C() {
 	// Right[string](Welcome Theresa)
 }
 
-func Example_solution08D() {
+func Example_solution_08d() {
 
 	// // validateName :: User -> Either String ()
 	validateName := F.Flow3(

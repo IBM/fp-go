@@ -39,7 +39,7 @@ func findUserByID(id int) IOResult[Chapter08User] {
 	}
 }
 
-func Example_solution11A() {
+func Example_solution_11a() {
 	// eitherToMaybe :: Either b a -> Maybe a
 	eitherToMaybe := R.ToOption[string]
 
@@ -51,7 +51,7 @@ func Example_solution11A() {
 	// None[string]
 }
 
-func Example_solution11B() {
+func Example_solution_11b() {
 	findByNameID := F.Flow2(
 		findUserByID,
 		ioresult.Map(Chapter08User.getName),
@@ -69,7 +69,7 @@ func Example_solution11B() {
 	// Left[*errors.errorString](user 4 not found)
 }
 
-func Example_solution11C() {
+func Example_solution_11c() {
 	// strToList :: String -> [Char
 	strToList := Split(regexp.MustCompile(``))
 
