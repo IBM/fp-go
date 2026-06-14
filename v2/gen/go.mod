@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/IBM/fp-go/v2 v2.3.33
+	github.com/iancoleman/strcase v0.3.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/otiai10/copy v1.14.1
 	github.com/stretchr/testify v1.11.1
@@ -14,7 +15,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
-	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
