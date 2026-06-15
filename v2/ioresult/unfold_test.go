@@ -51,7 +51,7 @@ func collectSeq[A any](seq SeqResult[A]) ([]A, error) {
 // countDownStep is a reusable step function emitting n, n-1, …, 1 and stopping at 0.
 func countDownStep(n int) IOResult[O.Option[P.Pair[int, int]]] {
 	if n == 0 {
-		return Of[O.Option[P.Pair[int, int]]](O.None[P.Pair[int, int]]())
+		return Of(O.None[P.Pair[int, int]]())
 	}
 	// Head = next seed, Tail = emitted value
 	return Of(O.Some(P.MakePair(n-1, n)))
@@ -131,7 +131,7 @@ func TestUnfold_StringUnfolding(t *testing.T) {
 	// Unfold bytes from a string seed
 	step := func(s string) IOResult[O.Option[P.Pair[string, byte]]] {
 		if len(s) == 0 {
-			return Of[O.Option[P.Pair[string, byte]]](O.None[P.Pair[string, byte]]())
+			return Of(O.None[P.Pair[string, byte]]())
 		}
 		return Of(O.Some(P.MakePair(s[1:], s[0])))
 	}

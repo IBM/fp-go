@@ -35,6 +35,9 @@ func (f *Flock) Breed(other *Flock) *Flock {
 	return f
 }
 
+// Example_flock demonstrates object-oriented programming with mutable state
+// and method chaining, showing the imperative approach before introducing
+// functional alternatives.
 func Example_flock() {
 
 	flockA := MakeFlock(4)

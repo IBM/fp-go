@@ -28,6 +28,65 @@ type Number interface {
 	C.Integer | C.Float | C.Complex
 }
 
+// Sum adds two values together.
+// It works with any numeric type (integers, floats, complex numbers) or string type.
+// For strings, concatenation is performed.
+//
+// This is the underlying operation used by SemigroupSum and MonoidSum.
+//
+// Type Parameters:
+//   - T: Any numeric type or string type
+//
+// Parameters:
+//   - left: The first operand
+//   - right: The second operand
+//
+// Returns:
+//   - T: The sum of left and right (left + right)
+//
+// Example:
+//
+//	result := Sum(10, 20) // returns 30
+//	result := Sum(3.14, 2.86) // returns 6.0
+//	result := Sum("Hello, ", "World!") // returns "Hello, World!"
+//
+// See Also:
+//   - Add: Curried version of addition
+//   - SemigroupSum: Semigroup instance using Sum
+//   - MonoidSum: Monoid instance using Sum
+func Sum[T Number | ~string](left, right T) T {
+	return left + right
+}
+
+// Prod multiplies two values together.
+// It works with any numeric type (integers, floats, complex numbers).
+//
+// This is the underlying operation used by SemigroupProduct and MonoidProduct.
+//
+// Type Parameters:
+//   - T: Any numeric type
+//
+// Parameters:
+//   - left: The first operand
+//   - right: The second operand
+//
+// Returns:
+//   - T: The product of left and right (left * right)
+//
+// Example:
+//
+//	result := Prod(5, 3) // returns 15
+//	result := Prod(2.5, 4.0) // returns 10.0
+//	result := Prod(complex(2, 1), complex(3, 4)) // returns (2+11i)
+//
+// See Also:
+//   - Mul: Curried version of multiplication
+//   - SemigroupProduct: Semigroup instance using Prod
+//   - MonoidProduct: Monoid instance using Prod
+func Prod[T Number](left, right T) T {
+	return left * right
+}
+
 // Add is a curried function that adds two numbers.
 // It takes a right operand and returns a function that takes a left operand,
 // returning their sum (left + right).
@@ -38,9 +97,9 @@ type Number interface {
 //
 //	add5 := Add(5)
 //	result := add5(10) // returns 15
-func Add[T Number](right T) func(T) T {
+func Add[T Number | ~string](right T) func(T) T {
 	return func(left T) T {
-		return left + right
+		return Sum(left, right)
 	}
 }
 
@@ -72,7 +131,7 @@ func Sub[T Number](right T) func(T) T {
 //	result := double(10) // returns 20
 func Mul[T Number](right T) func(T) T {
 	return func(left T) T {
-		return left * right
+		return Prod(left, right)
 	}
 }
 

@@ -676,7 +676,7 @@ func ExampleMergeAll() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleMergeAll_threeSequences() {
+func ExampleMergeBuf_three_equences() {
 	seq1 := From(1, 2)
 	seq2 := From(3, 4)
 	seq3 := From(5, 6)
@@ -690,7 +690,7 @@ func ExampleMergeAll_threeSequences() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleMergeAll_earlyTermination() {
+func ExampleMergeBuf_early_termination() {
 	seq1 := From(1, 2, 3, 4, 5)
 	seq2 := From(6, 7, 8, 9, 10)
 	merged := MergeBuf([]Seq[int]{seq1, seq2}, 5)
@@ -706,7 +706,7 @@ func ExampleMergeAll_earlyTermination() {
 	// Output: Consumed 3 elements
 }
 
-func ExampleMergeAll_unbuffered() {
+func ExampleMergeBuf_unbuffered() {
 	seq1 := From(1, 2, 3)
 	seq2 := From(4, 5, 6)
 	merged := MergeBuf([]Seq[int]{seq1, seq2}, 0)
@@ -720,7 +720,7 @@ func ExampleMergeAll_unbuffered() {
 }
 
 // TestMerge_Alias tests that Merge is an alias for MergeAll
-func TestMerge_Alias(t *testing.T) {
+func TestMerge_alias(t *testing.T) {
 	t.Run("merge works identically to MergeAll", func(t *testing.T) {
 		seq1 := From(1, 2, 3)
 		seq2 := From(4, 5, 6)
@@ -1355,7 +1355,7 @@ func ExampleMergeMonoid_reduce() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleMergeMonoid_foldMap() {
+func ExampleMergeMonoid_fold_map() {
 	monoid := MergeMonoid[int](10)
 	numbers := From(1, 2, 3)
 
@@ -2022,7 +2022,7 @@ func ExampleMergeAll_operator() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleMergeAll_operator_threeSequences() {
+func ExampleMergeAll_operator_three_sequences() {
 	outer := From(
 		From(1, 2),
 		From(3, 4),
@@ -2040,7 +2040,7 @@ func ExampleMergeAll_operator_threeSequences() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleMergeAll_operator_dynamicGeneration() {
+func ExampleMergeAll_operator_dynamic_generation() {
 	// Generate sequences on-the-fly
 	outer := MonadMap(From(1, 2, 3), func(n int) Seq[int] {
 		return From(n, n*10)
@@ -2057,7 +2057,7 @@ func ExampleMergeAll_operator_dynamicGeneration() {
 	// Output: 1 2 3 10 20 30
 }
 
-func ExampleMergeAll_operator_earlyTermination() {
+func ExampleMergeAll_operator_early_termination() {
 	outer := From(
 		From(1, 2, 3, 4, 5),
 		From(6, 7, 8, 9, 10),
@@ -2698,7 +2698,7 @@ func ExampleMergeMap() {
 }
 
 // ExampleMergeMap_earlyTermination demonstrates early termination
-func ExampleMergeMap_earlyTermination() {
+func ExampleMergeMap_early_termination() {
 	expand := MergeMapBuf(func(n int) Seq[int] {
 		return From(n, n*10, n*100)
 	}, 5)

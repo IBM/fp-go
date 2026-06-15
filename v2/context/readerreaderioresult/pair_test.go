@@ -38,7 +38,7 @@ func TestPaired(t *testing.T) {
 			}
 		}
 
-		p := pair.MakePair[context.Context, AppConfig](ctx, cfg)
+		p := pair.MakePair(ctx, cfg)
 		outcome := Paired(f)(p)()
 
 		assert.Equal(t, result.Of("postgres://test"), outcome)
@@ -59,7 +59,7 @@ func TestPaired(t *testing.T) {
 			}
 		}
 
-		p := pair.MakePair[context.Context, AppConfig](ctx, cfg)
+		p := pair.MakePair(ctx, cfg)
 		_ = Paired(f)(p)()
 
 		assert.ErrorIs(t, capturedCtx.Err(), context.Canceled)
@@ -77,7 +77,7 @@ func TestPaired(t *testing.T) {
 			}
 		}
 
-		p := pair.MakePair[context.Context, AppConfig](t.Context(), cfg)
+		p := pair.MakePair(t.Context(), cfg)
 		outcome := Paired(f)(p)()
 
 		assert.Equal(t, result.Left[string](testErr), outcome)
@@ -90,7 +90,7 @@ func TestPaired(t *testing.T) {
 		f := Of[AppConfig]("value")
 
 		direct := f(cfg)(ctx)()
-		p := pair.MakePair[context.Context, AppConfig](ctx, cfg)
+		p := pair.MakePair(ctx, cfg)
 		viaPair := Paired(f)(p)()
 
 		assert.Equal(t, direct, viaPair)
@@ -109,7 +109,7 @@ func TestPaired(t *testing.T) {
 		}
 
 		paired := Paired(f)
-		p := pair.MakePair[context.Context, AppConfig](ctx, cfg)
+		p := pair.MakePair(ctx, cfg)
 
 		first := paired(p)()
 		second := paired(p)()
@@ -133,7 +133,7 @@ func TestPaired(t *testing.T) {
 			}
 		}
 
-		p := pair.MakePair[context.Context, Env](ctx, env)
+		p := pair.MakePair(ctx, env)
 		outcome := Paired(f)(p)()
 
 		assert.Equal(t, result.Of(42), outcome)

@@ -27,7 +27,7 @@ import (
 // TestWithValue_BasicUsage tests basic usage of WithValue
 func TestWithValue_BasicUsage(t *testing.T) {
 	t.Run("adds string value to context", func(t *testing.T) {
-		setUserID := WithValue[string, string]("userID")
+		setUserID := WithValue[string]("userID")
 		ctx := context.Background()
 
 		newCtx := setUserID("user123")(ctx)
@@ -37,7 +37,7 @@ func TestWithValue_BasicUsage(t *testing.T) {
 	})
 
 	t.Run("adds int value to context", func(t *testing.T) {
-		setTimeout := WithValue[int, string]("timeout")
+		setTimeout := WithValue[int]("timeout")
 		ctx := context.Background()
 
 		newCtx := setTimeout(30)(ctx)
@@ -52,7 +52,7 @@ func TestWithValue_BasicUsage(t *testing.T) {
 			Name string
 		}
 
-		setUser := WithValue[User, string]("user")
+		setUser := WithValue[User]("user")
 		ctx := context.Background()
 		user := User{ID: "123", Name: "Alice"}
 
@@ -73,7 +73,7 @@ func TestWithValue_CustomKeyType(t *testing.T) {
 	)
 
 	t.Run("uses custom key type", func(t *testing.T) {
-		setUser := WithValue[string, contextKey](userKey)
+		setUser := WithValue[string](userKey)
 		ctx := context.Background()
 
 		newCtx := setUser("Alice")(ctx)
@@ -83,8 +83,8 @@ func TestWithValue_CustomKeyType(t *testing.T) {
 	})
 
 	t.Run("different custom keys don't conflict", func(t *testing.T) {
-		setUser := WithValue[string, contextKey](userKey)
-		setSession := WithValue[string, contextKey](sessionKey)
+		setUser := WithValue[string](userKey)
+		setSession := WithValue[string](sessionKey)
 		ctx := context.Background()
 
 		ctx = setUser("Alice")(ctx)
@@ -100,9 +100,9 @@ func TestWithValue_Chaining(t *testing.T) {
 	t.Run("chains multiple values using composition", func(t *testing.T) {
 		// Compose multiple WithValue operations
 		enrichContext := func(ctx context.Context) context.Context {
-			ctx = WithValue[string, string]("userID")("user123")(ctx)
-			ctx = WithValue[string, string]("requestID")("req456")(ctx)
-			ctx = WithValue[int, string]("timeout")(30)(ctx)
+			ctx = WithValue[string]("userID")("user123")(ctx)
+			ctx = WithValue[string]("requestID")("req456")(ctx)
+			ctx = WithValue[int]("timeout")(30)(ctx)
 			return ctx
 		}
 
@@ -117,9 +117,9 @@ func TestWithValue_Chaining(t *testing.T) {
 	t.Run("chains values sequentially", func(t *testing.T) {
 		ctx := context.Background()
 
-		ctx = WithValue[string, string]("key1")("value1")(ctx)
-		ctx = WithValue[string, string]("key2")("value2")(ctx)
-		ctx = WithValue[string, string]("key3")("value3")(ctx)
+		ctx = WithValue[string]("key1")("value1")(ctx)
+		ctx = WithValue[string]("key2")("value2")(ctx)
+		ctx = WithValue[string]("key3")("value3")(ctx)
 
 		assert.Equal(t, "value1", ctx.Value("key1"))
 		assert.Equal(t, "value2", ctx.Value("key2"))
@@ -131,7 +131,7 @@ func TestWithValue_Chaining(t *testing.T) {
 func TestWithValue_ContextImmutability(t *testing.T) {
 	t.Run("original context is not modified", func(t *testing.T) {
 		originalCtx := context.Background()
-		setUserID := WithValue[string, string]("userID")
+		setUserID := WithValue[string]("userID")
 
 		newCtx := setUserID("user123")(originalCtx)
 
@@ -143,7 +143,7 @@ func TestWithValue_ContextImmutability(t *testing.T) {
 
 	t.Run("parent context values are preserved", func(t *testing.T) {
 		parentCtx := context.WithValue(context.Background(), "parent", "parentValue")
-		setChild := WithValue[string, string]("child")
+		setChild := WithValue[string]("child")
 
 		childCtx := setChild("childValue")(parentCtx)
 
@@ -159,7 +159,7 @@ func TestWithValue_ContextImmutability(t *testing.T) {
 func TestWithValue_OverwritingValues(t *testing.T) {
 	t.Run("overwrites existing value with same key", func(t *testing.T) {
 		ctx := context.Background()
-		setUserID := WithValue[string, string]("userID")
+		setUserID := WithValue[string]("userID")
 
 		ctx = setUserID("user123")(ctx)
 		assert.Equal(t, "user123", ctx.Value("userID"))
@@ -170,7 +170,7 @@ func TestWithValue_OverwritingValues(t *testing.T) {
 
 	t.Run("child context shadows parent value", func(t *testing.T) {
 		parentCtx := context.WithValue(context.Background(), "key", "parent")
-		setKey := WithValue[string, string]("key")
+		setKey := WithValue[string]("key")
 
 		childCtx := setKey("child")(parentCtx)
 
@@ -188,7 +188,7 @@ func TestWithValue_NilValues(t *testing.T) {
 			Name string
 		}
 
-		setUser := WithValue[*User, string]("user")
+		setUser := WithValue[*User]("user")
 		ctx := context.Background()
 
 		newCtx := setUser(nil)(ctx)
@@ -198,7 +198,7 @@ func TestWithValue_NilValues(t *testing.T) {
 	})
 
 	t.Run("stores nil interface value", func(t *testing.T) {
-		setData := WithValue[interface{}, string]("data")
+		setData := WithValue[interface{}]("data")
 		ctx := context.Background()
 
 		newCtx := setData(nil)(ctx)
@@ -211,7 +211,7 @@ func TestWithValue_NilValues(t *testing.T) {
 // TestWithValue_ComplexTypes tests WithValue with complex types
 func TestWithValue_ComplexTypes(t *testing.T) {
 	t.Run("stores slice value", func(t *testing.T) {
-		setTags := WithValue[[]string, string]("tags")
+		setTags := WithValue[[]string]("tags")
 		ctx := context.Background()
 		tags := []string{"go", "functional", "programming"}
 
@@ -222,7 +222,7 @@ func TestWithValue_ComplexTypes(t *testing.T) {
 	})
 
 	t.Run("stores map value", func(t *testing.T) {
-		setMetadata := WithValue[map[string]int, string]("metadata")
+		setMetadata := WithValue[map[string]int]("metadata")
 		ctx := context.Background()
 		metadata := map[string]int{"count": 42, "limit": 100}
 
@@ -235,7 +235,7 @@ func TestWithValue_ComplexTypes(t *testing.T) {
 	t.Run("stores function value", func(t *testing.T) {
 		type Handler func(string) string
 
-		setHandler := WithValue[Handler, string]("handler")
+		setHandler := WithValue[Handler]("handler")
 		ctx := context.Background()
 		handler := func(s string) string { return "handled: " + s }
 
@@ -257,8 +257,8 @@ func TestWithValue_Integration(t *testing.T) {
 	t.Run("integrates with Reader Map", func(t *testing.T) {
 		// Create a reader that adds a value and then extracts it
 		pipeline := F.Pipe1(
-			WithValue[string, string]("userID")("user123"),
-			R.Map[context.Context, context.Context, string](func(ctx context.Context) string {
+			WithValue[string]("userID")("user123"),
+			R.Map[context.Context](func(ctx context.Context) string {
 				return ctx.Value("userID").(string)
 			}),
 		)
@@ -272,12 +272,12 @@ func TestWithValue_Integration(t *testing.T) {
 	t.Run("integrates with Reader Chain", func(t *testing.T) {
 		// Chain multiple context enrichments
 		pipeline := F.Pipe2(
-			WithValue[string, string]("step")("1"),
-			R.Chain[context.Context, context.Context, context.Context](func(ctx context.Context) Reader[context.Context] {
+			WithValue[string]("step")("1"),
+			R.Chain(func(ctx context.Context) Reader[context.Context] {
 				step := ctx.Value("step").(string)
-				return WithValue[string, string]("result")("step " + step + " complete")
+				return WithValue[string]("result")("step " + step + " complete")
 			}),
-			R.Map[context.Context, context.Context, string](func(ctx context.Context) string {
+			R.Map[context.Context](func(ctx context.Context) string {
 				return ctx.Value("result").(string)
 			}),
 		)
@@ -301,9 +301,9 @@ func TestWithValue_RealWorldScenario(t *testing.T) {
 		// Simulate enriching a context with request metadata
 		enrichRequestContext := func(userID, requestID, traceID string) Reader[context.Context] {
 			return func(ctx context.Context) context.Context {
-				ctx = WithValue[string, string]("userID")(userID)(ctx)
-				ctx = WithValue[string, string]("requestID")(requestID)(ctx)
-				ctx = WithValue[string, string]("traceID")(traceID)(ctx)
+				ctx = WithValue[string]("userID")(userID)(ctx)
+				ctx = WithValue[string]("requestID")(requestID)(ctx)
+				ctx = WithValue[string]("traceID")(traceID)(ctx)
 				return ctx
 			}
 		}
@@ -327,5 +327,3 @@ func TestWithValue_RealWorldScenario(t *testing.T) {
 		assert.Equal(t, "trace789", reqCtx.TraceID)
 	})
 }
-
-// Made with Bob

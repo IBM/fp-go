@@ -441,5 +441,3 @@ func TestAltAllArray_RelationshipToAltMonoid(t *testing.T) {
 		assert.Equal(t, Some(42), result)
 	})
 }
-
-// Made with Bob

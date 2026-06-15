@@ -95,6 +95,8 @@ func renderString(destinations string) func(string) string {
 	}
 }
 
+// Example_render_page demonstrates using applicative functors to fetch
+// multiple resources in parallel and combine their results.
 func Example_render_page() {
 	// prepare the http client
 	client := H.MakeClient(http.DefaultClient)
@@ -121,6 +123,8 @@ func Example_render_page() {
 
 }
 
+// Example_solution_10a demonstrates using applicative functors with Option
+// to safely add two optional values.
 func Example_solution_10a() {
 	safeAdd := F.Curry2(func(a, b Option[int]) Option[int] {
 		return F.Pipe3(
@@ -141,6 +145,8 @@ func Example_solution_10a() {
 	// None[int]
 }
 
+// Example_solution_10b demonstrates an alternative implementation of safe
+// addition using SequenceTuple and monoid operations.
 func Example_solution_10b() {
 
 	safeAdd := F.Curry2(T.Untupled2(F.Flow2(
@@ -158,6 +164,8 @@ func Example_solution_10b() {
 	// None[int]
 }
 
+// Example_solution_10c demonstrates using applicative functors with IO
+// to compose game initialization with player data.
 func Example_solution_10c() {
 	// startGame :: IO String
 	startGame := F.Pipe2(

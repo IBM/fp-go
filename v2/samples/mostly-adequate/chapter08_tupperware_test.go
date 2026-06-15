@@ -167,6 +167,8 @@ func GetAge(now time.Time) R.Kleisli[User, float64] {
 	)
 }
 
+// Example_withdraw demonstrates using Option monad to handle account
+// balance validation with safe withdrawal operations.
 func Example_withdraw() {
 	fmt.Println(getTwenty(MakeAccount(200)))
 	fmt.Println(getTwenty(MakeAccount(10)))
@@ -176,6 +178,8 @@ func Example_withdraw() {
 	// You're broke!
 }
 
+// Example_get_age demonstrates using Result (Either) monad for error handling
+// when parsing dates and calculating ages.
 func Example_get_age() {
 	now, err := time.Parse(time.DateOnly, "2023-09-01")
 	if err != nil {
@@ -205,6 +209,8 @@ func Example_get_age() {
 	// If you survive, you will be 6837
 }
 
+// Example_solution_08a demonstrates using the Identity functor's Map
+// function to increment a value.
 func Example_solution_08a() {
 	incrF := I.Map(N.Add(1))
 
@@ -213,6 +219,8 @@ func Example_solution_08a() {
 	// Output: 3
 }
 
+// Example_solution_08b demonstrates extracting the first character
+// from a user's name using Option monad.
 func Example_solution_08b() {
 	// initial :: User -> Option rune
 	initial := F.Flow3(
@@ -227,6 +235,8 @@ func Example_solution_08b() {
 	// Some[int32](65)
 }
 
+// Example_solution_08c demonstrates using Result monad to check user
+// account status and display a welcome message.
 func Example_solution_08c() {
 
 	// eitherWelcome :: User -> Either String String
@@ -243,6 +253,8 @@ func Example_solution_08c() {
 	// Right[string](Welcome Theresa)
 }
 
+// Example_solution_08d demonstrates validating user data with Result monad,
+// checking both name length and email format.
 func Example_solution_08d() {
 
 	// // validateName :: User -> Either String ()

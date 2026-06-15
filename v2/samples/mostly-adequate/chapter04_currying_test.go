@@ -49,6 +49,8 @@ func Replace(search *regexp.Regexp) func(replace string) func(s string) string {
 	}
 }
 
+// Example_solution_04a demonstrates currying by creating a words function
+// that splits strings using a pre-configured regex pattern.
 func Example_solution_04a() {
 	// words :: String -> [String]
 	words := Split(regexp.MustCompile(` `))
@@ -59,6 +61,8 @@ func Example_solution_04a() {
 	// [Jingle bells Batman smells]
 }
 
+// Example_solution_04b demonstrates using curried functions to create
+// a specialized filter for strings matching a pattern.
 func Example_solution_04b() {
 	// filterQs :: [String] -> [String]
 	filterQs := A.Filter(Matches(regexp.MustCompile(`q`)))
@@ -69,6 +73,8 @@ func Example_solution_04b() {
 	// [quick quarry quails]
 }
 
+// Example_solution_04c demonstrates using curried max function to find
+// the highest value in a collection.
 func Example_solution_04c() {
 
 	keepHighest := N.Max[int]

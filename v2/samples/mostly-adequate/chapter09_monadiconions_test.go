@@ -125,6 +125,8 @@ var (
 	)
 )
 
+// Example_street demonstrates safely accessing nested data structures
+// using Option monad to handle missing values.
 func Example_street() {
 	s := FirstAddressStreet(AddressBook{
 		Addresses: A.From(Address{Street: Street{Name: "Mulburry", Number: 8402}, Postcode: "WC2N"}),
@@ -135,6 +137,8 @@ func Example_street() {
 	// Some[mostlyadequate.Street]({Mulburry 8402})
 }
 
+// Example_solution_09a demonstrates extracting street names from user
+// addresses using monadic composition with Option.
 func Example_solution_09a() {
 	// // getStreetName :: User -> Maybe String
 	getStreetName := F.Flow4(
@@ -155,6 +159,8 @@ func Example_solution_09a() {
 
 }
 
+// Example_solution_09b demonstrates using IO monad to perform side effects
+// like logging while processing file paths.
 func Example_solution_09b() {
 	logFilename := F.Flow2(
 		io.Map(path.Base),
@@ -167,6 +173,8 @@ func Example_solution_09b() {
 	// ch09.md
 }
 
+// Example_solution_09c demonstrates combining validation with IO effects
+// to join a mailing list with proper error handling.
 func Example_solution_09c() {
 
 	// // joinMailingList :: Email -> Either String (IO ())

@@ -457,5 +457,3 @@ func BenchmarkFindLastMap(b *testing.B) {
 		_ = finder(seq)()
 	}
 }
-
-// Made with Bob

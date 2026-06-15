@@ -38,5 +38,3 @@ func TestIsValidExampleName(t *testing.T) {
 		})
 	}
 }
-
-// Made with Bob

@@ -86,6 +86,8 @@ func sqr(x int) int {
 	return x * x
 }
 
+// Example_collections demonstrates functional operations on collections,
+// including filtering, mapping, and reducing arrays.
 func Example_collections() {
 
 	nums := A.From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)

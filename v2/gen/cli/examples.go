@@ -799,5 +799,3 @@ func getExample(ctx context.Context, dbPath, symbol string, verbose bool) error 
 
 	return nil
 }
-
-// Made with Bob

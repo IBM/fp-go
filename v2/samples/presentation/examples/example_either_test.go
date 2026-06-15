@@ -31,6 +31,8 @@ func validatePort(port int) (int, error) {
 	return 0, fmt.Errorf("Value %d is not a valid port number", port)
 }
 
+// Example_either_monad demonstrates using Either monad for error handling
+// with functional composition and chaining.
 func Example_either_monad() {
 
 	// func(string) E.Either[error, int]
@@ -51,6 +53,8 @@ func Example_either_monad() {
 	// Right[string](http://localhost:8080)
 }
 
+// Example_either_idiomatic demonstrates the same error handling logic
+// using idiomatic Go error handling for comparison.
 func Example_either_idiomatic() {
 
 	makeUrl := func(port string) (string, error) {
@@ -75,6 +79,8 @@ func Example_either_idiomatic() {
 	// http://localhost:8080
 }
 
+// Example_either_worlds demonstrates bridging between functional Either
+// and idiomatic Go error handling using Uneitherize.
 func Example_either_worlds() {
 
 	// func(string) E.Either[error, int]

@@ -91,6 +91,8 @@ func MakeClient(city, name string, age int) Client {
 	return Client{person: Person{name, age}, address: Address{city}}
 }
 
+// Example_immutability_struct demonstrates immutable updates to structs
+// using setter methods and functional composition.
 func Example_immutability_struct() {
 	p1 := MakePerson("Carsten", 53)
 
@@ -110,6 +112,8 @@ func Example_immutability_struct() {
 	// {Carsten 54}
 }
 
+// Example_immutability_optics demonstrates using lenses (optics) to perform
+// immutable updates on nested data structures.
 func Example_immutability_optics() {
 
 	// Lens[Person, int]
@@ -128,6 +132,8 @@ func Example_immutability_optics() {
 	// {Carsten 54}
 }
 
+// Example_immutability_lenses demonstrates composing multiple lenses to update
+// deeply nested fields in an immutable way.
 func Example_immutability_lenses() {
 
 	// Lens[Person, string]

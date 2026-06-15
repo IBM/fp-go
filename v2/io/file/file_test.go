@@ -351,8 +351,8 @@ func TestClose_TypeSafety(t *testing.T) {
 	})
 }
 
-// Example_close demonstrates basic usage of Close
-func Example_close() {
+// ExampleClose demonstrates basic usage of Close
+func ExampleClose() {
 	// Create a mock closer
 	mock := &mockCloser{}
 
@@ -366,8 +366,8 @@ func Example_close() {
 	// Output: Closed: true
 }
 
-// Example_remove demonstrates basic usage of Remove
-func Example_remove() {
+// ExampleRemove demonstrates basic usage of Remove
+func ExampleRemove() {
 	// Create a temporary file
 	tmpFile, _ := os.CreateTemp("", "example-*.txt")
 	tmpPath := tmpFile.Name()

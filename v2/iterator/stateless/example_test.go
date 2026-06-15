@@ -23,6 +23,8 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
+// Example_any demonstrates using the Any function to check if any element
+// in an iterator satisfies a predicate.
 func Example_any() {
 	// `Any` function that simply returns the boolean identity
 	anyBool := Any(F.Identity[bool])
@@ -37,6 +39,8 @@ func Example_any() {
 	// false
 }
 
+// Example_next demonstrates creating an iterator and accessing its first element
+// using the Next function combined with Map.
 func Example_next() {
 
 	seq := MakeBy(F.Identity[int])

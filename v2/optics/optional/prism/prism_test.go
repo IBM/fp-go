@@ -737,7 +737,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 		somePrism := PrismSome[int]()
 
 		// Compose them
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30)}
 		value := composed.GetOption(config)
@@ -762,7 +762,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
 		value := composed.GetOption(config)
@@ -782,7 +782,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.None[int]()}
 		value := composed.GetOption(config)
@@ -802,7 +802,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30)}
 		updated := composed.Set(60)(config)
@@ -825,7 +825,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
 		updated := composed.Set(60)(config)
@@ -845,7 +845,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.None[int]()}
 		updated := composed.Set(60)(config)
@@ -872,7 +872,7 @@ func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
 
@@ -898,7 +898,7 @@ func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.None[int]()}
 
@@ -924,7 +924,7 @@ func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30)}
 
@@ -953,7 +953,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30)}
 
@@ -984,7 +984,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
 
@@ -1011,7 +1011,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.None[int]()}
 
@@ -1038,7 +1038,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30)}
 
@@ -1066,7 +1066,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30)}
 
@@ -1093,7 +1093,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30), Retries: O.None[int]()}
 
@@ -1118,7 +1118,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.None[int]()}
 
@@ -1144,7 +1144,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(10)}
 
@@ -1171,7 +1171,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(0)}
 
@@ -1195,7 +1195,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 		)
 
 		somePrism := PrismSome[int]()
-		composed := Compose[Config, O.Option[int], int](somePrism)(configOptional)
+		composed := Compose[Config](somePrism)(configOptional)
 
 		config := Config{Timeout: O.Some(30), Retries: O.Some(3)}
 		updated := composed.Set(60)(config)
@@ -1219,5 +1219,3 @@ func TestPrismSome_TypeVariants(t *testing.T) {
 		assert.Equal(t, O.Some("world"), wrapped)
 	})
 }
-
-// Made with Bob

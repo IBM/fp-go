@@ -53,6 +53,8 @@ var (
 	readdir = ioresult.Of(A.From("file1", "file2", "file3"))
 )
 
+// Example_solution_12a demonstrates traversing a map of routes to fetch
+// JSON data, transforming Map Route Route into Task Error (Map Route JSON).
 func Example_solution_12a() {
 	// getJsons :: Map Route Route -> Task Error (Map Route JSON)
 	getJsons := ioresult.TraverseRecord[string](httpGet)
@@ -63,6 +65,8 @@ func Example_solution_12a() {
 	// Right[map[string]string](map[/:json for / /about:json for /about])
 }
 
+// Example_solution_12b demonstrates starting a game by traversing a list
+// of players and collecting results as Either values.
 func Example_solution_12b() {
 	// startGame :: [Player] -> [Either Error String]
 	startGame := F.Flow2(
@@ -78,6 +82,8 @@ func Example_solution_12b() {
 	// Left[*errors.errorString](player 4 must have a name)
 }
 
+// Example_solution_12c demonstrates traversing optional values to save
+// preferences, handling None cases gracefully.
 func Example_solution_12c() {
 	traverseO := O.Traverse[string](
 		ioresult.Of[Option[string]],

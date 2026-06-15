@@ -28,21 +28,21 @@ import (
 func TestScanBasic(t *testing.T) {
 	t.Run("running sum of integers", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []int{1, 3, 6, 10, 15}, result)
 	})
 
 	t.Run("running product", func(t *testing.T) {
 		seq := From(2, 3, 4)
-		scanned := Scan(func(acc, x int) int { return acc * x }, 1)
+		scanned := Scan(N.Prod, 1)
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []int{2, 6, 24}, result)
 	})
 
 	t.Run("string concatenation", func(t *testing.T) {
 		seq := From("a", "b", "c")
-		scanned := Scan(func(acc, x string) string { return acc + x }, "")
+		scanned := Scan(N.Sum, "")
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []string{"a", "ab", "abc"}, result)
 	})
@@ -61,14 +61,14 @@ func TestScanBasic(t *testing.T) {
 
 	t.Run("single element", func(t *testing.T) {
 		seq := From(42)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 10)
+		scanned := Scan(N.Sum, 10)
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []int{52}, result)
 	})
 
 	t.Run("two elements", func(t *testing.T) {
 		seq := From(5, 10)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []int{5, 15}, result)
 	})
@@ -78,14 +78,14 @@ func TestScanBasic(t *testing.T) {
 func TestScanEmpty(t *testing.T) {
 	t.Run("empty integer sequence", func(t *testing.T) {
 		seq := Empty[int]()
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		result := toSlice(scanned(seq))
 		assert.Empty(t, result)
 	})
 
 	t.Run("empty string sequence", func(t *testing.T) {
 		seq := Empty[string]()
-		scanned := Scan(func(acc, x string) string { return acc + x }, "start")
+		scanned := Scan(N.Sum, "start")
 		result := toSlice(scanned(seq))
 		assert.Empty(t, result)
 	})
@@ -212,7 +212,7 @@ func TestScanWithComplexTypes(t *testing.T) {
 func TestScanWithChainedOperations(t *testing.T) {
 	t.Run("scan then map", func(t *testing.T) {
 		seq := From(1, 2, 3, 4)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		mapped := MonadMap(scanned(seq), N.Mul(2))
 		result := toSlice(mapped)
 		assert.Equal(t, []int{2, 6, 12, 20}, result)
@@ -221,14 +221,14 @@ func TestScanWithChainedOperations(t *testing.T) {
 	t.Run("map then scan", func(t *testing.T) {
 		seq := From(1, 2, 3, 4)
 		mapped := MonadMap(seq, N.Mul(2))
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		result := toSlice(scanned(mapped))
 		assert.Equal(t, []int{2, 6, 12, 20}, result)
 	})
 
 	t.Run("scan then filter", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		filtered := MonadFilter(scanned(seq), func(x int) bool { return x%2 == 0 })
 		result := toSlice(filtered)
 		assert.Equal(t, []int{6, 10}, result)
@@ -236,7 +236,7 @@ func TestScanWithChainedOperations(t *testing.T) {
 
 	t.Run("scan then take", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		taken := Take[int](3)(scanned(seq))
 		result := toSlice(taken)
 		assert.Equal(t, []int{1, 3, 6}, result)
@@ -248,7 +248,7 @@ func TestScanWithCycle(t *testing.T) {
 	t.Run("scan cycled sequence with take", func(t *testing.T) {
 		seq := From(1, 2, 3)
 		cycled := Cycle(seq)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		taken := Take[int](10)(scanned(cycled))
 		result := toSlice(taken)
 		// 1, 3, 6, 7, 9, 12, 13, 15, 18, 19
@@ -260,7 +260,7 @@ func TestScanWithCycle(t *testing.T) {
 func TestScanEarlyTermination(t *testing.T) {
 	t.Run("terminates when yield returns false", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 
 		count := 0
 		for v := range scanned(seq) {
@@ -278,21 +278,21 @@ func TestScanEarlyTermination(t *testing.T) {
 func TestScanWithInitialValue(t *testing.T) {
 	t.Run("non-zero initial value", func(t *testing.T) {
 		seq := From(1, 2, 3)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 10)
+		scanned := Scan(N.Sum, 10)
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []int{11, 13, 16}, result)
 	})
 
 	t.Run("negative initial value", func(t *testing.T) {
 		seq := From(1, 2, 3)
-		scanned := Scan(func(acc, x int) int { return acc + x }, -10)
+		scanned := Scan(N.Sum, -10)
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []int{-9, -7, -4}, result)
 	})
 
 	t.Run("string initial value", func(t *testing.T) {
 		seq := From("a", "b", "c")
-		scanned := Scan(func(acc, x string) string { return acc + x }, "start:")
+		scanned := Scan(N.Sum, "start:")
 		result := toSlice(scanned(seq))
 		assert.Equal(t, []string{"start:a", "start:ab", "start:abc"}, result)
 	})
@@ -306,7 +306,7 @@ func TestScanLargeSequence(t *testing.T) {
 			data[i] = i + 1
 		}
 		seq := From(data...)
-		scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+		scanned := Scan(N.Sum, 0)
 		result := toSlice(scanned(seq))
 
 		assert.Len(t, result, 100)
@@ -321,7 +321,7 @@ func TestScanLargeSequence(t *testing.T) {
 // Benchmark tests
 func BenchmarkScan(b *testing.B) {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-	scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+	scanned := Scan(N.Sum, 0)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for range scanned(seq) {
@@ -335,7 +335,7 @@ func BenchmarkScanLarge(b *testing.B) {
 		data[i] = i + 1
 	}
 	seq := From(data...)
-	scanned := Scan(func(acc, x int) int { return acc + x }, 0)
+	scanned := Scan(N.Sum, 0)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for range scanned(seq) {
@@ -346,7 +346,7 @@ func BenchmarkScanLarge(b *testing.B) {
 // Example tests for documentation
 func ExampleScan() {
 	seq := From(1, 2, 3, 4, 5)
-	runningSum := Scan(func(acc, x int) int { return acc + x }, 0)
+	runningSum := Scan(N.Sum, 0)
 	result := runningSum(seq)
 
 	for v := range result {
@@ -355,9 +355,9 @@ func ExampleScan() {
 	// Output: 1 3 6 10 15
 }
 
-func ExampleScan_runningProduct() {
+func ExampleScan_running_product() {
 	seq := From(2, 3, 4)
-	runningProduct := Scan(func(acc, x int) int { return acc * x }, 1)
+	runningProduct := Scan(N.Prod, 1)
 	result := runningProduct(seq)
 
 	for v := range result {
@@ -366,9 +366,9 @@ func ExampleScan_runningProduct() {
 	// Output: 2 6 24
 }
 
-func ExampleScan_stringConcatenation() {
+func ExampleScan_string_concatenation() {
 	seq := From("a", "b", "c")
-	concat := Scan(func(acc, x string) string { return acc + x }, "")
+	concat := Scan(N.Sum, "")
 	result := concat(seq)
 
 	for v := range result {
@@ -377,14 +377,9 @@ func ExampleScan_stringConcatenation() {
 	// Output: a ab abc
 }
 
-func ExampleScan_trackingMaximum() {
+func ExampleScan_tracking_maximum() {
 	seq := From(3, 1, 4, 1, 5, 9, 2)
-	maxSoFar := Scan(func(acc, x int) int {
-		if x > acc {
-			return x
-		}
-		return acc
-	}, 0)
+	maxSoFar := Scan(N.Max, 0)
 	result := maxSoFar(seq)
 
 	for v := range result {
@@ -395,7 +390,7 @@ func ExampleScan_trackingMaximum() {
 
 func ExampleScan_empty() {
 	seq := Empty[int]()
-	runningSum := Scan(func(acc, x int) int { return acc + x }, 0)
+	runningSum := Scan(N.Sum, 0)
 	result := runningSum(seq)
 
 	count := 0

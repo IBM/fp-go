@@ -39,6 +39,8 @@ func findUserByID(id int) IOResult[Chapter08User] {
 	}
 }
 
+// Example_solution_11a demonstrates transforming Result (Either) to Option,
+// discarding error information to get an optional value.
 func Example_solution_11a() {
 	// eitherToMaybe :: Either b a -> Maybe a
 	eitherToMaybe := R.ToOption[string]
@@ -51,6 +53,8 @@ func Example_solution_11a() {
 	// None[string]
 }
 
+// Example_solution_11b demonstrates finding a user by ID and extracting
+// their name using IOResult monad transformations.
 func Example_solution_11b() {
 	findByNameID := F.Flow2(
 		findUserByID,
@@ -69,6 +73,8 @@ func Example_solution_11b() {
 	// Left[*errors.errorString](user 4 not found)
 }
 
+// Example_solution_11c demonstrates splitting a string into individual
+// characters using regex-based splitting.
 func Example_solution_11c() {
 	// strToList :: String -> [Char
 	strToList := Split(regexp.MustCompile(``))

@@ -318,7 +318,7 @@ func ExampleCompress() {
 	// Output: 1 3 5
 }
 
-func ExampleCompress_allTrue() {
+func ExampleCompress_all_true() {
 	data := From(10, 20, 30)
 	selectors := From(true, true, true)
 	filtered := Compress[int](selectors)(data)
@@ -329,7 +329,7 @@ func ExampleCompress_allTrue() {
 	// Output: 10 20 30
 }
 
-func ExampleCompress_allFalse() {
+func ExampleCompress_all_false() {
 	data := From(1, 2, 3)
 	selectors := From(false, false, false)
 	filtered := Compress[int](selectors)(data)

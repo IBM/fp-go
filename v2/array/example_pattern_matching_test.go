@@ -295,5 +295,3 @@ func Example_pattern_matching_with_guards() {
 	// WARNING: High memory usage
 	// INFO: User logged in
 }
-
-// Made with Bob

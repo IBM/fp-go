@@ -22,6 +22,8 @@ import (
 	N "github.com/IBM/fp-go/v2/number"
 )
 
+// Example_extraction demonstrates various ways to extract values from Result,
+// including using defaults, folding, and chaining operations.
 func Example_extraction() {
 	leftValue, leftErr := Left[int](fmt.Errorf("Division by Zero!"))
 	rightValue, rightErr := Right(10)

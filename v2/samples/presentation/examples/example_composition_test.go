@@ -22,6 +22,8 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
+// Example_composition_pipe demonstrates function composition using Pipe
+// to chain operations on data in a readable left-to-right flow.
 func Example_composition_pipe() {
 
 	filter := func(i int) bool {
@@ -46,6 +48,8 @@ func Example_composition_pipe() {
 	// [4 8]
 }
 
+// Example_composition_flow demonstrates function composition using Flow
+// to create reusable composed functions.
 func Example_composition_flow() {
 
 	filter := func(i int) bool {

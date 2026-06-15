@@ -36,6 +36,8 @@ func (s Sample) getValue() int {
 	return s.Value
 }
 
+// Example_io_flow demonstrates composing IO operations with error handling
+// using IOEither to read files and process JSON data functionally.
 func Example_io_flow() {
 
 	// IOE.IOEither[error, string]
@@ -95,6 +97,8 @@ func io_flow_idiomatic() error {
 	return nil
 }
 
+// Example_io_flow_idiomatic demonstrates the same file reading and JSON processing
+// using idiomatic Go error handling for comparison with the functional approach.
 func Example_io_flow_idiomatic() {
 	if err := io_flow_idiomatic(); err != nil {
 		panic(err)

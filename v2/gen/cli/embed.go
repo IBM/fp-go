@@ -225,5 +225,3 @@ var {{.MapName}} = map[string][]byte{
 	fmt.Printf("Embedded %d files from %s\n", len(files), files[0].EmbedPath[:strings.LastIndex(files[0].EmbedPath, "/")])
 	return nil
 }
-
-// Made with Bob

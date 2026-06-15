@@ -467,7 +467,7 @@ func ExampleAsync_unbuffered() {
 	// Output: 1 2 3
 }
 
-func ExampleAsync_earlyTermination() {
+func ExampleAsync_early_termination() {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	async := AsyncBuf(seq, 5)
 
@@ -482,7 +482,7 @@ func ExampleAsync_earlyTermination() {
 	// Output: 1 2 3
 }
 
-func ExampleAsync_withMap() {
+func ExampleAsync_with_map() {
 	seq := From(1, 2, 3, 4, 5)
 	async := AsyncBuf(seq, 5)
 	doubled := MonadMap(async, N.Mul(2))
@@ -493,7 +493,7 @@ func ExampleAsync_withMap() {
 	// Output: 2 4 6 8 10
 }
 
-func ExampleAsync_withFilter() {
+func ExampleAsync_with_filter() {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	async := AsyncBuf(seq, 5)
 	evens := MonadFilter(async, func(x int) bool { return x%2 == 0 })
@@ -867,7 +867,7 @@ func ExampleAsync2() {
 	// 3: c
 }
 
-func ExampleAsync2_earlyTermination() {
+func ExampleAsync2_early_termination() {
 	seq := MonadZip(From(1, 2, 3, 4, 5), From("a", "b", "c", "d", "e"))
 	async := Async2Buf(seq, 5)
 

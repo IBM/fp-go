@@ -1331,7 +1331,7 @@ func ExampleSkip() {
 	// Output: 4 5
 }
 
-func ExampleSkip_moreThanAvailable() {
+func ExampleSkip_more_than_available() {
 	seq := From(1, 2, 3)
 	skipped := Skip[int](10)(seq)
 
@@ -1353,7 +1353,7 @@ func ExampleSkip_zero() {
 	// Output: 1 2 3 4 5
 }
 
-func ExampleSkip_withFilter() {
+func ExampleSkip_with_filter() {
 	seq := From(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	evens := MonadFilter(seq, func(x int) bool { return x%2 == 0 })
 	skipped := Skip[int](2)(evens)
@@ -1364,7 +1364,7 @@ func ExampleSkip_withFilter() {
 	// Output: 6 8 10
 }
 
-func ExampleSkip_withMap() {
+func ExampleSkip_with_map() {
 	seq := From(1, 2, 3, 4, 5)
 	doubled := MonadMap(seq, N.Mul(2))
 	skipped := Skip[int](2)(doubled)
@@ -1388,8 +1388,8 @@ func ExampleSkip_chained() {
 	// Output: [4 6 8 10]
 }
 
-// TestCollect_Success tests basic Collect functionality
-func TestCollect_Success(t *testing.T) {
+// TestCollect_success tests basic Collect functionality
+func TestCollect_success(t *testing.T) {
 	t.Run("collects simple sequence into slice", func(t *testing.T) {
 		seq := From(1, 2, 3, 4, 5)
 		result := Collect(seq)

@@ -24,5 +24,3 @@ type Person struct {
 func (p Person) String() string {
 	return fmt.Sprintf("%s (%d)", p.Name, p.Age)
 }
-
-// Made with Bob

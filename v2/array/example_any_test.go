@@ -22,7 +22,7 @@ import (
 	O "github.com/IBM/fp-go/v2/option"
 )
 
-func Example_any() {
+func ExampleAny() {
 
 	pred := func(val int) bool {
 		return val&2 == 0
@@ -36,7 +36,7 @@ func Example_any() {
 	// true
 }
 
-func Example_any_filter() {
+func ExampleAny_filter() {
 
 	pred := func(val int) bool {
 		return val&2 == 0
@@ -56,7 +56,7 @@ func Example_any_filter() {
 	// true
 }
 
-func Example_any_find() {
+func ExampleAny_find() {
 
 	pred := func(val int) bool {
 		return val&2 == 0

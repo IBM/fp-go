@@ -125,7 +125,7 @@ func Example_predicate_assertions() {
 }
 
 // Example_all_of demonstrates combining multiple assertions
-func Example_all_of() {
+func ExampleAllOf() {
 	var t *testing.T // placeholder for example
 
 	type User struct {
@@ -147,7 +147,7 @@ func Example_all_of() {
 }
 
 // Example_run_all demonstrates running named test cases
-func Example_run_all() {
+func ExampleRunAll() {
 	var t *testing.T // placeholder for example
 
 	testcases := map[string]assert.Reader{
@@ -161,7 +161,7 @@ func Example_run_all() {
 }
 
 // Example_local demonstrates focusing assertions on specific properties
-func Example_local() {
+func ExampleLocal() {
 	var t *testing.T // placeholder for example
 
 	type User struct {
@@ -181,7 +181,7 @@ func Example_local() {
 }
 
 // Example_composable_assertions demonstrates building complex assertions
-func Example_composable_assertions() {
+func ExampleAllOf_composable_assertions() {
 	var t *testing.T // placeholder for example
 
 	type Config struct {

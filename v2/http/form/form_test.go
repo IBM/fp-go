@@ -505,7 +505,7 @@ func ExampleValuesMonoid() {
 }
 
 // ExampleValuesMonoid_concatenation demonstrates array concatenation for same keys
-func ExampleValuesMonoid_concatenation() {
+func ExampleValuesMonoid_Concat() {
 	form1 := url.Values{"tags": []string{"go"}}
 	form2 := url.Values{"tags": []string{"functional"}}
 

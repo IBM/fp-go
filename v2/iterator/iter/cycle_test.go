@@ -438,7 +438,7 @@ func ExampleCycle() {
 	// Output: 1 2 3 1 2 3 1
 }
 
-func ExampleCycle_singleElement() {
+func ExampleCycle_single_element() {
 	seq := From("X")
 	cycled := Cycle(seq)
 	result := Take[string](5)(cycled)
@@ -449,7 +449,7 @@ func ExampleCycle_singleElement() {
 	// Output: X X X X X
 }
 
-func ExampleCycle_withFirst() {
+func ExampleCycle_with_first() {
 	seq := From(10, 20, 30)
 	cycled := Cycle(seq)
 	first := First(cycled)
@@ -460,7 +460,7 @@ func ExampleCycle_withFirst() {
 	// Output: First: 10
 }
 
-func ExampleCycle_withFilter() {
+func ExampleCycle_with_filter() {
 	seq := From(1, 2, 3, 4, 5)
 	cycled := Cycle(seq)
 	evens := MonadFilter(cycled, func(x int) bool { return x%2 == 0 })
@@ -472,7 +472,7 @@ func ExampleCycle_withFilter() {
 	// Output: 2 4 2 4 2 4
 }
 
-func ExampleCycle_withMap() {
+func ExampleCycle_with_map() {
 	seq := From(1, 2, 3)
 	cycled := Cycle(seq)
 	doubled := MonadMap(cycled, N.Mul(2))
@@ -497,7 +497,7 @@ func ExampleCycle_empty() {
 	// Output: Count: 0
 }
 
-func ExampleCycle_exactMultiple() {
+func ExampleCycle_exact_multiple() {
 	seq := From("A", "B", "C")
 	cycled := Cycle(seq)
 	result := Take[string](9)(cycled)

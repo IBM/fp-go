@@ -15,5 +15,3 @@ func ExamplePerson_third() {
 	fmt.Printf("Age: %d", p.Age)
 	// Output: Age: 28
 }
-
-// Made with Bob

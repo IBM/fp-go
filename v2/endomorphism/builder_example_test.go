@@ -25,9 +25,9 @@ import (
 	N "github.com/IBM/fp-go/v2/number"
 )
 
-// Example_build_basicUsage demonstrates basic usage of the Build function
+// ExampleBuild_basicUsage demonstrates basic usage of the Build function
 // to construct a value from the zero value using endomorphisms.
-func Example_build_basic_usage() {
+func ExampleBuild_basic_usage() {
 	// Define simple endomorphisms
 	addTen := N.Add(10)
 	double := N.Mul(2)
@@ -45,8 +45,8 @@ func Example_build_basic_usage() {
 	// Output: 10
 }
 
-// Example_build_configBuilder demonstrates using Build as a configuration builder pattern.
-func Example_build_config_builder() {
+// ExampleBuild_configBuilder demonstrates using Build as a configuration builder pattern.
+func ExampleBuild_config_builder() {
 	type Config struct {
 		Host    string
 		Port    int
@@ -105,8 +105,8 @@ func Example_build_config_builder() {
 	// Debug: true
 }
 
-// Example_build_stringBuilder demonstrates building a string using endomorphisms.
-func Example_build_string_builder() {
+// ExampleBuild_stringBuilder demonstrates building a string using endomorphisms.
+func ExampleBuild_string_builder() {
 	// Define string transformation endomorphisms
 	appendHello := func(s string) string { return s + "Hello" }
 	appendSpace := func(s string) string { return s + " " }
@@ -127,8 +127,8 @@ func Example_build_string_builder() {
 	// Output: !World Hello
 }
 
-// Example_build_personBuilder demonstrates building a complex struct using the builder pattern.
-func Example_build_person_builder() {
+// ExampleBuild_personBuilder demonstrates building a complex struct using the builder pattern.
+func ExampleBuild_person_builder() {
 	type Person struct {
 		FirstName string
 		LastName  string
@@ -180,8 +180,8 @@ func Example_build_person_builder() {
 	// Output: Alice Smith, Age: 30, Email: alice.smith@example.com
 }
 
-// Example_build_conditionalBuilder demonstrates conditional building using endomorphisms.
-func Example_build_conditional_builder() {
+// ExampleBuild_conditionalBuilder demonstrates conditional building using endomorphisms.
+func ExampleBuild_conditional_builder() {
 	type Settings struct {
 		Theme      string
 		FontSize   int

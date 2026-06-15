@@ -38,18 +38,24 @@ var (
 	)
 )
 
+// Example_shout demonstrates simple function composition to transform
+// a string to uppercase and add exclamation.
 func Example_shout() {
 	fmt.Println(Shout("send in the clowns"))
 
 	// Output: SEND IN THE CLOWNS!
 }
 
+// Example_dasherize demonstrates composing string transformations
+// to convert text to lowercase and replace spaces with dashes.
 func Example_dasherize() {
 	fmt.Println(Dasherize("The world is a vampire"))
 
 	// Output: the-world-is-a-vampire
 }
 
+// Example_pipe demonstrates using Pipe to compose functions in a
+// left-to-right readable order.
 func Example_pipe() {
 	output := F.Pipe2(
 		"send in the clowns",
@@ -62,6 +68,8 @@ func Example_pipe() {
 	// Output: SEND IN THE CLOWNS!
 }
 
+// Example_solution_05a demonstrates composing functions to check if
+// the last car in a list is in stock using Option monad.
 func Example_solution_05a() {
 	IsLastInStock := F.Flow2(
 		A.Last[Car],
@@ -76,6 +84,8 @@ func Example_solution_05a() {
 	// Some[bool](false)
 }
 
+// Example_solution_05b demonstrates calculating the average dollar value
+// of cars using functional composition.
 func Example_solution_05b() {
 	// averageDollarValue :: [Car] -> Int
 	averageDollarValue := F.Flow2(
@@ -89,6 +99,8 @@ func Example_solution_05b() {
 	// 790700
 }
 
+// Example_solution_05c demonstrates sorting and selecting the fastest cars
+// using functional composition with ordering.
 func Example_solution_05c() {
 	// order by horsepower
 	ordByHorsepower := ord.Contramap(Car.getHorsepower)(I.Ord)

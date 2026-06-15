@@ -21,6 +21,8 @@ import (
 	"github.com/IBM/fp-go/v2/errors"
 )
 
+// Example_creation demonstrates various ways to create Result values,
+// including from errors, predicates, and nullable pointers.
 func Example_creation() {
 	// Build an Either
 	leftValue, leftErr := Left[string](fmt.Errorf("some error"))

@@ -21,7 +21,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-func Example_find() {
+func ExampleFindFirst() {
 
 	pred := func(val int) bool {
 		return val&2 == 0
@@ -35,7 +35,7 @@ func Example_find() {
 	// Some[int](1)
 }
 
-func Example_find_filter() {
+func ExampleFilter() {
 
 	pred := func(val int) bool {
 		return val&2 == 0

@@ -107,7 +107,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 	t.Run("GetOption returns Some when prism matches", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 		value := optional.GetOption(result)
@@ -119,7 +119,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 	t.Run("GetOption returns None when prism doesn't match", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 		value := optional.GetOption(result)
@@ -130,7 +130,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 	t.Run("Set updates value when prism matches", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 		updated := optional.Set(100)(result)
@@ -151,7 +151,7 @@ func TestCompose_BasicFunctionality(t *testing.T) {
 	t.Run("Set is no-op when prism doesn't match", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 		updated := optional.Set(100)(result)
@@ -167,7 +167,7 @@ func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
 	t.Run("Law 1: Set is no-op when GetOption returns None", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 
@@ -184,7 +184,7 @@ func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
 	t.Run("Law 1: Set updates when GetOption returns Some", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 
@@ -202,7 +202,7 @@ func TestCompose_OptionalLaw1_GetSet(t *testing.T) {
 	t.Run("Law 1: Multiple Set operations on None are all no-ops", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 
@@ -219,7 +219,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 	t.Run("Law 2: Can retrieve what was set when Some exists", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 
@@ -238,7 +238,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 	t.Run("Law 2: Set is no-op when starting from None", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 
@@ -256,7 +256,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 	t.Run("Law 2: Works with zero values", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 
@@ -271,7 +271,7 @@ func TestCompose_OptionalLaw2_SetGet(t *testing.T) {
 	t.Run("Law 2: Works with string fields", func(t *testing.T) {
 		prism := successPrism()
 		lens := successMessageLens()
-		optional := Compose[Result, Success, string](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 
@@ -290,7 +290,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 	t.Run("Law 3: Last set wins when starting with Some", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 
@@ -310,7 +310,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 	t.Run("Law 3: Both are no-op when starting with None", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 
@@ -326,7 +326,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 	t.Run("Law 3: Works with multiple different values", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 1, Message: "ok"}
 
@@ -345,7 +345,7 @@ func TestCompose_OptionalLaw3_SetSet(t *testing.T) {
 	t.Run("Law 3: Works with string fields", func(t *testing.T) {
 		prism := successPrism()
 		lens := successMessageLens()
-		optional := Compose[Result, Success, string](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "initial"}
 
@@ -367,7 +367,7 @@ func TestCompose_MultipleVariants(t *testing.T) {
 	t.Run("Success variant with Value field", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "ok"}
 		value := optional.GetOption(result)
@@ -379,7 +379,7 @@ func TestCompose_MultipleVariants(t *testing.T) {
 	t.Run("Success variant with Message field", func(t *testing.T) {
 		prism := successPrism()
 		lens := successMessageLens()
-		optional := Compose[Result, Success, string](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "hello"}
 		value := optional.GetOption(result)
@@ -391,7 +391,7 @@ func TestCompose_MultipleVariants(t *testing.T) {
 	t.Run("Failure variant with Code field", func(t *testing.T) {
 		prism := failurePrism()
 		lens := failureCodeLens()
-		optional := Compose[Result, Failure, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 		value := optional.GetOption(result)
@@ -404,7 +404,7 @@ func TestCompose_MultipleVariants(t *testing.T) {
 		// Try to use Success optional on Failure result
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Failure{Error: "failed", Code: 500}
 
@@ -423,7 +423,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 	t.Run("Works with zero values", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 0, Message: ""}
 
@@ -440,7 +440,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 	t.Run("Works with empty strings", func(t *testing.T) {
 		prism := successPrism()
 		lens := successMessageLens()
-		optional := Compose[Result, Success, string](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: ""}
 
@@ -457,7 +457,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 	t.Run("Works with negative numbers", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: -10, Message: "ok"}
 
@@ -474,7 +474,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 	t.Run("Preserves other fields when updating", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 42, Message: "important"}
 
@@ -499,7 +499,7 @@ func TestCompose_Integration(t *testing.T) {
 	t.Run("Can be used with option operations", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 30, Message: "ok"}
 
@@ -516,7 +516,7 @@ func TestCompose_Integration(t *testing.T) {
 	t.Run("Can be used with option chain", func(t *testing.T) {
 		prism := successPrism()
 		lens := successValueLens()
-		optional := Compose[Result, Success, int](lens)(prism)
+		optional := Compose[Result](lens)(prism)
 
 		result := Success{Value: 30, Message: "ok"}
 
@@ -540,8 +540,8 @@ func TestCompose_Integration(t *testing.T) {
 		valueLens := successValueLens()
 		messageLens := successMessageLens()
 
-		valueOptional := Compose[Result, Success, int](valueLens)(prism)
-		messageOptional := Compose[Result, Success, string](messageLens)(prism)
+		valueOptional := Compose[Result](valueLens)(prism)
+		messageOptional := Compose[Result](messageLens)(prism)
 
 		result := Success{Value: 42, Message: "initial"}
 
@@ -579,7 +579,7 @@ func TestCompose_DocumentationExample(t *testing.T) {
 	)
 
 	// Compose to create Optional[Result, int]
-	resultValueOptional := Compose[Result, Success, int](valueLens)(successPrism)
+	resultValueOptional := Compose[Result](valueLens)(successPrism)
 
 	// Use the optional
 	result := Success{Value: 42}
@@ -597,5 +597,3 @@ func TestCompose_DocumentationExample(t *testing.T) {
 	unchanged := resultValueOptional.Set(100)(failure) // failure (unchanged)
 	assert.Equal(t, failure, unchanged)
 }
-
-// Made with Bob

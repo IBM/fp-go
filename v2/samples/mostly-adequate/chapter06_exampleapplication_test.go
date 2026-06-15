@@ -57,6 +57,8 @@ func (f FlickrFeed) getItems() []FlickrItem {
 	return f.Items
 }
 
+// Example_application demonstrates building a complete application using
+// functional composition to fetch and process data from the Flickr API.
 func Example_application() {
 	// pure
 	host := "api.flickr.com"

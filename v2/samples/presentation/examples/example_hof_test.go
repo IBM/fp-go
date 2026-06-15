@@ -23,6 +23,8 @@ func captureValue[T any](captured T) func() string {
 	}
 }
 
+// Example_closure demonstrates higher-order functions and closures,
+// showing how functions can capture and return values.
 func Example_closure() {
 
 	hof := captureValue("Carsten") // func() string

@@ -39,7 +39,7 @@ func (user user) GetAge() O.Option[int] {
 }
 
 // Example_sort adapts examples from [https://github.com/inato/fp-ts-cheatsheet#sort-elements-with-ord]
-func Example_sort() {
+func ExampleSort() {
 
 	strings := From("zyx", "abc", "klm")
 

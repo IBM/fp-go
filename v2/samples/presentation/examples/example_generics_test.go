@@ -31,6 +31,8 @@ func addNumbers[T N.Number](left, right T) T {
 	return left + right
 }
 
+// Example_generics demonstrates the difference between non-generic and generic
+// functions, showing how generics enable type-safe code reuse.
 func Example_generics() {
 	// invoke the non generic version
 	fmt.Println(addInts(1, 2))

@@ -22,6 +22,8 @@ import (
 	N "github.com/IBM/fp-go/v2/number"
 )
 
+// Example_map demonstrates the difference between idiomatic Go iteration
+// and functional map operations on arrays.
 func Example_map() {
 
 	f := func(i int) int {
@@ -46,6 +48,8 @@ func Example_map() {
 	// [2 4 6 8]
 }
 
+// Example_reduce demonstrates reducing an array to a single value using
+// both Reduce and Fold operations with a monoid.
 func Example_reduce() {
 
 	input := []int{1, 2, 3, 4}

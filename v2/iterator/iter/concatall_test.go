@@ -613,7 +613,7 @@ func ExampleConcatBuf() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleConcatBuf_threeSequences() {
+func ExampleConcatBuf_three_sequences() {
 	seq1 := From(1, 2)
 	seq2 := From(3, 4)
 	seq3 := From(5, 6)
@@ -625,7 +625,7 @@ func ExampleConcatBuf_threeSequences() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleConcatBuf_earlyTermination() {
+func ExampleConcatBuf_early_termination() {
 	seq1 := From(1, 2, 3, 4, 5)
 	seq2 := From(6, 7, 8, 9, 10)
 	result := ConcatBuf([]Seq[int]{seq1, seq2}, defaultBufferSize)
@@ -1273,7 +1273,7 @@ func ExampleConcatAll() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleConcatAll_threeSequences() {
+func ExampleConcatAll_three_sequences() {
 	outer := From(From(1, 2), From(3, 4), From(5, 6))
 	for v := range ConcatAll[int](8)(outer) {
 		fmt.Printf("%d ", v)
@@ -1281,7 +1281,7 @@ func ExampleConcatAll_threeSequences() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleConcatAll_earlyTermination() {
+func ExampleConcatAll_early_termination() {
 	outer := From(From(1, 2, 3, 4, 5), From(6, 7, 8, 9, 10))
 	count := 0
 	for range ConcatAll[int](8)(outer) {
@@ -1294,7 +1294,7 @@ func ExampleConcatAll_earlyTermination() {
 	// Output: Consumed 3 elements
 }
 
-func ExampleConcatAll_dynamicGeneration() {
+func ExampleConcatAll_dynamic_generation() {
 	outer := MonadMap(From(1, 2, 3), func(n int) Seq[int] {
 		return From(n, n*10)
 	})
@@ -1309,7 +1309,7 @@ func ExampleConcatAll_dynamicGeneration() {
 // ---------------------------------------------------------------------------
 
 // TestConcatAllSeq_Success verifies basic output correctness.
-func TestConcatAllSeq_Success(t *testing.T) {
+func TestConcatAllSeq_success(t *testing.T) {
 	t.Run("flattens two inner sequences", func(t *testing.T) {
 		outer := From(From(1, 2, 3), From(4, 5, 6))
 		assert.Equal(t, []int{1, 2, 3, 4, 5, 6}, toSlice(ConcatAllSeq[int]()(outer)))
@@ -1584,7 +1584,7 @@ func TestConcatAllPar_OrderPreservation(t *testing.T) {
 			time.Sleep(20 * time.Millisecond)
 			yield(1)
 		}
-		result := toSlice(ConcatAllPar[int](8)(From[Seq[int]](slow, From(2))))
+		result := toSlice(ConcatAllPar[int](8)(From(slow, From(2))))
 		assert.Equal(t, []int{1, 2}, result)
 	})
 
@@ -1705,7 +1705,7 @@ func TestConcatAllPar_UnbufferedChannels(t *testing.T) {
 			time.Sleep(10 * time.Millisecond)
 			yield(1)
 		}
-		result := toSlice(ConcatAllPar[int](0)(From[Seq[int]](slow, From(2))))
+		result := toSlice(ConcatAllPar[int](0)(From(slow, From(2))))
 		assert.Equal(t, []int{1, 2}, result)
 	})
 }
@@ -1993,7 +1993,7 @@ func ExampleConcatAllSeq() {
 	// Output: 1 2 3 4 5 6
 }
 
-func ExampleConcatAllSeq_earlyTermination() {
+func ExampleConcatAllSeq_early_termination() {
 	outer := From(From(1, 2, 3, 4, 5), From(6, 7, 8))
 	count := 0
 	for range ConcatAllSeq[int]()(outer) {

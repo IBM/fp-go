@@ -25,6 +25,8 @@ func Greeting(name string) string {
 	return Hi(name)
 }
 
+// Example_greeting demonstrates first-class functions in Go, showing how
+// functions can be assigned to variables and passed around like any other value.
 func Example_greeting() {
 	// functions are first class objects
 	greet := Hi
