@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package array provides example tests demonstrating array search and filtering operations.
 package array
 
 import (
@@ -21,6 +22,13 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
+// ExampleFindFirst demonstrates finding the first element in an array that satisfies a predicate.
+//
+// This example shows how to use FindFirst to locate the first odd number in an array.
+// The predicate checks if a number is odd by testing if the bitwise AND with 2 equals 0.
+//
+// Returns:
+//   - Option[int]: Some containing the first matching element, or None if no match found
 func ExampleFindFirst() {
 
 	pred := func(val int) bool {
@@ -35,6 +43,18 @@ func ExampleFindFirst() {
 	// Some[int](1)
 }
 
+// ExampleFilter demonstrates filtering an array and retrieving the first matching element.
+//
+// This example shows how to compose Filter with Head to achieve similar functionality
+// to FindFirst. The Filter operation creates a new array containing only elements that
+// satisfy the predicate, and Head retrieves the first element from that filtered array.
+//
+// The composition using F.Flow2 creates a reusable pipeline that:
+//  1. Filters the array to keep only odd numbers
+//  2. Takes the first element from the filtered result
+//
+// Returns:
+//   - Option[int]: Some containing the first matching element, or None if no match found
 func ExampleFilter() {
 
 	pred := func(val int) bool {

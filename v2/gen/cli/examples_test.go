@@ -1,6 +1,9 @@
 package cli
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestCollectExamplesUsesGoDocNaming(t *testing.T) {
 	examples, err := collectExamples("../testpkg")
@@ -13,16 +16,40 @@ func TestCollectExamplesUsesGoDocNaming(t *testing.T) {
 		got[example.Name] = example
 	}
 
-	if got["ExamplePerson"].Symbol != "" {
-		t.Fatalf("ExamplePerson symbol = %q, expected empty package-level symbol from [`doc.NewFromFiles()`](cli/examples.go:22)", got["ExamplePerson"].Symbol)
+	// Test type example
+	if got["ExamplePerson"].Symbol != "Person" {
+		t.Fatalf("ExamplePerson symbol = %q, expected %q", got["ExamplePerson"].Symbol, "Person")
 	}
-	if got["ExamplePerson_String"].Symbol != "" {
-		t.Fatalf("ExamplePerson_String symbol = %q, expected empty package-level symbol from [`doc.NewFromFiles()`](cli/examples.go:22)", got["ExamplePerson_String"].Symbol)
+
+	// Test method example
+	if got["ExamplePerson_String"].Symbol != "Person.String" {
+		t.Fatalf("ExamplePerson_String symbol = %q, expected %q", got["ExamplePerson_String"].Symbol, "Person.String")
 	}
-	if got["ExamplePerson_second"].Symbol != "" {
-		t.Fatalf("ExamplePerson_second symbol = %q, expected empty package-level symbol from [`doc.NewFromFiles()`](cli/examples.go:22)", got["ExamplePerson_second"].Symbol)
+
+	// Test type examples with suffixes
+	if got["ExamplePerson_second"].Symbol != "Person" {
+		t.Fatalf("ExamplePerson_second symbol = %q, expected %q", got["ExamplePerson_second"].Symbol, "Person")
 	}
-	if got["ExamplePerson_third"].Symbol != "" {
-		t.Fatalf("ExamplePerson_third symbol = %q, expected empty package-level symbol from [`doc.NewFromFiles()`](cli/examples.go:22)", got["ExamplePerson_third"].Symbol)
+	if got["ExamplePerson_third"].Symbol != "Person" {
+		t.Fatalf("ExamplePerson_third symbol = %q, expected %q", got["ExamplePerson_third"].Symbol, "Person")
+	}
+
+	// Test function example with suffix
+	if got["ExampleHelloWorld_somesuffix"].Symbol != "HelloWorld" {
+		t.Fatalf("ExampleHelloWorld_somesuffix symbol = %q, expected %q", got["ExampleHelloWorld_somesuffix"].Symbol, "HelloWorld")
+	}
+}
+
+func TestCollectExamplesUsesGoDocNamingArray(t *testing.T) {
+	examples, err := collectExamples("../../../v2/array")
+	if err != nil {
+		t.Fatalf("collectExamples() error = %v", err)
+	}
+
+	got := map[string]Example{}
+	for _, example := range examples {
+		got[example.Name] = example
+
+		fmt.Println(example.Name)
 	}
 }

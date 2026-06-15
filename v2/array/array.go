@@ -1512,6 +1512,6 @@ func Extract[A any](as []A) A {
 }
 
 //go:inline
-func UpdateAt[T any](i int, v T) func([]T) Option[[]T] {
+func UpdateAt[T any](i int, v T) option.Kleisli[[]T, []T] {
 	return G.UpdateAt[[]T](i, v)
 }

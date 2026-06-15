@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"fmt"
 	"go/ast"
-	"go/doc"
 	"go/parser"
 	"go/token"
 	"os"
@@ -332,6 +331,68 @@ func extractDocComment(doc *ast.CommentGroup) string {
 	return strings.Join(lines, "\n")
 }
 
+// parseExampleName parses an example function name and returns the symbol and suffix.
+// Supports these patterns:
+//   - Example_suffix()    → symbol="", suffix="suffix" (package-level with suffix)
+//   - ExampleF()          → symbol="F" (function or type)
+//   - ExampleF_suffix()   → symbol="F", suffix="suffix" (function/type with suffix)
+//   - ExampleT_M()        → symbol="T.M" (method, M starts with uppercase)
+//   - ExampleT_M_suffix() → symbol="T.M", suffix="suffix" (method with suffix)
+func parseExampleName(funcName string) (symbol, suffix string) {
+	if !strings.HasPrefix(funcName, "Example") {
+		return "", ""
+	}
+
+	// Remove "Example" prefix
+	name := strings.TrimPrefix(funcName, "Example")
+
+	// Empty name means package-level example
+	if name == "" {
+		return "", ""
+	}
+
+	// Check if this is a package-level example with suffix (starts with _)
+	if strings.HasPrefix(name, "_") {
+		return "", name[1:] // suffix without leading _
+	}
+
+	// Split by underscores
+	parts := strings.Split(name, "_")
+
+	if len(parts) == 1 {
+		// No underscore: ExampleType or ExampleFunction
+		return name, ""
+	}
+
+	// Check if second part starts with uppercase (indicates method)
+	if len(parts) >= 2 && len(parts[1]) > 0 && isUppercase(parts[1][0]) {
+		// This is a method example: ExampleType_Method or ExampleType_Method_suffix
+		typeName := parts[0]
+		methodName := parts[1]
+		symbol := typeName + "." + methodName
+
+		if len(parts) > 2 {
+			// Has suffix: ExampleType_Method_suffix
+			suffix := strings.Join(parts[2:], "_")
+			return symbol, suffix
+		}
+
+		// No suffix: ExampleType_Method
+		return symbol, ""
+	}
+
+	// Second part starts with lowercase, so it's a suffix
+	// ExampleType_suffix or ExampleFunction_suffix
+	symbol = parts[0]
+	suffix = strings.Join(parts[1:], "_")
+	return symbol, suffix
+}
+
+// isUppercase checks if a byte represents an uppercase letter
+func isUppercase(b byte) bool {
+	return b >= 'A' && b <= 'Z'
+}
+
 // insertExample inserts an example into the database
 func insertExample(db *sql.DB, ex Example) error {
 	query := `
@@ -390,7 +451,21 @@ func ingestExamples(ctx context.Context, srcDir, dbPath string, verbose bool) er
 
 	for i, ex := range examples {
 		if verbose {
-			fmt.Printf("  [%d/%d] Inserting: %s\n", i+1, len(examples), ex.ID)
+			// Parse the name to get symbol and suffix for logging
+			symbol, suffix := parseExampleName(ex.Name)
+			logMsg := fmt.Sprintf("  [%d/%d] Inserting: %s", i+1, len(examples), ex.ID)
+			if symbol != "" {
+				logMsg += fmt.Sprintf(" (symbol=%q", symbol)
+				if suffix != "" {
+					logMsg += fmt.Sprintf(", suffix=%q", suffix)
+				}
+				logMsg += ")"
+			} else if suffix != "" {
+				logMsg += fmt.Sprintf(" (package-level, suffix=%q)", suffix)
+			} else {
+				logMsg += " (package-level)"
+			}
+			fmt.Println(logMsg)
 		}
 		if err := insertExample(db, ex); err != nil {
 			tx.Rollback()
@@ -424,7 +499,7 @@ func collectExamples(srcDir string) ([]Example, error) {
 			return filepath.SkipDir
 		}
 
-		if info.IsDir() || !strings.HasSuffix(path, ".go") {
+		if info.IsDir() || !strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
 
@@ -473,11 +548,10 @@ func collectExamples(srcDir string) ([]Example, error) {
 
 func collectExamplesFromPackage(srcDir, pkgPath string, paths []string) ([]Example, error) {
 	fset := token.NewFileSet()
-	files := make([]*ast.File, 0, len(paths))
 	fileContents := make(map[string][]byte, len(paths))
 	fileByName := make(map[string]*ast.File, len(paths))
-	funcDecls := make(map[string]*ast.FuncDecl)
 
+	// First pass: parse all files and collect package name
 	for _, path := range paths {
 		fileContent, err := os.ReadFile(path)
 		if err != nil {
@@ -491,92 +565,67 @@ func collectExamplesFromPackage(srcDir, pkgPath string, paths []string) ([]Examp
 			continue
 		}
 
-		files = append(files, file)
 		fileContents[path] = fileContent
 		fileByName[path] = file
-
-		for _, decl := range file.Decls {
-			funcDecl, ok := decl.(*ast.FuncDecl)
-			if !ok || funcDecl.Recv != nil {
-				continue
-			}
-			funcDecls[funcDecl.Name.Name] = funcDecl
-		}
 
 		if pkgPath == "" {
 			pkgPath = file.Name.Name
 		}
 	}
 
-	if len(files) == 0 {
+	if len(fileByName) == 0 {
 		return nil, nil
 	}
 
-	docPkg, err := doc.NewFromFiles(fset, files, pkgPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build documentation for package %s: %w", pkgPath, err)
-	}
-
-	// Collect all examples from different sources
-	var allDocExamples []*doc.Example
-
-	// Package-level examples
-	allDocExamples = append(allDocExamples, docPkg.Examples...)
-
-	// Function-level examples
-	for _, fn := range docPkg.Funcs {
-		allDocExamples = append(allDocExamples, fn.Examples...)
-	}
-
-	// Type-level examples (including methods)
-	for _, typ := range docPkg.Types {
-		// Type examples
-		allDocExamples = append(allDocExamples, typ.Examples...)
-
-		// Method examples
-		for _, method := range typ.Methods {
-			allDocExamples = append(allDocExamples, method.Examples...)
-		}
-	}
-
+	// Second pass: collect example functions
 	var examples []Example
-	for _, docExample := range allDocExamples {
-		funcName := "Example" + docExample.Name
+	for path, file := range fileByName {
+		fileContent := fileContents[path]
 
-		funcDecl, ok := funcDecls[funcName]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Warning: failed to locate AST for example %s in package %s\n", funcName, pkgPath)
-			continue
+		for _, decl := range file.Decls {
+			funcDecl, ok := decl.(*ast.FuncDecl)
+			if !ok || funcDecl.Recv != nil {
+				continue
+			}
+
+			funcName := funcDecl.Name.Name
+
+			// Check if this is an example function
+			if !strings.HasPrefix(funcName, "Example") {
+				continue
+			}
+
+			// Validate example function signature (no params, no results)
+			if funcDecl.Type.Params != nil && len(funcDecl.Type.Params.List) != 0 {
+				continue
+			}
+			if funcDecl.Type.Results != nil && len(funcDecl.Type.Results.List) != 0 {
+				continue
+			}
+			if funcDecl.Body == nil {
+				continue
+			}
+
+			// Parse the example name to extract symbol and suffix
+			symbol, _ := parseExampleName(funcName)
+
+			// Extract code
+			start := fset.Position(funcDecl.Pos())
+			end := fset.Position(funcDecl.End())
+			code := string(fileContent[start.Offset:end.Offset])
+
+			examples = append(examples, Example{
+				ID:         fmt.Sprintf("%s::%s", pkgPath, funcName),
+				Package:    pkgPath,
+				Symbol:     symbol,
+				Name:       funcName,
+				Code:       code,
+				DocComment: extractDocComment(funcDecl.Doc),
+				Output:     extractOutputFromCode(code),
+				Imports:    extractUsedImports(file, funcDecl),
+				File:       path,
+			})
 		}
-
-		position := fset.Position(funcDecl.Pos())
-		fileContent, ok := fileContents[position.Filename]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Warning: failed to locate source for example %s in %s\n", funcName, position.Filename)
-			continue
-		}
-
-		start := fset.Position(funcDecl.Pos())
-		end := fset.Position(funcDecl.End())
-		code := string(fileContent[start.Offset:end.Offset])
-
-		symbol := strings.TrimPrefix(funcName, "Example")
-		if docExample.Suffix != "" {
-			symbol = strings.TrimSuffix(symbol, "_"+docExample.Suffix)
-		}
-
-		file := fileByName[position.Filename]
-		examples = append(examples, Example{
-			ID:         fmt.Sprintf("%s::%s", pkgPath, funcName),
-			Package:    pkgPath,
-			Symbol:     symbol,
-			Name:       funcName,
-			Code:       code,
-			DocComment: extractDocComment(funcDecl.Doc),
-			Output:     extractOutputFromCode(code),
-			Imports:    extractUsedImports(file, funcDecl),
-			File:       position.Filename,
-		})
 	}
 
 	return examples, nil
