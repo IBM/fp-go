@@ -1,6 +1,8 @@
-package testpkg_test
+package testpkg
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ExamplePerson demonstrates creating a Person
 func ExamplePerson() {
@@ -23,4 +25,10 @@ type Person struct {
 
 func (p Person) String() string {
 	return fmt.Sprintf("%s (%d)", p.Name, p.Age)
+}
+
+func ExampleHelloWorld_somesuffix() {
+	HelloWorld()
+
+	// Output: Hello World!
 }

@@ -13,13 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package readerioresult_test
+package readerioresult
 
 import (
 	"context"
 	"fmt"
 
-	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
@@ -27,7 +26,7 @@ import (
 
 // Example_sequenceReader_basicUsage demonstrates the basic usage of SequenceReader
 // to flip the parameter order, enabling point-free style programming.
-func Example_sequence_reader_basic_usage() {
+func ExampleSequenceReader_basic_usage() {
 	type Config struct {
 		Multiplier int
 	}
@@ -44,7 +43,7 @@ func Example_sequence_reader_basic_usage() {
 
 	// Sequence it to flip the parameter order
 	// Now Config comes first, then context
-	sequenced := RIOE.SequenceReader(getComputation)
+	sequenced := SequenceReader(getComputation)
 
 	// Partially apply the Config - this is the key benefit for point-free style
 	cfg := Config{Multiplier: 5}
@@ -62,7 +61,7 @@ func Example_sequence_reader_basic_usage() {
 
 // Example_sequenceReader_dependencyInjection demonstrates how SequenceReader
 // enables clean dependency injection patterns in point-free style.
-func Example_sequence_reader_dependency_injection() {
+func ExampleSequenceReader_dependency_injection() {
 	// Define our dependencies
 	type Database struct {
 		ConnectionString string
@@ -82,7 +81,7 @@ func Example_sequence_reader_dependency_injection() {
 	}
 
 	// Sequence to enable dependency injection
-	queryWithDB := RIOE.SequenceReader(makeQuery)
+	queryWithDB := SequenceReader(makeQuery)
 
 	// Inject the database dependency
 	db := Database{ConnectionString: "localhost:5432"}
@@ -100,7 +99,7 @@ func Example_sequence_reader_dependency_injection() {
 
 // Example_sequenceReader_pointFreeComposition demonstrates how SequenceReader
 // enables point-free style composition of computations.
-func Example_sequence_reader_point_free_composition() {
+func ExampleSequenceReader_point_free_composition() {
 	type Config struct {
 		BaseValue int
 	}
@@ -115,7 +114,7 @@ func Example_sequence_reader_point_free_composition() {
 	}
 
 	// Step 2: Sequence it to enable partial application
-	sequenced := RIOE.SequenceReader(step1)
+	sequenced := SequenceReader(step1)
 
 	// Step 3: Build a pipeline using point-free style
 	// Partially apply the config
@@ -124,7 +123,7 @@ func Example_sequence_reader_point_free_composition() {
 	// Create a reusable computation with the config baked in
 	computation := F.Pipe1(
 		sequenced(cfg),
-		RIOE.Map(func(x int) int { return x + 5 }),
+		Map(func(x int) int { return x + 5 }),
 	)
 
 	// Execute the pipeline
@@ -139,7 +138,7 @@ func Example_sequence_reader_point_free_composition() {
 
 // Example_sequenceReader_multipleEnvironments demonstrates using SequenceReader
 // to work with multiple environment types in a clean, composable way.
-func Example_sequence_reader_multiple_environments() {
+func ExampleSequenceReader_multiple_environments() {
 	type DatabaseConfig struct {
 		Host string
 		Port int
@@ -169,8 +168,8 @@ func Example_sequence_reader_multiple_environments() {
 	}
 
 	// Sequence both to enable partial application
-	withDBConfig := RIOE.SequenceReader(getDatabaseURL)
-	withAPIConfig := RIOE.SequenceReader(getAPIURL)
+	withDBConfig := SequenceReader(getDatabaseURL)
+	withAPIConfig := SequenceReader(getAPIURL)
 
 	// Partially apply different configs
 	dbCfg := DatabaseConfig{Host: "localhost", Port: 5432}
@@ -198,7 +197,7 @@ func Example_sequence_reader_multiple_environments() {
 
 // Example_sequenceReaderResult_errorHandling demonstrates how SequenceReaderResult
 // enables point-free style with proper error handling at multiple levels.
-func Example_sequence_reader_result_error_handling() {
+func ExampleSequenceReader_result_error_handling() {
 	type ValidationConfig struct {
 		MinValue int
 		MaxValue int
@@ -228,15 +227,15 @@ func Example_sequence_reader_result_error_handling() {
 	}
 
 	// Sequence to enable point-free composition
-	sequenced := RIOE.SequenceReaderResult(makeValidator)
+	sequenced := SequenceReaderResult(makeValidator)
 
 	// Build a pipeline with error handling
 	ctx := context.Background()
 	pipeline := F.Pipe2(
 		sequenced(ctx),
-		RIOE.Map(N.Mul(2)),
-		RIOE.Chain(func(x int) RIOE.ReaderIOResult[string] {
-			return RIOE.Of(fmt.Sprintf("Result: %d", x))
+		Map(N.Mul(2)),
+		Chain(func(x int) ReaderIOResult[string] {
+			return Of(fmt.Sprintf("Result: %d", x))
 		}),
 	)
 
@@ -250,7 +249,7 @@ func Example_sequence_reader_result_error_handling() {
 
 // Example_sequenceReader_partialApplication demonstrates the power of partial
 // application enabled by SequenceReader for building reusable computations.
-func Example_sequence_reader_partial_application() {
+func ExampleSequenceReader_partial_application() {
 	type ServiceConfig struct {
 		ServiceName string
 		Version     string
@@ -266,7 +265,7 @@ func Example_sequence_reader_partial_application() {
 	}
 
 	// Sequence it
-	sequenced := RIOE.SequenceReader(makeServiceInfo)
+	sequenced := SequenceReader(makeServiceInfo)
 
 	// Create multiple service configurations
 	authConfig := ServiceConfig{ServiceName: "AuthService", Version: "1.0.0"}
@@ -295,7 +294,7 @@ func Example_sequence_reader_partial_application() {
 
 // Example_sequenceReader_testingBenefits demonstrates how SequenceReader
 // makes testing easier by allowing you to inject test dependencies.
-func Example_sequence_reader_testing_benefits() {
+func ExampleSequenceReader_testing_benefits() {
 	// Simple logger that collects messages
 	type SimpleLogger struct {
 		Messages []string
@@ -314,7 +313,7 @@ func Example_sequence_reader_testing_benefits() {
 	}
 
 	// Sequence to enable dependency injection
-	sequenced := RIOE.SequenceReader(makeLoggingOperation)
+	sequenced := SequenceReader(makeLoggingOperation)
 
 	// Inject a test logger
 	testLogger := &SimpleLogger{Messages: []string{}}
