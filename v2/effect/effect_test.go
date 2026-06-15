@@ -1667,3 +1667,936 @@ func TestAsks_RealWorldScenarios(t *testing.T) {
 		assert.True(t, result)
 	})
 }
+
+func TestMonadChainLeft_Success(t *testing.T) {
+	t.Run("success value passes through unchanged", func(t *testing.T) {
+		eff := Of[TestConfig](42)
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](99)
+		}
+
+		result := MonadChainLeft(eff, recover)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("success with context-dependent value", func(t *testing.T) {
+		eff := Asks[TestConfig](func(cfg TestConfig) int {
+			return cfg.Multiplier * 10
+		})
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := MonadChainLeft(eff, recover)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 30, value)
+	})
+}
+
+func TestMonadChainLeft_Failure(t *testing.T) {
+	t.Run("error triggers recovery", func(t *testing.T) {
+		originalErr := fmt.Errorf("network error")
+		eff := Fail[TestConfig, int](originalErr)
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](99)
+		}
+
+		result := MonadChainLeft(eff, recover)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+	})
+
+	t.Run("recovery can inspect error", func(t *testing.T) {
+		originalErr := fmt.Errorf("code: 404")
+		eff := Fail[TestConfig, string](originalErr)
+		recover := func(err error) Effect[TestConfig, string] {
+			return Of[TestConfig](fmt.Sprintf("recovered from: %s", err.Error()))
+		}
+
+		result := MonadChainLeft(eff, recover)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "recovered from: code: 404", value)
+	})
+
+	t.Run("recovery can use context", func(t *testing.T) {
+		originalErr := fmt.Errorf("database error")
+		eff := Fail[TestConfig, string](originalErr)
+		recover := func(err error) Effect[TestConfig, string] {
+			return Asks[TestConfig](func(cfg TestConfig) string {
+				return fmt.Sprintf("fallback to: %s", cfg.DatabaseURL)
+			})
+		}
+
+		result := MonadChainLeft(eff, recover)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "fallback to: postgres://localhost", value)
+	})
+
+	t.Run("recovery can also fail", func(t *testing.T) {
+		originalErr := fmt.Errorf("first error")
+		recoveryErr := fmt.Errorf("recovery failed")
+		eff := Fail[TestConfig, int](originalErr)
+		recover := func(err error) Effect[TestConfig, int] {
+			return Fail[TestConfig, int](recoveryErr)
+		}
+
+		result := MonadChainLeft(eff, recover)
+		_, err := runEffect(result, testConfig)
+
+		assert.Error(t, err)
+		assert.Equal(t, recoveryErr, err)
+	})
+}
+
+func TestMonadChainLeft_EdgeCases(t *testing.T) {
+	t.Run("multiple recoveries in sequence", func(t *testing.T) {
+		err1 := fmt.Errorf("error 1")
+		err2 := fmt.Errorf("error 2")
+
+		eff := Fail[TestConfig, int](err1)
+		recover1 := func(err error) Effect[TestConfig, int] {
+			return Fail[TestConfig, int](err2)
+		}
+		recover2 := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](42)
+		}
+
+		result := MonadChainLeft(MonadChainLeft(eff, recover1), recover2)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("recovery with zero value", func(t *testing.T) {
+		eff := Fail[TestConfig, int](fmt.Errorf("error"))
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := MonadChainLeft(eff, recover)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+}
+
+func TestMonadChainLeft_Integration(t *testing.T) {
+	t.Run("chain with other operations", func(t *testing.T) {
+		eff := F.Pipe1(
+			Fail[TestConfig, int](fmt.Errorf("initial error")),
+			Map[TestConfig](N.Mul(2)),
+		)
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](21)
+		}
+
+		result := F.Pipe1(
+			MonadChainLeft(eff, recover),
+			Map[TestConfig](N.Mul(2)),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("recovery in complex pipeline", func(t *testing.T) {
+		type AppConfig struct {
+			PrimaryDB  string
+			FallbackDB string
+			MaxRetries int
+		}
+
+		cfg := AppConfig{
+			PrimaryDB:  "primary.db",
+			FallbackDB: "fallback.db",
+			MaxRetries: 3,
+		}
+
+		connectDB := func(dbName string) Effect[AppConfig, string] {
+			if dbName == "primary.db" {
+				return Fail[AppConfig, string](fmt.Errorf("primary unavailable"))
+			}
+			return Of[AppConfig](fmt.Sprintf("connected to %s", dbName))
+		}
+
+		pipeline := F.Pipe1(
+			connectDB("primary.db"),
+			ChainLeft[AppConfig](func(err error) Effect[AppConfig, string] {
+				return Asks[AppConfig](func(cfg AppConfig) string {
+					return fmt.Sprintf("connected to %s", cfg.FallbackDB)
+				})
+			}),
+		)
+
+		value, err := runEffect(pipeline, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "connected to fallback.db", value)
+	})
+}
+
+func TestChainLeft_Success(t *testing.T) {
+	t.Run("success value passes through", func(t *testing.T) {
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](99)
+		}
+
+		result := F.Pipe1(
+			Of[TestConfig](42),
+			ChainLeft[TestConfig](recover),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("success in pipeline", func(t *testing.T) {
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := F.Pipe3(
+			Of[TestConfig](10),
+			Map[TestConfig](N.Mul(2)),
+			ChainLeft[TestConfig](recover),
+			Map[TestConfig](N.Add(1)),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 21, value)
+	})
+}
+
+func TestChainLeft_Failure(t *testing.T) {
+	t.Run("error triggers recovery", func(t *testing.T) {
+		originalErr := fmt.Errorf("operation failed")
+		recover := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](99)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			ChainLeft[TestConfig](recover),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+	})
+
+	t.Run("recovery uses error information", func(t *testing.T) {
+		originalErr := fmt.Errorf("status: 500")
+		recover := func(err error) Effect[TestConfig, string] {
+			return Of[TestConfig](fmt.Sprintf("error was: %s", err.Error()))
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, string](originalErr),
+			ChainLeft[TestConfig](recover),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "error was: status: 500", value)
+	})
+
+	t.Run("recovery accesses context", func(t *testing.T) {
+		originalErr := fmt.Errorf("config error")
+		recover := func(err error) Effect[TestConfig, string] {
+			return Asks[TestConfig](func(cfg TestConfig) string {
+				return cfg.Prefix
+			})
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, string](originalErr),
+			ChainLeft[TestConfig](recover),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "LOG", value)
+	})
+
+	t.Run("recovery fails", func(t *testing.T) {
+		originalErr := fmt.Errorf("first error")
+		recoveryErr := fmt.Errorf("recovery error")
+		recover := func(err error) Effect[TestConfig, int] {
+			return Fail[TestConfig, int](recoveryErr)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			ChainLeft[TestConfig](recover),
+		)
+		_, err := runEffect(result, testConfig)
+
+		assert.Error(t, err)
+		assert.Equal(t, recoveryErr, err)
+	})
+}
+
+func TestChainLeft_EdgeCases(t *testing.T) {
+	t.Run("chained recoveries", func(t *testing.T) {
+		err1 := fmt.Errorf("error 1")
+		err2 := fmt.Errorf("error 2")
+
+		recover1 := func(err error) Effect[TestConfig, int] {
+			return Fail[TestConfig, int](err2)
+		}
+		recover2 := func(err error) Effect[TestConfig, int] {
+			return Of[TestConfig](42)
+		}
+
+		result := F.Pipe2(
+			Fail[TestConfig, int](err1),
+			ChainLeft[TestConfig](recover1),
+			ChainLeft[TestConfig](recover2),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("recovery with empty string", func(t *testing.T) {
+		recover := func(err error) Effect[TestConfig, string] {
+			return Of[TestConfig]("")
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, string](fmt.Errorf("error")),
+			ChainLeft[TestConfig](recover),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", value)
+	})
+
+	t.Run("recovery with nil slice", func(t *testing.T) {
+		recover := func(err error) Effect[TestConfig, []int] {
+			return Of[TestConfig, []int](nil)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, []int](fmt.Errorf("error")),
+			ChainLeft[TestConfig](recover),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Nil(t, value)
+	})
+}
+
+func TestChainLeft_Integration(t *testing.T) {
+	t.Run("retry pattern with ChainLeft", func(t *testing.T) {
+		type RetryConfig struct {
+			MaxAttempts int
+			Attempt     int
+		}
+
+		cfg := RetryConfig{MaxAttempts: 3, Attempt: 0}
+
+		attemptOperation := func(attempt int) Effect[RetryConfig, string] {
+			if attempt < 2 {
+				return Fail[RetryConfig, string](fmt.Errorf("attempt %d failed", attempt))
+			}
+			return Of[RetryConfig](fmt.Sprintf("success on attempt %d", attempt))
+		}
+
+		var pipeline Effect[RetryConfig, string]
+		pipeline = attemptOperation(0)
+
+		for i := 1; i <= 2; i++ {
+			attempt := i
+			pipeline = F.Pipe1(
+				pipeline,
+				ChainLeft[RetryConfig](func(err error) Effect[RetryConfig, string] {
+					return attemptOperation(attempt)
+				}),
+			)
+		}
+
+		value, err := runEffect(pipeline, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "success on attempt 2", value)
+	})
+
+	t.Run("fallback chain", func(t *testing.T) {
+		type ServiceConfig struct {
+			Services []string
+		}
+
+		cfg := ServiceConfig{
+			Services: []string{"primary", "secondary", "tertiary"},
+		}
+
+		callService := func(name string) Effect[ServiceConfig, string] {
+			if name == "tertiary" {
+				return Of[ServiceConfig](fmt.Sprintf("response from %s", name))
+			}
+			return Fail[ServiceConfig, string](fmt.Errorf("%s unavailable", name))
+		}
+
+		pipeline := F.Pipe2(
+			callService("primary"),
+			ChainLeft[ServiceConfig](func(err error) Effect[ServiceConfig, string] {
+				return callService("secondary")
+			}),
+			ChainLeft[ServiceConfig](func(err error) Effect[ServiceConfig, string] {
+				return callService("tertiary")
+			}),
+		)
+
+		value, err := runEffect(pipeline, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "response from tertiary", value)
+	})
+
+	t.Run("error transformation chain", func(t *testing.T) {
+		type ErrorConfig struct {
+			LogErrors bool
+		}
+
+		cfg := ErrorConfig{LogErrors: true}
+
+		pipeline := F.Pipe2(
+			Fail[ErrorConfig, int](fmt.Errorf("database error")),
+			ChainLeft[ErrorConfig](func(err error) Effect[ErrorConfig, int] {
+				return Fail[ErrorConfig, int](fmt.Errorf("wrapped: %w", err))
+			}),
+			ChainLeft[ErrorConfig](func(err error) Effect[ErrorConfig, int] {
+				return Of[ErrorConfig](0)
+			}),
+		)
+
+		value, err := runEffect(pipeline, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("combining with Chain and Map", func(t *testing.T) {
+		parseAndDouble := func(s string) Effect[TestConfig, int] {
+			if s == "invalid" {
+				return Fail[TestConfig, int](fmt.Errorf("parse error"))
+			}
+			return Of[TestConfig](42)
+		}
+
+		pipeline := F.Pipe3(
+			Of[TestConfig]("invalid"),
+			Chain[TestConfig](parseAndDouble),
+			ChainLeft[TestConfig](func(err error) Effect[TestConfig, int] {
+				return Of[TestConfig](10)
+			}),
+			Map[TestConfig](N.Mul(2)),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 20, value)
+	})
+}
+
+func TestMonadAlt_Success(t *testing.T) {
+	t.Run("first succeeds, second not evaluated", func(t *testing.T) {
+		first := Of[TestConfig](42)
+		secondCalled := false
+		second := func() Effect[TestConfig, int] {
+			secondCalled = true
+			return Of[TestConfig](99)
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+		assert.False(t, secondCalled, "second effect should not be evaluated when first succeeds")
+	})
+
+	t.Run("first succeeds with context-dependent value", func(t *testing.T) {
+		first := Asks[TestConfig](func(cfg TestConfig) int {
+			return cfg.Multiplier * 10
+		})
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 30, value)
+	})
+}
+
+func TestMonadAlt_Failure(t *testing.T) {
+	t.Run("first fails, second succeeds", func(t *testing.T) {
+		firstErr := fmt.Errorf("first error")
+		first := Fail[TestConfig, int](firstErr)
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](99)
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+	})
+
+	t.Run("first fails, second uses context", func(t *testing.T) {
+		firstErr := fmt.Errorf("primary failed")
+		first := Fail[TestConfig, string](firstErr)
+		second := func() Effect[TestConfig, string] {
+			return Asks[TestConfig](func(cfg TestConfig) string {
+				return cfg.Prefix + "-fallback"
+			})
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "LOG-fallback", value)
+	})
+
+	t.Run("both fail", func(t *testing.T) {
+		firstErr := fmt.Errorf("first error")
+		secondErr := fmt.Errorf("second error")
+		first := Fail[TestConfig, int](firstErr)
+		second := func() Effect[TestConfig, int] {
+			return Fail[TestConfig, int](secondErr)
+		}
+
+		result := MonadAlt(first, second)
+		_, err := runEffect(result, testConfig)
+
+		assert.Error(t, err)
+		assert.Equal(t, secondErr, err)
+	})
+
+	t.Run("second is lazy evaluated only on failure", func(t *testing.T) {
+		firstErr := fmt.Errorf("error")
+		first := Fail[TestConfig, int](firstErr)
+		secondCalled := false
+		second := func() Effect[TestConfig, int] {
+			secondCalled = true
+			return Of[TestConfig](99)
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+		assert.True(t, secondCalled, "second effect should be evaluated when first fails")
+	})
+}
+
+func TestMonadAlt_EdgeCases(t *testing.T) {
+	t.Run("chained alternatives", func(t *testing.T) {
+		err1 := fmt.Errorf("error 1")
+		err2 := fmt.Errorf("error 2")
+
+		first := Fail[TestConfig, int](err1)
+		second := func() Effect[TestConfig, int] {
+			return Fail[TestConfig, int](err2)
+		}
+		third := func() Effect[TestConfig, int] {
+			return Of[TestConfig](42)
+		}
+
+		result := MonadAlt(MonadAlt(first, second), third)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("alternative with zero value", func(t *testing.T) {
+		first := Fail[TestConfig, int](fmt.Errorf("error"))
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("alternative with empty string", func(t *testing.T) {
+		first := Fail[TestConfig, string](fmt.Errorf("error"))
+		second := func() Effect[TestConfig, string] {
+			return Of[TestConfig]("")
+		}
+
+		result := MonadAlt(first, second)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", value)
+	})
+}
+
+func TestMonadAlt_Integration(t *testing.T) {
+	t.Run("alternative with Map", func(t *testing.T) {
+		first := Fail[TestConfig, int](fmt.Errorf("error"))
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](21)
+		}
+
+		result := F.Pipe1(
+			MonadAlt(first, second),
+			Map[TestConfig](N.Mul(2)),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("alternative with Chain", func(t *testing.T) {
+		first := Fail[TestConfig, int](fmt.Errorf("error"))
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](10)
+		}
+
+		result := F.Pipe1(
+			MonadAlt(first, second),
+			Chain[TestConfig](func(n int) Effect[TestConfig, int] {
+				return Of[TestConfig](n * 4)
+			}),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 40, value)
+	})
+
+	t.Run("fallback chain pattern", func(t *testing.T) {
+		type ServiceConfig struct {
+			Services []string
+		}
+
+		cfg := ServiceConfig{
+			Services: []string{"primary", "secondary", "tertiary"},
+		}
+
+		callService := func(name string) Effect[ServiceConfig, string] {
+			if name == "tertiary" {
+				return Of[ServiceConfig](fmt.Sprintf("response from %s", name))
+			}
+			return Fail[ServiceConfig, string](fmt.Errorf("%s unavailable", name))
+		}
+
+		result := MonadAlt(
+			callService("primary"),
+			func() Effect[ServiceConfig, string] {
+				return MonadAlt(
+					callService("secondary"),
+					func() Effect[ServiceConfig, string] {
+						return callService("tertiary")
+					},
+				)
+			},
+		)
+
+		value, err := runEffect(result, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "response from tertiary", value)
+	})
+}
+
+func TestAlt_Success(t *testing.T) {
+	t.Run("first succeeds, second not evaluated", func(t *testing.T) {
+		secondCalled := false
+		second := func() Effect[TestConfig, int] {
+			secondCalled = true
+			return Of[TestConfig](99)
+		}
+
+		result := F.Pipe1(
+			Of[TestConfig](42),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+		assert.False(t, secondCalled, "second effect should not be evaluated when first succeeds")
+	})
+
+	t.Run("success in pipeline", func(t *testing.T) {
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := F.Pipe2(
+			Of[TestConfig](10),
+			Map[TestConfig](N.Mul(2)),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 20, value)
+	})
+}
+
+func TestAlt_Failure(t *testing.T) {
+	t.Run("first fails, second succeeds", func(t *testing.T) {
+		originalErr := fmt.Errorf("operation failed")
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](99)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+	})
+
+	t.Run("first fails, second uses context", func(t *testing.T) {
+		originalErr := fmt.Errorf("primary error")
+		second := func() Effect[TestConfig, string] {
+			return Asks[TestConfig](func(cfg TestConfig) string {
+				return cfg.DatabaseURL
+			})
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, string](originalErr),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "postgres://localhost", value)
+	})
+
+	t.Run("both fail", func(t *testing.T) {
+		firstErr := fmt.Errorf("first error")
+		secondErr := fmt.Errorf("second error")
+		second := func() Effect[TestConfig, int] {
+			return Fail[TestConfig, int](secondErr)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, int](firstErr),
+			Alt[TestConfig](second),
+		)
+		_, err := runEffect(result, testConfig)
+
+		assert.Error(t, err)
+		assert.Equal(t, secondErr, err)
+	})
+
+	t.Run("second is lazy evaluated", func(t *testing.T) {
+		firstErr := fmt.Errorf("error")
+		secondCalled := false
+		second := func() Effect[TestConfig, int] {
+			secondCalled = true
+			return Of[TestConfig](99)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, int](firstErr),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+		assert.True(t, secondCalled, "second effect should be evaluated when first fails")
+	})
+}
+
+func TestAlt_EdgeCases(t *testing.T) {
+	t.Run("chained alternatives", func(t *testing.T) {
+		err1 := fmt.Errorf("error 1")
+		err2 := fmt.Errorf("error 2")
+
+		second := func() Effect[TestConfig, int] {
+			return Fail[TestConfig, int](err2)
+		}
+		third := func() Effect[TestConfig, int] {
+			return Of[TestConfig](42)
+		}
+
+		result := F.Pipe2(
+			Fail[TestConfig, int](err1),
+			Alt[TestConfig](second),
+			Alt[TestConfig](third),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("alternative with zero value", func(t *testing.T) {
+		second := func() Effect[TestConfig, int] {
+			return Of[TestConfig](0)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, int](fmt.Errorf("error")),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("alternative with nil slice", func(t *testing.T) {
+		second := func() Effect[TestConfig, []int] {
+			return Of[TestConfig, []int](nil)
+		}
+
+		result := F.Pipe1(
+			Fail[TestConfig, []int](fmt.Errorf("error")),
+			Alt[TestConfig](second),
+		)
+		value, err := runEffect(result, testConfig)
+
+		assert.NoError(t, err)
+		assert.Nil(t, value)
+	})
+}
+
+func TestAlt_Integration(t *testing.T) {
+	t.Run("retry pattern with Alt", func(t *testing.T) {
+		type RetryConfig struct {
+			MaxAttempts int
+		}
+
+		cfg := RetryConfig{MaxAttempts: 3}
+		attemptCount := 0
+
+		attemptOperation := func() Effect[RetryConfig, string] {
+			attemptCount++
+			if attemptCount < 3 {
+				return Fail[RetryConfig, string](fmt.Errorf("attempt %d failed", attemptCount))
+			}
+			return Of[RetryConfig](fmt.Sprintf("success on attempt %d", attemptCount))
+		}
+
+		pipeline := F.Pipe2(
+			attemptOperation(),
+			Alt[RetryConfig](attemptOperation),
+			Alt[RetryConfig](attemptOperation),
+		)
+
+		value, err := runEffect(pipeline, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "success on attempt 3", value)
+	})
+
+	t.Run("fallback chain with Alt", func(t *testing.T) {
+		type ServiceConfig struct {
+			Endpoints []string
+		}
+
+		cfg := ServiceConfig{
+			Endpoints: []string{"primary", "secondary", "tertiary"},
+		}
+
+		callEndpoint := func(name string) Effect[ServiceConfig, string] {
+			if name == "tertiary" {
+				return Of[ServiceConfig](fmt.Sprintf("data from %s", name))
+			}
+			return Fail[ServiceConfig, string](fmt.Errorf("%s failed", name))
+		}
+
+		pipeline := F.Pipe2(
+			callEndpoint("primary"),
+			Alt[ServiceConfig](func() Effect[ServiceConfig, string] {
+				return callEndpoint("secondary")
+			}),
+			Alt[ServiceConfig](func() Effect[ServiceConfig, string] {
+				return callEndpoint("tertiary")
+			}),
+		)
+
+		value, err := runEffect(pipeline, cfg)
+		assert.NoError(t, err)
+		assert.Equal(t, "data from tertiary", value)
+	})
+
+	t.Run("combining Alt with Map and Chain", func(t *testing.T) {
+		parseAndDouble := func(s string) Effect[TestConfig, int] {
+			if s == "invalid" {
+				return Fail[TestConfig, int](fmt.Errorf("parse error"))
+			}
+			return Of[TestConfig](42)
+		}
+
+		pipeline := F.Pipe3(
+			Of[TestConfig]("invalid"),
+			Chain[TestConfig](parseAndDouble),
+			Alt[TestConfig](func() Effect[TestConfig, int] {
+				return Of[TestConfig](10)
+			}),
+			Map[TestConfig](N.Mul(2)),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 20, value)
+	})
+
+	t.Run("Alt with ChainLeft comparison", func(t *testing.T) {
+		originalErr := fmt.Errorf("error: 404")
+
+		// Using Alt - cannot inspect error
+		altResult := F.Pipe1(
+			Fail[TestConfig, string](originalErr),
+			Alt[TestConfig](func() Effect[TestConfig, string] {
+				return Of[TestConfig]("fallback")
+			}),
+		)
+
+		// Using ChainLeft - can inspect error
+		chainLeftResult := F.Pipe1(
+			Fail[TestConfig, string](originalErr),
+			ChainLeft[TestConfig](func(err error) Effect[TestConfig, string] {
+				return Of[TestConfig](fmt.Sprintf("recovered from: %s", err.Error()))
+			}),
+		)
+
+		altValue, err1 := runEffect(altResult, testConfig)
+		chainLeftValue, err2 := runEffect(chainLeftResult, testConfig)
+
+		assert.NoError(t, err1)
+		assert.NoError(t, err2)
+		assert.Equal(t, "fallback", altValue)
+		assert.Equal(t, "recovered from: error: 404", chainLeftValue)
+	})
+}

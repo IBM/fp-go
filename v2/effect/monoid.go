@@ -83,3 +83,45 @@ func ApplicativeMonoid[C, A any](m monoid.Monoid[A]) Monoid[Effect[C, A]] {
 func AlternativeMonoid[C, A any](m monoid.Monoid[A]) Monoid[Effect[C, A]] {
 	return readerreaderioresult.AlternativeMonoid[C](m)
 }
+
+// AltMonoid creates a monoid for effects using alternative semantics with a custom zero element.
+// This tries the first effect, and if it fails, tries the second effect.
+// The zero element is provided as a lazy computation.
+//
+// Type Parameters:
+//   - R: The environment type required by the effects
+//   - A: The value type produced by the effects
+//
+// Parameters:
+//   - zero: A lazy computation that produces the zero/empty effect
+//
+// Returns:
+//   - Monoid[Effect[R, A]]: A monoid for combining effects with custom zero
+//
+// Example:
+//
+//	import (
+//	    "errors"
+//	    L "github.com/IBM/fp-go/lazy"
+//	)
+//
+//	// Create a monoid with a custom zero that returns a default value
+//	zero := L.Of(Of[string]("default"))
+//	effectMonoid := AltMonoid(zero)
+//
+//	// Empty returns the zero effect
+//	empty := effectMonoid.Empty()
+//	result := empty("env") // Returns Result containing "default"
+//
+//	// Concat tries first effect, falls back to second if first fails
+//	eff1 := Fail[string, string](errors.New("failed"))
+//	eff2 := Of[string]("fallback")
+//	combined := effectMonoid.Concat(eff1, eff2)
+//	// combined produces Result containing "fallback"
+//
+// See Also:
+//   - ApplicativeMonoid: Combines effects by running both and combining results
+//   - AlternativeMonoid: Alternative semantics with standard monoid for values
+func AltMonoid[R, A any](zero Lazy[Effect[R, A]]) Monoid[Effect[R, A]] {
+	return readerreaderioresult.AltMonoid(zero)
+}

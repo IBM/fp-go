@@ -795,3 +795,169 @@ func Asks[C, A any](r Reader[C, A]) Effect[C, A] {
 func Paired[R, A any](f Effect[R, A]) ioresult.Kleisli[Pair[context.Context, R], A] {
 	return readerreaderioresult.Paired(f)
 }
+
+// MonadChainLeft handles errors by chaining a recovery computation.
+// If the effect fails, the error is passed to f which can produce a recovery effect.
+// If the effect succeeds, its value is returned unchanged.
+// This is the monadic version that takes the computation as the first parameter.
+//
+// # Type Parameters
+//
+//   - R: The context type required by the effects
+//   - A: The value type
+//
+// # Parameters
+//
+//   - fa: The effect that may fail
+//   - f: A function that takes an error and returns a recovery effect
+//
+// # Returns
+//
+//   - Effect[R, A]: An effect that either succeeds with the original value or recovers from the error
+//
+// # Example
+//
+//	type Config struct{ RetryCount int }
+//
+//	fetchData := effect.Fail[Config, string](errors.New("network error"))
+//
+//	recover := func(err error) effect.Effect[Config, string] {
+//	    return effect.Of[Config]("fallback data")
+//	}
+//
+//	result := effect.MonadChainLeft(fetchData, recover)
+//	// result produces "fallback data" instead of failing
+//
+// # See Also
+//
+//   - ChainLeft: The curried version that returns an operator
+//   - MonadAlt: Alternative composition without error inspection
+func MonadChainLeft[R, A any](fa Effect[R, A], f Kleisli[R, error, A]) Effect[R, A] {
+	return readerreaderioresult.MonadChainLeft(fa, f)
+}
+
+// ChainLeft handles errors by chaining a recovery computation.
+// If the effect fails, the error is passed to f which can produce a recovery effect.
+// If the effect succeeds, its value is returned unchanged.
+// This is the curried version that returns an operator.
+//
+// # Type Parameters
+//
+//   - R: The context type required by the effects
+//   - A: The value type
+//
+// # Parameters
+//
+//   - f: A function that takes an error and returns a recovery effect
+//
+// # Returns
+//
+//   - Operator[R, A, A]: A function that transforms a failing effect into a recovered one
+//
+// # Example
+//
+//	type Config struct{ MaxRetries int }
+//
+//	recoverFromError := func(err error) effect.Effect[Config, int] {
+//	    return effect.Asks[Config](func(cfg Config) int {
+//	        return cfg.MaxRetries
+//	    })
+//	}
+//
+//	pipeline := F.Pipe1(
+//	    effect.Fail[Config, int](errors.New("operation failed")),
+//	    effect.ChainLeft[Config](recoverFromError),
+//	)
+//	// With Config{MaxRetries: 3}, produces 3
+//
+// # See Also
+//
+//   - MonadChainLeft: The monadic version that takes the computation first
+//   - Alt: Alternative composition without error inspection
+func ChainLeft[R, A any](f Kleisli[R, error, A]) Operator[R, A, A] {
+	return readerreaderioresult.ChainLeft(f)
+}
+
+// MonadAlt provides alternative/fallback behavior for effects.
+// If the first effect fails, it tries the second effect (which is lazy-evaluated).
+// If the first effect succeeds, its value is returned and the second effect is never evaluated.
+// This is the monadic version that takes both effects as parameters.
+//
+// # Type Parameters
+//
+//   - R: The context type required by the effects
+//   - A: The value type
+//
+// # Parameters
+//
+//   - first: The primary effect to try
+//   - second: A lazy computation that produces the fallback effect (only evaluated if first fails)
+//
+// # Returns
+//
+//   - Effect[R, A]: An effect that succeeds with the first successful result, or fails if both fail
+//
+// # Example
+//
+//	type Config struct{ PrimaryURL, FallbackURL string }
+//
+//	fetchFromPrimary := effect.Fail[Config, string](errors.New("primary unavailable"))
+//	fetchFromFallback := func() effect.Effect[Config, string] {
+//	    return effect.Of[Config]("data from fallback")
+//	}
+//
+//	result := effect.MonadAlt(fetchFromPrimary, fetchFromFallback)
+//	// result produces "data from fallback"
+//
+// # See Also
+//
+//   - Alt: The curried version that returns an operator
+//   - MonadChainLeft: Similar but allows error inspection
+func MonadAlt[R, A any](first Effect[R, A], second Lazy[Effect[R, A]]) Effect[R, A] {
+	return readerreaderioresult.MonadAlt(first, second)
+}
+
+// Alt provides alternative/fallback behavior for effects.
+// If the first effect fails, it tries the second effect (which is lazy-evaluated).
+// If the first effect succeeds, its value is returned and the second effect is never evaluated.
+// This is the curried version that returns an operator.
+//
+// # Type Parameters
+//
+//   - R: The context type required by the effects
+//   - A: The value type
+//
+// # Parameters
+//
+//   - second: A lazy computation that produces the fallback effect (only evaluated if first fails)
+//
+// # Returns
+//
+//   - Operator[R, A, A]: A function that provides fallback behavior for an effect
+//
+// # Example
+//
+//	type Config struct{ Endpoints []string }
+//
+//	tryEndpoint := func(url string) effect.Effect[Config, string] {
+//	    if url == "backup.api" {
+//	        return effect.Of[Config]("success from backup")
+//	    }
+//	    return effect.Fail[Config, string](fmt.Errorf("%s failed", url))
+//	}
+//
+//	pipeline := F.Pipe2(
+//	    tryEndpoint("primary.api"),
+//	    effect.Alt[Config](func() effect.Effect[Config, string] {
+//	        return tryEndpoint("backup.api")
+//	    }),
+//	)
+//	// pipeline produces "success from backup"
+//
+// # See Also
+//
+//   - MonadAlt: The monadic version that takes both effects
+//   - ChainLeft: Similar but allows error inspection
+func Alt[R, A any](second Lazy[Effect[R, A]]) Operator[R, A, A] {
+	return readerreaderioresult.Alt(second)
+}

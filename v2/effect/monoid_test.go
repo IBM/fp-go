@@ -348,3 +348,241 @@ func TestMonoidComparison(t *testing.T) {
 		assert.Equal(t, 42, result2)
 	})
 }
+
+func TestAltMonoid(t *testing.T) {
+	t.Run("uses custom zero value", func(t *testing.T) {
+		zero := func() Effect[TestContext, string] {
+			return Of[TestContext]("default")
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		result, err := runEffect(effectMonoid.Empty(), TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "default", result)
+	})
+
+	t.Run("returns first successful effect", func(t *testing.T) {
+		zero := func() Effect[TestContext, int] {
+			return Of[TestContext](0)
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff1 := Of[TestContext](42)
+		eff2 := Of[TestContext](100)
+
+		combined := effectMonoid.Concat(eff1, eff2)
+		result, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, result) // Returns first successful value
+	})
+
+	t.Run("falls back to second effect when first fails", func(t *testing.T) {
+		zero := func() Effect[TestContext, string] {
+			return Of[TestContext]("")
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff1 := Fail[TestContext, string](errors.New("first failed"))
+		eff2 := Of[TestContext]("fallback")
+
+		combined := effectMonoid.Concat(eff1, eff2)
+		result, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "fallback", result)
+	})
+
+	t.Run("returns error when both effects fail", func(t *testing.T) {
+		expectedErr := errors.New("second error")
+		zero := func() Effect[TestContext, int] {
+			return Of[TestContext](0)
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff1 := Fail[TestContext, int](errors.New("first error"))
+		eff2 := Fail[TestContext, int](expectedErr)
+
+		combined := effectMonoid.Concat(eff1, eff2)
+		_, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("chains multiple alternatives", func(t *testing.T) {
+		zero := func() Effect[TestContext, string] {
+			return Of[TestContext]("zero")
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff1 := Fail[TestContext, string](errors.New("error 1"))
+		eff2 := Fail[TestContext, string](errors.New("error 2"))
+		eff3 := Of[TestContext]("success")
+		eff4 := Of[TestContext]("backup")
+
+		combined := effectMonoid.Concat(
+			effectMonoid.Concat(eff1, eff2),
+			effectMonoid.Concat(eff3, eff4),
+		)
+
+		result, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "success", result) // Returns first successful value
+	})
+
+	t.Run("works with custom zero that fails", func(t *testing.T) {
+		zero := func() Effect[TestContext, int] {
+			return Fail[TestContext, int](errors.New("zero error"))
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff := Of[TestContext](42)
+
+		combined := effectMonoid.Concat(effectMonoid.Empty(), eff)
+		result, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, result) // Falls back to eff when zero fails
+	})
+
+	t.Run("works with custom types", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+
+		zero := func() Effect[TestContext, Config] {
+			return Of[TestContext](Config{Host: "localhost", Port: 8080})
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff1 := Fail[TestContext, Config](errors.New("config error"))
+		eff2 := Of[TestContext](Config{Host: "example.com", Port: 443})
+
+		combined := effectMonoid.Concat(eff1, eff2)
+		result, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "example.com", result.Host)
+		assert.Equal(t, 443, result.Port)
+	})
+
+	t.Run("concat with empty uses non-empty effect", func(t *testing.T) {
+		zero := func() Effect[TestContext, int] {
+			return Of[TestContext](0)
+		}
+
+		effectMonoid := AltMonoid(zero)
+
+		eff := Of[TestContext](42)
+		empty := effectMonoid.Empty()
+
+		combined := effectMonoid.Concat(eff, empty)
+		result, err := runEffect(combined, TestContext{Value: "test"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, result)
+	})
+}
+
+// Benchmarks
+
+func BenchmarkApplicativeMonoid_Empty(b *testing.B) {
+	stringMonoid := monoid.MakeMonoid(
+		func(a, b string) string { return a + b },
+		"",
+	)
+	effectMonoid := ApplicativeMonoid[TestContext](stringMonoid)
+	ctx := TestContext{Value: "benchmark"}
+
+	b.ResetTimer()
+	for range b.N {
+		empty := effectMonoid.Empty()
+		_, _ = runEffect(empty, ctx)
+	}
+}
+
+func BenchmarkApplicativeMonoid_Concat(b *testing.B) {
+	intMonoid := monoid.MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+	effectMonoid := ApplicativeMonoid[TestContext](intMonoid)
+	eff1 := Of[TestContext](10)
+	eff2 := Of[TestContext](20)
+	ctx := TestContext{Value: "benchmark"}
+
+	b.ResetTimer()
+	for range b.N {
+		combined := effectMonoid.Concat(eff1, eff2)
+		_, _ = runEffect(combined, ctx)
+	}
+}
+
+func BenchmarkAlternativeMonoid_Concat(b *testing.B) {
+	intMonoid := monoid.MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+	effectMonoid := AlternativeMonoid[TestContext](intMonoid)
+	eff1 := Of[TestContext](10)
+	eff2 := Of[TestContext](20)
+	ctx := TestContext{Value: "benchmark"}
+
+	b.ResetTimer()
+	for range b.N {
+		combined := effectMonoid.Concat(eff1, eff2)
+		_, _ = runEffect(combined, ctx)
+	}
+}
+
+func BenchmarkAltMonoid_Concat(b *testing.B) {
+	zero := func() Effect[TestContext, int] {
+		return Of[TestContext](0)
+	}
+	effectMonoid := AltMonoid(zero)
+	eff1 := Of[TestContext](10)
+	eff2 := Of[TestContext](20)
+	ctx := TestContext{Value: "benchmark"}
+
+	b.ResetTimer()
+	for range b.N {
+		combined := effectMonoid.Concat(eff1, eff2)
+		_, _ = runEffect(combined, ctx)
+	}
+}
+
+func BenchmarkApplicativeMonoid_FoldMany(b *testing.B) {
+	intMonoid := monoid.MakeMonoid(
+		func(a, b int) int { return a + b },
+		0,
+	)
+	effectMonoid := ApplicativeMonoid[TestContext](intMonoid)
+	effects := []Effect[TestContext, int]{
+		Of[TestContext](10),
+		Of[TestContext](20),
+		Of[TestContext](30),
+		Of[TestContext](40),
+		Of[TestContext](50),
+	}
+	ctx := TestContext{Value: "benchmark"}
+
+	b.ResetTimer()
+	for range b.N {
+		combined := effectMonoid.Empty()
+		for _, eff := range effects {
+			combined = effectMonoid.Concat(combined, eff)
+		}
+		_, _ = runEffect(combined, ctx)
+	}
+}
