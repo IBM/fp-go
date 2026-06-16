@@ -30,8 +30,16 @@ func McpCommand() *C.Command {
 		Usage: "Start the MCP server with stdio transport",
 		Description: `Start the Model Context Protocol (MCP) server that provides tools for code generation.
 The server communicates over stdin/stdout and can be used by MCP clients.`,
+		Flags: []C.Flag{
+			&C.BoolFlag{
+				Name:    "verbose",
+				Aliases: []string{"v"},
+				Usage:   "Enable verbose logging to stderr",
+			},
+		},
 		Action: func(ctx context.Context, cmd *C.Command) error {
-			return mcp.Run(ctx)
+			verbose := cmd.Bool("verbose")
+			return mcp.Run(ctx, verbose)
 		},
 	}
 }

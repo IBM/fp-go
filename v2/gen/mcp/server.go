@@ -19,6 +19,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,14 +89,25 @@ type GetExampleOutput struct {
 	Count    int         `json:"count" jsonschema:"Number of examples found"`
 }
 
+var verboseLogging bool
+
 // NewServer creates a new MCP server with fp-go tools
-func NewServer() *mcp.Server {
+func NewServer(verbose bool) *mcp.Server {
+	verboseLogging = verbose
+
+	if verbose {
+		log.Println("[MCP] Creating MCP server with fp-go tools")
+	}
+
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "fp-go-generator",
 		Version: "1.0.0",
 	}, nil)
 
 	// Register the list_skills tool
+	if verbose {
+		log.Println("[MCP] Registering tool: list_skills")
+	}
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_skills",
 		Description: "List all available fp-go skills. Each skill provides specialized knowledge and guidance for specific fp-go features and patterns. Returns a list of skills with their names, descriptions, and paths.",
@@ -105,6 +117,9 @@ func NewServer() *mcp.Server {
 	}, handleListSkills)
 
 	// Register the use_skill tool
+	if verbose {
+		log.Println("[MCP] Registering tool: use_skill")
+	}
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "use_skill",
 		Description: "Retrieve the full content of a specific fp-go skill by name. Use this after list_skills to get detailed documentation, examples, and best practices for a particular fp-go feature or pattern.",
@@ -114,6 +129,9 @@ func NewServer() *mcp.Server {
 	}, handleUseSkill)
 
 	// Register the search_examples tool
+	if verbose {
+		log.Println("[MCP] Registering tool: search_examples")
+	}
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "search_examples",
 		Description: "Search for Go example functions using full-text search. Searches across example names, symbols, packages, documentation comments, and code. Returns up to 10 ranked results with metadata.",
@@ -123,6 +141,9 @@ func NewServer() *mcp.Server {
 	}, handleSearchExamples)
 
 	// Register the get_example tool
+	if verbose {
+		log.Println("[MCP] Registering tool: get_example")
+	}
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_example",
 		Description: "Retrieve a specific Go example by symbol name. Performs exact lookup by symbol (e.g., 'Type.Method') or function name (e.g., 'ExampleType_Method'). Returns the complete example with code, documentation, and output.",
@@ -131,16 +152,38 @@ func NewServer() *mcp.Server {
 		},
 	}, handleGetExample)
 
+	if verbose {
+		log.Println("[MCP] Server created with 4 tools registered")
+	}
+
 	return server
 }
 
 // Run starts the MCP server with stdio transport
-func Run(ctx context.Context) error {
-	server := NewServer()
+func Run(ctx context.Context, verbose bool) error {
+	// Configure logging based on verbose flag
+	if verbose {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
+		log.Println("[MCP] Verbose logging enabled")
+	}
+
+	server := NewServer(verbose)
 
 	// Run the server on stdio transport
+	if verbose {
+		log.Println("[MCP] Starting MCP server with stdio transport...")
+	}
+
 	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
+		if verbose {
+			log.Printf("[MCP] Server stopped with error: %v\n", err)
+		}
 		return fmt.Errorf("server failed: %w", err)
+	}
+
+	if verbose {
+		log.Println("[MCP] Server stopped successfully")
 	}
 
 	return nil
@@ -187,6 +230,10 @@ func parseSkillMetadata(content []byte) (name, description string) {
 
 // handleListSkills handles the list_skills tool call
 func handleListSkills(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, ListSkillsOutput, error) {
+	if verboseLogging {
+		log.Println("[MCP] Executing tool: list_skills")
+	}
+
 	var skills []SkillInfo
 
 	// Iterate through the Skills map from data package
@@ -231,6 +278,10 @@ func handleListSkills(ctx context.Context, req *mcp.CallToolRequest, args struct
 		Skills: skills,
 	}
 
+	if verboseLogging {
+		log.Printf("[MCP] list_skills completed: found %d skills\n", len(skills))
+	}
+
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
@@ -273,7 +324,14 @@ func stripFrontmatter(content []byte) string {
 
 // handleUseSkill handles the use_skill tool call
 func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkillArgs) (*mcp.CallToolResult, UseSkillOutput, error) {
+	if verboseLogging {
+		log.Printf("[MCP] Executing tool: use_skill (name=%s)\n", args.Name)
+	}
+
 	if args.Name == "" {
+		if verboseLogging {
+			log.Println("[MCP] use_skill error: skill name is required")
+		}
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -289,6 +347,9 @@ func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkill
 	skillPath := args.Name + "/SKILL.md"
 	content, found := data.Skills[skillPath]
 	if !found {
+		if verboseLogging {
+			log.Printf("[MCP] use_skill error: skill '%s' not found\n", args.Name)
+		}
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -311,6 +372,10 @@ func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkill
 		Content:     contentWithoutHeader,
 	}
 
+	if verboseLogging {
+		log.Printf("[MCP] use_skill completed: retrieved skill '%s'\n", args.Name)
+	}
+
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
@@ -322,7 +387,14 @@ func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkill
 
 // handleSearchExamples handles the search_examples tool call
 func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
+	if verboseLogging {
+		log.Printf("[MCP] Executing tool: search_examples (query=%s, package_filter=%s)\n", args.Query, args.PackageFilter)
+	}
+
 	if args.Query == "" {
+		if verboseLogging {
+			log.Println("[MCP] search_examples error: query is required")
+		}
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -437,6 +509,10 @@ func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args Se
 		resultText += fmt.Sprintf(" (filtered by package: %s)", args.PackageFilter)
 	}
 
+	if verboseLogging {
+		log.Printf("[MCP] search_examples completed: found %d examples\n", len(examples))
+	}
+
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
@@ -448,7 +524,14 @@ func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args Se
 
 // handleGetExample handles the get_example tool call
 func handleGetExample(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
+	if verboseLogging {
+		log.Printf("[MCP] Executing tool: get_example (symbol=%s)\n", args.Symbol)
+	}
+
 	if args.Symbol == "" {
+		if verboseLogging {
+			log.Println("[MCP] get_example error: symbol is required")
+		}
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
@@ -557,6 +640,10 @@ func handleGetExample(ctx context.Context, req *mcp.CallToolRequest, args GetExa
 	}
 
 	resultText := fmt.Sprintf("Retrieved %d example(s) for symbol: %s", len(examples), args.Symbol)
+
+	if verboseLogging {
+		log.Printf("[MCP] get_example completed: retrieved %d examples\n", len(examples))
+	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
