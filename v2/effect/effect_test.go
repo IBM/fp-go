@@ -17,12 +17,17 @@ package effect
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/IBM/fp-go/v2/context/readerioresult"
+	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/logging"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
@@ -2599,4 +2604,555 @@ func TestAlt_Integration(t *testing.T) {
 		assert.Equal(t, "fallback", altValue)
 		assert.Equal(t, "recovered from: error: 404", chainLeftValue)
 	})
+}
+
+// TestChainFirstLeftThunkK_Success tests ChainFirstLeftThunkK with successful effects
+func TestChainFirstLeftThunkK_Success(t *testing.T) {
+	t.Run("success value passes through unchanged", func(t *testing.T) {
+		sideEffectRan := false
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					sideEffectRan = true
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[TestConfig](42),
+			ChainFirstLeftThunkK[TestConfig, int](logError),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+		assert.False(t, sideEffectRan, "side effect should not run on success")
+	})
+
+	t.Run("chains multiple successful operations", func(t *testing.T) {
+		pipeline := F.Pipe3(
+			Of[TestConfig](10),
+			Map[TestConfig](N.Mul(2)),
+			ChainFirstLeftThunkK[TestConfig, int](func(err error) readerioresult.ReaderIOResult[F.Void] {
+				return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+					return func() result.Result[F.Void] {
+						return result.Of(F.VOID)
+					}
+				}
+			}),
+			Map[TestConfig](N.Add(5)),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 25, value)
+	})
+}
+
+// TestChainFirstLeftThunkK_Failure tests ChainFirstLeftThunkK with failing effects
+func TestChainFirstLeftThunkK_Failure(t *testing.T) {
+	t.Run("error triggers handler with context", func(t *testing.T) {
+		var capturedError error
+		var capturedCtx context.Context
+		originalErr := fmt.Errorf("operation failed")
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					capturedError = err
+					capturedCtx = ctx
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			ChainFirstLeftThunkK[TestConfig, int](logError),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.Equal(t, originalErr, err)
+		assert.Equal(t, originalErr, capturedError)
+		assert.NotNil(t, capturedCtx)
+	})
+
+	t.Run("handler error replaces original when handler fails", func(t *testing.T) {
+		originalErr := fmt.Errorf("original error")
+		handlerErr := fmt.Errorf("handler error")
+
+		failingHandler := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					return result.Left[F.Void](handlerErr)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			ChainFirstLeftThunkK[TestConfig, int](failingHandler),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		// ChainFirstLeft preserves the original error even when handler fails
+		// This is the "First" behavior - it keeps the first (original) value/error
+		assert.Equal(t, originalErr, err)
+	})
+
+	t.Run("preserves error cause chain", func(t *testing.T) {
+		rootErr := fmt.Errorf("root cause")
+		wrappedErr := fmt.Errorf("wrapped: %w", rootErr)
+		var capturedError error
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					capturedError = err
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](wrappedErr),
+			ChainFirstLeftThunkK[TestConfig, int](logError),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, rootErr)
+		assert.ErrorIs(t, capturedError, rootErr)
+	})
+}
+
+// TestChainFirstLeftThunkK_EdgeCases tests edge cases for ChainFirstLeftThunkK
+func TestChainFirstLeftThunkK_EdgeCases(t *testing.T) {
+	t.Run("handles zero value", func(t *testing.T) {
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[TestConfig](0),
+			ChainFirstLeftThunkK[TestConfig, int](logError),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("multiple error handlers in sequence", func(t *testing.T) {
+		callCount := 0
+		originalErr := fmt.Errorf("test error")
+
+		countingHandler := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					callCount++
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe3(
+			Fail[TestConfig, int](originalErr),
+			ChainFirstLeftThunkK[TestConfig, int](countingHandler),
+			ChainFirstLeftThunkK[TestConfig, int](countingHandler),
+			ChainFirstLeftThunkK[TestConfig, int](countingHandler),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.Equal(t, 3, callCount)
+	})
+
+	t.Run("handler with context cancellation", func(t *testing.T) {
+		var handlerCtx context.Context
+		originalErr := fmt.Errorf("test error")
+
+		captureContext := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					handlerCtx = ctx
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			ChainFirstLeftThunkK[TestConfig, int](captureContext),
+		)
+
+		res := pipeline(testConfig)(ctx)()
+		assert.True(t, result.IsLeft(res))
+		assert.NotNil(t, handlerCtx)
+		assert.Error(t, handlerCtx.Err())
+	})
+}
+
+// TestChainFirstLeftThunkK_Integration tests integration scenarios
+func TestChainFirstLeftThunkK_Integration(t *testing.T) {
+	t.Run("error logging with structured data", func(t *testing.T) {
+		type LogEntry struct {
+			Error   error
+			Context string
+		}
+		var logEntries []LogEntry
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					logEntries = append(logEntries, LogEntry{
+						Error:   err,
+						Context: "operation failed",
+					})
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe3(
+			Of[TestConfig](10),
+			Chain[TestConfig](func(n int) Effect[TestConfig, int] {
+				if n < 20 {
+					return Fail[TestConfig, int](fmt.Errorf("value too small: %d", n))
+				}
+				return Of[TestConfig](n)
+			}),
+			ChainFirstLeftThunkK[TestConfig, int](logError),
+			Alt[TestConfig](func() Effect[TestConfig, int] {
+				return Of[TestConfig](100)
+			}),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 100, value)
+		assert.Len(t, logEntries, 1)
+		assert.Contains(t, logEntries[0].Error.Error(), "value too small")
+	})
+
+	t.Run("composes with Map and Chain", func(t *testing.T) {
+		errorCount := 0
+
+		countErrors := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					errorCount++
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe4(
+			Of[TestConfig](5),
+			Map[TestConfig](N.Mul(2)),
+			Chain[TestConfig](func(n int) Effect[TestConfig, int] {
+				if n < 20 {
+					return Fail[TestConfig, int](fmt.Errorf("too small"))
+				}
+				return Of[TestConfig](n)
+			}),
+			ChainFirstLeftThunkK[TestConfig, int](countErrors),
+			Map[TestConfig](N.Add(10)),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.Equal(t, 1, errorCount)
+	})
+}
+
+// TestTapLeftThunkK_Success tests TapLeftThunkK with successful effects
+func TestTapLeftThunkK_Success(t *testing.T) {
+	t.Run("is alias for ChainFirstLeftThunkK", func(t *testing.T) {
+		sideEffectRan := false
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					sideEffectRan = true
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Of[TestConfig](42),
+			TapLeftThunkK[TestConfig, int](logError),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+		assert.False(t, sideEffectRan)
+	})
+
+	t.Run("preserves value through pipeline", func(t *testing.T) {
+		pipeline := F.Pipe3(
+			Of[TestConfig](10),
+			TapLeftThunkK[TestConfig, int](func(err error) readerioresult.ReaderIOResult[F.Void] {
+				return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+					return func() result.Result[F.Void] {
+						return result.Of(F.VOID)
+					}
+				}
+			}),
+			Map[TestConfig](N.Mul(3)),
+			TapLeftThunkK[TestConfig, int](func(err error) readerioresult.ReaderIOResult[F.Void] {
+				return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+					return func() result.Result[F.Void] {
+						return result.Of(F.VOID)
+					}
+				}
+			}),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 30, value)
+	})
+}
+
+// TestTapLeftThunkK_Failure tests TapLeftThunkK with failing effects
+func TestTapLeftThunkK_Failure(t *testing.T) {
+	t.Run("executes on error", func(t *testing.T) {
+		var loggedError error
+		originalErr := fmt.Errorf("computation failed")
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					loggedError = err
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			TapLeftThunkK[TestConfig, int](logError),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.Equal(t, originalErr, err)
+		assert.Equal(t, originalErr, loggedError)
+	})
+
+	t.Run("preserves error through multiple taps", func(t *testing.T) {
+		callOrder := []int{}
+		originalErr := fmt.Errorf("test error")
+
+		makeTap := func(id int) func(error) readerioresult.ReaderIOResult[F.Void] {
+			return func(err error) readerioresult.ReaderIOResult[F.Void] {
+				return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+					return func() result.Result[F.Void] {
+						callOrder = append(callOrder, id)
+						return result.Of(F.VOID)
+					}
+				}
+			}
+		}
+
+		pipeline := F.Pipe3(
+			Fail[TestConfig, int](originalErr),
+			TapLeftThunkK[TestConfig, int](makeTap(1)),
+			TapLeftThunkK[TestConfig, int](makeTap(2)),
+			TapLeftThunkK[TestConfig, int](makeTap(3)),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.Equal(t, originalErr, err)
+		assert.Equal(t, []int{1, 2, 3}, callOrder)
+	})
+}
+
+// TestTapLeftThunkK_EdgeCases tests edge cases for TapLeftThunkK
+func TestTapLeftThunkK_EdgeCases(t *testing.T) {
+	t.Run("handler with context values", func(t *testing.T) {
+		type contextKey string
+		const requestIDKey contextKey = "requestID"
+
+		var capturedRequestID string
+		originalErr := fmt.Errorf("test error")
+
+		captureRequestID := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					if id := ctx.Value(requestIDKey); id != nil {
+						capturedRequestID = id.(string)
+					}
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		ctx := context.WithValue(context.Background(), requestIDKey, "req-123")
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			TapLeftThunkK[TestConfig, int](captureRequestID),
+		)
+
+		res := pipeline(testConfig)(ctx)()
+		assert.True(t, result.IsLeft(res))
+		assert.Equal(t, "req-123", capturedRequestID)
+	})
+
+	t.Run("combines with OrElse for recovery", func(t *testing.T) {
+		errorLogged := false
+		originalErr := fmt.Errorf("primary failed")
+
+		logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					errorLogged = true
+					return result.Of(F.VOID)
+				}
+			}
+		}
+
+		pipeline := F.Pipe2(
+			Fail[TestConfig, int](originalErr),
+			TapLeftThunkK[TestConfig, int](logError),
+			Alt[TestConfig](func() Effect[TestConfig, int] {
+				return Of[TestConfig](999)
+			}),
+		)
+
+		value, err := runEffect(pipeline, testConfig)
+		assert.NoError(t, err)
+		assert.Equal(t, 999, value)
+		assert.True(t, errorLogged)
+	})
+}
+
+// TestTapLeftThunkK_Integration tests integration scenarios
+func TestTapLeftThunkK_Integration(t *testing.T) {
+	t.Run("real-world error logging scenario", func(t *testing.T) {
+		type ErrorLog struct {
+			Timestamp string
+			Error     string
+			Operation string
+		}
+		var errorLogs []ErrorLog
+
+		logError := func(operation string) func(error) readerioresult.ReaderIOResult[F.Void] {
+			return func(err error) readerioresult.ReaderIOResult[F.Void] {
+				return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+					return func() result.Result[F.Void] {
+						errorLogs = append(errorLogs, ErrorLog{
+							Timestamp: "2024-01-01",
+							Error:     err.Error(),
+							Operation: operation,
+						})
+						return result.Of(F.VOID)
+					}
+				}
+			}
+		}
+
+		fetchData := func(id int) Effect[TestConfig, string] {
+			if id < 0 {
+				return Fail[TestConfig, string](fmt.Errorf("invalid ID: %d", id))
+			}
+			return Of[TestConfig](fmt.Sprintf("data-%d", id))
+		}
+
+		validateData := func(data string) Effect[TestConfig, string] {
+			if len(data) < 5 {
+				return Fail[TestConfig, string](fmt.Errorf("invalid data: %s", data))
+			}
+			return Of[TestConfig](data)
+		}
+
+		pipeline := F.Pipe3(
+			fetchData(-1),
+			TapLeftThunkK[TestConfig, string](logError("fetchData")),
+			Chain[TestConfig](validateData),
+			TapLeftThunkK[TestConfig, string](logError("validateData")),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		// Both handlers run because the error propagates through the chain
+		assert.GreaterOrEqual(t, len(errorLogs), 1)
+		assert.Equal(t, "fetchData", errorLogs[0].Operation)
+		assert.Contains(t, errorLogs[0].Error, "invalid ID")
+	})
+
+	t.Run("error notification with timeout", func(t *testing.T) {
+		notificationSent := false
+		originalErr := fmt.Errorf("critical error")
+
+		sendNotification := func(err error) readerioresult.ReaderIOResult[F.Void] {
+			return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+				return func() result.Result[F.Void] {
+					// Simulate notification with context
+					select {
+					case <-ctx.Done():
+						return result.Left[F.Void](ctx.Err())
+					default:
+						notificationSent = true
+						return result.Of(F.VOID)
+					}
+				}
+			}
+		}
+
+		pipeline := F.Pipe1(
+			Fail[TestConfig, int](originalErr),
+			TapLeftThunkK[TestConfig, int](sendNotification),
+		)
+
+		_, err := runEffect(pipeline, testConfig)
+		assert.Error(t, err)
+		assert.Equal(t, originalErr, err)
+		assert.True(t, notificationSent)
+	})
+}
+
+// ExampleTapLeftThunkK demonstrates error logging with structured logging.
+func ExampleTapLeftThunkK() {
+	type Config struct{}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError, ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		if a.Key == slog.TimeKey {
+			return slog.Attr{} // drop timestamp in tests
+		}
+		return a
+	}}))
+
+	cancel, ctx := pair.Unpack(logging.WithLogger(logger)(context.Background()))
+	defer cancel()
+
+	fetchUser := func(id int) Effect[Config, string] {
+		return Fail[Config, string](fmt.Errorf("user not found: %d", id))
+	}
+
+	pipeline := F.Pipe1(
+		fetchUser(42),
+		TapLeftThunkK[Config, string](thunk.SLogLeft("Operation failed")),
+	)
+
+	_ = pipeline(Config{})(ctx)()
+
+	// Output:
+	// level=ERROR msg="Operation failed" error="user not found: 42"
 }

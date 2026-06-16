@@ -42,27 +42,37 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    // Returns:
    //   - ReturnType: Description of return value
    //
-   // Example:
-   //
-   //   code example here
-   //
    // See Also:
    //   - RelatedFunction: Brief description
    func FunctionName[T any](param T) ReturnType {
    ```
 
 3. **Code Examples**
-   - Use idiomatic Go patterns
-   - Prefer `result.Eitherize1(strconv.Atoi)` over manual error handling
-   - Prefer `strconv.Itoa` over `func(x int) string { return fmt.Sprintf("%d", x) }`
-   - Prefer direct function references such as `strconv.Itoa` over redundant wrappers like `func(x int) string { return strconv.Itoa(x) }`
-   - In documentation examples, prefer reusable combinators over ad-hoc closures when an equivalent helper exists
-   - Prefer `F.Flow2(option.Predicate(N.MoreThan(0)), option.Map(N.Mul(2)))` over `func(x int) Option[int] { if x > 0 { return Some(x * 2) }; return None[int]() }` in non-idiomatic option examples
-   - Prefer `S.Format[T]("...")` over `func(x T) string { return fmt.Sprintf("...", x) }`, matching the type parameter to the formatted value
-   - Show realistic, runnable examples
-   - Indent code examples with spaces (not tabs) for proper godoc rendering
+   - Do NOT include code examples in function documentation strings
+   - Instead, create `ExampleXXX` functions following Go's example function conventions
+   - Example functions should be placed in `*_test.go` files
+   - Use the naming pattern `Example<FunctionName>` or `Example<FunctionName>_<scenario>`
+   - Example functions must include `// Output:` comments to be recognized by `go test`
+   - Example function code should follow these guidelines:
+     - Use idiomatic Go patterns
+     - Prefer `result.Eitherize1(strconv.Atoi)` over manual error handling
+     - Prefer `strconv.Itoa` over `func(x int) string { return fmt.Sprintf("%d", x) }`
+     - Prefer direct function references such as `strconv.Itoa` over redundant wrappers like `func(x int) string { return strconv.Itoa(x) }`
+     - Prefer reusable combinators over ad-hoc closures when an equivalent helper exists
+     - Prefer `F.Flow2(option.Predicate(N.MoreThan(0)), option.Map(N.Mul(2)))` over `func(x int) Option[int] { if x > 0 { return Some(x * 2) }; return None[int]() }` in non-idiomatic option examples
+     - Prefer `S.Format[T]("...")` over `func(x T) string { return fmt.Sprintf("...", x) }`, matching the type parameter to the formatted value
+     - Show realistic, runnable examples
+   - Example:
+     ```go
+     // ExampleFunctionName demonstrates basic usage.
+     func ExampleFunctionName() {
+         result := FunctionName(42)
+         fmt.Println(result)
+         // Output: 42
+     }
+     ```
 
-4. **Pipe and Flow in Examples**
+4. **Pipe and Flow in Example Functions**
 
    In the non-idiomatic `option` (and similar) packages, operators have the shape
    `func(T) U`, so `F.Pipe1` works and is preferred over direct nesting:
@@ -92,7 +102,7 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    result := F.Pipe3(Do(State{}), Bind(...), Bind(...), Map(...))
    ```
 
-5. **Default / fallback values**
+5. **Default / fallback values in Example Functions**
 
    Use `lazy.Of(value)` instead of an inline zero-returning closure wherever a
    `func() T` is needed for a default:
@@ -105,9 +115,9 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
    GetOrElse(func() int { return 0 })(opt)
    ```
 
-6. **Array Initialization in Documentation**
+6. **Array Initialization in Example Functions**
 
-   In documentation examples, prefer `A.From` over array literal syntax to avoid
+   In example functions, prefer `A.From` over array literal syntax to avoid
    duplicating type parameters:
 
    ```go
@@ -130,7 +140,7 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
 
    **Note**: In test code within packages that would create circular dependencies with
    the `array` package (e.g., `option` package tests), continue using array literal syntax.
-   Only documentation examples should use `A.From`.
+   Only example functions should use `A.From`.
 
 ### File Headers
 
@@ -305,10 +315,13 @@ func TestFromReaderResult_Success(t *testing.T) {
 
 - [ ] Apache 2.0 license header included
 - [ ] Go doc comments use standard format (no markdown links)
-- [ ] Code examples are idiomatic and concise
-- [ ] Doc examples use `F.Pipe1`/`F.FlowN` for sequencing (see §4 above)
-- [ ] Default values in examples use `lazy.Of(value)`, not `func() T { return value }`
-- [ ] Array initializations in doc examples use `A.From` for monadic types (see §6 above)
+- [ ] No code examples in function documentation strings
+- [ ] Example functions created for all public functions (following `ExampleXXX` naming)
+- [ ] Example functions are idiomatic and concise
+- [ ] Example functions use `F.Pipe1`/`F.FlowN` for sequencing (see §4 above)
+- [ ] Default values in example functions use `lazy.Of(value)`, not `func() T { return value }`
+- [ ] Array initializations in example functions use `A.From` for monadic types (see §6 above)
+- [ ] Example functions include `// Output:` comments
 - [ ] Tests cover success, failure, edge cases, and integration
 - [ ] Tests use direct assertions where possible
 - [ ] Benchmarks included for performance-critical code

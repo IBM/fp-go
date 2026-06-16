@@ -1070,3 +1070,121 @@ func TapLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
 func MonadTapLeftIOK[R, A, B any](ma Effect[R, A], f io.Kleisli[error, B]) Effect[R, A] {
 	return readerreaderioresult.MonadTapLeftIOK(ma, f)
 }
+
+// ChainFirstLeftThunkK chains a Thunk computation on the error path but preserves the original value.
+// If the effect succeeds, the original value is returned unchanged.
+// If it fails, the error handler f is executed with the runtime context, and its result determines the final outcome.
+//
+// This function is similar to ChainFirstLeft but accepts a Thunk-based Kleisli arrow instead of a full Effect Kleisli.
+// A Thunk is a context-independent computation that only needs the runtime context.Context, making it useful for
+// error handlers that don't need access to the effect's context type C.
+//
+// The key difference from ChainFirstLeftIOK is that Thunk computations have access to context.Context,
+// enabling cancellation, timeouts, and context values, while IO computations do not.
+//
+// Type Parameters:
+//   - C: The context type required by the effect
+//   - A: The success type of the effect
+//   - B: The result type of the error handler (typically discarded)
+//
+// Parameters:
+//   - f: A Thunk Kleisli arrow that takes an error and returns a Thunk[B]
+//
+// Returns:
+//   - An Operator that preserves the original value or error after executing the handler
+//
+// Example with error logging:
+//
+//	logError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+//	    return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+//	        return func() result.Result[F.Void] {
+//	            slog.ErrorContext(ctx, "Operation failed", "error", err)
+//	            return result.Of(F.VOID)
+//	        }
+//	    }
+//	}
+//
+//	pipeline := F.Pipe2(
+//	    fetchData[Config](id),
+//	    ChainFirstLeftThunkK[Config, Data](logError),
+//	    Map(processData),
+//	)
+//
+// Example with error recovery:
+//
+//	recordError := func(err error) readerioresult.ReaderIOResult[F.Void] {
+//	    return func(ctx context.Context) io.IO[result.Result[F.Void]] {
+//	        return func() result.Result[F.Void] {
+//	            if dbErr := recordToDatabase(ctx, err); dbErr != nil {
+//	                return result.Left[F.Void](dbErr)
+//	            }
+//	            return result.Of(F.VOID)
+//	        }
+//	    }
+//	}
+//
+//	pipeline := F.Pipe2(
+//	    performOperation[Config](data),
+//	    ChainFirstLeftThunkK[Config, Result](recordError),
+//	    OrElse(fallbackOperation),
+//	)
+//
+// Use Cases:
+//   - Error logging with context (cancellation, request IDs)
+//   - Recording errors to external systems (databases, monitoring)
+//   - Sending error notifications with timeout handling
+//   - Error recovery with context-aware operations
+//
+// See Also:
+//   - TapLeftThunkK: Alias for this function
+//   - ChainFirstLeft: Similar but requires full Effect context
+//   - ChainFirstLeftIOK: Similar but without context.Context access
+//   - TapLeft: For error handlers that need the effect's context type
+//
+//go:inline
+func ChainFirstLeftThunkK[C, A, B any](f thunk.Kleisli[error, B]) Operator[C, A, A] {
+	return fromreader.ChainFirstReaderK(
+		ChainFirstLeft[A, C, B],
+		FromThunk[C, B],
+		f,
+	)
+}
+
+// TapLeftThunkK is an alias for ChainFirstLeftThunkK.
+// Executes a Thunk side effect on the error path while preserving the original value or error.
+//
+// This function is ideal for error handling scenarios where you need access to context.Context
+// but don't need the effect's context type C. Common use cases include logging with context,
+// recording errors to external systems, and sending notifications with timeout handling.
+//
+// The key advantage over TapLeftIOK is access to context.Context, enabling:
+//   - Cancellation and timeout handling
+//   - Request-scoped values (trace IDs, user info)
+//   - Deadline propagation
+//
+// Type Parameters:
+//   - C: The context type required by the effect
+//   - A: The success type of the effect
+//   - B: The result type of the error handler (typically F.Void)
+//
+// Parameters:
+//   - f: A Thunk Kleisli arrow that takes an error and returns a Thunk[B]
+//
+// Returns:
+//   - An Operator that preserves the original value or error after executing the handler
+//
+// Use Cases:
+//   - Logging errors with context-aware loggers
+//   - Recording errors with cancellation support
+//   - Sending notifications with timeout handling
+//   - Error metrics with request tracing
+//
+// See Also:
+//   - ChainFirstLeftThunkK: The underlying implementation
+//   - TapLeft: For error handlers that need the effect's context type
+//   - TapLeftIOK: For simpler error handlers without context.Context
+//
+//go:inline
+func TapLeftThunkK[C, A, B any](f thunk.Kleisli[error, B]) Operator[C, A, A] {
+	return ChainFirstLeftThunkK[C, A](f)
+}
