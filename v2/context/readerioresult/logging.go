@@ -399,14 +399,14 @@ func curriedLog(
 // SLogWithCallback creates a Kleisli arrow that logs a Result value (success or error) with a custom logger and log level.
 //
 // This function logs both successful values and errors, making it useful for debugging and monitoring
-// Result values as they flow through a computation. Unlike TapSLog which only logs successful values,
+// Result values as they flow through a computation. Unlike TapSLog which operates on a ReaderIOResult,
 // SLogWithCallback logs the Result regardless of whether it contains a value or an error.
 //
 // The logged output includes:
 //   - For success: The message with the value as a structured "value" attribute
 //   - For error: The message with the error as a structured "error" attribute
 //
-// The Result is passed through unchanged after logging.
+// After logging, the computation returns Void.
 //
 // Type Parameters:
 //   - A: The success type of the Result
@@ -417,7 +417,7 @@ func curriedLog(
 //   - message: A descriptive message to include in the log entry
 //
 // Returns:
-//   - A Kleisli arrow that logs the Result (value or error) and returns it unchanged
+//   - A Kleisli arrow that logs the Result (value or error) and returns Void
 //
 // Example with custom log level:
 //
@@ -485,8 +485,7 @@ func SLogWithCallback[A any](
 //   - For success: Logs message with attribute value=<the actual value>
 //   - For error: Logs message with attribute error=<the error>
 //
-// The Result is passed through unchanged after logging, making this function transparent in the
-// computation pipeline.
+// After logging, the computation returns Void.
 //
 // Type Parameters:
 //   - A: The success type of the Result
@@ -495,13 +494,13 @@ func SLogWithCallback[A any](
 //   - message: A descriptive message to include in the log entry
 //
 // Returns:
-//   - A Kleisli arrow that logs the Result (value or error) and returns it unchanged
+//   - A Kleisli arrow that logs the Result (value or error) and returns Void
 //
 // Example with successful Result:
 //
 //	pipeline := F.Pipe2(
 //	    fetchUser(123),
-//	    Chain(SLog[User]("Fetched user")),
+//	    ChainFirst(SLog[User]("Fetched user")),
 //	    Map(func(u User) string { return u.Name }),
 //	)
 //
@@ -513,9 +512,9 @@ func SLogWithCallback[A any](
 //
 //	pipeline := F.Pipe3(
 //	    fetchData(id),
-//	    Chain(SLog[Data]("Data fetched")),
+//	    ChainFirst(SLog[Data]("Data fetched")),
 //	    Chain(validateData),
-//	    Chain(SLog[Data]("Data validated")),
+//	    ChainFirst(SLog[Data]("Data validated")),
 //	    Chain(processData),
 //	)
 //
@@ -643,16 +642,17 @@ func TapSLog[A any](message string) Operator[A, A] {
 	return readerio.ChainFirst(SLog[A](message))
 }
 
-// SLogLeft creates a Kleisli arrow that logs an error and returns it as a Left Result.
+// SLogLeft creates a Kleisli arrow that logs an error and returns Void in a Right Result.
 //
-// This function is specifically designed for error handling scenarios where you want to:
+// This function is specifically designed for error logging scenarios where you want to:
 //   - Log an error at Error level with a descriptive message
-//   - Convert the error into a ReaderIOResult[Void] containing Left(error)
-//   - Continue the computation with the error propagated
+//   - Convert the error into a ReaderIOResult[Void] containing Right(Void)
+//   - Continue the computation after logging the error
 //
 // Unlike SLog which logs both success and error Results, SLogLeft is specialized for
 // error-only scenarios. It takes a raw error value, logs it with the provided message,
-// and wraps it in a Left Result.
+// and returns a successful Result containing Void. This allows the error to be logged
+// without propagating it as a Left Result.
 //
 // The logged output includes:
 //   - The message as the main log text
@@ -666,9 +666,10 @@ func TapSLog[A any](message string) Operator[A, A] {
 //   - message: A descriptive message to include in the log entry
 //
 // Returns:
-//   - A Kleisli arrow that takes an error, logs it, and returns ReaderIOResult[Void] with Left(error)
+//   - A Kleisli arrow that takes an error, logs it, and returns ReaderIOResult[Void] with Right(Void)
 //
 // See Also:
+//   - SLogRight: For logging successful values
 //   - SLog: For logging both success and error Results
 //   - TapSLog: For logging values without converting them
 func SLogLeft(message string) Kleisli[error, Void] {
@@ -678,6 +679,35 @@ func SLogLeft(message string) Kleisli[error, Void] {
 	)
 }
 
+// SLogRight creates a Kleisli arrow that logs a successful value and returns Void in a Right Result.
+//
+// This function is specifically designed for success logging scenarios where you want to:
+//   - Log a successful value at Info level with a descriptive message
+//   - Convert the value into a ReaderIOResult[Void] containing Right(Void)
+//   - Continue the computation after the value has been logged
+//
+// Unlike SLog which logs both success and error Results, SLogRight is specialized for
+// success-only scenarios. It takes a raw value, logs it with the provided message,
+// and wraps it in a Right Result containing Void.
+//
+// The logged output includes:
+//   - The message as the main log text
+//   - The value as a structured "value" attribute
+//   - Log level is always Info
+//
+// Type Parameters:
+//   - A: The type of the value to log
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - A Kleisli arrow that takes a value, logs it, and returns ReaderIOResult[Void] with Right(Void)
+//
+// See Also:
+//   - SLogLeft: For logging error values
+//   - SLog: For logging both success and error Results
+//   - TapSLog: For logging values without converting them
 func SLogRight[A any](message string) Kleisli[A, Void] {
 	return F.Flow2(
 		result.Of[A],
