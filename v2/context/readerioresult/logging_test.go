@@ -780,3 +780,243 @@ func TestTapSLogLogsErrors(t *testing.T) {
 	assert.Contains(t, logOutput, "error")
 	assert.Contains(t, logOutput, "test error message")
 }
+
+// TestSLogLeftLogsError tests that SLogLeft logs an error at Error level
+func TestSLogLeftLogsError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	ctx := t.Context()
+	testErr := errors.New("validation failed")
+
+	// Use SLogLeft to log the error
+	res := SLogLeft("Input validation error")(testErr)(ctx)()
+
+	// Verify the result is a Left with the original error
+	assert.True(t, result.IsLeft(res))
+
+	err := F.Pipe1(res, result.Fold(
+		F.Identity[error],
+		func(_ F.Void) error { t.Fatal("expected Left but got Right"); return nil },
+	))
+	assert.Equal(t, testErr, err)
+
+	// Verify logging occurred
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Input validation error")
+	assert.Contains(t, logOutput, "error")
+	assert.Contains(t, logOutput, "validation failed")
+	assert.Contains(t, logOutput, "level=ERROR")
+}
+
+// TestSLogLeftInPipeline tests SLogLeft in an error handling pipeline
+func TestSLogLeftInPipeline(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	validateInput := func(input string) ReaderIOResult[string] {
+		if input == "" {
+			// SLogLeft returns ReaderIOResult[Void], so we need to chain it
+			return F.Pipe2(
+				errors.New("input cannot be empty"),
+				SLogLeft("Validation failed"),
+				Chain(func(F.Void) ReaderIOResult[string] {
+					return Left[string](errors.New("input cannot be empty"))
+				}),
+			)
+		}
+		return Of(input)
+	}
+
+	// Test with invalid input
+	res := validateInput("")(t.Context())()
+
+	assert.True(t, result.IsLeft(res))
+
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Validation failed")
+	assert.Contains(t, logOutput, "input cannot be empty")
+	assert.Contains(t, logOutput, "level=ERROR")
+}
+
+// TestSLogLeftWithOrElse tests SLogLeft in error recovery scenarios
+func TestSLogLeftWithOrElse(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	failingOp := Left[int](errors.New("operation failed"))
+
+	// SLogLeft logs the error and preserves it as Left
+	// To recover, we need to handle the error after logging using OrElse
+	pipeline := F.Pipe1(
+		failingOp,
+		OrElse(func(err error) ReaderIOResult[int] {
+			// Log the error and then recover with a fallback value
+			return F.Pipe2(
+				SLogLeft("Error occurred, using fallback")(err),
+				OrElse(func(error) ReaderIOResult[Void] {
+					return Of(F.VOID)
+				}),
+				Map(func(F.Void) int { return 42 }),
+			)
+		}),
+	)
+
+	res := pipeline(t.Context())()
+
+	// Should be Right(42) after recovery
+	assert.Equal(t, result.Of(42), res)
+
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Error occurred, using fallback")
+	assert.Contains(t, logOutput, "operation failed")
+	assert.Contains(t, logOutput, "level=ERROR")
+}
+
+// TestSLogLeftPreservesError tests that SLogLeft preserves the original error
+func TestSLogLeftPreservesError(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	originalErr := errors.New("original error message")
+
+	res := SLogLeft("Logging error")(originalErr)(t.Context())()
+
+	// Extract the error and verify it's the same
+	err := F.Pipe1(res, result.Fold(
+		F.Identity[error],
+		func(_ F.Void) error { t.Fatal("expected Left but got Right"); return nil },
+	))
+
+	assert.Equal(t, originalErr, err)
+	assert.Equal(t, "original error message", err.Error())
+}
+
+// TestSLogLeftWithContextLogger tests SLogLeft using logger from context
+func TestSLogLeftWithContextLogger(t *testing.T) {
+	var buf bytes.Buffer
+	contextLogger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	cancelFct, ctx := pair.Unpack(logging.WithLogger(contextLogger)(t.Context()))
+	defer cancelFct()
+
+	testErr := errors.New("context logger error")
+
+	res := SLogLeft("Context error test")(testErr)(ctx)()
+
+	assert.True(t, result.IsLeft(res))
+
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Context error test")
+	assert.Contains(t, logOutput, "context logger error")
+}
+
+// TestSLogLeftDisabled tests that SLogLeft respects logger level
+func TestSLogLeftDisabled(t *testing.T) {
+	var buf bytes.Buffer
+	// Create logger that only logs Fatal level (higher than Error)
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.Level(12), // Higher than Error (8)
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	testErr := errors.New("this should not be logged")
+
+	res := SLogLeft("Should not log")(testErr)(t.Context())()
+
+	// Error should still be preserved
+	assert.True(t, result.IsLeft(res))
+
+	// But no logs should be written
+	logOutput := buf.String()
+	assert.Empty(t, logOutput, "Should have no logs when logging is disabled")
+}
+
+// TestSLogLeftMultipleErrors tests SLogLeft with multiple different errors
+func TestSLogLeftMultipleErrors(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	ctx := t.Context()
+
+	testErrors := []error{
+		errors.New("error 1"),
+		errors.New("error 2"),
+		errors.New("error 3"),
+	}
+
+	for i, err := range testErrors {
+		res := SLogLeft(S.Format[int]("Error %d")(i + 1))(err)(ctx)()
+		assert.True(t, result.IsLeft(res))
+	}
+
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Error 1")
+	assert.Contains(t, logOutput, "error 1")
+	assert.Contains(t, logOutput, "Error 2")
+	assert.Contains(t, logOutput, "error 2")
+	assert.Contains(t, logOutput, "Error 3")
+	assert.Contains(t, logOutput, "error 3")
+}
+
+// TestSLogLeftChainBehavior tests SLogLeft in a Chain operation
+func TestSLogLeftChainBehavior(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	processData := func(data string) ReaderIOResult[int] {
+		if data == "" {
+			// SLogLeft returns ReaderIOResult[Void], chain to convert to ReaderIOResult[int]
+			return F.Pipe2(
+				errors.New("empty data"),
+				SLogLeft("Processing failed"),
+				Chain(func(F.Void) ReaderIOResult[int] {
+					return Left[int](errors.New("empty data"))
+				}),
+			)
+		}
+		return Of(S.Size(data))
+	}
+
+	pipeline := F.Pipe2(
+		Of(""),
+		Chain(processData),
+		Map(N.Mul(2)),
+	)
+
+	res := pipeline(t.Context())()
+
+	// Should be Left due to error
+	assert.True(t, result.IsLeft(res))
+
+	logOutput := buf.String()
+	assert.Contains(t, logOutput, "Processing failed")
+	assert.Contains(t, logOutput, "empty data")
+}

@@ -46,8 +46,24 @@ func Map[GEA ~func(E) HKTA, GEB ~func(E) HKTB, E, A, B, HKTA, HKTB any](
 	)
 }
 
-func MonadChain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](fchain func(HKTA, func(A) HKTB) HKTB, ma GEA, f func(A) GEB) GEB {
+func MonadChain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
+	fchain chain.MonadChainType[A, HKTA, HKTB],
+	ma GEA,
+	f func(A) GEB,
+) GEB {
 	return R.MakeReader(func(r E) HKTB {
+		return fchain(ma(r), func(a A) HKTB {
+			return f(a)(r)
+		})
+	})
+}
+
+func MonadChainFirst[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
+	fchain chain.MonadChainFirstType[A, HKTA, HKTB],
+	ma GEA,
+	f func(A) GEB,
+) GEA {
+	return R.MakeReader(func(r E) HKTA {
 		return fchain(ma(r), func(a A) HKTB {
 			return f(a)(r)
 		})
@@ -60,6 +76,19 @@ func Chain[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
 ) func(GEA) GEB {
 	return func(ma GEA) GEB {
 		return R.MakeReader(func(r E) HKTB {
+			return fchain(func(a A) HKTB {
+				return f(a)(r)
+			})(ma(r))
+		})
+	}
+}
+
+func ChainFirst[GEA ~func(E) HKTA, GEB ~func(E) HKTB, A, E, HKTA, HKTB any](
+	fchain chain.ChainFirstType[A, HKTA, HKTB],
+	f func(A) GEB,
+) func(GEA) GEA {
+	return func(ma GEA) GEA {
+		return R.MakeReader(func(r E) HKTA {
 			return fchain(func(a A) HKTB {
 				return f(a)(r)
 			})(ma(r))

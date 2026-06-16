@@ -20,7 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/chain"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/fromeither"
 	"github.com/IBM/fp-go/v2/internal/fromio"
 	"github.com/IBM/fp-go/v2/internal/fromioeither"
@@ -121,9 +121,8 @@ func MonadChain[R, C, E, A, B any](fa ReaderReaderIOEither[R, C, E, A], f Kleisl
 //
 //go:inline
 func MonadChainFirst[R, C, E, A, B any](fa ReaderReaderIOEither[R, C, E, A], f Kleisli[R, C, E, A, B]) ReaderReaderIOEither[R, C, E, A] {
-	return chain.MonadChainFirst(
-		MonadChain[R, C, E, A, A],
-		MonadMap[R, C, E, B, A],
+	return readert.MonadChainFirst(
+		RIOE.MonadChainFirst,
 		fa,
 		f)
 }
@@ -604,10 +603,10 @@ func Chain[R, C, E, A, B any](f Kleisli[R, C, E, A, B]) Operator[R, C, E, A, B] 
 //
 //go:inline
 func ChainFirst[R, C, E, A, B any](f Kleisli[R, C, E, A, B]) Operator[R, C, E, A, A] {
-	return chain.ChainFirst(
-		Chain[R, C, E, A, A],
-		Map[R, C, E, B, A],
-		f)
+	return readert.ChainFirst[ReaderReaderIOEither[R, C, E, A]](
+		RIOE.ChainFirst,
+		f,
+	)
 }
 
 // Tap is an alias for ChainFirst, executing a side effect while preserving the original value.
@@ -873,4 +872,401 @@ func Defer[R, C, E, A any](fa Lazy[ReaderReaderIOEither[R, C, E, A]]) ReaderRead
 			}
 		}
 	}
+}
+
+// ChainFirstLeft chains a computation that depends on the Left value (error) but
+// discards its result, preserving the original Left value.
+//
+// This is useful for performing side effects or additional computations when an
+// error occurs, while maintaining the original error in the result. The function
+// executes only when the input is Left (error case).
+//
+// Type Parameters:
+//   - A: Success value type
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Original error type
+//   - EB: Error type of the chained computation
+//   - B: Type of the chained computation's success value (discarded)
+//
+// Parameters:
+//   - f: Kleisli arrow that takes the error and returns a new ReaderReaderIOEither computation
+//
+// Returns:
+//   - An operator that transforms a ReaderReaderIOEither, executing f on Left values
+//
+// Example:
+//
+//	type OuterCfg struct{ AppName string }
+//	type InnerCfg struct{ LogLevel string }
+//
+//	logError := func(err error) ReaderReaderIOEither[OuterCfg, InnerCfg, error, F.Void] {
+//	    return func(outer OuterCfg) ReaderIOEither[InnerCfg, error, F.Void] {
+//	        return func(inner InnerCfg) func() IOE.IOEither[error, F.Void] {
+//	            return func() IOE.IOEither[error, F.Void] {
+//	                fmt.Printf("[%s][%s] Error: %v\n", outer.AppName, inner.LogLevel, err)
+//	                return IOE.Of[error](F.VOID)
+//	            }
+//	        }
+//	    }
+//	}
+//
+//	computation := F.Pipe1(
+//	    Left[OuterCfg, InnerCfg, int](errors.New("validation failed")),
+//	    ChainFirstLeft[int](logError),
+//	)
+//
+//	result := computation(OuterCfg{AppName: "MyApp"})(InnerCfg{LogLevel: "ERROR"})()
+//	// Logs: [MyApp][ERROR] Error: validation failed
+//	// Returns: Left(validation failed)
+//
+// See Also:
+//   - ChainFirst: Chains on Right values instead of Left
+//   - TapLeft: Alias for ChainFirstLeft
+func ChainFirstLeft[A, R, C, EA, EB, B any](f Kleisli[R, C, EB, EA, B]) Operator[R, C, EA, A, A] {
+	return readert.ChainFirst[ReaderReaderIOEither[R, C, EA, A]](
+		RIOE.ChainFirstLeft[A, C, EA, EB, B],
+		f,
+	)
+}
+
+// MonadChainFirstLeft is the monadic version of ChainFirstLeft.
+//
+// Chains a computation that depends on the Left value (error) but discards its
+// result, preserving the original Left value. This is the uncurried version that
+// takes both the ReaderReaderIOEither and the function as parameters.
+//
+// Type Parameters:
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Original error type
+//   - EB: Error type of the chained computation
+//   - A: Success value type
+//   - B: Type of the chained computation's success value (discarded)
+//
+// Parameters:
+//   - ma: The input ReaderReaderIOEither computation
+//   - f: Kleisli arrow that takes the error and returns a new ReaderReaderIOEither computation
+//
+// Returns:
+//   - A ReaderReaderIOEither that executes f on Left values but preserves the original error
+//
+// Example:
+//
+//	type OuterCfg struct{ RetryCount int }
+//	type InnerCfg struct{ Timeout time.Duration }
+//
+//	incrementRetry := func(err error) ReaderReaderIOEither[OuterCfg, InnerCfg, error, F.Void] {
+//	    return func(outer OuterCfg) ReaderIOEither[InnerCfg, error, F.Void] {
+//	        return func(inner InnerCfg) func() IOE.IOEither[error, F.Void] {
+//	            return func() IOE.IOEither[error, F.Void] {
+//	                outer.RetryCount++
+//	                return IOE.Of[error](F.VOID)
+//	            }
+//	        }
+//	    }
+//	}
+//
+//	failedOp := Left[OuterCfg, InnerCfg, string](errors.New("network timeout"))
+//	result := MonadChainFirstLeft(failedOp, incrementRetry)
+//	// Increments retry count but returns: Left(network timeout)
+//
+// See Also:
+//   - ChainFirstLeft: Curried version
+//   - MonadChainFirst: Chains on Right values instead of Left
+func MonadChainFirstLeft[R, C, EA, EB, A, B any](ma ReaderReaderIOEither[R, C, EA, A], f Kleisli[R, C, EB, EA, B]) ReaderReaderIOEither[R, C, EA, A] {
+	return readert.MonadChainFirst(
+		RIOE.MonadChainFirstLeft[A, C, EA, EB, B],
+		ma,
+		f,
+	)
+}
+
+// TapLeft is an alias for ChainFirstLeft.
+//
+// Chains a computation that depends on the Left value (error) but discards its
+// result, preserving the original Left value. The name "Tap" emphasizes the
+// side-effect nature of the operation.
+//
+// This is useful for logging, metrics, or other side effects when an error occurs,
+// without modifying the error value itself.
+//
+// Type Parameters:
+//   - A: Success value type
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Original error type
+//   - EB: Error type of the chained computation
+//   - B: Type of the chained computation's success value (discarded)
+//
+// Parameters:
+//   - f: Kleisli arrow that takes the error and returns a new ReaderReaderIOEither computation
+//
+// Returns:
+//   - An operator that transforms a ReaderReaderIOEither, executing f on Left values
+//
+// Example:
+//
+//	type OuterMetrics struct{ ErrorCount int }
+//	type InnerMetrics struct{ LastError time.Time }
+//
+//	recordError := func(err error) ReaderReaderIOEither[OuterMetrics, InnerMetrics, error, F.Void] {
+//	    return func(outer OuterMetrics) ReaderIOEither[InnerMetrics, error, F.Void] {
+//	        return func(inner InnerMetrics) func() IOE.IOEither[error, F.Void] {
+//	            return func() IOE.IOEither[error, F.Void] {
+//	                outer.ErrorCount++
+//	                inner.LastError = time.Now()
+//	                return IOE.Of[error](F.VOID)
+//	            }
+//	        }
+//	    }
+//	}
+//
+//	pipeline := F.Pipe1(
+//	    Left[OuterMetrics, InnerMetrics, int](errors.New("database error")),
+//	    TapLeft[int](recordError),
+//	)
+//
+//	result := pipeline(OuterMetrics{})(InnerMetrics{})()
+//	// Increments error count and records timestamp
+//	// Returns: Left(database error)
+//
+// See Also:
+//   - ChainFirstLeft: The underlying implementation
+//   - Tap: Taps on Right values instead of Left
+func TapLeft[A, R, C, EA, EB, B any](f Kleisli[R, C, EB, EA, B]) Operator[R, C, EA, A, A] {
+	return ChainFirstLeft[A](f)
+}
+
+// MonadTapLeft is the monadic version of TapLeft.
+//
+// Chains a computation that depends on the Left value (error) but discards its
+// result, preserving the original Left value. This is the uncurried version that
+// takes both the ReaderReaderIOEither and the function as parameters. The name "Tap"
+// emphasizes the side-effect nature of the operation.
+//
+// Type Parameters:
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Original error type
+//   - EB: Error type of the chained computation
+//   - A: Success value type
+//   - B: Type of the chained computation's success value (discarded)
+//
+// Parameters:
+//   - ma: The input ReaderReaderIOEither computation
+//   - f: Kleisli arrow that takes the error and returns a new ReaderReaderIOEither computation
+//
+// Returns:
+//   - A ReaderReaderIOEither that executes f on Left values but preserves the original error
+//
+// Example:
+//
+//	type OuterLogger struct{ Prefix string }
+//	type InnerLogger struct{ Verbose bool }
+//
+//	logFailure := func(err error) ReaderReaderIOEither[OuterLogger, InnerLogger, error, F.Void] {
+//	    return func(outer OuterLogger) ReaderIOEither[InnerLogger, error, F.Void] {
+//	        return func(inner InnerLogger) func() IOE.IOEither[error, F.Void] {
+//	            return func() IOE.IOEither[error, F.Void] {
+//	                if inner.Verbose {
+//	                    fmt.Printf("%s: %v\n", outer.Prefix, err)
+//	                }
+//	                return IOE.Of[error](F.VOID)
+//	            }
+//	        }
+//	    }
+//	}
+//
+//	operation := Left[OuterLogger, InnerLogger, int](errors.New("parse error"))
+//	result := MonadTapLeft(operation, logFailure)
+//	// Logs the error with prefix if verbose mode is enabled
+//	// Returns: Left(parse error)
+//
+// See Also:
+//   - TapLeft: Curried version
+//   - MonadTap: Taps on Right values instead of Left
+func MonadTapLeft[R, C, EA, EB, A, B any](ma ReaderReaderIOEither[R, C, EA, A], f Kleisli[R, C, EB, EA, B]) ReaderReaderIOEither[R, C, EA, A] {
+	return MonadChainFirstLeft(ma, f)
+}
+
+// ChainFirstLeftIOK chains an IO computation that depends on the Left value (error)
+// but discards its result, preserving the original Left value.
+//
+// This is useful for performing IO side effects (like logging to a file or sending
+// metrics) when an error occurs, while maintaining the original error in the result.
+// The IO computation executes only when the input is Left (error case).
+//
+// Type Parameters:
+//   - A: Success value type
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Error type
+//   - B: Type of the IO computation's result (discarded)
+//
+// Parameters:
+//   - f: IO Kleisli arrow that takes the error and returns an IO computation
+//
+// Returns:
+//   - An operator that transforms a ReaderReaderIOEither, executing f on Left values
+//
+// Example:
+//
+//	logToFile := func(err error) io.IO[F.Void] {
+//	    return func() F.Void {
+//	        log.Printf("Error occurred: %v\n", err)
+//	        return F.VOID
+//	    }
+//	}
+//
+//	computation := F.Pipe1(
+//	    Left[OuterCfg, InnerCfg, int](errors.New("database error")),
+//	    ChainFirstLeftIOK[int, OuterCfg, InnerCfg](logToFile),
+//	)
+//
+//	result := computation(OuterCfg{})(InnerCfg{})()
+//	// Logs: Error occurred: database error
+//	// Returns: Left(database error)
+//
+// See Also:
+//   - ChainFirstLeft: Chains ReaderReaderIOEither computations on Left values
+//   - TapLeftIOK: Alias for ChainFirstLeftIOK
+func ChainFirstLeftIOK[A, R, C, EA, B any](f io.Kleisli[EA, B]) Operator[R, C, EA, A, A] {
+	return ChainFirstLeft[A](F.Flow2(
+		f,
+		FromIO[R, C, EA, B],
+	))
+}
+
+// MonadChainFirstLeftIOK is the monadic version of ChainFirstLeftIOK.
+//
+// Chains an IO computation that depends on the Left value (error) but discards its
+// result, preserving the original Left value. This is the uncurried version that
+// takes both the ReaderReaderIOEither and the IO function as parameters.
+//
+// Type Parameters:
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Error type
+//   - A: Success value type
+//   - B: Type of the IO computation's result (discarded)
+//
+// Parameters:
+//   - ma: The input ReaderReaderIOEither computation
+//   - f: IO Kleisli arrow that takes the error and returns an IO computation
+//
+// Returns:
+//   - A ReaderReaderIOEither that executes f on Left values but preserves the original error
+//
+// Example:
+//
+//	incrementCounter := func(err error) io.IO[F.Void] {
+//	    return func() F.Void {
+//	        errorCounter++
+//	        return F.VOID
+//	    }
+//	}
+//
+//	failedOp := Left[OuterCfg, InnerCfg, string](errors.New("timeout"))
+//	result := MonadChainFirstLeftIOK(failedOp, incrementCounter)
+//	// Increments counter but returns: Left(timeout)
+//
+// See Also:
+//   - ChainFirstLeftIOK: Curried version
+//   - MonadChainFirstLeft: Chains ReaderReaderIOEither computations on Left values
+func MonadChainFirstLeftIOK[R, C, EA, A, B any](ma ReaderReaderIOEither[R, C, EA, A], f io.Kleisli[EA, B]) ReaderReaderIOEither[R, C, EA, A] {
+	return MonadChainFirstLeft(ma, F.Flow2(
+		f,
+		FromIO[R, C, EA, B],
+	))
+}
+
+// TapLeftIOK is an alias for ChainFirstLeftIOK.
+//
+// Chains an IO computation that depends on the Left value (error) but discards its
+// result, preserving the original Left value. The name "Tap" emphasizes the
+// side-effect nature of the IO operation.
+//
+// This is useful for IO side effects like logging to files, sending metrics to
+// external services, or updating counters when an error occurs, without modifying
+// the error value itself.
+//
+// Type Parameters:
+//   - A: Success value type
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Error type
+//   - B: Type of the IO computation's result (discarded)
+//
+// Parameters:
+//   - f: IO Kleisli arrow that takes the error and returns an IO computation
+//
+// Returns:
+//   - An operator that transforms a ReaderReaderIOEither, executing f on Left values
+//
+// Example:
+//
+//	sendAlert := func(err error) io.IO[F.Void] {
+//	    return func() F.Void {
+//	        alertService.Send("Critical error: " + err.Error())
+//	        return F.VOID
+//	    }
+//	}
+//
+//	pipeline := F.Pipe1(
+//	    Left[OuterCfg, InnerCfg, int](errors.New("critical failure")),
+//	    TapLeftIOK[int, OuterCfg, InnerCfg](sendAlert),
+//	)
+//
+//	result := pipeline(OuterCfg{})(InnerCfg{})()
+//	// Sends alert to external service
+//	// Returns: Left(critical failure)
+//
+// See Also:
+//   - ChainFirstLeftIOK: The underlying implementation
+//   - TapLeft: Taps with ReaderReaderIOEither computations
+func TapLeftIOK[A, R, C, EA, B any](f io.Kleisli[EA, B]) Operator[R, C, EA, A, A] {
+	return ChainFirstLeftIOK[A, R, C](f)
+}
+
+// MonadTapLeftIOK is the monadic version of TapLeftIOK.
+//
+// Chains an IO computation that depends on the Left value (error) but discards its
+// result, preserving the original Left value. This is the uncurried version that
+// takes both the ReaderReaderIOEither and the IO function as parameters. The name
+// "Tap" emphasizes the side-effect nature of the IO operation.
+//
+// Type Parameters:
+//   - R: Outer reader environment type
+//   - C: Inner reader environment type
+//   - EA: Error type
+//   - A: Success value type
+//   - B: Type of the IO computation's result (discarded)
+//
+// Parameters:
+//   - ma: The input ReaderReaderIOEither computation
+//   - f: IO Kleisli arrow that takes the error and returns an IO computation
+//
+// Returns:
+//   - A ReaderReaderIOEither that executes f on Left values but preserves the original error
+//
+// Example:
+//
+//	writeToLog := func(err error) io.IO[F.Void] {
+//	    return func() F.Void {
+//	        logFile.WriteString(fmt.Sprintf("[ERROR] %v\n", err))
+//	        return F.VOID
+//	    }
+//	}
+//
+//	operation := Left[OuterCfg, InnerCfg, int](errors.New("parse error"))
+//	result := MonadTapLeftIOK(operation, writeToLog)
+//	// Writes error to log file
+//	// Returns: Left(parse error)
+//
+// See Also:
+//   - TapLeftIOK: Curried version
+//   - MonadTapLeft: Taps with ReaderReaderIOEither computations
+func MonadTapLeftIOK[R, C, EA, A, B any](ma ReaderReaderIOEither[R, C, EA, A], f io.Kleisli[EA, B]) ReaderReaderIOEither[R, C, EA, A] {
+	return MonadChainFirstLeftIOK(ma, f)
 }

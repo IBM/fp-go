@@ -43,7 +43,7 @@ func MonadChain[A, B, HKTA, HKTB any](
 // HKTA=HKT[A]
 // HKTB=HKT[B]
 func ChainFirst[A, B, HKTA, HKTB any](
-	mchain func(Kleisli[A, HKTA]) Operator[HKTA, HKTA],
+	mchain ChainType[A, HKTA, HKTA],
 	mmap func(func(B) A) func(HKTB) HKTA,
 	f Kleisli[A, HKTB]) Operator[HKTA, HKTA] {
 
@@ -53,7 +53,7 @@ func ChainFirst[A, B, HKTA, HKTB any](
 }
 
 func Chain[A, B, HKTA, HKTB any](
-	mchain func(Kleisli[A, HKTB]) Operator[HKTA, HKTB],
+	mchain ChainType[A, HKTA, HKTB],
 	f Kleisli[A, HKTB],
 ) Operator[HKTA, HKTB] {
 	return mchain(f)

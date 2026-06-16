@@ -85,5 +85,9 @@ type (
 
 	ChainType[A, HKTA, HKTB any] = func(func(A) HKTB) func(HKTA) HKTB
 
+	ChainFirstType[A, HKTA, HKTB any] = func(func(A) HKTB) func(HKTA) HKTA
+
 	MonadChainType[A, HKTA, HKTB any] = func(HKTA, func(A) HKTB) HKTB
+
+	MonadChainFirstType[A, HKTA, HKTB any] = func(HKTA, func(A) HKTB) HKTA
 )

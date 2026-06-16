@@ -716,3 +716,581 @@ func TestAp(t *testing.T) {
 	outcome := computation(defaultConfig)(t.Context())()
 	assert.Equal(t, result.Of(42), outcome)
 }
+
+func TestMonadApSeq(t *testing.T) {
+	fab := Of[AppConfig](N.Mul(2))
+	fa := Of[AppConfig](21)
+	computation := MonadApSeq(fab, fa)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+}
+
+func TestMonadApPar(t *testing.T) {
+	fab := Of[AppConfig](N.Mul(2))
+	fa := Of[AppConfig](21)
+	computation := MonadApPar(fab, fa)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+}
+
+func TestMonadTap(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTap(
+		Of[AppConfig](42),
+		func(n int) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = n
+			return Of[AppConfig]("ignored")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainResultK(t *testing.T) {
+	computation := F.Pipe1(
+		Of[AppConfig](21),
+		ChainResultK[AppConfig](func(n int) result.Result[int] {
+			return result.Of(n * 2)
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+}
+
+func TestDefer(t *testing.T) {
+	callCount := 0
+	computation := Defer(func() ReaderReaderIOResult[AppConfig, int] {
+		callCount++
+		return Of[AppConfig](42)
+	})
+
+	// Computation should not be evaluated yet
+	assert.Equal(t, 0, callCount)
+
+	// Now evaluate it
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 1, callCount)
+}
+
+func TestChainFirstReaderOptionK(t *testing.T) {
+	onNone := func() error { return errors.New("none") }
+	sideEffect := 0
+
+	t.Run("some", func(t *testing.T) {
+		computation := F.Pipe1(
+			Of[AppConfig](42),
+			ChainFirstReaderOptionK[AppConfig, int, int](onNone)(func(n int) readeroption.ReaderOption[AppConfig, int] {
+				sideEffect = n
+				return func(cfg AppConfig) option.Option[int] {
+					return option.Some(len(cfg.LogLevel))
+				}
+			}),
+		)
+		outcome := computation(defaultConfig)(t.Context())()
+		assert.Equal(t, result.Of(42), outcome)
+		assert.Equal(t, 42, sideEffect)
+	})
+
+	t.Run("none", func(t *testing.T) {
+		computation := F.Pipe1(
+			Of[AppConfig](42),
+			ChainFirstReaderOptionK[AppConfig, int, int](onNone)(func(n int) readeroption.ReaderOption[AppConfig, int] {
+				return func(cfg AppConfig) option.Option[int] {
+					return option.None[int]()
+				}
+			}),
+		)
+		outcome := computation(defaultConfig)(t.Context())()
+		assert.True(t, result.IsLeft(outcome))
+	})
+}
+
+func TestTapReaderOptionK(t *testing.T) {
+	onNone := func() error { return errors.New("none") }
+	sideEffect := 0
+
+	computation := F.Pipe1(
+		Of[AppConfig](42),
+		TapReaderOptionK[AppConfig, int, int](onNone)(func(n int) readeroption.ReaderOption[AppConfig, int] {
+			sideEffect = n
+			return func(cfg AppConfig) option.Option[int] {
+				return option.Some(len(cfg.LogLevel))
+			}
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainEitherK(t *testing.T) {
+	computation := MonadChainEitherK(
+		Of[AppConfig](21),
+		func(n int) either.Either[error, int] {
+			return either.Right[error](n * 2)
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+}
+
+func TestMonadChainFirstEitherK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstEitherK(
+		Of[AppConfig](42),
+		func(n int) either.Either[error, string] {
+			sideEffect = n
+			return either.Right[error]("ignored")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapEitherK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapEitherK(
+		Of[AppConfig](42),
+		func(n int) either.Either[error, string] {
+			sideEffect = n
+			return either.Right[error]("ignored")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainReaderK(t *testing.T) {
+	computation := MonadChainReaderK(
+		Of[AppConfig](10),
+		func(n int) reader.Reader[AppConfig, int] {
+			return func(cfg AppConfig) int {
+				return n + len(cfg.LogLevel)
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(14), outcome)
+}
+
+func TestMonadChainFirstReaderK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstReaderK(
+		Of[AppConfig](42),
+		func(n int) reader.Reader[AppConfig, int] {
+			sideEffect = n
+			return func(cfg AppConfig) int {
+				return len(cfg.LogLevel)
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapReaderK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapReaderK(
+		Of[AppConfig](42),
+		func(n int) reader.Reader[AppConfig, int] {
+			sideEffect = n
+			return func(cfg AppConfig) int {
+				return len(cfg.LogLevel)
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainReaderIOK(t *testing.T) {
+	computation := MonadChainReaderIOK(
+		Of[AppConfig](10),
+		func(n int) readerio.ReaderIO[AppConfig, int] {
+			return func(cfg AppConfig) io.IO[int] {
+				return func() int {
+					return n + len(cfg.DatabaseURL)
+				}
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(30), outcome)
+}
+
+func TestMonadChainFirstReaderIOK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstReaderIOK(
+		Of[AppConfig](42),
+		func(n int) readerio.ReaderIO[AppConfig, int] {
+			sideEffect = n
+			return func(cfg AppConfig) io.IO[int] {
+				return func() int {
+					return len(cfg.DatabaseURL)
+				}
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapReaderIOK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapReaderIOK(
+		Of[AppConfig](42),
+		func(n int) readerio.ReaderIO[AppConfig, int] {
+			sideEffect = n
+			return func(cfg AppConfig) io.IO[int] {
+				return func() int {
+					return len(cfg.DatabaseURL)
+				}
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainReaderEitherK(t *testing.T) {
+	computation := MonadChainReaderEitherK(
+		Of[AppConfig](10),
+		func(n int) RE.ReaderEither[AppConfig, error, int] {
+			return func(cfg AppConfig) either.Either[error, int] {
+				return either.Right[error](n + len(cfg.LogLevel))
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(14), outcome)
+}
+
+func TestMonadChainFirstReaderEitherK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstReaderEitherK(
+		Of[AppConfig](42),
+		func(n int) RE.ReaderEither[AppConfig, error, int] {
+			sideEffect = n
+			return func(cfg AppConfig) either.Either[error, int] {
+				return either.Right[error](len(cfg.LogLevel))
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapReaderEitherK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapReaderEitherK(
+		Of[AppConfig](42),
+		func(n int) RE.ReaderEither[AppConfig, error, int] {
+			sideEffect = n
+			return func(cfg AppConfig) either.Either[error, int] {
+				return either.Right[error](len(cfg.LogLevel))
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadChainIOEitherK(t *testing.T) {
+	computation := MonadChainIOEitherK(
+		Of[AppConfig](21),
+		func(n int) ioeither.IOEither[error, int] {
+			return ioeither.Of[error](n * 2)
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+}
+
+func TestMonadChainIOK(t *testing.T) {
+	computation := MonadChainIOK(
+		Of[AppConfig](21),
+		func(n int) io.IO[int] {
+			return func() int { return n * 2 }
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+}
+
+func TestMonadChainFirstIOK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstIOK(
+		Of[AppConfig](42),
+		func(n int) io.IO[int] {
+			sideEffect = n
+			return func() int { return n * 2 }
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestMonadTapIOK(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapIOK(
+		Of[AppConfig](42),
+		func(n int) io.IO[int] {
+			sideEffect = n
+			return func() int { return n * 2 }
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 42, sideEffect)
+}
+
+func TestChainFirstLeft_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := F.Pipe1(
+		Of[AppConfig](42),
+		ChainFirstLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = 1
+			return Of[AppConfig]("should not execute")
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestChainFirstLeft_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := F.Pipe1(
+		Left[AppConfig, int](err),
+		ChainFirstLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = e.Error()
+			return Of[AppConfig]("logged")
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestMonadChainFirstLeft_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstLeft(
+		Of[AppConfig](42),
+		func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = 1
+			return Of[AppConfig]("should not execute")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestMonadChainFirstLeft_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := MonadChainFirstLeft(
+		Left[AppConfig, int](err),
+		func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = e.Error()
+			return Of[AppConfig]("logged")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestTapLeft_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := F.Pipe1(
+		Of[AppConfig](42),
+		TapLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = 1
+			return Of[AppConfig]("should not execute")
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestTapLeft_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := F.Pipe1(
+		Left[AppConfig, int](err),
+		TapLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = e.Error()
+			return Of[AppConfig]("logged")
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestMonadTapLeft_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapLeft(
+		Of[AppConfig](42),
+		func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = 1
+			return Of[AppConfig]("should not execute")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestMonadTapLeft_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := MonadTapLeft(
+		Left[AppConfig, int](err),
+		func(e error) ReaderReaderIOResult[AppConfig, string] {
+			sideEffect = e.Error()
+			return Of[AppConfig]("logged")
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestChainFirstLeftIOK_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := F.Pipe1(
+		Of[AppConfig](42),
+		ChainFirstLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+			sideEffect = 1
+			return func() string { return "should not execute" }
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestChainFirstLeftIOK_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := F.Pipe1(
+		Left[AppConfig, int](err),
+		ChainFirstLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+			return func() string {
+				sideEffect = e.Error()
+				return "logged"
+			}
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestMonadChainFirstLeftIOK_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := MonadChainFirstLeftIOK(
+		Of[AppConfig](42),
+		func(e error) io.IO[string] {
+			sideEffect = 1
+			return func() string { return "should not execute" }
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestMonadChainFirstLeftIOK_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := MonadChainFirstLeftIOK(
+		Left[AppConfig, int](err),
+		func(e error) io.IO[string] {
+			return func() string {
+				sideEffect = e.Error()
+				return "logged"
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestTapLeftIOK_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := F.Pipe1(
+		Of[AppConfig](42),
+		TapLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+			sideEffect = 1
+			return func() string { return "should not execute" }
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestTapLeftIOK_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := F.Pipe1(
+		Left[AppConfig, int](err),
+		TapLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+			return func() string {
+				sideEffect = e.Error()
+				return "logged"
+			}
+		}),
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}
+
+func TestMonadTapLeftIOK_SuccessCase(t *testing.T) {
+	sideEffect := 0
+	computation := MonadTapLeftIOK(
+		Of[AppConfig](42),
+		func(e error) io.IO[string] {
+			sideEffect = 1
+			return func() string { return "should not execute" }
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.Equal(t, result.Of(42), outcome)
+	assert.Equal(t, 0, sideEffect)
+}
+
+func TestMonadTapLeftIOK_FailureCase(t *testing.T) {
+	err := errors.New("original error")
+	sideEffect := ""
+	computation := MonadTapLeftIOK(
+		Left[AppConfig, int](err),
+		func(e error) io.IO[string] {
+			return func() string {
+				sideEffect = e.Error()
+				return "logged"
+			}
+		},
+	)
+	outcome := computation(defaultConfig)(t.Context())()
+	assert.True(t, result.IsLeft(outcome))
+	assert.Equal(t, "original error", sideEffect)
+}

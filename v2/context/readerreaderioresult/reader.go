@@ -171,6 +171,10 @@ func ChainEitherK[R, A, B any](f either.Kleisli[error, A, B]) Operator[R, A, B] 
 	)
 }
 
+// ChainResultK chains a computation that returns a Result.
+// The Result is automatically lifted into ReaderReaderIOResult.
+// This is the curried version that returns an operator.
+//
 //go:inline
 func ChainResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
 	return fromeither.ChainEitherK(
@@ -895,7 +899,81 @@ func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
 	return reader.Map[R](RIOE.Delay[A](delay))
 }
 
+// Defer delays the evaluation of a ReaderReaderIOResult computation.
+// The computation is not evaluated until the returned function is called.
+// Useful for lazy evaluation and avoiding stack overflow in recursive scenarios.
+//
 //go:inline
 func Defer[R, A any](fa Lazy[ReaderReaderIOResult[R, A]]) ReaderReaderIOResult[R, A] {
 	return RRIOE.Defer(fa)
+}
+
+// ChainFirstLeft chains a computation on the error path but preserves the original value.
+// If the computation succeeds, the original value is returned unchanged.
+// If it fails, the error handler f is executed, and its result determines the final outcome.
+// This is the curried version that returns an operator.
+//
+//go:inline
+func ChainFirstLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
+	return RRIOE.ChainFirstLeft[A](f)
+}
+
+// MonadChainFirstLeft chains a computation on the error path but preserves the original value.
+// If the computation succeeds, the original value is returned unchanged.
+// If it fails, the error handler f is executed, and its result determines the final outcome.
+// This is the monadic version that takes the computation as the first parameter.
+//
+//go:inline
+func MonadChainFirstLeft[R, A, B any](ma ReaderReaderIOResult[R, A], f Kleisli[R, error, B]) ReaderReaderIOResult[R, A] {
+	return RRIOE.MonadChainFirstLeft(ma, f)
+}
+
+// TapLeft is an alias for ChainFirstLeft.
+// Executes a side effect on the error path while preserving the original value or error.
+//
+//go:inline
+func TapLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
+	return RRIOE.TapLeft[A](f)
+}
+
+// MonadTapLeft is an alias for MonadChainFirstLeft.
+// Executes a side effect on the error path while preserving the original value or error.
+//
+//go:inline
+func MonadTapLeft[R, A, B any](ma ReaderReaderIOResult[R, A], f Kleisli[R, error, B]) ReaderReaderIOResult[R, A] {
+	return RRIOE.MonadTapLeft(ma, f)
+}
+
+// ChainFirstLeftIOK chains an IO computation on the error path but preserves the original value.
+// The IO computation is automatically lifted into ReaderReaderIOResult.
+// This is the curried version that returns an operator.
+//
+//go:inline
+func ChainFirstLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
+	return RRIOE.ChainFirstLeftIOK[A, R, context.Context](f)
+}
+
+// MonadChainFirstLeftIOK chains an IO computation on the error path but preserves the original value.
+// The IO computation is automatically lifted into ReaderReaderIOResult.
+// This is the monadic version that takes the computation as the first parameter.
+//
+//go:inline
+func MonadChainFirstLeftIOK[R, A, B any](ma ReaderReaderIOResult[R, A], f io.Kleisli[error, B]) ReaderReaderIOResult[R, A] {
+	return RRIOE.MonadChainFirstLeftIOK(ma, f)
+}
+
+// TapLeftIOK is an alias for ChainFirstLeftIOK.
+// Executes an IO side effect on the error path while preserving the original value or error.
+//
+//go:inline
+func TapLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
+	return RRIOE.TapLeftIOK[A, R, context.Context](f)
+}
+
+// MonadTapLeftIOK is an alias for MonadChainFirstLeftIOK.
+// Executes an IO side effect on the error path while preserving the original value or error.
+//
+//go:inline
+func MonadTapLeftIOK[R, A, B any](ma ReaderReaderIOResult[R, A], f io.Kleisli[error, B]) ReaderReaderIOResult[R, A] {
+	return RRIOE.MonadTapLeftIOK(ma, f)
 }

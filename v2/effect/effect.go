@@ -961,3 +961,112 @@ func MonadAlt[R, A any](first Effect[R, A], second Lazy[Effect[R, A]]) Effect[R,
 func Alt[R, A any](second Lazy[Effect[R, A]]) Operator[R, A, A] {
 	return readerreaderioresult.Alt(second)
 }
+
+// ChainFirstLeft chains a computation on the error path but preserves the original value.
+// If the effect succeeds, the original value is returned unchanged.
+// If it fails, the error handler f is executed, and its result determines the final outcome.
+// This is the curried version that returns an operator.
+//
+// Use cases:
+//   - Error logging without changing the error
+//   - Error recovery with fallback logic
+//   - Side effects on error path
+//
+// See Also:
+//   - TapLeft: Alias for this function
+//   - MonadChainFirstLeft: Monadic version
+//   - ChainLeft: Similar but replaces the error
+func ChainFirstLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
+	return readerreaderioresult.ChainFirstLeft[A](f)
+}
+
+// MonadChainFirstLeft chains a computation on the error path but preserves the original value.
+// If the effect succeeds, the original value is returned unchanged.
+// If it fails, the error handler f is executed, and its result determines the final outcome.
+// This is the monadic version that takes the effect as the first parameter.
+//
+// See Also:
+//   - MonadTapLeft: Alias for this function
+//   - ChainFirstLeft: Curried version
+func MonadChainFirstLeft[R, A, B any](ma Effect[R, A], f Kleisli[R, error, B]) Effect[R, A] {
+	return readerreaderioresult.MonadChainFirstLeft(ma, f)
+}
+
+// TapLeft is an alias for ChainFirstLeft.
+// Executes a side effect on the error path while preserving the original value or error.
+//
+// Common use cases:
+//   - Logging errors without modifying them
+//   - Sending error notifications
+//   - Recording error metrics
+//
+// See Also:
+//   - ChainFirstLeft: The underlying implementation
+//   - MonadTapLeft: Monadic version
+func TapLeft[A, R, B any](f Kleisli[R, error, B]) Operator[R, A, A] {
+	return readerreaderioresult.TapLeft[A](f)
+}
+
+// MonadTapLeft is an alias for MonadChainFirstLeft.
+// Executes a side effect on the error path while preserving the original value or error.
+// This is the monadic version that takes the effect as the first parameter.
+//
+// See Also:
+//   - TapLeft: Curried version
+//   - MonadChainFirstLeft: The underlying implementation
+func MonadTapLeft[R, A, B any](ma Effect[R, A], f Kleisli[R, error, B]) Effect[R, A] {
+	return readerreaderioresult.MonadTapLeft(ma, f)
+}
+
+// ChainFirstLeftIOK chains an IO computation on the error path but preserves the original value.
+// The IO computation is automatically lifted into Effect.
+// This is the curried version that returns an operator.
+//
+// Use cases:
+//   - Logging errors to console or file
+//   - Sending error notifications via IO
+//   - Recording metrics on error
+//
+// See Also:
+//   - TapLeftIOK: Alias for this function
+//   - MonadChainFirstLeftIOK: Monadic version
+func ChainFirstLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
+	return readerreaderioresult.ChainFirstLeftIOK[A, R](f)
+}
+
+// MonadChainFirstLeftIOK chains an IO computation on the error path but preserves the original value.
+// The IO computation is automatically lifted into Effect.
+// This is the monadic version that takes the effect as the first parameter.
+//
+// See Also:
+//   - MonadTapLeftIOK: Alias for this function
+//   - ChainFirstLeftIOK: Curried version
+func MonadChainFirstLeftIOK[R, A, B any](ma Effect[R, A], f io.Kleisli[error, B]) Effect[R, A] {
+	return readerreaderioresult.MonadChainFirstLeftIOK(ma, f)
+}
+
+// TapLeftIOK is an alias for ChainFirstLeftIOK.
+// Executes an IO side effect on the error path while preserving the original value or error.
+//
+// Common use cases:
+//   - Logging errors to console: func(e error) io.IO[Void] { return func() Void { fmt.Println(e); return VOID } }
+//   - Writing errors to file
+//   - Sending error notifications
+//
+// See Also:
+//   - ChainFirstLeftIOK: The underlying implementation
+//   - MonadTapLeftIOK: Monadic version
+func TapLeftIOK[A, R, B any](f io.Kleisli[error, B]) Operator[R, A, A] {
+	return readerreaderioresult.TapLeftIOK[A, R](f)
+}
+
+// MonadTapLeftIOK is an alias for MonadChainFirstLeftIOK.
+// Executes an IO side effect on the error path while preserving the original value or error.
+// This is the monadic version that takes the effect as the first parameter.
+//
+// See Also:
+//   - TapLeftIOK: Curried version
+//   - MonadChainFirstLeftIOK: The underlying implementation
+func MonadTapLeftIOK[R, A, B any](ma Effect[R, A], f io.Kleisli[error, B]) Effect[R, A] {
+	return readerreaderioresult.MonadTapLeftIOK(ma, f)
+}

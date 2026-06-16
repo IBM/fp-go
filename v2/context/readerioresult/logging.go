@@ -29,7 +29,6 @@ import (
 	"github.com/IBM/fp-go/v2/logging"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
-	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -460,17 +459,15 @@ func curriedLog(
 func SLogWithCallback[A any](
 	logLevel slog.Level,
 	cb Reader[context.Context, *slog.Logger],
-	message string) Kleisli[Result[A], A] {
+	message string) Kleisli[Result[A], Void] {
 
-	return F.Pipe1(
-		F.Flow2(
-			// create the attribute to log depending on the condition
-			result.ToSLogAttr[A](),
-			// create an `IO` that logs the attribute
-			curriedLog(logLevel, cb, message),
-		),
-		// preserve the original context
-		reader.Chain(reader.Sequence(readerio.MapTo[Void, Result[A]])),
+	return F.Flow3(
+		// create the attribute to log depending on the condition
+		result.ToSLogAttr[A](),
+		// create an `IO` that logs the attribute
+		curriedLog(logLevel, cb, message),
+		//
+		FromReaderIO,
 	)
 }
 
@@ -536,7 +533,7 @@ func SLogWithCallback[A any](
 // For logging only successful values, use TapSLog instead.
 //
 //go:inline
-func SLog[A any](message string) Kleisli[Result[A], A] {
+func SLog[A any](message string) Kleisli[Result[A], Void] {
 	return SLogWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, message)
 }
 
@@ -644,4 +641,46 @@ func SLog[A any](message string) Kleisli[Result[A], A] {
 //go:inline
 func TapSLog[A any](message string) Operator[A, A] {
 	return readerio.ChainFirst(SLog[A](message))
+}
+
+// SLogLeft creates a Kleisli arrow that logs an error and returns it as a Left Result.
+//
+// This function is specifically designed for error handling scenarios where you want to:
+//   - Log an error at Error level with a descriptive message
+//   - Convert the error into a ReaderIOResult[Void] containing Left(error)
+//   - Continue the computation with the error propagated
+//
+// Unlike SLog which logs both success and error Results, SLogLeft is specialized for
+// error-only scenarios. It takes a raw error value, logs it with the provided message,
+// and wraps it in a Left Result.
+//
+// The logged output includes:
+//   - The message as the main log text
+//   - The error as a structured "error" attribute
+//   - Log level is always Error
+//
+// Type Parameters:
+//   - None (input is error, output is Void)
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - A Kleisli arrow that takes an error, logs it, and returns ReaderIOResult[Void] with Left(error)
+//
+// See Also:
+//   - SLog: For logging both success and error Results
+//   - TapSLog: For logging values without converting them
+func SLogLeft(message string) Kleisli[error, Void] {
+	return F.Flow2(
+		result.Left[Void],
+		SLogWithCallback[Void](slog.LevelError, logging.GetLoggerFromContext, message),
+	)
+}
+
+func SLogRight[A any](message string) Kleisli[A, Void] {
+	return F.Flow2(
+		result.Of[A],
+		SLog[A](message),
+	)
 }

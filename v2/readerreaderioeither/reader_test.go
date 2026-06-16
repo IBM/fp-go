@@ -951,3 +951,652 @@ func TestCompositionWithBothContexts(t *testing.T) {
 	result := pipeline(outer)(inner)()
 	assert.Equal(t, E.Right[error]("postgres:secret"), result)
 }
+
+func TestChainFirstLeft_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		sideEffect := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			executed = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := F.Pipe1(
+			Right[OuterConfig, InnerConfig, error](42),
+			ChainFirstLeft[int](sideEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "side effect should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestChainFirstLeft_Failure(t *testing.T) {
+	t.Run("executes on Left value and preserves original error", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("original error")
+		var capturedErr error
+		var capturedOuter OuterConfig
+		var capturedInner InnerConfig
+
+		sideEffect := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			return func(r OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, F.Void] {
+				capturedErr = e
+				capturedOuter = r
+				return func(c InnerConfig) IOE.IOEither[error, F.Void] {
+					capturedInner = c
+					return IOE.Of[error](F.VOID)
+				}
+			}
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			ChainFirstLeft[int](sideEffect),
+		)
+
+		outer := OuterConfig{database: "test", logLevel: "debug"}
+		inner := InnerConfig{apiKey: "key", timeout: 10}
+
+		// Act
+		result := computation(outer)(inner)()
+
+		// Assert
+		assert.Equal(t, originalErr, capturedErr, "should capture original error")
+		assert.Equal(t, outer, capturedOuter, "should pass outer context")
+		assert.Equal(t, inner, capturedInner, "should pass inner context")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+
+	t.Run("preserves original error even if side effect returns different error", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("original error")
+		sideEffectErr := errors.New("side effect error")
+
+		sideEffect := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			return Left[OuterConfig, InnerConfig, F.Void](sideEffectErr)
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			ChainFirstLeft[int](sideEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error, not side effect error")
+	})
+}
+
+func TestMonadChainFirstLeft_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		sideEffect := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			executed = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := Right[OuterConfig, InnerConfig, error](42)
+
+		// Act
+		result := MonadChainFirstLeft(computation, sideEffect)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "side effect should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestMonadChainFirstLeft_Failure(t *testing.T) {
+	t.Run("executes on Left value and preserves original error", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("original error")
+		var capturedErr error
+
+		sideEffect := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			capturedErr = e
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := Left[OuterConfig, InnerConfig, int](originalErr)
+
+		// Act
+		result := MonadChainFirstLeft(computation, sideEffect)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, originalErr, capturedErr, "should capture original error")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+}
+
+func TestTapLeft_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		tap := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			executed = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := F.Pipe1(
+			Right[OuterConfig, InnerConfig, error](42),
+			TapLeft[int](tap),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "tap should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestTapLeft_Failure(t *testing.T) {
+	t.Run("executes tap on Left value for logging", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("validation failed")
+		var loggedErr error
+		var logLevel string
+
+		logError := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			return func(r OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, F.Void] {
+				loggedErr = e
+				logLevel = r.logLevel
+				return RIOE.Of[InnerConfig, error](F.VOID)
+			}
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeft[int](logError),
+		)
+
+		// Act
+		result := computation(OuterConfig{logLevel: "ERROR"})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, originalErr, loggedErr, "should log the error")
+		assert.Equal(t, "ERROR", logLevel, "should pass log level")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+
+	t.Run("chains multiple taps", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("network error")
+		var tap1Executed, tap2Executed bool
+
+		tap1 := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			tap1Executed = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		tap2 := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			tap2Executed = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := F.Pipe2(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeft[int](tap1),
+			TapLeft[int](tap2),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.True(t, tap1Executed, "first tap should execute")
+		assert.True(t, tap2Executed, "second tap should execute")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+}
+
+func TestMonadTapLeft_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		tap := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			executed = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := Right[OuterConfig, InnerConfig, error](42)
+
+		// Act
+		result := MonadTapLeft(computation, tap)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "tap should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestMonadTapLeft_Failure(t *testing.T) {
+	t.Run("executes tap on Left value for metrics", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("database error")
+		errorCount := 0
+
+		recordMetric := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			errorCount++
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := Left[OuterConfig, InnerConfig, int](originalErr)
+
+		// Act
+		result := MonadTapLeft(computation, recordMetric)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, 1, errorCount, "should increment error count")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+}
+
+func TestChainFirstLeft_EdgeCases(t *testing.T) {
+	t.Run("handles nil error in side effect", func(t *testing.T) {
+		// Arrange
+		var capturedErr error
+
+		sideEffect := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			capturedErr = e
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		var nilErr error
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](nilErr),
+			ChainFirstLeft[int](sideEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Nil(t, capturedErr, "should handle nil error")
+		assert.Equal(t, E.Left[int](nilErr), result)
+	})
+}
+
+func TestTapLeft_Integration(t *testing.T) {
+	t.Run("integrates with other operations", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("parse error")
+		var logged bool
+
+		logError := func(e error) ReaderReaderIOEither[OuterConfig, InnerConfig, error, F.Void] {
+			logged = true
+			return Right[OuterConfig, InnerConfig, error](F.VOID)
+		}
+
+		computation := F.Pipe3(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeft[int](logError),
+			MapLeft[OuterConfig, InnerConfig, int](func(e error) error {
+				return errors.New("wrapped: " + e.Error())
+			}),
+			Map[OuterConfig, InnerConfig, error](func(x int) int { return x * 2 }),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.True(t, logged, "should execute tap before MapLeft")
+		err := F.Pipe1(result, E.Fold(
+			F.Identity[error],
+			func(_ int) error { t.Fatal("expected Left"); return nil },
+		))
+		assert.Equal(t, "wrapped: parse error", err.Error(), "should apply MapLeft transformation")
+	})
+}
+
+func TestChainFirstLeftIOK_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		ioEffect := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				executed = true
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe1(
+			Right[OuterConfig, InnerConfig, error](42),
+			ChainFirstLeftIOK[int, OuterConfig, InnerConfig](ioEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "IO effect should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestChainFirstLeftIOK_Failure(t *testing.T) {
+	t.Run("executes IO on Left value and preserves original error", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("original error")
+		var capturedErr error
+
+		ioEffect := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				capturedErr = e
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			ChainFirstLeftIOK[int, OuterConfig, InnerConfig](ioEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, originalErr, capturedErr, "should capture original error in IO")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+
+	t.Run("preserves original error even if IO returns different value", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("original error")
+		ioCounter := 0
+
+		ioEffect := func(e error) io.IO[int] {
+			return func() int {
+				ioCounter++
+				return 999
+			}
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			ChainFirstLeftIOK[int, OuterConfig, InnerConfig](ioEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, 1, ioCounter, "IO should execute")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error, not IO result")
+	})
+}
+
+func TestMonadChainFirstLeftIOK_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		ioEffect := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				executed = true
+				return F.VOID
+			}
+		}
+
+		computation := Right[OuterConfig, InnerConfig, error](42)
+
+		// Act
+		result := MonadChainFirstLeftIOK(computation, ioEffect)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "IO effect should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestMonadChainFirstLeftIOK_Failure(t *testing.T) {
+	t.Run("executes IO on Left value and preserves original error", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("original error")
+		var capturedErr error
+
+		ioEffect := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				capturedErr = e
+				return F.VOID
+			}
+		}
+
+		computation := Left[OuterConfig, InnerConfig, int](originalErr)
+
+		// Act
+		result := MonadChainFirstLeftIOK(computation, ioEffect)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, originalErr, capturedErr, "should capture original error in IO")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+}
+
+func TestTapLeftIOK_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		ioTap := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				executed = true
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe1(
+			Right[OuterConfig, InnerConfig, error](42),
+			TapLeftIOK[int, OuterConfig, InnerConfig](ioTap),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "IO tap should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestTapLeftIOK_Failure(t *testing.T) {
+	t.Run("executes IO tap on Left value for logging", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("validation failed")
+		var loggedErr error
+
+		logToIO := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				loggedErr = e
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeftIOK[int, OuterConfig, InnerConfig](logToIO),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, originalErr, loggedErr, "should log the error via IO")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+
+	t.Run("chains multiple IO taps", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("network error")
+		var tap1Executed, tap2Executed bool
+
+		ioTap1 := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				tap1Executed = true
+				return F.VOID
+			}
+		}
+
+		ioTap2 := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				tap2Executed = true
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe2(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeftIOK[int, OuterConfig, InnerConfig](ioTap1),
+			TapLeftIOK[int, OuterConfig, InnerConfig](ioTap2),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.True(t, tap1Executed, "first IO tap should execute")
+		assert.True(t, tap2Executed, "second IO tap should execute")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+
+	t.Run("IO tap for metrics collection", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("database error")
+		errorCount := 0
+
+		recordMetric := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				errorCount++
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeftIOK[int, OuterConfig, InnerConfig](recordMetric),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, 1, errorCount, "should increment error count via IO")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+}
+
+func TestMonadTapLeftIOK_Success(t *testing.T) {
+	t.Run("does not execute on Right value", func(t *testing.T) {
+		// Arrange
+		executed := false
+		ioTap := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				executed = true
+				return F.VOID
+			}
+		}
+
+		computation := Right[OuterConfig, InnerConfig, error](42)
+
+		// Act
+		result := MonadTapLeftIOK(computation, ioTap)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.False(t, executed, "IO tap should not execute on Right")
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestMonadTapLeftIOK_Failure(t *testing.T) {
+	t.Run("executes IO tap on Left value for metrics", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("database error")
+		errorCount := 0
+
+		recordMetric := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				errorCount++
+				return F.VOID
+			}
+		}
+
+		computation := Left[OuterConfig, InnerConfig, int](originalErr)
+
+		// Act
+		result := MonadTapLeftIOK(computation, recordMetric)(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, 1, errorCount, "should increment error count via IO")
+		assert.Equal(t, E.Left[int](originalErr), result, "should preserve original error")
+	})
+}
+
+func TestTapLeftIOK_Integration(t *testing.T) {
+	t.Run("integrates with other operations", func(t *testing.T) {
+		// Arrange
+		originalErr := errors.New("parse error")
+		var logged bool
+
+		logError := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				logged = true
+				return F.VOID
+			}
+		}
+
+		computation := F.Pipe3(
+			Left[OuterConfig, InnerConfig, int](originalErr),
+			TapLeftIOK[int, OuterConfig, InnerConfig](logError),
+			MapLeft[OuterConfig, InnerConfig, int](func(e error) error {
+				return errors.New("wrapped: " + e.Error())
+			}),
+			Map[OuterConfig, InnerConfig, error](func(x int) int { return x * 2 }),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.True(t, logged, "should execute IO tap before MapLeft")
+		err := F.Pipe1(result, E.Fold(
+			F.Identity[error],
+			func(_ int) error { t.Fatal("expected Left"); return nil },
+		))
+		assert.Equal(t, "wrapped: parse error", err.Error(), "should apply MapLeft transformation")
+	})
+}
+
+func TestChainFirstLeftIOK_EdgeCases(t *testing.T) {
+	t.Run("handles nil error in IO effect", func(t *testing.T) {
+		// Arrange
+		var capturedErr error
+
+		ioEffect := func(e error) io.IO[F.Void] {
+			return func() F.Void {
+				capturedErr = e
+				return F.VOID
+			}
+		}
+
+		var nilErr error
+		computation := F.Pipe1(
+			Left[OuterConfig, InnerConfig, int](nilErr),
+			ChainFirstLeftIOK[int, OuterConfig, InnerConfig](ioEffect),
+		)
+
+		// Act
+		result := computation(OuterConfig{})(InnerConfig{})()
+
+		// Assert
+		assert.Nil(t, capturedErr, "should handle nil error in IO")
+		assert.Equal(t, E.Left[int](nilErr), result)
+	})
+}
