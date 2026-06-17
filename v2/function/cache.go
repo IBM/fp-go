@@ -73,6 +73,12 @@ func Memoize[K comparable, T any](f func(K) T) func(K) T {
 //   - This enables caching for non-comparable types by extracting comparable keys
 //   - The cache is thread-safe and unbounded
 //
+// Correctness Contract:
+//   - kf must faithfully partition the inputs for f: if kf(a1) == kf(a2), then f(a1) and f(a2) must produce equal results.
+//   - The first call for a given key determines the cached value. All subsequent calls that map to the same key
+//     return that cached value regardless of their actual input — even if f would return a different result for them.
+//   - Violating this contract causes silent incorrect behavior: no error is returned, but callers receive stale results.
+//
 // Use Cases:
 //   - Cache by a subset of struct fields (e.g., User.ID instead of entire User)
 //   - Cache by a computed property (e.g., string length, hash value)

@@ -26,7 +26,12 @@ func Memoize[F ~func(K) T, K comparable, T any](f F) F {
 	return ContramapMemoize[F](func(k K) K { return k })(f)
 }
 
-// ContramapMemoize converts a unary function into a unary function that caches the value depending on the parameter
+// ContramapMemoize converts a unary function into a memoized version that caches results by a derived key.
+//
+// kf extracts a comparable cache key from the input. Two inputs a1, a2 with kf(a1) == kf(a2) share one
+// cache entry: the result computed on the first call for that key is returned for all later calls that map
+// to it, regardless of the actual input. The caller is responsible for ensuring that equal keys imply
+// equal outputs — violating this produces silently incorrect results.
 func ContramapMemoize[F ~func(A) T, KF func(A) K, A any, K comparable, T any](kf KF) func(F) F {
 	return CacheCallback[func(F) F](kf, getOrCreate[K, T]())
 }

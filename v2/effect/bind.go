@@ -29,26 +29,15 @@ import (
 // This is the starting point for do-notation style effect composition,
 // allowing you to build up complex state transformations step by step.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effect
 //   - S: The state type
 //
-// # Parameters
-//
+// Parameters:
 //   - empty: The initial state value
 //
-// # Returns
-//
+// Returns:
 //   - Effect[C, S]: An effect that produces the initial state
-//
-// # Example
-//
-//	type State struct {
-//		Name string
-//		Age  int
-//	}
-//	eff := effect.Do[MyContext](State{})
 //
 //go:inline
 func Do[C, S any](
@@ -61,35 +50,18 @@ func Do[C, S any](
 // This is the core operation for do-notation, allowing you to sequence effects
 // while accumulating results in a state structure.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effects
 //   - S1: The input state type
 //   - S2: The output state type
 //   - T: The type of value produced by the effect
 //
-// # Parameters
-//
+// Parameters:
 //   - setter: A function that takes the effect result and returns a state updater
 //   - f: An effectful computation that depends on the current state
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S1, S2]: A function that transforms the state effect
-//
-// # Example
-//
-//	eff := effect.Bind(
-//		func(age int) func(State) State {
-//			return func(s State) State {
-//				s.Age = age
-//				return s
-//			}
-//		},
-//		func(s State) Effect[MyContext, int] {
-//			return effect.Of[MyContext](30)
-//		},
-//	)(effect.Do[MyContext](State{}))
 //
 //go:inline
 func Bind[C, S1, S2, T any](
@@ -102,35 +74,18 @@ func Bind[C, S1, S2, T any](
 // Let computes a pure value from the current state and binds it to the state.
 // Unlike Bind, this doesn't perform any effects - it's for pure computations.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effect
 //   - S1: The input state type
 //   - S2: The output state type
 //   - T: The type of computed value
 //
-// # Parameters
-//
+// Parameters:
 //   - setter: A function that takes the computed value and returns a state updater
 //   - f: A pure function that computes a value from the current state
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S1, S2]: A function that transforms the state effect
-//
-// # Example
-//
-//	eff := effect.Let[MyContext](
-//		func(nameLen int) func(State) State {
-//			return func(s State) State {
-//				s.NameLength = nameLen
-//				return s
-//			}
-//		},
-//		func(s State) int {
-//			return len(s.Name)
-//		},
-//	)(stateEff)
 //
 //go:inline
 func Let[C, S1, S2, T any](
@@ -143,33 +98,18 @@ func Let[C, S1, S2, T any](
 // LetTo binds a constant value to the state.
 // This is useful for setting fixed values in your state structure.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effect
 //   - S1: The input state type
 //   - S2: The output state type
 //   - T: The type of the constant value
 //
-// # Parameters
-//
+// Parameters:
 //   - setter: A function that takes the constant and returns a state updater
 //   - b: The constant value to bind
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S1, S2]: A function that transforms the state effect
-//
-// # Example
-//
-//	eff := effect.LetTo[MyContext](
-//		func(age int) func(State) State {
-//			return func(s State) State {
-//				s.Age = age
-//				return s
-//			}
-//		},
-//		42,
-//	)(stateEff)
 //
 //go:inline
 func LetTo[C, S1, S2, T any](
@@ -183,25 +123,16 @@ func LetTo[C, S1, S2, T any](
 // This is typically used to start a bind chain by converting a simple value
 // into a state structure.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effect
 //   - S1: The state type to create
 //   - T: The type of the input value
 //
-// # Parameters
-//
+// Parameters:
 //   - setter: A function that creates a state from the value
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, T, S1]: A function that wraps the value in state
-//
-// # Example
-//
-//	eff := effect.BindTo[MyContext](func(name string) State {
-//		return State{Name: name}
-//	})(effect.Of[MyContext]("Alice"))
 //
 //go:inline
 func BindTo[C, S1, T any](
@@ -214,34 +145,18 @@ func BindTo[C, S1, T any](
 // This is similar to Bind but takes a pre-existing effect rather than a function
 // that creates an effect from the state.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effects
 //   - S1: The input state type
 //   - S2: The output state type
 //   - T: The type of value produced by the effect
 //
-// # Parameters
-//
+// Parameters:
 //   - setter: A function that takes the effect result and returns a state updater
 //   - fa: The effect to apply
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S1, S2]: A function that transforms the state effect
-//
-// # Example
-//
-//	ageEffect := effect.Of[MyContext](30)
-//	eff := effect.ApS(
-//		func(age int) func(State) State {
-//			return func(s State) State {
-//				s.Age = age
-//				return s
-//			}
-//		},
-//		ageEffect,
-//	)(stateEff)
 //
 //go:inline
 func ApS[C, S1, S2, T any](
@@ -254,29 +169,17 @@ func ApS[C, S1, S2, T any](
 // ApSL applies an effect and updates a field in the state using a lens.
 // This provides a more ergonomic way to update nested state structures.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effects
 //   - S: The state type
 //   - T: The type of the field being updated
 //
-// # Parameters
-//
+// Parameters:
 //   - lens: A lens focusing on the field to update
 //   - fa: The effect producing the new field value
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S, S]: A function that updates the state field
-//
-// # Example
-//
-//	ageLens := lens.MakeLens(
-//		func(s State) int { return s.Age },
-//		func(s State, age int) State { s.Age = age; return s },
-//	)
-//	ageEffect := effect.Of[MyContext](30)
-//	eff := effect.ApSL(ageLens, ageEffect)(stateEff)
 //
 //go:inline
 func ApSL[C, S, T any](
@@ -289,33 +192,17 @@ func ApSL[C, S, T any](
 // BindL executes an effectful computation on a field and updates it using a lens.
 // The effect function receives the current field value and produces a new value.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effects
 //   - S: The state type
 //   - T: The type of the field being updated
 //
-// # Parameters
-//
+// Parameters:
 //   - lens: A lens focusing on the field to update
 //   - f: An effectful function that transforms the field value
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S, S]: A function that updates the state field
-//
-// # Example
-//
-//	ageLens := lens.MakeLens(
-//		func(s State) int { return s.Age },
-//		func(s State, age int) State { s.Age = age; return s },
-//	)
-//	eff := effect.BindL(
-//		ageLens,
-//		func(age int) Effect[MyContext, int] {
-//			return effect.Of[MyContext](age + 1)
-//		},
-//	)(stateEff)
 //
 //go:inline
 func BindL[C, S, T any](
@@ -328,31 +215,17 @@ func BindL[C, S, T any](
 // LetL computes a new field value from the current value using a lens.
 // This is a pure transformation of a field within the state.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effect
 //   - S: The state type
 //   - T: The type of the field being updated
 //
-// # Parameters
-//
+// Parameters:
 //   - lens: A lens focusing on the field to update
 //   - f: A pure function that transforms the field value
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S, S]: A function that updates the state field
-//
-// # Example
-//
-//	ageLens := lens.MakeLens(
-//		func(s State) int { return s.Age },
-//		func(s State, age int) State { s.Age = age; return s },
-//	)
-//	eff := effect.LetL[MyContext](
-//		ageLens,
-//		func(age int) int { return age * 2 },
-//	)(stateEff)
 //
 //go:inline
 func LetL[C, S, T any](
@@ -364,28 +237,17 @@ func LetL[C, S, T any](
 
 // LetToL sets a field to a constant value using a lens.
 //
-// # Type Parameters
-//
+// Type Parameters:
 //   - C: The context type required by the effect
 //   - S: The state type
 //   - T: The type of the field being updated
 //
-// # Parameters
-//
+// Parameters:
 //   - lens: A lens focusing on the field to update
 //   - b: The constant value to set
 //
-// # Returns
-//
+// Returns:
 //   - Operator[C, S, S]: A function that updates the state field
-//
-// # Example
-//
-//	ageLens := lens.MakeLens(
-//		func(s State) int { return s.Age },
-//		func(s State, age int) State { s.Age = age; return s },
-//	)
-//	eff := effect.LetToL[MyContext](ageLens, 42)(stateEff)
 //
 //go:inline
 func LetToL[C, S, T any](
