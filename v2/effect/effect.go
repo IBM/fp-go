@@ -64,6 +64,11 @@ func FromThunk[C, A any](f Thunk[A]) Effect[C, A] {
 }
 
 //go:inline
+func FromIO[C, A any](f IO[A]) Effect[C, A] {
+	return readerreaderioresult.FromIO[C](f)
+}
+
+//go:inline
 func FromResult[C, A any](r Result[A]) Effect[C, A] {
 	return readerreaderioresult.FromEither[C](r)
 }

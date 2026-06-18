@@ -52,6 +52,11 @@ func FromEither[A any](e Either[A]) ReaderIOResult[A] {
 	return RIOR.FromEither[context.Context](e)
 }
 
+//go:inline
+func FromOption[A any](onNone Lazy[error]) Kleisli[Option[A], A] {
+	return RIOR.FromOption[context.Context, A](onNone)
+}
+
 // FromEither converts an [Either] into a [ReaderIOResult].
 // The resulting computation ignores the context and immediately returns the Either value.
 //

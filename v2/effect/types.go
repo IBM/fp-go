@@ -27,6 +27,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -115,4 +116,6 @@ type (
 	// This matches the signature of typical service methods in Go and can be lifted into
 	// the functional style with [FromIdiomatic].
 	KleisliI[R, A, B any] = readerreaderioresult.KleisliI[R, A, B]
+
+	Option[T any] = option.Option[T]
 )
