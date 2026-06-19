@@ -285,7 +285,7 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 	return Local(f)
 }
 
-// Contramap is the categorical name for the contravariant functor operation on Consumers.
+// ContraMap is the categorical name for the contravariant functor operation on Consumers.
 // It transforms a Consumer by preprocessing its input, making it the dual of the covariant
 // functor's map operation.
 //
@@ -320,13 +320,13 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 //	    fmt.Printf("Value: %d\n", x)
 //	}
 //
-//	// Contramap with a string-to-int parser
+//	// ContraMap with a string-to-int parser
 //	parseToInt := func(s string) int {
 //	    n, _ := strconv.Atoi(s)
 //	    return n
 //	}
 //
-//	logString := consumer.Contramap(parseToInt)(logInt)
+//	logString := consumer.ContraMap(parseToInt)(logInt)
 //	logString("42") // Logs: "Value: 42"
 //
 // Example - Demonstrating contravariance:
@@ -350,9 +350,9 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 //	    return d.Animal
 //	}
 //
-//	// Contramap creates Consumer[Dog] from Consumer[Animal]
+//	// ContraMap creates Consumer[Dog] from Consumer[Animal]
 //	// Direction is reversed: Consumer[Animal] -> Consumer[Dog]
-//	consumeDog := consumer.Contramap(dogToAnimal)(consumeAnimal)
+//	consumeDog := consumer.ContraMap(dogToAnimal)(consumeAnimal)
 //
 //	consumeDog(Dog{
 //	    Animal: Animal{Name: "Buddy"},
@@ -364,7 +364,7 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 //	// Law 1: Identity
 //	// contramap(identity) = identity
 //	identity := func(x int) int { return x }
-//	consumer1 := consumer.Contramap(identity)(consumeInt)
+//	consumer1 := consumer.ContraMap(identity)(consumeInt)
 //	// consumer1 behaves identically to consumeInt
 //
 //	// Law 2: Composition
@@ -374,8 +374,8 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 //	g := func(b bool) string { if b { return "1" } else { return "0" } }
 //
 //	// These two are equivalent:
-//	consumer2 := consumer.Contramap(func(b bool) int { return f(g(b)) })(consumeInt)
-//	consumer3 := consumer.Contramap(g)(consumer.Contramap(f)(consumeInt))
+//	consumer2 := consumer.ContraMap(func(b bool) int { return f(g(b)) })(consumeInt)
+//	consumer3 := consumer.ContraMap(g)(consumer.ContraMap(f)(consumeInt))
 //
 // Example - Practical use with type hierarchies:
 //
@@ -393,23 +393,23 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 //	    fmt.Println(s)
 //	}
 //
-//	// Contramap to handle Message types
+//	// ContraMap to handle Message types
 //	extractText := func(m Message) string {
 //	    return fmt.Sprintf("[%s] %s", m.Timestamp.Format(time.RFC3339), m.Text)
 //	}
 //
-//	logMessage := consumer.Contramap(extractText)(logString)
+//	logMessage := consumer.ContraMap(extractText)(logString)
 //	logMessage(Message{
 //	    Text:      "Hello",
 //	    Timestamp: time.Now(),
 //	}) // Logs: "[2024-01-20T10:00:00Z] Hello"
 //
 // Relationship to Local and Compose:
-//   - Contramap, Local, and Compose are identical in implementation
-//   - Contramap emphasizes the categorical/theoretical aspect
+//   - ContraMap, Local, and Compose are identical in implementation
+//   - ContraMap emphasizes the categorical/theoretical aspect
 //   - Local emphasizes the context transformation aspect
 //   - Compose emphasizes the function composition aspect
-//   - Use Contramap when working with category theory concepts
+//   - Use ContraMap when working with category theory concepts
 //   - Use Local when adapting to different contexts
 //   - Use Compose when building functional pipelines
 //
@@ -426,6 +426,6 @@ func Compose[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 //   - Adapting consumers to work with more specific types
 //   - Building type-safe consumer transformations
 //   - Implementing profunctor patterns (Consumer is a profunctor)
-func Contramap[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
+func ContraMap[R1, R2 any](f func(R2) R1) Operator[R1, R2] {
 	return Local(f)
 }

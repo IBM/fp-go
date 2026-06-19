@@ -58,12 +58,12 @@ func TestKleisli_ComplexType(t *testing.T) {
 
 		switch field {
 		case "name":
-			return Contramap(func(p Person) string { return p.Name })(stringOrd)
+			return ContraMap(func(p Person) string { return p.Name })(stringOrd)
 		case "age":
-			return Contramap(func(p Person) int { return p.Age })(intOrd)
+			return ContraMap(func(p Person) int { return p.Age })(intOrd)
 		default:
 			// Default to name ordering
-			return Contramap(func(p Person) string { return p.Name })(stringOrd)
+			return ContraMap(func(p Person) string { return p.Name })(stringOrd)
 		}
 	}
 
@@ -87,7 +87,7 @@ func TestOperator(t *testing.T) {
 	}
 
 	// Operator that transforms Ord[int] to Ord[Person] by age
-	var ageOperator Operator[int, Person] = Contramap(func(p Person) int {
+	var ageOperator Operator[int, Person] = ContraMap(func(p Person) int {
 		return p.Age
 	})
 
@@ -121,7 +121,7 @@ func TestOperator_Composition(t *testing.T) {
 	stringOrd := FromStrictCompare[string]()
 
 	// Operator to order Person by city
-	var cityOperator Operator[string, Person] = Contramap(func(p Person) string {
+	var cityOperator Operator[string, Person] = ContraMap(func(p Person) string {
 		return p.Address.City
 	})
 
@@ -144,7 +144,7 @@ func TestOperator_MultipleTransformations(t *testing.T) {
 	floatOrd := FromStrictCompare[float64]()
 
 	// Operator to order by price
-	var priceOperator Operator[float64, Product] = Contramap(func(p Product) float64 {
+	var priceOperator Operator[float64, Product] = ContraMap(func(p Product) float64 {
 		return p.Price
 	})
 
@@ -188,7 +188,7 @@ func ExampleOperator() {
 	}
 
 	// Operator that transforms Ord[int] to Ord[Person] by age
-	var ageOperator Operator[int, Person] = Contramap(func(p Person) int {
+	var ageOperator Operator[int, Person] = ContraMap(func(p Person) int {
 		return p.Age
 	})
 

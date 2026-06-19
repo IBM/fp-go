@@ -31,9 +31,9 @@ func TestSemigroup_Associativity(t *testing.T) {
 
 	stringOrd := FromStrictCompare[string]()
 
-	byLastName := Contramap(func(p Person) string { return p.LastName })(stringOrd)
-	byFirstName := Contramap(func(p Person) string { return p.FirstName })(stringOrd)
-	byMiddleName := Contramap(func(p Person) string { return p.MiddleName })(stringOrd)
+	byLastName := ContraMap(func(p Person) string { return p.LastName })(stringOrd)
+	byFirstName := ContraMap(func(p Person) string { return p.FirstName })(stringOrd)
+	byMiddleName := ContraMap(func(p Person) string { return p.MiddleName })(stringOrd)
 
 	sg := Semigroup[Person]()
 
@@ -58,9 +58,9 @@ func TestSemigroup_ThreeLevels(t *testing.T) {
 	stringOrd := FromStrictCompare[string]()
 	intOrd := FromStrictCompare[int]()
 
-	byDept := Contramap(func(e Employee) string { return e.Department })(stringOrd)
-	byLevel := Contramap(func(e Employee) int { return e.Level })(intOrd)
-	byName := Contramap(func(e Employee) string { return e.Name })(stringOrd)
+	byDept := ContraMap(func(e Employee) string { return e.Department })(stringOrd)
+	byLevel := ContraMap(func(e Employee) int { return e.Level })(intOrd)
+	byName := ContraMap(func(e Employee) string { return e.Name })(stringOrd)
 
 	sg := Semigroup[Employee]()
 	employeeOrd := sg.Concat(sg.Concat(byDept, byLevel), byName)
@@ -259,8 +259,8 @@ func TestSemigroup_WithReverse(t *testing.T) {
 	stringOrd := FromStrictCompare[string]()
 
 	// Order by age descending, then by name ascending
-	byAge := Contramap(func(p Person) int { return p.Age })(Reverse(intOrd))
-	byName := Contramap(func(p Person) string { return p.Name })(stringOrd)
+	byAge := ContraMap(func(p Person) int { return p.Age })(Reverse(intOrd))
+	byName := ContraMap(func(p Person) string { return p.Name })(stringOrd)
 
 	sg := Semigroup[Person]()
 	personOrd := sg.Concat(byAge, byName)
@@ -304,8 +304,8 @@ func BenchmarkSemigroup_Concat(b *testing.B) {
 	}
 
 	stringOrd := FromStrictCompare[string]()
-	byLastName := Contramap(func(p Person) string { return p.LastName })(stringOrd)
-	byFirstName := Contramap(func(p Person) string { return p.FirstName })(stringOrd)
+	byLastName := ContraMap(func(p Person) string { return p.LastName })(stringOrd)
+	byFirstName := ContraMap(func(p Person) string { return p.FirstName })(stringOrd)
 
 	sg := Semigroup[Person]()
 	personOrd := sg.Concat(byLastName, byFirstName)

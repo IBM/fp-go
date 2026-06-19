@@ -202,7 +202,7 @@ func TestContramap(t *testing.T) {
 	}
 
 	t.Run("compare by ID", func(t *testing.T) {
-		personEqByID := Contramap(func(p Person) int {
+		personEqByID := ContraMap(func(p Person) int {
 			return p.ID
 		})(FromStrictEquals[int]())
 
@@ -215,7 +215,7 @@ func TestContramap(t *testing.T) {
 	})
 
 	t.Run("compare by name", func(t *testing.T) {
-		personEqByName := Contramap(func(p Person) string {
+		personEqByName := ContraMap(func(p Person) string {
 			return p.Name
 		})(FromStrictEquals[string]())
 
@@ -228,7 +228,7 @@ func TestContramap(t *testing.T) {
 	})
 
 	t.Run("compare by age", func(t *testing.T) {
-		personEqByAge := Contramap(func(p Person) int {
+		personEqByAge := ContraMap(func(p Person) int {
 			return p.Age
 		})(FromStrictEquals[int]())
 
@@ -243,7 +243,7 @@ func TestContramap(t *testing.T) {
 	t.Run("case-insensitive name comparison", func(t *testing.T) {
 		caseInsensitiveEq := FromEquals(strings.EqualFold)
 
-		personEqByNameCI := Contramap(func(p Person) string {
+		personEqByNameCI := ContraMap(func(p Person) string {
 			return p.Name
 		})(caseInsensitiveEq)
 
@@ -267,7 +267,7 @@ func TestContramap(t *testing.T) {
 		}
 
 		// Compare users by city
-		userEqByCity := Contramap(func(u User) string {
+		userEqByCity := ContraMap(func(u User) string {
 			return u.Address.City
 		})(FromStrictEquals[string]())
 
@@ -287,11 +287,11 @@ func TestSemigroup(t *testing.T) {
 	}
 
 	t.Run("combine two equality predicates", func(t *testing.T) {
-		usernameEq := Contramap(func(u User) string {
+		usernameEq := ContraMap(func(u User) string {
 			return u.Username
 		})(FromStrictEquals[string]())
 
-		emailEq := Contramap(func(u User) string {
+		emailEq := ContraMap(func(u User) string {
 			return u.Email
 		})(FromStrictEquals[string]())
 
@@ -315,15 +315,15 @@ func TestSemigroup(t *testing.T) {
 			Price float64
 		}
 
-		idEq := Contramap(func(p Product) int {
+		idEq := ContraMap(func(p Product) int {
 			return p.ID
 		})(FromStrictEquals[int]())
 
-		nameEq := Contramap(func(p Product) string {
+		nameEq := ContraMap(func(p Product) string {
 			return p.Name
 		})(FromStrictEquals[string]())
 
-		priceEq := Contramap(func(p Product) float64 {
+		priceEq := ContraMap(func(p Product) float64 {
 			return p.Price
 		})(FromStrictEquals[float64]())
 

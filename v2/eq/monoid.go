@@ -41,11 +41,11 @@ import (
 //	    Email    string
 //	}
 //
-//	usernameEq := eq.Contramap(func(u User) string {
+//	usernameEq := eq.ContraMap(func(u User) string {
 //	    return u.Username
 //	})(eq.FromStrictEquals[string]())
 //
-//	emailEq := eq.Contramap(func(u User) string {
+//	emailEq := eq.ContraMap(func(u User) string {
 //	    return u.Email
 //	})(eq.FromStrictEquals[string]())
 //
@@ -67,9 +67,9 @@ import (
 //	    Price float64
 //	}
 //
-//	idEq := eq.Contramap(func(p Product) int { return p.ID })(eq.FromStrictEquals[int]())
-//	nameEq := eq.Contramap(func(p Product) string { return p.Name })(eq.FromStrictEquals[string]())
-//	priceEq := eq.Contramap(func(p Product) float64 { return p.Price })(eq.FromStrictEquals[float64]())
+//	idEq := eq.ContraMap(func(p Product) int { return p.ID })(eq.FromStrictEquals[int]())
+//	nameEq := eq.ContraMap(func(p Product) string { return p.Name })(eq.FromStrictEquals[string]())
+//	priceEq := eq.ContraMap(func(p Product) float64 { return p.Price })(eq.FromStrictEquals[float64]())
 //
 //	sg := eq.Semigroup[Product]()
 //	// All three fields must match
@@ -135,9 +135,9 @@ func Semigroup[A any]() S.Semigroup[Eq[A]] {
 //	    Age       int
 //	}
 //
-//	firstNameEq := eq.Contramap(func(p Person) string { return p.FirstName })(eq.FromStrictEquals[string]())
-//	lastNameEq := eq.Contramap(func(p Person) string { return p.LastName })(eq.FromStrictEquals[string]())
-//	ageEq := eq.Contramap(func(p Person) int { return p.Age })(eq.FromStrictEquals[int]())
+//	firstNameEq := eq.ContraMap(func(p Person) string { return p.FirstName })(eq.FromStrictEquals[string]())
+//	lastNameEq := eq.ContraMap(func(p Person) string { return p.LastName })(eq.FromStrictEquals[string]())
+//	ageEq := eq.ContraMap(func(p Person) int { return p.Age })(eq.FromStrictEquals[int]())
 //
 //	monoid := eq.Monoid[Person]()
 //	// Combine all predicates - all fields must match

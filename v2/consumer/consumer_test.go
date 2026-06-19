@@ -394,7 +394,7 @@ func TestContramap(t *testing.T) {
 			return n
 		}
 
-		consumeString := Contramap(parseToInt)(consumeInt)
+		consumeString := ContraMap(parseToInt)(consumeInt)
 		consumeString("42")
 
 		assert.Equal(t, 42, captured)
@@ -408,7 +408,7 @@ func TestContramap(t *testing.T) {
 		}
 
 		identity := function.Identity[int]
-		consumeIdentity := Contramap(identity)(consumeInt)
+		consumeIdentity := ContraMap(identity)(consumeInt)
 
 		consumeIdentity(42)
 		assert.Equal(t, 42, captured)
@@ -447,12 +447,12 @@ func TestContramap(t *testing.T) {
 		}
 
 		// Method 1: contramap(f . g)
-		consumer1 := Contramap(fg)(consumeInt)
+		consumer1 := ContraMap(fg)(consumeInt)
 		consumer1(true)
 		result1 := captured
 
 		// Method 2: contramap(g) . contramap(f)
-		consumer2 := Contramap(g)(Contramap(f)(consumeInt))
+		consumer2 := ContraMap(g)(ContraMap(f)(consumeInt))
 		consumer2(true)
 		result2 := captured
 
@@ -479,7 +479,7 @@ func TestContramap(t *testing.T) {
 			return d.Animal
 		}
 
-		consumeDog := Contramap(dogToAnimal)(consumeAnimal)
+		consumeDog := ContraMap(dogToAnimal)(consumeAnimal)
 		consumeDog(Dog{
 			Animal: Animal{Name: "Buddy"},
 			Breed:  "Golden Retriever",
@@ -503,7 +503,7 @@ func TestContramap(t *testing.T) {
 			return m.Text
 		}
 
-		consumeMessage := Contramap(extractText)(consumeString)
+		consumeMessage := ContraMap(extractText)(consumeString)
 		consumeMessage(Message{
 			Text:      "Hello",
 			Timestamp: time.Now(),
@@ -527,9 +527,9 @@ func TestContramap(t *testing.T) {
 		extract1 := func(l1 Level1) Level2 { return l1.L2 }
 
 		// Chain contramap operations
-		consumeLevel3 := Contramap(extract3)(consumeInt)
-		consumeLevel2 := Contramap(extract2)(consumeLevel3)
-		consumeLevel1 := Contramap(extract1)(consumeLevel2)
+		consumeLevel3 := ContraMap(extract3)(consumeInt)
+		consumeLevel2 := ContraMap(extract2)(consumeLevel3)
+		consumeLevel1 := ContraMap(extract1)(consumeLevel2)
 
 		consumeLevel1(Level1{L2: Level2{L3: Level3{Value: 42}}})
 
@@ -551,7 +551,7 @@ func TestContramap(t *testing.T) {
 			return r.Width * r.Height
 		}
 
-		consumeRectangle := Contramap(calculateArea)(consumeArea)
+		consumeRectangle := ContraMap(calculateArea)(consumeArea)
 		consumeRectangle(Rectangle{Width: 5, Height: 10})
 
 		assert.Equal(t, 50, capturedArea)
@@ -568,7 +568,7 @@ func TestContramap(t *testing.T) {
 			return n
 		}
 
-		contramappedConsumer := Contramap(transform)(consumer)
+		contramappedConsumer := ContraMap(transform)(consumer)
 
 		contramappedConsumer("1")
 		contramappedConsumer("2")
@@ -590,7 +590,7 @@ func TestContramap(t *testing.T) {
 			return *p
 		}
 
-		consumePointer := Contramap(dereference)(consumeInt)
+		consumePointer := ContraMap(dereference)(consumeInt)
 
 		value := 42
 		consumePointer(&value)
@@ -618,7 +618,7 @@ func TestContramap(t *testing.T) {
 
 		// Both should produce identical results
 		consumerLocal := Local(transform)(consumeIntLocal)
-		consumerContramap := Contramap(transform)(consumeIntContramap)
+		consumerContramap := ContraMap(transform)(consumeIntContramap)
 
 		consumerLocal("42")
 		consumerContramap("42")
@@ -864,7 +864,7 @@ func TestCompose(t *testing.T) {
 		assert.Equal(t, 42, capturedLocal)
 	})
 
-	t.Run("compose equivalence with Contramap", func(t *testing.T) {
+	t.Run("compose equivalence with ContraMap", func(t *testing.T) {
 		var capturedCompose, capturedContramap int
 
 		consumeIntCompose := func(x int) {
@@ -882,7 +882,7 @@ func TestCompose(t *testing.T) {
 
 		// All three should produce identical results
 		consumerCompose := Compose(transform)(consumeIntCompose)
-		consumerContramap := Contramap(transform)(consumeIntContramap)
+		consumerContramap := ContraMap(transform)(consumeIntContramap)
 
 		consumerCompose("42")
 		consumerContramap("42")

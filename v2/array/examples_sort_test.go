@@ -65,12 +65,12 @@ func ExampleSort() {
 	// complex object with different rules
 	byName := F.Pipe1(
 		S.Ord,
-		ord.Contramap(user.GetName),
+		ord.ContraMap(user.GetName),
 	) // ord.Ord[user]
 
 	byAge := F.Pipe1(
 		O.Ord(I.Ord),
-		ord.Contramap(user.GetAge),
+		ord.ContraMap(user.GetAge),
 	) // ord.Ord[user]
 
 	sortedUsers := F.Pipe1(

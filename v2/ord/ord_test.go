@@ -136,7 +136,7 @@ func TestReverse(t *testing.T) {
 	assert.False(t, reversedOrd.Equals(5, 3))
 }
 
-// Test Contramap
+// Test ContraMap
 func TestContramap(t *testing.T) {
 	type Person struct {
 		Name string
@@ -146,7 +146,7 @@ func TestContramap(t *testing.T) {
 	intOrd := FromStrictCompare[int]()
 
 	// Order persons by age
-	personOrd := Contramap(func(p Person) int {
+	personOrd := ContraMap(func(p Person) int {
 		return p.Age
 	})(intOrd)
 
@@ -375,12 +375,12 @@ func TestSemigroup(t *testing.T) {
 	stringOrd := FromStrictCompare[string]()
 
 	// Order by last name
-	byLastName := Contramap(func(p Person) string {
+	byLastName := ContraMap(func(p Person) string {
 		return p.LastName
 	})(stringOrd)
 
 	// Order by first name
-	byFirstName := Contramap(func(p Person) string {
+	byFirstName := ContraMap(func(p Person) string {
 		return p.FirstName
 	})(stringOrd)
 
@@ -514,17 +514,17 @@ func TestComplexSorting(t *testing.T) {
 	intOrd := FromStrictCompare[int]()
 
 	// Order by department
-	byDept := Contramap(func(e Employee) string {
+	byDept := ContraMap(func(e Employee) string {
 		return e.Department
 	})(stringOrd)
 
 	// Order by salary (descending)
-	bySalary := Reverse(Contramap(func(e Employee) int {
+	bySalary := Reverse(ContraMap(func(e Employee) int {
 		return e.Salary
 	})(intOrd))
 
 	// Order by name
-	byName := Contramap(func(e Employee) string {
+	byName := ContraMap(func(e Employee) string {
 		return e.Name
 	})(stringOrd)
 
@@ -704,7 +704,7 @@ func ExampleReverse() {
 	println(result2) // -1
 }
 
-func ExampleContramap() {
+func ExampleContraMap() {
 	type Person struct {
 		Name string
 		Age  int
@@ -713,7 +713,7 @@ func ExampleContramap() {
 	intOrd := FromStrictCompare[int]()
 
 	// Order persons by age
-	personOrd := Contramap(func(p Person) int {
+	personOrd := ContraMap(func(p Person) int {
 		return p.Age
 	})(intOrd)
 
@@ -831,12 +831,12 @@ func ExampleSemigroup() {
 	stringOrd := FromStrictCompare[string]()
 
 	// Order by last name
-	byLastName := Contramap(func(p Person) string {
+	byLastName := ContraMap(func(p Person) string {
 		return p.LastName
 	})(stringOrd)
 
 	// Order by first name
-	byFirstName := Contramap(func(p Person) string {
+	byFirstName := ContraMap(func(p Person) string {
 		return p.FirstName
 	})(stringOrd)
 

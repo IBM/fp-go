@@ -168,7 +168,7 @@ Reverse - Invert the ordering:
 	min := ord.Min(reversedOrd)
 	result := min(5, 3)  // 5 (max in original order)
 
-Contramap - Transform the input before comparing:
+ContraMap - Transform the input before comparing:
 
 	type Person struct {
 	    Name string
@@ -178,7 +178,7 @@ Contramap - Transform the input before comparing:
 	intOrd := ord.FromStrictCompare[int]()
 
 	// Order persons by age
-	personOrd := ord.Contramap(func(p Person) int {
+	personOrd := ord.ContraMap(func(p Person) int {
 	    return p.Age
 	})(intOrd)
 
@@ -207,12 +207,12 @@ Semigroup - Combine orderings (try first, then second):
 	stringOrd := ord.FromStrictCompare[string]()
 
 	// Order by last name
-	byLastName := ord.Contramap(func(p Person) string {
+	byLastName := ord.ContraMap(func(p Person) string {
 	    return p.LastName
 	})(stringOrd)
 
 	// Order by first name
-	byFirstName := ord.Contramap(func(p Person) string {
+	byFirstName := ord.ContraMap(func(p Person) string {
 	    return p.FirstName
 	})(stringOrd)
 
@@ -273,7 +273,7 @@ Sorting with custom order:
 	}
 
 	intOrd := O.FromStrictCompare[int]()
-	personOrd := O.Contramap(func(p Person) int {
+	personOrd := O.ContraMap(func(p Person) int {
 	    return p.Age
 	})(intOrd)
 
@@ -313,17 +313,17 @@ Multi-level sorting:
 	intOrd := O.FromStrictCompare[int]()
 
 	// Order by department
-	byDept := O.Contramap(func(e Employee) string {
+	byDept := O.ContraMap(func(e Employee) string {
 	    return e.Department
 	})(stringOrd)
 
 	// Order by salary (descending)
-	bySalary := O.Reverse(O.Contramap(func(e Employee) int {
+	bySalary := O.Reverse(O.ContraMap(func(e Employee) int {
 	    return e.Salary
 	})(intOrd))
 
 	// Order by name
-	byName := O.Contramap(func(e Employee) string {
+	byName := O.ContraMap(func(e Employee) string {
 	    return e.Name
 	})(stringOrd)
 
@@ -359,7 +359,7 @@ Core operations:
 
 Transformations:
   - Reverse[T any](Ord[T]) Ord[T] - Invert the ordering
-  - Contramap[A, B any](func(B) A) func(Ord[A]) Ord[B] - Transform input before comparing
+  - ContraMap[A, B any](func(B) A) func(Ord[A]) Ord[B] - Transform input before comparing
 
 Comparisons:
   - Lt[A any](Ord[A]) func(A) func(A) bool - Less than

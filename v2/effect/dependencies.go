@@ -56,7 +56,7 @@ func Local[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
 	return readerreaderioresult.Local[A](acc)
 }
 
-// Contramap is an alias for Local, following the contravariant functor naming convention.
+// ContraMap is an alias for Local, following the contravariant functor naming convention.
 // It transforms the context required by an effect using a pure function.
 //
 // # Type Parameters
@@ -74,7 +74,7 @@ func Local[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
 //   - Kleisli[C1, Effect[C2, A], A]: A function that adapts the effect to use C1
 //
 //go:inline
-func Contramap[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
+func ContraMap[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] {
 	return readerreaderioresult.Local[A](acc)
 }
 
@@ -265,7 +265,7 @@ func LocalThunkK[A, C1, C2 any](f thunk.Kleisli[C2, C1]) func(Effect[C1, A]) Eff
 //	result, err := readerResult(context.Background())
 //
 // Comparison with other Local functions:
-//   - Local/Contramap: Pure context transformation (C2 -> C1)
+//   - Local/ContraMap: Pure context transformation (C2 -> C1)
 //   - LocalIOK: IO-based transformation (C2 -> IO[C1])
 //   - LocalIOResultK: IO with error handling (C2 -> IOResult[C1])
 //   - LocalThunkK: Reader-based with IO and errors (C2 -> ReaderIOResult[C1])
@@ -343,7 +343,7 @@ func LocalEffectK[A, C1, C2 any](f Kleisli[C2, C2, C1]) func(Effect[C1, A]) Effe
 //
 // # Comparison with other Local functions
 //
-//   - Local/Contramap: Pure context transformation (C2 -> C1)
+//   - Local/ContraMap: Pure context transformation (C2 -> C1)
 //   - LocalIOK: IO-based transformation (C2 -> IO[C1])
 //   - LocalIOResultK: IO with error handling (C2 -> IOResult[C1])
 //   - LocalReaderK: Reader-based pure transformation with runtime context access (C2 -> Reader[C1])

@@ -103,7 +103,7 @@ func Example_solution_05b() {
 // using functional composition with ordering.
 func Example_solution_05c() {
 	// order by horsepower
-	ordByHorsepower := ord.Contramap(Car.getHorsepower)(I.Ord)
+	ordByHorsepower := ord.ContraMap(Car.getHorsepower)(I.Ord)
 
 	// fastestCar :: [Car] -> Option[String]
 	fastestCar := F.Flow3(

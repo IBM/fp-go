@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+
 	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/stretchr/testify/assert"
@@ -198,8 +199,8 @@ func TestContramap(t *testing.T) {
 		localKleisli := Local[int](accessor)
 		localEffect := localKleisli(innerEffect)
 
-		// Test Contramap
-		contramapKleisli := Contramap[int](accessor)
+		// Test ContraMap
+		contramapKleisli := ContraMap[int](accessor)
 		contramapEffect := contramapKleisli(innerEffect)
 
 		outerCtx := OuterContext{Value: "test", Number: 100}
@@ -225,7 +226,7 @@ func TestContramap(t *testing.T) {
 			return InnerContext{Value: outer.Value + " modified"}
 		}
 
-		kleisli := Contramap[string](accessor)
+		kleisli := ContraMap[string](accessor)
 		outerEffect := kleisli(innerEffect)
 
 		ioResult := Provide[string](OuterContext{
@@ -247,7 +248,7 @@ func TestContramap(t *testing.T) {
 			return InnerContext{Value: outer.Value}
 		}
 
-		kleisli := Contramap[int](accessor)
+		kleisli := ContraMap[int](accessor)
 		outerEffect := kleisli(innerEffect)
 
 		ioResult := Provide[int](OuterContext{
@@ -282,8 +283,8 @@ func TestLocalAndContramapInteroperability(t *testing.T) {
 			return Config3{Info: c2.Data}
 		})
 
-		// Use Contramap for second transformation
-		contramap12 := Contramap[string](func(c1 Config1) Config2 {
+		// Use ContraMap for second transformation
+		contramap12 := ContraMap[string](func(c1 Config1) Config2 {
 			return Config2{Data: c1.Value}
 		})
 

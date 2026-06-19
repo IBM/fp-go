@@ -31,8 +31,8 @@ import (
 //
 //	type Person struct { LastName, FirstName string }
 //	stringOrd := ord.FromStrictCompare[string]()
-//	byLastName := ord.Contramap(func(p Person) string { return p.LastName })(stringOrd)
-//	byFirstName := ord.Contramap(func(p Person) string { return p.FirstName })(stringOrd)
+//	byLastName := ord.ContraMap(func(p Person) string { return p.LastName })(stringOrd)
+//	byFirstName := ord.ContraMap(func(p Person) string { return p.FirstName })(stringOrd)
 //	sg := ord.Semigroup[Person]()
 //	personOrd := sg.Concat(byLastName, byFirstName)
 //	// Now persons are ordered by last name, then by first name

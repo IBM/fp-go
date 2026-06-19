@@ -44,13 +44,13 @@ type (
 	//   - B: The result type of the operation
 	//
 	// This is equivalent to Kleisli[Ord[A], B] and is used for operations like
-	// Contramap, which takes an Ord[A] and produces an Ord[B].
+	// ContraMap, which takes an Ord[A] and produces an Ord[B].
 	//
 	// Example:
 	//
-	//	// Contramap is an Operator that transforms Ord[A] to Ord[B]
+	//	// ContraMap is an Operator that transforms Ord[A] to Ord[B]
 	//	type Person struct { Age int }
-	//	var ageOperator Operator[int, Person] = ord.Contramap(func(p Person) int {
+	//	var ageOperator Operator[int, Person] = ord.ContraMap(func(p Person) int {
 	//	    return p.Age
 	//	})
 	//	intOrd := ord.FromStrictCompare[int]()

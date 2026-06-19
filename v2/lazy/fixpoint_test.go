@@ -350,5 +350,3 @@ func TestFixpoint_MultipleParameters(t *testing.T) {
 		assert.Equal(t, 7, ackermann(2, 2))
 	})
 }
-
-// Made with Bob

@@ -86,8 +86,8 @@ func SortByKey[K, T any](ord O.Ord[K], f func(T) K) Operator[T, T] {
 //	}
 //
 //	sortByName := array.SortBy([]ord.Ord[Person]{
-//	    ord.Contramap(func(p Person) string { return p.LastName })(ord.FromStrictCompare[string]()),
-//	    ord.Contramap(func(p Person) string { return p.FirstName })(ord.FromStrictCompare[string]()),
+//	    ord.ContraMap(func(p Person) string { return p.LastName })(ord.FromStrictCompare[string]()),
+//	    ord.ContraMap(func(p Person) string { return p.FirstName })(ord.FromStrictCompare[string]()),
 //	})
 //	sorted := sortByName(people)
 //	// Result: [{"Jones", "Bob"}, {"Smith", "Alice"}, {"Smith", "John"}]

@@ -1,0 +1,10 @@
+mode: set
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:113.76,118.2 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:136.49,138.2 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:156.83,157.65 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:157.65,170.3 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:190.66,195.2 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:214.67,219.2 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:226.69,228.2 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:237.67,246.2 1 1
+github.com/IBM/fp-go/v2/context/readerioresult/http/request.go:273.69,278.2 1 1

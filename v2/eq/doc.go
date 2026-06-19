@@ -63,9 +63,9 @@ Creating custom equality predicates:
 	})
 	assert.True(t, approxEq.Equals(1.0, 1.00009))
 
-# Contramap - Transforming Equality
+# ContraMap - Transforming Equality
 
-Contramap allows you to create an equality predicate for type B from an equality
+ContraMap allows you to create an equality predicate for type B from an equality
 predicate for type A, given a function from B to A. This is useful for comparing
 complex types by extracting comparable fields:
 
@@ -76,7 +76,7 @@ complex types by extracting comparable fields:
 	}
 
 	// Compare persons by ID only
-	personEqByID := eq.Contramap(func(p Person) int {
+	personEqByID := eq.ContraMap(func(p Person) int {
 	    return p.ID
 	})(eq.FromStrictEquals[int]())
 
@@ -85,7 +85,7 @@ complex types by extracting comparable fields:
 	assert.True(t, personEqByID.Equals(p1, p2)) // Same ID
 
 	// Compare persons by name
-	personEqByName := eq.Contramap(func(p Person) string {
+	personEqByName := eq.ContraMap(func(p Person) string {
 	    return p.Name
 	})(eq.FromStrictEquals[string]())
 
@@ -102,12 +102,12 @@ combine multiple equality predicates using logical AND:
 	}
 
 	// Compare by username
-	usernameEq := eq.Contramap(func(u User) string {
+	usernameEq := eq.ContraMap(func(u User) string {
 	    return u.Username
 	})(eq.FromStrictEquals[string]())
 
 	// Compare by email
-	emailEq := eq.Contramap(func(u User) string {
+	emailEq := eq.ContraMap(func(u User) string {
 	    return u.Email
 	})(eq.FromStrictEquals[string]())
 
@@ -193,7 +193,7 @@ These laws ensure that Eq behaves as a proper equivalence relation.
   - FromEquals[T any](func(x, y T) bool) - Create Eq from custom comparison
   - Empty[T any]() - Create Eq that always returns true
   - Equals[T any](Eq[T]) - Curried equality checking
-  - Contramap[A, B any](func(B) A) - Transform Eq by mapping input type
+  - ContraMap[A, B any](func(B) A) - Transform Eq by mapping input type
   - Semigroup[A any]() - Combine Eq instances with logical AND
   - Monoid[A any]() - Semigroup with identity element
 

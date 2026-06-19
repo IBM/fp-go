@@ -15,7 +15,7 @@
 
 package eq
 
-// Contramap creates an Eq[B] from an Eq[A] by providing a function that maps B to A.
+// ContraMap creates an Eq[B] from an Eq[A] by providing a function that maps B to A.
 // This is a contravariant functor operation that allows you to transform equality predicates
 // by mapping the input type. It's particularly useful for comparing complex types by
 // extracting comparable fields.
@@ -49,7 +49,7 @@ package eq
 //	}
 //
 //	// Compare persons by ID only
-//	personEqByID := eq.Contramap(func(p Person) int {
+//	personEqByID := eq.ContraMap(func(p Person) int {
 //	    return p.ID
 //	})(eq.FromStrictEquals[int]())
 //
@@ -68,7 +68,7 @@ package eq
 //	    return strings.EqualFold(a, b)
 //	})
 //
-//	userEqByUsername := eq.Contramap(func(u User) string {
+//	userEqByUsername := eq.ContraMap(func(u User) string {
 //	    return u.Username
 //	})(caseInsensitiveEq)
 //
@@ -88,14 +88,14 @@ package eq
 //	}
 //
 //	// Compare persons by city
-//	personEqByCity := eq.Contramap(func(p Person) string {
+//	personEqByCity := eq.ContraMap(func(p Person) string {
 //	    return p.Address.City
 //	})(eq.FromStrictEquals[string]())
 //
-// Contramap Law:
-// Contramap must satisfy: Contramap(f)(Contramap(g)(eq)) = Contramap(g ∘ f)(eq)
+// ContraMap Law:
+// ContraMap must satisfy: ContraMap(f)(ContraMap(g)(eq)) = ContraMap(g ∘ f)(eq)
 // This means contramapping twice is the same as contramapping with the composed function.
-func Contramap[A, B any](f func(b B) A) func(Eq[A]) Eq[B] {
+func ContraMap[A, B any](f func(b B) A) func(Eq[A]) Eq[B] {
 	return func(fa Eq[A]) Eq[B] {
 		equals := fa.Equals
 		return FromEquals(func(x, y B) bool {

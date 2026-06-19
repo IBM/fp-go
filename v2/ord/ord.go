@@ -152,7 +152,7 @@ func Reverse[T any](o Ord[T]) Ord[T] {
 	}, o.Equals)
 }
 
-// Contramap creates an ordering under a transformation function.
+// ContraMap creates an ordering under a transformation function.
 // This allows ordering values of type B by first transforming them to type A
 // and then using the ordering for type A.
 //
@@ -167,11 +167,11 @@ func Reverse[T any](o Ord[T]) Ord[T] {
 //
 //	type Person struct { Name string; Age int }
 //	intOrd := ord.FromStrictCompare[int]()
-//	personOrd := ord.Contramap(func(p Person) int {
+//	personOrd := ord.ContraMap(func(p Person) int {
 //	    return p.Age
 //	})(intOrd)
 //	// Now persons are ordered by age
-func Contramap[A, B any](f func(B) A) Operator[A, B] {
+func ContraMap[A, B any](f func(B) A) Operator[A, B] {
 	return func(o Ord[A]) Ord[B] {
 		return MakeOrd(func(x, y B) int {
 			return o.Compare(f(x), f(y))

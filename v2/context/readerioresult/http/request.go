@@ -39,10 +39,10 @@ import (
 	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
 	F "github.com/IBM/fp-go/v2/function"
 	H "github.com/IBM/fp-go/v2/http"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
 	IOEF "github.com/IBM/fp-go/v2/ioeither/file"
+	IOR "github.com/IBM/fp-go/v2/ioresult"
 	J "github.com/IBM/fp-go/v2/json"
-	P "github.com/IBM/fp-go/v2/pair"
+	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 )
 
 type (
@@ -73,7 +73,7 @@ type (
 	// It wraps a standard http.Client and provides functional HTTP operations.
 	client struct {
 		delegate *http.Client
-		doIOE    IOE.Kleisli[error, *http.Request, *http.Response]
+		doIOE    IOR.Kleisli[*http.Request, *http.Response]
 	}
 )
 
@@ -132,48 +132,43 @@ func (client client) Do(req Requester) RIOE.ReaderIOResult[*http.Response] {
 //	customClient := &http.Client{Timeout: 10 * time.Second}
 //	client := MakeClient(customClient)
 func MakeClient(httpClient *http.Client) Client {
-	return client{delegate: httpClient, doIOE: IOE.Eitherize1(httpClient.Do)}
+	return client{delegate: httpClient, doIOE: IOR.Eitherize1(httpClient.Do)}
 }
 
-// ReadFullResponse sends an HTTP request, reads the complete response body as a byte array,
-// and returns both the response and body as a tuple (FullResponse).
-// It validates the HTTP status code and handles errors appropriately.
+// ReadFullResponse sends an HTTP request and returns both the response and body.
+// It validates the HTTP status code and reads the complete response body into memory.
 //
-// The function performs the following steps:
-//  1. Executes the HTTP request using the provided client
-//  2. Validates the response status code (checks for HTTP errors)
-//  3. Reads the entire response body into a byte array
-//  4. Returns a tuple containing the response and body
+// The returned FullResponse is a Pair containing the http.Response and body bytes,
+// allowing functional access to both components via Response and Body accessors.
 //
 // Parameters:
 //   - client: The HTTP client to use for executing the request
 //
 // Returns:
-//   - A function that takes a Requester and returns a ReaderIOResult[FullResponse]
-//     where FullResponse is a tuple of (*http.Response, []byte)
+//   - An Operator that transforms a Requester into a ReaderIOResult producing FullResponse
 //
-// Example:
-//
-//	client := MakeClient(http.DefaultClient)
-//	request := MakeGetRequest("https://api.example.com/data")
-//	fullResp := ReadFullResponse(client)(request)
-//	result := fullResp(t.Context())()
+// See Also:
+//   - ReadAll: Extracts only the response body bytes
+//   - ReadText: Extracts the response body as a string
+//   - ReadJSON: Parses the response body as JSON
 func ReadFullResponse(client Client) RIOE.Operator[*http.Request, H.FullResponse] {
+	// construct the read chain once
+	read := F.Flow2(
+		IOR.ChainResultK(H.ValidateResponse),
+		IOR.Chain(F.Pipe1(
+			F.Flow3(
+				H.GetBody,
+				IOR.Of[io.ReadCloser],
+				IOEF.ReadAll[io.ReadCloser],
+			),
+			RIOR.ChainReaderK(H.FromBody),
+		)),
+	)
+	// apply to the requester
 	return func(req Requester) RIOE.ReaderIOResult[H.FullResponse] {
-		return F.Flow3(
+		return F.Flow2(
 			client.Do(req),
-			IOE.ChainEitherK(H.ValidateResponse),
-			IOE.Chain(func(resp *http.Response) IOE.IOEither[error, H.FullResponse] {
-				return F.Pipe1(
-					F.Pipe3(
-						resp,
-						H.GetBody,
-						IOE.Of[error, io.ReadCloser],
-						IOEF.ReadAll[io.ReadCloser],
-					),
-					IOE.Map[error](F.Bind1st(P.MakePair[*http.Response, []byte], resp)),
-				)
-			}),
+			read,
 		)
 	}
 }
