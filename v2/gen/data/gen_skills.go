@@ -4,6 +4,9 @@ package data
 
 import _ "embed"
 
+//go:embed skills/.gitignore
+var _GITIGNORE []byte
+
 //go:embed skills/README.md
 var README_MD []byte
 
@@ -27,6 +30,7 @@ var FP_GO_PIPE_FLOW_EVALS_EVALS_JSON []byte
 
 // Skills is a map of relative file paths to their embedded content
 var Skills = map[string][]byte{
+	".gitignore":                       _GITIGNORE,
 	"README.md":                        README_MD,
 	"fp-go/SKILL.md":                   FP_GO_SKILL_MD,
 	"fp-go-http/SKILL.md":              FP_GO_HTTP_SKILL_MD,
