@@ -254,6 +254,25 @@ func GetBody(resp *H.Response) io.ReadCloser {
 	return resp.Body
 }
 
+// GetStatusCode extracts the HTTP status code from an http.Response.
+// This is a functional accessor for the StatusCode field.
+//
+// Parameters:
+//   - resp: The HTTP response
+//
+// Returns:
+//   - The integer status code (e.g., 200, 404, 500)
+//
+// Example:
+//
+//	statusCode := GetStatusCode(response)
+//	if statusCode == http.StatusOK {
+//	    // handle success
+//	}
+func GetStatusCode(resp *H.Response) int {
+	return resp.StatusCode
+}
+
 // isValidStatus checks if an HTTP response has a successful status code.
 // A status code is considered valid if it's in the 2xx range (200-299).
 //

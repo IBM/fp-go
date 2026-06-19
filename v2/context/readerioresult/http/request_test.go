@@ -431,7 +431,7 @@ func TestReadFullResponse_Integration(t *testing.T) {
 			ReadFullResponse(client),
 			R.Map(F.Flow2(
 				HT.Response,
-				func(r *H.Response) int { return r.StatusCode },
+				HT.GetStatusCode,
 			)),
 		)
 

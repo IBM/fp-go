@@ -20,10 +20,11 @@ import (
 	"fmt"
 	H "net/http"
 
+	A "github.com/IBM/fp-go/v2/array"
 	RIOH "github.com/IBM/fp-go/v2/context/readerioresult/http"
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	HT "github.com/IBM/fp-go/v2/http"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // ExampleReadFullResponse demonstrates basic usage of ReadFullResponse.
@@ -32,18 +33,18 @@ func ExampleReadFullResponse() {
 	request := RIOH.MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
 
 	fullResp := RIOH.ReadFullResponse(client)(request)
-	result := fullResp(context.Background())()
+	res := fullResp(context.Background())()
 
 	// Extract response and body from the FullResponse pair
 	statusCode := F.Pipe1(
-		result,
-		E.Map[error](F.Flow2(
+		res,
+		result.Map(F.Flow2(
 			HT.Response,
-			func(r *H.Response) int { return r.StatusCode },
+			HT.GetStatusCode,
 		)),
 	)
 
-	fmt.Println(E.IsRight(statusCode))
+	fmt.Println(result.IsRight(statusCode))
 	// Output: true
 }
 
@@ -53,12 +54,12 @@ func ExampleReadFullResponse_accessingComponents() {
 	request := RIOH.MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1")
 
 	fullResp := RIOH.ReadFullResponse(client)(request)
-	result := fullResp(context.Background())()
+	res := fullResp(context.Background())()
 
 	// Access the response metadata
 	hasContentType := F.Pipe1(
-		result,
-		E.Map[error](F.Flow2(
+		res,
+		result.Map(F.Flow2(
 			HT.Response,
 			func(r *H.Response) bool {
 				return r.Header.Get("Content-Type") != ""
@@ -68,13 +69,13 @@ func ExampleReadFullResponse_accessingComponents() {
 
 	// Access the body bytes
 	hasBody := F.Pipe1(
-		result,
-		E.Map[error](F.Flow2(
+		res,
+		result.Map(F.Flow2(
 			HT.Body,
-			func(b []byte) bool { return len(b) > 0 },
+			A.IsNonEmpty,
 		)),
 	)
 
-	fmt.Println(E.IsRight(hasContentType) && E.IsRight(hasBody))
+	fmt.Println(result.IsRight(hasContentType) && result.IsRight(hasBody))
 	// Output: true
 }
