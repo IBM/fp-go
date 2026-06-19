@@ -65,7 +65,10 @@ package http
 import (
 	H "net/http"
 
+	"github.com/IBM/fp-go/v2/endomorphism"
 	P "github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
@@ -81,6 +84,12 @@ type (
 	//   resp := Response(fullResp)  // Extract *http.Response
 	//   body := Body(fullResp)      // Extract []byte
 	FullResponse = P.Pair[*H.Response, []byte]
+
+	Result[T any] = result.Result[T]
+
+	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
+	Reader[R, T any] = reader.Reader[R, T]
 )
 
 var (

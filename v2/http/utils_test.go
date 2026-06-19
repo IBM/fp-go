@@ -17,6 +17,7 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	H "net/http"
 	"net/url"
@@ -390,4 +391,195 @@ func TestHeaderContentTypeConstant(t *testing.T) {
 	headers := make(H.Header)
 	headers.Set(HeaderContentType, "application/json")
 	assert.Equal(t, "application/json", headers.Get(HeaderContentType))
+}
+
+// TestWithHeader_DataLastPattern tests that WithHeader follows the data last pattern
+func TestWithHeader_DataLastPattern(t *testing.T) {
+	t.Run("curried application", func(t *testing.T) {
+		// Create a test request
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		// Apply WithHeader in curried form (data last pattern)
+		setContentType := WithHeader("Content-Type")
+		setJSON := setContentType("application/json")
+		result := setJSON(req)
+
+		// Verify the header was set
+		assert.Equal(t, "application/json", result.Header.Get("Content-Type"))
+		assert.Equal(t, req, result, "should return the same request object")
+	})
+
+	t.Run("direct application", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		// Apply WithHeader directly
+		result := WithHeader("Authorization")("Bearer token123")(req)
+
+		assert.Equal(t, "Bearer token123", result.Header.Get("Authorization"))
+	})
+
+	t.Run("composition with multiple headers", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		// Create header setters
+		setContentType := WithHeader("Content-Type")("application/json")
+		setAuth := WithHeader("Authorization")("Bearer token")
+		setCustom := WithHeader("X-Custom-Header")("custom-value")
+
+		// Apply them in sequence
+		result := F.Pipe3(
+			req,
+			setContentType,
+			setAuth,
+			setCustom,
+		)
+
+		assert.Equal(t, "application/json", result.Header.Get("Content-Type"))
+		assert.Equal(t, "Bearer token", result.Header.Get("Authorization"))
+		assert.Equal(t, "custom-value", result.Header.Get("X-Custom-Header"))
+	})
+}
+
+// TestWithHeader_Mutation tests that WithHeader modifies the request in place
+func TestWithHeader_Mutation(t *testing.T) {
+	t.Run("modifies request in place", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		// Store original pointer
+		originalReq := req
+
+		// Apply header
+		result := WithHeader("Content-Type")("application/json")(req)
+
+		// Verify it's the same object (pointer equality)
+		assert.Same(t, originalReq, result, "should return the same request object, not a copy")
+		assert.Equal(t, "application/json", originalReq.Header.Get("Content-Type"), "original request should be modified")
+	})
+
+	t.Run("overwrites existing header", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		// Set initial header
+		req.Header.Set("Content-Type", "text/plain")
+
+		// Overwrite with WithHeader
+		WithHeader("Content-Type")("application/json")(req)
+
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+	})
+}
+
+// TestWithHeader_EdgeCases tests edge cases for WithHeader
+func TestWithHeader_EdgeCases(t *testing.T) {
+	t.Run("empty header value", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		WithHeader("X-Empty")("")(req)
+
+		assert.Equal(t, "", req.Header.Get("X-Empty"))
+	})
+
+	t.Run("header with special characters", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		specialValue := "value with spaces and symbols: !@#$%"
+		WithHeader("X-Special")(specialValue)(req)
+
+		assert.Equal(t, specialValue, req.Header.Get("X-Special"))
+	})
+
+	t.Run("case insensitive header names", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		WithHeader("content-type")("application/json")(req)
+
+		// HTTP headers are case-insensitive
+		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		assert.Equal(t, "application/json", req.Header.Get("content-type"))
+	})
+
+	t.Run("multiple values for same header", func(t *testing.T) {
+		req, err := H.NewRequest("GET", "https://example.com", nil)
+		require.NoError(t, err)
+
+		// Set replaces all values
+		WithHeader("Accept")("application/json")(req)
+		WithHeader("Accept")("text/html")(req)
+
+		// Should only have the last value
+		assert.Equal(t, "text/html", req.Header.Get("Accept"))
+	})
+}
+
+// TestWithHeader_StandardHeaders tests common HTTP headers
+func TestWithHeader_StandardHeaders(t *testing.T) {
+	tests := []struct {
+		name   string
+		header string
+		value  string
+	}{
+		{"Content-Type JSON", "Content-Type", "application/json"},
+		{"Content-Type XML", "Content-Type", "application/xml"},
+		{"Authorization Bearer", "Authorization", "Bearer eyJhbGc..."},
+		{"User-Agent", "User-Agent", "Mozilla/5.0"},
+		{"Accept", "Accept", "application/json"},
+		{"Accept-Encoding", "Accept-Encoding", "gzip, deflate"},
+		{"Cache-Control", "Cache-Control", "no-cache"},
+		{"Custom Header", "X-Request-ID", "abc-123-def"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := H.NewRequest("GET", "https://example.com", nil)
+			require.NoError(t, err)
+
+			WithHeader(tt.header)(tt.value)(req)
+
+			assert.Equal(t, tt.value, req.Header.Get(tt.header))
+		})
+	}
+}
+
+// ExampleWithHeader demonstrates basic usage of WithHeader
+func ExampleWithHeader() {
+	req, _ := H.NewRequest("GET", "https://api.example.com/data", nil)
+
+	// Create a header setter for Content-Type
+	setContentType := WithHeader("Content-Type")
+	setJSON := setContentType("application/json")
+
+	// Apply to request
+	setJSON(req)
+
+	fmt.Println(req.Header.Get("Content-Type"))
+	// Output: application/json
+}
+
+// ExampleWithHeader_composition demonstrates composing multiple headers
+func ExampleWithHeader_composition() {
+	req, _ := H.NewRequest("GET", "https://api.example.com/data", nil)
+
+	// Compose multiple header setters
+	result := F.Pipe3(
+		req,
+		WithHeader("Content-Type")("application/json"),
+		WithHeader("Authorization")("Bearer token"),
+		WithHeader("X-Request-ID")("12345"),
+	)
+
+	fmt.Println(result.Header.Get("Content-Type"))
+	fmt.Println(result.Header.Get("Authorization"))
+	fmt.Println(result.Header.Get("X-Request-ID"))
+	// Output:
+	// application/json
+	// Bearer token
+	// 12345
 }

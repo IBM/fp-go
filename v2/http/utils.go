@@ -24,12 +24,12 @@ import (
 	"regexp"
 
 	A "github.com/IBM/fp-go/v2/array"
-	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
 	R "github.com/IBM/fp-go/v2/record/generic"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 type (
@@ -78,20 +78,20 @@ var (
 	//
 	// Example:
 	//   result := ValidateResponse(response)
-	//   E.Fold(
+	//   result.Fold(
 	//       func(err error) { /* handle error */ },
 	//       func(resp *http.Response) { /* handle success */ },
 	//   )(result)
-	ValidateResponse = E.FromPredicate(isValidStatus, StatusCodeError)
+	ValidateResponse = result.FromPredicate(isValidStatus, StatusCodeError)
 
 	// validateJSONContentTypeString parses a content type string and validates
 	// that it represents a valid JSON media type. This is an internal helper
 	// used by ValidateJSONResponse.
 	validateJSONContentTypeString = F.Flow2(
 		ParseMediaType,
-		E.ChainFirst(F.Flow2(
+		result.ChainFirst(F.Flow2(
 			P.Head[string, map[string]string],
-			E.FromPredicate(isJSONMimeType, errors.OnSome[string]("mimetype [%s] is not a valid JSON content type")),
+			result.FromPredicate(isJSONMimeType, errors.OnSome[string]("mimetype [%s] is not a valid JSON content type")),
 		)),
 	)
 
@@ -105,18 +105,18 @@ var (
 	//
 	// Example:
 	//   result := ValidateJSONResponse(response)
-	//   E.Fold(
+	//   result.Fold(
 	//       func(err error) { /* handle non-JSON or error response */ },
 	//       func(resp *http.Response) { /* handle valid JSON response */ },
 	//   )(result)
 	ValidateJSONResponse = F.Flow2(
-		E.Of[error, *H.Response],
-		E.ChainFirst(F.Flow5(
+		result.Of[*H.Response],
+		result.ChainFirst(F.Flow5(
 			GetHeader,
 			R.Lookup[H.Header](HeaderContentType),
 			O.Chain(A.First[string]),
-			E.FromOption[string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
-			E.ChainFirst(validateJSONContentTypeString),
+			result.FromOption[string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
+			result.ChainFirst(validateJSONContentTypeString),
 		)))
 
 	// ValidateJsonResponse checks if an HTTP response is a valid JSON response.
@@ -149,13 +149,13 @@ const (
 // Example:
 //
 //	result := ParseMediaType("application/json; charset=utf-8")
-//	E.Map(func(parsed ParsedMediaType) {
+//	result.Map(func(parsed ParsedMediaType) {
 //	    mediaType := P.Head(parsed)  // "application/json"
 //	    params := P.Tail(parsed)     // map[string]string{"charset": "utf-8"}
 //	})(result)
-func ParseMediaType(mediaType string) E.Either[error, ParsedMediaType] {
+func ParseMediaType(mediaType string) result.Either[error, ParsedMediaType] {
 	m, p, err := mime.ParseMediaType(mediaType)
-	return E.TryCatchError(P.MakePair(m, p), err)
+	return result.TryCatchError(P.MakePair(m, p), err)
 }
 
 // Error implements the error interface for HttpError.
@@ -295,4 +295,35 @@ func StatusCodeError(resp *H.Response) error {
 	body, _ := io.ReadAll(bodyRdr)
 	// return an error with comprehensive information
 	return &HttpError{statusCode: resp.StatusCode, headers: GetHeader(resp).Clone(), body: body, url: resp.Request.URL}
+}
+
+// WithHeader creates a curried function for setting HTTP request headers.
+// It follows the "data last" pattern: configuration (key) -> value -> data (request).
+//
+// WARNING: This function modifies the request object in place by calling
+// Header.Set on the provided request. It does not create a copy of the request.
+//
+// Parameters:
+//   - key: The HTTP header name (e.g., "Content-Type", "Authorization")
+//
+// Returns:
+//   - A Reader that takes a header value and returns an Endomorphism that
+//     modifies the request by setting the specified header
+//
+// The function signature follows the pattern:
+//
+//	key -> value -> request -> modified request
+//
+// This allows for flexible composition and partial application:
+//
+//	setContentType := WithHeader("Content-Type")
+//	setJSON := setContentType("application/json")
+//	modifiedReq := setJSON(request)
+func WithHeader(key string) Reader[string, Endomorphism[*H.Request]] {
+	return func(value string) Endomorphism[*H.Request] {
+		return func(r *H.Request) *H.Request {
+			r.Header.Set(key, value)
+			return r
+		}
+	}
 }
