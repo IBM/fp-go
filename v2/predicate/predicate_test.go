@@ -678,3 +678,217 @@ func TestPredicatesIntegration(t *testing.T) {
 		assert.False(t, is1Or2Or3(0))
 	})
 }
+
+// TestAlways tests the Always function
+func TestAlways(t *testing.T) {
+	t.Run("returns true for any integer value", func(t *testing.T) {
+		alwaysTrue := Always[int]()
+		assert.True(t, alwaysTrue(0))
+		assert.True(t, alwaysTrue(1))
+		assert.True(t, alwaysTrue(-1))
+		assert.True(t, alwaysTrue(100))
+		assert.True(t, alwaysTrue(-100))
+	})
+
+	t.Run("returns true for any string value", func(t *testing.T) {
+		alwaysTrue := Always[string]()
+		assert.True(t, alwaysTrue(""))
+		assert.True(t, alwaysTrue("hello"))
+		assert.True(t, alwaysTrue("world"))
+	})
+
+	t.Run("returns true for any boolean value", func(t *testing.T) {
+		alwaysTrue := Always[bool]()
+		assert.True(t, alwaysTrue(true))
+		assert.True(t, alwaysTrue(false))
+	})
+
+	t.Run("returns true for any pointer value", func(t *testing.T) {
+		alwaysTrue := Always[*int]()
+		assert.True(t, alwaysTrue(nil))
+		x := 42
+		assert.True(t, alwaysTrue(&x))
+	})
+
+	t.Run("is identity for MonoidAll", func(t *testing.T) {
+		m := MonoidAll[int]()
+		alwaysTrue := Always[int]()
+
+		// Always AND p == p
+		combined := m.Concat(alwaysTrue, isPositive)
+		assert.True(t, combined(5))
+		assert.False(t, combined(-5))
+
+		// p AND Always == p
+		combined2 := m.Concat(isPositive, alwaysTrue)
+		assert.True(t, combined2(5))
+		assert.False(t, combined2(-5))
+	})
+
+	t.Run("combined with And preserves other predicate", func(t *testing.T) {
+		alwaysTrue := Always[int]()
+		combined := F.Pipe1(alwaysTrue, And(isPositive))
+		assert.True(t, combined(5))
+		assert.False(t, combined(-5))
+	})
+
+	t.Run("combined with Or makes everything true", func(t *testing.T) {
+		alwaysTrue := Always[int]()
+		combined := F.Pipe1(isPositive, Or(alwaysTrue))
+		assert.True(t, combined(5))
+		assert.True(t, combined(-5))
+		assert.True(t, combined(0))
+	})
+
+	t.Run("negation equals Never", func(t *testing.T) {
+		alwaysTrue := Always[int]()
+		notAlways := Not(alwaysTrue)
+		neverTrue := Never[int]()
+
+		testValues := []int{-5, 0, 5}
+		for _, v := range testValues {
+			assert.Equal(t, neverTrue(v), notAlways(v), "Not(Always) should equal Never for value %d", v)
+		}
+	})
+}
+
+// TestNever tests the Never function
+func TestNever(t *testing.T) {
+	t.Run("returns false for any integer value", func(t *testing.T) {
+		neverTrue := Never[int]()
+		assert.False(t, neverTrue(0))
+		assert.False(t, neverTrue(1))
+		assert.False(t, neverTrue(-1))
+		assert.False(t, neverTrue(100))
+		assert.False(t, neverTrue(-100))
+	})
+
+	t.Run("returns false for any string value", func(t *testing.T) {
+		neverTrue := Never[string]()
+		assert.False(t, neverTrue(""))
+		assert.False(t, neverTrue("hello"))
+		assert.False(t, neverTrue("world"))
+	})
+
+	t.Run("returns false for any boolean value", func(t *testing.T) {
+		neverTrue := Never[bool]()
+		assert.False(t, neverTrue(true))
+		assert.False(t, neverTrue(false))
+	})
+
+	t.Run("returns false for any pointer value", func(t *testing.T) {
+		neverTrue := Never[*int]()
+		assert.False(t, neverTrue(nil))
+		x := 42
+		assert.False(t, neverTrue(&x))
+	})
+
+	t.Run("is identity for MonoidAny", func(t *testing.T) {
+		m := MonoidAny[int]()
+		neverTrue := Never[int]()
+
+		// Never OR p == p
+		combined := m.Concat(neverTrue, isPositive)
+		assert.True(t, combined(5))
+		assert.False(t, combined(-5))
+
+		// p OR Never == p
+		combined2 := m.Concat(isPositive, neverTrue)
+		assert.True(t, combined2(5))
+		assert.False(t, combined2(-5))
+	})
+
+	t.Run("combined with Or preserves other predicate", func(t *testing.T) {
+		neverTrue := Never[int]()
+		combined := F.Pipe1(neverTrue, Or(isPositive))
+		assert.True(t, combined(5))
+		assert.False(t, combined(-5))
+	})
+
+	t.Run("combined with And makes everything false", func(t *testing.T) {
+		neverTrue := Never[int]()
+		combined := F.Pipe1(isPositive, And(neverTrue))
+		assert.False(t, combined(5))
+		assert.False(t, combined(-5))
+		assert.False(t, combined(0))
+	})
+
+	t.Run("negation equals Always", func(t *testing.T) {
+		neverTrue := Never[int]()
+		notNever := Not(neverTrue)
+		alwaysTrue := Always[int]()
+
+		testValues := []int{-5, 0, 5}
+		for _, v := range testValues {
+			assert.Equal(t, alwaysTrue(v), notNever(v), "Not(Never) should equal Always for value %d", v)
+		}
+	})
+}
+
+// TestAlwaysNeverIntegration tests integration of Always and Never with other predicates
+func TestAlwaysNeverIntegration(t *testing.T) {
+	t.Run("Always as default in conditional logic", func(t *testing.T) {
+		// Simulate a scenario where we might want to accept all values by default
+		shouldFilter := false
+		var predicate Predicate[int]
+		if shouldFilter {
+			predicate = isPositive
+		} else {
+			predicate = Always[int]()
+		}
+
+		assert.True(t, predicate(5))
+		assert.True(t, predicate(-5))
+		assert.True(t, predicate(0))
+	})
+
+	t.Run("Never as default in conditional logic", func(t *testing.T) {
+		// Simulate a scenario where we might want to reject all values by default
+		shouldAllow := false
+		var predicate Predicate[int]
+		if shouldAllow {
+			predicate = isPositive
+		} else {
+			predicate = Never[int]()
+		}
+
+		assert.False(t, predicate(5))
+		assert.False(t, predicate(-5))
+		assert.False(t, predicate(0))
+	})
+
+	t.Run("Always and Never with ContraMap", func(t *testing.T) {
+		type Person struct{ Age int }
+		getAge := func(p Person) int { return p.Age }
+
+		alwaysPerson := F.Pipe1(Always[int](), ContraMap(getAge))
+		neverPerson := F.Pipe1(Never[int](), ContraMap(getAge))
+
+		person := Person{Age: 25}
+		assert.True(t, alwaysPerson(person))
+		assert.False(t, neverPerson(person))
+	})
+
+	t.Run("building complex predicates with Always", func(t *testing.T) {
+		// Start with Always and progressively add constraints
+		predicate := Always[int]()
+		predicate = F.Pipe1(predicate, And(isPositive))
+		predicate = F.Pipe1(predicate, And(isEven))
+
+		assert.True(t, predicate(4))
+		assert.False(t, predicate(3))
+		assert.False(t, predicate(-2))
+	})
+
+	t.Run("building complex predicates with Never", func(t *testing.T) {
+		// Start with Never and progressively relax constraints
+		predicate := Never[int]()
+		predicate = F.Pipe1(predicate, Or(isPositive))
+		predicate = F.Pipe1(predicate, Or(isEven))
+
+		assert.True(t, predicate(4))   // positive and even
+		assert.True(t, predicate(3))   // positive
+		assert.True(t, predicate(-2))  // even
+		assert.False(t, predicate(-3)) // neither
+	})
+}

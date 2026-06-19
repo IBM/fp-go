@@ -118,3 +118,35 @@ func IsZero[A comparable]() Predicate[A] {
 func IsNonZero[A comparable]() Predicate[A] {
 	return Not(IsZero[A]())
 }
+
+// Always creates a predicate that always returns true for any input value.
+//
+// This is the identity element for the MonoidAll semigroup and represents
+// a predicate that accepts all values. It's useful as a base case when
+// building complex predicates or as a default predicate.
+//
+// Returns:
+//   - A Predicate[T] that always returns true
+//
+// See Also:
+//   - Never: Creates a predicate that always returns false
+//   - MonoidAll: Uses Always as its identity element
+func Always[T any]() Predicate[T] {
+	return F.Constant1[T](true)
+}
+
+// Never creates a predicate that always returns false for any input value.
+//
+// This is the identity element for the MonoidAny semigroup and represents
+// a predicate that rejects all values. It's useful as a base case when
+// building complex predicates or as a default predicate.
+//
+// Returns:
+//   - A Predicate[T] that always returns false
+//
+// See Also:
+//   - Always: Creates a predicate that always returns true
+//   - MonoidAny: Uses Never as its identity element
+func Never[T any]() Predicate[T] {
+	return F.Constant1[T](false)
+}

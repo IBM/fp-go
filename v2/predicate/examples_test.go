@@ -71,3 +71,47 @@ func ExampleContraMap() {
 	// true
 	// false
 }
+
+func ExampleAlways() {
+	alwaysTrue := predicate.Always[int]()
+	fmt.Println(alwaysTrue(42))
+	fmt.Println(alwaysTrue(-10))
+	fmt.Println(alwaysTrue(0))
+	// Output:
+	// true
+	// true
+	// true
+}
+
+func ExampleNever() {
+	neverTrue := predicate.Never[int]()
+	fmt.Println(neverTrue(42))
+	fmt.Println(neverTrue(-10))
+	fmt.Println(neverTrue(0))
+	// Output:
+	// false
+	// false
+	// false
+}
+
+func ExampleAlways_withAnd() {
+	isPositive := func(n int) bool { return n > 0 }
+	// Always AND isPositive == isPositive
+	combined := F.Pipe1(predicate.Always[int](), predicate.And(isPositive))
+	fmt.Println(combined(5))
+	fmt.Println(combined(-5))
+	// Output:
+	// true
+	// false
+}
+
+func ExampleNever_withOr() {
+	isPositive := func(n int) bool { return n > 0 }
+	// Never OR isPositive == isPositive
+	combined := F.Pipe1(predicate.Never[int](), predicate.Or(isPositive))
+	fmt.Println(combined(5))
+	fmt.Println(combined(-5))
+	// Output:
+	// true
+	// false
+}

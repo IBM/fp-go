@@ -111,7 +111,7 @@ func SemigroupAll[A any]() Semigroup[A] {
 func MonoidAny[A any]() Monoid[A] {
 	return monoid.MakeMonoid(
 		SemigroupAny[A]().Concat,
-		F.Constant1[A](false),
+		Never[A](),
 	)
 }
 
@@ -139,6 +139,6 @@ func MonoidAny[A any]() Monoid[A] {
 func MonoidAll[A any]() Monoid[A] {
 	return monoid.MakeMonoid(
 		SemigroupAll[A]().Concat,
-		F.Constant1[A](true),
+		Always[A](),
 	)
 }

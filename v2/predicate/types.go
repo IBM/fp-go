@@ -45,6 +45,24 @@ type (
 	// It is commonly used for filtering, validation, and conditional logic.
 	Predicate[A any] = func(A) bool
 
+	// Kleisli represents a function that takes a value of type A and returns a Predicate[B].
+	// This is a Kleisli arrow in the context of predicates, allowing for the creation of
+	// parameterized predicates. It's particularly useful for building predicates that depend
+	// on some input value, such as equality testing or comparison operations.
+	//
+	// Type Parameters:
+	//   - A: The input type for the Kleisli arrow
+	//   - B: The type that the resulting predicate will test
+	//
+	// Common uses:
+	//   - IsEqual: Takes a value and returns a predicate testing equality with that value
+	//   - IsStrictEqual: Takes a value and returns a predicate testing strict equality
+	//   - Custom parameterized predicates that depend on configuration or context
+	//
+	// See Also:
+	//   - IsEqual: Returns a Kleisli[A, A] for custom equality testing
+	//   - IsStrictEqual: Returns a Kleisli[A, A] for strict equality testing
+	//   - Operator: A specialized Kleisli for transforming predicates
 	Kleisli[A, B any] = func(A) Predicate[B]
 
 	// Operator represents a function that transforms a Predicate[A] into a Predicate[B].
