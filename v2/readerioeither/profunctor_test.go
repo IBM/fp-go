@@ -33,7 +33,7 @@ type DetailedConfig struct {
 	Port int
 }
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both input and output", func(t *testing.T) {
 		// ReaderIOEither that reads port from SimpleConfig
@@ -47,7 +47,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap[SimpleConfig, string](simplify, toString)(getPort)
+		adapted := ProMap[SimpleConfig, string](simplify, toString)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.Equal(t, E.Of[string]("8080"), result)
@@ -64,14 +64,14 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap[SimpleConfig, string](simplify, toString)(getError)
+		adapted := ProMap[SimpleConfig, string](simplify, toString)(getError)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.Equal(t, E.Left[string]("error occurred"), result)
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("environment adaptation", func(t *testing.T) {
 		// ReaderIOEither that reads from SimpleConfig
@@ -84,7 +84,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[string, int](simplify)(getPort)
+		adapted := ContraMap[string, int](simplify)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 9000})()
 
 		assert.Equal(t, E.Of[string](9000), result)
@@ -99,14 +99,14 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[string, int](simplify)(getError)
+		adapted := ContraMap[string, int](simplify)(getError)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 9000})()
 
 		assert.Equal(t, E.Left[int]("config error"), result)
 	})
 }
 
-// TestPromapWithIO tests Promap with actual IO effects
+// TestPromapWithIO tests ProMap with actual IO effects
 func TestPromapWithIO(t *testing.T) {
 	t.Run("transform IO result", func(t *testing.T) {
 		counter := 0
@@ -124,7 +124,7 @@ func TestPromapWithIO(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap[SimpleConfig, string](simplify, toString)(getPortWithEffect)
+		adapted := ProMap[SimpleConfig, string](simplify, toString)(getPortWithEffect)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.Equal(t, E.Of[string]("8080"), result)

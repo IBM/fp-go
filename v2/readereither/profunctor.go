@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderEither.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderEither.
 // It applies f to the input environment (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -46,16 +46,21 @@ import (
 //   - A Kleisli arrow that takes a ReaderEither[R, E, A] and returns a ReaderEither[D, E, B]
 //
 //go:inline
-func Promap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderEither[R, E, A], B] {
-	return reader.Promap(f, either.Map[E](g))
+func ProMap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderEither[R, E, A], B] {
+	return reader.ProMap(f, either.Map[E](g))
 }
 
-// Contramap changes the value of the local environment during the execution of a ReaderEither.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderEither[R, E, A], B] {
+	return ProMap[R, E](f, g)
+}
+
+// ContraMap changes the value of the local environment during the execution of a ReaderEither.
 // This is the contravariant functor operation that transforms the input environment.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is useful for adapting a ReaderEither to work with a different environment type
+// ContraMap is useful for adapting a ReaderEither to work with a different environment type
 // by providing a function that converts the new environment to the expected one.
 //
 // Type Parameters:
@@ -71,6 +76,6 @@ func Promap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderEit
 //   - A Kleisli arrow that takes a ReaderEither[R1, E, A] and returns a ReaderEither[R2, E, A]
 //
 //go:inline
-func Contramap[E, A, R1, R2 any](f func(R2) R1) Kleisli[R2, E, ReaderEither[R1, E, A], A] {
-	return reader.Contramap[Either[E, A]](f)
+func ContraMap[E, A, R1, R2 any](f func(R2) R1) Kleisli[R2, E, ReaderEither[R1, E, A], A] {
+	return reader.ContraMap[Either[E, A]](f)
 }

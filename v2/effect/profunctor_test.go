@@ -42,7 +42,7 @@ type ServerConfig struct {
 	Port int
 }
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both context and output", func(t *testing.T) {
 		// Effect that uses DBConfig and returns an int
@@ -59,7 +59,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 
 		// Adapt the effect to work with AppConfig and return string
-		adapted := Promap(extractDBConfig, formatCount)(getUserCount)
+		adapted := ProMap(extractDBConfig, formatCount)(getUserCount)
 		result := adapted(AppConfig{
 			DatabaseURL: "localhost:5432",
 			APIKey:      "secret",
@@ -78,14 +78,14 @@ func TestPromapBasic(t *testing.T) {
 		identityInt := func(x int) int { return x }
 
 		// Apply identity transformations
-		adapted := Promap(identity, identityInt)(getValue)
+		adapted := ProMap(identity, identityInt)(getValue)
 		result := adapted(DBConfig{URL: "localhost"})(context.Background())()
 
 		assert.Equal(t, R.Of(100), result)
 	})
 }
 
-// TestPromapComposition tests that Promap composes correctly
+// TestPromapComposition tests that ProMap composes correctly
 func TestPromapComposition(t *testing.T) {
 	t.Run("compose multiple transformations", func(t *testing.T) {
 		// Effect that uses ServerConfig and returns the port
@@ -104,7 +104,7 @@ func TestPromapComposition(t *testing.T) {
 		}
 
 		// Apply transformations
-		adapted := Promap(extractServerConfig, formatPort)(getPort)
+		adapted := ProMap(extractServerConfig, formatPort)(getPort)
 		result := adapted(AppConfig{
 			DatabaseURL: "db.example.com",
 			APIKey:      "key123",
@@ -115,7 +115,7 @@ func TestPromapComposition(t *testing.T) {
 	})
 }
 
-// TestPromapWithErrors tests Promap with effects that can fail
+// TestPromapWithErrors tests ProMap with effects that can fail
 func TestPromapWithErrors(t *testing.T) {
 	t.Run("propagates errors correctly", func(t *testing.T) {
 		// Effect that fails
@@ -130,7 +130,7 @@ func TestPromapWithErrors(t *testing.T) {
 		}
 
 		// Apply transformations
-		adapted := Promap(extractDBConfig, formatCount)(failingEffect)
+		adapted := ProMap(extractDBConfig, formatCount)(failingEffect)
 		result := adapted(AppConfig{DatabaseURL: "localhost"})(context.Background())()
 
 		assert.True(t, R.IsLeft(result))
@@ -155,7 +155,7 @@ func TestPromapWithErrors(t *testing.T) {
 		}
 
 		// Apply transformations
-		adapted := Promap(
+		adapted := ProMap(
 			func(app AppConfig) DBConfig { return DBConfig{URL: app.DatabaseURL} },
 			countingTransform,
 		)(failingEffect)
@@ -166,7 +166,7 @@ func TestPromapWithErrors(t *testing.T) {
 	})
 }
 
-// TestPromapWithComplexTypes tests Promap with more complex type transformations
+// TestPromapWithComplexTypes tests ProMap with more complex type transformations
 func TestPromapWithComplexTypes(t *testing.T) {
 	t.Run("transform struct to different struct", func(t *testing.T) {
 		type User struct {
@@ -195,23 +195,23 @@ func TestPromapWithComplexTypes(t *testing.T) {
 		}
 
 		// Apply transformations
-		adapted := Promap(dtoToUser, toUpper)(getUserInfo)
+		adapted := ProMap(dtoToUser, toUpper)(getUserInfo)
 		result := adapted(UserDTO{UserID: 123, FullName: "Alice"})(context.Background())()
 
 		assert.Equal(t, R.Of("INFO: User Alice (ID: 123)"), result)
 	})
 }
 
-// TestPromapChaining tests chaining multiple Promap operations
+// TestPromapChaining tests chaining multiple ProMap operations
 func TestPromapChaining(t *testing.T) {
-	t.Run("chain multiple Promap operations", func(t *testing.T) {
+	t.Run("chain multiple ProMap operations", func(t *testing.T) {
 		// Base effect that doubles the input
 		baseEffect := Map[int](func(x int) int {
 			return x * 2
 		})(Ask[int]())
 
-		// First Promap: string -> int, int -> string
-		step1 := Promap(
+		// First ProMap: string -> int, int -> string
+		step1 := ProMap(
 			func(s string) int {
 				n, _ := strconv.Atoi(s)
 				return n
@@ -219,8 +219,8 @@ func TestPromapChaining(t *testing.T) {
 			strconv.Itoa,
 		)(baseEffect)
 
-		// Second Promap: float64 -> string, string -> float64
-		step2 := Promap(
+		// Second ProMap: float64 -> string, string -> float64
+		step2 := ProMap(
 			func(f float64) string {
 				return fmt.Sprintf("%.0f", f)
 			},
@@ -243,7 +243,7 @@ func TestPromapEdgeCases(t *testing.T) {
 			return x
 		})(Ask[int]())
 
-		adapted := Promap(
+		adapted := ProMap(
 			func(s string) int { return 0 },
 			func(x int) string { return "" },
 		)(effect)
@@ -256,7 +256,7 @@ func TestPromapEdgeCases(t *testing.T) {
 	t.Run("nil context handling", func(t *testing.T) {
 		effect := Succeed[int]("success")
 
-		adapted := Promap(
+		adapted := ProMap(
 			func(s string) int { return 42 },
 			func(s string) string { return s + "!" },
 		)(effect)
@@ -270,14 +270,14 @@ func TestPromapEdgeCases(t *testing.T) {
 
 // TestPromapIntegration tests integration with other effect operations
 func TestPromapIntegration(t *testing.T) {
-	t.Run("Promap with Map", func(t *testing.T) {
+	t.Run("ProMap with Map", func(t *testing.T) {
 		// Base effect that adds 10
 		baseEffect := Map[int](func(x int) int {
 			return x + 10
 		})(Ask[int]())
 
-		// Apply Promap
-		promapped := Promap(
+		// Apply ProMap
+		promapped := ProMap(
 			func(s string) int {
 				n, _ := strconv.Atoi(s)
 				return n
@@ -295,12 +295,12 @@ func TestPromapIntegration(t *testing.T) {
 		assert.Equal(t, R.Of("Result: 30"), result)
 	})
 
-	t.Run("Promap with Chain", func(t *testing.T) {
+	t.Run("ProMap with Chain", func(t *testing.T) {
 		// Base effect
 		baseEffect := Ask[int]()
 
-		// Apply Promap
-		promapped := Promap(
+		// Apply ProMap
+		promapped := ProMap(
 			func(s string) int {
 				n, _ := strconv.Atoi(s)
 				return n
@@ -319,13 +319,13 @@ func TestPromapIntegration(t *testing.T) {
 	})
 }
 
-// BenchmarkPromap benchmarks the Promap operation
+// BenchmarkPromap benchmarks the ProMap operation
 func BenchmarkPromap(b *testing.B) {
 	effect := Map[int](func(x int) int {
 		return x * 2
 	})(Ask[int]())
 
-	adapted := Promap(
+	adapted := ProMap(
 		func(s string) int {
 			n, _ := strconv.Atoi(s)
 			return n
@@ -341,13 +341,13 @@ func BenchmarkPromap(b *testing.B) {
 	}
 }
 
-// BenchmarkPromapChained benchmarks chained Promap operations
+// BenchmarkPromapChained benchmarks chained ProMap operations
 func BenchmarkPromapChained(b *testing.B) {
 	baseEffect := Map[int](func(x int) int {
 		return x * 2
 	})(Ask[int]())
 
-	step1 := Promap(
+	step1 := ProMap(
 		func(s string) int {
 			n, _ := strconv.Atoi(s)
 			return n
@@ -355,7 +355,7 @@ func BenchmarkPromapChained(b *testing.B) {
 		strconv.Itoa,
 	)(baseEffect)
 
-	step2 := Promap(
+	step2 := ProMap(
 		func(f float64) string {
 			return fmt.Sprintf("%.0f", f)
 		},

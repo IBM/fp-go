@@ -23,7 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderIOEither.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderIOEither.
 // It applies f to the input environment (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -49,16 +49,21 @@ import (
 //   - A Kleisli arrow that takes a ReaderIOEither[R, E, A] and returns a ReaderIOEither[D, E, B]
 //
 //go:inline
-func Promap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderIOEither[R, E, A], B] {
-	return reader.Promap(f, ioeither.Map[E](g))
+func ProMap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderIOEither[R, E, A], B] {
+	return reader.ProMap(f, ioeither.Map[E](g))
 }
 
-// Contramap changes the value of the local environment during the execution of a ReaderIOEither.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderIOEither[R, E, A], B] {
+	return ProMap[R, E](f, g)
+}
+
+// ContraMap changes the value of the local environment during the execution of a ReaderIOEither.
 // This is the contravariant functor operation that transforms the input environment.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is useful for adapting a ReaderIOEither to work with a different environment type
+// ContraMap is useful for adapting a ReaderIOEither to work with a different environment type
 // by providing a function that converts the new environment to the expected one.
 //
 // Type Parameters:
@@ -74,8 +79,8 @@ func Promap[R, E, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, E, ReaderIOE
 //   - A Kleisli arrow that takes a ReaderIOEither[R1, E, A] and returns a ReaderIOEither[R2, E, A]
 //
 //go:inline
-func Contramap[E, A, R1, R2 any](f func(R2) R1) Kleisli[R2, E, ReaderIOEither[R1, E, A], A] {
-	return reader.Contramap[IOEither[E, A]](f)
+func ContraMap[E, A, R1, R2 any](f func(R2) R1) Kleisli[R2, E, ReaderIOEither[R1, E, A], A] {
+	return reader.ContraMap[IOEither[E, A]](f)
 }
 
 // LocalIOK transforms the environment of a ReaderIOEither using an IO-based Kleisli arrow.

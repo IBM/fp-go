@@ -133,7 +133,7 @@ func Second[GBC ~func(B) C, GABC ~func(T.Tuple2[A, B]) T.Tuple2[A, C], A, B, C a
 }
 
 // Deprecated:
-func Promap[GA ~func(E) A, GB ~func(D) B, E, A, D, B any](f func(D) E, g func(A) B) func(GA) GB {
+func ProMap[GA ~func(E) A, GB ~func(D) B, E, A, D, B any](f func(D) E, g func(A) B) func(GA) GB {
 	return func(fea GA) GB {
 		return MakeReader(F.Flow3(f, fea, g))
 	}

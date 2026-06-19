@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both context and output", func(t *testing.T) {
 		getValue := func(ctx context.Context) IOResult[int] {
@@ -47,14 +47,14 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(addKey, toString)(getValue)
+		adapted := ProMap(addKey, toString)(getValue)
 		result := adapted(t.Context())()
 
 		assert.Equal(t, R.Of("42"), result)
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("context transformation", func(t *testing.T) {
 		getValue := func(ctx context.Context) IOResult[int] {
@@ -71,7 +71,7 @@ func TestContramapBasic(t *testing.T) {
 			return pair.MakePair(context.CancelFunc(func() {}), newCtx)
 		}
 
-		adapted := Contramap[int](addKey)(getValue)
+		adapted := ContraMap[int](addKey)(getValue)
 		result := adapted(t.Context())()
 
 		assert.Equal(t, R.Of(100), result)

@@ -33,7 +33,7 @@ type DetailedConfig struct {
 	Port int
 }
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both input and output", func(t *testing.T) {
 		// ReaderEither that reads port from SimpleConfig
@@ -47,7 +47,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap[SimpleConfig, string](simplify, toString)(getPort)
+		adapted := ProMap[SimpleConfig, string](simplify, toString)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})
 
 		assert.Equal(t, E.Of[string]("8080"), result)
@@ -64,14 +64,14 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap[SimpleConfig, string](simplify, toString)(getError)
+		adapted := ProMap[SimpleConfig, string](simplify, toString)(getError)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})
 
 		assert.Equal(t, E.Left[string]("error occurred"), result)
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("environment adaptation", func(t *testing.T) {
 		// ReaderEither that reads from SimpleConfig
@@ -84,7 +84,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[string, int](simplify)(getPort)
+		adapted := ContraMap[string, int](simplify)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 9000})
 
 		assert.Equal(t, E.Of[string](9000), result)
@@ -99,16 +99,16 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[string, int](simplify)(getError)
+		adapted := ContraMap[string, int](simplify)(getError)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 9000})
 
 		assert.Equal(t, E.Left[int]("config error"), result)
 	})
 }
 
-// TestPromapComposition tests that Promap can be composed
+// TestPromapComposition tests that ProMap can be composed
 func TestPromapComposition(t *testing.T) {
-	t.Run("compose two Promap transformations", func(t *testing.T) {
+	t.Run("compose two ProMap transformations", func(t *testing.T) {
 		type Config1 struct{ Value int }
 		type Config2 struct{ Value int }
 		type Config3 struct{ Value int }
@@ -123,9 +123,9 @@ func TestPromapComposition(t *testing.T) {
 		f2 := func(c3 Config3) Config2 { return Config2{Value: c3.Value} }
 		g2 := N.Add(10)
 
-		// Apply two Promap transformations
-		step1 := Promap[Config1, string](f1, g1)(reader)
-		step2 := Promap[Config2, string](f2, g2)(step1)
+		// Apply two ProMap transformations
+		step1 := ProMap[Config1, string](f1, g1)(reader)
+		step2 := ProMap[Config2, string](f2, g2)(step1)
 
 		result := step2(Config3{Value: 5})
 

@@ -239,7 +239,7 @@ func TestPromap(t *testing.T) {
 	getPort := func(c Config) int { return c.Port }
 	extractConfig := func(e Env) Config { return e.Config }
 	toString := strconv.Itoa
-	r := Promap(extractConfig, toString)(getPort)
+	r := ProMap(extractConfig, toString)(getPort)
 	result := r(env)
 	assert.Equal(t, "8080", result)
 }
@@ -269,7 +269,7 @@ func TestContramap(t *testing.T) {
 		detailed := DetailedConfig{Host: "localhost", Port: 8080}
 		getHost := func(c SimpleConfig) string { return c.Host }
 		simplify := func(d DetailedConfig) SimpleConfig { return SimpleConfig{Host: d.Host} }
-		r := Contramap[string](simplify)(getHost)
+		r := ContraMap[string](simplify)(getHost)
 		result := r(detailed)
 		assert.Equal(t, "localhost", result)
 	})
@@ -286,8 +286,8 @@ func TestContramap(t *testing.T) {
 			return SimpleConfig{Host: d.Host}
 		}
 
-		// Using Contramap
-		contramapResult := Contramap[string](simplify)(getHost)
+		// Using ContraMap
+		contramapResult := ContraMap[string](simplify)(getHost)
 
 		// Using Local
 		localResult := Local[string](simplify)(getHost)
@@ -309,7 +309,7 @@ func TestContramap(t *testing.T) {
 			return SmallEnv{Value: l.Value / 10}
 		}
 
-		adapted := Contramap[int](extract)(doubler)
+		adapted := ContraMap[int](extract)(doubler)
 		result := adapted(LargeEnv{Value: 100})
 		assert.Equal(t, 20, result) // (100/10) * 2 = 20
 	})
@@ -325,10 +325,10 @@ func TestContramap(t *testing.T) {
 		getPort := func(c Config) int { return c.Port }
 		toString := strconv.Itoa
 
-		// Contramap on input, Map on output
+		// ContraMap on input, Map on output
 		r := F.Pipe2(
 			getPort,
-			Contramap[int](extractConfig),
+			ContraMap[int](extractConfig),
 			Map[Env](toString),
 		)
 

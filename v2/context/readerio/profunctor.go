@@ -24,7 +24,7 @@ import (
 	RIO "github.com/IBM/fp-go/v2/readerio"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a context-based ReaderIO.
+// ProMap is the profunctor map operation that transforms both the input and output of a context-based ReaderIO.
 // It applies f to the input context (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -50,19 +50,24 @@ import (
 // Note: When R is context.Context, this simplifies to an Operator[A, B]
 //
 //go:inline
-func Promap[R, A, B any](f pair.Kleisli[context.CancelFunc, R, context.Context], g func(A) B) RIO.Kleisli[R, ReaderIO[A], B] {
+func ProMap[R, A, B any](f pair.Kleisli[context.CancelFunc, R, context.Context], g func(A) B) RIO.Kleisli[R, ReaderIO[A], B] {
 	return function.Flow2(
 		Local[A](f),
 		RIO.Map[R](g),
 	)
 }
 
-// Contramap changes the context during the execution of a ReaderIO.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[R, A, B any](f pair.Kleisli[context.CancelFunc, R, context.Context], g func(A) B) RIO.Kleisli[R, ReaderIO[A], B] {
+	return ProMap(f, g)
+}
+
+// ContraMap changes the context during the execution of a ReaderIO.
 // This is the contravariant functor operation that transforms the input context.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is an alias for Local and is useful for adapting a ReaderIO to work with
+// ContraMap is an alias for Local and is useful for adapting a ReaderIO to work with
 // a modified context by providing a function that transforms the context.
 //
 // Type Parameters:
@@ -78,7 +83,7 @@ func Promap[R, A, B any](f pair.Kleisli[context.CancelFunc, R, context.Context],
 // Note: When R is context.Context, this simplifies to an Operator[A, A]
 //
 //go:inline
-func Contramap[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RIO.Kleisli[R, ReaderIO[A], A] {
+func ContraMap[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RIO.Kleisli[R, ReaderIO[A], A] {
 	return Local[A](f)
 }
 

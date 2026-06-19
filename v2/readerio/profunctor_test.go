@@ -64,7 +64,7 @@ type FullEnv struct {
 	Role   string
 }
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both input and output", func(t *testing.T) {
 		// ReaderIO that reads port from SimpleConfig
@@ -78,7 +78,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getPort)
+		adapted := ProMap(simplify, toString)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080, Debug: true})()
 
 		assert.Equal(t, "8080", result)
@@ -91,7 +91,7 @@ func TestPromapBasic(t *testing.T) {
 
 		// Identity functions should not change behavior
 		identity := reader.Ask[int]()
-		adapted := Promap(identity, identity)(getValue)
+		adapted := ProMap(identity, identity)(getValue)
 		result := adapted(5)()
 
 		assert.Equal(t, 10, result)
@@ -108,7 +108,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		double := N.Mul(2)
 
-		step1 := Promap(simplify, double)(getPort)
+		step1 := ProMap(simplify, double)(getPort)
 
 		// Second transformation
 		addDebug := func(d DetailedConfig) DetailedConfig {
@@ -117,14 +117,14 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := S.Format[int]("Port: %d")
 
-		step2 := Promap(addDebug, toString)(step1)
+		step2 := ProMap(addDebug, toString)(step1)
 		result := step2(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.Equal(t, "Port: 16160", result)
 	})
 }
 
-// TestPromapWithIO tests Promap with actual IO effects
+// TestPromapWithIO tests ProMap with actual IO effects
 func TestPromapWithIO(t *testing.T) {
 	t.Run("transform IO result", func(t *testing.T) {
 		counter := 0
@@ -138,7 +138,7 @@ func TestPromapWithIO(t *testing.T) {
 		double := reader.Ask[int]()
 		toString := S.Format[int]("Result: %d")
 
-		adapted := Promap(double, toString)(getAndIncrement)
+		adapted := ProMap(double, toString)(getAndIncrement)
 		result := adapted(10)()
 
 		assert.Equal(t, "Result: 11", result)
@@ -158,7 +158,7 @@ func TestPromapWithIO(t *testing.T) {
 		addPrefix := S.Prepend("Input: ")
 		addSuffix := S.Append(" [processed]")
 
-		adapted := Promap(addPrefix, addSuffix)(logAndReturn)
+		adapted := ProMap(addPrefix, addSuffix)(logAndReturn)
 		result := adapted("test")()
 
 		assert.Equal(t, "Input: test [processed]", result)
@@ -178,7 +178,7 @@ func TestPromapEnvironmentExtraction(t *testing.T) {
 		}
 		identity := reader.Ask[string]()
 
-		adapted := Promap(extractDB, identity)(connectDB)
+		adapted := ProMap(extractDB, identity)(connectDB)
 		result := adapted(AppConfig{
 			Database: DatabaseConfig{Host: "localhost", Port: 5432},
 			Server:   ServerConfig{Port: 8080, Timeout: 30},
@@ -199,7 +199,7 @@ func TestPromapEnvironmentExtraction(t *testing.T) {
 			return fmt.Sprintf("Server listening on port %d", port)
 		}
 
-		adapted := Promap(extractServer, formatPort)(getServerPort)
+		adapted := ProMap(extractServer, formatPort)(getServerPort)
 		result := adapted(AppConfig{
 			Server: ServerConfig{Port: 8080, Timeout: 30},
 		})()
@@ -346,7 +346,7 @@ func TestLocalWithIO(t *testing.T) {
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("environment adaptation", func(t *testing.T) {
 		readConfig := func(env SimpleConfig) IO[string] {
@@ -357,7 +357,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Host: detailed.Host, Port: detailed.Port}
 		}
 
-		adapted := Contramap[string](simplify)(readConfig)
+		adapted := ContraMap[string](simplify)(readConfig)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080, Debug: true})()
 
 		assert.Equal(t, "localhost:8080", result)
@@ -372,14 +372,14 @@ func TestContramapBasic(t *testing.T) {
 			return cfg.Port
 		}
 
-		adapted := Contramap[string](extractPort)(getPort)
+		adapted := ContraMap[string](extractPort)(getPort)
 		result := adapted(SimpleConfig{Host: "localhost", Port: 9000})()
 
 		assert.Equal(t, "Port: 9000", result)
 	})
 }
 
-// TestContramapVsLocal verifies Contramap and Local are equivalent
+// TestContramapVsLocal verifies ContraMap and Local are equivalent
 func TestContramapVsLocal(t *testing.T) {
 	t.Run("same behavior as Local", func(t *testing.T) {
 		getValue := func(n int) IO[int] {
@@ -389,7 +389,7 @@ func TestContramapVsLocal(t *testing.T) {
 		double := N.Mul(2)
 
 		localResult := Local[int](double)(getValue)(5)()
-		contramapResult := Contramap[int](double)(getValue)(5)()
+		contramapResult := ContraMap[int](double)(getValue)(5)()
 
 		assert.Equal(t, localResult, contramapResult)
 		assert.Equal(t, 30, localResult) // (5 * 2) * 3 = 30
@@ -407,7 +407,7 @@ func TestContramapVsLocal(t *testing.T) {
 		env := DetailedConfig{Host: "example.com", Port: 8080, Debug: false}
 
 		localResult := Local[string](simplify)(getHost)(env)()
-		contramapResult := Contramap[string](simplify)(getHost)(env)()
+		contramapResult := ContraMap[string](simplify)(getHost)(env)()
 
 		assert.Equal(t, localResult, contramapResult)
 		assert.Equal(t, "example.com", localResult)
@@ -423,8 +423,8 @@ func TestProfunctorLaws(t *testing.T) {
 
 		identity := reader.Ask[int]()
 
-		// Promap(id, id) should be equivalent to id
-		adapted := Promap(identity, identity)(getValue)
+		// ProMap(id, id) should be equivalent to id
+		adapted := ProMap(identity, identity)(getValue)
 		original := getValue(5)()
 		transformed := adapted(5)()
 
@@ -442,12 +442,12 @@ func TestProfunctorLaws(t *testing.T) {
 		g1 := N.Sub(5)
 		g2 := N.Mul(2)
 
-		// Promap(f1, g2) . Promap(f2, g1) should equal Promap(f2 . f1, g2 . g1)
+		// ProMap(f1, g2) . ProMap(f2, g1) should equal ProMap(f2 . f1, g2 . g1)
 		// Note: composition order is reversed for contravariant part
-		step1 := Promap(f2, g1)(getValue)
-		composed1 := Promap(f1, g2)(step1)
+		step1 := ProMap(f2, g1)(getValue)
+		composed1 := ProMap(f1, g2)(step1)
 
-		composed2 := Promap(
+		composed2 := ProMap(
 			func(x int) int { return f2(f1(x)) },
 			func(x int) int { return g2(g1(x)) },
 		)(getValue)
@@ -483,7 +483,7 @@ func TestEdgeCases(t *testing.T) {
 		double := N.Mul(2)
 		applyFunc := reader.Read[int](5)
 
-		adapted := Promap(double, applyFunc)(getFunc)
+		adapted := ProMap(double, applyFunc)(getFunc)
 		result := adapted(3)() // (3 * 2) = 6, then func(5) = 10
 
 		assert.Equal(t, 10, result)
@@ -503,7 +503,7 @@ func TestEdgeCases(t *testing.T) {
 		}
 		multiply := N.Mul(10)
 
-		adapted := Promap(extract, multiply)(getValue)
+		adapted := ProMap(extract, multiply)(getValue)
 		result := adapted(Level1{L2: Level2{L3: Level3{Value: 7}}})()
 
 		assert.Equal(t, 70, result)
@@ -602,7 +602,7 @@ func TestRealWorldScenarios(t *testing.T) {
 			return "[API] " + s
 		}
 
-		adapted := Promap(extractResponse, addMetadata)(formatResponse)
+		adapted := ProMap(extractResponse, addMetadata)(formatResponse)
 		result := adapted(EnrichedResponse{
 			Response:  APIResponse{StatusCode: 200, Body: "OK"},
 			Timestamp: 1234567890,

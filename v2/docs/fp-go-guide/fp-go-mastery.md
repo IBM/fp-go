@@ -329,13 +329,13 @@ Deeper stacks add function call overhead. Each layer is a closure allocation. Fo
 
 ## 4. Profunctor Mapping
 
-### Promap
+### ProMap
 
-`Promap` transforms both the input (context/environment) and the output (value) of an effect simultaneously. It is contravariant on input and covariant on output:
+`ProMap` transforms both the input (context/environment) and the output (value) of an effect simultaneously. It is contravariant on input and covariant on output:
 
 ```go
 // effect/profunctor.go
-func Promap[E, A, D, B any](
+func ProMap[E, A, D, B any](
     f Reader[D, E],    // contravariant: transform input D -> E
     g Reader[A, B],    // covariant: transform output A -> B
 ) Kleisli[D, Effect[E, A], B]
@@ -359,7 +359,7 @@ func LocalEffectK[A, C1, C2 any](f Kleisli[C2, C2, C1]) func(Effect[C1, A]) Effe
 
 ### Use Cases
 
-**Adapter pattern**: You have `Effect[DBConfig, User]` but your app provides `AppConfig`. Use `Promap` or `Local`:
+**Adapter pattern**: You have `Effect[DBConfig, User]` but your app provides `AppConfig`. Use `ProMap` or `Local`:
 
 ```go
 type AppConfig struct { DB DBConfig; Cache CacheConfig }
@@ -1263,8 +1263,8 @@ import (
 
 type Person struct { Name string; Age int }
 
-byAge := ord.Contramap(func(p Person) int { return p.Age })(ord.FromStrictCompare[int]())
-byName := ord.Contramap(func(p Person) string { return p.Name })(ord.FromStrictCompare[string]())
+byAge := ord.ContraMap(func(p Person) int { return p.Age })(ord.FromStrictCompare[int]())
+byName := ord.ContraMap(func(p Person) string { return p.Name })(ord.FromStrictCompare[string]())
 
 sorted := A.SortBy([]ord.Ord[Person]{byAge, byName})(people)
 ```

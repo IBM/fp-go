@@ -33,7 +33,7 @@ type DetailedConfig struct {
 	Port int
 }
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both input and output", func(t *testing.T) {
 		// ReaderIOResult that reads port from SimpleConfig
@@ -49,7 +49,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getPort)
+		adapted := ProMap(simplify, toString)(getPort)
 		result, err := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.NoError(t, err)
@@ -69,7 +69,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getError)
+		adapted := ProMap(simplify, toString)(getError)
 		_, err := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.Error(t, err)
@@ -77,7 +77,7 @@ func TestPromapBasic(t *testing.T) {
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("environment adaptation", func(t *testing.T) {
 		// ReaderIOResult that reads from SimpleConfig
@@ -92,7 +92,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[int](simplify)(getPort)
+		adapted := ContraMap[int](simplify)(getPort)
 		result, err := adapted(DetailedConfig{Host: "localhost", Port: 9000})()
 
 		assert.NoError(t, err)
@@ -110,7 +110,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[int](simplify)(getError)
+		adapted := ContraMap[int](simplify)(getError)
 		_, err := adapted(DetailedConfig{Host: "localhost", Port: 9000})()
 
 		assert.Error(t, err)
@@ -118,7 +118,7 @@ func TestContramapBasic(t *testing.T) {
 	})
 }
 
-// TestPromapWithIO tests Promap with actual IO effects
+// TestPromapWithIO tests ProMap with actual IO effects
 func TestPromapWithIO(t *testing.T) {
 	t.Run("transform IO result", func(t *testing.T) {
 		counter := 0
@@ -136,7 +136,7 @@ func TestPromapWithIO(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getPortWithEffect)
+		adapted := ProMap(simplify, toString)(getPortWithEffect)
 		result, err := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.NoError(t, err)
@@ -159,7 +159,7 @@ func TestPromapWithIO(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getErrorWithEffect)
+		adapted := ProMap(simplify, toString)(getErrorWithEffect)
 		_, err := adapted(DetailedConfig{Host: "localhost", Port: 8080})()
 
 		assert.Error(t, err)
@@ -167,9 +167,9 @@ func TestPromapWithIO(t *testing.T) {
 	})
 }
 
-// TestPromapComposition tests that Promap can be composed
+// TestPromapComposition tests that ProMap can be composed
 func TestPromapComposition(t *testing.T) {
-	t.Run("compose two Promap transformations", func(t *testing.T) {
+	t.Run("compose two ProMap transformations", func(t *testing.T) {
 		type Config1 struct{ Value int }
 		type Config2 struct{ Value int }
 		type Config3 struct{ Value int }
@@ -186,9 +186,9 @@ func TestPromapComposition(t *testing.T) {
 		f2 := func(c3 Config3) Config2 { return Config2{Value: c3.Value} }
 		g2 := N.Add(10)
 
-		// Apply two Promap transformations
-		step1 := Promap(f1, g1)(reader)
-		step2 := Promap(f2, g2)(step1)
+		// Apply two ProMap transformations
+		step1 := ProMap(f1, g1)(reader)
+		step2 := ProMap(f2, g2)(step1)
 
 		result, err := step2(Config3{Value: 5})()
 

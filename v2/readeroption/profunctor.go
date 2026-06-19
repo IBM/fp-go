@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderOption.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderOption.
 // It applies f to the input environment (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -45,16 +45,21 @@ import (
 //   - A Kleisli arrow that takes a ReaderOption[R, A] and returns a ReaderOption[D, B]
 //
 //go:inline
-func Promap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderOption[R, A], B] {
-	return reader.Promap(f, option.Map(g))
+func ProMap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderOption[R, A], B] {
+	return reader.ProMap(f, option.Map(g))
 }
 
-// Contramap changes the value of the local environment during the execution of a ReaderOption.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderOption[R, A], B] {
+	return ProMap(f, g)
+}
+
+// ContraMap changes the value of the local environment during the execution of a ReaderOption.
 // This is the contravariant functor operation that transforms the input environment.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is useful for adapting a ReaderOption to work with a different environment type
+// ContraMap is useful for adapting a ReaderOption to work with a different environment type
 // by providing a function that converts the new environment to the expected one.
 //
 // Type Parameters:
@@ -69,6 +74,6 @@ func Promap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderOption[R,
 //   - A Kleisli arrow that takes a ReaderOption[R1, A] and returns a ReaderOption[R2, A]
 //
 //go:inline
-func Contramap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderOption[R1, A], A] {
-	return reader.Contramap[Option[A]](f)
+func ContraMap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderOption[R1, A], A] {
+	return reader.ContraMap[Option[A]](f)
 }

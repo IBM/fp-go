@@ -507,7 +507,7 @@ func TapThunkK[C, A, B any](f thunk.Kleisli[A, B]) Operator[C, A, A]
 func Ask[C any]() Effect[C, C]                                           // read entire context
 func Asks[C, A any](r Reader[C, A]) Effect[C, A]                        // project from context
 func Local[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A]   // transform context (pure)
-func Contramap[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] // alias for Local
+func ContraMap[A, C1, C2 any](acc Reader[C1, C2]) Kleisli[C1, Effect[C2, A], A] // alias for Local
 func LocalIOK[A, C1, C2 any](f io.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A]         // IO-based transform
 func LocalIOResultK[A, C1, C2 any](f ioresult.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] // IOResult-based
 func LocalResultK[A, C1, C2 any](f result.Kleisli[C2, C1]) func(Effect[C1, A]) Effect[C2, A] // Result-based
@@ -517,7 +517,7 @@ func LocalReaderK[A, C1, C2 any](f reader.Kleisli[C2, C1]) func(Effect[C1, A]) E
 ```
 
 Context transformation strength (weakest to strongest):
-1. `Local` / `Contramap` -- pure function `C2 -> C1`
+1. `Local` / `ContraMap` -- pure function `C2 -> C1`
 2. `LocalResultK` -- may fail `C2 -> Result[C1]`
 3. `LocalIOK` -- IO side effects `C2 -> IO[C1]`
 4. `LocalIOResultK` -- IO + error `C2 -> IOResult[C1]`
@@ -960,7 +960,7 @@ func FromStrictCompare[A constraints.Ordered]() Ord[A]
 func FromCompare[T any](compare func(T, T) int) Ord[T]
 func MakeOrd[T any](c func(x, y T) int, e func(x, y T) bool) Ord[T]
 func Reverse[T any](o Ord[T]) Ord[T]
-func Contramap[A, B any](f func(B) A) func(Ord[A]) Ord[B]
+func ContraMap[A, B any](f func(B) A) func(Ord[A]) Ord[B]
 
 // Predicates
 func Lt[A any](o Ord[A]) func(A) func(A) bool
@@ -981,7 +981,7 @@ func OrdTime() Ord[time.Time]
 **Example**:
 ```go
 type Person struct { Name string; Age int }
-personByAge := ord.Contramap(func(p Person) int { return p.Age })(ord.FromStrictCompare[int]())
+personByAge := ord.ContraMap(func(p Person) int { return p.Age })(ord.FromStrictCompare[int]())
 ```
 
 ### 5.3 Semigroup

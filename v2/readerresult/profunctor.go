@@ -19,7 +19,7 @@ import (
 	RE "github.com/IBM/fp-go/v2/readereither"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderResult.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderResult.
 // It applies f to the input environment (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -44,16 +44,21 @@ import (
 //   - A Kleisli arrow that takes a ReaderResult[R, A] and returns a ReaderResult[D, B]
 //
 //go:inline
-func Promap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderResult[R, A], B] {
-	return RE.Promap[R, error](f, g)
+func ProMap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderResult[R, A], B] {
+	return RE.ProMap[R, error](f, g)
 }
 
-// Contramap changes the value of the local environment during the execution of a ReaderResult.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderResult[R, A], B] {
+	return ProMap(f, g)
+}
+
+// ContraMap changes the value of the local environment during the execution of a ReaderResult.
 // This is the contravariant functor operation that transforms the input environment.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is useful for adapting a ReaderResult to work with a different environment type
+// ContraMap is useful for adapting a ReaderResult to work with a different environment type
 // by providing a function that converts the new environment to the expected one.
 //
 // Type Parameters:
@@ -68,6 +73,6 @@ func Promap[R, A, D, B any](f func(D) R, g func(A) B) Kleisli[D, ReaderResult[R,
 //   - A Kleisli arrow that takes a ReaderResult[R1, A] and returns a ReaderResult[R2, A]
 //
 //go:inline
-func Contramap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderResult[R1, A], A] {
-	return RE.Contramap[error, A](f)
+func ContraMap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderResult[R1, A], A] {
+	return RE.ContraMap[error, A](f)
 }

@@ -196,7 +196,7 @@
 //	// Adapt environment and transform result
 //	adapted := F.Pipe1(
 //	    queryDB, // ReaderIOOption[DBConfig, User]
-//	    readeriooption.Promap(
+//	    readeriooption.ProMap(
 //	        func(g GlobalConfig) DBConfig { return g.DB },
 //	        func(u User) string { return u.Name },
 //	    ),

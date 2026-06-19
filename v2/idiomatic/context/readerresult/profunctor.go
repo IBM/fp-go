@@ -6,7 +6,7 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderResult.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderResult.
 // It applies f to the input context (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -29,19 +29,24 @@ import (
 //   - An Operator that takes a ReaderResult[A] and returns a ReaderResult[B]
 //
 //go:inline
-func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFunc), g func(A) B) Operator[A, B] {
+func ProMap[A, B any](f func(context.Context) (context.Context, context.CancelFunc), g func(A) B) Operator[A, B] {
 	return function.Flow2(
 		Local[A](f),
 		Map(g),
 	)
 }
 
-// Contramap changes the value of the local context during the execution of a ReaderResult.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFunc), g func(A) B) Operator[A, B] {
+	return ProMap(f, g)
+}
+
+// ContraMap changes the value of the local context during the execution of a ReaderResult.
 // This is the contravariant functor operation that transforms the input context.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is useful for adapting a ReaderResult to work with a modified context
+// ContraMap is useful for adapting a ReaderResult to work with a modified context
 // by providing a function that creates a new context (and optional cancel function) from the current one.
 //
 // Type Parameters:
@@ -54,6 +59,6 @@ func Promap[A, B any](f func(context.Context) (context.Context, context.CancelFu
 //   - A Kleisli arrow that takes a ReaderResult[A] and returns a ReaderResult[A]
 //
 //go:inline
-func Contramap[A any](f func(context.Context) (context.Context, context.CancelFunc)) Kleisli[ReaderResult[A], A] {
+func ContraMap[A any](f func(context.Context) (context.Context, context.CancelFunc)) Kleisli[ReaderResult[A], A] {
 	return Local[A](f)
 }

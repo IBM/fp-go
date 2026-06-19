@@ -51,10 +51,10 @@ func TestPromap_TransformBoth(t *testing.T) {
 	// Transform int to string (covariant)
 	valueTransform := strconv.Itoa
 
-	// Apply Promap
+	// Apply ProMap
 	adapted := F.Pipe1(
 		original,
-		Promap(envTransform, valueTransform),
+		ProMap(envTransform, valueTransform),
 	)
 
 	globalCfg := GlobalConfig{Factor: 5}
@@ -65,7 +65,7 @@ func TestPromap_TransformBoth(t *testing.T) {
 }
 
 func TestPromap_WithNone(t *testing.T) {
-	// Test that None is preserved through Promap
+	// Test that None is preserved through ProMap
 	type Config1 struct {
 		Value int
 	}
@@ -84,7 +84,7 @@ func TestPromap_WithNone(t *testing.T) {
 
 	adapted := F.Pipe1(
 		original,
-		Promap(envTransform, valueTransform),
+		ProMap(envTransform, valueTransform),
 	)
 
 	cfg := Config2{Data: 10}
@@ -95,12 +95,12 @@ func TestPromap_WithNone(t *testing.T) {
 }
 
 func TestPromap_Identity(t *testing.T) {
-	// Test that Promap with identity functions is identity
+	// Test that ProMap with identity functions is identity
 	original := Of[context.Context](42)
 
 	adapted := F.Pipe1(
 		original,
-		Promap(
+		ProMap(
 			F.Identity[context.Context],
 			F.Identity[int],
 		),
@@ -113,7 +113,7 @@ func TestPromap_Identity(t *testing.T) {
 }
 
 func TestPromap_Composition(t *testing.T) {
-	// Test that Promap composes correctly
+	// Test that ProMap composes correctly
 	type Config1 struct{ A int }
 	type Config2 struct{ B int }
 	type Config3 struct{ C int }
@@ -133,13 +133,13 @@ func TestPromap_Composition(t *testing.T) {
 	g2 := func(n int) string { return fmt.Sprintf("%d", n) }
 
 	// Apply transformations separately
-	step1 := F.Pipe1(original, Promap(f1, g1))
-	step2 := F.Pipe1(step1, Promap(f2, g2))
+	step1 := F.Pipe1(original, ProMap(f1, g1))
+	step2 := F.Pipe1(step1, ProMap(f2, g2))
 
 	// Apply composed transformation
 	composed := F.Pipe1(
 		original,
-		Promap(
+		ProMap(
 			F.Flow2(f2, f1),
 			F.Flow2(g1, g2),
 		),
@@ -179,10 +179,10 @@ func TestContramap_TransformEnvironment(t *testing.T) {
 		return DBConfig{URL: g.DatabaseURL}
 	}
 
-	// Apply Contramap
+	// Apply ContraMap
 	adapted := F.Pipe1(
 		original,
-		Contramap[string](envTransform),
+		ContraMap[string](envTransform),
 	)
 
 	globalCfg := GlobalConfig{
@@ -196,7 +196,7 @@ func TestContramap_TransformEnvironment(t *testing.T) {
 }
 
 func TestContramap_WithNone(t *testing.T) {
-	// Test that None is preserved through Contramap
+	// Test that None is preserved through ContraMap
 	type Config1 struct {
 		Value int
 	}
@@ -213,7 +213,7 @@ func TestContramap_WithNone(t *testing.T) {
 
 	adapted := F.Pipe1(
 		original,
-		Contramap[string](envTransform),
+		ContraMap[string](envTransform),
 	)
 
 	cfg := Config2{Data: 10}
@@ -224,12 +224,12 @@ func TestContramap_WithNone(t *testing.T) {
 }
 
 func TestContramap_Identity(t *testing.T) {
-	// Test that Contramap with identity function is identity
+	// Test that ContraMap with identity function is identity
 	original := Of[context.Context](42)
 
 	adapted := F.Pipe1(
 		original,
-		Contramap[int](F.Identity[context.Context]),
+		ContraMap[int](F.Identity[context.Context]),
 	)
 
 	result := adapted(context.Background())()
@@ -239,7 +239,7 @@ func TestContramap_Identity(t *testing.T) {
 }
 
 func TestContramap_Composition(t *testing.T) {
-	// Test that Contramap composes correctly
+	// Test that ContraMap composes correctly
 	type Config1 struct{ A int }
 	type Config2 struct{ B int }
 	type Config3 struct{ C int }
@@ -254,13 +254,13 @@ func TestContramap_Composition(t *testing.T) {
 	f2 := func(c3 Config3) Config2 { return Config2{B: c3.C + 2} }
 
 	// Apply transformations separately
-	step1 := F.Pipe1(original, Contramap[int](f1))
-	step2 := F.Pipe1(step1, Contramap[int](f2))
+	step1 := F.Pipe1(original, ContraMap[int](f1))
+	step2 := F.Pipe1(step1, ContraMap[int](f2))
 
 	// Apply composed transformation
 	composed := F.Pipe1(
 		original,
-		Contramap[int](F.Flow2(f2, f1)),
+		ContraMap[int](F.Flow2(f2, f1)),
 	)
 
 	cfg := Config3{C: 5}
@@ -312,7 +312,7 @@ func TestPromap_RealWorldExample(t *testing.T) {
 	// Adapt to work with AppConfig and return UserDTO
 	adaptedQuery := F.Pipe1(
 		queryUser,
-		Promap(
+		ProMap(
 			// Extract DB connection from app config
 			func(cfg AppConfig) DBConnection {
 				return DBConnection{
@@ -370,7 +370,7 @@ func TestContramap_RealWorldExample(t *testing.T) {
 	// Adapt to work with GlobalConfig
 	adaptedService := F.Pipe1(
 		callService,
-		Contramap[string](func(g GlobalConfig) ServiceConfig {
+		ContraMap[string](func(g GlobalConfig) ServiceConfig {
 			return ServiceConfig{
 				Endpoint: g.ServiceURL,
 				Auth:     "Bearer " + g.APIKey,

@@ -21,7 +21,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderIO.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderIO.
 // It applies f to the input environment (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -72,7 +72,7 @@ import (
 //	}
 //	toString := strconv.Itoa
 //
-//	adapted := readerio.Promap(simplify, toString)(getPort)
+//	adapted := readerio.ProMap(simplify, toString)(getPort)
 //	result := adapted(DetailedConfig{Host: "localhost", Port: 8080, Debug: true})()
 //	// result = "8080"
 //
@@ -98,12 +98,17 @@ import (
 //	}
 //	ignore := func(func()) string { return "logged" }
 //
-//	logAndReturn := readerio.Promap(extractLogger, ignore)(logMessage("Hello"))
+//	logAndReturn := readerio.ProMap(extractLogger, ignore)(logMessage("Hello"))
 //	// Now works with AppEnv and returns string instead of func()
 //
 //go:inline
+func ProMap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderIO[E, A], B] {
+	return reader.ProMap(f, io.Map(g))
+}
+
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
 func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderIO[E, A], B] {
-	return reader.Promap(f, io.Map(g))
+	return ProMap(f, g)
 }
 
 // Local changes the value of the local environment during the execution of a ReaderIO.
@@ -186,12 +191,12 @@ func Local[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderIO[R1, A], A] {
 	return reader.Local[IO[A]](f)
 }
 
-// Contramap is an alias for Local.
+// ContraMap is an alias for Local.
 // It changes the value of the local environment during the execution of a ReaderIO.
 // This is the contravariant functor operation that transforms the input environment.
 //
-// Contramap is semantically identical to Local - both modify the environment before
-// passing it to a ReaderIO. The name "Contramap" emphasizes the contravariant nature
+// ContraMap is semantically identical to Local - both modify the environment before
+// passing it to a ReaderIO. The name "ContraMap" emphasizes the contravariant nature
 // of the transformation (transforming the input rather than the output).
 //
 // Type Parameters:
@@ -225,15 +230,15 @@ func Local[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderIO[R1, A], A] {
 //	    return SimpleEnv{Config: detailed.Config}
 //	}
 //
-//	adapted := readerio.Contramap(simplify)(readConfig)
+//	adapted := readerio.ContraMap(simplify)(readConfig)
 //	result := adapted(DetailedEnv{Config: Config{Value: "test"}})()
 //	// result = "test"
 //
 // See also: Local
 //
 //go:inline
-func Contramap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderIO[R1, A], A] {
-	return reader.Contramap[IO[A]](f)
+func ContraMap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderIO[R1, A], A] {
+	return reader.ContraMap[IO[A]](f)
 }
 
 // LocalIOK transforms the environment of a ReaderIO using an IO-based Kleisli arrow.

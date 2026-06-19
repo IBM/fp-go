@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both context and output", func(t *testing.T) {
 		// ReaderResult that reads a value from context
@@ -42,7 +42,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(addPort, toString)(getValue)
+		adapted := ProMap(addPort, toString)(getValue)
 		result, err := adapted(context.Background())
 
 		assert.NoError(t, err)
@@ -60,7 +60,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(addPort, toString)(getError)
+		adapted := ProMap(addPort, toString)(getError)
 		_, err := adapted(context.Background())
 
 		assert.Error(t, err)
@@ -83,7 +83,7 @@ func TestPromapBasic(t *testing.T) {
 			return "UPPER_" + s
 		}
 
-		adapted := Promap(addValue, toUpper)(getValue)
+		adapted := ProMap(addValue, toUpper)(getValue)
 		result, err := adapted(context.Background())
 
 		assert.NoError(t, err)
@@ -91,7 +91,7 @@ func TestPromapBasic(t *testing.T) {
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("context adaptation", func(t *testing.T) {
 		// ReaderResult that reads from context
@@ -107,7 +107,7 @@ func TestContramapBasic(t *testing.T) {
 			return context.WithValue(ctx, "port", 9000), func() {}
 		}
 
-		adapted := Contramap[int](addPort)(getPort)
+		adapted := ContraMap[int](addPort)(getPort)
 		result, err := adapted(context.Background())
 
 		assert.NoError(t, err)
@@ -123,7 +123,7 @@ func TestContramapBasic(t *testing.T) {
 			return context.WithValue(ctx, "port", 9000), func() {}
 		}
 
-		adapted := Contramap[int](addPort)(getError)
+		adapted := ContraMap[int](addPort)(getError)
 		_, err := adapted(context.Background())
 
 		assert.Error(t, err)
@@ -146,7 +146,7 @@ func TestContramapBasic(t *testing.T) {
 			return ctx, func() {}
 		}
 
-		adapted := Contramap[string](addValues)(getValues)
+		adapted := ContraMap[string](addValues)(getValues)
 		result, err := adapted(context.Background())
 
 		assert.NoError(t, err)
@@ -154,9 +154,9 @@ func TestContramapBasic(t *testing.T) {
 	})
 }
 
-// TestPromapComposition tests that Promap can be composed
+// TestPromapComposition tests that ProMap can be composed
 func TestPromapComposition(t *testing.T) {
-	t.Run("compose two Promap transformations", func(t *testing.T) {
+	t.Run("compose two ProMap transformations", func(t *testing.T) {
 		reader := func(ctx context.Context) (int, error) {
 			if val := ctx.Value("value"); val != nil {
 				return val.(int), nil
@@ -174,9 +174,9 @@ func TestPromapComposition(t *testing.T) {
 		}
 		g2 := N.Add(10)
 
-		// Apply two Promap transformations
-		step1 := Promap(f1, g1)(reader)
-		step2 := Promap(f2, g2)(step1)
+		// Apply two ProMap transformations
+		step1 := ProMap(f1, g1)(reader)
+		step2 := ProMap(f2, g2)(step1)
 
 		result, err := step2(context.Background())
 

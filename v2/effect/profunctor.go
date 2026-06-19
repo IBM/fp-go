@@ -19,7 +19,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 )
 
-// Promap is the profunctor map operation that transforms both the input and output of an Effect.
+// ProMap is the profunctor map operation that transforms both the input and output of an Effect.
 // It applies f to the input context (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -28,7 +28,7 @@ import (
 //   - Modify the context before passing it to the Effect (via f)
 //   - Transform the success value after the computation completes (via g)
 //
-// Promap is particularly useful for adapting effects to work with different context types
+// ProMap is particularly useful for adapting effects to work with different context types
 // while simultaneously transforming their output values.
 //
 // # Type Parameters
@@ -74,13 +74,18 @@ import (
 //	}
 //
 //	// Adapt the effect to work with AppConfig and return string
-//	adapted := effect.Promap(extractDBConfig, formatCount)(getUserCount)
+//	adapted := effect.ProMap(extractDBConfig, formatCount)(getUserCount)
 //	result := adapted(AppConfig{DatabaseURL: "localhost:5432", APIKey: "secret"})
 //
 //go:inline
-func Promap[E, A, D, B any](f Reader[D, E], g Reader[A, B]) Kleisli[D, Effect[E, A], B] {
+func ProMap[E, A, D, B any](f Reader[D, E], g Reader[A, B]) Kleisli[D, Effect[E, A], B] {
 	return F.Flow2(
 		Local[A](f),
 		Map[D](g),
 	)
+}
+
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[E, A, D, B any](f Reader[D, E], g Reader[A, B]) Kleisli[D, Effect[E, A], B] {
+	return ProMap(f, g)
 }

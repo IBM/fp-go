@@ -17,7 +17,7 @@ package readerresult
 
 import "github.com/IBM/fp-go/v2/idiomatic/result"
 
-// Promap is the profunctor map operation that transforms both the input and output of a ReaderResult.
+// ProMap is the profunctor map operation that transforms both the input and output of a ReaderResult.
 // It applies f to the input environment (contravariantly) and g to the output value (covariantly).
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
@@ -42,7 +42,7 @@ import "github.com/IBM/fp-go/v2/idiomatic/result"
 //   - A Kleisli arrow that takes a ReaderResult[E, A] and returns a ReaderResult[D, B]
 //
 //go:inline
-func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderResult[E, A], B] {
+func ProMap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderResult[E, A], B] {
 	mp := result.Map(g)
 	return func(rr ReaderResult[E, A]) ReaderResult[D, B] {
 		return func(d D) (B, error) {
@@ -51,12 +51,17 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderResult[E,
 	}
 }
 
-// Contramap changes the value of the local environment during the execution of a ReaderResult.
+// deprecated: Use [ProMap] instead. This function is kept for backward compatibility
+func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderResult[E, A], B] {
+	return ProMap(f, g)
+}
+
+// ContraMap changes the value of the local environment during the execution of a ReaderResult.
 // This is the contravariant functor operation that transforms the input environment.
 //
 // See: https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#profunctor
 //
-// Contramap is useful for adapting a ReaderResult to work with a different environment type
+// ContraMap is useful for adapting a ReaderResult to work with a different environment type
 // by providing a function that converts the new environment to the expected one.
 //
 // Type Parameters:
@@ -71,6 +76,6 @@ func Promap[E, A, D, B any](f func(D) E, g func(A) B) Kleisli[D, ReaderResult[E,
 //   - A Kleisli arrow that takes a ReaderResult[R1, A] and returns a ReaderResult[R2, A]
 //
 //go:inline
-func Contramap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderResult[R1, A], A] {
+func ContraMap[A, R1, R2 any](f func(R2) R1) Kleisli[R2, ReaderResult[R1, A], A] {
 	return Local[A](f)
 }

@@ -32,7 +32,7 @@ type DetailedConfig struct {
 	Port int
 }
 
-// TestPromapBasic tests basic Promap functionality
+// TestPromapBasic tests basic ProMap functionality
 func TestPromapBasic(t *testing.T) {
 	t.Run("transform both input and output with Some", func(t *testing.T) {
 		// ReaderOption that reads port from SimpleConfig
@@ -46,7 +46,7 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getPort)
+		adapted := ProMap(simplify, toString)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})
 
 		assert.Equal(t, O.Of("8080"), result)
@@ -63,14 +63,14 @@ func TestPromapBasic(t *testing.T) {
 		}
 		toString := strconv.Itoa
 
-		adapted := Promap(simplify, toString)(getNone)
+		adapted := ProMap(simplify, toString)(getNone)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 8080})
 
 		assert.Equal(t, O.None[string](), result)
 	})
 }
 
-// TestContramapBasic tests basic Contramap functionality
+// TestContramapBasic tests basic ContraMap functionality
 func TestContramapBasic(t *testing.T) {
 	t.Run("environment adaptation", func(t *testing.T) {
 		// ReaderOption that reads from SimpleConfig
@@ -83,7 +83,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[int](simplify)(getPort)
+		adapted := ContraMap[int](simplify)(getPort)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 9000})
 
 		assert.Equal(t, O.Of(9000), result)
@@ -98,7 +98,7 @@ func TestContramapBasic(t *testing.T) {
 			return SimpleConfig{Port: d.Port}
 		}
 
-		adapted := Contramap[int](simplify)(getNone)
+		adapted := ContraMap[int](simplify)(getNone)
 		result := adapted(DetailedConfig{Host: "localhost", Port: 9000})
 
 		assert.Equal(t, O.None[int](), result)
