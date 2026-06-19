@@ -717,6 +717,30 @@ func Read[A, C any](c C) func(Effect[C, A]) Thunk[A] {
 	return readerreaderioresult.Read[A](c)
 }
 
+// ReadIO provides a context from an IO computation to an effect, partially applying it.
+// This converts an Effect[C, A] to a Thunk[A] by supplying the required context through
+// an IO action. This is useful when the context itself needs to be computed or retrieved
+// through side effects.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//   - C: The context type
+//
+// Parameters:
+//   - c: An IO computation that produces the context
+//
+// Returns:
+//   - func(Effect[C, A]) Thunk[A]: A function that converts an effect to a thunk
+//
+// See Also:
+//   - Read: Provides a pure context value instead of an IO computation
+//   - Asks: Projects a value from the context
+//
+//go:inline
+func ReadIO[A, C any](c IO[C]) func(Effect[C, A]) Thunk[A] {
+	return readerreaderioresult.ReadIO[A](c)
+}
+
 // Asks creates an Effect that projects a value from the context using a Reader function.
 // This is useful for extracting specific fields or computing derived values from the context.
 // It's essentially a lifted version of the Reader pattern into the Effect context.

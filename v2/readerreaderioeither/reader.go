@@ -866,8 +866,8 @@ func After[R, C, E, A any](timestamp time.Time) Operator[R, C, E, A, A] {
 // The generator is called each time the ReaderReaderIOEither is executed.
 func Defer[R, C, E, A any](fa Lazy[ReaderReaderIOEither[R, C, E, A]]) ReaderReaderIOEither[R, C, E, A] {
 	return func(r R) ReaderIOEither[C, E, A] {
-		return func(c C) RIOE.IOEither[E, A] {
-			return func() IOE.Either[E, A] {
+		return func(c C) IOEither[E, A] {
+			return func() Either[E, A] {
 				return fa()(r)(c)()
 			}
 		}

@@ -3156,3 +3156,84 @@ func ExampleTapLeftThunkK() {
 	// Output:
 	// level=ERROR msg="Operation failed" error="user not found: 42"
 }
+
+// ExampleReadIO demonstrates basic usage of ReadIO.
+func ExampleReadIO() {
+	type Config struct {
+		Multiplier int
+	}
+
+	// Create an IO that produces the config
+	configIO := io.Of(Config{Multiplier: 3})
+
+	// Create an effect that uses the config
+	eff := F.Pipe1(
+		Of[Config](10),
+		ChainReaderK(func(x int) reader.Reader[Config, int] {
+			return func(cfg Config) int {
+				return x * cfg.Multiplier
+			}
+		}),
+	)
+
+	// Apply the IO context to get a thunk
+	thunk := ReadIO[int](configIO)(eff)
+
+	// Run the thunk
+	res := thunk(context.Background())()
+	value, _ := result.Unwrap(res)
+	fmt.Println(value)
+	// Output: 30
+}
+
+// ExampleReadIO_lazyEvaluation demonstrates that IO context is evaluated lazily.
+func ExampleReadIO_lazyEvaluation() {
+	type Config struct {
+		Value int
+	}
+
+	executionCount := 0
+	configIO := func() Config {
+		executionCount++
+		return Config{Value: 42}
+	}
+
+	eff := Of[Config](100)
+
+	// ReadIO doesn't execute the IO yet
+	thunk := ReadIO[int](configIO)(eff)
+	fmt.Println("After ReadIO:", executionCount)
+
+	// IO executes when thunk runs
+	thunk(context.Background())()
+	fmt.Println("After running thunk:", executionCount)
+
+	// Output:
+	// After ReadIO: 0
+	// After running thunk: 1
+}
+
+// ExampleReadIO_withChain demonstrates ReadIO with chained effects.
+func ExampleReadIO_withChain() {
+	type Config struct {
+		Prefix string
+	}
+
+	configIO := io.Of(Config{Prefix: "Result"})
+
+	eff := F.Pipe2(
+		Of[Config](21),
+		Map[Config](func(x int) int { return x * 2 }),
+		ChainReaderK(func(x int) reader.Reader[Config, string] {
+			return func(cfg Config) string {
+				return fmt.Sprintf("%s: %d", cfg.Prefix, x)
+			}
+		}),
+	)
+
+	thunk := ReadIO[string](configIO)(eff)
+	res := thunk(context.Background())()
+	value, _ := result.Unwrap(res)
+	fmt.Println(value)
+	// Output: Result: 42
+}

@@ -26,6 +26,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -646,5 +647,267 @@ func TestRead_Failure(t *testing.T) {
 		thunk := Read[int](testConfig)(eff)
 		outcome := thunk(context.Background())()
 		assert.Equal(t, result.Left[int](testErr), outcome)
+	})
+}
+
+// TestReadIO tests the ReadIO function
+func TestReadIO_Success(t *testing.T) {
+	t.Run("provides IO context to effect", func(t *testing.T) {
+		eff := Of[TestConfig](42)
+		contextIO := io.Of(testConfig)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(42), outcome)
+	})
+
+	t.Run("converts effect to thunk with IO context", func(t *testing.T) {
+		eff := F.Pipe1(
+			Of[TestConfig](10),
+			Map[TestConfig](func(x int) int { return x * testConfig.Multiplier }),
+		)
+		contextIO := io.Of(testConfig)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(30), outcome)
+	})
+
+	t.Run("executes IO to get context", func(t *testing.T) {
+		executed := false
+		contextIO := func() TestConfig {
+			executed = true
+			return testConfig
+		}
+
+		eff := Of[TestConfig](100)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+
+		assert.True(t, executed, "IO should be executed to get context")
+		assert.Equal(t, result.Of(100), outcome)
+	})
+
+	t.Run("works with different IO contexts", func(t *testing.T) {
+		cfg1 := TestConfig{Multiplier: 2, Prefix: "A", DatabaseURL: ""}
+		cfg2 := TestConfig{Multiplier: 5, Prefix: "B", DatabaseURL: ""}
+
+		contextIO1 := io.Of(cfg1)
+		contextIO2 := io.Of(cfg2)
+
+		// Create an effect that uses the context's Multiplier
+		eff := F.Pipe1(
+			Of[TestConfig](10),
+			ChainReaderK(func(x int) reader.Reader[TestConfig, int] {
+				return func(cfg TestConfig) int {
+					return x * cfg.Multiplier
+				}
+			}),
+		)
+
+		thunk1 := ReadIO[int](contextIO1)(eff)
+		thunk2 := ReadIO[int](contextIO2)(eff)
+
+		outcome1 := thunk1(context.Background())()
+		outcome2 := thunk2(context.Background())()
+
+		assert.Equal(t, result.Of(20), outcome1)
+		assert.Equal(t, result.Of(50), outcome2)
+	})
+
+	t.Run("IO context is evaluated lazily", func(t *testing.T) {
+		executionCount := 0
+		contextIO := func() TestConfig {
+			executionCount++
+			return testConfig
+		}
+
+		eff := Of[TestConfig](42)
+		thunk := ReadIO[int](contextIO)(eff)
+
+		// IO should not be executed until thunk is run
+		assert.Equal(t, 0, executionCount, "IO should not execute during ReadIO call")
+
+		// Execute the thunk
+		thunk(context.Background())()
+		assert.Equal(t, 1, executionCount, "IO should execute once when thunk runs")
+	})
+
+	t.Run("works with complex IO context computation", func(t *testing.T) {
+		// Simulate fetching config from environment or file
+		contextIO := func() TestConfig {
+			multiplier := 7
+			prefix := "COMPUTED"
+			return TestConfig{
+				Multiplier:  multiplier,
+				Prefix:      prefix,
+				DatabaseURL: "computed://db",
+			}
+		}
+
+		eff := F.Pipe1(
+			Of[TestConfig](5),
+			ChainReaderK(func(x int) reader.Reader[TestConfig, string] {
+				return func(cfg TestConfig) string {
+					return fmt.Sprintf("%s: %d", cfg.Prefix, x*cfg.Multiplier)
+				}
+			}),
+		)
+
+		thunk := ReadIO[string](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of("COMPUTED: 35"), outcome)
+	})
+}
+
+func TestReadIO_Failure(t *testing.T) {
+	t.Run("propagates error from effect", func(t *testing.T) {
+		testErr := errors.New("test error")
+		eff := Fail[TestConfig, int](testErr)
+		contextIO := io.Of(testConfig)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Left[int](testErr), outcome)
+	})
+
+	t.Run("propagates error even with IO context", func(t *testing.T) {
+		testErr := errors.New("computation failed")
+		contextIO := func() TestConfig {
+			return TestConfig{Multiplier: 10, Prefix: "ERR", DatabaseURL: ""}
+		}
+
+		eff := F.Pipe1(
+			Of[TestConfig](5),
+			Chain(func(x int) Effect[TestConfig, int] {
+				return Fail[TestConfig, int](testErr)
+			}),
+		)
+
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Left[int](testErr), outcome)
+	})
+}
+
+func TestReadIO_EdgeCases(t *testing.T) {
+	t.Run("handles zero value context", func(t *testing.T) {
+		contextIO := io.Of(TestConfig{})
+		eff := Of[TestConfig](42)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(42), outcome)
+	})
+
+	t.Run("handles zero value result", func(t *testing.T) {
+		contextIO := io.Of(testConfig)
+		eff := Of[TestConfig](0)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(0), outcome)
+	})
+
+	t.Run("handles empty string result", func(t *testing.T) {
+		contextIO := io.Of(testConfig)
+		eff := Of[TestConfig]("")
+		thunk := ReadIO[string](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(""), outcome)
+	})
+
+	t.Run("handles nil pointer in context", func(t *testing.T) {
+		type PtrConfig struct {
+			Value *int
+		}
+		contextIO := io.Of(PtrConfig{Value: nil})
+		eff := Of[PtrConfig](42)
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(42), outcome)
+	})
+}
+
+func TestReadIO_Integration(t *testing.T) {
+	t.Run("composes with Map and Chain", func(t *testing.T) {
+		contextIO := io.Of(testConfig)
+		eff := F.Pipe2(
+			Of[TestConfig](5),
+			Map[TestConfig](func(x int) int { return x * 2 }),
+			Chain(func(x int) Effect[TestConfig, string] {
+				return F.Pipe1(
+					Of[TestConfig](x),
+					ChainReaderK(func(n int) reader.Reader[TestConfig, string] {
+						return func(cfg TestConfig) string {
+							return fmt.Sprintf("%s: %d", cfg.Prefix, n)
+						}
+					}),
+				)
+			}),
+		)
+
+		thunk := ReadIO[string](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of("LOG: 10"), outcome)
+	})
+
+	t.Run("works with ChainReaderIOK", func(t *testing.T) {
+		contextIO := io.Of(testConfig)
+		counter := 0
+
+		eff := F.Pipe1(
+			Of[TestConfig](10),
+			ChainReaderIOK(func(x int) readerio.ReaderIO[TestConfig, int] {
+				return func(cfg TestConfig) io.IO[int] {
+					return func() int {
+						counter++
+						return x * cfg.Multiplier
+					}
+				}
+			}),
+		)
+
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+
+		assert.Equal(t, 1, counter, "IO should execute once")
+		assert.Equal(t, result.Of(30), outcome)
+	})
+
+	t.Run("chains multiple ReadIO operations", func(t *testing.T) {
+		cfg1 := TestConfig{Multiplier: 2, Prefix: "A", DatabaseURL: ""}
+		cfg2 := TestConfig{Multiplier: 3, Prefix: "B", DatabaseURL: ""}
+
+		contextIO1 := io.Of(cfg1)
+		contextIO2 := io.Of(cfg2)
+
+		eff := F.Pipe1(
+			Of[TestConfig](5),
+			ChainReaderK(func(x int) reader.Reader[TestConfig, int] {
+				return func(cfg TestConfig) int {
+					return x * cfg.Multiplier
+				}
+			}),
+		)
+
+		// Apply first context
+		thunk1 := ReadIO[int](contextIO1)(eff)
+		outcome1 := thunk1(context.Background())()
+		assert.Equal(t, result.Of(10), outcome1)
+
+		// Apply second context to same effect
+		thunk2 := ReadIO[int](contextIO2)(eff)
+		outcome2 := thunk2(context.Background())()
+		assert.Equal(t, result.Of(15), outcome2)
+	})
+
+	t.Run("works with Asks", func(t *testing.T) {
+		contextIO := io.Of(testConfig)
+		eff := F.Pipe1(
+			Asks[TestConfig, int](func(cfg TestConfig) int {
+				return cfg.Multiplier
+			}),
+			Map[TestConfig](func(x int) int { return x * 10 }),
+		)
+
+		thunk := ReadIO[int](contextIO)(eff)
+		outcome := thunk(context.Background())()
+		assert.Equal(t, result.Of(30), outcome)
 	})
 }
