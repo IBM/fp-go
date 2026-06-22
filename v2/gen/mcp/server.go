@@ -92,7 +92,9 @@ type GetExampleOutput struct {
 var verboseLogging bool
 
 // NewServer creates a new MCP server with fp-go tools
-func NewServer(verbose bool) *mcp.Server {
+func NewServer(
+	db *sql.DB,
+	verbose bool) *mcp.Server {
 	verboseLogging = verbose
 
 	if verbose {
@@ -138,7 +140,7 @@ func NewServer(verbose bool) *mcp.Server {
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, handleSearchExamples)
+	}, handleSearchExamples(db))
 
 	// Register the get_example tool
 	if verbose {
@@ -150,7 +152,7 @@ func NewServer(verbose bool) *mcp.Server {
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, handleGetExample)
+	}, handleGetExample(db))
 
 	if verbose {
 		log.Println("[MCP] Server created with 4 tools registered")
@@ -168,7 +170,29 @@ func Run(ctx context.Context, verbose bool) error {
 		log.Println("[MCP] Verbose logging enabled")
 	}
 
-	server := NewServer(verbose)
+	// Create a temporary file for the database
+	tmpFile, err := os.CreateTemp("", "examples-*.db")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	// Write embedded database to temp file
+	if _, err := tmpFile.Write(data.EXAMPLES_DB); err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("failed to write database: %w", err)
+	}
+	tmpFile.Close()
+
+	// Open the database
+	db, err := sql.Open("sqlite", tmpPath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	server := NewServer(db, verbose)
 
 	// Run the server on stdio transport
 	if verbose {
@@ -386,69 +410,29 @@ func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkill
 }
 
 // handleSearchExamples handles the search_examples tool call
-func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
-	if verboseLogging {
-		log.Printf("[MCP] Executing tool: search_examples (query=%s, package_filter=%s)\n", args.Query, args.PackageFilter)
-	}
+func handleSearchExamples(db *sql.DB) func(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
 
-	if args.Query == "" {
+	return func(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
+
 		if verboseLogging {
-			log.Println("[MCP] search_examples error: query is required")
+			log.Printf("[MCP] Executing tool: search_examples (query=%s, package_filter=%s)\n", args.Query, args.PackageFilter)
 		}
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: "Error: search query is required",
-				},
-			},
-			IsError: true,
-		}, SearchExamplesOutput{}, fmt.Errorf("search query is required")
-	}
 
-	// Create a temporary file for the database
-	tmpFile, err := os.CreateTemp("", "examples-*.db")
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: failed to create temp file: %v", err),
+		if args.Query == "" {
+			if verboseLogging {
+				log.Println("[MCP] search_examples error: query is required")
+			}
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Error: search query is required",
+					},
 				},
-			},
-			IsError: true,
-		}, SearchExamplesOutput{}, fmt.Errorf("failed to create temp file: %w", err)
-	}
-	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+				IsError: true,
+			}, SearchExamplesOutput{}, fmt.Errorf("search query is required")
+		}
 
-	// Write embedded database to temp file
-	if _, err := tmpFile.Write(data.EXAMPLES_DB); err != nil {
-		tmpFile.Close()
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: failed to write database: %v", err),
-				},
-			},
-			IsError: true,
-		}, SearchExamplesOutput{}, fmt.Errorf("failed to write database: %w", err)
-	}
-	tmpFile.Close()
-
-	// Open the database
-	db, err := sql.Open("sqlite", tmpPath)
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: failed to open database: %v", err),
-				},
-			},
-			IsError: true,
-		}, SearchExamplesOutput{}, fmt.Errorf("failed to open database: %w", err)
-	}
-	defer db.Close()
-
-	sqlQuery := `
+		sqlQuery := `
 		SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
 		FROM examples e
 		JOIN examples_fts f ON e.rowid = f.rowid
@@ -457,9 +441,10 @@ func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args Se
 		LIMIT 10
 	`
 
-	var rows *sql.Rows
-	if args.PackageFilter != "" {
-		sqlQuery = `
+		var rows *sql.Rows
+		var err error
+		if args.PackageFilter != "" {
+			sqlQuery = `
 			SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
 			FROM examples e
 			JOIN examples_fts f ON e.rowid = f.rowid
@@ -467,189 +452,151 @@ func handleSearchExamples(ctx context.Context, req *mcp.CallToolRequest, args Se
 			ORDER BY rank
 			LIMIT 10
 		`
-		rows, err = db.Query(sqlQuery, args.Query, args.PackageFilter)
-	} else {
-		rows, err = db.Query(sqlQuery, args.Query)
-	}
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: search failed: %v", err),
-				},
-			},
-			IsError: true,
-		}, SearchExamplesOutput{}, fmt.Errorf("search failed: %w", err)
-	}
-	defer rows.Close()
-
-	var examples []GoExample
-	for rows.Next() {
-		var ex GoExample
-		if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name, &ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
+			rows, err = db.Query(sqlQuery, args.Query, args.PackageFilter)
+		} else {
+			rows, err = db.Query(sqlQuery, args.Query)
+		}
+		if err != nil {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{
-						Text: fmt.Sprintf("Error: failed to scan row: %v", err),
+						Text: fmt.Sprintf("Error: search failed: %v", err),
 					},
 				},
 				IsError: true,
-			}, SearchExamplesOutput{}, fmt.Errorf("failed to scan row: %w", err)
+			}, SearchExamplesOutput{}, fmt.Errorf("search failed: %w", err)
 		}
-		examples = append(examples, ex)
-	}
+		defer rows.Close()
 
-	output := SearchExamplesOutput{
-		Examples: examples,
-		Count:    len(examples),
-	}
+		var examples []GoExample
+		for rows.Next() {
+			var ex GoExample
+			if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name, &ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{
+						&mcp.TextContent{
+							Text: fmt.Sprintf("Error: failed to scan row: %v", err),
+						},
+					},
+					IsError: true,
+				}, SearchExamplesOutput{}, fmt.Errorf("failed to scan row: %w", err)
+			}
+			examples = append(examples, ex)
+		}
 
-	resultText := fmt.Sprintf("Found %d example(s) matching query: %s", len(examples), args.Query)
-	if args.PackageFilter != "" {
-		resultText += fmt.Sprintf(" (filtered by package: %s)", args.PackageFilter)
-	}
+		output := SearchExamplesOutput{
+			Examples: examples,
+			Count:    len(examples),
+		}
 
-	if verboseLogging {
-		log.Printf("[MCP] search_examples completed: found %d examples\n", len(examples))
-	}
+		resultText := fmt.Sprintf("Found %d example(s) matching query: %s", len(examples), args.Query)
+		if args.PackageFilter != "" {
+			resultText += fmt.Sprintf(" (filtered by package: %s)", args.PackageFilter)
+		}
 
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: resultText,
+		if verboseLogging {
+			log.Printf("[MCP] search_examples completed: found %d examples\n", len(examples))
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: resultText,
+				},
 			},
-		},
-	}, output, nil
+		}, output, nil
+	}
 }
 
 // handleGetExample handles the get_example tool call
-func handleGetExample(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
-	if verboseLogging {
-		log.Printf("[MCP] Executing tool: get_example (symbol=%s)\n", args.Symbol)
-	}
+func handleGetExample(db *sql.DB) func(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
 
-	if args.Symbol == "" {
+	return func(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
+
 		if verboseLogging {
-			log.Println("[MCP] get_example error: symbol is required")
+			log.Printf("[MCP] Executing tool: get_example (symbol=%s)\n", args.Symbol)
 		}
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: "Error: symbol name is required",
-				},
-			},
-			IsError: true,
-		}, GetExampleOutput{}, fmt.Errorf("symbol name is required")
-	}
 
-	// Create a temporary file for the database
-	tmpFile, err := os.CreateTemp("", "examples-*.db")
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: failed to create temp file: %v", err),
+		if args.Symbol == "" {
+			if verboseLogging {
+				log.Println("[MCP] get_example error: symbol is required")
+			}
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "Error: symbol name is required",
+					},
 				},
-			},
-			IsError: true,
-		}, GetExampleOutput{}, fmt.Errorf("failed to create temp file: %w", err)
-	}
-	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+				IsError: true,
+			}, GetExampleOutput{}, fmt.Errorf("symbol name is required")
+		}
 
-	// Write embedded database to temp file
-	if _, err := tmpFile.Write(data.EXAMPLES_DB); err != nil {
-		tmpFile.Close()
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: failed to write database: %v", err),
-				},
-			},
-			IsError: true,
-		}, GetExampleOutput{}, fmt.Errorf("failed to write database: %w", err)
-	}
-	tmpFile.Close()
-
-	// Open the database
-	db, err := sql.Open("sqlite", tmpPath)
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: failed to open database: %v", err),
-				},
-			},
-			IsError: true,
-		}, GetExampleOutput{}, fmt.Errorf("failed to open database: %w", err)
-	}
-	defer db.Close()
-
-	query := `
+		query := `
 		SELECT id, package, symbol, name, code, doc_comment, output, imports, file
 		FROM examples
 		WHERE symbol = ? OR name = ? OR symbol LIKE ? OR name LIKE ?
 		ORDER BY name
 	`
 
-	// Add wildcards for pattern matching
-	pattern := "%" + args.Symbol + "%"
-	rows, err := db.Query(query, args.Symbol, args.Symbol, pattern, pattern)
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: query failed: %v", err),
-				},
-			},
-			IsError: true,
-		}, GetExampleOutput{}, fmt.Errorf("query failed: %w", err)
-	}
-	defer rows.Close()
-
-	var examples []GoExample
-	for rows.Next() {
-		var ex GoExample
-		if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name,
-			&ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
+		// Add wildcards for pattern matching
+		pattern := "%" + args.Symbol + "%"
+		rows, err := db.Query(query, args.Symbol, args.Symbol, pattern, pattern)
+		if err != nil {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{
-						Text: fmt.Sprintf("Error: failed to scan row: %v", err),
+						Text: fmt.Sprintf("Error: query failed: %v", err),
 					},
 				},
 				IsError: true,
-			}, GetExampleOutput{}, fmt.Errorf("failed to scan row: %w", err)
+			}, GetExampleOutput{}, fmt.Errorf("query failed: %w", err)
 		}
-		examples = append(examples, ex)
-	}
+		defer rows.Close()
 
-	if len(examples) == 0 {
+		var examples []GoExample
+		for rows.Next() {
+			var ex GoExample
+			if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name,
+				&ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{
+						&mcp.TextContent{
+							Text: fmt.Sprintf("Error: failed to scan row: %v", err),
+						},
+					},
+					IsError: true,
+				}, GetExampleOutput{}, fmt.Errorf("failed to scan row: %w", err)
+			}
+			examples = append(examples, ex)
+		}
+
+		if len(examples) == 0 {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: fmt.Sprintf("No examples found for symbol: %s", args.Symbol),
+					},
+				},
+			}, GetExampleOutput{Examples: []GoExample{}, Count: 0}, nil
+		}
+
+		output := GetExampleOutput{
+			Examples: examples,
+			Count:    len(examples),
+		}
+
+		resultText := fmt.Sprintf("Retrieved %d example(s) for symbol: %s", len(examples), args.Symbol)
+
+		if verboseLogging {
+			log.Printf("[MCP] get_example completed: retrieved %d examples\n", len(examples))
+		}
+
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
-					Text: fmt.Sprintf("No examples found for symbol: %s", args.Symbol),
+					Text: resultText,
 				},
 			},
-		}, GetExampleOutput{Examples: []GoExample{}, Count: 0}, nil
+		}, output, nil
 	}
-
-	output := GetExampleOutput{
-		Examples: examples,
-		Count:    len(examples),
-	}
-
-	resultText := fmt.Sprintf("Retrieved %d example(s) for symbol: %s", len(examples), args.Symbol)
-
-	if verboseLogging {
-		log.Printf("[MCP] get_example completed: retrieved %d examples\n", len(examples))
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: resultText,
-			},
-		},
-	}, output, nil
 }
