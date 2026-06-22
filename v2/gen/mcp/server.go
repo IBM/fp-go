@@ -185,6 +185,10 @@ func Run(ctx context.Context, verbose bool) error {
 	}
 	tmpFile.Close()
 
+	if verbose {
+		log.Println("[MCP] Opening examples DB...")
+	}
+
 	// Open the database
 	db, err := sql.Open("sqlite", tmpPath)
 	if err != nil {
