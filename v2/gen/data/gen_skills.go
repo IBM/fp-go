@@ -22,11 +22,17 @@ var FP_GO_LENS_SKILL_MD []byte
 //go:embed skills/fp-go-logging/SKILL.md
 var FP_GO_LOGGING_SKILL_MD []byte
 
+//go:embed skills/fp-go-mcp/SKILL.md
+var FP_GO_MCP_SKILL_MD []byte
+
 //go:embed skills/fp-go-pipe-flow/SKILL.md
 var FP_GO_PIPE_FLOW_SKILL_MD []byte
 
 //go:embed skills/fp-go-pipe-flow/evals/evals.json
 var FP_GO_PIPE_FLOW_EVALS_EVALS_JSON []byte
+
+//go:embed skills/fp-go-pr-review/SKILL.md
+var FP_GO_PR_REVIEW_SKILL_MD []byte
 
 // Skills is a map of relative file paths to their embedded content
 var Skills = map[string][]byte{
@@ -36,6 +42,8 @@ var Skills = map[string][]byte{
 	"fp-go-http/SKILL.md":              FP_GO_HTTP_SKILL_MD,
 	"fp-go-lens/SKILL.md":              FP_GO_LENS_SKILL_MD,
 	"fp-go-logging/SKILL.md":           FP_GO_LOGGING_SKILL_MD,
+	"fp-go-mcp/SKILL.md":               FP_GO_MCP_SKILL_MD,
 	"fp-go-pipe-flow/SKILL.md":         FP_GO_PIPE_FLOW_SKILL_MD,
 	"fp-go-pipe-flow/evals/evals.json": FP_GO_PIPE_FLOW_EVALS_EVALS_JSON,
+	"fp-go-pr-review/SKILL.md":         FP_GO_PR_REVIEW_SKILL_MD,
 }
