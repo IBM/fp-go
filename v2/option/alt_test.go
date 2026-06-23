@@ -122,10 +122,18 @@ func TestAltAllArray_EdgeCases(t *testing.T) {
 func TestAltAllSeq_Success(t *testing.T) {
 	t.Run("returns first Some value from sequence", func(t *testing.T) {
 		generator := func(yield func(Option[int]) bool) {
-			yield(None[int]())
-			yield(None[int]())
-			yield(Some(42))
-			yield(Some(100))
+			if !yield(None[int]()) {
+				return
+			}
+			if !yield(None[int]()) {
+				return
+			}
+			if !yield(Some(42)) {
+				return
+			}
+			if !yield(Some(100)) {
+				return
+			}
 		}
 		result := AltAllSeq(None[int]())(generator)
 		assert.Equal(t, Some(42), result)
@@ -139,9 +147,15 @@ func TestAltAllSeq_Success(t *testing.T) {
 
 	t.Run("returns startWith when all sequence elements are None", func(t *testing.T) {
 		generator := func(yield func(Option[int]) bool) {
-			yield(None[int]())
-			yield(None[int]())
-			yield(None[int]())
+			if !yield(None[int]()) {
+				return
+			}
+			if !yield(None[int]()) {
+				return
+			}
+			if !yield(None[int]()) {
+				return
+			}
 		}
 		result := AltAllSeq(Some(99))(generator)
 		assert.Equal(t, Some(99), result)
@@ -149,9 +163,15 @@ func TestAltAllSeq_Success(t *testing.T) {
 
 	t.Run("returns first Some when startWith is None", func(t *testing.T) {
 		generator := func(yield func(Option[string]) bool) {
-			yield(None[string]())
-			yield(Some("hello"))
-			yield(Some("world"))
+			if !yield(None[string]()) {
+				return
+			}
+			if !yield(Some("hello")) {
+				return
+			}
+			if !yield(Some("world")) {
+				return
+			}
 		}
 		result := AltAllSeq(None[string]())(generator)
 		assert.Equal(t, Some("hello"), result)
@@ -161,16 +181,22 @@ func TestAltAllSeq_Success(t *testing.T) {
 		iterationCount := 0
 		generator := func(yield func(Option[int]) bool) {
 			iterationCount++
-			yield(None[int]())
+			if !yield(None[int]()) {
+				return
+			}
 			iterationCount++
-			yield(Some(42))
+			if !yield(Some(42)) {
+				return
+			}
 			iterationCount++
-			yield(Some(100))
+			if !yield(Some(100)) {
+				return
+			}
 		}
 		result := AltAllSeq(None[int]())(generator)
 		assert.Equal(t, Some(42), result)
-		// The generator will be fully consumed due to how Alt works
-		assert.Equal(t, 3, iterationCount)
+		// The generator will not be fully consumed due to how Alt works
+		assert.Equal(t, 2, iterationCount)
 	})
 }
 
@@ -193,9 +219,15 @@ func TestAltAllSeq_EdgeCases(t *testing.T) {
 
 	t.Run("returns first Some when multiple Some values exist", func(t *testing.T) {
 		generator := func(yield func(Option[int]) bool) {
-			yield(Some(1))
-			yield(Some(2))
-			yield(Some(3))
+			if !yield(Some(1)) {
+				return
+			}
+			if !yield(Some(2)) {
+				return
+			}
+			if !yield(Some(3)) {
+				return
+			}
 		}
 		result := AltAllSeq(None[int]())(generator)
 		assert.Equal(t, Some(1), result)
@@ -203,10 +235,18 @@ func TestAltAllSeq_EdgeCases(t *testing.T) {
 
 	t.Run("works with different types", func(t *testing.T) {
 		generator := func(yield func(Option[string]) bool) {
-			yield(None[string]())
-			yield(Some("first"))
-			yield(None[string]())
-			yield(Some("second"))
+			if !yield(None[string]()) {
+				return
+			}
+			if !yield(Some("first")) {
+				return
+			}
+			if !yield(None[string]()) {
+				return
+			}
+			if !yield(Some("second")) {
+				return
+			}
 		}
 		result := AltAllSeq(None[string]())(generator)
 		assert.Equal(t, Some("first"), result)
@@ -220,8 +260,12 @@ func TestAltAllSeq_EdgeCases(t *testing.T) {
 
 	t.Run("returns None when startWith is None and all sequence elements are None", func(t *testing.T) {
 		generator := func(yield func(Option[int]) bool) {
-			yield(None[int]())
-			yield(None[int]())
+			if !yield(None[int]()) {
+				return
+			}
+			if !yield(None[int]()) {
+				return
+			}
 		}
 		result := AltAllSeq(None[int]())(generator)
 		assert.Equal(t, None[int](), result)
@@ -259,9 +303,15 @@ func TestAltAllArray_Integration(t *testing.T) {
 func TestAltAllSeq_Integration(t *testing.T) {
 	t.Run("chains with other Option operations", func(t *testing.T) {
 		generator := func(yield func(Option[int]) bool) {
-			yield(None[int]())
-			yield(Some(5))
-			yield(Some(10))
+			if !yield(None[int]()) {
+				return
+			}
+			if !yield(Some(5)) {
+				return
+			}
+			if !yield(Some(10)) {
+				return
+			}
 		}
 		result := Map(func(x int) int { return x * 2 })(
 			AltAllSeq(None[int]())(generator),
@@ -275,9 +325,15 @@ func TestAltAllSeq_Integration(t *testing.T) {
 			Age  int
 		}
 		generator := func(yield func(Option[User]) bool) {
-			yield(None[User]())
-			yield(Some(User{Name: "Alice", Age: 30}))
-			yield(Some(User{Name: "Bob", Age: 25}))
+			if !yield(None[User]()) {
+				return
+			}
+			if !yield(Some(User{Name: "Alice", Age: 30})) {
+				return
+			}
+			if !yield(Some(User{Name: "Bob", Age: 25})) {
+				return
+			}
 		}
 		result := AltAllSeq(None[User]())(generator)
 		assert.Equal(t, Some(User{Name: "Alice", Age: 30}), result)
@@ -288,9 +344,13 @@ func TestAltAllSeq_Integration(t *testing.T) {
 		generator := func(yield func(Option[int]) bool) {
 			for i := range 10 {
 				if i == 5 {
-					yield(Some(i))
+					if !yield(Some(i)) {
+						return
+					}
 				} else {
-					yield(None[int]())
+					if !yield(None[int]()) {
+						return
+					}
 				}
 			}
 		}
@@ -316,10 +376,18 @@ func BenchmarkAltAllArray(b *testing.B) {
 
 func BenchmarkAltAllSeq(b *testing.B) {
 	generator := func(yield func(Option[int]) bool) {
-		yield(None[int]())
-		yield(None[int]())
-		yield(Some(42))
-		yield(Some(100))
+		if !yield(None[int]()) {
+			return
+		}
+		if !yield(None[int]()) {
+			return
+		}
+		if !yield(Some(42)) {
+			return
+		}
+		if !yield(Some(100)) {
+			return
+		}
 	}
 	altAll := AltAllSeq(None[int]())
 
@@ -346,10 +414,18 @@ func BenchmarkAltAllArray_AllNone(b *testing.B) {
 
 func BenchmarkAltAllSeq_AllNone(b *testing.B) {
 	generator := func(yield func(Option[int]) bool) {
-		yield(None[int]())
-		yield(None[int]())
-		yield(None[int]())
-		yield(None[int]())
+		if !yield(None[int]()) {
+			return
+		}
+		if !yield(None[int]()) {
+			return
+		}
+		if !yield(None[int]()) {
+			return
+		}
+		if !yield(None[int]()) {
+			return
+		}
 	}
 	altAll := AltAllSeq(Some(10))
 

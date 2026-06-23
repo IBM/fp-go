@@ -15,6 +15,10 @@
 
 package option
 
+import (
+	F "github.com/IBM/fp-go/v2/function"
+)
+
 // AltAllArray combines multiple Options from an array using the Alt operation.
 // It starts with an initial Option and iteratively applies Alt with each Option
 // in the array, returning the first Some value encountered or the last value if
@@ -23,6 +27,21 @@ package option
 // The Alt operation returns the first Option if it's Some, otherwise returns the
 // alternative. This function chains multiple Alt operations together, effectively
 // implementing a "first success" or "fallback chain" pattern.
+//
+// Implementation:
+//
+// This function is semantically equivalent to alt.AltAllArray[Option[A]](Alt)(startWith)
+// but provides an optimized implementation with early break for better performance.
+// The direct implementation avoids the overhead of lazy thunk allocations while
+// maintaining identical behavior.
+//
+// Short-Circuit Behavior:
+//
+// This function short-circuits on the first Some value:
+//   - If startWith is Some, it returns immediately without examining the array
+//   - Otherwise, it iterates through the array and returns the first Some encountered
+//   - The array is not fully consumed once a Some value is found
+//   - Only if all elements are None will the entire array be traversed
 //
 // Relationship to array.Fold and AltMonoid:
 //
@@ -76,14 +95,16 @@ func AltAllArray[A any](startWith Option[A]) Kleisli[[]Option[A], A] {
 	// every element in an F.Constant thunk (a closure allocation per element);
 	// this loop is allocation-free while preserving identical semantics
 	// (startWith priority; first Some in the array; else the last value).
+	if IsSome(startWith) {
+		return F.Constant1[[]Option[A]](startWith)
+	}
 	return func(as []Option[A]) Option[A] {
-		current := startWith
 		for _, o := range as {
-			if !IsSome(current) {
-				current = o
+			if IsSome(o) {
+				return o
 			}
 		}
-		return current
+		return startWith
 	}
 }
 
@@ -93,8 +114,23 @@ func AltAllArray[A any](startWith Option[A]) Kleisli[[]Option[A], A] {
 // if all are None.
 //
 // This function is similar to AltAllArray but works with Go's iterator sequences,
-// making it suitable for lazy evaluation and potentially infinite sequences (though
-// it will consume the sequence until finding a Some value).
+// making it suitable for lazy evaluation and potentially infinite sequences.
+//
+// Implementation:
+//
+// This function is semantically equivalent to alt.AltAllSeq[Option[A]](Alt)(startWith)
+// but provides an optimized implementation with early break for better performance.
+// The direct implementation avoids the overhead of lazy thunk allocations while
+// maintaining identical behavior.
+//
+// Short-Circuit Behavior:
+//
+// This function short-circuits on the first Some value:
+//   - If startWith is Some, it returns immediately without consuming the sequence
+//   - Otherwise, it iterates through the sequence and returns the first Some encountered
+//   - The sequence is not fully consumed once a Some value is found
+//   - This makes it safe to use with infinite sequences as long as a Some value exists
+//   - Only if all elements are None will the entire sequence be consumed
 //
 // Relationship to Folding:
 //
@@ -137,16 +173,15 @@ func AltAllArray[A any](startWith Option[A]) Kleisli[[]Option[A], A] {
 //   - AltAllArray: Similar function for arrays
 //   - AltMonoid: Monoid that uses Alt operation
 func AltAllSeq[A any](startWith Option[A]) Kleisli[Seq[Option[A]], A] {
-	// Direct scan, allocation-free (see AltAllArray). Matches the existing
-	// behaviour of consuming the whole sequence (no early break) while keeping
-	// the first Some encountered.
+	if IsSome(startWith) {
+		return F.Constant1[Seq[Option[A]]](startWith)
+	}
 	return func(as Seq[Option[A]]) Option[A] {
-		current := startWith
 		for o := range as {
-			if !IsSome(current) {
-				current = o
+			if IsSome(o) {
+				return o
 			}
 		}
-		return current
+		return startWith
 	}
 }
