@@ -394,7 +394,7 @@ func FromFoldableMap[
 				dst[k] = pair.Tail(e)
 			}
 			return dst
-		}, Empty[M]())
+		}, nil)
 	}
 }
 

@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	Mg "github.com/IBM/fp-go/v2/magma"
 	N "github.com/IBM/fp-go/v2/number"
@@ -736,6 +737,227 @@ func TestFromFoldableMap(t *testing.T) {
 	}, result)
 }
 
+// ExampleFromFoldableMap demonstrates converting a foldable structure to a record with duplicate key handling.
+func ExampleFromFoldableMap() {
+	type Person struct {
+		ID    string
+		Score int
+	}
+
+	people := A.From(
+		Person{"alice", 10},
+		Person{"bob", 20},
+		Person{"alice", 15},
+	)
+
+	// Use sum magma to combine scores for duplicate IDs
+	sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
+	reducer := A.Reduce[Person, map[string]int]
+
+	toRecord := FromFoldableMap(sumMagma, reducer)(func(p Person) Entry[string, int] {
+		return P.MakePair(p.ID, p.Score)
+	})
+
+	result := toRecord(people)
+
+	// Print sorted keys for deterministic output
+	keys := KeysOrd[int](S.Ord)(result)
+	for _, k := range keys {
+		fmt.Printf("%s: %d\n", k, result[k])
+	}
+
+	// Output:
+	// alice: 25
+	// bob: 20
+}
+
+func TestFromFoldableMap_Success(t *testing.T) {
+	t.Run("converts array to record with identity mapping", func(t *testing.T) {
+		src := A.From("a", "b", "c")
+		reducer := A.Reduce[string, map[string]string]
+		from := FromFoldableMap(Mg.Second[string](), reducer)
+		f := from(P.Of[string])
+		result := f(src)
+
+		assert.Equal(t, map[string]string{
+			"a": "a",
+			"b": "b",
+			"c": "c",
+		}, result)
+	})
+
+	t.Run("handles duplicate keys with Second magma", func(t *testing.T) {
+		src := A.From("a", "b", "a", "c", "b")
+		reducer := A.Reduce[string, map[string]string]
+		from := FromFoldableMap(Mg.Second[string](), reducer)
+		f := from(P.Of[string])
+		result := f(src)
+
+		// Second magma keeps the last value
+		assert.Equal(t, map[string]string{
+			"a": "a",
+			"b": "b",
+			"c": "c",
+		}, result)
+	})
+
+	t.Run("handles duplicate keys with First magma", func(t *testing.T) {
+		src := A.From("a", "b", "a", "c", "b")
+		reducer := A.Reduce[string, map[string]string]
+		from := FromFoldableMap(Mg.First[string](), reducer)
+		f := from(P.Of[string])
+		result := f(src)
+
+		// First magma keeps the first value
+		assert.Equal(t, map[string]string{
+			"a": "a",
+			"b": "b",
+			"c": "c",
+		}, result)
+	})
+
+	t.Run("combines values with custom magma", func(t *testing.T) {
+		type Item struct {
+			Key   string
+			Value int
+		}
+
+		src := A.From(
+			Item{"a", 10},
+			Item{"b", 20},
+			Item{"a", 15},
+			Item{"c", 5},
+			Item{"b", 25},
+		)
+
+		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
+		reducer := A.Reduce[Item, map[string]int]
+		from := FromFoldableMap(sumMagma, reducer)
+		f := from(func(item Item) Entry[string, int] {
+			return P.MakePair(item.Key, item.Value)
+		})
+		result := f(src)
+
+		assert.Equal(t, map[string]int{
+			"a": 25, // 10 + 15
+			"b": 45, // 20 + 25
+			"c": 5,
+		}, result)
+	})
+
+	t.Run("transforms elements with custom mapping", func(t *testing.T) {
+		src := A.From(1, 2, 3, 4, 5)
+		reducer := A.Reduce[int, map[string]int]
+		from := FromFoldableMap(Mg.Second[int](), reducer)
+		f := from(func(n int) Entry[string, int] {
+			return P.MakePair(S.Format[int]("key%d")(n), n*n)
+		})
+		result := f(src)
+
+		assert.Equal(t, map[string]int{
+			"key1": 1,
+			"key2": 4,
+			"key3": 9,
+			"key4": 16,
+			"key5": 25,
+		}, result)
+	})
+}
+
+func TestFromFoldableMap_EdgeCases(t *testing.T) {
+	t.Run("handles empty array", func(t *testing.T) {
+		src := A.From[string]()
+		reducer := A.Reduce[string, map[string]string]
+		from := FromFoldableMap(Mg.Second[string](), reducer)
+		f := from(P.Of[string])
+		result := f(src)
+
+		assert.Empty(t, result)
+	})
+
+	t.Run("handles single element", func(t *testing.T) {
+		src := A.From("a")
+		reducer := A.Reduce[string, map[string]string]
+		from := FromFoldableMap(Mg.Second[string](), reducer)
+		f := from(P.Of[string])
+		result := f(src)
+
+		assert.Equal(t, map[string]string{"a": "a"}, result)
+	})
+
+	t.Run("handles all duplicate keys", func(t *testing.T) {
+		src := A.From("x", "x", "x", "x")
+		reducer := A.Reduce[string, map[string]int]
+		from := FromFoldableMap(
+			Mg.MakeMagma(func(a, b int) int { return a + b }),
+			reducer,
+		)
+		f := from(func(s string) Entry[string, int] {
+			return P.MakePair(s, 1)
+		})
+		result := f(src)
+
+		assert.Equal(t, map[string]int{"x": 4}, result)
+	})
+}
+
+func TestFromFoldableMap_Integration(t *testing.T) {
+	t.Run("works with complex data structures", func(t *testing.T) {
+		type Transaction struct {
+			Account string
+			Amount  int
+		}
+
+		transactions := A.From(
+			Transaction{"alice", 100},
+			Transaction{"bob", 50},
+			Transaction{"alice", -30},
+			Transaction{"charlie", 75},
+			Transaction{"bob", 25},
+		)
+
+		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
+		reducer := A.Reduce[Transaction, map[string]int]
+
+		toBalances := FromFoldableMap(sumMagma, reducer)(func(t Transaction) Entry[string, int] {
+			return P.MakePair(t.Account, t.Amount)
+		})
+
+		balances := toBalances(transactions)
+
+		assert.Equal(t, map[string]int{
+			"alice":   70, // 100 - 30
+			"bob":     75, // 50 + 25
+			"charlie": 75,
+		}, balances)
+	})
+
+	t.Run("can be composed with other record operations", func(t *testing.T) {
+		src := A.From(1, 2, 3, 4, 5)
+		reducer := A.Reduce[int, map[string]int]
+
+		// Create record from array
+		from := FromFoldableMap(Mg.Second[int](), reducer)
+		toRecord := from(func(n int) Entry[string, int] {
+			return P.MakePair(S.Format[int]("n%d")(n), n)
+		})
+
+		// Apply transformations
+		result := F.Pipe1(
+			toRecord(src),
+			Map[string](func(v int) int { return v * 2 }),
+		)
+
+		assert.Equal(t, map[string]int{
+			"n1": 2,
+			"n2": 4,
+			"n3": 6,
+			"n4": 8,
+			"n5": 10,
+		}, result)
+	})
+}
+
 func TestFromFoldable(t *testing.T) {
 	entries := Entries[string, int]{
 		P.MakePair("a", 1),
@@ -749,4 +971,205 @@ func TestFromFoldable(t *testing.T) {
 	)
 	result := from(entries)
 	assert.Equal(t, map[string]int{"a": 3, "b": 2}, result)
+}
+
+func TestFromFoldableMap_NilInput(t *testing.T) {
+	t.Run("handles nil array input", func(t *testing.T) {
+		var nilArray []string
+		reducer := A.Reduce[string, map[string]int]
+		from := FromFoldableMap(
+			Mg.MakeMagma(func(a, b int) int { return a + b }),
+			reducer,
+		)
+		toRecord := from(func(s string) Entry[string, int] {
+			return P.MakePair(s, len(s))
+		})
+		result := toRecord(nilArray)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+		assert.Equal(t, 0, len(result))
+	})
+
+	t.Run("nil input with different types", func(t *testing.T) {
+		var nilArray []int
+		reducer := A.Reduce[int, map[string]int]
+		from := FromFoldableMap(
+			Mg.MakeMagma(func(a, b int) int { return a + b }),
+			reducer,
+		)
+		toRecord := from(func(n int) Entry[string, int] {
+			return P.MakePair(strconv.Itoa(n), n)
+		})
+		result := toRecord(nilArray)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+	})
+}
+
+func TestFromArrayMap_NilInput(t *testing.T) {
+	t.Run("handles nil array input", func(t *testing.T) {
+		var nilArray []string
+		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
+		toRecord := FromArrayMap[string, string, int](sumMagma)(func(s string) Entry[string, int] {
+			return P.MakePair(s, len(s))
+		})
+		result := toRecord(nilArray)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+		assert.Equal(t, 0, len(result))
+	})
+
+	t.Run("nil input with different types", func(t *testing.T) {
+		var nilArray []int
+		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
+		toRecord := FromArrayMap[int, string, int](sumMagma)(func(n int) Entry[string, int] {
+			return P.MakePair(strconv.Itoa(n), n)
+		})
+		result := toRecord(nilArray)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+	})
+
+	t.Run("empty array produces same result as nil array", func(t *testing.T) {
+		var nilArray []string
+		emptyArray := []string{}
+		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
+		toRecord := FromArrayMap[string, string, int](sumMagma)(func(s string) Entry[string, int] {
+			return P.MakePair(s, len(s))
+		})
+
+		resultNil := toRecord(nilArray)
+		resultEmpty := toRecord(emptyArray)
+
+		// Both nil and empty arrays produce empty maps
+		assert.Equal(t, resultNil, resultEmpty)
+		assert.False(t, IsNonEmpty(resultNil))
+		assert.False(t, IsNonEmpty(resultEmpty))
+		assert.True(t, IsEmpty(resultNil))
+		assert.True(t, IsEmpty(resultEmpty))
+	})
+}
+
+func TestFromFoldable_NilInput(t *testing.T) {
+	t.Run("handles nil entries array", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+		reducer := A.Reduce[Entry[string, int], map[string]int]
+		from := FromFoldable(
+			Mg.Second[int](),
+			reducer,
+		)
+		result := from(nilEntries)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+		assert.Equal(t, 0, len(result))
+	})
+
+	t.Run("nil input with sum magma", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+		reducer := A.Reduce[Entry[string, int], map[string]int]
+		from := FromFoldable(
+			Mg.MakeMagma(func(a, b int) int { return a + b }),
+			reducer,
+		)
+		result := from(nilEntries)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+	})
+
+	t.Run("empty entries array produces same result as nil", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+		emptyEntries := Entries[string, int]{}
+		reducer := A.Reduce[Entry[string, int], map[string]int]
+		from := FromFoldable(
+			Mg.Second[int](),
+			reducer,
+		)
+
+		resultNil := from(nilEntries)
+		resultEmpty := from(emptyEntries)
+
+		// Both nil and empty arrays produce empty maps
+		assert.Equal(t, resultNil, resultEmpty)
+		assert.False(t, IsNonEmpty(resultNil))
+		assert.False(t, IsNonEmpty(resultEmpty))
+		assert.True(t, IsEmpty(resultNil))
+		assert.True(t, IsEmpty(resultEmpty))
+	})
+}
+
+func TestFromArray_NilInput(t *testing.T) {
+	t.Run("handles nil entries array", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+		toRecord := FromArray[string](Mg.Second[int]())
+		result := toRecord(nilEntries)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+		assert.Equal(t, 0, len(result))
+	})
+
+	t.Run("nil input with sum magma", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+		toRecord := FromArray[string](Mg.MakeMagma(func(a, b int) int { return a + b }))
+		result := toRecord(nilEntries)
+
+		// nil input produces empty map (represented as nil)
+		assert.False(t, IsNonEmpty(result))
+		assert.True(t, IsEmpty(result))
+	})
+
+	t.Run("empty entries array produces same result as nil", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+		emptyEntries := Entries[string, int]{}
+		toRecord := FromArray[string](Mg.Second[int]())
+
+		resultNil := toRecord(nilEntries)
+		resultEmpty := toRecord(emptyEntries)
+
+		// Both nil and empty arrays produce empty maps
+		assert.Equal(t, resultNil, resultEmpty)
+		assert.False(t, IsNonEmpty(resultNil))
+		assert.False(t, IsNonEmpty(resultEmpty))
+		assert.True(t, IsEmpty(resultNil))
+		assert.True(t, IsEmpty(resultEmpty))
+	})
+
+	t.Run("nil input with different magmas", func(t *testing.T) {
+		var nilEntries Entries[string, int]
+
+		// Test with First magma
+		toRecordFirst := FromArray[string](Mg.First[int]())
+		resultFirst := toRecordFirst(nilEntries)
+		assert.False(t, IsNonEmpty(resultFirst))
+		assert.True(t, IsEmpty(resultFirst))
+
+		// Test with Second magma
+		toRecordSecond := FromArray[string](Mg.Second[int]())
+		resultSecond := toRecordSecond(nilEntries)
+		assert.False(t, IsNonEmpty(resultSecond))
+		assert.True(t, IsEmpty(resultSecond))
+
+		// Test with custom magma
+		toRecordSum := FromArray[string](Mg.MakeMagma(func(a, b int) int { return a + b }))
+		resultSum := toRecordSum(nilEntries)
+		assert.False(t, IsNonEmpty(resultSum))
+		assert.True(t, IsEmpty(resultSum))
+
+		// All should produce equivalent empty maps
+		assert.Equal(t, resultFirst, resultSecond)
+		assert.Equal(t, resultSecond, resultSum)
+	})
 }

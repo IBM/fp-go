@@ -415,17 +415,19 @@ func TestNilMap_FromArray(t *testing.T) {
 	semigroup := SG.Last[int]()
 	fromArray := FromArray[string](semigroup)
 
-	// Test with nil slice
+	// Test with nil slice - returns empty map (represented as nil)
 	var nilSlice Entries[string, int]
 	result1 := fromArray(nilSlice)
-	assert.NotNil(t, result1, "FromArray should return non-nil map for nil slice")
-	assert.Equal(t, 0, len(result1), "FromArray should return empty map for nil slice")
+	assert.False(t, IsNonEmpty(result1), "FromArray should return empty map for nil slice")
+	assert.True(t, IsEmpty(result1), "FromArray should return empty map for nil slice")
+	assert.Equal(t, 0, len(result1), "FromArray should have length 0 for nil slice")
 
-	// Test with empty slice
+	// Test with empty slice - also returns empty map
 	emptySlice := Entries[string, int]{}
 	result2 := fromArray(emptySlice)
-	assert.NotNil(t, result2, "FromArray should return non-nil map for empty slice")
-	assert.Equal(t, 0, len(result2), "FromArray should return empty map for empty slice")
+	assert.False(t, IsNonEmpty(result2), "FromArray should return empty map for empty slice")
+	assert.True(t, IsEmpty(result2), "FromArray should return empty map for empty slice")
+	assert.Equal(t, 0, len(result2), "FromArray should have length 0 for empty slice")
 }
 
 // TestNilMap_MonadAp verifies that MonadAp handles nil maps correctly

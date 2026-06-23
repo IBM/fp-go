@@ -969,18 +969,28 @@ func Clone[K comparable, V any](f Endomorphism[V]) Endomorphism[Record[K, V]] {
 //
 // The mapping function transforms each element into a key-value entry. When duplicate keys
 // occur, the Magma determines how to combine their values. This is useful for building
-// records from custom data structures.
+// records from custom data structures that support folding operations.
 //
-// Example:
+// The empty map may be represented as nil. The input array parameter accepts nil,
+// which is treated as an empty collection and results in an empty map.
 //
-//	type Person struct { ID string; Score int }
-//	people := []Person{{"alice", 10}, {"bob", 20}, {"alice", 15}}
+// Type Parameters:
+//   - FOLDABLE: A reduce function type that folds over the structure
+//   - A: The element type in the foldable structure
+//   - HKTA: The higher-kinded type representing the foldable structure
+//   - K: The key type (must be comparable)
+//   - V: The value type
 //
-//	sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
-//	toRecord := FromArrayMap[Person, string, int](sumMagma)(func(p Person) Entry[string, int] {
-//	    return P.MakePair(p.ID, p.Score)
-//	})
-//	result := toRecord(people) // {"alice": 25, "bob": 20}
+// Parameters:
+//   - m: Magma that determines how to combine values for duplicate keys
+//   - red: The reduce function for the foldable structure
+//
+// Returns:
+//   - A function that takes a mapping function and returns a Kleisli arrow
+//
+// See Also:
+//   - FromArrayMap: Specialized version for arrays
+//   - FromFoldable: Version that works with Entry pairs directly
 func FromFoldableMap[
 	FOLDABLE ~func(func(Record[K, V], A) Record[K, V], Record[K, V]) func(HKTA) Record[K, V], // the reduce function
 	A any,
@@ -994,6 +1004,9 @@ func FromFoldableMap[
 //
 // Each element is transformed into a key-value entry. When duplicate keys occur,
 // the Magma determines how to combine their values.
+//
+// The empty map may be represented as nil. The input array parameter accepts nil,
+// which is treated as an empty collection and results in an empty map.
 //
 // Example:
 //
@@ -1017,6 +1030,9 @@ func FromArrayMap[
 // The foldable structure should contain Entry[K, V] elements. When duplicate keys
 // occur, the Magma determines how to combine their values.
 //
+// The empty map may be represented as nil. The input array parameter accepts nil,
+// which is treated as an empty collection and results in an empty map.
+//
 // Example:
 //
 //	entries := []Entry[string, int]{
@@ -1039,6 +1055,9 @@ func FromFoldable[
 //
 // When duplicate keys occur, the Magma determines how to combine their values.
 // This is useful for aggregating data with the same keys.
+//
+// The empty map may be represented as nil. The input array parameter accepts nil,
+// which is treated as an empty collection and results in an empty map.
 //
 // Example:
 //
