@@ -15,10 +15,6 @@
 
 package option
 
-import (
-	"github.com/IBM/fp-go/v2/internal/alt"
-)
-
 // AltAllArray combines multiple Options from an array using the Alt operation.
 // It starts with an initial Option and iteratively applies Alt with each Option
 // in the array, returning the first Some value encountered or the last value if
@@ -75,7 +71,20 @@ import (
 //   - AltAllSeq: Similar function for iterator sequences
 //   - AltMonoid: Monoid that uses Alt operation
 func AltAllArray[A any](startWith Option[A]) Kleisli[[]Option[A], A] {
-	return alt.AltAllArray[Option[A]](Alt)(startWith)
+	// Direct first-Some scan: option's Alt keeps the current value if it is Some,
+	// otherwise takes the next one. Folding via the generic lazy Alt would wrap
+	// every element in an F.Constant thunk (a closure allocation per element);
+	// this loop is allocation-free while preserving identical semantics
+	// (startWith priority; first Some in the array; else the last value).
+	return func(as []Option[A]) Option[A] {
+		current := startWith
+		for _, o := range as {
+			if !IsSome(current) {
+				current = o
+			}
+		}
+		return current
+	}
 }
 
 // AltAllSeq combines multiple Options from an iterator sequence using the Alt operation.
@@ -128,5 +137,16 @@ func AltAllArray[A any](startWith Option[A]) Kleisli[[]Option[A], A] {
 //   - AltAllArray: Similar function for arrays
 //   - AltMonoid: Monoid that uses Alt operation
 func AltAllSeq[A any](startWith Option[A]) Kleisli[Seq[Option[A]], A] {
-	return alt.AltAllSeq[Option[A]](Alt)(startWith)
+	// Direct scan, allocation-free (see AltAllArray). Matches the existing
+	// behaviour of consuming the whole sequence (no early break) while keeping
+	// the first Some encountered.
+	return func(as Seq[Option[A]]) Option[A] {
+		current := startWith
+		for o := range as {
+			if !IsSome(current) {
+				current = o
+			}
+		}
+		return current
+	}
 }
