@@ -22,10 +22,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/IBM/fp-go/v2/gen/data"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"gopkg.in/yaml.v3"
 	_ "modernc.org/sqlite"
 )
 
@@ -89,14 +91,8 @@ type GetExampleOutput struct {
 	Count    int         `json:"count" jsonschema:"Number of examples found"`
 }
 
-var verboseLogging bool
-
 // NewServer creates a new MCP server with fp-go tools
-func NewServer(
-	db *sql.DB,
-	verbose bool) *mcp.Server {
-	verboseLogging = verbose
-
+func NewServer(db *sql.DB, verbose bool) *mcp.Server {
 	if verbose {
 		log.Println("[MCP] Creating MCP server with fp-go tools")
 	}
@@ -106,7 +102,6 @@ func NewServer(
 		Version: "1.0.0",
 	}, nil)
 
-	// Register the list_skills tool
 	if verbose {
 		log.Println("[MCP] Registering tool: list_skills")
 	}
@@ -116,9 +111,8 @@ func NewServer(
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, handleListSkills)
+	}, handleListSkills(verbose))
 
-	// Register the use_skill tool
 	if verbose {
 		log.Println("[MCP] Registering tool: use_skill")
 	}
@@ -128,9 +122,8 @@ func NewServer(
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, handleUseSkill)
+	}, handleUseSkill(verbose))
 
-	// Register the search_examples tool
 	if verbose {
 		log.Println("[MCP] Registering tool: search_examples")
 	}
@@ -140,9 +133,8 @@ func NewServer(
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, handleSearchExamples(db))
+	}, handleSearchExamples(db, verbose))
 
-	// Register the get_example tool
 	if verbose {
 		log.Println("[MCP] Registering tool: get_example")
 	}
@@ -152,7 +144,7 @@ func NewServer(
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, handleGetExample(db))
+	}, handleGetExample(db, verbose))
 
 	if verbose {
 		log.Println("[MCP] Server created with 4 tools registered")
@@ -163,14 +155,12 @@ func NewServer(
 
 // Run starts the MCP server with stdio transport
 func Run(ctx context.Context, verbose bool) error {
-	// Configure logging based on verbose flag
 	if verbose {
 		log.SetOutput(os.Stderr)
 		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 		log.Println("[MCP] Verbose logging enabled")
 	}
 
-	// Create a temporary file for the database
 	tmpFile, err := os.CreateTemp("", "examples-*.db")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
@@ -178,7 +168,6 @@ func Run(ctx context.Context, verbose bool) error {
 	tmpPath := tmpFile.Name()
 	defer os.Remove(tmpPath)
 
-	// Write embedded database to temp file
 	if _, err := tmpFile.Write(data.EXAMPLES_DB); err != nil {
 		tmpFile.Close()
 		return fmt.Errorf("failed to write database: %w", err)
@@ -189,7 +178,6 @@ func Run(ctx context.Context, verbose bool) error {
 		log.Println("[MCP] Opening examples DB...")
 	}
 
-	// Open the database
 	db, err := sql.Open("sqlite", tmpPath)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
@@ -198,7 +186,6 @@ func Run(ctx context.Context, verbose bool) error {
 
 	server := NewServer(db, verbose)
 
-	// Run the server on stdio transport
 	if verbose {
 		log.Println("[MCP] Starting MCP server with stdio transport...")
 	}
@@ -217,238 +204,232 @@ func Run(ctx context.Context, verbose bool) error {
 	return nil
 }
 
-// parseSkillMetadata extracts name and description from YAML frontmatter
-func parseSkillMetadata(content []byte) (name, description string) {
+// skillFrontmatter represents the YAML frontmatter structure in SKILL.md files
+type skillFrontmatter struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+}
+
+// parseFrontmatter extracts name, description, and body from YAML frontmatter in a single pass.
+// If no frontmatter is found or parsing fails, name and description are empty and body is the full content.
+func parseFrontmatter(content []byte) (name, description, body string) {
 	lines := strings.Split(string(content), "\n")
+	var fmLines []string
 	inFrontmatter := false
+	bodyStart := 0
 
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		// Check for frontmatter delimiters
-		if trimmed == "---" {
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "---" {
 			if !inFrontmatter {
 				inFrontmatter = true
 				continue
-			} else {
-				// End of frontmatter
-				break
 			}
+			bodyStart = i + 1
+			break
 		}
-
-		if !inFrontmatter {
-			continue
-		}
-
-		// Parse name field
-		if after, ok := strings.CutPrefix(trimmed, "name:"); ok {
-			name = strings.TrimSpace(after)
-			continue
-		}
-
-		// Parse description field
-		if strings.HasPrefix(trimmed, "description:") {
-			description = strings.TrimSpace(strings.TrimPrefix(trimmed, "description:"))
-			continue
+		if inFrontmatter {
+			fmLines = append(fmLines, line)
 		}
 	}
 
-	return name, description
+	if len(fmLines) == 0 {
+		return "", "", string(content)
+	}
+
+	var fm skillFrontmatter
+	if err := yaml.Unmarshal([]byte(strings.Join(fmLines, "\n")), &fm); err != nil {
+		return "", "", string(content)
+	}
+
+	if bodyStart > 0 && bodyStart < len(lines) {
+		body = strings.Join(lines[bodyStart:], "\n")
+	}
+	return fm.Name, fm.Description, body
+}
+
+// renderExamplesToMarkdown builds a markdown string for a list of examples.
+// When full is true, also includes ID, file path, and imports (used by get_example).
+func renderExamplesToMarkdown(examples []GoExample, full bool) string {
+	var b strings.Builder
+	for i, ex := range examples {
+		fmt.Fprintf(&b, "## %d. %s\n\n", i+1, ex.Name)
+		if full {
+			fmt.Fprintf(&b, "**ID:** `%s`\n\n", ex.ID)
+		}
+		fmt.Fprintf(&b, "**Package:** `%s`\n\n", ex.Package)
+		if ex.Symbol != "" {
+			fmt.Fprintf(&b, "**Symbol:** `%s`\n\n", ex.Symbol)
+		}
+		if full && ex.File != "" {
+			fmt.Fprintf(&b, "**File:** `%s`\n\n", ex.File)
+		}
+		if ex.DocComment != "" {
+			fmt.Fprintf(&b, "**Documentation:**\n%s\n\n", ex.DocComment)
+		}
+		if full && ex.Imports != "" {
+			b.WriteString("**Imports:**\n```go\n")
+			b.WriteString(ex.Imports)
+			b.WriteString("\n```\n\n")
+		}
+		if ex.Code != "" {
+			b.WriteString("**Code:**\n```go\n")
+			b.WriteString(ex.Code)
+			b.WriteString("\n```\n\n")
+		}
+		if ex.Output != "" {
+			b.WriteString("**Output:**\n```\n")
+			b.WriteString(ex.Output)
+			b.WriteString("\n```\n\n")
+		}
+		if i < len(examples)-1 {
+			b.WriteString("---\n\n")
+		}
+	}
+	return b.String()
+}
+
+func errorResult(text string) *mcp.CallToolResult {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{&mcp.TextContent{Text: text}},
+		IsError: true,
+	}
+}
+
+func textResult(text string) *mcp.CallToolResult {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{&mcp.TextContent{Text: text}},
+	}
 }
 
 // handleListSkills handles the list_skills tool call
-func handleListSkills(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, ListSkillsOutput, error) {
-	if verboseLogging {
-		log.Println("[MCP] Executing tool: list_skills")
-	}
-
-	var skills []SkillInfo
-
-	// Iterate through the Skills map from data package
-	for path, content := range data.Skills {
-		// Only process SKILL.md files
-		if !strings.HasSuffix(path, "SKILL.md") {
-			continue
+func handleListSkills(verbose bool) func(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, ListSkillsOutput, error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest, args struct{}) (*mcp.CallToolResult, ListSkillsOutput, error) {
+		if verbose {
+			log.Println("[MCP] Executing tool: list_skills")
 		}
 
-		// Extract directory name from path (e.g., "fp-go-logging/SKILL.md" -> "fp-go-logging")
-		dirName := filepath.Dir(path)
+		var skills []SkillInfo
 
-		// Parse metadata from YAML frontmatter
-		name, description := parseSkillMetadata(content)
-
-		// Validate that the name matches the directory name
-		if name != "" && name != dirName {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Error: skill name '%s' does not match directory name '%s' in %s", name, dirName, path),
-					},
-				},
-				IsError: true,
-			}, ListSkillsOutput{}, fmt.Errorf("skill name mismatch: '%s' != '%s' in %s", name, dirName, path)
-		}
-
-		// Use the name from frontmatter if available, otherwise use directory name
-		skillName := name
-		if skillName == "" {
-			skillName = dirName
-		}
-
-		skills = append(skills, SkillInfo{
-			Name:        skillName,
-			Description: description,
-			Path:        dirName,
-		})
-	}
-
-	output := ListSkillsOutput{
-		Skills: skills,
-	}
-
-	if verboseLogging {
-		log.Printf("[MCP] list_skills completed: found %d skills\n", len(skills))
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: fmt.Sprintf("Found %d skill(s)", len(skills)),
-			},
-		},
-	}, output, nil
-}
-
-// stripFrontmatter removes YAML frontmatter from content and returns the remaining content
-func stripFrontmatter(content []byte) string {
-	lines := strings.Split(string(content), "\n")
-	inFrontmatter := false
-	contentStart := 0
-
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		// Check for frontmatter delimiters
-		if trimmed == "---" {
-			if !inFrontmatter {
-				inFrontmatter = true
+		for path, content := range data.Skills {
+			if !strings.HasSuffix(path, "SKILL.md") {
 				continue
-			} else {
-				// End of frontmatter - content starts after this line
-				contentStart = i + 1
-				break
 			}
+
+			dirName := filepath.Dir(path)
+			name, description, _ := parseFrontmatter(content)
+
+			if name != "" && name != dirName {
+				msg := fmt.Sprintf("Error: skill name '%s' does not match directory name '%s' in %s", name, dirName, path)
+				return errorResult(msg), ListSkillsOutput{}, fmt.Errorf("skill name mismatch: '%s' != '%s' in %s", name, dirName, path)
+			}
+
+			skillName := name
+			if skillName == "" {
+				skillName = dirName
+			}
+			skills = append(skills, SkillInfo{
+				Name:        skillName,
+				Description: description,
+				Path:        dirName,
+			})
 		}
-	}
 
-	// If we found frontmatter, return content after it
-	if contentStart > 0 && contentStart < len(lines) {
-		return strings.Join(lines[contentStart:], "\n")
-	}
+		sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
 
-	// No frontmatter found, return original content
-	return string(content)
+		if verbose {
+			log.Printf("[MCP] list_skills completed: found %d skills\n", len(skills))
+		}
+
+		var markdown strings.Builder
+		markdown.WriteString("# Available fp-go Skills\n\n")
+		markdown.WriteString("| Skill | Description |\n")
+		markdown.WriteString("|-------|-------------|\n")
+		for _, skill := range skills {
+			desc := skill.Description
+			if desc == "" {
+				desc = "_No description available_"
+			}
+			fmt.Fprintf(&markdown, "| **%s** | %s |\n", skill.Name, desc)
+		}
+		fmt.Fprintf(&markdown, "\n_Total: %d skill(s)_\n", len(skills))
+
+		return textResult(markdown.String()), ListSkillsOutput{Skills: skills}, nil
+	}
 }
 
 // handleUseSkill handles the use_skill tool call
-func handleUseSkill(ctx context.Context, req *mcp.CallToolRequest, args UseSkillArgs) (*mcp.CallToolResult, UseSkillOutput, error) {
-	if verboseLogging {
-		log.Printf("[MCP] Executing tool: use_skill (name=%s)\n", args.Name)
-	}
-
-	if args.Name == "" {
-		if verboseLogging {
-			log.Println("[MCP] use_skill error: skill name is required")
+func handleUseSkill(verbose bool) func(ctx context.Context, req *mcp.CallToolRequest, args UseSkillArgs) (*mcp.CallToolResult, UseSkillOutput, error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest, args UseSkillArgs) (*mcp.CallToolResult, UseSkillOutput, error) {
+		if verbose {
+			log.Printf("[MCP] Executing tool: use_skill (name=%s)\n", args.Name)
 		}
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: "Error: skill name is required",
-				},
-			},
-			IsError: true,
-		}, UseSkillOutput{}, fmt.Errorf("skill name is required")
-	}
 
-	// Look up the skill in the Skills map
-	// Use forward slashes to match the embedded map keys (cross-platform)
-	skillPath := args.Name + "/SKILL.md"
-	content, found := data.Skills[skillPath]
-	if !found {
-		if verboseLogging {
-			log.Printf("[MCP] use_skill error: skill '%s' not found\n", args.Name)
+		if args.Name == "" {
+			if verbose {
+				log.Println("[MCP] use_skill error: skill name is required")
+			}
+			return errorResult("Error: skill name is required"), UseSkillOutput{}, fmt.Errorf("skill name is required")
 		}
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Error: skill '%s' not found", args.Name),
-				},
-			},
-			IsError: true,
-		}, UseSkillOutput{}, fmt.Errorf("skill '%s' not found", args.Name)
+
+		// Use forward slashes to match the embedded map keys (cross-platform)
+		skillPath := args.Name + "/SKILL.md"
+		content, found := data.Skills[skillPath]
+		if !found {
+			if verbose {
+				log.Printf("[MCP] use_skill error: skill '%s' not found\n", args.Name)
+			}
+			return errorResult(fmt.Sprintf("Error: skill '%s' not found", args.Name)),
+				UseSkillOutput{},
+				fmt.Errorf("skill '%s' not found", args.Name)
+		}
+
+		_, description, body := parseFrontmatter(content)
+
+		output := UseSkillOutput{
+			Name:        args.Name,
+			Description: description,
+			Content:     body,
+		}
+
+		if verbose {
+			log.Printf("[MCP] use_skill completed: retrieved skill '%s'\n", args.Name)
+		}
+
+		var markdown strings.Builder
+		fmt.Fprintf(&markdown, "# Skill: %s\n\n", args.Name)
+		if description != "" {
+			fmt.Fprintf(&markdown, "**Description:** %s\n\n", description)
+			markdown.WriteString("---\n\n")
+		}
+		markdown.WriteString(body)
+
+		return textResult(markdown.String()), output, nil
 	}
-
-	// Parse metadata from YAML frontmatter
-	_, description := parseSkillMetadata(content)
-
-	// Strip frontmatter from content
-	contentWithoutHeader := stripFrontmatter(content)
-
-	output := UseSkillOutput{
-		Name:        args.Name,
-		Description: description,
-		Content:     contentWithoutHeader,
-	}
-
-	if verboseLogging {
-		log.Printf("[MCP] use_skill completed: retrieved skill '%s'\n", args.Name)
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: fmt.Sprintf("Retrieved skill: %s", args.Name),
-			},
-		},
-	}, output, nil
 }
 
 // handleSearchExamples handles the search_examples tool call
-func handleSearchExamples(db *sql.DB) func(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
-
+func handleSearchExamples(db *sql.DB, verbose bool) func(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
 	return func(ctx context.Context, req *mcp.CallToolRequest, args SearchExamplesArgs) (*mcp.CallToolResult, SearchExamplesOutput, error) {
-
-		if verboseLogging {
+		if verbose {
 			log.Printf("[MCP] Executing tool: search_examples (query=%s, package_filter=%s)\n", args.Query, args.PackageFilter)
 		}
 
 		if args.Query == "" {
-			if verboseLogging {
+			if verbose {
 				log.Println("[MCP] search_examples error: query is required")
 			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Error: search query is required",
-					},
-				},
-				IsError: true,
-			}, SearchExamplesOutput{}, fmt.Errorf("search query is required")
+			return errorResult("Error: search query is required"), SearchExamplesOutput{}, fmt.Errorf("search query is required")
 		}
 
-		sqlQuery := `
-		SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
-		FROM examples e
-		JOIN examples_fts f ON e.rowid = f.rowid
-		WHERE examples_fts MATCH ?
-		ORDER BY rank
-		LIMIT 10
-	`
-
-		var rows *sql.Rows
-		var err error
-		if args.PackageFilter != "" {
-			sqlQuery = `
+		const baseQuery = `
+			SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
+			FROM examples e
+			JOIN examples_fts f ON e.rowid = f.rowid
+			WHERE examples_fts MATCH ?
+			ORDER BY rank
+			LIMIT 10
+		`
+		const filteredQuery = `
 			SELECT e.id, e.package, e.symbol, e.name, e.code, e.doc_comment, e.output, e.imports, e.file
 			FROM examples e
 			JOIN examples_fts f ON e.rowid = f.rowid
@@ -456,151 +437,117 @@ func handleSearchExamples(db *sql.DB) func(ctx context.Context, req *mcp.CallToo
 			ORDER BY rank
 			LIMIT 10
 		`
-			rows, err = db.Query(sqlQuery, args.Query, args.PackageFilter)
+
+		var rows *sql.Rows
+		var err error
+		if args.PackageFilter != "" {
+			rows, err = db.Query(filteredQuery, args.Query, args.PackageFilter)
 		} else {
-			rows, err = db.Query(sqlQuery, args.Query)
+			rows, err = db.Query(baseQuery, args.Query)
 		}
 		if err != nil {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Error: search failed: %v", err),
-					},
-				},
-				IsError: true,
-			}, SearchExamplesOutput{}, fmt.Errorf("search failed: %w", err)
+			return errorResult(fmt.Sprintf("Error: search failed: %v", err)),
+				SearchExamplesOutput{},
+				fmt.Errorf("search failed: %w", err)
 		}
 		defer rows.Close()
 
-		var examples []GoExample
+		examples := make([]GoExample, 0)
 		for rows.Next() {
 			var ex GoExample
 			if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name, &ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{
-						&mcp.TextContent{
-							Text: fmt.Sprintf("Error: failed to scan row: %v", err),
-						},
-					},
-					IsError: true,
-				}, SearchExamplesOutput{}, fmt.Errorf("failed to scan row: %w", err)
+				return errorResult(fmt.Sprintf("Error: failed to scan row: %v", err)),
+					SearchExamplesOutput{},
+					fmt.Errorf("failed to scan row: %w", err)
 			}
 			examples = append(examples, ex)
 		}
-
-		output := SearchExamplesOutput{
-			Examples: examples,
-			Count:    len(examples),
+		if err := rows.Err(); err != nil {
+			return errorResult(fmt.Sprintf("Error: row iteration failed: %v", err)),
+				SearchExamplesOutput{},
+				fmt.Errorf("row iteration failed: %w", err)
 		}
 
-		resultText := fmt.Sprintf("Found %d example(s) matching query: %s", len(examples), args.Query)
-		if args.PackageFilter != "" {
-			resultText += fmt.Sprintf(" (filtered by package: %s)", args.PackageFilter)
-		}
-
-		if verboseLogging {
+		if verbose {
 			log.Printf("[MCP] search_examples completed: found %d examples\n", len(examples))
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: resultText,
-				},
-			},
-		}, output, nil
+		var markdown strings.Builder
+		fmt.Fprintf(&markdown, "# Search Results: %s\n\n", args.Query)
+		if args.PackageFilter != "" {
+			fmt.Fprintf(&markdown, "**Package Filter:** `%s`\n\n", args.PackageFilter)
+		}
+		fmt.Fprintf(&markdown, "**Found:** %d example(s)\n\n", len(examples))
+		if len(examples) > 0 {
+			markdown.WriteString("---\n\n")
+			markdown.WriteString(renderExamplesToMarkdown(examples, false))
+		}
+
+		return textResult(markdown.String()), SearchExamplesOutput{Examples: examples, Count: len(examples)}, nil
 	}
 }
 
 // handleGetExample handles the get_example tool call
-func handleGetExample(db *sql.DB) func(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
-
+func handleGetExample(db *sql.DB, verbose bool) func(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
 	return func(ctx context.Context, req *mcp.CallToolRequest, args GetExampleArgs) (*mcp.CallToolResult, GetExampleOutput, error) {
-
-		if verboseLogging {
+		if verbose {
 			log.Printf("[MCP] Executing tool: get_example (symbol=%s)\n", args.Symbol)
 		}
 
 		if args.Symbol == "" {
-			if verboseLogging {
+			if verbose {
 				log.Println("[MCP] get_example error: symbol is required")
 			}
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: "Error: symbol name is required",
-					},
-				},
-				IsError: true,
-			}, GetExampleOutput{}, fmt.Errorf("symbol name is required")
+			return errorResult("Error: symbol name is required"), GetExampleOutput{}, fmt.Errorf("symbol name is required")
 		}
 
-		query := `
-		SELECT id, package, symbol, name, code, doc_comment, output, imports, file
-		FROM examples
-		WHERE symbol = ? OR name = ? OR symbol LIKE ? OR name LIKE ?
-		ORDER BY name
-	`
-
-		// Add wildcards for pattern matching
+		const query = `
+			SELECT id, package, symbol, name, code, doc_comment, output, imports, file
+			FROM examples
+			WHERE symbol = ? OR name = ? OR symbol LIKE ? OR name LIKE ?
+			ORDER BY name
+		`
 		pattern := "%" + args.Symbol + "%"
 		rows, err := db.Query(query, args.Symbol, args.Symbol, pattern, pattern)
 		if err != nil {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("Error: query failed: %v", err),
-					},
-				},
-				IsError: true,
-			}, GetExampleOutput{}, fmt.Errorf("query failed: %w", err)
+			return errorResult(fmt.Sprintf("Error: query failed: %v", err)),
+				GetExampleOutput{},
+				fmt.Errorf("query failed: %w", err)
 		}
 		defer rows.Close()
 
-		var examples []GoExample
+		examples := make([]GoExample, 0)
 		for rows.Next() {
 			var ex GoExample
 			if err := rows.Scan(&ex.ID, &ex.Package, &ex.Symbol, &ex.Name,
 				&ex.Code, &ex.DocComment, &ex.Output, &ex.Imports, &ex.File); err != nil {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{
-						&mcp.TextContent{
-							Text: fmt.Sprintf("Error: failed to scan row: %v", err),
-						},
-					},
-					IsError: true,
-				}, GetExampleOutput{}, fmt.Errorf("failed to scan row: %w", err)
+				return errorResult(fmt.Sprintf("Error: failed to scan row: %v", err)),
+					GetExampleOutput{},
+					fmt.Errorf("failed to scan row: %w", err)
 			}
 			examples = append(examples, ex)
 		}
+		if err := rows.Err(); err != nil {
+			return errorResult(fmt.Sprintf("Error: row iteration failed: %v", err)),
+				GetExampleOutput{},
+				fmt.Errorf("row iteration failed: %w", err)
+		}
 
 		if len(examples) == 0 {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("No examples found for symbol: %s", args.Symbol),
-					},
-				},
-			}, GetExampleOutput{Examples: []GoExample{}, Count: 0}, nil
+			return textResult(fmt.Sprintf("No examples found for symbol: %s", args.Symbol)),
+				GetExampleOutput{Examples: []GoExample{}, Count: 0}, nil
 		}
 
-		output := GetExampleOutput{
-			Examples: examples,
-			Count:    len(examples),
-		}
-
-		resultText := fmt.Sprintf("Retrieved %d example(s) for symbol: %s", len(examples), args.Symbol)
-
-		if verboseLogging {
+		if verbose {
 			log.Printf("[MCP] get_example completed: retrieved %d examples\n", len(examples))
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: resultText,
-				},
-			},
-		}, output, nil
+		var markdown strings.Builder
+		fmt.Fprintf(&markdown, "# Example: %s\n\n", args.Symbol)
+		fmt.Fprintf(&markdown, "**Found:** %d example(s)\n\n", len(examples))
+		markdown.WriteString("---\n\n")
+		markdown.WriteString(renderExamplesToMarkdown(examples, true))
+
+		return textResult(markdown.String()), GetExampleOutput{Examples: examples, Count: len(examples)}, nil
 	}
 }

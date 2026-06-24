@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-func TestParseSkillMetadata(t *testing.T) {
+func TestParseFrontmatter(t *testing.T) {
 	tests := []struct {
 		name         string
 		content      string
@@ -62,11 +62,41 @@ description: Test description
 			expectedName: "",
 			expectedDesc: "Test description",
 		},
+		{
+			name: "multiline description with quotes",
+			content: `---
+name: complex-skill
+description: "This is a description with special characters: colons, quotes, and newlines"
+---
+# Content`,
+			expectedName: "complex-skill",
+			expectedDesc: "This is a description with special characters: colons, quotes, and newlines",
+		},
+		{
+			name: "description with yaml special chars",
+			content: `---
+name: special-chars
+description: "Use this skill when: working with special characters & symbols"
+---
+# Content`,
+			expectedName: "special-chars",
+			expectedDesc: "Use this skill when: working with special characters & symbols",
+		},
+		{
+			name: "malformed yaml",
+			content: `---
+name: test
+description: [invalid yaml structure
+---
+# Content`,
+			expectedName: "",
+			expectedDesc: "",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			name, desc := parseSkillMetadata([]byte(tt.content))
+			name, desc, _ := parseFrontmatter([]byte(tt.content))
 			if name != tt.expectedName {
 				t.Errorf("parseSkillMetadata() name = %v, want %v", name, tt.expectedName)
 			}
@@ -123,7 +153,7 @@ func TestHandleUseSkill(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			args := UseSkillArgs{Name: tt.skillName}
-			result, output, err := handleUseSkill(nil, nil, args)
+			result, output, err := handleUseSkill(false)(nil, nil, args)
 
 			if tt.shouldError {
 				if err == nil {
