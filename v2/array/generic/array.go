@@ -223,7 +223,18 @@ func ChainOptionK[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[GB]) func(GA)
 }
 
 func Flatten[GAA ~[]GA, GA ~[]A, A any](mma GAA) GA {
-	return MonadChain(mma, F.Identity[GA])
+	// The flattened length is the sum of the inner slice lengths, so pre-size the
+	// result in one allocation instead of growing it via append (the previous
+	// MonadChain(Identity) formulation reallocated as it grew).
+	total := 0
+	for _, m := range mma {
+		total += len(m)
+	}
+	result := make(GA, 0, total)
+	for _, m := range mma {
+		result = append(result, m...)
+	}
+	return result
 }
 
 func FilterMap[GA ~[]A, GB ~[]B, A, B any](f func(A) O.Option[B]) func(GA) GB {
@@ -264,7 +275,17 @@ func Chain[AS ~[]A, BS ~[]B, A, B any](f func(A) BS) func(AS) BS {
 }
 
 func MonadAp[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fab ABS, fa AS) BS {
-	return MonadChain(fab, F.Bind1st(MonadMap[AS, BS, A, B], fa))
+	// The applicative result is the cartesian product f(a) for each f in fab and
+	// each a in fa, so its length is known up front. Pre-sizing avoids the
+	// per-function intermediate slice (one MonadMap allocation each) and the
+	// append-growth reallocations of the previous MonadChain-based formulation.
+	result := make(BS, 0, len(fab)*len(fa))
+	for _, f := range fab {
+		for _, a := range fa {
+			result = append(result, f(a))
+		}
+	}
+	return result
 }
 
 func Ap[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fa AS) func(ABS) BS {
