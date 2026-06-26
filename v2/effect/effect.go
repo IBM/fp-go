@@ -1217,3 +1217,28 @@ func ChainFirstLeftThunkK[C, A, B any](f thunk.Kleisli[error, B]) Operator[C, A,
 func TapLeftThunkK[C, A, B any](f thunk.Kleisli[error, B]) Operator[C, A, A] {
 	return ChainFirstLeftThunkK[C, A](f)
 }
+
+// FromReader lifts a Reader into an Effect, wrapping the Reader's result as a
+// success value. Unlike Asks, which emphasises the "ask the environment" pattern,
+// FromReader is the canonical lifting function used when you already have a Reader
+// and want to treat it as an Effect without additional transformation.
+//
+// Type Parameters:
+//   - R: The outer context (environment) type consumed by the Reader
+//   - A: The type of the value produced by the Reader
+//
+// Parameters:
+//   - ma: A Reader[R, A] that reads from environment R and returns A
+//
+// Returns:
+//   - Effect[R, A]: An effect that always succeeds with the value produced by ma
+//
+// See Also:
+//   - Asks: Alternative constructor that emphasises environment projection
+//   - FromResult: Lifts a pre-computed Result into an Effect
+//   - FromIO: Lifts a context-independent IO computation into an Effect
+//
+//go:inline
+func FromReader[R, A any](ma Reader[R, A]) Effect[R, A] {
+	return readerreaderioresult.FromReader(ma)
+}

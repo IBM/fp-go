@@ -3237,3 +3237,35 @@ func ExampleReadIO_withChain() {
 	fmt.Println(value)
 	// Output: Result: 42
 }
+
+// ExampleFromReader demonstrates basic usage of FromReader.
+func ExampleFromReader() {
+	type Config struct {
+		Multiplier int
+	}
+
+	r := func(cfg Config) int { return cfg.Multiplier * 7 }
+	eff := FromReader[Config](r)
+
+	res := eff(Config{Multiplier: 6})(context.Background())()
+	value, _ := result.Unwrap(res)
+	fmt.Println(value)
+	// Output: 42
+}
+
+// ExampleFromReader_composition demonstrates composing FromReader with Map.
+func ExampleFromReader_composition() {
+	type Config struct {
+		Prefix string
+	}
+
+	eff := F.Pipe1(
+		FromReader[Config](func(cfg Config) string { return cfg.Prefix }),
+		Map[Config](func(s string) string { return "[" + s + "]" }),
+	)
+
+	res := eff(Config{Prefix: "LOG"})(context.Background())()
+	value, _ := result.Unwrap(res)
+	fmt.Println(value)
+	// Output: [LOG]
+}
