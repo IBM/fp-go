@@ -1059,7 +1059,7 @@ func TestChainFirstLeft_SuccessCase(t *testing.T) {
 	sideEffect := 0
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		ChainFirstLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+		ChainFirstLeft[int](func(e error) ReaderReaderIOResult[AppConfig, string] {
 			sideEffect = 1
 			return Of[AppConfig]("should not execute")
 		}),
@@ -1074,7 +1074,7 @@ func TestChainFirstLeft_FailureCase(t *testing.T) {
 	sideEffect := ""
 	computation := F.Pipe1(
 		Left[AppConfig, int](err),
-		ChainFirstLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+		ChainFirstLeft[int](func(e error) ReaderReaderIOResult[AppConfig, string] {
 			sideEffect = e.Error()
 			return Of[AppConfig]("logged")
 		}),
@@ -1117,7 +1117,7 @@ func TestTapLeft_SuccessCase(t *testing.T) {
 	sideEffect := 0
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		TapLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+		TapLeft[int](func(e error) ReaderReaderIOResult[AppConfig, string] {
 			sideEffect = 1
 			return Of[AppConfig]("should not execute")
 		}),
@@ -1132,7 +1132,7 @@ func TestTapLeft_FailureCase(t *testing.T) {
 	sideEffect := ""
 	computation := F.Pipe1(
 		Left[AppConfig, int](err),
-		TapLeft[int, AppConfig, string](func(e error) ReaderReaderIOResult[AppConfig, string] {
+		TapLeft[int](func(e error) ReaderReaderIOResult[AppConfig, string] {
 			sideEffect = e.Error()
 			return Of[AppConfig]("logged")
 		}),
@@ -1175,7 +1175,7 @@ func TestChainFirstLeftIOK_SuccessCase(t *testing.T) {
 	sideEffect := 0
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		ChainFirstLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+		ChainFirstLeftIOK[int, AppConfig](func(e error) io.IO[string] {
 			sideEffect = 1
 			return func() string { return "should not execute" }
 		}),
@@ -1190,7 +1190,7 @@ func TestChainFirstLeftIOK_FailureCase(t *testing.T) {
 	sideEffect := ""
 	computation := F.Pipe1(
 		Left[AppConfig, int](err),
-		ChainFirstLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+		ChainFirstLeftIOK[int, AppConfig](func(e error) io.IO[string] {
 			return func() string {
 				sideEffect = e.Error()
 				return "logged"
@@ -1237,7 +1237,7 @@ func TestTapLeftIOK_SuccessCase(t *testing.T) {
 	sideEffect := 0
 	computation := F.Pipe1(
 		Of[AppConfig](42),
-		TapLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+		TapLeftIOK[int, AppConfig](func(e error) io.IO[string] {
 			sideEffect = 1
 			return func() string { return "should not execute" }
 		}),
@@ -1252,7 +1252,7 @@ func TestTapLeftIOK_FailureCase(t *testing.T) {
 	sideEffect := ""
 	computation := F.Pipe1(
 		Left[AppConfig, int](err),
-		TapLeftIOK[int, AppConfig, string](func(e error) io.IO[string] {
+		TapLeftIOK[int, AppConfig](func(e error) io.IO[string] {
 			return func() string {
 				sideEffect = e.Error()
 				return "logged"

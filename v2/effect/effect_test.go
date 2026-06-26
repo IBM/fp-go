@@ -1688,7 +1688,7 @@ func TestMonadChainLeft_Success(t *testing.T) {
 	})
 
 	t.Run("success with context-dependent value", func(t *testing.T) {
-		eff := Asks[TestConfig](func(cfg TestConfig) int {
+		eff := Asks(func(cfg TestConfig) int {
 			return cfg.Multiplier * 10
 		})
 		recover := func(err error) Effect[TestConfig, int] {
@@ -1736,7 +1736,7 @@ func TestMonadChainLeft_Failure(t *testing.T) {
 		originalErr := fmt.Errorf("database error")
 		eff := Fail[TestConfig, string](originalErr)
 		recover := func(err error) Effect[TestConfig, string] {
-			return Asks[TestConfig](func(cfg TestConfig) string {
+			return Asks(func(cfg TestConfig) string {
 				return fmt.Sprintf("fallback to: %s", cfg.DatabaseURL)
 			})
 		}
@@ -1840,8 +1840,8 @@ func TestMonadChainLeft_Integration(t *testing.T) {
 
 		pipeline := F.Pipe1(
 			connectDB("primary.db"),
-			ChainLeft[AppConfig](func(err error) Effect[AppConfig, string] {
-				return Asks[AppConfig](func(cfg AppConfig) string {
+			ChainLeft(func(err error) Effect[AppConfig, string] {
+				return Asks(func(cfg AppConfig) string {
 					return fmt.Sprintf("connected to %s", cfg.FallbackDB)
 				})
 			}),
@@ -1861,7 +1861,7 @@ func TestChainLeft_Success(t *testing.T) {
 
 		result := F.Pipe1(
 			Of[TestConfig](42),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -1877,7 +1877,7 @@ func TestChainLeft_Success(t *testing.T) {
 		result := F.Pipe3(
 			Of[TestConfig](10),
 			Map[TestConfig](N.Mul(2)),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 			Map[TestConfig](N.Add(1)),
 		)
 		value, err := runEffect(result, testConfig)
@@ -1896,7 +1896,7 @@ func TestChainLeft_Failure(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, int](originalErr),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -1912,7 +1912,7 @@ func TestChainLeft_Failure(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, string](originalErr),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -1923,14 +1923,14 @@ func TestChainLeft_Failure(t *testing.T) {
 	t.Run("recovery accesses context", func(t *testing.T) {
 		originalErr := fmt.Errorf("config error")
 		recover := func(err error) Effect[TestConfig, string] {
-			return Asks[TestConfig](func(cfg TestConfig) string {
+			return Asks(func(cfg TestConfig) string {
 				return cfg.Prefix
 			})
 		}
 
 		result := F.Pipe1(
 			Fail[TestConfig, string](originalErr),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -1947,7 +1947,7 @@ func TestChainLeft_Failure(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, int](originalErr),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		_, err := runEffect(result, testConfig)
 
@@ -1970,8 +1970,8 @@ func TestChainLeft_EdgeCases(t *testing.T) {
 
 		result := F.Pipe2(
 			Fail[TestConfig, int](err1),
-			ChainLeft[TestConfig](recover1),
-			ChainLeft[TestConfig](recover2),
+			ChainLeft(recover1),
+			ChainLeft(recover2),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -1986,7 +1986,7 @@ func TestChainLeft_EdgeCases(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, string](fmt.Errorf("error")),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2001,7 +2001,7 @@ func TestChainLeft_EdgeCases(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, []int](fmt.Errorf("error")),
-			ChainLeft[TestConfig](recover),
+			ChainLeft(recover),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2033,7 +2033,7 @@ func TestChainLeft_Integration(t *testing.T) {
 			attempt := i
 			pipeline = F.Pipe1(
 				pipeline,
-				ChainLeft[RetryConfig](func(err error) Effect[RetryConfig, string] {
+				ChainLeft(func(err error) Effect[RetryConfig, string] {
 					return attemptOperation(attempt)
 				}),
 			)
@@ -2062,10 +2062,10 @@ func TestChainLeft_Integration(t *testing.T) {
 
 		pipeline := F.Pipe2(
 			callService("primary"),
-			ChainLeft[ServiceConfig](func(err error) Effect[ServiceConfig, string] {
+			ChainLeft(func(err error) Effect[ServiceConfig, string] {
 				return callService("secondary")
 			}),
-			ChainLeft[ServiceConfig](func(err error) Effect[ServiceConfig, string] {
+			ChainLeft(func(err error) Effect[ServiceConfig, string] {
 				return callService("tertiary")
 			}),
 		)
@@ -2084,10 +2084,10 @@ func TestChainLeft_Integration(t *testing.T) {
 
 		pipeline := F.Pipe2(
 			Fail[ErrorConfig, int](fmt.Errorf("database error")),
-			ChainLeft[ErrorConfig](func(err error) Effect[ErrorConfig, int] {
+			ChainLeft(func(err error) Effect[ErrorConfig, int] {
 				return Fail[ErrorConfig, int](fmt.Errorf("wrapped: %w", err))
 			}),
-			ChainLeft[ErrorConfig](func(err error) Effect[ErrorConfig, int] {
+			ChainLeft(func(err error) Effect[ErrorConfig, int] {
 				return Of[ErrorConfig](0)
 			}),
 		)
@@ -2107,8 +2107,8 @@ func TestChainLeft_Integration(t *testing.T) {
 
 		pipeline := F.Pipe3(
 			Of[TestConfig]("invalid"),
-			Chain[TestConfig](parseAndDouble),
-			ChainLeft[TestConfig](func(err error) Effect[TestConfig, int] {
+			Chain(parseAndDouble),
+			ChainLeft(func(err error) Effect[TestConfig, int] {
 				return Of[TestConfig](10)
 			}),
 			Map[TestConfig](N.Mul(2)),
@@ -2139,7 +2139,7 @@ func TestMonadAlt_Success(t *testing.T) {
 	})
 
 	t.Run("first succeeds with context-dependent value", func(t *testing.T) {
-		first := Asks[TestConfig](func(cfg TestConfig) int {
+		first := Asks(func(cfg TestConfig) int {
 			return cfg.Multiplier * 10
 		})
 		second := func() Effect[TestConfig, int] {
@@ -2173,7 +2173,7 @@ func TestMonadAlt_Failure(t *testing.T) {
 		firstErr := fmt.Errorf("primary failed")
 		first := Fail[TestConfig, string](firstErr)
 		second := func() Effect[TestConfig, string] {
-			return Asks[TestConfig](func(cfg TestConfig) string {
+			return Asks(func(cfg TestConfig) string {
 				return cfg.Prefix + "-fallback"
 			})
 		}
@@ -2290,7 +2290,7 @@ func TestMonadAlt_Integration(t *testing.T) {
 
 		result := F.Pipe1(
 			MonadAlt(first, second),
-			Chain[TestConfig](func(n int) Effect[TestConfig, int] {
+			Chain(func(n int) Effect[TestConfig, int] {
 				return Of[TestConfig](n * 4)
 			}),
 		)
@@ -2344,7 +2344,7 @@ func TestAlt_Success(t *testing.T) {
 
 		result := F.Pipe1(
 			Of[TestConfig](42),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2361,7 +2361,7 @@ func TestAlt_Success(t *testing.T) {
 		result := F.Pipe2(
 			Of[TestConfig](10),
 			Map[TestConfig](N.Mul(2)),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2379,7 +2379,7 @@ func TestAlt_Failure(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, int](originalErr),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2390,14 +2390,14 @@ func TestAlt_Failure(t *testing.T) {
 	t.Run("first fails, second uses context", func(t *testing.T) {
 		originalErr := fmt.Errorf("primary error")
 		second := func() Effect[TestConfig, string] {
-			return Asks[TestConfig](func(cfg TestConfig) string {
+			return Asks(func(cfg TestConfig) string {
 				return cfg.DatabaseURL
 			})
 		}
 
 		result := F.Pipe1(
 			Fail[TestConfig, string](originalErr),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2414,7 +2414,7 @@ func TestAlt_Failure(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, int](firstErr),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		_, err := runEffect(result, testConfig)
 
@@ -2432,7 +2432,7 @@ func TestAlt_Failure(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, int](firstErr),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2456,8 +2456,8 @@ func TestAlt_EdgeCases(t *testing.T) {
 
 		result := F.Pipe2(
 			Fail[TestConfig, int](err1),
-			Alt[TestConfig](second),
-			Alt[TestConfig](third),
+			Alt(second),
+			Alt(third),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2472,7 +2472,7 @@ func TestAlt_EdgeCases(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, int](fmt.Errorf("error")),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2487,7 +2487,7 @@ func TestAlt_EdgeCases(t *testing.T) {
 
 		result := F.Pipe1(
 			Fail[TestConfig, []int](fmt.Errorf("error")),
-			Alt[TestConfig](second),
+			Alt(second),
 		)
 		value, err := runEffect(result, testConfig)
 
@@ -2515,8 +2515,8 @@ func TestAlt_Integration(t *testing.T) {
 
 		pipeline := F.Pipe2(
 			attemptOperation(),
-			Alt[RetryConfig](attemptOperation),
-			Alt[RetryConfig](attemptOperation),
+			Alt(attemptOperation),
+			Alt(attemptOperation),
 		)
 
 		value, err := runEffect(pipeline, cfg)
@@ -2542,10 +2542,10 @@ func TestAlt_Integration(t *testing.T) {
 
 		pipeline := F.Pipe2(
 			callEndpoint("primary"),
-			Alt[ServiceConfig](func() Effect[ServiceConfig, string] {
+			Alt(func() Effect[ServiceConfig, string] {
 				return callEndpoint("secondary")
 			}),
-			Alt[ServiceConfig](func() Effect[ServiceConfig, string] {
+			Alt(func() Effect[ServiceConfig, string] {
 				return callEndpoint("tertiary")
 			}),
 		)
@@ -2565,8 +2565,8 @@ func TestAlt_Integration(t *testing.T) {
 
 		pipeline := F.Pipe3(
 			Of[TestConfig]("invalid"),
-			Chain[TestConfig](parseAndDouble),
-			Alt[TestConfig](func() Effect[TestConfig, int] {
+			Chain(parseAndDouble),
+			Alt(func() Effect[TestConfig, int] {
 				return Of[TestConfig](10)
 			}),
 			Map[TestConfig](N.Mul(2)),
@@ -2583,7 +2583,7 @@ func TestAlt_Integration(t *testing.T) {
 		// Using Alt - cannot inspect error
 		altResult := F.Pipe1(
 			Fail[TestConfig, string](originalErr),
-			Alt[TestConfig](func() Effect[TestConfig, string] {
+			Alt(func() Effect[TestConfig, string] {
 				return Of[TestConfig]("fallback")
 			}),
 		)
@@ -2591,7 +2591,7 @@ func TestAlt_Integration(t *testing.T) {
 		// Using ChainLeft - can inspect error
 		chainLeftResult := F.Pipe1(
 			Fail[TestConfig, string](originalErr),
-			ChainLeft[TestConfig](func(err error) Effect[TestConfig, string] {
+			ChainLeft(func(err error) Effect[TestConfig, string] {
 				return Of[TestConfig](fmt.Sprintf("recovered from: %s", err.Error()))
 			}),
 		)
@@ -2827,14 +2827,14 @@ func TestChainFirstLeftThunkK_Integration(t *testing.T) {
 
 		pipeline := F.Pipe3(
 			Of[TestConfig](10),
-			Chain[TestConfig](func(n int) Effect[TestConfig, int] {
+			Chain(func(n int) Effect[TestConfig, int] {
 				if n < 20 {
 					return Fail[TestConfig, int](fmt.Errorf("value too small: %d", n))
 				}
 				return Of[TestConfig](n)
 			}),
 			ChainFirstLeftThunkK[TestConfig, int](logError),
-			Alt[TestConfig](func() Effect[TestConfig, int] {
+			Alt(func() Effect[TestConfig, int] {
 				return Of[TestConfig](100)
 			}),
 		)
@@ -2861,7 +2861,7 @@ func TestChainFirstLeftThunkK_Integration(t *testing.T) {
 		pipeline := F.Pipe4(
 			Of[TestConfig](5),
 			Map[TestConfig](N.Mul(2)),
-			Chain[TestConfig](func(n int) Effect[TestConfig, int] {
+			Chain(func(n int) Effect[TestConfig, int] {
 				if n < 20 {
 					return Fail[TestConfig, int](fmt.Errorf("too small"))
 				}
@@ -3031,7 +3031,7 @@ func TestTapLeftThunkK_EdgeCases(t *testing.T) {
 		pipeline := F.Pipe2(
 			Fail[TestConfig, int](originalErr),
 			TapLeftThunkK[TestConfig, int](logError),
-			Alt[TestConfig](func() Effect[TestConfig, int] {
+			Alt(func() Effect[TestConfig, int] {
 				return Of[TestConfig](999)
 			}),
 		)
@@ -3085,7 +3085,7 @@ func TestTapLeftThunkK_Integration(t *testing.T) {
 		pipeline := F.Pipe3(
 			fetchData(-1),
 			TapLeftThunkK[TestConfig, string](logError("fetchData")),
-			Chain[TestConfig](validateData),
+			Chain(validateData),
 			TapLeftThunkK[TestConfig, string](logError("validateData")),
 		)
 
@@ -3245,7 +3245,7 @@ func ExampleFromReader() {
 	}
 
 	r := func(cfg Config) int { return cfg.Multiplier * 7 }
-	eff := FromReader[Config](r)
+	eff := FromReader(r)
 
 	res := eff(Config{Multiplier: 6})(context.Background())()
 	value, _ := result.Unwrap(res)
@@ -3260,7 +3260,7 @@ func ExampleFromReader_composition() {
 	}
 
 	eff := F.Pipe1(
-		FromReader[Config](func(cfg Config) string { return cfg.Prefix }),
+		FromReader(func(cfg Config) string { return cfg.Prefix }),
 		Map[Config](func(s string) string { return "[" + s + "]" }),
 	)
 

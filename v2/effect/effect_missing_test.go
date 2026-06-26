@@ -215,7 +215,7 @@ func TestChainResultK(t *testing.T) {
 func TestFromReader_Success(t *testing.T) {
 	t.Run("lifts a Reader that returns a constant", func(t *testing.T) {
 		r := func(_ TestContext) int { return 42 }
-		eff := FromReader[TestContext](r)
+		eff := FromReader(r)
 
 		value, err := runEffect(eff, TestContext{Value: "ignored"})
 
@@ -225,7 +225,7 @@ func TestFromReader_Success(t *testing.T) {
 
 	t.Run("lifts a Reader that reads from the environment", func(t *testing.T) {
 		r := func(ctx TestContext) string { return ctx.Value }
-		eff := FromReader[TestContext](r)
+		eff := FromReader(r)
 
 		value, err := runEffect(eff, TestContext{Value: "hello"})
 
@@ -235,7 +235,7 @@ func TestFromReader_Success(t *testing.T) {
 
 	t.Run("lifts a Reader that computes a derived value", func(t *testing.T) {
 		r := func(cfg TestConfig) int { return cfg.Multiplier * 10 }
-		eff := FromReader[TestConfig](r)
+		eff := FromReader(r)
 
 		value, err := runEffect(eff, testConfig)
 
@@ -247,7 +247,7 @@ func TestFromReader_Success(t *testing.T) {
 func TestFromReader_EdgeCases(t *testing.T) {
 	t.Run("handles zero value environment", func(t *testing.T) {
 		r := func(ctx TestContext) string { return ctx.Value }
-		eff := FromReader[TestContext](r)
+		eff := FromReader(r)
 
 		value, err := runEffect(eff, TestContext{})
 
@@ -257,7 +257,7 @@ func TestFromReader_EdgeCases(t *testing.T) {
 
 	t.Run("handles boolean result", func(t *testing.T) {
 		r := func(cfg TestConfig) bool { return cfg.Multiplier > 0 }
-		eff := FromReader[TestConfig](r)
+		eff := FromReader(r)
 
 		value, err := runEffect(eff, testConfig)
 
@@ -270,7 +270,7 @@ func TestFromReader_Integration(t *testing.T) {
 	t.Run("composes with Map", func(t *testing.T) {
 		r := func(cfg TestConfig) int { return cfg.Multiplier }
 		eff := Map[TestConfig](func(n int) string { return strconv.Itoa(n) })(
-			FromReader[TestConfig](r),
+			FromReader(r),
 		)
 
 		value, err := runEffect(eff, testConfig)
@@ -283,7 +283,7 @@ func TestFromReader_Integration(t *testing.T) {
 		r := func(cfg TestConfig) int { return cfg.Multiplier }
 		eff := Chain(func(n int) Effect[TestConfig, int] {
 			return Of[TestConfig](n * 2)
-		})(FromReader[TestConfig](r))
+		})(FromReader(r))
 
 		value, err := runEffect(eff, testConfig)
 
@@ -294,8 +294,8 @@ func TestFromReader_Integration(t *testing.T) {
 	t.Run("produces same result as Asks for identical Reader", func(t *testing.T) {
 		r := func(cfg TestConfig) string { return cfg.Prefix }
 
-		effFromReader := FromReader[TestConfig](r)
-		effAsks := Asks[TestConfig](r)
+		effFromReader := FromReader(r)
+		effAsks := Asks(r)
 
 		v1, err1 := runEffect(effFromReader, testConfig)
 		v2, err2 := runEffect(effAsks, testConfig)

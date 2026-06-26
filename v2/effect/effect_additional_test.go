@@ -900,7 +900,7 @@ func TestReadIO_Integration(t *testing.T) {
 	t.Run("works with Asks", func(t *testing.T) {
 		contextIO := io.Of(testConfig)
 		eff := F.Pipe1(
-			Asks[TestConfig, int](func(cfg TestConfig) int {
+			Asks(func(cfg TestConfig) int {
 				return cfg.Multiplier
 			}),
 			Map[TestConfig](func(x int) int { return x * 10 }),

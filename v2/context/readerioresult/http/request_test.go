@@ -452,7 +452,7 @@ func TestReadFullResponse_Integration(t *testing.T) {
 			if len(body) == 0 {
 				return R.Left[HT.FullResponse](errors.OnNone("empty body")())
 			}
-			return R.Of[HT.FullResponse](fr)
+			return R.Of(fr)
 		}
 
 		pipeline := F.Flow2(
