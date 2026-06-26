@@ -891,3 +891,51 @@ func Alt[R, A any](second Lazy[ReaderResult[R, A]]) Operator[R, A, A] {
 func AltI[R, A any](second Lazy[RRI.ReaderResult[R, A]]) Operator[R, A, A] {
 	return Alt(function.Pipe1(second, lazy.Map(FromReaderResultI[R, A])))
 }
+
+// FromOption converts an Option[A] into a ReaderResult[R, A] using a provided error
+// fallback for the None case.
+//
+// When the option is Some(a), the result is a ReaderResult that always yields Right(a)
+// regardless of the environment. When the option is None, the result is a ReaderResult
+// that always yields Left(onNone()), where the error is produced by calling onNone.
+//
+// Type Parameters:
+//   - R: the environment type consumed by the resulting ReaderResult
+//   - A: the success value type
+//
+// Parameters:
+//   - onNone: a lazy value producing the error to use when the option is None
+//
+// Returns:
+//   - Kleisli[R, Option[A], A]: a function Option[A] -> ReaderResult[R, A]
+//
+// See Also:
+//   - FromReaderOption: for lifting a ReaderOption instead of a plain Option
+func FromOption[R, A any](onNone Lazy[error]) Kleisli[R, Option[A], A] {
+	return readereither.FromOption[R, A](onNone)
+}
+
+// FromReaderOption converts a ReaderOption[R, A] into a ReaderResult[R, A] using a
+// provided error fallback for the None case.
+//
+// The returned Kleisli arrow composes the given ReaderOption computation with the
+// option-to-result conversion so that the Option[A] produced by the ReaderOption is
+// converted to Result[A] using the same environment. When the ReaderOption yields
+// Some(a) the resulting ReaderResult yields Right(a); when it yields None the resulting
+// ReaderResult yields Left(onNone()).
+//
+// Type Parameters:
+//   - R: the environment type consumed by both the ReaderOption and the resulting ReaderResult
+//   - A: the success value type
+//
+// Parameters:
+//   - onNone: a lazy value producing the error to use when the ReaderOption yields None
+//
+// Returns:
+//   - Kleisli[R, ReaderOption[R, A], A]: a function ReaderOption[R, A] -> ReaderResult[R, A]
+//
+// See Also:
+//   - FromOption: for lifting a plain Option instead of a ReaderOption
+func FromReaderOption[R, A any](onNone Lazy[error]) Kleisli[R, ReaderOption[R, A], A] {
+	return readereither.FromReaderOption[R, A](onNone)
+}

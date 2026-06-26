@@ -16,6 +16,7 @@
 package readereither
 
 import (
+	"github.com/IBM/fp-go/v2/either"
 	ET "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/eithert"
@@ -26,6 +27,30 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/reader"
 )
+
+// FromOption converts an Option[A] into a ReaderEither[E, L, A] using a provided fallback
+// for the None case.
+//
+// When the option is Some(a), the result is a ReaderEither that always yields Right(a)
+// regardless of the environment. When the option is None, the result is a ReaderEither
+// that always yields Left(onNone()), where the left value is produced by calling onNone.
+//
+// Type Parameters:
+//   - E: the environment type consumed by the resulting ReaderEither
+//   - A: the success value type
+//   - L: the error (left) value type
+//
+// Parameters:
+//   - onNone: a lazy value producing the L to use when the option is None
+//
+// Returns:
+//   - Kleisli[E, L, Option[A], A]: a function Option[A] -> ReaderEither[E, L, A]
+//
+// See Also:
+//   - FromReaderOption: for lifting a ReaderOption instead of a plain Option
+func FromOption[E, A, L any](onNone Lazy[L]) Kleisli[E, L, Option[A], A] {
+	return fromeither.FromOption(FromEither[E, L, A], onNone)
+}
 
 func FromEither[E, L, A any](e Either[L, A]) ReaderEither[E, L, A] {
 	return reader.Of[E](e)
@@ -56,6 +81,32 @@ func OfLazy[E, L, A any](r Lazy[A]) ReaderEither[E, L, A] {
 
 func FromReader[L, E, A any](r Reader[E, A]) ReaderEither[E, L, A] {
 	return RightReader[L](r)
+}
+
+// FromReaderOption converts a ReaderOption[E, A] into a ReaderEither[E, L, A] using a
+// provided fallback for the None case.
+//
+// The returned Kleisli arrow composes the given ReaderOption computation with
+// either.FromOption so that the Option[A] produced by the ReaderOption is converted to
+// Either[L, A] using the same environment. When the ReaderOption yields Some(a) the
+// resulting ReaderEither yields Right(a); when it yields None the resulting ReaderEither
+// yields Left(onNone()).
+//
+// Type Parameters:
+//   - E: the environment type consumed by both the ReaderOption and the resulting ReaderEither
+//   - A: the success value type
+//   - L: the error (left) value type
+//
+// Parameters:
+//   - onNone: a lazy value producing the L to use when the ReaderOption yields None
+//
+// Returns:
+//   - Kleisli[E, L, ReaderOption[E, A], A]: a function ReaderOption[E, A] -> ReaderEither[E, L, A]
+//
+// See Also:
+//   - FromOption: for lifting a plain Option instead of a ReaderOption
+func FromReaderOption[E, A, L any](onNone Lazy[L]) Kleisli[E, L, ReaderOption[E, A], A] {
+	return function.Bind2nd[ReaderOption[E, A]](function.Flow2, either.FromOption[A](onNone))
 }
 
 func MonadMap[E, L, A, B any](fa ReaderEither[E, L, A], f func(A) B) ReaderEither[E, L, B] {

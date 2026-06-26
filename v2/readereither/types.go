@@ -50,4 +50,6 @@ type (
 	// It takes a ReaderEither[R, E, A] and produces a ReaderEither[R, E, B].
 	// This is commonly used for lifting functions into the ReaderEither context.
 	Operator[R, E, A, B any] = Kleisli[R, E, ReaderEither[R, E, A], B]
+
+	ReaderOption[R, A any] = Reader[R, Option[A]]
 )

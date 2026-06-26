@@ -22,9 +22,11 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	"github.com/IBM/fp-go/v2/lazy"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
+	RO "github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -417,4 +419,79 @@ func TestMapLeft(t *testing.T) {
 
 	res2 := F.Pipe1(Left[MyContext, int](testError), MapLeft[MyContext, int](enrichErr))(defaultContext)
 	assert.True(t, result.IsLeft(res2))
+}
+
+func TestFromOption(t *testing.T) {
+	onNone := lazy.Of(errors.New("not found"))
+
+	t.Run("Some yields Right", func(t *testing.T) {
+		res := FromOption[MyContext, int](onNone)(option.Some(42))(defaultContext)
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("None yields Left with onNone error", func(t *testing.T) {
+		res := FromOption[MyContext, int](onNone)(option.None[int]())(defaultContext)
+		assert.Equal(t, result.Left[int](errors.New("not found")), res)
+	})
+
+	t.Run("environment is ignored for Some", func(t *testing.T) {
+		const ctx1 MyContext = "ctx1"
+		const ctx2 MyContext = "ctx2"
+		lift := FromOption[MyContext, int](onNone)(option.Some(7))
+		assert.Equal(t, lift(ctx1), lift(ctx2))
+	})
+
+	t.Run("environment is ignored for None", func(t *testing.T) {
+		const ctx1 MyContext = "ctx1"
+		const ctx2 MyContext = "ctx2"
+		lift := FromOption[MyContext, int](onNone)(option.None[int]())
+		assert.Equal(t, lift(ctx1), lift(ctx2))
+	})
+
+	t.Run("composition with Map", func(t *testing.T) {
+		res := F.Pipe1(
+			FromOption[MyContext, int](onNone)(option.Some(3)),
+			Map[MyContext](utils.Double),
+		)(defaultContext)
+		assert.Equal(t, result.Of(6), res)
+	})
+}
+
+func TestFromReaderOption(t *testing.T) {
+	onNone := lazy.Of(errors.New("not found"))
+
+	t.Run("Some-yielding ReaderOption gives Right", func(t *testing.T) {
+		ro := RO.Of[MyContext](42)
+		res := FromReaderOption[MyContext, int](onNone)(ro)(defaultContext)
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("None-yielding ReaderOption gives Left", func(t *testing.T) {
+		ro := RO.None[MyContext, int]()
+		res := FromReaderOption[MyContext, int](onNone)(ro)(defaultContext)
+		assert.Equal(t, result.Left[int](errors.New("not found")), res)
+	})
+
+	t.Run("environment is forwarded to the ReaderOption", func(t *testing.T) {
+		type Config struct{ port int }
+		ro := RO.Asks(func(cfg Config) int { return cfg.port })
+		res := FromReaderOption[Config, int](onNone)(ro)(Config{port: 8080})
+		assert.Equal(t, result.Of(8080), res)
+	})
+
+	t.Run("None with environment-dependent ReaderOption gives Left", func(t *testing.T) {
+		type Config struct{ port int }
+		ro := func(cfg Config) option.Option[int] { return option.None[int]() }
+		res := FromReaderOption[Config, int](onNone)(ro)(Config{port: 9})
+		assert.Equal(t, result.Left[int](errors.New("not found")), res)
+	})
+
+	t.Run("composition with Map", func(t *testing.T) {
+		ro := RO.Of[MyContext](5)
+		res := F.Pipe1(
+			FromReaderOption[MyContext, int](onNone)(ro),
+			Map[MyContext](utils.Double),
+		)(defaultContext)
+		assert.Equal(t, result.Of(10), res)
+	})
 }

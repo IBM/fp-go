@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -63,4 +64,6 @@ type (
 
 	// Predicate represents a function that tests a value of type A and returns a boolean.
 	Predicate[A any] = predicate.Predicate[A]
+
+	ReaderOption[R, A any] = readeroption.ReaderOption[R, A]
 )
