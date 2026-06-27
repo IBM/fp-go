@@ -17,9 +17,11 @@ package reader
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/pair"
 	R "github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 )
@@ -325,5 +327,65 @@ func TestWithValue_RealWorldScenario(t *testing.T) {
 		assert.Equal(t, "user123", reqCtx.UserID)
 		assert.Equal(t, "req456", reqCtx.RequestID)
 		assert.Equal(t, "trace789", reqCtx.TraceID)
+	})
+}
+
+// ExampleNopCancel demonstrates wrapping a plain context in a no-op ContextCancel.
+func ExampleNopCancel() {
+	ctx := context.WithValue(context.Background(), "key", "value")
+	cc := NopCancel(ctx)
+
+	// The second element of the pair is the original context, unchanged.
+	wrappedCtx := pair.Tail(cc)
+	fmt.Println(wrappedCtx.Value("key"))
+
+	// The first element is a no-op cancel function; calling it is safe.
+	cancel := pair.Head(cc)
+	cancel()
+
+	// The context is still active after the no-op cancel.
+	select {
+	case <-ctx.Done():
+		fmt.Println("cancelled")
+	default:
+		fmt.Println("still active")
+	}
+	// Output:
+	// value
+	// still active
+}
+
+// TestNopCancel verifies the no-op cancellation semantics of NopCancel.
+func TestNopCancel(t *testing.T) {
+	t.Run("returns the same context unchanged", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "key", "value")
+		cc := NopCancel(ctx)
+
+		assert.Equal(t, ctx, pair.Tail(cc))
+	})
+
+	t.Run("cancel func is a no-op and does not cancel the context", func(t *testing.T) {
+		ctx := context.Background()
+		cc := NopCancel(ctx)
+
+		cancel := pair.Head(cc)
+		cancel() // must not panic and must not cancel ctx
+
+		select {
+		case <-ctx.Done():
+			t.Fatal("context should not be cancelled after calling the no-op cancel func")
+		default:
+		}
+	})
+
+	t.Run("calling cancel multiple times does not panic", func(t *testing.T) {
+		cc := NopCancel(context.Background())
+		cancel := pair.Head(cc)
+
+		assert.NotPanics(t, func() {
+			cancel()
+			cancel()
+			cancel()
+		})
 	})
 }

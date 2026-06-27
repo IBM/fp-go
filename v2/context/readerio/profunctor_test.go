@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	CR "github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 )
@@ -41,7 +42,7 @@ func TestPromapBasic(t *testing.T) {
 		// Transform context and result
 		addKey := func(ctx context.Context) ContextCancel {
 			newCtx := context.WithValue(ctx, "key", 42)
-			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+			return CR.NopCancel(newCtx)
 		}
 		toString := strconv.Itoa
 
@@ -66,7 +67,7 @@ func TestContramapBasic(t *testing.T) {
 
 		addKey := func(ctx context.Context) ContextCancel {
 			newCtx := context.WithValue(ctx, "key", 100)
-			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+			return CR.NopCancel(newCtx)
 		}
 
 		adapted := ContraMap[int](addKey)(getValue)
@@ -115,7 +116,7 @@ func TestLocalIOKBasic(t *testing.T) {
 			return func() ContextCancel {
 				// Simulate side effect (e.g., loading config)
 				newCtx := context.WithValue(ctx, "key", "loaded-value")
-				return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+				return CR.NopCancel(newCtx)
 			}
 		}
 

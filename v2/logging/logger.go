@@ -24,6 +24,8 @@ import (
 	"log/slog"
 	"sync/atomic"
 
+	F "github.com/IBM/fp-go/v2/function"
+	IC "github.com/IBM/fp-go/v2/internal/context"
 	"github.com/IBM/fp-go/v2/pair"
 )
 
@@ -168,7 +170,8 @@ func noop() {}
 //	logger := GetLoggerFromContext(ctxWithLogger)
 //	logger.Info("Using context logger")
 func WithLogger(l *slog.Logger) pair.Kleisli[context.CancelFunc, context.Context, context.Context] {
-	return func(ctx context.Context) ContextCancel {
-		return pair.MakePair[context.CancelFunc](noop, context.WithValue(ctx, loggerInContextKey, l))
-	}
+	return F.Flow2(
+		IC.WithValue[*slog.Logger](loggerInContextKey)(l),
+		IC.NopCancel,
+	)
 }

@@ -16,9 +16,8 @@
 package logging
 
 import (
-	"context"
-
 	"github.com/IBM/fp-go/v2/endomorphism"
+	IC "github.com/IBM/fp-go/v2/internal/context"
 	"github.com/IBM/fp-go/v2/pair"
 )
 
@@ -52,5 +51,5 @@ type (
 	//
 	// The first element is the CancelFunc that should be called to release resources.
 	// The second element is the new Context that was created.
-	ContextCancel = Pair[context.CancelFunc, context.Context]
+	ContextCancel = IC.ContextCancel
 )

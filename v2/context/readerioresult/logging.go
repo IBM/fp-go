@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	CR "github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerio"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
@@ -144,7 +145,7 @@ func onEntry(
 				logger:    logger,
 				isEnabled: false,
 			})
-			return pair.MakePair[context.CancelFunc](noop, withCtx(ctx))
+			return CR.NopCancel(withCtx(ctx))
 		}
 	}
 }

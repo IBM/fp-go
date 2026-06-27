@@ -129,7 +129,11 @@
 //	}
 package reader
 
-import "context"
+import (
+	"context"
+
+	IC "github.com/IBM/fp-go/v2/internal/context"
+)
 
 // WithValue creates a Kleisli arrow that adds a value to the context.
 //
@@ -217,9 +221,30 @@ import "context"
 //   - Reader: For composing context-dependent computations
 //   - Kleisli: For understanding Kleisli arrow composition
 func WithValue[A, K any](key K) Kleisli[A, context.Context] {
-	return func(val A) Reader[context.Context] {
-		return func(ctx context.Context) context.Context {
-			return context.WithValue(ctx, key, val)
-		}
-	}
+	return IC.WithValue[A](key)
+}
+
+// NopCancel wraps a context in a ContextCancel whose cancel function is a no-op.
+//
+// The returned ContextCancel pairs the given context with a cancel function that
+// does nothing when called. This is useful when an API requires a ContextCancel
+// but no actual cancellation is needed — for example, when adapting a plain
+// context.Context to a function that expects a cancellable context pair.
+//
+// The name is intentionally analogous to io.NopCloser, which wraps an io.Reader
+// in an io.ReadCloser whose Close method is also a no-op.
+//
+// Parameters:
+//   - ctx: The context to wrap. It is returned unchanged as the second element
+//     of the pair.
+//
+// Returns:
+//   - ContextCancel: A pair whose first element is a no-op context.CancelFunc
+//     and whose second element is ctx.
+//
+// See Also:
+//   - io.NopCloser: The standard library analogue for io.ReadCloser
+//   - ContextCancel: The pair type returned by this function
+func NopCancel(ctx context.Context) ContextCancel {
+	return IC.NopCancel(ctx)
 }

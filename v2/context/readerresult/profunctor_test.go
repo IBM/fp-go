@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"testing"
 
+	CR "github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/pair"
 	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func TestPromapBasic(t *testing.T) {
 
 		addKey := func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 			newCtx := context.WithValue(ctx, "key", 42)
-			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+			return CR.NopCancel(newCtx)
 		}
 		toString := strconv.Itoa
 
@@ -60,7 +61,7 @@ func TestContramapBasic(t *testing.T) {
 
 		addKey := func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 			newCtx := context.WithValue(ctx, "key", 100)
-			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+			return CR.NopCancel(newCtx)
 		}
 
 		adapted := ContraMap[int](addKey)(getValue)
@@ -82,7 +83,7 @@ func TestLocalBasic(t *testing.T) {
 
 		addUser := func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 			newCtx := context.WithValue(ctx, "user", "Alice")
-			return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+			return CR.NopCancel(newCtx)
 		}
 
 		adapted := Local[string](addUser)(getValue)
