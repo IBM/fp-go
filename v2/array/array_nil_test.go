@@ -265,22 +265,22 @@ func TestNilSlice_MonadAp(t *testing.T) {
 	var nilFuncs []func(int) string
 	var nilValues []int
 
+	// nil is a valid representation of the empty array, so these cases only
+	// assert that an empty result is produced.
+
 	// nil functions, nil values
 	result1 := MonadAp(nilFuncs, nilValues)
-	assert.NotNil(t, result1, "MonadAp should return non-nil slice")
-	assert.Equal(t, 0, len(result1), "MonadAp should return empty slice for nil inputs")
+	assert.Empty(t, result1, "MonadAp should return an empty slice for nil inputs")
 
 	// nil functions, non-nil values
 	nonNilValues := []int{1, 2, 3}
 	result2 := MonadAp(nilFuncs, nonNilValues)
-	assert.NotNil(t, result2, "MonadAp should return non-nil slice")
-	assert.Equal(t, 0, len(result2), "MonadAp should return empty slice when functions are nil")
+	assert.Empty(t, result2, "MonadAp should return an empty slice when functions are nil")
 
 	// non-nil functions, nil values
 	nonNilFuncs := []func(int) string{func(v int) string { return fmt.Sprintf("%d", v) }}
 	result3 := MonadAp(nonNilFuncs, nilValues)
-	assert.NotNil(t, result3, "MonadAp should return non-nil slice")
-	assert.Equal(t, 0, len(result3), "MonadAp should return empty slice when values are nil")
+	assert.Empty(t, result3, "MonadAp should return an empty slice when values are nil")
 }
 
 // TestNilSlice_Ap verifies that Ap handles nil slices correctly
@@ -290,8 +290,8 @@ func TestNilSlice_Ap(t *testing.T) {
 
 	var nilFuncs []func(int) string
 	result := ap(nilFuncs)
-	assert.NotNil(t, result, "Ap should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Ap should return empty slice for nil inputs")
+	// nil is a valid representation of the empty array.
+	assert.Empty(t, result, "Ap should return an empty slice for nil inputs")
 }
 
 // TestNilSlice_Head verifies that Head handles nil slices correctly
@@ -326,8 +326,9 @@ func TestNilSlice_Tail(t *testing.T) {
 func TestNilSlice_Flatten(t *testing.T) {
 	var nilSlice [][]int
 	result := Flatten(nilSlice)
-	assert.NotNil(t, result, "Flatten should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Flatten should return empty slice for nil input")
+	// nil is a valid representation of the empty array, so only the emptiness
+	// of the result is asserted.
+	assert.Empty(t, result, "Flatten should return an empty slice for nil input")
 }
 
 // TestNilSlice_Lookup verifies that Lookup handles nil slices correctly

@@ -16,6 +16,8 @@
 package generic
 
 import (
+	"slices"
+
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/array"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
@@ -222,8 +224,12 @@ func ChainOptionK[GA ~[]A, GB ~[]B, A, B any](f func(a A) O.Option[GB]) func(GA)
 	)
 }
 
+// Flatten concatenates the inner slices into a single slice. It uses the
+// idiomatic [slices.Concat], which sizes the result in one allocation instead
+// of growing it via append. For an empty or nil input a nil slice is returned,
+// which is a valid representation of the empty array.
 func Flatten[GAA ~[]GA, GA ~[]A, A any](mma GAA) GA {
-	return MonadChain(mma, F.Identity[GA])
+	return slices.Concat(mma...)
 }
 
 func FilterMap[GA ~[]A, GB ~[]B, A, B any](f func(A) O.Option[B]) func(GA) GB {
@@ -263,8 +269,20 @@ func Chain[AS ~[]A, BS ~[]B, A, B any](f func(A) BS) func(AS) BS {
 	return F.Bind2nd(MonadChain[AS, BS, A, B], f)
 }
 
+// MonadAp computes the applicative product: f(a) for each f in fab and each a
+// in fa. Its length is known up front (len(fab)*len(fa)), so the result is
+// allocated once via [slices.Grow] - the same idiom used by [slices.Concat] -
+// instead of reallocating as it grows. For an empty result a nil slice is
+// returned, which is a valid representation of the empty array.
 func MonadAp[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fab ABS, fa AS) BS {
-	return MonadChain(fab, F.Bind1st(MonadMap[AS, BS, A, B], fa))
+	var result BS
+	result = slices.Grow(result, len(fab)*len(fa))
+	for _, f := range fab {
+		for _, a := range fa {
+			result = append(result, f(a))
+		}
+	}
+	return result
 }
 
 func Ap[BS ~[]B, ABS ~[]func(A) B, AS ~[]A, B, A any](fa AS) func(ABS) BS {
