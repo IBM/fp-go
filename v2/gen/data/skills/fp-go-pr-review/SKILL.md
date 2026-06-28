@@ -409,6 +409,32 @@ name := streetNameInPerson.Get(person)  // Option[string]
 
 **Severity**: Medium — immutability and composability
 
+### 16. Immutability / No Hidden Mutation
+
+**Rule**: Functions passed to `Map`, `Chain`, `Filter`, etc. must be pure — they must not mutate variables captured from an outer scope, and lens setters must not mutate shared slice/map fields in place.
+
+**Check for**:
+```go
+// ❌ WRONG - closure mutates a captured slice
+var acc []string
+A.Map(func(u User) User {
+    acc = append(acc, u.Name)  // hidden side effect
+    return u
+})
+
+// ✅ CORRECT - derive a new value, no captured mutation
+names := F.Pipe1(users, A.Map(getName))
+
+// ❌ WRONG - lens setter mutates a shared slice in place
+//   append may reuse the original backing array (shallow struct copy)
+func(u User, t []string) User { u.Tags = append(u.Tags, t...); return u }
+
+// ✅ CORRECT - assign a freshly built value
+func(u User, t []string) User { u.Tags = t; return u }
+```
+
+**Severity**: High — a mutating closure silently defeats fp-go's guarantees and breaks under `TraverseArray`/concurrency.
+
 ## Review Process
 
 ### Step 1: Obtain Git Diff
@@ -434,7 +460,13 @@ git diff main...HEAD
 
 ### Step 2: Analyze Changes
 
-For each modified file:
+First, confirm the branch compiles: run `go build ./...` and `go vet ./...` on the
+checked-out branch. Report any build or vet failure as a **Critical** finding —
+there is no point reviewing composition style on code that does not compile, and
+most fp-go-specific mistakes (wrong leading type parameter, data-first vs
+data-last argument order, missing trailing `()`) surface here.
+
+Then, for each modified file:
 1. Check import paths (v2 requirement)
 2. Validate data-last usage
 3. Check for point-free style opportunities
@@ -581,6 +613,8 @@ When reviewing, automatically check for:
 8. ✅ `Bind` vs `ApS` used correctly
 9. ✅ `TraverseArray` for slice processing
 10. ✅ `ChainFirstIOK` for logging
+11. ✅ No hidden mutation in `Map`/`Chain` closures or lens setters
+12. ✅ Branch compiles (`go build ./...`) and passes `go vet ./...`
 
 ## Output Format
 

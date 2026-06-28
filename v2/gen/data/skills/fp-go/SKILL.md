@@ -13,6 +13,14 @@ description: Use this skill whenever writing, reviewing, or refactoring Go code 
 4. **Prefer `Result` over `Either`** when the error type is Go's `error`. `Result[A]` is `Either[error, A]`. Same for `ioresult` over `ioeither`, `readerioresult` over `readerioeither`.
 5. **IO values are lazy**: `IO[A]` is `func() A`. They describe a computation — you must call `()` to execute. Don't forget the trailing `()`.
 6. **Prefer point-free style**: compose with `F.Flow` and `F.Pipe` instead of writing inline anonymous functions. If a transformation can be expressed as a composition of named functions, it should be. Point-free pipelines are idiomatic fp-go.
+
+## Generation Workflow
+
+Two habits that matter more for fp-go than for idiomatic Go, because the library is low-frequency in training data and easy to misremember:
+
+1. **Retrieve before generating.** For any pattern not fully covered below — optics beyond simple lenses, traversals, concurrent combinators, the less-common monads — query the fp-go MCP server's `search_examples` / `get_example` tools (see the **fp-go-mcp** skill) for a real signature instead of recalling names like `Chain` / `FlatMap` / `Bind` from memory. Retrieve-then-generate beats generate-then-fix here.
+2. **Compile before presenting.** After writing fp-go code, run `go build ./...` and `go vet ./...`, then fix any import, type-parameter, or argument-order error and re-run until clean. The compiler is precise, low-ambiguity feedback, and most fp-go mistakes (wrong leading type param, data-first vs data-last) surface immediately.
+
 ## Overview
 
 `fp-go` (import path `github.com/IBM/fp-go/v2`) brings type-safe functional programming to Go using generics. Every monad follows a **consistent interface**: once you know the pattern in one monad, it transfers to all others.
@@ -502,5 +510,8 @@ parse("abc") // Error(strconv parse error)
 | Using `Bind` when steps are independent | Use `ApS` for independent steps — clearer intent, potentially concurrent |
 | Using `context/readerioresult` with deps stuffed into `context.Context` | Use `effect.Effect[Deps, A]` — typed deps are compile-time checked and testable |
 | Wrapping fp-go operations in anonymous functions | Go point-free: `option.Filter(S.IsNonEmpty)` not `option.Filter(func(s string) bool { return s != "" })`, `option.GetOrElse(LZ.Of("x"))` not `option.GetOrElse(func() string { return "x" })` |
+| `Map` with a function that returns `Option` / `Result` / another monad | Produces nested `M[M[A]]`. Use `Chain` (or `Flatten`) for `A → M[B]`; reserve `Map` for plain `A → B`. |
+| Closure passed to `Map` / `Chain` mutates a captured variable (slice `append`, counter `++`) | Keep it pure — derive and return new values. A mutating closure silently defeats fp-go's guarantees and breaks under `Traverse` / concurrency. |
+| Mixing `idiomatic/result` and standard `result` (or `option` / `ioresult`) in one file | Different types — struct wrapper vs `(A, error)` tuple — that do not interoperate. Pick one representation per file. |
 
 Requires Go 1.24+ for generic type alias support.
