@@ -491,7 +491,7 @@ Lenses can be automatically generated using the `fp-go` CLI tool and a simple an
 1. **Annotate your struct** with the `fp-go:Lens` comment:
 
 ```go
-//go:generate go run github.com/IBM/fp-go/v2/gen lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/gen/v2 lens --dir . --filename gen_lens.go
 
 // fp-go:Lens
 type Person struct {
@@ -539,7 +539,7 @@ When you don't own the source code — types from the standard library or a thir
 **Syntax:**
 
 ```
-go run github.com/IBM/fp-go/v2/gen lens \
+go run github.com/IBM/fp-go/gen/v2 lens \
   --type <TypeName>[,<TypeName>...] \
   --dir <output-dir> \
   --filename <output-file> \
@@ -554,7 +554,7 @@ go run github.com/IBM/fp-go/v2/gen lens \
 **Example — generate lenses for `net/http.Server`:**
 
 ```bash
-go run github.com/IBM/fp-go/v2/gen lens \
+go run github.com/IBM/fp-go/gen/v2 lens \
   --type Server \
   --dir ./http_lenses \
   --filename gen_lens.go \
@@ -566,7 +566,7 @@ This produces `./http_lenses/gen_lens.go` containing `ServerLenses`, `ServerRefL
 **Example — multiple types from an external module:**
 
 ```bash
-go run github.com/IBM/fp-go/v2/gen lens \
+go run github.com/IBM/fp-go/gen/v2 lens \
   --type Config,Client \
   --dir . \
   --filename gen_lens.go \
@@ -576,7 +576,7 @@ go run github.com/IBM/fp-go/v2/gen lens \
 **In a `go:generate` directive:**
 
 ```go
-//go:generate go run github.com/IBM/fp-go/v2/gen lens --type Server --dir . --filename gen_lens.go net/http
+//go:generate go run github.com/IBM/fp-go/gen/v2 lens --type Server --dir . --filename gen_lens.go net/http
 ```
 
 **How it differs from annotation mode:**

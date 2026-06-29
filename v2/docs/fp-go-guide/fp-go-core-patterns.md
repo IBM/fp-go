@@ -794,7 +794,7 @@ func Compose[S, A, B any](ab Lens[A, B]) func(Lens[S, A]) Lens[S, B]
 
 **Auto-generation**: Place in your Go file:
 ```go
-//go:generate go run github.com/IBM/fp-go/v2/gen lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/gen/v2 lens --dir . --filename gen_lens.go
 ```
 This scans struct types and generates lenses for exported fields.
 
@@ -1394,7 +1394,7 @@ fp-go uses `//go:generate` annotations for auto-generating boilerplate.
 ### 10.1 Lens Generation
 
 ```go
-//go:generate go run github.com/IBM/fp-go/v2/gen lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/gen/v2 lens --dir . --filename gen_lens.go
 ```
 
 Generates lenses for all exported struct fields in the package.

@@ -100,11 +100,33 @@ jobs:
       #   env:
       #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  build-gen:
+    name: Build gen/v2 (Go ${{ matrix.go-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.25.x', '1.26.x']
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      - name: Run tests
+        run: |
+          cd gen/v2
+          go mod tidy
+          go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
+
   coveralls-finish:
     name: Finish Coveralls
     needs:
       - build-v1
       - build-v2
+      - build-gen
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
@@ -119,6 +141,7 @@ jobs:
     needs:
       - build-v1
       - build-v2
+      - build-gen
     if: github.repository == 'IBM/fp-go' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -158,5 +181,25 @@ jobs:
       - name: Run semantic release
         run: |
           npx -p conventional-changelog-conventionalcommits -p semantic-release semantic-release --dry-run ${{ env.DRY_RUN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag gen/v2 with same version
+        if: env.DRY_RUN == 'false'
+        run: |
+          git fetch --tags
+          LATEST_TAG=$(git tag --sort=-creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No release tag found, skipping gen/v2 tag"
+            exit 0
+          fi
+          GEN_TAG="gen/v2/${LATEST_TAG}"
+          if git rev-parse "$GEN_TAG" >/dev/null 2>&1; then
+            echo "Tag $GEN_TAG already exists, skipping"
+          else
+            echo "Creating $GEN_TAG"
+            git tag "$GEN_TAG"
+            git push origin "$GEN_TAG"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -24,6 +24,6 @@ When updating skill documentation:
 
 1. Update the normative source at [https://github.com/IBM/fp-go/tree/main/skills](https://github.com/IBM/fp-go/tree/main/skills)
 2. Copy the updated content to this directory
-3. Run `go generate ./...` from the `v2/gen` project root to regenerate the embedding code and keep sources in sync
+3. Run `go generate ./...` from the `gen/v2` project root to regenerate the embedding code and keep sources in sync
 
 Do not edit these files directly unless you intend to update the normative source as well.

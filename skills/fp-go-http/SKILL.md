@@ -1,3 +1,8 @@
+---
+name: fp-go-http
+description: Use this skill when making HTTP requests in fp-go using the ReaderIOResult-based HTTP client (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText, ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON, WithBearer, WithHeader, WithQueryArg), parallel requests with TraverseArray or TraverseTuple2, or building context-aware, composable HTTP pipelines that propagate errors through the Result monad.
+---
+
 # fp-go HTTP Requests
 
 ## Overview
@@ -259,9 +264,8 @@ package main
 import (
     "context"
     "encoding/json"
-    "net/http"
-    HTTP "net/http"
     "fmt"
+    "net/http"
 
     F   "github.com/IBM/fp-go/v2/function"
     H   "github.com/IBM/fp-go/v2/context/readerioresult/http"
@@ -274,7 +278,7 @@ type Post struct {
     Title string `json:"title"`
 }
 
-var client = H.MakeClient(HTTP.DefaultClient)
+var client = H.MakeClient(http.DefaultClient)
 
 func fetchPost(id int) RIO.ReaderIOResult[Post] {
     url := fmt.Sprintf("https://jsonplaceholder.typicode.com/posts/%d", id)

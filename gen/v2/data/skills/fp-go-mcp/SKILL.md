@@ -1,15 +1,15 @@
 ---
 name: fp-go-mcp
-description: Use this skill when working with the fp-go MCP (Model Context Protocol) server located in github.com/IBM/fp-go/v2/gen. Trigger on mentions of MCP server, fp-go MCP tools, list_skills, use_skill, search_examples, get_example, configuring fp-go for Claude Desktop, or when the user needs to access fp-go examples and skills programmatically. This skill explains how to configure and use the MCP server to access fp-go documentation, examples, and skills.
+description: Use this skill when working with the fp-go MCP (Model Context Protocol) server located in github.com/IBM/fp-go/gen/v2. Trigger on mentions of MCP server, fp-go MCP tools, list_skills, use_skill, search_examples, get_example, configuring fp-go for Claude Desktop, or when the user needs to access fp-go examples and skills programmatically. This skill explains how to configure and use the MCP server to access fp-go documentation, examples, and skills.
 ---
 
 # fp-go MCP Server
 
 ## Overview
 
-The fp-go MCP (Model Context Protocol) server provides programmatic access to fp-go skills, examples, and documentation. It's located in `github.com/IBM/fp-go/v2/gen` and can be integrated into any MCP-compatible client such as Claude Desktop.
+The fp-go MCP (Model Context Protocol) server provides programmatic access to fp-go skills, examples, and documentation. It's located in `github.com/IBM/fp-go/gen/v2` and can be integrated into any MCP-compatible client such as Claude Desktop.
 
-**Prerequisite**: the working directory must contain a `go.mod` that lists `github.com/IBM/fp-go/v2/gen` as a tool dependency (added via `go get -tool`). The server is launched with `go tool gen mcp` and uses stdio transport, so no global installation is needed.
+**Prerequisite**: the working directory must contain a `go.mod` that lists `github.com/IBM/fp-go/gen/v2` as a tool dependency (added via `go get -tool`). The server is launched with `go tool gen mcp` and uses stdio transport, so no global installation is needed.
 
 The fp-go MCP server exposes four tools:
 
@@ -23,7 +23,7 @@ The fp-go MCP server exposes four tools:
 Add the fp-go generator as a tool dependency in your project:
 
 ```bash
-go get -tool github.com/IBM/fp-go/v2/gen
+go get -tool github.com/IBM/fp-go/gen/v2
 ```
 
 This makes the tool available via `go tool gen` without requiring global installation.
@@ -278,7 +278,7 @@ Assistant: [calls get_example with symbol="ExampleTraverseArray"]
 
 **Solution**: Ensure the tool is installed in your project:
 ```bash
-go get -tool github.com/IBM/fp-go/v2/gen
+go get -tool github.com/IBM/fp-go/gen/v2
 ```
 
 Then run with:
@@ -292,7 +292,7 @@ go tool gen mcp
 
 **Solution**: The skills are embedded at build time. Update the tool:
 ```bash
-go get -tool github.com/IBM/fp-go/v2/gen@latest
+go get -tool github.com/IBM/fp-go/gen/v2@latest
 ```
 
 ### Search Returns No Results
@@ -331,7 +331,7 @@ Logs go to stderr and include:
 
 1. **Keep the server running** — Configure it in your MCP client for persistent access
 2. **Use verbose mode for debugging** — Helps diagnose issues
-3. **Update after changes** — Run `go get -tool github.com/IBM/fp-go/v2/gen@latest` when fp-go or skills are updated
+3. **Update after changes** — Run `go get -tool github.com/IBM/fp-go/gen/v2@latest` when fp-go or skills are updated
 4. **Combine tools** — Use skills for concepts, examples for code
 
 ## Security Considerations

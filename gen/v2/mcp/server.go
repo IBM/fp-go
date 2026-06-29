@@ -25,7 +25,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/IBM/fp-go/v2/gen/data"
+	"github.com/IBM/fp-go/gen/v2/data"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gopkg.in/yaml.v3"
 	_ "modernc.org/sqlite"

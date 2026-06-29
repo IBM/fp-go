@@ -1,5 +1,5 @@
 @echo off
 
-pushd gen
+pushd ..\gen\v2
 go generate .\...
 popd

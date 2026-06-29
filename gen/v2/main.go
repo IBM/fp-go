@@ -23,7 +23,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/IBM/fp-go/v2/gen/cli"
+	"github.com/IBM/fp-go/gen/v2/cli"
 
 	C "github.com/urfave/cli/v3"
 )

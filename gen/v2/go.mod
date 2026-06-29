@@ -1,4 +1,4 @@
-module github.com/IBM/fp-go/v2/gen
+module github.com/IBM/fp-go/gen/v2
 
 go 1.25.0
 

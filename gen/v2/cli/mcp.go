@@ -18,7 +18,7 @@ package cli
 import (
 	"context"
 
-	"github.com/IBM/fp-go/v2/gen/mcp"
+	"github.com/IBM/fp-go/gen/v2/mcp"
 
 	C "github.com/urfave/cli/v3"
 )

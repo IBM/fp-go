@@ -17,6 +17,16 @@ All imports **must** come from `github.com/IBM/fp-go/v2`, never from
 
 ---
 
+## Before you generate
+
+fp-go is low-frequency in training data, so signatures are easy to misremember.
+For any combinator not shown below, look it up via the fp-go MCP server's
+`search_examples` / `get_example` tools (see the **fp-go-mcp** skill) instead of
+guessing. After writing code, run `go build ./...` and `go vet ./...` and fix any
+type-parameter or argument-order errors before presenting it.
+
+---
+
 ## Core concepts
 
 ### Pipe — data-first composition
