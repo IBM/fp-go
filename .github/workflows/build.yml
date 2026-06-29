@@ -193,7 +193,7 @@ jobs:
             echo "No release tag found, skipping gen/v2 tag"
             exit 0
           fi
-          GEN_TAG="gen/v2/${LATEST_TAG}"
+          GEN_TAG="gen/${LATEST_TAG}"
           if git rev-parse "$GEN_TAG" >/dev/null 2>&1; then
             echo "Tag $GEN_TAG already exists, skipping"
           else
