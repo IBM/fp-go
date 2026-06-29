@@ -67,6 +67,35 @@ func FromResult[R, A any](e Result[A]) ReaderResult[R, A] {
 	return reader.Of[R](e)
 }
 
+// FromIdiomatic lifts a plain Go function of the form func(R) (A, error) into a
+// ReaderResult[R, A]. The environment R is forwarded to f on each call and the
+// resulting (A, error) pair is converted into a Result[A].
+//
+// This is the primary entry-point for wrapping existing Go functions that follow
+// the idiomatic (value, error) return convention.
+//
+// Type Parameters:
+//   - R: the environment type consumed by f
+//   - A: the success value type produced by f
+//
+// Parameters:
+//   - f: an idiomatic Go function that takes an environment and returns (A, error)
+//
+// Returns:
+//   - ReaderResult[R, A]: a functional computation that forwards the environment to f
+//     and wraps its output as a Result[A]
+//
+// See Also:
+//   - FromReaderResultI: equivalent conversion for the RRI.ReaderResult type alias
+//   - FromResultI: lifts an already-evaluated (A, error) pair, ignoring the environment
+//
+//go:inline
+func FromIdiomatic[R, A any](f func(R) (A, error)) ReaderResult[R, A] {
+	return func(r R) Result[A] {
+		return result.TryCatchError(f(r))
+	}
+}
+
 // FromResultI lifts an idiomatic Go (value, error) pair into a ReaderResult[R, A] that ignores the environment.
 // This is the idiomatic version of FromResult, accepting Go's native error handling pattern.
 // If err is non-nil, the resulting computation will always fail with that error.

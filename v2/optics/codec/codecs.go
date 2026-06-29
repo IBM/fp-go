@@ -24,16 +24,18 @@ package codec
 import (
 	"encoding"
 	"encoding/json"
+	"io/fs"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
-	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/prism"
-	"github.com/IBM/fp-go/v2/reader"
+	"github.com/IBM/fp-go/v2/readerresult"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -63,16 +65,11 @@ import (
 //	// Use in a codec
 //	intCodec := MakeType("Int", Is[int](), intValidator, strconv.Itoa)
 func validateFromParser[A, I any](parser func(I) (A, error)) Validate[I, A] {
-	return func(i I) Decode[Context, A] {
-		// Attempt to parse the input value
-		a, err := parser(i)
-		if err != nil {
-			// On error, create a validation failure with the error details
-			return validation.FailureWithError[A](i, err.Error())(err)
-		}
-		// On success, wrap the parsed value in a successful validation
-		return reader.Of[Context](validation.Success(a))
-	}
+	return F.Pipe2(
+		parser,
+		readerresult.FromIdiomatic,
+		validate.FromReaderResult,
+	)
 }
 
 // URL creates a bidirectional codec for URL parsing and formatting.
@@ -108,6 +105,68 @@ func URL() Type[*url.URL, string, string] {
 		Is[*url.URL](),
 		validateFromParser(url.Parse),
 		(*url.URL).String,
+	)
+}
+
+// FileInfoWithPath extends fs.FileInfo with an absolute filesystem path.
+// It combines all standard file metadata from fs.FileInfo with the resolved
+// absolute path of the file, as returned by filepath.Abs.
+//
+// This interface is the decoded value type produced by the Stat codec.
+//
+// See Also:
+//   - Stat: the codec that decodes a path string into a FileInfoWithPath
+type FileInfoWithPath interface {
+	fs.FileInfo
+	// AbsPath returns the absolute path of the file as resolved by filepath.Abs.
+	AbsPath() string
+}
+
+type fileInfoWithPath struct {
+	fs.FileInfo
+	absPath string
+}
+
+func (f *fileInfoWithPath) AbsPath() string {
+	return f.absPath
+}
+
+func statFileInfoWithPath(path string) (FileInfoWithPath, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	stat, err := os.Stat(absPath)
+	if err != nil {
+		return nil, err
+	}
+	return &fileInfoWithPath{FileInfo: stat, absPath: absPath}, nil
+}
+
+// Stat creates a bidirectional codec for file-system path resolution and stat retrieval.
+// This codec resolves a string path to an absolute path, calls os.Stat on it, and
+// wraps the resulting fs.FileInfo together with the resolved absolute path.
+//
+// The codec:
+//   - Decodes: Resolves the input string to an absolute path via filepath.Abs,
+//     then calls os.Stat and returns a FileInfoWithPath containing the metadata
+//     and the absolute path
+//   - Encodes: Converts a FileInfoWithPath back to its absolute path string via AbsPath
+//   - Validates: Fails if filepath.Abs fails or if the path does not exist / is not
+//     accessible (i.e. os.Stat returns an error)
+//
+// Returns:
+//   - A Type[FileInfoWithPath, string, string] codec that handles filesystem path
+//     to file-info transformations
+//
+// See Also:
+//   - FileInfoWithPath: the decoded value type
+func Stat() Type[FileInfoWithPath, string, string] {
+	return MakeType(
+		"Stat",
+		Is[FileInfoWithPath](),
+		validateFromParser(statFileInfoWithPath),
+		FileInfoWithPath.AbsPath,
 	)
 }
 

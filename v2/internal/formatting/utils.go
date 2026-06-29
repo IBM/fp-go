@@ -121,3 +121,23 @@ func TypeInfo(v any) string {
 	// Remove the leading * from pointer type
 	return strings.TrimPrefix(reflect.TypeOf(v).String(), "*")
 }
+
+// TypeInfoOf returns the type name for type parameter T without requiring a value.
+// Unlike TypeInfo, it works correctly for interface types where a zero value would
+// be a nil interface (which causes reflect.TypeOf to panic).
+//
+// It derives the type name by reflecting on *T and calling Elem(), which always
+// produces a valid reflect.Type regardless of whether T is a concrete type or
+// an interface.
+//
+// Returns:
+//   - A string representing the type name, with pointer prefix removed
+//
+// Example usage:
+//
+//	TypeInfoOf[int]()                // Returns: "int"
+//	TypeInfoOf[string]()             // Returns: "string"
+//	TypeInfoOf[fs.FileInfo]()        // Returns: "fs.FileInfo"
+func TypeInfoOf[T any]() string {
+	return strings.TrimPrefix(reflect.TypeOf((*T)(nil)).Elem().String(), "*")
+}

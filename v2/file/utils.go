@@ -18,15 +18,11 @@ package file
 import "io"
 
 type nopWriteCloser struct {
-	delegate io.Writer
+	io.Writer
 }
 
 func (_ *nopWriteCloser) Close() error {
 	return nil
-}
-
-func (nc *nopWriteCloser) Write(p []byte) (n int, err error) {
-	return nc.delegate.Write(p)
 }
 
 // NopReadCloser wraps an io.Reader with a no-op Close method, converting it to an io.ReadCloser.
@@ -86,5 +82,5 @@ func NopReadCloser[R io.Reader](r R) io.ReadCloser {
 // See Also:
 //   - NopReadCloser: Similar wrapper for io.Reader
 func NopWriteCloser[W io.Writer](w W) io.WriteCloser {
-	return &nopWriteCloser{w}
+	return &nopWriteCloser{Writer: w}
 }

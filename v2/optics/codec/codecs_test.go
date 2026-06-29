@@ -18,6 +18,8 @@ package codec
 import (
 	"encoding/json"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
@@ -1443,5 +1445,164 @@ func TestIntFromString_Integration(t *testing.T) {
 			assert.Equal(t, tc.val, n)
 			assert.Equal(t, tc.str, c.Encode(n))
 		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Stat / FileInfoWithPath
+// ---------------------------------------------------------------------------
+
+func TestStat_Decode_Success(t *testing.T) {
+	t.Run("decodes existing file path", func(t *testing.T) {
+		// Use the current file itself as a guaranteed-existing path.
+		c := Stat()
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		assert.Equal(t, "codecs_test.go", fi.Name())
+		assert.False(t, fi.IsDir())
+		assert.Greater(t, fi.Size(), int64(0))
+	})
+
+	t.Run("decodes directory path", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode(".")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		assert.True(t, fi.IsDir())
+	})
+
+	t.Run("AbsPath is absolute", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		assert.True(t, filepath.IsAbs(fi.AbsPath()))
+		assert.Equal(t, "codecs_test.go", filepath.Base(fi.AbsPath()))
+	})
+}
+
+func TestStat_Decode_Failure(t *testing.T) {
+	t.Run("fails on non-existent path", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode("this_path_does_not_exist_xyz_12345.go")
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+func TestStat_Encode(t *testing.T) {
+	t.Run("encodes FileInfoWithPath back to its absolute path", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		encoded := c.Encode(fi)
+		assert.Equal(t, fi.AbsPath(), encoded)
+		assert.True(t, filepath.IsAbs(encoded))
+	})
+
+	t.Run("round-trip: decode then encode returns absolute path", func(t *testing.T) {
+		c := Stat()
+		absPath, err := filepath.Abs("codecs_test.go")
+		require.NoError(t, err)
+
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		assert.Equal(t, absPath, c.Encode(fi))
+	})
+}
+
+func TestStat_Name(t *testing.T) {
+	assert.Equal(t, "Stat", Stat().Name())
+}
+
+func TestStat_Integration(t *testing.T) {
+	t.Run("stat a temp file and verify all FileInfo fields", func(t *testing.T) {
+		// Create a temp file so we control its properties.
+		f, err := os.CreateTemp(t.TempDir(), "stat_test_*.txt")
+		require.NoError(t, err)
+		_, err = f.WriteString("hello")
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
+
+		c := Stat()
+		result := c.Decode(f.Name())
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(fi FileInfoWithPath) FileInfoWithPath { return fi },
+		)
+		require.NotNil(t, fi)
+
+		// AbsPath must match what filepath.Abs returns for the temp file.
+		expected, err := filepath.Abs(f.Name())
+		require.NoError(t, err)
+		assert.Equal(t, expected, fi.AbsPath())
+
+		// Standard FileInfo fields are delegated correctly.
+		assert.Equal(t, filepath.Base(f.Name()), fi.Name())
+		assert.Equal(t, int64(5), fi.Size())
+		assert.False(t, fi.IsDir())
+		assert.NotZero(t, fi.ModTime())
+		assert.NotZero(t, fi.Mode())
+	})
+}
+
+func TestFileInfoWithPath_Fields(t *testing.T) {
+	t.Run("Sys returns non-nil platform metadata", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		// Sys() is platform-specific but must not panic; on most platforms it is non-nil.
+		_ = fi.Sys()
+	})
+
+	t.Run("Mode is non-zero for a regular file", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		assert.NotZero(t, fi.Mode())
+	})
+
+	t.Run("ModTime is non-zero for a regular file", func(t *testing.T) {
+		c := Stat()
+		result := c.Decode("codecs_test.go")
+		require.True(t, either.IsRight(result))
+		fi := either.MonadFold(result,
+			func(validation.Errors) FileInfoWithPath { return nil },
+			func(f FileInfoWithPath) FileInfoWithPath { return f },
+		)
+		require.NotNil(t, fi)
+		assert.False(t, fi.ModTime().IsZero())
 	})
 }

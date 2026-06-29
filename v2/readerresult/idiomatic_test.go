@@ -65,6 +65,50 @@ func TestFromReaderResultI(t *testing.T) {
 	})
 }
 
+// TestFromIdiomatic tests the FromIdiomatic function.
+func TestFromIdiomatic(t *testing.T) {
+	t.Run("success case - success value is returned as Right", func(t *testing.T) {
+		f := func(ctx MyContext) (int, error) { return 42, nil }
+		rr := FromIdiomatic(f)
+		assert.Equal(t, result.Of(42), rr(defaultContext))
+	})
+
+	t.Run("error case - error is returned as Left", func(t *testing.T) {
+		f := func(ctx MyContext) (int, error) { return 0, idiomaticTestError }
+		rr := FromIdiomatic(f)
+		assert.Equal(t, result.Left[int](idiomaticTestError), rr(defaultContext))
+	})
+
+	t.Run("environment is forwarded to f", func(t *testing.T) {
+		f := func(ctx MyContext) (string, error) { return string(ctx), nil }
+		rr := FromIdiomatic(f)
+		assert.Equal(t, result.Of("default"), rr(defaultContext))
+		assert.Equal(t, result.Of("other"), rr(MyContext("other")))
+	})
+
+	t.Run("f is called on every invocation", func(t *testing.T) {
+		calls := 0
+		f := func(ctx MyContext) (int, error) {
+			calls++
+			return calls, nil
+		}
+		rr := FromIdiomatic(f)
+		assert.Equal(t, result.Of(1), rr(defaultContext))
+		assert.Equal(t, result.Of(2), rr(defaultContext))
+	})
+
+	t.Run("composition with Map", func(t *testing.T) {
+		f := func(ctx MyContext) (int, error) { return 5, nil }
+		rr := F.Pipe1(
+			FromIdiomatic(f),
+			Map[MyContext](N.Mul(2)),
+		)
+		assert.Equal(t, result.Of(10), rr(defaultContext))
+	})
+}
+
+
+
 // TestMonadChainI tests the MonadChainI function
 func TestMonadChainI(t *testing.T) {
 	t.Run("success case", func(t *testing.T) {
