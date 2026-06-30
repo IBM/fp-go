@@ -13,7 +13,6 @@ import (
 	"github.com/IBM/fp-go/v2/optics/encoder"
 	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/lens"
-	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -385,64 +384,6 @@ type (
 	//   - ApSL: Applicative sequencing with lens
 	//   - Optional: For fields that may not exist
 	Lens[S, A any] = lens.Lens[S, A]
-
-	// Optional is an optic that focuses on a field within a product type S that may not exist.
-	// It provides a way to get and set an optional field of type A within a structure of type S.
-	//
-	// An Optional[S, A] represents a relationship between a source type S and a focus type A,
-	// where the focus may or may not be present (unlike Lens where it always exists).
-	//
-	// Optional operations:
-	//   - GetOption: Try to extract the field value, returning Option[A]
-	//   - Set: Update the field value if it exists, returning a new S
-	//
-	// Optional laws:
-	//   1. GetSet (No-op on None): If GetOption returns None, Set has no effect
-	//      GetOption(s) = None => Set(a)(s) = s
-	//   2. SetGet (Get what you Set): If GetOption returns Some, you can get back what you set
-	//      GetOption(s) = Some(_) => GetOption(Set(a)(s)) = Some(a)
-	//   3. SetSet (Last Set Wins): Setting twice is the same as setting once with the final value
-	//      Set(b)(Set(a)(s)) = Set(b)(s)
-	//
-	// In the codec context, optionals are used with ApSO to build codecs for optional fields:
-	//   - Extract optional field values for encoding (only if present)
-	//   - Update optional field values during validation
-	//   - Handle nullable or pointer fields gracefully
-	//   - Compose codec operations on structures with optional data
-	//
-	// Example:
-	//   type Person struct {
-	//       Name     string
-	//       Nickname *string  // Optional field
-	//   }
-	//
-	//   nicknameOpt := optional.MakeOptional(
-	//       func(p Person) option.Option[string] {
-	//           if p.Nickname != nil {
-	//               return option.Some(*p.Nickname)
-	//           }
-	//           return option.None[string]()
-	//       },
-	//       func(p Person, nick string) Person {
-	//           p.Nickname = &nick
-	//           return p
-	//       },
-	//   )
-	//
-	//   // Use with ApSO to build a codec with optional field
-	//   personCodec := F.Pipe1(
-	//       codec.Struct[Person]("Person"),
-	//       codec.ApSO(S.Monoid, nicknameOpt, codec.String),
-	//   )
-	//
-	//   // Encoding omits the field when absent
-	//   p1 := Person{Name: "Alice", Nickname: nil}
-	//   encoded := personCodec.Encode(p1)  // No nickname in output
-	//
-	// See also:
-	//   - ApSO: Applicative sequencing with optional
-	//   - Lens: For fields that always exist
-	Optional[S, A any] = optional.Optional[S, A]
 
 	// Semigroup represents an algebraic structure with an associative binary operation.
 	//

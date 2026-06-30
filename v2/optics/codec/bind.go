@@ -21,6 +21,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
+	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/semigroup"
@@ -339,7 +340,7 @@ func ApSL[S, T, O, I any](
 //   - Optional: The optic for accessing optional fields
 func ApSO[S, T, O, I any](
 	m Monoid[O],
-	o Optional[S, T],
+	o optional.Optional[S, T],
 	fa Type[T, O, I],
 ) Operator[S, S, O, I] {
 	name := fmt.Sprintf("ApS[%s x %s]", o, fa)
