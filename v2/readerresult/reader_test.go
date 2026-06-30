@@ -639,3 +639,325 @@ func TestChainFirst(t *testing.T) {
 		assert.Equal(t, []string{"first:3", "second:3"}, log)
 	})
 }
+
+func TestMonadChainReaderK(t *testing.T) {
+	t.Run("sequences with a Reader-returning Kleisli and threads environment", func(t *testing.T) {
+		// f reads from the environment using the value from ma
+		f := func(x int) reader.Reader[MyContext, string] {
+			return func(ctx MyContext) string { return fmt.Sprintf("%s:%d", ctx, x) }
+		}
+		rr := Of[MyContext](42)
+		res := MonadChainReaderK(rr, f)(defaultContext)
+		assert.Equal(t, result.Of("default:42"), res)
+	})
+
+	t.Run("error in ma is propagated; f is not called", func(t *testing.T) {
+		var called bool
+		f := func(x int) reader.Reader[MyContext, string] {
+			called = true
+			return func(ctx MyContext) string { return "ok" }
+		}
+		res := MonadChainReaderK(Left[MyContext, int](testError), f)(defaultContext)
+		assert.Equal(t, result.Left[string](testError), res)
+		assert.False(t, called)
+	})
+}
+
+func TestChainReaderK(t *testing.T) {
+	t.Run("curried form works in Pipe", func(t *testing.T) {
+		f := func(x int) reader.Reader[MyContext, string] {
+			return func(ctx MyContext) string { return fmt.Sprintf("%s:%d", ctx, x) }
+		}
+		res := F.Pipe1(Of[MyContext](7), ChainReaderK[MyContext, int, string](f))(defaultContext)
+		assert.Equal(t, result.Of("default:7"), res)
+	})
+
+	t.Run("error propagates unchanged", func(t *testing.T) {
+		f := func(x int) reader.Reader[MyContext, string] {
+			return func(ctx MyContext) string { return "ok" }
+		}
+		res := F.Pipe1(Left[MyContext, int](testError), ChainReaderK[MyContext, int, string](f))(defaultContext)
+		assert.Equal(t, result.Left[string](testError), res)
+	})
+}
+
+func TestMonadApReader(t *testing.T) {
+	t.Run("applies a Reader value to a wrapped function", func(t *testing.T) {
+		add5 := func(x int) int { return x + 5 }
+		fab := Of[MyContext](add5)
+		fa := func(_ MyContext) int { return 10 }
+		res := MonadApReader[int](fab, fa)(defaultContext)
+		assert.Equal(t, result.Of(15), res)
+	})
+
+	t.Run("Reader reads from the environment", func(t *testing.T) {
+		prefix := func(s string) string { return "Hello " + s }
+		fab := Of[MyContext](prefix)
+		fa := func(ctx MyContext) string { return string(ctx) }
+		res := MonadApReader[string](fab, fa)(defaultContext)
+		assert.Equal(t, result.Of("Hello default"), res)
+	})
+
+	t.Run("error in fab propagates; fa is not applied", func(t *testing.T) {
+		fab := Left[MyContext, func(int) int](testError)
+		fa := func(_ MyContext) int { return 99 }
+		res := MonadApReader[int](fab, fa)(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+	})
+}
+
+func TestApReader(t *testing.T) {
+	t.Run("curried form works in Pipe", func(t *testing.T) {
+		double := func(x int) int { return x * 2 }
+		fab := Of[MyContext](double)
+		fa := func(_ MyContext) int { return 6 }
+		res := F.Pipe1(fab, ApReader[int, MyContext, int](fa))(defaultContext)
+		assert.Equal(t, result.Of(12), res)
+	})
+
+	t.Run("error in wrapped function propagates", func(t *testing.T) {
+		fab := Left[MyContext, func(int) int](testError)
+		fa := func(_ MyContext) int { return 6 }
+		res := F.Pipe1(fab, ApReader[int, MyContext, int](fa))(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+	})
+}
+
+func TestMonadChainResultK(t *testing.T) {
+	t.Run("chains with a Result-returning function on success", func(t *testing.T) {
+		double := func(x int) result.Result[int] { return result.Of(x * 2) }
+		res := MonadChainResultK(Of[MyContext](5), double)(defaultContext)
+		assert.Equal(t, result.Of(10), res)
+	})
+
+	t.Run("failure in chained function propagates", func(t *testing.T) {
+		chainErr := errors.New("chain error")
+		fail := func(x int) result.Result[int] { return result.Left[int](chainErr) }
+		res := MonadChainResultK(Of[MyContext](5), fail)(defaultContext)
+		assert.Equal(t, result.Left[int](chainErr), res)
+	})
+
+	t.Run("error in ma propagates; f is not called", func(t *testing.T) {
+		var called bool
+		f := func(x int) result.Result[int] { called = true; return result.Of(x) }
+		res := MonadChainResultK(Left[MyContext, int](testError), f)(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called)
+	})
+}
+
+func TestChainResultK(t *testing.T) {
+	t.Run("curried form works in Pipe", func(t *testing.T) {
+		double := func(x int) result.Result[int] { return result.Of(x * 2) }
+		res := F.Pipe1(Of[MyContext](4), ChainResultK[MyContext](double))(defaultContext)
+		assert.Equal(t, result.Of(8), res)
+	})
+
+	t.Run("error propagates unchanged", func(t *testing.T) {
+		double := func(x int) result.Result[int] { return result.Of(x * 2) }
+		res := F.Pipe1(Left[MyContext, int](testError), ChainResultK[MyContext](double))(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+	})
+}
+
+func TestMonadAlt(t *testing.T) {
+	t.Run("returns first when it succeeds", func(t *testing.T) {
+		first := Of[MyContext](42)
+		second := func() ReaderResult[MyContext, int] { return Of[MyContext](99) }
+		res := MonadAlt(first, second)(defaultContext)
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("falls back to second when first fails", func(t *testing.T) {
+		first := Left[MyContext, int](testError)
+		second := func() ReaderResult[MyContext, int] { return Of[MyContext](99) }
+		res := MonadAlt(first, second)(defaultContext)
+		assert.Equal(t, result.Of(99), res)
+	})
+
+	t.Run("second is lazy: not evaluated when first succeeds", func(t *testing.T) {
+		var evaluated bool
+		first := Of[MyContext](1)
+		second := func() ReaderResult[MyContext, int] {
+			evaluated = true
+			return Of[MyContext](99)
+		}
+		_ = MonadAlt(first, second)(defaultContext)
+		assert.False(t, evaluated, "second should not be evaluated when first succeeds")
+	})
+
+	t.Run("second failure is propagated when first also fails", func(t *testing.T) {
+		secondErr := errors.New("second failed")
+		first := Left[MyContext, int](testError)
+		second := func() ReaderResult[MyContext, int] { return Left[MyContext, int](secondErr) }
+		res := MonadAlt(first, second)(defaultContext)
+		assert.Equal(t, result.Left[int](secondErr), res)
+	})
+}
+
+func TestAlt(t *testing.T) {
+	t.Run("returns original value when it succeeds", func(t *testing.T) {
+		second := func() ReaderResult[MyContext, int] { return Of[MyContext](99) }
+		res := F.Pipe1(Of[MyContext](7), Alt(second))(defaultContext)
+		assert.Equal(t, result.Of(7), res)
+	})
+
+	t.Run("falls back to second when original fails", func(t *testing.T) {
+		second := func() ReaderResult[MyContext, int] { return Of[MyContext](99) }
+		res := F.Pipe1(Left[MyContext, int](testError), Alt(second))(defaultContext)
+		assert.Equal(t, result.Of(99), res)
+	})
+
+	t.Run("second is lazy: not evaluated on success", func(t *testing.T) {
+		var evaluated bool
+		second := func() ReaderResult[MyContext, int] {
+			evaluated = true
+			return Of[MyContext](99)
+		}
+		_ = F.Pipe1(Of[MyContext](1), Alt(second))(defaultContext)
+		assert.False(t, evaluated)
+	})
+}
+
+func TestMonadChainFirstI(t *testing.T) {
+	t.Run("success: preserves original value and executes idiomatic side effect", func(t *testing.T) {
+		var capturedVal int
+		f := func(x int) func(MyContext) (string, error) {
+			return func(ctx MyContext) (string, error) {
+				capturedVal = x
+				return "logged", nil
+			}
+		}
+		res := MonadChainFirstI(Of[MyContext](42), f)(defaultContext)
+		assert.Equal(t, result.Of(42), res)
+		assert.Equal(t, 42, capturedVal)
+	})
+
+	t.Run("failure: propagates error without calling f", func(t *testing.T) {
+		var called bool
+		f := func(x int) func(MyContext) (string, error) {
+			return func(ctx MyContext) (string, error) {
+				called = true
+				return "", nil
+			}
+		}
+		res := MonadChainFirstI(Left[MyContext, int](testError), f)(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called)
+	})
+
+	t.Run("side-effect error propagates", func(t *testing.T) {
+		sideError := errors.New("side failed")
+		f := func(x int) func(MyContext) (string, error) {
+			return func(ctx MyContext) (string, error) { return "", sideError }
+		}
+		res := MonadChainFirstI(Of[MyContext](10), f)(defaultContext)
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+}
+
+func TestChainFirstI(t *testing.T) {
+	t.Run("curried form preserves original value", func(t *testing.T) {
+		var capturedVal int
+		f := func(x int) func(MyContext) (string, error) {
+			return func(ctx MyContext) (string, error) {
+				capturedVal = x
+				return "logged", nil
+			}
+		}
+		res := F.Pipe1(Of[MyContext](5), ChainFirstI[MyContext, int, string](f))(defaultContext)
+		assert.Equal(t, result.Of(5), res)
+		assert.Equal(t, 5, capturedVal)
+	})
+
+	t.Run("error propagates without calling f", func(t *testing.T) {
+		var called bool
+		f := func(x int) func(MyContext) (string, error) {
+			return func(ctx MyContext) (string, error) { called = true; return "", nil }
+		}
+		res := F.Pipe1(Left[MyContext, int](testError), ChainFirstI[MyContext, int, string](f))(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called)
+	})
+}
+
+func TestMonadChainFirstResultK(t *testing.T) {
+	t.Run("success: preserves original value after Result side effect", func(t *testing.T) {
+		validate := func(x int) result.Result[string] {
+			if x > 0 {
+				return result.Of("valid")
+			}
+			return result.Left[string](errors.New("not positive"))
+		}
+		res := MonadChainFirstResultK(Of[MyContext](42), validate)(defaultContext)
+		assert.Equal(t, result.Of(42), res)
+	})
+
+	t.Run("side-effect failure propagates", func(t *testing.T) {
+		sideError := errors.New("validation failed")
+		fail := func(x int) result.Result[string] { return result.Left[string](sideError) }
+		res := MonadChainFirstResultK(Of[MyContext](42), fail)(defaultContext)
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+
+	t.Run("error in ma propagates without calling f", func(t *testing.T) {
+		var called bool
+		f := func(x int) result.Result[string] { called = true; return result.Of("ok") }
+		res := MonadChainFirstResultK(Left[MyContext, int](testError), f)(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called)
+	})
+}
+
+func TestChainFirstResultK(t *testing.T) {
+	t.Run("curried form preserves original value", func(t *testing.T) {
+		validate := func(x int) result.Result[string] { return result.Of("ok") }
+		res := F.Pipe1(Of[MyContext](3), ChainFirstResultK[MyContext](validate))(defaultContext)
+		assert.Equal(t, result.Of(3), res)
+	})
+
+	t.Run("side-effect failure propagates in pipeline", func(t *testing.T) {
+		sideError := errors.New("fail")
+		fail := func(x int) result.Result[string] { return result.Left[string](sideError) }
+		res := F.Pipe1(Of[MyContext](3), ChainFirstResultK[MyContext](fail))(defaultContext)
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+}
+
+func TestMonadChainFirstResultIK(t *testing.T) {
+	t.Run("success: preserves original value after idiomatic side effect", func(t *testing.T) {
+		log := func(x int) (string, error) { return fmt.Sprintf("logged %d", x), nil }
+		res := MonadChainFirstResultIK(Of[MyContext](7), log)(defaultContext)
+		assert.Equal(t, result.Of(7), res)
+	})
+
+	t.Run("idiomatic side-effect error propagates", func(t *testing.T) {
+		sideError := errors.New("log failed")
+		fail := func(x int) (string, error) { return "", sideError }
+		res := MonadChainFirstResultIK(Of[MyContext](7), fail)(defaultContext)
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+
+	t.Run("error in ma propagates without calling f", func(t *testing.T) {
+		var called bool
+		f := func(x int) (string, error) { called = true; return "", nil }
+		res := MonadChainFirstResultIK(Left[MyContext, int](testError), f)(defaultContext)
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called)
+	})
+}
+
+func TestChainFirstResultIK(t *testing.T) {
+	t.Run("curried form preserves original value", func(t *testing.T) {
+		log := func(x int) (string, error) { return "ok", nil }
+		res := F.Pipe1(Of[MyContext](9), ChainFirstResultIK[MyContext](log))(defaultContext)
+		assert.Equal(t, result.Of(9), res)
+	})
+
+	t.Run("idiomatic side-effect error propagates in pipeline", func(t *testing.T) {
+		sideError := errors.New("fail")
+		fail := func(x int) (string, error) { return "", sideError }
+		res := F.Pipe1(Of[MyContext](9), ChainFirstResultIK[MyContext](fail))(defaultContext)
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+}

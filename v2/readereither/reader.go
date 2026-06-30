@@ -549,3 +549,22 @@ func MonadChainFirst[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) ReaderE
 func ChainFirst[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, A] {
 	return readert.ChainFirst[ReaderEither[E, L, A]](ET.ChainFirst[L, A, B], f)
 }
+
+func MonadChainFirstEitherK[E, L, A, B any](ma ReaderEither[E, L, A], f either.Kleisli[L, A, B]) ReaderEither[E, L, A] {
+	return fromeither.MonadChainFirstEitherK(
+		MonadChain[E, L, A, A],
+		MonadMap[E, L, B, A],
+		FromEither[E, L, B],
+		ma,
+		f,
+	)
+}
+
+func ChainFirstEitherK[E, L, A, B any](f either.Kleisli[L, A, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, A] {
+	return fromeither.ChainFirstEitherK(
+		Chain[E, L, A, A],
+		Map[E, L, B, A],
+		FromEither[E, L, B],
+		f,
+	)
+}
