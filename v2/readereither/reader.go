@@ -541,3 +541,11 @@ func Alt[R, E, A any](second Lazy[ReaderEither[R, E, A]]) Operator[R, E, A, A] {
 		second,
 	)
 }
+
+func MonadChainFirst[E, L, A, B any](ma ReaderEither[E, L, A], f func(A) ReaderEither[E, L, B]) ReaderEither[E, L, A] {
+	return readert.MonadChainFirst(ET.MonadChainFirst[L, A, B], ma, f)
+}
+
+func ChainFirst[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, A] {
+	return readert.ChainFirst[ReaderEither[E, L, A]](ET.ChainFirst[L, A, B], f)
+}

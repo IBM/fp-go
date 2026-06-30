@@ -619,12 +619,11 @@ func Asks[R, A any](r Reader[R, A]) ReaderResult[R, A] {
 //
 //go:inline
 func MonadChainEitherK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, B] {
-	return fromeither.MonadChainEitherK(
-		MonadChain[R, A, B],
-		FromEither[R, B],
-		ma,
-		f,
-	)
+	return readereither.MonadChainEitherK(ma, f)
+}
+
+func MonadChainResultK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, B] {
+	return MonadChainEitherK(ma, f)
 }
 
 // MonadChainEitherIK chains a ReaderResult with an idiomatic function that returns (B, error).
@@ -655,11 +654,11 @@ func MonadChainEitherIK[R, A, B any](ma ReaderResult[R, A], f RI.Kleisli[A, B]) 
 //
 //go:inline
 func ChainEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
-	return fromeither.ChainEitherK(
-		Chain[R, A, B],
-		FromEither[R, B],
-		f,
-	)
+	return readereither.ChainEitherK[R](f)
+}
+
+func ChainResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
+	return ChainEitherK[R](f)
 }
 
 // ChainEitherIK is the curried version of MonadChainEitherIK.
@@ -967,4 +966,78 @@ func FromOption[R, A any](onNone Lazy[error]) Kleisli[R, Option[A], A] {
 //   - FromOption: for lifting a plain Option instead of a ReaderOption
 func FromReaderOption[R, A any](onNone Lazy[error]) Kleisli[R, ReaderOption[R, A], A] {
 	return readereither.FromReaderOption[R, A](onNone)
+}
+
+// MonadChainFirst sequences two ReaderResult computations, executing the second for its
+// side effects but returning the value from the first. If the first computation fails,
+// the second is not executed and the error is propagated unchanged.
+//
+// This is useful for performing side-effecting work such as logging or validation without
+// altering the success value flowing through the pipeline.
+//
+// Type Parameters:
+//   - R: The environment type shared by both computations
+//   - A: The success type of the first ReaderResult (preserved and returned)
+//   - B: The success type of the second ReaderResult (discarded)
+//
+// Parameters:
+//   - ma: The primary ReaderResult computation whose success value is preserved
+//   - f: A Kleisli arrow applied to the success value of ma for its side effects
+//
+// Returns:
+//   - A ReaderResult that runs both computations but returns the value from ma
+//
+// Example:
+//
+//	rr := readerresult.Of[Config](42)
+//	withLogging := readerresult.MonadChainFirst(rr, func(x int) readerresult.ReaderResult[Config, string] {
+//	    fmt.Printf("Value: %d\n", x) // side effect
+//	    return readerresult.Of[Config]("logged")
+//	})
+//	// withLogging(cfg) prints "Value: 42" and returns result.Of(42)
+//
+//go:inline
+func MonadChainFirst[R, A, B any](ma ReaderResult[R, A], f Kleisli[R, A, B]) ReaderResult[R, A] {
+	return readereither.MonadChainFirst(ma, f)
+}
+
+// ChainFirst is the curried version of MonadChainFirst.
+// It sequences two ReaderResult computations, executing the second for its side effects
+// but returning the value from the first. If the computation is already in a failed
+// state, f is not invoked and the error is propagated unchanged.
+//
+// This is useful for attaching side effects such as logging or auditing to a pipeline
+// without modifying the success value.
+//
+// Type Parameters:
+//   - R: The environment type shared by both computations
+//   - A: The success type of the first ReaderResult (preserved and returned)
+//   - B: The success type of the second ReaderResult (discarded)
+//
+// Parameters:
+//   - f: A Kleisli arrow applied to the success value for its side effects
+//
+// Returns:
+//   - An Operator that runs both computations but returns the original value
+//
+// Example:
+//
+//	logValue := readerresult.ChainFirst[Config, int, string](func(x int) readerresult.ReaderResult[Config, string] {
+//	    fmt.Printf("Value: %d\n", x) // side effect
+//	    return readerresult.Of[Config]("logged")
+//	})
+//	result := F.Pipe1(readerresult.Of[Config](42), logValue)
+//	// result(cfg) prints "Value: 42" and returns result.Of(42)
+//
+//go:inline
+func ChainFirst[R, A, B any](f Kleisli[R, A, B]) Operator[R, A, A] {
+	return readereither.ChainFirst(f)
+}
+
+func MonadChainFirstI[R, A, B any](ma ReaderResult[R, A], f RRI.Kleisli[R, A, B]) ReaderResult[R, A] {
+	return MonadChainFirst(ma, fromReaderResultKleisliI(f))
+}
+
+func ChainFirstI[R, A, B any](f RRI.Kleisli[R, A, B]) Operator[R, A, A] {
+	return ChainFirst(fromReaderResultKleisliI(f))
 }

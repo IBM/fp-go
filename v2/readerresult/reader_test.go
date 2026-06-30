@@ -495,3 +495,147 @@ func TestFromReaderOption(t *testing.T) {
 		assert.Equal(t, result.Of(10), res)
 	})
 }
+
+func TestMonadChainFirst(t *testing.T) {
+	t.Run("success: preserves original value and executes side effect", func(t *testing.T) {
+		var sideEffect int
+		record := func(x int) ReaderResult[MyContext, string] {
+			sideEffect = x
+			return Of[MyContext]("logged")
+		}
+
+		rr := Of[MyContext](42)
+		res := MonadChainFirst(rr, record)(defaultContext)
+
+		assert.Equal(t, result.Of(42), res)
+		assert.Equal(t, 42, sideEffect)
+	})
+
+	t.Run("failure: propagates error without invoking side effect", func(t *testing.T) {
+		var called bool
+		record := func(x int) ReaderResult[MyContext, string] {
+			called = true
+			return Of[MyContext]("logged")
+		}
+
+		rr := Left[MyContext, int](testError)
+		res := MonadChainFirst(rr, record)(defaultContext)
+
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called, "side-effect function should not be called on failure")
+	})
+
+	t.Run("success: discards return value of side-effect computation", func(t *testing.T) {
+		sideEffect := func(x int) ReaderResult[MyContext, string] {
+			return Of[MyContext]("ignored")
+		}
+
+		rr := Of[MyContext](99)
+		res := MonadChainFirst(rr, sideEffect)(defaultContext)
+
+		assert.Equal(t, result.Of(99), res)
+	})
+
+	t.Run("side-effect failure propagates as error", func(t *testing.T) {
+		sideError := errors.New("side effect failed")
+		failingSideEffect := func(x int) ReaderResult[MyContext, string] {
+			return Left[MyContext, string](sideError)
+		}
+
+		rr := Of[MyContext](10)
+		res := MonadChainFirst(rr, failingSideEffect)(defaultContext)
+
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+
+	t.Run("side-effect receives the environment", func(t *testing.T) {
+		var capturedCtx MyContext
+		record := func(_ int) ReaderResult[MyContext, string] {
+			return func(ctx MyContext) result.Result[string] {
+				capturedCtx = ctx
+				return result.Of("ok")
+			}
+		}
+
+		rr := Of[MyContext](7)
+		_ = MonadChainFirst(rr, record)(defaultContext)
+
+		assert.Equal(t, defaultContext, capturedCtx)
+	})
+}
+
+func TestChainFirst(t *testing.T) {
+	t.Run("success: preserves original value and executes side effect", func(t *testing.T) {
+		var sideEffect int
+		record := func(x int) ReaderResult[MyContext, string] {
+			sideEffect = x
+			return Of[MyContext]("logged")
+		}
+
+		res := F.Pipe1(Of[MyContext](42), ChainFirst[MyContext, int, string](record))(defaultContext)
+
+		assert.Equal(t, result.Of(42), res)
+		assert.Equal(t, 42, sideEffect)
+	})
+
+	t.Run("failure: propagates error without invoking side effect", func(t *testing.T) {
+		var called bool
+		record := func(x int) ReaderResult[MyContext, string] {
+			called = true
+			return Of[MyContext]("logged")
+		}
+
+		res := F.Pipe1(Left[MyContext, int](testError), ChainFirst[MyContext, int, string](record))(defaultContext)
+
+		assert.Equal(t, result.Left[int](testError), res)
+		assert.False(t, called, "side-effect function should not be called on failure")
+	})
+
+	t.Run("composes with other operators via Pipe", func(t *testing.T) {
+		var log []int
+		record := func(x int) ReaderResult[MyContext, string] {
+			log = append(log, x)
+			return Of[MyContext]("ok")
+		}
+
+		res := F.Pipe1(
+			Of[MyContext](5),
+			ChainFirst[MyContext, int, string](record),
+		)(defaultContext)
+
+		assert.Equal(t, result.Of(5), res)
+		assert.Equal(t, []int{5}, log)
+	})
+
+	t.Run("side-effect failure propagates as error", func(t *testing.T) {
+		sideError := errors.New("side effect failed")
+		failingSideEffect := func(x int) ReaderResult[MyContext, string] {
+			return Left[MyContext, string](sideError)
+		}
+
+		res := F.Pipe1(Of[MyContext](10), ChainFirst[MyContext, int, string](failingSideEffect))(defaultContext)
+
+		assert.Equal(t, result.Left[int](sideError), res)
+	})
+
+	t.Run("chained multiple times keeps first value", func(t *testing.T) {
+		var log []string
+		appendLog := func(label string) func(int) ReaderResult[MyContext, string] {
+			return func(x int) ReaderResult[MyContext, string] {
+				log = append(log, fmt.Sprintf("%s:%d", label, x))
+				return Of[MyContext]("ok")
+			}
+		}
+
+		res := F.Pipe1(
+			F.Pipe1(
+				Of[MyContext](3),
+				ChainFirst[MyContext, int, string](appendLog("first")),
+			),
+			ChainFirst[MyContext, int, string](appendLog("second")),
+		)(defaultContext)
+
+		assert.Equal(t, result.Of(3), res)
+		assert.Equal(t, []string{"first:3", "second:3"}, log)
+	})
+}
