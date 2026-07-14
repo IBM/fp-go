@@ -12,6 +12,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
+	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1505,7 +1506,7 @@ func TestFromRefinement(t *testing.T) {
 			}
 			return option.None[int]()
 		},
-		func(n int) int { return n },
+		reader.Ask[int](),
 		"PositiveInt",
 	)
 
@@ -1588,7 +1589,7 @@ func TestFromRefinementWithRange(t *testing.T) {
 			}
 			return option.None[int]()
 		},
-		func(n int) int { return n },
+		reader.Ask[int](),
 		"BoundedInt[0,100]",
 	)
 
@@ -1630,7 +1631,7 @@ func TestFromRefinementComposition(t *testing.T) {
 			}
 			return option.None[int]()
 		},
-		func(n int) int { return n },
+		reader.Ask[int](),
 		"PositiveInt",
 	)
 
@@ -1717,7 +1718,7 @@ func TestFromRefinementValidationContext(t *testing.T) {
 			}
 			return option.None[int]()
 		},
-		func(n int) int { return n },
+		reader.Ask[int](),
 		"PositiveInt",
 	)
 
@@ -2074,7 +2075,7 @@ func TestEmpty_Integration(t *testing.T) {
 				}
 				return option.None[int]()
 			},
-			func(n int) int { return n },
+			reader.Ask[int](),
 			"PositiveInt",
 		)
 

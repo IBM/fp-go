@@ -11,6 +11,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/pair"
@@ -102,13 +103,18 @@ func (t *typeImpl[A, O, I]) Is(i any) Result[A] {
 //	intToPositive := codec.MakeType(...) // Type[PositiveInt, int, int]
 //	composed := codec.Pipe(intToPositive)(stringToInt) // Type[PositiveInt, string, string]
 func Pipe[O, I, A, B any](ab Type[B, A, A]) Operator[A, B, O, I] {
+	ap := reader.Ap[Decode[Context, B]](ab.Validate)
 	return func(this Type[A, O, I]) Type[B, O, I] {
+		append := F.Flow2(
+			appendContext[A]("|", this.Name()),
+			reader.Local[Validation[B]],
+		)
 		return MakeType(
 			fmt.Sprintf("Pipe(%s, %s)", this.Name(), ab.Name()),
 			ab.Is,
 			F.Flow2(
 				this.Validate,
-				readereither.Chain(ab.Validate),
+				decode.Chain(ap(append)),
 			),
 			F.Flow2(
 				ab.Encode,
@@ -255,8 +261,10 @@ func Bool() Type[bool, bool, any] {
 	return MakeSimpleType[bool]()
 }
 
-func appendContext(key, typ string, actual any) Endomorphism[Context] {
-	return A.Push(validation.ContextEntry{Key: key, Type: typ, Actual: actual})
+func appendContext[T any](key, typ string) Reader[T, Endomorphism[Context]] {
+	return func(actual T) Endomorphism[Context] {
+		return A.Push(validation.ContextEntry{Key: key, Type: typ, Actual: actual})
+	}
 }
 
 type validationPair[T any] = Pair[validation.Errors, T]
@@ -292,7 +300,7 @@ func validateArrayFromArray[T, O, I any](item Type[T, O, I]) Validate[[]I, []T] 
 			return F.Pipe1(
 				A.MonadReduceWithIndex(is, func(i int, p validationPair[[]T], v I) validationPair[[]T] {
 					return either.MonadFold(
-						item.Validate(v)(appendContext(strconv.Itoa(i), itemName, v)(c)),
+						item.Validate(v)(appendContext[I](strconv.Itoa(i), itemName)(v)(c)),
 						appendErrors,
 						appendValues,
 					)(p)
@@ -341,7 +349,7 @@ func validateArray[T, O any](item Type[T, O, any]) Validate[any, []T] {
 					R.MonadReduceWithIndex(val, func(i int, p validationPair[[]T], v reflect.Value) validationPair[[]T] {
 						vIface := v.Interface()
 						return either.MonadFold(
-							item.Validate(vIface)(appendContext(strconv.Itoa(i), itemName, vIface)(c)),
+							item.Validate(vIface)(appendContext[any](strconv.Itoa(i), itemName)(vIface)(c)),
 							appendErrors,
 							appendValues,
 						)(p)
