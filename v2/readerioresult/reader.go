@@ -1096,3 +1096,8 @@ func ReadIOResult[A, R any](r IOResult[R]) func(ReaderIOResult[R, A]) IOResult[A
 func ReadIO[A, R any](r IO[R]) func(ReaderIOResult[R, A]) IOResult[A] {
 	return RIOE.ReadIO[error, A](r)
 }
+
+// executes a breakpoint trap
+func Breakpoint[R, A any]() Operator[R, A, A] {
+	return RIOE.Breakpoint[R, error, A]()
+}

@@ -1321,3 +1321,422 @@ func TestSLogRightComparison(t *testing.T) {
 	assert.Contains(t, logOutput, "Using SLogRight")
 	assert.Contains(t, logOutput, "Using TapSLog")
 }
+
+// ---------------------------------------------------------------------------
+// SLogInfo
+// ---------------------------------------------------------------------------
+
+// TestSLogInfo_LogsSuccessAtInfoLevel verifies that SLogInfo produces an INFO entry
+// with both the message and the structured value attribute for a Right Result.
+func TestSLogInfo_LogsSuccessAtInfoLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	SLogInfo[int]("info success")(result.Of(42))(t.Context())()
+
+	log := buf.String()
+	assert.Contains(t, log, "level=INFO")
+	assert.Contains(t, log, "info success")
+	assert.Contains(t, log, "value=42")
+}
+
+// TestSLogInfo_LogsErrorAtInfoLevel verifies that SLogInfo produces an INFO entry
+// with the error attribute when given a Left Result.
+func TestSLogInfo_LogsErrorAtInfoLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	testErr := errors.New("info error")
+	SLogInfo[int]("info failure")(result.Left[int](testErr))(t.Context())()
+
+	log := buf.String()
+	assert.Contains(t, log, "level=INFO")
+	assert.Contains(t, log, "info failure")
+	assert.Contains(t, log, "info error")
+}
+
+// TestSLogInfo_EquivalentToSLog verifies that SLogInfo and SLog produce identical
+// structured log output for the same message and Result.
+func TestSLogInfo_EquivalentToSLog(t *testing.T) {
+	var buf1, buf2 bytes.Buffer
+
+	infoLogger := slog.New(slog.NewTextHandler(&buf1, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slogLogger := slog.New(slog.NewTextHandler(&buf2, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	oldLogger := logging.SetLogger(infoLogger)
+	SLogInfo[int]("msg")(result.Of(7))(t.Context())()
+	logging.SetLogger(oldLogger)
+
+	oldLogger = logging.SetLogger(slogLogger)
+	SLog[int]("msg")(result.Of(7))(t.Context())()
+	logging.SetLogger(oldLogger)
+
+	assert.Contains(t, buf1.String(), "msg")
+	assert.Contains(t, buf1.String(), "value=7")
+	assert.Contains(t, buf2.String(), "msg")
+	assert.Contains(t, buf2.String(), "value=7")
+}
+
+// TestSLogInfo_SuppressedAboveInfo verifies that no output is produced when the
+// logger's minimum level is above Info.
+func TestSLogInfo_SuppressedAboveInfo(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	SLogInfo[int]("hidden")(result.Of(1))(t.Context())()
+
+	assert.Empty(t, buf.String())
+}
+
+// TestSLogInfo_ReturnsVoid verifies that SLogInfo always returns Right(Void) regardless
+// of whether the input Result is a success or an error.
+func TestSLogInfo_ReturnsVoid(t *testing.T) {
+	var buf bytes.Buffer
+	oldLogger := logging.SetLogger(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	defer logging.SetLogger(oldLogger)
+
+	ctx := t.Context()
+
+	assert.Equal(t, result.Of(F.VOID), SLogInfo[int]("ok")(result.Of(5))(ctx)())
+	assert.Equal(t, result.Of(F.VOID), SLogInfo[int]("err")(result.Left[int](errors.New("e")))(ctx)())
+}
+
+// ---------------------------------------------------------------------------
+// SLogDebug
+// ---------------------------------------------------------------------------
+
+// TestSLogDebug_LogsSuccessAtDebugLevel verifies that SLogDebug produces a DEBUG entry
+// with the value attribute when the logger accepts Debug messages.
+func TestSLogDebug_LogsSuccessAtDebugLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	SLogDebug[int]("debug success")(result.Of(99))(t.Context())()
+
+	log := buf.String()
+	assert.Contains(t, log, "level=DEBUG")
+	assert.Contains(t, log, "debug success")
+	assert.Contains(t, log, "value=99")
+}
+
+// TestSLogDebug_LogsErrorAtDebugLevel verifies that SLogDebug produces a DEBUG entry
+// with the error attribute for a Left Result.
+func TestSLogDebug_LogsErrorAtDebugLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	testErr := errors.New("debug error")
+	SLogDebug[int]("debug failure")(result.Left[int](testErr))(t.Context())()
+
+	log := buf.String()
+	assert.Contains(t, log, "level=DEBUG")
+	assert.Contains(t, log, "debug failure")
+	assert.Contains(t, log, "debug error")
+}
+
+// TestSLogDebug_SuppressedAtInfoLevel verifies that no output is produced when the
+// logger's minimum level is Info (i.e., Debug is filtered out), while the computation
+// still returns Right(Void).
+func TestSLogDebug_SuppressedAtInfoLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	ctx := t.Context()
+	res := SLogDebug[int]("silent debug")(result.Of(3))(ctx)()
+
+	assert.Empty(t, buf.String(), "Debug entry must not appear when logger level is Info")
+	assert.Equal(t, result.Of(F.VOID), res)
+}
+
+// TestSLogDebug_UsesContextLogger verifies that a logger injected via
+// logging.WithLogger is preferred over the global logger.
+func TestSLogDebug_UsesContextLogger(t *testing.T) {
+	var buf bytes.Buffer
+	contextLogger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	cancelFct, ctx := pair.Unpack(logging.WithLogger(contextLogger)(t.Context()))
+	defer cancelFct()
+
+	SLogDebug[string]("ctx debug")(result.Of("hello"))(ctx)()
+
+	log := buf.String()
+	assert.Contains(t, log, "level=DEBUG")
+	assert.Contains(t, log, "ctx debug")
+	assert.Contains(t, log, "value=hello")
+}
+
+// ---------------------------------------------------------------------------
+// TapSLogInfo
+// ---------------------------------------------------------------------------
+
+// TestTapSLogInfo_LogsSuccessAndPreservesResult verifies that TapSLogInfo writes an
+// INFO entry and passes the successful ReaderIOResult through unchanged.
+func TestTapSLogInfo_LogsSuccessAndPreservesResult(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	pipeline := F.Pipe2(
+		Of(42),
+		TapSLogInfo[int]("tapsloginfo success"),
+		Map(N.Mul(2)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.Equal(t, result.Of(84), res)
+	log := buf.String()
+	assert.Contains(t, log, "level=INFO")
+	assert.Contains(t, log, "tapsloginfo success")
+	assert.Contains(t, log, "value=42")
+}
+
+// TestTapSLogInfo_LogsErrorAndPreservesResult verifies that TapSLogInfo writes an
+// INFO entry for errors and the Left Result is propagated unchanged.
+func TestTapSLogInfo_LogsErrorAndPreservesResult(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	testErr := errors.New("tapsloginfo error")
+	pipeline := F.Pipe2(
+		Left[int](testErr),
+		TapSLogInfo[int]("tapsloginfo on error"),
+		Map(N.Mul(2)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.True(t, result.IsLeft(res))
+	log := buf.String()
+	assert.Contains(t, log, "level=INFO")
+	assert.Contains(t, log, "tapsloginfo on error")
+	assert.Contains(t, log, "tapsloginfo error")
+}
+
+// TestTapSLogInfo_SuppressedAboveInfo verifies that the pipeline still produces the
+// correct result when Info logging is disabled, with no output written.
+func TestTapSLogInfo_SuppressedAboveInfo(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	pipeline := F.Pipe2(
+		Of(5),
+		TapSLogInfo[int]("invisible"),
+		Map(N.Mul(3)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.Equal(t, result.Of(15), res)
+	assert.Empty(t, buf.String())
+}
+
+// TestTapSLogInfo_EquivalentToTapSLog verifies that TapSLogInfo and TapSLog produce
+// identical output and results for the same pipeline.
+func TestTapSLogInfo_EquivalentToTapSLog(t *testing.T) {
+	var buf1, buf2 bytes.Buffer
+
+	makeLogger := func(buf *bytes.Buffer) *slog.Logger {
+		return slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	}
+
+	oldLogger := logging.SetLogger(makeLogger(&buf1))
+	res1 := F.Pipe1(Of(9), TapSLogInfo[int]("same"))(t.Context())()
+	logging.SetLogger(oldLogger)
+
+	oldLogger = logging.SetLogger(makeLogger(&buf2))
+	res2 := F.Pipe1(Of(9), TapSLog[int]("same"))(t.Context())()
+	logging.SetLogger(oldLogger)
+
+	assert.Equal(t, res1, res2)
+	assert.Contains(t, buf1.String(), "value=9")
+	assert.Contains(t, buf2.String(), "value=9")
+}
+
+// TestTapSLogInfo_MultiStep verifies that multiple TapSLogInfo steps each log their
+// own snapshot of the value at that point in the pipeline.
+func TestTapSLogInfo_MultiStep(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	pipeline := F.Pipe4(
+		Of(1),
+		TapSLogInfo[int]("step 1"),
+		Map(N.Mul(2)),
+		TapSLogInfo[int]("step 2"),
+		Map(N.Mul(3)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.Equal(t, result.Of(6), res)
+
+	log := buf.String()
+	assert.Contains(t, log, "step 1")
+	assert.Contains(t, log, "value=1")
+	assert.Contains(t, log, "step 2")
+	assert.Contains(t, log, "value=2")
+}
+
+// ---------------------------------------------------------------------------
+// TapSLogDebug
+// ---------------------------------------------------------------------------
+
+// TestTapSLogDebug_LogsSuccessAtDebugLevelAndPreservesResult verifies that TapSLogDebug
+// writes a DEBUG entry and passes the successful ReaderIOResult through unchanged.
+func TestTapSLogDebug_LogsSuccessAtDebugLevelAndPreservesResult(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	pipeline := F.Pipe2(
+		Of(8),
+		TapSLogDebug[int]("debug tap success"),
+		Map(N.Mul(5)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.Equal(t, result.Of(40), res)
+	log := buf.String()
+	assert.Contains(t, log, "level=DEBUG")
+	assert.Contains(t, log, "debug tap success")
+	assert.Contains(t, log, "value=8")
+}
+
+// TestTapSLogDebug_LogsErrorAtDebugLevel verifies that TapSLogDebug writes a DEBUG
+// entry for errors and the Left Result is propagated unchanged.
+func TestTapSLogDebug_LogsErrorAtDebugLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	testErr := errors.New("debug tap error")
+	pipeline := F.Pipe2(
+		Left[int](testErr),
+		TapSLogDebug[int]("debug on error"),
+		Map(N.Mul(2)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.True(t, result.IsLeft(res))
+	log := buf.String()
+	assert.Contains(t, log, "level=DEBUG")
+	assert.Contains(t, log, "debug on error")
+	assert.Contains(t, log, "debug tap error")
+}
+
+// TestTapSLogDebug_SuppressedAtInfoLevel verifies that no output is produced and the
+// pipeline result is still correct when Debug is filtered out.
+func TestTapSLogDebug_SuppressedAtInfoLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	pipeline := F.Pipe2(
+		Of(6),
+		TapSLogDebug[int]("should not appear"),
+		Map(N.Mul(2)),
+	)
+
+	res := pipeline(t.Context())()
+
+	assert.Equal(t, result.Of(12), res)
+	assert.Empty(t, buf.String(), "Debug entry must not appear when logger level is Info")
+}
+
+// TestTapSLogDebug_LazyExecution verifies that no output is produced until the
+// resulting IO is actually executed.
+func TestTapSLogDebug_LazyExecution(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	oldLogger := logging.SetLogger(logger)
+	defer logging.SetLogger(oldLogger)
+
+	pipeline := F.Pipe1(Of(2), TapSLogDebug[int]("lazy debug"))
+	readerIO := pipeline(t.Context())
+
+	assert.Empty(t, buf.String(), "no output expected before IO execution")
+
+	_ = readerIO()
+
+	assert.Contains(t, buf.String(), "lazy debug")
+}
+
+// TestTapSLogDebug_UsesContextLogger verifies that a logger injected via
+// logging.WithLogger is preferred over the global logger.
+func TestTapSLogDebug_UsesContextLogger(t *testing.T) {
+	var buf bytes.Buffer
+	contextLogger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	cancelFct, ctx := pair.Unpack(logging.WithLogger(contextLogger)(t.Context()))
+	defer cancelFct()
+
+	pipeline := F.Pipe1(
+		Of("hello"),
+		TapSLogDebug[string]("ctx debug tap"),
+	)
+
+	res := pipeline(ctx)()
+
+	assert.Equal(t, result.Of("hello"), res)
+	log := buf.String()
+	assert.Contains(t, log, "level=DEBUG")
+	assert.Contains(t, log, "ctx debug tap")
+	assert.Contains(t, log, "value=hello")
+}

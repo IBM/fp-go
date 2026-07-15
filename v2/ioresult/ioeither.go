@@ -514,3 +514,8 @@ func TapLeft[A, B any](f Kleisli[error, B]) Operator[A, A] {
 func OrElse[A any](onLeft Kleisli[error, A]) Operator[A, A] {
 	return ioeither.OrElse(onLeft)
 }
+
+// executes a breakpoint trap
+func Breakpoint[A any]() Operator[A, A] {
+	return ioeither.Breakpoint[error, A]()
+}

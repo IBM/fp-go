@@ -537,6 +537,60 @@ func SLog[A any](message string) Kleisli[Result[A], Void] {
 	return SLogWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, message)
 }
 
+// SLogInfo creates a Kleisli arrow that logs a Result value (success or error) at Info level.
+// It is an explicit alias for SLog, provided for symmetry with SLogDebug when the desired
+// log level needs to be clear at the call site.
+//
+// Type Parameters:
+//   - A: The success type of the Result
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - A Kleisli arrow that logs the Result (value or error) at Info level and returns Void
+//
+// See Also:
+//   - SLog: The function this delegates to
+//   - SLogDebug: The Debug-level counterpart
+//   - SLogWithCallback: For logging with a custom logger callback or log level
+//   - TapSLogInfo: The corresponding tap operator that preserves the ReaderIOResult
+//
+//go:inline
+func SLogInfo[A any](message string) Kleisli[Result[A], Void] {
+	return SLog[A](message)
+}
+
+// SLogDebug creates a Kleisli arrow that logs a Result value (success or error) at Debug level.
+// This is useful for high-frequency trace points that should only appear when the logger's
+// minimum level is set to slog.LevelDebug.
+//
+// Like SLog, this function logs both successful values and errors:
+//   - For success: Logs message with attribute value=<the actual value>
+//   - For error: Logs message with attribute error=<the error>
+//
+// If the logger's configured level is above Debug, no output is produced and the
+// computation still returns Void in a Right Result.
+//
+// Type Parameters:
+//   - A: The success type of the Result
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - A Kleisli arrow that logs the Result (value or error) at Debug level and returns Void
+//
+// See Also:
+//   - SLogInfo: The Info-level counterpart
+//   - SLogWithCallback: For logging with a custom logger callback or log level
+//   - TapSLogDebug: The corresponding tap operator that preserves the ReaderIOResult
+//
+//go:inline
+func SLogDebug[A any](message string) Kleisli[Result[A], Void] {
+	return SLogWithCallback[A](slog.LevelDebug, logging.GetLoggerFromContext, message)
+}
+
 // TapSLog creates an operator that logs both successful values and errors with a message,
 // and passes the ReaderIOResult through unchanged.
 //
@@ -640,7 +694,70 @@ func SLog[A any](message string) Kleisli[Result[A], Void] {
 //
 //go:inline
 func TapSLog[A any](message string) Operator[A, A] {
-	return readerio.ChainFirst(SLog[A](message))
+	return F.Pipe2(
+		message,
+		SLog[A],
+		readerio.Tap,
+	)
+}
+
+// TapSLogInfo creates an Operator that logs both successful values and errors at Info level,
+// passing the ReaderIOResult through unchanged.
+// It is an explicit alias for TapSLog, provided for symmetry with TapSLogDebug when the
+// desired log level needs to be clear at the call site.
+//
+// Type Parameters:
+//   - A: The success type of the ReaderIOResult to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - An Operator that logs the Result (value or error) at Info level and returns the ReaderIOResult unchanged
+//
+// See Also:
+//   - TapSLog: The function this delegates to
+//   - TapSLogDebug: The Debug-level counterpart
+//   - SLogInfo: The underlying Kleisli arrow used to perform the log
+func TapSLogInfo[A any](message string) Operator[A, A] {
+	return F.Pipe2(
+		message,
+		SLogInfo[A],
+		readerio.Tap,
+	)
+}
+
+// TapSLogDebug creates an Operator that logs both successful values and errors at Debug level,
+// passing the ReaderIOResult through unchanged.
+// This is useful for inserting high-frequency trace points into a ReaderIOResult pipeline
+// without producing output unless the logger's minimum level is set to slog.LevelDebug.
+//
+// Like TapSLog, this function logs both successful values and errors:
+//   - For success: Logs message with attribute value=<the actual value>
+//   - For error: Logs message with attribute error=<the error>
+//
+// If the logger's configured level is above Debug, no output is produced and the
+// ReaderIOResult flows through completely unchanged.
+//
+// Type Parameters:
+//   - A: The success type of the ReaderIOResult to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - An Operator that logs the Result (value or error) at Debug level and returns the ReaderIOResult unchanged
+//
+// See Also:
+//   - TapSLogInfo: The Info-level counterpart
+//   - TapSLog: The general Info-level tap operator
+//   - SLogDebug: The underlying Kleisli arrow used to perform the log
+func TapSLogDebug[A any](message string) Operator[A, A] {
+	return F.Pipe2(
+		message,
+		SLogDebug[A],
+		readerio.Tap,
+	)
 }
 
 // SLogLeft creates a Kleisli arrow that logs an error and returns Void in a Right Result.

@@ -1686,3 +1686,8 @@ func After[R, E, A any](timestamp time.Time) Operator[R, E, A, A] {
 func OrElse[R, E1, E2, A any](onLeft Kleisli[R, E2, E1, A]) Kleisli[R, E2, ReaderIOEither[R, E1, A], A] {
 	return Fold(onLeft, Of[R, E2, A])
 }
+
+// executes a breakpoint trap
+func Breakpoint[R, E, A any]() Operator[R, E, A, A] {
+	return readerio.Breakpoint[R, Either[E, A]]()
+}

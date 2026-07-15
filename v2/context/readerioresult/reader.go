@@ -1193,3 +1193,8 @@ func WithDeadline[A any](deadline time.Time) Operator[A, A] {
 		return pairFromContextCancel(context.WithDeadline(ctx, deadline))
 	})
 }
+
+// executes a breakpoint trap
+func Breakpoint[A any]() Operator[A, A] {
+	return RIOR.Breakpoint[context.Context, A]()
+}

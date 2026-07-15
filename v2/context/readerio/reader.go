@@ -831,3 +831,8 @@ func Delay[A any](delay time.Duration) Operator[A, A] {
 func After[R, E, A any](timestamp time.Time) Operator[A, A] {
 	return RIO.After[context.Context, A](timestamp)
 }
+
+// executes a breakpoint trap
+func Breakpoint[A any]() Operator[A, A] {
+	return RIO.Breakpoint[context.Context, A]()
+}

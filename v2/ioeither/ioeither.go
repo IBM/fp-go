@@ -669,3 +669,8 @@ func TapLeft[A, EA, EB, B any](f Kleisli[EB, EA, B]) Operator[EA, A, A] {
 func OrElse[E1, E2, A any](onLeft Kleisli[E2, E1, A]) Kleisli[E2, IOEither[E1, A], A] {
 	return Fold(onLeft, Of[E2, A])
 }
+
+// executes a breakpoint trap
+func Breakpoint[E, A any]() Operator[E, A, A] {
+	return io.Breakpoint[Either[E, A]]()
+}

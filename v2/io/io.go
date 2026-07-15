@@ -16,6 +16,7 @@
 package io
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/IBM/fp-go/v2/function"
@@ -228,6 +229,18 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 		Map[B, A],
 		f,
 	)
+}
+
+// ChainFirst
+func Tap[A, B any](f Kleisli[A, B]) Operator[A, A] {
+	return ChainFirst(f)
+}
+
+// executes a breakpoint trap
+func Breakpoint[A any]() Operator[A, A] {
+	return Tap(FromConsumer(func(a A) {
+		runtime.Breakpoint()
+	}))
 }
 
 // MonadApFirst combines two effectful actions, keeping only the result of the first.

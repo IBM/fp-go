@@ -91,6 +91,7 @@
 package readerio
 
 import (
+	"runtime"
 	"sync"
 	"time"
 
@@ -1181,4 +1182,13 @@ func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
 //go:inline
 func After[R, A any](timestamp time.Time) Operator[R, A, A] {
 	return function.Bind2nd(function.Flow2[ReaderIO[R, A]], io.After[A](timestamp))
+}
+
+// executes a breakpoint trap
+func Breakpoint[R, A any]() Operator[R, A, A] {
+	return Tap(func(a A) ReaderIO[R, Void] {
+		return io.FromConsumer(func(r R) {
+			runtime.Breakpoint()
+		})
+	})
 }

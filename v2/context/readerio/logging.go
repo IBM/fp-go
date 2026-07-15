@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/logging"
 )
 
@@ -44,14 +45,14 @@ import (
 func SLogWithCallback[A any](
 	logLevel slog.Level,
 	cb func(context.Context) *slog.Logger,
-	message string) Kleisli[A, A] {
-	return func(a A) ReaderIO[A] {
-		return func(ctx context.Context) IO[A] {
+	message string) Kleisli[A, Void] {
+	return func(a A) ReaderIO[Void] {
+		return func(ctx context.Context) IO[Void] {
 			// logger
 			logger := cb(ctx)
-			return func() A {
+			return func() Void {
 				logger.LogAttrs(ctx, logLevel, message, slog.Any("value", a))
-				return a
+				return F.VOID
 			}
 		}
 	}
@@ -86,6 +87,137 @@ func SLogWithCallback[A any](
 //	// Logs: "Extracted name" value="Alice"
 //
 //go:inline
-func SLog[A any](message string) Kleisli[A, A] {
+func SLog[A any](message string) Kleisli[A, Void] {
 	return SLogWithCallback[A](slog.LevelInfo, logging.GetLoggerFromContext, message)
+}
+
+// SLogInfo creates a Kleisli arrow that logs a value at Info level and passes it through unchanged.
+// It is an explicit alias for SLog, provided for symmetry with SLogDebug when the desired
+// log level needs to be clear at the call site.
+//
+// Type Parameters:
+//   - A: The type of value to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - A Kleisli arrow that logs the value at Info level and returns it unchanged
+//
+// See Also:
+//   - SLog: The function this delegates to
+//   - SLogDebug: The Debug-level counterpart
+//   - SLogWithCallback: For logging with a custom logger callback or log level
+//
+//go:inline
+func SLogInfo[A any](message string) Kleisli[A, Void] {
+	return SLog[A](message)
+}
+
+// SLogDebug creates a Kleisli arrow that logs a value at Debug level and passes it through unchanged.
+// This is useful for high-frequency trace points that should only appear in debug builds or
+// when the logger's minimum level is set to slog.LevelDebug.
+//
+// The logger is retrieved from the context via GetLoggerFromContext. If the logger's
+// configured level is above Debug, no output is produced and the value flows through unchanged.
+//
+// Type Parameters:
+//   - A: The type of value to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - A Kleisli arrow that logs the value at Debug level and returns it unchanged
+//
+// See Also:
+//   - SLogInfo: The Info-level counterpart
+//   - SLogWithCallback: For logging with a custom logger callback or log level
+//
+//go:inline
+func SLogDebug[A any](message string) Kleisli[A, Void] {
+	return SLogWithCallback[A](slog.LevelDebug, logging.GetLoggerFromContext, message)
+}
+
+// TapSLog creates an Operator that logs the current value at Info level and passes it through unchanged.
+// This is a convenience wrapper that combines SLog with Tap, making it suitable for
+// inserting non-intrusive log points into a ReaderIO computation pipeline.
+//
+// The value is logged using the logger retrieved from the context via GetLoggerFromContext.
+// After logging, the original ReaderIO[A] is returned unchanged, so the type and value
+// are fully preserved across the log step.
+//
+// Type Parameters:
+//   - A: The type of value to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - An Operator that logs the value at Info level and returns the input ReaderIO unchanged
+//
+// See Also:
+//   - SLog: The underlying Kleisli arrow used to perform the log
+//   - Tap: The operator used to sequence the log side-effect while preserving the value
+//   - SLogWithCallback: For logging with a custom logger callback or log level
+func TapSLog[A any](message string) Operator[A, A] {
+	return F.Pipe2(
+		message,
+		SLog[A],
+		Tap,
+	)
+}
+
+// TapSLogInfo creates an Operator that logs the current value at Info level and passes it through unchanged.
+// It is an explicit alias for TapSLog, provided for symmetry with TapSLogDebug when the desired
+// log level needs to be clear at the call site.
+//
+// Type Parameters:
+//   - A: The type of value to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - An Operator that logs the value at Info level and returns the input ReaderIO unchanged
+//
+// See Also:
+//   - TapSLog: The function this delegates to
+//   - TapSLogDebug: The Debug-level counterpart
+//   - SLogInfo: The underlying Kleisli arrow used to perform the log
+func TapSLogInfo[A any](message string) Operator[A, A] {
+	return F.Pipe2(
+		message,
+		SLogInfo[A],
+		Tap,
+	)
+}
+
+// TapSLogDebug creates an Operator that logs the current value at Debug level and passes it through unchanged.
+// This is useful for inserting high-frequency trace points into a ReaderIO pipeline without
+// producing output unless the logger's minimum level is set to slog.LevelDebug.
+//
+// The logger is retrieved from the context via GetLoggerFromContext on each execution.
+// If the logger's configured level is above Debug, no output is produced and the value
+// flows through unchanged.
+//
+// Type Parameters:
+//   - A: The type of value to log and pass through
+//
+// Parameters:
+//   - message: A descriptive message to include in the log entry
+//
+// Returns:
+//   - An Operator that logs the value at Debug level and returns the input ReaderIO unchanged
+//
+// See Also:
+//   - TapSLogInfo: The Info-level counterpart
+//   - TapSLog: The general Info-level tap operator
+//   - SLogDebug: The underlying Kleisli arrow used to perform the log
+func TapSLogDebug[A any](message string) Operator[A, A] {
+	return F.Pipe2(
+		message,
+		SLogDebug[A],
+		Tap,
+	)
 }
