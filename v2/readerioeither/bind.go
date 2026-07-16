@@ -20,7 +20,6 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
-	L "github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	G "github.com/IBM/fp-go/v2/readerioeither/generic"
@@ -123,9 +122,39 @@ func LetTo[R, E, S1, S2, T any](
 //
 //go:inline
 func BindTo[R, E, S1, T any](
-	setter func(T) S1,
+	creator func(T) S1,
 ) Operator[R, E, T, S1] {
-	return G.BindTo[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, T]](setter)
+	return G.BindTo[ReaderIOEither[R, E, S1], ReaderIOEither[R, E, T]](creator)
+}
+
+// BindToP initializes a new state S1 from a value T using a Prism.
+//
+// This is a variant of BindTo that accepts a Prism instead of a plain
+// setter function. The prism's ReverseGet is used to construct the initial
+// state S1 from the value T produced by the computation.
+//
+// Prisms are useful here when S1 is a sum type and T corresponds to one
+// of its variants, for example wrapping a success value into a tagged struct.
+//
+// Type Parameters:
+//   - R: The context/environment type
+//   - E: The error type
+//   - S1: The state type to initialise
+//   - T: The value type extracted from the computation
+//
+// Parameters:
+//   - prism: A Prism whose ReverseGet constructs S1 from T
+//
+// Returns:
+//   - An Operator that lifts ReaderIOEither[R, E, T] into ReaderIOEither[R, E, S1]
+//
+// See Also:
+//   - BindTo: The simpler variant that takes a plain setter function
+//   - Bind: For attaching subsequent computations to the state
+func BindToP[R, E, S1, T any](
+	prism Prism[S1, T],
+) Operator[R, E, T, S1] {
+	return BindTo[R, E](prism.ReverseGet)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
@@ -211,7 +240,7 @@ func ApS[R, E, S1, S2, T any](
 //
 //go:inline
 func ApSL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa ReaderIOEither[R, E, T],
 ) Operator[R, E, S, S] {
 	return ApS(lens.Set, fa)
@@ -252,7 +281,7 @@ func ApSL[R, E, S, T any](
 //
 //go:inline
 func BindL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f func(T) ReaderIOEither[R, E, T],
 ) Operator[R, E, S, S] {
 	return Bind(lens.Set, F.Flow2(lens.Get, f))
@@ -288,8 +317,8 @@ func BindL[R, E, S, T any](
 //
 //go:inline
 func LetL[R, E, S, T any](
-	lens L.Lens[S, T],
-	f func(T) T,
+	lens Lens[S, T],
+	f Endomorphism[T],
 ) Operator[R, E, S, S] {
 	return Let[R, E](lens.Set, F.Flow2(lens.Get, f))
 }
@@ -321,7 +350,7 @@ func LetL[R, E, S, T any](
 //
 //go:inline
 func LetToL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	b T,
 ) Operator[R, E, S, S] {
 	return LetTo[R, E](lens.Set, b)
@@ -404,7 +433,7 @@ func BindEitherK[R, E, S1, S2, T any](
 //   - lens: A lens focusing on field T within state S
 //   - f: An IOEither Kleisli arrow (T -> IOEither[E, T])
 func BindIOEitherKL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f ioeither.Kleisli[E, T, T],
 ) Operator[R, E, S, S] {
 	return BindL(lens, F.Flow2(f, FromIOEither[R, E, T]))
@@ -418,7 +447,7 @@ func BindIOEitherKL[R, E, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - f: An IO Kleisli arrow (T -> IO[T])
 func BindIOKL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f io.Kleisli[T, T],
 ) Operator[R, E, S, S] {
 	return BindL(lens, F.Flow2(f, FromIO[R, E, T]))
@@ -432,7 +461,7 @@ func BindIOKL[R, E, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - f: A Reader Kleisli arrow (T -> Reader[R, T])
 func BindReaderKL[E, R, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f reader.Kleisli[R, T, T],
 ) Operator[R, E, S, S] {
 	return BindL(lens, F.Flow2(f, FromReader[E, R, T]))
@@ -446,7 +475,7 @@ func BindReaderKL[E, R, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - f: A ReaderIO Kleisli arrow (T -> ReaderIO[R, T])
 func BindReaderIOKL[E, R, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	f readerio.Kleisli[R, T, T],
 ) Operator[R, E, S, S] {
 	return BindL(lens, F.Flow2(f, FromReaderIO[E, R, T]))
@@ -525,7 +554,7 @@ func ApEitherS[R, E, S1, S2, T any](
 //   - lens: A lens focusing on field T within state S
 //   - fa: An IOEither value
 func ApIOEitherSL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa IOEither[E, T],
 ) Operator[R, E, S, S] {
 	return F.Bind2nd(F.Flow2[ReaderIOEither[R, E, S], ioeither.Operator[E, S, S]], ioeither.ApSL(lens, fa))
@@ -538,7 +567,7 @@ func ApIOEitherSL[R, E, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - fa: An IO value
 func ApIOSL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa IO[T],
 ) Operator[R, E, S, S] {
 	return ApSL(lens, FromIO[R, E](fa))
@@ -551,7 +580,7 @@ func ApIOSL[R, E, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - fa: A Reader value
 func ApReaderSL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa Reader[R, T],
 ) Operator[R, E, S, S] {
 	return ApSL(lens, FromReader[E](fa))
@@ -564,7 +593,7 @@ func ApReaderSL[R, E, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - fa: A ReaderIO value
 func ApReaderIOSL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa ReaderIO[R, T],
 ) Operator[R, E, S, S] {
 	return ApSL(lens, FromReaderIO[E](fa))
@@ -577,7 +606,7 @@ func ApReaderIOSL[R, E, S, T any](
 //   - lens: A lens focusing on field T within state S
 //   - fa: An Either value
 func ApEitherSL[R, E, S, T any](
-	lens L.Lens[S, T],
+	lens Lens[S, T],
 	fa Either[E, T],
 ) Operator[R, E, S, S] {
 	return ApSL(lens, FromEither[R](fa))

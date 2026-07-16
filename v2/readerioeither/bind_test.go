@@ -22,6 +22,8 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
+	"github.com/IBM/fp-go/v2/optics/prism"
+	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,4 +57,25 @@ func TestApS(t *testing.T) {
 	)
 
 	assert.Equal(t, res(context.Background())(), E.Of[error]("John Doe"))
+}
+
+func TestBindToP(t *testing.T) {
+	type State struct {
+		value int
+	}
+
+	// Build a prism whose ReverseGet wraps an int into State.
+	statePrism := prism.MakePrism(
+		func(s State) O.Option[int] { return O.Some(s.value) },
+		func(v int) State { return State{value: v} },
+	)
+
+	ctx := context.Background()
+	res := F.Pipe2(
+		Of[context.Context, error](42),
+		BindToP[context.Context, error](statePrism),
+		Map[context.Context, error](func(s State) int { return s.value }),
+	)
+
+	assert.Equal(t, E.Right[error](42), res(ctx)())
 }

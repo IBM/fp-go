@@ -20,9 +20,12 @@ import (
 
 	"github.com/IBM/fp-go/v2/consumer"
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/iso/prism"
+	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/lens/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -113,9 +116,34 @@ type (
 	// Predicate represents a function that tests a value of type A and returns a boolean.
 	Predicate[A any] = predicate.Predicate[A]
 
+	// Lazy represents a deferred, pure computation that produces a value of type A
+	// when evaluated. It is a zero-argument function that returns A.
 	Lazy[A any] = lazy.Lazy[A]
 
+	// Seq represents a push-based iterator over values of type T,
+	// as defined by the standard library's iter.Seq.
 	Seq[T any] = iter.Seq[T]
 
+	// Traversable represents a data structure that can be traversed from left to right,
+	// applying a Kleisli arrow and collecting the results inside a ReaderIOEither context.
+	//
+	// It takes a Kleisli arrow (A -> ReaderIOEither[R, E, B]) and produces a Kleisli arrow
+	// that operates on a container of values (GA -> ReaderIOEither[R, E, GB]).
+	//
+	// Type Parameters:
+	//   - R: The context/environment type
+	//   - E: The error type
+	//   - A: The input element type
+	//   - B: The output element type
+	//   - GA: The input container type (e.g., []A)
+	//   - GB: The output container type (e.g., []B)
 	Traversable[R, E, A, B, GA, GB any] = func(Kleisli[R, E, A, B]) Kleisli[R, E, GA, GB]
+
+	// Endomorphism represents a function from a type to itself (T -> T).
+	// Endomorphisms form a monoid under composition with the identity function as the empty element.
+	Endomorphism[T any] = endomorphism.Endomorphism[T]
+
+	Lens[S, A any] = lens.Lens[S, A]
+
+	Prism[S, A any] = prism.Prism[S, A]
 )

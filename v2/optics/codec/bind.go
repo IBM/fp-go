@@ -98,6 +98,7 @@ import (
 //   - ApSL: Applicative sequencing for required struct fields via Lens
 //   - ApSO: Applicative sequencing for optional struct fields via Optional
 //   - Bind: Monadic sequencing for context-dependent field codecs
+//   - BindTo: Alternative starting point when the target type is a sum type accessed via a Prism
 //
 //go:inline
 func Do[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
@@ -487,7 +488,7 @@ func Bind[S, T, O, I any](
 	f Kleisli[S, T, O, I],
 ) Operator[S, S, O, I] {
 	name := fmt.Sprintf("Bind[%s]", l)
-	val := F.Curry2(Type[T, O, I].Validate)
+	val := F.Flow2(f, F.Curry2(Type[T, O, I].Validate))
 
 	return func(t Type[S, O, I]) Type[S, O, I] {
 
@@ -496,11 +497,90 @@ func Bind[S, T, O, I any](
 			t.Is,
 			F.Pipe1(
 				t.Validate,
-				validate.Bind(l.Set, F.Flow2(f, val)),
+				validate.Bind(l.Set, val),
 			),
-			func(s S) O {
-				return m.Concat(t.Encode(s), f(s).Encode(l.Get(s)))
-			},
+			F.Pipe2(
+				l.Get,
+				reader.ApS(F.Curry2(Type[T, O, I].Encode), f),
+				reader.ApS(F.Curry2(m.Concat), t.Encode),
+			),
 		)
 	}
+}
+
+// BindTo lifts a Type[T, O, I] into a Type[S, O, I] using a Prism.
+//
+// This is the codec-level analogue of the do-notation BindTo combinator.
+// Given a Prism that focuses on the T variant of a sum type S, it creates
+// a codec for S by:
+//
+//   - Decoding: validates and decodes I to T using the inner codec, then
+//     constructs S from T using the prism's ReverseGet.
+//   - Encoding: if S contains a T (GetOption succeeds), encodes T to O
+//     using the inner codec; otherwise returns the monoid's empty value.
+//   - Type checking: accepts any value (uses the universal Is[S] checker).
+//
+// BindTo is the entry point for building a sum-type codec.
+// It is typically followed by Bind or ApSL operators that add further fields.
+//
+// # Type Parameters
+//
+//   - S: The sum type (or wrapper type) being constructed
+//   - T: The variant type focused on by the prism
+//   - O: The output type for encoding (must have a monoid)
+//   - I: The input type for decoding
+//
+// # Parameters
+//
+//   - m: A Monoid[O] used to produce the empty output when the prism does not match
+//   - p: A Prism[S, T] whose ReverseGet constructs S from T and whose GetOption
+//     extracts T from S for encoding
+//   - t: The Type[T, O, I] codec for the inner variant type T
+//
+// # Returns
+//
+// A Type[S, O, I] that decodes I to S (via T) and encodes S to O.
+//
+// # Example
+//
+//	import (
+//	    "github.com/IBM/fp-go/v2/optics/codec"
+//	    "github.com/IBM/fp-go/v2/optics/prism"
+//	    "github.com/IBM/fp-go/v2/option"
+//	    S "github.com/IBM/fp-go/v2/string"
+//	)
+//
+//	type Wrapper struct{ Value string }
+//
+//	wrapperPrism := prism.MakePrism(
+//	    func(w Wrapper) option.Option[string] { return option.Some(w.Value) },
+//	    func(s string) Wrapper { return Wrapper{Value: s} },
+//	)
+//
+//	wrapperCodec := codec.BindTo(S.Monoid, wrapperPrism, codec.String())
+//	// wrapperCodec is a Type[Wrapper, string, any]
+//
+// # See Also
+//
+//   - BindTo (readerioeither): The monadic BindTo for effectful pipelines
+//   - Bind: Adds further fields to a codec after BindTo initialises it
+//   - validate.BindTo: The underlying validate-level BindTo combinator
+func BindTo[S, T, O, I any](
+	m Monoid[O],
+	p Prism[S, T],
+	t Type[T, O, I],
+) Type[S, O, I] {
+	return MakeType(
+		fmt.Sprintf("BindTo[%s]", p),
+		Is[S](),
+		F.Pipe1(
+			t.Validate,
+			validate.BindTo[I](p.ReverseGet),
+		),
+		F.Flow3(
+			p.GetOption,
+			option.Map(t.Encode),
+			option.GetOrElse(m.Empty),
+		),
+	)
 }

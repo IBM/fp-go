@@ -26,6 +26,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/lazy"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -131,4 +132,6 @@ type (
 	Seq[A any] = iter.Seq[A]
 
 	Traversable[R, A, B, GA, GB any] = func(Kleisli[R, A, B]) Kleisli[R, GA, GB]
+
+	Prism[S, A any] = prism.Prism[S, A]
 )

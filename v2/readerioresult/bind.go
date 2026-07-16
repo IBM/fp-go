@@ -124,9 +124,18 @@ func LetTo[R, S1, S2, T any](
 //
 //go:inline
 func BindTo[R, S1, T any](
-	setter func(T) S1,
+	creator func(T) S1,
 ) Operator[R, T, S1] {
-	return RIOE.BindTo[R, error](setter)
+	return RIOE.BindTo[R, error](creator)
+}
+
+// BindToP initializes a new state [S1] from a value [T]
+//
+//go:inline
+func BindToP[R, S1, T any](
+	prism Prism[S1, T],
+) Operator[R, T, S1] {
+	return RIOE.BindToP[R, error](prism)
 }
 
 // ApS attaches a value to a context [S1] to produce a context [S2] by considering
