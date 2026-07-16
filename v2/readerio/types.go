@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/tailrec"
@@ -69,4 +70,6 @@ type (
 	Predicate[A any] = predicate.Predicate[A]
 
 	Void = function.Void
+
+	Lazy[A any] = lazy.Lazy[A]
 )

@@ -454,6 +454,27 @@ func Of[R, A any](a A) ReaderIO[R, A] {
 	return readert.MonadOf[ReaderIO[R, A]](io.Of[A], a)
 }
 
+// OfLazy creates a ReaderIO from a lazy value producer, ignoring the environment.
+// The provided function is called each time the ReaderIO is executed, making it suitable
+// for producing fresh values on every invocation.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Value type
+//
+// Parameters:
+//   - fa: A lazy function that produces the value on each execution
+//
+// Returns:
+//   - A ReaderIO that calls fa on every execution and returns the produced value
+//
+// See Also:
+//   - Of: Wraps a constant value (computed once at construction time)
+//   - Defer: Defers creation of the entire ReaderIO computation
+func OfLazy[R, A any](fa Lazy[A]) ReaderIO[R, A] {
+	return FromIO[R](fa)
+}
+
 // MonadAp applies a function wrapped in a ReaderIO to a value wrapped in a ReaderIO.
 // This is the applicative apply operation for ReaderIO.
 //
@@ -777,7 +798,7 @@ func TapIOK[R, A, B any](f io.Kleisli[A, B]) Operator[R, A, A] {
 //	})
 //	result1 := rio(config)() // Returns 1
 //	result2 := rio(config)() // Returns 2 (fresh computation)
-func Defer[R, A any](gen func() ReaderIO[R, A]) ReaderIO[R, A] {
+func Defer[R, A any](gen Lazy[ReaderIO[R, A]]) ReaderIO[R, A] {
 	return func(r R) IO[A] {
 		return func() A {
 			return gen()(r)()
@@ -1170,21 +1191,57 @@ func ReadIO[A, R any](r IO[R]) func(ReaderIO[R, A]) IO[A] {
 	)
 }
 
-// Delay creates an operation that passes in the value after some delay
+// Delay creates an operator that delays execution of the ReaderIO computation by the specified duration.
+// The delay occurs before executing the wrapped computation each time the operator is applied.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Value type
+//
+// Parameters:
+//   - delay: How long to wait before executing the computation
+//
+// Returns:
+//   - An Operator that wraps a ReaderIO with a time delay before execution
 //
 //go:inline
 func Delay[R, A any](delay time.Duration) Operator[R, A, A] {
 	return function.Bind2nd(function.Flow2[ReaderIO[R, A]], io.Delay[A](delay))
 }
 
-// After creates an operation that passes after the given [time.Time]
+// After creates an operator that delays execution of the ReaderIO computation until after the given timestamp.
+// If the timestamp is in the past, the computation executes immediately.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Value type
+//
+// Parameters:
+//   - timestamp: The point in time after which the computation should execute
+//
+// Returns:
+//   - An Operator that wraps a ReaderIO with a timestamp-based delay before execution
 //
 //go:inline
 func After[R, A any](timestamp time.Time) Operator[R, A, A] {
 	return function.Bind2nd(function.Flow2[ReaderIO[R, A]], io.After[A](timestamp))
 }
 
-// executes a breakpoint trap
+// Breakpoint inserts a debugger breakpoint trap into a ReaderIO pipeline.
+// When the operator is applied and the resulting computation is executed, it
+// triggers a hardware breakpoint via runtime.Breakpoint before passing the
+// original value through unchanged.
+//
+// This is intended for use during debugging only. The breakpoint halts execution
+// when a debugger is attached; without a debugger the signal is unhandled and
+// the program will terminate.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//   - A: Value type (passed through unchanged)
+//
+// Returns:
+//   - An Operator that inserts a breakpoint trap and passes the original value through
 func Breakpoint[R, A any]() Operator[R, A, A] {
 	return Tap(func(a A) ReaderIO[R, Void] {
 		return io.FromConsumer(func(r R) {

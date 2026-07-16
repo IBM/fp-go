@@ -18,6 +18,7 @@ package readerio
 import (
 	"context"
 	"testing"
+	"time"
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
@@ -863,4 +864,81 @@ func TestTapWithLogging(t *testing.T) {
 	value := result(config)()
 	assert.Equal(t, 84, value)
 	assert.Equal(t, []int{42, 84}, logged)
+}
+
+func TestOfLazy(t *testing.T) {
+	t.Run("calls the function on each execution", func(t *testing.T) {
+		counter := 0
+		rio := OfLazy[ReaderTestConfig](func() int {
+			counter++
+			return counter
+		})
+
+		config := ReaderTestConfig{Value: 1, Name: "test"}
+		assert.Equal(t, 1, rio(config)())
+		assert.Equal(t, 2, rio(config)())
+		assert.Equal(t, 3, rio(config)())
+	})
+
+	t.Run("ignores the environment", func(t *testing.T) {
+		rio := OfLazy[ReaderTestConfig](func() string { return "hello" })
+
+		config1 := ReaderTestConfig{Value: 1, Name: "a"}
+		config2 := ReaderTestConfig{Value: 99, Name: "b"}
+		assert.Equal(t, "hello", rio(config1)())
+		assert.Equal(t, "hello", rio(config2)())
+	})
+
+	t.Run("differs from Of when function has side effects", func(t *testing.T) {
+		// Of captures the value once; OfLazy re-evaluates the producer each time
+		counter := 0
+		rio := OfLazy[ReaderTestConfig](func() int {
+			counter++
+			return counter
+		})
+
+		config := ReaderTestConfig{Value: 0, Name: "test"}
+		_ = rio(config)()
+		result := rio(config)()
+		assert.Equal(t, 2, result)
+	})
+}
+
+func TestDelay(t *testing.T) {
+	t.Run("returns the original value after the delay", func(t *testing.T) {
+		rio := Of[ReaderTestConfig](42)
+		delayed := F.Pipe1(rio, Delay[ReaderTestConfig, int](0))
+
+		config := ReaderTestConfig{Value: 1, Name: "test"}
+		assert.Equal(t, 42, delayed(config)())
+	})
+
+	t.Run("passes through environment correctly", func(t *testing.T) {
+		rio := F.Pipe1(Ask[ReaderTestConfig](), Map[ReaderTestConfig](func(c ReaderTestConfig) int { return c.Value }))
+		delayed := F.Pipe1(rio, Delay[ReaderTestConfig, int](0))
+
+		config := ReaderTestConfig{Value: 7, Name: "test"}
+		assert.Equal(t, 7, delayed(config)())
+	})
+}
+
+func TestAfter(t *testing.T) {
+	t.Run("executes immediately when timestamp is in the past", func(t *testing.T) {
+		past := time.Now().Add(-time.Second)
+		rio := Of[ReaderTestConfig](99)
+		scheduled := F.Pipe1(rio, After[ReaderTestConfig, int](past))
+
+		config := ReaderTestConfig{Value: 1, Name: "test"}
+		assert.Equal(t, 99, scheduled(config)())
+	})
+
+	t.Run("returns the original value after the timestamp", func(t *testing.T) {
+		// Use zero time (always in the past) to avoid actual sleeping in tests
+		zero := time.Time{}
+		rio := Of[ReaderTestConfig](55)
+		scheduled := F.Pipe1(rio, After[ReaderTestConfig, int](zero))
+
+		config := ReaderTestConfig{Value: 1, Name: "test"}
+		assert.Equal(t, 55, scheduled(config)())
+	})
 }
