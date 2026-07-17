@@ -28,6 +28,24 @@ type (
 	// It represents transformations that preserve the type.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
+	// lensName holds the display metadata for a Lens[S, A].
+	//
+	// It is embedded in Lens[S, A] as a non-generic carrier so that the
+	// formatting and logging methods (String, Format, GoString, LogValue)
+	// are compiled once and shared across all type-parameter instantiations,
+	// rather than being duplicated for every distinct Lens[S, A].
+	lensName struct {
+		// n is the end-user-facing name of the lens (e.g. "Person.Name").
+		// It is returned by String() and LogValue().
+		n string
+		// s is the human-readable name of the source type S,
+		// used when building the GoString() representation.
+		s string
+		// a is the human-readable name of the focus type A,
+		// used when building the GoString() representation.
+		a string
+	}
+
 	// Lens is a functional reference to a subpart of a data structure.
 	//
 	// A Lens[S, A] provides a composable way to focus on a field of type A within
@@ -77,6 +95,8 @@ type (
 	//	updated := nameLens.Set("Bob")(person) // Returns: Person{Name: "Bob", Age: 30}
 	//	// Original person remains unchanged (immutability preserved)
 	Lens[S, A any] struct {
+		lensName
+
 		// Get extracts the focused value of type A from structure S.
 		Get func(s S) A
 
@@ -84,9 +104,6 @@ type (
 		// The returned function takes a structure S and returns a new structure S
 		// with the focused value updated to a. The original structure is never modified.
 		Set func(a A) Endomorphism[S]
-
-		// name is an end user facing identifier for the lens
-		name string
 	}
 
 	// Kleisli represents a function that takes a value of type A and returns a Lens[S, B].

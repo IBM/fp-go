@@ -22,6 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/formatting"
 	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
@@ -46,6 +47,10 @@ func setCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
 	}
 }
 
+// setCopyWithEq wraps a setter for a pointer into a setter that first creates a copy before
+// modifying that copy, but skips the copy entirely when the new value is equal to the current
+// one according to pred. This is intentionally independent of the type parameters of the
+// enclosing Lens[S, A] to avoid per-instantiation code bloat.
 func setCopyWithEq[GET ~func(*S) A, SET ~func(*S, A) *S, S, A any](pred EQ.Eq[A], getter GET, setter SET) func(s *S, a A) *S {
 
 	var empty S
@@ -220,6 +225,10 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 	return MakeLensCurriedWithName(get, set, "Lens")
 }
 
+func makeLensName(name string, s, a any) lensName {
+	return lensName{n: name, s: formatting.TypeInfo(s), a: formatting.TypeInfo(a)}
+}
+
 // MakeLensCurriedWithName creates a [Lens] with a curried setter and a custom name.
 //
 // This combines the benefits of [MakeLensCurried] (curried setter for better composition)
@@ -265,12 +274,34 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 //
 //go:inline
 func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET, name string) Lens[S, A] {
-	return Lens[S, A]{Get: get, Set: set, name: name}
+	return Lens[S, A]{Get: get, Set: set, lensName: makeLensName(name, new(S), new(A))}
 }
 
+// MakeLensCurriedRefWithName creates a [Lens] for pointer-based structures with a curried setter
+// and a custom name.
+//
+// This is the named variant of [MakeLensCurriedRefWithName] combined with automatic copy-on-write
+// semantics for pointer receivers. The setter does not need to create a copy manually; the copy
+// is applied by the wrapped curried setter produced by setCopyCurried. The name is used in
+// String, Format, GoString, and LogValue for debugging and structured logging.
+//
+// Type Parameters:
+//   - GET: Getter function type (*S → A)
+//   - SET: Curried setter function type (A → *S → *S)
+//   - S: Source structure type (will be used as *S)
+//   - A: Focus/field type
+//
+// Parameters:
+//   - get: Function to extract value A from pointer *S
+//   - set: Curried function to update value A in pointer *S (copying handled automatically)
+//   - name: A descriptive name for the lens (used in String() and Format())
+//
+// Returns:
+//   - A Lens[*S, A] with the specified name
+//
 //go:inline
 func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], S, A any](get GET, set SET, name string) Lens[*S, A] {
-	return Lens[*S, A]{Get: get, Set: setCopyCurried(set), name: name}
+	return Lens[*S, A]{Get: get, Set: setCopyCurried(set), lensName: makeLensName(name, new(S), new(A))}
 }
 
 // MakeLensRef creates a [Lens] for pointer-based structures.
@@ -1071,25 +1102,6 @@ func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[
 		return MakeLensCurriedWithName(F.Flow2(ea.Get, ab), F.Flow2(ba, ea.Set), fmt.Sprintf("IMap[%s]", ea))
 	}
 }
-
-// String returns the name of the lens as a string.
-//
-// This implements the fmt.Stringer interface, allowing lenses to be printed
-// in a human-readable format for debugging and logging purposes. The returned
-// string is the name provided when creating the lens with [MakeLensWithName]
-// or [MakeLensCurriedWithName], or "Lens" for lenses created with other constructors.
-//
-// Returns:
-//   - The lens name as a string
-//
-// Example:
-//
-//	nameLens := lens.MakeLensWithName(
-//	    func(p Person) string { return p.Name },
-//	    func(p Person, name string) Person { p.Name = name; return p },
-//	    "Person.Name",
-//	)
-//	fmt.Println(nameLens)  // Prints: "Person.Name"
 
 // Modify applies a transformation function to the value focused by the lens.
 //

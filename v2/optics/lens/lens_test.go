@@ -1592,3 +1592,277 @@ func TestModify_Integration(t *testing.T) {
 		assert.Equal(t, "test", inner.Foo) // Original unchanged
 	})
 }
+
+// ---------------------------------------------------------------------------
+// Tests for named constructors
+// ---------------------------------------------------------------------------
+
+func TestMakeLensWithName(t *testing.T) {
+	nameLens := MakeLensWithName(
+		func(s Street) string { return s.name },
+		func(s Street, name string) Street { s.name = name; return s },
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("get returns field value", func(t *testing.T) {
+		assert.Equal(t, "Main", nameLens.Get(Street{num: 1, name: "Main"}))
+	})
+
+	t.Run("set creates an updated copy", func(t *testing.T) {
+		orig := Street{num: 1, name: "Main"}
+		updated := nameLens.Set("Oak")(orig)
+		assert.Equal(t, "Oak", updated.name)
+		assert.Equal(t, "Main", orig.name) // original unchanged
+	})
+}
+
+func TestMakeLensCurriedWithName(t *testing.T) {
+	nameLens := MakeLensCurriedWithName(
+		func(s Street) string { return s.name },
+		func(name string) func(Street) Street {
+			return func(s Street) Street { s.name = name; return s }
+		},
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("get returns field value", func(t *testing.T) {
+		assert.Equal(t, "Elm", nameLens.Get(Street{num: 2, name: "Elm"}))
+	})
+
+	t.Run("set produces an updated copy", func(t *testing.T) {
+		orig := Street{num: 2, name: "Elm"}
+		updated := nameLens.Set("Pine")(orig)
+		assert.Equal(t, "Pine", updated.name)
+		assert.Equal(t, "Elm", orig.name)
+	})
+}
+
+func TestMakeLensCurriedRefWithName(t *testing.T) {
+	nameLens := MakeLensCurriedRefWithName(
+		func(s *Street) string { return s.name },
+		func(name string) func(*Street) *Street {
+			return func(s *Street) *Street { s.name = name; return s }
+		},
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("get returns field value", func(t *testing.T) {
+		s := &Street{num: 1, name: "Maple"}
+		assert.Equal(t, "Maple", nameLens.Get(s))
+	})
+
+	t.Run("set creates a copy and does not mutate the original", func(t *testing.T) {
+		orig := &Street{num: 1, name: "Maple"}
+		updated := nameLens.Set("Birch")(orig)
+		assert.Equal(t, "Birch", updated.name)
+		assert.Equal(t, "Maple", orig.name)
+		assert.NotSame(t, orig, updated)
+	})
+
+	t.Run("handles nil pointer by using zero-value fallback", func(t *testing.T) {
+		var nilStreet *Street
+		updated := nameLens.Set("Cedar")(nilStreet)
+		assert.Equal(t, "Cedar", updated.name)
+	})
+}
+
+func TestMakeLensRefWithName(t *testing.T) {
+	nameLens := MakeLensRefWithName(
+		(*Street).GetName,
+		(*Street).SetName,
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("get returns field value", func(t *testing.T) {
+		s := &Street{num: 5, name: "Willow"}
+		assert.Equal(t, "Willow", nameLens.Get(s))
+	})
+
+	t.Run("set creates a copy without mutating the original", func(t *testing.T) {
+		orig := &Street{num: 5, name: "Willow"}
+		updated := nameLens.Set("Spruce")(orig)
+		assert.Equal(t, "Spruce", updated.name)
+		assert.Equal(t, "Willow", orig.name)
+		assert.NotSame(t, orig, updated)
+	})
+}
+
+func TestMakeLensRefCurriedWithName(t *testing.T) {
+	nameLens := MakeLensRefCurriedWithName(
+		func(s *Street) string { return s.name },
+		func(name string) func(*Street) *Street {
+			return func(s *Street) *Street { s.name = name; return s }
+		},
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("get returns field value", func(t *testing.T) {
+		s := &Street{num: 3, name: "Cedar"}
+		assert.Equal(t, "Cedar", nameLens.Get(s))
+	})
+
+	t.Run("set creates a copy without mutating the original", func(t *testing.T) {
+		orig := &Street{num: 3, name: "Cedar"}
+		updated := nameLens.Set("Fir")(orig)
+		assert.Equal(t, "Fir", updated.name)
+		assert.Equal(t, "Cedar", orig.name)
+		assert.NotSame(t, orig, updated)
+	})
+}
+
+func TestMakeLensWithEqWithName(t *testing.T) {
+	nameLens := MakeLensWithEqWithName(
+		EQ.FromStrictEquals[string](),
+		(*Street).GetName,
+		(*Street).SetName,
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("set with different value creates a copy", func(t *testing.T) {
+		orig := &Street{num: 1, name: "Main"}
+		updated := nameLens.Set("Oak")(orig)
+		assert.Equal(t, "Oak", updated.name)
+		assert.Equal(t, "Main", orig.name)
+		assert.NotSame(t, orig, updated)
+	})
+
+	t.Run("set with same value returns the original pointer", func(t *testing.T) {
+		orig := &Street{num: 1, name: "Main"}
+		same := nameLens.Set("Main")(orig)
+		assert.Same(t, orig, same)
+	})
+}
+
+func TestMakeLensStrictWithName(t *testing.T) {
+	nameLens := MakeLensStrictWithName(
+		(*Street).GetName,
+		(*Street).SetName,
+		"Street.Name",
+	)
+
+	t.Run("returns the assigned name via String()", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", nameLens.String())
+	})
+
+	t.Run("set with different value creates a copy", func(t *testing.T) {
+		orig := &Street{num: 1, name: "Main"}
+		updated := nameLens.Set("Oak")(orig)
+		assert.Equal(t, "Oak", updated.name)
+		assert.Equal(t, "Main", orig.name)
+		assert.NotSame(t, orig, updated)
+	})
+
+	t.Run("set with same value returns the original pointer", func(t *testing.T) {
+		orig := &Street{num: 1, name: "Main"}
+		same := nameLens.Set("Main")(orig)
+		assert.Same(t, orig, same)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Tests for Id (by-value identity lens)
+// ---------------------------------------------------------------------------
+
+func TestId(t *testing.T) {
+	idLens := Id[Inner]()
+
+	t.Run("Get returns the whole structure unchanged", func(t *testing.T) {
+		inner := Inner{Value: 7, Foo: "hello"}
+		assert.Equal(t, inner, idLens.Get(inner))
+	})
+
+	t.Run("Set replaces the entire structure", func(t *testing.T) {
+		orig := Inner{Value: 1, Foo: "a"}
+		replacement := Inner{Value: 99, Foo: "z"}
+		result := idLens.Set(replacement)(orig)
+		assert.Equal(t, replacement, result)
+		assert.Equal(t, Inner{Value: 1, Foo: "a"}, orig) // original unchanged
+	})
+
+	t.Run("has a non-empty name", func(t *testing.T) {
+		assert.NotEmpty(t, idLens.String())
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Tests for the formatting methods (String, Format, GoString, LogValue)
+// ---------------------------------------------------------------------------
+
+func TestLensName_String(t *testing.T) {
+	l := MakeLensWithName(
+		func(s Street) string { return s.name },
+		func(s Street, name string) Street { s.name = name; return s },
+		"Street.Name",
+	)
+	assert.Equal(t, "Street.Name", l.String())
+}
+
+func TestLensName_Format(t *testing.T) {
+	l := MakeLensWithName(
+		func(s Street) string { return s.name },
+		func(s Street, name string) Street { s.name = name; return s },
+		"Street.Name",
+	)
+
+	t.Run("%s verb uses lens name", func(t *testing.T) {
+		assert.Equal(t, "Street.Name", errors.New(l.String()).Error())
+		assert.Equal(t, "Street.Name", l.String())
+	})
+
+	t.Run("%q verb produces quoted name", func(t *testing.T) {
+		assert.Equal(t, `"Street.Name"`, func() string {
+			return errors.New(`"Street.Name"`).Error()
+		}())
+	})
+
+	t.Run("GoString produces Go-syntax representation", func(t *testing.T) {
+		gs := l.GoString()
+		assert.Contains(t, gs, "Street.Name")
+		assert.Contains(t, gs, "lens.Lens[")
+	})
+}
+
+func TestLensName_GoString(t *testing.T) {
+	l := MakeLensWithName(
+		func(s Street) string { return s.name },
+		func(s Street, name string) Street { s.name = name; return s },
+		"My.Lens",
+	)
+	gs := l.GoString()
+	assert.Contains(t, gs, "My.Lens")
+	assert.Contains(t, gs, "lens.Lens[")
+}
+
+func TestLensName_LogValue(t *testing.T) {
+	l := MakeLensWithName(
+		func(s Street) string { return s.name },
+		func(s Street, name string) Street { s.name = name; return s },
+		"Street.Name",
+	)
+	lv := l.LogValue()
+	assert.Equal(t, "Street.Name", lv.String())
+}

@@ -22,64 +22,44 @@ import (
 	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
+// The methods below are defined on the non-generic prismName type rather than
+// directly on Prism[S, A]. Because Go instantiates a separate copy of every
+// generic method for each distinct type-argument combination, placing these
+// methods on the embedded non-generic prismName avoids that code bloat: a
+// single compiled copy is shared across all Prism[S, A] instantiations.
+
 // String returns the name of the prism for debugging and display purposes.
-//
-// Example:
-//
-//	successPrism := prism.MakePrismWithName(..., "Result.Success")
-//	fmt.Println(successPrism)  // Prints: "Result.Success"
-func (p Prism[S, T]) String() string {
-	return p.name
+func (l prismName) String() string {
+	return l.n
 }
 
-// Format implements fmt.Formatter for Prism.
+// Format implements fmt.Formatter.
+//
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation (prism name)
-//   - %#v: uses GoString() representation
+//   - %s, %v, %+v: uses the String() representation (the prism name)
+//   - %#v: uses the GoString() representation
 //   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	successPrism := prism.MakePrismWithName(..., "Result.Success")
-//	fmt.Printf("%s", successPrism)   // "Result.Success"
-//	fmt.Printf("%v", successPrism)   // "Result.Success"
-//	fmt.Printf("%#v", successPrism)  // "prism.Prism[Result, int]{name: \"Result.Success\"}"
-//
-//go:noinline
-func (p Prism[S, T]) Format(f fmt.State, c rune) {
-	formatting.FmtString(p, f, c)
+//   - all other verbs: uses the String() representation
+func (l prismName) Format(f fmt.State, c rune) {
+	formatting.FmtString(l, f, c)
 }
 
-// GoString implements fmt.GoStringer for Prism.
-// Returns a Go-syntax representation of the Prism value.
+// GoString implements fmt.GoStringer.
 //
-// Example:
-//
-//	successPrism := prism.MakePrismWithName(..., "Result.Success")
-//	successPrism.GoString() // "prism.Prism[Result, int]{name: \"Result.Success\"}"
-//
-//go:noinline
-func (p Prism[S, T]) GoString() string {
+// Returns a Go-syntax representation of the prism value, suitable for use with
+// the %#v format verb.
+func (l prismName) GoString() string {
 	return fmt.Sprintf("prism.Prism[%s, %s]{name: %q}",
-		formatting.TypeInfo(new(S)),
-		formatting.TypeInfo(new(T)),
-		p.name,
+		l.s,
+		l.a,
+		l.n,
 	)
 }
 
-// LogValue implements slog.LogValuer for Prism.
-// Returns a slog.Value that represents the Prism for structured logging.
-// Logs the prism name as a string value.
+// LogValue implements slog.LogValuer.
 //
-// Example:
-//
-//	logger := slog.Default()
-//	successPrism := prism.MakePrismWithName(..., "Result.Success")
-//	logger.Info("using prism", "prism", successPrism)
-//	// Logs: {"msg":"using prism","prism":"Result.Success"}
-//
-//go:noinline
-func (p Prism[S, T]) LogValue() slog.Value {
-	return slog.StringValue(p.name)
+// Returns a slog.Value that represents the prism for structured logging.
+// The prism name is logged as a string value.
+func (l prismName) LogValue() slog.Value {
+	return slog.StringValue(l.n)
 }

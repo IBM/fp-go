@@ -22,64 +22,45 @@ import (
 	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
+// The methods below are defined on the non-generic lensName type rather than
+// directly on Lens[S, A]. Because Go instantiates a separate copy of every
+// generic method for each distinct type-argument combination, placing these
+// methods on the embedded non-generic lensName avoids that code bloat: a
+// single compiled copy is shared across all Lens[S, A] instantiations.
+
 // String returns the name of the lens for debugging and display purposes.
-//
-// Example:
-//
-//	nameLens := lens.MakeLensWithName(..., "Person.Name")
-//	fmt.Println(nameLens)  // Prints: "Person.Name"
-func (l Lens[S, T]) String() string {
-	return l.name
+func (l lensName) String() string {
+	return l.n
 }
 
-// Format implements fmt.Formatter for Lens.
+// Format implements fmt.Formatter.
+//
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation (lens name)
-//   - %#v: uses GoString() representation
+//   - %s, %v, %+v: uses the String() representation (the lens name)
+//   - %#v: uses the GoString() representation
 //   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	nameLens := lens.MakeLensWithName(..., "Person.Name")
-//	fmt.Printf("%s", nameLens)   // "Person.Name"
-//	fmt.Printf("%v", nameLens)   // "Person.Name"
-//	fmt.Printf("%#v", nameLens)  // "lens.Lens[Person, string]{name: \"Person.Name\"}"
-//
-//go:noinline
-func (l Lens[S, T]) Format(f fmt.State, c rune) {
+//   - all other verbs: uses the String() representation
+func (l lensName) Format(f fmt.State, c rune) {
 	formatting.FmtString(l, f, c)
 }
 
-// GoString implements fmt.GoStringer for Lens.
-// Returns a Go-syntax representation of the Lens value.
+// GoString implements fmt.GoStringer.
 //
-// Example:
-//
-//	nameLens := lens.MakeLensWithName(..., "Person.Name")
-//	nameLens.GoString() // "lens.Lens[Person, string]{name: \"Person.Name\"}"
-//
-//go:noinline
-func (l Lens[S, T]) GoString() string {
+// Returns a Go-syntax representation of the lens value, suitable for use with
+// the %#v format verb.
+func (l lensName) GoString() string {
 	return fmt.Sprintf("lens.Lens[%s, %s]{name: %q}",
-		formatting.TypeInfo(new(S)),
-		formatting.TypeInfo(new(T)),
-		l.name,
+		l.s,
+		l.a,
+		l.n,
 	)
+
 }
 
-// LogValue implements slog.LogValuer for Lens.
-// Returns a slog.Value that represents the Lens for structured logging.
-// Logs the lens name as a string value.
+// LogValue implements slog.LogValuer.
 //
-// Example:
-//
-//	logger := slog.Default()
-//	nameLens := lens.MakeLensWithName(..., "Person.Name")
-//	logger.Info("using lens", "lens", nameLens)
-//	// Logs: {"msg":"using lens","lens":"Person.Name"}
-//
-//go:noinline
-func (l Lens[S, T]) LogValue() slog.Value {
-	return slog.StringValue(l.name)
+// Returns a slog.Value that represents the lens for structured logging.
+// The lens name is logged as a string value.
+func (l lensName) LogValue() slog.Value {
+	return slog.StringValue(l.n)
 }

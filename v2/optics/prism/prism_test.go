@@ -18,6 +18,7 @@ package prism
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -1526,5 +1527,131 @@ func TestFromEitherPrismLaws(t *testing.T) {
 			assert.True(t, O.IsSome(reextracted))
 			assert.Equal(t, value, O.GetOrElse(F.Constant(0))(reextracted))
 		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MakePrismWithName
+// ---------------------------------------------------------------------------
+
+func TestMakePrismWithName(t *testing.T) {
+	p := MakePrismWithName(
+		F.Identity[Option[int]],
+		O.Some[int],
+		"MyPrism",
+	)
+
+	t.Run("stores the assigned name", func(t *testing.T) {
+		assert.Equal(t, "MyPrism", p.String())
+	})
+
+	t.Run("GetOption returns Some on a matching value", func(t *testing.T) {
+		assert.Equal(t, O.Some(7), p.GetOption(O.Some(7)))
+	})
+
+	t.Run("GetOption returns None on a non-matching value", func(t *testing.T) {
+		assert.Equal(t, O.None[int](), p.GetOption(O.None[int]()))
+	})
+
+	t.Run("ReverseGet constructs the source value", func(t *testing.T) {
+		assert.Equal(t, O.Some(99), p.ReverseGet(99))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// prismName formatting methods (String, Format, GoString, LogValue)
+// ---------------------------------------------------------------------------
+
+func TestPrismName_String(t *testing.T) {
+	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "Test.Prism")
+	assert.Equal(t, "Test.Prism", p.String())
+}
+
+func TestPrismName_Format(t *testing.T) {
+	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "Test.Prism")
+
+	t.Run("%s verb uses the prism name", func(t *testing.T) {
+		assert.Equal(t, "Test.Prism", fmt.Sprintf("%s", p))
+	})
+
+	t.Run("%v verb uses the prism name", func(t *testing.T) {
+		assert.Equal(t, "Test.Prism", fmt.Sprintf("%v", p))
+	})
+
+	t.Run("%q verb produces a quoted prism name", func(t *testing.T) {
+		assert.Equal(t, `"Test.Prism"`, fmt.Sprintf("%q", p))
+	})
+}
+
+func TestPrismName_GoString(t *testing.T) {
+	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "My.Prism")
+	gs := fmt.Sprintf("%#v", p)
+	assert.Contains(t, gs, "My.Prism")
+	assert.Contains(t, gs, "prism.Prism[")
+}
+
+func TestPrismName_LogValue(t *testing.T) {
+	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "Log.Prism")
+	lv := p.LogValue()
+	assert.Equal(t, "Log.Prism", lv.String())
+}
+
+// ---------------------------------------------------------------------------
+// prismModifyOption — directly assert Option return values
+// ---------------------------------------------------------------------------
+
+func TestPrismModifyOption_Some(t *testing.T) {
+	somePrism := MakePrism(F.Identity[Option[int]], O.Some[int])
+
+	t.Run("returns Some(modified S) when prism matches", func(t *testing.T) {
+		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, O.Some(21))
+		assert.Equal(t, O.Some(O.Some(42)), result)
+	})
+
+	t.Run("returns None when prism does not match", func(t *testing.T) {
+		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, O.None[int]())
+		assert.Equal(t, O.None[Option[int]](), result)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// prismSet (deprecated) — same semantics as Set
+// ---------------------------------------------------------------------------
+
+func TestPrismSet_Deprecated(t *testing.T) {
+	somePrism := MakePrism(F.Identity[Option[int]], O.Some[int])
+
+	t.Run("sets the value when prism matches", func(t *testing.T) {
+		setter := prismSet[Option[int]](100)
+		assert.Equal(t, O.Some(100), setter(somePrism)(O.Some(42)))
+	})
+
+	t.Run("returns original when prism does not match", func(t *testing.T) {
+		setter := prismSet[Option[int]](100)
+		assert.Equal(t, O.None[int](), setter(somePrism)(O.None[int]()))
+	})
+
+	t.Run("produces identical results to Set", func(t *testing.T) {
+		via_set := Set[Option[int]](55)(somePrism)(O.Some(1))
+		via_prismSet := prismSet[Option[int]](55)(somePrism)(O.Some(1))
+		assert.Equal(t, via_set, via_prismSet)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Id + Set interaction
+// ---------------------------------------------------------------------------
+
+func TestId_Set(t *testing.T) {
+	idPrism := Id[int]()
+
+	t.Run("Set replaces the value because Id always matches", func(t *testing.T) {
+		result := Set[int](99)(idPrism)(42)
+		assert.Equal(t, 99, result)
+	})
+
+	t.Run("Set with zero value", func(t *testing.T) {
+		result := Set[int](0)(idPrism)(42)
+		assert.Equal(t, 0, result)
 	})
 }

@@ -19,10 +19,19 @@ import (
 	"fmt"
 
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/formatting"
 	O "github.com/IBM/fp-go/v2/option"
 )
 
 type (
+	prismName struct {
+		// is an end user facing identifier for the prism
+		n string
+		// the type names
+		s string
+		a string
+	}
+
 	// Prism is an optic used to select part of a sum type (tagged union).
 	// It provides two operations:
 	//   - GetOption: Try to extract a value of type A from S (may fail)
@@ -50,6 +59,8 @@ type (
 	//       func(v int) Result { return Success{Value: v} },
 	//   )
 	Prism[S, A any] struct {
+		prismName
+
 		// GetOption attempts to extract a value of type A from S.
 		// Returns Some(a) if the extraction succeeds, None otherwise.
 		GetOption O.Kleisli[S, A]
@@ -57,8 +68,6 @@ type (
 		// ReverseGet constructs an S from an A.
 		// This operation always succeeds.
 		ReverseGet func(A) S
-
-		name string
 	}
 )
 
@@ -83,9 +92,13 @@ func MakePrism[S, A any](get O.Kleisli[S, A], rev func(A) S) Prism[S, A] {
 	return MakePrismWithName(get, rev, "GenericPrism")
 }
 
+func makePrismName(name string, s, a any) prismName {
+	return prismName{n: name, s: formatting.TypeInfo(s), a: formatting.TypeInfo(a)}
+}
+
 //go:inline
 func MakePrismWithName[S, A any](get O.Kleisli[S, A], rev func(A) S, name string) Prism[S, A] {
-	return Prism[S, A]{get, rev, name}
+	return Prism[S, A]{GetOption: get, ReverseGet: rev, prismName: makePrismName(name, new(S), new(A))}
 }
 
 // Id returns an identity prism that focuses on the entire value.

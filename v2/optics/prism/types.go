@@ -127,7 +127,26 @@ type (
 	//   - B: The new focus type
 	Operator[S, A, B any] = func(Prism[S, A]) Prism[S, B]
 
+	// Predicate is a function that tests a value and returns true or false.
+	// It is re-exported here as a convenience alias so callers working with
+	// prisms do not need to import github.com/IBM/fp-go/v2/predicate separately.
+	//
+	// The primary use within this package is FromPredicate, which promotes any
+	// Predicate[S] into a Prism[S, S] that matches values satisfying the test.
+	//
+	// Type Parameters:
+	//   - A: The type of the value being tested
 	Predicate[A any] = predicate.Predicate[A]
 
+	// Lens is a type alias for lens.Lens[S, A], re-exported here for convenience
+	// so that packages composing prisms with lenses (such as optics/prism/lens)
+	// do not need a separate import of github.com/IBM/fp-go/v2/optics/lens.
+	//
+	// See lens.Lens for the full documentation of the Lens type, its laws, and
+	// its constructors.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type (the whole)
+	//   - A: The focus/field type (the part)
 	Lens[S, A any] = lens.Lens[S, A]
 )
