@@ -40,7 +40,7 @@ func (isoTag) String() string {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-//go:noinline
+
 func (isoTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -61,7 +61,7 @@ func (isoTag) Format(f fmt.State, c rune) {
 //	logger.Info("using iso", "iso", tempIso)
 //	// Logs: {"msg":"using iso","iso":"Iso"}
 //
-//go:noinline
+
 func (isoTag) LogValue() slog.Value {
 	return slog.StringValue("Iso")
 }

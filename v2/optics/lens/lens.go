@@ -300,7 +300,7 @@ func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A 
 //
 //go:inline
 func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], S, A any](get GET, set SET, name string) Lens[*S, A] {
-	return Lens[*S, A]{makeLensName(name), get, set}
+	return Lens[*S, A]{makeLensName(name), get, setCopyCurried(set)}
 }
 
 // MakeLensRef creates a [Lens] for pointer-based structures.

@@ -77,7 +77,7 @@ package either
 //   - Filter: Converts Right values that fail a predicate to Left
 func Exists[E, T any](p Predicate[T]) Predicate[Either[E, T]] {
 	return func(e Either[E, T]) bool {
-		return !e.isLeft && p(e.r)
+		return !e.l && p(e.a)
 	}
 }
 
@@ -145,7 +145,7 @@ func Exists[E, T any](p Predicate[T]) Predicate[Either[E, T]] {
 //   - IsLeft: Tests if Either is Left without checking the value
 func ExistsLeft[T, E any](p Predicate[E]) Predicate[Either[E, T]] {
 	return func(e Either[E, T]) bool {
-		return e.isLeft && p(e.l)
+		return e.l && p(e.e)
 	}
 }
 
@@ -239,6 +239,6 @@ func ExistsLeft[T, E any](p Predicate[E]) Predicate[Either[E, T]] {
 //   - Filter: Converts Right values that fail a predicate to Left
 func ForAll[E, T any](p Predicate[T]) Predicate[Either[E, T]] {
 	return func(e Either[E, T]) bool {
-		return e.isLeft || p(e.r)
+		return e.l || p(e.a)
 	}
 }

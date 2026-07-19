@@ -40,10 +40,10 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f Klei
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b := f(a)
-			if b.isLeft {
-				return Left[GB](b.l)
+			if b.l {
+				return Left[GB](b.e)
 			}
-			bs[i] = b.r
+			bs[i] = b.a
 		}
 		return Of[E](bs)
 	}
@@ -89,10 +89,10 @@ func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B an
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b := f(i, a)
-			if b.isLeft {
-				return Left[GB](b.l)
+			if b.l {
+				return Left[GB](b.e)
 			}
-			bs[i] = b.r
+			bs[i] = b.a
 		}
 		return Of[E](bs)
 	}

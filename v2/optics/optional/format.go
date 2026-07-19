@@ -40,7 +40,7 @@ func (o optionalTag) String() string {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation (optional name)
 //
-//go:noinline
+
 func (o optionalTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -61,7 +61,7 @@ func (o optionalTag) Format(f fmt.State, c rune) {
 //	logger.Info("using optional", "optional", fieldOptional)
 //	// Logs: {"msg":"using optional","optional":"Person.Email"}
 //
-//go:noinline
+
 func (o optionalTag) LogValue() slog.Value {
 	return slog.StringValue(o.n)
 }

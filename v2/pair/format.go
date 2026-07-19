@@ -26,7 +26,7 @@ const (
 
 // String prints some debug info for the object
 //
-//go:noinline
+
 func (p Pair[L, R]) String() string {
 	return fmt.Sprintf(pairFmtTemplate, p.l, p.r, p.l, p.r)
 }
@@ -35,7 +35,7 @@ func (p Pair[L, R]) String() string {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-//go:noinline
+
 func (p Pair[L, R]) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -56,7 +56,7 @@ func (p Pair[L, R]) Format(f fmt.State, c rune) {
 //	logger.Info("pair value", "data", p)
 //	// Logs: {"msg":"pair value","data":{"head":"key","tail":42}}
 //
-//go:noinline
+
 func (p Pair[L, R]) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("head", p.l),

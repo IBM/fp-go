@@ -142,8 +142,7 @@ func onEntry(
 			}
 			// logging disabled
 			withCtx := withLoggingContext(loggingContext{
-				logger:    logger,
-				isEnabled: false,
+				logger: logger,
 			})
 			return CR.NopCancel(withCtx(ctx))
 		}

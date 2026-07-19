@@ -105,8 +105,8 @@ func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
 //	fa := Some(5)
 //	result := MonadAp(fab, fa) // Some(10)
 func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
-	if fab.isSome && fa.isSome {
-		return Some(fab.value(fa.value))
+	if fab.s && fa.s {
+		return Some(fab.a(fa.a))
 	}
 	return None[B]()
 }
@@ -121,10 +121,10 @@ func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
 //	fab := Some(N.Mul(2))
 //	result := applyTo5(fab) // Some(10)
 func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
-	if fa.isSome {
+	if fa.s {
 		return func(fab Option[func(A) B]) Option[B] {
-			if fab.isSome {
-				return Some(fab.value(fa.value))
+			if fab.s {
+				return Some(fab.a(fa.a))
 			}
 			return None[B]()
 		}
@@ -141,8 +141,8 @@ func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
 //	fa := Some(5)
 //	result := MonadMap(fa, N.Mul(2)) // Some(10)
 func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
-	if fa.isSome {
-		return Some(f(fa.value))
+	if fa.s {
+		return Some(f(fa.a))
 	}
 	return None[B]()
 }
@@ -157,8 +157,8 @@ func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
 //	result := double(None[int]()) // None
 func Map[A, B any](f func(a A) B) Operator[A, B] {
 	return func(fa Option[A]) Option[B] {
-		if fa.isSome {
-			return Some(f(fa.value))
+		if fa.s {
+			return Some(f(fa.a))
 		}
 		return None[B]()
 	}
@@ -172,7 +172,7 @@ func Map[A, B any](f func(a A) B) Operator[A, B] {
 //	fa := Some(5)
 //	result := MonadMapTo(fa, "hello") // Some("hello")
 func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
-	if fa.isSome {
+	if fa.s {
 		return Some(b)
 	}
 	return None[B]()
@@ -186,7 +186,7 @@ func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
 //	result := replaceWith42(Some("hello")) // Some(42)
 func MapTo[A, B any](b B) Operator[A, B] {
 	return func(fa Option[A]) Option[B] {
-		if fa.isSome {
+		if fa.s {
 			return Some(b)
 		}
 		return None[B]()
@@ -286,7 +286,7 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 //
 //	result := MonadChainTo(Some(5), Some("hello")) // Some("hello")
 func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
-	if ma.isSome {
+	if ma.s {
 		return mb
 	}
 	return None[B]()
@@ -299,9 +299,9 @@ func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
 //	replaceWith := ChainTo(Some("hello"))
 //	result := replaceWith(Some(42)) // Some("hello")
 func ChainTo[A, B any](mb Option[B]) Operator[A, B] {
-	if mb.isSome {
+	if mb.s {
 		return func(ma Option[A]) Option[B] {
-			if ma.isSome {
+			if ma.s {
 				return mb
 			}
 			return None[B]()
@@ -387,8 +387,8 @@ func Alt[A any](that func() Option[A]) Operator[A, A] {
 //	    return Some(a + b)
 //	}) // Some(5)
 func MonadSequence2[T1, T2, R any](o1 Option[T1], o2 Option[T2], f func(T1, T2) Option[R]) Option[R] {
-	if o1.isSome && o2.isSome {
-		return f(o1.value, o2.value)
+	if o1.s && o2.s {
+		return f(o1.a, o2.a)
 	}
 	return None[R]()
 }
@@ -415,8 +415,8 @@ func Sequence2[T1, T2, R any](f func(T1, T2) Option[R]) func(Option[T1], Option[
 //	result := sum(None[int]()) // 0
 func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 	return func(ma Option[A]) B {
-		if ma.isSome {
-			return f(initial, ma.value)
+		if ma.s {
+			return f(initial, ma.a)
 		}
 		return initial
 	}
@@ -432,7 +432,7 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //	result := isPositive(None[int]()) // None
 func Filter[A any](pred Predicate[A]) Operator[A, A] {
 	return func(ma Option[A]) Option[A] {
-		if ma.isSome && pred(ma.value) {
+		if ma.s && pred(ma.a) {
 			return ma
 		}
 		return None[A]()
@@ -447,8 +447,8 @@ func Filter[A any](pred Predicate[A]) Operator[A, A] {
 //	fab := Some(N.Mul(2))
 //	result := MonadFlap(fab, 5) // Some(10)
 func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
-	if fab.isSome {
-		return Some(fab.value(a))
+	if fab.s {
+		return Some(fab.a(a))
 	}
 	return None[B]()
 }
@@ -462,8 +462,8 @@ func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 //	result := applyFive(fab) // Some(10)
 func Flap[B, A any](a A) Operator[func(A) B, B] {
 	return func(fab Option[func(A) B]) Option[B] {
-		if fab.isSome {
-			return Some(fab.value(a))
+		if fab.s {
+			return Some(fab.a(a))
 		}
 		return None[B]()
 	}

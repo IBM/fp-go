@@ -262,11 +262,7 @@ func ExponentialBackoff(delay time.Duration) RetryPolicy {
 //
 //	policy := LimitRetries(3)
 //	result := policy(DefaultRetryStatus) // Returns Some(0) for immediate retry
-var DefaultRetryStatus = RetryStatus{
-	IterNumber:      0,
-	CumulativeDelay: 0,
-	PreviousDelay:   O.None[time.Duration](),
-}
+var DefaultRetryStatus RetryStatus
 
 var getOrElseDelay = O.GetOrElse(F.Constant(emptyDuration))
 

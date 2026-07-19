@@ -45,18 +45,18 @@ func WithResource[A, E, R, ANY any](
 ) Kleisli[E, Kleisli[E, R, A], A] {
 	return func(f func(R) Either[E, A]) Either[E, A] {
 		r := onCreate()
-		if r.isLeft {
-			return Left[A](r.l)
+		if r.l {
+			return Left[A](r.e)
 		}
-		a := f(r.r)
-		n := onRelease(r.r)
-		if a.isLeft {
-			return Left[A](a.l)
+		a := f(r.a)
+		n := onRelease(r.a)
+		if a.l {
+			return Left[A](a.e)
 		}
-		if n.isLeft {
-			return Left[A](n.l)
+		if n.l {
+			return Left[A](n.e)
 
 		}
-		return Of[E](a.r)
+		return Of[E](a.a)
 	}
 }

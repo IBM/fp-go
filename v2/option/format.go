@@ -42,10 +42,10 @@ const (
 //	logger.Info("empty", "value", empty)
 //	// Logs: {"msg":"empty","value":{"none":{}}}
 //
-//go:noinline
+
 func (s Option[A]) LogValue() slog.Value {
-	if s.isSome {
-		return slog.GroupValue(slog.Any("some", s.value))
+	if s.s {
+		return slog.GroupValue(slog.Any("some", s.a))
 	}
 	return slog.GroupValue(slog.Any("none", struct{}{}))
 }
@@ -54,7 +54,7 @@ func (s Option[A]) LogValue() slog.Value {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-//go:noinline
+
 func (s Option[A]) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -66,7 +66,7 @@ func (s Option[A]) Format(f fmt.State, c rune) {
 
 // optString prints some debug info for the object
 //
-//go:noinline
+
 func optString(isSome bool, value any) string {
 	if isSome {
 		return fmt.Sprintf(someFmtTemplate, formatting.TypeInfo(value), value)

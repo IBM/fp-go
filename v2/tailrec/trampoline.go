@@ -33,7 +33,7 @@ import "fmt"
 //
 //go:inline
 func Bounce[L, B any](b B) Trampoline[B, L] {
-	return Trampoline[B, L]{Bounce: b, Landed: false}
+	return Trampoline[B, L]{Bounce: b}
 }
 
 // Land creates a Trampoline that indicates the computation is complete

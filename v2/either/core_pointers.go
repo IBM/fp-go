@@ -25,7 +25,7 @@ type Either[E, A any] struct {
 
 // String prints some debug info for the object
 //
-//go:noinline
+
 func eitherString[E, A any](s *Either[E, A]) string {
 	if s.right != nil {
 		return fmt.Sprintf("Right[%T](%v)", *s.right, *s.right)
@@ -35,7 +35,7 @@ func eitherString[E, A any](s *Either[E, A]) string {
 
 // Format prints some debug info for the object
 //
-//go:noinline
+
 func eitherFormat[E, A any](e *Either[E, A], f fmt.State, c rune) {
 	switch c {
 	case 's':

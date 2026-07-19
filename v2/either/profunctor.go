@@ -52,8 +52,8 @@ import F "github.com/IBM/fp-go/v2/function"
 //
 //go:inline
 func MonadExtend[E, A, B any](fa Either[E, A], f func(Either[E, A]) B) Either[E, B] {
-	if fa.isLeft {
-		return Left[B](fa.l)
+	if fa.l {
+		return Left[B](fa.e)
 	}
 	return Of[E](f(fa))
 }

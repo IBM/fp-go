@@ -86,10 +86,10 @@ import (
 func Partition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either[E, A], Either[E, A]] {
 	l := Left[A](empty)
 	return func(e Either[E, A]) Pair[Either[E, A], Either[E, A]] {
-		if e.isLeft {
+		if e.l {
 			return pair.Of(e)
 		}
-		if p(e.r) {
+		if p(e.a) {
 			return pair.MakePair(l, e)
 		}
 		return pair.MakePair(e, l)
@@ -159,7 +159,7 @@ func Partition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either
 func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
 	l := Left[A](empty)
 	return func(e Either[E, A]) Either[E, A] {
-		if e.isLeft || p(e.r) {
+		if e.l || p(e.a) {
 			return e
 		}
 		return l
@@ -238,10 +238,10 @@ func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
 func FilterMap[E, A, B any](f option.Kleisli[A, B], empty E) Operator[E, A, B] {
 	l := Left[B](empty)
 	return func(e Either[E, A]) Either[E, B] {
-		if e.isLeft {
-			return Left[B](e.l)
+		if e.l {
+			return Left[B](e.e)
 		}
-		if b, ok := option.Unwrap(f(e.r)); ok {
+		if b, ok := option.Unwrap(f(e.a)); ok {
 			return Right[E](b)
 		}
 		return l
@@ -339,13 +339,13 @@ func FilterMap[E, A, B any](f option.Kleisli[A, B], empty E) Operator[E, A, B] {
 //	// result5 = Pair(Right(ValidationError{"age", "missing"}), Left(ValidationError{"", "not processed"}))
 func PartitionMap[E, A, B, C any](f Kleisli[B, A, C], empty E) func(Either[E, A]) Pair[Either[E, B], Either[E, C]] {
 	return func(e Either[E, A]) Pair[Either[E, B], Either[E, C]] {
-		if e.isLeft {
-			return pair.MakePair(Left[B](e.l), Left[C](e.l))
+		if e.l {
+			return pair.MakePair(Left[B](e.e), Left[C](e.e))
 		}
-		res := f(e.r)
-		if res.isLeft {
-			return pair.MakePair(Right[E](res.l), Left[C](empty))
+		res := f(e.a)
+		if res.l {
+			return pair.MakePair(Right[E](res.e), Left[C](empty))
 		}
-		return pair.MakePair(Left[B](empty), Right[E](res.r))
+		return pair.MakePair(Left[B](empty), Right[E](res.a))
 	}
 }

@@ -38,8 +38,8 @@ var (
 //	var opt Option[int] = Some(42)  // Contains a value
 //	var opt Option[int] = None[int]() // Contains no value
 type Option[A any] struct {
-	value  A
-	isSome bool
+	a A
+	s bool
 }
 
 type (
@@ -56,7 +56,7 @@ type (
 //	Some(42).String() // "Some[int](42)"
 //	None[int]().String() // "None[int]"
 func (s Option[A]) String() string {
-	return optString(s.isSome, s.value)
+	return optString(s.s, s.a)
 }
 
 func optMarshalJSON(isSome bool, value any) ([]byte, error) {
@@ -67,12 +67,12 @@ func optMarshalJSON(isSome bool, value any) ([]byte, error) {
 }
 
 func (s Option[A]) MarshalJSON() ([]byte, error) {
-	return optMarshalJSON(s.isSome, s.value)
+	return optMarshalJSON(s.s, s.a)
 }
 
 // optUnmarshalJSON unmarshals the [Option] from a JSON string
 //
-//go:noinline
+
 func optUnmarshalJSON(isSome *bool, value any, data []byte) error {
 	// decode the value
 	if bytes.Equal(data, jsonNull) {
@@ -85,7 +85,7 @@ func optUnmarshalJSON(isSome *bool, value any, data []byte) error {
 }
 
 func (s *Option[A]) UnmarshalJSON(data []byte) error {
-	return optUnmarshalJSON(&s.isSome, &s.value, data)
+	return optUnmarshalJSON(&s.s, &s.a, data)
 }
 
 // IsNone checks if an Option is None (contains no value).
@@ -99,7 +99,7 @@ func (s *Option[A]) UnmarshalJSON(data []byte) error {
 //
 //go:inline
 func IsNone[T any](val Option[T]) bool {
-	return !val.isSome
+	return !val.s
 }
 
 // Some creates an Option that contains a value.
@@ -111,7 +111,7 @@ func IsNone[T any](val Option[T]) bool {
 //
 //go:inline
 func Some[T any](value T) Option[T] {
-	return Option[T]{isSome: true, value: value}
+	return Option[T]{s: true, a: value}
 }
 
 // Of creates an Option that contains a value.
@@ -149,7 +149,7 @@ func None[T any]() Option[T] {
 //
 //go:inline
 func IsSome[T any](val Option[T]) bool {
-	return val.isSome
+	return val.s
 }
 
 // MonadFold performs a fold operation on an Option.
@@ -165,7 +165,7 @@ func IsSome[T any](val Option[T]) bool {
 //	) // "value: 42"
 func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
 	if IsSome(ma) {
-		return onSome(ma.value)
+		return onSome(ma.a)
 	}
 	return onNone()
 }
@@ -182,5 +182,5 @@ func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
 //
 //go:inline
 func Unwrap[A any](ma Option[A]) (A, bool) {
-	return ma.value, ma.isSome
+	return ma.a, ma.s
 }

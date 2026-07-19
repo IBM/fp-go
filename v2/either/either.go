@@ -63,13 +63,13 @@ func FromIO[E any, IO ~func() A, A any](f IO) Either[E, A] {
 //	fa := either.Right[error](21)
 //	result := either.MonadAp(fab, fa) // Right(42)
 func MonadAp[B, E, A any](fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-	if fab.isLeft {
-		return Left[B](fab.l)
+	if fab.l {
+		return Left[B](fab.e)
 	}
-	if fa.isLeft {
-		return Left[B](fa.l)
+	if fa.l {
+		return Left[B](fa.e)
 	}
-	return Of[E](fab.r(fa.r))
+	return Of[E](fab.a(fa.a))
 }
 
 // Ap is the curried version of [MonadAp].
@@ -93,10 +93,10 @@ func Ap[B, E, A any](fa Either[E, A]) Operator[E, func(A) B, B] {
 //
 //go:inline
 func MonadMap[E, A, B any](fa Either[E, A], f func(A) B) Either[E, B] {
-	if fa.isLeft {
-		return Left[B](fa.l)
+	if fa.l {
+		return Left[B](fa.e)
 	}
-	return Of[E](f(fa.r))
+	return Of[E](f(fa.a))
 }
 
 // MonadBiMap applies two functions: one to transform a Left value, another to transform a Right value.
@@ -110,10 +110,10 @@ func MonadMap[E, A, B any](fa Either[E, A], f func(A) B) Either[E, B] {
 //	    func(n int) string { return fmt.Sprint(n) },
 //	) // Left("error")
 func MonadBiMap[E1, E2, A, B any](fa Either[E1, A], f func(E1) E2, g func(a A) B) Either[E2, B] {
-	if fa.isLeft {
-		return Left[B](f(fa.l))
+	if fa.l {
+		return Left[B](f(fa.e))
 	}
-	return Of[E2](g(fa.r))
+	return Of[E2](g(fa.a))
 }
 
 // BiMap is the curried version of [MonadBiMap].
@@ -131,8 +131,8 @@ func BiMap[E1, E2, A, B any](f func(E1) E2, g func(a A) B) func(Either[E1, A]) E
 //
 //	result := either.MonadMapTo(either.Right[error](21), "success") // Right("success")
 func MonadMapTo[E, A, B any](fa Either[E, A], b B) Either[E, B] {
-	if fa.isLeft {
-		return Left[B](fa.l)
+	if fa.l {
+		return Left[B](fa.e)
 	}
 	return Of[E](b)
 }
@@ -182,10 +182,10 @@ func MapLeft[A, E1, E2 any](f func(E1) E2) func(fa Either[E1, A]) Either[E2, A] 
 //
 //go:inline
 func MonadChain[E, A, B any](fa Either[E, A], f Kleisli[E, A, B]) Either[E, B] {
-	if fa.isLeft {
-		return Left[B](fa.l)
+	if fa.l {
+		return Left[B](fa.e)
 	}
-	return f(fa.r)
+	return f(fa.a)
 }
 
 // MonadChainLeft sequences a computation on the Left (error) value, allowing error recovery or transformation.
@@ -509,10 +509,10 @@ func GetOrElse[E, A any](onLeft func(E) A) func(Either[E, A]) A {
 // Returns the initial value for Left, or applies the reducer to the Right value.
 func Reduce[E, A, B any](f func(B, A) B, initial B) func(Either[E, A]) B {
 	return func(fa Either[E, A]) B {
-		if fa.isLeft {
+		if fa.l {
 			return initial
 		}
-		return f(initial, fa.r)
+		return f(initial, fa.a)
 	}
 }
 
@@ -595,28 +595,28 @@ func Memoize[E, A any](val Either[E, A]) Either[E, A] {
 // MonadSequence2 sequences two Either values using a combining function.
 // Short-circuits on the first Left encountered.
 func MonadSequence2[E, T1, T2, R any](e1 Either[E, T1], e2 Either[E, T2], f func(T1, T2) Either[E, R]) Either[E, R] {
-	if e1.isLeft {
-		return Left[R](e1.l)
+	if e1.l {
+		return Left[R](e1.e)
 	}
-	if e2.isLeft {
-		return Left[R](e2.l)
+	if e2.l {
+		return Left[R](e2.e)
 	}
-	return f(e1.r, e2.r)
+	return f(e1.a, e2.a)
 }
 
 // MonadSequence3 sequences three Either values using a combining function.
 // Short-circuits on the first Left encountered.
 func MonadSequence3[E, T1, T2, T3, R any](e1 Either[E, T1], e2 Either[E, T2], e3 Either[E, T3], f func(T1, T2, T3) Either[E, R]) Either[E, R] {
-	if e1.isLeft {
-		return Left[R](e1.l)
+	if e1.l {
+		return Left[R](e1.e)
 	}
-	if e2.isLeft {
-		return Left[R](e2.l)
+	if e2.l {
+		return Left[R](e2.e)
 	}
-	if e3.isLeft {
-		return Left[R](e3.l)
+	if e3.l {
+		return Left[R](e3.e)
 	}
-	return f(e1.r, e2.r, e3.r)
+	return f(e1.a, e2.a, e3.a)
 }
 
 // Swap exchanges the Left and Right type parameters.

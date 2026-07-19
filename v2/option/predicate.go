@@ -76,7 +76,7 @@ package option
 //   - IsSome: Tests if Option is Some without checking the value
 func Exists[T any](p Predicate[T]) Predicate[Option[T]] {
 	return func(o Option[T]) bool {
-		return o.isSome && p(o.value)
+		return o.s && p(o.a)
 	}
 }
 
@@ -172,6 +172,6 @@ func Exists[T any](p Predicate[T]) Predicate[Option[T]] {
 //   - IsSome: Tests if Option is Some without checking the value
 func ForAll[T any](p Predicate[T]) Predicate[Option[T]] {
 	return func(o Option[T]) bool {
-		return !o.isSome || p(o.value)
+		return !o.s || p(o.a)
 	}
 }

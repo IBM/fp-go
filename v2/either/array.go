@@ -43,10 +43,10 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f Kleisli[E, A, B]) Kleisli[E
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b := f(a)
-			if b.isLeft {
-				return Left[GB](b.l)
+			if b.l {
+				return Left[GB](b.e)
 			}
-			bs[i] = b.r
+			bs[i] = b.a
 		}
 		return Of[E](bs)
 	}
@@ -92,10 +92,10 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Eithe
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b := f(i, a)
-			if b.isLeft {
-				return Left[GB](b.l)
+			if b.l {
+				return Left[GB](b.e)
 			}
-			bs[i] = b.r
+			bs[i] = b.a
 		}
 		return Of[E](bs)
 	}
@@ -224,10 +224,10 @@ func TraverseSeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, iter.Seq[A], iter.S
 		var bs []B
 		for a := range ga {
 			b := f(a)
-			if b.isLeft {
-				return Left[iter.Seq[B]](b.l)
+			if b.l {
+				return Left[iter.Seq[B]](b.e)
 			}
-			bs = append(bs, b.r)
+			bs = append(bs, b.a)
 		}
 		return Of[E](slices.Values(bs))
 	}

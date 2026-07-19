@@ -1679,6 +1679,95 @@ func TestMakeLensCurriedRefWithName(t *testing.T) {
 	})
 }
 
+func TestMakeLensCurriedRefWithName_CopySemantics(t *testing.T) {
+	nameLens := MakeLensCurriedRefWithName(
+		func(s *Street) string { return s.name },
+		func(name string) func(*Street) *Street {
+			return func(s *Street) *Street { s.name = name; return s }
+		},
+		"Street.Name",
+	)
+	numLens := MakeLensCurriedRefWithName(
+		func(s *Street) int { return s.num },
+		func(num int) func(*Street) *Street {
+			return func(s *Street) *Street { s.num = num; return s }
+		},
+		"Street.Num",
+	)
+
+	t.Run("copy preserves unrelated fields of the source struct", func(t *testing.T) {
+		// orig has both fields set; only name is changed via the lens.
+		// The copy must carry over num unchanged.
+		orig := &Street{num: 42, name: "Maple"}
+		updated := nameLens.Set("Oak")(orig)
+		assert.Equal(t, "Oak", updated.name, "focused field should be updated")
+		assert.Equal(t, 42, updated.num, "unrelated field must be preserved in the copy")
+		assert.Equal(t, "Maple", orig.name, "original focused field must be unchanged")
+		assert.Equal(t, 42, orig.num, "original unrelated field must be unchanged")
+		assert.NotSame(t, orig, updated, "set must return a new pointer, not the original")
+	})
+
+	t.Run("two sets on the same original produce independent copies", func(t *testing.T) {
+		// Applying the lens twice to the same original must yield two distinct
+		// copies that do not share identity with each other or with the original.
+		orig := &Street{num: 1, name: "Maple"}
+		first := nameLens.Set("Oak")(orig)
+		second := nameLens.Set("Pine")(orig)
+
+		assert.Equal(t, "Oak", first.name)
+		assert.Equal(t, "Pine", second.name)
+		assert.Equal(t, "Maple", orig.name, "original must remain untouched after both sets")
+		assert.NotSame(t, orig, first, "first result must be a new pointer")
+		assert.NotSame(t, orig, second, "second result must be a new pointer")
+		assert.NotSame(t, first, second, "the two results must be independent pointers")
+	})
+
+	t.Run("chained sets each produce a fresh copy", func(t *testing.T) {
+		// Setting via the lens twice in a chain (set on the result of the first set)
+		// must produce two different pointers; neither intermediate result must
+		// alias the original.
+		orig := &Street{num: 7, name: "Maple"}
+		step1 := nameLens.Set("Oak")(orig)
+		step2 := nameLens.Set("Pine")(step1)
+
+		assert.Equal(t, "Maple", orig.name, "original untouched after chained sets")
+		assert.Equal(t, "Oak", step1.name, "intermediate copy must hold first value")
+		assert.Equal(t, "Pine", step2.name, "final copy must hold second value")
+		assert.NotSame(t, orig, step1, "step1 must be a new pointer")
+		assert.NotSame(t, step1, step2, "step2 must be a new pointer distinct from step1")
+	})
+
+	t.Run("setting via different lenses on the same original produces independent copies", func(t *testing.T) {
+		// Applying name-lens and num-lens separately to the same original must
+		// each produce their own copy; neither copy must alias the original.
+		orig := &Street{num: 10, name: "Maple"}
+		byName := nameLens.Set("Oak")(orig)
+		byNum := numLens.Set(99)(orig)
+
+		assert.Equal(t, "Oak", byName.name)
+		assert.Equal(t, 10, byName.num, "num-lens copy must not affect name-lens copy's num")
+		assert.Equal(t, "Maple", byNum.name, "name field untouched in num-lens copy")
+		assert.Equal(t, 99, byNum.num)
+		assert.Equal(t, "Maple", orig.name, "original name unchanged")
+		assert.Equal(t, 10, orig.num, "original num unchanged")
+		assert.NotSame(t, orig, byName)
+		assert.NotSame(t, orig, byNum)
+		assert.NotSame(t, byName, byNum)
+	})
+
+	t.Run("nil pointer set produces a new pointer, not the shared zero-value sentinel", func(t *testing.T) {
+		// Two nil-pointer sets with different values must each return an independent
+		// fresh pointer; they must not both point to the same backing store.
+		var nilStreet *Street
+		first := nameLens.Set("Oak")(nilStreet)
+		second := nameLens.Set("Pine")(nilStreet)
+
+		assert.Equal(t, "Oak", first.name)
+		assert.Equal(t, "Pine", second.name)
+		assert.NotSame(t, first, second, "nil-path results must be independent pointers")
+	})
+}
+
 func TestMakeLensRefWithName(t *testing.T) {
 	nameLens := MakeLensRefWithName(
 		(*Street).GetName,

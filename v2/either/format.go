@@ -25,28 +25,38 @@ const (
 	rightFmtTemplate = "Right[%T](%v)"
 )
 
+func eitherString(tmp string, value any) string {
+	return fmt.Sprintf(tmp, value, value)
+}
+
 // String prints some debug info for the object
-//
-//go:noinline
 func (s Either[E, A]) String() string {
-	if !s.isLeft {
-		return fmt.Sprintf(rightFmtTemplate, s.r, s.r)
+	if !s.l {
+		return eitherString(rightFmtTemplate, s.a)
 	}
-	return fmt.Sprintf(leftFmtTemplate, s.l, s.l)
+	return eitherString(leftFmtTemplate, s.e)
+}
+
+func eitherFormat(f fmt.State, c rune, s string) {
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", s)
+	default:
+		fmt.Fprint(f, s)
+	}
 }
 
 // Format implements fmt.Formatter for Either.
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-//go:noinline
+
 func (s Either[E, A]) Format(f fmt.State, c rune) {
-	switch c {
-	case 'q':
-		fmt.Fprintf(f, "%q", s.String())
-	default:
-		fmt.Fprint(f, s.String())
-	}
+	eitherFormat(f, c, s.String())
+}
+
+func eitherLogValue(label string, value any) slog.Value {
+	return slog.GroupValue(slog.Any(label, value))
 }
 
 // LogValue implements slog.LogValuer for Either.
@@ -64,10 +74,10 @@ func (s Either[E, A]) Format(f fmt.State, c rune) {
 //	logger.Error("error", "value", err)
 //	// Logs: {"msg":"error","value":{"left":"failed"}}
 //
-//go:noinline
+
 func (s Either[E, A]) LogValue() slog.Value {
-	if !s.isLeft {
-		return slog.GroupValue(slog.Any("right", s.r))
+	if !s.l {
+		return eitherLogValue("right", s.a)
 	}
-	return slog.GroupValue(slog.Any("left", s.l))
+	return eitherLogValue("left", s.e)
 }

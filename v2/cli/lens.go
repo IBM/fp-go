@@ -51,14 +51,12 @@ var (
 	flagVerbose = &C.BoolFlag{
 		Name:    keyVerbose,
 		Aliases: []string{"v"},
-		Value:   false,
 		Usage:   "Enable verbose output",
 	}
 
 	flagIncludeTestFiles = &C.BoolFlag{
 		Name:    keyIncludeTestFile,
 		Aliases: []string{"t"},
-		Value:   false,
 		Usage:   "Include test files (*_test.go) when scanning for annotated types",
 	}
 

@@ -74,16 +74,16 @@ import (
 //	result3 := applyV(fab3, fa3) // Right(42)
 func MonadApV[B, A, E any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
 	return func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-		if fab.isLeft {
-			if fa.isLeft {
-				return Left[B](sg.Concat(fab.l, fa.l))
+		if fab.l {
+			if fa.l {
+				return Left[B](sg.Concat(fab.e, fa.e))
 			}
-			return Left[B](fab.l)
+			return Left[B](fab.e)
 		}
-		if fa.isLeft {
-			return Left[B](fa.l)
+		if fa.l {
+			return Left[B](fa.e)
 		}
-		return Of[E](fab.r(fa.r))
+		return Of[E](fab.a(fa.a))
 	}
 }
 

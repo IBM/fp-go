@@ -37,10 +37,10 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 		bs := make(GB, len(g))
 		for i, a := range g {
 			b := f(a)
-			if !b.isSome {
+			if !b.s {
 				return None[GB]()
 			}
-			bs[i] = b.value
+			bs[i] = b.a
 		}
 		return Some(bs)
 	}
@@ -75,10 +75,10 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B
 		bs := make(GB, len(g))
 		for i, a := range g {
 			b := f(i, a)
-			if !b.isSome {
+			if !b.s {
 				return None[GB]()
 			}
-			bs[i] = b.value
+			bs[i] = b.a
 		}
 		return Some(bs)
 	}
@@ -137,8 +137,8 @@ func SequenceArray[A any](ma []Option[A]) Option[[]A] {
 func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 	as := make(A2, 0, len(fa))
 	for _, oa := range fa {
-		if oa.isSome {
-			as = append(as, oa.value)
+		if oa.s {
+			as = append(as, oa.a)
 		}
 	}
 	return as
