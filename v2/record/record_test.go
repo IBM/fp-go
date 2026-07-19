@@ -1014,7 +1014,7 @@ func TestFromArrayMap_NilInput(t *testing.T) {
 	t.Run("handles nil array input", func(t *testing.T) {
 		var nilArray []string
 		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
-		toRecord := FromArrayMap[string, string, int](sumMagma)(func(s string) Entry[string, int] {
+		toRecord := FromArrayMap[string, string](sumMagma)(func(s string) Entry[string, int] {
 			return P.MakePair(s, len(s))
 		})
 		result := toRecord(nilArray)
@@ -1028,7 +1028,7 @@ func TestFromArrayMap_NilInput(t *testing.T) {
 	t.Run("nil input with different types", func(t *testing.T) {
 		var nilArray []int
 		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
-		toRecord := FromArrayMap[int, string, int](sumMagma)(func(n int) Entry[string, int] {
+		toRecord := FromArrayMap[int, string](sumMagma)(func(n int) Entry[string, int] {
 			return P.MakePair(strconv.Itoa(n), n)
 		})
 		result := toRecord(nilArray)
@@ -1042,7 +1042,7 @@ func TestFromArrayMap_NilInput(t *testing.T) {
 		var nilArray []string
 		emptyArray := []string{}
 		sumMagma := Mg.MakeMagma(func(a, b int) int { return a + b })
-		toRecord := FromArrayMap[string, string, int](sumMagma)(func(s string) Entry[string, int] {
+		toRecord := FromArrayMap[string, string](sumMagma)(func(s string) Entry[string, int] {
 			return P.MakePair(s, len(s))
 		})
 

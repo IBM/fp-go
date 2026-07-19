@@ -28,13 +28,13 @@ type (
 	// It represents transformations that preserve the type.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
-	// lensName holds the display metadata for a Lens[S, A].
+	// lensTag holds the display metadata for a Lens[S, A].
 	//
 	// It is embedded in Lens[S, A] as a non-generic carrier so that the
 	// formatting and logging methods (String, Format, LogValue)
 	// are compiled once and shared across all type-parameter instantiations,
 	// rather than being duplicated for every distinct Lens[S, A].
-	lensName struct {
+	lensTag struct {
 		// n is the end-user-facing name of the lens (e.g. "Person.Name").
 		// It is returned by String() and LogValue().
 		n string
@@ -89,7 +89,7 @@ type (
 	//	updated := nameLens.Set("Bob")(person) // Returns: Person{Name: "Bob", Age: 30}
 	//	// Original person remains unchanged (immutability preserved)
 	Lens[S, A any] struct {
-		lensName
+		lensTag
 
 		// Get extracts the focused value of type A from structure S.
 		Get func(s S) A

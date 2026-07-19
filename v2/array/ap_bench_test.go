@@ -33,6 +33,6 @@ func BenchmarkAp(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		apSink = MonadAp[int, int](fab, fa)
+		apSink = MonadAp(fab, fa)
 	}
 }

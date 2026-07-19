@@ -20,14 +20,20 @@ import (
 	"log/slog"
 )
 
+// The methods below are defined on the non-generic optionalName type rather than
+// directly on Optional[S, A]. Because Go instantiates a separate copy of every
+// generic method for each distinct type-argument combination, placing these
+// methods on the embedded non-generic optionalName avoids that code bloat: a
+// single compiled copy is shared across all Optional[S, A] instantiations.
+
 // String returns the name of the optional for debugging and display purposes.
 //
 // Example:
 //
 //	fieldOptional := optional.MakeOptionalWithName(..., "Person.Email")
 //	fmt.Println(fieldOptional)  // Prints: "Person.Email"
-func (o Optional[S, T]) String() string {
-	return o.name
+func (o optionalTag) String() string {
+	return o.n
 }
 
 // Format implements fmt.Formatter for Optional.
@@ -35,12 +41,12 @@ func (o Optional[S, T]) String() string {
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation (optional name)
 //
 //go:noinline
-func (o Optional[S, T]) Format(f fmt.State, c rune) {
+func (o optionalTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
-		fmt.Fprintf(f, "%q", o.name)
+		fmt.Fprintf(f, "%q", o.n)
 	default:
-		fmt.Fprint(f, o.name)
+		fmt.Fprint(f, o.n)
 	}
 }
 
@@ -56,6 +62,6 @@ func (o Optional[S, T]) Format(f fmt.State, c rune) {
 //	// Logs: {"msg":"using optional","optional":"Person.Email"}
 //
 //go:noinline
-func (o Optional[S, T]) LogValue() slog.Value {
-	return slog.StringValue(o.name)
+func (o optionalTag) LogValue() slog.Value {
+	return slog.StringValue(o.n)
 }

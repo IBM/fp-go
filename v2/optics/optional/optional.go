@@ -93,11 +93,20 @@ import (
 )
 
 type (
+	// optionalTag holds the display name for an Optional[S, A].
+	//
+	// It is embedded in Optional[S, A] so that String, Format, and LogValue are compiled
+	// once and shared across all type-parameter instantiations, rather than being
+	// duplicated for every distinct Optional[S, A].
+	optionalTag struct {
+		n string
+	}
+
 	// Optional is an optional reference to a subpart of a data type
 	Optional[S, A any] struct {
+		optionalTag
 		GetOption func(s S) O.Option[A]
 		Set       func(a A) EM.Endomorphism[S]
-		name      string
 	}
 
 	// Kleisli represents a function that takes a value of type A and returns an Optional[S, B].
@@ -165,7 +174,7 @@ func MakeOptionalWithName[S, A any](get O.Kleisli[S, A], set func(S, A) S, name 
 }
 
 func MakeOptionalCurriedWithName[S, A any](get O.Kleisli[S, A], set func(A) func(S) S, name string) Optional[S, A] {
-	return Optional[S, A]{GetOption: get, Set: set, name: name}
+	return Optional[S, A]{optionalTag: optionalTag{n: name}, GetOption: get, Set: set}
 }
 
 // MakeOptionalRef creates an Optional based on a getter and a setter function. The setter passed in does not have to create a shallow

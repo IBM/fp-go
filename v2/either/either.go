@@ -683,5 +683,5 @@ func MonadAlt[E, A any](fa Either[E, A], that Lazy[Either[E, A]]) Either[E, A] {
 //	assert.True(t, either.IsRight(e))  // true
 //	assert.False(t, either.IsLeft(e))  // false
 func Zero[E, A any]() Either[E, A] {
-	return Either[E, A]{isLeft: false}
+	return Either[E, A]{}
 }

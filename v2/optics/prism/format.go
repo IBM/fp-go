@@ -27,7 +27,7 @@ import (
 // single compiled copy is shared across all Prism[S, A] instantiations.
 
 // String returns the name of the prism for debugging and display purposes.
-func (l prismName) String() string {
+func (l prismTag) String() string {
 	return l.n
 }
 
@@ -35,7 +35,7 @@ func (l prismName) String() string {
 //
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses the String() representation (the prism name)
-func (l prismName) Format(f fmt.State, c rune) {
+func (l prismTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
 		fmt.Fprintf(f, "%q", l.n)
@@ -48,6 +48,6 @@ func (l prismName) Format(f fmt.State, c rune) {
 //
 // Returns a slog.Value that represents the prism for structured logging.
 // The prism name is logged as a string value.
-func (l prismName) LogValue() slog.Value {
+func (l prismTag) LogValue() slog.Value {
 	return slog.StringValue(l.n)
 }

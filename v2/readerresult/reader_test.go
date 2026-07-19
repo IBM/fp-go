@@ -572,7 +572,7 @@ func TestChainFirst(t *testing.T) {
 			return Of[MyContext]("logged")
 		}
 
-		res := F.Pipe1(Of[MyContext](42), ChainFirst[MyContext, int, string](record))(defaultContext)
+		res := F.Pipe1(Of[MyContext](42), ChainFirst(record))(defaultContext)
 
 		assert.Equal(t, result.Of(42), res)
 		assert.Equal(t, 42, sideEffect)
@@ -585,7 +585,7 @@ func TestChainFirst(t *testing.T) {
 			return Of[MyContext]("logged")
 		}
 
-		res := F.Pipe1(Left[MyContext, int](testError), ChainFirst[MyContext, int, string](record))(defaultContext)
+		res := F.Pipe1(Left[MyContext, int](testError), ChainFirst(record))(defaultContext)
 
 		assert.Equal(t, result.Left[int](testError), res)
 		assert.False(t, called, "side-effect function should not be called on failure")
@@ -600,7 +600,7 @@ func TestChainFirst(t *testing.T) {
 
 		res := F.Pipe1(
 			Of[MyContext](5),
-			ChainFirst[MyContext, int, string](record),
+			ChainFirst(record),
 		)(defaultContext)
 
 		assert.Equal(t, result.Of(5), res)
@@ -613,7 +613,7 @@ func TestChainFirst(t *testing.T) {
 			return Left[MyContext, string](sideError)
 		}
 
-		res := F.Pipe1(Of[MyContext](10), ChainFirst[MyContext, int, string](failingSideEffect))(defaultContext)
+		res := F.Pipe1(Of[MyContext](10), ChainFirst(failingSideEffect))(defaultContext)
 
 		assert.Equal(t, result.Left[int](sideError), res)
 	})
@@ -630,9 +630,9 @@ func TestChainFirst(t *testing.T) {
 		res := F.Pipe1(
 			F.Pipe1(
 				Of[MyContext](3),
-				ChainFirst[MyContext, int, string](appendLog("first")),
+				ChainFirst(appendLog("first")),
 			),
-			ChainFirst[MyContext, int, string](appendLog("second")),
+			ChainFirst(appendLog("second")),
 		)(defaultContext)
 
 		assert.Equal(t, result.Of(3), res)
@@ -668,7 +668,7 @@ func TestChainReaderK(t *testing.T) {
 		f := func(x int) reader.Reader[MyContext, string] {
 			return func(ctx MyContext) string { return fmt.Sprintf("%s:%d", ctx, x) }
 		}
-		res := F.Pipe1(Of[MyContext](7), ChainReaderK[MyContext, int, string](f))(defaultContext)
+		res := F.Pipe1(Of[MyContext](7), ChainReaderK(f))(defaultContext)
 		assert.Equal(t, result.Of("default:7"), res)
 	})
 
@@ -676,7 +676,7 @@ func TestChainReaderK(t *testing.T) {
 		f := func(x int) reader.Reader[MyContext, string] {
 			return func(ctx MyContext) string { return "ok" }
 		}
-		res := F.Pipe1(Left[MyContext, int](testError), ChainReaderK[MyContext, int, string](f))(defaultContext)
+		res := F.Pipe1(Left[MyContext, int](testError), ChainReaderK(f))(defaultContext)
 		assert.Equal(t, result.Left[string](testError), res)
 	})
 }
@@ -686,7 +686,7 @@ func TestMonadApReader(t *testing.T) {
 		add5 := func(x int) int { return x + 5 }
 		fab := Of[MyContext](add5)
 		fa := func(_ MyContext) int { return 10 }
-		res := MonadApReader[int](fab, fa)(defaultContext)
+		res := MonadApReader(fab, fa)(defaultContext)
 		assert.Equal(t, result.Of(15), res)
 	})
 
@@ -694,14 +694,14 @@ func TestMonadApReader(t *testing.T) {
 		prefix := func(s string) string { return "Hello " + s }
 		fab := Of[MyContext](prefix)
 		fa := func(ctx MyContext) string { return string(ctx) }
-		res := MonadApReader[string](fab, fa)(defaultContext)
+		res := MonadApReader(fab, fa)(defaultContext)
 		assert.Equal(t, result.Of("Hello default"), res)
 	})
 
 	t.Run("error in fab propagates; fa is not applied", func(t *testing.T) {
 		fab := Left[MyContext, func(int) int](testError)
 		fa := func(_ MyContext) int { return 99 }
-		res := MonadApReader[int](fab, fa)(defaultContext)
+		res := MonadApReader(fab, fa)(defaultContext)
 		assert.Equal(t, result.Left[int](testError), res)
 	})
 }
@@ -711,14 +711,14 @@ func TestApReader(t *testing.T) {
 		double := func(x int) int { return x * 2 }
 		fab := Of[MyContext](double)
 		fa := func(_ MyContext) int { return 6 }
-		res := F.Pipe1(fab, ApReader[int, MyContext, int](fa))(defaultContext)
+		res := F.Pipe1(fab, ApReader[int](fa))(defaultContext)
 		assert.Equal(t, result.Of(12), res)
 	})
 
 	t.Run("error in wrapped function propagates", func(t *testing.T) {
 		fab := Left[MyContext, func(int) int](testError)
 		fa := func(_ MyContext) int { return 6 }
-		res := F.Pipe1(fab, ApReader[int, MyContext, int](fa))(defaultContext)
+		res := F.Pipe1(fab, ApReader[int](fa))(defaultContext)
 		assert.Equal(t, result.Left[int](testError), res)
 	})
 }
@@ -865,7 +865,7 @@ func TestChainFirstI(t *testing.T) {
 				return "logged", nil
 			}
 		}
-		res := F.Pipe1(Of[MyContext](5), ChainFirstI[MyContext, int, string](f))(defaultContext)
+		res := F.Pipe1(Of[MyContext](5), ChainFirstI(f))(defaultContext)
 		assert.Equal(t, result.Of(5), res)
 		assert.Equal(t, 5, capturedVal)
 	})
@@ -875,7 +875,7 @@ func TestChainFirstI(t *testing.T) {
 		f := func(x int) func(MyContext) (string, error) {
 			return func(ctx MyContext) (string, error) { called = true; return "", nil }
 		}
-		res := F.Pipe1(Left[MyContext, int](testError), ChainFirstI[MyContext, int, string](f))(defaultContext)
+		res := F.Pipe1(Left[MyContext, int](testError), ChainFirstI(f))(defaultContext)
 		assert.Equal(t, result.Left[int](testError), res)
 		assert.False(t, called)
 	})

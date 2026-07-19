@@ -23,8 +23,15 @@ import (
 )
 
 type (
-	prismName struct {
-		// is an end user facing identifier for the prism
+	// prismTag holds the display name for a Prism[S, A].
+	//
+	// It is embedded in Prism[S, A] as a non-generic carrier so that the
+	// formatting and logging methods (String, Format, LogValue) are compiled
+	// once and shared across all type-parameter instantiations, rather than
+	// being duplicated for every distinct Prism[S, A].
+	prismTag struct {
+		// n is the end-user-facing name of the prism (e.g. "MyType.Variant").
+		// It is returned by String() and LogValue().
 		n string
 	}
 
@@ -55,7 +62,7 @@ type (
 	//       func(v int) Result { return Success{Value: v} },
 	//   )
 	Prism[S, A any] struct {
-		prismName
+		prismTag
 
 		// GetOption attempts to extract a value of type A from S.
 		// Returns Some(a) if the extraction succeeds, None otherwise.
@@ -90,7 +97,7 @@ func MakePrism[S, A any](get O.Kleisli[S, A], rev func(A) S) Prism[S, A] {
 
 //go:inline
 func MakePrismWithName[S, A any](get O.Kleisli[S, A], rev func(A) S, name string) Prism[S, A] {
-	return Prism[S, A]{GetOption: get, ReverseGet: rev, prismName: prismName{n: name}}
+	return Prism[S, A]{GetOption: get, ReverseGet: rev, prismTag: prismTag{n: name}}
 }
 
 // Id returns an identity prism that focuses on the entire value.

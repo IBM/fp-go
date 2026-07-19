@@ -135,7 +135,7 @@ func Of[T any](value T) Option[T] {
 //
 //go:inline
 func None[T any]() Option[T] {
-	return Option[T]{isSome: false}
+	return Option[T]{}
 }
 
 // IsSome checks if an Option contains a value.

@@ -20,13 +20,19 @@ import (
 	"log/slog"
 )
 
+// The methods below are defined on the non-generic isoTag type rather than
+// directly on Iso[S, A]. Because Go instantiates a separate copy of every
+// generic method for each distinct type-argument combination, placing these
+// methods on the embedded non-generic isoTag avoids that code bloat: a
+// single compiled copy is shared across all Iso[S, A] instantiations.
+
 // String returns a string representation of the isomorphism.
 //
 // Example:
 //
 //	tempIso := iso.MakeIso(...)
 //	fmt.Println(tempIso)  // Prints: "Iso"
-func (i Iso[S, T]) String() string {
+func (isoTag) String() string {
 	return "Iso"
 }
 
@@ -35,7 +41,7 @@ func (i Iso[S, T]) String() string {
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
 //go:noinline
-func (i Iso[S, T]) Format(f fmt.State, c rune) {
+func (isoTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
 		fmt.Fprintf(f, "%q", "Iso")
@@ -56,6 +62,6 @@ func (i Iso[S, T]) Format(f fmt.State, c rune) {
 //	// Logs: {"msg":"using iso","iso":"Iso"}
 //
 //go:noinline
-func (i Iso[S, T]) LogValue() slog.Value {
+func (isoTag) LogValue() slog.Value {
 	return slog.StringValue("Iso")
 }
