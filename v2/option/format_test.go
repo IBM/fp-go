@@ -50,41 +50,6 @@ func TestString(t *testing.T) {
 	})
 }
 
-func TestGoString(t *testing.T) {
-	t.Run("Some value", func(t *testing.T) {
-		opt := Some(42)
-		result := opt.GoString()
-		assert.Contains(t, result, "option.Some")
-		assert.Contains(t, result, "42")
-	})
-
-	t.Run("None value", func(t *testing.T) {
-		opt := None[int]()
-		result := opt.GoString()
-		assert.Contains(t, result, "option.None")
-		assert.Contains(t, result, "int")
-	})
-
-	t.Run("Some with struct", func(t *testing.T) {
-		type TestStruct struct {
-			Name string
-			Age  int
-		}
-		opt := Some(TestStruct{Name: "Alice", Age: 30})
-		result := opt.GoString()
-		assert.Contains(t, result, "option.Some")
-		assert.Contains(t, result, "Alice")
-		assert.Contains(t, result, "30")
-	})
-
-	t.Run("None with custom type", func(t *testing.T) {
-		opt := None[string]()
-		result := opt.GoString()
-		assert.Contains(t, result, "option.None")
-		assert.Contains(t, result, "string")
-	})
-}
-
 func TestFormatInterface(t *testing.T) {
 	t.Run("Some value with %s", func(t *testing.T) {
 		opt := Some(42)
@@ -117,18 +82,16 @@ func TestFormatInterface(t *testing.T) {
 		assert.Contains(t, result, "42")
 	})
 
-	t.Run("Some value with %#v (GoString)", func(t *testing.T) {
+	t.Run("Some value with %#v", func(t *testing.T) {
 		opt := Some(42)
 		result := fmt.Sprintf("%#v", opt)
-		assert.Contains(t, result, "option.Some")
-		assert.Contains(t, result, "42")
+		assert.Equal(t, "Some[int](42)", result)
 	})
 
-	t.Run("None value with %#v (GoString)", func(t *testing.T) {
+	t.Run("None value with %#v", func(t *testing.T) {
 		opt := None[int]()
 		result := fmt.Sprintf("%#v", opt)
-		assert.Contains(t, result, "option.None")
-		assert.Contains(t, result, "int")
+		assert.Equal(t, "None[int]", result)
 	})
 
 	t.Run("Some value with %q", func(t *testing.T) {
@@ -245,7 +208,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%s", []string{"Some", "42"}},
 			{"%v", []string{"Some", "42"}},
 			{"%+v", []string{"Some", "42"}},
-			{"%#v", []string{"option.Some", "42"}},
+			{"%#v", []string{"Some", "42"}},
 			{"%T", []string{"option.Option"}},
 		}
 
@@ -269,7 +232,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%s", []string{"None", "int"}},
 			{"%v", []string{"None", "int"}},
 			{"%+v", []string{"None", "int"}},
-			{"%#v", []string{"option.None", "int"}},
+			{"%#v", []string{"None", "int"}},
 			{"%T", []string{"option.Option"}},
 		}
 
@@ -288,11 +251,6 @@ func TestInterfaceImplementations(t *testing.T) {
 	t.Run("fmt.Stringer interface", func(t *testing.T) {
 		var _ fmt.Stringer = Some(42)
 		var _ fmt.Stringer = None[int]()
-	})
-
-	t.Run("fmt.GoStringer interface", func(t *testing.T) {
-		var _ fmt.GoStringer = Some(42)
-		var _ fmt.GoStringer = None[int]()
 	})
 
 	t.Run("fmt.Formatter interface", func(t *testing.T) {

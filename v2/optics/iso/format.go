@@ -18,8 +18,6 @@ package iso
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 // String returns a string representation of the isomorphism.
@@ -34,37 +32,16 @@ func (i Iso[S, T]) String() string {
 
 // Format implements fmt.Formatter for Iso.
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation
-//   - %#v: uses GoString() representation
-//   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	tempIso := iso.MakeIso(...)
-//	fmt.Printf("%s", tempIso)   // "Iso"
-//	fmt.Printf("%v", tempIso)   // "Iso"
-//	fmt.Printf("%#v", tempIso)  // "iso.Iso[Celsius, Fahrenheit]"
+//   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
 //go:noinline
 func (i Iso[S, T]) Format(f fmt.State, c rune) {
-	formatting.FmtString(i, f, c)
-}
-
-// GoString implements fmt.GoStringer for Iso.
-// Returns a Go-syntax representation of the Iso value.
-//
-// Example:
-//
-//	tempIso := iso.MakeIso(...)
-//	tempIso.GoString() // "iso.Iso[Celsius, Fahrenheit]"
-//
-//go:noinline
-func (i Iso[S, T]) GoString() string {
-	return fmt.Sprintf("iso.Iso[%s, %s]",
-		formatting.TypeInfo(new(S)),
-		formatting.TypeInfo(new(T)),
-	)
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", "Iso")
+	default:
+		fmt.Fprint(f, "Iso")
+	}
 }
 
 // LogValue implements slog.LogValuer for Iso.

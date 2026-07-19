@@ -52,10 +52,10 @@ func TestFormatterInterface(t *testing.T) {
 		assert.Contains(t, result, "Landed: true")
 	})
 
-	t.Run("%#v format delegates to GoString", func(t *testing.T) {
+	t.Run("%#v format uses String", func(t *testing.T) {
 		tramp := Bounce[string](42)
 		result := fmt.Sprintf("%#v", tramp)
-		assert.Contains(t, result, "tailrec.Bounce")
+		assert.Equal(t, "Bounce(42)", result)
 	})
 
 	t.Run("%s format", func(t *testing.T) {
@@ -79,27 +79,3 @@ func TestFormatterInterface(t *testing.T) {
 	})
 }
 
-// TestGoStringerInterface verifies fmt.GoStringer implementation
-func TestGoStringerInterface(t *testing.T) {
-	t.Run("Bounce GoString", func(t *testing.T) {
-		tramp := Bounce[string](42)
-		result := tramp.GoString()
-		assert.Contains(t, result, "tailrec.Bounce")
-		assert.Contains(t, result, "string")
-		assert.Contains(t, result, "42")
-	})
-
-	t.Run("Land GoString", func(t *testing.T) {
-		tramp := Land[int]("done")
-		result := tramp.GoString()
-		assert.Contains(t, result, "tailrec.Land")
-		assert.Contains(t, result, "int")
-		assert.Contains(t, result, "done")
-	})
-
-	t.Run("fmt with %#v uses GoString", func(t *testing.T) {
-		tramp := Land[int]("result")
-		result := fmt.Sprintf("%#v", tramp)
-		assert.Contains(t, result, "tailrec.Land")
-	})
-}

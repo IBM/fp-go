@@ -18,8 +18,6 @@ package prism
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 // The methods below are defined on the non-generic prismName type rather than
@@ -36,24 +34,14 @@ func (l prismName) String() string {
 // Format implements fmt.Formatter.
 //
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses the String() representation (the prism name)
-//   - %#v: uses the GoString() representation
-//   - %q: quoted String() representation
-//   - all other verbs: uses the String() representation
+//   - %s, %v, %+v, %q, and all other verbs: uses the String() representation (the prism name)
 func (l prismName) Format(f fmt.State, c rune) {
-	formatting.FmtString(l, f, c)
-}
-
-// GoString implements fmt.GoStringer.
-//
-// Returns a Go-syntax representation of the prism value, suitable for use with
-// the %#v format verb.
-func (l prismName) GoString() string {
-	return fmt.Sprintf("prism.Prism[%s, %s]{name: %q}",
-		l.s,
-		l.a,
-		l.n,
-	)
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", l.n)
+	default:
+		fmt.Fprint(f, l.n)
+	}
 }
 
 // LogValue implements slog.LogValuer.

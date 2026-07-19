@@ -18,8 +18,6 @@ package lens
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 // The methods below are defined on the non-generic lensName type rather than
@@ -36,25 +34,14 @@ func (l lensName) String() string {
 // Format implements fmt.Formatter.
 //
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses the String() representation (the lens name)
-//   - %#v: uses the GoString() representation
-//   - %q: quoted String() representation
-//   - all other verbs: uses the String() representation
+//   - %s, %v, %+v, %q, and all other verbs: uses the String() representation (the lens name)
 func (l lensName) Format(f fmt.State, c rune) {
-	formatting.FmtString(l, f, c)
-}
-
-// GoString implements fmt.GoStringer.
-//
-// Returns a Go-syntax representation of the lens value, suitable for use with
-// the %#v format verb.
-func (l lensName) GoString() string {
-	return fmt.Sprintf("lens.Lens[%s, %s]{name: %q}",
-		l.s,
-		l.a,
-		l.n,
-	)
-
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", l.n)
+	default:
+		fmt.Fprint(f, l.n)
+	}
 }
 
 // LogValue implements slog.LogValuer.

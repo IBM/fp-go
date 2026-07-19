@@ -23,28 +23,9 @@ import (
 )
 
 const (
-	noneGoTemplate = "option.None[%s]"
-	someGoTemplate = "option.Some[%s](%#v)"
-
 	noneFmtTemplate = "None[%s]"
 	someFmtTemplate = "Some[%s](%v)"
 )
-
-// GoString implements fmt.GoStringer for Option.
-// Returns a Go-syntax representation of the Option value.
-//
-// Example:
-//
-//	Some(42).GoString() // "option.Some[int](42)"
-//	None[int]().GoString() // "option.None[int]()"
-//
-//go:noinline
-func (s Option[A]) GoString() string {
-	if s.isSome {
-		return fmt.Sprintf(someGoTemplate, formatting.TypeInfo(s.value), s.value)
-	}
-	return fmt.Sprintf(noneGoTemplate, formatting.TypeInfo(new(A)))
-}
 
 // LogValue implements slog.LogValuer for Option.
 // Returns a slog.Value that represents the Option for structured logging.
@@ -71,21 +52,16 @@ func (s Option[A]) LogValue() slog.Value {
 
 // Format implements fmt.Formatter for Option.
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation
-//   - %#v: uses GoString() representation
-//   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	opt := Some(42)
-//	fmt.Printf("%s", opt)   // "Some[int](42)"
-//	fmt.Printf("%v", opt)   // "Some[int](42)"
-//	fmt.Printf("%#v", opt)  // "option.Some[int](42)"
+//   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
 //go:noinline
 func (s Option[A]) Format(f fmt.State, c rune) {
-	formatting.FmtString(s, f, c)
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", s.String())
+	default:
+		fmt.Fprint(f, s.String())
+	}
 }
 
 // optString prints some debug info for the object

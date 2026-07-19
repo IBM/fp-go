@@ -18,18 +18,11 @@ package pair
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 const (
-	pairGoTemplate  = "pair.MakePair[%s, %s](%#v, %#v)"
 	pairFmtTemplate = "Pair[%T, %T](%v, %v)"
 )
-
-func goString[L, R any](l L, r R) string {
-	return fmt.Sprintf(pairGoTemplate, formatting.TypeInfo(new(L)), formatting.TypeInfo(new(R)), l, r)
-}
 
 // String prints some debug info for the object
 //
@@ -40,33 +33,16 @@ func (p Pair[L, R]) String() string {
 
 // Format implements fmt.Formatter for Pair.
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation
-//   - %#v: uses GoString() representation
-//   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	p := pair.MakePair("key", 42)
-//	fmt.Printf("%s", p)   // "Pair[string, int](key, 42)"
-//	fmt.Printf("%v", p)   // "Pair[string, int](key, 42)"
-//	fmt.Printf("%#v", p)  // "pair.MakePair[string, int]("key", 42)"
+//   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
 //go:noinline
 func (p Pair[L, R]) Format(f fmt.State, c rune) {
-	formatting.FmtString(p, f, c)
-}
-
-// GoString implements fmt.GoStringer for Pair.
-// Returns a Go-syntax representation of the Pair value.
-//
-// Example:
-//
-//	pair.MakePair("key", 42).GoString() // "pair.MakePair[string, int]("key", 42)"
-//
-//go:noinline
-func (p Pair[L, R]) GoString() string {
-	return goString(p.l, p.r)
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", p.String())
+	default:
+		fmt.Fprint(f, p.String())
+	}
 }
 
 // LogValue implements slog.LogValuer for Pair.

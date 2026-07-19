@@ -1559,7 +1559,7 @@ func TestMakePrismWithName(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// prismName formatting methods (String, Format, GoString, LogValue)
+// prismName formatting methods (String, Format, LogValue)
 // ---------------------------------------------------------------------------
 
 func TestPrismName_String(t *testing.T) {
@@ -1581,13 +1581,6 @@ func TestPrismName_Format(t *testing.T) {
 	t.Run("%q verb produces a quoted prism name", func(t *testing.T) {
 		assert.Equal(t, `"Test.Prism"`, fmt.Sprintf("%q", p))
 	})
-}
-
-func TestPrismName_GoString(t *testing.T) {
-	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "My.Prism")
-	gs := fmt.Sprintf("%#v", p)
-	assert.Contains(t, gs, "My.Prism")
-	assert.Contains(t, gs, "prism.Prism[")
 }
 
 func TestPrismName_LogValue(t *testing.T) {

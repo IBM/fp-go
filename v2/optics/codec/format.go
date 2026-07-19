@@ -3,8 +3,6 @@ package codec
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 // String implements the fmt.Stringer interface for typeImpl.
@@ -22,32 +20,14 @@ func (t *typeImpl[A, O, I]) String() string {
 // It provides custom formatting based on the format verb:
 //   - %s, %v: Returns the type name
 //   - %q: Returns the type name in quotes
-//   - %#v: Returns a detailed Go-syntax representation
-//
-// Example:
-//
-//	intType := codec.Int()
-//	fmt.Printf("%s\n", intType)   // Output: int
-//	fmt.Printf("%q\n", intType)   // Output: "int"
-//	fmt.Printf("%#v\n", intType)  // Output: codec.Type[int, int, any]{name: "int"}
+//   - other verbs: Returns the type name
 func (t *typeImpl[A, O, I]) Format(f fmt.State, verb rune) {
-	formatting.FmtString(t, f, verb)
-}
-
-// GoString implements the fmt.GoStringer interface for typeImpl.
-// It returns a Go-syntax representation of the type that could be used
-// to recreate the type (though not executable due to function values).
-//
-// This is called when using the %#v format verb with fmt.Printf.
-//
-// Example:
-//
-//	stringType := codec.String()
-//	fmt.Printf("%#v\n", stringType)
-//	// Output: codec.Type[string, string, any]{name: "string"}
-func (t *typeImpl[A, O, I]) GoString() string {
-	return fmt.Sprintf("codec.Type[%s, %s, %s]{name: %q}",
-		typeNameOf[A](), typeNameOf[O](), typeNameOf[I](), t.name)
+	switch verb {
+	case 'q':
+		fmt.Fprintf(f, "%q", t.name)
+	default:
+		fmt.Fprint(f, t.name)
+	}
 }
 
 // LogValue implements the slog.LogValuer interface for typeImpl.
@@ -61,24 +41,7 @@ func (t *typeImpl[A, O, I]) GoString() string {
 //
 //	stringType := codec.String()
 //	slog.Info("codec created", "codec", stringType)
-//	// Logs: codec={name=string type_a=string type_o=string type_i=interface {}}
+//	// Logs: codec={name=string}
 func (t *typeImpl[A, O, I]) LogValue() slog.Value {
-	return slog.GroupValue(
-		slog.String("name", t.name),
-		slog.String("type_a", typeNameOf[A]()),
-		slog.String("type_o", typeNameOf[O]()),
-		slog.String("type_i", typeNameOf[I]()),
-	)
-}
-
-// typeNameOf returns a string representation of the type T.
-// It handles the special case where T is 'any' (any).
-func typeNameOf[T any]() string {
-	var zero T
-	typeName := fmt.Sprintf("%T", zero)
-	// Handle the case where %T prints "<nil>" for any types
-	if typeName == "<nil>" {
-		return "interface {}"
-	}
-	return typeName
+	return slog.StringValue(t.name)
 }

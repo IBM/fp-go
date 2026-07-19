@@ -37,19 +37,6 @@ func ExamplePair_String() {
 	// Pair[int, string](100, active)
 }
 
-// ExamplePair_go_string demonstrates the fmt.GoStringer interface implementation.
-func ExamplePair_go_string() {
-	p1 := P.MakePair("key", 42)
-	p2 := P.MakePair(errors.New("error"), "value")
-
-	fmt.Printf("%#v\n", p1)
-	fmt.Printf("%#v\n", p2)
-
-	// Output:
-	// pair.MakePair[string, int]("key", 42)
-	// pair.MakePair[error, string](&errors.errorString{s:"error"}, "value")
-}
-
 // ExamplePair_Format demonstrates the fmt.Formatter interface implementation.
 func ExamplePair_Format() {
 	p := P.MakePair("config", 8080)
@@ -64,7 +51,7 @@ func ExamplePair_Format() {
 	// %s: Pair[string, int](config, 8080)
 	// %v: Pair[string, int](config, 8080)
 	// %+v: Pair[string, int](config, 8080)
-	// %#v: pair.MakePair[string, int]("config", 8080)
+	// %#v: Pair[string, int](config, 8080)
 }
 
 // ExamplePair_log_value demonstrates the slog.LogValuer interface implementation.
@@ -103,16 +90,14 @@ func ExamplePair_formatting_comparison() {
 	config := Config{Host: "localhost", Port: 8080}
 	p := P.MakePair(config, []string{"api", "web"})
 
-	fmt.Printf("String():   %s\n", p.String())
-	fmt.Printf("GoString(): %s\n", p.GoString())
-	fmt.Printf("%%v:         %v\n", p)
-	fmt.Printf("%%#v:        %#v\n", p)
+	fmt.Printf("String(): %s\n", p.String())
+	fmt.Printf("%%v:       %v\n", p)
+	fmt.Printf("%%#v:      %#v\n", p)
 
 	// Output:
-	// String():   Pair[pair_test.Config, []string]({localhost 8080}, [api web])
-	// GoString(): pair.MakePair[pair_test.Config, []string](pair_test.Config{Host:"localhost", Port:8080}, []string{"api", "web"})
-	// %v:         Pair[pair_test.Config, []string]({localhost 8080}, [api web])
-	// %#v:        pair.MakePair[pair_test.Config, []string](pair_test.Config{Host:"localhost", Port:8080}, []string{"api", "web"})
+	// String(): Pair[pair_test.Config, []string]({localhost 8080}, [api web])
+	// %v:       Pair[pair_test.Config, []string]({localhost 8080}, [api web])
+	// %#v:      Pair[pair_test.Config, []string]({localhost 8080}, [api web])
 }
 
 // ExamplePair_log_value_structured demonstrates structured logging with Pair.
@@ -171,5 +156,5 @@ func ExamplePair_formatting_nested() {
 
 	// Output:
 	// %v: Pair[pair.Pair[string,int], string](Pair[string, int](inner, 10), outer)
-	// %#v: pair.MakePair[pair.Pair[string,int], string](pair.MakePair[string, int]("inner", 10), "outer")
+	// %#v: Pair[pair.Pair[string,int], string](Pair[string, int](inner, 10), outer)
 }

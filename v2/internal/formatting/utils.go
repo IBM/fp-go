@@ -28,7 +28,6 @@ import (
 // Supported format verbs:
 //   - %v: Uses String() representation (default format)
 //   - %+v: Uses String() representation (verbose format)
-//   - %#v: Uses GoString() representation (Go-syntax format)
 //   - %s: Uses String() representation (string format)
 //   - %q: Uses quoted String() representation (quoted string format)
 //   - default: Uses String() representation for any other verb
@@ -55,28 +54,13 @@ import (
 //		return fmt.Sprintf("MyType(%d)", m.value)
 //	}
 //
-//	func (m MyType) GoString() string {
-//		return fmt.Sprintf("MyType{value: %d}", m.value)
-//	}
-//
 //	// Usage:
 //	mt := MyType{value: 42}
 //	fmt.Printf("%v\n", mt)   // Output: MyType(42)
-//	fmt.Printf("%#v\n", mt)  // Output: MyType{value: 42}
 //	fmt.Printf("%s\n", mt)   // Output: MyType(42)
 //	fmt.Printf("%q\n", mt)   // Output: "MyType(42)"
 func FmtString(stg Formattable, f fmt.State, c rune) {
 	switch c {
-	case 'v':
-		if f.Flag('#') {
-			// %#v uses GoString representation
-			fmt.Fprint(f, stg.GoString())
-		} else {
-			// %v and %+v use String representation
-			fmt.Fprint(f, stg.String())
-		}
-	case 's':
-		fmt.Fprint(f, stg.String())
 	case 'q':
 		fmt.Fprintf(f, "%q", stg.String())
 	default:

@@ -91,7 +91,6 @@ func (t Trampoline[B, L]) String() string {
 // Supports various formatting verbs for detailed output:
 //   - %v: Default format (delegates to String)
 //   - %+v: Detailed format with type information
-//   - %#v: Go-syntax representation (delegates to GoString)
 //   - %s: String format
 //   - %q: Quoted string format
 //
@@ -109,9 +108,6 @@ func (t Trampoline[B, L]) Format(f fmt.State, verb rune) {
 			} else {
 				fmt.Fprintf(f, "Trampoline[Bounce]{Bounce: %+v, Landed: false}", t.Bounce)
 			}
-		} else if f.Flag('#') {
-			// %#v: Go-syntax representation (delegates to GoString)
-			fmt.Fprint(f, t.GoString())
 		} else {
 			// %v: default format (delegates to String)
 			fmt.Fprint(f, t.String())
@@ -126,19 +122,4 @@ func (t Trampoline[B, L]) Format(f fmt.State, verb rune) {
 		// Unknown verb: print with %!verb notation
 		fmt.Fprintf(f, "%%!%c(Trampoline[B, L]=%s)", verb, t.String())
 	}
-}
-
-// GoString implements fmt.GoStringer for Trampoline.
-//
-// Returns a Go-syntax representation that could be used to recreate the value.
-// The output includes the package name, function name, type parameters, and value.
-//
-// # Returns
-//
-//   - string: A Go-syntax representation of the trampoline
-func (t Trampoline[B, L]) GoString() string {
-	if t.Landed {
-		return fmt.Sprintf("tailrec.Land[%T](%#v)", t.Bounce, t.Land)
-	}
-	return fmt.Sprintf("tailrec.Bounce[%T](%#v)", t.Land, t.Bounce)
 }

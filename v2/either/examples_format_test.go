@@ -37,19 +37,6 @@ func ExampleEither_String() {
 	// Left[*errors.errorString](something went wrong)
 }
 
-// ExampleEither_GoString demonstrates the fmt.GoStringer interface implementation.
-func ExampleEither_GoString() {
-	right := E.Right[error](42)
-	left := E.Left[int](errors.New("error"))
-
-	fmt.Printf("%#v\n", right)
-	fmt.Printf("%#v\n", left)
-
-	// Output:
-	// either.Right[error](42)
-	// either.Left[int](&errors.errorString{s:"error"})
-}
-
 // ExampleEither_Format demonstrates the fmt.Formatter interface implementation.
 func ExampleEither_Format() {
 	result := E.Right[error](42)
@@ -64,7 +51,7 @@ func ExampleEither_Format() {
 	// %s: Right[int](42)
 	// %v: Right[int](42)
 	// %+v: Right[int](42)
-	// %#v: either.Right[error](42)
+	// %#v: Right[int](42)
 }
 
 // ExampleEither_LogValue demonstrates the slog.LogValuer interface implementation.
@@ -103,16 +90,14 @@ func ExampleEither_formatting_comparison() {
 	user := User{ID: 123, Name: "Alice"}
 	result := E.Right[error](user)
 
-	fmt.Printf("String():   %s\n", result.String())
-	fmt.Printf("GoString(): %s\n", result.GoString())
-	fmt.Printf("%%v:         %v\n", result)
-	fmt.Printf("%%#v:        %#v\n", result)
+	fmt.Printf("String(): %s\n", result.String())
+	fmt.Printf("%%v:       %v\n", result)
+	fmt.Printf("%%#v:      %#v\n", result)
 
 	// Output:
-	// String():   Right[either_test.User]({123 Alice})
-	// GoString(): either.Right[error](either_test.User{ID:123, Name:"Alice"})
-	// %v:         Right[either_test.User]({123 Alice})
-	// %#v:        either.Right[error](either_test.User{ID:123, Name:"Alice"})
+	// String(): Right[either_test.User]({123 Alice})
+	// %v:       Right[either_test.User]({123 Alice})
+	// %#v:      Right[either_test.User]({123 Alice})
 }
 
 // ExampleEither_LogValue_structured demonstrates structured logging with Either.

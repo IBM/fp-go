@@ -52,41 +52,6 @@ func TestString(t *testing.T) {
 	})
 }
 
-func TestGoString(t *testing.T) {
-	t.Run("Right value", func(t *testing.T) {
-		e := Right[error](42)
-		result := e.GoString()
-		assert.Contains(t, result, "either.Right")
-		assert.Contains(t, result, "42")
-	})
-
-	t.Run("Left value", func(t *testing.T) {
-		e := Left[int](errors.New("test error"))
-		result := e.GoString()
-		assert.Contains(t, result, "either.Left")
-		assert.Contains(t, result, "test error")
-	})
-
-	t.Run("Right with struct", func(t *testing.T) {
-		type TestStruct struct {
-			Name string
-			Age  int
-		}
-		e := Right[error](TestStruct{Name: "Alice", Age: 30})
-		result := e.GoString()
-		assert.Contains(t, result, "either.Right")
-		assert.Contains(t, result, "Alice")
-		assert.Contains(t, result, "30")
-	})
-
-	t.Run("Left with custom error", func(t *testing.T) {
-		e := Left[string]("custom error")
-		result := e.GoString()
-		assert.Contains(t, result, "either.Left")
-		assert.Contains(t, result, "custom error")
-	})
-}
-
 func TestFormatInterface(t *testing.T) {
 	t.Run("Right value with %s", func(t *testing.T) {
 		e := Right[error](42)
@@ -120,18 +85,16 @@ func TestFormatInterface(t *testing.T) {
 		assert.Contains(t, result, "42")
 	})
 
-	t.Run("Right value with %#v (GoString)", func(t *testing.T) {
+	t.Run("Right value with %#v", func(t *testing.T) {
 		e := Right[error](42)
 		result := fmt.Sprintf("%#v", e)
-		assert.Contains(t, result, "either.Right")
-		assert.Contains(t, result, "42")
+		assert.Equal(t, "Right[int](42)", result)
 	})
 
-	t.Run("Left value with %#v (GoString)", func(t *testing.T) {
+	t.Run("Left value with %#v", func(t *testing.T) {
 		e := Left[int]("error")
 		result := fmt.Sprintf("%#v", e)
-		assert.Contains(t, result, "either.Left")
-		assert.Contains(t, result, "error")
+		assert.Equal(t, "Left[string](error)", result)
 	})
 
 	t.Run("Right value with %q", func(t *testing.T) {
@@ -249,7 +212,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%s", []string{"Right", "42"}},
 			{"%v", []string{"Right", "42"}},
 			{"%+v", []string{"Right", "42"}},
-			{"%#v", []string{"either.Right", "42"}},
+			{"%#v", []string{"Right", "42"}},
 			{"%T", []string{"either.Either"}},
 		}
 
@@ -273,7 +236,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%s", []string{"Left", "error"}},
 			{"%v", []string{"Left", "error"}},
 			{"%+v", []string{"Left", "error"}},
-			{"%#v", []string{"either.Left", "error"}},
+			{"%#v", []string{"Left", "error"}},
 			{"%T", []string{"either.Either"}},
 		}
 
@@ -292,11 +255,6 @@ func TestInterfaceImplementations(t *testing.T) {
 	t.Run("fmt.Stringer interface", func(t *testing.T) {
 		var _ fmt.Stringer = Right[error](42)
 		var _ fmt.Stringer = Left[int](errors.New("error"))
-	})
-
-	t.Run("fmt.GoStringer interface", func(t *testing.T) {
-		var _ fmt.GoStringer = Right[error](42)
-		var _ fmt.GoStringer = Left[int](errors.New("error"))
 	})
 
 	t.Run("fmt.Formatter interface", func(t *testing.T) {

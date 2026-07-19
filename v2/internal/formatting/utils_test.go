@@ -25,16 +25,11 @@ import (
 
 // mockFormattable is a test implementation of the Formattable interface
 type mockFormattable struct {
-	stringValue   string
-	goStringValue string
+	stringValue string
 }
 
 func (m mockFormattable) String() string {
 	return m.stringValue
-}
-
-func (m mockFormattable) GoString() string {
-	return m.goStringValue
 }
 
 func (m mockFormattable) Format(f fmt.State, verb rune) {
@@ -47,92 +42,62 @@ func (m mockFormattable) LogValue() slog.Value {
 
 func TestFmtString(t *testing.T) {
 	t.Run("format with %v verb", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test value",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test value"}
 		result := fmt.Sprintf("%v", mock)
 		assert.Equal(t, "test value", result, "Should use String() for %v")
 	})
 
 	t.Run("format with %+v verb", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test value",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test value"}
 		result := fmt.Sprintf("%+v", mock)
 		assert.Equal(t, "test value", result, "Should use String() for %+v")
 	})
 
 	t.Run("format with %#v verb", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test value",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test value"}
 		result := fmt.Sprintf("%#v", mock)
-		assert.Equal(t, "test.GoString", result, "Should use GoString() for %#v")
+		assert.Equal(t, "test value", result, "Should use String() for %#v")
 	})
 
 	t.Run("format with %s verb", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test value",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test value"}
 		result := fmt.Sprintf("%s", mock)
 		assert.Equal(t, "test value", result, "Should use String() for %s")
 	})
 
 	t.Run("format with %q verb", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test value",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test value"}
 		result := fmt.Sprintf("%q", mock)
 		assert.Equal(t, `"test value"`, result, "Should use quoted String() for %q")
 	})
 
 	t.Run("format with unsupported verb", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test value",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test value"}
 		// Using %d which is not a typical string verb
 		result := fmt.Sprintf("%d", mock)
 		assert.Equal(t, "test value", result, "Should use String() for unsupported verbs")
 	})
 
 	t.Run("format with special characters in string", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test\nvalue\twith\rspecial",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test\nvalue\twith\rspecial"}
 		result := fmt.Sprintf("%s", mock)
 		assert.Equal(t, "test\nvalue\twith\rspecial", result)
 	})
 
 	t.Run("format with empty string", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "",
-			goStringValue: "",
-		}
+		mock := mockFormattable{stringValue: ""}
 		result := fmt.Sprintf("%s", mock)
 		assert.Equal(t, "", result)
 	})
 
 	t.Run("format with unicode characters", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "Hello 世界 🌍",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "Hello 世界 🌍"}
 		result := fmt.Sprintf("%s", mock)
 		assert.Equal(t, "Hello 世界 🌍", result)
 	})
 
 	t.Run("format with %q and special characters", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test\nvalue",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test\nvalue"}
 		result := fmt.Sprintf("%q", mock)
 		assert.Equal(t, `"test\nvalue"`, result, "Should properly escape special characters in quoted format")
 	})
@@ -252,19 +217,13 @@ func TestTypeInfo(t *testing.T) {
 
 func TestTypeInfoWithCustomTypes(t *testing.T) {
 	t.Run("custom type with methods", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "test",
-			goStringValue: "test.GoString",
-		}
+		mock := mockFormattable{stringValue: "test"}
 		result := TypeInfo(mock)
 		assert.Equal(t, "formatting.mockFormattable", result)
 	})
 
 	t.Run("pointer to custom type", func(t *testing.T) {
-		mock := &mockFormattable{
-			stringValue:   "test",
-			goStringValue: "test.GoString",
-		}
+		mock := &mockFormattable{stringValue: "test"}
 		result := TypeInfo(mock)
 		assert.Equal(t, "formatting.mockFormattable", result, "Should remove pointer prefix")
 	})
@@ -272,10 +231,7 @@ func TestTypeInfoWithCustomTypes(t *testing.T) {
 
 func TestFmtStringIntegration(t *testing.T) {
 	t.Run("integration with fmt.Printf", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "integration test",
-			goStringValue: "mock.GoString",
-		}
+		mock := mockFormattable{stringValue: "integration test"}
 
 		// Test various format combinations
 		tests := []struct {
@@ -284,7 +240,7 @@ func TestFmtStringIntegration(t *testing.T) {
 		}{
 			{"%v", "integration test"},
 			{"%+v", "integration test"},
-			{"%#v", "mock.GoString"},
+			{"%#v", "integration test"},
 			{"%s", "integration test"},
 			{"%q", `"integration test"`},
 		}
@@ -298,10 +254,7 @@ func TestFmtStringIntegration(t *testing.T) {
 	})
 
 	t.Run("integration with fmt.Fprintf", func(t *testing.T) {
-		mock := mockFormattable{
-			stringValue:   "buffer test",
-			goStringValue: "mock.GoString",
-		}
+		mock := mockFormattable{stringValue: "buffer test"}
 
 		var buf []byte
 		n, err := fmt.Fprintf((*mockWriter)(&buf), "%s", mock)
@@ -320,20 +273,11 @@ func (m *mockWriter) Write(p []byte) (n int, err error) {
 }
 
 func BenchmarkFmtString(b *testing.B) {
-	mock := mockFormattable{
-		stringValue:   "benchmark test value",
-		goStringValue: "mock.GoString",
-	}
+	mock := mockFormattable{stringValue: "benchmark test value"}
 
 	b.Run("format with %v", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = fmt.Sprintf("%v", mock)
-		}
-	})
-
-	b.Run("format with %#v", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_ = fmt.Sprintf("%#v", mock)
 		}
 	})
 

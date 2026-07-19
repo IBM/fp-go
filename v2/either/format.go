@@ -18,21 +18,12 @@ package either
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 const (
-	leftGoTemplate  = "either.Left[%s](%#v)"
-	rightGoTemplate = "either.Right[%s](%#v)"
-
 	leftFmtTemplate  = "Left[%T](%v)"
 	rightFmtTemplate = "Right[%T](%v)"
 )
-
-func goString(template string, other, v any) string {
-	return fmt.Sprintf(template, formatting.TypeInfo(other), v)
-}
 
 // String prints some debug info for the object
 //
@@ -46,37 +37,16 @@ func (s Either[E, A]) String() string {
 
 // Format implements fmt.Formatter for Either.
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation
-//   - %#v: uses GoString() representation
-//   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	e := either.Right[error](42)
-//	fmt.Printf("%s", e)   // "Right[int](42)"
-//	fmt.Printf("%v", e)   // "Right[int](42)"
-//	fmt.Printf("%#v", e)  // "either.Right[error](42)"
+//   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
 //go:noinline
 func (s Either[E, A]) Format(f fmt.State, c rune) {
-	formatting.FmtString(s, f, c)
-}
-
-// GoString implements fmt.GoStringer for Either.
-// Returns a Go-syntax representation of the Either value.
-//
-// Example:
-//
-//	either.Right[error](42).GoString() // "either.Right[error](42)"
-//	either.Left[int](errors.New("fail")).GoString() // "either.Left[int](error)"
-//
-//go:noinline
-func (s Either[E, A]) GoString() string {
-	if !s.isLeft {
-		return goString(rightGoTemplate, new(E), s.r)
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", s.String())
+	default:
+		fmt.Fprint(f, s.String())
 	}
-	return goString(leftGoTemplate, new(A), s.l)
 }
 
 // LogValue implements slog.LogValuer for Either.

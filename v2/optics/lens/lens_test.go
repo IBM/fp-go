@@ -17,6 +17,7 @@ package lens
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	EQ "github.com/IBM/fp-go/v2/eq"
@@ -1809,7 +1810,7 @@ func TestId(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests for the formatting methods (String, Format, GoString, LogValue)
+// Tests for the formatting methods (String, Format, LogValue)
 // ---------------------------------------------------------------------------
 
 func TestLensName_String(t *testing.T) {
@@ -1834,27 +1835,8 @@ func TestLensName_Format(t *testing.T) {
 	})
 
 	t.Run("%q verb produces quoted name", func(t *testing.T) {
-		assert.Equal(t, `"Street.Name"`, func() string {
-			return errors.New(`"Street.Name"`).Error()
-		}())
+		assert.Equal(t, `"Street.Name"`, fmt.Sprintf("%q", l))
 	})
-
-	t.Run("GoString produces Go-syntax representation", func(t *testing.T) {
-		gs := l.GoString()
-		assert.Contains(t, gs, "Street.Name")
-		assert.Contains(t, gs, "lens.Lens[")
-	})
-}
-
-func TestLensName_GoString(t *testing.T) {
-	l := MakeLensWithName(
-		func(s Street) string { return s.name },
-		func(s Street, name string) Street { s.name = name; return s },
-		"My.Lens",
-	)
-	gs := l.GoString()
-	assert.Contains(t, gs, "My.Lens")
-	assert.Contains(t, gs, "lens.Lens[")
 }
 
 func TestLensName_LogValue(t *testing.T) {

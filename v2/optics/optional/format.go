@@ -18,8 +18,6 @@ package optional
 import (
 	"fmt"
 	"log/slog"
-
-	"github.com/IBM/fp-go/v2/internal/formatting"
 )
 
 // String returns the name of the optional for debugging and display purposes.
@@ -34,38 +32,16 @@ func (o Optional[S, T]) String() string {
 
 // Format implements fmt.Formatter for Optional.
 // Supports all standard format verbs:
-//   - %s, %v, %+v: uses String() representation (optional name)
-//   - %#v: uses GoString() representation
-//   - %q: quoted String() representation
-//   - other verbs: uses String() representation
-//
-// Example:
-//
-//	fieldOptional := optional.MakeOptionalWithName(..., "Person.Email")
-//	fmt.Printf("%s", fieldOptional)   // "Person.Email"
-//	fmt.Printf("%v", fieldOptional)   // "Person.Email"
-//	fmt.Printf("%#v", fieldOptional)  // "optional.Optional[Person, string]{name: \"Person.Email\"}"
+//   - %s, %v, %+v, %q, and all other verbs: uses String() representation (optional name)
 //
 //go:noinline
 func (o Optional[S, T]) Format(f fmt.State, c rune) {
-	formatting.FmtString(o, f, c)
-}
-
-// GoString implements fmt.GoStringer for Optional.
-// Returns a Go-syntax representation of the Optional value.
-//
-// Example:
-//
-//	fieldOptional := optional.MakeOptionalWithName(..., "Person.Email")
-//	fieldOptional.GoString() // "optional.Optional[Person, string]{name: \"Person.Email\"}"
-//
-//go:noinline
-func (o Optional[S, T]) GoString() string {
-	return fmt.Sprintf("optional.Optional[%s, %s]{name: %q}",
-		formatting.TypeInfo(new(S)),
-		formatting.TypeInfo(new(T)),
-		o.name,
-	)
+	switch c {
+	case 'q':
+		fmt.Fprintf(f, "%q", o.name)
+	default:
+		fmt.Fprint(f, o.name)
+	}
 }
 
 // LogValue implements slog.LogValuer for Optional.

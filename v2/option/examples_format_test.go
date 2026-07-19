@@ -36,19 +36,6 @@ func ExampleOption_String() {
 	// None[int]
 }
 
-// ExampleOption_go_string demonstrates the fmt.GoStringer interface implementation.
-func ExampleOption_go_string() {
-	some := O.Some(42)
-	none := O.None[int]()
-
-	fmt.Printf("%#v\n", some)
-	fmt.Printf("%#v\n", none)
-
-	// Output:
-	// option.Some[int](42)
-	// option.None[int]
-}
-
 // ExampleOption_Format demonstrates the fmt.Formatter interface implementation.
 func ExampleOption_Format() {
 	result := O.Some(42)
@@ -63,7 +50,7 @@ func ExampleOption_Format() {
 	// %s: Some[int](42)
 	// %v: Some[int](42)
 	// %+v: Some[int](42)
-	// %#v: option.Some[int](42)
+	// %#v: Some[int](42)
 }
 
 // ExampleOption_log_value demonstrates the slog.LogValuer interface implementation.
@@ -102,16 +89,14 @@ func ExampleOption_formatting_comparison() {
 	user := User{ID: 123, Name: "Alice"}
 	result := O.Some(user)
 
-	fmt.Printf("String():   %s\n", result.String())
-	fmt.Printf("GoString(): %s\n", result.GoString())
-	fmt.Printf("%%v:         %v\n", result)
-	fmt.Printf("%%#v:        %#v\n", result)
+	fmt.Printf("String(): %s\n", result.String())
+	fmt.Printf("%%v:       %v\n", result)
+	fmt.Printf("%%#v:      %#v\n", result)
 
 	// Output:
-	// String():   Some[option_test.User]({123 Alice})
-	// GoString(): option.Some[option_test.User](option_test.User{ID:123, Name:"Alice"})
-	// %v:         Some[option_test.User]({123 Alice})
-	// %#v:        option.Some[option_test.User](option_test.User{ID:123, Name:"Alice"})
+	// String(): Some[option_test.User]({123 Alice})
+	// %v:       Some[option_test.User]({123 Alice})
+	// %#v:      Some[option_test.User]({123 Alice})
 }
 
 // ExampleOption_log_value_structured demonstrates structured logging with Option.
@@ -151,14 +136,12 @@ func ExampleOption_log_value_structured() {
 func Example_none_formatting() {
 	none := O.None[string]()
 
-	fmt.Printf("String():   %s\n", none.String())
-	fmt.Printf("GoString(): %s\n", none.GoString())
-	fmt.Printf("%%v:         %v\n", none)
-	fmt.Printf("%%#v:        %#v\n", none)
+	fmt.Printf("String(): %s\n", none.String())
+	fmt.Printf("%%v:       %v\n", none)
+	fmt.Printf("%%#v:      %#v\n", none)
 
 	// Output:
-	// String():   None[string]
-	// GoString(): option.None[string]
-	// %v:         None[string]
-	// %#v:        option.None[string]
+	// String(): None[string]
+	// %v:       None[string]
+	// %#v:      None[string]
 }

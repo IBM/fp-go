@@ -22,7 +22,6 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/formatting"
 	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
@@ -225,8 +224,8 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 	return MakeLensCurriedWithName(get, set, "Lens")
 }
 
-func makeLensName(name string, s, a any) lensName {
-	return lensName{n: name, s: formatting.TypeInfo(s), a: formatting.TypeInfo(a)}
+func makeLensName(name string) lensName {
+	return lensName{n: name}
 }
 
 // MakeLensCurriedWithName creates a [Lens] with a curried setter and a custom name.
@@ -274,7 +273,7 @@ func makeLensName(name string, s, a any) lensName {
 //
 //go:inline
 func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET, name string) Lens[S, A] {
-	return Lens[S, A]{Get: get, Set: set, lensName: makeLensName(name, new(S), new(A))}
+	return Lens[S, A]{Get: get, Set: set, lensName: makeLensName(name)}
 }
 
 // MakeLensCurriedRefWithName creates a [Lens] for pointer-based structures with a curried setter
@@ -283,7 +282,7 @@ func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A 
 // This is the named variant of [MakeLensCurriedRefWithName] combined with automatic copy-on-write
 // semantics for pointer receivers. The setter does not need to create a copy manually; the copy
 // is applied by the wrapped curried setter produced by setCopyCurried. The name is used in
-// String, Format, GoString, and LogValue for debugging and structured logging.
+// String, Format, and LogValue for debugging and structured logging.
 //
 // Type Parameters:
 //   - GET: Getter function type (*S → A)
@@ -301,7 +300,7 @@ func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A 
 //
 //go:inline
 func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], S, A any](get GET, set SET, name string) Lens[*S, A] {
-	return Lens[*S, A]{Get: get, Set: setCopyCurried(set), lensName: makeLensName(name, new(S), new(A))}
+	return Lens[*S, A]{Get: get, Set: setCopyCurried(set), lensName: makeLensName(name)}
 }
 
 // MakeLensRef creates a [Lens] for pointer-based structures.

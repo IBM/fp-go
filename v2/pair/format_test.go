@@ -58,38 +58,6 @@ func TestString(t *testing.T) {
 	})
 }
 
-func TestGoString(t *testing.T) {
-	t.Run("Pair with int and string", func(t *testing.T) {
-		p := MakePair("hello", 42)
-		result := p.GoString()
-		assert.Contains(t, result, "pair.MakePair")
-		assert.Contains(t, result, "string")
-		assert.Contains(t, result, "int")
-		assert.Contains(t, result, "hello")
-		assert.Contains(t, result, "42")
-	})
-
-	t.Run("Pair with error", func(t *testing.T) {
-		p := MakePair(errors.New("test error"), 42)
-		result := p.GoString()
-		assert.Contains(t, result, "pair.MakePair")
-		assert.Contains(t, result, "test error")
-	})
-
-	t.Run("Pair with struct", func(t *testing.T) {
-		type TestStruct struct {
-			Name string
-			Age  int
-		}
-		p := MakePair(TestStruct{Name: "Bob", Age: 25}, 100)
-		result := p.GoString()
-		assert.Contains(t, result, "pair.MakePair")
-		assert.Contains(t, result, "Bob")
-		assert.Contains(t, result, "25")
-		assert.Contains(t, result, "100")
-	})
-}
-
 func TestFormatInterface(t *testing.T) {
 	t.Run("Pair with %s", func(t *testing.T) {
 		p := MakePair("key", 42)
@@ -111,12 +79,10 @@ func TestFormatInterface(t *testing.T) {
 		assert.Contains(t, result, "42")
 	})
 
-	t.Run("Pair with %#v (GoString)", func(t *testing.T) {
+	t.Run("Pair with %#v", func(t *testing.T) {
 		p := MakePair("key", 42)
 		result := fmt.Sprintf("%#v", p)
-		assert.Contains(t, result, "pair.MakePair")
-		assert.Contains(t, result, "key")
-		assert.Contains(t, result, "42")
+		assert.Equal(t, "Pair[string, int](key, 42)", result)
 	})
 
 	t.Run("Pair with %q", func(t *testing.T) {
@@ -212,7 +178,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%s", []string{"Pair", "key", "42"}},
 			{"%v", []string{"Pair", "key", "42"}},
 			{"%+v", []string{"Pair", "key", "42"}},
-			{"%#v", []string{"pair.MakePair", "key", "42"}},
+			{"%#v", []string{"Pair", "key", "42"}},
 			{"%T", []string{"pair.Pair"}},
 		}
 
@@ -239,7 +205,7 @@ func TestFormatComprehensive(t *testing.T) {
 		}{
 			{"%s", []string{"Pair", "localhost", "8080"}},
 			{"%v", []string{"Pair", "localhost", "8080"}},
-			{"%#v", []string{"pair.MakePair", "localhost", "8080"}},
+			{"%#v", []string{"Pair", "localhost", "8080"}},
 		}
 
 		for _, tt := range tests {
@@ -256,10 +222,6 @@ func TestFormatComprehensive(t *testing.T) {
 func TestInterfaceImplementations(t *testing.T) {
 	t.Run("fmt.Stringer interface", func(t *testing.T) {
 		var _ fmt.Stringer = MakePair("key", 42)
-	})
-
-	t.Run("fmt.GoStringer interface", func(t *testing.T) {
-		var _ fmt.GoStringer = MakePair("key", 42)
 	})
 
 	t.Run("fmt.Formatter interface", func(t *testing.T) {

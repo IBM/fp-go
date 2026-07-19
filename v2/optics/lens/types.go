@@ -31,19 +31,13 @@ type (
 	// lensName holds the display metadata for a Lens[S, A].
 	//
 	// It is embedded in Lens[S, A] as a non-generic carrier so that the
-	// formatting and logging methods (String, Format, GoString, LogValue)
+	// formatting and logging methods (String, Format, LogValue)
 	// are compiled once and shared across all type-parameter instantiations,
 	// rather than being duplicated for every distinct Lens[S, A].
 	lensName struct {
 		// n is the end-user-facing name of the lens (e.g. "Person.Name").
 		// It is returned by String() and LogValue().
 		n string
-		// s is the human-readable name of the source type S,
-		// used when building the GoString() representation.
-		s string
-		// a is the human-readable name of the focus type A,
-		// used when building the GoString() representation.
-		a string
 	}
 
 	// Lens is a functional reference to a subpart of a data structure.
