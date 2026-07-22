@@ -170,3 +170,62 @@ func MonadPartitionMap[K comparable, A, L, R any](kvs Record[K, A], pred either.
 func PartitionMap[K comparable, A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[Record[K, L], Record[K, A], Record[K, R]] {
 	return generic.PartitionMap[Record[K, A], Record[K, L], Record[K, R]](pred)
 }
+
+// MonadPartitionMapWithIndex splits a record into two records by applying a
+// function that receives each key-value pair and returns an Either. Entries for
+// which the function returns a Right value are collected in the right (tail)
+// record; entries for which it returns a Left value are collected in the left
+// (head) record.
+//
+// This is the uncurried, index-aware form of PartitionMap.
+//
+// Type Parameters:
+//   - K: key type, must be comparable
+//   - A: input value type
+//   - L: type of Left (head) values produced by pred
+//   - R: type of Right (tail) values produced by pred
+//
+// Parameters:
+//   - kvs: the source record to partition
+//   - pred: a function from (K, A) to Either[L, R] that classifies each
+//     key-value pair
+//
+// Returns:
+//   - Pair[Record[K, L], Record[K, R]]: a pair where Head holds keys mapped to
+//     their Left results and Tail holds keys mapped to their Right results
+//
+// See Also:
+//   - PartitionMapWithIndex: curried variant
+//   - MonadPartitionMap: value-only variant
+func MonadPartitionMapWithIndex[K comparable, A, L, R any](kvs Record[K, A], pred func(K, A) either.Either[L, R]) pair.Pair[Record[K, L], Record[K, R]] {
+	return generic.MonadPartitionMapWithIndex[Record[K, A], Record[K, L], Record[K, R]](kvs, pred)
+}
+
+// PartitionMapWithIndex returns a curried function that splits a record into
+// two records by applying a function that receives each key-value pair and
+// returns an Either. Entries for which the function returns a Right value are
+// collected in the right (tail) record; entries for which it returns a Left
+// value are collected in the left (head) record.
+//
+// This is the curried, index-aware form of MonadPartitionMap.
+//
+// Type Parameters:
+//   - K: key type, must be comparable
+//   - A: input value type
+//   - L: type of Left (head) values produced by pred
+//   - R: type of Right (tail) values produced by pred
+//
+// Parameters:
+//   - pred: a function from (K, A) to Either[L, R] that classifies each
+//     key-value pair
+//
+// Returns:
+//   - pair.Kleisli[Record[K, L], Record[K, A], Record[K, R]]: a reusable
+//     function from Record[K, A] to Pair[Record[K, L], Record[K, R]]
+//
+// See Also:
+//   - MonadPartitionMapWithIndex: uncurried variant
+//   - PartitionMap: value-only variant
+func PartitionMapWithIndex[K comparable, A, L, R any](pred func(K, A) either.Either[L, R]) pair.Kleisli[Record[K, L], Record[K, A], Record[K, R]] {
+	return generic.PartitionMapWithIndex[Record[K, A], Record[K, L], Record[K, R]](pred)
+}

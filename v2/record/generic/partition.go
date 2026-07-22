@@ -28,24 +28,22 @@ import (
 //   - MonadPartitionWithIndex: index-aware variant
 //   - Partition: curried variant
 func MonadPartition[M ~map[K]V, K comparable, V any](kvs M, pred func(V) bool) pair.Pair[M, M] {
-	left := make(M)
-	right := make(M)
-	for k, v := range kvs {
-		if pred(v) {
-			right[k] = v
-		} else {
-			left[k] = v
-		}
-	}
-	// returns the partition
-	return pair.MakePair(left, right)
+	return MonadPartitionWithIndex[M](kvs, F.Ignore1of2[K](pred))
 }
 
 func MonadPartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](kvs MA, pred either.Kleisli[L, A, R]) pair.Pair[ML, MR] {
+	return MonadPartitionMapWithIndex[MA, ML, MR](kvs, F.Ignore1of2[K](pred))
+}
+
+func PartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[ML, MA, MR] {
+	return F.Bind2nd(MonadPartitionMap[MA, ML, MR, K, A, L, R], pred)
+}
+
+func MonadPartitionMapWithIndex[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](kvs MA, pred func(K, A) either.Either[L, R]) pair.Pair[ML, MR] {
 	left := make(ML)
 	right := make(MR)
 	for k, v := range kvs {
-		res := pred(v)
+		res := pred(k, v)
 		r, l := either.Unwrap(res)
 		if either.IsRight(res) {
 			right[k] = r
@@ -57,8 +55,8 @@ func MonadPartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L
 	return pair.MakePair(left, right)
 }
 
-func PartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[ML, MA, MR] {
-	return F.Bind2nd(MonadPartitionMap[MA, ML, MR, K, A, L, R], pred)
+func PartitionMapWithIndex[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](pred func(K, A) either.Either[L, R]) pair.Kleisli[ML, MA, MR] {
+	return F.Bind2nd(MonadPartitionMapWithIndex[MA, ML, MR, K, A, L, R], pred)
 }
 
 // MonadPartitionWithIndex splits a map into two maps based on a predicate

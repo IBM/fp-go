@@ -513,3 +513,204 @@ func ExamplePartitionMap() {
 	// B invalid workers: eight
 	// B valid timeout: 30
 }
+
+// --- MonadPartitionMapWithIndex ---
+
+// classifyWithKey routes even values to Right and odd values to Left, tagging
+// the Left message with the key for traceability.
+func classifyWithKey(k string, v int) E.Either[string, int] {
+	if v%2 == 0 {
+		return E.Right[string](v)
+	}
+	return E.Left[int](k + "=" + strconv.Itoa(v))
+}
+
+// TestMonadPartitionMapWithIndex_SplitsOnKeyAndValue verifies that the
+// predicate receives both key and value, Right values go to Tail and Left
+// values (tagged with the key) go to Head.
+func TestMonadPartitionMapWithIndex_SplitsOnKeyAndValue(t *testing.T) {
+	src := Record[string, int]{
+		"a": 1,
+		"b": 2,
+		"c": 3,
+		"d": 4,
+	}
+
+	result := MonadPartitionMapWithIndex[string, int, string, int](src, classifyWithKey)
+
+	assert.Equal(t, Record[string, string]{"a": "a=1", "c": "c=3"}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"b": 2, "d": 4}, P.Tail(result))
+}
+
+// TestMonadPartitionMapWithIndex_AllRight verifies that Head is empty when
+// every entry produces a Right.
+func TestMonadPartitionMapWithIndex_AllRight(t *testing.T) {
+	src := Record[string, int]{"a": 2, "b": 4}
+
+	result := MonadPartitionMapWithIndex[string, int, string, int](src, classifyWithKey)
+
+	assert.Empty(t, P.Head(result))
+	assert.Equal(t, Record[string, int]{"a": 2, "b": 4}, P.Tail(result))
+}
+
+// TestMonadPartitionMapWithIndex_AllLeft verifies that Tail is empty when
+// every entry produces a Left.
+func TestMonadPartitionMapWithIndex_AllLeft(t *testing.T) {
+	src := Record[string, int]{"a": 1, "b": 3}
+
+	result := MonadPartitionMapWithIndex[string, int, string, int](src, classifyWithKey)
+
+	assert.Equal(t, Record[string, string]{"a": "a=1", "b": "b=3"}, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionMapWithIndex_EmptyRecord verifies that an empty source
+// produces two empty records.
+func TestMonadPartitionMapWithIndex_EmptyRecord(t *testing.T) {
+	src := Record[string, int]{}
+
+	result := MonadPartitionMapWithIndex[string, int, string, int](src, classifyWithKey)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionMapWithIndex_NilRecord verifies that a nil map is handled
+// safely.
+func TestMonadPartitionMapWithIndex_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := MonadPartitionMapWithIndex[string, int, string, int](src, classifyWithKey)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionMapWithIndex_KeyUsedInClassification verifies that the key
+// itself drives the classification decision.
+func TestMonadPartitionMapWithIndex_KeyUsedInClassification(t *testing.T) {
+	// Accept when key starts with "ok", reject otherwise; Left carries the
+	// original value, Right carries the uppercased value.
+	classify := func(k string, v string) E.Either[string, string] {
+		if strings.HasPrefix(k, "ok") {
+			return E.Right[string](strings.ToUpper(v))
+		}
+		return E.Left[string](v)
+	}
+
+	src := Record[string, string]{
+		"ok_a":  "hello",
+		"bad_b": "world",
+		"ok_c":  "foo",
+	}
+
+	result := MonadPartitionMapWithIndex[string, string, string, string](src, classify)
+
+	assert.Equal(t, Record[string, string]{"bad_b": "world"}, P.Head(result))
+	assert.Equal(t, Record[string, string]{"ok_a": "HELLO", "ok_c": "FOO"}, P.Tail(result))
+}
+
+// --- PartitionMapWithIndex ---
+
+// TestPartitionMapWithIndex_CurriedReturnsFunction verifies that
+// PartitionMapWithIndex produces a reusable function that can be applied to
+// multiple records.
+func TestPartitionMapWithIndex_CurriedReturnsFunction(t *testing.T) {
+	splitEvens := PartitionMapWithIndex[string, int, string, int](classifyWithKey)
+
+	src1 := Record[string, int]{"a": 1, "b": 2}
+	src2 := Record[string, int]{"c": 3, "d": 4}
+
+	r1 := splitEvens(src1)
+	r2 := splitEvens(src2)
+
+	assert.Equal(t, Record[string, string]{"a": "a=1"}, P.Head(r1))
+	assert.Equal(t, Record[string, int]{"b": 2}, P.Tail(r1))
+
+	assert.Equal(t, Record[string, string]{"c": "c=3"}, P.Head(r2))
+	assert.Equal(t, Record[string, int]{"d": 4}, P.Tail(r2))
+}
+
+// TestPartitionMapWithIndex_NilRecord verifies that the curried form handles a
+// nil map safely.
+func TestPartitionMapWithIndex_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := PartitionMapWithIndex[string, int, string, int](classifyWithKey)(src)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// --- Examples ---
+
+// ExampleMonadPartitionMapWithIndex demonstrates splitting a record of
+// configuration values into validation errors (Left/Head) and accepted values
+// (Right/Tail), where the key name determines the acceptable range.
+func ExampleMonadPartitionMapWithIndex() {
+	// Ports must be in 1024–65535; the key is included in the error message.
+	classifyPort := func(name string, port int) E.Either[string, int] {
+		if port < 1024 || port > 65535 {
+			return E.Left[int](fmt.Sprintf("%s: port %d out of range", name, port))
+		}
+		return E.Right[string](port)
+	}
+
+	services := Record[string, int]{
+		"api":      8080,
+		"admin":    80,
+		"metrics":  9090,
+		"internal": 70000,
+	}
+
+	result := MonadPartitionMapWithIndex[string, int, string, int](services, classifyPort)
+
+	fmt.Println("valid api:", P.Tail(result)["api"])
+	fmt.Println("valid metrics:", P.Tail(result)["metrics"])
+	fmt.Println("invalid admin:", P.Head(result)["admin"])
+	fmt.Println("invalid internal:", P.Head(result)["internal"])
+
+	// Output:
+	// valid api: 8080
+	// valid metrics: 9090
+	// invalid admin: admin: port 80 out of range
+	// invalid internal: internal: port 70000 out of range
+}
+
+// ExamplePartitionMapWithIndex demonstrates applying the same curried
+// PartitionMapWithIndex function to two configuration records to split entries
+// into validation errors and valid values, using the key to build the error.
+func ExamplePartitionMapWithIndex() {
+	// Reusable classifier: non-empty string → Right(string), empty → Left with key.
+	requireNonEmpty := PartitionMapWithIndex[string, string, string, string](
+		func(k string, v string) E.Either[string, string] {
+			if strings.TrimSpace(v) == "" {
+				return E.Left[string](k + " is required")
+			}
+			return E.Right[string](v)
+		},
+	)
+
+	configA := Record[string, string]{
+		"host": "localhost",
+		"port": "",
+	}
+	configB := Record[string, string]{
+		"host": "",
+		"port": "8080",
+	}
+
+	rA := requireNonEmpty(configA)
+	rB := requireNonEmpty(configB)
+
+	fmt.Println("A valid host:", P.Tail(rA)["host"])
+	fmt.Println("A invalid port:", P.Head(rA)["port"])
+	fmt.Println("B invalid host:", P.Head(rB)["host"])
+	fmt.Println("B valid port:", P.Tail(rB)["port"])
+
+	// Output:
+	// A valid host: localhost
+	// A invalid port: port is required
+	// B invalid host: host is required
+	// B valid port: 8080
+}
