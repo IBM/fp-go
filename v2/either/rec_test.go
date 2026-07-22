@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	A "github.com/IBM/fp-go/v2/array"
+	A "github.com/IBM/fp-go/v2/internal/array"
 	TR "github.com/IBM/fp-go/v2/tailrec"
 	"github.com/stretchr/testify/assert"
 )

@@ -157,13 +157,27 @@ func TestFrom(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3}, From(1, 2, 3))
 }
 
+func TestFromOption(t *testing.T) {
+	t.Run("Some produces a single-element array", func(t *testing.T) {
+		assert.Equal(t, []int{42}, FromOption(O.Some(42)))
+	})
+	t.Run("None produces an empty array", func(t *testing.T) {
+		assert.Equal(t, []int{}, FromOption(O.None[int]()))
+	})
+}
+
 func TestPartition(t *testing.T) {
 
 	pred := func(n int) bool {
 		return n > 2
 	}
 
-	assert.Equal(t, pair.MakePair(Empty[int](), Empty[int]()), Partition(pred)(Empty[int]()))
+	// nil is a valid representation of the empty array, so assert emptiness rather
+	// than exact equality with Empty[int]() which allocates a non-nil slice.
+	emptyResult := Partition(pred)(Empty[int]())
+	assert.Empty(t, pair.Head(emptyResult), "left of empty partition should be empty")
+	assert.Empty(t, pair.Tail(emptyResult), "right of empty partition should be empty")
+
 	assert.Equal(t, pair.MakePair(From(1), From(3)), Partition(pred)(From(1, 3)))
 }
 

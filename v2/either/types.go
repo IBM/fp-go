@@ -19,13 +19,11 @@ import (
 	"iter"
 
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
-	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
@@ -40,11 +38,11 @@ type (
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
 
 	// Lazy represents a deferred computation that produces a value of type T.
-	Lazy[T any] = lazy.Lazy[T]
+	Lazy[T any] = func() T
 
 	// Kleisli represents a Kleisli arrow for the Either monad.
 	// It's a function from A to Either[E, B], used for composing operations that may fail.
-	Kleisli[E, A, B any] = reader.Reader[A, Either[E, B]]
+	Kleisli[E, A, B any] = func(A) Either[E, B]
 
 	// Operator represents a function that transforms one Either into another.
 	// It takes an Either[E, A] and produces an Either[E, B].

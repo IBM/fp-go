@@ -19,8 +19,8 @@ import (
 	"context"
 	"testing"
 
-	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
+	A "github.com/IBM/fp-go/v2/internal/array"
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
@@ -30,8 +30,8 @@ func TestSequenceArray(t *testing.T) {
 
 	n := 10
 
-	readers := A.MakeBy(n, Of[context.Context, int])
-	exp := A.MakeBy(n, F.Identity[int])
+	readers := A.MakeBy[[]Reader[context.Context, int]](n, Of[context.Context, int])
+	exp := A.MakeBy[[]int](n, F.Identity[int])
 
 	g := F.Pipe1(
 		readers,

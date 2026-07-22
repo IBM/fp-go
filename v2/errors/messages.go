@@ -17,8 +17,8 @@ package errors
 
 import (
 	"fmt"
+	"slices"
 
-	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/endomorphism"
 )
 
@@ -87,7 +87,7 @@ func OnSome[T any](msg string, args ...any) func(T) error {
 //	// errors.Is(wrappedErr, rootErr) returns true
 func OnError(msg string, args ...any) endomorphism.Endomorphism[error] {
 	return func(err error) error {
-		return fmt.Errorf(msg+", Caused By: %w", A.ArrayConcatAll(args, A.Of[any](err))...)
+		return fmt.Errorf(msg+", Caused By: %w", slices.Concat(args, []any{err})...)
 	}
 }
 

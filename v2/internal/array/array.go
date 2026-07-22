@@ -205,3 +205,16 @@ func UnsafeUpdateAt[GT ~[]T, T any](as GT, i int, v T) GT {
 	c[i] = v
 	return c
 }
+
+func MakeBy[AS ~[]A, F ~func(int) A, A any](n int, f F) AS {
+	// sanity check
+	if n <= 0 {
+		return Empty[AS]()
+	}
+	// run the generator function across the input
+	as := make(AS, n)
+	for i := range n {
+		as[i] = f(i)
+	}
+	return as
+}

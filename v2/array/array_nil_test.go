@@ -245,8 +245,8 @@ func TestNilSlice_MonadChain(t *testing.T) {
 	result := MonadChain(nilSlice, func(v int) []string {
 		return []string{fmt.Sprintf("%d", v)}
 	})
-	assert.NotNil(t, result, "MonadChain should return non-nil slice")
-	assert.Equal(t, 0, len(result), "MonadChain should return empty slice for nil input")
+	// nil is a valid representation of the empty array.
+	assert.Empty(t, result, "MonadChain should return an empty slice for nil input")
 }
 
 // TestNilSlice_Chain verifies that Chain handles nil slices correctly
@@ -256,8 +256,8 @@ func TestNilSlice_Chain(t *testing.T) {
 		return []string{fmt.Sprintf("%d", v)}
 	})
 	result := chain(nilSlice)
-	assert.NotNil(t, result, "Chain should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Chain should return empty slice for nil input")
+	// nil is a valid representation of the empty array.
+	assert.Empty(t, result, "Chain should return an empty slice for nil input")
 }
 
 // TestNilSlice_MonadAp verifies that MonadAp handles nil slices correctly
@@ -352,12 +352,9 @@ func TestNilSlice_MonadPartition(t *testing.T) {
 	result := MonadPartition(nilSlice, func(v int) bool {
 		return v > 0
 	})
-	left := P.Head(result)
-	right := P.Tail(result)
-	assert.NotNil(t, left, "MonadPartition left should return non-nil slice")
-	assert.NotNil(t, right, "MonadPartition right should return non-nil slice")
-	assert.Equal(t, 0, len(left), "MonadPartition left should be empty for nil input")
-	assert.Equal(t, 0, len(right), "MonadPartition right should be empty for nil input")
+	// nil is a valid representation of the empty array.
+	assert.Empty(t, P.Head(result), "MonadPartition left should be empty for nil input")
+	assert.Empty(t, P.Tail(result), "MonadPartition right should be empty for nil input")
 }
 
 // TestNilSlice_Partition verifies that Partition handles nil slices correctly
@@ -367,12 +364,9 @@ func TestNilSlice_Partition(t *testing.T) {
 		return v > 0
 	})
 	result := partition(nilSlice)
-	left := P.Head(result)
-	right := P.Tail(result)
-	assert.NotNil(t, left, "Partition left should return non-nil slice")
-	assert.NotNil(t, right, "Partition right should return non-nil slice")
-	assert.Equal(t, 0, len(left), "Partition left should be empty for nil input")
-	assert.Equal(t, 0, len(right), "Partition right should be empty for nil input")
+	// nil is a valid representation of the empty array.
+	assert.Empty(t, P.Head(result), "Partition left should be empty for nil input")
+	assert.Empty(t, P.Tail(result), "Partition right should be empty for nil input")
 }
 
 // TestNilSlice_IsNil verifies that IsNil handles nil slices correctly

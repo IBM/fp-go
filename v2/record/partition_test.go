@@ -1,0 +1,321 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package record
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	N "github.com/IBM/fp-go/v2/number"
+	P "github.com/IBM/fp-go/v2/pair"
+	"github.com/stretchr/testify/assert"
+)
+
+// isEven is a reusable predicate used across partition tests.
+func isEven(v int) bool { return v%2 == 0 }
+
+// TestMonadPartition_SplitsOnPredicate verifies that matching entries go to
+// Tail and non-matching entries go to Head.
+func TestMonadPartition_SplitsOnPredicate(t *testing.T) {
+	src := Record[string, int]{
+		"a": 1,
+		"b": 2,
+		"c": 3,
+		"d": 4,
+	}
+
+	result := MonadPartition(src, isEven)
+
+	assert.Equal(t, Record[string, int]{"a": 1, "c": 3}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"b": 2, "d": 4}, P.Tail(result))
+}
+
+// TestMonadPartition_AllMatch verifies that Head is empty when all entries match.
+func TestMonadPartition_AllMatch(t *testing.T) {
+	src := Record[string, int]{"a": 2, "b": 4}
+
+	result := MonadPartition(src, isEven)
+
+	assert.Empty(t, P.Head(result))
+	assert.Equal(t, src, P.Tail(result))
+}
+
+// TestMonadPartition_NoneMatch verifies that Tail is empty when no entries match.
+func TestMonadPartition_NoneMatch(t *testing.T) {
+	src := Record[string, int]{"a": 1, "b": 3}
+
+	result := MonadPartition(src, isEven)
+
+	assert.Equal(t, src, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartition_EmptyRecord verifies that an empty record produces two
+// empty records.
+func TestMonadPartition_EmptyRecord(t *testing.T) {
+	src := Record[string, int]{}
+
+	result := MonadPartition(src, isEven)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartition_NilRecord verifies that a nil map is treated identically
+// to an empty record.
+func TestMonadPartition_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := MonadPartition(src, isEven)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionWithIndex_SplitsOnKeyAndValue verifies that the predicate
+// receives both key and value, and entries are routed correctly.
+func TestMonadPartitionWithIndex_SplitsOnKeyAndValue(t *testing.T) {
+	src := Record[string, int]{
+		"keep_1": 1,
+		"keep_2": 2,
+		"drop_3": 3,
+		"drop_4": 4,
+	}
+
+	// Keep only entries whose key starts with "keep"
+	result := MonadPartitionWithIndex(src, func(k string, _ int) bool {
+		return strings.HasPrefix(k, "keep")
+	})
+
+	assert.Equal(t, Record[string, int]{"drop_3": 3, "drop_4": 4}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"keep_1": 1, "keep_2": 2}, P.Tail(result))
+}
+
+// TestMonadPartitionWithIndex_ValueAndKeyTogether verifies that the predicate
+// can use both key and value together.
+func TestMonadPartitionWithIndex_ValueAndKeyTogether(t *testing.T) {
+	src := Record[string, int]{
+		"a":   1,
+		"bb":  2,
+		"ccc": 3,
+	}
+
+	// Match when key length equals value
+	result := MonadPartitionWithIndex(src, func(k string, v int) bool {
+		return len(k) == v
+	})
+
+	assert.Equal(t, Record[string, int]{}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"a": 1, "bb": 2, "ccc": 3}, P.Tail(result))
+}
+
+// TestMonadPartitionWithIndex_EmptyRecord verifies that an empty record
+// produces two empty records.
+func TestMonadPartitionWithIndex_EmptyRecord(t *testing.T) {
+	src := Record[string, int]{}
+
+	result := MonadPartitionWithIndex(src, func(k string, v int) bool { return true })
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestPartition_CurriedReturnsFunction verifies that Partition returns a
+// reusable function applied to different records.
+func TestPartition_CurriedReturnsFunction(t *testing.T) {
+	partitionEvens := Partition[string](isEven)
+
+	src1 := Record[string, int]{"a": 1, "b": 2}
+	src2 := Record[string, int]{"c": 3, "d": 4}
+
+	r1 := partitionEvens(src1)
+	r2 := partitionEvens(src2)
+
+	assert.Equal(t, Record[string, int]{"a": 1}, P.Head(r1))
+	assert.Equal(t, Record[string, int]{"b": 2}, P.Tail(r1))
+
+	assert.Equal(t, Record[string, int]{"c": 3}, P.Head(r2))
+	assert.Equal(t, Record[string, int]{"d": 4}, P.Tail(r2))
+}
+
+// TestPartition_NilRecord verifies that the curried form handles a nil map.
+func TestPartition_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := Partition[string](isEven)(src)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestPartitionWithIndex_CurriedReturnsFunction verifies that PartitionWithIndex
+// returns a reusable function applied to different records.
+func TestPartitionWithIndex_CurriedReturnsFunction(t *testing.T) {
+	partitionByPrefix := PartitionWithIndex(func(k string, _ int) bool {
+		return strings.HasPrefix(k, "yes")
+	})
+
+	src := Record[string, int]{
+		"yes_a": 1,
+		"no_b":  2,
+		"yes_c": 3,
+	}
+
+	result := partitionByPrefix(src)
+
+	assert.Equal(t, Record[string, int]{"no_b": 2}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"yes_a": 1, "yes_c": 3}, P.Tail(result))
+}
+
+// TestPartitionWithIndex_NilRecord verifies that the curried form handles a
+// nil map.
+func TestPartitionWithIndex_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := PartitionWithIndex(func(_ string, _ int) bool { return true })(src)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// ExampleMonadPartition demonstrates splitting a record of scores into
+// passing (>= 60) and failing (< 60) entries.
+func ExampleMonadPartition() {
+	scores := Record[string, int]{
+		"alice": 80,
+		"bob":   55,
+		"carol": 70,
+		"dave":  45,
+	}
+
+	result := MonadPartition(scores, N.MoreThan(59))
+
+	failing := P.Head(result)
+	passing := P.Tail(result)
+
+	fmt.Println("alice passing:", passing["alice"])
+	fmt.Println("carol passing:", passing["carol"])
+	fmt.Println("bob failing:", failing["bob"])
+	fmt.Println("dave failing:", failing["dave"])
+
+	// Output:
+	// alice passing: 80
+	// carol passing: 70
+	// bob failing: 55
+	// dave failing: 45
+}
+
+// ExampleMonadPartitionWithIndex demonstrates splitting a record using both
+// key prefix and value parity.
+func ExampleMonadPartitionWithIndex() {
+	data := Record[string, int]{
+		"keep_2": 2,
+		"keep_4": 4,
+		"drop_1": 1,
+		"drop_3": 3,
+	}
+
+	result := MonadPartitionWithIndex(data, func(k string, _ int) bool {
+		return strings.HasPrefix(k, "keep")
+	})
+
+	fmt.Println("kept keep_2:", P.Tail(result)["keep_2"])
+	fmt.Println("kept keep_4:", P.Tail(result)["keep_4"])
+	fmt.Println("dropped drop_1:", P.Head(result)["drop_1"])
+	fmt.Println("dropped drop_3:", P.Head(result)["drop_3"])
+
+	// Output:
+	// kept keep_2: 2
+	// kept keep_4: 4
+	// dropped drop_1: 1
+	// dropped drop_3: 3
+}
+
+// ExamplePartition demonstrates applying the same curried partition function
+// to two separate monthly budget records to split expenses into over-budget
+// and within-budget categories.
+func ExamplePartition() {
+	// Budget limit per category is 100.
+	splitBudget := Partition[string](N.MoreThan(100))
+
+	january := Record[string, int]{
+		"rent":     900,
+		"groceries": 80,
+	}
+	february := Record[string, int]{
+		"rent":     900,
+		"groceries": 110,
+	}
+
+	janResult := splitBudget(january)
+	febResult := splitBudget(february)
+
+	// January: only rent exceeds the budget.
+	fmt.Println("jan over-budget:    rent =", P.Tail(janResult)["rent"])
+	fmt.Println("jan within-budget:  groceries =", P.Head(janResult)["groceries"])
+
+	// February: rent and groceries both exceeded the budget.
+	fmt.Println("feb over-budget:    rent =", P.Tail(febResult)["rent"])
+	fmt.Println("feb over-budget:    groceries =", P.Tail(febResult)["groceries"])
+
+	// Output:
+	// jan over-budget:    rent = 900
+	// jan within-budget:  groceries = 80
+	// feb over-budget:    rent = 900
+	// feb over-budget:    groceries = 110
+}
+
+// ExamplePartitionWithIndex demonstrates applying the same curried
+// index-aware partition function to two service health records, routing
+// entries to degraded or healthy based on both the service name and its
+// error-rate value.
+func ExamplePartitionWithIndex() {
+	// A service is considered degraded when its error rate exceeds 5,
+	// unless it is a "batch" service which tolerates up to 10.
+	isDegraded := PartitionWithIndex(func(name string, errorRate int) bool {
+		if strings.HasPrefix(name, "batch") {
+			return errorRate > 10
+		}
+		return errorRate > 5
+	})
+
+	morning := Record[string, int]{
+		"api-gateway": 3,
+		"batch-jobs":  8,
+	}
+	evening := Record[string, int]{
+		"api-gateway": 7,
+		"batch-jobs":  12,
+	}
+
+	morningResult := isDegraded(morning)
+	eveningResult := isDegraded(evening)
+
+	// Morning: all services within tolerance.
+	fmt.Println("morning healthy:   api-gateway =", P.Head(morningResult)["api-gateway"])
+	fmt.Println("morning healthy:   batch-jobs =", P.Head(morningResult)["batch-jobs"])
+
+	// Evening: both services are degraded.
+	fmt.Println("evening degraded:  api-gateway =", P.Tail(eveningResult)["api-gateway"])
+	fmt.Println("evening degraded:  batch-jobs =", P.Tail(eveningResult)["batch-jobs"])
+
+	// Output:
+	// morning healthy:   api-gateway = 3
+	// morning healthy:   batch-jobs = 8
+	// evening degraded:  api-gateway = 7
+	// evening degraded:  batch-jobs = 12
+}

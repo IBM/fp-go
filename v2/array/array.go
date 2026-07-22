@@ -17,6 +17,7 @@ package array
 
 import (
 	G "github.com/IBM/fp-go/v2/array/generic"
+	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/array"
 	M "github.com/IBM/fp-go/v2/monoid"
@@ -46,6 +47,27 @@ import (
 //go:inline
 func From[A any](data ...A) []A {
 	return G.From[[]A](data...)
+}
+
+// FromOption converts an Option into an array.
+//
+// If opt is Some(a), the result is a single-element array containing a.
+// If opt is None, the result is an empty array.
+//
+// Type Parameters:
+//   - A: The element type
+//
+// Parameters:
+//   - opt: The Option value to convert
+//
+// Returns:
+//   - []A: A slice of length 1 when opt is Some, or an empty slice when opt is None
+//
+// See Also:
+//   - option.Some: Construct a Some value
+//   - option.None: Construct a None value
+func FromOption[A any](opt Option[A]) []A {
+	return option.MonadFold(opt, Empty[A], Of[A])
 }
 
 // MakeBy returns an array of length n with element i initialized with f(i).
@@ -585,18 +607,19 @@ func Of[A any](a A) []A {
 // MonadChain applies a function that returns an array to each element and flattens the results.
 // This is the monadic version that takes the array as the first parameter (also known as FlatMap).
 //
+// When the input array is empty or nil, the result is nil, which is a valid
+// representation of the empty array in Go.
+//
 //go:inline
 func MonadChain[A, B any](fa []A, f Kleisli[A, B]) []B {
 	return G.MonadChain(fa, f)
 }
 
 // Chain applies a function that returns an array to each element and flattens the results.
-// This is the curried version (also known as FlatMap).
+// This is the curried version of MonadChain (also known as FlatMap).
 //
-// Example:
-//
-//	duplicate := array.Chain(func(x int) []int { return []int{x, x} })
-//	result := duplicate([]int{1, 2, 3}) // [1, 1, 2, 2, 3, 3]
+// When the input array is empty or nil, the result is nil, which is a valid
+// representation of the empty array in Go.
 //
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
@@ -815,7 +838,7 @@ func Slice[A any](low, high int) Operator[A, A] {
 //	// result: option.Some(20)
 //
 //go:inline
-func Lookup[A any](idx int) func([]A) Option[A] {
+func Lookup[A any](idx int) option.Kleisli[[]A, A] {
 	return G.Lookup[[]A](idx)
 }
 
@@ -859,38 +882,85 @@ func Size[A any](as []A) int {
 }
 
 // MonadPartition splits an array into two arrays based on a predicate.
-// The first array contains elements for which the predicate returns false,
-// the second contains elements for which it returns true.
+// The left (first) result contains elements for which the predicate returns false,
+// the right (second) result contains elements for which it returns true.
+//
+// When the input array is empty or nil, both sides of the result are nil, which is
+// a valid representation of the empty array in Go.
 //
 //go:inline
 func MonadPartition[A any](as []A, pred func(A) bool) pair.Pair[[]A, []A] {
 	return G.MonadPartition(as, pred)
 }
 
+// MonadPartitionWithIndex splits a slice into two slices based on a predicate
+// that receives both the zero-based index and the element. Elements for which
+// the predicate returns true are placed in the right (tail) slice; elements
+// for which it returns false are placed in the left (head) slice. The relative
+// order of elements is preserved in both output slices.
+//
+// When the input slice is empty or nil, both output slices are nil, which is a
+// valid representation of the empty array in Go.
+//
+// Type Parameters:
+//   - A: element type
+//
+// Parameters:
+//   - as: the source slice to partition
+//   - pred: a function receiving the index and the element; returns true to
+//     route the element to the right (tail) slice
+//
+// Returns:
+//   - pair.Pair[[]A, []A]: a pair where Head holds the non-matching elements
+//     and Tail holds the matching elements
+//
+// See Also:
+//   - MonadPartition: value-only variant
+//   - PartitionWithIndex: curried variant
+//
+//go:inline
+func MonadPartitionWithIndex[A any](as []A, pred func(int, A) bool) pair.Pair[[]A, []A] {
+	return G.MonadPartitionWithIndex(as, pred)
+}
+
 // Partition creates two new arrays out of one. The left result contains the elements
 // for which the predicate returns false, the right one those for which the predicate returns true.
 //
-// # Type Parameters
-//
-//   - A: The type of elements in the array
-//
-// # Parameters
-//
-//   - pred: Predicate function to test each element
-//
-// # Returns
-//
-//   - A function that partitions an array into a pair of arrays
-//
-// # Example
-//
-//	isEven := array.Partition(func(x int) bool { return x%2 == 0 })
-//	result := isEven([]int{1, 2, 3, 4, 5, 6})
-//	// result: pair.Pair{Left: []int{1, 3, 5}, Right: []int{2, 4, 6}}
+// When the input array is empty or nil, both sides of the result are nil, which is
+// a valid representation of the empty array in Go.
 //
 //go:inline
-func Partition[A any](pred func(A) bool) func([]A) pair.Pair[[]A, []A] {
+func Partition[A any](pred func(A) bool) pair.Kleisli[[]A, []A, []A] {
 	return G.Partition[[]A](pred)
+}
+
+// PartitionWithIndex returns a curried function that splits a slice into two
+// slices based on a predicate that receives both the zero-based index and the
+// element. The returned function accepts a slice and returns a pair where Head
+// holds the non-matching elements and Tail holds the matching elements. The
+// relative order of elements is preserved in both output slices.
+//
+// When the input slice is empty or nil, both output slices are nil, which is a
+// valid representation of the empty array in Go.
+//
+// Type Parameters:
+//   - A: element type
+//
+// Parameters:
+//   - pred: a function receiving the index and the element; returns true to
+//     route the element to the right (tail) slice
+//
+// Returns:
+//   - pair.Kleisli[[]A, []A, []A]: a reusable function from []A to
+//     Pair[[]A, []A]
+//
+// See Also:
+//   - Partition: value-only variant
+//   - MonadPartitionWithIndex: uncurried variant
+//
+//go:inline
+func PartitionWithIndex[A any](pred func(int, A) bool) pair.Kleisli[[]A, []A, []A] {
+	return G.PartitionWithIndex[[]A](pred)
 }
 
 // IsNil checks if the array is set to nil.
@@ -1514,4 +1584,69 @@ func Extract[A any](as []A) A {
 //go:inline
 func UpdateAt[T any](i int, v T) option.Kleisli[[]T, []T] {
 	return G.UpdateAt[[]T](i, v)
+}
+
+// MonadPartitionMap splits a slice into two slices by routing each element
+// through a classifier function that returns an Either. Elements mapped to
+// Right are collected into the right (tail) slice; elements mapped to Left
+// are collected into the left (head) slice. The relative order of elements
+// is preserved in both output slices.
+//
+// When the input slice is empty or nil, both output slices are nil, which is
+// a valid representation of the empty array in Go.
+//
+// Type Parameters:
+//   - A: element type of the input slice
+//   - L: element type of the left (head) output slice
+//   - R: element type of the right (tail) output slice
+//
+// Parameters:
+//   - as: the source slice to partition
+//   - pred: a function from A to Either[L, R]; returning Right routes the
+//     mapped value to the right slice, returning Left routes the mapped value
+//     to the left slice
+//
+// Returns:
+//   - pair.Pair[[]L, []R]: a pair where Head holds the Left-mapped values
+//     and Tail holds the Right-mapped values
+//
+// See Also:
+//   - PartitionMap: curried variant
+//   - MonadPartition: boolean-predicate variant (no mapping)
+//
+//go:inline
+func MonadPartitionMap[A, L, R any](as []A, pred either.Kleisli[L, A, R]) pair.Pair[[]L, []R] {
+	return G.MonadPartitionMap[[]L, []R](as, pred)
+}
+
+// PartitionMap returns a curried function that splits a slice into two slices
+// by routing each element through a classifier function that returns an Either.
+// Elements mapped to Right are collected into the right (tail) slice; elements
+// mapped to Left are collected into the left (head) slice. The relative order
+// of elements is preserved in both output slices.
+//
+// When the input slice is empty or nil, both output slices are nil, which is
+// a valid representation of the empty array in Go.
+//
+// Type Parameters:
+//   - A: element type of the input slice
+//   - L: element type of the left (head) output slice
+//   - R: element type of the right (tail) output slice
+//
+// Parameters:
+//   - pred: a function from A to Either[L, R]; returning Right routes the
+//     mapped value to the right slice, returning Left routes the mapped value
+//     to the left slice
+//
+// Returns:
+//   - pair.Kleisli[[]L, []A, []R]: a reusable function from []A to
+//     Pair[[]L, []R]
+//
+// See Also:
+//   - MonadPartitionMap: uncurried variant
+//   - Partition: boolean-predicate variant (no mapping)
+//
+//go:inline
+func PartitionMap[A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[[]L, []A, []R] {
+	return G.PartitionMap[[]L, []R, []A](pred)
 }

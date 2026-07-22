@@ -121,14 +121,7 @@ func Nullary2[F1 ~func() T1, F2 ~func(T1) T2, T1, T2 any](f1 F1, f2 F2) func() T
 // The inverse function is [Uncurry2]
 //go:inline
 func Curry2[FCT ~func(T0, T1) T2, T0, T1, T2 any](f FCT) func(T0) func(T1) T2 {
-	//go:inline
-	return func(t0 T0) func(t1 T1) T2 {
-		//go:inline
-		return func(t1 T1) T2 {
-			//go:inline
-			return f(t0, t1)
-		}
-	}
+	return CurryAB(f)
 }
 
 // Uncurry2 takes a cascade of 2 functions each taking only one parameter and returns a function with 2 parameters .
@@ -187,13 +180,7 @@ func Nullary3[F1 ~func() T1, F2 ~func(T1) T2, F3 ~func(T2) T3, T1, T2, T3 any](f
 // Curry3 takes a function with 3 parameters and returns a cascade of functions each taking only one parameter.
 // The inverse function is [Uncurry3]
 func Curry3[FCT ~func(T0, T1, T2) T3, T0, T1, T2, T3 any](f FCT) func(T0) func(T1) func(T2) T3 {
-	return func(t0 T0) func(t1 T1) func(t2 T2) T3 {
-		return func(t1 T1) func(t2 T2) T3 {
-			return func(t2 T2) T3 {
-				return f(t0, t1, t2)
-			}
-		}
-	}
+	return CurryABC(f)
 }
 
 // Uncurry3 takes a cascade of 3 functions each taking only one parameter and returns a function with 3 parameters .
@@ -252,15 +239,7 @@ func Nullary4[F1 ~func() T1, F2 ~func(T1) T2, F3 ~func(T2) T3, F4 ~func(T3) T4, 
 // Curry4 takes a function with 4 parameters and returns a cascade of functions each taking only one parameter.
 // The inverse function is [Uncurry4]
 func Curry4[FCT ~func(T0, T1, T2, T3) T4, T0, T1, T2, T3, T4 any](f FCT) func(T0) func(T1) func(T2) func(T3) T4 {
-	return func(t0 T0) func(t1 T1) func(t2 T2) func(t3 T3) T4 {
-		return func(t1 T1) func(t2 T2) func(t3 T3) T4 {
-			return func(t2 T2) func(t3 T3) T4 {
-				return func(t3 T3) T4 {
-					return f(t0, t1, t2, t3)
-				}
-			}
-		}
-	}
+	return CurryABCD(f)
 }
 
 // Uncurry4 takes a cascade of 4 functions each taking only one parameter and returns a function with 4 parameters .

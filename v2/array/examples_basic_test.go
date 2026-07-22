@@ -57,3 +57,19 @@ func Example_basic() {
 	// [0 4 16 36 64]
 	// [0 4 16 36 64]
 }
+
+// ExampleFromOption_some demonstrates FromOption with a Some value.
+func ExampleFromOption_some() {
+	arr := FromOption(O.Some(42))
+	fmt.Println(arr)
+	// Output:
+	// [42]
+}
+
+// ExampleFromOption_none demonstrates FromOption with a None value.
+func ExampleFromOption_none() {
+	arr := FromOption(O.None[int]())
+	fmt.Println(arr)
+	// Output:
+	// []
+}

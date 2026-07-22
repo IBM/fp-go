@@ -18,7 +18,6 @@ package io
 import (
 	"fmt"
 
-	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	TST "github.com/IBM/fp-go/v2/internal/testing"
 	"github.com/stretchr/testify/assert"
@@ -36,7 +35,7 @@ func TestMapSeq(t *testing.T) {
 		}
 	}
 
-	src := A.From("a", "b", "c")
+	src := []string{"a", "b", "c"}
 
 	res := F.Pipe2(
 		src,

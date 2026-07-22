@@ -18,6 +18,7 @@ package generic
 import (
 	"slices"
 
+	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/array"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
@@ -80,16 +81,7 @@ func From[GA ~[]A, A any](data ...A) GA {
 
 // MakeBy returns a `Array` of length `n` with element `i` initialized with `f(i)`.
 func MakeBy[AS ~[]A, F ~func(int) A, A any](n int, f F) AS {
-	// sanity check
-	if n <= 0 {
-		return Empty[AS]()
-	}
-	// run the generator function across the input
-	as := make(AS, n)
-	for i := range n {
-		as[i] = f(i)
-	}
-	return as
+	return array.MakeBy[AS](n, f)
 }
 
 func Replicate[AS ~[]A, A any](n int, a A) AS {
@@ -241,28 +233,114 @@ func FilterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](f func(int, A) O.Option[B]) 
 }
 
 func MonadPartition[GA ~[]A, A any](as GA, pred func(A) bool) pair.Pair[GA, GA] {
-	left := Empty[GA]()
-	right := Empty[GA]()
-	array.Reduce(as, func(c bool, a A) bool {
+	var left, right GA
+	for _, a := range as {
 		if pred(a) {
 			right = append(right, a)
 		} else {
 			left = append(left, a)
 		}
-		return c
-	}, true)
+	}
 	// returns the partition
 	return pair.MakePair(left, right)
+}
+
+func MonadPartitionMap[GL ~[]L, GR ~[]R, GA ~[]A, A, L, R any](as GA, pred either.Kleisli[L, A, R]) pair.Pair[GL, GR] {
+	var left GL
+	var right GR
+	for _, a := range as {
+		res := pred(a)
+		r, l := either.Unwrap(res)
+		if either.IsRight(res) {
+			right = append(right, r)
+		} else {
+			left = append(left, l)
+		}
+	}
+	// returns the partition
+	return pair.MakePair(left, right)
+}
+
+func PartitionMap[GL ~[]L, GR ~[]R, GA ~[]A, A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[GL, GA, GR] {
+	return F.Bind2nd(MonadPartitionMap[GL, GR, GA], pred)
 }
 
 func Partition[GA ~[]A, A any](pred func(A) bool) func(GA) pair.Pair[GA, GA] {
 	return F.Bind2nd(MonadPartition[GA, A], pred)
 }
 
-func MonadChain[AS ~[]A, BS ~[]B, A, B any](fa AS, f func(a A) BS) BS {
-	return array.Reduce(fa, func(bs BS, a A) BS {
-		return append(bs, f(a)...)
-	}, Empty[BS]())
+// MonadPartitionWithIndex splits a slice into two slices based on a predicate
+// that receives both the zero-based index and the element. Elements for which
+// the predicate returns true are placed in the right (tail) slice; elements
+// for which it returns false are placed in the left (head) slice. The relative
+// order of elements is preserved in both output slices.
+//
+// When the input slice is empty or nil, both output slices are nil, which is a
+// valid representation of the empty array in Go.
+//
+// Type Parameters:
+//   - GA: slice type, must be ~[]A
+//   - A: element type
+//
+// Parameters:
+//   - as: the source slice to partition
+//   - pred: a function receiving the index and the element; returns true to
+//     route the element to the right (tail) slice
+//
+// Returns:
+//   - pair.Pair[GA, GA]: a pair where Head holds the non-matching elements and
+//     Tail holds the matching elements
+//
+// See Also:
+//   - MonadPartition: value-only variant
+//   - PartitionWithIndex: curried variant
+func MonadPartitionWithIndex[GA ~[]A, A any](as GA, pred func(int, A) bool) pair.Pair[GA, GA] {
+	var left, right GA
+	for i, a := range as {
+		if pred(i, a) {
+			right = append(right, a)
+		} else {
+			left = append(left, a)
+		}
+	}
+	// returns the partition
+	return pair.MakePair(left, right)
+}
+
+// PartitionWithIndex returns a curried function that splits a slice into two
+// slices based on a predicate that receives both the zero-based index and the
+// element. The returned function accepts a slice and returns a pair where Head
+// holds the non-matching elements and Tail holds the matching elements. The
+// relative order of elements is preserved in both output slices.
+//
+// When the input slice is empty or nil, both output slices are nil, which is a
+// valid representation of the empty array in Go.
+//
+// Type Parameters:
+//   - GA: slice type, must be ~[]A
+//   - A: element type
+//
+// Parameters:
+//   - pred: a function receiving the index and the element; returns true to
+//     route the element to the right (tail) slice
+//
+// Returns:
+//   - func(GA) pair.Pair[GA, GA]: a reusable function from GA to
+//     Pair[GA, GA]
+//
+// See Also:
+//   - Partition: value-only variant
+//   - MonadPartitionWithIndex: uncurried variant
+func PartitionWithIndex[GA ~[]A, A any](pred func(int, A) bool) func(GA) pair.Pair[GA, GA] {
+	return F.Bind2nd(MonadPartitionWithIndex[GA, A], pred)
+}
+
+func MonadChain[AS ~[]A, BS ~[]B, A, B any](as AS, f func(a A) BS) BS {
+	var bs BS
+	for _, a := range as {
+		bs = append(bs, f(a)...)
+	}
+	return bs
 }
 
 func Chain[AS ~[]A, BS ~[]B, A, B any](f func(A) BS) func(AS) BS {
