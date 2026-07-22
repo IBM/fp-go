@@ -254,6 +254,107 @@ func TestIsComparableType(t *testing.T) {
 	}
 }
 
+func TestIsComparableType_GenericBuiltins(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		expected bool
+	}{
+		// option.Option[A] — qualified
+		{
+			name:     "option.Option[comparable] is comparable",
+			code:     "type T struct { F option.Option[int] }",
+			expected: true,
+		},
+		{
+			name:     "option.Option[non-comparable] is not comparable",
+			code:     "type T struct { F option.Option[[]byte] }",
+			expected: false,
+		},
+		// Option[A] — bare (same-package / dot-import)
+		{
+			name:     "bare Option[comparable] is comparable",
+			code:     "type T struct { F Option[string] }",
+			expected: true,
+		},
+		{
+			name:     "bare Option[non-comparable] is not comparable",
+			code:     "type T struct { F Option[[]int] }",
+			expected: false,
+		},
+		// either.Either[E,A] — comparable iff both E and A are comparable
+		{
+			name:     "either.Either[comparable, comparable] is comparable",
+			code:     "type T struct { F either.Either[error, int] }",
+			expected: true,
+		},
+		{
+			name:     "either.Either[comparable, non-comparable] is not comparable",
+			code:     "type T struct { F either.Either[error, []int] }",
+			expected: false,
+		},
+		{
+			name:     "either.Either[non-comparable, comparable] is not comparable",
+			code:     "type T struct { F either.Either[[]byte, int] }",
+			expected: false,
+		},
+		// Either[E,A] — bare
+		{
+			name:     "bare Either[comparable, comparable] is comparable",
+			code:     "type T struct { F Either[error, int] }",
+			expected: true,
+		},
+		{
+			name:     "bare Either[non-comparable, comparable] is not comparable",
+			code:     "type T struct { F Either[[]byte, int] }",
+			expected: false,
+		},
+		// pair.Pair[L,R] — qualified
+		{
+			name:     "pair.Pair[comparable, comparable] is comparable",
+			code:     "type T struct { F pair.Pair[string, int] }",
+			expected: true,
+		},
+		{
+			name:     "pair.Pair[comparable, non-comparable] is not comparable",
+			code:     "type T struct { F pair.Pair[string, []int] }",
+			expected: false,
+		},
+		// Pair[L,R] — bare
+		{
+			name:     "bare Pair[comparable, comparable] is comparable",
+			code:     "type T struct { F Pair[string, int] }",
+			expected: true,
+		},
+		{
+			name:     "bare Pair[non-comparable, comparable] is not comparable",
+			code:     "type T struct { F Pair[[]string, int] }",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
+			require.NoError(t, err)
+
+			var fieldType ast.Expr
+			ast.Inspect(file, func(n ast.Node) bool {
+				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
+					fieldType = field.Type
+					return false
+				}
+				return true
+			})
+
+			require.NotNil(t, fieldType)
+			result := isComparableType(fieldType, map[string]string{})
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestHasOmitEmpty(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -504,29 +504,51 @@ func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 		}
 		return true
 	case *ast.IndexExpr, *ast.IndexListExpr:
-		// Generic types - we can't determine comparability without type information
-		// For common generic types, we can make educated guesses
+		// Generic instantiation: Base[T] or Base[T1, T2, ...]
+		// Extract the base type name and type arguments.
 		var baseExpr ast.Expr
+		var typeArgs []ast.Expr
 		if idx, ok := t.(*ast.IndexExpr); ok {
 			baseExpr = idx.X
+			typeArgs = []ast.Expr{idx.Index}
 		} else if idxList, ok := t.(*ast.IndexListExpr); ok {
 			baseExpr = idxList.X
+			typeArgs = idxList.Indices
 		}
 
+		// Resolve the package name and type name from either a selector (pkg.Type)
+		// or a bare identifier (Type used in the same package / dot-imported).
+		var pkgName, typeName string
 		if sel, ok := baseExpr.(*ast.SelectorExpr); ok {
 			if ident, ok := sel.X.(*ast.Ident); ok {
-				pkgName := ident.Name
-				typeName := sel.Sel.Name
-				// Check for known non-comparable generic types
-				if pkgName == "option" && typeName == "Option" {
-					// Option types are not comparable (they contain a slice internally)
-					return false
-				}
-				if pkgName == "either" && typeName == "Either" {
-					// Either types are not comparable
-					return false
-				}
+				pkgName = ident.Name
+				typeName = sel.Sel.Name
 			}
+		} else if ident, ok := baseExpr.(*ast.Ident); ok {
+			typeName = ident.Name
+		}
+
+		// option.Option[A] / Option[A]: comparable iff A is comparable.
+		if typeName == "Option" && (pkgName == "option" || pkgName == "") {
+			if len(typeArgs) == 1 {
+				return isComparableType(typeArgs[0], typeParams)
+			}
+			return false
+		}
+		// either.Either[E,A] / Either[E,A]: comparable iff both E and A are comparable.
+		// (Default implementation stores E and A as plain fields, not pointers.)
+		if typeName == "Either" && (pkgName == "either" || pkgName == "result" || pkgName == "") {
+			if len(typeArgs) == 2 {
+				return isComparableType(typeArgs[0], typeParams) && isComparableType(typeArgs[1], typeParams)
+			}
+			return false
+		}
+		// pair.Pair[L,R] / Pair[L,R]: comparable iff both L and R are comparable.
+		if typeName == "Pair" && (pkgName == "pair" || pkgName == "") {
+			if len(typeArgs) == 2 {
+				return isComparableType(typeArgs[0], typeParams) && isComparableType(typeArgs[1], typeParams)
+			}
+			return false
 		}
 		// For other generic types, conservatively assume not comparable
 		log.Printf("Not comparable type: %v\n", t)
