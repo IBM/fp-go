@@ -17,9 +17,11 @@ package record
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
+	E "github.com/IBM/fp-go/v2/either"
 	N "github.com/IBM/fp-go/v2/number"
 	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
@@ -318,4 +320,196 @@ func ExamplePartitionWithIndex() {
 	// morning healthy:   batch-jobs = 8
 	// evening degraded:  api-gateway = 7
 	// evening degraded:  batch-jobs = 12
+}
+
+// --- MonadPartitionMap ---
+
+// classifyInt routes even numbers to Right and odd numbers to Left (as strings).
+func classifyInt(v int) E.Either[string, int] {
+	if v%2 == 0 {
+		return E.Right[string](v)
+	}
+	return E.Left[int](strconv.Itoa(v))
+}
+
+// TestMonadPartitionMap_SplitsOnEither verifies that Right results go to Tail
+// and Left results go to Head, with values transformed.
+func TestMonadPartitionMap_SplitsOnEither(t *testing.T) {
+	src := Record[string, int]{
+		"a": 1,
+		"b": 2,
+		"c": 3,
+		"d": 4,
+	}
+
+	result := MonadPartitionMap[string, int, string, int](src, classifyInt)
+
+	assert.Equal(t, Record[string, string]{"a": "1", "c": "3"}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"b": 2, "d": 4}, P.Tail(result))
+}
+
+// TestMonadPartitionMap_AllRight verifies that Head is empty when every entry
+// produces a Right.
+func TestMonadPartitionMap_AllRight(t *testing.T) {
+	src := Record[string, int]{"a": 2, "b": 4}
+
+	result := MonadPartitionMap[string, int, string, int](src, classifyInt)
+
+	assert.Empty(t, P.Head(result))
+	assert.Equal(t, Record[string, int]{"a": 2, "b": 4}, P.Tail(result))
+}
+
+// TestMonadPartitionMap_AllLeft verifies that Tail is empty when every entry
+// produces a Left.
+func TestMonadPartitionMap_AllLeft(t *testing.T) {
+	src := Record[string, int]{"a": 1, "b": 3}
+
+	result := MonadPartitionMap[string, int, string, int](src, classifyInt)
+
+	assert.Equal(t, Record[string, string]{"a": "1", "b": "3"}, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionMap_EmptyRecord verifies that an empty source produces two
+// empty records.
+func TestMonadPartitionMap_EmptyRecord(t *testing.T) {
+	src := Record[string, int]{}
+
+	result := MonadPartitionMap[string, int, string, int](src, classifyInt)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionMap_NilRecord verifies that a nil map is handled safely.
+func TestMonadPartitionMap_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := MonadPartitionMap[string, int, string, int](src, classifyInt)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// TestMonadPartitionMap_TypeTransformation verifies that Left and Right can
+// carry different types (heterogeneous output).
+func TestMonadPartitionMap_TypeTransformation(t *testing.T) {
+	// Classify strings: numeric → Right(parsed int), non-numeric → Left(original string)
+	classify := func(s string) E.Either[string, int] {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return E.Left[int](s)
+		}
+		return E.Right[string](n)
+	}
+
+	src := Record[string, string]{
+		"x": "42",
+		"y": "hello",
+		"z": "7",
+	}
+
+	result := MonadPartitionMap[string, string, string, int](src, classify)
+
+	assert.Equal(t, Record[string, string]{"y": "hello"}, P.Head(result))
+	assert.Equal(t, Record[string, int]{"x": 42, "z": 7}, P.Tail(result))
+}
+
+// --- PartitionMap ---
+
+// TestPartitionMap_CurriedReturnsFunction verifies that PartitionMap produces a
+// reusable function that can be applied to multiple records.
+func TestPartitionMap_CurriedReturnsFunction(t *testing.T) {
+	splitEvens := PartitionMap[string, int, string, int](classifyInt)
+
+	src1 := Record[string, int]{"a": 1, "b": 2}
+	src2 := Record[string, int]{"c": 3, "d": 4}
+
+	r1 := splitEvens(src1)
+	r2 := splitEvens(src2)
+
+	assert.Equal(t, Record[string, string]{"a": "1"}, P.Head(r1))
+	assert.Equal(t, Record[string, int]{"b": 2}, P.Tail(r1))
+
+	assert.Equal(t, Record[string, string]{"c": "3"}, P.Head(r2))
+	assert.Equal(t, Record[string, int]{"d": 4}, P.Tail(r2))
+}
+
+// TestPartitionMap_NilRecord verifies that the curried form handles a nil map.
+func TestPartitionMap_NilRecord(t *testing.T) {
+	var src Record[string, int]
+
+	result := PartitionMap[string, int, string, int](classifyInt)(src)
+
+	assert.Empty(t, P.Head(result))
+	assert.Empty(t, P.Tail(result))
+}
+
+// --- Examples ---
+
+// ExampleMonadPartitionMap demonstrates splitting a record of raw strings into
+// parse errors (Left/Head) and successfully parsed integers (Right/Tail).
+func ExampleMonadPartitionMap() {
+	// Parse each value as an integer; Left = parse error, Right = parsed int.
+	parseOrFail := func(s string) E.Either[string, int] {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return E.Left[int]("bad: " + s)
+		}
+		return E.Right[string](n)
+	}
+
+	data := Record[string, string]{
+		"port":    "8080",
+		"timeout": "thirty",
+		"retries": "3",
+	}
+
+	result := MonadPartitionMap[string, string, string, int](data, parseOrFail)
+
+	fmt.Println("parsed port:", P.Tail(result)["port"])
+	fmt.Println("parsed retries:", P.Tail(result)["retries"])
+	fmt.Println("invalid timeout:", P.Head(result)["timeout"])
+
+	// Output:
+	// parsed port: 8080
+	// parsed retries: 3
+	// invalid timeout: bad: thirty
+}
+
+// ExamplePartitionMap demonstrates applying the same curried PartitionMap
+// function to two separate configuration records to split valid numeric values
+// from invalid ones.
+func ExamplePartitionMap() {
+	// Reusable classifier: numeric string → Right(int), non-numeric → Left(string).
+	splitNumeric := PartitionMap[string, string, string, int](func(s string) E.Either[string, int] {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return E.Left[int](s)
+		}
+		return E.Right[string](n)
+	})
+
+	serviceA := Record[string, string]{
+		"workers": "4",
+		"mode":    "fast",
+	}
+	serviceB := Record[string, string]{
+		"workers": "eight",
+		"timeout": "30",
+	}
+
+	rA := splitNumeric(serviceA)
+	rB := splitNumeric(serviceB)
+
+	fmt.Println("A valid workers:", P.Tail(rA)["workers"])
+	fmt.Println("A invalid mode:", P.Head(rA)["mode"])
+	fmt.Println("B invalid workers:", P.Head(rB)["workers"])
+	fmt.Println("B valid timeout:", P.Tail(rB)["timeout"])
+
+	// Output:
+	// A valid workers: 4
+	// A invalid mode: fast
+	// B invalid workers: eight
+	// B valid timeout: 30
 }

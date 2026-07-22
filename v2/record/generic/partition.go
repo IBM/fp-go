@@ -1,6 +1,7 @@
 package generic
 
 import (
+	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/pair"
 )
@@ -38,6 +39,26 @@ func MonadPartition[M ~map[K]V, K comparable, V any](kvs M, pred func(V) bool) p
 	}
 	// returns the partition
 	return pair.MakePair(left, right)
+}
+
+func MonadPartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](kvs MA, pred either.Kleisli[L, A, R]) pair.Pair[ML, MR] {
+	left := make(ML)
+	right := make(MR)
+	for k, v := range kvs {
+		res := pred(v)
+		r, l := either.Unwrap(res)
+		if either.IsRight(res) {
+			right[k] = r
+		} else {
+			left[k] = l
+		}
+	}
+	// returns the partition
+	return pair.MakePair(left, right)
+}
+
+func PartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[ML, MA, MR] {
+	return F.Bind2nd(MonadPartitionMap[MA, ML, MR, K, A, L, R], pred)
 }
 
 // MonadPartitionWithIndex splits a map into two maps based on a predicate
