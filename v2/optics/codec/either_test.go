@@ -56,11 +56,13 @@ func TestAltW_Decode(t *testing.T) {
 
 	extractInner := func(res Validation[either.Either[string, int]]) either.Either[string, int] {
 		t.Helper()
-		require.True(t, either.IsRight(res), "outer validation must succeed")
-		return either.MonadFold(res,
-			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
+		return F.Pipe1(res, either.Fold(
+			func(validation.Errors) either.Either[string, int] {
+				t.Fatal("outer validation must succeed")
+				return either.Left[int]("")
+			},
 			F.Identity[either.Either[string, int]],
-		)
+		))
 	}
 
 	t.Run("decodes digit string as Right(int)", func(t *testing.T) {
@@ -83,10 +85,13 @@ func TestAltW_Decode_Prioritization(t *testing.T) {
 		res := c.Decode("42")
 		require.True(t, either.IsRight(res))
 
-		inner := either.MonadFold(res,
-			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
+		inner := F.Pipe1(res, either.Fold(
+			func(validation.Errors) either.Either[string, int] {
+				t.Fatal("outer validation must succeed")
+				return either.Left[int]("")
+			},
 			F.Identity[either.Either[string, int]],
-		)
+		))
 		assert.True(t, either.IsRight(inner), "Right branch must be preferred")
 		assert.Equal(t, either.Right[string](42), inner)
 	})
@@ -96,10 +101,13 @@ func TestAltW_Decode_Prioritization(t *testing.T) {
 		res := c.Decode("hello")
 		require.True(t, either.IsRight(res))
 
-		inner := either.MonadFold(res,
-			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
+		inner := F.Pipe1(res, either.Fold(
+			func(validation.Errors) either.Either[string, int] {
+				t.Fatal("outer validation must succeed")
+				return either.Right[string](0)
+			},
 			F.Identity[either.Either[string, int]],
-		)
+		))
 		assert.True(t, either.IsLeft(inner), "Left branch must be used when Right fails")
 		assert.Equal(t, either.Left[int]("hello"), inner)
 	})
@@ -152,10 +160,10 @@ func TestAltW_Decode_BothFail(t *testing.T) {
 		res := c.Decode("")
 		require.True(t, either.IsLeft(res))
 
-		errs := either.MonadFold(res,
+		errs := F.Pipe1(res, either.Fold(
 			F.Identity[validation.Errors],
-			func(either.Either[string, int]) validation.Errors { return nil },
-		)
+			func(either.Either[string, int]) validation.Errors { t.Fatal("expected Left but got Right"); return nil },
+		))
 		require.NotNil(t, errs)
 		assert.GreaterOrEqual(t, len(errs), 2,
 			"should carry at least one error from each branch")
@@ -184,10 +192,13 @@ func TestAltW_Decode_BothFail(t *testing.T) {
 		// Demonstrates that Left succeeds when Right fails.
 		res := c.Decode("-1")
 		require.True(t, either.IsRight(res))
-		inner := either.MonadFold(res,
-			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
+		inner := F.Pipe1(res, either.Fold(
+			func(validation.Errors) either.Either[string, int] {
+				t.Fatal("expected Right but got Left")
+				return either.Right[string](0)
+			},
 			F.Identity[either.Either[string, int]],
-		)
+		))
 		// "-1" fails PositiveInt but succeeds NonEmptyString → Left("-1")
 		assert.Equal(t, either.Left[int]("-1"), inner)
 	})
@@ -240,10 +251,13 @@ func TestAltW_Decode_CustomCodecs(t *testing.T) {
 	t.Run("zero fails Right, succeeds as Left (non-empty string)", func(t *testing.T) {
 		res := c.Decode("0")
 		require.True(t, either.IsRight(res))
-		inner := either.MonadFold(res,
-			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
+		inner := F.Pipe1(res, either.Fold(
+			func(validation.Errors) either.Either[string, int] {
+				t.Fatal("expected Right but got Left")
+				return either.Right[string](0)
+			},
 			F.Identity[either.Either[string, int]],
-		)
+		))
 		// "0" fails PositiveInt, but is non-empty → Left("0")
 		assert.Equal(t, either.Left[int]("0"), inner)
 	})
@@ -277,11 +291,13 @@ func TestAltW_RoundTrip(t *testing.T) {
 
 	extractInner := func(res Validation[either.Either[string, int]]) either.Either[string, int] {
 		t.Helper()
-		require.True(t, either.IsRight(res))
-		return either.MonadFold(res,
-			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
+		return F.Pipe1(res, either.Fold(
+			func(validation.Errors) either.Either[string, int] {
+				t.Fatal("outer validation must succeed")
+				return either.Left[int]("")
+			},
 			F.Identity[either.Either[string, int]],
-		)
+		))
 	}
 
 	t.Run("Left round-trip: decode then encode returns original string", func(t *testing.T) {
@@ -302,7 +318,10 @@ func ExampleAltW() {
 	// AltW(leftCodec)(rightCodec): right branch tried first.
 	// Id[string]() accepts any string and encodes it as-is (Left branch).
 	// IntFromString() parses digit strings and encodes int back to string (Right branch).
-	c := AltW[int](Id[string]())(IntFromString())
+	c := F.Pipe1(
+		IntFromString(),
+		AltW[int](Id[string]()),
+	)
 
 	// "42" parses successfully as int → Right(42) → encoded back as "42"
 	fmt.Println(c.Encode(either.Right[string](42)))

@@ -380,7 +380,7 @@ func TestMonadPartitionMap_TypeTransformation(t *testing.T) {
 // the same result as calling MonadPartitionMap directly, and that the returned
 // function can be applied to multiple inputs.
 func TestPartitionMap_CurriedIsReusable(t *testing.T) {
-	splitFn := PartitionMap[int, string, int](classifyInt)
+	splitFn := PartitionMap(classifyInt)
 
 	src1 := []int{1, -2, 3}
 	src2 := []int{-4, -5, 6}
@@ -400,7 +400,7 @@ func TestPartitionMap_CurriedIsReusable(t *testing.T) {
 func TestPartitionMap_NilSlice(t *testing.T) {
 	var src []int
 
-	result := PartitionMap[int, string, int](classifyInt)(src)
+	result := PartitionMap(classifyInt)(src)
 
 	assert.Nil(t, P.Head(result))
 	assert.Nil(t, P.Tail(result))
@@ -412,7 +412,7 @@ func TestPartitionMap_MatchesMonadPartitionMap(t *testing.T) {
 	src := []int{-3, 1, -2, 4, 0, 5}
 
 	direct := MonadPartitionMap(src, classifyInt)
-	curried := PartitionMap[int, string, int](classifyInt)(src)
+	curried := PartitionMap(classifyInt)(src)
 
 	assert.Equal(t, P.Head(direct), P.Head(curried))
 	assert.Equal(t, P.Tail(direct), P.Tail(curried))

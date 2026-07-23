@@ -654,7 +654,10 @@ func ExampleEitherOf() {
 	// We wire them together so:
 	//   pred=true  → Right branch (int)
 	//   pred=false → Left  branch (string)
-	c := EitherOf(S.Monoid, Id[string](), IntFromString())(BoolFromString())
+	c := F.Pipe1(
+		BoolFromString(),
+		EitherOf(S.Monoid, Id[string](), IntFromString()),
+	)
 
 	// Encode Right(42): IntFromString encodes 42 → "42", pred encodes true → "true"
 	// S.Monoid concatenates: "42" + "true" = "42true"

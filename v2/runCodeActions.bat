@@ -18,32 +18,38 @@ echo Finding and fixing unnecessary type arguments...
 echo Scanning directory: %SCAN_DIR%
 echo.
 
-REM Find all Go files recursively in the specified directory
+REM Collect unique package directories (one gopls check call per dir, not per file)
+set "PREV_DIR="
 for /r "%SCAN_DIR%" %%f in (*.go) do (
-    echo Checking %%f...
-    
-    REM Run gopls check and capture output
-    for /f "tokens=1,2,3,4 delims=:" %%a in ('gopls check --severity=hint "%%f" 2^>^&1 ^| findstr /C:"unnecessary type arguments" ^| sort /R') do (
-        set "drive=%%a"
-        set "file=%%b"
-        set "line=%%c"
-        set "col=%%d"
-        
-        REM Construct position
-        set "pos=!drive!:!file!:!line!:!col!"
-        
-        echo   Found issue at !pos!
-        echo   Applying fix...
-        
-        REM Apply code action
-        gopls codeaction -w -exec "!pos!"
-        
-        if !errorlevel! equ 0 (
-            echo   Fixed successfully
-        ) else (
-            echo   Warning: Fix may have failed
+    set "CURR_DIR=%%~dpf"
+    set "CURR_DIR=!CURR_DIR:~0,-1!"
+    if not "!CURR_DIR!"=="!PREV_DIR!" (
+        set "PREV_DIR=!CURR_DIR!"
+        echo Checking !CURR_DIR!...
+
+        REM Run gopls check on the whole directory at once
+        for /f "tokens=1,2,3,4 delims=:" %%a in ('gopls check --severity=hint "!CURR_DIR!" 2^>^&1 ^| findstr /C:"unnecessary type arguments" ^| sort /R') do (
+            set "drive=%%a"
+            set "file=%%b"
+            set "line=%%c"
+            set "col=%%d"
+
+            REM Construct position
+            set "pos=!drive!:!file!:!line!:!col!"
+
+            echo   Found issue at !pos!
+            echo   Applying fix...
+
+            REM Apply code action
+            gopls codeaction -w -exec "!pos!"
+
+            if !errorlevel! equ 0 (
+                echo   Fixed successfully
+            ) else (
+                echo   Warning: Fix may have failed
+            )
+            echo.
         )
-        echo.
     )
 )
 
