@@ -57,3 +57,30 @@ var (
 		return l == r
 	})
 )
+
+// Fold converts a boolean into a value of type T by selecting between two
+// thunks based on the boolean's value.
+//
+// If the boolean is true, onTrue is evaluated and its result is returned.
+// If the boolean is false, onFalse is evaluated and its result is returned.
+//
+// The thunks are only evaluated when Fold is applied to a boolean value,
+// making this safe to use with side-effectful or expensive computations.
+//
+// Type Parameters:
+//   - T: the type of value produced by either thunk
+//
+// Parameters:
+//   - onFalse: thunk evaluated when the boolean is false
+//   - onTrue: thunk evaluated when the boolean is true
+//
+// Returns:
+//   - func(bool) T: a function that maps a boolean to a value of type T
+func Fold[T any](onFalse, onTrue func() T) func(bool) T {
+	return func(b bool) T {
+		if b {
+			return onTrue()
+		}
+		return onFalse()
+	}
+}

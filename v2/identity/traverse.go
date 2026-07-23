@@ -30,28 +30,6 @@ package identity
 // Returns:
 //   - A function that takes a transformation function and returns a function that applies it
 //
-// Behavior:
-//   - The value is transformed by f, producing HKTB directly
-//   - No sequencing or lifting is needed since Identity has no context
-//
-// Example:
-//
-//	import (
-//	    I "github.com/IBM/fp-go/v2/identity"
-//	    IO "github.com/IBM/fp-go/v2/io"
-//	    "strconv"
-//	)
-//
-//	// Create a traversable for Identity that works with IO
-//	traverseIO := I.MakeTraversable[int, string, IO.IO[string]]()
-//
-//	// Use it to transform int to IO[string]
-//	fetchUser := func(id int) IO.IO[string] {
-//	    return IO.Of(strconv.Itoa(id))
-//	}
-//
-//	result := traverseIO(fetchUser)(42)  // IO["42"]
-//
 // See Also:
 //   - Map: The underlying implementation (Identity traversal is just mapping)
 func MakeTraversable[A, B, HKTB any]() func(func(A) HKTB) func(A) HKTB {

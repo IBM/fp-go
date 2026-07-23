@@ -28,11 +28,6 @@ import (
 //
 // Implements the Fantasy Land Apply specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#apply
-//
-// Example:
-//
-//	result := identity.MonadAp(func(n int) int { return n * 2 }, 21)
-//	// result is 42
 func MonadAp[B, A any](fab func(A) B, fa A) B {
 	return fab(fa)
 }
@@ -44,14 +39,6 @@ func MonadAp[B, A any](fab func(A) B, fa A) B {
 //
 // Implements the Fantasy Land Apply specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#apply
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	double := func(n int) int { return n * 2 }
-//	result := F.Pipe1(double, identity.Ap[int](21))
-//	// result is 42
 func Ap[B, A any](fa A) Operator[func(A) B, B] {
 	return function.Bind2nd(MonadAp[B, A], fa)
 }
@@ -63,11 +50,6 @@ func Ap[B, A any](fa A) Operator[func(A) B, B] {
 //
 // Implements the Fantasy Land Functor specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#functor
-//
-// Example:
-//
-//	result := identity.MonadMap(21, func(n int) int { return n * 2 })
-//	// result is 42
 func MonadMap[A, B any](fa A, f func(A) B) B {
 	return f(fa)
 }
@@ -79,13 +61,6 @@ func MonadMap[A, B any](fa A, f func(A) B) B {
 //
 // Implements the Fantasy Land Functor specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#functor
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	result := F.Pipe1(21, identity.Map(func(n int) int { return n * 2 }))
-//	// result is 42
 func Map[A, B any](f func(A) B) Operator[A, B] {
 	return f
 }
@@ -93,11 +68,6 @@ func Map[A, B any](f func(A) B) Operator[A, B] {
 // MonadMapTo replaces a value with a constant, ignoring the input.
 //
 // This is the uncurried version of MapTo.
-//
-// Example:
-//
-//	result := identity.MonadMapTo("ignored", 42)
-//	// result is 42
 func MonadMapTo[A, B any](_ A, b B) B {
 	return b
 }
@@ -106,13 +76,6 @@ func MonadMapTo[A, B any](_ A, b B) B {
 // Returns a function that ignores its input and returns the constant.
 //
 // This is the curried version of MonadMapTo, useful for composition with Pipe.
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	result := F.Pipe1("ignored", identity.MapTo[string](42))
-//	// result is 42
 func MapTo[A, B any](b B) func(A) B {
 	return function.Constant1[A](b)
 }
@@ -124,11 +87,6 @@ func MapTo[A, B any](b B) func(A) B {
 //
 // Implements the Fantasy Land Applicative specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#applicative
-//
-// Example:
-//
-//	value := identity.Of(42)
-//	// value is 42
 //
 //go:inline
 func Of[A any](a A) A {
@@ -142,11 +100,6 @@ func Of[A any](a A) A {
 //
 // Implements the Fantasy Land Chain specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#chain
-//
-// Example:
-//
-//	result := identity.MonadChain(21, func(n int) int { return n * 2 })
-//	// result is 42
 func MonadChain[A, B any](ma A, f Kleisli[A, B]) B {
 	return f(ma)
 }
@@ -160,13 +113,6 @@ func MonadChain[A, B any](ma A, f Kleisli[A, B]) B {
 // Implements the Fantasy Land Chain specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#chain
 //
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	result := F.Pipe1(21, identity.Chain(func(n int) int { return n * 2 }))
-//	// result is 42
-//
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 	return f
@@ -176,14 +122,6 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 // Useful for side effects like logging while preserving the original value.
 //
 // This is the uncurried version of ChainFirst.
-//
-// Example:
-//
-//	result := identity.MonadChainFirst(42, func(n int) string {
-//	    fmt.Printf("Value: %d\n", n)
-//	    return "logged"
-//	})
-//	// result is 42 (original value preserved)
 func MonadChainFirst[A, B any](fa A, f Kleisli[A, B]) A {
 	return chain.MonadChainFirst(MonadChain[A, A], MonadMap[B, A], fa, f)
 }
@@ -192,19 +130,6 @@ func MonadChainFirst[A, B any](fa A, f Kleisli[A, B]) A {
 // Useful for side effects like logging while preserving the original value.
 //
 // This is the curried version of MonadChainFirst, useful for composition with Pipe.
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	result := F.Pipe1(
-//	    42,
-//	    identity.ChainFirst(func(n int) string {
-//	        fmt.Printf("Value: %d\n", n)
-//	        return "logged"
-//	    }),
-//	)
-//	// result is 42 (original value preserved)
 func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 	return chain.ChainFirst(Chain[A, A], Map[B, A], f)
 }
@@ -213,12 +138,6 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 // Instead of applying a function to a value, it applies a value to a function.
 //
 // This is the uncurried version of Flap.
-//
-// Example:
-//
-//	double := func(n int) int { return n * 2 }
-//	result := identity.MonadFlap(double, 21)
-//	// result is 42
 func MonadFlap[B, A any](fab func(A) B, a A) B {
 	return functor.MonadFlap(MonadMap[func(A) B, B], fab, a)
 }
@@ -228,14 +147,6 @@ func MonadFlap[B, A any](fab func(A) B, a A) B {
 //
 // This is the curried version of MonadFlap, useful for composition with Pipe.
 // Useful when you have a value and want to apply it to multiple functions.
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	double := func(n int) int { return n * 2 }
-//	result := F.Pipe1(double, identity.Flap[int](21))
-//	// result is 42
 //
 //go:inline
 func Flap[B, A any](a A) Operator[func(A) B, B] {
@@ -250,11 +161,6 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 // Implements the Fantasy Land Comonad specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#comonad
 //
-// Example:
-//
-//	value := identity.Extract(42)
-//	// value is 42
-//
 //go:inline
 func Extract[A any](a A) A {
 	return a
@@ -267,13 +173,6 @@ func Extract[A any](a A) A {
 //
 // Implements the Fantasy Land Extend specification:
 // https://github.com/fantasyland/fantasy-land?tab=readme-ov-file#extend
-//
-// Example:
-//
-//	import F "github.com/IBM/fp-go/v2/function"
-//
-//	result := F.Pipe1(21, identity.Extend(func(n int) int { return n * 2 }))
-//	// result is 42
 //
 //go:inline
 func Extend[A, B any](f func(A) B) Operator[A, B] {

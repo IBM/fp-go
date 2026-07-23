@@ -17,13 +17,16 @@ package iso
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/array/nonempty"
 	E "github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/lazy"
 	N "github.com/IBM/fp-go/v2/number"
 	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
@@ -2101,5 +2104,187 @@ func TestHeadUseCases(t *testing.T) {
 
 		result := iso.ReverseGet(processed)
 		assert.Equal(t, 10, result)
+	})
+}
+
+// TestFromEquals tests the FromEquals Kleisli arrow.
+func TestFromEquals(t *testing.T) {
+	t.Run("Get returns true when value equals isTrue", func(t *testing.T) {
+		iso := FromEquals(lazy.Of(0), lazy.Of(1))(eq.FromStrictEquals[int]())
+		assert.True(t, iso.Get(1))
+	})
+
+	t.Run("Get returns false when value equals isFalse", func(t *testing.T) {
+		iso := FromEquals(lazy.Of(0), lazy.Of(1))(eq.FromStrictEquals[int]())
+		assert.False(t, iso.Get(0))
+	})
+
+	t.Run("Get returns false for values other than isTrue", func(t *testing.T) {
+		iso := FromEquals(lazy.Of(0), lazy.Of(1))(eq.FromStrictEquals[int]())
+		assert.False(t, iso.Get(42))
+	})
+
+	t.Run("ReverseGet maps true to isTrue", func(t *testing.T) {
+		iso := FromEquals(lazy.Of(0), lazy.Of(1))(eq.FromStrictEquals[int]())
+		assert.Equal(t, 1, iso.ReverseGet(true))
+	})
+
+	t.Run("ReverseGet maps false to isFalse", func(t *testing.T) {
+		iso := FromEquals(lazy.Of(0), lazy.Of(1))(eq.FromStrictEquals[int]())
+		assert.Equal(t, 0, iso.ReverseGet(false))
+	})
+
+	t.Run("Round-trip ReverseGet(Get(isTrue)) == isTrue", func(t *testing.T) {
+		iso := FromEquals(lazy.Of("no"), lazy.Of("yes"))(eq.FromStrictEquals[string]())
+		assert.Equal(t, "yes", iso.ReverseGet(iso.Get("yes")))
+	})
+
+	t.Run("Round-trip ReverseGet(Get(isFalse)) == isFalse", func(t *testing.T) {
+		iso := FromEquals(lazy.Of("no"), lazy.Of("yes"))(eq.FromStrictEquals[string]())
+		assert.Equal(t, "no", iso.ReverseGet(iso.Get("no")))
+	})
+
+	t.Run("Round-trip Get(ReverseGet(true)) == true", func(t *testing.T) {
+		iso := FromEquals(lazy.Of("no"), lazy.Of("yes"))(eq.FromStrictEquals[string]())
+		assert.True(t, iso.Get(iso.ReverseGet(true)))
+	})
+
+	t.Run("Round-trip Get(ReverseGet(false)) == false", func(t *testing.T) {
+		iso := FromEquals(lazy.Of("no"), lazy.Of("yes"))(eq.FromStrictEquals[string]())
+		assert.False(t, iso.Get(iso.ReverseGet(false)))
+	})
+
+	t.Run("Works with custom Eq (case-insensitive string equality)", func(t *testing.T) {
+		caseInsensitiveEq := eq.FromEquals(func(a, b string) bool {
+			return strings.EqualFold(a, b)
+		})
+		iso := FromEquals(lazy.Of("NO"), lazy.Of("YES"))(caseInsensitiveEq)
+
+		// "yes" and "YES" are equal under caseInsensitiveEq, so Get("yes") == true
+		assert.True(t, iso.Get("yes"))
+		// "no" equals "NO" under caseInsensitiveEq, so Get("no") == false
+		assert.False(t, iso.Get("no"))
+	})
+
+	t.Run("Works with struct type via custom Eq", func(t *testing.T) {
+		type Flag struct{ Active bool }
+		eqFlag := eq.FromEquals(func(a, b Flag) bool { return a.Active == b.Active })
+
+		off := Flag{Active: false}
+		on := Flag{Active: true}
+		iso := FromEquals(lazy.Of(off), lazy.Of(on))(eqFlag)
+
+		assert.True(t, iso.Get(Flag{Active: true}))
+		assert.False(t, iso.Get(Flag{Active: false}))
+		assert.Equal(t, on, iso.ReverseGet(true))
+		assert.Equal(t, off, iso.ReverseGet(false))
+	})
+}
+
+// TestFromStrictEquals tests the FromStrictEquals isomorphism.
+func TestFromStrictEquals(t *testing.T) {
+	t.Run("Get returns true when value equals isTrue (string)", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of("no"), lazy.Of("yes"))
+		assert.True(t, iso.Get("yes"))
+	})
+
+	t.Run("Get returns false when value equals isFalse (string)", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of("no"), lazy.Of("yes"))
+		assert.False(t, iso.Get("no"))
+	})
+
+	t.Run("Get returns false for unrelated value", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of("no"), lazy.Of("yes"))
+		assert.False(t, iso.Get("maybe"))
+	})
+
+	t.Run("ReverseGet maps true to isTrue (string)", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of("no"), lazy.Of("yes"))
+		assert.Equal(t, "yes", iso.ReverseGet(true))
+	})
+
+	t.Run("ReverseGet maps false to isFalse (string)", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of("no"), lazy.Of("yes"))
+		assert.Equal(t, "no", iso.ReverseGet(false))
+	})
+
+	t.Run("Works with integers", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		assert.True(t, iso.Get(1))
+		assert.False(t, iso.Get(0))
+		assert.Equal(t, 1, iso.ReverseGet(true))
+		assert.Equal(t, 0, iso.ReverseGet(false))
+	})
+
+	t.Run("Round-trip Get(ReverseGet(b)) == b for true", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		assert.True(t, iso.Get(iso.ReverseGet(true)))
+	})
+
+	t.Run("Round-trip Get(ReverseGet(b)) == b for false", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		assert.False(t, iso.Get(iso.ReverseGet(false)))
+	})
+
+	t.Run("Round-trip ReverseGet(Get(isTrue)) == isTrue", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		assert.Equal(t, 1, iso.ReverseGet(iso.Get(1)))
+	})
+
+	t.Run("Round-trip ReverseGet(Get(isFalse)) == isFalse", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		assert.Equal(t, 0, iso.ReverseGet(iso.Get(0)))
+	})
+
+	t.Run("Works as Modify target", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		// Negate the bool by toggling: Get 1 -> true, negate -> false, ReverseGet -> 0
+		toggle := Modify[int](func(b bool) bool { return !b })(iso)
+		assert.Equal(t, 0, toggle(1))
+		assert.Equal(t, 1, toggle(0))
+	})
+}
+
+// TestFromStrictEqualsRoundTripLaws verifies isomorphism laws for FromStrictEquals.
+func TestFromStrictEqualsRoundTripLaws(t *testing.T) {
+	iso := FromStrictEquals(lazy.Of("off"), lazy.Of("on"))
+
+	sentinels := []string{"off", "on"}
+	for _, v := range sentinels {
+		t.Run("ReverseGet(Get(v)) == v for "+v, func(t *testing.T) {
+			assert.Equal(t, v, iso.ReverseGet(iso.Get(v)))
+		})
+	}
+
+	for _, b := range []bool{true, false} {
+		bStr := fmt.Sprintf("%v", b)
+		t.Run("Get(ReverseGet(b)) == b for "+bStr, func(t *testing.T) {
+			assert.Equal(t, b, iso.Get(iso.ReverseGet(b)))
+		})
+	}
+}
+
+// TestFromEqualsUseCases demonstrates practical use cases for FromEquals/FromStrictEquals.
+func TestFromEqualsUseCases(t *testing.T) {
+	t.Run("Toggle active flag", func(t *testing.T) {
+		activeIso := FromStrictEquals(lazy.Of("inactive"), lazy.Of("active"))
+		// toggle an active item to inactive
+		toggle := Modify[string](func(b bool) bool { return !b })(activeIso)
+		assert.Equal(t, "inactive", toggle("active"))
+		assert.Equal(t, "active", toggle("inactive"))
+	})
+
+	t.Run("Map over collection of sentinels", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		values := []int{1, 0, 1, 1, 0}
+		bools := A.Map(iso.Get)(values)
+		assert.Equal(t, []bool{true, false, true, true, false}, bools)
+	})
+
+	t.Run("Convert bool slice back to sentinel slice", func(t *testing.T) {
+		iso := FromStrictEquals(lazy.Of(0), lazy.Of(1))
+		flags := []bool{false, true, false}
+		ints := A.Map(iso.ReverseGet)(flags)
+		assert.Equal(t, []int{0, 1, 0}, ints)
 	})
 }

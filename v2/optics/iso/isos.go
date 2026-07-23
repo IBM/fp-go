@@ -21,8 +21,10 @@ import (
 
 	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/array/nonempty"
+	"github.com/IBM/fp-go/v2/boolean"
 	B "github.com/IBM/fp-go/v2/bytes"
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/pair"
@@ -698,5 +700,67 @@ func Head[A any]() Iso[A, NonEmptyArray[A]] {
 	return MakeIso(
 		nonempty.Of[A],
 		nonempty.Head[A],
+	)
+}
+
+// FromEquals creates a Kleisli arrow that, given an Eq[T] instance, produces an
+// isomorphism between T and bool.
+//
+// The resulting Iso converts values of type T to bool by checking equality against
+// the value produced by onTrue, and converts bool values back to T by evaluating
+// onTrue for true and onFalse for false.
+//
+// Type Parameters:
+//   - T: The type to relate to bool
+//
+// Parameters:
+//   - onFalse: a thunk (func() T) that returns the T value corresponding to false
+//   - onTrue:  a thunk (func() T) that returns the T value corresponding to true
+//
+// Returns:
+//   - A Kleisli[Eq[T], T, bool]: a function that accepts an Eq[T] and returns Iso[T, bool]
+//
+// The returned Iso satisfies the round-trip laws when onFalse() and onTrue() are the
+// only values the T type can take (or when the caller guarantees inputs are always one
+// of those two sentinels):
+//   - ReverseGet(Get(v)) == v  — provided v equals onFalse() or onTrue()
+//   - Get(ReverseGet(b)) == b
+//
+// See Also:
+//   - FromStrictEquals: convenience wrapper that uses Go's == for equality
+func FromEquals[T any](onFalse, onTrue Lazy[T]) Kleisli[Eq[T], T, bool] {
+	toT := boolean.Fold(onFalse, onTrue)
+
+	return func(e Eq[T]) Iso[T, bool] {
+		return MakeIso(
+			eq.Equals(e)(onTrue()),
+			toT,
+		)
+	}
+}
+
+// FromStrictEquals creates an isomorphism between a comparable type T and bool.
+//
+// It is a convenience wrapper around FromEquals that uses Go's built-in == operator
+// for equality via eq.FromStrictEquals[T].
+//
+// Type Parameters:
+//   - T: A comparable type (supports ==)
+//
+// Parameters:
+//   - onFalse: a thunk (func() T) that returns the T value corresponding to false
+//   - onTrue:  a thunk (func() T) that returns the T value corresponding to true
+//
+// Returns:
+//   - An Iso[T, bool] where:
+//   - Get: returns true when the input equals onTrue() (using ==), false otherwise
+//   - ReverseGet: returns onTrue() when the input is true, onFalse() otherwise
+//
+// See Also:
+//   - FromEquals: variant that accepts a custom Eq[T]
+func FromStrictEquals[T comparable](onFalse, onTrue Lazy[T]) Iso[T, bool] {
+	return F.Pipe1(
+		eq.FromStrictEquals[T](),
+		FromEquals(onFalse, onTrue),
 	)
 }
