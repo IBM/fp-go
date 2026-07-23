@@ -23,274 +23,95 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
-	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestEitherWithIdentityCodecs tests the Either function with identity codecs
-// where both branches have the same output and input types
-func TestEitherWithIdentityCodecs(t *testing.T) {
-	t.Run("creates codec with correct name", func(t *testing.T) {
-		// The Either function is designed for cases where both branches encode to the same type
-		// For example, both encode to string or both encode to JSON
-
-		// Create codecs that both encode to string
-		stringToString := Id[string]()
-		intToString := IntFromString()
-
-		eitherCodec := Either(stringToString, intToString)
-
-		assert.Equal(t, "Either[string, IntFromString]", eitherCodec.Name())
+// TestAltW_Naming verifies that the codec name contains both branch codec names.
+func TestAltW_Naming(t *testing.T) {
+	t.Run("name follows AltW[left, right] format", func(t *testing.T) {
+		c := AltW[int](Id[string]())(IntFromString())
+		assert.Equal(t, "AltW[string, IntFromString]", c.Name())
 	})
 }
 
-// TestEitherEncode tests encoding of Either values
-func TestEitherEncode(t *testing.T) {
-	// Create codecs that both encode to string
-	stringToString := Id[string]()
-	intToString := IntFromString()
+// TestAltW_Encode verifies that encoding dispatches to the correct branch encoder.
+func TestAltW_Encode(t *testing.T) {
+	c := AltW[int](Id[string]())(IntFromString())
 
-	eitherCodec := Either(stringToString, intToString)
-
-	t.Run("encodes Left value", func(t *testing.T) {
-		leftValue := either.Left[int]("hello")
-		encoded := eitherCodec.Encode(leftValue)
-
-		assert.Equal(t, "hello", encoded)
+	t.Run("encodes Left value using left codec", func(t *testing.T) {
+		assert.Equal(t, "hello", c.Encode(either.Left[int]("hello")))
 	})
 
-	t.Run("encodes Right value", func(t *testing.T) {
-		rightValue := either.Right[string](42)
-		encoded := eitherCodec.Encode(rightValue)
-
-		assert.Equal(t, "42", encoded)
+	t.Run("encodes Right value using right codec", func(t *testing.T) {
+		assert.Equal(t, "42", c.Encode(either.Right[string](42)))
 	})
 }
 
-// TestEitherDecode tests decoding/validation of Either values
-func TestEitherDecode(t *testing.T) {
-	getOrElseNull := either.GetOrElse(reader.Of[validation.Errors](either.Left[int]("")))
+// TestAltW_Decode verifies that decoding routes to the correct branch.
+func TestAltW_Decode(t *testing.T) {
+	// Id[string] accepts any string; IntFromString accepts digit strings only.
+	// Right branch (int) is tried first, so "42" → Right(42), "hello" → Left("hello").
+	c := AltW[int](Id[string]())(IntFromString())
 
-	// Create codecs that both work with string input
-	stringCodec := Id[string]()
-	intFromString := IntFromString()
-
-	eitherCodec := Either(stringCodec, intFromString)
-
-	t.Run("decodes integer string as Right", func(t *testing.T) {
-		result := eitherCodec.Decode("42")
-
-		assert.True(t, either.IsRight(result), "should successfully decode integer string")
-
-		value := getOrElseNull(result)
-		assert.True(t, either.IsRight(value), "should be Right")
-
-		rightValue := either.MonadFold(value,
-			func(string) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 42, rightValue)
-	})
-
-	t.Run("decodes non-integer string as Left", func(t *testing.T) {
-		result := eitherCodec.Decode("hello")
-
-		assert.True(t, either.IsRight(result), "should successfully decode string")
-
-		value := getOrElseNull(result)
-		assert.True(t, either.IsLeft(value), "should be Left")
-
-		leftValue := either.MonadFold(value,
-			F.Identity[string],
-			func(int) string { return "" },
-		)
-		assert.Equal(t, "hello", leftValue)
-	})
-}
-
-// TestEitherValidation tests validation behavior
-func TestEitherValidation(t *testing.T) {
-	t.Run("validates with custom codecs", func(t *testing.T) {
-		// Create a codec that only accepts non-empty strings
-		nonEmptyString := MakeType(
-			"NonEmptyString",
-			func(u any) either.Either[error, string] {
-				s, ok := u.(string)
-				if !ok || len(s) == 0 {
-					return either.Left[string](fmt.Errorf("not a non-empty string"))
-				}
-				return either.Of[error](s)
-			},
-			func(s string) Decode[Context, string] {
-				return func(c Context) Validation[string] {
-					if len(s) == 0 {
-						return validation.FailureWithMessage[string](s, "must not be empty")(c)
-					}
-					return validation.Success(s)
-				}
-			},
-			F.Identity[string],
-		)
-
-		// Create a codec that only accepts positive integers from strings
-		positiveIntFromString := MakeType(
-			"PositiveInt",
-			func(u any) either.Either[error, int] {
-				i, ok := u.(int)
-				if !ok || i <= 0 {
-					return either.Left[int](fmt.Errorf("not a positive integer"))
-				}
-				return either.Of[error](i)
-			},
-			func(s string) Decode[Context, int] {
-				return func(c Context) Validation[int] {
-					var n int
-					_, err := fmt.Sscanf(s, "%d", &n)
-					if err != nil {
-						return validation.FailureWithError[int](s, "expected integer string")(err)(c)
-					}
-					if n <= 0 {
-						return validation.FailureWithMessage[int](n, "must be positive")(c)
-					}
-					return validation.Success(n)
-				}
-			},
-			func(n int) string {
-				return fmt.Sprintf("%d", n)
-			},
-		)
-
-		eitherCodec := Either(nonEmptyString, positiveIntFromString)
-
-		// Valid non-empty string
-		validLeft := eitherCodec.Decode("hello")
-		assert.True(t, either.IsRight(validLeft))
-
-		// Valid positive integer
-		validRight := eitherCodec.Decode("42")
-		assert.True(t, either.IsRight(validRight))
-
-		// Invalid empty string - should fail both validations
-		invalidEmpty := eitherCodec.Decode("")
-		assert.True(t, either.IsLeft(invalidEmpty))
-
-		// Invalid zero - should fail Right validation, succeed as Left
-		zeroResult := eitherCodec.Decode("0")
-		// "0" is a valid non-empty string, so it should succeed as Left
-		assert.True(t, either.IsRight(zeroResult))
-	})
-}
-
-// TestEitherRoundTrip tests encoding and decoding round trips
-func TestEitherRoundTrip(t *testing.T) {
-	stringCodec := Id[string]()
-	intFromString := IntFromString()
-
-	eitherCodec := Either(stringCodec, intFromString)
-
-	t.Run("round-trip Left value", func(t *testing.T) {
-		original := "hello"
-
-		// Decode
-		decodeResult := eitherCodec.Decode(original)
-		require.True(t, either.IsRight(decodeResult))
-
-		decoded := either.MonadFold(decodeResult,
+	extractInner := func(res Validation[either.Either[string, int]]) either.Either[string, int] {
+		t.Helper()
+		require.True(t, either.IsRight(res), "outer validation must succeed")
+		return either.MonadFold(res,
 			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
 			F.Identity[either.Either[string, int]],
 		)
+	}
 
-		// Encode
-		encoded := eitherCodec.Encode(decoded)
-
-		// Verify
-		assert.Equal(t, original, encoded)
+	t.Run("decodes digit string as Right(int)", func(t *testing.T) {
+		inner := extractInner(c.Decode("42"))
+		assert.Equal(t, either.Right[string](42), inner)
 	})
 
-	t.Run("round-trip Right value", func(t *testing.T) {
-		original := "42"
-
-		// Decode
-		decodeResult := eitherCodec.Decode(original)
-		require.True(t, either.IsRight(decodeResult))
-
-		decoded := either.MonadFold(decodeResult,
-			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
-			F.Identity[either.Either[string, int]],
-		)
-
-		// Encode
-		encoded := eitherCodec.Encode(decoded)
-
-		// Verify
-		assert.Equal(t, original, encoded)
+	t.Run("decodes non-digit string as Left(string)", func(t *testing.T) {
+		inner := extractInner(c.Decode("hello"))
+		assert.Equal(t, either.Left[int]("hello"), inner)
 	})
 }
 
-// TestEitherPrioritization tests that Right validation is prioritized over Left
-func TestEitherPrioritization(t *testing.T) {
-	stringCodec := Id[string]()
-	intFromString := IntFromString()
-
-	eitherCodec := Either(stringCodec, intFromString)
+// TestAltW_Decode_Prioritization verifies that the Right branch is tried before Left.
+func TestAltW_Decode_Prioritization(t *testing.T) {
+	c := AltW[int](Id[string]())(IntFromString())
 
 	t.Run("prioritizes Right over Left when both could succeed", func(t *testing.T) {
-		// "42" can be validated as both string (Left) and int (Right)
-		// The codec should prioritize Right
-		result := eitherCodec.Decode("42")
+		// "42" is a valid string AND a valid int; Right must win.
+		res := c.Decode("42")
+		require.True(t, either.IsRight(res))
 
-		assert.True(t, either.IsRight(result))
-
-		value := either.MonadFold(result,
+		inner := either.MonadFold(res,
 			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
 			F.Identity[either.Either[string, int]],
 		)
-
-		// Should be Right because int validation succeeds and is prioritized
-		assert.True(t, either.IsRight(value))
-
-		rightValue := either.MonadFold(value,
-			func(string) int { return 0 },
-			F.Identity[int],
-		)
-		assert.Equal(t, 42, rightValue)
+		assert.True(t, either.IsRight(inner), "Right branch must be preferred")
+		assert.Equal(t, either.Right[string](42), inner)
 	})
 
 	t.Run("falls back to Left when Right fails", func(t *testing.T) {
-		// "hello" can only be validated as string (Left), not as int (Right)
-		result := eitherCodec.Decode("hello")
+		// "hello" cannot be parsed as int, so Left must be used.
+		res := c.Decode("hello")
+		require.True(t, either.IsRight(res))
 
-		assert.True(t, either.IsRight(result))
-
-		value := either.MonadFold(result,
-			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
+		inner := either.MonadFold(res,
+			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
 			F.Identity[either.Either[string, int]],
 		)
-
-		// Should be Left because int validation failed
-		assert.True(t, either.IsLeft(value))
-
-		leftValue := either.MonadFold(value,
-			F.Identity[string],
-			func(int) string { return "" },
-		)
-		assert.Equal(t, "hello", leftValue)
+		assert.True(t, either.IsLeft(inner), "Left branch must be used when Right fails")
+		assert.Equal(t, either.Left[int]("hello"), inner)
 	})
 }
 
-// TestEitherErrorAccumulation tests that errors from both branches are accumulated
-func TestEitherErrorAccumulation(t *testing.T) {
-	// Create codecs with specific validation rules that will both fail
+// TestAltW_Decode_BothFail verifies that errors from both branches accumulate
+// when neither branch can decode the input.
+func TestAltW_Decode_BothFail(t *testing.T) {
+	// NonEmptyString rejects empty strings; PositiveInt rejects non-positive values.
 	nonEmptyString := MakeType(
 		"NonEmptyString",
-		func(u any) either.Either[error, string] {
-			s, ok := u.(string)
-			if !ok || len(s) == 0 {
-				return either.Left[string](fmt.Errorf("not a non-empty string"))
-			}
-			return either.Of[error](s)
-		},
+		Is[string](),
 		func(s string) Decode[Context, string] {
 			return func(c Context) Validation[string] {
 				if len(s) == 0 {
@@ -302,19 +123,12 @@ func TestEitherErrorAccumulation(t *testing.T) {
 		F.Identity[string],
 	)
 
-	positiveIntFromString := MakeType(
+	positiveInt := MakeType(
 		"PositiveInt",
-		func(u any) either.Either[error, int] {
-			i, ok := u.(int)
-			if !ok || i <= 0 {
-				return either.Left[int](fmt.Errorf("not a positive integer"))
-			}
-			return either.Of[error](i)
-		},
+		Is[int](),
 		func(s string) Decode[Context, int] {
 			return func(c Context) Validation[int] {
-				var n int
-				_, err := fmt.Sscanf(s, "%d", &n)
+				n, err := strconv.Atoi(s)
 				if err != nil {
 					return validation.FailureWithError[int](s, "expected integer string")(err)(c)
 				}
@@ -327,42 +141,176 @@ func TestEitherErrorAccumulation(t *testing.T) {
 		strconv.Itoa,
 	)
 
-	eitherCodec := Either(nonEmptyString, positiveIntFromString)
+	c := AltW[int](nonEmptyString)(positiveInt)
 
-	t.Run("accumulates errors from both branches when both fail", func(t *testing.T) {
-		// Empty string will fail both validations
-		result := eitherCodec.Decode("")
+	t.Run("outer result is Left when both branches fail", func(t *testing.T) {
+		// Empty string fails NonEmptyString (Left) and cannot be parsed as int (Right).
+		assert.True(t, either.IsLeft(c.Decode("")))
+	})
 
-		assert.True(t, either.IsLeft(result))
+	t.Run("errors from both branches are accumulated", func(t *testing.T) {
+		res := c.Decode("")
+		require.True(t, either.IsLeft(res))
 
-		errors := either.MonadFold(result,
+		errs := either.MonadFold(res,
 			F.Identity[validation.Errors],
 			func(either.Either[string, int]) validation.Errors { return nil },
 		)
+		require.NotNil(t, errs)
+		assert.GreaterOrEqual(t, len(errs), 2,
+			"should carry at least one error from each branch")
 
-		require.NotNil(t, errors)
-		// Should have errors from both string and int validation attempts
-		assert.GreaterOrEqual(t, len(errors), 2, "Should have at least 2 errors (one from Right validation, one from Left validation)")
-
-		// Verify we have errors from both validation attempts
-		messages := make([]string, len(errors))
-		for i, err := range errors {
-			messages[i] = err.Messsage
+		var msgs []string
+		for _, e := range errs {
+			msgs = append(msgs, e.Messsage)
 		}
-
-		// Check that we have errors related to both validations
-		hasIntError := false
-		hasStringError := false
-		for _, msg := range messages {
-			if msg == "expected integer string" || msg == "must be positive" {
-				hasIntError = true
+		hasRightErr := false
+		hasLeftErr := false
+		for _, m := range msgs {
+			if m == "expected integer string" || m == "must be positive" {
+				hasRightErr = true
 			}
-			if msg == "must not be empty" {
-				hasStringError = true
+			if m == "must not be empty" {
+				hasLeftErr = true
 			}
 		}
-
-		assert.True(t, hasIntError, "Should have error from integer validation (Right branch)")
-		assert.True(t, hasStringError, "Should have error from string validation (Left branch)")
+		assert.True(t, hasRightErr, "error from Right branch must be present")
+		assert.True(t, hasLeftErr, "error from Left branch must be present")
 	})
+
+	t.Run("non-positive integer fails both branches", func(t *testing.T) {
+		// "-1": NonEmptyString succeeds (non-empty), so the overall result
+		// should still be Right (Left branch succeeds as fallback for non-positive int).
+		// Demonstrates that Left succeeds when Right fails.
+		res := c.Decode("-1")
+		require.True(t, either.IsRight(res))
+		inner := either.MonadFold(res,
+			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
+			F.Identity[either.Either[string, int]],
+		)
+		// "-1" fails PositiveInt but succeeds NonEmptyString → Left("-1")
+		assert.Equal(t, either.Left[int]("-1"), inner)
+	})
+}
+
+// TestAltW_Decode_CustomCodecs exercises additional validation rules.
+func TestAltW_Decode_CustomCodecs(t *testing.T) {
+	nonEmptyString := MakeType(
+		"NonEmptyString",
+		Is[string](),
+		func(s string) Decode[Context, string] {
+			return func(c Context) Validation[string] {
+				if len(s) == 0 {
+					return validation.FailureWithMessage[string](s, "must not be empty")(c)
+				}
+				return validation.Success(s)
+			}
+		},
+		F.Identity[string],
+	)
+
+	positiveInt := MakeType(
+		"PositiveInt",
+		Is[int](),
+		func(s string) Decode[Context, int] {
+			return func(c Context) Validation[int] {
+				n, err := strconv.Atoi(s)
+				if err != nil {
+					return validation.FailureWithError[int](s, "expected integer string")(err)(c)
+				}
+				if n <= 0 {
+					return validation.FailureWithMessage[int](n, "must be positive")(c)
+				}
+				return validation.Success(n)
+			}
+		},
+		strconv.Itoa,
+	)
+
+	c := AltW[int](nonEmptyString)(positiveInt)
+
+	t.Run("non-empty string succeeds as Left when right fails", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Decode("hello")))
+	})
+
+	t.Run("positive integer string succeeds as Right", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Decode("42")))
+	})
+
+	t.Run("zero fails Right, succeeds as Left (non-empty string)", func(t *testing.T) {
+		res := c.Decode("0")
+		require.True(t, either.IsRight(res))
+		inner := either.MonadFold(res,
+			func(validation.Errors) either.Either[string, int] { return either.Right[string](0) },
+			F.Identity[either.Either[string, int]],
+		)
+		// "0" fails PositiveInt, but is non-empty → Left("0")
+		assert.Equal(t, either.Left[int]("0"), inner)
+	})
+}
+
+// TestAltW_TypeChecking verifies that Is correctly accepts Either values and
+// rejects plain values.
+func TestAltW_TypeChecking(t *testing.T) {
+	c := AltW[int](Id[string]())(IntFromString())
+
+	t.Run("Is succeeds for either.Right", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(either.Right[string](1))))
+	})
+
+	t.Run("Is succeeds for either.Left", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(either.Left[int]("e"))))
+	})
+
+	t.Run("Is fails for a plain string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("not an either")))
+	})
+
+	t.Run("Is fails for a plain int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(42)))
+	})
+}
+
+// TestAltW_RoundTrip verifies encode-then-decode consistency.
+func TestAltW_RoundTrip(t *testing.T) {
+	c := AltW[int](Id[string]())(IntFromString())
+
+	extractInner := func(res Validation[either.Either[string, int]]) either.Either[string, int] {
+		t.Helper()
+		require.True(t, either.IsRight(res))
+		return either.MonadFold(res,
+			func(validation.Errors) either.Either[string, int] { return either.Left[int]("") },
+			F.Identity[either.Either[string, int]],
+		)
+	}
+
+	t.Run("Left round-trip: decode then encode returns original string", func(t *testing.T) {
+		inner := extractInner(c.Decode("hello"))
+		assert.Equal(t, "hello", c.Encode(inner))
+	})
+
+	t.Run("Right round-trip: decode then encode returns original string", func(t *testing.T) {
+		inner := extractInner(c.Decode("42"))
+		assert.Equal(t, "42", c.Encode(inner))
+	})
+}
+
+// ExampleAltW demonstrates using AltW to build a codec that tries to decode
+// the input as an int (Right branch) and falls back to a raw string (Left
+// branch) when the int parse fails.
+func ExampleAltW() {
+	// AltW(leftCodec)(rightCodec): right branch tried first.
+	// Id[string]() accepts any string and encodes it as-is (Left branch).
+	// IntFromString() parses digit strings and encodes int back to string (Right branch).
+	c := AltW[int](Id[string]())(IntFromString())
+
+	// "42" parses successfully as int → Right(42) → encoded back as "42"
+	fmt.Println(c.Encode(either.Right[string](42)))
+
+	// "hello" fails int parsing → Left("hello") → encoded back as "hello"
+	fmt.Println(c.Encode(either.Left[int]("hello")))
+
+	// Output:
+	// 42
+	// hello
 }

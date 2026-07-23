@@ -17,6 +17,7 @@ package codec
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -1605,4 +1606,317 @@ func TestFileInfoWithPath_Fields(t *testing.T) {
 		require.NotNil(t, fi)
 		assert.False(t, fi.ModTime().IsZero())
 	})
+}
+
+// ---------------------------------------------------------------------------
+// Is / TypeChecking — one block per codec
+// ---------------------------------------------------------------------------
+
+func TestURL_TypeChecking(t *testing.T) {
+	c := URL()
+	t.Run("Is accepts *url.URL", func(t *testing.T) {
+		u, err := url.Parse("https://example.com")
+		require.NoError(t, err)
+		assert.True(t, either.IsRight(c.Is(u)))
+	})
+	t.Run("Is rejects a plain string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("https://example.com")))
+	})
+	t.Run("Is rejects an int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(42)))
+	})
+}
+
+func TestDate_TypeChecking(t *testing.T) {
+	c := Date("2006-01-02")
+	t.Run("Is accepts time.Time", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(time.Now())))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("2024-01-01")))
+	})
+}
+
+func TestRegex_TypeChecking(t *testing.T) {
+	c := Regex(regexp.MustCompile(`\d+`))
+	t.Run("Is accepts prism.Match", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(prism.Match{Groups: []string{"1"}})))
+	})
+	t.Run("Is accepts a matching string (refinement check)", func(t *testing.T) {
+		// Is first checks if the value is a string (the base type), then applies
+		// the refinement (regex match). A digit string satisfies both.
+		assert.True(t, either.IsRight(c.Is("42")))
+	})
+	t.Run("Is rejects a non-matching string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("no digits here")))
+	})
+	t.Run("Is rejects an int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(42)))
+	})
+}
+
+func TestRegexNamed_TypeChecking(t *testing.T) {
+	c := RegexNamed(regexp.MustCompile(`(?P<n>\d+)`))
+	t.Run("Is accepts prism.NamedMatch", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(prism.NamedMatch{Full: "1"})))
+	})
+	t.Run("Is accepts a matching string (refinement check)", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is("42")))
+	})
+	t.Run("Is rejects a non-matching string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("no digits")))
+	})
+	t.Run("Is rejects an int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(42)))
+	})
+}
+
+func TestIntFromString_TypeChecking(t *testing.T) {
+	c := IntFromString()
+	t.Run("Is accepts int", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(42)))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("42")))
+	})
+	t.Run("Is rejects int64", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(int64(42))))
+	})
+}
+
+func TestInt64FromString_TypeChecking(t *testing.T) {
+	c := Int64FromString()
+	t.Run("Is accepts int64", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(int64(42))))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("42")))
+	})
+	t.Run("Is rejects int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(42)))
+	})
+}
+
+func TestBoolFromString_TypeChecking(t *testing.T) {
+	c := BoolFromString()
+	t.Run("Is accepts bool", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(true)))
+		assert.True(t, either.IsRight(c.Is(false)))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("true")))
+	})
+}
+
+func TestMarshalJSON_TypeChecking(t *testing.T) {
+	var instance jsonTestType
+	c := MarshalJSON[jsonTestType](&instance, &instance)
+	t.Run("Is accepts jsonTestType", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(jsonTestType{Name: "x", Value: 1})))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("not a jsonTestType")))
+	})
+}
+
+func TestFromNonZero_TypeChecking(t *testing.T) {
+	c := FromNonZero[int]()
+	t.Run("Is accepts int", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(0)))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("0")))
+	})
+}
+
+func TestNonEmptyString_TypeChecking(t *testing.T) {
+	c := NonEmptyString()
+	t.Run("Is accepts string", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is("")))
+		assert.True(t, either.IsRight(c.Is("hello")))
+	})
+	t.Run("Is rejects int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is(42)))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// MarshalText
+// ---------------------------------------------------------------------------
+
+// textTestType is a helper that implements encoding.TextMarshaler and
+// encoding.TextUnmarshaler by delegating to a plain string field.
+type textTestType struct {
+	Value string
+}
+
+func (t *textTestType) MarshalText() ([]byte, error) {
+	return []byte(t.Value), nil
+}
+
+func (t *textTestType) UnmarshalText(b []byte) error {
+	t.Value = string(b)
+	return nil
+}
+
+func TestMarshalText_Decode_Success(t *testing.T) {
+	t.Run("decodes valid text bytes into the shared instance", func(t *testing.T) {
+		var instance textTestType
+		c := MarshalText[textTestType](&instance, &instance)
+		result := c.Decode([]byte("hello"))
+		assert.True(t, either.IsRight(result))
+		assert.Equal(t, "hello", instance.Value)
+	})
+}
+
+func TestMarshalText_Decode_Failure(t *testing.T) {
+	t.Run("fails when UnmarshalText returns an error", func(t *testing.T) {
+		errDec := &errorUnmarshaler{}
+		c := MarshalText[struct{}](errDec, errDec)
+		result := c.Decode([]byte("anything"))
+		assert.True(t, either.IsLeft(result))
+	})
+}
+
+func TestMarshalText_Encode(t *testing.T) {
+	t.Run("encodes using the shared marshaler state", func(t *testing.T) {
+		instance := textTestType{Value: "world"}
+		c := MarshalText[textTestType](&instance, &instance)
+		encoded := c.Encode(instance)
+		assert.Equal(t, []byte("world"), encoded)
+	})
+}
+
+func TestMarshalText_Name(t *testing.T) {
+	var instance textTestType
+	c := MarshalText[textTestType](&instance, &instance)
+	assert.Equal(t, "UnmarshalText", c.Name())
+}
+
+func TestMarshalText_TypeChecking(t *testing.T) {
+	var instance textTestType
+	c := MarshalText[textTestType](&instance, &instance)
+	t.Run("Is accepts textTestType", func(t *testing.T) {
+		assert.True(t, either.IsRight(c.Is(textTestType{Value: "x"})))
+	})
+	t.Run("Is rejects a string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Is("hello")))
+	})
+}
+
+func TestMarshalText_RoundTrip(t *testing.T) {
+	t.Run("decode then encode returns same bytes", func(t *testing.T) {
+		var instance textTestType
+		c := MarshalText[textTestType](&instance, &instance)
+		input := []byte("round-trip")
+		result := c.Decode(input)
+		require.True(t, either.IsRight(result))
+		assert.Equal(t, input, c.Encode(instance))
+	})
+}
+
+// errorUnmarshaler is a helper that always fails UnmarshalText / UnmarshalJSON.
+type errorUnmarshaler struct{}
+
+func (e *errorUnmarshaler) MarshalText() ([]byte, error)  { return []byte("x"), nil }
+func (e *errorUnmarshaler) UnmarshalText([]byte) error    { return fmt.Errorf("always fails") }
+func (e *errorUnmarshaler) MarshalJSON() ([]byte, error)  { return []byte(`"x"`), nil }
+func (e *errorUnmarshaler) UnmarshalJSON([]byte) error    { return fmt.Errorf("always fails") }
+
+// ---------------------------------------------------------------------------
+// Example functions
+// ---------------------------------------------------------------------------
+
+func ExampleURL() {
+	c := URL()
+
+	u, _ := url.Parse("https://example.com/path")
+	fmt.Println(c.Encode(u))
+
+	// Output:
+	// https://example.com/path
+}
+
+func ExampleDate() {
+	c := Date("2006-01-02")
+
+	tm := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
+	fmt.Println(c.Encode(tm))
+
+	// Output:
+	// 2024-03-15
+}
+
+func ExampleRegex() {
+	c := Regex(regexp.MustCompile(`\d+`))
+
+	m := prism.Match{Before: "Price: ", Groups: []string{"42"}, After: " dollars"}
+	fmt.Println(c.Encode(m))
+
+	// Output:
+	// Price: 42 dollars
+}
+
+func ExampleRegexNamed() {
+	c := RegexNamed(regexp.MustCompile(`(?P<user>\w+)@(?P<domain>\w+\.\w+)`))
+
+	m := prism.NamedMatch{Before: "", Full: "john@example.com", After: ""}
+	fmt.Println(c.Encode(m))
+
+	// Output:
+	// john@example.com
+}
+
+func ExampleIntFromString() {
+	c := IntFromString()
+	fmt.Println(c.Encode(42))
+	fmt.Println(c.Encode(-7))
+
+	// Output:
+	// 42
+	// -7
+}
+
+func ExampleInt64FromString() {
+	c := Int64FromString()
+	fmt.Println(c.Encode(9223372036854775807))
+
+	// Output:
+	// 9223372036854775807
+}
+
+func ExampleBoolFromString() {
+	c := BoolFromString()
+	fmt.Println(c.Encode(true))
+	fmt.Println(c.Encode(false))
+
+	// Output:
+	// true
+	// false
+}
+
+func ExampleFromNonZero() {
+	c := FromNonZero[int]()
+	fmt.Println(c.Encode(42))
+
+	// Output:
+	// 42
+}
+
+func ExampleNonEmptyString() {
+	c := NonEmptyString()
+	fmt.Println(c.Encode("hello"))
+
+	// Output:
+	// hello
+}
+
+func ExampleWithName() {
+	c := F.Pipe1(IntFromString(), WithName[int, string, string]("UserAge"))
+	fmt.Println(c.Name())
+	fmt.Println(c.Encode(25))
+
+	// Output:
+	// UserAge
+	// 25
 }

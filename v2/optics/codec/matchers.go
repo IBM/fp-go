@@ -18,6 +18,7 @@ package codec
 import (
 	"fmt"
 
+	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
@@ -66,7 +67,7 @@ import (
 //   - Do: Entry point for do-notation style codec construction
 func Optional[A, O, I any](
 	m Monoid[O],
-	pred Type[bool, O, I]) Operator[A, Option[A], O, I] {
+	onSome Type[A, O, I]) Operator[bool, Option[A], O, I] {
 
 	merge := semigroup.AppendTo(m)
 	orElse := F.Pipe2(
@@ -75,7 +76,7 @@ func Optional[A, O, I any](
 		option.GetOrElse,
 	)
 
-	return func(onSome Type[A, O, I]) Type[Option[A], O, I] {
+	return func(pred Type[bool, O, I]) Type[Option[A], O, I] {
 
 		return MakeType(
 			fmt.Sprintf("Optional[%s x %s]", pred, onSome),
@@ -98,6 +99,81 @@ func Optional[A, O, I any](
 				),
 				reader.ApS(merge, F.Flow2(
 					option.IsSome[A],
+					pred.Encode,
+				)),
+			),
+		)
+	}
+}
+
+// EitherOf lifts two codecs — one for L and one for R — into a codec
+// Type[Either[L, R], O, I] by dispatching on a boolean predicate codec.
+//
+// When decoding input I:
+//  1. The predicate pred is validated against the input first.
+//  2. If pred decodes to true, the right codec onRight is invoked and its
+//     result is wrapped in either.Right.
+//  3. If pred decodes to false, the left codec onLeft is invoked and its
+//     result is wrapped in either.Left.
+//
+// When encoding Either[L, R]:
+//  1. If the value is Right(r), r is encoded with onRight.Encode and true is
+//     encoded with pred.Encode; the two outputs are combined with the monoid.
+//  2. If the value is Left(l), l is encoded with onLeft.Encode and false is
+//     encoded with pred.Encode; the two outputs are combined with the monoid.
+//
+// The resulting codec is named "EitherOf[<pred> x (<onLeft>|<onRight>)]".
+//
+// Type Parameters:
+//   - L: The type decoded by the left codec onLeft
+//   - R: The type decoded by the right codec onRight
+//   - O: The output type produced by the predicate and both branch codecs
+//   - I: The input type consumed by the predicate and both branch codecs
+//
+// Parameters:
+//   - m: A Monoid[O] used to combine the encoded predicate output and the
+//     encoded branch output
+//   - onLeft: A Type[L, O, I] that decodes and encodes the Left branch
+//   - onRight: A Type[R, O, I] that decodes and encodes the Right branch
+//
+// Returns:
+//   - An Operator[bool, Either[L, R], O, I] that transforms a
+//     Type[bool, O, I] predicate codec into a Type[Either[L, R], O, I]
+//
+// See Also:
+//   - Optional: Boolean-gated codec that lifts a value into Option
+//   - Either: Untagged either codec that tries both branches by structure
+func EitherOf[L, R, O, I any](
+	m Monoid[O],
+	onLeft Type[L, O, I],
+	onRight Type[R, O, I],
+) Operator[bool, either.Either[L, R], O, I] {
+
+	merge := semigroup.AppendTo(m)
+
+	return func(pred Type[bool, O, I]) Type[either.Either[L, R], O, I] {
+
+		return MakeType(
+			fmt.Sprintf("EitherOf[%s x (%s|%s)]", pred, onLeft, onRight),
+			Is[either.Either[L, R]](),
+			F.Pipe1(
+				pred.Validate,
+				validate.Chain(F.Flow3(
+					option.FromPredicate(reader.Ask[bool]()),
+					option.MapTo[bool](F.Pipe1(
+						onRight.Validate,
+						validate.Map[I](either.Right[L, R]),
+					)),
+					option.GetOrElse(lazy.Of(F.Pipe1(
+						onLeft.Validate,
+						validate.Map[I](either.Left[R, L]),
+					))),
+				)),
+			),
+			F.Pipe1(
+				either.Fold(onLeft.Encode, onRight.Encode),
+				reader.ApS(merge, F.Flow2(
+					either.IsRight[L, R],
 					pred.Encode,
 				)),
 			),
