@@ -210,21 +210,52 @@ func TryCatch[A any](f func() (A, error)) Option[A] {
 }
 
 // Fold provides a way to handle both Some and None cases of an Option.
-// Returns a function that applies onNone if the Option is None, or onSome if it's Some.
+// Returns a function that applies onNone if the Option is None, or onSome if it is Some.
 //
 // Example:
 //
 //	handler := Fold(
+//	    func() string { return "no value" },
 //	    func(x int) string { return fmt.Sprintf("value: %d", x) },
 //	)
-//	result := handler(Some(42)) // "value: 42"
+//	result := handler(Some(42))    // "value: 42"
 //	result := handler(None[int]()) // "no value"
 //
+// Relation to predicate.Fold:
+//
+// option.Fold and predicate.Fold are two specialisations of the same categorical
+// pattern — eliminating a two-case sum type into a common result type B.
+//
+// option.Option[A] is a two-case sum type {None, Some(A)}.  The Some constructor
+// carries a payload of type A, so the onSome branch receives it; the None branch
+// carries no payload and is therefore a thunk:
+//
+//	option.Fold :: (() → B) → (A → B) → Option[A] → B
+//
+// predicate.Predicate[A] is morally equivalent to A → bool, where bool is the
+// smallest two-case sum type {false, true}.  Because bool carries no payload beyond
+// the branch tag, both handlers in predicate.Fold must receive A to preserve context:
+//
+//	predicate.Fold :: (A → B) → (A → B) → (A → bool) → A → B
+//
+// The link between the two is FromPredicate, which converts a Predicate[A] into an
+// Option[A]-producing function.  Using it, predicate.Fold can always be expressed in
+// terms of option.Fold:
+//
+//	predicate.Fold(onFalse, onTrue)(p)(a)
+//	  == option.Fold(func() B { return onFalse(a) }, onTrue)(FromPredicate(p)(a))
+//
+// Conversely, option.Fold cannot in general be expressed via predicate.Fold because
+// None carries no A value for the false branch to inspect.
+//
+// See Also:
+//   - MonadFold: The uncurried form of this function
+//   - predicate.Fold: The analogous eliminator for the bool two-case sum type
+//   - FromPredicate: Converts a Predicate[A] into a Kleisli[A, A] producing Option[A]
+//
 //go:inline
-func Fold[A, B any](onNone func() B, onSome func(a A) B) func(ma Option[A]) B {
-	return func(fa Option[A]) B {
-		return MonadFold(fa, onNone, onSome)
-	}
+func Fold[A, B any](onNone func() B, onSome func(a A) B) func(Option[A]) B {
+	return F.Bind23of3(MonadFold[A, B])(onNone, onSome)
 }
 
 // MonadGetOrElse extracts the value from an Option or returns a default value.

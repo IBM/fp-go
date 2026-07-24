@@ -71,3 +71,58 @@ func ExampleOption_extraction() {
 	// 0
 	// 84
 }
+
+// ExampleFold_basic demonstrates eliminating an Option into a string label.
+//
+// The None branch is a thunk (func() B) because None carries no payload. Compare
+// with predicate.ExampleFold where both branches receive A — because a bool tag
+// alone carries no payload, so A must be threaded through explicitly.
+func ExampleFold_basic() {
+	classify := Fold(
+		func() string { return "absent" },
+		func(n int) string { return fmt.Sprintf("present: %d", n) },
+	)
+	fmt.Println(classify(Some(42)))
+	fmt.Println(classify(None[int]()))
+	// Output:
+	// present: 42
+	// absent
+}
+
+// ExampleFold_fromPredicate shows that predicate.Fold and option.Fold are
+// interderivable via FromPredicate.
+//
+// Any call to predicate.Fold can be expressed as option.Fold composed with
+// FromPredicate, at the cost of closing over the input in the None branch:
+//
+//	predicate.Fold(onFalse, onTrue)(p)(a)
+//	  == option.Fold(func() B { return onFalse(a) }, onTrue)(FromPredicate(p)(a))
+func ExampleFold_fromPredicate() {
+	isPositive := func(n int) bool { return n > 0 }
+
+	// Direct: predicate.Fold — both branches receive n
+	directClassify := func(n int) string {
+		if isPositive(n) {
+			return fmt.Sprintf("%d is positive", n)
+		}
+		return fmt.Sprintf("%d is not positive", n)
+	}
+
+	// Via option.Fold + FromPredicate — equivalent, but None branch closes over n
+	viaOption := func(n int) string {
+		return Fold(
+			func() string { return fmt.Sprintf("%d is not positive", n) },
+			func(v int) string { return fmt.Sprintf("%d is positive", v) },
+		)(FromPredicate(isPositive)(n))
+	}
+
+	for _, n := range []int{5, 0, -3} {
+		d := directClassify(n)
+		v := viaOption(n)
+		fmt.Println(d, "|", v, "|", d == v)
+	}
+	// Output:
+	// 5 is positive | 5 is positive | true
+	// 0 is not positive | 0 is not positive | true
+	// -3 is not positive | -3 is not positive | true
+}

@@ -19,11 +19,12 @@ import (
 	"fmt"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/predicate"
 )
 
 func ExampleNot() {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	isNotPositive := predicate.Not(isPositive)
 	fmt.Println(isNotPositive(5))
 	fmt.Println(isNotPositive(-3))
@@ -33,7 +34,7 @@ func ExampleNot() {
 }
 
 func ExampleAnd() {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	isEven := func(n int) bool { return n%2 == 0 }
 	isPositiveAndEven := F.Pipe1(isPositive, predicate.And(isEven))
 	fmt.Println(isPositiveAndEven(4))
@@ -46,7 +47,7 @@ func ExampleAnd() {
 }
 
 func ExampleOr() {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	isEven := func(n int) bool { return n%2 == 0 }
 	isPositiveOrEven := F.Pipe1(isPositive, predicate.Or(isEven))
 	fmt.Println(isPositiveOrEven(4))
@@ -95,7 +96,7 @@ func ExampleNever() {
 }
 
 func ExampleAlways_withAnd() {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	// Always AND isPositive == isPositive
 	combined := F.Pipe1(predicate.Always[int](), predicate.And(isPositive))
 	fmt.Println(combined(5))
@@ -106,7 +107,7 @@ func ExampleAlways_withAnd() {
 }
 
 func ExampleNever_withOr() {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	// Never OR isPositive == isPositive
 	combined := F.Pipe1(predicate.Never[int](), predicate.Or(isPositive))
 	fmt.Println(combined(5))
@@ -114,4 +115,40 @@ func ExampleNever_withOr() {
 	// Output:
 	// true
 	// false
+}
+
+// ExampleFold_basic demonstrates eliminating a predicate into a string label.
+//
+// Both branch functions receive the tested value because the bool tag alone carries
+// no payload — compare with option.ExampleFold where the None branch is a thunk.
+func ExampleFold_basic() {
+	isPositive := N.MoreThan(0)
+	classify := F.Pipe1(isPositive, predicate.Fold(
+		func(n int) string { return "not positive" },
+		func(n int) string { return "positive" },
+	))
+	fmt.Println(classify(5))
+	fmt.Println(classify(0))
+	fmt.Println(classify(-3))
+	// Output:
+	// positive
+	// not positive
+	// not positive
+}
+
+// ExampleFold_withValue shows that both branches always receive A, allowing the
+// original value to be used in the result regardless of which branch is taken.
+// This mirrors option.Fold's onSome branch, but predicate.Fold must also pass A
+// to onFalse because the bool tag carries no payload of its own.
+func ExampleFold_withValue() {
+	isEven := func(n int) bool { return n%2 == 0 }
+	describe := F.Pipe1(isEven, predicate.Fold(
+		func(n int) string { return fmt.Sprintf("%d is odd", n) },
+		func(n int) string { return fmt.Sprintf("%d is even", n) },
+	))
+	fmt.Println(describe(4))
+	fmt.Println(describe(7))
+	// Output:
+	// 4 is even
+	// 7 is odd
 }
