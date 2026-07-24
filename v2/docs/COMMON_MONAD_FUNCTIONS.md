@@ -1097,7 +1097,7 @@ result := monoid.ConcatAll(andMonoid)([]bool{true, true, false})  // false
 **Example**:
 ```go
 anyMonoid := predicate.MonoidAny[int]()
-isPositive := func(n int) bool { return n > 0 }
+isPositive := N.MoreThan(0)
 isEven := func(n int) bool { return n%2 == 0 }
 combined := anyMonoid.Concat(isPositive, isEven)
 combined(3)   // true (positive)

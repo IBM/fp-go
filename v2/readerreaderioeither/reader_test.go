@@ -25,6 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/utils"
 	"github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
@@ -335,7 +336,7 @@ func TestFromOption(t *testing.T) {
 }
 
 func TestFromPredicate(t *testing.T) {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	onFalse := func(n int) error { return fmt.Errorf("not positive: %d", n) }
 
 	t.Run("Predicate true", func(t *testing.T) {

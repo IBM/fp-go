@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/pair"
 )
 
@@ -628,7 +629,7 @@ func TestTraverseRecord_ConfigurationTesting(t *testing.T) {
 		"bufferSize": 1024,
 	}
 
-	validatePositive := That(func(n int) bool { return n > 0 })
+	validatePositive := That(N.MoreThan(0))
 
 	traverse := TraverseRecord(validatePositive)
 	result := traverse(configs)(t)
