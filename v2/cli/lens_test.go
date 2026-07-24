@@ -226,8 +226,13 @@ func TestIsComparableType(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "struct literal - conservatively not comparable",
+			name:     "struct literal with comparable fields",
 			code:     "type T struct { F struct{ X int } }",
+			expected: true,
+		},
+		{
+			name:     "struct literal with slice field - not comparable",
+			code:     "type T struct { F struct{ Items []string } }",
 			expected: false,
 		},
 	}
@@ -353,6 +358,226 @@ func TestIsComparableType_GenericBuiltins(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+// TestIsComparableType_CrossPackage verifies that cross-package (pkg.Type) fields
+// are conservatively treated as non-comparable, except for the known-safe allowlist.
+func TestIsComparableType_CrossPackage(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		expected bool
+	}{
+		{
+			name:     "context.Context is comparable (interface)",
+			code:     "type T struct { F context.Context }",
+			expected: true,
+		},
+		{
+			name:     "time.Time is comparable (all-comparable fields)",
+			code:     "type T struct { F time.Time }",
+			expected: true,
+		},
+		{
+			name:     "unknown cross-package type is conservatively not comparable",
+			code:     "type T struct { F llmclient.Config }",
+			expected: false,
+		},
+		{
+			name:     "url.URL is conservatively not comparable (may contain non-comparable fields)",
+			code:     "type T struct { F url.URL }",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
+			require.NoError(t, err)
+
+			var fieldType ast.Expr
+			ast.Inspect(file, func(n ast.Node) bool {
+				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
+					fieldType = field.Type
+					return false
+				}
+				return true
+			})
+
+			require.NotNil(t, fieldType)
+			result := isComparableType(fieldType, map[string]string{})
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+
+
+// TestIsComparableType_NamedStructs verifies that a named struct type is treated
+// as non-comparable when it contains a slice, map, or function field.
+func TestIsComparableType_NamedStructs(t *testing.T) {
+	tests := []struct {
+		name     string
+		// full Go source; the outer struct T has a field F of a named type
+		src      string
+		expected bool
+	}{
+		{
+			name: "named struct with only comparable fields is comparable",
+			src: `package test
+type Inner struct { X int; Y string }
+type T struct { F Inner }`,
+			expected: true,
+		},
+		{
+			name: "named struct with slice field is not comparable",
+			src: `package test
+type Inner struct { Items []string }
+type T struct { F Inner }`,
+			expected: false,
+		},
+		{
+			name: "named struct with map field is not comparable",
+			src: `package test
+type Inner struct { M map[string]int }
+type T struct { F Inner }`,
+			expected: false,
+		},
+		{
+			name: "named struct with func field is not comparable",
+			src: `package test
+type Inner struct { Fn func() }
+type T struct { F Inner }`,
+			expected: false,
+		},
+		{
+			name: "named struct with nested non-comparable named struct is not comparable",
+			src: `package test
+type DeepInner struct { Items []byte }
+type Inner struct { D DeepInner }
+type T struct { F Inner }`,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "", tt.src, 0)
+			require.NoError(t, err)
+
+			// Build the allStructTypes map as parseFile does
+			allStructTypes := make(map[string]*ast.StructType)
+			ast.Inspect(file, func(n ast.Node) bool {
+				if ts, ok := n.(*ast.TypeSpec); ok {
+					if st, ok := ts.Type.(*ast.StructType); ok {
+						allStructTypes[ts.Name.Name] = st
+					}
+				}
+				return true
+			})
+
+			// Extract the field type of F from struct T
+			var fieldType ast.Expr
+			ast.Inspect(file, func(n ast.Node) bool {
+				if ts, ok := n.(*ast.TypeSpec); ok && ts.Name.Name == "T" {
+					if st, ok := ts.Type.(*ast.StructType); ok {
+						for _, f := range st.Fields.List {
+							for _, name := range f.Names {
+								if name.Name == "F" {
+									fieldType = f.Type
+									return false
+								}
+							}
+						}
+					}
+				}
+				return true
+			})
+
+			require.NotNil(t, fieldType)
+			result := isComparableType(fieldType, map[string]string{}, allStructTypes)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestParseFile_StructWithSliceFieldIsNotComparable verifies that parseFile
+// correctly marks a named struct field as non-comparable when that struct
+// contains a slice.
+func TestParseFile_StructWithSliceFieldIsNotComparable(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+type Inner struct {
+	Items []string
+}
+
+// fp-go:Lens
+type Outer struct {
+	Name  string
+	Data  Inner
+}
+`
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := parseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	outer := structs[0]
+	require.Len(t, outer.Fields, 2)
+
+	// Name is a plain string — comparable
+	assert.Equal(t, "Name", outer.Fields[0].Name)
+	assert.True(t, outer.Fields[0].IsComparable, "string field should be comparable")
+
+	// Data is Inner which contains a slice — not comparable
+	assert.Equal(t, "Data", outer.Fields[1].Name)
+	assert.False(t, outer.Fields[1].IsComparable, "struct field containing a slice should not be comparable")
+}
+
+
+
+// TestParseFile_CrossPackageStructFieldIsNotComparable verifies that parseFile
+// correctly marks a cross-package struct field as non-comparable when the
+// struct's definition is not available in the current file.
+func TestParseFile_CrossPackageStructFieldIsNotComparable(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+import "github.com/example/llmclient"
+
+// fp-go:Lens
+type Config struct {
+	Name      string
+	LLMConfig llmclient.Config
+}
+`
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := parseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	cfg := structs[0]
+	require.Len(t, cfg.Fields, 2)
+
+	// Name is a plain string — comparable
+	assert.Equal(t, "Name", cfg.Fields[0].Name)
+	assert.True(t, cfg.Fields[0].IsComparable, "string field should be comparable")
+
+	// LLMConfig is a cross-package type whose internal fields are unknown —
+	// conservatively not comparable, so no LensO is generated for it.
+	assert.Equal(t, "LLMConfig", cfg.Fields[1].Name)
+	assert.False(t, cfg.Fields[1].IsComparable, "cross-package struct field should be conservatively non-comparable")
 }
 
 func TestHasOmitEmpty(t *testing.T) {

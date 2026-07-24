@@ -426,6 +426,16 @@ func isPointerType(expr ast.Expr) bool {
 	return ok
 }
 
+// isStructComparable checks whether all fields of a struct type are comparable.
+func isStructComparable(st *ast.StructType, typeParams map[string]string, knownStructs map[string]*ast.StructType) bool {
+	for _, field := range st.Fields.List {
+		if !isComparableType(field.Type, typeParams, knownStructs) {
+			return false
+		}
+	}
+	return true
+}
+
 // isComparableType checks if a type expression represents a comparable type.
 // Comparable types in Go include:
 // - Basic types (bool, numeric types, string)
@@ -441,13 +451,27 @@ func isPointerType(expr ast.Expr) bool {
 // - Functions
 //
 // typeParams is a map of type parameter names to their constraints (e.g., "T" -> "any", "K" -> "comparable")
-func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
+// structTypes is an optional map of named struct types in the current file, used to resolve named type comparability
+func isComparableType(expr ast.Expr, typeParams map[string]string, structTypes ...map[string]*ast.StructType) bool {
+	var knownStructs map[string]*ast.StructType
+	if len(structTypes) > 0 {
+		knownStructs = structTypes[0]
+	}
 	switch t := expr.(type) {
 	case *ast.Ident:
 		// Check if this is a type parameter
 		if constraint, isTypeParam := typeParams[t.Name]; isTypeParam {
 			// Type parameter - check its constraint
 			return constraint == "comparable"
+		}
+
+		// If the identifier resolves to a known struct in the current file,
+		// check whether all its fields are comparable. A struct that contains
+		// a slice, map, or function field is not comparable.
+		if knownStructs != nil {
+			if st, ok := knownStructs[t.Name]; ok {
+				return isStructComparable(st, typeParams, knownStructs)
+			}
 		}
 
 		// Basic types and named types
@@ -472,7 +496,7 @@ func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 			return false
 		}
 		// Fixed-size array, check element type
-		return isComparableType(t.Elt, typeParams)
+		return isComparableType(t.Elt, typeParams, knownStructs)
 	case *ast.MapType:
 		// Maps are not comparable
 		return false
@@ -483,26 +507,29 @@ func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 		// Interface types are comparable
 		return true
 	case *ast.StructType:
-		// Structs are comparable if all fields are comparable
-		// We can't easily determine this without full type information,
-		// so we conservatively return false for struct literals
-		return false
+		// Inline struct literal: check all fields
+		return isStructComparable(t, typeParams, knownStructs)
 	case *ast.SelectorExpr:
-		// Qualified identifier (e.g., pkg.Type)
-		// We can't determine comparability without type information
-		// Check for known non-comparable types from standard library
+		// Qualified identifier (e.g., pkg.Type) from an external package.
+		// Without full type resolution we cannot inspect the type's fields, so we
+		// conservatively return false — a struct whose fields include a slice,
+		// map, or function is not comparable even if its name looks innocent.
+		//
+		// Exceptions: types we know are comparable by definition.
 		if ident, ok := t.X.(*ast.Ident); ok {
 			pkgName := ident.Name
 			typeName := t.Sel.Name
-			// Check for known non-comparable types
+			// context.Context is an interface — always comparable.
 			if pkgName == "context" && typeName == "Context" {
-				// context.Context is an interface, which is comparable
 				return true
 			}
-			// For other qualified types, we assume they're comparable
-			// This is a conservative approach
+			// time.Time is a struct with only comparable fields.
+			if pkgName == "time" && typeName == "Time" {
+				return true
+			}
 		}
-		return true
+		// Unknown cross-package type: conservatively not comparable.
+		return false
 	case *ast.IndexExpr, *ast.IndexListExpr:
 		// Generic instantiation: Base[T] or Base[T1, T2, ...]
 		// Extract the base type name and type arguments.
@@ -531,7 +558,7 @@ func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 		// option.Option[A] / Option[A]: comparable iff A is comparable.
 		if typeName == "Option" && (pkgName == "option" || pkgName == "") {
 			if len(typeArgs) == 1 {
-				return isComparableType(typeArgs[0], typeParams)
+				return isComparableType(typeArgs[0], typeParams, knownStructs)
 			}
 			return false
 		}
@@ -539,14 +566,14 @@ func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 		// (Default implementation stores E and A as plain fields, not pointers.)
 		if typeName == "Either" && (pkgName == "either" || pkgName == "result" || pkgName == "") {
 			if len(typeArgs) == 2 {
-				return isComparableType(typeArgs[0], typeParams) && isComparableType(typeArgs[1], typeParams)
+				return isComparableType(typeArgs[0], typeParams, knownStructs) && isComparableType(typeArgs[1], typeParams, knownStructs)
 			}
 			return false
 		}
 		// pair.Pair[L,R] / Pair[L,R]: comparable iff both L and R are comparable.
 		if typeName == "Pair" && (pkgName == "pair" || pkgName == "") {
 			if len(typeArgs) == 2 {
-				return isComparableType(typeArgs[0], typeParams) && isComparableType(typeArgs[1], typeParams)
+				return isComparableType(typeArgs[0], typeParams, knownStructs) && isComparableType(typeArgs[1], typeParams, knownStructs)
 			}
 			return false
 		}
@@ -571,7 +598,8 @@ type embeddedFieldResult struct {
 // extractEmbeddedFields extracts fields from an embedded struct type
 // It returns a slice of embeddedFieldResult for all exported fields in the embedded struct
 // typeParamsMap contains the type parameters of the parent struct (for checking comparability)
-func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string) []embeddedFieldResult {
+// allStructTypes is the map of all named struct types in the file (for comparability checks)
+func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string, allStructTypes map[string]*ast.StructType) []embeddedFieldResult {
 	var results []embeddedFieldResult
 
 	// Get the type name of the embedded field
@@ -642,7 +670,7 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 				}
 
 				// Check if the type is comparable
-				isComparable := isComparableType(field.Type, typeParamsMap)
+					isComparable := isComparableType(field.Type, typeParamsMap, allStructTypes)
 
 				results = append(results, embeddedFieldResult{
 					fieldInfo: fieldInfo{
@@ -728,6 +756,17 @@ func parseFile(filename string) ([]structInfo, string, error) {
 		fileImports[name] = path
 	}
 
+	// Zeroth pass: collect all named struct types for comparability resolution
+	allStructTypes := make(map[string]*ast.StructType)
+	ast.Inspect(node, func(n ast.Node) bool {
+		if ts, ok := n.(*ast.TypeSpec); ok {
+			if st, ok := ts.Type.(*ast.StructType); ok {
+				allStructTypes[ts.Name.Name] = st
+			}
+		}
+		return true
+	})
+
 	// First pass: collect all GenDecls with their doc comments
 	declMap := make(map[*ast.TypeSpec]*ast.CommentGroup)
 	ast.Inspect(node, func(n ast.Node) bool {
@@ -771,7 +810,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 		for _, field := range structType.Fields.List {
 			if len(field.Names) == 0 {
 				// Embedded field - promote its fields
-				embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap)
+					embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap, allStructTypes)
 				for _, embResult := range embeddedResults {
 					// Extract imports from embedded field's type
 					fieldImports := make(map[string]string)
@@ -810,7 +849,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 
 					// Check if the type is comparable (for non-optional fields)
 					// For optional fields, we don't need to check since they use LensO
-					isComparable = isComparableType(field.Type, typeParamsMap)
+					isComparable = isComparableType(field.Type, typeParamsMap, allStructTypes)
 					// log.Printf("field %s, type: %v, isComparable: %b\n", name, field.Type, isComparable)
 
 					// Extract imports from this field's type
