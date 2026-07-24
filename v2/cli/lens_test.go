@@ -525,7 +525,7 @@ type Outer struct {
 	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
-	structs, _, err := parseFile(testFile)
+	structs, _, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 	require.Len(t, structs, 1)
 
@@ -541,6 +541,60 @@ type Outer struct {
 	assert.False(t, outer.Fields[1].IsComparable, "struct field containing a slice should not be comparable")
 }
 
+// TestParseFile_CrossFileStructWithSliceIsNotComparable verifies that when
+// a struct containing a slice is defined in one file and referenced from
+// another file in the same package, the referencing field is correctly marked
+// non-comparable. This requires the package-wide pkgStructTypes map.
+func TestParseFile_CrossFileStructWithSliceIsNotComparable(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// File A defines Inner (contains a slice) — NOT annotated
+	fileA := filepath.Join(tmpDir, "a.go")
+	require.NoError(t, os.WriteFile(fileA, []byte(`package testpkg
+
+type Inner struct {
+	Items []string
+}
+`), 0o644))
+
+	// File B defines the annotated Outer struct that has a field of type Inner
+	fileB := filepath.Join(tmpDir, "b.go")
+	require.NoError(t, os.WriteFile(fileB, []byte(`package testpkg
+
+// fp-go:Lens
+type Outer struct {
+	Name string
+	Data Inner
+}
+`), 0o644))
+
+	// Build the package-wide struct type map by collecting from both files
+	pkgStructTypes := make(map[string]*ast.StructType)
+	for _, f := range []string{fileA, fileB} {
+		fileTypes, err := collectStructTypes(f)
+		require.NoError(t, err)
+		for k, v := range fileTypes {
+			pkgStructTypes[k] = v
+		}
+	}
+
+	// Parse only fileB (the annotated file), but pass the full package map
+	structs, _, err := parseFile(fileB, pkgStructTypes)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	outer := structs[0]
+	require.Len(t, outer.Fields, 2)
+
+	// Name is a plain string — comparable
+	assert.Equal(t, "Name", outer.Fields[0].Name)
+	assert.True(t, outer.Fields[0].IsComparable, "string field should be comparable")
+
+	// Data is Inner (defined in fileA) which contains a slice — not comparable.
+	// Without the package-wide pkgStructTypes map this would incorrectly be true.
+	assert.Equal(t, "Data", outer.Fields[1].Name)
+	assert.False(t, outer.Fields[1].IsComparable, "cross-file struct field containing a slice should not be comparable")
+}
 
 
 // TestParseFile_CrossPackageStructFieldIsNotComparable verifies that parseFile
@@ -563,7 +617,7 @@ type Config struct {
 	err := os.WriteFile(testFile, []byte(testCode), 0o644)
 	require.NoError(t, err)
 
-	structs, _, err := parseFile(testFile)
+	structs, _, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 	require.Len(t, structs, 1)
 
@@ -657,7 +711,7 @@ type Other struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -711,7 +765,7 @@ type Config struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -771,7 +825,7 @@ type TypeTest struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1107,7 +1161,7 @@ type Extended struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1211,7 +1265,7 @@ type Document struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1253,7 +1307,7 @@ type Container[T any] struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1291,7 +1345,7 @@ type Pair[K comparable, V any] struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1430,7 +1484,7 @@ type Config struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1537,7 +1591,7 @@ type PrivateConfig struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results
@@ -1636,7 +1690,7 @@ type ComplexStruct struct {
 	require.NoError(t, err)
 
 	// Parse the file
-	structs, pkg, err := parseFile(testFile)
+	structs, pkg, err := parseFile(testFile, nil)
 	require.NoError(t, err)
 
 	// Verify results

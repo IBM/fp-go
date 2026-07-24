@@ -730,8 +730,31 @@ func buildTypeParamsMap(typeSpec *ast.TypeSpec) map[string]string {
 	return typeParamsMap
 }
 
-// parseFile parses a Go file and extracts structs with lens annotations
-func parseFile(filename string) ([]structInfo, string, error) {
+// collectStructTypes parses a Go file and returns a map of all named struct
+// types it defines. This is used to build the package-wide struct type map
+// that is passed to isComparableType for cross-file comparability checks.
+func collectStructTypes(filename string) (map[string]*ast.StructType, error) {
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, filename, nil, 0)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]*ast.StructType)
+	ast.Inspect(node, func(n ast.Node) bool {
+		if ts, ok := n.(*ast.TypeSpec); ok {
+			if st, ok := ts.Type.(*ast.StructType); ok {
+				result[ts.Name.Name] = st
+			}
+		}
+		return true
+	})
+	return result, nil
+}
+
+// parseFile parses a Go file and extracts structs with lens annotations.
+// pkgStructTypes is a package-wide map of named struct types (collected from
+// all files in the package) used to resolve cross-file comparability.
+func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]structInfo, string, error) {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
 	if err != nil {
@@ -756,8 +779,14 @@ func parseFile(filename string) ([]structInfo, string, error) {
 		fileImports[name] = path
 	}
 
-	// Zeroth pass: collect all named struct types for comparability resolution
+	// Build the struct type map: start from the package-wide map so that
+	// structs defined in other files of the same package are also visible.
+	// Then overlay types from this file (in case of name shadowing, the
+	// local definition wins — though that can't happen for package-level types).
 	allStructTypes := make(map[string]*ast.StructType)
+	for k, v := range pkgStructTypes { // range over nil map is a no-op
+		allStructTypes[k] = v
+	}
 	ast.Inspect(node, func(n ast.Node) bool {
 		if ts, ok := n.(*ast.TypeSpec); ok {
 			if st, ok := ts.Type.(*ast.StructType); ok {
@@ -913,6 +942,29 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 		log.Printf("Found %d Go files", len(files))
 	}
 
+	// Pre-pass: collect all named struct types from every non-generated file in
+	// the directory so that cross-file references are resolved when checking
+	// comparability.
+	pkgStructTypes := make(map[string]*ast.StructType)
+	for _, file := range files {
+		baseName := filepath.Base(file)
+		if strings.HasPrefix(baseName, "gen_lens") && strings.HasSuffix(baseName, ".go") {
+			continue
+		}
+		isTestFile := strings.HasSuffix(file, "_test.go")
+		if isTestFile && !includeTestFiles {
+			continue
+		}
+		fileStructTypes, err := collectStructTypes(file)
+		if err != nil {
+			log.Printf("Warning: failed to collect struct types from %s: %v", file, err)
+			continue
+		}
+		for k, v := range fileStructTypes {
+			pkgStructTypes[k] = v
+		}
+	}
+
 	// Parse all files and collect structs, separating test and non-test files
 	var regularStructs []structInfo
 	var testStructs []structInfo
@@ -943,7 +995,7 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 			log.Printf("Parsing file: %s", baseName)
 		}
 
-		structs, pkg, err := parseFile(file)
+		structs, pkg, err := parseFile(file, pkgStructTypes)
 		if err != nil {
 			log.Printf("Warning: failed to parse %s: %v", file, err)
 			continue
