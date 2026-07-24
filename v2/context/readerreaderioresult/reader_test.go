@@ -341,7 +341,7 @@ func TestFromOption(t *testing.T) {
 }
 
 func TestFromPredicate(t *testing.T) {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 	onFalse := func(n int) error { return errors.New("not positive") }
 
 	t.Run("predicate true", func(t *testing.T) {

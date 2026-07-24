@@ -132,7 +132,7 @@ type (
 	//
 	//	func TestKleisliPattern(t *testing.T) {
 	//	    // Create a reusable assertion for positive numbers
-	//	    isPositive := assert.That(func(n int) bool { return n > 0 })
+	//	    isPositive := assert.That(N.MoreThan(0))
 	//
 	//	    // Apply it to different values
 	//	    isPositive(42)(t)   // Passes
@@ -527,7 +527,7 @@ type (
 	//
 	//	    // Execute the composed operation
 	//	    length := pipeline()
-	//	    assert.That(func(n int) bool { return n > 0 })(length)(t)
+	//	    assert.That(N.MoreThan(0))(length)(t)
 	//	}
 	//
 	// See also:

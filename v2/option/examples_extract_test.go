@@ -98,7 +98,7 @@ func ExampleFold_basic() {
 //	predicate.Fold(onFalse, onTrue)(p)(a)
 //	  == option.Fold(func() B { return onFalse(a) }, onTrue)(FromPredicate(p)(a))
 func ExampleFold_fromPredicate() {
-	isPositive := func(n int) bool { return n > 0 }
+	isPositive := N.MoreThan(0)
 
 	// Direct: predicate.Fold — both branches receive n
 	directClassify := func(n int) string {

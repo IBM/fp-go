@@ -361,7 +361,7 @@ func SequenceSeq2[T any](s Seq2[string, Reader]) Reader {
 //	        "bufferSize":  1024,
 //	    }
 //
-//	    validatePositive := assert.That(func(n int) bool { return n > 0 })
+//	    validatePositive := assert.That(N.MoreThan(0))
 //
 //	    traverse := assert.TraverseRecord(validatePositive)
 //	    traverse(configs)(t)

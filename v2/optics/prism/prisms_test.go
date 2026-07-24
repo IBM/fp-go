@@ -1524,7 +1524,7 @@ func TestFromResultPrismLaws(t *testing.T) {
 func TestFromResultComposition(t *testing.T) {
 	t.Run("compose with predicate prism", func(t *testing.T) {
 		// Create a prism that only matches positive numbers
-		positivePrism := FromPredicate(func(n int) bool { return n > 0 })
+		positivePrism := FromPredicate(N.MoreThan(0))
 
 		// Compose: Result[int] -> int -> positive int
 		composed := Compose[result.Result[int]](positivePrism)(FromResult[int]())
