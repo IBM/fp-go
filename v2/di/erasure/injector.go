@@ -24,6 +24,7 @@ import (
 	L "github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
+	P "github.com/IBM/fp-go/v2/predicate"
 	R "github.com/IBM/fp-go/v2/record"
 	T "github.com/IBM/fp-go/v2/tuple"
 
@@ -62,7 +63,7 @@ var (
 	// handleMissingProvider covers the case of a missing provider. It either
 	// returns an error or an empty multi value provider
 	handleMissingProvider = F.Flow2(
-		F.Ternary(isMultiDependency, emptyMultiDependency, missingProviderErrorOrDefault),
+		P.Fold(missingProviderErrorOrDefault, emptyMultiDependency)(isMultiDependency),
 		F.Constant[ProviderFactory],
 	)
 

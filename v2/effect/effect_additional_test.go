@@ -25,6 +25,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
@@ -554,43 +555,28 @@ func TestTap_Failure(t *testing.T) {
 // TestTernary tests the Ternary function
 func TestTernary_Success(t *testing.T) {
 	t.Run("executes onTrue when predicate is true", func(t *testing.T) {
-		kleisli := Ternary(
-			func(x int) bool { return x > 10 },
-			func(x int) Effect[TestConfig, string] {
-				return Of[TestConfig]("large")
-			},
-			func(x int) Effect[TestConfig, string] {
-				return Of[TestConfig]("small")
-			},
-		)
+		kleisli := predicate.Fold(
+			func(x int) Effect[TestConfig, string] { return Of[TestConfig]("small") },
+			func(x int) Effect[TestConfig, string] { return Of[TestConfig]("large") },
+		)(func(x int) bool { return x > 10 })
 		outcome := kleisli(15)(testConfig)(context.Background())()
 		assert.Equal(t, result.Of("large"), outcome)
 	})
 
 	t.Run("executes onFalse when predicate is false", func(t *testing.T) {
-		kleisli := Ternary(
-			func(x int) bool { return x > 10 },
-			func(x int) Effect[TestConfig, string] {
-				return Of[TestConfig]("large")
-			},
-			func(x int) Effect[TestConfig, string] {
-				return Of[TestConfig]("small")
-			},
-		)
+		kleisli := predicate.Fold(
+			func(x int) Effect[TestConfig, string] { return Of[TestConfig]("small") },
+			func(x int) Effect[TestConfig, string] { return Of[TestConfig]("large") },
+		)(func(x int) bool { return x > 10 })
 		outcome := kleisli(5)(testConfig)(context.Background())()
 		assert.Equal(t, result.Of("small"), outcome)
 	})
 
 	t.Run("works with boundary value", func(t *testing.T) {
-		kleisli := Ternary(
-			func(x int) bool { return x >= 10 },
-			func(x int) Effect[TestConfig, string] {
-				return Of[TestConfig]("gte")
-			},
-			func(x int) Effect[TestConfig, string] {
-				return Of[TestConfig]("lt")
-			},
-		)
+		kleisli := predicate.Fold(
+			func(x int) Effect[TestConfig, string] { return Of[TestConfig]("lt") },
+			func(x int) Effect[TestConfig, string] { return Of[TestConfig]("gte") },
+		)(func(x int) bool { return x >= 10 })
 		outcome := kleisli(10)(testConfig)(context.Background())()
 		assert.Equal(t, result.Of("gte"), outcome)
 	})

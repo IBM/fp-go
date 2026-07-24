@@ -507,36 +507,8 @@ func Tap[C, A, ANY any](f Kleisli[C, A, ANY]) Operator[C, A, A] {
 }
 
 // Ternary creates a conditional effect based on a predicate.
-// If the predicate returns true, onTrue is executed; otherwise, onFalse is executed.
 //
-// # Type Parameters
-//
-//   - C: The context type required by the effects
-//   - A: The input value type
-//   - B: The output value type
-//
-// # Parameters
-//
-//   - pred: A predicate function to test the input value
-//   - onTrue: The effect to execute if the predicate is true
-//   - onFalse: The effect to execute if the predicate is false
-//
-// # Returns
-//
-//   - Kleisli[C, A, B]: A function that conditionally executes one of two effects
-//
-// # Example
-//
-//	kleisli := effect.Ternary(
-//		func(x int) bool { return x > 10 },
-//		func(x int) Effect[MyContext, string] {
-//			return effect.Of[MyContext]("large")
-//		},
-//		func(x int) Effect[MyContext, string] {
-//			return effect.Of[MyContext]("small")
-//		},
-//	)
-//	result := kleisli(15) // produces "large"
+// Deprecated: Use predicate.Fold instead.
 func Ternary[C, A, B any](pred Predicate[A], onTrue, onFalse Kleisli[C, A, B]) Kleisli[C, A, B] {
 	return function.Ternary(pred, onTrue, onFalse)
 }

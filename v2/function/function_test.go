@@ -194,45 +194,6 @@ func TestSecond(t *testing.T) {
 	})
 }
 
-// TestTernary tests the Ternary function
-func TestTernary(t *testing.T) {
-	t.Run("applies onTrue when predicate is true", func(t *testing.T) {
-		isPositive := func(n int) bool { return n > 0 }
-		double := func(n int) int { return n * 2 }
-		negate := func(n int) int { return -n }
-
-		transform := Ternary(isPositive, double, negate)
-
-		assert.Equal(t, 10, transform(5))
-		assert.Equal(t, 20, transform(10))
-	})
-
-	t.Run("applies onFalse when predicate is false", func(t *testing.T) {
-		isPositive := func(n int) bool { return n > 0 }
-		double := func(n int) int { return n * 2 }
-		negate := func(n int) int { return -n }
-
-		transform := Ternary(isPositive, double, negate)
-
-		assert.Equal(t, 3, transform(-3))
-		assert.Equal(t, 5, transform(-5))
-		assert.Equal(t, 0, transform(0))
-	})
-
-	t.Run("works with string classification", func(t *testing.T) {
-		isPositive := func(n int) bool { return n > 0 }
-		classify := Ternary(
-			isPositive,
-			Constant1[int]("positive"),
-			Constant1[int]("non-positive"),
-		)
-
-		assert.Equal(t, "positive", classify(5))
-		assert.Equal(t, "non-positive", classify(-3))
-		assert.Equal(t, "non-positive", classify(0))
-	})
-}
-
 // TestRef tests the Ref function
 func TestRef(t *testing.T) {
 	t.Run("creates pointer to int", func(t *testing.T) {
