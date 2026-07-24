@@ -1,0 +1,250 @@
+/* ============================================================
+   Footer — adapts to light / dark theme
+   Tokens are scoped to .footer so they don't leak globally.
+   ============================================================ */
+
+.footer {
+  /* Light-mode defaults */
+  --ft-bg: #f4f4f4;
+  --ft-bg-elev: #ffffff;
+  --ft-border: #e0e0e0;
+  --ft-border-strong: #c6c6c6;
+  --ft-text: #161616;
+  --ft-text-muted: #525252;
+  --ft-text-faint: #6f6f6f;
+  --ft-accent: #0f62fe;
+  --ft-accent-soft: #4589ff;
+  --ft-success: #198038;
+
+  --ft-font-sans: var(--ifm-font-family-base, 'IBM Plex Sans', system-ui, sans-serif);
+  --ft-font-mono: var(--ifm-font-family-monospace, 'IBM Plex Mono', monospace);
+  --ft-font-serif: 'IBM Plex Serif', Georgia, serif;
+
+  background: var(--ft-bg);
+  color: var(--ft-text-muted);
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--ft-border);
+}
+
+[data-theme='dark'] .footer {
+  --ft-bg: #161616;
+  --ft-bg-elev: #262626;
+  --ft-border: #393939;
+  --ft-border-strong: #525252;
+  --ft-text: #ffffff;
+  --ft-text-muted: #c6c6c6;
+  --ft-text-faint: #8d8d8d;
+  --ft-accent: #78a9ff;
+  --ft-accent-soft: #a6c8ff;
+  --ft-success: #42be65;
+
+  border-top-color: transparent;
+}
+
+.grid {
+  max-width: 1584px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Top section */
+.top {
+  padding: 64px 0 48px;
+  border-bottom: 1px solid var(--ft-border);
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 5fr 2fr 2fr 2fr 2fr;
+  gap: 32px;
+}
+
+/* Lockup (first column) */
+.lockup {
+  color: var(--ft-text);
+  max-width: 340px;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--ft-font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  color: var(--ft-text);
+}
+
+.wordmark em {
+  font-family: var(--ft-font-serif);
+  font-style: italic;
+  color: var(--ft-accent);
+  font-weight: 400;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.lockup p {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ft-text-muted);
+}
+
+/* Install command */
+.install {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--ft-bg-elev);
+  padding: 0;
+  border: 1px solid var(--ft-border);
+  font-family: var(--ft-font-mono);
+  font-size: 13px;
+  color: var(--ft-text);
+  max-width: 320px;
+}
+
+.cmd {
+  flex: 1;
+  padding: 10px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.p {
+  color: var(--ft-accent);
+  margin-right: 8px;
+}
+
+.cp {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--ft-border);
+  color: var(--ft-text-faint);
+  cursor: pointer;
+}
+
+.cp:hover {
+  background: var(--ft-bg);
+  color: var(--ft-text);
+}
+
+[data-theme='dark'] .cp:hover {
+  background: var(--ft-border);
+}
+
+/* Navigation columns */
+.ftCol h5 {
+  font-family: var(--ft-font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+  color: var(--ft-text);
+}
+
+.ftCol a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ft-text-muted);
+  text-decoration: none;
+}
+
+.ftCol a:hover {
+  color: var(--ft-accent);
+}
+
+.ftCol a .ext {
+  opacity: 0.5;
+  flex: none;
+}
+
+/* Bottom section */
+.bot {
+  padding: 24px 0 32px;
+}
+
+.botGrid {
+  display: flex;
+  align-items: center;
+  font-family: var(--ft-font-mono);
+  font-size: 12px;
+  color: var(--ft-text-faint);
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.copy b {
+  color: var(--ft-text-muted);
+  font-weight: 400;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--ft-bg-elev);
+  border: 1px solid var(--ft-border);
+  font-size: 11px;
+  color: var(--ft-text-muted);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ft-success);
+}
+
+.legal {
+  display: flex;
+  gap: 18px;
+}
+
+.legal a {
+  color: var(--ft-text-faint);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.legal a:hover {
+  color: var(--ft-accent);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .topGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lockup {
+    grid-column: 1 / -1;
+    max-width: 100%;
+  }
+}
