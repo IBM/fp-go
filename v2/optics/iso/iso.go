@@ -49,6 +49,7 @@ import (
 //
 //	fahrenheit := tempIso.Get(20.0)        // 68.0
 //	celsius := tempIso.ReverseGet(68.0)    // 20.0
+//
 // isoTag is a zero-size non-generic type embedded in Iso[S, A] so that
 // String, Format, and LogValue are compiled once and shared across all
 // type-parameter instantiations, rather than being duplicated for every

@@ -17,69 +17,57 @@ package function
 
 // Ref creates a pointer to a value.
 //
-// This function takes a value and returns a pointer to it. It's useful when you need
-// to convert a value to a pointer, particularly when working with APIs that require
-// pointers or when you need to create optional values.
+// Useful for obtaining a pointer to a literal or a local variable, particularly
+// when working with APIs that require pointer types.
 //
 // Type Parameters:
-//   - A: The type of the value
+//   - A: the type of the value
 //
 // Parameters:
-//   - a: The value to create a pointer to
+//   - a: the value to create a pointer to
 //
 // Returns:
-//   - A pointer to the value
-//
-// Example:
-//
-//	value := 42
-//	ptr := Ref(value)
-//	fmt.Println(*ptr)  // 42
-//
-//	// Useful for creating pointers to literals
-//	strPtr := Ref("hello")
-//	fmt.Println(*strPtr)  // "hello"
-//
-//	// Creating optional values
-//	type Config struct {
-//	    Timeout *int
-//	}
-//	config := Config{Timeout: Ref(30)}
+//   - a non-nil pointer to a copy of a
 func Ref[A any](a A) *A {
 	return &a
 }
 
-// Deref dereferences a pointer to get its value.
+// Deref dereferences a pointer and returns the value it points to.
 //
-// This function takes a pointer and returns the value it points to. It will panic
-// if the pointer is nil, so it should only be used when you're certain the pointer
-// is not nil. For safe dereferencing, check with IsNonNil first.
+// Panics if a is nil. Use DerefSafe when the pointer may be nil.
 //
 // Type Parameters:
-//   - A: The type of the value
+//   - A: the type of the value
 //
 // Parameters:
-//   - a: The pointer to dereference
+//   - a: the non-nil pointer to dereference
 //
 // Returns:
-//   - The value pointed to by the pointer
-//
-// Example:
-//
-//	value := 42
-//	ptr := &value
-//	result := Deref(ptr)  // 42
-//
-//	// Safe usage with nil check
-//	var ptr *int
-//	if IsNonNil(ptr) {
-//	    result := Deref(ptr)
-//	    fmt.Println(result)
-//	}
-//
-//	// Chaining with Ref
-//	original := "hello"
-//	copy := Deref(Ref(original))  // "hello"
+//   - the value pointed to by a
 func Deref[A any](a *A) A {
 	return *a
+}
+
+// DerefSafe dereferences a pointer and returns the value it points to,
+// or the result of the zero thunk if the pointer is nil.
+//
+// The zero thunk is only called when the pointer is nil, so it is safe to use
+// with expensive or side-effectful fallback computations. Use Constant to wrap
+// a plain value as a thunk: DerefSafe(Constant(0)).
+//
+// Type Parameters:
+//   - A: the type of the value
+//
+// Parameters:
+//   - zero: a thunk evaluated to produce the fallback value when the pointer is nil
+//
+// Returns:
+//   - a function from *A to A that returns *a when a is non-nil, or zero() otherwise
+func DerefSafe[A any](zero func() A) func(*A) A {
+	return func(a *A) A {
+		if a == nil {
+			return zero()
+		}
+		return *a
+	}
 }

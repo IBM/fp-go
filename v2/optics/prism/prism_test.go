@@ -1240,53 +1240,34 @@ func TestParseDatePrismLaws(t *testing.T) {
 func TestDeref(t *testing.T) {
 	derefPrism := Deref[int]()
 
-	t.Run("dereference non-nil pointer", func(t *testing.T) {
+	t.Run("dereference non-nil pointer yields Some with value", func(t *testing.T) {
 		value := 42
 		ptr := &value
 
 		result := derefPrism.GetOption(ptr)
 		assert.True(t, O.IsSome(result))
-
-		extracted := O.GetOrElse(F.Constant((*int)(nil)))(result)
-		assert.NotNil(t, extracted)
-		assert.Equal(t, 42, *extracted)
+		assert.Equal(t, O.Some(42), result)
 	})
 
-	t.Run("dereference nil pointer", func(t *testing.T) {
+	t.Run("dereference nil pointer yields None", func(t *testing.T) {
 		var nilPtr *int
 
 		result := derefPrism.GetOption(nilPtr)
 		assert.True(t, O.IsNone(result))
 	})
 
-	t.Run("reverse get returns pointer unchanged", func(t *testing.T) {
-		value := 42
-		ptr := &value
-
-		result := derefPrism.ReverseGet(ptr)
-		assert.Equal(t, ptr, result)
+	t.Run("reverse get wraps value in a fresh non-nil pointer", func(t *testing.T) {
+		result := derefPrism.ReverseGet(42)
+		assert.NotNil(t, result)
 		assert.Equal(t, 42, *result)
-	})
-
-	t.Run("reverse get with nil pointer", func(t *testing.T) {
-		var nilPtr *int
-
-		result := derefPrism.ReverseGet(nilPtr)
-		assert.Nil(t, result)
 	})
 
 	t.Run("with string pointers", func(t *testing.T) {
 		stringDeref := Deref[string]()
 
 		str := "hello"
-		ptr := &str
-
-		result := stringDeref.GetOption(ptr)
-		assert.True(t, O.IsSome(result))
-
-		extracted := O.GetOrElse(F.Constant((*string)(nil)))(result)
-		assert.NotNil(t, extracted)
-		assert.Equal(t, "hello", *extracted)
+		assert.Equal(t, O.Some("hello"), stringDeref.GetOption(&str))
+		assert.Equal(t, O.None[string](), stringDeref.GetOption((*string)(nil)))
 	})
 
 	t.Run("with struct pointers", func(t *testing.T) {
@@ -1298,63 +1279,82 @@ func TestDeref(t *testing.T) {
 		personDeref := Deref[Person]()
 
 		person := Person{Name: "Alice", Age: 30}
-		ptr := &person
-
-		result := personDeref.GetOption(ptr)
+		result := personDeref.GetOption(&person)
 		assert.True(t, O.IsSome(result))
-
-		extracted := O.GetOrElse(F.Constant((*Person)(nil)))(result)
-		assert.NotNil(t, extracted)
+		extracted := O.GetOrElse(F.Constant(Person{}))(result)
 		assert.Equal(t, "Alice", extracted.Name)
 		assert.Equal(t, 30, extracted.Age)
 	})
 }
 
-// TestDerefWithSet tests using Set with Deref prism
+// TestDerefWithSet tests using Set with Deref prism.
+// Set replaces the focused value (T) inside the source (*T).
+// When the source is non-nil the focused T is replaced; when nil the source is
+// returned unchanged (still nil because GetOption returns None).
 func TestDerefWithSet(t *testing.T) {
 	derefPrism := Deref[int]()
 
-	t.Run("set on non-nil pointer", func(t *testing.T) {
+	t.Run("set on non-nil pointer replaces the value", func(t *testing.T) {
 		value := 42
 		ptr := &value
 
-		newValue := 100
-		newPtr := &newValue
-
-		setter := Set[*int](newPtr)
+		setter := Set[*int](100)
 		result := setter(derefPrism)(ptr)
 
 		assert.NotNil(t, result)
 		assert.Equal(t, 100, *result)
 	})
 
-	t.Run("set on nil pointer returns nil", func(t *testing.T) {
+	t.Run("set on nil pointer returns nil unchanged", func(t *testing.T) {
 		var nilPtr *int
 
-		newValue := 100
-		newPtr := &newValue
-
-		setter := Set[*int](newPtr)
+		setter := Set[*int](100)
 		result := setter(derefPrism)(nilPtr)
 
 		assert.Nil(t, result)
 	})
 }
 
-// TestDerefPrismLaws tests that Deref satisfies prism laws
+// TestDerefPrismLaws tests that Deref satisfies the two prism coherence laws.
+//
+// Law 1 (preview-review): GetOption(ReverseGet(a)) == Some(a)
+// For every value a of type T, wrapping it in a fresh pointer and immediately
+// dereferencing must recover Some(a).
+//
+// Law 2 (review-preview): if GetOption(s) == Some(a) then ReverseGet(a) focuses
+// back into the same "slot" — formally GetOption(ReverseGet(a)) == Some(a), and
+// when GetOption(s) == None, Set leaves s unchanged.
+//
+// Note on pointer identity: ReverseGet always allocates a fresh *T, so
+// ReverseGet(a) != s as pointers, but the value laws still hold in full.
 func TestDerefPrismLaws(t *testing.T) {
 	derefPrism := Deref[int]()
 
-	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
-		value := 42
-		ptr := &value
+	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a) for multiple values", func(t *testing.T) {
+		for _, a := range []int{0, -1, 42, 1000} {
+			ptr := derefPrism.ReverseGet(a)
+			assert.Equal(t, O.Some(a), derefPrism.GetOption(ptr),
+				"law 1 failed for a=%d", a)
+		}
+	})
 
-		reversed := derefPrism.ReverseGet(ptr)
-		extracted := derefPrism.GetOption(reversed)
+	t.Run("law 2a: if GetOption(s)==Some(a) then GetOption(ReverseGet(a))==Some(a)", func(t *testing.T) {
+		for _, value := range []int{0, 7, 99, -5} {
+			value := value
+			src := &value
+			opt := derefPrism.GetOption(src)
+			assert.True(t, O.IsSome(opt), "expected Some for non-nil pointer")
 
-		assert.True(t, O.IsSome(extracted))
-		result := O.GetOrElse(F.Constant((*int)(nil)))(extracted)
-		assert.Equal(t, ptr, result)
+			a := O.GetOrElse(F.Constant(0))(opt)
+			assert.Equal(t, O.Some(a), derefPrism.GetOption(derefPrism.ReverseGet(a)),
+				"law 2a failed for value=%d", value)
+		}
+	})
+
+	t.Run("law 2b: if GetOption(s)==None then Set leaves s unchanged", func(t *testing.T) {
+		var nilPtr *int
+		result := Set[*int](100)(derefPrism)(nilPtr)
+		assert.Nil(t, result, "Set on a None source must return the original nil")
 	})
 }
 

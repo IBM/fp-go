@@ -64,19 +64,66 @@ func FromStrictEq[A comparable]() func(A) Kleisli[A, A] {
 	return FromEq(eq.FromStrictEquals[A]())
 }
 
-// FromNillable converts a pointer to an Option.
-// Returns Some if the pointer is non-nil, None otherwise.
+// FromNillable converts a pointer to an Option wrapping the pointer itself.
+// Returns Some(*A) when the pointer is non-nil, None otherwise.
 //
-// Example:
-//
-//	var ptr *int = nil
-//	result := FromNillable(ptr) // None
-//	val := 42
-//	result := FromNillable(&val) // Some(&val)
+// Deprecated: Use FromNillable2 instead. FromNillable2 unwraps the pointed-to
+// value into an Option[A], which is the more useful form: it avoids carrying a
+// *A inside the Option and composes naturally with the rest of the Option API.
 //
 //go:inline
 func FromNillable[A any](a *A) Option[*A] {
 	return fromPredicate(a, F.IsNonNil[A])
+}
+
+// FromNillable2 converts a pointer to an Option of the pointed-to value.
+// Returns Some(value) when the pointer is non-nil (dereferencing it), None otherwise.
+// This is the preferred alternative to FromNillable because the resulting Option[A]
+// composes naturally with Map, Chain, and the rest of the Option API without
+// having to deal with an intermediate pointer inside the Option.
+//
+// Type Parameters:
+//   - A: the type that the pointer points to
+//
+// Parameters:
+//   - a: a pointer to a value of type A; may be nil
+//
+// Returns:
+//   - Some(*a) when a is non-nil
+//   - None when a is nil
+//
+// See Also:
+//   - ToNillable2: the inverse — converts Option[A] back to *A
+//   - FromNillable: the older variant that wraps the pointer itself as Option[*A]
+func FromNillable2[A any](a *A) Option[A] {
+	if a != nil {
+		return Of(*a)
+	}
+	return None[A]()
+}
+
+// ToNillable2 converts an Option[A] back to a nullable pointer.
+// Returns a pointer to the contained value when the Option is Some, nil otherwise.
+// This is the inverse of FromNillable2: round-tripping through both functions
+// preserves the value but allocates a new pointer on each call.
+//
+// Type Parameters:
+//   - A: the type contained in the Option
+//
+// Parameters:
+//   - fa: the Option value to convert
+//
+// Returns:
+//   - a pointer to a copy of the contained value when fa is Some
+//   - nil when fa is None
+//
+// See Also:
+//   - FromNillable2: the inverse — converts *A to Option[A]
+func ToNillable2[A any](fa Option[A]) *A {
+	if fa.s {
+		return &fa.a
+	}
+	return nil
 }
 
 // FromValidation converts a validation function (returning value and bool) to an Option-returning function.

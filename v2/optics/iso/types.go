@@ -6,6 +6,7 @@ import (
 	"github.com/IBM/fp-go/v2/eq"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -68,4 +69,6 @@ type (
 	Kleisli[R, S, A any] = Reader[R, Iso[S, A]]
 
 	Lazy[T any] = lazy.Lazy[T]
+
+	Option[T any] = option.Option[T]
 )

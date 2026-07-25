@@ -84,3 +84,17 @@ func Fold[T any](onFalse, onTrue func() T) func(bool) T {
 		return onFalse()
 	}
 }
+
+// Not returns the logical negation of a boolean value.
+//
+// It is its own inverse: Not(Not(b)) == b for all b.
+//
+// Parameters:
+//   - b: the boolean value to negate
+//
+// Returns:
+//   - true  if b is false
+//   - false if b is true
+func Not(b bool) bool {
+	return !b
+}

@@ -28,6 +28,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
 	N "github.com/IBM/fp-go/v2/number"
+	O "github.com/IBM/fp-go/v2/option"
 	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 )
@@ -2286,5 +2287,373 @@ func TestFromEqualsUseCases(t *testing.T) {
 		flags := []bool{false, true, false}
 		ints := A.Map(iso.ReverseGet)(flags)
 		assert.Equal(t, []int{0, 1, 0}, ints)
+	})
+}
+
+// TestNegate tests the Negate isomorphism.
+func TestNegate(t *testing.T) {
+	iso := Negate()
+
+	t.Run("Get negates true to false", func(t *testing.T) {
+		assert.False(t, iso.Get(true))
+	})
+
+	t.Run("Get negates false to true", func(t *testing.T) {
+		assert.True(t, iso.Get(false))
+	})
+
+	t.Run("ReverseGet negates true to false", func(t *testing.T) {
+		assert.False(t, iso.ReverseGet(true))
+	})
+
+	t.Run("ReverseGet negates false to true", func(t *testing.T) {
+		assert.True(t, iso.ReverseGet(false))
+	})
+
+	t.Run("Round-trip Get(Get(b)) == b for true", func(t *testing.T) {
+		assert.True(t, iso.Get(iso.Get(true)))
+	})
+
+	t.Run("Round-trip Get(Get(b)) == b for false", func(t *testing.T) {
+		assert.False(t, iso.Get(iso.Get(false)))
+	})
+
+	t.Run("Round-trip ReverseGet(ReverseGet(b)) == b for true", func(t *testing.T) {
+		assert.True(t, iso.ReverseGet(iso.ReverseGet(true)))
+	})
+
+	t.Run("Round-trip ReverseGet(ReverseGet(b)) == b for false", func(t *testing.T) {
+		assert.False(t, iso.ReverseGet(iso.ReverseGet(false)))
+	})
+}
+
+// TestNegateRoundTripLaws verifies isomorphism laws for Negate.
+func TestNegateRoundTripLaws(t *testing.T) {
+	iso := Negate()
+
+	for _, b := range []bool{true, false} {
+		bStr := fmt.Sprintf("%v", b)
+		t.Run("Get(ReverseGet(b)) == b for "+bStr, func(t *testing.T) {
+			assert.Equal(t, b, iso.Get(iso.ReverseGet(b)))
+		})
+		t.Run("ReverseGet(Get(b)) == b for "+bStr, func(t *testing.T) {
+			assert.Equal(t, b, iso.ReverseGet(iso.Get(b)))
+		})
+	}
+}
+
+// TestNegateUseCases demonstrates practical use cases for Negate.
+func TestNegateUseCases(t *testing.T) {
+	t.Run("Compose Negate with FromStrictEquals to toggle via string", func(t *testing.T) {
+		// "enabled"/"disabled" sentinel, then negate so the struct flag is inverted
+		sentinelIso := FromStrictEquals(lazy.Of("disabled"), lazy.Of("enabled"))
+		neg := Negate()
+		toggle := Modify[string](neg.Get)(sentinelIso)
+		assert.Equal(t, "disabled", toggle("enabled"))
+		assert.Equal(t, "enabled", toggle("disabled"))
+	})
+
+	t.Run("Map Negate over a bool slice", func(t *testing.T) {
+		iso := Negate()
+		flags := []bool{true, false, true}
+		result := A.Map(iso.Get)(flags)
+		assert.Equal(t, []bool{false, true, false}, result)
+	})
+}
+
+// TestRef tests the Ref isomorphism.
+func TestRef(t *testing.T) {
+	iso := Ref(lazy.Of(0))
+
+	t.Run("Get wraps value into a pointer", func(t *testing.T) {
+		p := iso.Get(42)
+		assert.NotNil(t, p)
+		assert.Equal(t, 42, *p)
+	})
+
+	t.Run("ReverseGet dereferences a non-nil pointer", func(t *testing.T) {
+		v := 99
+		assert.Equal(t, 99, iso.ReverseGet(&v))
+	})
+
+	t.Run("ReverseGet returns zero for nil pointer", func(t *testing.T) {
+		assert.Equal(t, 0, iso.ReverseGet(nil))
+	})
+
+	t.Run("ReverseGet zero thunk not called for non-nil pointer", func(t *testing.T) {
+		called := false
+		isoLazy := Ref(func() int { called = true; return -1 })
+		v := 7
+		isoLazy.ReverseGet(&v)
+		assert.False(t, called)
+	})
+
+	t.Run("Round-trip ReverseGet(Get(v)) == v", func(t *testing.T) {
+		assert.Equal(t, 7, iso.ReverseGet(iso.Get(7)))
+	})
+
+	t.Run("Round-trip *Get(ReverseGet(p)) == original", func(t *testing.T) {
+		v := 123
+		assert.Equal(t, 123, *iso.Get(iso.ReverseGet(&v)))
+	})
+
+	t.Run("Works with string type", func(t *testing.T) {
+		strIso := Ref(lazy.Of(""))
+		p := strIso.Get("hello")
+		assert.Equal(t, "hello", *p)
+		assert.Equal(t, "hello", strIso.ReverseGet(p))
+	})
+
+	t.Run("ReverseGet returns fallback for nil pointer", func(t *testing.T) {
+		strIso := Ref(lazy.Of("fallback"))
+		assert.Equal(t, "fallback", strIso.ReverseGet(nil))
+	})
+}
+
+// TestRefRoundTripLaws verifies isomorphism laws for Ref.
+func TestRefRoundTripLaws(t *testing.T) {
+	iso := Ref(lazy.Of(0))
+
+	values := []int{0, -1, 42, 1000}
+	for _, v := range values {
+		v := v
+		t.Run(fmt.Sprintf("ReverseGet(Get(%d)) == %d", v, v), func(t *testing.T) {
+			assert.Equal(t, v, iso.ReverseGet(iso.Get(v)))
+		})
+	}
+}
+
+// TestDeref tests the Deref isomorphism.
+func TestDeref(t *testing.T) {
+	iso := Deref(lazy.Of(0))
+
+	t.Run("Get dereferences a non-nil pointer", func(t *testing.T) {
+		v := 42
+		assert.Equal(t, 42, iso.Get(&v))
+	})
+
+	t.Run("Get returns zero for nil pointer", func(t *testing.T) {
+		assert.Equal(t, 0, iso.Get(nil))
+	})
+
+	t.Run("Get zero thunk not called for non-nil pointer", func(t *testing.T) {
+		called := false
+		isoLazy := Deref(func() int { called = true; return -1 })
+		v := 7
+		isoLazy.Get(&v)
+		assert.False(t, called)
+	})
+
+	t.Run("ReverseGet wraps value into a pointer", func(t *testing.T) {
+		p := iso.ReverseGet(99)
+		assert.NotNil(t, p)
+		assert.Equal(t, 99, *p)
+	})
+
+	t.Run("Round-trip Get(ReverseGet(v)) == v", func(t *testing.T) {
+		assert.Equal(t, 7, iso.Get(iso.ReverseGet(7)))
+	})
+
+	t.Run("Round-trip *ReverseGet(Get(p)) == original", func(t *testing.T) {
+		v := 123
+		assert.Equal(t, 123, *iso.ReverseGet(iso.Get(&v)))
+	})
+
+	t.Run("Works with string type", func(t *testing.T) {
+		strIso := Deref(lazy.Of(""))
+		hello := "hello"
+		assert.Equal(t, "hello", strIso.Get(&hello))
+		p := strIso.ReverseGet("world")
+		assert.Equal(t, "world", *p)
+	})
+
+	t.Run("Get returns fallback for nil pointer", func(t *testing.T) {
+		strIso := Deref(lazy.Of("fallback"))
+		assert.Equal(t, "fallback", strIso.Get(nil))
+	})
+}
+
+// TestDerefRoundTripLaws verifies isomorphism laws for Deref.
+func TestDerefRoundTripLaws(t *testing.T) {
+	iso := Deref(lazy.Of(0))
+
+	values := []int{0, -1, 42, 1000}
+	for _, v := range values {
+		v := v
+		t.Run(fmt.Sprintf("Get(ReverseGet(%d)) == %d", v, v), func(t *testing.T) {
+			assert.Equal(t, v, iso.Get(iso.ReverseGet(v)))
+		})
+	}
+}
+
+// TestRefDerefInverse verifies that Ref and Deref are inverses of each other.
+func TestRefDerefInverse(t *testing.T) {
+	t.Run("Deref.Get inverts Ref.Get", func(t *testing.T) {
+		ref := Ref(lazy.Of(0))
+		deref := Deref(lazy.Of(0))
+		p := ref.Get(42)
+		assert.Equal(t, 42, deref.Get(p))
+	})
+
+	t.Run("Ref.Get inverts Deref.Get", func(t *testing.T) {
+		ref := Ref(lazy.Of(0))
+		deref := Deref(lazy.Of(0))
+		v := 42
+		assert.Equal(t, 42, *ref.Get(deref.Get(&v)))
+	})
+}
+
+// TestToNillable tests the ToNillable isomorphism.
+func TestToNillable(t *testing.T) {
+	iso := ToNillable[int]()
+
+	t.Run("Get converts Some to non-nil pointer", func(t *testing.T) {
+		p := iso.Get(O.Some(42))
+		assert.NotNil(t, p)
+		assert.Equal(t, 42, *p)
+	})
+
+	t.Run("Get converts None to nil pointer", func(t *testing.T) {
+		assert.Nil(t, iso.Get(O.None[int]()))
+	})
+
+	t.Run("ReverseGet converts non-nil pointer to Some", func(t *testing.T) {
+		v := 99
+		assert.Equal(t, O.Some(99), iso.ReverseGet(&v))
+	})
+
+	t.Run("ReverseGet converts nil pointer to None", func(t *testing.T) {
+		assert.Equal(t, O.None[int](), iso.ReverseGet(nil))
+	})
+
+	t.Run("Round-trip ReverseGet(Get(Some(v))) == Some(v)", func(t *testing.T) {
+		assert.Equal(t, O.Some(7), iso.ReverseGet(iso.Get(O.Some(7))))
+	})
+
+	t.Run("Round-trip ReverseGet(Get(None)) == None", func(t *testing.T) {
+		assert.Equal(t, O.None[int](), iso.ReverseGet(iso.Get(O.None[int]())))
+	})
+
+	t.Run("Round-trip *Get(ReverseGet(p)) == *p", func(t *testing.T) {
+		v := 123
+		p := &v
+		result := iso.Get(iso.ReverseGet(p))
+		assert.NotNil(t, result)
+		assert.Equal(t, *p, *result)
+	})
+
+	t.Run("Works with string type", func(t *testing.T) {
+		strIso := ToNillable[string]()
+		p := strIso.Get(O.Some("hello"))
+		assert.NotNil(t, p)
+		assert.Equal(t, "hello", *p)
+		assert.Nil(t, strIso.Get(O.None[string]()))
+	})
+}
+
+// TestToNillableRoundTripLaws verifies isomorphism laws for ToNillable.
+func TestToNillableRoundTripLaws(t *testing.T) {
+	iso := ToNillable[int]()
+
+	optValues := []Option[int]{O.Some(0), O.Some(-1), O.Some(42), O.None[int]()}
+	for _, opt := range optValues {
+		opt := opt
+		t.Run(fmt.Sprintf("ReverseGet(Get(%v)) == %v", opt, opt), func(t *testing.T) {
+			assert.Equal(t, opt, iso.ReverseGet(iso.Get(opt)))
+		})
+	}
+}
+
+// TestFromNillable tests the FromNillable isomorphism.
+func TestFromNillable(t *testing.T) {
+	iso := FromNillable[int]()
+
+	t.Run("Get converts non-nil pointer to Some", func(t *testing.T) {
+		v := 42
+		assert.Equal(t, O.Some(42), iso.Get(&v))
+	})
+
+	t.Run("Get converts nil pointer to None", func(t *testing.T) {
+		assert.Equal(t, O.None[int](), iso.Get(nil))
+	})
+
+	t.Run("ReverseGet converts Some to non-nil pointer", func(t *testing.T) {
+		p := iso.ReverseGet(O.Some(99))
+		assert.NotNil(t, p)
+		assert.Equal(t, 99, *p)
+	})
+
+	t.Run("ReverseGet converts None to nil pointer", func(t *testing.T) {
+		assert.Nil(t, iso.ReverseGet(O.None[int]()))
+	})
+
+	t.Run("Round-trip Get(ReverseGet(Some(v))) == Some(v)", func(t *testing.T) {
+		assert.Equal(t, O.Some(7), iso.Get(iso.ReverseGet(O.Some(7))))
+	})
+
+	t.Run("Round-trip Get(ReverseGet(None)) == None", func(t *testing.T) {
+		assert.Equal(t, O.None[int](), iso.Get(iso.ReverseGet(O.None[int]())))
+	})
+
+	t.Run("Round-trip *ReverseGet(Get(p)) == *p", func(t *testing.T) {
+		v := 123
+		p := &v
+		result := iso.ReverseGet(iso.Get(p))
+		assert.NotNil(t, result)
+		assert.Equal(t, *p, *result)
+	})
+
+	t.Run("Works with string type", func(t *testing.T) {
+		strIso := FromNillable[string]()
+		hello := "hello"
+		assert.Equal(t, O.Some("hello"), strIso.Get(&hello))
+		assert.Equal(t, O.None[string](), strIso.Get((*string)(nil)))
+	})
+}
+
+// TestFromNillableRoundTripLaws verifies isomorphism laws for FromNillable.
+func TestFromNillableRoundTripLaws(t *testing.T) {
+	iso := FromNillable[int]()
+
+	values := []int{0, -1, 42, 1000}
+	for _, v := range values {
+		v := v
+		t.Run(fmt.Sprintf("Get(ReverseGet(Some(%d))) == Some(%d)", v, v), func(t *testing.T) {
+			assert.Equal(t, O.Some(v), iso.Get(iso.ReverseGet(O.Some(v))))
+		})
+	}
+
+	t.Run("Get(ReverseGet(None)) == None", func(t *testing.T) {
+		assert.Equal(t, O.None[int](), iso.Get(iso.ReverseGet(O.None[int]())))
+	})
+}
+
+// TestToNillableFromNillableInverse verifies that ToNillable and FromNillable are inverses.
+func TestToNillableFromNillableInverse(t *testing.T) {
+	t.Run("FromNillable.Get inverts ToNillable.Get on Some", func(t *testing.T) {
+		toN := ToNillable[int]()
+		fromN := FromNillable[int]()
+		assert.Equal(t, O.Some(42), fromN.Get(toN.Get(O.Some(42))))
+	})
+
+	t.Run("FromNillable.Get inverts ToNillable.Get on None", func(t *testing.T) {
+		toN := ToNillable[int]()
+		fromN := FromNillable[int]()
+		assert.Equal(t, O.None[int](), fromN.Get(toN.Get(O.None[int]())))
+	})
+
+	t.Run("ToNillable.Get inverts FromNillable.Get on non-nil pointer", func(t *testing.T) {
+		toN := ToNillable[int]()
+		fromN := FromNillable[int]()
+		v := 42
+		result := toN.Get(fromN.Get(&v))
+		assert.NotNil(t, result)
+		assert.Equal(t, v, *result)
+	})
+
+	t.Run("ToNillable.Get inverts FromNillable.Get on nil pointer", func(t *testing.T) {
+		toN := ToNillable[int]()
+		fromN := FromNillable[int]()
+		assert.Nil(t, toN.Get(fromN.Get(nil)))
 	})
 }

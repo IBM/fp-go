@@ -425,7 +425,8 @@ The package provides many useful prisms for common transformations:
 
 **Type Assertion & Extraction:**
   - InstanceOf[T](): Safe type assertion from any - Prism[any, T]
-  - Deref[T](): Safe pointer dereferencing (filters nil) - Prism[*T, *T]
+  - Deref[T](): Safe pointer dereferencing (filters nil) - Prism[*T, T]
+    GetOption dereferences the pointer into Some(value) or None; ReverseGet allocates a fresh *T via F.Ref
 
 **Container/Wrapper Prisms:**
   - FromEither[E, T](): Extract Right values - Prism[Either[E, T], T]

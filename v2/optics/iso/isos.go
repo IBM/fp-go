@@ -27,6 +27,7 @@ import (
 	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	S "github.com/IBM/fp-go/v2/string"
 )
@@ -763,4 +764,87 @@ func FromStrictEquals[T comparable](onFalse, onTrue Lazy[T]) Iso[T, bool] {
 		eq.FromStrictEquals[T](),
 		FromEquals(onFalse, onTrue),
 	)
+}
+
+// Ref returns a total [Iso] between a value and a pointer to that value.
+//
+// Both Get and ReverseGet are total functions: neither panics. ReverseGet calls
+// the zero thunk when the pointer is nil. Use lazy.Of to wrap a plain value as
+// a thunk.
+//
+//   - Get:        func(a A) *A  — wraps a in a new pointer (equivalent to [F.Ref])
+//   - ReverseGet: func(p *A) A  — returns *p, or zero() if p is nil (equivalent to [F.DerefSafe])
+func Ref[A any](zero Lazy[A]) Iso[A, *A] {
+	return MakeIso(F.Ref[A], F.DerefSafe(zero))
+}
+
+// Deref returns a total [Iso] between a pointer and the value it points to.
+// This is the inverse of Ref.
+//
+// Both Get and ReverseGet are total functions: neither panics. Get calls the
+// zero thunk when the pointer is nil. Use lazy.Of to wrap a plain value as a
+// thunk.
+//
+//   - Get:        func(p *A) A  — returns *p, or zero() if p is nil (equivalent to [F.DerefSafe])
+//   - ReverseGet: func(a A) *A  — wraps a in a new pointer (equivalent to [F.Ref])
+func Deref[A any](zero Lazy[A]) Iso[*A, A] {
+	return MakeIso(F.DerefSafe(zero), F.Ref[A])
+}
+
+// Not returns an [Iso] that negates a bool in both directions.
+//
+// Use this inside [codec.FromIso] to bridge env vars with negative naming
+//
+//   - Get:        func(b bool) bool — logical NOT
+//   - ReverseGet: func(b bool) bool — logical NOT (its own inverse)
+func Negate() Iso[bool, bool] {
+	return MakeIso(boolean.Not, boolean.Not)
+}
+
+// ToNillable returns an [Iso] between Option[A] and a nullable pointer *A.
+// It is the inverse of [FromNillable].
+//
+// Both directions are total: neither panics nor returns an error.
+//
+//   - Get:        func(Option[A]) *A     — Some(v) → &v (non-nil); None → nil
+//   - ReverseGet: func(*A) Option[A]     — non-nil p → Some(*p); nil → None
+//
+// Round-trip caveats (same as [Ref] / [Deref]):
+//   - Pointer identity is not preserved: ReverseGet(Get(Some(v))) == Some(v) by value,
+//     but the pointer returned by Get is a fresh allocation.
+//   - Get(ReverseGet(nil)) == None and Get(ReverseGet(p)) == Some(*p).
+//
+// Type Parameters:
+//   - A: the type contained in the Option / pointed to by the pointer
+//
+// See Also:
+//   - FromNillable: the inverse iso — Iso[*A, Option[A]]
+//   - option.ToNillable2: the underlying Get function
+//   - option.FromNillable2: the underlying ReverseGet function
+func ToNillable[A any]() Iso[Option[A], *A] {
+	return MakeIso(option.ToNillable2[A], option.FromNillable2[A])
+}
+
+// FromNillable returns an [Iso] between a nullable pointer *A and Option[A].
+// It is the inverse of [ToNillable].
+//
+// Both directions are total: neither panics nor returns an error.
+//
+//   - Get:        func(*A) Option[A]     — non-nil p → Some(*p); nil → None
+//   - ReverseGet: func(Option[A]) *A     — Some(v) → &v (non-nil); None → nil
+//
+// Round-trip caveats (same as [Ref] / [Deref]):
+//   - Pointer identity is not preserved: ReverseGet(Get(p)) holds *ReverseGet(Get(p)) == *p,
+//     but the pointer returned by ReverseGet is a fresh allocation.
+//   - Get(ReverseGet(None)) == None and Get(ReverseGet(Some(v))) == Some(v).
+//
+// Type Parameters:
+//   - A: the type pointed to by the pointer / contained in the Option
+//
+// See Also:
+//   - ToNillable: the inverse iso — Iso[Option[A], *A]
+//   - option.FromNillable2: the underlying Get function
+//   - option.ToNillable2: the underlying ReverseGet function
+func FromNillable[A any]() Iso[*A, Option[A]] {
+	return MakeIso(option.FromNillable2[A], option.ToNillable2[A])
 }

@@ -41,6 +41,59 @@ func TestFromNillable(t *testing.T) {
 	assert.Equal(t, &val, unwrapped)
 }
 
+// TestFromNillable2_nilPointer verifies that a nil pointer yields None.
+func TestFromNillable2_nilPointer(t *testing.T) {
+	var nilPtr *int = nil
+	assert.Equal(t, None[int](), FromNillable2(nilPtr))
+}
+
+// TestFromNillable2_nonNilPointer verifies that a non-nil pointer yields Some
+// with the dereferenced value (not the pointer).
+func TestFromNillable2_nonNilPointer(t *testing.T) {
+	val := 42
+	result := FromNillable2(&val)
+	assert.Equal(t, Some(42), result)
+}
+
+// TestFromNillable2_stringPointer verifies behaviour with a string pointer.
+func TestFromNillable2_stringPointer(t *testing.T) {
+	s := "hello"
+	assert.Equal(t, Some("hello"), FromNillable2(&s))
+	assert.Equal(t, None[string](), FromNillable2((*string)(nil)))
+}
+
+// TestToNillable2_none verifies that None produces a nil pointer.
+func TestToNillable2_none(t *testing.T) {
+	assert.Nil(t, ToNillable2(None[int]()))
+}
+
+// TestToNillable2_some verifies that Some yields a non-nil pointer to the value.
+func TestToNillable2_some(t *testing.T) {
+	ptr := ToNillable2(Some(42))
+	assert.NotNil(t, ptr)
+	assert.Equal(t, 42, *ptr)
+}
+
+// TestFromNillable2_ToNillable2_roundtrip verifies the round-trip:
+// dereferencing a pointer gives Some(v), and ToNillable2 gives back a pointer
+// with the same value.
+func TestFromNillable2_ToNillable2_roundtrip(t *testing.T) {
+	val := 99
+	opt := FromNillable2(&val)
+	ptr := ToNillable2(opt)
+	assert.NotNil(t, ptr)
+	assert.Equal(t, val, *ptr)
+}
+
+// TestToNillable2_FromNillable2_roundtrip verifies that starting from Some(v),
+// converting to *A and back gives Some(v) again.
+func TestToNillable2_FromNillable2_roundtrip(t *testing.T) {
+	original := Some(7)
+	ptr := ToNillable2(original)
+	assert.NotNil(t, ptr)
+	assert.Equal(t, original, FromNillable2(ptr))
+}
+
 // Test FromValidation
 func TestFromValidation(t *testing.T) {
 	validate := func(x int) (int, bool) {

@@ -119,3 +119,39 @@ func ExampleFold_lazy() {
 	// Output:
 	// fast-path
 }
+
+func TestNot(t *testing.T) {
+	t.Run("negates true to false", func(t *testing.T) {
+		assert.False(t, Not(true))
+	})
+
+	t.Run("negates false to true", func(t *testing.T) {
+		assert.True(t, Not(false))
+	})
+}
+
+func TestNot_Involution(t *testing.T) {
+	for _, b := range []bool{true, false} {
+		t.Run(fmt.Sprintf("Not(Not(%v)) == %v", b, b), func(t *testing.T) {
+			assert.Equal(t, b, Not(Not(b)))
+		})
+	}
+}
+
+// ExampleNot demonstrates basic logical negation.
+func ExampleNot() {
+	fmt.Println(Not(true))
+	fmt.Println(Not(false))
+	// Output:
+	// false
+	// true
+}
+
+// ExampleNot_involution demonstrates that Not is its own inverse.
+func ExampleNot_involution() {
+	fmt.Println(Not(Not(true)))
+	fmt.Println(Not(Not(false)))
+	// Output:
+	// true
+	// false
+}

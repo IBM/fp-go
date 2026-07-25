@@ -234,48 +234,25 @@ func ParseDate(layout string) Prism[string, time.Time] {
 // It provides a safe way to work with nullable pointers, handling nil values
 // gracefully through the Option type.
 //
-// The prism's GetOption attempts to dereference a pointer.
-// If the pointer is non-nil, it returns Some(*T); if it's nil, it returns None.
+// The prism's GetOption dereferences the pointer and lifts the result into an Option.
+// If the pointer is non-nil, it returns Some(value); if it's nil, it returns None.
+// The result carries the value itself — not the pointer — so it composes naturally
+// with Map, Chain, and the rest of the Option API.
 //
-// The prism's ReverseGet is the identity function, returning the pointer unchanged.
+// The prism's ReverseGet takes a plain value and allocates a new pointer to it
+// via F.Ref, so it always returns a non-nil *T.
 //
 // Type Parameters:
 //   - T: The type being pointed to
 //
 // Returns:
-//   - A Prism[*T, *T] that safely handles pointer dereferencing
+//   - A Prism[*T, T] that safely handles pointer dereferencing
 //
-// Example:
-//
-//	// Create a prism for dereferencing int pointers
-//	derefPrism := Deref[int]()
-//
-//	// Dereference non-nil pointer
-//	value := 42
-//	ptr := &value
-//	result := derefPrism.GetOption(ptr)  // Some(&42)
-//
-//	// Dereference nil pointer
-//	var nilPtr *int
-//	result = derefPrism.GetOption(nilPtr)  // None[*int]()
-//
-//	// ReverseGet returns the pointer unchanged
-//	reconstructed := derefPrism.ReverseGet(ptr)  // &42
-//
-//	// Use with Set to update non-nil pointers
-//	newValue := 100
-//	newPtr := &newValue
-//	setter := Set[*int, *int](newPtr)
-//	result := setter(derefPrism)(ptr)  // &100
-//	result = setter(derefPrism)(nilPtr) // nil (unchanged)
-//
-// Common use cases:
-//   - Safely working with optional pointer fields
-//   - Validating non-nil pointers before operations
-//   - Filtering out nil values in data pipelines
-//   - Working with database nullable columns
-func Deref[T any]() Prism[*T, *T] {
-	return MakePrismWithName(option.FromNillable[T], F.Identity[*T], "PrismDeref")
+// See Also:
+//   - FromNillable2: the underlying Option constructor used by GetOption
+//   - F.Ref: the underlying pointer constructor used by ReverseGet
+func Deref[T any]() Prism[*T, T] {
+	return MakePrismWithName(option.FromNillable2[T], F.Ref[T], "PrismDeref")
 }
 
 // FromEither creates a prism for extracting Right values from Either types.

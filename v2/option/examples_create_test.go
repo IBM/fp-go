@@ -53,3 +53,40 @@ func ExampleOption_creation() {
 	// None[int]
 	// Some[int](4)
 }
+
+// ExampleFromNillable2_nil shows that a nil pointer produces None.
+func ExampleFromNillable2_nil() {
+	result := FromNillable2[int](nil)
+	fmt.Println(result)
+	// Output:
+	// None[int]
+}
+
+// ExampleFromNillable2_nonNil shows that a non-nil pointer produces Some with
+// the dereferenced value — not the pointer — making the result suitable for
+// direct use with Map, Chain, and other Option combinators.
+func ExampleFromNillable2_nonNil() {
+	val := 42
+	result := FromNillable2(&val)
+	fmt.Println(result)
+	// Output:
+	// Some[int](42)
+}
+
+// ExampleToNillable2_some shows that Some(v) converts back to a non-nil pointer.
+func ExampleToNillable2_some() {
+	ptr := ToNillable2(Some(42))
+	fmt.Println(ptr != nil)
+	fmt.Println(*ptr)
+	// Output:
+	// true
+	// 42
+}
+
+// ExampleToNillable2_none shows that None converts to a nil pointer.
+func ExampleToNillable2_none() {
+	ptr := ToNillable2(None[int]())
+	fmt.Println(ptr == nil)
+	// Output:
+	// true
+}
