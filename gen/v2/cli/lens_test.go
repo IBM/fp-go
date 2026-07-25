@@ -243,6 +243,72 @@ func TestIsComparableType(t *testing.T) {
 			code:     "type T struct { F struct{ X int } }",
 			expected: false,
 		},
+		{
+			name:     "qualified type (pkg.Type) - conservatively not comparable",
+			code:     "type T struct { F pkg.SomeStruct }",
+			expected: false,
+		},
+		{
+			name:     "qualified type containing a slice - not comparable",
+			code:     "type T struct { F llmclient.Config }",
+			expected: false,
+		},
+		{
+			name:     "context.Context - interface, comparable",
+			code:     "type T struct { F context.Context }",
+			expected: true,
+		},
+		// fp-go value-struct types: comparable when all type args are comparable
+		{
+			name:     "option.Option[string] - comparable type arg",
+			code:     "type T struct { F option.Option[string] }",
+			expected: true,
+		},
+		{
+			name:     "option.Option[[]byte] - non-comparable type arg",
+			code:     "type T struct { F option.Option[[]byte] }",
+			expected: false,
+		},
+		{
+			name:     "either.Either[error, string] - both args comparable",
+			code:     "type T struct { F either.Either[error, string] }",
+			expected: true,
+		},
+		{
+			name:     "either.Either[error, []string] - non-comparable second arg",
+			code:     "type T struct { F either.Either[error, []string] }",
+			expected: false,
+		},
+		{
+			name:     "pair.Pair[string, int] - both args comparable",
+			code:     "type T struct { F pair.Pair[string, int] }",
+			expected: true,
+		},
+		{
+			name:     "pair.Pair[string, []int] - non-comparable second arg",
+			code:     "type T struct { F pair.Pair[string, []int] }",
+			expected: false,
+		},
+		{
+			name:     "tuple.Tuple2[string, int] - both args comparable",
+			code:     "type T struct { F tuple.Tuple2[string, int] }",
+			expected: true,
+		},
+		{
+			name:     "tuple.Tuple2[string, []int] - non-comparable second arg",
+			code:     "type T struct { F tuple.Tuple2[string, []int] }",
+			expected: false,
+		},
+		{
+			name:     "result.Result[string] - comparable type arg",
+			code:     "type T struct { F result.Result[string] }",
+			expected: true,
+		},
+		{
+			name:     "result.Result[[]byte] - non-comparable type arg",
+			code:     "type T struct { F result.Result[[]byte] }",
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -262,6 +328,61 @@ func TestIsComparableType(t *testing.T) {
 
 			require.NotNil(t, fieldType)
 			result := isComparableType(fieldType, map[string]string{})
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsOptionType(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		expected bool
+	}{
+		{
+			name:     "option.Option[string]",
+			code:     "type T struct { F option.Option[string] }",
+			expected: true,
+		},
+		{
+			name:     "option.Option[int]",
+			code:     "type T struct { F option.Option[int] }",
+			expected: true,
+		},
+		{
+			name:     "plain string - not an Option",
+			code:     "type T struct { F string }",
+			expected: false,
+		},
+		{
+			name:     "pair.Pair[string, int] - not an Option",
+			code:     "type T struct { F pair.Pair[string, int] }",
+			expected: false,
+		},
+		{
+			name:     "other.Option[string] - any pkg named 'Option' is treated as Option",
+			code:     "type T struct { F other.Option[string] }",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
+			require.NoError(t, err)
+
+			var fieldType ast.Expr
+			ast.Inspect(file, func(n ast.Node) bool {
+				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
+					fieldType = field.Type
+					return false
+				}
+				return true
+			})
+
+			require.NotNil(t, fieldType)
+			result := isOptionType(fieldType)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -596,6 +717,134 @@ type TestStruct struct {
 	dataPattern := "lensData := __lens.MakeLensRefWithName("
 	assert.Contains(t, contentStr, dataPattern,
 		"Data field should use MakeLensRefWithName")
+}
+
+// TestGenerateLensHelpersWithQualifiedField verifies that annotation-mode lens
+// generation treats qualified struct fields (pkg.Type) as non-comparable, so
+// that no LensO is emitted for them.  This covers the case where the external
+// type (e.g. llmclient.Config) contains a slice internally.
+func TestGenerateLensHelpersWithQualifiedField(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+import "some/llmclient"
+
+// fp-go:Lens
+type Config struct {
+	Name      string
+	LLMConfig llmclient.Config
+}
+`
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := parseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	cfg := structs[0]
+	require.Len(t, cfg.Fields, 2)
+
+	// Name (string) – comparable
+	assert.Equal(t, "Name", cfg.Fields[0].Name)
+	assert.True(t, cfg.Fields[0].IsComparable, "string field should be comparable")
+
+	// LLMConfig (pkg.Type) – cannot be verified without full type info; must be
+	// treated as NOT comparable so no LensO is generated.
+	assert.Equal(t, "LLMConfig", cfg.Fields[1].Name)
+	assert.False(t, cfg.Fields[1].IsComparable,
+		"qualified struct field should be treated as non-comparable")
+}
+
+// TestParseFileWithOptionField verifies that a field of type option.Option[T] is
+// detected as IsOption=true and therefore will not get a LensO generated.
+func TestParseFileWithOptionField(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	testCode := `package testpkg
+
+import "github.com/IBM/fp-go/v2/option"
+
+// fp-go:Lens
+type Config struct {
+	Name    string
+	Value   option.Option[string]
+	Count   int
+}
+`
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := parseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	cfg := structs[0]
+	require.Len(t, cfg.Fields, 3)
+
+	// Name (string) – comparable, not an Option
+	assert.Equal(t, "Name", cfg.Fields[0].Name)
+	assert.True(t, cfg.Fields[0].IsComparable)
+	assert.False(t, cfg.Fields[0].IsOption, "string field must not be marked IsOption")
+
+	// Value (option.Option[string]) – comparable AND an Option → no LensO
+	assert.Equal(t, "Value", cfg.Fields[1].Name)
+	assert.True(t, cfg.Fields[1].IsComparable, "option.Option[string] is comparable")
+	assert.True(t, cfg.Fields[1].IsOption, "option.Option[string] must be marked IsOption")
+
+	// Count (int) – comparable, not an Option
+	assert.Equal(t, "Count", cfg.Fields[2].Name)
+	assert.True(t, cfg.Fields[2].IsComparable)
+	assert.False(t, cfg.Fields[2].IsOption, "int field must not be marked IsOption")
+}
+
+// TestGenerateLensHelpersOptionFieldNoLensO verifies that the full generation
+// pipeline omits LensO for Option-typed fields while still producing it for
+// plain comparable fields in the same struct.
+func TestGenerateLensHelpersOptionFieldNoLensO(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	testCode := `package testpkg
+
+import "github.com/IBM/fp-go/v2/option"
+
+// fp-go:Lens
+type Config struct {
+	Name  string
+	Value option.Option[string]
+	Count int
+}
+`
+	testFile := filepath.Join(tmpDir, "test.go")
+	err := os.WriteFile(testFile, []byte(testCode), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	// Mandatory lenses must always be generated for all fields.
+	// (gofmt aligns struct fields, so we match without precise spacing)
+	assert.Contains(t, contentStr, "Name", "mandatory lens for Name must exist")
+	assert.Contains(t, contentStr, "__lens.Lens[Config, string]", "Name lens type must be present")
+	assert.Contains(t, contentStr, "__lens.Lens[Config, option.Option[string]]", "Value lens type must be present")
+	assert.Contains(t, contentStr, "__lens.Lens[Config, int]", "Count lens type must be present")
+
+	// LensO must exist for plain comparable fields.
+	assert.Contains(t, contentStr, "__lens_option.LensO[Config, string]", "LensO for Name (string) must exist")
+	assert.Contains(t, contentStr, "__lens_option.LensO[Config, int]", "LensO for Count (int) must exist")
+
+	// LensO must NOT exist for Option-typed field — would produce Option[Option[A]].
+	assert.NotContains(t, contentStr, "__lens_option.LensO[Config, option.Option[string]]",
+		"LensO for Value (option.Option[string]) must NOT be generated")
+	assert.NotContains(t, contentStr, "lensValueO",
+		"lensValueO variable must not appear in generated code")
 }
 
 func TestGenerateLensHelpers(t *testing.T) {

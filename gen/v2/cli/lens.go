@@ -95,6 +95,7 @@ type fieldInfo struct {
 	BaseType     string // TypeName without leading * for pointer types
 	IsOptional   bool   // true if field is a pointer or has json omitempty tag
 	IsComparable bool   // true if the type is comparable (can use ==)
+	IsOption     bool   // true if the field type is already an option.Option — LensO must not be generated (would produce Option[Option[A]])
 	IsEmbedded   bool   // true if this field comes from an embedded struct
 	IsDeprecated bool   // true if the field is marked as deprecated
 }
@@ -119,7 +120,7 @@ type {{.Name}}Lenses{{.TypeParams}} struct {
 {{- end}}
 	// optional fields
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if and .IsComparable (not .IsOption)}}
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
@@ -142,7 +143,7 @@ type {{.Name}}RefLenses{{.TypeParams}} struct {
 {{- end}}
 	// optional fields
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if and .IsComparable (not .IsOption)}}
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
@@ -191,7 +192,7 @@ func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if and .IsComparable (not .IsOption)}}
 	lens{{.Name}}O := __lens_option.FromIso[{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 {{- end}}
@@ -202,7 +203,7 @@ func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 {{- end}}
 		// optional lenses
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if and .IsComparable (not .IsOption)}}
 		{{.Name}}O: lens{{.Name}}O,
 {{- end}}
 {{- end}}
@@ -231,7 +232,7 @@ func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames
 {{- end}}
 	// optional lenses
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if and .IsComparable (not .IsOption)}}
 	lens{{.Name}}O := __lens_option.FromIso[*{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
 {{- end}}
 {{- end}}
@@ -242,7 +243,7 @@ func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames
 {{- end}}
 		// optional lenses
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if and .IsComparable (not .IsOption)}}
 		{{.Name}}O: lens{{.Name}}O,
 {{- end}}
 {{- end}}
@@ -455,6 +456,55 @@ func isPointerType(expr ast.Expr) bool {
 	return ok
 }
 
+// fpgoValueStructTypes is the set of fp-go generic types that are plain value
+// structs (no func or slice fields) and are therefore comparable whenever all
+// their type arguments are comparable.
+//
+// The key is the package short name as it typically appears in source imports
+// (e.g. "option", "either"); the value is the set of exported type names from
+// that package that follow this rule.
+//
+// This table must only list types whose underlying struct contains no
+// inherently non-comparable fields (no slices, maps, or funcs).  When in
+// doubt, omit the type — the generator will conservatively treat it as
+// non-comparable.
+var fpgoValueStructTypes = map[string]map[string]bool{
+	"option": {"Option": true},
+	"either": {"Either": true},
+	"pair":   {"Pair": true},
+	"tuple": {
+		"Tuple1": true, "Tuple2": true, "Tuple3": true, "Tuple4": true,
+		"Tuple5": true, "Tuple6": true, "Tuple7": true, "Tuple8": true,
+		"Tuple9": true, "Tuple10": true, "Tuple11": true, "Tuple12": true,
+		"Tuple13": true, "Tuple14": true, "Tuple15": true,
+	},
+	"result": {"Result": true},
+}
+
+// isFpGoValueStructPkg reports whether pkgName.typeName names an fp-go
+// value-struct generic type whose comparability depends solely on its type
+// arguments (see fpgoValueStructTypes).
+func isFpGoValueStructPkg(pkgName, typeName string) bool {
+	types, ok := fpgoValueStructTypes[pkgName]
+	return ok && types[typeName]
+}
+
+// isOptionType reports whether an AST type expression is an Option instantiation,
+// i.e. `pkg.Option[A]` for any package alias `pkg` and any type argument `A`.
+// A field with this type must not get a LensO generated because that would
+// produce an `Option[Option[A]]` return type.
+func isOptionType(expr ast.Expr) bool {
+	idx, ok := expr.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := idx.X.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	return sel.Sel.Name == "Option"
+}
+
 // isComparableType checks if a type expression represents a comparable type.
 // Comparable types in Go include:
 // - Basic types (bool, numeric types, string)
@@ -518,47 +568,55 @@ func isComparableType(expr ast.Expr, typeParams map[string]string) bool {
 		return false
 	case *ast.SelectorExpr:
 		// Qualified identifier (e.g., pkg.Type)
-		// We can't determine comparability without type information
-		// Check for known non-comparable types from standard library
+		// Without full type information we cannot determine whether the named
+		// type's underlying definition is comparable.  The only safe default is
+		// false — callers that need accurate results for external packages should
+		// use the go/packages path (--type flag) which uses types.Comparable.
+		//
+		// Exception: types that are definitively interfaces (and therefore always
+		// comparable at the language level) can be white-listed here.
 		if ident, ok := t.X.(*ast.Ident); ok {
 			pkgName := ident.Name
 			typeName := t.Sel.Name
-			// Check for known non-comparable types
 			if pkgName == "context" && typeName == "Context" {
 				// context.Context is an interface, which is comparable
 				return true
 			}
-			// For other qualified types, we assume they're comparable
-			// This is a conservative approach
 		}
-		return true
+		return false
 	case *ast.IndexExpr, *ast.IndexListExpr:
-		// Generic types - we can't determine comparability without type information
-		// For common generic types, we can make educated guesses
+		// Generic instantiation, e.g. option.Option[string] or tuple.Tuple2[int, bool].
+		//
+		// fp-go value-struct types (Option, Either, Pair, TupleN, …) are plain structs
+		// whose comparability depends entirely on their type arguments: if all type
+		// arguments are comparable then the instantiation is comparable.
+		//
+		// We white-list the fp-go package names that follow this rule. For any other
+		// generic type we conservatively return false.
 		var baseExpr ast.Expr
+		var typeArgs []ast.Expr
 		if idx, ok := t.(*ast.IndexExpr); ok {
 			baseExpr = idx.X
+			typeArgs = []ast.Expr{idx.Index}
 		} else if idxList, ok := t.(*ast.IndexListExpr); ok {
 			baseExpr = idxList.X
+			typeArgs = idxList.Indices
 		}
 
 		if sel, ok := baseExpr.(*ast.SelectorExpr); ok {
 			if ident, ok := sel.X.(*ast.Ident); ok {
-				pkgName := ident.Name
-				typeName := sel.Sel.Name
-				// Check for known non-comparable generic types
-				if pkgName == "option" && typeName == "Option" {
-					// Option types are not comparable (they contain a slice internally)
-					return false
-				}
-				if pkgName == "either" && typeName == "Either" {
-					// Either types are not comparable
-					return false
+				if isFpGoValueStructPkg(ident.Name, sel.Sel.Name) {
+					// Comparable iff every type argument is comparable.
+					for _, arg := range typeArgs {
+						if !isComparableType(arg, typeParams) {
+							return false
+						}
+					}
+					return true
 				}
 			}
 		}
-		// For other generic types, conservatively assume not comparable
-		log.Printf("Not comparable type: %v\n", t)
+		// Unknown generic type — conservatively not comparable.
 		return false
 	case *ast.ChanType:
 		// Channel types are comparable
@@ -652,6 +710,7 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 					BaseType:     baseType,
 					IsOptional:   isOptional,
 					IsComparable: isComparableType(field.Type, typeParamsMap),
+					IsOption:     isOptionType(field.Type),
 					IsEmbedded:   true,
 				},
 				fieldType: field.Type,
@@ -814,6 +873,7 @@ func parseFile(filename string) ([]structInfo, string, error) {
 					BaseType:     baseType,
 					IsOptional:   isOptional,
 					IsComparable: isComparableType(field.Type, typeParamsMap),
+					IsOption:     isOptionType(field.Type),
 				})
 			}
 		}

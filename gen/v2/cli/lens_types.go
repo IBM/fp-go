@@ -294,6 +294,18 @@ func hasAnonymousStructWithUnexportedFields(t types.Type) bool {
 	return false
 }
 
+// isTypesOptionType reports whether t is an instantiation of
+// github.com/IBM/fp-go/v2/option.Option, i.e. a field whose type is already an
+// Option.  Generating a LensO for such a field would produce Option[Option[A]].
+func isTypesOptionType(t types.Type) bool {
+	named, ok := t.(*types.Named)
+	if !ok {
+		return false
+	}
+	obj := named.Obj()
+	return obj.Name() == "Option" && obj.Pkg() != nil && obj.Pkg().Path() == "github.com/IBM/fp-go/v2/option"
+}
+
 // extractStructFields extracts fieldInfo for every field in a struct, promoting
 // embedded struct fields (one level deep, same pattern as the annotation scanner).
 // fieldDocs maps field names to their documentation comments for deprecation detection.
@@ -339,6 +351,7 @@ func extractStructFields(structType *types.Struct, qualifier types.Qualifier, fi
 
 		isOptional := isPointer || hasOmitEmptyStringTag(tag)
 		isComparable := types.Comparable(field.Type())
+		isOption := isTypesOptionType(field.Type())
 
 		// Check if field is deprecated by looking for "Deprecated:" in its documentation
 		isDeprecated := false
@@ -354,6 +367,7 @@ func extractStructFields(structType *types.Struct, qualifier types.Qualifier, fi
 			BaseType:     baseType,
 			IsOptional:   isOptional,
 			IsComparable: isComparable,
+			IsOption:     isOption,
 			IsEmbedded:   false,
 			IsDeprecated: isDeprecated,
 		})
