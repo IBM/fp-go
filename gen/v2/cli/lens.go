@@ -111,16 +111,16 @@ const lensStructTemplate = `
 //
 // [lenses]: __lens.Lens
 type {{.Name}}Lenses{{.TypeParams}} struct {
-	// mandatory fields
 {{- range .Fields}}
+	// {{.Name}} is a [__lens.Lens] for the {{.Name}} field of [{{$.QualifiedName}}]
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
 	{{.Name}} __lens.Lens[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
-	// optional fields
 {{- range .Fields}}
 {{- if and .IsComparable (not .IsOption)}}
+	// {{.Name}}O is a [__lens_option.LensO] for the {{.Name}} field of [{{$.QualifiedName}}], treating the zero value as absent
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
@@ -129,21 +129,20 @@ type {{.Name}}Lenses{{.TypeParams}} struct {
 {{- end}}
 }
 
-// {{.Name}}RefLenses provides [lenses] for accessing fields of [{{.Name}}] via a reference to [{{.Name}}]
-//
+// {{.Name}}RefLenses provides [lenses] for accessing fields of [{{.Name}}] via a pointer to [{{.Name}}]
 //
 // [lenses]: __lens.Lens
 type {{.Name}}RefLenses{{.TypeParams}} struct {
-	// mandatory fields
 {{- range .Fields}}
+	// {{.Name}} is a [__lens.Lens] for the {{.Name}} field of [{{$.QualifiedName}}] via a pointer receiver
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
 	{{.Name}} __lens.Lens[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}]
 {{- end}}
-	// optional fields
 {{- range .Fields}}
 {{- if and .IsComparable (not .IsOption)}}
+	// {{.Name}}O is a [__lens_option.LensO] for the {{.Name}} field of [{{$.QualifiedName}}] via a pointer receiver, treating the zero value as absent
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
@@ -157,6 +156,7 @@ type {{.Name}}RefLenses{{.TypeParams}} struct {
 // [prisms]: __prism.Prism
 type {{.Name}}Prisms{{.TypeParams}} struct {
 {{- range .Fields}}
+	// {{.Name}} is a [__prism.Prism] for the {{.Name}} field of [{{$.QualifiedName}}]
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
@@ -164,11 +164,12 @@ type {{.Name}}Prisms{{.TypeParams}} struct {
 {{- end}}
 }
 
-// {{.Name}}RefPrisms provides [prisms] for accessing fields of [{{.Name}}] via a reference to [{{.Name}}]
+// {{.Name}}RefPrisms provides [prisms] for accessing fields of [{{.Name}}] via a pointer to [{{.Name}}]
 //
 // [prisms]: __prism.Prism
 type {{.Name}}RefPrisms{{.TypeParams}} struct {
 {{- range .Fields}}
+	// {{.Name}} is a [__prism.Prism] for the {{.Name}} field of [{{$.QualifiedName}}] via a pointer receiver
 {{- if .IsDeprecated}}
 	// Deprecated: This field is deprecated
 {{- end}}
@@ -177,88 +178,80 @@ type {{.Name}}RefPrisms{{.TypeParams}} struct {
 }
 `
 
-const lensConstructorTemplate = `
-// Make{{.Name}}Lenses creates a new [{{.Name}}Lenses] with [lenses] for all fields
-//
-// [lenses]:__lens.Lens
-func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
-	// mandatory lenses
+// lensStandaloneTemplate generates one standalone Make<TYPE><FIELD>Lens / Make<TYPE><FIELD>LensO /
+// Make<TYPE><FIELD>RefLens / Make<TYPE><FIELD>RefLensO / Make<TYPE><FIELD>Prism /
+// Make<TYPE><FIELD>RefPrism function per field so that callers can import only
+// the lenses/prisms they actually need, resulting in smaller binaries.
+const lensStandaloneTemplate = `
 {{- range .Fields}}
-	lens{{.Name}} := __lens.MakeLensWithName(
+// Make{{$.Name}}{{.Name}}Lens returns a [__lens.Lens] for the {{.Name}} field of [{{$.QualifiedName}}]
+{{- if .IsDeprecated}}
+//
+// Deprecated: This field is deprecated
+{{- end}}
+func Make{{$.Name}}{{.Name}}Lens{{$.TypeParams}}() __lens.Lens[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
+	return __lens.MakeLensWithName(
 		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s {{$.QualifiedName}}{{$.TypeParamNames}}, v {{.TypeName}}) {{$.QualifiedName}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
 		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
-{{- end}}
-	// optional lenses
-{{- range .Fields}}
-{{- if and .IsComparable (not .IsOption)}}
-	lens{{.Name}}O := __lens_option.FromIso[{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
-{{- end}}
-{{- end}}
-	return {{.Name}}Lenses{{.TypeParamNames}}{
-		// mandatory lenses
-{{- range .Fields}}
-		{{.Name}}: lens{{.Name}},
-{{- end}}
-		// optional lenses
-{{- range .Fields}}
-{{- if and .IsComparable (not .IsOption)}}
-		{{.Name}}O: lens{{.Name}}O,
-{{- end}}
-{{- end}}
-	}
 }
+{{- if and .IsComparable (not .IsOption)}}
 
-// Make{{.Name}}RefLenses creates a new [{{.Name}}RefLenses] with [lenses] for all fields
+// Make{{$.Name}}{{.Name}}LensO returns a [__lens_option.LensO] for the {{.Name}} field of [{{$.QualifiedName}}]
+{{- if .IsDeprecated}}
 //
-// [lenses]:__lens.Lens
-func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames}} {
-	// mandatory lenses
-{{- range .Fields}}
+// Deprecated: This field is deprecated
+{{- end}}
+func Make{{$.Name}}{{.Name}}LensO{{$.TypeParams}}() __lens_option.LensO[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
+	return __lens_option.FromIso[{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(Make{{$.Name}}{{.Name}}Lens{{$.TypeParamNames}}())
+}
+{{- end}}
+
+// Make{{$.Name}}{{.Name}}RefLens returns a [__lens.Lens] for the {{.Name}} field of [{{$.QualifiedName}}] via a pointer receiver
+{{- if .IsDeprecated}}
+//
+// Deprecated: This field is deprecated
+{{- end}}
 {{- if .IsComparable}}
-	lens{{.Name}} := __lens.MakeLensStrictWithName(
+func Make{{$.Name}}{{.Name}}RefLens{{$.TypeParams}}() __lens.Lens[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
+	return __lens.MakeLensStrictWithName(
 		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
 		"(*{{$.QualifiedName}}{{$.TypeParamNames}}).{{.Name}}",
 	)
+}
 {{- else}}
-	lens{{.Name}} := __lens.MakeLensRefWithName(
+func Make{{$.Name}}{{.Name}}RefLens{{$.TypeParams}}() __lens.Lens[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
+	return __lens.MakeLensRefWithName(
 		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
 		"(*{{$.QualifiedName}}{{$.TypeParamNames}}).{{.Name}}",
 	)
-{{- end}}
-{{- end}}
-	// optional lenses
-{{- range .Fields}}
-{{- if and .IsComparable (not .IsOption)}}
-	lens{{.Name}}O := __lens_option.FromIso[*{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(lens{{.Name}})
-{{- end}}
-{{- end}}
-	return {{.Name}}RefLenses{{.TypeParamNames}}{
-		// mandatory lenses
-{{- range .Fields}}
-		{{.Name}}: lens{{.Name}},
-{{- end}}
-		// optional lenses
-{{- range .Fields}}
-{{- if and .IsComparable (not .IsOption)}}
-		{{.Name}}O: lens{{.Name}}O,
-{{- end}}
-{{- end}}
-	}
 }
+{{- end}}
+{{- if and .IsComparable (not .IsOption)}}
 
-// Make{{.Name}}Prisms creates a new [{{.Name}}Prisms] with [prisms] for all fields
+// Make{{$.Name}}{{.Name}}RefLensO returns a [__lens_option.LensO] for the {{.Name}} field of [{{$.QualifiedName}}] via a pointer receiver
+{{- if .IsDeprecated}}
 //
-// [prisms]:__prism.Prism
-func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
-{{- range .Fields}}
+// Deprecated: This field is deprecated
+{{- end}}
+func Make{{$.Name}}{{.Name}}RefLensO{{$.TypeParams}}() __lens_option.LensO[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
+	return __lens_option.FromIso[*{{$.QualifiedName}}{{$.TypeParamNames}}](__iso_option.FromZero[{{.TypeName}}]())(Make{{$.Name}}{{.Name}}RefLens{{$.TypeParamNames}}())
+}
+{{- end}}
+
+// Make{{$.Name}}{{.Name}}Prism returns a [__prism.Prism] for the {{.Name}} field of [{{$.QualifiedName}}]
+{{- if .IsDeprecated}}
+//
+// Deprecated: This field is deprecated
+{{- end}}
+func Make{{$.Name}}{{.Name}}Prism{{$.TypeParams}}() __prism.Prism[{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
 {{- if .IsComparable}}
-	_fromNonZero{{.Name}} := __option.FromNonZero[{{.TypeName}}]()
-	_prism{{.Name}} := __prism.MakePrismWithName(
-		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
+	_fromNonZero := __option.FromNonZero[{{.TypeName}}]()
+	return __prism.MakePrismWithName(
+		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero(s.{{.Name}}) },
 		func(v {{.TypeName}}) {{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
 			var result {{$.QualifiedName}}{{$.TypeParamNames}}
@@ -271,7 +264,7 @@ func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
 		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- else}}
-	_prism{{.Name}} := __prism.MakePrismWithName(
+	return __prism.MakePrismWithName(
 		func(s {{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
 		func(v {{.TypeName}}) {{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
@@ -285,23 +278,18 @@ func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
 		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- end}}
-{{- end}}
-	return {{.Name}}Prisms{{.TypeParamNames}} {
-{{- range .Fields}}
-		{{.Name}}: _prism{{.Name}},
-{{- end}}
-	}
 }
 
-// Make{{.Name}}RefPrisms creates a new [{{.Name}}RefPrisms] with [prisms] for all fields
+// Make{{$.Name}}{{.Name}}RefPrism returns a [__prism.Prism] for the {{.Name}} field of [{{$.QualifiedName}}] via a pointer receiver
+{{- if .IsDeprecated}}
 //
-// [prisms]:__prism.Prism
-func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames}} {
-{{- range .Fields}}
+// Deprecated: This field is deprecated
+{{- end}}
+func Make{{$.Name}}{{.Name}}RefPrism{{$.TypeParams}}() __prism.Prism[*{{$.QualifiedName}}{{$.TypeParamNames}}, {{.TypeName}}] {
 {{- if .IsComparable}}
-	_fromNonZero{{.Name}} := __option.FromNonZero[{{.TypeName}}]()
-	_prism{{.Name}} := __prism.MakePrismWithName(
-		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero{{.Name}}(s.{{.Name}}) },
+	_fromNonZero := __option.FromNonZero[{{.TypeName}}]()
+	return __prism.MakePrismWithName(
+		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return _fromNonZero(s.{{.Name}}) },
 		func(v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
 			var result {{$.QualifiedName}}{{$.TypeParamNames}}
@@ -314,7 +302,7 @@ func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames
 		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- else}}
-	_prism{{.Name}} := __prism.MakePrismWithName(
+	return __prism.MakePrismWithName(
 		func(s *{{$.QualifiedName}}{{$.TypeParamNames}}) __option.Option[{{.TypeName}}] { return __option.Some(s.{{.Name}}) },
 		func(v {{.TypeName}}) *{{$.QualifiedName}}{{$.TypeParamNames}} {
 			{{- if .IsEmbedded}}
@@ -328,10 +316,65 @@ func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames
 		"{{$.QualifiedName}}{{$.TypeParamNames}}.{{.Name}}",
 	)
 {{- end}}
+}
 {{- end}}
+`
+
+const lensConstructorTemplate = `
+// Make{{.Name}}Lenses creates a new [{{.Name}}Lenses] with [lenses] for all fields
+//
+// [lenses]: __lens.Lens
+func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
+	return {{.Name}}Lenses{{.TypeParamNames}}{
+		// mandatory lenses
+{{- range .Fields}}
+		{{.Name}}: Make{{$.Name}}{{.Name}}Lens{{$.TypeParamNames}}(),
+{{- end}}
+		// optional lenses
+{{- range .Fields}}
+{{- if and .IsComparable (not .IsOption)}}
+		{{.Name}}O: Make{{$.Name}}{{.Name}}LensO{{$.TypeParamNames}}(),
+{{- end}}
+{{- end}}
+	}
+}
+
+// Make{{.Name}}RefLenses creates a new [{{.Name}}RefLenses] with [lenses] for all fields via a pointer to [{{.Name}}]
+//
+// [lenses]: __lens.Lens
+func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames}} {
+	return {{.Name}}RefLenses{{.TypeParamNames}}{
+		// mandatory lenses
+{{- range .Fields}}
+		{{.Name}}: Make{{$.Name}}{{.Name}}RefLens{{$.TypeParamNames}}(),
+{{- end}}
+		// optional lenses
+{{- range .Fields}}
+{{- if and .IsComparable (not .IsOption)}}
+		{{.Name}}O: Make{{$.Name}}{{.Name}}RefLensO{{$.TypeParamNames}}(),
+{{- end}}
+{{- end}}
+	}
+}
+
+// Make{{.Name}}Prisms creates a new [{{.Name}}Prisms] with [prisms] for all fields
+//
+// [prisms]: __prism.Prism
+func Make{{.Name}}Prisms{{.TypeParams}}() {{.Name}}Prisms{{.TypeParamNames}} {
+	return {{.Name}}Prisms{{.TypeParamNames}} {
+{{- range .Fields}}
+		{{.Name}}: Make{{$.Name}}{{.Name}}Prism{{$.TypeParamNames}}(),
+{{- end}}
+	}
+}
+
+// Make{{.Name}}RefPrisms creates a new [{{.Name}}RefPrisms] with [prisms] for all fields via a pointer to [{{.Name}}]
+//
+// [prisms]: __prism.Prism
+func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames}} {
 	return {{.Name}}RefPrisms{{.TypeParamNames}} {
 {{- range .Fields}}
-		{{.Name}}: _prism{{.Name}},
+		{{.Name}}: Make{{$.Name}}{{.Name}}RefPrism{{$.TypeParamNames}}(),
 {{- end}}
 	}
 }
@@ -339,12 +382,17 @@ func Make{{.Name}}RefPrisms{{.TypeParams}}() {{.Name}}RefPrisms{{.TypeParamNames
 
 var (
 	structTmpl      *template.Template
+	standaloneTmpl  *template.Template
 	constructorTmpl *template.Template
 )
 
 func init() {
 	var err error
 	structTmpl, err = template.New("struct").Parse(lensStructTemplate)
+	if err != nil {
+		panic(err)
+	}
+	standaloneTmpl, err = template.New("standalone").Parse(lensStandaloneTemplate)
 	if err != nil {
 		panic(err)
 	}
@@ -1042,7 +1090,12 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 			return err
 		}
 
-		// Generate constructor
+		// Generate standalone per-field helpers
+		if err := standaloneTmpl.Execute(&buf, s); err != nil {
+			return err
+		}
+
+		// Generate bulk constructors (delegate to the standalone helpers)
 		if err := constructorTmpl.Execute(&buf, s); err != nil {
 			return err
 		}

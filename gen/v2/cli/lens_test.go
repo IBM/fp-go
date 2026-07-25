@@ -639,27 +639,34 @@ func TestLensRefTemplatesWithComparable(t *testing.T) {
 		},
 	}
 
-	// Test constructor template for RefLenses
-	var constructorBuf bytes.Buffer
-	err := constructorTmpl.Execute(&constructorBuf, s)
+	// Test standalone template — each per-field function should use the right constructor
+	var standaloneBuf bytes.Buffer
+	err := standaloneTmpl.Execute(&standaloneBuf, s)
 	require.NoError(t, err)
 
-	constructorStr := constructorBuf.String()
+	standaloneStr := standaloneBuf.String()
 
-	// Check that MakeLensStrict is used for comparable types in RefLenses
-	assert.Contains(t, constructorStr, "func MakeTestStructRefLenses() TestStructRefLenses")
+	// Bulk constructor must still be present
+	var constructorBuf bytes.Buffer
+	err = constructorTmpl.Execute(&constructorBuf, s)
+	require.NoError(t, err)
+	assert.Contains(t, constructorBuf.String(), "func MakeTestStructRefLenses() TestStructRefLenses")
 
-	// Name field - comparable, should use MakeLensStrict
-	assert.Contains(t, constructorStr, "lensName := __lens.MakeLensStrictWithName(",
-		"comparable field Name should use MakeLensStrictWithName in RefLenses")
+	// Name field - comparable, standalone RefLens should use MakeLensStrictWithName
+	assert.Contains(t, standaloneStr, "return __lens.MakeLensStrictWithName(",
+		"comparable field Name should use MakeLensStrictWithName in standalone RefLens")
 
-	// Age field - comparable, should use MakeLensStrict
-	assert.Contains(t, constructorStr, "lensAge := __lens.MakeLensStrictWithName(",
-		"comparable field Age should use MakeLensStrictWithName in RefLenses")
+	// Data field - not comparable, standalone RefLens should use MakeLensRefWithName
+	assert.Contains(t, standaloneStr, "return __lens.MakeLensRefWithName(",
+		"non-comparable field Data should use MakeLensRefWithName in standalone RefLens")
 
-	// Data field - not comparable, should use MakeLensRef
-	assert.Contains(t, constructorStr, "lensData := __lens.MakeLensRefWithName(",
-		"non-comparable field Data should use MakeLensRefWithName in RefLenses")
+	// Standalone functions for ref lenses must be generated
+	assert.Contains(t, standaloneStr, "func MakeTestStructNameRefLens() __lens.Lens[*TestStruct, string]",
+		"comparable field Name should have standalone RefLens func")
+	assert.Contains(t, standaloneStr, "func MakeTestStructAgeRefLens() __lens.Lens[*TestStruct, int]",
+		"comparable field Age should have standalone RefLens func")
+	assert.Contains(t, standaloneStr, "func MakeTestStructDataRefLens() __lens.Lens[*TestStruct, []byte]",
+		"non-comparable field Data should have standalone RefLens func")
 
 }
 
@@ -700,23 +707,21 @@ type TestStruct struct {
 	// Check for expected content in RefLenses
 	assert.Contains(t, contentStr, "MakeTestStructRefLenses")
 
-	// Name and Count are comparable, should use MakeLensStrictWithName
-	assert.Contains(t, contentStr, "__lens.MakeLensStrictWithName",
-		"comparable fields should use MakeLensStrictWithName in RefLenses")
+	// Name and Count are comparable — standalone RefLens functions should use MakeLensStrictWithName
+	assert.Contains(t, contentStr, "return __lens.MakeLensStrictWithName(",
+		"comparable fields should use MakeLensStrictWithName in standalone RefLens")
 
-	// Data is not comparable (slice), should use MakeLensRefWithName
-	assert.Contains(t, contentStr, "__lens.MakeLensRefWithName",
-		"non-comparable fields should use MakeLensRefWithName in RefLenses")
+	// Data is not comparable (slice) — standalone RefLens should use MakeLensRefWithName
+	assert.Contains(t, contentStr, "return __lens.MakeLensRefWithName(",
+		"non-comparable fields should use MakeLensRefWithName in standalone RefLens")
 
-	// Verify the pattern appears for Name field (comparable)
-	namePattern := "lensName := __lens.MakeLensStrictWithName("
-	assert.Contains(t, contentStr, namePattern,
-		"Name field should use MakeLensStrictWithName")
+	// Verify standalone functions are present for Name field (comparable)
+	assert.Contains(t, contentStr, "func MakeTestStructNameRefLens() __lens.Lens[*TestStruct, string]",
+		"Name field should have standalone RefLens func using MakeLensStrictWithName")
 
-	// Verify the pattern appears for Data field (not comparable)
-	dataPattern := "lensData := __lens.MakeLensRefWithName("
-	assert.Contains(t, contentStr, dataPattern,
-		"Data field should use MakeLensRefWithName")
+	// Verify standalone function is present for Data field (not comparable)
+	assert.Contains(t, contentStr, "func MakeTestStructDataRefLens() __lens.Lens[*TestStruct, []byte]",
+		"Data field should have standalone RefLens func using MakeLensRefWithName")
 }
 
 // TestGenerateLensHelpersWithQualifiedField verifies that annotation-mode lens
@@ -939,7 +944,19 @@ func TestLensTemplates(t *testing.T) {
 	assert.Contains(t, structStr, "Value __lens.Lens[TestStruct, *int]")
 	assert.Contains(t, structStr, "ValueO __lens_option.LensO[TestStruct, *int]")
 
-	// Test constructor template
+	// Test standalone template — per-field functions
+	var standaloneBuf bytes.Buffer
+	err = standaloneTmpl.Execute(&standaloneBuf, s)
+	require.NoError(t, err)
+
+	standaloneStr := standaloneBuf.String()
+	assert.Contains(t, standaloneStr, "func MakeTestStructNameLens() __lens.Lens[TestStruct, string]")
+	assert.Contains(t, standaloneStr, "func MakeTestStructNameLensO() __lens_option.LensO[TestStruct, string]")
+	assert.Contains(t, standaloneStr, "func MakeTestStructValueLens() __lens.Lens[TestStruct, *int]")
+	assert.Contains(t, standaloneStr, "func MakeTestStructValueLensO() __lens_option.LensO[TestStruct, *int]")
+	assert.Contains(t, standaloneStr, "__iso_option.FromZero")
+
+	// Test constructor template — bulk constructor delegates to standalone functions
 	var constructorBuf bytes.Buffer
 	err = constructorTmpl.Execute(&constructorBuf, s)
 	require.NoError(t, err)
@@ -947,11 +964,10 @@ func TestLensTemplates(t *testing.T) {
 	constructorStr := constructorBuf.String()
 	assert.Contains(t, constructorStr, "func MakeTestStructLenses() TestStructLenses")
 	assert.Contains(t, constructorStr, "return TestStructLenses{")
-	assert.Contains(t, constructorStr, "Name: lensName,")
-	assert.Contains(t, constructorStr, "NameO: lensNameO,")
-	assert.Contains(t, constructorStr, "Value: lensValue,")
-	assert.Contains(t, constructorStr, "ValueO: lensValueO,")
-	assert.Contains(t, constructorStr, "__iso_option.FromZero")
+	assert.Contains(t, constructorStr, "Name: MakeTestStructNameLens(),")
+	assert.Contains(t, constructorStr, "NameO: MakeTestStructNameLensO(),")
+	assert.Contains(t, constructorStr, "Value: MakeTestStructValueLens(),")
+	assert.Contains(t, constructorStr, "ValueO: MakeTestStructValueLensO(),")
 }
 
 func TestLensTemplatesWithOmitEmpty(t *testing.T) {
@@ -982,16 +998,26 @@ func TestLensTemplatesWithOmitEmpty(t *testing.T) {
 	assert.Contains(t, structStr, "Pointer __lens.Lens[ConfigStruct, *string]")
 	assert.Contains(t, structStr, "PointerO __lens_option.LensO[ConfigStruct, *string]")
 
-	// Test constructor template
+	// Test standalone template — per-field LensO functions must use correct FromZero types
+	var standaloneBuf bytes.Buffer
+	err = standaloneTmpl.Execute(&standaloneBuf, s)
+	require.NoError(t, err)
+
+	standaloneStr := standaloneBuf.String()
+	assert.Contains(t, standaloneStr, "__iso_option.FromZero[string]()")
+	assert.Contains(t, standaloneStr, "__iso_option.FromZero[int]()")
+	assert.Contains(t, standaloneStr, "__iso_option.FromZero[*string]()")
+
+	// Test constructor template — bulk constructor delegates to standalone functions
 	var constructorBuf bytes.Buffer
 	err = constructorTmpl.Execute(&constructorBuf, s)
 	require.NoError(t, err)
 
 	constructorStr := constructorBuf.String()
 	assert.Contains(t, constructorStr, "func MakeConfigStructLenses() ConfigStructLenses")
-	assert.Contains(t, constructorStr, "__iso_option.FromZero[string]()")
-	assert.Contains(t, constructorStr, "__iso_option.FromZero[int]()")
-	assert.Contains(t, constructorStr, "__iso_option.FromZero[*string]()")
+	assert.Contains(t, constructorStr, "NameO: MakeConfigStructNameLensO(),")
+	assert.Contains(t, constructorStr, "CountO: MakeConfigStructCountLensO(),")
+	assert.Contains(t, constructorStr, "PointerO: MakeConfigStructPointerLensO(),")
 }
 
 func TestLensCommandFlags(t *testing.T) {
@@ -1343,14 +1369,18 @@ type ComparableBox[T comparable] struct {
 	assert.Contains(t, contentStr, "type ComparableBoxLenses[T comparable] struct", "Should have generic ComparableBoxLenses type")
 	assert.Contains(t, contentStr, "type ComparableBoxRefLenses[T comparable] struct", "Should have generic ComparableBoxRefLenses type")
 
-	// Check that Key field (with comparable constraint) uses MakeLensStrict in RefLenses
-	assert.Contains(t, contentStr, "lensKey := __lens.MakeLensStrictWithName(", "Key field with comparable constraint should use MakeLensStrictWithName")
+	// Check that Key field (with comparable constraint) has standalone RefLens using MakeLensStrictWithName
+	assert.Contains(t, contentStr, "func MakeComparableBoxKeyRefLens[T comparable]() __lens.Lens[*ComparableBox[T], T]",
+		"Key field with comparable constraint should have standalone RefLens")
+	assert.Contains(t, contentStr, "return __lens.MakeLensStrictWithName(",
+		"Key field with comparable constraint should use MakeLensStrictWithName in standalone RefLens")
 
-	// Check that Value field (string, always comparable) also uses MakeLensStrict
-	assert.Contains(t, contentStr, "lensValue := __lens.MakeLensStrictWithName(", "Value field (string) should use MakeLensStrictWithName")
+	// Check that Value field (string, always comparable) also has standalone RefLens using MakeLensStrictWithName
+	assert.Contains(t, contentStr, "func MakeComparableBoxValueRefLens[T comparable]() __lens.Lens[*ComparableBox[T], string]",
+		"Value field (string) should have standalone RefLens")
 
 	// Verify that MakeLensRef is NOT used (since both fields are comparable)
-	assert.NotContains(t, contentStr, "__lens.MakeLensRefWithName(", "Should not use MakeLensRefWithName when all fields are comparable")
+	assert.NotContains(t, contentStr, "return __lens.MakeLensRefWithName(", "Should not use MakeLensRefWithName when all fields are comparable")
 }
 
 func TestParseFileWithUnexportedFields(t *testing.T) {
