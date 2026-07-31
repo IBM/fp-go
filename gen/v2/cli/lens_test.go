@@ -18,923 +18,43 @@ package cli
 import (
 	"bytes"
 	"context"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
-	S "github.com/IBM/fp-go/v2/string"
+	"github.com/IBM/fp-go/gen/v2/cli/lenses"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	C "github.com/urfave/cli/v3"
 )
 
-// assertContainsField checks if content contains a field declaration, ignoring extra whitespace
+// assertContainsField checks if content contains a field declaration, ignoring extra whitespace.
 func assertContainsField(t *testing.T, content, fieldName, lensType string, msgAndArgs ...interface{}) {
 	t.Helper()
-	// Create a regex that matches the field with flexible whitespace
 	pattern := regexp.QuoteMeta(fieldName) + `\s+` + regexp.QuoteMeta(lensType)
 	matched, err := regexp.MatchString(pattern, content)
 	require.NoError(t, err, "regex compilation failed")
 	assert.True(t, matched, append(msgAndArgs, "Expected to find field: %s %s", fieldName, lensType)...)
 }
 
-func TestHasLensAnnotation(t *testing.T) {
-	tests := []struct {
-		name     string
-		comment  string
-		expected bool
-	}{
-		{
-			name:     "has annotation",
-			comment:  "// fp-go:Lens",
-			expected: true,
-		},
-		{
-			name:     "has annotation with other text",
-			comment:  "// This is a struct with fp-go:Lens annotation",
-			expected: true,
-		},
-		{
-			name:     "no annotation",
-			comment:  "// This is just a regular comment",
-			expected: false,
-		},
-		{
-			name:     "nil comment",
-			comment:  "",
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var doc *ast.CommentGroup
-			if S.IsNonEmpty(tt.comment) {
-				doc = &ast.CommentGroup{
-					List: []*ast.Comment{
-						{Text: tt.comment},
-					},
-				}
-			}
-			result := hasLensAnnotation(doc)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestGetTypeName(t *testing.T) {
-	tests := []struct {
-		name     string
-		code     string
-		expected string
-	}{
-		{
-			name:     "simple type",
-			code:     "type T struct { F string }",
-			expected: "string",
-		},
-		{
-			name:     "pointer type",
-			code:     "type T struct { F *string }",
-			expected: "*string",
-		},
-		{
-			name:     "slice type",
-			code:     "type T struct { F []int }",
-			expected: "[]int",
-		},
-		{
-			name:     "map type",
-			code:     "type T struct { F map[string]int }",
-			expected: "map[string]int",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fset := token.NewFileSet()
-			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
-			require.NoError(t, err)
-
-			var fieldType ast.Expr
-			ast.Inspect(file, func(n ast.Node) bool {
-				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
-					fieldType = field.Type
-					return false
-				}
-				return true
-			})
-
-			require.NotNil(t, fieldType)
-			result := getTypeName(fieldType)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestIsPointerType(t *testing.T) {
-	tests := []struct {
-		name     string
-		code     string
-		expected bool
-	}{
-		{
-			name:     "pointer type",
-			code:     "type T struct { F *string }",
-			expected: true,
-		},
-		{
-			name:     "non-pointer type",
-			code:     "type T struct { F string }",
-			expected: false,
-		},
-		{
-			name:     "slice type",
-			code:     "type T struct { F []string }",
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fset := token.NewFileSet()
-			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
-			require.NoError(t, err)
-
-			var fieldType ast.Expr
-			ast.Inspect(file, func(n ast.Node) bool {
-				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
-					fieldType = field.Type
-					return false
-				}
-				return true
-			})
-
-			require.NotNil(t, fieldType)
-			result := isPointerType(fieldType)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestIsComparableType(t *testing.T) {
-	tests := []struct {
-		name     string
-		code     string
-		expected bool
-	}{
-		{
-			name:     "basic type - string",
-			code:     "type T struct { F string }",
-			expected: true,
-		},
-		{
-			name:     "basic type - int",
-			code:     "type T struct { F int }",
-			expected: true,
-		},
-		{
-			name:     "basic type - bool",
-			code:     "type T struct { F bool }",
-			expected: true,
-		},
-		{
-			name:     "pointer type",
-			code:     "type T struct { F *string }",
-			expected: true,
-		},
-		{
-			name:     "slice type - not comparable",
-			code:     "type T struct { F []string }",
-			expected: false,
-		},
-		{
-			name:     "map type - not comparable",
-			code:     "type T struct { F map[string]int }",
-			expected: false,
-		},
-		{
-			name:     "array type - comparable if element is",
-			code:     "type T struct { F [5]int }",
-			expected: true,
-		},
-		{
-			name:     "interface type",
-			code:     "type T struct { F any }",
-			expected: true,
-		},
-		{
-			name:     "channel type",
-			code:     "type T struct { F chan int }",
-			expected: true,
-		},
-		{
-			name:     "function type - not comparable",
-			code:     "type T struct { F func() }",
-			expected: false,
-		},
-		{
-			name:     "struct literal - conservatively not comparable",
-			code:     "type T struct { F struct{ X int } }",
-			expected: false,
-		},
-		{
-			name:     "qualified type (pkg.Type) - conservatively not comparable",
-			code:     "type T struct { F pkg.SomeStruct }",
-			expected: false,
-		},
-		{
-			name:     "qualified type containing a slice - not comparable",
-			code:     "type T struct { F llmclient.Config }",
-			expected: false,
-		},
-		{
-			name:     "context.Context - interface, comparable",
-			code:     "type T struct { F context.Context }",
-			expected: true,
-		},
-		// fp-go value-struct types: comparable when all type args are comparable
-		{
-			name:     "option.Option[string] - comparable type arg",
-			code:     "type T struct { F option.Option[string] }",
-			expected: true,
-		},
-		{
-			name:     "option.Option[[]byte] - non-comparable type arg",
-			code:     "type T struct { F option.Option[[]byte] }",
-			expected: false,
-		},
-		{
-			name:     "either.Either[error, string] - both args comparable",
-			code:     "type T struct { F either.Either[error, string] }",
-			expected: true,
-		},
-		{
-			name:     "either.Either[error, []string] - non-comparable second arg",
-			code:     "type T struct { F either.Either[error, []string] }",
-			expected: false,
-		},
-		{
-			name:     "pair.Pair[string, int] - both args comparable",
-			code:     "type T struct { F pair.Pair[string, int] }",
-			expected: true,
-		},
-		{
-			name:     "pair.Pair[string, []int] - non-comparable second arg",
-			code:     "type T struct { F pair.Pair[string, []int] }",
-			expected: false,
-		},
-		{
-			name:     "tuple.Tuple2[string, int] - both args comparable",
-			code:     "type T struct { F tuple.Tuple2[string, int] }",
-			expected: true,
-		},
-		{
-			name:     "tuple.Tuple2[string, []int] - non-comparable second arg",
-			code:     "type T struct { F tuple.Tuple2[string, []int] }",
-			expected: false,
-		},
-		{
-			name:     "result.Result[string] - comparable type arg",
-			code:     "type T struct { F result.Result[string] }",
-			expected: true,
-		},
-		{
-			name:     "result.Result[[]byte] - non-comparable type arg",
-			code:     "type T struct { F result.Result[[]byte] }",
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fset := token.NewFileSet()
-			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
-			require.NoError(t, err)
-
-			var fieldType ast.Expr
-			ast.Inspect(file, func(n ast.Node) bool {
-				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
-					fieldType = field.Type
-					return false
-				}
-				return true
-			})
-
-			require.NotNil(t, fieldType)
-			result := isComparableType(fieldType, map[string]string{})
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestIsOptionType(t *testing.T) {
-	tests := []struct {
-		name     string
-		code     string
-		expected bool
-	}{
-		{
-			name:     "option.Option[string]",
-			code:     "type T struct { F option.Option[string] }",
-			expected: true,
-		},
-		{
-			name:     "option.Option[int]",
-			code:     "type T struct { F option.Option[int] }",
-			expected: true,
-		},
-		{
-			name:     "plain string - not an Option",
-			code:     "type T struct { F string }",
-			expected: false,
-		},
-		{
-			name:     "pair.Pair[string, int] - not an Option",
-			code:     "type T struct { F pair.Pair[string, int] }",
-			expected: false,
-		},
-		{
-			name:     "other.Option[string] - any pkg named 'Option' is treated as Option",
-			code:     "type T struct { F other.Option[string] }",
-			expected: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fset := token.NewFileSet()
-			file, err := parser.ParseFile(fset, "", "package test\n"+tt.code, 0)
-			require.NoError(t, err)
-
-			var fieldType ast.Expr
-			ast.Inspect(file, func(n ast.Node) bool {
-				if field, ok := n.(*ast.Field); ok && len(field.Names) > 0 {
-					fieldType = field.Type
-					return false
-				}
-				return true
-			})
-
-			require.NotNil(t, fieldType)
-			result := isOptionType(fieldType)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestHasOmitEmpty(t *testing.T) {
-	tests := []struct {
-		name     string
-		tag      string
-		expected bool
-	}{
-		{
-			name:     "has omitempty",
-			tag:      "`json:\"field,omitempty\"`",
-			expected: true,
-		},
-		{
-			name:     "has omitempty with other options",
-			tag:      "`json:\"field,omitempty,string\"`",
-			expected: true,
-		},
-		{
-			name:     "no omitempty",
-			tag:      "`json:\"field\"`",
-			expected: false,
-		},
-		{
-			name:     "no tag",
-			tag:      "",
-			expected: false,
-		},
-		{
-			name:     "different tag",
-			tag:      "`xml:\"field\"`",
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var tag *ast.BasicLit
-			if S.IsNonEmpty(tt.tag) {
-				tag = &ast.BasicLit{
-					Value: tt.tag,
-				}
-			}
-			result := hasOmitEmpty(tag)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestParseFile(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type Person struct {
-	Name  string
-	Age   int
-	Phone *string
-}
-
-// fp-go:Lens
-type Address struct {
-	Street string
-	City   string
-}
-
-// Not annotated
-type Other struct {
-	Field string
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 2)
-
-	// Check Person struct
-	person := structs[0]
-	assert.Equal(t, "Person", person.Name)
-	assert.Len(t, person.Fields, 3)
-
-	assert.Equal(t, "Name", person.Fields[0].Name)
-	assert.Equal(t, "string", person.Fields[0].TypeName)
-	assert.False(t, person.Fields[0].IsOptional)
-
-	assert.Equal(t, "Age", person.Fields[1].Name)
-	assert.Equal(t, "int", person.Fields[1].TypeName)
-	assert.False(t, person.Fields[1].IsOptional)
-
-	assert.Equal(t, "Phone", person.Fields[2].Name)
-	assert.Equal(t, "*string", person.Fields[2].TypeName)
-	assert.True(t, person.Fields[2].IsOptional)
-
-	// Check Address struct
-	address := structs[1]
-	assert.Equal(t, "Address", address.Name)
-	assert.Len(t, address.Fields, 2)
-
-	assert.Equal(t, "Street", address.Fields[0].Name)
-	assert.Equal(t, "City", address.Fields[1].Name)
-}
-
-func TestParseFileWithOmitEmpty(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type Config struct {
-	Name     string
-	Value    string  ` + "`json:\"value,omitempty\"`" + `
-	Count    int     ` + "`json:\",omitempty\"`" + `
-	Optional *string ` + "`json:\"optional,omitempty\"`" + `
-	Required int     ` + "`json:\"required\"`" + `
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check Config struct
-	config := structs[0]
-	assert.Equal(t, "Config", config.Name)
-	assert.Len(t, config.Fields, 5)
-
-	// Name - no tag, not optional
-	assert.Equal(t, "Name", config.Fields[0].Name)
-	assert.Equal(t, "string", config.Fields[0].TypeName)
-	assert.False(t, config.Fields[0].IsOptional)
-
-	// Value - has omitempty, should be optional
-	assert.Equal(t, "Value", config.Fields[1].Name)
-	assert.Equal(t, "string", config.Fields[1].TypeName)
-	assert.True(t, config.Fields[1].IsOptional, "Value field with omitempty should be optional")
-
-	// Count - has omitempty (no field name in tag), should be optional
-	assert.Equal(t, "Count", config.Fields[2].Name)
-	assert.Equal(t, "int", config.Fields[2].TypeName)
-	assert.True(t, config.Fields[2].IsOptional, "Count field with omitempty should be optional")
-
-	// Optional - pointer with omitempty, should be optional
-	assert.Equal(t, "Optional", config.Fields[3].Name)
-	assert.Equal(t, "*string", config.Fields[3].TypeName)
-	assert.True(t, config.Fields[3].IsOptional)
-
-	// Required - has json tag but no omitempty, not optional
-	assert.Equal(t, "Required", config.Fields[4].Name)
-	assert.Equal(t, "int", config.Fields[4].TypeName)
-	assert.False(t, config.Fields[4].IsOptional, "Required field without omitempty should not be optional")
-}
-
-func TestParseFileWithComparableTypes(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type TypeTest struct {
-	Name      string
-	Age       int
-	Pointer   *string
-	Slice     []string
-	Map       map[string]int
-	Channel   chan int
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check TypeTest struct
-	typeTest := structs[0]
-	assert.Equal(t, "TypeTest", typeTest.Name)
-	assert.Len(t, typeTest.Fields, 6)
-
-	// Name - string is comparable
-	assert.Equal(t, "Name", typeTest.Fields[0].Name)
-	assert.Equal(t, "string", typeTest.Fields[0].TypeName)
-	assert.False(t, typeTest.Fields[0].IsOptional)
-	assert.True(t, typeTest.Fields[0].IsComparable, "string should be comparable")
-
-	// Age - int is comparable
-	assert.Equal(t, "Age", typeTest.Fields[1].Name)
-	assert.Equal(t, "int", typeTest.Fields[1].TypeName)
-	assert.False(t, typeTest.Fields[1].IsOptional)
-	assert.True(t, typeTest.Fields[1].IsComparable, "int should be comparable")
-
-	// Pointer - pointer is optional, IsComparable not checked for optional fields
-	assert.Equal(t, "Pointer", typeTest.Fields[2].Name)
-	assert.Equal(t, "*string", typeTest.Fields[2].TypeName)
-	assert.True(t, typeTest.Fields[2].IsOptional)
-
-	// Slice - not comparable
-	assert.Equal(t, "Slice", typeTest.Fields[3].Name)
-	assert.Equal(t, "[]string", typeTest.Fields[3].TypeName)
-	assert.False(t, typeTest.Fields[3].IsOptional)
-	assert.False(t, typeTest.Fields[3].IsComparable, "slice should not be comparable")
-
-	// Map - not comparable
-	assert.Equal(t, "Map", typeTest.Fields[4].Name)
-	assert.Equal(t, "map[string]int", typeTest.Fields[4].TypeName)
-	assert.False(t, typeTest.Fields[4].IsOptional)
-	assert.False(t, typeTest.Fields[4].IsComparable, "map should not be comparable")
-
-	// Channel - comparable (note: getTypeName returns "any" for channel types, but isComparableType correctly identifies them)
-	assert.Equal(t, "Channel", typeTest.Fields[5].Name)
-	assert.Equal(t, "any", typeTest.Fields[5].TypeName) // getTypeName doesn't handle chan types specifically
-	assert.False(t, typeTest.Fields[5].IsOptional)
-	assert.True(t, typeTest.Fields[5].IsComparable, "channel should be comparable")
-}
-
-func TestLensRefTemplatesWithComparable(t *testing.T) {
-	s := structInfo{
-		Name:          "TestStruct",
-		QualifiedName: "TestStruct",
-		Fields: []fieldInfo{
-			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
-			{Name: "Age", TypeName: "int", IsOptional: false, IsComparable: true},
-			{Name: "Data", TypeName: "[]byte", IsOptional: false, IsComparable: false},
-			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: false},
-		},
-	}
-
-	// Test standalone template — each per-field function should use the right constructor
-	var standaloneBuf bytes.Buffer
-	err := standaloneTmpl.Execute(&standaloneBuf, s)
-	require.NoError(t, err)
-
-	standaloneStr := standaloneBuf.String()
-
-	// Bulk constructor must still be present
-	var constructorBuf bytes.Buffer
-	err = constructorTmpl.Execute(&constructorBuf, s)
-	require.NoError(t, err)
-	assert.Contains(t, constructorBuf.String(), "func MakeTestStructRefLenses() TestStructRefLenses")
-
-	// Name field - comparable, standalone RefLens should use MakeLensStrictWithName
-	assert.Contains(t, standaloneStr, "return __lens.MakeLensStrictWithName(",
-		"comparable field Name should use MakeLensStrictWithName in standalone RefLens")
-
-	// Data field - not comparable, standalone RefLens should use MakeLensRefWithName
-	assert.Contains(t, standaloneStr, "return __lens.MakeLensRefWithName(",
-		"non-comparable field Data should use MakeLensRefWithName in standalone RefLens")
-
-	// Standalone functions for ref lenses must be generated
-	assert.Contains(t, standaloneStr, "func MakeTestStructNameRefLens() __lens.Lens[*TestStruct, string]",
-		"comparable field Name should have standalone RefLens func")
-	assert.Contains(t, standaloneStr, "func MakeTestStructAgeRefLens() __lens.Lens[*TestStruct, int]",
-		"comparable field Age should have standalone RefLens func")
-	assert.Contains(t, standaloneStr, "func MakeTestStructDataRefLens() __lens.Lens[*TestStruct, []byte]",
-		"non-comparable field Data should have standalone RefLens func")
-
-}
-
-func TestGenerateLensHelpersWithComparable(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type TestStruct struct {
-	Name  string
-	Count int
-	Data  []byte
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content in RefLenses
-	assert.Contains(t, contentStr, "MakeTestStructRefLenses")
-
-	// Name and Count are comparable — standalone RefLens functions should use MakeLensStrictWithName
-	assert.Contains(t, contentStr, "return __lens.MakeLensStrictWithName(",
-		"comparable fields should use MakeLensStrictWithName in standalone RefLens")
-
-	// Data is not comparable (slice) — standalone RefLens should use MakeLensRefWithName
-	assert.Contains(t, contentStr, "return __lens.MakeLensRefWithName(",
-		"non-comparable fields should use MakeLensRefWithName in standalone RefLens")
-
-	// Verify standalone functions are present for Name field (comparable)
-	assert.Contains(t, contentStr, "func MakeTestStructNameRefLens() __lens.Lens[*TestStruct, string]",
-		"Name field should have standalone RefLens func using MakeLensStrictWithName")
-
-	// Verify standalone function is present for Data field (not comparable)
-	assert.Contains(t, contentStr, "func MakeTestStructDataRefLens() __lens.Lens[*TestStruct, []byte]",
-		"Data field should have standalone RefLens func using MakeLensRefWithName")
-}
-
-// TestGenerateLensHelpersWithQualifiedField verifies that annotation-mode lens
-// generation treats qualified struct fields (pkg.Type) as non-comparable, so
-// that no LensO is emitted for them.  This covers the case where the external
-// type (e.g. llmclient.Config) contains a slice internally.
-func TestGenerateLensHelpersWithQualifiedField(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-import "some/llmclient"
-
-// fp-go:Lens
-type Config struct {
-	Name      string
-	LLMConfig llmclient.Config
-}
-`
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	structs, _, err := parseFile(testFile)
-	require.NoError(t, err)
-	require.Len(t, structs, 1)
-
-	cfg := structs[0]
-	require.Len(t, cfg.Fields, 2)
-
-	// Name (string) – comparable
-	assert.Equal(t, "Name", cfg.Fields[0].Name)
-	assert.True(t, cfg.Fields[0].IsComparable, "string field should be comparable")
-
-	// LLMConfig (pkg.Type) – cannot be verified without full type info; must be
-	// treated as NOT comparable so no LensO is generated.
-	assert.Equal(t, "LLMConfig", cfg.Fields[1].Name)
-	assert.False(t, cfg.Fields[1].IsComparable,
-		"qualified struct field should be treated as non-comparable")
-}
-
-// TestParseFileWithOptionField verifies that a field of type option.Option[T] is
-// detected as IsOption=true and therefore will not get a LensO generated.
-func TestParseFileWithOptionField(t *testing.T) {
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-import "github.com/IBM/fp-go/v2/option"
-
-// fp-go:Lens
-type Config struct {
-	Name    string
-	Value   option.Option[string]
-	Count   int
-}
-`
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	structs, _, err := parseFile(testFile)
-	require.NoError(t, err)
-	require.Len(t, structs, 1)
-
-	cfg := structs[0]
-	require.Len(t, cfg.Fields, 3)
-
-	// Name (string) – comparable, not an Option
-	assert.Equal(t, "Name", cfg.Fields[0].Name)
-	assert.True(t, cfg.Fields[0].IsComparable)
-	assert.False(t, cfg.Fields[0].IsOption, "string field must not be marked IsOption")
-
-	// Value (option.Option[string]) – comparable AND an Option → no LensO
-	assert.Equal(t, "Value", cfg.Fields[1].Name)
-	assert.True(t, cfg.Fields[1].IsComparable, "option.Option[string] is comparable")
-	assert.True(t, cfg.Fields[1].IsOption, "option.Option[string] must be marked IsOption")
-
-	// Count (int) – comparable, not an Option
-	assert.Equal(t, "Count", cfg.Fields[2].Name)
-	assert.True(t, cfg.Fields[2].IsComparable)
-	assert.False(t, cfg.Fields[2].IsOption, "int field must not be marked IsOption")
-}
-
-// TestGenerateLensHelpersOptionFieldNoLensO verifies that the full generation
-// pipeline omits LensO for Option-typed fields while still producing it for
-// plain comparable fields in the same struct.
-func TestGenerateLensHelpersOptionFieldNoLensO(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-import "github.com/IBM/fp-go/v2/option"
-
-// fp-go:Lens
-type Config struct {
-	Name  string
-	Value option.Option[string]
-	Count int
-}
-`
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	err = generateLensHelpers(tmpDir, "gen.go", false, false)
-	require.NoError(t, err)
-
-	content, err := os.ReadFile(filepath.Join(tmpDir, "gen.go"))
-	require.NoError(t, err)
-	contentStr := string(content)
-
-	// Mandatory lenses must always be generated for all fields.
-	// (gofmt aligns struct fields, so we match without precise spacing)
-	assert.Contains(t, contentStr, "Name", "mandatory lens for Name must exist")
-	assert.Contains(t, contentStr, "__lens.Lens[Config, string]", "Name lens type must be present")
-	assert.Contains(t, contentStr, "__lens.Lens[Config, option.Option[string]]", "Value lens type must be present")
-	assert.Contains(t, contentStr, "__lens.Lens[Config, int]", "Count lens type must be present")
-
-	// LensO must exist for plain comparable fields.
-	assert.Contains(t, contentStr, "__lens_option.LensO[Config, string]", "LensO for Name (string) must exist")
-	assert.Contains(t, contentStr, "__lens_option.LensO[Config, int]", "LensO for Count (int) must exist")
-
-	// LensO must NOT exist for Option-typed field — would produce Option[Option[A]].
-	assert.NotContains(t, contentStr, "__lens_option.LensO[Config, option.Option[string]]",
-		"LensO for Value (option.Option[string]) must NOT be generated")
-	assert.NotContains(t, contentStr, "lensValueO",
-		"lensValueO variable must not appear in generated code")
-}
-
-func TestGenerateLensHelpers(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type TestStruct struct {
-	Name  string
-	Value *int
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content
-	assert.Contains(t, contentStr, "package testpkg")
-	assert.Contains(t, contentStr, "Code generated by go generate")
-	assert.Contains(t, contentStr, "TestStructLenses")
-	assert.Contains(t, contentStr, "MakeTestStructLenses")
-	assert.Contains(t, contentStr, "__lens.Lens[TestStruct, string]")
-	assert.Contains(t, contentStr, "__lens_option.LensO[TestStruct, *int]")
-	assert.Contains(t, contentStr, "__iso_option.FromZero")
-}
-
-func TestGenerateLensHelpersNoAnnotations(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// No annotation
-type TestStruct struct {
-	Name string
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code (should not create file)
-	outputFile := "gen.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file does not exist
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	assert.True(t, os.IsNotExist(err))
-}
+// ---------------------------------------------------------------------------
+// Template smoke tests — verify the lenses package templates are accessible
+// ---------------------------------------------------------------------------
 
 func TestLensTemplates(t *testing.T) {
-	s := structInfo{
+	s := lenses.StructInfo{
 		Name:          "TestStruct",
 		QualifiedName: "TestStruct",
-		Fields: []fieldInfo{
+		Fields: []lenses.FieldInfo{
 			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
 			{Name: "Value", TypeName: "*int", IsOptional: true, IsComparable: true},
 		},
 	}
 
-	// Test struct template
 	var structBuf bytes.Buffer
-	err := structTmpl.Execute(&structBuf, s)
+	err := lenses.StructTmpl.Execute(&structBuf, s)
 	require.NoError(t, err)
 
 	structStr := structBuf.String()
@@ -944,9 +64,8 @@ func TestLensTemplates(t *testing.T) {
 	assert.Contains(t, structStr, "Value __lens.Lens[TestStruct, *int]")
 	assert.Contains(t, structStr, "ValueO __lens_option.LensO[TestStruct, *int]")
 
-	// Test standalone template — per-field functions
 	var standaloneBuf bytes.Buffer
-	err = standaloneTmpl.Execute(&standaloneBuf, s)
+	err = lenses.StandaloneTmpl.Execute(&standaloneBuf, s)
 	require.NoError(t, err)
 
 	standaloneStr := standaloneBuf.String()
@@ -956,9 +75,8 @@ func TestLensTemplates(t *testing.T) {
 	assert.Contains(t, standaloneStr, "func MakeTestStructValueLensO() __lens_option.LensO[TestStruct, *int]")
 	assert.Contains(t, standaloneStr, "__iso_option.FromZero")
 
-	// Test constructor template — bulk constructor delegates to standalone functions
 	var constructorBuf bytes.Buffer
-	err = constructorTmpl.Execute(&constructorBuf, s)
+	err = lenses.ConstructorTmpl.Execute(&constructorBuf, s)
 	require.NoError(t, err)
 
 	constructorStr := constructorBuf.String()
@@ -971,36 +89,29 @@ func TestLensTemplates(t *testing.T) {
 }
 
 func TestLensTemplatesWithOmitEmpty(t *testing.T) {
-	s := structInfo{
+	s := lenses.StructInfo{
 		Name:          "ConfigStruct",
 		QualifiedName: "ConfigStruct",
-		Fields: []fieldInfo{
+		Fields: []lenses.FieldInfo{
 			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
-			{Name: "Value", TypeName: "string", IsOptional: true, IsComparable: true},    // non-pointer with omitempty
-			{Name: "Count", TypeName: "int", IsOptional: true, IsComparable: true},       // non-pointer with omitempty
-			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: true}, // pointer
+			{Name: "Value", TypeName: "string", IsOptional: true, IsComparable: true},
+			{Name: "Count", TypeName: "int", IsOptional: true, IsComparable: true},
+			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: true},
 		},
 	}
 
-	// Test struct template
 	var structBuf bytes.Buffer
-	err := structTmpl.Execute(&structBuf, s)
+	err := lenses.StructTmpl.Execute(&structBuf, s)
 	require.NoError(t, err)
 
 	structStr := structBuf.String()
-	assert.Contains(t, structStr, "type ConfigStructLenses struct")
-	assert.Contains(t, structStr, "Name __lens.Lens[ConfigStruct, string]")
 	assert.Contains(t, structStr, "NameO __lens_option.LensO[ConfigStruct, string]")
-	assert.Contains(t, structStr, "Value __lens.Lens[ConfigStruct, string]")
-	assert.Contains(t, structStr, "ValueO __lens_option.LensO[ConfigStruct, string]", "comparable non-pointer with omitempty should have optional lens")
-	assert.Contains(t, structStr, "Count __lens.Lens[ConfigStruct, int]")
-	assert.Contains(t, structStr, "CountO __lens_option.LensO[ConfigStruct, int]", "comparable non-pointer with omitempty should have optional lens")
-	assert.Contains(t, structStr, "Pointer __lens.Lens[ConfigStruct, *string]")
+	assert.Contains(t, structStr, "ValueO __lens_option.LensO[ConfigStruct, string]")
+	assert.Contains(t, structStr, "CountO __lens_option.LensO[ConfigStruct, int]")
 	assert.Contains(t, structStr, "PointerO __lens_option.LensO[ConfigStruct, *string]")
 
-	// Test standalone template — per-field LensO functions must use correct FromZero types
 	var standaloneBuf bytes.Buffer
-	err = standaloneTmpl.Execute(&standaloneBuf, s)
+	err = lenses.StandaloneTmpl.Execute(&standaloneBuf, s)
 	require.NoError(t, err)
 
 	standaloneStr := standaloneBuf.String()
@@ -1008,9 +119,8 @@ func TestLensTemplatesWithOmitEmpty(t *testing.T) {
 	assert.Contains(t, standaloneStr, "__iso_option.FromZero[int]()")
 	assert.Contains(t, standaloneStr, "__iso_option.FromZero[*string]()")
 
-	// Test constructor template — bulk constructor delegates to standalone functions
 	var constructorBuf bytes.Buffer
-	err = constructorTmpl.Execute(&constructorBuf, s)
+	err = lenses.ConstructorTmpl.Execute(&constructorBuf, s)
 	require.NoError(t, err)
 
 	constructorStr := constructorBuf.String()
@@ -1020,15 +130,351 @@ func TestLensTemplatesWithOmitEmpty(t *testing.T) {
 	assert.Contains(t, constructorStr, "PointerO: MakeConfigStructPointerLensO(),")
 }
 
+func TestLensRefTemplatesWithComparable(t *testing.T) {
+	s := lenses.StructInfo{
+		Name:          "TestStruct",
+		QualifiedName: "TestStruct",
+		Fields: []lenses.FieldInfo{
+			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
+			{Name: "Age", TypeName: "int", IsOptional: false, IsComparable: true},
+			{Name: "Data", TypeName: "[]byte", IsOptional: false, IsComparable: false},
+			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: false},
+		},
+	}
+
+	var standaloneBuf bytes.Buffer
+	err := lenses.StandaloneTmpl.Execute(&standaloneBuf, s)
+	require.NoError(t, err)
+	standaloneStr := standaloneBuf.String()
+
+	var constructorBuf bytes.Buffer
+	err = lenses.ConstructorTmpl.Execute(&constructorBuf, s)
+	require.NoError(t, err)
+	assert.Contains(t, constructorBuf.String(), "func MakeTestStructRefLenses() TestStructRefLenses")
+
+	assert.Contains(t, standaloneStr, "return __lens.MakeLensStrictWithName(",
+		"comparable field Name should use MakeLensStrictWithName in standalone RefLens")
+	assert.Contains(t, standaloneStr, "return __lens.MakeLensRefWithName(",
+		"non-comparable field Data should use MakeLensRefWithName in standalone RefLens")
+
+	assert.Contains(t, standaloneStr, "func MakeTestStructNameRefLens() __lens.Lens[*TestStruct, string]")
+	assert.Contains(t, standaloneStr, "func MakeTestStructAgeRefLens() __lens.Lens[*TestStruct, int]")
+	assert.Contains(t, standaloneStr, "func MakeTestStructDataRefLens() __lens.Lens[*TestStruct, []byte]")
+}
+
+// ---------------------------------------------------------------------------
+// generateLensHelpers integration tests
+// ---------------------------------------------------------------------------
+
+func TestGenerateLensHelpers(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+// fp-go:Lens
+type TestStruct struct {
+	Name  string
+	Value *int
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, outputFile))
+	require.NoError(t, err)
+
+	contentStr := string(content)
+	assert.Contains(t, contentStr, "package testpkg")
+	assert.Contains(t, contentStr, "Code generated by go generate")
+	assert.Contains(t, contentStr, "TestStructLenses")
+	assert.Contains(t, contentStr, "MakeTestStructLenses")
+	assert.Contains(t, contentStr, "__lens.Lens[TestStruct, string]")
+	assert.Contains(t, contentStr, "__lens_option.LensO[TestStruct, *int]")
+	assert.Contains(t, contentStr, "__iso_option.FromZero")
+}
+
+func TestGenerateLensHelpersNoAnnotations(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+// No annotation
+type TestStruct struct {
+	Name string
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false, false)
+	require.NoError(t, err)
+
+	_, err = os.Stat(filepath.Join(tmpDir, outputFile))
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestGenerateLensHelpersWithComparable(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+// fp-go:Lens
+type TestStruct struct {
+	Name  string
+	Count int
+	Data  []byte
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	outputFile := "gen.go"
+	err = generateLensHelpers(tmpDir, outputFile, false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, outputFile))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "MakeTestStructRefLenses")
+	assert.Contains(t, contentStr, "return __lens.MakeLensStrictWithName(",
+		"comparable fields should use MakeLensStrictWithName")
+	assert.Contains(t, contentStr, "return __lens.MakeLensRefWithName(",
+		"non-comparable fields should use MakeLensRefWithName")
+	assert.Contains(t, contentStr, "func MakeTestStructNameRefLens() __lens.Lens[*TestStruct, string]")
+	assert.Contains(t, contentStr, "func MakeTestStructDataRefLens() __lens.Lens[*TestStruct, []byte]")
+}
+
+func TestGenerateLensHelpersOptionFieldNoLensO(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+import "github.com/IBM/fp-go/v2/option"
+
+// fp-go:Lens
+type Config struct {
+	Name  string
+	Value option.Option[string]
+	Count int
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "__lens.Lens[Config, string]")
+	assert.Contains(t, contentStr, "__lens.Lens[Config, option.Option[string]]")
+	assert.Contains(t, contentStr, "__lens.Lens[Config, int]")
+	assert.Contains(t, contentStr, "__lens_option.LensO[Config, string]")
+	assert.Contains(t, contentStr, "__lens_option.LensO[Config, int]")
+	assert.NotContains(t, contentStr, "__lens_option.LensO[Config, option.Option[string]]",
+		"LensO for Value (option.Option[string]) must NOT be generated")
+}
+
+func TestGenerateLensHelpersWithEmbeddedStruct(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+type Address struct {
+	Street string
+	City   string
+}
+
+// fp-go:Lens
+type Person struct {
+	Address
+	Name string
+	Age  int
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "PersonLenses")
+	assert.Contains(t, contentStr, "MakePersonLenses")
+	assertContainsField(t, contentStr, "Street", "__lens.Lens[Person, string]")
+	assertContainsField(t, contentStr, "City", "__lens.Lens[Person, string]")
+	assertContainsField(t, contentStr, "Name", "__lens.Lens[Person, string]")
+	assertContainsField(t, contentStr, "Age", "__lens.Lens[Person, int]")
+	assertContainsField(t, contentStr, "StreetO", "__lens_option.LensO[Person, string]")
+	assertContainsField(t, contentStr, "CityO", "__lens_option.LensO[Person, string]")
+}
+
+func TestGenerateLensHelpersWithGenericStruct(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+// fp-go:Lens
+type Box[T any] struct {
+	Content T
+	Label   string
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "type BoxLenses[T any] struct")
+	assert.Contains(t, contentStr, "type BoxRefLenses[T any] struct")
+	assert.Contains(t, contentStr, "func MakeBoxLenses[T any]() BoxLenses[T]")
+	assert.Contains(t, contentStr, "func MakeBoxRefLenses[T any]() BoxRefLenses[T]")
+	assertContainsField(t, contentStr, "Content", "__lens.Lens[Box[T], T]")
+	assertContainsField(t, contentStr, "Label", "__lens.Lens[Box[T], string]")
+	assert.NotContains(t, contentStr, "ContentO __lens_option.LensO[Box[T], T]",
+		"T any is not comparable, should not have optional lens")
+	assert.Contains(t, contentStr, "LabelO __lens_option.LensO[Box[T], string]")
+}
+
+func TestGenerateLensHelpersWithComparableTypeParam(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+// fp-go:Lens
+type ComparableBox[T comparable] struct {
+	Key   T
+	Value string
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "type ComparableBoxLenses[T comparable] struct")
+	assert.Contains(t, contentStr, "type ComparableBoxRefLenses[T comparable] struct")
+	assert.Contains(t, contentStr, "func MakeComparableBoxKeyRefLens[T comparable]() __lens.Lens[*ComparableBox[T], T]")
+	assert.Contains(t, contentStr, "return __lens.MakeLensStrictWithName(")
+	assert.Contains(t, contentStr, "func MakeComparableBoxValueRefLens[T comparable]() __lens.Lens[*ComparableBox[T], string]")
+	assert.NotContains(t, contentStr, "return __lens.MakeLensRefWithName(")
+}
+
+func TestGenerateLensHelpersWithUnexportedFields(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+// fp-go:Lens
+type MixedStruct struct {
+	PublicField     string
+	privateField    int
+	OptionalPrivate *string
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen_lens.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen_lens.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "MixedStructLenses")
+	assert.Contains(t, contentStr, "MakeMixedStructLenses")
+	assertContainsField(t, contentStr, "PublicField", "__lens.Lens[MixedStruct, string]")
+	assertContainsField(t, contentStr, "privateField", "__lens.Lens[MixedStruct, int]")
+	assertContainsField(t, contentStr, "OptionalPrivate", "__lens.Lens[MixedStruct, *string]")
+	assert.Contains(t, contentStr, "func(s MixedStruct) string { return s.PublicField }")
+	assert.Contains(t, contentStr, "func(s MixedStruct) int { return s.privateField }")
+	assert.Contains(t, contentStr, "func(s MixedStruct) *string { return s.OptionalPrivate }")
+}
+
+func TestGenerateLensHelpersWithUnexportedEmbeddedFields(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+type BaseConfig struct {
+	publicBase  string
+	privateBase int
+}
+
+// fp-go:Lens
+type ExtendedConfig struct {
+	BaseConfig
+	PublicField  string
+	privateField bool
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	err = generateLensHelpers(tmpDir, "gen_lens.go", false, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen_lens.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.Contains(t, contentStr, "ExtendedConfigLenses")
+	assertContainsField(t, contentStr, "publicBase", "__lens.Lens[ExtendedConfig, string]")
+	assertContainsField(t, contentStr, "privateBase", "__lens.Lens[ExtendedConfig, int]")
+	assertContainsField(t, contentStr, "PublicField", "__lens.Lens[ExtendedConfig, string]")
+	assertContainsField(t, contentStr, "privateField", "__lens.Lens[ExtendedConfig, bool]")
+}
+
+func TestGenerateLensHelpersWithQualifiedField(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(tmpDir, "test.go"), []byte(`package testpkg
+
+import "some/llmclient"
+
+// fp-go:Lens
+type Config struct {
+	Name      string
+	LLMConfig llmclient.Config
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := lenses.ParseFile(filepath.Join(tmpDir, "test.go"))
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	cfg := structs[0]
+	require.Len(t, cfg.Fields, 2)
+	assert.True(t, cfg.Fields[0].IsComparable, "string field should be comparable")
+	assert.False(t, cfg.Fields[1].IsComparable, "qualified struct field should be treated as non-comparable")
+}
+
+// ---------------------------------------------------------------------------
+// LensCommand flags
+// ---------------------------------------------------------------------------
+
 func TestLensCommandFlags(t *testing.T) {
 	cmd := LensCommand()
 
 	assert.Equal(t, "lens", cmd.Name)
 	assert.Contains(t, cmd.Usage, "lens")
 	assert.Contains(t, strings.ToLower(cmd.Description), "fp-go:lens")
-	assert.Contains(t, strings.ToLower(cmd.Description), "lenso", "Description should mention LensO for optional lenses")
+	assert.Contains(t, strings.ToLower(cmd.Description), "lenso", "Description should mention LensO")
 
-	// Check flags
 	var hasDir, hasFilename, hasVerbose, hasIncludeTestFiles, hasType bool
 	for _, flag := range cmd.Flags {
 		switch flag.Names()[0] {
@@ -1052,533 +498,9 @@ func TestLensCommandFlags(t *testing.T) {
 	assert.True(t, hasType, "should have type flag")
 }
 
-func TestParseFileWithEmbeddedStruct(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// Base struct to be embedded
-type Base struct {
-	ID   int
-	Name string
-}
-
-// fp-go:Lens
-type Extended struct {
-	Base
-	Extra string
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check Extended struct
-	extended := structs[0]
-	assert.Equal(t, "Extended", extended.Name)
-	assert.Len(t, extended.Fields, 3, "Should have 3 fields: ID, Name (from Base), and Extra")
-
-	// Check that embedded fields are promoted
-	fieldNames := make(map[string]bool)
-	for _, field := range extended.Fields {
-		fieldNames[field.Name] = true
-	}
-
-	assert.True(t, fieldNames["ID"], "Should have promoted ID field from Base")
-	assert.True(t, fieldNames["Name"], "Should have promoted Name field from Base")
-	assert.True(t, fieldNames["Extra"], "Should have Extra field")
-}
-
-func TestGenerateLensHelpersWithEmbeddedStruct(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// Base struct to be embedded
-type Address struct {
-	Street string
-	City   string
-}
-
-// fp-go:Lens
-type Person struct {
-	Address
-	Name string
-	Age  int
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content
-	assert.Contains(t, contentStr, "package testpkg")
-	assert.Contains(t, contentStr, "PersonLenses")
-	assert.Contains(t, contentStr, "MakePersonLenses")
-
-	// Check that embedded fields are included
-	assertContainsField(t, contentStr, "Street", "__lens.Lens[Person, string]", "Should have lens for embedded Street field")
-	assertContainsField(t, contentStr, "City", "__lens.Lens[Person, string]", "Should have lens for embedded City field")
-	assertContainsField(t, contentStr, "Name", "__lens.Lens[Person, string]", "Should have lens for Name field")
-	assertContainsField(t, contentStr, "Age", "__lens.Lens[Person, int]", "Should have lens for Age field")
-
-	// Check that optional lenses are also generated for embedded fields
-	assertContainsField(t, contentStr, "StreetO", "__lens_option.LensO[Person, string]")
-	assertContainsField(t, contentStr, "CityO", "__lens_option.LensO[Person, string]")
-}
-
-func TestParseFileWithPointerEmbeddedStruct(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// Base struct to be embedded
-type Metadata struct {
-	CreatedAt string
-	UpdatedAt string
-}
-
-// fp-go:Lens
-type Document struct {
-	*Metadata
-	Title   string
-	Content string
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check Document struct
-	doc := structs[0]
-	assert.Equal(t, "Document", doc.Name)
-	assert.Len(t, doc.Fields, 4, "Should have 4 fields: CreatedAt, UpdatedAt (from *Metadata), Title, and Content")
-
-	// Check that embedded fields are promoted
-	fieldNames := make(map[string]bool)
-	for _, field := range doc.Fields {
-		fieldNames[field.Name] = true
-	}
-
-	assert.True(t, fieldNames["CreatedAt"], "Should have promoted CreatedAt field from *Metadata")
-	assert.True(t, fieldNames["UpdatedAt"], "Should have promoted UpdatedAt field from *Metadata")
-	assert.True(t, fieldNames["Title"], "Should have Title field")
-	assert.True(t, fieldNames["Content"], "Should have Content field")
-}
-
-func TestParseFileWithGenericStruct(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type Container[T any] struct {
-	Value T
-	Count int
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check Container struct
-	container := structs[0]
-	assert.Equal(t, "Container", container.Name)
-	assert.Equal(t, "[T any]", container.TypeParams, "Should have type parameter [T any]")
-	assert.Len(t, container.Fields, 2)
-
-	assert.Equal(t, "Value", container.Fields[0].Name)
-	assert.Equal(t, "T", container.Fields[0].TypeName)
-
-	assert.Equal(t, "Count", container.Fields[1].Name)
-	assert.Equal(t, "int", container.Fields[1].TypeName)
-}
-
-func TestParseFileWithMultipleTypeParams(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type Pair[K comparable, V any] struct {
-	Key   K
-	Value V
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check Pair struct
-	pair := structs[0]
-	assert.Equal(t, "Pair", pair.Name)
-	assert.Equal(t, "[K comparable, V any]", pair.TypeParams, "Should have type parameters [K comparable, V any]")
-	assert.Len(t, pair.Fields, 2)
-
-	assert.Equal(t, "Key", pair.Fields[0].Name)
-	assert.Equal(t, "K", pair.Fields[0].TypeName)
-
-	assert.Equal(t, "Value", pair.Fields[1].Name)
-	assert.Equal(t, "V", pair.Fields[1].TypeName)
-}
-
-func TestGenerateLensHelpersWithGenericStruct(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type Box[T any] struct {
-	Content T
-	Label   string
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content with type parameters
-	assert.Contains(t, contentStr, "package testpkg")
-	assert.Contains(t, contentStr, "type BoxLenses[T any] struct", "Should have generic BoxLenses type")
-	assert.Contains(t, contentStr, "type BoxRefLenses[T any] struct", "Should have generic BoxRefLenses type")
-	assert.Contains(t, contentStr, "func MakeBoxLenses[T any]() BoxLenses[T]", "Should have generic constructor")
-	assert.Contains(t, contentStr, "func MakeBoxRefLenses[T any]() BoxRefLenses[T]", "Should have generic ref constructor")
-
-	// Check that fields use the generic type parameter
-	assertContainsField(t, contentStr, "Content", "__lens.Lens[Box[T], T]", "Should have lens for generic Content field")
-	assertContainsField(t, contentStr, "Label", "__lens.Lens[Box[T], string]", "Should have lens for Label field")
-
-	// Check optional lenses - only for comparable types
-	// T any is not comparable, so ContentO should NOT be generated
-	assert.NotContains(t, contentStr, "ContentO __lens_option.LensO[Box[T], T]", "T any is not comparable, should not have optional lens")
-	// string is comparable, so LabelO should be generated
-	assert.Contains(t, contentStr, "LabelO __lens_option.LensO[Box[T], string]", "string is comparable, should have optional lens")
-}
-
-func TestGenerateLensHelpersWithComparableTypeParam(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type ComparableBox[T comparable] struct {
-	Key   T
-	Value string
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content with type parameters
-	assert.Contains(t, contentStr, "package testpkg")
-	assert.Contains(t, contentStr, "type ComparableBoxLenses[T comparable] struct", "Should have generic ComparableBoxLenses type")
-	assert.Contains(t, contentStr, "type ComparableBoxRefLenses[T comparable] struct", "Should have generic ComparableBoxRefLenses type")
-
-	// Check that Key field (with comparable constraint) has standalone RefLens using MakeLensStrictWithName
-	assert.Contains(t, contentStr, "func MakeComparableBoxKeyRefLens[T comparable]() __lens.Lens[*ComparableBox[T], T]",
-		"Key field with comparable constraint should have standalone RefLens")
-	assert.Contains(t, contentStr, "return __lens.MakeLensStrictWithName(",
-		"Key field with comparable constraint should use MakeLensStrictWithName in standalone RefLens")
-
-	// Check that Value field (string, always comparable) also has standalone RefLens using MakeLensStrictWithName
-	assert.Contains(t, contentStr, "func MakeComparableBoxValueRefLens[T comparable]() __lens.Lens[*ComparableBox[T], string]",
-		"Value field (string) should have standalone RefLens")
-
-	// Verify that MakeLensRef is NOT used (since both fields are comparable)
-	assert.NotContains(t, contentStr, "return __lens.MakeLensRefWithName(", "Should not use MakeLensRefWithName when all fields are comparable")
-}
-
-func TestParseFileWithUnexportedFields(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type Config struct {
-	PublicName  string
-	privateName string
-	PublicValue int
-	privateValue *int
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check Config struct
-	config := structs[0]
-	assert.Equal(t, "Config", config.Name)
-	assert.Len(t, config.Fields, 4, "Should include both exported and unexported fields")
-
-	// Check exported field
-	assert.Equal(t, "PublicName", config.Fields[0].Name)
-	assert.Equal(t, "string", config.Fields[0].TypeName)
-	assert.False(t, config.Fields[0].IsOptional)
-
-	// Check unexported field
-	assert.Equal(t, "privateName", config.Fields[1].Name)
-	assert.Equal(t, "string", config.Fields[1].TypeName)
-	assert.False(t, config.Fields[1].IsOptional)
-
-	// Check exported int field
-	assert.Equal(t, "PublicValue", config.Fields[2].Name)
-	assert.Equal(t, "int", config.Fields[2].TypeName)
-	assert.False(t, config.Fields[2].IsOptional)
-
-	// Check unexported pointer field
-	assert.Equal(t, "privateValue", config.Fields[3].Name)
-	assert.Equal(t, "*int", config.Fields[3].TypeName)
-	assert.True(t, config.Fields[3].IsOptional)
-}
-
-func TestGenerateLensHelpersWithUnexportedFields(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type MixedStruct struct {
-	PublicField  string
-	privateField int
-	OptionalPrivate *string
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen_lens.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content
-	assert.Contains(t, contentStr, "package testpkg")
-	assert.Contains(t, contentStr, "MixedStructLenses")
-	assert.Contains(t, contentStr, "MakeMixedStructLenses")
-
-	// Check that lenses are generated for all fields (exported and unexported)
-	assertContainsField(t, contentStr, "PublicField", "__lens.Lens[MixedStruct, string]")
-	assertContainsField(t, contentStr, "privateField", "__lens.Lens[MixedStruct, int]")
-	assertContainsField(t, contentStr, "OptionalPrivate", "__lens.Lens[MixedStruct, *string]")
-
-	// Check lens constructors
-	assert.Contains(t, contentStr, "func(s MixedStruct) string { return s.PublicField }")
-	assert.Contains(t, contentStr, "func(s MixedStruct) int { return s.privateField }")
-	assert.Contains(t, contentStr, "func(s MixedStruct) *string { return s.OptionalPrivate }")
-
-	// Check setters
-	assert.Contains(t, contentStr, "func(s MixedStruct, v string) MixedStruct { s.PublicField = v; return s }")
-	assert.Contains(t, contentStr, "func(s MixedStruct, v int) MixedStruct { s.privateField = v; return s }")
-	assert.Contains(t, contentStr, "func(s MixedStruct, v *string) MixedStruct { s.OptionalPrivate = v; return s }")
-}
-
-func TestParseFileWithOnlyUnexportedFields(t *testing.T) {
-	// Create a temporary test file
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type PrivateConfig struct {
-	name    string
-	value   int
-	enabled bool
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check PrivateConfig struct
-	config := structs[0]
-	assert.Equal(t, "PrivateConfig", config.Name)
-	assert.Len(t, config.Fields, 3, "Should include all unexported fields")
-
-	// Check all fields are unexported
-	assert.Equal(t, "name", config.Fields[0].Name)
-	assert.Equal(t, "value", config.Fields[1].Name)
-	assert.Equal(t, "enabled", config.Fields[2].Name)
-}
-
-func TestGenerateLensHelpersWithUnexportedEmbeddedFields(t *testing.T) {
-	// Create a temporary directory with test files
-	tmpDir := t.TempDir()
-
-	testCode := `package testpkg
-
-type BaseConfig struct {
-	publicBase  string
-	privateBase int
-}
-
-// fp-go:Lens
-type ExtendedConfig struct {
-	BaseConfig
-	PublicField  string
-	privateField bool
-}
-`
-
-	testFile := filepath.Join(tmpDir, "test.go")
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Generate lens code
-	outputFile := "gen_lens.go"
-	err = generateLensHelpers(tmpDir, outputFile, false, false)
-	require.NoError(t, err)
-
-	// Verify the generated file exists
-	genPath := filepath.Join(tmpDir, outputFile)
-	_, err = os.Stat(genPath)
-	require.NoError(t, err)
-
-	// Read and verify the generated content
-	content, err := os.ReadFile(genPath)
-	require.NoError(t, err)
-
-	contentStr := string(content)
-
-	// Check for expected content
-	assert.Contains(t, contentStr, "package testpkg")
-	assert.Contains(t, contentStr, "ExtendedConfigLenses")
-
-	// Check that lenses are generated for embedded unexported fields
-	assertContainsField(t, contentStr, "publicBase", "__lens.Lens[ExtendedConfig, string]")
-	assertContainsField(t, contentStr, "privateBase", "__lens.Lens[ExtendedConfig, int]")
-
-	// Check that lenses are generated for direct fields (both exported and unexported)
-	assertContainsField(t, contentStr, "PublicField", "__lens.Lens[ExtendedConfig, string]")
-	assertContainsField(t, contentStr, "privateField", "__lens.Lens[ExtendedConfig, bool]")
-}
+// ---------------------------------------------------------------------------
+// LensCommand --type mode (net/http.Server integration test)
+// ---------------------------------------------------------------------------
 
 func TestLensCommandHttpServer(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -1596,246 +518,28 @@ func TestLensCommandHttpServer(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	genPath := filepath.Join(tmpDir, "gen_lens.go")
-	content, err := os.ReadFile(genPath)
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen_lens.go"))
 	require.NoError(t, err)
 	contentStr := string(content)
 
-	// Package header — loaded package name is "http"
 	assert.Contains(t, contentStr, "package http")
 	assert.Contains(t, contentStr, "Code generated by go generate")
-
-	// Lens struct types and constructors for Server
 	assert.Contains(t, contentStr, "type ServerLenses struct")
 	assert.Contains(t, contentStr, "type ServerRefLenses struct")
 	assert.Contains(t, contentStr, "func MakeServerLenses() ServerLenses")
 	assert.Contains(t, contentStr, "func MakeServerRefLenses() ServerRefLenses")
 
-	// Addr (string) — comparable: mandatory + optional lens
 	assertContainsField(t, contentStr, "Addr", "__lens.Lens[http.Server, string]")
 	assertContainsField(t, contentStr, "AddrO", "__lens_option.LensO[http.Server, string]")
-
-	// ReadTimeout (time.Duration) — comparable
 	assertContainsField(t, contentStr, "ReadTimeout", "__lens.Lens[http.Server, time.Duration]")
 	assertContainsField(t, contentStr, "ReadTimeoutO", "__lens_option.LensO[http.Server, time.Duration]")
-
-	// TLSConfig (*tls.Config) — pointer, optional and comparable
 	assertContainsField(t, contentStr, "TLSConfig", "__lens.Lens[http.Server, *tls.Config]")
 	assertContainsField(t, contentStr, "TLSConfigO", "__lens_option.LensO[http.Server, *tls.Config]")
-
-	// MaxHeaderBytes (int) — comparable
 	assertContainsField(t, contentStr, "MaxHeaderBytes", "__lens.Lens[http.Server, int]")
 	assertContainsField(t, contentStr, "MaxHeaderBytesO", "__lens_option.LensO[http.Server, int]")
 
-	// Non-comparable fields (map, func) must not produce optional lenses
 	assert.NotContains(t, contentStr, "TLSNextProtoO __lens_option.LensO")
 	assert.NotContains(t, contentStr, "ConnStateO __lens_option.LensO")
 	assert.NotContains(t, contentStr, "BaseContextO __lens_option.LensO")
 	assert.NotContains(t, contentStr, "ConnContextO __lens_option.LensO")
-}
-
-func TestParseFileWithMixedFieldVisibility(t *testing.T) {
-	// Create a temporary test file with various field visibility patterns
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.go")
-
-	testCode := `package testpkg
-
-// fp-go:Lens
-type ComplexStruct struct {
-	// Exported fields
-	Name        string
-	Age         int
-	Email       *string
-	
-	// Unexported fields
-	password    string
-	secretKey   []byte
-	internalID  *int
-	
-	// Mixed with tags
-	PublicWithTag  string ` + "`json:\"public,omitempty\"`" + `
-	privateWithTag int    ` + "`json:\"private,omitempty\"`" + `
-}
-`
-
-	err := os.WriteFile(testFile, []byte(testCode), 0o644)
-	require.NoError(t, err)
-
-	// Parse the file
-	structs, pkg, err := parseFile(testFile)
-	require.NoError(t, err)
-
-	// Verify results
-	assert.Equal(t, "testpkg", pkg)
-	assert.Len(t, structs, 1)
-
-	// Check ComplexStruct
-	complex := structs[0]
-	assert.Equal(t, "ComplexStruct", complex.Name)
-	assert.Len(t, complex.Fields, 8, "Should include all fields regardless of visibility")
-
-	// Verify field names and types
-	fieldNames := []string{"Name", "Age", "Email", "password", "secretKey", "internalID", "PublicWithTag", "privateWithTag"}
-	for i, expectedName := range fieldNames {
-		assert.Equal(t, expectedName, complex.Fields[i].Name, "Field %d should be %s", i, expectedName)
-	}
-
-	// Check optional fields
-	assert.False(t, complex.Fields[0].IsOptional, "Name should not be optional")
-	assert.True(t, complex.Fields[2].IsOptional, "Email (pointer) should be optional")
-	assert.True(t, complex.Fields[5].IsOptional, "internalID (pointer) should be optional")
-	assert.True(t, complex.Fields[6].IsOptional, "PublicWithTag (with omitempty) should be optional")
-	assert.True(t, complex.Fields[7].IsOptional, "privateWithTag (with omitempty) should be optional")
-}
-
-func TestAliasFromPath(t *testing.T) {
-	tests := []struct {
-		importPath string
-		expected   string
-	}{
-		{"k8s.io/api/apps/v1", "k8s_io_api_apps_v1"},
-		{"k8s.io/apimachinery/pkg/apis/meta/v1", "k8s_io_apimachinery_pkg_apis_meta_v1"},
-		{"github.com/IBM/fp-go/v2/option", "github_com_IBM_fp_go_v2_option"},
-		{"some/simple", "some_simple"},
-		{"hyphen-pkg/v1beta1", "hyphen_pkg_v1beta1"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.importPath, func(t *testing.T) {
-			assert.Equal(t, tt.expected, aliasFromPath(tt.importPath))
-		})
-	}
-}
-
-func TestResolveImportAliasesNoConflict(t *testing.T) {
-	structs := []structInfo{
-		{
-			Name:          "A",
-			QualifiedName: "appsv1.A",
-			Fields: []fieldInfo{
-				{Name: "F", TypeName: "appsv1.Deployment", BaseType: "appsv1.Deployment"},
-			},
-			Imports: map[string]string{
-				"k8s.io/api/apps/v1": "appsv1",
-			},
-		},
-		{
-			Name:          "B",
-			QualifiedName: "metav1.B",
-			Fields: []fieldInfo{
-				{Name: "G", TypeName: "metav1.ObjectMeta", BaseType: "metav1.ObjectMeta"},
-			},
-			Imports: map[string]string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1": "metav1",
-			},
-		},
-	}
-
-	// No conflict — resolveImportAliases should be a no-op
-	result := resolveImportAliases(structs)
-	assert.Nil(t, result, "no conflict should yield nil remapping table")
-
-	// Aliases and TypeNames must be unchanged
-	assert.Equal(t, "appsv1", structs[0].Imports["k8s.io/api/apps/v1"])
-	assert.Equal(t, "appsv1.Deployment", structs[0].Fields[0].TypeName)
-	assert.Equal(t, "metav1", structs[1].Imports["k8s.io/apimachinery/pkg/apis/meta/v1"])
-	assert.Equal(t, "metav1.ObjectMeta", structs[1].Fields[0].TypeName)
-}
-
-func TestResolveImportAliasesConflict(t *testing.T) {
-	// Both import paths declare `package v1`, creating an alias conflict.
-	structs := []structInfo{
-		{
-			Name:          "A",
-			QualifiedName: "v1.A",
-			Fields: []fieldInfo{
-				{Name: "Dep", TypeName: "v1.Deployment", BaseType: "v1.Deployment"},
-			},
-			Imports: map[string]string{
-				"k8s.io/api/apps/v1": "v1",
-			},
-		},
-		{
-			Name:          "B",
-			QualifiedName: "v1.B",
-			Fields: []fieldInfo{
-				{Name: "Meta", TypeName: "v1.ObjectMeta", BaseType: "v1.ObjectMeta"},
-				{Name: "PtrMeta", TypeName: "*v1.ObjectMeta", BaseType: "v1.ObjectMeta"},
-			},
-			Imports: map[string]string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1": "v1",
-			},
-		},
-	}
-
-	result := resolveImportAliases(structs)
-	require.NotNil(t, result, "conflict should yield a non-nil remapping table")
-
-	// Struct A: k8s.io/api/apps/v1 → k8s_io_api_apps_v1
-	newAliasA := aliasFromPath("k8s.io/api/apps/v1")
-	assert.Equal(t, newAliasA, structs[0].Imports["k8s.io/api/apps/v1"])
-	assert.Equal(t, newAliasA+".A", structs[0].QualifiedName)
-	assert.Equal(t, newAliasA+".Deployment", structs[0].Fields[0].TypeName)
-	assert.Equal(t, newAliasA+".Deployment", structs[0].Fields[0].BaseType)
-
-	// Struct B: k8s.io/apimachinery/pkg/apis/meta/v1 → k8s_io_apimachinery_pkg_apis_meta_v1
-	newAliasB := aliasFromPath("k8s.io/apimachinery/pkg/apis/meta/v1")
-	assert.Equal(t, newAliasB, structs[1].Imports["k8s.io/apimachinery/pkg/apis/meta/v1"])
-	assert.Equal(t, newAliasB+".B", structs[1].QualifiedName)
-	assert.Equal(t, newAliasB+".ObjectMeta", structs[1].Fields[0].TypeName)
-	assert.Equal(t, newAliasB+".ObjectMeta", structs[1].Fields[0].BaseType)
-	// Pointer TypeName prefix should also be rewritten
-	assert.Equal(t, "*"+newAliasB+".ObjectMeta", structs[1].Fields[1].TypeName)
-}
-
-// TestGenerateLensFileImportDisambiguation verifies the full generation pipeline
-// produces valid Go code when two packages share the same declared package name.
-func TestGenerateLensFileImportDisambiguation(t *testing.T) {
-	newAliasA := aliasFromPath("k8s.io/api/apps/v1")
-	newAliasB := aliasFromPath("k8s.io/apimachinery/pkg/apis/meta/v1")
-
-	structs := []structInfo{
-		{
-			Name:          "DeploymentWrapper",
-			QualifiedName: "v1.DeploymentWrapper",
-			Fields: []fieldInfo{
-				{Name: "Dep", TypeName: "v1.Deployment", BaseType: "v1.Deployment", IsComparable: false},
-			},
-			Imports: map[string]string{
-				"k8s.io/api/apps/v1": "v1",
-			},
-		},
-		{
-			Name:          "MetaWrapper",
-			QualifiedName: "v1.MetaWrapper",
-			Fields: []fieldInfo{
-				{Name: "Meta", TypeName: "v1.ObjectMeta", BaseType: "v1.ObjectMeta", IsComparable: false},
-			},
-			Imports: map[string]string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1": "v1",
-			},
-		},
-	}
-
-	tmpDir := t.TempDir()
-	err := generateLensFile(tmpDir, "gen_lens.go", "mypkg", structs, false)
-	require.NoError(t, err)
-
-	content, err := os.ReadFile(filepath.Join(tmpDir, "gen_lens.go"))
-	require.NoError(t, err)
-	contentStr := string(content)
-
-	// Each conflicting import must appear exactly once under its full-path alias
-	assert.Contains(t, contentStr, newAliasA+` "k8s.io/api/apps/v1"`, "apps/v1 must be imported under full-path alias")
-	assert.Contains(t, contentStr, newAliasB+` "k8s.io/apimachinery/pkg/apis/meta/v1"`, "meta/v1 must be imported under full-path alias")
-
-	// The standalone short alias "v1" must NOT appear as an import alias.
-	// Use a tab prefix so we don't accidentally match a substring of the long path-based alias.
-	assert.NotContains(t, contentStr, "\tv1 \"k8s.io/api/apps/v1\"", "short alias v1 must not appear for apps/v1")
-	assert.NotContains(t, contentStr, "\tv1 \"k8s.io/apimachinery/pkg/apis/meta/v1\"", "short alias v1 must not appear for meta/v1")
-
-	// Field type names must use the disambiguated aliases
-	assert.Contains(t, contentStr, newAliasA+".Deployment", "Deployment field must use full-path alias")
-	assert.Contains(t, contentStr, newAliasB+".ObjectMeta", "ObjectMeta field must use full-path alias")
 }

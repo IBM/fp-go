@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/IBM/fp-go/gen/v2/cli/lenses"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -80,16 +81,22 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 			if structs[i].Imports == nil {
 				structs[i].Imports = make(map[string]string)
 			}
-			structs[i].Imports[sourcePackagePath] = sourcePackageName
-			// Update QualifiedName to include package prefix
-			structs[i].QualifiedName = sourcePackageName + "." + structs[i].Name
+			// Preserve any pre-assigned alias (e.g. full-path alias from conflict
+			// detection) rather than unconditionally overwriting with the short name.
+			srcAlias := structs[i].Imports[sourcePackagePath]
+			if srcAlias == "" {
+				srcAlias = sourcePackageName
+			}
+			structs[i].Imports[sourcePackagePath] = srcAlias
+			// Update QualifiedName to include the (possibly disambiguated) package prefix
+			structs[i].QualifiedName = srcAlias + "." + structs[i].Name
 		}
 		if verbose {
 			log.Printf("Added import for source package: %s (%s)", sourcePackageName, sourcePackagePath)
 		}
 	}
 
-	return generateLensFile(absDir, filename, targetPackageName, structs, verbose)
+	return lenses.GenerateLensFile(absDir, filename, targetPackageName, structs, verbose)
 }
 
 // derivePackageFromDirectory scans existing Go files in the directory to determine
@@ -206,17 +213,8 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 				continue
 			}
 
-			// importPkgs accumulates external packages referenced in field types.
-			// The qualifier closure populates it as types are stringified.
-			// We always qualify types with their package name since we're generating
-			// code in a potentially different target package.
-			importPkgs := make(map[string]*types.Package)
-			qualifier := func(p *types.Package) string {
-				importPkgs[p.Path()] = p
-				return p.Name()
-			}
-
-			// Build a map of field names to their documentation for deprecation detection
+			// Build a map of field names to their documentation for deprecation detection.
+			// This AST scan only needs to run once regardless of qualifier passes.
 			fieldDocs := make(map[string]string)
 			for _, file := range pkg.Syntax {
 				ast.Inspect(file, func(n ast.Node) bool {
@@ -235,12 +233,55 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 				})
 			}
 
+			// Pass 1: collect all *types.Package references touched by this struct's
+			// field types using a simple qualifier (short name). This populates
+			// importPkgs with the full set of referenced packages, which we then
+			// inspect to detect short-name conflicts (e.g. two different packages
+			// both declaring "package v1"). NeedImports without NeedDeps only gives
+			// placeholder entries in pkg.Imports, so we must discover conflicts
+			// from the actual type-system traversal rather than from pkg.Imports.
+			importPkgs := make(map[string]*types.Package)
+			basicQualifier := func(p *types.Package) string {
+				importPkgs[p.Path()] = p
+				return p.Name()
+			}
+			extractNamedTypeParams(named, basicQualifier)
+			extractStructFields(structType, basicQualifier, nil)
+
+			// Detect conflicts: short names that map to more than one import path.
+			nameToPath := make(map[string]string, len(importPkgs))
+			disambiguate := make(map[string]bool)
+			for path, p := range importPkgs {
+				shortName := p.Name()
+				if existing, seen := nameToPath[shortName]; seen && existing != path {
+					disambiguate[shortName] = true
+				} else if !seen {
+					nameToPath[shortName] = path
+				}
+			}
+
+			// Pass 2: re-run with a conflict-aware qualifier. Ambiguous short names
+			// get the full import-path alias so that generated TypeName strings are
+			// unambiguous from the start and require no post-hoc rewriting.
+			importPkgs2 := make(map[string]*types.Package, len(importPkgs))
+			qualifier := func(p *types.Package) string {
+				importPkgs2[p.Path()] = p
+				if disambiguate[p.Name()] {
+					return lenses.AliasFromPath(p.Path())
+				}
+				return p.Name()
+			}
 			typeParams, typeParamNames := extractNamedTypeParams(named, qualifier)
 			fields := extractStructFields(structType, qualifier, fieldDocs)
 
-			imports := make(map[string]string, len(importPkgs))
-			for path, p := range importPkgs {
-				imports[path] = p.Name()
+			// Build the imports map using the same alias logic as the qualifier.
+			imports := make(map[string]string, len(importPkgs2))
+			for path, p := range importPkgs2 {
+				if disambiguate[p.Name()] {
+					imports[path] = lenses.AliasFromPath(path)
+				} else {
+					imports[path] = p.Name()
+				}
 			}
 
 			if len(fields) > 0 {
