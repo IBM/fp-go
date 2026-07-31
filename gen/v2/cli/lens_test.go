@@ -543,3 +543,101 @@ func TestLensCommandHttpServer(t *testing.T) {
 	assert.NotContains(t, contentStr, "BaseContextO __lens_option.LensO")
 	assert.NotContains(t, contentStr, "ConnContextO __lens_option.LensO")
 }
+
+// ---------------------------------------------------------------------------
+// TestLensCommandSourcePackageSameNameAsFieldTypePackage — regression test
+// for the non-deterministic alias bug where the source package's short name
+// (e.g. "v1") collides with a field-type package's short name, causing
+// ResolveImportAliases to swap prefixes randomly across runs.
+// ---------------------------------------------------------------------------
+
+// TestLensCommandSourcePackageSameNameAsFieldTypePackage builds a tiny
+// self-contained Go module with two packages both named "v1":
+//
+//	example.com/apps/v1    — defines Widget with a field of type meta/v1.Timestamp
+//	example.com/meta/v1    — defines Timestamp
+//	example.com/lenses     — the output package (different from source)
+//
+// It then runs lens --type Widget targeting example.com/lenses so that the
+// source package must be imported, triggering the QualifiedName path and the
+// conflict that caused non-deterministic alias swapping.
+func TestLensCommandSourcePackageSameNameAsFieldTypePackage(t *testing.T) {
+	// Build a self-contained module in a temp directory.
+	root := t.TempDir()
+
+	goMod := "module example.com\n\ngo 1.21\n"
+	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte(goMod), 0o644))
+
+	// meta/v1 package: defines Timestamp
+	metaDir := filepath.Join(root, "meta", "v1")
+	require.NoError(t, os.MkdirAll(metaDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(metaDir, "types.go"), []byte(
+		"package v1\n\ntype Timestamp struct{ Seconds int64 }\n",
+	), 0o644))
+
+	// apps/v1 package: defines Widget with a Timestamp field from meta/v1
+	appsDir := filepath.Join(root, "apps", "v1")
+	require.NoError(t, os.MkdirAll(appsDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(appsDir, "types.go"), []byte(
+		"package v1\n\nimport metav1 \"example.com/meta/v1\"\n\ntype Widget struct {\n\tName      string\n\tCreatedAt metav1.Timestamp\n}\n",
+	), 0o644))
+
+	// lenses output package: a separate package within the same module so that
+	// go/packages can locate example.com/apps/v1 while the target package differs
+	// from the source, causing QualifiedName to be prefixed.
+	lensesDir := filepath.Join(root, "lenses")
+	require.NoError(t, os.MkdirAll(lensesDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(lensesDir, "doc.go"), []byte(
+		"// Package lenses holds generated lens code.\npackage lenses\n",
+	), 0o644))
+
+	app := &C.Command{
+		Commands: []*C.Command{LensCommand()},
+	}
+
+	err := app.Run(context.Background(), []string{
+		"app", "lens",
+		"--type", "Widget",
+		"--dir", lensesDir,
+		"--filename", "gen_lens.go",
+		"example.com/apps/v1",
+	})
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(lensesDir, "gen_lens.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	metaAlias := "example_com_meta_v1"
+
+	// The meta/v1 import must appear with its full-path alias (it was disambiguated
+	// from apps/v1 which also declares "package v1").
+	assert.Contains(t, contentStr, metaAlias+` "example.com/meta/v1"`,
+		"import block must use full-path alias for meta/v1")
+
+	// apps/v1 (the source package) may use either the short alias "v1" (acceptable
+	// because meta/v1 was given a distinct full-path alias) or the full-path alias.
+	// Either way the import line must be present.
+	assert.True(t,
+		strings.Contains(contentStr, `"example.com/apps/v1"`) || strings.Contains(contentStr, `example_com_apps_v1 "example.com/apps/v1"`),
+		"import block must contain an import for example.com/apps/v1")
+
+	// The Widget struct type must appear in function signatures with SOME qualifier
+	// (either v1.Widget or example_com_apps_v1.Widget — never without a prefix since
+	// the generated package differs from the source package).
+	assert.True(t,
+		strings.Contains(contentStr, "v1.Widget") || strings.Contains(contentStr, "example_com_apps_v1.Widget"),
+		"Widget must appear with its package qualifier")
+
+	// The Timestamp field type must be qualified with the meta alias — never the apps alias.
+	// This is the core regression assertion: before the fix, apps/v1's alias was
+	// randomly applied to meta/v1 types half of the time.
+	assert.Contains(t, contentStr, metaAlias+".Timestamp",
+		"Timestamp field must be qualified with the meta/v1 full-path alias")
+	assert.NotContains(t, contentStr, "example_com_apps_v1.Timestamp",
+		"Timestamp must NOT carry the apps/v1 alias (regression: swapped prefix)")
+	// Also verify that "v1.Timestamp" does not appear — both v1 aliases must have been
+	// resolved before any TypeName was written.
+	assert.NotContains(t, contentStr, "\tv1.Timestamp",
+		"Timestamp must not use the ambiguous short alias v1 (should be fully qualified)")
+}

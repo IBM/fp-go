@@ -248,6 +248,14 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 			extractNamedTypeParams(named, basicQualifier)
 			extractStructFields(structType, basicQualifier, nil)
 
+			// Always include the source package itself in the conflict-detection
+			// set. generateLensHelpersByType will later add it to the imports map
+			// using its short name; if that short name is already used by a
+			// field-type package the disambiguator below must see both packages
+			// together so it can assign full-path aliases before any TypeName
+			// strings are written.
+			importPkgs[pkg.PkgPath] = pkg.Types
+
 			// Detect conflicts: short names that map to more than one import path.
 			nameToPath := make(map[string]string, len(importPkgs))
 			disambiguate := make(map[string]bool)
