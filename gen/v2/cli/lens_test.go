@@ -1612,20 +1612,20 @@ func TestLensCommandHttpServer(t *testing.T) {
 	assert.Contains(t, contentStr, "func MakeServerRefLenses() ServerRefLenses")
 
 	// Addr (string) — comparable: mandatory + optional lens
-	assertContainsField(t, contentStr, "Addr", "__lens.Lens[Server, string]")
-	assertContainsField(t, contentStr, "AddrO", "__lens_option.LensO[Server, string]")
+	assertContainsField(t, contentStr, "Addr", "__lens.Lens[http.Server, string]")
+	assertContainsField(t, contentStr, "AddrO", "__lens_option.LensO[http.Server, string]")
 
 	// ReadTimeout (time.Duration) — comparable
-	assertContainsField(t, contentStr, "ReadTimeout", "__lens.Lens[Server, time.Duration]")
-	assertContainsField(t, contentStr, "ReadTimeoutO", "__lens_option.LensO[Server, time.Duration]")
+	assertContainsField(t, contentStr, "ReadTimeout", "__lens.Lens[http.Server, time.Duration]")
+	assertContainsField(t, contentStr, "ReadTimeoutO", "__lens_option.LensO[http.Server, time.Duration]")
 
 	// TLSConfig (*tls.Config) — pointer, optional and comparable
-	assertContainsField(t, contentStr, "TLSConfig", "__lens.Lens[Server, *tls.Config]")
-	assertContainsField(t, contentStr, "TLSConfigO", "__lens_option.LensO[Server, *tls.Config]")
+	assertContainsField(t, contentStr, "TLSConfig", "__lens.Lens[http.Server, *tls.Config]")
+	assertContainsField(t, contentStr, "TLSConfigO", "__lens_option.LensO[http.Server, *tls.Config]")
 
 	// MaxHeaderBytes (int) — comparable
-	assertContainsField(t, contentStr, "MaxHeaderBytes", "__lens.Lens[Server, int]")
-	assertContainsField(t, contentStr, "MaxHeaderBytesO", "__lens_option.LensO[Server, int]")
+	assertContainsField(t, contentStr, "MaxHeaderBytes", "__lens.Lens[http.Server, int]")
+	assertContainsField(t, contentStr, "MaxHeaderBytesO", "__lens_option.LensO[http.Server, int]")
 
 	// Non-comparable fields (map, func) must not produce optional lenses
 	assert.NotContains(t, contentStr, "TLSNextProtoO __lens_option.LensO")

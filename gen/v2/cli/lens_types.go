@@ -54,9 +54,10 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 
 	// Determine the target package name for generated code
 	targetPackageName := packageNameOverride
+	targetPackagePath := ""
 	if targetPackageName == "" {
 		// Derive from existing files in target directory
-		targetPackageName, err = derivePackageNameFromDirectory(absDir)
+		targetPackageName, targetPackagePath, err = derivePackageFromDirectory(absDir)
 		if err != nil || targetPackageName == "" {
 			// Fallback to source package name if no existing files
 			targetPackageName = sourcePackageName
@@ -70,9 +71,11 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 		log.Printf("Using explicitly provided package name: %s", targetPackageName)
 	}
 
-	// If target package differs from source package, add import for source package
-	// and update QualifiedName to include package prefix
-	if targetPackageName != sourcePackageName && sourcePackagePath != "" {
+	// If target package path differs from source package path, the source types must
+	// be imported and qualified. We compare paths (not names) to correctly handle
+	// cases where both packages share the same short name (e.g. both are named "v1"
+	// but come from different module paths such as k8s.io/api/apps/v1 vs a local v1).
+	if sourcePackagePath != "" && sourcePackagePath != targetPackagePath {
 		for i := range structs {
 			if structs[i].Imports == nil {
 				structs[i].Imports = make(map[string]string)
@@ -89,12 +92,12 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 	return generateLensFile(absDir, filename, targetPackageName, structs, verbose)
 }
 
-// derivePackageNameFromDirectory scans existing Go files in the directory to determine
-// the package name. Returns empty string if no Go files are found.
-func derivePackageNameFromDirectory(dir string) (string, error) {
+// derivePackageFromDirectory scans existing Go files in the directory to determine
+// the package name and import path. Returns empty strings if no Go files are found.
+func derivePackageFromDirectory(dir string) (string, string, error) {
 	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	for _, file := range files {
@@ -111,11 +114,28 @@ func derivePackageNameFromDirectory(dir string) (string, error) {
 		}
 
 		if node.Name != nil {
-			return node.Name.Name, nil
+			pkgName := node.Name.Name
+			// Use go/packages to resolve the full import path of this directory.
+			pkgPath := resolvePackagePath(dir)
+			return pkgName, pkgPath, nil
 		}
 	}
 
-	return "", nil
+	return "", "", nil
+}
+
+// resolvePackagePath returns the Go import path for the given directory by loading
+// it with go/packages. Returns an empty string if it cannot be determined.
+func resolvePackagePath(dir string) string {
+	cfg := &packages.Config{
+		Mode: packages.NeedName,
+		Dir:  dir,
+	}
+	pkgs, err := packages.Load(cfg, ".")
+	if err != nil || len(pkgs) == 0 {
+		return ""
+	}
+	return pkgs[0].PkgPath
 }
 
 // parsePackageByTypeNames loads packages via go/packages and returns structInfo for
