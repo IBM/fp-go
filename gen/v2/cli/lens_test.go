@@ -1688,3 +1688,154 @@ type ComplexStruct struct {
 	assert.True(t, complex.Fields[6].IsOptional, "PublicWithTag (with omitempty) should be optional")
 	assert.True(t, complex.Fields[7].IsOptional, "privateWithTag (with omitempty) should be optional")
 }
+
+func TestAliasFromPath(t *testing.T) {
+	tests := []struct {
+		importPath string
+		expected   string
+	}{
+		{"k8s.io/api/apps/v1", "k8s_io_api_apps_v1"},
+		{"k8s.io/apimachinery/pkg/apis/meta/v1", "k8s_io_apimachinery_pkg_apis_meta_v1"},
+		{"github.com/IBM/fp-go/v2/option", "github_com_IBM_fp_go_v2_option"},
+		{"some/simple", "some_simple"},
+		{"hyphen-pkg/v1beta1", "hyphen_pkg_v1beta1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.importPath, func(t *testing.T) {
+			assert.Equal(t, tt.expected, aliasFromPath(tt.importPath))
+		})
+	}
+}
+
+func TestResolveImportAliasesNoConflict(t *testing.T) {
+	structs := []structInfo{
+		{
+			Name:          "A",
+			QualifiedName: "appsv1.A",
+			Fields: []fieldInfo{
+				{Name: "F", TypeName: "appsv1.Deployment", BaseType: "appsv1.Deployment"},
+			},
+			Imports: map[string]string{
+				"k8s.io/api/apps/v1": "appsv1",
+			},
+		},
+		{
+			Name:          "B",
+			QualifiedName: "metav1.B",
+			Fields: []fieldInfo{
+				{Name: "G", TypeName: "metav1.ObjectMeta", BaseType: "metav1.ObjectMeta"},
+			},
+			Imports: map[string]string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1": "metav1",
+			},
+		},
+	}
+
+	// No conflict — resolveImportAliases should be a no-op
+	result := resolveImportAliases(structs)
+	assert.Nil(t, result, "no conflict should yield nil remapping table")
+
+	// Aliases and TypeNames must be unchanged
+	assert.Equal(t, "appsv1", structs[0].Imports["k8s.io/api/apps/v1"])
+	assert.Equal(t, "appsv1.Deployment", structs[0].Fields[0].TypeName)
+	assert.Equal(t, "metav1", structs[1].Imports["k8s.io/apimachinery/pkg/apis/meta/v1"])
+	assert.Equal(t, "metav1.ObjectMeta", structs[1].Fields[0].TypeName)
+}
+
+func TestResolveImportAliasesConflict(t *testing.T) {
+	// Both import paths declare `package v1`, creating an alias conflict.
+	structs := []structInfo{
+		{
+			Name:          "A",
+			QualifiedName: "v1.A",
+			Fields: []fieldInfo{
+				{Name: "Dep", TypeName: "v1.Deployment", BaseType: "v1.Deployment"},
+			},
+			Imports: map[string]string{
+				"k8s.io/api/apps/v1": "v1",
+			},
+		},
+		{
+			Name:          "B",
+			QualifiedName: "v1.B",
+			Fields: []fieldInfo{
+				{Name: "Meta", TypeName: "v1.ObjectMeta", BaseType: "v1.ObjectMeta"},
+				{Name: "PtrMeta", TypeName: "*v1.ObjectMeta", BaseType: "v1.ObjectMeta"},
+			},
+			Imports: map[string]string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1": "v1",
+			},
+		},
+	}
+
+	result := resolveImportAliases(structs)
+	require.NotNil(t, result, "conflict should yield a non-nil remapping table")
+
+	// Struct A: k8s.io/api/apps/v1 → k8s_io_api_apps_v1
+	newAliasA := aliasFromPath("k8s.io/api/apps/v1")
+	assert.Equal(t, newAliasA, structs[0].Imports["k8s.io/api/apps/v1"])
+	assert.Equal(t, newAliasA+".A", structs[0].QualifiedName)
+	assert.Equal(t, newAliasA+".Deployment", structs[0].Fields[0].TypeName)
+	assert.Equal(t, newAliasA+".Deployment", structs[0].Fields[0].BaseType)
+
+	// Struct B: k8s.io/apimachinery/pkg/apis/meta/v1 → k8s_io_apimachinery_pkg_apis_meta_v1
+	newAliasB := aliasFromPath("k8s.io/apimachinery/pkg/apis/meta/v1")
+	assert.Equal(t, newAliasB, structs[1].Imports["k8s.io/apimachinery/pkg/apis/meta/v1"])
+	assert.Equal(t, newAliasB+".B", structs[1].QualifiedName)
+	assert.Equal(t, newAliasB+".ObjectMeta", structs[1].Fields[0].TypeName)
+	assert.Equal(t, newAliasB+".ObjectMeta", structs[1].Fields[0].BaseType)
+	// Pointer TypeName prefix should also be rewritten
+	assert.Equal(t, "*"+newAliasB+".ObjectMeta", structs[1].Fields[1].TypeName)
+}
+
+// TestGenerateLensFileImportDisambiguation verifies the full generation pipeline
+// produces valid Go code when two packages share the same declared package name.
+func TestGenerateLensFileImportDisambiguation(t *testing.T) {
+	newAliasA := aliasFromPath("k8s.io/api/apps/v1")
+	newAliasB := aliasFromPath("k8s.io/apimachinery/pkg/apis/meta/v1")
+
+	structs := []structInfo{
+		{
+			Name:          "DeploymentWrapper",
+			QualifiedName: "v1.DeploymentWrapper",
+			Fields: []fieldInfo{
+				{Name: "Dep", TypeName: "v1.Deployment", BaseType: "v1.Deployment", IsComparable: false},
+			},
+			Imports: map[string]string{
+				"k8s.io/api/apps/v1": "v1",
+			},
+		},
+		{
+			Name:          "MetaWrapper",
+			QualifiedName: "v1.MetaWrapper",
+			Fields: []fieldInfo{
+				{Name: "Meta", TypeName: "v1.ObjectMeta", BaseType: "v1.ObjectMeta", IsComparable: false},
+			},
+			Imports: map[string]string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1": "v1",
+			},
+		},
+	}
+
+	tmpDir := t.TempDir()
+	err := generateLensFile(tmpDir, "gen_lens.go", "mypkg", structs, false)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, "gen_lens.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	// Each conflicting import must appear exactly once under its full-path alias
+	assert.Contains(t, contentStr, newAliasA+` "k8s.io/api/apps/v1"`, "apps/v1 must be imported under full-path alias")
+	assert.Contains(t, contentStr, newAliasB+` "k8s.io/apimachinery/pkg/apis/meta/v1"`, "meta/v1 must be imported under full-path alias")
+
+	// The standalone short alias "v1" must NOT appear as an import alias.
+	// Use a tab prefix so we don't accidentally match a substring of the long path-based alias.
+	assert.NotContains(t, contentStr, "\tv1 \"k8s.io/api/apps/v1\"", "short alias v1 must not appear for apps/v1")
+	assert.NotContains(t, contentStr, "\tv1 \"k8s.io/apimachinery/pkg/apis/meta/v1\"", "short alias v1 must not appear for meta/v1")
+
+	// Field type names must use the disambiguated aliases
+	assert.Contains(t, contentStr, newAliasA+".Deployment", "Deployment field must use full-path alias")
+	assert.Contains(t, contentStr, newAliasB+".ObjectMeta", "ObjectMeta field must use full-path alias")
+}

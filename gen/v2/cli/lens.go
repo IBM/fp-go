@@ -1045,8 +1045,80 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 }
 
 // generateLensFile generates a lens file for the given structs
+// aliasFromPath converts an import path into a valid Go identifier that is unique
+// per path. Each path component separator (/ and .) is replaced with an underscore.
+// Example: "k8s.io/apimachinery/pkg/apis/meta/v1" → "k8s_io_apimachinery_pkg_apis_meta_v1"
+func aliasFromPath(importPath string) string {
+	r := strings.NewReplacer("/", "_", ".", "_", "-", "_")
+	return r.Replace(importPath)
+}
+
+// resolveImportAliases detects cases where two or more different import paths share
+// the same short alias (e.g. both "k8s.io/api/apps/v1" and
+// "k8s.io/apimachinery/pkg/apis/meta/v1" declare `package v1`). For every such
+// conflicting alias it returns a remapping table that maps each affected import path
+// to a disambiguated alias derived from the full import path. The structs slice is
+// updated in-place: TypeName / BaseType / QualifiedName strings are rewritten to use
+// the new alias, and the Imports map of each struct is updated accordingly.
+func resolveImportAliases(structs []structInfo) map[string]string {
+	// Step 1: collect alias → set-of-paths across all structs
+	aliasToPaths := make(map[string]map[string]struct{})
+	for _, s := range structs {
+		for path, alias := range s.Imports {
+			if aliasToPaths[alias] == nil {
+				aliasToPaths[alias] = make(map[string]struct{})
+			}
+			aliasToPaths[alias][path] = struct{}{}
+		}
+	}
+
+	// Step 2: for every alias with >1 path, map each path to a unique alias
+	pathToNewAlias := make(map[string]string) // only conflicting paths
+	for alias, paths := range aliasToPaths {
+		if len(paths) <= 1 {
+			continue
+		}
+		for path := range paths {
+			newAlias := aliasFromPath(path)
+			_ = alias // oldAlias recorded via struct.Imports below
+			pathToNewAlias[path] = newAlias
+		}
+	}
+
+	if len(pathToNewAlias) == 0 {
+		return nil
+	}
+
+	// Step 3: rewrite each struct in-place
+	for i := range structs {
+		s := &structs[i]
+		for path, newAlias := range pathToNewAlias {
+			oldAlias, ok := s.Imports[path]
+			if !ok || oldAlias == newAlias {
+				continue
+			}
+			// Rewrite TypeName / BaseType in all fields
+			old := oldAlias + "."
+			new := newAlias + "."
+			for j := range s.Fields {
+				s.Fields[j].TypeName = strings.ReplaceAll(s.Fields[j].TypeName, old, new)
+				s.Fields[j].BaseType = strings.ReplaceAll(s.Fields[j].BaseType, old, new)
+			}
+			// Rewrite QualifiedName (may carry a package prefix)
+			s.QualifiedName = strings.ReplaceAll(s.QualifiedName, old, new)
+			// Update the import alias
+			s.Imports[path] = newAlias
+		}
+	}
+
+	return pathToNewAlias
+}
+
 func generateLensFile(absDir, filename, packageName string, structs []structInfo, verbose bool) error {
-	// Collect all unique imports from all structs
+	// Resolve any import-alias conflicts before collecting imports.
+	resolveImportAliases(structs)
+
+	// Collect all unique imports from all structs (conflicts already resolved above)
 	allImports := make(map[string]string) // import path -> alias
 	for _, s := range structs {
 		maps.Copy(allImports, s.Imports)
