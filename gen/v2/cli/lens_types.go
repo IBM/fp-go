@@ -81,14 +81,9 @@ func generateLensHelpersByType(dir, filename string, patterns []string, typeName
 			if structs[i].Imports == nil {
 				structs[i].Imports = make(map[string]string)
 			}
-			// Preserve any pre-assigned alias (e.g. full-path alias from conflict
-			// detection) rather than unconditionally overwriting with the short name.
-			srcAlias := structs[i].Imports[sourcePackagePath]
-			if srcAlias == "" {
-				srcAlias = sourcePackageName
-			}
+			// Always use the full-path alias for the source package.
+			srcAlias := lenses.AliasFromPath(sourcePackagePath)
 			structs[i].Imports[sourcePackagePath] = srcAlias
-			// Update QualifiedName to include the (possibly disambiguated) package prefix
 			structs[i].QualifiedName = srcAlias + "." + structs[i].Name
 		}
 		if verbose {
@@ -233,63 +228,22 @@ func parsePackageByTypeNames(dir string, patterns []string, typeNames []string, 
 				})
 			}
 
-			// Pass 1: collect all *types.Package references touched by this struct's
-			// field types using a simple qualifier (short name). This populates
-			// importPkgs with the full set of referenced packages, which we then
-			// inspect to detect short-name conflicts (e.g. two different packages
-			// both declaring "package v1"). NeedImports without NeedDeps only gives
-			// placeholder entries in pkg.Imports, so we must discover conflicts
-			// from the actual type-system traversal rather than from pkg.Imports.
+			// Always use full-path aliases for every imported package. This eliminates
+			// any ambiguity when multiple structs in the same generation run reference
+			// different packages with the same short name (e.g. k8s.io/api/core/v1
+			// and k8s.io/apimachinery/pkg/apis/meta/v1 both declare "package v1").
 			importPkgs := make(map[string]*types.Package)
-			basicQualifier := func(p *types.Package) string {
-				importPkgs[p.Path()] = p
-				return p.Name()
-			}
-			extractNamedTypeParams(named, basicQualifier)
-			extractStructFields(structType, basicQualifier, nil)
-
-			// Always include the source package itself in the conflict-detection
-			// set. generateLensHelpersByType will later add it to the imports map
-			// using its short name; if that short name is already used by a
-			// field-type package the disambiguator below must see both packages
-			// together so it can assign full-path aliases before any TypeName
-			// strings are written.
-			importPkgs[pkg.PkgPath] = pkg.Types
-
-			// Detect conflicts: short names that map to more than one import path.
-			nameToPath := make(map[string]string, len(importPkgs))
-			disambiguate := make(map[string]bool)
-			for path, p := range importPkgs {
-				shortName := p.Name()
-				if existing, seen := nameToPath[shortName]; seen && existing != path {
-					disambiguate[shortName] = true
-				} else if !seen {
-					nameToPath[shortName] = path
-				}
-			}
-
-			// Pass 2: re-run with a conflict-aware qualifier. Ambiguous short names
-			// get the full import-path alias so that generated TypeName strings are
-			// unambiguous from the start and require no post-hoc rewriting.
-			importPkgs2 := make(map[string]*types.Package, len(importPkgs))
 			qualifier := func(p *types.Package) string {
-				importPkgs2[p.Path()] = p
-				if disambiguate[p.Name()] {
-					return lenses.AliasFromPath(p.Path())
-				}
-				return p.Name()
+				importPkgs[p.Path()] = p
+				return lenses.AliasFromPath(p.Path())
 			}
 			typeParams, typeParamNames := extractNamedTypeParams(named, qualifier)
 			fields := extractStructFields(structType, qualifier, fieldDocs)
 
-			// Build the imports map using the same alias logic as the qualifier.
-			imports := make(map[string]string, len(importPkgs2))
-			for path, p := range importPkgs2 {
-				if disambiguate[p.Name()] {
-					imports[path] = lenses.AliasFromPath(path)
-				} else {
-					imports[path] = p.Name()
-				}
+			// Build the imports map: one full-path alias per package.
+			imports := make(map[string]string, len(importPkgs))
+			for path := range importPkgs {
+				imports[path] = lenses.AliasFromPath(path)
 			}
 
 			if len(fields) > 0 {

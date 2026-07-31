@@ -96,12 +96,9 @@ func makeTwoV1Module(t *testing.T) (appsDir, root string) {
 	return appsDir, root
 }
 
-// TestParsePackageByTypeNamesSourcePkgConflictDetection verifies that when the
-// source package's short name conflicts with a field-type package's short name,
-// the returned StructInfo uses full-path aliases for the field types so that
-// the subsequent generateLensHelpersByType step never creates two import paths
-// with the same alias.
-func TestParsePackageByTypeNamesSourcePkgConflictDetection(t *testing.T) {
+// TestParsePackageByTypeNamesFullPathAlias verifies that all imported packages
+// always receive full-path aliases, regardless of whether short names conflict.
+func TestParsePackageByTypeNamesFullPathAlias(t *testing.T) {
 	appsDir, _ := makeTwoV1Module(t)
 
 	structs, srcPkgName, srcPkgPath, err := parsePackageByTypeNames(
@@ -119,32 +116,26 @@ func TestParsePackageByTypeNamesSourcePkgConflictDetection(t *testing.T) {
 	s := structs[0]
 	assert.Equal(t, "Widget", s.Name)
 
-	// The meta/v1 field-type package must use a full-path alias because it
-	// collides with the source package's short name "v1".
+	// Both packages must use full-path aliases.
 	const metaAlias = "example_com_meta_v1"
 	assert.Equal(t, metaAlias, s.Imports["example.com/meta/v1"],
-		"meta/v1 must have a full-path alias due to short-name conflict with source pkg")
+		"meta/v1 must have a full-path alias")
 
-	// The Timestamp field must use the full-path alias — not the ambiguous "v1.".
+	// The Timestamp field must use the full-path alias.
 	require.Len(t, s.Fields, 2)
-	nameField := s.Fields[0]
-	createdAtField := s.Fields[1]
-	assert.Equal(t, "Name", nameField.Name)
-	assert.Equal(t, "string", nameField.TypeName)
+	assert.Equal(t, "Name", s.Fields[0].Name)
+	assert.Equal(t, "string", s.Fields[0].TypeName)
 
-	assert.Equal(t, "CreatedAt", createdAtField.Name)
-	assert.Equal(t, metaAlias+".Timestamp", createdAtField.TypeName,
+	assert.Equal(t, "CreatedAt", s.Fields[1].Name)
+	assert.Equal(t, metaAlias+".Timestamp", s.Fields[1].TypeName,
 		"CreatedAt TypeName must use the full-path alias for meta/v1")
-	assert.Equal(t, metaAlias+".Timestamp", createdAtField.BaseType,
+	assert.Equal(t, metaAlias+".Timestamp", s.Fields[1].BaseType,
 		"CreatedAt BaseType must use the full-path alias for meta/v1")
 }
 
-// TestParsePackageByTypeNamesNoConflict verifies that when no short-name
-// collision exists the short name is preserved as-is (no unnecessary aliasing).
-func TestParsePackageByTypeNamesNoConflict(t *testing.T) {
-	// net/http.Server has fields from crypto/tls (short "tls"), context (short
-	// "context"), time (short "time") — none of these share the short name
-	// "http", so no disambiguation should fire.
+// TestParsePackageByTypeNamesAlwaysFullPath verifies that even when no short-name
+// collision exists, all imports still receive full-path aliases.
+func TestParsePackageByTypeNamesAlwaysFullPath(t *testing.T) {
 	structs, srcPkgName, _, err := parsePackageByTypeNames(
 		".", // current dir — stdlib packages are always resolvable
 		[]string{"net/http"},
@@ -156,15 +147,16 @@ func TestParsePackageByTypeNamesNoConflict(t *testing.T) {
 	assert.Equal(t, "http", srcPkgName)
 
 	s := structs[0]
-	// tls.Config is a field of http.Server; its alias must remain the short name.
+	// crypto/tls is a field-type package of http.Server; it must use a full-path alias.
 	if alias, ok := s.Imports["crypto/tls"]; ok {
-		assert.Equal(t, "tls", alias,
-			"crypto/tls must keep short alias 'tls' when no conflict exists")
+		assert.Equal(t, "crypto_tls", alias,
+			"crypto/tls must use the full-path alias")
 	}
-	// Verify that field TypeNames use the short name, not a full-path alias.
+	// Verify that no field TypeName uses the bare "tls." package qualifier.
+	// (The correct form is "crypto_tls." — the full-path alias.)
 	for _, f := range s.Fields {
-		assert.NotContains(t, f.TypeName, "crypto_tls",
-			"TypeName should not contain a full-path alias when there is no conflict")
+		assert.NotRegexp(t, `(^|[\s\*\[])tls\.`, f.TypeName,
+			"field %q TypeName %q must not use the bare 'tls.' qualifier", f.Name, f.TypeName)
 	}
 }
 
@@ -200,13 +192,11 @@ func TestParsePackageByTypeNamesDisambiguationIsDeterministic(t *testing.T) {
 // generateLensHelpersByType — source-package import alias after disambiguation
 // ---------------------------------------------------------------------------
 
-// TestGenerateLensHelpersByTypeSourcePkgAlias verifies the end-to-end alias
-// assignment when the source package's short name collides with a field-type
-// package's short name.  After the fix, the generated file must import meta/v1
-// with a full-path alias and the Timestamp field must use that alias — never
-// the apps/v1 alias.
+// TestGenerateLensHelpersByTypeSourcePkgAlias verifies that the generated file
+// uses full-path aliases for all packages (both the source package and any
+// field-type packages), regardless of whether short names conflict.
 func TestGenerateLensHelpersByTypeSourcePkgAlias(t *testing.T) {
-	appsDir, root := makeTwoV1Module(t)
+	_, root := makeTwoV1Module(t)
 
 	// Output into a sibling "lenses" package so sourcePackagePath ≠ targetPackagePath,
 	// forcing generateLensHelpersByType to add the source-package import.
@@ -231,16 +221,17 @@ func TestGenerateLensHelpersByTypeSourcePkgAlias(t *testing.T) {
 		require.NoError(t, err, "run %d", i)
 		contentStr := string(content)
 
-		_ = appsDir // used above
-
-		assert.Contains(t, contentStr, `"example.com/meta/v1"`,
-			"run %d: meta/v1 import must be present", i)
+		// Both packages must appear with full-path aliases.
+		assert.Contains(t, contentStr, `example_com_apps_v1 "example.com/apps/v1"`,
+			"run %d: apps/v1 must use the full-path alias", i)
+		assert.Contains(t, contentStr, `example_com_meta_v1 "example.com/meta/v1"`,
+			"run %d: meta/v1 must use the full-path alias", i)
+		assert.Contains(t, contentStr, "example_com_apps_v1.Widget",
+			"run %d: Widget must use the apps/v1 full-path alias", i)
 		assert.Contains(t, contentStr, "example_com_meta_v1.Timestamp",
 			"run %d: Timestamp must use the meta/v1 full-path alias", i)
-		assert.NotContains(t, contentStr, "example_com_apps_v1.Timestamp",
-			"run %d: Timestamp must NOT use the apps/v1 alias (swapped prefix regression)", i)
-		assert.NotContains(t, contentStr, "\tv1.Timestamp",
-			"run %d: Timestamp must not use the ambiguous short alias v1", i)
+		assert.NotContains(t, contentStr, "\tv1.",
+			"run %d: no bare 'v1.' qualifier must appear in generated code", i)
 	}
 }
 
