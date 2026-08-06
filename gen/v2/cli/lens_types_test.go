@@ -240,9 +240,15 @@ func TestGenerateLensHelpersByTypeSourcePkgAlias(t *testing.T) {
 // hasUnexportedNamedType — fields with unexported named type are skipped
 // ---------------------------------------------------------------------------
 
-// makeUnexportedTypeModule writes a temporary module where the target struct
-// has one exported field (Name string) and one field whose type is an
-// unexported named type (hiddenType).  The generator must skip the latter.
+// makeUnexportedTypeModule writes a temporary module with two structs:
+//
+//  1. Result — has one exported field (Name string) and one direct field
+//     whose type is an unexported named type (hiddenType).
+//
+//  2. ListResult — mirrors the mcp.ListToolsResult pattern: embeds an
+//     unexported struct (baseResult) whose field (ResultType baseType) has
+//     an unexported named type.  The generator must skip promoted fields
+//     whose type cannot be referenced outside the package.
 func makeUnexportedTypeModule(t *testing.T) (pkgDir string) {
 	t.Helper()
 	root := t.TempDir()
@@ -255,16 +261,22 @@ func makeUnexportedTypeModule(t *testing.T) (pkgDir string) {
 
 	pkgDir = filepath.Join(root, "mypkg")
 	require.NoError(t, os.MkdirAll(pkgDir, 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "types.go"),
-		[]byte("package mypkg\n\ntype hiddenType struct{ x int }\n\ntype Result struct {\n\tName       string\n\tResultType hiddenType\n}\n"),
-		0o644))
+	code := "package mypkg\n\n" +
+		// unexported named type used as a field type
+		"type hiddenType struct{ x int }\n\n" +
+		// direct field with unexported type
+		"type Result struct {\n\tName       string\n\tResultType hiddenType\n}\n\n" +
+		// mcp-style: unexported base struct with unexported-type field, embedded in exported struct
+		"type baseType string\n\n" +
+		"type baseResult struct {\n\tResultType baseType `json:\"resultType,omitempty\"`\n}\n\n" +
+		"type ListResult struct {\n\tbaseResult\n\tName string\n}\n"
+	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "types.go"), []byte(code), 0o644))
 
 	return pkgDir
 }
 
-// TestParsePackageByTypeNamesSkipsUnexportedNamedType verifies that a field
-// whose type is an unexported named type is silently dropped so that the
-// generated lens file always compiles.
+// TestParsePackageByTypeNamesSkipsUnexportedNamedType verifies that a direct
+// field whose type is an unexported named type is silently dropped.
 func TestParsePackageByTypeNamesSkipsUnexportedNamedType(t *testing.T) {
 	pkgDir := makeUnexportedTypeModule(t)
 
@@ -280,6 +292,32 @@ func TestParsePackageByTypeNamesSkipsUnexportedNamedType(t *testing.T) {
 	s := structs[0]
 	// Only the exported-type field must survive.
 	require.Len(t, s.Fields, 1, "ResultType (unexported named type) must be skipped")
+	assert.Equal(t, "Name", s.Fields[0].Name)
+}
+
+// TestParsePackageByTypeNamesSkipsEmbeddedUnexportedNamedType verifies that a
+// field promoted from an embedded unexported struct is also dropped when its
+// type is unexported — this is the exact mcp.ListToolsResult / resultType
+// pattern that produced uncompilable generated code.
+func TestParsePackageByTypeNamesSkipsEmbeddedUnexportedNamedType(t *testing.T) {
+	pkgDir := makeUnexportedTypeModule(t)
+
+	structs, _, _, err := parsePackageByTypeNames(
+		pkgDir,
+		[]string{"example.com/mypkg"},
+		[]string{"ListResult"},
+		false,
+	)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	s := structs[0]
+	for _, f := range s.Fields {
+		assert.NotEqual(t, "ResultType", f.Name,
+			"ResultType promoted from unexported embedded struct must be skipped (type baseType is unexported)")
+	}
+	// Only the exported-type field must survive.
+	require.Len(t, s.Fields, 1)
 	assert.Equal(t, "Name", s.Fields[0].Name)
 }
 
