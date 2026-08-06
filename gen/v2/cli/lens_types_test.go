@@ -235,3 +235,79 @@ func TestGenerateLensHelpersByTypeSourcePkgAlias(t *testing.T) {
 	}
 }
 
+
+// ---------------------------------------------------------------------------
+// hasUnexportedNamedType — fields with unexported named type are skipped
+// ---------------------------------------------------------------------------
+
+// makeUnexportedTypeModule writes a temporary module where the target struct
+// has one exported field (Name string) and one field whose type is an
+// unexported named type (hiddenType).  The generator must skip the latter.
+func makeUnexportedTypeModule(t *testing.T) (pkgDir string) {
+	t.Helper()
+	root := t.TempDir()
+
+	require.NoError(t, os.WriteFile(
+		filepath.Join(root, "go.mod"),
+		[]byte("module example.com\n\ngo 1.21\n"),
+		0o644,
+	))
+
+	pkgDir = filepath.Join(root, "mypkg")
+	require.NoError(t, os.MkdirAll(pkgDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "types.go"),
+		[]byte("package mypkg\n\ntype hiddenType struct{ x int }\n\ntype Result struct {\n\tName       string\n\tResultType hiddenType\n}\n"),
+		0o644))
+
+	return pkgDir
+}
+
+// TestParsePackageByTypeNamesSkipsUnexportedNamedType verifies that a field
+// whose type is an unexported named type is silently dropped so that the
+// generated lens file always compiles.
+func TestParsePackageByTypeNamesSkipsUnexportedNamedType(t *testing.T) {
+	pkgDir := makeUnexportedTypeModule(t)
+
+	structs, _, _, err := parsePackageByTypeNames(
+		pkgDir,
+		[]string{"example.com/mypkg"},
+		[]string{"Result"},
+		false,
+	)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	s := structs[0]
+	// Only the exported-type field must survive.
+	require.Len(t, s.Fields, 1, "ResultType (unexported named type) must be skipped")
+	assert.Equal(t, "Name", s.Fields[0].Name)
+}
+
+// TestGenerateLensHelpersByTypeSkipsUnexportedNamedType verifies that the
+// generated file does not reference the unexported named type at all.
+func TestGenerateLensHelpersByTypeSkipsUnexportedNamedType(t *testing.T) {
+	pkgDir := makeUnexportedTypeModule(t)
+
+	// Write to the same dir (source == target) to keep the test self-contained.
+	require.NoError(t, os.WriteFile(filepath.Join(pkgDir, "doc.go"),
+		[]byte("// Package mypkg.\npackage mypkg\n"), 0o644))
+
+	err := generateLensHelpersByType(
+		pkgDir,
+		"gen_lens.go",
+		[]string{"example.com/mypkg"},
+		[]string{"Result"},
+		"",
+		false,
+	)
+	require.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(pkgDir, "gen_lens.go"))
+	require.NoError(t, err)
+	contentStr := string(content)
+
+	assert.NotContains(t, contentStr, "hiddenType",
+		"generated file must not reference the unexported hiddenType")
+	assert.Contains(t, contentStr, "Name",
+		"generated file must contain a lens for the exported Name field")
+}

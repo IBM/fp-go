@@ -317,6 +317,20 @@ func hasAnonymousStructWithUnexportedFields(t types.Type) bool {
 	return false
 }
 
+// hasUnexportedNamedType reports whether t (or the type it points to) is a
+// named type whose identifier is unexported.  Such types cannot be referenced
+// outside their defining package, so a lens using them would not compile.
+func hasUnexportedNamedType(t types.Type) bool {
+	if ptr, ok := t.(*types.Pointer); ok {
+		t = ptr.Elem()
+	}
+	named, ok := t.(*types.Named)
+	if !ok {
+		return false
+	}
+	return !named.Obj().Exported()
+}
+
 // isTypesOptionType reports whether t is an instantiation of
 // github.com/IBM/fp-go/v2/option.Option, i.e. a field whose type is already an
 // Option.  Generating a LensO for such a field would produce Option[Option[A]].
@@ -360,6 +374,13 @@ func extractStructFields(structType *types.Struct, qualifier types.Qualifier, fi
 		// Skip fields with anonymous struct types that have unexported fields
 		// These cannot be used in function signatures outside their defining package
 		if hasAnonymousStructWithUnexportedFields(field.Type()) {
+			continue
+		}
+
+		// Skip fields whose type is an unexported named type from another package.
+		// Such types cannot be referenced outside their defining package, so any
+		// generated lens would not compile (e.g. mcp.resultType).
+		if hasUnexportedNamedType(field.Type()) {
 			continue
 		}
 
