@@ -41,3 +41,24 @@ func UnionFirstMonoid[N ~map[K]V, K comparable, V any]() M.Monoid[N] {
 		Empty[N](),
 	)
 }
+
+func IntersectionMonoid[N ~map[K]V, K comparable, V any](s S.Semigroup[V]) M.Monoid[N] {
+	return M.MakeMonoid(
+		IntersectionSemigroup[N](s).Concat,
+		Empty[N](),
+	)
+}
+
+func IntersectionLastMonoid[N ~map[K]V, K comparable, V any]() M.Monoid[N] {
+	return M.MakeMonoid(
+		IntersectionLastSemigroup[N]().Concat,
+		Empty[N](),
+	)
+}
+
+func IntersectionFirstMonoid[N ~map[K]V, K comparable, V any]() M.Monoid[N] {
+	return M.MakeMonoid(
+		IntersectionFirstSemigroup[N]().Concat,
+		Empty[N](),
+	)
+}

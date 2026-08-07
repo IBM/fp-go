@@ -25,8 +25,22 @@ func UnionSemigroup[N ~map[K]V, K comparable, V any](s S.Semigroup[V]) S.Semigro
 	})
 }
 
+func IntersectionSemigroup[N ~map[K]V, K comparable, V any](s S.Semigroup[V]) S.Semigroup[N] {
+	return S.MakeSemigroup(func(first N, second N) N {
+		return intersection(S.ToMagma(s), first, second)
+	})
+}
+
 func UnionLastSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {
 	return S.MakeSemigroup(unionLast[N])
+}
+
+func IntersectionLastSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {
+	return IntersectionSemigroup[N](S.Last[V]())
+}
+
+func IntersectionFirstSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {
+	return IntersectionSemigroup[N](S.First[V]())
 }
 
 func UnionFirstSemigroup[N ~map[K]V, K comparable, V any]() S.Semigroup[N] {

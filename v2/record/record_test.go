@@ -394,7 +394,7 @@ func TestFilterMap(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	data := map[string]int{"a": 1, "b": 2, "c": 3}
-	filter := Filter[string, int](func(k string) bool {
+	filter := Filter[int](func(k string) bool {
 		return k != "b"
 	})
 	result := filter(data)

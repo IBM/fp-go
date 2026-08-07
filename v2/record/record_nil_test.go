@@ -300,7 +300,7 @@ func TestNilMap_DeleteAt(t *testing.T) {
 // TestNilMap_Filter verifies that Filter handles nil maps correctly
 func TestNilMap_Filter(t *testing.T) {
 	var nilMap Record[string, int]
-	filter := Filter[string, int](func(k string) bool {
+	filter := Filter[int](func(k string) bool {
 		return true
 	})
 	result := filter(nilMap)

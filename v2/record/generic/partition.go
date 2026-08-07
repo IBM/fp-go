@@ -28,7 +28,7 @@ import (
 //   - MonadPartitionWithIndex: index-aware variant
 //   - Partition: curried variant
 func MonadPartition[M ~map[K]V, K comparable, V any](kvs M, pred func(V) bool) pair.Pair[M, M] {
-	return MonadPartitionWithIndex[M](kvs, F.Ignore1of2[K](pred))
+	return MonadPartitionWithIndex(kvs, F.Ignore1of2[K](pred))
 }
 
 func MonadPartitionMap[MA ~map[K]A, ML ~map[K]L, MR ~map[K]R, K comparable, A, L, R any](kvs MA, pred either.Kleisli[L, A, R]) pair.Pair[ML, MR] {

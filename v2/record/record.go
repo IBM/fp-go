@@ -565,7 +565,7 @@ func FilterMap[K comparable, V1, V2 any](f option.Kleisli[V1, V2]) Operator[K, V
 //	    return strings.HasPrefix(k, "a")
 //	})
 //	result := startsWithA(record) // {"apple": 1}
-func Filter[K comparable, V any](f Predicate[K]) Operator[K, V, V] {
+func Filter[V any, K comparable](f Predicate[K]) Operator[K, V, V] {
 	return G.Filter[Record[K, V]](f)
 }
 

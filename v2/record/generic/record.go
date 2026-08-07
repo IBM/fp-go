@@ -288,6 +288,29 @@ func union[M ~map[K]V, K comparable, V any](m Mg.Magma[V], left, right M) M {
 	return result
 }
 
+func intersection[M ~map[K]V, K comparable, V any](m Mg.Magma[V], left, right M) M {
+	lenLeft := len(left)
+
+	if lenLeft == 0 {
+		return nil
+	}
+
+	lenRight := len(right)
+	if lenRight == 0 {
+		return nil
+	}
+
+	result := make(M, min(lenLeft, lenRight))
+
+	for k, v := range left {
+		if val, ok := right[k]; ok {
+			result[k] = m.Concat(v, val)
+		}
+	}
+
+	return result
+}
+
 func unionLast[M ~map[K]V, K comparable, V any](left, right M) M {
 	lenLeft := len(left)
 
