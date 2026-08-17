@@ -7,7 +7,7 @@ require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/otiai10/copy v1.14.1
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	github.com/urfave/cli/v3 v3.11.0
 	golang.org/x/tools v0.49.0
 	gopkg.in/yaml.v3 v3.0.1
