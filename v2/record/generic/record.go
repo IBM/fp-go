@@ -108,6 +108,11 @@ func reduceOrd[M ~map[K]V, K comparable, V, R any](o ord.Ord[K], r M, f func(K, 
 
 func collect[M ~map[K]V, GR ~[]R, K comparable, V, R any](r M, f func(K, V) R) GR {
 	count := len(r)
+	// shortcut for empty records
+	if count == 0 {
+		return nil
+	}
+	// proceed for non-empty
 	result := make(GR, count)
 	idx := 0
 	for k, v := range r {
@@ -370,6 +375,10 @@ func ToArray[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](r M) GT {
 func toEntriesOrd[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](o ord.Ord[K], r M) GT {
 	// total number of elements
 	count := len(r)
+	// shortcut
+	if count == 0 {
+		return nil
+	}
 	// produce an array that we can sort by key
 	entries := make(GT, count)
 	idx := 0
@@ -449,6 +458,11 @@ func FromArray[
 }
 
 func FromEntries[M ~map[K]V, GT ~[]pair.Pair[K, V], K comparable, V any](fa GT) M {
+	// shortcut for empty arrays
+	if RAG.IsEmpty(fa) {
+		return nil
+	}
+	// proceed
 	m := make(M)
 	for _, t := range fa {
 		upsertAtReadWrite(m, pair.Head(t), pair.Tail(t))

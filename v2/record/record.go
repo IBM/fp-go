@@ -454,6 +454,10 @@ func ToEntries[K comparable, V any](r Record[K, V]) Entries[K, V] {
 //
 // If duplicate keys exist in the slice, the last occurrence wins.
 //
+// If the input slice is nil or empty, nil is returned. A nil map is the
+// canonical representation of an empty record in this package and is safe
+// to read from (len, range, lookups all work on a nil map).
+//
 // Example:
 //
 //	entries := Entries[string, int]{

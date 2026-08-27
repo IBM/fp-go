@@ -62,8 +62,7 @@ func TestNilMap_Collect(t *testing.T) {
 		return fmt.Sprintf("%s=%d", k, v)
 	})
 	result := collector(nilMap)
-	assert.NotNil(t, result, "Collect should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Collect should return empty slice for nil map")
+	assert.Empty(t, result, "Collect should return empty slice for nil map")
 }
 
 // TestNilMap_Reduce verifies that Reduce handles nil maps correctly
@@ -258,16 +257,14 @@ func TestNilMap_Size(t *testing.T) {
 func TestNilMap_ToArray(t *testing.T) {
 	var nilMap Record[string, int]
 	result := ToArray(nilMap)
-	assert.NotNil(t, result, "ToArray should return non-nil slice")
-	assert.Equal(t, 0, len(result), "ToArray should return empty slice for nil map")
+	assert.Empty(t, result, "ToArray should return empty slice for nil map")
 }
 
 // TestNilMap_ToEntries verifies that ToEntries handles nil maps correctly
 func TestNilMap_ToEntries(t *testing.T) {
 	var nilMap Record[string, int]
 	result := ToEntries(nilMap)
-	assert.NotNil(t, result, "ToEntries should return non-nil slice")
-	assert.Equal(t, 0, len(result), "ToEntries should return empty slice for nil map")
+	assert.Empty(t, result, "ToEntries should return empty slice for nil map")
 }
 
 // TestNilMap_UpsertAt verifies that UpsertAt handles nil maps correctly
@@ -464,17 +461,15 @@ func TestNilMap_Of(t *testing.T) {
 
 // TestNilMap_FromEntries verifies that FromEntries handles nil/empty slices correctly
 func TestNilMap_FromEntries(t *testing.T) {
-	// Test with nil slice
+	// Test with nil slice — nil is the canonical empty map representation
 	var nilSlice Entries[string, int]
 	result1 := FromEntries(nilSlice)
-	assert.NotNil(t, result1, "FromEntries should return non-nil map for nil slice")
-	assert.Equal(t, 0, len(result1), "FromEntries should return empty map for nil slice")
+	assert.Empty(t, result1, "FromEntries should return empty map for nil slice")
 
-	// Test with empty slice
+	// Test with empty slice — nil is the canonical empty map representation
 	emptySlice := Entries[string, int]{}
 	result2 := FromEntries(emptySlice)
-	assert.NotNil(t, result2, "FromEntries should return non-nil map for empty slice")
-	assert.Equal(t, 0, len(result2), "FromEntries should return empty map for empty slice")
+	assert.Empty(t, result2, "FromEntries should return empty map for empty slice")
 
 	// Test with actual entries
 	entries := Entries[string, int]{
@@ -482,7 +477,6 @@ func TestNilMap_FromEntries(t *testing.T) {
 		P.MakePair("b", 2),
 	}
 	result3 := FromEntries(entries)
-	assert.NotNil(t, result3, "FromEntries should return non-nil map")
 	assert.Equal(t, 2, len(result3), "FromEntries should create map with correct size")
 	assert.Equal(t, 1, result3["a"], "FromEntries should set values correctly")
 	assert.Equal(t, 2, result3["b"], "FromEntries should set values correctly")

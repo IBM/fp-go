@@ -42,8 +42,7 @@ func TestNilSlice_IsNonEmpty(t *testing.T) {
 func TestNilSlice_MonadMap(t *testing.T) {
 	var nilSlice []int
 	result := MonadMap(nilSlice, strconv.Itoa)
-	assert.NotNil(t, result, "MonadMap should return non-nil slice")
-	assert.Equal(t, 0, len(result), "MonadMap should return empty slice for nil input")
+	assert.Empty(t, result, "MonadMap should return empty slice for nil input")
 }
 
 // TestNilSlice_MonadMapRef verifies that MonadMapRef handles nil slices correctly
@@ -61,8 +60,7 @@ func TestNilSlice_Map(t *testing.T) {
 	var nilSlice []int
 	mapper := Map(strconv.Itoa)
 	result := mapper(nilSlice)
-	assert.NotNil(t, result, "Map should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Map should return empty slice for nil input")
+	assert.Empty(t, result, "Map should return empty slice for nil input")
 }
 
 // TestNilSlice_MapRef verifies that MapRef handles nil slices correctly
@@ -83,8 +81,7 @@ func TestNilSlice_MapWithIndex(t *testing.T) {
 		return fmt.Sprintf("%d:%d", i, v)
 	})
 	result := mapper(nilSlice)
-	assert.NotNil(t, result, "MapWithIndex should return non-nil slice")
-	assert.Equal(t, 0, len(result), "MapWithIndex should return empty slice for nil input")
+	assert.Empty(t, result, "MapWithIndex should return empty slice for nil input")
 }
 
 // TestNilSlice_Filter verifies that Filter handles nil slices correctly
@@ -449,8 +446,7 @@ func TestNilSlice_Concat(t *testing.T) {
 func TestNilSlice_MonadFlap(t *testing.T) {
 	var nilSlice []func(int) string
 	result := MonadFlap(nilSlice, 42)
-	assert.NotNil(t, result, "MonadFlap should return non-nil slice")
-	assert.Equal(t, 0, len(result), "MonadFlap should return empty slice for nil input")
+	assert.Empty(t, result, "MonadFlap should return empty slice for nil input")
 }
 
 // TestNilSlice_Flap verifies that Flap handles nil slices correctly
@@ -458,8 +454,7 @@ func TestNilSlice_Flap(t *testing.T) {
 	var nilSlice []func(int) string
 	flap := Flap[string](42)
 	result := flap(nilSlice)
-	assert.NotNil(t, result, "Flap should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Flap should return empty slice for nil input")
+	assert.Empty(t, result, "Flap should return empty slice for nil input")
 }
 
 // TestNilSlice_Reverse verifies that Reverse handles nil slices correctly

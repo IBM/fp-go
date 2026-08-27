@@ -145,6 +145,11 @@ func UpsertAt[GA ~[]A, A any](a A) func(GA) GA {
 
 func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	count := len(as)
+	// shortcut for empty list
+	if count == 0 {
+		return nil
+	}
+	// traverse the map
 	bs := make(GB, count)
 	for i := range count {
 		bs[i] = f(as[i])
@@ -160,6 +165,11 @@ func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
 
 func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B) GB {
 	count := len(as)
+	// shortcut for empty lists
+	if count == 0 {
+		return nil
+	}
+	// proceed with the mapping
 	bs := make(GB, count)
 	for i := range count {
 		bs[i] = f(i, as[i])

@@ -61,7 +61,7 @@ func TestLet(t *testing.T) {
 			func(s State1) int { return s.X * 2 },
 		),
 	)
-	assert.Equal(t, []State2{}, result2)
+	assert.Empty(t, result2)
 }
 
 // TestLetTo tests the LetTo function
@@ -147,7 +147,7 @@ func TestBindTo(t *testing.T) {
 			return State{X: x}
 		}),
 	)
-	assert.Equal(t, []State{}, result3)
+	assert.Empty(t, result3)
 }
 
 // TestDoWithLetAndBindTo tests combining Do, Let, LetTo, and BindTo

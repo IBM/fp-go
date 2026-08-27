@@ -247,7 +247,7 @@ func TestArrayEncoding(t *testing.T) {
 		intArray := Array(Int())
 		encoded := intArray.Encode([]int{})
 
-		assert.Equal(t, []int{}, encoded)
+		assert.Empty(t, encoded)
 	})
 
 	t.Run("encodes single element array", func(t *testing.T) {
@@ -358,7 +358,7 @@ func TestTranscodeArray(t *testing.T) {
 		intTranscode := TranscodeArray(Int())
 		encoded := intTranscode.Encode([]int{})
 
-		assert.Equal(t, []int{}, encoded)
+		assert.Empty(t, encoded)
 	})
 
 	t.Run("encodes single element array", func(t *testing.T) {

@@ -856,7 +856,6 @@ func TestValidationErrors_Errors(t *testing.T) {
 
 		errs := ve.Errors()
 		assert.Empty(t, errs)
-		assert.NotNil(t, errs)
 	})
 
 	t.Run("converts single ValidationError to error interface", func(t *testing.T) {
