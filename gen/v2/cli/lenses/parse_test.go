@@ -374,3 +374,122 @@ type PrivateConfig struct {
 	assert.Equal(t, "value", config.Fields[1].Name)
 	assert.Equal(t, "enabled", config.Fields[2].Name)
 }
+
+func TestParseFileExternalImportUsesFullPathAlias(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	// Two external packages that share the same short name "v1" but come from
+	// different import paths — identical to the k8s disambiguation scenario.
+	err := os.WriteFile(testFile, []byte(`package testpkg
+
+import (
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// fp-go:Lens
+type Deployment struct {
+	Spec appsv1.DeploymentSpec
+	Meta metav1.ObjectMeta
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := lenses.ParseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	dep := structs[0]
+	require.Len(t, dep.Fields, 2)
+
+	appsAlias := lenses.AliasFromPath("k8s.io/api/apps/v1")
+	metaAlias := lenses.AliasFromPath("k8s.io/apimachinery/pkg/apis/meta/v1")
+
+	// TypeNames must use the full-path alias, not the source alias.
+	assert.Equal(t, appsAlias+".DeploymentSpec", dep.Fields[0].TypeName)
+	assert.Equal(t, metaAlias+".ObjectMeta", dep.Fields[1].TypeName)
+
+	// Imports map must use the full-path alias as the value.
+	assert.Equal(t, appsAlias, dep.Imports["k8s.io/api/apps/v1"])
+	assert.Equal(t, metaAlias, dep.Imports["k8s.io/apimachinery/pkg/apis/meta/v1"])
+}
+
+func TestParseFileExternalImportOptionTypeAlias(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	err := os.WriteFile(testFile, []byte(`package testpkg
+
+import "github.com/IBM/fp-go/v2/option"
+
+// fp-go:Lens
+type Config struct {
+	Name  string
+	Value option.Option[string]
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := lenses.ParseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	cfg := structs[0]
+	require.Len(t, cfg.Fields, 2)
+
+	// The option package is an infrastructure package; its effective alias is "__option",
+	// not the full-path alias. TypeName should be rewritten to use "__option".
+	assert.Equal(t, "__option.Option[string]", cfg.Fields[1].TypeName, "TypeName should use the infrastructure alias __option")
+	// The infrastructure alias is stored in Imports so ResolveImportAliases can see it,
+	// but GenerateLensFile skips it when building the user import block.
+	assert.Equal(t, "__option", cfg.Imports["github.com/IBM/fp-go/v2/option"], "Imports alias for infrastructure package should be __option")
+}
+
+func TestParseFileWithNamedNonComparableTypes(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.go")
+
+	err := os.WriteFile(testFile, []byte(`package testpkg
+
+// Tags is a slice type — not comparable.
+type Tags []string
+
+// Attrs is a map type — not comparable.
+type Attrs map[string]string
+
+// Handler is a func type — not comparable.
+type Handler func()
+
+// ID is a string alias — comparable.
+type ID string
+
+// fp-go:Lens
+type Config struct {
+	Name    string
+	Tags    Tags
+	Attrs   Attrs
+	Handler Handler
+	ID      ID
+}
+`), 0o644)
+	require.NoError(t, err)
+
+	structs, _, err := lenses.ParseFile(testFile)
+	require.NoError(t, err)
+	require.Len(t, structs, 1)
+
+	fields := structs[0].Fields
+	require.Len(t, fields, 5)
+
+	byName := make(map[string]lenses.FieldInfo)
+	for _, f := range fields {
+		byName[f.Name] = f
+	}
+
+	assert.True(t, byName["Name"].IsComparable, "string field should be comparable")
+	assert.False(t, byName["Tags"].IsComparable, "Tags ([]string) must not be comparable")
+	assert.False(t, byName["Attrs"].IsComparable, "Attrs (map) must not be comparable")
+	assert.False(t, byName["Handler"].IsComparable, "Handler (func) must not be comparable")
+	assert.True(t, byName["ID"].IsComparable, "ID (string alias) should be comparable")
+}

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"go/format"
 	"log"
-	"maps"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -337,15 +336,42 @@ func WritePackageHeader(f *os.File, pkg string) {
 }
 
 // GenerateLensFile renders templates for all structs and writes the formatted
+// infrastructureAliases maps the fixed fp-go infrastructure import paths to the
+// aliases that GenerateLensFile always writes unconditionally. Any user-supplied
+// struct import that resolves to one of these paths must use this alias in type
+// names and must not be emitted again in the import block.
+var infrastructureAliases = map[string]string{
+	"github.com/IBM/fp-go/v2/optics/lens":       "__lens",
+	"github.com/IBM/fp-go/v2/option":             "__option",
+	"github.com/IBM/fp-go/v2/optics/prism":       "__prism",
+	"github.com/IBM/fp-go/v2/optics/lens/option": "__lens_option",
+	"github.com/IBM/fp-go/v2/optics/iso/option":  "__iso_option",
+}
+
+// EffectiveImportAlias returns the alias that will be used for importPath in a
+// generated file. For the fixed fp-go infrastructure packages this is the
+// pre-defined __xxx alias; for all other packages it is AliasFromPath(importPath).
+func EffectiveImportAlias(importPath string) string {
+	if alias, ok := infrastructureAliases[importPath]; ok {
+		return alias
+	}
+	return AliasFromPath(importPath)
+}
+
 // Go source to absDir/filename.
 func GenerateLensFile(absDir, filename, packageName string, structs []StructInfo, verbose bool) error {
 	// Resolve any import-alias conflicts before collecting imports.
 	ResolveImportAliases(structs)
 
-	// Collect all unique imports from all structs (conflicts already resolved above)
+	// Collect all unique imports from all structs (conflicts already resolved above),
+	// excluding the infrastructure imports that are always written unconditionally.
 	allImports := make(map[string]string) // import path -> alias
 	for _, s := range structs {
-		maps.Copy(allImports, s.Imports)
+		for path, alias := range s.Imports {
+			if _, isInfra := infrastructureAliases[path]; !isInfra {
+				allImports[path] = alias
+			}
+		}
 	}
 
 	outPath := filepath.Join(absDir, filename)

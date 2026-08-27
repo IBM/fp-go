@@ -167,7 +167,12 @@ func IsOptionType(expr ast.Expr) bool {
 //
 // typeParams is a map of type parameter names to their constraints
 // (e.g., "T" -> "any", "K" -> "comparable").
-func IsComparableType(expr ast.Expr, typeParams map[string]string) bool {
+//
+// localTypes maps type names declared in the same file to their underlying
+// type expression, so that named aliases like `type Tags []string` are
+// correctly identified as non-comparable. Pass nil if no local type info
+// is available (the function falls back to the previous optimistic behaviour).
+func IsComparableType(expr ast.Expr, typeParams map[string]string, localTypes map[string]ast.Expr) bool {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		// Check if this is a type parameter
@@ -178,7 +183,15 @@ func IsComparableType(expr ast.Expr, typeParams map[string]string) bool {
 		if t.Name == "error" {
 			return true
 		}
-		// Most basic types and named types are comparable.
+		// If the type was declared in the same file, recurse into its
+		// underlying type so that e.g. `type Tags []string` is correctly
+		// classified as non-comparable.
+		if localTypes != nil {
+			if underlying, ok := localTypes[t.Name]; ok {
+				return IsComparableType(underlying, typeParams, localTypes)
+			}
+		}
+		// Unknown external type — keep the optimistic assumption.
 		return true
 	case *ast.StarExpr:
 		return true
@@ -187,7 +200,7 @@ func IsComparableType(expr ast.Expr, typeParams map[string]string) bool {
 			// slice — not comparable
 			return false
 		}
-		return IsComparableType(t.Elt, typeParams)
+		return IsComparableType(t.Elt, typeParams, localTypes)
 	case *ast.MapType:
 		return false
 	case *ast.FuncType:
@@ -222,7 +235,7 @@ func IsComparableType(expr ast.Expr, typeParams map[string]string) bool {
 			if ident, ok := sel.X.(*ast.Ident); ok {
 				if IsFpGoValueStructPkg(ident.Name, sel.Sel.Name) {
 					for _, arg := range typeArgs {
-						if !IsComparableType(arg, typeParams) {
+						if !IsComparableType(arg, typeParams, localTypes) {
 							return false
 						}
 					}
@@ -247,7 +260,9 @@ type embeddedFieldResult struct {
 // ExtractEmbeddedFields extracts fields from an embedded struct type. It returns
 // a slice of (FieldInfo, ast.Expr) pairs for all fields in the embedded struct.
 // typeParamsMap contains the type parameters of the parent struct.
-func ExtractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string) []embeddedFieldResult {
+// localTypes maps type names declared in the same file to their underlying type
+// expressions (used by IsComparableType to resolve named slice/map/func aliases).
+func ExtractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string, localTypes map[string]ast.Expr) []embeddedFieldResult {
 	var results []embeddedFieldResult
 
 	var typeName string
@@ -311,7 +326,7 @@ func ExtractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 					TypeName:     fieldTypeName,
 					BaseType:     baseType,
 					IsOptional:   isOptional,
-					IsComparable: IsComparableType(field.Type, typeParamsMap),
+					IsComparable: IsComparableType(field.Type, typeParamsMap, localTypes),
 					IsOption:     IsOptionType(field.Type),
 					IsEmbedded:   true,
 				},
@@ -371,7 +386,7 @@ func ParseFile(filename string) ([]StructInfo, string, error) {
 	var structs []StructInfo
 	packageName := node.Name.Name
 
-	// Build import map: package name -> import path
+	// Build import map: package short name -> import path
 	fileImports := make(map[string]string)
 	for _, imp := range node.Imports {
 		path := strings.Trim(imp.Path.Value, `"`)
@@ -385,13 +400,45 @@ func ParseFile(filename string) ([]StructInfo, string, error) {
 		fileImports[name] = path
 	}
 
-	// First pass: collect all GenDecls with their doc comments.
+	// Build a replacer that rewrites short-name qualifiers (e.g. "option.")
+	// to the effective alias (e.g. "__option." for infrastructure packages, or
+	// "github_com_IBM_fp_go_v2_option." for others) so that the generated type
+	// names are consistent with the import block written by GenerateLensFile.
+	buildTypeReplacer := func(usedPkgs map[string]struct{}) *strings.Replacer {
+		var pairs []string
+		for pkgName := range usedPkgs {
+			importPath, ok := fileImports[pkgName]
+			if !ok {
+				continue
+			}
+			newAlias := EffectiveImportAlias(importPath)
+			if newAlias != pkgName {
+				pairs = append(pairs, pkgName+".", newAlias+".")
+			}
+		}
+		if len(pairs) == 0 {
+			return nil
+		}
+		return strings.NewReplacer(pairs...)
+	}
+
+	// First pass: collect all GenDecls with their doc comments AND build a map
+	// of every non-struct type declared in the file (type name → underlying AST
+	// expression). This lets IsComparableType resolve named aliases such as
+	// `type Tags []string` without requiring go/packages type information.
 	declMap := make(map[*ast.TypeSpec]*ast.CommentGroup)
+	localTypes := make(map[string]ast.Expr)
 	ast.Inspect(node, func(n ast.Node) bool {
 		if gd, ok := n.(*ast.GenDecl); ok {
 			for _, spec := range gd.Specs {
 				if ts, ok := spec.(*ast.TypeSpec); ok {
 					declMap[ts] = gd.Doc
+					// Record all non-generic type aliases so IsComparableType
+					// can resolve them. Generic types are skipped because their
+					// comparability depends on type arguments resolved at use-site.
+					if ts.TypeParams == nil || ts.TypeParams.NumFields() == 0 {
+						localTypes[ts.Name.Name] = ts.Type
+					}
 				}
 			}
 		}
@@ -414,20 +461,19 @@ func ParseFile(filename string) ([]StructInfo, string, error) {
 		}
 
 		var fields []FieldInfo
-		structImports := make(map[string]string)
+		// usedPkgs collects short package names referenced by field types.
+		usedPkgs := make(map[string]struct{})
 		typeParamsMap := BuildTypeParamsMap(typeSpec)
 
 		for _, field := range structType.Fields.List {
 			if len(field.Names) == 0 {
 				// Embedded field — promote its fields.
-				embeddedResults := ExtractEmbeddedFields(field.Type, fileImports, node, typeParamsMap)
+					embeddedResults := ExtractEmbeddedFields(field.Type, fileImports, node, typeParamsMap, localTypes)
 				for _, embResult := range embeddedResults {
 					fieldImports := make(map[string]string)
 					ExtractImports(embResult.FieldType, fieldImports)
 					for pkgName := range fieldImports {
-						if importPath, ok := fileImports[pkgName]; ok {
-							structImports[importPath] = pkgName
-						}
+						usedPkgs[pkgName] = struct{}{}
 					}
 					fields = append(fields, embResult.FieldInfo)
 				}
@@ -448,9 +494,7 @@ func ParseFile(filename string) ([]StructInfo, string, error) {
 				fieldImports := make(map[string]string)
 				ExtractImports(field.Type, fieldImports)
 				for pkgName := range fieldImports {
-					if importPath, ok := fileImports[pkgName]; ok {
-						structImports[importPath] = pkgName
-					}
+					usedPkgs[pkgName] = struct{}{}
 				}
 
 				fields = append(fields, FieldInfo{
@@ -458,9 +502,25 @@ func ParseFile(filename string) ([]StructInfo, string, error) {
 					TypeName:     typeName,
 					BaseType:     baseType,
 					IsOptional:   isOptional,
-					IsComparable: IsComparableType(field.Type, typeParamsMap),
+					IsComparable: IsComparableType(field.Type, typeParamsMap, localTypes),
 					IsOption:     IsOptionType(field.Type),
 				})
+			}
+		}
+
+		// Build the imports map using effective aliases (same convention as the
+		// type-names path) and rewrite field TypeName/BaseType strings to match.
+		structImports := make(map[string]string, len(usedPkgs))
+		for pkgName := range usedPkgs {
+			if importPath, ok := fileImports[pkgName]; ok {
+				structImports[importPath] = EffectiveImportAlias(importPath)
+			}
+		}
+
+		if r := buildTypeReplacer(usedPkgs); r != nil {
+			for i := range fields {
+				fields[i].TypeName = r.Replace(fields[i].TypeName)
+				fields[i].BaseType = r.Replace(fields[i].BaseType)
 			}
 		}
 

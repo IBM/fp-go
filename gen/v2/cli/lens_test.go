@@ -271,11 +271,12 @@ type Config struct {
 	contentStr := string(content)
 
 	assert.Contains(t, contentStr, "__lens.Lens[Config, string]")
-	assert.Contains(t, contentStr, "__lens.Lens[Config, option.Option[string]]")
+	// option is an infrastructure package — TypeName uses the __option alias.
+	assert.Contains(t, contentStr, "__lens.Lens[Config, __option.Option[string]]")
 	assert.Contains(t, contentStr, "__lens.Lens[Config, int]")
 	assert.Contains(t, contentStr, "__lens_option.LensO[Config, string]")
 	assert.Contains(t, contentStr, "__lens_option.LensO[Config, int]")
-	assert.NotContains(t, contentStr, "__lens_option.LensO[Config, option.Option[string]]",
+	assert.NotContains(t, contentStr, "__lens_option.LensO[Config, __option.Option[string]]",
 		"LensO for Value (option.Option[string]) must NOT be generated")
 }
 

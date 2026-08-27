@@ -189,7 +189,7 @@ func TestIsComparableType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			expr := parseFieldType(t, tt.code)
-			assert.Equal(t, tt.expected, lenses.IsComparableType(expr, map[string]string{}))
+			assert.Equal(t, tt.expected, lenses.IsComparableType(expr, map[string]string{}, nil))
 		})
 	}
 }
@@ -232,7 +232,52 @@ func TestIsComparableTypeWithTypeParams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			expr := parseFieldType(t, tt.code)
-			assert.Equal(t, tt.expected, lenses.IsComparableType(expr, tt.typeParams))
+			assert.Equal(t, tt.expected, lenses.IsComparableType(expr, tt.typeParams, nil))
+		})
+	}
+}
+
+// TestIsComparableTypeWithLocalTypes verifies that named type aliases declared
+// in the same file are resolved through the localTypes map.
+func TestIsComparableTypeWithLocalTypes(t *testing.T) {
+	// Build localTypes as ParseFile would: scan the file for type declarations.
+	src := `package test
+type Tags     []string
+type Attrs    map[string]string
+type Handler  func()
+type ID       string
+type Score    int64
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "", src, 0)
+	require.NoError(t, err)
+
+	localTypes := make(map[string]ast.Expr)
+	ast.Inspect(file, func(n ast.Node) bool {
+		if ts, ok := n.(*ast.TypeSpec); ok {
+			localTypes[ts.Name.Name] = ts.Type
+		}
+		return true
+	})
+
+	tests := []struct {
+		name     string
+		code     string
+		expected bool
+	}{
+		{"Tags ([]string) - not comparable", "type S struct { F Tags }", false},
+		{"Attrs (map) - not comparable", "type S struct { F Attrs }", false},
+		{"Handler (func) - not comparable", "type S struct { F Handler }", false},
+		{"ID (string alias) - comparable", "type S struct { F ID }", true},
+		{"Score (int64 alias) - comparable", "type S struct { F Score }", true},
+		{"*Tags (pointer to slice) - comparable (pointer is always comparable)", "type S struct { F *Tags }", true},
+		{"Unknown - optimistic true when not in localTypes", "type S struct { F Unknown }", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expr := parseFieldType(t, tt.code)
+			assert.Equal(t, tt.expected, lenses.IsComparableType(expr, map[string]string{}, localTypes))
 		})
 	}
 }
