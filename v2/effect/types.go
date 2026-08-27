@@ -32,6 +32,7 @@ import (
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/readerresult"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -118,4 +119,6 @@ type (
 	KleisliI[R, A, B any] = readerreaderioresult.KleisliI[R, A, B]
 
 	Option[T any] = option.Option[T]
+
+	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
 )

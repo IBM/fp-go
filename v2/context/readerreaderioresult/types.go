@@ -36,6 +36,7 @@ import (
 	"github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/readerreaderioeither"
+	"github.com/IBM/fp-go/v2/readerresult"
 	"github.com/IBM/fp-go/v2/tailrec"
 )
 
@@ -174,4 +175,6 @@ type (
 	// This matches the signature of typical service methods in Go and can be lifted into
 	// the functional style with [FromIdiomatic].
 	KleisliI[R, A, B any] = func(A) func(context.Context, R) (B, error)
+
+	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
 )

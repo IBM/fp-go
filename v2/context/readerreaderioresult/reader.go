@@ -722,6 +722,10 @@ func FromReader[R, A any](ma Reader[R, A]) ReaderReaderIOResult[R, A] {
 	return RRIOE.FromReader[context.Context, error](ma)
 }
 
+func FromReaderResult[R, A any](ma ReaderResult[R, A]) ReaderReaderIOResult[R, A] {
+	return RRIOE.FromReaderEither[R, context.Context](ma)
+}
+
 // RightIO lifts an IO into a ReaderReaderIOResult as a Right (success) value.
 //
 //go:inline

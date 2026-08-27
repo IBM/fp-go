@@ -1214,3 +1214,34 @@ func TapLeftThunkK[C, A, B any](f thunk.Kleisli[error, B]) Operator[C, A, A] {
 func FromReader[R, A any](ma Reader[R, A]) Effect[R, A] {
 	return readerreaderioresult.FromReader(ma)
 }
+
+// FromReaderResult lifts a ReaderResult into an Effect. A ReaderResult is a
+// function from an environment R to a Result[A], so it can already encode both
+// success and failure. FromReaderResult preserves that structure: a Right value
+// inside the ReaderResult becomes a successful Effect, and a Left value becomes
+// a failed Effect carrying the original error.
+//
+// This is the canonical way to integrate existing fallible, environment-reading
+// computations (e.g. the output of result.Eitherize1 applied to a Reader) into
+// an effect pipeline.
+//
+// Type Parameters:
+//   - R: The environment type consumed by the ReaderResult
+//   - A: The type of the success value produced on a Right result
+//
+// Parameters:
+//   - ma: A ReaderResult[R, A] (i.e. func(R) Result[A]) to lift
+//
+// Returns:
+//   - Effect[R, A]: An effect that evaluates ma against its environment and
+//     propagates the result as a success or failure
+//
+// See Also:
+//   - FromReader: Lifts an always-successful Reader into an Effect
+//   - ChainResultK: Chains a result-returning function over an existing Effect
+//   - FromResult: Lifts a pre-computed Result into an Effect
+//
+//go:inline
+func FromReaderResult[R, A any](ma ReaderResult[R, A]) Effect[R, A] {
+	return readerreaderioresult.FromReaderResult(ma)
+}

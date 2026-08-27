@@ -18,9 +18,11 @@ package effect
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
@@ -304,4 +306,231 @@ func TestFromReader_Integration(t *testing.T) {
 		assert.NoError(t, err2)
 		assert.Equal(t, v1, v2)
 	})
+}
+
+func TestFromReaderResult_Success(t *testing.T) {
+	t.Run("lifts a ReaderResult returning a Right", func(t *testing.T) {
+		rr := func(_ TestContext) result.Result[int] { return result.Of(42) }
+		eff := FromReaderResult(rr)
+
+		value, err := runEffect(eff, TestContext{Value: "env"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("reads from the environment before producing a Right", func(t *testing.T) {
+		rr := func(ctx TestContext) result.Result[string] {
+			return result.Of("hello " + ctx.Value)
+		}
+		eff := FromReaderResult(rr)
+
+		value, err := runEffect(eff, TestContext{Value: "world"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "hello world", value)
+	})
+
+	t.Run("lifts a ReaderResult built from result.Eitherize1", func(t *testing.T) {
+		parseIntRR := func(_ TestContext) result.Result[int] {
+			return result.Eitherize1(strconv.Atoi)("99")
+		}
+		eff := FromReaderResult(parseIntRR)
+
+		value, err := runEffect(eff, TestContext{})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 99, value)
+	})
+}
+
+func TestFromReaderResult_Failure(t *testing.T) {
+	t.Run("propagates a Left as a failed effect", func(t *testing.T) {
+		expectedErr := errors.New("something went wrong")
+		rr := func(_ TestContext) result.Result[int] {
+			return result.Left[int](expectedErr)
+		}
+		eff := FromReaderResult(rr)
+
+		_, err := runEffect(eff, TestContext{})
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("failure from a reader-based parse error", func(t *testing.T) {
+		rr := func(_ TestContext) result.Result[int] {
+			return result.Eitherize1(strconv.Atoi)("not-a-number")
+		}
+		eff := FromReaderResult(rr)
+
+		_, err := runEffect(eff, TestContext{})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid syntax")
+	})
+
+	t.Run("error message is preserved exactly", func(t *testing.T) {
+		customErr := errors.New("custom validation error")
+		rr := func(_ TestContext) result.Result[string] {
+			return result.Left[string](customErr)
+		}
+		eff := FromReaderResult(rr)
+
+		_, err := runEffect(eff, TestContext{})
+
+		assert.Equal(t, customErr, err)
+	})
+}
+
+func TestFromReaderResult_EdgeCases(t *testing.T) {
+	t.Run("zero-value environment", func(t *testing.T) {
+		rr := func(ctx TestContext) result.Result[string] {
+			return result.Of(ctx.Value)
+		}
+		eff := FromReaderResult(rr)
+
+		value, err := runEffect(eff, TestContext{})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "", value)
+	})
+
+	t.Run("environment is passed exactly once", func(t *testing.T) {
+		callCount := 0
+		rr := func(_ TestContext) result.Result[int] {
+			callCount++
+			return result.Of(callCount)
+		}
+		eff := FromReaderResult(rr)
+
+		value, err := runEffect(eff, TestContext{})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, value)
+		assert.Equal(t, 1, callCount)
+	})
+}
+
+func TestFromReaderResult_Integration(t *testing.T) {
+	t.Run("composes with Map on success", func(t *testing.T) {
+		rr := func(_ TestContext) result.Result[int] { return result.Of(21) }
+		eff := F.Pipe1(
+			FromReaderResult(rr),
+			Map[TestContext](func(n int) int { return n * 2 }),
+		)
+
+		value, err := runEffect(eff, TestContext{})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("composes with Chain on success", func(t *testing.T) {
+		rr := func(ctx TestContext) result.Result[string] {
+			return result.Of(ctx.Value)
+		}
+		eff := F.Pipe1(
+			FromReaderResult(rr),
+			Chain(func(s string) Effect[TestContext, int] {
+				n, _ := strconv.Atoi(s)
+				return Of[TestContext](n)
+			}),
+		)
+
+		value, err := runEffect(eff, TestContext{Value: "7"})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 7, value)
+	})
+
+	t.Run("Map is skipped when ReaderResult is a Left", func(t *testing.T) {
+		rr := func(_ TestContext) result.Result[int] {
+			return result.Left[int](errors.New("upstream error"))
+		}
+		eff := F.Pipe1(
+			FromReaderResult(rr),
+			Map[TestContext](func(n int) int { return n * 2 }),
+		)
+
+		_, err := runEffect(eff, TestContext{})
+
+		assert.Error(t, err)
+		assert.EqualError(t, err, "upstream error")
+	})
+
+	t.Run("composes with FromReader for the same environment", func(t *testing.T) {
+		plainReader := func(ctx TestContext) int { return len(ctx.Value) }
+		rrReader := func(ctx TestContext) result.Result[int] {
+			if ctx.Value == "" {
+				return result.Left[int](errors.New("empty value"))
+			}
+			return result.Of(len(ctx.Value))
+		}
+
+		effFromReader := FromReader(plainReader)
+		effFromReaderResult := FromReaderResult(rrReader)
+
+		v1, err1 := runEffect(effFromReader, TestContext{Value: "abc"})
+		v2, err2 := runEffect(effFromReaderResult, TestContext{Value: "abc"})
+
+		assert.NoError(t, err1)
+		assert.NoError(t, err2)
+		assert.Equal(t, v1, v2)
+	})
+}
+
+// ExampleFromReaderResult demonstrates lifting a ReaderResult into an Effect.
+func ExampleFromReaderResult() {
+	type Config struct {
+		Input string
+	}
+
+	parseIntRR := func(cfg Config) result.Result[int] {
+		return result.Eitherize1(strconv.Atoi)(cfg.Input)
+	}
+	eff := FromReaderResult(parseIntRR)
+
+	res := eff(Config{Input: "42"})(context.Background())()
+	value, _ := result.Unwrap(res)
+	fmt.Println(value)
+	// Output: 42
+}
+
+// ExampleFromReaderResult_failure demonstrates that a Left result becomes a failed Effect.
+func ExampleFromReaderResult_failure() {
+	type Config struct {
+		Input string
+	}
+
+	parseIntRR := func(cfg Config) result.Result[int] {
+		return result.Eitherize1(strconv.Atoi)(cfg.Input)
+	}
+	eff := FromReaderResult(parseIntRR)
+
+	res := eff(Config{Input: "bad"})(context.Background())()
+	_, err := result.Unwrap(res)
+	fmt.Println(result.IsLeft(res))
+	fmt.Println(err != nil)
+	// Output:
+	// true
+	// true
+}
+
+// ExampleFromReaderResult_composition demonstrates composing FromReaderResult with Map.
+func ExampleFromReaderResult_composition() {
+	type Config struct {
+		Base int
+	}
+
+	rr := func(cfg Config) result.Result[int] { return result.Of(cfg.Base) }
+	eff := F.Pipe1(
+		FromReaderResult(rr),
+		Map[Config](func(n int) string { return "value=" + strconv.Itoa(n*2) }),
+	)
+
+	res := eff(Config{Base: 21})(context.Background())()
+	value, _ := result.Unwrap(res)
+	fmt.Println(value)
+	// Output: value=42
 }

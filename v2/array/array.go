@@ -1650,3 +1650,30 @@ func MonadPartitionMap[A, L, R any](as []A, pred either.Kleisli[L, A, R]) pair.P
 func PartitionMap[A, L, R any](pred either.Kleisli[L, A, R]) pair.Kleisli[[]L, []A, []R] {
 	return G.PartitionMap[[]L, []R, []A](pred)
 }
+
+// At returns a function that retrieves the element at index n from a slice,
+// wrapped in an Option. Returns None if n is negative or out of bounds.
+//
+// At is the direct implementation counterpart of Lookup: both return None for
+// out-of-bounds indices, but At is inlined and does not delegate to the
+// generic layer.
+//
+// Type Parameters:
+//   - A: the element type of the slice
+//
+// Parameters:
+//   - n: zero-based index of the element to retrieve; must be >= 0
+//
+// Returns:
+//   - option.Kleisli[[]A, A]: a function from []A to Option[A] that returns
+//     Some(as[n]) when 0 <= n < len(as), or None otherwise
+//
+// See Also:
+//   - Lookup: alias with the same semantics, delegates to the generic layer
+//   - Head: retrieves the first element (index 0)
+//   - Last: retrieves the last element
+//
+//go:inline
+func At[A any](n int) option.Kleisli[[]A, A] {
+	return Lookup[A](n)
+}

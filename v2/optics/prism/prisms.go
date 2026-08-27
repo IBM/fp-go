@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/IBM/fp-go/v2/array"
+	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	J "github.com/IBM/fp-go/v2/json"
@@ -1351,4 +1352,75 @@ func ParseJSON[A any]() Prism[[]byte, A] {
 		),
 		"JSON",
 	)
+}
+
+// Head creates a prism that focuses on the first element of a slice.
+//
+// GetOption returns Some(as[0]) when the slice is non-empty, and None when
+// the slice is nil or empty. ReverseGet wraps a value in a single-element
+// slice (equivalent to array.Of).
+//
+// Type Parameters:
+//   - T: the element type of the slice
+//
+// Returns:
+//   - Prism[[]T, T]: a prism whose source is []T and whose focus is T
+//
+// Prism laws:
+//   - GetOption(ReverseGet(a)) == Some(a) — a singleton slice always has a head
+//   - if GetOption(s) == Some(a) then ReverseGet(a) reconstructs a valid []T
+//
+// See Also:
+//   - At: focuses on an arbitrary index rather than only index 0
+//   - array.Head: the underlying Option-returning function
+func Head[T any]() Prism[[]T, T] {
+	return MakePrismWithName(A.Head[T], A.Of, "Head")
+}
+
+// At returns a Kleisli function that, given an index i, produces a prism
+// focusing on the element at position i within a slice.
+//
+// When i is negative, GetOption always returns None and ReverseGet returns nil,
+// because a negative index can never be valid.
+//
+// When i >= 0, GetOption returns Some(as[i]) if the slice is long enough, and
+// None otherwise. ReverseGet constructs a slice of length i+1 whose only
+// assigned element is the focused value at position i (all other positions
+// hold the zero value of T).
+//
+// Type Parameters:
+//   - T: the element type of the slice
+//
+// Returns:
+//   - Kleisli[[]T, int, T]: a function from int to Prism[[]T, T]
+//
+// Prism laws (for i >= 0):
+//   - GetOption(ReverseGet(a)) == Some(a) — the reconstructed slice has length
+//     i+1, so index i is always in-bounds
+//   - if GetOption(s) == Some(a) then s[i] == a
+//
+// See Also:
+//   - Head: convenience prism for index 0
+//   - array.Lookup: the underlying Option-returning function used for GetOption
+func At[T any]() Kleisli[[]T, int, T] {
+	return func(i int) Prism[[]T, T] {
+		// quick check
+		if i < 0 {
+			return MakePrismWithName(
+				F.Constant1[[]T](option.None[T]()),
+				F.Constant1[T, []T](nil),
+				"At",
+			)
+		}
+		// regular implementation
+		return MakePrismWithName(
+			A.Lookup[T](i),
+			func(t T) []T {
+				res := make([]T, i+1)
+				res[i] = t
+				return res
+			},
+			"At",
+		)
+	}
 }
