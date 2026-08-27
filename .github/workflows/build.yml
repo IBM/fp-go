@@ -180,7 +180,7 @@ jobs:
 
       - name: Run semantic release
         run: |
-          npx -p conventional-changelog-conventionalcommits -p semantic-release semantic-release --dry-run ${{ env.DRY_RUN }}
+          npx -p conventional-changelog-conventionalcommits@8 -p semantic-release semantic-release --dry-run ${{ env.DRY_RUN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
