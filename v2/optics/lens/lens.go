@@ -845,8 +845,20 @@ func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 
 // ComposeRef combines two lenses for pointer-based structures.
 //
-// This is the pointer version of [Compose], automatically handling copying to ensure immutability.
-// It allows you to navigate through nested pointer structures in a composable way.
+// Deprecated: ComposeRef is not needed. When the outer lens is already a
+// pointer lens (Lens[*S, A], created with MakeLensRef or MakeLensRefCurried),
+// its Set implementation already copies *S before writing. The copy that
+// ComposeRef adds via MakeLensRefCurriedWithName is therefore redundant —
+// the composed setter calls the outer lens's Set, which copies, so the
+// original pointer is never mutated.
+//
+// Use [Compose][*S] instead:
+//
+//	// Before
+//	personStreetLens := F.Pipe1(addressLens, lens.ComposeRef[Person](streetLens))
+//
+//	// After — identical behaviour, no extra copy
+//	personStreetLens := F.Pipe1(addressLens, lens.Compose[*Person](streetLens))
 //
 // Type Parameters:
 //   - S: Outer structure type (will be used as *S)
@@ -858,29 +870,6 @@ func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 //
 // Returns:
 //   - A function that takes a Lens[*S, A] and returns a Lens[*S, B]
-//
-// Example:
-//
-//	type Address struct {
-//	    Street string
-//	}
-//
-//	type Person struct {
-//	    Name    string
-//	    Address Address
-//	}
-//
-//	addressLens := lens.MakeLensRef(
-//	    func(p *Person) Address { return p.Address },
-//	    func(p *Person, a Address) *Person { p.Address = a; return p },
-//	)
-//
-//	streetLens := lens.MakeLens(
-//	    func(a Address) string { return a.Street },
-//	    func(a Address, s string) Address { a.Street = s; return a },
-//	)
-//
-//	personStreetLens := F.Pipe1(addressLens, lens.ComposeRef[Person](streetLens))
 func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 	return compose(MakeLensRefCurriedWithName[S, B], ab)
 }

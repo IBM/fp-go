@@ -637,3 +637,87 @@ func TestComposeAssociativity(t *testing.T) {
 	assert.Equal(t, composed1.Get(l1), composed2.Get(l1))
 	assert.Equal(t, composed1.Set("new")(l1), composed2.Set("new")(l1))
 }
+
+// TestCompose_SufficientForPointerLens proves that Compose[*S] is a complete
+// replacement for ComposeRef[S] when the outer lens is a pointer lens.
+//
+// The test family covers three properties that together demonstrate equivalence:
+//
+//  1. Immutability: Set must not mutate the original *S.
+//  2. Lens laws (GetSet, SetGet, SetSet) on Compose[*S].
+//  3. Behavioural parity: Compose[*S] and ComposeRef[S] return identical results
+//     for every operation.
+func TestCompose_SufficientForPointerLens(t *testing.T) {
+	// Reuse the package-level streetLens / addrLens which are both pointer lenses
+	// (Lens[*Street, string] and Lens[*Address, *Street] respectively).
+	composed := Compose[*Address](streetLens)(addrLens)
+
+	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
+	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
+	newName := "Böblingerstr"
+
+	// --- immutability ----------------------------------------------------------
+
+	t.Run("Set does not mutate the original pointer", func(t *testing.T) {
+		originalName := sampleAddress.street.name
+
+		_ = composed.Set(newName)(&sampleAddress)
+
+		// The original struct must be untouched.
+		assert.Equal(t, originalName, sampleAddress.street.name,
+			"Compose[*S] Set must not modify the value behind the original pointer")
+	})
+
+	t.Run("Set does not mutate nested pointer", func(t *testing.T) {
+		originalStreetPtr := sampleAddress.street
+
+		updated := composed.Set(newName)(&sampleAddress)
+
+		// The returned *Address must point to a different *Street than before.
+		assert.NotSame(t, originalStreetPtr, updated.street,
+			"Set must return a new *Street, not reuse the original")
+		// Original still intact.
+		assert.Equal(t, originalStreetPtr.name, sampleStreet.name)
+	})
+
+	// --- lens laws -------------------------------------------------------------
+
+	t.Run("law GetSet: Set(Get(s))(s) == s", func(t *testing.T) {
+		result := composed.Set(composed.Get(&sampleAddress))(&sampleAddress)
+		assert.Equal(t, sampleAddress.street.name, result.street.name)
+		assert.Equal(t, sampleAddress.street.num, result.street.num)
+		assert.Equal(t, sampleAddress.city, result.city)
+	})
+
+	t.Run("law SetGet: Get(Set(b)(s)) == b", func(t *testing.T) {
+		result := composed.Get(composed.Set(newName)(&sampleAddress))
+		assert.Equal(t, newName, result)
+	})
+
+	t.Run("law SetSet: Set(b2)(Set(b1)(s)) == Set(b2)(s)", func(t *testing.T) {
+		b1, b2 := "First St", "Second St"
+		result1 := composed.Set(b2)(composed.Set(b1)(&sampleAddress))
+		result2 := composed.Set(b2)(&sampleAddress)
+		assert.Equal(t, result2.street.name, result1.street.name)
+	})
+
+	// --- parity with ComposeRef ------------------------------------------------
+
+	t.Run("Get parity with ComposeRef", func(t *testing.T) {
+		//nolint:staticcheck // intentional: verifying deprecated ComposeRef matches Compose
+		legacy := ComposeRef[Address](streetLens)(addrLens)
+		assert.Equal(t, legacy.Get(&sampleAddress), composed.Get(&sampleAddress))
+	})
+
+	t.Run("Set parity with ComposeRef", func(t *testing.T) {
+		//nolint:staticcheck // intentional: verifying deprecated ComposeRef matches Compose
+		legacy := ComposeRef[Address](streetLens)(addrLens)
+
+		updatedNew := composed.Set(newName)(&sampleAddress)
+		updatedLegacy := legacy.Set(newName)(&sampleAddress)
+
+		assert.Equal(t, updatedLegacy.street.name, updatedNew.street.name)
+		assert.Equal(t, updatedLegacy.street.num, updatedNew.street.num)
+		assert.Equal(t, updatedLegacy.city, updatedNew.city)
+	})
+}
