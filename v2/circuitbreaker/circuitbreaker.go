@@ -1,4 +1,4 @@
-package circuitbreaker
+﻿package circuitbreaker
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	canaryRequestLens = lens.MakeLensWithName(
+	canaryRequestLens = common.MakeLensWithName(
 		func(os openState) bool { return os.canaryRequest },
 		func(os openState, flag bool) openState {
 			os.canaryRequest = flag
@@ -27,7 +27,7 @@ var (
 		"openState.CanaryRequest",
 	)
 
-	retryStatusLens = lens.MakeLensWithName(
+	retryStatusLens = common.MakeLensWithName(
 		func(os openState) retry.RetryStatus { return os.retryStatus },
 		func(os openState, status retry.RetryStatus) openState {
 			os.retryStatus = status
@@ -36,7 +36,7 @@ var (
 		"openState.RetryStatus",
 	)
 
-	resetAtLens = lens.MakeLensWithName(
+	resetAtLens = common.MakeLensWithName(
 		func(os openState) time.Time { return os.resetAt },
 		func(os openState, tm time.Time) openState {
 			os.resetAt = tm
@@ -45,7 +45,7 @@ var (
 		"openState.ResetAt",
 	)
 
-	openedAtLens = lens.MakeLensWithName(
+	openedAtLens = common.MakeLensWithName(
 		func(os openState) time.Time { return os.openedAt },
 		func(os openState, tm time.Time) openState {
 			os.openedAt = tm

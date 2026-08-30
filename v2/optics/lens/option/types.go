@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@ package option
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/optics/iso"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
@@ -51,7 +51,7 @@ type (
 	// Type Parameters:
 	//   - S: The structure type containing the field
 	//   - A: The type of the field being focused on
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 
 	// Option represents a value that may or may not be present.
 	//
@@ -86,7 +86,7 @@ type (
 	//       Timeout *int
 	//   }
 	//
-	//   timeoutLens := lens.MakeLensRef(
+	//   timeoutLens := common.MakeLensRef(
 	//       func(c *Config) *int { return c.Timeout },
 	//       func(c *Config, t *int) *Config { c.Timeout = t; return c },
 	//   )

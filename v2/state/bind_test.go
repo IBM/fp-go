@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 IBM Corp.
+﻿// Copyright (c) 2024 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 )
@@ -254,7 +254,7 @@ func TestApSL(t *testing.T) {
 	initial := BindTestState{Counter: 42, Multiplier: 2}
 
 	// Create a lens for the Doubled field
-	doubledLens := lens.MakeLens(
+	doubledLens := common.MakeLens(
 		func(acc Accumulator) int { return acc.Doubled },
 		func(acc Accumulator, d int) Accumulator {
 			acc.Doubled = d
@@ -280,7 +280,7 @@ func TestBindL(t *testing.T) {
 	initial := BindTestState{Counter: 5, Multiplier: 3}
 
 	// Create a lens for the Value field
-	valueLens := lens.MakeLens(
+	valueLens := common.MakeLens(
 		func(acc Accumulator) int { return acc.Value },
 		func(acc Accumulator, v int) Accumulator {
 			acc.Value = v
@@ -311,7 +311,7 @@ func TestLetL(t *testing.T) {
 	initial := BindTestState{Counter: 5, Multiplier: 2}
 
 	// Create a lens for the Value field
-	valueLens := lens.MakeLens(
+	valueLens := common.MakeLens(
 		func(acc Accumulator) int { return acc.Value },
 		func(acc Accumulator, v int) Accumulator {
 			acc.Value = v
@@ -336,7 +336,7 @@ func TestLetToL(t *testing.T) {
 	initial := BindTestState{Counter: 5, Multiplier: 2}
 
 	// Create a lens for the Status field
-	statusLens := lens.MakeLens(
+	statusLens := common.MakeLens(
 		func(acc Accumulator) string { return acc.Status },
 		func(acc Accumulator, s string) Accumulator {
 			acc.Status = s
@@ -360,7 +360,7 @@ func TestComplexDoNotation(t *testing.T) {
 	initial := BindTestState{Counter: 10, Multiplier: 2}
 
 	// Create lenses
-	valueLens := lens.MakeLens(
+	valueLens := common.MakeLens(
 		func(acc Accumulator) int { return acc.Value },
 		func(acc Accumulator, v int) Accumulator {
 			acc.Value = v
@@ -368,7 +368,7 @@ func TestComplexDoNotation(t *testing.T) {
 		},
 	)
 
-	doubledLens := lens.MakeLens(
+	doubledLens := common.MakeLens(
 		func(acc Accumulator) int { return acc.Doubled },
 		func(acc Accumulator, d int) Accumulator {
 			acc.Doubled = d
@@ -376,7 +376,7 @@ func TestComplexDoNotation(t *testing.T) {
 		},
 	)
 
-	statusLens := lens.MakeLens(
+	statusLens := common.MakeLens(
 		func(acc Accumulator) string { return acc.Status },
 		func(acc Accumulator, s string) Accumulator {
 			acc.Status = s

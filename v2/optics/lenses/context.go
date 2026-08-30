@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 
 	CR "github.com/IBM/fp-go/v2/context/reader"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -56,7 +56,7 @@ import (
 //   - context/reader.WithValue: The Kleisli arrow used to derive child contexts.
 func AtContext[V, K any](key K) Lens[context.Context, Option[V]] {
 
-	return lens.MakeLensCurriedWithName(
+	return common.MakeLensCurriedWithName(
 		F.Pipe1(
 			F.Bind2nd((context.Context).Value, any(key)),
 			reader.Map[context.Context](option.InstanceOf[V]),

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	OPTP "github.com/IBM/fp-go/v2/optics/optional/prism"
 	O "github.com/IBM/fp-go/v2/option"
@@ -52,8 +52,8 @@ func TestCompose(t *testing.T) {
 		OPTP.Some[State, *Inner],
 	)
 	ab := F.Pipe1(
-		L.IdRef[Inner](),
-		L.ComposeRef[Inner](lensa),
+		L.LensIdRef[Inner](),
+		L.LensComposeLensRef[Inner](lensa),
 	)
 	sb := F.Pipe1(
 		sa,

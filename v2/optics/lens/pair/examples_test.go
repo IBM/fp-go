@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	LP "github.com/IBM/fp-go/v2/optics/lens/pair"
 	P "github.com/IBM/fp-go/v2/pair"
 )
@@ -52,7 +52,7 @@ func ExampleHead_modify() {
 	p := P.MakePair("hello", 42)
 	headLens := LP.Head[string, int]()
 
-	toUpper := F.Pipe1(headLens, L.Modify[P.Pair[string, int]](strings.ToUpper))
+	toUpper := F.Pipe1(headLens, L.LensModify[P.Pair[string, int]](strings.ToUpper))
 	fmt.Println(toUpper(p))
 	// Output:
 	// Pair[string, int](HELLO, 42)
@@ -84,7 +84,7 @@ func ExampleTail_modify() {
 	p := P.MakePair("hello", 42)
 	tailLens := LP.Tail[string, int]()
 
-	double := F.Pipe1(tailLens, L.Modify[P.Pair[string, int]](N.Mul(2)))
+	double := F.Pipe1(tailLens, L.LensModify[P.Pair[string, int]](N.Mul(2)))
 	fmt.Println(double(p))
 	// Output:
 	// Pair[string, int](hello, 84)

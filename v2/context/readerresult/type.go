@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,7 +79,7 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -240,7 +240,7 @@ type (
 	Prism[S, T any] = prism.Prism[S, T]
 
 	// Lens is an optic that focuses on a part of a data structure that is always present.
-	// This is an alias for lens.Lens[S, T].
+	// This is an alias for common.Lens[S, T].
 	//
 	// Type Parameters:
 	//   - S: The source type
@@ -249,8 +249,8 @@ type (
 	// Example:
 	//
 	//	// A lens that focuses on the Name field of a User
-	//	nameLens := lens.Lens[User, string]{...}
-	Lens[S, T any] = lens.Lens[S, T]
+	//	nameLens := common.Lens[User, string]{...}
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Trampoline represents a computation that can be executed in a stack-safe manner
 	// using tail recursion elimination. This is an alias for tailrec.Trampoline[A, B].

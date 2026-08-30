@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,7 @@ import (
 //
 //	import (
 //	    F "github.com/IBM/fp-go/v2/function"
-//	    "github.com/IBM/fp-go/v2/optics/lens"
+//	    "github.com/IBM/fp-go/v2/optics/common"
 //	    LT "github.com/IBM/fp-go/v2/optics/lens/traversal"
 //	    AI "github.com/IBM/fp-go/v2/optics/traversal/array/identity"
 //	)
@@ -56,7 +56,7 @@ import (
 //	}
 //
 //	// Lens to access the Members field
-//	membersLens := lens.MakeLens(
+//	membersLens := common.MakeLens(
 //	    func(t Team) []string { return t.Members },
 //	    func(t Team, m []string) Team { t.Members = m; return t },
 //	)

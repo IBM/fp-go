@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	R "github.com/IBM/fp-go/v2/result"
 )
 
@@ -127,7 +127,7 @@ func ExampleApSL() {
 		Age  int
 	}
 
-	ageLens := lens.MakeLens(
+	ageLens := common.MakeLens(
 		func(p Person) int { return p.Age },
 		func(p Person, a int) Person { p.Age = a; return p },
 	)
@@ -146,7 +146,7 @@ func ExampleBindL() {
 		Value int
 	}
 
-	valueLens := lens.MakeLens(
+	valueLens := common.MakeLens(
 		func(c Counter) int { return c.Value },
 		func(c Counter, v int) Counter { c.Value = v; return c },
 	)
@@ -173,7 +173,7 @@ func ExampleLetL() {
 		Value int
 	}
 
-	valueLens := lens.MakeLens(
+	valueLens := common.MakeLens(
 		func(c Counter) int { return c.Value },
 		func(c Counter, v int) Counter { c.Value = v; return c },
 	)
@@ -196,7 +196,7 @@ func ExampleLetToL() {
 		Timeout int
 	}
 
-	debugLens := lens.MakeLens(
+	debugLens := common.MakeLens(
 		func(c Config) bool { return c.Debug },
 		func(c Config, d bool) Config { c.Debug = d; return c },
 	)

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@ package lens
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	LO "github.com/IBM/fp-go/v2/optics/lens/optional"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 )

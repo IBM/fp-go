@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -172,7 +172,7 @@ func TestCompose(t *testing.T) {
 	eqs := EQT.Eq[*Address]()
 	eqa := EQT.Eq[string]()
 
-	streetName := L.Compose[*Address](streetLens)(addrLens)
+	streetName := L.LensComposeLens[*Address](streetLens)(addrLens)
 
 	laws := AssertLaws(
 		t,

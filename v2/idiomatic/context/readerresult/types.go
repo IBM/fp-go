@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -66,7 +66,7 @@ type (
 	Operator[A, B any] = Kleisli[ReaderResult[A], B]
 
 	// Lens represents an optic that focuses on a field of type A within a structure of type S.
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 
 	// Prism represents an optic that focuses on a case of type A within a sum type S.
 	Prism[S, A any] = prism.Prism[S, A]

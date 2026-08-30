@@ -1,10 +1,10 @@
-package option
+﻿package option
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -40,19 +40,19 @@ import (
 //	    Settings *Settings
 //	}
 //
-//	settingsLens := lens.FromNillable(lens.MakeLens(
+//	settingsLens := lens.FromNillable(common.MakeLens(
 //	    func(c Config) *Settings { return c.Settings },
 //	    func(c Config, s *Settings) Config { c.Settings = s; return c },
 //	))
 //
-//	retriesLens := lens.FromNillable(lens.MakeLensRef(
+//	retriesLens := lens.FromNillable(common.MakeLensRef(
 //	    func(s *Settings) *int { return s.MaxRetries },
 //	    func(s *Settings, r *int) *Settings { s.MaxRetries = r; return s },
 //	))
 //
 //	defaultSettings := &Settings{}
 //	configRetriesLens := F.Pipe1(settingsLens,
-//	    lens.Compose[Config, *int](defaultSettings)(retriesLens))
+//	    common.LensComposeLens[Config, *int](defaultSettings)(retriesLens))
 func Compose[S, B, A any](defaultA A) func(LensO[A, B]) Operator[S, A, B] {
 	noneb := O.None[B]()
 	return func(ab LensO[A, B]) Operator[S, A, B] {
@@ -62,7 +62,7 @@ func Compose[S, B, A any](defaultA A) func(LensO[A, B]) Operator[S, A, B] {
 			saGet := sa.Get
 			// Pre-compute setter for Some[A]
 			setSomeA := F.Flow2(O.Some[A], sa.Set)
-			return lens.MakeLensCurried(
+			return common.MakeLensCurried(
 				F.Flow2(saGet, O.Chain(abGet)),
 				F.Flow2(
 					O.Fold(
@@ -118,12 +118,12 @@ func Compose[S, B, A any](defaultA A) func(LensO[A, B]) Operator[S, A, B] {
 //	    Database *Database
 //	}
 //
-//	dbLens := lens.FromNillable(lens.MakeLens(
+//	dbLens := lens.FromNillable(common.MakeLens(
 //	    func(c Config) *Database { return c.Database },
 //	    func(c Config, db *Database) Config { c.Database = db; return c },
 //	))
 //
-//	portLens := lens.MakeLensRef(
+//	portLens := common.MakeLensRef(
 //	    func(db *Database) int { return db.Port },
 //	    func(db *Database, port int) *Database { db.Port = port; return db },
 //	)
@@ -145,7 +145,7 @@ func ComposeOption[S, B, A any](defaultA A) func(Lens[A, B]) Operator[S, A, B] {
 			// Pre-compute setters
 			setNoneA := saSet(O.None[A]())
 			setSomeA := F.Flow2(O.Some[A], saSet)
-			return lens.MakeLensCurried(
+			return common.MakeLensCurried(
 				F.Flow2(saGet, O.Map(abGet)),
 				O.Fold(
 					// optB is None - remove A entirely

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 IBM Corp.
+﻿// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/traversal/result"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -137,8 +137,8 @@ type (
 
 	// Lens represents an optic for focusing on a part of a data structure.
 	// It provides a way to get and set a field T within a structure S.
-	// It's an alias for lens.Lens[S, T].
-	Lens[S, T any] = lens.Lens[S, T]
+	// It's an alias for common.Lens[S, T].
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Trampoline is used for stack-safe recursion through tail call optimization.
 	// It's an alias for tailrec.Trampoline[L, B].

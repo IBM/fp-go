@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,7 +61,7 @@ import (
 //	    "github.com/IBM/fp-go/v2/function"
 //	    "github.com/IBM/fp-go/v2/lazy"
 //	    "github.com/IBM/fp-go/v2/optics/codec"
-//	    "github.com/IBM/fp-go/v2/optics/lens"
+//	    "github.com/IBM/fp-go/v2/optics/common"
 //	    "github.com/IBM/fp-go/v2/pair"
 //	    S "github.com/IBM/fp-go/v2/string"
 //	)
@@ -71,11 +71,11 @@ import (
 //	    Age  int
 //	}
 //
-//	nameLens := lens.MakeLens(
+//	nameLens := common.MakeLens(
 //	    func(p Person) string { return p.Name },
 //	    func(p Person, name string) Person { p.Name = name; return p },
 //	)
-//	ageLens := lens.MakeLens(
+//	ageLens := common.MakeLens(
 //	    func(p Person) int { return p.Age },
 //	    func(p Person, age int) Person { p.Age = age; return p },
 //	)
@@ -153,7 +153,7 @@ func Do[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
 //
 //	import (
 //	    "github.com/IBM/fp-go/v2/optics/codec"
-//	    "github.com/IBM/fp-go/v2/optics/lens"
+//	    "github.com/IBM/fp-go/v2/optics/common"
 //	    S "github.com/IBM/fp-go/v2/string"
 //	)
 //
@@ -163,7 +163,7 @@ func Do[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
 //	}
 //
 //	// Lenses for Person fields
-//	nameLens := lens.MakeLens(
+//	nameLens := common.MakeLens(
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person { p.Name = name; return p },
 //	)
@@ -425,7 +425,7 @@ func ApSO[S, T, O, I any](
 //   - Run the base validation to obtain a decoded S (fail-fast: stop on base failure)
 //   - For the decoded S, evaluate f(s) to obtain the field codec fa
 //   - Validate the input I using fa.Validate
-//   - Set the validated T into S using l.Set
+//   - Set the validated T into S using L.LensSet
 //
 // 3. **Type Checking**: Preserves the base type checker
 //
@@ -441,7 +441,7 @@ func ApSO[S, T, O, I any](
 //
 //	import (
 //	    "github.com/IBM/fp-go/v2/optics/codec"
-//	    "github.com/IBM/fp-go/v2/optics/lens"
+//	    "github.com/IBM/fp-go/v2/optics/common"
 //	    S "github.com/IBM/fp-go/v2/string"
 //	)
 //
@@ -450,7 +450,7 @@ func ApSO[S, T, O, I any](
 //	    Value int
 //	}
 //
-//	modeLens := lens.MakeLens(
+//	modeLens := common.MakeLens(
 //	    func(c Config) string { return c.Mode },
 //	    func(c Config, mode string) Config { c.Mode = mode; return c },
 //	)

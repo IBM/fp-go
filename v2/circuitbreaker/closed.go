@@ -1,4 +1,4 @@
-package circuitbreaker
+﻿package circuitbreaker
 
 import (
 	"slices"
@@ -7,7 +7,7 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 )
@@ -92,7 +92,7 @@ type (
 )
 
 var (
-	failureCountLens = lens.MakeLensStrictWithName(
+	failureCountLens = common.MakeLensStrictWithName(
 		func(s *closedStateWithErrorCount) uint { return s.failureCount },
 		func(s *closedStateWithErrorCount, c uint) *closedStateWithErrorCount {
 			s.failureCount = c
@@ -101,7 +101,7 @@ var (
 		"closeStateWithErrorCount.failureCount",
 	)
 
-	historyLens = lens.MakeLensRefWithName(
+	historyLens = common.MakeLensRefWithName(
 		func(s *closedStateWithHistory) []time.Time { return s.history },
 		func(s *closedStateWithHistory, c []time.Time) *closedStateWithHistory {
 			s.history = c
@@ -112,7 +112,7 @@ var (
 
 	resetHistory      = historyLens.Set(A.Empty[time.Time]())
 	resetFailureCount = failureCountLens.Set(0)
-	incFailureCount   = lens.Modify[*closedStateWithErrorCount](N.Add(uint(1)))(failureCountLens)
+	incFailureCount   = common.LensModify[*closedStateWithErrorCount](N.Add(uint(1)))(failureCountLens)
 )
 
 // Empty returns a new closedStateWithErrorCount with the failure count reset to zero.
@@ -233,7 +233,7 @@ func (s *closedStateWithHistory) AddError(currentTime time.Time) ClosedState {
 
 	addFailureToHistory := F.Pipe1(
 		historyLens,
-		lens.Modify[*closedStateWithHistory](func(old []time.Time) []time.Time {
+		common.LensModify[*closedStateWithHistory](func(old []time.Time) []time.Time {
 			// oldest valid entry
 			idx, _ := slices.BinarySearchFunc(old, currentTime.Add(-s.timeWindow), s.ordTime.Compare)
 			return addToSlice(s.ordTime, old[idx:], currentTime)

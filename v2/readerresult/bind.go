@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	RRI "github.com/IBM/fp-go/v2/idiomatic/readerresult"
 	RI "github.com/IBM/fp-go/v2/idiomatic/result"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/reader"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 	"github.com/IBM/fp-go/v2/result"
@@ -273,7 +273,7 @@ func ApIS[R, S1, S2, T any](
 //	    ConfigService ConfigService
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) Config { return s.Config },
 //	    func(s State, c Config) State { s.Config = c; return s },
 //	)
@@ -308,7 +308,7 @@ func ApSL[R, S, T any](
 //	    ConfigService ConfigService
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) Config { return s.Config },
 //	    func(s State, c Config) State { s.Config = c; return s },
 //	)
@@ -350,7 +350,7 @@ func ApISL[R, S, T any](
 //	    ConfigService ConfigService
 //	}
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -387,7 +387,7 @@ func BindL[R, S, T any](
 //	    UserService UserService
 //	}
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -427,7 +427,7 @@ func BindIL[R, S, T any](
 //	    Config Config
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) Config { return s.Config },
 //	    func(s State, c Config) State { s.Config = c; return s },
 //	)
@@ -462,7 +462,7 @@ func LetL[R, S, T any](
 //	    Config Config
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) Config { return s.Config },
 //	    func(s State, c Config) State { s.Config = c; return s },
 //	)

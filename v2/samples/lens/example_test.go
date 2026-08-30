@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +50,7 @@ func TestPersonLens(t *testing.T) {
 	// Test Modify
 	incrementAge := F.Pipe1(
 		lenses.Age,
-		L.Modify[Person](func(age int) int { return age + 1 }),
+		L.LensModify[Person](func(age int) int { return age + 1 }),
 	)
 	incremented := incrementAge(person)
 	assert.Equal(t, 31, incremented.Age)
@@ -85,7 +85,7 @@ func TestCompanyLens(t *testing.T) {
 	// Test nested field access using composition
 	cityLens := F.Pipe1(
 		companyLenses.Address,
-		L.Compose[Company](addressLenses.City),
+		L.LensComposeLens[Company](addressLenses.City),
 	)
 	assert.Equal(t, "Springfield", cityLens.Get(company))
 
@@ -97,7 +97,7 @@ func TestCompanyLens(t *testing.T) {
 	// Test deeply nested field access
 	ceoNameLens := F.Pipe1(
 		companyLenses.CEO,
-		L.Compose[Company](personLenses.Name),
+		L.LensComposeLens[Company](personLenses.Name),
 	)
 	assert.Equal(t, "John Doe", ceoNameLens.Get(company))
 
@@ -129,7 +129,7 @@ func TestLensComposition(t *testing.T) {
 	// Compose lenses to access CEO's email
 	ceoEmailLens := F.Pipe1(
 		companyLenses.CEO,
-		L.Compose[Company](personLenses.Email),
+		L.LensComposeLens[Company](personLenses.Email),
 	)
 
 	// Get the CEO's email
@@ -144,12 +144,12 @@ func TestLensComposition(t *testing.T) {
 	// Modify the CEO's age
 	ceoAgeLens := F.Pipe1(
 		companyLenses.CEO,
-		L.Compose[Company](personLenses.Age),
+		L.LensComposeLens[Company](personLenses.Age),
 	)
 
 	modifyAge := F.Pipe1(
 		ceoAgeLens,
-		L.Modify[Company](func(age int) int { return age + 5 }),
+		L.LensModify[Company](func(age int) int { return age + 5 }),
 	)
 	olderCEO := modifyAge(company)
 	assert.Equal(t, 55, olderCEO.CEO.Age)
@@ -374,7 +374,7 @@ func TestDataBuilderLensWithUnexportedFields(t *testing.T) {
 	// Test Modify on unexported fields
 	modifyName := F.Pipe1(
 		lenses.name,
-		L.Modify[DataBuilder](S.Append("-modified")),
+		L.LensModify[DataBuilder](S.Append("-modified")),
 	)
 	modified := modifyName(builder)
 	assert.Equal(t, "initial-name-modified", modified.name)

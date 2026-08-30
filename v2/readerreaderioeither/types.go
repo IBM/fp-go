@@ -1,4 +1,4 @@
-// Copyright (c) 2025 IBM Corp.
+﻿// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -162,8 +162,8 @@ type (
 	Operator[R, C, E, A, B any] = Kleisli[R, C, E, ReaderReaderIOEither[R, C, E, A], B]
 
 	// Lens represents an optic for focusing on a part of a data structure.
-	// It's an alias for lens.Lens[S, T].
-	Lens[S, T any] = lens.Lens[S, T]
+	// It's an alias for common.Lens[S, T].
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Trampoline represents a tail-recursive computation that can be executed
 	// without stack overflow. It's an alias for tailrec.Trampoline[L, B].

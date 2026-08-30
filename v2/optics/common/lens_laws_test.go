@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lens
+package common
 
 import (
 	"testing"
@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestModify tests the Modify function
-func TestModify(t *testing.T) {
+// TestLensModify tests the LensModify function
+func TestLensModify(t *testing.T) {
 	type Counter struct {
 		Value int
 	}
@@ -42,26 +42,26 @@ func TestModify(t *testing.T) {
 
 	// Test increment
 	increment := func(v int) int { return v + 1 }
-	modifyIncrement := Modify[Counter](increment)(valueLens)
+	modifyIncrement := LensModify[Counter](increment)(valueLens)
 	incremented := modifyIncrement(counter)
 	assert.Equal(t, 6, incremented.Value)
 	assert.Equal(t, 5, counter.Value) // Original unchanged
 
 	// Test double
 	double := func(v int) int { return v * 2 }
-	modifyDouble := Modify[Counter](double)(valueLens)
+	modifyDouble := LensModify[Counter](double)(valueLens)
 	doubled := modifyDouble(counter)
 	assert.Equal(t, 10, doubled.Value)
 	assert.Equal(t, 5, counter.Value) // Original unchanged
 
 	// Test identity (no change)
 	identity := func(v int) int { return v }
-	modifyIdentity := Modify[Counter](identity)(valueLens)
+	modifyIdentity := LensModify[Counter](identity)(valueLens)
 	unchanged := modifyIdentity(counter)
 	assert.Equal(t, counter, unchanged)
 }
 
-func TestModifyRef(t *testing.T) {
+func TestLensModifyRef(t *testing.T) {
 	valueLens := MakeLensRef(
 		func(s *Street) int { return s.num },
 		func(s *Street, num int) *Street {
@@ -74,7 +74,7 @@ func TestModifyRef(t *testing.T) {
 
 	// Test increment
 	increment := func(v int) int { return v + 1 }
-	modifyIncrement := Modify[*Street](increment)(valueLens)
+	modifyIncrement := LensModify[*Street](increment)(valueLens)
 	incremented := modifyIncrement(street)
 	assert.Equal(t, 11, incremented.num)
 	assert.Equal(t, 10, street.num) // Original unchanged
@@ -82,7 +82,7 @@ func TestModifyRef(t *testing.T) {
 
 // Lens Laws Tests
 
-func TestMakeLensLaws(t *testing.T) {
+func TestLensMakeLensLaws(t *testing.T) {
 	nameLens := MakeLens(
 		func(s Street) string { return s.name },
 		func(s Street, name string) Street {
@@ -114,7 +114,7 @@ func TestMakeLensLaws(t *testing.T) {
 	})
 }
 
-func TestMakeLensRefLaws(t *testing.T) {
+func TestLensMakeLensRefLaws(t *testing.T) {
 	nameLens := MakeLensRef(
 		(*Street).GetName,
 		(*Street).SetName,
@@ -145,7 +145,7 @@ func TestMakeLensRefLaws(t *testing.T) {
 	})
 }
 
-func TestMakeLensCurriedLaws(t *testing.T) {
+func TestLensMakeLensCurriedLaws(t *testing.T) {
 	nameLens := MakeLensCurried(
 		func(s Street) string { return s.name },
 		func(name string) func(Street) Street {
@@ -179,7 +179,7 @@ func TestMakeLensCurriedLaws(t *testing.T) {
 	})
 }
 
-func TestMakeLensRefCurriedLaws(t *testing.T) {
+func TestLensMakeLensRefCurriedLaws(t *testing.T) {
 	nameLens := MakeLensRefCurried(
 		func(s *Street) string { return s.name },
 		func(name string) func(*Street) *Street {
@@ -215,7 +215,7 @@ func TestMakeLensRefCurriedLaws(t *testing.T) {
 	})
 }
 
-func TestMakeLensWithEqLaws(t *testing.T) {
+func TestLensMakeLensWithEqLaws(t *testing.T) {
 	nameLens := MakeLensWithEq(
 		EQ.FromStrictEquals[string](),
 		func(s *Street) string { return s.name },
@@ -252,7 +252,7 @@ func TestMakeLensWithEqLaws(t *testing.T) {
 	})
 }
 
-func TestMakeLensStrictLaws(t *testing.T) {
+func TestLensMakeLensStrictLaws(t *testing.T) {
 	nameLens := MakeLensStrict(
 		func(s *Street) string { return s.name },
 		func(s *Street, name string) *Street {
@@ -288,8 +288,8 @@ func TestMakeLensStrictLaws(t *testing.T) {
 	})
 }
 
-func TestIdLaws(t *testing.T) {
-	idLens := Id[Street]()
+func TestLensIdLaws(t *testing.T) {
+	idLens := LensId[Street]()
 	street := Street{num: 1, name: "Main"}
 	newStreet := Street{num: 2, name: "Oak"}
 
@@ -314,8 +314,8 @@ func TestIdLaws(t *testing.T) {
 	})
 }
 
-func TestIdRefLaws(t *testing.T) {
-	idLens := IdRef[Street]()
+func TestLensIdRefLaws(t *testing.T) {
+	idLens := LensIdRef[Street]()
 	street := &Street{num: 1, name: "Main"}
 	newStreet := &Street{num: 2, name: "Oak"}
 
@@ -341,12 +341,12 @@ func TestIdRefLaws(t *testing.T) {
 	})
 }
 
-func TestComposeLaws(t *testing.T) {
+func TestLensComposeLensLaws(t *testing.T) {
 	streetLens := MakeLensRef((*Street).GetName, (*Street).SetName)
 	addrLens := MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
 
 	// Compose to get street name from address
-	streetNameLens := Compose[*Address](streetLens)(addrLens)
+	streetNameLens := LensComposeLens[*Address](streetLens)(addrLens)
 
 	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
 	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
@@ -373,12 +373,12 @@ func TestComposeLaws(t *testing.T) {
 	})
 }
 
-func TestComposeRefLaws(t *testing.T) {
+func TestLensComposeLensRefLaws(t *testing.T) {
 	streetLens := MakeLensRef((*Street).GetName, (*Street).SetName)
 	addrLens := MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
 
 	// Compose using ComposeRef
-	streetNameLens := ComposeRef[Address](streetLens)(addrLens)
+	streetNameLens := LensComposeLensRef[Address](streetLens)(addrLens)
 
 	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
 	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
@@ -405,7 +405,7 @@ func TestComposeRefLaws(t *testing.T) {
 	})
 }
 
-func TestIMapLaws(t *testing.T) {
+func TestLensIMapLaws(t *testing.T) {
 	type Celsius float64
 	type Fahrenheit float64
 
@@ -432,7 +432,7 @@ func TestIMapLaws(t *testing.T) {
 	// Create a lens that works with Fahrenheit
 	tempFahrenheitLens := F.Pipe1(
 		tempCelsiusLens,
-		IMap[Weather](celsiusToFahrenheit, fahrenheitToCelsius),
+		LensIMap[Weather](celsiusToFahrenheit, fahrenheitToCelsius),
 	)
 
 	weather := Weather{Temperature: 20} // 20°C
@@ -460,7 +460,7 @@ func TestIMapLaws(t *testing.T) {
 	})
 }
 
-func TestIMapIdentity(t *testing.T) {
+func TestLensIMapIdentity(t *testing.T) {
 	// IMap with identity functions should behave like the original lens
 	type S struct {
 		a int
@@ -477,7 +477,7 @@ func TestIMapIdentity(t *testing.T) {
 	// Apply IMap with identity functions
 	identityMappedLens := F.Pipe1(
 		originalLens,
-		IMap[S](F.Identity[int], F.Identity[int]),
+		LensIMap[S](F.Identity[int], F.Identity[int]),
 	)
 
 	s := S{a: 42}
@@ -487,7 +487,7 @@ func TestIMapIdentity(t *testing.T) {
 	assert.Equal(t, originalLens.Set(100)(s), identityMappedLens.Set(100)(s))
 }
 
-func TestIMapComposition(t *testing.T) {
+func TestLensIMapComposition(t *testing.T) {
 	// IMap(f, g) ∘ IMap(h, k) = IMap(f ∘ h, k ∘ g)
 	type S struct {
 		value int
@@ -510,13 +510,13 @@ func TestIMapComposition(t *testing.T) {
 	stringToFloat := func(s string) float64 { return 42.0 }
 
 	// Compose IMap twice
-	lens1 := F.Pipe1(baseLens, IMap[S](intToFloat, floatToInt))
-	lens2 := F.Pipe1(lens1, IMap[S](floatToString, stringToFloat))
+	lens1 := F.Pipe1(baseLens, LensIMap[S](intToFloat, floatToInt))
+	lens2 := F.Pipe1(lens1, LensIMap[S](floatToString, stringToFloat))
 
 	// Direct composition
 	lens3 := F.Pipe1(
 		baseLens,
-		IMap[S](
+		LensIMap[S](
 			F.Flow2(intToFloat, floatToString),
 			F.Flow2(stringToFloat, floatToInt),
 		),
@@ -529,7 +529,7 @@ func TestIMapComposition(t *testing.T) {
 	assert.Equal(t, lens2.Set("test")(s), lens3.Set("test")(s))
 }
 
-func TestModifyLaws(t *testing.T) {
+func TestLensModifyLaws(t *testing.T) {
 	// Modify should satisfy: Modify(id) = id
 	// and: Modify(f ∘ g) = Modify(f) ∘ Modify(g)
 
@@ -549,7 +549,7 @@ func TestModifyLaws(t *testing.T) {
 
 	// Modify with identity should return the same value
 	t.Run("ModifyIdentity", func(t *testing.T) {
-		modifyIdentity := Modify[S](F.Identity[int])(lens)
+		modifyIdentity := LensModify[S](F.Identity[int])(lens)
 		result := modifyIdentity(s)
 		assert.Equal(t, s, result)
 	})
@@ -561,20 +561,20 @@ func TestModifyLaws(t *testing.T) {
 
 		// Modify(f ∘ g)
 		composed := F.Flow2(g, f)
-		modifyComposed := Modify[S](composed)(lens)
+		modifyComposed := LensModify[S](composed)(lens)
 		result1 := modifyComposed(s)
 
 		// Modify(f) ∘ Modify(g)
-		modifyG := Modify[S](g)(lens)
+		modifyG := LensModify[S](g)(lens)
 		intermediate := modifyG(s)
-		modifyF := Modify[S](f)(lens)
+		modifyF := LensModify[S](f)(lens)
 		result2 := modifyF(intermediate)
 
 		assert.Equal(t, result1, result2)
 	})
 }
 
-func TestComposeAssociativity(t *testing.T) {
+func TestLensComposeLensAssociativity(t *testing.T) {
 	// Test that lens composition is associative:
 	// (l1 ∘ l2) ∘ l3 = l1 ∘ (l2 ∘ l3)
 
@@ -617,14 +617,14 @@ func TestComposeAssociativity(t *testing.T) {
 	// (lens12 ∘ lens23) ∘ lens3Value
 	composed1 := F.Pipe2(
 		lens12,
-		Compose[Level1](lens23),
-		Compose[Level1](lens3Value),
+		LensComposeLens[Level1](lens23),
+		LensComposeLens[Level1](lens3Value),
 	)
 
 	// lens12 ∘ (lens23 ∘ lens3Value)
 	composed2 := F.Pipe1(
 		lens12,
-		Compose[Level1](F.Pipe1(lens23, Compose[Level2](lens3Value))),
+		LensComposeLens[Level1](F.Pipe1(lens23, LensComposeLens[Level2](lens3Value))),
 	)
 
 	l1 := Level1{
@@ -638,19 +638,19 @@ func TestComposeAssociativity(t *testing.T) {
 	assert.Equal(t, composed1.Set("new")(l1), composed2.Set("new")(l1))
 }
 
-// TestCompose_SufficientForPointerLens proves that Compose[*S] is a complete
-// replacement for ComposeRef[S] when the outer lens is a pointer lens.
+// TestLensComposeLens_SufficientForPointerLens proves that LensComposeLens[*S] is a complete
+// replacement for LensComposeLensRef[S] when the outer lens is a pointer lens.
 //
 // The test family covers three properties that together demonstrate equivalence:
 //
 //  1. Immutability: Set must not mutate the original *S.
-//  2. Lens laws (GetSet, SetGet, SetSet) on Compose[*S].
-//  3. Behavioural parity: Compose[*S] and ComposeRef[S] return identical results
+//  2. Lens laws (GetSet, SetGet, SetSet) on LensComposeLens[*S].
+//  3. Behavioural parity: LensComposeLens[*S] and LensComposeLensRef[S] return identical results
 //     for every operation.
-func TestCompose_SufficientForPointerLens(t *testing.T) {
+func TestLensComposeLens_SufficientForPointerLens(t *testing.T) {
 	// Reuse the package-level streetLens / addrLens which are both pointer lenses
 	// (Lens[*Street, string] and Lens[*Address, *Street] respectively).
-	composed := Compose[*Address](streetLens)(addrLens)
+	composed := LensComposeLens[*Address](streetLens)(addrLens)
 
 	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
 	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
@@ -665,7 +665,7 @@ func TestCompose_SufficientForPointerLens(t *testing.T) {
 
 		// The original struct must be untouched.
 		assert.Equal(t, originalName, sampleAddress.street.name,
-			"Compose[*S] Set must not modify the value behind the original pointer")
+			"LensComposeLens[*S] Set must not modify the value behind the original pointer")
 	})
 
 	t.Run("Set does not mutate nested pointer", func(t *testing.T) {
@@ -705,13 +705,13 @@ func TestCompose_SufficientForPointerLens(t *testing.T) {
 
 	t.Run("Get parity with ComposeRef", func(t *testing.T) {
 		//nolint:staticcheck // intentional: verifying deprecated ComposeRef matches Compose
-		legacy := ComposeRef[Address](streetLens)(addrLens)
+		legacy := LensComposeLensRef[Address](streetLens)(addrLens)
 		assert.Equal(t, legacy.Get(&sampleAddress), composed.Get(&sampleAddress))
 	})
 
 	t.Run("Set parity with ComposeRef", func(t *testing.T) {
 		//nolint:staticcheck // intentional: verifying deprecated ComposeRef matches Compose
-		legacy := ComposeRef[Address](streetLens)(addrLens)
+		legacy := LensComposeLensRef[Address](streetLens)(addrLens)
 
 		updatedNew := composed.Set(newName)(&sampleAddress)
 		updatedLegacy := legacy.Set(newName)(&sampleAddress)

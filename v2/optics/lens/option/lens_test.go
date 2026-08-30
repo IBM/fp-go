@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
@@ -232,7 +232,7 @@ func TestComposeOption(t *testing.T) {
 	assert.Equal(t, O.None[int](), lens.Get(Outer{}))
 	assert.Equal(t, Outer{inner: &Inner{Value: 1, Foo: "foo"}}, lens.Set(O.Some(1))(Outer{inner: &Inner{Value: 2, Foo: "foo"}}))
 	assert.Equal(t, O.Some(1), lens.Get(Outer{inner: &Inner{Value: 1, Foo: "foo"}}))
-	assert.Equal(t, outer1, L.Modify[Outer](F.Identity[Option[int]])(lens)(outer1))
+	assert.Equal(t, outer1, L.LensModify[Outer](F.Identity[Option[int]])(lens)(outer1))
 }
 
 func TestComposeOptions(t *testing.T) {
@@ -261,7 +261,7 @@ func TestComposeOptions(t *testing.T) {
 	assert.Equal(t, O.None[*int](), lens.Get(OuterOpt{}))
 	assert.Equal(t, OuterOpt{inner: &InnerOpt{Value: &defaultValue1, Foo: &defaultFoo2}}, lens.Set(O.Some(&defaultValue1))(OuterOpt{inner: &InnerOpt{Value: &defaultValue2, Foo: &defaultFoo2}}))
 	assert.Equal(t, O.Some(&defaultValue1), lens.Get(OuterOpt{inner: &InnerOpt{Value: &defaultValue1, Foo: &defaultFoo1}}))
-	assert.Equal(t, outer1, L.Modify[OuterOpt](F.Identity[Option[*int]])(lens)(outer1))
+	assert.Equal(t, outer1, L.LensModify[OuterOpt](F.Identity[Option[*int]])(lens)(outer1))
 }
 
 func TestFromNullableProp(t *testing.T) {
@@ -277,7 +277,7 @@ func TestFromNullableProp(t *testing.T) {
 	// compose
 	lens := F.Pipe1(
 		inner,
-		L.Compose[Outer](value),
+		L.LensComposeLens[Outer](value),
 	)
 	outer1 := Outer{inner: &Inner{Value: 1, Foo: "a"}}
 	// the checks
@@ -285,7 +285,7 @@ func TestFromNullableProp(t *testing.T) {
 	assert.Equal(t, 0, lens.Get(Outer{}))
 	assert.Equal(t, Outer{inner: &Inner{Value: 1, Foo: "foo"}}, lens.Set(1)(Outer{inner: &Inner{Value: 2, Foo: "foo"}}))
 	assert.Equal(t, 1, lens.Get(Outer{inner: &Inner{Value: 1, Foo: "foo"}}))
-	assert.Equal(t, outer1, L.Modify[Outer](F.Identity[int])(lens)(outer1))
+	assert.Equal(t, outer1, L.LensModify[Outer](F.Identity[int])(lens)(outer1))
 }
 
 func TestFromPredicateRef(t *testing.T) {

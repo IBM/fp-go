@@ -1,4 +1,4 @@
-package codec
+﻿package codec
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
@@ -11,7 +11,7 @@ import (
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
 	"github.com/IBM/fp-go/v2/optics/iso"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -387,7 +387,7 @@ type (
 	// Example:
 	//   type Person struct { Name string; Age int }
 	//
-	//   nameLens := lens.MakeLens(
+	//   nameLens := common.MakeLens(
 	//       func(p Person) string { return p.Name },
 	//       func(p Person, name string) Person { p.Name = name; return p },
 	//   )
@@ -401,7 +401,7 @@ type (
 	// See also:
 	//   - ApSL: Applicative sequencing with lens
 	//   - Optional: For fields that may not exist
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 
 	// Semigroup represents an algebraic structure with an associative binary operation.
 	//

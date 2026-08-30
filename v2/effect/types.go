@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ import (
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -85,7 +85,7 @@ type (
 	Result[A any] = result.Result[A]
 
 	// Lens represents an optic for focusing on a field T within a structure S.
-	Lens[S, T any] = lens.Lens[S, T]
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Kleisli represents a function from A to Effect[C, B], enabling monadic composition.
 	// It's the fundamental building block for chaining effectful computations.

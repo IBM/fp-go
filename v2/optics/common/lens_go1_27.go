@@ -1,6 +1,6 @@
 //go:build go1.27
 
-package lens
+package common
 
 // Compose returns a new lens that focuses deeper into the structure by
 // chaining this lens (S → A) with an inner lens (A → B), producing a
@@ -32,5 +32,5 @@ package lens
 // See Also:
 //   - Compose: the equivalent package-level function
 func (l Lens[S, A]) Compose[B any](ab Lens[A, B]) Lens[S, B] {
-	return Compose[S](ab)(l)
+	return LensComposeLens[S](ab)(l)
 }

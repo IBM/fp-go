@@ -1,4 +1,4 @@
-// Copyright (c) 2025 IBM Corp.
+﻿// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 
 package option
 
-import L "github.com/IBM/fp-go/v2/optics/lens"
+import L "github.com/IBM/fp-go/v2/optics/common"
 
 // MonadChainI applies a Go-idiomatic function (returning (B, bool)) to the value
 // inside an Option. Returns None if the input is None or the function returns false.
@@ -124,7 +124,7 @@ func BindI[S1, S2, A any](
 // Example:
 //
 //	type Counter struct { Value int }
-//	valueLens := lens.MakeLens(
+//	valueLens := common.MakeLens(
 //	    func(c Counter) int { return c.Value },
 //	    func(c Counter, v int) Counter { c.Value = v; return c },
 //	)

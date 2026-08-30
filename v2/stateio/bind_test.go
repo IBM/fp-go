@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 IBM Corp.
+﻿// Copyright (c) 2024 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 )
@@ -264,7 +264,7 @@ type NestedState struct {
 	ID   int
 }
 
-var userLens = lens.MakeLensCurried(
+var userLens = common.MakeLensCurried(
 	func(s NestedState) BindTestState { return s.User },
 	func(user BindTestState) func(NestedState) NestedState {
 		return func(s NestedState) NestedState {
@@ -274,7 +274,7 @@ var userLens = lens.MakeLensCurried(
 	},
 )
 
-var nameLens = lens.MakeLensCurried(
+var nameLens = common.MakeLensCurried(
 	func(s BindTestState) string { return s.Name },
 	func(name string) func(BindTestState) BindTestState {
 		return func(s BindTestState) BindTestState {
@@ -330,7 +330,7 @@ func TestLetL(t *testing.T) {
 		return fmt.Sprintf("%s (UPPERCASE)", name)
 	}
 
-	composedLens := F.Pipe1(userLens, lens.Compose[NestedState](nameLens))
+	composedLens := F.Pipe1(userLens, common.LensComposeLens[NestedState](nameLens))
 
 	computation := F.Pipe2(
 		Do[NestedState](NestedState{User: BindTestState{Name: "Frank"}, ID: 3}),
@@ -349,7 +349,7 @@ func TestLetL(t *testing.T) {
 func TestLetToL(t *testing.T) {
 	initial := NestedState{User: BindTestState{}, ID: 4}
 
-	composedLens := F.Pipe1(userLens, lens.Compose[NestedState](nameLens))
+	composedLens := F.Pipe1(userLens, common.LensComposeLens[NestedState](nameLens))
 
 	computation := F.Pipe2(
 		Do[NestedState](NestedState{User: BindTestState{}, ID: 4}),

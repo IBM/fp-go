@@ -1,8 +1,8 @@
-package option
+﻿package option
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	LI "github.com/IBM/fp-go/v2/optics/lens/iso"
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -21,7 +21,7 @@ func fromPredicate[GET ~func(S) Option[A], SET ~func(Option[A]) Endomorphism[S],
 //
 //go:inline
 func FromPredicate[S, A any](pred func(A) bool, nilValue A) func(sa Lens[S, A]) LensO[S, A] {
-	return fromPredicate(lens.MakeLensCurried[func(S) Option[A], func(Option[A]) Endomorphism[S]], pred, nilValue)
+	return fromPredicate(common.MakeLensCurried[func(S) Option[A], func(Option[A]) Endomorphism[S]], pred, nilValue)
 }
 
 // FromPredicateRef returns a `Lens` for a property accessibly as a getter and setter that can be optional
@@ -29,7 +29,7 @@ func FromPredicate[S, A any](pred func(A) bool, nilValue A) func(sa Lens[S, A]) 
 //
 //go:inline
 func FromPredicateRef[S, A any](pred func(A) bool, nilValue A) func(sa Lens[*S, A]) LensO[*S, A] {
-	return fromPredicate(lens.MakeLensRefCurried[S, Option[A]], pred, nilValue)
+	return fromPredicate(common.MakeLensRefCurried[S, Option[A]], pred, nilValue)
 }
 
 // FromPredicate returns a `Lens` for a property accessibly as a getter and setter that can be optional
@@ -63,15 +63,15 @@ func fromNullableProp[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](cr
 // FromNullableProp returns a `Lens` from a property that may be optional. The getter returns a default value for these items
 //
 //go:inline
-func FromNullableProp[S, A any](isNullable O.Kleisli[A, A], defaultValue A) lens.Operator[S, A, A] {
-	return fromNullableProp(lens.MakeLensCurried[func(S) A, func(A) Endomorphism[S]], isNullable, defaultValue)
+func FromNullableProp[S, A any](isNullable O.Kleisli[A, A], defaultValue A) common.LensOperator[S, A, A] {
+	return fromNullableProp(common.MakeLensCurried[func(S) A, func(A) Endomorphism[S]], isNullable, defaultValue)
 }
 
 // FromNullablePropRef returns a `Lens` from a property that may be optional. The getter returns a default value for these items
 //
 //go:inline
-func FromNullablePropRef[S, A any](isNullable O.Kleisli[A, A], defaultValue A) lens.Operator[*S, A, A] {
-	return fromNullableProp(lens.MakeLensRefCurried[S, A], isNullable, defaultValue)
+func FromNullablePropRef[S, A any](isNullable O.Kleisli[A, A], defaultValue A) common.LensOperator[*S, A, A] {
+	return fromNullableProp(common.MakeLensRefCurried[S, A], isNullable, defaultValue)
 }
 
 // fromOption returns a `Lens` from an option property. The getter returns a default value the setter will always set the some option
@@ -89,7 +89,7 @@ func fromOption[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](creator 
 //
 //go:inline
 func FromOption[S, A any](defaultValue A) func(LensO[S, A]) Lens[S, A] {
-	return fromOption(lens.MakeLensCurried[func(S) A, func(A) Endomorphism[S]], defaultValue)
+	return fromOption(common.MakeLensCurried[func(S) A, func(A) Endomorphism[S]], defaultValue)
 }
 
 // FromOptionRef creates a lens from an Option property with a default value for pointer structures.
@@ -110,7 +110,7 @@ func FromOption[S, A any](defaultValue A) func(LensO[S, A]) Lens[S, A] {
 //
 //go:inline
 func FromOptionRef[S, A any](defaultValue A) func(LensO[*S, A]) Lens[*S, A] {
-	return fromOption(lens.MakeLensRefCurried[S, A], defaultValue)
+	return fromOption(common.MakeLensRefCurried[S, A], defaultValue)
 }
 
 // FromIso converts a Lens[S, A] to a LensO[S, A] using an isomorphism.
@@ -141,7 +141,7 @@ func FromOptionRef[S, A any](defaultValue A) func(LensO[*S, A]) Lens[*S, A] {
 //	}
 //
 //	// Create a lens to the timeout field
-//	timeoutLens := lens.MakeLens(
+//	timeoutLens := common.MakeLens(
 //	    func(c Config) int { return c.timeout },
 //	    func(c Config, t int) Config { c.timeout = t; return c },
 //	)

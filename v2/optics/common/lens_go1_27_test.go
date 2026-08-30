@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lens
+package common
 
 import (
 	"testing"
@@ -32,7 +32,7 @@ func TestLensCompose_MethodEquivalentToFreeFunction(t *testing.T) {
 	sampleAddress := Address{city: "Springfield", street: &sampleStreet}
 
 	method := addrLens.Compose(streetLens)
-	free := Compose[*Address](streetLens)(addrLens)
+	free := LensComposeLens[*Address](streetLens)(addrLens)
 
 	t.Run("Get returns same value", func(t *testing.T) {
 		assert.Equal(t, free.Get(&sampleAddress), method.Get(&sampleAddress))

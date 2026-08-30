@@ -1,10 +1,10 @@
-// Package builder demonstrates the builder pattern using functional programming concepts
+﻿// Package builder demonstrates the builder pattern using functional programming concepts
 // from fp-go, including validation and transformation of data structures.
 package builder
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 )
 
@@ -22,8 +22,8 @@ type (
 
 	// Lens represents an optic that focuses on a field of type A within a structure of type S.
 	// It provides getter and setter operations for immutable updates.
-	// It is an alias for lens.Lens[S, A].
-	Lens[S, A any] = lens.Lens[S, A]
+	// It is an alias for common.Lens[S, A].
+	Lens[S, A any] = common.Lens[S, A]
 
 	// NonEmptyString is a string type that represents a validated non-empty string.
 	// It is used to ensure that string fields contain meaningful data.

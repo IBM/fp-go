@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	IO "github.com/IBM/fp-go/v2/optics/iso/option"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +46,7 @@ type WithDefaultValue struct {
 }
 
 func makeWithDefaultValueLens() Lens[WithDefaultValue, string] {
-	return lens.MakeLensWithName(
+	return common.MakeLensWithName(
 		func(oc WithDefaultValue) string { return oc.Value },
 		func(oc WithDefaultValue, v string) WithDefaultValue { oc.Value = v; return oc },
 		"Value",
@@ -59,7 +59,7 @@ func makeWithDefaultValueLensO() LensO[WithDefaultValue, string] {
 
 // Helper to create a lens for OptionalConfig.Timeout
 func makeTimeoutLens() LensO[OptionalConfig, int] {
-	return lens.MakeLens(
+	return common.MakeLens(
 		func(c OptionalConfig) Option[int] { return c.Timeout },
 		func(c OptionalConfig, t Option[int]) OptionalConfig { c.Timeout = t; return c },
 	)
@@ -67,7 +67,7 @@ func makeTimeoutLens() LensO[OptionalConfig, int] {
 
 // Helper to create a lens for OptionalPerson.Name
 func makeNameLens() LensO[OptionalPerson, string] {
-	return lens.MakeLens(
+	return common.MakeLens(
 		func(p OptionalPerson) Option[string] { return p.Name },
 		func(p OptionalPerson, n Option[string]) OptionalPerson { p.Name = n; return p },
 	)
@@ -75,7 +75,7 @@ func makeNameLens() LensO[OptionalPerson, string] {
 
 // Helper to create a lens for OptionalPerson.Age
 func makeAgeLens() LensO[OptionalPerson, int] {
-	return lens.MakeLens(
+	return common.MakeLens(
 		func(p OptionalPerson) Option[int] { return p.Age },
 		func(p OptionalPerson, a Option[int]) OptionalPerson { p.Age = a; return p },
 	)

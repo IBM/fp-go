@@ -1,4 +1,4 @@
-// Copyright (c) 2025 IBM Corp.
+﻿// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/monoid"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -32,7 +32,7 @@ type (
 	Option[A any] = option.Option[A]
 
 	// Lens is an optic that focuses on a field of type T within a structure of type S.
-	Lens[S, T any] = lens.Lens[S, T]
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Endomorphism represents a function from a type to itself (T -> T).
 	Endomorphism[T any] = endomorphism.Endomorphism[T]

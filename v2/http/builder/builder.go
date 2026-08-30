@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,7 +87,7 @@ import (
 	H "github.com/IBM/fp-go/v2/http/headers"
 	J "github.com/IBM/fp-go/v2/json"
 	LZ "github.com/IBM/fp-go/v2/lazy"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/record"
 	"github.com/IBM/fp-go/v2/result"
@@ -396,7 +396,7 @@ func WithJSON[T any](data T) Endomorphism {
 func QueryArg(name string) Lens[*Builder, Option[string]] {
 	return F.Pipe1(
 		Query,
-		L.Compose[*Builder](FM.AtValue(name)),
+		L.LensComposeLens[*Builder](FM.AtValue(name)),
 	)
 }
 

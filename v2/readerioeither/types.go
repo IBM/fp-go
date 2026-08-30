@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/iso/prism"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/lens/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -143,7 +143,7 @@ type (
 	// Endomorphisms form a monoid under composition with the identity function as the empty element.
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
 
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 
 	Prism[S, A any] = prism.Prism[S, A]
 )

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
@@ -145,7 +145,7 @@ func TestHead_Modify(t *testing.T) {
 	p := pair.MakePair("hello", 42)
 	toUpper := F.Pipe1(
 		Head[string, int](),
-		L.Modify[Pair[string, int]](func(s string) string { return s + "!" }),
+		L.LensModify[Pair[string, int]](func(s string) string { return s + "!" }),
 	)
 
 	result := toUpper(p)
@@ -159,7 +159,7 @@ func TestTail_Modify(t *testing.T) {
 	p := pair.MakePair("hello", 42)
 	double := F.Pipe1(
 		Tail[string, int](),
-		L.Modify[Pair[string, int]](func(n int) int { return n * 2 }),
+		L.LensModify[Pair[string, int]](func(n int) int { return n * 2 }),
 	)
 
 	result := double(p)
@@ -175,7 +175,7 @@ func TestHead_Compose(t *testing.T) {
 	innerHead := Head[string, bool]()
 
 	// Composed lens: outer -> head (Pair[string, bool]) -> head (string)
-	composed := F.Pipe1(outerHead, L.Compose[Pair[Pair[string, bool], int]](innerHead))
+	composed := F.Pipe1(outerHead, L.LensComposeLens[Pair[Pair[string, bool], int]](innerHead))
 
 	p := pair.MakePair(pair.MakePair("deep", true), 99)
 	assert.Equal(t, "deep", composed.Get(p))
@@ -193,7 +193,7 @@ func TestTail_Compose(t *testing.T) {
 	innerHead := Head[int, bool]()
 
 	// Composed lens: outer -> tail (Pair[int, bool]) -> head (int)
-	composed := F.Pipe1(outerTail, L.Compose[Pair[string, Pair[int, bool]]](innerHead))
+	composed := F.Pipe1(outerTail, L.LensComposeLens[Pair[string, Pair[int, bool]]](innerHead))
 
 	p := pair.MakePair("outer", pair.MakePair(7, false))
 	assert.Equal(t, 7, composed.Get(p))

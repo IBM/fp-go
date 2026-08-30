@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 )
 
 type Person struct {
@@ -119,7 +119,7 @@ func Example_immutability_optics() {
 	// Lens[Person, int]
 	ageLens := L.MakeLens(Person.GetAge, Person.SetAge)
 	// func(Person) Person
-	incAge := L.Modify[Person](N.Inc[int])(ageLens)
+	incAge := L.LensModify[Person](N.Inc[int])(ageLens)
 
 	p1 := MakePerson("Carsten", 53)
 	p2 := incAge(p1)
@@ -144,10 +144,10 @@ func Example_immutability_lenses() {
 	// Lens[Client, string]
 	clientNameLens := F.Pipe1(
 		personLens,
-		L.Compose[Client](nameLens),
+		L.LensComposeLens[Client](nameLens),
 	)
 	// func(Client) Client
-	upperName := L.Modify[Client](strings.ToUpper)(clientNameLens)
+	upperName := L.LensModify[Client](strings.ToUpper)(clientNameLens)
 
 	c1 := MakeClient("Böblingen", "Carsten", 53)
 

@@ -1,8 +1,8 @@
-package iso
+﻿package iso
 
 import (
 	"github.com/IBM/fp-go/v2/optics/iso"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 )
 
@@ -14,8 +14,8 @@ type (
 	Iso[S, A any] = iso.Iso[S, A]
 
 	// Lens is a functional reference to a subpart of a data structure.
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 
 	// Operator represents a function that transforms one lens into another.
-	Operator[S, A, B any] = lens.Operator[S, A, B]
+	Operator[S, A, B any] = common.LensOperator[S, A, B]
 )

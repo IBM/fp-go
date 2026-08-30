@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
 	ISO "github.com/IBM/fp-go/v2/optics/iso"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	O "github.com/IBM/fp-go/v2/option"
 	S "github.com/IBM/fp-go/v2/string"
@@ -234,7 +234,7 @@ func TestFromIsoComposition(t *testing.T) {
 	optTimeoutFromConfig := FromIso[Config](zeroAsNone)(timeoutLens)
 	optTimeoutFromApp := F.Pipe1(
 		configLens,
-		L.Compose[Application](optTimeoutFromConfig),
+		L.LensComposeLens[Application](optTimeoutFromConfig),
 	)
 
 	app := Application{config: Config{timeout: 0, retries: 3}}
@@ -275,7 +275,7 @@ func TestFromIsoModify(t *testing.T) {
 	t.Run("ModifyNoneToSome", func(t *testing.T) {
 		config := Config{timeout: 0, retries: 3}
 		// Map None to Some(10)
-		modified := L.Modify[Config](O.Map(N.Add(10)))(optTimeoutLens)(config)
+		modified := L.LensModify[Config](O.Map(N.Add(10)))(optTimeoutLens)(config)
 		// Since it was None, Map doesn't apply, stays None (0)
 		assert.Equal(t, 0, modified.timeout)
 	})
@@ -283,14 +283,14 @@ func TestFromIsoModify(t *testing.T) {
 	t.Run("ModifySomeValue", func(t *testing.T) {
 		config := Config{timeout: 30, retries: 3}
 		// Double the timeout value
-		modified := L.Modify[Config](O.Map(N.Mul(2)))(optTimeoutLens)(config)
+		modified := L.LensModify[Config](O.Map(N.Mul(2)))(optTimeoutLens)(config)
 		assert.Equal(t, 60, modified.timeout)
 	})
 
 	t.Run("ModifyWithAlt", func(t *testing.T) {
 		config := Config{timeout: 0, retries: 3}
 		// Use Alt to provide a default
-		modified := L.Modify[Config](func(opt O.Option[int]) O.Option[int] {
+		modified := L.LensModify[Config](func(opt O.Option[int]) O.Option[int] {
 			return O.Alt(F.Constant(O.Some(10)))(opt)
 		})(optTimeoutLens)(config)
 		assert.Equal(t, 10, modified.timeout)

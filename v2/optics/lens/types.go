@@ -21,24 +21,13 @@ package lens
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/optics/common"
 )
 
 type (
 	// Endomorphism is a function from a type to itself (A → A).
 	// It represents transformations that preserve the type.
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
-
-	// lensTag holds the display metadata for a Lens[S, A].
-	//
-	// It is embedded in Lens[S, A] as a non-generic carrier so that the
-	// formatting and logging methods (String, Format, LogValue)
-	// are compiled once and shared across all type-parameter instantiations,
-	// rather than being duplicated for every distinct Lens[S, A].
-	lensTag struct {
-		// n is the end-user-facing name of the lens (e.g. "Person.Name").
-		// It is returned by String() and LogValue().
-		n string
-	}
 
 	// Lens is a functional reference to a subpart of a data structure.
 	//
@@ -66,39 +55,7 @@ type (
 	//
 	// 3. SetSet (Setting twice is the same as setting once):
 	//    lens.Set(a2)(lens.Set(a1)(s)) == lens.Set(a2)(s)
-	//
-	// Example Usage:
-	//
-	//	type Person struct {
-	//	    Name string
-	//	    Age  int
-	//	}
-	//
-	//	// Create a lens focusing on the Name field
-	//	nameLens := lens.MakeLens(
-	//	    func(p Person) string { return p.Name },
-	//	    func(name string) func(Person) Person {
-	//	        return func(p Person) Person {
-	//	            return Person{Name: name, Age: p.Age}
-	//	        }
-	//	    },
-	//	)
-	//
-	//	person := Person{Name: "Alice", Age: 30}
-	//	name := nameLens.Get(person)           // Returns: "Alice"
-	//	updated := nameLens.Set("Bob")(person) // Returns: Person{Name: "Bob", Age: 30}
-	//	// Original person remains unchanged (immutability preserved)
-	Lens[S, A any] struct {
-		lensTag
-
-		// Get extracts the focused value of type A from structure S.
-		Get func(s S) A
-
-		// Set returns a function that updates the focused value in structure S.
-		// The returned function takes a structure S and returns a new structure S
-		// with the focused value updated to a. The original structure is never modified.
-		Set func(a A) Endomorphism[S]
-	}
+	Lens[S, A any] = common.Lens[S, A]
 
 	// Kleisli represents a function that takes a value of type A and returns a Lens[S, B].
 	// This is useful for composing lenses in a monadic style, allowing for dynamic lens creation
@@ -108,7 +65,7 @@ type (
 	//   - S: The source/structure type
 	//   - A: The input type
 	//   - B: The focus type of the resulting lens
-	Kleisli[S, A, B any] = func(A) Lens[S, B]
+	Kleisli[S, A, B any] = common.LensKleisli[S, A, B]
 
 	// Operator is a specialized Kleisli that takes a Lens[S, A] and returns a Lens[S, B].
 	// This enables lens transformations and compositions where one lens is used to derive another.
@@ -117,5 +74,5 @@ type (
 	//   - S: The source/structure type
 	//   - A: The focus type of the input lens
 	//   - B: The focus type of the resulting lens
-	Operator[S, A, B any] = Kleisli[S, Lens[S, A], B]
+	Operator[S, A, B any] = common.LensOperator[S, A, B]
 )

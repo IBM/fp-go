@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lens
+package common
 
 import (
 	"errors"
@@ -22,6 +22,7 @@ import (
 
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -132,7 +133,7 @@ func TestLens(t *testing.T) {
 
 func TestAddressCompose(t *testing.T) {
 	// compose
-	streetName := Compose[*Address](streetLens)(addrLens)
+	streetName := LensComposeLens[*Address](streetLens)(addrLens)
 	assert.Equal(t, sampleStreet.name, streetName.Get(&sampleAddress))
 	// new street
 	newName := "Böblingerstr"
@@ -142,15 +143,15 @@ func TestAddressCompose(t *testing.T) {
 	assert.Equal(t, newName, streetName.Get(updated))
 }
 
-func TestIMap(t *testing.T) {
+func TestLensIMap(t *testing.T) {
 
 	type S struct {
 		a int
 	}
 
 	sa := F.Pipe1(
-		Id[S](),
-		IMap[S](
+		LensId[S](),
+		LensIMap[S](
 			func(s S) int { return s.a },
 			func(a int) S { return S{a} },
 		),
@@ -160,7 +161,7 @@ func TestIMap(t *testing.T) {
 	assert.Equal(t, S{2}, sa.Set(2)(S{1}))
 }
 
-func TestSet(t *testing.T) {
+func TestLensSet(t *testing.T) {
 	t.Run("sets a constant value through a lens", func(t *testing.T) {
 		testLens := MakeLens(
 			func(s Street) string { return s.name },
@@ -170,7 +171,7 @@ func TestSet(t *testing.T) {
 			},
 		)
 
-		updated := Set[Street]("updated")(testLens)(Street{num: 1, name: "initial"})
+		updated := LensSet[Street]("updated")(testLens)(Street{num: 1, name: "initial"})
 
 		assert.Equal(t, Street{num: 1, name: "updated"}, updated)
 	})
@@ -185,7 +186,7 @@ func TestSet(t *testing.T) {
 			},
 		)
 
-		updated := Set[Street]("changed")(testLens)(original)
+		updated := LensSet[Street]("changed")(testLens)(original)
 
 		assert.Equal(t, Street{num: 1, name: "initial"}, original)
 		assert.Equal(t, Street{num: 1, name: "changed"}, updated)
@@ -206,8 +207,8 @@ func TestPassByValue(t *testing.T) {
 	assert.Equal(t, "value2", s2.name)
 }
 
-func TestIdRef(t *testing.T) {
-	idLens := IdRef[Street]()
+func TestLensIdRef(t *testing.T) {
+	idLens := LensIdRef[Street]()
 	street := &Street{num: 1, name: "Main"}
 
 	assert.Equal(t, street, idLens.Get(street))
@@ -218,8 +219,8 @@ func TestIdRef(t *testing.T) {
 	assert.Equal(t, 1, street.num) // Original unchanged
 }
 
-func TestComposeRef(t *testing.T) {
-	composedLens := ComposeRef[Address](streetLens)(addrLens)
+func TestLensComposeLensRef(t *testing.T) {
+	composedLens := LensComposeLensRef[Address](streetLens)(addrLens)
 
 	assert.Equal(t, sampleStreet.name, composedLens.Get(&sampleAddress))
 
@@ -366,7 +367,7 @@ func TestMakeLensWithEq_ComposedLens(t *testing.T) {
 	)
 
 	// Compose the lenses
-	streetName := Compose[*Address](streetLensEq)(addrLensEq)
+	streetName := LensComposeLens[*Address](streetLensEq)(addrLensEq)
 
 	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
 	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
@@ -508,7 +509,7 @@ func TestMakeLensStrict_ComposedLens(t *testing.T) {
 	)
 
 	// Compose the lenses
-	streetName := Compose[*Address](streetLensStrict)(addrLensStrict)
+	streetName := LensComposeLens[*Address](streetLensStrict)(addrLensStrict)
 
 	sampleStreet := Street{num: 220, name: "Schönaicherstr"}
 	sampleAddress := Address{city: "Böblingen", street: &sampleStreet}
@@ -660,7 +661,7 @@ func TestMakeLensRef_WithNilState_Composed(t *testing.T) {
 	)
 
 	// Compose the lenses
-	streetName := ComposeRef[Address](streetLens)(addrLens)
+	streetName := LensComposeLensRef[Address](streetLens)(addrLens)
 
 	var nilAddress *Address = nil
 
@@ -972,8 +973,8 @@ func TestMakeLensWithEq_WithNilState_MultipleOperations(t *testing.T) {
 	assert.Equal(t, "", street4.name)
 }
 
-// TestModifyF_Success tests ModifyF with a simple Maybe-like functor for successful transformations
-func TestModifyF_Success(t *testing.T) {
+// TestLensModifyF_Success tests LensModifyF with a simple Maybe-like functor for successful transformations
+func TestLensModifyF_Success(t *testing.T) {
 	// Define a simple Maybe type for testing
 	type Maybe[A any] struct {
 		value *A
@@ -1012,7 +1013,7 @@ func TestModifyF_Success(t *testing.T) {
 			return none()
 		}
 
-		modifyAge := ModifyF(maybeMap)
+		modifyAge := LensModifyF(maybeMap)
 
 		person := Inner{Value: 5, Foo: "test"}
 		result := modifyAge(validatePositive)(ageLens)(person)
@@ -1051,7 +1052,7 @@ func TestModifyF_Success(t *testing.T) {
 			return someStr(s)
 		}
 
-		modifyName := ModifyF(maybeStrMap)
+		modifyName := LensModifyF(maybeStrMap)
 
 		street := Street{num: 1, name: "Main"}
 		result := modifyName(identity)(nameLens)(street)
@@ -1061,8 +1062,8 @@ func TestModifyF_Success(t *testing.T) {
 	})
 }
 
-// TestModifyF_Failure tests ModifyF with failures
-func TestModifyF_Failure(t *testing.T) {
+// TestLensModifyF_Failure tests LensModifyF with failures
+func TestLensModifyF_Failure(t *testing.T) {
 	type Maybe[A any] struct {
 		value *A
 	}
@@ -1098,7 +1099,7 @@ func TestModifyF_Failure(t *testing.T) {
 			return none()
 		}
 
-		modifyAge := ModifyF(maybeMap)
+		modifyAge := LensModifyF(maybeMap)
 
 		person := Inner{Value: -5, Foo: "test"}
 		result := modifyAge(validatePositive)(ageLens)(person)
@@ -1107,8 +1108,8 @@ func TestModifyF_Failure(t *testing.T) {
 	})
 }
 
-// TestModifyF_WithResult tests ModifyF with Result/Either-like functor
-func TestModifyF_WithResult(t *testing.T) {
+// TestLensModifyF_WithResult tests LensModifyF with Result/Either-like functor
+func TestLensModifyF_WithResult(t *testing.T) {
 	type Result[A any] struct {
 		value *A
 		err   error
@@ -1145,7 +1146,7 @@ func TestModifyF_WithResult(t *testing.T) {
 			return fail(errors.New("age out of range"))
 		}
 
-		modifyAge := ModifyF(resultMap)
+		modifyAge := LensModifyF(resultMap)
 
 		person := Inner{Value: 30, Foo: "test"}
 		result := modifyAge(validateAge)(ageLens)(person)
@@ -1169,7 +1170,7 @@ func TestModifyF_WithResult(t *testing.T) {
 			return fail(errors.New("age out of range"))
 		}
 
-		modifyAge := ModifyF(resultMap)
+		modifyAge := LensModifyF(resultMap)
 
 		person := Inner{Value: 200, Foo: "test"}
 		result := modifyAge(validateAge)(ageLens)(person)
@@ -1180,8 +1181,8 @@ func TestModifyF_WithResult(t *testing.T) {
 	})
 }
 
-// TestModifyF_EdgeCases tests edge cases for ModifyF
-func TestModifyF_EdgeCases(t *testing.T) {
+// TestLensModifyF_EdgeCases tests edge cases for LensModifyF
+func TestLensModifyF_EdgeCases(t *testing.T) {
 	type Maybe[A any] struct {
 		value *A
 	}
@@ -1210,7 +1211,7 @@ func TestModifyF_EdgeCases(t *testing.T) {
 			return some(n)
 		}
 
-		modifyAge := ModifyF(maybeMap)
+		modifyAge := LensModifyF(maybeMap)
 
 		person := Inner{Value: 0, Foo: ""}
 		result := modifyAge(identity)(ageLens)(person)
@@ -1229,7 +1230,7 @@ func TestModifyF_EdgeCases(t *testing.T) {
 			(*Inner).SetValue,
 		)
 
-		composedLens := Compose[Outer](valueLens)(innerLens)
+		composedLens := LensComposeLens[Outer](valueLens)(innerLens)
 
 		maybeMapOuter := func(f func(int) Outer) func(Maybe[int]) Maybe[Outer] {
 			return func(ma Maybe[int]) Maybe[Outer] {
@@ -1248,7 +1249,7 @@ func TestModifyF_EdgeCases(t *testing.T) {
 			return Maybe[int]{value: nil}
 		}
 
-		modifyValue := ModifyF(maybeMapOuter)
+		modifyValue := LensModifyF(maybeMapOuter)
 
 		outer := Outer{inner: &Inner{Value: 5, Foo: "test"}}
 		result := modifyValue(validatePositive)(composedLens)(outer)
@@ -1259,8 +1260,8 @@ func TestModifyF_EdgeCases(t *testing.T) {
 	})
 }
 
-// TestModifyF_Integration tests integration scenarios
-func TestModifyF_Integration(t *testing.T) {
+// TestLensModifyF_Integration tests integration scenarios for LensModifyF
+func TestLensModifyF_Integration(t *testing.T) {
 	type Maybe[A any] struct {
 		value *A
 	}
@@ -1289,7 +1290,7 @@ func TestModifyF_Integration(t *testing.T) {
 			return some(n + 1)
 		}
 
-		modifyAge := ModifyF(maybeMap)
+		modifyAge := LensModifyF(maybeMap)
 
 		person := Inner{Value: 5, Foo: "test"}
 
@@ -1313,7 +1314,7 @@ func TestModifyF_Integration(t *testing.T) {
 		person := Inner{Value: 5, Foo: "test"}
 		modified := F.Pipe2(
 			ageLens,
-			Modify[Inner](func(n int) int { return n * 2 }),
+			LensModify[Inner](func(n int) int { return n * 2 }),
 			func(endoFn func(Inner) Inner) Inner {
 				return endoFn(person)
 			},
@@ -1329,22 +1330,21 @@ func TestModifyF_Integration(t *testing.T) {
 			return Maybe[int]{value: nil}
 		}
 
-		modifyAge := ModifyF(maybeMap)
+		modifyAge := LensModifyF(maybeMap)
 		result := modifyAge(validateRange)(ageLens)(modified)
 
 		assert.NotNil(t, result.value)
 	})
 }
 
-func TestModify_Success(t *testing.T) {
+func TestLensModify_Success(t *testing.T) {
 	t.Run("modifies int field", func(t *testing.T) {
 		inner := Inner{Value: 10, Foo: "test"}
 		valueLens := MakeLens(
 			func(i Inner) int { return i.Value },
 			func(i Inner, v int) Inner { i.Value = v; return i },
 		)
-
-		increment := valueLens.Modify(func(v int) int { return v + 1 })
+		increment := valueLens.Modify(N.Add(1))
 		result := increment(inner)
 
 		assert.Equal(t, 11, result.Value)
@@ -1385,7 +1385,7 @@ func TestModify_Success(t *testing.T) {
 		outerLens := MakeLens(Outer.GetInner, Outer.SetInner)
 		valueLens := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
 
-		composedLens := F.Pipe1(outerLens, Compose[Outer](valueLens))
+		composedLens := F.Pipe1(outerLens, LensComposeLens[Outer](valueLens))
 		halve := composedLens.Modify(func(v int) int { return v / 2 })
 		result := halve(outer)
 
@@ -1401,7 +1401,7 @@ func TestModify_Success(t *testing.T) {
 			func(i Inner, v int) Inner { i.Value = v; return i },
 		)
 
-		increment := valueLens.Modify(func(v int) int { return v + 1 })
+		increment := valueLens.Modify(N.Add(1))
 		double := valueLens.Modify(func(v int) int { return v * 2 })
 
 		result := F.Pipe2(inner, increment, double)
@@ -1411,7 +1411,7 @@ func TestModify_Success(t *testing.T) {
 	})
 }
 
-func TestModify_EdgeCases(t *testing.T) {
+func TestLensModify_EdgeCases(t *testing.T) {
 	t.Run("identity transformation", func(t *testing.T) {
 		inner := Inner{Value: 42, Foo: "unchanged"}
 		valueLens := MakeLens(
@@ -1477,7 +1477,7 @@ func TestModify_EdgeCases(t *testing.T) {
 	})
 }
 
-func TestModify_Integration(t *testing.T) {
+func TestLensModify_Integration(t *testing.T) {
 	t.Run("modifies deeply nested structure", func(t *testing.T) {
 		street := &Street{num: 123, name: "Main St"}
 		address := &Address{city: "Springfield", street: street}
@@ -1485,7 +1485,7 @@ func TestModify_Integration(t *testing.T) {
 		streetLens := MakeLensRef((*Address).GetStreet, (*Address).SetStreet)
 		nameLens := MakeLensRef((*Street).GetName, (*Street).SetName)
 
-		composedLens := F.Pipe1(streetLens, ComposeRef[Address](nameLens))
+		composedLens := F.Pipe1(streetLens, LensComposeLensRef[Address](nameLens))
 		uppercase := composedLens.Modify(func(s string) string {
 			return s + " Avenue"
 		})
@@ -1507,7 +1507,7 @@ func TestModify_Integration(t *testing.T) {
 
 		tripleValue := F.Pipe1(
 			valueLens,
-			Modify[Inner](func(v int) int { return v * 3 }),
+			LensModify[Inner](func(v int) int { return v * 3 }),
 		)
 		result := tripleValue(inner)
 
@@ -1525,7 +1525,7 @@ func TestModify_Integration(t *testing.T) {
 			func(i Inner, s string) Inner { i.Foo = s; return i },
 		)
 
-		incrementValue := valueLens.Modify(func(v int) int { return v + 1 })
+		incrementValue := valueLens.Modify(N.Add(1))
 		appendFoo := fooLens.Modify(func(s string) string { return s + "!" })
 
 		result := F.Pipe2(inner, incrementValue, appendFoo)
@@ -1579,7 +1579,7 @@ func TestModify_Integration(t *testing.T) {
 
 	t.Run("modifies with Id lens", func(t *testing.T) {
 		inner := Inner{Value: 42, Foo: "test"}
-		idLens := Id[Inner]()
+		idLens := LensId[Inner]()
 
 		swapFields := idLens.Modify(func(i Inner) Inner {
 			return Inner{Value: len(i.Foo), Foo: "modified"}
@@ -1874,11 +1874,11 @@ func TestMakeLensStrictWithName(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests for Id (by-value identity lens)
+// Tests for LensId (by-value identity lens)
 // ---------------------------------------------------------------------------
 
-func TestId(t *testing.T) {
-	idLens := Id[Inner]()
+func TestLensId(t *testing.T) {
+	idLens := LensId[Inner]()
 
 	t.Run("Get returns the whole structure unchanged", func(t *testing.T) {
 		inner := Inner{Value: 7, Foo: "hello"}

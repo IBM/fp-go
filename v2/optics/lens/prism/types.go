@@ -1,8 +1,8 @@
-package prism
+﻿package prism
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/optics/optional"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 )

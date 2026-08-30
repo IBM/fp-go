@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/pair"
@@ -203,11 +203,11 @@ type (
 	//	    type User struct { Name string; Address Address }
 	//
 	//	    // Define lenses (typically generated)
-	//	    addressLens := lens.Lens[User, Address]{...}
-	//	    cityLens := lens.Lens[Address, string]{...}
+	//	    addressLens := common.Lens[User, Address]{...}
+	//	    cityLens := common.Lens[Address, string]{...}
 	//
 	//	    // Compose lenses to focus on nested field
-	//	    userCityLens := lens.Compose(addressLens, cityLens)
+	//	    userCityLens := common.LensComposeLens(addressLens, cityLens)
 	//
 	//	    // Use with LocalL to assert on nested property
 	//	    user := User{Name: "Alice", Address: Address{City: "NYC"}}
@@ -218,7 +218,7 @@ type (
 	//   - [LocalL]: Uses a Lens to focus assertions on a property
 	//   - [lens.Lens]: The underlying lens type
 	//   - [Optional]: Similar but for values that may not exist
-	Lens[S, T any] = lens.Lens[S, T]
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Optional is an optic that focuses on a value that may or may not be present.
 	//

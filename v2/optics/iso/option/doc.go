@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -203,7 +203,7 @@ Simplify required vs optional field validation:
 Combine with lenses for nested structures:
 
 	import (
-		L "github.com/IBM/fp-go/v2/optics/lens"
+		L "github.com/IBM/fp-go/v2/optics/common"
 		I "github.com/IBM/fp-go/v2/optics/iso"
 	)
 
@@ -224,7 +224,7 @@ Combine with lenses for nested structures:
 	// Compose lens with iso
 	volumeOptLens := F.Pipe1(
 		volumeLens,
-		L.IMap[Settings](volumeIso.Get, volumeIso.ReverseGet),
+		L.LensIMap[Settings](volumeIso.Get, volumeIso.ReverseGet),
 	)
 
 	settings := Settings{Volume: 0}

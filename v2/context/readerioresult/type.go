@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import (
 	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/iterator/iterresult"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -186,7 +186,7 @@ type (
 
 	// Lens represents an optic for working with product types (records/structs).
 	// It provides a way to focus on a specific field of a product type.
-	Lens[S, T any] = lens.Lens[S, T]
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Trampoline represents a computation that can be executed in a stack-safe manner.
 	// It is used for tail-recursive computations that would otherwise overflow the stack.

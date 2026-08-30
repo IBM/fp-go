@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	RR "github.com/IBM/fp-go/v2/record/generic"
 )
@@ -48,5 +48,5 @@ func AtRecord[M ~map[K]V, V any, K comparable](key K) L.Lens[M, O.Option[V]] {
 
 // AtKey returns a `Lens` focused on a required key of a `ReadonlyRecord`
 func AtKey[M ~map[K]V, S any, V any, K comparable](key K) func(sa L.Lens[S, M]) L.Lens[S, O.Option[V]] {
-	return L.Compose[S](AtRecord[M](key))
+	return L.LensComposeLens[S](AtRecord[M](key))
 }

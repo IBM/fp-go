@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -269,7 +269,7 @@ func TestComposeOptionWithModify(t *testing.T) {
 
 	t.Run("Modify with identity returns same structure", func(t *testing.T) {
 		config := ServerConfig{Database: &DatabaseCfg{Host: "example.com", Port: 3306}}
-		result := L.Modify[ServerConfig](F.Identity[Option[int]])(configPortLens)(config)
+		result := L.LensModify[ServerConfig](F.Identity[Option[int]])(configPortLens)(config)
 		assert.Equal(t, config.Database.Port, result.Database.Port)
 		assert.Equal(t, config.Database.Host, result.Database.Host)
 	})
@@ -278,7 +278,7 @@ func TestComposeOptionWithModify(t *testing.T) {
 		config := ServerConfig{Database: &DatabaseCfg{Host: "example.com", Port: 3306}}
 		// Double the port if it exists
 		doublePort := O.Map(func(p int) int { return p * 2 })
-		result := L.Modify[ServerConfig](doublePort)(configPortLens)(config)
+		result := L.LensModify[ServerConfig](doublePort)(configPortLens)(config)
 		assert.Equal(t, 6612, result.Database.Port)
 		assert.Equal(t, "example.com", result.Database.Host)
 	})
@@ -286,7 +286,7 @@ func TestComposeOptionWithModify(t *testing.T) {
 	t.Run("Modify on empty config with Some transformation", func(t *testing.T) {
 		config := ServerConfig{Database: nil}
 		doublePort := O.Map(func(p int) int { return p * 2 })
-		result := L.Modify[ServerConfig](doublePort)(configPortLens)(config)
+		result := L.LensModify[ServerConfig](doublePort)(configPortLens)(config)
 		// Should remain empty since there's nothing to modify
 		assert.Nil(t, result.Database)
 	})
@@ -666,7 +666,7 @@ func TestComposeWithModify(t *testing.T) {
 	t.Run("Modify with identity returns same structure", func(t *testing.T) {
 		count := 5
 		store := Store{Data: &Data{Count: &count}}
-		result := L.Modify[Store](F.Identity[Option[*int]])(composedLens)(store)
+		result := L.LensModify[Store](F.Identity[Option[*int]])(composedLens)(store)
 		assert.Equal(t, 5, *result.Data.Count)
 	})
 
@@ -678,7 +678,7 @@ func TestComposeWithModify(t *testing.T) {
 			doubled := *c * 2
 			return &doubled
 		})
-		result := L.Modify[Store](doubleCount)(composedLens)(store)
+		result := L.LensModify[Store](doubleCount)(composedLens)(store)
 		assert.Equal(t, 10, *result.Data.Count)
 	})
 
@@ -688,7 +688,7 @@ func TestComposeWithModify(t *testing.T) {
 			doubled := *c * 2
 			return &doubled
 		})
-		result := L.Modify[Store](doubleCount)(composedLens)(store)
+		result := L.LensModify[Store](doubleCount)(composedLens)(store)
 		// Should remain empty since there's nothing to modify
 		assert.Nil(t, result.Data)
 	})

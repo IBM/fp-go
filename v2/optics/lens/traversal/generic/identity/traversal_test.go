@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 
 	AR "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	AI "github.com/IBM/fp-go/v2/optics/traversal/array/identity"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ type Company struct {
 func TestCompose_Success(t *testing.T) {
 	t.Run("composes lens with array traversal to modify nested values", func(t *testing.T) {
 		// Arrange
-		membersLens := lens.MakeLens(
+		membersLens := common.MakeLens(
 			func(team Team) []string { return team.Members },
 			func(team Team, members []string) Team {
 				team.Members = members
@@ -71,7 +71,7 @@ func TestCompose_Success(t *testing.T) {
 
 	t.Run("composes lens with array traversal on empty array", func(t *testing.T) {
 		// Arrange
-		membersLens := lens.MakeLens(
+		membersLens := common.MakeLens(
 			func(team Team) []string { return team.Members },
 			func(team Team, members []string) Team {
 				team.Members = members
@@ -104,7 +104,7 @@ func TestCompose_Success(t *testing.T) {
 			Scores []int
 		}
 
-		scoresLens := lens.MakeLens(
+		scoresLens := common.MakeLens(
 			func(s Stats) []int { return s.Scores },
 			func(s Stats, scores []int) Stats {
 				s.Scores = scores
@@ -138,7 +138,7 @@ func TestCompose_Success(t *testing.T) {
 func TestCompose_Integration(t *testing.T) {
 	t.Run("composes multiple lenses and traversals", func(t *testing.T) {
 		// Arrange - nested structure with Company -> Teams -> Members
-		teamsLens := lens.MakeLens(
+		teamsLens := common.MakeLens(
 			func(c Company) []Team { return c.Teams },
 			func(c Company, teams []Team) Company {
 				c.Teams = teams
@@ -154,7 +154,7 @@ func TestCompose_Integration(t *testing.T) {
 		)
 
 		// Second compose: Team -> []string -> string
-		membersLens := lens.MakeLens(
+		membersLens := common.MakeLens(
 			func(team Team) []string { return team.Members },
 			func(team Team, members []string) Team {
 				team.Members = members
@@ -196,7 +196,7 @@ func TestCompose_Integration(t *testing.T) {
 func TestCompose_EdgeCases(t *testing.T) {
 	t.Run("preserves structure name when modifying members", func(t *testing.T) {
 		// Arrange
-		membersLens := lens.MakeLens(
+		membersLens := common.MakeLens(
 			func(team Team) []string { return team.Members },
 			func(team Team, members []string) Team {
 				team.Members = members
@@ -225,7 +225,7 @@ func TestCompose_EdgeCases(t *testing.T) {
 
 	t.Run("handles identity transformation", func(t *testing.T) {
 		// Arrange
-		membersLens := lens.MakeLens(
+		membersLens := common.MakeLens(
 			func(team Team) []string { return team.Members },
 			func(team Team, members []string) Team {
 				team.Members = members

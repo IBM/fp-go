@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/stretchr/testify/assert"
@@ -548,7 +548,7 @@ func TestBindEitherK(t *testing.T) {
 
 func TestLensOperations(t *testing.T) {
 	// Create lenses for BindState
-	nameLens := lens.MakeLens(
+	nameLens := common.MakeLens(
 		func(s BindState) string { return s.Name },
 		func(s BindState, name string) BindState {
 			s.Name = name
@@ -556,7 +556,7 @@ func TestLensOperations(t *testing.T) {
 		},
 	)
 
-	ageLens := lens.MakeLens(
+	ageLens := common.MakeLens(
 		func(s BindState) int { return s.Age },
 		func(s BindState, age int) BindState {
 			s.Age = age

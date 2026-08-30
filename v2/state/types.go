@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 IBM Corp.
+﻿// Copyright (c) 2024 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@ package state
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -30,9 +30,9 @@ type (
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
 	// Lens represents a functional reference to a part of a data structure.
-	// It's an alias for lens.Lens[S, A] where S is the whole structure and A is the part.
+	// It's an alias for common.Lens[S, A] where S is the whole structure and A is the part.
 	// Lenses provide composable getters and setters for immutable data structures.
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 
 	// Reader represents a computation that depends on an environment of type R and produces a value of type A.
 	// It's an alias for reader.Reader[R, A] and is used for dependency injection patterns.

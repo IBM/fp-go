@@ -1,4 +1,4 @@
-package effect
+﻿package effect
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/IBM/fp-go/v2/record"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/result"
@@ -65,11 +65,11 @@ func Example_dependency_injection() {
 	const ID3 DependencyID = "all"
 
 	// hardcoding just for the example, normally use code generation
-	value1Lens := lens.MakeLens(func(d Dependency1) int { return d.Value }, func(d Dependency1, v int) Dependency1 { d.Value = v; return d })
-	value2Lens := lens.MakeLens(func(d Dependency2) int { return d.Value }, func(d Dependency2, v int) Dependency2 { d.Value = v; return d })
+	value1Lens := common.MakeLens(func(d Dependency1) int { return d.Value }, func(d Dependency1, v int) Dependency1 { d.Value = v; return d })
+	value2Lens := common.MakeLens(func(d Dependency2) int { return d.Value }, func(d Dependency2, v int) Dependency2 { d.Value = v; return d })
 
-	dep1Lens := lens.MakeLens(func(d AllDependencies) Dependency1 { return d.Dep1 }, func(d AllDependencies, v Dependency1) AllDependencies { d.Dep1 = v; return d })
-	dep2Lens := lens.MakeLens(func(d AllDependencies) Dependency2 { return d.Dep2 }, func(d AllDependencies, v Dependency2) AllDependencies { d.Dep2 = v; return d })
+	dep1Lens := common.MakeLens(func(d AllDependencies) Dependency1 { return d.Dep1 }, func(d AllDependencies, v Dependency1) AllDependencies { d.Dep1 = v; return d })
+	dep2Lens := common.MakeLens(func(d AllDependencies) Dependency2 { return d.Dep2 }, func(d AllDependencies, v Dependency2) AllDependencies { d.Dep2 = v; return d })
 
 	dep1Prism := prism.MakePrism(func(d Dependency1) Option[int] { return option.FromNonZero[int]()(d.Value) }, func(s int) Dependency1 { return Dependency1{Value: s} })
 

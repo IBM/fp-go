@@ -1,11 +1,11 @@
-package validation
+﻿package validation
 
 import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/stretchr/testify/assert"
 )
 

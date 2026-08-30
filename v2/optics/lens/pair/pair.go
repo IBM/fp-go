@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@ package pair
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/pair"
 )
 
@@ -36,7 +36,7 @@ import (
 // See Also:
 //   - Tail: Lens focused on the tail (right) element
 func Head[L, R any]() Lens[Pair[L, R], L] {
-	return lens.MakeLensCurriedWithName(
+	return common.MakeLensCurriedWithName(
 		pair.Head[L, R],
 		F.Flow2(
 			F.Constant1[L, L],
@@ -61,7 +61,7 @@ func Head[L, R any]() Lens[Pair[L, R], L] {
 // See Also:
 //   - Head: Lens focused on the head (left) element
 func Tail[L, R any]() Lens[Pair[L, R], R] {
-	return lens.MakeLensCurriedWithName(
+	return common.MakeLensCurriedWithName(
 		pair.Tail[L, R],
 		F.Flow2(
 			F.Constant1[R, R],

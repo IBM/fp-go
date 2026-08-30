@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@ package prism
 import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -138,7 +138,7 @@ type (
 	//   - A: The type of the value being tested
 	Predicate[A any] = predicate.Predicate[A]
 
-	// Lens is a type alias for lens.Lens[S, A], re-exported here for convenience
+	// Lens is a type alias for common.Lens[S, A], re-exported here for convenience
 	// so that packages composing prisms with lenses (such as optics/prism/lens)
 	// do not need a separate import of github.com/IBM/fp-go/v2/optics/lens.
 	//
@@ -148,5 +148,5 @@ type (
 	// Type Parameters:
 	//   - S: The source/structure type (the whole)
 	//   - A: The focus/field type (the part)
-	Lens[S, A any] = lens.Lens[S, A]
+	Lens[S, A any] = common.Lens[S, A]
 )

@@ -1,26 +1,179 @@
-﻿// Copyright (c) 2023 - 2025 IBM Corp.
-// All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Lens is an optic used to zoom inside a product.
-package lens
+package common
 
 import (
+	"fmt"
+
+	"github.com/IBM/fp-go/v2/endomorphism"
 	EQ "github.com/IBM/fp-go/v2/eq"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	"github.com/IBM/fp-go/v2/optics/common"
 )
+
+type (
+
+	// lensTag holds the display metadata for a Lens[S, A].
+	//
+	// It is embedded in Lens[S, A] as a non-generic carrier so that the
+	// formatting and logging methods (String, Format, LogValue)
+	// are compiled once and shared across all type-parameter instantiations,
+	// rather than being duplicated for every distinct Lens[S, A].
+	lensTag struct {
+		// n is the end-user-facing name of the lens (e.g. "Person.Name").
+		// It is returned by String() and LogValue().
+		n string
+	}
+
+	// Lens is a functional reference to a subpart of a data structure.
+	//
+	// A Lens[S, A] provides a composable way to focus on a field of type A within
+	// a structure of type S. It consists of two operations:
+	//   - Get: Extracts the focused value from the structure (S → A)
+	//   - Set: Updates the focused value in the structure, returning a new structure (A → S → S)
+	//
+	// Lenses maintain immutability by always returning new copies of the structure
+	// when setting values, never modifying the original.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type (the whole)
+	//   - A: The focus/field type (the part)
+	//
+	// Lens Laws:
+	//
+	// A well-behaved lens must satisfy three laws:
+	//
+	// 1. GetSet (You get what you set):
+	//    lens.Set(lens.Get(s))(s) == s
+	//
+	// 2. SetGet (You set what you get):
+	//    lens.Get(lens.Set(a)(s)) == a
+	//
+	// 3. SetSet (Setting twice is the same as setting once):
+	//    lens.Set(a2)(lens.Set(a1)(s)) == lens.Set(a2)(s)
+	//
+	// Example Usage:
+	//
+	//	type Person struct {
+	//	    Name string
+	//	    Age  int
+	//	}
+	//
+	//	// Create a lens focusing on the Name field
+	//	nameLens := lens.MakeLens(
+	//	    func(p Person) string { return p.Name },
+	//	    func(name string) func(Person) Person {
+	//	        return func(p Person) Person {
+	//	            return Person{Name: name, Age: p.Age}
+	//	        }
+	//	    },
+	//	)
+	//
+	//	person := Person{Name: "Alice", Age: 30}
+	//	name := nameLens.Get(person)           // Returns: "Alice"
+	//	updated := nameLens.Set("Bob")(person) // Returns: Person{Name: "Bob", Age: 30}
+	//	// Original person remains unchanged (immutability preserved)
+	Lens[S, A any] struct {
+		lensTag
+
+		// Get extracts the focused value of type A from structure S.
+		Get func(s S) A
+
+		// Set returns a function that updates the focused value in structure S.
+		// The returned function takes a structure S and returns a new structure S
+		// with the focused value updated to a. The original structure is never modified.
+		Set func(a A) Endomorphism[S]
+	}
+
+	// LensKleisli represents a function that takes a value of type A and returns a Lens[S, B].
+	// This is useful for composing lenses in a monadic style, allowing for dynamic lens creation
+	// based on input values.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type
+	//   - A: The input type
+	//   - B: The focus type of the resulting lens
+	LensKleisli[S, A, B any] = func(A) Lens[S, B]
+
+	// LensOperator is a specialized Kleisli that takes a Lens[S, A] and returns a Lens[S, B].
+	// This enables lens transformations and compositions where one lens is used to derive another.
+	//
+	// Type Parameters:
+	//   - S: The source/structure type
+	//   - A: The focus type of the input lens
+	//   - B: The focus type of the resulting lens
+	LensOperator[S, A, B any] = LensKleisli[S, Lens[S, A], B]
+)
+
+// lensSetCopy wraps a setter for a pointer into a setter that first creates a copy before
+// modifying that copy
+func lensSetCopy[SET ~func(*S, A) *S, S, A any](setter SET) func(s *S, a A) *S {
+
+	var empty S
+	safeSet := func(s *S, a A) *S {
+		// make sure we have a total implementation
+		cpy := *s
+		return setter(&cpy, a)
+	}
+
+	return func(s *S, a A) *S {
+		// make sure we have a total implementation
+		if s != nil {
+			return safeSet(s, a)
+		}
+		// fallback to the empty object
+		return safeSet(&empty, a)
+	}
+}
+
+// lensSetCopyWithEq wraps a setter for a pointer into a setter that first creates a copy before
+// modifying that copy, but skips the copy entirely when the new value is equal to the current
+// one according to pred. This is intentionally independent of the type parameters of the
+// enclosing Lens[S, A] to avoid per-instantiation code bloat.
+func lensSetCopyWithEq[GET ~func(*S) A, SET ~func(*S, A) *S, S, A any](pred EQ.Eq[A], getter GET, setter SET) func(s *S, a A) *S {
+
+	var empty S
+	safeSet := func(s *S, a A) *S {
+		if pred.Equals(getter(s), a) {
+			return s
+		}
+		// we need to make a copy
+		cpy := *s
+		return setter(&cpy, a)
+	}
+
+	return func(s *S, a A) *S {
+		// make sure we have a total implementation
+		if s != nil {
+			return safeSet(s, a)
+		}
+		// fallback to the empty object
+		return safeSet(&empty, a)
+	}
+}
+
+// lensSetCopyCurried wraps a setter for a pointer into a setter that first creates a copy before
+// modifying that copy
+func lensSetCopyCurried[SET ~func(A) Endomorphism[*S], S, A any](setter SET) func(A) Endomorphism[*S] {
+	var empty S
+
+	return func(a A) Endomorphism[*S] {
+		seta := setter(a)
+
+		safeSet := func(s *S) *S {
+			// make sure we have a total implementation
+			cpy := *s
+			return seta(&cpy)
+		}
+
+		return func(s *S) *S {
+			// make sure we have a total implementation
+			if s != nil {
+				return safeSet(s)
+			}
+			// fallback to the empty object
+			return safeSet(&empty)
+		}
+	}
+}
 
 // MakeLens creates a [Lens] based on a getter and a setter F.
 //
@@ -48,7 +201,7 @@ import (
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLens(
+//	nameLens := lens.MakeLens(
 //	    func(p Person) string { return p.Name },
 //	    func(p Person, name string) Person {
 //	        p.Name = name
@@ -62,7 +215,7 @@ import (
 //
 //go:inline
 func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Lens[S, A] {
-	return common.MakeLens(get, set)
+	return MakeLensCurried(get, F.Bind2of2(set))
 }
 
 // MakeLensWithName creates a [Lens] with a custom name for debugging and logging.
@@ -95,7 +248,7 @@ func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Len
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensWithName(
+//	nameLens := lens.MakeLensWithName(
 //	    func(p Person) string { return p.Name },
 //	    func(p Person, name string) Person {
 //	        p.Name = name
@@ -108,7 +261,7 @@ func MakeLens[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET) Len
 //
 //go:inline
 func MakeLensWithName[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set SET, name string) Lens[S, A] {
-	return common.MakeLensWithName(get, set, name)
+	return MakeLensCurriedWithName(get, F.Bind2of2(set), name)
 }
 
 // MakeLensCurried creates a [Lens] with a curried setter F.
@@ -134,7 +287,7 @@ func MakeLensWithName[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set 
 //
 // Example:
 //
-//	nameLens := common.MakeLensCurried(
+//	nameLens := lens.MakeLensCurried(
 //	    func(p Person) string { return p.Name },
 //	    func(name string) func(Person) Person {
 //	        return func(p Person) Person {
@@ -146,7 +299,11 @@ func MakeLensWithName[GET ~func(S) A, SET ~func(S, A) S, S, A any](get GET, set 
 //
 //go:inline
 func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET) Lens[S, A] {
-	return common.MakeLensCurried(get, set)
+	return MakeLensCurriedWithName(get, set, "Lens")
+}
+
+func makeLensName(name string) lensTag {
+	return lensTag{name}
 }
 
 // MakeLensCurriedWithName creates a [Lens] with a curried setter and a custom name.
@@ -179,7 +336,7 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensCurriedWithName(
+//	nameLens := lens.MakeLensCurriedWithName(
 //	    func(p Person) string { return p.Name },
 //	    func(name string) func(Person) Person {
 //	        return func(p Person) Person {
@@ -194,7 +351,7 @@ func MakeLensCurried[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get
 //
 //go:inline
 func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A any](get GET, set SET, name string) Lens[S, A] {
-	return common.MakeLensCurriedWithName(get, set, name)
+	return Lens[S, A]{makeLensName(name), get, set}
 }
 
 // MakeLensCurriedRefWithName creates a [Lens] for pointer-based structures with a curried setter
@@ -221,7 +378,7 @@ func MakeLensCurriedWithName[GET ~func(S) A, SET ~func(A) Endomorphism[S], S, A 
 //
 //go:inline
 func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], S, A any](get GET, set SET, name string) Lens[*S, A] {
-	return common.MakeLensCurriedRefWithName(get, set, name)
+	return Lens[*S, A]{makeLensName(name), get, lensSetCopyCurried(set)}
 }
 
 // MakeLensRef creates a [Lens] for pointer-based structures.
@@ -252,7 +409,7 @@ func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], 
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensRef(
+//	nameLens := lens.MakeLensRef(
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person {
 //	        p.Name = name  // No manual copy needed
@@ -266,7 +423,7 @@ func MakeLensCurriedRefWithName[GET ~func(*S) A, SET ~func(A) Endomorphism[*S], 
 //
 //go:inline
 func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET) Lens[*S, A] {
-	return common.MakeLensRef(get, set)
+	return MakeLens(get, lensSetCopy(set))
 }
 
 // MakeLensRefWithName creates a [Lens] for pointer-based structures with a custom name.
@@ -300,7 +457,7 @@ func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensRefWithName(
+//	nameLens := lens.MakeLensRefWithName(
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person {
 //	        p.Name = name  // No manual copy needed
@@ -316,7 +473,7 @@ func MakeLensRef[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET
 //
 //go:inline
 func MakeLensRefWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET, set SET, name string) Lens[*S, A] {
-	return common.MakeLensRefWithName(get, set, name)
+	return MakeLensWithName(get, lensSetCopy(set), name)
 }
 
 // MakeLensWithEq creates a [Lens] for pointer-based structures with equality optimization.
@@ -352,7 +509,7 @@ func MakeLensRefWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET,
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensWithEq(
+//	nameLens := lens.MakeLensWithEq(
 //	    eq.FromStrictEquals[string](),
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person {
@@ -373,7 +530,7 @@ func MakeLensRefWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](get GET,
 //
 //go:inline
 func MakeLensWithEq[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A], get GET, set SET) Lens[*S, A] {
-	return common.MakeLensWithEq(pred, get, set)
+	return MakeLens(get, lensSetCopyWithEq(pred, get, set))
 }
 
 // MakeLensWithEqWithName creates a [Lens] for pointer-based structures with equality optimization and a custom name.
@@ -409,7 +566,7 @@ func MakeLensWithEq[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A]
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensWithEqWithName(
+//	nameLens := lens.MakeLensWithEqWithName(
 //	    eq.FromStrictEquals[string](),
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person {
@@ -430,7 +587,7 @@ func MakeLensWithEq[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A]
 //
 //go:inline
 func MakeLensWithEqWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred EQ.Eq[A], get GET, set SET, name string) Lens[*S, A] {
-	return common.MakeLensWithEqWithName(pred, get, set, name)
+	return MakeLensWithName(get, lensSetCopyWithEq(pred, get, set), name)
 }
 
 // MakeLensStrict creates a [Lens] for pointer-based structures with strict equality optimization.
@@ -466,7 +623,7 @@ func MakeLensWithEqWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred 
 //	}
 //
 //	// Using MakeLensStrict for a string field (comparable type)
-//	nameLens := common.MakeLensStrict(
+//	nameLens := lens.MakeLensStrict(
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person {
 //	        p.Name = name  // No manual copy needed
@@ -486,7 +643,7 @@ func MakeLensWithEqWithName[GET ~func(*S) A, SET func(*S, A) *S, S, A any](pred 
 //
 //go:inline
 func MakeLensStrict[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](get GET, set SET) Lens[*S, A] {
-	return common.MakeLensStrict(get, set)
+	return MakeLensWithEq(EQ.FromStrictEquals[A](), get, set)
 }
 
 // MakeLensStrictWithName creates a [Lens] for pointer-based structures with strict equality optimization and a custom name.
@@ -523,7 +680,7 @@ func MakeLensStrict[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](ge
 //	}
 //
 //	// Using MakeLensStrictWithName for a string field (comparable type)
-//	nameLens := common.MakeLensStrictWithName(
+//	nameLens := lens.MakeLensStrictWithName(
 //	    func(p *Person) string { return p.Name },
 //	    func(p *Person, name string) *Person {
 //	        p.Name = name  // No manual copy needed
@@ -543,7 +700,7 @@ func MakeLensStrict[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](ge
 //
 //go:inline
 func MakeLensStrictWithName[GET ~func(*S) A, SET func(*S, A) *S, S any, A comparable](get GET, set SET, name string) Lens[*S, A] {
-	return common.MakeLensStrictWithName(get, set, name)
+	return MakeLensWithEqWithName(EQ.FromStrictEquals[A](), get, set, name)
 }
 
 // MakeLensRefCurried creates a [Lens] for pointer-based structures with a curried setter.
@@ -567,7 +724,7 @@ func MakeLensStrictWithName[GET ~func(*S) A, SET func(*S, A) *S, S any, A compar
 //
 // Example:
 //
-//	nameLens := common.MakeLensRefCurried(
+//	nameLens := lens.MakeLensRefCurried(
 //	    func(p *Person) string { return p.Name },
 //	    func(name string) func(*Person) *Person {
 //	        return func(p *Person) *Person {
@@ -579,7 +736,7 @@ func MakeLensStrictWithName[GET ~func(*S) A, SET func(*S, A) *S, S any, A compar
 //
 //go:inline
 func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) Endomorphism[*S]) Lens[*S, A] {
-	return common.MakeLensRefCurried(get, set)
+	return MakeLensCurried(get, lensSetCopyCurried(set))
 }
 
 // MakeLensRefCurriedWithName creates a [Lens] for pointer-based structures with a curried setter and custom name.
@@ -610,7 +767,7 @@ func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) Endomorphism[*S]) 
 //	    Age  int
 //	}
 //
-//	nameLens := common.MakeLensRefCurriedWithName(
+//	nameLens := lens.MakeLensRefCurriedWithName(
 //	    func(p *Person) string { return p.Name },
 //	    func(name string) func(*Person) *Person {
 //	        return func(p *Person) *Person {
@@ -628,10 +785,15 @@ func MakeLensRefCurried[S, A any](get func(*S) A, set func(A) Endomorphism[*S]) 
 //
 //go:inline
 func MakeLensRefCurriedWithName[S, A any](get func(*S) A, set func(A) Endomorphism[*S], name string) Lens[*S, A] {
-	return common.MakeLensRefCurriedWithName(get, set, name)
+	return MakeLensCurriedWithName(get, lensSetCopyCurried(set), name)
 }
 
-// Id returns an identity [Lens] that focuses on the entire structure.
+// lensId returns a [Lens] implementing the identity operation
+func lensId[GET ~func(S) S, SET ~func(S, S) S, S any](creator func(get GET, set SET, name string) Lens[S, S]) Lens[S, S] {
+	return creator(F.Identity[S], F.Second[S, S], "LensIdentity")
+}
+
+// LensId returns an identity [Lens] that focuses on the entire structure.
 //
 // The identity lens is useful as a starting point for lens composition or when you need
 // a lens that doesn't actually focus on a subpart. Get returns the structure unchanged,
@@ -650,19 +812,19 @@ func MakeLensRefCurriedWithName[S, A any](get func(*S) A, set func(A) Endomorphi
 //	    Age  int
 //	}
 //
-//	idLens := lens.Id[Person]()
+//	idLens := lens.LensId[Person]()
 //	person := Person{Name: "Alice", Age: 30}
 //
 //	same := idLens.Get(person)  // Returns person unchanged
 //	replaced := idLens.Set(Person{Name: "Bob", Age: 25})(person)
 //	// replaced is Person{Name: "Bob", Age: 25}
-func Id[S any]() Lens[S, S] {
-	return common.LensId[S]()
+func LensId[S any]() Lens[S, S] {
+	return lensId(MakeLensWithName[Endomorphism[S], func(S, S) S])
 }
 
-// IdRef returns an identity [Lens] for pointer-based structures.
+// LensIdRef returns an identity [Lens] for pointer-based structures.
 //
-// This is the pointer version of [Id]. It focuses on the entire pointer structure,
+// This is the pointer version of [LensId]. It focuses on the entire pointer structure,
 // with automatic copying to ensure immutability.
 //
 // Type Parameters:
@@ -673,19 +835,43 @@ func Id[S any]() Lens[S, S] {
 //
 // Example:
 //
-//	idLens := lens.IdRef[Person]()
+//	idLens := lens.LensIdRef[Person]()
 //	person := &Person{Name: "Alice", Age: 30}
 //
 //	same := idLens.Get(person)  // Returns person pointer
 //	replaced := idLens.Set(&Person{Name: "Bob", Age: 25})(person)
 //	// person.Name is still "Alice", replaced is a new pointer
-func IdRef[S any]() Lens[*S, *S] {
-	return common.LensIdRef[S]()
+func LensIdRef[S any]() Lens[*S, *S] {
+	return lensId(MakeLensRefWithName[Endomorphism[*S], func(*S, *S) *S])
 }
 
-// Compose combines two lenses to focus on a deeply nested field.
+// compose combines two lenses and allows to narrow down the focus to a sub-lens
+func lensCompose[GET ~func(S) B, SET ~func(B) func(S) S, S, A, B any](
+	creator func(get GET, set SET, name string) Lens[S, B],
+	ab Lens[A, B],
+) LensOperator[S, A, B] {
+	abget := ab.Get
+	abset := ab.Set
+	return func(sa Lens[S, A]) Lens[S, B] {
+		saget := sa.Get
+		saset := sa.Set
+		return creator(
+			F.Flow2(saget, abget),
+			func(b B) func(S) S {
+				return endomorphism.Join(F.Flow3(
+					saget,
+					abset(b),
+					saset,
+				))
+			},
+			fmt.Sprintf("LensCompose[%s -> %s]", sa, ab),
+		)
+	}
+}
+
+// LensComposeLens combines two lenses to focus on a deeply nested field.
 //
-// Given a lens from S to A and a lens from A to B, Compose creates a lens from S to B.
+// Given a lens from S to A and a lens from A to B, LensComposeLens creates a lens from S to B.
 // This allows you to navigate through nested structures in a composable way.
 //
 // The composition follows the mathematical property: (sa ∘ ab).Get = ab.Get ∘ sa.Get
@@ -713,41 +899,41 @@ func IdRef[S any]() Lens[*S, *S] {
 //	    Address Address
 //	}
 //
-//	addressLens := common.MakeLens(
+//	addressLens := lens.MakeLens(
 //	    func(p Person) Address { return p.Address },
 //	    func(p Person, a Address) Person { p.Address = a; return p },
 //	)
 //
-//	streetLens := common.MakeLens(
+//	streetLens := lens.MakeLens(
 //	    func(a Address) string { return a.Street },
 //	    func(a Address, s string) Address { a.Street = s; return a },
 //	)
 //
-//	// Compose to access street directly from person
-//	personStreetLens := F.Pipe1(addressLens, lens.Compose[Person](streetLens))
+//	// LensComposeLens to access street directly from person
+//	personStreetLens := F.Pipe1(addressLens, lens.LensComposeLens[Person](streetLens))
 //
 //	person := Person{Name: "Alice", Address: Address{Street: "Main St"}}
 //	street := personStreetLens.Get(person)  // "Main St"
 //	updated := personStreetLens.Set("Oak Ave")(person)
 //
 //go:inline
-func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
-	return common.LensComposeLens[S](ab)
+func LensComposeLens[S, A, B any](ab Lens[A, B]) LensOperator[S, A, B] {
+	return lensCompose(MakeLensCurriedWithName[func(S) B, func(B) func(S) S], ab)
 }
 
-// ComposeRef combines two lenses for pointer-based structures.
+// LensComposeLensRef combines two lenses for pointer-based structures.
 //
-// Deprecated: ComposeRef is not needed. When the outer lens is already a
+// Deprecated: LensComposeLensRef is not needed. When the outer lens is already a
 // pointer lens (Lens[*S, A], created with MakeLensRef or MakeLensRefCurried),
 // its Set implementation already copies *S before writing. The copy that
-// ComposeRef adds via MakeLensRefCurriedWithName is therefore redundant —
+// LensComposeLensRef adds via MakeLensRefCurriedWithName is therefore redundant —
 // the composed setter calls the outer lens's Set, which copies, so the
 // original pointer is never mutated.
 //
-// Use [Compose][*S] instead:
+// Use [LensComposeLens][*S] instead:
 //
 //	// Before
-//	personStreetLens := F.Pipe1(addressLens, lens.ComposeRef[Person](streetLens))
+//	personStreetLens := F.Pipe1(addressLens, lens.LensComposeLensRef[Person](streetLens))
 //
 //	// After — identical behaviour, no extra copy
 //	personStreetLens := F.Pipe1(addressLens, lens.Compose[*Person](streetLens))
@@ -762,13 +948,13 @@ func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 //
 // Returns:
 //   - A function that takes a Lens[*S, A] and returns a Lens[*S, B]
-func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
-	return common.LensComposeLensRef[S](ab)
+func LensComposeLensRef[S, A, B any](ab Lens[A, B]) LensOperator[*S, A, B] {
+	return lensCompose(MakeLensRefCurriedWithName[S, B], ab)
 }
 
-// Modify transforms a value through a lens using a transformation F.
+// LensModify transforms a value through a lens using a transformation F.
 //
-// Instead of setting a specific value, Modify applies a function to the current value.
+// Instead of setting a specific value, LensModify applies a function to the current value.
 // This is useful for updates like incrementing a counter, appending to a string, etc.
 // If the transformation doesn't change the value, the original structure is returned.
 //
@@ -789,7 +975,7 @@ func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 //	    Value int
 //	}
 //
-//	valueLens := common.MakeLens(
+//	valueLens := lens.MakeLens(
 //	    func(c Counter) int { return c.Value },
 //	    func(c Counter, v int) Counter { c.Value = v; return c },
 //	)
@@ -799,7 +985,7 @@ func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 //	// Increment the counter
 //	incremented := F.Pipe2(
 //	    valueLens,
-//	    lens.Modify[Counter](func(v int) int { return v + 1 }),
+//	    lens.LensModify[Counter](func(v int) int { return v + 1 }),
 //	    F.Ap(counter),
 //	)
 //	// incremented.Value == 6
@@ -807,15 +993,17 @@ func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 //	// Double the counter
 //	doubled := F.Pipe2(
 //	    valueLens,
-//	    lens.Modify[Counter](func(v int) int { return v * 2 }),
+//	    lens.LensModify[Counter](func(v int) int { return v * 2 }),
 //	    F.Ap(counter),
 //	)
 //	// doubled.Value == 10
-func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S] {
-	return common.LensModify[S](f)
+func LensModify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S] {
+	return func(la Lens[S, A]) Endomorphism[S] {
+		return la.Modify(f)
+	}
 }
 
-// Set returns a function that updates the focus of a lens to a constant value.
+// LensSet returns a function that updates the focus of a lens to a constant value.
 //
 // This is a convenience helper for partially applying a value before supplying the lens,
 // making it useful in composition pipelines with F.Pipe.
@@ -826,7 +1014,7 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S
 //	    Value int
 //	}
 //
-//	valueLens := common.MakeLens(
+//	valueLens := lens.MakeLens(
 //	    func(c Counter) int { return c.Value },
 //	    func(c Counter, value int) Counter {
 //	        c.Value = value
@@ -837,15 +1025,17 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Lens[S, A]) Endomorphism[S
 //	counter := Counter{Value: 5}
 //	updated := F.Pipe2(
 //	    10,
-//	    lens.Set[Counter](10),
+//	    lens.LensSet[Counter](10),
 //	    F.Ap(valueLens),
 //	)
 //	// updated.Value == 10
-func Set[S any, A any](a A) func(Lens[S, A]) Endomorphism[S] {
-	return common.LensSet[S](a)
+func LensSet[S any, A any](a A) func(Lens[S, A]) Endomorphism[S] {
+	return func(l Lens[S, A]) Endomorphism[S] {
+		return l.Set(a)
+	}
 }
 
-// ModifyF transforms a value through a lens using a function that returns a value in a functor context.
+// LensModifyF transforms a value through a lens using a function that returns a value in a functor context.
 //
 // This is the functorial version of Modify, allowing transformations that produce effects
 // (like Option, Either, IO, etc.) while updating the focused value. The functor's map operation
@@ -879,7 +1069,7 @@ func Set[S any, A any](a A) func(Lens[S, A]) Endomorphism[S] {
 //	    Age  int
 //	}
 //
-//	ageLens := common.MakeLens(
+//	ageLens := lens.MakeLens(
 //	    func(p Person) int { return p.Age },
 //	    func(p Person, age int) Person { p.Age = age; return p },
 //	)
@@ -893,7 +1083,7 @@ func Set[S any, A any](a A) func(Lens[S, A]) Endomorphism[S] {
 //	}
 //
 //	// Create a modifier that validates while updating
-//	modifyAge := lens.ModifyF[Person, int](option.Functor[int, Person]().Map)
+//	modifyAge := lens.LensModifyF[Person, int](option.Functor[int, Person]().Map)
 //
 //	person := Person{Name: "Alice", Age: 30}
 //	result := modifyAge(validateAge)(ageLens)(person)
@@ -908,16 +1098,24 @@ func Set[S any, A any](a A) func(Lens[S, A]) Endomorphism[S] {
 //
 //   - Modify: Non-functorial version for simple transformations
 //   - functor.Functor: The functor interface used for mapping
-func ModifyF[S, A, HKTA, HKTS any](
+func LensModifyF[S, A, HKTA, HKTS any](
 	fmap functor.MapType[A, S, HKTA, HKTS],
 ) func(func(A) HKTA) func(Lens[S, A]) func(S) HKTS {
-	return common.LensModifyF(fmap)
+	return func(f func(A) HKTA) func(Lens[S, A]) func(S) HKTS {
+		return func(sa Lens[S, A]) func(S) HKTS {
+			return func(s S) HKTS {
+				return fmap(func(a A) S {
+					return sa.Set(a)(s)
+				})(f(sa.Get(s)))
+			}
+		}
+	}
 }
 
-// IMap transforms the focus type of a lens using an isomorphism.
+// LensIMap transforms the focus type of a lens using an isomorphism.
 //
 // An isomorphism is a pair of functions (A → B, B → A) that are inverses of each other.
-// IMap allows you to work with a lens in a different but equivalent type. This is useful
+// LensIMap allows you to work with a lens in a different but equivalent type. This is useful
 // for unit conversions, encoding/decoding, or any bidirectional transformation.
 //
 // Type Parameters:
@@ -951,7 +1149,7 @@ func ModifyF[S, A, HKTA, HKTS any](
 //	    Temperature Celsius
 //	}
 //
-//	tempCelsiusLens := common.MakeLens(
+//	tempCelsiusLens := lens.MakeLens(
 //	    func(w Weather) Celsius { return w.Temperature },
 //	    func(w Weather, t Celsius) Weather { w.Temperature = t; return w },
 //	)
@@ -959,12 +1157,59 @@ func ModifyF[S, A, HKTA, HKTS any](
 //	// Create a lens that works with Fahrenheit
 //	tempFahrenheitLens := F.Pipe1(
 //	    tempCelsiusLens,
-//	    lens.IMap[Weather](celsiusToFahrenheit, fahrenheitToCelsius),
+//	    lens.LensIMap[Weather](celsiusToFahrenheit, fahrenheitToCelsius),
 //	)
 //
 //	weather := Weather{Temperature: 20} // 20°C
 //	tempF := tempFahrenheitLens.Get(weather)  // 68°F
 //	updated := tempFahrenheitLens.Set(86)(weather)  // Set to 86°F (30°C)
-func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[S, A, B] {
-	return common.LensIMap[S](ab, ba)
+func LensIMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) LensOperator[S, A, B] {
+	return func(ea Lens[S, A]) Lens[S, B] {
+		return MakeLensCurriedWithName(F.Flow2(ea.Get, ab), F.Flow2(ba, ea.Set), fmt.Sprintf("IMap[%v]", ea))
+	}
+}
+
+// Modify applies a transformation function to the value focused by the lens.
+//
+// This method transforms the focused value within a structure by applying an endomorphism
+// (a function from A to A) and returns a new structure with the transformed value.
+// The transformation is applied by first getting the current value, applying the function,
+// and then setting the result back into the structure.
+//
+// Type Parameters:
+//   - S: The structure type containing the focused value
+//   - A: The type of the focused value
+//
+// Parameters:
+//   - f: An endomorphism that transforms the focused value
+//
+// Returns:
+//   - An endomorphism on S that applies the transformation
+//
+// Example:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	ageLens := lens.MakeLens(
+//	    func(p Person) int { return p.Age },
+//	    func(p Person, age int) Person { p.Age = age; return p },
+//	)
+//
+//	person := Person{Name: "Alice", Age: 30}
+//	incrementAge := ageLens.Modify(func(age int) int { return age + 1 })
+//	older := incrementAge(person)
+//	// older.Age == 31, person.Age == 30 (original unchanged)
+//
+// See Also:
+//   - Modify: Package-level function for use in pipelines
+//   - Set: For setting a constant value instead of transforming
+func (la Lens[S, A]) Modify(f Endomorphism[A]) Endomorphism[S] {
+	return endomorphism.Join(F.Flow3(
+		la.Get,
+		f,
+		la.Set,
+	))
 }

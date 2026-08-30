@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	RES "github.com/IBM/fp-go/v2/result"
 )
 
@@ -173,7 +173,7 @@ func ExampleBind() {
 
 	userIdLens := F.Pipe1(
 		stateLenses.User,
-		lens.Compose[State](userLenses.ID),
+		common.LensComposeLens[State](userLenses.ID),
 	)
 
 	result := F.Pipe2(

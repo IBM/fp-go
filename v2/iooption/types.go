@@ -1,4 +1,4 @@
-// Copyright (c) 2025 IBM Corp.
+﻿// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -59,7 +59,7 @@ type (
 	Consumer[A any] = consumer.Consumer[A]
 
 	// Lens is an optic that focuses on a field of type T within a structure of type S.
-	Lens[S, T any] = lens.Lens[S, T]
+	Lens[S, T any] = common.Lens[S, T]
 
 	// Prism is an optic that focuses on a case of a sum type.
 	Prism[S, T any] = prism.Prism[S, T]

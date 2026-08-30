@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -181,7 +181,7 @@ func ApS[E, S1, S2, T any](
 //	    Port int
 //	}
 //
-//	portLens := lens.MakeLens(
+//	portLens := common.MakeLens(
 //	    func(c Config) int { return c.Port },
 //	    func(c Config, p int) Config { c.Port = p; return c },
 //	)
@@ -211,7 +211,7 @@ func ApSL[E, S, T any](
 //	    Value int
 //	}
 //
-//	valueLens := lens.MakeLens(
+//	valueLens := common.MakeLens(
 //	    func(c Counter) int { return c.Value },
 //	    func(c Counter, v int) Counter { c.Value = v; return c },
 //	)
@@ -250,7 +250,7 @@ func BindL[E, S, T any](
 //	    Value int
 //	}
 //
-//	valueLens := lens.MakeLens(
+//	valueLens := common.MakeLens(
 //	    func(c Counter) int { return c.Value },
 //	    func(c Counter, v int) Counter { c.Value = v; return c },
 //	)
@@ -283,7 +283,7 @@ func LetL[E, S, T any](
 //	    Timeout int
 //	}
 //
-//	debugLens := lens.MakeLens(
+//	debugLens := common.MakeLens(
 //	    func(c Config) bool { return c.Debug },
 //	    func(c Config, d bool) Config { c.Debug = d; return c },
 //	)

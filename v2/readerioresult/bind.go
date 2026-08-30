@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	RIOE "github.com/IBM/fp-go/v2/readerioeither"
@@ -206,7 +206,7 @@ func ApS[R, S1, S2, T any](
 //	    PostRepo PostRepository
 //	}
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -246,7 +246,7 @@ func ApSL[R, S, T any](
 //	    PostRepo PostRepository
 //	}
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -283,7 +283,7 @@ func BindL[R, S, T any](
 //	    Posts  []Post
 //	}
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -318,7 +318,7 @@ func LetL[R, S, T any](
 //	    Posts  []Post
 //	}
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -488,7 +488,7 @@ func BindResultK[R, S1, S2, T any](
 //
 // Example:
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -532,7 +532,7 @@ func BindIOResultKL[R, S, T any](
 //
 // Example:
 //
-//	timestampLens := lens.MakeLens(
+//	timestampLens := common.MakeLens(
 //	    func(s State) time.Time { return s.Timestamp },
 //	    func(s State, t time.Time) State { s.Timestamp = t; return s },
 //	)
@@ -556,7 +556,7 @@ func BindIOKL[R, S, T any](
 //
 // Example:
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) string { return s.Config },
 //	    func(s State, c string) State { s.Config = c; return s },
 //	)
@@ -580,7 +580,7 @@ func BindReaderKL[R, S, T any](
 //
 // Example:
 //
-//	logLens := lens.MakeLens(
+//	logLens := common.MakeLens(
 //	    func(s State) string { return s.LogMessage },
 //	    func(s State, l string) State { s.LogMessage = l; return s },
 //	)
@@ -720,7 +720,7 @@ func ApResultS[R, S1, S2, T any](
 //
 // Example:
 //
-//	userLens := lens.MakeLens(
+//	userLens := common.MakeLens(
 //	    func(s State) User { return s.User },
 //	    func(s State, u User) State { s.User = u; return s },
 //	)
@@ -756,7 +756,7 @@ func ApIOResultSL[R, S, T any](
 //
 // Example:
 //
-//	timestampLens := lens.MakeLens(
+//	timestampLens := common.MakeLens(
 //	    func(s State) time.Time { return s.Timestamp },
 //	    func(s State, t time.Time) State { s.Timestamp = t; return s },
 //	)
@@ -777,7 +777,7 @@ func ApIOSL[R, S, T any](
 //
 // Example:
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) string { return s.Config },
 //	    func(s State, c string) State { s.Config = c; return s },
 //	)
@@ -798,7 +798,7 @@ func ApReaderSL[R, S, T any](
 //
 // Example:
 //
-//	logLens := lens.MakeLens(
+//	logLens := common.MakeLens(
 //	    func(s State) string { return s.LogMessage },
 //	    func(s State, l string) State { s.LogMessage = l; return s },
 //	)
@@ -824,7 +824,7 @@ func ApReaderIOSL[R, S, T any](
 //
 // Example:
 //
-//	valueLens := lens.MakeLens(
+//	valueLens := common.MakeLens(
 //	    func(s State) int { return s.Value },
 //	    func(s State, v int) State { s.Value = v; return s },
 //	)

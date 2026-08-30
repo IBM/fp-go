@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	ISO "github.com/IBM/fp-go/v2/optics/iso"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -208,7 +208,7 @@ func TestIsoAsLensComposition(t *testing.T) {
 	// Compose to work with Fahrenheit directly from Temperature
 	composedLens := F.Pipe1(
 		celsiusFieldLens,
-		L.Compose[Temperature](tempLens),
+		L.LensComposeLens[Temperature](tempLens),
 	)
 
 	temp := Temperature{celsius: 20}
@@ -243,14 +243,14 @@ func TestIsoAsLensModify(t *testing.T) {
 	t.Run("ModifyDouble", func(t *testing.T) {
 		// Double the distance in feet, result in meters
 		doubleFeet := func(f Feet) Feet { return f * 2 }
-		modified := L.Modify[Meters](doubleFeet)(distanceLens)(meters)
+		modified := L.LensModify[Meters](doubleFeet)(distanceLens)(meters)
 		assert.InDelta(t, 20.0, float64(modified), 0.001)
 	})
 
 	t.Run("ModifyIdentity", func(t *testing.T) {
 		// Identity modification should return same value
 		identity := func(f Feet) Feet { return f }
-		modified := L.Modify[Meters](identity)(distanceLens)(meters)
+		modified := L.LensModify[Meters](identity)(distanceLens)(meters)
 		assert.InDelta(t, float64(meters), float64(modified), 0.001)
 	})
 }

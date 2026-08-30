@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -39,7 +39,7 @@ type Person struct {
 func TestApSL_EncodingCombination(t *testing.T) {
 	t.Run("combines encodings using monoid", func(t *testing.T) {
 		// Create a lens for Person.Name
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -114,7 +114,7 @@ func TestApSL_EncodingCombination(t *testing.T) {
 func TestApSL_ValidationCombination(t *testing.T) {
 	t.Run("validates field through lens", func(t *testing.T) {
 		// Create a lens for Person.Age
-		ageLens := lens.MakeLens(
+		ageLens := common.MakeLens(
 			func(p Person) int { return p.Age },
 			func(p Person, age int) Person {
 				return Person{Name: p.Name, Age: age}
@@ -203,7 +203,7 @@ func TestApSL_ValidationCombination(t *testing.T) {
 func TestApSL_TypeChecking(t *testing.T) {
 	t.Run("preserves base type checker", func(t *testing.T) {
 		// Create a lens for Person.Name
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -278,7 +278,7 @@ func TestApSL_TypeChecking(t *testing.T) {
 func TestApSL_Naming(t *testing.T) {
 	t.Run("generates descriptive name", func(t *testing.T) {
 		// Create a lens for Person.Name
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -348,7 +348,7 @@ func TestApSL_Naming(t *testing.T) {
 func TestApSL_ErrorAccumulation(t *testing.T) {
 	t.Run("accumulates validation errors", func(t *testing.T) {
 		// Create a lens for Person.Age
-		ageLens := lens.MakeLens(
+		ageLens := common.MakeLens(
 			func(p Person) int { return p.Age },
 			func(p Person, age int) Person {
 				return Person{Name: p.Name, Age: age}
@@ -821,7 +821,7 @@ func TestApSO_ErrorAccumulation(t *testing.T) {
 func TestBind_EncodingCombination(t *testing.T) {
 	t.Run("combines base and field encodings using monoid", func(t *testing.T) {
 		// Lens for Person.Name
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -890,7 +890,7 @@ func TestBind_EncodingCombination(t *testing.T) {
 // receives the current struct value when producing the field codec.
 func TestBind_KleisliArrowReceivesCurrentValue(t *testing.T) {
 	t.Run("kleisli arrow receives current struct value during encoding", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -959,7 +959,7 @@ func TestBind_KleisliArrowReceivesCurrentValue(t *testing.T) {
 // a struct when both the base and field validations succeed.
 func TestBind_ValidationSuccess(t *testing.T) {
 	t.Run("succeeds when base and field validations pass", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -1026,7 +1026,7 @@ func TestBind_ValidationSuccess(t *testing.T) {
 // semantics: if the base codec fails, the Kleisli arrow is never evaluated.
 func TestBind_ValidationFailsOnBaseFailure(t *testing.T) {
 	t.Run("fails fast when base validation fails", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -1089,7 +1089,7 @@ func TestBind_ValidationFailsOnBaseFailure(t *testing.T) {
 // validation errors when the Kleisli arrow's codec fails.
 func TestBind_ValidationFailsOnFieldFailure(t *testing.T) {
 	t.Run("fails when field validation from kleisli codec fails", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -1156,7 +1156,7 @@ func TestBind_ValidationFailsOnFieldFailure(t *testing.T) {
 // TestBind_TypeCheckingPreserved verifies that Bind preserves the base type checker.
 func TestBind_TypeCheckingPreserved(t *testing.T) {
 	t.Run("preserves base type checker", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -1224,7 +1224,7 @@ func TestBind_TypeCheckingPreserved(t *testing.T) {
 // TestBind_Naming verifies that Bind generates a descriptive name for the codec.
 func TestBind_Naming(t *testing.T) {
 	t.Run("generates descriptive name containing Bind and lens info", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -1293,7 +1293,7 @@ func TestBind_Naming(t *testing.T) {
 func TestBind_DependentFieldCodec(t *testing.T) {
 	t.Run("kleisli arrow produces different codecs based on struct value", func(t *testing.T) {
 		// Lens for Person.Name
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person {
 				return Person{Name: name, Age: p.Age}
@@ -1406,7 +1406,7 @@ func TestBind_DependentFieldCodec(t *testing.T) {
 // String concatenation is non-commutative, so order is observable.
 func TestBind_EncodingOrder(t *testing.T) {
 	t.Run("base encoding precedes field encoding in Concat", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person { return Person{Name: name, Age: p.Age} },
 		)
@@ -1458,7 +1458,7 @@ func TestBind_EncodingOrder(t *testing.T) {
 // lens setter has been applied: the returned struct contains the validated field value.
 func TestBind_DecodedStructHasFieldValue(t *testing.T) {
 	t.Run("decoded struct contains the field value written by the lens setter", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person { return Person{Name: name, Age: p.Age} },
 		)
@@ -1526,11 +1526,11 @@ func TestBind_DecodedStructHasFieldValue(t *testing.T) {
 // field already set, and both fields appear in the final decoded struct.
 func TestBind_ChainedBindOperators(t *testing.T) {
 	t.Run("second kleisli receives struct with first field already set", func(t *testing.T) {
-		nameLens := lens.MakeLens(
+		nameLens := common.MakeLens(
 			func(p Person) string { return p.Name },
 			func(p Person, name string) Person { return Person{Name: name, Age: p.Age} },
 		)
-		ageLens := lens.MakeLens(
+		ageLens := common.MakeLens(
 			func(p Person) int { return p.Age },
 			func(p Person, age int) Person { return Person{Name: p.Name, Age: age} },
 		)

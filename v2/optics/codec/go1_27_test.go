@@ -1,4 +1,4 @@
-//go:build go1.27
+﻿//go:build go1.27
 
 // Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
@@ -25,7 +25,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/iso"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -648,11 +648,11 @@ type employee struct {
 }
 
 var (
-	employeeNameLens = lens.MakeLens(
+	employeeNameLens = common.MakeLens(
 		func(e employee) string { return e.Name },
 		func(e employee, name string) employee { e.Name = name; return e },
 	)
-	employeeAgeLens = lens.MakeLens(
+	employeeAgeLens = common.MakeLens(
 		func(e employee) int { return e.Age },
 		func(e employee, age int) employee { e.Age = age; return e },
 	)
@@ -909,7 +909,7 @@ func TestTypeApSL_ErrorAccumulation(t *testing.T) {
 // ExampleType_ApSL demonstrates building an employee codec field-by-field
 // using the method form of ApSL on Go 1.27+.
 func ExampleType_ApSL() {
-	nameLens := lens.MakeLens(
+	nameLens := common.MakeLens(
 		func(e employee) string { return e.Name },
 		func(e employee, name string) employee { e.Name = name; return e },
 	)
@@ -1019,7 +1019,7 @@ func TestTypeBind_MethodEquivalentToFreeFunction(t *testing.T) {
 func TestTypeBind_ContextDependentField(t *testing.T) {
 	// Codec: given input string S, decode to employee{Name: S, Age: len(S)}.
 	// The Age Kleisli arrow inspects the already-decoded Name to compute Age.
-	ageLens := lens.MakeLens(
+	ageLens := common.MakeLens(
 		func(e employee) string { return e.Name }, // reuse Name as a proxy for the Kleisli input
 		func(e employee, v string) employee { e.Age = len(v); return e },
 	)
@@ -1067,7 +1067,7 @@ func TestTypeBind_FailFastOnBaseFailure(t *testing.T) {
 // ExampleType_Bind demonstrates building a context-dependent field codec using
 // the method form of Bind on Go 1.27+.
 func ExampleType_Bind() {
-	nameLens := lens.MakeLens(
+	nameLens := common.MakeLens(
 		func(e employee) string { return e.Name },
 		func(e employee, name string) employee { e.Name = name; return e },
 	)

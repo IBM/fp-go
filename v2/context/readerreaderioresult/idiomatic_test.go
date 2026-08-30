@@ -1,4 +1,4 @@
-// Copyright (c) 2024 IBM Corp.
+﻿// Copyright (c) 2024 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/retry"
 	"github.com/stretchr/testify/assert"
@@ -385,7 +385,7 @@ func TestBindIL(t *testing.T) {
 		Count int
 	}
 
-	countLens := lens.MakeLens(
+	countLens := common.MakeLens(
 		func(s State) int { return s.Count },
 		func(s State, v int) State {
 			s.Count = v

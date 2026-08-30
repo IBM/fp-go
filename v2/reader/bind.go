@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 )
 
 // Do creates an empty context of type [S] to be used with the [Bind] operation.
@@ -229,7 +229,7 @@ func ApS[R, S1, S2, T any](
 //	    DefaultPort int
 //	}
 //
-//	portLens := lens.MakeLens(
+//	portLens := common.MakeLens(
 //	    func(s State) int { return s.Port },
 //	    func(s State, p int) State { s.Port = p; return s },
 //	)
@@ -269,7 +269,7 @@ func ApSL[R, S, T any](
 //	    DefaultPort int
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) ConfigData { return s.Config },
 //	    func(s State, c ConfigData) State { s.Config = c; return s },
 //	)
@@ -308,7 +308,7 @@ func BindL[R, S, T any](
 //	    Port int
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) ConfigData { return s.Config },
 //	    func(s State, c ConfigData) State { s.Config = c; return s },
 //	)
@@ -345,7 +345,7 @@ func LetL[R, S, T any](
 //	    Port int
 //	}
 //
-//	configLens := lens.MakeLens(
+//	configLens := common.MakeLens(
 //	    func(s State) ConfigData { return s.Config },
 //	    func(s State, c ConfigData) State { s.Config = c; return s },
 //	)

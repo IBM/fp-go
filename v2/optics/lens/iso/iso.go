@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 IBM Corp.
+﻿// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/optics/iso"
 	IL "github.com/IBM/fp-go/v2/optics/iso/lens"
-	L "github.com/IBM/fp-go/v2/optics/lens"
+	L "github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
 )
 
@@ -41,6 +41,6 @@ func Compose[S, A, B any](ab Iso[A, B]) Operator[S, A, B] {
 	return F.Pipe2(
 		ab,
 		IL.IsoAsLens[A, B],
-		L.Compose[S, A, B],
+		L.LensComposeLens[S, A, B],
 	)
 }
