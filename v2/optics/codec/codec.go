@@ -200,6 +200,33 @@ func Nil[A any]() Type[*A, *A, any] {
 	)
 }
 
+// MakeSimpleType creates a Type codec for any type A that accepts any input,
+// validates it is of type A via reflection, and uses the identity function for
+// encoding.
+//
+// The codec produced by MakeSimpleType is the building block used by String,
+// Int, and Bool.  It is appropriate whenever you need a runtime type-guard for
+// a specific Go type without any additional transformation or validation.
+//
+// The codec behaviour is:
+//   - Decode: accepts any value and returns Success(v) when the dynamic type
+//     of the input is A; returns a validation error otherwise.
+//   - Encode: returns the value unchanged (identity).
+//   - Name: the %T format of the zero value of A (e.g. "int", "string",
+//     "mypackage.MyType").
+//
+// Type Parameters:
+//   - A: the Go type to validate against
+//
+// Returns:
+//   - Type[A, A, any]: a codec that decodes any value to A (or fails) and
+//     encodes A back to A unchanged
+//
+// See Also:
+//   - String: convenience wrapper for MakeSimpleType[string]
+//   - Int: convenience wrapper for MakeSimpleType[int]
+//   - Bool: convenience wrapper for MakeSimpleType[bool]
+//   - Id: similar but the input type is already A so decoding always succeeds
 func MakeSimpleType[A any]() Type[A, A, any] {
 	name := fmt.Sprintf("%T", *new(A))
 	is := Is[A]()
@@ -757,6 +784,38 @@ func FromRefinement[A, B any](refinement Refinement[A, B]) Type[B, A, A] {
 		validateFromRefinement(refinement),
 		refinement.ReverseGet,
 	)
+}
+
+// FromPrism creates a Type codec from a Prism[A, B].
+//
+// FromPrism is an alias for FromRefinement: every Prism[A, B] is a
+// Refinement[A, B], so the two functions are interchangeable.  Prefer
+// FromPrism when your optic is semantically a prism (a partial bijection
+// between a sum-type constructor and its payload) to signal that intent at
+// the call-site.
+//
+// The resulting codec behaviour is:
+//   - Decode: calls prism.GetOption(a); succeeds with Success(b) when Some(b)
+//     is returned, propagates a validation error when None is returned.
+//   - Encode: calls prism.ReverseGet(b), always succeeds.
+//   - Name: "FromRefinement(<prism-name>)".
+//
+// Type Parameters:
+//   - A: the base type the prism focuses into
+//   - B: the focus type extracted by the prism
+//
+// Parameters:
+//   - prism: a Prism[A, B] defining the partial bijection
+//
+// Returns:
+//   - Type[B, A, A]: a codec that validates A → B (or fails) and encodes B → A
+//
+// See Also:
+//   - FromRefinement: identical implementation; prefer it when the optic is
+//     a named refinement rather than a structural prism
+//   - PipePrism: composes an existing codec with a prism as a pipeline step
+func FromPrism[A, B any](prism Prism[A, B]) Type[B, A, A] {
+	return FromRefinement(prism)
 }
 
 // Empty creates a Type codec that ignores input during decoding and uses a default value,

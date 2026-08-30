@@ -7,7 +7,6 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/decode"
-	"github.com/IBM/fp-go/v2/optics/codec/validate"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
@@ -98,7 +97,12 @@ type (
 	// Example:
 	//   A Validate[string, int] takes a string and returns a context-aware
 	//   function that validates and converts it to an integer.
-	Validate[I, A any] = validate.Validate[I, A]
+	//
+	// Note: defined as Reader[I, decode.Decode[Context, A]] rather than
+	// validate.Validate[I, A] to avoid a multi-level cross-package generic
+	// alias instantiation chain that deadlocks the Go compiler type checker
+	// (see https://github.com/golang/go/issues/65711).
+	Validate[I, A any] = Reader[I, decode.Decode[Context, A]]
 
 	// Decode is a function that decodes input I to type A with validation.
 	// It returns a Validation result directly.

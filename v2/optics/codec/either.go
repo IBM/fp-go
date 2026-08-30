@@ -137,8 +137,8 @@ func AltW[R, L, O, I any](
 		return MakeType(
 			fmt.Sprintf("AltW[%s, %s]", leftItem, rightItem),
 			Is[either.Either[L, R]](),
-			validateEither[R, L, O, I](leftItem, rightItem),
-			encodeEither[R, L, O, I](leftItem, rightItem),
+			validateEither(leftItem, rightItem),
+			encodeEither(leftItem, rightItem),
 		)
 	}
 }

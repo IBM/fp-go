@@ -2152,3 +2152,354 @@ func TestEmpty_RoundTrip(t *testing.T) {
 		assert.Equal(t, 100, encoded2)
 	})
 }
+
+// ---------------------------------------------------------------------------
+// MakeSimpleType
+// ---------------------------------------------------------------------------
+
+// TestMakeSimpleType_Name verifies that the codec name matches the %T
+// format of the type's zero value.
+func TestMakeSimpleType_Name(t *testing.T) {
+	assert.Equal(t, "string", MakeSimpleType[string]().Name())
+	assert.Equal(t, "int", MakeSimpleType[int]().Name())
+	assert.Equal(t, "bool", MakeSimpleType[bool]().Name())
+	assert.Equal(t, "float64", MakeSimpleType[float64]().Name())
+}
+
+// TestMakeSimpleType_DecodeSuccess verifies that the codec returns Success
+// when the input has the expected dynamic type.
+func TestMakeSimpleType_DecodeSuccess(t *testing.T) {
+	t.Run("string", func(t *testing.T) {
+		assert.Equal(t, validation.Success("hello"), MakeSimpleType[string]().Decode("hello"))
+	})
+	t.Run("int", func(t *testing.T) {
+		assert.Equal(t, validation.Success(42), MakeSimpleType[int]().Decode(42))
+	})
+	t.Run("bool", func(t *testing.T) {
+		assert.Equal(t, validation.Success(true), MakeSimpleType[bool]().Decode(true))
+	})
+	t.Run("float64", func(t *testing.T) {
+		assert.Equal(t, validation.Success(3.14), MakeSimpleType[float64]().Decode(3.14))
+	})
+}
+
+// TestMakeSimpleType_DecodeFailsOnWrongType verifies that the codec returns a
+// validation error when the input does not match the expected type.
+func TestMakeSimpleType_DecodeFailsOnWrongType(t *testing.T) {
+	t.Run("int rejects string", func(t *testing.T) {
+		assert.True(t, either.IsLeft(MakeSimpleType[int]().Decode("42")))
+	})
+	t.Run("string rejects int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(MakeSimpleType[string]().Decode(99)))
+	})
+	t.Run("bool rejects int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(MakeSimpleType[bool]().Decode(1)))
+	})
+	t.Run("float64 rejects int", func(t *testing.T) {
+		assert.True(t, either.IsLeft(MakeSimpleType[float64]().Decode(1)))
+	})
+}
+
+// TestMakeSimpleType_Encode verifies that the codec encodes by identity.
+func TestMakeSimpleType_Encode(t *testing.T) {
+	assert.Equal(t, "world", MakeSimpleType[string]().Encode("world"))
+	assert.Equal(t, 7, MakeSimpleType[int]().Encode(7))
+	assert.Equal(t, false, MakeSimpleType[bool]().Encode(false))
+}
+
+// TestMakeSimpleType_DecodeZeroValue verifies that the zero value of each type
+// decodes successfully.
+func TestMakeSimpleType_DecodeZeroValue(t *testing.T) {
+	assert.Equal(t, validation.Success(""), MakeSimpleType[string]().Decode(""))
+	assert.Equal(t, validation.Success(0), MakeSimpleType[int]().Decode(0))
+	assert.Equal(t, validation.Success(false), MakeSimpleType[bool]().Decode(false))
+}
+
+// TestMakeSimpleType_EquivalentToBuiltins verifies that String, Int, and Bool
+// are exact aliases of the corresponding MakeSimpleType instantiation.
+func TestMakeSimpleType_EquivalentToBuiltins(t *testing.T) {
+	t.Run("String()", func(t *testing.T) {
+		s := MakeSimpleType[string]()
+		assert.Equal(t, String().Name(), s.Name())
+		assert.Equal(t, String().Decode("hello"), s.Decode("hello"))
+		assert.Equal(t, either.IsLeft(String().Decode(42)), either.IsLeft(s.Decode(42)))
+	})
+	t.Run("Int()", func(t *testing.T) {
+		i := MakeSimpleType[int]()
+		assert.Equal(t, Int().Name(), i.Name())
+		assert.Equal(t, Int().Decode(7), i.Decode(7))
+		assert.Equal(t, either.IsLeft(Int().Decode("7")), either.IsLeft(i.Decode("7")))
+	})
+	t.Run("Bool()", func(t *testing.T) {
+		b := MakeSimpleType[bool]()
+		assert.Equal(t, Bool().Name(), b.Name())
+		assert.Equal(t, Bool().Decode(true), b.Decode(true))
+		assert.Equal(t, either.IsLeft(Bool().Decode(0)), either.IsLeft(b.Decode(0)))
+	})
+}
+
+// TestMakeSimpleType_CustomStructType verifies that MakeSimpleType works for
+// user-defined struct types in addition to primitives.
+func TestMakeSimpleType_CustomStructType(t *testing.T) {
+	type point struct{ X, Y int }
+
+	c := MakeSimpleType[point]()
+
+	t.Run("decodes exact type", func(t *testing.T) {
+		p := point{1, 2}
+		assert.Equal(t, validation.Success(p), c.Decode(p))
+	})
+
+	t.Run("fails on wrong type", func(t *testing.T) {
+		assert.True(t, either.IsLeft(c.Decode(struct{ X, Y int }{1, 2})))
+	})
+
+	t.Run("encodes by identity", func(t *testing.T) {
+		p := point{3, 4}
+		assert.Equal(t, p, c.Encode(p))
+	})
+}
+
+// ExampleMakeSimpleType demonstrates creating a type-guard codec for a custom
+// struct type.  The name is the %T-formatted zero value of the type; decoding
+// succeeds only when the input has exactly that dynamic type.
+func ExampleMakeSimpleType() {
+	type Score struct{ Value int }
+
+	c := MakeSimpleType[Score]()
+
+	fmt.Println(c.Name())
+	fmt.Println(either.IsRight(c.Decode(Score{42})))
+	fmt.Println(either.IsLeft(c.Decode(42)))
+	fmt.Println(c.Encode(Score{7}).Value)
+
+	// Output:
+	// codec.Score
+	// true
+	// true
+	// 7
+}
+
+// ---------------------------------------------------------------------------
+// FromPrism
+// ---------------------------------------------------------------------------
+
+// positiveIntPrismForFromPrism is a Prism that focuses on positive integers.
+var positiveIntPrismForFromPrism = prism.MakePrismWithName(
+	func(n int) option.Option[int] {
+		if n > 0 {
+			return option.Some(n)
+		}
+		return option.None[int]()
+	},
+	func(n int) int { return n },
+	"PositiveInt",
+)
+
+// TestFromPrism_EquivalentToFromRefinement verifies that FromPrism is
+// behaviourally identical to FromRefinement for the same prism.
+func TestFromPrism_EquivalentToFromRefinement(t *testing.T) {
+	viaFromPrism := FromPrism(positiveIntPrismForFromPrism)
+	viaFromRefinement := FromRefinement(positiveIntPrismForFromPrism)
+
+	t.Run("same name", func(t *testing.T) {
+		assert.Equal(t, viaFromRefinement.Name(), viaFromPrism.Name())
+	})
+	t.Run("decode success parity", func(t *testing.T) {
+		assert.Equal(t, viaFromRefinement.Decode(42), viaFromPrism.Decode(42))
+	})
+	t.Run("decode failure parity", func(t *testing.T) {
+		assert.Equal(t, either.IsLeft(viaFromRefinement.Decode(-1)), either.IsLeft(viaFromPrism.Decode(-1)))
+	})
+	t.Run("encode parity", func(t *testing.T) {
+		assert.Equal(t, viaFromRefinement.Encode(10), viaFromPrism.Encode(10))
+	})
+}
+
+// TestFromPrism_DecodeSuccess verifies that the codec returns Success when
+// the prism's GetOption matches.
+func TestFromPrism_DecodeSuccess(t *testing.T) {
+	c := FromPrism(positiveIntPrismForFromPrism)
+
+	assert.Equal(t, validation.Success(1), c.Decode(1))
+	assert.Equal(t, validation.Success(100), c.Decode(100))
+}
+
+// TestFromPrism_DecodeFailure verifies that the codec returns a validation
+// error when the prism's GetOption returns None.
+func TestFromPrism_DecodeFailure(t *testing.T) {
+	c := FromPrism(positiveIntPrismForFromPrism)
+
+	assert.True(t, either.IsLeft(c.Decode(0)))
+	assert.True(t, either.IsLeft(c.Decode(-5)))
+}
+
+// TestFromPrism_Encode verifies that the codec uses the prism's ReverseGet
+// for encoding.
+func TestFromPrism_Encode(t *testing.T) {
+	c := FromPrism(positiveIntPrismForFromPrism)
+	assert.Equal(t, 42, c.Encode(42))
+}
+
+// TestFromPrism_Name verifies the codec name includes the prism name.
+func TestFromPrism_Name(t *testing.T) {
+	c := FromPrism(positiveIntPrismForFromPrism)
+	assert.Equal(t, "FromRefinement(PositiveInt)", c.Name())
+}
+
+// TestFromPrism_RoundTrip verifies the round-trip property for values that
+// satisfy the prism's predicate.
+func TestFromPrism_RoundTrip(t *testing.T) {
+	c := FromPrism(positiveIntPrismForFromPrism)
+
+	for _, n := range []int{1, 42, 999} {
+		t.Run(fmt.Sprintf("%d", n), func(t *testing.T) {
+			res := c.Decode(n)
+			assert.True(t, either.IsRight(res))
+			encoded := either.MonadFold(res, func(validation.Errors) int { return 0 }, c.Encode)
+			assert.Equal(t, n, encoded)
+		})
+	}
+}
+
+// ExampleFromPrism demonstrates creating a codec from a structural prism.
+// The codec validates that the integer is positive; encoding is always the
+// identity (ReverseGet of the prism).
+func ExampleFromPrism() {
+	evenPrism := prism.MakePrismWithName(
+		func(n int) option.Option[int] {
+			if n%2 == 0 {
+				return option.Some(n)
+			}
+			return option.None[int]()
+		},
+		func(n int) int { return n },
+		"Even",
+	)
+
+	c := FromPrism(evenPrism)
+
+	fmt.Println(c.Name())
+	fmt.Println(either.IsRight(c.Decode(4)))
+	fmt.Println(either.IsLeft(c.Decode(3)))
+	fmt.Println(c.Encode(8))
+
+	// Output:
+	// FromRefinement(Even)
+	// true
+	// true
+	// 8
+}
+
+// ---------------------------------------------------------------------------
+// PipePrism (free function)
+// ---------------------------------------------------------------------------
+
+// TestPipePrism_EquivalentToPipeRefinement verifies that PipePrism and
+// PipeRefinement produce behaviourally identical codecs.
+func TestPipePrism_EquivalentToPipeRefinement(t *testing.T) {
+	viaPrism := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+	viaRefinement := PipeRefinement[string, string](positiveIntPrismForFromPrism)(IntFromString())
+
+	t.Run("same name", func(t *testing.T) {
+		assert.Equal(t, viaRefinement.Name(), viaPrism.Name())
+	})
+	t.Run("decode success parity", func(t *testing.T) {
+		assert.Equal(t, viaRefinement.Decode("42"), viaPrism.Decode("42"))
+	})
+	t.Run("decode failure on prism parity", func(t *testing.T) {
+		assert.Equal(t, either.IsLeft(viaRefinement.Decode("-1")), either.IsLeft(viaPrism.Decode("-1")))
+	})
+	t.Run("decode failure on upstream parity", func(t *testing.T) {
+		assert.Equal(t, either.IsLeft(viaRefinement.Decode("abc")), either.IsLeft(viaPrism.Decode("abc")))
+	})
+	t.Run("encode parity", func(t *testing.T) {
+		assert.Equal(t, viaRefinement.Encode(7), viaPrism.Encode(7))
+	})
+}
+
+// TestPipePrism_DecodeSuccess verifies that the composed codec succeeds when
+// both the upstream codec and the prism accept the input.
+func TestPipePrism_DecodeSuccess(t *testing.T) {
+	composed := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+
+	assert.Equal(t, validation.Success(1), composed.Decode("1"))
+	assert.Equal(t, validation.Success(42), composed.Decode("42"))
+}
+
+// TestPipePrism_DecodeFailsOnUpstream verifies that upstream decode failures
+// are propagated before the prism step.
+func TestPipePrism_DecodeFailsOnUpstream(t *testing.T) {
+	composed := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+
+	assert.True(t, either.IsLeft(composed.Decode("not-a-number")))
+	assert.True(t, either.IsLeft(composed.Decode("")))
+}
+
+// TestPipePrism_DecodeFailsOnPrism verifies that the prism step propagates a
+// validation error when the decoded value does not match.
+func TestPipePrism_DecodeFailsOnPrism(t *testing.T) {
+	composed := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+
+	assert.True(t, either.IsLeft(composed.Decode("0")))
+	assert.True(t, either.IsLeft(composed.Decode("-10")))
+}
+
+// TestPipePrism_Encode verifies that encoding uses prism.ReverseGet and then
+// the upstream encoder.
+func TestPipePrism_Encode(t *testing.T) {
+	composed := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+
+	assert.Equal(t, "7", composed.Encode(7))
+	assert.Equal(t, "100", composed.Encode(100))
+}
+
+// TestPipePrism_RoundTrip verifies the round-trip property for valid inputs.
+func TestPipePrism_RoundTrip(t *testing.T) {
+	composed := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+
+	for _, s := range []string{"1", "42", "100"} {
+		t.Run(s, func(t *testing.T) {
+			res := composed.Decode(s)
+			assert.True(t, either.IsRight(res))
+			encoded := either.MonadFold(res, func(validation.Errors) string { return "" }, composed.Encode)
+			assert.Equal(t, s, encoded)
+		})
+	}
+}
+
+// TestPipePrism_Name verifies the composed codec name pattern.
+func TestPipePrism_Name(t *testing.T) {
+	composed := PipePrism[string, string](positiveIntPrismForFromPrism)(IntFromString())
+	assert.Equal(t, "Pipe(IntFromString, FromRefinement(PositiveInt))", composed.Name())
+}
+
+// ExamplePipePrism demonstrates composing IntFromString with a prism that
+// focuses on even integers.  Decoding fails for odd values.
+func ExamplePipePrism() {
+	evenPrism := prism.MakePrismWithName(
+		func(n int) option.Option[int] {
+			if n%2 == 0 {
+				return option.Some(n)
+			}
+			return option.None[int]()
+		},
+		func(n int) int { return n },
+		"Even",
+	)
+
+	composed := PipePrism[string, string](evenPrism)(IntFromString())
+
+	fmt.Println(composed.Name())
+	fmt.Println(composed.Encode(8))
+	fmt.Println(either.IsRight(composed.Decode("4")))
+	fmt.Println(either.IsLeft(composed.Decode("3")))
+	fmt.Println(either.IsLeft(composed.Decode("bad")))
+
+	// Output:
+	// Pipe(IntFromString, FromRefinement(Even))
+	// 8
+	// true
+	// true
+	// true
+}

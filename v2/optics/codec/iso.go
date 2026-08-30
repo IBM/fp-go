@@ -167,3 +167,109 @@ func FromIso[A, I any](iso Iso[I, A]) Type[A, I, I] {
 		iso.ReverseGet,
 	)
 }
+
+// PipeIso returns an Operator that composes a codec Type[A, O, I] with an
+// isomorphism Iso[A, B], producing a new codec Type[B, O, I].
+//
+// An isomorphism is a lossless bidirectional transformation, so decoding via
+// PipeIso always succeeds once the upstream codec Type[A, O, I] has decoded
+// its input successfully.  No additional validation is performed.
+//
+// The composed codec behaviour is:
+//   - Decode: applies Type[A, O, I].Decode to obtain A, then applies iso.Get
+//     to obtain B; always succeeds when the upstream codec succeeds.
+//   - Encode: applies iso.ReverseGet to convert B back to A, then applies
+//     Type[A, O, I].Encode to obtain O; never fails.
+//   - Name: "Pipe(<receiver-name>, FromIso[Iso])".
+//
+// Type Parameters:
+//   - O: the output type (unchanged from the input codec)
+//   - I: the raw input type (unchanged from the input codec)
+//   - A: the intermediate type — what Type[A, O, I] decodes to and what Iso starts from
+//   - B: the final decoded type after the isomorphism
+//
+// Parameters:
+//   - ab: the Iso[A, B] to apply after the upstream codec has decoded to A
+//
+// Returns:
+//   - Operator[A, B, O, I]: a function that transforms Type[A, O, I] into Type[B, O, I]
+//
+// See Also:
+//   - PipeRefinement: variant that may fail when the input does not satisfy a refinement
+//   - Pipe: general codec composition that takes a full Type[B, A, A] argument
+//   - FromIso: creates a standalone codec from an isomorphism
+func PipeIso[O, I, A, B any](ab Iso[A, B]) Operator[A, B, O, I] {
+	return Pipe[O, I](FromIso(ab))
+}
+
+// PipeRefinement returns an Operator that composes a codec Type[A, O, I] with a
+// Refinement[A, B], producing a new codec Type[B, O, I].
+//
+// A Refinement[A, B] (i.e. Prism[A, B]) is a partial transformation: it
+// succeeds only when the decoded A satisfies the refinement's predicate.  When
+// the predicate is not satisfied decoding fails with a validation error.
+//
+// The composed codec behaviour is:
+//   - Decode: applies Type[A, O, I].Decode to obtain A, then applies
+//     refinement.GetOption; if GetOption returns None a validation error is
+//     propagated; if it returns Some(b) the result is Success(b).
+//   - Encode: applies refinement.ReverseGet to convert B back to A, then
+//     applies Type[A, O, I].Encode to obtain O; never fails.
+//   - Name: "Pipe(<receiver-name>, FromRefinement(<refinement-name>))".
+//
+// Type Parameters:
+//   - O: the output type (unchanged from the input codec)
+//   - I: the raw input type (unchanged from the input codec)
+//   - A: the intermediate type — what Type[A, O, I] decodes to and what Refinement starts from
+//   - B: the refined type produced when the predicate is satisfied
+//
+// Parameters:
+//   - ab: the Refinement[A, B] that validates and narrows values of type A to B
+//
+// Returns:
+//   - Operator[A, B, O, I]: a function that transforms Type[A, O, I] into Type[B, O, I]
+//
+// See Also:
+//   - PipeIso: variant for lossless transformations that always succeed
+//   - Pipe: general codec composition that takes a full Type[B, A, A] argument
+//   - FromRefinement: creates a standalone codec from a refinement
+func PipeRefinement[O, I, A, B any](ab Refinement[A, B]) Operator[A, B, O, I] {
+	return Pipe[O, I](FromRefinement(ab))
+}
+
+// PipePrism returns an Operator that composes a codec Type[A, O, I] with a
+// Prism[A, B], producing a new codec Type[B, O, I].
+//
+// PipePrism is an alias for PipeRefinement: every Prism[A, B] is a
+// Refinement[A, B], so the two operators are interchangeable.  Prefer
+// PipePrism when your optic is semantically a prism (a partial bijection
+// between a sum-type constructor and its payload) to signal that intent at
+// the call-site.
+//
+// The composed codec behaviour is:
+//   - Decode: applies Type[A, O, I].Decode to obtain A, then calls
+//     prism.GetOption; if GetOption returns None a validation error is
+//     propagated; if it returns Some(b) the result is Success(b).
+//   - Encode: calls prism.ReverseGet to convert B back to A, then applies
+//     Type[A, O, I].Encode to obtain O; never fails.
+//   - Name: "Pipe(<receiver-name>, FromRefinement(<prism-name>))".
+//
+// Type Parameters:
+//   - O: the output type (unchanged from the input codec)
+//   - I: the raw input type (unchanged from the input codec)
+//   - A: the intermediate type — what Type[A, O, I] decodes to and what Prism focuses on
+//   - B: the focus type extracted when the prism matches
+//
+// Parameters:
+//   - ab: the Prism[A, B] applied after the upstream codec has decoded to A
+//
+// Returns:
+//   - Operator[A, B, O, I]: a function that transforms Type[A, O, I] into Type[B, O, I]
+//
+// See Also:
+//   - PipeRefinement: identical operator; prefer it when the optic is a named refinement
+//   - PipeIso: variant for lossless isomorphism transformations that always succeed
+//   - FromPrism: creates a standalone codec from a prism
+func PipePrism[O, I, A, B any](ab Prism[A, B]) Operator[A, B, O, I] {
+	return Pipe[O, I](FromPrism(ab))
+}

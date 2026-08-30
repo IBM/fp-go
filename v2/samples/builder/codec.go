@@ -31,7 +31,7 @@ type (
 	// This codec enables:
 	//   - Validation: Converting a PartialPerson builder to a validated Person
 	//   - Encoding: Converting a Person back to a PartialPerson builder
-	PersonCodec = Type[*Person, Endomorphism[*PartialPerson], Endomorphism[*PartialPerson]]
+	PersonCodec = codec.Type[*Person, Endomorphism[*PartialPerson], Endomorphism[*PartialPerson]]
 )
 
 var (
@@ -67,7 +67,7 @@ var (
 //
 //	A Validate function that takes a PartialPerson builder and returns
 //	a Reader that produces a Validation result (either errors or a Person)
-func makePersonValidate() Validate[Endomorphism[*PartialPerson], *Person] {
+func makePersonValidate() validate.Validate[Endomorphism[*PartialPerson], *Person] {
 
 	// Create a monoid for combining validation operations
 	// This allows multiple field validations to be composed together
