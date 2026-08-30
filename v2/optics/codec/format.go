@@ -12,7 +12,7 @@ import (
 //
 //	stringType := codec.String()
 //	fmt.Println(stringType) // Output: "string"
-func (t *typeImpl[A, O, I]) String() string {
+func (t Type[A, O, I]) String() string {
 	return t.name
 }
 
@@ -21,7 +21,7 @@ func (t *typeImpl[A, O, I]) String() string {
 //   - %s, %v: Returns the type name
 //   - %q: Returns the type name in quotes
 //   - other verbs: Returns the type name
-func (t *typeImpl[A, O, I]) Format(f fmt.State, verb rune) {
+func (t Type[A, O, I]) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 'q':
 		fmt.Fprintf(f, "%q", t.name)
@@ -42,6 +42,6 @@ func (t *typeImpl[A, O, I]) Format(f fmt.State, verb rune) {
 //	stringType := codec.String()
 //	slog.Info("codec created", "codec", stringType)
 //	// Logs: codec={name=string}
-func (t *typeImpl[A, O, I]) LogValue() slog.Value {
+func (t Type[A, O, I]) LogValue() slog.Value {
 	return slog.StringValue(t.name)
 }

@@ -488,7 +488,10 @@ func Bind[S, T, O, I any](
 	f Kleisli[S, T, O, I],
 ) Operator[S, S, O, I] {
 	name := fmt.Sprintf("Bind[%s]", l)
-	val := F.Flow2(f, F.Curry2(Type[T, O, I].Validate))
+	val := F.Flow2(
+		f,
+		Type[T, O, I].AsValidate,
+	)
 
 	return func(t Type[S, O, I]) Type[S, O, I] {
 
@@ -501,7 +504,7 @@ func Bind[S, T, O, I any](
 			),
 			F.Pipe2(
 				l.Get,
-				reader.ApS(F.Curry2(Type[T, O, I].Encode), f),
+				reader.ApS(Type[T, O, I].AsEncode, f),
 				reader.ApS(F.Curry2(m.Concat), t.Encode),
 			),
 		)

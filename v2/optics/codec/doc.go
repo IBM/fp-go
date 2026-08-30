@@ -22,13 +22,13 @@
 //
 // Creating a simple type:
 //
-//	nilType := codec.MakeNilType[string]()
-//	result := nilType.Decode(nil) // Success
+//	nilType := codec.Nil[string]()
+//	result := nilType.Decode(nil)       // Success
 //	result := nilType.Decode("not nil") // Failure
 //
 // Composing types with Pipe:
 //
-//	composed := codec.Pipe(typeB)(typeA)
+//	composed := codec.Pipe[O, I](typeB)(typeA)
 //	// Decodes: I -> A -> B
 //	// Encodes: B -> A -> O
 //

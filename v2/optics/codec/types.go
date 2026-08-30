@@ -48,8 +48,7 @@ type (
 	//
 	// This is a simple struct that pairs a decoder with an encoder, providing
 	// the basic building blocks for bidirectional data transformation. Unlike
-	// the Type interface, Codec is a concrete struct without validation context
-	// or type checking capabilities.
+	// Type, Codec does not carry validation context or type-checking capabilities.
 	//
 	// Type Parameters:
 	//   - I: The input type to decode from
@@ -64,8 +63,8 @@ type (
 	//   A Codec[string, string, int] can decode strings to integers and
 	//   encode integers back to strings.
 	//
-	// Note: For most use cases, prefer using the Type interface which provides
-	// additional validation and type checking capabilities.
+	// Note: For most use cases, prefer using Type which provides additional
+	// validation and type-checking capabilities.
 	Codec[I, O, A any] struct {
 		Decode decoder.Decoder[I, A]
 		Encode encoder.Encoder[O, A]
@@ -135,35 +134,35 @@ type (
 	//   representation.
 	Encode[A, O any] = Reader[A, O]
 
-	// Decoder is an interface for types that can decode and validate input.
+	// Decoder holds the two decoding functions for a codec.
 	//
 	// A Decoder transforms input of type I into a validated value of type A,
-	// providing detailed error information when validation fails. It supports
-	// both context-aware validation (via Validate) and direct decoding (via Decode).
+	// providing detailed error information when validation fails. It carries
+	// both context-aware validation (via the Validate field) and direct
+	// decoding (via the Decode field).
 	//
 	// Type Parameters:
 	//   - I: The input type to decode from
 	//   - A: The target type to decode to
 	//
-	// Methods:
-	//   - Name(): Returns a descriptive name for this decoder (used in error messages)
-	//   - Validate(I): Returns a context-aware validation function that can track
-	//     the path through nested structures
-	//   - Decode(I): Directly decodes input to a Validation result with a fresh context
+	// Fields:
+	//   - Validate: A Validate[I, A] function that returns a context-aware
+	//     validation function, allowing the caller to track the path through
+	//     nested structures.
+	//   - Decode: A Decode[I, A] function that decodes input directly,
+	//     creating a fresh context automatically.
 	//
-	// The Validate method is more flexible as it returns a Reader that can be called
-	// with different contexts, while Decode is a convenience method that creates a
-	// new context automatically.
+	// Validate is more flexible; Decode is the convenience form used at the
+	// top level where no existing context needs to be threaded through.
 	//
 	// Example:
 	//   A Decoder[string, int] can decode strings to integers with validation.
-	Decoder[I, A any] interface {
-		Name() string
-		Validate(I) Decode[Context, A]
-		Decode(I) Validation[A]
+	Decoder[I, A any] struct {
+		Validate Validate[I, A]
+		Decode   Decode[I, A]
 	}
 
-	// Encoder is an interface for types that can encode values.
+	// Encoder holds the encoding function for a codec.
 	//
 	// An Encoder transforms values of type A into output format O. This is the
 	// inverse operation of decoding, allowing bidirectional transformations.
@@ -172,29 +171,35 @@ type (
 	//   - A: The source type to encode from
 	//   - O: The output type to encode to
 	//
-	// Methods:
-	//   - Encode(A): Transforms a value of type A into output format O
+	// Fields:
+	//   - Encode: An Encode[A, O] function that transforms a value of type A
+	//     into output format O.
 	//
-	// Encoders are pure functions with no validation or error handling - they
-	// assume the input is valid. Validation should be performed during decoding.
+	// Encoders are pure functions with no error handling — they assume the
+	// input is valid. Validation should be performed during decoding.
 	//
 	// Example:
 	//   An Encoder[int, string] can encode integers to their string representation.
-	Encoder[A, O any] interface {
+	Encoder[A, O any] struct {
 		// Encode transforms a value of type A into output format O.
-		Encode(A) O
+		Encode Encode[A, O]
 	}
 
-	// Type is a bidirectional codec that combines encoding, decoding, validation,
-	// and type checking capabilities. It represents a complete specification of
-	// how to work with a particular type.
+	// Type is a struct that combines encoding, decoding, validation, and
+	// type-checking into a single bidirectional codec value.
 	//
-	// Type is the central abstraction in the codec package, providing:
-	//   - Decoding: Transform input I to validated type A
-	//   - Encoding: Transform type A to output O
-	//   - Validation: Context-aware validation with detailed error reporting
-	//   - Type Checking: Runtime type verification via Is()
-	//   - Formatting: Human-readable type descriptions via Name()
+	// Type is the central abstraction in the codec package. Because it is a
+	// plain struct (not an interface), values are passed by copy, require no
+	// heap allocation, and support struct equality. Use MakeType to construct
+	// one; use the functional combinators (Pipe, Alt, Map, Chain, …) to compose
+	// them.
+	//
+	// Type provides:
+	//   - Decoding: Transform input I to validated type A (via Decoder.Decode)
+	//   - Validation: Context-aware decoding with detailed error paths (via Decoder.Validate)
+	//   - Encoding: Transform type A to output O (via Encoder.Encode)
+	//   - Type checking: Runtime assertion that a value is of type A (via Is)
+	//   - Formatting: Human-readable name for error messages and logging (via Name, String, Format, LogValue)
 	//
 	// Type Parameters:
 	//   - A: The target type (what we decode to and encode from)
@@ -205,20 +210,30 @@ type (
 	//   - Type[A, A, A]: Identity codec (no transformation)
 	//   - Type[A, string, string]: String-based serialization
 	//   - Type[A, any, any]: Generic codec accepting any input/output
-	//   - Type[A, JSON, JSON]: JSON codec
 	//
-	// Methods:
-	//   - Name(): Returns the codec's descriptive name
-	//   - Validate(I): Returns context-aware validation function
-	//   - Decode(I): Decodes input with automatic context creation
-	//   - Encode(A): Encodes value to output format
-	//   - AsDecoder(): Returns this Type as a Decoder interface
-	//   - AsEncoder(): Returns this Type as an Encoder interface
-	//   - Is(any): Checks if a value can be converted to type A
+	// Embedded fields:
+	//   - Formattable: implements fmt.Stringer, fmt.Formatter, and slog.LogValuer
+	//   - Decoder[I, A]: holds the Validate and Decode function fields
+	//   - Encoder[A, O]: holds the Encode function field
+	//   - Is: a ReaderResult[any, A] that asserts a value is of type A
+	//
+	// Methods promoted from embedded fields:
+	//   - Decode(I) Validation[A]: decodes input with an automatic fresh context
+	//   - Validate(I) Reader[Context, Validation[A]]: context-aware decode
+	//   - Encode(A) O: encodes a value to the output format
+	//
+	// Methods defined on Type:
+	//   - Name() string: returns the codec's descriptive name
+	//   - AsDecoder() Decoder[I, A]: extracts the embedded Decoder
+	//   - AsEncoder() Encoder[A, O]: extracts the embedded Encoder
+	//   - AsEncode() Encode[A, O]: extracts the Encode function field directly
+	//   - AsValidate() Validate[I, A]: extracts the Validate function field directly
+	//   - String() string: returns the codec name (fmt.Stringer)
+	//   - Format(fmt.State, rune): custom verb formatting (fmt.Formatter)
+	//   - LogValue() slog.Value: structured logging representation (slog.LogValuer)
 	//
 	// Example usage:
 	//   intCodec := codec.Int()                    // Type[int, int, any]
-	//   stringCodec := codec.String()              // Type[string, string, any]
 	//   intFromString := codec.IntFromString()     // Type[int, string, string]
 	//
 	//   // Decode
@@ -228,19 +243,18 @@ type (
 	//   str := intFromString.Encode(42)            // "42"
 	//
 	//   // Type check
-	//   isInt := intCodec.Is(42)                   // Right(42)
-	//   notInt := intCodec.Is("42")                // Left(error)
+	//   ok := intCodec.Is(42)                      // Right(42)
+	//   fail := intCodec.Is("42")                  // Left(error)
 	//
 	// Composition:
-	//   Types can be composed using operators like Alt, Map, Chain, and Pipe
+	//   Types can be composed using Pipe, Alt, Map, Chain, and other operators
 	//   to build complex codecs from simpler ones.
-	Type[A, O, I any] interface {
+	Type[A, O, I any] struct {
 		Formattable
 		Decoder[I, A]
 		Encoder[A, O]
-		AsDecoder() Decoder[I, A]
-		AsEncoder() Encoder[A, O]
-		Is(any) Result[A]
+		Is   ReaderResult[any, A]
+		name string
 	}
 
 	// Endomorphism represents a function from type A to itself (A -> A).

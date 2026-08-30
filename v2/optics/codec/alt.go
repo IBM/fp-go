@@ -22,7 +22,6 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
-	"github.com/IBM/fp-go/v2/reader"
 )
 
 // validateAlt creates a validation function that tries the first codec's validation,
@@ -70,7 +69,7 @@ func validateAlt[A, O, I any](
 		first.Validate,
 		validate.Alt(F.Pipe1(
 			second,
-			lazy.Map(F.Flip(reader.Curry(Type[A, O, I].Validate))),
+			lazy.Map(Type[A, O, I].AsValidate),
 		)),
 	)
 }

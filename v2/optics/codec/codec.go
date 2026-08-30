@@ -21,15 +21,6 @@ import (
 	"github.com/IBM/fp-go/v2/result"
 )
 
-// typeImpl is the internal implementation of the Type interface.
-// It combines encoding, decoding, validation, and type checking capabilities.
-type typeImpl[A, O, I any] struct {
-	name     string
-	is       Reader[any, Result[A]]
-	validate Validate[I, A]
-	encode   Encode[A, O]
-}
-
 var emptyContext = A.Empty[validation.ContextEntry]()
 
 // MakeType creates a new Type with the given name, type checker, validator, and encoder.
@@ -47,48 +38,52 @@ func MakeType[A, O, I any](
 	validate Validate[I, A],
 	encode Encode[A, O],
 ) Type[A, O, I] {
-	return &typeImpl[A, O, I]{
-		name:     name,
-		is:       is,
-		validate: validate,
-		encode:   encode,
+	t := Type[A, O, I]{name: name, Is: is}
+	t.Decoder.Validate = validate
+	t.Decoder.Decode = func(i I) Validation[A] {
+		return validate(i)(array.Of(validation.ContextEntry{Type: name, Actual: i}))
 	}
-}
-
-// Validate validates the input value in the context of a validation path.
-// Returns a Reader that takes a Context and produces a Validation result.
-func (t *typeImpl[A, O, I]) Validate(i I) Decode[Context, A] {
-	return t.validate(i)
-}
-
-// Decode validates and decodes the input value, creating a new context with this type's name.
-// This is a convenience method that calls Validate with a fresh context.
-func (t *typeImpl[A, O, I]) Decode(i I) Validation[A] {
-	return t.validate(i)(array.Of(validation.ContextEntry{Type: t.name, Actual: i}))
-}
-
-// Encode transforms a value of type A into the output format O.
-func (t *typeImpl[A, O, I]) Encode(a A) O {
-	return t.encode(a)
-}
-
-// AsDecoder returns this Type as a Decoder interface.
-func (t *typeImpl[A, O, I]) AsDecoder() Decoder[I, A] {
+	t.Encoder.Encode = encode
 	return t
 }
 
-// AsEncoder returns this Type as an Encoder interface.
-func (t *typeImpl[A, O, I]) AsEncoder() Encoder[A, O] {
-	return t
+// AsDecoder returns this Type as a Decoder instance.
+func (t Type[A, O, I]) AsDecoder() Decoder[I, A] {
+	return t.Decoder
+}
+
+// AsEncoder returns this Type as an Encoder instance.
+func (t Type[A, O, I]) AsEncoder() Encoder[A, O] {
+	return t.Encoder
+}
+
+// AsEncode returns the Encode function field of this Type.
+func (t Type[A, O, I]) AsEncode() Encode[A, O] {
+	return t.Encoder.Encode
+}
+
+// AsValidate returns the Validate function field of this Type.
+func (t Type[A, O, I]) AsValidate() Validate[I, A] {
+	return t.Decoder.Validate
+}
+
+// AsDecode returns the Decode function field of this Type.
+//
+// Unlike AsDecoder, which returns the entire embedded Decoder struct,
+// AsDecode extracts only the Decode[I, A] function itself. This is
+// useful when a plain function value is needed — for example, as a
+// callback or argument — without carrying the surrounding struct.
+//
+// See Also:
+//   - AsDecoder: returns the full embedded Decoder[I, A] struct
+//   - AsValidate: returns the Validate function field instead
+func (t Type[A, O, I]) AsDecode() Decode[I, A] {
+	return t.Decoder.Decode
 }
 
 // Name returns the descriptive name of this type.
-func (t *typeImpl[A, O, I]) Name() string {
+func (t Type[A, O, I]) Name() string {
 	return t.name
-}
-
-func (t *typeImpl[A, O, I]) Is(i any) Result[A] {
-	return t.is(i)
 }
 
 // Pipe composes two Types, creating a pipeline where:
@@ -178,12 +173,12 @@ func isFromValidate[T, I any](val Validate[I, T]) ReaderResult[any, T] {
 	}
 }
 
-// MakeNilType creates a Type that validates nil values.
+// Nil creates a Type that validates nil values.
 // It accepts any input and validates that it is nil, returning a typed nil pointer.
 //
 // Example:
 //
-//	nilType := codec.MakeNilType[string]()
+//	nilType := codec.Nil[string]()
 //	result := nilType.Decode(nil)        // Success: Right((*string)(nil))
 //	result := nilType.Decode("not nil")  // Failure: Left(errors)
 func Nil[A any]() Type[*A, *A, any] {
