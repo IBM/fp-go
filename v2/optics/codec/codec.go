@@ -23,6 +23,12 @@ import (
 
 var emptyContext = A.Empty[validation.ContextEntry]()
 
+func makeContextEntry[I any](name string) Reader[I, validation.ContextEntry] {
+	return func(i I) validation.ContextEntry {
+		return validation.ContextEntry{Type: name, Actual: i}
+	}
+}
+
 // MakeType creates a new Type with the given name, type checker, validator, and encoder.
 //
 // Parameters:
@@ -35,14 +41,15 @@ var emptyContext = A.Empty[validation.ContextEntry]()
 func MakeType[A, O, I any](
 	name string,
 	is Reader[any, Result[A]],
-	validate Validate[I, A],
+	val Validate[I, A],
 	encode Encode[A, O],
 ) Type[A, O, I] {
 	t := Type[A, O, I]{name: name, Is: is}
-	t.Decoder.Validate = validate
-	t.Decoder.Decode = func(i I) Validation[A] {
-		return validate(i)(array.Of(validation.ContextEntry{Type: name, Actual: i}))
-	}
+	t.Decoder.Validate = val
+	t.Decoder.Decode = F.Pipe1(
+		val,
+		reader.Ap[Validation[A]](F.Flow2(makeContextEntry[I](name), array.Of[validation.ContextEntry])),
+	)
 	t.Encoder.Encode = encode
 	return t
 }
