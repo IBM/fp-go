@@ -24,7 +24,6 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/iso/prism"
 	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/lens/option"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -145,5 +144,5 @@ type (
 
 	Lens[S, A any] = common.Lens[S, A]
 
-	Prism[S, A any] = prism.Prism[S, A]
+	Prism[S, A any] = common.Prism[S, A]
 )

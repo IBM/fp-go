@@ -31,7 +31,6 @@ import (
 	"github.com/IBM/fp-go/v2/iterator/iterresult"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -182,7 +181,7 @@ type (
 
 	// Prism represents an optic for working with sum types (tagged unions).
 	// It provides a way to focus on a specific variant of a sum type.
-	Prism[S, T any] = prism.Prism[S, T]
+	Prism[S, T any] = common.Prism[S, T]
 
 	// Lens represents an optic for working with product types (records/structs).
 	// It provides a way to focus on a specific field of a product type.

@@ -80,7 +80,6 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -227,7 +226,7 @@ type (
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 
 	// Prism is an optic that focuses on a part of a data structure that may or may not be present.
-	// This is an alias for prism.Prism[S, T].
+	// This is an alias for common.Prism[S, T].
 	//
 	// Type Parameters:
 	//   - S: The source type
@@ -236,8 +235,8 @@ type (
 	// Example:
 	//
 	//	// A prism that extracts an int from a string if it's a valid number
-	//	intPrism := prism.Prism[string, int]{...}
-	Prism[S, T any] = prism.Prism[S, T]
+	//	intPrism := common.Prism[string, int]{...}
+	Prism[S, T any] = common.Prism[S, T]
 
 	// Lens is an optic that focuses on a part of a data structure that is always present.
 	// This is an alias for common.Lens[S, T].

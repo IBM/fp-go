@@ -11,7 +11,6 @@ import (
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
@@ -269,7 +268,7 @@ type (
 
 	// Prism is an optic that focuses on a part of a sum type S that may or may not
 	// contain a value of type A. It provides a way to preview and review values.
-	Prism[S, A any] = prism.Prism[S, A]
+	Prism[S, A any] = common.Prism[S, A]
 
 	// Refinement represents the concept that B is a specialized type of A.
 	// It's an alias for Prism[A, B], providing a semantic name for type refinement operations.

@@ -25,7 +25,6 @@ import (
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
-	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -295,7 +294,7 @@ type (
 	//   - [FromPrism]: Creates assertions for prism-focused values
 	//   - [prism.Prism]: The underlying prism type
 	//   - [Optional]: Similar but for optional values
-	Prism[S, T any] = prism.Prism[S, T]
+	Prism[S, T any] = common.Prism[S, T]
 
 	// ReaderIOResult represents a context-aware, IO-based computation that may fail.
 	//

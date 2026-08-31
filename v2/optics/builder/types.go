@@ -3,14 +3,13 @@
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 )
 
 type (
 	Option[A any]   = option.Option[A]
 	Lens[S, A any]  = common.Lens[S, A]
-	Prism[S, A any] = prism.Prism[S, A]
+	Prism[S, A any] = common.Prism[S, A]
 
 	Endomorphism[A any] = endomorphism.Endomorphism[A]
 

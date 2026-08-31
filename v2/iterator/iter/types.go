@@ -25,7 +25,6 @@ import (
 	"github.com/IBM/fp-go/v2/iterator/stateless"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -153,7 +152,7 @@ type (
 	// Type Parameters:
 	//   - S: The sum type
 	//   - A: The case type being focused on
-	Prism[S, A any] = prism.Prism[S, A]
+	Prism[S, A any] = common.Prism[S, A]
 
 	// Endomorphism is a function from a type to itself.
 	// It represents transformations that preserve the type.

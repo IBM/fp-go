@@ -5,7 +5,6 @@ package builder
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/prism"
 )
 
 //go:generate go run ../../main.go lens --dir . --filename gen_lens.go
@@ -17,8 +16,8 @@ type (
 
 	// Prism represents an optic that focuses on a subset of values of type S that can be
 	// converted to type A. It provides bidirectional transformation with validation.
-	// It is an alias for prism.Prism[S, A].
-	Prism[S, A any] = prism.Prism[S, A]
+	// It is an alias for common.Prism[S, A].
+	Prism[S, A any] = common.Prism[S, A]
 
 	// Lens represents an optic that focuses on a field of type A within a structure of type S.
 	// It provides getter and setter operations for immutable updates.
