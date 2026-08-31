@@ -17,6 +17,7 @@ package result
 
 import (
 	"github.com/IBM/fp-go/v2/either"
+	"github.com/IBM/fp-go/v2/function"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.
@@ -194,7 +195,7 @@ func ApSL[S, T any](
 	lens Lens[S, T],
 	fa Result[T],
 ) Operator[S, S] {
-	return either.ApSL(lens, fa)
+	return ApS(lens.Set, fa)
 }
 
 // BindL attaches the result of a computation to a context using a lens-based setter.
@@ -249,7 +250,7 @@ func BindL[S, T any](
 	lens Lens[S, T],
 	f Kleisli[T, T],
 ) Operator[S, S] {
-	return either.BindL(lens, f)
+	return Bind(lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetL attaches the result of a pure computation to a context using a lens-based setter.
@@ -299,7 +300,7 @@ func LetL[S, T any](
 	lens Lens[S, T],
 	f Endomorphism[T],
 ) Operator[S, S] {
-	return either.LetL[error](lens, f)
+	return either.Let[error](lens.Set, function.Flow2(lens.Get, f))
 }
 
 // LetToL attaches a constant value to a context using a lens-based setter.
@@ -347,5 +348,5 @@ func LetToL[S, T any](
 	lens Lens[S, T],
 	b T,
 ) Operator[S, S] {
-	return either.LetToL[error](lens, b)
+	return either.LetTo[error](lens.Set, b)
 }

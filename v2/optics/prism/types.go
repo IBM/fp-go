@@ -26,6 +26,8 @@ import (
 )
 
 type (
+	Prism[S, A any] = common.Prism[S, A]
+
 	// Option is a type alias for O.Option[T], representing an optional value.
 	// It is re-exported here for convenience when working with prisms.
 	//
@@ -116,7 +118,7 @@ type (
 	//   - S: The source type of the resulting prism
 	//   - A: The input type to the function
 	//   - B: The focus type of the resulting prism
-	Kleisli[S, A, B any] = func(A) Prism[S, B]
+	Kleisli[S, A, B any] = common.PrismKleisli[S, A, B]
 
 	// Operator represents a function that transforms one prism into another.
 	// It takes a Prism[S, A] and returns a Prism[S, B], allowing for prism transformations.
@@ -125,7 +127,7 @@ type (
 	//   - S: The source type (remains constant)
 	//   - A: The original focus type
 	//   - B: The new focus type
-	Operator[S, A, B any] = func(Prism[S, A]) Prism[S, B]
+	Operator[S, A, B any] = common.PrismOperator[S, A, B]
 
 	// Predicate is a function that tests a value and returns true or false.
 	// It is re-exported here as a convenience alias so callers working with

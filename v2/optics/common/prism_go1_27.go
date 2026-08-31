@@ -1,6 +1,6 @@
 //go:build go1.27
 
-package prism
+package common
 
 // Compose returns a new prism that focuses deeper into a sum type by chaining
 // this prism (S → A) with an inner prism (A → B), producing a composed prism
@@ -40,5 +40,5 @@ package prism
 // See Also:
 //   - Compose: the equivalent package-level function
 func (p Prism[S, A]) Compose[B any](ab Prism[A, B]) Prism[S, B] {
-	return Compose[S](ab)(p)
+	return PrismComposePrism[S](ab)(p)
 }

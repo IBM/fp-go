@@ -16,62 +16,8 @@
 package prism
 
 import (
-	"fmt"
-
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/optics/common"
 	O "github.com/IBM/fp-go/v2/option"
-)
-
-type (
-	// prismTag holds the display name for a Prism[S, A].
-	//
-	// It is embedded in Prism[S, A] as a non-generic carrier so that the
-	// formatting and logging methods (String, Format, LogValue) are compiled
-	// once and shared across all type-parameter instantiations, rather than
-	// being duplicated for every distinct Prism[S, A].
-	prismTag struct {
-		// n is the end-user-facing name of the prism (e.g. "MyType.Variant").
-		// It is returned by String() and LogValue().
-		n string
-	}
-
-	// Prism is an optic used to select part of a sum type (tagged union).
-	// It provides two operations:
-	//   - GetOption: Try to extract a value of type A from S (may fail)
-	//   - ReverseGet: Construct an S from an A (always succeeds)
-	//
-	// Prisms are useful for working with variant types like Either, Option,
-	// or custom sum types where you want to focus on a specific variant.
-	//
-	// Type Parameters:
-	//   - S: The source type (sum type)
-	//   - A: The focus type (variant within the sum type)
-	//
-	// Example:
-	//   type Result interface{ isResult() }
-	//   type Success struct{ Value int }
-	//   type Failure struct{ Error string }
-	//
-	//   successPrism := MakePrism(
-	//       func(r Result) Option[int] {
-	//           if s, ok := r.(Success); ok {
-	//               return Some(s.Value)
-	//           }
-	//           return None[int]()
-	//       },
-	//       func(v int) Result { return Success{Value: v} },
-	//   )
-	Prism[S, A any] struct {
-		prismTag
-
-		// GetOption attempts to extract a value of type A from S.
-		// Returns Some(a) if the extraction succeeds, None otherwise.
-		GetOption O.Kleisli[S, A]
-
-		// ReverseGet constructs an S from an A.
-		// This operation always succeeds.
-		ReverseGet func(A) S
-	}
 )
 
 // MakePrism constructs a Prism from GetOption and ReverseGet functions.
@@ -92,12 +38,12 @@ type (
 //
 //go:inline
 func MakePrism[S, A any](get O.Kleisli[S, A], rev func(A) S) Prism[S, A] {
-	return MakePrismWithName(get, rev, "GenericPrism")
+	return common.MakePrism(get, rev)
 }
 
 //go:inline
 func MakePrismWithName[S, A any](get O.Kleisli[S, A], rev func(A) S, name string) Prism[S, A] {
-	return Prism[S, A]{GetOption: get, ReverseGet: rev, prismTag: prismTag{n: name}}
+	return common.MakePrismWithName(get, rev, name)
 }
 
 // Id returns an identity prism that focuses on the entire value.
@@ -112,7 +58,7 @@ func MakePrismWithName[S, A any](get O.Kleisli[S, A], rev func(A) S, name string
 //	value := idPrism.GetOption(42)    // Some(42)
 //	result := idPrism.ReverseGet(42)  // 42
 func Id[S any]() Prism[S, S] {
-	return MakePrismWithName(O.Some[S], F.Identity[S], "PrismIdentity")
+	return common.PrismId[S]()
 }
 
 // FromPredicate creates a prism that matches values satisfying a predicate.
@@ -131,7 +77,7 @@ func Id[S any]() Prism[S, S] {
 //	value := positivePrism.GetOption(42)  // Some(42)
 //	value = positivePrism.GetOption(-5)   // None[int]
 func FromPredicate[S any](pred func(S) bool) Prism[S, S] {
-	return MakePrismWithName(O.FromPredicate(pred), F.Identity[S], "PrismWithPredicate")
+	return common.PrismFromPredicate(pred)
 }
 
 // Compose composes two prisms to create a prism that focuses deeper into a structure.
@@ -154,49 +100,7 @@ func FromPredicate[S any](pred func(S) bool) Prism[S, S] {
 //	innerPrism := MakePrism(...)  // Prism[Inner, Value]
 //	composed := Compose[Outer](innerPrism)(outerPrism)  // Prism[Outer, Value]
 func Compose[S, A, B any](ab Prism[A, B]) Operator[S, A, B] {
-	return func(sa Prism[S, A]) Prism[S, B] {
-		return MakePrismWithName(F.Flow2(
-			sa.GetOption,
-			O.Chain(ab.GetOption),
-		), F.Flow2(
-			ab.ReverseGet,
-			sa.ReverseGet,
-		),
-			fmt.Sprintf("PrismCompose[%s x %s]", ab, sa),
-		)
-	}
-}
-
-// prismModifyOption applies a transformation function through a prism,
-// returning Some(modified S) if the prism matches, None otherwise.
-// This is an internal helper function.
-func prismModifyOption[S, A any](f Endomorphism[A], sa Prism[S, A], s S) Option[S] {
-	return F.Pipe2(
-		s,
-		sa.GetOption,
-		O.Map(F.Flow2(
-			f,
-			sa.ReverseGet,
-		)),
-	)
-}
-
-// prismModify applies a transformation function through a prism.
-// If the prism matches, it extracts the value, applies the function,
-// and reconstructs the result. If the prism doesn't match, returns the original value.
-// This is an internal helper function.
-func prismModify[S, A any](f Endomorphism[A], sa Prism[S, A], s S) S {
-	return F.Pipe1(
-		prismModifyOption(f, sa, s),
-		O.GetOrElse(F.Constant(s)),
-	)
-}
-
-// prismSet is an internal helper that creates a setter function.
-//
-// Deprecated: Use Set instead.
-func prismSet[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
-	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
+	return common.PrismComposePrism[S](ab)
 }
 
 // Set creates a function that sets a value through a prism.
@@ -216,7 +120,7 @@ func prismSet[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
 //	result := setter(somePrism)(Some(42))  // Some(100)
 //	result = setter(somePrism)(None[int]()) // None[int]() (unchanged)
 func Set[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
-	return F.Curry3(prismModify[S, A])(F.Constant1[A](a))
+	return common.PrismSet[S](a)
 }
 
 // Some creates a prism that focuses on the Some variant of an Option within a structure.
@@ -240,16 +144,7 @@ func Set[S, A any](a A) func(Prism[S, A]) Endomorphism[S] {
 //	timeoutPrism := Some(configPrism)  // Prism[Config, int]
 //	value := timeoutPrism.GetOption(Config{Timeout: Some(30)})  // Some(30)
 func Some[S, A any](soa Prism[S, Option[A]]) Prism[S, A] {
-	return Compose[S](FromOption[A]())(soa)
-}
-
-// imap is an internal helper that bidirectionally maps a prism's focus type.
-func imap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](sa Prism[S, A], ab AB, ba BA) Prism[S, B] {
-	return MakePrismWithName(
-		F.Flow2(sa.GetOption, O.Map(ab)),
-		F.Flow2(ba, sa.ReverseGet),
-		fmt.Sprintf("PrismIMap[%s]", sa),
-	)
+	return common.PrismSome(soa)
 }
 
 // IMap bidirectionally maps the focus type of a prism.
@@ -278,7 +173,5 @@ func imap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](sa Prism[S, A], ab AB, 
 //	    func(s string) int { n, _ := strconv.Atoi(s); return n },
 //	)(intPrism)  // Prism[Result, string]
 func IMap[S any, AB ~func(A) B, BA ~func(B) A, A, B any](ab AB, ba BA) Operator[S, A, B] {
-	return func(sa Prism[S, A]) Prism[S, B] {
-		return imap(sa, ab, ba)
-	}
+	return common.PrismIMap[S](ab, ba)
 }

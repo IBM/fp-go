@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package prism
+package common
 
 import (
 	"testing"
@@ -30,12 +30,12 @@ import (
 // Compose[S](ab)(p) for every operation.
 func TestPrismCompose_MethodEquivalentToFreeFunction(t *testing.T) {
 	// outer: Option[int] → int  (extracts from Some)
-	outer := FromOption[int]()
+	outer := PrismFromOption[int]()
 	// inner: int → int  (matches only positive numbers)
-	inner := FromPredicate(func(n int) bool { return n > 0 })
+	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 
 	method := outer.Compose(inner)
-	free := Compose[Option[int]](inner)(outer)
+	free := PrismComposePrism[Option[int]](inner)(outer)
 
 	cases := []Option[int]{O.Some(42), O.Some(-1), O.None[int]()}
 	for _, c := range cases {
@@ -52,8 +52,8 @@ func TestPrismCompose_MethodEquivalentToFreeFunction(t *testing.T) {
 // TestPrismCompose_Method_GetOption_Match verifies Some is returned when both
 // constituent prisms match.
 func TestPrismCompose_Method_GetOption_Match(t *testing.T) {
-	outer := FromOption[int]()
-	inner := FromPredicate(func(n int) bool { return n > 0 })
+	outer := PrismFromOption[int]()
+	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
 	got := composed.GetOption(O.Some(42))
@@ -64,8 +64,8 @@ func TestPrismCompose_Method_GetOption_Match(t *testing.T) {
 // TestPrismCompose_Method_GetOption_OuterMiss verifies None is returned when
 // the outer prism does not match.
 func TestPrismCompose_Method_GetOption_OuterMiss(t *testing.T) {
-	outer := FromOption[int]()
-	inner := FromPredicate(func(n int) bool { return n > 0 })
+	outer := PrismFromOption[int]()
+	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
 	assert.True(t, O.IsNone(composed.GetOption(O.None[int]())))
@@ -74,8 +74,8 @@ func TestPrismCompose_Method_GetOption_OuterMiss(t *testing.T) {
 // TestPrismCompose_Method_GetOption_InnerMiss verifies None is returned when
 // the outer prism matches but the inner does not.
 func TestPrismCompose_Method_GetOption_InnerMiss(t *testing.T) {
-	outer := FromOption[int]()
-	inner := FromPredicate(func(n int) bool { return n > 0 })
+	outer := PrismFromOption[int]()
+	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
 	assert.True(t, O.IsNone(composed.GetOption(O.Some(-5))))
@@ -84,8 +84,8 @@ func TestPrismCompose_Method_GetOption_InnerMiss(t *testing.T) {
 // TestPrismCompose_Method_ReverseGet verifies that ReverseGet threads the value
 // back through the inner then outer ReverseGet.
 func TestPrismCompose_Method_ReverseGet(t *testing.T) {
-	outer := FromOption[int]()
-	inner := FromPredicate(func(n int) bool { return n > 0 })
+	outer := PrismFromOption[int]()
+	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
 	// ReverseGet(42): inner.ReverseGet(42)==42, outer.ReverseGet(42)==Some(42)
@@ -95,8 +95,8 @@ func TestPrismCompose_Method_ReverseGet(t *testing.T) {
 // TestPrismCompose_Method_PrismLaws verifies the two standard prism laws on the
 // method-composed prism.
 func TestPrismCompose_Method_PrismLaws(t *testing.T) {
-	outer := FromOption[int]()
-	inner := FromPredicate(func(n int) bool { return n > 0 })
+	outer := PrismFromOption[int]()
+	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
 	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
@@ -121,11 +121,11 @@ func TestPrismCompose_Method_PrismLaws(t *testing.T) {
 // correctly through three levels of sum type.
 func TestPrismCompose_Method_Chained(t *testing.T) {
 	// Level 1: Option[Option[int]] → Option[int]  (unwrap outer Some)
-	l1 := FromOption[Option[int]]()
+	l1 := PrismFromOption[Option[int]]()
 	// Level 2: Option[int] → int                  (unwrap inner Some)
-	l2 := FromOption[int]()
+	l2 := PrismFromOption[int]()
 	// Level 3: int → int                          (only positives)
-	l3 := FromPredicate(func(n int) bool { return n > 0 })
+	l3 := PrismFromPredicate(func(n int) bool { return n > 0 })
 
 	// Chain: Option[Option[int]] → Option[int] → int → int (positive)
 	composed := l1.Compose(l2).Compose(l3)

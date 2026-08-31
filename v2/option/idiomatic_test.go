@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/utils"
-	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,28 +91,6 @@ func TestBindINone(t *testing.T) {
 	assert.Equal(t, None[string](), res)
 }
 
-type counterState struct {
-	value int
-}
-
-var counterValueLens = L.MakeLens(
-	func(c counterState) int { return c.value },
-	func(c counterState, v int) counterState { c.value = v; return c },
-)
-
-func incrementUnder100(v int) (int, bool) {
-	if v >= 100 {
-		return 0, false
-	}
-	return v + 1, true
-}
-
-func TestBindIL(t *testing.T) {
-	inc := BindIL(counterValueLens, incrementUnder100)
-	assert.Equal(t, Some(counterState{value: 43}), inc(Some(counterState{value: 42})))
-	assert.Equal(t, None[counterState](), inc(Some(counterState{value: 100})))
-	assert.Equal(t, None[counterState](), inc(None[counterState]()))
-}
 
 func TestTraverseArrayI(t *testing.T) {
 	parse := TraverseArrayI(parseInt)

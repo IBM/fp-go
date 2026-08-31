@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 IBM Corp.
+// Copyright (c) 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +14,6 @@
 // limitations under the License.
 
 package option
-
-import L "github.com/IBM/fp-go/v2/optics/common"
 
 // MonadChainI applies a Go-idiomatic function (returning (B, bool)) to the value
 // inside an Option. Returns None if the input is None or the function returns false.
@@ -112,33 +110,6 @@ func BindI[S1, S2, A any](
 	f KleisliI[S1, A],
 ) Operator[S1, S2] {
 	return Bind(setter, FromValidation(f))
-}
-
-// BindIL attaches the result of a Go-idiomatic computation (returning (T, bool))
-// to a context using a lens-based setter. The computation receives the current value at
-// the lens focus and returns a new value of the same type.
-// Returns None if the input is None or the computation returns false.
-//
-// This is the idiomatic-function variant of [BindL].
-//
-// Example:
-//
-//	type Counter struct { Value int }
-//	valueLens := common.MakeLens(
-//	    func(c Counter) int { return c.Value },
-//	    func(c Counter, v int) Counter { c.Value = v; return c },
-//	)
-//	increment := func(v int) (int, bool) {
-//	    if v >= 100 { return 0, false }
-//	    return v + 1, true
-//	}
-//	BindIL(valueLens, increment)(Some(Counter{Value: 42})) // Some(Counter{Value: 43})
-//	BindIL(valueLens, increment)(Some(Counter{Value: 100})) // None
-func BindIL[S, T any](
-	lens L.Lens[S, T],
-	f KleisliI[T, T],
-) Operator[S, S] {
-	return BindL(lens, FromValidation(f))
 }
 
 // TraverseIterI transforms a sequence by applying a Go-idiomatic function
