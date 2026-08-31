@@ -13,15 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package lens
+package common
 
 import (
 	"strings"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	ISO "github.com/IBM/fp-go/v2/optics/iso"
-	L "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +46,7 @@ func TestIsoAsLensBasic(t *testing.T) {
 		return Celsius((f - 32) * 5 / 9)
 	}
 
-	tempIso := ISO.MakeIso(celsiusToFahrenheit, fahrenheitToCelsius)
+	tempIso := MakeIso(celsiusToFahrenheit, fahrenheitToCelsius)
 	tempLens := IsoAsLens(tempIso)
 
 	t.Run("Get", func(t *testing.T) {
@@ -83,7 +81,7 @@ func TestIsoAsLensRefBasic(t *testing.T) {
 		return &User{id: id, name: "Unknown"}
 	}
 
-	userIdIso := ISO.MakeIso(userToId, idToUser)
+	userIdIso := MakeIso(userToId, idToUser)
 	userIdLens := IsoAsLensRef(userIdIso)
 
 	t.Run("Get", func(t *testing.T) {
@@ -117,7 +115,7 @@ func TestIsoAsLensLaws(t *testing.T) {
 	// Create a simple isomorphism
 	type Wrapper struct{ value int }
 
-	wrapperIso := ISO.MakeIso(
+	wrapperIso := MakeIso(
 		func(w Wrapper) int { return w.value },
 		func(i int) Wrapper { return Wrapper{value: i} },
 	)
@@ -150,7 +148,7 @@ func TestIsoAsLensLaws(t *testing.T) {
 func TestIsoAsLensRefLaws(t *testing.T) {
 	type Wrapper struct{ value int }
 
-	wrapperIso := ISO.MakeIso(
+	wrapperIso := MakeIso(
 		func(w *Wrapper) int { return w.value },
 		func(i int) *Wrapper { return &Wrapper{value: i} },
 	)
@@ -186,7 +184,7 @@ func TestIsoAsLensComposition(t *testing.T) {
 	}
 
 	// Lens to access celsius field
-	celsiusFieldLens := L.MakeLens(
+	celsiusFieldLens := MakeLens(
 		func(t Temperature) Celsius { return t.celsius },
 		func(t Temperature, c Celsius) Temperature {
 			t.celsius = c
@@ -202,13 +200,13 @@ func TestIsoAsLensComposition(t *testing.T) {
 		return Celsius((f - 32) * 5 / 9)
 	}
 
-	tempIso := ISO.MakeIso(celsiusToFahrenheit, fahrenheitToCelsius)
+	tempIso := MakeIso(celsiusToFahrenheit, fahrenheitToCelsius)
 	tempLens := IsoAsLens(tempIso)
 
 	// Compose to work with Fahrenheit directly from Temperature
 	composedLens := F.Pipe1(
 		celsiusFieldLens,
-		L.LensComposeLens[Temperature](tempLens),
+		LensComposeLens[Temperature](tempLens),
 	)
 
 	temp := Temperature{celsius: 20}
@@ -235,7 +233,7 @@ func TestIsoAsLensModify(t *testing.T) {
 		return Meters(f / 3.28084)
 	}
 
-	distanceIso := ISO.MakeIso(metersToFeet, feetToMeters)
+	distanceIso := MakeIso(metersToFeet, feetToMeters)
 	distanceLens := IsoAsLens(distanceIso)
 
 	meters := Meters(10.0)
@@ -243,14 +241,14 @@ func TestIsoAsLensModify(t *testing.T) {
 	t.Run("ModifyDouble", func(t *testing.T) {
 		// Double the distance in feet, result in meters
 		doubleFeet := func(f Feet) Feet { return f * 2 }
-		modified := L.LensModify[Meters](doubleFeet)(distanceLens)(meters)
+		modified := LensModify[Meters](doubleFeet)(distanceLens)(meters)
 		assert.InDelta(t, 20.0, float64(modified), 0.001)
 	})
 
 	t.Run("ModifyIdentity", func(t *testing.T) {
 		// Identity modification should return same value
 		identity := func(f Feet) Feet { return f }
-		modified := L.LensModify[Meters](identity)(distanceLens)(meters)
+		modified := LensModify[Meters](identity)(distanceLens)(meters)
 		assert.InDelta(t, float64(meters), float64(modified), 0.001)
 	})
 }
@@ -259,7 +257,7 @@ func TestIsoAsLensModify(t *testing.T) {
 func TestIsoAsLensWithIdentityIso(t *testing.T) {
 	type Value int
 
-	idIso := ISO.Id[Value]()
+	idIso := IsoId[Value]()
 	idLens := IsoAsLens(idIso)
 
 	value := Value(42)
@@ -280,7 +278,7 @@ func TestIsoAsLensWithIdentityIso(t *testing.T) {
 func TestIsoAsLensRefWithIdentityIso(t *testing.T) {
 	type Value struct{ n int }
 
-	idIso := ISO.Id[*Value]()
+	idIso := IsoId[*Value]()
 	idLens := IsoAsLensRef(idIso)
 
 	value := &Value{n: 42}
@@ -302,7 +300,7 @@ func TestIsoAsLensRoundTrip(t *testing.T) {
 	type Email string
 	type ValidatedEmail struct{ value Email }
 
-	emailIso := ISO.MakeIso(
+	emailIso := MakeIso(
 		func(ve ValidatedEmail) Email { return ve.value },
 		func(e Email) ValidatedEmail { return ValidatedEmail{value: e} },
 	)
@@ -348,7 +346,7 @@ func TestIsoAsLensWithComplexTypes(t *testing.T) {
 		return Point{x: pc.r, y: pc.theta} // Simplified
 	}
 
-	coordIso := ISO.MakeIso(cartesianToPolar, polarToCartesian)
+	coordIso := MakeIso(cartesianToPolar, polarToCartesian)
 	coordLens := IsoAsLens(coordIso)
 
 	point := Point{x: 3.0, y: 4.0}
@@ -371,7 +369,7 @@ func TestIsoAsLensTypeConversion(t *testing.T) {
 	type IntWrapper int
 
 	// Isomorphism that converts string length to int
-	strLenIso := ISO.MakeIso(
+	strLenIso := MakeIso(
 		func(s StringWrapper) IntWrapper { return IntWrapper(len(s)) },
 		func(i IntWrapper) StringWrapper {
 			// Create a string of given length (simplified)

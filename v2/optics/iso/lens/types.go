@@ -6,8 +6,7 @@
 package lens
 
 import (
-	"github.com/IBM/fp-go/v2/optics/iso"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/optics/common"
 )
 
 type (
@@ -20,7 +19,7 @@ type (
 	//   - A: The focus/field type (the part)
 	//
 	// See github.com/IBM/fp-go/v2/optics/lens for full documentation.
-	Lens[S, A any] = L.Lens[S, A]
+	Lens[S, A any] = C.Lens[S, A]
 
 	// Iso is a type alias for an isomorphism from the optics/iso package.
 	// An isomorphism represents a bidirectional transformation between two types
@@ -35,5 +34,5 @@ type (
 	// which allows them to be used in lens compositions and operations.
 	//
 	// See github.com/IBM/fp-go/v2/optics/iso for full documentation.
-	Iso[S, A any] = iso.Iso[S, A]
+	Iso[S, A any] = C.Iso[S, A]
 )

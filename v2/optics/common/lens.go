@@ -1213,3 +1213,15 @@ func (la Lens[S, A]) Modify(f Endomorphism[A]) Endomorphism[S] {
 		la.Set,
 	))
 }
+
+// LensComposeIso converts a Lens to a property of `A` into a lens to a property of type `B`
+// the transformation is done via an ISO
+//
+//go:inline
+func LensComposeIso[S, A, B any](ab Iso[A, B]) LensOperator[S, A, B] {
+	return F.Pipe2(
+		ab,
+		IsoAsLens[A, B],
+		LensComposeLens[S, A, B],
+	)
+}

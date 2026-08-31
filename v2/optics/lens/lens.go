@@ -735,6 +735,65 @@ func Compose[S, A, B any](ab Lens[A, B]) Operator[S, A, B] {
 	return common.LensComposeLens[S](ab)
 }
 
+// ComposeIso combines a lens with an isomorphism to focus on a value of a different type.
+//
+// Given a lens from S to A and an isomorphism between A and B, ComposeIso creates a lens
+// from S to B. The isomorphism is converted to a lens internally, then composed with the
+// outer lens using the same rules as Compose.
+//
+// This is useful when the intermediate type A and the desired focus type B are related by a
+// total, invertible conversion — for example, a newtype wrapper, a unit conversion, or a
+// canonical representation.
+//
+// The resulting lens satisfies all three lens laws whenever both the outer lens and the
+// isomorphism individually satisfy them.
+//
+// Type Parameters:
+//   - S: Outer structure type
+//   - A: Intermediate type — the focus of the outer lens and the source of the iso
+//   - B: Inner focus type — the target of the iso and the focus of the resulting lens
+//
+// Parameters:
+//   - ab: Isomorphism from A to B
+//
+// Returns:
+//   - A function that takes a Lens[S, A] and returns a Lens[S, B]
+//
+// Example:
+//
+//	type Celsius float64
+//	type Fahrenheit float64
+//
+//	type Thermometer struct {
+//	    Reading Celsius
+//	}
+//
+//	readingLens := common.MakeLens(
+//	    func(t Thermometer) Celsius { return t.Reading },
+//	    func(t Thermometer, c Celsius) Thermometer { t.Reading = c; return t },
+//	)
+//
+//	celsiusToFahrenheit := common.MakeIso(
+//	    func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) },
+//	    func(f Fahrenheit) Celsius { return Celsius((f-32)*5/9) },
+//	)
+//
+//	// Compose to read and write the temperature in Fahrenheit
+//	fahrenheitLens := F.Pipe1(readingLens, lens.ComposeIso[Thermometer](celsiusToFahrenheit))
+//
+//	t := Thermometer{Reading: 100}
+//	f := fahrenheitLens.Get(t)  // Fahrenheit(212)
+//	updated := fahrenheitLens.Set(Fahrenheit(32))(t)
+//	// updated.Reading == Celsius(0)
+//
+// See Also:
+//   - Compose: the variant that accepts a Lens[A, B] instead of an Iso[A, B]
+//
+//go:inline
+func ComposeIso[S, A, B any](ab Iso[A, B]) Operator[S, A, B] {
+	return common.LensComposeIso[S](ab)
+}
+
 // ComposeRef combines two lenses for pointer-based structures.
 //
 // Deprecated: ComposeRef is not needed. When the outer lens is already a

@@ -65,7 +65,7 @@
 package iso
 
 import (
-	I "github.com/IBM/fp-go/v2/optics/iso"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 )
 
@@ -79,7 +79,7 @@ type (
 	//   - A: The target type
 	//
 	// See github.com/IBM/fp-go/v2/optics/iso for the full Iso API.
-	Iso[S, A any] = I.Iso[S, A]
+	Iso[S, A any] = C.Iso[S, A]
 
 	// Prism is an optic used to select part of a sum type (tagged union).
 	// It provides operations to extract and construct values within sum types.

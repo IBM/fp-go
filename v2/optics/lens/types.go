@@ -57,6 +57,8 @@ type (
 	//    lens.Set(a2)(lens.Set(a1)(s)) == lens.Set(a2)(s)
 	Lens[S, A any] = common.Lens[S, A]
 
+	Iso[S, A any] = common.Iso[S, A]
+
 	// Kleisli represents a function that takes a value of type A and returns a Lens[S, B].
 	// This is useful for composing lenses in a monadic style, allowing for dynamic lens creation
 	// based on input values.

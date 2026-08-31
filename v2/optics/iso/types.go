@@ -6,12 +6,15 @@ import (
 	"github.com/IBM/fp-go/v2/eq"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
 type (
+	Iso[S, A any] = common.Iso[S, A]
+
 	// Number represents a numeric type constraint.
 	Number = number.Number
 

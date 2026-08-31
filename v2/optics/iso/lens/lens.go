@@ -16,19 +16,19 @@
 package lens
 
 import (
-	"fmt"
-
-	EM "github.com/IBM/fp-go/v2/endomorphism"
-	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/optics/common"
 )
 
-// IsoAsLens converts an `Iso` to a `Lens`
+// IsoAsLens converts an Iso[S, A] into a Lens[S, A].
+//
+// See common.IsoAsLens for the full documentation.
 func IsoAsLens[S, A any](sa Iso[S, A]) Lens[S, A] {
-	return L.MakeLensCurriedWithName(sa.Get, F.Flow2(sa.ReverseGet, F.Flow2(F.Constant1[S, S], EM.Of[func(S) S])), fmt.Sprintf("FromIso[%s]", sa))
+	return common.IsoAsLens(sa)
 }
 
-// IsoAsLensRef converts an `Iso` to a `Lens`
+// IsoAsLensRef converts an Iso[*S, A] into a Lens[*S, A] for pointer-based structures.
+//
+// Deprecated: IsoAsLens[*S, A] is sufficient. See common.IsoAsLensRef for details.
 func IsoAsLensRef[S, A any](sa Iso[*S, A]) Lens[*S, A] {
-	return L.MakeLensRefCurriedWithName(sa.Get, F.Flow2(sa.ReverseGet, F.Flow2(F.Constant1[*S, *S], EM.Of[func(*S) *S])), fmt.Sprintf("FromIso[%s]", sa))
+	return common.IsoAsLensRef(sa)
 }

@@ -1,7 +1,6 @@
 ﻿package iso
 
 import (
-	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/option"
 )
@@ -11,7 +10,7 @@ type (
 	Option[A any] = option.Option[A]
 
 	// Iso represents an isomorphism - a bidirectional transformation between two types.
-	Iso[S, A any] = iso.Iso[S, A]
+	Iso[S, A any] = common.Iso[S, A]
 
 	// Lens is a functional reference to a subpart of a data structure.
 	Lens[S, A any] = common.Lens[S, A]

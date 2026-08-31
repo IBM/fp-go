@@ -17,7 +17,6 @@ package option
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/option"
@@ -105,7 +104,7 @@ type (
 
 	// Iso represents an isomorphism between types S and A.
 	// An isomorphism is a bidirectional transformation that preserves structure.
-	Iso[S, A any] = iso.Iso[S, A]
+	Iso[S, A any] = common.Iso[S, A]
 
 	Optional[S, A any] = optional.Optional[S, A]
 )

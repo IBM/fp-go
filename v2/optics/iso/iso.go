@@ -18,54 +18,8 @@ package iso
 
 import (
 	EM "github.com/IBM/fp-go/v2/endomorphism"
-	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/optics/common"
 )
-
-// Iso represents an isomorphism between types S and A.
-// An isomorphism is a bidirectional transformation that converts between two types
-// without any loss of information. It consists of two functions that are inverses
-// of each other.
-//
-// Type Parameters:
-//   - S: The source type
-//   - A: The target type
-//
-// Fields:
-//   - Get: Converts from S to A
-//   - ReverseGet: Converts from A back to S
-//
-// Laws:
-// An Iso must satisfy the round-trip laws:
-//  1. ReverseGet(Get(s)) == s for all s: S
-//  2. Get(ReverseGet(a)) == a for all a: A
-//
-// Example:
-//
-//	// Isomorphism between Celsius and Fahrenheit
-//	tempIso := Iso[float64, float64]{
-//	    Get: func(c float64) float64 { return c*9/5 + 32 },
-//	    ReverseGet: func(f float64) float64 { return (f - 32) * 5 / 9 },
-//	}
-//
-//	fahrenheit := tempIso.Get(20.0)        // 68.0
-//	celsius := tempIso.ReverseGet(68.0)    // 20.0
-//
-// isoTag is a zero-size non-generic type embedded in Iso[S, A] so that
-// String, Format, and LogValue are compiled once and shared across all
-// type-parameter instantiations, rather than being duplicated for every
-// distinct Iso[S, A].
-type isoTag struct{}
-
-type Iso[S, A any] struct {
-	isoTag
-
-	// Get converts a value from the source type S to the target type A.
-	Get func(s S) A
-
-	// ReverseGet converts a value from the target type A back to the source type S.
-	// This is the inverse of Get.
-	ReverseGet func(a A) S
-}
 
 // MakeIso constructs an isomorphism from two functions.
 // The functions should be inverses of each other to satisfy the isomorphism laws.
@@ -92,7 +46,7 @@ type Iso[S, A any] struct {
 //	bytes := stringBytesIso.Get("hello")           // []byte("hello")
 //	str := stringBytesIso.ReverseGet([]byte("hi")) // "hi"
 func MakeIso[S, A any](get func(S) A, reverse func(A) S) Iso[S, A] {
-	return Iso[S, A]{Get: get, ReverseGet: reverse}
+	return C.MakeIso(get, reverse)
 }
 
 // Id returns an identity isomorphism that performs no transformation.
@@ -115,7 +69,7 @@ func MakeIso[S, A any](get func(S) A, reverse func(A) S) Iso[S, A] {
 //   - When you need an isomorphism but don't want to transform the value
 //   - In generic code that requires an isomorphism parameter
 func Id[S any]() Iso[S, S] {
-	return MakeIso(F.Identity[S], F.Identity[S])
+	return C.IsoId[S]()
 }
 
 // Compose combines two isomorphisms to create a new isomorphism.
@@ -152,12 +106,7 @@ func Id[S any]() Iso[S, S] {
 //	miles := metersToMiles.Get(5000)        // ~3.11 miles
 //	meters := metersToMiles.ReverseGet(3.11) // ~5000 meters
 func Compose[S, A, B any](ab Iso[A, B]) func(Iso[S, A]) Iso[S, B] {
-	return func(sa Iso[S, A]) Iso[S, B] {
-		return MakeIso(
-			F.Flow2(sa.Get, ab.Get),
-			F.Flow2(ab.ReverseGet, sa.ReverseGet),
-		)
-	}
+	return C.IsoComposeIso[S, A, B](ab)
 }
 
 // Reverse swaps the direction of an isomorphism.
@@ -186,21 +135,7 @@ func Compose[S, A, B any](ab Iso[A, B]) func(Iso[S, A]) Iso[S, B] {
 //	celsius := fahrenheitToCelsius.Get(68.0)        // 20.0
 //	fahrenheit := fahrenheitToCelsius.ReverseGet(20.0) // 68.0
 func Reverse[S, A any](sa Iso[S, A]) Iso[A, S] {
-	return MakeIso(
-		sa.ReverseGet,
-		sa.Get,
-	)
-}
-
-// modify is an internal helper that applies a transformation function through an isomorphism.
-// It converts S to A, applies the function, then converts back to S.
-func modify[FCT ~func(A) A, S, A any](f FCT, sa Iso[S, A], s S) S {
-	return F.Pipe3(
-		s,
-		sa.Get,
-		f,
-		sa.ReverseGet,
-	)
+	return C.IsoReverse(sa)
 }
 
 // Modify creates a function that applies a transformation in the target space.
@@ -234,7 +169,7 @@ func modify[FCT ~func(A) A, S, A any](f FCT, sa Iso[S, A], s S) S {
 //	})(mToKm)(Meters(5000))
 //	// Result: Meters(10000)
 func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Iso[S, A]) EM.Endomorphism[S] {
-	return F.Curry3(modify[FCT, S, A])(f)
+	return C.IsoModify[S, FCT, A](f)
 }
 
 // Unwrap extracts the target value from a source value using an isomorphism.
@@ -263,9 +198,7 @@ func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Iso[S, A]) EM.Endomorphism
 //
 // Note: This function is also available as To for semantic clarity.
 func Unwrap[A, S any](s S) func(Iso[S, A]) A {
-	return func(sa Iso[S, A]) A {
-		return sa.Get(s)
-	}
+	return C.IsoUnwrap[A](s)
 }
 
 // Wrap wraps a target value into a source value using an isomorphism.
@@ -294,9 +227,7 @@ func Unwrap[A, S any](s S) func(Iso[S, A]) A {
 //
 // Note: This function is also available as From for semantic clarity.
 func Wrap[S, A any](a A) func(Iso[S, A]) S {
-	return func(sa Iso[S, A]) S {
-		return sa.ReverseGet(a)
-	}
+	return C.IsoWrap[S](a)
 }
 
 // To extracts the target value from a source value using an isomorphism.
@@ -327,7 +258,7 @@ func Wrap[S, A any](a A) func(Iso[S, A]) S {
 //	email := To[Email](ValidatedEmail{value: "user@example.com"})(emailIso)
 //	// "user@example.com"
 func To[A, S any](s S) func(Iso[S, A]) A {
-	return Unwrap[A](s)
+	return C.IsoTo[A](s)
 }
 
 // From wraps a target value into a source value using an isomorphism.
@@ -358,16 +289,7 @@ func To[A, S any](s S) func(Iso[S, A]) A {
 //	validated := From[ValidatedEmail](Email("admin@example.com"))(emailIso)
 //	// ValidatedEmail{value: "admin@example.com"}
 func From[S, A any](a A) func(Iso[S, A]) S {
-	return Wrap[S](a)
-}
-
-// imap is an internal helper that bidirectionally maps an isomorphism.
-// It transforms both directions of the isomorphism using the provided functions.
-func imap[S, A, B any](sa Iso[S, A], ab func(A) B, ba func(B) A) Iso[S, B] {
-	return MakeIso(
-		F.Flow2(sa.Get, ab),
-		F.Flow2(ba, sa.ReverseGet),
-	)
+	return C.IsoFrom[S](a)
 }
 
 // IMap bidirectionally maps the target type of an isomorphism.
@@ -408,7 +330,5 @@ func imap[S, A, B any](sa Iso[S, A], ab func(A) B, ba func(B) A) Iso[S, B] {
 // Note: The functions ab and ba must be inverses of each other to maintain
 // the isomorphism laws.
 func IMap[S, A, B any](ab func(A) B, ba func(B) A) func(Iso[S, A]) Iso[S, B] {
-	return func(sa Iso[S, A]) Iso[S, B] {
-		return imap(sa, ab, ba)
-	}
+	return C.IsoIMap[S, A, B](ab, ba)
 }

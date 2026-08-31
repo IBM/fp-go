@@ -17,7 +17,7 @@ package state
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/iso"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/pair"
 )
 
@@ -47,7 +47,7 @@ import (
 //   - A Kleisli arrow that takes a State[S1, A] and returns a State[S2, B]
 //
 //go:inline
-func IMap[A, S2, S1, B any](f iso.Iso[S2, S1], g func(A) B) Kleisli[S2, State[S1, A], B] {
+func IMap[A, S2, S1, B any](f C.Iso[S2, S1], g func(A) B) Kleisli[S2, State[S1, A], B] {
 	return F.Bind13of3(F.Flow3[func(s S2) S1, State[S1, A], func(pair.Pair[S1, A]) pair.Pair[S2, B]])(f.Get, pair.BiMap(f.ReverseGet, g))
 }
 
@@ -74,6 +74,6 @@ func IMap[A, S2, S1, B any](f iso.Iso[S2, S1], g func(A) B) Kleisli[S2, State[S1
 //   - A Kleisli arrow that takes a State[S1, A] and returns a State[S2, A]
 //
 //go:inline
-func MapState[A, S2, S1 any](f iso.Iso[S2, S1]) Kleisli[S2, State[S1, A], A] {
+func MapState[A, S2, S1 any](f C.Iso[S2, S1]) Kleisli[S2, State[S1, A], A] {
 	return F.Bind13of3(F.Flow3[func(S2) S1, State[S1, A], func(pair.Pair[S1, A]) pair.Pair[S2, A]])(f.Get, pair.MapHead[A](f.ReverseGet))
 }

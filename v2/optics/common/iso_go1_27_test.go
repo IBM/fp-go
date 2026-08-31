@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iso
+package common
 
 import (
 	"testing"
@@ -48,7 +48,7 @@ var bytesToLen = MakeIso(
 // free-function Compose[S](ab)(sa).
 func TestIsoCompose_MethodEquivalentToFreeFunction(t *testing.T) {
 	method := stringToBytes.Compose(bytesToLen)
-	free := Compose[string](bytesToLen)(stringToBytes)
+	free := IsoComposeIso[string](bytesToLen)(stringToBytes)
 
 	inputs := []string{"", "hello", "fp-go"}
 	for _, s := range inputs {

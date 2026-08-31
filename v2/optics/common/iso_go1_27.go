@@ -1,6 +1,6 @@
 //go:build go1.27
 
-package iso
+package common
 
 // Compose returns a new isomorphism that focuses deeper by chaining this
 // isomorphism (S → A) with an inner isomorphism (A → B), producing a composed
@@ -42,5 +42,43 @@ package iso
 //   - Compose: the equivalent package-level function
 //   - Reverse: swaps the direction of an isomorphism
 func (p Iso[S, A]) Compose[B any](ab Iso[A, B]) Iso[S, B] {
-	return Compose[S](ab)(p)
+	return IsoComposeIso[S](ab)(p)
+}
+
+// ComposeLens returns a new lens by composing this isomorphism (S ↔ A) with an
+// inner lens (A → B), producing a Lens[S, B].
+//
+// Internally the isomorphism is first converted to a Lens[S, A] via IsoAsLens,
+// then composed with the provided lens using LensComposeLens. The result focuses
+// on a value of type B that is reached by first applying the isomorphism's Get
+// direction and then the inner lens's Get.
+//
+// This is the method-receiver form of the package-level IsoComposeLens function,
+// available only on Go 1.27 and later because Go did not support type parameters
+// on methods before that version. On earlier toolchains use the equivalent free
+// function:
+//
+//	// method form (go1.27+)
+//	streetLens := addressIso.ComposeLens(streetFieldLens)
+//
+//	// free-function form (all versions)
+//	streetLens := IsoComposeLens[S](streetFieldLens)(addressIso)
+//
+// The resulting lens satisfies all three lens laws whenever both the isomorphism
+// and the inner lens individually satisfy them.
+//
+// Type Parameters:
+//   - B: the focus type of the inner lens and of the resulting lens
+//
+// Parameters:
+//   - ab: the inner lens from A to B
+//
+// Returns:
+//   - Lens[S, B]: a new lens from S directly to B
+//
+// See Also:
+//   - Compose: the equivalent method for composing with an Iso[A, B] instead of a Lens[A, B]
+//   - IsoComposeLens: the equivalent package-level function
+func (p Iso[S, A]) ComposeLens[B any](ab Lens[A, B]) Lens[S, B] {
+	return IsoComposeLens[S](ab)(p)
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
-	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/common"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -456,5 +455,5 @@ type (
 	Void = function.Void
 
 	// Iso represents an isomorphism - a bidirectional transformation between two types.
-	Iso[S, A any] = iso.Iso[S, A]
+	Iso[S, A any] = common.Iso[S, A]
 )

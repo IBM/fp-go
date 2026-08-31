@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package iso
+package common
 
 import (
 	"fmt"
@@ -44,14 +44,14 @@ var (
 
 func TestGet(t *testing.T) {
 	assert.Equal(t, mToKm.Get(100), float32(0.1))
-	assert.Equal(t, Unwrap[float32](float32(100))(mToKm), float32(0.1))
-	assert.Equal(t, To[float32](float32(100))(mToKm), float32(0.1))
+	assert.Equal(t, IsoUnwrap[float32](float32(100))(mToKm), float32(0.1))
+	assert.Equal(t, IsoTo[float32](float32(100))(mToKm), float32(0.1))
 }
 
 func TestReverseGet(t *testing.T) {
 	assert.Equal(t, mToKm.ReverseGet(1.2), float32(1200))
-	assert.Equal(t, Wrap[float32](float32(1.2))(mToKm), float32(1200))
-	assert.Equal(t, From[float32](float32(1.2))(mToKm), float32(1200))
+	assert.Equal(t, IsoWrap[float32](float32(1.2))(mToKm), float32(1200))
+	assert.Equal(t, IsoFrom[float32](float32(1.2))(mToKm), float32(1200))
 }
 
 func TestModify(t *testing.T) {
@@ -60,7 +60,7 @@ func TestModify(t *testing.T) {
 		return x * 2
 	}
 
-	assert.Equal(t, float32(2000), Modify[float32](double)(mToKm)(float32(1000)))
+	assert.Equal(t, float32(2000), IsoModify[float32](double)(mToKm)(float32(1000)))
 }
 
 func TestReverse(t *testing.T) {
@@ -69,18 +69,18 @@ func TestReverse(t *testing.T) {
 		return x * 2
 	}
 
-	assert.Equal(t, float32(4000), Modify[float32](double)(Reverse(mToKm))(float32(2000)))
+	assert.Equal(t, float32(4000), IsoModify[float32](double)(IsoReverse(mToKm))(float32(2000)))
 }
 
 func TestCompose(t *testing.T) {
-	comp := Compose[float32](mToKm)(kmToMile)
+	comp := IsoComposeIso[float32](mToKm)(kmToMile)
 
 	assert.InDelta(t, 0.93, comp.Get(1500), 0.01)
 	assert.InDelta(t, 1609.34, comp.ReverseGet(1), 0.01)
 }
 
 func TestId(t *testing.T) {
-	idIso := Id[int]()
+	idIso := IsoId[int]()
 
 	assert.Equal(t, 42, idIso.Get(42))
 	assert.Equal(t, 42, idIso.ReverseGet(42))
@@ -94,7 +94,7 @@ func TestIMap(t *testing.T) {
 	)
 
 	// Map to a different representation (string)
-	kmToString := IMap[float32](
+	kmToString := IsoIMap[float32](
 		func(km float32) string { return fmt.Sprintf("%.2f km", km) },
 		func(s string) float32 {
 			var km float32
@@ -122,10 +122,10 @@ func TestRoundTripLaws(t *testing.T) {
 func TestComposeAssociativity(t *testing.T) {
 	// Test that composition is associative
 	// Compose left-to-right: (mToKm . kmToMile)
-	leftCompose := Compose[float32](kmToMile)(mToKm)
+	leftCompose := IsoComposeIso[float32](kmToMile)(mToKm)
 
 	// Compose right-to-left should give same result
-	rightCompose := Compose[float32](Compose[float32](kmToMile)(mToKm))(Id[float32]())
+	rightCompose := IsoComposeIso[float32](IsoComposeIso[float32](kmToMile)(mToKm))(IsoId[float32]())
 
 	meters := float32(1609.34)
 	assert.InDelta(t, leftCompose.Get(meters), rightCompose.Get(meters), 0.01)
