@@ -1,4 +1,4 @@
-﻿package builder
+package builder
 
 import (
 	"github.com/IBM/fp-go/v2/optics/common"

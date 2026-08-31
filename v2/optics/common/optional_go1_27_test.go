@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package optional
+package common
 
 import (
 	"testing"
@@ -69,7 +69,7 @@ func TestOptionalCompose_MethodEquivalentToFreeFunction(t *testing.T) {
 	inner := makeFirstCharOptional()
 
 	method := outer.Compose(inner)
-	free := Compose[Person](inner)(outer)
+	free := OptionalComposeOptional[Person](inner)(outer)
 
 	persons := []Person{
 		{Name: "Alice", Age: 30},
@@ -169,7 +169,7 @@ func TestOptionalCompose_Method_Chained(t *testing.T) {
 	// level 1: Response → *Info  (None when info is nil)
 	// level 2: *Info → *Employment  (None when employment is nil)
 	// level 3: *Employment → *Phone  (None when phone is nil)
-	l1 := FromPredicateRef[Response](F.IsNonNil[Info])((*Response).GetInfo, (*Response).SetInfo)
+	l1 := OptionalFromPredicateRef[Response](F.IsNonNil[Info])((*Response).GetInfo, (*Response).SetInfo)
 	l2 := MakeOptionalRef(
 		func(i *Info) O.Option[*Employment] {
 			if i.employment != nil {

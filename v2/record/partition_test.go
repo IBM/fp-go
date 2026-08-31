@@ -255,11 +255,11 @@ func ExamplePartition() {
 	splitBudget := Partition[string](N.MoreThan(100))
 
 	january := Record[string, int]{
-		"rent":     900,
+		"rent":      900,
 		"groceries": 80,
 	}
 	february := Record[string, int]{
-		"rent":     900,
+		"rent":      900,
 		"groceries": 110,
 	}
 

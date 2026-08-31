@@ -649,5 +649,3 @@ func TestFilter_Integration(t *testing.T) {
 		assert.Equal(t, []int{8, 12}, result)
 	})
 }
-
-

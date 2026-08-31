@@ -91,7 +91,6 @@ func TestBindINone(t *testing.T) {
 	assert.Equal(t, None[string](), res)
 }
 
-
 func TestTraverseArrayI(t *testing.T) {
 	parse := TraverseArrayI(parseInt)
 	assert.Equal(t, Some([]int{1, 2, 3}), parse([]string{"1", "2", "3"}))

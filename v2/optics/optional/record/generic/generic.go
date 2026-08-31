@@ -16,6 +16,7 @@
 package generic
 
 import (
+	C "github.com/IBM/fp-go/v2/optics/common"
 	OP "github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 	RR "github.com/IBM/fp-go/v2/record/generic"
@@ -32,6 +33,6 @@ func getter[M ~map[K]V, K comparable, V any](key K) func(M) O.Option[V] {
 }
 
 // AtKey returns a Optional that gets and sets properties of a map
-func AtKey[M ~map[K]V, K comparable, V any](key K) OP.Optional[M, V] {
+func AtKey[M ~map[K]V, K comparable, V any](key K) C.Optional[M, V] {
 	return OP.MakeOptional(getter[M](key), setter[M](key))
 }

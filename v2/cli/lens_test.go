@@ -412,13 +412,11 @@ func TestIsComparableType_CrossPackage(t *testing.T) {
 	}
 }
 
-
-
 // TestIsComparableType_NamedStructs verifies that a named struct type is treated
 // as non-comparable when it contains a slice, map, or function field.
 func TestIsComparableType_NamedStructs(t *testing.T) {
 	tests := []struct {
-		name     string
+		name string
 		// full Go source; the outer struct T has a field F of a named type
 		src      string
 		expected bool
@@ -595,7 +593,6 @@ type Outer struct {
 	assert.Equal(t, "Data", outer.Fields[1].Name)
 	assert.False(t, outer.Fields[1].IsComparable, "cross-file struct field containing a slice should not be comparable")
 }
-
 
 // TestParseFile_CrossPackageStructFieldIsNotComparable verifies that parseFile
 // correctly marks a cross-package struct field as non-comparable when the

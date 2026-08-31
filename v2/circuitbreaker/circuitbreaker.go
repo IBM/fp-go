@@ -1,4 +1,4 @@
-﻿package circuitbreaker
+package circuitbreaker
 
 import (
 	"time"

@@ -1,4 +1,4 @@
-﻿//go:build go1.27
+//go:build go1.27
 
 // Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
@@ -24,8 +24,8 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
-	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -761,7 +761,9 @@ func TestTypeAlt_EncoderIsFromReceiver(t *testing.T) {
 	fallback := MakeType(
 		"Other",
 		Is[int](),
-		func(s string) Decode[Context, int] { return func(c Context) Validation[int] { return validation.Success(0) } },
+		func(s string) Decode[Context, int] {
+			return func(c Context) Validation[int] { return validation.Success(0) }
+		},
 		func(n int) string { return "other" },
 	)
 	composed := primary.Alt(lazy.Of(fallback))
@@ -796,7 +798,7 @@ func ExampleType_Alt() {
 	composed := IntFromString().Alt(lazy.Of(acceptZero))
 
 	fmt.Println(composed.Name())
-	fmt.Println(either.IsRight(composed.Decode("42")))  // primary succeeds
+	fmt.Println(either.IsRight(composed.Decode("42")))   // primary succeeds
 	fmt.Println(either.IsRight(composed.Decode("zero"))) // fallback succeeds
 	fmt.Println(either.IsLeft(composed.Decode("bad")))   // both fail
 

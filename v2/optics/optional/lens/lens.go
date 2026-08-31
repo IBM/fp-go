@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,13 @@ package lens
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	LO "github.com/IBM/fp-go/v2/optics/lens/optional"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 )
 
 // Compose composes a lens with an optional
-func Compose[S, A, B any](ab L.Lens[A, B]) func(OPT.Optional[S, A]) OPT.Optional[S, B] {
+func Compose[S, A, B any](ab C.Lens[A, B]) func(C.Optional[S, A]) C.Optional[S, B] {
 	return F.Pipe2(
 		ab,
 		LO.LensAsOptional[A, B],

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,4 +54,3 @@ func TestApS(t *testing.T) {
 
 	assert.Equal(t, res, Of[error]("John Doe"))
 }
-

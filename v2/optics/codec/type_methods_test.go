@@ -182,7 +182,7 @@ func ExampleType_Encode() {
 func ExampleType_Validate() {
 	c := IntFromString()
 
-	validateFn := c.Validate("42")              // returns Reader[Context, Validation[int]]
+	validateFn := c.Validate("42")     // returns Reader[Context, Validation[int]]
 	result := validateFn(emptyContext) // apply with an empty context
 
 	fmt.Println(either.IsRight(result))

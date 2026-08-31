@@ -171,4 +171,3 @@ func ApS[E, S1, S2, T any](
 		fa,
 	)
 }
-

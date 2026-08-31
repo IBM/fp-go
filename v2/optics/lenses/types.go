@@ -1,4 +1,4 @@
-﻿package lenses
+package lenses
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"

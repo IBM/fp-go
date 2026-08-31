@@ -1,9 +1,8 @@
-﻿package generic
+package generic
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/optional"
 	TG "github.com/IBM/fp-go/v2/optics/traversal/generic"
 )
 
@@ -12,7 +11,7 @@ type (
 
 	Lens[S, A any] = common.Lens[S, A]
 
-	Optional[S, A any] = optional.Optional[S, A]
+	Optional[S, A any] = common.Optional[S, A]
 
 	// HKTES = HKT[Endomorphism[S]]
 	Traversal[S, A, HKTES, HKTA any] = TG.Traversal[S, A, HKTES, HKTA]

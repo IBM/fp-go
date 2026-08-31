@@ -18,7 +18,7 @@
 package codec
 
 import (
-	"github.com/IBM/fp-go/v2/optics/optional"
+	C "github.com/IBM/fp-go/v2/optics/common"
 )
 
 // Pipe returns a new Type that refines or transforms the decoded value by
@@ -263,7 +263,7 @@ func (t Type[A, O, I]) ApSL[T any](m Monoid[O], l Lens[A, T], fa Type[T, O, I]) 
 //
 // Parameters:
 //   - m: a Monoid[O] for combining encoded outputs
-//   - o: an optional.Optional[A, T] that focuses on the field within A
+//   - o: a common.Optional[A, T] that focuses on the field within A
 //   - fa: a Type[T, O, I] codec for the field
 //
 // Returns:
@@ -273,7 +273,7 @@ func (t Type[A, O, I]) ApSL[T any](m Monoid[O], l Lens[A, T], fa Type[T, O, I]) 
 //   - ApSO: the equivalent package-level function
 //   - ApSL: method form for required fields via Lens
 //   - Bind: method form for context-dependent (Kleisli) fields
-func (t Type[A, O, I]) ApSO[T any](m Monoid[O], o optional.Optional[A, T], fa Type[T, O, I]) Type[A, O, I] {
+func (t Type[A, O, I]) ApSO[T any](m Monoid[O], o C.Optional[A, T], fa Type[T, O, I]) Type[A, O, I] {
 	return ApSO(m, o, fa)(t)
 }
 

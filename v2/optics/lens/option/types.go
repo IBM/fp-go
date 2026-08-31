@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,6 @@ package option
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -106,5 +105,5 @@ type (
 	// An isomorphism is a bidirectional transformation that preserves structure.
 	Iso[S, A any] = common.Iso[S, A]
 
-	Optional[S, A any] = optional.Optional[S, A]
+	Optional[S, A any] = common.Optional[S, A]
 )

@@ -1,4 +1,4 @@
-﻿package iso
+package iso
 
 import (
 	"github.com/IBM/fp-go/v2/optics/common"

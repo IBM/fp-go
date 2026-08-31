@@ -1818,10 +1818,10 @@ func TestMarshalText_RoundTrip(t *testing.T) {
 // errorUnmarshaler is a helper that always fails UnmarshalText / UnmarshalJSON.
 type errorUnmarshaler struct{}
 
-func (e *errorUnmarshaler) MarshalText() ([]byte, error)  { return []byte("x"), nil }
-func (e *errorUnmarshaler) UnmarshalText([]byte) error    { return fmt.Errorf("always fails") }
-func (e *errorUnmarshaler) MarshalJSON() ([]byte, error)  { return []byte(`"x"`), nil }
-func (e *errorUnmarshaler) UnmarshalJSON([]byte) error    { return fmt.Errorf("always fails") }
+func (e *errorUnmarshaler) MarshalText() ([]byte, error) { return []byte("x"), nil }
+func (e *errorUnmarshaler) UnmarshalText([]byte) error   { return fmt.Errorf("always fails") }
+func (e *errorUnmarshaler) MarshalJSON() ([]byte, error) { return []byte(`"x"`), nil }
+func (e *errorUnmarshaler) UnmarshalJSON([]byte) error   { return fmt.Errorf("always fails") }
 
 // ---------------------------------------------------------------------------
 // Example functions

@@ -429,5 +429,3 @@ func TestMonadChainIOK(t *testing.T) {
 		assert.Equal(t, O.None[string](), result)
 	})
 }
-
-

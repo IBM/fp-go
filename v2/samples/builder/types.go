@@ -1,4 +1,4 @@
-﻿// Package builder demonstrates the builder pattern using functional programming concepts
+// Package builder demonstrates the builder pattern using functional programming concepts
 // from fp-go, including validation and transformation of data structures.
 package builder
 

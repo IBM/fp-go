@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package optional
+package common
 
 import (
 	"testing"
@@ -52,13 +52,13 @@ func (response *Response) SetInfo(info *Info) *Response {
 }
 
 var (
-	responseOptional = FromPredicateRef[Response](F.IsNonNil[Info])((*Response).GetInfo, (*Response).SetInfo)
+	responseOptional = OptionalFromPredicateRef[Response](F.IsNonNil[Info])((*Response).GetInfo, (*Response).SetInfo)
 
 	sampleResponse      = Response{info: &Info{}}
 	sampleEmptyResponse = Response{}
 )
 
-func TestOptional(t *testing.T) {
+func TestOptionalFromPredicateRef_GetOption(t *testing.T) {
 	assert.Equal(t, O.Of(sampleResponse.info), responseOptional.GetOption(&sampleResponse))
 	assert.Equal(t, O.None[*Info](), responseOptional.GetOption(&sampleEmptyResponse))
 }
@@ -74,8 +74,8 @@ type Config struct {
 	Retries int
 }
 
-// TestMakeOptionalBasicFunctionality tests basic Optional operations
-func TestMakeOptionalBasicFunctionality(t *testing.T) {
+// TestMakeOptional tests basic Optional operations
+func TestMakeOptional(t *testing.T) {
 	t.Run("GetOption returns Some when value exists", func(t *testing.T) {
 		optional := MakeOptional(
 			func(p Person) O.Option[string] {
@@ -139,9 +139,9 @@ func TestMakeOptionalBasicFunctionality(t *testing.T) {
 	})
 }
 
-// TestOptionalLaws tests that Optional satisfies the optional laws
+// TestMakeOptional_Laws tests that MakeOptional satisfies the optional laws
 // Reference: https://gcanti.github.io/monocle-ts/modules/Optional.ts.html
-func TestOptionalLaws(t *testing.T) {
+func TestMakeOptional_Laws(t *testing.T) {
 	optional := MakeOptional(
 		func(p Person) O.Option[string] {
 			if p.Name != "" {
@@ -206,8 +206,8 @@ func TestOptionalLaws(t *testing.T) {
 	})
 }
 
-// TestMakeOptionalRefBasicFunctionality tests MakeOptionalRef with pointer types
-func TestMakeOptionalRefBasicFunctionality(t *testing.T) {
+// TestMakeOptionalRef tests MakeOptionalRef with pointer types
+func TestMakeOptionalRef(t *testing.T) {
 	t.Run("GetOption returns Some when value exists (non-nil pointer)", func(t *testing.T) {
 		optional := MakeOptionalRef(
 			func(p *Person) O.Option[string] {
@@ -319,8 +319,8 @@ func TestMakeOptionalRefBasicFunctionality(t *testing.T) {
 	})
 }
 
-// TestMakeOptionalRefLaws tests that MakeOptionalRef satisfies optional laws
-func TestMakeOptionalRefLaws(t *testing.T) {
+// TestMakeOptionalRef_Laws tests that MakeOptionalRef satisfies optional laws
+func TestMakeOptionalRef_Laws(t *testing.T) {
 	optional := MakeOptionalRef(
 		func(p *Person) O.Option[string] {
 			if p.Name != "" {
@@ -383,8 +383,8 @@ func TestMakeOptionalRefLaws(t *testing.T) {
 	})
 }
 
-// TestMakeOptionalRefImmutability tests immutability guarantees
-func TestMakeOptionalRefImmutability(t *testing.T) {
+// TestMakeOptionalRef_Immutability tests immutability guarantees of MakeOptionalRef
+func TestMakeOptionalRef_Immutability(t *testing.T) {
 	t.Run("Set creates a new pointer, doesn't modify original", func(t *testing.T) {
 		optional := MakeOptionalRef(
 			func(p *Person) O.Option[string] {
@@ -448,8 +448,8 @@ func TestMakeOptionalRefImmutability(t *testing.T) {
 	})
 }
 
-// TestMakeOptionalRefNilPointerEdgeCases tests edge cases with nil pointers
-func TestMakeOptionalRefNilPointerEdgeCases(t *testing.T) {
+// TestMakeOptionalRef_NilPointerEdgeCases tests edge cases with nil pointers in MakeOptionalRef
+func TestMakeOptionalRef_NilPointerEdgeCases(t *testing.T) {
 	t.Run("GetOption on nil returns None", func(t *testing.T) {
 		optional := MakeOptionalRef(
 			func(p *Person) O.Option[string] {
@@ -511,10 +511,10 @@ func TestMakeOptionalRefNilPointerEdgeCases(t *testing.T) {
 	})
 }
 
-// TestFromPredicateRef tests FromPredicateRef with nil handling
-func TestFromPredicateRef(t *testing.T) {
+// TestOptionalFromPredicateRef_WithNilHandling tests OptionalFromPredicateRef with nil handling
+func TestOptionalFromPredicateRef_WithNilHandling(t *testing.T) {
 	t.Run("Works with non-nil values matching predicate", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -529,7 +529,7 @@ func TestFromPredicateRef(t *testing.T) {
 	})
 
 	t.Run("Returns None for nil pointer", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -543,7 +543,7 @@ func TestFromPredicateRef(t *testing.T) {
 	})
 
 	t.Run("Returns None when predicate doesn't match", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -557,7 +557,7 @@ func TestFromPredicateRef(t *testing.T) {
 	})
 
 	t.Run("Set is no-op on nil pointer", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -571,8 +571,8 @@ func TestFromPredicateRef(t *testing.T) {
 	})
 }
 
-// TestOptionalComposition tests composing optionals
-func TestOptionalComposition(t *testing.T) {
+// TestOptionalComposeOptional tests composing optionals
+func TestOptionalComposeOptional(t *testing.T) {
 	t.Run("Compose two optionals", func(t *testing.T) {
 		// First optional: Person -> Name (if not empty)
 		nameOptional := MakeOptional(
@@ -605,7 +605,7 @@ func TestOptionalComposition(t *testing.T) {
 		)
 
 		// Compose them
-		composed := Compose[Person](firstCharOptional)(nameOptional)
+		composed := OptionalComposeOptional[Person](firstCharOptional)(nameOptional)
 
 		person := Person{Name: "Alice", Age: 30}
 		result := composed.GetOption(person)
@@ -615,9 +615,9 @@ func TestOptionalComposition(t *testing.T) {
 	})
 }
 
-// TestOptionalNoOpBehavior tests that modifying through optionalModify is a no-op when GetOption returns None
+// TestOptionalModifyOption tests that modifying through optionalModify is a no-op when GetOption returns None
 // This is the key law: updating a value for which the preview returns None is a no-op
-func TestOptionalNoOpBehavior(t *testing.T) {
+func TestOptionalModifyOption(t *testing.T) {
 	optional := MakeOptional(
 		func(p Person) O.Option[string] {
 			if p.Name != "" {
@@ -639,7 +639,7 @@ func TestOptionalNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// Try to modify - should return None
-		modifyResult := ModifyOption[Person](func(name string) string {
+		modifyResult := OptionalModifyOption[Person](func(name string) string {
 			return "Bob"
 		})(optional)(person)
 
@@ -672,7 +672,7 @@ func TestOptionalNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsSome(initial))
 
 		// Modify should return Some with updated value
-		modifyResult := ModifyOption[Person](func(name string) string {
+		modifyResult := OptionalModifyOption[Person](func(name string) string {
 			return name + " Smith"
 		})(optional)(person)
 
@@ -698,8 +698,8 @@ func TestOptionalNoOpBehavior(t *testing.T) {
 	})
 }
 
-// TestOptionalNoOpBehaviorRef tests no-op behavior with pointer types
-func TestOptionalNoOpBehaviorRef(t *testing.T) {
+// TestOptionalModifyOption_Ref tests OptionalModifyOption no-op behavior with pointer types
+func TestOptionalModifyOption_Ref(t *testing.T) {
 	optional := MakeOptionalRef(
 		func(p *Person) O.Option[string] {
 			if p.Name != "" {
@@ -721,7 +721,7 @@ func TestOptionalNoOpBehaviorRef(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// Try to modify - should return None
-		modifyResult := ModifyOption[*Person](func(name string) string {
+		modifyResult := OptionalModifyOption[*Person](func(name string) string {
 			return "Bob"
 		})(optional)(person)
 
@@ -736,7 +736,7 @@ func TestOptionalNoOpBehaviorRef(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// Try to modify - should return None
-		modifyResult := ModifyOption[*Person](func(name string) string {
+		modifyResult := OptionalModifyOption[*Person](func(name string) string {
 			return "Bob"
 		})(optional)(person)
 
@@ -779,10 +779,10 @@ func TestOptionalNoOpBehaviorRef(t *testing.T) {
 	})
 }
 
-// TestFromPredicateNoOpBehavior tests that FromPredicate properly implements no-op behavior
-func TestFromPredicateNoOpBehavior(t *testing.T) {
+// TestOptionalFromPredicate tests that OptionalFromPredicate properly implements no-op behavior
+func TestOptionalFromPredicate(t *testing.T) {
 	t.Run("FromPredicate Set is no-op when predicate doesn't match", func(t *testing.T) {
-		optional := FromPredicate[Person](func(name string) bool {
+		optional := OptionalFromPredicate[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p Person) string { return p.Name },
@@ -805,7 +805,7 @@ func TestFromPredicateNoOpBehavior(t *testing.T) {
 	})
 
 	t.Run("FromPredicate Set updates when predicate matches on current value", func(t *testing.T) {
-		optional := FromPredicate[Person](func(name string) bool {
+		optional := OptionalFromPredicate[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p Person) string { return p.Name },
@@ -830,7 +830,7 @@ func TestFromPredicateNoOpBehavior(t *testing.T) {
 	t.Run("FromPredicate demonstrates the no-op law correctly", func(t *testing.T) {
 		// This test shows that FromPredicate implements the no-op law:
 		// The setter checks if the CURRENT value matches the predicate
-		optional := FromPredicate[Person](func(age int) bool {
+		optional := OptionalFromPredicate[Person](func(age int) bool {
 			return age >= 18 // Adult predicate
 		})(
 			func(p Person) int { return p.Age },
@@ -849,10 +849,10 @@ func TestFromPredicateNoOpBehavior(t *testing.T) {
 	})
 }
 
-// TestFromPredicateRefNoOpBehavior tests that FromPredicateRef properly implements no-op behavior
-func TestFromPredicateRefNoOpBehavior(t *testing.T) {
+// TestOptionalFromPredicateRef_NoOpBehavior tests that OptionalFromPredicateRef properly implements no-op behavior
+func TestOptionalFromPredicateRef_NoOpBehavior(t *testing.T) {
 	t.Run("FromPredicateRef Set is no-op when predicate doesn't match", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -878,7 +878,7 @@ func TestFromPredicateRefNoOpBehavior(t *testing.T) {
 	})
 
 	t.Run("FromPredicateRef Set is no-op when pointer is nil", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -898,7 +898,7 @@ func TestFromPredicateRefNoOpBehavior(t *testing.T) {
 	})
 
 	t.Run("FromPredicateRef Set updates when predicate matches on current value", func(t *testing.T) {
-		optional := FromPredicateRef[Person](func(name string) bool {
+		optional := OptionalFromPredicateRef[Person](func(name string) bool {
 			return name != ""
 		})(
 			func(p *Person) string { return p.Name },
@@ -922,7 +922,7 @@ func TestFromPredicateRefNoOpBehavior(t *testing.T) {
 
 	t.Run("FromPredicateRef demonstrates the no-op law correctly", func(t *testing.T) {
 		// This test shows that FromPredicateRef implements the no-op law
-		optional := FromPredicateRef[Person](func(age int) bool {
+		optional := OptionalFromPredicateRef[Person](func(age int) bool {
 			return age >= 18 // Adult predicate
 		})(
 			func(p *Person) int { return p.Age },
@@ -943,8 +943,8 @@ func TestFromPredicateRefNoOpBehavior(t *testing.T) {
 	})
 }
 
-// TestSetOptionNoOpBehavior tests SetOption behavior with None
-func TestSetOptionNoOpBehavior(t *testing.T) {
+// TestOptionalSetOption tests OptionalSetOption behavior with None
+func TestOptionalSetOption(t *testing.T) {
 	optional := MakeOptional(
 		func(p Person) O.Option[string] {
 			if p.Name != "" {
@@ -966,7 +966,7 @@ func TestSetOptionNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsNone(initial))
 
 		// SetOption should return None
-		result := SetOption[Person]("Bob")(optional)(person)
+		result := OptionalSetOption[Person]("Bob")(optional)(person)
 
 		assert.True(t, O.IsNone(result))
 	})
@@ -979,7 +979,7 @@ func TestSetOptionNoOpBehavior(t *testing.T) {
 		assert.True(t, O.IsSome(initial))
 
 		// SetOption should return Some with updated value
-		result := SetOption[Person]("Bob")(optional)(person)
+		result := OptionalSetOption[Person]("Bob")(optional)(person)
 
 		assert.True(t, O.IsSome(result))
 		updatedPerson := O.GetOrElse(F.Constant(person))(result)

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
@@ -66,7 +67,7 @@ func makeSuccessPrism() P.Prism[Result, int] {
 }
 
 // Helper to create an optional for Config.Timeout
-func makeTimeoutOptional() OPT.Optional[Config, O.Option[int]] {
+func makeTimeoutOptional() C.Optional[Config, O.Option[int]] {
 	return OPT.MakeOptional(
 		func(c Config) O.Option[O.Option[int]] {
 			return O.Some(c.Timeout)
@@ -79,7 +80,7 @@ func makeTimeoutOptional() OPT.Optional[Config, O.Option[int]] {
 }
 
 // Helper to create an optional for Person.Name
-func makeNameOptional() OPT.Optional[Person, O.Option[string]] {
+func makeNameOptional() C.Optional[Person, O.Option[string]] {
 	return OPT.MakeOptional(
 		func(p Person) O.Option[O.Option[string]] {
 			return O.Some(p.Name)

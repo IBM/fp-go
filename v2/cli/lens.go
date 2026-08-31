@@ -670,7 +670,7 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 				}
 
 				// Check if the type is comparable
-					isComparable := isComparableType(field.Type, typeParamsMap, allStructTypes)
+				isComparable := isComparableType(field.Type, typeParamsMap, allStructTypes)
 
 				results = append(results, embeddedFieldResult{
 					fieldInfo: fieldInfo{
@@ -839,7 +839,7 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 		for _, field := range structType.Fields.List {
 			if len(field.Names) == 0 {
 				// Embedded field - promote its fields
-					embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap, allStructTypes)
+				embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap, allStructTypes)
 				for _, embResult := range embeddedResults {
 					// Extract imports from embedded field's type
 					fieldImports := make(map[string]string)

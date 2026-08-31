@@ -1,4 +1,4 @@
-﻿package generic
+package generic
 
 import (
 	"github.com/IBM/fp-go/v2/optics/common"

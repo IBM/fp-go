@@ -1,4 +1,4 @@
-﻿package option
+package option
 
 import (
 	F "github.com/IBM/fp-go/v2/function"

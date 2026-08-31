@@ -78,4 +78,3 @@ func TestFormatterInterface(t *testing.T) {
 		assert.Contains(t, result, "Bounce(42)")
 	})
 }
-

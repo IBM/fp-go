@@ -1,4 +1,4 @@
-﻿// Package lens provides utilities for converting isomorphisms to lenses.
+// Package lens provides utilities for converting isomorphisms to lenses.
 //
 // This package bridges the gap between isomorphisms (bidirectional transformations)
 // and lenses (focused accessors), allowing isomorphisms to be used wherever lenses

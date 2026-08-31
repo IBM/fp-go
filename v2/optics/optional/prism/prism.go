@@ -26,6 +26,7 @@ package prism
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
@@ -112,7 +113,7 @@ import (
 //   - Some: Focuses on the Some variant of Option types
 //   - github.com/IBM/fp-go/v2/optics/prism for prism operations
 //   - github.com/IBM/fp-go/v2/optics/optional for optional operations
-func AsOptional[S, A any](sa P.Prism[S, A]) OPT.Optional[S, A] {
+func AsOptional[S, A any](sa P.Prism[S, A]) C.Optional[S, A] {
 	return OPT.MakeOptional(
 		sa.GetOption,
 		func(s S, a A) S {
@@ -229,7 +230,7 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 //   - AsOptional: Converts prisms to optionals
 //   - PrismSome: The underlying prism for Option types
 //   - github.com/IBM/fp-go/v2/optics/optional.Compose for composing optionals
-func Some[S, A any](soa OPT.Optional[S, O.Option[A]]) OPT.Optional[S, A] {
+func Some[S, A any](soa C.Optional[S, O.Option[A]]) C.Optional[S, A] {
 	return OPT.Compose[S](AsOptional(PrismSome[A]()))(soa)
 }
 
@@ -332,6 +333,6 @@ func Some[S, A any](soa OPT.Optional[S, O.Option[A]]) OPT.Optional[S, A] {
 //   - AsOptional: Converts prisms to optionals
 //   - github.com/IBM/fp-go/v2/optics/optional.Compose for optional composition
 //   - github.com/IBM/fp-go/v2/optics/prism/lens for the inverse composition (prism then lens)
-func Compose[S, A, B any](ab P.Prism[A, B]) func(OPT.Optional[S, A]) OPT.Optional[S, B] {
+func Compose[S, A, B any](ab P.Prism[A, B]) func(C.Optional[S, A]) C.Optional[S, B] {
 	return OPT.Compose[S](AsOptional(ab))
 }

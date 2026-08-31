@@ -1,4 +1,4 @@
-﻿package identity
+package identity
 
 import (
 	"github.com/IBM/fp-go/v2/optics/common"

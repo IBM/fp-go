@@ -21,6 +21,7 @@ import (
 	AR "github.com/IBM/fp-go/v2/array/generic"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	OP "github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -79,7 +80,7 @@ import (
 //   - AR.Lookup: Gets an element at an index, returning an Option
 //   - AR.UpdateAt: Updates an element at an index, returning an Option
 //   - OP.Optional: The Optional optic type
-func At[GA ~[]A, A any](idx int) OP.Optional[GA, A] {
+func At[GA ~[]A, A any](idx int) C.Optional[GA, A] {
 	lookup := AR.Lookup[GA](idx)
 	return OP.MakeOptionalCurriedWithName(
 		lookup,

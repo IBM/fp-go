@@ -182,8 +182,8 @@ func ExampleAltSemigroup() {
 
 	getOrNeg1 := O.GetOrElse(lazy.Of(-1))
 
-	result1 := sg.Concat(O.Some(1), O.Some(2)) // first wins
-	result2 := sg.Concat(O.None[int](), O.Some(2)) // fallback to second
+	result1 := sg.Concat(O.Some(1), O.Some(2))         // first wins
+	result2 := sg.Concat(O.None[int](), O.Some(2))     // fallback to second
 	result3 := sg.Concat(O.None[int](), O.None[int]()) // both absent
 
 	fmt.Println(O.IsSome(result1), getOrNeg1(result1))

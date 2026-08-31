@@ -1,12 +1,12 @@
 //go:build go1.27
 
-package optional
+package common
 
 // Compose returns a new Optional that focuses deeper into a structure by
 // chaining this optional (S → A) with an inner optional (A → B), producing a
 // composed optional (S → B).
 //
-// This is the method-receiver form of the package-level [Compose] function,
+// This is the method-receiver form of the package-level [OptionalComposeOptional] function,
 // available only on Go 1.27 and later because Go did not support type
 // parameters on methods before that version. On earlier toolchains, use the
 // equivalent free function instead:
@@ -44,5 +44,5 @@ package optional
 //   - Compose: the equivalent package-level function
 //   - ComposeRef: variant for pointer-based outer structures
 func (p Optional[S, A]) Compose[B any](ab Optional[A, B]) Optional[S, B] {
-	return Compose[S](ab)(p)
+	return OptionalComposeOptional[S](ab)(p)
 }

@@ -103,7 +103,7 @@ func ExampleAtContext_getOrElse() {
 func ExampleAtContext_multipleKeys() {
 	type reqKey string
 
-	userLens  := AtContext[string, reqKey]("user")
+	userLens := AtContext[string, reqKey]("user")
 	tokenLens := AtContext[string, reqKey]("token")
 
 	ctx := F.Pipe1(

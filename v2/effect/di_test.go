@@ -1,4 +1,4 @@
-﻿package effect
+package effect
 
 import (
 	"context"

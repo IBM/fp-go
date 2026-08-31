@@ -6,7 +6,7 @@ package common
 // isomorphism (S → A) with an inner isomorphism (A → B), producing a composed
 // isomorphism (S → B).
 //
-// This is the method-receiver form of the package-level [Compose] function,
+// This is the method-receiver form of the package-level [OptionalComposeOptional] function,
 // available only on Go 1.27 and later because Go did not support type
 // parameters on methods before that version. On earlier toolchains, use the
 // equivalent free function instead:

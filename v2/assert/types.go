@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2023 - 2025 IBM Corp.
+// Copyright (c) 2023 - 2025 IBM Corp.
 // All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,6 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/optics/common"
-	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
@@ -221,7 +220,7 @@ type (
 
 	// Optional is an optic that focuses on a value that may or may not be present.
 	//
-	// This is an alias for [optional.Optional][S, T], which is similar to a [Lens] but
+	// This is an alias for [common.Optional][S, T], which is similar to a [Lens] but
 	// handles cases where the focused value might not exist. Optionals are useful for
 	// working with nullable fields, optional properties, or values that might be absent.
 	//
@@ -237,7 +236,7 @@ type (
 	//	    type Config struct { Timeout *int }
 	//
 	//	    // Define optional (typically generated)
-	//	    timeoutOptional := optional.Optional[Config, int]{...}
+	//	    timeoutOptional := common.Optional[Config, int]{...}
 	//
 	//	    // Test when value is present
 	//	    config1 := Config{Timeout: ptr(30)}
@@ -252,9 +251,9 @@ type (
 	//
 	// See also:
 	//   - [FromOptional]: Creates assertions for optional values
-	//   - [optional.Optional]: The underlying optional type
+	//   - [common.Optional]: The underlying optional type
 	//   - [Lens]: Similar but for values that always exist
-	Optional[S, T any] = optional.Optional[S, T]
+	Optional[S, T any] = common.Optional[S, T]
 
 	// Prism is an optic that focuses on a case of a sum type.
 	//

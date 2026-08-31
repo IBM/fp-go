@@ -16,7 +16,7 @@
 package array
 
 import (
-	OP "github.com/IBM/fp-go/v2/optics/optional"
+	C "github.com/IBM/fp-go/v2/optics/common"
 	G "github.com/IBM/fp-go/v2/optics/optional/array/generic"
 )
 
@@ -74,6 +74,6 @@ import (
 //   - AR.Lookup: Gets an element at an index, returning an Option
 //   - AR.UpdateAt: Updates an element at an index, returning an Option
 //   - OP.Optional: The Optional optic type
-func At[A any](idx int) OP.Optional[[]A, A] {
+func At[A any](idx int) C.Optional[[]A, A] {
 	return G.At[[]A](idx)
 }
