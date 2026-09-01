@@ -23,9 +23,8 @@ type Either[A any] struct {
 	right *A
 }
 
-// String prints some debug info for the object
-//
-
+// eitherString returns a human-readable string representation for debugging.
+// The exact format is not a stable contract and may change across versions.
 func eitherString[A any](s *Either[A]) string {
 	if s.right != nil {
 		return fmt.Sprintf("Right[%T](%v)", *s.right, *s.right)
@@ -33,9 +32,8 @@ func eitherString[A any](s *Either[A]) string {
 	return fmt.Sprintf("Left[%T](%v)", *s.left, *s.left)
 }
 
-// Format prints some debug info for the object
-//
-
+// eitherFormat writes the debug representation to f.
+// The exact output format is not a stable contract and may change across versions.
 func eitherFormat[A any](e *Either[A], f fmt.State, c rune) {
 	switch c {
 	case 's':
@@ -45,12 +43,15 @@ func eitherFormat[A any](e *Either[A], f fmt.State, c rune) {
 	}
 }
 
-// String prints some debug info for the object
+// String implements fmt.Stringer for Either.
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (s Either[A]) String() string {
 	return eitherString(&s)
 }
 
-// Format prints some debug info for the object
+// Format implements fmt.Formatter for Either.
+// The exact output format is not a stable contract and may change across versions.
 func (s Either[A]) Format(f fmt.State, c rune) {
 	eitherFormat(&s, f, c)
 }

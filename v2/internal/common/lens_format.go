@@ -27,6 +27,7 @@ import (
 // single compiled copy is shared across all Lens[S, A] instantiations.
 
 // String returns the name of the lens for debugging and display purposes.
+// The exact format is not a stable contract and may change across versions.
 func (l lensTag) String() string {
 	return l.n
 }
@@ -35,6 +36,8 @@ func (l lensTag) String() string {
 //
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses the String() representation (the lens name)
+//
+// The exact output format is not a stable contract and may change across versions.
 func (l lensTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -48,6 +51,7 @@ func (l lensTag) Format(f fmt.State, c rune) {
 //
 // Returns a slog.Value that represents the lens for structured logging.
 // The lens name is logged as a string value.
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 func (l lensTag) LogValue() slog.Value {
 	return slog.StringValue(l.n)
 }

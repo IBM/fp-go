@@ -556,7 +556,7 @@ func generateFromArray(f *os.File, i int) {
 
 func generateTupleString(f *os.File, i int) {
 	// Create the stringify version
-	fmt.Fprintf(f, "\n// String prints some debug info for the [Tuple%d]\n", i)
+	fmt.Fprintf(f, "\n// String implements fmt.Stringer for [Tuple%d].\n// Returns a human-readable string representation intended for debugging and\n// logging. The exact format is not a stable contract and may change across versions.\n", i)
 	fmt.Fprintf(f, "func (t ")
 	writeTupleType(f, "T", i)
 	fmt.Fprintf(f, ") String() string {\n")

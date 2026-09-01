@@ -24,9 +24,9 @@ const (
 	pairFmtTemplate = "Pair[%T, %T](%v, %v)"
 )
 
-// String prints some debug info for the object
-//
-
+// String implements fmt.Stringer for Pair.
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (p Pair[L, R]) String() string {
 	return fmt.Sprintf(pairFmtTemplate, p.l, p.r, p.l, p.r)
 }
@@ -35,7 +35,7 @@ func (p Pair[L, R]) String() string {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-
+// The exact output format is not a stable contract and may change across versions.
 func (p Pair[L, R]) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -48,6 +48,8 @@ func (p Pair[L, R]) Format(f fmt.State, c rune) {
 // LogValue implements slog.LogValuer for Pair.
 // Returns a slog.Value that represents the Pair for structured logging.
 // Returns a group value with "head" and "tail" keys.
+//
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //

@@ -75,10 +75,7 @@ func Land[B, L any](l L) Trampoline[B, L] {
 //
 // Returns a human-readable string representation of the trampoline state.
 // For bounce states, returns "Bounce(value)". For land states, returns "Land(value)".
-//
-// # Returns
-//
-//   - string: A formatted string representation of the trampoline state
+// The exact format is not a stable contract and may change across versions.
 func (t Trampoline[B, L]) String() string {
 	if t.Landed {
 		return fmt.Sprintf("Land(%v)", t.Land)
@@ -94,10 +91,7 @@ func (t Trampoline[B, L]) String() string {
 //   - %s: String format
 //   - %q: Quoted string format
 //
-// # Parameters
-//
-//   - f: The format state
-//   - verb: The formatting verb
+// The exact output format is not a stable contract and may change across versions.
 func (t Trampoline[B, L]) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 'v':

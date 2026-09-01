@@ -243,7 +243,9 @@ func Replicate1[T any](t T) Tuple1[T] {
 	return MakeTuple1(t)
 }
 
-// String prints some debug info for the [Tuple1]
+// String implements fmt.Stringer for [Tuple1].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple1[T1]) String() string {
 	return tupleString(t.F1)
 }
@@ -343,7 +345,9 @@ func Replicate2[T any](t T) Tuple2[T, T] {
 	return MakeTuple2(t, t)
 }
 
-// String prints some debug info for the [Tuple2]
+// String implements fmt.Stringer for [Tuple2].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple2[T1, T2]) String() string {
 	return tupleString(t.F1, t.F2)
 }
@@ -449,7 +453,9 @@ func Replicate3[T any](t T) Tuple3[T, T, T] {
 	return MakeTuple3(t, t, t)
 }
 
-// String prints some debug info for the [Tuple3]
+// String implements fmt.Stringer for [Tuple3].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple3[T1, T2, T3]) String() string {
 	return tupleString(t.F1, t.F2, t.F3)
 }
@@ -561,7 +567,9 @@ func Replicate4[T any](t T) Tuple4[T, T, T, T] {
 	return MakeTuple4(t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple4]
+// String implements fmt.Stringer for [Tuple4].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple4[T1, T2, T3, T4]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4)
 }
@@ -679,7 +687,9 @@ func Replicate5[T any](t T) Tuple5[T, T, T, T, T] {
 	return MakeTuple5(t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple5]
+// String implements fmt.Stringer for [Tuple5].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple5[T1, T2, T3, T4, T5]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5)
 }
@@ -803,7 +813,9 @@ func Replicate6[T any](t T) Tuple6[T, T, T, T, T, T] {
 	return MakeTuple6(t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple6]
+// String implements fmt.Stringer for [Tuple6].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple6[T1, T2, T3, T4, T5, T6]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6)
 }
@@ -933,7 +945,9 @@ func Replicate7[T any](t T) Tuple7[T, T, T, T, T, T, T] {
 	return MakeTuple7(t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple7]
+// String implements fmt.Stringer for [Tuple7].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple7[T1, T2, T3, T4, T5, T6, T7]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7)
 }
@@ -1069,7 +1083,9 @@ func Replicate8[T any](t T) Tuple8[T, T, T, T, T, T, T, T] {
 	return MakeTuple8(t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple8]
+// String implements fmt.Stringer for [Tuple8].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8)
 }
@@ -1211,7 +1227,9 @@ func Replicate9[T any](t T) Tuple9[T, T, T, T, T, T, T, T, T] {
 	return MakeTuple9(t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple9]
+// String implements fmt.Stringer for [Tuple9].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9)
 }
@@ -1359,7 +1377,9 @@ func Replicate10[T any](t T) Tuple10[T, T, T, T, T, T, T, T, T, T] {
 	return MakeTuple10(t, t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple10]
+// String implements fmt.Stringer for [Tuple10].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9, t.F10)
 }
@@ -1513,7 +1533,9 @@ func Replicate11[T any](t T) Tuple11[T, T, T, T, T, T, T, T, T, T, T] {
 	return MakeTuple11(t, t, t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple11]
+// String implements fmt.Stringer for [Tuple11].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9, t.F10, t.F11)
 }
@@ -1673,7 +1695,9 @@ func Replicate12[T any](t T) Tuple12[T, T, T, T, T, T, T, T, T, T, T, T] {
 	return MakeTuple12(t, t, t, t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple12]
+// String implements fmt.Stringer for [Tuple12].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9, t.F10, t.F11, t.F12)
 }
@@ -1839,7 +1863,9 @@ func Replicate13[T any](t T) Tuple13[T, T, T, T, T, T, T, T, T, T, T, T, T] {
 	return MakeTuple13(t, t, t, t, t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple13]
+// String implements fmt.Stringer for [Tuple13].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9, t.F10, t.F11, t.F12, t.F13)
 }
@@ -2011,7 +2037,9 @@ func Replicate14[T any](t T) Tuple14[T, T, T, T, T, T, T, T, T, T, T, T, T, T] {
 	return MakeTuple14(t, t, t, t, t, t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple14]
+// String implements fmt.Stringer for [Tuple14].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9, t.F10, t.F11, t.F12, t.F13, t.F14)
 }
@@ -2189,7 +2217,9 @@ func Replicate15[T any](t T) Tuple15[T, T, T, T, T, T, T, T, T, T, T, T, T, T, T
 	return MakeTuple15(t, t, t, t, t, t, t, t, t, t, t, t, t, t, t)
 }
 
-// String prints some debug info for the [Tuple15]
+// String implements fmt.Stringer for [Tuple15].
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (t Tuple15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) String() string {
 	return tupleString(t.F1, t.F2, t.F3, t.F4, t.F5, t.F6, t.F7, t.F8, t.F9, t.F10, t.F11, t.F12, t.F13, t.F14, t.F15)
 }

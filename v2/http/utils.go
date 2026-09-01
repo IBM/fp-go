@@ -166,6 +166,7 @@ func (r *HttpError) Error() string {
 
 // String returns the string representation of the HttpError.
 // It's equivalent to calling Error().
+// The exact format is not a stable contract and may change across versions.
 func (r *HttpError) String() string {
 	return r.Error()
 }

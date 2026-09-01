@@ -27,6 +27,7 @@ import (
 // single compiled copy is shared across all Iso[S, A] instantiations.
 
 // String returns a string representation of the isomorphism.
+// The exact format is not a stable contract and may change across versions.
 //
 // Example:
 //
@@ -40,7 +41,7 @@ func (isoTag) String() string {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-
+// The exact output format is not a stable contract and may change across versions.
 func (isoTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -53,6 +54,8 @@ func (isoTag) Format(f fmt.State, c rune) {
 // LogValue implements slog.LogValuer for Iso.
 // Returns a slog.Value that represents the Iso for structured logging.
 // Logs the type information as a string value.
+//
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //

@@ -27,6 +27,7 @@ import (
 // single compiled copy is shared across all Prism[S, A] instantiations.
 
 // String returns the name of the prism for debugging and display purposes.
+// The exact format is not a stable contract and may change across versions.
 func (l prismTag) String() string {
 	return l.n
 }
@@ -35,6 +36,8 @@ func (l prismTag) String() string {
 //
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses the String() representation (the prism name)
+//
+// The exact output format is not a stable contract and may change across versions.
 func (l prismTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -48,6 +51,7 @@ func (l prismTag) Format(f fmt.State, c rune) {
 //
 // Returns a slog.Value that represents the prism for structured logging.
 // The prism name is logged as a string value.
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 func (l prismTag) LogValue() slog.Value {
 	return slog.StringValue(l.n)
 }

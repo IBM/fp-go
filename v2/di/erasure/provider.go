@@ -60,6 +60,8 @@ func (p *provider) Factory() ProviderFactory {
 	return p.factory
 }
 
+// String returns a string representation of the provider for debugging and display purposes.
+// The exact format is not a stable contract and may change across versions.
 func (p *provider) String() string {
 	return fmt.Sprintf("Provider for [%s]", p.provides)
 }

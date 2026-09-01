@@ -31,6 +31,8 @@ const (
 // Returns a slog.Value that represents the Option for structured logging.
 // Returns a group value with "some" key for Some values and "none" key for None values.
 //
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
+//
 // Example:
 //
 //	logger := slog.Default()
@@ -54,11 +56,7 @@ func (s Option[A]) LogValue() slog.Value {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-// Note: the %T verb is handled by the Go runtime directly and reflects the
-// concrete internal type name (e.g. common.Option[int]). This output is
-// intended for debugging only and is not a stable contract.
-//
-
+// The exact output format is not a stable contract and may change across versions.
 func (s Option[A]) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':

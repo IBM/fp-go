@@ -19,7 +19,8 @@ import (
 	"fmt"
 )
 
-// String prints some debug info for the object
+// ToString returns a human-readable string representation of a (value, error) result pair,
+// intended for debugging and logging. The exact format is not a stable contract and may change across versions.
 func ToString[A any](a A, err error) string {
 	if err != nil {
 		return fmt.Sprintf("Left(%v)", err)

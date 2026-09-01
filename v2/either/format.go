@@ -29,7 +29,9 @@ func eitherString(tmp string, value any) string {
 	return fmt.Sprintf(tmp, value, value)
 }
 
-// String prints some debug info for the object
+// String implements fmt.Stringer for Either.
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format is not a stable contract and may change across versions.
 func (s Either[E, A]) String() string {
 	if !s.l {
 		return eitherString(rightFmtTemplate, s.a)
@@ -50,7 +52,7 @@ func eitherFormat(f fmt.State, c rune, s string) {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
-
+// The exact output format is not a stable contract and may change across versions.
 func (s Either[E, A]) Format(f fmt.State, c rune) {
 	eitherFormat(f, c, s.String())
 }
@@ -62,6 +64,8 @@ func eitherLogValue(label string, value any) slog.Value {
 // LogValue implements slog.LogValuer for Either.
 // Returns a slog.Value that represents the Either for structured logging.
 // Returns a group value with "right" key for Right values and "left" key for Left values.
+//
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //

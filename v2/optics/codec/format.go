@@ -5,8 +5,9 @@ import (
 	"log/slog"
 )
 
-// String implements the fmt.Stringer interface for typeImpl.
-// It returns the name of the type, which is used for simple string representation.
+// String implements the fmt.Stringer interface for Type.
+// Returns the name of the type for debugging and display purposes.
+// The exact format is not a stable contract and may change across versions.
 //
 // Example:
 //
@@ -16,11 +17,13 @@ func (t Type[A, O, I]) String() string {
 	return t.name
 }
 
-// Format implements the fmt.Formatter interface for typeImpl.
+// Format implements the fmt.Formatter interface for Type.
 // It provides custom formatting based on the format verb:
 //   - %s, %v: Returns the type name
 //   - %q: Returns the type name in quotes
 //   - other verbs: Returns the type name
+//
+// The exact output format is not a stable contract and may change across versions.
 func (t Type[A, O, I]) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 'q':
@@ -30,12 +33,9 @@ func (t Type[A, O, I]) Format(f fmt.State, verb rune) {
 	}
 }
 
-// LogValue implements the slog.LogValuer interface for typeImpl.
-// It provides structured logging representation of the codec type.
-// Returns a slog.Value containing the type information as a group with
-// the codec name and type parameters.
-//
-// This method is called automatically when logging a codec with slog.
+// LogValue implements the slog.LogValuer interface for Type.
+// Returns a slog.Value containing the type name for structured logging.
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //

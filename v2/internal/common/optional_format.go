@@ -27,6 +27,7 @@ import (
 // single compiled copy is shared across all Optional[S, A] instantiations.
 
 // String returns the name of the optional for debugging and display purposes.
+// The exact format is not a stable contract and may change across versions.
 //
 // Example:
 //
@@ -40,7 +41,7 @@ func (o optionalTag) String() string {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation (optional name)
 //
-
+// The exact output format is not a stable contract and may change across versions.
 func (o optionalTag) Format(f fmt.State, c rune) {
 	switch c {
 	case 'q':
@@ -53,6 +54,8 @@ func (o optionalTag) Format(f fmt.State, c rune) {
 // LogValue implements slog.LogValuer for Optional.
 // Returns a slog.Value that represents the Optional for structured logging.
 // Logs the optional name as a string value.
+//
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //

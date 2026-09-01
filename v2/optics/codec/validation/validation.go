@@ -30,15 +30,16 @@ func (v *ValidationError) Unwrap() error {
 	return v.Cause
 }
 
-// String returns a simple string representation of the validation error.
-// Returns the error message prefixed with "ValidationError: ".
+// String returns a string representation of the validation error.
+// The exact format is not a stable contract and may change across versions.
 func (v *ValidationError) String() string {
 	return fmt.Sprintf("ValidationError: %s", v.Messsage)
 }
 
 // Format implements fmt.Formatter for custom formatting of ValidationError.
 // It includes the context path, message, and optionally the cause error.
-// Supports verbs: %s, %v, %+v (with additional details)
+// Supports verbs: %s, %v, %+v (with additional details).
+// The exact output format is not a stable contract and may change across versions.
 func (v *ValidationError) Format(s fmt.State, verb rune) {
 	var result strings.Builder
 
@@ -82,11 +83,8 @@ func (v *ValidationError) Format(s fmt.State, verb rune) {
 }
 
 // LogValue implements the slog.LogValuer interface for ValidationError.
-// It provides structured logging representation of the validation error.
-// Returns a slog.Value containing the error details as a group with
-// message, value, context path, and optional cause.
-//
-// This method is called automatically when logging a ValidationError with slog.
+// Returns a slog.Value containing the error details as a group.
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //
@@ -169,8 +167,8 @@ func (ve *validationErrors) Errors() []error {
 	return A.MonadMap(ve.errors, toError)
 }
 
-// String returns a simple string representation of all validation errors.
-// Each error is listed on a separate line with its index.
+// String returns a string representation of all validation errors.
+// The exact format is not a stable contract and may change across versions.
 func (ve *validationErrors) String() string {
 	if len(ve.errors) == 0 {
 		return "ValidationErrors: no errors"
@@ -190,9 +188,8 @@ func (ve *validationErrors) String() string {
 }
 
 // Format implements fmt.Formatter for custom formatting of ValidationErrors.
-// Supports verbs: %s, %v, %+v (with additional details)
-// %s and %v: compact format with error count
-// %+v: verbose format with all error details
+// Supports verbs: %s, %v, %+v (with additional details).
+// The exact output format is not a stable contract and may change across versions.
 func (ve *validationErrors) Format(s fmt.State, verb rune) {
 	if len(ve.errors) == 0 {
 		fmt.Fprint(s, "ValidationErrors: no errors")
@@ -225,10 +222,8 @@ func (ve *validationErrors) Format(s fmt.State, verb rune) {
 }
 
 // LogValue implements the slog.LogValuer interface for ValidationErrors.
-// It provides structured logging representation of multiple validation errors.
 // Returns a slog.Value containing the error count and individual errors as a group.
-//
-// This method is called automatically when logging ValidationErrors with slog.
+// The exact structure of the returned slog.Value is not a stable contract and may change across versions.
 //
 // Example:
 //

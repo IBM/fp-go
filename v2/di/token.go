@@ -92,6 +92,8 @@ func (t *token[T]) Flag() int {
 	return t.base.flag
 }
 
+// String returns the name of the token for debugging and display purposes.
+// The exact format is not a stable contract and may change across versions.
 func (t *token[T]) String() string {
 	return t.base.name
 }
