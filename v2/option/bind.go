@@ -16,9 +16,11 @@
 package option
 
 import (
+	"github.com/IBM/fp-go/v2/function"
 	A "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	F "github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/internal/common"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.
@@ -147,4 +149,116 @@ func ApS[S1, S2, T any](
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches an Option value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// The lens parameter provides both the getter and setter for a field of type T
+// within a structure of type S. This eliminates the need to manually write setter functions.
+//
+// Type Parameters:
+//   - S: The structure type
+//   - T: The field type focused by the lens
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - fa: An Option containing the value to set into the focused field
+//
+// See Also:
+//   - ApS: The general version that takes an explicit setter function
+//   - BindL: The monadic version where the value depends on the current field
+func ApSL[S, T any](
+	lens L.Lens[S, T],
+	fa Option[T],
+) Operator[S, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL attaches the result of a computation to a context using a lens-based setter.
+// This is a convenience function that combines Bind with a lens, allowing you to use
+// optics to update nested structures based on their current values.
+//
+// The lens parameter provides both the getter and setter for a field of type T
+// within a structure of type S. The computation function f receives the current value
+// of the focused field and returns an Option that produces the new value.
+//
+// Unlike ApSL, BindL uses monadic sequencing — the computation f can depend on
+// the current value of the focused field.
+//
+// Type Parameters:
+//   - S: The structure type
+//   - T: The field type focused by the lens
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - f: A Kleisli arrow from the current field value to a new Option field value
+//
+// See Also:
+//   - ApSL: The applicative version that ignores the current field value
+//   - LetL: The pure version that never returns None
+func BindL[S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[T, T],
+) Operator[S, S] {
+	return Bind(lens.Set, function.Flow2(lens.Get, f))
+}
+
+// LetL attaches the result of a pure computation to a context using a lens-based setter.
+// This is a convenience function that combines Let with a lens, allowing you to use
+// optics to update nested structures with pure transformations.
+//
+// The lens parameter provides both the getter and setter for a field of type T
+// within a structure of type S. The transformation function f receives the current value
+// of the focused field and returns the new value directly (not wrapped in Option).
+//
+// This is useful for pure transformations that cannot fail, such as mathematical operations
+// or string manipulations.
+//
+// Type Parameters:
+//   - S: The structure type
+//   - T: The field type focused by the lens
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - f: A pure endomorphism on the field type T
+//
+// See Also:
+//   - BindL: The monadic version that can return None
+//   - LetToL: The version that sets a constant value
+func LetL[S, T any](
+	lens L.Lens[S, T],
+	f Endomorphism[T],
+) Operator[S, S] {
+	return Let(lens.Set, function.Flow2(lens.Get, f))
+}
+
+// LetToL attaches a constant value to a context using a lens-based setter.
+// This is a convenience function that combines LetTo with a lens, allowing you to use
+// optics to set nested fields to specific constant values.
+//
+// The lens parameter provides the setter for a field of type T within a structure of type S.
+// Unlike LetL which transforms the current value, LetToL simply replaces it with
+// the provided constant value b.
+//
+// This is useful for resetting fields, initializing values, or setting fields to
+// predetermined constants.
+//
+// Type Parameters:
+//   - S: The structure type
+//   - T: The field type focused by the lens
+//
+// Parameters:
+//   - lens: A lens that focuses on a field within the structure S
+//   - b: The constant value to set the field to
+//
+// See Also:
+//   - LetL: The version that transforms the current value
+//   - ApSL: The applicative version for Option values
+func LetToL[S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Operator[S, S] {
+	return LetTo(lens.Set, b)
 }

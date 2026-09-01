@@ -54,5 +54,5 @@ func ExampleTraversable() {
 	fmt.Println(res(context.Background())())
 
 	// Output:
-	// Right[[]option.Option[int]]([Some[int](1) Some[int](2)])
+	// Right[[]common.Option[int]]([Some[int](1) Some[int](2)])
 }

@@ -103,7 +103,7 @@ func TestFormatInterface(t *testing.T) {
 	t.Run("Some value with %T", func(t *testing.T) {
 		opt := OptionSome(42)
 		result := fmt.Sprintf("%T", opt)
-		assert.Contains(t, result, "option.Option")
+		assert.Contains(t, result, "Option")
 	})
 }
 
@@ -209,7 +209,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%v", []string{"Some", "42"}},
 			{"%+v", []string{"Some", "42"}},
 			{"%#v", []string{"Some", "42"}},
-			{"%T", []string{"option.Option"}},
+			{"%T", []string{"Option"}},
 		}
 
 		for _, tt := range tests {
@@ -233,7 +233,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%v", []string{"None", "int"}},
 			{"%+v", []string{"None", "int"}},
 			{"%#v", []string{"None", "int"}},
-			{"%T", []string{"option.Option"}},
+			{"%T", []string{"Option"}},
 		}
 
 		for _, tt := range tests {

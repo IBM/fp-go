@@ -19,8 +19,21 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	"github.com/stretchr/testify/assert"
+)
+
+// testCounter is a simple struct used in lens-based operation tests.
+type testCounter struct {
+	Value int
+	Name  string
+}
+
+// counterValueLens focuses on the Value field of testCounter.
+var counterValueLens = L.MakeLens(
+	func(c testCounter) int { return c.Value },
+	func(c testCounter, v int) testCounter { c.Value = v; return c },
 )
 
 func getLastName(s utils.Initial) Option[string] {
@@ -41,6 +54,103 @@ func TestBind(t *testing.T) {
 	)
 
 	assert.Equal(t, res, Of("John Doe"))
+}
+
+func TestApSL(t *testing.T) {
+	t.Run("Some struct, Some value - sets field", func(t *testing.T) {
+		res := F.Pipe1(
+			Do(testCounter{Name: "test"}),
+			ApSL(counterValueLens, Some(42)),
+		)
+		assert.Equal(t, Some(testCounter{Value: 42, Name: "test"}), res)
+	})
+
+	t.Run("Some struct, None value - returns None", func(t *testing.T) {
+		res := F.Pipe1(
+			Do(testCounter{Value: 10, Name: "test"}),
+			ApSL(counterValueLens, None[int]()),
+		)
+		assert.Equal(t, None[testCounter](), res)
+	})
+
+	t.Run("None struct, Some value - returns None", func(t *testing.T) {
+		res := F.Pipe1(
+			None[testCounter](),
+			ApSL(counterValueLens, Some(42)),
+		)
+		assert.Equal(t, None[testCounter](), res)
+	})
+}
+
+func TestBindL(t *testing.T) {
+	increment := func(v int) Option[int] {
+		if v < 100 {
+			return Some(v + 1)
+		}
+		return None[int]()
+	}
+
+	t.Run("increments field value", func(t *testing.T) {
+		res := F.Pipe1(
+			Some(testCounter{Value: 42, Name: "test"}),
+			BindL(counterValueLens, increment),
+		)
+		assert.Equal(t, Some(testCounter{Value: 43, Name: "test"}), res)
+	})
+
+	t.Run("returns None when computation fails", func(t *testing.T) {
+		res := F.Pipe1(
+			Some(testCounter{Value: 100, Name: "test"}),
+			BindL(counterValueLens, increment),
+		)
+		assert.Equal(t, None[testCounter](), res)
+	})
+
+	t.Run("returns None for None input", func(t *testing.T) {
+		res := F.Pipe1(
+			None[testCounter](),
+			BindL(counterValueLens, increment),
+		)
+		assert.Equal(t, None[testCounter](), res)
+	})
+}
+
+func TestLetL(t *testing.T) {
+	double := func(v int) int { return v * 2 }
+
+	t.Run("doubles field value", func(t *testing.T) {
+		res := F.Pipe1(
+			Some(testCounter{Value: 21, Name: "test"}),
+			LetL(counterValueLens, double),
+		)
+		assert.Equal(t, Some(testCounter{Value: 42, Name: "test"}), res)
+	})
+
+	t.Run("returns None for None input", func(t *testing.T) {
+		res := F.Pipe1(
+			None[testCounter](),
+			LetL(counterValueLens, double),
+		)
+		assert.Equal(t, None[testCounter](), res)
+	})
+}
+
+func TestLetToL(t *testing.T) {
+	t.Run("sets field to constant value", func(t *testing.T) {
+		res := F.Pipe1(
+			Some(testCounter{Value: 42, Name: "test"}),
+			LetToL(counterValueLens, 100),
+		)
+		assert.Equal(t, Some(testCounter{Value: 100, Name: "test"}), res)
+	})
+
+	t.Run("returns None for None input", func(t *testing.T) {
+		res := F.Pipe1(
+			None[testCounter](),
+			LetToL(counterValueLens, 100),
+		)
+		assert.Equal(t, None[testCounter](), res)
+	})
 }
 
 func TestApS(t *testing.T) {

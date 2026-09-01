@@ -100,5 +100,5 @@ func Example_solution_12c() {
 	fmt.Println(readFirst())
 
 	// Output:
-	// Right[option.Option[string]](Some[string](content of file1 (utf-8)))
+	// Right[common.Option[string]](Some[string](content of file1 (utf-8)))
 }

@@ -100,7 +100,9 @@ type (
 )
 
 // String implements fmt.Stringer for Option.
-// Returns a human-readable string representation.
+// Returns a human-readable string representation intended for debugging and
+// logging. The exact format, including any package-path prefix that appears
+// in %T output, is not a stable contract and may change across versions.
 //
 // Example:
 //

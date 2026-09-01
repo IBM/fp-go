@@ -54,6 +54,10 @@ func (s Option[A]) LogValue() slog.Value {
 // Supports all standard format verbs:
 //   - %s, %v, %+v, %q, and all other verbs: uses String() representation
 //
+// Note: the %T verb is handled by the Go runtime directly and reflects the
+// concrete internal type name (e.g. common.Option[int]). This output is
+// intended for debugging only and is not a stable contract.
+//
 
 func (s Option[A]) Format(f fmt.State, c rune) {
 	switch c {
