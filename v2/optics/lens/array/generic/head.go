@@ -17,7 +17,7 @@ package generic
 
 import (
 	AA "github.com/IBM/fp-go/v2/array/generic"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
 )
 

@@ -19,7 +19,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	RRI "github.com/IBM/fp-go/v2/idiomatic/readerresult"
 	RI "github.com/IBM/fp-go/v2/idiomatic/result"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/reader"
 	G "github.com/IBM/fp-go/v2/readereither/generic"
 	"github.com/IBM/fp-go/v2/result"

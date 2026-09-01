@@ -24,7 +24,7 @@ import (
 	RRI "github.com/IBM/fp-go/v2/idiomatic/readerresult"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )

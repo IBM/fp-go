@@ -17,7 +17,7 @@ package lens
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	LO "github.com/IBM/fp-go/v2/optics/lens/optional"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 )

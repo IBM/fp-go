@@ -21,7 +21,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	RES "github.com/IBM/fp-go/v2/result"
 )
 

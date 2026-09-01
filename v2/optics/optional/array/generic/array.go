@@ -21,7 +21,7 @@ import (
 	AR "github.com/IBM/fp-go/v2/array/generic"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	OP "github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 )

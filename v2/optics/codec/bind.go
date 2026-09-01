@@ -21,7 +21,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/optics/codec/validate"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/semigroup"
@@ -61,7 +61,7 @@ import (
 //	    "github.com/IBM/fp-go/v2/function"
 //	    "github.com/IBM/fp-go/v2/lazy"
 //	    "github.com/IBM/fp-go/v2/optics/codec"
-//	    "github.com/IBM/fp-go/v2/optics/common"
+//	    "github.com/IBM/fp-go/v2/internal/common"
 //	    "github.com/IBM/fp-go/v2/pair"
 //	    S "github.com/IBM/fp-go/v2/string"
 //	)
@@ -153,7 +153,7 @@ func Do[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
 //
 //	import (
 //	    "github.com/IBM/fp-go/v2/optics/codec"
-//	    "github.com/IBM/fp-go/v2/optics/common"
+//	    "github.com/IBM/fp-go/v2/internal/common"
 //	    S "github.com/IBM/fp-go/v2/string"
 //	)
 //
@@ -441,7 +441,7 @@ func ApSO[S, T, O, I any](
 //
 //	import (
 //	    "github.com/IBM/fp-go/v2/optics/codec"
-//	    "github.com/IBM/fp-go/v2/optics/common"
+//	    "github.com/IBM/fp-go/v2/internal/common"
 //	    S "github.com/IBM/fp-go/v2/string"
 //	)
 //

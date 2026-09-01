@@ -87,7 +87,7 @@ import (
 	H "github.com/IBM/fp-go/v2/http/headers"
 	J "github.com/IBM/fp-go/v2/json"
 	LZ "github.com/IBM/fp-go/v2/lazy"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/record"
 	"github.com/IBM/fp-go/v2/result"

@@ -20,7 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	I "github.com/IBM/fp-go/v2/identity"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
 	RR "github.com/IBM/fp-go/v2/record/generic"
 )

@@ -3,7 +3,7 @@ package optional
 import (
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 )
 
 func AsTraversal[R ~func(func(A) HKTA) func(S) HKTS, S, A, HKTS, HKTA any](

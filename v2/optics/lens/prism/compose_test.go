@@ -20,7 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/assert"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
 )

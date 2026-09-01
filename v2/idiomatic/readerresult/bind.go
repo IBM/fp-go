@@ -23,7 +23,7 @@ import (
 	FE "github.com/IBM/fp-go/v2/internal/fromeither"
 	FR "github.com/IBM/fp-go/v2/internal/fromreader"
 	FC "github.com/IBM/fp-go/v2/internal/functor"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/reader"
 	RES "github.com/IBM/fp-go/v2/result"
 )

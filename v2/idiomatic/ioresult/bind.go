@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/apply"
 	"github.com/IBM/fp-go/v2/internal/chain"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 )
 
 // Do starts a do-notation computation with an initial state.

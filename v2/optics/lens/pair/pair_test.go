@@ -20,7 +20,7 @@ import (
 
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"

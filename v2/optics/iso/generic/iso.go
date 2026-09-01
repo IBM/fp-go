@@ -3,7 +3,7 @@ package generic
 import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 )
 
 // AsTraversal converts a iso to a traversal

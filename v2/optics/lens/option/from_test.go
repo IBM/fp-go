@@ -21,7 +21,7 @@ import (
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	ISO "github.com/IBM/fp-go/v2/optics/iso"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	O "github.com/IBM/fp-go/v2/option"

@@ -18,7 +18,7 @@ package iso
 
 import (
 	EM "github.com/IBM/fp-go/v2/endomorphism"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 )
 
 // MakeIso constructs an isomorphism from two functions.

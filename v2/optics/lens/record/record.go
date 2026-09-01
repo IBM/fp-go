@@ -16,7 +16,7 @@
 package record
 
 import (
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	G "github.com/IBM/fp-go/v2/optics/lens/record/generic"
 	O "github.com/IBM/fp-go/v2/option"
 )

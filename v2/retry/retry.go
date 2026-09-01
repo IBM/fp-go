@@ -58,7 +58,7 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 )

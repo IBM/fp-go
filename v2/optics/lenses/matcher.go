@@ -16,7 +16,7 @@
 package lenses
 
 import (
-	__lens "github.com/IBM/fp-go/v2/optics/common"
+	__lens "github.com/IBM/fp-go/v2/internal/common"
 	__iso_option "github.com/IBM/fp-go/v2/optics/iso/option"
 	__lens_option "github.com/IBM/fp-go/v2/optics/lens/option"
 	__prism "github.com/IBM/fp-go/v2/optics/prism"

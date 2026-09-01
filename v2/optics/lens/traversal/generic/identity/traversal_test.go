@@ -21,7 +21,7 @@ import (
 
 	AR "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	AI "github.com/IBM/fp-go/v2/optics/traversal/array/identity"
 	"github.com/stretchr/testify/assert"
 )

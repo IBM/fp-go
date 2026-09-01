@@ -22,7 +22,7 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"

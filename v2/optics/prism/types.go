@@ -18,7 +18,7 @@ package prism
 import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"

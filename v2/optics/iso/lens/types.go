@@ -6,7 +6,7 @@
 package lens
 
 import (
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 )
 
 type (

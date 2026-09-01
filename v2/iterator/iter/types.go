@@ -24,7 +24,7 @@ import (
 	"github.com/IBM/fp-go/v2/iooption"
 	"github.com/IBM/fp-go/v2/iterator/stateless"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"

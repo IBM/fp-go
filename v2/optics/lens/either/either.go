@@ -17,7 +17,7 @@ package either
 
 import (
 	ET "github.com/IBM/fp-go/v2/either"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	LG "github.com/IBM/fp-go/v2/optics/lens/generic"
 	T "github.com/IBM/fp-go/v2/optics/traversal/either"
 )

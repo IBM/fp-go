@@ -24,7 +24,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/utils"
 	M "github.com/IBM/fp-go/v2/monoid"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 )

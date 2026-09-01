@@ -5,7 +5,7 @@ package lens
 // 2026-01-29 10:07:27.7545248 +0100 CET m=+0.002646001
 
 import (
-	__lens "github.com/IBM/fp-go/v2/optics/common"
+	__lens "github.com/IBM/fp-go/v2/internal/common"
 	__iso_option "github.com/IBM/fp-go/v2/optics/iso/option"
 	__lens_option "github.com/IBM/fp-go/v2/optics/lens/option"
 	option "github.com/IBM/fp-go/v2/optics/lens/option"

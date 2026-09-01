@@ -17,7 +17,7 @@ package option
 
 import (
 	"github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.

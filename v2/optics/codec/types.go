@@ -8,7 +8,7 @@ import (
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/decode"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
 	"github.com/IBM/fp-go/v2/option"

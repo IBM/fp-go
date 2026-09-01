@@ -20,7 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/eq"
 	N "github.com/IBM/fp-go/v2/number"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/stretchr/testify/assert"
 )
 

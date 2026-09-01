@@ -4,7 +4,7 @@ package builder
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 )
 
 //go:generate go run ../../main.go lens --dir . --filename gen_lens.go

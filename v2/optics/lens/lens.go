@@ -19,7 +19,7 @@ package lens
 import (
 	EQ "github.com/IBM/fp-go/v2/eq"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 )
 
 // MakeLens creates a [Lens] based on a getter and a setter F.

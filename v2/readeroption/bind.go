@@ -17,7 +17,7 @@ package readeroption
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	G "github.com/IBM/fp-go/v2/readeroption/generic"
 )
 

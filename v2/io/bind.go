@@ -20,7 +20,7 @@ import (
 	INTA "github.com/IBM/fp-go/v2/internal/apply"
 	INTC "github.com/IBM/fp-go/v2/internal/chain"
 	INTF "github.com/IBM/fp-go/v2/internal/functor"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.

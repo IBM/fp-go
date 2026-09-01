@@ -7,7 +7,7 @@ import (
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 )

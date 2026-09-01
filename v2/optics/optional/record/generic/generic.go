@@ -16,7 +16,7 @@
 package generic
 
 import (
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	OP "github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 	RR "github.com/IBM/fp-go/v2/record/generic"

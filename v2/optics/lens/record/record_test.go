@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	L "github.com/IBM/fp-go/v2/optics/common"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )

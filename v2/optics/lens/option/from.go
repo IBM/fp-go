@@ -2,7 +2,7 @@ package option
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/common"
+	"github.com/IBM/fp-go/v2/internal/common"
 	LI "github.com/IBM/fp-go/v2/optics/lens/iso"
 	O "github.com/IBM/fp-go/v2/option"
 )

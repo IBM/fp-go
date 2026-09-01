@@ -20,7 +20,7 @@ package option
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/option"
 )
 

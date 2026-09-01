@@ -17,7 +17,7 @@ package optional
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
-	C "github.com/IBM/fp-go/v2/optics/common"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 )
