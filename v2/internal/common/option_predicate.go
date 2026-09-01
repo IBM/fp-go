@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package option
+package common
 
-import "github.com/IBM/fp-go/v2/internal/common"
-
-// Exists creates a predicate that tests whether an Option value is Some and its value satisfies the given predicate.
+// OptionExists creates a predicate that tests whether an Option value is Some and its value satisfies the given predicate.
 // It returns a function that takes an Option[T] and returns true only if the Option is Some and the predicate p
 // returns true for the contained value.
 //
@@ -49,7 +47,7 @@ import "github.com/IBM/fp-go/v2/internal/common"
 //
 //	// Check if Option contains a positive number
 //	isPositive := N.MoreThan(0)
-//	hasPositive := O.Exists(isPositive)
+//	hasPositive := O.OptionExists(isPositive)
 //
 //	result1 := hasPositive(O.Some(5))
 //	// result1 = true (Some with positive value)
@@ -76,11 +74,13 @@ import "github.com/IBM/fp-go/v2/internal/common"
 // See Also:
 //   - Filter: Converts Some values that fail a predicate to None
 //   - IsSome: Tests if Option is Some without checking the value
-func Exists[T any](p Predicate[T]) Predicate[Option[T]] {
-	return common.OptionExists(p)
+func OptionExists[T any](p Predicate[T]) Predicate[Option[T]] {
+	return func(o Option[T]) bool {
+		return o.s && p(o.a)
+	}
 }
 
-// ForAll creates a predicate that tests whether an Option value is None or its Some value satisfies the given predicate.
+// OptionForAll creates a predicate that tests whether an Option value is None or its Some value satisfies the given predicate.
 // It returns a function that takes an Option[T] and returns true if the Option is None (regardless of content)
 // or if it's Some and the predicate p returns true for the contained value.
 //
@@ -102,18 +102,18 @@ func Exists[T any](p Predicate[T]) Predicate[Option[T]] {
 //	all p Nothing   = True
 //
 // From a category theory perspective, Option[T] is a sum type representing optional values.
-// ForAll implements a natural transformation from predicates on T to predicates on Option[T],
+// OptionForAll implements a natural transformation from predicates on T to predicates on Option[T],
 // preserving the logical structure where:
 //   - The None case represents the "empty" or "absent" case
 //   - The Some case represents the "present" case that must satisfy the predicate
 //
 // This is dual to Exists, which implements existential quantification:
-//   - ForAll: "all elements satisfy p" (true for empty, requires p for non-empty)
+//   - OptionForAll: "all elements satisfy p" (true for empty, requires p for non-empty)
 //   - Exists: "some element satisfies p" (false for empty, requires p for non-empty)
 //
 // The relationship follows De Morgan's laws:
-//   - ForAll(p) ≡ not(Exists(not(p)))
-//   - Exists(p) ≡ not(ForAll(not(p)))
+//   - OptionForAll(p) ≡ not(Exists(not(p)))
+//   - Exists(p) ≡ not(OptionForAll(not(p)))
 //
 // Type Parameters:
 //   - T: The type of the value contained in the Option
@@ -134,7 +134,7 @@ func Exists[T any](p Predicate[T]) Predicate[Option[T]] {
 //
 //	// Check if Option is None or contains a positive number
 //	isPositive := N.MoreThan(0)
-//	allPositive := O.ForAll(isPositive)
+//	allPositive := O.OptionForAll(isPositive)
 //
 //	result1 := allPositive(O.Some(5))
 //	// result1 = true (Some with positive value satisfies predicate)
@@ -170,6 +170,8 @@ func Exists[T any](p Predicate[T]) Predicate[Option[T]] {
 //   - Exists: Tests if Option is Some and satisfies a predicate (existential quantification)
 //   - Filter: Converts Some values that fail a predicate to None
 //   - IsSome: Tests if Option is Some without checking the value
-func ForAll[T any](p Predicate[T]) Predicate[Option[T]] {
-	return common.OptionForAll(p)
+func OptionForAll[T any](p Predicate[T]) Predicate[Option[T]] {
+	return func(o Option[T]) bool {
+		return !o.s || p(o.a)
+	}
 }

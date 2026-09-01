@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package option
+package common
 
 import (
 	"bytes"
@@ -26,25 +26,25 @@ import (
 
 func TestString(t *testing.T) {
 	t.Run("Some value", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		result := opt.String()
 		assert.Equal(t, "Some[int](42)", result)
 	})
 
 	t.Run("None value", func(t *testing.T) {
-		opt := None[int]()
+		opt := OptionNone[int]()
 		result := opt.String()
 		assert.Equal(t, "None[int]", result)
 	})
 
 	t.Run("Some with string", func(t *testing.T) {
-		opt := Some("hello")
+		opt := OptionSome("hello")
 		result := opt.String()
 		assert.Equal(t, "Some[string](hello)", result)
 	})
 
 	t.Run("None with string", func(t *testing.T) {
-		opt := None[string]()
+		opt := OptionNone[string]()
 		result := opt.String()
 		assert.Equal(t, "None[string]", result)
 	})
@@ -52,56 +52,56 @@ func TestString(t *testing.T) {
 
 func TestFormatInterface(t *testing.T) {
 	t.Run("Some value with %s", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		result := fmt.Sprintf("%s", opt)
 		assert.Equal(t, "Some[int](42)", result)
 	})
 
 	t.Run("None value with %s", func(t *testing.T) {
-		opt := None[int]()
+		opt := OptionNone[int]()
 		result := fmt.Sprintf("%s", opt)
 		assert.Equal(t, "None[int]", result)
 	})
 
 	t.Run("Some value with %v", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		result := fmt.Sprintf("%v", opt)
 		assert.Equal(t, "Some[int](42)", result)
 	})
 
 	t.Run("None value with %v", func(t *testing.T) {
-		opt := None[string]()
+		opt := OptionNone[string]()
 		result := fmt.Sprintf("%v", opt)
 		assert.Equal(t, "None[string]", result)
 	})
 
 	t.Run("Some value with %+v", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		result := fmt.Sprintf("%+v", opt)
 		assert.Contains(t, result, "Some")
 		assert.Contains(t, result, "42")
 	})
 
 	t.Run("Some value with %#v", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		result := fmt.Sprintf("%#v", opt)
 		assert.Equal(t, "Some[int](42)", result)
 	})
 
 	t.Run("None value with %#v", func(t *testing.T) {
-		opt := None[int]()
+		opt := OptionNone[int]()
 		result := fmt.Sprintf("%#v", opt)
 		assert.Equal(t, "None[int]", result)
 	})
 
 	t.Run("Some value with %q", func(t *testing.T) {
-		opt := Some("hello")
+		opt := OptionSome("hello")
 		result := fmt.Sprintf("%q", opt)
 		assert.Contains(t, result, "Some")
 	})
 
 	t.Run("Some value with %T", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		result := fmt.Sprintf("%T", opt)
 		assert.Contains(t, result, "option.Option")
 	})
@@ -109,7 +109,7 @@ func TestFormatInterface(t *testing.T) {
 
 func TestLogValue(t *testing.T) {
 	t.Run("Some value", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 		logValue := opt.LogValue()
 
 		// Should be a group value
@@ -123,7 +123,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("None value", func(t *testing.T) {
-		opt := None[int]()
+		opt := OptionNone[int]()
 		logValue := opt.LogValue()
 
 		// Should be a group value
@@ -138,7 +138,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("Some with string", func(t *testing.T) {
-		opt := Some("success")
+		opt := OptionSome("success")
 		logValue := opt.LogValue()
 
 		// Should be a group value
@@ -152,7 +152,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("None with string", func(t *testing.T) {
-		opt := None[string]()
+		opt := OptionNone[string]()
 		logValue := opt.LogValue()
 
 		// Should be a group value
@@ -171,7 +171,7 @@ func TestLogValue(t *testing.T) {
 			Level: slog.LevelInfo,
 		}))
 
-		opt := Some(42)
+		opt := OptionSome(42)
 		logger.Info("test message", "result", opt)
 
 		output := buf.String()
@@ -187,7 +187,7 @@ func TestLogValue(t *testing.T) {
 			Level: slog.LevelInfo,
 		}))
 
-		opt := None[int]()
+		opt := OptionNone[int]()
 		logger.Info("test message", "result", opt)
 
 		output := buf.String()
@@ -199,7 +199,7 @@ func TestLogValue(t *testing.T) {
 
 func TestFormatComprehensive(t *testing.T) {
 	t.Run("All format verbs for Some", func(t *testing.T) {
-		opt := Some(42)
+		opt := OptionSome(42)
 
 		tests := []struct {
 			verb     string
@@ -223,7 +223,7 @@ func TestFormatComprehensive(t *testing.T) {
 	})
 
 	t.Run("All format verbs for None", func(t *testing.T) {
-		opt := None[int]()
+		opt := OptionNone[int]()
 
 		tests := []struct {
 			verb     string
@@ -249,17 +249,17 @@ func TestFormatComprehensive(t *testing.T) {
 
 func TestInterfaceImplementations(t *testing.T) {
 	t.Run("fmt.Stringer interface", func(t *testing.T) {
-		var _ fmt.Stringer = Some(42)
-		var _ fmt.Stringer = None[int]()
+		var _ fmt.Stringer = OptionSome(42)
+		var _ fmt.Stringer = OptionNone[int]()
 	})
 
 	t.Run("fmt.Formatter interface", func(t *testing.T) {
-		var _ fmt.Formatter = Some(42)
-		var _ fmt.Formatter = None[int]()
+		var _ fmt.Formatter = OptionSome(42)
+		var _ fmt.Formatter = OptionNone[int]()
 	})
 
 	t.Run("slog.LogValuer interface", func(t *testing.T) {
-		var _ slog.LogValuer = Some(42)
-		var _ slog.LogValuer = None[int]()
+		var _ slog.LogValuer = OptionSome(42)
+		var _ slog.LogValuer = OptionNone[int]()
 	})
 }

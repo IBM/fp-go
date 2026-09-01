@@ -16,14 +16,7 @@
 package option
 
 import (
-	"bytes"
-	"encoding/json"
-	"reflect"
-)
-
-var (
-	// jsonNull is the cached representation of the `null` serialization in JSON
-	jsonNull = []byte("null")
+	"github.com/IBM/fp-go/v2/internal/common"
 )
 
 // Option defines a data structure that logically holds a value or not.
@@ -37,56 +30,13 @@ var (
 //
 //	var opt Option[int] = Some(42)  // Contains a value
 //	var opt Option[int] = None[int]() // Contains no value
-type Option[A any] struct {
-	a A
-	s bool
-}
 
 type (
-	Kleisli[A, B any]  = func(A) Option[B]
-	Operator[A, B any] = Kleisli[Option[A], B]
-	KleisliI[A, B any] = func(A) (B, bool)
+	Option[A any]      = common.Option[A]
+	Kleisli[A, B any]  = common.OptionKleisli[A, B]
+	Operator[A, B any] = common.OptionOperator[A, B]
+	KleisliI[A, B any] = common.OptionKleisliI[A, B]
 )
-
-// String implements fmt.Stringer for Option.
-// Returns a human-readable string representation.
-//
-// Example:
-//
-//	Some(42).String() // "Some[int](42)"
-//	None[int]().String() // "None[int]"
-func (s Option[A]) String() string {
-	return optString(s.s, s.a)
-}
-
-func optMarshalJSON(isSome bool, value any) ([]byte, error) {
-	if isSome {
-		return json.Marshal(value)
-	}
-	return jsonNull, nil
-}
-
-func (s Option[A]) MarshalJSON() ([]byte, error) {
-	return optMarshalJSON(s.s, s.a)
-}
-
-// optUnmarshalJSON unmarshals the [Option] from a JSON string
-//
-
-func optUnmarshalJSON(isSome *bool, value any, data []byte) error {
-	// decode the value
-	if bytes.Equal(data, jsonNull) {
-		*isSome = false
-		reflect.ValueOf(value).Elem().SetZero()
-		return nil
-	}
-	*isSome = true
-	return json.Unmarshal(data, value)
-}
-
-func (s *Option[A]) UnmarshalJSON(data []byte) error {
-	return optUnmarshalJSON(&s.s, &s.a, data)
-}
 
 // IsNone checks if an Option is None (contains no value).
 //
@@ -99,7 +49,7 @@ func (s *Option[A]) UnmarshalJSON(data []byte) error {
 //
 //go:inline
 func IsNone[T any](val Option[T]) bool {
-	return !val.s
+	return common.OptionIsNone(val)
 }
 
 // Some creates an Option that contains a value.
@@ -111,7 +61,7 @@ func IsNone[T any](val Option[T]) bool {
 //
 //go:inline
 func Some[T any](value T) Option[T] {
-	return Option[T]{s: true, a: value}
+	return common.OptionSome(value)
 }
 
 // Of creates an Option that contains a value.
@@ -123,7 +73,7 @@ func Some[T any](value T) Option[T] {
 //
 //go:inline
 func Of[T any](value T) Option[T] {
-	return Some(value)
+	return common.OptionOf(value)
 }
 
 // None creates an Option that contains no value.
@@ -135,7 +85,7 @@ func Of[T any](value T) Option[T] {
 //
 //go:inline
 func None[T any]() Option[T] {
-	return Option[T]{}
+	return common.OptionNone[T]()
 }
 
 // IsSome checks if an Option contains a value.
@@ -149,7 +99,7 @@ func None[T any]() Option[T] {
 //
 //go:inline
 func IsSome[T any](val Option[T]) bool {
-	return val.s
+	return common.OptionIsSome(val)
 }
 
 // MonadFold performs a fold operation on an Option.
@@ -164,10 +114,7 @@ func IsSome[T any](val Option[T]) bool {
 //	    func(x int) string { return fmt.Sprintf("value: %d", x) },
 //	) // "value: 42"
 func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
-	if IsSome(ma) {
-		return onSome(ma.a)
-	}
-	return onNone()
+	return common.OptionMonadFold(ma, onNone, onSome)
 }
 
 // Unwrap extracts the value and presence flag from an Option.
@@ -182,5 +129,5 @@ func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
 //
 //go:inline
 func Unwrap[A any](ma Option[A]) (A, bool) {
-	return ma.a, ma.s
+	return common.OptionUnwrap(ma)
 }

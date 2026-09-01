@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,11 +30,11 @@ import (
 
 func makeNameOptional() Optional[Person, string] {
 	return MakeOptional(
-		func(p Person) O.Option[string] {
+		func(p Person) Option[string] {
 			if p.Name != "" {
-				return O.Some(p.Name)
+				return OptionSome(p.Name)
 			}
-			return O.None[string]()
+			return OptionNone[string]()
 		},
 		func(p Person, name string) Person {
 			p.Name = name
@@ -46,11 +45,11 @@ func makeNameOptional() Optional[Person, string] {
 
 func makeFirstCharOptional() Optional[string, rune] {
 	return MakeOptional(
-		func(s string) O.Option[rune] {
+		func(s string) Option[rune] {
 			if len(s) > 0 {
-				return O.Some(rune(s[0]))
+				return OptionSome(rune(s[0]))
 			}
-			return O.None[rune]()
+			return OptionNone[rune]()
 		},
 		func(s string, r rune) string {
 			if len(s) > 0 {
@@ -91,8 +90,8 @@ func TestOptionalCompose_Method_GetOption_Match(t *testing.T) {
 	composed := makeNameOptional().Compose(makeFirstCharOptional())
 
 	got := composed.GetOption(Person{Name: "Alice"})
-	assert.True(t, O.IsSome(got))
-	assert.Equal(t, 'A', O.GetOrElse(F.Constant(rune(0)))(got))
+	assert.True(t, OptionIsSome(got))
+	assert.Equal(t, 'A', OptionGetOrElse(F.Constant(rune(0)))(got))
 }
 
 // TestOptionalCompose_Method_GetOption_OuterNone verifies None is returned when
@@ -100,7 +99,7 @@ func TestOptionalCompose_Method_GetOption_Match(t *testing.T) {
 func TestOptionalCompose_Method_GetOption_OuterNone(t *testing.T) {
 	composed := makeNameOptional().Compose(makeFirstCharOptional())
 
-	assert.True(t, O.IsNone(composed.GetOption(Person{Name: ""})))
+	assert.True(t, OptionIsNone(composed.GetOption(Person{Name: ""})))
 }
 
 // TestOptionalCompose_Method_GetOption_InnerNone verifies None is returned when
@@ -108,12 +107,12 @@ func TestOptionalCompose_Method_GetOption_OuterNone(t *testing.T) {
 func TestOptionalCompose_Method_GetOption_InnerNone(t *testing.T) {
 	// inner optional that always returns None (simulates empty focus)
 	alwaysNone := MakeOptional(
-		func(_ string) O.Option[rune] { return O.None[rune]() },
+		func(_ string) Option[rune] { return OptionNone[rune]() },
 		func(s string, _ rune) string { return s },
 	)
 	composed := makeNameOptional().Compose(alwaysNone)
 
-	assert.True(t, O.IsNone(composed.GetOption(Person{Name: "Alice"})))
+	assert.True(t, OptionIsNone(composed.GetOption(Person{Name: "Alice"})))
 }
 
 // TestOptionalCompose_Method_Set_Match verifies that Set updates the focus when
@@ -152,8 +151,8 @@ func TestOptionalCompose_Method_OptionalLaws(t *testing.T) {
 	t.Run("law SetGet: GetOption==Some => GetOption(Set(b)(s))==Some(b)", func(t *testing.T) {
 		updated := composed.Set('B')(matching)
 		got := composed.GetOption(updated)
-		assert.True(t, O.IsSome(got))
-		assert.Equal(t, 'B', O.GetOrElse(F.Constant(rune(0)))(got))
+		assert.True(t, OptionIsSome(got))
+		assert.Equal(t, 'B', OptionGetOrElse(F.Constant(rune(0)))(got))
 	})
 
 	t.Run("law SetSet: Set(b)(Set(a)(s)) == Set(b)(s)", func(t *testing.T) {
@@ -171,20 +170,20 @@ func TestOptionalCompose_Method_Chained(t *testing.T) {
 	// level 3: *Employment → *Phone  (None when phone is nil)
 	l1 := OptionalFromPredicateRef[Response](F.IsNonNil[Info])((*Response).GetInfo, (*Response).SetInfo)
 	l2 := MakeOptionalRef(
-		func(i *Info) O.Option[*Employment] {
+		func(i *Info) Option[*Employment] {
 			if i.employment != nil {
-				return O.Some(i.employment)
+				return OptionSome(i.employment)
 			}
-			return O.None[*Employment]()
+			return OptionNone[*Employment]()
 		},
 		func(i *Info, e *Employment) *Info { i.employment = e; return i },
 	)
 	l3 := MakeOptionalRef(
-		func(e *Employment) O.Option[*Phone] {
+		func(e *Employment) Option[*Phone] {
 			if e.phone != nil {
-				return O.Some(e.phone)
+				return OptionSome(e.phone)
 			}
-			return O.None[*Phone]()
+			return OptionNone[*Phone]()
 		},
 		func(e *Employment, p *Phone) *Employment { e.phone = p; return e },
 	)
@@ -198,18 +197,18 @@ func TestOptionalCompose_Method_Chained(t *testing.T) {
 
 	t.Run("all three levels present", func(t *testing.T) {
 		got := composed.GetOption(resp)
-		assert.True(t, O.IsSome(got))
-		assert.Equal(t, phone, O.GetOrElse(F.Constant[*Phone](nil))(got))
+		assert.True(t, OptionIsSome(got))
+		assert.Equal(t, phone, OptionGetOrElse(F.Constant[*Phone](nil))(got))
 	})
 
 	t.Run("middle level nil short-circuits", func(t *testing.T) {
 		resp2 := &Response{info: &Info{employment: nil}}
-		assert.True(t, O.IsNone(composed.GetOption(resp2)))
+		assert.True(t, OptionIsNone(composed.GetOption(resp2)))
 	})
 
 	t.Run("outermost level nil short-circuits", func(t *testing.T) {
 		resp3 := &Response{info: nil}
-		assert.True(t, O.IsNone(composed.GetOption(resp3)))
+		assert.True(t, OptionIsNone(composed.GetOption(resp3)))
 	})
 
 	t.Run("Set is no-op when chain breaks", func(t *testing.T) {

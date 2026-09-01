@@ -16,7 +16,7 @@
 package option
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/common"
 )
 
 // TraverseArrayG transforms an array by applying a function that returns an Option to each element.
@@ -32,18 +32,10 @@ import (
 //	}
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
+//
+//go:inline
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
-	return func(g GA) Option[GB] {
-		bs := make(GB, len(g))
-		for i, a := range g {
-			b := f(a)
-			if !b.s {
-				return None[GB]()
-			}
-			bs[i] = b.a
-		}
-		return Some(bs)
-	}
+	return common.OptionTraverseArrayG[GA, GB](f)
 }
 
 // TraverseArray transforms an array by applying a function that returns an Option to each element.
@@ -57,7 +49,7 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //
 //go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
-	return TraverseArrayG[[]A, []B](f)
+	return common.OptionTraverseArray(f)
 }
 
 // TraverseArrayWithIndexG transforms an array by applying an indexed function that returns an Option.
@@ -70,18 +62,10 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //	    return Some(fmt.Sprintf("%d:%s", i, s))
 //	}
 //	result := TraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // Some(["0:a", "1:b"])
+//
+//go:inline
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) Kleisli[GA, GB] {
-	return func(g GA) Option[GB] {
-		bs := make(GB, len(g))
-		for i, a := range g {
-			b := f(i, a)
-			if !b.s {
-				return None[GB]()
-			}
-			bs[i] = b.a
-		}
-		return Some(bs)
-	}
+	return common.OptionTraverseArrayWithIndexG[GA, GB](f)
 }
 
 // TraverseArrayWithIndex transforms an array by applying an indexed function that returns an Option.
@@ -97,7 +81,7 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B
 //
 //go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B] {
-	return TraverseArrayWithIndexG[[]A, []B](f)
+	return common.OptionTraverseArrayWithIndex(f)
 }
 
 // SequenceArrayG converts an array of Options into an Option of an array.
@@ -112,7 +96,7 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B
 //
 //go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
-	return TraverseArrayG[GOA, GA](F.Identity[Option[A]])(ma)
+	return common.OptionSequenceArrayG[GA](ma)
 }
 
 // SequenceArray converts an array of Options into an Option of an array.
@@ -122,8 +106,10 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
 //
 //	result := SequenceArray(A.From(Some(1), Some(2), Some(3))) // Some([1, 2, 3])
 //	result := SequenceArray(A.From(Some(1), None[int](), Some(3))) // None
+//
+//go:inline
 func SequenceArray[A any](ma []Option[A]) Option[[]A] {
-	return SequenceArrayG[[]A](ma)
+	return common.OptionSequenceArray(ma)
 }
 
 // CompactArrayG filters an array of Options, keeping only the Some values and discarding None values.
@@ -134,14 +120,10 @@ func SequenceArray[A any](ma []Option[A]) Option[[]A] {
 //	type MySlice []int
 //	input := A.From(Some(1), None[int](), Some(3))
 //	result := CompactArrayG[[]Option[int], MySlice](input) // MySlice{1, 3}
+//
+//go:inline
 func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
-	as := make(A2, 0, len(fa))
-	for _, oa := range fa {
-		if oa.s {
-			as = append(as, oa.a)
-		}
-	}
-	return as
+	return common.OptionCompactArrayG[A1, A2](fa)
 }
 
 // CompactArray filters an array of Options, keeping only the Some values and discarding None values.
@@ -153,7 +135,7 @@ func CompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 //
 //go:inline
 func CompactArray[A any](fa []Option[A]) []A {
-	return CompactArrayG[[]Option[A], []A](fa)
+	return common.OptionCompactArray(fa)
 }
 
 // TraversableArray returns a Traversable instance for arrays.
@@ -196,6 +178,8 @@ func CompactArray[A any](fa []Option[A]) []A {
 // See Also:
 //   - TraverseArray: Direct traversal without obtaining the Traversable instance
 //   - TraverseArrayG: Generic version supporting custom slice types
+//
+//go:inline
 func TraversableArray[A, B any]() Traversable[A, B, []A, []B] {
-	return TraverseArrayG[[]A, []B, A, B]
+	return common.OptionTraversableArray[A, B]()
 }

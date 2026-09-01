@@ -4,7 +4,6 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	O "github.com/IBM/fp-go/v2/option"
 )
 
 func OptionalAsTraversal[R ~func(func(A) HKTA) func(S) HKTS, S, A, HKTS, HKTA any](
@@ -17,7 +16,7 @@ func OptionalAsTraversal[R ~func(func(A) HKTA) func(S) HKTS, S, A, HKTS, HKTA an
 				return F.Pipe2(
 					s,
 					sa.GetOption,
-					O.Fold(
+					OptionFold(
 						F.Constant(fof(s)),
 						F.Flow2(
 							f,

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package option
+package common
 
 import (
 	"fmt"
@@ -34,11 +34,11 @@ const (
 // Example:
 //
 //	logger := slog.Default()
-//	result := Some(42)
+//	result := OptionSome(42)
 //	logger.Info("result", "value", result)
 //	// Logs: {"msg":"result","value":{"some":42}}
 //
-//	empty := None[int]()
+//	empty := OptionNone[int]()
 //	logger.Info("empty", "value", empty)
 //	// Logs: {"msg":"empty","value":{"none":{}}}
 //

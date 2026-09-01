@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +36,7 @@ func TestPrismCompose_MethodEquivalentToFreeFunction(t *testing.T) {
 	method := outer.Compose(inner)
 	free := PrismComposePrism[Option[int]](inner)(outer)
 
-	cases := []Option[int]{O.Some(42), O.Some(-1), O.None[int]()}
+	cases := []Option[int]{OptionSome(42), OptionSome(-1), OptionNone[int]()}
 	for _, c := range cases {
 		t.Run("GetOption parity", func(t *testing.T) {
 			assert.Equal(t, free.GetOption(c), method.GetOption(c))
@@ -56,9 +55,9 @@ func TestPrismCompose_Method_GetOption_Match(t *testing.T) {
 	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
-	got := composed.GetOption(O.Some(42))
-	assert.True(t, O.IsSome(got))
-	assert.Equal(t, 42, O.GetOrElse(F.Constant(-1))(got))
+	got := composed.GetOption(OptionSome(42))
+	assert.True(t, OptionIsSome(got))
+	assert.Equal(t, 42, OptionGetOrElse(F.Constant(-1))(got))
 }
 
 // TestPrismCompose_Method_GetOption_OuterMiss verifies None is returned when
@@ -68,7 +67,7 @@ func TestPrismCompose_Method_GetOption_OuterMiss(t *testing.T) {
 	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
-	assert.True(t, O.IsNone(composed.GetOption(O.None[int]())))
+	assert.True(t, OptionIsNone(composed.GetOption(OptionNone[int]())))
 }
 
 // TestPrismCompose_Method_GetOption_InnerMiss verifies None is returned when
@@ -78,7 +77,7 @@ func TestPrismCompose_Method_GetOption_InnerMiss(t *testing.T) {
 	inner := PrismFromPredicate(func(n int) bool { return n > 0 })
 	composed := outer.Compose(inner)
 
-	assert.True(t, O.IsNone(composed.GetOption(O.Some(-5))))
+	assert.True(t, OptionIsNone(composed.GetOption(OptionSome(-5))))
 }
 
 // TestPrismCompose_Method_ReverseGet verifies that ReverseGet threads the value
@@ -89,7 +88,7 @@ func TestPrismCompose_Method_ReverseGet(t *testing.T) {
 	composed := outer.Compose(inner)
 
 	// ReverseGet(42): inner.ReverseGet(42)==42, outer.ReverseGet(42)==Some(42)
-	assert.Equal(t, O.Some(42), composed.ReverseGet(42))
+	assert.Equal(t, OptionSome(42), composed.ReverseGet(42))
 }
 
 // TestPrismCompose_Method_PrismLaws verifies the two standard prism laws on the
@@ -102,17 +101,17 @@ func TestPrismCompose_Method_PrismLaws(t *testing.T) {
 	t.Run("law 1: GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
 		a := 99
 		got := composed.GetOption(composed.ReverseGet(a))
-		assert.True(t, O.IsSome(got))
-		assert.Equal(t, a, O.GetOrElse(F.Constant(-1))(got))
+		assert.True(t, OptionIsSome(got))
+		assert.Equal(t, a, OptionGetOrElse(F.Constant(-1))(got))
 	})
 
 	t.Run("law 2: if GetOption(s)==Some(a) then ReverseGet(a) round-trips", func(t *testing.T) {
-		s := O.Some(7)
+		s := OptionSome(7)
 		got := composed.GetOption(s)
-		if O.IsSome(got) {
-			a := O.GetOrElse(F.Constant(0))(got)
+		if OptionIsSome(got) {
+			a := OptionGetOrElse(F.Constant(0))(got)
 			reconstructed := composed.ReverseGet(a)
-			assert.Equal(t, O.Some(a), composed.GetOption(reconstructed))
+			assert.Equal(t, OptionSome(a), composed.GetOption(reconstructed))
 		}
 	})
 }
@@ -131,26 +130,26 @@ func TestPrismCompose_Method_Chained(t *testing.T) {
 	composed := l1.Compose(l2).Compose(l3)
 
 	t.Run("all three levels match", func(t *testing.T) {
-		s := O.Some(O.Some(5))
+		s := OptionSome(OptionSome(5))
 		got := composed.GetOption(s)
-		assert.True(t, O.IsSome(got))
-		assert.Equal(t, 5, O.GetOrElse(F.Constant(-1))(got))
+		assert.True(t, OptionIsSome(got))
+		assert.Equal(t, 5, OptionGetOrElse(F.Constant(-1))(got))
 	})
 
 	t.Run("outermost None short-circuits", func(t *testing.T) {
-		assert.True(t, O.IsNone(composed.GetOption(O.None[Option[int]]())))
+		assert.True(t, OptionIsNone(composed.GetOption(OptionNone[Option[int]]())))
 	})
 
 	t.Run("middle None short-circuits", func(t *testing.T) {
-		assert.True(t, O.IsNone(composed.GetOption(O.Some(O.None[int]()))))
+		assert.True(t, OptionIsNone(composed.GetOption(OptionSome(OptionNone[int]()))))
 	})
 
 	t.Run("innermost predicate miss short-circuits", func(t *testing.T) {
-		assert.True(t, O.IsNone(composed.GetOption(O.Some(O.Some(-3)))))
+		assert.True(t, OptionIsNone(composed.GetOption(OptionSome(OptionSome(-3)))))
 	})
 
 	t.Run("ReverseGet reconstructs all three layers", func(t *testing.T) {
 		// inner.ReverseGet(10)==10 → l2.ReverseGet(10)==Some(10) → l1.ReverseGet(Some(10))==Some(Some(10))
-		assert.Equal(t, O.Some(O.Some(10)), composed.ReverseGet(10))
+		assert.Equal(t, OptionSome(OptionSome(10)), composed.ReverseGet(10))
 	})
 }

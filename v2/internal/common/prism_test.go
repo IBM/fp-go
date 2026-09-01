@@ -21,21 +21,20 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	N "github.com/IBM/fp-go/v2/number"
-	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMakePrism(t *testing.T) {
-	somePrism := MakePrism(F.Identity[Option[int]], O.Some[int])
+	somePrism := MakePrism(F.Identity[Option[int]], OptionSome[int])
 
-	assert.Equal(t, O.Some(1), somePrism.GetOption(O.Some(1)))
+	assert.Equal(t, OptionSome(1), somePrism.GetOption(OptionSome(1)))
 }
 
 func TestPrismId(t *testing.T) {
 	idPrism := PrismId[int]()
 
 	// GetOption always returns Some for identity
-	assert.Equal(t, O.Some(42), idPrism.GetOption(42))
+	assert.Equal(t, OptionSome(42), idPrism.GetOption(42))
 
 	// ReverseGet is identity
 	assert.Equal(t, 42, idPrism.ReverseGet(42))
@@ -48,12 +47,12 @@ func TestPrismFromPredicate(t *testing.T) {
 	})
 
 	// Matches positive numbers
-	assert.Equal(t, O.Some(42), positivePrism.GetOption(42))
-	assert.Equal(t, O.Some(1), positivePrism.GetOption(1))
+	assert.Equal(t, OptionSome(42), positivePrism.GetOption(42))
+	assert.Equal(t, OptionSome(1), positivePrism.GetOption(1))
 
 	// Doesn't match non-positive numbers
-	assert.Equal(t, O.None[int](), positivePrism.GetOption(0))
-	assert.Equal(t, O.None[int](), positivePrism.GetOption(-5))
+	assert.Equal(t, OptionNone[int](), positivePrism.GetOption(0))
+	assert.Equal(t, OptionNone[int](), positivePrism.GetOption(-5))
 
 	// ReverseGet always succeeds (doesn't check predicate)
 	assert.Equal(t, 42, positivePrism.ReverseGet(42))
@@ -64,7 +63,7 @@ func TestPrismComposePrism(t *testing.T) {
 	// Prism for Some values
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Prism for positive numbers
@@ -79,32 +78,32 @@ func TestPrismComposePrism(t *testing.T) {
 	)
 
 	// Test with Some positive
-	assert.Equal(t, O.Some(42), composedPrism.GetOption(O.Some(42)))
+	assert.Equal(t, OptionSome(42), composedPrism.GetOption(OptionSome(42)))
 
 	// Test with Some non-positive
-	assert.Equal(t, O.None[int](), composedPrism.GetOption(O.Some(-5)))
+	assert.Equal(t, OptionNone[int](), composedPrism.GetOption(OptionSome(-5)))
 
 	// Test with None
-	assert.Equal(t, O.None[int](), composedPrism.GetOption(O.None[int]()))
+	assert.Equal(t, OptionNone[int](), composedPrism.GetOption(OptionNone[int]()))
 
 	// ReverseGet constructs Some
-	assert.Equal(t, O.Some(42), composedPrism.ReverseGet(42))
+	assert.Equal(t, OptionSome(42), composedPrism.ReverseGet(42))
 }
 
 func TestPrismSet(t *testing.T) {
 	// Prism for Some values
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Set value when it matches
-	result := PrismSet[Option[int]](100)(somePrism)(O.Some(42))
-	assert.Equal(t, O.Some(100), result)
+	result := PrismSet[Option[int]](100)(somePrism)(OptionSome(42))
+	assert.Equal(t, OptionSome(100), result)
 
 	// No change when it doesn't match
-	result = PrismSet[Option[int]](100)(somePrism)(O.None[int]())
-	assert.Equal(t, O.None[int](), result)
+	result = PrismSet[Option[int]](100)(somePrism)(OptionNone[int]())
+	assert.Equal(t, OptionNone[int](), result)
 }
 
 func TestPrismSome(t *testing.T) {
@@ -115,7 +114,7 @@ func TestPrismSome(t *testing.T) {
 
 	configPrism := MakePrism(
 		func(c Config) Option[Option[int]] {
-			return O.Some(c.Timeout)
+			return OptionSome(c.Timeout)
 		},
 		func(t Option[int]) Config {
 			return Config{Timeout: t}
@@ -126,23 +125,23 @@ func TestPrismSome(t *testing.T) {
 	somePrism := PrismSome(configPrism)
 
 	// Extract from Some
-	config := Config{Timeout: O.Some(30)}
-	assert.Equal(t, O.Some(30), somePrism.GetOption(config))
+	config := Config{Timeout: OptionSome(30)}
+	assert.Equal(t, OptionSome(30), somePrism.GetOption(config))
 
 	// Extract from None
-	configNone := Config{Timeout: O.None[int]()}
-	assert.Equal(t, O.None[int](), somePrism.GetOption(configNone))
+	configNone := Config{Timeout: OptionNone[int]()}
+	assert.Equal(t, OptionNone[int](), somePrism.GetOption(configNone))
 
 	// ReverseGet constructs Config with Some
 	result := somePrism.ReverseGet(60)
-	assert.Equal(t, Config{Timeout: O.Some(60)}, result)
+	assert.Equal(t, Config{Timeout: OptionSome(60)}, result)
 }
 
 func TestPrismIMap(t *testing.T) {
 	// Prism for Some values
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Map to string and back
@@ -165,37 +164,37 @@ func TestPrismIMap(t *testing.T) {
 	)
 
 	// GetOption maps the value
-	result := stringPrism.GetOption(O.Some(42))
-	assert.Equal(t, O.Some("42"), result)
+	result := stringPrism.GetOption(OptionSome(42))
+	assert.Equal(t, OptionSome("42"), result)
 
 	// GetOption on None
-	result = stringPrism.GetOption(O.None[int]())
-	assert.Equal(t, O.None[string](), result)
+	result = stringPrism.GetOption(OptionNone[int]())
+	assert.Equal(t, OptionNone[string](), result)
 
 	// ReverseGet maps back
 	opt := stringPrism.ReverseGet("100")
-	assert.Equal(t, O.Some(100), opt)
+	assert.Equal(t, OptionSome(100), opt)
 }
 
 func TestPrismLaws(t *testing.T) {
 	// Test prism laws with a simple prism
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Law 1: GetOptionReverseGet
 	// prism.GetOption(prism.ReverseGet(a)) == Some(a)
 	a := 42
 	result := somePrism.GetOption(somePrism.ReverseGet(a))
-	assert.Equal(t, O.Some(a), result)
+	assert.Equal(t, OptionSome(a), result)
 
 	// Law 2: ReverseGetGetOption
 	// if GetOption(s) == Some(a), then ReverseGet(a) should produce equivalent s
-	s := O.Some(42)
+	s := OptionSome(42)
 	extracted := somePrism.GetOption(s)
-	if O.IsSome(extracted) {
-		reconstructed := somePrism.ReverseGet(O.GetOrElse(F.Constant(0))(extracted))
+	if OptionIsSome(extracted) {
+		reconstructed := somePrism.ReverseGet(OptionGetOrElse(F.Constant(0))(extracted))
 		assert.Equal(t, s, reconstructed)
 	}
 }
@@ -204,17 +203,17 @@ func TestPrismSet_ViaModifyOption(t *testing.T) {
 	// Test Set, which delegates to prismModifyOption
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Modify when match
 	setFn := PrismSet[Option[int]](100)
-	result := setFn(somePrism)(O.Some(42))
-	assert.Equal(t, O.Some(100), result)
+	result := setFn(somePrism)(OptionSome(42))
+	assert.Equal(t, OptionSome(100), result)
 
 	// No modification when no match
-	result = setFn(somePrism)(O.None[int]())
-	assert.Equal(t, O.None[int](), result)
+	result = setFn(somePrism)(OptionNone[int]())
+	assert.Equal(t, OptionNone[int](), result)
 }
 
 // Custom sum type for testing
@@ -230,9 +229,9 @@ func TestPrismWithCustomType(t *testing.T) {
 	successPrism := MakePrism(
 		func(r testResult) Option[int] {
 			if s, ok := r.(testSuccess); ok {
-				return O.Some(s.Value)
+				return OptionSome(s.Value)
 			}
-			return O.None[int]()
+			return OptionNone[int]()
 		},
 		func(v int) testResult {
 			return testSuccess{Value: v}
@@ -241,11 +240,11 @@ func TestPrismWithCustomType(t *testing.T) {
 
 	// Test GetOption with Success
 	success := testSuccess{Value: 42}
-	assert.Equal(t, O.Some(42), successPrism.GetOption(success))
+	assert.Equal(t, OptionSome(42), successPrism.GetOption(success))
 
 	// Test GetOption with Failure
 	failure := testFailure{Error: "oops"}
-	assert.Equal(t, O.None[int](), successPrism.GetOption(failure))
+	assert.Equal(t, OptionNone[int](), successPrism.GetOption(failure))
 
 	// Test ReverseGet
 	result := successPrism.ReverseGet(100)
@@ -265,16 +264,16 @@ func TestPrismWithCustomType(t *testing.T) {
 func TestPrismSet_Modify(t *testing.T) {
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Test modify with matching value
-	result := PrismSet[Option[int]](84)(somePrism)(O.Some(42))
-	assert.Equal(t, O.Some(84), result)
+	result := PrismSet[Option[int]](84)(somePrism)(OptionSome(42))
+	assert.Equal(t, OptionSome(84), result)
 
 	// Test that original is returned when no match
-	result = PrismSet[Option[int]](100)(somePrism)(O.None[int]())
-	assert.Equal(t, O.None[int](), result)
+	result = PrismSet[Option[int]](100)(somePrism)(OptionNone[int]())
+	assert.Equal(t, OptionNone[int](), result)
 }
 
 // TestPrismSet_WithPredicate tests Set applied to a PrismFromPredicate prism
@@ -296,7 +295,7 @@ func TestPrismSet_WithPredicate(t *testing.T) {
 func TestPrismAsTraversal(t *testing.T) {
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Simple identity functor for testing
@@ -319,12 +318,12 @@ func TestPrismAsTraversal(t *testing.T) {
 	f := func(n int) Identity[int] {
 		return Identity[int]{Value: n * 2}
 	}
-	result := traversal(f)(O.Some(21))
-	assert.Equal(t, O.Some(42), result.Value)
+	result := traversal(f)(OptionSome(21))
+	assert.Equal(t, OptionSome(42), result.Value)
 
 	// Test with None value
-	result = traversal(f)(O.None[int]())
-	assert.Equal(t, O.None[int](), result.Value)
+	result = traversal(f)(OptionNone[int]())
+	assert.Equal(t, OptionNone[int](), result.Value)
 }
 
 // Test types for composition chain test
@@ -337,7 +336,7 @@ func TestPrismCompositionChain(t *testing.T) {
 
 	outerPrism := MakePrism(
 		func(o testOuter) Option[Option[testInner]] {
-			return O.Some(o.Middle)
+			return OptionSome(o.Middle)
 		},
 		func(m Option[testInner]) testOuter {
 			return testOuter{Middle: m}
@@ -346,12 +345,12 @@ func TestPrismCompositionChain(t *testing.T) {
 
 	middlePrism := MakePrism(
 		F.Identity[Option[testInner]],
-		O.Some[testInner],
+		OptionSome[testInner],
 	)
 
 	innerPrism := MakePrism(
 		func(i testInner) Option[Option[int]] {
-			return O.Some(i.Value)
+			return OptionSome(i.Value)
 		},
 		func(v Option[int]) testInner {
 			return testInner{Value: v}
@@ -369,44 +368,44 @@ func TestPrismCompositionChain(t *testing.T) {
 	finalPrism := PrismSome(composed)
 
 	// Test extraction through all layers
-	outer := testOuter{Middle: O.Some(testInner{Value: O.Some(42)})}
+	outer := testOuter{Middle: OptionSome(testInner{Value: OptionSome(42)})}
 	value := finalPrism.GetOption(outer)
-	assert.Equal(t, O.Some(42), value)
+	assert.Equal(t, OptionSome(42), value)
 
 	// Test with None at middle layer
-	outerNone := testOuter{Middle: O.None[testInner]()}
+	outerNone := testOuter{Middle: OptionNone[testInner]()}
 	value = finalPrism.GetOption(outerNone)
-	assert.Equal(t, O.None[int](), value)
+	assert.Equal(t, OptionNone[int](), value)
 
 	// Test with None at inner layer
-	outerInnerNone := testOuter{Middle: O.Some(testInner{Value: O.None[int]()})}
+	outerInnerNone := testOuter{Middle: OptionSome(testInner{Value: OptionNone[int]()})}
 	value = finalPrism.GetOption(outerInnerNone)
-	assert.Equal(t, O.None[int](), value)
+	assert.Equal(t, OptionNone[int](), value)
 }
 
 // TestPrismSetMultipleTimes tests setting values multiple times
 func TestPrismSetMultipleTimes(t *testing.T) {
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Chain multiple sets
 	result := F.Pipe3(
-		O.Some(10),
+		OptionSome(10),
 		PrismSet[Option[int]](20)(somePrism),
 		PrismSet[Option[int]](30)(somePrism),
 		PrismSet[Option[int]](40)(somePrism),
 	)
 
-	assert.Equal(t, O.Some(40), result)
+	assert.Equal(t, OptionSome(40), result)
 }
 
 // TestPrismIMap_Bidirectional tests that PrismIMap maintains bidirectionality
 func TestPrismIMap_Bidirectional(t *testing.T) {
 	somePrism := MakePrism(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 	)
 
 	// Map int to string and back
@@ -429,16 +428,16 @@ func TestPrismIMap_Bidirectional(t *testing.T) {
 	)
 
 	// Test GetOption with mapping
-	result := stringPrism.GetOption(O.Some(42))
-	assert.Equal(t, O.Some("forty-two"), result)
+	result := stringPrism.GetOption(OptionSome(42))
+	assert.Equal(t, OptionSome("forty-two"), result)
 
 	// Test ReverseGet with reverse mapping
 	opt := stringPrism.ReverseGet("forty-two")
-	assert.Equal(t, O.Some(42), opt)
+	assert.Equal(t, OptionSome(42), opt)
 
 	// Verify round-trip
 	value := stringPrism.GetOption(stringPrism.ReverseGet("forty-two"))
-	assert.Equal(t, O.Some("forty-two"), value)
+	assert.Equal(t, OptionSome("forty-two"), value)
 }
 
 // Test types for complex sum type test
@@ -458,9 +457,9 @@ func TestPrismWithComplexSumType(t *testing.T) {
 	circlePrism := MakePrism(
 		func(s Shape) Option[float64] {
 			if c, ok := s.(Circle); ok {
-				return O.Some(c.Radius)
+				return OptionSome(c.Radius)
 			}
-			return O.None[float64]()
+			return OptionNone[float64]()
 		},
 		func(r float64) Shape {
 			return Circle{Radius: r}
@@ -471,9 +470,9 @@ func TestPrismWithComplexSumType(t *testing.T) {
 	rectanglePrism := MakePrism(
 		func(s Shape) Option[struct{ Width, Height float64 }] {
 			if r, ok := s.(Rectangle); ok {
-				return O.Some(struct{ Width, Height float64 }{r.Width, r.Height})
+				return OptionSome(struct{ Width, Height float64 }{r.Width, r.Height})
 			}
-			return O.None[struct{ Width, Height float64 }]()
+			return OptionNone[struct{ Width, Height float64 }]()
 		},
 		func(dims struct{ Width, Height float64 }) Shape {
 			return Rectangle{Width: dims.Width, Height: dims.Height}
@@ -483,16 +482,16 @@ func TestPrismWithComplexSumType(t *testing.T) {
 	// Test Circle prism
 	circle := Circle{Radius: 5.0}
 	radius := circlePrism.GetOption(circle)
-	assert.Equal(t, O.Some(5.0), radius)
+	assert.Equal(t, OptionSome(5.0), radius)
 
 	// Circle prism doesn't match Rectangle
 	rect := Rectangle{Width: 10, Height: 20}
 	radius = circlePrism.GetOption(rect)
-	assert.Equal(t, O.None[float64](), radius)
+	assert.Equal(t, OptionNone[float64](), radius)
 
 	// Rectangle prism matches Rectangle
 	dims := rectanglePrism.GetOption(rect)
-	assert.True(t, O.IsSome(dims))
+	assert.True(t, OptionIsSome(dims))
 
 	// Test ReverseGet
 	newCircle := circlePrism.ReverseGet(7.5)
@@ -504,25 +503,25 @@ func TestEdgeCases(t *testing.T) {
 	t.Run("prism with zero value", func(t *testing.T) {
 		somePrism := MakePrism(
 			F.Identity[Option[int]],
-			O.Some[int],
+			OptionSome[int],
 		)
 
 		// Zero value should work fine
-		result := somePrism.GetOption(O.Some(0))
-		assert.Equal(t, O.Some(0), result)
+		result := somePrism.GetOption(OptionSome(0))
+		assert.Equal(t, OptionSome(0), result)
 
 		opt := somePrism.ReverseGet(0)
-		assert.Equal(t, O.Some(0), opt)
+		assert.Equal(t, OptionSome(0), opt)
 	})
 
 	t.Run("prism with empty string", func(t *testing.T) {
 		somePrism := MakePrism(
 			F.Identity[Option[string]],
-			O.Some[string],
+			OptionSome[string],
 		)
 
-		result := somePrism.GetOption(O.Some(""))
-		assert.Equal(t, O.Some(""), result)
+		result := somePrism.GetOption(OptionSome(""))
+		assert.Equal(t, OptionSome(""), result)
 	})
 
 	t.Run("identity prism with nil pointer", func(t *testing.T) {
@@ -531,7 +530,7 @@ func TestEdgeCases(t *testing.T) {
 
 		var nilPtr *MyStruct
 		result := idPrism.GetOption(nilPtr)
-		assert.Equal(t, O.Some(nilPtr), result)
+		assert.Equal(t, OptionSome(nilPtr), result)
 	})
 }
 
@@ -542,7 +541,7 @@ func TestEdgeCases(t *testing.T) {
 func TestMakePrismWithName(t *testing.T) {
 	p := MakePrismWithName(
 		F.Identity[Option[int]],
-		O.Some[int],
+		OptionSome[int],
 		"MyPrism",
 	)
 
@@ -551,15 +550,15 @@ func TestMakePrismWithName(t *testing.T) {
 	})
 
 	t.Run("GetOption returns Some on a matching value", func(t *testing.T) {
-		assert.Equal(t, O.Some(7), p.GetOption(O.Some(7)))
+		assert.Equal(t, OptionSome(7), p.GetOption(OptionSome(7)))
 	})
 
 	t.Run("GetOption returns None on a non-matching value", func(t *testing.T) {
-		assert.Equal(t, O.None[int](), p.GetOption(O.None[int]()))
+		assert.Equal(t, OptionNone[int](), p.GetOption(OptionNone[int]()))
 	})
 
 	t.Run("ReverseGet constructs the source value", func(t *testing.T) {
-		assert.Equal(t, O.Some(99), p.ReverseGet(99))
+		assert.Equal(t, OptionSome(99), p.ReverseGet(99))
 	})
 }
 
@@ -568,12 +567,12 @@ func TestMakePrismWithName(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrismName_String(t *testing.T) {
-	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "Test.Prism")
+	p := MakePrismWithName(F.Identity[Option[int]], OptionSome[int], "Test.Prism")
 	assert.Equal(t, "Test.Prism", p.String())
 }
 
 func TestPrismName_Format(t *testing.T) {
-	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "Test.Prism")
+	p := MakePrismWithName(F.Identity[Option[int]], OptionSome[int], "Test.Prism")
 
 	t.Run("%s verb uses the prism name", func(t *testing.T) {
 		assert.Equal(t, "Test.Prism", fmt.Sprintf("%s", p))
@@ -589,7 +588,7 @@ func TestPrismName_Format(t *testing.T) {
 }
 
 func TestPrismName_LogValue(t *testing.T) {
-	p := MakePrismWithName(F.Identity[Option[int]], O.Some[int], "Log.Prism")
+	p := MakePrismWithName(F.Identity[Option[int]], OptionSome[int], "Log.Prism")
 	lv := p.LogValue()
 	assert.Equal(t, "Log.Prism", lv.String())
 }
@@ -599,16 +598,16 @@ func TestPrismName_LogValue(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrismModifyOption_Some(t *testing.T) {
-	somePrism := MakePrism(F.Identity[Option[int]], O.Some[int])
+	somePrism := MakePrism(F.Identity[Option[int]], OptionSome[int])
 
 	t.Run("returns Some(modified S) when prism matches", func(t *testing.T) {
-		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, O.Some(21))
-		assert.Equal(t, O.Some(O.Some(42)), result)
+		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, OptionSome(21))
+		assert.Equal(t, OptionSome(OptionSome(42)), result)
 	})
 
 	t.Run("returns None when prism does not match", func(t *testing.T) {
-		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, O.None[int]())
-		assert.Equal(t, O.None[Option[int]](), result)
+		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, OptionNone[int]())
+		assert.Equal(t, OptionNone[Option[int]](), result)
 	})
 }
 
@@ -617,21 +616,21 @@ func TestPrismModifyOption_Some(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrismSet_Deprecated(t *testing.T) {
-	somePrism := MakePrism(F.Identity[Option[int]], O.Some[int])
+	somePrism := MakePrism(F.Identity[Option[int]], OptionSome[int])
 
 	t.Run("sets the value when prism matches", func(t *testing.T) {
 		setter := prismSet[Option[int]](100)
-		assert.Equal(t, O.Some(100), setter(somePrism)(O.Some(42)))
+		assert.Equal(t, OptionSome(100), setter(somePrism)(OptionSome(42)))
 	})
 
 	t.Run("returns original when prism does not match", func(t *testing.T) {
 		setter := prismSet[Option[int]](100)
-		assert.Equal(t, O.None[int](), setter(somePrism)(O.None[int]()))
+		assert.Equal(t, OptionNone[int](), setter(somePrism)(OptionNone[int]()))
 	})
 
 	t.Run("produces identical results to Set", func(t *testing.T) {
-		via_set := PrismSet[Option[int]](55)(somePrism)(O.Some(1))
-		via_prismSet := prismSet[Option[int]](55)(somePrism)(O.Some(1))
+		via_set := PrismSet[Option[int]](55)(somePrism)(OptionSome(1))
+		via_prismSet := prismSet[Option[int]](55)(somePrism)(OptionSome(1))
 		assert.Equal(t, via_set, via_prismSet)
 	})
 }

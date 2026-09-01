@@ -4,6 +4,7 @@ import (
 	"iter"
 
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/predicate"
 )
 
@@ -66,5 +67,5 @@ type (
 	//   - TraversableArray: Traversable instance for arrays
 	//   - TraverseArray: Direct array traversal function
 	//   - TraverseRecord: Traversal for maps/records
-	Traversable[A, B, GA, GB any] = func(Kleisli[A, B]) Kleisli[GA, GB]
+	Traversable[A, B, GA, GB any] = common.OptionTraversable[A, B, GA, GB]
 )

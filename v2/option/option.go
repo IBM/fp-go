@@ -18,19 +18,8 @@ package option
 
 import (
 	"github.com/IBM/fp-go/v2/eq"
-	F "github.com/IBM/fp-go/v2/function"
-	C "github.com/IBM/fp-go/v2/internal/chain"
-	P "github.com/IBM/fp-go/v2/predicate"
+	"github.com/IBM/fp-go/v2/internal/common"
 )
-
-// fromPredicate creates an Option based on a predicate function.
-// If the predicate returns true for the value, it returns Some(a), otherwise None.
-func fromPredicate[A any](a A, pred Predicate[A]) Option[A] {
-	if pred(a) {
-		return Some(a)
-	}
-	return None[A]()
-}
 
 // FromPredicate returns a function that creates an Option based on a predicate.
 // The returned function will wrap a value in Some if the predicate is satisfied, otherwise None.
@@ -40,28 +29,30 @@ func fromPredicate[A any](a A, pred Predicate[A]) Option[A] {
 //	isPositive := FromPredicate(N.MoreThan(0))
 //	result := isPositive(5)  // Some(5)
 //	result := isPositive(-1) // None
+//
+//go:inline
 func FromPredicate[A any](pred Predicate[A]) Kleisli[A, A] {
-	return F.Bind2nd(fromPredicate[A], pred)
+	return common.OptionFromPredicate(pred)
 }
 
 //go:inline
 func FromZero[A comparable]() Kleisli[A, A] {
-	return FromPredicate(P.IsZero[A]())
+	return common.OptionFromZero[A]()
 }
 
 //go:inline
 func FromNonZero[A comparable]() Kleisli[A, A] {
-	return FromPredicate(P.IsNonZero[A]())
+	return common.OptionFromNonZero[A]()
 }
 
 //go:inline
 func FromEq[A any](pred eq.Eq[A]) func(A) Kleisli[A, A] {
-	return F.Flow2(P.IsEqual(pred), FromPredicate[A])
+	return common.OptionFromEq(pred)
 }
 
 //go:inline
 func FromStrictEq[A comparable]() func(A) Kleisli[A, A] {
-	return FromEq(eq.FromStrictEquals[A]())
+	return common.OptionFromStrictEq[A]()
 }
 
 // FromNillable converts a pointer to an Option wrapping the pointer itself.
@@ -73,7 +64,7 @@ func FromStrictEq[A comparable]() func(A) Kleisli[A, A] {
 //
 //go:inline
 func FromNillable[A any](a *A) Option[*A] {
-	return fromPredicate(a, F.IsNonNil[A])
+	return common.OptionFromNillable(a)
 }
 
 // FromNillable2 converts a pointer to an Option of the pointed-to value.
@@ -95,11 +86,10 @@ func FromNillable[A any](a *A) Option[*A] {
 // See Also:
 //   - ToNillable2: the inverse — converts Option[A] back to *A
 //   - FromNillable: the older variant that wraps the pointer itself as Option[*A]
+//
+//go:inline
 func FromNillable2[A any](a *A) Option[A] {
-	if a != nil {
-		return Of(*a)
-	}
-	return None[A]()
+	return common.OptionFromNillable2(a)
 }
 
 // ToNillable2 converts an Option[A] back to a nullable pointer.
@@ -119,11 +109,10 @@ func FromNillable2[A any](a *A) Option[A] {
 //
 // See Also:
 //   - FromNillable2: the inverse — converts *A to Option[A]
+//
+//go:inline
 func ToNillable2[A any](fa Option[A]) *A {
-	if fa.s {
-		return &fa.a
-	}
-	return nil
+	return common.OptionToNillable2(fa)
 }
 
 // FromValidation converts a validation function (returning value and bool) to an Option-returning function.
@@ -139,7 +128,7 @@ func ToNillable2[A any](fa Option[A]) *A {
 //
 //go:inline
 func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
-	return Optionize1(f)
+	return common.OptionFromValidation(f)
 }
 
 // MonadAp applies a function wrapped in an Option to a value wrapped in an Option.
@@ -151,11 +140,10 @@ func FromValidation[A, B any](f func(A) (B, bool)) Kleisli[A, B] {
 //	fab := Some(N.Mul(2))
 //	fa := Some(5)
 //	result := MonadAp(fab, fa) // Some(10)
+//
+//go:inline
 func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
-	if fab.s && fa.s {
-		return Some(fab.a(fa.a))
-	}
-	return None[B]()
+	return common.OptionMonadAp[B, A](fab, fa)
 }
 
 // Ap is the curried applicative functor for Option.
@@ -167,17 +155,10 @@ func MonadAp[B, A any](fab Option[func(A) B], fa Option[A]) Option[B] {
 //	applyTo5 := Ap[int](fa)
 //	fab := Some(N.Mul(2))
 //	result := applyTo5(fab) // Some(10)
+//
+//go:inline
 func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
-	if fa.s {
-		return func(fab Option[func(A) B]) Option[B] {
-			if fab.s {
-				return Some(fab.a(fa.a))
-			}
-			return None[B]()
-		}
-	}
-	// shortcut
-	return F.Constant1[Option[func(A) B]](None[B]())
+	return common.OptionAp[B, A](fa)
 }
 
 // MonadMap applies a function to the value inside an Option.
@@ -187,11 +168,10 @@ func Ap[B, A any](fa Option[A]) Operator[func(A) B, B] {
 //
 //	fa := Some(5)
 //	result := MonadMap(fa, N.Mul(2)) // Some(10)
+//
+//go:inline
 func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
-	if fa.s {
-		return Some(f(fa.a))
-	}
-	return None[B]()
+	return common.OptionMonadMap(fa, f)
 }
 
 // Map returns a function that applies a transformation to the value inside an Option.
@@ -202,13 +182,10 @@ func MonadMap[A, B any](fa Option[A], f func(A) B) Option[B] {
 //	double := Map(N.Mul(2))
 //	result := double(Some(5)) // Some(10)
 //	result := double(None[int]()) // None
+//
+//go:inline
 func Map[A, B any](f func(a A) B) Operator[A, B] {
-	return func(fa Option[A]) Option[B] {
-		if fa.s {
-			return Some(f(fa.a))
-		}
-		return None[B]()
-	}
+	return common.OptionMap(f)
 }
 
 // MonadMapTo replaces the value inside an Option with a constant value.
@@ -218,11 +195,10 @@ func Map[A, B any](f func(a A) B) Operator[A, B] {
 //
 //	fa := Some(5)
 //	result := MonadMapTo(fa, "hello") // Some("hello")
+//
+//go:inline
 func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
-	if fa.s {
-		return Some(b)
-	}
-	return None[B]()
+	return common.OptionMonadMapTo(fa, b)
 }
 
 // MapTo returns a function that replaces the value inside an Option with a constant.
@@ -231,13 +207,10 @@ func MonadMapTo[A, B any](fa Option[A], b B) Option[B] {
 //
 //	replaceWith42 := MapTo[string, int](42)
 //	result := replaceWith42(Some("hello")) // Some(42)
+//
+//go:inline
 func MapTo[A, B any](b B) Operator[A, B] {
-	return func(fa Option[A]) Option[B] {
-		if fa.s {
-			return Some(b)
-		}
-		return None[B]()
-	}
+	return common.OptionMapTo[A, B](b)
 }
 
 // TryCatch executes a function that may return an error and converts the result to an Option.
@@ -248,12 +221,10 @@ func MapTo[A, B any](b B) Operator[A, B] {
 //	result := TryCatch(func() (int, error) {
 //	    return strconv.Atoi("42")
 //	}) // Some(42)
+//
+//go:inline
 func TryCatch[A any](f func() (A, error)) Option[A] {
-	val, err := f()
-	if err != nil {
-		return None[A]()
-	}
-	return Some(val)
+	return common.OptionTryCatch(f)
 }
 
 // Fold provides a way to handle both Some and None cases of an Option.
@@ -302,7 +273,7 @@ func TryCatch[A any](f func() (A, error)) Option[A] {
 //
 //go:inline
 func Fold[A, B any](onNone func() B, onSome func(a A) B) func(Option[A]) B {
-	return F.Bind23of3(MonadFold[A, B])(onNone, onSome)
+	return common.OptionFold(onNone, onSome)
 }
 
 // MonadGetOrElse extracts the value from an Option or returns a default value.
@@ -315,7 +286,7 @@ func Fold[A, B any](onNone func() B, onSome func(a A) B) func(Option[A]) B {
 //
 //go:inline
 func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
-	return MonadFold(fa, onNone, F.Identity[A])
+	return common.OptionMonadGetOrElse(fa, onNone)
 }
 
 // GetOrElse returns a function that extracts the value from an Option or returns a default.
@@ -328,7 +299,7 @@ func MonadGetOrElse[A any](fa Option[A], onNone func() A) A {
 //
 //go:inline
 func GetOrElse[A any](onNone func() A) func(Option[A]) A {
-	return Fold(onNone, F.Identity[A])
+	return common.OptionGetOrElse(onNone)
 }
 
 // MonadChain applies a function that returns an Option to the value inside an Option.
@@ -341,7 +312,7 @@ func GetOrElse[A any](onNone func() A) func(Option[A]) A {
 //
 //go:inline
 func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
-	return MonadFold(fa, None[B], f)
+	return common.OptionMonadChain(fa, f)
 }
 
 // Chain returns a function that applies an Option-returning function to an Option value.
@@ -354,7 +325,7 @@ func MonadChain[A, B any](fa Option[A], f Kleisli[A, B]) Option[B] {
 //
 //go:inline
 func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
-	return Fold(None[B], f)
+	return common.OptionChain(f)
 }
 
 // MonadChainTo ignores the first Option and returns the second Option.
@@ -363,11 +334,10 @@ func Chain[A, B any](f Kleisli[A, B]) Operator[A, B] {
 // Example:
 //
 //	result := MonadChainTo(Some(5), Some("hello")) // Some("hello")
+//
+//go:inline
 func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
-	if ma.s {
-		return mb
-	}
-	return None[B]()
+	return common.OptionMonadChainTo(ma, mb)
 }
 
 // ChainTo returns a function that ignores its input Option and returns a fixed Option.
@@ -376,16 +346,10 @@ func MonadChainTo[A, B any](ma Option[A], mb Option[B]) Option[B] {
 //
 //	replaceWith := ChainTo(Some("hello"))
 //	result := replaceWith(Some(42)) // Some("hello")
+//
+//go:inline
 func ChainTo[A, B any](mb Option[B]) Operator[A, B] {
-	if mb.s {
-		return func(ma Option[A]) Option[B] {
-			if ma.s {
-				return mb
-			}
-			return None[B]()
-		}
-	}
-	return F.Constant1[Option[A]](None[B]())
+	return common.OptionChainTo[A, B](mb)
 }
 
 // MonadChainFirst applies a function that returns an Option but keeps the original value.
@@ -396,13 +360,10 @@ func ChainTo[A, B any](mb Option[B]) Operator[A, B] {
 //	result := MonadChainFirst(Some(5), func(x int) Option[string] {
 //	    return Some(fmt.Sprintf("%d", x))
 //	}) // Some(5) - original value is kept
+//
+//go:inline
 func MonadChainFirst[A, B any](ma Option[A], f Kleisli[A, B]) Option[A] {
-	return C.MonadChainFirst(
-		MonadChain[A, A],
-		MonadMap[B, A],
-		ma,
-		f,
-	)
+	return common.OptionMonadChainFirst(ma, f)
 }
 
 // ChainFirst returns a function that applies an Option-returning function but keeps the original value.
@@ -414,12 +375,10 @@ func MonadChainFirst[A, B any](ma Option[A], f Kleisli[A, B]) Option[A] {
 //	    return Some("logged")
 //	})
 //	result := logAndKeep(Some(5)) // Some(5)
+//
+//go:inline
 func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
-	return C.ChainFirst(
-		Chain[A, A],
-		Map[B, A],
-		f,
-	)
+	return common.OptionChainFirst(f)
 }
 
 // Flatten removes one level of nesting from a nested Option.
@@ -430,8 +389,10 @@ func ChainFirst[A, B any](f Kleisli[A, B]) Operator[A, A] {
 //	result := Flatten(nested) // Some(42)
 //	nested := Some(None[int]())
 //	result := Flatten(nested) // None
+//
+//go:inline
 func Flatten[A any](mma Option[Option[A]]) Option[A] {
-	return MonadChain(mma, F.Identity[Option[A]])
+	return common.OptionFlatten(mma)
 }
 
 // MonadAlt returns the first Option if it's Some, otherwise returns the alternative.
@@ -441,8 +402,10 @@ func Flatten[A any](mma Option[Option[A]]) Option[A] {
 //
 //	result := MonadAlt(Some(5), func() Option[int] { return Some(10) }) // Some(5)
 //	result := MonadAlt(None[int](), func() Option[int] { return Some(10) }) // Some(10)
+//
+//go:inline
 func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
-	return MonadFold(fa, that, Of[A])
+	return common.OptionMonadAlt(fa, that)
 }
 
 // Alt returns a function that provides an alternative Option if the input is None.
@@ -452,8 +415,10 @@ func MonadAlt[A any](fa Option[A], that func() Option[A]) Option[A] {
 //	withDefault := Alt(func() Option[int] { return Some(0) })
 //	result := withDefault(Some(5)) // Some(5)
 //	result := withDefault(None[int]()) // Some(0)
+//
+//go:inline
 func Alt[A any](that func() Option[A]) Operator[A, A] {
-	return Fold(that, Of[A])
+	return common.OptionAlt(that)
 }
 
 // MonadSequence2 sequences two Options and applies a function to their values.
@@ -464,11 +429,10 @@ func Alt[A any](that func() Option[A]) Operator[A, A] {
 //	result := MonadSequence2(Some(2), Some(3), func(a, b int) Option[int] {
 //	    return Some(a + b)
 //	}) // Some(5)
+//
+//go:inline
 func MonadSequence2[T1, T2, R any](o1 Option[T1], o2 Option[T2], f func(T1, T2) Option[R]) Option[R] {
-	if o1.s && o2.s {
-		return f(o1.a, o2.a)
-	}
-	return None[R]()
+	return common.OptionMonadSequence2(o1, o2, f)
 }
 
 // Sequence2 returns a function that sequences two Options with a combining function.
@@ -477,10 +441,10 @@ func MonadSequence2[T1, T2, R any](o1 Option[T1], o2 Option[T2], f func(T1, T2) 
 //
 //	add := Sequence2(func(a, b int) Option[int] { return Some(a + b) })
 //	result := add(Some(2), Some(3)) // Some(5)
+//
+//go:inline
 func Sequence2[T1, T2, R any](f func(T1, T2) Option[R]) func(Option[T1], Option[T2]) Option[R] {
-	return func(o1 Option[T1], o2 Option[T2]) Option[R] {
-		return MonadSequence2(o1, o2, f)
-	}
+	return common.OptionSequence2(f)
 }
 
 // Reduce folds an Option into a single value using a reducer function.
@@ -491,13 +455,10 @@ func Sequence2[T1, T2, R any](f func(T1, T2) Option[R]) func(Option[T1], Option[
 //	sum := Reduce(func(acc, val int) int { return acc + val }, 0)
 //	result := sum(Some(5)) // 5
 //	result := sum(None[int]()) // 0
+//
+//go:inline
 func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
-	return func(ma Option[A]) B {
-		if ma.s {
-			return f(initial, ma.a)
-		}
-		return initial
-	}
+	return common.OptionReduce(f, initial)
 }
 
 // Filter keeps the Option if it's Some and the predicate is satisfied, otherwise returns None.
@@ -508,13 +469,10 @@ func Reduce[A, B any](f func(B, A) B, initial B) func(Option[A]) B {
 //	result := isPositive(Some(5)) // Some(5)
 //	result := isPositive(Some(-1)) // None
 //	result := isPositive(None[int]()) // None
+//
+//go:inline
 func Filter[A any](pred Predicate[A]) Operator[A, A] {
-	return func(ma Option[A]) Option[A] {
-		if ma.s && pred(ma.a) {
-			return ma
-		}
-		return None[A]()
-	}
+	return common.OptionFilter(pred)
 }
 
 // MonadFlap applies a value to a function wrapped in an Option.
@@ -524,11 +482,10 @@ func Filter[A any](pred Predicate[A]) Operator[A, A] {
 //
 //	fab := Some(N.Mul(2))
 //	result := MonadFlap(fab, 5) // Some(10)
+//
+//go:inline
 func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
-	if fab.s {
-		return Some(fab.a(a))
-	}
-	return None[B]()
+	return common.OptionMonadFlap[B, A](fab, a)
 }
 
 // Flap returns a function that applies a value to an Option-wrapped function.
@@ -538,13 +495,10 @@ func MonadFlap[B, A any](fab Option[func(A) B], a A) Option[B] {
 //	applyFive := Flap[int](5)
 //	fab := Some(N.Mul(2))
 //	result := applyFive(fab) // Some(10)
+//
+//go:inline
 func Flap[B, A any](a A) Operator[func(A) B, B] {
-	return func(fab Option[func(A) B]) Option[B] {
-		if fab.s {
-			return Some(fab.a(a))
-		}
-		return None[B]()
-	}
+	return common.OptionFlap[B, A](a)
 }
 
 // Zero returns the zero value of an [Option], which is None.
@@ -581,8 +535,10 @@ func Flap[B, A any](a A) Operator[func(A) B, B] {
 //	someZero := option.Some(0)         // Some(0)
 //	zero := option.Zero[int]()         // None
 //	assert.NotEqual(t, someZero, zero) // they are different
+//
+//go:inline
 func Zero[A any]() Option[A] {
-	return None[A]()
+	return common.OptionZero[A]()
 }
 
 // ChainNone is the curried version that sequences a computation on the None (empty) value.
@@ -621,5 +577,5 @@ func Zero[A any]() Option[A] {
 //
 //go:inline
 func ChainNone[A any](onNone func() Option[A]) Operator[A, A] {
-	return Alt(onNone)
+	return common.OptionChainOptionNone(onNone)
 }

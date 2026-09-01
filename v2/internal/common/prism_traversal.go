@@ -19,7 +19,6 @@ import (
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/pointed"
-	O "github.com/IBM/fp-go/v2/option"
 )
 
 // PrismAsTraversal converts a Prism into a Traversal.
@@ -69,7 +68,7 @@ func PrismAsTraversal[R ~func(func(A) HKTA) func(S) HKTS, S, A, HKTS, HKTA any](
 				return F.Pipe2(
 					s,
 					sa.GetOption,
-					O.Fold(
+					OptionFold(
 						F.Constant(fof(s)),
 						F.Flow2(
 							f,
