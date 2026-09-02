@@ -2,6 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/IBM/fp-go.svg)](https://pkg.go.dev/github.com/IBM/fp-go)
 [![Coverage Status](https://coveralls.io/repos/github/IBM/fp-go/badge.svg?branch=main)](https://coveralls.io/github/IBM/fp-go?branch=main)
+[![API Docs](https://img.shields.io/badge/API%20docs-sourcey-blue)](https://luvi-1.github.io/fp-go-docs/)
 
 **🚧 Work in progress! 🚧** Despite major version 1 (due to [semantic-release limitations](https://github.com/semantic-release/semantic-release/issues/1507)), we're working to minimize breaking changes.
 
@@ -56,6 +57,7 @@ result := function.Pipe2(
 ### Resources
 
 - 📖 [API Documentation](https://pkg.go.dev/github.com/IBM/fp-go)
+- 📚 [Sourcey API Reference](https://luvi-1.github.io/fp-go-docs/) — browsable, searchable API docs
 - 💡 [Code Samples](./samples/)
 - 🆕 [V2 Documentation](./v2/README.md) (requires Go 1.24+)
 
