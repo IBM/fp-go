@@ -13,15 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package common
 
 import (
 	"iter"
+	"slices"
 
-	C "github.com/IBM/fp-go/v2/internal/common"
+	F "github.com/IBM/fp-go/v2/function"
+	RA "github.com/IBM/fp-go/v2/internal/array"
 )
 
-// TraverseArrayG transforms an array by applying a function that returns an Either to each element.
+// EitherTraverseArrayG transforms an array by applying a function that returns an Either to each element.
 // If any element produces a Left, the entire result is that Left (short-circuits).
 // Otherwise, returns Right containing the array of all Right values.
 // The G suffix indicates support for generic slice types.
@@ -32,15 +34,25 @@ import (
 //	    v, err := strconv.Atoi(s)
 //	    return either.FromError(v, err)
 //	}
-//	result := either.TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"})
+//	result := either.EitherTraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"})
 //	// result is Right([]int{1, 2, 3})
 //
 //go:inline
-func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, GA, GB] {
-	return C.EitherTraverseArrayG[GA, GB](f)
+func EitherTraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f EitherKleisli[E, A, B]) EitherKleisli[E, GA, GB] {
+	return func(ga GA) Either[E, GB] {
+		bs := make(GB, len(ga))
+		for i, a := range ga {
+			b := f(a)
+			if b.l {
+				return EitherLeft[GB](b.e)
+			}
+			bs[i] = b.a
+		}
+		return EitherOf[E](bs)
+	}
 }
 
-// TraverseArray transforms an array by applying a function that returns an Either to each element.
+// EitherTraverseArray transforms an array by applying a function that returns an Either to each element.
 // If any element produces a Left, the entire result is that Left (short-circuits).
 // Otherwise, returns Right containing the array of all Right values.
 //
@@ -50,15 +62,15 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f Kleisli[E, A, B]) Kleisli[E
 //	    v, err := strconv.Atoi(s)
 //	    return either.FromError(v, err)
 //	}
-//	result := either.TraverseArray(parse)([]string{"1", "2", "3"})
+//	result := either.EitherTraverseArray(parse)([]string{"1", "2", "3"})
 //	// result is Right([]int{1, 2, 3})
 //
 //go:inline
-func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
-	return C.EitherTraverseArray[E](f)
+func EitherTraverseArray[E, A, B any](f EitherKleisli[E, A, B]) EitherKleisli[E, []A, []B] {
+	return EitherTraverseArrayG[[]A, []B](f)
 }
 
-// TraverseArrayWithIndexG transforms an array by applying an indexed function that returns an Either.
+// EitherTraverseArrayWithIndexG transforms an array by applying an indexed function that returns an Either.
 // The function receives both the index and the element.
 // If any element produces a Left, the entire result is that Left (short-circuits).
 // The G suffix indicates support for generic slice types.
@@ -71,15 +83,25 @@ func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 //	    }
 //	    return either.Left[string](fmt.Errorf("empty at index %d", i))
 //	}
-//	result := either.TraverseArrayWithIndexG[[]string, []string](validate)([]string{"a", "b"})
+//	result := either.EitherTraverseArrayWithIndexG[[]string, []string](validate)([]string{"a", "b"})
 //	// result is Right([]string{"0:a", "1:b"})
 //
 //go:inline
-func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) Kleisli[E, GA, GB] {
-	return C.EitherTraverseArrayWithIndexG[GA, GB](f)
+func EitherTraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) EitherKleisli[E, GA, GB] {
+	return func(ga GA) Either[E, GB] {
+		bs := make(GB, len(ga))
+		for i, a := range ga {
+			b := f(i, a)
+			if b.l {
+				return EitherLeft[GB](b.e)
+			}
+			bs[i] = b.a
+		}
+		return EitherOf[E](bs)
+	}
 }
 
-// TraverseArrayWithIndex transforms an array by applying an indexed function that returns an Either.
+// EitherTraverseArrayWithIndex transforms an array by applying an indexed function that returns an Either.
 // The function receives both the index and the element.
 // If any element produces a Left, the entire result is that Left (short-circuits).
 //
@@ -91,20 +113,20 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Eithe
 //	    }
 //	    return either.Left[string](fmt.Errorf("empty at index %d", i))
 //	}
-//	result := either.TraverseArrayWithIndex(validate)([]string{"a", "b"})
+//	result := either.EitherTraverseArrayWithIndex(validate)([]string{"a", "b"})
 //	// result is Right([]string{"0:a", "1:b"})
 //
 //go:inline
-func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) Kleisli[E, []A, []B] {
-	return C.EitherTraverseArrayWithIndex[E](f)
+func EitherTraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) EitherKleisli[E, []A, []B] {
+	return EitherTraverseArrayWithIndexG[[]A, []B](f)
 }
 
 //go:inline
-func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA] {
-	return C.EitherSequenceArrayG[GA](ma)
+func EitherSequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA] {
+	return EitherTraverseArrayG[GOA, GA](F.Identity[Either[E, A]])(ma)
 }
 
-// SequenceArray converts a homogeneous sequence of Either into an Either of sequence.
+// EitherSequenceArray converts a homogeneous sequence of Either into an Either of sequence.
 // If any element is Left, returns that Left (short-circuits).
 // Otherwise, returns Right containing all the Right values.
 //
@@ -115,15 +137,15 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA
 //	    either.Right[error](2),
 //	    either.Right[error](3),
 //	)
-//	result := either.SequenceArray(eithers)
+//	result := either.EitherSequenceArray(eithers)
 //	// result is Right([]int{1, 2, 3})
 //
 //go:inline
-func SequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
-	return C.EitherSequenceArray[E](ma)
+func EitherSequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
+	return EitherSequenceArrayG[[]A](ma)
 }
 
-// CompactArrayG discards all Left values and keeps only the Right values.
+// EitherCompactArrayG discards all Left values and keeps only the Right values.
 // The G suffix indicates support for generic slice types.
 //
 // Example:
@@ -133,15 +155,17 @@ func SequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
 //	    either.Left[int](errors.New("error")),
 //	    either.Right[error](3),
 //	)
-//	result := either.CompactArrayG[[]either.Either[error, int], []int](eithers)
+//	result := either.EitherCompactArrayG[[]either.Either[error, int], []int](eithers)
 //	// result is []int{1, 3}
 //
 //go:inline
-func CompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
-	return C.EitherCompactArrayG[A1, A2](fa)
+func EitherCompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
+	return RA.Reduce(fa, func(out A2, value Either[E, A]) A2 {
+		return EitherMonadFold(value, F.Constant1[E](out), F.Bind1st(RA.Append[A2, A], out))
+	}, make(A2, 0, len(fa)))
 }
 
-// CompactArray discards all Left values and keeps only the Right values.
+// EitherCompactArray discards all Left values and keeps only the Right values.
 //
 // Example:
 //
@@ -150,12 +174,12 @@ func CompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
 //	    either.Left[int](errors.New("error")),
 //	    either.Right[error](3),
 //	)
-//	result := either.CompactArray(eithers)
+//	result := either.EitherCompactArray(eithers)
 //	// result is []int{1, 3}
 //
 //go:inline
-func CompactArray[E, A any](fa []Either[E, A]) []A {
-	return C.EitherCompactArray[E](fa)
+func EitherCompactArray[E, A any](fa []Either[E, A]) []A {
+	return EitherCompactArrayG[[]Either[E, A], []A](fa)
 }
 
 // TraverseSeq transforms an iterator by applying a function that returns an Either to each element.
@@ -193,10 +217,20 @@ func CompactArray[E, A any](fa []Either[E, A]) []A {
 //
 // # See Also
 //
-//   - TraverseArray: For slice-based traversal
-//   - SequenceSeq: For sequencing iterators of Either values
-func TraverseSeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, iter.Seq[A], iter.Seq[B]] {
-	return C.EitherTraverseSeq[E](f)
+//   - EitherTraverseArray: For slice-based traversal
+//   - EitherSequenceSeq: For sequencing iterators of Either values
+func EitherTraverseSeq[E, A, B any](f EitherKleisli[E, A, B]) EitherKleisli[E, iter.Seq[A], iter.Seq[B]] {
+	return func(ga iter.Seq[A]) Either[E, iter.Seq[B]] {
+		var bs []B
+		for a := range ga {
+			b := f(a)
+			if b.l {
+				return EitherLeft[iter.Seq[B]](b.e)
+			}
+			bs = append(bs, b.a)
+		}
+		return EitherOf[E](slices.Values(bs))
+	}
 }
 
 // SequenceSeq converts an iterator of Either into an Either of iterator.
@@ -231,12 +265,12 @@ func TraverseSeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, iter.Seq[A], iter.S
 //
 // # See Also
 //
-//   - SequenceArray: For slice-based sequencing
-//   - TraverseSeq: For transforming and sequencing in one step
-func SequenceSeq[E, A any](ma iter.Seq[Either[E, A]]) Either[E, iter.Seq[A]] {
-	return C.EitherSequenceSeq[E](ma)
+//   - EitherSequenceArray: For slice-based sequencing
+//   - EitherTraverseSeq: For transforming and sequencing in one step
+func EitherSequenceSeq[E, A any](ma iter.Seq[Either[E, A]]) Either[E, iter.Seq[A]] {
+	return EitherTraverseSeq(F.Identity[Either[E, A]])(ma)
 }
 
-func TraversableArray[E, A, B any]() Traversable[E, A, B, []A, []B] {
-	return C.EitherTraversableArray[E, A, B]()
+func EitherTraversableArray[E, A, B any]() EitherTraversable[E, A, B, []A, []B] {
+	return EitherTraverseArrayG[[]A, []B, E, A, B]
 }

@@ -15,13 +15,19 @@
 
 package either
 
+import "github.com/IBM/fp-go/v2/internal/common"
+
 type (
 	// Either defines a data structure that logically holds either an E or an A. The flag discriminates the cases
-	Either[E, A any] struct {
-		a A
-		e E
-		l bool
-	}
+	Either[E, A any] = common.Either[E, A]
+
+	// Kleisli represents a Kleisli arrow for the Either monad.
+	// It's a function from A to Either[E, B], used for composing operations that may fail.
+	Kleisli[E, A, B any] = common.EitherKleisli[E, A, B]
+
+	// Operator represents a function that transforms one Either into another.
+	// It takes an Either[E, A] and produces an Either[E, B].
+	Operator[E, A, B any] = common.EitherOperator[E, A, B]
 )
 
 // IsLeft tests if the Either is a Left value.
@@ -35,7 +41,7 @@ type (
 //
 //go:inline
 func IsLeft[E, A any](val Either[E, A]) bool {
-	return val.l
+	return common.EitherIsLeft(val)
 }
 
 // IsRight tests if the Either is a Right value.
@@ -49,7 +55,7 @@ func IsLeft[E, A any](val Either[E, A]) bool {
 //
 //go:inline
 func IsRight[E, A any](val Either[E, A]) bool {
-	return !val.l
+	return common.EitherIsRight(val)
 }
 
 // Left creates a new Either representing a Left (error/failure) value.
@@ -61,7 +67,7 @@ func IsRight[E, A any](val Either[E, A]) bool {
 //
 //go:inline
 func Left[A, E any](value E) Either[E, A] {
-	return Either[E, A]{l: true, e: value}
+	return common.EitherLeft[A](value)
 }
 
 // Right creates a new Either representing a Right (success) value.
@@ -73,7 +79,7 @@ func Left[A, E any](value E) Either[E, A] {
 //
 //go:inline
 func Right[E, A any](value A) Either[E, A] {
-	return Either[E, A]{a: value}
+	return common.EitherRight[E](value)
 }
 
 // MonadFold extracts the value from an Either by providing handlers for both cases.
@@ -89,10 +95,7 @@ func Right[E, A any](value A) Either[E, A] {
 //
 //go:inline
 func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a A) B) B {
-	if !ma.l {
-		return onRight(ma.a)
-	}
-	return onLeft(ma.e)
+	return common.EitherMonadFold(ma, onLeft, onRight)
 }
 
 // Unwrap converts an Either into the idiomatic Go tuple (value, error).
@@ -106,5 +109,5 @@ func MonadFold[E, A, B any](ma Either[E, A], onLeft func(e E) B, onRight func(a 
 //
 //go:inline
 func Unwrap[E, A any](ma Either[E, A]) (A, E) {
-	return ma.a, ma.e
+	return common.EitherUnwrap(ma)
 }

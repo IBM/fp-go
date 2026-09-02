@@ -108,8 +108,7 @@ func TestAltAllArray_EdgeCases(t *testing.T) {
 		eithers := []Either[error, int]{}
 		startErr := errors.New("start error")
 		result := AltAllArray(Left[int](startErr))(eithers)
-		assert.True(t, IsLeft(result))
-		assert.Equal(t, startErr, result.e)
+		assert.Equal(t, Left[int](startErr), result)
 	})
 
 	t.Run("returns last Left when startWith is Left and all array elements are Left", func(t *testing.T) {
@@ -120,8 +119,7 @@ func TestAltAllArray_EdgeCases(t *testing.T) {
 			Left[int](lastErr),
 		}
 		result := AltAllArray(Left[int](startErr))(eithers)
-		assert.True(t, IsLeft(result))
-		assert.Equal(t, lastErr, result.e)
+		assert.Equal(t, Left[int](lastErr), result)
 	})
 }
 
@@ -263,8 +261,7 @@ func TestAltAllSeq_EdgeCases(t *testing.T) {
 		generator := func(yield func(Either[error, int]) bool) {}
 		startErr := errors.New("start error")
 		result := AltAllSeq(Left[int](startErr))(generator)
-		assert.True(t, IsLeft(result))
-		assert.Equal(t, startErr, result.e)
+		assert.Equal(t, Left[int](startErr), result)
 	})
 
 	t.Run("returns last Left when startWith is Left and all sequence elements are Left", func(t *testing.T) {
@@ -279,8 +276,7 @@ func TestAltAllSeq_EdgeCases(t *testing.T) {
 			}
 		}
 		result := AltAllSeq(Left[int](startErr))(generator)
-		assert.True(t, IsLeft(result))
-		assert.Equal(t, lastErr, result.e)
+		assert.Equal(t, Left[int](lastErr), result)
 	})
 }
 

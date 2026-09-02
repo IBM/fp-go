@@ -13,17 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package common
 
 import (
-	"github.com/IBM/fp-go/v2/internal/common"
+	F "github.com/IBM/fp-go/v2/function"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
-// MonadApV is the applicative validation functor that combines errors using a semigroup.
+// EitherMonadApV is the applicative validation functor that combines errors using a semigroup.
 //
 // Unlike the standard [MonadAp] which short-circuits on the first Left (error),
-// MonadApV accumulates all errors using the provided semigroup's Concat operation.
+// EitherMonadApV accumulates all errors using the provided semigroup's Concat operation.
 // This is particularly useful for validation scenarios where you want to collect
 // all validation errors rather than stopping at the first one.
 //
@@ -56,33 +56,44 @@ import (
 //	})
 //
 //	// Create the validation applicative
-//	applyV := either.MonadApV[int](errorSemigroup)
+//	applyV := either.EitherMonadApV[int](errorSemigroup)
 //
 //	// Both are errors - errors get combined
-//	fab := either.Left[func(int) int]("error1")
-//	fa := either.Left[int]("error2")
+//	fab := either.EitherLeft[func(int) int]("error1")
+//	fa := either.EitherLeft[int]("error2")
 //	result := applyV(fab, fa) // Left("error1; error2")
 //
 //	// One error - returns that error
 //	fab2 := either.Right[string](N.Mul(2))
-//	fa2 := either.Left[int]("validation failed")
+//	fa2 := either.EitherLeft[int]("validation failed")
 //	result2 := applyV(fab2, fa2) // Left("validation failed")
 //
 //	// Both success - applies function
 //	fab3 := either.Right[string](N.Mul(2))
 //	fa3 := either.Right[string](21)
 //	result3 := applyV(fab3, fa3) // Right(42)
-func MonadApV[B, A, E any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
-	return common.EitherMonadApV[B, A](sg)
+func EitherMonadApV[B, A, E any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
+	return func(fab Either[E, func(a A) B], fa Either[E, A]) Either[E, B] {
+		if fab.l {
+			if fa.l {
+				return EitherLeft[B](sg.Concat(fab.e, fa.e))
+			}
+			return EitherLeft[B](fab.e)
+		}
+		if fa.l {
+			return EitherLeft[B](fa.e)
+		}
+		return EitherOf[E](fab.a(fa.a))
+	}
 }
 
-// ApV is the curried version of [MonadApV] that combines errors using a semigroup.
+// EitherApV is the curried version of [EitherMonadApV] that combines errors using a semigroup.
 //
 // This function provides a more convenient API for validation scenarios by currying
 // the arguments. It first takes the value to validate, then returns a function that
 // takes the validation function. This allows for a more natural composition style.
 //
-// Like [MonadApV], this accumulates all errors using the provided semigroup instead
+// Like [EitherMonadApV], this accumulates all errors using the provided semigroup instead
 // of short-circuiting on the first error. This is the key difference from the
 // standard [Ap] function.
 //
@@ -113,18 +124,21 @@ func MonadApV[B, A, E any](sg S.Semigroup[E]) func(fab Either[E, func(a A) B], f
 //	    if x > 0 {
 //	        return either.Right[ValidationError](x)
 //	    }
-//	    return either.Left[int](ValidationError{Errors: []string{"must be positive"}})
+//	    return either.EitherLeft[int](ValidationError{Errors: []string{"must be positive"}})
 //	}
 //
-//	// Use ApV for validation
-//	applyValidation := either.ApV[int](errorSemigroup)
-//	value := either.Left[int](ValidationError{Errors: []string{"invalid input"}})
-//	validator := either.Left[func(int) int](ValidationError{Errors: []string{"invalid validator"}})
+//	// Use EitherApV for validation
+//	applyValidation := either.EitherApV[int](errorSemigroup)
+//	value := either.EitherLeft[int](ValidationError{Errors: []string{"invalid input"}})
+//	validator := either.EitherLeft[func(int) int](ValidationError{Errors: []string{"invalid validator"}})
 //
 //	result := applyValidation(value)(validator)
 //	// Left(ValidationError{Errors: []string{"invalid validator", "invalid input"}})
 //
 //go:inline
-func ApV[B, A, E any](sg S.Semigroup[E]) func(Either[E, A]) Operator[E, func(A) B, B] {
-	return common.EitherApV[B, A](sg)
+func EitherApV[B, A, E any](sg S.Semigroup[E]) func(Either[E, A]) EitherOperator[E, func(A) B, B] {
+	apv := EitherMonadApV[B, A](sg)
+	return func(e Either[E, A]) EitherOperator[E, func(A) B, B] {
+		return F.Bind2nd(apv, e)
+	}
 }

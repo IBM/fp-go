@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package common
 
 import (
 	"bytes"
@@ -25,134 +25,134 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestString(t *testing.T) {
+func TestEither_String(t *testing.T) {
 	t.Run("Right value", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := e.String()
 		assert.Equal(t, "Right[int](42)", result)
 	})
 
 	t.Run("Left value", func(t *testing.T) {
-		e := Left[int](errors.New("test error"))
+		e := EitherLeft[int](errors.New("test error"))
 		result := e.String()
 		assert.Contains(t, result, "Left[*errors.errorString]")
 		assert.Contains(t, result, "test error")
 	})
 
 	t.Run("Right with string", func(t *testing.T) {
-		e := Right[error]("hello")
+		e := EitherRight[error]("hello")
 		result := e.String()
 		assert.Equal(t, "Right[string](hello)", result)
 	})
 
 	t.Run("Left with string", func(t *testing.T) {
-		e := Left[int]("error message")
+		e := EitherLeft[int]("error message")
 		result := e.String()
 		assert.Equal(t, "Left[string](error message)", result)
 	})
 
 	t.Run("Right zero value", func(t *testing.T) {
-		e := Right[string](0)
+		e := EitherRight[string](0)
 		result := e.String()
 		assert.Equal(t, "Right[int](0)", result)
 	})
 
 	t.Run("Left zero value", func(t *testing.T) {
-		e := Left[int]("")
+		e := EitherLeft[int]("")
 		result := e.String()
 		assert.Equal(t, "Left[string]()", result)
 	})
 
 	t.Run("Right with bool true", func(t *testing.T) {
-		e := Right[error](true)
+		e := EitherRight[error](true)
 		result := e.String()
 		assert.Equal(t, "Right[bool](true)", result)
 	})
 
 	t.Run("Right with bool false", func(t *testing.T) {
-		e := Right[error](false)
+		e := EitherRight[error](false)
 		result := e.String()
 		assert.Equal(t, "Right[bool](false)", result)
 	})
 
 	t.Run("Right with nil pointer", func(t *testing.T) {
 		var p *int
-		e := Right[error](p)
+		e := EitherRight[error](p)
 		result := e.String()
 		assert.Equal(t, "Right[*int](<nil>)", result)
 	})
 
 	t.Run("Left with nil pointer", func(t *testing.T) {
 		var p *string
-		e := Left[int](p)
+		e := EitherLeft[int](p)
 		result := e.String()
 		assert.Equal(t, "Left[*string](<nil>)", result)
 	})
 
 	t.Run("String() equals fmt.Sprint()", func(t *testing.T) {
-		right := Right[error](42)
+		right := EitherRight[error](42)
 		assert.Equal(t, right.String(), fmt.Sprint(right))
 
-		left := Left[int]("err")
+		left := EitherLeft[int]("err")
 		assert.Equal(t, left.String(), fmt.Sprint(left))
 	})
 
 	t.Run("String() equals fmt.Sprintf %v", func(t *testing.T) {
-		right := Right[error](42)
+		right := EitherRight[error](42)
 		assert.Equal(t, right.String(), fmt.Sprintf("%v", right))
 
-		left := Left[int]("err")
+		left := EitherLeft[int]("err")
 		assert.Equal(t, left.String(), fmt.Sprintf("%v", left))
 	})
 }
 
-func TestFormatInterface(t *testing.T) {
+func TestEither_Format(t *testing.T) {
 	t.Run("Right value with %s", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := fmt.Sprintf("%s", e)
 		assert.Equal(t, "Right[int](42)", result)
 	})
 
 	t.Run("Left value with %s", func(t *testing.T) {
-		e := Left[int](errors.New("test error"))
+		e := EitherLeft[int](errors.New("test error"))
 		result := fmt.Sprintf("%s", e)
 		assert.Contains(t, result, "Left")
 		assert.Contains(t, result, "test error")
 	})
 
 	t.Run("Right value with %v", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := fmt.Sprintf("%v", e)
 		assert.Equal(t, "Right[int](42)", result)
 	})
 
 	t.Run("Left value with %v", func(t *testing.T) {
-		e := Left[int]("error")
+		e := EitherLeft[int]("error")
 		result := fmt.Sprintf("%v", e)
 		assert.Equal(t, "Left[string](error)", result)
 	})
 
 	t.Run("Right value with %+v", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := fmt.Sprintf("%+v", e)
 		assert.Contains(t, result, "Right")
 		assert.Contains(t, result, "42")
 	})
 
 	t.Run("Right value with %#v", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := fmt.Sprintf("%#v", e)
 		assert.Equal(t, "Right[int](42)", result)
 	})
 
 	t.Run("Left value with %#v", func(t *testing.T) {
-		e := Left[int]("error")
+		e := EitherLeft[int]("error")
 		result := fmt.Sprintf("%#v", e)
 		assert.Equal(t, "Left[string](error)", result)
 	})
 
 	t.Run("Right value with %q", func(t *testing.T) {
-		e := Right[error]("hello")
+		e := EitherRight[error]("hello")
 		result := fmt.Sprintf("%q", e)
 		// %q quotes the String() representation
 		assert.Equal(t, fmt.Sprintf("%q", e.String()), result)
@@ -160,40 +160,40 @@ func TestFormatInterface(t *testing.T) {
 	})
 
 	t.Run("Left value with %q", func(t *testing.T) {
-		e := Left[int]("error")
+		e := EitherLeft[int]("error")
 		result := fmt.Sprintf("%q", e)
 		assert.Equal(t, fmt.Sprintf("%q", e.String()), result)
 		assert.Contains(t, result, "Left")
 	})
 
 	t.Run("Left value with %+v", func(t *testing.T) {
-		e := Left[int]("error")
+		e := EitherLeft[int]("error")
 		result := fmt.Sprintf("%+v", e)
 		assert.Equal(t, "Left[string](error)", result)
 	})
 
 	t.Run("Right value with %d (default fallthrough)", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := fmt.Sprintf("%d", e)
 		assert.Equal(t, "Right[int](42)", result)
 	})
 
 	t.Run("Left value with %x (default fallthrough)", func(t *testing.T) {
-		e := Left[int]("err")
+		e := EitherLeft[int]("err")
 		result := fmt.Sprintf("%x", e)
 		assert.Equal(t, "Left[string](err)", result)
 	})
 
 	t.Run("Right value with %T", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		result := fmt.Sprintf("%T", e)
-		assert.Contains(t, result, "either.Either")
+		assert.Contains(t, result, "common.Either")
 	})
 }
 
-func TestLogValue(t *testing.T) {
+func TestEither_LogValue(t *testing.T) {
 	t.Run("Right value", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		logValue := e.LogValue()
 
 		// Should be a group value
@@ -207,7 +207,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("Left value", func(t *testing.T) {
-		e := Left[int](errors.New("test error"))
+		e := EitherLeft[int](errors.New("test error"))
 		logValue := e.LogValue()
 
 		// Should be a group value
@@ -221,7 +221,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("Right with string", func(t *testing.T) {
-		e := Right[error]("success")
+		e := EitherRight[error]("success")
 		logValue := e.LogValue()
 
 		// Should be a group value
@@ -235,7 +235,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("Left with string", func(t *testing.T) {
-		e := Left[int]("error message")
+		e := EitherLeft[int]("error message")
 		logValue := e.LogValue()
 
 		// Should be a group value
@@ -254,7 +254,7 @@ func TestLogValue(t *testing.T) {
 			Level: slog.LevelInfo,
 		}))
 
-		e := Right[error](42)
+		e := EitherRight[error](42)
 		logger.Info("test message", "result", e)
 
 		output := buf.String()
@@ -270,7 +270,7 @@ func TestLogValue(t *testing.T) {
 			Level: slog.LevelInfo,
 		}))
 
-		e := Left[int]("error occurred")
+		e := EitherLeft[int]("error occurred")
 		logger.Info("test message", "result", e)
 
 		output := buf.String()
@@ -281,7 +281,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("Right with bool", func(t *testing.T) {
-		e := Right[error](true)
+		e := EitherRight[error](true)
 		logValue := e.LogValue()
 
 		assert.Equal(t, slog.KindGroup, logValue.Kind())
@@ -292,7 +292,7 @@ func TestLogValue(t *testing.T) {
 	})
 
 	t.Run("Right with float64", func(t *testing.T) {
-		e := Right[error](3.14)
+		e := EitherRight[error](3.14)
 		logValue := e.LogValue()
 
 		assert.Equal(t, slog.KindGroup, logValue.Kind())
@@ -304,7 +304,7 @@ func TestLogValue(t *testing.T) {
 
 	t.Run("Left with error", func(t *testing.T) {
 		err := errors.New("wrapped error")
-		e := Left[int](err)
+		e := EitherLeft[int](err)
 		logValue := e.LogValue()
 
 		assert.Equal(t, slog.KindGroup, logValue.Kind())
@@ -316,7 +316,7 @@ func TestLogValue(t *testing.T) {
 
 	t.Run("Left with nil pointer stores nil", func(t *testing.T) {
 		var p *string
-		e := Left[int](p)
+		e := EitherLeft[int](p)
 		logValue := e.LogValue()
 
 		assert.Equal(t, slog.KindGroup, logValue.Kind())
@@ -329,18 +329,18 @@ func TestLogValue(t *testing.T) {
 
 	t.Run("group always has exactly one attribute", func(t *testing.T) {
 		for range 10 {
-			right := Right[error](42)
+			right := EitherRight[error](42)
 			assert.Len(t, right.LogValue().Group(), 1)
 
-			left := Left[int]("e")
+			left := EitherLeft[int]("e")
 			assert.Len(t, left.LogValue().Group(), 1)
 		}
 	})
 }
 
-func TestFormatComprehensive(t *testing.T) {
+func TestEither_Format_Comprehensive(t *testing.T) {
 	t.Run("All format verbs for Right", func(t *testing.T) {
-		e := Right[error](42)
+		e := EitherRight[error](42)
 
 		tests := []struct {
 			verb     string
@@ -350,7 +350,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%v", []string{"Right", "42"}},
 			{"%+v", []string{"Right", "42"}},
 			{"%#v", []string{"Right", "42"}},
-			{"%T", []string{"either.Either"}},
+			{"%T", []string{"common.Either"}},
 		}
 
 		for _, tt := range tests {
@@ -364,7 +364,7 @@ func TestFormatComprehensive(t *testing.T) {
 	})
 
 	t.Run("All format verbs for Left", func(t *testing.T) {
-		e := Left[int]("error")
+		e := EitherLeft[int]("error")
 
 		tests := []struct {
 			verb     string
@@ -374,7 +374,7 @@ func TestFormatComprehensive(t *testing.T) {
 			{"%v", []string{"Left", "error"}},
 			{"%+v", []string{"Left", "error"}},
 			{"%#v", []string{"Left", "error"}},
-			{"%T", []string{"either.Either"}},
+			{"%T", []string{"common.Either"}},
 		}
 
 		for _, tt := range tests {
@@ -388,29 +388,29 @@ func TestFormatComprehensive(t *testing.T) {
 	})
 }
 
-func TestInterfaceImplementations(t *testing.T) {
+func TestEither_InterfaceImplementations(t *testing.T) {
 	t.Run("fmt.Stringer interface", func(t *testing.T) {
-		var _ fmt.Stringer = Right[error](42)
-		var _ fmt.Stringer = Left[int](errors.New("error"))
+		var _ fmt.Stringer = EitherRight[error](42)
+		var _ fmt.Stringer = EitherLeft[int](errors.New("error"))
 	})
 
 	t.Run("fmt.Formatter interface", func(t *testing.T) {
-		var _ fmt.Formatter = Right[error](42)
-		var _ fmt.Formatter = Left[int](errors.New("error"))
+		var _ fmt.Formatter = EitherRight[error](42)
+		var _ fmt.Formatter = EitherLeft[int](errors.New("error"))
 	})
 
 	t.Run("slog.LogValuer interface", func(t *testing.T) {
-		var _ slog.LogValuer = Right[error](42)
-		var _ slog.LogValuer = Left[int](errors.New("error"))
+		var _ slog.LogValuer = EitherRight[error](42)
+		var _ slog.LogValuer = EitherLeft[int](errors.New("error"))
 	})
 }
 
-// TestStringNestedEither verifies that nested Either values are rendered via
+// TestEither_String_Nested verifies that nested Either values are rendered via
 // the inner value's String() representation.
-func TestStringNestedEither(t *testing.T) {
+func TestEither_String_Nested(t *testing.T) {
 	t.Run("Right wrapping Right", func(t *testing.T) {
-		inner := Right[error](99)
-		outer := Right[error](inner)
+		inner := EitherRight[error](99)
+		outer := EitherRight[error](inner)
 		result := outer.String()
 		assert.Contains(t, result, "Right")
 		// inner.String() appears as the %v of the inner value
@@ -418,23 +418,23 @@ func TestStringNestedEither(t *testing.T) {
 	})
 
 	t.Run("Right wrapping Left", func(t *testing.T) {
-		inner := Left[int]("inner error")
-		outer := Right[error](inner)
+		inner := EitherLeft[int]("inner error")
+		outer := EitherRight[error](inner)
 		result := outer.String()
 		assert.Contains(t, result, "Right")
 		assert.Contains(t, result, inner.String())
 	})
 }
 
-// TestFormatQExact pins the exact output of the %q verb, which quotes the
+// TestEither_Format_QVerb pins the exact output of the %q verb, which quotes the
 // String() representation of the Either value.
-func TestFormatQExact(t *testing.T) {
+func TestEither_Format_QVerb(t *testing.T) {
 	tests := []struct {
 		name string
 		e    Either[error, string]
 	}{
-		{"Right", Right[error]("hello")},
-		{"Left", Left[string](errors.New("oops"))},
+		{"Right", EitherRight[error]("hello")},
+		{"Left", EitherLeft[string](errors.New("oops"))},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -445,18 +445,18 @@ func TestFormatQExact(t *testing.T) {
 	}
 }
 
-// TestLogValueKindIsAlwaysGroup ensures LogValue always returns a group
+// TestEither_LogValue_KindIsAlwaysGroup ensures LogValue always returns a group
 // regardless of the value type or nil-ness of the payload.
-func TestLogValueKindIsAlwaysGroup(t *testing.T) {
+func TestEither_LogValue_KindIsAlwaysGroup(t *testing.T) {
 	cases := []struct {
 		name string
 		val  slog.Value
 	}{
-		{"Right int", Right[error](0).LogValue()},
-		{"Right string", Right[error]("").LogValue()},
-		{"Right bool", Right[error](false).LogValue()},
-		{"Left string", Left[int]("").LogValue()},
-		{"Left error", Left[int](errors.New("e")).LogValue()},
+		{"Right int", EitherRight[error](0).LogValue()},
+		{"Right string", EitherRight[error]("").LogValue()},
+		{"Right bool", EitherRight[error](false).LogValue()},
+		{"Left string", EitherLeft[int]("").LogValue()},
+		{"Left error", EitherLeft[int](errors.New("e")).LogValue()},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

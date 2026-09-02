@@ -15,10 +15,7 @@
 
 package either
 
-import (
-	F "github.com/IBM/fp-go/v2/function"
-	RR "github.com/IBM/fp-go/v2/internal/record"
-)
+import C "github.com/IBM/fp-go/v2/internal/common"
 
 // TraverseRecordG transforms a map by applying a function that returns an Either to each value.
 // If any value produces a Left, the entire result is that Left (short-circuits).
@@ -36,17 +33,7 @@ import (
 //
 //go:inline
 func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, GA, GB] {
-	return func(ga GA) Either[E, GB] {
-		bs := make(GB, len(ga))
-		for i, a := range ga {
-			b := f(a)
-			if b.l {
-				return Left[GB](b.e)
-			}
-			bs[i] = b.a
-		}
-		return Of[E](bs)
-	}
+	return C.EitherTraverseRecordG[GA, GB, K, E, A, B](f)
 }
 
 // TraverseRecord transforms a map by applying a function that returns an Either to each value.
@@ -64,7 +51,7 @@ func TraverseRecordG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f Klei
 //
 //go:inline
 func TraverseRecord[K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, map[K]A, map[K]B] {
-	return TraverseRecordG[map[K]A, map[K]B](f)
+	return C.EitherTraverseRecord[K, E, A, B](f)
 }
 
 // TraverseRecordWithIndexG transforms a map by applying an indexed function that returns an Either.
@@ -85,17 +72,7 @@ func TraverseRecord[K comparable, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, ma
 //
 //go:inline
 func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B any](f func(K, A) Either[E, B]) Kleisli[E, GA, GB] {
-	return func(ga GA) Either[E, GB] {
-		bs := make(GB, len(ga))
-		for i, a := range ga {
-			b := f(i, a)
-			if b.l {
-				return Left[GB](b.e)
-			}
-			bs[i] = b.a
-		}
-		return Of[E](bs)
-	}
+	return C.EitherTraverseRecordWithIndexG[GA, GB, K, E, A, B](f)
 }
 
 // TraverseRecordWithIndex transforms a map by applying an indexed function that returns an Either.
@@ -115,12 +92,12 @@ func TraverseRecordWithIndexG[GA ~map[K]A, GB ~map[K]B, K comparable, E, A, B an
 //
 //go:inline
 func TraverseRecordWithIndex[K comparable, E, A, B any](f func(K, A) Either[E, B]) Kleisli[E, map[K]A, map[K]B] {
-	return TraverseRecordWithIndexG[map[K]A, map[K]B](f)
+	return C.EitherTraverseRecordWithIndex[K, E, A, B](f)
 }
 
 //go:inline
 func SequenceRecordG[GA ~map[K]A, GOA ~map[K]Either[E, A], K comparable, E, A any](ma GOA) Either[E, GA] {
-	return TraverseRecordG[GOA, GA](F.Identity[Either[E, A]])(ma)
+	return C.EitherSequenceRecordG[GA, GOA, K, E, A](ma)
 }
 
 // SequenceRecord converts a map of Either values into an Either of a map.
@@ -138,12 +115,7 @@ func SequenceRecordG[GA ~map[K]A, GOA ~map[K]Either[E, A], K comparable, E, A an
 //
 //go:inline
 func SequenceRecord[K comparable, E, A any](ma map[K]Either[E, A]) Either[E, map[K]A] {
-	return SequenceRecordG[map[K]A](ma)
-}
-
-func upsertAtReadWrite[M ~map[K]V, K comparable, V any](r M, k K, v V) M {
-	r[k] = v
-	return r
+	return C.EitherSequenceRecord[K, E, A](ma)
 }
 
 // CompactRecordG discards all Left values and keeps only the Right values.
@@ -159,13 +131,7 @@ func upsertAtReadWrite[M ~map[K]V, K comparable, V any](r M, k K, v V) M {
 //	result := either.CompactRecordG[map[string]either.Either[error, int], map[string]int](eithers)
 //	// result is map[string]int{"a": 1, "c": 3}
 func CompactRecordG[M1 ~map[K]Either[E, A], M2 ~map[K]A, K comparable, E, A any](m M1) M2 {
-	out := make(M2)
-	onLeft := F.Constant1[E](out)
-	return RR.ReduceWithIndex(m, func(key K, _ M2, value Either[E, A]) M2 {
-		return MonadFold(value, onLeft, func(v A) M2 {
-			return upsertAtReadWrite(out, key, v)
-		})
-	}, out)
+	return C.EitherCompactRecordG[M1, M2, K, E, A](m)
 }
 
 // CompactRecord discards all Left values and keeps only the Right values.
@@ -182,9 +148,9 @@ func CompactRecordG[M1 ~map[K]Either[E, A], M2 ~map[K]A, K comparable, E, A any]
 //
 //go:inline
 func CompactRecord[K comparable, E, A any](m map[K]Either[E, A]) map[K]A {
-	return CompactRecordG[map[K]Either[E, A], map[K]A](m)
+	return C.EitherCompactRecord[K, E, A](m)
 }
 
 func TraversableRecord[K comparable, E, A, B any]() Traversable[E, A, B, map[K]A, map[K]B] {
-	return TraverseRecordG[map[K]A, map[K]B, K, E, A, B]
+	return C.EitherTraversableRecord[K, E, A, B]()
 }

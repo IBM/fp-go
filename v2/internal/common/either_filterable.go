@@ -20,11 +20,13 @@
 //
 // The Filterable specification defines operations for filtering and partitioning
 // data structures based on predicates and mapping functions.
-package either
+package common
 
-import "github.com/IBM/fp-go/v2/internal/common"
+import (
+	"github.com/IBM/fp-go/v2/pair"
+)
 
-// Partition separates an [Either] value into a [Pair] based on a predicate function.
+// EitherPartition separates an [Either] value into a [Pair] based on a predicate function.
 // It returns a function that takes an Either and produces a Pair of Either values,
 // where the first element contains values that fail the predicate and the second
 // contains values that pass the predicate.
@@ -59,9 +61,9 @@ import "github.com/IBM/fp-go/v2/internal/common"
 //	    P "github.com/IBM/fp-go/v2/pair"
 //	)
 //
-//	// Partition positive and non-positive numbers
+//	// EitherPartition positive and non-positive numbers
 //	isPositive := N.MoreThan(0)
-//	partition := E.Partition(isPositive, "not positive")
+//	partition := E.EitherPartition(isPositive, "not positive")
 //
 //	// Right value that passes predicate
 //	result1 := partition(E.Right[string](5))
@@ -76,15 +78,24 @@ import "github.com/IBM/fp-go/v2/internal/common"
 //	// left2 = Right(-3), right2 = Left("not positive")
 //
 //	// Left value passes through unchanged in both positions
-//	result3 := partition(E.Left[int]("error"))
+//	result3 := partition(E.EitherLeft[int]("error"))
 //	// result3 = Pair(Left("error"), Left("error"))
 //	left3, right3 := P.Unpack(result3)
 //	// left3 = Left("error"), right3 = Left("error")
-func Partition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either[E, A], Either[E, A]] {
-	return common.EitherPartition[E, A](p, empty)
+func EitherPartition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either[E, A], Either[E, A]] {
+	l := EitherLeft[A](empty)
+	return func(e Either[E, A]) Pair[Either[E, A], Either[E, A]] {
+		if e.l {
+			return pair.Of(e)
+		}
+		if p(e.a) {
+			return pair.MakePair(l, e)
+		}
+		return pair.MakePair(e, l)
+	}
 }
 
-// Filter creates a filtering operation for [Either] values based on a predicate function.
+// EitherFilter creates a filtering operation for [Either] values based on a predicate function.
 // It returns a function that takes an Either and produces an Either, where Right values
 // that fail the predicate are converted to Left values with the provided empty value.
 //
@@ -118,9 +129,9 @@ func Partition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either
 //	    N "github.com/IBM/fp-go/v2/number"
 //	)
 //
-//	// Filter to keep only positive numbers
+//	// EitherFilter to keep only positive numbers
 //	isPositive := N.MoreThan(0)
-//	filterPositive := E.Filter(isPositive, "not positive")
+//	filterPositive := E.EitherFilter(isPositive, "not positive")
 //
 //	// Right value that passes predicate - remains Right
 //	result1 := filterPositive(E.Right[string](5))
@@ -131,12 +142,12 @@ func Partition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either
 //	// result2 = Left("not positive")
 //
 //	// Left value passes through unchanged
-//	result3 := filterPositive(E.Left[int]("original error"))
+//	result3 := filterPositive(E.EitherLeft[int]("original error"))
 //	// result3 = Left("original error")
 //
 //	// Chaining filters
 //	isEven := func(n int) bool { return n%2 == 0 }
-//	filterEven := E.Filter(isEven, "not even")
+//	filterEven := E.EitherFilter(isEven, "not even")
 //
 //	// Apply multiple filters in sequence
 //	result4 := filterEven(filterPositive(E.Right[string](4)))
@@ -144,11 +155,17 @@ func Partition[E, A any](p Predicate[A], empty E) func(Either[E, A]) Pair[Either
 //
 //	result5 := filterEven(filterPositive(E.Right[string](3)))
 //	// result5 = Left("not even") - passes first, fails second
-func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
-	return common.EitherFilter[E, A](p, empty)
+func EitherFilter[E, A any](p Predicate[A], empty E) EitherOperator[E, A, A] {
+	l := EitherLeft[A](empty)
+	return func(e Either[E, A]) Either[E, A] {
+		if e.l || p(e.a) {
+			return e
+		}
+		return l
+	}
 }
 
-// FilterMap combines filtering and mapping operations for [Either] values using an [Option]-returning function.
+// EitherFilterMap combines filtering and mapping operations for [Either] values using an [Option]-returning function.
 // It returns a function that takes an Either[E, A] and produces an Either[E, B], where Right values
 // are transformed by applying the function f. If f returns Some(B), the result is Right(B). If f returns
 // None, the result is Left(empty).
@@ -157,7 +174,7 @@ func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
 // https://github.com/fantasyland/fantasy-land#filterable
 //
 // The behavior is as follows:
-//   - If the input is Left, it passes through with its error value preserved as Left[B]
+//   - If the input is Left, it passes through with its error value preserved as EitherLeft[B]
 //   - If the input is Right and f returns Some(B), the result is Right(B)
 //   - If the input is Right and f returns None, the result is Left(empty)
 //
@@ -190,7 +207,7 @@ func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
 //	    }
 //	    return O.None[int]()
 //	}
-//	filterMapInt := E.FilterMap(parseInt, "invalid number")
+//	filterMapInt := E.EitherFilterMap(parseInt, "invalid number")
 //
 //	// Valid number string - transforms to Right(int)
 //	result1 := filterMapInt(E.Right[string]("42"))
@@ -201,7 +218,7 @@ func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
 //	// result2 = Left("invalid number")
 //
 //	// Left value passes through with error preserved
-//	result3 := filterMapInt(E.Left[string]("original error"))
+//	result3 := filterMapInt(E.EitherLeft[string]("original error"))
 //	// result3 = Left("original error")
 //
 //	// Extract optional field from struct
@@ -210,18 +227,27 @@ func Filter[E, A any](p Predicate[A], empty E) Operator[E, A, A] {
 //	    Email O.Option[string]
 //	}
 //	extractEmail := func(p Person) O.Option[string] { return p.Email }
-//	filterMapEmail := E.FilterMap(extractEmail, "no email")
+//	filterMapEmail := E.EitherFilterMap(extractEmail, "no email")
 //
 //	result4 := filterMapEmail(E.Right[string](Person{Name: "Alice", Email: O.Some("alice@example.com")}))
 //	// result4 = Right("alice@example.com")
 //
 //	result5 := filterMapEmail(E.Right[string](Person{Name: "Bob", Email: O.None[string]()}))
 //	// result5 = Left("no email")
-func FilterMap[E, A, B any](f func(A) Option[B], empty E) Operator[E, A, B] {
-	return common.EitherFilterMap[E, A, B](f, empty)
+func EitherFilterMap[E, A, B any](f OptionKleisli[A, B], empty E) EitherOperator[E, A, B] {
+	l := EitherLeft[B](empty)
+	return func(e Either[E, A]) Either[E, B] {
+		if e.l {
+			return EitherLeft[B](e.e)
+		}
+		if b, ok := OptionUnwrap(f(e.a)); ok {
+			return EitherRight[E](b)
+		}
+		return l
+	}
 }
 
-// PartitionMap separates and transforms an [Either] value into a [Pair] of Either values using a mapping function.
+// EitherPartitionMap separates and transforms an [Either] value into a [Pair] of Either values using a mapping function.
 // It returns a function that takes an Either[E, A] and produces a Pair of Either values, where the mapping
 // function f transforms the Right value into Either[B, C]. The result is partitioned based on whether f
 // produces a Left or Right value.
@@ -256,13 +282,13 @@ func FilterMap[E, A, B any](f func(A) Option[B], empty E) Operator[E, A, B] {
 //	)
 //
 //	// Classify and transform numbers: negative -> error message, positive -> squared value
-//	classifyNumber := func(n int) E.Either[string, int] {
+//	classifyNumber := func(n int) Either[string, int] {
 //	    if n < 0 {
-//	        return E.Left[int]("negative: " + strconv.Itoa(n))
+//	        return E.EitherLeft[int]("negative: " + strconv.Itoa(n))
 //	    }
 //	    return E.Right[string](n * n)
 //	}
-//	partitionMap := E.PartitionMap(classifyNumber, "not classified")
+//	partitionMap := E.EitherPartitionMap(classifyNumber, "not classified")
 //
 //	// Positive number - goes to right side as squared value
 //	result1 := partitionMap(E.Right[string](5))
@@ -277,7 +303,7 @@ func FilterMap[E, A, B any](f func(A) Option[B], empty E) Operator[E, A, B] {
 //	// left2 = Right("negative: -3"), right2 = Left("not classified")
 //
 //	// Original Left value - appears in both positions
-//	result3 := partitionMap(E.Left[int]("original error"))
+//	result3 := partitionMap(E.EitherLeft[int]("original error"))
 //	// result3 = Pair(Left("original error"), Left("original error"))
 //	left3, right3 := P.Unpack(result3)
 //	// left3 = Left("original error"), right3 = Left("original error")
@@ -286,22 +312,22 @@ func FilterMap[E, A, B any](f func(A) Option[B], empty E) Operator[E, A, B] {
 //	type ValidationError struct{ Field, Message string }
 //	type User struct{ Name string; Age int }
 //
-//	validateUser := func(input map[string]string) E.Either[ValidationError, User] {
+//	validateUser := func(input map[string]string) Either[ValidationError, User] {
 //	    name, hasName := input["name"]
 //	    ageStr, hasAge := input["age"]
 //	    if !hasName {
-//	        return E.Left[User](ValidationError{"name", "missing"})
+//	        return E.EitherLeft[User](ValidationError{"name", "missing"})
 //	    }
 //	    if !hasAge {
-//	        return E.Left[User](ValidationError{"age", "missing"})
+//	        return E.EitherLeft[User](ValidationError{"age", "missing"})
 //	    }
 //	    age, err := strconv.Atoi(ageStr)
 //	    if err != nil {
-//	        return E.Left[User](ValidationError{"age", "invalid"})
+//	        return E.EitherLeft[User](ValidationError{"age", "invalid"})
 //	    }
 //	    return E.Right[ValidationError](User{name, age})
 //	}
-//	partitionUsers := E.PartitionMap(validateUser, ValidationError{"", "not processed"})
+//	partitionUsers := E.EitherPartitionMap(validateUser, ValidationError{"", "not processed"})
 //
 //	validInput := map[string]string{"name": "Alice", "age": "30"}
 //	result4 := partitionUsers(E.Right[string](validInput))
@@ -310,6 +336,15 @@ func FilterMap[E, A, B any](f func(A) Option[B], empty E) Operator[E, A, B] {
 //	invalidInput := map[string]string{"name": "Bob"}
 //	result5 := partitionUsers(E.Right[string](invalidInput))
 //	// result5 = Pair(Right(ValidationError{"age", "missing"}), Left(ValidationError{"", "not processed"}))
-func PartitionMap[E, A, B, C any](f Kleisli[B, A, C], empty E) func(Either[E, A]) Pair[Either[E, B], Either[E, C]] {
-	return common.EitherPartitionMap[E, A, B, C](f, empty)
+func EitherPartitionMap[E, A, B, C any](f EitherKleisli[B, A, C], empty E) func(Either[E, A]) Pair[Either[E, B], Either[E, C]] {
+	return func(e Either[E, A]) Pair[Either[E, B], Either[E, C]] {
+		if e.l {
+			return pair.MakePair(EitherLeft[B](e.e), EitherLeft[C](e.e))
+		}
+		res := f(e.a)
+		if res.l {
+			return pair.MakePair(EitherRight[E](res.e), EitherLeft[C](empty))
+		}
+		return pair.MakePair(EitherLeft[B](empty), EitherRight[E](res.a))
+	}
 }

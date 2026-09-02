@@ -13,11 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package common
 
-import "github.com/IBM/fp-go/v2/internal/common"
+import (
+	"iter"
 
-// AltAllArray combines multiple Either values from an array using the Alt operation.
+	F "github.com/IBM/fp-go/v2/function"
+)
+
+// EitherAltAllArray combines multiple Either values from an array using the Alt operation.
 // It starts with an initial Either and iteratively applies Alt with each Either
 // in the array, returning the first Right value encountered or the last Left value
 // if all are Left.
@@ -42,15 +46,15 @@ import "github.com/IBM/fp-go/v2/internal/common"
 //
 // Relationship to array.Fold and AltMonoid:
 //
-// AltAllArray is closely related to array.Fold with AltMonoid:
-//   - When startWith is Left, AltAllArray(Left[E, A](e))(eithers) is equivalent to
+// EitherAltAllArray is closely related to array.Fold with AltMonoid:
+//   - When startWith is Left, EitherAltAllArray(Left[E, A](e))(eithers) is equivalent to
 //     array.Fold(AltMonoid[E, A]())(eithers)
 //   - When startWith is Right, it's equivalent to prepending startWith to the array
 //     before folding: array.Fold(AltMonoid[E, A]())(append([]Either[E, A]{startWith}, eithers...))
 //   - AltMonoid is a monoid that uses Alt as its Concat operation and Left as Empty
 //   - Both approaches have O(n) time complexity and similar performance
 //
-// Use AltAllArray when you want to:
+// Use EitherAltAllArray when you want to:
 //   - Express the "find first Right value" pattern clearly
 //   - Specify a custom starting value (not just Left)
 //   - Work specifically with Either values in a functional style
@@ -70,18 +74,30 @@ import "github.com/IBM/fp-go/v2/internal/common"
 //
 // See Also:
 //   - Alt: The underlying Alt operation
-//   - AltAllSeq: Similar function for iterator sequences
+//   - EitherAltAllSeq: Similar function for iterator sequences
 //   - AltMonoid: Monoid that uses Alt operation
-func AltAllArray[E, A any](startWith Either[E, A]) Kleisli[E, []Either[E, A], A] {
-	return common.EitherAltAllArray(startWith)
+func EitherAltAllArray[E, A any](startWith Either[E, A]) EitherKleisli[E, []Either[E, A], A] {
+	if EitherIsRight(startWith) {
+		return F.Constant1[[]Either[E, A]](startWith)
+	}
+	return func(as []Either[E, A]) Either[E, A] {
+		last := startWith
+		for _, e := range as {
+			if EitherIsRight(e) {
+				return e
+			}
+			last = e
+		}
+		return last
+	}
 }
 
-// AltAllSeq combines multiple Either values from an iterator sequence using the Alt operation.
+// EitherAltAllSeq combines multiple Either values from an iterator sequence using the Alt operation.
 // It starts with an initial Either and iteratively applies Alt with each Either
 // from the sequence, returning the first Right value encountered or the last Left value
 // if all are Left.
 //
-// This function is similar to AltAllArray but works with Go's iterator sequences,
+// This function is similar to EitherAltAllArray but works with Go's iterator sequences,
 // making it suitable for lazy evaluation and potentially infinite sequences.
 //
 // Implementation:
@@ -101,7 +117,7 @@ func AltAllArray[E, A any](startWith Either[E, A]) Kleisli[E, []Either[E, A], A]
 //
 // Relationship to Folding:
 //
-// Like AltAllArray, this function implements a fold operation using the Alt operation.
+// Like EitherAltAllArray, this function implements a fold operation using the Alt operation.
 // The key difference is that it works with iterator sequences instead of arrays,
 // enabling:
 //   - Lazy evaluation of the sequence
@@ -109,7 +125,7 @@ func AltAllArray[E, A any](startWith Either[E, A]) Kleisli[E, []Either[E, A], A]
 //   - Memory-efficient processing of large datasets
 //   - Composition with other iterator-based operations
 //
-// The relationship to AltMonoid is the same as AltAllArray, but applied to sequences
+// The relationship to AltMonoid is the same as EitherAltAllArray, but applied to sequences
 // rather than arrays.
 //
 // Type Parameters:
@@ -120,14 +136,26 @@ func AltAllArray[E, A any](startWith Either[E, A]) Kleisli[E, []Either[E, A], A]
 //   - startWith: The initial Either to start the chain with
 //
 // Returns:
-//   - Kleisli[E, Seq[Either[E, A]], A]: A function that takes a sequence of Either values and
+//   - EitherKleisli[E, iter.Seq[Either[E, A]], A]: A function that takes a sequence of Either values and
 //     returns an Either containing the first Right value, or the last Left value
 //     if all are Left
 //
 // See Also:
 //   - Alt: The underlying Alt operation
-//   - AltAllArray: Similar function for arrays
+//   - EitherAltAllArray: Similar function for arrays
 //   - AltMonoid: Monoid that uses Alt operation
-func AltAllSeq[E, A any](startWith Either[E, A]) Kleisli[E, Seq[Either[E, A]], A] {
-	return common.EitherAltAllSeq(startWith)
+func EitherAltAllSeq[E, A any](startWith Either[E, A]) EitherKleisli[E, iter.Seq[Either[E, A]], A] {
+	if EitherIsRight(startWith) {
+		return F.Constant1[iter.Seq[Either[E, A]]](startWith)
+	}
+	return func(as iter.Seq[Either[E, A]]) Either[E, A] {
+		last := startWith
+		for e := range as {
+			if EitherIsRight(e) {
+				return e
+			}
+			last = e
+		}
+		return last
+	}
 }

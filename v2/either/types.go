@@ -19,8 +19,8 @@ import (
 	"iter"
 
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/monoid"
-	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
 )
@@ -28,21 +28,13 @@ import (
 type (
 	// Option is a type alias for option.Option, provided for convenience
 	// when working with Either and Option together.
-	Option[A any] = option.Option[A]
+	Option[A any] = common.Option[A]
 
 	// Endomorphism represents a function from a type to itself (T -> T).
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
 
 	// Lazy represents a deferred computation that produces a value of type T.
 	Lazy[T any] = func() T
-
-	// Kleisli represents a Kleisli arrow for the Either monad.
-	// It's a function from A to Either[E, B], used for composing operations that may fail.
-	Kleisli[E, A, B any] = func(A) Either[E, B]
-
-	// Operator represents a function that transforms one Either into another.
-	// It takes an Either[E, A] and produces an Either[E, B].
-	Operator[E, A, B any] = Kleisli[E, Either[E, A], B]
 
 	// Monoid represents a monoid structure for Either values.
 	Monoid[E, A any] = monoid.Monoid[Either[E, A]]

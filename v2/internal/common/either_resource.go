@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package either
+package common
 
-import C "github.com/IBM/fp-go/v2/internal/common"
-
-// WithResource constructs a function that creates a resource, operates on it, and then releases it.
+// EitherWithResource constructs a function that creates a resource, operates on it, and then releases it.
 // This ensures proper resource cleanup even if operations fail.
 // The resource is released immediately after the operation completes.
 //
@@ -29,7 +27,7 @@ import C "github.com/IBM/fp-go/v2/internal/common"
 //
 // Example:
 //
-//	withFile := either.WithResource(
+//	withFile := either.EitherWithResource(
 //	    func() either.Either[error, *os.File] {
 //	        return either.TryCatchError(os.Open("file.txt"))
 //	    },
@@ -41,9 +39,24 @@ import C "github.com/IBM/fp-go/v2/internal/common"
 //	    // Use file here
 //	    return either.Right[error]("data")
 //	})
-func WithResource[A, E, R, ANY any](
+func EitherWithResource[A, E, R, ANY any](
 	onCreate func() Either[E, R],
-	onRelease Kleisli[E, R, ANY],
-) Kleisli[E, Kleisli[E, R, A], A] {
-	return C.EitherWithResource[A, E, R, ANY](onCreate, onRelease)
+	onRelease EitherKleisli[E, R, ANY],
+) EitherKleisli[E, EitherKleisli[E, R, A], A] {
+	return func(f func(R) Either[E, A]) Either[E, A] {
+		r := onCreate()
+		if r.l {
+			return EitherLeft[A](r.e)
+		}
+		a := f(r.a)
+		n := onRelease(r.a)
+		if a.l {
+			return EitherLeft[A](a.e)
+		}
+		if n.l {
+			return EitherLeft[A](n.e)
+
+		}
+		return EitherOf[E](a.a)
+	}
 }
