@@ -1220,3 +1220,361 @@ func TestPrismSome_TypeVariants(t *testing.T) {
 		assert.Equal(t, O.Some("world"), wrapped)
 	})
 }
+
+// ---- AsOptional: equivalence and pipeline ----
+
+// TestAsOptional_EquivalentToCommon verifies that AsOptional is a thin wrapper
+// around the internal common.PrismAsOptional and produces identical behaviour.
+func TestAsOptional_EquivalentToCommon(t *testing.T) {
+	prismSA := makeSuccessPrism()
+
+	method := AsOptional(prismSA)
+	free := C.PrismAsOptional(prismSA)
+
+	cases := []Result{Success{Value: 42}, Failure{Error: "oops"}}
+	for _, r := range cases {
+		t.Run("GetOption parity", func(t *testing.T) {
+			assert.Equal(t, free.GetOption(r), method.GetOption(r))
+		})
+		t.Run("Set parity", func(t *testing.T) {
+			assert.Equal(t, free.Set(99)(r), method.Set(99)(r))
+		})
+	}
+}
+
+// TestAsOptional_PipelineUsage verifies that AsOptional composes naturally
+// with F.Pipe1 to chain into a longer pipeline.
+func TestAsOptional_PipelineUsage(t *testing.T) {
+	opt := AsOptional(makeSuccessPrism())
+
+	// A GetOption → map pipeline that extracts the doubled value or -1.
+	extract := func(r Result) int {
+		return O.GetOrElse(F.Constant(-1))(
+			O.Map(func(v int) int { return v * 2 })(opt.GetOption(r)),
+		)
+	}
+
+	assert.Equal(t, 84, extract(Success{Value: 42}))
+	assert.Equal(t, -1, extract(Failure{Error: "boom"}))
+}
+
+// ---- PrismSome: prism laws ----
+
+// TestPrismSome_PrismLaw1_GetOptionReverseGet verifies the prism roundtrip law:
+// GetOption(ReverseGet(a)) == Some(a).
+func TestPrismSome_PrismLaw1_GetOptionReverseGet(t *testing.T) {
+	p := PrismSome[int]()
+
+	for _, v := range []int{0, 1, -99, 42} {
+		t.Run("GetOption(ReverseGet(a)) == Some(a)", func(t *testing.T) {
+			assert.Equal(t, O.Some(v), p.GetOption(p.ReverseGet(v)))
+		})
+	}
+}
+
+// TestPrismSome_PrismLaw2_GetSet verifies:
+// if GetOption(s) == Some(a) then ReverseGet(a) == s (for Option types this means
+// GetOption correctly reconstructs from itself).
+func TestPrismSome_PrismLaw2_IdentityOnSome(t *testing.T) {
+	p := PrismSome[string]()
+
+	s := O.Some("hello")
+	got := p.GetOption(s)
+	assert.Equal(t, s, got, "GetOption of a Some should return that same Some")
+}
+
+// TestPrismSome_PipelineUsage verifies that PrismSome can be converted to an
+// Optional and used in a F.Pipe1 pipeline.
+func TestPrismSome_PipelineUsage(t *testing.T) {
+	// Wrap PrismSome into an optional via AsOptional, then use Pipe1.
+	opt := AsOptional(PrismSome[int]())
+
+	result := F.Pipe1(O.Some(7), opt.Set(42))
+	assert.Equal(t, O.Some(42), result)
+
+	noOp := F.Pipe1(O.None[int](), opt.Set(42))
+	assert.Equal(t, O.None[int](), noOp)
+}
+
+// ---- Some: equivalence and pipeline ----
+
+// TestSome_EquivalentToCommon verifies that Some is a thin wrapper around
+// common.OptionalSome and both produce identical results.
+func TestSome_EquivalentToCommon(t *testing.T) {
+	soa := makeTimeoutOptional()
+
+	method := Some[Config, int](soa)
+	free := C.OptionalSome[Config, int](soa)
+
+	configs := []Config{
+		{Timeout: O.Some(30), Retries: O.Some(3)},
+		{Timeout: O.None[int](), Retries: O.Some(1)},
+	}
+	for _, c := range configs {
+		t.Run("GetOption parity", func(t *testing.T) {
+			assert.Equal(t, free.GetOption(c), method.GetOption(c))
+		})
+		t.Run("Set parity", func(t *testing.T) {
+			assert.Equal(t, free.Set(99)(c), method.Set(99)(c))
+		})
+	}
+}
+
+// TestSome_PipelineUsage verifies that Some integrates with F.Pipe1.
+func TestSome_PipelineUsage(t *testing.T) {
+	opt := Some[Config, int](makeTimeoutOptional())
+
+	config := Config{Timeout: O.Some(10)}
+	result := F.Pipe1(config, opt.Set(99))
+	assert.Equal(t, O.Some(99), result.Timeout)
+}
+
+// TestSome_PreservesOtherFields verifies that Set through Some does not disturb
+// fields that the optional does not touch.
+func TestSome_PreservesOtherFields(t *testing.T) {
+	opt := Some[Config, int](makeTimeoutOptional())
+
+	config := Config{Timeout: O.Some(5), Retries: O.Some(3)}
+	updated := opt.Set(50)(config)
+
+	assert.Equal(t, O.Some(50), updated.Timeout)
+	assert.Equal(t, O.Some(3), updated.Retries)
+}
+
+// TestSome_MultipleTypes verifies that Some works with non-int type parameters.
+func TestSome_MultipleTypes(t *testing.T) {
+	nameOpt := Some[Person, string](makeNameOptional())
+
+	t.Run("string Some – GetOption match", func(t *testing.T) {
+		p := Person{Name: O.Some("Alice"), Age: O.Some(30)}
+		got := nameOpt.GetOption(p)
+		assert.True(t, O.IsSome(got))
+		assert.Equal(t, "Alice", O.GetOrElse(F.Constant(""))(got))
+	})
+
+	t.Run("string None – GetOption no match", func(t *testing.T) {
+		p := Person{Name: O.None[string]()}
+		assert.True(t, O.IsNone(nameOpt.GetOption(p)))
+	})
+
+	t.Run("string Set updates name", func(t *testing.T) {
+		p := Person{Name: O.Some("Bob"), Age: O.Some(20)}
+		updated := nameOpt.Set("Carol")(p)
+		assert.Equal(t, O.Some("Carol"), updated.Name)
+		assert.Equal(t, O.Some(20), updated.Age)
+	})
+}
+
+// ---- Compose: equivalence, pipeline, sum-type prism ----
+
+// makeConnectionOptional returns an Optional[Config, O.Option[int]] that always
+// focuses on the Timeout field (reuses makeTimeoutOptional).
+// For the Compose sum-type tests we also need an Optional that focuses on a
+// non-Option intermediate type, so we define additional helpers below.
+
+// TaggedValue is a simple sum type used to exercise Compose with a real
+// discriminated union — as opposed to the Option-based examples in
+// TestCompose_BasicFunctionality.
+type TaggedValue interface{ isTaggedValue() }
+
+type IntTagged struct{ V int }
+type StrTagged struct{ S string }
+
+func (IntTagged) isTaggedValue() {}
+func (StrTagged) isTaggedValue() {}
+
+type Payload struct {
+	Tag TaggedValue
+}
+
+func makePayloadOptional() C.Optional[Payload, TaggedValue] {
+	return OPT.MakeOptional(
+		func(p Payload) O.Option[TaggedValue] {
+			if p.Tag != nil {
+				return O.Some(p.Tag)
+			}
+			return O.None[TaggedValue]()
+		},
+		func(p Payload, tv TaggedValue) Payload { p.Tag = tv; return p },
+	)
+}
+
+func makeIntTaggedPrism() P.Prism[TaggedValue, int] {
+	return P.MakePrism(
+		func(tv TaggedValue) O.Option[int] {
+			if it, ok := tv.(IntTagged); ok {
+				return O.Some(it.V)
+			}
+			return O.None[int]()
+		},
+		func(v int) TaggedValue { return IntTagged{V: v} },
+	)
+}
+
+// TestCompose_EquivalentToCommon verifies that Compose is a thin wrapper around
+// common.OptionalComposePrism and produces identical behaviour.
+func TestCompose_EquivalentToCommon(t *testing.T) {
+	outer := makePayloadOptional()
+	prismAB := makeIntTaggedPrism()
+
+	method := F.Pipe1(outer, Compose[Payload](prismAB))
+	free := C.OptionalComposePrism[Payload](prismAB)(outer)
+
+	payloads := []Payload{
+		{Tag: IntTagged{V: 7}},
+		{Tag: StrTagged{S: "hi"}},
+		{Tag: nil},
+	}
+	for _, p := range payloads {
+		t.Run("GetOption parity", func(t *testing.T) {
+			assert.Equal(t, free.GetOption(p), method.GetOption(p))
+		})
+		t.Run("Set parity", func(t *testing.T) {
+			assert.Equal(t, free.Set(99)(p), method.Set(99)(p))
+		})
+	}
+}
+
+// TestCompose_SumTypePrism_GetOption tests Compose with a real discriminated
+// union, verifying GetOption for each case.
+func TestCompose_SumTypePrism_GetOption(t *testing.T) {
+	composed := F.Pipe1(makePayloadOptional(), Compose[Payload](makeIntTaggedPrism()))
+
+	t.Run("outer matches and prism matches", func(t *testing.T) {
+		got := composed.GetOption(Payload{Tag: IntTagged{V: 42}})
+		assert.True(t, O.IsSome(got))
+		assert.Equal(t, 42, O.GetOrElse(F.Constant(0))(got))
+	})
+
+	t.Run("outer matches but prism misses (StrTagged)", func(t *testing.T) {
+		got := composed.GetOption(Payload{Tag: StrTagged{S: "hello"}})
+		assert.True(t, O.IsNone(got))
+	})
+
+	t.Run("outer misses (nil tag)", func(t *testing.T) {
+		got := composed.GetOption(Payload{Tag: nil})
+		assert.True(t, O.IsNone(got))
+	})
+}
+
+// TestCompose_SumTypePrism_Set tests Compose Set with a real discriminated union.
+func TestCompose_SumTypePrism_Set(t *testing.T) {
+	composed := F.Pipe1(makePayloadOptional(), Compose[Payload](makeIntTaggedPrism()))
+
+	t.Run("updates to new IntTagged when both match", func(t *testing.T) {
+		updated := composed.Set(99)(Payload{Tag: IntTagged{V: 1}})
+		got := composed.GetOption(updated)
+		assert.True(t, O.IsSome(got))
+		assert.Equal(t, 99, O.GetOrElse(F.Constant(0))(got))
+	})
+
+	t.Run("no-op when prism misses (StrTagged)", func(t *testing.T) {
+		original := Payload{Tag: StrTagged{S: "keep"}}
+		result := composed.Set(99)(original)
+		assert.Equal(t, original, result)
+	})
+
+	t.Run("no-op when outer optional misses (nil)", func(t *testing.T) {
+		original := Payload{Tag: nil}
+		result := composed.Set(99)(original)
+		assert.Equal(t, original, result)
+	})
+}
+
+// TestCompose_SumTypePrism_OptionalLaws verifies all three optional laws on the
+// Compose result when a real sum-type prism is used.
+func TestCompose_SumTypePrism_OptionalLaws(t *testing.T) {
+	composed := F.Pipe1(makePayloadOptional(), Compose[Payload](makeIntTaggedPrism()))
+
+	matching := Payload{Tag: IntTagged{V: 5}}
+	nonMatchingOuter := Payload{Tag: nil}
+	nonMatchingPrism := Payload{Tag: StrTagged{S: "str"}}
+
+	t.Run("law GetSet: outer None => Set is no-op", func(t *testing.T) {
+		assert.Equal(t, nonMatchingOuter, composed.Set(99)(nonMatchingOuter))
+	})
+
+	t.Run("law GetSet: prism miss => Set is no-op", func(t *testing.T) {
+		assert.Equal(t, nonMatchingPrism, composed.Set(99)(nonMatchingPrism))
+	})
+
+	t.Run("law SetGet: GetOption==Some => GetOption(Set(b)(s))==Some(b)", func(t *testing.T) {
+		updated := composed.Set(77)(matching)
+		got := composed.GetOption(updated)
+		assert.True(t, O.IsSome(got))
+		assert.Equal(t, 77, O.GetOrElse(F.Constant(0))(got))
+	})
+
+	t.Run("law SetSet: Set(b)(Set(a)(s)) == Set(b)(s)", func(t *testing.T) {
+		result1 := composed.Set(20)(composed.Set(10)(matching))
+		result2 := composed.Set(20)(matching)
+		assert.Equal(t, composed.GetOption(result2), composed.GetOption(result1))
+	})
+}
+
+// TestCompose_PipelineUsage verifies that Compose integrates naturally with
+// F.Pipe1 and produces the same result as direct application.
+func TestCompose_PipelineUsage(t *testing.T) {
+	outer := makePayloadOptional()
+	prismAB := makeIntTaggedPrism()
+
+	pipeResult := F.Pipe1(outer, Compose[Payload](prismAB))
+	direct := Compose[Payload](prismAB)(outer)
+
+	p := Payload{Tag: IntTagged{V: 3}}
+	assert.Equal(t, direct.GetOption(p), pipeResult.GetOption(p))
+	assert.Equal(t, direct.Set(99)(p), pipeResult.Set(99)(p))
+}
+
+// TestCompose_Chained verifies that two Compose calls can be chained to
+// navigate three levels: Payload → TaggedValue → int → (via a second prism).
+//
+// The second prism only matches when the int is positive.
+func TestCompose_Chained(t *testing.T) {
+	positiveIntPrism := P.MakePrism(
+		func(n int) O.Option[int] {
+			if n > 0 {
+				return O.Some(n)
+			}
+			return O.None[int]()
+		},
+		func(n int) int { return n },
+	)
+
+	// chain: Payload → TaggedValue (Optional) → int (Prism) → int (Prism)
+	composed := F.Pipe1(
+		F.Pipe1(makePayloadOptional(), Compose[Payload](makeIntTaggedPrism())),
+		Compose[Payload](positiveIntPrism),
+	)
+
+	t.Run("all levels match (IntTagged positive)", func(t *testing.T) {
+		got := composed.GetOption(Payload{Tag: IntTagged{V: 5}})
+		assert.True(t, O.IsSome(got))
+		assert.Equal(t, 5, O.GetOrElse(F.Constant(0))(got))
+	})
+
+	t.Run("second prism misses (IntTagged zero)", func(t *testing.T) {
+		assert.True(t, O.IsNone(composed.GetOption(Payload{Tag: IntTagged{V: 0}})))
+	})
+
+	t.Run("first prism misses (StrTagged)", func(t *testing.T) {
+		assert.True(t, O.IsNone(composed.GetOption(Payload{Tag: StrTagged{S: "hi"}})))
+	})
+
+	t.Run("outer misses (nil)", func(t *testing.T) {
+		assert.True(t, O.IsNone(composed.GetOption(Payload{Tag: nil})))
+	})
+
+	t.Run("Set updates when all match", func(t *testing.T) {
+		updated := composed.Set(99)(Payload{Tag: IntTagged{V: 5}})
+		got := composed.GetOption(updated)
+		assert.True(t, O.IsSome(got))
+		assert.Equal(t, 99, O.GetOrElse(F.Constant(0))(got))
+	})
+
+	t.Run("Set is no-op when second prism misses", func(t *testing.T) {
+		original := Payload{Tag: IntTagged{V: 0}}
+		result := composed.Set(99)(original)
+		assert.Equal(t, original, result)
+	})
+}

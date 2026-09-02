@@ -16,10 +16,8 @@
 package prism
 
 import (
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/internal/common"
-	O "github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/result"
@@ -58,7 +56,7 @@ type (
 	// See also:
 	//   - github.com/IBM/fp-go/v2/option for the full Option API
 	//   - Prism.GetOption for the primary use case within this package
-	Option[T any] = O.Option[T]
+	Option[T any] = common.Option[T]
 
 	// Either is a type alias for either.Either[E, T], representing a value that can be one of two types.
 	// It is re-exported here for convenience when working with prisms that handle error cases.
@@ -99,7 +97,7 @@ type (
 	//   - github.com/IBM/fp-go/v2/either for the full Either API
 	//   - FromEither for creating prisms that work with Either types
 	//   - Prism composition for building complex error-handling pipelines
-	Either[E, T any] = either.Either[E, T]
+	Either[E, T any] = common.Either[E, T]
 
 	// Result represents a computation that may fail with an error.
 	// It's an alias for Either[error, T].

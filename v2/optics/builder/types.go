@@ -3,11 +3,10 @@ package builder
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/internal/common"
-	"github.com/IBM/fp-go/v2/option"
 )
 
 type (
-	Option[A any]   = option.Option[A]
+	Option[A any]   = common.Option[A]
 	Lens[S, A any]  = common.Lens[S, A]
 	Prism[S, A any] = common.Prism[S, A]
 

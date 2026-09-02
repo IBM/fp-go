@@ -13,13 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package optional
+package common
 
 import (
-	C "github.com/IBM/fp-go/v2/internal/common"
+	F "github.com/IBM/fp-go/v2/function"
 )
 
+func lensAsOptional[S, A any](creator func(get OptionKleisli[S, A], set func(S, A) S) Optional[S, A], sa Lens[S, A]) Optional[S, A] {
+	return creator(F.Flow2(sa.Get, OptionSome[A]), func(s S, a A) S {
+		return sa.Set(a)(s)
+	})
+}
+
 // LensAsOptional converts a Lens into an Optional
-func LensAsOptional[S, A any](sa C.Lens[S, A]) C.Optional[S, A] {
-	return C.LensAsOptional(sa)
+func LensAsOptional[S, A any](sa Lens[S, A]) Optional[S, A] {
+	return lensAsOptional(MakeOptional[S, A], sa)
+}
+
+// LensComposeOptional composes a lens with an optional
+func OptionalComposeLens[S, A, B any](ab Lens[A, B]) OptionalOperator[S, A, B] {
+	return F.Pipe2(
+		ab,
+		LensAsOptional[A, B],
+		OptionalComposeOptional[S, A, B],
+	)
 }

@@ -13,13 +13,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package prism
+package common
 
 import (
-	"github.com/IBM/fp-go/v2/internal/common"
+	"fmt"
+
+	F "github.com/IBM/fp-go/v2/function"
 )
 
-// Compose composes a Lens with a Prism to create an Optional.
+func lensComposePrism[S, A, B any](
+	creator func(get OptionKleisli[S, B], set func(B) Endomorphism[S], name string) Optional[S, B],
+	p Prism[A, B]) func(Lens[S, A]) Optional[S, B] {
+
+	return func(l Lens[S, A]) Optional[S, B] {
+		// GetOption: Lens.Get followed by Prism.GetOption
+		// This extracts A from S, then tries to extract B from A
+		getOption := F.Flow2(l.Get, p.GetOption)
+
+		// Set: Constructs a setter that respects the Optional laws
+		setOption := func(b B) func(S) S {
+			// Pre-compute the new A value by using Prism.ReverseGet
+			// This constructs an A from the given B
+			setl := l.Set(p.ReverseGet(b))
+
+			return func(s S) S {
+				// Check if the Prism matches the current value
+				return F.Pipe1(
+					getOption(s),
+					OptionFold(
+						// None case: Prism doesn't match, return s unchanged (no-op)
+						// This satisfies the GetSet law for Optional
+						F.Constant(s),
+						// Some case: Prism matches, update the value
+						// This satisfies the SetGet law for Optional
+						func(_ B) S {
+							return setl(s)
+						},
+					),
+				)
+			}
+		}
+
+		return creator(
+			getOption,
+			setOption,
+			fmt.Sprintf("Compose[%s -> %s]", l, p),
+		)
+	}
+
+}
+
+// LensComposePrism composes a Lens with a Prism to create an Optional.
 //
 // This composition allows you to focus on a part of a structure (using a Lens)
 // and then optionally extract a variant from that part (using a Prism). The result
@@ -80,17 +124,17 @@ import (
 //
 //	// Prism to extract PostgreSQL from ConnectionType
 //	pgPrism := prism.MakePrism(
-//	    func(ct ConnectionType) option.Option[PostgreSQL] {
+//	    func(ct ConnectionType) OptionOption[PostgreSQL] {
 //	        if pg, ok := ct.(PostgreSQL); ok {
-//	            return option.Some(pg)
+//	            return OptionSome(pg)
 //	        }
-//	        return option.None[PostgreSQL]()
+//	        return OptionNone[PostgreSQL]()
 //	    },
 //	    func(pg PostgreSQL) ConnectionType { return pg },
 //	)
 //
-//	// Compose to create Optional[Config, PostgreSQL]
-//	configPgOptional := Compose[Config, DatabaseConfig, PostgreSQL](pgPrism)(dbLens)
+//	// LensComposePrism to create Optional[Config, PostgreSQL]
+//	configPgOptional := LensComposePrism[Config, DatabaseConfig, PostgreSQL](pgPrism)(dbLens)
 //
 //	config := Config{Database: DatabaseConfig{Connection: PostgreSQL{Host: "localhost"}}}
 //	host := configPgOptional.GetOption(config)  // Some(PostgreSQL{Host: "localhost"})
@@ -102,11 +146,11 @@ import (
 //	none := configPgOptional.GetOption(configMySQL)  // None (Prism doesn't match)
 //	unchanged := configPgOptional.Set(PostgreSQL{Host: "remote"})(configMySQL)
 //	// unchanged == configMySQL (no-op because Prism doesn't match)
-func Compose[S, A, B any](p Prism[A, B]) func(Lens[S, A]) Optional[S, B] {
-	return common.LensComposePrism[S](p)
+func LensComposePrism[S, A, B any](p Prism[A, B]) func(Lens[S, A]) Optional[S, B] {
+	return lensComposePrism(MakeOptionalCurriedWithName[S, B], p)
 }
 
-// ComposeRef composes a Lens operating on pointer types with a Prism to create an Optional.
+// LensComposePrismRef composes a Lens operating on pointer types with a Prism to create an Optional.
 //
 // This is the pointer-safe variant of Compose, designed for working with pointer types (*S).
 // It automatically handles nil pointer cases and creates copies before modification to ensure
@@ -170,17 +214,17 @@ func Compose[S, A, B any](p Prism[A, B]) func(Lens[S, A]) Optional[S, B] {
 //
 //	// Prism to extract PostgreSQL from ConnectionType
 //	pgPrism := prism.MakePrism(
-//	    func(ct ConnectionType) option.Option[PostgreSQL] {
+//	    func(ct ConnectionType) OptionOption[PostgreSQL] {
 //	        if pg, ok := ct.(PostgreSQL); ok {
-//	            return option.Some(pg)
+//	            return OptionSome(pg)
 //	        }
-//	        return option.None[PostgreSQL]()
+//	        return OptionNone[PostgreSQL]()
 //	    },
 //	    func(pg PostgreSQL) ConnectionType { return pg },
 //	)
 //
 //	// Compose to create Optional[*Config, PostgreSQL]
-//	configPgOptional := ComposeRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
+//	configPgOptional := LensComposePrismRef[Config, ConnectionType, PostgreSQL](pgPrism)(connLens)
 //
 //	// Works with non-nil pointers
 //	config := &Config{Connection: PostgreSQL{Host: "localhost"}}
@@ -200,6 +244,6 @@ func Compose[S, A, B any](p Prism[A, B]) func(Lens[S, A]) Optional[S, B] {
 //	none = configPgOptional.GetOption(configMySQL)  // None (Prism doesn't match)
 //	unchanged = configPgOptional.Set(PostgreSQL{Host: "remote"})(configMySQL)
 //	// unchanged == configMySQL (no-op because Prism doesn't match)
-func ComposeRef[S, A, B any](p Prism[A, B]) func(Lens[*S, A]) Optional[*S, B] {
-	return common.LensComposePrismRef[S](p)
+func LensComposePrismRef[S, A, B any](p Prism[A, B]) func(Lens[*S, A]) Optional[*S, B] {
+	return lensComposePrism(MakeOptionalRefCurriedWithName[S, B], p)
 }

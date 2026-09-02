@@ -11,7 +11,6 @@ import (
 	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/optics/decoder"
 	"github.com/IBM/fp-go/v2/optics/encoder"
-	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerresult"
@@ -35,7 +34,7 @@ type (
 	Reader[R, A any] = reader.Reader[R, A]
 
 	// Option represents an optional value that may or may not be present.
-	Option[A any] = option.Option[A]
+	Option[A any] = common.Option[A]
 
 	// Result represents a computation that may fail with an error.
 	Result[A any] = result.Result[A]

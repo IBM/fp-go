@@ -2,12 +2,10 @@ package iso
 
 import (
 	"github.com/IBM/fp-go/v2/array/nonempty"
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/eq"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/internal/common"
-	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/reader"
 )
@@ -22,7 +20,7 @@ type (
 	Pair[A, B any] = pair.Pair[A, B]
 
 	// Either represents a value of one of two possible types (a disjoint union).
-	Either[E, A any] = either.Either[E, A]
+	Either[E, A any] = common.Either[E, A]
 
 	// NonEmptyArray represents an array that is guaranteed to have at least one element.
 	NonEmptyArray[A any] = nonempty.NonEmptyArray[A]
@@ -73,5 +71,5 @@ type (
 
 	Lazy[T any] = lazy.Lazy[T]
 
-	Option[T any] = option.Option[T]
+	Option[T any] = common.Option[T]
 )

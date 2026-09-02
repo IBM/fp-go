@@ -63,6 +63,23 @@
 //   - Chain (FlatMap): Chain computations that may fail
 //   - Ap: Apply a function wrapped in Either
 //
+// # Do Notation
+//
+// Either supports do-notation style composition via a family of helper functions
+// that incrementally build up a context (struct) from individual computations:
+//   - Do: Create an empty starting context
+//   - Bind/BindTo: Attach results of monadic computations
+//   - Let/LetTo: Attach results of pure computations
+//   - ApS: Attach values using applicative (independent) semantics
+//
+// Lens-based variants (ApSL, BindL, LetL, LetToL) accept a Lens[S, T] rather than
+// a manually-written curried setter, making them more composable when working with
+// nested structures:
+//   - ApSL: Lens variant of ApS
+//   - BindL: Lens variant of Bind
+//   - LetL: Lens variant of Let
+//   - LetToL: Lens variant of LetTo
+//
 // # Error Handling
 //
 // Either provides utilities for working with Go's error type:

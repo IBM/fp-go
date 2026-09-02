@@ -16,12 +16,12 @@
 package either
 
 import (
-	ET "github.com/IBM/fp-go/v2/either"
+	C "github.com/IBM/fp-go/v2/internal/common"
 	T "github.com/IBM/fp-go/v2/optics/traversal/generic"
 )
 
 type (
-	Traversal[E, S, A any] = T.Traversal[S, A, ET.Either[E, S], ET.Either[E, A]]
+	Traversal[E, S, A any] = T.Traversal[S, A, C.Either[E, S], C.Either[E, A]]
 )
 
 func Compose[

@@ -19,6 +19,8 @@ import (
 	A "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
 	F "github.com/IBM/fp-go/v2/internal/functor"
+	L "github.com/IBM/fp-go/v2/internal/common"
+	FN "github.com/IBM/fp-go/v2/function"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.
@@ -170,4 +172,125 @@ func ApS[E, S1, S2, T any](
 		setter,
 		fa,
 	)
+}
+
+// ApSL attaches a value to a context using a lens-based setter.
+// This is a convenience function that combines ApS with a Lens, allowing you to use
+// optics to update nested structures in a more composable way.
+//
+// Unlike ApS, which requires a manually-written curried setter function, ApSL derives the
+// setter directly from the provided Lens.
+//
+// Type Parameters:
+//   - E: The error type (Left side of Either)
+//   - S: The context structure type (unchanged — both input and output are S)
+//   - T: The type of the value being attached
+//
+// Parameters:
+//   - lens: A Lens[S, T] providing both the getter and the setter for the focused field
+//   - fa: An Either[E, T] supplying the value to attach
+//
+// Returns:
+//   - An Operator[E, S, S] that updates the S context via the lens
+//
+// See Also:
+//   - ApS: The setter-function variant
+//   - BindL: The monadic lens-based variant
+//
+//go:inline
+func ApSL[E, S, T any](
+	lens L.Lens[S, T],
+	fa Either[E, T],
+) Operator[E, S, S] {
+	return ApS(lens.Set, fa)
+}
+
+// BindL attaches the result of a computation to a context using a lens-based setter.
+// This is a convenience function that combines Bind with a Lens.
+//
+// The lens provides both the getter (to read the current field value and pass it to f)
+// and the setter (to write the new value back into the structure S).
+//
+// Type Parameters:
+//   - E: The error type (Left side of Either)
+//   - S: The context structure type (unchanged — both input and output are S)
+//   - T: The type of the value being focused and transformed
+//
+// Parameters:
+//   - lens: A Lens[S, T] providing both getter and setter for the focused field
+//   - f: A Kleisli[E, T, T] — a function from the current T to Either[E, T]
+//
+// Returns:
+//   - An Operator[E, S, S] that reads T via lens.Get, runs f, and writes the result via lens.Set
+//
+// See Also:
+//   - Bind: The setter-function variant
+//   - ApSL: The applicative lens-based variant
+//
+//go:inline
+func BindL[E, S, T any](
+	lens L.Lens[S, T],
+	f Kleisli[E, T, T],
+) Operator[E, S, S] {
+	return Bind(lens.Set, FN.Flow2(lens.Get, f))
+}
+
+// LetL attaches the result of a pure transformation to a context using a lens-based setter.
+// This is a convenience function that combines Let with a Lens.
+//
+// The lens provides both the getter (to read the current field value and pass it to f)
+// and the setter (to write the transformed value back into the structure S).
+//
+// Type Parameters:
+//   - E: The error type (Left side of Either)
+//   - S: The context structure type (unchanged — both input and output are S)
+//   - T: The type of the value being focused and transformed
+//
+// Parameters:
+//   - lens: A Lens[S, T] providing both getter and setter for the focused field
+//   - f: A pure function T → T applied to the current field value
+//
+// Returns:
+//   - An Operator[E, S, S] that reads T via lens.Get, applies f, and writes the result via lens.Set
+//
+// See Also:
+//   - Let: The setter-function variant
+//   - BindL: The monadic lens-based variant
+//
+//go:inline
+func LetL[E, S, T any](
+	lens L.Lens[S, T],
+	f func(T) T,
+) Operator[E, S, S] {
+	return Let[E](lens.Set, FN.Flow2(lens.Get, f))
+}
+
+// LetToL attaches a constant value to a context using a lens-based setter.
+// This is a convenience function that combines LetTo with a Lens.
+//
+// Unlike LetL, which transforms the current field value, LetToL replaces it with
+// the provided constant b, regardless of the current value.
+//
+// Type Parameters:
+//   - E: The error type (Left side of Either)
+//   - S: The context structure type (unchanged — both input and output are S)
+//   - T: The type of the value being set
+//
+// Parameters:
+//   - lens: A Lens[S, T] providing the setter for the focused field
+//   - b: The constant value of type T to set in every S
+//
+// Returns:
+//   - An Operator[E, S, S] that sets the focused field to b via the lens
+//
+// See Also:
+//   - LetTo: The setter-function variant
+//   - LetL: The lens-based transformation variant
+//
+//go:inline
+func LetToL[E, S, T any](
+	lens L.Lens[S, T],
+	b T,
+) Operator[E, S, S] {
+	return LetTo[E](lens.Set, b)
 }

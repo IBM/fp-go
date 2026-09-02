@@ -16,12 +16,12 @@
 package option
 
 import (
+	C "github.com/IBM/fp-go/v2/internal/common"
 	T "github.com/IBM/fp-go/v2/optics/traversal/generic"
-	O "github.com/IBM/fp-go/v2/option"
 )
 
 type (
-	Traversal[S, A any] T.Traversal[S, A, O.Option[S], O.Option[A]]
+	Traversal[S, A any] T.Traversal[S, A, C.Option[S], C.Option[A]]
 )
 
 func Compose[

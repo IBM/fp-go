@@ -22,17 +22,11 @@
 //
 // These conversions maintain the optional laws, ensuring that the resulting optionals
 // behave correctly with respect to GetOption and Set operations.
-package prism
+package common
 
-import (
-	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/common"
-	C "github.com/IBM/fp-go/v2/internal/common"
-	P "github.com/IBM/fp-go/v2/optics/prism"
-	O "github.com/IBM/fp-go/v2/option"
-)
+import F "github.com/IBM/fp-go/v2/function"
 
-// AsOptional converts a Prism into an Optional.
+// PrismAsOptional converts a Prism into an Optional.
 //
 // A Prism[S, A] focuses on a specific variant within a sum type S, providing:
 //   - GetOption: Attempts to extract A from S (returns Option[A])
@@ -98,7 +92,7 @@ import (
 //	)
 //
 //	// Convert to optional
-//	successOptional := AsOptional(successPrism)
+//	successOptional := PrismAsOptional(successPrism)
 //
 //	// Use the optional
 //	result := Success{Value: 42}
@@ -113,55 +107,31 @@ import (
 //   - Some: Focuses on the Some variant of Option types
 //   - github.com/IBM/fp-go/v2/optics/prism for prism operations
 //   - github.com/IBM/fp-go/v2/optics/optional for optional operations
-func AsOptional[S, A any](sa P.Prism[S, A]) C.Optional[S, A] {
-	return common.PrismAsOptional(sa)
+func PrismAsOptional[S, A any](sa Prism[S, A]) Optional[S, A] {
+	return MakeOptional(
+		sa.GetOption,
+		func(s S, a A) S {
+			return PrismSet[S](a)(sa)(s)
+		},
+	)
 }
 
-// PrismSome creates a prism that focuses on the Some variant of an Option type.
-//
-// This prism provides:
-//   - GetOption: Returns the Option itself (identity function)
-//   - ReverseGet: Wraps a value in Some
-//
-// This is a building block used by the Some function to create optionals that
-// focus on values within Option types.
-//
-// Type Parameters:
-//   - A: The type of value within the Option
-//
-// Returns:
-//   - A Prism[Option[A], A] that focuses on Some values
-//
-// Example:
-//
-//	prism := PrismSome[int]()
-//
-//	// GetOption returns the Option itself
-//	opt := Some(42)
-//	result := prism.GetOption(opt)  // Some(42)
-//
-//	// ReverseGet wraps in Some
-//	wrapped := prism.ReverseGet(42)  // Some(42)
-//
-// See Also:
-//   - Some: Uses this prism to create optionals for Option types
-//   - github.com/IBM/fp-go/v2/prism.FromOption for the standard prism version
-func PrismSome[A any]() P.Prism[O.Option[A], A] {
-	return P.MakePrismWithName(F.Identity[O.Option[A]], O.Some[A], "PrismSome")
+func prismSome[A any]() Prism[Option[A], A] {
+	return MakePrismWithName(F.Identity[Option[A]], OptionSome[A], "PrismSome")
 }
 
-// Some creates an Optional that focuses on the Some variant of an Option within a structure.
+// OptionalSome creates an Optional that focuses on the OptionalSome variant of an Option within a structure.
 //
 // Given an Optional[S, Option[A]] that focuses on an Option field, this function
-// returns an Optional[S, A] that focuses directly on the value within Some.
+// returns an Optional[S, A] that focuses directly on the value within OptionalSome.
 //
 // This is useful when you have a structure containing an Option field and want to
-// work with the value inside Some without manually unwrapping the Option.
+// work with the value inside OptionalSome without manually unwrapping the Option.
 //
 // The conversion works by composing the provided optional with a prism that
-// extracts values from Some. The resulting optional:
-//   - Returns Some(a) from GetOption only when both the outer optional matches
-//     and the inner Option is Some
+// extracts values from OptionalSome. The resulting optional:
+//   - Returns OptionalSome(a) from GetOption only when both the outer optional matches
+//     and the inner Option is OptionalSome
 //   - Performs Set only when both conditions are met (no-op otherwise)
 //
 // The resulting Optional satisfies the three optional laws:
@@ -173,9 +143,9 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 //     Formally: GetOption(s) = None => Set(a)(s) = s
 //
 //  2. SetGet Law (Get what you Set):
-//     If GetOption(s) returns Some(_), then GetOption(Set(a)(s)) returns Some(a).
+//     If GetOption(s) returns OptionalSome(_), then GetOption(Set(a)(s)) returns OptionalSome(a).
 //
-//     Formally: GetOption(s) = Some(_) => GetOption(Set(a)(s)) = Some(a)
+//     Formally: GetOption(s) = OptionalSome(_) => GetOption(Set(a)(s)) = OptionalSome(a)
 //
 //  3. SetSet Law (Last Set Wins):
 //     Set(b)(Set(a)(s)) equals Set(b)(s).
@@ -190,7 +160,7 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 //   - soa: An optional focusing on an Option[A] field within S
 //
 // Returns:
-//   - An Optional[S, A] that focuses directly on values within Some
+//   - An Optional[S, A] that focuses directly on values within OptionalSome
 //
 // Example:
 //
@@ -201,7 +171,7 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 //	// Create an optional for the Timeout field
 //	timeoutOptional := optional.MakeOptional(
 //	    func(c Config) Option[Option[int]] {
-//	        return Some(c.Timeout)
+//	        return OptionalSome(c.Timeout)
 //	    },
 //	    func(c Config, opt Option[int]) Config {
 //	        c.Timeout = opt
@@ -209,13 +179,13 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 //	    },
 //	)
 //
-//	// Focus on the value within Some
-//	valueOptional := Some(timeoutOptional)
+//	// Focus on the value within OptionalSome
+//	valueOptional := OptionalSome(timeoutOptional)
 //
 //	// Use the optional
-//	config := Config{Timeout: Some(30)}
-//	value := valueOptional.GetOption(config)  // Some(30)
-//	updated := valueOptional.Set(60)(config)  // Config{Timeout: Some(60)}
+//	config := Config{Timeout: OptionalSome(30)}
+//	value := valueOptional.GetOption(config)  // OptionalSome(30)
+//	updated := valueOptional.Set(60)(config)  // Config{Timeout: OptionalSome(60)}
 //
 //	// Set is no-op when inner Option is None (Law 1)
 //	emptyConfig := Config{Timeout: None[int]()}
@@ -225,11 +195,11 @@ func PrismSome[A any]() P.Prism[O.Option[A], A] {
 //   - AsOptional: Converts prisms to optionals
 //   - PrismSome: The underlying prism for Option types
 //   - github.com/IBM/fp-go/v2/optics/optional.Compose for composing optionals
-func Some[S, A any](soa C.Optional[S, O.Option[A]]) C.Optional[S, A] {
-	return common.OptionalSome(soa)
+func OptionalSome[S, A any](soa Optional[S, Option[A]]) Optional[S, A] {
+	return OptionalComposeOptional[S](PrismAsOptional(prismSome[A]()))(soa)
 }
 
-// Compose composes an Optional with a Prism to create a new Optional.
+// OptionalComposePrism composes an Optional with a Prism to create a new Optional.
 //
 // This composition allows you to first focus on a value that may not exist (using an Optional),
 // and then focus on a variant within that value (using a Prism). The result is an Optional
@@ -305,8 +275,8 @@ func Some[S, A any](soa C.Optional[S, O.Option[A]]) C.Optional[S, A] {
 //	    func(pg PostgreSQL) DatabaseConfig { return pg },
 //	)
 //
-//	// Compose to create Optional[Config, PostgreSQL]
-//	configPgOptional := Compose[Config, DatabaseConfig, PostgreSQL](pgPrism)(dbOptional)
+//	// OptionalComposePrism to create Optional[Config, PostgreSQL]
+//	configPgOptional := OptionalComposePrism[Config, DatabaseConfig, PostgreSQL](pgPrism)(dbOptional)
 //
 //	// Use the optional
 //	config := Config{Database: Some(PostgreSQL{Host: "localhost"})}
@@ -326,8 +296,8 @@ func Some[S, A any](soa C.Optional[S, O.Option[A]]) C.Optional[S, A] {
 //
 // See Also:
 //   - AsOptional: Converts prisms to optionals
-//   - github.com/IBM/fp-go/v2/optics/optional.Compose for optional composition
+//   - github.com/IBM/fp-go/v2/optics/optional.OptionalComposePrism for optional composition
 //   - github.com/IBM/fp-go/v2/optics/prism/lens for the inverse composition (prism then lens)
-func Compose[S, A, B any](ab P.Prism[A, B]) func(C.Optional[S, A]) C.Optional[S, B] {
-	return common.OptionalComposePrism[S](ab)
+func OptionalComposePrism[S, A, B any](ab Prism[A, B]) OptionalOperator[S, A, B] {
+	return OptionalComposeOptional[S](PrismAsOptional(ab))
 }

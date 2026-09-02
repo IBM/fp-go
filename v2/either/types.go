@@ -30,6 +30,14 @@ type (
 	// when working with Either and Option together.
 	Option[A any] = common.Option[A]
 
+	// Lens is a functional reference to a subpart of a data structure.
+	// It provides composable get/set operations for a field of type A
+	// within a structure of type S.
+	//
+	// Lens is used by the do-notation lens variants (ApSL, BindL, LetL, LetToL)
+	// to focus on a specific field without manually writing curried setters.
+	Lens[S, A any] = common.Lens[S, A]
+
 	// Endomorphism represents a function from a type to itself (T -> T).
 	Endomorphism[T any] = endomorphism.Endomorphism[T]
 

@@ -18,7 +18,6 @@ package option
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/internal/common"
-	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
@@ -59,7 +58,7 @@ type (
 	//
 	// Type Parameters:
 	//   - T: The type of the value that may be present
-	Option[T any] = option.Option[T]
+	Option[T any] = common.Option[T]
 
 	// LensO is a lens that focuses on an optional value.
 	//
