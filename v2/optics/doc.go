@@ -146,7 +146,32 @@ A Traversal focuses on multiple values simultaneously, allowing batch operations
 # Composition
 
 The real power of optics comes from composition. Optics of the same or compatible
-types can be composed to create more complex accessors:
+types can be composed to create more complex accessors.
+
+# Automatic Cross-Optic Composition
+
+Every optic automatically exposes composition methods with all other optic types.
+You do not need to choose a separate sub-package for each combination — each optic
+value carries the full set of Compose* methods for every compatible target type.
+
+For example, a Lens[S, A] already has methods such as ComposeLens, ComposePrism,
+ComposeOptional, ComposeIso, and ComposeTraversal, each returning the correctly-typed
+result optic according to the composition hierarchy. The same applies to Prism,
+Optional, Iso, and Traversal.
+
+Go 1.27 — generic methods on instances:
+
+Go 1.27 lifts the restriction that methods cannot introduce their own type parameters.
+As a result, every optic instance exposes a single generic Compose method that accepts
+any compatible optic and returns the right result type, all inferred by the compiler.
+The sub-package helpers (lens.Compose, etc.) remain available for compatibility, but
+the instance method is the recommended, more concise form:
+
+	// Go 1.27+: single generic method, no sub-package import needed
+	companyCityLens := addressLens.Compose(cityLens)
+
+	// All Go versions: explicit sub-package helper (still works)
+	companyCityLens := F.Pipe1(addressLens, lens.Compose[Company](cityLens))
 
 	type Company struct {
 		Name    string

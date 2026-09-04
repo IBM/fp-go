@@ -169,6 +169,24 @@ doubled := F.Pipe2(
 
 The real power of optics comes from composition. Optics can be composed with each other to create more complex focusing operations, following a clear hierarchy where more specific optics can be converted to more general ones.
 
+### 🤝 Automatic Cross-Optic Composition
+
+Every optic automatically exposes composition methods with **all other optic types**. You do not need to pick a separate sub-package per combination — each optic value carries the full set of `Compose*` methods for every compatible target type.
+
+For example, a `Lens[S, A]` already has methods such as `ComposeLens`, `ComposePrism`, `ComposeOptional`, `ComposeIso`, and `ComposeTraversal`, each returning the correctly-typed result optic according to the composition hierarchy. The same applies to `Prism`, `Optional`, `Iso`, and `Traversal`.
+
+> **Go 1.27 — generic methods on instances**
+>
+> Go 1.27 lifts the restriction that methods cannot introduce their own type parameters. As a result, every optic instance exposes a single generic `Compose[B](other)` method that accepts any compatible optic and returns the right result type, all inferred by the compiler. The sub-package helpers (`lens.Compose`, `PL.Compose`, etc.) remain available for compatibility, but the instance method is the recommended, more concise form:
+>
+> ```go
+> // Go 1.27+: single generic method, no sub-package import needed
+> companyCityLens := addressLens.Compose(cityLens)
+>
+> // All Go versions: explicit sub-package helper (still works)
+> companyCityLens := F.Pipe1(addressLens, lens.Compose[Company](cityLens))
+> ```
+
 ### 📐 Composition Hierarchy
 
 ```
