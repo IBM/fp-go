@@ -507,3 +507,166 @@ func TestPrismComposeIso_Method_PipelineUsage(t *testing.T) {
 	assert.Equal(t, pipelinePrism.GetOption(s), methodPrism.GetOption(s))
 	assert.Equal(t, pipelinePrism.ReverseGet(8), methodPrism.ReverseGet(8))
 }
+
+// ---- ComposeOptional method tests ----
+//
+// Fixture: circlePrismG127 focuses on the Circle variant of Shape (defined
+// above).  positiveRadiusOptG127 is an Optional[float64, float64] that matches
+// only strictly-positive radii, giving a genuine two-level partial composition.
+
+// positiveRadiusOptG127 is an Optional[float64, float64] that only matches
+// when the radius is strictly positive.
+var positiveRadiusOptG127 = MakeOptional(
+	func(r float64) Option[float64] {
+		if r > 0 {
+			return OptionSome(r)
+		}
+		return OptionNone[float64]()
+	},
+	func(r float64, v float64) float64 { return v },
+)
+
+// TestPrismComposeOptional_MethodEquivalentToFreeFunction verifies that the
+// method form p.ComposeOptional(ab) returns an Optional identical in behaviour
+// to the free-function PrismComposeOptional[S](ab)(p).
+func TestPrismComposeOptional_MethodEquivalentToFreeFunction(t *testing.T) {
+	method := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+	free := PrismComposeOptional[Shape, float64, float64](positiveRadiusOptG127)(circlePrismG127)
+
+	cases := []Shape{
+		Circle{Radius: 3.7},
+		Circle{Radius: 0},
+		Rectangle{Width: 4, Height: 5},
+	}
+	for _, s := range cases {
+		t.Run("GetOption parity", func(t *testing.T) {
+			assert.Equal(t, free.GetOption(s), method.GetOption(s))
+		})
+		t.Run("Set parity", func(t *testing.T) {
+			assert.Equal(t, free.Set(9.0)(s), method.Set(9.0)(s))
+		})
+	}
+}
+
+// TestPrismComposeOptional_Method_GetOption_Match verifies Some is returned when
+// both the prism and the inner Optional match.
+func TestPrismComposeOptional_Method_GetOption_Match(t *testing.T) {
+	opt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	got := opt.GetOption(Circle{Radius: 7.9})
+	assert.True(t, OptionIsSome(got))
+	assert.Equal(t, 7.9, OptionGetOrElse(F.Constant(-1.0))(got))
+}
+
+// TestPrismComposeOptional_Method_GetOption_PrismMiss verifies None is returned
+// when the prism does not match the source variant.
+func TestPrismComposeOptional_Method_GetOption_PrismMiss(t *testing.T) {
+	opt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	assert.True(t, OptionIsNone(opt.GetOption(Rectangle{Width: 4, Height: 5})))
+	assert.True(t, OptionIsNone(opt.GetOption(Triangle{Base: 3, Height: 4})))
+}
+
+// TestPrismComposeOptional_Method_GetOption_InnerMiss verifies None is returned
+// when the prism matches but the inner Optional does not.
+func TestPrismComposeOptional_Method_GetOption_InnerMiss(t *testing.T) {
+	opt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	// Prism matches (Circle), but inner Optional rejects radius == 0.
+	assert.True(t, OptionIsNone(opt.GetOption(Circle{Radius: 0})))
+}
+
+// TestPrismComposeOptional_Method_Set_Match verifies that Set updates the
+// focused value when the prism matches.
+func TestPrismComposeOptional_Method_Set_Match(t *testing.T) {
+	opt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	updated := opt.Set(10.0)(Circle{Radius: 1.5})
+	assert.Equal(t, Circle{Radius: 10.0}, updated)
+}
+
+// TestPrismComposeOptional_Method_Set_NoOpOnPrismMiss verifies that Set is a
+// no-op when the prism does not match (Optional GetSet law).
+func TestPrismComposeOptional_Method_Set_NoOpOnPrismMiss(t *testing.T) {
+	opt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	original := Shape(Rectangle{Width: 4, Height: 5})
+	result := opt.Set(99.0)(original)
+	assert.Equal(t, original, result)
+}
+
+// TestPrismComposeOptional_Method_OptionalLaws verifies the three standard
+// Optional laws on the method-composed Optional.
+func TestPrismComposeOptional_Method_OptionalLaws(t *testing.T) {
+	opt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	matching := Shape(Circle{Radius: 3.0})
+	nonMatching := Shape(Rectangle{Width: 1, Height: 2})
+
+	t.Run("law GetSet: GetOption==None => Set is no-op", func(t *testing.T) {
+		result := opt.Set(99.0)(nonMatching)
+		assert.Equal(t, nonMatching, result)
+	})
+
+	t.Run("law SetGet: GetOption==Some => GetOption(Set(b)(s))==Some(b)", func(t *testing.T) {
+		updated := opt.Set(42.0)(matching)
+		got := opt.GetOption(updated)
+		assert.True(t, OptionIsSome(got))
+		assert.Equal(t, 42.0, OptionGetOrElse(F.Constant(-1.0))(got))
+	})
+
+	t.Run("law SetSet: Set(c)(Set(b)(s)) == Set(c)(s)", func(t *testing.T) {
+		result1 := opt.Set(20.0)(opt.Set(10.0)(matching))
+		result2 := opt.Set(20.0)(matching)
+		assert.Equal(t, result2, result1)
+	})
+}
+
+// TestPrismComposeOptional_Method_Chained verifies that ComposeOptional can be
+// chained after Compose (prism.Compose(prism).ComposeOptional(optional)) to
+// navigate three levels.
+func TestPrismComposeOptional_Method_Chained(t *testing.T) {
+	// level 1 (Compose): Option[Shape] → Shape  (unwrap Some)
+	// level 2 (ComposeOptional): Shape → float64  (circle radius, positive only)
+	outerPrism := PrismFromOption[Shape]()
+
+	opt := outerPrism.Compose(circlePrismG127).ComposeOptional(positiveRadiusOptG127)
+
+	t.Run("Get navigates through Compose+ComposeOptional when all match", func(t *testing.T) {
+		got := opt.GetOption(OptionSome[Shape](Circle{Radius: 5.9}))
+		assert.True(t, OptionIsSome(got))
+		assert.Equal(t, 5.9, OptionGetOrElse(F.Constant(-1.0))(got))
+	})
+
+	t.Run("Set updates through Compose+ComposeOptional", func(t *testing.T) {
+		s := OptionSome[Shape](Circle{Radius: 1.0})
+		updated := opt.Set(7.0)(s)
+		assert.Equal(t, OptionSome[Shape](Circle{Radius: 7.0}), updated)
+	})
+
+	t.Run("Set is no-op when outer prism misses", func(t *testing.T) {
+		original := OptionNone[Shape]()
+		result := opt.Set(99.0)(original)
+		assert.Equal(t, original, result)
+	})
+
+	t.Run("Set is no-op when inner prism misses", func(t *testing.T) {
+		original := OptionSome[Shape](Rectangle{Width: 3, Height: 4})
+		result := opt.Set(99.0)(original)
+		assert.Equal(t, original, result)
+	})
+}
+
+// TestPrismComposeOptional_Method_PipelineUsage verifies that the method form
+// and the free-function form used inside F.Pipe1 produce identical results.
+func TestPrismComposeOptional_Method_PipelineUsage(t *testing.T) {
+	pipelineOpt := F.Pipe1(
+		circlePrismG127,
+		PrismComposeOptional[Shape, float64, float64](positiveRadiusOptG127),
+	)
+	methodOpt := circlePrismG127.ComposeOptional(positiveRadiusOptG127)
+
+	s := Shape(Circle{Radius: 2.5})
+	assert.Equal(t, pipelineOpt.GetOption(s), methodOpt.GetOption(s))
+	assert.Equal(t, pipelineOpt.Set(8.0)(s), methodOpt.Set(8.0)(s))
+}
