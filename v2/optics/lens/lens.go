@@ -18,8 +18,8 @@ package lens
 
 import (
 	EQ "github.com/IBM/fp-go/v2/eq"
-	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/common"
+	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // MakeLens creates a [Lens] based on a getter and a setter F.
@@ -866,7 +866,7 @@ func ComposeRef[S, A, B any](ab Lens[A, B]) Operator[*S, A, B] {
 //	// Double the counter
 //	doubled := F.Pipe2(
 //	    valueLens,
-//	    lens.Modify[Counter](func(v int) int { return v * 2 }),
+//	    lens.Modify[Counter](N.Mul(2)),
 //	    F.Ap(counter),
 //	)
 //	// doubled.Value == 10

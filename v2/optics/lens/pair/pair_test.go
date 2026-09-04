@@ -21,6 +21,7 @@ import (
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
@@ -159,7 +160,7 @@ func TestTail_Modify(t *testing.T) {
 	p := pair.MakePair("hello", 42)
 	double := F.Pipe1(
 		Tail[string, int](),
-		L.LensModify[Pair[string, int]](func(n int) int { return n * 2 }),
+		L.LensModify[Pair[string, int]](N.Mul(2)),
 	)
 
 	result := double(p)

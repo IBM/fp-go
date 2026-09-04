@@ -1314,7 +1314,7 @@ func TestLensModifyF_Integration(t *testing.T) {
 		person := Inner{Value: 5, Foo: "test"}
 		modified := F.Pipe2(
 			ageLens,
-			LensModify[Inner](func(n int) int { return n * 2 }),
+			LensModify[Inner](N.Mul(2)),
 			func(endoFn func(Inner) Inner) Inner {
 				return endoFn(person)
 			},
@@ -1371,7 +1371,7 @@ func TestLensModify_Success(t *testing.T) {
 		inner := &Inner{Value: 5, Foo: "bar"}
 		valueLens := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
 
-		double := valueLens.Modify(func(v int) int { return v * 2 })
+		double := valueLens.Modify(N.Mul(2))
 		result := double(inner)
 
 		assert.Equal(t, 10, result.Value)
@@ -1386,7 +1386,7 @@ func TestLensModify_Success(t *testing.T) {
 		valueLens := MakeLensRef((*Inner).GetValue, (*Inner).SetValue)
 
 		composedLens := F.Pipe1(outerLens, LensComposeLens[Outer](valueLens))
-		halve := composedLens.Modify(func(v int) int { return v / 2 })
+		halve := composedLens.Modify(N.Div(2))
 		result := halve(outer)
 
 		assert.Equal(t, 50, result.inner.Value)
@@ -1402,7 +1402,7 @@ func TestLensModify_Success(t *testing.T) {
 		)
 
 		increment := valueLens.Modify(N.Add(1))
-		double := valueLens.Modify(func(v int) int { return v * 2 })
+		double := valueLens.Modify(N.Mul(2))
 
 		result := F.Pipe2(inner, increment, double)
 

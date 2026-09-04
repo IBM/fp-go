@@ -14,10 +14,10 @@ fp-go provides logging utilities that integrate naturally with functional pipeli
 |---------|---------|
 | `github.com/IBM/fp-go/v2/logging` | Global logger, context-embedded logger, `LoggingCallbacks` |
 | `github.com/IBM/fp-go/v2/io` | `Logf`, `Logger`, `LogGo`, `Printf`, `PrintGo` — IO-level logging helpers |
-| `github.com/IBM/fp-go/v2/readerio` | `SLog`, `SLogWithCallback` — structured logging for ReaderIO |
-| `github.com/IBM/fp-go/v2/context/readerio` | `SLog`, `SLogWithCallback` — structured logging for context ReaderIO |
+| `github.com/IBM/fp-go/v2/readerio` | `Logf`, `Printf`, `LogGo`, `PrintGo` — printf/template logging for ReaderIO (**no** `SLog` here) |
+| `github.com/IBM/fp-go/v2/context/readerio` | `SLog`, `TapSLog`, `SLogWithCallback` — structured logging for context ReaderIO |
 | `github.com/IBM/fp-go/v2/context/readerresult` | `SLog`, `TapSLog`, `SLogWithCallback` — structured logging for ReaderResult |
-| `github.com/IBM/fp-go/v2/context/readerioresult` | `SLog`, `TapSLog`, `SLogWithCallback`, `LogEntryExit`, `LogEntryExitWithCallback` — full suite for ReaderIOResult |
+| `github.com/IBM/fp-go/v2/context/readerioresult` | `TapSLog`/`TapSLogInfo`/`TapSLogDebug`, `SLog`/`SLogInfo`/`SLogDebug`, `SLogLeft`, `SLogRight`, `SLogWithCallback`, `LogEntryExit`, `LogEntryExitWithCallback` — full suite for ReaderIOResult |
 
 ## Logging Inside Pipelines
 
@@ -34,7 +34,7 @@ import (
 
 pipeline := F.Pipe3(
     fetchUser(42),
-    RIO.ChainEitherK(validateUser),
+    RIO.ChainResultK(result.Eitherize1(validateUser)), // Kleisli User → Result[User]
     // Log after validation — value flows through unchanged
     RIO.ChainFirstIOK(IO.Logf[User]("Validated user: %v")),
     RIO.Map(enrichUser),
@@ -43,22 +43,27 @@ pipeline := F.Pipe3(
 
 `IO.Logf[A](format string) func(A) IO[A]` logs using `log.Printf` and returns the value unchanged. It's a Kleisli arrow suitable for `ChainFirst` and `ChainFirstIOK`.
 
-### With `IOEither` / plain `IO`
+### With `IOResult` / plain `IO`
 
 ```go
 import (
-    IOE "github.com/IBM/fp-go/v2/ioeither"
-    IO  "github.com/IBM/fp-go/v2/io"
-    F   "github.com/IBM/fp-go/v2/function"
+    IOR  "github.com/IBM/fp-go/v2/ioresult"
+    IOF  "github.com/IBM/fp-go/v2/ioresult/file"   // ReadFile, WriteFile, …
+    IO   "github.com/IBM/fp-go/v2/io"
+    J    "github.com/IBM/fp-go/v2/json"
+    F    "github.com/IBM/fp-go/v2/function"
 )
 
 pipeline := F.Pipe3(
-    file.ReadFile("config.json"),
-    IOE.ChainEitherK(J.Unmarshal[Config]),
-    IOE.ChainFirstIOK(IO.Logf[Config]("Loaded config: %v")),
-    IOE.Map[error](processConfig),
+    IOF.ReadFile("config.json"),                        // IOResult[[]byte]
+    IOR.ChainResultK(J.Unmarshal[Config]),              // []byte → Result[Config]
+    IOR.ChainFirstIOK(IO.Logf[Config]("Loaded config: %v")),
+    IOR.Map(processConfig),
 )
 ```
+
+(`ioeither/file` and `ioeither` are the `Either[E, A]` equivalents; reach for them only when
+the error type is not `error`. `IOR.Map` needs no leading type parameter — `IOE.Map[error]` does.)
 
 ### Logging Arrays in TraverseArray
 
@@ -74,8 +79,8 @@ import (
 pipeline := F.Pipe2(
     A.MakeBy(3, idxToFilename),
     RIO.TraverseArray(F.Flow3(
-        file.ReadFile,
-        RIO.ChainEitherK(J.Unmarshal[Record]),
+        RIO.Eitherize1(readFileCtx),                  // func(ctx, string) ([]byte, error)
+        RIO.ChainResultK(J.Unmarshal[Record]),
         RIO.ChainFirstIOK(IO.Logf[Record]("Parsed record: %v")),
     )),
     RIO.ChainFirstIOK(IO.Logf[[]Record]("All records: %v")),
@@ -157,37 +162,37 @@ pipeline := F.Pipe4(
     RIO.Chain(processPayment),
 )
 
-result, err := pipeline(ctx)()
+order, err := result.Unwrap(pipeline(ctx)())
 ```
 
 - Logs **both** success values (`value=<A>`) and errors (`error=<err>`) using `slog` structured attributes.
 - Respects the logger level — if the logger is configured to discard Info-level logs, nothing is written.
 - Available in both `context/readerioresult` and `context/readerresult`.
 
-### `SLog` — Kleisli-style structured logging
+### `SLog`, `SLogRight`, `SLogLeft` — the underlying Kleisli arrows
 
-`SLog` is a **Kleisli arrow** (`func(Result[A]) ReaderResult[A]` / `func(Result[A]) ReaderIOResult[A]`). It is used with `Chain` when you want to intercept the raw `Result` directly.
+In `context/readerioresult`, `SLog[A](msg)` is `Kleisli[Result[A], Void]` — it takes the **raw `Result[A]`** and returns `Void`. It is the building block `TapSLog` is made from (`TapSLog = readerio.Tap ∘ SLog`), and it **cannot** be dropped into `RIO.Chain` or `RIO.ChainFirst` on a `ReaderIOResult[A]`: those expect a Kleisli over `A`, not over `Result[A]`.
 
 ```go
-import (
-    RIO "github.com/IBM/fp-go/v2/context/readerioresult"
-    F   "github.com/IBM/fp-go/v2/function"
-)
+// ❌ WRONG — does not compile; SLog's input is Result[Data], its output is Void
+RIO.Chain(RIO.SLog[Data]("Data fetched"))
 
-pipeline := F.Pipe3(
-    fetchData(id),
-    RIO.Chain(RIO.SLog[Data]("Data fetched")),    // log raw Result, pass it through
-    RIO.Chain(validateData),
-    RIO.Chain(RIO.SLog[Data]("Data validated")),
-    RIO.Chain(processData),
-)
+// ✅ Log value and error, pass the value through — this is what you almost always want
+RIO.TapSLog[Data]("Data fetched")
+
+// ✅ Log only the success branch via ChainFirst — SLogRight is Kleisli[A, Void]
+RIO.ChainFirst(RIO.SLogRight[Data]("Data fetched"))
 ```
 
-**Difference from `TapSLog`:**
-- `TapSLog[A](msg)` is an `Operator[A, A]` — used directly in `F.Pipe` on a `ReaderIOResult[A]`.
-- `SLog[A](msg)` is a `Kleisli[Result[A], A]` — used with `Chain`, giving access to the raw `Result[A]`.
+| Function | Shape | Use |
+|---|---|---|
+| `TapSLog[A](msg)` | `Operator[A, A]` | drop directly into `F.Pipe` — logs value **or** error, value flows through |
+| `TapSLogInfo[A]` / `TapSLogDebug[A]` | `Operator[A, A]` | same, at an explicit level |
+| `SLogRight[A](msg)` | `Kleisli[A, Void]` | usable with `RIO.ChainFirst` — success branch only |
+| `SLogLeft(msg)` | `Kleisli[error, Void]` | usable with `RIO.ChainFirstLeft[A]` — error branch only (annotate `A`) |
+| `SLog[A](msg)` / `SLogInfo` / `SLogDebug` | `Kleisli[Result[A], Void]` | low-level; prefer `TapSLog` |
 
-Both log in the same format. `TapSLog` is more ergonomic in most pipelines.
+**In `context/readerresult` the shape differs**: there `SLog[A](msg)` is `Kleisli[Result[A], A]` (it passes the value on rather than returning `Void`). `TapSLog[A](msg) Operator[A, A]` is identical in both packages — prefer it and the difference never bites.
 
 ### `SLogWithCallback` — custom log level and logger source
 
@@ -232,7 +237,7 @@ pipeline := F.Pipe3(
     }),
 )
 
-result, err := pipeline(ctx)()
+orders, err := result.Unwrap(pipeline(ctx)())
 // Logs:
 // level=INFO msg="[entering]" name=fetchUser ID=1
 // level=INFO msg="[exiting ]" name=fetchUser ID=1 duration=42ms
@@ -262,7 +267,7 @@ cancelFn, ctxWithLogger := pair.Unpack(
 )
 defer cancelFn()
 
-result, err := pipeline(ctxWithLogger)()
+value, err := result.Unwrap(pipeline(ctxWithLogger)())
 ```
 
 ### `LogEntryExitWithCallback` — custom log level
@@ -334,7 +339,7 @@ cancelFn, ctxWithLogger := pair.Unpack(logging.WithLogger(reqLogger)(ctx))
 defer cancelFn()
 
 // All downstream logging (TapSLog, LogEntryExit, etc.) uses reqLogger
-result, err := pipeline(ctxWithLogger)()
+value, err := result.Unwrap(pipeline(ctxWithLogger)())
 ```
 
 `WithLogger` returns a `ContextCancel = Pair[context.CancelFunc, context.Context]`. The cancel function is a no-op — the context is only enriched, not made cancellable.
@@ -362,7 +367,8 @@ Used internally by `io.Logger` and by packages that need separate info/error sin
 | Go template formatting mid-pipeline | `IO.LogGo[A]("tmpl")` with `ChainFirstIOK` |
 | Print to stdout (no log prefix) | `IO.Printf[A]("fmt")` with `ChainFirstIOK` |
 | Structured slog — log value or error inline | `RIO.TapSLog[A]("msg")` (Operator, used in Pipe) |
-| Structured slog — intercept raw Result | `RIO.Chain(RIO.SLog[A]("msg"))` (Kleisli) |
+| Structured slog — success branch only | `RIO.ChainFirst(RIO.SLogRight[A]("msg"))` |
+| Structured slog — error branch only | `RIO.ChainFirstLeft(RIO.SLogLeft("msg"))` |
 | Structured slog — custom log level | `RIO.SLogWithCallback[A](level, cb, "msg")` |
 | Entry/exit timing + correlation IDs | `RIO.LogEntryExit[A]("name")` |
 | Entry/exit at custom log level | `RIO.LogEntryExitWithCallback[A](level, cb, "name")` |
@@ -385,6 +391,7 @@ import (
     L   "github.com/IBM/fp-go/v2/logging"
     P   "github.com/IBM/fp-go/v2/pair"
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
+    "github.com/IBM/fp-go/v2/result"
 )
 
 func main() {
@@ -398,14 +405,15 @@ func main() {
 
     pipeline := F.Pipe5(
         fetchData(42),
-        RIO.LogEntryExit[Data]("fetchData"),              // entry/exit with timing + ID
-        RIO.TapSLog[Data]("raw data"),                    // inline structured value log
-        RIO.ChainEitherK(transformData),
-        RIO.LogEntryExit[Result]("transformData"),
-        RIO.ChainFirstIOK(IO.LogGo[Result]("result: {{.Value}}")), // template log
+        RIO.LogEntryExit[Data]("fetchData"),                  // entry/exit with timing + ID
+        RIO.TapSLog[Data]("raw data"),                        // inline structured value log
+        RIO.ChainResultK(result.Eitherize1(transformData)),   // func(Data) (Out, error)
+        RIO.LogEntryExit[Out]("transformData"),
+        RIO.ChainFirstIOK(IO.LogGo[Out]("result: {{.Value}}")), // template log
     )
 
-    value, err := pipeline(ctx)()
+    // pipeline(ctx)() is a single Result[Out]; unwrap it for idiomatic Go
+    value, err := result.Unwrap(pipeline(ctx)())
     if err != nil {
         L.GetLogger().Error("pipeline failed", "error", err)
     }

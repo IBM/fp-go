@@ -46,7 +46,7 @@ type (
 	// Modify: Transform all focused values
 	//
 	//	numbers := []int{1, 2, 3, 4}
-	//	doubled := Modify[[]int, int](func(n int) int { return n * 2 })(arrayTraversal)(numbers)
+	//	doubled := Modify[[]int, int](N.Mul(2))(arrayTraversal)(numbers)
 	//	// Result: []int{2, 4, 6, 8}
 	//
 	// GetAll: Extract all focused values

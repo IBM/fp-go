@@ -21,6 +21,7 @@ import (
 	EQT "github.com/IBM/fp-go/v2/eq/testing"
 	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -277,7 +278,7 @@ func TestComposeOptionWithModify(t *testing.T) {
 	t.Run("Modify with Some transformation", func(t *testing.T) {
 		config := ServerConfig{Database: &DatabaseCfg{Host: "example.com", Port: 3306}}
 		// Double the port if it exists
-		doublePort := O.Map(func(p int) int { return p * 2 })
+		doublePort := O.Map(N.Mul(2))
 		result := L.LensModify[ServerConfig](doublePort)(configPortLens)(config)
 		assert.Equal(t, 6612, result.Database.Port)
 		assert.Equal(t, "example.com", result.Database.Host)
@@ -285,7 +286,7 @@ func TestComposeOptionWithModify(t *testing.T) {
 
 	t.Run("Modify on empty config with Some transformation", func(t *testing.T) {
 		config := ServerConfig{Database: nil}
-		doublePort := O.Map(func(p int) int { return p * 2 })
+		doublePort := O.Map(N.Mul(2))
 		result := L.LensModify[ServerConfig](doublePort)(configPortLens)(config)
 		// Should remain empty since there's nothing to modify
 		assert.Nil(t, result.Database)

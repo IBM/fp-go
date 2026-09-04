@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	C "github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
@@ -646,7 +647,7 @@ func TestSome_Integration(t *testing.T) {
 		// Use with option map
 		result := F.Pipe1(
 			valueOptional.GetOption(config),
-			O.Map(func(x int) int { return x * 2 }),
+			O.Map(N.Mul(2)),
 		)
 
 		assert.True(t, O.IsSome(result))
@@ -1250,7 +1251,7 @@ func TestAsOptional_PipelineUsage(t *testing.T) {
 	// A GetOption → map pipeline that extracts the doubled value or -1.
 	extract := func(r Result) int {
 		return O.GetOrElse(F.Constant(-1))(
-			O.Map(func(v int) int { return v * 2 })(opt.GetOption(r)),
+			O.Map(N.Mul(2))(opt.GetOption(r)),
 		)
 	}
 
@@ -1303,8 +1304,8 @@ func TestPrismSome_PipelineUsage(t *testing.T) {
 func TestSome_EquivalentToCommon(t *testing.T) {
 	soa := makeTimeoutOptional()
 
-	method := Some[Config, int](soa)
-	free := C.OptionalSome[Config, int](soa)
+	method := Some(soa)
+	free := C.OptionalSome(soa)
 
 	configs := []Config{
 		{Timeout: O.Some(30), Retries: O.Some(3)},
@@ -1322,7 +1323,7 @@ func TestSome_EquivalentToCommon(t *testing.T) {
 
 // TestSome_PipelineUsage verifies that Some integrates with F.Pipe1.
 func TestSome_PipelineUsage(t *testing.T) {
-	opt := Some[Config, int](makeTimeoutOptional())
+	opt := Some(makeTimeoutOptional())
 
 	config := Config{Timeout: O.Some(10)}
 	result := F.Pipe1(config, opt.Set(99))
@@ -1332,7 +1333,7 @@ func TestSome_PipelineUsage(t *testing.T) {
 // TestSome_PreservesOtherFields verifies that Set through Some does not disturb
 // fields that the optional does not touch.
 func TestSome_PreservesOtherFields(t *testing.T) {
-	opt := Some[Config, int](makeTimeoutOptional())
+	opt := Some(makeTimeoutOptional())
 
 	config := Config{Timeout: O.Some(5), Retries: O.Some(3)}
 	updated := opt.Set(50)(config)
@@ -1343,7 +1344,7 @@ func TestSome_PreservesOtherFields(t *testing.T) {
 
 // TestSome_MultipleTypes verifies that Some works with non-int type parameters.
 func TestSome_MultipleTypes(t *testing.T) {
-	nameOpt := Some[Person, string](makeNameOptional())
+	nameOpt := Some(makeNameOptional())
 
 	t.Run("string Some – GetOption match", func(t *testing.T) {
 		p := Person{Name: O.Some("Alice"), Age: O.Some(30)}

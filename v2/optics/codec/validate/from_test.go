@@ -23,6 +23,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
@@ -274,7 +275,7 @@ func TestFromReaderResult_Integration(t *testing.T) {
 		// Convert and map to double the value
 		validator := F.Pipe1(
 			FromReaderResult(parseIntRR),
-			Map[string](func(n int) int { return n * 2 }),
+			Map[string](N.Mul(2)),
 		)
 
 		validationResult := validator("21")(nil)
@@ -443,8 +444,7 @@ func BenchmarkFromReaderResult_Success(b *testing.B) {
 
 	validator := FromReaderResult(successRR)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = validator(42)(nil)
 	}
 }
@@ -457,8 +457,7 @@ func BenchmarkFromReaderResult_Failure(b *testing.B) {
 
 	validator := FromReaderResult(failureRR)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = validator(42)(nil)
 	}
 }
@@ -475,8 +474,7 @@ func BenchmarkFromReaderResult_WithContext(b *testing.B) {
 		{Key: "age", Type: "int"},
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = validator(42)(ctx)
 	}
 }

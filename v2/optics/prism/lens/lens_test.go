@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	L "github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
@@ -506,7 +507,7 @@ func TestCompose_Integration(t *testing.T) {
 		// Use with option map
 		value := F.Pipe1(
 			optional.GetOption(result),
-			O.Map(func(x int) int { return x * 2 }),
+			O.Map(N.Mul(2)),
 		)
 
 		assert.True(t, O.IsSome(value))

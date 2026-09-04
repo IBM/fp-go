@@ -447,7 +447,7 @@ func GetAll[GA ~[]A, S, A any](s S) func(sa Traversal[S, A, C.Const[GA, S], C.Co
 //
 //	// Double only positive numbers
 //	numbers := []int{-2, -1, 0, 1, 2, 3}
-//	result := filteredTraversal(func(n int) int { return n * 2 })(numbers)
+//	result := filteredTraversal(N.Mul(2))(numbers)
 //	// result: [-2, -1, 0, 2, 4, 6]
 //
 // See Also:

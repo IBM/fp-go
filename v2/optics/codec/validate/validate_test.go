@@ -387,8 +387,7 @@ func BenchmarkValidate_Success(b *testing.B) {
 		}
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = validate(42)(nil)
 	}
 }
@@ -403,8 +402,7 @@ func BenchmarkValidate_Failure(b *testing.B) {
 		}
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = validate(-1)(nil)
 	}
 }
@@ -424,8 +422,7 @@ func BenchmarkValidate_WithContext(b *testing.B) {
 		{Key: "field2", Type: "string"},
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = validate("test")(ctx)
 	}
 }
@@ -720,7 +717,7 @@ func TestAp(t *testing.T) {
 		applyTo21 := Ap[int](valueValidator)
 
 		double := Of[string](N.Mul(2))
-		triple := Of[string](func(x int) int { return x * 3 })
+		triple := Of[string](N.Mul(3))
 
 		result1 := applyTo21(double)("input")(nil)
 		result2 := applyTo21(triple)("input")(nil)

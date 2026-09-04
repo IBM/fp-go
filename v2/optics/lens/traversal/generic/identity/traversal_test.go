@@ -22,6 +22,7 @@ import (
 	AR "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	AI "github.com/IBM/fp-go/v2/optics/traversal/array/identity"
 	"github.com/stretchr/testify/assert"
 )
@@ -124,7 +125,7 @@ func TestCompose_Success(t *testing.T) {
 		}
 
 		// Act - double all scores
-		result := scoreTraversal(func(n int) int { return n * 2 })(stats)
+		result := scoreTraversal(N.Mul(2))(stats)
 
 		// Assert
 		expected := Stats{

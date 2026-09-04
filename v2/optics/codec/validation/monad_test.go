@@ -262,7 +262,7 @@ func TestApWithOperator(t *testing.T) {
 
 		// Operator can be applied to different function validations
 		double := N.Mul(2)
-		triple := func(x int) int { return x * 3 }
+		triple := N.Mul(3)
 
 		result1 := operator(Of(double))
 		result2 := operator(Of(triple))

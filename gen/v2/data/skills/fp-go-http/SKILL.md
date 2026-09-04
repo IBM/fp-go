@@ -15,6 +15,16 @@ github.com/IBM/fp-go/v2/context/readerioresult/http
 
 All HTTP operations are lazy — they describe what to do but do not execute until you call the resulting function with a `context.Context`.
 
+**Executing a pipeline.** `ReaderIOResult[A]` is `func(context.Context) func() Result[A]`, so running it takes two calls and yields **one** value:
+
+```go
+res := pipeline(ctx)()            // Result[A] — a single value, NOT (A, error)
+value, err := R.Unwrap(res)       // R = github.com/IBM/fp-go/v2/result
+```
+
+Examples below use the shorthand `value, err := R.Unwrap(pipeline(ctx)())`. Writing
+`value, err := pipeline(ctx)()` is a compile error ("2 variables but … returns 1 value").
+
 ## Core Types
 
 ```go
@@ -72,8 +82,8 @@ client := H.MakeClient(HTTP.DefaultClient)
 // ReadJSON validates status, Content-Type, then unmarshals JSON
 result := H.ReadJSON[User](client)(H.MakeGetRequest("https://api.example.com/users/1"))
 
-// Execute — provide context once
-user, err := result(context.Background())()
+// Execute — provide context once. The inner () yields a Result[User] (one value).
+user, err := R.Unwrap(result(context.Background())())
 ```
 
 ## Response Readers
@@ -108,7 +118,7 @@ pipeline := F.Pipe2(
     RIO.ChainFirstIOK(IO.Logf[Post]("Got post: %v")),
 )
 
-post, err := pipeline(context.Background())()
+post, err := R.Unwrap(pipeline(context.Background())())
 ```
 
 ## Parallel Requests — Homogeneous Types
@@ -147,7 +157,7 @@ data := F.Pipe3(
     RIO.Map(A.Size[PostItem]),
 )
 
-count, err := data(context.Background())()
+count, err := R.Unwrap(data(context.Background())())
 ```
 
 ## Parallel Requests — Heterogeneous Types
@@ -181,7 +191,7 @@ data := F.Pipe3(
     RIO.ChainFirstIOK(IO.Logf[T.Tuple2[PostItem, CatFact]]("Result: %v")),
 )
 
-both, err := data(context.Background())()
+both, err := R.Unwrap(data(context.Background())())
 // both.F1 is PostItem, both.F2 is CatFact
 ```
 
@@ -225,7 +235,7 @@ requester := RB.Requester(req)
 
 // Execute
 result := H.ReadJSON[Response](client)(requester)
-data, err := result(ctx)()
+data, err := R.Unwrap(result(ctx)())
 ```
 
 ### Builder Functions
@@ -239,22 +249,41 @@ data, err := result(ctx)()
 | `B.WithHeader(key)(value)` | Add a request header |
 | `B.WithBearer(token)` | Set `Authorization: Bearer <token>` |
 | `B.WithQueryArg(key)(value)` | Append a query parameter |
+| `B.WithGet` / `B.WithPost` / `B.WithPut` / `B.WithDelete` | Pre-bound `WithMethod` for the common verbs |
+| `B.WithContentType(ct)` | Set the `Content-Type` header |
+| `B.WithFormData(values)` | `url.Values` body + `Content-Type: application/x-www-form-urlencoded` |
+| `B.WithoutBody` | Remove any body previously set |
+| `B.WithoutHeader(key)` / `B.WithoutQueryArg(key)` | Remove a header / query parameter |
+
+Every `With*` is an `Endomorphism[*Builder]`, so they chain freely inside `F.PipeN(B.Default, …)`.
 
 ## Error Handling
 
 Errors from request creation, HTTP status codes, Content-Type validation, and JSON parsing all propagate automatically through the `Result` monad. You only handle errors at the call site:
 
 ```go
-// Pattern 1: direct extraction
-value, err := pipeline(ctx)()
+// Pattern 1: run it, then unwrap. pipeline(ctx)() yields a single Result[A];
+// result.Unwrap turns that into idiomatic (A, error).
+value, err := R.Unwrap(pipeline(ctx)())
 if err != nil { /* handle */ }
 
-// Pattern 2: Fold for clean HTTP handler
-RIO.Fold(
-    func(err error) { http.Error(w, err.Error(), http.StatusInternalServerError) },
-    func(data MyType) { json.NewEncoder(w).Encode(data) },
-)(pipeline)(ctx)()
+// Pattern 2: run the pipeline, then eliminate the Result with result.Fold
+F.Pipe1(
+    pipeline(ctx)(),          // Result[MyType]
+    R.Fold(
+        func(err error) F.Void {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return F.VOID
+        },
+        func(data MyType) F.Void {
+            json.NewEncoder(w).Encode(data)
+            return F.VOID
+        },
+    ),
+)
 ```
+
+**Do not use `RIO.Fold` for this.** In `context/readerioresult`, `Fold[A, B](onLeft Kleisli[error, B], onRight Kleisli[A, B]) Operator[A, B]` stays *inside* the monad — both branches must return a `ReaderIOResult[B]`, so it cannot take plain `func(error)` / `func(A)` side-effecting handlers. To leave the monad, execute the pipeline and fold the resulting `Result` (as above), or use `readerioresult.Fold` from the non-context package, which lands in `ReaderIO`.
 
 ## Full HTTP Handler Example
 
@@ -270,6 +299,7 @@ import (
     F   "github.com/IBM/fp-go/v2/function"
     H   "github.com/IBM/fp-go/v2/context/readerioresult/http"
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
+    R   "github.com/IBM/fp-go/v2/result"
     IO  "github.com/IBM/fp-go/v2/io"
 )
 
@@ -290,15 +320,20 @@ func fetchPost(id int) RIO.ReaderIOResult[Post] {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    RIO.Fold(
-        func(err error) {
-            http.Error(w, err.Error(), http.StatusBadGateway)
-        },
-        func(post Post) {
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(post)
-        },
-    )(fetchPost(1))(r.Context())()
+    F.Pipe1(
+        fetchPost(1)(r.Context())(), // run it: Result[Post]
+        R.Fold(
+            func(err error) F.Void {
+                http.Error(w, err.Error(), http.StatusBadGateway)
+                return F.VOID
+            },
+            func(post Post) F.Void {
+                w.Header().Set("Content-Type", "application/json")
+                json.NewEncoder(w).Encode(post)
+                return F.VOID
+            },
+        ),
+    )
 }
 ```
 
@@ -313,6 +348,7 @@ import (
     B   "github.com/IBM/fp-go/v2/http/builder"
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     F   "github.com/IBM/fp-go/v2/function"
+    R   "github.com/IBM/fp-go/v2/result"   // Unwrap, Fold — leaving the monad
     A   "github.com/IBM/fp-go/v2/array"
     T   "github.com/IBM/fp-go/v2/tuple"
     IO  "github.com/IBM/fp-go/v2/io"

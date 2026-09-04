@@ -105,7 +105,7 @@ successPrism := prism.MakePrism(
 // Use in Do notation to construct values
 result := F.Pipe2(
     computeValue(),
-    option.Map(func(v int) int { return v * 2 }),
+    option.Map(N.Mul(2)),
     option.Map(successPrism.ReverseGet), // Construct Result from int
 )
 ```

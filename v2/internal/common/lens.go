@@ -993,7 +993,7 @@ func LensComposeLensRef[S, A, B any](ab Lens[A, B]) LensOperator[*S, A, B] {
 //	// Double the counter
 //	doubled := F.Pipe2(
 //	    valueLens,
-//	    lens.LensModify[Counter](func(v int) int { return v * 2 }),
+//	    lens.LensModify[Counter](N.Mul(2)),
 //	    F.Ap(counter),
 //	)
 //	// doubled.Value == 10

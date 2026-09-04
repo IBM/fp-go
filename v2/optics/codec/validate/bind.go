@@ -19,8 +19,8 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 	A "github.com/IBM/fp-go/v2/internal/apply"
 	C "github.com/IBM/fp-go/v2/internal/chain"
-	F "github.com/IBM/fp-go/v2/internal/functor"
 	L "github.com/IBM/fp-go/v2/internal/common"
+	F "github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // Do creates an empty context of type S to be used with the Bind operation.
@@ -285,7 +285,7 @@ func BindL[I, S, T any](
 //	)
 //
 //	// Double the counter value
-//	double := func(v int) int { return v * 2 }
+//	double := N.Mul(2)
 //
 //	decoder := F.Pipe1(
 //	    Of[string](Counter{Value: 21}),

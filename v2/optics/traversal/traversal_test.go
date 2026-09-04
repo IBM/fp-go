@@ -96,7 +96,7 @@ func TestFilter_Success(t *testing.T) {
 		)
 
 		// Act - double only positive numbers
-		result := filteredTraversal(func(n int) int { return n * 2 })(numbers)
+		result := filteredTraversal(N.Mul(2))(numbers)
 
 		// Assert
 		assert.Equal(t, []int{-2, -1, 0, 2, 4, 6}, result)

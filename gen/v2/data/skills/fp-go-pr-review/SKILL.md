@@ -64,14 +64,14 @@ F.Pipe2(
 ```go
 // ❌ AVOID - unnecessary lambda wrapping
 pipeline := F.Flow2(
-    func(s string) O.Option[int] { return O.FromPredicate(S.IsNonEmpty)(s) },
-    func(o O.Option[int]) int { return O.GetOrElse(F.Constant(0))(o) },
+    func(s string) O.Option[string] { return O.FromPredicate(S.IsNonEmpty)(s) },
+    func(o O.Option[string]) string { return O.GetOrElse(func() string { return "" })(o) },
 )
 
 // ✅ CORRECT - point-free composition
 pipeline := F.Flow2(
-    O.FromPredicate(S.IsNonEmpty),
-    O.GetOrElse(F.Constant(0)),
+    O.FromPredicate(S.IsNonEmpty),   // string -> Option[string]
+    O.GetOrElse(LZ.Of("")),          // Option[string] -> string; LZ = v2/lazy
 )
 
 // ❌ AVOID - inline comparison
@@ -114,10 +114,16 @@ result := readConfig("config.json")  // returns IO[Config], not Config
 result := readConfig("config.json")()
 
 // ❌ WRONG - in ReaderIOResult, forgot inner ()
-value, err := pipeline(ctx)  // returns func() Result[A]
+res := pipeline(ctx)         // returns func() Result[A], nothing has run yet
 
 // ✅ CORRECT - execute both context and IO
+res := pipeline(ctx)()       // Result[A] — ONE value
+
+// ❌ WRONG - Result[A] is a single value, not a (value, error) tuple
 value, err := pipeline(ctx)()
+
+// ✅ CORRECT - unwrap to idiomatic Go at the boundary
+value, err := R.Unwrap(pipeline(ctx)())
 ```
 
 **Severity**: Critical — code won't execute
@@ -129,10 +135,12 @@ value, err := pipeline(ctx)()
 **Check for**:
 ```go
 // ❌ AVOID - using ReaderIOResult for pure computation
+// (also note: in context/readerioresult the context is baked in —
+//  it is RIO.Of[A] and RIO.Map[A, B], with no environment type parameter)
 func processUsers(users []User) RIO.ReaderIOResult[string] {
-    return F.Pipe2(
-        RIO.Of[context.Context](users),
-        RIO.Map[context.Context, []User, string](pureTransform),
+    return F.Pipe1(
+        RIO.Of(users),
+        RIO.Map(pureTransform),
     )
 }
 
@@ -169,13 +177,20 @@ type Deps struct {
     Logger Logger
 }
 
+// Effect[Deps, User] IS func(Deps) ReaderIOResult[User] — return the closure directly.
+// EF.Asks is only for pure projections func(Deps) A; feeding it a ReaderIOResult
+// silently produces the nested Effect[Deps, ReaderIOResult[User]].
 func fetchUser(id int) EF.Effect[Deps, User] {
-    return EF.Asks(func(deps Deps) EF.ReaderIOResult[User] {
+    return func(deps Deps) EF.ReaderIOResult[User] {
         // deps.DB is compile-time checked
         return queryUser(deps.DB, id)
-    })
+    }
 }
 ```
+
+Also flag `EF.Map(f)` and `EF.Provide(deps)(eff)` without annotations — `Map[C, A, B]` usually
+cannot infer `C`, and `Provide[A, C]` cannot infer `A` through the function it returns. Write
+`EF.Map[Deps](f)` and `EF.Provide[string](deps)`.
 
 **Severity**: High — type safety and testability
 
@@ -189,9 +204,9 @@ func fetchUser(id int) EF.Effect[Deps, User] {
 func parseNumber(s string) R.Result[int] {
     n, err := strconv.Atoi(s)
     if err != nil {
-        return R.Left[int](err)
+        return R.Left[int](err)   // Left[A] — A is the success type
     }
-    return R.Right[error](n)
+    return R.Of(n)                // NOT R.Right[error](n); Right[A any](v A)
 }
 
 // ✅ CORRECT - use Eitherize
@@ -299,13 +314,13 @@ func fetchAll(ids []int) RIO.ReaderIOResult[[]User] {
         return func() R.Result[[]User] {
             users := make([]User, 0, len(ids))
             for _, id := range ids {
-                user, err := fetchUser(id)(ctx)()
+                user, err := R.Unwrap(fetchUser(id)(ctx)())
                 if err != nil {
                     return R.Left[[]User](err)
                 }
                 users = append(users, user)
             }
-            return R.Right[error](users)
+            return R.Of(users)
         }
     }
 }
@@ -329,7 +344,7 @@ pipeline := F.Pipe2(
     fetchUser(42),
     RIO.Chain(func(user User) RIO.ReaderIOResult[User] {
         log.Printf("Fetched user: %v", user)
-        return RIO.Of[context.Context](user)
+        return RIO.Of(user)
     }),
 )
 
@@ -367,19 +382,29 @@ func processUser() func(User) string {
 
 ### 14. Type Parameter Order
 
-**Rule**: Non-inferrable type parameters come first. The compiler infers trailing params from arguments.
+**Rule**: Non-inferrable type parameters come first, so an explicit annotation only ever needs the leading prefix.
 
-**Check for**:
+Which params are non-inferrable differs per package — check the signature rather than assuming:
+
 ```go
-// ❌ WRONG - compiler can't infer B
-O.Map[string, int](toLength)
+// option / result / ioresult: Map[A, B](f func(A) B) — BOTH inferable from f
+O.Map(toLength)              // ✅ preferred, no annotation at all
+O.Map[string, int](toLength) // ✅ legal but redundant (note the order: A then B)
 
-// ✅ CORRECT - B comes first, A is inferred
-O.Map[int](toLength)
+// Ap[B, A](fa M[A]) — B is not recoverable from fa, so it leads
+O.Ap[int](fa)                // ✅
 
-// ✅ CORRECT - let compiler infer both when possible
-O.Map(toLength)
+// either / reader / readerio*: the error or environment type leads
+E.Map[error](f)              // ✅ either.Map[E, A, B]
+RD.Map[context.Context](f)   // ✅ reader.Map[R, A, B]
+
+// effect: C leads and is often not inferable
+EF.Map[Deps](f)              // ✅
+EF.Provide[string](deps)     // ✅ Provide[A, C] cannot infer A through its result
 ```
+
+Flag an annotation that is in the wrong order (it will not compile) or one that
+restates what the compiler already infers.
 
 **Severity**: Low — compilation errors or verbosity
 
@@ -504,7 +529,7 @@ For inline annotations on specific lines, use:
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<PR-number>/comments \
-  -f body="Replace inline lambda with point-free: \`F.Flow2(O.FromPredicate(S.IsNonEmpty), O.GetOrElse(F.Constant(0)))\`" \
+  -f body="Replace inline lambda with point-free: \`F.Flow2(O.FromPredicate(S.IsNonEmpty), O.GetOrElse(LZ.Of(\"\")))\`" \
   -f commit_id="$(git rev-parse HEAD)" \
   -f path="src/user/handler.go" \
   -F line=42 \
@@ -571,9 +596,9 @@ Alternatively, use the `/code-review --comment` skill to post inline PR annotati
 >
 > ```go
 > func processUsers(users []User) RIO.ReaderIOResult[string] {
->     return F.Pipe2(
->         RIO.Of[context.Context](users),
->         RIO.Map[context.Context, []User, string](pureTransform),
+>     return F.Pipe1(
+>         RIO.Of(users),
+>         RIO.Map(pureTransform),
 >     )
 > }
 > ```

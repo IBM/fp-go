@@ -48,7 +48,7 @@ func TestLensModify(t *testing.T) {
 	assert.Equal(t, 5, counter.Value) // Original unchanged
 
 	// Test double
-	double := func(v int) int { return v * 2 }
+	double := N.Mul(2)
 	modifyDouble := LensModify[Counter](double)(valueLens)
 	doubled := modifyDouble(counter)
 	assert.Equal(t, 10, doubled.Value)

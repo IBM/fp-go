@@ -20,6 +20,7 @@ import (
 
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	IO "github.com/IBM/fp-go/v2/optics/iso/option"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
@@ -438,7 +439,7 @@ func TestAsOptional_Integration(t *testing.T) {
 		// Use with option map
 		result := F.Pipe1(
 			timeoutOptional.GetOption(config),
-			O.Map(func(x int) int { return x * 2 }),
+			O.Map(N.Mul(2)),
 		)
 
 		assert.True(t, O.IsSome(result))

@@ -58,7 +58,7 @@ import (
 //
 //	// Double all numbers in the array
 //	numbers := []int{1, 2, 3, 4, 5}
-//	doubled := traversal(func(n int) int { return n * 2 })(numbers)
+//	doubled := traversal(N.Mul(2))(numbers)
 //	// doubled: []int{2, 4, 6, 8, 10}
 //
 // See Also:

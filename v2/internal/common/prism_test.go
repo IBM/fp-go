@@ -601,12 +601,12 @@ func TestPrismModifyOption_Some(t *testing.T) {
 	somePrism := MakePrism(F.Identity[Option[int]], OptionSome[int])
 
 	t.Run("returns Some(modified S) when prism matches", func(t *testing.T) {
-		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, OptionSome(21))
+		result := prismModifyOption(N.Mul(2), somePrism, OptionSome(21))
 		assert.Equal(t, OptionSome(OptionSome(42)), result)
 	})
 
 	t.Run("returns None when prism does not match", func(t *testing.T) {
-		result := prismModifyOption(func(n int) int { return n * 2 }, somePrism, OptionNone[int]())
+		result := prismModifyOption(N.Mul(2), somePrism, OptionNone[int]())
 		assert.Equal(t, OptionNone[Option[int]](), result)
 	})
 }

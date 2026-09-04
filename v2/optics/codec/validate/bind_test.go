@@ -20,8 +20,9 @@ import (
 
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	L "github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -538,7 +539,7 @@ func TestLetL(t *testing.T) {
 	)
 
 	t.Run("transforms field with pure function", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 
 		validator := F.Pipe1(
 			Of[string](Counter{Value: 21}),
@@ -550,7 +551,7 @@ func TestLetL(t *testing.T) {
 	})
 
 	t.Run("preserves failure", func(t *testing.T) {
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 
 		failure := func(input string) Reader[Context, Validation[Counter]] {
 			return func(ctx Context) Validation[Counter] {
@@ -565,7 +566,7 @@ func TestLetL(t *testing.T) {
 
 	t.Run("chains multiple transformations", func(t *testing.T) {
 		add10 := func(v int) int { return v + 10 }
-		double := func(v int) int { return v * 2 }
+		double := N.Mul(2)
 
 		validator := F.Pipe2(
 			Of[string](Counter{Value: 5}),

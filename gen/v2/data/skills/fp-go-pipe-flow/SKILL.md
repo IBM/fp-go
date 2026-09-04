@@ -41,7 +41,7 @@ import F "github.com/IBM/fp-go/v2/function"
 result := F.Pipe3(initialValue, step1, step2, step3)
 ```
 
-The number suffix matches the number of transformation steps (Pipe1 … Pipe26).
+The number suffix matches the number of transformation steps. `Pipe1`–`Pipe20` and `Flow1`–`Flow20` are generated; there is nothing above 20.
 
 ### Flow — function-first composition
 
@@ -236,11 +236,18 @@ func fetchUser(id string) R.Reader[context.Context, User] {
   do-notation makes the data flow clearer.
 
 ```go
-// reader.Map inside Flow — no env name, clean point-free
+// reader.Map inside Flow — no env name, clean point-free.
+// NOTE: R.Map returns an Operator over Reader values, so the PRECEDING step in the
+// Flow must already produce a Reader. Composing a plain func([]User) []string with
+// R.Map does not type-check.
+func usersToNames(us []User) R.Reader[context.Context, []string] {
+    return R.Of[context.Context](A.Map(getName)(us))
+}
+
 func renderUsers() func([]User) R.Reader[context.Context, string] {
     return F.Flow2(
-        usersToNames,
-        R.Map[context.Context](strings.Join),
+        usersToNames,                                    // []User -> Reader[ctx, []string]
+        R.Map[context.Context](S.Join(",")),             // Reader[ctx, []string] -> Reader[ctx, string]
     )
 }
 
