@@ -106,3 +106,45 @@ func (l Lens[S, A]) ComposeIso[B any](ab Iso[A, B]) Lens[S, B] {
 func (l Lens[S, A]) ComposePrism[B any](ab Prism[A, B]) Optional[S, B] {
 	return LensComposePrism[S](ab)(l)
 }
+
+// ComposeOptional returns a new Optional that focuses on a value of type B by
+// composing this lens (S → A) with an optional (A → B), producing an Optional
+// (S → B).
+//
+// This is the method-receiver form of the package-level LensComposeOptional
+// function, available only on Go 1.27 and later because Go did not support type
+// parameters on methods before that version. On earlier toolchains use the
+// equivalent free function:
+//
+//	// method form (go1.27+)
+//	opt := myLens.ComposeOptional(myOptional)
+//
+//	// free-function form (all versions)
+//	opt := LensComposeOptional[S](myOptional)(myLens)
+//
+// The result is an Optional because the optional may not match the focused value.
+// GetOption applies the lens first, then the optional; Set always delegates to the
+// optional's raw setter. ModifyOption is the operation that is a no-op when
+// GetOption returns None — matching the Optional no-op law.
+//
+// The composed Optional satisfies the standard Optional laws (GetSet, SetGet,
+// SetSet) whenever the constituent lens and optional individually satisfy the lens
+// and optional laws respectively.
+//
+// Type Parameters:
+//   - B: the focus type of the optional and of the resulting Optional
+//
+// Parameters:
+//   - ab: the optional from A to B
+//
+// Returns:
+//   - Optional[S, B]: a new Optional from S directly to B
+//
+// See Also:
+//   - Compose: method for composing with a Lens[A, B] instead of an Optional[A, B]
+//   - ComposeIso: method for composing with an Iso[A, B] instead of an Optional[A, B]
+//   - ComposePrism: method for composing with a Prism[A, B] instead of an Optional[A, B]
+//   - LensComposeOptional: the equivalent package-level function
+func (l Lens[S, A]) ComposeOptional[B any](ab Optional[A, B]) Optional[S, B] {
+	return LensComposeOptional[S](ab)(l)
+}

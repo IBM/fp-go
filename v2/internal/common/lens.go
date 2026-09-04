@@ -1214,8 +1214,26 @@ func (la Lens[S, A]) Modify(f Endomorphism[A]) Endomorphism[S] {
 	))
 }
 
-// LensComposeIso converts a Lens to a property of `A` into a lens to a property of type `B`
-// the transformation is done via an ISO
+// LensComposeIso transforms the focus of a Lens[S, A] using an Iso[A, B], producing a Lens[S, B].
+//
+// This allows you to reinterpret the focused value through a bidirectional isomorphism. The resulting
+// lens gets by converting through the isomorphism's forward function, and sets by converting the
+// new value backward through the isomorphism before delegating to the original lens.
+//
+// Type Parameters:
+//   - S: The outer structure type
+//   - A: The current focus type (input side of the isomorphism)
+//   - B: The new focus type (output side of the isomorphism)
+//
+// Parameters:
+//   - ab: Isomorphism from A to B
+//
+// Returns:
+//   - A function that takes a Lens[S, A] and returns a Lens[S, B]
+//
+// See Also:
+//   - LensIMap: Similar operation using a pair of plain functions instead of an Iso
+//   - LensComposeLens: For composing two lenses directly
 //
 //go:inline
 func LensComposeIso[S, A, B any](ab Iso[A, B]) LensOperator[S, A, B] {
@@ -1223,5 +1241,35 @@ func LensComposeIso[S, A, B any](ab Iso[A, B]) LensOperator[S, A, B] {
 		ab,
 		IsoAsLens[A, B],
 		LensComposeLens[S, A, B],
+	)
+}
+
+// LensComposeOptional composes a Lens[S, A] with an Optional[A, B] to produce an Optional[S, B].
+//
+// A lens always has a value to focus on, but an optional may not. When you compose a total lens
+// with a partial optional, the result is partial: if the inner optional's GetOption returns None,
+// then Get and Set on the composed optional behave as no-ops on the outer structure.
+//
+// The lens is first widened to an Optional[S, A] via LensAsOptional, then composed with ab using
+// OptionalComposeOptional.
+//
+// Type Parameters:
+//   - S: The outer structure type
+//   - A: The intermediate type (focus of the lens, source of the optional)
+//   - B: The inner focus type (focus of the optional)
+//
+// Parameters:
+//   - ab: Optional from A to B
+//
+// Returns:
+//   - A function that takes a Lens[S, A] and returns an Optional[S, B]
+//
+// See Also:
+//   - LensAsOptional: Widens a Lens to an Optional
+//   - OptionalComposeOptional: For composing two optionals directly
+func LensComposeOptional[S, A, B any](ab Optional[A, B]) func(Lens[S, A]) Optional[S, B] {
+	return F.Flow2(
+		LensAsOptional,
+		OptionalComposeOptional[S](ab),
 	)
 }

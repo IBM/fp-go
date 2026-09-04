@@ -1937,3 +1937,171 @@ func TestLensName_LogValue(t *testing.T) {
 	lv := l.LogValue()
 	assert.Equal(t, "Street.Name", lv.String())
 }
+
+// ---------------------------------------------------------------------------
+// Tests for LensComposeIso
+// ---------------------------------------------------------------------------
+
+func TestLensComposeIso(t *testing.T) {
+	type Celsius float64
+	type Fahrenheit float64
+
+	celsiusToFahrenheit := func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) }
+	fahrenheitToCelsius := func(f Fahrenheit) Celsius { return Celsius((f - 32) * 5 / 9) }
+
+	type Weather struct{ temperature Celsius }
+
+	tempLens := MakeLens(
+		func(w Weather) Celsius { return w.temperature },
+		func(w Weather, c Celsius) Weather { w.temperature = c; return w },
+	)
+
+	tempIso := MakeIso(celsiusToFahrenheit, fahrenheitToCelsius)
+	tempFahrenheitLens := F.Pipe1(tempLens, LensComposeIso[Weather](tempIso))
+
+	t.Run("Get converts through isomorphism", func(t *testing.T) {
+		w := Weather{temperature: 20}
+		f := tempFahrenheitLens.Get(w)
+		assert.InDelta(t, 68.0, float64(f), 0.001)
+	})
+
+	t.Run("Set converts back through isomorphism", func(t *testing.T) {
+		w := Weather{temperature: 0}
+		updated := tempFahrenheitLens.Set(Fahrenheit(86))(w)
+		assert.InDelta(t, 30.0, float64(updated.temperature), 0.001)
+	})
+
+	t.Run("original structure is not mutated", func(t *testing.T) {
+		original := Weather{temperature: 20}
+		_ = tempFahrenheitLens.Set(Fahrenheit(32))(original)
+		assert.Equal(t, Celsius(20), original.temperature)
+	})
+
+	t.Run("has a non-empty name", func(t *testing.T) {
+		assert.NotEmpty(t, tempFahrenheitLens.String())
+	})
+}
+
+func TestLensComposeIso_WithIdentityIso(t *testing.T) {
+	idIso := MakeIso(func(n int) int { return n }, func(n int) int { return n })
+
+	valueLens := MakeLens(
+		func(s Inner) int { return s.Value },
+		func(s Inner, v int) Inner { s.Value = v; return s },
+	)
+
+	composed := F.Pipe1(valueLens, LensComposeIso[Inner](idIso))
+
+	s := Inner{Value: 42, Foo: "x"}
+	assert.Equal(t, 42, composed.Get(s))
+	assert.Equal(t, Inner{Value: 99, Foo: "x"}, composed.Set(99)(s))
+}
+
+// ---------------------------------------------------------------------------
+// Tests for LensComposeOptional
+// ---------------------------------------------------------------------------
+
+func TestLensComposeOptional(t *testing.T) {
+	// Outer lens: Outer → *Inner (always present)
+	outerLens := MakeLens(
+		func(o Outer) *Inner { return o.inner },
+		func(o Outer, i *Inner) Outer { o.inner = i; return o },
+	)
+
+	// Inner optional: *Inner → int (only when Value > 0)
+	innerOpt := MakeOptional(
+		func(i *Inner) Option[int] {
+			if i != nil && i.Value > 0 {
+				return OptionSome(i.Value)
+			}
+			return OptionNone[int]()
+		},
+		func(i *Inner, v int) *Inner {
+			if i == nil {
+				return &Inner{Value: v}
+			}
+			cpy := *i
+			cpy.Value = v
+			return &cpy
+		},
+	)
+
+	composed := F.Pipe1(outerLens, LensComposeOptional[Outer](innerOpt))
+
+	t.Run("GetOption returns Some when predicate matches", func(t *testing.T) {
+		o := Outer{inner: &Inner{Value: 7, Foo: "a"}}
+		assert.Equal(t, OptionSome(7), composed.GetOption(o))
+	})
+
+	t.Run("GetOption returns None when predicate does not match", func(t *testing.T) {
+		o := Outer{inner: &Inner{Value: 0, Foo: "a"}}
+		assert.Equal(t, OptionNone[int](), composed.GetOption(o))
+	})
+
+	t.Run("Set updates when predicate matches", func(t *testing.T) {
+		o := Outer{inner: &Inner{Value: 7, Foo: "a"}}
+		updated := composed.Set(99)(o)
+		assert.Equal(t, 99, updated.inner.Value)
+	})
+
+	t.Run("Set always invokes the inner setter regardless of GetOption", func(t *testing.T) {
+		// The inner optional's Set is unconditional: it always applies the raw setter.
+		// No-op semantics only apply to ModifyOption (which first calls GetOption).
+		o := Outer{inner: &Inner{Value: 0, Foo: "a"}}
+		result := composed.Set(99)(o)
+		assert.Equal(t, 99, result.inner.Value)
+	})
+
+	t.Run("ModifyOption returns None when GetOption returns None", func(t *testing.T) {
+		// OptionalModifyOption preserves the no-op: it returns None[S] rather
+		// than Some(s) when the predicate does not match.
+		o := Outer{inner: &Inner{Value: 0, Foo: "a"}}
+		opt := OptionalModifyOption[Outer](func(v int) int { return v + 1 })(composed)(o)
+		assert.Equal(t, OptionNone[Outer](), opt)
+	})
+
+	t.Run("original structure is not mutated by Set", func(t *testing.T) {
+		inner := &Inner{Value: 5, Foo: "b"}
+		o := Outer{inner: inner}
+		_ = composed.Set(42)(o)
+		assert.Equal(t, 5, inner.Value)
+	})
+}
+
+func TestLensComposeOptional_NilInner(t *testing.T) {
+	outerLens := MakeLens(
+		func(o Outer) *Inner { return o.inner },
+		func(o Outer, i *Inner) Outer { o.inner = i; return o },
+	)
+
+	innerOpt := MakeOptional(
+		func(i *Inner) Option[int] {
+			if i != nil {
+				return OptionSome(i.Value)
+			}
+			return OptionNone[int]()
+		},
+		func(i *Inner, v int) *Inner {
+			if i == nil {
+				return nil
+			}
+			cpy := *i
+			cpy.Value = v
+			return &cpy
+		},
+	)
+
+	composed := F.Pipe1(outerLens, LensComposeOptional[Outer](innerOpt))
+
+	t.Run("GetOption returns None when inner is nil", func(t *testing.T) {
+		o := Outer{inner: nil}
+		assert.Equal(t, OptionNone[int](), composed.GetOption(o))
+	})
+
+	t.Run("ModifyOption returns None when inner is nil", func(t *testing.T) {
+		// GetOption returns None when inner is nil, so ModifyOption returns None[Outer].
+		o := Outer{inner: nil}
+		opt := OptionalModifyOption[Outer](func(v int) int { return v + 1 })(composed)(o)
+		assert.Equal(t, OptionNone[Outer](), opt)
+	})
+}

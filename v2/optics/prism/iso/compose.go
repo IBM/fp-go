@@ -16,11 +16,7 @@
 package iso
 
 import (
-	"fmt"
-
-	F "github.com/IBM/fp-go/v2/function"
-	P "github.com/IBM/fp-go/v2/optics/prism"
-	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/internal/common"
 )
 
 // Compose creates an operator that composes an isomorphism with a prism.
@@ -140,17 +136,5 @@ import (
 //   - github.com/IBM/fp-go/v2/optics/prism for prism operations
 //   - Operator for the type signature of the returned function
 func Compose[S, A, B any](ab Iso[A, B]) Operator[S, A, B] {
-	return func(pa Prism[S, A]) Prism[S, B] {
-		return P.MakePrismWithName(
-			F.Flow2(
-				pa.GetOption,
-				O.Map(ab.Get),
-			),
-			F.Flow2(
-				ab.ReverseGet,
-				pa.ReverseGet,
-			),
-			fmt.Sprintf("PrismCompose[%s -> %s]", pa, ab),
-		)
-	}
+	return common.PrismComposeIso[S](ab)
 }

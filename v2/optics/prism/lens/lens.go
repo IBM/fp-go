@@ -20,11 +20,7 @@
 // combines both focusing operations.
 package lens
 
-import (
-	F "github.com/IBM/fp-go/v2/function"
-	OL "github.com/IBM/fp-go/v2/optics/optional/lens"
-	OP "github.com/IBM/fp-go/v2/optics/optional/prism"
-)
+import "github.com/IBM/fp-go/v2/internal/common"
 
 // Compose composes a Prism with a Lens to create an Optional.
 //
@@ -113,8 +109,5 @@ import (
 //   - github.com/IBM/fp-go/v2/optics/optional/lens.Compose for lens-optional composition
 //   - github.com/IBM/fp-go/v2/optics/lens/prism for the inverse composition (lens then prism)
 func Compose[S, A, B any](l Lens[A, B]) func(Prism[S, A]) Optional[S, B] {
-	return F.Flow2(
-		OP.AsOptional,
-		OL.Compose[S](l),
-	)
+	return common.PrismComposeLens[S](l)
 }
