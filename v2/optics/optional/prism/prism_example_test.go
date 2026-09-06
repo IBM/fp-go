@@ -19,11 +19,11 @@ import (
 	"fmt"
 
 	F "github.com/IBM/fp-go/v2/function"
-	C "github.com/IBM/fp-go/v2/internal/common"
 	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/optional/prism"
 	P "github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
+	PR "github.com/IBM/fp-go/v2/predicate"
 )
 
 // ---- shared test types ----
@@ -35,23 +35,40 @@ type exFailure struct{ Error string }
 func (exSuccess) isExResult() {}
 func (exFailure) isExResult() {}
 
+// asExResult widens a concrete variant back to the exResult sum type; it is the
+// ReverseGet direction of every variant prism below.
+func asExResult[V exResult](v V) exResult { return v }
+
+// exSuccessValue reads the payload of the exSuccess variant.
+func exSuccessValue(s exSuccess) int { return s.Value }
+
+// successPrism focuses on the exSuccess variant and its int payload.
+// Both directions are point-free: widen to any, type-assert, read the payload
+// on the way in; rebuild the variant on the way out.
+func successPrism() P.Prism[exResult, int] {
+	return P.MakePrism(
+		F.Flow3(
+			F.ToAny[exResult],
+			O.InstanceOf[exSuccess],
+			O.Map(exSuccessValue),
+		),
+		F.Flow2(makeExSuccess, asExResult[exSuccess]),
+	)
+}
+
+// makeExSuccess builds the exSuccess variant from its payload.
+func makeExSuccess(v int) exSuccess { return exSuccess{Value: v} }
+
+// isNilExResult reports whether the sum-type value is the nil interface.
+func isNilExResult(r exResult) bool { return r == nil }
+
 // ---- AsOptional examples ----
 
 // ExampleAsOptional demonstrates converting a Prism into an Optional.
 // The resulting Optional has the same GetOption, but its Set is a no-op when
 // the prism does not match.
 func ExampleAsOptional() {
-	successPrism := P.MakePrism(
-		func(r exResult) O.Option[int] {
-			if s, ok := r.(exSuccess); ok {
-				return O.Some(s.Value)
-			}
-			return O.None[int]()
-		},
-		func(v int) exResult { return exSuccess{Value: v} },
-	)
-
-	opt := prism.AsOptional(successPrism)
+	opt := prism.AsOptional(successPrism())
 
 	// GetOption returns Some for the matching variant.
 	fmt.Println(opt.GetOption(exSuccess{Value: 42}))
@@ -77,17 +94,7 @@ func ExampleAsOptional() {
 // ExampleAsOptional_noOpOnMismatch demonstrates that Set is a no-op when the
 // prism does not match, satisfying the Optional no-op law.
 func ExampleAsOptional_noOpOnMismatch() {
-	successPrism := P.MakePrism(
-		func(r exResult) O.Option[int] {
-			if s, ok := r.(exSuccess); ok {
-				return O.Some(s.Value)
-			}
-			return O.None[int]()
-		},
-		func(v int) exResult { return exSuccess{Value: v} },
-	)
-
-	opt := prism.AsOptional(successPrism)
+	opt := prism.AsOptional(successPrism())
 	failure := exResult(exFailure{Error: "original"})
 
 	result := opt.Set(999)(failure)
@@ -127,9 +134,13 @@ func ExampleSome() {
 		Timeout O.Option[int]
 	}
 
-	// Optional[Settings, Option[int]] – always focuses on the Timeout field.
+	// Optional[Settings, Option[int]] – always focuses on the Timeout field,
+	// so GetOption is the getter lifted into Some.
 	timeoutOpt := OPT.MakeOptional(
-		func(s Settings) O.Option[O.Option[int]] { return O.Some(s.Timeout) },
+		F.Flow2(
+			func(s Settings) O.Option[int] { return s.Timeout },
+			O.Of[O.Option[int]],
+		),
 		func(s Settings, opt O.Option[int]) Settings { s.Timeout = opt; return s },
 	)
 
@@ -162,35 +173,15 @@ func ExampleSome() {
 // The result is an Optional that is None when either the outer optional or the
 // prism does not match.
 func ExampleCompose() {
-	type Notification struct {
-		Payload C.Optional[exResult, int] // not stored — we build it via optional
-	}
-
-	// Optional[exResult, int] via AsOptional + sum-type prism.
-	successPrism := P.MakePrism(
-		func(r exResult) O.Option[int] {
-			if s, ok := r.(exSuccess); ok {
-				return O.Some(s.Value)
-			}
-			return O.None[int]()
-		},
-		func(v int) exResult { return exSuccess{Value: v} },
-	)
-
-	// Outer optional: focuses on exResult when it is non-nil (always here via
-	// Id + Some, but we use a plain MakeOptional to keep the example clear).
+	// Outer optional: focuses on exResult when it is non-nil.  GetOption is
+	// point-free via option.FromPredicate over a negated nil check.
 	outerOpt := OPT.MakeOptional(
-		func(r exResult) O.Option[exResult] {
-			if r != nil {
-				return O.Some(r)
-			}
-			return O.None[exResult]()
-		},
+		O.FromPredicate(PR.Not(isNilExResult)),
 		func(_ exResult, r exResult) exResult { return r },
 	)
 
 	// Compose outer optional with the success prism.
-	composed := F.Pipe1(outerOpt, prism.Compose[exResult](successPrism))
+	composed := F.Pipe1(outerOpt, prism.Compose[exResult](successPrism()))
 
 	fmt.Println(composed.GetOption(exSuccess{Value: 42}))
 	fmt.Println(composed.GetOption(exFailure{Error: "err"}))

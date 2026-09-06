@@ -22,8 +22,11 @@ import (
 
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/lazy"
+	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/optics/iso"
+	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -41,43 +44,35 @@ type compRect struct{ Width, Height float64 }
 func (compCircle) isCompShape() {}
 func (compRect) isCompShape()   {}
 
+// makeCompCircle builds a compCircle from its radius.
+func makeCompCircle(r float64) compCircle { return compCircle{Radius: r} }
+
+// asCompShape widens a concrete variant back to the compShape sum type; it is
+// the ReverseGet direction shared by every variant prism.
+func asCompShape[V compShape](v V) compShape { return v }
+
 // compCirclePrism selects the compCircle variant from a compShape.
+// GetOption is point-free: widen to any, then type-assert via O.InstanceOf.
 var compCirclePrism = MakePrism(
-	func(s compShape) O.Option[compCircle] {
-		if c, ok := s.(compCircle); ok {
-			return O.Some(c)
-		}
-		return O.None[compCircle]()
-	},
-	func(c compCircle) compShape { return c },
+	F.Flow2(F.ToAny[compShape], O.InstanceOf[compCircle]),
+	asCompShape[compCircle],
 )
 
 // compRadiusLens focuses on the Radius field of a compCircle.
-var compRadiusLens = common.MakeLens(
+var compRadiusLens = lens.MakeLens(
 	func(c compCircle) float64 { return c.Radius },
 	func(c compCircle, r float64) compCircle { c.Radius = r; return c },
 )
 
 // positiveFloatPrism admits only positive float64 values.
-var positiveFloatPrism = MakePrism(
-	func(r float64) O.Option[float64] {
-		if r > 0 {
-			return O.Some(r)
-		}
-		return O.None[float64]()
-	},
-	func(r float64) float64 { return r },
-)
+var positiveFloatPrism = FromPredicate(N.MoreThan(0.0))
 
-// positiveRadiusOptional is an Optional[compCircle, float64] that only admits
-// positive radii.
-var positiveRadiusOptional = common.MakeOptional(
-	func(c compCircle) O.Option[float64] {
-		if c.Radius > 0 {
-			return O.Some(c.Radius)
-		}
-		return O.None[float64]()
-	},
+// positiveRadiusOptional is an Optional[compCircle, float64] whose GetOption
+// only admits positive radii, while Set is deliberately unconditional so the
+// tests below can exercise that asymmetry.  (optional.FromPredicate would guard
+// both directions.)
+var positiveRadiusOptional = optional.MakeOptional(
+	F.Flow2(compRadiusLens.Get, O.FromPredicate(N.MoreThan(0.0))),
 	func(c compCircle, r float64) compCircle { c.Radius = r; return c },
 )
 
@@ -94,8 +89,8 @@ var positiveRadiusOptional = common.MakeOptional(
 func TestCompose_GetOption_Match(t *testing.T) {
 	// Build a prism that extracts a positive radius from a compCircle.
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](innerPrism)(compCirclePrism)
 
@@ -107,8 +102,8 @@ func TestCompose_GetOption_Match(t *testing.T) {
 // TestCompose_GetOption_OuterMiss verifies None when the outer prism misses.
 func TestCompose_GetOption_OuterMiss(t *testing.T) {
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](innerPrism)(compCirclePrism)
 
@@ -120,13 +115,8 @@ func TestCompose_GetOption_OuterMiss(t *testing.T) {
 func TestCompose_GetOption_InnerMiss(t *testing.T) {
 	// Inner prism admits only positive radii.
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] {
-			if c.Radius > 0 {
-				return O.Some(c.Radius)
-			}
-			return O.None[float64]()
-		},
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.FromPredicate(N.MoreThan(0.0))),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](innerPrism)(compCirclePrism)
 
@@ -139,8 +129,8 @@ func TestCompose_GetOption_InnerMiss(t *testing.T) {
 // both prisms in reverse order.
 func TestCompose_ReverseGet(t *testing.T) {
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](innerPrism)(compCirclePrism)
 
@@ -153,8 +143,8 @@ func TestCompose_ReverseGet(t *testing.T) {
 // TestCompose_PrismLaw1 verifies GetOption(ReverseGet(b)) == Some(b).
 func TestCompose_PrismLaw1(t *testing.T) {
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](innerPrism)(compCirclePrism)
 
@@ -169,8 +159,8 @@ func TestCompose_PrismLaw1(t *testing.T) {
 // GetOption(ReverseGet(a)) == Some(a).
 func TestCompose_PrismLaw2(t *testing.T) {
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](innerPrism)(compCirclePrism)
 
@@ -220,13 +210,13 @@ func TestCompose_WithParseInt(t *testing.T) {
 // This is not a true isomorphism (a float64 cannot round-trip back to the same
 // compCircle if other fields existed), but it satisfies the iso laws for this
 // single-field struct.
-var circleToRadiusIso = common.MakeIso(
+var circleToRadiusIso = iso.MakeIso(
 	func(c compCircle) float64 { return c.Radius },
 	func(r float64) compCircle { return compCircle{Radius: r} },
 )
 
 // radiusToIntIso maps float64 → int by truncation.
-var radiusToIntIso = common.MakeIso(
+var radiusToIntIso = iso.MakeIso(
 	func(f float64) int { return int(f) },
 	func(i int) float64 { return float64(i) },
 )
@@ -289,7 +279,7 @@ func TestComposeIso_PrismLaw2(t *testing.T) {
 // TestComposeIso_IdentityIso verifies that composing with the identity iso
 // leaves GetOption results unchanged.
 func TestComposeIso_IdentityIso(t *testing.T) {
-	idIso := common.MakeIso(
+	idIso := iso.MakeIso(
 		func(c compCircle) compCircle { return c },
 		func(c compCircle) compCircle { return c },
 	)
@@ -334,7 +324,7 @@ func TestComposeIso_IntegerTruncation(t *testing.T) {
 // of one ComposeIso can be the input of another.
 func TestComposeIso_Chaining(t *testing.T) {
 	// compCircle → float64 → string
-	strIso := common.MakeIso(
+	strIso := iso.MakeIso(
 		func(f float64) string { return strconv.FormatFloat(f, 'f', -1, 64) },
 		func(s string) float64 {
 			f, _ := strconv.ParseFloat(s, 64)
@@ -442,7 +432,7 @@ func TestComposeLens_Immutability(t *testing.T) {
 // transforms the field type.
 func TestComposeLens_NonIdentityLens(t *testing.T) {
 	// Lens that exposes the truncated integer radius.
-	truncLens := common.MakeLens(
+	truncLens := lens.MakeLens(
 		func(c compCircle) int { return int(c.Radius) },
 		func(c compCircle, n int) compCircle { c.Radius = float64(n); return c },
 	)
@@ -568,8 +558,8 @@ func TestComposeOptional_OptionalLaws(t *testing.T) {
 // (i.e., derived from the same Lens).
 func TestComposeOptional_EquivalentToComposeLens(t *testing.T) {
 	// Build an Optional that wraps the same getter/setter as compRadiusLens.
-	totalOpt := common.MakeOptional(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
+	totalOpt := optional.MakeOptional(
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
 		func(c compCircle, r float64) compCircle { c.Radius = r; return c },
 	)
 
@@ -588,7 +578,7 @@ func TestComposeOptional_EquivalentToComposeLens(t *testing.T) {
 // TestCompose_ThenComposeIso verifies that Compose followed by ComposeIso
 // correctly drills into a nested structure.
 func TestCompose_ThenComposeIso(t *testing.T) {
-	strIso := common.MakeIso(
+	strIso := iso.MakeIso(
 		func(r float64) string { return strconv.FormatFloat(r, 'f', 1, 64) },
 		func(s string) float64 {
 			f, _ := strconv.ParseFloat(s, 64)
@@ -600,8 +590,8 @@ func TestCompose_ThenComposeIso(t *testing.T) {
 	// instead compose the circle-focused prism with an iso over float64.
 	// Build a prism that pulls out a positive float64 from a compShape via compCircle.
 	innerPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	byRadius := Compose[compShape](innerPrism)(compCirclePrism) // Prism[compShape, float64]
 	withStr := ComposeIso[compShape](strIso)(byRadius)          // Prism[compShape, string]
@@ -625,8 +615,8 @@ func TestCompose_ThenComposeIso(t *testing.T) {
 func ExampleCompose_match() {
 	// Prism[compShape, compCircle] ∘ Prism[compCircle, float64]
 	radiusPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](radiusPrism)(compCirclePrism)
 
@@ -639,8 +629,8 @@ func ExampleCompose_match() {
 // outer prism does not match.
 func ExampleCompose_outerMiss() {
 	radiusPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](radiusPrism)(compCirclePrism)
 
@@ -654,13 +644,8 @@ func ExampleCompose_outerMiss() {
 func ExampleCompose_innerMiss() {
 	// Inner prism only admits positive radii.
 	positivePrism := MakePrism(
-		func(c compCircle) O.Option[float64] {
-			if c.Radius > 0 {
-				return O.Some(c.Radius)
-			}
-			return O.None[float64]()
-		},
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.FromPredicate(N.MoreThan(0.0))),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](positivePrism)(compCirclePrism)
 
@@ -673,8 +658,8 @@ func ExampleCompose_innerMiss() {
 // through the inner prism's ReverseGet and then the outer prism's ReverseGet.
 func ExampleCompose_reverseGet() {
 	radiusPrism := MakePrism(
-		func(c compCircle) O.Option[float64] { return O.Some(c.Radius) },
-		func(r float64) compCircle { return compCircle{Radius: r} },
+		F.Flow2(compRadiusLens.Get, O.Of[float64]),
+		makeCompCircle,
 	)
 	composed := Compose[compShape](radiusPrism)(compCirclePrism)
 

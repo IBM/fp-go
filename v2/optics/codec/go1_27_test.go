@@ -22,10 +22,12 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
-	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/optics/iso"
+	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/IBM/fp-go/v2/optics/optional"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
@@ -36,13 +38,8 @@ import (
 
 // positiveIntPrism is a Prism that matches integers > 0 and reviews them unchanged.
 var positiveIntPrism = prism.MakePrismWithName(
-	func(n int) option.Option[int] {
-		if n > 0 {
-			return option.Some(n)
-		}
-		return option.None[int]()
-	},
-	func(n int) int { return n },
+	option.FromPredicate(N.MoreThan(0)),
+	F.Identity[int],
 	"PositiveInt",
 )
 
@@ -647,23 +644,21 @@ type employee struct {
 	Age  int
 }
 
+// employeeName is the plain getter for the Name field, used point-free below.
+func employeeName(e employee) string { return e.Name }
+
 var (
-	employeeNameLens = common.MakeLens(
+	employeeNameLens = lens.MakeLens(
 		func(e employee) string { return e.Name },
 		func(e employee, name string) employee { e.Name = name; return e },
 	)
-	employeeAgeLens = common.MakeLens(
+	employeeAgeLens = lens.MakeLens(
 		func(e employee) int { return e.Age },
 		func(e employee, age int) employee { e.Age = age; return e },
 	)
 	// employeeNicknameOpt focuses on the Name field when non-empty (optional demo).
 	employeeNicknameOpt = optional.MakeOptionalCurried(
-		func(e employee) option.Option[string] {
-			if e.Name != "" {
-				return option.Some(e.Name)
-			}
-			return option.None[string]()
-		},
+		F.Flow2(employeeName, option.FromPredicate(S.IsNonEmpty)),
 		func(name string) func(employee) employee {
 			return func(e employee) employee { e.Name = name; return e }
 		},
@@ -911,7 +906,7 @@ func TestTypeApSL_ErrorAccumulation(t *testing.T) {
 // ExampleType_ApSL demonstrates building an employee codec field-by-field
 // using the method form of ApSL on Go 1.27+.
 func ExampleType_ApSL() {
-	nameLens := common.MakeLens(
+	nameLens := lens.MakeLens(
 		func(e employee) string { return e.Name },
 		func(e employee, name string) employee { e.Name = name; return e },
 	)
@@ -972,13 +967,9 @@ func TestTypeApSO_OmitsFieldWhenAbsent(t *testing.T) {
 // ExampleType_ApSO demonstrates building a codec with an optional field using
 // the method form of ApSO on Go 1.27+.
 func ExampleType_ApSO() {
+	// GetOption is point-free: read the field, then keep it only when non-empty.
 	opt := optional.MakeOptionalCurried(
-		func(e employee) option.Option[string] {
-			if e.Name != "" {
-				return option.Some(e.Name)
-			}
-			return option.None[string]()
-		},
+		F.Flow2(employeeName, option.FromPredicate(S.IsNonEmpty)),
 		func(name string) func(employee) employee {
 			return func(e employee) employee { e.Name = name; return e }
 		},
@@ -1021,7 +1012,7 @@ func TestTypeBind_MethodEquivalentToFreeFunction(t *testing.T) {
 func TestTypeBind_ContextDependentField(t *testing.T) {
 	// Codec: given input string S, decode to employee{Name: S, Age: len(S)}.
 	// The Age Kleisli arrow inspects the already-decoded Name to compute Age.
-	ageLens := common.MakeLens(
+	ageLens := lens.MakeLens(
 		func(e employee) string { return e.Name }, // reuse Name as a proxy for the Kleisli input
 		func(e employee, v string) employee { e.Age = len(v); return e },
 	)
@@ -1069,7 +1060,7 @@ func TestTypeBind_FailFastOnBaseFailure(t *testing.T) {
 // ExampleType_Bind demonstrates building a context-dependent field codec using
 // the method form of Bind on Go 1.27+.
 func ExampleType_Bind() {
-	nameLens := common.MakeLens(
+	nameLens := lens.MakeLens(
 		func(e employee) string { return e.Name },
 		func(e employee, name string) employee { e.Name = name; return e },
 	)

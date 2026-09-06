@@ -20,8 +20,10 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/common"
+	"github.com/IBM/fp-go/v2/lazy"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/optional"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,14 +37,13 @@ import (
 // coCircleRadiusOpt is an Optional[tcShape, float64] that focuses on the
 // Radius of a tcCircle, but only when the radius is strictly positive.
 // This exercises both the matching and non-matching code paths.
-var coCircleRadiusOpt = common.MakeOptional(
-	func(s tcShape) O.Option[float64] {
-		if c, ok := s.(tcCircle); ok && c.Radius > 0 {
-			return O.Some(c.Radius)
-		}
-		return O.None[float64]()
-	},
-	func(s tcShape, r float64) tcShape { return tcCircle{Radius: r} },
+var coCircleRadiusOpt = optional.MakeOptional(
+	F.Flow3(
+		circlePrism.GetOption,       // tcShape   -> Option[tcCircle]
+		O.Map(circleRadiusLens.Get), // Option[tcCircle] -> Option[float64]
+		O.Filter(N.MoreThan(0.0)),   // keep only positive radii
+	),
+	func(_ tcShape, r float64) tcShape { return tcCircle{Radius: r} },
 )
 
 // coCanvasRadiusOpt is the Optional[tcCanvas, float64] produced by
@@ -119,13 +120,12 @@ func TestComposeOptional_OptionalLaws(t *testing.T) {
 }
 
 // TestComposeOptional_EquivalentToUnderlyingFreeFunction verifies that the
-// optics/lens wrapper and a direct call to common.LensComposeOptional produce
-// identical results.
+// piped form and the directly applied curried form produce identical results.
 func TestComposeOptional_EquivalentToUnderlyingFreeFunction(t *testing.T) {
 	canvas := tcCanvas{Shape: tcCircle{Radius: 7}}
 
 	wrapped := F.Pipe1(canvasShapeLens, lens.ComposeOptional[tcCanvas](coCircleRadiusOpt))
-	direct := common.LensComposeOptional[tcCanvas](coCircleRadiusOpt)(canvasShapeLens)
+	direct := lens.ComposeOptional[tcCanvas](coCircleRadiusOpt)(canvasShapeLens)
 
 	t.Run("GetOption returns same result", func(t *testing.T) {
 		assert.Equal(t, direct.GetOption(canvas), wrapped.GetOption(canvas))
@@ -140,7 +140,7 @@ func TestComposeOptional_EquivalentToUnderlyingFreeFunction(t *testing.T) {
 func TestComposeOptional_Chained(t *testing.T) {
 	type Gallery struct{ Canvas tcCanvas }
 
-	galleryLens := common.MakeLens(
+	galleryLens := lens.MakeLens(
 		func(g Gallery) tcCanvas { return g.Canvas },
 		func(g Gallery, c tcCanvas) Gallery { g.Canvas = c; return g },
 	)
@@ -221,16 +221,13 @@ func ExampleComposeOptional_predicate() {
 	type Player struct{ Profile Profile }
 
 	// Optional focuses on Score only when it is above zero (non-zero players).
-	positiveScoreOpt := common.MakeOptional(
-		func(p Profile) O.Option[int] {
-			if p.Score > 0 {
-				return O.Some(p.Score)
-			}
-			return O.None[int]()
-		},
+	// optional.FromPredicate derives both the guarded GetOption and the guarded
+	// Set from a plain getter/setter pair plus a point-free predicate.
+	positiveScoreOpt := optional.FromPredicate[Profile](N.MoreThan(0))(
+		func(p Profile) int { return p.Score },
 		func(p Profile, s int) Profile { p.Score = s; return p },
 	)
-	profileLens := common.MakeLens(
+	profileLens := lens.MakeLens(
 		func(p Player) Profile { return p.Profile },
 		func(p Player, pr Profile) Player { p.Profile = pr; return p },
 	)
@@ -241,19 +238,19 @@ func ExampleComposeOptional_predicate() {
 	inactive := Player{Profile: Profile{Score: 0}}
 
 	// Active player: GetOption returns Some, Set updates.
-	fmt.Println(O.GetOrElse(func() int { return -1 })(scoreOpt.GetOption(active)))
+	fmt.Println(F.Pipe1(scoreOpt.GetOption(active), O.GetOrElse(lazy.Of(-1))))
 	boosted := scoreOpt.Set(100)(active)
 	fmt.Println(boosted.Profile.Score)
 
-	// Inactive player: GetOption returns None (predicate not satisfied).
-	// The raw Set method is unconditional; callers guard writes with GetOption.
+	// Inactive player: GetOption returns None and Set is a no-op, because
+	// optional.FromPredicate guards both directions with the same predicate.
 	fmt.Println(O.IsNone(scoreOpt.GetOption(inactive)))
-	fmt.Println(O.IsSome(scoreOpt.GetOption(active)))
+	fmt.Println(scoreOpt.Set(100)(inactive).Profile.Score)
 	// Output:
 	// 42
 	// 100
 	// true
-	// true
+	// 0
 }
 
 // ExampleComposeOptional_chained demonstrates chaining Compose and
@@ -264,20 +261,15 @@ func ExampleComposeOptional_chained() {
 	type Fleet struct{ Car Car }
 
 	// Optional: focus on HP only when it exceeds 100.
-	highPowerOpt := common.MakeOptional(
-		func(e Engine) O.Option[int] {
-			if e.HP > 100 {
-				return O.Some(e.HP)
-			}
-			return O.None[int]()
-		},
+	highPowerOpt := optional.FromPredicate[Engine](N.MoreThan(100))(
+		func(e Engine) int { return e.HP },
 		func(e Engine, hp int) Engine { e.HP = hp; return e },
 	)
-	carLens := common.MakeLens(
+	carLens := lens.MakeLens(
 		func(f Fleet) Car { return f.Car },
 		func(f Fleet, c Car) Fleet { f.Car = c; return f },
 	)
-	engineLens := common.MakeLens(
+	engineLens := lens.MakeLens(
 		func(c Car) Engine { return c.Engine },
 		func(c Car, e Engine) Car { c.Engine = e; return c },
 	)

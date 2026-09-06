@@ -19,7 +19,8 @@ import (
 	"fmt"
 
 	F "github.com/IBM/fp-go/v2/function"
-	C "github.com/IBM/fp-go/v2/internal/common"
+	L "github.com/IBM/fp-go/v2/optics/lens"
+	OPT "github.com/IBM/fp-go/v2/optics/optional"
 	optlens "github.com/IBM/fp-go/v2/optics/optional/lens"
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -36,16 +37,17 @@ type exWrapper struct {
 	cfg *exConfig
 }
 
+// exWrapperCfg is the plain getter for the cfg pointer.
+func exWrapperCfg(w exWrapper) *exConfig { return w.cfg }
+
 // makeExConfigOptional returns an Optional[exWrapper, *exConfig] that focuses
 // on the cfg pointer, returning None when it is nil.
-func makeExConfigOptional() C.Optional[exWrapper, *exConfig] {
-	return C.MakeOptional(
-		func(w exWrapper) O.Option[*exConfig] {
-			if w.cfg != nil {
-				return O.Some(w.cfg)
-			}
-			return O.None[*exConfig]()
-		},
+//
+// GetOption is point-free: read the pointer, then lift it into an Option with
+// option.FromNillable, which maps nil to None.
+func makeExConfigOptional() OPT.Optional[exWrapper, *exConfig] {
+	return OPT.MakeOptional(
+		F.Flow2(exWrapperCfg, O.FromNillable[exConfig]),
 		func(w exWrapper, c *exConfig) exWrapper {
 			w.cfg = c
 			return w
@@ -55,8 +57,8 @@ func makeExConfigOptional() C.Optional[exWrapper, *exConfig] {
 
 // makeTimeoutLens returns a Lens[*exConfig, int] that focuses on the Timeout
 // field, making a copy on every Set so immutability is preserved.
-func makeTimeoutLens() C.Lens[*exConfig, int] {
-	return C.MakeLens(
+func makeTimeoutLens() L.Lens[*exConfig, int] {
+	return L.MakeLens(
 		func(c *exConfig) int { return c.Timeout },
 		func(c *exConfig, t int) *exConfig { c2 := *c; c2.Timeout = t; return &c2 },
 	)
@@ -72,8 +74,8 @@ func makeTimeoutLens() C.Lens[*exConfig, int] {
 // The result is an Optional[exWrapper, int] that focuses on Timeout but
 // returns None (and is a no-op for Set) whenever the wrapper holds no config.
 func ExampleCompose() {
-	sa := makeExConfigOptional()      // Optional[exWrapper, *exConfig]
-	ab := makeTimeoutLens()           // Lens[*exConfig, int]
+	sa := makeExConfigOptional()                      // Optional[exWrapper, *exConfig]
+	ab := makeTimeoutLens()                           // Lens[*exConfig, int]
 	sb := F.Pipe1(sa, optlens.Compose[exWrapper](ab)) // Optional[exWrapper, int]
 
 	present := exWrapper{cfg: &exConfig{Timeout: 30, Retries: 3}}

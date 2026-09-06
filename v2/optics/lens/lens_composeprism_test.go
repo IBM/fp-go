@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/optics/lens"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,33 +45,36 @@ type tcCanvas struct{ Shape tcShape }
 
 // ---- helpers ----
 
+// asShape widens a concrete shape variant back to the tcShape sum type.
+// It is the ReverseGet direction shared by every variant prism.
+func asShape[V tcShape](v V) tcShape { return v }
+
+// variantPrism builds a Prism[tcShape, V] for one variant of the sum type.
+// GetOption is point-free: widen to any, then type-assert via O.InstanceOf.
+func variantPrism[V tcShape]() prism.Prism[tcShape, V] {
+	return prism.MakePrism(
+		F.Flow2(F.ToAny[tcShape], O.InstanceOf[V]),
+		asShape[V],
+	)
+}
+
 // canvasShapeLens focuses on the Shape field of tcCanvas.
-var canvasShapeLens = common.MakeLens(
+var canvasShapeLens = lens.MakeLens(
 	func(c tcCanvas) tcShape { return c.Shape },
 	func(c tcCanvas, s tcShape) tcCanvas { c.Shape = s; return c },
 )
 
-// circlePrism focuses on the tcCircle variant of tcShape.
-var circlePrism = common.MakePrism(
-	func(s tcShape) O.Option[tcCircle] {
-		if c, ok := s.(tcCircle); ok {
-			return O.Some(c)
-		}
-		return O.None[tcCircle]()
-	},
-	func(c tcCircle) tcShape { return c },
+// circleRadiusLens focuses on the Radius field of tcCircle.
+var circleRadiusLens = lens.MakeLens(
+	func(c tcCircle) float64 { return c.Radius },
+	func(c tcCircle, r float64) tcCircle { c.Radius = r; return c },
 )
 
+// circlePrism focuses on the tcCircle variant of tcShape.
+var circlePrism = variantPrism[tcCircle]()
+
 // rectPrism focuses on the tcRect variant of tcShape.
-var rectPrism = common.MakePrism(
-	func(s tcShape) O.Option[tcRect] {
-		if r, ok := s.(tcRect); ok {
-			return O.Some(r)
-		}
-		return O.None[tcRect]()
-	},
-	func(r tcRect) tcShape { return r },
-)
+var rectPrism = variantPrism[tcRect]()
 
 // canvasCircleOpt is the Optional[tcCanvas, tcCircle] produced by ComposePrism.
 var canvasCircleOpt = F.Pipe1(canvasShapeLens, lens.ComposePrism[tcCanvas](circlePrism))
@@ -140,13 +143,13 @@ func TestComposePrism_OptionalLaws(t *testing.T) {
 }
 
 // TestComposePrism_EquivalentToUnderlyingFreeFunction verifies that the lens-package
-// wrapper produces the same result as calling common.LensComposePrism directly.
+// piped form produces the same result as the directly applied curried form.
 func TestComposePrism_EquivalentToUnderlyingFreeFunction(t *testing.T) {
 	canvas := tcCanvas{Shape: tcCircle{Radius: 3}}
 	newCircle := tcCircle{Radius: 9}
 
 	wrapped := F.Pipe1(canvasShapeLens, lens.ComposePrism[tcCanvas](circlePrism))
-	direct := common.LensComposePrism[tcCanvas](circlePrism)(canvasShapeLens)
+	direct := lens.ComposePrism[tcCanvas](circlePrism)(canvasShapeLens)
 
 	t.Run("GetOption returns same result", func(t *testing.T) {
 		assert.Equal(t, direct.GetOption(canvas), wrapped.GetOption(canvas))
@@ -178,18 +181,14 @@ func TestComposePrism_MultipleVariants(t *testing.T) {
 // The test types tcCanvas, tcCircle, and tcRect are defined at package level
 // in this file.
 func ExampleComposePrism() {
-	shapeLens := common.MakeLens(
+	shapeLens := lens.MakeLens(
 		func(c tcCanvas) tcShape { return c.Shape },
 		func(c tcCanvas, s tcShape) tcCanvas { c.Shape = s; return c },
 	)
-	circPrism := common.MakePrism(
-		func(s tcShape) O.Option[tcCircle] {
-			if c, ok := s.(tcCircle); ok {
-				return O.Some(c)
-			}
-			return O.None[tcCircle]()
-		},
-		func(c tcCircle) tcShape { return c },
+	// GetOption is point-free: widen tcShape to any, then type-assert.
+	circPrism := prism.MakePrism(
+		F.Flow2(F.ToAny[tcShape], O.InstanceOf[tcCircle]),
+		asShape[tcCircle],
 	)
 
 	circleOpt := F.Pipe1(shapeLens, lens.ComposePrism[tcCanvas](circPrism))

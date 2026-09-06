@@ -21,7 +21,8 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/optics/iso"
 	"github.com/IBM/fp-go/v2/optics/lens"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,13 +37,13 @@ type tcThermometer struct {
 }
 
 // celsiusToFahrenheitIso is an isomorphism between Celsius and Fahrenheit.
-var celsiusToFahrenheitIso = common.MakeIso(
+var celsiusToFahrenheitIso = iso.MakeIso(
 	func(c tcCelsius) tcFahrenheit { return tcFahrenheit(c*9/5 + 32) },
 	func(f tcFahrenheit) tcCelsius { return tcCelsius((f - 32) * 5 / 9) },
 )
 
 // readingLens focuses on the Reading field of Thermometer.
-var readingLens = common.MakeLens(
+var readingLens = lens.MakeLens(
 	func(t tcThermometer) tcCelsius { return t.Reading },
 	func(t tcThermometer, c tcCelsius) tcThermometer { t.Reading = c; return t },
 )
@@ -101,7 +102,7 @@ func TestComposeIso_LensLaws(t *testing.T) {
 func TestComposeIso_EquivalentToFreeFunction(t *testing.T) {
 	therm := tcThermometer{Reading: 25}
 
-	free := common.LensComposeIso[tcThermometer](celsiusToFahrenheitIso)(readingLens)
+	free := lens.ComposeIso[tcThermometer](celsiusToFahrenheitIso)(readingLens)
 	method := fahrenheitLens
 
 	t.Run("Get returns same value", func(t *testing.T) {
@@ -127,11 +128,11 @@ func ExampleComposeIso() {
 	type Fahrenheit float64
 	type Thermometer struct{ Reading Celsius }
 
-	celsiusIso := common.MakeIso(
+	celsiusIso := iso.MakeIso(
 		func(c Celsius) Fahrenheit { return Fahrenheit(c*9/5 + 32) },
 		func(f Fahrenheit) Celsius { return Celsius((f - 32) * 5 / 9) },
 	)
-	rLens := common.MakeLens(
+	rLens := lens.MakeLens(
 		func(t Thermometer) Celsius { return t.Reading },
 		func(t Thermometer, c Celsius) Thermometer { t.Reading = c; return t },
 	)
@@ -150,7 +151,7 @@ func ExampleComposeIso() {
 // TestComposeIso_IdentityIso verifies that composing with an identity isomorphism
 // leaves Get and Set behaviour completely unchanged.
 func TestComposeIso_IdentityIso(t *testing.T) {
-	idIso := common.MakeIso(
+	idIso := iso.MakeIso(
 		func(c tcCelsius) tcCelsius { return c },
 		func(c tcCelsius) tcCelsius { return c },
 	)
@@ -178,11 +179,11 @@ func TestComposeIso_StringIso(t *testing.T) {
 	type Tag string
 	type Item struct{ Label Tag }
 
-	upperIso := common.MakeIso(
+	upperIso := iso.MakeIso(
 		func(s Tag) string { return strings.ToUpper(string(s)) },
 		func(s string) Tag { return Tag(strings.ToLower(s)) },
 	)
-	labelLens := common.MakeLens(
+	labelLens := lens.MakeLens(
 		func(i Item) Tag { return i.Label },
 		func(i Item, l Tag) Item { i.Label = l; return i },
 	)
@@ -225,15 +226,15 @@ func TestComposeIso_Chained(t *testing.T) {
 	type Outer struct{ Inner Inner }
 	type Wrapped struct{ N int }
 
-	innerLens := common.MakeLens(
+	innerLens := lens.MakeLens(
 		func(o Outer) Inner { return o.Inner },
 		func(o Outer, i Inner) Outer { o.Inner = i; return o },
 	)
-	valueLens := common.MakeLens(
+	valueLens := lens.MakeLens(
 		func(i Inner) int { return i.Value },
 		func(i Inner, v int) Inner { i.Value = v; return i },
 	)
-	wrapIso := common.MakeIso(
+	wrapIso := iso.MakeIso(
 		func(n int) Wrapped { return Wrapped{N: n} },
 		func(w Wrapped) int { return w.N },
 	)
@@ -267,8 +268,7 @@ func TestComposeIso_ModifyThroughIso(t *testing.T) {
 	// Reuse the package-level Celsius→Fahrenheit lens.
 	therm := tcThermometer{Reading: 0} // 0 °C = 32 °F
 
-	double := func(f tcFahrenheit) tcFahrenheit { return f * 2 }
-	modified := F.Pipe1(therm, lens.Modify[tcThermometer](double)(fahrenheitLens))
+	modified := F.Pipe1(therm, lens.Modify[tcThermometer](N.Mul(tcFahrenheit(2)))(fahrenheitLens))
 
 	// 0 °C → 32 °F → doubled to 64 °F → stored back as (64-32)*5/9 = 17.78 °C
 	assert.InDelta(t, float64(tcCelsius((64-32)*5.0/9.0)), float64(modified.Reading), 0.001)
@@ -286,11 +286,11 @@ func ExampleComposeIso_newtypeWrapper() {
 	type Km float64
 	type Route struct{ Distance Miles }
 
-	milesToKm := common.MakeIso(
+	milesToKm := iso.MakeIso(
 		func(m Miles) Km { return Km(m * 1.60934) },
 		func(k Km) Miles { return Miles(k / 1.60934) },
 	)
-	distLens := common.MakeLens(
+	distLens := lens.MakeLens(
 		func(r Route) Miles { return r.Distance },
 		func(r Route, m Miles) Route { r.Distance = m; return r },
 	)
@@ -313,19 +313,19 @@ func ExampleComposeIso_stringTransform() {
 	type Person struct{ Name string }
 
 	// iso: stored lower-case <-> displayed upper-case
-	upperIso := common.MakeIso(
+	upperIso := iso.MakeIso(
 		strings.ToUpper,
 		strings.ToLower,
 	)
-	nameLens := common.MakeLens(
+	nameLens := lens.MakeLens(
 		func(p Person) string { return p.Name },
 		func(p Person, n string) Person { p.Name = n; return p },
 	)
 	displayLens := F.Pipe1(nameLens, lens.ComposeIso[Person](upperIso))
 
 	p := Person{Name: "alice"}
-	fmt.Println(displayLens.Get(p))           // stored "alice" → displayed "ALICE"
-	updated := displayLens.Set("BOB")(p)      // "BOB" → stored as "bob"
+	fmt.Println(displayLens.Get(p))      // stored "alice" → displayed "ALICE"
+	updated := displayLens.Set("BOB")(p) // "BOB" → stored as "bob"
 	fmt.Println(updated.Name)
 	// Output:
 	// ALICE
@@ -339,16 +339,16 @@ func ExampleComposeIso_chainedCompose() {
 	type Car struct{ Engine Engine }
 	type Kilowatts float64
 
-	engineLens := common.MakeLens(
+	engineLens := lens.MakeLens(
 		func(c Car) Engine { return c.Engine },
 		func(c Car, e Engine) Car { c.Engine = e; return c },
 	)
-	hpLens := common.MakeLens(
+	hpLens := lens.MakeLens(
 		func(e Engine) int { return e.Horsepower },
 		func(e Engine, hp int) Engine { e.Horsepower = hp; return e },
 	)
 	// 1 HP ≈ 0.7457 kW
-	hpToKw := common.MakeIso(
+	hpToKw := iso.MakeIso(
 		func(hp int) Kilowatts { return Kilowatts(float64(hp) * 0.7457) },
 		func(kw Kilowatts) int { return int(float64(kw) / 0.7457) },
 	)

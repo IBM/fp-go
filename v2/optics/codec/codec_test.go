@@ -8,10 +8,12 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/IBM/fp-go/v2/optics/prism"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
+	P "github.com/IBM/fp-go/v2/predicate"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2286,13 +2288,8 @@ func ExampleMakeSimpleType() {
 
 // positiveIntPrismForFromPrism is a Prism that focuses on positive integers.
 var positiveIntPrismForFromPrism = prism.MakePrismWithName(
-	func(n int) option.Option[int] {
-		if n > 0 {
-			return option.Some(n)
-		}
-		return option.None[int]()
-	},
-	func(n int) int { return n },
+	option.FromPredicate(N.MoreThan(0)),
+	F.Identity[int],
 	"PositiveInt",
 )
 
@@ -2366,14 +2363,12 @@ func TestFromPrism_RoundTrip(t *testing.T) {
 // The codec validates that the integer is positive; encoding is always the
 // identity (ReverseGet of the prism).
 func ExampleFromPrism() {
+	// isEven is point-free: take the remainder modulo 2, then test for zero.
+	isEven := F.Flow2(N.Mod(2), P.IsZero[int]())
+
 	evenPrism := prism.MakePrismWithName(
-		func(n int) option.Option[int] {
-			if n%2 == 0 {
-				return option.Some(n)
-			}
-			return option.None[int]()
-		},
-		func(n int) int { return n },
+		option.FromPredicate(isEven),
+		F.Identity[int],
 		"Even",
 	)
 
@@ -2477,14 +2472,12 @@ func TestPipePrism_Name(t *testing.T) {
 // ExamplePipePrism demonstrates composing IntFromString with a prism that
 // focuses on even integers.  Decoding fails for odd values.
 func ExamplePipePrism() {
+	// isEven is point-free: take the remainder modulo 2, then test for zero.
+	isEven := F.Flow2(N.Mod(2), P.IsZero[int]())
+
 	evenPrism := prism.MakePrismWithName(
-		func(n int) option.Option[int] {
-			if n%2 == 0 {
-				return option.Some(n)
-			}
-			return option.None[int]()
-		},
-		func(n int) int { return n },
+		option.FromPredicate(isEven),
+		F.Identity[int],
 		"Even",
 	)
 

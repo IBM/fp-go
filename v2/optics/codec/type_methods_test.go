@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
 	"github.com/stretchr/testify/assert"
 )
@@ -309,15 +311,17 @@ func ExampleType_LogValue() {
 
 // ExampleMakeType shows how to construct a custom Type using MakeType.
 func ExampleMakeType() {
+	// The validator is point-free: double the input, lift it into a successful
+	// Validation, then ignore the context.
 	double := MakeType(
 		"Double",
 		Is[int](),
-		func(i int) func([]validation.ContextEntry) validation.Validation[int] {
-			return func(_ []validation.ContextEntry) validation.Validation[int] {
-				return validation.Success(i * 2)
-			}
-		},
-		func(n int) int { return n / 2 },
+		F.Flow3(
+			N.Mul(2),
+			validation.Success[int],
+			F.Constant1[[]validation.ContextEntry, validation.Validation[int]],
+		),
+		N.Div(2),
 	)
 
 	fmt.Println(double.Name())

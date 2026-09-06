@@ -20,7 +20,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM/fp-go/v2/boolean"
 	"github.com/IBM/fp-go/v2/eq"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
 )
@@ -76,8 +78,10 @@ func ExampleFromStrictEquals_roundTrip() {
 // ExampleFromStrictEquals_modify demonstrates using FromStrictEquals with Modify
 // to toggle a sentinel value through bool space.
 func ExampleFromStrictEquals_modify() {
-	iso := FromStrictEquals(lazy.Of("inactive"), lazy.Of("active"))
-	toggle := Modify[string](func(b bool) bool { return !b })(iso)
+	toggle := F.Pipe1(
+		FromStrictEquals(lazy.Of("inactive"), lazy.Of("active")),
+		Modify[string](boolean.Not),
+	)
 
 	fmt.Println(toggle("active"))
 	fmt.Println(toggle("inactive"))
@@ -88,9 +92,7 @@ func ExampleFromStrictEquals_modify() {
 
 // ExampleFromEquals demonstrates FromEquals with a custom case-insensitive Eq.
 func ExampleFromEquals() {
-	caseInsensitiveEq := eq.FromEquals(func(a, b string) bool {
-		return strings.EqualFold(a, b)
-	})
+	caseInsensitiveEq := eq.FromEquals(strings.EqualFold)
 
 	iso := FromEquals(lazy.Of("NO"), lazy.Of("YES"))(caseInsensitiveEq)
 
@@ -156,9 +158,10 @@ func ExampleNegate_roundTrip() {
 // that was lifted from a string sentinel.
 func ExampleNegate_modify() {
 	// Map "disabled"/"enabled" → bool, then negate to flip the meaning
-	sentinelIso := FromStrictEquals(lazy.Of("disabled"), lazy.Of("enabled"))
-	neg := Negate()
-	toggle := Modify[string](neg.Get)(sentinelIso)
+	toggle := F.Pipe1(
+		FromStrictEquals(lazy.Of("disabled"), lazy.Of("enabled")),
+		Modify[string](Negate().Get),
+	)
 
 	fmt.Println(toggle("enabled"))
 	fmt.Println(toggle("disabled"))
