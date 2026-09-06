@@ -21,7 +21,7 @@ import (
 
 // IsoAsLens converts an Iso[S, A] into a Lens[S, A].
 //
-// See common.IsoAsLens for the full documentation.
+// Deprecated: Use github.com/IBM/fp-go/v2/optics/iso.AsLens instead.
 func IsoAsLens[S, A any](sa Iso[S, A]) Lens[S, A] {
 	return common.IsoAsLens(sa)
 }

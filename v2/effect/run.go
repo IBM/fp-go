@@ -18,6 +18,7 @@ package effect
 import (
 	"context"
 
+	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/idiomatic/context/readerresult"
 	"github.com/IBM/fp-go/v2/result"
@@ -46,7 +47,7 @@ import (
 //	eff := effect.Of[MyContext](42)
 //	thunk := effect.Provide[MyContext, int](ctx)(eff)
 //	// thunk is now a ReaderIOResult[int] that can be run
-func Provide[A, C any](c C) func(Effect[C, A]) ReaderIOResult[A] {
+func Provide[A, C any](c C) thunk.Kleisli[Effect[C, A], A] {
 	return readerreaderioresult.Read[A](c)
 }
 

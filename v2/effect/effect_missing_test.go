@@ -23,7 +23,9 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -486,10 +488,11 @@ func ExampleFromReaderResult() {
 		Input string
 	}
 
-	parseIntRR := func(cfg Config) result.Result[int] {
-		return result.Eitherize1(strconv.Atoi)(cfg.Input)
-	}
-	eff := FromReaderResult(parseIntRR)
+	// Point-free: read the field, then parse it with the lifted strconv.Atoi.
+	eff := FromReaderResult(F.Flow2(
+		func(cfg Config) string { return cfg.Input },
+		result.Eitherize1(strconv.Atoi),
+	))
 
 	res := eff(Config{Input: "42"})(context.Background())()
 	value, _ := result.Unwrap(res)
@@ -503,10 +506,10 @@ func ExampleFromReaderResult_failure() {
 		Input string
 	}
 
-	parseIntRR := func(cfg Config) result.Result[int] {
-		return result.Eitherize1(strconv.Atoi)(cfg.Input)
-	}
-	eff := FromReaderResult(parseIntRR)
+	eff := FromReaderResult(F.Flow2(
+		func(cfg Config) string { return cfg.Input },
+		result.Eitherize1(strconv.Atoi),
+	))
 
 	res := eff(Config{Input: "bad"})(context.Background())()
 	_, err := result.Unwrap(res)
@@ -523,10 +526,9 @@ func ExampleFromReaderResult_composition() {
 		Base int
 	}
 
-	rr := func(cfg Config) result.Result[int] { return result.Of(cfg.Base) }
 	eff := F.Pipe1(
-		FromReaderResult(rr),
-		Map[Config](func(n int) string { return "value=" + strconv.Itoa(n*2) }),
+		FromReaderResult(F.Flow2(func(cfg Config) int { return cfg.Base }, result.Of[int])),
+		Map[Config](F.Flow2(N.Mul(2), S.Format[int]("value=%d"))),
 	)
 
 	res := eff(Config{Base: 21})(context.Background())()

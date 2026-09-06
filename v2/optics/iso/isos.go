@@ -560,8 +560,8 @@ func SwapPair[A, B any]() Iso[Pair[A, B], Pair[B, A]] {
 //   - Get(ReverseGet(either)) == either (swapping twice returns to original)
 //
 // Note: SwapEither is self-inverse, meaning applying it twice returns the original value.
-// The swap operation preserves which side (Left/Right) the value is on, only changing
-// the type parameter positions.
+// The swap moves the value across: a Right becomes a Left and a Left becomes a Right,
+// which is exactly what keeps the type parameters consistent.
 func SwapEither[E, A any]() Iso[Either[E, A], Either[A, E]] {
 	return MakeIso(
 		either.Swap[E, A],

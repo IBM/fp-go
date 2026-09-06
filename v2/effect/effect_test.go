@@ -31,6 +31,7 @@ import (
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -3223,7 +3224,7 @@ func ExampleReadIO_withChain() {
 
 	eff := F.Pipe2(
 		Of[Config](21),
-		Map[Config](func(x int) int { return x * 2 }),
+		Map[Config](N.Mul(2)),
 		ChainReaderK(func(x int) reader.Reader[Config, string] {
 			return func(cfg Config) string {
 				return fmt.Sprintf("%s: %d", cfg.Prefix, x)
@@ -3238,16 +3239,23 @@ func ExampleReadIO_withChain() {
 	// Output: Result: 42
 }
 
+// exFromReaderConfig is the dependency for the FromReader examples.
+type exFromReaderConfig struct {
+	Multiplier int
+	Prefix     string
+}
+
+// Named getters keep the FromReader pipelines point-free.
+func exFromReaderMultiplier(c exFromReaderConfig) int { return c.Multiplier }
+func exFromReaderPrefix(c exFromReaderConfig) string  { return c.Prefix }
+
 // ExampleFromReader demonstrates basic usage of FromReader.
 func ExampleFromReader() {
-	type Config struct {
-		Multiplier int
-	}
 
-	r := func(cfg Config) int { return cfg.Multiplier * 7 }
-	eff := FromReader(r)
+	// Point-free: read the field, then scale it.
+	eff := FromReader(F.Flow2(exFromReaderMultiplier, N.Mul(7)))
 
-	res := eff(Config{Multiplier: 6})(context.Background())()
+	res := eff(exFromReaderConfig{Multiplier: 6})(context.Background())()
 	value, _ := result.Unwrap(res)
 	fmt.Println(value)
 	// Output: 42
@@ -3255,16 +3263,12 @@ func ExampleFromReader() {
 
 // ExampleFromReader_composition demonstrates composing FromReader with Map.
 func ExampleFromReader_composition() {
-	type Config struct {
-		Prefix string
-	}
-
 	eff := F.Pipe1(
-		FromReader(func(cfg Config) string { return cfg.Prefix }),
-		Map[Config](func(s string) string { return "[" + s + "]" }),
+		FromReader(exFromReaderPrefix),
+		Map[exFromReaderConfig](S.Format[string]("[%s]")),
 	)
 
-	res := eff(Config{Prefix: "LOG"})(context.Background())()
+	res := eff(exFromReaderConfig{Prefix: "LOG"})(context.Background())()
 	value, _ := result.Unwrap(res)
 	fmt.Println(value)
 	// Output: [LOG]

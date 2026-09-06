@@ -20,12 +20,375 @@ import (
 	"strings"
 	"time"
 
+	A "github.com/IBM/fp-go/v2/array"
+	"github.com/IBM/fp-go/v2/array/nonempty"
 	"github.com/IBM/fp-go/v2/boolean"
+	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/lazy"
+	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/pair"
 )
+
+// ---------------------------------------------------------------------------
+// UTF8String
+// ---------------------------------------------------------------------------
+
+// ExampleUTF8String demonstrates converting between a UTF-8 byte slice and a string.
+func ExampleUTF8String() {
+	iso := UTF8String()
+
+	// []byte → string
+	fmt.Println(iso.Get([]byte{104, 101, 108, 108, 111}))
+
+	// string → []byte; the accented rune expands to two bytes
+	fmt.Println(iso.ReverseGet("héllo"))
+	// Output:
+	// hello
+	// [104 195 169 108 108 111]
+}
+
+// ExampleUTF8String_roundTrip demonstrates the round-trip isomorphism laws.
+func ExampleUTF8String_roundTrip() {
+	iso := UTF8String()
+
+	// ReverseGet(Get(bs)) == bs
+	fmt.Println(string(iso.ReverseGet(iso.Get([]byte("round trip")))))
+
+	// Get(ReverseGet(s)) == s
+	fmt.Println(iso.Get(iso.ReverseGet("hello")))
+	// Output:
+	// round trip
+	// hello
+}
+
+// ExampleUTF8String_modify demonstrates what an Iso buys you: Modify lifts a
+// plain string function into []byte space, so no conversion is written by hand.
+func ExampleUTF8String_modify() {
+	shout := F.Pipe1(UTF8String(), Modify[[]byte](strings.ToUpper))
+
+	fmt.Println(string(shout([]byte("hello"))))
+	// Output:
+	// HELLO
+}
+
+// ---------------------------------------------------------------------------
+// Lines
+// ---------------------------------------------------------------------------
+
+// ExampleLines demonstrates joining a slice into newline-separated text and
+// splitting that text back into lines.
+func ExampleLines() {
+	iso := Lines()
+
+	fmt.Printf("%q\n", iso.Get([]string{"alpha", "beta", "gamma"}))
+	fmt.Printf("%q\n", iso.ReverseGet("one\ntwo"))
+	// Output:
+	// "alpha\nbeta\ngamma"
+	// ["one" "two"]
+}
+
+// ExampleLines_roundTrip demonstrates the round-trip laws, including the
+// trailing-separator edge case called out in the documentation.
+func ExampleLines_roundTrip() {
+	iso := Lines()
+
+	// ReverseGet(Get(ls)) == ls, empty elements included
+	fmt.Printf("%q\n", iso.ReverseGet(iso.Get([]string{"a", "", "b"})))
+
+	// A trailing newline yields an empty final element
+	fmt.Printf("%q\n", iso.ReverseGet("a\nb\n"))
+	// Output:
+	// ["a" "" "b"]
+	// ["a" "b" ""]
+}
+
+// ExampleLines_modify demonstrates lifting a whole-text transformation into the
+// []string space with Modify.
+func ExampleLines_modify() {
+	shout := F.Pipe1(Lines(), Modify[[]string](strings.ToUpper))
+
+	fmt.Printf("%q\n", shout([]string{"hello", "world"}))
+	// Output:
+	// ["HELLO" "WORLD"]
+}
+
+// ---------------------------------------------------------------------------
+// UnixMilli
+// ---------------------------------------------------------------------------
+
+// ExampleUnixMilli demonstrates converting between Unix millisecond timestamps
+// and time.Time values.
+func ExampleUnixMilli() {
+	iso := UnixMilli()
+
+	// int64 milliseconds → time.Time
+	fmt.Println(iso.Get(1609459200000).UTC().Format(time.RFC3339))
+
+	// time.Time → int64 milliseconds
+	fmt.Println(iso.ReverseGet(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)))
+	// Output:
+	// 2021-01-01T00:00:00Z
+	// 1609459200000
+}
+
+// ExampleUnixMilli_roundTrip demonstrates the round-trip laws and the
+// millisecond precision limit.
+func ExampleUnixMilli_roundTrip() {
+	iso := UnixMilli()
+
+	// ReverseGet(Get(ms)) == ms always holds
+	fmt.Println(iso.ReverseGet(iso.Get(1234567890000)))
+
+	// Get(ReverseGet(t)) == t holds when t carries no sub-millisecond part
+	exact := time.Date(2021, 1, 1, 12, 30, 45, 123000000, time.UTC)
+	fmt.Println(iso.Get(iso.ReverseGet(exact)).Equal(exact))
+
+	// Sub-millisecond precision is truncated by the round trip
+	precise := time.Date(2021, 1, 1, 12, 30, 45, 123456789, time.UTC)
+	fmt.Println(iso.Get(iso.ReverseGet(precise)).Nanosecond())
+	// Output:
+	// 1234567890000
+	// true
+	// 123000000
+}
+
+// ---------------------------------------------------------------------------
+// Add / Sub
+// ---------------------------------------------------------------------------
+
+// ExampleAdd demonstrates shifting a number by a constant offset.
+func ExampleAdd() {
+	translateX := Add(100)
+
+	fmt.Println(translateX.Get(50))
+	fmt.Println(translateX.ReverseGet(150))
+	// Output:
+	// 150
+	// 50
+}
+
+// ExampleAdd_float demonstrates that Add works for any numeric type.
+func ExampleAdd_float() {
+	iso := Add(0.5)
+
+	fmt.Println(iso.Get(1.0))
+	fmt.Println(iso.ReverseGet(1.5))
+	// Output:
+	// 1.5
+	// 1
+}
+
+// ExampleAdd_roundTrip demonstrates the round-trip laws: adding then
+// subtracting the offset is the identity in both directions.
+func ExampleAdd_roundTrip() {
+	iso := Add(7)
+
+	fmt.Println(iso.ReverseGet(iso.Get(35)))
+	fmt.Println(iso.Get(iso.ReverseGet(35)))
+	// Output:
+	// 35
+	// 35
+}
+
+// ExampleAdd_modify demonstrates computing in a shifted coordinate space:
+// Modify moves into 1-based indices, doubles, and shifts back to 0-based.
+func ExampleAdd_modify() {
+	shiftedDouble := F.Pipe1(Add(1), Modify[int](N.Mul(2)))
+
+	fmt.Println(shiftedDouble(0)) // 0 → 1 → 2 → 1
+	fmt.Println(shiftedDouble(4)) // 4 → 5 → 10 → 9
+	// Output:
+	// 1
+	// 9
+}
+
+// ExampleSub demonstrates shifting a number by a constant offset in the
+// opposite direction of Add.
+func ExampleSub() {
+	iso := Sub(5)
+
+	fmt.Println(iso.Get(10))
+	fmt.Println(iso.ReverseGet(5))
+	// Output:
+	// 5
+	// 10
+}
+
+// ExampleSub_roundTrip demonstrates the round-trip laws for Sub.
+func ExampleSub_roundTrip() {
+	iso := Sub(3)
+
+	fmt.Println(iso.ReverseGet(iso.Get(20)))
+	fmt.Println(iso.Get(iso.ReverseGet(20)))
+	// Output:
+	// 20
+	// 20
+}
+
+// ExampleSub_equivalentToAdd demonstrates that Sub(n) and Add(-n) describe the
+// same isomorphism.
+func ExampleSub_equivalentToAdd() {
+	sub5 := Sub(5)
+	addNeg5 := Add(-5)
+
+	fmt.Println(sub5.Get(10) == addNeg5.Get(10))
+	fmt.Println(sub5.ReverseGet(5) == addNeg5.ReverseGet(5))
+	// Output:
+	// true
+	// true
+}
+
+// ---------------------------------------------------------------------------
+// SwapPair
+// ---------------------------------------------------------------------------
+
+// ExampleSwapPair demonstrates exchanging the two elements of a Pair.
+func ExampleSwapPair() {
+	iso := SwapPair[string, int]()
+
+	fmt.Println(iso.Get(pair.MakePair("hello", 42)))
+	fmt.Println(iso.ReverseGet(pair.MakePair(7, "world")))
+	// Output:
+	// Pair[int, string](42, hello)
+	// Pair[string, int](world, 7)
+}
+
+// ExampleSwapPair_roundTrip demonstrates that SwapPair is self-inverse:
+// swapping twice returns the original pair.
+func ExampleSwapPair_roundTrip() {
+	iso := SwapPair[string, int]()
+
+	fmt.Println(iso.ReverseGet(iso.Get(pair.MakePair("hello", 42))))
+	fmt.Println(iso.Get(iso.ReverseGet(pair.MakePair(1, "one"))))
+	// Output:
+	// Pair[string, int](hello, 42)
+	// Pair[int, string](1, one)
+}
+
+// ExampleSwapPair_modify demonstrates editing the *first* element of a pair
+// through a function that only knows how to edit the second one.
+func ExampleSwapPair_modify() {
+	// Modify works on Pair[int, string]; SwapPair lifts it to Pair[string, int].
+	upperHead := F.Pipe1(
+		SwapPair[string, int](),
+		Modify[Pair[string, int]](pair.Map[int](strings.ToUpper)),
+	)
+
+	fmt.Println(upperHead(pair.MakePair("hello", 42)))
+	// Output:
+	// Pair[string, int](HELLO, 42)
+}
+
+// ---------------------------------------------------------------------------
+// SwapEither
+// ---------------------------------------------------------------------------
+
+// ExampleSwapEither demonstrates exchanging the Left and Right positions of an
+// Either.  A value on the Right moves to the Left and vice versa.
+func ExampleSwapEither() {
+	iso := SwapEither[string, int]()
+
+	// Right(42) becomes Left(42)
+	fmt.Println(iso.Get(either.Right[string](42)))
+
+	// Left("boom") becomes Right("boom")
+	fmt.Println(iso.Get(either.Left[int]("boom")))
+
+	// ReverseGet swaps back
+	fmt.Println(iso.ReverseGet(either.Right[int]("recovered")))
+	// Output:
+	// Left[int](42)
+	// Right[string](boom)
+	// Left[string](recovered)
+}
+
+// ExampleSwapEither_roundTrip demonstrates that SwapEither is self-inverse.
+func ExampleSwapEither_roundTrip() {
+	iso := SwapEither[string, int]()
+
+	fmt.Println(iso.ReverseGet(iso.Get(either.Right[string](42))))
+	fmt.Println(iso.ReverseGet(iso.Get(either.Left[int]("boom"))))
+	// Output:
+	// Right[int](42)
+	// Left[string](boom)
+}
+
+// ---------------------------------------------------------------------------
+// ReverseArray
+// ---------------------------------------------------------------------------
+
+// ExampleReverseArray demonstrates reversing the order of a slice in both
+// directions.
+func ExampleReverseArray() {
+	iso := ReverseArray[int]()
+
+	fmt.Println(iso.Get([]int{1, 2, 3, 4}))
+	fmt.Println(iso.ReverseGet([]int{4, 3, 2, 1}))
+	// Output:
+	// [4 3 2 1]
+	// [1 2 3 4]
+}
+
+// ExampleReverseArray_roundTrip demonstrates that ReverseArray is self-inverse:
+// Get and ReverseGet are the same function, so applying either twice is the
+// identity.
+func ExampleReverseArray_roundTrip() {
+	iso := ReverseArray[string]()
+
+	fmt.Println(iso.ReverseGet(iso.Get([]string{"a", "b", "c"})))
+	fmt.Println(iso.Get(iso.Get([]string{"a", "b", "c"})))
+	// Output:
+	// [a b c]
+	// [a b c]
+}
+
+// ExampleReverseArray_modify demonstrates appending to a slice by prepending in
+// reversed space — a head-only operation reused as a tail operation.
+func ExampleReverseArray_modify() {
+	appendZero := F.Pipe1(ReverseArray[int](), Modify[[]int](A.Prepend(0)))
+
+	fmt.Println(appendZero([]int{1, 2, 3}))
+	// Output:
+	// [1 2 3 0]
+}
+
+// ---------------------------------------------------------------------------
+// Head
+// ---------------------------------------------------------------------------
+
+// ExampleHead demonstrates wrapping a value into a singleton non-empty array
+// and reading the head back out.
+func ExampleHead() {
+	iso := Head[string]()
+
+	fmt.Println(iso.Get("solo"))
+	fmt.Println(iso.ReverseGet(nonempty.From("first", "second")))
+	// Output:
+	// [solo]
+	// first
+}
+
+// ExampleHead_roundTrip demonstrates the round-trip laws.  ReverseGet(Get(v))
+// always returns v, while Get(ReverseGet(as)) only reconstructs as when as is a
+// singleton — every element after the head is discarded.
+func ExampleHead_roundTrip() {
+	iso := Head[int]()
+
+	fmt.Println(iso.ReverseGet(iso.Get(42)))
+	fmt.Println(iso.Get(iso.ReverseGet(nonempty.Of(7))))
+	fmt.Println(iso.Get(iso.ReverseGet(nonempty.From(1, 2, 3))))
+	// Output:
+	// 42
+	// [7]
+	// [1]
+}
+
+// ---------------------------------------------------------------------------
+// FromStrictEquals / FromEquals
+// ---------------------------------------------------------------------------
 
 // ExampleFromStrictEquals demonstrates basic usage: mapping "no"/"yes" to false/true.
 func ExampleFromStrictEquals() {
