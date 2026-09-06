@@ -194,6 +194,61 @@ func UnixMilli() Iso[int64, time.Time] {
 	return MakeIso(time.UnixMilli, time.Time.UnixMilli)
 }
 
+func int64ToDuration(n int64) time.Duration {
+	return time.Duration(n)
+}
+
+func durationToInt64(d time.Duration) int64 {
+	return int64(d)
+}
+
+func secondsToDuration(n int) time.Duration {
+	return time.Duration(n) * time.Second
+}
+
+func durationToSeconds(d time.Duration) int {
+	return int(d / time.Second)
+}
+
+// NanoDuration returns an Iso between an int64 nanosecond count and a time.Duration.
+//
+// time.Duration is defined as int64 nanoseconds, so the conversion is a
+// lossless cast in both directions; no precision is lost.
+//
+// Returns:
+//   - An Iso[int64, time.Duration] where:
+//   - Get:        converts a raw nanosecond count to time.Duration
+//   - ReverseGet: extracts the raw nanosecond count from a time.Duration
+//
+// See Also:
+//   - SecondsDuration: the coarser whole-second variant
+func NanoDuration() Iso[int64, time.Duration] {
+	return MakeIso(int64ToDuration, durationToInt64)
+}
+
+// SecondsDuration returns an Iso between a whole-second count (int) and a
+// time.Duration.
+//
+// The Get direction multiplies the int by time.Second; ReverseGet performs
+// integer division by time.Second, truncating any sub-second part.
+//
+// Returns:
+//   - An Iso[int, time.Duration] where:
+//   - Get:        converts a whole-second count to time.Duration (n * time.Second)
+//   - ReverseGet: extracts the number of whole seconds from a time.Duration (d / time.Second)
+//
+// Round-trip caveat: if the duration contains a sub-second component, that
+// component is lost when converting back to int:
+//
+//	ReverseGet(Get(n)) == n          // always holds
+//	Get(ReverseGet(d)) == d          // only holds when d is an exact multiple of time.Second
+//
+// See Also:
+//   - NanoDuration: the higher-precision nanosecond variant
+func SecondsDuration() Iso[int, time.Duration] {
+	return MakeIso(secondsToDuration, durationToSeconds)
+}
+
 // Add creates an isomorphism that adds a constant value to a number.
 // This isomorphism provides bidirectional conversion by adding a value in one direction
 // and subtracting it in the reverse direction, effectively shifting numbers by a constant offset.

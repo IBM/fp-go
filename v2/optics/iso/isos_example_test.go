@@ -18,6 +18,7 @@ package iso
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/IBM/fp-go/v2/eq"
 	"github.com/IBM/fp-go/v2/lazy"
@@ -304,4 +305,73 @@ func ExampleFromNillable_roundTrip() {
 	// Output:
 	// Some[int](7)
 	// None[int]
+}
+
+// ExampleNanoDuration demonstrates basic NanoDuration usage: converting between
+// raw nanosecond counts and time.Duration in both directions.
+func ExampleNanoDuration() {
+	iso := NanoDuration()
+
+	// int64 nanoseconds → time.Duration
+	fmt.Println(iso.Get(int64(2 * time.Second)))
+	fmt.Println(iso.Get(int64(500 * time.Millisecond)))
+
+	// time.Duration → int64 nanoseconds
+	fmt.Println(iso.ReverseGet(time.Minute))
+	// Output:
+	// 2s
+	// 500ms
+	// 60000000000
+}
+
+// ExampleNanoDuration_roundTrip demonstrates the lossless round-trip laws for NanoDuration.
+func ExampleNanoDuration_roundTrip() {
+	iso := NanoDuration()
+
+	// ReverseGet(Get(n)) == n
+	n := int64(3 * time.Second)
+	fmt.Println(iso.ReverseGet(iso.Get(n)) == n)
+
+	// Get(ReverseGet(d)) == d
+	d := 750 * time.Millisecond
+	fmt.Println(iso.Get(iso.ReverseGet(d)) == d)
+	// Output:
+	// true
+	// true
+}
+
+// ExampleSecondsDuration demonstrates basic SecondsDuration usage: converting between
+// whole-second counts and time.Duration in both directions.
+func ExampleSecondsDuration() {
+	iso := SecondsDuration()
+
+	// int seconds → time.Duration
+	fmt.Println(iso.Get(5))
+	fmt.Println(iso.Get(0))
+	fmt.Println(iso.Get(-2))
+
+	// time.Duration → int (whole seconds, sub-second part truncated)
+	fmt.Println(iso.ReverseGet(90 * time.Second))
+	fmt.Println(iso.ReverseGet(1500 * time.Millisecond)) // 1.5 s → 1
+	// Output:
+	// 5s
+	// 0s
+	// -2s
+	// 90
+	// 1
+}
+
+// ExampleSecondsDuration_roundTrip demonstrates the round-trip laws for SecondsDuration.
+func ExampleSecondsDuration_roundTrip() {
+	iso := SecondsDuration()
+
+	// ReverseGet(Get(n)) == n always holds
+	fmt.Println(iso.ReverseGet(iso.Get(42)))
+
+	// Get(ReverseGet(d)) == d holds only when d is an exact multiple of time.Second
+	exact := 10 * time.Second
+	fmt.Println(iso.Get(iso.ReverseGet(exact)) == exact)
+	// Output:
+	// 42
+	// true
 }

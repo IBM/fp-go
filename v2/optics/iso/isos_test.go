@@ -2657,3 +2657,103 @@ func TestToNillableFromNillableInverse(t *testing.T) {
 		assert.Nil(t, toN.Get(fromN.Get(nil)))
 	})
 }
+
+// TestNanoDuration tests the NanoDuration isomorphism.
+func TestNanoDuration(t *testing.T) {
+	iso := NanoDuration()
+
+	t.Run("Get converts nanoseconds to duration", func(t *testing.T) {
+		assert.Equal(t, 5*time.Second, iso.Get(int64(5*time.Second)))
+	})
+
+	t.Run("Get zero nanoseconds", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), iso.Get(0))
+	})
+
+	t.Run("Get negative nanoseconds", func(t *testing.T) {
+		assert.Equal(t, -3*time.Millisecond, iso.Get(int64(-3*time.Millisecond)))
+	})
+
+	t.Run("ReverseGet extracts nanosecond count", func(t *testing.T) {
+		assert.Equal(t, int64(250*time.Millisecond), iso.ReverseGet(250*time.Millisecond))
+	})
+
+	t.Run("ReverseGet zero duration", func(t *testing.T) {
+		assert.Equal(t, int64(0), iso.ReverseGet(0))
+	})
+}
+
+// TestNanoDurationRoundTripLaws verifies the round-trip laws for NanoDuration.
+func TestNanoDurationRoundTripLaws(t *testing.T) {
+	iso := NanoDuration()
+
+	cases := []int64{0, 1, int64(time.Second), int64(time.Hour), -int64(time.Millisecond)}
+	for _, n := range cases {
+		n := n
+		t.Run(fmt.Sprintf("ReverseGet(Get(%d)) == %d", n, n), func(t *testing.T) {
+			assert.Equal(t, n, iso.ReverseGet(iso.Get(n)))
+		})
+		t.Run(fmt.Sprintf("Get(ReverseGet(Duration(%d))) == Duration(%d)", n, n), func(t *testing.T) {
+			d := time.Duration(n)
+			assert.Equal(t, d, iso.Get(iso.ReverseGet(d)))
+		})
+	}
+}
+
+// TestSecondsDuration tests the SecondsDuration isomorphism.
+func TestSecondsDuration(t *testing.T) {
+	iso := SecondsDuration()
+
+	t.Run("Get converts seconds to duration", func(t *testing.T) {
+		assert.Equal(t, 5*time.Second, iso.Get(5))
+	})
+
+	t.Run("Get zero seconds", func(t *testing.T) {
+		assert.Equal(t, time.Duration(0), iso.Get(0))
+	})
+
+	t.Run("Get negative seconds", func(t *testing.T) {
+		assert.Equal(t, -3*time.Second, iso.Get(-3))
+	})
+
+	t.Run("ReverseGet extracts whole seconds", func(t *testing.T) {
+		assert.Equal(t, 10, iso.ReverseGet(10*time.Second))
+	})
+
+	t.Run("ReverseGet truncates sub-second part", func(t *testing.T) {
+		// 2.9 seconds truncates to 2
+		assert.Equal(t, 2, iso.ReverseGet(2*time.Second+900*time.Millisecond))
+	})
+
+	t.Run("ReverseGet zero duration", func(t *testing.T) {
+		assert.Equal(t, 0, iso.ReverseGet(0))
+	})
+
+	t.Run("ReverseGet negative duration", func(t *testing.T) {
+		assert.Equal(t, -3, iso.ReverseGet(-3*time.Second))
+	})
+}
+
+// TestSecondsDurationRoundTripLaws verifies the round-trip laws for SecondsDuration.
+func TestSecondsDurationRoundTripLaws(t *testing.T) {
+	iso := SecondsDuration()
+
+	t.Run("ReverseGet(Get(n)) == n for whole seconds", func(t *testing.T) {
+		for _, n := range []int{0, 1, 60, 3600, -5} {
+			n := n
+			t.Run(fmt.Sprintf("%d", n), func(t *testing.T) {
+				assert.Equal(t, n, iso.ReverseGet(iso.Get(n)))
+			})
+		}
+	})
+
+	t.Run("Get(ReverseGet(d)) == d only for exact multiples of time.Second", func(t *testing.T) {
+		for _, n := range []int{0, 1, 120, -7} {
+			n := n
+			t.Run(fmt.Sprintf("%d seconds", n), func(t *testing.T) {
+				d := time.Duration(n) * time.Second
+				assert.Equal(t, d, iso.Get(iso.ReverseGet(d)))
+			})
+		}
+	})
+}
