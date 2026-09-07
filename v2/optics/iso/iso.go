@@ -106,7 +106,7 @@ func Id[S any]() Iso[S, S] {
 //	miles := metersToMiles.Get(5000)        // ~3.11 miles
 //	meters := metersToMiles.ReverseGet(3.11) // ~5000 meters
 func Compose[S, A, B any](ab Iso[A, B]) func(Iso[S, A]) Iso[S, B] {
-	return C.IsoComposeIso[S, A, B](ab)
+	return C.IsoComposeIso[S](ab)
 }
 
 // Reverse swaps the direction of an isomorphism.
@@ -169,7 +169,7 @@ func Reverse[S, A any](sa Iso[S, A]) Iso[A, S] {
 //	})(mToKm)(Meters(5000))
 //	// Result: Meters(10000)
 func Modify[S any, FCT ~func(A) A, A any](f FCT) func(Iso[S, A]) EM.Endomorphism[S] {
-	return C.IsoModify[S, FCT, A](f)
+	return C.IsoModify[S](f)
 }
 
 // Unwrap extracts the target value from a source value using an isomorphism.
@@ -330,5 +330,5 @@ func From[S, A any](a A) func(Iso[S, A]) S {
 // Note: The functions ab and ba must be inverses of each other to maintain
 // the isomorphism laws.
 func IMap[S, A, B any](ab func(A) B, ba func(B) A) func(Iso[S, A]) Iso[S, B] {
-	return C.IsoIMap[S, A, B](ab, ba)
+	return C.IsoIMap[S](ab, ba)
 }

@@ -252,7 +252,7 @@ func ExampleTraverseArray() {
 
 	eff := F.Pipe1(
 		Succeed[exDeps]([]int{1, 2, 3}),
-		Chain(TraverseArray[exDeps](label)),
+		Chain(TraverseArray(label)),
 	)
 
 	fmt.Println(RunSync(Provide[[]string](exDeps{})(eff))(context.Background()))
@@ -268,7 +268,7 @@ func ExampleTraverseArray_dependencyAware() {
 		return F.Pipe1(Asks(exDepsMultiplier), Map[exDeps](N.Mul(n)))
 	}
 
-	eff := TraverseArray[exDeps](scale)([]int{1, 2, 3})
+	eff := TraverseArray(scale)([]int{1, 2, 3})
 
 	fmt.Println(RunSync(Provide[[]int](exDeps{Multiplier: 10})(eff))(context.Background()))
 	// Output:
@@ -285,7 +285,7 @@ func ExampleTraverseArray_failFast() {
 		return Of[exDeps](n)
 	}
 
-	eff := TraverseArray[exDeps](positiveOnly)([]int{1, -2, 3})
+	eff := TraverseArray(positiveOnly)([]int{1, -2, 3})
 
 	fmt.Println(RunSync(Provide[[]int](exDeps{})(eff))(context.Background()))
 	// Output:

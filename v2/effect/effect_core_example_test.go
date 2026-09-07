@@ -373,7 +373,7 @@ func ExampleChainThunkK() {
 // keeping the upstream value.
 func ExampleChainFirstThunkK() {
 	audit := func(n int) ctxthunk.ReaderIOResult[string] {
-		return ctxthunk.FromIO[string](func() string {
+		return ctxthunk.FromIO(func() string {
 			fmt.Println("audited:", n)
 			return ""
 		})
@@ -393,7 +393,7 @@ func ExampleTapThunkK() {
 	eff := F.Pipe1(
 		Of[exCoreConfig](7),
 		TapThunkK[exCoreConfig](func(n int) ctxthunk.ReaderIOResult[string] {
-			return ctxthunk.FromIO[string](func() string {
+			return ctxthunk.FromIO(func() string {
 				fmt.Println("tapped:", n)
 				return ""
 			})
