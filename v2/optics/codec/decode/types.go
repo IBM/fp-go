@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/optics/codec/validation"
+	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 )
 
@@ -343,4 +344,19 @@ type (
 	//	    return computeExpensiveDefaultConfig()
 	//	})
 	Lazy[A any] = lazy.Lazy[A]
+
+	// Option represents a value that may or may not be present.
+	// This is an alias for option.Option[A].
+	//
+	// In the decode context, Option shows up whenever a lookup into the input
+	// may legitimately come up empty - a missing map key, an out of range index,
+	// a nil pointer. [FromOption] lifts such a value into the Decode monad,
+	// turning the absent case into a validation failure that carries the
+	// current context.
+	//
+	// Example:
+	//
+	//	var opt Option[int] = option.Some(42)
+	//	var opt Option[int] = option.None[int]()
+	Option[A any] = option.Option[A]
 )
