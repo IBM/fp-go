@@ -16,73 +16,57 @@
 package readerreaderioeither
 
 import (
-	RIOE "github.com/IBM/fp-go/v2/readerioeither"
+	G "github.com/IBM/fp-go/v2/internal/bracket"
+	"github.com/IBM/fp-go/v2/internal/readert"
+	"github.com/IBM/fp-go/v2/readerio"
 )
 
-// Bracket ensures that a resource is properly cleaned up regardless of whether the operation
-// succeeds or fails. It follows the acquire-use-release pattern with access to both outer (R)
-// and inner (C) reader contexts.
+// Bracket safely acquires a resource, uses it, and releases it again, following the
+// acquire-use-release pattern. All three steps run with access to both the outer (R) and
+// the inner (C) environment.
 //
-// The release action is always called after the use action completes, whether it succeeds or fails.
-// This makes it ideal for managing resources like file handles, database connections, or locks.
+// Semantics:
+//
+//  1. acquire is executed. If it fails, its error is returned and neither use nor
+//     release is executed (there is nothing to release).
+//  2. use is executed with the acquired resource.
+//  3. release is executed with the resource and the outcome of use (an Either[E, B]).
+//     It runs no matter whether use succeeded or failed.
+//  4. If release succeeds, the outcome of use is returned unchanged (a failed use stays
+//     failed). If release fails, its error is returned instead, even if use succeeded,
+//     and it replaces the error of a failed use.
+//
+// The value produced by a successful release (of type ANY) is discarded.
+//
+// Bracket is lazy: no step runs until both environments have been supplied and the
+// resulting IO is executed. Every execution acquires and releases a fresh resource.
+//
+// Bracket is implemented point-free on top of the generic bracket combinator: the
+// resource is threaded through [MonadChain], and the outcome of use, which may be a
+// Left, is fed into release via a chain over the full Either.
+//
+// Type Parameters:
+//   - R: The outer environment type
+//   - C: The inner environment type
+//   - E: The error type
+//   - A: The resource type
+//   - B: The result type of use
+//   - ANY: The (ignored) result type of release
 //
 // Parameters:
-//   - acquire: Acquires the resource, returning a ReaderReaderIOEither[R, C, E, A]
-//   - use: Uses the acquired resource to perform an operation, returning ReaderReaderIOEither[R, C, E, B]
-//   - release: Releases the resource, receiving both the resource and the result of use
+//   - acquire: Produces the resource
+//   - use: Computes the result from the resource
+//   - release: Frees the resource; it receives the resource and the outcome of use
 //
 // Returns:
-//   - A ReaderReaderIOEither[R, C, E, B] that safely manages the resource lifecycle
+//   - A ReaderReaderIOEither[R, C, E, B] that yields the result of use and guarantees
+//     that release runs whenever acquire succeeded
 //
-// The release function receives:
-//   - The acquired resource (A)
-//   - The result of the use function (Either[E, B])
-//
-// Example:
-//
-//	type OuterConfig struct {
-//	    ConnectionPool string
-//	}
-//	type InnerConfig struct {
-//	    Timeout time.Duration
-//	}
-//
-//	// Acquire a database connection
-//	acquire := func(outer OuterConfig) readerioeither.ReaderIOEither[InnerConfig, error, *sql.DB] {
-//	    return func(inner InnerConfig) ioeither.IOEither[error, *sql.DB] {
-//	        return ioeither.TryCatch(
-//	            func() (*sql.DB, error) {
-//	                return sql.Open("postgres", outer.ConnectionPool)
-//	            },
-//	            func(err error) error { return err },
-//	        )
-//	    }
-//	}
-//
-//	// Use the connection
-//	use := func(db *sql.DB) readerreaderioeither.ReaderReaderIOEither[OuterConfig, InnerConfig, error, []User] {
-//	    return func(outer OuterConfig) readerioeither.ReaderIOEither[InnerConfig, error, []User] {
-//	        return func(inner InnerConfig) ioeither.IOEither[error, []User] {
-//	            return queryUsers(db, inner.Timeout)
-//	        }
-//	    }
-//	}
-//
-//	// Release the connection
-//	release := func(db *sql.DB, result either.Either[error, []User]) readerreaderioeither.ReaderReaderIOEither[OuterConfig, InnerConfig, error, any] {
-//	    return func(outer OuterConfig) readerioeither.ReaderIOEither[InnerConfig, error, any] {
-//	        return func(inner InnerConfig) ioeither.IOEither[error, any] {
-//	            return ioeither.TryCatch(
-//	                func() (any, error) {
-//	                    return nil, db.Close()
-//	                },
-//	                func(err error) error { return err },
-//	            )
-//	        }
-//	    }
-//	}
-//
-//	result := readerreaderioeither.Bracket(acquire, use, release)
+// See Also:
+//   - ExampleBracket: basic acquire/use/close pattern
+//   - ExampleBracket_useFails: resource released even when use returns Left
+//   - ExampleBracket_acquireFails: neither use nor release run when acquire returns Left
+//   - ExampleBracket_transaction: release receives the outcome of use to commit or roll back
 //
 //go:inline
 func Bracket[
@@ -91,15 +75,38 @@ func Bracket[
 	use Kleisli[R, C, E, A, B],
 	release func(A, Either[E, B]) ReaderReaderIOEither[R, C, E, ANY],
 ) ReaderReaderIOEither[R, C, E, B] {
-	return func(r R) ReaderIOEither[C, E, B] {
-		return RIOE.Bracket(
-			acquire(r),
-			func(a A) ReaderIOEither[C, E, B] {
-				return use(a)(r)
-			},
-			func(a A, e Either[E, B]) ReaderIOEither[C, E, ANY] {
-				return release(a, e)(r)
-			},
-		)
-	}
+	return G.MonadBracket[
+		ReaderReaderIOEither[R, C, E, A],
+		ReaderReaderIOEither[R, C, E, B],
+		ReaderReaderIOEither[R, C, E, ANY],
+		Either[E, B],
+		A,
+		B,
+	](
+		FromEither[R, C, E, B],
+		MonadChain[R, C, E, A, B],
+		monadChainReaderReaderIO[R, C, E, B, B],
+		MonadChain[R, C, E, ANY, B],
+
+		acquire,
+		use,
+		release,
+	)
+}
+
+// monadChainReaderReaderIO is the chain of the underlying ReaderReaderIO monad, i.e. it treats
+// a ReaderReaderIOEither as a ReaderReaderIO of an Either and sequences it with a function that
+// receives the complete outcome, the Either itself. Unlike [MonadChain] the continuation also
+// runs for a Left, which is what allows Bracket to release a resource after a failed use.
+//
+//go:inline
+func monadChainReaderReaderIO[R, C, E, A, B any](
+	fa ReaderReaderIOEither[R, C, E, A],
+	f func(Either[E, A]) ReaderReaderIOEither[R, C, E, B],
+) ReaderReaderIOEither[R, C, E, B] {
+	return readert.MonadChain(
+		readerio.MonadChain[C, Either[E, A], Either[E, B]],
+		fa,
+		f,
+	)
 }

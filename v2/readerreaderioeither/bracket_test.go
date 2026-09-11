@@ -17,374 +17,449 @@ package readerreaderioeither
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	E "github.com/IBM/fp-go/v2/either"
-	IOE "github.com/IBM/fp-go/v2/ioeither"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/stretchr/testify/assert"
 )
 
-type BracketOuterCtx struct {
-	resourcePool string
+// bracketEnv is the outer environment used by the Bracket tests
+type bracketEnv struct {
+	pool string
 }
 
-type BracketInnerCtx struct {
+// bracketCtx is the inner environment used by the Bracket tests
+type bracketCtx struct {
 	timeout int
 }
 
-type Resource struct {
-	id       string
-	acquired bool
-	released bool
+// bracketRes is the resource managed by the Bracket tests
+type bracketRes struct {
+	id string
 }
 
-func TestBracketSuccessPath(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "pool1"}
-	inner := BracketInnerCtx{timeout: 30}
-
-	resource := &Resource{id: "res1"}
-
-	// Acquire resource
-	acquire := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return func() E.Either[error, *Resource] {
-				resource.acquired = true
-				return E.Right[error](resource)
-			}
-		}
-	}
-
-	// Use resource successfully
-	use := func(r *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-				return IOE.Of[error]("result from " + r.id)
-			}
-		}
-	}
-
-	// Release resource
-	release := func(r *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return func() E.Either[error, any] {
-					r.released = true
-					return E.Right[error, any](nil)
-				}
-			}
-		}
-	}
-
-	result := Bracket(acquire, use, release)
-	outcome := result(outer)(inner)()
-
-	assert.Equal(t, E.Right[error]("result from res1"), outcome)
-	assert.True(t, resource.acquired, "Resource should be acquired")
-	assert.True(t, resource.released, "Resource should be released")
+// bracketEvent records the execution of a single step together with the environments it saw
+type bracketEvent struct {
+	name string
+	env  bracketEnv
+	ctx  bracketCtx
 }
 
-func TestBracketUseFailure(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "pool1"}
-	inner := BracketInnerCtx{timeout: 30}
+// bracketRecorder collects the events of all steps in execution order
+type bracketRecorder struct {
+	events []bracketEvent
+}
 
-	resource := &Resource{id: "res1"}
+func (rec *bracketRecorder) names() []string {
+	names := make([]string, len(rec.events))
+	for i, ev := range rec.events {
+		names[i] = ev.name
+	}
+	return names
+}
+
+// recordStep returns a computation that records its execution under the given name and yields res
+func recordStep[A any](rec *bracketRecorder, name string, res Either[error, A]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, A] {
+	return func(env bracketEnv) ReaderIOEither[bracketCtx, error, A] {
+		return func(ctx bracketCtx) IOEither[error, A] {
+			return func() Either[error, A] {
+				rec.events = append(rec.events, bracketEvent{name: name, env: env, ctx: ctx})
+				return res
+			}
+		}
+	}
+}
+
+var (
+	testBracketEnv = bracketEnv{pool: "pool1"}
+	testBracketCtx = bracketCtx{timeout: 30}
+)
+
+// TestBracketOutcomes covers every combination of use and release succeeding or failing
+func TestBracketOutcomes(t *testing.T) {
 	useErr := errors.New("use failed")
-
-	// Acquire resource
-	acquire := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return func() E.Either[error, *Resource] {
-				resource.acquired = true
-				return E.Right[error](resource)
-			}
-		}
-	}
-
-	// Use resource with failure
-	use := func(r *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-				return IOE.Left[string](useErr)
-			}
-		}
-	}
-
-	// Release resource (should still be called)
-	release := func(r *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return func() E.Either[error, any] {
-					r.released = true
-					return E.Right[error, any](nil)
-				}
-			}
-		}
-	}
-
-	result := Bracket(acquire, use, release)
-	outcome := result(outer)(inner)()
-
-	assert.Equal(t, E.Left[string](useErr), outcome)
-	assert.True(t, resource.acquired, "Resource should be acquired")
-	assert.True(t, resource.released, "Resource should be released even on failure")
-}
-
-func TestBracketAcquireFailure(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "pool1"}
-	inner := BracketInnerCtx{timeout: 30}
-
-	resource := &Resource{id: "res1"}
-	acquireErr := errors.New("acquire failed")
-	useCalled := false
-	releaseCalled := false
-
-	// Acquire resource fails
-	acquire := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return IOE.Left[*Resource](acquireErr)
-		}
-	}
-
-	// Use should not be called
-	use := func(r *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-				return func() E.Either[error, string] {
-					useCalled = true
-					return E.Right[error]("should not reach here")
-				}
-			}
-		}
-	}
-
-	// Release should not be called
-	release := func(r *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return func() E.Either[error, any] {
-					releaseCalled = true
-					return E.Right[error, any](nil)
-				}
-			}
-		}
-	}
-
-	result := Bracket(acquire, use, release)
-	outcome := result(outer)(inner)()
-
-	assert.Equal(t, E.Left[string](acquireErr), outcome)
-	assert.False(t, resource.acquired, "Resource should not be acquired")
-	assert.False(t, useCalled, "Use should not be called when acquire fails")
-	assert.False(t, releaseCalled, "Release should not be called when acquire fails")
-}
-
-func TestBracketReleaseReceivesResult(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "pool1"}
-	inner := BracketInnerCtx{timeout: 30}
-
-	resource := &Resource{id: "res1"}
-	var capturedResult E.Either[error, string]
-
-	// Acquire resource
-	acquire := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return func() E.Either[error, *Resource] {
-				resource.acquired = true
-				return E.Right[error](resource)
-			}
-		}
-	}
-
-	// Use resource
-	use := func(r *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-				return IOE.Of[error]("use result")
-			}
-		}
-	}
-
-	// Release captures the result
-	release := func(r *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return func() E.Either[error, any] {
-					capturedResult = result
-					r.released = true
-					return E.Right[error, any](nil)
-				}
-			}
-		}
-	}
-
-	result := Bracket(acquire, use, release)
-	outcome := result(outer)(inner)()
-
-	assert.Equal(t, E.Right[error]("use result"), outcome)
-	assert.Equal(t, E.Right[error]("use result"), capturedResult)
-	assert.True(t, resource.released, "Resource should be released")
-}
-
-func TestBracketWithContextAccess(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "production"}
-	inner := BracketInnerCtx{timeout: 60}
-
-	resource := &Resource{id: "res1"}
-
-	// Acquire uses outer context
-	acquire := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return func() E.Either[error, *Resource] {
-				resource.id = o.resourcePool + "-resource"
-				resource.acquired = true
-				return E.Right[error](resource)
-			}
-		}
-	}
-
-	// Use uses inner context
-	use := func(r *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-				return func() E.Either[error, string] {
-					result := r.id + " with timeout " + string(rune(i.timeout+'0'))
-					return E.Right[error](result)
-				}
-			}
-		}
-	}
-
-	// Release uses both contexts
-	release := func(r *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return func() E.Either[error, any] {
-					r.released = true
-					return E.Right[error, any](nil)
-				}
-			}
-		}
-	}
-
-	result := Bracket(acquire, use, release)
-	outcome := result(outer)(inner)()
-
-	assert.True(t, E.IsRight(outcome))
-	assert.True(t, resource.acquired)
-	assert.True(t, resource.released)
-	assert.Equal(t, "production-resource", resource.id)
-}
-
-func TestBracketMultipleResources(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "pool1"}
-	inner := BracketInnerCtx{timeout: 30}
-
-	resource1 := &Resource{id: "res1"}
-	resource2 := &Resource{id: "res2"}
-
-	// Acquire first resource
-	acquire1 := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return func() E.Either[error, *Resource] {
-				resource1.acquired = true
-				return E.Right[error](resource1)
-			}
-		}
-	}
-
-	// Use first resource to acquire second
-	use1 := func(r1 *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		// Nested bracket for second resource
-		acquire2 := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-				return func() E.Either[error, *Resource] {
-					resource2.acquired = true
-					return E.Right[error](resource2)
-				}
-			}
-		}
-
-		use2 := func(r2 *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-			return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-				return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-					return IOE.Of[error](r1.id + " and " + r2.id)
-				}
-			}
-		}
-
-		release2 := func(r2 *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-			return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-				return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-					return func() E.Either[error, any] {
-						r2.released = true
-						return E.Right[error, any](nil)
-					}
-				}
-			}
-		}
-
-		return Bracket(acquire2, use2, release2)
-	}
-
-	release1 := func(r1 *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return func() E.Either[error, any] {
-					r1.released = true
-					return E.Right[error, any](nil)
-				}
-			}
-		}
-	}
-
-	result := Bracket(acquire1, use1, release1)
-	outcome := result(outer)(inner)()
-
-	assert.Equal(t, E.Right[error]("res1 and res2"), outcome)
-	assert.True(t, resource1.acquired && resource1.released, "Resource 1 should be acquired and released")
-	assert.True(t, resource2.acquired && resource2.released, "Resource 2 should be acquired and released")
-}
-
-func TestBracketReleaseErrorDoesNotAffectResult(t *testing.T) {
-	outer := BracketOuterCtx{resourcePool: "pool1"}
-	inner := BracketInnerCtx{timeout: 30}
-
-	resource := &Resource{id: "res1"}
 	releaseErr := errors.New("release failed")
 
-	// Acquire resource
-	acquire := func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, *Resource] {
-		return func(i BracketInnerCtx) IOE.IOEither[error, *Resource] {
-			return func() E.Either[error, *Resource] {
-				resource.acquired = true
-				return E.Right[error](resource)
+	tests := []struct {
+		name          string
+		useResult     Either[error, string]
+		releaseResult Either[error, F.Void]
+		expected      Either[error, string]
+	}{
+		{
+			name:          "use and release succeed",
+			useResult:     E.Right[error]("used"),
+			releaseResult: E.Right[error](F.VOID),
+			expected:      E.Right[error]("used"),
+		},
+		{
+			name:          "use fails, release succeeds",
+			useResult:     E.Left[string](useErr),
+			releaseResult: E.Right[error](F.VOID),
+			expected:      E.Left[string](useErr),
+		},
+		{
+			name:          "use succeeds, release fails",
+			useResult:     E.Right[error]("used"),
+			releaseResult: E.Left[F.Void](releaseErr),
+			expected:      E.Left[string](releaseErr),
+		},
+		{
+			name:          "use and release fail, release error wins",
+			useResult:     E.Left[string](useErr),
+			releaseResult: E.Left[F.Void](releaseErr),
+			expected:      E.Left[string](releaseErr),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := &bracketRecorder{}
+			resource := bracketRes{id: "res1"}
+
+			var (
+				usedWith     bracketRes
+				releasedWith bracketRes
+				outcome      Either[error, string]
+			)
+
+			use := func(r bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+				usedWith = r
+				return recordStep(rec, "use", tt.useResult)
+			}
+
+			release := func(r bracketRes, result Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+				releasedWith = r
+				outcome = result
+				return recordStep(rec, "release", tt.releaseResult)
+			}
+
+			program := Bracket(recordStep(rec, "acquire", E.Right[error](resource)), use, release)
+
+			assert.Equal(t, tt.expected, program(testBracketEnv)(testBracketCtx)())
+			assert.Equal(t, []string{"acquire", "use", "release"}, rec.names())
+			assert.Equal(t, resource, usedWith, "use must receive the acquired resource")
+			assert.Equal(t, resource, releasedWith, "release must receive the acquired resource")
+			assert.Equal(t, tt.useResult, outcome, "release must receive the outcome of use")
+		})
+	}
+}
+
+// TestBracketAcquireFailure verifies that neither use nor release run if acquire fails
+func TestBracketAcquireFailure(t *testing.T) {
+	rec := &bracketRecorder{}
+	acquireErr := errors.New("acquire failed")
+
+	use := func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+		return recordStep(rec, "use", E.Right[error]("used"))
+	}
+
+	release := func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+		return recordStep(rec, "release", E.Right[error](F.VOID))
+	}
+
+	program := Bracket(recordStep(rec, "acquire", E.Left[bracketRes](acquireErr)), use, release)
+
+	assert.Equal(t, E.Left[string](acquireErr), program(testBracketEnv)(testBracketCtx)())
+	assert.Equal(t, []string{"acquire"}, rec.names())
+}
+
+// TestBracketEnvironments verifies that acquire, use and release all see both environments
+func TestBracketEnvironments(t *testing.T) {
+	rec := &bracketRecorder{}
+	env := bracketEnv{pool: "production"}
+	ctx := bracketCtx{timeout: 60}
+
+	// acquire derives the resource from the outer environment
+	acquire := F.Pipe1(
+		Asks[bracketCtx, error](func(e bracketEnv) bracketRes {
+			return bracketRes{id: e.pool + "-resource"}
+		}),
+		ChainFirst(func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+			return recordStep(rec, "acquire", E.Right[error](F.VOID))
+		}),
+	)
+
+	use := func(r bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+		return recordStep(rec, "use", E.Right[error](r.id))
+	}
+
+	release := func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+		return recordStep(rec, "release", E.Right[error](F.VOID))
+	}
+
+	result := Bracket(acquire, use, release)(env)(ctx)()
+
+	assert.Equal(t, E.Right[error]("production-resource"), result)
+	assert.Equal(t, []bracketEvent{
+		{name: "acquire", env: env, ctx: ctx},
+		{name: "use", env: env, ctx: ctx},
+		{name: "release", env: env, ctx: ctx},
+	}, rec.events)
+}
+
+// TestBracketIsLazy verifies that no step runs before the IO is executed and that every
+// execution acquires and releases a fresh resource
+func TestBracketIsLazy(t *testing.T) {
+	rec := &bracketRecorder{}
+
+	use := func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+		return recordStep(rec, "use", E.Right[error]("used"))
+	}
+
+	release := func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+		return recordStep(rec, "release", E.Right[error](F.VOID))
+	}
+
+	io := Bracket(recordStep(rec, "acquire", E.Right[error](bracketRes{id: "res1"})), use, release)(testBracketEnv)(testBracketCtx)
+
+	assert.Empty(t, rec.events, "no step must run before the IO is executed")
+
+	assert.Equal(t, E.Right[error]("used"), io())
+	assert.Equal(t, E.Right[error]("used"), io())
+	assert.Equal(t, []string{"acquire", "use", "release", "acquire", "use", "release"}, rec.names())
+}
+
+// TestBracketNested verifies that nested brackets release their resources in reverse order
+// of acquisition, also if the innermost step fails
+func TestBracketNested(t *testing.T) {
+	expected := []string{"acquire outer", "acquire inner", "use", "release inner", "release outer"}
+
+	tests := []struct {
+		name      string
+		useResult Either[error, string]
+	}{
+		{name: "success", useResult: E.Right[error]("used")},
+		{name: "failure", useResult: E.Left[string](errors.New("inner failed"))},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := &bracketRecorder{}
+
+			releaseAs := func(name string) func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+				return func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+					return recordStep(rec, name, E.Right[error](F.VOID))
+				}
+			}
+
+			useOuter := func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+				return Bracket(
+					recordStep(rec, "acquire inner", E.Right[error](bracketRes{id: "inner"})),
+					func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+						return recordStep(rec, "use", tt.useResult)
+					},
+					releaseAs("release inner"),
+				)
+			}
+
+			program := Bracket(
+				recordStep(rec, "acquire outer", E.Right[error](bracketRes{id: "outer"})),
+				useOuter,
+				releaseAs("release outer"),
+			)
+
+			assert.Equal(t, tt.useResult, program(testBracketEnv)(testBracketCtx)())
+			assert.Equal(t, expected, rec.names())
+		})
+	}
+}
+
+// TestBracketNestedInnerAcquireFailure verifies that the outer resource is released if the
+// inner resource cannot be acquired, while the inner release does not run
+func TestBracketNestedInnerAcquireFailure(t *testing.T) {
+	rec := &bracketRecorder{}
+	acquireErr := errors.New("inner acquire failed")
+
+	useOuter := func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+		return Bracket(
+			recordStep(rec, "acquire inner", E.Left[bracketRes](acquireErr)),
+			func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+				return recordStep(rec, "use", E.Right[error]("used"))
+			},
+			func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+				return recordStep(rec, "release inner", E.Right[error](F.VOID))
+			},
+		)
+	}
+
+	var outerOutcome Either[error, string]
+
+	program := Bracket(
+		recordStep(rec, "acquire outer", E.Right[error](bracketRes{id: "outer"})),
+		useOuter,
+		func(_ bracketRes, result Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+			outerOutcome = result
+			return recordStep(rec, "release outer", E.Right[error](F.VOID))
+		},
+	)
+
+	assert.Equal(t, E.Left[string](acquireErr), program(testBracketEnv)(testBracketCtx)())
+	assert.Equal(t, []string{"acquire outer", "acquire inner", "release outer"}, rec.names())
+	assert.Equal(t, E.Left[string](acquireErr), outerOutcome)
+}
+
+// TestBracketReleaseReceivesOutcome verifies that release receives the exact Either[E, B]
+// that use produced — Right with the computed value on success, Left with the error on failure.
+func TestBracketReleaseReceivesOutcome(t *testing.T) {
+	t.Run("release receives Right outcome when use succeeds", func(t *testing.T) {
+		var capturedOutcome Either[error, string]
+		resource := bracketRes{id: "r1"}
+
+		use := func(r bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+			return Right[bracketEnv, bracketCtx, error]("ok")
+		}
+
+		release := func(r bracketRes, outcome Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+			capturedOutcome = outcome
+			return Right[bracketEnv, bracketCtx, error](F.VOID)
+		}
+
+		program := Bracket(Right[bracketEnv, bracketCtx, error](resource), use, release)
+		program(testBracketEnv)(testBracketCtx)()
+
+		assert.Equal(t, E.Right[error]("ok"), capturedOutcome)
+	})
+
+	t.Run("release receives Left outcome when use fails", func(t *testing.T) {
+		var capturedOutcome Either[error, string]
+		useErr := errors.New("use error")
+		resource := bracketRes{id: "r1"}
+
+		use := func(r bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+			return Left[bracketEnv, bracketCtx, string](useErr)
+		}
+
+		release := func(r bracketRes, outcome Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+			capturedOutcome = outcome
+			return Right[bracketEnv, bracketCtx, error](F.VOID)
+		}
+
+		program := Bracket(Right[bracketEnv, bracketCtx, error](resource), use, release)
+		program(testBracketEnv)(testBracketCtx)()
+
+		assert.Equal(t, E.Left[string](useErr), capturedOutcome)
+	})
+}
+
+// TestBracketResourceIdentity verifies that use and release receive the identical resource
+// value that acquire produced (pointer/value equality, not just structural equality).
+func TestBracketResourceIdentity(t *testing.T) {
+	type heap struct{ id int }
+
+	acquired := &heap{id: 42}
+	var usedPtr, releasedPtr *heap
+
+	acquire := Right[bracketEnv, bracketCtx, error](acquired)
+
+	use := func(r *heap) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+		usedPtr = r
+		return Right[bracketEnv, bracketCtx, error]("done")
+	}
+
+	release := func(r *heap, _ Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+		releasedPtr = r
+		return Right[bracketEnv, bracketCtx, error](F.VOID)
+	}
+
+	Bracket(acquire, use, release)(testBracketEnv)(testBracketCtx)()
+
+	assert.Same(t, acquired, usedPtr, "use must receive the exact resource pointer from acquire")
+	assert.Same(t, acquired, releasedPtr, "release must receive the exact resource pointer from acquire")
+}
+
+// TestBracketReleaseRunsBeforeResultPropagates verifies that the release step is fully
+// executed before the final result is returned to the caller.
+func TestBracketReleaseRunsBeforeResultPropagates(t *testing.T) {
+	var order []string
+
+	use := func(bracketRes) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+		return func(env bracketEnv) ReaderIOEither[bracketCtx, error, string] {
+			return func(ctx bracketCtx) IOEither[error, string] {
+				return func() Either[error, string] {
+					order = append(order, "use")
+					return E.Right[error]("result")
+				}
 			}
 		}
 	}
 
-	// Use resource successfully
-	use := func(r *Resource) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, string] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, string] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, string] {
-				return IOE.Of[error]("use success")
+	release := func(bracketRes, Either[error, string]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, F.Void] {
+		return func(env bracketEnv) ReaderIOEither[bracketCtx, error, F.Void] {
+			return func(ctx bracketCtx) IOEither[error, F.Void] {
+				return func() Either[error, F.Void] {
+					order = append(order, "release")
+					return E.Right[error](F.VOID)
+				}
 			}
 		}
 	}
 
-	// Release fails but shouldn't affect the result
-	release := func(r *Resource, result E.Either[error, string]) ReaderReaderIOEither[BracketOuterCtx, BracketInnerCtx, error, any] {
-		return func(o BracketOuterCtx) ReaderIOEither[BracketInnerCtx, error, any] {
-			return func(i BracketInnerCtx) IOE.IOEither[error, any] {
-				return IOE.Left[any](releaseErr)
+	program := Bracket(Right[bracketEnv, bracketCtx, error](bracketRes{id: "r"}), use, release)
+	result := program(testBracketEnv)(testBracketCtx)()
+
+	assert.Equal(t, []string{"use", "release"}, order, "release must run before result is returned")
+	assert.Equal(t, E.Right[error]("result"), result)
+}
+
+// TestMonadChainReaderReaderIO verifies that monadChainReaderReaderIO threads the full Either[E, A] into the
+// continuation — it must run the continuation for both Right and Left values.
+func TestMonadChainReaderReaderIO(t *testing.T) {
+	t.Run("continuation receives Right value", func(t *testing.T) {
+		var received Either[error, int]
+
+		fa := Right[bracketEnv, bracketCtx, error](42)
+		result := monadChainReaderReaderIO(fa, func(e Either[error, int]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+			received = e
+			return Right[bracketEnv, bracketCtx, error]("ok")
+		})
+
+		assert.Equal(t, E.Right[error]("ok"), result(testBracketEnv)(testBracketCtx)())
+		assert.Equal(t, E.Right[error](42), received)
+	})
+
+	t.Run("continuation receives Left value — runs even when fa is Left", func(t *testing.T) {
+		err := errors.New("original")
+		var received Either[error, int]
+
+		fa := Left[bracketEnv, bracketCtx, int](err)
+		result := monadChainReaderReaderIO(fa, func(e Either[error, int]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+			received = e
+			return Right[bracketEnv, bracketCtx, error]("recovered")
+		})
+
+		assert.Equal(t, E.Right[error]("recovered"), result(testBracketEnv)(testBracketCtx)())
+		assert.Equal(t, E.Left[int](err), received)
+	})
+
+	t.Run("continuation can itself return Left", func(t *testing.T) {
+		contErr := errors.New("cont error")
+		fa := Right[bracketEnv, bracketCtx, error](1)
+
+		result := monadChainReaderReaderIO(fa, func(_ Either[error, int]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+			return Left[bracketEnv, bracketCtx, string](contErr)
+		})
+
+		assert.Equal(t, E.Left[string](contErr), result(testBracketEnv)(testBracketCtx)())
+	})
+
+	t.Run("continuation receives both environments", func(t *testing.T) {
+		env := bracketEnv{pool: "prod"}
+		ctx := bracketCtx{timeout: 99}
+
+		fa := Right[bracketEnv, bracketCtx, error](0)
+		result := monadChainReaderReaderIO(fa, func(_ Either[error, int]) ReaderReaderIOEither[bracketEnv, bracketCtx, error, string] {
+			return func(e bracketEnv) ReaderIOEither[bracketCtx, error, string] {
+				return func(c bracketCtx) IOEither[error, string] {
+					return Right[struct{}, struct{}, error](
+						e.pool + ":" + fmt.Sprintf("%d", c.timeout),
+					)(struct{}{})(struct{}{})
+				}
 			}
-		}
-	}
+		})
 
-	result := Bracket(acquire, use, release)
-	outcome := result(outer)(inner)()
-
-	// The use result should be returned, not the release error
-	// (This behavior depends on the Bracket implementation in readerioeither)
-	assert.True(t, E.IsRight(outcome) || E.IsLeft(outcome))
-	assert.True(t, resource.acquired)
+		assert.Equal(t, E.Right[error]("prod:99"), result(env)(ctx)())
+	})
 }
