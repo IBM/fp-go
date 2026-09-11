@@ -38,13 +38,13 @@ func TestExtract(t *testing.T) {
 	})
 
 	t.Run("Extract from empty array returns zero value", func(t *testing.T) {
-		input := []int{}
+		input := Empty[[]int, int]()
 		result := Extract(input)
 		assert.Equal(t, 0, result)
 	})
 
 	t.Run("Extract from empty string array returns empty string", func(t *testing.T) {
-		input := []string{}
+		input := Empty[[]string, string]()
 		result := Extract(input)
 		assert.Equal(t, "", result)
 	})
@@ -122,9 +122,9 @@ func TestExtend(t *testing.T) {
 	})
 
 	t.Run("Extend with empty array", func(t *testing.T) {
-		input := []int{}
+		input := Empty[[]int, int]()
 		result := Extend[[]int, []int](Size[[]int, int])(input)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, IsEmpty(result))
 	})
 
 	t.Run("Extend with single element", func(t *testing.T) {

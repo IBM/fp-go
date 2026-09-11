@@ -741,3 +741,60 @@ func ExampleSecondsDuration_roundTrip() {
 	// 42
 	// true
 }
+
+// ---------------------------------------------------------------------------
+// EmptyToNil
+// ---------------------------------------------------------------------------
+
+// ExampleEmptyToNil demonstrates the EmptyToNil isomorphism: both Get and
+// ReverseGet normalise an empty (or nil) slice to nil and leave non-empty
+// slices unchanged.
+func ExampleEmptyToNil() {
+	iso := EmptyToNil[int]()
+
+	// nil → nil (Get)
+	fmt.Println(iso.Get(nil) == nil)
+
+	// empty non-nil → nil (Get)
+	fmt.Println(iso.Get([]int{}) == nil)
+
+	// non-empty → unchanged (Get)
+	fmt.Println(iso.Get([]int{1, 2, 3}))
+
+	// nil → nil (ReverseGet — same normalisation)
+	fmt.Println(iso.ReverseGet(nil) == nil)
+
+	// empty non-nil → nil (ReverseGet)
+	fmt.Println(iso.ReverseGet([]int{}) == nil)
+
+	// non-empty → unchanged (ReverseGet)
+	fmt.Println(iso.ReverseGet([]int{4, 5}))
+	// Output:
+	// true
+	// true
+	// [1 2 3]
+	// true
+	// true
+	// [4 5]
+}
+
+// ExampleEmptyToNil_roundTrip demonstrates the round-trip laws for EmptyToNil.
+// Note that []int{} and nil are identified by this iso.
+func ExampleEmptyToNil_roundTrip() {
+	iso := EmptyToNil[int]()
+
+	// Get(ReverseGet(s)) == s for non-empty s
+	fmt.Println(iso.Get(iso.ReverseGet([]int{1, 2, 3})))
+
+	// ReverseGet(Get(s)) == s for non-empty s
+	fmt.Println(iso.ReverseGet(iso.Get([]int{7, 8})))
+
+	// []int{} and nil are identified: both map to nil
+	fmt.Println(iso.Get([]int{}) == nil)
+	fmt.Println(iso.ReverseGet(iso.Get([]int{})) == nil)
+	// Output:
+	// [1 2 3]
+	// [7 8]
+	// true
+	// true
+}

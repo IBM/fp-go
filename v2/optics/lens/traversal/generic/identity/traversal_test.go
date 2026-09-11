@@ -95,7 +95,8 @@ func TestCompose_Success(t *testing.T) {
 		result := memberTraversal(strings.ToUpper)(team)
 
 		// Assert
-		assert.Equal(t, team, result)
+		assert.Equal(t, team.Name, result.Name)
+		assert.True(t, AR.IsEmpty(result.Members))
 	})
 
 	t.Run("composes lens with array traversal to transform numbers", func(t *testing.T) {

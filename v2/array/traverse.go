@@ -57,6 +57,8 @@ import (
 //	result := parseAll([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result2 := parseAll([]string{"1", "x", "3"}) // None
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof pointed.OfType[[]B, HKTRB],
@@ -73,6 +75,8 @@ func Traverse[A, B, HKTB, HKTAB, HKTRB any](
 //
 // This is useful when you want to apply the traverse operation directly without currying.
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
 	fof pointed.OfType[[]B, HKTRB],
@@ -85,6 +89,10 @@ func MonadTraverse[A, B, HKTB, HKTAB, HKTRB any](
 	return array.MonadTraverse(fof, fmap, fap, ta, f)
 }
 
+// TraverseWithIndex is like Traverse but the transformation function also receives the index.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
 	fof pointed.OfType[[]B, HKTRB],
@@ -95,6 +103,10 @@ func TraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
 	return array.TraverseWithIndex[[]A](fof, fmap, fap, f)
 }
 
+// MonadTraverseWithIndex is like MonadTraverse but the transformation function also receives the index.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func MonadTraverseWithIndex[A, B, HKTB, HKTAB, HKTRB any](
 	fof pointed.OfType[[]B, HKTRB],

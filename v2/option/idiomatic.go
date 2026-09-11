@@ -144,6 +144,8 @@ func TraverseIterI[A, B any](f KleisliI[A, B]) Kleisli[Seq[A], Seq[B]] {
 //	}
 //	TraverseArrayI(parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	TraverseArrayI(parse)([]string{"1", "x", "3"}) // None
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayI[A, B any](f KleisliI[A, B]) Kleisli[[]A, []B] {
 	return TraverseArray(FromValidation(f))
 }

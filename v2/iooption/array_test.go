@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +58,8 @@ func TestTraverseArray_EmptyArray(t *testing.T) {
 	input := []int{}
 	result := TraverseArray(f)(input)()
 
-	assert.Equal(t, O.Some([]int{}), result)
+	assert.True(t, O.IsSome(result))
+	assert.True(t, A.IsEmpty(O.GetOrElse(func() []int { return []int{1} })(result)))
 }
 
 func TestTraverseArrayWithIndex_Success(t *testing.T) {
@@ -93,7 +95,8 @@ func TestTraverseArrayWithIndex_EmptyArray(t *testing.T) {
 	input := []int{}
 	result := TraverseArrayWithIndex(f)(input)()
 
-	assert.Equal(t, O.Some([]int{}), result)
+	assert.True(t, O.IsSome(result))
+	assert.True(t, A.IsEmpty(O.GetOrElse(func() []int { return []int{1} })(result)))
 }
 
 func TestSequenceArray_AllSome(t *testing.T) {
@@ -125,7 +128,8 @@ func TestSequenceArray_Empty(t *testing.T) {
 
 	result := SequenceArray(input)()
 
-	assert.Equal(t, O.Some([]int{}), result)
+	assert.True(t, O.IsSome(result))
+	assert.True(t, A.IsEmpty(O.GetOrElse(func() []int { return []int{1} })(result)))
 }
 
 func TestSequenceArray_AllNone(t *testing.T) {

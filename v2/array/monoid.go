@@ -23,13 +23,14 @@ import (
 )
 
 // Monoid returns a Monoid instance for arrays.
-// The Monoid combines arrays through concatenation, with an empty array as the identity element.
+// The Monoid combines arrays through concatenation, with the empty array as the identity element.
+// The identity is represented as nil, so Empty() returns nil.
 //
 // Example:
 //
 //	m := array.Monoid[int]()
 //	result := m.Concat([]int{1, 2}, []int{3, 4}) // [1, 2, 3, 4]
-//	empty := m.Empty() // []
+//	empty := m.Empty() // nil
 //
 //go:inline
 func Monoid[T any]() M.Monoid[[]T] {

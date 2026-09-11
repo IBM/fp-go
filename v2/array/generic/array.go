@@ -80,10 +80,13 @@ func From[GA ~[]A, A any](data ...A) GA {
 }
 
 // MakeBy returns a `Array` of length `n` with element `i` initialized with `f(i)`.
+// Returns nil (the canonical empty array) if n <= 0.
 func MakeBy[AS ~[]A, F ~func(int) A, A any](n int, f F) AS {
 	return array.MakeBy[AS](n, f)
 }
 
+// Replicate returns an array containing n copies of a.
+// Returns nil (the canonical empty array) if n <= 0.
 func Replicate[AS ~[]A, A any](n int, a A) AS {
 	return MakeBy[AS](n, F.Constant1[int](a))
 }
@@ -130,6 +133,7 @@ func Append[GA ~[]A, A any](as GA, a A) GA {
 	return array.Append(as, a)
 }
 
+// Empty returns nil, the canonical representation of the empty array.
 func Empty[GA ~[]A, A any]() GA {
 	return array.Empty[GA]()
 }
@@ -170,7 +174,7 @@ func filterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
 			result = append(result, b)
 		}
 	}
-	return result
+	return array.EmptyToNil(result)
 }
 
 func filterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(int, A) O.Option[B]) GB {
@@ -180,7 +184,7 @@ func filterMapWithIndex[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(int, A) O.Opti
 			result = append(result, b)
 		}
 	}
-	return result
+	return array.EmptyToNil(result)
 }
 
 func MonadFilterMap[GA ~[]A, GB ~[]B, A, B any](fa GA, f func(A) O.Option[B]) GB {
@@ -198,7 +202,7 @@ func filterWithIndex[AS ~[]A, PRED ~func(int, A) bool, A any](fa AS, pred PRED) 
 			result = append(result, a)
 		}
 	}
-	return result
+	return array.EmptyToNil(result)
 }
 
 func FilterWithIndex[AS ~[]A, PRED ~func(int, A) bool, A any](pred PRED) func(AS) AS {
@@ -397,11 +401,19 @@ func MatchLeft[AS ~[]A, A, B any](onEmpty func() B, onNonEmpty func(A, AS) B) fu
 	}
 }
 
+// Slice returns a function that extracts the subarray [start, end).
+// Negative indices count backward from the end of the array.
+// The function returns nil (the canonical empty array) when the resulting range is empty.
+//
 //go:inline
 func Slice[AS ~[]A, A any](start, end int) func(AS) AS {
 	return array.Slice[AS](start, end)
 }
 
+// SliceRight returns a function that extracts the suffix of an array starting at start.
+// Negative indices count backward from the end of the array.
+// The function returns nil (the canonical empty array) when start is at or beyond the end.
+//
 //go:inline
 func SliceRight[AS ~[]A, A any](start int) func(AS) AS {
 	return array.SliceRight[AS](start)
@@ -555,7 +567,7 @@ func Extract[GA ~[]A, A any](as GA) A {
 // Behavior:
 //   - Creates a new array with the same length as the input
 //   - For each position i, applies f to the suffix starting at i
-//   - Returns an empty array if the input is empty
+//   - Returns nil (the canonical empty array) if the input is empty
 //
 // Example:
 //

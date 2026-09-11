@@ -21,6 +21,7 @@ import (
 
 	EQ "github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/array"
 	"github.com/IBM/fp-go/v2/internal/functor"
 	"github.com/IBM/fp-go/v2/internal/pointed"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,9 @@ func SequenceArrayTest[
 				good,
 				seq,
 				faa.Map(func(act []string) bool {
+					if array.IsEmpty[[]string, string](exp) {
+						return assert.True(t, array.IsEmpty[[]string, string](act))
+					}
 					return assert.Equal(t, exp, act)
 				}),
 			)

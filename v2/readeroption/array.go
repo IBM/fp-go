@@ -38,6 +38,8 @@ import (
 //	    readeroption.Chain(readeroption.TraverseArray[DB](findUser)),
 //	)
 //	// result will be Some([]User) if all users are found, None otherwise
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return G.TraverseArray[ReaderOption[E, B], ReaderOption[E, []B], []A](f)
 }
@@ -55,6 +57,8 @@ func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 //
 //	values := []string{"a", "b", "c"}
 //	result := readeroption.TraverseArrayWithIndex[DB](processWithIndex)(values)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[E, A, B any](f func(int, A) ReaderOption[E, B]) func([]A) ReaderOption[E, []B] {
 	return G.TraverseArrayWithIndex[ReaderOption[E, B], ReaderOption[E, []B], []A](f)
 }
@@ -83,6 +87,8 @@ func TraverseArrayWithIndex[E, A, B any](f func(int, A) ReaderOption[E, B]) func
 //	    user1, user2,
 //	})
 //	// result2(config) will be option.Some([]User{{ID: 1, Name: "Alice"}, {ID: 2, Name: "Bob"}})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[E, A any](ma []ReaderOption[E, A]) ReaderOption[E, []A] {
 	return G.SequenceArray[ReaderOption[E, A], ReaderOption[E, []A]](ma)
 }

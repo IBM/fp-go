@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	RA "github.com/IBM/fp-go/v2/internal/array"
 	"github.com/IBM/fp-go/v2/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -95,7 +96,9 @@ func TestTraverseArrayI(t *testing.T) {
 	parse := TraverseArrayI(parseInt)
 	assert.Equal(t, Some([]int{1, 2, 3}), parse([]string{"1", "2", "3"}))
 	assert.Equal(t, None[[]int](), parse([]string{"1", "x", "3"}))
-	assert.Equal(t, Some([]int{}), parse([]string{}))
+	empty := parse([]string{})
+	assert.True(t, IsSome(empty))
+	assert.True(t, RA.IsEmpty(GetOrElse(func() []int { return []int{1} })(empty)))
 }
 
 func TestTraverseIterI_AllSome(t *testing.T) {

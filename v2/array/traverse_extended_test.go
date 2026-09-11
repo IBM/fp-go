@@ -39,7 +39,7 @@ func TestMonadTraverse(t *testing.T) {
 	)
 
 	assert.True(t, O.IsSome(result))
-	assert.Equal(t, []string{"1", "2", "3"}, O.GetOrElse(func() []string { return []string{} })(result))
+	assert.Equal(t, []string{"1", "2", "3"}, O.GetOrElse(func() []string { return Empty[string]() })(result))
 
 	// Test with a function that can return None
 	result2 := MonadTraverse(
@@ -57,8 +57,8 @@ func TestMonadTraverse(t *testing.T) {
 
 	assert.True(t, O.IsNone(result2))
 
-	// Test with empty array
-	empty := []int{}
+	// Test with empty array — traversing an empty input yields Some of an empty slice
+	empty := Empty[int]()
 	result3 := MonadTraverse(
 		O.Of[[]string],
 		O.Map[[]string, func(string) []string],
@@ -70,7 +70,7 @@ func TestMonadTraverse(t *testing.T) {
 	)
 
 	assert.True(t, O.IsSome(result3))
-	assert.Equal(t, []string{}, O.GetOrElse(func() []string { return nil })(result3))
+	assert.True(t, IsEmpty(O.GetOrElse(func() []string { return []string{"fallback"} })(result3)))
 }
 
 // TestTraverseWithIndex tests the TraverseWithIndex function
@@ -89,7 +89,7 @@ func TestTraverseWithIndex(t *testing.T) {
 
 	result := traverser(words)
 	assert.True(t, O.IsSome(result))
-	assert.Equal(t, []string{"a0", "b1", "c2"}, O.GetOrElse(func() []string { return []string{} })(result))
+	assert.Equal(t, []string{"a0", "b1", "c2"}, O.GetOrElse(func() []string { return Empty[string]() })(result))
 
 	// Test with conditional None based on index
 	traverser2 := TraverseWithIndex(
@@ -125,7 +125,7 @@ func TestMonadTraverseWithIndex(t *testing.T) {
 
 	assert.True(t, O.IsSome(result))
 	// Expected: [10*0, 20*1, 30*2] = ["0", "20", "60"]
-	assert.Equal(t, []string{"0", "20", "60"}, O.GetOrElse(func() []string { return []string{} })(result))
+	assert.Equal(t, []string{"0", "20", "60"}, O.GetOrElse(func() []string { return Empty[string]() })(result))
 
 	// Test with None at specific index
 	result2 := MonadTraverseWithIndex(
@@ -160,5 +160,5 @@ func TestMakeTraverseType(t *testing.T) {
 	})(numbers)
 
 	assert.True(t, O.IsSome(result))
-	assert.Equal(t, []string{"2", "4", "6"}, O.GetOrElse(func() []string { return []string{} })(result))
+	assert.Equal(t, []string{"2", "4", "6"}, O.GetOrElse(func() []string { return Empty[string]() })(result))
 }

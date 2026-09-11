@@ -28,8 +28,13 @@ package option
 //	}
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
 	return func(g GA) (GB, bool) {
+		if len(g) == 0 {
+			return nil, true
+		}
 		bs := make(GB, len(g))
 		for i, a := range g {
 			b, bok := f(a)
@@ -50,6 +55,8 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //	validate := F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))
 //	result := TraverseArray(validate)([]int{1, 2, 3}) // Some([2, 4, 6])
 //	result := TraverseArray(validate)([]int{1, -1, 3}) // None
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return TraverseArrayG[[]A, []B](f)
 }
@@ -64,8 +71,13 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //	    return Some(fmt.Sprintf("%d:%s", i, s))
 //	}
 //	result := TraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // Some(["0:a", "1:b"])
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) (B, bool)) Kleisli[GA, GB] {
 	return func(g GA) (GB, bool) {
+		if len(g) == 0 {
+			return nil, true
+		}
 		bs := make(GB, len(g))
 		for i, a := range g {
 			b, bok := f(i, a)
@@ -88,6 +100,8 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) (B, bool
 //	    return None[int]()
 //	}
 //	result := TraverseArrayWithIndex(f)([]int{1, 2, 3}) // Some([1, 2, 3])
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[A, B any](f func(int, A) (B, bool)) Kleisli[[]A, []B] {
 	return TraverseArrayWithIndexG[[]A, []B](f)
 }

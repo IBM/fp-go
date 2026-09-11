@@ -270,7 +270,8 @@ func TestEmptyItemProvider(t *testing.T) {
 
 	value := multiInj()
 
-	assert.Equal(t, result.Of(A.Empty[string]()), value)
+	assert.True(t, result.IsRight(value))
+	assert.True(t, A.IsEmpty(result.GetOrElse(func(error) []string { return nil })(value)))
 }
 
 func TestDependencyOnMultiProvider(t *testing.T) {

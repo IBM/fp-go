@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	O "github.com/IBM/fp-go/v2/option"
 	"github.com/stretchr/testify/assert"
@@ -63,8 +64,9 @@ func TestTraverseArray_EmptyArray(t *testing.T) {
 	input := []int{}
 	result := TraverseArray(double)(input)
 
-	expected := O.Of([]int{})
-	assert.Equal(t, expected, result(context.Background())())
+	actual := result(context.Background())()
+	assert.True(t, O.IsSome(actual))
+	assert.True(t, A.IsEmpty(O.GetOrElse(func() []int { return nil })(actual)))
 }
 
 func TestTraverseArray_WithEnvironment(t *testing.T) {
@@ -151,8 +153,9 @@ func TestTraverseArrayWithIndex_EmptyArray(t *testing.T) {
 	input := []string{}
 	result := TraverseArrayWithIndex(addIndex)(input)
 
-	expected := O.Of([]string{})
-	assert.Equal(t, expected, result(context.Background())())
+	actual := result(context.Background())()
+	assert.True(t, O.IsSome(actual))
+	assert.True(t, A.IsEmpty(O.GetOrElse(func() []string { return nil })(actual)))
 }
 
 func TestTraverseArrayWithIndex_WithEnvironment(t *testing.T) {

@@ -44,6 +44,8 @@ import (
 //	result := fetchUsers([]int{1, 2, 3})
 //	// result(cfg)() returns [user1, user2, user3]
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[R, A, B any](f func(A) ReaderIO[R, B]) func([]A) ReaderIO[R, []B] {
 	return G.TraverseArray[ReaderIO[R, B], ReaderIO[R, []B], IO[B], IO[[]B], []A](f)
@@ -70,6 +72,8 @@ func TraverseArray[R, A, B any](f func(A) ReaderIO[R, B]) func([]A) ReaderIO[R, 
 //	processWithIndex := TraverseArrayWithIndex(func(i int, val string) ReaderIO[Config, string] {
 //	    return Of[Config](fmt.Sprintf("%d: %s", i, val))
 //	})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIO[R, B]) func([]A) ReaderIO[R, []B] {
@@ -101,6 +105,8 @@ func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIO[R, B]) func([]A
 //	}
 //	result := SequenceArray(computations)
 //	// result(cfg)() returns [userCount, postCount, commentCount]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[R, A any](ma []ReaderIO[R, A]) ReaderIO[R, []A] {

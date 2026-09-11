@@ -50,6 +50,8 @@ import "github.com/IBM/fp-go/v2/context/readerreaderioresult"
 //	input := []string{"1", "2", "3"}
 //	eff := effect.TraverseArray[MyContext](parseIntEff)(input)
 //	// eff produces []int{1, 2, 3}
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[C, A, B any](f Kleisli[C, A, B]) Kleisli[C, []A, []B] {
 	return readerreaderioresult.TraverseArray(f)
 }

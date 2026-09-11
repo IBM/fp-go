@@ -23,6 +23,8 @@ import (
 )
 
 // MonadTraverseArray transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArray[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() either.Either[L, B], GIOBS ~func() either.Either[L, BBS], AAS ~[]A, BBS ~[]B, E, L, A, B any](ma AAS, f func(A) GB) GBS {
 	return RA.MonadTraverse(
 		Of[GBS, GIOBS, E, L, BBS],
@@ -34,6 +36,8 @@ func MonadTraverseArray[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() eithe
 }
 
 // TraverseArray transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() either.Either[L, B], GIOBS ~func() either.Either[L, BBS], AAS ~[]A, BBS ~[]B, E, L, A, B any](f func(A) GB) func(AAS) GBS {
 	return RA.Traverse[AAS](
 		Of[GBS, GIOBS, E, L, BBS],
@@ -45,6 +49,8 @@ func TraverseArray[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() either.Eit
 }
 
 // TraverseArrayWithIndex transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() either.Either[L, B], GIOBS ~func() either.Either[L, BBS], AAS ~[]A, BBS ~[]B, E, L, A, B any](f func(int, A) GB) func(AAS) GBS {
 	return RA.TraverseWithIndex[AAS](
 		Of[GBS, GIOBS, E, L, BBS],
@@ -56,6 +62,8 @@ func TraverseArrayWithIndex[GB ~func(E) GIOB, GBS ~func(E) GIOBS, GIOB ~func() e
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[GA ~func(E) GIOA, GAS ~func(E) GIOAS, GIOA ~func() either.Either[L, A], GIOAS ~func() either.Either[L, AAS], AAS ~[]A, GAAS ~[]GA, E, L, A any](ma GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](ma, F.Identity[GA])
 }

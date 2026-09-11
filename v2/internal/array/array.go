@@ -17,10 +17,14 @@ package array
 
 import "slices"
 
+// Of wraps a single value in a one-element array. The result is never nil.
 func Of[GA ~[]A, A any](a A) GA {
 	return GA{a}
 }
 
+// Slice returns a sub-slice of as in the half-open range [low, high).
+// Negative indices count backward from the end of the array.
+// Returns nil (representing an empty array) when the resulting range is empty.
 func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 	return func(as GA) GA {
 		length := len(as)
@@ -34,7 +38,7 @@ func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 		}
 
 		if low > length {
-			return Empty[GA]()
+			return nil
 		}
 
 		// End index > array length: slice to the end
@@ -44,13 +48,16 @@ func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 
 		// Start >= end: return empty array
 		if low >= high {
-			return Empty[GA]()
+			return nil
 		}
 
 		return as[low:high]
 	}
 }
 
+// SliceRight returns the suffix of as starting at start.
+// Negative indices count backward from the end of the array.
+// Returns nil (representing an empty array) when start is at or beyond the end.
 func SliceRight[GA ~[]A, A any](start int) func(as GA) GA {
 	return func(as GA) GA {
 		length := len(as)
@@ -60,9 +67,9 @@ func SliceRight[GA ~[]A, A any](start int) func(as GA) GA {
 			start = max(length+start, 0)
 		}
 
-		// Start index > array length: return empty array
-		if start > length {
-			return Empty[GA]()
+		// Start index >= array length: return empty array
+		if start >= length {
+			return nil
 		}
 
 		return as[start:]
@@ -71,6 +78,15 @@ func SliceRight[GA ~[]A, A any](start int) func(as GA) GA {
 
 func IsEmpty[GA ~[]A, A any](as GA) bool {
 	return len(as) == 0
+}
+
+// EmptyToNil returns nil if as is empty and as otherwise, normalising every
+// empty array to nil, the canonical representation of an empty array.
+func EmptyToNil[GA ~[]A, A any](as GA) GA {
+	if len(as) == 0 {
+		return nil
+	}
+	return as
 }
 
 func IsNil[GA ~[]A, A any](as GA) bool {
@@ -115,10 +131,14 @@ func ReduceRightWithIndex[GA ~[]A, A, B any](fa GA, f func(int, A, B) B, initial
 	return current
 }
 
+// Append appends a single element to as and returns the result.
+// The result is never nil.
 func Append[GA ~[]A, A any](as GA, a A) GA {
 	return append(as, a)
 }
 
+// Push appends a single element to a copy of as and returns the copy.
+// The result is never nil.
 func Push[GA ~[]A, A any](as GA, a A) GA {
 	l := len(as)
 	cpy := make(GA, l+1)
@@ -127,8 +147,9 @@ func Push[GA ~[]A, A any](as GA, a A) GA {
 	return cpy
 }
 
+// Empty returns nil, the canonical representation of an empty array.
 func Empty[GA ~[]A, A any]() GA {
-	return make(GA, 0)
+	return nil
 }
 
 func upsertAt[GA ~[]A, A any](fa GA, a A) GA {
@@ -137,12 +158,15 @@ func upsertAt[GA ~[]A, A any](fa GA, a A) GA {
 	return buf
 }
 
+// UpsertAt appends a at the end of a copy of ma. The result is never nil.
 func UpsertAt[GA ~[]A, A any](a A) func(GA) GA {
 	return func(ma GA) GA {
 		return upsertAt(ma, a)
 	}
 }
 
+// MonadMap applies f to every element of as and returns the results.
+// Returns nil (representing an empty array) when as is empty.
 func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	count := len(as)
 	// shortcut for empty list
@@ -157,12 +181,16 @@ func MonadMap[GA ~[]A, GB ~[]B, A, B any](as GA, f func(a A) B) GB {
 	return bs
 }
 
+// Map returns a curried form of MonadMap.
+// The returned function returns nil (representing an empty array) when its input is empty.
 func Map[GA ~[]A, GB ~[]B, A, B any](f func(a A) B) func(GA) GB {
 	return func(as GA) GB {
 		return MonadMap[GA, GB](as, f)
 	}
 }
 
+// MonadMapWithIndex applies f (with element index) to every element of as and returns the results.
+// Returns nil (representing an empty array) when as is empty.
 func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B) GB {
 	count := len(as)
 	// shortcut for empty lists
@@ -177,10 +205,14 @@ func MonadMapWithIndex[GA ~[]A, GB ~[]B, A, B any](as GA, f func(idx int, a A) B
 	return bs
 }
 
+// ConstNil always returns nil, the canonical representation of an empty array.
 func ConstNil[GA ~[]A, A any]() GA {
 	return GA(nil)
 }
 
+// Concat concatenates left and right into a new array.
+// When either side is empty it is returned directly, so the result may be nil
+// if that side was nil.
 func Concat[GT ~[]T, T any](left, right GT) GT {
 	// some performance checks
 	ll := len(left)
@@ -197,6 +229,9 @@ func Concat[GT ~[]T, T any](left, right GT) GT {
 	return buf
 }
 
+// Reverse returns a new array with elements in reversed order.
+// When as has zero or one elements it is returned as-is, so the result may be nil
+// if as was nil.
 func Reverse[GT ~[]T, T any](as GT) GT {
 	l := len(as)
 	if l <= 1 {
@@ -210,16 +245,20 @@ func Reverse[GT ~[]T, T any](as GT) GT {
 	return ras
 }
 
+// UnsafeUpdateAt returns a copy of as with the element at index i replaced by v.
+// The result is never nil.
 func UnsafeUpdateAt[GT ~[]T, T any](as GT, i int, v T) GT {
 	c := slices.Clone(as)
 	c[i] = v
 	return c
 }
 
+// MakeBy returns an array of length n with element i initialised by f(i).
+// Returns nil (representing an empty array) when n <= 0.
 func MakeBy[AS ~[]A, F ~func(int) A, A any](n int, f F) AS {
 	// sanity check
 	if n <= 0 {
-		return Empty[AS]()
+		return nil
 	}
 	// run the generator function across the input
 	as := make(AS, n)

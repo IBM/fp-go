@@ -18,14 +18,14 @@ package bytes
 import (
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEmpty(t *testing.T) {
 	t.Run("returns empty byte slice", func(t *testing.T) {
 		result := Empty()
-		assert.NotNil(t, result)
-		assert.Equal(t, 0, len(result))
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("is identity for Monoid", func(t *testing.T) {

@@ -22,7 +22,7 @@ package bytes
 // building byte slices or as a default value.
 //
 // Returns:
-//   - An empty byte slice ([]byte{})
+//   - nil, the canonical representation of an empty byte slice
 //
 // Properties:
 //   - Empty() is the identity element for Monoid.Concat

@@ -22,5 +22,5 @@ import (
 )
 
 func TestMonoid(t *testing.T) {
-	M.AssertLaws(t, Monoid[int]())([][]int{{}, {1}, {1, 2}})
+	M.AssertLaws(t, Monoid[int]())([][]int{nil, {1}, {1, 2}})
 }

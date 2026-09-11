@@ -7,14 +7,14 @@ import (
 )
 
 // ErrorsMonoid returns a Monoid instance for Errors (array of ValidationError pointers).
-// The monoid concatenates error arrays, with an empty array as the identity element.
+// The monoid concatenates error arrays, with the empty array (represented as nil) as the identity element.
 // This is used internally by the applicative operations to accumulate validation errors.
 //
 // Example:
 //
 //	m := ErrorsMonoid()
 //	combined := m.Concat(errors1, errors2) // Concatenates both error arrays
-//	empty := m.Empty()                      // Returns empty error array
+//	empty := m.Empty()                      // Returns nil (empty error array)
 func ErrorsMonoid() Monoid[Errors] {
 	return A.Monoid[*ValidationError]()
 }

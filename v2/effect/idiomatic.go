@@ -102,6 +102,8 @@ func RetryingI[R, A any](
 // TraverseArrayI maps each element of a slice through the idiomatic function f
 // and collects the results into a [Effect] holding a slice.
 // The first error encountered short-circuits the traversal.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayI[R, A, B any](f KleisliI[R, A, B]) Kleisli[R, []A, []B] {
 	return readerreaderioresult.TraverseArrayI(f)
 }

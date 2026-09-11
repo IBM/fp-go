@@ -38,6 +38,8 @@ import (
 //	    readeroption.Chain(readeroption.TraverseArray[DB](findUser)),
 //	)
 //	// result will be Some([]User) if all users are found, None otherwise
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return RA.Traverse[[]A, []B](
 		Of,
@@ -61,6 +63,8 @@ func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 //
 //	values := []string{"a", "b", "c"}
 //	result := readeroption.TraverseArrayWithIndex[DB](processWithIndex)(values)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[E, A, B any](f func(int, A) ReaderIOOption[E, B]) func([]A) ReaderIOOption[E, []B] {
 	return RA.TraverseWithIndex[[]A, []B](
 		Of,

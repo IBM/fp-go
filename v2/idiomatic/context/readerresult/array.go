@@ -29,11 +29,15 @@ import (
 //	result := readerresult.TraverseArray[DB](parseUser)(ids)
 //	// result(db) returns ([]User, nil) with all users or (nil, error) on first error
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return RR.TraverseArray(f)
 }
 
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func MonadTraverseArray[A, B any](as []A, f Kleisli[A, B]) ReaderResult[[]B] {
 	return RR.MonadTraverseArray(as, f)
@@ -49,6 +53,8 @@ func MonadTraverseArray[A, B any](as []A, f Kleisli[A, B]) ReaderResult[[]B] {
 //	}
 //	items := []string{"a", "bb", "ccc"}
 //	result := readerresult.TraverseArrayWithIndex[Config](processItem)(items)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderResult[B]) Kleisli[[]A, []B] {
@@ -68,6 +74,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderResult[B]) Kleisli[[]
 //	}
 //	result := readerresult.SequenceArray(readers)
 //	// result(cfg) returns ([]int{1, 2, 3}, nil)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[A any](ma []ReaderResult[A]) ReaderResult[[]A] {

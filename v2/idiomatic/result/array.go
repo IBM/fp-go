@@ -37,7 +37,7 @@ package result
 // Behavior:
 //   - Short-circuits on the first error encountered
 //   - Preserves the order of elements
-//   - Returns an empty slice for empty input
+//   - Returns (nil, nil) for empty input; nil is the canonical empty array
 //
 // Example - Parse strings to integers:
 //
@@ -53,6 +53,9 @@ package result
 //	// result is ([]int(nil), error) - stops at "bad"
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
 	return func(ga GA) (GB, error) {
+		if len(ga) == 0 {
+			return nil, nil
+		}
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b, err := f(a)
@@ -97,6 +100,8 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //	result := result.TraverseArray(validate)([]string{"1", "2", "3"})
 //	// result is ([]int{2, 4, 6}, nil)
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return TraverseArrayG[[]A, []B](f)
@@ -125,6 +130,7 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //   - Processes elements from left to right with their indices (0, 1, 2, ...)
 //   - Short-circuits on the first error encountered
 //   - Preserves the order of elements
+//   - Returns (nil, nil) for empty input; nil is the canonical empty array
 //
 // Example - Annotate with index:
 //
@@ -138,6 +144,9 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //	// result is ([]string{"[0]=a", "[1]=b", "[2]=c"}, nil)
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) (B, error)) Kleisli[GA, GB] {
 	return func(ga GA) (GB, error) {
+		if len(ga) == 0 {
+			return nil, nil
+		}
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b, err := f(i, a)
@@ -177,6 +186,8 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) (B, erro
 //	}
 //	result := result.TraverseArrayWithIndex(check)([]string{"a", "b", "c"})
 //	// result is ([]string{"A", "B", "C"}, nil)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) (B, error)) Kleisli[[]A, []B] {

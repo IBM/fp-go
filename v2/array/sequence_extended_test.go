@@ -48,10 +48,11 @@ func TestSequenceWithOption(t *testing.T) {
 	result2 := seq(optsWithNone)
 	assert.True(t, O.IsNone(result2))
 
-	// Test with empty array
-	empty := Empty[Option[int]]()
+	// Test with empty array — sequencing an empty array yields Some of an empty slice
+	empty := Empty[O.Option[int]]()
 	result3 := seq(empty)
-	assert.Equal(t, O.Some(Empty[int]()), result3)
+	assert.True(t, O.IsSome(result3))
+	assert.True(t, IsEmpty(O.GetOrElse(func() []int { return []int{1} })(result3)))
 }
 
 // TestMonadSequence tests the MonadSequence function

@@ -17,6 +17,7 @@ package common
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	RA "github.com/IBM/fp-go/v2/internal/array"
 )
 
 // OptionTraverseArrayG transforms an array by applying a function that returns an Option to each element.
@@ -34,6 +35,9 @@ import (
 //	result := OptionTraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
 func OptionTraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f OptionKleisli[A, B]) OptionKleisli[GA, GB] {
 	return func(g GA) Option[GB] {
+		if len(g) == 0 {
+			return OptionSome(GB(nil))
+		}
 		bs := make(GB, len(g))
 		for i, a := range g {
 			b := f(a)
@@ -72,6 +76,9 @@ func OptionTraverseArray[A, B any](f OptionKleisli[A, B]) OptionKleisli[[]A, []B
 //	result := OptionTraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // OptionSome(["0:a", "1:b"])
 func OptionTraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) OptionKleisli[GA, GB] {
 	return func(g GA) Option[GB] {
+		if len(g) == 0 {
+			return OptionSome(GB(nil))
+		}
 		bs := make(GB, len(g))
 		for i, a := range g {
 			b := f(i, a)
@@ -128,6 +135,7 @@ func OptionSequenceArray[A any](ma []Option[A]) Option[[]A] {
 
 // OptionCompactArrayG filters an array of Options, keeping only the Some values and discarding None values.
 // This is the generic version that works with custom slice types.
+// Returns nil (representing an empty array) when there are no Some values.
 //
 // Example:
 //
@@ -141,10 +149,11 @@ func OptionCompactArrayG[A1 ~[]Option[A], A2 ~[]A, A any](fa A1) A2 {
 			as = append(as, oa.a)
 		}
 	}
-	return as
+	return RA.EmptyToNil(as)
 }
 
 // OptionCompactArray filters an array of Options, keeping only the Some values and discarding None values.
+// Returns nil (representing an empty array) when there are no Some values.
 //
 // Example:
 //

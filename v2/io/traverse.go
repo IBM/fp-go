@@ -30,6 +30,8 @@ import (
 //	fetchUsers := func(id int) io.IO[User] { return fetchUser(id) }
 //	users := io.MonadTraverseArray([]int{1, 2, 3}, fetchUsers)
 //	result := users() // []User with all fetched users
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArray[A, B any](tas []A, f Kleisli[A, B]) IO[[]B] {
 	return INTA.MonadTraverse(
 		Of[[]B],
@@ -51,6 +53,8 @@ func MonadTraverseArray[A, B any](tas []A, f Kleisli[A, B]) IO[[]B] {
 //	    return fetchUser(id)
 //	})
 //	users := fetchUsers([]int{1, 2, 3})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return INTA.Traverse[[]A](
 		Of[[]B],
@@ -168,6 +172,8 @@ func SequenceIter[A any](as Seq[IO[A]]) IO[Seq[A]] {
 //	numbered := io.TraverseArrayWithIndex(func(i int, s string) io.IO[string] {
 //	    return io.Of(fmt.Sprintf("%d: %s", i, s))
 //	})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[A, B any](f func(int, A) IO[B]) Kleisli[[]A, []B] {
 	return INTA.TraverseWithIndex[[]A](
 		Of[[]B],
@@ -186,6 +192,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) IO[B]) Kleisli[[]A, []B] {
 //	operations := []io.IO[int]{fetchA(), fetchB(), fetchC()}
 //	results := io.SequenceArray(operations)
 //	values := results() // []int with all results
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[A any](tas []IO[A]) IO[[]A] {
 	return MonadTraverseArray(tas, F.Identity[IO[A]])
 }
@@ -253,6 +261,8 @@ func SequenceRecord[K comparable, A any](tas map[K]IO[A]) IO[map[K]A] {
 //
 //	fetchUsers := func(id int) io.IO[User] { return fetchUser(id) }
 //	users := io.MonadTraverseArraySeq([]int{1, 2, 3}, fetchUsers)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArraySeq[A, B any](tas []A, f Kleisli[A, B]) IO[[]B] {
 	return INTA.MonadTraverse(
 		Of[[]B],
@@ -267,6 +277,8 @@ func MonadTraverseArraySeq[A, B any](tas []A, f Kleisli[A, B]) IO[[]B] {
 // TraverseArraySeq returns a function that applies an IO-returning function to each element
 // of an array and collects the results. Executes sequentially (one after another).
 // Use this when operations must be performed in order or when parallel execution is not desired.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return INTA.Traverse[[]A](
 		Of[[]B],
@@ -279,6 +291,8 @@ func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 
 // TraverseArrayWithIndexSeq is like TraverseArraySeq but the function also receives the index.
 // Executes sequentially (one after another).
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndexSeq[A, B any](f func(int, A) IO[B]) Kleisli[[]A, []B] {
 	return INTA.TraverseWithIndex[[]A](
 		Of[[]B],
@@ -291,6 +305,8 @@ func TraverseArrayWithIndexSeq[A, B any](f func(int, A) IO[B]) Kleisli[[]A, []B]
 
 // SequenceArraySeq converts an array of IO computations into an IO of an array of results.
 // All computations are executed sequentially (one after another).
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArraySeq[A any](tas []IO[A]) IO[[]A] {
 	return MonadTraverseArraySeq(tas, F.Identity[IO[A]])
 }

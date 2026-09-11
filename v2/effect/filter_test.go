@@ -68,7 +68,7 @@ func TestFilterArray_Success(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("returns all elements when all match", func(t *testing.T) {
@@ -143,7 +143,7 @@ func TestFilterArray_EdgeCases(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("preserves error from input", func(t *testing.T) {
@@ -244,7 +244,7 @@ func TestFilterMapArray_Success(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("maps all elements when all match", func(t *testing.T) {
@@ -339,7 +339,7 @@ func TestFilterMapArray_EdgeCases(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("preserves error from input", func(t *testing.T) {

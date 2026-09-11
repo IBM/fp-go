@@ -47,6 +47,8 @@ import (
 //	result := fetchUsers([]int{1, 2, 3})
 //	// result(cfg)() returns Right([user1, user2, user3]) or Left(error)
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, []A, []B] {
 	return G.TraverseArray[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
@@ -88,6 +90,8 @@ func TraverseIter[R, E, A, B any](f Kleisli[R, E, A, B]) Kleisli[R, E, Seq[A], S
 //	    return Of[Config, error](fmt.Sprintf("%d: %s", i, val))
 //	})
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, B]) func([]A) ReaderIOEither[R, E, []B] {
 	return G.TraverseArrayWithIndex[ReaderIOEither[R, E, B], ReaderIOEither[R, E, []B], IOEither[E, B], IOEither[E, []B], []A](f)
@@ -119,6 +123,8 @@ func TraverseArrayWithIndex[R, E, A, B any](f func(int, A) ReaderIOEither[R, E, 
 //	}
 //	result := SequenceArray(computations)
 //	// result(cfg)() returns Right([userCount, postCount, commentCount]) or Left(error)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[R, E, A any](ma []ReaderIOEither[R, E, A]) ReaderIOEither[R, E, []A] {

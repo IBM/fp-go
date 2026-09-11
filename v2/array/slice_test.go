@@ -74,28 +74,28 @@ func TestSliceNegativeIndices(t *testing.T) {
 
 	t.Run("negative end index beyond array start", func(t *testing.T) {
 		// -10 would be -4, clamped to 0
-		assert.Equal(t, []int{}, Slice[int](0, -10)(data))
+		assert.True(t, IsEmpty(Slice[int](0, -10)(data)))
 	})
 }
 
 // TestSliceEmptyArray tests slicing on empty arrays (totality proof)
 func TestSliceEmptyArray(t *testing.T) {
-	empty := []int{}
+	empty := Empty[int]()
 
 	t.Run("slice empty array with zero indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](0, 0)(empty))
+		assert.True(t, IsEmpty(Slice[int](0, 0)(empty)))
 	})
 
 	t.Run("slice empty array with positive indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](0, 5)(empty))
+		assert.True(t, IsEmpty(Slice[int](0, 5)(empty)))
 	})
 
 	t.Run("slice empty array with negative indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](-1, -1)(empty))
+		assert.True(t, IsEmpty(Slice[int](-1, -1)(empty)))
 	})
 
 	t.Run("slice empty array with mixed indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](-5, 5)(empty))
+		assert.True(t, IsEmpty(Slice[int](-5, 5)(empty)))
 	})
 }
 
@@ -104,7 +104,7 @@ func TestSliceOutOfBounds(t *testing.T) {
 	data := []int{0, 1, 2, 3, 4}
 
 	t.Run("start index beyond array length", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](10, 15)(data))
+		assert.True(t, IsEmpty(Slice[int](10, 15)(data)))
 	})
 
 	t.Run("end index beyond array length", func(t *testing.T) {
@@ -112,11 +112,11 @@ func TestSliceOutOfBounds(t *testing.T) {
 	})
 
 	t.Run("both indices beyond array length", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](10, 20)(data))
+		assert.True(t, IsEmpty(Slice[int](10, 20)(data)))
 	})
 
 	t.Run("start equals array length", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](5, 10)(data))
+		assert.True(t, IsEmpty(Slice[int](5, 10)(data)))
 	})
 
 	t.Run("end equals array length", func(t *testing.T) {
@@ -129,24 +129,24 @@ func TestSliceInvalidRanges(t *testing.T) {
 	data := []int{0, 1, 2, 3, 4}
 
 	t.Run("start equals end", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](2, 2)(data))
+		assert.True(t, IsEmpty(Slice[int](2, 2)(data)))
 	})
 
 	t.Run("start greater than end", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](4, 2)(data))
+		assert.True(t, IsEmpty(Slice[int](4, 2)(data)))
 	})
 
 	t.Run("start greater than end with negative indices", func(t *testing.T) {
 		// -1 = 4, -3 = 2
-		assert.Equal(t, []int{}, Slice[int](-1, -3)(data))
+		assert.True(t, IsEmpty(Slice[int](-1, -3)(data)))
 	})
 
 	t.Run("zero range at start", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](0, 0)(data))
+		assert.True(t, IsEmpty(Slice[int](0, 0)(data)))
 	})
 
 	t.Run("zero range at end", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](5, 5)(data))
+		assert.True(t, IsEmpty(Slice[int](5, 5)(data)))
 	})
 }
 
@@ -159,7 +159,7 @@ func TestSliceEdgeCases(t *testing.T) {
 
 	t.Run("single element array - slice none", func(t *testing.T) {
 		data := []int{42}
-		assert.Equal(t, []int{}, Slice[int](1, 1)(data))
+		assert.True(t, IsEmpty(Slice[int](1, 1)(data)))
 	})
 
 	t.Run("single element array - negative indices", func(t *testing.T) {
@@ -214,19 +214,19 @@ func TestSliceNilArray(t *testing.T) {
 	var nilArray []int
 
 	t.Run("slice nil array with zero indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](0, 0)(nilArray))
+		assert.True(t, IsEmpty(Slice[int](0, 0)(nilArray)))
 	})
 
 	t.Run("slice nil array with positive indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](0, 5)(nilArray))
+		assert.True(t, IsEmpty(Slice[int](0, 5)(nilArray)))
 	})
 
 	t.Run("slice nil array with negative indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](-1, 1)(nilArray))
+		assert.True(t, IsEmpty(Slice[int](-1, 1)(nilArray)))
 	})
 
 	t.Run("slice nil array with out of bounds indices", func(t *testing.T) {
-		assert.Equal(t, []int{}, Slice[int](10, 20)(nilArray))
+		assert.True(t, IsEmpty(Slice[int](10, 20)(nilArray)))
 	})
 }
 
@@ -293,8 +293,8 @@ func TestSliceTotality(t *testing.T) {
 		{"empty result", []int{1, 2, 3}, 1, 1, false},
 
 		// Edge cases with empty/nil arrays
-		{"empty array", []int{}, 0, 0, false},
-		{"empty array with indices", []int{}, 1, 5, false},
+		{"empty array", Empty[int](), 0, 0, false},
+		{"empty array with indices", Empty[int](), 1, 5, false},
 		{"nil array", nil, 0, 5, false},
 
 		// Negative indices
@@ -343,7 +343,6 @@ func TestSliceTotality(t *testing.T) {
 			result := Slice[int](tc.low, tc.high)(tc.data)
 
 			// Additional verification: result should always be a valid slice
-			assert.NotNil(t, result, "Result should never be nil")
 			assert.True(t, len(result) >= 0, "Result length should be non-negative")
 		})
 	}
@@ -361,7 +360,7 @@ func TestSlicePropertyBased(t *testing.T) {
 	t.Run("empty: Slice(i, i) always returns empty", func(t *testing.T) {
 		for i := 0; i <= len(data); i++ {
 			result := Slice[int](i, i)(data)
-			assert.Equal(t, []int{}, result)
+			assert.True(t, IsEmpty(result))
 		}
 	})
 

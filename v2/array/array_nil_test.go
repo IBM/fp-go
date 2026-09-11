@@ -91,8 +91,7 @@ func TestNilSlice_Filter(t *testing.T) {
 		return v > 0
 	})
 	result := filter(nilSlice)
-	assert.NotNil(t, result, "Filter should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Filter should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "Filter should return empty slice for nil input")
 }
 
 // TestNilSlice_FilterWithIndex verifies that FilterWithIndex handles nil slices correctly
@@ -102,8 +101,7 @@ func TestNilSlice_FilterWithIndex(t *testing.T) {
 		return v > 0
 	})
 	result := filter(nilSlice)
-	assert.NotNil(t, result, "FilterWithIndex should return non-nil slice")
-	assert.Equal(t, 0, len(result), "FilterWithIndex should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "FilterWithIndex should return empty slice for nil input")
 }
 
 // TestNilSlice_FilterRef verifies that FilterRef handles nil slices correctly
@@ -113,8 +111,7 @@ func TestNilSlice_FilterRef(t *testing.T) {
 		return *v > 0
 	})
 	result := filter(nilSlice)
-	assert.NotNil(t, result, "FilterRef should return non-nil slice")
-	assert.Equal(t, 0, len(result), "FilterRef should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "FilterRef should return empty slice for nil input")
 }
 
 // TestNilSlice_MonadFilterMap verifies that MonadFilterMap handles nil slices correctly
@@ -123,8 +120,7 @@ func TestNilSlice_MonadFilterMap(t *testing.T) {
 	result := MonadFilterMap(nilSlice, func(v int) O.Option[string] {
 		return O.Some(fmt.Sprintf("%d", v))
 	})
-	assert.NotNil(t, result, "MonadFilterMap should return non-nil slice")
-	assert.Equal(t, 0, len(result), "MonadFilterMap should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "MonadFilterMap should return empty slice for nil input")
 }
 
 // TestNilSlice_MonadFilterMapWithIndex verifies that MonadFilterMapWithIndex handles nil slices correctly
@@ -133,8 +129,7 @@ func TestNilSlice_MonadFilterMapWithIndex(t *testing.T) {
 	result := MonadFilterMapWithIndex(nilSlice, func(i int, v int) O.Option[string] {
 		return O.Some(fmt.Sprintf("%d:%d", i, v))
 	})
-	assert.NotNil(t, result, "MonadFilterMapWithIndex should return non-nil slice")
-	assert.Equal(t, 0, len(result), "MonadFilterMapWithIndex should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "MonadFilterMapWithIndex should return empty slice for nil input")
 }
 
 // TestNilSlice_FilterMap verifies that FilterMap handles nil slices correctly
@@ -144,8 +139,7 @@ func TestNilSlice_FilterMap(t *testing.T) {
 		return O.Some(fmt.Sprintf("%d", v))
 	})
 	result := filter(nilSlice)
-	assert.NotNil(t, result, "FilterMap should return non-nil slice")
-	assert.Equal(t, 0, len(result), "FilterMap should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "FilterMap should return empty slice for nil input")
 }
 
 // TestNilSlice_FilterMapWithIndex verifies that FilterMapWithIndex handles nil slices correctly
@@ -155,8 +149,7 @@ func TestNilSlice_FilterMapWithIndex(t *testing.T) {
 		return O.Some(fmt.Sprintf("%d:%d", i, v))
 	})
 	result := filter(nilSlice)
-	assert.NotNil(t, result, "FilterMapWithIndex should return non-nil slice")
-	assert.Equal(t, 0, len(result), "FilterMapWithIndex should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "FilterMapWithIndex should return empty slice for nil input")
 }
 
 // TestNilSlice_MonadReduce verifies that MonadReduce handles nil slices correctly
@@ -471,24 +464,21 @@ func TestNilSlice_Extend(t *testing.T) {
 		return fmt.Sprintf("%v", as)
 	})
 	result := extend(nilSlice)
-	assert.NotNil(t, result, "Extend should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Extend should return empty slice for nil input")
+	assert.True(t, IsEmpty(result), "Extend should return empty slice for nil input")
 }
 
-// TestNilSlice_Empty verifies that Empty creates an empty non-nil slice
+// TestNilSlice_Empty verifies that Empty returns a nil (empty) slice
 func TestNilSlice_Empty(t *testing.T) {
 	result := Empty[int]()
-	assert.NotNil(t, result, "Empty should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Empty should return empty slice")
-	assert.False(t, IsNil(result), "Empty should not return nil slice")
+	assert.True(t, IsEmpty(result), "Empty should return an empty slice")
+	assert.True(t, IsNil(result), "Empty should return nil")
 }
 
-// TestNilSlice_Zero verifies that Zero creates an empty non-nil slice
+// TestNilSlice_Zero verifies that Zero returns a nil (empty) slice
 func TestNilSlice_Zero(t *testing.T) {
 	result := Zero[int]()
-	assert.NotNil(t, result, "Zero should return non-nil slice")
-	assert.Equal(t, 0, len(result), "Zero should return empty slice")
-	assert.False(t, IsNil(result), "Zero should not return nil slice")
+	assert.True(t, IsEmpty(result), "Zero should return an empty slice")
+	assert.True(t, IsNil(result), "Zero should return nil")
 }
 
 // TestNilSlice_ConstNil verifies that ConstNil returns a nil slice
@@ -504,4 +494,40 @@ func TestNilSlice_Of(t *testing.T) {
 	assert.NotNil(t, result, "Of should return non-nil slice")
 	assert.Equal(t, 1, len(result), "Of should create slice with one element")
 	assert.Equal(t, 42, result[0], "Of should set value correctly")
+}
+
+// TestNilSlice_EmptyResults verifies that operations producing an empty array
+// return an empty array
+func TestNilSlice_EmptyResults(t *testing.T) {
+	data := []int{1, 2, 3}
+	isNeg := func(x int) bool { return x < 0 }
+
+	assert.True(t, IsEmpty(Slice[int](1, 1)(data)), "Slice with empty range")
+	assert.True(t, IsEmpty(Slice[int](5, 10)(data)), "Slice beyond the end")
+	assert.True(t, IsEmpty(SliceRight[int](3)(data)), "SliceRight at the end")
+	assert.True(t, IsEmpty(SliceRight[int](5)(data)), "SliceRight beyond the end")
+	assert.True(t, IsEmpty(MakeBy(0, func(i int) int { return i })), "MakeBy(0)")
+	assert.True(t, IsEmpty(Replicate(0, 1)), "Replicate(0)")
+	assert.True(t, IsEmpty(FromOption(O.None[int]())), "FromOption(None)")
+	assert.True(t, IsEmpty(Filter(isNeg)(data)), "Filter without matches")
+	assert.True(t, IsEmpty(FilterWithIndex(func(_ int, x int) bool { return isNeg(x) })(data)), "FilterWithIndex without matches")
+	assert.True(t, IsEmpty(FilterRef(func(x *int) bool { return isNeg(*x) })(data)), "FilterRef without matches")
+	assert.True(t, IsEmpty(FilterMap(func(int) Option[int] { return O.None[int]() })(data)), "FilterMap without matches")
+	assert.True(t, IsEmpty(FilterMapWithIndex(func(int, int) Option[int] { return O.None[int]() })(data)), "FilterMapWithIndex without matches")
+	assert.True(t, IsEmpty(FilterMapRef(func(x *int) bool { return isNeg(*x) }, func(x *int) int { return *x })(data)), "FilterMapRef without matches")
+	assert.True(t, IsEmpty(Extend(Size[int])(Empty[int]())), "Extend of empty array")
+	assert.True(t, IsEmpty(Monoid[int]().Empty()), "Monoid empty")
+}
+
+// TestNilSlice_TraverseEmpty verifies that traversing an empty array yields an empty array
+func TestNilSlice_TraverseEmpty(t *testing.T) {
+	result := MonadTraverse(
+		O.Of[[]string],
+		O.Map[[]string, func(string) []string],
+		O.Ap[[]string, string],
+		Empty[int](),
+		func(n int) O.Option[string] { return O.Some(strconv.Itoa(n)) },
+	)
+	assert.True(t, O.IsSome(result))
+	assert.True(t, IsEmpty(O.GetOrElse(func() []string { return []string{"fallback"} })(result)))
 }

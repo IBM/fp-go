@@ -112,7 +112,8 @@ func Reduce[A any](f func(A, R.Value) A, initial A) func(R.Value) A {
 //   - f: A transformation function that takes (index int, element reflect.Value) and returns a value of type A
 //
 // Returns:
-//   - A slice of transformed values, or an empty slice if val is not iterable
+//   - A slice of transformed values, or nil (the canonical empty array) if val is
+//     empty or not iterable
 //
 // Example:
 //
@@ -133,6 +134,9 @@ func MonadMapWithIndex[A any](val R.Value, f func(int, R.Value) A) []A {
 	}
 
 	l := val.Len()
+	if l == 0 {
+		return array.Empty[A]()
+	}
 	res := make([]A, l)
 	for i := l - 1; i >= 0; i-- {
 		res[i] = f(i, val.Index(i))
@@ -150,7 +154,8 @@ func MonadMapWithIndex[A any](val R.Value, f func(int, R.Value) A) []A {
 //   - f: A transformation function that takes (index int, element reflect.Value) and returns a value of type A
 //
 // Returns:
-//   - A function that takes a reflect.Value and returns a slice of transformed values
+//   - A function that takes a reflect.Value and returns a slice of transformed values,
+//     or nil if the value is empty or not iterable
 //
 // Example:
 //
@@ -174,7 +179,8 @@ func MapWithIndex[A any](f func(int, R.Value) A) func(R.Value) []A {
 //   - f: A transformation function that takes a reflect.Value and returns a value of type A
 //
 // Returns:
-//   - A function that takes a reflect.Value and returns a slice of transformed values
+//   - A function that takes a reflect.Value and returns a slice of transformed values,
+//     or nil if the value is empty or not iterable
 //
 // Example:
 //

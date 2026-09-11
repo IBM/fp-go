@@ -29,23 +29,31 @@ import "github.com/IBM/fp-go/v2/io"
 //	    return lazy.Of(x * 2)
 //	})()
 //	// result is []int{2, 4, 6}
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArray[A, B any](tas []A, f Kleisli[A, B]) Lazy[[]B] {
 	return io.MonadTraverseArray(tas, f)
 }
 
 // TraverseArray applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return io.TraverseArray(f)
 }
 
 // TraverseArrayWithIndex applies a function returning an [IO] to all elements in an array and the
 // transforms this into an [IO] of that array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[A, B any](f func(int, A) Lazy[B]) Kleisli[[]A, []B] {
 	return io.TraverseArrayWithIndex(f)
 }
 
 // SequenceArray converts an array of [IO] to an [IO] of an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[A any](tas []Lazy[A]) Lazy[[]A] {
 	return io.SequenceArray(tas)
 }

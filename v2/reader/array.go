@@ -39,6 +39,8 @@ import (
 //	}
 //	r := reader.MonadTraverseArray(numbers, addPrefix)
 //	result := r(Config{Prefix: "num"}) // ["num1", "num2", "num3"]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] {
 	return G.MonadTraverseArray[Reader[R, B], Reader[R, []B]](ma, f)
 }
@@ -58,6 +60,8 @@ func MonadTraverseArray[R, A, B any](ma []A, f Kleisli[R, A, B]) Reader[R, []B] 
 //	transform := reader.TraverseArray(multiply)
 //	r := transform([]int{1, 2, 3})
 //	result := r(Config{Multiplier: 10}) // [10, 20, 30]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
 	return G.TraverseArray[Reader[R, B], Reader[R, []B], []A](f)
 }
@@ -79,6 +83,8 @@ func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
 //	transform := reader.TraverseArrayWithIndex(addIndexPrefix)
 //	r := transform([]string{"a", "b", "c"})
 //	result := r(Config{Prefix: "item"}) // ["item[0]:a", "item[1]:b", "item[2]:c"]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) Kleisli[R, []A, []B] {
 	return G.TraverseArrayWithIndex[Reader[R, B], Reader[R, []B], []A](f)
 }
@@ -99,6 +105,8 @@ func TraverseArrayWithIndex[R, A, B any](f func(int, A) Reader[R, B]) Kleisli[R,
 //	}
 //	r := reader.SequenceArray(readers)
 //	result := r(Config{X: 1, Y: 2, Z: 3}) // [1, 2, 3]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[R, A any](ma []Reader[R, A]) Reader[R, []A] {
 	return MonadTraverseArray(ma, function.Identity[Reader[R, A]])
 }

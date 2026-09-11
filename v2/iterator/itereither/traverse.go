@@ -22,6 +22,8 @@ import (
 )
 
 // TraverseArray transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
@@ -33,6 +35,8 @@ func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 }
 
 // TraverseArrayWithIndex transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[E, A, B any](f func(int, A) SeqEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
@@ -44,6 +48,8 @@ func TraverseArrayWithIndex[E, A, B any](f func(int, A) SeqEither[E, B]) Kleisli
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[E, A any](ma []SeqEither[E, A]) SeqEither[E, []A] {
 	return TraverseArray(function.Identity[SeqEither[E, A]])(ma)
 }

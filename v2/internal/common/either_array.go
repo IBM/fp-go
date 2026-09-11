@@ -40,6 +40,9 @@ import (
 //go:inline
 func EitherTraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f EitherKleisli[E, A, B]) EitherKleisli[E, GA, GB] {
 	return func(ga GA) Either[E, GB] {
+		if len(ga) == 0 {
+			return EitherOf[E](GB(nil))
+		}
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b := f(a)
@@ -89,6 +92,9 @@ func EitherTraverseArray[E, A, B any](f EitherKleisli[E, A, B]) EitherKleisli[E,
 //go:inline
 func EitherTraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) EitherKleisli[E, GA, GB] {
 	return func(ga GA) Either[E, GB] {
+		if len(ga) == 0 {
+			return EitherOf[E](GB(nil))
+		}
 		bs := make(GB, len(ga))
 		for i, a := range ga {
 			b := f(i, a)
@@ -147,6 +153,7 @@ func EitherSequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
 
 // EitherCompactArrayG discards all Left values and keeps only the Right values.
 // The G suffix indicates support for generic slice types.
+// Returns nil (representing an empty array) when there are no Right values.
 //
 // Example:
 //
@@ -160,12 +167,13 @@ func EitherSequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {
 //
 //go:inline
 func EitherCompactArrayG[A1 ~[]Either[E, A], A2 ~[]A, E, A any](fa A1) A2 {
-	return RA.Reduce(fa, func(out A2, value Either[E, A]) A2 {
+	return RA.EmptyToNil(RA.Reduce(fa, func(out A2, value Either[E, A]) A2 {
 		return EitherMonadFold(value, F.Constant1[E](out), F.Bind1st(RA.Append[A2, A], out))
-	}, make(A2, 0, len(fa)))
+	}, make(A2, 0, len(fa))))
 }
 
 // EitherCompactArray discards all Left values and keeps only the Right values.
+// Returns nil (representing an empty array) when there are no Right values.
 //
 // Example:
 //

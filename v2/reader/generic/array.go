@@ -35,6 +35,8 @@ import (
 //   - R: The environment/context type
 //   - A: The input element type
 //   - B: The output element type
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArray[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B any](tas AAS, f func(A) GB) GBS {
 	return RA.MonadTraverse(
 		Of[GBS, R, BBS],
@@ -57,6 +59,8 @@ func MonadTraverseArray[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, 
 //   - R: The environment/context type
 //   - A: The input element type
 //   - B: The output element type
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B any](f func(A) GB) func(AAS) GBS {
 	return RA.Traverse[AAS](
 		Of[GBS, R, BBS],
@@ -80,6 +84,8 @@ func TraverseArray[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B 
 //   - R: The environment/context type
 //   - A: The input element type
 //   - B: The output element type
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B, R, A, B any](f func(int, A) GB) func(AAS) GBS {
 	return RA.TraverseWithIndex[AAS](
 		Of[GBS, R, BBS],
@@ -101,6 +107,8 @@ func TraverseArrayWithIndex[GB ~func(R) B, GBS ~func(R) BBS, AAS ~[]A, BBS ~[]B,
 //   - GAAS: The input array of Readers type (~[]GA)
 //   - R: The environment/context type
 //   - A: The element type
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[GA ~func(R) A, GAS ~func(R) AAS, AAS ~[]A, GAAS ~[]GA, R, A any](ma GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](ma, F.Identity[GA])
 }

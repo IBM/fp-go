@@ -35,6 +35,8 @@ import (
 //	result := either.TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"})
 //	// result is Right([]int{1, 2, 3})
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f Kleisli[E, A, B]) Kleisli[E, GA, GB] {
 	return C.EitherTraverseArrayG[GA, GB](f)
@@ -52,6 +54,8 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, E, A, B any](f Kleisli[E, A, B]) Kleisli[E
 //	}
 //	result := either.TraverseArray(parse)([]string{"1", "2", "3"})
 //	// result is Right([]int{1, 2, 3})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
@@ -74,6 +78,8 @@ func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 //	result := either.TraverseArrayWithIndexG[[]string, []string](validate)([]string{"a", "b"})
 //	// result is Right([]string{"0:a", "1:b"})
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Either[E, B]) Kleisli[E, GA, GB] {
 	return C.EitherTraverseArrayWithIndexG[GA, GB](f)
@@ -94,11 +100,15 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, E, A, B any](f func(int, A) Eithe
 //	result := either.TraverseArrayWithIndex(validate)([]string{"a", "b"})
 //	// result is Right([]string{"0:a", "1:b"})
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndex[E, A, B any](f func(int, A) Either[E, B]) Kleisli[E, []A, []B] {
 	return C.EitherTraverseArrayWithIndex[E](f)
 }
 
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA] {
 	return C.EitherSequenceArrayG[GA](ma)
@@ -117,6 +127,8 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Either[E, A], E, A any](ma GOA) Either[E, GA
 //	)
 //	result := either.SequenceArray(eithers)
 //	// result is Right([]int{1, 2, 3})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[E, A any](ma []Either[E, A]) Either[E, []A] {

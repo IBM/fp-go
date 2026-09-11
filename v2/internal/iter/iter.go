@@ -252,7 +252,7 @@ func Empty[GA ~func(yield func(A) bool), A any]() GA {
 //   - fa: The iterator sequence to collect
 //
 // Returns:
-//   - A slice containing all elements from the iterator
+//   - A slice containing all elements from the iterator, or nil if the iterator is empty
 //
 // Example:
 //
@@ -263,7 +263,7 @@ func Empty[GA ~func(yield func(A) bool), A any]() GA {
 //	}
 //	arr := ToArray[func(yield func(int) bool), []int](iter) // Returns: []int{1, 2, 3}
 func ToArray[GA ~func(yield func(A) bool), GB ~[]A, A any](fa GA) GB {
-	bs := make(GB, 0)
+	var bs GB
 	for a := range fa {
 		bs = append(bs, a)
 	}
@@ -280,7 +280,7 @@ func ToArray[GA ~func(yield func(A) bool), GB ~[]A, A any](fa GA) GB {
 //   - f: The mapping function to apply to each element
 //
 // Returns:
-//   - A slice containing the mapped elements
+//   - A slice containing the mapped elements, or nil if the iterator is empty
 //
 // Example:
 //
@@ -293,7 +293,7 @@ func ToArray[GA ~func(yield func(A) bool), GB ~[]A, A any](fa GA) GB {
 //	    return x * 2
 //	}) // Returns: []int{2, 4, 6}
 func MonadMapToArray[GA ~func(yield func(A) bool), GB ~[]B, A, B any](fa GA, f func(A) B) GB {
-	bs := make(GB, 0)
+	var bs GB
 	for a := range fa {
 		bs = append(bs, f(a))
 	}
@@ -335,7 +335,7 @@ func MapToArray[GA ~func(yield func(A) bool), GB ~[]B, A, B any](f func(A) B) fu
 //   - f: The mapping function that takes (index, element) and returns the transformed element
 //
 // Returns:
-//   - A slice containing the mapped elements
+//   - A slice containing the mapped elements, or nil if the iterator is empty
 //
 // Example:
 //
@@ -349,7 +349,7 @@ func MapToArray[GA ~func(yield func(A) bool), GB ~[]B, A, B any](f func(A) B) fu
 //	        return fmt.Sprintf("%d:%s", i, s)
 //	    }) // Returns: []string{"0:a", "1:b", "2:c"}
 func MonadMapToArrayWithIndex[GA ~func(yield func(A) bool), GB ~[]B, A, B any](fa GA, f func(int, A) B) GB {
-	bs := make(GB, 0)
+	var bs GB
 	var i int
 	for a := range fa {
 		bs = append(bs, f(i, a))

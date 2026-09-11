@@ -33,6 +33,8 @@ import (
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "2", "3"}) // Some([1, 2, 3])
 //	result := TraverseArrayG[[]string, []int](parse)([]string{"1", "x", "3"}) // None
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB] {
 	return common.OptionTraverseArrayG[GA, GB](f)
@@ -46,6 +48,8 @@ func TraverseArrayG[GA ~[]A, GB ~[]B, A, B any](f Kleisli[A, B]) Kleisli[GA, GB]
 //	validate := F.Flow2(Predicate(N.MoreThan(0)), Map(N.Mul(2)))
 //	result := TraverseArray(validate)([]int{1, 2, 3}) // Some([2, 4, 6])
 //	result := TraverseArray(validate)([]int{1, -1, 3}) // None
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
@@ -63,6 +67,8 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 //	}
 //	result := TraverseArrayWithIndexG[[]string, []string](f)([]string{"a", "b"}) // Some(["0:a", "1:b"])
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B]) Kleisli[GA, GB] {
 	return common.OptionTraverseArrayWithIndexG[GA, GB](f)
@@ -79,6 +85,8 @@ func TraverseArrayWithIndexG[GA ~[]A, GB ~[]B, A, B any](f func(int, A) Option[B
 //	}
 //	result := TraverseArrayWithIndex(f)([]int{1, 2, 3}) // Some([1, 2, 3])
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B] {
 	return common.OptionTraverseArrayWithIndex(f)
@@ -94,6 +102,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) Option[B]) Kleisli[[]A, []B
 //	result := SequenceArrayG[MySlice](A.From(Some(1), Some(2))) // Some(MySlice{1, 2})
 //	result := SequenceArrayG[MySlice](A.From(Some(1), None[int]())) // None
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
 	return common.OptionSequenceArrayG[GA](ma)
@@ -106,6 +116,8 @@ func SequenceArrayG[GA ~[]A, GOA ~[]Option[A], A any](ma GOA) Option[GA] {
 //
 //	result := SequenceArray(A.From(Some(1), Some(2), Some(3))) // Some([1, 2, 3])
 //	result := SequenceArray(A.From(Some(1), None[int](), Some(3))) // None
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[A any](ma []Option[A]) Option[[]A] {

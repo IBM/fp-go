@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -248,8 +249,7 @@ func TestMap_EmptySlice(t *testing.T) {
 	})
 
 	result := mapper(reflectVal)
-	assert.Empty(t, result, "Should return empty slice")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice")
 }
 
 // TestMap_SingleElement tests mapping a single-element slice
@@ -409,8 +409,7 @@ func TestMapWithIndex_EmptySlice(t *testing.T) {
 	})
 
 	result := mapper(reflectVal)
-	assert.Empty(t, result, "Should return empty slice")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice")
 }
 
 // TestMapWithIndex_SingleElement tests mapping a single-element slice with index
@@ -612,8 +611,7 @@ func TestNonIterable_Map(t *testing.T) {
 	})
 
 	result := mapper(reflectVal)
-	assert.Empty(t, result, "Should return empty slice for non-iterable")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice for non-iterable")
 }
 
 // TestNonIterable_MapWithIndex tests mapping a non-iterable type with index
@@ -629,8 +627,7 @@ func TestNonIterable_MapWithIndex(t *testing.T) {
 	})
 
 	result := mapper(reflectVal)
-	assert.Empty(t, result, "Should return empty slice for non-iterable")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice for non-iterable")
 }
 
 // TestNonIterable_Map tests mapping a map type (not supported)
@@ -643,8 +640,7 @@ func TestNonIterable_MapType(t *testing.T) {
 	})
 
 	result := mapper(reflectVal)
-	assert.Empty(t, result, "Should return empty slice for map type")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice for map type")
 }
 
 // TestNonIterable_Channel tests with channel type (not supported)
@@ -725,8 +721,7 @@ func TestMonadMapWithIndex_EmptySlice(t *testing.T) {
 		return i + int(v.Int())
 	})
 
-	assert.Empty(t, result, "Should return empty slice")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice")
 }
 
 // TestMonadMapWithIndex_Array tests with array type
@@ -768,8 +763,7 @@ func TestMonadMapWithIndex_NonIterable(t *testing.T) {
 		return i
 	})
 
-	assert.Empty(t, result, "Should return empty slice for non-iterable")
-	assert.NotNil(t, result, "Should not return nil")
+	assert.True(t, A.IsEmpty(result), "Should return empty slice for non-iterable")
 }
 
 // TestMonadMapWithIndex_ComplexTransformation tests complex transformation

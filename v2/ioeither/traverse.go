@@ -22,6 +22,8 @@ import (
 )
 
 // TraverseArray transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
@@ -33,6 +35,8 @@ func TraverseArray[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 }
 
 // TraverseArrayWithIndex transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
@@ -44,6 +48,8 @@ func TraverseArrayWithIndex[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 	return TraverseArray(function.Identity[IOEither[E, A]])(ma)
 }
@@ -76,6 +82,8 @@ func SequenceRecord[K comparable, E, A any](ma map[K]IOEither[E, A]) IOEither[E,
 }
 
 // TraverseArraySeq transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArraySeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
@@ -87,6 +95,8 @@ func TraverseArraySeq[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 }
 
 // TraverseArrayWithIndexSeq transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndexSeq[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
@@ -98,6 +108,8 @@ func TraverseArrayWithIndexSeq[E, A, B any](f func(int, A) IOEither[E, B]) Kleis
 }
 
 // SequenceArraySeq converts a homogeneous sequence of either into an either of sequence
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArraySeq[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 	return TraverseArraySeq(function.Identity[IOEither[E, A]])(ma)
 }
@@ -130,6 +142,8 @@ func SequenceRecordSeq[K comparable, E, A any](ma map[K]IOEither[E, A]) IOEither
 }
 
 // TraverseArrayPar transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayPar[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 	return array.Traverse[[]A](
 		Of[E, []B],
@@ -141,6 +155,8 @@ func TraverseArrayPar[E, A, B any](f Kleisli[E, A, B]) Kleisli[E, []A, []B] {
 }
 
 // TraverseArrayWithIndexPar transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndexPar[E, A, B any](f func(int, A) IOEither[E, B]) Kleisli[E, []A, []B] {
 	return array.TraverseWithIndex[[]A](
 		Of[E, []B],
@@ -152,6 +168,8 @@ func TraverseArrayWithIndexPar[E, A, B any](f func(int, A) IOEither[E, B]) Kleis
 }
 
 // SequenceArrayPar converts a homogeneous sequence of either into an either of sequence
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArrayPar[E, A any](ma []IOEither[E, A]) IOEither[E, []A] {
 	return TraverseArrayPar(function.Identity[IOEither[E, A]])(ma)
 }

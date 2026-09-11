@@ -30,6 +30,8 @@ import (
 //   - f: Function that transforms each element into a ReaderIOResult
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse(
 		Of[[]B],
@@ -59,6 +61,8 @@ func TraverseIter[A, B any](f Kleisli[A, B]) Kleisli[Seq[A], Seq[B]] {
 //   - f: Function that transforms each element with its index into a ReaderIOResult
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex(
 		Of[[]B],
@@ -76,6 +80,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[
 //   - ma: Array of ReaderIOResult values
 //
 // Returns a ReaderIOResult containing an array of values.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[A any](ma []ReaderIOResult[A]) ReaderIOResult[[]A] {
 	return TraverseArray(function.Identity[ReaderIOResult[A]])(ma)
 }
@@ -131,6 +137,8 @@ func SequenceRecord[K comparable, A any](ma map[K]ReaderIOResult[A]) ReaderIORes
 //   - f: Function that transforms each element into a ReaderIOResult
 //
 // Returns a ReaderIOResult containing an array of transformed values.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArraySeq[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B] {
 	return array.MonadTraverse(
 		Of[[]B],
@@ -148,6 +156,8 @@ func MonadTraverseArraySeq[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B
 //   - f: Function that transforms each element into a ReaderIOResult
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse(
 		Of[[]B],
@@ -158,6 +168,8 @@ func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 }
 
 // TraverseArrayWithIndexSeq uses transforms an array [[]A] into [[]ReaderIOResult[B]] and then resolves that into a [ReaderIOResult[[]B]]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex(
 		Of[[]B],
@@ -174,6 +186,8 @@ func TraverseArrayWithIndexSeq[A, B any](f func(int, A) ReaderIOResult[B]) Kleis
 //   - ma: Array of ReaderIOResult values
 //
 // Returns a ReaderIOResult containing an array of values.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArraySeq[A any](ma []ReaderIOResult[A]) ReaderIOResult[[]A] {
 	return MonadTraverseArraySeq(ma, function.Identity[ReaderIOResult[A]])
 }
@@ -224,6 +238,8 @@ func SequenceRecordSeq[K comparable, A any](ma map[K]ReaderIOResult[A]) ReaderIO
 //   - f: Function that transforms each element into a ReaderIOResult
 //
 // Returns a ReaderIOResult containing an array of transformed values.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArrayPar[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B] {
 	return array.MonadTraverse(
 		Of[[]B],
@@ -241,6 +257,8 @@ func MonadTraverseArrayPar[A, B any](as []A, f Kleisli[A, B]) ReaderIOResult[[]B
 //   - f: Function that transforms each element into a ReaderIOResult
 //
 // Returns a function that transforms an array into a ReaderIOResult of an array.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse(
 		Of[[]B],
@@ -251,6 +269,8 @@ func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 }
 
 // TraverseArrayWithIndexPar uses transforms an array [[]A] into [[]ReaderIOResult[B]] and then resolves that into a [ReaderIOResult[[]B]]
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOResult[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex(
 		Of[[]B],
@@ -267,6 +287,8 @@ func TraverseArrayWithIndexPar[A, B any](f func(int, A) ReaderIOResult[B]) Kleis
 //   - ma: Array of ReaderIOResult values
 //
 // Returns a ReaderIOResult containing an array of values.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArrayPar[A any](ma []ReaderIOResult[A]) ReaderIOResult[[]A] {
 	return MonadTraverseArrayPar(ma, function.Identity[ReaderIOResult[A]])
 }

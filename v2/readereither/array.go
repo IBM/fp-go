@@ -46,6 +46,8 @@ import (
 //	result := fetchUsers([]int{1, 2, 3})
 //	// result(cfg) returns Right([user1, user2, user3]) or Left(error)
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func([]A) ReaderEither[E, L, []B] {
 	return G.TraverseArray[ReaderEither[E, L, B], ReaderEither[E, L, []B], []A](f)
@@ -73,6 +75,8 @@ func TraverseArray[E, L, A, B any](f func(A) ReaderEither[E, L, B]) func([]A) Re
 //	processWithIndex := TraverseArrayWithIndex(func(i int, val string) ReaderEither[Config, error, string] {
 //	    return Of[Config, error](fmt.Sprintf("%d: %s", i, val))
 //	})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArrayWithIndex[E, L, A, B any](f func(int, A) ReaderEither[E, L, B]) func([]A) ReaderEither[E, L, []B] {
@@ -105,6 +109,8 @@ func TraverseArrayWithIndex[E, L, A, B any](f func(int, A) ReaderEither[E, L, B]
 //	}
 //	result := SequenceArray(computations)
 //	// result(cfg) returns Right([userCount, postCount, commentCount]) or Left(error)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[E, L, A any](ma []ReaderEither[E, L, A]) ReaderEither[E, L, []A] {

@@ -34,7 +34,8 @@ func TestTraverseArrayWithIndex(t *testing.T) {
 			return Of[context.Context, error](fmt.Sprintf("%d:%s", i, a))
 		})
 		result := f([]string{})(ctx)
-		assert.Equal(t, ET.Right[error]([]string{}), result)
+		assert.True(t, ET.IsRight(result))
+		assert.True(t, A.IsEmpty(ET.GetOrElse(func(error) []string { return nil })(result)))
 	})
 
 	t.Run("transformation with index", func(t *testing.T) {
@@ -77,7 +78,8 @@ func TestSequenceArray(t *testing.T) {
 	t.Run("empty array", func(t *testing.T) {
 		computations := []ReaderEither[context.Context, error, int]{}
 		result := SequenceArray(computations)(ctx)
-		assert.Equal(t, ET.Right[error]([]int{}), result)
+		assert.True(t, ET.IsRight(result))
+		assert.True(t, A.IsEmpty(ET.GetOrElse(func(error) []int { return nil })(result)))
 	})
 
 	t.Run("all successful", func(t *testing.T) {

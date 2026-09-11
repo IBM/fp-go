@@ -71,7 +71,9 @@ func TestTraverseArray(t *testing.T) {
 		Of[context.Context](input3),
 		Chain(TraverseArray(doubleIfPositive)),
 	)
-	assert.Equal(t, O.Of([]int{}), g3(context.Background()))
+	actual3 := g3(context.Background())
+	assert.True(t, O.IsSome(actual3))
+	assert.True(t, A.IsEmpty(O.GetOrElse(func() []int { return nil })(actual3)))
 }
 
 func TestTraverseArrayWithIndex(t *testing.T) {

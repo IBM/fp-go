@@ -22,5 +22,5 @@ import (
 )
 
 func TestMonoid(t *testing.T) {
-	M.AssertLaws(t, Monoid)([][]byte{[]byte(""), []byte("a"), []byte("some value")})
+	M.AssertLaws(t, Monoid)([][]byte{nil, []byte("a"), []byte("some value")})
 }

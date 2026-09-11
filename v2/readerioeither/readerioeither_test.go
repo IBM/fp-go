@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
@@ -715,7 +716,9 @@ func TestTraverseArrayDetailed(t *testing.T) {
 			return Of[testContext, error](strconv.Itoa(a))
 		})
 		result := f([]int{})
-		assert.Equal(t, E.Right[error]([]string{}), result(ctx)())
+		actual := result(ctx)()
+		assert.True(t, E.IsRight(actual))
+		assert.True(t, A.IsEmpty(E.GetOrElse(func(error) []string { return nil })(actual)))
 	})
 
 	t.Run("successful transformation", func(t *testing.T) {
@@ -767,7 +770,9 @@ func TestTraverseArrayWithIndexDetailed(t *testing.T) {
 			return Of[testContext, error](fmt.Sprintf("%d:%s", i, a))
 		})
 		result := f([]string{})
-		assert.Equal(t, E.Right[error]([]string{}), result(ctx)())
+		actual := result(ctx)()
+		assert.True(t, E.IsRight(actual))
+		assert.True(t, A.IsEmpty(E.GetOrElse(func(error) []string { return nil })(actual)))
 	})
 
 	t.Run("fails at specific index", func(t *testing.T) {
@@ -857,7 +862,9 @@ func TestSequenceArrayDetailed(t *testing.T) {
 	t.Run("empty array", func(t *testing.T) {
 		computations := []ReaderIOEither[testContext, error, int]{}
 		result := SequenceArray(computations)
-		assert.Equal(t, E.Right[error]([]int{}), result(ctx)())
+		actual := result(ctx)()
+		assert.True(t, E.IsRight(actual))
+		assert.True(t, A.IsEmpty(E.GetOrElse(func(error) []int { return nil })(actual)))
 	})
 
 	t.Run("all successful", func(t *testing.T) {

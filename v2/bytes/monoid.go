@@ -36,7 +36,7 @@ var (
 	//   - Monoid.Concat(Monoid.Concat(a, b), c) == Monoid.Concat(a, Monoid.Concat(b, c))
 	//
 	// Operations:
-	//   - Empty(): Returns an empty byte slice []byte{}
+	//   - Empty(): Returns nil, the canonical empty byte slice
 	//   - Concat(a, b []byte): Concatenates two byte slices
 	//
 	// Example - Basic concatenation:

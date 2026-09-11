@@ -77,7 +77,7 @@ func TestTraverseArrayWithIndex(t *testing.T) {
 			return Of[context.Context](fmt.Sprintf("%d:%s", i, a))
 		})
 		result := f([]string{})(ctx)()
-		assert.Equal(t, []string{}, result)
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("transformation with index", func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestSequenceArray(t *testing.T) {
 	t.Run("empty array", func(t *testing.T) {
 		computations := []ReaderIO[context.Context, int]{}
 		result := SequenceArray(computations)(ctx)()
-		assert.Equal(t, []int{}, result)
+		assert.True(t, A.IsEmpty(result))
 	})
 
 	t.Run("multiple computations", func(t *testing.T) {

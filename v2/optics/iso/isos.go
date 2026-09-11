@@ -903,3 +903,31 @@ func ToNillable[A any]() Iso[Option[A], *A] {
 func FromNillable[A any]() Iso[*A, Option[A]] {
 	return MakeIso(option.FromNillable2[A], option.ToNillable2[A])
 }
+
+// emptyToNil maps an empty slice to nil and leaves all other slices unchanged.
+func emptyToNil[A any](as []A) []A {
+	if array.IsEmpty(as) {
+		return nil
+	}
+	return as
+}
+
+// EmptyToNil returns an [Iso] that normalises an empty-but-non-nil slice to nil.
+//
+// Both directions are total: neither panics nor returns an error.
+//
+//   - Get:        func([]A) []A — non-empty slice → same slice; empty slice (including nil) → nil
+//   - ReverseGet: func([]A) []A — same as Get (nil passes through as nil; any other slice is unchanged)
+//
+// Both directions apply the same normalisation, so the iso is its own inverse.
+// Empty and nil slices are identified: if you need to distinguish []A{} from nil,
+// do not use this iso.
+//
+// Type Parameters:
+//   - A: the element type of the slice
+//
+// See Also:
+//   - ToNillable: the analogous iso for Option[A] vs *A
+func EmptyToNil[A any]() Iso[[]A, []A] {
+	return MakeIso(emptyToNil[A], emptyToNil[A])
+}

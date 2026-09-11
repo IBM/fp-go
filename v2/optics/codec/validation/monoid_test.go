@@ -3,6 +3,7 @@ package validation
 import (
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	MO "github.com/IBM/fp-go/v2/monoid"
@@ -15,8 +16,7 @@ func TestErrorsMonoid(t *testing.T) {
 
 	t.Run("empty returns empty array", func(t *testing.T) {
 		empty := m.Empty()
-		assert.NotNil(t, empty)
-		assert.Len(t, empty, 0)
+		assert.True(t, A.IsEmpty(empty))
 	})
 
 	t.Run("concat combines error arrays", func(t *testing.T) {

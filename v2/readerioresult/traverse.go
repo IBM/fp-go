@@ -46,6 +46,8 @@ import (
 //	result := fetchUsers([]int{1, 2, 3})
 //	// result(cfg)() returns Right([user1, user2, user3]) or Left(error)
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
 	return RIOE.TraverseArray(f)
@@ -73,6 +75,8 @@ func TraverseArray[R, A, B any](f Kleisli[R, A, B]) Kleisli[R, []A, []B] {
 //	processWithIndex := TraverseArrayWithIndex(func(i int, val string) ReaderIOResult[Config, error, string] {
 //	    return Of[Config, error](fmt.Sprintf("%d: %s", i, val))
 //	})
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIOResult[R, B]) Kleisli[R, []A, []B] {
@@ -105,6 +109,8 @@ func TraverseArrayWithIndex[R, A, B any](f func(int, A) ReaderIOResult[R, B]) Kl
 //	}
 //	result := SequenceArray(computations)
 //	// result(cfg)() returns Right([userCount, postCount, commentCount]) or Left(error)
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 //
 //go:inline
 func SequenceArray[R, A any](ma []ReaderIOResult[R, A]) ReaderIOResult[R, []A] {

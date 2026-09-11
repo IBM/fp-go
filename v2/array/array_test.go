@@ -35,12 +35,12 @@ func TestMap1(t *testing.T) {
 
 	up := Map(strings.ToUpper)(src)
 
-	var up1 = []string{}
+	up1 := Empty[string]()
 	for _, s := range src {
 		up1 = append(up1, strings.ToUpper(s))
 	}
 
-	var up2 = []string{}
+	up2 := Empty[string]()
 	for i := range src {
 		up2 = append(up2, strings.ToUpper(src[i]))
 	}
@@ -87,7 +87,7 @@ func TestReduce(t *testing.T) {
 
 func TestEmpty(t *testing.T) {
 	assert.True(t, IsNonEmpty(MakeBy(101, F.Identity[int])))
-	assert.True(t, IsEmpty([]int{}))
+	assert.True(t, IsEmpty(Empty[int]()))
 }
 
 func TestAp(t *testing.T) {
@@ -116,7 +116,7 @@ func TestIntercalate(t *testing.T) {
 
 func TestIntersperse(t *testing.T) {
 	// Test with empty array
-	assert.Equal(t, []int{}, Intersperse(0)([]int{}))
+	assert.True(t, IsEmpty(Intersperse(0)(Empty[int]())))
 
 	// Test with single element
 	assert.Equal(t, []int{1}, Intersperse(0)([]int{1}))
@@ -126,9 +126,8 @@ func TestIntersperse(t *testing.T) {
 }
 
 func TestPrependAll(t *testing.T) {
-	empty := Empty[int]()
 	prep := PrependAll(0)
-	assert.Equal(t, empty, prep(empty))
+	assert.True(t, IsEmpty(prep(Empty[int]())))
 	assert.Equal(t, []int{0, 1, 0, 2, 0, 3}, prep([]int{1, 2, 3}))
 	assert.Equal(t, []int{0, 1}, prep([]int{1}))
 	assert.Equal(t, []int{0, 1, 0, 2, 0, 3, 0, 4}, prep([]int{1, 2, 3, 4}))
@@ -162,7 +161,7 @@ func TestFromOption(t *testing.T) {
 		assert.Equal(t, []int{42}, FromOption(O.Some(42)))
 	})
 	t.Run("None produces an empty array", func(t *testing.T) {
-		assert.Equal(t, []int{}, FromOption(O.None[int]()))
+		assert.True(t, IsEmpty(FromOption(O.None[int]())))
 	})
 }
 
@@ -213,7 +212,7 @@ func TestFilterMap(t *testing.T) {
 
 func TestFoldMap(t *testing.T) {
 	t.Run("FoldMap with 0 items", func(t *testing.T) {
-		empty := []int{}
+		empty := Empty[int]()
 		sumMonoid := N.MonoidSum[int]()
 		foldMap := FoldMap[int](sumMonoid)(N.Mul(2))
 		result := foldMap(empty)
@@ -245,7 +244,7 @@ func TestFoldMap(t *testing.T) {
 	})
 
 	t.Run("FoldMap with string concatenation - 0 items", func(t *testing.T) {
-		empty := []string{}
+		empty := Empty[string]()
 		fold := FoldMap[string](S.Monoid)(strings.ToUpper)
 		result := fold(empty)
 		assert.Equal(t, "", result, "FoldMap should return empty string for 0 items")
@@ -275,7 +274,7 @@ func TestFoldMap(t *testing.T) {
 
 func TestFold(t *testing.T) {
 	t.Run("Fold with 0 items", func(t *testing.T) {
-		empty := []int{}
+		empty := Empty[int]()
 		sumMonoid := N.MonoidSum[int]()
 		fold := Fold(sumMonoid)
 		result := fold(empty)
@@ -307,7 +306,7 @@ func TestFold(t *testing.T) {
 	})
 
 	t.Run("Fold with string concatenation - 0 items", func(t *testing.T) {
-		empty := []string{}
+		empty := Empty[string]()
 		fold := Fold(S.Monoid)
 		result := fold(empty)
 		assert.Equal(t, "", result, "Fold should return empty string for 0 items")
@@ -335,7 +334,7 @@ func TestFold(t *testing.T) {
 	})
 
 	t.Run("Fold with product monoid - 0 items", func(t *testing.T) {
-		empty := []int{}
+		empty := Empty[int]()
 		productMonoid := N.MonoidProduct[int]()
 		fold := Fold(productMonoid)
 		result := fold(empty)
@@ -368,7 +367,7 @@ func TestFold(t *testing.T) {
 }
 func TestFoldMapWithIndex(t *testing.T) {
 	t.Run("FoldMapWithIndex with 0 items", func(t *testing.T) {
-		empty := []int{}
+		empty := Empty[int]()
 		sumMonoid := N.MonoidSum[int]()
 		foldMap := FoldMapWithIndex[int](sumMonoid)(func(i, x int) int { return i + x })
 		result := foldMap(empty)
@@ -400,7 +399,7 @@ func TestFoldMapWithIndex(t *testing.T) {
 	})
 
 	t.Run("FoldMapWithIndex with string concatenation - 0 items", func(t *testing.T) {
-		empty := []string{}
+		empty := Empty[string]()
 		foldMap := FoldMapWithIndex[string](S.Monoid)(func(i int, s string) string {
 			return fmt.Sprintf("%d:%s", i, s)
 		})
@@ -464,9 +463,9 @@ func TestReverse(t *testing.T) {
 	})
 
 	t.Run("Reverse empty slice", func(t *testing.T) {
-		input := []int{}
+		input := Empty[int]()
 		result := Reverse(input)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, IsEmpty(result))
 	})
 
 	t.Run("Reverse single element", func(t *testing.T) {
@@ -721,13 +720,13 @@ func TestExtract(t *testing.T) {
 	})
 
 	t.Run("Extract from empty array returns zero value", func(t *testing.T) {
-		input := []int{}
+		input := Empty[int]()
 		result := Extract(input)
 		assert.Equal(t, 0, result)
 	})
 
 	t.Run("Extract from empty string array returns empty string", func(t *testing.T) {
-		input := []string{}
+		input := Empty[string]()
 		result := Extract(input)
 		assert.Equal(t, "", result)
 	})
@@ -813,9 +812,9 @@ func TestExtend(t *testing.T) {
 	})
 
 	t.Run("Extend with empty array", func(t *testing.T) {
-		input := []int{}
+		input := Empty[int]()
 		result := Extend(Size[int])(input)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, IsEmpty(result))
 	})
 
 	t.Run("Extend with single element", func(t *testing.T) {
@@ -1027,23 +1026,23 @@ func TestConcat(t *testing.T) {
 
 	t.Run("Concat with empty array to append", func(t *testing.T) {
 		base := []int{1, 2, 3}
-		empty := []int{}
+		empty := Empty[int]()
 		result := Concat(empty)(base)
 		assert.Equal(t, base, result)
 	})
 
 	t.Run("Concat to empty base array", func(t *testing.T) {
-		empty := []int{}
+		empty := Empty[int]()
 		toAppend := []int{1, 2, 3}
 		result := Concat(toAppend)(empty)
 		assert.Equal(t, toAppend, result)
 	})
 
 	t.Run("Concat two empty arrays", func(t *testing.T) {
-		empty1 := []int{}
-		empty2 := []int{}
+		empty1 := Empty[int]()
+		empty2 := Empty[int]()
 		result := Concat(empty2)(empty1)
-		assert.Equal(t, []int{}, result)
+		assert.True(t, IsEmpty(result))
 	})
 
 	t.Run("Concat strings", func(t *testing.T) {
@@ -1342,7 +1341,7 @@ func TestConcatProperties(t *testing.T) {
 
 	t.Run("Identity: a + [] == a and [] + a == a", func(t *testing.T) {
 		arr := []int{1, 2, 3}
-		empty := []int{}
+		empty := Empty[int]()
 
 		// Right identity
 		rightResult := Concat(empty)(arr)
@@ -1360,8 +1359,8 @@ func TestConcatProperties(t *testing.T) {
 		}{
 			{[]int{1, 2, 3}, []int{4, 5}},
 			{[]int{1}, []int{2, 3, 4, 5}},
-			{[]int{}, []int{1, 2, 3}},
-			{[]int{1, 2, 3}, []int{}},
+			{Empty[int](), []int{1, 2, 3}},
+			{[]int{1, 2, 3}, Empty[int]()},
 			{MakeBy(100, F.Identity[int]), MakeBy(50, F.Identity[int])},
 		}
 

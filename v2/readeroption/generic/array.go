@@ -22,6 +22,8 @@ import (
 )
 
 // MonadTraverseArray transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func MonadTraverseArray[GB ~func(E) O.Option[B], GBS ~func(E) O.Option[BBS], AAS ~[]A, BBS ~[]B, E, A, B any](ma AAS, f func(A) GB) GBS {
 	return RA.MonadTraverse(
 		Of[GBS, E, BBS],
@@ -33,6 +35,8 @@ func MonadTraverseArray[GB ~func(E) O.Option[B], GBS ~func(E) O.Option[BBS], AAS
 }
 
 // TraverseArray transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArray[GB ~func(E) O.Option[B], GBS ~func(E) O.Option[BBS], AAS ~[]A, BBS ~[]B, E, A, B any](f func(A) GB) func(AAS) GBS {
 	return RA.Traverse[AAS](
 		Of[GBS, E, BBS],
@@ -44,6 +48,8 @@ func TraverseArray[GB ~func(E) O.Option[B], GBS ~func(E) O.Option[BBS], AAS ~[]A
 }
 
 // TraverseArrayWithIndex transforms an array
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func TraverseArrayWithIndex[GB ~func(E) O.Option[B], GBS ~func(E) O.Option[BBS], AAS ~[]A, BBS ~[]B, E, A, B any](f func(int, A) GB) func(AAS) GBS {
 	return RA.TraverseWithIndex[AAS](
 		Of[GBS, E, BBS],
@@ -55,6 +61,8 @@ func TraverseArrayWithIndex[GB ~func(E) O.Option[B], GBS ~func(E) O.Option[BBS],
 }
 
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[GA ~func(E) O.Option[A], GAS ~func(E) O.Option[AAS], AAS ~[]A, GAAS ~[]GA, E, A any](ma GAAS) GAS {
 	return MonadTraverseArray[GA, GAS](ma, F.Identity[GA])
 }

@@ -25,6 +25,8 @@ import (
 // TraverseArray transforms an array by applying an IOResult-producing function to each element.
 // Uses parallel execution by default. If any element fails, the entire traversal fails.
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse[[]A](
@@ -40,6 +42,8 @@ func TraverseArray[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 // TraverseArrayWithIndex transforms an array with access to element indices.
 // Uses parallel execution by default.
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndex[A, B any](f func(int, A) IOResult[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex[[]A](
@@ -54,6 +58,8 @@ func TraverseArrayWithIndex[A, B any](f func(int, A) IOResult[B]) Kleisli[[]A, [
 // SequenceArray converts a homogeneous sequence of either into an either of sequence
 // SequenceArray converts an array of IOResults into an IOResult of an array.
 // Uses parallel execution by default.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArray[A any](ma []IOResult[A]) IOResult[[]A] {
 	return TraverseArray(function.Identity[IOResult[A]])(ma)
 }
@@ -99,6 +105,8 @@ func SequenceRecord[K comparable, A any](ma map[K]IOResult[A]) IOResult[map[K]A]
 // TraverseArraySeq transforms an array sequentially.
 // Elements are processed one at a time in order.
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse[[]A](
@@ -113,6 +121,8 @@ func TraverseArraySeq[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 // TraverseArrayWithIndexSeq transforms an array
 // TraverseArrayWithIndexSeq transforms an array sequentially with indices.
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndexSeq[A, B any](f func(int, A) IOResult[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex[[]A](
@@ -126,6 +136,8 @@ func TraverseArrayWithIndexSeq[A, B any](f func(int, A) IOResult[B]) Kleisli[[]A
 
 // SequenceArraySeq converts a homogeneous sequence of either into an either of sequence
 // SequenceArraySeq converts an array of IOResults sequentially.
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArraySeq[A any](ma []IOResult[A]) IOResult[[]A] {
 	return TraverseArraySeq(function.Identity[IOResult[A]])(ma)
 }
@@ -168,6 +180,8 @@ func SequenceRecordSeq[K comparable, A any](ma map[K]IOResult[A]) IOResult[map[K
 // TraverseArrayPar transforms an array in parallel (explicit).
 // This is equivalent to TraverseArray but makes parallelism explicit.
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 	return array.Traverse[[]A](
@@ -182,6 +196,8 @@ func TraverseArrayPar[A, B any](f Kleisli[A, B]) Kleisli[[]A, []B] {
 // TraverseArrayWithIndexPar transforms an array
 // TraverseArrayWithIndexPar transforms an array in parallel with indices (explicit).
 //
+// For an empty input array the resulting array is nil, the canonical empty array.
+//
 //go:inline
 func TraverseArrayWithIndexPar[A, B any](f func(int, A) IOResult[B]) Kleisli[[]A, []B] {
 	return array.TraverseWithIndex[[]A](
@@ -195,6 +211,8 @@ func TraverseArrayWithIndexPar[A, B any](f func(int, A) IOResult[B]) Kleisli[[]A
 
 // SequenceArrayPar converts a homogeneous Paruence of either into an either of Paruence
 // SequenceArrayPar converts an array of IOResults in parallel (explicit).
+//
+// For an empty input array the resulting array is nil, the canonical empty array.
 func SequenceArrayPar[A any](ma []IOResult[A]) IOResult[[]A] {
 	return TraverseArrayPar(function.Identity[IOResult[A]])(ma)
 }

@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	S "github.com/IBM/fp-go/v2/string"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,8 +54,7 @@ func TestTraverseArrayG_EmptyArray(t *testing.T) {
 	result, err := TraverseArrayG[[]string, []int](parse)([]string{})
 
 	require.NoError(t, err)
-	assert.Empty(t, result)
-	assert.NotNil(t, result) // Should be an empty slice, not nil
+	assert.True(t, A.IsEmpty(result))
 }
 
 // TestTraverseArrayG_SingleElement tests traversal with a single element
@@ -162,8 +162,7 @@ func TestTraverseArray_EmptyArray(t *testing.T) {
 	result, err := TraverseArray(identity)([]int{})
 
 	require.NoError(t, err)
-	assert.Empty(t, result)
-	assert.NotNil(t, result)
+	assert.True(t, A.IsEmpty(result))
 }
 
 // TestTraverseArray_DifferentTypes tests transformation between different types
@@ -221,8 +220,7 @@ func TestTraverseArrayWithIndexG_EmptyArray(t *testing.T) {
 	result, err := TraverseArrayWithIndexG[[]string, []string](annotate)([]string{})
 
 	require.NoError(t, err)
-	assert.Empty(t, result)
-	assert.NotNil(t, result)
+	assert.True(t, A.IsEmpty(result))
 }
 
 // TestTraverseArrayWithIndexG_IndexValidation tests that indices are correct
@@ -324,8 +322,7 @@ func TestTraverseArrayWithIndex_EmptyArray(t *testing.T) {
 	result, err := TraverseArrayWithIndex(process)([]string{})
 
 	require.NoError(t, err)
-	assert.Empty(t, result)
-	assert.NotNil(t, result)
+	assert.True(t, A.IsEmpty(result))
 }
 
 // TestTraverseArrayWithIndex_SingleElement tests single element processing

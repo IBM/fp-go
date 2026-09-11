@@ -2757,3 +2757,73 @@ func TestSecondsDurationRoundTripLaws(t *testing.T) {
 		}
 	})
 }
+
+// ---------------------------------------------------------------------------
+// EmptyToNil
+// ---------------------------------------------------------------------------
+
+// TestEmptyToNil tests the EmptyToNil isomorphism.
+func TestEmptyToNil(t *testing.T) {
+	iso := EmptyToNil[int]()
+
+	t.Run("Get maps nil to nil", func(t *testing.T) {
+		assert.Nil(t, iso.Get(nil))
+	})
+
+	t.Run("Get maps empty non-nil slice to nil", func(t *testing.T) {
+		assert.Nil(t, iso.Get([]int{}))
+	})
+
+	t.Run("Get preserves non-empty slice", func(t *testing.T) {
+		assert.Equal(t, []int{1, 2, 3}, iso.Get([]int{1, 2, 3}))
+	})
+
+	t.Run("ReverseGet maps nil to nil", func(t *testing.T) {
+		assert.Nil(t, iso.ReverseGet(nil))
+	})
+
+	t.Run("ReverseGet maps empty non-nil slice to nil", func(t *testing.T) {
+		assert.Nil(t, iso.ReverseGet([]int{}))
+	})
+
+	t.Run("ReverseGet preserves non-empty slice", func(t *testing.T) {
+		assert.Equal(t, []int{4, 5}, iso.ReverseGet([]int{4, 5}))
+	})
+
+	t.Run("Works with string type", func(t *testing.T) {
+		strIso := EmptyToNil[string]()
+		assert.Nil(t, strIso.Get([]string{}))
+		assert.Equal(t, []string{"a", "b"}, strIso.Get([]string{"a", "b"}))
+	})
+}
+
+// TestEmptyToNilRoundTripLaws verifies the round-trip laws for EmptyToNil.
+func TestEmptyToNilRoundTripLaws(t *testing.T) {
+	iso := EmptyToNil[int]()
+
+	t.Run("Get(ReverseGet(nil)) == nil", func(t *testing.T) {
+		assert.Nil(t, iso.Get(iso.ReverseGet(nil)))
+	})
+
+	for _, s := range [][]int{{1}, {1, 2, 3}, {0, -1, 42}} {
+		s := s
+		t.Run(fmt.Sprintf("Get(ReverseGet(%v)) == %v", s, s), func(t *testing.T) {
+			assert.Equal(t, s, iso.Get(iso.ReverseGet(s)))
+		})
+	}
+
+	t.Run("ReverseGet(Get(nil)) == nil", func(t *testing.T) {
+		assert.Nil(t, iso.ReverseGet(iso.Get(nil)))
+	})
+
+	t.Run("empty []int{} and nil are identified: ReverseGet(Get([]int{})) == nil", func(t *testing.T) {
+		assert.Nil(t, iso.ReverseGet(iso.Get([]int{})))
+	})
+
+	for _, s := range [][]int{{1}, {1, 2, 3}, {0, -1, 42}} {
+		s := s
+		t.Run(fmt.Sprintf("ReverseGet(Get(%v)) == %v", s, s), func(t *testing.T) {
+			assert.Equal(t, s, iso.ReverseGet(iso.Get(s)))
+		})
+	}
+}

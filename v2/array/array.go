@@ -52,7 +52,7 @@ func From[A any](data ...A) []A {
 // FromOption converts an Option into an array.
 //
 // If opt is Some(a), the result is a single-element array containing a.
-// If opt is None, the result is an empty array.
+// If opt is None, the result is nil, the canonical representation of the empty array.
 //
 // Type Parameters:
 //   - A: The element type
@@ -61,7 +61,7 @@ func From[A any](data ...A) []A {
 //   - opt: The Option value to convert
 //
 // Returns:
-//   - []A: A slice of length 1 when opt is Some, or an empty slice when opt is None
+//   - []A: A slice of length 1 when opt is Some, or nil when opt is None
 //
 // See Also:
 //   - option.Some: Construct a Some value
@@ -84,7 +84,7 @@ func FromOption[A any](opt Option[A]) []A {
 //
 // # Returns
 //
-//   - A new array where element at index i equals f(i)
+//   - A new array where element at index i equals f(i), or nil (the empty array) if n <= 0
 //
 // # Example
 //
@@ -109,7 +109,7 @@ func MakeBy[F ~func(int) A, A any](n int, f F) []A {
 //
 // # Returns
 //
-//   - A new array containing n copies of a
+//   - A new array containing n copies of a, or nil (the empty array) if n <= 0
 //
 // # Example
 //
@@ -217,7 +217,7 @@ func filterRef[A any](fa []A, pred func(*A) bool) []A {
 			result = append(result, *a)
 		}
 	}
-	return result
+	return array.EmptyToNil(result)
 }
 
 func filterMapRef[A, B any](fa []A, pred func(*A) bool, f func(*A) B) []B {
@@ -229,10 +229,11 @@ func filterMapRef[A, B any](fa []A, pred func(*A) bool, f func(*A) B) []B {
 			result = append(result, f(a))
 		}
 	}
-	return result
+	return array.EmptyToNil(result)
 }
 
 // Filter returns a new array with all elements from the original array that match a predicate.
+// If no element matches, the result is nil, the canonical representation of the empty array.
 //
 // # Type Parameters
 //
@@ -259,6 +260,7 @@ func Filter[A any](pred func(A) bool) Operator[A, A] {
 
 // FilterWithIndex returns a new array with all elements from the original array that match a predicate.
 // The predicate receives both the index and the element.
+// If no element matches, the result is nil, the canonical representation of the empty array.
 //
 // # Type Parameters
 //
@@ -284,6 +286,7 @@ func FilterWithIndex[A any](pred func(int, A) bool) Operator[A, A] {
 }
 
 // FilterRef returns a new array with all elements from the original array that match a predicate operating on pointers.
+// If no element matches, the result is nil, the canonical representation of the empty array.
 //
 // # Type Parameters
 //
@@ -310,6 +313,7 @@ func FilterRef[A any](pred func(*A) bool) Operator[A, A] {
 
 // MonadFilterMap maps an array with a function that returns an Option and keeps only the Some values.
 // This is the monadic version that takes the array as the first parameter.
+// If no value is kept, the result is nil, the canonical representation of the empty array.
 //
 //go:inline
 func MonadFilterMap[A, B any](fa []A, f option.Kleisli[A, B]) []B {
@@ -318,6 +322,7 @@ func MonadFilterMap[A, B any](fa []A, f option.Kleisli[A, B]) []B {
 
 // MonadFilterMapWithIndex maps an array with a function that takes an index and returns an Option,
 // keeping only the Some values. This is the monadic version that takes the array as the first parameter.
+// If no value is kept, the result is nil, the canonical representation of the empty array.
 //
 //go:inline
 func MonadFilterMapWithIndex[A, B any](fa []A, f func(int, A) Option[B]) []B {
@@ -325,6 +330,7 @@ func MonadFilterMapWithIndex[A, B any](fa []A, f func(int, A) Option[B]) []B {
 }
 
 // FilterMap maps an array with an iterating function that returns an Option and keeps only the Some values discarding the Nones.
+// If no value is kept, the result is nil, the canonical representation of the empty array.
 //
 // # Type Parameters
 //
@@ -357,6 +363,7 @@ func FilterMap[A, B any](f option.Kleisli[A, B]) Operator[A, B] {
 
 // FilterMapWithIndex maps an array with an iterating function that returns an Option and keeps only the Some values discarding the Nones.
 // The function receives both the index and the element.
+// If no value is kept, the result is nil, the canonical representation of the empty array.
 //
 // # Type Parameters
 //
@@ -398,6 +405,7 @@ func ChainOptionK[A, B any](f option.Kleisli[A, []B]) Operator[A, B] {
 }
 
 // FilterMapRef filters an array using a predicate on pointers and maps the matching elements using a function on pointers.
+// If no element matches, the result is nil, the canonical representation of the empty array.
 //
 // # Type Parameters
 //
@@ -584,6 +592,7 @@ func IsNonEmpty[A any](as []A) bool {
 }
 
 // Empty returns an empty array of type A.
+// The result is nil, the canonical representation of the empty array in Go.
 //
 //go:inline
 func Empty[A any]() []A {
@@ -591,6 +600,7 @@ func Empty[A any]() []A {
 }
 
 // Zero returns an empty array of type A (alias for Empty).
+// The result is nil, the canonical representation of the empty array in Go.
 //
 //go:inline
 func Zero[A any]() []A {
@@ -793,6 +803,7 @@ func Flatten[A any](mma [][]A) []A {
 }
 
 // Slice extracts a subarray from index low (inclusive) to high (exclusive).
+// Negative indices count backward from the end of the array.
 //
 // # Type Parameters
 //
@@ -805,7 +816,8 @@ func Flatten[A any](mma [][]A) []A {
 //
 // # Returns
 //
-//   - A function that extracts a subarray
+//   - A function that extracts a subarray; it returns nil (the canonical empty array)
+//     when the resulting range is empty
 //
 // # Example
 //
@@ -1011,6 +1023,7 @@ func ConstNil[A any]() []A {
 }
 
 // SliceRight extracts a subarray from the specified start index to the end.
+// Negative indices count backward from the end of the array.
 //
 // # Type Parameters
 //
@@ -1022,7 +1035,8 @@ func ConstNil[A any]() []A {
 //
 // # Returns
 //
-//   - A function that extracts a subarray from start to end
+//   - A function that extracts a subarray from start to end; it returns nil
+//     (the canonical empty array) when start is at or beyond the end of the array
 //
 // # Example
 //
@@ -1387,8 +1401,7 @@ func Prepend[A any](head A) Operator[A, A] {
 //   - Creates a new slice with the same length as the input
 //   - Copies elements from the input slice in reverse order
 //   - Does not modify the original slice
-//   - Returns an empty slice if the input is empty
-//   - Returns a single-element slice unchanged if input has one element
+//   - Returns the input unchanged if it has zero or one elements (a nil input stays nil)
 //
 // Example:
 //
@@ -1478,7 +1491,7 @@ func Reverse[A any](as []A) []A {
 // Behavior:
 //   - Creates a new array with the same length as the input
 //   - For each position i, applies f to the suffix starting at i
-//   - Returns an empty array if the input is empty
+//   - Returns nil (the canonical empty array) if the input is empty
 //
 // Example:
 //

@@ -156,10 +156,14 @@ func SequenceSegment[HKTB, HKTRB any](
 // Returns:
 //   - HKTRB: An effect containing the array of transformed values
 //
+// Note: traversing an empty array returns the effect of nil (not an empty non-nil
+// slice), since nil is the canonical representation of the empty array.
+//
 // Example:
 //
 //	If any element produces None, the entire result is None.
 //	If all elements produce Some, the result is Some containing all values.
+//	For an empty input, the result is Some(nil).
 func MonadTraverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -167,7 +171,7 @@ func MonadTraverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 
 	ta GA,
 	f func(A) HKTB) HKTRB {
-	return MonadTraverseReduce(fof, fmap, fap, ta, f, Append[GB, B], Empty[GB]())
+	return MonadTraverseReduce(fof, fmap, fap, ta, f, Append[GB, B], nil)
 }
 
 // MonadTraverseWithIndex is like MonadTraverse but the transformation function also receives the index.
@@ -184,6 +188,9 @@ func MonadTraverse[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 //
 // Returns:
 //   - HKTRB: An effect containing the array of transformed values
+//
+// Note: traversing an empty array returns the effect of nil, consistent with
+// MonadTraverse.
 func MonadTraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 	fof func(GB) HKTRB,
 	fmap func(func(GB) func(B) GB) func(HKTRB) HKTAB,
@@ -191,7 +198,7 @@ func MonadTraverseWithIndex[GA ~[]A, GB ~[]B, A, B, HKTB, HKTAB, HKTRB any](
 
 	ta GA,
 	f func(int, A) HKTB) HKTRB {
-	return MonadTraverseReduceWithIndex(fof, fmap, fap, ta, f, Append[GB, B], Empty[GB]())
+	return MonadTraverseReduceWithIndex(fof, fmap, fap, ta, f, Append[GB, B], nil)
 }
 
 // Traverse creates a curried function that maps each element to an effect and sequences the results.

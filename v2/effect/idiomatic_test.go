@@ -20,6 +20,7 @@ import (
 	"errors"
 	"testing"
 
+	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/result"
@@ -331,7 +332,7 @@ func TestTraverseArrayI(t *testing.T) {
 	t.Run("empty slice", func(t *testing.T) {
 		v, err := runEffect(TraverseArrayI(doubleIdiomatic)([]int{}), testCtx)
 		assert.NoError(t, err)
-		assert.Equal(t, []int{}, v)
+		assert.True(t, A.IsEmpty(v))
 	})
 }
 

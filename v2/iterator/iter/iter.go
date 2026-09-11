@@ -1330,7 +1330,7 @@ func Zip[A, B any](fb Seq[B]) func(Seq[A]) Seq2[A, B] {
 //   - f: The mapping function to apply to each element
 //
 // Returns:
-//   - A slice containing all mapped elements
+//   - A slice containing all mapped elements, or nil if the sequence is empty
 //
 // Example:
 //
@@ -1355,6 +1355,7 @@ func MonadMapToArray[A, B any](fa Seq[A], f func(A) B) []B {
 //
 // Returns:
 //   - A function that takes a sequence and returns a slice of mapped elements
+//     (nil if the sequence is empty)
 //
 // Example:
 //

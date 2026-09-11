@@ -15,7 +15,8 @@
 
 package array
 
-// Prepend prepends a single value to an array
+// Prepend returns a function that prepends head to an array.
+// The result array is never nil (it always contains at least head).
 func Prepend[ENDO ~func(AS) AS, AS ~[]A, A any](head A) ENDO {
 	return func(as AS) AS {
 		l := len(as)

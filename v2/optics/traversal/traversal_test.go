@@ -171,7 +171,7 @@ func TestFilter_EdgeCases(t *testing.T) {
 		result := filteredTraversal(utils.Double)(numbers)
 
 		// Assert
-		assert.Equal(t, []int{}, result)
+		assert.True(t, AR.IsEmpty(result))
 	})
 
 	t.Run("no elements match predicate", func(t *testing.T) {
