@@ -1601,3 +1601,631 @@ func TestChainFirstLeftIOK_EdgeCases(t *testing.T) {
 		assert.Equal(t, E.Left[int](nilErr), result)
 	})
 }
+
+func TestDefer_Success(t *testing.T) {
+	t.Run("evaluates generator on each execution", func(t *testing.T) {
+		// Arrange: count how many times the generator is invoked
+		callCount := 0
+		computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			callCount++
+			return Of[OuterConfig, InnerConfig, error](42)
+		})
+
+		// Generator must NOT be called until the computation is executed
+		assert.Equal(t, 0, callCount, "generator must not be called before execution")
+
+		// First execution
+		assert.Equal(t, E.Right[error](42), computation(OuterConfig{})(InnerConfig{})())
+		assert.Equal(t, 1, callCount)
+
+		// Second execution re-invokes the generator
+		assert.Equal(t, E.Right[error](42), computation(OuterConfig{})(InnerConfig{})())
+		assert.Equal(t, 2, callCount)
+	})
+
+	t.Run("generator receives outer and inner environments", func(t *testing.T) {
+		outer := OuterConfig{database: "postgres", logLevel: "info"}
+		inner := InnerConfig{apiKey: "secret", timeout: 30}
+
+		computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
+			return func(r OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+				return func(c InnerConfig) IOE.IOEither[error, string] {
+					return IOE.Right[error](fmt.Sprintf("db=%s,key=%s", r.database, c.apiKey))
+				}
+			}
+		})
+
+		assert.Equal(t, E.Right[error]("db=postgres,key=secret"), computation(outer)(inner)())
+	})
+}
+
+func TestDefer_Failure(t *testing.T) {
+	t.Run("propagates Left produced by the deferred computation", func(t *testing.T) {
+		expectedErr := errors.New("deferred error")
+		computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			return Left[OuterConfig, InnerConfig, int](expectedErr)
+		})
+
+		assert.Equal(t, E.Left[int](expectedErr), computation(OuterConfig{})(InnerConfig{})())
+	})
+
+	t.Run("generator can return different computations on each call", func(t *testing.T) {
+		callCount := 0
+		computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			callCount++
+			if callCount == 1 {
+				return Left[OuterConfig, InnerConfig, int](errors.New("first call"))
+			}
+			return Of[OuterConfig, InnerConfig, error](callCount)
+		})
+
+		// First call: Left
+		r1 := computation(OuterConfig{})(InnerConfig{})()
+		assert.True(t, E.IsLeft(r1))
+		assert.Equal(t, 1, callCount)
+
+		// Second call: Right(2)
+		assert.Equal(t, E.Right[error](2), computation(OuterConfig{})(InnerConfig{})())
+		assert.Equal(t, 2, callCount)
+	})
+}
+
+func TestDefer_EdgeCases(t *testing.T) {
+	t.Run("deferred computation is lazy — generator not called at construction time", func(t *testing.T) {
+		generated := false
+		_ = Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			generated = true
+			return Of[OuterConfig, InnerConfig, error](0)
+		})
+		assert.False(t, generated, "generator must not fire until the computation is executed")
+	})
+
+	t.Run("composes with Chain after deferral", func(t *testing.T) {
+		computation := F.Pipe1(
+			Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+				return Of[OuterConfig, InnerConfig, error](21)
+			}),
+			Chain(func(n int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+				return Of[OuterConfig, InnerConfig, error](n * 2)
+			}),
+		)
+
+		assert.Equal(t, E.Right[error](42), computation(OuterConfig{})(InnerConfig{})())
+	})
+
+	t.Run("different outer environments produce different results", func(t *testing.T) {
+		outer1 := OuterConfig{database: "primary"}
+		outer2 := OuterConfig{database: "replica"}
+
+		computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, string] {
+			return func(r OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+				return func(_ InnerConfig) IOE.IOEither[error, string] {
+					return IOE.Right[error](r.database)
+				}
+			}
+		})
+
+		assert.Equal(t, E.Right[error]("primary"), computation(outer1)(InnerConfig{})())
+		assert.Equal(t, E.Right[error]("replica"), computation(outer2)(InnerConfig{})())
+	})
+}
+
+func TestDefer_Integration(t *testing.T) {
+	t.Run("side effects captured at execution time, not construction time", func(t *testing.T) {
+		var log []string
+
+		computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			log = append(log, "generator called")
+			return Of[OuterConfig, InnerConfig, error](1)
+		})
+
+		assert.Empty(t, log, "no side effects before execution")
+
+		computation(OuterConfig{})(InnerConfig{})()
+		assert.Equal(t, []string{"generator called"}, log)
+
+		computation(OuterConfig{})(InnerConfig{})()
+		assert.Equal(t, []string{"generator called", "generator called"}, log)
+	})
+
+	t.Run("deferred computation feeds into Map", func(t *testing.T) {
+		computation := F.Pipe1(
+			Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+				return Of[OuterConfig, InnerConfig, error](10)
+			}),
+			Map[OuterConfig, InnerConfig, error](func(n int) string {
+				return fmt.Sprintf("value=%d", n)
+			}),
+		)
+
+		assert.Equal(t, E.Right[error]("value=10"), computation(OuterConfig{})(InnerConfig{})())
+	})
+}
+
+func ExampleDefer() {
+	// Defer creates a ReaderReaderIOEither lazily: the generator function is
+	// called every time the computation is executed, not when it is constructed.
+
+	callCount := 0
+	computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+		callCount++
+		return Of[OuterConfig, InnerConfig, error](callCount * 10)
+	})
+
+	// Generator has not been called yet.
+	fmt.Println("before execution:", callCount)
+
+	r1 := computation(OuterConfig{})(InnerConfig{})()
+	fmt.Println("after first execution:", E.IsRight(r1), callCount)
+
+	r2 := computation(OuterConfig{})(InnerConfig{})()
+	fmt.Println("after second execution:", E.IsRight(r2), callCount)
+
+	// Output:
+	// before execution: 0
+	// after first execution: true 1
+	// after second execution: true 2
+}
+
+func ExampleDefer_errorCase() {
+	// Defer propagates the Left value produced by the deferred computation.
+
+	expectedErr := errors.New("something failed")
+	computation := Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+		return Left[OuterConfig, InnerConfig, int](expectedErr)
+	})
+
+	result := computation(OuterConfig{})(InnerConfig{})()
+	fmt.Println(E.IsLeft(result))
+
+	// Output:
+	// true
+}
+
+func ExampleDefer_composition() {
+	// Defer composes naturally with other operators in a pipeline.
+
+	computation := F.Pipe1(
+		Defer(func() ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			return Of[OuterConfig, InnerConfig, error](21)
+		}),
+		Chain(func(n int) ReaderReaderIOEither[OuterConfig, InnerConfig, error, int] {
+			return Of[OuterConfig, InnerConfig, error](n * 2)
+		}),
+	)
+
+	result := computation(OuterConfig{})(InnerConfig{})()
+	fmt.Println(E.IsRight(result))
+
+	// Output:
+	// true
+}
+
+// ---------------------------------------------------------------------------
+// ReadIOEither
+// ---------------------------------------------------------------------------
+
+func TestReadIOEither_Success(t *testing.T) {
+	t.Run("Right IOEither provides outer environment to computation", func(t *testing.T) {
+		// Arrange: IOEither that successfully resolves the outer config
+		configIO := IOE.Right[error](OuterConfig{database: "postgres", logLevel: "info"})
+
+		// Computation reads the outer env and also the inner env
+		computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(inner InnerConfig) IOE.IOEither[error, string] {
+				return IOE.Right[error](fmt.Sprintf("%s/%s", outer.database, inner.apiKey))
+			}
+		}
+
+		// Act: collapse the two-layer stack into a single ReaderIOEither
+		rioe := ReadIOEither[string, OuterConfig, InnerConfig, error](configIO)(computation)
+
+		// Assert
+		inner := InnerConfig{apiKey: "secret", timeout: 30}
+		assert.Equal(t, E.Right[error]("postgres/secret"), rioe(inner)())
+	})
+
+	t.Run("inner environment is still threaded through after ReadIOEither", func(t *testing.T) {
+		inner1 := InnerConfig{apiKey: "key-one", timeout: 10}
+		inner2 := InnerConfig{apiKey: "key-two", timeout: 20}
+
+		configIO := IOE.Right[error](OuterConfig{database: "db"})
+		computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(inner InnerConfig) IOE.IOEither[error, string] {
+				return IOE.Right[error](fmt.Sprintf("%s:%s", outer.database, inner.apiKey))
+			}
+		}
+
+		rioe := ReadIOEither[string, OuterConfig, InnerConfig, error](configIO)(computation)
+
+		assert.Equal(t, E.Right[error]("db:key-one"), rioe(inner1)())
+		assert.Equal(t, E.Right[error]("db:key-two"), rioe(inner2)())
+	})
+
+	t.Run("composes with Map in a pipeline before ReadIOEither", func(t *testing.T) {
+		configIO := IOE.Right[error](OuterConfig{database: "pg"})
+
+		result := F.Pipe2(
+			Of[OuterConfig, InnerConfig, error](21),
+			Map[OuterConfig, InnerConfig, error](N.Mul(2)),
+			ReadIOEither[int, OuterConfig, InnerConfig, error](configIO),
+		)(InnerConfig{})()
+
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestReadIOEither_Failure(t *testing.T) {
+	t.Run("Left IOEither short-circuits without executing the computation", func(t *testing.T) {
+		// Arrange
+		loadErr := errors.New("failed to load outer config")
+		configIO := IOE.Left[OuterConfig](loadErr)
+
+		executed := false
+		computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+			executed = true
+			return RIOE.Of[InnerConfig, error](99)
+		}
+
+		// Act
+		rioe := ReadIOEither[int, OuterConfig, InnerConfig, error](configIO)(computation)
+		result := rioe(InnerConfig{})()
+
+		// Assert
+		assert.Equal(t, E.Left[int](loadErr), result)
+		assert.False(t, executed, "computation must not run when IOEither is Left")
+	})
+
+	t.Run("Left IOEither error is preserved exactly", func(t *testing.T) {
+		sentinel := errors.New("sentinel")
+		rioe := ReadIOEither[int, OuterConfig, InnerConfig, error](IOE.Left[OuterConfig](sentinel))(
+			func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+				return RIOE.Of[InnerConfig, error](0)
+			},
+		)
+		got := rioe(InnerConfig{})()
+		assert.Equal(t, E.Left[int](sentinel), got)
+	})
+
+	t.Run("Right IOEither but inner computation returns Left", func(t *testing.T) {
+		computeErr := errors.New("compute error")
+		configIO := IOE.Right[error](OuterConfig{database: "pg"})
+
+		computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+			return func(_ InnerConfig) IOE.IOEither[error, int] {
+				return IOE.Left[int](computeErr)
+			}
+		}
+
+		result := ReadIOEither[int, OuterConfig, InnerConfig, error](configIO)(computation)(InnerConfig{})()
+		assert.Equal(t, E.Left[int](computeErr), result)
+	})
+}
+
+func TestReadIOEither_EdgeCases(t *testing.T) {
+	t.Run("IOEither is evaluated lazily on each invocation", func(t *testing.T) {
+		callCount := 0
+		configIO := func() E.Either[error, OuterConfig] {
+			callCount++
+			return E.Right[error](OuterConfig{database: fmt.Sprintf("db%d", callCount)})
+		}
+
+		computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(_ InnerConfig) IOE.IOEither[error, string] {
+				return IOE.Right[error](outer.database)
+			}
+		}
+
+		rioe := ReadIOEither[string, OuterConfig, InnerConfig, error](configIO)(computation)
+
+		assert.Equal(t, E.Right[error]("db1"), rioe(InnerConfig{})())
+		assert.Equal(t, E.Right[error]("db2"), rioe(InnerConfig{})())
+		assert.Equal(t, 2, callCount)
+	})
+
+	t.Run("result is itself a valid ReaderIOEither that can be re-run", func(t *testing.T) {
+		configIO := IOE.Right[error](OuterConfig{database: "stable"})
+		computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return RIOE.Of[InnerConfig, error]("ok")
+		}
+
+		rioe := ReadIOEither[string, OuterConfig, InnerConfig, error](configIO)(computation)
+		inner := InnerConfig{}
+
+		assert.Equal(t, rioe(inner)(), rioe(inner)())
+	})
+}
+
+func TestReadIOEither_Integration(t *testing.T) {
+	t.Run("outer env from IOEither feeds a two-context computation", func(t *testing.T) {
+		outer := OuterConfig{database: "prod", logLevel: "warn"}
+		inner := InnerConfig{apiKey: "tok", timeout: 5}
+
+		computation := Ask[OuterConfig, InnerConfig, error]()
+
+		result := ReadIOEither[OuterConfig, OuterConfig, InnerConfig, error](IOE.Right[error](outer))(computation)(inner)()
+		assert.Equal(t, E.Right[error](outer), result)
+	})
+
+	t.Run("ReadIOEither result composes with further RIOE operators", func(t *testing.T) {
+		configIO := IOE.Right[error](OuterConfig{database: "pg"})
+		base := Of[OuterConfig, InnerConfig, error](7)
+
+		rioe := F.Pipe1(
+			base,
+			Map[OuterConfig, InnerConfig, error](N.Mul(6)),
+		)
+
+		result := ReadIOEither[int, OuterConfig, InnerConfig, error](configIO)(rioe)(InnerConfig{})()
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// ReadIO
+// ---------------------------------------------------------------------------
+
+func TestReadIO_Success(t *testing.T) {
+	t.Run("IO provides outer environment to computation", func(t *testing.T) {
+		configIO := func() OuterConfig {
+			return OuterConfig{database: "postgres", logLevel: "info"}
+		}
+
+		computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(inner InnerConfig) IOE.IOEither[error, string] {
+				return IOE.Right[error](fmt.Sprintf("%s/%s", outer.database, inner.apiKey))
+			}
+		}
+
+		rioe := ReadIO[InnerConfig, error, string, OuterConfig](configIO)(computation)
+		inner := InnerConfig{apiKey: "secret", timeout: 30}
+
+		assert.Equal(t, E.Right[error]("postgres/secret"), rioe(inner)())
+	})
+
+	t.Run("inner environment is still threaded through after ReadIO", func(t *testing.T) {
+		inner1 := InnerConfig{apiKey: "alpha", timeout: 1}
+		inner2 := InnerConfig{apiKey: "beta", timeout: 2}
+
+		configIO := func() OuterConfig { return OuterConfig{database: "db"} }
+		computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(inner InnerConfig) IOE.IOEither[error, string] {
+				return IOE.Right[error](fmt.Sprintf("%s:%s", outer.database, inner.apiKey))
+			}
+		}
+
+		rioe := ReadIO[InnerConfig, error, string, OuterConfig](configIO)(computation)
+
+		assert.Equal(t, E.Right[error]("db:alpha"), rioe(inner1)())
+		assert.Equal(t, E.Right[error]("db:beta"), rioe(inner2)())
+	})
+
+	t.Run("IO is always successful — computation always receives the environment", func(t *testing.T) {
+		// Unlike ReadIOEither, the IO cannot fail, so the computation is always reached
+		executed := false
+		configIO := func() OuterConfig { return OuterConfig{database: "always"} }
+		computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+			executed = true
+			return RIOE.Of[InnerConfig, error](1)
+		}
+
+		ReadIO[InnerConfig, error, int, OuterConfig](configIO)(computation)(InnerConfig{})()
+		assert.True(t, executed, "computation must always execute when using ReadIO")
+	})
+
+	t.Run("composes with Map in a pipeline before ReadIO", func(t *testing.T) {
+		configIO := func() OuterConfig { return OuterConfig{database: "pg"} }
+
+		result := F.Pipe2(
+			Of[OuterConfig, InnerConfig, error](21),
+			Map[OuterConfig, InnerConfig, error](N.Mul(2)),
+			ReadIO[InnerConfig, error, int, OuterConfig](configIO),
+		)(InnerConfig{})()
+
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+func TestReadIO_Failure(t *testing.T) {
+	t.Run("inner computation returning Left is propagated", func(t *testing.T) {
+		computeErr := errors.New("compute error")
+		configIO := func() OuterConfig { return OuterConfig{database: "pg"} }
+
+		computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+			return func(_ InnerConfig) IOE.IOEither[error, int] {
+				return IOE.Left[int](computeErr)
+			}
+		}
+
+		result := ReadIO[InnerConfig, error, int, OuterConfig](configIO)(computation)(InnerConfig{})()
+		assert.Equal(t, E.Left[int](computeErr), result)
+	})
+
+	t.Run("error originates from inner env inspection", func(t *testing.T) {
+		authErr := errors.New("unauthorized")
+		configIO := func() OuterConfig { return OuterConfig{database: "pg"} }
+
+		computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(inner InnerConfig) IOE.IOEither[error, string] {
+				if inner.apiKey == "" {
+					return IOE.Left[string](authErr)
+				}
+				return IOE.Right[error](inner.apiKey)
+			}
+		}
+
+		// no apiKey → Left
+		assert.Equal(t, E.Left[string](authErr),
+			ReadIO[InnerConfig, error, string, OuterConfig](configIO)(computation)(InnerConfig{})())
+
+		// with apiKey → Right
+		assert.Equal(t, E.Right[error]("tok"),
+			ReadIO[InnerConfig, error, string, OuterConfig](configIO)(computation)(InnerConfig{apiKey: "tok"})())
+	})
+}
+
+func TestReadIO_EdgeCases(t *testing.T) {
+	t.Run("IO is evaluated lazily on each invocation", func(t *testing.T) {
+		callCount := 0
+		configIO := func() OuterConfig {
+			callCount++
+			return OuterConfig{database: fmt.Sprintf("db%d", callCount)}
+		}
+
+		computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+			return func(_ InnerConfig) IOE.IOEither[error, string] {
+				return IOE.Right[error](outer.database)
+			}
+		}
+
+		rioe := ReadIO[InnerConfig, error, string, OuterConfig](configIO)(computation)
+
+		assert.Equal(t, E.Right[error]("db1"), rioe(InnerConfig{})())
+		assert.Equal(t, E.Right[error]("db2"), rioe(InnerConfig{})())
+		assert.Equal(t, 2, callCount)
+	})
+
+	t.Run("ReadIO vs ReadIOEither: ReadIO always reaches computation", func(t *testing.T) {
+		// ReadIO  — IO cannot fail, so computation is always invoked
+		// ReadIOEither — IOEither can be Left, bypassing computation entirely
+		reachedViaIO := false
+		reachedViaIOE := false
+
+		ioFn := func() OuterConfig { return OuterConfig{} }
+		ioEFn := IOE.Right[error](OuterConfig{})
+		badIOE := IOE.Left[OuterConfig](errors.New("bad"))
+
+		computation := func(reach *bool) func(OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+			return func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+				*reach = true
+				return RIOE.Of[InnerConfig, error](1)
+			}
+		}
+
+		ReadIO[InnerConfig, error, int, OuterConfig](ioFn)(computation(&reachedViaIO))(InnerConfig{})()
+		ReadIOEither[int, OuterConfig, InnerConfig, error](ioEFn)(computation(&reachedViaIOE))(InnerConfig{})()
+
+		assert.True(t, reachedViaIO)
+		assert.True(t, reachedViaIOE)
+
+		// With a Left IOEither the computation is bypassed
+		reachedViaIOE = false
+		ReadIOEither[int, OuterConfig, InnerConfig, error](badIOE)(computation(&reachedViaIOE))(InnerConfig{})()
+		assert.False(t, reachedViaIOE)
+	})
+}
+
+func TestReadIO_Integration(t *testing.T) {
+	t.Run("outer env from IO feeds a two-context computation", func(t *testing.T) {
+		outer := OuterConfig{database: "prod", logLevel: "warn"}
+		inner := InnerConfig{apiKey: "tok", timeout: 5}
+
+		computation := Ask[OuterConfig, InnerConfig, error]()
+
+		result := ReadIO[InnerConfig, error, OuterConfig, OuterConfig](func() OuterConfig { return outer })(computation)(inner)()
+		assert.Equal(t, E.Right[error](outer), result)
+	})
+
+	t.Run("ReadIO result composes with further RIOE operators", func(t *testing.T) {
+		configIO := func() OuterConfig { return OuterConfig{database: "pg"} }
+		base := F.Pipe1(
+			Of[OuterConfig, InnerConfig, error](7),
+			Map[OuterConfig, InnerConfig, error](N.Mul(6)),
+		)
+
+		result := ReadIO[InnerConfig, error, int, OuterConfig](configIO)(base)(InnerConfig{})()
+		assert.Equal(t, E.Right[error](42), result)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Examples
+// ---------------------------------------------------------------------------
+
+func ExampleReadIOEither() {
+	// ReadIOEither collapses a ReaderReaderIOEither into a ReaderIOEither by
+	// supplying the outer environment from an IOEither.  When the IOEither is
+	// Right the contained value is used as the outer env; when it is Left the
+	// error propagates immediately and the inner computation is never called.
+
+	configIO := IOE.Right[error](OuterConfig{database: "postgres"})
+
+	computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+		return func(inner InnerConfig) IOE.IOEither[error, string] {
+			return IOE.Right[error](fmt.Sprintf("%s/%s", outer.database, inner.apiKey))
+		}
+	}
+
+	// Supply the outer env; still need to provide the inner env.
+	rioe := ReadIOEither[string, OuterConfig, InnerConfig, error](configIO)(computation)
+	result := rioe(InnerConfig{apiKey: "tok"})()
+	fmt.Println(E.IsRight(result))
+
+	// Output:
+	// true
+}
+
+func ExampleReadIOEither_leftPropagation() {
+	// When the IOEither is Left the error is forwarded and the computation
+	// is never executed.
+
+	loadErr := errors.New("config unavailable")
+	configIO := IOE.Left[OuterConfig](loadErr)
+
+	executed := false
+	computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+		executed = true
+		return RIOE.Of[InnerConfig, error](0)
+	}
+
+	rioe := ReadIOEither[int, OuterConfig, InnerConfig, error](configIO)(computation)
+	result := rioe(InnerConfig{})()
+	fmt.Println(E.IsLeft(result))
+	fmt.Println(executed)
+
+	// Output:
+	// true
+	// false
+}
+
+func ExampleReadIO() {
+	// ReadIO collapses a ReaderReaderIOEither into a ReaderIOEither by
+	// supplying the outer environment from a plain IO (which cannot fail).
+	// The resulting ReaderIOEither still needs the inner environment C.
+
+	configIO := func() OuterConfig {
+		return OuterConfig{database: "postgres"}
+	}
+
+	computation := func(outer OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, string] {
+		return func(inner InnerConfig) IOE.IOEither[error, string] {
+			return IOE.Right[error](fmt.Sprintf("%s/%s", outer.database, inner.apiKey))
+		}
+	}
+
+	rioe := ReadIO[InnerConfig, error, string, OuterConfig](configIO)(computation)
+	result := rioe(InnerConfig{apiKey: "tok"})()
+	fmt.Println(E.IsRight(result))
+
+	// Output:
+	// true
+}
+
+func ExampleReadIO_alwaysReachesComputation() {
+	// Unlike ReadIOEither, ReadIO uses an infallible IO to load the outer env,
+	// so the computation is always executed.
+
+	executed := false
+	configIO := func() OuterConfig { return OuterConfig{} }
+
+	computation := func(_ OuterConfig) RIOE.ReaderIOEither[InnerConfig, error, int] {
+		executed = true
+		return RIOE.Of[InnerConfig, error](42)
+	}
+
+	ReadIO[InnerConfig, error, int, OuterConfig](configIO)(computation)(InnerConfig{})()
+	fmt.Println(executed)
+
+	// Output:
+	// true
+}

@@ -2681,7 +2681,7 @@ func TestChainFirstLeftThunkK_Failure(t *testing.T) {
 		assert.NotNil(t, capturedCtx)
 	})
 
-	t.Run("handler error replaces original when handler fails", func(t *testing.T) {
+	t.Run("original error is preserved when handler fails", func(t *testing.T) {
 		originalErr := fmt.Errorf("original error")
 		handlerErr := fmt.Errorf("handler error")
 

@@ -798,32 +798,26 @@ func Read[C, E, A, R any](r R) func(ReaderReaderIOEither[R, C, E, A]) ReaderIOEi
 //
 //go:inline
 func ReadIOEither[A, R, C, E any](rio IOEither[E, R]) func(ReaderReaderIOEither[R, C, E, A]) ReaderIOEither[C, E, A] {
-	return func(rri ReaderReaderIOEither[R, C, E, A]) ReaderIOEither[C, E, A] {
-		return func(c C) IOEither[E, A] {
-			return function.Pipe1(
-				rio,
-				ioeither.Chain(func(r R) IOEither[E, A] {
-					return rri(r)(c)
-				}),
-			)
-		}
-	}
+	return F.Flow2(
+		F.Flip[R, C, IOEither[E, A]],
+		reader.Map[C](F.Flow2(
+			ioeither.Chain[E, R, A],
+			reader.Read[IOEither[E, A]](rio),
+		)),
+	)
 }
 
 // ReadIO executes a ReaderReaderIOEither by providing an outer environment obtained from an IO.
 //
 //go:inline
 func ReadIO[C, E, A, R any](rio IO[R]) func(ReaderReaderIOEither[R, C, E, A]) ReaderIOEither[C, E, A] {
-	return func(rri ReaderReaderIOEither[R, C, E, A]) ReaderIOEither[C, E, A] {
-		return func(c C) IOEither[E, A] {
-			return function.Pipe1(
-				rio,
-				io.Chain(func(r R) IOEither[E, A] {
-					return rri(r)(c)
-				}),
-			)
-		}
-	}
+	return F.Flow2(
+		F.Flip[R, C, IOEither[E, A]],
+		reader.Map[C](F.Flow2(
+			io.Chain[R, Either[E, A]],
+			reader.Read[IOEither[E, A]](rio),
+		)),
+	)
 }
 
 // MonadChainLeft chains a computation on the error channel, allowing error recovery or transformation.
@@ -865,13 +859,11 @@ func After[R, C, E, A any](timestamp time.Time) Operator[R, C, E, A, A] {
 // Defer creates a ReaderReaderIOEither lazily via a generator function.
 // The generator is called each time the ReaderReaderIOEither is executed.
 func Defer[R, C, E, A any](fa Lazy[ReaderReaderIOEither[R, C, E, A]]) ReaderReaderIOEither[R, C, E, A] {
-	return func(r R) ReaderIOEither[C, E, A] {
-		return func(c C) IOEither[E, A] {
-			return func() Either[E, A] {
-				return fa()(r)(c)()
-			}
-		}
-	}
+	return F.Flow3(
+		io.Flap[ReaderIOEither[C, E, A], R],
+		reader.Read[Lazy[ReaderIOEither[C, E, A]]](fa),
+		RIOE.Defer[C, E, A],
+	)
 }
 
 // ChainFirstLeft chains a computation that depends on the Left value (error) but
