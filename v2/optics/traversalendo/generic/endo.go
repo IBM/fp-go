@@ -16,25 +16,26 @@
 package generic
 
 import (
-	"github.com/IBM/fp-go/v2/endomorphism"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/functor"
-	"github.com/IBM/fp-go/v2/reader"
+	TG "github.com/IBM/fp-go/v2/optics/traversal/generic"
 )
 
 // Compose composes two traversal endomorphisms to create a new traversal that focuses on nested values.
 //
 // This function is specifically designed for traversal endomorphisms, which work with endomorphism-based
-// higher-kinded types. Unlike the standard traversal composition in optics/traversal/generic, this version
-// uses applicative operations to efficiently compose traversals that return endomorphisms.
+// higher-kinded types. It is derived from the standard traversal composition in optics/traversal/generic:
+// the inner traversal endomorphism AB is first converted into a regular traversal via ToTraversal, and the
+// result is then composed with the outer traversal SA.
 //
 // Composition allows you to combine traversals to access deeply nested structures. When you compose
 // traversal AB (which focuses on B within A) with traversal SA (which focuses on A within S), you get
 // a traversal that focuses on B within S.
 //
-// The composition is associative, meaning:
+// The composition is associative. For traversal endomorphisms sa (A within S), ab (B within A)
+// and bc (C within B), using the matching fmap at each level:
 //
-//	Compose(fmap)(ab)(Compose(fmap)(bc)(cd)) == Compose(fmap)(Compose(fmap)(ab)(bc))(cd)
+//	Compose(fmap)(bc)(Compose(fmap)(ab)(sa)) == Compose(fmap)(Compose(fmap)(bc)(ab))(sa)
 //
 // Type Parameters:
 //   - S: The outer source type
@@ -56,8 +57,8 @@ import (
 //
 //	import (
 //	    thunk "github.com/IBM/fp-go/v2/context/readerioresult"
+//	    "github.com/IBM/fp-go/v2/endomorphism"
 //	    F "github.com/IBM/fp-go/v2/function"
-//	    TLG "github.com/IBM/fp-go/v2/optics/traversalendo/lens/generic"
 //	)
 //
 //	type Company struct {
@@ -70,21 +71,27 @@ import (
 //	    Salary int
 //	}
 //
-//	// Create traversals for nested structures
-//	deptTraversal := departmentsTraversal[*Company, *Department]()
-//	empTraversal := employeesTraversal[*Department, *Employee]()
-//	salaryLens := TLG.FromLens[*Employee, int](thunk.Map)(salaryLensImpl)
-//
-//	// Compose to get all employees in a company
-//	allEmployees := F.Pipe1(
-//	    deptTraversal,
-//	    Compose[*Company, thunk.Thunk[endomorphism.Endomorphism[*Company]], *Department](thunk.Map)(empTraversal),
+//	// Traversal endomorphisms for each level, e.g. built with FromArrayLens and FromLens
+//	var (
+//	    deptTrav   Traversal[*Company, *Department, thunk.ReaderIOResult[endomorphism.Endomorphism[*Company]], thunk.ReaderIOResult[*Department]]
+//	    empTrav    Traversal[*Department, *Employee, thunk.ReaderIOResult[endomorphism.Endomorphism[*Department]], thunk.ReaderIOResult[*Employee]]
+//	    salaryTrav Traversal[*Employee, int, thunk.ReaderIOResult[endomorphism.Endomorphism[*Employee]], thunk.ReaderIOResult[int]]
 //	)
 //
-//	// Further compose to access all salaries
+//	// Compose to focus on all employees of a company
+//	allEmployees := F.Pipe1(
+//	    deptTrav,
+//	    Compose[*Company, *Employee, thunk.ReaderIOResult[endomorphism.Endomorphism[*Company]], thunk.ReaderIOResult[*Employee]](
+//	        thunk.Map[endomorphism.Endomorphism[*Department], *Department],
+//	    )(empTrav),
+//	)
+//
+//	// Further compose to focus on all salaries
 //	allSalaries := F.Pipe1(
 //	    allEmployees,
-//	    Compose[*Company, thunk.Thunk[endomorphism.Endomorphism[*Company]], *Employee](thunk.Map)(salaryLens),
+//	    Compose[*Company, int, thunk.ReaderIOResult[endomorphism.Endomorphism[*Company]], thunk.ReaderIOResult[int]](
+//	        thunk.Map[endomorphism.Endomorphism[*Employee], *Employee],
+//	    )(salaryTrav),
 //	)
 //
 // See Also:
@@ -95,25 +102,12 @@ func Compose[
 	S, B, HKTES, HKTB, A, HKTEA, HKTA any](
 	fmap functor.MapType[Endomorphism[A], A, HKTEA, HKTA],
 ) func(Traversal[A, B, HKTEA, HKTB]) func(Traversal[S, A, HKTES, HKTA]) Traversal[S, B, HKTES, HKTB] {
-	readA := F.Flow2(
-		endomorphism.Read[A],
-		fmap,
+	return F.Flow2(
+		ToTraversal[B, HKTB](fmap),
+		TG.Compose[
+			Traversal[A, B, HKTA, HKTB],
+			Traversal[S, A, HKTES, HKTA],
+			Traversal[S, B, HKTES, HKTB],
+		],
 	)
-	return func(ab Traversal[A, B, HKTEA, HKTB]) func(Traversal[S, A, HKTES, HKTA]) Traversal[S, B, HKTES, HKTB] {
-		return func(sa Traversal[S, A, HKTES, HKTA]) Traversal[S, B, HKTES, HKTB] {
-			return func(f func(B) HKTB) func(S) HKTES {
-				return F.Pipe1(
-					F.Pipe1(
-						readA,
-						F.Pipe2(
-							f,
-							ab,
-							reader.Ap[HKTA],
-						),
-					),
-					sa,
-				)
-			}
-		}
-	}
 }

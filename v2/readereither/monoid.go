@@ -50,8 +50,8 @@ import (
 func ApplicativeMonoid[R, E, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderEither[R, E, A]] {
 	return monoid.ApplicativeMonoid(
 		Of[R, E, A],
-		MonadMap[R, E, A, func(A) A],
-		MonadAp[A, R, E, A],
+		Map[R, E, A, func(A) A],
+		Ap[A, R, E, A],
 		m,
 	)
 }
@@ -89,9 +89,9 @@ func ApplicativeMonoid[R, E, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderEith
 func AlternativeMonoid[R, E, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderEither[R, E, A]] {
 	return monoid.AlternativeMonoid(
 		Of[R, E, A],
-		MonadMap[R, E, A, func(A) A],
-		MonadAp[A, R, E, A],
-		MonadAlt[R, E, A],
+		Map[R, E, A, func(A) A],
+		Ap[A, R, E, A],
+		Alt[R, E, A],
 		m,
 	)
 }
@@ -130,6 +130,6 @@ func AlternativeMonoid[R, E, A any](m monoid.Monoid[A]) monoid.Monoid[ReaderEith
 func AltMonoid[R, E, A any](zero lazy.Lazy[ReaderEither[R, E, A]]) monoid.Monoid[ReaderEither[R, E, A]] {
 	return monoid.AltMonoid(
 		zero,
-		MonadAlt[R, E, A],
+		Alt[R, E, A],
 	)
 }

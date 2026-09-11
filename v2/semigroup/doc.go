@@ -129,8 +129,8 @@ ApplySemigroup - Creates a semigroup for applicative functors:
 
 	// For a type HKT<A> with map and ap operations
 	applySG := SG.ApplySemigroup(
-		fmap, // func(HKT<A>, func(A) func(A) A) HKT<func(A) A>
-		fap,  // func(HKT<func(A) A>, HKT<A>) HKT<A>
+		fmap, // func(func(A) func(A) A) func(HKT<A>) HKT<func(A) A>
+		fap,  // func(HKT<A>) func(HKT<func(A) A>) HKT<A>
 		baseSemigroup,
 	)
 
@@ -138,7 +138,7 @@ AltSemigroup - Creates a semigroup for alternative functors:
 
 	// For a type HKT<A> with an alt operation
 	altSG := SG.AltSemigroup(
-		falt, // func(HKT<A>, func() HKT<A>) HKT<A>
+		falt, // func(func() HKT<A>) func(HKT<A>) HKT<A>
 	)
 
 # Practical Examples

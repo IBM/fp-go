@@ -437,20 +437,24 @@ func TestApplicativeMonoid(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	fmap := func(opt Option[int], f func(int) func(int) int) Option[func(int) int] {
-		if opt.value == nil {
-			return Option[func(int) int]{value: nil}
+	fmap := func(f func(int) func(int) int) func(Option[int]) Option[func(int) int] {
+		return func(opt Option[int]) Option[func(int) int] {
+			if opt.value == nil {
+				return Option[func(int) int]{value: nil}
+			}
+			fn := f(*opt.value)
+			return Option[func(int) int]{value: &fn}
 		}
-		fn := f(*opt.value)
-		return Option[func(int) int]{value: &fn}
 	}
 
-	fap := func(optF Option[func(int) int], opt Option[int]) Option[int] {
-		if optF.value == nil || opt.value == nil {
-			return none()
+	fap := func(opt Option[int]) func(Option[func(int) int]) Option[int] {
+		return func(optF Option[func(int) int]) Option[int] {
+			if optF.value == nil || opt.value == nil {
+				return none()
+			}
+			result := (*optF.value)(*opt.value)
+			return some(result)
 		}
-		result := (*optF.value)(*opt.value)
-		return some(result)
 	}
 
 	intAddMonoid := MakeMonoid(
@@ -492,27 +496,33 @@ func TestAlternativeMonoid(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	fmap := func(opt Option[int], f func(int) func(int) int) Option[func(int) int] {
-		if opt.value == nil {
-			return Option[func(int) int]{value: nil}
+	fmap := func(f func(int) func(int) int) func(Option[int]) Option[func(int) int] {
+		return func(opt Option[int]) Option[func(int) int] {
+			if opt.value == nil {
+				return Option[func(int) int]{value: nil}
+			}
+			fn := f(*opt.value)
+			return Option[func(int) int]{value: &fn}
 		}
-		fn := f(*opt.value)
-		return Option[func(int) int]{value: &fn}
 	}
 
-	fap := func(optF Option[func(int) int], opt Option[int]) Option[int] {
-		if optF.value == nil || opt.value == nil {
-			return none()
+	fap := func(opt Option[int]) func(Option[func(int) int]) Option[int] {
+		return func(optF Option[func(int) int]) Option[int] {
+			if optF.value == nil || opt.value == nil {
+				return none()
+			}
+			result := (*optF.value)(*opt.value)
+			return some(result)
 		}
-		result := (*optF.value)(*opt.value)
-		return some(result)
 	}
 
-	falt := func(first Option[int], second func() Option[int]) Option[int] {
-		if first.value != nil {
-			return first
+	falt := func(second func() Option[int]) func(Option[int]) Option[int] {
+		return func(first Option[int]) Option[int] {
+			if first.value != nil {
+				return first
+			}
+			return second()
 		}
-		return second()
 	}
 
 	intAddMonoid := MakeMonoid(
@@ -564,11 +574,13 @@ func TestAltMonoid(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	falt := func(first Option[int], second func() Option[int]) Option[int] {
-		if first.value != nil {
-			return first
+	falt := func(second func() Option[int]) func(Option[int]) Option[int] {
+		return func(first Option[int]) Option[int] {
+			if first.value != nil {
+				return first
+			}
+			return second()
 		}
-		return second()
 	}
 
 	optMonoid := AltMonoid(none, falt)
@@ -786,20 +798,24 @@ func TestApplicativeMonoid_WithNone(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	fmap := func(opt Option[int], f func(int) func(int) int) Option[func(int) int] {
-		if opt.value == nil {
-			return Option[func(int) int]{value: nil}
+	fmap := func(f func(int) func(int) int) func(Option[int]) Option[func(int) int] {
+		return func(opt Option[int]) Option[func(int) int] {
+			if opt.value == nil {
+				return Option[func(int) int]{value: nil}
+			}
+			fn := f(*opt.value)
+			return Option[func(int) int]{value: &fn}
 		}
-		fn := f(*opt.value)
-		return Option[func(int) int]{value: &fn}
 	}
 
-	fap := func(optF Option[func(int) int], opt Option[int]) Option[int] {
-		if optF.value == nil || opt.value == nil {
-			return none()
+	fap := func(opt Option[int]) func(Option[func(int) int]) Option[int] {
+		return func(optF Option[func(int) int]) Option[int] {
+			if optF.value == nil || opt.value == nil {
+				return none()
+			}
+			result := (*optF.value)(*opt.value)
+			return some(result)
 		}
-		result := (*optF.value)(*opt.value)
-		return some(result)
 	}
 
 	intAddMonoid := MakeMonoid(
@@ -840,27 +856,33 @@ func TestAlternativeMonoid_MultipleNone(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	fmap := func(opt Option[int], f func(int) func(int) int) Option[func(int) int] {
-		if opt.value == nil {
-			return Option[func(int) int]{value: nil}
+	fmap := func(f func(int) func(int) int) func(Option[int]) Option[func(int) int] {
+		return func(opt Option[int]) Option[func(int) int] {
+			if opt.value == nil {
+				return Option[func(int) int]{value: nil}
+			}
+			fn := f(*opt.value)
+			return Option[func(int) int]{value: &fn}
 		}
-		fn := f(*opt.value)
-		return Option[func(int) int]{value: &fn}
 	}
 
-	fap := func(optF Option[func(int) int], opt Option[int]) Option[int] {
-		if optF.value == nil || opt.value == nil {
-			return none()
+	fap := func(opt Option[int]) func(Option[func(int) int]) Option[int] {
+		return func(optF Option[func(int) int]) Option[int] {
+			if optF.value == nil || opt.value == nil {
+				return none()
+			}
+			result := (*optF.value)(*opt.value)
+			return some(result)
 		}
-		result := (*optF.value)(*opt.value)
-		return some(result)
 	}
 
-	falt := func(first Option[int], second func() Option[int]) Option[int] {
-		if first.value != nil {
-			return first
+	falt := func(second func() Option[int]) func(Option[int]) Option[int] {
+		return func(first Option[int]) Option[int] {
+			if first.value != nil {
+				return first
+			}
+			return second()
 		}
-		return second()
 	}
 
 	intAddMonoid := MakeMonoid(
@@ -904,11 +926,13 @@ func TestAltMonoid_MultipleOperations(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	falt := func(first Option[int], second func() Option[int]) Option[int] {
-		if first.value != nil {
-			return first
+	falt := func(second func() Option[int]) func(Option[int]) Option[int] {
+		return func(first Option[int]) Option[int] {
+			if first.value != nil {
+				return first
+			}
+			return second()
 		}
-		return second()
 	}
 
 	optMonoid := AltMonoid(none, falt)
@@ -955,11 +979,13 @@ func TestAltMonoid_IdentityLaws(t *testing.T) {
 		return Option[int]{value: nil}
 	}
 
-	falt := func(first Option[int], second func() Option[int]) Option[int] {
-		if first.value != nil {
-			return first
+	falt := func(second func() Option[int]) func(Option[int]) Option[int] {
+		return func(first Option[int]) Option[int] {
+			if first.value != nil {
+				return first
+			}
+			return second()
 		}
-		return second()
 	}
 
 	optMonoid := AltMonoid(none, falt)

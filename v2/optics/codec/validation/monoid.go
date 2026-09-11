@@ -46,8 +46,8 @@ func ApplicativeMonoid[A any](m Monoid[A]) Monoid[Validation[A]] {
 
 	return M.ApplicativeMonoid(
 		Of,
-		either.MonadMap,
-		either.MonadApV[A, A](ErrorsMonoid()),
+		either.Map[Errors, A, func(A) A],
+		either.ApV[A, A](ErrorsMonoid()),
 
 		m,
 	)
@@ -126,9 +126,9 @@ func ApplicativeMonoid[A any](m Monoid[A]) Monoid[Validation[A]] {
 func AlternativeMonoid[A any](m Monoid[A]) Monoid[Validation[A]] {
 	return M.AlternativeMonoid(
 		Of[A],
-		MonadMap[A, func(A) A],
-		MonadAp[A, A],
-		MonadAlt[A],
+		Map[A, func(A) A],
+		Ap[A, A],
+		Alt[A],
 		m,
 	)
 }
@@ -223,6 +223,6 @@ func AlternativeMonoid[A any](m Monoid[A]) Monoid[Validation[A]] {
 func AltMonoid[A any](zero Lazy[Validation[A]]) Monoid[Validation[A]] {
 	return M.AltMonoid(
 		zero,
-		MonadAlt[A],
+		Alt[A],
 	)
 }

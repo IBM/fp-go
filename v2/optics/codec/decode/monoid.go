@@ -79,8 +79,8 @@ import "github.com/IBM/fp-go/v2/monoid"
 func ApplicativeMonoid[I, A any](m Monoid[A]) Monoid[Decode[I, A]] {
 	return monoid.ApplicativeMonoid(
 		Of[I, A],
-		MonadMap[I, A, Endomorphism[A]],
-		MonadAp[A, I, A],
+		Map[I, A, Endomorphism[A]],
+		Ap[A, I, A],
 		m,
 	)
 }
@@ -214,9 +214,9 @@ func ApplicativeMonoid[I, A any](m Monoid[A]) Monoid[Decode[I, A]] {
 func AlternativeMonoid[I, A any](m Monoid[A]) Monoid[Decode[I, A]] {
 	return monoid.AlternativeMonoid(
 		Of[I, A],
-		MonadMap[I, A, func(A) A],
-		MonadAp[A, I, A],
-		MonadAlt[I, A],
+		Map[I, A, func(A) A],
+		Ap[A, I, A],
+		Alt[I, A],
 		m,
 	)
 }
@@ -363,6 +363,6 @@ func AlternativeMonoid[I, A any](m Monoid[A]) Monoid[Decode[I, A]] {
 func AltMonoid[I, A any](zero Lazy[Decode[I, A]]) Monoid[Decode[I, A]] {
 	return monoid.AltMonoid(
 		zero,
-		MonadAlt[I, A],
+		Alt[I, A],
 	)
 }

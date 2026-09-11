@@ -178,7 +178,7 @@ func ExampleGenericMonadConcatAll() {
 func ExampleAltSemigroup() {
 	// AltSemigroup combines two Option values using the Alt operation:
 	// the first Some wins; None falls through to the second value.
-	sg := semigroup.AltSemigroup(O.MonadAlt[int])
+	sg := semigroup.AltSemigroup(O.Alt[int])
 
 	getOrNeg1 := O.GetOrElse(lazy.Of(-1))
 
@@ -201,8 +201,8 @@ func ExampleApplySemigroup() {
 	// Some for the result to be Some; if either is None the result is None.
 	sum := N.SemigroupSum[int]()
 	optSG := semigroup.ApplySemigroup(
-		O.MonadMap[int, func(int) int],
-		O.MonadAp[int, int],
+		O.Map[int, func(int) int],
+		O.Ap[int, int],
 		sum,
 	)
 

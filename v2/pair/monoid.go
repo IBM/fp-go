@@ -222,8 +222,8 @@ func ApplicativeMonoid[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, 
 func ApplicativeMonoidTail[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, R]] {
 	return M.ApplicativeMonoid(
 		FromHead[R](l.Empty()),
-		MonadMapTail[L, R, func(R) R],
-		F.Bind1of3(MonadApTail[L, R, R])(l),
+		MapTail[L, R, func(R) R],
+		F.Curry2(ApTail[L, R, R])(l),
 		r)
 }
 
@@ -309,7 +309,7 @@ func ApplicativeMonoidTail[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair
 func ApplicativeMonoidHead[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, R]] {
 	return M.ApplicativeMonoid(
 		FromTail[L](r.Empty()),
-		MonadMapHead[R, L, func(L) L],
-		F.Bind1of3(MonadApHead[R, L, L])(r),
+		MapHead[R, L, func(L) L],
+		F.Curry2(ApHead[R, L, L])(r),
 		l)
 }

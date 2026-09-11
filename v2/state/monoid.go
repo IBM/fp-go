@@ -141,7 +141,7 @@ import (
 func ApplicativeMonoid[S, A any](m M.Monoid[A]) M.Monoid[State[S, A]] {
 	return M.ApplicativeMonoid(
 		Of[S, A],
-		MonadMap[S, func(A) func(A) A, A, func(A) A],
-		MonadAp[A, S, A],
+		Map[S, func(A) func(A) A, A, func(A) A],
+		Ap[A, S, A],
 		m)
 }

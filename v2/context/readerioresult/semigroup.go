@@ -38,6 +38,6 @@ type (
 //	) // Returns Right(42)
 func AltSemigroup[A any]() Semigroup[A] {
 	return semigroup.AltSemigroup(
-		MonadAlt[A],
+		Alt[A],
 	)
 }

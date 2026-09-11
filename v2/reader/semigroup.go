@@ -49,8 +49,8 @@ import "github.com/IBM/fp-go/v2/monoid"
 func ApplicativeMonoid[R, A any](m monoid.Monoid[A]) monoid.Monoid[Reader[R, A]] {
 	return monoid.ApplicativeMonoid(
 		Of[R, A],
-		MonadMap[R, A, func(A) A],
-		MonadAp[A, R, A],
+		Map[R, A, func(A) A],
+		Ap[A, R, A],
 		m,
 	)
 }

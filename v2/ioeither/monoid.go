@@ -29,8 +29,8 @@ func ApplicativeMonoid[E, A any](
 ) Monoid[E, A] {
 	return monoid.ApplicativeMonoid(
 		MonadOf[E, A],
-		MonadMap[E, A, func(A) A],
-		MonadAp[A, E, A],
+		Map[E, A, func(A) A],
+		Ap[A, E, A],
 		m,
 	)
 }
@@ -41,8 +41,8 @@ func ApplicativeMonoidSeq[E, A any](
 ) Monoid[E, A] {
 	return monoid.ApplicativeMonoid(
 		MonadOf[E, A],
-		MonadMap[E, A, func(A) A],
-		MonadApSeq[A, E, A],
+		Map[E, A, func(A) A],
+		ApSeq[A, E, A],
 		m,
 	)
 }
@@ -53,8 +53,8 @@ func ApplicativeMonoidPar[E, A any](
 ) Monoid[E, A] {
 	return monoid.ApplicativeMonoid(
 		MonadOf[E, A],
-		MonadMap[E, A, func(A) A],
-		MonadApPar[A, E, A],
+		Map[E, A, func(A) A],
+		ApPar[A, E, A],
 		m,
 	)
 }

@@ -31,9 +31,9 @@ import (
 // effect type (like Identity, Const, Option, etc.).
 //
 // ToTraversal performs this conversion by:
-//  1. Using the functor map to transform Endomorphism[S] values into S values
-//  2. Applying the transformation within a reader context
-//  3. Composing the endomorphism-based traversal with the mapped reader
+//  1. Lifting endomorphism.Read with the functor map, giving func(S) func(HKTES) HKTS
+//  2. Applying that reader to the result of the traversal endomorphism via reader.MonadAp
+//  3. Post-composing the traversal endomorphism with this fixed step via reader.Map
 //
 // This allows you to build complex traversals using the monoid structure of traversal
 // endomorphisms, then convert the result to a usable traversal for your specific effect type.
@@ -67,7 +67,7 @@ import (
 //	}
 //
 //	// Build a traversal endomorphism using monoid operations
-//	m := MakeMonoid[string, thunk.Thunk[string], *Address](
+//	m := MakeMonoid[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Of,
 //	    thunk.Map,
 //	    thunk.Ap,
@@ -83,15 +83,16 @@ import (
 //	)
 //
 //	// Convert to a regular traversal for use
-//	addrTrav := ToTraversal[string, thunk.Thunk[string], *Address](
+//	addrTrav := ToTraversal[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Map,
 //	)(addrTravEndo)
 //
 //	// Now use the traversal to modify all fields
 //	addr := &Address{Street: "main st", Name: "john"}
-//	result := addrTrav(func(s string) thunk.Thunk[string] {
+//	res := addrTrav(func(s string) thunk.ReaderIOResult[string] {
 //	    return thunk.Of(strings.ToUpper(s))
-//	})(addr)
+//	})(addr)(ctx)()
+//	// res == result.Of(&Address{Street: "MAIN ST", Name: "JOHN"})
 //
 // See Also:
 //   - MakeMonoid: Create a monoid for combining traversal endomorphisms
@@ -100,19 +101,10 @@ import (
 func ToTraversal[A, HKTA, S, HKTES, HKTS any](
 	fmap functor.MapType[Endomorphism[S], S, HKTES, HKTS],
 ) func(Traversal[S, A, HKTES, HKTA]) Traversal[S, A, HKTS, HKTA] {
-	return func(t Traversal[S, A, HKTES, HKTA]) Traversal[S, A, HKTS, HKTA] {
-		return func(f func(A) HKTA) func(S) HKTS {
-			return F.Pipe1(
-				F.Pipe1(
-					endomorphism.Read[S],
-					reader.Map[S](fmap),
-				),
-				F.Pipe2(
-					f,
-					t,
-					reader.Ap[HKTS],
-				),
-			)
-		}
-	}
+	return reader.Map[func(A) HKTA](
+		F.Bind1st(
+			reader.MonadAp[HKTS, S, HKTES],
+			F.Flow2(endomorphism.Read[S], fmap),
+		),
+	)
 }

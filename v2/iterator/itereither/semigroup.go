@@ -26,6 +26,6 @@ type (
 // AltSemigroup is a [Semigroup] that tries the first item and then the second one using an alternative
 func AltSemigroup[E, A any]() Semigroup[E, A] {
 	return semigroup.AltSemigroup(
-		MonadAlt[E, A],
+		Alt[E, A],
 	)
 }

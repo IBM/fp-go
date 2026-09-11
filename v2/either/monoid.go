@@ -33,9 +33,9 @@ import (
 func AlternativeMonoid[E, A any](m M.Monoid[A]) Monoid[E, A] {
 	return M.AlternativeMonoid(
 		Of[E, A],
-		MonadMap[E, A, func(A) A],
-		MonadAp[A, E, A],
-		MonadAlt[E, A],
+		Map[E, A, func(A) A],
+		Ap[A, E, A],
+		Alt[E, A],
 		m,
 	)
 }
@@ -53,7 +53,7 @@ func AlternativeMonoid[E, A any](m M.Monoid[A]) Monoid[E, A] {
 func AltMonoid[E, A any](zero Lazy[Either[E, A]]) Monoid[E, A] {
 	return M.AltMonoid(
 		zero,
-		MonadAlt[E, A],
+		Alt[E, A],
 	)
 }
 

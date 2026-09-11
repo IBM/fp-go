@@ -22,9 +22,10 @@ import (
 	"github.com/IBM/fp-go/v2/internal/pointed"
 	"github.com/IBM/fp-go/v2/lazy"
 	"github.com/IBM/fp-go/v2/option"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
-// TraversalFromOptional converts an Optional into a Traversal that works with endomorphisms.
+// FromOptional converts an Optional into a Traversal that works with endomorphisms.
 //
 // This function creates a traversal that focuses on zero or one value within a structure,
 // using endomorphisms as the effect type. When the optional value exists, the traversal
@@ -35,6 +36,11 @@ import (
 // Endomorphism[S] as the effect type (HKTES), which means the traversal produces
 // functions that transform the entire structure S rather than wrapping it in another
 // effect type.
+//
+// The traversal is assembled from three steps applied to the transformation function f:
+//  1. reader.Map post-composes f with the lifted setter, giving func(A) HKTES
+//  2. option.Fold handles the None branch with the lifted identity endomorphism
+//  3. reader.Local pre-composes the result with the optional getter, giving func(S) HKTES
 //
 // Type Parameters:
 //   - S: The source structure type
@@ -71,51 +77,37 @@ import (
 //	        if p.Name != "" { return option.Some(p.Name) }
 //	        return option.None[string]()
 //	    },
-//	    func(name string) endomorphism.Endomorphism[Person] {
-//	        return func(p Person) Person {
-//	            p.Name = name
-//	            return p
-//	        }
+//	    func(p Person, name string) Person {
+//	        p.Name = name
+//	        return p
 //	    },
 //	)
 //
 //	// Convert to traversal with identity functor
-//	traversal := TraversalFromOptional(
+//	traversal := FromOptional(
 //	    identity.Of[endomorphism.Endomorphism[Person]],
 //	    identity.Map[string, endomorphism.Endomorphism[Person]],
 //	)(nameOpt)
 //
 //	// Use the traversal to modify names
-//	toUpper := func(s string) identity.Identity[string] {
-//	    return identity.Of(strings.ToUpper(s))
-//	}
-//	modify := traversal(toUpper)
+//	modify := traversal(strings.ToUpper)
 //	person := Person{Name: "alice", Age: 30}
-//	updated := modify(person) // Person{Name: "ALICE", Age: 30}
+//	updated := modify(person)(person) // Person{Name: "ALICE", Age: 30}
 //
 // See Also:
 //   - Optional: The optional optic type
 //   - Traversal: The traversal optic type
-//   - TraversalFromLens: For converting lenses to traversals
+//   - FromLens: For converting lenses to traversals
 func FromOptional[S, A, HKTES, HKTA any](
 	fof pointed.OfType[Endomorphism[S], HKTES],
 	fmap functor.MapType[A, Endomorphism[S], HKTA, HKTES],
 ) func(Optional[S, A]) Traversal[S, A, HKTES, HKTA] {
-	onNone := lazy.Of(fof(endomorphism.Identity[S]()))
+	onNone := F.Curry2(option.Fold[A, HKTES])(lazy.Of(fof(endomorphism.Identity[S]())))
 	return func(sa Optional[S, A]) Traversal[S, A, HKTES, HKTA] {
-		saGet := sa.GetOption
-		saSet := fmap(sa.Set)
-		return func(f func(A) HKTA) func(S) HKTES {
-			return F.Flow2(
-				saGet,
-				option.Fold(
-					onNone,
-					F.Flow2(
-						f,
-						saSet,
-					),
-				),
-			)
-		}
+		return F.Flow3(
+			reader.Map[A](fmap(sa.Set)),
+			onNone,
+			reader.Local[HKTES](sa.GetOption),
+		)
 	}
 }

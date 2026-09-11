@@ -19,8 +19,9 @@ package semigroup
 // The alt operation provides a way to combine two values of the same higher-kinded type,
 // typically representing alternative computations or choices.
 //
-// The function takes an alt operation that accepts a value and a lazy (thunked) value,
-// and returns a Semigroup that eagerly evaluates both values before combining them.
+// The function takes a curried alt operation that accepts a lazy (thunked) value and returns
+// an operator on the first value (the shape of Alt in the concrete packages), and returns a
+// Semigroup that eagerly evaluates both values before combining them.
 //
 // Type parameters:
 //   - HKTA: The higher-kinded type (e.g., Option[A], Either[E, A])
@@ -31,21 +32,17 @@ package semigroup
 //	import O "github.com/IBM/fp-go/v2/option"
 //
 //	// Alt operation for Option: returns first if Some, otherwise evaluates second
-//	optionAlt := func(first O.Option[int], second func() O.Option[int]) O.Option[int] {
-//	    return O.Alt(first, second)
-//	}
-//
-//	sg := semigroup.AltSemigroup(optionAlt)
+//	sg := semigroup.AltSemigroup(O.Alt[int])
 //	result := sg.Concat(O.Some(1), O.Some(2))  // Returns: Some(1)
 //	result2 := sg.Concat(O.None[int](), O.Some(2))  // Returns: Some(2)
 func AltSemigroup[HKTA any, LAZYHKTA ~func() HKTA](
-	falt func(HKTA, LAZYHKTA) HKTA,
+	falt func(LAZYHKTA) func(HKTA) HKTA,
 
 ) Semigroup[HKTA] {
 
 	return MakeSemigroup(
 		func(first, second HKTA) HKTA {
-			return falt(first, func() HKTA { return second })
+			return falt(func() HKTA { return second })(first)
 		},
 	)
 }

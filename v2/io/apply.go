@@ -29,7 +29,7 @@ import (
 //	ioAdd := io.ApplySemigroup(intAdd)
 //	result := ioAdd.Concat(io.Of(1), io.Of(2)) // IO[3]
 func ApplySemigroup[A any](s S.Semigroup[A]) Semigroup[A] {
-	return S.ApplySemigroup(MonadMap[A, func(A) A], MonadAp[A, A], s)
+	return S.ApplySemigroup(Map[A, func(A) A], Ap[A, A], s)
 }
 
 // ApplicativeMonoid lifts a Monoid[A] into a Monoid[IO[A]].
@@ -43,5 +43,5 @@ func ApplySemigroup[A any](s S.Semigroup[A]) Semigroup[A] {
 //	result := ioAdd.Concat(io.Of(1), io.Of(2)) // IO[3]
 //	empty := ioAdd.Empty() // IO[0]
 func ApplicativeMonoid[A any](m M.Monoid[A]) Monoid[A] {
-	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
+	return M.ApplicativeMonoid(Of[A], Map[A, func(A) A], Ap[A, A], m)
 }

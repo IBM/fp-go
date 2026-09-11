@@ -88,9 +88,9 @@ func Monoid[A any]() func(S.Semigroup[A]) M.Monoid[Option[A]] {
 func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
 	return M.AlternativeMonoid(
 		Of[A],
-		MonadMap[A, func(A) A],
-		MonadAp[A, A],
-		MonadAlt[A],
+		Map[A, func(A) A],
+		Ap[A, A],
+		Alt[A],
 		m,
 	)
 }
@@ -110,7 +110,7 @@ func AlternativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
 func AltMonoid[A any]() M.Monoid[Option[A]] {
 	return M.AltMonoid(
 		None[A],
-		MonadAlt[A],
+		Alt[A],
 	)
 }
 

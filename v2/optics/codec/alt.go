@@ -474,6 +474,6 @@ func Alt[A, O, I any](second Lazy[Type[A, O, I]]) Operator[A, A, O, I] {
 func AltMonoid[A, O, I any](zero Lazy[Type[A, O, I]]) Monoid[Type[A, O, I]] {
 	return monoid.AltMonoid(
 		zero,
-		MonadAlt[A, O, I],
+		Alt[A, O, I],
 	)
 }

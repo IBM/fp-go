@@ -16,6 +16,7 @@
 package monoid
 
 import (
+	"github.com/IBM/fp-go/v2/internal/functor"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
@@ -35,8 +36,10 @@ import (
 //
 // Parameters:
 //   - fof: The "pure" or "of" operation that lifts a value into the applicative context
-//   - fmap: The map operation for the applicative functor
-//   - fap: The apply operation for the applicative functor
+//   - fmap: The curried map operation for the applicative functor (a functor.MapType)
+//   - fap: The curried apply operation for the applicative functor. Its type is identical to
+//     apply.ApType[HKTA, HKTA, HKTFA]; it is spelled out because this package cannot import
+//     internal/apply without creating an import cycle
 //   - m: The monoid for the base type A
 //
 // Returns:
@@ -53,8 +56,8 @@ import (
 //
 //	optMonoid := ApplicativeMonoid(
 //	    some,  // func(int) Option[int]
-//	    fmap,  // func(Option[int], func(int) func(int) int) Option[func(int) int]
-//	    fap,   // func(Option[func(int) int], Option[int]) Option[int]
+//	    fmap,  // func(func(int) func(int) int) func(Option[int]) Option[func(int) int]
+//	    fap,   // func(Option[int]) func(Option[func(int) int]) Option[int]
 //	    intAddMonoid,
 //	)
 //
@@ -63,8 +66,8 @@ import (
 //	empty := optMonoid.Empty()                     // Some(0)
 func ApplicativeMonoid[A, HKTA, HKTFA any](
 	fof func(A) HKTA,
-	fmap func(HKTA, func(A) func(A) A) HKTFA,
-	fap func(HKTFA, HKTA) HKTA,
+	fmap functor.MapType[A, func(A) A, HKTA, HKTFA],
+	fap func(HKTA) func(HKTFA) HKTA,
 
 	m Monoid[A],
 ) Monoid[HKTA] {

@@ -17,6 +17,7 @@ package semigroup
 
 import (
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/functor"
 )
 
 // ApplySemigroup creates a Semigroup for applicative functors (types with map and ap operations).
@@ -35,8 +36,10 @@ import (
 //   - HKTFA: The higher-kinded type containing a function (e.g., Option[func(A) A])
 //
 // Parameters:
-//   - fmap: Maps a function over the applicative functor
-//   - fap: Applies a function in the applicative context to a value in the context
+//   - fmap: Curried map over the applicative functor (a functor.MapType), e.g. O.Map
+//   - fap: Curried apply in the applicative context, e.g. O.Ap. Its type is identical to
+//     apply.ApType[HKTA, HKTA, HKTFA]; it is spelled out because this package cannot import
+//     internal/apply without creating an import cycle
 //   - s: The base semigroup for type A
 //
 // Example:
@@ -56,14 +59,14 @@ import (
 //	result := optionSG.Concat(O.Some(5), O.Some(10))  // Some(15)
 //	result2 := optionSG.Concat(O.None[int](), O.Some(10))  // None
 func ApplySemigroup[A, HKTA, HKTFA any](
-	fmap func(HKTA, func(A) func(A) A) HKTFA,
-	fap func(HKTFA, HKTA) HKTA,
+	fmap functor.MapType[A, func(A) A, HKTA, HKTFA],
+	fap func(HKTA) func(HKTFA) HKTA,
 
 	s Semigroup[A],
 ) Semigroup[HKTA] {
 
-	cb := F.Curry2(s.Concat)
+	mcb := fmap(F.Curry2(s.Concat))
 	return MakeSemigroup(func(first HKTA, second HKTA) HKTA {
-		return fap(fmap(first, cb), second)
+		return fap(second)(mcb(first))
 	})
 }

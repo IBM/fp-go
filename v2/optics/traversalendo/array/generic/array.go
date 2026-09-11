@@ -30,27 +30,28 @@ import (
 // Endomorphism[S] as its effect type, making it composable with other traversal endomorphisms
 // using monoid operations.
 //
-// The function works by:
-//  1. Using the lens getter to extract the array from the source structure
-//  2. Traversing all elements in the array using the provided transformation function
-//  3. Using the lens setter (mapped to work with endomorphisms) to update the structure
+// The function is FromTraversableLens specialized to the array traversable built from
+// fof, fmap and fap:
+//  1. The lens getter extracts the array from the source structure
+//  2. The array traversable applies the transformation function to every element, left to right
+//  3. The lens setter, lifted with fmapEndo, turns the new array into an Endomorphism[S]
 //
 // This is particularly useful when building complex traversals that need to access and
 // modify array fields within a larger structure. The endomorphism-based approach allows
 // you to combine multiple such traversals using Concat and Empty operations.
 //
 // Type Parameters:
-//   - GA: Array type constraint (e.g., []A)
+//   - GA: Array type (e.g., []A)
 //   - S: The source structure type containing the array
 //   - A: The element type within the array
 //   - HKTS: Higher-kinded type for Endomorphism[S]
 //   - HKTA: Higher-kinded type for A in the effect context
-//   - HKTAA: Higher-kinded type for the array transformation function
-//   - HKTRA: Higher-kinded type for the array in the effect context
+//   - HKTAA: Higher-kinded type for the partially applied array builder func(A) GA
+//   - HKTRA: Higher-kinded type for the array GA in the effect context
 //
 // Parameters:
 //   - fof: Function to lift GA into HKTRA (pure/of operation)
-//   - fmap: Function to map over the array transformation
+//   - fmap: Function to map the curried array builder over HKTRA
 //   - fmapEndo: Function to map the lens setter into the endomorphism context
 //   - fap: Applicative apply operation for combining effects
 //
@@ -60,10 +61,15 @@ import (
 // Example:
 //
 //	import (
+//	    A "github.com/IBM/fp-go/v2/array"
+//	    thunk "github.com/IBM/fp-go/v2/context/readerioresult"
+//	    "github.com/IBM/fp-go/v2/endomorphism"
 //	    F "github.com/IBM/fp-go/v2/function"
 //	    "github.com/IBM/fp-go/v2/monoid"
-//	    thunk "github.com/IBM/fp-go/v2/context/readerioresult"
+//	    "github.com/IBM/fp-go/v2/optics/lens"
 //	    TLA "github.com/IBM/fp-go/v2/optics/traversalendo/array/generic"
+//	    TE "github.com/IBM/fp-go/v2/optics/traversalendo/generic"
+//	    TLL "github.com/IBM/fp-go/v2/optics/traversalendo/lens/generic"
 //	)
 //
 //	type Person struct {
@@ -72,37 +78,38 @@ import (
 //	}
 //
 //	// Create a lens for the Hobbies field
-//	hobbiesLens := lens.Lens[Person, []string]{
-//	    Get: func(p Person) []string { return p.Hobbies },
-//	    Set: func(p Person, h []string) Person {
+//	hobbiesLens := lens.MakeLens(
+//	    func(p Person) []string { return p.Hobbies },
+//	    func(p Person, h []string) Person {
 //	        p.Hobbies = h
 //	        return p
 //	    },
-//	}
+//	)
 //
-//	// Convert to a traversal endomorphism
+//	// Convert to a traversal endomorphism over all hobbies
 //	hobbiesTrav := TLA.FromArrayLens[[]string, Person, string](
 //	    thunk.Of[[]string],
 //	    thunk.Map[[]string, func(string) []string],
-//	    thunk.Map[Person, endomorphism.Endomorphism[Person]],
-//	    thunk.Ap[string, []string],
+//	    thunk.Map[[]string, endomorphism.Endomorphism[Person]],
+//	    thunk.Ap[[]string, string],
 //	)(hobbiesLens)
 //
-//	// Use in a monoid fold to combine with other traversals
-//	m := MakeMonoid[string, thunk.Thunk[string], Person](
+//	// Use in a monoid fold to combine with other traversal endomorphisms
+//	m := TE.MakeMonoid[string, thunk.ReaderIOResult[string], Person](
 //	    thunk.Of,
 //	    thunk.Map,
 //	    thunk.Ap,
 //	)
-//	combined := monoid.Fold(m)([]Traversal[Person, string]{
-//	    hobbiesTrav,
-//	    // ... other traversals
-//	})
+//	combined := F.Pipe1(
+//	    A.From(hobbiesTrav, TLL.FromLens[Person, string](thunk.Map)(nameLens)),
+//	    monoid.Fold(m),
+//	)
 //
 // See Also:
-//   - ToTraversal: Convert a traversal endomorphism to a regular traversal
-//   - MakeMonoid: Create a monoid for combining traversal endomorphisms
-//   - Concat: Combine two traversal endomorphisms
+//   - traversable/generic.FromTraversableLens: The generalization to any traversable structure
+//   - optional/generic.FromArrayOptional: The variant for arrays focused by an optional
+//   - generic.ToTraversal: Convert a traversal endomorphism to a regular traversal
+//   - generic.MakeMonoid: Create a monoid for combining traversal endomorphisms
 func FromArrayLens[GA ~[]A, S, A, HKTS, HKTA, HKTAA, HKTRA any](
 	fof pointed.OfType[GA, HKTRA],
 	fmap functor.MapType[GA, func(A) GA, HKTRA, HKTAA],

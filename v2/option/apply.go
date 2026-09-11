@@ -30,7 +30,7 @@ import (
 //	result := optSemigroup.Concat(Some(2), Some(3)) // Some(5)
 //	result := optSemigroup.Concat(Some(2), None[int]()) // None
 func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[Option[A]] {
-	return S.ApplySemigroup(MonadMap[A, func(A) A], MonadAp[A, A], s)
+	return S.ApplySemigroup(Map[A, func(A) A], Ap[A, A], s)
 }
 
 // ApplicativeMonoid returns a Monoid that concatenates Option instances via their applicative functor.
@@ -45,5 +45,5 @@ func ApplySemigroup[A any](s S.Semigroup[A]) S.Semigroup[Option[A]] {
 //
 //go:inline
 func ApplicativeMonoid[A any](m M.Monoid[A]) M.Monoid[Option[A]] {
-	return M.ApplicativeMonoid(Of[A], MonadMap[A, func(A) A], MonadAp[A, A], m)
+	return M.ApplicativeMonoid(Of[A], Map[A, func(A) A], Ap[A, A], m)
 }

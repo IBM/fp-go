@@ -74,8 +74,10 @@
 //	import (
 //	    A "github.com/IBM/fp-go/v2/array"
 //	    thunk "github.com/IBM/fp-go/v2/context/readerioresult"
+//	    "github.com/IBM/fp-go/v2/endomorphism"
 //	    F "github.com/IBM/fp-go/v2/function"
 //	    "github.com/IBM/fp-go/v2/monoid"
+//	    TA "github.com/IBM/fp-go/v2/optics/traversalendo/array/generic"
 //	    TE "github.com/IBM/fp-go/v2/optics/traversalendo/generic"
 //	    TL "github.com/IBM/fp-go/v2/optics/traversalendo/lens/generic"
 //	)
@@ -87,7 +89,7 @@
 //	}
 //
 //	// Create a monoid for combining traversal endomorphisms
-//	m := TE.MakeMonoid[string, thunk.Thunk[string], *Address](
+//	m := TE.MakeMonoid[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Of,
 //	    thunk.Map,
 //	    thunk.Ap,
@@ -96,7 +98,12 @@
 //	// Create individual field traversals
 //	lenses := MakeAddressRefLenses()
 //	fromString := TL.FromLens[*Address, string](thunk.Map)
-//	fromArray := /* create array traversal */
+//	fromArray := TA.FromArrayLens[[]string, *Address, string](
+//	    thunk.Of[[]string],
+//	    thunk.Map[[]string, func(string) []string],
+//	    thunk.Map[[]string, endomorphism.Endomorphism[*Address]],
+//	    thunk.Ap[[]string, string],
+//	)
 //
 //	streetTrav := fromString(lenses.Street)
 //	nameTrav := fromString(lenses.Name)
@@ -109,7 +116,7 @@
 //	)
 //
 //	// Convert to a regular traversal for use
-//	regularTrav := TE.ToTraversal[string, thunk.Thunk[string], *Address](
+//	regularTrav := TE.ToTraversal[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Map,
 //	)(allFieldsTrav)
 //
@@ -119,40 +126,40 @@
 //	    Name:     "john",
 //	    Keywords: []string{"a", "b"},
 //	}
-//	result := regularTrav(func(s string) thunk.Thunk[string] {
+//	res := regularTrav(func(s string) thunk.ReaderIOResult[string] {
 //	    return thunk.Of(strings.ToUpper(s))
-//	})(addr)
-//	// Result: &Address{
+//	})(addr)(ctx)()
+//	// res == result.Of(&Address{
 //	//     Street:   "MAIN ST",
 //	//     Name:     "JOHN",
 //	//     Keywords: []string{"A", "B"},
-//	// }
+//	// })
 //
 // # Monoid Operations
 //
 // The monoid structure enables powerful composition patterns:
 //
 //	// Empty traversal (identity element)
-//	emptyTrav := TE.Empty[string, thunk.Thunk[string], *Address](thunk.Of)
+//	emptyTrav := TE.Empty[string, thunk.ReaderIOResult[string], *Address](thunk.Of)
 //
 //	// Concat two traversals
-//	combined := TE.Concat[string, thunk.Thunk[string]](
+//	combined := TE.Concat[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Map,
 //	    thunk.Ap,
 //	)(streetTrav, nameTrav)
 //
 //	// Fold multiple traversals
-//	allFields := monoid.Fold(m)([]Traversal[*Address, string]{
-//	    streetTrav,
-//	    nameTrav,
-//	    keywordsTrav,
-//	})
+//	allFields := monoid.Fold(m)(A.From(streetTrav, nameTrav, keywordsTrav))
+//
+// Concat runs the effects of the left traversal before the effects of the right traversal.
+// The resulting endomorphisms compose as left ∘ right, so if both traversals focus on the
+// same value, the update produced by the left traversal wins.
 //
 // # Conversion to Regular Traversals
 //
 // Once you've built a traversal endomorphism, convert it to a regular traversal:
 //
-//	regularTrav := TE.ToTraversal[string, thunk.Thunk[string], *Address](
+//	regularTrav := TE.ToTraversal[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Map,
 //	)(traversalEndo)
 //
@@ -164,12 +171,13 @@
 //
 // Regular Traversal:
 //
-//	type Traversal[S, A, HKTS, HKTA any] = func(func(A) HKTA) func(S) HKTS
+//	Traversal[S, A, HKTS, HKTA] = func(func(A) HKTA) func(S) HKTS
+//	where HKTS = HKT[S]
 //
 // Traversal Endomorphism:
 //
-//	type Traversal[S, A, HKTS, HKTA any] = func(func(A) HKTA) func(S) HKTS
-//	where HKTS = HKT[Endomorphism[S]]
+//	Traversal[S, A, HKTES, HKTA] = func(func(A) HKTA) func(S) HKTES
+//	where HKTES = HKT[Endomorphism[S]]
 //
 // Key Differences:
 //
@@ -188,48 +196,65 @@
 //
 // # Advanced Patterns
 //
-// Building traversals from lenses:
+// Building traversals from lenses and optionals:
 //
 //	// From a simple lens
 //	fieldTrav := TL.FromLens[*Address, string](thunk.Map)(fieldLens)
 //
 //	// From a lens focusing on an array
 //	arrayTrav := TA.FromArrayLens[[]string, *Address, string](
-//	    thunk.Of,
-//	    thunk.Map,
-//	    thunk.Map,
-//	    thunk.Ap,
+//	    thunk.Of[[]string],
+//	    thunk.Map[[]string, func(string) []string],
+//	    thunk.Map[[]string, endomorphism.Endomorphism[*Address]],
+//	    thunk.Ap[[]string, string],
 //	)(arrayLens)
 //
-//	// From a lens focusing on any traversable structure
-//	optionTrav := TT.FromTraversableLens[string, thunk.Thunk[string]](
-//	    thunk.Map,
-//	)(optionTraversable)(optionLens)
+//	// From a lens focusing on any traversable structure, e.g. an option
+//	optionTrav := TT.FromTraversableLens[string, thunk.ReaderIOResult[string], *Address](
+//	    thunk.Map[option.Option[string], endomorphism.Endomorphism[*Address]],
+//	)(option.MakeTraversable[string, string](
+//	    thunk.Of[option.Option[string]],
+//	    thunk.Map[string, option.Option[string]],
+//	))(optionLens)
+//
+//	// From an optional that focuses on zero or one value
+//	optionalTrav := TO.FromOptional[*Address, string](
+//	    thunk.Of[endomorphism.Endomorphism[*Address]],
+//	    thunk.Map[string, endomorphism.Endomorphism[*Address]],
+//	)(fieldOptional)
 //
 // Composing traversal endomorphisms:
 //
-//	// Compose for nested access (sequential)
+//	// Compose for nested access (sequential): outerTrav focuses on A within S,
+//	// innerTrav focuses on B within A
 //	nested := F.Pipe1(
 //	    outerTrav,
-//	    TE.Compose[Inner, Outer](innerTrav),
+//	    TE.Compose[S, B, thunk.ReaderIOResult[endomorphism.Endomorphism[S]], thunk.ReaderIOResult[B]](
+//	        thunk.Map[endomorphism.Endomorphism[A], A],
+//	    )(innerTrav),
 //	)
 //
 //	// Combine for parallel access (using monoid)
-//	parallel := monoid.Fold(m)([]Traversal[S, A]{
-//	    trav1,
-//	    trav2,
-//	    trav3,
-//	})
+//	parallel := monoid.Fold(m)(A.From(trav1, trav2, trav3))
 //
 // # Type Parameters
 //
-// Throughout this package, you'll encounter these type parameters:
+// Throughout these packages, you'll encounter these type parameters:
 //
 //   - S: The source type (the structure being traversed)
 //   - A: The focus type (the values being accessed or modified)
-//   - HKTS: Higher-kinded type for Endomorphism[S] in the effect context
+//   - HKTES: Higher-kinded type for Endomorphism[S] in the effect context (named HKTS
+//     in the array and traversable sub-packages)
 //   - HKTA: Higher-kinded type for A in the effect context
-//   - HKTES: Higher-kinded type for Endomorphism[S] (used in conversions)
+//   - HKTS: In ToTraversal, the higher-kinded type for S of the resulting regular traversal
+//
+// # Sub-packages
+//
+//   - generic: Empty, Concat and MakeMonoid (the monoid), Compose and ToTraversal
+//   - lens/generic: FromLens builds a traversal endomorphism from a lens
+//   - optional/generic: FromOptional and FromArrayOptional build traversal endomorphisms from optionals
+//   - array/generic: FromArrayLens traverses the elements of an array focused by a lens
+//   - traversable/generic: FromTraversableLens traverses any traversable structure focused by a lens
 //
 // # Related Packages
 //

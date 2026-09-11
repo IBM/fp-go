@@ -33,6 +33,6 @@ import (
 //go:inline
 func AltSemigroup[E, A any]() S.Semigroup[Either[E, A]] {
 	return S.AltSemigroup(
-		MonadAlt[E, A],
+		Alt[E, A],
 	)
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/pointed"
 	M "github.com/IBM/fp-go/v2/monoid"
 	"github.com/IBM/fp-go/v2/reader"
+	SG "github.com/IBM/fp-go/v2/semigroup"
 )
 
 // Empty creates an empty traversal endomorphism that focuses on no values.
@@ -52,7 +53,6 @@ import (
 //
 //	import (
 //	    thunk "github.com/IBM/fp-go/v2/context/readerioresult"
-//	    F "github.com/IBM/fp-go/v2/function"
 //	)
 //
 //	type Address struct {
@@ -61,13 +61,12 @@ import (
 //	}
 //
 //	// Create an empty traversal endomorphism
-//	emptyTrav := Empty[string, thunk.Thunk[string], *Address, thunk.Thunk[endomorphism.Endomorphism[*Address]]](
-//	    thunk.Of,
-//	)
+//	emptyTrav := Empty[string, thunk.ReaderIOResult[string], *Address](thunk.Of)
 //
 //	// Empty is the identity for Concat
-//	trav := someTraversal
-//	F.Pipe1(trav, Concat(thunk.Map, thunk.Ap)(Empty(thunk.Of))) // same as trav
+//	concat := Concat[string, thunk.ReaderIOResult[string], *Address](thunk.Map, thunk.Ap)
+//	concat(emptyTrav, trav) // behaves like trav
+//	concat(trav, emptyTrav) // behaves like trav
 //
 // See Also:
 //   - Concat: Combine two traversal endomorphisms
@@ -91,8 +90,15 @@ func Empty[A, HKTA, S, HKTES any](
 // Together with Empty, Concat forms a monoid for traversal endomorphisms, allowing you to
 // combine multiple traversals using standard monoid operations like fold or reduce.
 //
-// The implementation uses functor map to compose endomorphisms and applicative apply to
-// sequence the effects, working within a reader context over the source type S.
+// The implementation is derived from standard semigroups: the endomorphism semigroup is lifted
+// into the effect via ApplySemigroup, and then lifted pointwise over the source type S and over
+// the transformation function via FunctionSemigroup. The effects of the left traversal are
+// sequenced before the effects of the right traversal.
+//
+// The resulting endomorphisms compose as l ∘ r: the update produced by the right traversal is
+// applied first, the update produced by the left traversal last. For traversals with disjoint
+// foci this order is irrelevant; if both traversals focus on the same value, the update of the
+// left traversal wins.
 //
 // Type Parameters:
 //   - A: The focus type
@@ -128,14 +134,15 @@ func Empty[A, HKTA, S, HKTES any](
 //	nameTrav := fromString(lenses.Name)
 //
 //	// Combine to traverse both fields
-//	bothFieldsTrav := Concat[string, thunk.Thunk[string]](
+//	bothFieldsTrav := Concat[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Map,
 //	    thunk.Ap,
 //	)(streetTrav, nameTrav)
 //
-//	// Modify both fields
+//	// Modify both fields; the result is an effectful endomorphism of *Address,
+//	// use ToTraversal to obtain the modified structure directly
 //	addr := &Address{Street: "main st", Name: "john"}
-//	result := bothFieldsTrav(func(s string) thunk.Thunk[string] {
+//	endo := bothFieldsTrav(func(s string) thunk.ReaderIOResult[string] {
 //	    return thunk.Of(strings.ToUpper(s))
 //	})(addr)
 //
@@ -146,32 +153,11 @@ func Concat[A, HKTA, S, HKTES, HKTESES any](
 	fmap functor.MapType[Endomorphism[S], Endomorphism[Endomorphism[S]], HKTES, HKTESES],
 	fap apply.ApType[HKTES, HKTES, HKTESES],
 ) func(l, r Traversal[S, A, HKTES, HKTA]) Traversal[S, A, HKTES, HKTA] {
-	mp := F.Pipe2(
-		endomorphism.Compose[S],
-		fmap,
-		reader.Map[S],
-	)
-	ap := F.Pipe1(
-		fap,
-		reader.Map[S],
-	)
-	return func(l, r Traversal[S, A, HKTES, HKTA]) Traversal[S, A, HKTES, HKTA] {
-		return func(f func(A) HKTA) func(S) HKTES {
-			return F.Pipe1(
-				F.Pipe2(
-					f,
-					l,
-					ap,
-				),
-				F.Pipe3(
-					f,
-					r,
-					mp,
-					reader.Ap[HKTES],
-				),
-			)
-		}
-	}
+	return F.Pipe2(
+		SG.ApplySemigroup(fmap, fap, endomorphism.Semigroup[S]()),
+		SG.FunctionSemigroup[S, HKTES],
+		SG.FunctionSemigroup[func(A) HKTA, func(S) HKTES],
+	).Concat
 }
 
 // MakeMonoid creates a monoid instance for traversal endomorphisms.
@@ -218,7 +204,7 @@ func Concat[A, HKTA, S, HKTES, HKTESES any](
 //	}
 //
 //	// Create monoid for traversal endomorphisms
-//	m := MakeMonoid[string, thunk.Thunk[string], *Address](
+//	m := MakeMonoid[string, thunk.ReaderIOResult[string], *Address](
 //	    thunk.Of,
 //	    thunk.Map,
 //	    thunk.Ap,
@@ -236,12 +222,13 @@ func Concat[A, HKTA, S, HKTES, HKTESES any](
 //	    monoid.Fold(m),
 //	)
 //
-//	// Now modify all fields at once
+//	// Convert to a regular traversal and modify all fields at once
+//	addrTrav := ToTraversal[string, thunk.ReaderIOResult[string], *Address](thunk.Map)(allFieldsTrav)
 //	addr := &Address{Street: "street", Name: "name"}
-//	result := allFieldsTrav(func(s string) thunk.Thunk[string] {
+//	res := addrTrav(func(s string) thunk.ReaderIOResult[string] {
 //	    return thunk.Of(strings.ToUpper(s))
-//	})(addr)
-//	// Result: &Address{Street: "STREET", Name: "NAME"}
+//	})(addr)(ctx)()
+//	// res == result.Of(&Address{Street: "STREET", Name: "NAME"})
 //
 // See Also:
 //   - Empty: The identity element of the monoid

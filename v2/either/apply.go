@@ -32,7 +32,7 @@ import (
 //
 //go:inline
 func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
-	return S.ApplySemigroup(MonadMap[E, A, func(A) A], MonadAp[A, E, A], s)
+	return S.ApplySemigroup(Map[E, A, func(A) A], Ap[A, E, A], s)
 }
 
 // ApplicativeMonoid returns a Monoid that concatenates Either instances via their applicative.
@@ -46,5 +46,5 @@ func ApplySemigroup[E, A any](s S.Semigroup[A]) S.Semigroup[Either[E, A]] {
 //
 //go:inline
 func ApplicativeMonoid[E, A any](m M.Monoid[A]) M.Monoid[Either[E, A]] {
-	return M.ApplicativeMonoid(Of[E, A], MonadMap[E, A, func(A) A], MonadAp[A, E, A], m)
+	return M.ApplicativeMonoid(Of[E, A], Map[E, A, func(A) A], Ap[A, E, A], m)
 }

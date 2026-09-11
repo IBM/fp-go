@@ -35,12 +35,12 @@ func TestCurry0(t *testing.T) {
 	ro := Curry0(getConfig)
 
 	// Test with value in context
-	ctx1 := context.WithValue(context.Background(), "config", "test-config")
+	ctx1 := context.WithValue(t.Context(), "config", "test-config")
 	result1 := ro(ctx1)
 	assert.Equal(t, O.Of("test-config"), result1)
 
 	// Test without value in context
-	ctx2 := context.Background()
+	ctx2 := t.Context()
 	result2 := ro(ctx2)
 	assert.Equal(t, O.None[string](), result2)
 }
@@ -57,12 +57,12 @@ func TestCurry1(t *testing.T) {
 	ro := Curry1(lookup)
 
 	// Test with value in context
-	ctx1 := context.WithValue(context.Background(), "count", 42)
+	ctx1 := context.WithValue(t.Context(), "count", 42)
 	result1 := ro("count")(ctx1)
 	assert.Equal(t, O.Of(42), result1)
 
 	// Test without value in context
-	ctx2 := context.Background()
+	ctx2 := t.Context()
 	result2 := ro("count")(ctx2)
 	assert.Equal(t, O.None[int](), result2)
 }
@@ -79,12 +79,12 @@ func TestCurry2(t *testing.T) {
 	ro := Curry2(combine)
 
 	// Test with enabled context
-	ctx1 := context.WithValue(context.Background(), "enabled", true)
+	ctx1 := context.WithValue(t.Context(), "enabled", true)
 	result1 := ro("test")(5)(ctx1)
 	assert.Equal(t, O.Of("test:5"), result1)
 
 	// Test with disabled context
-	ctx2 := context.Background()
+	ctx2 := t.Context()
 	result2 := ro("test")(5)(ctx2)
 	assert.Equal(t, O.None[string](), result2)
 }
@@ -101,7 +101,7 @@ func TestCurry3(t *testing.T) {
 	ro := Curry3(combine)
 
 	// Test with enabled context and true flag
-	ctx1 := context.WithValue(context.Background(), "enabled", true)
+	ctx1 := context.WithValue(t.Context(), "enabled", true)
 	result1 := ro("test")(5)(true)(ctx1)
 	assert.Equal(t, O.Of("test:5"), result1)
 
@@ -120,7 +120,7 @@ func TestUncurry1(t *testing.T) {
 	uncurried := Uncurry1(curried)
 
 	// Test the uncurried function
-	result, ok := uncurried(context.Background(), 21)
+	result, ok := uncurried(t.Context(), 21)
 	assert.True(t, ok)
 	assert.Equal(t, 42, result)
 }
@@ -137,7 +137,7 @@ func TestUncurry2(t *testing.T) {
 	uncurried := Uncurry2(curried)
 
 	// Test the uncurried function
-	result, ok := uncurried(context.Background(), 10, 32)
+	result, ok := uncurried(t.Context(), 10, 32)
 	assert.True(t, ok)
 	assert.Equal(t, 42, result)
 }
@@ -156,7 +156,7 @@ func TestUncurry3(t *testing.T) {
 	uncurried := Uncurry3(curried)
 
 	// Test the uncurried function
-	result, ok := uncurried(context.Background(), 10, 20, 12)
+	result, ok := uncurried(t.Context(), 10, 20, 12)
 	assert.True(t, ok)
 	assert.Equal(t, 42, result)
 }

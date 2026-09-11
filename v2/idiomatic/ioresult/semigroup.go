@@ -28,6 +28,6 @@ type (
 // This implements the alternative operation for combining IOResults.
 func AltSemigroup[A any]() Semigroup[A] {
 	return semigroup.AltSemigroup(
-		MonadAlt[A],
+		Alt[A],
 	)
 }

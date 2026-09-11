@@ -16,6 +16,7 @@
 package readerreaderioresult
 
 import (
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/monoid"
 )
 
@@ -49,8 +50,8 @@ type (
 func ApplicativeMonoid[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 	return monoid.ApplicativeMonoid(
 		Of[R, A],
-		MonadMap[R, A, func(A) A],
-		MonadAp[R, A, A],
+		Map[R, A, func(A) A],
+		Ap[A, R, A],
 		m,
 	)
 }
@@ -65,8 +66,8 @@ func ApplicativeMonoid[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 func ApplicativeMonoidSeq[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 	return monoid.ApplicativeMonoid(
 		Of[R, A],
-		MonadMap[R, A, func(A) A],
-		MonadApSeq[R, A, A],
+		Map[R, A, func(A) A],
+		F.Curry2(F.Swap(MonadApSeq[R, A, A])),
 		m,
 	)
 }
@@ -81,8 +82,8 @@ func ApplicativeMonoidSeq[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 func ApplicativeMonoidPar[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 	return monoid.ApplicativeMonoid(
 		Of[R, A],
-		MonadMap[R, A, func(A) A],
-		MonadApPar[R, A, A],
+		Map[R, A, func(A) A],
+		F.Curry2(F.Swap(MonadApPar[R, A, A])),
 		m,
 	)
 }
@@ -110,9 +111,9 @@ func ApplicativeMonoidPar[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 func AlternativeMonoid[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 	return monoid.AlternativeMonoid(
 		Of[R, A],
-		MonadMap[R, A, func(A) A],
-		MonadAp[R, A, A],
-		MonadAlt[R, A],
+		Map[R, A, func(A) A],
+		Ap[A, R, A],
+		Alt[R, A],
 		m,
 	)
 }
@@ -143,6 +144,6 @@ func AlternativeMonoid[R, A any](m monoid.Monoid[A]) Monoid[R, A] {
 func AltMonoid[R, A any](zero Lazy[ReaderReaderIOResult[R, A]]) Monoid[R, A] {
 	return monoid.AltMonoid(
 		zero,
-		MonadAlt[R, A],
+		Alt[R, A],
 	)
 }

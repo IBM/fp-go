@@ -16,6 +16,7 @@
 package monoid
 
 import (
+	"github.com/IBM/fp-go/v2/internal/functor"
 	S "github.com/IBM/fp-go/v2/semigroup"
 )
 
@@ -37,9 +38,9 @@ import (
 //
 // Parameters:
 //   - fof: The "pure" operation that lifts a value into the context
-//   - fmap: The map operation for the functor
-//   - fap: The apply operation for the applicative
-//   - falt: The alternative operation providing fallback/choice behavior
+//   - fmap: The curried map operation for the functor (a functor.MapType)
+//   - fap: The curried apply operation for the applicative, identical to apply.ApType[HKTA, HKTA, HKTFA]
+//   - falt: The curried alternative operation providing fallback/choice behavior, e.g. O.Alt
 //   - m: The monoid for the base type A
 //
 // Returns:
@@ -67,10 +68,10 @@ import (
 func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 	fof func(A) HKTA,
 
-	fmap func(HKTA, func(A) func(A) A) HKTFA,
-	fap func(HKTFA, HKTA) HKTA,
+	fmap functor.MapType[A, func(A) A, HKTA, HKTFA],
+	fap func(HKTA) func(HKTFA) HKTA,
 
-	falt func(HKTA, LAZYHKTA) HKTA,
+	falt func(LAZYHKTA) func(HKTA) HKTA,
 
 	m Monoid[A],
 
@@ -82,9 +83,9 @@ func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 		func(first, second HKTA) HKTA {
 			snd := func() HKTA { return second }
 
-			return falt(sg.Concat(first, second), func() HKTA {
-				return falt(first, snd)
-			})
+			return falt(func() HKTA {
+				return falt(snd)(first)
+			})(sg.Concat(first, second))
 		},
 		sg.Empty(),
 	)
@@ -105,7 +106,7 @@ func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 //
 // Parameters:
 //   - fzero: A lazy computation that produces the empty/zero value
-//   - falt: The alternative operation that provides fallback behavior
+//   - falt: The curried alternative operation that provides fallback behavior, e.g. O.Alt
 //
 // Returns:
 //   - A Monoid[HKTA] with alternative/choice semantics
@@ -114,11 +115,13 @@ func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 //
 //	optMonoid := AltMonoid(
 //	    func() Option[int] { return None() },  // empty
-//	    func(first Option[int], second func() Option[int]) Option[int] {
-//	        if first.IsSome() {
-//	            return first
+//	    func(second func() Option[int]) func(Option[int]) Option[int] {
+//	        return func(first Option[int]) Option[int] {
+//	            if first.IsSome() {
+//	                return first
+//	            }
+//	            return second()
 //	        }
-//	        return second()
 //	    },
 //	)
 //
@@ -130,7 +133,7 @@ func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 //	result3 := optMonoid.Concat(None(), None())    // None()
 func AltMonoid[HKTA any, LAZYHKTA ~func() HKTA](
 	fzero LAZYHKTA,
-	falt func(HKTA, LAZYHKTA) HKTA,
+	falt func(LAZYHKTA) func(HKTA) HKTA,
 
 ) Monoid[HKTA] {
 

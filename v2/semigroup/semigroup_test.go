@@ -198,22 +198,26 @@ func TestApplySemigroup(t *testing.T) {
 	// Simple HKT simulation using slices
 	type HKT []int
 
-	fmap := func(hkt HKT, f func(int) func(int) int) []func(int) int {
-		result := make([]func(int) int, len(hkt))
-		for i, v := range hkt {
-			result[i] = f(v)
+	fmap := func(f func(int) func(int) int) func(HKT) []func(int) int {
+		return func(hkt HKT) []func(int) int {
+			result := make([]func(int) int, len(hkt))
+			for i, v := range hkt {
+				result[i] = f(v)
+			}
+			return result
 		}
-		return result
 	}
 
-	fap := func(fs []func(int) int, hkt HKT) HKT {
-		result := make(HKT, 0)
-		for _, f := range fs {
-			for _, v := range hkt {
-				result = append(result, f(v))
+	fap := func(hkt HKT) func([]func(int) int) HKT {
+		return func(fs []func(int) int) HKT {
+			result := make(HKT, 0)
+			for _, f := range fs {
+				for _, v := range hkt {
+					result = append(result, f(v))
+				}
 			}
+			return result
 		}
-		return result
 	}
 
 	applySG := ApplySemigroup(fmap, fap, add)
@@ -222,8 +226,8 @@ func TestApplySemigroup(t *testing.T) {
 	hkt2 := HKT{3, 4}
 
 	result := applySG.Concat(hkt1, hkt2)
-	// Should apply the semigroup operation to all combinations
-	assert.NotEmpty(t, result)
+	// Should apply the semigroup operation to all combinations, first values outermost
+	assert.Equal(t, HKT{4, 5, 5, 6}, result)
 }
 
 // Test AltSemigroup
@@ -234,11 +238,13 @@ func TestAltSemigroup(t *testing.T) {
 		hasValue bool
 	}
 
-	falt := func(first Option[int], second func() Option[int]) Option[int] {
-		if first.hasValue {
-			return first
+	falt := func(second func() Option[int]) func(Option[int]) Option[int] {
+		return func(first Option[int]) Option[int] {
+			if first.hasValue {
+				return first
+			}
+			return second()
 		}
-		return second()
 	}
 
 	altSG := AltSemigroup(falt)

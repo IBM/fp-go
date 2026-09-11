@@ -2,8 +2,8 @@ package generic
 
 import (
 	"github.com/IBM/fp-go/v2/endomorphism"
-	"github.com/IBM/fp-go/v2/internal/traversable"
 	"github.com/IBM/fp-go/v2/internal/common"
+	"github.com/IBM/fp-go/v2/internal/traversable"
 	TG "github.com/IBM/fp-go/v2/optics/traversal/generic"
 )
 
