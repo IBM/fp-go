@@ -47,13 +47,15 @@ package builder
 
 import (
 	"bytes"
-	"context"
+	"io"
 	"net/http"
 	"strconv"
 
 	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
 	RIOEH "github.com/IBM/fp-go/v2/context/readerioresult/http"
+	FL "github.com/IBM/fp-go/v2/file"
 	F "github.com/IBM/fp-go/v2/function"
+	HTTP "github.com/IBM/fp-go/v2/http"
 	R "github.com/IBM/fp-go/v2/http/builder"
 	H "github.com/IBM/fp-go/v2/http/headers"
 	LZ "github.com/IBM/fp-go/v2/lazy"
@@ -115,41 +117,50 @@ import (
 //	requester := RB.Requester(builder)
 //	result := requester(t.Context())()
 func Requester(builder *R.Builder) RIOEH.Requester {
-
-	withBody := F.Curry3(func(data []byte, url string, method string) RIOE.ReaderIOResult[*http.Request] {
-		return RIOE.TryCatch(func(ctx context.Context) func() (*http.Request, error) {
-			return func() (*http.Request, error) {
-				req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(data))
-				if err == nil {
-					req.Header.Set(H.ContentLength, strconv.Itoa(len(data)))
-					H.Monoid.Concat(req.Header, builder.GetHeaders())
-				}
-				return req, err
-			}
-		})
-	})
-
-	withoutBody := F.Curry2(func(url string, method string) RIOE.ReaderIOResult[*http.Request] {
-		return RIOE.TryCatch(func(ctx context.Context) func() (*http.Request, error) {
-			return func() (*http.Request, error) {
-				req, err := http.NewRequestWithContext(ctx, method, url, nil)
-				if err == nil {
-					H.Monoid.Concat(req.Header, builder.GetHeaders())
-				}
-				return req, err
-			}
-		})
-	})
-
-	return F.Pipe5(
+	return F.Pipe4(
 		builder.GetBody(),
-		O.Fold(LZ.Of(result.Of(withoutBody)), result.Map(withBody)),
-		result.Ap[RIOE.Kleisli[string, *http.Request]](builder.GetTargetURL()),
-		result.Flap[RIOE.ReaderIOResult[*http.Request]](builder.GetMethod()),
+		O.Fold(LZ.Of(noBody), result.Map(withBody)),
+		result.Ap[RIOE.ReaderIOResult[*http.Request]](F.Pipe1(
+			builder.GetTargetURL(),
+			result.Map(F.Curry2(F.Bind1of3(RIOEH.MakeRequest)(builder.GetMethod()))),
+		)),
 		result.GetOrElse(RIOE.Left[*http.Request]),
-		RIOE.Map(func(req *http.Request) *http.Request {
-			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())
-			return req
-		}),
+		RIOE.Map(F.Bind1of2(mergeHeaders)(builder.GetHeaders())),
 	)
+}
+
+var (
+	// toReader converts a byte slice into a fresh [io.Reader]
+	toReader = F.Flow2(
+		bytes.NewReader,
+		FL.ToReader[*bytes.Reader],
+	)
+
+	// noBody feeds an empty body into the request constructor
+	noBody = result.Of(withReader(RIOE.Of[io.Reader](nil)))
+)
+
+// withReader feeds the body into a request constructor that is still waiting for its body.
+func withReader(body RIOE.ReaderIOResult[io.Reader]) func(RIOE.Kleisli[io.Reader, *http.Request]) RIOE.ReaderIOResult[*http.Request] {
+	return F.Bind1st(RIOE.MonadChain[io.Reader, *http.Request], body)
+}
+
+// withBody feeds data as the body into a request constructor and sets the Content-Length header.
+// The [io.Reader] over data is created on each execution, so the resulting requester can be
+// executed repeatedly (e.g. when retrying).
+func withBody(data []byte) func(RIOE.Kleisli[io.Reader, *http.Request]) RIOE.ReaderIOResult[*http.Request] {
+	return F.Flow2(
+		withReader(F.Pipe1(
+			RIOE.Of(data),
+			RIOE.Map(toReader),
+		)),
+		RIOE.Map(HTTP.WithHeader(H.ContentLength)(strconv.Itoa(len(data)))),
+	)
+}
+
+// mergeHeaders merges a copy of headers into the headers of the request and returns the request.
+// Copying ensures that the request never shares header maps or value slices with the builder.
+func mergeHeaders(headers http.Header, req *http.Request) *http.Request {
+	req.Header = H.Monoid.Concat(req.Header, headers.Clone())
+	return req
 }

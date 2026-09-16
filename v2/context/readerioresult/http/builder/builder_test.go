@@ -17,6 +17,7 @@ package builder
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -100,6 +101,47 @@ func TestBuilderWithBody(t *testing.T) {
 	assert.Equal(t, "https://api.example.com/users", req.URL.String())
 	assert.NotNil(t, req.Body, "Expected non-nil body for POST request")
 	assert.Equal(t, "24", req.Header.Get("Content-Length"))
+}
+
+// TestBuilderWithBodyRepeatable tests that executing a requester repeatedly
+// produces a fresh, fully readable body each time (e.g. for retries)
+func TestBuilderWithBodyRepeatable(t *testing.T) {
+	bodyData := []byte(`{"name":"John","age":30}`)
+
+	requester := Requester(F.Pipe3(
+		R.Default,
+		R.WithURL("https://api.example.com/users"),
+		R.WithMethod("POST"),
+		R.WithBytes(bodyData),
+	))
+
+	for range 2 {
+		req := E.GetOrElse(func(error) *http.Request { return nil })(requester(t.Context())())
+		assert.NotNil(t, req, "Expected non-nil request")
+
+		data, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, bodyData, data)
+	}
+}
+
+// TestBuilderHeadersAreIsolated tests that modifying the headers of a request
+// does not modify the headers of the builder
+func TestBuilderHeadersAreIsolated(t *testing.T) {
+	builder := F.Pipe2(
+		R.Default,
+		R.WithURL("https://api.example.com/data"),
+		R.WithHeader("Accept")("application/json"),
+	)
+
+	req := E.GetOrElse(func(error) *http.Request { return nil })(Requester(builder)(t.Context())())
+	assert.NotNil(t, req, "Expected non-nil request")
+
+	req.Header.Set("X-Request-ID", "12345")
+	req.Header.Add("Accept", "text/plain")
+
+	assert.Empty(t, builder.GetHeaders().Get("X-Request-ID"))
+	assert.Equal(t, []string{"application/json"}, builder.GetHeaderValues("Accept"))
 }
 
 // TestBuilderWithHeaders tests that headers are properly set

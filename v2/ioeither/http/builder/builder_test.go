@@ -16,6 +16,7 @@
 package builder
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -23,7 +24,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
-	"github.com/IBM/fp-go/v2/io"
+	IO "github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,8 +46,8 @@ func TestBuilderWithQuery(t *testing.T) {
 		ioeither.Map[error](func(r *http.Request) *url.URL {
 			return r.URL
 		}),
-		ioeither.ChainFirstIOK[error](func(u *url.URL) io.IO[Void] {
-			return io.FromImpure(func() {
+		ioeither.ChainFirstIOK[error](func(u *url.URL) IO.IO[Void] {
+			return IO.FromImpure(func() {
 				q := u.Query()
 				assert.Equal(t, "10", q.Get("limit"))
 				assert.Equal(t, "b", q.Get("a"))
@@ -55,4 +56,104 @@ func TestBuilderWithQuery(t *testing.T) {
 	)
 
 	assert.True(t, E.IsRight(req()))
+}
+
+// getRequest executes the requester and returns the request, failing the test on error
+func getRequest(t *testing.T, requester IOEither[*http.Request]) *http.Request {
+	req, err := E.Unwrap(requester())
+	assert.NoError(t, err)
+	assert.NotNil(t, req)
+	return req
+}
+
+// TestBuilderWithoutBody tests creating a request without a body
+func TestBuilderWithoutBody(t *testing.T) {
+	req := getRequest(t, Requester(F.Pipe2(
+		R.Default,
+		R.WithURL("https://api.example.com/users"),
+		R.WithMethod("GET"),
+	)))
+
+	assert.Equal(t, "GET", req.Method)
+	assert.Equal(t, "https://api.example.com/users", req.URL.String())
+	assert.Equal(t, http.NoBody, req.Body)
+	assert.Empty(t, req.Header.Get("Content-Length"))
+}
+
+// TestBuilderWithBody tests creating a request with a body
+func TestBuilderWithBody(t *testing.T) {
+	bodyData := []byte(`{"name":"John","age":30}`)
+
+	req := getRequest(t, Requester(F.Pipe3(
+		R.Default,
+		R.WithURL("https://api.example.com/users"),
+		R.WithMethod("POST"),
+		R.WithBytes(bodyData),
+	)))
+
+	assert.Equal(t, "POST", req.Method)
+	assert.Equal(t, "24", req.Header.Get("Content-Length"))
+
+	data, err := io.ReadAll(req.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, bodyData, data)
+}
+
+// TestBuilderWithBodyRepeatable tests that executing a requester repeatedly
+// produces a fresh, fully readable body each time (e.g. for retries)
+func TestBuilderWithBodyRepeatable(t *testing.T) {
+	bodyData := []byte(`{"name":"John","age":30}`)
+
+	requester := Requester(F.Pipe3(
+		R.Default,
+		R.WithURL("https://api.example.com/users"),
+		R.WithMethod("POST"),
+		R.WithBytes(bodyData),
+	))
+
+	for range 2 {
+		data, err := io.ReadAll(getRequest(t, requester).Body)
+		assert.NoError(t, err)
+		assert.Equal(t, bodyData, data)
+	}
+}
+
+// TestBuilderWithHeaders tests that headers of the builder are set on the request
+func TestBuilderWithHeaders(t *testing.T) {
+	req := getRequest(t, Requester(F.Pipe3(
+		R.Default,
+		R.WithURL("https://api.example.com/data"),
+		R.WithHeader("Authorization")("Bearer token123"),
+		R.WithHeader("Accept")("application/json"),
+	)))
+
+	assert.Equal(t, "Bearer token123", req.Header.Get("Authorization"))
+	assert.Equal(t, "application/json", req.Header.Get("Accept"))
+}
+
+// TestBuilderHeadersAreIsolated tests that modifying the headers of a request
+// does not modify the headers of the builder
+func TestBuilderHeadersAreIsolated(t *testing.T) {
+	builder := F.Pipe2(
+		R.Default,
+		R.WithURL("https://api.example.com/data"),
+		R.WithHeader("Accept")("application/json"),
+	)
+
+	req := getRequest(t, Requester(builder))
+	req.Header.Set("X-Request-ID", "12345")
+	req.Header.Add("Accept", "text/plain")
+
+	assert.Empty(t, builder.GetHeaders().Get("X-Request-ID"))
+	assert.Equal(t, []string{"application/json"}, builder.GetHeaderValues("Accept"))
+}
+
+// TestBuilderWithInvalidURL tests error handling for invalid URLs
+func TestBuilderWithInvalidURL(t *testing.T) {
+	requester := Requester(F.Pipe1(
+		R.Default,
+		R.WithURL("://invalid-url"),
+	))
+
+	assert.True(t, E.IsLeft(requester()))
 }

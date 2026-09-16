@@ -85,14 +85,15 @@ import (
 	C "github.com/IBM/fp-go/v2/http/content"
 	FM "github.com/IBM/fp-go/v2/http/form"
 	H "github.com/IBM/fp-go/v2/http/headers"
+	L "github.com/IBM/fp-go/v2/internal/common"
 	J "github.com/IBM/fp-go/v2/json"
 	LZ "github.com/IBM/fp-go/v2/lazy"
-	L "github.com/IBM/fp-go/v2/internal/common"
 	O "github.com/IBM/fp-go/v2/option"
+	RD "github.com/IBM/fp-go/v2/reader"
+	RR "github.com/IBM/fp-go/v2/readerresult"
 	R "github.com/IBM/fp-go/v2/record"
 	"github.com/IBM/fp-go/v2/result"
 	S "github.com/IBM/fp-go/v2/string"
-	T "github.com/IBM/fp-go/v2/tuple"
 )
 
 type (
@@ -234,24 +235,17 @@ func (builder *Builder) GetTargetURL() Result[string] {
 		builder,
 		Url.Get,
 		parseURL,
-		result.Chain(F.Flow4(
-			T.Replicate2[*url.URL],
-			T.Map2(
-				F.Flow2(
-					F.Curry2(setRawQuery),
-					result.Of[func(string) *url.URL],
-				),
-				F.Flow3(
-					rawQuery.Get,
-					parseQuery,
-					result.Map(F.Flow2(
-						F.Curry2(FM.ValuesMonoid.Concat)(builder.GetQuery()),
-						url.Values.Encode,
-					)),
-				),
-			),
-			T.Tupled2(result.MonadAp[*url.URL, string]),
-			result.Map((*url.URL).String),
+		result.Chain(F.Pipe2(
+			RR.FromReader(F.Curry2(setRawQuery)),
+			RR.Ap[*url.URL](F.Flow3(
+				rawQuery.Get,
+				parseQuery,
+				result.Map(F.Flow2(
+					F.Curry2(FM.ValuesMonoid.Concat)(builder.GetQuery()),
+					url.Values.Encode,
+				)),
+			)),
+			RR.Map[*url.URL]((*url.URL).String),
 		)),
 	)
 }
@@ -351,13 +345,10 @@ func Header(name string) Lens[*Builder, Option[string]] {
 		LZ.Map(delHeader(name)),
 	)
 
-	return L.MakeLensWithName(get, func(b *Builder, value Option[string]) *Builder {
-		cpy := b.clone()
-		return F.Pipe1(
-			value,
-			O.Fold(del(cpy), set(cpy)),
-		)
-	}, fmt.Sprintf("HttpHeader[%s]", name))
+	return L.MakeLensWithName(get, F.Uncurry2(F.Flow2(
+		(*Builder).clone,
+		RD.MonadAp(RD.MonadMap(del, F.Curry2(O.Fold[string, *Builder])), set),
+	)), fmt.Sprintf("HttpHeader[%s]", name))
 }
 
 // WithHeader creates a [Endomorphism] for a certain header
@@ -382,13 +373,11 @@ func WithJson[T any](data T) Endomorphism {
 
 // WithJSON creates a [Endomorphism] to send JSON payload
 func WithJSON[T any](data T) Endomorphism {
-	return Monoid.Concat(
-		F.Pipe2(
-			data,
-			J.Marshal[T],
-			WithBody,
-		),
-		WithContentType(C.JSON),
+	return F.Pipe3(
+		data,
+		J.Marshal[T],
+		WithBody,
+		ENDO.Chain(WithContentType(C.JSON)),
 	)
 }
 

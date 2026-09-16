@@ -17,11 +17,14 @@ package builder
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"strconv"
 
 	E "github.com/IBM/fp-go/v2/either"
+	FL "github.com/IBM/fp-go/v2/file"
 	F "github.com/IBM/fp-go/v2/function"
+	HTTP "github.com/IBM/fp-go/v2/http"
 	R "github.com/IBM/fp-go/v2/http/builder"
 	H "github.com/IBM/fp-go/v2/http/headers"
 	"github.com/IBM/fp-go/v2/ioeither"
@@ -31,37 +34,50 @@ import (
 )
 
 func Requester(builder *R.Builder) IOEH.Requester {
-
-	withBody := F.Curry3(func(data []byte, url string, method string) IOEither[*http.Request] {
-		return ioeither.TryCatchError(func() (*http.Request, error) {
-			req, err := http.NewRequest(method, url, bytes.NewReader(data))
-			if err == nil {
-				req.Header.Set(H.ContentLength, strconv.Itoa(len(data)))
-				H.Monoid.Concat(req.Header, builder.GetHeaders())
-			}
-			return req, err
-		})
-	})
-
-	withoutBody := F.Curry2(func(url string, method string) IOEither[*http.Request] {
-		return ioeither.TryCatchError(func() (*http.Request, error) {
-			req, err := http.NewRequest(method, url, http.NoBody)
-			if err == nil {
-				H.Monoid.Concat(req.Header, builder.GetHeaders())
-			}
-			return req, err
-		})
-	})
-
-	return F.Pipe5(
+	return F.Pipe4(
 		builder.GetBody(),
-		O.Fold(LZ.Of(E.Of[error](withoutBody)), E.Map[error](withBody)),
-		E.Ap[func(string) IOEither[*http.Request]](builder.GetTargetURL()),
-		E.Flap[error, IOEither[*http.Request]](builder.GetMethod()),
+		O.Fold(LZ.Of(noBody), E.Map[error](withBody)),
+		E.Ap[IOEither[*http.Request]](F.Pipe1(
+			builder.GetTargetURL(),
+			E.Map[error](F.Curry2(F.Bind1of3(IOEH.MakeRequest)(builder.GetMethod()))),
+		)),
 		E.GetOrElse(ioeither.Left[*http.Request, error]),
-		ioeither.Map[error](func(req *http.Request) *http.Request {
-			req.Header = H.Monoid.Concat(req.Header, builder.GetHeaders())
-			return req
-		}),
+		ioeither.Map[error](F.Bind1of2(mergeHeaders)(builder.GetHeaders())),
 	)
+}
+
+var (
+	// toReader converts a byte slice into a fresh [io.Reader]
+	toReader = F.Flow2(
+		bytes.NewReader,
+		FL.ToReader[*bytes.Reader],
+	)
+
+	// noBody feeds an empty body into the request constructor
+	noBody = E.Of[error](withReader(ioeither.Of[error, io.Reader](http.NoBody)))
+)
+
+// withReader feeds the body into a request constructor that is still waiting for its body.
+func withReader(body IOEither[io.Reader]) func(ioeither.Kleisli[error, io.Reader, *http.Request]) IOEither[*http.Request] {
+	return F.Bind1st(ioeither.MonadChain[error, io.Reader, *http.Request], body)
+}
+
+// withBody feeds data as the body into a request constructor and sets the Content-Length header.
+// The [io.Reader] over data is created on each execution, so the resulting requester can be
+// executed repeatedly (e.g. when retrying).
+func withBody(data []byte) func(ioeither.Kleisli[error, io.Reader, *http.Request]) IOEither[*http.Request] {
+	return F.Flow2(
+		withReader(F.Pipe1(
+			ioeither.Of[error](data),
+			ioeither.Map[error](toReader),
+		)),
+		ioeither.Map[error](HTTP.WithHeader(H.ContentLength)(strconv.Itoa(len(data)))),
+	)
+}
+
+// mergeHeaders merges a copy of headers into the headers of the request and returns the request.
+// Copying ensures that the request never shares header maps or value slices with the builder.
+func mergeHeaders(headers http.Header, req *http.Request) *http.Request {
+	req.Header = H.Monoid.Concat(req.Header, headers.Clone())
+	return req
 }

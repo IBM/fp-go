@@ -78,13 +78,12 @@ func AlternativeMonoid[A, HKTA, HKTFA any, LAZYHKTA ~func() HKTA](
 ) Monoid[HKTA] {
 
 	sg := ApplicativeMonoid(fof, fmap, fap, m)
+	alt := S.AltSemigroup(falt)
 
 	return MakeMonoid(
 		func(first, second HKTA) HKTA {
-			snd := func() HKTA { return second }
-
 			return falt(func() HKTA {
-				return falt(snd)(first)
+				return alt.Concat(first, second)
 			})(sg.Concat(first, second))
 		},
 		sg.Empty(),

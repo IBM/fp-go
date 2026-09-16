@@ -23,12 +23,10 @@ import (
 	"net/url"
 	"regexp"
 
-	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
-	O "github.com/IBM/fp-go/v2/option"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	P "github.com/IBM/fp-go/v2/pair"
-	R "github.com/IBM/fp-go/v2/record/generic"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -111,10 +109,9 @@ var (
 	//   )(result)
 	ValidateJSONResponse = F.Flow2(
 		result.Of[*H.Response],
-		result.ChainFirst(F.Flow5(
+		result.ChainFirst(F.Flow4(
 			GetHeader,
-			R.Lookup[H.Header](HeaderContentType),
-			O.Chain(A.First[string]),
+			HD.AtValue(HeaderContentType).Get,
 			result.FromOption[string](errors.OnNone("unable to access the [%s] header", HeaderContentType)),
 			result.ChainFirst(validateJSONContentTypeString),
 		)))
@@ -340,10 +337,11 @@ func StatusCodeError(resp *H.Response) error {
 //	setJSON := setContentType("application/json")
 //	modifiedReq := setJSON(request)
 func WithHeader(key string) Reader[string, Endomorphism[*H.Request]] {
-	return func(value string) Endomorphism[*H.Request] {
-		return func(r *H.Request) *H.Request {
-			r.Header.Set(key, value)
-			return r
-		}
-	}
+	return F.Curry2(F.Bind1of3(setRequestHeader)(key))
+}
+
+// setRequestHeader sets the header `key` to `value` on the request and returns the request.
+func setRequestHeader(key, value string, r *H.Request) *H.Request {
+	r.Header.Set(key, value)
+	return r
 }

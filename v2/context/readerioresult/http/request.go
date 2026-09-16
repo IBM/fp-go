@@ -106,6 +106,16 @@ var (
 	// Example:
 	//   req := MakeGetRequest("https://api.example.com/users")
 	MakeGetRequest = makeRequest("GET", nil)
+
+	// readBody reads the body of a validated response and pairs it with the response
+	readBody = F.Pipe1(
+		F.Flow3(
+			H.GetBody,
+			IOR.Of[io.ReadCloser],
+			IOEF.ReadAll[io.ReadCloser],
+		),
+		RIOR.ChainReaderK(H.FromBody),
+	)
 )
 
 func (client client) Do(req Requester) RIOE.ReaderIOResult[*http.Response] {
@@ -152,25 +162,11 @@ func MakeClient(httpClient *http.Client) Client {
 //   - ReadText: Extracts the response body as a string
 //   - ReadJSON: Parses the response body as JSON
 func ReadFullResponse(client Client) RIOE.Operator[*http.Request, H.FullResponse] {
-	// construct the read chain once
-	read := F.Flow2(
-		IOR.ChainResultK(H.ValidateResponse),
-		IOR.Chain(F.Pipe1(
-			F.Flow3(
-				H.GetBody,
-				IOR.Of[io.ReadCloser],
-				IOEF.ReadAll[io.ReadCloser],
-			),
-			RIOR.ChainReaderK(H.FromBody),
-		)),
+	return F.Flow3(
+		client.Do,
+		RIOE.ChainEitherK(H.ValidateResponse),
+		RIOE.ChainIOEitherK(readBody),
 	)
-	// apply to the requester
-	return func(req Requester) RIOE.ReaderIOResult[H.FullResponse] {
-		return F.Flow2(
-			client.Do(req),
-			read,
-		)
-	}
 }
 
 // ReadAll sends an HTTP request and reads the complete response body as a byte array.
