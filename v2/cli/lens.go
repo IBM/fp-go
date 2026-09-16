@@ -784,9 +784,8 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 	// Then overlay types from this file (in case of name shadowing, the
 	// local definition wins — though that can't happen for package-level types).
 	allStructTypes := make(map[string]*ast.StructType)
-	for k, v := range pkgStructTypes { // range over nil map is a no-op
-		allStructTypes[k] = v
-	}
+	// range over nil map is a no-op
+	maps.Copy(allStructTypes, pkgStructTypes)
 	ast.Inspect(node, func(n ast.Node) bool {
 		if ts, ok := n.(*ast.TypeSpec); ok {
 			if st, ok := ts.Type.(*ast.StructType); ok {
@@ -960,9 +959,7 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 			log.Printf("Warning: failed to collect struct types from %s: %v", file, err)
 			continue
 		}
-		for k, v := range fileStructTypes {
-			pkgStructTypes[k] = v
-		}
+		maps.Copy(pkgStructTypes, fileStructTypes)
 	}
 
 	// Parse all files and collect structs, separating test and non-test files

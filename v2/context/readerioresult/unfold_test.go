@@ -140,7 +140,7 @@ func TestUnfold_CancelledContextMidSequence(t *testing.T) {
 
 	// Values 0, 1, 2 succeed; then cancellation is detected before the next iteration
 	require.GreaterOrEqual(t, len(rs), 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		assert.True(t, result.IsRight(rs[i]), "result[%d] should be Right", i)
 	}
 	last := rs[len(rs)-1]

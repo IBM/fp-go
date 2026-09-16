@@ -111,11 +111,10 @@ The package provides "do notation" for composing effects in a sequential, impera
 The package provides various bind operations for integrating with other effect types:
 
   - BindIOK: Bind an IO operation
-  - BindIOEitherK: Bind an IOEither operation
   - BindIOResultK: Bind an IOResult operation
   - BindReaderK: Bind a Reader operation
   - BindReaderIOK: Bind a ReaderIO operation
-  - BindEitherK: Bind an Either operation
+  - BindResultK: Bind a Result operation
 
 Each bind operation has a corresponding "L" variant for working with lenses:
   - BindL, BindIOKL, BindReaderKL, etc.

@@ -18,10 +18,8 @@ package effect
 import (
 	"fmt"
 
-	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
-	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
 	N "github.com/IBM/fp-go/v2/number"
 	L "github.com/IBM/fp-go/v2/optics/lens"
@@ -258,8 +256,8 @@ func ExampleLetToL() {
 // Bind*K — binding foreign Kleisli arrows
 // ---------------------------------------------------------------------------
 
-// ExampleBindEitherK demonstrates binding a pure computation that may fail.
-func ExampleBindEitherK() {
+// ExampleBindResultK demonstrates binding a pure computation that may fail.
+func ExampleBindResultK() {
 	// exOrder -> Result[int]: reject an empty order.
 	price := func(o exOrder) Result[int] {
 		if o.Quantity <= 0 {
@@ -271,11 +269,11 @@ func ExampleBindEitherK() {
 	ok := F.Pipe2(
 		Do[exCoreConfig](exOrder{}),
 		ApS(exSetQuantity, Of[exCoreConfig](4)),
-		BindEitherK[exCoreConfig](exSetTotal, price),
+		BindResultK[exCoreConfig](exSetTotal, price),
 	)
 	fmt.Println(exCoreRun(exCoreConfig{}, ok))
 
-	bad := F.Pipe1(Do[exCoreConfig](exOrder{}), BindEitherK[exCoreConfig](exSetTotal, price))
+	bad := F.Pipe1(Do[exCoreConfig](exOrder{}), BindResultK[exCoreConfig](exSetTotal, price))
 	fmt.Println(exCoreRun(exCoreConfig{}, bad))
 	// Output:
 	// { 4 100} <nil>
@@ -316,22 +314,6 @@ func ExampleBindIOResultK() {
 	fmt.Println(exCoreRun(exCoreConfig{}, eff))
 	// Output:
 	// { 2 50} <nil>
-}
-
-// ExampleBindIOEitherK demonstrates the IOEither spelling of BindIOResultK, for
-// code that works with an explicit error type parameter.
-func ExampleBindIOEitherK() {
-	price := F.Flow3(exOrderQuantity, N.Mul(25), ioeither.Of[error, int])
-
-	eff := F.Pipe2(
-		Do[exCoreConfig](exOrder{}),
-		ApS(exSetQuantity, Of[exCoreConfig](3)),
-		BindIOEitherK[exCoreConfig](exSetTotal, price),
-	)
-
-	fmt.Println(exCoreRun(exCoreConfig{}, eff))
-	// Output:
-	// { 3 75} <nil>
 }
 
 // ExampleBindReaderK demonstrates binding a pure computation that reads the
@@ -390,15 +372,15 @@ func ExampleBindIOKL() {
 	// { 12 0} <nil>
 }
 
-// ExampleBindIOEitherKL demonstrates refining one field in place with a
+// ExampleBindIOResultKL demonstrates refining one field in place with a
 // failure-capable IO action.
-func ExampleBindIOEitherKL() {
-	double := F.Flow2(N.Mul(2), ioeither.Of[error, int])
+func ExampleBindIOResultKL() {
+	double := F.Flow2(N.Mul(2), ioresult.Of[int])
 
 	eff := F.Pipe2(
 		Do[exCoreConfig](exOrder{}),
 		ApSL(exQuantityLens, Of[exCoreConfig](6)),
-		BindIOEitherKL[exCoreConfig](exQuantityLens, double),
+		BindIOResultKL[exCoreConfig](exQuantityLens, double),
 	)
 
 	fmt.Println(exCoreRun(exCoreConfig{}, eff))
@@ -446,18 +428,18 @@ func ExampleBindReaderIOKL() {
 // Ap*S — binding foreign *values* (independent of the state)
 // ---------------------------------------------------------------------------
 
-// ExampleApEitherS demonstrates binding an already-computed Result.
-func ExampleApEitherS() {
+// ExampleApResultS demonstrates binding an already-computed Result.
+func ExampleApResultS() {
 	eff := F.Pipe2(
 		Do[exCoreConfig](exOrder{}),
-		ApEitherS[exCoreConfig](exSetCustomer, E.Of[error]("acme")),
-		ApEitherS[exCoreConfig](exSetQuantity, R.Of(3)),
+		ApResultS[exCoreConfig](exSetCustomer, R.Of("acme")),
+		ApResultS[exCoreConfig](exSetQuantity, R.Of(3)),
 	)
 	fmt.Println(exCoreRun(exCoreConfig{}, eff))
 
 	failing := F.Pipe1(
 		Do[exCoreConfig](exOrder{}),
-		ApEitherS[exCoreConfig](exSetQuantity, R.Left[int](fmt.Errorf("no stock"))),
+		ApResultS[exCoreConfig](exSetQuantity, R.Left[int](fmt.Errorf("no stock"))),
 	)
 	fmt.Println(exCoreRun(exCoreConfig{}, failing))
 	// Output:
@@ -478,12 +460,12 @@ func ExampleApIOS() {
 	// {acme 3 0} <nil>
 }
 
-// ExampleApIOEitherS demonstrates binding an IO value that may fail.
-func ExampleApIOEitherS() {
+// ExampleApIOResultS demonstrates binding an IO value that may fail.
+func ExampleApIOResultS() {
 	eff := F.Pipe2(
 		Do[exCoreConfig](exOrder{}),
-		ApIOEitherS[exCoreConfig](exSetCustomer, ioeither.Of[error]("acme")),
-		ApIOEitherS[exCoreConfig](exSetQuantity, ioeither.Of[error](3)),
+		ApIOResultS[exCoreConfig](exSetCustomer, ioresult.Of("acme")),
+		ApIOResultS[exCoreConfig](exSetQuantity, ioresult.Of(3)),
 	)
 
 	fmt.Println(exCoreRun(exCoreConfig{}, eff))
@@ -523,12 +505,12 @@ func ExampleApReaderIOS() {
 // Ap*SL — lens forms of the Ap*S family
 // ---------------------------------------------------------------------------
 
-// ExampleApEitherSL demonstrates the lens form of ApEitherS.
-func ExampleApEitherSL() {
+// ExampleApResultSL demonstrates the lens form of ApResultS.
+func ExampleApResultSL() {
 	eff := F.Pipe2(
 		Do[exCoreConfig](exOrder{}),
-		ApEitherSL[exCoreConfig](exCustomerLens, R.Of("acme")),
-		ApEitherSL[exCoreConfig](exQuantityLens, R.Of(3)),
+		ApResultSL[exCoreConfig](exCustomerLens, R.Of("acme")),
+		ApResultSL[exCoreConfig](exQuantityLens, R.Of(3)),
 	)
 
 	fmt.Println(exCoreRun(exCoreConfig{}, eff))
@@ -549,11 +531,11 @@ func ExampleApIOSL() {
 	// {acme 3 0} <nil>
 }
 
-// ExampleApIOEitherSL demonstrates the lens form of ApIOEitherS.
-func ExampleApIOEitherSL() {
+// ExampleApIOResultSL demonstrates the lens form of ApIOResultS.
+func ExampleApIOResultSL() {
 	eff := F.Pipe1(
 		Do[exCoreConfig](exOrder{}),
-		ApIOEitherSL[exCoreConfig](exQuantityLens, ioeither.Of[error](3)),
+		ApIOResultSL[exCoreConfig](exQuantityLens, ioresult.Of(3)),
 	)
 
 	fmt.Println(exCoreRun(exCoreConfig{}, eff))

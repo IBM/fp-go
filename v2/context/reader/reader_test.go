@@ -200,7 +200,7 @@ func TestWithValue_NilValues(t *testing.T) {
 	})
 
 	t.Run("stores nil interface value", func(t *testing.T) {
-		setData := WithValue[interface{}]("data")
+		setData := WithValue[any]("data")
 		ctx := context.Background()
 
 		newCtx := setData(nil)(ctx)

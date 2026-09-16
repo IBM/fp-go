@@ -74,10 +74,7 @@ func newPaginatedServer(data []string, pageSize int) *httptest.Server {
 			HTTP.Error(w, "page out of range", HTTP.StatusNotFound)
 			return
 		}
-		end := start + pageSize
-		if end > len(data) {
-			end = len(data)
-		}
+		end := min(start+pageSize, len(data))
 		resp := pageResponse{Items: data[start:end]}
 		if end < len(data) {
 			resp.Next = fmt.Sprintf("%s/items?page=%d", srv.URL, page+1)

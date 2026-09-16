@@ -19,13 +19,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
-	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	R "github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -376,52 +375,6 @@ func TestBindIOK(t *testing.T) {
 	})
 }
 
-func TestBindIOEitherK(t *testing.T) {
-	t.Run("binds successful IOEither to state", func(t *testing.T) {
-		initial := BindState{Name: "Alice"}
-
-		eff := BindIOEitherK[TestContext](
-			func(age int) func(BindState) BindState {
-				return func(s BindState) BindState {
-					s.Age = age
-					return s
-				}
-			},
-			func(s BindState) ioeither.IOEither[error, int] {
-				return ioeither.Of[error](30)
-			},
-		)(Do[TestContext](initial))
-
-		result, err := runEffect(eff, TestContext{Value: "test"})
-
-		assert.NoError(t, err)
-		assert.Equal(t, "Alice", result.Name)
-		assert.Equal(t, 30, result.Age)
-	})
-
-	t.Run("propagates IOEither error", func(t *testing.T) {
-		expectedErr := errors.New("ioeither error")
-		initial := BindState{Name: "Alice"}
-
-		eff := BindIOEitherK[TestContext](
-			func(age int) func(BindState) BindState {
-				return func(s BindState) BindState {
-					s.Age = age
-					return s
-				}
-			},
-			func(s BindState) ioeither.IOEither[error, int] {
-				return ioeither.Left[int](expectedErr)
-			},
-		)(Do[TestContext](initial))
-
-		_, err := runEffect(eff, TestContext{Value: "test"})
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
-	})
-}
-
 func TestBindIOResultK(t *testing.T) {
 	t.Run("binds successful IOResult to state", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
@@ -500,19 +453,19 @@ func TestBindReaderIOK(t *testing.T) {
 	})
 }
 
-func TestBindEitherK(t *testing.T) {
-	t.Run("binds successful Either to state", func(t *testing.T) {
+func TestBindResultK(t *testing.T) {
+	t.Run("binds successful Result to state", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
 
-		eff := BindEitherK[TestContext](
+		eff := BindResultK[TestContext](
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
 					return s
 				}
 			},
-			func(s BindState) either.Either[error, int] {
-				return either.Of[error](30)
+			func(s BindState) R.Result[int] {
+				return R.Of(30)
 			},
 		)(Do[TestContext](initial))
 
@@ -523,19 +476,19 @@ func TestBindEitherK(t *testing.T) {
 		assert.Equal(t, 30, result.Age)
 	})
 
-	t.Run("propagates Either error", func(t *testing.T) {
-		expectedErr := errors.New("either error")
+	t.Run("propagates Result error", func(t *testing.T) {
+		expectedErr := errors.New("result error")
 		initial := BindState{Name: "Alice"}
 
-		eff := BindEitherK[TestContext](
+		eff := BindResultK[TestContext](
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
 					return s
 				}
 			},
-			func(s BindState) either.Either[error, int] {
-				return either.Left[int](expectedErr)
+			func(s BindState) R.Result[int] {
+				return R.Left[int](expectedErr)
 			},
 		)(Do[TestContext](initial))
 
@@ -683,18 +636,17 @@ func TestApOperations(t *testing.T) {
 		assert.Equal(t, 30, result.Age)
 	})
 
-	t.Run("ApEitherS applies Either effect", func(t *testing.T) {
+	t.Run("ApResultS applies Result effect", func(t *testing.T) {
 		initial := BindState{Name: "Alice"}
-		eitherEffect := either.Of[error](30)
 
-		eff := ApEitherS[TestContext](
+		eff := ApResultS[TestContext](
 			func(age int) func(BindState) BindState {
 				return func(s BindState) BindState {
 					s.Age = age
 					return s
 				}
 			},
-			eitherEffect,
+			R.Of(30),
 		)(Do[TestContext](initial))
 
 		result, err := runEffect(eff, TestContext{Value: "test"})

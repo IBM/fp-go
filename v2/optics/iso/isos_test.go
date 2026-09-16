@@ -2416,7 +2416,6 @@ func TestRefRoundTripLaws(t *testing.T) {
 
 	values := []int{0, -1, 42, 1000}
 	for _, v := range values {
-		v := v
 		t.Run(fmt.Sprintf("ReverseGet(Get(%d)) == %d", v, v), func(t *testing.T) {
 			assert.Equal(t, v, iso.ReverseGet(iso.Get(v)))
 		})
@@ -2479,7 +2478,6 @@ func TestDerefRoundTripLaws(t *testing.T) {
 
 	values := []int{0, -1, 42, 1000}
 	for _, v := range values {
-		v := v
 		t.Run(fmt.Sprintf("Get(ReverseGet(%d)) == %d", v, v), func(t *testing.T) {
 			assert.Equal(t, v, iso.Get(iso.ReverseGet(v)))
 		})
@@ -2557,7 +2555,6 @@ func TestToNillableRoundTripLaws(t *testing.T) {
 
 	optValues := []Option[int]{O.Some(0), O.Some(-1), O.Some(42), O.None[int]()}
 	for _, opt := range optValues {
-		opt := opt
 		t.Run(fmt.Sprintf("ReverseGet(Get(%v)) == %v", opt, opt), func(t *testing.T) {
 			assert.Equal(t, opt, iso.ReverseGet(iso.Get(opt)))
 		})
@@ -2617,7 +2614,6 @@ func TestFromNillableRoundTripLaws(t *testing.T) {
 
 	values := []int{0, -1, 42, 1000}
 	for _, v := range values {
-		v := v
 		t.Run(fmt.Sprintf("Get(ReverseGet(Some(%d))) == Some(%d)", v, v), func(t *testing.T) {
 			assert.Equal(t, O.Some(v), iso.Get(iso.ReverseGet(O.Some(v))))
 		})
@@ -2689,7 +2685,6 @@ func TestNanoDurationRoundTripLaws(t *testing.T) {
 
 	cases := []int64{0, 1, int64(time.Second), int64(time.Hour), -int64(time.Millisecond)}
 	for _, n := range cases {
-		n := n
 		t.Run(fmt.Sprintf("ReverseGet(Get(%d)) == %d", n, n), func(t *testing.T) {
 			assert.Equal(t, n, iso.ReverseGet(iso.Get(n)))
 		})
@@ -2740,7 +2735,6 @@ func TestSecondsDurationRoundTripLaws(t *testing.T) {
 
 	t.Run("ReverseGet(Get(n)) == n for whole seconds", func(t *testing.T) {
 		for _, n := range []int{0, 1, 60, 3600, -5} {
-			n := n
 			t.Run(fmt.Sprintf("%d", n), func(t *testing.T) {
 				assert.Equal(t, n, iso.ReverseGet(iso.Get(n)))
 			})
@@ -2749,7 +2743,6 @@ func TestSecondsDurationRoundTripLaws(t *testing.T) {
 
 	t.Run("Get(ReverseGet(d)) == d only for exact multiples of time.Second", func(t *testing.T) {
 		for _, n := range []int{0, 1, 120, -7} {
-			n := n
 			t.Run(fmt.Sprintf("%d seconds", n), func(t *testing.T) {
 				d := time.Duration(n) * time.Second
 				assert.Equal(t, d, iso.Get(iso.ReverseGet(d)))
@@ -2806,7 +2799,6 @@ func TestEmptyToNilRoundTripLaws(t *testing.T) {
 	})
 
 	for _, s := range [][]int{{1}, {1, 2, 3}, {0, -1, 42}} {
-		s := s
 		t.Run(fmt.Sprintf("Get(ReverseGet(%v)) == %v", s, s), func(t *testing.T) {
 			assert.Equal(t, s, iso.Get(iso.ReverseGet(s)))
 		})
@@ -2821,7 +2813,6 @@ func TestEmptyToNilRoundTripLaws(t *testing.T) {
 	})
 
 	for _, s := range [][]int{{1}, {1, 2, 3}, {0, -1, 42}} {
-		s := s
 		t.Run(fmt.Sprintf("ReverseGet(Get(%v)) == %v", s, s), func(t *testing.T) {
 			assert.Equal(t, s, iso.ReverseGet(iso.Get(s)))
 		})

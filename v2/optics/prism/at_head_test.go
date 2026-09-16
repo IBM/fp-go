@@ -224,7 +224,6 @@ func TestAt_PrismLaws(t *testing.T) {
 	at := At[int]()
 
 	for _, i := range []int{0, 1, 3} {
-		i := i
 		p := at(i)
 		t.Run(fmt.Sprintf("law 1 i=%d: GetOption(ReverseGet(a)) == Some(a)", i), func(t *testing.T) {
 			a := 42

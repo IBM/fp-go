@@ -81,9 +81,9 @@ func TestMemoize(t *testing.T) {
 	})
 
 	t.Run("is thread-safe", func(t *testing.T) {
-		var callCount int32
+		var callCount atomic.Int32
 		expensive := func(n int) int {
-			atomic.AddInt32(&callCount, 1)
+			callCount.Add(1)
 			time.Sleep(5 * time.Millisecond)
 			return n * n
 		}
@@ -109,7 +109,7 @@ func TestMemoize(t *testing.T) {
 
 		// Function should be called at least once, but possibly more due to race
 		// (the cache is eventually consistent)
-		assert.Greater(t, atomic.LoadInt32(&callCount), int32(0))
+		assert.Greater(t, callCount.Load(), int32(0))
 	})
 
 	t.Run("handles zero values correctly", func(t *testing.T) {
@@ -476,11 +476,11 @@ func TestSingleElementCache(t *testing.T) {
 	t.Run("is thread-safe", func(t *testing.T) {
 		cache := SingleElementCache[int, string]()
 
-		var callCount int32
+		var callCount atomic.Int32
 		gen := func(n int) func() func() string {
 			return func() func() string {
 				return func() string {
-					atomic.AddInt32(&callCount, 1)
+					callCount.Add(1)
 					time.Sleep(5 * time.Millisecond)
 					return fmt.Sprintf("Value: %d", n)
 				}
@@ -516,7 +516,7 @@ func TestSingleElementCache(t *testing.T) {
 		}
 
 		// Function should have been called, but exact count depends on race conditions
-		assert.Greater(t, atomic.LoadInt32(&callCount), int32(0))
+		assert.Greater(t, callCount.Load(), int32(0))
 	})
 
 	t.Run("handles rapid key changes", func(t *testing.T) {

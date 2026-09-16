@@ -17,12 +17,11 @@ package effect
 
 import (
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
-	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/io"
-	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/reader"
 	"github.com/IBM/fp-go/v2/readerio"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // Do creates an Effect with an initial state value.
@@ -258,14 +257,6 @@ func LetToL[C, S, T any](
 }
 
 //go:inline
-func BindIOEitherK[C, S1, S2, T any](
-	setter func(T) func(S1) S2,
-	f ioeither.Kleisli[error, S1, T],
-) Operator[C, S1, S2] {
-	return readerreaderioresult.BindIOEitherK[C](setter, f)
-}
-
-//go:inline
 func BindIOResultK[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
 	f ioresult.Kleisli[S1, T],
@@ -298,17 +289,17 @@ func BindReaderIOK[C, S1, S2, T any](
 }
 
 //go:inline
-func BindEitherK[C, S1, S2, T any](
+func BindResultK[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	f either.Kleisli[error, S1, T],
+	f result.Kleisli[S1, T],
 ) Operator[C, S1, S2] {
 	return readerreaderioresult.BindEitherK[C](setter, f)
 }
 
 //go:inline
-func BindIOEitherKL[C, S, T any](
+func BindIOResultKL[C, S, T any](
 	lens Lens[S, T],
-	f ioeither.Kleisli[error, T, T],
+	f ioresult.Kleisli[T, T],
 ) Operator[C, S, S] {
 	return readerreaderioresult.BindIOEitherKL[C](lens, f)
 }
@@ -338,9 +329,9 @@ func BindReaderIOKL[C, S, T any](
 }
 
 //go:inline
-func ApIOEitherS[C, S1, S2, T any](
+func ApIOResultS[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	fa IOEither[error, T],
+	fa IOResult[T],
 ) Operator[C, S1, S2] {
 	return readerreaderioresult.ApIOEitherS[C](setter, fa)
 }
@@ -370,17 +361,17 @@ func ApReaderIOS[C, S1, S2, T any](
 }
 
 //go:inline
-func ApEitherS[C, S1, S2, T any](
+func ApResultS[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
-	fa Either[error, T],
+	fa Result[T],
 ) Operator[C, S1, S2] {
 	return readerreaderioresult.ApEitherS[C](setter, fa)
 }
 
 //go:inline
-func ApIOEitherSL[C, S, T any](
+func ApIOResultSL[C, S, T any](
 	lens Lens[S, T],
-	fa IOEither[error, T],
+	fa IOResult[T],
 ) Operator[C, S, S] {
 	return readerreaderioresult.ApIOEitherSL[C](lens, fa)
 }
@@ -410,9 +401,9 @@ func ApReaderIOSL[C, S, T any](
 }
 
 //go:inline
-func ApEitherSL[C, S, T any](
+func ApResultSL[C, S, T any](
 	lens Lens[S, T],
-	fa Either[error, T],
+	fa Result[T],
 ) Operator[C, S, S] {
 	return readerreaderioresult.ApEitherSL[C](lens, fa)
 }

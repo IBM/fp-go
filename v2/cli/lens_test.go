@@ -20,6 +20,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -571,9 +572,7 @@ type Outer struct {
 	for _, f := range []string{fileA, fileB} {
 		fileTypes, err := collectStructTypes(f)
 		require.NoError(t, err)
-		for k, v := range fileTypes {
-			pkgStructTypes[k] = v
-		}
+		maps.Copy(pkgStructTypes, fileTypes)
 	}
 
 	// Parse only fileB (the annotated file), but pass the full package map

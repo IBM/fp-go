@@ -1544,7 +1544,6 @@ func TestConcatAllSeq_EarlyTerminationStopsOuter(t *testing.T) {
 // an artefact of the bufSize==1 sequential path.
 func TestConcatAllPar_Direct(t *testing.T) {
 	for _, bufSize := range []int{-1, 0, 2, 8, 100} {
-		bufSize := bufSize
 		t.Run(fmt.Sprintf("bufSize=%d", bufSize), func(t *testing.T) {
 			outer := From(From(1, 2, 3), From(4, 5, 6))
 			result := toSlice(ConcatAllPar[int](bufSize)(outer))

@@ -123,5 +123,5 @@ func TypeInfo(v any) string {
 //	TypeInfoOf[string]()             // Returns: "string"
 //	TypeInfoOf[fs.FileInfo]()        // Returns: "fs.FileInfo"
 func TypeInfoOf[T any]() string {
-	return strings.TrimPrefix(reflect.TypeOf((*T)(nil)).Elem().String(), "*")
+	return strings.TrimPrefix(reflect.TypeFor[T]().String(), "*")
 }

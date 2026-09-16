@@ -114,12 +114,12 @@ func TestTailRec_ErrorHandling(t *testing.T) {
 
 func TestTailRec_ContextCancellation(t *testing.T) {
 	// Test that recursion gets cancelled early when context is canceled
-	var iterationCount int32
+	var iterationCount atomic.Int32
 
 	slowStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
 		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
 			return func() Either[Trampoline[int, string]] {
-				atomic.AddInt32(&iterationCount, 1)
+				iterationCount.Add(1)
 
 				// Simulate some work
 				time.Sleep(50 * time.Millisecond)
@@ -149,7 +149,7 @@ func TestTailRec_ContextCancellation(t *testing.T) {
 	assert.Less(t, elapsed, 200*time.Millisecond)
 
 	// Should have executed only a few iterations before cancellation
-	iterations := atomic.LoadInt32(&iterationCount)
+	iterations := iterationCount.Load()
 	assert.Less(t, iterations, int32(5), "Should have been cancelled before completing all iterations")
 }
 
@@ -204,12 +204,12 @@ func TestTailRec_StackSafety(t *testing.T) {
 func TestTailRec_StackSafetyWithCancellation(t *testing.T) {
 	// Test stack safety with cancellation after many iterations
 	const largeN = 100000
-	var iterationCount int32
+	var iterationCount atomic.Int32
 
 	countdownStep := func(n int) ReaderIOResult[Trampoline[int, int]] {
 		return func(ctx context.Context) IOEither[Trampoline[int, int]] {
 			return func() Either[Trampoline[int, int]] {
-				atomic.AddInt32(&iterationCount, 1)
+				iterationCount.Add(1)
 
 				// Add a small delay every 1000 iterations to make cancellation more likely
 				if n%1000 == 0 {
@@ -234,7 +234,7 @@ func TestTailRec_StackSafetyWithCancellation(t *testing.T) {
 
 	// Should be cancelled (or completed if very fast)
 	// The key is that it doesn't cause a stack overflow
-	iterations := atomic.LoadInt32(&iterationCount)
+	iterations := iterationCount.Load()
 	assert.Greater(t, iterations, int32(0))
 
 	// If it was cancelled, verify it didn't complete all iterations
@@ -311,7 +311,7 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 		processed int
 	}
 
-	var processedCount int32
+	var processedCount atomic.Int32
 
 	processFileStep := func(state FileProcessState) ReaderIOResult[Trampoline[FileProcessState, int]] {
 		return func(ctx context.Context) IOEither[Trampoline[FileProcessState, int]] {
@@ -322,7 +322,7 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 
 				// Simulate file processing time
 				time.Sleep(20 * time.Millisecond)
-				atomic.AddInt32(&processedCount, 1)
+				processedCount.Add(1)
 
 				return E.Right[error](tailrec.Bounce[int](FileProcessState{
 					files:     state.files[1:],
@@ -360,7 +360,7 @@ func TestTailRec_CancellationDuringProcessing(t *testing.T) {
 	assert.Less(t, elapsed, 150*time.Millisecond)
 
 	// Should have processed some but not all files
-	processed := atomic.LoadInt32(&processedCount)
+	processed := processedCount.Load()
 	assert.Greater(t, processed, int32(0))
 	assert.Less(t, processed, int32(20))
 }
@@ -383,12 +383,12 @@ func TestTailRec_ZeroIterations(t *testing.T) {
 
 func TestTailRec_ContextWithDeadline(t *testing.T) {
 	// Test with context deadline
-	var iterationCount int32
+	var iterationCount atomic.Int32
 
 	slowStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
 		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
 			return func() Either[Trampoline[int, string]] {
-				atomic.AddInt32(&iterationCount, 1)
+				iterationCount.Add(1)
 				time.Sleep(30 * time.Millisecond)
 
 				if n <= 0 {
@@ -411,7 +411,7 @@ func TestTailRec_ContextWithDeadline(t *testing.T) {
 	assert.True(t, E.IsLeft(result))
 
 	// Should have executed only a few iterations
-	iterations := atomic.LoadInt32(&iterationCount)
+	iterations := iterationCount.Load()
 	assert.Greater(t, iterations, int32(0))
 	assert.Less(t, iterations, int32(5))
 }
@@ -473,13 +473,13 @@ func TestTailRec_MultipleErrorTypes(t *testing.T) {
 
 func TestTailRec_ContextCancelDuringBounce(t *testing.T) {
 	// Test cancellation happens between bounces, not during computation
-	var iterationCount int32
+	var iterationCount atomic.Int32
 	ctx, cancel := context.WithCancel(t.Context())
 
 	slowStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
 		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
 			return func() Either[Trampoline[int, string]] {
-				count := atomic.AddInt32(&iterationCount, 1)
+				count := iterationCount.Add(1)
 
 				// Cancel after 3 iterations
 				if count == 3 {
@@ -499,7 +499,7 @@ func TestTailRec_ContextCancelDuringBounce(t *testing.T) {
 
 	// Should be cancelled after a few iterations
 	assert.True(t, E.IsLeft(result))
-	iterations := atomic.LoadInt32(&iterationCount)
+	iterations := iterationCount.Load()
 	assert.Greater(t, iterations, int32(2))
 	assert.Less(t, iterations, int32(10))
 }
@@ -556,13 +556,13 @@ func TestTailRec_PointerState(t *testing.T) {
 
 func TestTailRec_ConcurrentCancellation(t *testing.T) {
 	// Test that cancellation works correctly with concurrent operations
-	var iterationCount int32
+	var iterationCount atomic.Int32
 	ctx, cancel := context.WithCancel(t.Context())
 
 	slowStep := func(n int) ReaderIOResult[Trampoline[int, string]] {
 		return func(ctx context.Context) IOEither[Trampoline[int, string]] {
 			return func() Either[Trampoline[int, string]] {
-				atomic.AddInt32(&iterationCount, 1)
+				iterationCount.Add(1)
 				time.Sleep(10 * time.Millisecond)
 
 				if n <= 0 {
@@ -592,7 +592,7 @@ func TestTailRec_ConcurrentCancellation(t *testing.T) {
 	assert.Less(t, elapsed, 100*time.Millisecond)
 
 	// Should have executed some but not all iterations
-	iterations := atomic.LoadInt32(&iterationCount)
+	iterations := iterationCount.Load()
 	assert.Greater(t, iterations, int32(0))
 	assert.Less(t, iterations, int32(20))
 }

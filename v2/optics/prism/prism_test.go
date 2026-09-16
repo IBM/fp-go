@@ -860,7 +860,6 @@ func TestDerefPrismLaws(t *testing.T) {
 
 	t.Run("law 2a: if GetOption(s)==Some(a) then GetOption(ReverseGet(a))==Some(a)", func(t *testing.T) {
 		for _, value := range []int{0, 7, 99, -5} {
-			value := value
 			src := &value
 			opt := derefPrism.GetOption(src)
 			assert.True(t, O.IsSome(opt), "expected Some for non-nil pointer")
