@@ -5,6 +5,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/reader"
 )
 
 // ContramapMemoize memoizes a ReaderReaderIOResult by deriving a comparable cache key
@@ -28,14 +29,10 @@ import (
 // Returns:
 //   - Operator[C, A, A]: An operator that memoizes by the derived key
 func ContramapMemoize[A, C any, K comparable](kf Reader[C, K]) Operator[C, A, A] {
-	memoize := F.ContramapMemoize[ReaderIOResult[context.Context, A]](kf)
-
-	return func(rdr ReaderReaderIOResult[C, A]) ReaderReaderIOResult[C, A] {
-		return memoize(F.Flow2(
-			rdr,
-			readerioresult.Memoize,
-		))
-	}
+	return F.Flow2(
+		reader.Map[C](readerioresult.Memoize[A]),
+		F.ContramapMemoize[ReaderIOResult[context.Context, A]](kf),
+	)
 }
 
 // Memoize memoizes a ReaderReaderIOResult using the outer environment value itself as

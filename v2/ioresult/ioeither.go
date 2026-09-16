@@ -18,6 +18,7 @@ package ioresult
 import (
 	"time"
 
+	"github.com/IBM/fp-go/v2/function"
 	IOI "github.com/IBM/fp-go/v2/idiomatic/ioresult"
 	RI "github.com/IBM/fp-go/v2/idiomatic/result"
 	"github.com/IBM/fp-go/v2/io"
@@ -28,12 +29,7 @@ import (
 )
 
 func fromIOResultKleisliI[A, B any](f IOI.Kleisli[A, B]) Kleisli[A, B] {
-	return func(a A) IOResult[B] {
-		r := f(a)
-		return func() Result[B] {
-			return result.TryCatchError(r())
-		}
-	}
+	return function.Flow2(f, TryCatchError[B])
 }
 
 func fromResultKleisliI[A, B any](f RI.Kleisli[A, B]) result.Kleisli[A, B] {

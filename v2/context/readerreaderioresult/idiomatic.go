@@ -41,16 +41,13 @@ import (
 // FromIdiomatic adapts it to the functional style [Kleisli][R, A, B] so it
 // can be composed with the other combinators in this package.
 func FromIdiomatic[R, A, B any](f KleisliI[R, A, B]) Kleisli[R, A, B] {
-	return func(a A) ReaderReaderIOResult[R, B] {
-		fa := f(a)
-		return func(r R) ReaderIOResult[context.Context, B] {
-			return func(ctx context.Context) IOResult[B] {
-				return func() Result[B] {
-					return result.TryCatchError(fa(ctx, r))
-				}
-			}
-		}
-	}
+	return function.Flow2(f, fromReaderReaderIOResultI[R, B])
+}
+
+// fromReaderReaderIOResultI converts an idiomatic `func(context.Context, R) (A, error)`
+// into a [ReaderReaderIOResult] by swapping the argument order and currying.
+func fromReaderReaderIOResultI[R, A any](fa func(context.Context, R) (A, error)) ReaderReaderIOResult[R, A] {
+	return function.Curry2(function.Swap(ioresult.Eitherize2(fa)))
 }
 
 // MonadChainI sequences a [ReaderReaderIOResult] with an idiomatic Kleisli function.
@@ -172,12 +169,7 @@ func fromOptionKleisliI[A, B any](f OI.Kleisli[A, B]) option.Kleisli[A, B] {
 // fromIOResultKleisliI converts an idiomatic Kleisli arrow `func(A) func() (B, error)`
 // into the functional `ioresult.Kleisli[A, B]`.
 func fromIOResultKleisliI[A, B any](f IORI.Kleisli[A, B]) ioresult.Kleisli[A, B] {
-	return func(a A) IOResult[B] {
-		mb := f(a)
-		return func() Result[B] {
-			return result.TryCatchError(mb())
-		}
-	}
+	return function.Flow2(f, ioresult.TryCatchError[B])
 }
 
 // fromReaderResultKleisliI converts an idiomatic Kleisli arrow `func(A) func(R) (B, error)`
@@ -211,9 +203,7 @@ func FromResultI[R, A any](a A, err error) ReaderReaderIOResult[R, A] {
 //
 //go:inline
 func FromIOResultI[R, A any](mr IORI.IOResult[A]) ReaderReaderIOResult[R, A] {
-	return FromIOResult[R](func() Result[A] {
-		return result.TryCatchError(mr())
-	})
+	return FromIOResult[R](ioresult.TryCatchError(mr))
 }
 
 // FromReaderResultI converts an idiomatic ReaderResult (a `func(R) (A, error)`)

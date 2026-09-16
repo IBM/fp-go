@@ -53,7 +53,5 @@ import (
 //	p := pair.MakePair[context.Context, AppConfig](ctx, cfg)
 //	res := paired(p)()  // Either[error, string]
 func Paired[R, A any](f ReaderReaderIOResult[R, A]) ioresult.Kleisli[Pair[context.Context, R], A] {
-	return func(t Pair[context.Context, R]) IOResult[A] {
-		return f(pair.Tail(t))(pair.Head(t))
-	}
+	return pair.Merge(f)
 }

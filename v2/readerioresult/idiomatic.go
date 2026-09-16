@@ -43,12 +43,7 @@ func fromOptionKleisliI[A, B any](f OI.Kleisli[A, B]) option.Kleisli[A, B] {
 // fromIOResultKleisliI converts an idiomatic Kleisli arrow `func(A) func() (B, error)`
 // into the functional `ioresult.Kleisli[A, B]`.
 func fromIOResultKleisliI[A, B any](f IORI.Kleisli[A, B]) ioresult.Kleisli[A, B] {
-	return func(a A) IOResult[B] {
-		mb := f(a)
-		return func() Result[B] {
-			return result.TryCatchError(mb())
-		}
-	}
+	return function.Flow2(f, ioresult.TryCatchError[B])
 }
 
 // fromReaderResultKleisliI converts an idiomatic Kleisli arrow `func(A) func(R) (B, error)`
@@ -111,9 +106,7 @@ func FromResultI[R, A any](a A, err error) ReaderIOResult[R, A] {
 //
 //go:inline
 func FromIOResultI[R, A any](mr IORI.IOResult[A]) ReaderIOResult[R, A] {
-	return FromIOResult[R](func() Result[A] {
-		return result.TryCatchError(mr())
-	})
+	return FromIOResult[R](ioresult.TryCatchError(mr))
 }
 
 // FromReaderResultI converts an idiomatic ReaderResult (a `func(R) (A, error)`) into a
@@ -146,12 +139,7 @@ func FromReaderResultI[R, A any](rr RRI.ReaderResult[R, A]) ReaderIOResult[R, A]
 //	}
 //	rio := readerioresult.FromReaderIOResultI(fetch)
 func FromReaderIOResultI[R, A any](rr RIORI.ReaderIOResult[R, A]) ReaderIOResult[R, A] {
-	return func(r R) IOResult[A] {
-		mr := rr(r)
-		return func() Result[A] {
-			return result.TryCatchError(mr())
-		}
-	}
+	return function.Flow2(rr, ioresult.TryCatchError[A])
 }
 
 // MonadChainI sequences a [ReaderIOResult] with an idiomatic Kleisli arrow

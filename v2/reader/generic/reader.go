@@ -55,9 +55,7 @@ func Asks[GA ~func(R) A, R, A any](f GA) GA {
 
 // Deprecated:
 func AsksReader[GA ~func(R) A, R, A any](f func(R) GA) GA {
-	return MakeReader(func(r R) A {
-		return f(r)(r)
-	})
+	return Flatten[GA](f)
 }
 
 // Deprecated:
@@ -120,16 +118,12 @@ func Compose[AB ~func(A) B, BC ~func(B) C, AC ~func(A) C, A, B, C any](ab AB) fu
 
 // Deprecated:
 func First[GAB ~func(A) B, GABC ~func(T.Tuple2[A, C]) T.Tuple2[B, C], A, B, C any](pab GAB) GABC {
-	return MakeReader(func(tac T.Tuple2[A, C]) T.Tuple2[B, C] {
-		return T.MakeTuple2(pab(tac.F1), tac.F2)
-	})
+	return MakeReader[GABC](T.BiMap[C, C, A, B](F.Identity[C], pab))
 }
 
 // Deprecated:
 func Second[GBC ~func(B) C, GABC ~func(T.Tuple2[A, B]) T.Tuple2[A, C], A, B, C any](pbc GBC) GABC {
-	return MakeReader(func(tab T.Tuple2[A, B]) T.Tuple2[A, C] {
-		return T.MakeTuple2(tab.F1, pbc(tab.F2))
-	})
+	return MakeReader[GABC](T.BiMap[B, C, A, A](pbc, F.Identity[A]))
 }
 
 // Deprecated:

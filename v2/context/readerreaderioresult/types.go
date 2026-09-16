@@ -21,13 +21,12 @@ import (
 	"github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/endomorphism"
 	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/common"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	"github.com/IBM/fp-go/v2/lazy"
-	"github.com/IBM/fp-go/v2/internal/common"
-	"github.com/IBM/fp-go/v2/optics/traversal/result"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
 	"github.com/IBM/fp-go/v2/predicate"
@@ -37,6 +36,7 @@ import (
 	"github.com/IBM/fp-go/v2/readeroption"
 	"github.com/IBM/fp-go/v2/readerreaderioeither"
 	"github.com/IBM/fp-go/v2/readerresult"
+	"github.com/IBM/fp-go/v2/result"
 	"github.com/IBM/fp-go/v2/tailrec"
 )
 

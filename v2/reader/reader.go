@@ -68,9 +68,7 @@ func Asks[R, A any](f Reader[R, A]) Reader[R, A] {
 //go:inline
 func AsksReader[R, A any](f Kleisli[R, R, A]) Reader[R, A] {
 	//go:inline
-	return func(r R) A {
-		return f(r)(r)
-	}
+	return Flatten(f)
 }
 
 // MonadMap transforms the result value of a Reader using the provided function.
@@ -267,9 +265,7 @@ func Of[R, A any](a A) Reader[R, A] {
 //	// Computation is deferred until the Reader is executed
 //	result := r(Env{Debug: true}) // "computed result"
 func OfLazy[R, A any](fa Lazy[A]) Reader[R, A] {
-	return func(_ R) A {
-		return fa()
-	}
+	return function.Ignore1of1[R](fa)
 }
 
 // MonadChain sequences two Reader computations where the second depends on the result of the first.
@@ -502,9 +498,7 @@ func Compose[C, R, B any](ab Reader[R, B]) Kleisli[R, Reader[B, C], C] {
 //	r := reader.First[int, int, string](double)
 //	result := r(tuple.MakeTuple2(5, "hello")) // (10, "hello")
 func First[A, B, C any](pab Reader[A, B]) Reader[T.Tuple2[A, C], T.Tuple2[B, C]] {
-	return func(tac T.Tuple2[A, C]) T.Tuple2[B, C] {
-		return T.MakeTuple2(pab(tac.F1), tac.F2)
-	}
+	return T.BiMap(function.Identity[C], pab)
 }
 
 // Second applies a Reader to the second element of a tuple, leaving the first element unchanged.
@@ -516,9 +510,7 @@ func First[A, B, C any](pab Reader[A, B]) Reader[T.Tuple2[A, C], T.Tuple2[B, C]]
 //	r := reader.Second[string, int, int](double)
 //	result := r(tuple.MakeTuple2("hello", 5)) // ("hello", 10)
 func Second[A, B, C any](pbc Reader[B, C]) Reader[T.Tuple2[A, B], T.Tuple2[A, C]] {
-	return func(tab T.Tuple2[A, B]) T.Tuple2[A, C] {
-		return T.MakeTuple2(tab.F1, pbc(tab.F2))
-	}
+	return T.BiMap(pbc, function.Identity[A])
 }
 
 // Read applies a context to a Reader to obtain its value.
