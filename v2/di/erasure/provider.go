@@ -141,12 +141,15 @@ func getAt[T any](ar []T) func(idx int) T {
 	}
 }
 
+// handlerForFlag returns the [handler] implementing the behaviour identified by a flag
+func handlerForFlag(flag int) handler {
+	return handlers[flag]
+}
+
 func handleMapping(mp mapping) func(res []IOResult[any]) IOResult[[]any] {
 	preFct := F.Pipe1(
 		mp,
-		R.Collect(func(idx int, p paramIndex) func([]IOResult[any]) IOResult[paramValue] {
-			return handlers[idx](p)
-		}),
+		R.Collect(F.Uncurry2(handlerForFlag)),
 	)
 	doFct := F.Flow2(
 		I.Flap[IOResult[paramValue], []IOResult[any]],
@@ -157,13 +160,11 @@ func handleMapping(mp mapping) func(res []IOResult[any]) IOResult[[]any] {
 		collectParams,
 	))
 
-	return func(res []IOResult[any]) IOResult[[]any] {
-		return F.Pipe2(
-			preFct,
-			doFct(res),
-			postFct,
-		)
-	}
+	return F.Flow3(
+		doFct,
+		I.Ap[IOResult[[]paramValue]](preFct),
+		postFct,
+	)
 }
 
 // MakeProviderFactory constructs a [ProviderFactory] based on a set of [Dependency]s and

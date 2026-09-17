@@ -103,6 +103,21 @@ func isItemProvider(provider Provider) bool {
 	return provider.Provides().Flag()&ITEM == ITEM
 }
 
+// lookupFactory resolves the [ProviderFactory] for a [Dependency] against the map of
+// registered providers, falling back to the default attached to the dependency or to
+// an error provider via [handleMissingProvider]
+func lookupFactory(factoryByID map[string]ProviderFactory) func(Dependency) ProviderFactory {
+	return F.Flow3(
+		T.Replicate2[Dependency],
+		T.Map2(F.Flow3(
+			Dependency.Id,
+			R.Lookup[ProviderFactory, string],
+			I.Ap[Option[ProviderFactory]](factoryByID),
+		), handleMissingProvider),
+		T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
+	)
+}
+
 // itemProviderFactory combines multiple factories into one, returning an array
 func itemProviderFactory(fcts []ProviderFactory) ProviderFactory {
 	return func(inj InjectableFactory) IOResult[any] {
@@ -127,13 +142,15 @@ func MakeInjector(providers []Provider) InjectableFactory {
 	// of the token, value is a lazy result
 	var resolved sync.Map
 
-	// provide a mapping for all providers
-	factoryByID := assembleProviders(providers)
+	// resolve the [ProviderFactory] for a [Dependency], this map is constant
+	// for the lifetime of the injector
+	factoryFor := lookupFactory(assembleProviders(providers))
 
-	// the actual factory, we need lazy initialization
+	// the actual factory and the resolution pipeline, both need lazy initialization
+	// so they can cross reference each other
 	var injFct InjectableFactory
+	var compute func(Dependency) Result
 
-	// lazy initialization, so we can cross reference it
 	injFct = func(token Dependency) Result {
 
 		key := token.Id()
@@ -142,30 +159,24 @@ func MakeInjector(providers []Provider) InjectableFactory {
 		// is the best way to use the sync map
 		actual, loaded := resolved.Load(key)
 		if !loaded {
-
-			computeResult := func() Result {
-				return F.Pipe5(
-					token,
-					T.Replicate2[Dependency],
-					T.Map2(F.Flow3(
-						Dependency.Id,
-						R.Lookup[ProviderFactory, string],
-						I.Ap[Option[ProviderFactory]](factoryByID),
-					), handleMissingProvider),
-					T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
-					I.Ap[IOResult[any]](injFct),
-					IOR.Memoize[any],
-				)
-			}
-
-			actual, _ = resolved.LoadOrStore(key, F.Pipe1(
-				computeResult,
+			actual, _ = resolved.LoadOrStore(key, F.Pipe3(
+				token,
+				L.Of[Dependency],
+				L.Map(compute),
 				L.Memoize[Result],
 			))
 		}
 
 		return actual.(LazyResult)()
 	}
+
+	// assembled after [injFct] has been assigned, so the [InjectableFactory] handed
+	// to the provider factories is the memoizing one
+	compute = F.Flow3(
+		factoryFor,
+		I.Ap[Result](injFct),
+		IOR.Memoize[any],
+	)
 
 	return injFct
 }

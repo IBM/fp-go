@@ -194,13 +194,39 @@ var (
 		Body.Set,
 	)
 
+	// withJSONContentType tags a builder with the [C.JSON] content type
+	withJSONContentType = ENDO.Chain(WithContentType(C.JSON))
+	// withFormContentType tags a builder with the [C.FormEncoded] content type
+	withFormContentType = ENDO.Chain(WithContentType(C.FormEncoded))
+
 	// WithFormData creates a [Endomorphism] to send form data payload
 	WithFormData = F.Flow4(
 		url.Values.Encode,
 		S.ToBytes,
 		WithBytes,
-		ENDO.Chain(WithContentType(C.FormEncoded)),
+		withFormContentType,
 	)
+
+	// methodOrDefault falls back to [defaultMethod] for a builder without an explicit method
+	methodOrDefault = O.GetOrElse(defaultMethod)
+
+	// nonEmptyHeader converts a raw header value into an [Option], mapping the empty value to none
+	nonEmptyHeader = O.FromPredicate(S.IsNonEmpty)
+
+	// parseRawQuery parses the query parameters carried by a [url.URL]
+	parseRawQuery = F.Flow2(
+		rawQuery.Get,
+		parseQuery,
+	)
+
+	// mergeQuery merges a set of query parameters into another set
+	mergeQuery = F.Curry2(FM.ValuesMonoid.Concat)
+
+	// withRawQuery sets the raw query of a [url.URL] and renders the result as a string
+	withRawQuery = RR.FromReader(F.Flow2(
+		F.Curry2(setRawQuery),
+		RD.Map[string]((*url.URL).String),
+	))
 
 	// bodyAsBytes returns a []byte with a fallback to the empty array
 	bodyAsBytes = O.Fold(B.Empty, result.Fold(F.Ignore1of1[error](B.Empty), F.Identity[[]byte]))
@@ -233,19 +259,17 @@ func (builder *Builder) GetTargetURL() Result[string] {
 	// construct the final URL
 	return F.Pipe3(
 		builder,
-		Url.Get,
+		URL.Get,
 		parseURL,
-		result.Chain(F.Pipe2(
-			RR.FromReader(F.Curry2(setRawQuery)),
-			RR.Ap[*url.URL](F.Flow3(
-				rawQuery.Get,
-				parseQuery,
+		result.Chain(F.Pipe1(
+			withRawQuery,
+			RR.Ap[string](F.Flow2(
+				parseRawQuery,
 				result.Map(F.Flow2(
-					F.Curry2(FM.ValuesMonoid.Concat)(builder.GetQuery()),
+					mergeQuery(builder.GetQuery()),
 					url.Values.Encode,
 				)),
 			)),
-			RR.Map[*url.URL]((*url.URL).String),
 		)),
 	)
 }
@@ -262,7 +286,7 @@ func (builder *Builder) GetURL() string {
 func (builder *Builder) GetMethod() string {
 	return F.Pipe1(
 		builder.method,
-		O.GetOrElse(defaultMethod),
+		methodOrDefault,
 	)
 }
 
@@ -323,7 +347,7 @@ func (builder *Builder) GetHeader(name string) Option[string] {
 	return F.Pipe2(
 		name,
 		builder.headers.Get,
-		O.FromPredicate(S.IsNonEmpty),
+		nonEmptyHeader,
 	)
 }
 
@@ -338,17 +362,20 @@ func (builder *Builder) GetHash() string {
 
 // Header returns a [Lens] for a single header
 func Header(name string) Lens[*Builder, Option[string]] {
-	get := getHeader(name)
-	set := F.Bind1of2(setHeader(name))
-	del := F.Flow2(
-		LZ.Of[*Builder],
-		LZ.Map(delHeader(name)),
+	// update turns the focus into the [Endomorphism] that either sets or deletes the header
+	update := O.Fold(
+		LZ.Of(delHeader(name)),
+		F.Bind2of2(setHeader(name)),
 	)
 
-	return L.MakeLensWithName(get, F.Uncurry2(F.Flow2(
-		(*Builder).clone,
-		RD.MonadAp(RD.MonadMap(del, F.Curry2(O.Fold[string, *Builder])), set),
-	)), fmt.Sprintf("HttpHeader[%s]", name))
+	return L.MakeLensWithName(
+		getHeader(name),
+		F.Uncurry2(F.Flow2(
+			(*Builder).clone,
+			F.Flip(update),
+		)),
+		fmt.Sprintf("HttpHeader[%s]", name),
+	)
 }
 
 // WithHeader creates a [Endomorphism] for a certain header
@@ -377,7 +404,7 @@ func WithJSON[T any](data T) Endomorphism {
 		data,
 		J.Marshal[T],
 		WithBody,
-		ENDO.Chain(WithContentType(C.JSON)),
+		withJSONContentType,
 	)
 }
 

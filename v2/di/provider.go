@@ -42,12 +42,12 @@ func eraseTuple[A, R any](f func(A) IOResult[R]) func(Result[A]) IOResult[any] {
 }
 
 func eraseProviderFactory0[R any](f IOResult[R]) func(params ...any) IOResult[any] {
-	return func(_ ...any) IOResult[any] {
-		return F.Pipe1(
-			f,
-			IOE.Map[error](F.ToAny[R]),
-		)
-	}
+	return F.Pipe3(
+		f,
+		IOE.Map[error](F.ToAny[R]),
+		F.Constant1[[]any, IOResult[any]],
+		F.Variadic0[any, IOResult[any]],
+	)
 }
 
 func MakeProviderFactory0[R any](
