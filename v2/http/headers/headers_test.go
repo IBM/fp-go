@@ -17,11 +17,13 @@ package headers
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	A "github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/eq"
 	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/http/content"
 	LT "github.com/IBM/fp-go/v2/optics/lens/testing"
 	O "github.com/IBM/fp-go/v2/option"
 	RG "github.com/IBM/fp-go/v2/record/generic"
@@ -35,7 +37,7 @@ var (
 )
 
 func TestLaws(t *testing.T) {
-	name := "Content-Type"
+	name := ContentType
 	fieldLaws := LT.AssertLaws(t, O.Eq(sEq), valuesEq)(AtValue(name))
 
 	n := O.None[string]()
@@ -69,18 +71,18 @@ func TestMonoidEmpty(t *testing.T) {
 func TestMonoidConcat(t *testing.T) {
 	h1 := make(http.Header)
 	h1.Set("X-Custom-1", "value1")
-	h1.Set("Authorization", "Bearer token1")
+	h1.Set(Authorization, "Bearer token1")
 
 	h2 := make(http.Header)
 	h2.Set("X-Custom-2", "value2")
-	h2.Set("Content-Type", "application/json")
+	h2.Set(ContentType, C.JSON)
 
 	result := Monoid.Concat(h1, h2)
 
 	assert.Equal(t, "value1", result.Get("X-Custom-1"))
 	assert.Equal(t, "value2", result.Get("X-Custom-2"))
-	assert.Equal(t, "Bearer token1", result.Get("Authorization"))
-	assert.Equal(t, "application/json", result.Get("Content-Type"))
+	assert.Equal(t, "Bearer token1", result.Get(Authorization))
+	assert.Equal(t, C.JSON, result.Get(ContentType))
 }
 
 // TestMonoidConcatWithOverlap tests concatenating headers with overlapping keys
@@ -118,25 +120,25 @@ func TestMonoidIdentity(t *testing.T) {
 // TestAtValuesGet tests getting header values using AtValues lens
 func TestAtValuesGet(t *testing.T) {
 	headers := make(http.Header)
-	headers.Set("Content-Type", "application/json")
-	headers.Add("Accept", "application/json")
-	headers.Add("Accept", "text/html")
+	headers.Set(ContentType, C.JSON)
+	headers.Add(Accept, C.JSON)
+	headers.Add(Accept, C.TextHTML)
 
 	// Get Content-Type values
-	ctLens := AtValues("Content-Type")
+	ctLens := AtValues(ContentType)
 	ctValuesOpt := ctLens.Get(headers)
 	assert.True(t, O.IsSome(ctValuesOpt))
 	ctValues := O.GetOrElse(F.Constant([]string{}))(ctValuesOpt)
-	assert.Equal(t, []string{"application/json"}, ctValues)
+	assert.Equal(t, []string{C.JSON}, ctValues)
 
 	// Get Accept values (multiple)
-	acceptLens := AtValues("Accept")
+	acceptLens := AtValues(Accept)
 	acceptValuesOpt := acceptLens.Get(headers)
 	assert.True(t, O.IsSome(acceptValuesOpt))
 	acceptValues := O.GetOrElse(F.Constant([]string{}))(acceptValuesOpt)
 	assert.Equal(t, 2, len(acceptValues))
-	assert.Contains(t, acceptValues, "application/json")
-	assert.Contains(t, acceptValues, "text/html")
+	assert.Contains(t, acceptValues, C.JSON)
+	assert.Contains(t, acceptValues, C.TextHTML)
 }
 
 // TestAtValuesSet tests setting header values using AtValues lens
@@ -144,14 +146,14 @@ func TestAtValuesSet(t *testing.T) {
 	headers := make(http.Header)
 	headers.Set("X-Old", "old-value")
 
-	lens := AtValues("Content-Type")
-	newHeaders := lens.Set(O.Some([]string{"application/json", "text/plain"}))(headers)
+	lens := AtValues(ContentType)
+	newHeaders := lens.Set(O.Some([]string{C.JSON, C.TextPlain}))(headers)
 
 	// New header should be set
-	values := newHeaders.Values("Content-Type")
+	values := newHeaders.Values(ContentType)
 	assert.Equal(t, 2, len(values))
-	assert.Contains(t, values, "application/json")
-	assert.Contains(t, values, "text/plain")
+	assert.Contains(t, values, C.JSON)
+	assert.Contains(t, values, C.TextPlain)
 
 	// Old header should still exist
 	assert.Equal(t, "old-value", newHeaders.Get("X-Old"))
@@ -160,7 +162,7 @@ func TestAtValuesSet(t *testing.T) {
 // TestAtValuesCanonical tests that header names are canonicalized
 func TestAtValuesCanonical(t *testing.T) {
 	headers := make(http.Header)
-	headers.Set("content-type", "application/json")
+	headers.Set("content-type", C.JSON)
 
 	// Access with different casing
 	lens := AtValues("Content-Type")
@@ -168,15 +170,15 @@ func TestAtValuesCanonical(t *testing.T) {
 
 	assert.True(t, O.IsSome(valuesOpt))
 	values := O.GetOrElse(F.Constant([]string{}))(valuesOpt)
-	assert.Equal(t, []string{"application/json"}, values)
+	assert.Equal(t, []string{C.JSON}, values)
 }
 
 // TestAtValueGet tests getting first header value using AtValue lens
 func TestAtValueGet(t *testing.T) {
 	headers := make(http.Header)
-	headers.Set("Authorization", "Bearer token123")
+	headers.Set(Authorization, "Bearer token123")
 
-	lens := AtValue("Authorization")
+	lens := AtValue(Authorization)
 	value := lens.Get(headers)
 
 	assert.True(t, O.IsSome(value))
@@ -198,14 +200,14 @@ func TestAtValueGetNone(t *testing.T) {
 func TestAtValueSet(t *testing.T) {
 	headers := make(http.Header)
 
-	lens := AtValue("Content-Type")
-	newHeaders := lens.Set(O.Some("application/json"))(headers)
+	lens := AtValue(ContentType)
+	newHeaders := lens.Set(O.Some(C.JSON))(headers)
 
 	value := lens.Get(newHeaders)
 	assert.True(t, O.IsSome(value))
 
 	ct := O.GetOrElse(F.Constant(""))(value)
-	assert.Equal(t, "application/json", ct)
+	assert.Equal(t, C.JSON, ct)
 }
 
 // TestAtValueSetNone tests removing header using AtValue lens
@@ -223,52 +225,86 @@ func TestAtValueSetNone(t *testing.T) {
 // TestAtValueMultipleValues tests AtValue with multiple header values
 func TestAtValueMultipleValues(t *testing.T) {
 	headers := make(http.Header)
-	headers.Add("Accept", "application/json")
-	headers.Add("Accept", "text/html")
+	headers.Add(Accept, C.JSON)
+	headers.Add(Accept, C.TextHTML)
 
-	lens := AtValue("Accept")
+	lens := AtValue(Accept)
 	value := lens.Get(headers)
 
 	assert.True(t, O.IsSome(value))
 	// Should get the first value
 	first := O.GetOrElse(F.Constant(""))(value)
-	assert.Equal(t, "application/json", first)
+	assert.Equal(t, C.JSON, first)
 }
 
 // TestHeaderConstants tests that header constants are correct
 func TestHeaderConstants(t *testing.T) {
-	assert.Equal(t, "Accept", Accept)
-	assert.Equal(t, "Authorization", Authorization)
-	assert.Equal(t, "Content-Type", ContentType)
-	assert.Equal(t, "Content-Length", ContentLength)
+	assert.Equal(t, "accept", Accept)
+	assert.Equal(t, "authorization", Authorization)
+	assert.Equal(t, "content-type", ContentType)
+	assert.Equal(t, "content-length", ContentLength)
+}
+
+// allHeaderConstants lists every header name constant defined by the package
+var allHeaderConstants = []string{
+	ContentType, ContentLength, ContentEncoding, ContentLanguage, ContentDisposition,
+	ContentRange, ContentLocation, TransferEncoding, Date, Link,
+	Accept, AcceptCharset, AcceptEncoding, AcceptLanguage, Authorization,
+	ProxyAuthorization, Cookie, Host, UserAgent, Referer, Origin, Range, Expect, Forwarded,
+	Location, Server, SetCookie, WWWAuthenticate, ProxyAuthenticate, RetryAfter, Allow, AcceptRanges,
+	CacheControl, ETag, LastModified, Expires, Age, Vary, Pragma,
+	IfMatch, IfNoneMatch, IfModifiedSince, IfUnmodifiedSince, IfRange,
+	AccessControlAllowOrigin, AccessControlAllowMethods, AccessControlAllowHeaders,
+	AccessControlAllowCredentials, AccessControlExposeHeaders, AccessControlMaxAge,
+	AccessControlRequestMethod, AccessControlRequestHeaders,
+	StrictTransportSecurity, ContentSecurityPolicy, XContentTypeOptions, XFrameOptions, ReferrerPolicy,
+	XForwardedFor, XForwardedHost, XForwardedProto, XRequestID, XCorrelationID, Traceparent, Tracestate,
+}
+
+// TestAllHeaderConstantsLowerCase verifies that every header name is lower case
+// (HTTP/2 and HTTP/3 requirement), unique, and usable with http.Header and the lenses
+func TestAllHeaderConstantsLowerCase(t *testing.T) {
+	seen := make(map[string]bool)
+	for _, name := range allHeaderConstants {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, strings.ToLower(name), name, "header name must be lower case")
+			assert.False(t, seen[name], "header name must be unique")
+			seen[name] = true
+
+			headers := make(http.Header)
+			headers.Set(name, "value")
+			assert.Equal(t, "value", headers.Get(name))
+			assert.Equal(t, O.Some("value"), AtValue(name).Get(headers))
+		})
+	}
 }
 
 // TestHeaderConstantsUsage tests using header constants with http.Header
 func TestHeaderConstantsUsage(t *testing.T) {
 	headers := make(http.Header)
 
-	headers.Set(Accept, "application/json")
+	headers.Set(Accept, C.JSON)
 	headers.Set(Authorization, "Bearer token")
-	headers.Set(ContentType, "application/json")
+	headers.Set(ContentType, C.JSON)
 	headers.Set(ContentLength, "1234")
 
-	assert.Equal(t, "application/json", headers.Get(Accept))
+	assert.Equal(t, C.JSON, headers.Get(Accept))
 	assert.Equal(t, "Bearer token", headers.Get(Authorization))
-	assert.Equal(t, "application/json", headers.Get(ContentType))
+	assert.Equal(t, C.JSON, headers.Get(ContentType))
 	assert.Equal(t, "1234", headers.Get(ContentLength))
 }
 
 // TestAtValueWithConstants tests using AtValue with header constants
 func TestAtValueWithConstants(t *testing.T) {
 	headers := make(http.Header)
-	headers.Set(ContentType, "application/json")
+	headers.Set(ContentType, C.JSON)
 
 	lens := AtValue(ContentType)
 	value := lens.Get(headers)
 
 	assert.True(t, O.IsSome(value))
 	ct := O.GetOrElse(F.Constant(""))(value)
-	assert.Equal(t, "application/json", ct)
+	assert.Equal(t, C.JSON, ct)
 }
 
 // TestMonoidAssociativity tests that Monoid concatenation is associative
@@ -316,7 +352,7 @@ func TestComplexHeaderOperations(t *testing.T) {
 
 	// Use lens to add Content-Type
 	ctLens := AtValue(ContentType)
-	h2 := ctLens.Set(O.Some("application/json"))(h1)
+	h2 := ctLens.Set(O.Some(C.JSON))(h1)
 
 	// Use lens to add Authorization
 	authLens := AtValue(Authorization)
@@ -331,7 +367,7 @@ func TestComplexHeaderOperations(t *testing.T) {
 
 	// Verify all headers are present
 	assert.Equal(t, "initial", final.Get("X-Initial"))
-	assert.Equal(t, "application/json", final.Get(ContentType))
+	assert.Equal(t, C.JSON, final.Get(ContentType))
 	assert.Equal(t, "Bearer token", final.Get(Authorization))
 	assert.Equal(t, "additional", final.Get("X-Additional"))
 }

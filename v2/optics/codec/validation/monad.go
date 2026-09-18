@@ -36,10 +36,10 @@ func Ap[B, A any](fa Validation[A]) Operator[func(A) B, B] {
 }
 
 // MonadAp applies a validation containing a function to a validation containing a value.
-// This is the applicative apply operation that **accumulates errors** from both validations.
+// This is the applicative apply operation that accumulates errors from both validations.
 //
-// **Key behavior**: Unlike Either's MonadAp which fails fast (returns first error),
-// this validation-specific implementation **accumulates all errors** using the Errors monoid.
+// Key behavior: Unlike Either's MonadAp which fails fast (returns first error),
+// this validation-specific implementation accumulates all errors using the Errors monoid.
 // When both the function validation and value validation fail, all errors from both are combined.
 //
 // This error accumulation is the defining characteristic of the Validation applicative,
@@ -50,7 +50,7 @@ func Ap[B, A any](fa Validation[A]) Operator[func(A) B, B] {
 //   - Both succeed: applies the function to the value → Success(result)
 //   - Function fails, value succeeds: returns function's errors → Failure(func errors)
 //   - Function succeeds, value fails: returns value's errors → Failure(value errors)
-//   - Both fail: **combines all errors** → Failure(func errors + value errors)
+//   - Both fail: combines all errors → Failure(func errors + value errors)
 //
 // This is particularly useful for:
 //   - Form validation: collect all field errors at once
@@ -237,7 +237,7 @@ func chainErrors[A any](f Kleisli[Errors, A]) func(Errors) Validation[A] {
 // Returns a function that transforms validation failures while preserving successes.
 //
 // Unlike the standard Either ChainLeft which replaces errors, this validation-specific
-// implementation **aggregates errors** using the Errors monoid. When the transformation
+// implementation aggregates errors using the Errors monoid. When the transformation
 // function returns a failure, both the original errors and the new errors are combined,
 // ensuring no validation errors are lost.
 //
@@ -249,7 +249,7 @@ func chainErrors[A any](f Kleisli[Errors, A]) func(Errors) Validation[A] {
 //
 // Key behavior:
 //   - Success values pass through unchanged
-//   - When transforming failures, if the transformation also fails, **all errors are aggregated**
+//   - When transforming failures, if the transformation also fails, all errors are aggregated
 //   - If the transformation succeeds, it recovers from the original failure
 //
 // Example - Error recovery with aggregation:
@@ -312,8 +312,8 @@ func ChainLeft[A any](f Kleisli[Errors, A]) Operator[A, A] {
 // If the Validation is a failure, applies the function to transform or recover from the errors.
 // If the Validation is a success, returns the success value unchanged.
 //
-// **Critical difference from Either.MonadChainLeft**: This validation-specific implementation
-// **aggregates errors** using the Errors monoid. When the transformation function returns a
+// Critical difference from Either.MonadChainLeft: This validation-specific implementation
+// aggregates errors using the Errors monoid. When the transformation function returns a
 // failure, both the original errors and the new errors are combined, ensuring comprehensive
 // error reporting.
 //
@@ -327,7 +327,7 @@ func ChainLeft[A any](f Kleisli[Errors, A]) Operator[A, A] {
 // The function parameter receives the collection of validation errors and must return
 // a new Validation[A]. This allows you to:
 //   - Recover by returning Success(value)
-//   - Transform errors by returning Failures(newErrors) - **original errors are preserved**
+//   - Transform errors by returning Failures(newErrors) - original errors are preserved
 //   - Implement conditional error handling based on error content
 //
 // Example - Error recovery:
@@ -486,7 +486,7 @@ func OrElse[A any](f Kleisli[Errors, A]) Operator[A, A] {
 //   - Building validation pipelines with fallback logic
 //   - Implementing optional validation with defaults
 //
-// **Key behavior**: When both validations fail, MonadAlt DOES accumulate errors from both
+// Key behavior: When both validations fail, MonadAlt DOES accumulate errors from both
 // validations using the Errors monoid. This is different from standard Either Alt behavior.
 // The error accumulation happens through the underlying ChainLeft/chainErrors mechanism.
 //

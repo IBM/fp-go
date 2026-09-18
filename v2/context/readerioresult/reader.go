@@ -1025,35 +1025,40 @@ func TapLeftIOK[A, B any](f io.Kleisli[error, B]) Operator[A, A] {
 //
 // Note: When R is context.Context, this simplifies to an Operator[A, A]
 //
+// For the common cases prefer the dedicated operators [WithValue], [WithTimeout]
+// and [WithDeadline], which are implemented in terms of Local.
+//
 // Example:
 //
-//	import F "github.com/IBM/fp-go/v2/function"
+//	import (
+//	    CR "github.com/IBM/fp-go/v2/context/reader"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	    O "github.com/IBM/fp-go/v2/option"
+//	)
 //
-//	// Add a custom value to the context
+//	// Add a custom value to the context (equivalent to readerioresult.WithValue[string](userKey, "Alice"))
 //	type key int
 //	const userKey key = 0
 //
-//	addUser := readerioresult.Local[string, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
-//	    newCtx := context.WithValue(ctx, userKey, "Alice")
-//	    return pair.MakePair(func() {}, newCtx) // No-op cancel
-//	})
+//	addUser := readerioresult.Local[string](F.Flow2(
+//	    CR.WithValue[string](userKey)("Alice"),
+//	    CR.NopCancel,
+//	))
 //
-//	getUser := readerioresult.FromReader(func(ctx context.Context) string {
-//	    if user := ctx.Value(userKey); user != nil {
-//	        return user.(string)
-//	    }
-//	    return "unknown"
-//	})
+//	getUser := F.Pipe1(
+//	    readerioresult.AskValue[string](userKey),
+//	    readerioresult.Map(O.GetOrElse(F.Constant("unknown"))),
+//	)
 //
 //	result := F.Pipe1(
 //	    getUser,
 //	    addUser,
 //	)
-//	value, err := result(t.Context())()  // Returns ("Alice", nil)
+//	res := result(t.Context())()  // Returns Right("Alice")
 //
 // Timeout Example:
 //
-//	// Add a 5-second timeout to a specific operation
+//	// Add a 5-second timeout to a specific operation (equivalent to readerioresult.WithTimeout[Data](5*time.Second))
 //	withTimeout := readerioresult.Local[Data, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 //	    newCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 //	    return pair.MakePair(cancel, newCtx)

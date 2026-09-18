@@ -252,6 +252,23 @@ fetchURL := RIO.Eitherize1(func(ctx context.Context, url string) ([]byte, error)
 result := fetchURL("https://example.com")(ctx)() // execute
 ```
 
+### Context values and timeouts
+Never hand-write `ctx.Value(k).(T)`, `context.WithValue` or `WithTimeout` + `defer cancel()` inside pipelines. Use the operators (available in `context/readerio`, `context/readerresult`, `context/readerioresult`, `context/statereaderioresult`, `idiomatic/context/readerresult`):
+```go
+type ctxKey string
+const userKey ctxKey = "user"
+
+RIO.AskValue[string](userKey)                 // ReaderIOResult[Option[string]]; None if absent/wrong type
+RIO.WithValue[A](userKey, "Alice")            // Operator[A, A]: scope a value to the wrapped computation
+RIO.WithTimeout[A](5*time.Second)             // Operator[A, A]: cancel func released automatically
+RIO.WithDeadline[A](deadline)                 // Operator[A, A]
+RIO.Local[A](f)                               // general form; prefer the above
+
+// required value -> error
+F.Pipe1(RIO.AskValue[string](userKey), RIO.Chain(RIO.FromOption[string](F.Constant(errNoUser))))
+```
+Outside pipelines use `context/reader`: `reader.AskValue[V](k)(ctx)`, `reader.WithValue[V](k)(v)(ctx)`, `reader.NopCancel(ctx)`. Use unexported key types, not strings. See `context` package doc for the full guide.
+
 ## Deeper Documentation
 
 - `fp-go-cookbook.md` -- migration recipes and "how do I X in fp-go?"

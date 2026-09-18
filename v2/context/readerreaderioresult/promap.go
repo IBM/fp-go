@@ -227,15 +227,12 @@ func LocalReaderIOResultK[A, R1, R2 any](f readerioresult.Kleisli[R2, R1]) func(
 //	type ctxKey string
 //	const configKey ctxKey = "config"
 //
-//	// Extract config from context and transform environment
-//	extractConfig := func(path string) reader.Reader[DetailedConfig] {
-//	    return func(ctx context.Context) DetailedConfig {
-//	        if cfg, ok := ctx.Value(configKey).(DetailedConfig); ok {
-//	            return cfg
-//	        }
-//	        return DetailedConfig{Host: "localhost", Port: 8080}
-//	    }
-//	}
+//	// Extract config from the context, falling back to a default
+//	getConfig := F.Flow2(
+//	    CR.AskValue[DetailedConfig](configKey),
+//	    O.GetOrElse(F.Constant(DetailedConfig{Host: "localhost", Port: 8080})),
+//	)
+//	extractConfig := F.Constant1[string](getConfig) // func(string) reader.Reader[DetailedConfig]
 //
 //	// Use the config
 //	useConfig := func(cfg DetailedConfig) readerioresult.ReaderIOResult[string] {
@@ -248,7 +245,7 @@ func LocalReaderIOResultK[A, R1, R2 any](f readerioresult.Kleisli[R2, R1]) func(
 //
 //	// Compose using LocalReaderK
 //	adapted := LocalReaderK[string](extractConfig)(useConfig)
-//	ctx := context.WithValue(context.Background(), configKey, DetailedConfig{Host: "api.example.com", Port: 443})
+//	ctx := CR.WithValue[DetailedConfig](configKey)(DetailedConfig{Host: "api.example.com", Port: 443})(context.Background())
 //	result := adapted("config.json")(ctx)() // Result: "api.example.com:443"
 //
 //go:inline

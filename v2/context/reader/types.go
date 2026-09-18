@@ -43,13 +43,14 @@ type (
 	//
 	// Example:
 	//
+	//	type ctxKey string
+	//	const userIDKey ctxKey = "userID"
+	//
 	//	// A Reader that extracts a user ID from context
-	//	getUserID := func(ctx context.Context) string {
-	//	    if userID, ok := ctx.Value("userID").(string); ok {
-	//	        return userID
-	//	    }
-	//	    return "anonymous"
-	//	}
+	//	getUserID := F.Flow2(
+	//	    AskValue[string](userIDKey),
+	//	    O.GetOrElse(F.Constant("anonymous")),
+	//	)
 	//
 	//	// A Reader that checks if context is cancelled
 	//	isCancelled := func(ctx context.Context) bool {
@@ -62,7 +63,7 @@ type (
 	//	}
 	//
 	//	// Use the readers with a context
-	//	ctx := context.WithValue(context.Background(), "userID", "user123")
+	//	ctx := WithValue[string](userIDKey)("user123")(context.Background())
 	//	userID := getUserID(ctx)      // "user123"
 	//	cancelled := isCancelled(ctx) // false
 	Reader[A any] = R.Reader[context.Context, A]

@@ -60,20 +60,22 @@ func Do[S any](
 //	    TenantID string
 //	}
 //
+//	type ctxKey string
+//	const userIDKey ctxKey = "userID"
+//
+//	// read the user ID from the context, failing if it is absent
+//	requireUserID := F.Pipe1(
+//	    readerresult.AskValue[string](userIDKey),
+//	    readerresult.ChainOptionK[O.Option[string], string](F.Constant(errors.New("no userID")))(F.Identity[O.Option[string]]),
+//	)
+//
 //	result := F.Pipe2(
 //	    readereither.Do(State{}),
 //	    readereither.Bind(
 //	        func(uid string) func(State) State {
 //	            return func(s State) State { s.UserID = uid; return s }
 //	        },
-//	        func(s State) readereither.ReaderResult[string] {
-//	            return func(ctx context.Context) either.Either[error, string] {
-//	                if uid, ok := ctx.Value("userID").(string); ok {
-//	                    return either.Right[error](uid)
-//	                }
-//	                return either.Left[string](errors.New("no userID"))
-//	            }
-//	        },
+//	        F.Constant1[State](requireUserID),
 //	    ),
 //	    readereither.Bind(
 //	        func(tid string) func(State) State {
@@ -159,13 +161,23 @@ func BindToP[S1, T any](
 //	    TenantID string
 //	}
 //
+//	type ctxKey string
+//	const (
+//	    userIDKey   ctxKey = "userID"
+//	    tenantIDKey ctxKey = "tenantID"
+//	)
+//
+//	// reads a string from the context, falling back to "" if it is absent
+//	askString := func(key ctxKey) readerresult.ReaderResult[string] {
+//	    return F.Pipe1(
+//	        readerresult.AskValue[string](key),
+//	        readerresult.Map(O.GetOrElse(F.Constant(""))),
+//	    )
+//	}
+//
 //	// These operations are independent and can be combined with ApS
-//	getUserID := func(ctx context.Context) either.Either[error, string] {
-//	    return either.Right[error](ctx.Value("userID").(string))
-//	}
-//	getTenantID := func(ctx context.Context) either.Either[error, string] {
-//	    return either.Right[error](ctx.Value("tenantID").(string))
-//	}
+//	getUserID := askString(userIDKey)
+//	getTenantID := askString(tenantIDKey)
 //
 //	result := F.Pipe2(
 //	    readereither.Do(State{}),

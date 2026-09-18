@@ -1,6 +1,6 @@
 ---
 name: fp-go-http
-description: Use this skill when making HTTP requests in fp-go using the ReaderIOResult-based HTTP client (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText, ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON, WithBearer, WithHeader, WithQueryArg), parallel requests with TraverseArray or TraverseTuple2, or building context-aware, composable HTTP pipelines that propagate errors through the Result monad.
+description: Use this skill when making HTTP requests in fp-go using the ReaderIOResult-based HTTP client (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText, ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON, WithBearer, WithHeader, WithQueryArg), HTTP header name constants (http/headers: ContentType, Accept, Authorization, XRequestID, …) or content type / media type constants (http/content: JSON, ProblemJSON, FormEncoded, OctetStream, …), parallel requests with TraverseArray or TraverseTuple2, or building context-aware, composable HTTP pipelines that propagate errors through the Result monad.
 ---
 
 # fp-go HTTP Requests
@@ -85,6 +85,20 @@ result := H.ReadJSON[User](client)(H.MakeGetRequest("https://api.example.com/use
 // Execute — provide context once. The inner () yields a Result[User] (one value).
 user, err := R.Unwrap(result(context.Background())())
 ```
+
+### 4. Timeouts and Request-Scoped Values
+
+`HTTP.Client.Timeout` is a global cap. For a per-request or per-pipeline bound, scope the context instead: requests honour context cancellation, and the cancel func is released automatically.
+
+```go
+bounded := F.Pipe2(
+    H.ReadJSON[User](client)(H.MakeGetRequest("https://api.example.com/users/1")),
+    RIO.WithTimeout[User](2*time.Second),
+    RIO.WithValue[User](traceIDKey, traceID), // read downstream with RIO.AskValue[string](traceIDKey)
+)
+```
+
+Never write `ctx, cancel := context.WithTimeout(...)` around the call or `ctx.Value(key).(V)` inside it. See the `fp-go-context` skill for the full context-handling guide.
 
 ## Response Readers
 
@@ -204,6 +218,8 @@ import (
     B  "github.com/IBM/fp-go/v2/http/builder"
     RB "github.com/IBM/fp-go/v2/context/readerioresult/http/builder"
     F  "github.com/IBM/fp-go/v2/function"
+    HD "github.com/IBM/fp-go/v2/http/headers"
+    C  "github.com/IBM/fp-go/v2/http/content"
 )
 
 // GET with query parameters
@@ -218,18 +234,19 @@ requester := RB.Requester(req)
 req := F.Pipe3(
     B.Default,
     B.WithURL("https://api.example.com/users"),
-    B.WithMethod("POST"),
+    B.WithPost,
     B.WithJSON(map[string]string{"name": "Alice"}),
-    // sets Content-Type: application/json automatically
+    // sets Content-Type: application/json (C.JSON) automatically
 )
 requester := RB.Requester(req)
 
-// With authentication and custom headers
-req := F.Pipe3(
+// With authentication and custom headers — use the constants, not string literals
+req := F.Pipe4(
     B.Default,
     B.WithURL("https://api.example.com/protected"),
-    B.WithBearer("my-token"),           // sets Authorization: Bearer my-token
-    B.WithHeader("X-Request-ID")("123"),
+    B.WithBearer("my-token"),               // sets Authorization: Bearer my-token
+    B.WithHeader(HD.Accept)(C.JSON),
+    B.WithHeader(HD.XRequestID)("123"),
 )
 requester := RB.Requester(req)
 
@@ -256,6 +273,75 @@ data, err := R.Unwrap(result(ctx)())
 | `B.WithoutHeader(key)` / `B.WithoutQueryArg(key)` | Remove a header / query parameter |
 
 Every `With*` is an `Endomorphism[*Builder]`, so they chain freely inside `F.PipeN(B.Default, …)`.
+
+## Header Names and Content Types
+
+Never spell header names or media types as string literals — fp-go ships constants for both.
+
+### Header names — `http/headers` (alias `HD`)
+
+`github.com/IBM/fp-go/v2/http/headers` defines the commonly used header names as **lower-case** constants (the form mandated by HTTP/2 and HTTP/3):
+
+| Group | Constants |
+|-------|-----------|
+| Representation | `ContentType`, `ContentLength`, `ContentEncoding`, `ContentLanguage`, `ContentDisposition`, `ContentRange`, `ContentLocation`, `TransferEncoding`, `Date`, `Link` |
+| Request | `Accept`, `AcceptCharset`, `AcceptEncoding`, `AcceptLanguage`, `Authorization`, `ProxyAuthorization`, `Cookie`, `Host`, `UserAgent`, `Referer`, `Origin`, `Range`, `Expect`, `Forwarded` |
+| Response | `Location`, `Server`, `SetCookie`, `WWWAuthenticate`, `ProxyAuthenticate`, `RetryAfter`, `Allow`, `AcceptRanges` |
+| Caching / conditional | `CacheControl`, `ETag`, `LastModified`, `Expires`, `Age`, `Vary`, `Pragma`, `IfMatch`, `IfNoneMatch`, `IfModifiedSince`, `IfUnmodifiedSince`, `IfRange` |
+| CORS | `AccessControlAllowOrigin`, `AccessControlAllowMethods`, `AccessControlAllowHeaders`, `AccessControlAllowCredentials`, `AccessControlExposeHeaders`, `AccessControlMaxAge`, `AccessControlRequestMethod`, `AccessControlRequestHeaders` |
+| Security | `StrictTransportSecurity`, `ContentSecurityPolicy`, `XContentTypeOptions`, `XFrameOptions`, `ReferrerPolicy` |
+| Proxy / tracing | `XForwardedFor`, `XForwardedHost`, `XForwardedProto`, `XRequestID`, `XCorrelationID`, `Traceparent`, `Tracestate` |
+
+Lower case is safe with HTTP/1.1 too: `http.Header.Get/Set/Add/Values/Del` and the builder canonicalize keys. **Only raw map indexing does not** — `h[HD.ContentType]` misses `"Content-Type"`. Use `h.Get(HD.ContentType)` or the lenses below.
+
+The package also provides functional access to `http.Header`:
+
+```go
+HD.AtValue(HD.Authorization).Get(h)                      // Option[string] — first value
+HD.AtValues(HD.Accept).Get(h)                            // Option[[]string] — all values, None if absent
+h2 := HD.AtValue(HD.ContentType).Set(O.Some(C.JSON))(h)  // new header map; O.None removes the header
+merged := HD.Monoid.Concat(defaults, overrides)          // union; values of shared keys are concatenated
+```
+
+Both lenses canonicalize the header name, and `Set` returns a new `http.Header`, leaving `h` untouched.
+
+### Content types — `http/content` (alias `C`)
+
+`github.com/IBM/fp-go/v2/http/content` defines media type constants (bare type, no parameters):
+
+| Group | Constants |
+|-------|-----------|
+| JSON family | `JSON`, `ProblemJSON`, `JSONPatch`, `MergePatch`, `NDJSON`, `JSONLD`, `HALJSON`, `JSONAPI` |
+| XML family | `XML`, `TextXML`, `ProblemXML`, `SOAP` |
+| Other structured | `YAML`, `CBOR`, `Protobuf`, `GRPC` |
+| Text | `TextPlain`, `TextHTML`, `TextCSS`, `TextCSV`, `TextJavaScript`, `TextMarkdown`, `TextEventStream` |
+| Forms / multipart | `FormEncoded`, `MultipartFormData`, `MultipartMixed`, `MultipartByteRanges` |
+| Binary | `OctetStream`, `PDF`, `ZIP`, `Gzip`, `WASM` |
+| Media | `ImagePNG`, `ImageJPEG`, `ImageGIF`, `ImageWebP`, `ImageAVIF`, `ImageSVG`, `AudioMPEG`, `AudioOGG`, `VideoMP4`, `VideoWebM`, `FontWOFF2` |
+
+`C.Json` is deprecated — use `C.JSON`.
+
+The builder already uses these: `B.WithJSON` sets `C.JSON`, `B.WithFormData` sets `C.FormEncoded`; `B.WithContentType(ct)` and `B.WithAuthorization(v)` are `B.WithHeader(HD.ContentType)` / `B.WithHeader(HD.Authorization)`.
+
+A received `Content-Type` usually carries parameters (`application/json; charset=utf-8`), so parse before comparing against a constant:
+
+```go
+import (
+    FH "github.com/IBM/fp-go/v2/http"
+    P  "github.com/IBM/fp-go/v2/pair"
+    R  "github.com/IBM/fp-go/v2/result"
+    S  "github.com/IBM/fp-go/v2/string"
+)
+
+isJSON := F.Flow3(
+    FH.ParseMediaType,                       // string -> Result[Pair[mediaType, params]]
+    R.Map(P.Head[string, map[string]string]),
+    R.Fold(F.Constant1[error](false), S.Equals(C.JSON)),
+)
+isJSON(resp.Header.Get(HD.ContentType))
+```
+
+`H.ReadJSON` already performs this validation (JSON or any `+json` type) — no manual check is needed on that path.
 
 ## Error Handling
 
@@ -301,6 +387,8 @@ import (
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     R   "github.com/IBM/fp-go/v2/result"
     IO  "github.com/IBM/fp-go/v2/io"
+    HD  "github.com/IBM/fp-go/v2/http/headers"
+    C   "github.com/IBM/fp-go/v2/http/content"
 )
 
 type Post struct {
@@ -328,7 +416,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
                 return F.VOID
             },
             func(post Post) F.Void {
-                w.Header().Set("Content-Type", "application/json")
+                w.Header().Set(HD.ContentType, C.JSON)
                 json.NewEncoder(w).Encode(post)
                 return F.VOID
             },
@@ -346,6 +434,9 @@ import (
     H   "github.com/IBM/fp-go/v2/context/readerioresult/http"
     RB  "github.com/IBM/fp-go/v2/context/readerioresult/http/builder"
     B   "github.com/IBM/fp-go/v2/http/builder"
+    HD  "github.com/IBM/fp-go/v2/http/headers"   // header name constants, AtValue/AtValues lenses, Monoid
+    C   "github.com/IBM/fp-go/v2/http/content"   // content type constants
+    FH  "github.com/IBM/fp-go/v2/http"           // ParseMediaType, StatusCodeError, …
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     F   "github.com/IBM/fp-go/v2/function"
     R   "github.com/IBM/fp-go/v2/result"   // Unwrap, Fold — leaving the monad

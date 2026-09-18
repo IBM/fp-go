@@ -28,6 +28,8 @@ import (
 	thunk "github.com/IBM/fp-go/v2/context/readerioresult"
 	H "github.com/IBM/fp-go/v2/context/readerioresult/http"
 	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/http/content"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	"github.com/IBM/fp-go/v2/iterator/iterresult"
 	"github.com/IBM/fp-go/v2/lazy"
 	O "github.com/IBM/fp-go/v2/option"
@@ -79,7 +81,7 @@ func newPaginatedServer(data []string, pageSize int) *httptest.Server {
 		if end < len(data) {
 			resp.Next = fmt.Sprintf("%s/items?page=%d", srv.URL, page+1)
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(HD.ContentType, C.JSON)
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 	srv = httptest.NewServer(mux)

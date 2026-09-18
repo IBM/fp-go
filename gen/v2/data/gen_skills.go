@@ -13,6 +13,9 @@ var README_MD []byte
 //go:embed skills/fp-go/SKILL.md
 var FP_GO_SKILL_MD []byte
 
+//go:embed skills/fp-go-context/SKILL.md
+var FP_GO_CONTEXT_SKILL_MD []byte
+
 //go:embed skills/fp-go-http/SKILL.md
 var FP_GO_HTTP_SKILL_MD []byte
 
@@ -39,6 +42,7 @@ var Skills = map[string][]byte{
 	".gitignore":                       _GITIGNORE,
 	"README.md":                        README_MD,
 	"fp-go/SKILL.md":                   FP_GO_SKILL_MD,
+	"fp-go-context/SKILL.md":           FP_GO_CONTEXT_SKILL_MD,
 	"fp-go-http/SKILL.md":              FP_GO_HTTP_SKILL_MD,
 	"fp-go-lens/SKILL.md":              FP_GO_LENS_SKILL_MD,
 	"fp-go-logging/SKILL.md":           FP_GO_LOGGING_SKILL_MD,

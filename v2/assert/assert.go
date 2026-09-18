@@ -25,13 +25,13 @@
 // the data being operated on comes as the last parameter in a chain of function
 // applications. This design enables several powerful functional programming patterns:
 //
-//  1. **Partial Application**: You can create reusable assertion functions by providing
+//  1. Partial Application: You can create reusable assertion functions by providing
 //     configuration parameters first, leaving the data and testing context for later.
 //
-//  2. **Function Composition**: Assertions can be composed and combined before being
+//  2. Function Composition: Assertions can be composed and combined before being
 //     applied to actual data.
 //
-//  3. **Point-Free Style**: You can pass assertion functions around without immediately
+//  3. Point-Free Style: You can pass assertion functions around without immediately
 //     providing the data they operate on.
 //
 // The general pattern is:

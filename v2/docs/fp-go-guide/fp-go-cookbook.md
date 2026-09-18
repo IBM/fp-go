@@ -362,6 +362,104 @@ func example() {
 }
 ```
 
+### Overview: Working with `context.Context` the fp-go way
+
+In imperative Go the context is threaded by hand: every function takes `ctx` first, values are read with `ctx.Value(key).(T)`, and scopes are opened with `ctx, cancel := context.WithTimeout(...); defer cancel()`. In fp-go the context is the **Reader environment**: pipelines never mention `ctx`, and the context is supplied exactly once, when the pipeline runs. Reading and scoping the context are ordinary operators.
+
+| Task | Imperative Go | fp-go |
+|------|---------------|-------|
+| Get the whole context | `ctx` parameter | `Ask()` |
+| Derive a value from the context | `f(ctx)` | `Asks(f)` / `FromReader(f)` |
+| Read a typed value | `v, ok := ctx.Value(k).(T)` | `AskValue[T](k)` → `Option[T]` |
+| Scope a value to a call | `f(context.WithValue(ctx, k, v))` | `WithValue[A](k, v)` |
+| Timeout a call | `ctx, cancel := context.WithTimeout(ctx, d); defer cancel()` | `WithTimeout[A](d)` |
+| Deadline a call | `ctx, cancel := context.WithDeadline(ctx, t); defer cancel()` | `WithDeadline[A](t)` |
+| Arbitrary context rewrite | derive + `defer cancel()` | `Local(f)` |
+| Context from an effect | derive inside the function | `LocalIOK(f)` / `LocalIOResultK(f)` |
+| Build a context outside a pipeline | `context.WithValue(ctx, k, v)` | `reader.WithValue[V](k)(v)(ctx)` |
+
+`AskValue`, `WithValue`, `WithTimeout` and `WithDeadline` exist in `context/readerio`, `context/readerresult`, `context/readerioresult`, `context/statereaderioresult` and `idiomatic/context/readerresult`. `context/reader` provides the plain building blocks `AskValue`, `WithValue` and `NopCancel`, and `optics/lenses.AtContext[V](key)` offers the same getter/setter pair as a lens.
+
+**Rules**
+
+- `AskValue` never fails and never panics: it yields `Some(v)` when the key holds a `V`, and `None` when it is absent or holds a different type. You decide what "missing" means with `O.GetOrElse` (optional) or `FromOption` / `ChainOptionK` (required).
+- The scoping operators affect only the wrapped computation, and always release the derived context when it completes, so no `defer cancel()` is needed and nothing leaks.
+- Use an unexported key type (`type ctxKey string`), not plain strings.
+- Keep request-scoped data (IDs, principal, logger) in the context. Model real dependencies (DB, config) as an explicit environment, e.g. with `effect`.
+
+### Recipe: Read, scope and time-bound the context
+
+**Problem**: A handler needs the request ID and user from the context, must fail if the user is missing, and must finish within 5 seconds.
+**Solution**: `AskValue` + `FromOption` for reading, `WithValue` + `WithTimeout` for scoping.
+
+```go
+package main
+
+import (
+    "context"
+    "errors"
+    "fmt"
+    "time"
+    RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
+    F "github.com/IBM/fp-go/v2/function"
+    O "github.com/IBM/fp-go/v2/option"
+)
+
+type ctxKey string
+
+const (
+    userKey      ctxKey = "user"
+    requestIDKey ctxKey = "requestID"
+)
+
+var errNoUser = errors.New("no user in context")
+
+// required value: None becomes an error
+var requireUser = F.Pipe1(
+    RIOE.AskValue[string](userKey),
+    RIOE.Chain(RIOE.FromOption[string](F.Constant(errNoUser))),
+)
+
+// optional value: None becomes a default
+var requestID = F.Pipe1(
+    RIOE.AskValue[string](requestIDKey),
+    RIOE.Map(O.GetOrElse(F.Constant("-"))),
+)
+
+func greet(user string) RIOE.ReaderIOResult[string] {
+    return RIOE.Map(func(id string) string {
+        return fmt.Sprintf("[%s] hello %s", id, user)
+    })(requestID)
+}
+
+func handler(id, user string) RIOE.ReaderIOResult[string] {
+    return F.Pipe4(
+        requireUser,
+        RIOE.Chain(greet),
+        RIOE.WithTimeout[string](5*time.Second),
+        RIOE.WithValue[string](requestIDKey, id),
+        RIOE.WithValue[string](userKey, user),
+    )
+}
+
+func example() {
+    res := handler("req-1", "Alice")(context.Background())() // Right("[req-1] hello Alice")
+    _ = res
+}
+```
+
+The same operators exist with identical names in the idiomatic package, where the result is `(A, error)`:
+
+```go
+import IRR "github.com/IBM/fp-go/v2/idiomatic/context/readerresult"
+
+name, err := F.Pipe2(
+    IRR.AskValue[string](userKey),
+    IRR.Map(O.GetOrElse(F.Constant("anonymous"))),
+    IRR.WithValue[string](userKey, "Alice"),
+)(ctx) // ("Alice", nil)
+```
+
 ---
 
 ## 7. Adding Typed DI (Effect)
@@ -691,14 +789,14 @@ func main() {
 ### Recipe: Build HTTP requests with the builder pattern
 
 **Problem**: Construct HTTP requests functionally with composable configuration.
-**Solution**: Use `http/builder` package. Start with `B.Default`, chain `B.WithURL`, `B.WithMethod`, `B.WithHeader`, `B.WithJSON`. Convert to `ReaderIOResult[*http.Request]` via `RB.Requester(builder)`.
+**Solution**: Use `http/builder` package. Start with `B.Default`, chain `B.WithURL`, `B.WithMethod`, `B.WithHeader`, `B.WithJSON`. Use the lower case header name constants from `http/headers` (`HD.Authorization`, `HD.Accept`, ...) and the media type constants from `http/content` (`C.JSON`, `C.FormEncoded`, ...) instead of string literals. Convert to `ReaderIOResult[*http.Request]` via `RB.Requester(builder)`.
 
 ```go
 builder := F.Pipe3(
     B.Default,
     B.WithURL("https://api.example.com/users"),
     B.WithMethod("POST"),
-    B.WithHeader("Authorization")("Bearer my-token"),
+    B.WithHeader(HD.Authorization)("Bearer my-token"),
 )
 requester := RB.Requester(builder) // ReaderIOResult[*http.Request]
 ```
@@ -715,6 +813,8 @@ import (
     "net/http"
     F "github.com/IBM/fp-go/v2/function"
     B "github.com/IBM/fp-go/v2/http/builder"
+    C "github.com/IBM/fp-go/v2/http/content"
+    HD "github.com/IBM/fp-go/v2/http/headers"
     RB "github.com/IBM/fp-go/v2/context/readerioresult/http/builder"
     RH "github.com/IBM/fp-go/v2/context/readerioresult/http"
     RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
@@ -726,7 +826,7 @@ func fetchUser(id string) RIOE.ReaderIOResult[APIResponse] {
     builder := F.Pipe2(
         B.Default,
         B.WithURL("https://api.example.com/users/"+id),
-        B.WithHeader("Accept")("application/json"),
+        B.WithHeader(HD.Accept)(C.JSON),
     )
     client := RH.MakeClient(http.DefaultClient)
     return F.Pipe1(RB.Requester(builder), RH.ReadJSON[APIResponse](client))
@@ -1196,3 +1296,19 @@ func processUserGo(id int) (*User, error) {
 | `TraverseArray[C](f)` | Map array with effects |
 | `Ask[C]()` | Access own context |
 | `Local[A,C1,C2](f)` | Transform context |
+
+### context/readerioresult (alias RIOE) -- working with context.Context
+
+Same names in `context/readerio`, `context/readerresult`, `context/statereaderioresult` (with an extra `S` type parameter) and `idiomatic/context/readerresult`.
+
+| Function | Purpose |
+|----------|---------|
+| `Ask()` | The whole context as a value |
+| `FromReader(f)` | Derive a value from the context |
+| `AskValue[V](key)` | Typed context value as `Option[V]` |
+| `WithValue[A](key, v)` | Run with `key → v` in the context |
+| `WithTimeout[A](d)` | Run with a timeout |
+| `WithDeadline[A](t)` | Run with a deadline |
+| `Local[A](f)` | Run with an arbitrary derived context |
+| `LocalIOK[A](f)` / `LocalIOResultK[A](f)` | Derive the context with an effect |
+| `WithContext(ma)` | Short-circuit if already cancelled |

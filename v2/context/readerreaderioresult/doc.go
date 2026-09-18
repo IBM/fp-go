@@ -244,7 +244,7 @@
 // in functional programming. This pattern is explained in detail in Scott Wlaschin's talk:
 // "Dependency Injection, The Functional Way" - https://www.youtube.com/watch?v=xPlsVVaMoB0
 //
-// ## Core Concept
+// # Core Concept
 //
 // Instead of using traditional OOP dependency injection frameworks, the Reader monad allows you to:
 //  1. Define functions that declare their dependencies as type parameters
@@ -257,9 +257,9 @@
 //   - Easy testing: Mock dependencies by providing different values
 //   - Pure functions: Dependencies are passed as parameters, not global state
 //
-// ## Examples from the Video Adapted to fp-go
+// # Examples from the Video Adapted to fp-go
 //
-// ### Example 1: Basic Reader Pattern (Video: "Reader Monad Basics")
+// # Example 1: Basic Reader Pattern (Video: "Reader Monad Basics")
 //
 // In the video, Scott shows how to pass configuration through a chain of functions.
 // In fp-go with ReaderReaderIOResult:
@@ -290,7 +290,7 @@
 //	    )
 //	}
 //
-// ### Example 2: Composing Dependencies (Video: "Composing Reader Functions")
+// # Example 2: Composing Dependencies (Video: "Composing Reader Functions")
 //
 // The video demonstrates how Reader functions compose naturally.
 // In fp-go, you can compose operations that all share the same dependency:
@@ -325,7 +325,7 @@
 //	ctx := context.Background()
 //	result := pipeline(config)(ctx)()
 //
-// ### Example 3: Local Context Modification (Video: "Local Environment")
+// # Example 3: Local Context Modification (Video: "Local Environment")
 //
 // The video shows how to temporarily modify the environment for a sub-computation.
 // In fp-go, use the Local function:
@@ -345,7 +345,7 @@
 //	// Use it
 //	result := withRetries(5, fetchUser(123))
 //
-// ### Example 4: Testing with Mock Dependencies (Video: "Testing with Reader")
+// # Example 4: Testing with Mock Dependencies (Video: "Testing with Reader")
 //
 // The video emphasizes how Reader makes testing easy by allowing mock dependencies.
 // In fp-go:
@@ -366,7 +366,7 @@
 //	    assert.True(t, either.IsRight(result))
 //	}
 //
-// ### Example 5: Multi-Layer Dependencies (Video: "Nested Readers")
+// # Example 5: Multi-Layer Dependencies (Video: "Nested Readers")
 //
 // The video discusses nested readers for multi-layer architectures.
 // ReaderReaderIOResult provides exactly this with R (outer) and context.Context (inner):
@@ -397,7 +397,7 @@
 //	    }
 //	}
 //
-// ### Example 6: Avoiding Global State (Video: "Problems with Global State")
+// # Example 6: Avoiding Global State (Video: "Problems with Global State")
 //
 // The video criticizes global state and shows how Reader solves this.
 // In fp-go, instead of:
@@ -427,17 +427,17 @@
 //	    )
 //	}
 //
-// ## Benefits of This Approach
+// # Benefits of This Approach
 //
-// 1. **Type Safety**: The compiler ensures all dependencies are provided
-// 2. **Testability**: Easy to provide mock dependencies for testing
-// 3. **Composability**: Functions compose naturally without dependency wiring
-// 4. **Explicitness**: Function signatures document their dependencies
-// 5. **Immutability**: Dependencies are immutable values, not mutable global state
-// 6. **Flexibility**: Use Local to modify dependencies for sub-computations
-// 7. **Separation of Concerns**: Business logic is separate from dependency resolution
+//  1. Type Safety: The compiler ensures all dependencies are provided
+//  2. Testability: Easy to provide mock dependencies for testing
+//  3. Composability: Functions compose naturally without dependency wiring
+//  4. Explicitness: Function signatures document their dependencies
+//  5. Immutability: Dependencies are immutable values, not mutable global state
+//  6. Flexibility: Use Local to modify dependencies for sub-computations
+//  7. Separation of Concerns: Business logic is separate from dependency resolution
 //
-// ## Comparison with Traditional DI
+// # Comparison with Traditional DI
 //
 // Traditional OOP DI (e.g., Spring, Guice):
 //   - Runtime dependency resolution
@@ -451,15 +451,15 @@
 //   - Explicit dependencies (in type signatures)
 //   - Immutable values
 //
-// ## When to Use Each Layer
+// # When to Use Each Layer
 //
-// - **Outer Reader (R)**: Application-level dependencies that rarely change
+// - Outer Reader (R): Application-level dependencies that rarely change
 //   - Database connection pools
 //   - API keys and secrets
 //   - Feature flags
 //   - Application configuration
 //
-// - **Inner Reader (context.Context)**: Request-level dependencies that change per operation
+// - Inner Reader (context.Context): Request-level dependencies that change per operation
 //   - Request IDs and tracing
 //   - Cancellation signals
 //   - Deadlines and timeouts

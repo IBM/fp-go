@@ -121,20 +121,26 @@
 //
 // This package is designed to work seamlessly with Go's context.Context:
 //
-//	// Using context values
-//	getUserID := statereaderioresult.Asks[AppState, string](func(ctx context.Context) statereaderioresult.StateReaderIOResult[AppState, string] {
-//	    userID, ok := ctx.Value("userID").(string)
-//	    if !ok {
-//	        return statereaderioresult.Left[AppState, string](errors.New("missing userID"))
-//	    }
-//	    return statereaderioresult.Of[AppState](userID)
-//	})
+//	type ctxKey string
+//	const userIDKey ctxKey = "userID"
 //
-//	// Using context cancellation
-//	withTimeout := statereaderioresult.Local[AppState, string](func(ctx context.Context) context.Context {
-//	    ctx, _ = context.WithTimeout(ctx, 5*time.Second)
-//	    return ctx
-//	})
+//	// Reading context values: yields Some(userID) or None
+//	getUserID := statereaderioresult.AskValue[AppState, string](userIDKey)
+//
+//	// Scoping a value to a sub-computation
+//	scoped := F.Pipe1(
+//	    getUserID,
+//	    statereaderioresult.WithValue[AppState, Option[string]](userIDKey, "user-123"),
+//	)
+//
+//	// Bounding a computation in time; the derived context is always cancelled afterwards
+//	bounded := F.Pipe1(
+//	    computation,
+//	    statereaderioresult.WithTimeout[AppState, string](5*time.Second),
+//	)
+//
+// For arbitrary context transformations use Local, which takes a function returning
+// the new context together with its cancel function.
 //
 // # Monad Laws
 //

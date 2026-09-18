@@ -30,11 +30,13 @@ comparable type T and Option[T], treating the zero value as None.
 
 # FromZero Isomorphism
 
-FromZero creates a bidirectional transformation where:
-  - Forward (Get): T → Option[T]
+FromZero creates a bidirectional transformation.
+
+Forward (Get) maps T → Option[T]:
   - Zero value → None
   - Non-zero value → Some(value)
-  - Reverse (ReverseGet): Option[T] → T
+
+Reverse (ReverseGet) maps Option[T] → T:
   - None → Zero value
   - Some(value) → value
 
@@ -61,9 +63,7 @@ Working with integers:
 	// Convert Some to value
 	val = isoInt.ReverseGet(O.Some(42)) // 42
 
-# Use Cases
-
-## Database Nullable Columns
+# Use Case: Database Nullable Columns
 
 Convert between database NULL and Go zero values:
 
@@ -84,7 +84,7 @@ Convert between database NULL and Go zero values:
 	userAge := 25
 	dbAge = ageIso.ReverseGet(O.Some(&userAge)) // &25
 
-## Configuration with Defaults
+# Use Case: Configuration with Defaults
 
 Handle optional configuration values:
 
@@ -103,7 +103,7 @@ Handle optional configuration values:
 	// Set explicit value
 	config.Port = portIso.ReverseGet(O.Some(8080)) // 8080
 
-## API Response Handling
+# Use Case: API Response Handling
 
 Work with APIs that use zero values to indicate absence:
 
@@ -123,7 +123,7 @@ Work with APIs that use zero values to indicate absence:
 	score := scoreIso.Get(response.Score)        // None[float64]
 	message := messageIso.Get(response.Message)  // None[string]
 
-## Validation Logic
+# Use Case: Validation Logic
 
 Simplify required vs optional field validation:
 
@@ -155,9 +155,7 @@ Simplify required vs optional field validation:
 		// Validation error
 	}
 
-# Working with Different Types
-
-## Strings
+# Working with Strings
 
 	strIso := option.FromZero[string]()
 
@@ -167,7 +165,7 @@ Simplify required vs optional field validation:
 	val := strIso.ReverseGet(O.None[string]())      // ""
 	val = strIso.ReverseGet(O.Some("world"))        // "world"
 
-## Pointers
+# Working with Pointers
 
 	ptrIso := option.FromZero[*int]()
 
@@ -178,7 +176,7 @@ Simplify required vs optional field validation:
 	val := ptrIso.ReverseGet(O.None[*int]())  // nil
 	val = ptrIso.ReverseGet(O.Some(&num))     // &num
 
-## Floating Point Numbers
+# Working with Floating Point Numbers
 
 	floatIso := option.FromZero[float64]()
 
@@ -188,7 +186,7 @@ Simplify required vs optional field validation:
 	val := floatIso.ReverseGet(O.None[float64]())  // 0.0
 	val = floatIso.ReverseGet(O.Some(2.71))        // 2.71
 
-## Booleans
+# Working with Booleans
 
 	boolIso := option.FromZero[bool]()
 
@@ -237,15 +235,17 @@ Combine with lenses for nested structures:
 # Isomorphism Laws
 
 FromZero satisfies the isomorphism round-trip laws:
+ 1. ReverseGet(Get(t)) == t for all t: T
+ 2. Get(ReverseGet(opt)) == opt for all opt: Option[T]
 
-1. **ReverseGet(Get(t)) == t** for all t: T
+Law 1 in practice:
 
 	isoInt := option.FromZero[int]()
 	value := 42
 	result := isoInt.ReverseGet(isoInt.Get(value))
 	// result == 42
 
-2. **Get(ReverseGet(opt)) == opt** for all opt: Option[T]
+Law 2 in practice:
 
 	isoInt := option.FromZero[int]()
 	opt := O.Some(42)
@@ -272,28 +272,28 @@ The isomorphism is fully type-safe:
 
 # Limitations
 
-The FromZero isomorphism has some limitations to be aware of:
+The FromZero isomorphism has some limitations to be aware of.
 
-1. **Zero Value Ambiguity**: Cannot distinguish between "intentionally zero" and "absent"
+Zero value ambiguity: it cannot distinguish between "intentionally zero" and "absent".
   - For int: 0 always maps to None, even if 0 is a valid value
   - For string: "" always maps to None, even if empty string is valid
   - Solution: Use a different representation (e.g., pointers) if zero is meaningful
 
-2. **Comparable Constraint**: Only works with comparable types
+Comparable constraint: it only works with comparable types.
   - Cannot use with slices, maps, or functions
   - Cannot use with structs containing non-comparable fields
   - Solution: Use pointers to such types, or custom isomorphisms
 
-3. **Boolean Limitation**: false always maps to None
+Boolean limitation: false always maps to None.
   - Cannot represent "explicitly false" vs "not set"
   - Solution: Use *bool or a custom type if this distinction matters
 
 # Related Packages
 
-  - github.com/IBM/fp-go/v2/optics/iso: Core isomorphism functionality
-  - github.com/IBM/fp-go/v2/option: Option type and operations
-  - github.com/IBM/fp-go/v2/optics/lens: Lenses for focused access
-  - github.com/IBM/fp-go/v2/optics/lens/option: Lenses for optional values
+  - [github.com/IBM/fp-go/v2/optics/iso]: Core isomorphism functionality
+  - [github.com/IBM/fp-go/v2/option]: Option type and operations
+  - [github.com/IBM/fp-go/v2/optics/lens]: Lenses for focused access
+  - [github.com/IBM/fp-go/v2/optics/lens/option]: Lenses for optional values
 
 # See Also
 

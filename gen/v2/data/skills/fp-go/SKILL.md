@@ -282,6 +282,41 @@ res := pipeline(ctx)()               // Result[User] — ONE value, not (User, e
 user, err := result.Unwrap(res)      // bridge back to idiomatic Go
 ```
 
+#### Reading and scoping the context
+
+The context is the Reader environment: never thread `ctx` by hand, call `ctx.Value(k).(T)`, or write `ctx, cancel := context.WithTimeout(...); defer cancel()` inside a pipeline. Use the operators — same names in `context/readerio`, `context/readerresult`, `context/readerioresult`, `context/statereaderioresult` (extra leading `S` type parameter) and `idiomatic/context/readerresult`:
+
+| Operator | Type | Purpose |
+|----------|------|---------|
+| `RIO.Ask()` / `RIO.FromReader(f)` | `ReaderIOResult[context.Context]` / `[A]` | whole context / pure projection of it |
+| `RIO.AskValue[V](key)` | `ReaderIOResult[Option[V]]` | typed value; `None` if absent **or wrong type** — never panics, never fails |
+| `RIO.WithValue[A](key, v)` | `Operator[A, A]` | run with `key → v`; caller's context untouched |
+| `RIO.WithTimeout[A](d)` / `RIO.WithDeadline[A](t)` | `Operator[A, A]` | bound in time; cancel func always released |
+| `RIO.Local[A](f)` | `Operator[A, A]` | general form, `f: ctx → Pair[CancelFunc, ctx]`; prefer the above |
+
+```go
+type ctxKey string                         // unexported key type, never plain strings
+const userKey ctxKey = "user"
+
+requireUser := F.Pipe1(                    // required: None → error
+    RIO.AskValue[string](userKey),
+    RIO.Chain(RIO.FromOption[string](F.Constant(errNoUser))),
+)
+userOrAnon := F.Pipe1(                     // optional: None → default
+    RIO.AskValue[string](userKey),
+    RIO.Map(O.GetOrElse(F.Constant("anonymous"))),
+)
+
+handler := F.Pipe3(                        // scoping composes like any operator
+    processRequest(),
+    RIO.WithTimeout[Response](5*time.Second),
+    RIO.WithValue[Response](userKey, user),
+    RIO.Local[Response](logging.WithLogger(reqLogger)), // WithLogger already has Local's shape
+)
+```
+
+Outside a pipeline (building a context in `main` or a test) use `context/reader` (`CR`): `CR.AskValue[V](k)(ctx)`, `CR.WithValue[V](k)(v)(ctx)`, `CR.NopCancel(ctx)`. Keep only request-scoped data (IDs, principal, logger) in the context; real dependencies belong in `Effect`. For the full guide (key accessors, cancellation semantics, `Effect` scoping, testing) use the `fp-go-context` skill.
+
 ### Effect — typed dependency injection (recommended for testable services)
 
 `Effect[C, A]` adds a **typed dependency parameter** `C` on top of `ReaderIOResult`. While `context/readerioresult` hardcodes `context.Context` as the environment, `Effect` lets you define a custom dependencies struct — making dependencies explicit, compile-time checked, and trivially mockable in tests.
@@ -568,6 +603,8 @@ parse("abc") // Error(strconv parse error)
 | Writing inline setter lambdas for Do-notation | Use `L.MakeLens` + `lens.Set`; the signature already matches |
 | Using `Bind` when steps are independent | Use `ApS` for independent steps — clearer intent, potentially concurrent |
 | Using `context/readerioresult` with deps stuffed into `context.Context` | Use `effect.Effect[Deps, A]` — typed deps are compile-time checked and testable |
+| `ctx.Value(k).(T)` inside a Reader / `FromReader` / `Asks` | `RIO.AskValue[T](k)` → `Option[T]`, then `O.GetOrElse` (optional) or `RIO.Chain(RIO.FromOption[T](...))` (required). The bare assertion panics on a missing key. |
+| `ctx, cancel := context.WithTimeout(ctx, d); defer cancel()` or `context.WithValue` around a pipeline | `RIO.WithTimeout[A](d)`, `RIO.WithDeadline[A](t)`, `RIO.WithValue[A](k, v)` as pipeline operators — scoped to the wrapped computation, cancel always released. A hand-written `Local` that discards `cancel` leaks a timer. |
 | `EF.Asks(func(d Deps) EF.ReaderIOResult[A] {...})` | That yields `Effect[Deps, ReaderIOResult[A]]`. `Effect[C, A]` **is** `func(C) ReaderIOResult[A]` — return the closure directly. `Asks` is for pure `func(C) A`. |
 | `EF.Provide(deps)(eff)` / `EF.Map(f)` on an `Effect` | `Provide[A, C]` cannot infer `A` through its returned function, and `Map[C, A, B]` often cannot infer `C`: write `EF.Provide[string](deps)` and `EF.Map[Deps](f)`. |
 | `result.Right[error](v)` | `result.Right[A any](v A)` — the param is the *success* type: `result.Right(v)` or `result.Of(v)`. Only `result.Left[A](err)` needs the annotation. |

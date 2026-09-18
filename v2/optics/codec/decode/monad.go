@@ -170,13 +170,13 @@ func Chain[I, A, B any](f Kleisli[I, A, B]) Operator[I, A, B] {
 // ChainLeft transforms the error channel of a decoder, enabling error recovery and context addition.
 // This is the left-biased monadic chain operation that operates on validation failures.
 //
-// **Key behaviors**:
+// Key behaviors:
 //   - Success values pass through unchanged - the handler is never called
 //   - On failure, the handler receives the errors and can recover or add context
-//   - When the handler also fails, **both original and new errors are aggregated**
+//   - When the handler also fails, both original and new errors are aggregated
 //   - The handler returns a Decode[I, A], giving it access to the original input
 //
-// **Error Aggregation**: Unlike standard Either operations, when the transformation function
+// Error Aggregation: Unlike standard Either operations, when the transformation function
 // returns a failure, both the original errors AND the new errors are combined using the
 // Errors monoid. This ensures no validation errors are lost.
 //
@@ -231,13 +231,13 @@ func ChainLeft[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
 // MonadChainLeft transforms the error channel of a decoder, enabling error recovery and context addition.
 // This is the uncurried version of ChainLeft, taking both the decoder and the transformation function directly.
 //
-// **Key behaviors**:
+// Key behaviors:
 //   - Success values pass through unchanged - the handler is never called
 //   - On failure, the handler receives the errors and can recover or add context
-//   - When the handler also fails, **both original and new errors are aggregated**
+//   - When the handler also fails, both original and new errors are aggregated
 //   - The handler returns a Decode[I, A], giving it access to the original input
 //
-// **Error Aggregation**: Unlike standard Either operations, when the transformation function
+// Error Aggregation: Unlike standard Either operations, when the transformation function
 // returns a failure, both the original errors AND the new errors are combined using the
 // Errors monoid. This ensures no validation errors are lost.
 //
@@ -310,15 +310,15 @@ func MonadChainLeft[I, A any](fa Decode[I, A], f Kleisli[I, Errors, A]) Decode[I
 // OrElse provides fallback decoding logic when the primary decoder fails.
 // This is an alias for ChainLeft with a more semantic name for fallback scenarios.
 //
-// **OrElse is exactly the same as ChainLeft** - they are aliases with identical implementations
+// OrElse is exactly the same as ChainLeft - they are aliases with identical implementations
 // and behavior. The choice between them is purely about code readability and semantic intent:
-//   - Use **OrElse** when emphasizing fallback/alternative decoding logic
-//   - Use **ChainLeft** when emphasizing technical error channel transformation
+//   - Use OrElse when emphasizing fallback/alternative decoding logic
+//   - Use ChainLeft when emphasizing technical error channel transformation
 //
-// **Key behaviors** (identical to ChainLeft):
+// Key behaviors (identical to ChainLeft):
 //   - Success values pass through unchanged - the handler is never called
 //   - On failure, the handler receives the errors and can provide an alternative
-//   - When the handler also fails, **both original and new errors are aggregated**
+//   - When the handler also fails, both original and new errors are aggregated
 //   - The handler returns a Decode[I, A], giving it access to the original input
 //
 // The name "OrElse" reads naturally in code: "try this decoder, or else try this alternative."
@@ -455,12 +455,12 @@ func Ap[B, I, A any](fa Decode[I, A]) Operator[I, func(A) B, B] {
 // This is the Alternative pattern's core operation that tries the first decoder,
 // and if it fails, tries the second decoder as a fallback.
 //
-// **Key behaviors**:
+// Key behaviors:
 //   - If first succeeds: returns the first result (second is never evaluated)
 //   - If first fails and second succeeds: returns the second result
-//   - If both fail: **aggregates errors from both decoders**
+//   - If both fail: aggregates errors from both decoders
 //
-// **Error Aggregation**: Unlike simple fallback patterns, when both decoders fail,
+// Error Aggregation: Unlike simple fallback patterns, when both decoders fail,
 // MonadAlt combines ALL errors from both attempts using the Errors monoid. This ensures
 // complete visibility into why all alternatives failed, which is crucial for debugging
 // and providing comprehensive error messages to users.
@@ -539,10 +539,10 @@ func MonadAlt[I, A any](first Decode[I, A], second Lazy[Decode[I, A]]) Decode[I,
 // Alt creates an operator that provides alternative/fallback decoding with error aggregation.
 // This is the curried version of MonadAlt, useful for composition pipelines.
 //
-// **Key behaviors** (identical to MonadAlt):
+// Key behaviors (identical to MonadAlt):
 //   - If first succeeds: returns the first result (second is never evaluated)
 //   - If first fails and second succeeds: returns the second result
-//   - If both fail: **aggregates errors from both decoders**
+//   - If both fail: aggregates errors from both decoders
 //
 // The Alt operator enables building reusable fallback chains that can be applied
 // to different decoders. It reads naturally in pipelines: "apply this decoder,

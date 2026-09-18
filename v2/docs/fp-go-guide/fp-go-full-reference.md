@@ -2922,6 +2922,7 @@ func TapSLog[A any](message string) Operator[A, A]
 func WithDeadline[A any](deadline time.Time) Operator[A, A]
 func WithLock[A any](lock ReaderIOResult[context.CancelFunc]) Operator[A, A]
 func WithTimeout[A any](timeout time.Duration) Operator[A, A]
+func WithValue[A, K, V any](key K, value V) Operator[A, A]
 type Option[A any] = option.Option[A]
 type Pair[A, B any] = pair.Pair[A, B]
 type Predicate[A any] = predicate.Predicate[A]
@@ -2931,6 +2932,7 @@ type ReaderEither[R, E, A any] = readereither.ReaderEither[R, E, A]
 type ReaderIO[A any] = readerio.ReaderIO[context.Context, A]
 type ReaderIOResult[A any] = RIOR.ReaderIOResult[context.Context, A]
 func Ask() ReaderIOResult[context.Context]
+func AskValue[V, K any](key K) ReaderIOResult[Option[V]]
 func Bracket[
 func Defer[A any](gen Lazy[ReaderIOResult[A]]) ReaderIOResult[A]
 func Do[S any](
@@ -3094,6 +3096,9 @@ func TraverseReader[R, A, B any](
 func Uncurry1[T1, A any](f Kleisli[T1, A]) func(context.Context, T1) (A, error)
 func Uncurry2[T1, T2, A any](f func(T1) Kleisli[T2, A]) func(context.Context, T1, T2) (A, error)
 func Uncurry3[T1, T2, T3, A any](f func(T1) func(T2) Kleisli[T3, A]) func(context.Context, T1, T2, T3) (A, error)
+func WithDeadline[A any](deadline time.Time) Operator[A, A]
+func WithTimeout[A any](timeout time.Duration) Operator[A, A]
+func WithValue[A, K, V any](key K, value V) Operator[A, A]
 type Either[A any] = either.Either[error, A]
 type Endomorphism[A any] = endomorphism.Endomorphism[A]
 type IO[A any] = io.IO[A]
@@ -3143,6 +3148,7 @@ type Prism[S, T any] = prism.Prism[S, T]
 type Reader[R, A any] = reader.Reader[R, A]
 type ReaderResult[A any] = readereither.ReaderEither[context.Context, error, A]
 func Ask() ReaderResult[context.Context]
+func AskValue[V, K any](key K) ReaderResult[Option[V]]
 func Curry0[A any](f func(context.Context) (A, error)) ReaderResult[A]
 func Do[S any](
 func FromEither[A any](e Either[A]) ReaderResult[A]
@@ -6038,12 +6044,14 @@ func OrLeft[A any](onLeft reader.Kleisli[context.Context, error, error]) Operato
 func ProMap[A, B any](f func(context.Context) (context.Context, context.CancelFunc), g func(A) B) Operator[A, B]
 func WithDeadline[A any](deadline time.Time) Operator[A, A]
 func WithTimeout[A any](timeout time.Duration) Operator[A, A]
+func WithValue[A, K, V any](key K, value V) Operator[A, A]
 type Option[A any] = option.Option[A]
 type Predicate[A any] = predicate.Predicate[A]
 type Prism[S, A any] = prism.Prism[S, A]
 type Reader[R, A any] = reader.Reader[R, A]
 type ReaderResult[A any] = func(context.Context) (A, error)
 func Ask() ReaderResult[context.Context]
+func AskValue[V, K any](key K) ReaderResult[Option[V]]
 func Asks[A any](r Reader[context.Context, A]) ReaderResult[A]
 func Bracket[
 func Curry0[A any](f func(context.Context) (A, error)) ReaderResult[A]

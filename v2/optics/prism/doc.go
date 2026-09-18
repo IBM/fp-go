@@ -357,14 +357,14 @@ Transform the focus type of a prism:
 
 While both are optics, they serve different purposes:
 
-**Prisms:**
+Prisms:
   - Focus on variants of sum types
   - GetOption may fail (returns Option)
   - ReverseGet always succeeds
   - Used for pattern matching
   - Example: Either[Error, Value] → Value
 
-**Lenses:**
+Lenses:
   - Focus on fields of product types
   - Get always succeeds
   - Set always succeeds
@@ -375,13 +375,13 @@ While both are optics, they serve different purposes:
 
 Prisms must satisfy two laws:
 
-**Law 1: GetOptionReverseGet**
+Law 1: GetOptionReverseGet
 
 	prism.GetOption(prism.ReverseGet(a)) == Some(a)
 
 Constructing a value and then extracting it always succeeds.
 
-**Law 2: ReverseGetGetOption**
+Law 2: ReverseGetGetOption
 
 	if prism.GetOption(s) == Some(a)
 	then prism.ReverseGet(a) should produce equivalent s
@@ -413,7 +413,7 @@ Prisms are fully type-safe:
 
 The package provides many useful prisms for common transformations:
 
-**Type Conversion & Parsing:**
+Type Conversion & Parsing:
   - FromEncoding(enc): Base64 encoding/decoding - Prism[string, []byte]
   - ParseURL(): URL parsing/formatting - Prism[string, *url.URL]
   - ParseDate(layout): Date parsing with custom layouts - Prism[string, time.Time]
@@ -423,12 +423,12 @@ The package provides many useful prisms for common transformations:
   - ParseFloat32(): 32-bit float parsing - Prism[string, float32]
   - ParseFloat64(): 64-bit float parsing - Prism[string, float64]
 
-**Type Assertion & Extraction:**
+Type Assertion & Extraction:
   - InstanceOf[T](): Safe type assertion from any - Prism[any, T]
   - Deref[T](): Safe pointer dereferencing (filters nil) - Prism[*T, T]
     GetOption dereferences the pointer into Some(value) or None; ReverseGet allocates a fresh *T via F.Ref
 
-**Container/Wrapper Prisms:**
+Container/Wrapper Prisms:
   - FromEither[E, T](): Extract Right values - Prism[Either[E, T], T]
     ReverseGet wraps into Right (acts as success constructor)
   - FromResult[T](): Extract success from Result - Prism[Result[T], T]
@@ -436,11 +436,11 @@ The package provides many useful prisms for common transformations:
   - FromOption[T](): Extract Some values - Prism[Option[T], T]
     ReverseGet wraps into Some (acts as Some constructor)
 
-**Validation Prisms:**
+Validation Prisms:
   - FromZero[T](): Match only zero/default values - Prism[T, T]
   - FromNonZero[T](): Match only non-zero values - Prism[T, T]
 
-**Pattern Matching:**
+Pattern Matching:
   - RegexMatcher(re): Extract regex matches with groups - Prism[string, Match]
   - RegexNamedMatcher(re): Extract named regex groups - Prism[string, NamedMatch]
 

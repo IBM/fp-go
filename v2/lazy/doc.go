@@ -46,13 +46,13 @@
 //
 // The lazy package implements several functional programming patterns:
 //
-// **Functor**: Transform values inside a Lazy context using Map
+// Functor: Transform values inside a Lazy context using Map
 //
-// **Applicative**: Combine multiple Lazy computations using Ap and ApS
+// Applicative: Combine multiple Lazy computations using Ap and ApS
 //
-// **Monad**: Chain dependent computations using Chain and Bind
+// Monad: Chain dependent computations using Chain and Bind
 //
-// **Memoization**: Cache computation results using Memoize
+// Memoization: Cache computation results using Memoize
 //
 // # Basic Usage
 //
@@ -191,14 +191,14 @@
 //
 // The package provides algebraic structures for combining lazy computations:
 //
-// **Semigroup**: Combine two lazy values using a semigroup operation
+// Semigroup: Combine two lazy values using a semigroup operation
 //
 //	import M "github.com/IBM/fp-go/v2/monoid"
 //
 //	intAddSemigroup := lazy.ApplySemigroup(M.MonoidSum[int]())
 //	result := intAddSemigroup.Concat(lazy.Of(5), lazy.Of(10))() // 15
 //
-// **Monoid**: Combine lazy values with an identity element
+// Monoid: Combine lazy values with an identity element
 //
 //	intAddMonoid := lazy.ApplicativeMonoid(M.MonoidSum[int]())
 //	empty := intAddMonoid.Empty()() // 0
@@ -215,28 +215,28 @@
 //
 // # Key Functions
 //
-// **Creation**:
+// Creation:
 //   - Of: Create a lazy computation from a value
 //   - FromLazy: Create a lazy computation from another lazy computation
 //   - FromImpure: Convert a side effect into a lazy computation
 //   - Defer: Create a lazy computation from a generator function
 //
-// **Transformation**:
+// Transformation:
 //   - Map: Transform the value inside a lazy computation
 //   - MapTo: Replace the value with a constant
 //   - Chain: Chain dependent computations
 //   - ChainFirst: Chain computations but keep the first result
 //   - Flatten: Flatten nested lazy computations
 //
-// **Combination**:
+// Combination:
 //   - Ap: Apply a lazy function to a lazy value
 //   - ApFirst: Combine two computations, keeping the first result
 //   - ApSecond: Combine two computations, keeping the second result
 //
-// **Memoization**:
+// Memoization:
 //   - Memoize: Cache the result of a computation
 //
-// **Do-Notation**:
+// Do-Notation:
 //   - Do: Start a do-notation context
 //   - Bind: Bind a computation result to a context
 //   - Let: Attach a pure value to a context
@@ -244,25 +244,25 @@
 //   - BindTo: Initialize a context from a value
 //   - ApS: Attach a value using applicative style
 //
-// **Lens-Based Operations**:
+// Lens-Based Operations:
 //   - BindL: Bind using a lens
 //   - LetL: Let using a lens
 //   - LetToL: LetTo using a lens
 //   - ApSL: ApS using a lens
 //
-// **Collections**:
+// Collections:
 //   - TraverseArray: Transform array elements into lazy computations
 //   - SequenceArray: Convert array of lazy computations to lazy array
 //   - TraverseRecord: Transform record values into lazy computations
 //   - SequenceRecord: Convert record of lazy computations to lazy record
 //
-// **Tuples**:
+// Tuples:
 //   - SequenceT1, SequenceT2, SequenceT3, SequenceT4: Combine lazy computations into tuples
 //
-// **Retry**:
+// Retry:
 //   - Retrying: Retry a computation according to a policy
 //
-// **Algebraic**:
+// Algebraic:
 //   - ApplySemigroup: Create a semigroup for lazy values
 //   - ApplicativeMonoid: Create a monoid for lazy values
 //   - Eq: Create an equality predicate for lazy values

@@ -24,6 +24,7 @@ import (
 	RIOH "github.com/IBM/fp-go/v2/context/readerioresult/http"
 	F "github.com/IBM/fp-go/v2/function"
 	HT "github.com/IBM/fp-go/v2/http"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	"github.com/IBM/fp-go/v2/result"
 )
 
@@ -62,7 +63,7 @@ func ExampleReadFullResponse_accessingComponents() {
 		result.Map(F.Flow2(
 			HT.Response,
 			func(r *H.Response) bool {
-				return r.Header.Get("Content-Type") != ""
+				return r.Header.Get(HD.ContentType) != ""
 			},
 		)),
 	)

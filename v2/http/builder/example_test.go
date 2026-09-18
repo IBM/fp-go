@@ -159,7 +159,7 @@ func ExampleHeader() {
 	fmt.Println(accept.Get(Default))
 
 	// Output:
-	// HttpHeader[Accept]
+	// HttpHeader[accept]
 	// Some[string](application/json)
 	// None[string]
 	// None[string]

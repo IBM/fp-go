@@ -11,7 +11,7 @@ import "github.com/IBM/fp-go/v2/monoid"
 //   - Accumulating validation errors when any decoder fails
 //   - Building complex decoders from simpler ones through composition
 //
-// **Behavior**:
+// Behavior:
 //   - Empty: Returns a decoder that always succeeds with the empty value from the inner monoid
 //   - Concat: Combines two decoders:
 //   - Both succeed: Combines decoded values using the inner monoid
@@ -99,14 +99,14 @@ func ApplicativeMonoid[I, A any](m Monoid[A]) Monoid[Decode[I, A]] {
 //   - Accumulate all errors from failed attempts
 //   - Build decoding pipelines with fallback logic
 //
-// **Behavior**:
+// Behavior:
 //   - Empty: Returns a decoder that always succeeds with the empty value from the inner monoid
 //   - Concat: Combines two decoders using both applicative and alternative semantics:
 //   - If first succeeds and second succeeds: combines decoded values using inner monoid
 //   - If first fails: tries second as fallback (alternative behavior)
-//   - If both fail: **accumulates all errors from both decoders**
+//   - If both fail: accumulates all errors from both decoders
 //
-// **Error Aggregation**: When both decoders fail, all validation errors from both attempts
+// Error Aggregation: When both decoders fail, all validation errors from both attempts
 // are combined using the Errors monoid. This provides complete visibility into why all
 // alternatives failed, which is essential for debugging and user feedback.
 //
@@ -229,14 +229,14 @@ func AlternativeMonoid[I, A any](m Monoid[A]) Monoid[Decode[I, A]] {
 // for decoding scenarios where you want to attempt multiple decoding strategies in sequence
 // and use the first one that succeeds.
 //
-// **Behavior**:
+// Behavior:
 //   - Empty: Returns the provided zero value (a lazy computation that produces a Decode[I, A])
 //   - Concat: Combines two decoders using Alt semantics:
 //   - If first succeeds: returns the first result (second is never evaluated)
 //   - If first fails: tries the second decoder as fallback
-//   - If both fail: **aggregates errors from both decoders**
+//   - If both fail: aggregates errors from both decoders
 //
-// **Error Aggregation**: When both decoders fail, all validation errors from both attempts
+// Error Aggregation: When both decoders fail, all validation errors from both attempts
 // are combined using the Errors monoid. This ensures complete visibility into why all
 // alternatives failed.
 //

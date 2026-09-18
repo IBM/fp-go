@@ -114,26 +114,28 @@ func ContraMap[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context])
 //
 //	import (
 //	    "context"
+//	    CR "github.com/IBM/fp-go/v2/context/reader"
 //	    G "github.com/IBM/fp-go/v2/io"
 //	    F "github.com/IBM/fp-go/v2/function"
+//	    O "github.com/IBM/fp-go/v2/option"
 //	)
+//
+//	type ctxKey string
+//	const configKey ctxKey = "config"
 //
 //	// Context transformation with side effects (e.g., loading config)
 //	loadConfig := func(ctx context.Context) G.IO[ContextCancel] {
 //	    return func() ContextCancel {
 //	        // Simulate loading configuration
 //	        config := loadConfigFromFile()
-//	        newCtx := context.WithValue(ctx, "config", config)
-//	        return pair.MakePair[context.CancelFunc](func() {}, newCtx)
+//	        return CR.NopCancel(CR.WithValue[string](configKey)(config)(ctx))
 //	    }
 //	}
 //
-//	getValue := readerio.FromReader(func(ctx context.Context) string {
-//	    if cfg := ctx.Value("config"); cfg != nil {
-//	        return cfg.(string)
-//	    }
-//	    return "default"
-//	})
+//	getValue := F.Pipe1(
+//	    readerio.AskValue[string](configKey),
+//	    readerio.Map(O.GetOrElse(F.Constant("default"))),
+//	)
 //
 //	result := F.Pipe1(
 //	    getValue,

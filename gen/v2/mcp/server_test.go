@@ -119,6 +119,11 @@ func TestHandleUseSkill(t *testing.T) {
 			shouldError: false,
 		},
 		{
+			name:        "valid skill - fp-go-context",
+			skillName:   "fp-go-context",
+			shouldError: false,
+		},
+		{
 			name:        "valid skill - fp-go-http",
 			skillName:   "fp-go-http",
 			shouldError: false,

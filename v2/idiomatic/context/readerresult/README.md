@@ -102,29 +102,41 @@ result, err := TransferFunds(100, 200, 50.0)(ctx) // May be interrupted
 
 #### 3. **Context Values for Request Tracing**
 ```go
+type ctxKey string
+
+const (
+    traceIDKey ctxKey = "trace-id"
+    debugKey   ctxKey = "debug"
+)
+
 // Context values affect logging and tracing behavior
 func ProcessOrder(orderID string) ReaderResult[Order] {
     return func(ctx context.Context) (Order, error) {
-        // Extract trace ID from context (mutable state)
-        traceID := ctx.Value("trace-id")
+        // Extract typed values from context (Option, never panics)
+        traceID, _ := AskValue[string](traceIDKey)(ctx)
+        debug, _ := AskValue[bool](debugKey)(ctx)
         log.Printf("[%v] Processing order %s", traceID, orderID)
-        
+
         // The same function behaves differently based on context values
-        if ctx.Value("debug") == true {
+        if O.GetOrElse(F.Constant(false))(debug) {
             log.Printf("[%v] Debug mode: detailed order processing", traceID)
         }
-        
+
         return fetchOrder(ctx, orderID)
     }
 }
 
-// Different contexts = different tracing behavior
-ctx1 := context.WithValue(context.Background(), "trace-id", "req-001")
-order1, _ := ProcessOrder("ORD-123")(ctx1) // Logs with trace-id: req-001
+// Different contexts = different tracing behavior; WithValue scopes a value to one computation
+order1, _ := F.Pipe1(
+    ProcessOrder("ORD-123"),
+    WithValue[Order](traceIDKey, "req-001"),
+)(context.Background()) // Logs with trace-id: req-001
 
-ctx2 := context.WithValue(context.Background(), "trace-id", "req-002")
-ctx2 = context.WithValue(ctx2, "debug", true)
-order2, _ := ProcessOrder("ORD-123")(ctx2) // Logs with trace-id: req-002 + debug info
+order2, _ := F.Pipe2(
+    ProcessOrder("ORD-123"),
+    WithValue[Order](traceIDKey, "req-002"),
+    WithValue[Order](debugKey, true),
+)(context.Background()) // Logs with trace-id: req-002 + debug info
 ```
 
 #### 4. **Parallel Operations with Shared Cancellation**
@@ -335,9 +347,8 @@ func TestGetUserWithPosts(t *testing.T) {
     // Test the composition logic without executing side effects
     pipeline := GetUserWithPosts(123)
     
-    // Can test with a mock context that provides test data
-    testCtx := context.WithValue(context.Background(), "test", true)
-    result, err := pipeline(testCtx)
+    // Can test with a context that provides test data
+    result, err := F.Pipe1(pipeline, WithValue[UserWithPosts](testModeKey, true))(t.Context())
     
     // Or test individual components in isolation
     mockGetUser := func(id int) ReaderResult[User] {

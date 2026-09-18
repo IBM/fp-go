@@ -181,9 +181,9 @@ Comparing maps:
 
 Eq instances should satisfy the following laws:
 
-1. Reflexivity: For all x, Equals(x, x) = true
-2. Symmetry: For all x, y, Equals(x, y) = Equals(y, x)
-3. Transitivity: If Equals(x, y) and Equals(y, z), then Equals(x, z)
+ 1. Reflexivity: For all x, Equals(x, x) = true
+ 2. Symmetry: For all x, y, Equals(x, y) = Equals(y, x)
+ 3. Transitivity: If Equals(x, y) and Equals(y, z), then Equals(x, z)
 
 These laws ensure that Eq behaves as a proper equivalence relation.
 

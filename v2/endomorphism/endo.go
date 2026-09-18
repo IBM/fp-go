@@ -458,11 +458,11 @@ func Join[A any](f Kleisli[A]) Endomorphism[A] {
 //
 // # Use Cases
 //
-//  1. **Testing**: Apply multiple transformations to the same test value
-//  2. **Configuration**: Create variations of a base configuration
-//  3. **Data Processing**: Evaluate different processing pipelines on the same data
-//  4. **Benchmarking**: Compare different endomorphisms on the same input
-//  5. **Functional Composition**: Build evaluation contexts for composed operations
+//  1. Testing: Apply multiple transformations to the same test value
+//  2. Configuration: Create variations of a base configuration
+//  3. Data Processing: Evaluate different processing pipelines on the same data
+//  4. Benchmarking: Compare different endomorphisms on the same input
+//  5. Functional Composition: Build evaluation contexts for composed operations
 //
 // # Relationship to Other Functions
 //

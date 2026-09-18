@@ -43,6 +43,9 @@ import (
 //	roFunc := readeroption.From0(getConfig)
 //	ro := roFunc() // Returns a ReaderOption[context.Context, Config]
 //	result := ro(ctx) // Returns option.Some(config) or option.None()
+//
+// Note: for reading context values, context/reader.AskValue[Config](key) already
+// is a ReaderOption[context.Context, Config].
 func From0[R, A any](f func(R) (A, bool)) func() ReaderOption[R, A] {
 	return G.From0[ReaderOption[R, A]](f)
 }

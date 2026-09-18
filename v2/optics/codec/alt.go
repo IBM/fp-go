@@ -50,9 +50,9 @@ import (
 //
 // # Behavior
 //
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
 //
 // # Notes
 //
@@ -106,16 +106,16 @@ func validateAlt[A, O, I any](
 //
 // # Behavior
 //
-// **Validation**:
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
+// Validation:
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
 //
-// **Encoding**:
+// Encoding:
 //   - Always uses the first codec's encoder
 //   - This assumes both codecs encode to the same output format
 //
-// **Type Checking**:
+// Type Checking:
 //   - Uses the generic Is[A]() type checker
 //   - Validates that values are of type A
 //
@@ -212,9 +212,9 @@ func MonadAlt[A, O, I any](first Type[A, O, I], second Lazy[Type[A, O, I]]) Type
 // # Behavior
 //
 // When the returned operator is applied to a codec:
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
 //
 // # Example: Point-Free Style
 //
@@ -305,11 +305,11 @@ func Alt[A, O, I any](second Lazy[Type[A, O, I]]) Operator[A, A, O, I] {
 //
 // The AltMonoid implements a "first success wins" strategy:
 //
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
-//   - **Concat with Empty**: The zero codec is used as fallback
-//   - **Encoding**: Always uses the first codec's encoder
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
+//   - Concat with Empty: The zero codec is used as fallback
+//   - Encoding: Always uses the first codec's encoder
 //
 // # Example: Configuration Loading with Fallbacks
 //
@@ -441,9 +441,9 @@ func Alt[A, O, I any](second Lazy[Type[A, O, I]]) Operator[A, A, O, I] {
 //
 // AltMonoid satisfies the monoid laws:
 //
-//  1. **Left Identity**: m.Concat(m.Empty(), codec) ≡ codec
-//  2. **Right Identity**: m.Concat(codec, m.Empty()) ≡ codec (tries codec first, falls back to zero)
-//  3. **Associativity**: m.Concat(m.Concat(a, b), c) ≡ m.Concat(a, m.Concat(b, c))
+//  1. Left Identity: m.Concat(m.Empty(), codec) ≡ codec
+//  2. Right Identity: m.Concat(codec, m.Empty()) ≡ codec (tries codec first, falls back to zero)
+//  3. Associativity: m.Concat(m.Concat(a, b), c) ≡ m.Concat(a, m.Concat(b, c))
 //
 // Note: Due to the "first success wins" behavior, right identity means the zero is only
 // used if the codec fails.

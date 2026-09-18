@@ -166,12 +166,12 @@ import (
 //
 // # Advantages of Endomorphism Builder Pattern
 //
-//  1. **Composability**: Builders can be composed using monoid operations
-//  2. **Immutability**: Each transformation returns a new value (if implemented immutably)
-//  3. **Type Safety**: The type system ensures all transformations work on the same type
-//  4. **Reusability**: Individual builder functions can be reused and combined differently
-//  5. **Testability**: Each transformation can be tested independently
-//  6. **Declarative**: The composition clearly expresses the building process
+//  1. Composability: Builders can be composed using monoid operations
+//  2. Immutability: Each transformation returns a new value (if implemented immutably)
+//  3. Type Safety: The type system ensures all transformations work on the same type
+//  4. Reusability: Individual builder functions can be reused and combined differently
+//  5. Testability: Each transformation can be tested independently
+//  6. Declarative: The composition clearly expresses the building process
 //
 // # Comparison with Traditional Builder Pattern
 //
@@ -287,11 +287,11 @@ func Build[A any](e Endomorphism[A]) A {
 //
 // # Use Cases
 //
-//  1. **Pipeline Construction**: Build transformation pipelines from individual steps
-//  2. **Configuration Building**: Combine multiple configuration setters
-//  3. **Data Transformation**: Chain multiple data transformations
-//  4. **Middleware Composition**: Combine middleware functions
-//  5. **Validation Chains**: Compose multiple validation functions
+//  1. Pipeline Construction: Build transformation pipelines from individual steps
+//  2. Configuration Building: Combine multiple configuration setters
+//  3. Data Transformation: Chain multiple data transformations
+//  4. Middleware Composition: Combine middleware functions
+//  5. Validation Chains: Compose multiple validation functions
 func ConcatAll[T any](es []Endomorphism[T]) Endomorphism[T] {
 	return A.Reduce(es, MonadCompose[T], function.Identity[T])
 }
@@ -395,11 +395,11 @@ func ConcatAll[T any](es []Endomorphism[T]) Endomorphism[T] {
 //
 // # Use Cases
 //
-//  1. **Sequential Processing**: Apply transformations in order
-//  2. **Pipeline Execution**: Execute a pipeline from start to finish
-//  3. **Builder Pattern**: Build objects step by step
-//  4. **State Machines**: Apply state transitions in sequence
-//  5. **Data Flow**: Transform data through multiple stages
+//  1. Sequential Processing: Apply transformations in order
+//  2. Pipeline Execution: Execute a pipeline from start to finish
+//  3. Builder Pattern: Build objects step by step
+//  4. State Machines: Apply state transitions in sequence
+//  5. Data Flow: Transform data through multiple stages
 func Reduce[T any](es []Endomorphism[T]) T {
 	var t T
 	return A.Reduce(es, func(t T, e Endomorphism[T]) T { return e(t) }, t)

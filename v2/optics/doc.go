@@ -53,7 +53,7 @@ With optics, this becomes:
 
 # Core Optics Types
 
-## Lens - Product Types (Structs)
+# Lens - Product Types (Structs)
 
 A Lens focuses on a single field within a struct. It provides get and set operations
 that maintain immutability.
@@ -75,12 +75,12 @@ that maintain immutability.
 	name := nameLens.Get(person)           // "Alice"
 	updated := nameLens.Set("Bob")(person) // Person{Name: "Bob", Age: 30}
 
-**Use lenses when:**
+Use lenses when:
   - Working with struct fields
   - The field always exists
   - You need both read and write access
 
-## Prism - Sum Types (Variants)
+# Prism - Sum Types (Variants)
 
 A Prism focuses on one variant of a sum type. It provides optional get (the variant
 may not match) and definite set operations.
@@ -102,12 +102,12 @@ may not match) and definite set operations.
 	result := Success{Value: 42}
 	value := successPrism.GetOption(result) // Some(42)
 
-**Use prisms when:**
+Use prisms when:
   - Working with sum types (Either, Result, etc.)
   - The value may not be the expected variant
   - You need to match on specific cases
 
-## Iso - Isomorphisms
+# Iso - Isomorphisms
 
 An Iso represents a bidirectional transformation between two equivalent types with
 no information loss.
@@ -120,25 +120,25 @@ no information loss.
 	fahrenheit := celsiusToFahrenheit.Get(20.0)        // 68.0
 	celsius := celsiusToFahrenheit.ReverseGet(68.0)    // 20.0
 
-**Use isos when:**
+Use isos when:
   - Converting between equivalent representations
   - Wrapping/unwrapping newtypes
   - Encoding/decoding data
 
-## Optional - Maybe Values
+# Optional - Maybe Values
 
 An Optional focuses on a value that may or may not exist, similar to Option[A].
 
-**Use optionals when:**
+Use optionals when:
   - Working with nullable fields
   - The value may be absent
   - You need to handle the None case
 
-## Traversal - Multiple Values
+# Traversal - Multiple Values
 
 A Traversal focuses on multiple values simultaneously, allowing batch operations.
 
-**Use traversals when:**
+Use traversals when:
   - Working with collections
   - Updating multiple fields at once
   - Applying transformations to all matching elements
@@ -242,16 +242,16 @@ This means:
 
 Each optic type must satisfy specific laws to ensure correct behavior:
 
-**Lens Laws:**
+Lens Laws:
  1. GetSet: lens.Set(lens.Get(s))(s) == s
  2. SetGet: lens.Get(lens.Set(a)(s)) == a
  3. SetSet: lens.Set(a2)(lens.Set(a1)(s)) == lens.Set(a2)(s)
 
-**Prism Laws:**
+Prism Laws:
  1. GetOptionReverseGet: prism.GetOption(prism.ReverseGet(a)) == Some(a)
  2. ReverseGetGetOption: if GetOption(s) == Some(a), then ReverseGet(a) == s
 
-**Iso Laws:**
+Iso Laws:
  1. RoundTrip1: iso.ReverseGet(iso.Get(s)) == s
  2. RoundTrip2: iso.Get(iso.ReverseGet(a)) == a
 
@@ -354,11 +354,11 @@ All optics are fully type-safe:
 
 # Getting Started
 
-1. Choose the right optic for your data structure
-2. Create basic optics for your types
-3. Compose optics for nested access
-4. Use Modify for transformations
-5. Leverage the optics hierarchy when needed
+ 1. Choose the right optic for your data structure
+ 2. Create basic optics for your types
+ 3. Compose optics for nested access
+ 4. Use Modify for transformations
+ 5. Leverage the optics hierarchy when needed
 
 # Further Reading
 

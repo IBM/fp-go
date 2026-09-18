@@ -2,6 +2,8 @@
 
 This document provides guidelines for AI agents working on the fp-go/v2 project.
 
+**Scope:** All changes go into `v2` only. The v1 code in the repository root (everything outside `v2/`) is frozen and must not be modified, even when a change to v2 would also apply to it.
+
 ## Table of Contents
 
 - [Documentation Standards](#documentation-standards)
@@ -14,6 +16,8 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
 - [Code Style](#code-style)
   - [Functional Patterns](#functional-patterns)
   - [Error Handling](#error-handling)
+  - [HTTP Header Names](#http-header-names)
+  - [HTTP Media Types](#http-media-types)
 - [Checklist for New Code](#checklist-for-new-code)
 
 ## Documentation Standards
@@ -311,6 +315,30 @@ func TestFromReaderResult_Success(t *testing.T) {
    - Check error context is preserved
    - Test error accumulation when applicable
 
+### HTTP Header Names
+
+1. **Always use lower case header names**
+   - HTTP/2 ([RFC 9113, Section 8.2.2](https://www.rfc-editor.org/rfc/rfc9113#section-8.2.2)) and HTTP/3 ([RFC 9114, Section 4.2](https://www.rfc-editor.org/rfc/rfc9114#section-4.2)) require field names to be lower case
+   - Header name constants must be lower case: `ContentType = "content-type"`, not `"Content-Type"`
+   - Reference the RFCs in the doc comment of header name constants
+
+2. **Use the header name constants from `http/headers`**
+   - In production code, unit tests, examples, doc comments and Markdown docs, write `HD.ContentType`, `HD.Accept`, `HD.Authorization`, ... (import `HD "github.com/IBM/fp-go/v2/http/headers"`) instead of string literals such as `"Content-Type"`
+   - If a header you need is missing, add it to `http/headers/headers.go` (lower case, documented) rather than using a literal
+   - Literals are only acceptable for custom test headers (e.g. `"X-Custom"`) or tests that specifically verify case-insensitive lookup
+
+3. **Access headers in a case-insensitive way**
+   - Use `http.Header.Get`/`Set`/`Values` or the lenses in `http/headers` (`AtValue`, `AtValues`), which canonicalize the key
+   - Do NOT index an `http.Header` map directly (e.g. `h[name]` or `record.Lookup(name)`), since Go stores keys in canonical MIME form
+
+### HTTP Media Types
+
+1. **Use the media type constants from `http/content`**
+   - In production code, unit tests, examples, doc comments and Markdown docs, write `C.JSON`, `C.TextPlain`, `C.FormEncoded`, `C.MultipartFormData`, ... (import `C "github.com/IBM/fp-go/v2/http/content"`) instead of string literals such as `"application/json"`
+   - If a media type you need is missing, add it to `http/content/content.go` with a doc comment that references its defining RFC or specification, and add it to `allMediaTypes` in `content_test.go`
+   - The constants are bare media types without parameters; append parameters explicitly (e.g. `mime.FormatMediaType(C.JSON, map[string]string{"charset": "utf-8"})`)
+   - Literals are only acceptable for values with parameters that are themselves under test (e.g. inputs to `ParseMediaType`) and in prose that describes raw values
+
 ## Checklist for New Code
 
 - [ ] Apache 2.0 license header included
@@ -328,3 +356,5 @@ func TestFromReaderResult_Success(t *testing.T) {
 - [ ] All tests pass
 - [ ] Code uses functional composition patterns
 - [ ] Error handling preserves context and causes
+- [ ] HTTP header name constants are lower case (HTTP/2 and HTTP/3 requirement) and used instead of string literals
+- [ ] HTTP media types use the constants from `http/content` instead of string literals

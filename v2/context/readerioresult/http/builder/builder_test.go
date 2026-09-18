@@ -26,6 +26,8 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
+	C "github.com/IBM/fp-go/v2/http/content"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	IO "github.com/IBM/fp-go/v2/io"
 	"github.com/stretchr/testify/assert"
 )
@@ -100,7 +102,7 @@ func TestBuilderWithBody(t *testing.T) {
 	assert.Equal(t, "POST", req.Method)
 	assert.Equal(t, "https://api.example.com/users", req.URL.String())
 	assert.NotNil(t, req.Body, "Expected non-nil body for POST request")
-	assert.Equal(t, "24", req.Header.Get("Content-Length"))
+	assert.Equal(t, "24", req.Header.Get(HD.ContentLength))
 }
 
 // TestBuilderWithBodyRepeatable tests that executing a requester repeatedly
@@ -131,17 +133,17 @@ func TestBuilderHeadersAreIsolated(t *testing.T) {
 	builder := F.Pipe2(
 		R.Default,
 		R.WithURL("https://api.example.com/data"),
-		R.WithHeader("Accept")("application/json"),
+		R.WithHeader(HD.Accept)(C.JSON),
 	)
 
 	req := E.GetOrElse(func(error) *http.Request { return nil })(Requester(builder)(t.Context())())
 	assert.NotNil(t, req, "Expected non-nil request")
 
-	req.Header.Set("X-Request-ID", "12345")
-	req.Header.Add("Accept", "text/plain")
+	req.Header.Set(HD.XRequestID, "12345")
+	req.Header.Add(HD.Accept, C.TextPlain)
 
-	assert.Empty(t, builder.GetHeaders().Get("X-Request-ID"))
-	assert.Equal(t, []string{"application/json"}, builder.GetHeaderValues("Accept"))
+	assert.Empty(t, builder.GetHeaders().Get(HD.XRequestID))
+	assert.Equal(t, []string{C.JSON}, builder.GetHeaderValues(HD.Accept))
 }
 
 // TestBuilderWithHeaders tests that headers are properly set
@@ -149,8 +151,8 @@ func TestBuilderWithHeaders(t *testing.T) {
 	builder := F.Pipe3(
 		R.Default,
 		R.WithURL("https://api.example.com/data"),
-		R.WithHeader("Authorization")("Bearer token123"),
-		R.WithHeader("Accept")("application/json"),
+		R.WithHeader(HD.Authorization)("Bearer token123"),
+		R.WithHeader(HD.Accept)(C.JSON),
 	)
 
 	requester := Requester(builder)
@@ -160,8 +162,8 @@ func TestBuilderWithHeaders(t *testing.T) {
 
 	req := E.GetOrElse(func(error) *http.Request { return nil })(result)
 	assert.NotNil(t, req, "Expected non-nil request")
-	assert.Equal(t, "Bearer token123", req.Header.Get("Authorization"))
-	assert.Equal(t, "application/json", req.Header.Get("Accept"))
+	assert.Equal(t, "Bearer token123", req.Header.Get(HD.Authorization))
+	assert.Equal(t, C.JSON, req.Header.Get(HD.Accept))
 }
 
 // TestBuilderWithInvalidURL tests error handling for invalid URLs
@@ -223,7 +225,7 @@ func TestBuilderWithBodyAndHeaders(t *testing.T) {
 		R.WithURL("https://api.example.com/submit"),
 		R.WithMethod("PUT"),
 		R.WithBytes(bodyData),
-		R.WithHeader("X-Request-ID")("12345"),
+		R.WithHeader(HD.XRequestID)("12345"),
 	)
 
 	requester := Requester(builder)
@@ -235,8 +237,8 @@ func TestBuilderWithBodyAndHeaders(t *testing.T) {
 	assert.NotNil(t, req, "Expected non-nil request")
 	assert.Equal(t, "PUT", req.Method)
 	assert.NotNil(t, req.Body, "Expected non-nil body")
-	assert.Equal(t, "12345", req.Header.Get("X-Request-ID"))
-	assert.Equal(t, "15", req.Header.Get("Content-Length"))
+	assert.Equal(t, "12345", req.Header.Get(HD.XRequestID))
+	assert.Equal(t, "15", req.Header.Get(HD.ContentLength))
 }
 
 // TestBuilderContextCancellation tests that context cancellation is respected
@@ -306,7 +308,7 @@ func TestBuilderWithJSON(t *testing.T) {
 	assert.NotNil(t, req, "Expected non-nil request")
 	assert.Equal(t, "POST", req.Method)
 	assert.Equal(t, "https://api.example.com/v1/users", req.URL.String())
-	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+	assert.Equal(t, C.JSON, req.Header.Get(HD.ContentType))
 	assert.NotNil(t, req.Body)
 }
 
@@ -325,5 +327,5 @@ func TestBuilderWithBearer(t *testing.T) {
 
 	req := E.GetOrElse(func(error) *http.Request { return nil })(result)
 	assert.NotNil(t, req, "Expected non-nil request")
-	assert.Equal(t, "Bearer my-secret-token", req.Header.Get("Authorization"))
+	assert.Equal(t, "Bearer my-secret-token", req.Header.Get(HD.Authorization))
 }

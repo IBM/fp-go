@@ -60,11 +60,11 @@ func Curry1[R, T1, A any](f func(R, T1) A) Kleisli[R, T1, A] {
 // The Curry functions in this package follow a specific direction that bridges Go conventions
 // with functional programming conventions:
 //
-// **Input (Go Convention)**: Functions with context as the FIRST parameter
+// Input (Go Convention): Functions with context as the FIRST parameter
 //   - func(Context, T1, T2, ...) Result
 //   - This follows Go's standard practice (https://pkg.go.dev/context)
 //
-// **Output (FP Convention)**: Curried functions with context as the LAST parameter (Reader position)
+// Output (FP Convention): Curried functions with context as the LAST parameter (Reader position)
 //   - func(T1) func(T2) ... Reader[Context, Result]
 //   - This follows the Reader monad convention where context is the final parameter
 //
@@ -119,10 +119,10 @@ func Curry1[R, T1, A any](f func(R, T1) A) Kleisli[R, T1, A] {
 //
 // # Use Cases
 //
-//  1. **Dependency Injection**: Provide dependencies (context) at the end
-//  2. **Configuration**: Build operations first, configure later
-//  3. **Testing**: Create testable functions that receive mocked context last
-//  4. **Composition**: Compose operations before providing shared context
+//  1. Dependency Injection: Provide dependencies (context) at the end
+//  2. Configuration: Build operations first, configure later
+//  3. Testing: Create testable functions that receive mocked context last
+//  4. Composition: Compose operations before providing shared context
 //
 // # Related Functions
 //

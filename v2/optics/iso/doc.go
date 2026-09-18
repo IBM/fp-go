@@ -260,15 +260,15 @@ Transform both directions of an isomorphism:
 
 # Isomorphisms vs Lenses
 
-While both are optics, they serve different purposes:
+While both are optics, they serve different purposes.
 
-**Isomorphisms:**
+Isomorphisms:
   - Represent complete, reversible transformations
   - No information loss
   - Both directions are equally important
   - Example: Celsius ↔ Fahrenheit
 
-**Lenses:**
+Lenses:
   - Focus on a part of a larger structure
   - Information loss when setting (other fields unchanged)
   - Asymmetric (get vs set)
@@ -309,29 +309,29 @@ Convenience Functions:
 
 The package provides several ready-to-use isomorphisms for common transformations:
 
-**String and Byte Conversions:**
+String and Byte Conversions:
   - UTF8String: []byte ↔ string (UTF-8 encoding)
   - Lines: []string ↔ string (newline-separated text)
 
-**Time Conversions:**
+Time Conversions:
   - UnixMilli: int64 ↔ time.Time (Unix millisecond timestamps)
 
-**Numeric Operations:**
+Numeric Operations:
   - Add[T]: T ↔ T (shift by constant addition)
   - Sub[T]: T ↔ T (shift by constant subtraction)
 
-**Collection Operations:**
+Collection Operations:
   - ReverseArray[A]: []A ↔ []A (reverse slice order, self-inverse)
   - Head[A]: A ↔ NonEmptyArray[A] (singleton array conversion)
 
-**Pair and Either Operations:**
+Pair and Either Operations:
   - SwapPair[A, B]: Pair[A, B] ↔ Pair[B, A] (swap pair elements, self-inverse)
   - SwapEither[E, A]: Either[E, A] ↔ Either[A, E] (swap Either types, self-inverse)
 
-**Option Conversions (optics/iso/option):**
+Option Conversions (optics/iso/option):
   - FromZero[T]: T ↔ Option[T] (zero value ↔ None, non-zero ↔ Some)
 
-**Lens Conversions (optics/iso/lens):**
+Lens Conversions (optics/iso/lens):
   - IsoAsLens: Convert Iso[S, A] to Lens[S, A]
   - IsoAsLensRef: Convert Iso[*S, A] to Lens[*S, A]
 
@@ -364,10 +364,10 @@ Example usage of built-in isomorphisms:
 
 # Related Packages
 
-  - github.com/IBM/fp-go/v2/optics/lens: Lenses for focusing on parts of structures
-  - github.com/IBM/fp-go/v2/optics/prism: Prisms for sum types
-  - github.com/IBM/fp-go/v2/optics/optional: Optional optics
-  - github.com/IBM/fp-go/v2/function: Function composition utilities
-  - github.com/IBM/fp-go/v2/endomorphism: Endomorphisms (A → A functions)
+  - [github.com/IBM/fp-go/v2/optics/lens]: Lenses for focusing on parts of structures
+  - [github.com/IBM/fp-go/v2/optics/prism]: Prisms for sum types
+  - [github.com/IBM/fp-go/v2/optics/optional]: Optional optics
+  - [github.com/IBM/fp-go/v2/function]: Function composition utilities
+  - [github.com/IBM/fp-go/v2/endomorphism]: Endomorphisms (A → A functions)
 */
 package iso

@@ -50,17 +50,17 @@
 //
 // The idiomatic packages follow these design principles:
 //
-// 1. Native Go Idioms: Use Go's built-in patterns (tuples, error handling)
-// 2. Zero-Cost Abstraction: No runtime overhead for functional patterns
-// 3. Composability: All operations compose naturally with standard Go code
-// 4. Familiarity: API feels natural to Go developers
-// 5. Type Safety: Full compile-time type checking
+//  1. Native Go Idioms: Use Go's built-in patterns (tuples, error handling)
+//  2. Zero-Cost Abstraction: No runtime overhead for functional patterns
+//  3. Composability: All operations compose naturally with standard Go code
+//  4. Familiarity: API feels natural to Go developers
+//  5. Type Safety: Full compile-time type checking
 //
 // # Subpackages
 //
 // The idiomatic package includes three main subpackages:
 //
-// ## idiomatic/option
+// # idiomatic/option
 //
 // Implements the Option monad using (value, bool) tuples where the boolean indicates
 // presence (true) or absence (false). This is similar to Go's map lookup pattern.
@@ -88,7 +88,7 @@
 //	// Pattern matching
 //	value := option.GetOrElse(lazy.Of(0))(some)  // 42
 //
-// ## idiomatic/result
+// # idiomatic/result
 //
 // Implements the Either/Result monad using (value, error) tuples, leveraging Go's standard
 // error handling pattern. By convention, (value, nil) represents success and (zero, error)
@@ -126,7 +126,7 @@
 //	    // handle error
 //	}
 //
-// ## idiomatic/ioresult
+// # idiomatic/ioresult
 //
 // Implements the IOResult monad using func() (value, error) for IO operations that can fail.
 // This combines IO effects (side-effectful operations) with Go's standard error handling pattern.
@@ -286,7 +286,7 @@
 //
 // # Common Patterns
 //
-// ## Pipeline Composition
+// # Pipeline Composition
 //
 // Build complex data transformations using function composition:
 //
@@ -302,7 +302,7 @@
 //	    result.Map(format),
 //	)
 //
-// ## IO Pipeline with IOResult
+// # IO Pipeline with IOResult
 //
 // Compose IO operations that may fail:
 //
@@ -339,7 +339,7 @@
 //	    log.Fatal(err)
 //	}
 //
-// ## Error Accumulation with Validation
+// # Error Accumulation with Validation
 //
 // The idiomatic/result package supports validation patterns for accumulating multiple errors:
 //
@@ -352,7 +352,7 @@
 //	}
 //	allErrors := result.ValidationErrors(results)
 //
-// ## Working with Collections
+// # Working with Collections
 //
 // Transform arrays while handling errors or missing values:
 //

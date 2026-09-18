@@ -318,15 +318,12 @@ func LocalEffectK[A, C1, C2 any](f Kleisli[C2, C2, C1]) func(Effect[C1, A]) Effe
 //		Port int
 //	}
 //
-//	// Extract config from runtime context and transform
-//	extractConfig := func(path string) reader.Reader[DetailedConfig] {
-//		return func(ctx context.Context) DetailedConfig {
-//			if cfg, ok := ctx.Value(configKey).(DetailedConfig); ok {
-//				return cfg
-//			}
-//			return DetailedConfig{Host: "localhost", Port: 8080}
-//		}
-//	}
+//	// Extract config from the context, falling back to a default
+//	getConfig := F.Flow2(
+//	    CR.AskValue[DetailedConfig](configKey),
+//	    O.GetOrElse(F.Constant(DetailedConfig{Host: "localhost", Port: 8080})),
+//	)
+//	extractConfig := F.Constant1[string](getConfig) // func(string) reader.Reader[DetailedConfig]
 //
 //	// Effect that uses DetailedConfig
 //	configEffect := effect.Of[DetailedConfig]("connected")
@@ -336,7 +333,7 @@ func LocalEffectK[A, C1, C2 any](f Kleisli[C2, C2, C1]) func(Effect[C1, A]) Effe
 //	pathEffect := transform(configEffect)
 //
 //	// Run with runtime context containing config
-//	ctx := context.WithValue(context.Background(), configKey, DetailedConfig{Host: "api.example.com", Port: 443})
+//	ctx := CR.WithValue[DetailedConfig](configKey)(DetailedConfig{Host: "api.example.com", Port: 443})(context.Background())
 //	ioResult := effect.Provide[string]("config.json")(pathEffect)
 //	readerResult := effect.RunSync(ioResult)
 //	result, err := readerResult(ctx) // Uses config from context

@@ -33,6 +33,8 @@
 //
 //	import (
 //	    B "github.com/IBM/fp-go/v2/http/builder"
+//	    C "github.com/IBM/fp-go/v2/http/content"
+//	    HD "github.com/IBM/fp-go/v2/http/headers"
 //	    F "github.com/IBM/fp-go/v2/function"
 //	)
 //
@@ -40,7 +42,7 @@
 //	builder := F.Pipe2(
 //	    B.Default,
 //	    B.WithURL("https://api.example.com/users"),
-//	    B.WithHeader("Accept")("application/json"),
+//	    B.WithHeader(HD.Accept)(C.JSON),
 //	)
 //
 //	// Build a POST request with JSON body

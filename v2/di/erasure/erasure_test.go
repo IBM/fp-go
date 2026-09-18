@@ -207,7 +207,7 @@ func TestMakeInjectorConcurrentResolution(t *testing.T) {
 	inj := MakeInjector(A.From(MakeProvider(dep, countingFactory(&count, "value"))))
 
 	var wg sync.WaitGroup
-	for i := 0; i < 64; i++ {
+	for range 64 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

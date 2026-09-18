@@ -404,3 +404,5 @@ import (
 | Do-notation with lens | `R.ApSL(lens, readerValue)` |
 | Access full environment | `R.Ask[Env]()` |
 | Access field of environment | `R.Asks(getX)` |
+| Read a `context.Context` value | `RIO.AskValue[V](key)` → `Option[V]` (not `ctx.Value(key).(V)`) |
+| Scope a value / timeout to a step | `RIO.WithValue[A](key, v)`, `RIO.WithTimeout[A](d)` as the last `Pipe` step |

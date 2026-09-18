@@ -254,20 +254,19 @@ level=INFO msg="[throwing]" name=fetchUser ID=3 duration=5ms error="user not fou
 Key properties:
 - **Correlation ID** (`ID=`) is unique per operation, monotonically increasing, and stored in the context so nested operations can access the parent's ID.
 - **Duration** (`duration=`) is measured from entry to exit.
-- **Logger is taken from the context** — embed a request-scoped logger with `logging.WithLogger` before executing the pipeline and `LogEntryExit` picks it up automatically.
+- **Logger is taken from the context** — scope a request-scoped logger to the pipeline with `RIO.Local[A](logging.WithLogger(l))` and `LogEntryExit` picks it up automatically.
 - **Level-aware** — if the logger does not have the log level enabled, the entire entry/exit instrumentation is skipped (zero overhead).
 - The original `ReaderIOResult[A]` value flows through **unchanged**.
 
 ```go
-// Use a context logger so all log messages carry request metadata
-cancelFn, ctxWithLogger := pair.Unpack(
-    logging.WithLogger(
-        slog.Default().With("requestID", r.Header.Get("X-Request-ID")),
-    )(r.Context()),
-)
-defer cancelFn()
+// Use a context logger so all log messages carry request metadata.
+// WithLogger returns exactly the ctx → Pair[CancelFunc, ctx] that Local expects.
+reqLogger := slog.Default().With("requestID", r.Header.Get("X-Request-ID"))
 
-value, err := result.Unwrap(pipeline(ctxWithLogger)())
+value, err := result.Unwrap(F.Pipe1(
+    pipeline,
+    RIO.Local[Data](logging.WithLogger(reqLogger)),
+)(r.Context())())
 ```
 
 ### `LogEntryExitWithCallback` — custom log level
@@ -326,25 +325,32 @@ Embed a `*slog.Logger` in a `context.Context` to carry request-scoped loggers ac
 
 ```go
 import (
+    RIO "github.com/IBM/fp-go/v2/context/readerioresult"
+    F   "github.com/IBM/fp-go/v2/function"
     "github.com/IBM/fp-go/v2/logging"
-    "github.com/IBM/fp-go/v2/pair"
     "log/slog"
 )
 
 // Create a request-scoped logger
 reqLogger := slog.Default().With("requestID", "abc-123")
 
-// Embed it into a context using the Kleisli arrow WithLogger
-cancelFn, ctxWithLogger := pair.Unpack(logging.WithLogger(reqLogger)(ctx))
-defer cancelFn()
+// Scope it to the pipeline: WithLogger is a ctx → Pair[CancelFunc, ctx] Kleisli arrow,
+// exactly the argument Local expects. All downstream logging (TapSLog, LogEntryExit, …)
+// inside the wrapped pipeline uses reqLogger.
+withReqLogger := RIO.Local[Data](logging.WithLogger(reqLogger))
 
-// All downstream logging (TapSLog, LogEntryExit, etc.) uses reqLogger
-value, err := result.Unwrap(pipeline(ctxWithLogger)())
+value, err := result.Unwrap(F.Pipe1(pipeline, withReqLogger)(ctx)())
 ```
 
-`WithLogger` returns a `ContextCancel = Pair[context.CancelFunc, context.Context]`. The cancel function is a no-op — the context is only enriched, not made cancellable.
+The same works for `context/readerio.Local`, `context/readerresult.Local` and `context/statereaderioresult.Local`.
 
-`GetLoggerFromContext` falls back to the global logger if no logger is found in the context.
+When a plain context is needed outside a pipeline (e.g. to hand to a non-fp-go API), unpack it; the cancel function is a no-op because the context is only enriched, not made cancellable:
+
+```go
+_, ctxWithLogger := pair.Unpack(logging.WithLogger(reqLogger)(ctx))
+```
+
+`GetLoggerFromContext` falls back to the global logger if no logger is found in the context. For general context-handling practice (keys, scoping, cancellation) see the `fp-go-context` skill. It has type `func(context.Context) *slog.Logger`, so it can be passed directly wherever a logger callback (`SLogWithCallback`, `LogEntryExitWithCallback`) is expected. For a logger stored under your own key, build the callback with `F.Flow2(CR.AskValue[*slog.Logger](myKey), O.GetOrElse(slog.Default))` rather than type-asserting `ctx.Value`.
 
 ## `LoggingCallbacks` — Dual-Logger Pattern
 
@@ -373,7 +379,7 @@ Used internally by `io.Logger` and by packages that need separate info/error sin
 | Entry/exit timing + correlation IDs | `RIO.LogEntryExit[A]("name")` |
 | Entry/exit at custom log level | `RIO.LogEntryExitWithCallback[A](level, cb, "name")` |
 | Structured logging globally | `logging.GetLogger()` / `logging.SetLogger()` |
-| Request-scoped logger in context | `logging.WithLogger(logger)` + `logging.GetLoggerFromContext(ctx)` |
+| Request-scoped logger in context | `RIO.Local[A](logging.WithLogger(logger))`; read it with `logging.GetLoggerFromContext` |
 | Custom `*log.Logger` in pipeline | `IO.Logger[A](logger)("prefix")` with `ChainFirstIOK` |
 
 ## Complete Example
@@ -389,7 +395,6 @@ import (
     F   "github.com/IBM/fp-go/v2/function"
     IO  "github.com/IBM/fp-go/v2/io"
     L   "github.com/IBM/fp-go/v2/logging"
-    P   "github.com/IBM/fp-go/v2/pair"
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     "github.com/IBM/fp-go/v2/result"
 )
@@ -398,22 +403,21 @@ func main() {
     // Configure JSON structured logging globally
     L.SetLogger(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
-    // Embed a request-scoped logger into the context
-    _, ctx := P.Unpack(L.WithLogger(
-        L.GetLogger().With("requestID", "req-001"),
-    )(context.Background()))
+    // Request-scoped logger, installed for the whole pipeline by the last step
+    reqLogger := L.GetLogger().With("requestID", "req-001")
 
-    pipeline := F.Pipe5(
+    pipeline := F.Pipe6(
         fetchData(42),
         RIO.LogEntryExit[Data]("fetchData"),                  // entry/exit with timing + ID
         RIO.TapSLog[Data]("raw data"),                        // inline structured value log
         RIO.ChainResultK(result.Eitherize1(transformData)),   // func(Data) (Out, error)
         RIO.LogEntryExit[Out]("transformData"),
         RIO.ChainFirstIOK(IO.LogGo[Out]("result: {{.Value}}")), // template log
+        RIO.Local[Out](L.WithLogger(reqLogger)),               // scope the logger to the pipeline
     )
 
     // pipeline(ctx)() is a single Result[Out]; unwrap it for idiomatic Go
-    value, err := result.Unwrap(pipeline(ctx)())
+    value, err := result.Unwrap(pipeline(context.Background())())
     if err != nil {
         L.GetLogger().Error("pipeline failed", "error", err)
     }

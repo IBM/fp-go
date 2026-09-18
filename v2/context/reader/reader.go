@@ -98,11 +98,24 @@
 //	    RequestID string
 //	}
 //
+//	type ctxKey string
+//	const (
+//	    userIDKey    ctxKey = "userID"
+//	    requestIDKey ctxKey = "requestID"
+//	)
+//
+//	// reads a string value, defaulting to "" if absent
+//	askString := func(key ctxKey) Reader[string] {
+//	    return F.Flow2(AskValue[string](key), O.GetOrElse(F.Constant("")))
+//	}
+//	getUserID := askString(userIDKey)
+//	getRequestID := askString(requestIDKey)
+//
 //	// Extract request context from context.Context
 //	getRequestContext := func(ctx context.Context) RequestContext {
 //	    return RequestContext{
-//	        UserID:    ctx.Value("userID").(string),
-//	        RequestID: ctx.Value("requestID").(string),
+//	        UserID:    getUserID(ctx),
+//	        RequestID: getRequestID(ctx),
 //	    }
 //	}
 //
@@ -161,13 +174,16 @@ import (
 //	    "github.com/IBM/fp-go/v2/context/reader"
 //	)
 //
-//	// Create a Kleisli arrow for adding a user ID to context
-//	setUserID := reader.WithValue[string, string]("userID")
+//	type ctxKey string
+//	const userIDKey ctxKey = "userID"
 //
-//	// Use it to create a context with a user ID
+//	// Create a Kleisli arrow for adding a user ID to context
+//	setUserID := reader.WithValue[string](userIDKey)
+//
+//	// Use it to create a context with a user ID, and read it back
 //	ctx := context.Background()
 //	newCtx := setUserID("user123")(ctx)
-//	userID := newCtx.Value("userID").(string) // "user123"
+//	userID := reader.AskValue[string](userIDKey)(newCtx) // Some("user123")
 //
 // Example: Chaining multiple context values
 //

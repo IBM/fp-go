@@ -581,22 +581,29 @@ func Alt[A any](second Lazy[ReaderResult[A]]) Operator[A, A] {
 // Returns:
 //   - An Operator that runs the computation with the transformed context
 //
+// For the common cases prefer the dedicated operators [WithValue], [WithTimeout]
+// and [WithDeadline], which are implemented in terms of Local.
+//
 // Example:
 //
-//	import F "github.com/IBM/fp-go/v2/function"
+//	import (
+//	    CR "github.com/IBM/fp-go/v2/context/reader"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	    O "github.com/IBM/fp-go/v2/option"
+//	)
 //
-//	// Add a custom value to the context
+//	// Add a custom value to the context (equivalent to readerresult.WithValue[string](userKey, "Alice"))
 //	type key int
 //	const userKey key = 0
 //
 //	addUser := readerresult.Local[string](func(ctx context.Context) (context.Context, context.CancelFunc) {
-//	    newCtx := context.WithValue(ctx, userKey, "Alice")
-//	    return newCtx, func() {} // No-op cancel
+//	    return CR.WithValue[string](userKey)("Alice")(ctx), func() {} // No-op cancel
 //	})
 //
-//	getUser := readerresult.Asks(func(ctx context.Context) string {
-//	    return ctx.Value(userKey).(string)
-//	})
+//	getUser := F.Pipe1(
+//	    readerresult.AskValue[string](userKey),
+//	    readerresult.Map(O.GetOrElse(F.Constant("unknown"))),
+//	)
 //
 //	result := F.Pipe1(
 //	    getUser,
@@ -606,7 +613,7 @@ func Alt[A any](second Lazy[ReaderResult[A]]) Operator[A, A] {
 //
 // Timeout Example:
 //
-//	// Add a 5-second timeout to a specific operation
+//	// Add a 5-second timeout to a specific operation (equivalent to readerresult.WithTimeout[Data](5*time.Second))
 //	withTimeout := readerresult.Local[Data](func(ctx context.Context) (context.Context, context.CancelFunc) {
 //	    return context.WithTimeout(ctx, 5*time.Second)
 //	})

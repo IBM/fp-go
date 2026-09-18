@@ -590,20 +590,23 @@ func Read[A any](r context.Context) func(ReaderIO[A]) IO[A] {
 //
 //	import (
 //	    "context"
+//	    CR "github.com/IBM/fp-go/v2/context/reader"
 //	    G "github.com/IBM/fp-go/v2/io"
 //	    F "github.com/IBM/fp-go/v2/function"
+//	    O "github.com/IBM/fp-go/v2/option"
 //	)
 //
+//	type ctxKey string
+//	const configKey ctxKey = "config"
+//
 //	// Create context with side effects (e.g., loading config)
-//	createContext := G.Of(context.WithValue(t.Context(), "key", "value"))
+//	createContext := G.Of(CR.WithValue[string](configKey)("value")(t.Context()))
 //
 //	// A computation that uses the context
-//	getValue := readerio.FromReader(func(ctx context.Context) string {
-//	    if val := ctx.Value("key"); val != nil {
-//	        return val.(string)
-//	    }
-//	    return "default"
-//	})
+//	getValue := F.Pipe1(
+//	    readerio.AskValue[string](configKey),
+//	    readerio.Map(O.GetOrElse(F.Constant("default"))),
+//	)
 //
 //	// Compose them together
 //	result := readerio.ReadIO[string](createContext)(getValue)
@@ -644,25 +647,30 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //
 // Note: When R is context.Context, this simplifies to an Operator[A, A]
 //
+// For the common cases prefer the dedicated operators [WithValue], [WithTimeout]
+// and [WithDeadline], which are implemented in terms of Local.
+//
 // Example:
 //
-//	import F "github.com/IBM/fp-go/v2/function"
+//	import (
+//	    CR "github.com/IBM/fp-go/v2/context/reader"
+//	    F "github.com/IBM/fp-go/v2/function"
+//	    O "github.com/IBM/fp-go/v2/option"
+//	)
 //
-//	// Add a custom value to the context
+//	// Add a custom value to the context (equivalent to readerio.WithValue[string](userKey, "Alice"))
 //	type key int
 //	const userKey key = 0
 //
-//	addUser := readerio.Local[string, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
-//	    newCtx := context.WithValue(ctx, userKey, "Alice")
-//	    return pair.MakePair(func() {}, newCtx) // No-op cancel
-//	})
+//	addUser := readerio.Local[string](F.Flow2(
+//	    CR.WithValue[string](userKey)("Alice"),
+//	    CR.NopCancel,
+//	))
 //
-//	getUser := readerio.FromReader(func(ctx context.Context) string {
-//	    if user := ctx.Value(userKey); user != nil {
-//	        return user.(string)
-//	    }
-//	    return "unknown"
-//	})
+//	getUser := F.Pipe1(
+//	    readerio.AskValue[string](userKey),
+//	    readerio.Map(O.GetOrElse(F.Constant("unknown"))),
+//	)
 //
 //	result := F.Pipe1(
 //	    getUser,
@@ -672,7 +680,7 @@ func ReadIO[A any](r IO[context.Context]) func(ReaderIO[A]) IO[A] {
 //
 // Timeout Example:
 //
-//	// Add a 5-second timeout to a specific operation
+//	// Add a 5-second timeout to a specific operation (equivalent to readerio.WithTimeout[Data](5*time.Second))
 //	withTimeout := readerio.Local[Data, context.Context](func(ctx context.Context) pair.Pair[context.CancelFunc, context.Context] {
 //	    newCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 //	    return pair.MakePair(cancel, newCtx)

@@ -247,11 +247,16 @@ func Local[S, A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) 
 //
 // Example:
 //
-//	getValue := statereaderioresult.Asks[AppState, string](
+//	getDeadline := statereaderioresult.Asks[AppState, string](
 //	    func(ctx context.Context) statereaderioresult.StateReaderIOResult[AppState, string] {
-//	        return statereaderioresult.Of[AppState](ctx.Value("key").(string))
+//	        if deadline, ok := ctx.Deadline(); ok {
+//	            return statereaderioresult.Of[AppState](deadline.String())
+//	        }
+//	        return statereaderioresult.Left[AppState, string](errors.New("no deadline"))
 //	    },
 //	)
+//
+// To read a single context value, prefer [AskValue].
 func Asks[S, A any](f func(context.Context) StateReaderIOResult[S, A]) StateReaderIOResult[S, A] {
 	return func(s S) ReaderIOResult[Pair[S, A]] {
 		return func(ctx context.Context) IOResult[Pair[S, A]] {

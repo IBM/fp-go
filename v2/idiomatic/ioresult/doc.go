@@ -45,7 +45,7 @@
 //
 // IOResult provides two critical benefits:
 //
-//  1. **Lazy Evaluation**: The side effect doesn't happen when you create the IOResult,
+//  1. Lazy Evaluation: The side effect doesn't happen when you create the IOResult,
 //     only when you call it (execute it). This allows you to build complex computations
 //     as pure data structures and defer execution until needed.
 //
@@ -58,7 +58,7 @@
 //     // NOW it reads the file and parses it
 //     config, err := parsed()
 //
-//  2. **Referential Transparency of the Description**: While the IO operation itself has
+//  2. Referential Transparency of the Description: While the IO operation itself has
 //     side effects, the IOResult value (the function) is referentially transparent. You can
 //     pass it around, compose it, and reason about it without triggering the side effect.
 //     The side effect only occurs when you explicitly call the function.

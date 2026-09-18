@@ -28,7 +28,7 @@ data without changing the underlying structure.
 
 # Core Functions
 
-## FromNillable
+# FromNillable
 
 Creates an isomorphism between a nullable pointer and an Option type:
 
@@ -48,7 +48,7 @@ Creates an isomorphism between a nullable pointer and an Option type:
 	ptr := timeoutIso.ReverseGet(O.None[int]())  // nil
 	ptr = timeoutIso.ReverseGet(O.Some(42))      // &42
 
-## Compose
+# Compose
 
 Composes a lens with an isomorphism to transform the focus type:
 
@@ -91,7 +91,7 @@ Composes a lens with an isomorphism to transform the focus type:
 
 # Use Cases
 
-## Working with Nullable Fields
+# Working with Nullable Fields
 
 Convert between nullable pointers and Option types:
 
@@ -131,7 +131,7 @@ Convert between nullable pointers and Option types:
 	newDB := DatabaseConfig{Host: "localhost", Port: 5432}
 	updated := dbOptLens.Set(O.Some(newDB))(config)
 
-## Unit Conversions
+# Unit Conversions
 
 Work with different units of measurement:
 
@@ -167,7 +167,7 @@ Work with different units of measurement:
 	km := kmLens.Get(distance)           // 5 km
 	updated := kmLens.Set(Kilometers(10))(distance) // 10000 meters
 
-## Type Wrappers
+# Type Wrappers
 
 Work with newtype wrappers:
 
@@ -202,7 +202,7 @@ Work with newtype wrappers:
 	rawId := idIntLens.Get(user)      // 42 (int)
 	updated := idIntLens.Set(100)(user) // UserId(100)
 
-## Nested Nullable Fields
+# Nested Nullable Fields
 
 Safely navigate through nullable nested structures:
 
@@ -248,7 +248,7 @@ Safely navigate through nullable nested structures:
 
 # Composition Patterns
 
-## Chaining Multiple Isomorphisms
+# Chaining Multiple Isomorphisms
 
 	type Meters float64
 	type Kilometers float64
@@ -288,7 +288,7 @@ Safely navigate through nullable nested structures:
 	journey := Journey{Distance: 5000} // 5000 meters
 	miles := milesLens.Get(journey)    // ~3.11 miles
 
-## Combining with Optional Lenses
+# Combining with Optional Lenses
 
 	type Config struct {
 		Database *DatabaseConfig

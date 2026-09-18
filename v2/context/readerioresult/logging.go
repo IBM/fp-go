@@ -57,16 +57,13 @@ var (
 	// loggingCounter is an atomic counter that generates unique LoggingIDs
 	loggingCounter atomic.Uint64
 
-	loggingContextValue = F.Bind2nd(context.Context.Value, any(loggingContextKey))
+	// setLoggingContext stores a loggingContext in a context.Context under loggingContextKey
+	setLoggingContext = CR.WithValue[loggingContext](loggingContextKey)
 
-	withLoggingContextValue = F.Bind2of3(context.WithValue)(any(loggingContextKey))
-
-	// getLoggingContext retrieves the logging information (start time and ID) from the context.
-	// It returns a Pair containing the start time and the logging ID.
-	// This function assumes the context contains logging information; it will panic if not present.
-	getLoggingContext = F.Flow3(
-		loggingContextValue,
-		option.InstanceOf[loggingContext],
+	// getLoggingContext retrieves the loggingContext (logger, start time and ID) from the context.
+	// If no logging context is present, a default one using the global logger is returned.
+	getLoggingContext = F.Flow2(
+		CR.AskValue[loggingContext](loggingContextKey),
 		option.GetOrElse(getDefaultLoggingContext),
 	)
 )
@@ -88,7 +85,7 @@ func getDefaultLoggingContext() loggingContext {
 // Returns:
 //   - An endomorphism that adds the logging context to a context.Context
 func withLoggingContext(lctx loggingContext) Endomorphism[context.Context] {
-	return F.Bind2nd(withLoggingContextValue, any(lctx))
+	return setLoggingContext(lctx)
 }
 
 func noop() {}
@@ -234,12 +231,10 @@ func onExitVoid(
 //	type loggerKey int
 //	const myLoggerKey loggerKey = 0
 //
-//	getMyLogger := func(ctx context.Context) *slog.Logger {
-//	    if logger := ctx.Value(myLoggerKey); logger != nil {
-//	        return logger.(*slog.Logger)
-//	    }
-//	    return slog.Default()
-//	}
+//	getMyLogger := F.Flow2(
+//	    CR.AskValue[*slog.Logger](myLoggerKey),
+//	    O.GetOrElse(slog.Default),
+//	)
 //
 //	customOp := LogEntryExitWithCallback[Data](
 //	    slog.LevelInfo,
@@ -438,12 +433,10 @@ func curriedLog(
 //	type loggerKey int
 //	const myLoggerKey loggerKey = 0
 //
-//	getMyLogger := func(ctx context.Context) *slog.Logger {
-//	    if logger := ctx.Value(myLoggerKey); logger != nil {
-//	        return logger.(*slog.Logger)
-//	    }
-//	    return slog.Default()
-//	}
+//	getMyLogger := F.Flow2(
+//	    CR.AskValue[*slog.Logger](myLoggerKey),
+//	    O.GetOrElse(slog.Default),
+//	)
 //
 //	customLog := SLogWithCallback[Data](
 //	    slog.LevelWarn,

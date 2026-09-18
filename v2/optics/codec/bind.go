@@ -138,16 +138,16 @@ func Do[I, A, O any](e Lazy[Pair[O, A]]) Type[A, O, I] {
 //
 // # How It Works
 //
-// 1. **Encoding**: When encoding a value of type S:
+// 1. Encoding: When encoding a value of type S:
 //   - Extract the field T using l.Get
 //   - Encode T to O using fa.Encode
 //   - Combine with the base encoding using the monoid
 //
-// 2. **Validation**: When validating input I:
+// 2. Validation: When validating input I:
 //   - Validate the field using fa.Validate through the lens
 //   - Combine with the base validation
 //
-// 3. **Type Checking**: Preserves the base type checker
+// 3. Type Checking: Preserves the base type checker
 //
 // # Example
 //
@@ -259,17 +259,17 @@ func ApSL[S, T, O, I any](
 //
 // # How It Works
 //
-// 1. **Encoding**: When encoding a value of type S:
+// 1. Encoding: When encoding a value of type S:
 //   - Try to extract the optional field T using o.GetOption
 //   - If present (Some(T)): Encode T to O using fa.Encode and combine with base using monoid
 //   - If absent (None): Return only the base encoding unchanged
 //
-// 2. **Validation**: When validating input I:
+// 2. Validation: When validating input I:
 //   - Validate the optional field using fa.Validate through o.Set
 //   - Combine with the base validation using applicative semantics
 //   - Accumulates all validation errors from both base and field
 //
-// 3. **Type Checking**: Preserves the base type checker
+// 3. Type Checking: Preserves the base type checker
 //
 // # Difference from ApSL
 //
@@ -415,19 +415,19 @@ func ApSO[S, T, O, I any](
 //
 // # How It Works
 //
-// 1. **Encoding**: When encoding a value of type S:
+// 1. Encoding: When encoding a value of type S:
 //   - Evaluate f(s) to obtain the field codec fa
 //   - Extract the field T using l.Get
 //   - Encode T to O using fa.Encode
 //   - Combine with the base encoding using the monoid
 //
-// 2. **Validation**: When validating input I:
+// 2. Validation: When validating input I:
 //   - Run the base validation to obtain a decoded S (fail-fast: stop on base failure)
 //   - For the decoded S, evaluate f(s) to obtain the field codec fa
 //   - Validate the input I using fa.Validate
 //   - Set the validated T into S using L.LensSet
 //
-// 3. **Type Checking**: Preserves the base type checker
+// 3. Type Checking: Preserves the base type checker
 //
 // # Difference from ApSL
 //

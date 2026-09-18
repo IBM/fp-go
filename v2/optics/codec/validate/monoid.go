@@ -152,10 +152,10 @@ func ApplicativeMonoid[I, A any](m Monoid[A]) Monoid[Validate[I, A]] {
 //
 // The AlternativeMonoid differs from ApplicativeMonoid in how it handles mixed success/failure:
 //
-//   - **Both succeed**: Results are combined using the monoid operation (like ApplicativeMonoid)
-//   - **First succeeds, second fails**: Returns the first result (alternative fallback)
-//   - **First fails, second succeeds**: Returns the second result (alternative fallback)
-//   - **Both fail**: Aggregates errors from both validators
+//   - Both succeed: Results are combined using the monoid operation (like ApplicativeMonoid)
+//   - First succeeds, second fails: Returns the first result (alternative fallback)
+//   - First fails, second succeeds: Returns the second result (alternative fallback)
+//   - Both fail: Aggregates errors from both validators
 //
 // # Example: String Concatenation with Fallback
 //
@@ -218,9 +218,9 @@ func ApplicativeMonoid[I, A any](m Monoid[A]) Monoid[Validate[I, A]] {
 //
 // # Comparison with Other Monoids
 //
-//   - **ApplicativeMonoid**: Always combines results when both succeed, fails if either fails
-//   - **AlternativeMonoid**: Combines results when both succeed, provides fallback when one fails
-//   - **AltMonoid**: Always uses first success, never combines results
+//   - ApplicativeMonoid: Always combines results when both succeed, fails if either fails
+//   - AlternativeMonoid: Combines results when both succeed, provides fallback when one fails
+//   - AltMonoid: Always uses first success, never combines results
 //
 // # Use Cases
 //
@@ -283,10 +283,10 @@ func AlternativeMonoid[I, A any](m Monoid[A]) Monoid[Validate[I, A]] {
 //
 // The AltMonoid implements a "first success wins" strategy:
 //
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
-//   - **Concat with Empty**: The zero validator is used as fallback
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
+//   - Concat with Empty: The zero validator is used as fallback
 //
 // # Example: Default Value Fallback
 //
@@ -357,9 +357,9 @@ func AlternativeMonoid[I, A any](m Monoid[A]) Monoid[Validate[I, A]] {
 //
 // # Comparison with Other Monoids
 //
-//   - **ApplicativeMonoid**: Combines results when both succeed using monoid operation
-//   - **AlternativeMonoid**: Combines results when both succeed, provides fallback when one fails
-//   - **AltMonoid**: First success wins, never combines results (pure alternative)
+//   - ApplicativeMonoid: Combines results when both succeed using monoid operation
+//   - AlternativeMonoid: Combines results when both succeed, provides fallback when one fails
+//   - AltMonoid: First success wins, never combines results (pure alternative)
 //
 // # Use Cases
 //

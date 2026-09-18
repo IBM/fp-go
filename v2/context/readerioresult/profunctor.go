@@ -147,14 +147,16 @@ func ContramapIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[
 //
 // # Example Usage
 //
+//	type ctxKey string
+//	const requestIDKey ctxKey = "requestID"
+//
 //	// Generate a request ID via side effect and add to context
 //	addRequestID := func(ctx context.Context) io.IO[ContextCancel] {
 //	    return func() ContextCancel {
 //	        // Side effect: generate unique ID
 //	        requestID := uuid.New().String()
-//	        // Share the ID via context
-//	        newCtx := context.WithValue(ctx, "requestID", requestID)
-//	        return pair.MakePair(func() {}, newCtx)
+//	        // Share the ID via context (read it back with AskValue[string](requestIDKey))
+//	        return CR.NopCancel(CR.WithValue[string](requestIDKey)(requestID)(ctx))
 //	    }
 //	}
 //	adapted := LocalIOK[int](addRequestID)(computation)
@@ -202,6 +204,9 @@ func LocalIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A
 //
 // # Example Usage
 //
+//	type ctxKey string
+//	const configKey ctxKey = "config"
+//
 //	// Load configuration via side effect and add to context
 //	loadConfig := func(ctx context.Context) ioresult.IOResult[ContextCancel] {
 //	    return func() result.Result[ContextCancel] {
@@ -210,9 +215,8 @@ func LocalIOK[A any](f io.Kleisli[context.Context, ContextCancel]) Operator[A, A
 //	        if err != nil {
 //	            return result.Left[ContextCancel](err)
 //	        }
-//	        // Share the loaded config via context
-//	        newCtx := context.WithValue(ctx, "config", config)
-//	        return result.Of(pair.MakePair(func() {}, newCtx))
+//	        // Share the loaded config via context (read it back with AskValue[[]byte](configKey))
+//	        return result.Of(CR.NopCancel(CR.WithValue[[]byte](configKey)(config)(ctx)))
 //	    }
 //	}
 //	adapted := LocalIOResultK[int](loadConfig)(computation)

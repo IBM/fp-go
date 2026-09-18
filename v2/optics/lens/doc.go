@@ -435,9 +435,9 @@ FromPredicate creates an optional lens based on a predicate:
 Lenses create new copies of data structures on each Set operation. For deeply nested
 structures, this can be expensive. Consider:
 
-1. Using pointer-based structures with MakeLensRef for better performance
-2. Batching multiple updates using Modify
-3. Using specialized lenses for common patterns (arrays, records, etc.)
+ 1. Using pointer-based structures with MakeLensRef for better performance
+ 2. Batching multiple updates using Modify
+ 3. Using specialized lenses for common patterns (arrays, records, etc.)
 
 # Type Safety
 

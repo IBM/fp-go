@@ -353,6 +353,25 @@ incremented := F.Pipe1(valueLens, L.Modify[Counter](N.Add(1)))(counter)
 
 ---
 
+## Context Values as a Lens
+
+`lenses.AtContext[V](key)` is a `LensO[context.Context, V]` onto a typed `context.Context` value. `Get` returns `Some(v)` if the key holds a `V`, otherwise `None` (never panics); `Set(Some(v))` derives a child context via `context.WithValue`, `Set(None)` returns the context unchanged.
+
+```go
+import LS "github.com/IBM/fp-go/v2/optics/lenses"
+
+type ctxKey string
+const userKey ctxKey = "user"
+
+userL := LS.AtContext[string](userKey)
+ctx2  := userL.Set(O.Some("Alice"))(ctx)
+user  := userL.Get(ctx2)               // Some("Alice")
+```
+
+Inside `context/*` pipelines prefer the monadic operators `AskValue[V](key)` / `WithValue[A](key, v)`; use the lens when you need optics composition over the context.
+
+---
+
 ## Import Reference
 
 ```go

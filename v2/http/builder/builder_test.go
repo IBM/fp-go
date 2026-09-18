@@ -163,24 +163,24 @@ func TestSetQuery(t *testing.T) {
 func TestSetHeaders(t *testing.T) {
 	headers := make(http.Header)
 	headers.Set("X-Custom-Header", "custom-value")
-	headers.Set("Authorization", "Bearer token")
+	headers.Set(H.Authorization, "Bearer token")
 
 	builder := Default.clone().SetHeaders(headers)
 
 	assert.Equal(t, "custom-value", builder.GetHeaders().Get("X-Custom-Header"))
-	assert.Equal(t, "Bearer token", builder.GetHeaders().Get("Authorization"))
+	assert.Equal(t, "Bearer token", builder.GetHeaders().Get(H.Authorization))
 }
 
 // TestGetHeaderValues tests the GetHeaderValues function
 func TestGetHeaderValues(t *testing.T) {
 	builder := F.Pipe2(
 		Default,
-		WithHeader("Accept")("application/json"),
-		WithHeader("Accept")("text/html"),
+		WithHeader(H.Accept)(C.JSON),
+		WithHeader(H.Accept)(C.TextHTML),
 	)
 
-	values := builder.GetHeaderValues("Accept")
-	assert.Contains(t, values, "text/html")
+	values := builder.GetHeaderValues(H.Accept)
+	assert.Contains(t, values, C.TextHTML)
 }
 
 // TestGetUrl tests the deprecated GetUrl function

@@ -460,6 +460,54 @@ func(u User, t []string) User { u.Tags = t; return u }
 
 **Severity**: High — a mutating closure silently defeats fp-go's guarantees and breaks under `TraverseArray`/concurrency.
 
+### 17. Context Access and Scoping
+
+**Rule**: Read `context.Context` values with `AskValue`, and scope values, timeouts and deadlines with the `WithValue` / `WithTimeout` / `WithDeadline` operators (or `Local`). Do not type-assert `ctx.Value` or derive contexts by hand inside pipelines. The operators exist in `context/readerio`, `context/readerresult`, `context/readerioresult`, `context/statereaderioresult` and `idiomatic/context/readerresult`.
+
+**Check for**:
+```go
+// ❌ WRONG - panics if the key is missing or has another type; plain string key
+getUser := RIO.FromReader(func(ctx context.Context) string {
+    return ctx.Value("user").(string)
+})
+
+// ✅ CORRECT - typed key, Option result, caller decides what "missing" means
+type ctxKey string
+const userKey ctxKey = "user"
+getUser := F.Pipe1(RIO.AskValue[string](userKey), RIO.Map(O.GetOrElse(F.Constant("anonymous"))))
+
+// ❌ WRONG - hand-derived context; cancel discarded -> leaked timer
+RIO.Local[A](func(ctx context.Context) ContextCancel {
+    tctx, _ := context.WithTimeout(ctx, 5*time.Second)
+    return pair.MakePair(func() {}, tctx)
+})
+
+// ❌ WRONG - scoping done outside the pipeline, by hand
+ctx, cancel := context.WithTimeout(context.WithValue(ctx, userKey, u), 5*time.Second)
+defer cancel()
+res := pipeline(ctx)()
+
+// ✅ CORRECT - scoping as operators; cancel always released
+res := F.Pipe2(
+    pipeline,
+    RIO.WithTimeout[A](5*time.Second),
+    RIO.WithValue[A](userKey, u),
+)(ctx)()
+
+// ❌ WRONG - Unpack + defer just to install a logger
+cancel, lctx := pair.Unpack(logging.WithLogger(l)(ctx)); defer cancel()
+
+// ✅ CORRECT - WithLogger already has Local's shape
+F.Pipe1(pipeline, RIO.Local[A](logging.WithLogger(l)))
+```
+
+Also flag:
+- string or other exported key types (`"user"`, `int`) — use an unexported `type ctxKey string`
+- dependencies (DB, config, clients) stored in the context — see §7, use `Effect`
+- outside pipelines, `context.WithValue(ctx, k, v)` where `CR.WithValue[V](k)(v)(ctx)` from `context/reader` would keep code consistent (Low)
+
+**Severity**: High for panicking assertions and leaked cancel functions; Medium for hand-rolled scoping that has an operator equivalent.
+
 ## Review Process
 
 ### Step 1: Obtain Git Diff
@@ -545,6 +593,7 @@ Alternatively, use the `/code-review --comment` skill to post inline PR annotati
 | maintainability | dry-principle-violation | Inline lambdas instead of point-free |
 | maintainability | naming-intent-review | Non-descriptive variable names |
 | functionality | error-handling-review | Missing error propagation |
+| functionality | context-handling | `ctx.Value(k).(T)` assertion or discarded `cancel` instead of `AskValue` / `WithTimeout` |
 | performance | inefficient-algorithm | Manual loops instead of TraverseArray |
 | style | style-consistency-check | Inconsistent import aliases |
 | security | sensitive-data-logging | Logging sensitive information |
@@ -623,6 +672,7 @@ This skill can reference and include:
 - `fp-go-http` — HTTP request patterns
 - `fp-go-logging` — Logging patterns
 - `fp-go-lens` — Lens and optics patterns
+- `fp-go-context` — context.Context handling: reading values, scoping, timeouts, cancellation (see §17)
 
 ## Automated Checks
 
@@ -639,7 +689,8 @@ When reviewing, automatically check for:
 9. ✅ `TraverseArray` for slice processing
 10. ✅ `ChainFirstIOK` for logging
 11. ✅ No hidden mutation in `Map`/`Chain` closures or lens setters
-12. ✅ Branch compiles (`go build ./...`) and passes `go vet ./...`
+12. ✅ Context values read with `AskValue`; values/timeouts scoped with `WithValue`/`WithTimeout`/`WithDeadline`/`Local` (no `ctx.Value(k).(T)`, no discarded cancel funcs)
+13. ✅ Branch compiles (`go build ./...`) and passes `go vet ./...`
 
 ## Output Format
 

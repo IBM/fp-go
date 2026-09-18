@@ -39,6 +39,9 @@ import (
 //	}
 //	ro := readeroption.Curry0(getConfig)
 //	result := ro(ctx) // Returns option.Some(config) or option.None()
+//
+// Note: for reading context values, context/reader.AskValue[Config](key) already
+// is a ReaderOption[context.Context, Config].
 func Curry0[R, A any](f func(R) (A, bool)) ReaderOption[R, A] {
 	return G.Curry0[ReaderOption[R, A]](f)
 }

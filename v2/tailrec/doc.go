@@ -30,13 +30,13 @@
 //
 // The package provides three main operations:
 //
-// **Bounce**: Indicates that the computation should continue with a new value.
+// Bounce: Indicates that the computation should continue with a new value.
 // This represents a recursive call in the original algorithm.
 //
-// **Land**: Indicates that the computation is complete and returns a final result.
+// Land: Indicates that the computation is complete and returns a final result.
 // This represents the base case in the original algorithm.
 //
-// **Unwrap**: Extracts the state from a Trampoline, allowing the executor to
+// Unwrap: Extracts the state from a Trampoline, allowing the executor to
 // determine whether to continue (Bounce) or terminate (Land).
 //
 // # Type Parameters
@@ -177,10 +177,10 @@
 //
 // # Benefits
 //
-//   - **Stack Safety**: Prevents stack overflow for deep recursion
-//   - **Clarity**: Maintains the structure of recursive algorithms
-//   - **Performance**: Converts recursion to iteration without manual rewriting
-//   - **Composability**: Works well with functional programming patterns
+//   - Stack Safety: Prevents stack overflow for deep recursion
+//   - Clarity: Maintains the structure of recursive algorithms
+//   - Performance: Converts recursion to iteration without manual rewriting
+//   - Composability: Works well with functional programming patterns
 //
 // # When to Use
 //
@@ -201,11 +201,11 @@
 //
 // # Key Functions
 //
-// **Bounce**: Create a trampoline that continues computation with a new state
+// Bounce: Create a trampoline that continues computation with a new state
 //
-// **Land**: Create a trampoline that terminates with a final result
+// Land: Create a trampoline that terminates with a final result
 //
-// **Unwrap**: Extract the state and determine if computation should continue
+// Unwrap: Extract the state and determine if computation should continue
 //
 // # See Also
 //

@@ -25,12 +25,15 @@ import (
 //
 // Example:
 //
-//	getMyLogger := func(ctx context.Context) *slog.Logger {
-//	    if logger := ctx.Value("logger"); logger != nil {
-//	        return logger.(*slog.Logger)
-//	    }
-//	    return slog.Default()
-//	}
+//	type ctxKey string
+//	const myLoggerKey ctxKey = "logger"
+//
+//	getMyLogger := F.Flow2(
+//	    CR.AskValue[*slog.Logger](myLoggerKey),
+//	    O.GetOrElse(slog.Default),
+//	)
+//
+// For loggers installed with logging.WithLogger, use logging.GetLoggerFromContext instead.
 //
 //	debugLog := SLogWithCallback[User](
 //	    slog.LevelDebug,

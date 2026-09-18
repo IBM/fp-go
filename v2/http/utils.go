@@ -126,11 +126,16 @@ const (
 	// HeaderContentType is the standard HTTP Content-Type header name.
 	// It indicates the media type of the resource or data being sent.
 	//
+	// Header names are lower case as required by HTTP/2 (RFC 9113, Section 8.2.2)
+	// and HTTP/3 (RFC 9114, Section 4.2), which mandate that field names be
+	// transmitted in lower case. Go's http.Header canonicalizes keys on Get/Set,
+	// so these constants work transparently with HTTP/1.1 as well.
+	//
 	// Example values:
 	//   - "application/json"
 	//   - "text/html; charset=utf-8"
 	//   - "application/xml"
-	HeaderContentType = "Content-Type"
+	HeaderContentType = HD.ContentType
 )
 
 // ParseMediaType parses a MIME media type string into its components.
@@ -186,7 +191,7 @@ func (r *HttpError) StatusCode() int {
 //
 //	if httpErr, ok := err.(*HttpError); ok {
 //	    headers := httpErr.Headers()
-//	    contentType := headers.Get("Content-Type")
+//	    contentType := headers.Get(HD.ContentType)
 //	}
 func (r *HttpError) Headers() H.Header {
 	return r.headers
@@ -229,7 +234,7 @@ func (r *HttpError) Body() []byte {
 // Example:
 //
 //	headers := GetHeader(response)
-//	contentType := headers.Get("Content-Type")
+//	contentType := headers.Get(HD.ContentType)
 func GetHeader(resp *H.Response) H.Header {
 	return resp.Header
 }
@@ -321,7 +326,7 @@ func StatusCodeError(resp *H.Response) error {
 // Header.Set on the provided request. It does not create a copy of the request.
 //
 // Parameters:
-//   - key: The HTTP header name (e.g., "Content-Type", "Authorization")
+//   - key: The HTTP header name (e.g., HD.ContentType, HD.Authorization)
 //
 // Returns:
 //   - A Reader that takes a header value and returns an Endomorphism that
@@ -333,8 +338,8 @@ func StatusCodeError(resp *H.Response) error {
 //
 // This allows for flexible composition and partial application:
 //
-//	setContentType := WithHeader("Content-Type")
-//	setJSON := setContentType("application/json")
+//	setContentType := WithHeader(HD.ContentType)
+//	setJSON := setContentType(C.JSON)
 //	modifiedReq := setJSON(request)
 func WithHeader(key string) Reader[string, Endomorphism[*H.Request]] {
 	return F.Curry2(F.Bind1of3(setRequestHeader)(key))

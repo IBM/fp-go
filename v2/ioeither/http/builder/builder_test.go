@@ -24,6 +24,8 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	R "github.com/IBM/fp-go/v2/http/builder"
+	C "github.com/IBM/fp-go/v2/http/content"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	IO "github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
@@ -77,7 +79,7 @@ func TestBuilderWithoutBody(t *testing.T) {
 	assert.Equal(t, "GET", req.Method)
 	assert.Equal(t, "https://api.example.com/users", req.URL.String())
 	assert.Equal(t, http.NoBody, req.Body)
-	assert.Empty(t, req.Header.Get("Content-Length"))
+	assert.Empty(t, req.Header.Get(HD.ContentLength))
 }
 
 // TestBuilderWithBody tests creating a request with a body
@@ -92,7 +94,7 @@ func TestBuilderWithBody(t *testing.T) {
 	)))
 
 	assert.Equal(t, "POST", req.Method)
-	assert.Equal(t, "24", req.Header.Get("Content-Length"))
+	assert.Equal(t, "24", req.Header.Get(HD.ContentLength))
 
 	data, err := io.ReadAll(req.Body)
 	assert.NoError(t, err)
@@ -123,12 +125,12 @@ func TestBuilderWithHeaders(t *testing.T) {
 	req := getRequest(t, Requester(F.Pipe3(
 		R.Default,
 		R.WithURL("https://api.example.com/data"),
-		R.WithHeader("Authorization")("Bearer token123"),
-		R.WithHeader("Accept")("application/json"),
+		R.WithHeader(HD.Authorization)("Bearer token123"),
+		R.WithHeader(HD.Accept)(C.JSON),
 	)))
 
-	assert.Equal(t, "Bearer token123", req.Header.Get("Authorization"))
-	assert.Equal(t, "application/json", req.Header.Get("Accept"))
+	assert.Equal(t, "Bearer token123", req.Header.Get(HD.Authorization))
+	assert.Equal(t, C.JSON, req.Header.Get(HD.Accept))
 }
 
 // TestBuilderHeadersAreIsolated tests that modifying the headers of a request
@@ -137,15 +139,15 @@ func TestBuilderHeadersAreIsolated(t *testing.T) {
 	builder := F.Pipe2(
 		R.Default,
 		R.WithURL("https://api.example.com/data"),
-		R.WithHeader("Accept")("application/json"),
+		R.WithHeader(HD.Accept)(C.JSON),
 	)
 
 	req := getRequest(t, Requester(builder))
-	req.Header.Set("X-Request-ID", "12345")
-	req.Header.Add("Accept", "text/plain")
+	req.Header.Set(HD.XRequestID, "12345")
+	req.Header.Add(HD.Accept, C.TextPlain)
 
-	assert.Empty(t, builder.GetHeaders().Get("X-Request-ID"))
-	assert.Equal(t, []string{"application/json"}, builder.GetHeaderValues("Accept"))
+	assert.Empty(t, builder.GetHeaders().Get(HD.XRequestID))
+	assert.Equal(t, []string{C.JSON}, builder.GetHeaderValues(HD.Accept))
 }
 
 // TestBuilderWithInvalidURL tests error handling for invalid URLs

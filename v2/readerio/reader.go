@@ -27,6 +27,7 @@
 //   - Maintain functional composition and testability
 //
 // # Logging Use Case
+//
 // ReaderIO is especially well-suited for logging because it allows you to:
 //   - Pass a logger through your computation chain without explicit parameter threading
 //   - Compose logging operations with other side effects

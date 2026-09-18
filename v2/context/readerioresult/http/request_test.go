@@ -27,6 +27,8 @@ import (
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
 	HT "github.com/IBM/fp-go/v2/http"
+	C "github.com/IBM/fp-go/v2/http/content"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +112,7 @@ func TestSendSingleRequestWithHeaderUnsafe(t *testing.T) {
 	req1 := F.Pipe2(
 		"https://jsonplaceholder.typicode.com/posts/1",
 		MakeGetRequest,
-		R.Map(setHeaderUnsafe("Content-Type", "text/html")),
+		R.Map(setHeaderUnsafe(HD.ContentType, C.TextHTML)),
 	)
 
 	readItem := ReadJSON[PostItem](client)
@@ -138,7 +140,7 @@ func TestSendSingleRequestWithHeaderSafe(t *testing.T) {
 	// so the flow is pure
 	request := requestBuilder().
 		WithURL("https://jsonplaceholder.typicode.com/posts/1").
-		WithHeader("Content-Type", "text/html").
+		WithHeader(HD.ContentType, C.TextHTML).
 		Build()
 
 	readItem := ReadJSON[PostItem](client)
@@ -470,7 +472,7 @@ func TestReadFullResponse_Integration(t *testing.T) {
 
 		request := requestBuilder().
 			WithURL("https://jsonplaceholder.typicode.com/posts/1").
-			WithHeader("Accept", "application/json").
+			WithHeader(HD.Accept, C.JSON).
 			Build()
 
 		fullResp := ReadFullResponse(client)(request)

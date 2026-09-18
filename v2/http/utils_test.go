@@ -26,6 +26,7 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	F "github.com/IBM/fp-go/v2/function"
 	C "github.com/IBM/fp-go/v2/http/content"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	P "github.com/IBM/fp-go/v2/pair"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +54,7 @@ func TestValidateJsonContentTypeString(t *testing.T) {
 
 func TestValidateInvalidJsonContentTypeString(t *testing.T) {
 	res := F.Pipe1(
-		validateJSONContentTypeString("application/xml"),
+		validateJSONContentTypeString(C.XML),
 		Error[ParsedMediaType](t),
 	)
 	assert.True(t, res)
@@ -69,26 +70,26 @@ func TestParseMediaType(t *testing.T) {
 	}{
 		{
 			name:      "simple JSON",
-			mediaType: "application/json",
-			wantType:  "application/json",
+			mediaType: C.JSON,
+			wantType:  C.JSON,
 			wantParam: map[string]string{},
 		},
 		{
 			name:      "JSON with charset",
 			mediaType: "application/json; charset=utf-8",
-			wantType:  "application/json",
+			wantType:  C.JSON,
 			wantParam: map[string]string{"charset": "utf-8"},
 		},
 		{
 			name:      "HTML with charset",
 			mediaType: "text/html; charset=iso-8859-1",
-			wantType:  "text/html",
+			wantType:  C.TextHTML,
 			wantParam: map[string]string{"charset": "iso-8859-1"},
 		},
 		{
 			name:      "multipart with boundary",
 			mediaType: "multipart/form-data; boundary=----WebKitFormBoundary",
-			wantType:  "multipart/form-data",
+			wantType:  C.MultipartFormData,
 			wantParam: map[string]string{"boundary": "----WebKitFormBoundary"},
 		},
 	}
@@ -120,7 +121,7 @@ func TestParseMediaTypeInvalid(t *testing.T) {
 func TestHttpErrorMethods(t *testing.T) {
 	testURL, _ := url.Parse("https://example.com/api/test")
 	headers := make(H.Header)
-	headers.Set("Content-Type", "application/json")
+	headers.Set(HD.ContentType, C.JSON)
 	headers.Set("X-Custom", "value")
 	body := []byte(`{"error": "not found"}`)
 
@@ -136,7 +137,7 @@ func TestHttpErrorMethods(t *testing.T) {
 
 	// Test Headers
 	returnedHeaders := httpErr.Headers()
-	assert.Equal(t, "application/json", returnedHeaders.Get("Content-Type"))
+	assert.Equal(t, C.JSON, returnedHeaders.Get(HD.ContentType))
 	assert.Equal(t, "value", returnedHeaders.Get("X-Custom"))
 
 	// Test Body
@@ -161,12 +162,12 @@ func TestGetHeader(t *testing.T) {
 	resp := &H.Response{
 		Header: make(H.Header),
 	}
-	resp.Header.Set("Content-Type", "application/json")
-	resp.Header.Set("Authorization", "Bearer token")
+	resp.Header.Set(HD.ContentType, C.JSON)
+	resp.Header.Set(HD.Authorization, "Bearer token")
 
 	headers := GetHeader(resp)
-	assert.Equal(t, "application/json", headers.Get("Content-Type"))
-	assert.Equal(t, "Bearer token", headers.Get("Authorization"))
+	assert.Equal(t, C.JSON, headers.Get(HD.ContentType))
+	assert.Equal(t, "Bearer token", headers.Get(HD.Authorization))
 }
 
 // TestGetBody tests the GetBody function
@@ -258,8 +259,8 @@ func TestStatusCodeError(t *testing.T) {
 	bodyContent := []byte(`{"error": "user not found"}`)
 
 	headers := make(H.Header)
-	headers.Set("Content-Type", "application/json")
-	headers.Set("X-Request-ID", "abc123")
+	headers.Set(HD.ContentType, C.JSON)
+	headers.Set(HD.XRequestID, "abc123")
 
 	resp := &H.Response{
 		StatusCode: H.StatusNotFound,
@@ -281,8 +282,8 @@ func TestStatusCodeError(t *testing.T) {
 
 	// Verify headers are cloned
 	returnedHeaders := httpErr.Headers()
-	assert.Equal(t, "application/json", returnedHeaders.Get("Content-Type"))
-	assert.Equal(t, "abc123", returnedHeaders.Get("X-Request-ID"))
+	assert.Equal(t, C.JSON, returnedHeaders.Get(HD.ContentType))
+	assert.Equal(t, "abc123", returnedHeaders.Get(HD.XRequestID))
 
 	// Verify error message
 	errMsg := httpErr.Error()
@@ -297,7 +298,7 @@ func TestValidateJSONResponse(t *testing.T) {
 			StatusCode: H.StatusOK,
 			Header:     make(H.Header),
 		}
-		resp.Header.Set("Content-Type", "application/json")
+		resp.Header.Set(HD.ContentType, C.JSON)
 
 		result := ValidateJSONResponse(resp)
 		assert.True(t, E.IsRight(result), "should accept valid JSON response")
@@ -308,7 +309,7 @@ func TestValidateJSONResponse(t *testing.T) {
 			StatusCode: H.StatusOK,
 			Header:     make(H.Header),
 		}
-		resp.Header.Set("Content-Type", "application/json; charset=utf-8")
+		resp.Header.Set(HD.ContentType, "application/json; charset=utf-8")
 
 		result := ValidateJSONResponse(resp)
 		assert.True(t, E.IsRight(result), "should accept JSON with charset")
@@ -319,7 +320,7 @@ func TestValidateJSONResponse(t *testing.T) {
 			StatusCode: H.StatusOK,
 			Header:     make(H.Header),
 		}
-		resp.Header.Set("Content-Type", "application/hal+json")
+		resp.Header.Set(HD.ContentType, C.HALJSON)
 
 		result := ValidateJSONResponse(resp)
 		assert.True(t, E.IsRight(result), "should accept JSON variants")
@@ -330,7 +331,7 @@ func TestValidateJSONResponse(t *testing.T) {
 			StatusCode: H.StatusOK,
 			Header:     make(H.Header),
 		}
-		resp.Header.Set("Content-Type", "text/html")
+		resp.Header.Set(HD.ContentType, C.TextHTML)
 
 		result := ValidateJSONResponse(resp)
 		assert.True(t, E.IsLeft(result), "should reject non-JSON content type")
@@ -353,7 +354,7 @@ func TestValidateJSONResponse(t *testing.T) {
 			StatusCode: H.StatusInternalServerError,
 			Header:     make(H.Header),
 		}
-		resp.Header.Set("Content-Type", "application/json")
+		resp.Header.Set(HD.ContentType, C.JSON)
 
 		result := ValidateJSONResponse(resp)
 		// This actually succeeds because ValidateJSONResponse doesn't check status
@@ -367,7 +368,7 @@ func TestFullResponseAccessors(t *testing.T) {
 		StatusCode: H.StatusOK,
 		Header:     make(H.Header),
 	}
-	resp.Header.Set("Content-Type", "application/json")
+	resp.Header.Set(HD.ContentType, C.JSON)
 
 	bodyContent := []byte(`{"message": "success"}`)
 	fullResp := P.MakePair(resp, bodyContent)
@@ -385,12 +386,12 @@ func TestFullResponseAccessors(t *testing.T) {
 
 // TestHeaderContentTypeConstant tests the HeaderContentType constant
 func TestHeaderContentTypeConstant(t *testing.T) {
-	assert.Equal(t, "Content-Type", HeaderContentType)
+	assert.Equal(t, "content-type", HeaderContentType)
 
 	// Test usage with http.Header
 	headers := make(H.Header)
-	headers.Set(HeaderContentType, "application/json")
-	assert.Equal(t, "application/json", headers.Get(HeaderContentType))
+	headers.Set(HeaderContentType, C.JSON)
+	assert.Equal(t, C.JSON, headers.Get(HeaderContentType))
 }
 
 // TestWithHeader_DataLastPattern tests that WithHeader follows the data last pattern
@@ -401,12 +402,12 @@ func TestWithHeader_DataLastPattern(t *testing.T) {
 		require.NoError(t, err)
 
 		// Apply WithHeader in curried form (data last pattern)
-		setContentType := WithHeader("Content-Type")
-		setJSON := setContentType("application/json")
+		setContentType := WithHeader(HD.ContentType)
+		setJSON := setContentType(C.JSON)
 		result := setJSON(req)
 
 		// Verify the header was set
-		assert.Equal(t, "application/json", result.Header.Get("Content-Type"))
+		assert.Equal(t, C.JSON, result.Header.Get(HD.ContentType))
 		assert.Equal(t, req, result, "should return the same request object")
 	})
 
@@ -415,9 +416,9 @@ func TestWithHeader_DataLastPattern(t *testing.T) {
 		require.NoError(t, err)
 
 		// Apply WithHeader directly
-		result := WithHeader("Authorization")("Bearer token123")(req)
+		result := WithHeader(HD.Authorization)("Bearer token123")(req)
 
-		assert.Equal(t, "Bearer token123", result.Header.Get("Authorization"))
+		assert.Equal(t, "Bearer token123", result.Header.Get(HD.Authorization))
 	})
 
 	t.Run("composition with multiple headers", func(t *testing.T) {
@@ -425,8 +426,8 @@ func TestWithHeader_DataLastPattern(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create header setters
-		setContentType := WithHeader("Content-Type")("application/json")
-		setAuth := WithHeader("Authorization")("Bearer token")
+		setContentType := WithHeader(HD.ContentType)(C.JSON)
+		setAuth := WithHeader(HD.Authorization)("Bearer token")
 		setCustom := WithHeader("X-Custom-Header")("custom-value")
 
 		// Apply them in sequence
@@ -437,8 +438,8 @@ func TestWithHeader_DataLastPattern(t *testing.T) {
 			setCustom,
 		)
 
-		assert.Equal(t, "application/json", result.Header.Get("Content-Type"))
-		assert.Equal(t, "Bearer token", result.Header.Get("Authorization"))
+		assert.Equal(t, C.JSON, result.Header.Get(HD.ContentType))
+		assert.Equal(t, "Bearer token", result.Header.Get(HD.Authorization))
 		assert.Equal(t, "custom-value", result.Header.Get("X-Custom-Header"))
 	})
 }
@@ -453,11 +454,11 @@ func TestWithHeader_Mutation(t *testing.T) {
 		originalReq := req
 
 		// Apply header
-		result := WithHeader("Content-Type")("application/json")(req)
+		result := WithHeader(HD.ContentType)(C.JSON)(req)
 
 		// Verify it's the same object (pointer equality)
 		assert.Same(t, originalReq, result, "should return the same request object, not a copy")
-		assert.Equal(t, "application/json", originalReq.Header.Get("Content-Type"), "original request should be modified")
+		assert.Equal(t, C.JSON, originalReq.Header.Get(HD.ContentType), "original request should be modified")
 	})
 
 	t.Run("overwrites existing header", func(t *testing.T) {
@@ -465,12 +466,12 @@ func TestWithHeader_Mutation(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set initial header
-		req.Header.Set("Content-Type", "text/plain")
+		req.Header.Set(HD.ContentType, C.TextPlain)
 
 		// Overwrite with WithHeader
-		WithHeader("Content-Type")("application/json")(req)
+		WithHeader(HD.ContentType)(C.JSON)(req)
 
-		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		assert.Equal(t, C.JSON, req.Header.Get(HD.ContentType))
 	})
 }
 
@@ -499,11 +500,11 @@ func TestWithHeader_EdgeCases(t *testing.T) {
 		req, err := H.NewRequest("GET", "https://example.com", nil)
 		require.NoError(t, err)
 
-		WithHeader("content-type")("application/json")(req)
+		WithHeader("content-type")(C.JSON)(req)
 
 		// HTTP headers are case-insensitive
-		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
-		assert.Equal(t, "application/json", req.Header.Get("content-type"))
+		assert.Equal(t, C.JSON, req.Header.Get("Content-Type"))
+		assert.Equal(t, C.JSON, req.Header.Get("content-type"))
 	})
 
 	t.Run("multiple values for same header", func(t *testing.T) {
@@ -511,11 +512,11 @@ func TestWithHeader_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set replaces all values
-		WithHeader("Accept")("application/json")(req)
-		WithHeader("Accept")("text/html")(req)
+		WithHeader(HD.Accept)(C.JSON)(req)
+		WithHeader(HD.Accept)(C.TextHTML)(req)
 
 		// Should only have the last value
-		assert.Equal(t, "text/html", req.Header.Get("Accept"))
+		assert.Equal(t, C.TextHTML, req.Header.Get(HD.Accept))
 	})
 }
 
@@ -526,14 +527,14 @@ func TestWithHeader_StandardHeaders(t *testing.T) {
 		header string
 		value  string
 	}{
-		{"Content-Type JSON", "Content-Type", "application/json"},
-		{"Content-Type XML", "Content-Type", "application/xml"},
-		{"Authorization Bearer", "Authorization", "Bearer eyJhbGc..."},
-		{"User-Agent", "User-Agent", "Mozilla/5.0"},
-		{"Accept", "Accept", "application/json"},
-		{"Accept-Encoding", "Accept-Encoding", "gzip, deflate"},
-		{"Cache-Control", "Cache-Control", "no-cache"},
-		{"Custom Header", "X-Request-ID", "abc-123-def"},
+		{"Content-Type JSON", HD.ContentType, C.JSON},
+		{"Content-Type XML", HD.ContentType, C.XML},
+		{"Authorization Bearer", HD.Authorization, "Bearer eyJhbGc..."},
+		{"User-Agent", HD.UserAgent, "Mozilla/5.0"},
+		{"Accept", HD.Accept, C.JSON},
+		{"Accept-Encoding", HD.AcceptEncoding, "gzip, deflate"},
+		{"Cache-Control", HD.CacheControl, "no-cache"},
+		{"Custom Header", HD.XRequestID, "abc-123-def"},
 	}
 
 	for _, tt := range tests {
@@ -553,13 +554,13 @@ func ExampleWithHeader() {
 	req, _ := H.NewRequest("GET", "https://api.example.com/data", nil)
 
 	// Create a header setter for Content-Type
-	setContentType := WithHeader("Content-Type")
-	setJSON := setContentType("application/json")
+	setContentType := WithHeader(HD.ContentType)
+	setJSON := setContentType(C.JSON)
 
 	// Apply to request
 	setJSON(req)
 
-	fmt.Println(req.Header.Get("Content-Type"))
+	fmt.Println(req.Header.Get(HD.ContentType))
 	// Output: application/json
 }
 
@@ -570,14 +571,14 @@ func ExampleWithHeader_composition() {
 	// Compose multiple header setters
 	result := F.Pipe3(
 		req,
-		WithHeader("Content-Type")("application/json"),
-		WithHeader("Authorization")("Bearer token"),
-		WithHeader("X-Request-ID")("12345"),
+		WithHeader(HD.ContentType)(C.JSON),
+		WithHeader(HD.Authorization)("Bearer token"),
+		WithHeader(HD.XRequestID)("12345"),
 	)
 
-	fmt.Println(result.Header.Get("Content-Type"))
-	fmt.Println(result.Header.Get("Authorization"))
-	fmt.Println(result.Header.Get("X-Request-ID"))
+	fmt.Println(result.Header.Get(HD.ContentType))
+	fmt.Println(result.Header.Get(HD.Authorization))
+	fmt.Println(result.Header.Get(HD.XRequestID))
 	// Output:
 	// application/json
 	// Bearer token

@@ -52,15 +52,12 @@ import (
 //
 // See Also:
 //   - context.WithValue: The standard library function used by the setter.
-//   - option.InstanceOf: The type-safe assertion used by the getter.
+//   - context/reader.AskValue: The Reader used by the getter.
 //   - context/reader.WithValue: The Kleisli arrow used to derive child contexts.
 func AtContext[V, K any](key K) Lens[context.Context, Option[V]] {
 
 	return common.MakeLensCurriedWithName(
-		F.Pipe1(
-			F.Bind2nd((context.Context).Value, any(key)),
-			reader.Map[context.Context](option.InstanceOf[V]),
-		),
+		CR.AskValue[V](key),
 		F.Flow2(
 			option.Map(CR.WithValue[V](key)),
 			option.GetOrElse(reader.Ask[context.Context]),

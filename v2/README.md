@@ -20,6 +20,7 @@
 - [Migration Guide](#-migration-guide)
 - [What's New](#-whats-new)
 - [Documentation](#-documentation)
+- [HTTP Header Names](#-http-header-names)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -495,6 +496,12 @@ The idiomatic packages offer 2-10x performance improvements and zero allocations
 - ⚠️ You're locked to Go < 1.24
 - ⚠️ Migration effort outweighs benefits for your project
 - ⚠️ You need stability in production (V2 is newer)
+
+## 🌐 HTTP Header Names
+
+All HTTP header name constants in fp-go (e.g. `headers.ContentType`, `headers.Accept`, `http.HeaderContentType`) are **lower case**, such as `"content-type"`. HTTP/2 ([RFC 9113, Section 8.2.2](https://www.rfc-editor.org/rfc/rfc9113#section-8.2.2)) and HTTP/3 ([RFC 9114, Section 4.2](https://www.rfc-editor.org/rfc/rfc9114#section-4.2)) require field names to be lower case. Go's `http.Header` canonicalizes keys on `Get`, `Set` and `Values`, and so do the lenses in `http/headers`, so the constants work with HTTP/1.1 as well. New code must follow the same rule, should use these constants instead of string literals such as `"Content-Type"`, and must not index `http.Header` maps directly with a header name.
+
+Likewise, media types for the `content-type` and `accept` headers are defined as constants in `http/content` (e.g. `content.JSON`, `content.FormEncoded`, `content.MultipartFormData`, `content.ProblemJSON`), each documented with its defining RFC or specification. Use them instead of string literals such as `"application/json"`.
 
 ## 🤝 Contributing
 

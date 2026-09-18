@@ -155,10 +155,10 @@ Lenses created from isomorphisms can be composed with other lenses:
 
 While you can create a lens directly, using an isomorphism provides benefits:
 
-1. Reusability: The isomorphism can be used in multiple contexts
-2. Bidirectionality: The inverse transformation is explicitly available
-3. Type Safety: Isomorphism laws ensure correctness
-4. Composability: Isomorphisms compose naturally
+ 1. Reusability: The isomorphism can be used in multiple contexts
+ 2. Bidirectionality: The inverse transformation is explicitly available
+ 3. Type Safety: Isomorphism laws ensure correctness
+ 4. Composability: Isomorphisms compose naturally
 
 Direct lens approach requires defining both get and set operations separately,
 while the isomorphism approach defines the bidirectional transformation once
@@ -170,9 +170,9 @@ Converting an isomorphism to a lens has minimal overhead. The resulting lens
 simply delegates to the isomorphism's Get and ReverseGet functions. However,
 keep in mind:
 
-1. Each Set operation performs a full transformation via ReverseGet
-2. For pointer types, use IsoAsLensRef to ensure proper copying
-3. The lens ignores the original structure in Set, using only the new value
+ 1. Each Set operation performs a full transformation via ReverseGet
+ 2. For pointer types, use IsoAsLensRef to ensure proper copying
+ 3. The lens ignores the original structure in Set, using only the new value
 
 # Function Reference
 

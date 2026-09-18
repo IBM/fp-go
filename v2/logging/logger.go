@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/common"
 	IC "github.com/IBM/fp-go/v2/internal/context"
 	"github.com/IBM/fp-go/v2/pair"
 )
@@ -110,7 +111,12 @@ func GetLogger() *slog.Logger {
 
 type loggerInContextType int
 
-var loggerInContextKey loggerInContextType
+var (
+	loggerInContextKey loggerInContextType
+
+	// getLoggerFromContext looks up the logger stored under loggerInContextKey
+	getLoggerFromContext = IC.AskValue[*slog.Logger](loggerInContextKey)
+)
 
 // GetLoggerFromContext retrieves a logger from the provided context.
 // If no logger is found in the context, it returns the global logger.
@@ -132,12 +138,7 @@ var loggerInContextKey loggerInContextType
 //	    logger.Info("Processing request")
 //	}
 func GetLoggerFromContext(ctx context.Context) *slog.Logger {
-	// using idomatic style to avoid import cycle
-	value, ok := ctx.Value(loggerInContextKey).(*slog.Logger)
-	if !ok {
-		return globalLogger.Load()
-	}
-	return value
+	return common.OptionGetOrElse(globalLogger.Load)(getLoggerFromContext(ctx))
 }
 
 func noop() {}

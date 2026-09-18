@@ -166,7 +166,7 @@ func Of[I, A any](a A) Validate[I, A] {
 // is deferred until the validator is actually executed, allowing for efficient handling
 // of expensive operations or values that may not always be needed.
 //
-// **IMPORTANT**: The lazy function MUST be pure (referentially transparent). It should
+// IMPORTANT: The lazy function MUST be pure (referentially transparent). It should
 // always return the same value when called and must not perform side effects. For
 // computations with side effects, use IO or IOEither types instead.
 //
@@ -421,21 +421,21 @@ func Chain[I, A, B any](f Kleisli[I, A, B]) Operator[I, A, B] {
 //
 // # Key Behavior
 //
-// **Critical difference from standard Either operations**: This validation-specific
-// implementation **aggregates errors** using the Errors monoid. When the transformation
+// Critical difference from standard Either operations: This validation-specific
+// implementation aggregates errors using the Errors monoid. When the transformation
 // function returns a failure, both the original errors AND the new errors are combined,
 // ensuring comprehensive error reporting.
 //
-//  1. **Success Pass-Through**: If validation succeeds, the handler is never called and
+//  1. Success Pass-Through: If validation succeeds, the handler is never called and
 //     the success value passes through unchanged.
 //
-//  2. **Error Recovery**: The handler can recover from failures by returning a successful
+//  2. Error Recovery: The handler can recover from failures by returning a successful
 //     validation, converting Left to Right.
 //
-//  3. **Error Aggregation**: When the handler also returns a failure, both the original
+//  3. Error Aggregation: When the handler also returns a failure, both the original
 //     errors and the new errors are combined using the Errors monoid.
 //
-//  4. **Input Access**: The handler returns a Validate[I, A] function, giving it access
+//  4. Input Access: The handler returns a Validate[I, A] function, giving it access
 //     to the original input value I for context-aware error handling.
 //
 // # Type Parameters
@@ -542,21 +542,21 @@ func ChainLeft[I, A any](f Kleisli[I, Errors, A]) Operator[I, A, A] {
 //
 // # Key Behavior
 //
-// **Critical difference from standard Either operations**: This validation-specific
-// implementation **aggregates errors** using the Errors monoid. When the transformation
+// Critical difference from standard Either operations: This validation-specific
+// implementation aggregates errors using the Errors monoid. When the transformation
 // function returns a failure, both the original errors AND the new errors are combined,
 // ensuring comprehensive error reporting.
 //
-//  1. **Success Pass-Through**: If validation succeeds, the handler is never called and
+//  1. Success Pass-Through: If validation succeeds, the handler is never called and
 //     the success value passes through unchanged.
 //
-//  2. **Error Recovery**: The handler can recover from failures by returning a successful
+//  2. Error Recovery: The handler can recover from failures by returning a successful
 //     validation, converting Left to Right.
 //
-//  3. **Error Aggregation**: When the handler also returns a failure, both the original
+//  3. Error Aggregation: When the handler also returns a failure, both the original
 //     errors and the new errors are combined using the Errors monoid.
 //
-//  4. **Input Access**: The handler returns a Validate[I, A] function, giving it access
+//  4. Input Access: The handler returns a Validate[I, A] function, giving it access
 //     to the original input value I for context-aware error handling.
 //
 // # Type Parameters
@@ -680,13 +680,13 @@ func MonadChainLeft[I, A any](fa Validate[I, A], f Kleisli[I, Errors, A]) Valida
 //
 // # Relationship to ChainLeft
 //
-// **OrElse and ChainLeft are functionally identical** - they produce exactly the same
+// OrElse and ChainLeft are functionally identical - they produce exactly the same
 // results for all inputs. The choice between them is purely about code readability:
 //
-//   - Use **OrElse** when emphasizing fallback/alternative validation logic
-//   - Use **ChainLeft** when emphasizing technical error channel transformation
+//   - Use OrElse when emphasizing fallback/alternative validation logic
+//   - Use ChainLeft when emphasizing technical error channel transformation
 //
-// Both maintain the critical property of **error aggregation**, ensuring all validation
+// Both maintain the critical property of error aggregation, ensuring all validation
 // failures are preserved and reported together.
 //
 // # Type Parameters
@@ -898,9 +898,9 @@ func Ap[B, I, A any](fa Validate[I, A]) Operator[I, func(A) B, B] {
 //
 // # Behavior
 //
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
 //
 // # Example: Fallback Validation
 //
@@ -998,9 +998,9 @@ func Alt[I, A any](second Lazy[Validate[I, A]]) Operator[I, A, A] {
 //
 // # Behavior
 //
-//   - **First succeeds**: Returns the first result, second is never evaluated
-//   - **First fails, second succeeds**: Returns the second result
-//   - **Both fail**: Aggregates errors from both validators
+//   - First succeeds: Returns the first result, second is never evaluated
+//   - First fails, second succeeds: Returns the second result
+//   - Both fail: Aggregates errors from both validators
 //
 // # Example: Configuration with Fallback
 //
