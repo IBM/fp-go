@@ -15,7 +15,7 @@ description: >
 
 # fp-go Pattern Matching
 
-All imports come from `github.com/IBM/fp-go/v2`. The canonical long-form
+All imports come from `github.com/IBM/fp-go/v2` and use the canonical aliases of the **fp-go** skill. The canonical long-form
 reference is `v2/docs/PATTERN_MATCHING.md`. Tested examples are in
 `v2/array/example_pattern_matching_test.go` and `v2/array/pattern_matching_test.go`.
 
@@ -26,12 +26,12 @@ import (
     N  "github.com/IBM/fp-go/v2/number"
     O  "github.com/IBM/fp-go/v2/option"
     P  "github.com/IBM/fp-go/v2/predicate"
-    R  "github.com/IBM/fp-go/v2/reader"
+    R  "github.com/IBM/fp-go/v2/result"
+    RD "github.com/IBM/fp-go/v2/reader"
     RO "github.com/IBM/fp-go/v2/readeroption"
-    RR "github.com/IBM/fp-go/v2/readerresult"
     S  "github.com/IBM/fp-go/v2/string"
     "github.com/IBM/fp-go/v2/optics/prism"
-    "github.com/IBM/fp-go/v2/result"
+    "github.com/IBM/fp-go/v2/readerresult" // generic ReaderResult[T, B]; not context/readerresult
 )
 ```
 
@@ -96,9 +96,9 @@ F.Pipe2(c1, RO.Alt(F.Constant(c2)), RO.Alt(F.Constant(c3)))
 
 // FindFirstMap over a slice of cases
 F.Flow3(
-    R.Read[O.Option[B], T],                   // x -> apply-a-case-to-x
+    RD.Read[O.Option[B], T],                   // x -> apply-a-case-to-x
     A.FindFirstMap[RO.ReaderOption[T, B], B], // -> first case that matches
-    R.Read[O.Option[B]](cases),               // run over the cases
+    RD.Read[O.Option[B]](cases),               // run over the cases
 )
 ```
 
@@ -114,12 +114,12 @@ F.Flow3(
 | `fmt.Sprintf("x %v", v)` | `S.Format[T]("x %v")` |
 | `"INFO: " + s` | `S.Prepend("INFO: ")`, `S.Append` |
 | `func(T) B { return b }` | `F.Constant1[T](b)` |
-| `strconv.ParseInt(s, base, 64)` | `F.Bind23of3(result.Eitherize3(strconv.ParseInt))(base, 64)` |
-| `strconv.Atoi(s)` | `result.Eitherize1(strconv.Atoi)` |
-| `Result` -> `Option` | `result.ToOption[A]` |
+| `strconv.ParseInt(s, base, 64)` | `F.Bind23of3(R.Eitherize3(strconv.ParseInt))(base, 64)` |
+| `strconv.Atoi(s)` | `R.Eitherize1(strconv.Atoi)` |
+| `Result` -> `Option` | `R.ToOption[A]` |
 | `func() Option[B] { return c(x) }` | `F.Nullary2(F.Constant(x), c)` |
 | `func(s Shape) any { return s }` | `F.ToAny[Shape]` |
-| replace any error | `result.MapLeft[A](F.Constant1[error](err))` |
+| replace any error | `R.MapLeft[A](F.Constant1[error](err))` |
 
 (`number` has **no** `Equal`/`LessThanEqual`. Use `P.IsStrictEqual`, `P.IsZero[T]()`, `N.LessThan(n+1)`.)
 
@@ -129,7 +129,7 @@ F.Flow3(
 // BAD: all three cases run, because Go evaluates the slice literal first
 O.AltAllArray(O.None[B]())([]O.Option[B]{c1(x), c2(x), c3(x)})
 // its point-free equivalent shows why: SequenceArray runs every case first
-F.Pipe2(cases, R.SequenceArray[T, O.Option[B]], R.Map[T](O.AltAllArray(O.None[B]())))
+F.Pipe2(cases, RD.SequenceArray[T, O.Option[B]], RD.Map[T](O.AltAllArray(O.None[B]())))
 ```
 
 `AltAllArray` stops *scanning* at the first `Some` but cannot prevent the calls
@@ -159,7 +159,7 @@ func withPrefix(prefix string, base int) RO.ReaderOption[string, int64] {
     return F.Flow3(
         O.FromPredicate(F.Bind2nd(strings.HasPrefix, prefix)),
         O.Map(F.Bind2nd(strings.TrimPrefix, prefix)),
-        O.Chain(F.Flow2(F.Bind23of3(result.Eitherize3(strconv.ParseInt))(base, 64), result.ToOption[int64])),
+        O.Chain(F.Flow2(F.Bind23of3(R.Eitherize3(strconv.ParseInt))(base, 64), R.ToOption[int64])),
     )
 }
 ```
@@ -193,7 +193,7 @@ A.From(c1, c2, RO.Of[T](dflt))                                           // catc
 |---|---|
 | `Option[A]` | `O.Fold(onNone func() B, onSome func(A) B)`, e.g. `O.Fold(F.Constant("none"), S.Format[int]("got %d"))` |
 | `Either[E, A]` | `either.Fold(onLeft, onRight)` |
-| `Result[A]` | `result.Fold(onErr func(error) B, onOk func(A) B)` |
+| `Result[A]` | `R.Fold(onErr func(error) B, onOk func(A) B)` |
 | predicate | `P.Fold(onFalse, onTrue func(A) B)(pred)` |
 | slice empty/non-empty | `A.Match(onEmpty func() B, onNonEmpty func([]A) B)`, `A.MatchLeft(onEmpty, func(head A, tail []A) B)` |
 
@@ -211,25 +211,25 @@ A.From(c1, c2, RO.Of[T](dflt))                                           // catc
 When a failing case should say why, use `Result` cases and the error-aware monoid:
 
 ```go
-func withPrefixR(prefix string, base int, err error) RR.ReaderResult[string, int64] {
+func withPrefixR(prefix string, base int, err error) readerresult.ReaderResult[string, int64] {
     return F.Flow4(
-        result.FromPredicate(F.Bind2nd(strings.HasPrefix, prefix), F.Constant1[string](err)),
-        result.Map(F.Bind2nd(strings.TrimPrefix, prefix)),
-        result.Chain(F.Bind23of3(result.Eitherize3(strconv.ParseInt))(base, 64)),
-        result.MapLeft[int64](F.Constant1[error](err)),
+        R.FromPredicate(F.Bind2nd(strings.HasPrefix, prefix), F.Constant1[string](err)),
+        R.Map(F.Bind2nd(strings.TrimPrefix, prefix)),
+        R.Chain(F.Bind23of3(R.Eitherize3(strconv.ParseInt))(base, 64)),
+        R.MapLeft[int64](F.Constant1[error](err)),
     )
 }
 
-parse := A.Fold(RR.AltMonoid(F.Constant(RR.Left[string, int64](errNoMatch))))(A.From(
+parse := A.Fold(readerresult.AltMonoid(F.Constant(readerresult.Left[string, int64](errNoMatch))))(A.From(
     withPrefixR("0x", 16, errHex),
     withPrefixR("", 10, errDec),
 ))
-// two alternatives: F.Pipe1(c1, RR.Alt(F.Constant(c2)))
+// two alternatives: F.Pipe1(c1, readerresult.Alt(F.Constant(c2)))
 ```
 
 - Lazy. If all cases fail, the **last** case's error is returned. With no cases, `zero` is returned.
-- If the cases are declared as plain `func(string) result.Result[int64]`,
-  `A.From` may need an explicit type argument: `A.From[RR.ReaderResult[string, int64]](...)`.
+- If the cases are declared as plain `func(string) R.Result[int64]`,
+  `A.From` may need an explicit type argument: `A.From[readerresult.ReaderResult[string, int64]](...)`.
 - `readereither.AltMonoid(zero)` is the equivalent for custom error types.
 
 ## Review checklist

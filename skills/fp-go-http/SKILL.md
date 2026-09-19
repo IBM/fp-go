@@ -146,6 +146,8 @@ import (
     H   "github.com/IBM/fp-go/v2/context/readerioresult/http"
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     IO  "github.com/IBM/fp-go/v2/io"
+    N   "github.com/IBM/fp-go/v2/number"
+    S   "github.com/IBM/fp-go/v2/string"
 )
 
 type PostItem struct {
@@ -157,11 +159,12 @@ type PostItem struct {
 client     := H.MakeClient(HTTP.DefaultClient)
 readPost   := H.ReadJSON[PostItem](client)
 
+// index -> URL, point-free
+postURL := F.Flow2(N.Add(1), S.Format[int]("https://jsonplaceholder.typicode.com/posts/%d"))
+
 // Fetch 10 posts in parallel
 data := F.Pipe3(
-    A.MakeBy(10, func(i int) string {
-        return fmt.Sprintf("https://jsonplaceholder.typicode.com/posts/%d", i+1)
-    }),
+    A.MakeBy(10, postURL),
     RIO.TraverseArray(F.Flow3(
         H.MakeGetRequest,
         readPost,
@@ -328,14 +331,14 @@ A received `Content-Type` usually carries parameters (`application/json; charset
 ```go
 import (
     FH "github.com/IBM/fp-go/v2/http"
-    P  "github.com/IBM/fp-go/v2/pair"
+    PA "github.com/IBM/fp-go/v2/pair"
     R  "github.com/IBM/fp-go/v2/result"
     S  "github.com/IBM/fp-go/v2/string"
 )
 
 isJSON := F.Flow3(
     FH.ParseMediaType,                       // string -> Result[Pair[mediaType, params]]
-    R.Map(P.Head[string, map[string]string]),
+    R.Map(PA.Head[string, map[string]string]),
     R.Fold(F.Constant1[error](false), S.Equals(C.JSON)),
 )
 isJSON(resp.Header.Get(HD.ContentType))
@@ -353,19 +356,11 @@ Errors from request creation, HTTP status codes, Content-Type validation, and JS
 value, err := R.Unwrap(pipeline(ctx)())
 if err != nil { /* handle */ }
 
-// Pattern 2: run the pipeline, then eliminate the Result with result.Fold
+// Pattern 2: run the pipeline, then eliminate the Result with result.Fold,
+// passing named handlers (defined once, see the full example below)
 F.Pipe1(
     pipeline(ctx)(),          // Result[MyType]
-    R.Fold(
-        func(err error) F.Void {
-            http.Error(w, err.Error(), http.StatusInternalServerError)
-            return F.VOID
-        },
-        func(data MyType) F.Void {
-            json.NewEncoder(w).Encode(data)
-            return F.VOID
-        },
-    ),
+    R.Fold(writeError(w, http.StatusInternalServerError), writeJSON[MyType](w)),
 )
 ```
 
@@ -377,9 +372,7 @@ F.Pipe1(
 package main
 
 import (
-    "context"
     "encoding/json"
-    "fmt"
     "net/http"
 
     F   "github.com/IBM/fp-go/v2/function"
@@ -387,6 +380,7 @@ import (
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     R   "github.com/IBM/fp-go/v2/result"
     IO  "github.com/IBM/fp-go/v2/io"
+    S   "github.com/IBM/fp-go/v2/string"
     HD  "github.com/IBM/fp-go/v2/http/headers"
     C   "github.com/IBM/fp-go/v2/http/content"
 )
@@ -398,29 +392,36 @@ type Post struct {
 
 var client = H.MakeClient(http.DefaultClient)
 
-func fetchPost(id int) RIO.ReaderIOResult[Post] {
-    url := fmt.Sprintf("https://jsonplaceholder.typicode.com/posts/%d", id)
-    return F.Pipe2(
-        H.MakeGetRequest(url),
+// fetchPost: int -> ReaderIOResult[Post], point-free
+func fetchPost() RIO.Kleisli[int, Post] {
+    return F.Flow4(
+        S.Format[int]("https://jsonplaceholder.typicode.com/posts/%d"),
+        H.MakeGetRequest,
         H.ReadJSON[Post](client),
         RIO.ChainFirstIOK(IO.Logf[Post]("fetched: %v")),
     )
 }
 
+// Leaf handlers — the only place that touches the ResponseWriter
+func writeError(w http.ResponseWriter, status int) func(error) F.Void {
+    return func(err error) F.Void {
+        http.Error(w, err.Error(), status)
+        return F.VOID
+    }
+}
+
+func writeJSON[A any](w http.ResponseWriter) func(A) F.Void {
+    return func(a A) F.Void {
+        w.Header().Set(HD.ContentType, C.JSON)
+        json.NewEncoder(w).Encode(a)
+        return F.VOID
+    }
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
     F.Pipe1(
-        fetchPost(1)(r.Context())(), // run it: Result[Post]
-        R.Fold(
-            func(err error) F.Void {
-                http.Error(w, err.Error(), http.StatusBadGateway)
-                return F.VOID
-            },
-            func(post Post) F.Void {
-                w.Header().Set(HD.ContentType, C.JSON)
-                json.NewEncoder(w).Encode(post)
-                return F.VOID
-            },
-        ),
+        fetchPost()(1)(r.Context())(), // run it: Result[Post]
+        R.Fold(writeError(w, http.StatusBadGateway), writeJSON[Post](w)),
     )
 }
 ```
@@ -443,6 +444,9 @@ import (
     A   "github.com/IBM/fp-go/v2/array"
     T   "github.com/IBM/fp-go/v2/tuple"
     IO  "github.com/IBM/fp-go/v2/io"
+    N   "github.com/IBM/fp-go/v2/number"
+    S   "github.com/IBM/fp-go/v2/string"
+    PA  "github.com/IBM/fp-go/v2/pair"
 )
 ```
 

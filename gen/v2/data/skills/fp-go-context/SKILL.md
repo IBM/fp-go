@@ -161,10 +161,16 @@ Scope as narrowly as the requirement: put `WithTimeout` directly after the step 
 When the new context value itself needs IO (generating an ID, loading a token), use `LocalIOK` / `LocalIOResultK` with the `context/reader` building blocks:
 
 ```go
+// uuid.NewString is a func() string, i.e. already an IO[string]
 func addRequestID(ctx context.Context) IO.IO[RIO.ContextCancel] {
-    return func() RIO.ContextCancel {
-        return CR.NopCancel(CR.WithValue[string](requestIDKey)(uuid.NewString())(ctx))
-    }
+    return F.Pipe1(
+        uuid.NewString,
+        IO.Map(F.Flow3(
+            CR.WithValue[string](requestIDKey), // string -> Endomorphism[context.Context]
+            RD.Read[context.Context](ctx),      // apply it to ctx
+            CR.NopCancel,                       // -> Pair[CancelFunc, context.Context]
+        )),
+    )
 }
 
 scoped := RIO.LocalIOK[Response](addRequestID)(handler)

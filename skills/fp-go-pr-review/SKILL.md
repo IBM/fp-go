@@ -34,6 +34,11 @@ import O "github.com/IBM/fp-go/v2/option"
 
 **Severity**: Critical — v1 and v2 are incompatible
 
+Also check that import aliases follow the canonical table in the **fp-go** skill
+(`R` = `result`, `RD` = `reader`, `P` = `predicate`, `PA` = `pair`, `EM` = `endomorphism`,
+`IOR` = `ioresult`, `L` = `optics/lens`, `logging` unaliased, …). The same letter meaning
+two packages across files is a Low finding.
+
 ### 2. Data-Last Principle
 
 **Rule**: All fp-go operations use data-last. The data being transformed is always the last argument.
@@ -79,7 +84,37 @@ A.Filter(func(x int) bool { return x > 18 })
 
 // ✅ CORRECT - use numeric combinator
 A.Filter(N.MoreThan(18))
+
+// ❌ AVOID - field-access lambda inside a pipeline step
+RIO.Map(func(u User) string { return u.Name })
+
+// ✅ CORRECT - named leaf accessor or lens getter
+RIO.Map(nameLens.Get)
+
+// ❌ AVOID - lambda that only threads its argument into a pipeline
+RIO.Chain(func(u User) RIO.ReaderIOResult[[]Order] {
+    return F.Pipe1(fetchOrders(u.ID), RIO.LogEntryExit[[]Order]("fetchOrders"))
+})
+
+// ✅ CORRECT - compose the steps
+RIO.Chain(F.Flow3(getUserID, fetchOrders, RIO.LogEntryExit[[]Order]("fetchOrders")))
+
+// ❌ AVOID - hand-written Reader/IO closures around a Go function
+func fetchUser(id int) RIO.ReaderIOResult[User] {
+    return func(ctx context.Context) func() R.Result[User] {
+        return func() R.Result[User] { return R.TryCatchError(repo.FindUser(ctx, id)) }
+    }
+}
+
+// ✅ CORRECT - lift it
+fetchUser := RIO.Eitherize1(repo.FindUser) // repo.FindUser: func(context.Context, int) (User, error)
 ```
+
+Lambdas are acceptable only at the **leaves**: a struct field accessor (prefer a
+generated lens), a setter passed to `L.MakeLens`, a multi-field formatter, a
+side-effecting sink at the program edge (e.g. an HTTP response writer), or a
+blocking leaf that must `select` on `ctx.Done()`. Everything composed on top of
+the leaves should be point-free.
 
 **Severity**: Medium — impacts readability and maintainability
 
@@ -177,16 +212,16 @@ type Deps struct {
     Logger Logger
 }
 
-// Effect[Deps, User] IS func(Deps) ReaderIOResult[User] — return the closure directly.
-// EF.Asks is only for pure projections func(Deps) A; feeding it a ReaderIOResult
-// silently produces the nested Effect[Deps, ReaderIOResult[User]].
-func fetchUser(id int) EF.Effect[Deps, User] {
-    return func(deps Deps) EF.ReaderIOResult[User] {
-        // deps.DB is compile-time checked
-        return queryUser(deps.DB, id)
-    }
+// Lift an idiomatic function that receives the deps and the context.
+// queryUser is func(Deps, context.Context, int) (User, error); deps.DB is compile-time checked.
+func fetchUser() EF.Kleisli[Deps, int, User] {
+    return EF.Eitherize1(queryUser)
 }
 ```
+
+`Effect[Deps, User]` IS `func(Deps) ReaderIOResult[User]`. `EF.Asks` is only for pure
+projections `func(Deps) A`; feeding it a function that returns a `ReaderIOResult`
+silently produces the nested `Effect[Deps, ReaderIOResult[User]]` — flag that as High.
 
 Also flag `EF.Map(f)` and `EF.Provide(deps)(eff)` without annotations — `Map[C, A, B]` usually
 cannot infer `C`, and `Provide[A, C]` cannot infer `A` through the function it returns. Write
@@ -290,12 +325,10 @@ pipeline := F.Pipe2(
     RIO.ApS(weatherLens.Set, fetchWeather("NYC")),
 )
 
-// ✅ CORRECT - use Bind when dependent
+// ✅ CORRECT - ApS for the independent first step, Bind for the dependent one
 pipeline := F.Pipe2(
     RIO.Do(Pipeline{}),
-    RIO.Bind(userLens.Set, func(_ Pipeline) RIO.ReaderIOResult[User] {
-        return fetchUser(42)
-    }),
+    RIO.ApS(userLens.Set, fetchUser(42)),
     RIO.Bind(configLens.Set, F.Flow2(userLens.Get, fetchConfigForUser)),
 )
 ```
@@ -325,9 +358,9 @@ func fetchAll(ids []int) RIO.ReaderIOResult[[]User] {
     }
 }
 
-// ✅ CORRECT - use TraverseArray
-func fetchAll(ids []int) RIO.ReaderIOResult[[]User] {
-    return RIO.TraverseArray(fetchUser)(ids)
+// ✅ CORRECT - use TraverseArray, point-free (return the Kleisli, don't take ids)
+func fetchAll() RIO.Kleisli[[]int, []User] {
+    return RIO.TraverseArray(fetchUser)
 }
 ```
 
@@ -673,6 +706,7 @@ This skill can reference and include:
 - `fp-go-logging` — Logging patterns
 - `fp-go-lens` — Lens and optics patterns
 - `fp-go-context` — context.Context handling: reading values, scoping, timeouts, cancellation (see §17)
+- `fp-go-pattern-matching` — replacing switch / if-else chains with point-free case lists
 
 ## Automated Checks
 
@@ -682,7 +716,7 @@ When reviewing, automatically check for:
 2. ✅ No data-first function calls
 3. ✅ IO values are executed with `()`
 4. ✅ `Result` used instead of `Either[error, A]`
-5. ✅ Point-free style where applicable
+5. ✅ Point-free style: no lambdas above the leaves; `Eitherize` instead of hand-written closures; `ApS` instead of state-ignoring `Bind`
 6. ✅ Appropriate monad selection
 7. ✅ Lenses used in do-notation
 8. ✅ `Bind` vs `ApS` used correctly
@@ -691,6 +725,7 @@ When reviewing, automatically check for:
 11. ✅ No hidden mutation in `Map`/`Chain` closures or lens setters
 12. ✅ Context values read with `AskValue`; values/timeouts scoped with `WithValue`/`WithTimeout`/`WithDeadline`/`Local` (no `ctx.Value(k).(T)`, no discarded cancel funcs)
 13. ✅ Branch compiles (`go build ./...`) and passes `go vet ./...`
+14. ✅ Import aliases follow the canonical table (see the `fp-go` skill)
 
 ## Output Format
 

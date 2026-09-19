@@ -21,7 +21,37 @@ description: Use this skill whenever writing, reviewing, or refactoring Go code 
    value, err := result.Unwrap(res)   // (A, error)
    ```
    `value, err := pipeline(ctx)()` is a compile error. Alternatively, stay functional and eliminate the `Result` with `result.Fold`, or use one of the `idiomatic/` packages, whose types are `(A, error)` tuples end to end.
-6. **Prefer point-free style**: compose with `F.Flow` and `F.Pipe` instead of writing inline anonymous functions. If a transformation can be expressed as a composition of named functions, it should be. Point-free pipelines are idiomatic fp-go.
+6. **Point-free style**: compose with `F.Flow` and `F.Pipe` instead of writing inline anonymous functions. If a transformation can be expressed as a composition of named functions, it should be. Point-free pipelines are idiomatic fp-go.
+   - **Lambdas belong only at the leaves**: a struct field accessor (or better, `lens.Get`), a lens setter passed to `MakeLens`, a multi-field formatter, or the one function that touches raw IO / `ctx.Done()`. Everything composed *on top of* the leaves — every `Map`, `Chain`, `Bind`, `Filter`, `Fold` argument — is a named function, a combinator (`N.MoreThan`, `S.Format`, `F.Constant1`, `F.Bind2nd`, …) or an `F.FlowN` of those.
+   - Prefer lifting over wrapping: `R.Eitherize1(strconv.Atoi)`, `RIO.Eitherize1(repo.FindUser)`, `EF.Eitherize1(queryUser)` instead of hand-written closures.
+   - An argument that is only used to feed a pipeline is a sign the function should return the pipeline instead: `func fetchAll() RIO.Kleisli[[]int, []User] { return RIO.TraverseArray(fetchUser) }`, not `func fetchAll(ids []int) … { return RIO.TraverseArray(fetchUser)(ids) }`.
+7. **Canonical import aliases**: use the aliases in the table below in every file, so the same letter never means two packages.
+
+## Canonical Import Aliases
+
+All fp-go skills use these aliases. Packages not listed are imported unaliased (`prism`, `logging`, `readerresult`, …).
+
+| Alias | Package | | Alias | Package |
+|---|---|---|---|---|
+| `F` | `function` | | `RIO` | `context/readerioresult` |
+| `A` | `array` | | `RR` | `context/readerresult` |
+| `O` | `option` | | `RIOC` | `context/readerio` |
+| `E` | `either` | | `CR` | `context/reader` |
+| `R` | `result` | | `IRR` | `idiomatic/context/readerresult` |
+| `IO` | `io` | | `EF` | `effect` |
+| `IOR` | `ioresult` | | `L` | `optics/lens` |
+| `IOE` | `ioeither` | | `LO` | `optics/lens/option` |
+| `RD` | `reader` | | `LS` | `optics/lenses` |
+| `RO` | `readeroption` | | `N` | `number` |
+| `P` | `predicate` | | `S` | `string` |
+| `EM` | `endomorphism` | | `LZ` | `lazy` |
+| `PA` | `pair` | | `T` | `tuple` |
+| `ER` | `errors` | | `J` | `json` |
+| `H` | `context/readerioresult/http` | | `HD` | `http/headers` |
+| `B` | `http/builder` | | `C` | `http/content` |
+| `RB` | `context/readerioresult/http/builder` | | `FH` | `http` |
+| `SRIO` | `context/statereaderioresult` | | `EQ` | `eq` |
+| `IOF` | `ioresult/file` | | | |
 
 ## Generation Workflow
 
@@ -112,6 +142,9 @@ fp-go is designed for **point-free** programming: compose named functions with `
 ```go
 import (
     F  "github.com/IBM/fp-go/v2/function"
+    N  "github.com/IBM/fp-go/v2/number"
+    O  "github.com/IBM/fp-go/v2/option"
+    R  "github.com/IBM/fp-go/v2/result"
     S  "github.com/IBM/fp-go/v2/string"
     LZ "github.com/IBM/fp-go/v2/lazy"
 )
@@ -151,18 +184,18 @@ Two forms:
 ```go
 // Flow: compose functions left-to-right, returns a new function
 transform := F.Flow3(
-    option.Map(strings.TrimSpace),
-    option.Filter(S.IsNonEmpty),
-    option.GetOrElse(LZ.Of("default")),
+    O.Map(strings.TrimSpace),
+    O.Filter(S.IsNonEmpty),
+    O.GetOrElse(LZ.Of("default")),
 )
-result := transform(option.Some("  hello  ")) // "hello"
+value := transform(O.Some("  hello  ")) // "hello"
 
 // Pipe: apply a value through a pipeline immediately
-result := F.Pipe3(
-    option.Some("  hello  "),
-    option.Map(strings.TrimSpace),
-    option.Filter(S.IsNonEmpty),
-    option.GetOrElse(LZ.Of("default")),
+value := F.Pipe3(
+    O.Some("  hello  "),
+    O.Map(strings.TrimSpace),
+    O.Filter(S.IsNonEmpty),
+    O.GetOrElse(LZ.Of("default")),
 )
 ```
 
@@ -186,14 +219,14 @@ result := F.Pipe3(
 import (
     O  "github.com/IBM/fp-go/v2/option"
     F  "github.com/IBM/fp-go/v2/function"
+    N  "github.com/IBM/fp-go/v2/number"
     S  "github.com/IBM/fp-go/v2/string"
-    P  "github.com/IBM/fp-go/v2/optics/prism"
-    "strconv"
+    "github.com/IBM/fp-go/v2/optics/prism"
 )
 
 parseAndDouble := F.Flow3(
     O.FromPredicate(S.IsNonEmpty),
-    O.Chain(P.ParseInt().GetOption),
+    O.Chain(prism.ParseInt().GetOption),
     O.Map(N.Mul(2)),
 )
 
@@ -233,20 +266,20 @@ pipeline("abc")  // Error(strconv parse error)
 
 ```go
 import (
-    IOE "github.com/IBM/fp-go/v2/ioresult"
+    IOR "github.com/IBM/fp-go/v2/ioresult"
     F   "github.com/IBM/fp-go/v2/function"
     J   "github.com/IBM/fp-go/v2/json"
-    "github.com/IBM/fp-go/v2/result"
+    R   "github.com/IBM/fp-go/v2/result"
     "os"
 )
 
 readConfig := F.Flow2(
-    IOE.Eitherize1(os.ReadFile),           // func(string) IOResult[[]byte]
-    IOE.ChainEitherK(J.Unmarshal[Config]), // parse JSON, propagate errors
+    IOR.Eitherize1(os.ReadFile),           // func(string) IOResult[[]byte]
+    IOR.ChainEitherK(J.Unmarshal[Config]), // parse JSON, propagate errors
 )
 
 res := readConfig("config.json")()       // Result[Config] — note the trailing ()
-cfg, err := result.Unwrap(res)           // bridge back to idiomatic Go
+cfg, err := R.Unwrap(res)                // bridge back to idiomatic Go
 ```
 
 ### ReaderIOResult — context-aware pipelines (recommended for services)
@@ -256,30 +289,25 @@ import (
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     F   "github.com/IBM/fp-go/v2/function"
     IO  "github.com/IBM/fp-go/v2/io"
-    "github.com/IBM/fp-go/v2/result"
-    "context"
+    R   "github.com/IBM/fp-go/v2/result"
 )
 
-// type ReaderIOResult[A any] = func(context.Context) func() result.Result[A]
+// type ReaderIOResult[A any] = func(context.Context) func() Result[A]
 
-fetchUser := func(id int) RIO.ReaderIOResult[User] {
-    return func(ctx context.Context) func() result.Result[User] {
-        return func() result.Result[User] {
-            // perform IO here
-        }
-    }
-}
+// Lift the context-first Go function instead of hand-writing the nested closures:
+// repo.FindUser is func(context.Context, int) (User, error)
+fetchUser := RIO.Eitherize1(repo.FindUser)             // func(int) ReaderIOResult[User]
 
 // validateUser is a plain Go func(User) (User, error) — Eitherize it first
 pipeline := F.Pipe3(
     fetchUser(42),
-    RIO.ChainResultK(result.Eitherize1(validateUser)), // Kleisli: User → Result[User]
+    RIO.ChainResultK(R.Eitherize1(validateUser)),      // Kleisli: User → Result[User]
     RIO.Map(enrichUser),                               // lift pure User → User function
     RIO.ChainFirstIOK(IO.Logf[User]("Fetched: %v")),   // side-effect logging
 )
 
 res := pipeline(ctx)()               // Result[User] — ONE value, not (User, error)
-user, err := result.Unwrap(res)      // bridge back to idiomatic Go
+user, err := R.Unwrap(res)           // bridge back to idiomatic Go
 ```
 
 #### Reading and scoping the context
@@ -339,30 +367,27 @@ type Deps struct {
     Config AppConfig
 }
 
+// Leaf accessors (or generated lenses' .Get)
+func getConfig(d Deps) AppConfig          { return d.Config }
+func getDisplayName(u EnrichedUser) string { return u.DisplayName }
+
 // 2. Write effects that declare exactly what they need.
-// Effect[Deps, User] IS func(Deps) ReaderIOResult[User] — write it directly, no wrapper.
-fetchUser := func(id int) EF.Effect[Deps, User] {
-    return func(deps Deps) EF.ReaderIOResult[User] {
-        // deps.DB is available here — compile-time checked
-        return queryUser(deps.DB, id)
-    }
-}
+// Lift an idiomatic function that takes deps and ctx — no hand-written closure:
+// queryUser is func(Deps, context.Context, int) (User, error)
+fetchUser := EF.Eitherize1(queryUser)      // func(int) Effect[Deps, User]
 
+// Asks is for PURE projections of the deps: func(Deps) A → Effect[Deps, A].
+// applyConfig is curried: func(User) func(AppConfig) EnrichedUser
 enrichWithConfig := func(user User) EF.Effect[Deps, EnrichedUser] {
-    return func(deps Deps) EF.ReaderIOResult[EnrichedUser] {
-        return RIO.Of(applyConfig(user, deps.Config))
-    }
+    return EF.Asks(F.Flow2(getConfig, applyConfig(user)))
 }
-
-// Asks is for PURE projections of the context: func(Deps) A → Effect[Deps, A]
-getPrefix := EF.Asks(func(d Deps) string { return d.Config.Prefix })
 
 // 3. Compose effects — same Map/Chain/Bind/ApS API as every other monad.
 // C leads the type-parameter list and is not always inferable: annotate EF.Map[Deps].
 pipeline := F.Pipe2(
     fetchUser(42),
     EF.Chain(enrichWithConfig),
-    EF.Map[Deps](func(u EnrichedUser) string { return u.DisplayName }),
+    EF.Map[Deps](getDisplayName),
 )
 
 // 4. Provide dependencies once at the edge, then run.
@@ -457,7 +482,6 @@ import (
     F   "github.com/IBM/fp-go/v2/function"
     L   "github.com/IBM/fp-go/v2/optics/lens"
     R   "github.com/IBM/fp-go/v2/result"
-    "context"
 )
 
 type Pipeline struct {
@@ -474,15 +498,15 @@ var (
 
 assembled := F.Pipe3(
     RIO.Do(Pipeline{}),
-    RIO.Bind(userLens.Set,   func(_ Pipeline) RIO.ReaderIOResult[User] { return fetchUser(42) }),
-    RIO.Bind(configLens.Set, F.Flow2(userLens.Get, fetchConfigForUser)),
+    RIO.ApS(userLens.Set,    fetchUser(42)),                          // independent of state
+    RIO.Bind(configLens.Set, F.Flow2(userLens.Get, fetchConfigForUser)), // reads User
     RIO.Bind(postsLens.Set,  F.Flow2(userLens.Get, fetchPostsForUser)),
 )
 
-parsed, err := R.Unwrap(assembled(context.Background())())
+parsed, err := R.Unwrap(assembled(ctx)())
 ```
 
-The setter signature is `func(T) func(S1) S2`. `lens.Set` already has this shape. `F.Flow2(lens.Get, f)` composes the field getter with any Kleisli arrow point-free.
+The setter signature is `func(T) func(S1) S2`. `lens.Set` already has this shape. `F.Flow2(lens.Get, f)` composes the field getter with any Kleisli arrow point-free. Never write `Bind(setter, func(_ S) M[T] { return m })` — a step that ignores the state is an `ApS(setter, m)`.
 
 ### `ApS` — Independent, Applicative Steps
 
@@ -598,17 +622,22 @@ parse("abc") // Error(strconv parse error)
 | `option.Map(myOption, f)` | Data-last: `option.Map(f)(myOption)` |
 | `either.Map[A, B](f)` | `E` leads in the `either` package: `either.Map[error](f)`, or just `either.Map(f)` when `E` is inferable from context. In `option`/`result` the order is the natural `Map[A, B]` and no annotation is needed. |
 | Using `ioeither` with `error` | Use `ioresult` instead; reserve `ioeither` for custom error types |
-| `readConfig := IOE.Eitherize1(os.ReadFile)` then using result directly | `IOResult` is lazy — call `readConfig("path")()` with trailing `()` |
+| `readConfig := IOR.Eitherize1(os.ReadFile)` then using result directly | `IOResult` is lazy — call `readConfig("path")()` with trailing `()` |
 | `value, err := pipeline(ctx)()` | Running a `ReaderIOResult[A]` gives one `Result[A]`. Unwrap it: `value, err := result.Unwrap(pipeline(ctx)())` |
 | Writing inline setter lambdas for Do-notation | Use `L.MakeLens` + `lens.Set`; the signature already matches |
 | Using `Bind` when steps are independent | Use `ApS` for independent steps — clearer intent, potentially concurrent |
 | Using `context/readerioresult` with deps stuffed into `context.Context` | Use `effect.Effect[Deps, A]` — typed deps are compile-time checked and testable |
 | `ctx.Value(k).(T)` inside a Reader / `FromReader` / `Asks` | `RIO.AskValue[T](k)` → `Option[T]`, then `O.GetOrElse` (optional) or `RIO.Chain(RIO.FromOption[T](...))` (required). The bare assertion panics on a missing key. |
 | `ctx, cancel := context.WithTimeout(ctx, d); defer cancel()` or `context.WithValue` around a pipeline | `RIO.WithTimeout[A](d)`, `RIO.WithDeadline[A](t)`, `RIO.WithValue[A](k, v)` as pipeline operators — scoped to the wrapped computation, cancel always released. A hand-written `Local` that discards `cancel` leaks a timer. |
-| `EF.Asks(func(d Deps) EF.ReaderIOResult[A] {...})` | That yields `Effect[Deps, ReaderIOResult[A]]`. `Effect[C, A]` **is** `func(C) ReaderIOResult[A]` — return the closure directly. `Asks` is for pure `func(C) A`. |
+| `EF.Asks(func(d Deps) EF.ReaderIOResult[A] {...})` | That yields `Effect[Deps, ReaderIOResult[A]]`. `Effect[C, A]` **is** `func(C) ReaderIOResult[A]` — lift a `func(C, ctx, …) (A, error)` with `EF.Eitherize1`, or return the closure directly. `Asks` is for pure `func(C) A`. |
 | `EF.Provide(deps)(eff)` / `EF.Map(f)` on an `Effect` | `Provide[A, C]` cannot infer `A` through its returned function, and `Map[C, A, B]` often cannot infer `C`: write `EF.Provide[string](deps)` and `EF.Map[Deps](f)`. |
 | `result.Right[error](v)` | `result.Right[A any](v A)` — the param is the *success* type: `result.Right(v)` or `result.Of(v)`. Only `result.Left[A](err)` needs the annotation. |
 | Wrapping fp-go operations in anonymous functions | Go point-free: `option.Filter(S.IsNonEmpty)` not `option.Filter(func(s string) bool { return s != "" })`, `option.GetOrElse(LZ.Of("x"))` not `option.GetOrElse(func() string { return "x" })` |
+| `M.Map(func(u User) string { return u.Name })` inside a pipeline | Name the leaf once (`getName` or `nameLens.Get`) and pass it: `M.Map(getName)` |
+| `Bind(setter, func(_ S) M[T] { return m })` | The step ignores the state, so it is `ApS(setter, m)` |
+| `Chain(func(a A) M[B] { return F.Pipe1(f(a.X), op) })` | `Chain(F.Flow3(getX, f, op))` |
+| Hand-written `func(ctx) func() Result[A]` around a `func(ctx, …) (A, error)` | `RIO.Eitherize1(f)` (or `EF.Eitherize1` for `func(C, ctx, …)`) |
+| Same letter aliasing two packages (`R` for `result` in one file, `reader` in another) | Use the canonical alias table above |
 | `Map` with a function that returns `Option` / `Result` / another monad | Produces nested `M[M[A]]`. Use `Chain` (or `Flatten`) for `A → M[B]`; reserve `Map` for plain `A → B`. |
 | Closure passed to `Map` / `Chain` mutates a captured variable (slice `append`, counter `++`) | Keep it pure — derive and return new values. A mutating closure silently defeats fp-go's guarantees and breaks under `Traverse` / concurrency. |
 | Mixing `idiomatic/result` and standard `result` (or `option` / `ioresult`) in one file | Different types — struct wrapper vs `(A, error)` tuple — that do not interoperate. Pick one representation per file. |

@@ -101,7 +101,7 @@ func isAdult() P.Predicate[User] {
 | Type | Package | Meaning |
 |------|---------|---------|
 | `P.Predicate[A]` | `github.com/IBM/fp-go/v2/predicate` | `func(A) bool` |
-| `E.Endomorphism[A]` | `github.com/IBM/fp-go/v2/endomorphism` | `func(A) A` |
+| `EM.Endomorphism[A]` | `github.com/IBM/fp-go/v2/endomorphism` | `func(A) A` |
 
 Use these as return types for functions that act as predicates or
 self-transformations — they communicate intent and enable direct use in
@@ -112,7 +112,7 @@ import (
     F "github.com/IBM/fp-go/v2/function"
     N "github.com/IBM/fp-go/v2/number"
     P "github.com/IBM/fp-go/v2/predicate"
-    E "github.com/IBM/fp-go/v2/endomorphism"
+    EM "github.com/IBM/fp-go/v2/endomorphism"
     A "github.com/IBM/fp-go/v2/array"
 )
 
@@ -122,7 +122,7 @@ func isAdult() P.Predicate[User] {
 }
 
 // Endomorphism — self-transformation
-func doubleAll() E.Endomorphism[[]int] {
+func doubleAll() EM.Endomorphism[[]int] {
     return A.Map[int, int](N.Mul(2))
 }
 ```
@@ -149,10 +149,10 @@ need external input, use `Flow` or `Pipe` directly — no reader wrapping needed
 
 ```go
 // WRONG — forces reader monad on a pure computation
-func adultNames(users []User) R.Reader[context.Context, string] {
+func adultNames(users []User) RD.Reader[Env, string] {
     return F.Pipe2(
-        R.Of[context.Context](users),
-        R.Map[context.Context, []User, string](pureTransform),
+        RD.Of[Env](users),
+        RD.Map[Env](pureTransform),
     )
 }
 
@@ -178,7 +178,6 @@ import (
     N "github.com/IBM/fp-go/v2/number"
     P "github.com/IBM/fp-go/v2/predicate"
     S "github.com/IBM/fp-go/v2/string"
-    E "github.com/IBM/fp-go/v2/endomorphism"
 )
 
 // isAdult — point-free predicate
@@ -209,21 +208,28 @@ func adultNames() func([]User) string {
 
 The reader monad `Reader[R, A]` is `func(R) A` — a computation that reads
 from an environment `R` and produces `A`. Only reach for it when the
-computation needs to thread an environment (e.g. `context.Context`, a
-config struct, a DB handle).
+computation needs to thread an environment (a config struct, a repository,
+…). For `context.Context` plus IO and errors use `context/readerioresult`
+(`RIO`) instead — see the **fp-go-context** skill.
 
 ```go
 import (
-    F   "github.com/IBM/fp-go/v2/function"
-    R   "github.com/IBM/fp-go/v2/reader"
-    "context"
+    F  "github.com/IBM/fp-go/v2/function"
+    RD "github.com/IBM/fp-go/v2/reader"
 )
 
-// Kleisli arrow: A -> Reader[Env, B]
-func fetchUser(id string) R.Reader[context.Context, User] {
-    return R.Asks(func(ctx context.Context) User {
-        return User{ID: id}
-    })
+type Env struct {
+    Users map[string]User
+}
+
+// Leaf accessor (or a generated lens' .Get)
+func getUsers(e Env) map[string]User { return e.Users }
+
+// lookupUser is curried: func(id string) func(map[string]User) User
+
+// Kleisli arrow: string -> Reader[Env, User], built from a pure projection
+func fetchUser(id string) RD.Reader[Env, User] {
+    return RD.Asks(F.Flow2(getUsers, lookupUser(id)))
 }
 ```
 
@@ -232,32 +238,31 @@ func fetchUser(id string) R.Reader[context.Context, User] {
 - **`reader.Map`** inside `Flow` — when the step is pure and the environment
   does not need to appear explicitly. This is the "abbreviation" pattern.
 - **`Pipe` with `reader.Chain`, `reader.Bind`, `reader.ApS`** — when the
-  sequence needs the context (e.g. calls another kleisli arrow) or when
+  sequence needs the environment (e.g. calls another kleisli arrow) or when
   do-notation makes the data flow clearer.
 
 ```go
 // reader.Map inside Flow — no env name, clean point-free.
-// NOTE: R.Map returns an Operator over Reader values, so the PRECEDING step in the
-// Flow must already produce a Reader. Composing a plain func([]User) []string with
-// R.Map does not type-check.
-func usersToNames(us []User) R.Reader[context.Context, []string] {
-    return R.Of[context.Context](A.Map(getName)(us))
-}
-
-func renderUsers() func([]User) R.Reader[context.Context, string] {
+// NOTE: RD.Map returns an Operator over Reader values, so the PRECEDING step in the
+// Flow must already produce a Reader. A plain func([]User) []string composed with
+// RD.Map does not type-check.
+func renderUsers() func(string) RD.Reader[Env, string] {
     return F.Flow2(
-        usersToNames,                                    // []User -> Reader[ctx, []string]
-        R.Map[context.Context](S.Join(",")),             // Reader[ctx, []string] -> Reader[ctx, string]
+        fetchTeam,                   // string -> Reader[Env, []User]
+        RD.Map[Env](F.Flow2(         // Reader[Env, []User] -> Reader[Env, string]
+            A.Map(getName),
+            A.Intercalate(S.Monoid)(","),
+        )),
     )
 }
 
 // Pipe with reader monad — env access required
-func enrichedUser(id string) R.Reader[context.Context, EnrichedUser] {
+func enrichedUser(id string) RD.Reader[Env, EnrichedUser] {
     return F.Pipe3(
         fetchUser(id),
-        R.Chain(fetchProfile),
-        R.Chain(fetchPermissions),
-        R.Map[context.Context](combineToEnriched),
+        RD.Chain(fetchProfile),
+        RD.Chain(fetchPermissions),
+        RD.Map[Env](combineToEnriched),
     )
 }
 ```
@@ -271,31 +276,45 @@ computations into a named-field record. Always use it inside a `Pipe`.
 
 ```go
 import (
-    F "github.com/IBM/fp-go/v2/function"
-    R "github.com/IBM/fp-go/v2/reader"
-    "context"
+    F  "github.com/IBM/fp-go/v2/function"
+    L  "github.com/IBM/fp-go/v2/optics/lens"
+    RD "github.com/IBM/fp-go/v2/reader"
 )
 
-// Setters — hand-written or generated, kept outside the pipe
-func setProfile(p Profile) func(RequestState) RequestState {
-    return func(s RequestState) RequestState { s.Profile = p; return s }
-}
+// Lenses — generated (`// fp-go:Lens`) or built once with L.MakeLens.
+// lens.Set already has the setter shape func(T) func(S) S — no hand-written setters.
+var (
+    userIDLens = L.MakeLens(
+        func(s RequestState) string { return s.UserID },
+        func(s RequestState, v string) RequestState { s.UserID = v; return s },
+    )
+    profileLens = L.MakeLens(
+        func(s RequestState) Profile { return s.Profile },
+        func(s RequestState, v Profile) RequestState { s.Profile = v; return s },
+    )
+    permsLens = L.MakeLens(
+        func(s RequestState) Perms { return s.Perms },
+        func(s RequestState, v Perms) RequestState { s.Perms = v; return s },
+    )
+)
 
-// Kleisli arrows — named functions, never inline
-func fetchProfile(s RequestState) R.Reader[context.Context, Profile] {
-    return R.Asks(func(ctx context.Context) Profile { /* … */ return Profile{} })
-}
+// Kleisli arrows — named functions, never inline:
+//   fetchProfile: func(userID string) Reader[Env, Profile]
+//   fetchPerms:   func(p Profile)     Reader[Env, Perms]
 
 // Pipeline — returned as a function, not a var
-func buildRequestState(userID string) R.Reader[context.Context, RequestState] {
+func buildRequestState(userID string) RD.Reader[Env, RequestState] {
     return F.Pipe3(
-        R.Do[context.Context](RequestState{UserID: userID}),
-        R.Bind(setProfile, fetchProfile),
-        R.Bind(setPerms, fetchPerms),
-        R.Map[context.Context](F.Identity[RequestState]),
+        RD.Do[Env](RequestState{}),
+        RD.LetTo[Env](userIDLens.Set, userID),
+        RD.Bind(profileLens.Set, F.Flow2(userIDLens.Get, fetchProfile)),
+        RD.Bind(permsLens.Set, F.Flow2(profileLens.Get, fetchPerms)),
     )
 }
 ```
+
+`F.Flow2(lens.Get, kleisli)` is the point-free way to feed one field of the
+accumulated state into the next step.
 
 ### `Bind` vs `ApS` vs `Let`
 
@@ -307,14 +326,17 @@ func buildRequestState(userID string) R.Reader[context.Context, RequestState] {
 | `LetTo(setter, value)` | Attach a constant value to state |
 
 Use `ApS` when values can be computed independently; `Bind` when a later step
-depends on an earlier one. Mixing them in the same pipeline is normal.
+depends on an earlier one. Mixing them in the same pipeline is normal. A `Bind`
+whose Kleisli ignores the state (`func(_ S) M[T] { return m }`) is always an
+`ApS(setter, m)`.
 
 ---
 
 ## Lenses for struct field access
 
 Never access struct fields with inline functions inside a `Pipe`. Create a
-lens or a dedicated helper so the pipeline stays point-free.
+lens (preferably generated with `// fp-go:Lens`, see the **fp-go-lens** skill)
+or a named leaf accessor so the pipeline stays point-free.
 
 ```go
 import (
@@ -331,7 +353,7 @@ var getHost = hostLens.Get   // func(Config) string
 var getPort = portLens.Get   // func(Config) int
 ```
 
-Use `R.ApSL(lens, reader)` / `R.BindL(lens, kleisli)` as do-notation variants
+Use `RD.ApSL(lens, reader)` / `RD.BindL(lens, kleisli)` as do-notation variants
 that take a lens directly instead of a setter function.
 
 ---
@@ -347,8 +369,8 @@ func TestAdultNames(t *testing.T) {
 }
 
 func TestBuildRequestState(t *testing.T) {
-    ctx := context.Background()
-    state := buildRequestState("user-42")(ctx)
+    env := Env{Users: map[string]User{"user-42": {ID: "user-42"}}}
+    state := buildRequestState("user-42")(env)
     assert.Equal(t, "user-42", state.UserID)
 }
 ```
@@ -359,7 +381,7 @@ func TestBuildRequestState(t *testing.T) {
   value and assert with `assert.Equal`.
 - For reader pipelines: call the reader with a concrete environment struct.
 - For `IOResult`/`ReaderIOResult`: call the innermost IO thunk and compare
-  with `result.Of(expected)`.
+  with `R.Of(expected)`; run a `ReaderIOResult` with `t.Context()`.
 - Prefer table-driven tests for pipelines with multiple input/output pairs.
 - Do not mock the environment — pass a real (but lightweight) struct.
 
@@ -367,20 +389,23 @@ func TestBuildRequestState(t *testing.T) {
 
 ## Common import aliases
 
+These follow the canonical alias table in the **fp-go** skill.
+
 ```go
 import (
-    F  "github.com/IBM/fp-go/v2/function"
-    R  "github.com/IBM/fp-go/v2/reader"
-    RR "github.com/IBM/fp-go/v2/readerresult"
-    IO "github.com/IBM/fp-go/v2/ioresult"
-    E  "github.com/IBM/fp-go/v2/either"
-    O  "github.com/IBM/fp-go/v2/option"
-    L  "github.com/IBM/fp-go/v2/optics/lens"
-    A  "github.com/IBM/fp-go/v2/array"
-    N  "github.com/IBM/fp-go/v2/number"
-    S  "github.com/IBM/fp-go/v2/string"
-    P  "github.com/IBM/fp-go/v2/predicate"
-    En "github.com/IBM/fp-go/v2/endomorphism"
+    F   "github.com/IBM/fp-go/v2/function"
+    A   "github.com/IBM/fp-go/v2/array"
+    O   "github.com/IBM/fp-go/v2/option"
+    E   "github.com/IBM/fp-go/v2/either"
+    R   "github.com/IBM/fp-go/v2/result"
+    IOR "github.com/IBM/fp-go/v2/ioresult"
+    RD  "github.com/IBM/fp-go/v2/reader"
+    RIO "github.com/IBM/fp-go/v2/context/readerioresult"
+    L   "github.com/IBM/fp-go/v2/optics/lens"
+    N   "github.com/IBM/fp-go/v2/number"
+    S   "github.com/IBM/fp-go/v2/string"
+    P   "github.com/IBM/fp-go/v2/predicate"
+    EM  "github.com/IBM/fp-go/v2/endomorphism"
 )
 ```
 
@@ -394,15 +419,15 @@ import (
 | Build a reusable function | `F.FlowN(f1, f2, …)` |
 | Point-free numeric predicate | `F.Flow2(getField, N.MoreThan(n))` returning `P.Predicate[T]` |
 | Filter+map in one pass | `A.FilterMap(F.Flow2(O.FromPredicate(pred), O.Map(f)))` |
-| Lift a pure function into Reader | `R.Map[Env](pureFunc)` |
-| Chain kleisli arrows | `R.Chain(kleisliFunc)` |
-| Start do-notation block | `R.Do[Env](emptyStruct)` |
-| Add dependent field | `R.Bind(setter, kleisliFunc)` |
-| Add independent field | `R.ApS(setter, readerValue)` |
-| Add pure derived field | `R.Let[Env](setter, pureFunc)` |
+| Lift a pure function into Reader | `RD.Map[Env](pureFunc)` |
+| Chain kleisli arrows | `RD.Chain(kleisliFunc)` |
+| Start do-notation block | `RD.Do[Env](emptyStruct)` |
+| Add dependent field | `RD.Bind(lens.Set, F.Flow2(otherLens.Get, kleisliFunc))` |
+| Add independent field | `RD.ApS(lens.Set, readerValue)` |
+| Add pure derived field | `RD.Let[Env](lens.Set, F.Flow2(otherLens.Get, pureFunc))` |
 | Lens getter in pipeline | `var getX = xLens.Get` |
-| Do-notation with lens | `R.ApSL(lens, readerValue)` |
-| Access full environment | `R.Ask[Env]()` |
-| Access field of environment | `R.Asks(getX)` |
+| Do-notation with lens | `RD.ApSL(lens, readerValue)` |
+| Access full environment | `RD.Ask[Env]()` |
+| Access field of environment | `RD.Asks(getX)` |
 | Read a `context.Context` value | `RIO.AskValue[V](key)` → `Option[V]` (not `ctx.Value(key).(V)`) |
 | Scope a value / timeout to a step | `RIO.WithValue[A](key, v)`, `RIO.WithTimeout[A](d)` as the last `Pipe` step |

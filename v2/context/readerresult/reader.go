@@ -395,6 +395,24 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A
 	return readereither.FromPredicate[context.Context](pred, onFalse)
 }
 
+// MonadMapLeft transforms the error of a failed [ReaderResult] with the endomorphism f.
+// Successful computations pass through unchanged.
+//
+// Use it together with [errors.OnError] to add context to the error channel before the
+// error is logged or returned.
+//
+//go:inline
+func MonadMapLeft[A any](fa ReaderResult[A], f Endomorphism[error]) ReaderResult[A] {
+	return readereither.MonadMapLeft(fa, f)
+}
+
+// MapLeft is the curried version of [MonadMapLeft].
+//
+//go:inline
+func MapLeft[A any](f Endomorphism[error]) Operator[A, A] {
+	return readereither.MapLeft[context.Context, error, error, A](f)
+}
+
 // OrElse recovers from a Left (error) by providing an alternative computation with access to context.Context.
 // If the ReaderResult is Right, it returns the value unchanged.
 // If the ReaderResult is Left, it applies the provided function to the error value,

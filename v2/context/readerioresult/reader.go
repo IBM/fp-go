@@ -356,6 +356,33 @@ func FromPredicate[A any](pred func(A) bool, onFalse func(A) error) Kleisli[A, A
 	return RIOR.FromPredicate[context.Context](pred, onFalse)
 }
 
+// MonadMapLeft transforms the error of a failed [ReaderIOResult] with the endomorphism f.
+// Successful computations pass through unchanged.
+//
+// This is the idiomatic way to add context to the error channel, typically in combination
+// with [errors.OnError], so that a downstream log statement (e.g. [TapSLog] or [SLogLeft])
+// reports where and why the computation failed.
+//
+//go:inline
+func MonadMapLeft[A any](fa ReaderIOResult[A], f Endomorphism[error]) ReaderIOResult[A] {
+	return RIOR.MonadMapLeft(fa, f)
+}
+
+// MapLeft is the curried version of [MonadMapLeft]. It transforms the error of a failed
+// [ReaderIOResult] and leaves successful values untouched.
+//
+// Example:
+//
+//	pipeline := F.Pipe1(
+//	    fetchUser(id),
+//	    MapLeft[User](errors.OnError("fetching user %d", id)),
+//	)
+//
+//go:inline
+func MapLeft[A any](f Endomorphism[error]) Operator[A, A] {
+	return RIOR.MapLeft[context.Context, A](f)
+}
+
 // OrElse provides an alternative [ReaderIOResult] computation if the first one fails.
 // The alternative is only executed if the first computation results in a Left (error).
 //

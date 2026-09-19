@@ -227,7 +227,7 @@ Assistant: [calls get_example with symbol="ExampleTraverseArray"]
 ```
 1. User: "What fp-go skills are available?"
    → Assistant calls list_skills
-   → Returns: fp-go, fp-go-pipe-flow, fp-go-http, fp-go-logging, fp-go-lens, fp-go-pr-review, fp-go-mcp
+   → Returns: fp-go, fp-go-pipe-flow, fp-go-context, fp-go-http, fp-go-logging, fp-go-lens, fp-go-pattern-matching, fp-go-pr-review, fp-go-mcp
 
 2. User: "Show me the fp-go-pipe-flow skill"
    → Assistant calls use_skill(name="fp-go-pipe-flow")
