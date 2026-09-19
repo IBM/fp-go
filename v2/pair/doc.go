@@ -23,10 +23,11 @@ Unlike tuples which are position-based, Pair provides semantic operations for wo
 "head" and "tail" (or "first" and "second") values, along with rich functional programming
 capabilities including Functor, Applicative, and Monad operations.
 
-The Pair type:
+The Pair type has unexported fields; values are created with [MakePair] and read with
+[Head], [Tail] or [Unpack]:
 
-	type Pair[A, B any] struct {
-	    h, t any  // head and tail (internal)
+	type Pair[L, R any] struct {
+	    // unexported head (L) and tail (R)
 	}
 
 # Basic Usage
@@ -43,6 +44,10 @@ Creating pairs:
 	t := tuple.MakeTuple2("world", 100)
 	p := pair.FromTuple(t)  // Pair[string, int]
 
+	// Partially apply one side, useful in pipelines
+	withKey := pair.FromHead[int]("key")  // func(int) Pair[string, int]
+	p := withKey(42)                      // Pair[string, int]{"key", 42}
+
 Accessing values:
 
 	p := pair.MakePair("hello", 42)
@@ -53,6 +58,9 @@ Accessing values:
 	// Alternative names
 	first := pair.First(p)  // "hello" (same as Head)
 	second := pair.Second(p) // 42 (same as Tail)
+
+	// Destructure both values at once
+	head, tail := pair.Unpack(p)  // "hello", 42
 
 # Transforming Pairs
 
@@ -81,9 +89,7 @@ Curried versions for composition:
 	import F "github.com/IBM/fp-go/v2/function"
 
 	// Create a mapper function
-	doubleHead := pair.MapHead[string](func(n int) int {
-	    return n * 2
-	})
+	doubleHead := pair.MapHead[string](N.Mul(2))
 
 	p := pair.MakePair(5, "hello")
 	result := doubleHead(p)  // Pair[int, string]{10, "hello"}
@@ -158,11 +164,15 @@ Apply functions wrapped in pairs to values in pairs:
 
 	// Apply (on head)
 	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
-	pf2 := pair.MakePair(func(n int) string { return fmt.Sprintf("%d", n) }, "!")
+	pf2 := pair.MakePair(strconv.Itoa, "!")
 	pv2 := pair.MakePair(42, "hello")
 
 	result2 := pair.MonadApHead(strConcat, pf2, pv2)
-	// Pair[string, string]{"42", "!hello"}
+	// Pair[string, string]{"42", "hello!"}
+
+Note that the non-focused component of the value pair is the left operand of the semigroup
+and the one of the function pair is the right operand. This is only observable for
+non-commutative semigroups, see [ApplicativeMonoidTail] and [ApplicativeMonoidHead].
 
 # Function Conversion
 
@@ -179,16 +189,16 @@ Convert between regular functions and pair-taking functions:
 	unpairedAdd := pair.Unpaired(pairedAdd)
 	result = unpairedAdd(3, 4)  // 7
 
-Merge curried functions:
+Merge curried, data-last functions (the tail is passed first, the head last):
 
-	// Curried function
-	add := func(b int) func(a int) int {
-	    return func(a int) int { return a + b }
+	// Curried function in data-last form
+	sub := func(b int) func(a int) int {
+	    return func(a int) int { return a - b }
 	}
 
 	// Apply to pair
-	merge := pair.Merge(add)
-	result := merge(pair.MakePair(3, 4))  // 7 (applies 4 then 3)
+	merge := pair.Merge(sub)
+	result := merge(pair.MakePair(10, 3))  // 7 (sub(3)(10))
 
 # Equality
 
@@ -240,10 +250,8 @@ Pair provides type class instances for functional programming:
 
 Functor - Map over values:
 
-	import M "github.com/IBM/fp-go/v2/monoid"
-
 	// Functor for tail
-	functor := pair.FunctorTail[int, string, int]()
+	functor := pair.FunctorTail[string, int, int]()
 	mapper := functor.Map(S.Size)
 
 	p := pair.MakePair(5, "hello")
@@ -251,19 +259,19 @@ Functor - Map over values:
 
 Pointed - Wrap values:
 
-	import M "github.com/IBM/fp-go/v2/monoid"
+	import N "github.com/IBM/fp-go/v2/number"
 
 	// Pointed for tail (requires monoid for head)
-	intSum := M.MonoidSum[int]()
+	intSum := N.MonoidSum[int]()
 	pointed := pair.PointedTail[string](intSum)
 
 	p := pointed.Of("hello")  // Pair[int, string]{0, "hello"}
 
 Applicative - Apply wrapped functions:
 
-	import M "github.com/IBM/fp-go/v2/monoid"
+	import N "github.com/IBM/fp-go/v2/number"
 
-	intSum := M.MonoidSum[int]()
+	intSum := N.MonoidSum[int]()
 	applicative := pair.ApplicativeTail[string, int, int](intSum)
 
 	// Create a pair with a function
@@ -275,9 +283,9 @@ Applicative - Apply wrapped functions:
 
 Monad - Chain operations:
 
-	import M "github.com/IBM/fp-go/v2/monoid"
+	import N "github.com/IBM/fp-go/v2/number"
 
-	intSum := M.MonoidSum[int]()
+	intSum := N.MonoidSum[int]()
 	monad := pair.MonadTail[string, int, int](intSum)
 
 	p := monad.Of("hello")
@@ -290,35 +298,25 @@ Monad - Chain operations:
 Example 1: Accumulating Results with Context
 
 	import (
-	    N "github.com/IBM/fp-go/v2/number"
+	    A "github.com/IBM/fp-go/v2/array"
 	    F "github.com/IBM/fp-go/v2/function"
+	    N "github.com/IBM/fp-go/v2/number"
+	    S "github.com/IBM/fp-go/v2/string"
 	)
 
 	// Process items while accumulating a count
-	intSum := N.SemigroupSum[int]()
-
 	processItem := func(item string) pair.Pair[int, string] {
 	    return pair.MakePair(1, strings.ToUpper(item))
 	}
 
-	items := []string{"hello", "world", "foo"}
-	initial := pair.MakePair(0, "")
+	// Component-wise monoid: sum the counts, concatenate the strings
+	m := pair.Monoid(N.MonoidSum[int](), S.Monoid)
 
-	result := F.Pipe2(
-	    items,
-	    A.Map(processItem),
-	    A.Reduce(func(acc, curr pair.Pair[int, string]) pair.Pair[int, string] {
-	        return pair.MonadBiMap(
-	            pair.MakePair(
-	                pair.First(acc) + pair.First(curr),
-	                pair.Second(acc) + " " + pair.Second(curr),
-	            ),
-	            F.Identity[int],
-	            strings.TrimSpace,
-	        )
-	    }, initial),
+	result := F.Pipe1(
+	    []string{"hello", "world", "foo"},
+	    A.FoldMap[string](m)(processItem),
 	)
-	// Result: Pair[int, string]{3, "HELLO WORLD FOO"}
+	// Result: Pair[int, string]{3, "HELLOWORLDFOO"}
 
 Example 2: Tracking Computation Steps
 
@@ -352,7 +350,7 @@ Example 3: Writer Monad Pattern
 	    "",
 	)
 
-	monad := pair.MonadTail[string, string, int](stringMonoid)
+	monad := pair.MonadTail[int, string, int](stringMonoid)
 
 	// Log and compute
 	logAndDouble := func(n int) pair.Pair[string, int] {
@@ -364,7 +362,7 @@ Example 3: Writer Monad Pattern
 
 	logAndAdd := func(n int) pair.Pair[string, int] {
 	    return pair.MakePair(
-	        fmt.Sprintf("added 10; ", n),
+	        "added 10; ",
 	        n + 10,
 	    )
 	}
@@ -381,6 +379,9 @@ Example 3: Writer Monad Pattern
 Creation:
   - MakePair[A, B any](A, B) Pair[A, B] - Create a pair from two values
   - Of[A any](A) Pair[A, A] - Create a pair with same value in both positions
+  - Zero[L, R any]() Pair[L, R] - Create a pair of zero values
+  - FromHead[B, A any](A) Kleisli[A, B, B] - Partially apply the head
+  - FromTail[A, B any](B) Kleisli[A, A, B] - Partially apply the tail
   - FromTuple[A, B any](Tuple2[A, B]) Pair[A, B] - Convert tuple to pair
   - ToTuple[A, B any](Pair[A, B]) Tuple2[A, B] - Convert pair to tuple
 
@@ -389,11 +390,12 @@ Access:
   - Tail[A, B any](Pair[A, B]) B - Get the tail (second) value
   - First[A, B any](Pair[A, B]) A - Get the first value (alias for Head)
   - Second[A, B any](Pair[A, B]) B - Get the second value (alias for Tail)
+  - Unpack[L, R any](Pair[L, R]) (L, R) - Get both values
 
 Transformations:
   - MonadMapHead[B, A, A1 any](Pair[A, B], func(A) A1) Pair[A1, B] - Map head value
   - MonadMapTail[A, B, B1 any](Pair[A, B], func(B) B1) Pair[A, B1] - Map tail value
-  - MonadMap[B, A, A1 any](Pair[A, B], func(A) A1) Pair[A1, B] - Map head value (alias)
+  - MonadMap[A, B, B1 any](Pair[A, B], func(B) B1) Pair[A, B1] - Map tail value (alias)
   - MonadBiMap[A, B, A1, B1 any](Pair[A, B], func(A) A1, func(B) B1) Pair[A1, B1] - Map both values
   - MapHead[B, A, A1 any](func(A) A1) func(Pair[A, B]) Pair[A1, B] - Curried map head
   - MapTail[A, B, B1 any](func(B) B1) func(Pair[A, B]) Pair[A, B1] - Curried map tail
@@ -420,7 +422,19 @@ Applicative Operations:
 Function Conversion:
   - Paired[F ~func(T1, T2) R, T1, T2, R any](F) func(Pair[T1, T2]) R
   - Unpaired[F ~func(Pair[T1, T2]) R, T1, T2, R any](F) func(T1, T2) R
-  - Merge[F ~func(B) func(A) R, A, B, R any](F) func(Pair[A, B]) R
+  - Merge[FCT ~func(B) func(A) R, A, B, R any](FCT) func(Pair[A, B]) R
+
+Traversal:
+  - MonadSequence[L, A, HKTA, HKTPA any](func(HKTA, Kleisli[L, A, A]) HKTPA, Pair[L, HKTA]) HKTPA
+  - MonadTraverse[L, A, HKTA, HKTPA any](func(HKTA, Kleisli[L, A, A]) HKTPA, func(A) HKTA, Pair[L, A]) HKTPA
+  - Sequence[L, A, HKTA, HKTPA any](func(Kleisli[L, A, A]) func(HKTA) HKTPA) func(Pair[L, HKTA]) HKTPA
+  - Traverse[L, A, HKTA, HKTPA any](func(Kleisli[L, A, A]) func(HKTA) HKTPA) func(func(A) HKTA) func(Pair[L, A]) HKTPA
+
+Monoids:
+  - Monoid[L, R any](Monoid[L], Monoid[R]) Monoid[Pair[L, R]] - Component-wise, left-to-right
+  - ApplicativeMonoid[L, R any](Monoid[L], Monoid[R]) Monoid[Pair[L, R]] - Alias for ApplicativeMonoidTail
+  - ApplicativeMonoidTail[L, R any](Monoid[L], Monoid[R]) Monoid[Pair[L, R]] - Head combined in reverse order
+  - ApplicativeMonoidHead[L, R any](Monoid[L], Monoid[R]) Monoid[Pair[L, R]] - Tail combined in reverse order
 
 Equality:
   - Eq[A, B any](Eq[A], Eq[B]) Eq[Pair[A, B]] - Create equality for pairs

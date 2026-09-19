@@ -130,7 +130,8 @@ func Monoid[L, R any](l M.Monoid[L], r M.Monoid[R]) M.Monoid[Pair[L, R]] {
 //
 //	result := pairMonoid.Concat(p1, p2)
 //	// result is Pair[int, string]{30, "foobar"}
-//	// Note: head combines normally (10+20), tail combines normally ("foo"+"bar")
+//	// Note: head is combined in reverse order (20+10), which is not observable
+//	// because addition is commutative; tail combines normally ("foo"+"bar")
 //
 //	empty := pairMonoid.Empty()
 //	// empty is Pair[int, string]{0, ""}

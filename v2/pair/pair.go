@@ -25,12 +25,15 @@ import (
 // Example:
 //
 //	p := pair.Of(42)  // Pair[int, int]{42, 42}
+//
+//go:inline
 func Of[A any](value A) Pair[A, A] {
-	return Pair[A, A]{value, value}
+	return MakePair(value, value)
 }
 
 // FromTuple creates a [Pair] from a [Tuple2].
 // The first element of the tuple becomes the head, and the second becomes the tail.
+// The inverse function is [ToTuple].
 //
 // Example:
 //
@@ -39,7 +42,7 @@ func Of[A any](value A) Pair[A, A] {
 //
 //go:inline
 func FromTuple[A, B any](t Tuple2[A, B]) Pair[A, B] {
-	return Pair[A, B]{t.F2, t.F1}
+	return MakePair(t.F1, t.F2)
 }
 
 // FromHead creates a function that constructs a [Pair] from a given head value.
@@ -78,6 +81,7 @@ func FromTail[A, B any](b B) Kleisli[A, A, B] {
 
 // ToTuple creates a [Tuple2] from a [Pair].
 // The head becomes the first element, and the tail becomes the second element.
+// The inverse function is [FromTuple].
 //
 // Example:
 //
@@ -86,7 +90,7 @@ func FromTail[A, B any](b B) Kleisli[A, A, B] {
 //
 //go:inline
 func ToTuple[A, B any](t Pair[A, B]) Tuple2[A, B] {
-	return tuple.MakeTuple2(Head(t), Tail(t))
+	return tuple.MakeTuple2(Unpack(t))
 }
 
 // MakePair creates a [Pair] from two values.
@@ -134,7 +138,7 @@ func Tail[A, B any](fa Pair[A, B]) B {
 //
 //go:inline
 func First[A, B any](fa Pair[A, B]) A {
-	return fa.l
+	return Head(fa)
 }
 
 // Second returns the second value of the pair (alias for Tail).
@@ -146,7 +150,7 @@ func First[A, B any](fa Pair[A, B]) A {
 //
 //go:inline
 func Second[A, B any](fa Pair[A, B]) B {
-	return fa.r
+	return Tail(fa)
 }
 
 // MonadMapHead maps a function over the head value of the pair, leaving the tail unchanged.
@@ -160,9 +164,16 @@ func Second[A, B any](fa Pair[A, B]) B {
 //
 //go:inline
 func MonadMapHead[B, A, A1 any](fa Pair[A, B], f func(A) A1) Pair[A1, B] {
-	return MakePair(f(Head(fa)), fa.r)
+	return MakePair(f(Head(fa)), Tail(fa))
 }
 
+// MonadMap maps a function over the tail value of the pair (alias for [MonadMapTail]).
+//
+// Example:
+//
+//	p := pair.MakePair(5, "hello")
+//	p2 := pair.MonadMap(p, S.Size)  // Pair[int, int]{5, 5}
+//
 //go:inline
 func MonadMap[A, B, B1 any](fa Pair[A, B], f func(B) B1) Pair[A, B1] {
 	return MonadMapTail(fa, f)
@@ -179,7 +190,7 @@ func MonadMap[A, B, B1 any](fa Pair[A, B], f func(B) B1) Pair[A, B1] {
 //
 //go:inline
 func MonadMapTail[A, B, B1 any](fa Pair[A, B], f func(B) B1) Pair[A, B1] {
-	return MakePair(fa.l, f(Tail(fa)))
+	return MakePair(Head(fa), f(Tail(fa)))
 }
 
 // MonadBiMap maps functions over both the head and tail values of the pair.
@@ -255,9 +266,7 @@ func MapTail[A, B, B1 any](f func(B) B1) Operator[A, B, B1] {
 //
 //go:inline
 func BiMap[A, B, A1, B1 any](f func(A) A1, g func(B) B1) func(Pair[A, B]) Pair[A1, B1] {
-	return func(fa Pair[A, B]) Pair[A1, B1] {
-		return MonadBiMap(fa, f, g)
-	}
+	return F.Bind23of3(MonadBiMap[A, B, A1, B1])(f, g)
 }
 
 // MonadChainHead chains a function over the head value, combining tail values using a semigroup.
@@ -273,6 +282,8 @@ func BiMap[A, B, A1, B1 any](f func(A) A1, g func(B) B1) func(Pair[A, B]) Pair[A
 //	p2 := pair.MonadChainHead(strConcat, p, func(n int) pair.Pair[string, string] {
 //	    return pair.MakePair(fmt.Sprintf("%d", n), "!")
 //	})  // Pair[string, string]{"5", "hello!"}
+//
+//go:inline
 func MonadChainHead[B, A, A1 any](sg Semigroup[B], fa Pair[A, B], f func(A) Pair[A1, B]) Pair[A1, B] {
 	fb := f(Head(fa))
 	return MakePair(Head(fb), sg.Concat(Tail(fa), Tail(fb)))
@@ -331,9 +342,7 @@ func MonadChain[A, B, B1 any](sg Semigroup[A], fa Pair[A, B], f Kleisli[A, B, B1
 //
 //go:inline
 func ChainHead[B, A, A1 any](sg Semigroup[B], f func(A) Pair[A1, B]) func(Pair[A, B]) Pair[A1, B] {
-	return func(fa Pair[A, B]) Pair[A1, B] {
-		return MonadChainHead(sg, fa, f)
-	}
+	return F.Bind13of3(MonadChainHead[B, A, A1])(sg, f)
 }
 
 // ChainTail returns a function that chains over the tail value.
@@ -352,9 +361,7 @@ func ChainHead[B, A, A1 any](sg Semigroup[B], f func(A) Pair[A1, B]) func(Pair[A
 //
 //go:inline
 func ChainTail[A, B, B1 any](sg Semigroup[A], f Kleisli[A, B, B1]) Operator[A, B, B1] {
-	return func(fa Pair[A, B]) Pair[A, B1] {
-		return MonadChainTail(sg, fa, f)
-	}
+	return F.Bind13of3(MonadChainTail[A, B, B1])(sg, f)
 }
 
 // Chain returns a function that chains over the tail value (alias for ChainTail).
@@ -377,6 +384,8 @@ func Chain[A, B, B1 any](sg Semigroup[A], f Kleisli[A, B, B1]) Operator[A, B, B1
 
 // MonadApHead applies a function wrapped in a pair to a value wrapped in a pair,
 // operating on the head values and combining tail values using a semigroup.
+// The tail of the value pair is the left operand of the semigroup and the tail
+// of the function pair is the right operand.
 //
 // Example:
 //
@@ -385,7 +394,7 @@ func Chain[A, B, B1 any](sg Semigroup[A], f Kleisli[A, B, B1]) Operator[A, B, B1
 //	strConcat := SG.MakeSemigroup(func(a, b string) string { return a + b })
 //	pf := pair.MakePair(strconv.Itoa, "!")
 //	pv := pair.MakePair(42, "hello")
-//	result := pair.MonadApHead(strConcat, pf, pv)  // Pair[string, string]{"42", "!hello"}
+//	result := pair.MonadApHead(strConcat, pf, pv)  // Pair[string, string]{"42", "hello!"}
 //
 //go:inline
 func MonadApHead[B, A, A1 any](sg Semigroup[B], faa Pair[func(A) A1, B], fa Pair[A, B]) Pair[A1, B] {
@@ -394,6 +403,8 @@ func MonadApHead[B, A, A1 any](sg Semigroup[B], faa Pair[func(A) A1, B], fa Pair
 
 // MonadApTail applies a function wrapped in a pair to a value wrapped in a pair,
 // operating on the tail values and combining head values using a semigroup.
+// The head of the value pair is the left operand of the semigroup and the head
+// of the function pair is the right operand.
 //
 // Example:
 //
@@ -437,11 +448,11 @@ func MonadAp[A, B, B1 any](sg Semigroup[A], faa Pair[A, func(B) B1], fa Pair[A, 
 //	pv := pair.MakePair(42, "hello")
 //	ap := pair.ApHead(strConcat, pv)
 //	pf := pair.MakePair(strconv.Itoa, "!")
-//	result := ap(pf)  // Pair[string, string]{"42", "!hello"}
+//	result := ap(pf)  // Pair[string, string]{"42", "hello!"}
+//
+//go:inline
 func ApHead[B, A, A1 any](sg Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, B]) Pair[A1, B] {
-	return func(faa Pair[func(A) A1, B]) Pair[A1, B] {
-		return MonadApHead(sg, faa, fa)
-	}
+	return F.Bind13of3(MonadApHead[B, A, A1])(sg, fa)
 }
 
 // ApTail returns a function that applies a function in a pair to a value in a pair,
@@ -456,10 +467,10 @@ func ApHead[B, A, A1 any](sg Semigroup[B], fa Pair[A, B]) func(Pair[func(A) A1, 
 //	ap := pair.ApTail(intSum, pv)
 //	pf := pair.MakePair(10, S.Size)
 //	result := ap(pf)  // Pair[int, int]{15, 5}
+//
+//go:inline
 func ApTail[A, B, B1 any](sg Semigroup[A], fb Pair[A, B]) Operator[A, func(B) B1, B1] {
-	return func(fbb Pair[A, func(B) B1]) Pair[A, B1] {
-		return MonadApTail(sg, fbb, fb)
-	}
+	return F.Bind13of3(MonadApTail[A, B, B1])(sg, fb)
 }
 
 // Ap returns a function that applies a function in a pair to a value in a pair,
@@ -500,9 +511,11 @@ func Swap[A, B any](fa Pair[A, B]) Pair[B, A] {
 //	add := func(a, b int) int { return a + b }
 //	pairedAdd := pair.Paired(add)
 //	result := pairedAdd(pair.MakePair(3, 4))  // 7
+//
+//go:inline
 func Paired[F ~func(T1, T2) R, T1, T2, R any](f F) func(Pair[T1, T2]) R {
 	return func(t Pair[T1, T2]) R {
-		return f(Head(t), Tail(t))
+		return f(Unpack(t))
 	}
 }
 
@@ -516,25 +529,32 @@ func Paired[F ~func(T1, T2) R, T1, T2, R any](f F) func(Pair[T1, T2]) R {
 //	}
 //	add := pair.Unpaired(pairedAdd)
 //	result := add(3, 4)  // 7
+//
+//go:inline
 func Unpaired[F ~func(Pair[T1, T2]) R, T1, T2, R any](f F) func(T1, T2) R {
 	return func(t1 T1, t2 T2) R {
 		return f(MakePair(t1, t2))
 	}
 }
 
-// Merge applies a curried function to a pair by applying the tail value first, then the head value.
+// Merge applies a curried function to a pair by applying the tail value first, then the head value,
+// i.e. Merge(f)(MakePair(a, b)) == f(b)(a).
+//
+// This matches the data-last convention of fp-go: an operator such as N.Sub(b) expects the
+// "configuration" argument first and the data last, so Merge feeds the tail as configuration
+// and the head as data.
 //
 // Example:
 //
-//	add := func(b int) func(a int) int {
-//	    return func(a int) int { return a + b }
+//	sub := func(b int) func(a int) int {
+//	    return func(a int) int { return a - b }
 //	}
-//	merge := pair.Merge(add)
-//	result := merge(pair.MakePair(3, 4))  // 7 (applies 4 then 3)
-func Merge[F ~func(B) func(A) R, A, B, R any](f F) func(Pair[A, B]) R {
-	return func(p Pair[A, B]) R {
-		return f(Tail(p))(Head(p))
-	}
+//	merge := pair.Merge(sub)
+//	result := merge(pair.MakePair(10, 3))  // 7 (sub(3)(10) = 10 - 3)
+//
+//go:inline
+func Merge[FCT ~func(B) func(A) R, A, B, R any](f FCT) func(Pair[A, B]) R {
+	return Paired(F.Uncurry2(F.Flip(f)))
 }
 
 // Zero returns the zero value of a [Pair], which is a Pair with zero values for both head and tail.
@@ -554,6 +574,8 @@ func Merge[F ~func(B) func(A) R, A, B, R any](f F) func(Pair[A, B]) R {
 //
 //	// Zero pair with pointer types
 //	p3 := pair.Zero[*int, *string]()  // Pair[*int, *string]{nil, nil}
+//
+//go:inline
 func Zero[L, R any]() Pair[L, R] {
 	return Pair[L, R]{}
 }

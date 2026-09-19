@@ -19,6 +19,7 @@ import "github.com/IBM/fp-go/v2/eq"
 
 // Eq constructs an equality predicate for [Pair] from equality predicates for both components.
 // Two pairs are considered equal if both their head values are equal and their tail values are equal.
+// The head comparison is evaluated first, the tail comparison only if the heads are equal.
 //
 // Example:
 //
@@ -34,10 +35,10 @@ import "github.com/IBM/fp-go/v2/eq"
 //	pairEq.Equals(p1, p2)  // true
 //	pairEq.Equals(p1, p3)  // false
 func Eq[A, B any](a eq.Eq[A], b eq.Eq[B]) eq.Eq[Pair[A, B]] {
-	return eq.FromEquals(func(l, r Pair[A, B]) bool {
-		return a.Equals(Head(l), Head(r)) && b.Equals(Tail(l), Tail(r))
-	})
-
+	return eq.Semigroup[Pair[A, B]]().Concat(
+		eq.ContraMap(Head[A, B])(a),
+		eq.ContraMap(Tail[A, B])(b),
+	)
 }
 
 // FromStrictEquals constructs an [eq.Eq] for [Pair] using the built-in equality operator (==)
@@ -49,6 +50,8 @@ func Eq[A, B any](a eq.Eq[A], b eq.Eq[B]) eq.Eq[Pair[A, B]] {
 //	p1 := pair.MakePair("hello", 42)
 //	p2 := pair.MakePair("hello", 42)
 //	pairEq.Equals(p1, p2)  // true
+//
+//go:inline
 func FromStrictEquals[A, B comparable]() eq.Eq[Pair[A, B]] {
 	return Eq(eq.FromStrictEquals[A](), eq.FromStrictEquals[B]())
 }

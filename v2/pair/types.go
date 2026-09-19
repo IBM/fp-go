@@ -46,6 +46,10 @@ type (
 	// The first value is called the "head" or "left" (L), and the second is called
 	// the "tail" or "right" (R).
 	//
+	// The fields are unexported, use [MakePair] to construct a Pair and [Head], [Tail]
+	// or [Unpack] to access its values. The zero value is a valid Pair holding the
+	// zero values of L and R, see [Zero].
+	//
 	// Pair provides a foundation for functional programming patterns, supporting operations
 	// like mapping, chaining, and applicative application on either or both values.
 	//
@@ -74,7 +78,7 @@ type (
 	//	// Type: Kleisli[int, string, string]
 	Kleisli[L, R1, R2 any] = func(R1) Pair[L, R2]
 
-	// Operator represents an endomorphism on Pair that transforms the tail value.
+	// Operator represents a function on Pair that transforms the tail value.
 	// It is a function that takes a Pair[L, R1] and returns a Pair[L, R2], preserving
 	// the head type L while potentially transforming the tail from R1 to R2.
 	//

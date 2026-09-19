@@ -205,9 +205,9 @@ func (o *pairApplicativeTail[A, B, B1]) Of(b B) Pair[A, B] {
 //
 // Example:
 //
-//	import M "github.com/IBM/fp-go/v2/monoid"
+//	import N "github.com/IBM/fp-go/v2/number"
 //
-//	intSum := M.MonoidSum[int]()
+//	intSum := N.MonoidSum[int]()
 //	monad := pair.MonadTail[string, int, int](intSum)
 //	p := monad.Of("hello")  // Pair[int, string]{0, "hello"}
 func MonadTail[B, A, B1 any](m monoid.Monoid[A]) monad.Monad[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {
@@ -219,9 +219,9 @@ func MonadTail[B, A, B1 any](m monoid.Monoid[A]) monad.Monad[B, B1, Pair[A, B], 
 //
 // Example:
 //
-//	import M "github.com/IBM/fp-go/v2/monoid"
+//	import N "github.com/IBM/fp-go/v2/number"
 //
-//	intSum := M.MonoidSum[int]()
+//	intSum := N.MonoidSum[int]()
 //	pointed := pair.PointedTail[string, int](intSum)
 //	p := pointed.Of("hello")  // Pair[int, string]{0, "hello"}
 func PointedTail[B, A any](m monoid.Monoid[A]) pointed.Pointed[B, Pair[A, B]] {
@@ -246,9 +246,9 @@ func FunctorTail[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]]
 //
 // Example:
 //
-//	import M "github.com/IBM/fp-go/v2/monoid"
+//	import N "github.com/IBM/fp-go/v2/number"
 //
-//	intSum := M.MonoidSum[int]()
+//	intSum := N.MonoidSum[int]()
 //	applicative := pair.ApplicativeTail[string, int, int](intSum)
 //	pf := applicative.Of(S.Size)
 //	pv := pair.MakePair(5, "hello")
@@ -262,9 +262,9 @@ func ApplicativeTail[B, A, B1 any](m monoid.Monoid[A]) applicative.Applicative[B
 //
 // Example:
 //
-//	import M "github.com/IBM/fp-go/v2/monoid"
+//	import N "github.com/IBM/fp-go/v2/number"
 //
-//	intSum := M.MonoidSum[int]()
+//	intSum := N.MonoidSum[int]()
 //	monad := pair.Monad[string, int, int](intSum)
 //	p := monad.Of("hello")  // Pair[int, string]{0, "hello"}
 func Monad[B, A, B1 any](m monoid.Monoid[A]) monad.Monad[B, B1, Pair[A, B], Pair[A, B1], Pair[A, func(B) B1]] {
@@ -276,9 +276,9 @@ func Monad[B, A, B1 any](m monoid.Monoid[A]) monad.Monad[B, B1, Pair[A, B], Pair
 //
 // Example:
 //
-//	import M "github.com/IBM/fp-go/v2/monoid"
+//	import N "github.com/IBM/fp-go/v2/number"
 //
-//	intSum := M.MonoidSum[int]()
+//	intSum := N.MonoidSum[int]()
 //	pointed := pair.Pointed[string, int](intSum)
 //	p := pointed.Of("hello")  // Pair[int, string]{0, "hello"}
 func Pointed[B, A any](m monoid.Monoid[A]) pointed.Pointed[B, Pair[A, B]] {
@@ -303,9 +303,9 @@ func Functor[B, A, B1 any]() functor.Functor[B, B1, Pair[A, B], Pair[A, B1]] {
 //
 // Example:
 //
-//	import M "github.com/IBM/fp-go/v2/monoid"
+//	import N "github.com/IBM/fp-go/v2/number"
 //
-//	intSum := M.MonoidSum[int]()
+//	intSum := N.MonoidSum[int]()
 //	applicative := pair.Applicative[string, int, int](intSum)
 //	pf := applicative.Of(S.Size)
 //	pv := pair.MakePair(5, "hello")
