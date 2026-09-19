@@ -139,6 +139,11 @@ func TestHandleUseSkill(t *testing.T) {
 			shouldError: false,
 		},
 		{
+			name:        "valid skill - fp-go-pattern-matching",
+			skillName:   "fp-go-pattern-matching",
+			shouldError: false,
+		},
+		{
 			name:        "valid skill - fp-go-pipe-flow",
 			skillName:   "fp-go-pipe-flow",
 			shouldError: false,

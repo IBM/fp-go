@@ -18,71 +18,59 @@ package array_test
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
+	N "github.com/IBM/fp-go/v2/number"
+	"github.com/IBM/fp-go/v2/optics/prism"
 	O "github.com/IBM/fp-go/v2/option"
+	P "github.com/IBM/fp-go/v2/predicate"
+	R "github.com/IBM/fp-go/v2/reader"
 	RO "github.com/IBM/fp-go/v2/readeroption"
+	"github.com/IBM/fp-go/v2/result"
+	S "github.com/IBM/fp-go/v2/string"
 )
 
-// Example_pattern_matching demonstrates using FindFirstMap with option.Alt for
-// multi-branch pattern matching.
+// Example_pattern_matching demonstrates multi-branch pattern matching on a
+// single value, the functional counterpart of a switch statement.
 //
-// FindFirstMap searches an array and applies a selector function to each element,
-// returning the first Some result. When combined with option.Alt, you can create
-// sophisticated pattern matchers that try multiple conditions in sequence.
-//
-// For pattern matching on a single value (similar to switch/case), combine
-// multiple matcher functions using option.Alt via function.Flow.
+// Each case is a func(Request) Option[string] (a ReaderOption), composed
+// point-free from a guard (O.FromPredicate) and a branch result (O.Map).
+// Folding the cases with RO.AltMonoid yields one ReaderOption that tries the
+// cases in order and stops at the first Some. RO.GetOrElse supplies the
+// default branch and turns the partial match into a total function.
 func Example_pattern_matching() {
-	// Define a type to classify
 	type Request struct {
 		Method string
 		Path   string
 		Body   string
 	}
 
-	// Define matchers as functions that return Some on match, None otherwise
-	matchGET := func(r Request) O.Option[string] {
-		if r.Method == "GET" {
-			return O.Some(fmt.Sprintf("Fetching: %s", r.Path))
-		}
-		return O.None[string]()
+	getMethod := func(r Request) string { return r.Method }
+	getPath := func(r Request) string { return r.Path }
+	describeCreate := func(r Request) string {
+		return fmt.Sprintf("Creating: %s with body: %s", r.Path, r.Body)
 	}
 
-	matchPOST := func(r Request) O.Option[string] {
-		if r.Method == "POST" {
-			return O.Some(fmt.Sprintf("Creating: %s with body: %s", r.Path, r.Body))
-		}
-		return O.None[string]()
+	// case combinator: guard -> branch result
+	on := func(guard P.Predicate[Request], branch func(Request) string) RO.ReaderOption[Request, string] {
+		return F.Flow2(O.FromPredicate(guard), O.Map(branch))
 	}
-
-	matchDELETE := func(r Request) O.Option[string] {
-		if r.Method == "DELETE" {
-			return O.Some(fmt.Sprintf("Deleting: %s", r.Path))
-		}
-		return O.None[string]()
+	isMethod := func(m string) P.Predicate[Request] {
+		return F.Flow2(getMethod, P.IsStrictEqual[string]()(m))
 	}
-
-	defaultCase := func(r Request) string {
-		return fmt.Sprintf("Unsupported method: %s", r.Method)
-	}
-
-	matchers := A.From(
-		matchGET,
-		matchPOST,
-		matchDELETE,
-	)
-
-	altMonoid := RO.AltMonoid[Request, string]()
 
 	handleRequest := F.Pipe2(
-		matchers,
-		A.Fold(altMonoid),
-		RO.GetOrElse(defaultCase),
+		A.From(
+			on(isMethod("GET"), F.Flow2(getPath, S.Format[string]("Fetching: %s"))),
+			on(isMethod("POST"), describeCreate),
+			on(isMethod("DELETE"), F.Flow2(getPath, S.Format[string]("Deleting: %s"))),
+		),
+		A.Fold(RO.AltMonoid[Request, string]()),
+		RO.GetOrElse(F.Flow2(getMethod, S.Format[string]("Unsupported method: %s"))),
 	)
 
-	// Test various requests
 	requests := []Request{
 		{Method: "GET", Path: "/users"},
 		{Method: "POST", Path: "/users", Body: `{"name":"Alice"}`},
@@ -101,119 +89,53 @@ func Example_pattern_matching() {
 	// Unsupported method: PATCH
 }
 
-// Example_pattern_matching_array demonstrates using FindFirstMap to find and
-// transform the first matching element in an array.
-func Example_pattern_matching_array() {
-	// Parse different string formats into integers
-	parseDecimal := func(s string) O.Option[int] {
-		if len(s) > 0 && s[0] != '0' {
-			n, err := strconv.Atoi(s)
-			if err == nil {
-				return O.Some(n)
-			}
+// Example_pattern_matching_lazy shows that folding cases with RO.AltMonoid is
+// lazy: cases after the first match are never invoked. Collecting the results
+// into a []Option and calling option.AltAllArray instead would run every case
+// up front, because Go evaluates the slice literal eagerly.
+func Example_pattern_matching_lazy() {
+	// trace is deliberately side-effecting so the evaluation order is visible
+	trace := func(name string, res O.Option[string]) RO.ReaderOption[int, string] {
+		return func(int) O.Option[string] {
+			fmt.Println("try", name)
+			return res
 		}
-		return O.None[int]()
 	}
 
-	parseHex := func(s string) O.Option[int] {
-		if len(s) > 2 && s[:2] == "0x" {
-			n, err := strconv.ParseInt(s[2:], 16, 64)
-			if err == nil {
-				return O.Some(int(n))
-			}
-		}
-		return O.None[int]()
-	}
+	match := A.Fold(RO.AltMonoid[int, string]())(A.From(
+		trace("a", O.None[string]()),
+		trace("b", O.Some("b")),
+		trace("c", O.Some("c")),
+	))
 
-	parseOctal := func(s string) O.Option[int] {
-		if len(s) > 1 && s[0] == '0' && s[1] != 'x' {
-			n, err := strconv.ParseInt(s[1:], 8, 64)
-			if err == nil {
-				return O.Some(int(n))
-			}
-		}
-		return O.None[int]()
-	}
-
-	parseBinary := func(s string) O.Option[int] {
-		if len(s) > 2 && s[:2] == "0b" {
-			n, err := strconv.ParseInt(s[2:], 2, 64)
-			if err == nil {
-				return O.Some(int(n))
-			}
-		}
-		return O.None[int]()
-	}
-
-	// Combine parsers using AltAllArray - tries each format in sequence
-	parseNumber := func(s string) O.Option[int] {
-		parsers := []O.Option[int]{
-			parseDecimal(s),
-			parseHex(s),
-			parseOctal(s),
-			parseBinary(s),
-		}
-		return O.AltAllArray(O.None[int]())(parsers)
-	}
-
-	// Use FindFirstMap to find the first parseable string in an array
-	inputs := []string{"invalid", "also bad", "42", "0x2A", "052"}
-	result := A.FindFirstMap(parseNumber)(inputs)
-
-	fmt.Printf("First parseable number: %d\n",
-		F.Pipe1(result, O.GetOrElse(F.Constant(-1))))
+	fmt.Println(match(0))
 
 	// Output:
-	// First parseable number: 42
+	// try a
+	// try b
+	// Some[string](b)
 }
 
-// Example_pattern_matching_numeric demonstrates pattern matching on numeric values
-// with range checks and special cases.
+// Example_pattern_matching_numeric classifies numbers using guard cases
+// built point-free from predicates: FromPredicate turns the guard into an
+// Option and Map produces the branch result.
 func Example_pattern_matching_numeric() {
-	// Classify numbers into categories
-	isZero := func(n int) O.Option[string] {
-		if n == 0 {
-			return O.Some("zero")
-		}
-		return O.None[string]()
+	when := func(guard P.Predicate[int], label string) RO.ReaderOption[int, string] {
+		return F.Flow2(O.FromPredicate(guard), O.Map(F.Constant1[int](label)))
 	}
 
-	isNegative := func(n int) O.Option[string] {
-		if n < 0 {
-			return O.Some("negative")
-		}
-		return O.None[string]()
-	}
+	classify := F.Pipe2(
+		A.From(
+			when(P.IsZero[int](), "zero"),
+			when(N.LessThan(0), "negative"),
+			when(N.LessThan(11), "small positive"),
+		),
+		A.Fold(RO.AltMonoid[int, string]()),
+		RO.GetOrElse(F.Constant1[int]("large positive")),
+	)
 
-	isSmallPositive := func(n int) O.Option[string] {
-		if n > 0 && n <= 10 {
-			return O.Some("small positive")
-		}
-		return O.None[string]()
-	}
-
-	isLargePositive := func(n int) O.Option[string] {
-		if n > 10 {
-			return O.Some("large positive")
-		}
-		return O.None[string]()
-	}
-
-	// Combine classifiers using AltAllArray
-	classify := func(n int) O.Option[string] {
-		classifiers := []O.Option[string]{
-			isZero(n),
-			isNegative(n),
-			isSmallPositive(n),
-			isLargePositive(n),
-		}
-		return O.AltAllArray(O.None[string]())(classifiers)
-	}
-
-	numbers := []int{0, -5, 3, 15, -100, 10}
-	for _, n := range numbers {
-		category := F.Pipe1(classify(n), O.GetOrElse(F.Constant("unknown")))
-		fmt.Printf("%d: %s\n", n, category)
+	for _, n := range []int{0, -5, 3, 15, -100, 10} {
+		fmt.Printf("%d: %s\n", n, classify(n))
 	}
 
 	// Output:
@@ -225,8 +147,9 @@ func Example_pattern_matching_numeric() {
 	// 10: small positive
 }
 
-// Example_pattern_matching_with_guards demonstrates using guards (additional conditions)
-// within pattern matchers for more precise matching.
+// Example_pattern_matching_with_guards demonstrates guards combined with
+// predicate.And and cases ordered by specificity: the critical-error case
+// must come before the general error case, otherwise it would be shadowed.
 func Example_pattern_matching_with_guards() {
 	type Event struct {
 		Type     string
@@ -234,48 +157,28 @@ func Example_pattern_matching_with_guards() {
 		Message  string
 	}
 
-	// Match critical errors
-	matchCriticalError := func(e Event) O.Option[string] {
-		if e.Type == "error" && e.Priority >= 9 {
-			return O.Some(fmt.Sprintf("CRITICAL: %s", e.Message))
-		}
-		return O.None[string]()
+	getType := func(e Event) string { return e.Type }
+	getPriority := func(e Event) int { return e.Priority }
+	getMessage := func(e Event) string { return e.Message }
+
+	isType := func(t string) P.Predicate[Event] {
+		return F.Flow2(getType, P.IsStrictEqual[string]()(t))
+	}
+	isUrgent := F.Flow2(getPriority, N.MoreThan(8))
+
+	on := func(guard P.Predicate[Event], prefix string) RO.ReaderOption[Event, string] {
+		return F.Flow2(O.FromPredicate(guard), O.Map(F.Flow2(getMessage, S.Prepend(prefix))))
 	}
 
-	// Match regular errors
-	matchError := func(e Event) O.Option[string] {
-		if e.Type == "error" {
-			return O.Some(fmt.Sprintf("ERROR: %s", e.Message))
-		}
-		return O.None[string]()
-	}
-
-	// Match warnings
-	matchWarning := func(e Event) O.Option[string] {
-		if e.Type == "warning" {
-			return O.Some(fmt.Sprintf("WARNING: %s", e.Message))
-		}
-		return O.None[string]()
-	}
-
-	// Match info
-	matchInfo := func(e Event) O.Option[string] {
-		if e.Type == "info" {
-			return O.Some(fmt.Sprintf("INFO: %s", e.Message))
-		}
-		return O.None[string]()
-	}
-
-	// Combine matchers - most specific first
-	formatEvent := func(e Event) O.Option[string] {
-		matchers := []O.Option[string]{
-			matchCriticalError(e),
-			matchError(e),
-			matchWarning(e),
-			matchInfo(e),
-		}
-		return O.AltAllArray(O.None[string]())(matchers)
-	}
+	formatEvent := F.Pipe2(
+		A.From(
+			on(F.Pipe1(isType("error"), P.And(isUrgent)), "CRITICAL: "),
+			on(isType("error"), "ERROR: "),
+			on(isType("warning"), "WARNING: "),
+		),
+		A.Fold(RO.AltMonoid[Event, string]()),
+		RO.GetOrElse(F.Flow2(getMessage, S.Prepend("INFO: "))),
+	)
 
 	events := []Event{
 		{Type: "error", Priority: 10, Message: "System failure"},
@@ -285,8 +188,7 @@ func Example_pattern_matching_with_guards() {
 	}
 
 	for _, event := range events {
-		formatted := F.Pipe1(formatEvent(event), O.GetOrElse(F.Constant("UNKNOWN")))
-		fmt.Println(formatted)
+		fmt.Println(formatEvent(event))
 	}
 
 	// Output:
@@ -294,4 +196,126 @@ func Example_pattern_matching_with_guards() {
 	// ERROR: Connection lost
 	// WARNING: High memory usage
 	// INFO: User logged in
+}
+
+// Example_pattern_matching_array combines both levels of matching: a
+// multi-format parser (first case that matches a string) and FindFirstMap
+// (first element of a slice that the parser accepts).
+func Example_pattern_matching_array() {
+	// parseBase(b) is strconv.ParseInt with base b and bit size 64 bound
+	parseBase := func(base int) O.Kleisli[string, int64] {
+		return F.Flow2(
+			F.Bind23of3(result.Eitherize3(strconv.ParseInt))(base, 64),
+			result.ToOption[int64],
+		)
+	}
+	// withPrefix matches strings with the prefix and parses the rest
+	withPrefix := func(prefix string, base int) RO.ReaderOption[string, int64] {
+		return F.Flow3(
+			O.FromPredicate(F.Bind2nd(strings.HasPrefix, prefix)),
+			O.Map(F.Bind2nd(strings.TrimPrefix, prefix)),
+			O.Chain(parseBase(base)),
+		)
+	}
+
+	parseNumber := A.Fold(RO.AltMonoid[string, int64]())(A.From(
+		withPrefix("0x", 16),
+		withPrefix("0b", 2),
+		withPrefix("0o", 8),
+		prism.ParseInt64().GetOption,
+	))
+
+	inputs := []string{"invalid", "0x2A", "also bad", "17"}
+
+	fmt.Println(A.FindFirstMap(parseNumber)(inputs))
+	fmt.Println(A.FindLastMap(parseNumber)(inputs))
+	fmt.Println(A.FilterMap(parseNumber)([]string{"0b101", "x", "0o17", "7"}))
+
+	// Output:
+	// Some[int64](42)
+	// Some[int64](17)
+	// [5 15 7]
+}
+
+// Example_pattern_matching_sum_type is the functional counterpart of a type
+// switch: O.InstanceOf performs the type assertion, so each case handles
+// exactly one variant and the fold picks the one matching the dynamic type.
+func Example_pattern_matching_sum_type() {
+	type Circle struct{ R float64 }
+	type Rect struct{ W, H float64 }
+
+	circleArea := func(c Circle) float64 { return 3 * c.R * c.R }
+	rectArea := func(r Rect) float64 { return r.W * r.H }
+
+	area := F.Pipe2(
+		A.From(
+			F.Flow2(O.InstanceOf[Circle], O.Map(circleArea)),
+			F.Flow2(O.InstanceOf[Rect], O.Map(rectArea)),
+		),
+		A.Fold(RO.AltMonoid[any, float64]()),
+		RO.GetOrElse(F.Constant1[any](-1.0)),
+	)
+
+	fmt.Println(area(Circle{R: 2}))
+	fmt.Println(area(Rect{W: 2, H: 3}))
+	fmt.Println(area("not a shape"))
+
+	// Output:
+	// 12
+	// 6
+	// -1
+}
+
+// Example_pattern_matching_find_first_map shows the alternative formulation
+// with FindFirstMap: the slice holds the cases, and reader.Read(path) applies
+// each case to the input until one returns Some. Composing reader.Read,
+// FindFirstMap and reader.Read(cases) yields the matcher point-free.
+func Example_pattern_matching_find_first_map() {
+	prefix := func(p, target string) RO.ReaderOption[string, string] {
+		return F.Flow2(O.FromPredicate(F.Bind2nd(strings.HasPrefix, p)), O.Map(F.Constant1[string](target)))
+	}
+
+	cases := A.From(
+		prefix("/api/", "api"),
+		prefix("/static/", "assets"),
+	)
+
+	route := F.Flow4(
+		R.Read[O.Option[string], string],                        // path -> "apply a case to path"
+		A.FindFirstMap[RO.ReaderOption[string, string], string], // -> first case that matches
+		R.Read[O.Option[string]](cases),                         // run it over the cases
+		O.GetOrElse(F.Constant("page")),                         // default
+	)
+
+	fmt.Println(route("/api/users"))
+	fmt.Println(route("/static/app.js"))
+	fmt.Println(route("/about"))
+
+	// Output:
+	// api
+	// assets
+	// page
+}
+
+// Example_pattern_matching_alt shows the binary form: RO.Alt appends a
+// fallback case. F.Constant makes the fallback lazy, so it only runs when the
+// preceding cases return None.
+func Example_pattern_matching_alt() {
+	fromEnv := F.Flow2(O.FromPredicate(F.Bind2nd(strings.HasPrefix, "$")), O.Map(S.Prepend("env:")))
+	fromFile := F.Flow2(O.FromPredicate(F.Bind2nd(strings.HasPrefix, "@")), O.Map(S.Prepend("file:")))
+
+	resolve := F.Pipe2(
+		fromEnv,
+		RO.Alt(F.Constant(fromFile)),
+		RO.GetOrElse(S.Prepend("literal:")),
+	)
+
+	fmt.Println(resolve("$HOME"))
+	fmt.Println(resolve("@config.json"))
+	fmt.Println(resolve("value"))
+
+	// Output:
+	// env:$HOME
+	// file:@config.json
+	// literal:value
 }

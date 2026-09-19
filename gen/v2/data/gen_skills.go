@@ -28,6 +28,9 @@ var FP_GO_LOGGING_SKILL_MD []byte
 //go:embed skills/fp-go-mcp/SKILL.md
 var FP_GO_MCP_SKILL_MD []byte
 
+//go:embed skills/fp-go-pattern-matching/SKILL.md
+var FP_GO_PATTERN_MATCHING_SKILL_MD []byte
+
 //go:embed skills/fp-go-pipe-flow/SKILL.md
 var FP_GO_PIPE_FLOW_SKILL_MD []byte
 
@@ -47,6 +50,7 @@ var Skills = map[string][]byte{
 	"fp-go-lens/SKILL.md":              FP_GO_LENS_SKILL_MD,
 	"fp-go-logging/SKILL.md":           FP_GO_LOGGING_SKILL_MD,
 	"fp-go-mcp/SKILL.md":               FP_GO_MCP_SKILL_MD,
+	"fp-go-pattern-matching/SKILL.md":  FP_GO_PATTERN_MATCHING_SKILL_MD,
 	"fp-go-pipe-flow/SKILL.md":         FP_GO_PIPE_FLOW_SKILL_MD,
 	"fp-go-pipe-flow/evals/evals.json": FP_GO_PIPE_FLOW_EVALS_EVALS_JSON,
 	"fp-go-pr-review/SKILL.md":         FP_GO_PR_REVIEW_SKILL_MD,

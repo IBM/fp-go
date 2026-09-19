@@ -68,25 +68,19 @@ func FindFirstWithIndex[A any](pred func(int, A) bool) option.Kleisli[[]A, A] {
 //	})
 //	result := parseFirst([]string{"a", "42", "b"}) // Some(42)
 //
-// Example pattern matching with option.AltAllArray:
+// FindFirstMap stops at the first Some, so the selector is not invoked for the
+// remaining elements. With a slice of cases (func(T) Option[B]) and
+// reader.Read as the selector, it acts as a lazy multi-branch pattern match
+// on a single value:
 //
-//	matchGET := func(r Request) option.Option[string] {
-//	    if r.Method == "GET" { return option.Some("GET: " + r.Path) }
-//	    return option.None[string]()
-//	}
-//	matchPOST := func(r Request) option.Option[string] {
-//	    if r.Method == "POST" { return option.Some("POST: " + r.Path) }
-//	    return option.None[string]()
-//	}
+//	cases := []func(Request) option.Option[string]{matchGET, matchPOST}
+//	handle := F.Flow3(
+//	    reader.Read[option.Option[string], Request],
+//	    array.FindFirstMap[func(Request) option.Option[string], string],
+//	    reader.Read[option.Option[string]](cases),
+//	)
 //
-//	// Combine matchers - tries each in order until one returns Some
-//	handleRequest := func(r Request) option.Option[string] {
-//	    matchers := []option.Option[string]{matchGET(r), matchPOST(r)}
-//	    return option.AltAllArray(option.None[string]())(matchers)
-//	}
-//	result := handleRequest(request)
-//
-// See Example_patternMatching for comprehensive pattern matching examples.
+// See Example_pattern_matching and docs/PATTERN_MATCHING.md for more patterns.
 //
 //go:inline
 func FindFirstMap[A, B any](sel option.Kleisli[A, B]) option.Kleisli[[]A, B] {
