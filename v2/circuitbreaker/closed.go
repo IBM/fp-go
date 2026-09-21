@@ -6,8 +6,8 @@ import (
 
 	A "github.com/IBM/fp-go/v2/array"
 	F "github.com/IBM/fp-go/v2/function"
-	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/internal/common"
+	N "github.com/IBM/fp-go/v2/number"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 )
@@ -223,6 +223,20 @@ func addToSlice(o ord.Ord[time.Time], ar []time.Time, item time.Time) []time.Tim
 	return cpy
 }
 
+// pruneHistory drops all failure timestamps that have dropped out of the sliding time
+// window ending at currentTime, i.e. everything recorded before currentTime - timeWindow.
+//
+// The history is kept in ascending order, so the first entry that is still inside the
+// window is located with a binary search and the remainder of the slice is shared instead
+// of copied.
+//
+// Thread Safety: Pure. The result is a sub slice of the history, which is never mutated
+// in place, so it is safe to share across goroutines.
+func (s *closedStateWithHistory) pruneHistory(currentTime time.Time) []time.Time {
+	idx, _ := slices.BinarySearchFunc(s.history, currentTime.Add(-s.timeWindow), s.ordTime.Compare)
+	return s.history[idx:]
+}
+
 // AddError records a failure at the given time and returns a new closedStateWithHistory.
 // The new instance contains the failure in its history, with old failures outside the
 // time window automatically pruned.
@@ -230,17 +244,12 @@ func addToSlice(o ord.Ord[time.Time], ar []time.Time, item time.Time) []time.Tim
 // Thread Safety: Returns a new instance with a new history slice; the original is not modified.
 // Safe for concurrent use. The addToSlice function creates a new slice, ensuring immutability.
 func (s *closedStateWithHistory) AddError(currentTime time.Time) ClosedState {
-
-	addFailureToHistory := F.Pipe1(
-		historyLens,
-		common.LensModify[*closedStateWithHistory](func(old []time.Time) []time.Time {
-			// oldest valid entry
-			idx, _ := slices.BinarySearchFunc(old, currentTime.Add(-s.timeWindow), s.ordTime.Compare)
-			return addToSlice(s.ordTime, old[idx:], currentTime)
-		}),
-	)
-
-	return addFailureToHistory(s)
+	return F.Pipe3(
+		currentTime,
+		s.pruneHistory,
+		F.Bind13of3(addToSlice)(s.ordTime, currentTime),
+		historyLens.Set,
+	)(s)
 }
 
 // AddSuccess purges the entire failure history and returns a new closedStateWithHistory.
@@ -252,16 +261,19 @@ func (s *closedStateWithHistory) AddSuccess(_ time.Time) ClosedState {
 	return resetHistory(s)
 }
 
-// Check verifies if the number of failures in the history is below the threshold.
-// Returns Some(ClosedState) if below threshold, None if at or above threshold.
-// The time parameter is ignored; the check is based on the current history size.
+// Check verifies if the number of failures inside the sliding time window that ends at
+// currentTime is below the threshold. Returns Some(ClosedState) if below threshold,
+// None if at or above threshold.
+//
+// Failures older than currentTime - timeWindow are ignored, so a circuit recovers by the
+// mere passage of time even when no further error is recorded.
 //
 // Thread Safety: Does not modify the receiver; safe for concurrent use.
-func (s *closedStateWithHistory) Check(_ time.Time) Option[ClosedState] {
+func (s *closedStateWithHistory) Check(currentTime time.Time) Option[ClosedState] {
 
 	return F.Pipe4(
-		s,
-		historyLens.Get,
+		currentTime,
+		s.pruneHistory,
 		A.Size,
 		s.checkFailures,
 		option.MapTo[int](ClosedState(s)),
@@ -294,6 +306,7 @@ func (s *closedStateWithHistory) Check(_ time.Time) Option[ClosedState] {
 //   - AddError records the failure timestamp and removes failures outside the time window
 //     (older than currentTime - timeWindow).
 //   - AddSuccess purges the entire failure history (all tracked failures are removed).
+//   - Check counts only the failures inside the window ending at the time it is given.
 //   - Check returns Some(ClosedState) when failureCount < maxFailures (circuit stays closed).
 //   - Check returns None when failureCount >= maxFailures (circuit should open).
 //   - Empty purges the entire failure history.
@@ -301,6 +314,8 @@ func (s *closedStateWithHistory) Check(_ time.Time) Option[ClosedState] {
 // Time Window Management:
 //   - The history is automatically pruned on each AddError call to remove failures older than
 //     currentTime - timeWindow.
+//   - Check additionally ignores failures that have left the window since the last AddError,
+//     so it never reports stale failures.
 //   - The history is kept sorted by time for efficient binary search and pruning.
 //
 // Important Note:

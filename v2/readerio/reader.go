@@ -578,6 +578,40 @@ func Ask[R any]() ReaderIO[R, R] {
 	return fromreader.Ask(FromReader[R, R])()
 }
 
+// Identity is the identity arrow of the ReaderIO category: it hands back the
+// environment unchanged and performs no I/O. It is the point from which every
+// environment projection is derived, and rewiring it turns it into an accessor:
+//
+//	Map(g)(Identity[R]())        == Asks(g)
+//	Local[R1](f)(Identity[R1]()) == Asks(f)
+//
+// Identity is a semantic alias for [Ask]. Prefer [Ask] when the intent is
+// "read the environment", and Identity when the intent is "the arrow that
+// changes nothing", for example as the neutral branch of a conditional
+// pipeline.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//
+// Returns:
+//   - ReaderIO[R, R]: a computation that yields its own environment
+//
+// Example:
+//
+//	type Config struct{ Port int }
+//	id := readerio.Identity[Config]()
+//	cfg := id(Config{Port: 8080})() // Config{Port: 8080}
+//
+// See Also:
+//   - [Ask]: identical behaviour, named for the reader monad
+//   - [Asks]: projects a value out of the environment
+//   - [Local]: rewires the environment a computation consumes
+//
+//go:inline
+func Identity[R any]() ReaderIO[R, R] {
+	return Ask[R]()
+}
+
 // Asks retrieves a value derived from the environment using a Reader function.
 // This allows you to extract specific information from the environment.
 //

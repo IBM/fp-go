@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"syscall"
 	"testing"
 	"time"
 
@@ -501,3 +502,31 @@ type timeoutError struct{}
 func (e *timeoutError) Error() string   { return "timeout" }
 func (e *timeoutError) Timeout() bool   { return true }
 func (e *timeoutError) Temporary() bool { return true }
+
+// TestInfrastructureErrorSyscall verifies that plain syscall errors, which carry a
+// value receiver, are recognized as infrastructure errors.
+func TestInfrastructureErrorSyscall(t *testing.T) {
+	infrastructure := []syscall.Errno{
+		syscall.ECONNREFUSED,
+		syscall.ECONNRESET,
+		syscall.ECONNABORTED,
+		syscall.ENETUNREACH,
+		syscall.EHOSTUNREACH,
+		syscall.EPIPE,
+		syscall.ETIMEDOUT,
+	}
+
+	for _, errno := range infrastructure {
+		assert.True(t, isInfrastructureError(errno), "%v should be an infrastructure error", errno)
+		assert.True(t, shouldOpenCircuit(errno), "%v should open the circuit", errno)
+		assert.True(t, shouldOpenCircuit(&net.OpError{Op: "dial", Err: errno}),
+			"net.OpError wrapping %v should open the circuit", errno)
+		assert.True(t, shouldOpenCircuit(fmt.Errorf("dial failed: %w", errno)),
+			"a wrapped %v should open the circuit", errno)
+		assert.True(t, option.IsSome(InfrastructureError(errno)),
+			"InfrastructureError should keep %v", errno)
+	}
+
+	assert.False(t, isInfrastructureError(syscall.EINVAL), "EINVAL is not an infrastructure error")
+	assert.False(t, shouldOpenCircuit(syscall.EINVAL), "EINVAL should not open the circuit")
+}

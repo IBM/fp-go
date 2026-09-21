@@ -16,6 +16,7 @@
 package readerioresult
 
 import (
+	"context"
 	"errors"
 	"log"
 	"sync"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/array"
 	"github.com/IBM/fp-go/v2/circuitbreaker"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/ioref"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/pair"
@@ -971,4 +973,234 @@ func TestCircuitBreaker_TrueConcurrentRequests(t *testing.T) {
 
 	// Verify that circuit breaker opened and blocked some requests
 	assert.Greater(t, cbErrorCount, 0, "Circuit breaker should have opened and blocked some requests")
+}
+
+// countingMetrics records how often each circuit breaker event was reported.
+type countingMetrics struct {
+	mu      sync.Mutex
+	accepts int
+	rejects int
+	opens   int
+	closes  int
+	canary  int
+}
+
+func (m *countingMetrics) count(target *int) IO[circuitbreaker.Void] {
+	return func() circuitbreaker.Void {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		*target++
+		return function.VOID
+	}
+}
+
+func (m *countingMetrics) Accept(_ time.Time) IO[circuitbreaker.Void] {
+	return m.count(&m.accepts)
+}
+
+func (m *countingMetrics) Reject(_ time.Time) IO[circuitbreaker.Void] {
+	return m.count(&m.rejects)
+}
+
+func (m *countingMetrics) Open(_ time.Time) IO[circuitbreaker.Void] {
+	return m.count(&m.opens)
+}
+
+func (m *countingMetrics) Close(_ time.Time) IO[circuitbreaker.Void] {
+	return m.count(&m.closes)
+}
+
+func (m *countingMetrics) Canary(_ time.Time) IO[circuitbreaker.Void] {
+	return m.count(&m.canary)
+}
+
+// TestCircuitBreaker_RecoversAfterFailedCanary is the regression test for a circuit that
+// used to stay open forever: a failed canary request left the canary flag set, which made
+// the breaker reject every subsequent request no matter how much time had passed.
+func TestCircuitBreaker_RecoversAfterFailedCanary(t *testing.T) {
+	vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+
+	cb := MakeCircuitBreaker[string](
+		vt.Now,
+		testCBClosedState(), // opens after 3 failures
+		checkAllErrors,
+		testCBRetryPolicy(),
+		circuitbreaker.MakeVoidMetrics(),
+	)
+
+	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
+	ctx := t.Context()
+
+	run := func(op ReaderIOResult[string]) Result[string] {
+		return pair.Tail(cb(pair.MakePair(stateRef, op)))(ctx)()
+	}
+
+	failOp := Left[string](errors.New("operation failed"))
+	successOp := Of("success")
+
+	// open the circuit
+	for range 3 {
+		run(failOp)
+	}
+	require.True(t, circuitbreaker.IsOpen(ioref.Read(stateRef)()))
+
+	// the first canary fails, which extends the open period
+	vt.Advance(500 * time.Millisecond)
+	require.True(t, result.IsLeft(run(failOp)))
+	require.True(t, circuitbreaker.IsOpen(ioref.Read(stateRef)()))
+
+	// while the extended reset time has not passed, requests are still rejected
+	outcome := run(successOp)
+	require.True(t, result.IsLeft(outcome))
+	_, err := result.Unwrap(outcome)
+	var cbErr *circuitbreaker.CircuitBreakerError
+	assert.ErrorAs(t, err, &cbErr)
+
+	// once it has passed, the breaker must admit another canary and close on success
+	vt.Advance(1 * time.Hour)
+	assert.Equal(t, result.Of("success"), run(successOp),
+		"the breaker must schedule another canary after a failed one")
+	assert.True(t, circuitbreaker.IsClosed(ioref.Read(stateRef)()),
+		"a successful canary must close the circuit")
+}
+
+// TestCircuitBreaker_ReportsAllMetrics walks the full lifecycle of the breaker and asserts
+// that every event of the Metrics interface is reported.
+func TestCircuitBreaker_ReportsAllMetrics(t *testing.T) {
+	vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+	metrics := &countingMetrics{}
+
+	cb := MakeCircuitBreaker[string](
+		vt.Now,
+		testCBClosedState(),
+		checkAllErrors,
+		testCBRetryPolicy(),
+		metrics,
+	)
+
+	stateRef := circuitbreaker.MakeClosedIORef(testCBClosedState())()
+	ctx := t.Context()
+
+	run := func(op ReaderIOResult[string]) Result[string] {
+		return pair.Tail(cb(pair.MakePair(stateRef, op)))(ctx)()
+	}
+
+	failOp := Left[string](errors.New("operation failed"))
+	successOp := Of("success")
+
+	// 3 failures on a closed circuit: 3 accepts, 1 open
+	for range 3 {
+		run(failOp)
+	}
+	// a request against the open circuit: 1 reject
+	run(successOp)
+	// a canary that fails: 1 canary, 1 more open
+	vt.Advance(500 * time.Millisecond)
+	run(failOp)
+	// a canary that succeeds: 1 more canary, 1 close
+	vt.Advance(1 * time.Hour)
+	run(successOp)
+
+	assert.Equal(t, 3, metrics.accepts, "one accept per request on a closed circuit")
+	assert.Equal(t, 1, metrics.rejects, "one reject per request blocked by an open circuit")
+	assert.Equal(t, 2, metrics.canary, "one canary per half open probe")
+	assert.Equal(t, 2, metrics.opens, "opening and extending the circuit are both reported")
+	assert.Equal(t, 1, metrics.closes, "a successful canary closes the circuit")
+}
+
+// TestCircuitBreaker_ReportsOpenOncePerTransition verifies that several requests that
+// were admitted while the circuit was closed and all fail report the transition to open
+// exactly once, not once per failing request.
+func TestCircuitBreaker_ReportsOpenOncePerTransition(t *testing.T) {
+	expError := errors.New("operation failed")
+
+	// repeat, because the interleaving of the two requests is up to the scheduler
+	for attempt := range 50 {
+		metrics := &countingMetrics{}
+		var admitted sync.WaitGroup
+		admitted.Add(1)
+
+		breaker := MakeSingletonBreaker[string](
+			time.Now,
+			circuitbreaker.MakeClosedStateCounter(1), // opens on the very first failure
+			checkAllErrors,
+			retry.ConstantDelay(time.Hour),
+			metrics,
+		)
+
+		// the computation blocks until both requests have been admitted, so that both of
+		// them decide on a closed circuit and only then record their failure
+		failing := breaker(func(_ context.Context) IOResult[string] {
+			return func() result.Result[string] {
+				admitted.Wait()
+				return result.Left[string](expError)
+			}
+		})
+
+		var done sync.WaitGroup
+		for range 2 {
+			done.Add(1)
+			go func() {
+				defer done.Done()
+				failing(t.Context())()
+			}()
+		}
+		time.Sleep(time.Millisecond)
+		admitted.Done()
+		done.Wait()
+
+		if metrics.accepts == 2 {
+			require.Equal(t, 1, metrics.opens,
+				"attempt %d: both requests were admitted while closed, so the circuit opened once", attempt)
+		}
+	}
+}
+
+// TestCircuitBreaker_RecoversFromCanaryThatNeverCompletes verifies that a canary whose
+// computation never reports back (here: it panics) does not keep the circuit open
+// forever. Once the canary deadline has passed, the next request probes again.
+func TestCircuitBreaker_RecoversFromCanaryThatNeverCompletes(t *testing.T) {
+	vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
+	metrics := &countingMetrics{}
+	expError := errors.New("operation failed")
+
+	breaker := MakeSingletonBreaker[string](
+		vt.Now,
+		circuitbreaker.MakeClosedStateCounter(1),
+		checkAllErrors,
+		retry.ConstantDelay(time.Minute),
+		metrics,
+	)
+
+	failing := breaker(Left[string](expError))
+	panicking := breaker(func(_ context.Context) IOResult[string] {
+		return func() result.Result[string] { panic("canary panics") }
+	})
+	succeeding := breaker(Of("recovered"))
+
+	// the first failure opens the circuit
+	failing(t.Context())()
+	require.Equal(t, 1, metrics.opens)
+
+	// once the reset time has passed the next request becomes the canary, and it never
+	// reports back because it panics
+	vt.Advance(2 * time.Minute)
+	func() {
+		defer func() { _ = recover() }()
+		panicking(t.Context())()
+	}()
+	require.Equal(t, 1, metrics.canary, "the panicking request was used as the canary")
+
+	// while the canary deadline has not passed, requests are still rejected
+	failing(t.Context())()
+	assert.Equal(t, 1, metrics.canary, "no second canary while the deadline has not passed")
+	assert.Equal(t, 1, metrics.rejects)
+
+	// after the canary deadline the breaker probes again and recovers
+	vt.Advance(2 * time.Minute)
+	outcome := succeeding(t.Context())()
+
+	assert.Equal(t, 2, metrics.canary, "the breaker admits another canary after the deadline")
+	assert.Equal(t, result.Of("recovered"), outcome)
+	assert.Equal(t, 1, metrics.closes, "the successful canary closed the circuit")
 }

@@ -778,6 +778,35 @@ func Ask[R any]() ReaderReaderIOResult[R, R] {
 	return RRIOE.Ask[R, context.Context, error]()
 }
 
+// Identity is the identity arrow of the ReaderReaderIOResult category: it
+// hands back the outer environment R unchanged, performs no I/O and always
+// succeeds. It is the point from which every environment projection is
+// derived, and rewiring it turns it into an accessor:
+//
+//	Map(g)(Identity[R]())        == Asks(g)
+//	Local[R1](f)(Identity[R1]()) == Asks(f)
+//
+// Identity is a semantic alias for [Ask]. Prefer [Ask] when the intent is
+// "read the environment", and Identity when the intent is "the arrow that
+// changes nothing", for example as the neutral branch of a conditional
+// pipeline.
+//
+// Type Parameters:
+//   - R: the outer environment type
+//
+// Returns:
+//   - ReaderReaderIOResult[R, R]: a computation that succeeds with its own environment
+//
+// See Also:
+//   - [Ask]: identical behaviour, named for the reader monad
+//   - [Asks]: projects a value out of the environment
+//   - [Local]: rewires the environment an arrow consumes
+//
+//go:inline
+func Identity[R any]() ReaderReaderIOResult[R, R] {
+	return Ask[R]()
+}
+
 // Asks retrieves a value derived from the outer environment R using the provided function.
 //
 //go:inline

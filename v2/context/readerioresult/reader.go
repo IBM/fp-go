@@ -406,6 +406,27 @@ func Ask() ReaderIOResult[context.Context] {
 	return RIOR.Ask[context.Context]()
 }
 
+// Identity is the identity arrow of the [ReaderIOResult] category: it hands
+// back the [context.Context] unchanged, performs no I/O and always succeeds.
+// It is the point from which every context projection is derived, so
+// Map(g)(Identity()) is the computation that reads the context and applies g
+// to it.
+//
+// Identity is a semantic alias for [Ask]. Prefer [Ask] when the intent is
+// "read the context", and Identity when the intent is "the arrow that changes
+// nothing", for example as the neutral branch of a conditional pipeline.
+//
+// Returns a ReaderIOResult that succeeds with the context it was given.
+//
+// See Also:
+//   - [Ask]: identical behaviour, named for the reader monad
+//   - [AskValue]: reads a single value out of the context
+//
+//go:inline
+func Identity() ReaderIOResult[context.Context] {
+	return Ask()
+}
+
 // MonadChainEitherK chains a function that returns an [Either] into a [ReaderIOResult] computation.
 // This is useful for integrating pure Either-returning functions into ReaderIOResult workflows.
 //

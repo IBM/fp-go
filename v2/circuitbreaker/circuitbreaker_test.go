@@ -149,9 +149,9 @@ func TestModifyV(t *testing.T) {
 	})
 }
 
-// TestTestCircuit tests the testCircuit variable
-func TestTestCircuit(t *testing.T) {
-	t.Run("testCircuit sets canaryRequest to true", func(t *testing.T) {
+// TestBeginCanary tests the beginCanary variable
+func TestBeginCanary(t *testing.T) {
+	t.Run("beginCanary sets canaryRequest to true", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
 		now := vt.Now()
 
@@ -162,14 +162,14 @@ func TestTestCircuit(t *testing.T) {
 			canaryRequest: false,
 		}
 
-		result := testCircuit(openState)
+		result := beginCanary(openState)
 
 		assert.True(t, result.canaryRequest, "canaryRequest should be set to true")
 		assert.Equal(t, openState.openedAt, result.openedAt, "openedAt should be unchanged")
 		assert.Equal(t, openState.resetAt, result.resetAt, "resetAt should be unchanged")
 	})
 
-	t.Run("testCircuit is idempotent", func(t *testing.T) {
+	t.Run("beginCanary is idempotent", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
 		now := vt.Now()
 
@@ -180,12 +180,12 @@ func TestTestCircuit(t *testing.T) {
 			canaryRequest: true, // already true
 		}
 
-		result := testCircuit(openState)
+		result := beginCanary(openState)
 
 		assert.True(t, result.canaryRequest, "canaryRequest should remain true")
 	})
 
-	t.Run("testCircuit preserves other fields", func(t *testing.T) {
+	t.Run("beginCanary preserves other fields", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
 		now := vt.Now()
 		resetTime := now.Add(2 * time.Minute)
@@ -201,7 +201,7 @@ func TestTestCircuit(t *testing.T) {
 			canaryRequest: false,
 		}
 
-		result := testCircuit(openState)
+		result := beginCanary(openState)
 
 		assert.Equal(t, now, result.openedAt, "openedAt should be preserved")
 		assert.Equal(t, resetTime, result.resetAt, "resetAt should be preserved")
@@ -314,13 +314,13 @@ func TestExtendOpenCircuitFromMakeCircuit(t *testing.T) {
 		extendOp := extendCircuit(currentTime)
 		result := extendOp(initialOpen)
 
-		assert.True(t, result.canaryRequest, "canaryRequest should be set to true")
+		assert.False(t, result.canaryRequest, "canaryRequest should be cleared so that another canary can be scheduled")
 		assert.Greater(t, result.retryStatus.IterNumber, initialOpen.retryStatus.IterNumber,
 			"retry iteration should be incremented")
 		assert.True(t, result.resetAt.After(currentTime), "resetAt should be in the future")
 	})
 
-	t.Run("sets canaryRequest to true for next test", func(t *testing.T) {
+	t.Run("clears canaryRequest so the next canary can be scheduled", func(t *testing.T) {
 		vt := NewVirtualTimer(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
 		policy := retry.LimitRetries(5)
 		makeCircuit := makeOpenCircuitFromPolicy(policy)
@@ -334,9 +334,11 @@ func TestExtendOpenCircuitFromMakeCircuit(t *testing.T) {
 			canaryRequest: false,
 		}
 
-		result := extendCircuit(currentTime)(initialOpen)
+		result := extendCircuit(currentTime)(beginCanary(initialOpen))
 
-		assert.True(t, result.canaryRequest, "canaryRequest must be true after extension")
+		assert.False(t, result.canaryRequest, "canaryRequest must be cleared after extension")
+		assert.True(t, option.IsSome(isResetTimeExceeded(result.resetAt.Add(time.Nanosecond))(result)),
+			"the extended circuit must be eligible for another canary once its reset time has passed")
 	})
 
 	t.Run("applies exponential backoff on successive extensions", func(t *testing.T) {
@@ -401,20 +403,38 @@ func TestIsResetTimeExceeded(t *testing.T) {
 		assert.True(t, option.IsNone(result), "should return None when reset time not exceeded")
 	})
 
-	t.Run("returns None when canary request is already active", func(t *testing.T) {
+	t.Run("returns None while a canary is in flight", func(t *testing.T) {
 		currentTime := time.Date(2026, 1, 9, 12, 0, 0, 0, time.UTC)
-		resetTime := currentTime.Add(-1 * time.Second) // in the past
 
 		openState := openState{
-			openedAt:      currentTime.Add(-1 * time.Minute),
-			resetAt:       resetTime,
+			openedAt: currentTime.Add(-1 * time.Minute),
+			// armCanary pushed the reset time to the canary deadline, which has not passed
+			resetAt:       currentTime.Add(1 * time.Minute),
 			retryStatus:   retry.DefaultRetryStatus,
-			canaryRequest: true, // canary already active
+			canaryRequest: true,
 		}
 
 		result := isResetTimeExceeded(currentTime)(openState)
 
-		assert.True(t, option.IsNone(result), "should return None when canary is already active")
+		assert.True(t, option.IsNone(result), "should return None while the canary deadline has not passed")
+	})
+
+	t.Run("returns Some when the canary deadline passed without the canary reporting back", func(t *testing.T) {
+		currentTime := time.Date(2026, 1, 9, 12, 0, 0, 0, time.UTC)
+
+		openState := openState{
+			openedAt: currentTime.Add(-1 * time.Minute),
+			// the canary deadline has passed, but the flag is still set because the
+			// canary never completed
+			resetAt:       currentTime.Add(-1 * time.Second),
+			retryStatus:   retry.DefaultRetryStatus,
+			canaryRequest: true,
+		}
+
+		result := isResetTimeExceeded(currentTime)(openState)
+
+		assert.True(t, option.IsSome(result),
+			"a canary that never reported back must not block the circuit forever")
 	})
 
 	t.Run("returns Some at exact reset time boundary", func(t *testing.T) {

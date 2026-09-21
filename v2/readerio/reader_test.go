@@ -942,3 +942,30 @@ func TestAfter(t *testing.T) {
 		assert.Equal(t, 55, scheduled(config)())
 	})
 }
+
+func TestIdentity(t *testing.T) {
+	config := ReaderTestConfig{Value: 42, Name: "test"}
+
+	t.Run("yields the environment unchanged", func(t *testing.T) {
+		assert.Equal(t, config, Identity[ReaderTestConfig]()(config)())
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		assert.Equal(t, Ask[ReaderTestConfig]()(config)(), Identity[ReaderTestConfig]()(config)())
+	})
+
+	t.Run("Map over Identity equals Asks", func(t *testing.T) {
+		getValue := func(c ReaderTestConfig) int { return c.Value }
+		viaIdentity := F.Pipe1(Identity[ReaderTestConfig](), Map[ReaderTestConfig](getValue))
+		assert.Equal(t, Asks(getValue)(config)(), viaIdentity(config)())
+	})
+
+	t.Run("Local applied to Identity equals Asks", func(t *testing.T) {
+		type Outer struct{ Inner ReaderTestConfig }
+		narrow := func(o Outer) ReaderTestConfig { return o.Inner }
+		outer := Outer{Inner: config}
+
+		viaLocal := Local[ReaderTestConfig](narrow)(Identity[ReaderTestConfig]())
+		assert.Equal(t, Asks(narrow)(outer)(), viaLocal(outer)())
+	})
+}

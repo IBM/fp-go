@@ -254,10 +254,13 @@ func shouldOpenCircuit(err error) bool {
 // Thread Safety: This function is pure and safe for concurrent use.
 func isInfrastructureError(err error) bool {
 
-	var syscallErr *syscall.Errno
+	// syscall.Errno is a value type (it implements error with a value receiver), so the
+	// target of errors.As has to be a *syscall.Errno. Using a **syscall.Errno here would
+	// never match anything.
+	var syscallErr syscall.Errno
 
 	if errors.As(err, &syscallErr) {
-		switch *syscallErr {
+		switch syscallErr {
 		case syscall.ECONNREFUSED,
 			syscall.ECONNRESET,
 			syscall.ECONNABORTED,

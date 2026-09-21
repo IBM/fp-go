@@ -1294,3 +1294,33 @@ func TestMonadTapLeftIOK_FailureCase(t *testing.T) {
 	assert.True(t, result.IsLeft(outcome))
 	assert.Equal(t, "original error", sideEffect)
 }
+
+func TestIdentity(t *testing.T) {
+	t.Run("succeeds with the environment unchanged", func(t *testing.T) {
+		outcome := Identity[AppConfig]()(defaultConfig)(t.Context())()
+		assert.Equal(t, result.Of(defaultConfig), outcome)
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		ctx := t.Context()
+		assert.Equal(t, Ask[AppConfig]()(defaultConfig)(ctx)(), Identity[AppConfig]()(defaultConfig)(ctx)())
+	})
+
+	t.Run("Map over Identity equals Asks", func(t *testing.T) {
+		ctx := t.Context()
+		getURL := func(cfg AppConfig) string { return cfg.DatabaseURL }
+
+		viaIdentity := F.Pipe1(Identity[AppConfig](), Map[AppConfig](getURL))
+		assert.Equal(t, Asks(getURL)(defaultConfig)(ctx)(), viaIdentity(defaultConfig)(ctx)())
+	})
+
+	t.Run("Local applied to Identity equals Asks", func(t *testing.T) {
+		ctx := t.Context()
+		type Outer struct{ Inner AppConfig }
+		narrow := func(o Outer) AppConfig { return o.Inner }
+		outer := Outer{Inner: defaultConfig}
+
+		viaLocal := Local[AppConfig](narrow)(Identity[AppConfig]())
+		assert.Equal(t, Asks(narrow)(outer)(ctx)(), viaLocal(outer)(ctx)())
+	})
+}

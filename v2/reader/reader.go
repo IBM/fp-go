@@ -36,6 +36,41 @@ func Ask[R any]() Reader[R, R] {
 	return function.Identity[R]
 }
 
+// Identity is the identity arrow of the Reader category: it hands back the
+// environment unchanged. It is the neutral element of Reader composition and
+// the point from which every environment projection is derived:
+//
+//	F.Flow2(Identity[R](), f)    == f
+//	Map(g)(Identity[R]())        == Asks(g)
+//	Local[R1](f)(Identity[R1]()) == Asks(f)
+//
+// Identity is a semantic alias for [Ask]. Prefer [Ask] when the intent is
+// "read the environment", and Identity when the intent is "the arrow that
+// changes nothing", for example as the neutral branch of a conditional
+// pipeline or as the seed of a fold over environment transformations.
+//
+// Type Parameters:
+//   - R: Reader environment type
+//
+// Returns:
+//   - Reader[R, R]: a reader that yields its own environment
+//
+// Example:
+//
+//	type Config struct{ Host string }
+//	id := reader.Identity[Config]()
+//	cfg := id(Config{Host: "localhost"}) // Config{Host: "localhost"}
+//
+// See Also:
+//   - [Ask]: identical behaviour, named for the reader monad
+//   - [Asks]: projects a value out of the environment
+//   - [Local]: rewires the environment a reader consumes
+//
+//go:inline
+func Identity[R any]() Reader[R, R] {
+	return Ask[R]()
+}
+
 // Asks projects a value from the global context in a Reader.
 // It's essentially an identity function that makes the intent clearer.
 //

@@ -806,3 +806,30 @@ func TestOrElse(t *testing.T) {
 	assert.Equal(t, 0, val)
 	assert.Equal(t, "fatal error", err.Error())
 }
+
+func TestIdentity(t *testing.T) {
+	ctx := testContext{value: 10}
+
+	t.Run("succeeds with the environment unchanged", func(t *testing.T) {
+		assert.Equal(t, result.Of(ctx), Identity[testContext]()(ctx)())
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		assert.Equal(t, Ask[testContext]()(ctx)(), Identity[testContext]()(ctx)())
+	})
+
+	t.Run("Map over Identity equals Asks", func(t *testing.T) {
+		getValue := func(c testContext) int { return c.value }
+		viaIdentity := F.Pipe1(Identity[testContext](), Map[testContext](getValue))
+		assert.Equal(t, Asks(getValue)(ctx)(), viaIdentity(ctx)())
+	})
+
+	t.Run("Local applied to Identity equals Asks", func(t *testing.T) {
+		type Outer struct{ Inner testContext }
+		narrow := func(o Outer) testContext { return o.Inner }
+		outer := Outer{Inner: ctx}
+
+		viaLocal := Local[testContext](narrow)(Identity[testContext]())
+		assert.Equal(t, Asks(narrow)(outer)(), viaLocal(outer)())
+	})
+}

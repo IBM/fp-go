@@ -2,6 +2,57 @@
 // A circuit breaker prevents cascading failures by temporarily blocking requests to a failing service,
 // allowing it time to recover before retrying.
 //
+// # State machine
+//
+// The breaker moves between three states:
+//
+//	closed    --- failure threshold exceeded --->  open
+//	open      --- resetAt reached ------------->   half-open (one canary request)
+//	half-open --- canary succeeds ------------->   closed (failure tracking reset)
+//	half-open --- canary fails ---------------->   open (extended resetAt, canary rearmed)
+//	half-open --- canary deadline passed ----->   half-open (a new canary replaces the old one)
+//
+// In the closed state every request is let through and its outcome is recorded in a
+// [ClosedState]. Once the [ClosedState] reports that the failure threshold is exceeded,
+// the circuit opens and every request is rejected with a [CircuitBreakerError] until the
+// reset time calculated from the [retry.RetryPolicy] has passed.
+//
+// The first request after the reset time becomes the canary: it is let through while all
+// other requests keep being rejected. A successful canary closes the circuit and resets
+// the failure tracking; a failed canary keeps the circuit open with a longer delay and
+// rearms the canary for the new reset time.
+//
+// Starting a canary also sets a canary deadline, which is the same delay that governs the
+// open period. A canary normally replaces the state long before that deadline, but should
+// its computation never report back, for example because it panicked, the deadline makes
+// the next request a new canary instead of leaving the circuit open forever.
+//
+// # Which errors count
+//
+// Not every error means the downstream service is unhealthy. The checkError filter passed
+// to [MakeCircuitBreaker] decides which ones do: errors it maps to None are handed to the
+// caller unchanged but are treated like a success by the breaker. [AnyError] counts every
+// error, [InfrastructureError] counts only network, TLS and 5xx failures.
+//
+// # Metrics
+//
+// Every request emits exactly one admission metric ([Metrics.Accept], [Metrics.Canary] or
+// [Metrics.Reject]) and every state transition is reported exactly once through
+// [Metrics.Open] or [Metrics.Close], also when several requests fail concurrently. See
+// [MakeCircuitBreaker] for the details.
+//
+// # Choosing a failure detector
+//
+//   - [MakeClosedStateCounter] opens the circuit after n consecutive failures
+//   - [MakeClosedStateHistory] opens the circuit after n failures inside a sliding time window
+//
+// # Getting started
+//
+// Instantiating [MakeCircuitBreaker] requires a handful of operations of the monad that is
+// being protected. Prefer the ready made bindings, for example
+// github.com/IBM/fp-go/v2/context/readerioresult.MakeSingletonBreaker, over calling
+// [MakeCircuitBreaker] directly.
+//
 // # Thread Safety
 //
 // All data structures in this package are immutable except for IORef[BreakerState].

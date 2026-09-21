@@ -101,6 +101,9 @@ The circuit breaker operates in three states:
    - Allows a single test request (canary request)
    - If canary succeeds, transitions to Closed state
    - If canary fails, transitions back to Open state with extended reset time
+   - If the canary never reports back (for example because it panicked), the canary
+     deadline passes and the next request becomes a new canary, so the circuit cannot
+     stay open forever
 
 #### Implementation Details
 

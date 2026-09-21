@@ -368,3 +368,50 @@ func LocalReaderK[A, C1, C2 any](f reader.Kleisli[C2, C1]) func(Effect[C1, A]) E
 func Ask[C any]() Effect[C, C] {
 	return readerreaderioresult.Ask[C]()
 }
+
+// Identity is the identity arrow of the Effect category: it hands back the
+// context C unchanged, performs no I/O and always succeeds.
+//
+// It is the point from which every context projection is derived, and rewiring
+// it turns it into an accessor:
+//
+//	Map[C](g)(Identity[C]())     == Asks(g)
+//	Local[C1](f)(Identity[C1]()) == Asks(f)
+//	ProMap(f, g)(Identity[C1]()) == Asks(function.Flow2(f, g))
+//
+// That makes Identity the natural "do nothing" branch when a pipeline
+// conditionally adapts its context, and the seed when folding a list of
+// context transformations.
+//
+// Identity is a semantic alias for [Ask]. Prefer [Ask] when the intent is
+// "read the context", and Identity when the intent is "the arrow that changes
+// nothing".
+//
+// # Type Parameters
+//
+//   - C: The context type (also the produced value type)
+//
+// # Returns
+//
+//   - Effect[C, C]: An effect that succeeds with the context it was given
+//
+// # Example
+//
+//	type Config struct{ Port int }
+//
+//	port := function.Pipe1(
+//		effect.Identity[Config](),
+//		effect.Map[Config](func(c Config) int { return c.Port }),
+//	)
+//
+// # See Also
+//
+//   - Ask: Identical behaviour, named for the reader monad
+//   - Asks: Projects a value out of the context
+//   - Local: Rewires the context an effect consumes
+//   - ProMap: Adapts context and value in one step
+//
+//go:inline
+func Identity[C any]() Effect[C, C] {
+	return readerreaderioresult.Identity[C]()
+}

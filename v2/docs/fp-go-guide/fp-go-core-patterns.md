@@ -406,6 +406,7 @@ Reader encodes dependency injection. `R` is the shared environment.
 **Construction**:
 ```go
 func Ask[R any]() Reader[R, R]                           // returns environment itself
+func Identity[R any]() Reader[R, R]                      // alias for Ask: the identity arrow
 func Asks[R, A any](f Reader[R, A]) Reader[R, A]         // project from environment
 func Of[R, A any](a A) Reader[R, A]                      // constant, ignores environment
 func OfLazy[R, A any](fa func() A) Reader[R, A]          // deferred constant
@@ -1339,7 +1340,7 @@ func getUser(id int) EFF.Effect[Services, User] {
         return EFF.Eitherize(func(svc Services, ctx context.Context) (User, error) {
             return svc.DB.QueryRowContext(ctx, "SELECT ...").Scan(...)
         })
-    })(EFF.Asks[Services](F.Identity[Services]))
+    })(EFF.Identity[Services]())
 }
 
 // Or more concisely with Eitherize1:

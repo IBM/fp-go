@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/ord"
 	"github.com/stretchr/testify/assert"
@@ -931,4 +932,119 @@ func TestMakeClosedStateHistory(t *testing.T) {
 		result = state.Check(baseTime.Add(55 * time.Second))
 		assert.True(t, option.IsNone(result), "should fail at threshold")
 	})
+}
+
+// makeHistoryState builds a closedStateWithHistory with the given window and history.
+// The history is expected to be sorted ascending, as maintained by AddError.
+func makeHistoryState(timeWindow time.Duration, history []time.Time) *closedStateWithHistory {
+	return &closedStateWithHistory{
+		checkFailures: option.FromPredicate(func(n int) bool { return n < 3 }),
+		ordTime:       ord.OrdTime(),
+		history:       history,
+		timeWindow:    timeWindow,
+	}
+}
+
+// TestPruneHistory tests the pruneHistory method that drops failure timestamps
+// which have dropped out of the sliding time window
+func TestPruneHistory(t *testing.T) {
+	now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	window := time.Minute
+
+	t.Run("keeps all entries inside the window", func(t *testing.T) {
+		history := []time.Time{now.Add(-30 * time.Second), now.Add(-10 * time.Second), now}
+		state := makeHistoryState(window, history)
+
+		assert.Equal(t, history, state.pruneHistory(now))
+	})
+
+	t.Run("drops entries that fell out of the window", func(t *testing.T) {
+		stale := now.Add(-2 * time.Minute)
+		fresh := now.Add(-30 * time.Second)
+		state := makeHistoryState(window, []time.Time{stale, fresh})
+
+		assert.Equal(t, []time.Time{fresh}, state.pruneHistory(now))
+	})
+
+	t.Run("drops all entries when they are all too old", func(t *testing.T) {
+		state := makeHistoryState(window, []time.Time{now.Add(-10 * time.Minute), now.Add(-2 * time.Minute)})
+
+		assert.Empty(t, state.pruneHistory(now))
+	})
+
+	t.Run("keeps an entry exactly at the start of the window", func(t *testing.T) {
+		boundary := now.Add(-window)
+		state := makeHistoryState(window, []time.Time{boundary})
+
+		assert.Equal(t, []time.Time{boundary}, state.pruneHistory(now),
+			"an entry at currentTime - timeWindow is still inside the window")
+	})
+
+	t.Run("drops an entry just before the start of the window", func(t *testing.T) {
+		state := makeHistoryState(window, []time.Time{now.Add(-window - time.Nanosecond)})
+
+		assert.Empty(t, state.pruneHistory(now))
+	})
+
+	t.Run("handles an empty history", func(t *testing.T) {
+		assert.Empty(t, makeHistoryState(window, nil).pruneHistory(now))
+	})
+
+	t.Run("prunes more as time advances", func(t *testing.T) {
+		state := makeHistoryState(window, []time.Time{now, now.Add(30 * time.Second)})
+
+		assert.Len(t, state.pruneHistory(now.Add(time.Minute)), 2)
+		assert.Len(t, state.pruneHistory(now.Add(90*time.Second)), 1)
+		assert.Empty(t, state.pruneHistory(now.Add(3*time.Minute)))
+	})
+
+	t.Run("does not modify the receiver", func(t *testing.T) {
+		history := []time.Time{now.Add(-2 * time.Minute), now}
+		state := makeHistoryState(window, history)
+
+		state.pruneHistory(now)
+
+		assert.Equal(t, history, state.history, "pruneHistory must leave the original history intact")
+		assert.Len(t, state.history, 2)
+	})
+}
+
+// TestCheckUsesSlidingWindow tests that Check ignores failures that dropped out of
+// the sliding time window, so a circuit recovers by the passage of time alone
+func TestCheckUsesSlidingWindow(t *testing.T) {
+	now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	t.Run("opens while the failures are inside the window", func(t *testing.T) {
+		state := F.Pipe3(
+			MakeClosedStateHistory(time.Minute, 3),
+			addErrorAt(now),
+			addErrorAt(now.Add(time.Second)),
+			addErrorAt(now.Add(2*time.Second)),
+		)
+
+		assert.True(t, option.IsNone(state.Check(now.Add(3*time.Second))),
+			"three failures inside the window reach the threshold")
+	})
+
+	t.Run("stays closed once the failures left the window", func(t *testing.T) {
+		state := F.Pipe3(
+			MakeClosedStateHistory(time.Minute, 3),
+			addErrorAt(now),
+			addErrorAt(now.Add(time.Second)),
+			addErrorAt(now.Add(2*time.Second)),
+		)
+
+		assert.True(t, option.IsSome(state.Check(now.Add(5*time.Minute))),
+			"the same failures no longer count once the window moved past them")
+	})
+}
+
+// addErrorAt records a failure at the given time
+func addErrorAt(ct time.Time) func(ClosedState) ClosedState {
+	return F.Bind2nd(ClosedState.AddError, ct)
+}
+
+// addSuccessAt records a success at the given time
+func addSuccessAt(ct time.Time) func(ClosedState) ClosedState {
+	return F.Bind2nd(ClosedState.AddSuccess, ct)
 }

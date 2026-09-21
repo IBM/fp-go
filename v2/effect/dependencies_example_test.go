@@ -291,3 +291,65 @@ func ExampleTraverseArray_failFast() {
 	// Output:
 	// [] negative element: -2
 }
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+// ExampleIdentity demonstrates the defining property of Identity: it hands the
+// context back unchanged.
+func ExampleIdentity() {
+	eff := Identity[exDeps]()
+
+	fmt.Println(RunSync(Provide[exDeps](exDeps{Multiplier: 7})(eff))(context.Background()))
+	// Output:
+	// {7} <nil>
+}
+
+// ExampleIdentity_projection demonstrates that Asks is exactly Identity
+// followed by Map, so Identity is the point every context projection is built
+// from.
+func ExampleIdentity_projection() {
+	viaIdentity := F.Pipe1(Identity[exDeps](), Map[exDeps](exDepsMultiplier))
+	viaAsks := Asks(exDepsMultiplier)
+
+	cfg := exDeps{Multiplier: 7}
+	a, _ := RunSync(Provide[int](cfg)(viaIdentity))(context.Background())
+	b, _ := RunSync(Provide[int](cfg)(viaAsks))(context.Background())
+
+	fmt.Println(a, b, a == b)
+	// Output:
+	// 7 7 true
+}
+
+// ExampleIdentity_local demonstrates that rewiring the identity arrow turns it
+// into the accessor for the projection it was rewired with: Local(f) applied
+// to Identity is Asks(f).
+func ExampleIdentity_local() {
+	viaLocal := Local[exDeps](exAppDeps)(Identity[exDeps]())
+	viaAsks := Asks(exAppDeps)
+
+	app := exApp{Deps: exDeps{Multiplier: 7}, Name: "demo"}
+	a, _ := RunSync(Provide[exDeps](app)(viaLocal))(context.Background())
+	b, _ := RunSync(Provide[exDeps](app)(viaAsks))(context.Background())
+
+	fmt.Println(a, b, a == b)
+	// Output:
+	// {7} {7} true
+}
+
+// ExampleIdentity_proMap demonstrates the profunctor law: adapting the
+// identity arrow on both sides yields the accessor for the composition of the
+// two adaptations.
+func ExampleIdentity_proMap() {
+	viaProMap := ProMap(exAppDeps, exDepsMultiplier)(Identity[exDeps]())
+	viaAsks := Asks(F.Flow2(exAppDeps, exDepsMultiplier))
+
+	app := exApp{Deps: exDeps{Multiplier: 7}, Name: "demo"}
+	a, _ := RunSync(Provide[int](app)(viaProMap))(context.Background())
+	b, _ := RunSync(Provide[int](app)(viaAsks))(context.Background())
+
+	fmt.Println(a, b, a == b)
+	// Output:
+	// 7 7 true
+}

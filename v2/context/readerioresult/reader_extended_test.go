@@ -23,6 +23,7 @@ import (
 	"time"
 
 	E "github.com/IBM/fp-go/v2/either"
+	F "github.com/IBM/fp-go/v2/function"
 	IOG "github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
 	M "github.com/IBM/fp-go/v2/monoid"
@@ -868,5 +869,28 @@ func TestBracket(t *testing.T) {
 		assert.True(t, acquired)
 		assert.True(t, released)
 		assert.Equal(t, E.Left[int](err), res)
+	})
+}
+
+func TestIdentity(t *testing.T) {
+	t.Run("succeeds with the context unchanged", func(t *testing.T) {
+		ctx := t.Context()
+		assert.Equal(t, E.Right[error](ctx), Identity()(ctx)())
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		ctx := t.Context()
+		assert.Equal(t, Ask()(ctx)(), Identity()(ctx)())
+	})
+
+	t.Run("Map over Identity projects out of the context", func(t *testing.T) {
+		type ctxKey string
+		const key ctxKey = "tenant"
+
+		ctx := context.WithValue(t.Context(), key, "acme")
+		tenant := func(c context.Context) string { return c.Value(key).(string) }
+
+		projected := F.Pipe1(Identity(), Map(tenant))
+		assert.Equal(t, E.Right[error]("acme"), projected(ctx)())
 	})
 }

@@ -843,3 +843,36 @@ func TestMonadChainTo(t *testing.T) {
 		assert.False(t, firstExecuted, "first reader should not be executed")
 	})
 }
+
+func TestIdentity(t *testing.T) {
+	config := Config{Host: "localhost", Port: 8080}
+
+	t.Run("yields the environment unchanged", func(t *testing.T) {
+		assert.Equal(t, config, Identity[Config]()(config))
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		assert.Equal(t, Ask[Config]()(config), Identity[Config]()(config))
+	})
+
+	t.Run("is neutral for composition", func(t *testing.T) {
+		getHost := func(c Config) string { return c.Host }
+		assert.Equal(t, getHost(config), F.Flow2(Identity[Config](), getHost)(config))
+		assert.Equal(t, getHost(config), F.Flow2(getHost, Identity[string]())(config))
+	})
+
+	t.Run("Map over Identity equals Asks", func(t *testing.T) {
+		getPort := func(c Config) int { return c.Port }
+		viaIdentity := F.Pipe1(Identity[Config](), Map[Config](getPort))
+		assert.Equal(t, Asks(getPort)(config), viaIdentity(config))
+	})
+
+	t.Run("Local applied to Identity equals Asks", func(t *testing.T) {
+		type Outer struct{ Inner Config }
+		narrow := func(o Outer) Config { return o.Inner }
+		outer := Outer{Inner: config}
+
+		viaLocal := Local[Config](narrow)(Identity[Config]())
+		assert.Equal(t, Asks(narrow)(outer), viaLocal(outer))
+	})
+}

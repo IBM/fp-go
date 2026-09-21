@@ -22,6 +22,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/context/reader"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
+	F "github.com/IBM/fp-go/v2/function"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -993,5 +994,71 @@ func TestAsk(t *testing.T) {
 		assert.NoError(t, err1)
 		assert.NoError(t, err2)
 		assert.Equal(t, r1, r2)
+	})
+}
+
+func TestIdentity(t *testing.T) {
+	cfg := OuterContext{Value: "outer", Number: 42}
+
+	t.Run("succeeds with the context unchanged", func(t *testing.T) {
+		res, err := runEffect(Identity[OuterContext](), cfg)
+
+		assert.NoError(t, err)
+		assert.Equal(t, cfg, res)
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		viaAsk, errAsk := runEffect(Ask[OuterContext](), cfg)
+		viaIdentity, errIdentity := runEffect(Identity[OuterContext](), cfg)
+
+		assert.NoError(t, errAsk)
+		assert.NoError(t, errIdentity)
+		assert.Equal(t, viaAsk, viaIdentity)
+	})
+
+	t.Run("Map over Identity equals Asks", func(t *testing.T) {
+		getNumber := func(c OuterContext) int { return c.Number }
+
+		viaIdentity, errIdentity := runEffect(
+			F.Pipe1(Identity[OuterContext](), Map[OuterContext](getNumber)),
+			cfg,
+		)
+		viaAsks, errAsks := runEffect(Asks(getNumber), cfg)
+
+		assert.NoError(t, errIdentity)
+		assert.NoError(t, errAsks)
+		assert.Equal(t, viaAsks, viaIdentity)
+		assert.Equal(t, 42, viaIdentity)
+	})
+
+	t.Run("Local applied to Identity equals Asks", func(t *testing.T) {
+		narrow := func(o OuterContext) InnerContext { return InnerContext{Value: o.Value} }
+
+		viaLocal, errLocal := runEffect(
+			Local[InnerContext](narrow)(Identity[InnerContext]()),
+			cfg,
+		)
+		viaAsks, errAsks := runEffect(Asks(narrow), cfg)
+
+		assert.NoError(t, errLocal)
+		assert.NoError(t, errAsks)
+		assert.Equal(t, viaAsks, viaLocal)
+		assert.Equal(t, InnerContext{Value: "outer"}, viaLocal)
+	})
+
+	t.Run("ProMap over Identity equals Asks of the composition", func(t *testing.T) {
+		narrow := func(o OuterContext) InnerContext { return InnerContext{Value: o.Value} }
+		label := func(i InnerContext) string { return "inner:" + i.Value }
+
+		viaProMap, errProMap := runEffect(
+			ProMap(narrow, label)(Identity[InnerContext]()),
+			cfg,
+		)
+		viaAsks, errAsks := runEffect(Asks(F.Flow2(narrow, label)), cfg)
+
+		assert.NoError(t, errProMap)
+		assert.NoError(t, errAsks)
+		assert.Equal(t, viaAsks, viaProMap)
+		assert.Equal(t, "inner:outer", viaProMap)
 	})
 }

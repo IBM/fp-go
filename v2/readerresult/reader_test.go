@@ -961,3 +961,28 @@ func TestChainFirstResultIK(t *testing.T) {
 		assert.Equal(t, result.Left[int](sideError), res)
 	})
 }
+
+func TestIdentity(t *testing.T) {
+	t.Run("succeeds with the environment unchanged", func(t *testing.T) {
+		assert.Equal(t, result.Of(defaultContext), Identity[MyContext]()(defaultContext))
+	})
+
+	t.Run("agrees with Ask", func(t *testing.T) {
+		assert.Equal(t, Ask[MyContext]()(defaultContext), Identity[MyContext]()(defaultContext))
+	})
+
+	t.Run("Map over Identity equals Asks", func(t *testing.T) {
+		getLen := func(ctx MyContext) int { return len(string(ctx)) }
+		viaIdentity := F.Pipe1(Identity[MyContext](), Map[MyContext](getLen))
+		assert.Equal(t, Asks(getLen)(defaultContext), viaIdentity(defaultContext))
+	})
+
+	t.Run("Local applied to Identity equals Asks", func(t *testing.T) {
+		type Outer struct{ Inner MyContext }
+		narrow := func(o Outer) MyContext { return o.Inner }
+		outer := Outer{Inner: defaultContext}
+
+		viaLocal := Local[MyContext](narrow)(Identity[MyContext]())
+		assert.Equal(t, Asks(narrow)(outer), viaLocal(outer))
+	})
+}
