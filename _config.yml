@@ -1,0 +1,11 @@
+# GitHub Pages (Jekyll) configuration.
+#
+# Pages renders every Markdown file in the repository through Liquid. Go
+# composite literals and text/template snippets such as {{1, 2}} or {{.Name}}
+# are parsed as Liquid tags and break the build, so the affected sources are
+# excluded from the site. They remain readable on GitHub.
+exclude:
+  - skills
+  - gen
+  - v2/docs/COMMON_MONAD_FUNCTIONS.md
+  - v2/optics/codec/decode/OrElse_ChainLeft_explanation.md

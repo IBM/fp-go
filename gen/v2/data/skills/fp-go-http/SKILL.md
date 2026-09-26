@@ -1,6 +1,6 @@
 ---
 name: fp-go-http
-description: Use this skill when making HTTP requests in fp-go using the ReaderIOResult-based HTTP client (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText, ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON, WithBearer, WithHeader, WithQueryArg), HTTP header name constants (http/headers: ContentType, Accept, Authorization, XRequestID, …) or content type / media type constants (http/content: JSON, ProblemJSON, FormEncoded, OctetStream, …), parallel requests with TraverseArray or TraverseTuple2, or building context-aware, composable HTTP pipelines that propagate errors through the Result monad.
+description: Use this skill when making HTTP requests in fp-go using the ReaderIOResult-based HTTP client (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText, ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON, WithBearer, WithHeader, WithQueryArg), HTTP header name constants such as ContentType, Accept, Authorization or XRequestID from http/headers or content type / media type constants such as JSON, ProblemJSON, FormEncoded or OctetStream from http/content, parallel requests with TraverseArray or TraverseTuple2, or building context-aware, composable HTTP pipelines that propagate errors through the Result monad.
 ---
 
 # fp-go HTTP Requests
