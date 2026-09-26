@@ -14,14 +14,28 @@
 // limitations under the License.
 
 /*
-Package effect provides a functional effect system for managing side effects in Go.
+Package effect provides a functional effect system for service code with typed dependencies.
 
 # Overview
 
-The effect package is a high-level abstraction for composing effectful computations
-that may fail, require dependencies (context), and perform I/O operations. It is built
-on top of ReaderReaderIOResult, providing a clean API for dependency injection and
-error handling.
+An Effect[C, A] describes a computation that needs dependencies of type C, runs with a
+context.Context, may perform I/O, and either fails with an error or succeeds with a value
+of type A. It is built on top of ReaderReaderIOResult:
+
+	Effect[C, A] = func(C) func(context.Context) func() Result[A]
+
+# Dependencies and Context
+
+The two environments of an Effect have distinct roles:
+  - C carries the dependencies: long-lived collaborators such as repositories, database
+    and HTTP clients, configuration or environment access. They are supplied once, with
+    Provide.
+  - context.Context carries the request scope: cancellation, deadlines and request-scoped
+    values such as request IDs. It is supplied on every run, with RunSync.
+  - Per-call input is a function argument: a Kleisli[C, A, B] is a func(A) Effect[C, B].
+
+Declare dependencies in C, where the compiler checks that they are provided. Do not store
+them in the context.Context and do not pass them as parameters through every layer.
 
 # Naming Conventions
 
@@ -29,82 +43,88 @@ The naming conventions in this package are modeled after effect-ts (https://effe
 a popular TypeScript library for functional effect systems. This alignment helps developers
 familiar with effect-ts to quickly understand and use this Go implementation.
 
-# Core Type
-
-The central type is Effect[C, A], which represents:
-  - C: The context/dependency type required by the effect
-  - A: The success value type produced by the effect
-
-An Effect can:
-  - Succeed with a value of type A
-  - Fail with an error
-  - Require a context of type C
-  - Perform I/O operations
-
 # Basic Operations
 
-Creating Effects:
+The examples below use this dependency type:
 
-	// Create a successful effect
-	effect.Succeed[MyContext, string]("hello")
+	type Deps struct {
+		Greeting string
+	}
 
-	// Create a failed effect
-	effect.Fail[MyContext, string](errors.New("failed"))
+	func getGreeting(d Deps) string { return d.Greeting }
 
-	// Lift a pure value into an effect
-	effect.Of[MyContext, int](42)
+Creating effects:
 
-Transforming Effects:
+	effect.Succeed[Deps]("hello")                   // Effect[Deps, string]
+	effect.Fail[Deps, string](errors.New("failed")) // Effect[Deps, string]
+	effect.Of[Deps](42)                             // Effect[Deps, int]
+	effect.Asks(getGreeting)                        // pure projection of the dependencies
+	effect.Ask[Deps]()                              // the whole dependency value
 
-	// Map over the success value
-	effect.Map[MyContext](strconv.Itoa)
+Lifting Go functions that receive the dependencies and the context:
+
+	// func(Deps, context.Context) (string, error) -> Effect[Deps, string]
+	effect.Eitherize(loadGreeting)
+
+	// func(Deps, context.Context, int) (User, error) -> Kleisli[Deps, int, User]
+	effect.Eitherize1(findUser)
+
+Transforming effects:
+
+	// Map over the success value; C cannot be inferred, so it is given explicitly
+	effect.Map[Deps](strconv.Itoa)
 
 	// Chain effects together (flatMap)
-	effect.Chain[MyContext](func(x int) Effect[MyContext, string] {
-		return effect.Succeed[MyContext, string](strconv.Itoa(x))
-	})
+	effect.Chain(effect.Eitherize1(findUser))
 
-	// Tap into an effect without changing its value
-	effect.Tap[MyContext](func(x int) Effect[MyContext, any] {
-		return effect.Succeed[MyContext, any](fmt.Println(x))
-	})
+	// Run a side effect without changing the value
+	effect.TapIOK[Deps](io.Logf[int]("value: %d"))
 
 # Dependency Injection
 
-Effects can access their required context:
+Functions declare the narrowest dependency type they need. Local adapts an effect that
+needs C2 to an environment C1, given a projection from C1 to C2:
 
-	// Transform the context before passing it to an effect
-	effect.Local[OuterCtx, InnerCtx](func(outer OuterCtx) InnerCtx {
-		return outer.Inner
-	})
+	type App struct {
+		Deps Deps
+		Name string
+	}
 
-	// Provide a context to run an effect
-	effect.Provide[MyContext, string](myContext)
+	func getDeps(a App) Deps { return a.Deps }
+
+	// Effect[Deps, string] -> Effect[App, string]
+	effect.Local[string](getDeps)(effect.Asks(getGreeting))
+
+LocalReaderK, LocalIOK, LocalResultK, LocalIOResultK, LocalThunkK and LocalEffectK derive
+the inner dependency with an effect, for example when it has to be loaded or validated.
 
 # Do Notation
 
-The package provides "do notation" for composing effects in a sequential, imperative style:
+Do notation accumulates the results of several effects in a struct:
 
 	type State struct {
-		X int
-		Y string
+		Greeting string
+		Length   int
 	}
 
-	result := effect.Do[MyContext](State{}).
-		Bind(func(y string) func(State) State {
-			return func(s State) State {
-				s.Y = y
-				return s
-			}
-		}, fetchString).
-		Let(func(x int) func(State) State {
-			return func(s State) State {
-				s.X = x
-				return s
-			}
-		}, func(s State) int {
-			return len(s.Y)
-		})
+	func setGreeting(g string) func(State) State {
+		return func(s State) State { s.Greeting = g; return s }
+	}
+
+	func setLength(n int) func(State) State {
+		return func(s State) State { s.Length = n; return s }
+	}
+
+	func greetingLength(s State) int { return len(s.Greeting) }
+
+	result := F.Pipe2(
+		effect.Do[Deps](State{}),
+		effect.ApS(setGreeting, effect.Asks(getGreeting)),
+		effect.Let[Deps](setLength, greetingLength),
+	)
+
+Generated lenses (see the lens command of the code generator) provide these setters, and
+the L variants (BindL, ApSL, LetL, LetToL) accept a lens directly.
 
 # Bind Operations
 
@@ -121,33 +141,31 @@ Each bind operation has a corresponding "L" variant for working with lenses:
 
 # Applicative Operations
 
-Apply effects in parallel:
+Combine independent effects:
 
-	// Apply a function effect to a value effect
-	effect.Ap[string, MyContext](valueEffect)(functionEffect)
+	// Apply a function effect to a value effect: Ap[B, C, A]
+	effect.Ap[string](valueEffect)(functionEffect)
 
-	// Apply effects to build up a structure
-	effect.ApS[MyContext](setter, effect1)
+	// Add an independent effect's result to the do-notation state
+	effect.ApS(setter, effect1)
 
 # Traversal
 
 Traverse collections with effects:
 
 	// Map an array with an effectful function
-	effect.TraverseArray[MyContext](F.Flow2(strconv.Itoa, effect.Succeed[MyContext, string]))
+	effect.TraverseArray(F.Flow2(strconv.Itoa, effect.Succeed[Deps, string]))
 
 # Retry Logic
 
 Retry effects with configurable policies:
 
-	effect.Retrying[MyContext, string](
-		retryPolicy,
-		func(status retry.RetryStatus) Effect[MyContext, string] {
+	effect.Retrying(
+		retry.LimitRetries(3),
+		func(retry.RetryStatus) effect.Effect[Deps, string] {
 			return fetchData()
 		},
-		func(result Result[string]) bool {
-			return result.IsLeft() // retry on error
-		},
+		result.IsLeft[string], // retry on error
 	)
 
 # Monoids
@@ -155,23 +173,20 @@ Retry effects with configurable policies:
 Combine effects using monoid operations:
 
 	// Combine effects using applicative semantics
-	effect.ApplicativeMonoid[MyContext](stringMonoid)
+	effect.ApplicativeMonoid[Deps](S.Monoid)
 
 	// Combine effects using alternative semantics (first success)
-	effect.AlternativeMonoid[MyContext](stringMonoid)
+	effect.AlternativeMonoid[Deps](S.Monoid)
 
 # Running Effects
 
-To execute an effect:
+Provide the dependencies once, then run the resulting thunk with a context.Context:
 
-	// Provide the context
-	ioResult := effect.Provide[MyContext, string](myContext)(myEffect)
+	// Provide the dependencies; A cannot be inferred, so it is given explicitly
+	thunk := effect.Provide[string](deps)(myEffect)
 
 	// Run synchronously
-	readerResult := effect.RunSync(ioResult)
-
-	// Execute with a context.Context
-	value, err := readerResult(ctx)
+	value, err := effect.RunSync(thunk)(ctx)
 
 # Integration with Other Packages
 
@@ -185,27 +200,30 @@ The effect package integrates seamlessly with other fp-go packages:
 
 # Example
 
-	type Config struct {
-		APIKey string
-		BaseURL string
+A repository is a dependency. The interface method is lifted with Eitherize1, which turns
+the receiver into the dependency, and Local fetches it from the application's dependencies:
+
+	type UserRepo interface {
+		FindUser(ctx context.Context, id int) (User, error)
 	}
 
-	func fetchUser(id int) Effect[Config, User] {
-		return effect.Chain[Config](func(cfg Config) Effect[Config, User] {
-			// Use cfg.APIKey and cfg.BaseURL
-			return effect.Succeed[Config, User](User{ID: id})
-		})(effect.Of[Config, Config](Config{}))
+	type Deps struct {
+		Users UserRepo
+	}
+
+	func getUsers(d Deps) UserRepo { return d.Users }
+
+	func fetchUser() effect.Kleisli[Deps, int, User] {
+		return F.Flow2(
+			effect.Eitherize1(UserRepo.FindUser), // Kleisli[UserRepo, int, User]
+			effect.Local[User](getUsers),         // Kleisli[Deps, int, User]
+		)
 	}
 
 	func main() {
-		cfg := Config{APIKey: "key", BaseURL: "https://api.example.com"}
-		userEffect := fetchUser(42)
+		deps := Deps{Users: newUserRepo()}
 
-		// Run the effect
-		ioResult := effect.Provide(cfg)(userEffect)
-		readerResult := effect.RunSync(ioResult)
-		user, err := readerResult(context.Background())
-
+		user, err := effect.RunSync(effect.Provide[User](deps)(fetchUser()(42)))(context.Background())
 		if err != nil {
 			log.Fatal(err)
 		}

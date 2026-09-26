@@ -47,7 +47,7 @@ import (
 //	type AppConfig struct { DB DatabaseConfig }
 //	type DatabaseConfig struct { Host string }
 //	dbEffect := effect.Of[DatabaseConfig]("connected")
-//	appEffect := effect.Local[AppConfig, DatabaseConfig, string](
+//	appEffect := effect.Local[string](
 //		func(app AppConfig) DatabaseConfig { return app.DB },
 //	)(dbEffect)
 //

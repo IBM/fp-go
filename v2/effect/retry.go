@@ -48,9 +48,7 @@ import (
 //		func(status retry.RetryStatus) Effect[MyContext, string] {
 //			return fetchData() // may fail
 //		},
-//		func(result Result[string]) bool {
-//			return result.IsLeft() // retry on error
-//		},
+//		result.IsLeft[string], // retry on error
 //	)
 //	// Retries up to 3 times if fetchData fails
 func Retrying[C, A any](
