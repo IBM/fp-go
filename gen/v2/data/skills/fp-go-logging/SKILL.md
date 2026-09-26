@@ -1,7 +1,16 @@
 ---
 name: fp-go-logging
-description: Use this skill when adding logging to fp-go functional pipelines (github.com/IBM/fp-go/v2). Trigger on logging inside Pipe/Flow, Tap/TapIOK/TapReaderIOK/TapLeft used for logging, TapSLog, SLogLeft/SLogRight, entry/exit logging (LogEntryExit, LogEntryExitWithCallback), correlation IDs, adding context to errors before they are logged (MapLeft with errors.OnError), request-scoped slog loggers in context.Context (logging.WithLogger, GetLoggerFromContext), or IO.Logf/Printf in IO/IOResult/ReaderIOResult.
+description: >-
+  Use this skill when adding logging to fp-go functional pipelines
+  (github.com/IBM/fp-go/v2). Trigger on logging inside Pipe/Flow,
+  Tap/TapIOK/TapReaderIOK/TapLeft used for logging, TapSLog,
+  SLogLeft/SLogRight, entry/exit logging (LogEntryExit,
+  LogEntryExitWithCallback), correlation IDs, adding context to errors before
+  they are logged (MapLeft with errors.OnError), request-scoped slog loggers
+  in context.Context (logging.WithLogger, GetLoggerFromContext), or
+  IO.Logf/Printf in IO/IOResult/ReaderIOResult.
 ---
+
 # fp-go Logging
 
 Logging is a **side effect**: it must never change the value or the error flowing through a
@@ -34,7 +43,15 @@ Runnable versions of the snippets are in `v2/context/readerioresult/logging_exam
 `ExampleSLogLeft`, `ExampleLogEntryExit`, `ExampleLogEntryExit_nested`,
 `ExampleLogEntryExitWithCallback`, `ExampleMapLeft`, `ExampleMapLeft_logging`).
 
-## Quick reference
+## Before You Generate
+
+fp-go is low-frequency in training data, so signatures are easy to misremember.
+For any combinator not shown below, look it up via the fp-go MCP server's
+`search_examples` / `get_example` tools (see the **fp-go-mcp** skill) instead of
+guessing. After writing code, run `go build ./...` and `go vet ./...` and fix any
+type-parameter or argument-order errors before presenting it.
+
+## Quick Reference
 
 | Goal | Operator (in `F.Pipe` on a `ReaderIOResult[A]`) |
 |---|---|
@@ -52,7 +69,7 @@ Runnable versions of the snippets are in `v2/context/readerioresult/logging_exam
 `Tap*` and `ChainFirst*` are aliases (`TapIOK` = `ChainFirstIOK`, `TapLeft` = `ChainFirstLeft`, …).
 Prefer the `Tap` names for logging; they state the intent.
 
-## 1. A simple log statement with `Tap`
+## 1. A Simple Log Statement with `Tap`
 
 ### Default: `TapSLog`
 
@@ -78,7 +95,7 @@ func greeting(id int) RIO.ReaderIOResult[string] {
   logger's level filters them out.
 - `context/readerresult` and `context/readerio` have their own `TapSLog[A]` with the same usage.
 
-### printf-style: `TapIOK` with `IO.Logf`
+### Printf-Style: `TapIOK` with `IO.Logf`
 
 Any `io.Kleisli[A, B]` (`func(A) IO[B]`) can be tapped with `TapIOK`. The `io` package
 has ready-made ones:
@@ -96,7 +113,7 @@ the tap. Prefer `TapSLog` when the application uses structured logging.
 The same operator exists for the other monads: `IOR.TapIOK` (ioresult), `RR.TapIOK`
 (context/readerresult), `IO.ChainFirst` (plain IO).
 
-### Custom attributes: `TapReaderIOK`
+### Custom Attributes: `TapReaderIOK`
 
 When you want a specific message and specific attributes, write a small named
 `func(A) ReaderIO[Void]` that reads the logger from the context. Reading from the context means
@@ -126,7 +143,7 @@ pipeline := F.Pipe2(
 Do not call `slog.Info(...)` from inside `RIO.Map`: `Map` is for pure functions, and the global
 logger ignores the logger scoped to the context.
 
-### Success only / error only
+### Success Only / Error Only
 
 `SLogRight` and `SLogLeft` are Kleisli arrows, so they go through `Tap` / `TapLeft`:
 
@@ -137,7 +154,7 @@ RIO.TapLeft[User](RIO.SLogLeft("fetching user failed"))   // ERROR, error only; 
 
 `TapLeft` needs the explicit `[A]` because `A` cannot be inferred from the error handler.
 
-### Common mistakes
+### Common Mistakes
 
 ```go
 // ❌ SLog is Kleisli[Result[A], Void]: its input is the Result, not A, so this does not compile
@@ -156,7 +173,7 @@ RIO.Map(func(u User) User { slog.Info("fetched", "user", u); return u })
 RIO.TapSLog[User]("fetched")
 ```
 
-## 2. Entry and exit logs
+## 2. Entry and Exit Logs
 
 `LogEntryExit[A](name)` is an `Operator[A, A]` that **wraps the computation it is applied to**.
 It logs `[entering]` before that computation starts and `[exiting ]` (success) or `[throwing]`
@@ -178,7 +195,7 @@ func loadUser(id int) RIO.ReaderIOResult[User] {
 // level=INFO msg=[throwing] ID=8 name=loadUser duration=0.4ms error="not found"
 ```
 
-### What gets wrapped
+### What Gets Wrapped
 
 In a `F.Pipe`, `LogEntryExit` wraps **everything above it**. Put it last to time a whole
 function, or apply it to a single step to time just that step:
@@ -207,13 +224,13 @@ Nested `LogEntryExit` calls each get their own ID. The ID is installed on the co
 for the wrapped computation, so every context-aware log inside it (`TapSLog`, `SLogLeft`,
 `TapReaderIOK` using `GetLoggerFromContext`) is correlated automatically.
 
-### Why not `TapSLog("entering")`?
+### Why Not `TapSLog("entering")`?
 
 A `Tap` placed before a step runs after the **previous** step. It can mark "about to start",
 but it cannot log the end of a failed step, measure the duration or correlate the two records.
 Use `LogEntryExit` for entry/exit logging.
 
-### Level and logger
+### Level and Logger
 
 ```go
 RIO.LogEntryExitWithCallback[User](slog.LevelDebug, logging.GetLoggerFromContext, "loadUser")
@@ -222,7 +239,7 @@ RIO.LogEntryExitWithCallback[User](slog.LevelDebug, logging.GetLoggerFromContext
 If the logger does not have the level enabled, the whole instrumentation (ID, timer, both
 records) is skipped. The second argument is any `func(context.Context) *slog.Logger`.
 
-## 3. Adding context to the error channel
+## 3. Adding Context to the Error Channel
 
 An error usually surfaces far from where it happened. Logging it at every layer produces
 duplicate records that lack context. The idiomatic approach:
@@ -252,7 +269,7 @@ func loadGreeting(id int) RIO.ReaderIOResult[string] {
 Capture the inputs that explain the failure (`id` above) from the enclosing Kleisli's
 parameters. The error then says *which* call failed, not just *that* one failed.
 
-### Log once at the boundary
+### Log Once at the Boundary
 
 ```go
 func handle(id int) RIO.ReaderIOResult[string] {
@@ -289,7 +306,7 @@ F.Pipe2(
   `context/readerreaderioresult`, `readerresult`, `result` and `ioresult`. In `result`/`ioresult`
   the function has type `func(error) E`; `ER.OnError(...)` fits with `E = error`.
 
-## Choosing the logger
+## Choosing the Logger
 
 All context-aware operators (`TapSLog*`, `SLogLeft/Right`, `LogEntryExit*`) read the logger with
 `logging.GetLoggerFromContext`, which falls back to the global logger.
@@ -316,7 +333,7 @@ own key, build the callback with
 `F.Flow2(CR.AskValue[*slog.Logger](myKey), O.GetOrElse(slog.Default))`. For general context
 handling see the `fp-go-context` skill.
 
-## Package overview
+## Package Overview
 
 | Package | Logging API |
 |---|---|
@@ -331,7 +348,7 @@ handling see the `fp-go-context` skill.
 `SLogWithCallback[A](level, cb, msg)` has the shape of `SLog`. Turn it into an operator with
 `RIOC.Tap(...)` (`context/readerio`) when you need `TapSLog` with a custom level and logger.
 
-## Complete example
+## Complete Example
 
 ```go
 func loadUser(id int) RIO.ReaderIOResult[User] {
