@@ -234,6 +234,8 @@ Also flag `EF.Map(f)` and `EF.Provide(deps)(eff)` without annotations — `Map[C
 cannot infer `C`, and `Provide[A, C]` cannot infer `A` through the function it returns. Write
 `EF.Map[Deps](f)` and `EF.Provide[string](deps)`.
 
+Also flag request-scoped data (request IDs, principal, deadlines) placed in `C`, one wide dependency type used by every function instead of narrow `XxxDeps` widened with `EF.Local`, and `Provide` / `RunSync` inside library code. See the `fp-go-effect` skill.
+
 **Severity**: High — type safety and testability
 
 ### 8. Lifting Go Functions
@@ -718,6 +720,7 @@ This skill can reference and include:
 - `fp-go-lens` — Lens and optics patterns
 - `fp-go-context` — context.Context handling: reading values, scoping, timeouts, cancellation (see §17)
 - `fp-go-pattern-matching` — replacing switch / if-else chains with point-free case lists
+- `fp-go-effect` — `Effect[C, A]` with typed dependencies in `C`: capability interfaces, `Local`, testing with fakes (see §7)
 
 ## Automated Checks
 
