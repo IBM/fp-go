@@ -1,6 +1,17 @@
 ---
 name: fp-go
-description: Use this skill whenever writing, reviewing, or refactoring Go code that uses the fp-go library (github.com/IBM/fp-go/v2). Trigger on any mention of fp-go, functional programming in Go, monads in Go, Option/Either/Result types in Go, IOResult, ReaderIOResult, data-last composition, Pipe/Flow, or do-notation with Bind/ApS in Go. Also trigger when the user wants to convert idiomatic Go error handling into functional pipelines, or asks about optics (lens, prism, traversal) in Go.
+description: >-
+  Use this skill whenever writing, reviewing, or refactoring Go code that uses
+  the fp-go library (github.com/IBM/fp-go/v2). It is the entry point: core
+  types (Option, Either, Result, IO, IOResult, ReaderIOResult, Effect),
+  data-last composition, type-parameter order, lifting Go functions with
+  Eitherize, do-notation, the canonical import aliases, and choosing the right
+  monad. Trigger on any mention of fp-go, functional programming in Go, monads
+  in Go, Option/Either/Result types in Go, IOResult, ReaderIOResult, Effect,
+  or converting idiomatic Go error handling into functional pipelines. For
+  focused topics also load fp-go-pipe-flow (Pipe/Flow, reader, do-notation),
+  fp-go-lens (optics), fp-go-context, fp-go-http, fp-go-logging,
+  fp-go-pattern-matching or fp-go-pr-review.
 ---
 
 # fp-go v2 — Functional Programming for Go
@@ -29,7 +40,7 @@ description: Use this skill whenever writing, reviewing, or refactoring Go code 
 
 ## Canonical Import Aliases
 
-All fp-go skills use these aliases. Packages not listed are imported unaliased (`prism`, `logging`, `readerresult`, …).
+All fp-go skills use these aliases. Packages not listed are imported unaliased (`prism`, `logging`, `readerresult`, …), and so is the standard library (`net/http` stays `http`).
 
 | Alias | Package | | Alias | Package |
 |---|---|---|---|---|
@@ -78,7 +89,7 @@ All functions use the **data-last** principle: the data being transformed is alw
 | `ReaderIOResult[A]` | `context/readerioresult` | `func(context.Context) IOResult[A]` — context-aware IO with errors |
 | `Effect[C, A]` | `effect` | `func(C) ReaderIOResult[A]` — **typed dependency injection** + IO + errors; recommended for services |
 
-### Idiomatic Packages (high-performance, tuple-based)
+### Idiomatic Packages (High-Performance, Tuple-Based)
 
 The `idiomatic/` packages use Go-native tuples instead of struct wrappers, offering 2–10× better performance and zero allocations. Use them in hot paths; use standard packages when you need the richer API surface.
 
@@ -105,7 +116,7 @@ Every monad exports these operations (PascalCase for exported Go names):
 | `GetOrElse` | `getOrElse` / `fromMaybe` | Extract the value or use a default (Option/Result) |
 | `Filter` | `filter` / `mfilter` | Keep only values satisfying a predicate |
 | `Flatten` | `flatten` / `join` | Remove one level of nesting (`M[M[A]]` → `M[A]`) |
-| `ChainFirst` | `chainFirst` / `>>` | Sequence for side effects; keeps the original value |
+| `ChainFirst` | `chainFirst` / `>>` | Sequence for side effects; keeps the original value (IO-based monads also export it as `Tap`; prefer that name for logging) |
 | `Alt` | `alt` / `<|>` | Provide an alternative when the first computation fails |
 | `FromPredicate` | `fromPredicate` / `guard` | Build a monadic value from a predicate |
 | `Sequence` | `sequence` | Turn `[]M[A]` into `M[[]A]` |
@@ -123,7 +134,7 @@ option.MonadMap(option.Some("hello"), strings.ToUpper)
 
 Use curried form for pipelines; use `Monad*` form when you already have all arguments.
 
-## Key Type Aliases (defined per monad)
+## Key Type Aliases (Defined Per Monad)
 
 ```go
 // A Kleisli arrow: a function from A to a monadic B
@@ -201,19 +212,19 @@ value := F.Pipe3(
 
 `Pipe1`–`Pipe20` and `Flow1`–`Flow20` are available (the number = number of transformation steps).
 
-## Lifting Go Functions into Monadic Context
+## Lifting Go Functions Into Monadic Context
 
 | Helper | Lifts |
 |--------|-------|
 | `Eitherize1`..`EitherizeN` | `func(args...) (B, error)` → `func(args...) Result[B]` — **primary bridge from Go to fp-go** |
 | `ChainEitherK` / `ChainResultK` | `func(A) Result[B]` → works inside the monad. It does **not** accept a bare `func(A) (B, error)` — wrap that in `result.Eitherize1` first. |
 | `ChainOptionK(onNone)` | `func(A) Option[B]` → works inside the monad; takes the `func() error` fallback first |
-| `ChainFirstIOK` | `func(A) IO[B]` for side effects, keeps original value |
+| `TapIOK` (= `ChainFirstIOK`) | `func(A) IO[B]` for side effects such as logging, keeps original value |
 | `FromPredicate` | `func(A) bool` + error builder → `func(A) Result[A]` |
 
 ## Examples
 
-### Option — nullable values without nil
+### Option — Nullable Values Without Nil
 
 ```go
 import (
@@ -235,7 +246,7 @@ parseAndDouble("")    // None
 parseAndDouble("abc") // None
 ```
 
-### Result — error handling without if-err boilerplate
+### Result — Error Handling Without If-Err Boilerplate
 
 ```go
 import (
@@ -245,7 +256,6 @@ import (
     P  "github.com/IBM/fp-go/v2/predicate"
     ER "github.com/IBM/fp-go/v2/errors"
     "strconv"
-    "errors"
 )
 
 parse := R.Eitherize1(strconv.Atoi)  // lifts (int, error) → Result[int]
@@ -258,11 +268,11 @@ validate := R.FromPredicate(
 pipeline := F.Flow2(parse, R.Chain(validate))
 
 pipeline("42")   // Ok(42)
-pipeline("-1")   // Error("must be non-negative")
+pipeline("-1")   // Error("-1 must not be negative")
 pipeline("abc")  // Error(strconv parse error)
 ```
 
-### IOResult — lazy IO with error handling
+### IOResult — Lazy IO with Error Handling
 
 ```go
 import (
@@ -282,7 +292,7 @@ res := readConfig("config.json")()       // Result[Config] — note the trailing
 cfg, err := R.Unwrap(res)                // bridge back to idiomatic Go
 ```
 
-### ReaderIOResult — context-aware pipelines (recommended for services)
+### ReaderIOResult — Context-Aware Pipelines (Recommended for Services)
 
 ```go
 import (
@@ -303,7 +313,7 @@ pipeline := F.Pipe3(
     fetchUser(42),
     RIO.ChainResultK(R.Eitherize1(validateUser)),      // Kleisli: User → Result[User]
     RIO.Map(enrichUser),                               // lift pure User → User function
-    RIO.ChainFirstIOK(IO.Logf[User]("Fetched: %v")),   // side-effect logging
+    RIO.TapIOK(IO.Logf[User]("Fetched: %v")),   // side-effect logging
 )
 
 res := pipeline(ctx)()               // Result[User] — ONE value, not (User, error)
@@ -332,7 +342,7 @@ requireUser := F.Pipe1(                    // required: None → error
 )
 userOrAnon := F.Pipe1(                     // optional: None → default
     RIO.AskValue[string](userKey),
-    RIO.Map(O.GetOrElse(F.Constant("anonymous"))),
+    RIO.Map(O.GetOrElse(LZ.Of("anonymous"))),
 )
 
 handler := F.Pipe3(                        // scoping composes like any operator
@@ -345,7 +355,7 @@ handler := F.Pipe3(                        // scoping composes like any operator
 
 Outside a pipeline (building a context in `main` or a test) use `context/reader` (`CR`): `CR.AskValue[V](k)(ctx)`, `CR.WithValue[V](k)(v)(ctx)`, `CR.NopCancel(ctx)`. Keep only request-scoped data (IDs, principal, logger) in the context; real dependencies belong in `Effect`. For the full guide (key accessors, cancellation semantics, `Effect` scoping, testing) use the `fp-go-context` skill.
 
-### Effect — typed dependency injection (recommended for testable services)
+### Effect — Typed Dependency Injection (Recommended for Testable Services)
 
 `Effect[C, A]` adds a **typed dependency parameter** `C` on top of `ReaderIOResult`. While `context/readerioresult` hardcodes `context.Context` as the environment, `Effect` lets you define a custom dependencies struct — making dependencies explicit, compile-time checked, and trivially mockable in tests.
 
@@ -422,7 +432,7 @@ value, err := EF.RunSync(thunk)(ctx) // RunSync gives back idiomatic (A, error)
 Running: `EF.Provide[A](deps)` → `ReaderIOResult[A]`, then `EF.RunSync(thunk)(ctx)` → `(A, error)`.
 `EF.Local(f)` narrows an outer dep struct to an inner one for a subsystem.
 
-### Traversal — process slices monadically
+### Traversal — Process Slices Monadically
 
 ```go
 import (

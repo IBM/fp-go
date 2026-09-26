@@ -1,6 +1,14 @@
 ---
 name: fp-go-context
-description: Use this skill when working with Go's context.Context in fp-go code (github.com/IBM/fp-go/v2/context/...). Trigger on mentions of context.Context in fp-go pipelines, request-scoped values, ctx.Value, context.WithValue, context keys, AskValue, WithValue, timeouts or deadlines (WithTimeout, WithDeadline, context.WithTimeout, defer cancel), cancellation, Local / LocalIOK / LocalIOResultK, WithContext / WithContextK, request-scoped loggers, converting func(ctx, ...) (T, error) functions to ReaderIOResult, or reviewing code that threads ctx by hand.
+description: >-
+  Use this skill when working with Go's context.Context in fp-go code
+  (github.com/IBM/fp-go/v2/context/...). Trigger on mentions of
+  context.Context in fp-go pipelines, request-scoped values, ctx.Value,
+  context.WithValue, context keys, AskValue, WithValue, timeouts or deadlines
+  (WithTimeout, WithDeadline, context.WithTimeout, defer cancel),
+  cancellation, Local / LocalIOK / LocalIOResultK, WithContext / WithContextK,
+  request-scoped loggers, converting func(ctx, ...) (T, error) functions to
+  ReaderIOResult, or reviewing code that threads ctx by hand.
 ---
 
 # fp-go Context Handling
@@ -16,6 +24,14 @@ In fp-go the context is the **Reader environment**. A computation is a *descript
 3. **Read the context with operators** (`Ask`, `FromReader`, `AskValue`), never with `ctx.Value(k).(T)`.
 4. **Scope the context with operators** (`WithValue`, `WithTimeout`, `WithDeadline`, `Local`), never with `context.With*` + `defer cancel()`.
 5. **Only request-scoped data goes into the context.** Dependencies (DB, clients, config) belong in `Effect[Deps, A]`.
+
+## Before You Generate
+
+fp-go is low-frequency in training data, so signatures are easy to misremember.
+For any combinator not shown below, look it up via the fp-go MCP server's
+`search_examples` / `get_example` tools (see the **fp-go-mcp** skill) instead of
+guessing. After writing code, run `go build ./...` and `go vet ./...` and fix any
+type-parameter or argument-order errors before presenting it.
 
 ## Packages and Availability
 
@@ -86,7 +102,7 @@ The lifted function receives the pipeline's (possibly scoped) context — timeou
 
 `AskValue` **never panics and never fails**: `Some(v)` if the key holds a `V`, `None` if it is absent *or holds another type*. The caller decides what "missing" means.
 
-### Keys and accessors
+### Keys and Accessors
 
 Use an unexported key type — never plain strings or exported types — and keep one read and one write accessor next to each key, so the rest of the code never touches the key:
 
@@ -104,7 +120,7 @@ var errNoUser = errors.New("no authenticated user in context")
 func requestID() RIO.ReaderIOResult[string] {
     return F.Pipe1(
         RIO.AskValue[string](requestIDKey),
-        RIO.Map(O.GetOrElse(F.Constant("-"))),
+        RIO.Map(O.GetOrElse(LZ.Of("-"))),
     )
 }
 
@@ -122,12 +138,27 @@ func withUser[A any](u User) RIO.Operator[A, A] {
 }
 ```
 
-In `RR` / `IRR`, turn `None` into an error with `ChainOptionK`:
+`RR` and `IRR` have no `FromOption`, so the required-value accessor looks slightly different there:
 
 ```go
-F.Pipe1(RR.AskValue[User](userKey),  RR.ChainOptionK[O.Option[User], User](F.Constant(errNoUser))(F.Identity[O.Option[User]]))
-F.Pipe1(IRR.AskValue[User](userKey), IRR.ChainOptionK[O.Option[User], User](F.Constant(errNoUser))(O.Unwrap[User]))
+// RR: lift result.FromOption (Option[User] -> Result[User]) into the reader
+func requireUserRR() RR.ReaderResult[User] {
+    return F.Pipe1(
+        RR.AskValue[User](userKey),
+        RR.ChainEitherK(R.FromOption[User](LZ.Of(errNoUser))),
+    )
+}
+
+// IRR: ChainOptionK expects an idiomatic (B, bool) Kleisli; O.Unwrap turns the Option into that tuple
+func requireUserIRR() IRR.ReaderResult[User] {
+    return F.Pipe1(
+        IRR.AskValue[User](userKey),
+        IRR.ChainOptionK[O.Option[User], User](LZ.Of(errNoUser))(O.Unwrap[User]),
+    )
+}
 ```
+
+The `IRR` form needs the explicit `[O.Option[User], User]` because `ChainOptionK` receives only the `onNone` error first, so Go cannot infer `A` and `B` from it.
 
 ## 4. Scoping the Context
 
@@ -156,7 +187,7 @@ func handleRequest(r *http.Request) RIO.ReaderIOResult[Response] {
 
 Scope as narrowly as the requirement: put `WithTimeout` directly after the step it should bound, not around the whole handler, if only one call needs it.
 
-### Deriving the context from an effect
+### Deriving the Context from an Effect
 
 When the new context value itself needs IO (generating an ID, loading a token), use `LocalIOK` / `LocalIOResultK` with the `context/reader` building blocks:
 
@@ -278,7 +309,7 @@ func TestTimeout(t *testing.T) {
 - Test the missing-value path of every required value.
 - Keep timeouts in tests short (milliseconds) and assert on `context.DeadlineExceeded`.
 
-## Anti-Patterns
+## Common Mistakes
 
 | ❌ Avoid | ✅ Prefer | Why |
 |---------|----------|-----|
@@ -321,6 +352,7 @@ import (
     O    "github.com/IBM/fp-go/v2/option"
     R    "github.com/IBM/fp-go/v2/result"
     IO   "github.com/IBM/fp-go/v2/io"
+    LZ   "github.com/IBM/fp-go/v2/lazy"
     RD   "github.com/IBM/fp-go/v2/reader"
     HD   "github.com/IBM/fp-go/v2/http/headers"
     LS   "github.com/IBM/fp-go/v2/optics/lenses"
@@ -329,5 +361,3 @@ import (
 ```
 
 See also the `context` package documentation (`go doc github.com/IBM/fp-go/v2/context`) and the `fp-go`, `fp-go-logging` and `fp-go-http` skills.
-
-Requires Go 1.24+.

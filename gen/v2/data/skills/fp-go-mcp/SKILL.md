@@ -1,6 +1,13 @@
 ---
 name: fp-go-mcp
-description: Use this skill when working with the fp-go MCP (Model Context Protocol) server located in github.com/IBM/fp-go/gen/v2. Trigger on mentions of MCP server, fp-go MCP tools, list_skills, use_skill, search_examples, get_example, configuring fp-go for Claude Desktop, or when the user needs to access fp-go examples and skills programmatically. This skill explains how to configure and use the MCP server to access fp-go documentation, examples, and skills.
+description: >-
+  Use this skill when working with the fp-go MCP (Model Context Protocol)
+  server located in github.com/IBM/fp-go/gen/v2. Trigger on mentions of MCP
+  server, fp-go MCP tools, list_skills, use_skill, search_examples,
+  get_example, configuring fp-go for Claude Desktop, or when the user needs to
+  access fp-go examples and skills programmatically. This skill explains how
+  to configure and use the MCP server to access fp-go documentation, examples,
+  and skills.
 ---
 
 # fp-go MCP Server
@@ -30,11 +37,19 @@ This makes the tool available via `go tool gen` without requiring global install
 
 ## Configuration
 
+### For Claude Code
+
+Run in the project directory (the one whose `go.mod` has the tool dependency):
+
+```bash
+claude mcp add fp-go -- go tool gen mcp
+```
+
 ### For Claude Desktop (Anthropic)
 
 Add to your Claude Desktop configuration file:
 
-**macOS/Linux**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
@@ -61,7 +76,7 @@ The server uses stdio transport and follows the MCP specification. Configure you
 
 ## Available Tools
 
-### 1. list_skills
+### 1. `list_skills`
 
 **Description**: List all available fp-go skills with their names, descriptions, and paths.
 
@@ -96,7 +111,7 @@ Assistant: [calls list_skills tool]
 - Find skills for specific topics
 - Get an overview of fp-go documentation
 
-### 2. use_skill
+### 2. `use_skill`
 
 **Description**: Retrieve the full content of a specific skill by name.
 
@@ -125,7 +140,7 @@ Assistant: [calls use_skill with name="fp-go-pipe-flow"]
 
 **Note**: The content excludes the YAML frontmatter header — only the markdown content is returned.
 
-### 3. search_examples
+### 3. `search_examples`
 
 **Description**: Search for Go examples using full-text search across example names, symbols, packages, documentation comments, and code.
 
@@ -156,17 +171,17 @@ Assistant: [calls use_skill with name="fp-go-pipe-flow"]
 **Query Rules** (violating them yields `fts5: syntax error` or `no such column`):
 1. **Bare words only.** Identifiers and plain words such as `TraverseArray` or `Curry1 reader`.
 2. **No dots, no package qualifiers.** `P.And` or `reader.Curry1` is a syntax error. Drop the qualifier and put the package into `package_filter`: `query="And", package_filter="predicate"`.
-3. **No unquoted punctuation.** `. : , ( ) [ ] - + ^` are FTS5 operators or invalid (`foo-bar` is read as column `bar`). Wrap such text in double quotes to make it a phrase: `"\"reader.Curry1\""` matches the adjacent words `reader` `Curry1`.
+3. **No unquoted punctuation.** `. : , ( ) [ ] - + ^` are FTS5 operators or invalid (`foo-bar` is read as column `bar`). Wrap such text in double quotes to make it a phrase: the query `"reader.Curry1"` (quotes included) matches the adjacent words `reader` `Curry1`.
 4. **Words are ANDed.** `And predicate negation Not` requires all four words in one example and usually finds nothing. Use 1–3 identifiers, or widen with `OR`: `Not OR And`.
 5. **Whole-word, case-insensitive matching.** `Curry` does not match `Curry1`; use the prefix wildcard `Curry*`.
 6. **Operators** `AND`, `OR`, `NOT` must be uppercase; `NOT` is binary (`Map NOT Option`), it cannot start a query.
 
-**Search Syntax**:
-- Simple terms: `"Map"` — finds examples mentioning Map
-- Phrases: `"\"point free\""` — exact phrase match
-- Boolean: `"Map AND Option"` — both terms required (same as `"Map Option"`)
-- Alternatives: `"Chain OR FlatMap"` — either term
-- Wildcards: `"Trav*"` — matches Traverse, TraverseArray, etc.
+**Search Syntax** (the values below are the raw `query` strings):
+- Simple terms: `Map` — finds examples mentioning Map
+- Phrases: `"point free"` — exact phrase match (the double quotes are part of the query)
+- Boolean: `Map AND Option` — both terms required (same as `Map Option`)
+- Alternatives: `Chain OR FlatMap` — either term
+- Wildcards: `Trav*` — matches Traverse, TraverseArray, etc.
 - Package filter: `query="Map", package_filter="option"` — only option package
 
 | Instead of | Use |
@@ -197,12 +212,12 @@ Assistant: [calls search_examples with query="TraverseArray"]
 
 **Limits**: Returns up to 10 results, ranked by relevance.
 
-### 4. get_example
+### 4. `get_example`
 
-**Description**: Retrieve a specific example by symbol name. Performs exact lookup by symbol or function name.
+**Description**: Retrieve examples by symbol name. Matches the symbol or example function name exactly or as a substring, across all packages.
 
 **Parameters**:
-- `symbol` (required): Symbol name (e.g., "Map", "Type.Method") or function name (e.g., "ExampleMap")
+- `symbol` (required): Symbol name without package qualifier (e.g., "Map", "Type.Method") or example function name (e.g., "ExampleMap"). `"Map"` also returns `MapLeft`, `BiMap`, … from every package; use `search_examples` with `package_filter` to narrow to one package.
 
 **Returns**:
 ```json
@@ -238,7 +253,7 @@ Assistant: [calls get_example with symbol="ExampleTraverseArray"]
 - Retrieve all examples for a symbol
 - Access complete example code with imports and output
 
-**Note**: Supports both exact matches and pattern matching (LIKE queries).
+**Note**: A package-qualified name such as `Array.Map` or `O.Map` matches nothing, because the stored symbol is `Map`.
 
 ## Workflow Examples
 
@@ -268,9 +283,9 @@ Assistant: [calls get_example with symbol="ExampleTraverseArray"]
    → Assistant calls search_examples(query="Traverse", package_filter="array")
    → Returns array-specific examples
 
-3. User: "Get the exact example for Array.Map"
-   → Assistant calls get_example(symbol="Array.Map")
-   → Returns the specific example with full code
+3. User: "Get the example for array Map"
+   → Assistant calls search_examples(query="Map", package_filter="array")
+   → Returns the array examples with full code
 ```
 
 ### Combined Workflow
@@ -357,9 +372,9 @@ Logs go to stderr and include:
 ## Security Considerations
 
 - **Read-only operations** — All tools are marked as read-only
-- **No file system access** — Uses embedded data only
+- **Embedded data only** — Skills and examples are compiled into the binary; tools never read or write project files
 - **No network access** — Operates entirely offline
-- **Temporary files** — Examples database is extracted to temp, cleaned up automatically
+- **One temporary file** — The embedded examples database is written to the OS temp directory at startup and removed on exit
 - **Stdio transport** — No network ports or external connections
 
 ## References
@@ -368,4 +383,3 @@ Logs go to stderr and include:
 - [fp-go Repository](https://github.com/IBM/fp-go)
 - [fp-go Documentation](https://pkg.go.dev/github.com/IBM/fp-go/v2)
 - [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk)
-

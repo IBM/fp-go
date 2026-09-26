@@ -1,13 +1,15 @@
 ---
 name: fp-go-pipe-flow
-description: >
-  Guides writing, refactoring, and reviewing fp-go v2 code that uses functional
-  composition via Pipe and Flow. Apply this skill whenever the user asks to write
-  new fp-go code, refactor imperative Go into functional style, explain a Pipe/Flow
-  pipeline, add do-notation (Do/Bind/ApS), use the reader monad, create lenses for
-  struct fields, or generate unit tests for functional pipelines. Trigger on any
-  mention of: Pipe, Flow, reader monad, kleisli, do-notation, Bind, ApS, fp-go
-  pipeline, point-free style, lens composition in Go.
+description: >-
+  Use this skill when composing fp-go v2 functions with Pipe and Flow:
+  building point-free pipelines, choosing Pipe vs Flow, returning pipelines
+  from functions instead of package-level vars, Predicate and Endomorphism
+  helpers, the generic reader monad (reader.Reader[R, A] with Ask, Asks, Map,
+  Chain), do-notation (Do, Bind, ApS, Let, LetTo) and unit tests for
+  pipelines. Trigger on mentions of Pipe, Flow, PipeN/FlowN, point-free style,
+  kleisli, reader monad, do-notation, Bind, ApS, or refactoring nested calls
+  or imperative Go into a pipeline. For building lenses use fp-go-lens; for
+  context.Context use fp-go-context.
 ---
 
 # fp-go Pipe and Flow Patterns
@@ -17,7 +19,7 @@ All imports **must** come from `github.com/IBM/fp-go/v2`, never from
 
 ---
 
-## Before you generate
+## Before You Generate
 
 fp-go is low-frequency in training data, so signatures are easy to misremember.
 For any combinator not shown below, look it up via the fp-go MCP server's
@@ -27,9 +29,9 @@ type-parameter or argument-order errors before presenting it.
 
 ---
 
-## Core concepts
+## Core Concepts
 
-### Pipe — data-first composition
+### Pipe — Data-First Composition
 
 `Pipe` takes an initial value and threads it through a sequence of functions.
 Use it when you already have a value to start from.
@@ -43,7 +45,7 @@ result := F.Pipe3(initialValue, step1, step2, step3)
 
 The number suffix matches the number of transformation steps. `Pipe1`–`Pipe20` and `Flow1`–`Flow20` are generated; there is nothing above 20.
 
-### Flow — function-first composition
+### Flow — Function-First Composition
 
 `Flow` composes N functions into a single function that awaits its input.
 Use it to build reusable pipeline functions, especially as arguments to `Map`,
@@ -60,7 +62,7 @@ when you are building a reusable function.**
 
 ---
 
-## Prefer functions over variables
+## Prefer Functions over Variables
 
 Go does not eliminate dead variables, but unused functions are zero-cost.
 Always wrap a `Pipe`/`Flow` result in a named function rather than storing it
@@ -81,7 +83,7 @@ assigned to a named getter), not for full pipeline results.
 
 ---
 
-## Point-free style
+## Point-Free Style
 
 Avoid explicit argument names wherever a named combinator or `Flow` can express
 the same thing.
@@ -96,7 +98,7 @@ func isAdult() P.Predicate[User] {
 }
 ```
 
-### Type aliases to use
+### Type Aliases to Use
 
 | Type | Package | Meaning |
 |------|---------|---------|
@@ -127,7 +129,7 @@ func doubleAll() EM.Endomorphism[[]int] {
 }
 ```
 
-### Numeric combinators
+### Numeric Combinators
 
 Prefer `N.MoreThan`, `N.LessThan`, `N.Mul`, `N.Add` etc. over inline
 comparisons or arithmetic in lambdas:
@@ -141,7 +143,7 @@ N.Add(1)         // func(int) int    — x + 1
 
 ---
 
-## Pure pipelines vs the reader monad
+## Pure Pipelines vs the Reader Monad
 
 **Only use the reader monad when the computation genuinely needs an environment
 (context, config, DB, logger, etc.).** For pure transformations that don't
@@ -150,7 +152,7 @@ need external input, use `Flow` or `Pipe` directly — no reader wrapping needed
 ```go
 // WRONG — forces reader monad on a pure computation
 func adultNames(users []User) RD.Reader[Env, string] {
-    return F.Pipe2(
+    return F.Pipe1(
         RD.Of[Env](users),
         RD.Map[Env](pureTransform),
     )
@@ -165,7 +167,7 @@ func adultNames() func([]User) string {
 }
 ```
 
-### Per-element filter+map: use `A.FilterMap`
+### Per-Element Filter+Map: Use `A.FilterMap`
 
 When filtering and then extracting a field, combine both into a single pass
 with `A.FilterMap` and `O.FromPredicate`:
@@ -204,7 +206,7 @@ func adultNames() func([]User) string {
 
 ---
 
-## Reader monad
+## Reader Monad
 
 The reader monad `Reader[R, A]` is `func(R) A` — a computation that reads
 from an environment `R` and produces `A`. Only reach for it when the
@@ -233,7 +235,7 @@ func fetchUser(id string) RD.Reader[Env, User] {
 }
 ```
 
-### When to use `reader.Map` vs full `Pipe` with reader operations
+### When to Use `reader.Map` vs Full `Pipe` with Reader Operations
 
 - **`reader.Map`** inside `Flow` — when the step is pure and the environment
   does not need to appear explicitly. This is the "abbreviation" pattern.
@@ -269,7 +271,7 @@ func enrichedUser(id string) RD.Reader[Env, EnrichedUser] {
 
 ---
 
-## Do-notation: `Do` / `Bind` / `ApS` / `Let`
+## Do-Notation: `Do` / `Bind` / `ApS` / `Let`
 
 Do-notation is the idiomatic way to assemble multiple reader (or IO/result)
 computations into a named-field record. Always use it inside a `Pipe`.
@@ -332,7 +334,7 @@ whose Kleisli ignores the state (`func(_ S) M[T] { return m }`) is always an
 
 ---
 
-## Lenses for struct field access
+## Lenses for Struct Field Access
 
 Never access struct fields with inline functions inside a `Pipe`. Create a
 lens (preferably generated with `// fp-go:Lens`, see the **fp-go-lens** skill)
@@ -358,7 +360,7 @@ that take a lens directly instead of a setter function.
 
 ---
 
-## Unit tests
+## Unit Tests
 
 Generate a `_test.go` for every non-trivial pipeline or flow.
 
@@ -375,7 +377,7 @@ func TestBuildRequestState(t *testing.T) {
 }
 ```
 
-### Testing guidelines
+### Testing Guidelines
 
 - For pure `Flow`/`Pipe` functions: call the returned function with a concrete
   value and assert with `assert.Equal`.
@@ -387,7 +389,7 @@ func TestBuildRequestState(t *testing.T) {
 
 ---
 
-## Common import aliases
+## Common Import Aliases
 
 These follow the canonical alias table in the **fp-go** skill.
 
@@ -411,7 +413,7 @@ import (
 
 ---
 
-## Quick reference
+## Quick Reference
 
 | Goal | Pattern |
 |------|---------|

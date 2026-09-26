@@ -638,7 +638,7 @@ func main() {
 // file: types.go
 package mypackage
 
-//go:generate go run github.com/IBM/fp-go/v2/main.go lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/v2 lens --dir . --filename gen_lens.go
 
 // fp-go:Lens
 type Person struct {

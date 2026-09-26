@@ -1,6 +1,17 @@
 ---
 name: fp-go-http
-description: Use this skill when making HTTP requests in fp-go using the ReaderIOResult-based HTTP client (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText, ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON, WithBearer, WithHeader, WithQueryArg), HTTP header name constants such as ContentType, Accept, Authorization or XRequestID from http/headers or content type / media type constants such as JSON, ProblemJSON, FormEncoded or OctetStream from http/content, parallel requests with TraverseArray or TraverseTuple2, or building context-aware, composable HTTP pipelines that propagate errors through the Result monad.
+description: >-
+  Use this skill when making HTTP requests in fp-go using the
+  ReaderIOResult-based HTTP client
+  (github.com/IBM/fp-go/v2/context/readerioresult/http). Trigger on mentions
+  of fp-go HTTP, MakeClient, MakeGetRequest, MakeRequest, ReadJSON, ReadText,
+  ReadAll, ReadFullResponse, the HTTP request builder (WithURL, WithJSON,
+  WithBearer, WithHeader, WithQueryArg), HTTP header name constants such as
+  ContentType, Accept, Authorization or XRequestID from http/headers or
+  content type / media type constants such as JSON, ProblemJSON, FormEncoded
+  or OctetStream from http/content, parallel requests with TraverseArray or
+  TraverseTuple2, or building context-aware, composable HTTP pipelines that
+  propagate errors through the Result monad.
 ---
 
 # fp-go HTTP Requests
@@ -25,6 +36,14 @@ value, err := R.Unwrap(res)       // R = github.com/IBM/fp-go/v2/result
 Examples below use the shorthand `value, err := R.Unwrap(pipeline(ctx)())`. Writing
 `value, err := pipeline(ctx)()` is a compile error ("2 variables but … returns 1 value").
 
+## Before You Generate
+
+fp-go is low-frequency in training data, so signatures are easy to misremember.
+For any combinator not shown below, look it up via the fp-go MCP server's
+`search_examples` / `get_example` tools (see the **fp-go-mcp** skill) instead of
+guessing. After writing code, run `go build ./...` and `go vet ./...` and fix any
+type-parameter or argument-order errors before presenting it.
+
 ## Core Types
 
 ```go
@@ -43,14 +62,14 @@ type Client interface {
 
 ```go
 import (
-    HTTP "net/http"
+    "net/http"
     H    "github.com/IBM/fp-go/v2/context/readerioresult/http"
 )
 
-client := H.MakeClient(HTTP.DefaultClient)
+client := H.MakeClient(http.DefaultClient)
 
 // Or with a custom client:
-custom := &HTTP.Client{Timeout: 10 * time.Second}
+custom := &http.Client{Timeout: 10 * time.Second}
 client := H.MakeClient(custom)
 ```
 
@@ -77,7 +96,7 @@ type User struct {
     Name string `json:"name"`
 }
 
-client := H.MakeClient(HTTP.DefaultClient)
+client := H.MakeClient(http.DefaultClient)
 
 // ReadJSON validates status, Content-Type, then unmarshals JSON
 result := H.ReadJSON[User](client)(H.MakeGetRequest("https://api.example.com/users/1"))
@@ -88,7 +107,7 @@ user, err := R.Unwrap(result(context.Background())())
 
 ### 4. Timeouts and Request-Scoped Values
 
-`HTTP.Client.Timeout` is a global cap. For a per-request or per-pipeline bound, scope the context instead: requests honour context cancellation, and the cancel func is released automatically.
+`http.Client.Timeout` is a global cap. For a per-request or per-pipeline bound, scope the context instead: requests honour context cancellation, and the cancel func is released automatically.
 
 ```go
 bounded := F.Pipe2(
@@ -123,13 +142,13 @@ import (
     IO  "github.com/IBM/fp-go/v2/io"
 )
 
-client     := H.MakeClient(HTTP.DefaultClient)
+client     := H.MakeClient(http.DefaultClient)
 readPost   := H.ReadJSON[Post](client)
 
 pipeline := F.Pipe2(
     H.MakeGetRequest("https://jsonplaceholder.typicode.com/posts/1"),
     readPost,
-    RIO.ChainFirstIOK(IO.Logf[Post]("Got post: %v")),
+    RIO.TapIOK(IO.Logf[Post]("Got post: %v")),
 )
 
 post, err := R.Unwrap(pipeline(context.Background())())
@@ -156,7 +175,7 @@ type PostItem struct {
     Title  string `json:"title"`
 }
 
-client     := H.MakeClient(HTTP.DefaultClient)
+client     := H.MakeClient(http.DefaultClient)
 readPost   := H.ReadJSON[PostItem](client)
 
 // index -> URL, point-free
@@ -168,9 +187,9 @@ data := F.Pipe3(
     RIO.TraverseArray(F.Flow3(
         H.MakeGetRequest,
         readPost,
-        RIO.ChainFirstIOK(IO.Logf[PostItem]("Post: %v")),
+        RIO.TapIOK(IO.Logf[PostItem]("Post: %v")),
     )),
-    RIO.ChainFirstIOK(IO.Logf[[]PostItem]("All posts: %v")),
+    RIO.TapIOK(IO.Logf[[]PostItem]("All posts: %v")),
     RIO.Map(A.Size[PostItem]),
 )
 
@@ -193,7 +212,7 @@ type CatFact struct {
     Fact string `json:"fact"`
 }
 
-client         := H.MakeClient(HTTP.DefaultClient)
+client         := H.MakeClient(http.DefaultClient)
 readPost       := H.ReadJSON[PostItem](client)
 readCatFact    := H.ReadJSON[CatFact](client)
 
@@ -205,7 +224,7 @@ data := F.Pipe3(
     ),
     T.Map2(H.MakeGetRequest, H.MakeGetRequest), // build both requesters
     RIO.TraverseTuple2(readPost, readCatFact),  // run in parallel, typed
-    RIO.ChainFirstIOK(IO.Logf[T.Tuple2[PostItem, CatFact]]("Result: %v")),
+    RIO.TapIOK(IO.Logf[T.Tuple2[PostItem, CatFact]]("Result: %v")),
 )
 
 both, err := R.Unwrap(data(context.Background())())
@@ -281,7 +300,7 @@ Every `With*` is an `Endomorphism[*Builder]`, so they chain freely inside `F.Pip
 
 Never spell header names or media types as string literals — fp-go ships constants for both.
 
-### Header names — `http/headers` (alias `HD`)
+### Header Names — `http/headers` (Alias `HD`)
 
 `github.com/IBM/fp-go/v2/http/headers` defines the commonly used header names as **lower-case** constants (the form mandated by HTTP/2 and HTTP/3):
 
@@ -308,7 +327,7 @@ merged := HD.Monoid.Concat(defaults, overrides)          // union; values of sha
 
 Both lenses canonicalize the header name, and `Set` returns a new `http.Header`, leaving `h` untouched.
 
-### Content types — `http/content` (alias `C`)
+### Content Types — `http/content` (Alias `C`)
 
 `github.com/IBM/fp-go/v2/http/content` defines media type constants (bare type, no parameters):
 
@@ -398,7 +417,7 @@ func fetchPost() RIO.Kleisli[int, Post] {
         S.Format[int]("https://jsonplaceholder.typicode.com/posts/%d"),
         H.MakeGetRequest,
         H.ReadJSON[Post](client),
-        RIO.ChainFirstIOK(IO.Logf[Post]("fetched: %v")),
+        RIO.TapIOK(IO.Logf[Post]("fetched: %v")),
     )
 }
 
@@ -430,7 +449,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 ```go
 import (
-    HTTP "net/http"
+    "net/http"
 
     H   "github.com/IBM/fp-go/v2/context/readerioresult/http"
     RB  "github.com/IBM/fp-go/v2/context/readerioresult/http/builder"
@@ -449,5 +468,3 @@ import (
     PA  "github.com/IBM/fp-go/v2/pair"
 )
 ```
-
-Requires Go 1.24+.

@@ -1,16 +1,16 @@
 ---
 name: fp-go-pattern-matching
-description: >
-  Guides writing, refactoring, and reviewing fp-go v2 code that replaces
-  switch/case, if-else chains, or type switches with composable, point-free
-  pattern matching. Apply whenever the user wants multi-branch dispatch as
-  values: first-match-wins case lists, routers, classifiers, multi-format
-  parsers, fallback chains, or matching over sum types and slices. Trigger on
-  any mention of: pattern matching in Go, match/case, switch to functional,
-  AltAllArray, AltAllSeq, AltMonoid, readeroption.AltMonoid, readeroption.Alt,
-  FindFirstMap, FindLastMap, FilterMap, option.Alt, first Some, fallback chain,
-  InstanceOf, prism GetOption as matcher, GetOrElse default branch, option.Fold,
-  either.Fold, array.Match.
+description: >-
+  Use this skill when writing, refactoring, or reviewing fp-go v2 code that
+  replaces switch/case, if-else chains, or type switches with composable,
+  point-free pattern matching: first-match-wins case lists, routers,
+  classifiers, multi-format parsers, fallback chains, or matching over sum
+  types and slices. Trigger on any mention of pattern matching in Go,
+  match/case, switch to functional, AltAllArray, AltAllSeq, AltMonoid,
+  readeroption.AltMonoid, readeroption.Alt, FindFirstMap, FindLastMap,
+  FilterMap, option.Alt, first Some, fallback chain, InstanceOf, prism
+  GetOption as matcher, GetOrElse default branch, option.Fold, either.Fold, or
+  array.Match.
 ---
 
 # fp-go Pattern Matching
@@ -37,7 +37,15 @@ import (
 
 ---
 
-## The model
+## Before You Generate
+
+fp-go is low-frequency in training data, so signatures are easy to misremember.
+For any combinator not shown below, look it up via the fp-go MCP server's
+`search_examples` / `get_example` tools (see the **fp-go-mcp** skill) instead of
+guessing. After writing code, run `go build ./...` and `go vet ./...` and fix any
+type-parameter or argument-order errors before presenting it.
+
+## The Model
 
 - A **case** is `func(T) Option[B]`: `Some(b)` if it matches, `None` otherwise.
   `RO.ReaderOption[T, B]`, `O.Kleisli[T, B]` and `prism.Prism[T, B].GetOption`
@@ -48,7 +56,7 @@ import (
   formatters with `Flow`/`Pipe`. Lambdas are allowed only for leaves (field
   accessors, multi-field formatters, deliberate side effects in tests).
 
-## The canonical idiom (use this by default)
+## The Canonical Idiom (Use This by Default)
 
 ```go
 func getMethod(r Request) string { return r.Method }   // leaf accessor (or lens.Get)
@@ -102,7 +110,7 @@ F.Flow3(
 )
 ```
 
-## Point-free building blocks
+## Point-Free Building Blocks
 
 | Instead of | Write |
 |---|---|
@@ -123,7 +131,7 @@ F.Flow3(
 
 (`number` has **no** `Equal`/`LessThanEqual`. Use `P.IsStrictEqual`, `P.IsZero[T]()`, `N.LessThan(n+1)`.)
 
-## Critical pitfall: AltAllArray over applied cases is eager
+## Critical Pitfall: AltAllArray over Applied Cases Is Eager
 
 ```go
 // BAD: all three cases run, because Go evaluates the slice literal first
@@ -137,7 +145,7 @@ that built the slice. Use it only when the `Option` values already exist.
 When reviewing code, rewrite this form to `A.Fold(RO.AltMonoid[T, B]())(A.From(c1, c2, c3))`.
 The same applies to `either.AltAllArray` and `result.AltAllArray`.
 
-## Building cases
+## Building Cases
 
 | Need | Build with |
 |---|---|
@@ -179,7 +187,7 @@ describe := A.Fold(RO.AltMonoid[Shape, string]())(A.From(
 Go has no exhaustiveness checking. A default guarantees a result, not
 coverage. Add one test per variant.
 
-## Closing the match
+## Closing the Match
 
 ```go
 F.Pipe1(match, RO.GetOrElse(F.Flow2(getX, S.Format[X]("no match: %v")))) // default sees input
@@ -187,7 +195,7 @@ F.Pipe1(match, RO.GetOrElse(F.Constant1[T](dflt)))                       // cons
 A.From(c1, c2, RO.Of[T](dflt))                                           // catch-all case, still Option
 ```
 
-## Two-way matches: use the eliminator, not a case list
+## Two-Way Matches: Use the Eliminator, Not a Case List
 
 | Input | Use |
 |---|---|
@@ -197,7 +205,7 @@ A.From(c1, c2, RO.Of[T](dflt))                                           // catc
 | predicate | `P.Fold(onFalse, onTrue func(A) B)(pred)` |
 | slice empty/non-empty | `A.Match(onEmpty func() B, onNonEmpty func([]A) B)`, `A.MatchLeft(onEmpty, func(head A, tail []A) B)` |
 
-## Matching over slices
+## Matching over Slices
 
 | Goal | Use |
 |---|---|
@@ -206,7 +214,7 @@ A.From(c1, c2, RO.Of[T](dflt))                                           // catc
 | with index | `A.FindFirstMapWithIndex(func(int, A) O.Option[B])` |
 | all matches | `A.FilterMap(match)` -> `[]B` |
 
-## Matching with errors
+## Matching with Errors
 
 When a failing case should say why, use `Result` cases and the error-aware monoid:
 
@@ -232,7 +240,7 @@ parse := A.Fold(readerresult.AltMonoid(F.Constant(readerresult.Left[string, int6
   `A.From` may need an explicit type argument: `A.From[readerresult.ReaderResult[string, int64]](...)`.
 - `readereither.AltMonoid(zero)` is the equivalent for custom error types.
 
-## Review checklist
+## Review Checklist
 
 1. Cases are ordered specific -> general (a general case first shadows later ones).
 2. No `AltAllArray([]Option{c(x), ...})` over case applications. Rewrite to `A.Fold(RO.AltMonoid...)`.
@@ -243,9 +251,3 @@ parse := A.Fold(readerresult.AltMonoid(F.Constant(readerresult.Left[string, int6
 6. Cases are pure. If a branch needs IO, return the effect (`Option[IOResult[B]]`) instead of running it in the guard.
 7. Each case has a unit test, plus a test of the combined match, including the default and priority.
 8. Fixed, local, non-reused branching stays a plain `switch`. Do not force this pattern where it adds nothing.
-
-## Before presenting code
-
-Signatures are easy to misremember. Check anything not shown here with the
-fp-go MCP `search_examples` tool (see **fp-go-mcp**), then run `go build ./...`,
-`go vet ./...` and the tests.

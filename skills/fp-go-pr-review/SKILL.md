@@ -1,6 +1,13 @@
 ---
 name: fp-go-pr-review
-description: Use this skill when reviewing pull requests for fp-go code (github.com/IBM/fp-go/v2). Trigger on mentions of PR review, code review, pull request validation, fp-go best practices validation, functional programming review, or when the user asks to review changes on a PR branch. This skill validates that changes follow fp-go conventions including data-last composition, point-free style, proper monad usage, lens patterns, and idiomatic functional patterns.
+description: >-
+  Use this skill when reviewing pull requests for fp-go code
+  (github.com/IBM/fp-go/v2). Trigger on mentions of PR review, code review,
+  pull request validation, fp-go best practices validation, functional
+  programming review, or when the user asks to review changes on a PR branch.
+  This skill validates that changes follow fp-go conventions including
+  data-last composition, point-free style, proper monad usage, lens patterns,
+  and idiomatic functional patterns.
 ---
 
 # fp-go PR Review
@@ -55,7 +62,7 @@ option.Map(transformFunc)(myOption)
 F.Pipe2(
     myOption,
     O.Map(transformFunc),
-    O.GetOrElse(F.Constant("default")),
+    O.GetOrElse(LZ.Of("default")),
 )
 ```
 
@@ -118,7 +125,7 @@ the leaves should be point-free.
 
 **Severity**: Medium — impacts readability and maintainability
 
-### 4. Prefer Result Over Either
+### 4. Prefer Result over Either
 
 **Rule**: Use `Result[A]` (which is `Either[error, A]`) when the error type is Go's `error`. Reserve `Either` for custom error types.
 
@@ -267,7 +274,7 @@ func setUser(u User) func(State) State {
     return func(s State) State { s.User = u; return s }
 }
 
-pipeline := F.Pipe2(
+pipeline := F.Pipe1(
     RIO.Do(State{}),
     RIO.Bind(setUser, fetchUser),
 )
@@ -278,13 +285,13 @@ var userLens = L.MakeLens(
     func(s State, u User) State { s.User = u; return s },
 )
 
-pipeline := F.Pipe2(
+pipeline := F.Pipe1(
     RIO.Do(State{}),
     RIO.Bind(userLens.Set, fetchUser),
 )
 
 // ✅ EVEN BETTER - use code generation
-//go:generate go run github.com/IBM/fp-go/v2/main lens --dir . --filename gen_lens.go
+//go:generate go run github.com/IBM/fp-go/v2 lens --dir . --filename gen_lens.go
 
 // fp-go:Lens
 type State struct {
@@ -293,7 +300,7 @@ type State struct {
 
 // Then use generated lens
 lenses := MakeStateLenses()
-pipeline := F.Pipe2(
+pipeline := F.Pipe1(
     RIO.Do(State{}),
     RIO.Bind(lenses.User.Set, fetchUser),
 )
@@ -368,12 +375,12 @@ func fetchAll() RIO.Kleisli[[]int, []User] {
 
 ### 12. Logging Side Effects
 
-**Rule**: Use `ChainFirstIOK` with `IO.Logf` for logging without breaking the pipeline.
+**Rule**: Log with the `Tap*` operators, which run the side effect and pass the original value (or error) through unchanged. Prefer structured `TapSLog`; use `TapIOK(IO.Logf…)` for printf-style logs and `LogEntryExit` for entry/exit logs. See the `fp-go-logging` skill.
 
 **Check for**:
 ```go
 // ❌ AVOID - breaking the pipeline for logging
-pipeline := F.Pipe2(
+pipeline := F.Pipe1(
     fetchUser(42),
     RIO.Chain(func(user User) RIO.ReaderIOResult[User] {
         log.Printf("Fetched user: %v", user)
@@ -381,22 +388,24 @@ pipeline := F.Pipe2(
     }),
 )
 
-// ✅ CORRECT - use ChainFirstIOK
-pipeline := F.Pipe2(
-    fetchUser(42),
-    RIO.ChainFirstIOK(IO.Logf[User]("Fetched user: %v")),
-)
-
-// ✅ CORRECT - structured logging with TapSLog
-pipeline := F.Pipe2(
+// ✅ CORRECT - structured logging with TapSLog (logs value or error)
+pipeline := F.Pipe1(
     fetchUser(42),
     RIO.TapSLog[User]("User fetched"),
 )
+
+// ✅ CORRECT - printf-style logging with TapIOK
+pipeline := F.Pipe1(
+    fetchUser(42),
+    RIO.TapIOK(IO.Logf[User]("Fetched user: %v")),
+)
 ```
+
+Also flag `ChainFirstIOK` used for logging (Low: works, but `TapIOK` states the intent) and `slog.Info` inside `Map` (Medium: a side effect in a pure function that also bypasses the context logger).
 
 **Severity**: Low — code quality
 
-### 13. Prefer Functions Over Variables
+### 13. Prefer Functions over Variables
 
 **Rule**: Wrap pipeline results in functions, not package-level vars.
 
@@ -410,6 +419,8 @@ func processUser() func(User) string {
     return F.Flow2(getName, strings.ToUpper)
 }
 ```
+
+The rule targets composed pipelines (`Pipe`/`Flow` results). A `var` is fine for lenses and for a single pre-bound helper such as `var parseNumber = R.Eitherize1(strconv.Atoi)` or `var getHost = hostLens.Get` (same rule as the `fp-go-pipe-flow` skill).
 
 **Severity**: Low — performance and dead code elimination
 
@@ -507,7 +518,7 @@ getUser := RIO.FromReader(func(ctx context.Context) string {
 // ✅ CORRECT - typed key, Option result, caller decides what "missing" means
 type ctxKey string
 const userKey ctxKey = "user"
-getUser := F.Pipe1(RIO.AskValue[string](userKey), RIO.Map(O.GetOrElse(F.Constant("anonymous"))))
+getUser := F.Pipe1(RIO.AskValue[string](userKey), RIO.Map(O.GetOrElse(LZ.Of("anonymous"))))
 
 // ❌ WRONG - hand-derived context; cancel discarded -> leaked timer
 RIO.Local[A](func(ctx context.Context) ContextCancel {
@@ -721,7 +732,7 @@ When reviewing, automatically check for:
 7. ✅ Lenses used in do-notation
 8. ✅ `Bind` vs `ApS` used correctly
 9. ✅ `TraverseArray` for slice processing
-10. ✅ `ChainFirstIOK` for logging
+10. ✅ Logging via `TapSLog` / `TapIOK` / `LogEntryExit` (see the `fp-go-logging` skill)
 11. ✅ No hidden mutation in `Map`/`Chain` closures or lens setters
 12. ✅ Context values read with `AskValue`; values/timeouts scoped with `WithValue`/`WithTimeout`/`WithDeadline`/`Local` (no `ctx.Value(k).(T)`, no discarded cancel funcs)
 13. ✅ Branch compiles (`go build ./...`) and passes `go vet ./...`
@@ -745,14 +756,15 @@ Provide a summary with:
 
 **Overall Assessment**: Needs Changes
 
-### Critical Issues (1)
+### Critical Issues (2)
 - ❌ Using v1 import path in `user/handler.go:5`
+- ❌ Missing IO execution in `config/loader.go:42`
 
-### High Priority Issues (2)
-- ⚠️ Missing IO execution in `config/loader.go:42`
-- ⚠️ Manual error handling instead of Eitherize in `api/client.go:78`
+### High Priority Issues (1)
+- ⚠️ `ctx.Value("user").(string)` type assertion instead of `AskValue` in `api/auth.go:31`
 
-### Medium Priority Issues (3)
+### Medium Priority Issues (4)
+- 💡 Manual error handling instead of Eitherize in `api/client.go:78`
 - 💡 Inline lambda instead of point-free in `user/service.go:23`
 - 💡 Using ReaderIOResult for pure computation in `utils/format.go:15`
 - 💡 Manual setter instead of lens in `state/pipeline.go:56`
