@@ -26,9 +26,12 @@ import (
 	"github.com/IBM/fp-go/v2/pair"
 	P "github.com/IBM/fp-go/v2/predicate"
 	R "github.com/IBM/fp-go/v2/record"
+	S "github.com/IBM/fp-go/v2/string"
 	T "github.com/IBM/fp-go/v2/tuple"
 
+	"slices"
 	"sync"
+	"sync/atomic"
 )
 
 func providerToEntry(p Provider) Entry[string, ProviderFactory] {
@@ -53,6 +56,13 @@ var (
 		T.Replicate2[Dependency],
 		T.Map2(Dependency.ProviderFactory, F.Flow2(missingProviderError, F.Constant[ProviderFactory])),
 		T.Tupled2(O.MonadGetOrElse[ProviderFactory]),
+	)
+
+	// circularDependencyError names the chain of dependencies that closes a circle, in resolution order
+	circularDependencyError = F.Flow3(
+		A.Map(Dependency.String),
+		A.Intercalate(S.Monoid)(" -> "),
+		errors.OnSome[string]("circular dependency detected: %s"),
 	)
 
 	emptyMulti any = A.Empty[any]()
@@ -133,6 +143,11 @@ func itemProviderFactory(fcts []ProviderFactory) ProviderFactory {
 //
 // The resulting [InjectableFactory] can then be used to retrieve service instances given their [Dependency]. The implementation
 // makes sure to transitively resolve the required dependencies.
+//
+// A dependency that refers back to itself while its provider factory runs, directly or through other dependencies,
+// resolves to an error naming the chain that closes the circle instead of blocking forever. The detection follows
+// one resolution at a time, so two goroutines resolving different tokens of the same cyclic graph can still block
+// on each other, and so can a lookup that a provider's effect makes after its factory has returned.
 func MakeInjector(providers []Provider) InjectableFactory {
 
 	type Result = IOResult[any]
@@ -146,37 +161,41 @@ func MakeInjector(providers []Provider) InjectableFactory {
 	// for the lifetime of the injector
 	factoryFor := lookupFactory(assembleProviders(providers))
 
-	// the actual factory and the resolution pipeline, both need lazy initialization
-	// so they can cross reference each other
-	var injFct InjectableFactory
-	var compute func(Dependency) Result
+	// the injector handed to a provider factory carries the chain of dependencies it is
+	// resolving, until the factory returns and later lookups start a fresh chain
+	var root InjectableFactory
+	var resolveWith func([]Dependency) InjectableFactory
 
-	injFct = func(token Dependency) Result {
+	resolveWith = func(path []Dependency) InjectableFactory {
+		return func(token Dependency) Result {
 
-		key := token.Id()
+			key := token.Id()
 
-		// according to https://github.com/golang/go/issues/44159 this
-		// is the best way to use the sync map
-		actual, loaded := resolved.Load(key)
-		if !loaded {
-			actual, _ = resolved.LoadOrStore(key, F.Pipe3(
-				token,
-				L.Of[Dependency],
-				L.Map(compute),
-				L.Memoize[Result],
-			))
+			if i := slices.IndexFunc(path, func(dep Dependency) bool { return dep.Id() == key }); i >= 0 {
+				return IOR.Left[any](circularDependencyError(append(slices.Clip(path[i:]), token)))
+			}
+
+			// according to https://github.com/golang/go/issues/44159 this
+			// is the best way to use the sync map
+			actual, loaded := resolved.Load(key)
+			if !loaded {
+				chain := resolveWith(append(slices.Clip(path), token))
+				actual, _ = resolved.LoadOrStore(key, L.Memoize(func() Result {
+					var built atomic.Bool
+					defer built.Store(true)
+					return IOR.Memoize(factoryFor(token)(func(dep Dependency) Result {
+						if built.Load() {
+							return root(dep)
+						}
+						return chain(dep)
+					}))
+				}))
+			}
+
+			return actual.(LazyResult)()
 		}
-
-		return actual.(LazyResult)()
 	}
 
-	// assembled after [injFct] has been assigned, so the [InjectableFactory] handed
-	// to the provider factories is the memoizing one
-	compute = F.Flow3(
-		factoryFor,
-		I.Ap[Result](injFct),
-		IOR.Memoize[any],
-	)
-
-	return injFct
+	root = resolveWith(nil)
+	return root
 }
