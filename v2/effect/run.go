@@ -24,18 +24,20 @@ import (
 	"github.com/IBM/fp-go/v2/result"
 )
 
-// Provide supplies a context to an effect, converting it to a Thunk.
-// This is the first step in running an effect - it eliminates the context dependency
-// by providing the required context value.
+// Provide supplies the dependencies to an effect, converting it to a Thunk.
+// This is the first step in running an effect - it eliminates the dependency
+// type C by providing the required dependency value. The resulting Thunk still
+// needs the runtime context.Context, which RunSync supplies.
 //
 // # Type Parameters
 //
-//   - C: The context type required by the effect
-//   - A: The type of the success value
+//   - A: The type of the success value. It cannot be inferred through the
+//     returned function, so it must be given explicitly: Provide[A](deps)
+//   - C: The dependency type required by the effect (inferred from c)
 //
 // # Parameters
 //
-//   - c: The context value to provide to the effect
+//   - c: The dependencies to provide to the effect
 //
 // # Returns
 //
@@ -43,9 +45,9 @@ import (
 //
 // # Example
 //
-//	ctx := MyContext{APIKey: "secret"}
-//	eff := effect.Of[MyContext](42)
-//	thunk := effect.Provide[MyContext, int](ctx)(eff)
+//	deps := MyDeps{APIKey: "secret"}
+//	eff := effect.Of[MyDeps](42)
+//	thunk := effect.Provide[int](deps)(eff)
 //	// thunk is now a ReaderIOResult[int] that can be run
 func Provide[A, C any](c C) thunk.Kleisli[Effect[C, A], A] {
 	return readerreaderioresult.Read[A](c)
@@ -69,9 +71,9 @@ func Provide[A, C any](c C) thunk.Kleisli[Effect[C, A], A] {
 //
 // # Example
 //
-//	ctx := MyContext{APIKey: "secret"}
-//	eff := effect.Of[MyContext](42)
-//	thunk := effect.Provide[MyContext, int](ctx)(eff)
+//	deps := MyDeps{APIKey: "secret"}
+//	eff := effect.Of[MyDeps](42)
+//	thunk := effect.Provide[int](deps)(eff)
 //	readerResult := effect.RunSync(thunk)
 //	value, err := readerResult(context.Background())
 //	// value == 42, err == nil
@@ -80,7 +82,7 @@ func Provide[A, C any](c C) thunk.Kleisli[Effect[C, A], A] {
 //
 //	// Typical usage pattern:
 //	result, err := effect.RunSync(
-//		effect.Provide[MyContext, string](myContext)(myEffect),
+//		effect.Provide[string](myDeps)(myEffect),
 //	)(context.Background())
 func RunSync[A any](fa ReaderIOResult[A]) readerresult.ReaderResult[A] {
 	return func(ctx context.Context) (A, error) {
