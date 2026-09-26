@@ -10,8 +10,8 @@ description: >-
   in Go, Option/Either/Result types in Go, IOResult, ReaderIOResult, Effect,
   or converting idiomatic Go error handling into functional pipelines. For
   focused topics also load fp-go-pipe-flow (Pipe/Flow, reader, do-notation),
-  fp-go-lens (optics), fp-go-context, fp-go-http, fp-go-logging,
-  fp-go-pattern-matching or fp-go-pr-review.
+  fp-go-lens (optics), fp-go-effect (typed dependencies), fp-go-context,
+  fp-go-http, fp-go-logging, fp-go-pattern-matching or fp-go-pr-review.
 ---
 
 # fp-go v2 — Functional Programming for Go
@@ -361,7 +361,7 @@ Outside a pipeline (building a context in `main` or a test) use `context/reader`
 
 **`Effect[C, A]` is literally `func(C) ReaderIOResult[A]`** (an alias for `context/readerreaderioresult.ReaderReaderIOResult[C, A]`). A function of that exact shape *is already* an `Effect` — do not wrap it in `Asks`. `EF.Asks(f)` is for a **pure** projection `func(C) A` and returns `Effect[C, A]`; passing it a `func(C) ReaderIOResult[A]` silently yields the nested `Effect[C, ReaderIOResult[A]]`.
 
-Use `Effect` when your service has dependencies beyond `context.Context` (database connections, HTTP clients, config, loggers). It is the **recommended top-level monad for production service code**.
+Use `Effect` when your service has dependencies beyond `context.Context` (database connections, HTTP clients, config, loggers). It is the **recommended top-level monad for production service code**. The type parameter `C` is meant for these **dependencies**; request-scoped data (IDs, principal, deadlines) stays in `context.Context`. For designing dependency types (capability interfaces, `Local`, dependencies built by an effect, testing with fakes) use the `fp-go-effect` skill.
 
 ```go
 import (

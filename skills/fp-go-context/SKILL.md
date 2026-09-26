@@ -247,6 +247,8 @@ Read it with `logging.GetLoggerFromContext` (falls back to the global logger). F
 
 ## 7. Context in `Effect`
 
+`C` holds the dependencies and `context.Context` holds the request scope; see the `fp-go-effect` skill for designing `C`.
+
 `Effect[C, A]` is `func(C) RIO.ReaderIOResult[A]`: `C` carries typed dependencies, `context.Context` is still the runtime context supplied by `RunSync(…)(ctx)`.
 
 - `EF.Local`, `EF.Ask`, `EF.Asks` operate on **`C`**, not on `context.Context`.
