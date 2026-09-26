@@ -20,6 +20,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	A "github.com/IBM/fp-go/v2/array"
 	E "github.com/IBM/fp-go/v2/either"
@@ -369,4 +370,86 @@ func TestMakeProviderFactoryWithoutDependencies(t *testing.T) {
 	)
 
 	assert.Equal(t, result.Of[any](0), fct(MakeInjector(Empty))())
+}
+
+// resolveBounded resolves a dependency and fails the test if the resolution does not return
+func resolveBounded(t *testing.T, inj InjectableFactory, dep Dependency) result.Result[any] {
+	t.Helper()
+	done := make(chan result.Result[any], 1)
+	go func() { done <- inj(dep)() }()
+	select {
+	case res := <-done:
+		return res
+	case <-time.After(5 * time.Second):
+		t.Fatalf("resolving %s did not return", dep)
+		return result.Left[any](nil)
+	}
+}
+
+// dependsOn creates a [Provider] for a dependency that requires the given dependencies and returns its own name
+func dependsOn(dep Dependency, on ...Dependency) Provider {
+	return MakeProvider(dep, MakeProviderFactory(
+		A.From(on...),
+		func(params ...any) IOResult[any] { return IOR.Of[any](dep.String()) },
+	))
+}
+
+// TestMakeInjectorCycle verifies that a dependency referring back to itself resolves to an
+// error naming the chain instead of blocking
+func TestMakeInjectorCycle(t *testing.T) {
+	depA := makeDep("A", "a", IDENTITY)
+	depB := makeDep("B", "b", IDENTITY)
+	depC := makeDep("C", "c", IDENTITY)
+
+	cases := map[string]struct {
+		providers []Provider
+		chain     string
+	}{
+		"self":  {A.From(dependsOn(depA, depA)), "A -> A"},
+		"two":   {A.From(dependsOn(depA, depB), dependsOn(depB, depA)), "A -> B -> A"},
+		"three": {A.From(dependsOn(depA, depB), dependsOn(depB, depC), dependsOn(depC, depA)), "A -> B -> C -> A"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, result.Left[any](errors.New("circular dependency detected: "+tc.chain)), resolveBounded(t, MakeInjector(tc.providers), depA))
+		})
+	}
+}
+
+// TestMakeInjectorDeferredLookup verifies that an injector kept by a provider past its
+// construction still resolves a dependency that refers back to that provider
+func TestMakeInjectorDeferredLookup(t *testing.T) {
+	depA := makeDep("A", "a", IDENTITY)
+	depB := makeDep("B", "b", IDENTITY)
+
+	var lookupB IOResult[any]
+	inj := MakeInjector(A.From(
+		MakeProvider(depA, func(injector InjectableFactory) IOResult[any] {
+			lookupB = IOR.Defer(func() IOResult[any] { return injector(depB) })
+			return IOR.Of[any]("A")
+		}),
+		dependsOn(depB, depA),
+	))
+
+	assert.Equal(t, result.Of[any]("A"), resolveBounded(t, inj, depA))
+	assert.Equal(t, result.Of[any]("B"), lookupB())
+}
+
+// TestMakeInjectorDiamondResolvesOnce verifies that a dependency shared by two branches is built once
+func TestMakeInjectorDiamondResolvesOnce(t *testing.T) {
+	var count int32
+	depA := makeDep("A", "a", IDENTITY)
+	depB := makeDep("B", "b", IDENTITY)
+	depC := makeDep("C", "c", IDENTITY)
+	depD := makeDep("D", "d", IDENTITY)
+
+	inj := MakeInjector(A.From(
+		MakeProvider(depA, countingFactory(&count, "a")),
+		dependsOn(depB, depA),
+		dependsOn(depC, depA),
+		dependsOn(depD, depB, depC),
+	))
+
+	assert.Equal(t, result.Of[any]("D"), resolveBounded(t, inj, depD))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&count))
 }
