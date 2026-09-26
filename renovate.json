@@ -46,6 +46,13 @@
             ],
             "automerge": true,
             "groupName": "go dependencies"
+        },
+        {
+            "matchFileNames": [
+                "go.mod"
+            ],
+            "enabled": false,
+            "description": "Disable all updates to the v1 module in the repository root - v1 is frozen"
         }
     ]
 }
