@@ -138,12 +138,27 @@ func withUser[A any](u User) RIO.Operator[A, A] {
 }
 ```
 
-In `RR` / `IRR`, turn `None` into an error with `ChainOptionK`:
+`RR` and `IRR` have no `FromOption`, so the required-value accessor looks slightly different there:
 
 ```go
-F.Pipe1(RR.AskValue[User](userKey),  RR.ChainOptionK[O.Option[User], User](F.Constant(errNoUser))(F.Identity[O.Option[User]]))
-F.Pipe1(IRR.AskValue[User](userKey), IRR.ChainOptionK[O.Option[User], User](F.Constant(errNoUser))(O.Unwrap[User]))
+// RR: lift result.FromOption (Option[User] -> Result[User]) into the reader
+func requireUserRR() RR.ReaderResult[User] {
+    return F.Pipe1(
+        RR.AskValue[User](userKey),
+        RR.ChainEitherK(R.FromOption[User](LZ.Of(errNoUser))),
+    )
+}
+
+// IRR: ChainOptionK expects an idiomatic (B, bool) Kleisli; O.Unwrap turns the Option into that tuple
+func requireUserIRR() IRR.ReaderResult[User] {
+    return F.Pipe1(
+        IRR.AskValue[User](userKey),
+        IRR.ChainOptionK[O.Option[User], User](LZ.Of(errNoUser))(O.Unwrap[User]),
+    )
+}
 ```
+
+The `IRR` form needs the explicit `[O.Option[User], User]` because `ChainOptionK` receives only the `onNone` error first, so Go cannot infer `A` and `B` from it.
 
 ## 4. Scoping the Context
 
