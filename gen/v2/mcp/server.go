@@ -57,8 +57,8 @@ type UseSkillOutput struct {
 
 // SearchExamplesArgs represents the arguments for the search_examples tool
 type SearchExamplesArgs struct {
-	Query         string `json:"query" jsonschema:"The search query for full-text search across example names, symbols, packages, doc comments, and code"`
-	PackageFilter string `json:"package_filter,omitempty" jsonschema:"Optional package name to filter results (e.g., 'option' or 'either')"`
+	Query         string `json:"query" jsonschema:"SQLite FTS5 MATCH expression (NOT free text, NOT Go syntax). Use plain space-separated words, e.g. 'Curry1 reader'. Space-separated words are implicitly ANDed: every word must occur, so keep it to 1-3 words and use OR to widen ('Not OR And'). Do NOT use dots or package qualifiers: write 'And' with package_filter='predicate' instead of 'P.And', and 'Curry1' instead of 'reader.Curry1'. Characters such as . : , ( ) [ ] { } - + ^ must not appear unquoted; wrap a term containing them in double quotes (\"reader.Curry1\" matches the adjacent words reader, Curry1). Supported operators: AND, OR, NOT (uppercase), prefix wildcard (Trav*), phrases in double quotes. Matching is case-insensitive on whole words, so 'Curry' does not match 'Curry1'; use 'Curry*'"`
+	PackageFilter string `json:"package_filter,omitempty" jsonschema:"Optional exact package path relative to the module root to filter results (e.g., 'option', 'either', 'samples/mostly-adequate'). Retry without it if a filtered search returns no results"`
 }
 
 // GoExample represents a Go example function
@@ -128,8 +128,15 @@ func NewServer(db *sql.DB, verbose bool) *mcp.Server {
 		log.Println("[MCP] Registering tool: search_examples")
 	}
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "search_examples",
-		Description: "Search for Go example functions using full-text search. Searches across example names, symbols, packages, documentation comments, and code. Returns up to 10 ranked results with metadata.",
+		Name: "search_examples",
+		Description: "Search for Go example functions using SQLite FTS5 full-text search. Searches across example names, symbols, package paths (relative to the module root, e.g. 'option'), documentation comments, and code. Returns up to 10 ranked results with metadata. " +
+			"The query is passed verbatim to FTS5 MATCH, so it must be a valid FTS5 expression: " +
+			"(1) use bare words only, e.g. 'TraverseArray' or 'Curry1 reader'; " +
+			"(2) never use dots or package-qualified names like 'P.And' or 'reader.Curry1' (syntax error) - drop the qualifier and use package_filter instead; " +
+			"(3) punctuation (. : , ( ) [ ] - + ^ etc.) is only allowed inside double-quoted phrases; " +
+			"(4) multiple words are implicitly ANDed, so long descriptive queries usually return 0 results - prefer 1-3 identifiers, or join alternatives with OR; " +
+			"(5) terms match whole words case-insensitively, append * for prefix matching (Trav*). " +
+			"For an exact lookup by symbol name use get_example instead.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},

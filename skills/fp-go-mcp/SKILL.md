@@ -130,8 +130,8 @@ Assistant: [calls use_skill with name="fp-go-pipe-flow"]
 **Description**: Search for Go examples using full-text search across example names, symbols, packages, documentation comments, and code.
 
 **Parameters**:
-- `query` (required): Search query (supports SQLite FTS5 syntax)
-- `package_filter` (optional): Filter by package name (e.g., "option", "either")
+- `query` (required): a **SQLite FTS5 `MATCH` expression**, passed verbatim — not free text and not Go syntax (see **Query Rules** below)
+- `package_filter` (optional): Filter by package, the path relative to the module root (e.g., "option", "either", "samples/mostly-adequate")
 
 **Returns**:
 ```json
@@ -153,12 +153,32 @@ Assistant: [calls use_skill with name="fp-go-pipe-flow"]
 }
 ```
 
+**Query Rules** (violating them yields `fts5: syntax error` or `no such column`):
+1. **Bare words only.** Identifiers and plain words such as `TraverseArray` or `Curry1 reader`.
+2. **No dots, no package qualifiers.** `P.And` or `reader.Curry1` is a syntax error. Drop the qualifier and put the package into `package_filter`: `query="And", package_filter="predicate"`.
+3. **No unquoted punctuation.** `. : , ( ) [ ] - + ^` are FTS5 operators or invalid (`foo-bar` is read as column `bar`). Wrap such text in double quotes to make it a phrase: `"\"reader.Curry1\""` matches the adjacent words `reader` `Curry1`.
+4. **Words are ANDed.** `And predicate negation Not` requires all four words in one example and usually finds nothing. Use 1–3 identifiers, or widen with `OR`: `Not OR And`.
+5. **Whole-word, case-insensitive matching.** `Curry` does not match `Curry1`; use the prefix wildcard `Curry*`.
+6. **Operators** `AND`, `OR`, `NOT` must be uppercase; `NOT` is binary (`Map NOT Option`), it cannot start a query.
+
 **Search Syntax**:
 - Simple terms: `"Map"` — finds examples mentioning Map
 - Phrases: `"\"point free\""` — exact phrase match
-- Boolean: `"Map AND Option"` — both terms required
+- Boolean: `"Map AND Option"` — both terms required (same as `"Map Option"`)
+- Alternatives: `"Chain OR FlatMap"` — either term
 - Wildcards: `"Trav*"` — matches Traverse, TraverseArray, etc.
 - Package filter: `query="Map", package_filter="option"` — only option package
+
+| Instead of | Use |
+|---|---|
+| `P.And predicate negation Not` | `query="And OR Not", package_filter="predicate"` |
+| `reader.Curry1 Curry curried method` | `query="Curry*"` (add `package_filter="reader"` only if that package has matching examples) |
+| `O.Map` | `query="Map", package_filter="option"` |
+| `to-option` | `query="ToOption"` |
+
+`package_filter` must equal the package path relative to the module root exactly (`option`, `array`, `samples/mostly-adequate`); if a filtered search returns nothing, retry without the filter — not every package has examples for every function.
+
+For an exact lookup of a known symbol, `get_example` is simpler than `search_examples`.
 
 **Example Usage**:
 ```
@@ -300,8 +320,8 @@ go get -tool github.com/IBM/fp-go/gen/v2@latest
 **Issue**: `search_examples` finds nothing
 
 **Solution**: 
-1. Check your search query syntax (SQLite FTS5)
-2. Try broader terms (e.g., "Map" instead of "Option.Map")
+1. Check your search query syntax against the **Query Rules** (SQLite FTS5): no dots, no punctuation, few words
+2. Try broader terms (e.g., "Map" with `package_filter="option"` instead of "Option.Map"), or a prefix (`Curry*`)
 3. Verify the examples database is embedded (rebuild if needed)
 
 ### Verbose Logging
