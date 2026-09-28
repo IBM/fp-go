@@ -1,0 +1,464 @@
+/* ============ Carbon Design System Layout ============ */
+
+/* Carbon 2x Grid */
+.carbonGrid {
+  max-width: 1584px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  column-gap: 16px;
+  position: relative;
+}
+
+/* ============ Hero Section ============
+ * Carbon hero sits on a LIGHT surface (white/g10) with dark text and a
+ * subtle 16-col grid line overlay. We set the background explicitly so
+ * we don't depend on Docusaurus' `.hero` / `.hero--primary` classes,
+ * which paint a saturated primary-color background and would invert
+ * legibility.
+ * ============================================== */
+.heroBanner {
+  padding: 80px 0 96px;
+  position: relative;
+  overflow: hidden;
+  background: var(--ifm-background-color);
+  color: var(--ifm-color-content);
+  border-bottom: 1px solid var(--ifm-border-color);
+}
+
+/* Carbon-style 2x grid lines background */
+.heroBanner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to right,
+    var(--ifm-border-color) 1px,
+    transparent 1px
+  );
+  background-size: calc(100% / 16) 100%;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.heroInner {
+  grid-column: 1 / span 10;
+  position: relative;
+  z-index: 1;
+}
+
+.heroEyebrow {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  color: var(--ifm-color-content-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heroEyebrow::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--ifm-color-primary);
+}
+
+/* Carbon productive heading 07 — light weight, large size */
+.heroTitle {
+  font-family: var(--ifm-font-family-base);
+  font-weight: 300;
+  font-size: 76px;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  margin: 0 0 24px;
+  color: var(--ifm-color-content);
+}
+
+.heroAccent {
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ifm-color-primary);
+}
+
+.heroTagline {
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--ifm-color-content-secondary);
+  margin: 0 0 48px;
+  max-width: 640px;
+  font-weight: 400;
+}
+
+.heroCtas {
+  display: flex;
+  gap: 1px;
+  flex-wrap: wrap;
+}
+
+/* Make Docusaurus' .button respect Carbon sharp-corner sizing in the hero */
+.heroCta {
+  min-width: 220px !important;
+  border-radius: 0 !important;
+}
+
+.heroMeta {
+  grid-column: 11 / span 6;
+  position: relative;
+  z-index: 1;
+  border-left: 1px solid var(--ifm-border-color);
+  padding-left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-self: end;
+}
+
+.metaRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaKey {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  color: var(--ifm-color-content-secondary);
+  letter-spacing: 0.02em;
+}
+
+.metaValue {
+  font-size: 14px;
+  color: var(--ifm-color-content);
+  font-weight: 400;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.installBar {
+  background: #161616;
+  color: #f4f4f4;
+  padding: 14px 16px;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #393939;
+}
+
+.prompt {
+  color: #78a9ff;
+}
+
+/* ============ Stats Strip ============ */
+.statsSection {
+  background: var(--ifm-background-color);
+  border-bottom: 1px solid var(--ifm-border-color);
+}
+
+.stats {
+  grid-column: 1 / span 16;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--ifm-border-color);
+  border-bottom: 1px solid var(--ifm-border-color);
+}
+
+.stat {
+  padding: 32px 24px;
+  border-right: 1px solid var(--ifm-border-color);
+}
+
+.stat:last-child {
+  border-right: 0;
+}
+
+.statNum {
+  font-family: var(--ifm-font-family-base);
+  font-weight: 300;
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  color: var(--ifm-color-content);
+}
+
+.statNum span {
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-style: italic;
+  color: var(--ifm-color-primary);
+  font-weight: 400;
+}
+
+.statLabel {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  color: var(--ifm-color-content-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ============ Section Heads ============ */
+.sectionHead {
+  grid-column: 1 / span 16;
+  margin-bottom: 64px;
+}
+
+.sectionEyebrow {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  color: var(--ifm-color-content-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionEyebrow::before {
+  content: "—";
+  color: var(--ifm-color-primary);
+  margin-right: 4px;
+}
+
+.sectionTitle {
+  font-size: 42px;
+  line-height: 1.2;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  max-width: 720px;
+  margin: 0;
+  color: var(--ifm-color-content);
+}
+
+.sectionTitle em {
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ifm-color-primary);
+}
+
+/* ============ Features Section ============ */
+.featuresSection {
+  padding: 96px 0;
+  border-bottom: 1px solid var(--ifm-border-color);
+  background: var(--ifm-background-surface-color);
+}
+
+.featureRow {
+  grid-column: 1 / span 16;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--ifm-border-color);
+}
+
+.tile {
+  background: var(--ifm-background-color);
+  padding: 24px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: outline-color 0.11s ease;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.tile:hover {
+  outline-color: var(--ifm-color-primary);
+}
+
+.tileNum {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  color: var(--ifm-color-content-secondary);
+  margin-bottom: 16px;
+}
+
+.tileIcon {
+  margin-bottom: 32px;
+  color: var(--ifm-color-primary);
+}
+
+.tileTitle {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  margin: 0 0 12px;
+  color: var(--ifm-color-content);
+}
+
+.tileDesc {
+  font-size: 14px;
+  color: var(--ifm-color-content-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tileMore {
+  margin-top: auto;
+  padding-top: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.tileMore:hover {
+  text-decoration: underline;
+}
+
+/* ============ Code Section ============ */
+.codeSection {
+  padding: 96px 0;
+  border-bottom: 1px solid var(--ifm-border-color);
+  background: var(--ifm-background-color);
+}
+
+.codeCopy {
+  grid-column: 1 / span 6;
+}
+
+.codeCopy p {
+  font-size: 16px;
+  color: var(--ifm-color-content-secondary);
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bullets li {
+  padding: 16px 0;
+  border-top: 1px solid var(--ifm-border-color);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.bullets li:last-child {
+  border-bottom: 1px solid var(--ifm-border-color);
+}
+
+.bulletNum {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  color: var(--ifm-color-primary);
+  padding-top: 2px;
+  min-width: 28px;
+}
+
+.bullets strong {
+  font-weight: 600;
+}
+
+.bullets code {
+  font-family: var(--ifm-font-family-monospace);
+  background: var(--ifm-background-surface-color);
+  padding: 1px 6px;
+  font-size: 12.5px;
+}
+
+.codeCard {
+  grid-column: 8 / span 9;
+  background: #161616;
+  color: #f4f4f4;
+  font-family: var(--ifm-font-family-monospace);
+  border: 1px solid #393939;
+  display: flex;
+  flex-direction: column;
+}
+
+.codeTabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #393939;
+}
+
+.codeTab {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #c6c6c6;
+  border-right: 1px solid #393939;
+  cursor: pointer;
+  background: transparent;
+}
+
+.codeTabActive {
+  color: #ffffff;
+  background: #262626;
+  box-shadow: inset 0 2px 0 var(--ifm-color-primary);
+}
+
+.codeBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #393939;
+  font-size: 12px;
+  color: #8d8d8d;
+}
+
+.codeDot {
+  width: 8px;
+  height: 8px;
+  background: #198038;
+  border-radius: 50%;
+}
+
+.codeBlock {
+  margin: 0;
+  padding: 24px;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #f4f4f4;
+  overflow-x: auto;
+  flex: 1;
+  background: #161616;
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 1080px) {
+  .heroTitle { font-size: 56px; }
+  .heroInner { grid-column: 1 / span 16; }
+  .heroMeta {
+    grid-column: 1 / span 16;
+    border-left: 0;
+    padding-left: 0;
+    padding-top: 32px;
+    border-top: 1px solid var(--ifm-border-color);
+  }
+  .codeCopy { grid-column: 1 / span 16; margin-bottom: 32px; }
+  .codeCard { grid-column: 1 / span 16; }
+  .featureRow { grid-template-columns: repeat(2, 1fr); }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .heroTitle { font-size: 42px; }
+  .heroBanner { padding: 48px 0 64px; }
+  .featuresSection, .codeSection { padding: 64px 0; }
+  .featureRow { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr; }
+  .stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--ifm-border-color);
+  }
+  .stat:last-child { border-bottom: 0; }
+}
