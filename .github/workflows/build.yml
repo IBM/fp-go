@@ -22,6 +22,8 @@ jobs:
   build-v1:
     name: Build v1 (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         go-version: ['1.20.x', '1.21.x', '1.22.x', '1.23.x', '1.24.x', '1.25.x', '1.26.x', '1.27.x']
@@ -63,6 +65,8 @@ jobs:
   build-v2:
     name: Build v2 (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         go-version: ['1.24.x', '1.25.x', '1.26.x', '1.27.x']
@@ -103,6 +107,8 @@ jobs:
   build-gen:
     name: Build gen/v2 (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         go-version: ['1.26.x', '1.27.x']
@@ -123,6 +129,7 @@ jobs:
 
   coveralls-finish:
     name: Finish Coveralls
+    permissions: {}
     needs:
       - build-v1
       - build-v2
