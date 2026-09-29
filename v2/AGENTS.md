@@ -18,6 +18,7 @@ This document provides guidelines for AI agents working on the fp-go/v2 project.
   - [Error Handling](#error-handling)
   - [HTTP Header Names](#http-header-names)
   - [HTTP Media Types](#http-media-types)
+- [Commits and Pull Requests](#commits-and-pull-requests)
 - [Checklist for New Code](#checklist-for-new-code)
 
 ## Documentation Standards
@@ -339,6 +340,17 @@ func TestFromReaderResult_Success(t *testing.T) {
    - The constants are bare media types without parameters; append parameters explicitly (e.g. `mime.FormatMediaType(C.JSON, map[string]string{"charset": "utf-8"})`)
    - Literals are only acceptable for values with parameters that are themselves under test (e.g. inputs to `ParseMediaType`) and in prose that describes raw values
 
+## Commits and Pull Requests
+
+1. **Always sign commits and sign them off**
+   - Every commit that goes into a pull request needs both:
+     - a cryptographic signature, so GitHub shows it as "Verified"
+     - a `Signed-off-by:` trailer (Developer Certificate of Origin), which the DCO check on pull requests requires
+   - Commit with `git commit -s`. Rely on the configured signing setup (`commit.gpgsign=true`); do NOT pass `--no-gpg-sign` or `-c commit.gpgsign=false`. If signing is not configured, pass `-S` as well
+   - This also applies to commits that git rewrites: use `git rebase --signoff`, `git cherry-pick -s` and `git commit --amend -s`
+   - Before pushing, check with `git log --format='%h %G? %(trailers:key=Signed-off-by,valueonly,separator=%x2C) %s' origin/main..HEAD`; every commit must show `G` and a sign-off that matches the commit author
+   - If signing fails, stop and report it instead of committing unsigned
+
 ## Checklist for New Code
 
 - [ ] Apache 2.0 license header included
@@ -358,3 +370,4 @@ func TestFromReaderResult_Success(t *testing.T) {
 - [ ] Error handling preserves context and causes
 - [ ] HTTP header name constants are lower case (HTTP/2 and HTTP/3 requirement) and used instead of string literals
 - [ ] HTTP media types use the constants from `http/content` instead of string literals
+- [ ] All commits in the pull request are signed and signed off (`Signed-off-by:`)
