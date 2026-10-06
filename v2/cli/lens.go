@@ -19,13 +19,16 @@ import (
 	"bytes"
 	"context"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"log"
 	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -80,12 +83,22 @@ type structInfo struct {
 
 // fieldInfo holds information about a struct field
 type fieldInfo struct {
-	Name         string
-	TypeName     string
-	BaseType     string // TypeName without leading * for pointer types
-	IsOptional   bool   // true if field is a pointer or has json omitempty tag
-	IsComparable bool   // true if the type is comparable (can use ==)
-	IsEmbedded   bool   // true if this field comes from an embedded struct
+	Name     string
+	TypeName string
+	BaseType string // TypeName without leading * for pointer types
+	// IsOptional is true if the field is a pointer or has a json omitempty tag
+	IsOptional bool
+	// IsComparable is true if the type satisfies the "comparable" constraint,
+	// i.e. it can be used as a type argument for helpers such as
+	// option.FromZero. Interface types qualify even though comparing two
+	// interface values can panic at run time.
+	IsComparable bool
+	// IsStrictlyComparable is true if == on the type can never panic at run
+	// time. Interface types (including error) are comparable but not strictly
+	// comparable, so lenses for them must not rely on value equality.
+	IsStrictlyComparable bool
+	// IsEmbedded is true if this field comes from an embedded struct
+	IsEmbedded bool
 }
 
 // templateData holds data for template rendering
@@ -186,7 +199,7 @@ func Make{{.Name}}Lenses{{.TypeParams}}() {{.Name}}Lenses{{.TypeParamNames}} {
 func Make{{.Name}}RefLenses{{.TypeParams}}() {{.Name}}RefLenses{{.TypeParamNames}} {
 	// mandatory lenses
 {{- range .Fields}}
-{{- if .IsComparable}}
+{{- if .IsStrictlyComparable}}
 	lens{{.Name}} := __lens.MakeLensStrictWithName(
 		func(s *{{$.Name}}{{$.TypeParamNames}}) {{.TypeName}} { return s.{{.Name}} },
 		func(s *{{$.Name}}{{$.TypeParamNames}}, v {{.TypeName}}) *{{$.Name}}{{$.TypeParamNames}} { s.{{.Name}} = v; return s },
@@ -337,7 +350,13 @@ func hasLensAnnotation(doc *ast.CommentGroup) bool {
 	return false
 }
 
-// getTypeName extracts the type name from a field type expression
+// getTypeName extracts the type name from a field type expression.
+//
+// The returned string is valid Go source for the type, so that it can be
+// embedded verbatim into the generated lens declarations. Types this function
+// does not special-case (functions, channels, inline structs, constraint
+// unions, ...) are rendered with go/types.ExprString, which prints the
+// expression as it was written.
 func getTypeName(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -345,13 +364,22 @@ func getTypeName(expr ast.Expr) string {
 	case *ast.StarExpr:
 		return "*" + getTypeName(t.X)
 	case *ast.ArrayType:
-		return "[]" + getTypeName(t.Elt)
+		if t.Len == nil {
+			// Slice type
+			return "[]" + getTypeName(t.Elt)
+		}
+		// Fixed-size array: the length must be preserved, otherwise the
+		// generated code refers to a slice instead of an array.
+		return "[" + types.ExprString(t.Len) + "]" + getTypeName(t.Elt)
 	case *ast.MapType:
 		return "map[" + getTypeName(t.Key) + "]" + getTypeName(t.Value)
 	case *ast.SelectorExpr:
 		return getTypeName(t.X) + "." + t.Sel.Name
 	case *ast.InterfaceType:
-		return "any"
+		if t.Methods == nil || len(t.Methods.List) == 0 {
+			return "any"
+		}
+		return types.ExprString(t)
 	case *ast.IndexExpr:
 		// Generic type with single type parameter (Go 1.18+)
 		// e.g., Option[string]
@@ -365,39 +393,30 @@ func getTypeName(expr ast.Expr) string {
 		}
 		return getTypeName(t.X) + "[" + strings.Join(params, ", ") + "]"
 	default:
-		return "any"
+		return types.ExprString(expr)
 	}
 }
 
 // extractImports extracts package imports from a type expression
 // Returns a map of package path -> package name
+//
+// The whole expression is walked, so qualified identifiers nested in function
+// signatures, channel element types or inline structs are found as well.
 func extractImports(expr ast.Expr, imports map[string]string) {
-	switch t := expr.(type) {
-	case *ast.StarExpr:
-		extractImports(t.X, imports)
-	case *ast.ArrayType:
-		extractImports(t.Elt, imports)
-	case *ast.MapType:
-		extractImports(t.Key, imports)
-		extractImports(t.Value, imports)
-	case *ast.SelectorExpr:
+	ast.Inspect(expr, func(n ast.Node) bool {
+		sel, ok := n.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
 		// This is a qualified identifier like "option.Option"
-		if ident, ok := t.X.(*ast.Ident); ok {
+		if ident, ok := sel.X.(*ast.Ident); ok {
 			// ident.Name is the package name (e.g., "option")
 			// We need to track this for import resolution
 			imports[ident.Name] = ident.Name
+			return false
 		}
-	case *ast.IndexExpr:
-		// Generic type with single type parameter
-		extractImports(t.X, imports)
-		extractImports(t.Index, imports)
-	case *ast.IndexListExpr:
-		// Generic type with multiple type parameters
-		extractImports(t.X, imports)
-		for _, index := range t.Indices {
-			extractImports(index, imports)
-		}
-	}
+		return true
+	})
 }
 
 // hasOmitEmpty checks if a struct tag contains json omitempty
@@ -426,17 +445,40 @@ func isPointerType(expr ast.Expr) bool {
 	return ok
 }
 
-// isStructComparable checks whether all fields of a struct type are comparable.
-func isStructComparable(st *ast.StructType, typeParams map[string]string, knownStructs map[string]*ast.StructType) bool {
-	for _, field := range st.Fields.List {
-		if !isComparableType(field.Type, typeParams, knownStructs) {
-			return false
-		}
+// typeDecls maps a package level type name to the type expression it is
+// declared as, for example "Names" -> []string. It is used to decide whether a
+// named type is comparable: a name alone carries no information, the underlying
+// type does.
+type typeDecls = map[string]ast.Expr
+
+// comparability describes how a type behaves with respect to Go's == operator.
+type comparability int
+
+const (
+	// notComparable means == does not compile for the type: slices, maps,
+	// functions, and composites that contain one of those.
+	notComparable comparability = iota
+	// interfaceComparable means == compiles, but can panic at run time when the
+	// dynamic value is not comparable. Interface types (including error) are in
+	// this category. They do satisfy the "comparable" constraint since Go 1.20.
+	interfaceComparable
+	// strictlyComparable means == compiles and can never panic.
+	strictlyComparable
+)
+
+// min returns the weaker of two comparability values. A composite type is only
+// as comparable as its weakest component.
+func (c comparability) min(other comparability) comparability {
+	if other < c {
+		return other
 	}
-	return true
+	return c
 }
 
-// isComparableType checks if a type expression represents a comparable type.
+// isComparableType reports whether a type expression satisfies Go's
+// "comparable" constraint, which is what helpers such as option.FromZero and
+// option.FromNonZero require.
+//
 // Comparable types in Go include:
 // - Basic types (bool, numeric types, string)
 // - Pointer types
@@ -444,92 +486,132 @@ func isStructComparable(st *ast.StructType, typeParams map[string]string, knownS
 // - Interface types
 // - Structs where all fields are comparable
 // - Arrays where the element type is comparable
+// - Named types whose underlying type is comparable
 //
 // Non-comparable types include:
 // - Slices
 // - Maps
 // - Functions
+// - Named types whose underlying type is one of those
 //
 // typeParams is a map of type parameter names to their constraints (e.g., "T" -> "any", "K" -> "comparable")
-// structTypes is an optional map of named struct types in the current file, used to resolve named type comparability
-func isComparableType(expr ast.Expr, typeParams map[string]string, structTypes ...map[string]*ast.StructType) bool {
-	var knownStructs map[string]*ast.StructType
-	if len(structTypes) > 0 {
-		knownStructs = structTypes[0]
+// decls is an optional map of named types in the package, used to resolve named type comparability
+func isComparableType(expr ast.Expr, typeParams map[string]string, decls ...typeDecls) bool {
+	return comparabilityOf(expr, typeParams, optionalDecls(decls), nil) != notComparable
+}
+
+// isStrictlyComparableType reports whether == on the type can never panic at
+// run time. It is stricter than isComparableType: interface typed values
+// satisfy the "comparable" constraint but panic when two values of the same
+// non-comparable dynamic type are compared, so lenses that rely on value
+// equality (lens.MakeLensStrict) must not be generated for them.
+func isStrictlyComparableType(expr ast.Expr, typeParams map[string]string, decls ...typeDecls) bool {
+	return comparabilityOf(expr, typeParams, optionalDecls(decls), nil) == strictlyComparable
+}
+
+func optionalDecls(decls []typeDecls) typeDecls {
+	if len(decls) > 0 {
+		return decls[0]
 	}
+	return nil
+}
+
+// structComparability returns the weakest comparability over all fields of a
+// struct type.
+func structComparability(st *ast.StructType, typeParams map[string]string, decls typeDecls, visited map[string]bool) comparability {
+	result := strictlyComparable
+	for _, field := range st.Fields.List {
+		result = result.min(comparabilityOf(field.Type, typeParams, decls, visited))
+		if result == notComparable {
+			return notComparable
+		}
+	}
+	return result
+}
+
+// comparabilityOf classifies a type expression.
+//
+// visited guards against cycles while resolving named types. It is created
+// lazily, since the overwhelming majority of types resolve without recursion.
+func comparabilityOf(expr ast.Expr, typeParams map[string]string, decls typeDecls, visited map[string]bool) comparability {
 	switch t := expr.(type) {
 	case *ast.Ident:
 		// Check if this is a type parameter
 		if constraint, isTypeParam := typeParams[t.Name]; isTypeParam {
 			// Type parameter - check its constraint
-			return constraint == "comparable"
-		}
-
-		// If the identifier resolves to a known struct in the current file,
-		// check whether all its fields are comparable. A struct that contains
-		// a slice, map, or function field is not comparable.
-		if knownStructs != nil {
-			if st, ok := knownStructs[t.Name]; ok {
-				return isStructComparable(st, typeParams, knownStructs)
+			if constraint == "comparable" {
+				return strictlyComparable
 			}
+			return notComparable
 		}
 
-		// Basic types and named types
-		// We assume named types are comparable unless they're known non-comparable types
-		name := t.Name
-		// Known non-comparable built-in types
-		if name == "error" {
-			// error is an interface, which is comparable
-			return true
+		// any and error are interfaces: comparable, but == can panic.
+		if t.Name == "any" || t.Name == "error" {
+			return interfaceComparable
 		}
-		// Most basic types and named types are comparable
-		// We can't determine if a custom type is comparable without type checking,
-		// so we assume it is (conservative approach)
-		return true
+
+		// If the identifier resolves to a type declared in this package, the
+		// underlying type decides. A named slice, map or function type, or a
+		// struct that contains one of those, is not comparable.
+		if underlying, ok := decls[t.Name]; ok && !visited[t.Name] {
+			if visited == nil {
+				visited = make(map[string]bool)
+			}
+			visited[t.Name] = true
+			result := comparabilityOf(underlying, typeParams, decls, visited)
+			delete(visited, t.Name)
+			return result
+		}
+
+		// Basic types and named types from outside this package.
+		// We can't determine if such a type is comparable without full type
+		// checking, so we assume it is.
+		return strictlyComparable
 	case *ast.StarExpr:
 		// Pointer types are always comparable
-		return true
+		return strictlyComparable
 	case *ast.ArrayType:
 		// Arrays are comparable if their element type is comparable
 		if t.Len == nil {
 			// This is a slice (no length), slices are not comparable
-			return false
+			return notComparable
 		}
 		// Fixed-size array, check element type
-		return isComparableType(t.Elt, typeParams, knownStructs)
+		return comparabilityOf(t.Elt, typeParams, decls, visited)
 	case *ast.MapType:
 		// Maps are not comparable
-		return false
+		return notComparable
 	case *ast.FuncType:
 		// Functions are not comparable
-		return false
+		return notComparable
 	case *ast.InterfaceType:
-		// Interface types are comparable
-		return true
+		// Interface types satisfy "comparable", but == can panic
+		return interfaceComparable
 	case *ast.StructType:
 		// Inline struct literal: check all fields
-		return isStructComparable(t, typeParams, knownStructs)
+		return structComparability(t, typeParams, decls, visited)
 	case *ast.SelectorExpr:
 		// Qualified identifier (e.g., pkg.Type) from an external package.
 		// Without full type resolution we cannot inspect the type's fields, so we
-		// conservatively return false — a struct whose fields include a slice,
-		// map, or function is not comparable even if its name looks innocent.
+		// conservatively return notComparable — a struct whose fields include a
+		// slice, map, or function is not comparable even if its name looks
+		// innocent.
 		//
 		// Exceptions: types we know are comparable by definition.
 		if ident, ok := t.X.(*ast.Ident); ok {
 			pkgName := ident.Name
 			typeName := t.Sel.Name
-			// context.Context is an interface — always comparable.
+			// context.Context is an interface — comparable, but == can panic.
 			if pkgName == "context" && typeName == "Context" {
-				return true
+				return interfaceComparable
 			}
 			// time.Time is a struct with only comparable fields.
 			if pkgName == "time" && typeName == "Time" {
-				return true
+				return strictlyComparable
 			}
 		}
 		// Unknown cross-package type: conservatively not comparable.
-		return false
+		return notComparable
 	case *ast.IndexExpr, *ast.IndexListExpr:
 		// Generic instantiation: Base[T] or Base[T1, T2, ...]
 		// Extract the base type name and type arguments.
@@ -558,34 +640,37 @@ func isComparableType(expr ast.Expr, typeParams map[string]string, structTypes .
 		// option.Option[A] / Option[A]: comparable iff A is comparable.
 		if typeName == "Option" && (pkgName == "option" || pkgName == "") {
 			if len(typeArgs) == 1 {
-				return isComparableType(typeArgs[0], typeParams, knownStructs)
+				return comparabilityOf(typeArgs[0], typeParams, decls, visited)
 			}
-			return false
+			return notComparable
 		}
 		// either.Either[E,A] / Either[E,A]: comparable iff both E and A are comparable.
 		// (Default implementation stores E and A as plain fields, not pointers.)
 		if typeName == "Either" && (pkgName == "either" || pkgName == "result" || pkgName == "") {
 			if len(typeArgs) == 2 {
-				return isComparableType(typeArgs[0], typeParams, knownStructs) && isComparableType(typeArgs[1], typeParams, knownStructs)
+				return comparabilityOf(typeArgs[0], typeParams, decls, visited).
+					min(comparabilityOf(typeArgs[1], typeParams, decls, visited))
 			}
-			return false
+			return notComparable
 		}
 		// pair.Pair[L,R] / Pair[L,R]: comparable iff both L and R are comparable.
 		if typeName == "Pair" && (pkgName == "pair" || pkgName == "") {
 			if len(typeArgs) == 2 {
-				return isComparableType(typeArgs[0], typeParams, knownStructs) && isComparableType(typeArgs[1], typeParams, knownStructs)
+				return comparabilityOf(typeArgs[0], typeParams, decls, visited).
+					min(comparabilityOf(typeArgs[1], typeParams, decls, visited))
 			}
-			return false
+			return notComparable
 		}
 		// For other generic types, conservatively assume not comparable
-		log.Printf("Not comparable type: %v\n", t)
-		return false
+		return notComparable
 	case *ast.ChanType:
 		// Channel types are comparable
-		return true
+		return strictlyComparable
+	case *ast.ParenExpr:
+		return comparabilityOf(t.X, typeParams, decls, visited)
 	default:
 		// Unknown type, conservatively assume not comparable
-		return false
+		return notComparable
 	}
 }
 
@@ -598,8 +683,8 @@ type embeddedFieldResult struct {
 // extractEmbeddedFields extracts fields from an embedded struct type
 // It returns a slice of embeddedFieldResult for all exported fields in the embedded struct
 // typeParamsMap contains the type parameters of the parent struct (for checking comparability)
-// allStructTypes is the map of all named struct types in the file (for comparability checks)
-func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string, allStructTypes map[string]*ast.StructType) []embeddedFieldResult {
+// allTypeDecls is the map of all named types in the package (for comparability checks)
+func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, file *ast.File, typeParamsMap map[string]string, allTypeDecls typeDecls) []embeddedFieldResult {
 	var results []embeddedFieldResult
 
 	// Get the type name of the embedded field
@@ -669,17 +754,18 @@ func extractEmbeddedFields(embedType ast.Expr, fileImports map[string]string, fi
 					isOptional = true
 				}
 
-				// Check if the type is comparable
-				isComparable := isComparableType(field.Type, typeParamsMap, allStructTypes)
+				// Check how the type behaves under ==
+				fieldComparability := comparabilityOf(field.Type, typeParamsMap, allTypeDecls, nil)
 
 				results = append(results, embeddedFieldResult{
 					fieldInfo: fieldInfo{
-						Name:         name.Name,
-						TypeName:     fieldTypeName,
-						BaseType:     baseType,
-						IsOptional:   isOptional,
-						IsComparable: isComparable,
-						IsEmbedded:   true,
+						Name:                 name.Name,
+						TypeName:             fieldTypeName,
+						BaseType:             baseType,
+						IsOptional:           isOptional,
+						IsComparable:         fieldComparability != notComparable,
+						IsStrictlyComparable: fieldComparability == strictlyComparable,
+						IsEmbedded:           true,
 					},
 					fieldType: field.Type,
 				})
@@ -730,31 +816,36 @@ func buildTypeParamsMap(typeSpec *ast.TypeSpec) map[string]string {
 	return typeParamsMap
 }
 
-// collectStructTypes parses a Go file and returns a map of all named struct
-// types it defines. This is used to build the package-wide struct type map
-// that is passed to isComparableType for cross-file comparability checks.
-func collectStructTypes(filename string) (map[string]*ast.StructType, error) {
+// collectTypeDecls parses a Go file and returns a map of all named types it
+// declares, mapping the name to the type it is declared as. This is used to
+// build the package-wide type map that is passed to isComparableType for
+// cross-file comparability checks. Named slice, map and function types matter
+// as much as structs here: all of them are non-comparable.
+func collectTypeDecls(filename string) (typeDecls, error) {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filename, nil, 0)
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]*ast.StructType)
-	ast.Inspect(node, func(n ast.Node) bool {
-		if ts, ok := n.(*ast.TypeSpec); ok {
-			if st, ok := ts.Type.(*ast.StructType); ok {
-				result[ts.Name.Name] = st
-			}
-		}
-		return true
-	})
+	result := make(typeDecls)
+	collectTypeDeclsInto(node, result)
 	return result, nil
 }
 
+// collectTypeDeclsInto adds every type declaration found in node to decls.
+func collectTypeDeclsInto(node ast.Node, decls typeDecls) {
+	ast.Inspect(node, func(n ast.Node) bool {
+		if ts, ok := n.(*ast.TypeSpec); ok {
+			decls[ts.Name.Name] = ts.Type
+		}
+		return true
+	})
+}
+
 // parseFile parses a Go file and extracts structs with lens annotations.
-// pkgStructTypes is a package-wide map of named struct types (collected from
-// all files in the package) used to resolve cross-file comparability.
-func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]structInfo, string, error) {
+// pkgTypeDecls is a package-wide map of named types (collected from all files
+// in the package) used to resolve cross-file comparability.
+func parseFile(filename string, pkgTypeDecls typeDecls) ([]structInfo, string, error) {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
 	if err != nil {
@@ -779,21 +870,14 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 		fileImports[name] = path
 	}
 
-	// Build the struct type map: start from the package-wide map so that
-	// structs defined in other files of the same package are also visible.
+	// Build the named type map: start from the package-wide map so that types
+	// declared in other files of the same package are also visible.
 	// Then overlay types from this file (in case of name shadowing, the
 	// local definition wins — though that can't happen for package-level types).
-	allStructTypes := make(map[string]*ast.StructType)
+	allTypeDecls := make(typeDecls)
 	// range over nil map is a no-op
-	maps.Copy(allStructTypes, pkgStructTypes)
-	ast.Inspect(node, func(n ast.Node) bool {
-		if ts, ok := n.(*ast.TypeSpec); ok {
-			if st, ok := ts.Type.(*ast.StructType); ok {
-				allStructTypes[ts.Name.Name] = st
-			}
-		}
-		return true
-	})
+	maps.Copy(allTypeDecls, pkgTypeDecls)
+	collectTypeDeclsInto(node, allTypeDecls)
 
 	// First pass: collect all GenDecls with their doc comments
 	declMap := make(map[*ast.TypeSpec]*ast.CommentGroup)
@@ -838,7 +922,7 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 		for _, field := range structType.Fields.List {
 			if len(field.Names) == 0 {
 				// Embedded field - promote its fields
-				embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap, allStructTypes)
+				embeddedResults := extractEmbeddedFields(field.Type, fileImports, node, typeParamsMap, allTypeDecls)
 				for _, embResult := range embeddedResults {
 					// Extract imports from embedded field's type
 					fieldImports := make(map[string]string)
@@ -861,7 +945,6 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 				if true { // Keep the block structure for minimal changes
 					isOptional := false
 					baseType := typeName
-					isComparable := false
 
 					// Check if field is optional:
 					// 1. Pointer types are always optional
@@ -875,10 +958,10 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 						isOptional = true
 					}
 
-					// Check if the type is comparable (for non-optional fields)
-					// For optional fields, we don't need to check since they use LensO
-					isComparable = isComparableType(field.Type, typeParamsMap, allStructTypes)
-					// log.Printf("field %s, type: %v, isComparable: %b\n", name, field.Type, isComparable)
+					// Check how the type behaves under ==: optional lenses need a
+					// type that satisfies "comparable", the strict reference
+					// lenses additionally need == never to panic.
+					fieldComparability := comparabilityOf(field.Type, typeParamsMap, allTypeDecls, nil)
 
 					// Extract imports from this field's type
 					fieldImports := make(map[string]string)
@@ -892,11 +975,12 @@ func parseFile(filename string, pkgStructTypes map[string]*ast.StructType) ([]st
 					}
 
 					fields = append(fields, fieldInfo{
-						Name:         name.Name,
-						TypeName:     typeName,
-						BaseType:     baseType,
-						IsOptional:   isOptional,
-						IsComparable: isComparable,
+						Name:                 name.Name,
+						TypeName:             typeName,
+						BaseType:             baseType,
+						IsOptional:           isOptional,
+						IsComparable:         fieldComparability != notComparable,
+						IsStrictlyComparable: fieldComparability == strictlyComparable,
 					})
 				}
 			}
@@ -941,10 +1025,10 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 		log.Printf("Found %d Go files", len(files))
 	}
 
-	// Pre-pass: collect all named struct types from every non-generated file in
-	// the directory so that cross-file references are resolved when checking
+	// Pre-pass: collect all named types from every non-generated file in the
+	// directory so that cross-file references are resolved when checking
 	// comparability.
-	pkgStructTypes := make(map[string]*ast.StructType)
+	pkgTypeDecls := make(typeDecls)
 	for _, file := range files {
 		baseName := filepath.Base(file)
 		if strings.HasPrefix(baseName, "gen_lens") && strings.HasSuffix(baseName, ".go") {
@@ -954,12 +1038,12 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 		if isTestFile && !includeTestFiles {
 			continue
 		}
-		fileStructTypes, err := collectStructTypes(file)
+		fileTypeDecls, err := collectTypeDecls(file)
 		if err != nil {
-			log.Printf("Warning: failed to collect struct types from %s: %v", file, err)
+			log.Printf("Warning: failed to collect type declarations from %s: %v", file, err)
 			continue
 		}
-		maps.Copy(pkgStructTypes, fileStructTypes)
+		maps.Copy(pkgTypeDecls, fileTypeDecls)
 	}
 
 	// Parse all files and collect structs, separating test and non-test files
@@ -992,7 +1076,7 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 			log.Printf("Parsing file: %s", baseName)
 		}
 
-		structs, pkg, err := parseFile(file, pkgStructTypes)
+		structs, pkg, err := parseFile(file, pkgTypeDecls)
 		if err != nil {
 			log.Printf("Warning: failed to parse %s: %v", file, err)
 			continue
@@ -1040,6 +1124,19 @@ func generateLensHelpers(dir, filename string, verbose, includeTestFiles bool) e
 	return nil
 }
 
+// hasComparableField reports whether any of the structs has at least one
+// comparable field, i.e. whether any optional lens will be generated.
+func hasComparableField(structs []structInfo) bool {
+	for _, s := range structs {
+		for _, f := range s.Fields {
+			if f.IsComparable {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // generateLensFile generates a lens file for the given structs
 func generateLensFile(absDir, filename, packageName string, structs []structInfo, verbose bool) error {
 	// Collect all unique imports from all structs
@@ -1048,39 +1145,40 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 		maps.Copy(allImports, s.Imports)
 	}
 
-	// Create output file
 	outPath := filepath.Join(absDir, filename)
-	f, err := os.Create(filepath.Clean(outPath))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
 	log.Printf("Generating lens code in [%s] for package [%s] with [%d] structs ...", outPath, packageName, len(structs))
 
+	var buf bytes.Buffer
+
 	// Write header
-	writePackage(f, packageName)
+	writePackage(&buf, packageName)
 
 	// Write imports
-	f.WriteString("import (\n")
+	buf.WriteString("import (\n")
 	// Standard fp-go imports always needed
-	f.WriteString("\t__lens \"github.com/IBM/fp-go/v2/optics/lens\"\n")
-	f.WriteString("\t__option \"github.com/IBM/fp-go/v2/option\"\n")
-	f.WriteString("\t__prism \"github.com/IBM/fp-go/v2/optics/prism\"\n")
-	f.WriteString("\t__lens_option \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
-	f.WriteString("\t__iso_option \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
-
-	// Add additional imports collected from field types
-	for importPath, alias := range allImports {
-		f.WriteString("\t" + alias + " \"" + importPath + "\"\n")
+	buf.WriteString("\t__lens \"github.com/IBM/fp-go/v2/optics/lens\"\n")
+	buf.WriteString("\t__option \"github.com/IBM/fp-go/v2/option\"\n")
+	buf.WriteString("\t__prism \"github.com/IBM/fp-go/v2/optics/prism\"\n")
+	// The optional lenses only exist for comparable fields. A struct whose
+	// fields are all non-comparable (slices, maps, functions) produces no
+	// optional lens at all, and importing these packages would then leave the
+	// generated file with unused imports.
+	if hasComparableField(structs) {
+		buf.WriteString("\t__lens_option \"github.com/IBM/fp-go/v2/optics/lens/option\"\n")
+		buf.WriteString("\t__iso_option \"github.com/IBM/fp-go/v2/optics/iso/option\"\n")
 	}
 
-	f.WriteString(")\n")
+	// Add additional imports collected from field types, in a stable order so
+	// that regenerating an unchanged package produces an unchanged file.
+	for _, importPath := range slices.Sorted(maps.Keys(allImports)) {
+		buf.WriteString("\t" + allImports[importPath] + " \"" + importPath + "\"\n")
+	}
+
+	buf.WriteString(")\n")
 
 	// Generate lens code for each struct using templates
 	for _, s := range structs {
-		var buf bytes.Buffer
-
 		// Generate struct type
 		if err := structTmpl.Execute(&buf, s); err != nil {
 			return err
@@ -1090,14 +1188,19 @@ func generateLensFile(absDir, filename, packageName string, structs []structInfo
 		if err := constructorTmpl.Execute(&buf, s); err != nil {
 			return err
 		}
-
-		// Write to file
-		if _, err := f.Write(buf.Bytes()); err != nil {
-			return err
-		}
 	}
 
-	return nil
+	// Format the result. If the generated code does not parse, write it out
+	// unformatted anyway so that the compiler can point at the offending line.
+	content := buf.Bytes()
+	formatted, err := format.Source(content)
+	if err != nil {
+		log.Printf("Warning: generated code for [%s] is not valid Go: %v", outPath, err)
+	} else {
+		content = formatted
+	}
+
+	return os.WriteFile(filepath.Clean(outPath), content, 0o644)
 }
 
 // LensCommand creates the CLI command for lens generation.

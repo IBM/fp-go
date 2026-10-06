@@ -17,10 +17,10 @@ package cli
 
 import (
 	"fmt"
-	"os"
+	"io"
 )
 
-func writePackage(f *os.File, pkg string) {
+func writePackage(f io.Writer, pkg string) {
 	// print package
 	fmt.Fprintf(f, "package %s\n\n", pkg)
 	// some header
