@@ -23,6 +23,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -466,16 +467,9 @@ type T struct { F Inner }`,
 			file, err := parser.ParseFile(fset, "", tt.src, 0)
 			require.NoError(t, err)
 
-			// Build the allStructTypes map as parseFile does
-			allStructTypes := make(map[string]*ast.StructType)
-			ast.Inspect(file, func(n ast.Node) bool {
-				if ts, ok := n.(*ast.TypeSpec); ok {
-					if st, ok := ts.Type.(*ast.StructType); ok {
-						allStructTypes[ts.Name.Name] = st
-					}
-				}
-				return true
-			})
+			// Build the allTypeDecls map as parseFile does
+			allTypeDecls := make(typeDecls)
+			collectTypeDeclsInto(file, allTypeDecls)
 
 			// Extract the field type of F from struct T
 			var fieldType ast.Expr
@@ -496,7 +490,7 @@ type T struct { F Inner }`,
 			})
 
 			require.NotNil(t, fieldType)
-			result := isComparableType(fieldType, map[string]string{}, allStructTypes)
+			result := isComparableType(fieldType, map[string]string{}, allTypeDecls)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -567,16 +561,16 @@ type Outer struct {
 }
 `), 0o644))
 
-	// Build the package-wide struct type map by collecting from both files
-	pkgStructTypes := make(map[string]*ast.StructType)
+	// Build the package-wide type map by collecting from both files
+	pkgTypeDecls := make(typeDecls)
 	for _, f := range []string{fileA, fileB} {
-		fileTypes, err := collectStructTypes(f)
+		fileTypes, err := collectTypeDecls(f)
 		require.NoError(t, err)
-		maps.Copy(pkgStructTypes, fileTypes)
+		maps.Copy(pkgTypeDecls, fileTypes)
 	}
 
 	// Parse only fileB (the annotated file), but pass the full package map
-	structs, _, err := parseFile(fileB, pkgStructTypes)
+	structs, _, err := parseFile(fileB, pkgTypeDecls)
 	require.NoError(t, err)
 	require.Len(t, structs, 1)
 
@@ -588,7 +582,7 @@ type Outer struct {
 	assert.True(t, outer.Fields[0].IsComparable, "string field should be comparable")
 
 	// Data is Inner (defined in fileA) which contains a slice — not comparable.
-	// Without the package-wide pkgStructTypes map this would incorrectly be true.
+	// Without the package-wide pkgTypeDecls map this would incorrectly be true.
 	assert.Equal(t, "Data", outer.Fields[1].Name)
 	assert.False(t, outer.Fields[1].IsComparable, "cross-file struct field containing a slice should not be comparable")
 }
@@ -862,9 +856,9 @@ type TypeTest struct {
 	assert.False(t, typeTest.Fields[4].IsOptional)
 	assert.False(t, typeTest.Fields[4].IsComparable, "map should not be comparable")
 
-	// Channel - comparable (note: getTypeName returns "any" for channel types, but isComparableType correctly identifies them)
+	// Channel - comparable, and the channel type is rendered verbatim
 	assert.Equal(t, "Channel", typeTest.Fields[5].Name)
-	assert.Equal(t, "any", typeTest.Fields[5].TypeName) // getTypeName doesn't handle chan types specifically
+	assert.Equal(t, "chan int", typeTest.Fields[5].TypeName)
 	assert.False(t, typeTest.Fields[5].IsOptional)
 	assert.True(t, typeTest.Fields[5].IsComparable, "channel should be comparable")
 }
@@ -873,8 +867,8 @@ func TestLensRefTemplatesWithComparable(t *testing.T) {
 	s := structInfo{
 		Name: "TestStruct",
 		Fields: []fieldInfo{
-			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true},
-			{Name: "Age", TypeName: "int", IsOptional: false, IsComparable: true},
+			{Name: "Name", TypeName: "string", IsOptional: false, IsComparable: true, IsStrictlyComparable: true},
+			{Name: "Age", TypeName: "int", IsOptional: false, IsComparable: true, IsStrictlyComparable: true},
 			{Name: "Data", TypeName: "[]byte", IsOptional: false, IsComparable: false},
 			{Name: "Pointer", TypeName: "*string", IsOptional: true, IsComparable: false},
 		},
@@ -936,7 +930,7 @@ type TestStruct struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content in RefLenses
 	assert.Contains(t, contentStr, "MakeTestStructRefLenses")
@@ -991,7 +985,7 @@ type TestStruct struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content
 	assert.Contains(t, contentStr, "package testpkg")
@@ -1218,7 +1212,7 @@ type Person struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content
 	assert.Contains(t, contentStr, "package testpkg")
@@ -1392,7 +1386,7 @@ type Box[T any] struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content with type parameters
 	assert.Contains(t, contentStr, "package testpkg")
@@ -1443,7 +1437,7 @@ type ComparableBox[T comparable] struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content with type parameters
 	assert.Contains(t, contentStr, "package testpkg")
@@ -1545,7 +1539,7 @@ type MixedStruct struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content
 	assert.Contains(t, contentStr, "package testpkg")
@@ -1642,7 +1636,7 @@ type ExtendedConfig struct {
 	content, err := os.ReadFile(genPath)
 	require.NoError(t, err)
 
-	contentStr := string(content)
+	contentStr := collapseSpaces(string(content))
 
 	// Check for expected content
 	assert.Contains(t, contentStr, "package testpkg")
@@ -1710,4 +1704,11 @@ type ComplexStruct struct {
 	assert.True(t, complex.Fields[5].IsOptional, "internalID (pointer) should be optional")
 	assert.True(t, complex.Fields[6].IsOptional, "PublicWithTag (with omitempty) should be optional")
 	assert.True(t, complex.Fields[7].IsOptional, "privateWithTag (with omitempty) should be optional")
+}
+
+// collapseSpaces collapses runs of spaces and tabs into a single space.
+// Generated code is gofmt'ed, so struct fields are aligned in columns.
+// Assertions on the generated source should not depend on that alignment.
+func collapseSpaces(s string) string {
+	return regexp.MustCompile(`[ \t]+`).ReplaceAllString(s, " ")
 }

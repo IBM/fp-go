@@ -72,3 +72,19 @@ type DataBuilder struct {
 	name  string
 	value string
 }
+
+// Tags is a named slice type. Named types whose underlying type is a slice,
+// map or function are not comparable, so no optional lens is generated for
+// fields of such a type.
+type Tags []string
+
+// fp-go:Lens
+type Document struct {
+	Title    string
+	Tags     Tags
+	Lines    []string
+	Metadata map[string]string
+	Render   func(string) string
+	Checksum [4]byte
+	Payload  any
+}
