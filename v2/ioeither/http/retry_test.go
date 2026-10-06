@@ -16,8 +16,12 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +29,8 @@ import (
 	E "github.com/IBM/fp-go/v2/either"
 	"github.com/IBM/fp-go/v2/errors"
 	F "github.com/IBM/fp-go/v2/function"
+	C "github.com/IBM/fp-go/v2/http/content"
+	HD "github.com/IBM/fp-go/v2/http/headers"
 	"github.com/IBM/fp-go/v2/ioeither"
 	O "github.com/IBM/fp-go/v2/option"
 	R "github.com/IBM/fp-go/v2/retry"
@@ -46,10 +52,39 @@ type PostItem struct {
 	Body   string `json:"body"`
 }
 
+// testPost is the item served by the test server.
+var testPost = PostItem{UserID: 1, Id: 1, Title: "title", Body: "body"}
+
+// unresolvableHosts fails the lookup of hosts in the reserved ".invalid" top level
+// domain (RFC 2606) with a DNS error, without depending on the network.
+func unresolvableHosts() *http.Transport {
+	dialer := &net.Dialer{}
+	return &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, _, err := net.SplitHostPort(addr)
+			if err == nil && strings.HasSuffix(host, ".invalid") {
+				return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+			}
+			return dialer.DialContext(ctx, network, addr)
+		},
+	}
+}
+
+// postServer serves testPost as JSON.
+func postServer(t *testing.T) *httptest.Server {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set(HD.ContentType, C.JSON)
+		_ = json.NewEncoder(w).Encode(testPost)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
 func TestRetryHttp(t *testing.T) {
-	// URLs to try, the first URLs have an invalid hostname
-	urls := AR.From("https://jsonplaceholder1.typicode.com/posts/1", "https://jsonplaceholder2.typicode.com/posts/1", "https://jsonplaceholder3.typicode.com/posts/1", "https://jsonplaceholder4.typicode.com/posts/1", "https://jsonplaceholder.typicode.com/posts/1")
-	client := MakeClient(&http.Client{})
+	// URLs to try, the first URLs have a hostname that cannot be resolved
+	srv := postServer(t)
+	urls := AR.From("http://host1.invalid/posts/1", "http://host2.invalid/posts/1", "http://host3.invalid/posts/1", "http://host4.invalid/posts/1", srv.URL+"/posts/1")
+	client := MakeClient(&http.Client{Transport: unresolvableHosts()})
 
 	action := func(status R.RetryStatus) ioeither.IOEither[error, *PostItem] {
 		return F.Pipe1(
@@ -67,5 +102,5 @@ func TestRetryHttp(t *testing.T) {
 	)
 
 	item := ioeither.Retrying(testLogPolicy, action, check)()
-	assert.True(t, E.IsRight(item))
+	assert.Equal(t, E.Right[error](&testPost), item)
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/readerresult"
 	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/tailrec"
 )
 
 type (
@@ -117,4 +118,9 @@ type (
 	Option[T any] = option.Option[T]
 
 	ReaderResult[R, A any] = readerresult.ReaderResult[R, A]
+
+	// Trampoline represents one step of a tail-recursive computation: either
+	// Bounce with the next state B or Land with the final result L.
+	// It is an alias for tailrec.Trampoline[B, L] and is used by TailRec.
+	Trampoline[B, L any] = tailrec.Trampoline[B, L]
 )
