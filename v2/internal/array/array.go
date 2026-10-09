@@ -27,31 +27,33 @@ func Of[GA ~[]A, A any](a A) GA {
 // Returns nil (representing an empty array) when the resulting range is empty.
 func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 	return func(as GA) GA {
+		// copy the captured bounds so that each call resolves them afresh
+		lo, hi := low, high
 		length := len(as)
 
 		// Handle negative indices - count backward from the end
-		if low < 0 {
-			low = max(length+low, 0)
+		if lo < 0 {
+			lo = max(length+lo, 0)
 		}
-		if high < 0 {
-			high = max(length+high, 0)
+		if hi < 0 {
+			hi = max(length+hi, 0)
 		}
 
-		if low > length {
+		if lo > length {
 			return nil
 		}
 
 		// End index > array length: slice to the end
-		if high > length {
-			high = length
+		if hi > length {
+			hi = length
 		}
 
 		// Start >= end: return empty array
-		if low >= high {
+		if lo >= hi {
 			return nil
 		}
 
-		return as[low:high]
+		return as[lo:hi]
 	}
 }
 
@@ -60,19 +62,21 @@ func Slice[GA ~[]A, A any](low, high int) func(as GA) GA {
 // Returns nil (representing an empty array) when start is at or beyond the end.
 func SliceRight[GA ~[]A, A any](start int) func(as GA) GA {
 	return func(as GA) GA {
+		// copy the captured start so that each call resolves it afresh
+		s := start
 		length := len(as)
 
 		// Handle negative indices - count backward from the end
-		if start < 0 {
-			start = max(length+start, 0)
+		if s < 0 {
+			s = max(length+s, 0)
 		}
 
 		// Start index >= array length: return empty array
-		if start >= length {
+		if s >= length {
 			return nil
 		}
 
-		return as[start:]
+		return as[s:]
 	}
 }
 

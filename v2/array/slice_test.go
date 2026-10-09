@@ -17,6 +17,7 @@ package array
 
 import (
 	"slices"
+	"sync"
 	"testing"
 
 	N "github.com/IBM/fp-go/v2/number"
@@ -396,5 +397,52 @@ func TestSlicePropertyBased(t *testing.T) {
 			found := slices.Contains(data, elem)
 			assert.True(t, found, "Element %d should be in original array", elem)
 		}
+	})
+}
+
+// TestSliceReuse verifies that an operator built once by Slice or SliceRight
+// is pure: earlier calls must not change the bounds seen by later calls.
+func TestSliceReuse(t *testing.T) {
+	t.Run("positive upper bound does not shrink after a shorter input", func(t *testing.T) {
+		op := Slice[int](0, 3)
+		assert.Equal(t, []int{1}, op([]int{1}))
+		assert.Equal(t, []int{1, 2, 3}, op([]int{1, 2, 3, 4}))
+	})
+
+	t.Run("negative indices are resolved per input in Slice", func(t *testing.T) {
+		op := Slice[int](-2, 10)
+		assert.Equal(t, []int{2, 3}, op([]int{1, 2, 3}))
+		assert.Equal(t, []int{5, 6}, op([]int{1, 2, 3, 4, 5, 6}))
+	})
+
+	t.Run("negative upper bound is resolved per input in Slice", func(t *testing.T) {
+		op := Slice[int](0, -1)
+		assert.Equal(t, []int{1, 2}, op([]int{1, 2, 3}))
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, op([]int{1, 2, 3, 4, 5, 6}))
+	})
+
+	t.Run("negative start is resolved per input in SliceRight", func(t *testing.T) {
+		op := SliceRight[int](-2)
+		assert.Equal(t, []int{2, 3}, op([]int{1, 2, 3}))
+		assert.Equal(t, []int{5, 6}, op([]int{1, 2, 3, 4, 5, 6}))
+	})
+
+	t.Run("shared operator is safe for concurrent use", func(t *testing.T) {
+		op := Slice[int](-2, 3)
+		short := []int{1, 2}
+		long := []int{1, 2, 3, 4, 5, 6}
+		var wg sync.WaitGroup
+		for range 100 {
+			wg.Add(2)
+			go func() {
+				defer wg.Done()
+				assert.Equal(t, []int{1, 2}, op(short))
+			}()
+			go func() {
+				defer wg.Done()
+				assert.Nil(t, op(long))
+			}()
+		}
+		wg.Wait()
 	})
 }
