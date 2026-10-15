@@ -229,6 +229,12 @@ func FromEither[A any](e Result[A]) SeqResult[A] {
 	return itereither.FromEither(e)
 }
 
+// FromResult lifts a Result into a single-element SeqResult.
+// It is an alias for [FromEither] with more explicit naming.
+func FromResult[A any](e Result[A]) SeqResult[A] {
+	return FromEither(e)
+}
+
 // FromOption converts an Option[A] to a single-element SeqResult.
 // Some(a) becomes a success (Right(a)).
 // None becomes an error produced by calling onNone.
@@ -439,6 +445,16 @@ func MonadChainEitherK[A, B any](ma SeqResult[A], f result.Kleisli[A, B]) SeqRes
 //	// yields: Ok(10), Left(error("negative"))
 func ChainEitherK[A, B any](f result.Kleisli[A, B]) Operator[A, B] {
 	return itereither.ChainEitherK(f)
+}
+
+// MonadChainResultK is an alias for [MonadChainEitherK] with more explicit naming.
+func MonadChainResultK[A, B any](ma SeqResult[A], f result.Kleisli[A, B]) SeqResult[B] {
+	return MonadChainEitherK(ma, f)
+}
+
+// ChainResultK is an alias for [ChainEitherK] with more explicit naming.
+func ChainResultK[A, B any](f result.Kleisli[A, B]) Operator[A, B] {
+	return ChainEitherK(f)
 }
 
 // MonadAp applies a function wrapped in a SeqResult to a value wrapped in a SeqResult
@@ -1034,6 +1050,13 @@ func TapIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
 	return itereither.TapIOK[error](f)
 }
 
+// MonadTapIOK is an alias for [MonadChainFirstIOK]. It executes an IO side
+// effect for each success value and passes the original value through unchanged.
+// Error values pass through without calling f.
+func MonadTapIOK[A, B any](ma SeqResult[A], f io.Kleisli[A, B]) SeqResult[A] {
+	return MonadChainFirstIOK(ma, f)
+}
+
 // MonadChainIOK is the uncurried form of ChainIOK.
 // For each success value a in ma, it calls f(a) to obtain an IO[B], executes
 // it, and yields Ok(b) where b is the IO result.
@@ -1166,4 +1189,12 @@ func ChainFirstIOResultK[A, B any](f ioresult.Kleisli[A, B]) Operator[A, A] {
 //	// yields: Ok(1), Ok(2) (and prints on iteration)
 func TapIOResultK[A, B any](f ioresult.Kleisli[A, B]) Operator[A, A] {
 	return ChainFirstIOResultK(f)
+}
+
+// MonadTapIOResultK is an alias for [MonadChainFirstIOResultK]. It executes a
+// side-effecting [ioresult.Kleisli] computation on each success value and
+// passes the original value through unchanged. Error elements pass through
+// without calling f.
+func MonadTapIOResultK[A, B any](ma SeqResult[A], f ioresult.Kleisli[A, B]) SeqResult[A] {
+	return MonadChainFirstIOResultK(ma, f)
 }

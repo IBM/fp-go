@@ -1215,6 +1215,50 @@ func ChainFirstResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
 	return readereither.ChainFirstEitherK[R](f)
 }
 
+// MonadTapResultK is an alias for MonadChainFirstResultK.
+// It runs a Result-returning side-effect function and preserves the original value.
+//
+//go:inline
+func MonadTapResultK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, A] {
+	return readereither.MonadTapEitherK(ma, f)
+}
+
+// TapResultK is an alias for ChainFirstResultK.
+// It runs a Result-returning side-effect function and preserves the original value.
+//
+//go:inline
+func TapResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
+	return readereither.TapEitherK[R](f)
+}
+
+// MonadChainFirstEitherK is an alias for MonadChainFirstResultK, named after the Either form.
+//
+//go:inline
+func MonadChainFirstEitherK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, A] {
+	return readereither.MonadChainFirstEitherK(ma, f)
+}
+
+// ChainFirstEitherK is an alias for ChainFirstResultK, named after the Either form.
+//
+//go:inline
+func ChainFirstEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
+	return readereither.ChainFirstEitherK[R](f)
+}
+
+// MonadTapEitherK is an alias for MonadTapResultK, named after the Either form.
+//
+//go:inline
+func MonadTapEitherK[R, A, B any](ma ReaderResult[R, A], f result.Kleisli[A, B]) ReaderResult[R, A] {
+	return readereither.MonadTapEitherK(ma, f)
+}
+
+// TapEitherK is an alias for TapResultK, named after the Either form.
+//
+//go:inline
+func TapEitherK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
+	return readereither.TapEitherK[R](f)
+}
+
 // MonadChainFirstResultIK is the idiomatic version of MonadChainFirstResultK.
 // It executes an idiomatic side-effect function returning (B, error) on the success
 // value of ma but preserves the original value. If ma is already failed, f is not called.

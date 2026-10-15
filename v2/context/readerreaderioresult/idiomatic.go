@@ -484,8 +484,7 @@ func ChainOptionIK[R, A, B any](onNone Lazy[error]) func(OI.Kleisli[A, B]) Opera
 // ChainFirstIOEitherIK runs an idiomatic, deferred `func(A) func() (B, error)` for
 // its side effects and keeps the original value.
 //
-// Note that this package has no functional ChainFirstIOEitherK counterpart; the
-// operator is built from [ChainFirst] and [FromIOResult].
+// It is the idiomatic counterpart of [ChainFirstIOEitherK].
 //
 //go:inline
 func ChainFirstIOEitherIK[R, A, B any](f IORI.Kleisli[A, B]) Operator[R, A, A] {

@@ -252,6 +252,22 @@ func ChainFirstIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
 	)
 }
 
+// MonadTapIOK is an alias for [MonadChainFirstIOK]. It executes an IO side
+// effect for a Some value and returns the original IOOption unchanged.
+//
+//go:inline
+func MonadTapIOK[A, B any](first IOOption[A], f io.Kleisli[A, B]) IOOption[A] {
+	return MonadChainFirstIOK(first, f)
+}
+
+// TapIOK is an alias for [ChainFirstIOK]. It executes an IO side effect for a
+// Some value and returns the original IOOption unchanged.
+//
+//go:inline
+func TapIOK[A, B any](f io.Kleisli[A, B]) Operator[A, A] {
+	return ChainFirstIOK(f)
+}
+
 // Delay creates an operation that passes in the value after some delay
 func Delay[A any](delay time.Duration) Operator[A, A] {
 	return io.Delay[Option[A]](delay)

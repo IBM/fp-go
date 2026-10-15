@@ -83,6 +83,35 @@ func FromIO[C, A any](f IO[A]) Effect[C, A] {
 	return readerreaderioresult.FromIO[C](f)
 }
 
+// FromIOResult lifts an IOResult computation into an Effect.
+// The IOResult is not executed until the effect is run. A successful IOResult
+// yields a successful Effect; a failed one yields a failed Effect. Unlike
+// FromThunk, the action does not see the runtime context.Context.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect (not used by the IOResult)
+//   - A: The type of the success value
+//
+// # Parameters
+//
+//   - ma: An IOResult[A] action to lift
+//
+// # Returns
+//
+//   - Effect[C, A]: An effect that succeeds or fails according to ma
+//
+// # See Also
+//
+//   - FromIO: Lifts an IO computation that cannot fail
+//   - FromThunk: Similar but the action sees context.Context
+//   - ChainIOResultK: Chains an IOResult-returning function
+//
+//go:inline
+func FromIOResult[C, A any](ma IOResult[A]) Effect[C, A] {
+	return readerreaderioresult.FromIOResult[C](ma)
+}
+
 // FromResult lifts an already-computed Result into an Effect.
 // A Right value becomes a successful Effect; a Left value becomes a failed Effect.
 //
@@ -409,6 +438,214 @@ func TapIOK[C, A, B any](f io.Kleisli[A, B]) Operator[C, A, A] {
 	return readerreaderioresult.ChainFirstIOK[C](f)
 }
 
+// MonadChainIOK chains an effect with a function that returns an IO action.
+// This is the monadic version of ChainIOK that takes the effect as the first parameter.
+//
+// # See Also
+//
+//   - ChainIOK: Curried version
+//
+//go:inline
+func MonadChainIOK[C, A, B any](ma Effect[C, A], f io.Kleisli[A, B]) Effect[C, B] {
+	return readerreaderioresult.MonadChainIOK(ma, f)
+}
+
+// MonadChainFirstIOK executes an IO action for its side effect and preserves the original value.
+// This is the monadic version of ChainFirstIOK that takes the effect as the first parameter.
+//
+// # See Also
+//
+//   - ChainFirstIOK: Curried version
+//   - MonadTapIOK: Alias for MonadChainFirstIOK
+//
+//go:inline
+func MonadChainFirstIOK[C, A, B any](ma Effect[C, A], f io.Kleisli[A, B]) Effect[C, A] {
+	return readerreaderioresult.MonadChainFirstIOK(ma, f)
+}
+
+// MonadTapIOK is an alias for MonadChainFirstIOK.
+//
+// # See Also
+//
+//   - TapIOK: Curried version
+//
+//go:inline
+func MonadTapIOK[C, A, B any](ma Effect[C, A], f io.Kleisli[A, B]) Effect[C, A] {
+	return readerreaderioresult.MonadTapIOK(ma, f)
+}
+
+// ChainIOResultK chains an effect with a function that returns an IOResult.
+// This is useful for integrating synchronous side effects that may fail (such as
+// file or database access) into effect chains. The IOResult is automatically
+// lifted into the Effect context; if it fails, its error short-circuits the chain.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns IOResult[B]
+//
+// # Returns
+//
+//   - Operator[C, A, B]: A function that chains the IOResult-returning function with the effect
+//
+// # See Also
+//
+//   - MonadChainIOResultK: Monadic version
+//   - ChainIOK: Similar but the IO cannot fail
+//   - ChainThunkK: Similar but the IO also sees context.Context
+//
+//go:inline
+func ChainIOResultK[C, A, B any](f ioresult.Kleisli[A, B]) Operator[C, A, B] {
+	return readerreaderioresult.ChainIOResultK[C](f)
+}
+
+// MonadChainIOResultK chains an effect with a function that returns an IOResult.
+// This is the monadic version of ChainIOResultK that takes the effect as the first parameter.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The input value type
+//   - B: The output value type
+//
+// # Parameters
+//
+//   - ma: The effect to chain from
+//   - f: A function that takes A and returns IOResult[B]
+//
+// # Returns
+//
+//   - Effect[C, B]: The chained effect
+//
+// # See Also
+//
+//   - ChainIOResultK: Curried version
+//
+//go:inline
+func MonadChainIOResultK[C, A, B any](ma Effect[C, A], f ioresult.Kleisli[A, B]) Effect[C, B] {
+	return readerreaderioresult.MonadChainIOResultK(ma, f)
+}
+
+// ChainFirstIOResultK chains an effect with a function that returns an IOResult,
+// but discards the result and returns the original value. If the IOResult fails,
+// its error replaces the original value.
+// This is useful for side effects that may fail, such as writing an audit record,
+// where the failure must not go unnoticed.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the IOResult (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns IOResult[B] for side effects
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that executes the IOResult but preserves the original value
+//
+// # See Also
+//
+//   - TapIOResultK: Alias for ChainFirstIOResultK
+//   - MonadChainFirstIOResultK: Monadic version
+//   - ChainFirstIOK: Similar but the IO cannot fail
+//
+//go:inline
+func ChainFirstIOResultK[C, A, B any](f ioresult.Kleisli[A, B]) Operator[C, A, A] {
+	return readerreaderioresult.ChainFirstIOResultK[C](f)
+}
+
+// MonadChainFirstIOResultK is the monadic version of ChainFirstIOResultK.
+// It executes the IOResult for its side effect and preserves the original value,
+// unless the IOResult fails.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the IOResult (discarded)
+//
+// # Parameters
+//
+//   - ma: The effect to chain from
+//   - f: A function that takes A and returns IOResult[B] for side effects
+//
+// # Returns
+//
+//   - Effect[C, A]: An effect that produces the original value
+//
+// # See Also
+//
+//   - ChainFirstIOResultK: Curried version
+//   - MonadTapIOResultK: Alias for MonadChainFirstIOResultK
+//
+//go:inline
+func MonadChainFirstIOResultK[C, A, B any](ma Effect[C, A], f ioresult.Kleisli[A, B]) Effect[C, A] {
+	return readerreaderioresult.MonadChainFirstIOResultK(ma, f)
+}
+
+// TapIOResultK is an alias for ChainFirstIOResultK.
+// It executes an IOResult for its side effect but preserves the original value.
+// If the IOResult fails, its error replaces the original value.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the IOResult (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns IOResult[B] for side effects
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that executes the IOResult but preserves the original value
+//
+// # See Also
+//
+//   - ChainFirstIOResultK: The underlying implementation
+//   - TapIOK: Similar but the IO cannot fail
+//
+//go:inline
+func TapIOResultK[C, A, B any](f ioresult.Kleisli[A, B]) Operator[C, A, A] {
+	return readerreaderioresult.TapIOResultK[C](f)
+}
+
+// MonadTapIOResultK is an alias for MonadChainFirstIOResultK.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the IOResult (discarded)
+//
+// # Parameters
+//
+//   - ma: The effect to chain from
+//   - f: A function that takes A and returns IOResult[B] for side effects
+//
+// # Returns
+//
+//   - Effect[C, A]: An effect that produces the original value
+//
+// # See Also
+//
+//   - TapIOResultK: Curried version
+//   - MonadChainFirstIOResultK: The underlying implementation
+//
+//go:inline
+func MonadTapIOResultK[C, A, B any](ma Effect[C, A], f ioresult.Kleisli[A, B]) Effect[C, A] {
+	return readerreaderioresult.MonadTapIOResultK(ma, f)
+}
+
 // Ap applies a function wrapped in an Effect to a value wrapped in an Effect.
 // This is the applicative apply operation. Because neither effect depends on the
 // other's result, both are run in parallel; the result fails if either one fails.
@@ -521,6 +758,67 @@ func Ternary[C, A, B any](pred Predicate[A], onTrue, onFalse Kleisli[C, A, B]) K
 //go:inline
 func ChainResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, B] {
 	return readerreaderioresult.ChainResultK[C](f)
+}
+
+// MonadChainResultK chains an effect with a function that returns a Result.
+// This is the monadic version of ChainResultK that takes the effect as the first parameter.
+//
+// # See Also
+//
+//   - ChainResultK: Curried version
+//
+//go:inline
+func MonadChainResultK[C, A, B any](ma Effect[C, A], f result.Kleisli[A, B]) Effect[C, B] {
+	return readerreaderioresult.MonadChainResultK(ma, f)
+}
+
+// ChainFirstResultK runs a Result-returning function for its side effect (typically a
+// validation) and preserves the original value. If the function fails, its error
+// replaces the original value.
+//
+// # Type Parameters
+//
+//   - C: The context type required by the effect
+//   - A: The value type (preserved)
+//   - B: The type produced by the Result (discarded)
+//
+// # Parameters
+//
+//   - f: A function that takes A and returns Result[B]
+//
+// # Returns
+//
+//   - Operator[C, A, A]: A function that runs the check but preserves the original value
+//
+// # See Also
+//
+//   - TapResultK: Alias for ChainFirstResultK
+//   - MonadChainFirstResultK: Monadic version
+//
+//go:inline
+func ChainFirstResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, A] {
+	return readerreaderioresult.ChainFirstResultK[C](f)
+}
+
+// MonadChainFirstResultK is the monadic version of ChainFirstResultK.
+//
+//go:inline
+func MonadChainFirstResultK[C, A, B any](ma Effect[C, A], f result.Kleisli[A, B]) Effect[C, A] {
+	return readerreaderioresult.MonadChainFirstResultK(ma, f)
+}
+
+// TapResultK is an alias for ChainFirstResultK.
+//
+//go:inline
+func TapResultK[C, A, B any](f result.Kleisli[A, B]) Operator[C, A, A] {
+	return readerreaderioresult.TapResultK[C](f)
+}
+
+// MonadTapResultK is an alias for MonadChainFirstResultK.
+//
+//go:inline
+func MonadTapResultK[C, A, B any](ma Effect[C, A], f result.Kleisli[A, B]) Effect[C, A] {
+	return readerreaderioresult.MonadTapResultK(ma, f)
 }
 
 // ChainReaderK chains an effect with a function that returns a Reader.

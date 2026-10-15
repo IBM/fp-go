@@ -568,3 +568,21 @@ func ChainFirstEitherK[E, L, A, B any](f either.Kleisli[L, A, B]) func(ReaderEit
 		f,
 	)
 }
+
+// MonadTapEitherK is an alias for MonadChainFirstEitherK. It executes an Either
+// computation for its side effect and keeps the original value; if the Either
+// is a Left, it replaces the original value.
+//
+//go:inline
+func MonadTapEitherK[E, L, A, B any](ma ReaderEither[E, L, A], f either.Kleisli[L, A, B]) ReaderEither[E, L, A] {
+	return MonadChainFirstEitherK(ma, f)
+}
+
+// TapEitherK is an alias for ChainFirstEitherK. It executes an Either
+// computation for its side effect and keeps the original value; if the Either
+// is a Left, it replaces the original value.
+//
+//go:inline
+func TapEitherK[E, L, A, B any](f either.Kleisli[L, A, B]) func(ReaderEither[E, L, A]) ReaderEither[E, L, A] {
+	return ChainFirstEitherK[E](f)
+}

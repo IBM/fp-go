@@ -2675,3 +2675,34 @@ func TestTapIOEitherK(t *testing.T) {
 		assert.ElementsMatch(t, []int{1, 3}, seen)
 	})
 }
+
+func TestMonadTapIOEitherK(t *testing.T) {
+	t.Run("is an alias for MonadChainFirstIOEitherK", func(t *testing.T) {
+		f := func(n int) func() E.Either[string, string] {
+			return func() E.Either[string, string] { return E.Right[string]("ok") }
+		}
+		seq := iter.From(E.Right[string](5), E.Left[int]("err"))
+		assert.Equal(t,
+			collectEithers(MonadChainFirstIOEitherK(seq, f)),
+			collectEithers(MonadTapIOEitherK(seq, f)),
+		)
+	})
+
+	t.Run("failing side effect replaces the value", func(t *testing.T) {
+		f := func(n int) func() E.Either[string, string] {
+			return func() E.Either[string, string] { return E.Left[string]("tap failed") }
+		}
+		seq := iter.From(E.Right[string](5))
+		assert.Equal(t, []E.Either[string, int]{E.Left[int]("tap failed")}, collectEithers(MonadTapIOEitherK(seq, f)))
+	})
+}
+
+func TestMonadTapIOK(t *testing.T) {
+	var seen []int
+	record := func(n int) func() string {
+		return func() string { seen = append(seen, n); return "" }
+	}
+	seq := iter.From(E.Right[string](1), E.Left[int]("err"), E.Right[string](3))
+	assert.Equal(t, collectEithers(TapIOK[string](record)(seq)), collectEithers(MonadTapIOK(seq, record)))
+	assert.Equal(t, []int{1, 3, 1, 3}, seen)
+}

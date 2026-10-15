@@ -31,6 +31,7 @@ import (
 	"github.com/IBM/fp-go/v2/internal/readert"
 	"github.com/IBM/fp-go/v2/io"
 	IOE "github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/option"
 	"github.com/IBM/fp-go/v2/reader"
 	RE "github.com/IBM/fp-go/v2/readereither"
@@ -184,6 +185,13 @@ func ChainResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, B] {
 	)
 }
 
+// MonadChainResultK is an alias for MonadChainEitherK with more explicit naming.
+//
+//go:inline
+func MonadChainResultK[R, A, B any](ma ReaderReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderReaderIOResult[R, B] {
+	return MonadChainEitherK(ma, f)
+}
+
 // MonadChainFirstEitherK chains a computation that returns an Either but preserves the original value.
 // Useful for validation or side effects that may fail.
 // This is the monadic version that takes the computation as the first parameter.
@@ -226,6 +234,34 @@ func ChainFirstEitherK[R, A, B any](f either.Kleisli[error, A, B]) Operator[R, A
 //go:inline
 func TapEitherK[R, A, B any](f either.Kleisli[error, A, B]) Operator[R, A, A] {
 	return ChainFirstEitherK[R](f)
+}
+
+// MonadChainFirstResultK is an alias for MonadChainFirstEitherK with more explicit naming.
+//
+//go:inline
+func MonadChainFirstResultK[R, A, B any](ma ReaderReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderReaderIOResult[R, A] {
+	return MonadChainFirstEitherK(ma, f)
+}
+
+// ChainFirstResultK is an alias for ChainFirstEitherK with more explicit naming.
+//
+//go:inline
+func ChainFirstResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
+	return ChainFirstEitherK[R](f)
+}
+
+// MonadTapResultK is an alias for MonadTapEitherK with more explicit naming.
+//
+//go:inline
+func MonadTapResultK[R, A, B any](ma ReaderReaderIOResult[R, A], f result.Kleisli[A, B]) ReaderReaderIOResult[R, A] {
+	return MonadTapEitherK(ma, f)
+}
+
+// TapResultK is an alias for TapEitherK with more explicit naming.
+//
+//go:inline
+func TapResultK[R, A, B any](f result.Kleisli[A, B]) Operator[R, A, A] {
+	return TapEitherK[R](f)
 }
 
 // MonadChainReaderK chains a computation that returns a Reader.
@@ -481,6 +517,101 @@ func ChainIOEitherK[R, A, B any](f IOE.Kleisli[error, A, B]) Operator[R, A, B] {
 		FromIOEither[R, B],
 		f,
 	)
+}
+
+// MonadChainFirstIOEitherK chains a computation that returns an IOEither but preserves the original value.
+// If the IOEither fails, its error replaces the original value.
+// This is the monadic version that takes the computation as the first parameter.
+//
+//go:inline
+func MonadChainFirstIOEitherK[R, A, B any](ma ReaderReaderIOResult[R, A], f IOE.Kleisli[error, A, B]) ReaderReaderIOResult[R, A] {
+	return fromioeither.MonadChainFirstIOEitherK(
+		MonadChain[R, A, A],
+		MonadMap[R, B, A],
+		FromIOEither[R, B],
+		ma,
+		f,
+	)
+}
+
+// MonadTapIOEitherK is an alias for MonadChainFirstIOEitherK.
+// Executes an IOEither-returning side effect while preserving the original value.
+//
+//go:inline
+func MonadTapIOEitherK[R, A, B any](ma ReaderReaderIOResult[R, A], f IOE.Kleisli[error, A, B]) ReaderReaderIOResult[R, A] {
+	return MonadChainFirstIOEitherK(ma, f)
+}
+
+// ChainFirstIOEitherK chains a computation that returns an IOEither but preserves the original value.
+// If the IOEither fails, its error replaces the original value.
+// This is the curried version that returns an operator.
+//
+//go:inline
+func ChainFirstIOEitherK[R, A, B any](f IOE.Kleisli[error, A, B]) Operator[R, A, A] {
+	return fromioeither.ChainFirstIOEitherK(
+		Chain[R, A, A],
+		Map[R, B, A],
+		FromIOEither[R, B],
+		f,
+	)
+}
+
+// TapIOEitherK is an alias for ChainFirstIOEitherK.
+// Executes an IOEither-returning side effect while preserving the original value.
+//
+//go:inline
+func TapIOEitherK[R, A, B any](f IOE.Kleisli[error, A, B]) Operator[R, A, A] {
+	return ChainFirstIOEitherK[R](f)
+}
+
+// MonadChainIOResultK is an alias for MonadChainIOEitherK with more explicit naming.
+// The IOResult is automatically lifted into ReaderReaderIOResult; if it fails,
+// its error short-circuits the computation.
+//
+//go:inline
+func MonadChainIOResultK[R, A, B any](ma ReaderReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderReaderIOResult[R, B] {
+	return MonadChainIOEitherK(ma, f)
+}
+
+// ChainIOResultK is an alias for ChainIOEitherK with more explicit naming.
+// The IOResult is automatically lifted into ReaderReaderIOResult; if it fails,
+// its error short-circuits the computation.
+//
+//go:inline
+func ChainIOResultK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, B] {
+	return ChainIOEitherK[R](f)
+}
+
+// MonadChainFirstIOResultK is an alias for MonadChainFirstIOEitherK with more explicit naming.
+// If the IOResult fails, its error replaces the original value.
+//
+//go:inline
+func MonadChainFirstIOResultK[R, A, B any](ma ReaderReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderReaderIOResult[R, A] {
+	return MonadChainFirstIOEitherK(ma, f)
+}
+
+// MonadTapIOResultK is an alias for MonadTapIOEitherK with more explicit naming.
+// Executes an IOResult-returning side effect while preserving the original value.
+//
+//go:inline
+func MonadTapIOResultK[R, A, B any](ma ReaderReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderReaderIOResult[R, A] {
+	return MonadTapIOEitherK(ma, f)
+}
+
+// ChainFirstIOResultK is an alias for ChainFirstIOEitherK with more explicit naming.
+// If the IOResult fails, its error replaces the original value.
+//
+//go:inline
+func ChainFirstIOResultK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
+	return ChainFirstIOEitherK[R](f)
+}
+
+// TapIOResultK is an alias for TapIOEitherK with more explicit naming.
+// Executes an IOResult-returning side effect while preserving the original value.
+//
+//go:inline
+func TapIOResultK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
+	return TapIOEitherK[R](f)
 }
 
 // MonadChainIOK chains a computation that returns an IO.
