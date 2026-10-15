@@ -1306,6 +1306,13 @@ func TapIOK[E, A, B any](f io.Kleisli[A, B]) Operator[E, A, A] {
 	return ChainFirstIOK[E](f)
 }
 
+// MonadTapIOK is an alias for [MonadChainFirstIOK]. It executes an IO side
+// effect for each Right value and passes the original value through unchanged.
+// Left values pass through without calling f.
+func MonadTapIOK[E, A, B any](ma SeqEither[E, A], f io.Kleisli[A, B]) SeqEither[E, A] {
+	return MonadChainFirstIOK(ma, f)
+}
+
 // MonadChainIOK is the uncurried form of ChainIOK.
 // For each Right(a) in ma it calls f(a) to obtain an IO[B], executes it,
 // and lifts the result into Right(b), replacing the original element.
@@ -1414,4 +1421,12 @@ func ChainFirstIOEitherK[E, A, B any](f ioeither.Kleisli[E, A, B]) Operator[E, A
 // calling f.
 func TapIOEitherK[E, A, B any](f ioeither.Kleisli[E, A, B]) Operator[E, A, A] {
 	return ChainFirstIOEitherK(f)
+}
+
+// MonadTapIOEitherK is an alias for [MonadChainFirstIOEitherK]. It executes a
+// side-effecting [ioeither.Kleisli] computation on each Right value and always
+// returns the original value unchanged. Left values pass through without
+// calling f.
+func MonadTapIOEitherK[E, A, B any](ma SeqEither[E, A], f ioeither.Kleisli[E, A, B]) SeqEither[E, A] {
+	return MonadChainFirstIOEitherK(ma, f)
 }

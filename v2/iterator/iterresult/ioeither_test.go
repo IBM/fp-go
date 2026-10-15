@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	IOR "github.com/IBM/fp-go/v2/ioresult"
 	"github.com/IBM/fp-go/v2/iterator/iter"
 	N "github.com/IBM/fp-go/v2/number"
 	O "github.com/IBM/fp-go/v2/option"
@@ -1770,4 +1771,105 @@ func TestTapIOResultK(t *testing.T) {
 		})
 		assert.Equal(t, []int{7, 42}, mustOK(t, op(iter.From(R.Of(7), R.Of(42)))))
 	})
+}
+
+func TestMonadTapIOResultK(t *testing.T) {
+	t.Run("is an alias for MonadChainFirstIOResultK", func(t *testing.T) {
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Of("ok") }
+		}
+		seq := iter.From(R.Of(5), R.Left[int](errors.New("err")))
+		assert.Equal(t, slices.Collect(MonadChainFirstIOResultK(seq, f)), slices.Collect(MonadTapIOResultK(seq, f)))
+	})
+
+	t.Run("failing side effect replaces the value", func(t *testing.T) {
+		err := errors.New("tap failed")
+		f := func(n int) func() R.Result[string] {
+			return func() R.Result[string] { return R.Left[string](err) }
+		}
+		assert.Equal(t, []R.Result[int]{R.Left[int](err)}, slices.Collect(MonadTapIOResultK(iter.From(R.Of(5)), f)))
+	})
+}
+
+// resultKPositive fails for numbers that are not positive.
+func resultKPositive(n int) R.Result[int] {
+	if n > 0 {
+		return R.Of(n)
+	}
+	return R.Left[int](errors.New("not positive"))
+}
+
+func TestFromResult(t *testing.T) {
+	assert.Equal(t, []R.Result[int]{R.Of(1)}, slices.Collect(FromResult(R.Of(1))))
+	assert.Equal(t, slices.Collect(FromEither(resultKPositive(0))), slices.Collect(FromResult(resultKPositive(0))))
+}
+
+func TestChainResultK(t *testing.T) {
+	seq := iter.From(R.Of(1), R.Of(-1), R.Left[int](errors.New("upstream")))
+	expected := []R.Result[int]{R.Of(1), R.Left[int](errors.New("not positive")), R.Left[int](errors.New("upstream"))}
+	assert.Equal(t, expected, slices.Collect(ChainResultK(resultKPositive)(seq)))
+	assert.Equal(t, expected, slices.Collect(MonadChainResultK(seq, resultKPositive)))
+	assert.Equal(t, slices.Collect(ChainEitherK(resultKPositive)(seq)), slices.Collect(ChainResultK(resultKPositive)(seq)))
+}
+
+func TestMonadTapIOK(t *testing.T) {
+	var seen []int
+	record := func(n int) func() string {
+		return func() string { seen = append(seen, n); return "" }
+	}
+	seq := iter.From(R.Of(1), R.Left[int](errors.New("err")), R.Of(3))
+	assert.Equal(t, slices.Collect(TapIOK(record)(seq)), slices.Collect(MonadTapIOK(seq, record)))
+	assert.Equal(t, []int{1, 3, 1, 3}, seen)
+}
+
+// ExampleChainResultK chains a validation over every success element.
+func ExampleChainResultK() {
+	for r := range ChainResultK(resultKPositive)(iter.From(R.Of(2), R.Of(-2))) {
+		fmt.Println(R.Unwrap(r))
+	}
+	// Output:
+	// 2 <nil>
+	// 0 not positive
+}
+
+// ExampleFromResult lifts a Result into a single-element sequence.
+func ExampleFromResult() {
+	for r := range FromResult(R.Of(42)) {
+		fmt.Println(R.Unwrap(r))
+	}
+	// Output: 42 <nil>
+}
+
+// ExampleMonadTapIOK runs an IO side effect for every success element.
+func ExampleMonadTapIOK() {
+	for r := range MonadTapIOK(iter.From(R.Of(7)), func(n int) func() int {
+		return func() int { fmt.Println("log:", n); return n }
+	}) {
+		fmt.Println(R.Unwrap(r))
+	}
+	// Output:
+	// log: 7
+	// 7 <nil>
+}
+
+// ExampleMonadChainResultK is the non curried version of ChainResultK.
+func ExampleMonadChainResultK() {
+	for r := range MonadChainResultK(iter.From(R.Of(2), R.Of(-2)), resultKPositive) {
+		fmt.Println(R.Unwrap(r))
+	}
+	// Output:
+	// 2 <nil>
+	// 0 not positive
+}
+
+// ExampleMonadTapIOResultK runs a fallible side effect for every success
+// element; a failing side effect replaces the element.
+func ExampleMonadTapIOResultK() {
+	check := F.Flow2(resultKPositive, IOR.FromResult[int])
+	for r := range MonadTapIOResultK(iter.From(R.Of(2), R.Of(-2)), check) {
+		fmt.Println(R.Unwrap(r))
+	}
+	// Output:
+	// 2 <nil>
+	// 0 not positive
 }

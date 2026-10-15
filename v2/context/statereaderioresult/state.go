@@ -334,3 +334,14 @@ func MonadChainResultK[S, A, B any](ma StateReaderIOResult[S, A], f func(A) Resu
 func ChainResultK[S, A, B any](f func(A) Result[B]) Operator[S, A, B] {
 	return Chain(FromResultK[S](f))
 }
+
+// MonadChainIOK chains a StateReaderIOResult with an IO-returning function.
+// The IO cannot fail; the state is passed through unchanged.
+func MonadChainIOK[S, A, B any](ma StateReaderIOResult[S, A], f func(A) IO[B]) StateReaderIOResult[S, B] {
+	return MonadChain(ma, FromIOK[S](f))
+}
+
+// ChainIOK is the curried version of [MonadChainIOK].
+func ChainIOK[S, A, B any](f func(A) IO[B]) Operator[S, A, B] {
+	return Chain(FromIOK[S](f))
+}

@@ -355,6 +355,20 @@ func TapEitherK[A, B any](f result.Kleisli[A, B]) Operator[A, A] {
 	return ioeither.TapEitherK(f)
 }
 
+// ChainFirstResultK is an alias for ChainFirstEitherK with more explicit naming.
+//
+//go:inline
+func ChainFirstResultK[A, B any](f result.Kleisli[A, B]) Operator[A, A] {
+	return ioeither.ChainFirstEitherK(f)
+}
+
+// TapResultK is an alias for TapEitherK with more explicit naming.
+//
+//go:inline
+func TapResultK[A, B any](f result.Kleisli[A, B]) Operator[A, A] {
+	return ioeither.TapEitherK(f)
+}
+
 // MonadChainFirstIOK runs [IO] the monad returned by the function but returns the result of the original monad
 //
 //go:inline

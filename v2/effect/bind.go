@@ -256,6 +256,16 @@ func LetToL[C, S, T any](
 	return readerreaderioresult.LetToL[C](lens, b)
 }
 
+// BindIOResultK binds the result of an IOResult computation to the do-notation state.
+// The IOResult receives the current state; if it fails, the error short-circuits
+// the remaining pipeline.
+//
+// # See Also
+//
+//   - ChainIOResultK: Chains an IOResult without updating a state
+//   - BindIOResultKL: Lens-based variant
+//   - ApIOResultS: Applicative variant for an independent IOResult
+//
 //go:inline
 func BindIOResultK[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
@@ -296,6 +306,13 @@ func BindResultK[C, S1, S2, T any](
 	return readerreaderioresult.BindEitherK[C](setter, f)
 }
 
+// BindIOResultKL is the lens-based variant of BindIOResultK. It focuses on a
+// single field of the state, passes its value to f and writes the result back.
+//
+// # See Also
+//
+//   - BindIOResultK: Setter-based variant
+//
 //go:inline
 func BindIOResultKL[C, S, T any](
 	lens Lens[S, T],
@@ -328,6 +345,14 @@ func BindReaderIOKL[C, S, T any](
 	return readerreaderioresult.BindReaderIOKL(lens, f)
 }
 
+// ApIOResultS attaches the result of an independent IOResult to the do-notation
+// state. Unlike BindIOResultK, the IOResult does not depend on the current state.
+//
+// # See Also
+//
+//   - BindIOResultK: Monadic variant that sees the current state
+//   - ApIOResultSL: Lens-based variant
+//
 //go:inline
 func ApIOResultS[C, S1, S2, T any](
 	setter func(T) func(S1) S2,
@@ -368,6 +393,13 @@ func ApResultS[C, S1, S2, T any](
 	return readerreaderioresult.ApEitherS[C](setter, fa)
 }
 
+// ApIOResultSL is the lens-based variant of ApIOResultS. It writes the result of
+// an independent IOResult into the field focused by the lens.
+//
+// # See Also
+//
+//   - ApIOResultS: Setter-based variant
+//
 //go:inline
 func ApIOResultSL[C, S, T any](
 	lens Lens[S, T],

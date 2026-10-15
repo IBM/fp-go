@@ -309,6 +309,17 @@ func ChainIOEitherK[S, R, E, A, B any](f ioeither.Kleisli[E, A, B]) Operator[S, 
 	return Chain(FromIOEitherK[S, R](f))
 }
 
+// MonadChainIOK chains a StateReaderIOEither with an IO-returning function.
+// The IO cannot fail; the state is passed through unchanged.
+func MonadChainIOK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f func(A) IO[B]) StateReaderIOEither[S, R, E, B] {
+	return MonadChain(ma, FromIOK[S, R, E](f))
+}
+
+// ChainIOK is the curried version of [MonadChainIOK].
+func ChainIOK[S, R, E, A, B any](f func(A) IO[B]) Operator[S, R, E, A, B] {
+	return Chain(FromIOK[S, R, E](f))
+}
+
 // MonadChainEitherK chains a StateReaderIOEither with an Either-returning function.
 func MonadChainEitherK[S, R, E, A, B any](ma StateReaderIOEither[S, R, E, A], f either.Kleisli[E, A, B]) StateReaderIOEither[S, R, E, B] {
 	return MonadChain(ma, FromEitherK[S, R](f))

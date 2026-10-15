@@ -455,6 +455,48 @@ func ChainIOEitherK[R, C, E, A, B any](f IOE.Kleisli[E, A, B]) Operator[R, C, E,
 	)
 }
 
+// MonadChainFirstIOEitherK chains an IOEither computation while preserving the original value.
+// If the IOEither fails, its error replaces the original value.
+//
+//go:inline
+func MonadChainFirstIOEitherK[R, C, E, A, B any](ma ReaderReaderIOEither[R, C, E, A], f IOE.Kleisli[E, A, B]) ReaderReaderIOEither[R, C, E, A] {
+	return fromioeither.MonadChainFirstIOEitherK(
+		MonadChain[R, C, E, A, A],
+		MonadMap[R, C, E, B, A],
+		FromIOEither[R, C, E, B],
+		ma,
+		f,
+	)
+}
+
+// MonadTapIOEitherK is an alias for MonadChainFirstIOEitherK.
+//
+//go:inline
+func MonadTapIOEitherK[R, C, E, A, B any](ma ReaderReaderIOEither[R, C, E, A], f IOE.Kleisli[E, A, B]) ReaderReaderIOEither[R, C, E, A] {
+	return MonadChainFirstIOEitherK(ma, f)
+}
+
+// ChainFirstIOEitherK returns a function that chains an IOEither computation while preserving the original value.
+// If the IOEither fails, its error replaces the original value.
+// This is the curried version of MonadChainFirstIOEitherK.
+//
+//go:inline
+func ChainFirstIOEitherK[R, C, E, A, B any](f IOE.Kleisli[E, A, B]) Operator[R, C, E, A, A] {
+	return fromioeither.ChainFirstIOEitherK(
+		Chain[R, C, E, A, A],
+		Map[R, C, E, B, A],
+		FromIOEither[R, C, E, B],
+		f,
+	)
+}
+
+// TapIOEitherK is an alias for ChainFirstIOEitherK.
+//
+//go:inline
+func TapIOEitherK[R, C, E, A, B any](f IOE.Kleisli[E, A, B]) Operator[R, C, E, A, A] {
+	return ChainFirstIOEitherK[R, C](f)
+}
+
 // MonadChainIOK chains an IO-returning computation into a ReaderReaderIOEither.
 //
 //go:inline

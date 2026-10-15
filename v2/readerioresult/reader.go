@@ -209,6 +209,37 @@ func TapIOResultK[R, A, B any](f ioresult.Kleisli[A, B]) Operator[R, A, A] {
 	return RIOE.TapIOEitherK[R](f)
 }
 
+// MonadChainFirstIOEitherK chains an IOResult computation while preserving the original value.
+// If the IOResult fails, its error replaces the original value.
+// This is the monadic version of ChainFirstIOEitherK.
+//
+//go:inline
+func MonadChainFirstIOEitherK[R, A, B any](ma ReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadChainFirstIOEitherK(ma, f)
+}
+
+// MonadTapIOEitherK is an alias for MonadChainFirstIOEitherK.
+//
+//go:inline
+func MonadTapIOEitherK[R, A, B any](ma ReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadTapIOEitherK(ma, f)
+}
+
+// MonadChainFirstIOResultK chains an IOResult computation while preserving the original value.
+// This is an alias for MonadChainFirstIOEitherK with more explicit naming.
+//
+//go:inline
+func MonadChainFirstIOResultK[R, A, B any](ma ReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadChainFirstIOEitherK(ma, f)
+}
+
+// MonadTapIOResultK is an alias for MonadChainFirstIOResultK.
+//
+//go:inline
+func MonadTapIOResultK[R, A, B any](ma ReaderIOResult[R, A], f ioresult.Kleisli[A, B]) ReaderIOResult[R, A] {
+	return RIOE.MonadTapIOEitherK(ma, f)
+}
+
 // MonadChainFirstEitherK chains an Either-returning computation but keeps the original value.
 // Useful for validation or side effects that return Either.
 //

@@ -660,3 +660,41 @@ func TestMonad(t *testing.T) {
 		return p
 	})(res)
 }
+
+func TestChainIOK(t *testing.T) {
+	state := testState{counter: 3}
+	ctx := testContext{multiplier: 2}
+	double := F.Flow2(N.Mul(2), io.Of[int])
+
+	t.Run("chains an IO and keeps the state", func(t *testing.T) {
+		expected := E.Right[error](P.MakePair(state, 42))
+		assert.Equal(t, expected, F.Pipe1(Of[testState, testContext, error](21), ChainIOK[testState, testContext, error](double))(state)(ctx)())
+		assert.Equal(t, expected, MonadChainIOK(Of[testState, testContext, error](21), double)(state)(ctx)())
+	})
+
+	t.Run("skips the IO on failure", func(t *testing.T) {
+		err := errors.New("upstream")
+		calls := 0
+		count := func(n int) io.IO[int] { return func() int { calls++; return n } }
+		res := MonadChainIOK(Left[testState, testContext, int](err), count)(state)(ctx)()
+		assert.True(t, E.IsLeft(res))
+		assert.Equal(t, 0, calls)
+	})
+}
+
+// ExampleChainIOK chains an IO that cannot fail; the state is passed through.
+func ExampleChainIOK() {
+	m := F.Pipe1(
+		Of[testState, testContext, error](21),
+		ChainIOK[testState, testContext, error](F.Flow2(N.Mul(2), io.Of[int])),
+	)
+	fmt.Println(E.Unwrap(m(testState{counter: 1})(testContext{})()))
+	// Output: Pair[statereaderioeither.testState, int]({1}, 42) <nil>
+}
+
+// ExampleMonadChainIOK is the non curried version of ChainIOK.
+func ExampleMonadChainIOK() {
+	m := MonadChainIOK(Of[testState, testContext, error](21), F.Flow2(N.Mul(2), io.Of[int]))
+	fmt.Println(E.Unwrap(m(testState{counter: 1})(testContext{})()))
+	// Output: Pair[statereaderioeither.testState, int]({1}, 42) <nil>
+}
