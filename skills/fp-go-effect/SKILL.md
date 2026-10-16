@@ -9,10 +9,12 @@ description: >-
   not), how to design capability interfaces (XxxDeps with getters, MakeXxxDeps,
   AsXxxDeps), how to narrow and widen them with Local, how to lift Go
   functions and interface methods with Eitherize, Eitherize1, Asks and
-  FromIdiomatic, how to build dependencies with an Effect, and how to Provide
+  FromIdiomatic and the idiomatic *I / *IK operators, stack-safe loops with
+  TailRec, how to build dependencies with an Effect, and how to Provide
   and RunSync at the edge and test with fakes. Trigger on mentions of Effect,
   effect.Effect, dependency injection in fp-go, Provide, RunSync, Asks, Local,
-  LocalEffectK, Eitherize1, typed dependencies, ReaderReaderIOResult, or on
+  LocalEffectK, Eitherize1, ChainResultIK, TailRec, Identity, typed
+  dependencies, ReaderReaderIOResult, or on
   code that stores clients in context.Context or threads them through
   function parameters.
 ---
@@ -130,9 +132,12 @@ The leaves are where Go code meets the effect. Lift, never hand-write the nested
 | `func(C, ctx, A) (B, error)` | `EF.Eitherize1(f)` | `Kleisli[C, A, B]` |
 | service method `func(A) func(ctx, C) (B, error)` | `EF.FromIdiomatic(f)` | `Kleisli[C, A, B]` |
 | **pure** getter / projection `func(C) A` | `EF.Asks(f)`, e.g. `EF.Asks(MailDeps.GetSender)` | `Effect[C, A]` |
-| the whole dependency | `EF.Ask[C]()` | `Effect[C, C]` |
+| fallible projection `func(C) Result[A]` | `EF.FromReaderResult(f)` | `Effect[C, A]` |
+| the whole dependency | `EF.Ask[C]()` (alias `EF.Identity[C]()`) | `Effect[C, C]` |
 | dependency-free `ReaderIOResult[A]` | `EF.FromThunk[C](t)` | `Effect[C, A]` |
+| dependency-free `func(ctx) func() (A, error)` | `EF.FromThunkI[C](f)` | `Effect[C, A]` |
 | `Result[A]`, `IO[A]`, value, error | `EF.FromResult[C]`, `EF.FromIO[C]`, `EF.Of[C]`, `EF.Fail[C, A]` | `Effect[C, A]` |
+| a Go `(A, error)` pair | `EF.FromResultI[C](a, err)` | `Effect[C, A]` |
 
 Interface method expressions make the leaves point-free. The receiver becomes the dependency, and `Local` with the getter fetches it from the capability interface:
 
@@ -178,7 +183,8 @@ func NotifyUser() EF.Kleisli[AppDeps, int, MessageID] {
 
 - `Local` needs only the value type `[A]`. `C1` and `C2` are inferred from `f`, and `AsXxxDeps[Wide]` fixes the generic helper to the wide type.
 - **`Asks` + `Map` versus `Local`:** build a *new* effect from a getter and a pure function with `EF.Asks(getter)` plus `EF.Map[C](f)`. Use `Local` when you already have an `Effect[C2, A]` (a Kleisli defined elsewhere) and want to reuse it unchanged under another `C`.
-- `EF.ContraMap` is an alias of `Local`.
+- `EF.ContraMap` is an alias of `Local`. `EF.ProMap(f, g)` (alias `Promap`) adapts the dependency with `f` and the value with `g` in one step.
+- `EF.Identity[C]()` is the arrow that changes nothing (the same effect as `Ask`). Use it as the neutral branch when a pipeline adapts its dependency conditionally, or as the seed of a fold over dependency transformations: `EF.Map[C](g)(EF.Identity[C]())` equals `EF.Asks(g)`.
 - Compose with the `effect` combinators (`Asks`, `Map`, `Ap`, `Chain`, `ChainThunkK`, `FromThunk`, `Local`). Do not rebuild `Effect`'s nested reader shape by hand with `reader` / `context/readerioresult`. That also type-checks, but it depends on the internal representation and is hard to read.
 
 When deriving the inner dependency needs more than a pure function, use the `Local*K` variants (`f` goes from the outer to the inner dependency):
@@ -203,14 +209,38 @@ When deriving the inner dependency needs more than a pure function, use the `Loc
 | sequence a Kleisli | `EF.Chain(k)` (inferred from `k`) |
 | combine independent effects | `EF.Ap[B](fa)` on an `Effect[C, func(A) B]` |
 | do-notation | `EF.Do[C](S{})`, `EF.Bind(lens.Set, k)`, `EF.ApS(lens.Set, eff)`, `EF.ApSL(lens, eff)`, `EF.Let` |
-| lift other monads mid-pipeline | `EF.ChainResultK`, `EF.ChainIOK`, `EF.ChainThunkK[C]`, `EF.ChainReaderK` |
-| side effects | `EF.Tap(k)`, `EF.TapIOK[C](f)`, `EF.TapThunkK[C](f)` |
-| recover / alternative | `EF.ChainLeft(k)`, `EF.Alt(LZ.Of(other))`, `EF.TapLeft[A](k)` |
-| slices | `EF.TraverseArray(k)` |
-| retries | `EF.Retrying(policy, action, check)` |
+| lift other monads mid-pipeline | `EF.ChainResultK`, `EF.ChainIOK`, `EF.ChainThunkK[C]`, `EF.ChainReaderK`, `EF.ChainReaderIOK` |
+| lift plain Go functions mid-pipeline | `EF.ChainResultIK[C](f)` for `func(A) (B, error)`, `EF.ChainIOResultIK[C]`, `EF.ChainThunkIK[C]` for `func(A) func(ctx) func() (B, error)`, `EF.ChainReaderResultIK`, `EF.ChainOptionIK[C, A, B](onNone)` |
+| a service method `func(A) func(ctx, C) (B, error)` | `EF.ChainI(f)`, `EF.TapI(f)`, `EF.BindI(setter, f)`, `EF.TraverseArrayI(f)` |
+| side effects | `EF.Tap(k)`, `EF.TapIOK[C](f)`, `EF.TapThunkK[C](f)`, `EF.TapResultIK[C](f)` |
+| branch | `EF.Ternary(pred, onTrue, onFalse)` |
+| recover / alternative | `EF.ChainLeft(k)`, `EF.ChainLeftI(f)`, `EF.Alt(LZ.Of(other))`, `EF.TapLeft[A](k)` |
+| slices | `EF.TraverseArray(k)`, `EF.FilterArray`, `EF.FilterMapArray` |
+| loops | `EF.TailRec(step)` (see below) |
+| retries | `EF.Retrying(policy, action, check)`, `EF.RetryingI` for an idiomatic action |
+| caching | `EF.Memoize(eff)` (`C` must be `comparable`) |
 | run | `EF.Provide[A](deps)`, then `EF.RunSync(thunk)(ctx)` |
 
-`Ap[B, C, A]` and `Provide[A, C]` lead with the type that cannot be inferred. Write `EF.Ap[ChatDeps](apiKey)` and `EF.Provide[User](deps)`.
+`Ap[B, C, A]` and `Provide[A, C]` lead with the type that cannot be inferred. Write `EF.Ap[ChatDeps](apiKey)` and `EF.Provide[User](deps)`. The `…IK` lifts lead with `C`, which they cannot infer from a plain Go function: `EF.ChainResultIK[Deps](strconv.Atoi)`.
+
+### Stack-Safe Loops with `TailRec`
+
+`EF.TailRec(step)` turns a step `Kleisli[C, A, Trampoline[A, B]]` into a `Kleisli[C, A, B]` that runs in a loop, so a million iterations do not grow the stack. Each step returns `tailrec.Bounce[B](next)` to continue or `tailrec.Land[A](result)` to stop. The first error stops the loop, and the `context.Context` is checked before every step.
+
+```go
+// One step reads the decrement from the dependency.
+func countdownStep(n int) EF.Effect[Deps, EF.Trampoline[int, string]] {
+    if n <= 0 {
+        return EF.Of[Deps](tailrec.Land[int]("liftoff"))
+    }
+    return EF.Asks(F.Flow4(getStep, N.Sub[int], RD.Read[int](n), tailrec.Bounce[string, int]))
+}
+
+countdown := EF.TailRec(countdownStep) // Kleisli[Deps, int, string]
+res, err := EF.RunSync(EF.Provide[string](Deps{Step: 1})(countdown(1_000_000)))(ctx)
+```
+
+Use `TailRec` instead of a Kleisli that calls itself through `EF.Chain` (pagination, polling, walking a cursor).
 
 ## Building Dependencies with an Effect
 
@@ -312,6 +342,8 @@ func TestFindUser(t *testing.T) {
 | `Effect[AppDeps, A]` expected, `Effect[UserDeps, A]` given, "fixed" with a type assertion | Generics are invariant: use `EF.Local` with the `AsXxxDeps` helper |
 | `EF.Asks(func(c C) RIO.ReaderIOResult[A] {...})` | Yields `Effect[C, ReaderIOResult[A]]`. Use `EF.Eitherize` / `Eitherize1` / `FromIdiomatic`, or `Asks` + `ChainThunkK` |
 | Hand-written `func(c C) func(ctx) func() Result[A]` around a Go method | `EF.Eitherize1(Iface.Method)` + `EF.Local[B](Deps.GetIface)` |
+| `EF.ChainResultK(R.Eitherize1(f))` for a plain `func(A) (B, error)` | `EF.ChainResultIK[C](f)` |
+| A Kleisli that calls itself through `EF.Chain` to loop | `EF.TailRec(step)` with `tailrec.Bounce` / `tailrec.Land` |
 | Rebuilding `Effect` with `reader.Map` / `RIO` internals | Compose with `EF.Asks`, `Map`, `Ap`, `Chain`, `ChainThunkK`, `FromThunk`, `Local` |
 | `EF.Map(f)`, `EF.Provide(deps)` without annotation | `EF.Map[C](f)`, `EF.Provide[A](deps)` |
 | Building dependencies inside the request handler | Build once at startup; provide per run |
@@ -339,7 +371,9 @@ import (
     IOR "github.com/IBM/fp-go/v2/ioresult"
     F   "github.com/IBM/fp-go/v2/function"
     LZ  "github.com/IBM/fp-go/v2/lazy"
+    N   "github.com/IBM/fp-go/v2/number"
     R   "github.com/IBM/fp-go/v2/result"
+    "github.com/IBM/fp-go/v2/tailrec"
 )
 ```
 

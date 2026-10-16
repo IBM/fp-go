@@ -303,8 +303,9 @@ F.Pipe2(
 - Enrich where the context is; log where the error is handled. A `TapLeft` log in every layer
   duplicates the record.
 - `MapLeft` is available in `context/readerioresult`, `context/readerresult`,
-  `context/readerreaderioresult`, `readerresult`, `result` and `ioresult`. In `result`/`ioresult`
-  the function has type `func(error) E`; `ER.OnError(...)` fits with `E = error`.
+  `context/readerreaderioresult`, `readerresult`, `result` and `ioresult`. In the `context/*`
+  packages it takes an `Endomorphism[error]` (`MapLeft[A](f)`, `MonadMapLeft(fa, f)`); in
+  `result`/`ioresult` the function has type `func(error) E`; `ER.OnError(...)` fits with `E = error`.
 
 ## Choosing the Logger
 

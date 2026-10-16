@@ -430,6 +430,9 @@ import (
 | Lens getter in pipeline | `var getX = xLens.Get` |
 | Do-notation with lens | `RD.ApSL(lens, readerValue)` |
 | Access full environment | `RD.Ask[Env]()` |
+| Neutral "change nothing" reader (seed of a fold, no-op branch) | `RD.Identity[Env]()` (alias of `Ask`; also in `readerio`, `readerresult`, `readerioresult`) |
 | Access field of environment | `RD.Asks(getX)` |
+| Safe index / sub-slice | `A.At[T](i)` → `Option[T]`; `A.Slice[T](lo, hi)`, `A.SliceRight[T](lo)` (negative indices count from the end; operators are pure and reusable) |
+| Loop without growing the stack | `M.TailRec(step)` with `tailrec.Bounce` / `tailrec.Land` (see the **fp-go** skill) |
 | Read a `context.Context` value | `RIO.AskValue[V](key)` → `Option[V]` (not `ctx.Value(key).(V)`) |
 | Scope a value / timeout to a step | `RIO.WithValue[A](key, v)`, `RIO.WithTimeout[A](d)` as the last `Pipe` step |

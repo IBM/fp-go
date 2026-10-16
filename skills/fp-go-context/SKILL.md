@@ -47,7 +47,7 @@ type-parameter or argument-order errors before presenting it.
 
 | Operator | RIO | RR | RIOC | SRIO | IRR | CR |
 |----------|:---:|:--:|:----:|:----:|:---:|:--:|
-| `Ask()` | ✓ | ✓ | ✓ |  | ✓ | |
+| `Ask()` | ✓ (alias `Identity()`) | ✓ | ✓ |  | ✓ | |
 | `FromReader(f)` / `Asks(f)` | ✓ | ✓ | ✓ | `Asks` | ✓ | |
 | `AskValue[V](key)` | ✓ | ✓ | ✓ | ✓ (`[S, V]`) | ✓ | ✓ |
 | `WithValue[A](key, v)` | ✓ | ✓ | ✓ | ✓ (`[S, A]`) | ✓ | Kleisli form |
@@ -55,6 +55,7 @@ type-parameter or argument-order errors before presenting it.
 | `Local[A](f)` | ✓ | ✓ | ✓ | ✓ | ✓ | |
 | `LocalIOK` / `LocalIOResultK` | ✓ / ✓ | | ✓ / | | | |
 | `WithContext` / `WithContextK` | ✓ | ✓ | | | ✓ | |
+| `TailRec(step)` | ✓ | ✓ | ✓ (no cancellation check) | | ✓ | |
 | `NopCancel(ctx)` | | | | | | ✓ |
 
 `Local`'s argument is `func(ctx) Pair[context.CancelFunc, context.Context]` in the standard packages and `func(ctx) (context.Context, context.CancelFunc)` in `IRR`.
@@ -91,6 +92,8 @@ fetchGo := RIO.Uneitherize1(fetch)                    // func(context.Context, s
 ```
 
 The lifted function receives the pipeline's (possibly scoped) context — timeouts and values applied with the operators below reach it automatically.
+
+Plain Go functions *without* a context are lifted as pipeline steps with the idiomatic `…IK` operators: `RIO.ChainResultIK(strconv.Atoi)` for `func(A) (B, error)`, `RIO.ChainReaderResultIK(f)` for `func(A) func(ctx) (B, error)`, and `RIO.FromResultI(v, err)` for a `(A, error)` pair.
 
 ## 3. Reading the Context
 
@@ -214,6 +217,7 @@ scoped := RIO.LocalIOK[Response](addRequestID)(handler)
 - In `RIO`, `RR` and `IRR`, **`Chain` checks the context before each step**: once the context is cancelled, the next step does not run and the result is `Left(context.Cause(ctx))`. `Map` does not check (pure functions are cheap).
 - `RIOC` (`context/readerio`) has no error channel, so it cannot short-circuit; use it only for IO that is fine to complete.
 - `WithContext(ma)` / `WithContextK(f)` add the same check explicitly, e.g. before an expensive first step.
+- `TailRec(step)` in `RIO`, `RR`, `IRR` and `effect` checks the context before every iteration, so a long loop (pagination, polling) stops with `context.Cause(ctx)` once the context is cancelled. Prefer it over a Kleisli that recurses through `Chain`.
 - `Delay`, retries, `Bracket` / `WithResource` and the HTTP client observe cancellation.
 - **Leaf computations that block** (loops, `select`, custom IO) must watch `ctx.Done()` themselves and return `ctx.Err()` / `context.Cause(ctx)`:
 

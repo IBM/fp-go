@@ -6,8 +6,9 @@ description: >-
   pull request validation, fp-go best practices validation, functional
   programming review, or when the user asks to review changes on a PR branch.
   This skill validates that changes follow fp-go conventions including
-  data-last composition, point-free style, proper monad usage, lens patterns,
-  and idiomatic functional patterns.
+  data-last composition, point-free style, proper monad usage, lens and optics
+  patterns, idiomatic lifts (ChainResultIK), stack-safe loops (TailRec) and
+  idiomatic functional patterns.
 ---
 
 # fp-go PR Review
@@ -554,6 +555,64 @@ Also flag:
 
 **Severity**: High for panicking assertions and leaked cancel functions; Medium for hand-rolled scoping that has an operator equivalent.
 
+### 18. Idiomatic Lifts (`…I` / `…IK`)
+
+**Rule**: Lift an existing Go function `func(A) (B, error)` into a pipeline step with the idiomatic operators instead of wrapping it in `Eitherize` or a closure.
+
+**Check for**:
+```go
+// ❌ AVOID - extra wrapping
+RIO.ChainResultK(R.Eitherize1(strconv.Atoi))
+EF.Chain(func(s string) EF.Effect[Deps, int] { return EF.FromResult[Deps](R.Eitherize1(strconv.Atoi)(s)) })
+RIO.FromResult(R.TryCatchError(strconv.Atoi(s)))
+
+// ✅ CORRECT - idiomatic lifts
+RIO.ChainResultIK(strconv.Atoi)
+EF.ChainResultIK[Deps](strconv.Atoi)
+RIO.FromResultI(strconv.Atoi(s))
+R.ChainI(strconv.Atoi)
+```
+
+`ChainIOResultIK`, `ChainReaderResultIK`, `ChainThunkIK`, `ChainOptionIK`, `TapResultIK`, `BindI`, `TraverseArrayI` and `RetryingI` follow the same scheme. `Eitherize1` stays right for the *first* step of a `Flow` or for a reusable `Kleisli`.
+
+**Severity**: Low — verbosity
+
+### 19. Recursion and Loops
+
+**Rule**: A Kleisli that calls itself through `Chain` to loop (pagination, polling, walking a cursor) must use `TailRec`.
+
+**Check for**:
+```go
+// ❌ WRONG - stack grows with every page, and a context-free loop never stops on cancel
+func fetchAll(s pageState) RIO.ReaderIOResult[[]Item] {
+    return F.Pipe1(fetchPage(s.Token), RIO.Chain(func(p Page) RIO.ReaderIOResult[[]Item] {
+        if p.Next == "" {
+            return RIO.Of(slices.Concat(s.Items, p.Items))
+        }
+        return fetchAll(pageState{p.Next, slices.Concat(s.Items, p.Items)})
+    }))
+}
+
+// ✅ CORRECT - stack-safe, cancellation checked before each step
+fetchAll := RIO.TailRec(nextPage) // nextPage returns ReaderIOResult[Trampoline[pageState, []Item]]
+```
+
+**Severity**: High for unbounded loops (stack overflow risk); Medium otherwise.
+
+### 20. Optics and Generated Lenses
+
+**Rule**: Compose lenses with the matching optic instead of unpacking values by hand, and do not hand-write strict lenses for interface fields.
+
+**Check for**:
+- Manual `if len(s.Items) > 0 { … s.Items[0] … }` around a lens where `L.ComposePrism[S](prism.Head[T]())` (or `prism.At[T]()(i)`) gives an `Optional` (Low)
+- Hand conversions between `int` seconds / `int64` nanoseconds and `time.Duration` where `L.ComposeIso[S](iso.SecondsDuration())` / `iso.NanoDuration()` fit (Low)
+- `uuid.Parse` wrapped in a closure where `prism.ParseUUID()` fits (Go 1.27+, Low)
+- `L.MakeLensStrict` on an `any`, `error` or other interface-typed field: `==` can panic at run time — use `MakeLensRef` (High)
+- Mutating a shared `*http.Client` (`client.Timeout = …`) instead of `HC.TimeoutLens().Set(d)(client)`, which copies (Medium)
+- Hand-edited `gen_lens.go` — regenerate with `go generate ./...` instead (Medium)
+
+**Severity**: see the individual items.
+
 ## Review Process
 
 ### Step 1: Obtain Git Diff
@@ -641,6 +700,7 @@ Alternatively, use the `/code-review --comment` skill to post inline PR annotati
 | functionality | error-handling-review | Missing error propagation |
 | functionality | context-handling | `ctx.Value(k).(T)` assertion or discarded `cancel` instead of `AskValue` / `WithTimeout` |
 | performance | inefficient-algorithm | Manual loops instead of TraverseArray |
+| functionality | unbounded-recursion | Kleisli recursing through `Chain` instead of `TailRec` |
 | style | style-consistency-check | Inconsistent import aliases |
 | security | sensitive-data-logging | Logging sensitive information |
 

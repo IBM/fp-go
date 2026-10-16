@@ -5,7 +5,9 @@ description: >-
   library (github.com/IBM/fp-go/v2/optics/lens). Trigger on mentions of
   lenses, optics, MakeLens, MakeLensRef, MakeLensStrict, lens composition,
   immutable updates to nested structs, accessing nested data structures,
-  Compose, ComposeRef, ComposeOption, FromNillable, FromNillableRef, Modify,
+  Compose, ComposeRef, ComposeOption, ComposeIso, ComposePrism,
+  ComposeOptional, FromNillable, FromNillableRef, Modify, prisms (Head, At,
+  ParseInt, ParseUUID), isos (SecondsDuration, NanoDuration, EmptyToNil),
   getter/setter patterns, or functional updates to Go structs. Also trigger
   when the user needs to update deeply nested fields immutably or work with
   optional fields in struct hierarchies. Also trigger for `// fp-go:Lens`
@@ -48,7 +50,8 @@ The fastest way to create lenses is via **code generation**. Annotate any struct
 type Person struct {
     Name  string
     Age   int
-    Phone *string  // pointer → optional lens auto-generated
+    Phone *string   // nil → None in PhoneO
+    Tags  []string  // not comparable → no TagsO
 }
 ```
 
@@ -61,18 +64,30 @@ Running `go generate ./...` produces a `gen_lens.go` file with:
 | `PersonPrisms` | Prisms for `Person` |
 | `PersonRefPrisms` | Prisms for `*Person` |
 
-Each type has fields for **every struct field**, with both a required lens and an optional lens:
+Every struct field gets a required lens. **Comparable** fields additionally get an optional lens `XxxO`, which treats the zero value as `None` (built with `LO.FromIso(isoOption.FromZero[T]())`):
 
 ```go
 type PersonLenses struct {
-    Name  L.Lens[Person, string]            // required lens
-    NameO LO.LensO[Person, string]          // optional lens (LensO = Lens[S, Option[A]])
-    Age   L.Lens[Person, int]
-    AgeO  LO.LensO[Person, int]
-    Phone L.Lens[Person, *string]
-    PhoneO LO.LensO[Person, *string]        // pointer fields auto-get optional variant
+    Name   L.Lens[Person, string]      // required lens
+    Age    L.Lens[Person, int]
+    Phone  L.Lens[Person, *string]
+    Tags   L.Lens[Person, []string]
+    NameO  LO.LensO[Person, string]    // optional lens (LensO = Lens[S, Option[A]]); "" → None
+    AgeO   LO.LensO[Person, int]       // 0 → None
+    PhoneO LO.LensO[Person, *string]   // nil → None
+    // no TagsO: []string is not comparable
 }
 ```
+
+How the generator treats a field depends on its comparability:
+
+| Field type | Value lens | Ref lens (`*S`) | `XxxO` | Prism `GetOption` |
+|---|---|---|---|---|
+| strictly comparable (`string`, `int`, pointers, `[N]T` of those, structs of those) | `MakeLens` | `MakeLensStrict` (no copy when unchanged) | yes | `None` for the zero value |
+| comparable but may panic on `==` (`any`, `error`, other interfaces, structs or arrays containing them) | `MakeLens` | `MakeLensRef` | yes | `None` for the zero value |
+| not comparable (slices, maps, funcs, named types over them such as `type Tags []string`, structs containing them) | `MakeLens` | `MakeLensRef` | no | always `Some` |
+
+Named types are resolved through their declaration in the package, so `type Tags []string` counts as a slice. Generated output is gofmt'ed, has deterministic import order and only imports what it uses.
 
 Constructor functions:
 
@@ -86,9 +101,9 @@ updated := lenses.Name.Set("Bob")(person)   // Person{Name: "Bob", Age: 30}
 name    := lenses.Name.Get(person)          // "Alice"
 ```
 
-**Pointer fields** (`*string`, `*SomeStruct`) automatically generate optional lenses using `LO.FromNillable`.
+**Pointer fields** (`*string`, `*SomeStruct`) are comparable, so their `XxxO` lens maps `nil` to `None`. For slices and maps (no `XxxO`) work with the required lens, e.g. compose it with `prism.Head` or `iso.EmptyToNil` (see below).
 
-**Embedded structs** and **generic types** are also supported — for embedded structs, lenses are generated for each promoted field.
+**Embedded structs** and **generic types** are also supported — for embedded structs, lenses are generated for each promoted field. Pass `--include-test-files` to also scan `*_test.go` files.
 
 ---
 
@@ -164,7 +179,7 @@ same    := nameLens.Set("Alice")(person)  // same == person
 updated := nameLens.Set("Bob")(person)
 ```
 
-For non-comparable types use `MakeLensWithEq` with a custom `Eq[A]`.
+For non-comparable types use `MakeLensWithEq` with a custom `Eq[A]`. Do **not** use `MakeLensStrict` for interface-typed fields (`any`, `error`, `io.Reader`, …): they satisfy `comparable`, but `==` panics at run time when the dynamic values are not comparable. Use `MakeLensRef` for them, as the generator does.
 
 ### MakeLensWithEq — Pointer Types with Custom Equality
 
@@ -228,6 +243,60 @@ updated := personStreetNameLens.Set("Oak Ave")(person)
 // Composes Lens[*Person, Address] with Lens[Address, string] → Lens[*Person, string]
 personStreetNameLens := F.Pipe1(addressRefLens, L.ComposeRef[Person](streetNameLens))
 ```
+
+---
+
+## Composing Lenses with Isos, Prisms and Optionals
+
+A lens composes with every other optic. The result type follows the weakest optic in the chain:
+
+| Compose | With | Result | Function |
+|---|---|---|---|
+| `Lens[S, A]` | `Iso[A, B]` | `Lens[S, B]` | `L.ComposeIso[S](ab)` |
+| `Lens[S, A]` | `Prism[A, B]` | `Optional[S, B]` | `L.ComposePrism[S](ab)` |
+| `Lens[S, A]` | `Optional[A, B]` | `Optional[S, B]` | `L.ComposeOptional[S](ab)` |
+| `Prism[S, A]` | `Lens[A, B]` | `Optional[S, B]` | `prism.ComposeLens[S](ab)` |
+| `Prism[S, A]` | `Iso[A, B]` | `Prism[S, B]` | `prism.ComposeIso[S](ab)` |
+| `Prism[S, A]` | `Optional[A, B]` | `Optional[S, B]` | `prism.ComposeOptional[S](ab)` |
+| `Iso[S, A]` | `Prism[A, B]` | `Prism[S, B]` | `iso.ComposePrism[S](ab)` |
+| `Iso[S, A]` | — | `Lens[S, A]` | `iso.AsLens(sa)` |
+
+An `Optional[S, B]` (`optics/optional`) has `GetOption(s) Option[B]` and `Set(b)(s)`; `Set` leaves `s` unchanged when the focus is absent.
+
+```go
+import (
+    "github.com/IBM/fp-go/v2/optics/iso"
+    "github.com/IBM/fp-go/v2/optics/prism"
+)
+
+// Lens + Prism: the first tag of a config, if any
+firstTag := F.Pipe1(lenses.Tags, L.ComposePrism[Config](prism.Head[string]()))
+firstTag.GetOption(Config{Tags: []string{"a", "b"}}) // Some("a")
+firstTag.GetOption(Config{})                         // None
+
+// Lens + Prism: the element at index 1
+secondTag := F.Pipe1(lenses.Tags, L.ComposePrism[Config](prism.At[string]()(1)))
+
+// Lens + Iso: view an int seconds field as a time.Duration
+timeout := F.Pipe1(lenses.TimeoutSeconds, L.ComposeIso[Config](iso.SecondsDuration()))
+timeout.Get(Config{TimeoutSeconds: 5})        // 5 * time.Second
+timeout.Set(2 * time.Second)(cfg)             // cfg.TimeoutSeconds == 2
+```
+
+### Ready-Made Isos and Prisms
+
+| Optic | Package | Focus |
+|---|---|---|
+| `iso.SecondsDuration()` / `iso.NanoDuration()` / `iso.UnixMilli()` | `optics/iso` | `int` seconds / `int64` nanoseconds ↔ `time.Duration`; `int64` ms ↔ `time.Time` |
+| `iso.EmptyToNil[A]()` | `optics/iso` | normalises an empty slice to `nil` |
+| `iso.Head[A]()` | `optics/iso` | `A` ↔ single-element `NonEmptyArray[A]` |
+| `iso.SwapPair`, `iso.ReverseArray`, `iso.Lines`, `iso.UTF8String` | `optics/iso` | other total conversions |
+| `prism.Head[T]()` / `prism.At[T]()(i)` | `optics/prism` | first / i-th element of a slice |
+| `prism.FromOption[T]()`, `prism.FromResult`, `prism.FromZero`, `prism.FromNonZero` | `optics/prism` | the `Some` / `Right` / non-zero case |
+| `prism.ParseInt()`, `ParseInt64`, `ParseFloat64`, `ParseBool`, `ParseDate`, `ParseURL`, `ParseJSON`, `NonEmptyString` | `optics/prism` | parse a `string`; `ReverseGet` formats back |
+| `prism.ParseUUID()` | `optics/prism` | `string` ↔ `uuid.UUID` (Go 1.27+, standard library `uuid`) |
+| `LP.Head[L, R]()` / `LP.Tail[L, R]()` | `optics/lens/pair` | head / tail of a `Pair` |
+| `client.TimeoutLens()` / `client.TransportLens()` | `http/client` | fields of an `*http.Client` (copy on set) |
 
 ---
 
@@ -393,8 +462,11 @@ Inside `context/*` pipelines prefer the monadic operators `AskValue[V](key)` / `
 
 ```go
 import (
-    L  "github.com/IBM/fp-go/v2/optics/lens"            // MakeLens, MakeLensRef, MakeLensStrict, MakeLensWithEq, Compose, ComposeRef, Modify
-    LO "github.com/IBM/fp-go/v2/optics/lens/option"     // LensO, FromNillable, FromNillableRef, ComposeOption, Compose
+    L  "github.com/IBM/fp-go/v2/optics/lens"            // MakeLens, MakeLensRef, MakeLensStrict, MakeLensWithEq, Compose, ComposeRef, ComposeIso, ComposePrism, ComposeOptional, Modify
+    LO "github.com/IBM/fp-go/v2/optics/lens/option"     // LensO, FromNillable, FromNillableRef, FromIso, ComposeOption, Compose
+    LP "github.com/IBM/fp-go/v2/optics/lens/pair"       // Head, Tail lenses for Pair
+    "github.com/IBM/fp-go/v2/optics/iso"                // SecondsDuration, NanoDuration, EmptyToNil, AsLens, ComposePrism
+    "github.com/IBM/fp-go/v2/optics/prism"              // Head, At, FromOption, ParseInt, ParseUUID, ComposeLens, ComposeIso
     F  "github.com/IBM/fp-go/v2/function"               // Pipe1, Pipe2, Pipe3, ...
     O  "github.com/IBM/fp-go/v2/option"                 // Some, None, Option
     EQ "github.com/IBM/fp-go/v2/eq"                     // FromStrictEquals, FromEquals (for MakeLensWithEq)
