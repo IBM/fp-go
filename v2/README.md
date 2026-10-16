@@ -63,28 +63,32 @@ package main
 
 import (
     "fmt"
-    "github.com/IBM/fp-go/v2/option"
+
+    F "github.com/IBM/fp-go/v2/function"
+    "github.com/IBM/fp-go/v2/lazy"
     N "github.com/IBM/fp-go/v2/number"
+    O "github.com/IBM/fp-go/v2/option"
+    S "github.com/IBM/fp-go/v2/string"
 )
 
 func main() {
     // Create an Option
-    some := option.Some(42)
-    none := option.None[int]()
-    
+    some := O.Some(42)
+    none := O.None[int]()
+
     // Map over values
-    doubled := option.Map(N.Mul(2))(some)
-    fmt.Println(option.GetOrElse(0)(doubled)) // Output: 84
-    
-    // Chain operations
-    result := option.Chain(func(x int) option.Option[string] {
-        if x > 0 {
-            return option.Some(fmt.Sprintf("Positive: %d", x))
-        }
-        return option.None[string]()
-    })(some)
-    
-    fmt.Println(option.GetOrElse("No value")(result)) // Output: Positive: 42
+    doubled := F.Pipe2(some, O.Map(N.Mul(2)), O.GetOrElse(lazy.Of(0)))
+    fmt.Println(doubled) // Output: 84
+
+    // Chain operations into a reusable pipeline
+    describePositive := F.Flow3(
+        O.Chain(O.FromPredicate(N.MoreThan(0))),
+        O.Map(S.Format[int]("Positive: %d")),
+        O.GetOrElse(lazy.Of("No value")),
+    )
+
+    fmt.Println(describePositive(some)) // Output: Positive: 42
+    fmt.Println(describePositive(none)) // Output: No value
 }
 ```
 
@@ -94,30 +98,39 @@ func main() {
 package main
 
 import (
-    "errors"
     "fmt"
-    "github.com/IBM/fp-go/v2/result"
+    "strconv"
+
+    E "github.com/IBM/fp-go/v2/errors"
+    F "github.com/IBM/fp-go/v2/function"
+    N "github.com/IBM/fp-go/v2/number"
+    R "github.com/IBM/fp-go/v2/result"
+    S "github.com/IBM/fp-go/v2/string"
 )
 
-func divide(a, b int) result.Result[int] {
-    if b == 0 {
-        return result.Error[int](errors.New("division by zero"))
-    }
-    return result.Ok(a / b)
-}
+// parse converts a string to an int, capturing the error in a Result
+var parse = R.Eitherize1(strconv.Atoi)
+
+// positive rejects values that are not greater than zero
+var positive = R.FromPredicate(N.MoreThan(0), E.OnSome[int]("%d is not positive"))
+
+// halve parses, validates and halves its input
+var halve = F.Flow3(
+    parse,
+    R.Chain(positive),
+    R.Map(N.Div(2)),
+)
 
 func main() {
-    res := divide(10, 2)
-    
     // Pattern match on the result
-    result.Fold(
-        func(err error) { fmt.Println("Error:", err) },
-        func(val int) { fmt.Println("Result:", val) },
-    )(res)
-    // Output: Result: 5
-    
+    describe := R.Fold(S.Format[error]("Error: %v"), S.Format[int]("Result: %d"))
+
+    fmt.Println(describe(halve("10")))  // Output: Result: 5
+    fmt.Println(describe(halve("-4")))  // Output: Error: -4 is not positive
+    fmt.Println(describe(halve("abc"))) // Output: Error: strconv.Atoi: parsing "abc": invalid syntax
+
     // Or use GetOrElse for a default value
-    value := result.GetOrElse(0)(divide(10, 0))
+    value := F.Pipe2("abc", halve, R.GetOrElse(F.Constant1[error](0)))
     fmt.Println("Value:", value) // Output: Value: 0
 }
 ```
@@ -129,23 +142,26 @@ package main
 
 import (
     "fmt"
-    "github.com/IBM/fp-go/v2/io"
+    "strings"
+
+    F "github.com/IBM/fp-go/v2/function"
+    IO "github.com/IBM/fp-go/v2/io"
+    S "github.com/IBM/fp-go/v2/string"
 )
 
 func main() {
     // Define pure IO operations
-    readInput := io.MakeIO(func() string {
-        return "Hello, fp-go!"
-    })
-    
+    readInput := IO.Of("Hello, fp-go!")
+
     // Transform the result
-    uppercase := io.Map(func(s string) string {
-        return fmt.Sprintf(">>> %s <<<", s)
-    })(readInput)
-    
+    decorated := F.Pipe2(
+        readInput,
+        IO.Map(strings.ToUpper),
+        IO.Map(S.Format[string](">>> %s <<<")),
+    )
+
     // Execute the IO operation
-    result := uppercase()
-    fmt.Println(result) // Output: >>> Hello, fp-go! <<<
+    fmt.Println(decorated()) // Output: >>> HELLO, FP-GO! <<<
 }
 ```
 
@@ -200,7 +216,7 @@ result := Map(N.Mul(2))(pair) // Pair(2, "hello")
 ```go
 // Operations on second element (Haskell-compatible)
 pair := MakePair(1, "hello")
-result := Map(func(s string) string { return s + "!" })(pair) // Pair(1, "hello!")
+result := F.Pipe1(pair, Map[int](S.Append("!"))) // Pair(1, "hello!")
 ```
 
 #### 4. Endomorphism Compose Semantics
@@ -381,7 +397,7 @@ result := Map(N.Mul(2))(pair)
 ```go
 pair := MakePair(42, "data")
 // Map operates on second element
-result := Map(func(s string) string { return s + "!" })(pair)
+result := F.Pipe1(pair, Map[int](S.Append("!")))
 ```
 
 ### Step 6: Simplify Type Aliases
@@ -435,15 +451,15 @@ func process() IOET.IOEither[error, string] {
 ```go
 import (
     "strconv"
+
+    F "github.com/IBM/fp-go/v2/function"
     "github.com/IBM/fp-go/v2/ioresult"
 )
 
 type IOResult[A any] = ioresult.IOResult[A]
 
 func process() IOResult[string] {
-    return ioresult.Map(
-        strconv.Itoa,
-    )(fetchData())
+    return F.Pipe1(fetchData(), ioresult.Map(strconv.Itoa))
 }
 ```
 

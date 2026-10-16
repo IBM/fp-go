@@ -5,10 +5,12 @@ description: >-
   the fp-go library (github.com/IBM/fp-go/v2). It is the entry point: core
   types (Option, Either, Result, IO, IOResult, ReaderIOResult, Effect),
   data-last composition, type-parameter order, lifting Go functions with
-  Eitherize, do-notation, the canonical import aliases, and choosing the right
-  monad. Trigger on any mention of fp-go, functional programming in Go, monads
-  in Go, Option/Either/Result types in Go, IOResult, ReaderIOResult, Effect,
-  or converting idiomatic Go error handling into functional pipelines. For
+  Eitherize and the idiomatic *I / *IK operators (ChainResultIK, ChainI),
+  stack-safe loops with TailRec, do-notation, the canonical import aliases, and
+  choosing the right monad. Trigger on any mention of fp-go, functional
+  programming in Go, monads in Go, Option/Either/Result types in Go, IOResult,
+  ReaderIOResult, Effect, TailRec, Trampoline, recursion in a monad, or
+  converting idiomatic Go error handling into functional pipelines. For
   focused topics also load fp-go-pipe-flow (Pipe/Flow, reader, do-notation),
   fp-go-lens (optics), fp-go-effect (typed dependencies), fp-go-context,
   fp-go-http, fp-go-logging, fp-go-pattern-matching or fp-go-pr-review.
@@ -62,7 +64,8 @@ All fp-go skills use these aliases. Packages not listed are imported unaliased (
 | `B` | `http/builder` | | `C` | `http/content` |
 | `RB` | `context/readerioresult/http/builder` | | `FH` | `http` |
 | `SRIO` | `context/statereaderioresult` | | `EQ` | `eq` |
-| `IOF` | `ioresult/file` | | | |
+| `IOF` | `ioresult/file` | | `HC` | `http/client` |
+| `LP` | `optics/lens/pair` | | | |
 
 ## Generation Workflow
 
@@ -217,10 +220,16 @@ value := F.Pipe3(
 | Helper | Lifts |
 |--------|-------|
 | `Eitherize1`..`EitherizeN` | `func(args...) (B, error)` → `func(args...) Result[B]` — **primary bridge from Go to fp-go** |
-| `ChainEitherK` / `ChainResultK` | `func(A) Result[B]` → works inside the monad. It does **not** accept a bare `func(A) (B, error)` — wrap that in `result.Eitherize1` first. |
+| `ChainEitherK` / `ChainResultK` | `func(A) Result[B]` → works inside the monad. It does **not** accept a bare `func(A) (B, error)`; use `ChainResultIK` for that. |
+| `ChainResultIK` (`ChainEitherIK`) | a bare Go `func(A) (B, error)` directly, e.g. `RIO.ChainResultIK(strconv.Atoi)` |
+| `ChainI` / `ChainFirstI` / `TapI` | the monad's own idiomatic Kleisli, e.g. `R.ChainI(strconv.Atoi)` in `result`, `func(A) func(ctx) func() (B, error)` in `context/readerioresult` |
+| `ChainIOResultIK`, `ChainReaderResultIK`, `ChainOptionIK(onNone)` | `func(A) func() (B, error)`, `func(A) func(ctx) (B, error)`, `func(A) (B, bool)` |
+| `FromResultI(a, err)` | a `(A, error)` pair → `M[A]`, e.g. `RIO.FromResultI(strconv.Atoi(s))` |
 | `ChainOptionK(onNone)` | `func(A) Option[B]` → works inside the monad; takes the `func() error` fallback first |
 | `TapIOK` (= `ChainFirstIOK`) | `func(A) IO[B]` for side effects such as logging, keeps original value |
 | `FromPredicate` | `func(A) bool` + error builder → `func(A) Result[A]` |
+
+**Naming convention:** a trailing `I` (`ChainI`, `FromResultI`, `BindI`, `TraverseArrayI`, `RetryingI`) means the argument uses the *idiomatic* tuple shape `(B, error)` of the matching `idiomatic/` package; `IK` (`ChainResultIK`, `TapIOResultIK`, `ChainThunkIK`) is the idiomatic version of the `…K` lift. They are available in `result`, `option`, `ioresult`, `readerioresult`, `context/readerioresult`, `context/readerreaderioresult` and `effect`. Prefer them over `F.Flow2(R.Eitherize1(f), …)` when you lift an existing Go function into a pipeline step.
 
 ## Examples
 
@@ -308,10 +317,10 @@ import (
 // repo.FindUser is func(context.Context, int) (User, error)
 fetchUser := RIO.Eitherize1(repo.FindUser)             // func(int) ReaderIOResult[User]
 
-// validateUser is a plain Go func(User) (User, error) — Eitherize it first
+// validateUser is a plain Go func(User) (User, error) — ChainResultIK lifts it directly
 pipeline := F.Pipe3(
     fetchUser(42),
-    RIO.ChainResultK(R.Eitherize1(validateUser)),      // Kleisli: User → Result[User]
+    RIO.ChainResultIK(validateUser),                   // same as RIO.ChainResultK(R.Eitherize1(validateUser))
     RIO.Map(enrichUser),                               // lift pure User → User function
     RIO.TapIOK(IO.Logf[User]("Fetched: %v")),   // side-effect logging
 )
@@ -326,7 +335,7 @@ The context is the Reader environment: never thread `ctx` by hand, call `ctx.Val
 
 | Operator | Type | Purpose |
 |----------|------|---------|
-| `RIO.Ask()` / `RIO.FromReader(f)` | `ReaderIOResult[context.Context]` / `[A]` | whole context / pure projection of it |
+| `RIO.Ask()` / `RIO.FromReader(f)` | `ReaderIOResult[context.Context]` / `[A]` | whole context / pure projection of it (`RIO.Identity()` is an alias of `Ask`) |
 | `RIO.AskValue[V](key)` | `ReaderIOResult[Option[V]]` | typed value; `None` if absent **or wrong type** — never panics, never fails |
 | `RIO.WithValue[A](key, v)` | `Operator[A, A]` | run with `key → v`; caller's context untouched |
 | `RIO.WithTimeout[A](d)` / `RIO.WithDeadline[A](t)` | `Operator[A, A]` | bound in time; cancel func always released |
@@ -418,19 +427,57 @@ value, err := EF.RunSync(thunk)(ctx) // RunSync gives back idiomatic (A, error)
 
 | Helper | Signature | Lifts |
 |---|---|---|
-| `EF.Ask[C]()` | `Effect[C, C]` | the full dependency struct |
+| `EF.Ask[C]()` / `EF.Identity[C]()` | `Effect[C, C]` | the full dependency struct (`Identity` is the same arrow, named for "changes nothing") |
 | `EF.Asks(f)` | `func(C) A → Effect[C, A]` | a **pure** projection of the deps |
 | `EF.Of[C](a)` / `EF.Succeed[C](a)` | `A → Effect[C, A]` | a pure value |
 | `EF.Fail[C, A](err)` | `error → Effect[C, A]` | an error |
 | `EF.FromResult[C](r)` | `Result[A] → Effect[C, A]` | a `Result` |
 | `EF.FromIO[C](io)` | `IO[A] → Effect[C, A]` | a plain `IO` |
 | `EF.FromThunk[C](t)` | `ReaderIOResult[A] → Effect[C, A]` | a dep-free `ReaderIOResult` |
-| `EF.FromReader(r)` | `Reader[C, A] → Effect[C, A]` | same as `Asks` |
+| `EF.FromReader(r)` / `EF.FromReaderResult(r)` | `Reader[C, A]` / `ReaderResult[C, A] → Effect[C, A]` | same as `Asks` / a fallible projection |
+| `EF.FromResultI[C](a, err)` / `EF.FromThunkI[C](f)` | `(A, error)` / `func(ctx) func() (A, error)` → `Effect[C, A]` | idiomatic values |
 | `EF.Eitherize1(f)` | `func(C, context.Context, A) (T, error) → Kleisli[C, A, T]` | an idiomatic method taking deps **and** ctx |
 | `EF.FromIdiomatic(f)` | `KleisliI[C, A, B] → Kleisli[C, A, B]` | a service method `func(A) func(context.Context, C) (B, error)` |
+| `EF.ChainResultIK[C](f)` | `func(A) (B, error) → Operator[C, A, B]` | a plain Go function as a pipeline step |
 
 Running: `EF.Provide[A](deps)` → `ReaderIOResult[A]`, then `EF.RunSync(thunk)(ctx)` → `(A, error)`.
 `EF.Local(f)` narrows an outer dep struct to an inner one for a subsystem.
+
+### TailRec — Stack-Safe Loops
+
+Go has no tail-call optimisation, so a computation that recurses through `Chain` (pagination, polling, retry-until, walking a linked structure) grows the stack with every step. `TailRec` runs such a loop iteratively. The step function returns a `Trampoline[A, B]`: `tailrec.Bounce[B](next)` continues with a new state, `tailrec.Land[A](result)` stops.
+
+```go
+import (
+    RIO "github.com/IBM/fp-go/v2/context/readerioresult"
+    F   "github.com/IBM/fp-go/v2/function"
+    "github.com/IBM/fp-go/v2/tailrec"
+)
+
+type pageState struct {
+    Token string
+    Items []Item
+}
+
+// One step: fetch a page, then either continue with the next token or stop.
+func nextPage(s pageState) RIO.ReaderIOResult[RIO.Trampoline[pageState, []Item]] {
+    return F.Pipe1(fetchPage(s.Token), RIO.Map(func(p Page) RIO.Trampoline[pageState, []Item] {
+        items := slices.Concat(s.Items, p.Items)
+        if p.Next == "" {
+            return tailrec.Land[pageState](items)
+        }
+        return tailrec.Bounce[[]Item](pageState{p.Next, items})
+    }))
+}
+
+fetchAll := RIO.TailRec(nextPage) // Kleisli[pageState, []Item]
+res := fetchAll(pageState{})(ctx)()
+```
+
+- `TailRec` exists in every monad: `result`, `either`, `io`, `ioresult`, `ioeither`, `iooption`, `reader*`, `context/readerio`, `context/readerresult`, `context/readerioresult`, `context/readerreaderioresult`, `idiomatic/context/readerresult` and `effect` (`EF.TailRec`).
+- The first error stops the loop and becomes the result.
+- The context-aware variants (`context/*`, `effect`) check the context before each step and stop with `context.Cause(ctx)` once it is cancelled.
+- The monads re-export the type as `Trampoline[A, B]` (`RIO.Trampoline`, `EF.Trampoline`); the constructors live in `tailrec`.
 
 ### Traversal — Process Slices Monadically
 
@@ -649,6 +696,8 @@ parse("abc") // Error(strconv parse error)
 | Hand-written `func(ctx) func() Result[A]` around a `func(ctx, …) (A, error)` | `RIO.Eitherize1(f)` (or `EF.Eitherize1` for `func(C, ctx, …)`) |
 | Same letter aliasing two packages (`R` for `result` in one file, `reader` in another) | Use the canonical alias table above |
 | `Map` with a function that returns `Option` / `Result` / another monad | Produces nested `M[M[A]]`. Use `Chain` (or `Flatten`) for `A → M[B]`; reserve `Map` for plain `A → B`. |
+| `RIO.ChainResultK(R.Eitherize1(f))` for a plain `func(A) (B, error)` | `RIO.ChainResultIK(f)` (likewise `EF.ChainResultIK[C](f)`, `R.ChainI(f)`) |
+| A function that calls itself through `Chain` to loop (pagination, polling) | `TailRec` with `tailrec.Bounce` / `tailrec.Land`; recursion through `Chain` grows the stack and is not cancellable between steps |
 | Closure passed to `Map` / `Chain` mutates a captured variable (slice `append`, counter `++`) | Keep it pure — derive and return new values. A mutating closure silently defeats fp-go's guarantees and breaks under `Traverse` / concurrency. |
 | Mixing `idiomatic/result` and standard `result` (or `option` / `ioresult`) in one file | Different types — struct wrapper vs `(A, error)` tuple — that do not interoperate. Pick one representation per file. |
 

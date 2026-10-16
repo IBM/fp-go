@@ -73,6 +73,18 @@ custom := &http.Client{Timeout: 10 * time.Second}
 client := H.MakeClient(custom)
 ```
 
+To derive a configured `*http.Client` without mutating a shared one, use the lenses in `http/client` (`HC`). `Set` copies the client, so `http.DefaultClient` stays untouched:
+
+```go
+import HC "github.com/IBM/fp-go/v2/http/client"
+
+configure := F.Flow2(                                  // EM.Endomorphism[*http.Client]
+    HC.TimeoutLens().Set(10*time.Second),
+    HC.TransportLens().Set(myTransport),
+)
+client := H.MakeClient(configure(http.DefaultClient))
+```
+
 ### 2. Build a Request
 
 ```go
@@ -457,6 +469,7 @@ import (
     HD  "github.com/IBM/fp-go/v2/http/headers"   // header name constants, AtValue/AtValues lenses, Monoid
     C   "github.com/IBM/fp-go/v2/http/content"   // content type constants
     FH  "github.com/IBM/fp-go/v2/http"           // ParseMediaType, StatusCodeError, …
+    HC  "github.com/IBM/fp-go/v2/http/client"    // TimeoutLens, TransportLens for *http.Client
     RIO "github.com/IBM/fp-go/v2/context/readerioresult"
     F   "github.com/IBM/fp-go/v2/function"
     R   "github.com/IBM/fp-go/v2/result"   // Unwrap, Fold — leaving the monad
