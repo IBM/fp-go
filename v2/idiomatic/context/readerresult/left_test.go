@@ -17,48 +17,22 @@ package readerresult
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/catch/catchtest"
 	"github.com/IBM/fp-go/v2/result"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestChainFirstLeft_Success(t *testing.T) {
-	t.Run("observes the error and keeps it", func(t *testing.T) {
-		var seen error
-		observe := func(err error) ReaderResult[F.Void] { seen = err; return Of(F.VOID) }
-		assert.Equal(t, (result.Left[int](errSentinel)), run(ChainFirstLeft[int](observe)(Left[int](errSentinel))))
-		assert.Equal(t, errSentinel, seen)
+func TestErrorChannel(t *testing.T) {
+	catchtest.TestLeft(t, catchtest.LeftOps[ReaderResult[int], ReaderResult[F.Void], result.Result[int]]{
+		Monad:               catchMonad(),
+		ChainFirstLeft:      ChainFirstLeft[int, F.Void],
+		TapLeft:             TapLeft[int, F.Void],
+		MonadChainFirstLeft: MonadChainFirstLeft[int, F.Void],
+		MonadTapLeft:        MonadTapLeft[int, F.Void],
 	})
-
-	t.Run("a failing side effect does not replace the error", func(t *testing.T) {
-		fail := func(error) ReaderResult[F.Void] { return Left[F.Void](errors.New("side effect")) }
-		assert.Equal(t, (result.Left[int](errSentinel)), run(ChainFirstLeft[int](fail)(Left[int](errSentinel))))
-	})
-
-	t.Run("TapLeft is the same as ChainFirstLeft", func(t *testing.T) {
-		var seen error
-		observe := func(err error) ReaderResult[F.Void] { seen = err; return Of(F.VOID) }
-		assert.Equal(t, (result.Left[int](errSentinel)), run(TapLeft[int](observe)(Left[int](errSentinel))))
-		assert.Equal(t, errSentinel, seen)
-	})
-
-	t.Run("the monadic forms behave the same", func(t *testing.T) {
-		count := 0
-		observe := func(error) ReaderResult[F.Void] { count++; return Of(F.VOID) }
-		assert.Equal(t, (result.Left[int](errSentinel)), run(MonadChainFirstLeft(Left[int](errSentinel), observe)))
-		assert.Equal(t, (result.Left[int](errSentinel)), run(MonadTapLeft(Left[int](errSentinel), observe)))
-		assert.Equal(t, 2, count)
-	})
-}
-
-func TestChainFirstLeft_Failure(t *testing.T) {
-	called := false
-	observe := func(error) ReaderResult[F.Void] { called = true; return Of(F.VOID) }
-	assert.Equal(t, (result.Of(42)), run(ChainFirstLeft[int](observe)(Of(42))))
-	assert.False(t, called)
 }
 
 func TestChainFirstLeft_EdgeCases(t *testing.T) {
@@ -69,7 +43,7 @@ func TestChainFirstLeft_EdgeCases(t *testing.T) {
 	observe := func(error) ReaderResult[F.Void] {
 		return func(context.Context) (F.Void, error) { called = true; return F.VOID, nil }
 	}
-	res := result.TryCatchError(ChainFirstLeft[int](observe)(Left[int](errSentinel))(ctx))
-	assert.Equal(t, result.Left[int](errSentinel), res)
+	res := result.TryCatchError(ChainFirstLeft[int](observe)(Left[int](catchtest.ErrSentinel))(ctx))
+	assert.Equal(t, result.Left[int](catchtest.ErrSentinel), res)
 	assert.False(t, called)
 }

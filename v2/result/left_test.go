@@ -16,39 +16,23 @@
 package result
 
 import (
-	"errors"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/v2/internal/catch/catchtest"
 )
 
-func TestChainFirstLeft_Success(t *testing.T) {
-	t.Run("observes the error and keeps it", func(t *testing.T) {
-		var seen error
-		observe := func(err error) Result[F.Void] { seen = err; return Of(F.VOID) }
-		assert.Equal(t, Left[int](errSentinel), ChainFirstLeft[int](observe)(Left[int](errSentinel)))
-		assert.Equal(t, errSentinel, seen)
+func TestErrorChannel(t *testing.T) {
+	catchtest.TestLeft(t, catchtest.LeftOps[Result[int], Result[F.Void], Result[int]]{
+		Monad:               catchMonad(),
+		ChainFirstLeft:      ChainFirstLeft[int, F.Void],
+		TapLeft:             TapLeft[int, F.Void],
+		MonadChainFirstLeft: MonadChainFirstLeft[int, F.Void],
+		MonadTapLeft:        MonadTapLeft[int, F.Void],
+		ChainLeft:           ChainLeft[int],
+		OrElse:              OrElse[int],
+		MonadChainLeft:      MonadChainLeft[int],
+		MapLeft:             MapLeft[int, error],
+		MonadMapLeft:        MonadMapLeft[int, error],
 	})
-
-	t.Run("a failing side effect does not replace the error", func(t *testing.T) {
-		fail := func(error) Result[F.Void] { return Left[F.Void](errors.New("side effect")) }
-		assert.Equal(t, Left[int](errSentinel), ChainFirstLeft[int](fail)(Left[int](errSentinel)))
-	})
-
-	t.Run("the aliases and monadic forms behave the same", func(t *testing.T) {
-		count := 0
-		observe := func(error) Result[F.Void] { count++; return Of(F.VOID) }
-		assert.Equal(t, Left[int](errSentinel), TapLeft[int](observe)(Left[int](errSentinel)))
-		assert.Equal(t, Left[int](errSentinel), MonadChainFirstLeft(Left[int](errSentinel), observe))
-		assert.Equal(t, Left[int](errSentinel), MonadTapLeft(Left[int](errSentinel), observe))
-		assert.Equal(t, 3, count)
-	})
-}
-
-func TestChainFirstLeft_Failure(t *testing.T) {
-	called := false
-	observe := func(error) Result[F.Void] { called = true; return Of(F.VOID) }
-	assert.Equal(t, Of(42), ChainFirstLeft[int](observe)(Of(42)))
-	assert.False(t, called)
 }

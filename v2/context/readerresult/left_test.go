@@ -19,22 +19,13 @@ import (
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/result"
-	"github.com/stretchr/testify/assert"
+	"github.com/IBM/fp-go/v2/internal/catch/catchtest"
 )
 
-func TestTapLeft(t *testing.T) {
-	t.Run("observes the error and keeps it", func(t *testing.T) {
-		var seen error
-		observe := func(err error) ReaderResult[F.Void] { seen = err; return Of(F.VOID) }
-		assert.Equal(t, result.Left[int](errSentinel), run(TapLeft[int](observe)(Left[int](errSentinel))))
-		assert.Equal(t, errSentinel, seen)
-	})
-
-	t.Run("does not observe a success", func(t *testing.T) {
-		called := false
-		observe := func(error) ReaderResult[F.Void] { called = true; return Of(F.VOID) }
-		assert.Equal(t, result.Of(42), run(TapLeft[int](observe)(Of(42))))
-		assert.False(t, called)
+func TestErrorChannel(t *testing.T) {
+	catchtest.TestLeft(t, catchtest.LeftOps[ReaderResult[int], ReaderResult[F.Void], Result[int]]{
+		Monad:          catchMonad(),
+		ChainFirstLeft: ChainFirstLeft[int, F.Void],
+		TapLeft:        TapLeft[int, F.Void],
 	})
 }

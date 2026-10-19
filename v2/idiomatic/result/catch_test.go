@@ -16,214 +16,59 @@
 package result
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 
 	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/catch/catchtest"
 	R "github.com/IBM/fp-go/v2/result"
-	"github.com/stretchr/testify/assert"
 )
 
-// notFoundError implements error with a pointer receiver.
-type notFoundError struct{ id int }
+// lazy defers a (value, error) pair, so that the shared catch test suite can treat it as
+// a single value.
+type lazy[A any] = func() (A, error)
 
-func (e *notFoundError) Error() string { return fmt.Sprintf("%d not found", e.id) }
-
-// codeError implements error with a value receiver.
-type codeError struct{ code int }
-
-func (e codeError) Error() string { return fmt.Sprintf("code %d", e.code) }
-
-// temporary is an interface error type.
-type temporary interface {
-	error
-	Temporary() bool
+// strict turns a handler that returns a lazy pair into a Kleisli arrow.
+func strict[E, A any](f func(E) lazy[A]) Kleisli[E, A] {
+	return func(e E) (A, error) { return f(e)() }
 }
 
-type tempError struct{}
-
-func (tempError) Error() string   { return "temporary" }
-func (tempError) Temporary() bool { return true }
-
-var errSentinel = errors.New("sentinel")
-
-// run turns a (value, error) pair into a Result to compare it.
-func run[A any](a A, err error) R.Result[A] { return R.TryCatchError(a, err) }
-
-func recoverNotFound(e *notFoundError) (int, error) { return Of(e.id) }
-
-func recoverCode(e codeError) (int, error) { return Of(e.code) }
-
-func TestCatchAs_Success(t *testing.T) {
-	t.Run("recovers from a matching error", func(t *testing.T) {
-		assert.Equal(t, (R.Of(7)), run(CatchAs(recoverNotFound)(Left[int](&notFoundError{id: 7}))))
-	})
-
-	t.Run("recovers from a wrapped error", func(t *testing.T) {
-		err := fmt.Errorf("lookup: %w", &notFoundError{id: 8})
-		assert.Equal(t, (R.Of(8)), run(CatchAs(recoverNotFound)(Left[int](err))))
-	})
-
-	t.Run("recovers from a joined error", func(t *testing.T) {
-		err := errors.Join(errSentinel, &notFoundError{id: 9})
-		assert.Equal(t, (R.Of(9)), run(CatchAs(recoverNotFound)(Left[int](err))))
-	})
-
-	t.Run("recovers from an error with a value receiver", func(t *testing.T) {
-		assert.Equal(t, (R.Of(404)), run(CatchAs(recoverCode)(Left[int](codeError{code: 404}))))
-	})
-
-	t.Run("recovers from an interface error type", func(t *testing.T) {
-		recoverTemp := func(temporary) (int, error) { return Of(1) }
-		assert.Equal(t, (R.Of(1)), run(CatchAs(recoverTemp)(Left[int](tempError{}))))
-	})
-
-	t.Run("the handler can fail with a new error", func(t *testing.T) {
-		replace := func(*notFoundError) (int, error) { return Left[int](errSentinel) }
-		assert.Equal(t, (R.Left[int](errSentinel)), run(CatchAs(replace)(Left[int](&notFoundError{id: 7}))))
-	})
-
-	t.Run("passes a success through without calling the handler", func(t *testing.T) {
-		called := false
-		handler := func(*notFoundError) (int, error) { called = true; return Of(0) }
-		assert.Equal(t, (R.Of(42)), run(CatchAs(handler)(Of(42))))
-		assert.False(t, called)
-	})
-}
-
-func TestCatchAs_Failure(t *testing.T) {
-	t.Run("passes an error of another type through", func(t *testing.T) {
-		assert.Equal(t, (R.Left[int](errSentinel)), run(CatchAs(recoverNotFound)(Left[int](errSentinel))))
-	})
-
-	t.Run("pointer type does not match a value receiver error", func(t *testing.T) {
-		recoverPtr := func(e *codeError) (int, error) { return Of(e.code) }
-		err := codeError{code: 500}
-		assert.Equal(t, (R.Left[int](error(err))), run(CatchAs(recoverPtr)(Left[int](err))))
-	})
-
-	t.Run("value type does not match a pointer to a value receiver error", func(t *testing.T) {
-		err := &codeError{code: 500}
-		assert.Equal(t, (R.Left[int](error(err))), run(CatchAs(recoverCode)(Left[int](err))))
-	})
-}
-
-func TestCatchIs_Success(t *testing.T) {
-	fallback := func(error) (int, error) { return Of(0) }
-
-	t.Run("recovers from the sentinel", func(t *testing.T) {
-		assert.Equal(t, (R.Of(0)), run(CatchIs(errSentinel, fallback)(Left[int](errSentinel))))
-	})
-
-	t.Run("recovers from a wrapped sentinel", func(t *testing.T) {
-		err := fmt.Errorf("read: %w", errSentinel)
-		assert.Equal(t, (R.Of(0)), run(CatchIs(errSentinel, fallback)(Left[int](err))))
-	})
-
-	t.Run("recovers from a joined sentinel", func(t *testing.T) {
-		err := errors.Join(&notFoundError{id: 1}, errSentinel)
-		assert.Equal(t, (R.Of(0)), run(CatchIs(errSentinel, fallback)(Left[int](err))))
-	})
-
-	t.Run("passes the original error to the handler", func(t *testing.T) {
-		err := fmt.Errorf("read: %w", errSentinel)
-		var got error
-		handler := func(e error) (int, error) { got = e; return Of(0) }
-		run(CatchIs(errSentinel, handler)(Left[int](err)))
-		assert.Same(t, err, got)
-	})
-
-	t.Run("passes a success through", func(t *testing.T) {
-		assert.Equal(t, (R.Of(42)), run(CatchIs(errSentinel, fallback)(Of(42))))
-	})
-}
-
-func TestCatchIs_Failure(t *testing.T) {
-	other := errors.New("other")
-	fallback := func(error) (int, error) { return Of(0) }
-	assert.Equal(t, (R.Left[int](other)), run(CatchIs(errSentinel, fallback)(Left[int](other))))
-}
-
-func TestMapErrorAs_Success(t *testing.T) {
-	toCode := func(e *notFoundError) error { return codeError{code: 404 + e.id} }
-
-	t.Run("transforms a matching error", func(t *testing.T) {
-		res := run(MapErrorAs[*notFoundError, int](toCode)(Left[int](&notFoundError{id: 0})))
-		assert.Equal(t, (R.Left[int](codeError{code: 404})), res)
-	})
-
-	t.Run("transforms a wrapped error", func(t *testing.T) {
-		err := fmt.Errorf("lookup: %w", &notFoundError{id: 1})
-		res := run(MapErrorAs[*notFoundError, int](toCode)(Left[int](err)))
-		assert.Equal(t, (R.Left[int](codeError{code: 405})), res)
-	})
-
-	t.Run("passes a success through", func(t *testing.T) {
-		assert.Equal(t, (R.Of(42)), run(MapErrorAs[*notFoundError, int](toCode)(Of(42))))
-	})
-}
-
-func TestMapErrorAs_Failure(t *testing.T) {
-	toCode := func(*notFoundError) error { return codeError{code: 404} }
-	res := run(MapErrorAs[*notFoundError, int](toCode)(Left[int](errSentinel)))
-	assert.Equal(t, (R.Left[int](errSentinel)), res)
-}
-
-func TestCatch_Integration(t *testing.T) {
-	lookup := func(id int) (int, error) {
-		switch id {
-		case 0:
-			return Left[int](&notFoundError{id: id})
-		case 1:
-			return Left[int](fmt.Errorf("db: %w", errSentinel))
-		default:
-			return Of(id * 10)
-		}
+// lazyOp applies an operator to a lazy pair.
+func lazyOp(op Operator[int, int]) func(lazy[int]) lazy[int] {
+	return func(m lazy[int]) lazy[int] {
+		return func() (int, error) { return op(m()) }
 	}
-	handle := func(id int) (int, error) {
-		return CatchIs(errSentinel, func(error) (int, error) { return Of(-2) })(
-			CatchAs(func(*notFoundError) (int, error) { return Of(-1) })(lookup(id)))
-	}
-
-	assert.Equal(t, (R.Of(-1)), run(handle(0)))
-	assert.Equal(t, (R.Of(-2)), run(handle(1)))
-	assert.Equal(t, (R.Of(20)), run(handle(2)))
 }
 
-func TestTapErrorAs_Success(t *testing.T) {
-	t.Run("observes a matching error and keeps it", func(t *testing.T) {
-		var seen int
-		observe := func(e *notFoundError) (F.Void, error) {
-			seen = e.id
-			return Of(F.VOID)
-		}
-		err := fmt.Errorf("lookup: %w", &notFoundError{id: 3})
-		assert.Equal(t, (R.Left[int](err)), run(TapErrorAs[*notFoundError, int](observe)(Left[int](err))))
-		assert.Equal(t, 3, seen)
-	})
-
-	t.Run("a failing side effect does not replace the error", func(t *testing.T) {
-		fail := func(*notFoundError) (F.Void, error) { return Left[F.Void](errSentinel) }
-		err := &notFoundError{id: 3}
-		assert.Equal(t, (R.Left[int](error(err))), run(TapErrorAs[*notFoundError, int](fail)(Left[int](err))))
-	})
+// lift adapts a combinator that takes a Kleisli arrow to lazy pairs.
+func lift[E, B any](op func(Kleisli[E, B]) Operator[int, int]) func(func(E) lazy[B]) func(lazy[int]) lazy[int] {
+	return func(f func(E) lazy[B]) func(lazy[int]) lazy[int] { return lazyOp(op(strict(f))) }
 }
 
-func TestTapErrorAs_Failure(t *testing.T) {
-	called := false
-	observe := func(*notFoundError) (F.Void, error) {
-		called = true
-		return Of(F.VOID)
+// catchMonad describes the monad of this package for the shared catch test suite.
+func catchMonad() catchtest.Monad[lazy[int], lazy[F.Void], R.Result[int]] {
+	return catchtest.Monad[lazy[int], lazy[F.Void], R.Result[int]]{
+		Of:       func(a int) lazy[int] { return func() (int, error) { return Of(a) } },
+		Left:     func(err error) lazy[int] { return func() (int, error) { return Left[int](err) } },
+		LeftVoid: func(err error) lazy[F.Void] { return func() (F.Void, error) { return Left[F.Void](err) } },
+		Observe:  func(record func()) lazy[F.Void] { return func() (F.Void, error) { record(); return Of(F.VOID) } },
+		Run:      func(m lazy[int]) R.Result[int] { return R.TryCatchError(m()) },
+		Want:     F.Identity[R.Result[int]],
 	}
+}
 
-	t.Run("does not observe an error of another type", func(t *testing.T) {
-		assert.Equal(t, (R.Left[int](errSentinel)), run(TapErrorAs[*notFoundError, int](observe)(Left[int](errSentinel))))
-		assert.False(t, called)
-	})
-
-	t.Run("does not observe a success", func(t *testing.T) {
-		assert.Equal(t, (R.Of(42)), run(TapErrorAs[*notFoundError, int](observe)(Of(42))))
-		assert.False(t, called)
+func TestCatchByType(t *testing.T) {
+	catchtest.TestCatch(t, catchtest.CatchOps[lazy[int], lazy[F.Void], R.Result[int]]{
+		Monad:            catchMonad(),
+		CatchAsNotFound:  lift(CatchAs[*catchtest.NotFoundError, int]),
+		CatchAsCode:      lift(CatchAs[catchtest.CodeError, int]),
+		CatchAsCodePtr:   lift(CatchAs[*catchtest.CodeError, int]),
+		CatchAsTemporary: lift(CatchAs[catchtest.Temporary, int]),
+		CatchIs: func(target error, f func(error) lazy[int]) func(lazy[int]) lazy[int] {
+			return lazyOp(CatchIs(target, strict(f)))
+		},
+		MapErrorAsNotFound: func(f func(*catchtest.NotFoundError) error) func(lazy[int]) lazy[int] {
+			return lazyOp(MapErrorAs[*catchtest.NotFoundError, int](f))
+		},
+		TapErrorAsNotFound: lift(TapErrorAs[*catchtest.NotFoundError, int, F.Void]),
 	})
 }
