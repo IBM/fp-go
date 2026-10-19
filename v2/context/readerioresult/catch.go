@@ -26,9 +26,7 @@ import (
 // isError selects the errors that match target according to errors.Is. Any other error
 // is returned unchanged as the Left value.
 func isError(target error) result.Kleisli[error, error] {
-	return result.FromPredicate(func(err error) bool {
-		return errors.Is(err, target)
-	}, F.Identity[error])
+	return result.FromPredicate(F.Bind2nd(errors.Is, target), F.Identity[error])
 }
 
 // asError selects the errors for which errors.As finds an E in the chain. Any other
