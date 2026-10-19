@@ -146,6 +146,10 @@ Combine independent effects:
 	// Apply a function effect to a value effect: Ap[B, C, A]
 	effect.Ap[string](valueEffect)(functionEffect)
 
+	// Choose the execution mode explicitly; Ap uses the parallel mode by default
+	effect.ApSeq[string](valueEffect)(functionEffect)
+	effect.ApPar[string](valueEffect)(functionEffect)
+
 	// Add an independent effect's result to the do-notation state
 	effect.ApS(setter, effect1)
 
@@ -155,6 +159,37 @@ Traverse collections with effects:
 
 	// Map an array with an effectful function
 	effect.TraverseArray(F.Flow2(strconv.Itoa, effect.Succeed[Deps, string]))
+
+	// Choose the execution mode explicitly
+	effect.TraverseArraySeq(findUser)     // one after the other
+	effect.TraverseArrayPar(findUser)     // one goroutine per element
+	effect.TraverseArrayParN(4, findUser) // at most 4 at a time
+
+# Resources, Concurrency and Time
+
+Acquire and release resources safely, also when the use fails:
+
+	effect.Bracket(openConn, useConn, closeConn)
+	effect.WithResource[User](openConn, closeConn)(useConn)
+
+Guard effects with a lock or a counting semaphore (a buffered channel):
+
+	effect.WithLock[Deps, User](lock)
+	effect.WithSemaphore[Deps, User](make(chan effect.Void, 4))
+
+Wait and apply deadlines; all of them honour cancellation of the context.Context:
+
+	effect.Delay[Deps, User](time.Second)
+	effect.Timer[Deps](time.Second)
+	effect.WithTimeout[Deps, User](5 * time.Second)
+
+# Logging
+
+Log with the slog.Logger stored in the context.Context, or the global logger:
+
+	effect.TapSLog[Deps, User]("loaded user")       // logs the value or the error
+	effect.LogEntryExit[Deps, User]("loadUser")     // logs entry, exit and duration
+	effect.AnnotateLogs[Deps, User]("requestID", id) // adds attributes to all logs inside
 
 # Retry Logic
 

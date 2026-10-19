@@ -824,3 +824,26 @@ func SLogRight[A any](message string) Kleisli[A, Void] {
 		SLog[A](message),
 	)
 }
+
+// AnnotateLogs runs a computation with a context logger that carries additional attributes.
+//
+// The logger stored in the context (or the global logger, if the context has none) is
+// extended with the given attributes, using the same argument convention as slog.Logger.With,
+// and placed into the context seen by the computation. All logging that reads the context
+// logger inside the computation, such as TapSLog, SLog and LogEntryExit, includes the
+// attributes. Logging outside the computation is unaffected.
+//
+// Parameters:
+//   - args: Alternating keys and values, or slog.Attr values, as accepted by slog.Logger.With
+//
+// Returns:
+//   - Operator[A, A]: A function that runs a ReaderIOResult with the annotated logger
+//
+// See Also:
+//   - TapSLog: Logs the result of a computation with the context logger
+//   - LogEntryExit: Logs entry and exit of a computation
+func AnnotateLogs[A any](args ...any) Operator[A, A] {
+	return Local[A](func(ctx context.Context) ContextCancel {
+		return logging.WithLogger(logging.GetLoggerFromContext(ctx).With(args...))(ctx)
+	})
+}

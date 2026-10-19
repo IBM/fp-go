@@ -487,9 +487,8 @@ func TestDelay(t *testing.T) {
 		cancel()
 		res := result(ctx)()
 
-		// The result might be either Left (if cancelled) or Right (if completed before cancel)
-		// This is a race condition, so we just verify it completes
-		assert.True(t, E.IsLeft(res) || E.IsRight(res))
+		// The context is cancelled before the delay starts, so the effect must not run
+		assert.Equal(t, E.Left[int](context.Canceled), res)
 	})
 }
 

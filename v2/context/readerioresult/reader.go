@@ -781,12 +781,15 @@ func Delay[A any](delay time.Duration) Operator[A, A] {
 	return func(ma ReaderIOResult[A]) ReaderIOResult[A] {
 		return func(ctx context.Context) IOResult[A] {
 			return func() Either[A] {
-				// manage the timeout
-				timeoutCtx, cancelTimeout := context.WithTimeout(ctx, delay)
-				defer cancelTimeout()
+				// quick check for cancellation, select picks randomly among ready cases
+				if ctx.Err() != nil {
+					return either.Left[A](context.Cause(ctx))
+				}
+				timer := time.NewTimer(delay)
+				defer timer.Stop()
 				// whatever comes first
 				select {
-				case <-timeoutCtx.Done():
+				case <-timer.C:
 					return ma(ctx)()
 				case <-ctx.Done():
 					return either.Left[A](context.Cause(ctx))
