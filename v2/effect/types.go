@@ -19,6 +19,7 @@ import (
 	"github.com/IBM/fp-go/v2/context/readerioresult"
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
 	"github.com/IBM/fp-go/v2/endomorphism"
+	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
 	"github.com/IBM/fp-go/v2/ioeither"
 	"github.com/IBM/fp-go/v2/ioresult"
@@ -123,4 +124,8 @@ type (
 	// Bounce with the next state B or Land with the final result L.
 	// It is an alias for tailrec.Trampoline[B, L] and is used by TailRec.
 	Trampoline[B, L any] = tailrec.Trampoline[B, L]
+
+	// Void represents the absence of a value, similar to the unit type in other languages.
+	// It is an alias for function.Void.
+	Void = function.Void
 )

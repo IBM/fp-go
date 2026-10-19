@@ -20,6 +20,7 @@ import (
 
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/io"
+	"github.com/IBM/fp-go/v2/result"
 )
 
 // WithLock executes the provided IO operation in the scope of a lock.
@@ -51,4 +52,44 @@ func WithLock[A any](lock ReaderIOResult[context.CancelFunc]) Operator[A, A] {
 			FromIO[Void],
 		)),
 	)
+}
+
+// WithSemaphore executes the provided operation while holding one slot of a counting
+// semaphore, which limits how many operations guarded by the same semaphore run at the
+// same time.
+//
+// The semaphore is a buffered channel whose capacity is the number of slots, for example
+// make(chan Void, 3). A slot is taken before the operation runs and is returned after it
+// completes or fails. Waiting for a slot honours the context: if the context is cancelled
+// while waiting, the operation does not run and fails with the cancellation cause.
+//
+// Parameters:
+//   - sem: A buffered channel used as a counting semaphore
+//
+// Returns:
+//   - Operator[A, A]: A function that guards a ReaderIOResult with the semaphore
+//
+// See Also:
+//   - WithLock: Mutual exclusion with an arbitrary lock
+//   - TraverseArrayParN: Bounded parallel traversal of an array
+func WithSemaphore[A any](sem chan Void) Operator[A, A] {
+	return WithLock[A](acquireSemaphore(sem))
+}
+
+// acquireSemaphore takes one slot of the semaphore and returns the function that gives it back.
+func acquireSemaphore(sem chan Void) ReaderIOResult[context.CancelFunc] {
+	release := func() { <-sem }
+	return func(ctx context.Context) IOResult[context.CancelFunc] {
+		return func() Result[context.CancelFunc] {
+			if ctx.Err() != nil {
+				return result.Left[context.CancelFunc](context.Cause(ctx))
+			}
+			select {
+			case sem <- function.VOID:
+				return result.Of[context.CancelFunc](release)
+			case <-ctx.Done():
+				return result.Left[context.CancelFunc](context.Cause(ctx))
+			}
+		}
+	}
 }
