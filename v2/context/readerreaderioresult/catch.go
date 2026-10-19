@@ -16,15 +16,8 @@
 package readerreaderioresult
 
 import (
-	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/result"
+	"github.com/IBM/fp-go/v2/internal/catch"
 )
-
-// onMatch returns an error handler that applies f to the errors selected by match and
-// fails with the original error otherwise.
-func onMatch[R, E, B any](match result.Kleisli[error, E], f Kleisli[R, E, B]) Kleisli[R, error, B] {
-	return F.Flow2(match, result.Fold(Left[R, B], f))
-}
 
 // CatchAs recovers from errors of type E.
 //
@@ -54,7 +47,7 @@ func onMatch[R, E, B any](match result.Kleisli[error, E], f Kleisli[R, E, B]) Kl
 //
 //go:inline
 func CatchAs[E error, R, A any](f Kleisli[R, E, A]) Operator[R, A, A] {
-	return ChainLeft(onMatch(result.ErrorAs[E], f))
+	return catch.CatchAs(ChainLeft[R, A], Left[R, A], f)
 }
 
 // CatchIs recovers from errors that match target.
@@ -80,7 +73,7 @@ func CatchAs[E error, R, A any](f Kleisli[R, E, A]) Operator[R, A, A] {
 //
 //go:inline
 func CatchIs[R, A any](target error, f Kleisli[R, error, A]) Operator[R, A, A] {
-	return ChainLeft(onMatch(result.ErrorIs(target), f))
+	return catch.CatchIs(ChainLeft[R, A], Left[R, A], target, f)
 }
 
 // MapErrorAs transforms errors of type E.
@@ -108,7 +101,7 @@ func CatchIs[R, A any](target error, f Kleisli[R, error, A]) Operator[R, A, A] {
 //
 //go:inline
 func MapErrorAs[E error, R, A any](f func(E) error) Operator[R, A, A] {
-	return MapLeft[R, A](F.Flow2(result.ErrorAs[E], result.Fold(F.Identity[error], f)))
+	return catch.MapErrorAs(MapLeft[R, A], f)
 }
 
 // TapErrorAs runs a computation for its side effect when the computation fails with an
@@ -140,5 +133,5 @@ func MapErrorAs[E error, R, A any](f func(E) error) Operator[R, A, A] {
 //
 //go:inline
 func TapErrorAs[E error, R, A, B any](f Kleisli[R, E, B]) Operator[R, A, A] {
-	return TapLeft[A](onMatch(result.ErrorAs[E], f))
+	return catch.TapErrorAs(TapLeft[A, R, B], Left[R, B], f)
 }

@@ -1,0 +1,133 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package result
+
+import (
+	"github.com/IBM/fp-go/v2/internal/catch"
+)
+
+// CatchAs recovers from errors of type E.
+//
+// If the Result is a Left whose error has an E in its chain (as found by errors.As), f is
+// called with that E and its Result replaces the failure. Other errors, and Right values,
+// pass through unchanged. This corresponds to Effect.catchTag in effect-ts, with the error
+// type in place of the tag.
+//
+// A is usually inferred from f, so a call site reads CatchAs[*NotFoundError](handler).
+//
+// Type Parameters:
+//   - E: The error type to catch, a concrete error type or an interface that implements error
+//   - A: The type of the success value
+//
+// Parameters:
+//   - f: The recovery function for an error of type E
+//
+// Returns:
+//   - Operator[A, A]: An operator that recovers from errors of type E
+//
+// See Also:
+//   - CatchIs: Recovers from errors that match a sentinel value
+//   - ChainLeft: Recovers from any error
+//   - MapErrorAs: Transforms errors of type E
+//
+//go:inline
+func CatchAs[E error, A any](f Kleisli[E, A]) Operator[A, A] {
+	return catch.CatchAs(ChainLeft[A], Left[A], f)
+}
+
+// CatchIs recovers from errors that match target.
+//
+// If the Result is a Left whose error satisfies errors.Is(err, target), f is called with the
+// original error and its Result replaces the failure. Other errors, and Right values, pass
+// through unchanged.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//
+// Parameters:
+//   - target: The sentinel error to match with errors.Is
+//   - f: The recovery function, called with the original error
+//
+// Returns:
+//   - Operator[A, A]: An operator that recovers from errors that match target
+//
+// See Also:
+//   - CatchAs: Recovers from errors of a given type
+//   - ChainLeft: Recovers from any error
+//
+//go:inline
+func CatchIs[A any](target error, f Kleisli[error, A]) Operator[A, A] {
+	return catch.CatchIs(ChainLeft[A], Left[A], target, f)
+}
+
+// MapErrorAs transforms errors of type E.
+//
+// If the Result is a Left whose error has an E in its chain (as found by errors.As), the
+// error is replaced by f applied to that E. Other errors, and Right values, pass through
+// unchanged.
+//
+// Because A only appears in the result type, it must be given explicitly, for example
+// MapErrorAs[*NotFoundError, User](toHTTPError).
+//
+// Type Parameters:
+//   - E: The error type to transform
+//   - A: The type of the success value
+//
+// Parameters:
+//   - f: The function that maps an error of type E to a new error
+//
+// Returns:
+//   - Operator[A, A]: An operator that transforms errors of type E
+//
+// See Also:
+//   - MapLeft: Transforms any error
+//   - CatchAs: Recovers from errors of type E
+//
+//go:inline
+func MapErrorAs[E error, A any](f func(E) error) Operator[A, A] {
+	return catch.MapErrorAs(MapLeft[A, error], f)
+}
+
+// TapErrorAs runs a function for its side effect when the Result fails with an error of
+// type E.
+//
+// If the Result is a Left whose error has an E in its chain (as found by errors.As), f is
+// called with that E. The original error always propagates: f cannot recover from the
+// failure, and the Result of f is discarded. Other errors, and Right values, pass through
+// without calling f.
+//
+// Because A only appears in the result type, it must be given explicitly, for example
+// TapErrorAs[*NotFoundError, User](logNotFound).
+//
+// Type Parameters:
+//   - E: The error type to observe
+//   - A: The type of the success value
+//   - B: The result type of the side effect (discarded)
+//
+// Parameters:
+//   - f: The side effect for an error of type E
+//
+// Returns:
+//   - Operator[A, A]: An operator that preserves the original value or error
+//
+// See Also:
+//   - TapLeft: Observes any error
+//   - CatchAs: Recovers from errors of type E
+//
+//go:inline
+func TapErrorAs[E error, A, B any](f Kleisli[E, B]) Operator[A, A] {
+	return catch.TapErrorAs(TapLeft[A, B], Left[B], f)
+}

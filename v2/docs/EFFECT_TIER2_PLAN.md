@@ -148,6 +148,7 @@ func TapErrorAs[E error, C, A, B any](f func(E) Effect[C, B]) Operator[C, A, A]
 - `E` comes first, so call sites read `effect.CatchAs[*NotFoundError](handler)`. In most cases `C` and `A` are inferred from the handler.
 - Errors that do not match pass through unchanged, including wrapped errors that `errors.As` cannot unwrap to `E`.
 - These are thin wrappers over `ChainLeft` / `TapLeft`, so they need no new machinery.
+- The matching logic lives once in `internal/catch`. Every monad whose error channel is `error` reuses it: `result`, `ioresult`, `readerresult`, `readerioresult`, their `context` variants, `context/statereaderioresult`, `iterator/iterresult` and the `idiomatic` packages. Where a monad lacked the error channel primitives, they were added first (`ChainFirstLeft` / `TapLeft` for the `result` and `readerresult` families; `ChainLeft`, `OrElse`, `MapLeft` and `ChainFirstLeft` / `TapLeft` for `idiomatic/readerioresult` and `context/statereaderioresult`).
 
 **Acceptance.** Tests cover a matching type, a non-matching type, a wrapped error (`fmt.Errorf("%w")`), `errors.Join` and a pointer versus value receiver. There is one `Example` per function.
 
