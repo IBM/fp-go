@@ -16,34 +16,8 @@
 package effect
 
 import (
-	"errors"
-
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
-	F "github.com/IBM/fp-go/v2/function"
-	"github.com/IBM/fp-go/v2/result"
 )
-
-// isError selects the errors that match target according to errors.Is. Any other error
-// is returned unchanged as the Left value.
-func isError(target error) result.Kleisli[error, error] {
-	return result.FromPredicate(F.Bind2nd(errors.Is, target), F.Identity[error])
-}
-
-// asError selects the errors for which errors.As finds an E in the chain. Any other
-// error is returned unchanged as the Left value.
-func asError[E error](err error) Result[E] {
-	var e E
-	if errors.As(err, &e) {
-		return result.Of(e)
-	}
-	return result.Left[E](err)
-}
-
-// onMatch returns an error handler that applies f to the errors selected by match and
-// fails with the original error otherwise.
-func onMatch[C, E, B any](match result.Kleisli[error, E], f Kleisli[C, E, B]) Kleisli[C, error, B] {
-	return F.Flow2(match, result.Fold(Fail[C, B], f))
-}
 
 // CatchAs recovers from errors of type E.
 //
@@ -73,7 +47,7 @@ func onMatch[C, E, B any](match result.Kleisli[error, E], f Kleisli[C, E, B]) Kl
 //
 //go:inline
 func CatchAs[E error, C, A any](f Kleisli[C, E, A]) Operator[C, A, A] {
-	return ChainLeft(onMatch(asError[E], f))
+	return readerreaderioresult.CatchAs[E](f)
 }
 
 // CatchIs recovers from errors that match target.
@@ -99,7 +73,7 @@ func CatchAs[E error, C, A any](f Kleisli[C, E, A]) Operator[C, A, A] {
 //
 //go:inline
 func CatchIs[C, A any](target error, f Kleisli[C, error, A]) Operator[C, A, A] {
-	return ChainLeft(onMatch(isError(target), f))
+	return readerreaderioresult.CatchIs(target, f)
 }
 
 // MapErrorAs transforms errors of type E.
@@ -127,7 +101,7 @@ func CatchIs[C, A any](target error, f Kleisli[C, error, A]) Operator[C, A, A] {
 //
 //go:inline
 func MapErrorAs[E error, C, A any](f func(E) error) Operator[C, A, A] {
-	return readerreaderioresult.MapLeft[C, A](F.Flow2(asError[E], result.Fold(F.Identity[error], f)))
+	return readerreaderioresult.MapErrorAs[E, C, A](f)
 }
 
 // TapErrorAs runs an effect for its side effect when the effect fails with an error of
@@ -159,5 +133,5 @@ func MapErrorAs[E error, C, A any](f func(E) error) Operator[C, A, A] {
 //
 //go:inline
 func TapErrorAs[E error, C, A, B any](f Kleisli[C, E, B]) Operator[C, A, A] {
-	return TapLeft[A](onMatch(asError[E], f))
+	return readerreaderioresult.TapErrorAs[E, C, A](f)
 }
