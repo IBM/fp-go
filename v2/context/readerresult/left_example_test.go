@@ -1,0 +1,40 @@
+// Copyright (c) 2023 - 2025 IBM Corp.
+// All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package readerresult
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	F "github.com/IBM/fp-go/v2/function"
+)
+
+// ExampleTapLeft logs an error and keeps it.
+func ExampleTapLeft() {
+	logged := F.Pipe1(
+		Left[int](errors.New("connection refused")),
+		TapLeft[int](func(err error) ReaderResult[F.Void] {
+			fmt.Println("failed:", err)
+			return Of(F.VOID)
+		}),
+	)
+
+	fmt.Println(logged(context.Background()))
+	// Output:
+	// failed: connection refused
+	// Left[*errors.errorString](connection refused)
+}

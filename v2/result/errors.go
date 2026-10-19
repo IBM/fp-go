@@ -16,9 +16,7 @@
 package result
 
 import (
-	"errors"
-
-	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/internal/catch"
 )
 
 // ErrorAs selects the errors of type E.
@@ -39,12 +37,10 @@ import (
 // See Also:
 //   - ErrorIs: Selects the errors that match a sentinel value
 //   - errors.As: The function from the fp-go errors package that returns an Option
+//
+//go:inline
 func ErrorAs[E error](err error) Result[E] {
-	var e E
-	if errors.As(err, &e) {
-		return Of(e)
-	}
-	return Left[E](err)
+	return catch.ErrorAs[E](err)
 }
 
 // ErrorIs selects the errors that match target.
@@ -60,6 +56,8 @@ func ErrorAs[E error](err error) Result[E] {
 //
 // See Also:
 //   - ErrorAs: Selects the errors of a given type
+//
+//go:inline
 func ErrorIs(target error) Kleisli[error, error] {
-	return FromPredicate(F.Bind2nd(errors.Is, target), F.Identity[error])
+	return catch.ErrorIs(target)
 }
