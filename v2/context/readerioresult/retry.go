@@ -19,6 +19,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/IBM/fp-go/v2/clock"
 	RIO "github.com/IBM/fp-go/v2/context/readerio"
 	R "github.com/IBM/fp-go/v2/retry"
 	RG "github.com/IBM/fp-go/v2/retry/generic"
@@ -36,6 +37,9 @@ import (
 //   - The retry policy returns None (retry limit reached)
 //   - The check function returns false (indicating success or a non-retryable failure)
 //   - The context is cancelled (returns context.Canceled or context.DeadlineExceeded)
+//
+// The delays between attempts are measured on the clock of the context
+// (see clock.FromContext), so tests can drive them with a test clock.
 //
 // Parameters:
 //
@@ -125,13 +129,9 @@ func Retrying[A any](
 ) ReaderIOResult[A] {
 
 	// delayWithCancel implements a context-aware delay mechanism for retry operations.
-	// It creates a timeout context that will be cancelled when either:
+	// It waits on the clock of the context (see clock.FromContext) until either:
 	//   1. The delay duration expires (normal case), or
-	//   2. The parent context is cancelled (early termination)
-	//
-	// The function waits on timeoutCtx.Done(), which will be signaled in either case:
-	//   - If the delay expires, timeoutCtx is cancelled by the timeout
-	//   - If the parent ctx is cancelled, timeoutCtx inherits the cancellation
+	//   2. The context is cancelled (early termination)
 	//
 	// After the wait completes, we dispatch to the next action by calling ri(ctx)().
 	// This works correctly because the action is wrapped in WithContextK, which handles
@@ -142,21 +142,16 @@ func Retrying[A any](
 	//   - Retry delays respect context cancellation and terminate immediately
 	//   - The cancellation error propagates correctly through the retry chain
 	//   - No unnecessary delays occur when the context is already cancelled
+	//   - Tests can drive the delays with a test clock instead of sleeping
 	delayWithCancel := func(delay time.Duration) RIO.Operator[R.RetryStatus, R.RetryStatus] {
 		return func(ri ReaderIO[R.RetryStatus]) ReaderIO[R.RetryStatus] {
 			return func(ctx context.Context) IO[R.RetryStatus] {
 				return func() R.RetryStatus {
-					// Create a timeout context that will be cancelled when either:
-					// - The delay duration expires, or
-					// - The parent context is cancelled
-					timeoutCtx, cancelTimeout := context.WithTimeout(ctx, delay)
-					defer cancelTimeout()
-
-					// Wait for either the timeout or parent context cancellation
-					<-timeoutCtx.Done()
+					// The error is the cancellation cause, which WithContextK reports
+					// when the next action runs.
+					_ = clock.Sleep(ctx, delay)
 
 					// Dispatch to the next action with the original context.
-					// WithContextK will handle context cancellation correctly.
 					return ri(ctx)()
 				}
 			}

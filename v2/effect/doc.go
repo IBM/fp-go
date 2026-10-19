@@ -37,6 +37,13 @@ The two environments of an Effect have distinct roles:
 Declare dependencies in C, where the compiler checks that they are provided. Do not store
 them in the context.Context and do not pass them as parameters through every layer.
 
+Runtime services are the exception: infrastructure that belongs to a run rather than to
+the business logic, such as the logger (logging.WithLogger) and the clock
+(clock.WithClock), travels in the context.Context. Without one, the combinators fall back
+to a default, the global logger and the real clock. Delay, Timer, WithTimeout and
+Retrying measure time on the clock of the context, so tests can drive them with
+clock/testclock instead of sleeping.
+
 # Naming Conventions
 
 The naming conventions in this package are modeled after effect-ts (https://effect.website/),

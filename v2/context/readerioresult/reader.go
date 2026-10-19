@@ -19,6 +19,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/IBM/fp-go/v2/clock"
 	"github.com/IBM/fp-go/v2/context/readerio"
 	"github.com/IBM/fp-go/v2/context/readerresult"
 	"github.com/IBM/fp-go/v2/either"
@@ -773,6 +774,9 @@ func TapIOResultK[A, B any](f ioresult.Kleisli[A, B]) Operator[A, A] {
 // Delay creates an operation that delays execution by the specified duration.
 // The computation waits for either the delay to expire or the context to be canceled.
 //
+// The delay is measured on the clock of the context (see clock.FromContext), so tests
+// can install a test clock and advance it instead of sleeping.
+//
 // Parameters:
 //   - delay: The duration to wait before executing the computation
 //
@@ -781,19 +785,10 @@ func Delay[A any](delay time.Duration) Operator[A, A] {
 	return func(ma ReaderIOResult[A]) ReaderIOResult[A] {
 		return func(ctx context.Context) IOResult[A] {
 			return func() Either[A] {
-				// quick check for cancellation, select picks randomly among ready cases
-				if ctx.Err() != nil {
-					return either.Left[A](context.Cause(ctx))
+				if err := clock.Sleep(ctx, delay); err != nil {
+					return either.Left[A](err)
 				}
-				timer := time.NewTimer(delay)
-				defer timer.Stop()
-				// whatever comes first
-				select {
-				case <-timer.C:
-					return ma(ctx)()
-				case <-ctx.Done():
-					return either.Left[A](context.Cause(ctx))
-				}
+				return ma(ctx)()
 			}
 		}
 	}
@@ -802,16 +797,22 @@ func Delay[A any](delay time.Duration) Operator[A, A] {
 // Timer returns the current time after waiting for the specified delay.
 // This is useful for creating time-based computations.
 //
+// Both the wait and the returned time use the clock of the context
+// (see clock.FromContext).
+//
 // Parameters:
 //   - delay: The duration to wait before returning the time
 //
 // Returns a ReaderIOResult that produces the current time after the delay.
 func Timer(delay time.Duration) ReaderIOResult[time.Time] {
-	return function.Pipe2(
-		io.Now,
-		FromIO[time.Time],
-		Delay[time.Time](delay),
-	)
+	return func(ctx context.Context) IOResult[time.Time] {
+		return func() Either[time.Time] {
+			if err := clock.Sleep(ctx, delay); err != nil {
+				return either.Left[time.Time](err)
+			}
+			return either.Of[error](clock.Now(ctx))
+		}
+	}
 }
 
 // Defer creates a [ReaderIOResult] by lazily generating a new computation each time it's executed.
@@ -1253,6 +1254,14 @@ func Local[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RIO
 // the computation completes, ensuring proper cleanup. If the timeout expires,
 // the computation will receive a context.DeadlineExceeded error.
 //
+// The timeout is measured on the clock of the context (see clock.FromContext). With the
+// real clock, the default, WithTimeout uses context.WithTimeout. With any other clock, for
+// example a test clock, it uses context.WithCancelCause and cancels the context with the
+// cause context.DeadlineExceeded once a timer on that clock fires. In that case ctx.Err()
+// is context.Canceled, context.Cause(ctx) is context.DeadlineExceeded, and the context has
+// no Deadline. The combinators of this package report context.Cause, so they fail with
+// context.DeadlineExceeded with either clock.
+//
 // Type Parameters:
 //   - A: The value type of the ReaderIOResult
 //
@@ -1297,8 +1306,37 @@ func Local[A, R any](f pair.Kleisli[context.CancelFunc, R, context.Context]) RIO
 func WithTimeout[A any](timeout time.Duration) Operator[A, A] {
 	return Local[A](
 		func(ctx context.Context) ContextCancel {
-			return pairFromContextCancel(context.WithTimeout(ctx, timeout))
+			return withClockTimeout(ctx, timeout)
 		})
+}
+
+// withClockTimeout derives a context that is cancelled with context.DeadlineExceeded
+// after timeout has elapsed on the clock of ctx.
+func withClockTimeout(ctx context.Context, timeout time.Duration) ContextCancel {
+	c := clock.FromContext(ctx)
+	if clock.IsReal(c) {
+		return pairFromContextCancel(context.WithTimeout(ctx, timeout))
+	}
+
+	newCtx, cancel := context.WithCancelCause(ctx)
+	if timeout <= 0 {
+		cancel(context.DeadlineExceeded)
+		return pair.MakePair[context.CancelFunc](func() { cancel(nil) }, newCtx)
+	}
+
+	expired, stop := c.After(timeout)
+	go func() {
+		select {
+		case <-expired:
+			cancel(context.DeadlineExceeded)
+		case <-newCtx.Done():
+		}
+	}()
+
+	return pair.MakePair[context.CancelFunc](func() {
+		stop()
+		cancel(nil)
+	}, newCtx)
 }
 
 // WithDeadline adds an absolute deadline to the context for a ReaderIOResult computation.
