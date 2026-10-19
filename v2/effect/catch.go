@@ -19,23 +19,32 @@ import (
 	"errors"
 
 	"github.com/IBM/fp-go/v2/context/readerreaderioresult"
-	FE "github.com/IBM/fp-go/v2/errors"
-	"github.com/IBM/fp-go/v2/option"
+	F "github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/result"
 )
 
-// isError returns a function that selects the errors that match target according to errors.Is.
-func isError(target error) option.Kleisli[error, error] {
-	return option.FromPredicate(func(err error) bool {
+// isError selects the errors that match target according to errors.Is. Any other error
+// is returned unchanged as the Left value.
+func isError(target error) result.Kleisli[error, error] {
+	return result.FromPredicate(func(err error) bool {
 		return errors.Is(err, target)
-	})
+	}, F.Identity[error])
+}
+
+// asError selects the errors for which errors.As finds an E in the chain. Any other
+// error is returned unchanged as the Left value.
+func asError[E error](err error) Result[E] {
+	var e E
+	if errors.As(err, &e) {
+		return result.Of(e)
+	}
+	return result.Left[E](err)
 }
 
 // onMatch returns an error handler that applies f to the errors selected by match and
 // fails with the original error otherwise.
-func onMatch[C, E, B any](match option.Kleisli[error, E], f Kleisli[C, E, B]) Kleisli[C, error, B] {
-	return func(err error) Effect[C, B] {
-		return option.MonadFold(match(err), func() Effect[C, B] { return Fail[C, B](err) }, f)
-	}
+func onMatch[C, E, B any](match result.Kleisli[error, E], f Kleisli[C, E, B]) Kleisli[C, error, B] {
+	return F.Flow2(match, result.Fold(Fail[C, B], f))
 }
 
 // CatchAs recovers from errors of type E.
@@ -66,7 +75,7 @@ func onMatch[C, E, B any](match option.Kleisli[error, E], f Kleisli[C, E, B]) Kl
 //
 //go:inline
 func CatchAs[E error, C, A any](f Kleisli[C, E, A]) Operator[C, A, A] {
-	return ChainLeft(onMatch(FE.As[E](), f))
+	return ChainLeft(onMatch(asError[E], f))
 }
 
 // CatchIs recovers from errors that match target.
@@ -120,10 +129,7 @@ func CatchIs[C, A any](target error, f Kleisli[C, error, A]) Operator[C, A, A] {
 //
 //go:inline
 func MapErrorAs[E error, C, A any](f func(E) error) Operator[C, A, A] {
-	as := FE.As[E]()
-	return readerreaderioresult.MapLeft[C, A](func(err error) error {
-		return option.MonadFold(as(err), func() error { return err }, f)
-	})
+	return readerreaderioresult.MapLeft[C, A](F.Flow2(asError[E], result.Fold(F.Identity[error], f)))
 }
 
 // TapErrorAs runs an effect for its side effect when the effect fails with an error of
@@ -155,5 +161,5 @@ func MapErrorAs[E error, C, A any](f func(E) error) Operator[C, A, A] {
 //
 //go:inline
 func TapErrorAs[E error, C, A, B any](f Kleisli[C, E, B]) Operator[C, A, A] {
-	return TapLeft[A](onMatch(FE.As[E](), f))
+	return TapLeft[A](onMatch(asError[E], f))
 }
