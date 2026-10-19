@@ -23,7 +23,9 @@ import (
 // Bracket makes sure that a resource is cleaned up in the event of an error. The release action is called regardless of
 // whether the body action returns and error or not.
 //
-//go:inline
+// The release action runs uninterruptibly (see Uninterruptible): it receives a context that keeps the values of the
+// caller's context but is never cancelled. This guarantees that the resource is released even if the context was
+// cancelled or timed out while the resource was in use.
 func Bracket[
 	A, B, ANY any](
 
@@ -31,5 +33,7 @@ func Bracket[
 	use Kleisli[A, B],
 	release func(A, Either[B]) ReaderIOResult[ANY],
 ) ReaderIOResult[B] {
-	return RIOR.Bracket(acquire, F.Flow2(use, WithContext), release)
+	return RIOR.Bracket(acquire, F.Flow2(use, WithContext), func(a A, b Either[B]) ReaderIOResult[ANY] {
+		return Uninterruptible(release(a, b))
+	})
 }

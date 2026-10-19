@@ -33,6 +33,11 @@ import (
 // neither use nor release run. The outcome of use is returned; a failure of release
 // does not replace it.
 //
+// The release runs uninterruptibly (see Uninterruptible), like a finalizer in effect-ts:
+// it keeps the context values but is not cancelled, so the resource is released even if
+// the context was cancelled or timed out while the resource was in use. A release that
+// must be bounded can apply WithTimeout itself.
+//
 // Type Parameters:
 //   - C: The dependencies required by the effects
 //   - A: The type of the acquired resource
@@ -55,6 +60,33 @@ func Bracket[C, A, B, ANY any](
 	release func(A, Result[B]) Effect[C, ANY],
 ) Effect[C, B] {
 	return readerreaderioresult.Bracket(acquire, use, release)
+}
+
+// Uninterruptible runs an effect with a context that cannot be cancelled.
+//
+// The effect receives context.WithoutCancel of the caller's context. It keeps all context
+// values (logger, request ID, ...), but it has no deadline and is never cancelled, so
+// neither a cancellation nor a timeout of the caller interrupts it. This corresponds to
+// Effect.uninterruptible in effect-ts. Bracket, WithResource and WithLock run their
+// release this way.
+//
+// Type Parameters:
+//   - C: The dependencies required by the effect
+//   - A: The type of the value produced by the effect
+//
+// Parameters:
+//   - eff: The effect to protect from cancellation
+//
+// Returns:
+//   - Effect[C, A]: The effect, run with a context that is never cancelled
+//
+// See Also:
+//   - Bracket: Runs its release uninterruptibly
+//   - WithTimeout: Bounds an effect, also inside Uninterruptible
+//
+//go:inline
+func Uninterruptible[C, A any](eff Effect[C, A]) Effect[C, A] {
+	return readerreaderioresult.Uninterruptible(eff)
 }
 
 // WithResource builds a scoped use of a resource from the functions that create and

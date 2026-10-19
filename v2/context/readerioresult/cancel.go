@@ -90,3 +90,32 @@ func WithContextK[A, B any](f Kleisli[A, B]) Kleisli[A, B] {
 func pairFromContextCancel(newCtx context.Context, cancelFct context.CancelFunc) ContextCancel {
 	return pair.MakePair(cancelFct, newCtx)
 }
+
+// Uninterruptible runs a [ReaderIOResult] with a context that cannot be cancelled.
+//
+// The computation receives context.WithoutCancel of the caller's context. It keeps all
+// context values (logger, request ID, ...), but it has no deadline and its Done channel
+// never closes, so neither a cancellation nor a timeout of the caller interrupts it.
+// This corresponds to Effect.uninterruptible in effect-ts.
+//
+// Bracket and WithResource run their release action this way, so that a resource is
+// released even if the context was cancelled while the resource was in use. A
+// computation that must stay bounded can apply WithTimeout inside Uninterruptible.
+//
+// Type Parameters:
+//   - A: The type of the value produced by the computation
+//
+// Parameters:
+//   - ma: The computation to protect from cancellation
+//
+// Returns:
+//   - ReaderIOResult[A]: The computation, run with a context that is never cancelled
+//
+// See Also:
+//   - WithContext: The opposite, short-circuits if the context is already cancelled
+//   - Bracket: Runs its release action uninterruptibly
+//
+//go:inline
+func Uninterruptible[A any](ma ReaderIOResult[A]) ReaderIOResult[A] {
+	return F.Flow2(context.WithoutCancel, ma)
+}
