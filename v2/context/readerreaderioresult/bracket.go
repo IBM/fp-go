@@ -16,6 +16,9 @@
 package readerreaderioresult
 
 import (
+	RIOE "github.com/IBM/fp-go/v2/context/readerioresult"
+	"github.com/IBM/fp-go/v2/function"
+	"github.com/IBM/fp-go/v2/reader"
 	RRIOE "github.com/IBM/fp-go/v2/readerreaderioeither"
 )
 
@@ -25,6 +28,10 @@ import (
 //
 // The release action is always called after the use action completes, whether it succeeds or fails.
 // This makes it ideal for managing resources like file handles, database connections, or locks.
+//
+// The release action runs uninterruptibly (see Uninterruptible): it receives a context that keeps
+// the values of the caller's context but is never cancelled. This guarantees that the resource is
+// released even if the context was cancelled or timed out while the resource was in use.
 //
 // Parameters:
 //   - acquire: Acquires the resource, returning a ReaderReaderIOEither[R, C, E, A]
@@ -83,13 +90,37 @@ import (
 //	}
 //
 //	result := readerreaderioeither.Bracket(acquire, use, release)
-//
-//go:inline
 func Bracket[
 	R, A, B, ANY any](
 	acquire ReaderReaderIOResult[R, A],
 	use Kleisli[R, A, B],
 	release func(A, Result[B]) ReaderReaderIOResult[R, ANY],
 ) ReaderReaderIOResult[R, B] {
-	return RRIOE.Bracket(acquire, use, release)
+	return RRIOE.Bracket(acquire, use, func(a A, b Result[B]) ReaderReaderIOResult[R, ANY] {
+		return Uninterruptible(release(a, b))
+	})
+}
+
+// Uninterruptible runs a ReaderReaderIOResult with a context that cannot be cancelled.
+//
+// The computation receives context.WithoutCancel of the caller's context. It keeps all
+// context values, but it has no deadline and is never cancelled. The outer environment R
+// is passed through unchanged. This corresponds to Effect.uninterruptible in effect-ts.
+//
+// Type Parameters:
+//   - R: The type of the outer environment
+//   - A: The type of the value produced by the computation
+//
+// Parameters:
+//   - ma: The computation to protect from cancellation
+//
+// Returns:
+//   - ReaderReaderIOResult[R, A]: The computation, run with a context that is never cancelled
+//
+// See Also:
+//   - Bracket: Runs its release action uninterruptibly
+//
+//go:inline
+func Uninterruptible[R, A any](ma ReaderReaderIOResult[R, A]) ReaderReaderIOResult[R, A] {
+	return function.Pipe1(ma, reader.Map[R](RIOE.Uninterruptible[A]))
 }

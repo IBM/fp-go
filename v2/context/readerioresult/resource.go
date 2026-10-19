@@ -19,6 +19,7 @@ import (
 	"context"
 	"io"
 
+	F "github.com/IBM/fp-go/v2/function"
 	RIOR "github.com/IBM/fp-go/v2/readerioresult"
 	"github.com/IBM/fp-go/v2/result"
 )
@@ -31,6 +32,9 @@ import (
 //   - onCreate: Creates the resource
 //   - The provided function uses the resource
 //   - onRelease: Releases the resource (always called, even on error)
+//
+// The release runs uninterruptibly (see Uninterruptible), so it is not skipped when the context was
+// cancelled while the resource was in use.
 //
 // Parameters:
 //   - onCreate: ReaderIOResult that creates the resource
@@ -57,7 +61,7 @@ import (
 //	    })
 //	})
 func WithResource[A, R, ANY any](onCreate ReaderIOResult[R], onRelease Kleisli[R, ANY]) Kleisli[Kleisli[R, A], A] {
-	return RIOR.WithResource[A](onCreate, onRelease)
+	return RIOR.WithResource[A](onCreate, F.Flow2(onRelease, Uninterruptible[ANY]))
 }
 
 // onClose is a helper function that creates a ReaderIOResult for closing an io.Closer resource.
