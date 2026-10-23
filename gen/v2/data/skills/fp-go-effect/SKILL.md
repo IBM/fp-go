@@ -133,6 +133,9 @@ The leaves are where Go code meets the effect. Lift, never hand-write the nested
 | service method `func(A) func(ctx, C) (B, error)` | `EF.FromIdiomatic(f)` | `Kleisli[C, A, B]` |
 | **pure** getter / projection `func(C) A` | `EF.Asks(f)`, e.g. `EF.Asks(MailDeps.GetSender)` | `Effect[C, A]` |
 | fallible projection `func(C) Result[A]` | `EF.FromReaderResult(f)` | `Effect[C, A]` |
+| effectful projection `func(C) IO[A]` | `EF.FromReaderIO(f)` | `Effect[C, A]` |
+| fallible effectful projection `func(C) IOResult[A]` (non-context `readerioresult.ReaderIOResult[C, A]`) | `EF.FromReaderIOResult(f)` | `Effect[C, A]` |
+| projection to a context-aware action `func(C) ReaderIOResult[A]` | `EF.FromReaderThunk(f)` | `Effect[C, A]` |
 | the whole dependency | `EF.Ask[C]()` (alias `EF.Identity[C]()`) | `Effect[C, C]` |
 | dependency-free `ReaderIOResult[A]` | `EF.FromThunk[C](t)` | `Effect[C, A]` |
 | dependency-free `func(ctx) func() (A, error)` | `EF.FromThunkI[C](f)` | `Effect[C, A]` |
@@ -150,7 +153,7 @@ func FindUser() EF.Kleisli[UserDeps, int, User] {
 }
 ```
 
-**`Asks` is for pure projections only.** `Effect[C, A]` *is* `func(C) ReaderIOResult[A]`, so `EF.Asks(func(c C) ReaderIOResult[A] {...})` silently yields the nested `Effect[C, ReaderIOResult[A]]`. For a getter that returns an effectful capability, use `Asks` followed by `ChainThunkK`:
+**`Asks` is for pure projections only.** `Effect[C, A]` *is* `func(C) ReaderIOResult[A]`, so `EF.Asks(func(c C) ReaderIOResult[A] {...})` silently yields the nested `Effect[C, ReaderIOResult[A]]`. Lift such a getter with `EF.FromReaderThunk` (or `FromReaderIO` / `FromReaderIOResult`) instead. If the nesting comes from an earlier step, remove it with `EF.FlattenThunk` (or `FlattenIO` / `FlattenIOResult` / `Flatten`). For a getter that returns an effectful capability that still needs an argument, use `Asks` followed by `ChainThunkK`:
 
 ```go
 func LookupEnv(key string) EF.Effect[EnvDeps, string] {
@@ -210,6 +213,7 @@ When deriving the inner dependency needs more than a pure function, use the `Loc
 | combine independent effects | `EF.Ap[B](fa)` on an `Effect[C, func(A) B]` |
 | do-notation | `EF.Do[C](S{})`, `EF.Bind(lens.Set, k)`, `EF.ApS(lens.Set, eff)`, `EF.ApSL(lens, eff)`, `EF.Let` |
 | lift other monads mid-pipeline | `EF.ChainResultK`, `EF.ChainIOK`, `EF.ChainThunkK[C]`, `EF.ChainReaderK`, `EF.ChainReaderIOK` |
+| flatten a nested value mid-pipeline | `EF.Flatten` for `Effect[C, Effect[C, A]]`, `EF.FlattenIO` for `Effect[C, IO[A]]`, `EF.FlattenIOResult` for `Effect[C, IOResult[A]]`, `EF.FlattenThunk` for `Effect[C, ReaderIOResult[A]]` |
 | lift plain Go functions mid-pipeline | `EF.ChainResultIK[C](f)` for `func(A) (B, error)`, `EF.ChainIOResultIK[C]`, `EF.ChainThunkIK[C]` for `func(A) func(ctx) func() (B, error)`, `EF.ChainReaderResultIK`, `EF.ChainOptionIK[C, A, B](onNone)` |
 | a service method `func(A) func(ctx, C) (B, error)` | `EF.ChainI(f)`, `EF.TapI(f)`, `EF.BindI(setter, f)`, `EF.TraverseArrayI(f)` |
 | side effects | `EF.Tap(k)`, `EF.TapIOK[C](f)`, `EF.TapThunkK[C](f)`, `EF.TapResultIK[C](f)` |
@@ -340,7 +344,8 @@ func TestFindUser(t *testing.T) {
 | Request IDs, principal or deadlines in `C` | They vary per request: `context.Context` (`RIO.WithValue`, `RIO.WithTimeout` via `RD.Map[C]`) |
 | One huge `AppDeps` as `C` of every function | Declare the narrowest `XxxDeps`; widen with `EF.Local[A](AsXxxDeps[Wide])` |
 | `Effect[AppDeps, A]` expected, `Effect[UserDeps, A]` given, "fixed" with a type assertion | Generics are invariant: use `EF.Local` with the `AsXxxDeps` helper |
-| `EF.Asks(func(c C) RIO.ReaderIOResult[A] {...})` | Yields `Effect[C, ReaderIOResult[A]]`. Use `EF.Eitherize` / `Eitherize1` / `FromIdiomatic`, or `Asks` + `ChainThunkK` |
+| `EF.Asks(func(c C) RIO.ReaderIOResult[A] {...})` | Yields `Effect[C, ReaderIOResult[A]]`. Use `EF.FromReaderThunk`, `EF.Eitherize` / `Eitherize1` / `FromIdiomatic`, or `Asks` + `ChainThunkK` |
+| `EF.Map[C](f)` where `f` returns an `IO`, `IOResult`, `ReaderIOResult` or `Effect` | Use the matching `Chain*K` (`ChainIOK`, `ChainIOResultK`, `ChainThunkK`, `Chain`), or follow the `Map` with `EF.FlattenIO` / `FlattenIOResult` / `FlattenThunk` / `Flatten` |
 | Hand-written `func(c C) func(ctx) func() Result[A]` around a Go method | `EF.Eitherize1(Iface.Method)` + `EF.Local[B](Deps.GetIface)` |
 | `EF.ChainResultK(R.Eitherize1(f))` for a plain `func(A) (B, error)` | `EF.ChainResultIK[C](f)` |
 | A Kleisli that calls itself through `EF.Chain` to loop | `EF.TailRec(step)` with `tailrec.Bounce` / `tailrec.Land` |
@@ -355,7 +360,7 @@ func TestFindUser(t *testing.T) {
 - [ ] Every collaborator (client, repository, config, env access, registry) comes from `C`, not from `context.Context`, globals or threaded parameters.
 - [ ] Each package defines a small `XxxDeps` interface with getters, a private implementation, `MakeXxxDeps` and `AsXxxDeps`.
 - [ ] Functions declare the narrowest `C` and are widened with `EF.Local[A](AsXxxDeps[Wide])`.
-- [ ] Leaves are lifted with `Eitherize` / `Eitherize1` / `FromIdiomatic` / `Asks`; no hand-written nested closures.
+- [ ] Leaves are lifted with `Eitherize` / `Eitherize1` / `FromIdiomatic` / `Asks` / `FromReader*`; no hand-written nested closures.
 - [ ] `Asks` receives only pure projections.
 - [ ] Request-scoped data stays in `context.Context`; runtime scoping uses `RD.Map[C](RIO.…)`.
 - [ ] Dependencies are built once at the composition root; `Provide` and `RunSync` appear only there and in tests.
