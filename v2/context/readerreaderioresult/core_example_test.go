@@ -268,6 +268,27 @@ func ExampleFlatten() {
 	// Output: 40 <nil>
 }
 
+// ExampleFlattenIO runs an IO action produced by a Map step.
+func ExampleFlattenIO() {
+	fmt.Println(exRun(rxCfg, F.Pipe2(
+		Of[exConfig](21),
+		Map[exConfig](F.Flow2(N.Mul(2), io.Of[int])),
+		FlattenIO[exConfig, int],
+	)))
+	// Output: 42 <nil>
+}
+
+// ExampleFlattenIOResult runs an IOResult produced by a Map step; its failure fails the computation.
+func ExampleFlattenIOResult() {
+	parse := F.Flow2(Map[exConfig](ioresult.Eitherize1(strconv.Atoi)), FlattenIOResult[exConfig, int])
+	fmt.Println(exRun(rxCfg, parse(Of[exConfig]("42"))))
+	_, err := exRun(rxCfg, parse(Of[exConfig]("abc")))
+	fmt.Println(err != nil)
+	// Output:
+	// 42 <nil>
+	// true
+}
+
 // ExampleDelay waits before running the computation.
 func ExampleDelay() {
 	fmt.Println(exRun(rxCfg, F.Pipe1(rxScale(4), Delay[exConfig, int](time.Millisecond))))

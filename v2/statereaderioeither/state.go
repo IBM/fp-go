@@ -20,6 +20,7 @@ import (
 	"github.com/IBM/fp-go/v2/function"
 	"github.com/IBM/fp-go/v2/internal/statet"
 	"github.com/IBM/fp-go/v2/ioeither"
+	"github.com/IBM/fp-go/v2/readerio"
 	"github.com/IBM/fp-go/v2/readerioeither"
 )
 
@@ -126,6 +127,30 @@ func Chain[S, R, E, A, B any](f Kleisli[S, R, E, A, B]) Operator[S, R, E, A, B] 
 	)
 }
 
+// Flatten removes one level of nesting from a StateReaderIOEither that produces
+// another StateReaderIOEither. The state produced by the outer computation is
+// passed to the inner one; a failure of either computation fails the result.
+//
+// Type Parameters:
+//   - S: The state type
+//   - R: The context type
+//   - E: The error type
+//   - A: The value type of the inner computation
+//
+// Parameters:
+//   - mma: A StateReaderIOEither whose value is itself a StateReaderIOEither
+//
+// Returns:
+//   - StateReaderIOEither[S, R, E, A]: The flattened computation
+//
+// See Also:
+//   - Chain: Flatten is Chain with the identity function
+//
+//go:inline
+func Flatten[S, R, E, A any](mma StateReaderIOEither[S, R, E, StateReaderIOEither[S, R, E, A]]) StateReaderIOEither[S, R, E, A] {
+	return MonadChain(mma, function.Identity[StateReaderIOEither[S, R, E, A]])
+}
+
 // MonadAp applies a function wrapped in a StateReaderIOEither to a value wrapped in a StateReaderIOEither.
 // If either the function or the value fails, the error is propagated.
 // The state is threaded through both computations sequentially.
@@ -197,6 +222,12 @@ func FromIO[S, R, E, A any](fa IO[A]) StateReaderIOEither[S, R, E, A] {
 // The state is passed through unchanged.
 func FromReader[S, E, R, A any](fa Reader[R, A]) StateReaderIOEither[S, R, E, A] {
 	return FromReaderIOEither[S](readerioeither.FromReader[E](fa))
+}
+
+// FromReaderIO lifts a ReaderIO into a StateReaderIOEither.
+// The computation cannot fail and the state is passed through unchanged.
+func FromReaderIO[S, E, R, A any](fa readerio.ReaderIO[R, A]) StateReaderIOEither[S, R, E, A] {
+	return FromReaderIOEither[S](readerioeither.FromReaderIO[E](fa))
 }
 
 // FromEither lifts an Either into a StateReaderIOEither.

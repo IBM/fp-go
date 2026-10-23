@@ -158,6 +158,41 @@ func TestFlatten(t *testing.T) {
 	assert.Equal(t, result.Of(42), outcome)
 }
 
+func TestFlattenIO(t *testing.T) {
+	t.Run("runs the produced IO", func(t *testing.T) {
+		calls := 0
+		computation := FlattenIO(Of[AppConfig](IO[int](func() int { calls++; return 42 })))
+		assert.Equal(t, 0, calls)
+		assert.Equal(t, result.Of(42), computation(defaultConfig)(t.Context())())
+		assert.Equal(t, 1, calls)
+	})
+
+	t.Run("upstream failure skips the IO", func(t *testing.T) {
+		err := errors.New("upstream")
+		computation := FlattenIO(Left[AppConfig, IO[int]](err))
+		assert.Equal(t, result.Left[int](err), computation(defaultConfig)(t.Context())())
+	})
+}
+
+func TestFlattenIOResult(t *testing.T) {
+	err := errors.New("failed")
+
+	t.Run("runs the produced IOResult", func(t *testing.T) {
+		computation := FlattenIOResult(Of[AppConfig](ioresult.Of(42)))
+		assert.Equal(t, result.Of(42), computation(defaultConfig)(t.Context())())
+	})
+
+	t.Run("failed IOResult fails the computation", func(t *testing.T) {
+		computation := FlattenIOResult(Of[AppConfig](ioresult.Left[int](err)))
+		assert.Equal(t, result.Left[int](err), computation(defaultConfig)(t.Context())())
+	})
+
+	t.Run("upstream failure", func(t *testing.T) {
+		computation := FlattenIOResult(Left[AppConfig, IOResult[int]](err))
+		assert.Equal(t, result.Left[int](err), computation(defaultConfig)(t.Context())())
+	})
+}
+
 func TestFromEither(t *testing.T) {
 	t.Run("right", func(t *testing.T) {
 		computation := FromEither[AppConfig](either.Right[error](42))
