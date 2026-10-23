@@ -230,6 +230,10 @@ func fetchUser() EF.Kleisli[Deps, int, User] {
 `Effect[Deps, User]` IS `func(Deps) ReaderIOResult[User]`. `EF.Asks` is only for pure
 projections `func(Deps) A`; feeding it a function that returns a `ReaderIOResult`
 silently produces the nested `Effect[Deps, ReaderIOResult[User]]` — flag that as High.
+Suggest `EF.FromReaderThunk(f)` (or `EF.FromReaderIO` / `EF.FromReaderIOResult` for getters
+returning `IO` / `IOResult`). Likewise flag a `Map` step that returns an `IO`, `IOResult`,
+`ReaderIOResult` or `Effect`: use the matching `Chain*K`, or follow it with `EF.FlattenIO` /
+`FlattenIOResult` / `FlattenThunk` / `Flatten`.
 
 Also flag `EF.Map(f)` and `EF.Provide(deps)(eff)` without annotations — `Map[C, A, B]` usually
 cannot infer `C`, and `Provide[A, C]` cannot infer `A` through the function it returns. Write
