@@ -237,3 +237,15 @@ func OptionMonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) 
 func OptionUnwrap[A any](ma Option[A]) (A, bool) {
 	return ma.a, ma.s
 }
+
+// OptionWrap creates an Option from a value and a presence flag.
+// It is the inverse of OptionUnwrap: it returns OptionSome(a) if ok is true
+// and OptionNone otherwise. The value is discarded when ok is false.
+//
+//go:inline
+func OptionWrap[A any](a A, ok bool) Option[A] {
+	if ok {
+		return OptionSome(a)
+	}
+	return OptionNone[A]()
+}
