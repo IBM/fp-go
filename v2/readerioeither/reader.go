@@ -1156,6 +1156,39 @@ func Flatten[R, E, A any](mma ReaderIOEither[R, E, ReaderIOEither[R, E, A]]) Rea
 	return MonadChain(mma, function.Identity[ReaderIOEither[R, E, A]])
 }
 
+// FlattenIO runs the IO action produced by a ReaderIOEither and succeeds with its value.
+// Converts ReaderIOEither[R, E, IO[A]] to ReaderIOEither[R, E, A].
+//
+// See Also:
+//   - ChainIOK: FlattenIO is ChainIOK with the identity function
+//   - FlattenIOEither: Similar but the IO action may fail
+//
+//go:inline
+func FlattenIO[R, E, A any](mma ReaderIOEither[R, E, IO[A]]) ReaderIOEither[R, E, A] {
+	return MonadChainIOK(mma, function.Identity[IO[A]])
+}
+
+// FlattenIOEither runs the IOEither produced by a ReaderIOEither.
+// Converts ReaderIOEither[R, E, IOEither[E, A]] to ReaderIOEither[R, E, A]; a
+// failed IOEither fails the computation.
+//
+// See Also:
+//   - ChainIOEitherK: FlattenIOEither is ChainIOEitherK with the identity function
+//   - FlattenIO: Similar but the IO action cannot fail
+//
+//go:inline
+func FlattenIOEither[R, E, A any](mma ReaderIOEither[R, E, IOEither[E, A]]) ReaderIOEither[R, E, A] {
+	return MonadChainIOEitherK(mma, function.Identity[IOEither[E, A]])
+}
+
+// FromLazy lifts a lazy computation into a ReaderIOEither context.
+// The computation cannot fail and ignores the context.
+//
+//go:inline
+func FromLazy[R, E, A any](ma Lazy[A]) ReaderIOEither[R, E, A] {
+	return FromIO[R, E](ma)
+}
+
 // FromEither lifts an Either into a ReaderIOEither context.
 // The Either value is independent of any context or IO effects.
 //

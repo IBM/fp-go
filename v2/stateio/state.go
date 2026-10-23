@@ -103,6 +103,27 @@ func Chain[S, A, B any](f Kleisli[S, A, B]) Operator[S, A, B] {
 	)
 }
 
+// Flatten removes one level of nesting from a StateIO that produces another StateIO.
+// The state produced by the outer computation is passed to the inner one.
+//
+// Type Parameters:
+//   - S: The state type
+//   - A: The value type of the inner computation
+//
+// Parameters:
+//   - mma: A StateIO whose value is itself a StateIO
+//
+// Returns:
+//   - StateIO[S, A]: The flattened computation
+//
+// See Also:
+//   - Chain: Flatten is Chain with the identity function
+//
+//go:inline
+func Flatten[S, A any](mma StateIO[S, StateIO[S, A]]) StateIO[S, A] {
+	return MonadChain(mma, function.Identity[StateIO[S, A]])
+}
+
 // MonadAp applies a function wrapped in a StateIO to a value wrapped in a StateIO.
 // The state is threaded through both computations sequentially.
 // This is the applicative apply operation.

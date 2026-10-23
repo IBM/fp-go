@@ -128,6 +128,26 @@ func FromIO[R, A any](t IO[A]) ReaderIO[R, A] {
 	return reader.Of[R](t)
 }
 
+// FromLazy lifts a lazy computation into a ReaderIO that ignores its context.
+//
+// Type Parameters:
+//   - R: The context type (ignored)
+//   - A: The type of the computed value
+//
+// Parameters:
+//   - t: The lazy computation to lift
+//
+// Returns:
+//   - ReaderIO[R, A]: A ReaderIO that evaluates t when run
+//
+// See Also:
+//   - FromIO: Lifts an IO action
+//
+//go:inline
+func FromLazy[R, A any](t Lazy[A]) ReaderIO[R, A] {
+	return reader.Of[R](t)
+}
+
 // FromReader converts a [Reader] to a [ReaderIO] by lifting the pure computation into IO.
 // This allows you to use Reader computations in a ReaderIO context.
 //
