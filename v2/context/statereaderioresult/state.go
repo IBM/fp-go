@@ -129,28 +129,6 @@ func Chain[S, A, B any](f Kleisli[S, A, B]) Operator[S, A, B] {
 	)
 }
 
-// Flatten removes one level of nesting from a StateReaderIOResult that produces
-// another StateReaderIOResult. The state produced by the outer computation is
-// passed to the inner one; a failure of either computation fails the result.
-//
-// Type Parameters:
-//   - S: The state type
-//   - A: The value type of the inner computation
-//
-// Parameters:
-//   - mma: A StateReaderIOResult whose value is itself a StateReaderIOResult
-//
-// Returns:
-//   - StateReaderIOResult[S, A]: The flattened computation
-//
-// See Also:
-//   - Chain: Flatten is Chain with the identity function
-//
-//go:inline
-func Flatten[S, A any](mma StateReaderIOResult[S, StateReaderIOResult[S, A]]) StateReaderIOResult[S, A] {
-	return MonadChain(mma, function.Identity[StateReaderIOResult[S, A]])
-}
-
 // MonadAp applies a function wrapped in a StateReaderIOResult to a value wrapped in a StateReaderIOResult.
 // If either the function or the value fails, the error is propagated.
 // The state is threaded through both computations sequentially.
@@ -210,24 +188,6 @@ func FromState[S, A any](sa State[S, A]) StateReaderIOResult[S, A] {
 // The state is passed through unchanged and the context is ignored.
 func FromIO[S, A any](fa IO[A]) StateReaderIOResult[S, A] {
 	return FromReaderIOResult[S](RIORES.FromIO(fa))
-}
-
-// FromReader lifts a Reader on context.Context into a StateReaderIOResult.
-// The computation cannot fail and the state is passed through unchanged.
-func FromReader[S, A any](fa Reader[context.Context, A]) StateReaderIOResult[S, A] {
-	return FromReaderIOResult[S](RIORES.FromReader(fa))
-}
-
-// FromReaderIO lifts a ReaderIO on context.Context into a StateReaderIOResult.
-// The computation cannot fail and the state is passed through unchanged.
-func FromReaderIO[S, A any](fa RIORES.ReaderIO[A]) StateReaderIOResult[S, A] {
-	return FromReaderIOResult[S](RIORES.FromReaderIO(fa))
-}
-
-// FromReaderResult lifts a ReaderResult on context.Context into a StateReaderIOResult.
-// A failed result fails the computation; the state is passed through unchanged.
-func FromReaderResult[S, A any](fa RIORES.ReaderResult[A]) StateReaderIOResult[S, A] {
-	return FromReaderIOResult[S](RIORES.FromReaderResult(fa))
 }
 
 // FromResult lifts a Result into a StateReaderIOResult.

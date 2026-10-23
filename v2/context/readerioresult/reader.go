@@ -895,31 +895,6 @@ func Flatten[A any](rdr ReaderIOResult[ReaderIOResult[A]]) ReaderIOResult[A] {
 	return RIOR.Flatten(rdr)
 }
 
-// FlattenIO runs the IO action produced by a [ReaderIOResult] and succeeds with its value.
-// Converts ReaderIOResult[IO[A]] to ReaderIOResult[A].
-//
-// See Also:
-//   - ChainIOK: FlattenIO is ChainIOK with the identity function
-//   - FlattenIOResult: Similar but the IO action may fail
-//
-//go:inline
-func FlattenIO[A any](rdr ReaderIOResult[IO[A]]) ReaderIOResult[A] {
-	return RIOR.FlattenIO(rdr)
-}
-
-// FlattenIOResult runs the IOResult produced by a [ReaderIOResult].
-// Converts ReaderIOResult[IOResult[A]] to ReaderIOResult[A]; a failed IOResult
-// fails the computation.
-//
-// See Also:
-//   - ChainIOResultK: FlattenIOResult is ChainIOResultK with the identity function
-//   - FlattenIO: Similar but the IO action cannot fail
-//
-//go:inline
-func FlattenIOResult[A any](rdr ReaderIOResult[IOResult[A]]) ReaderIOResult[A] {
-	return RIOR.FlattenIOResult(rdr)
-}
-
 // MonadFlap applies a value to a function wrapped in a [ReaderIOResult].
 // This is the reverse of [MonadAp], useful in certain composition scenarios.
 //

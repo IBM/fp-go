@@ -687,31 +687,6 @@ func Flatten[R, C, E, A any](mma ReaderReaderIOEither[R, C, E, ReaderReaderIOEit
 	return MonadChain(mma, function.Identity[ReaderReaderIOEither[R, C, E, A]])
 }
 
-// FlattenIO runs the IO action produced by a ReaderReaderIOEither and succeeds with its value.
-// Converts ReaderReaderIOEither[R, C, E, IO[A]] to ReaderReaderIOEither[R, C, E, A].
-//
-// See Also:
-//   - ChainIOK: FlattenIO is ChainIOK with the identity function
-//   - FlattenIOEither: Similar but the IO action may fail
-//
-//go:inline
-func FlattenIO[R, C, E, A any](mma ReaderReaderIOEither[R, C, E, IO[A]]) ReaderReaderIOEither[R, C, E, A] {
-	return MonadChainIOK(mma, function.Identity[IO[A]])
-}
-
-// FlattenIOEither runs the IOEither produced by a ReaderReaderIOEither.
-// Converts ReaderReaderIOEither[R, C, E, IOEither[E, A]] to ReaderReaderIOEither[R, C, E, A];
-// a failed IOEither fails the computation.
-//
-// See Also:
-//   - ChainIOEitherK: FlattenIOEither is ChainIOEitherK with the identity function
-//   - FlattenIO: Similar but the IO action cannot fail
-//
-//go:inline
-func FlattenIOEither[R, C, E, A any](mma ReaderReaderIOEither[R, C, E, IOEither[E, A]]) ReaderReaderIOEither[R, C, E, A] {
-	return MonadChainIOEitherK(mma, function.Identity[IOEither[E, A]])
-}
-
 // FromEither lifts an Either into a ReaderReaderIOEither context.
 //
 //go:inline

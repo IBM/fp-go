@@ -118,7 +118,7 @@ Every monad exports these operations (PascalCase for exported Go names):
 | `Fold` | `fold` / `either` | Eliminate the context — handle every case and extract a plain value |
 | `GetOrElse` | `getOrElse` / `fromMaybe` | Extract the value or use a default (Option/Result) |
 | `Filter` | `filter` / `mfilter` | Keep only values satisfying a predicate |
-| `Flatten` | `flatten` / `join` | Remove one level of nesting (`M[M[A]]` → `M[A]`). Reader-IO monads also export `FlattenIO` (`M[IO[A]]`) and `FlattenIOResult` / `FlattenIOEither` (`M[IOResult[A]]`); `Effect` adds `FlattenThunk` |
+| `Flatten` | `flatten` / `join` | Remove one level of nesting (`M[M[A]]` → `M[A]`) |
 | `ChainFirst` | `chainFirst` / `>>` | Sequence for side effects; keeps the original value (IO-based monads also export it as `Tap`; prefer that name for logging) |
 | `Alt` | `alt` / `<|>` | Provide an alternative when the first computation fails |
 | `FromPredicate` | `fromPredicate` / `guard` | Build a monadic value from a predicate |
@@ -435,14 +435,10 @@ value, err := EF.RunSync(thunk)(ctx) // RunSync gives back idiomatic (A, error)
 | `EF.FromIO[C](io)` | `IO[A] → Effect[C, A]` | a plain `IO` |
 | `EF.FromThunk[C](t)` | `ReaderIOResult[A] → Effect[C, A]` | a dep-free `ReaderIOResult` |
 | `EF.FromReader(r)` / `EF.FromReaderResult(r)` | `Reader[C, A]` / `ReaderResult[C, A] → Effect[C, A]` | same as `Asks` / a fallible projection |
-| `EF.FromReaderIO(r)` / `EF.FromReaderIOResult(r)` | `func(C) IO[A]` / `func(C) IOResult[A]` (non-context `readerioresult.ReaderIOResult[C, A]`) `→ Effect[C, A]` | an effectful projection that cannot / can fail |
-| `EF.FromReaderThunk(r)` | `func(C) ReaderIOResult[A] → Effect[C, A]` | a projection to a context-aware action (avoids the nested result of `Asks`) |
 | `EF.FromResultI[C](a, err)` / `EF.FromThunkI[C](f)` | `(A, error)` / `func(ctx) func() (A, error)` → `Effect[C, A]` | idiomatic values |
 | `EF.Eitherize1(f)` | `func(C, context.Context, A) (T, error) → Kleisli[C, A, T]` | an idiomatic method taking deps **and** ctx |
 | `EF.FromIdiomatic(f)` | `KleisliI[C, A, B] → Kleisli[C, A, B]` | a service method `func(A) func(context.Context, C) (B, error)` |
 | `EF.ChainResultIK[C](f)` | `func(A) (B, error) → Operator[C, A, B]` | a plain Go function as a pipeline step |
-
-**Flattening mid-pipeline:** after a `Map` step that produced a nested value, remove the nesting with `EF.Flatten` (`Effect[C, Effect[C, A]]`), `EF.FlattenIO` (`Effect[C, IO[A]]`), `EF.FlattenIOResult` (`Effect[C, IOResult[A]]`) or `EF.FlattenThunk` (`Effect[C, ReaderIOResult[A]]`). Each is the matching `Chain*K` with the identity function; prefer the `Chain*K` directly when you control the step.
 
 Running: `EF.Provide[A](deps)` → `ReaderIOResult[A]`, then `EF.RunSync(thunk)(ctx)` → `(A, error)`.
 `EF.Local(f)` narrows an outer dep struct to an inner one for a subsystem.
@@ -699,7 +695,7 @@ parse("abc") // Error(strconv parse error)
 | `Chain(func(a A) M[B] { return F.Pipe1(f(a.X), op) })` | `Chain(F.Flow3(getX, f, op))` |
 | Hand-written `func(ctx) func() Result[A]` around a `func(ctx, …) (A, error)` | `RIO.Eitherize1(f)` (or `EF.Eitherize1` for `func(C, ctx, …)`) |
 | Same letter aliasing two packages (`R` for `result` in one file, `reader` in another) | Use the canonical alias table above |
-| `Map` with a function that returns `Option` / `Result` / another monad | Produces nested `M[M[A]]`. Use `Chain` (or `Flatten`) for `A → M[B]`, and `ChainIOK` / `ChainIOResultK` (or `FlattenIO` / `FlattenIOResult` / `FlattenThunk`) for `A → IO[B]` / `IOResult[B]` / `ReaderIOResult[B]`; reserve `Map` for plain `A → B`. |
+| `Map` with a function that returns `Option` / `Result` / another monad | Produces nested `M[M[A]]`. Use `Chain` (or `Flatten`) for `A → M[B]`; reserve `Map` for plain `A → B`. |
 | `RIO.ChainResultK(R.Eitherize1(f))` for a plain `func(A) (B, error)` | `RIO.ChainResultIK(f)` (likewise `EF.ChainResultIK[C](f)`, `R.ChainI(f)`) |
 | A function that calls itself through `Chain` to loop (pagination, polling) | `TailRec` with `tailrec.Bounce` / `tailrec.Land`; recursion through `Chain` grows the stack and is not cancellable between steps |
 | Closure passed to `Map` / `Chain` mutates a captured variable (slice `append`, counter `++`) | Keep it pure — derive and return new values. A mutating closure silently defeats fp-go's guarantees and breaks under `Traverse` / concurrency. |

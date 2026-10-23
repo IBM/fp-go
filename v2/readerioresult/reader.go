@@ -656,31 +656,6 @@ func Flatten[R, A any](mma ReaderIOResult[R, ReaderIOResult[R, A]]) ReaderIOResu
 	return RIOE.Flatten(mma)
 }
 
-// FlattenIO runs the IO action produced by a ReaderIOResult and succeeds with its value.
-// Converts ReaderIOResult[R, IO[A]] to ReaderIOResult[R, A].
-//
-// See Also:
-//   - ChainIOK: FlattenIO is ChainIOK with the identity function
-//   - FlattenIOResult: Similar but the IO action may fail
-//
-//go:inline
-func FlattenIO[R, A any](mma ReaderIOResult[R, IO[A]]) ReaderIOResult[R, A] {
-	return RIOE.FlattenIO(mma)
-}
-
-// FlattenIOResult runs the IOResult produced by a ReaderIOResult.
-// Converts ReaderIOResult[R, IOResult[A]] to ReaderIOResult[R, A]; a failed
-// IOResult fails the computation.
-//
-// See Also:
-//   - ChainIOResultK: FlattenIOResult is ChainIOResultK with the identity function
-//   - FlattenIO: Similar but the IO action cannot fail
-//
-//go:inline
-func FlattenIOResult[R, A any](mma ReaderIOResult[R, IOResult[A]]) ReaderIOResult[R, A] {
-	return RIOE.FlattenIOEither(mma)
-}
-
 // FromEither lifts an Either into a ReaderIOResult context.
 // The Either value is independent of any context or IO effects.
 //
@@ -763,22 +738,6 @@ func FromIOResult[R, A any](ma IOResult[A]) ReaderIOResult[R, A] {
 //go:inline
 func FromReaderEither[R, A any](ma RE.ReaderEither[R, error, A]) ReaderIOResult[R, A] {
 	return RIOE.FromReaderEither(ma)
-}
-
-// FromReaderResult lifts a ReaderResult into a ReaderIOResult context.
-// Alias for FromReaderEither with more explicit naming.
-//
-//go:inline
-func FromReaderResult[R, A any](ma ReaderResult[R, A]) ReaderIOResult[R, A] {
-	return RIOE.FromReaderEither(ma)
-}
-
-// FromLazy lifts a lazy computation into a ReaderIOResult context.
-// The computation cannot fail and ignores the context.
-//
-//go:inline
-func FromLazy[R, A any](ma Lazy[A]) ReaderIOResult[R, A] {
-	return RIOE.FromLazy[R, error](ma)
 }
 
 // Ask returns a ReaderIOResult that retrieves the current context.

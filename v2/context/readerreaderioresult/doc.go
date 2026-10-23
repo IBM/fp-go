@@ -152,7 +152,7 @@
 //   - FromReaderIO: Lift a ReaderIO into ReaderReaderIOEither
 //   - FromIOEither: Lift an IOEither into ReaderReaderIOEither
 //   - FromReaderEither: Lift a ReaderEither into ReaderReaderIOEither
-//   - FromReaderIOResult: Lift a ReaderIOResult into ReaderReaderIOResult
+//   - FromReaderIOEither: Lift a ReaderIOEither into ReaderReaderIOEither
 //   - FromReaderOption: Lift a ReaderOption into ReaderReaderIOEither
 //
 // Transformation:

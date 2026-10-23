@@ -48,7 +48,7 @@ type-parameter or argument-order errors before presenting it.
 | Operator | RIO | RR | RIOC | SRIO | IRR | CR |
 |----------|:---:|:--:|:----:|:----:|:---:|:--:|
 | `Ask()` | ✓ (alias `Identity()`) | ✓ | ✓ |  | ✓ | |
-| `FromReader(f)` / `Asks(f)` | ✓ | ✓ | ✓ | `FromReader[S]` (`Asks` takes `func(ctx) StateReaderIOResult[S, A]`) | ✓ | |
+| `FromReader(f)` / `Asks(f)` | ✓ | ✓ | ✓ | `Asks` | ✓ | |
 | `AskValue[V](key)` | ✓ | ✓ | ✓ | ✓ (`[S, V]`) | ✓ | ✓ |
 | `WithValue[A](key, v)` | ✓ | ✓ | ✓ | ✓ (`[S, A]`) | ✓ | Kleisli form |
 | `WithTimeout[A](d)` / `WithDeadline[A](t)` | ✓ | ✓ | ✓ | ✓ (`[S, A]`) | ✓ | |
@@ -94,8 +94,6 @@ fetchGo := RIO.Uneitherize1(fetch)                    // func(context.Context, s
 The lifted function receives the pipeline's (possibly scoped) context — timeouts and values applied with the operators below reach it automatically.
 
 Plain Go functions *without* a context are lifted as pipeline steps with the idiomatic `…IK` operators: `RIO.ChainResultIK(strconv.Atoi)` for `func(A) (B, error)`, `RIO.ChainReaderResultIK(f)` for `func(A) func(ctx) (B, error)`, and `RIO.FromResultI(v, err)` for a `(A, error)` pair.
-
-If an earlier `Map` step produced an action that still has to run, flatten it in place: `RIO.Flatten` for `ReaderIOResult[ReaderIOResult[A]]`, `RIO.FlattenIO` for `ReaderIOResult[IO[A]]`, `RIO.FlattenIOResult` for `ReaderIOResult[IOResult[A]]`.
 
 ## 3. Reading the Context
 
