@@ -131,3 +131,32 @@ func MonadFold[A, B any](ma Option[A], onNone func() B, onSome func(A) B) B {
 func Unwrap[A any](ma Option[A]) (A, bool) {
 	return common.OptionUnwrap(ma)
 }
+
+// Wrap creates an Option from a value and a presence flag, the idiomatic Go
+// comma-ok tuple (A, bool).
+//
+// It is the inverse of Unwrap: Wrap returns Some(a) if ok is true and None
+// otherwise. When ok is false the value is discarded, so the result is equal
+// to None[A]() regardless of a. Because Go spreads multi-value returns into
+// function calls, Wrap can be applied directly to any comma-ok function call,
+// and Wrap(Unwrap(o)) equals o for every Option o.
+//
+// Type Parameters:
+//   - A: The type of the value
+//
+// Parameters:
+//   - a: The value to wrap
+//   - ok: Whether the value is present
+//
+// Returns:
+//   - Option[A]: Some(a) if ok is true, None otherwise
+//
+// See Also:
+//   - Unwrap: the inverse, converts Option[A] to (A, bool)
+//   - Optionize1: lifts a comma-ok function func(T) (A, bool) to func(T) Option[A]
+//   - FromNillable: creates an Option from a pointer
+//
+//go:inline
+func Wrap[A any](a A, ok bool) Option[A] {
+	return common.OptionWrap(a, ok)
+}

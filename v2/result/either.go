@@ -295,6 +295,34 @@ func TryCatchError[A any](val A, err error) Result[A] {
 	return either.TryCatchError(val, err)
 }
 
+// Wrap converts an idiomatic Go (value, error) tuple into a Result[A].
+//
+// Wrap is an alias for TryCatchError, named for symmetry with option.Wrap and
+// either.Wrap. It returns Left(err) if err is non-nil and Right(a) otherwise.
+// Because Go spreads multi-value returns into function calls, Wrap can be
+// applied directly to any call that returns (A, error), and Wrap(Unwrap(r))
+// equals r for every Result r whose Left value is a non-nil error.
+//
+// Type Parameters:
+//   - A: The type of the success value
+//
+// Parameters:
+//   - a: The success value, ignored if err is non-nil
+//   - err: The error, nil on success
+//
+// Returns:
+//   - Result[A]: Left(err) if err is non-nil, Right(a) otherwise
+//
+// See Also:
+//   - TryCatchError: the function Wrap is an alias for
+//   - Unwrap: the inverse, converts Result[A] to (A, error)
+//   - Eitherize1: lifts a function func(T) (A, error) to func(T) Result[A]
+//
+//go:inline
+func Wrap[A any](a A, err error) Result[A] {
+	return either.Wrap(a, err)
+}
+
 // Sequence2 sequences two Either values using a combining function.
 // Short-circuits on the first Left encountered.
 //
