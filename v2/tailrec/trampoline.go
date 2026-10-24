@@ -117,3 +117,173 @@ func (t Trampoline[B, L]) Format(f fmt.State, verb rune) {
 		fmt.Fprintf(f, "%%!%c(Trampoline[B, L]=%s)", verb, t.String())
 	}
 }
+
+// IsLand reports whether the Trampoline has landed, i.e. the computation is
+// complete and carries a final result.
+//
+// Returns:
+//   - bool: true if the Trampoline is in the "land" state
+//
+// See Also:
+//   - IsBounce: the complementary check
+//   - GetLand: extracts the final result
+//
+//go:inline
+func (t Trampoline[B, L]) IsLand() bool {
+	return t.Landed
+}
+
+// IsBounce reports whether the Trampoline bounces, i.e. the computation
+// continues with an intermediate state.
+//
+// Returns:
+//   - bool: true if the Trampoline is in the "bounce" state
+//
+// See Also:
+//   - IsLand: the complementary check
+//   - GetBounce: extracts the intermediate state
+//
+//go:inline
+func (t Trampoline[B, L]) IsBounce() bool {
+	return !t.Landed
+}
+
+// GetLand returns the final result of a landed Trampoline as an idiomatic
+// comma-ok tuple.
+//
+// Returns:
+//   - L: The final result, or the zero value of L if the Trampoline bounces
+//   - bool: true if the Trampoline is in the "land" state
+//
+// See Also:
+//   - GetBounce: extracts the intermediate state
+//   - IsLand: checks the state without extracting the value
+//
+//go:inline
+func (t Trampoline[B, L]) GetLand() (L, bool) {
+	if t.Landed {
+		return t.Land, true
+	}
+	var l L
+	return l, false
+}
+
+// GetBounce returns the intermediate state of a bouncing Trampoline as an
+// idiomatic comma-ok tuple.
+//
+// Returns:
+//   - B: The intermediate state, or the zero value of B if the Trampoline has landed
+//   - bool: true if the Trampoline is in the "bounce" state
+//
+// See Also:
+//   - GetLand: extracts the final result
+//   - IsBounce: checks the state without extracting the value
+//
+//go:inline
+func (t Trampoline[B, L]) GetBounce() (B, bool) {
+	if t.Landed {
+		var b B
+		return b, false
+	}
+	return t.Bounce, true
+}
+
+// IsLand reports whether a Trampoline has landed, i.e. the computation is
+// complete and carries a final result.
+//
+// It is the standalone form of Trampoline.IsLand and can be used as a predicate.
+//
+// Type Parameters:
+//   - B: The intermediate state type (bounce type)
+//   - L: The final result type (land type)
+//
+// Parameters:
+//   - t: The Trampoline to inspect
+//
+// Returns:
+//   - bool: true if t is in the "land" state
+//
+// See Also:
+//   - IsBounce: the complementary check
+//   - GetLand: extracts the final result
+//
+//go:inline
+func IsLand[B, L any](t Trampoline[B, L]) bool {
+	return t.IsLand()
+}
+
+// IsBounce reports whether a Trampoline bounces, i.e. the computation
+// continues with an intermediate state.
+//
+// It is the standalone form of Trampoline.IsBounce and can be used as a predicate.
+//
+// Type Parameters:
+//   - B: The intermediate state type (bounce type)
+//   - L: The final result type (land type)
+//
+// Parameters:
+//   - t: The Trampoline to inspect
+//
+// Returns:
+//   - bool: true if t is in the "bounce" state
+//
+// See Also:
+//   - IsLand: the complementary check
+//   - GetBounce: extracts the intermediate state
+//
+//go:inline
+func IsBounce[B, L any](t Trampoline[B, L]) bool {
+	return t.IsBounce()
+}
+
+// GetLand returns the final result of a landed Trampoline as an idiomatic
+// comma-ok tuple.
+//
+// It is the standalone form of Trampoline.GetLand. Combine it with
+// option.FromValidation to obtain an Option.
+//
+// Type Parameters:
+//   - B: The intermediate state type (bounce type)
+//   - L: The final result type (land type)
+//
+// Parameters:
+//   - t: The Trampoline to inspect
+//
+// Returns:
+//   - L: The final result, or the zero value of L if t bounces
+//   - bool: true if t is in the "land" state
+//
+// See Also:
+//   - GetBounce: extracts the intermediate state
+//   - Land: the inverse, constructs a landed Trampoline
+//
+//go:inline
+func GetLand[B, L any](t Trampoline[B, L]) (L, bool) {
+	return t.GetLand()
+}
+
+// GetBounce returns the intermediate state of a bouncing Trampoline as an
+// idiomatic comma-ok tuple.
+//
+// It is the standalone form of Trampoline.GetBounce. Combine it with
+// option.FromValidation to obtain an Option.
+//
+// Type Parameters:
+//   - B: The intermediate state type (bounce type)
+//   - L: The final result type (land type)
+//
+// Parameters:
+//   - t: The Trampoline to inspect
+//
+// Returns:
+//   - B: The intermediate state, or the zero value of B if t has landed
+//   - bool: true if t is in the "bounce" state
+//
+// See Also:
+//   - GetLand: extracts the final result
+//   - Bounce: the inverse, constructs a bouncing Trampoline
+//
+//go:inline
+func GetBounce[B, L any](t Trampoline[B, L]) (B, bool) {
+	return t.GetBounce()
+}

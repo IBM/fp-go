@@ -49,6 +49,78 @@ func ExampleLand() {
 	// Final result: done
 }
 
+// ExampleGetLand demonstrates extracting the final result of a trampoline.
+func ExampleGetLand() {
+	fmt.Println(tailrec.GetLand(tailrec.Land[int]("done")))
+	fmt.Println(tailrec.GetLand(tailrec.Bounce[string](42)))
+
+	// Output:
+	// done true
+	//  false
+}
+
+// ExampleGetBounce demonstrates extracting the intermediate state of a trampoline.
+func ExampleGetBounce() {
+	fmt.Println(tailrec.GetBounce(tailrec.Bounce[string](42)))
+	fmt.Println(tailrec.GetBounce(tailrec.Land[int]("done")))
+
+	// Output:
+	// 42 true
+	// 0 false
+}
+
+// ExampleIsLand demonstrates checking whether a trampoline has landed.
+func ExampleIsLand() {
+	fmt.Println(tailrec.IsLand(tailrec.Land[int]("done")))
+	fmt.Println(tailrec.IsLand(tailrec.Bounce[string](42)))
+
+	// Output:
+	// true
+	// false
+}
+
+// ExampleIsBounce demonstrates checking whether a trampoline bounces.
+func ExampleIsBounce() {
+	fmt.Println(tailrec.IsBounce(tailrec.Bounce[string](42)))
+	fmt.Println(tailrec.IsBounce(tailrec.Land[int]("done")))
+
+	// Output:
+	// true
+	// false
+}
+
+// ExampleTrampoline_GetLand demonstrates the GetLand method.
+func ExampleTrampoline_GetLand() {
+	fmt.Println(tailrec.Land[int]("done").GetLand())
+
+	// Output:
+	// done true
+}
+
+// ExampleTrampoline_GetBounce demonstrates the GetBounce method.
+func ExampleTrampoline_GetBounce() {
+	fmt.Println(tailrec.Bounce[string](42).GetBounce())
+
+	// Output:
+	// 42 true
+}
+
+// ExampleTrampoline_IsLand demonstrates the IsLand method.
+func ExampleTrampoline_IsLand() {
+	fmt.Println(tailrec.Land[int]("done").IsLand())
+
+	// Output:
+	// true
+}
+
+// ExampleTrampoline_IsBounce demonstrates the IsBounce method.
+func ExampleTrampoline_IsBounce() {
+	fmt.Println(tailrec.Bounce[string](42).IsBounce())
+
+	// Output:
+	// true
+}
+
 // Example_field_access demonstrates accessing trampoline fields directly.
 func Example_field_access() {
 	// Create a bounce trampoline
