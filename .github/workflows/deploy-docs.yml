@@ -1,0 +1,84 @@
+name: Deploy Documentation to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'fp-go-docs/**'
+      - 'v2/samples/**'
+      - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'fp-go-docs/**'
+      - 'v2/samples/**'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fp-go-docs
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Install embedmd
+        run: go install github.com/campoy/embedmd@latest
+      
+      - name: Validate Go Examples Compile
+        run: |
+          cd v2/samples
+          go test -v ./...
+        working-directory: ${{ github.workspace }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: npm
+          cache-dependency-path: fp-go-docs/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Verify embedmd processes without errors
+        run: |
+          echo "🔨 Running embedmd to inject code examples..."
+          npm run preprocess
+          echo "✅ embedmd completed successfully"
+          
+          echo "📊 Checking if any files were modified..."
+          if git diff --quiet docs/; then
+            echo "✅ No unexpected changes detected"
+          else
+            echo "ℹ️  Files modified by embedmd (expected):"
+            git diff --stat docs/
+          fi
+      
+      - name: Build website
+        run: npm run build
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./fp-go-docs/build
+          publish_branch: gh-pages
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+
